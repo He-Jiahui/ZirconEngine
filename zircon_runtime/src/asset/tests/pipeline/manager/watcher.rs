@@ -465,12 +465,10 @@ fn project_manager_split_move_events_reconcile_sidecar_identity_as_rename() {
             .id(),
         crate::asset::AssetId::from_asset_uuid(original_uuid),
     );
-    assert!(
-        manager
-            .asset_registry()
-            .resolve_asset_id_by_path(&old_uri)
-            .is_err()
-    );
+    assert!(manager
+        .asset_registry()
+        .resolve_asset_id_by_path(&old_uri)
+        .is_err());
     assert_eq!(
         manager.asset_registry().resolve_asset_id_by_path(&new_uri),
         Ok(crate::asset::AssetId::from_asset_uuid(original_uuid)),

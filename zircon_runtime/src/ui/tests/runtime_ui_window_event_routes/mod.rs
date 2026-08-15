@@ -44,12 +44,14 @@ fn input_metadata() -> UiInputEventMetadata {
 fn input_context() -> UiWindowInputContext {
     UiWindowInputContext {
         metadata: input_metadata(),
+        ..UiWindowInputContext::default()
     }
     .with_pointer_id(UiPointerId::new(29))
 }
 fn navigation_input_context() -> UiWindowInputContext {
     UiWindowInputContext {
         metadata: input_metadata(),
+        ..UiWindowInputContext::default()
     }
 }
 fn node_id_by_control_id(manager: &RuntimeUiManager, control_id: &str) -> UiNodeId {

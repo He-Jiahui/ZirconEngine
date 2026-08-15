@@ -1,12 +1,12 @@
 use crate::core::math::UVec2;
 
 use super::{
-    RenderCameraTargetWritebackReport, RenderCapabilityClass, RenderCapabilityKind,
-    RenderCapabilityMismatchDetail, RenderCapabilitySummary, RenderGraphExecutionCoverageReport,
-    RenderGraphStageExecutionReport, RenderHistoryCopyReport, RenderQualityProfile,
-    normalize_texture_max_anisotropy,
+    normalize_texture_max_anisotropy, RenderCameraTargetWritebackReport, RenderCapabilityClass,
+    RenderCapabilityKind, RenderCapabilityMismatchDetail, RenderCapabilitySummary,
+    RenderGraphExecutionCoverageReport, RenderGraphStageExecutionReport, RenderHistoryCopyReport,
+    RenderQualityProfile,
 };
-use crate::core::framework::render::{DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA, TaaQualityPreset};
+use crate::core::framework::render::{TaaQualityPreset, DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA};
 
 #[test]
 fn render_contract_root_exposes_graph_pass_profile_metrics() {
@@ -285,16 +285,12 @@ fn capability_class_report_includes_subgroup_and_pipeline_statistics_gates() {
 
     let experimental = capabilities.capability_class_report(RenderCapabilityClass::Experimental);
 
-    assert!(
-        experimental
-            .satisfied
-            .contains(&RenderCapabilityKind::SubgroupOps)
-    );
-    assert!(
-        experimental
-            .satisfied
-            .contains(&RenderCapabilityKind::PipelineStatisticsQuery)
-    );
+    assert!(experimental
+        .satisfied
+        .contains(&RenderCapabilityKind::SubgroupOps));
+    assert!(experimental
+        .satisfied
+        .contains(&RenderCapabilityKind::PipelineStatisticsQuery));
 }
 
 #[test]
@@ -426,9 +422,7 @@ fn hzb_occlusion_culling_requires_storage_buffers_gpu_driven_and_binding_capacit
             ..RenderCapabilitySummary::default()
         },
     ] {
-        assert!(
-            !capabilities
-                .hzb_occlusion_culling_supported(REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE)
-        );
+        assert!(!capabilities
+            .hzb_occlusion_culling_supported(REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE));
     }
 }

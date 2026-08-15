@@ -8,9 +8,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use fields
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use labels::nested_label_rect;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::{
-    INSPECTOR_CHEVRON_SIZE, INSPECTOR_COUNT_WIDTH, INSPECTOR_FIELD_RIGHT_PAD,
-    INSPECTOR_FIELD_TEXT_X, INSPECTOR_LABEL_WIDTH, INSPECTOR_ROW_TEXT_Y, InspectorRowMetrics,
-    inspector_row_metrics, is_paintable_rect,
+    inspector_row_metrics, is_paintable_rect, InspectorRowMetrics, INSPECTOR_CHEVRON_SIZE,
+    INSPECTOR_COUNT_WIDTH, INSPECTOR_FIELD_RIGHT_PAD, INSPECTOR_FIELD_TEXT_X,
+    INSPECTOR_LABEL_WIDTH, INSPECTOR_ROW_TEXT_Y,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use shadows::{
     shadow_check_content_offset_x, shadow_check_rect,

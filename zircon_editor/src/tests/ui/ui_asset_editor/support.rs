@@ -52,7 +52,7 @@ pub(super) const UI_ASSET_EDITOR_RUNTIME_QUEST_LOG_ZUI: &str = include_str!(conc
 ));
 pub(super) const UI_ASSET_EDITOR_BOOTSTRAP_STYLE_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/theme/editor_material.zui"
+    "/assets/ui/editor/theme/editor_tokens.zui"
 ));
 
 const ZUI_EDITOR_BASE_STYLE_TOML: &str = include_str!(concat!(

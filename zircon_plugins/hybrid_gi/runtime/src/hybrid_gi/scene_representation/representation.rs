@@ -1,18 +1,18 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use zircon_runtime::core::framework::render::{
-    render_mesh_stable_instance_key, render_mesh_transform_revision, LightmapConsumeContract,
-    RenderDirectionalLightSnapshot, RenderHybridGiCompositePolicy, RenderHybridGiDebugView,
-    RenderHybridGiExtract, RenderHybridGiFallbackReason, RenderHybridGiMode, RenderHybridGiProfile,
-    RenderHybridGiQuality, RenderHybridGiResolvedSettings, RenderLayerSet, RenderMeshSnapshot,
-    RenderMeshStaticState, RenderPointLightSnapshot, RenderSpotLightSnapshot, RendererCommon,
+    LightmapConsumeContract, RenderDirectionalLightSnapshot, RenderHybridGiCompositePolicy,
+    RenderHybridGiDebugView, RenderHybridGiExtract, RenderHybridGiFallbackReason,
+    RenderHybridGiMode, RenderHybridGiProfile, RenderHybridGiQuality,
+    RenderHybridGiResolvedSettings, RenderMeshSnapshot, RenderPointLightSnapshot,
+    RenderSpotLightSnapshot,
 };
 use zircon_runtime::core::framework::scene::Mobility;
-use zircon_runtime::core::math::{Transform, Vec3, Vec4};
-use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
+use zircon_runtime::core::math::Vec3;
 
 use super::input_set::HybridGiInputSet;
 use super::participation::{HybridGiParticipationState, HybridGiSurfaceParticipation};
+use super::placeholder_mesh::placeholder_mesh;
 use super::radiance_cache_state::HybridGiRadianceCacheState;
 use super::screen_probe_state::HybridGiScreenProbeState;
 use super::source_ledger::HybridGiSourceLedger;
@@ -268,6 +268,46 @@ impl HybridGiSceneRepresentation {
         self.radiance_cache.entry_count()
     }
 
+    pub(crate) fn radiance_cache_resident_probe_count(&self) -> usize {
+        self.radiance_cache.resident_probe_count()
+    }
+
+    pub(crate) fn radiance_cache_update_probe_count(&self) -> usize {
+        self.radiance_cache.update_probe_count()
+    }
+
+    pub(in crate::hybrid_gi) fn radiance_cache_gpu_updates(
+        &self,
+    ) -> Vec<crate::hybrid_gi::HybridGiPrepareRadianceCacheUpdate> {
+        self.radiance_cache.gpu_updates()
+    }
+
+    pub(in crate::hybrid_gi) fn radiance_cache_gpu_bootstrap_updates(
+        &self,
+    ) -> Vec<crate::hybrid_gi::HybridGiPrepareRadianceCacheUpdate> {
+        self.radiance_cache.gpu_bootstrap_updates()
+    }
+
+    pub(in crate::hybrid_gi) fn radiance_cache_gpu_consumes(
+        &self,
+    ) -> Vec<crate::hybrid_gi::HybridGiPrepareRadianceCacheConsume> {
+        self.radiance_cache
+            .gpu_consumes(self.screen_probes.descriptors())
+    }
+
+    pub(crate) fn radiance_cache_truncated_demand_count(&self) -> usize {
+        self.radiance_cache.truncated_demand_count()
+    }
+
+    pub(crate) fn radiance_cache_generation(&self) -> u64 {
+        self.radiance_cache.generation()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn radiance_cache_last_sampled_demand_count(&self) -> usize {
+        self.radiance_cache.last_sampled_demand_count()
+    }
+
     pub(in crate::hybrid_gi) fn surface_cache_mut(&mut self) -> &mut HybridGiSurfaceCacheState {
         &mut self.surface_cache
     }
@@ -286,6 +326,13 @@ impl HybridGiSceneRepresentation {
         self.cards
             .iter()
             .map(|card| (card.card_id, (card.bounds_center, card.bounds_radius)))
+            .collect()
+    }
+
+    pub(in crate::hybrid_gi) fn card_owner_stable_instance_keys(&self) -> Vec<(u32, u64)> {
+        self.cards
+            .iter()
+            .map(|card| (card.card_id, card.stable_instance_key))
             .collect()
     }
 
@@ -374,6 +421,30 @@ impl HybridGiSceneRepresentation {
         baked_lighting: Option<&LightmapConsumeContract>,
         has_baked_probe_grid: bool,
     ) {
+        self.synchronize_scene_with_baked_and_view_state(
+            meshes,
+            directional_lights,
+            point_lights,
+            spot_lights,
+            baked_lighting,
+            has_baked_probe_grid,
+            None,
+            false,
+        );
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn synchronize_scene_with_baked_and_view_state(
+        &mut self,
+        meshes: &[RenderMeshSnapshot],
+        directional_lights: &[RenderDirectionalLightSnapshot],
+        point_lights: &[RenderPointLightSnapshot],
+        spot_lights: &[RenderSpotLightSnapshot],
+        baked_lighting: Option<&LightmapConsumeContract>,
+        has_baked_probe_grid: bool,
+        radiance_cache_camera_position: Option<Vec3>,
+        radiance_cache_history_invalidated: bool,
+    ) {
         self.settings.effective_mode = if self.settings.mode
             == RenderHybridGiMode::BakedStaticDynamic
             && baked_lighting.is_none()
@@ -446,6 +517,9 @@ impl HybridGiSceneRepresentation {
             self.screen_probes.descriptors(),
             &self.surface_cache,
             &self.voxel_scene,
+            radiance_cache_camera_position,
+            radiance_cache_history_invalidated,
+            self.participation.participation_epoch(),
         );
 
         self.card_capture_requests = build_card_capture_requests(&cards, &self.surface_cache);
@@ -565,6 +639,28 @@ impl HybridGiSceneRepresentation {
     #[cfg(test)]
     pub(crate) fn radiance_cache_probe_demands(&self) -> Vec<(u32, [i32; 3])> {
         self.radiance_cache.probe_demands()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn radiance_cache_resident_probes(
+        &self,
+    ) -> Vec<(u32, [i32; 3], u32, u64, u64, u64, u64)> {
+        self.radiance_cache.resident_probes()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn radiance_cache_resident_samples(
+        &self,
+    ) -> Vec<(u32, [i32; 3], [u8; 3], u8, &'static str)> {
+        self.radiance_cache.resident_samples()
+    }
+
+    pub(crate) fn radiance_cache_scroll_count(&self) -> u64 {
+        self.radiance_cache.scroll_count()
+    }
+
+    pub(crate) fn radiance_cache_history_clear_count(&self) -> u64 {
+        self.radiance_cache.history_clear_count()
     }
 
     #[cfg(test)]
@@ -698,32 +794,4 @@ fn sorted_spot_lights(lights: &[RenderSpotLightSnapshot]) -> Vec<RenderSpotLight
     let mut lights = lights.to_vec();
     lights.sort_by_key(|light| light.node_id);
     lights
-}
-
-fn placeholder_mesh(card_id: u32) -> RenderMeshSnapshot {
-    let node_id = u64::from(card_id);
-    let transform = Transform::identity();
-    RenderMeshSnapshot {
-        node_id,
-        stable_instance_key: render_mesh_stable_instance_key(node_id, 0),
-        transform_revision: render_mesh_transform_revision(&transform),
-        transform,
-        model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(&format!(
-            "builtin://hybrid-gi/card/{card_id}/model"
-        ))),
-        mesh: None,
-        material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(&format!(
-            "builtin://hybrid-gi/card/{card_id}/material"
-        ))),
-        mesh_lod: None,
-        morph_weights: Vec::new(),
-        tint: Vec4::ONE,
-        mobility: Mobility::Static,
-        static_state: RenderMeshStaticState::from_transform_static(true),
-        common: RendererCommon {
-            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
-            is_static: true,
-            ..RendererCommon::default()
-        },
-    }
 }

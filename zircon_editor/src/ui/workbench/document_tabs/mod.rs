@@ -1,9 +1,9 @@
 mod metrics;
 
 pub(crate) use metrics::{
-    document_tab_close_x, document_tab_preferred_width_from_title_width,
     DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH, DOCUMENT_TAB_CLOSE_EXTENT, DOCUMENT_TAB_CLOSE_RIGHT_INSET,
     DOCUMENT_TAB_CLOSE_TOP_INSET, DOCUMENT_TAB_GAP, DOCUMENT_TAB_HEIGHT, DOCUMENT_TAB_MAX_WIDTH,
     DOCUMENT_TAB_MIN_WIDTH, DOCUMENT_TAB_STRIP_X, DOCUMENT_TAB_STRIP_Y,
-    DOCUMENT_TAB_TITLE_FONT_SIZE,
+    DOCUMENT_TAB_TITLE_FONT_SIZE, document_tab_close_x,
+    document_tab_preferred_width_from_title_width,
 };

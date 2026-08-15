@@ -97,15 +97,60 @@ impl UiV2PrototypeStoreBuilder {
         if let Some(error) = self.invalid_widget_import {
             return Err(error);
         }
-        for asset_id in self.declared_assets {
-            if self.store.get(&asset_id).is_none() {
-                return Err(UiV2AssetError::InvalidDocument {
-                    asset_id,
-                    detail: "declared UI v2 import is not loaded in the prototype store"
-                        .to_string(),
-                });
+        Self::validate_declared_assets(&self.store, self.declared_assets)?;
+        Ok(self.store)
+    }
+
+    /// Validates only the documents reachable from explicit roots. Runtime project
+    /// loading uses this so an unreferenced editor or experimental `.zui` asset
+    /// cannot prevent an otherwise valid project UI surface from starting.
+    pub fn build_for_roots<I, S>(self, roots: I) -> Result<UiV2PrototypeStore, UiV2AssetError>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let mut pending = roots
+            .into_iter()
+            .map(|root| root.as_ref().to_string())
+            .collect::<Vec<_>>();
+        let mut visited = BTreeSet::new();
+
+        while let Some(asset_id) = pending.pop() {
+            let Some(document) = self.store.get(&asset_id) else {
+                return Err(Self::missing_import(asset_id));
+            };
+            if !visited.insert(document.asset.id.clone()) {
+                continue;
             }
+            for reference in &document.imports.widgets {
+                match parse_v2_widget_import_reference(&document.asset.id, reference)? {
+                    UiV2WidgetImportReference::WholeAsset(asset_id)
+                    | UiV2WidgetImportReference::Component { asset_id, .. } => {
+                        pending.push(asset_id.to_string());
+                    }
+                }
+            }
+            pending.extend(document.imports.styles.iter().cloned());
         }
         Ok(self.store)
+    }
+
+    fn validate_declared_assets(
+        store: &UiV2PrototypeStore,
+        declared_assets: BTreeSet<String>,
+    ) -> Result<(), UiV2AssetError> {
+        for asset_id in declared_assets {
+            if store.get(&asset_id).is_none() {
+                return Err(Self::missing_import(asset_id));
+            }
+        }
+        Ok(())
+    }
+
+    fn missing_import(asset_id: String) -> UiV2AssetError {
+        UiV2AssetError::InvalidDocument {
+            asset_id,
+            detail: "declared UI v2 import is not loaded in the prototype store".to_string(),
+        }
     }
 }

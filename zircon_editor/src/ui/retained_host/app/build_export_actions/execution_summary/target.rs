@@ -1,5 +1,5 @@
-use super::DesktopExportExecutionSummary;
 use super::status::{summary_pane_diagnostics, summary_status_label};
+use super::DesktopExportExecutionSummary;
 
 pub(in crate::ui::retained_host::app) fn apply_summary_to_target(
     target: &mut crate::ui::layouts::windows::workbench_host_window::BuildExportTargetViewData,

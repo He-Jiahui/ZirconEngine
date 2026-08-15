@@ -6,7 +6,7 @@ use thiserror::Error;
 use crate::core::editor_extension::EditorUiTemplateDescriptor;
 
 use super::runtime_host::{
-    v2_template_file_cache, EditorUiHostRuntime, EditorUiHostRuntimeError, EditorUiHostV2Document,
+    EditorUiHostRuntime, EditorUiHostRuntimeError, EditorUiHostV2Document, v2_template_file_cache,
 };
 
 const PLUGIN_DOCUMENT_URI_SCHEME: &str = "plugins://";

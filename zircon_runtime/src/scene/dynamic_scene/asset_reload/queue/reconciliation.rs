@@ -1,13 +1,11 @@
 use crate::{
-    asset::{AssetEvent, SceneAsset, facade::AssetEventPoll},
+    asset::{facade::AssetEventPoll, AssetEvent, SceneAsset},
     core::{
-        JobScheduler,
-        framework::asset::{
-            ResourceManagementQuery, ResourceManagementRow, ResourceManagementScan,
-        },
         resource::{
-            ResourceEvent, ResourceEventKind, ResourceKind, ResourceState, approximate_event_bytes,
+            approximate_event_bytes, ResourceEvent, ResourceEventKind, ResourceKind,
+            ResourceManagementQuery, ResourceManagementRow, ResourceManagementScan, ResourceState,
         },
+        JobScheduler,
     },
 };
 

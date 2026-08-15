@@ -70,12 +70,14 @@ picker/选中资产/创建目标转换为 ProjectAuthority 能验证并原子提
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed. Editor10 必须先完成 ProjectAuthority 的 typed scene
-open/create 合同与 document authority 接线；随后 Editor08 才能将菜单/命令投影替换为真实 request
-路由并重跑 MVP 场景入口。
+Open state: `source integrated / retained-host E2E and managed validation pending`; no pass is
+claimed. ProjectAuthority 的 typed scene open/create 合同、document authority 接线和 Editor08
+菜单 picker intent 已落地；尚须冻结 retained-host 精确输入，复放真实菜单到 picker 到已提交 document
+的 success/cancel/failure 矩阵，并执行受管 Cargo。
 
 ## 产出记录与时间
 
 | 时间 | 状态 | 完成项目与证据 |
 |---|---|---|
 | 2026-08-02 CST | `OPEN / 已路由` | 已实读可达 `MenuAction::OpenScene | CreateScene` 分支：只写未接线状态文本并返回 `changed: false`，无 project/document request。按最低共享 owner 路由 Editor10 ProjectAuthority；未修改菜单、场景或文档生产代码，未运行 Cargo。 |
+| 2026-08-05 CST | `source_integrated_static_audited / retained_host_e2e_and_managed_validation_pending` | 旧 no-op 文本已从 editor source 删除。Editor08 menu action 只发出 Open/Create Scene Picker effect；retained picker 保存 project-session `ScenePickerTicket`、拒绝隐藏/过期的选择并将 typed `SceneOpenRequest`/`SceneCreateRequest` 提交至 host。`EditorManager` 通过 `SceneDocumentRoute` 调用 ProjectAuthority，唯一 `EditorStateSceneInstaller` 先创建 runtime level 再替换 authoring world，成功后才发布 scene inspection resync 与 refresh。`scene_route_tests` 覆盖 ticket 失效、取消、冲突、安装失败和 catalog 回滚，callback-runtime 回归覆盖菜单 effect。retained-host `app/tests` 当前属于并行 dirty 输入，尚未补写或宣称 E2E 通过；待冻结后的真实 success/cancel/failure 矩阵与受管 Cargo，failure 保持 open。 |

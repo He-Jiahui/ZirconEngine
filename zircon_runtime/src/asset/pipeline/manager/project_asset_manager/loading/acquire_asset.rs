@@ -1,10 +1,10 @@
-use crate::core::CoreError;
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, FontMarker, MaterialMarker, MeshMarker, ModelMarker,
     PhysicsMaterialMarker, ResourceHandle, ResourceLease, SceneMarker, ShaderMarker, SoundMarker,
     TextureMarker, UiLayoutMarker, UiStyleMarker, UiWidgetMarker,
 };
+use crate::core::CoreError;
 
 use super::super::ProjectAssetManager;
 use crate::asset::{

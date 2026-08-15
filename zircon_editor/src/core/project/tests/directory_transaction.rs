@@ -1,11 +1,11 @@
 use std::fs;
 use std::io;
 
-use super::super::ProjectAuthorityError;
 use super::super::authority::{
     cleanup_failed_transaction_staging, commit_staged_directory, finalize_empty_target_backup,
     rollback_committed_project,
 };
+use super::super::ProjectAuthorityError;
 use super::temp_root;
 
 #[test]

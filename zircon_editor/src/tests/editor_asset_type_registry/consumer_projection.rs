@@ -74,6 +74,59 @@ fn editor_parallel_sidecar_and_ui_kind_dispatch_are_retired() {
 }
 
 #[test]
+fn preview_generation_retains_resolved_source_path_views() {
+    let preview = include_str!(
+        "../../ui/host/editor_asset_manager/manager/preview_refresh/generate_preview_artifact.rs"
+    );
+
+    assert!(preview.contains("resolve_source_path_for_uri(&record.locator)?"));
+    assert!(preview.contains("image::open(source_path.operation_path())"));
+    assert!(preview.contains("source_path.display_path().display()"));
+    assert!(!preview.contains("project.source_path_for_uri(&record.locator)?"));
+}
+
+#[test]
+fn asset_catalog_view_projects_internal_paths_through_the_resolver_display_view() {
+    let record_projection =
+        include_str!("../../ui/host/editor_asset_manager/manager/catalog_generation/record.rs");
+
+    assert!(record_projection.contains("use zircon_runtime::asset::project::ProjectPaths;"));
+    assert!(record_projection.contains("ProjectPaths::display_path(&record.meta_path)"));
+    assert!(record_projection.contains("ProjectPaths::display_path(&record.preview_artifact_path)"));
+    assert!(
+        !record_projection.contains("meta_path: record.meta_path.to_string_lossy().into_owned()")
+    );
+    assert!(!record_projection.contains(
+        "preview_artifact_path: record.preview_artifact_path.to_string_lossy().into_owned()"
+    ));
+}
+
+#[test]
+fn asset_catalog_snapshot_projects_roots_through_the_resolver_display_view() {
+    let catalog_build =
+        include_str!("../../ui/host/editor_asset_manager/manager/catalog_generation/build.rs");
+
+    assert!(catalog_build
+        .contains("use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};"));
+    assert!(catalog_build.contains("ProjectPaths::display_path(project.paths().root())"));
+    assert!(catalog_build.contains("ProjectPaths::display_path(assets_root)"));
+    assert!(catalog_build.contains("ProjectPaths::display_path(project.paths().cache_root())"));
+    assert!(!catalog_build.contains("project.paths().root().to_string_lossy().into_owned()"));
+    assert!(!catalog_build.contains("assets_root.to_string_lossy().into_owned()"));
+    assert!(!catalog_build.contains("project.paths().cache_root().to_string_lossy().into_owned()"));
+}
+
+#[test]
+fn startup_path_presentation_uses_the_resolver_without_a_second_windows_prefix_rule() {
+    let display_path = include_str!("../../ui/workbench/startup/display_project_path.rs");
+
+    assert!(display_path.contains("ProjectPaths::display_path(Path::new(path.as_ref()))"));
+    assert!(!display_path.contains("fn display_project_text"));
+    assert!(!display_path.contains("replace(\"\\\\\\\\?\\\\UNC\\\""));
+    assert!(!display_path.contains("replace(\"\\\\\\\\?\\\""));
+}
+
+#[test]
 fn create_and_context_dispatch_resolve_operations_from_the_materialized_registry() {
     let _guard = env_lock().lock().unwrap();
     let runtime = EventRuntimeHarness::new("editor09_registry_create_context_projection");
@@ -126,56 +179,58 @@ fn create_and_context_dispatch_resolve_operations_from_the_materialized_registry
         .runtime
         .register_editor_extension(extension.into_contribution_batch().unwrap())
         .unwrap();
-    runtime
-        .runtime
-        .sync_asset_catalog(Arc::new(EditorAssetCatalogGeneration::from_snapshot_record(
+    runtime.runtime.sync_asset_catalog(Arc::new(
+        EditorAssetCatalogGeneration::from_snapshot_record(
             EditorAssetCatalogSnapshotRecord {
-            project_name: "Registry Projection".to_string(),
-            project_root: "E:/RegistryProjection".to_string(),
-            assets_root: "E:/RegistryProjection/assets".to_string(),
-            cache_root: "E:/RegistryProjection/.zircon/cache".to_string(),
-            default_scene_uri: String::new(),
-            catalog_revision: 1,
-            folders: vec![
-                EditorAssetFolderRecord {
-                    folder_id: "res://".to_string(),
-                    parent_folder_id: None,
-                    locator_prefix: "res://".to_string(),
-                    display_name: "Assets".to_string(),
-                    child_folder_ids: vec!["res://ui".to_string()],
-                    direct_asset_uuids: Vec::new(),
-                    recursive_asset_count: 1,
-                },
-                EditorAssetFolderRecord {
-                    folder_id: "res://ui".to_string(),
-                    parent_folder_id: Some("res://".to_string()),
-                    locator_prefix: "res://ui/".to_string(),
-                    display_name: "ui".to_string(),
-                    child_folder_ids: Vec::new(),
-                    direct_asset_uuids: vec!["11111111-1111-1111-1111-111111111111".to_string()],
-                    recursive_asset_count: 1,
-                },
-            ],
-            assets: vec![EditorAssetCatalogRecord {
-                uuid: "11111111-1111-1111-1111-111111111111".to_string(),
-                id: "22222222-2222-2222-2222-222222222222".to_string(),
-                locator: "res://ui/main.zui".to_string(),
-                kind: ResourceKind::UiLayout,
-                display_name: "main.zui".to_string(),
-                file_name: "main.zui".to_string(),
-                extension: "zui".to_string(),
-                preview_state: PreviewState::Dirty,
-                meta_path: "E:/RegistryProjection/assets/ui/main.zui.zmeta".to_string(),
-                preview_artifact_path: String::new(),
-                source_mtime_unix_ms: 0,
-                source_hash: String::new(),
-                dirty: false,
-                diagnostics: Vec::new(),
-                direct_reference_uuids: Vec::new(),
-            }],
+                project_name: "Registry Projection".to_string(),
+                project_root: "E:/RegistryProjection".to_string(),
+                assets_root: "E:/RegistryProjection/assets".to_string(),
+                cache_root: "E:/RegistryProjection/.zircon/cache".to_string(),
+                default_scene_uri: String::new(),
+                catalog_revision: 1,
+                folders: vec![
+                    EditorAssetFolderRecord {
+                        folder_id: "res://".to_string(),
+                        parent_folder_id: None,
+                        locator_prefix: "res://".to_string(),
+                        display_name: "Assets".to_string(),
+                        child_folder_ids: vec!["res://ui".to_string()],
+                        direct_asset_uuids: Vec::new(),
+                        recursive_asset_count: 1,
+                    },
+                    EditorAssetFolderRecord {
+                        folder_id: "res://ui".to_string(),
+                        parent_folder_id: Some("res://".to_string()),
+                        locator_prefix: "res://ui/".to_string(),
+                        display_name: "ui".to_string(),
+                        child_folder_ids: Vec::new(),
+                        direct_asset_uuids: vec![
+                            "11111111-1111-1111-1111-111111111111".to_string(),
+                        ],
+                        recursive_asset_count: 1,
+                    },
+                ],
+                assets: vec![EditorAssetCatalogRecord {
+                    uuid: "11111111-1111-1111-1111-111111111111".to_string(),
+                    id: "22222222-2222-2222-2222-222222222222".to_string(),
+                    locator: "res://ui/main.zui".to_string(),
+                    kind: ResourceKind::UiLayout,
+                    display_name: "main.zui".to_string(),
+                    file_name: "main.zui".to_string(),
+                    extension: "zui".to_string(),
+                    preview_state: PreviewState::Dirty,
+                    meta_path: "E:/RegistryProjection/assets/ui/main.zui.zmeta".to_string(),
+                    preview_artifact_path: String::new(),
+                    source_mtime_unix_ms: 0,
+                    source_hash: String::new(),
+                    dirty: false,
+                    diagnostics: Vec::new(),
+                    direct_reference_uuids: Vec::new(),
+                }],
             },
             1,
-        )));
+        ),
+    ));
     runtime
         .runtime
         .dispatch_event(

@@ -1,11 +1,16 @@
-use crate::core::editor_event::{EditorEventEffect, ViewInstanceId};
+use crate::core::editor_event::{
+    EditorEvent, EditorEventEffect, EditorEventRecord, EditorEventSource, EditorEventTransient,
+    EditorViewportEvent, ViewInstanceId,
+};
 use crate::core::editor_message::{
-    EditorMessage, EditorTopic, EditorViewInvalidationMask, EditorViewRefreshReport,
+    EditorMessage, EditorTopic, EditorUiDeltaBarrierKind, EditorViewInvalidationMask,
+    EditorViewRefreshReport,
 };
 use crate::core::extension::{CapabilitySet, FieldEditorContainer, InspectorCustomizationChain};
 use crate::ui::activity::{ActivityViewDescriptor, ActivityWindowDescriptor};
 use crate::ui::control::EditorUiControlService;
 use crate::ui::host::command_eval_projection::command_eval_ctx_from_chrome;
+use crate::ui::host::editor_activity_log::activity_log_console_output;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::reflection::{
@@ -15,6 +20,7 @@ use crate::ui::workbench::reflection::{
 use crate::ui::workbench::shell_state::WorkbenchShellStateData;
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 use crate::ui::workbench::view::ViewDescriptor;
+use zircon_runtime_interface::ui::event_ui::{UiNodePath, UiReflectionNodePatch};
 
 const WORKBENCH_ROOT_VIEW_INSTANCE_ID: &str = "workbench.root";
 const VIEW_INVALIDATED_TOPIC: &str = "view.invalidated";
@@ -85,6 +91,14 @@ impl EditorHostEventController {
         view: ViewInstanceId,
         mask: EditorViewInvalidationMask,
     ) -> EditorViewRefreshReport {
+        self.publish_view_invalidation(view, mask);
+        self.drain_pending_view_refreshes()
+    }
+
+    fn publish_view_invalidation(&self, view: ViewInstanceId, mask: EditorViewInvalidationMask) {
+        if mask.is_empty() {
+            return;
+        }
         let message = EditorMessage::custom(
             "zircon.editor.debug-text",
             serde_json::Value::String(view.0.clone()),
@@ -95,24 +109,79 @@ impl EditorHostEventController {
         } else {
             self.context().bus().mark_view_dirty(view, mask);
         }
-        self.drain_pending_view_refreshes()
     }
 
     pub fn drain_pending_view_refreshes(&self) -> EditorViewRefreshReport {
-        let dirty = self.context().bus().drain_dirty();
-        let used_full_snapshot_fallback = !dirty.is_empty();
+        let (dirty, deltas) = self.context().bus().drain_view_updates();
+        let has_structure_update = dirty
+            .iter()
+            .any(|(_, mask)| mask.contains(EditorViewInvalidationMask::TREE_STRUCTURE));
+        let mut used_full_snapshot_fallback = dirty
+            .iter()
+            .any(|(_, mask)| mask != EditorViewInvalidationMask::TREE_STRUCTURE);
+        if has_structure_update {
+            self.publish_scene_inspection_publication();
+        }
         if used_full_snapshot_fallback {
             self.refresh_reflection();
         }
-        EditorViewRefreshReport::new(dirty, used_full_snapshot_fallback)
+        let patches = deltas.reflection_patches();
+        if !patches.is_empty() {
+            let patch_result = self
+                .shell()
+                .lock()
+                .control_service
+                .apply_reflection_patches(&patches);
+            if patch_result.is_err() && !used_full_snapshot_fallback {
+                self.refresh_reflection();
+                used_full_snapshot_fallback = true;
+                let _ = self
+                    .shell()
+                    .lock()
+                    .control_service
+                    .apply_reflection_patches(&patches);
+            }
+        }
+        EditorViewRefreshReport::new(dirty, deltas, used_full_snapshot_fallback)
     }
 
     pub(crate) fn refresh_workbench(&self, mask: EditorViewInvalidationMask) {
         self.refresh_view(ViewInstanceId::new(WORKBENCH_ROOT_VIEW_INSTANCE_ID), mask);
     }
 
-    pub(crate) fn refresh_workbench_for_effects(&self, effects: &[EditorEventEffect]) {
-        self.refresh_workbench(invalidation_mask_for_effects(effects));
+    pub(crate) fn refresh_workbench_for_event_record(&self, record: &EditorEventRecord) {
+        let mask = invalidation_mask_for_effects(&record.effects);
+        if !matches!(record.source, EditorEventSource::RetainedHost) {
+            if !mask.is_empty() {
+                self.refresh_workbench(mask);
+            }
+            return;
+        }
+
+        let bus = self.context().bus();
+        let patch = reflection_patch_for_event(record);
+        if let Some(patch) = patch.as_ref() {
+            bus.push_editor_ui_patch(
+                ViewInstanceId::new(WORKBENCH_ROOT_VIEW_INSTANCE_ID),
+                patch.clone(),
+            );
+        }
+        if let Some(barrier) = delta_barrier_for_event(record) {
+            bus.push_editor_ui_barrier(barrier, record.sequence);
+        }
+
+        let reflection_changed = record
+            .effects
+            .contains(&EditorEventEffect::ReflectionChanged);
+        let layout_changed = record.effects.contains(&EditorEventEffect::LayoutChanged);
+        if layout_changed || (reflection_changed && patch.is_none()) {
+            // Events such as focus and drag also clear the previously active node. Until their
+            // records carry that previous identity, preserve correctness with one deferred rebuild.
+            self.publish_view_invalidation(
+                ViewInstanceId::new(WORKBENCH_ROOT_VIEW_INSTANCE_ID),
+                EditorViewInvalidationMask::PRESENTATION_DATA,
+            );
+        }
     }
 
     pub(crate) fn build_chrome_for_shell(
@@ -125,6 +194,11 @@ impl EditorHostEventController {
             .state
             .snapshot_with_inspector_customizations(&inspector_customizations, &field_editors);
         Self::project_asset_type_registry_for_shell(shell, &mut editor_snapshot);
+        editor_snapshot.console_output = activity_log_console_output(
+            shell.manager.context().logs(),
+            shell.console_message_filter,
+            shell.console_source_filter,
+        );
         EditorChromeSnapshot::build(
             editor_snapshot,
             &shell.manager.current_layout(),
@@ -207,10 +281,73 @@ fn invalidation_mask_for_effects(effects: &[EditorEventEffect]) -> EditorViewInv
             }
         }
     }
-    if mask.is_empty() {
-        EditorViewInvalidationMask::PRESENTATION_DATA
-    } else {
-        mask
+    mask
+}
+
+fn reflection_patch_for_event(record: &EditorEventRecord) -> Option<UiReflectionNodePatch> {
+    if record.result.error.is_some()
+        || !record
+            .effects
+            .contains(&EditorEventEffect::ReflectionChanged)
+    {
+        return None;
+    }
+    match &record.event {
+        EditorEvent::Transient(EditorEventTransient::HoverNode { node_path, hovered }) => Some(
+            UiReflectionNodePatch::new(UiNodePath::new(node_path.clone()))
+                .with_property("transient.hovered", serde_json::Value::Bool(*hovered)),
+        ),
+        EditorEvent::Transient(EditorEventTransient::PressNode { node_path, pressed }) => Some(
+            UiReflectionNodePatch::new(UiNodePath::new(node_path.clone())).with_pressed(*pressed),
+        ),
+        EditorEvent::Transient(EditorEventTransient::SetDrawerResizing {
+            drawer_id,
+            resizing,
+        }) => Some(
+            UiReflectionNodePatch::new(UiNodePath::new(format!(
+                "editor/workbench/drawers/{drawer_id}"
+            )))
+            .with_property("transient.resizing", serde_json::Value::Bool(*resizing)),
+        ),
+        _ => None,
+    }
+}
+
+fn delta_barrier_for_event(record: &EditorEventRecord) -> Option<EditorUiDeltaBarrierKind> {
+    if record.result.error.is_some() {
+        return None;
+    }
+    match &record.event {
+        EditorEvent::Transient(EditorEventTransient::PressNode { pressed: true, .. })
+        | EditorEvent::Viewport(
+            EditorViewportEvent::LeftPressed { .. }
+            | EditorViewportEvent::RightPressed { .. }
+            | EditorViewportEvent::MiddlePressed { .. },
+        ) => Some(EditorUiDeltaBarrierKind::Press),
+        EditorEvent::Transient(EditorEventTransient::PressNode { pressed: false, .. })
+        | EditorEvent::Viewport(
+            EditorViewportEvent::LeftReleased
+            | EditorViewportEvent::CancelInteraction
+            | EditorViewportEvent::RightReleased
+            | EditorViewportEvent::MiddleReleased,
+        ) => Some(EditorUiDeltaBarrierKind::Release),
+        EditorEvent::Viewport(EditorViewportEvent::Scrolled { .. }) => {
+            Some(EditorUiDeltaBarrierKind::Scroll)
+        }
+        EditorEvent::Transient(EditorEventTransient::FocusNode { .. }) => {
+            Some(EditorUiDeltaBarrierKind::Focus)
+        }
+        EditorEvent::Transient(
+            EditorEventTransient::SetDrawerResizing { .. }
+            | EditorEventTransient::BeginViewDrag { .. }
+            | EditorEventTransient::EndViewDrag,
+        )
+        | EditorEvent::Viewport(EditorViewportEvent::Resized { .. })
+        | EditorEvent::Layout(_) => Some(EditorUiDeltaBarrierKind::Geometry),
+        _ if record.transaction_id.is_some() || record.save_generation.is_some() => {
+            Some(EditorUiDeltaBarrierKind::Commit)
+        }
+        _ => None,
     }
 }
 

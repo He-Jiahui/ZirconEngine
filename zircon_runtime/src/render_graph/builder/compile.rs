@@ -1,17 +1,23 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use super::super::error::RenderGraphError;
-use super::super::graph::{CompiledRenderGraph, CompiledRenderPass};
+use super::super::graph::{
+    CompiledRenderGraph, CompiledRenderGraphCompileWork, CompiledRenderPass,
+};
 use super::super::types::{
-    RenderGraphAttachmentLoadOp, RenderGraphAttachmentStoreOp, RenderGraphPassResourceAccess,
-    RenderGraphResource, RenderGraphResourceAccessKind, RenderGraphResourceDeclaration,
-    RenderGraphResourceDesc, RenderGraphResourceLifetime, RenderPassId,
+    ComputeBindingKind, RenderGraphAttachmentLoadOp, RenderGraphAttachmentStoreOp,
+    RenderGraphComputeDispatchExtent, RenderGraphComputeShaderSource,
+    RenderGraphExternalResourceType, RenderGraphPassResourceAccess, RenderGraphResource,
+    RenderGraphResourceAccessKind, RenderGraphResourceDeclaration, RenderGraphResourceDesc,
+    RenderGraphResourceLifetime, RenderGraphResourceVersion, RenderPassId,
 };
 use super::{RenderGraphBuilder, ResourceAccessKind};
 
 impl RenderGraphBuilder {
     pub fn compile(self) -> Result<CompiledRenderGraph, RenderGraphError> {
         self.validate_unique_resource_names()?;
+        self.validate_compute_dispatch_resources()?;
+        self.validate_compute_pass_metadata()?;
         let resource_names = self.resource_names();
         let manual_dependencies = self
             .passes
@@ -19,13 +25,20 @@ impl RenderGraphBuilder {
             .map(|pass| pass.dependencies.clone())
             .collect::<Vec<_>>();
         let manual_order = self.topological_order(&manual_dependencies)?;
-        let manual_reachability =
-            ManualPassReachability::from_topological_order(&manual_dependencies, &manual_order);
-        self.validate_write_dependencies(&manual_reachability, &manual_order, &resource_names)?;
         let inferred_dependencies =
             self.infer_resource_dependencies(&resource_names, &manual_order)?;
-        let ordered = self.topological_order(&inferred_dependencies)?;
-        let culled = self.cull_passes(&ordered)?;
+        let ordered = self.topological_order(&inferred_dependencies.execution)?;
+        let culling = self.cull_passes(
+            &inferred_dependencies.culling,
+            &inferred_dependencies.cull_roots,
+        )?;
+        let compile_work = CompiledRenderGraphCompileWork {
+            resource_access_visit_count: inferred_dependencies.resource_access_visit_count,
+            execution_dependency_count: inferred_dependencies.execution_dependency_count,
+            provenance_dependency_count: inferred_dependencies.provenance_dependency_count,
+            cull_root_count: culling.root_count,
+            cull_dependency_visit_count: culling.dependency_visit_count,
+        };
         let compiled_passes = ordered
             .iter()
             .map(|id| {
@@ -36,10 +49,15 @@ impl RenderGraphBuilder {
                     declared_queue: pass.declared_queue,
                     queue: pass.queue,
                     flags: pass.flags,
-                    dependencies: inferred_dependencies[id.0].clone(),
-                    culled: culled.contains(id),
+                    dependencies: inferred_dependencies.execution[id.0]
+                        .iter()
+                        .copied()
+                        .filter(|dependency| !culling.culled.contains(dependency))
+                        .collect(),
+                    culled: culling.culled.contains(id),
                     executor_id: pass.executor_id.clone(),
                     compute_workload: pass.compute_workload.clone(),
+                    compute_pass_metadata: pass.compute_pass_metadata.clone(),
                     resources: pass
                         .resources
                         .iter()
@@ -57,13 +75,20 @@ impl RenderGraphBuilder {
             })
             .collect::<Vec<_>>();
         let resource_declarations = self.resource_declarations();
-        let lifetimes = self.resource_lifetimes(&ordered, &culled, &resource_declarations);
+        let lifetimes =
+            self.resource_lifetimes(&ordered, &culling.culled, &resource_declarations)?;
+        let pass_resource_versions = ordered
+            .iter()
+            .map(|id| inferred_dependencies.resource_access_versions[id.0].clone())
+            .collect();
 
         Ok(CompiledRenderGraph::new(
             self.name,
             compiled_passes,
             resource_declarations,
             lifetimes,
+            pass_resource_versions,
+            compile_work,
         ))
     }
 
@@ -74,6 +99,236 @@ impl RenderGraphBuilder {
                 return Err(RenderGraphError::DuplicateResourceName {
                     resource: resource.name.clone(),
                 });
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_compute_dispatch_resources(&self) -> Result<(), RenderGraphError> {
+        let resources_by_name = self
+            .resources
+            .iter()
+            .map(|resource| (resource.name.as_str(), resource))
+            .collect::<HashMap<_, _>>();
+        for pass in &self.passes {
+            let Some(workload) = &pass.compute_workload else {
+                continue;
+            };
+            match &workload.dispatch_extent {
+                RenderGraphComputeDispatchExtent::FromBuffer { buffer, .. } => {
+                    let is_declared_read_buffer = resources_by_name
+                        .get(buffer.as_str())
+                        .is_some_and(|resource| {
+                            let is_buffer =
+                                matches!(&resource.desc, RenderGraphResourceDesc::Buffer(_))
+                                    || resource.external_binding.resource_type
+                                        == RenderGraphExternalResourceType::Buffer;
+                            is_buffer
+                                && pass.resources.iter().any(|access| {
+                                    access.resource == resource.resource
+                                        && access.kind == ResourceAccessKind::Read
+                                })
+                        });
+                    if !is_declared_read_buffer {
+                        return Err(RenderGraphError::ComputeDispatchResourceNotDeclared {
+                            pass: pass.name.clone(),
+                            resource: buffer.clone(),
+                            required_access: "read buffer",
+                        });
+                    }
+                }
+                RenderGraphComputeDispatchExtent::PerPixel { target, .. } => {
+                    let is_declared_texture =
+                        resources_by_name
+                            .get(target.as_str())
+                            .is_some_and(|resource| {
+                                let is_texture =
+                                    matches!(&resource.desc, RenderGraphResourceDesc::Texture(_))
+                                        || resource.external_binding.resource_type
+                                            == RenderGraphExternalResourceType::Texture;
+                                is_texture
+                                    && pass
+                                        .resources
+                                        .iter()
+                                        .any(|access| access.resource == resource.resource)
+                            });
+                    if !is_declared_texture {
+                        return Err(RenderGraphError::ComputeDispatchResourceNotDeclared {
+                            pass: pass.name.clone(),
+                            resource: target.clone(),
+                            required_access: "read or write texture",
+                        });
+                    }
+                }
+                _ => {}
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_compute_pass_metadata(&self) -> Result<(), RenderGraphError> {
+        const INDIRECT_DISPATCH_OFFSET_ALIGNMENT_BYTES: u64 = 4;
+        let resources_by_name = self
+            .resources
+            .iter()
+            .map(|resource| (resource.name.as_str(), resource))
+            .collect::<HashMap<_, _>>();
+
+        for pass in &self.passes {
+            let Some(metadata) = &pass.compute_pass_metadata else {
+                continue;
+            };
+            let Some(workload) = &pass.compute_workload else {
+                return Err(RenderGraphError::ComputePassMetadataMissingWorkload {
+                    pass: pass.name.clone(),
+                });
+            };
+            if metadata.entry_point.trim().is_empty() {
+                return Err(RenderGraphError::ComputePassEntryPointEmpty {
+                    pass: pass.name.clone(),
+                });
+            }
+            if matches!(
+                &metadata.shader,
+                RenderGraphComputeShaderSource::Wgsl { source, .. } if source.trim().is_empty()
+            ) {
+                return Err(RenderGraphError::ComputePassShaderSourceEmpty {
+                    pass: pass.name.clone(),
+                });
+            }
+            if workload.workgroup_size.contains(&0) {
+                return Err(RenderGraphError::InvalidComputeWorkgroupSize {
+                    pass: pass.name.clone(),
+                });
+            }
+            let mut declared_bindings = HashSet::with_capacity(metadata.bindings.len());
+            for binding in &metadata.bindings {
+                if !declared_bindings.insert(binding.binding) {
+                    return Err(RenderGraphError::DuplicateComputeBinding {
+                        pass: pass.name.clone(),
+                        binding: binding.binding,
+                    });
+                }
+                if let Some(mip_level) = binding.texture_mip_level {
+                    if !matches!(
+                        binding.kind,
+                        ComputeBindingKind::SampledTexture
+                            | ComputeBindingKind::StorageTextureWrite
+                    ) {
+                        return Err(RenderGraphError::ComputeTextureMipBindingNotTexture {
+                            pass: pass.name.clone(),
+                            binding: binding.binding,
+                            mip_level,
+                        });
+                    }
+                    if let Some(resource) = resources_by_name.get(binding.resource.as_str()) {
+                        match &resource.desc {
+                            RenderGraphResourceDesc::Texture(desc)
+                                if mip_level >= desc.mip_levels =>
+                            {
+                                return Err(RenderGraphError::ComputeTextureMipOutOfRange {
+                                    pass: pass.name.clone(),
+                                    binding: binding.binding,
+                                    resource: binding.resource.clone(),
+                                    mip_level,
+                                    mip_levels: desc.mip_levels,
+                                });
+                            }
+                            RenderGraphResourceDesc::External => {
+                                return Err(
+                                    RenderGraphError::ComputeTextureMipRequiresTransientTexture {
+                                        pass: pass.name.clone(),
+                                        binding: binding.binding,
+                                        resource: binding.resource.clone(),
+                                        mip_level,
+                                    },
+                                );
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                if let Some(offset) = binding.buffer_offset {
+                    if !matches!(
+                        binding.kind,
+                        ComputeBindingKind::UniformBuffer
+                            | ComputeBindingKind::StorageBufferRead
+                            | ComputeBindingKind::StorageBufferReadWrite
+                    ) {
+                        return Err(RenderGraphError::ComputeBufferOffsetBindingNotBuffer {
+                            pass: pass.name.clone(),
+                            binding: binding.binding,
+                            offset,
+                        });
+                    }
+                }
+                let (requires_buffer, requires_read, requires_write, required_access) =
+                    match binding.kind {
+                        ComputeBindingKind::UniformBuffer
+                        | ComputeBindingKind::StorageBufferRead => {
+                            (true, true, false, "read buffer")
+                        }
+                        ComputeBindingKind::StorageBufferReadWrite => {
+                            (true, true, true, "read/write buffer")
+                        }
+                        ComputeBindingKind::SampledTexture => (false, true, false, "read texture"),
+                        ComputeBindingKind::StorageTextureWrite => {
+                            (false, false, true, "write texture")
+                        }
+                    };
+                let is_declared = resources_by_name
+                    .get(binding.resource.as_str())
+                    .is_some_and(|resource| {
+                        let resource_type_matches = if requires_buffer {
+                            matches!(&resource.desc, RenderGraphResourceDesc::Buffer(_))
+                                || resource.external_binding.resource_type
+                                    == RenderGraphExternalResourceType::Buffer
+                        } else {
+                            matches!(&resource.desc, RenderGraphResourceDesc::Texture(_))
+                                || resource.external_binding.resource_type
+                                    == RenderGraphExternalResourceType::Texture
+                        };
+                        resource_type_matches
+                            && (!requires_read
+                                || pass.resources.iter().any(|access| {
+                                    access.resource == resource.resource
+                                        && access.kind == ResourceAccessKind::Read
+                                }))
+                            && (!requires_write
+                                || pass.resources.iter().any(|access| {
+                                    access.resource == resource.resource
+                                        && access.kind == ResourceAccessKind::Write
+                                }))
+                    });
+                if !is_declared {
+                    return Err(RenderGraphError::ComputeBindingResourceNotDeclared {
+                        pass: pass.name.clone(),
+                        binding: binding.binding,
+                        resource: binding.resource.clone(),
+                        required_access,
+                    });
+                }
+            }
+            match &workload.dispatch_extent {
+                RenderGraphComputeDispatchExtent::FromBuffer { offset, .. }
+                    if offset % INDIRECT_DISPATCH_OFFSET_ALIGNMENT_BYTES != 0 =>
+                {
+                    return Err(RenderGraphError::ComputeIndirectDispatchOffsetUnaligned {
+                        pass: pass.name.clone(),
+                        offset: *offset,
+                        alignment: INDIRECT_DISPATCH_OFFSET_ALIGNMENT_BYTES,
+                    });
+                }
+                RenderGraphComputeDispatchExtent::PerPixel { local_size, .. }
+                    if *local_size != [workload.workgroup_size[0], workload.workgroup_size[1]] =>
+                {
+                    return Err(RenderGraphError::PerPixelComputeWorkgroupMismatch {
+                        pass: pass.name.clone(),
+                        local_size: *local_size,
+                        workgroup_size: workload.workgroup_size,
+                    });
+                }
+                _ => {}
             }
         }
         Ok(())
@@ -101,63 +356,39 @@ impl RenderGraphBuilder {
             .collect()
     }
 
-    fn validate_write_dependencies(
-        &self,
-        manual_reachability: &ManualPassReachability,
-        manual_order: &[RenderPassId],
-        resource_names: &HashMap<RenderGraphResource, String>,
-    ) -> Result<(), RenderGraphError> {
-        let mut manual_order_indices = vec![0_usize; self.passes.len()];
-        for (index, pass) in manual_order.iter().enumerate() {
-            manual_order_indices[pass.0] = index;
-        }
-        let mut writers = HashMap::<RenderGraphResource, Vec<RenderPassId>>::new();
-        for pass in &self.passes {
-            for access in &pass.resources {
-                if access.kind == ResourceAccessKind::Write {
-                    writers.entry(access.resource).or_default().push(pass.id);
-                }
-            }
-        }
-
-        for (resource, mut writer_ids) in writers {
-            writer_ids.sort_by_key(|writer| manual_order_indices[writer.0]);
-            for writer_pair in writer_ids.windows(2) {
-                let first = writer_pair[0];
-                let second = writer_pair[1];
-                if !manual_reachability.contains(first.0, second.0) {
-                    return Err(RenderGraphError::WriteAfterWriteMissingDependency {
-                        resource: resource_names
-                            .get(&resource)
-                            .cloned()
-                            .unwrap_or_else(|| format!("{resource:?}")),
-                        first_writer: self.passes[first.0].name.clone(),
-                        second_writer: self.passes[second.0].name.clone(),
-                    });
-                }
-            }
-        }
-        Ok(())
-    }
-
     fn infer_resource_dependencies(
         &self,
         resource_names: &HashMap<RenderGraphResource, String>,
         pass_order: &[RenderPassId],
-    ) -> Result<Vec<Vec<RenderPassId>>, RenderGraphError> {
-        let mut dependencies = self
+    ) -> Result<InferredResourceDependencies, RenderGraphError> {
+        let manual_dependencies = self
             .passes
             .iter()
             .map(|pass| pass.dependencies.clone())
             .collect::<Vec<_>>();
-        let mut latest_writer = HashMap::<RenderGraphResource, LatestWriter>::new();
+        let mut execution_dependencies =
+            DependencyAdjacency::from_manual_dependencies(manual_dependencies.clone());
+        let mut culling_dependencies =
+            DependencyAdjacency::from_manual_dependencies(manual_dependencies);
+        let resource_access_identities = self.resource_access_identities()?;
+        let mut resource_accesses = HashMap::<usize, ResourceAccessHistory>::new();
+        let mut resource_access_versions = vec![Vec::new(); self.passes.len()];
+        let mut resource_access_visit_count = 0;
 
         for pass_id in pass_order {
             let pass = &self.passes[pass_id.0];
             for access in &pass.resources {
+                resource_access_visit_count += 1;
+                let access_identity = resource_access_identities
+                    .get(&access.resource)
+                    .copied()
+                    .ok_or_else(|| RenderGraphError::ResourceDeclarationMissing {
+                        resource: resource_name(resource_names, access.resource),
+                    })?;
+                let history = resource_accesses.entry(access_identity).or_default();
                 match access.kind {
                     ResourceAccessKind::Read => {
-                        if let Some(writer) = latest_writer.get(&access.resource) {
+                        if let Some(writer) = history.latest_writer {
                             if writer.store == RenderGraphAttachmentStoreOp::Discard {
                                 return Err(RenderGraphError::ReadAfterDiscardedStore {
                                     resource: resource_name(resource_names, access.resource),
@@ -165,25 +396,28 @@ impl RenderGraphBuilder {
                                     producer: self.passes[writer.pass.0].name.clone(),
                                 });
                             }
-                            if writer.pass != pass.id
-                                && !dependencies[pass.id.0].contains(&writer.pass)
-                            {
-                                dependencies[pass.id.0].push(writer.pass);
-                            }
+                            execution_dependencies.add_dependency(writer.pass, pass.id);
+                            culling_dependencies.add_dependency(writer.pass, pass.id);
                         } else if !matches!(access.resource, RenderGraphResource::External(_)) {
                             return Err(RenderGraphError::ReadBeforeProducer {
                                 resource: resource_name(resource_names, access.resource),
                                 pass: pass.name.clone(),
                             });
                         }
+                        resource_access_versions[pass.id.0].push(RenderGraphResourceVersion::new(
+                            access.resource,
+                            history.latest_version_ordinal,
+                        ));
+                        history.readers_since_last_write.push(pass.id);
                     }
                     ResourceAccessKind::Write => {
+                        let loads_previous_version = access
+                            .attachment_ops
+                            .is_some_and(|ops| ops.load == RenderGraphAttachmentLoadOp::Load);
                         if matches!(access.resource, RenderGraphResource::TransientTexture(_))
-                            && access
-                                .attachment_ops
-                                .is_some_and(|ops| ops.load == RenderGraphAttachmentLoadOp::Load)
+                            && loads_previous_version
                         {
-                            match latest_writer.get(&access.resource) {
+                            match history.latest_writer {
                                 Some(writer)
                                     if writer.store == RenderGraphAttachmentStoreOp::Store => {}
                                 Some(writer) => {
@@ -201,21 +435,114 @@ impl RenderGraphBuilder {
                                 }
                             }
                         }
-                        latest_writer.insert(
+                        if let Some(writer) = history.latest_writer {
+                            // WAW ordering preserves the physical resource hazard, but a clear
+                            // creates a new logical value and must not keep the old producer live.
+                            execution_dependencies.add_dependency(writer.pass, pass.id);
+                            if loads_previous_version {
+                                culling_dependencies.add_dependency(writer.pass, pass.id);
+                            }
+                        }
+                        for reader in history.readers_since_last_write.iter().copied() {
+                            if reader != pass.id {
+                                execution_dependencies.add_dependency(reader, pass.id);
+                            }
+                        }
+                        history.readers_since_last_write.clear();
+                        history.latest_version_ordinal = history
+                            .latest_version_ordinal
+                            .checked_add(1)
+                            .ok_or_else(|| RenderGraphError::ResourceVersionExhausted {
+                                resource: resource_name(resource_names, access.resource),
+                            })?;
+                        history.latest_writer = Some(LatestWriter {
+                            pass: pass.id,
+                            store: access
+                                .attachment_ops
+                                .map_or(RenderGraphAttachmentStoreOp::Store, |ops| ops.store),
+                        });
+                        resource_access_versions[pass.id.0].push(RenderGraphResourceVersion::new(
                             access.resource,
-                            LatestWriter {
-                                pass: pass.id,
-                                store: access
-                                    .attachment_ops
-                                    .map_or(RenderGraphAttachmentStoreOp::Store, |ops| ops.store),
-                            },
-                        );
+                            history.latest_version_ordinal,
+                        ));
                     }
                 }
             }
         }
 
-        Ok(dependencies)
+        let mut cull_roots = Vec::new();
+        let mut seen_cull_roots = HashSet::new();
+        for resource in self
+            .resources
+            .iter()
+            .filter(|resource| resource.usage.is_cull_root())
+        {
+            let access_identity = resource_access_identities
+                .get(&resource.resource)
+                .copied()
+                .ok_or_else(|| RenderGraphError::ResourceDeclarationMissing {
+                    resource: resource.name.clone(),
+                })?;
+            let Some(writer) = resource_accesses
+                .get(&access_identity)
+                .and_then(|history| history.latest_writer)
+            else {
+                continue;
+            };
+            if seen_cull_roots.insert(writer.pass) {
+                cull_roots.push(writer.pass);
+            }
+        }
+        let execution_dependency_count = execution_dependencies.dependency_count();
+        let provenance_dependency_count = culling_dependencies.dependency_count();
+
+        Ok(InferredResourceDependencies {
+            execution: execution_dependencies.into_dependencies(),
+            culling: culling_dependencies.into_dependencies(),
+            cull_roots,
+            resource_access_versions,
+            resource_access_visit_count,
+            execution_dependency_count,
+            provenance_dependency_count,
+        })
+    }
+
+    fn resource_access_identities(
+        &self,
+    ) -> Result<HashMap<RenderGraphResource, usize>, RenderGraphError> {
+        let mut identities = HashMap::with_capacity(self.resources.len());
+        let mut aliases = HashMap::<&str, (usize, RenderGraphExternalResourceType)>::new();
+        let mut next_identity = 0;
+
+        for resource in &self.resources {
+            let identity = if let Some(alias_group) = resource.external_alias_group.as_deref() {
+                if let Some(&(identity, expected_type)) = aliases.get(alias_group) {
+                    if expected_type != resource.external_binding.resource_type {
+                        return Err(RenderGraphError::ExternalAliasResourceTypeMismatch {
+                            alias_group: alias_group.to_owned(),
+                            expected: expected_type,
+                            found: resource.external_binding.resource_type,
+                        });
+                    }
+                    identity
+                } else {
+                    let identity = next_identity;
+                    next_identity += 1;
+                    aliases.insert(
+                        alias_group,
+                        (identity, resource.external_binding.resource_type),
+                    );
+                    identity
+                }
+            } else {
+                let identity = next_identity;
+                next_identity += 1;
+                identity
+            };
+            identities.insert(resource.resource, identity);
+        }
+
+        Ok(identities)
     }
 
     fn topological_order(
@@ -262,59 +589,43 @@ impl RenderGraphBuilder {
 
     fn cull_passes(
         &self,
-        ordered: &[RenderPassId],
-    ) -> Result<HashSet<RenderPassId>, RenderGraphError> {
-        let cull_root_resources = self
-            .resources
-            .iter()
-            .filter(|resource| resource.usage.is_cull_root())
-            .map(|resource| resource.resource)
-            .collect::<HashSet<_>>();
-        let mut needed_resources = HashSet::<RenderGraphResource>::new();
-        let mut needed_passes = HashSet::<RenderPassId>::new();
+        dependencies: &[Vec<RenderPassId>],
+        cull_roots: &[RenderPassId],
+    ) -> Result<CullingResult, RenderGraphError> {
         let mut live_passes = HashSet::<RenderPassId>::new();
-        let mut found_cull_root = false;
+        let mut pending = cull_roots.to_vec();
+        pending.extend(self.passes.iter().filter_map(|pass| {
+            (!pass.flags.allow_culling || pass.flags.has_side_effects).then_some(pass.id)
+        }));
+        let root_count = pending.len();
 
-        for id in ordered.iter().rev() {
-            let pass = &self.passes[id.0];
-            let writes_needed_resource = pass.resources.iter().any(|access| {
-                access.kind == ResourceAccessKind::Write
-                    && needed_resources.contains(&access.resource)
-            });
-            let writes_cull_root_resource = pass.resources.iter().any(|access| {
-                access.kind == ResourceAccessKind::Write
-                    && cull_root_resources.contains(&access.resource)
-            });
-            let is_explicit_pass_root = !pass.flags.allow_culling
-                || pass.flags.has_side_effects
-                || writes_cull_root_resource;
-            let live =
-                needed_passes.contains(id) || is_explicit_pass_root || writes_needed_resource;
-
-            if live {
-                found_cull_root |= is_explicit_pass_root;
-                live_passes.insert(*id);
-                for access in &pass.resources {
-                    if access.kind == ResourceAccessKind::Read {
-                        needed_resources.insert(access.resource);
-                    }
-                }
-                needed_passes.extend(pass.dependencies.iter().copied());
-            }
-        }
-
-        if !self.passes.is_empty() && !found_cull_root {
+        if !self.passes.is_empty() && pending.is_empty() {
             return Err(RenderGraphError::MissingCullRoot {
                 graph_name: self.name.clone(),
             });
         }
 
-        Ok(self
+        // Walk only semantic provenance edges. Execution still carries WAW/WAR edges to
+        // serialize reused backing resources, but those hazards do not make overwritten data live.
+        let mut dependency_visit_count = 0;
+        while let Some(pass) = pending.pop() {
+            if live_passes.insert(pass) {
+                dependency_visit_count += dependencies[pass.0].len();
+                pending.extend(dependencies[pass.0].iter().copied());
+            }
+        }
+
+        let culled = self
             .passes
             .iter()
             .map(|pass| pass.id)
             .filter(|id| !live_passes.contains(id))
-            .collect())
+            .collect();
+        Ok(CullingResult {
+            culled,
+            root_count,
+            dependency_visit_count,
+        })
     }
 
     fn resource_lifetimes(
@@ -322,7 +633,7 @@ impl RenderGraphBuilder {
         ordered: &[RenderPassId],
         culled: &HashSet<RenderPassId>,
         resource_declarations: &[RenderGraphResourceDeclaration],
-    ) -> Vec<RenderGraphResourceLifetime> {
+    ) -> Result<Vec<RenderGraphResourceLifetime>, RenderGraphError> {
         let resource_declaration_indices = resource_declarations
             .iter()
             .enumerate()
@@ -346,80 +657,36 @@ impl RenderGraphBuilder {
             }
         }
 
-        let mut lifetimes = spans
-            .into_iter()
-            .map(|(resource, (first_pass, last_pass))| {
-                let declaration = resource_declaration_indices
-                    .get(&resource)
-                    .and_then(|index| resource_declarations.get(*index))
-                    .expect("resource accesses are validated during graph construction");
-                let usage = declaration.usage;
-                // Readback consumers run after graph recording, so their backing must
-                // remain unique and live through the terminal compiled pass.
-                let last_pass = if usage.readback {
-                    ordered.len().saturating_sub(1)
-                } else {
-                    last_pass
-                };
-                RenderGraphResourceLifetime {
-                    resource,
-                    name: declaration.name.clone(),
-                    kind: declaration.kind,
-                    desc: declaration.desc.clone(),
-                    external_binding: declaration.external_binding,
-                    first_pass,
-                    last_pass,
-                    imported: declaration.imported,
-                    usage,
-                }
-            })
-            .collect::<Vec<_>>();
+        let mut lifetimes = Vec::with_capacity(spans.len());
+        for (resource, (first_pass, last_pass)) in spans {
+            let declaration = resource_declaration_indices
+                .get(&resource)
+                .and_then(|index| resource_declarations.get(*index))
+                .ok_or_else(|| RenderGraphError::ResourceDeclarationMissing {
+                    resource: format!("{resource:?}"),
+                })?;
+            let usage = declaration.usage;
+            // Readback consumers run after graph recording, so their backing must
+            // remain unique and live through the terminal compiled pass.
+            let last_pass = if usage.readback {
+                ordered.len().saturating_sub(1)
+            } else {
+                last_pass
+            };
+            lifetimes.push(RenderGraphResourceLifetime {
+                resource,
+                name: declaration.name.clone(),
+                kind: declaration.kind,
+                desc: declaration.desc.clone(),
+                external_binding: declaration.external_binding,
+                first_pass,
+                last_pass,
+                imported: declaration.imported,
+                usage,
+            });
+        }
         lifetimes.sort_by(|a, b| a.name.cmp(&b.name));
-        lifetimes
-    }
-}
-
-// Manual WAW validation needs transitive reachability. The graph is a DAG at
-// this point, so inverse topological propagation gives a bounded bitset closure
-// without cloning a HashSet for every intermediate pass.
-struct ManualPassReachability {
-    bits: Vec<Vec<u64>>,
-}
-
-impl ManualPassReachability {
-    fn from_topological_order(
-        dependencies: &[Vec<RenderPassId>],
-        topological_order: &[RenderPassId],
-    ) -> Self {
-        let pass_count = dependencies.len();
-        let word_count = pass_count.div_ceil(u64::BITS as usize);
-        let mut dependents = vec![Vec::new(); pass_count];
-        for (pass_index, pass_dependencies) in dependencies.iter().enumerate() {
-            for dependency in pass_dependencies {
-                dependents[dependency.0].push(RenderPassId(pass_index));
-            }
-        }
-
-        let mut bits = vec![vec![0_u64; word_count]; pass_count];
-        for source in topological_order.iter().rev() {
-            for dependent in &dependents[source.0] {
-                bits[source.0][dependent.0 / u64::BITS as usize] |=
-                    1_u64 << (dependent.0 % u64::BITS as usize);
-                for word in 0..word_count {
-                    let dependent_word = bits[dependent.0][word];
-                    bits[source.0][word] |= dependent_word;
-                }
-            }
-        }
-
-        Self { bits }
-    }
-
-    fn contains(&self, source: usize, target: usize) -> bool {
-        self.bits
-            .get(source)
-            .and_then(|words| words.get(target / u64::BITS as usize))
-            .is_some_and(|word| word & (1_u64 << (target % u64::BITS as usize)) != 0)
+        Ok(lifetimes)
     }
 }
 
@@ -427,6 +694,68 @@ impl ManualPassReachability {
 struct LatestWriter {
     pass: RenderPassId,
     store: RenderGraphAttachmentStoreOp,
+}
+
+struct InferredResourceDependencies {
+    execution: Vec<Vec<RenderPassId>>,
+    culling: Vec<Vec<RenderPassId>>,
+    cull_roots: Vec<RenderPassId>,
+    resource_access_versions: Vec<Vec<RenderGraphResourceVersion>>,
+    resource_access_visit_count: usize,
+    execution_dependency_count: usize,
+    provenance_dependency_count: usize,
+}
+
+struct CullingResult {
+    culled: HashSet<RenderPassId>,
+    root_count: usize,
+    dependency_visit_count: usize,
+}
+
+// Each write forms a new logical value. Readers are retained only until that value is replaced.
+#[derive(Default)]
+struct ResourceAccessHistory {
+    latest_writer: Option<LatestWriter>,
+    latest_version_ordinal: u64,
+    readers_since_last_write: Vec<RenderPassId>,
+}
+
+// The same builder records both execution hazards and semantic provenance; consumers choose the
+// adjacency appropriate for scheduling or culling.
+struct DependencyAdjacency {
+    dependencies: Vec<Vec<RenderPassId>>,
+    membership: Vec<HashSet<RenderPassId>>,
+    dependency_count: usize,
+}
+
+impl DependencyAdjacency {
+    fn from_manual_dependencies(dependencies: Vec<Vec<RenderPassId>>) -> Self {
+        let membership = dependencies
+            .iter()
+            .map(|incoming| incoming.iter().copied().collect())
+            .collect::<Vec<HashSet<_>>>();
+        let dependency_count = membership.iter().map(HashSet::len).sum();
+        Self {
+            dependencies,
+            membership,
+            dependency_count,
+        }
+    }
+
+    fn add_dependency(&mut self, before: RenderPassId, after: RenderPassId) {
+        if before != after && self.membership[after.0].insert(before) {
+            self.dependencies[after.0].push(before);
+            self.dependency_count += 1;
+        }
+    }
+
+    fn dependency_count(&self) -> usize {
+        self.dependency_count
+    }
+
+    fn into_dependencies(self) -> Vec<Vec<RenderPassId>> {
+        self.dependencies
+    }
 }
 
 fn resource_name(

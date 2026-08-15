@@ -7,7 +7,7 @@ use zircon_runtime_interface::ui::{
     event_ui::{
         UiControlRequest, UiControlResponse, UiInvocationContext, UiInvocationError,
         UiNodeDescriptor, UiNodePath, UiNotification, UiPropertyDescriptor, UiReflectionDiff,
-        UiReflectionSnapshot, UiRouteId, UiSubscriptionId, UiTreeId,
+        UiReflectionNodePatch, UiReflectionSnapshot, UiRouteId, UiSubscriptionId, UiTreeId,
     },
 };
 
@@ -78,6 +78,13 @@ impl EditorUiControlService {
 
     pub fn publish_snapshot(&mut self, snapshot: UiReflectionSnapshot) -> UiReflectionDiff {
         self.event_manager.replace_tree(snapshot)
+    }
+
+    pub fn apply_reflection_patches(
+        &mut self,
+        patches: &[UiReflectionNodePatch],
+    ) -> Result<Vec<UiReflectionDiff>, UiInvocationError> {
+        self.event_manager.apply_reflection_patches(patches)
     }
 
     pub fn query_tree(&self, tree_id: &UiTreeId) -> Option<UiReflectionSnapshot> {

@@ -243,16 +243,73 @@ fn text_raster_worker_pool_batch_skips_cancelled_work_and_completes_compatible_g
 
 #[test]
 fn text_raster_worker_pool_options_use_async_compute_budget() {
-    let options = TextRasterWorkerPoolOptions::from_task_pool_options(
-        &TaskPoolOptions::with_num_threads(8),
-        8,
-    );
+    for (available_threads, expected_workers) in [(1, 1), (2, 1), (4, 1), (8, 2)] {
+        let options = TextRasterWorkerPoolOptions::from_task_pool_options(
+            &TaskPoolOptions::with_num_threads(available_threads),
+            available_threads,
+        );
 
-    assert_eq!(options.worker_count, 2);
-    assert_eq!(
-        options.thread_budget_source,
-        TextRasterThreadBudgetSource::TaskPoolAsyncCompute
-    );
+        assert_eq!(options.worker_count, expected_workers);
+        assert_eq!(
+            options.thread_budget_source,
+            TextRasterThreadBudgetSource::TaskPoolAsyncCompute
+        );
+    }
+}
+
+#[test]
+#[ignore = "managed raster worker scale gate"]
+fn text_raster_worker_pool_scale_matrix_completes_bounded_work() {
+    let font = FontRef::from_index(TEST_FONT_BYTES, 0).expect("test font should parse as face 0");
+    let glyph_id = font.charmap().map('P');
+    assert_ne!(glyph_id, 0, "test glyph should be present in FiraSans");
+
+    for worker_count in [1, 2, 4, 8] {
+        for glyph_count in [1, 100, 1_000] {
+            let pool = TextRasterWorkerPool::new(
+                TextRasterWorkerPoolOptions::new(worker_count)
+                    .with_queue_depth(glyph_count)
+                    .with_completion_queue_depth(glyph_count)
+                    .with_request_byte_budget(
+                        glyph_count.saturating_mul(std::mem::size_of::<TextRasterWorkItem>()),
+                    )
+                    .with_completion_byte_budget(4 * 1024 * 1024),
+            )
+            .expect("scale-gate raster workers should start");
+            let font_data = Arc::<[u8]>::from(TEST_FONT_BYTES);
+            for work_id in 1..=glyph_count {
+                pool.request(TextRasterWorkItem::new(
+                    TextRasterWorkId::new(work_id as u64),
+                    1,
+                    Arc::clone(&font_data),
+                    SwashRasterRequest::alpha_outline(0, glyph_id, 18.0, true),
+                ))
+                .expect("scale-gate request should fit declared queue budgets");
+            }
+
+            let deadline = Instant::now() + Duration::from_secs(10);
+            let mut completed = 0;
+            while completed < glyph_count {
+                let drain = pool.drain_completed_for_face_epoch(
+                    1,
+                    TextRasterCompletionDrainBudget::new(glyph_count, usize::MAX),
+                );
+                for result in drain.accepted {
+                    assert!(result.result.is_ok());
+                    completed += 1;
+                }
+                assert!(
+                    Instant::now() < deadline,
+                    "{worker_count} workers should complete {glyph_count} bounded glyphs"
+                );
+                std::thread::yield_now();
+            }
+            let diagnostics = pool.diagnostics();
+            assert_eq!(diagnostics.in_flight, 0);
+            assert_eq!(diagnostics.completion_backlog_bytes, 0);
+            assert_eq!(diagnostics.completion_budget_rejected, 0);
+        }
+    }
 }
 
 #[test]
@@ -333,7 +390,38 @@ fn text_raster_worker_pool_defers_the_next_completion_before_exceeding_frame_byt
 }
 
 #[test]
-fn text_raster_worker_pool_reports_a_single_oversized_progress_exception() {
+fn text_raster_worker_pool_drains_one_completion_larger_than_the_frame_budget() {
+    let pool = TextRasterWorkerPool::new_without_workers_for_test(
+        TextRasterWorkerPoolOptions::new(2)
+            .with_completion_queue_depth(2)
+            .with_completion_byte_budget(8),
+    );
+    let oversized =
+        GlyphBitmap::alpha_mask(UVec2::new(5, 1), Vec2::new(0.0, 1.0), 16.0, vec![64; 5])
+            .expect("test bitmap should be valid");
+    let following = GlyphBitmap::alpha_mask(UVec2::new(1, 1), Vec2::new(0.0, 1.0), 16.0, vec![64])
+        .expect("test bitmap should be valid");
+    assert!(pool.try_publish_completion_for_test(result(50, 1, Ok(oversized))));
+    assert!(pool.try_publish_completion_for_test(result(51, 1, Ok(following))));
+
+    let first = pool.drain_completed_for_face_epoch(1, TextRasterCompletionDrainBudget::new(2, 4));
+    assert_eq!(first.accepted.len(), 1);
+    assert_eq!(first.accepted[0].id, TextRasterWorkId::new(50));
+    assert_eq!(first.drained_bytes, 5);
+    assert_eq!(first.oversized_accepted_count, 1);
+    assert_eq!(first.byte_budget_deferred_count, 1);
+    assert_eq!(pool.diagnostics().completion_backlog_bytes, 1);
+
+    let second = pool.drain_completed_for_face_epoch(1, TextRasterCompletionDrainBudget::new(2, 4));
+    assert_eq!(second.accepted.len(), 1);
+    assert_eq!(second.accepted[0].id, TextRasterWorkId::new(51));
+    assert_eq!(second.drained_bytes, 1);
+    assert_eq!(second.oversized_accepted_count, 0);
+    assert_eq!(pool.diagnostics().completion_backlog_bytes, 0);
+}
+
+#[test]
+fn text_raster_worker_pool_rejects_oversized_completion_before_queueing() {
     let pool = TextRasterWorkerPool::new_without_workers_for_test(
         TextRasterWorkerPoolOptions::new(1)
             .with_completion_queue_depth(1)
@@ -341,13 +429,12 @@ fn text_raster_worker_pool_reports_a_single_oversized_progress_exception() {
     );
     let bitmap = GlyphBitmap::alpha_mask(UVec2::new(5, 1), Vec2::new(0.0, 1.0), 16.0, vec![64; 5])
         .expect("test bitmap should be valid");
-    assert!(pool.try_publish_completion_for_test(result(42, 1, Ok(bitmap))));
-
-    let drain = pool.drain_completed_for_face_epoch(1, TextRasterCompletionDrainBudget::new(1, 4));
-
-    assert_eq!(drain.accepted.len(), 1);
-    assert_eq!(drain.drained_bytes, 5);
-    assert_eq!(drain.oversized_accepted_count, 1);
+    assert!(!pool.try_publish_completion_for_test(result(42, 1, Ok(bitmap))));
+    let diagnostics = pool.diagnostics();
+    assert_eq!(diagnostics.completion_backlog, 0);
+    assert_eq!(diagnostics.completion_backlog_bytes, 0);
+    assert_eq!(diagnostics.completion_budget_rejected, 1);
+    assert_eq!(diagnostics.completion_rejected_bytes, 5);
 }
 
 #[test]
@@ -407,6 +494,48 @@ fn text_raster_worker_pool_drop_cancels_completion_backpressure() {
         drop_started.elapsed() < Duration::from_secs(1),
         "drop must cancel a worker blocked by completion backpressure"
     );
+}
+
+#[test]
+fn text_raster_worker_releases_bitmap_when_completion_budget_is_full() {
+    let font = FontRef::from_index(TEST_FONT_BYTES, 0).expect("test font should parse as face 0");
+    let glyph_id = font.charmap().map('P');
+    assert_ne!(glyph_id, 0, "test glyph should be present in FiraSans");
+
+    let pool = TextRasterWorkerPool::new(
+        TextRasterWorkerPoolOptions::new(1)
+            .with_queue_depth(1)
+            .with_completion_queue_depth(1)
+            .with_completion_byte_budget(1),
+    )
+    .expect("one raster worker should start");
+    pool.request(TextRasterWorkItem::new(
+        TextRasterWorkId::new(42),
+        1,
+        Arc::<[u8]>::from(TEST_FONT_BYTES),
+        SwashRasterRequest::alpha_outline(0, glyph_id, 18.0, true),
+    ))
+    .expect("raster work should enter the bounded request queue");
+
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while pool.diagnostics().completion_backlog == 0 {
+        assert!(
+            Instant::now() < deadline,
+            "budget rejection should publish a zero-byte failure completion"
+        );
+        std::thread::sleep(Duration::from_millis(1));
+    }
+
+    let diagnostics = pool.diagnostics();
+    assert_eq!(diagnostics.completion_backlog_bytes, 0);
+    assert_eq!(diagnostics.completion_budget_rejected, 1);
+    assert!(diagnostics.completion_rejected_bytes > 1);
+
+    let drain = pool.drain_completed_for_face_epoch(1, TextRasterCompletionDrainBudget::new(1, 1));
+    assert_eq!(drain.accepted.len(), 1);
+    assert!(drain.accepted[0].result.is_err());
+    assert_eq!(drain.drained_bytes, 0);
+    assert_eq!(pool.diagnostics().completion_backlog, 0);
 }
 
 #[test]

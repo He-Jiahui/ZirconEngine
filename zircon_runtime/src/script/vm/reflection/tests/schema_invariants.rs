@@ -407,8 +407,12 @@ fn committed_catalog_mutations_invalidate_older_registry_snapshots() {
     let original = catalog
         .current_snapshot()
         .expect("initial canonical snapshot should build");
+    let repeated = catalog
+        .current_snapshot()
+        .expect("stable canonical snapshot should remain available");
     assert!(original.is_current());
     assert_eq!(original.revision(), 0);
+    assert!(std::ptr::eq(original.registry(), repeated.registry()));
 
     catalog
         .publish_generation(
@@ -498,7 +502,11 @@ fn same_revision_candidates_have_distinct_commit_identity() {
     catalog
         .commit_prepared(prepared_b)
         .expect("candidate B should commit");
+    let committed = catalog
+        .current_snapshot()
+        .expect("committed candidate snapshot should remain available");
     assert!(snapshot_b.is_current());
+    assert!(std::ptr::eq(snapshot_b.registry(), committed.registry()));
     assert!(!snapshot_a.is_current());
     assert!(!snapshot_a.can_resolve_names());
     assert!(matches!(

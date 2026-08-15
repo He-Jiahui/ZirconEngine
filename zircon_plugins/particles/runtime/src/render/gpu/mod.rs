@@ -1,5 +1,6 @@
 mod backend;
 mod layout;
+mod neutral_buffers;
 mod planner;
 mod program;
 mod readback;
@@ -30,6 +31,7 @@ pub use runtime_owner::{
 };
 pub use transparent::{ParticleGpuTransparentRenderConfig, ParticleGpuTransparentRenderParams};
 
+pub(crate) use neutral_buffers::PARTICLE_GPU_NEUTRAL_MAX_EMITTERS;
 pub(crate) use program::{
     PARTICLE_GPU_COUNTER_WORDS_BASE, PARTICLE_GPU_INDIRECT_DRAW_WORDS, PARTICLE_GPU_WORKGROUP_SIZE,
 };

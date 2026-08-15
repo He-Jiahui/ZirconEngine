@@ -109,7 +109,7 @@ fn present_selected_camera_frame(
     let output_policy = ViewportCameraStackOutputPolicy::from(output_policy);
     let owns_viewport_submission = output_policy.owns_viewport_submission();
     let owns_shared_viewport_products = output_policy.owns_shared_viewport_products();
-    let context = {
+    let mut context = {
         crate::profile_scope!("runtime", "render_framework", "build_submission_context");
         match build_frame_submission_context_from_runtime_frame_extract(
             framework,
@@ -153,6 +153,7 @@ fn present_selected_camera_frame(
     state
         .renderer
         .set_global_material_mip_bias(context.global_material_mip_bias());
+    let environment_ibl_bake_reservation = context.take_environment_ibl_bake_reservation();
 
     let render_result: Result<_, RenderFrameworkError> = if owns_viewport_submission {
         let RenderFrameworkState {
@@ -182,7 +183,7 @@ fn present_selected_camera_frame(
         };
         let present_result = {
             crate::profile_scope!("runtime", "render_framework", "present_frame_with_pipeline");
-            renderer.present_frame_with_pipeline_task_pool(
+            renderer.present_frame_with_pipeline_task_pool_with_environment_ibl_bake_reservation(
                 &runtime_frame,
                 context.compiled_pipeline(),
                 context.capabilities(),
@@ -190,6 +191,7 @@ fn present_selected_camera_frame(
                 resolved_history.previous_history_available(),
                 surface_lease.value_mut(),
                 framework.compute_task_pool(),
+                environment_ibl_bake_reservation,
             )
         };
         surface_lease.restore();
@@ -198,7 +200,7 @@ fn present_selected_camera_frame(
         crate::profile_scope!("runtime", "render_framework", "render_frame_with_pipeline");
         state
             .renderer
-            .render_frame_with_pipeline_async_capture_task_pool(
+            .render_frame_with_pipeline_async_capture_task_pool_with_environment_ibl_bake_reservation(
                 &runtime_frame,
                 context.compiled_pipeline(),
                 context.capabilities(),
@@ -206,6 +208,7 @@ fn present_selected_camera_frame(
                 resolved_history.previous_history_available(),
                 framework.compute_task_pool(),
                 None,
+                environment_ibl_bake_reservation,
             )
             .map(|frame| frame.generation)
             .map_err(render_framework_backend_error)
@@ -297,10 +300,11 @@ fn present_selected_camera_frame(
         let viewport_record =
             viewport_record_mut_after_generation_check(&mut state, viewport, &context)?;
         viewport_record.attach_capture_frame_profile(&frame_profile_write.capture_profile);
-        if let Some(profile) = frame_profile_write.resolved_gpu_profile.as_deref() {
+        for profile in &frame_profile_write.resolved_gpu_profiles {
             viewport_record.attach_capture_frame_profile(profile);
         }
     }
+    state.last_retained_scene_color_viewport = Some(viewport);
     crate::profile_counter!(
         "runtime",
         "render_framework.last_present_generation",

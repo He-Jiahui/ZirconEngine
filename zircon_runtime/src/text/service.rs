@@ -1,3 +1,5 @@
+#[cfg(test)]
+use std::cell::Cell;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::OnceLock;
 
@@ -57,6 +59,16 @@ impl TextLayoutGenerationRetryMetrics {
 fn generation_retry_metrics() -> &'static TextLayoutGenerationRetryMetrics {
     static METRICS: OnceLock<TextLayoutGenerationRetryMetrics> = OnceLock::new();
     METRICS.get_or_init(TextLayoutGenerationRetryMetrics::default)
+}
+
+#[cfg(test)]
+thread_local! {
+    static CURRENT_THREAD_NEUTRAL_PROJECTION_COUNT: Cell<u64> = const { Cell::new(0) };
+}
+
+#[cfg(test)]
+pub(crate) fn current_thread_neutral_projection_count() -> u64 {
+    CURRENT_THREAD_NEUTRAL_PROJECTION_COUNT.get()
 }
 
 pub(crate) fn shared_text_layout_generation_retry_report() -> TextLayoutGenerationRetryReport {
@@ -273,7 +285,7 @@ fn project_shape_result(
                 .map(|glyph| {
                     // A malformed projection batch must not terminate text rendering. Missing
                     // handles take the existing fail-closed raster path for this glyph.
-                    project_glyph(glyph, font_handles.next().unwrap_or_default())
+                    project_glyph(&glyph, font_handles.next().unwrap_or_default())
                 })
                 .collect(),
         })
@@ -285,15 +297,13 @@ fn project_shape_result(
     }
 }
 
-pub(crate) fn project_shaped_glyph_run_for_runtime(shaped: &ShapedGlyphRun) -> TextShapeResult {
-    project_shape_result(
-        shaped.clone(),
-        shaped.direction,
-        shared_font_database_generation(),
-    )
-}
-
 fn record_neutral_projection(shaped: &ShapedGlyphRun) {
+    #[cfg(test)]
+    CURRENT_THREAD_NEUTRAL_PROJECTION_COUNT.set(
+        CURRENT_THREAD_NEUTRAL_PROJECTION_COUNT
+            .get()
+            .saturating_add(1),
+    );
     let glyph_count = shaped
         .lines
         .iter()
@@ -316,8 +326,8 @@ fn record_neutral_projection(shaped: &ShapedGlyphRun) {
         .fetch_add(projected_bytes as u64, Ordering::Relaxed);
 }
 
-fn project_glyph(
-    glyph: ShapedGlyph,
+pub(super) fn project_glyph(
+    glyph: &ShapedGlyph,
     (font_face, font_instance): (
         Option<crate::core::framework::text::TextFontFaceHandle>,
         Option<crate::core::framework::text::TextFontFaceHandle>,
@@ -356,6 +366,7 @@ fn project_glyph(
 
 #[cfg(test)]
 mod tests {
+    use std::cell::Cell;
     use std::path::Path;
 
     use super::*;
@@ -545,5 +556,31 @@ mod tests {
         );
         assert!(after.restart_count >= before.restart_count + 2);
         assert!(after.deferred_count >= before.deferred_count + 1);
+    }
+
+    #[test]
+    fn generation_retry_restarts_when_projection_observes_a_font_publish() {
+        let generation = Cell::new(10_u64);
+        let shape_count = Cell::new(0_u64);
+        let projection_count = Cell::new(0_u64);
+
+        let result = shape_for_stable_font_generation(
+            || generation.get(),
+            || {
+                shape_count.set(shape_count.get() + 1);
+                shape_count.get()
+            },
+            |shaped_count, _| {
+                projection_count.set(projection_count.get() + 1);
+                if projection_count.get() == 1 {
+                    generation.set(11);
+                }
+                shaped_count
+            },
+        );
+
+        assert_eq!(result, Ok(2));
+        assert_eq!(shape_count.get(), 2);
+        assert_eq!(projection_count.get(), 2);
     }
 }

@@ -564,8 +564,8 @@ mod tests {
 
     #[cfg(windows)]
     use super::{
-        ProcessTreeLease, configure_process_tree_suspended_spawn,
-        platform_process_tree_termination_args,
+        configure_process_tree_suspended_spawn, platform_process_tree_termination_args,
+        ProcessTreeLease,
     };
 
     #[cfg(windows)]

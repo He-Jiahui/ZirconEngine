@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::num::NonZeroU32;
 use std::sync::Arc;
 
-use crate::core::resource::ResourceId;
 use crate::core::framework::render::RenderCapabilitySummary;
+use crate::core::resource::ResourceId;
 use crate::graphics::scene::resources::GpuTextureResource;
 
 /// Stable owner-provided identity for an entry in the material texture table.
@@ -425,8 +425,8 @@ fn create_bindless_material_bind_group(
 #[cfg(test)]
 mod tests {
     use super::{
-        BindlessMaterialSlab, BindlessMaterialSlabError, BindlessSlotIndex, BindlessTextureKey,
-        bindless_material_binding_array_layout_entries,
+        bindless_material_binding_array_layout_entries, BindlessMaterialSlab,
+        BindlessMaterialSlabError, BindlessSlotIndex, BindlessTextureKey,
     };
     use crate::core::framework::render::RenderCapabilitySummary;
     use crate::core::resource::ResourceId;
@@ -531,10 +531,10 @@ mod tests {
 
     #[test]
     fn zero_capacity_is_rejected() {
-        assert_eq!(
+        assert!(matches!(
             BindlessMaterialSlab::new(0, FALLBACK),
             Err(BindlessMaterialSlabError::ZeroCapacity)
-        );
+        ));
     }
 
     #[test]

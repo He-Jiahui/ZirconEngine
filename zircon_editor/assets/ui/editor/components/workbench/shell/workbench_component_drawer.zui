@@ -45,14 +45,14 @@ default_classes = ["workbench-component-drawer"]
 component = "VerticalGroup"
 control_id = "WorkbenchComponentDrawer"
 classes = ["workbench-component-drawer"]
-layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 407.0, preferred = 407.0, max = 407.0, stretch = "Fixed" } }
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "drawer_tabs" }, { node = "component_drawer_content" }]
 
 [nodes.drawer_tabs]
 component = "HorizontalGroup"
 control_id = "BottomDrawerHeaderRoot"
 classes = ["workbench-tabs"]
-layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.chrome.panel_header.height", preferred = "$editor.chrome.panel_header.height", max = "$editor.chrome.panel_header.height", stretch = "Fixed" } }
 children = [{ node = "drawer_tab_components" }, { node = "drawer_tab_console" }]
 
 [nodes.component_drawer_content]
@@ -66,16 +66,16 @@ children = [{ node = "component_body" }, { node = "console_body" }]
 component = "WorkbenchTab"
 control_id = "WorkbenchDrawerTabComponents"
 classes = ["workbench-tab"]
-props = { text = "UI Components", checked = true, selected = true, value = true }
-layout = { width = { min = 150.0, preferred = 150.0, max = 170.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { text = "UI Components", checked = true, selected = true, value = true, layout_min_height = "$editor.chrome.panel_header.height" }
+layout = { width = { min = 150.0, preferred = 150.0, max = 170.0, stretch = "Fixed" }, height = { min = "$editor.chrome.panel_header.height", preferred = "$editor.chrome.panel_header.height", max = "$editor.chrome.panel_header.height", stretch = "Fixed" } }
 events = [{ id = "PanelTab/ComponentDrawerComponents", event = "Click", route = "workbench.panel_tab.select.component_drawer_components" }]
 
 [nodes.drawer_tab_console]
 component = "WorkbenchTab"
 control_id = "WorkbenchDrawerTabConsole"
 classes = ["workbench-tab"]
-props = { text = "Console", checked = false, selected = false, value = false }
-layout = { width = { min = 110.0, preferred = 110.0, max = 130.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { text = "Console", checked = false, selected = false, value = false, layout_min_height = "$editor.chrome.panel_header.height" }
+layout = { width = { min = 110.0, preferred = 110.0, max = 130.0, stretch = "Fixed" }, height = { min = "$editor.chrome.panel_header.height", preferred = "$editor.chrome.panel_header.height", max = "$editor.chrome.panel_header.height", stretch = "Fixed" } }
 events = [{ id = "PanelTab/ComponentDrawerConsole", event = "Click", route = "workbench.panel_tab.select.component_drawer_console" }]
 
 [nodes.component_body]

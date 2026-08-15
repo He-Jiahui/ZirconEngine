@@ -1,15 +1,23 @@
 use std::sync::Arc;
 
-use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiRichTextArtifactHandle,
     UiTextCaret, UiTextCaretAffinity, UiTextRange, UiTextWritingMode,
 };
 
-use super::font::shared_font_database_generation;
-use super::service::project_shaped_glyph_run_for_runtime;
-use super::{SharedTextLayoutSession, TextRange, VerticalMode, text_style};
-use crate::core::framework::text::{TextGlyph, TextShapeResult};
+use super::font::{register_font_handle_batch, shared_font_database_generation};
+#[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+use super::font::{register_font_handle_batch_with_report, FontHandleRegistrationBatchReport};
+use super::service::project_glyph;
+use super::{text_style, ShapedGlyphRun, SharedTextLayoutSession, TextRange, VerticalMode};
+use crate::core::framework::text::TextGlyph;
+
+mod visual_projection;
+
+use visual_projection::{
+    apply_resolved_advances, source_cluster_range_for_glyph, visual_clusters_for_line,
+    ProjectedGlyph,
+};
 
 #[derive(Clone, Debug)]
 pub(crate) struct ResolvedTextGlyphArtifact {
@@ -25,6 +33,12 @@ pub(crate) struct ResolvedTextGlyphArtifact {
 pub(crate) struct ResolvedTextGlyphArtifactLine {
     pub(crate) glyphs: Vec<TextGlyph>,
     pub(crate) layout_line: UiResolvedTextLine,
+}
+
+struct ArtifactShapedLine {
+    glyphs: Vec<TextGlyph>,
+    #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+    registration_report: Option<FontHandleRegistrationBatchReport>,
 }
 
 /// Returns the visual advance for an interior source offset that a shaped glyph keeps whole.
@@ -208,6 +222,27 @@ fn source_ranges_overlap(source_range: UiTextRange, range: UiTextRange) -> bool 
     range.start < source_range.end && source_range.start < range.end
 }
 
+/// A runtime glyph artifact may only retain source ranges owned by its resolved layout.
+///
+/// Synthetic ellipsis runs use an empty range at a line boundary and therefore remain valid.
+fn artifact_line_source_ranges_are_owned_by_layout(
+    layout_source_range: UiTextRange,
+    line: &UiResolvedTextLine,
+) -> bool {
+    source_range_contains(layout_source_range, line.source_range)
+        && line
+            .runs
+            .iter()
+            .all(|run| source_range_contains(line.source_range, run.source_range))
+}
+
+fn source_range_contains(container: UiTextRange, candidate: UiTextRange) -> bool {
+    container.start <= container.end
+        && candidate.start <= candidate.end
+        && container.start <= candidate.start
+        && candidate.end <= container.end
+}
+
 fn finite_non_negative(value: f32) -> f32 {
     if value.is_finite() {
         value.max(0.0)
@@ -249,7 +284,23 @@ pub(crate) fn build_resolved_text_glyph_artifact_with_shared_source(
     layout: &UiResolvedTextLayout,
     provider: &mut SharedTextLayoutSession,
 ) -> Option<ResolvedTextGlyphArtifact> {
-    let source_text_origin = source_text_origin(source_text.as_ref(), layout.source_range);
+    crate::profile_scope!(
+        "runtime",
+        "text.artifact",
+        "build_resolved_text_glyph_artifact"
+    );
+    let collect_profile_metrics = artifact_local_profile_metrics_enabled();
+    #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+    let cache_report_before = collect_profile_metrics.then(|| provider.cache_report());
+    let font_generation = shared_font_database_generation();
+    let source_text_origin = source_text_origin(source_text.as_ref(), layout.source_range)?;
+    if layout
+        .lines
+        .iter()
+        .any(|line| !artifact_line_source_ranges_are_owned_by_layout(layout.source_range, line))
+    {
+        return None;
+    }
     let shaped_style = text_style(&UiResolvedStyle {
         font_size: layout.font_size,
         line_height: layout.line_height,
@@ -260,6 +311,8 @@ pub(crate) fn build_resolved_text_glyph_artifact_with_shared_source(
         line_height: layout.line_height,
         ..style.clone()
     };
+    #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+    let mut registration_report = FontHandleRegistrationBatchReport::default();
     let lines = layout
         .lines
         .iter()
@@ -274,29 +327,85 @@ pub(crate) fn build_resolved_text_glyph_artifact_with_shared_source(
                 layout.writing_mode,
                 line,
                 provider,
+                font_generation,
+                collect_profile_metrics,
             )?;
+            #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+            if let Some(report) = projected.registration_report {
+                registration_report.accumulate(report);
+            }
             Some(ResolvedTextGlyphArtifactLine {
                 glyphs: visual_glyphs_for_line(
                     source_text.as_ref(),
                     source_text_origin,
                     line,
-                    projected,
+                    projected.glyphs,
                 ),
                 layout_line: line.clone(),
             })
         })
         .collect::<Vec<_>>();
-    lines
-        .iter()
-        .any(Option::is_some)
-        .then(|| ResolvedTextGlyphArtifact {
-            source_text,
-            source_text_origin,
-            font_generation: shared_font_database_generation(),
-            style: artifact_style,
-            writing_mode: layout.writing_mode,
-            lines,
-        })
+    if !lines.iter().any(Option::is_some) || shared_font_database_generation() != font_generation {
+        return None;
+    }
+    #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+    if collect_profile_metrics {
+        let cache_report_after = provider.cache_report();
+        let cache_report_before = cache_report_before
+            .expect("active artifact profiling must capture the shaped-cache baseline");
+        crate::profile_counter!(
+            "runtime",
+            "artifact_build_line_count",
+            lines.iter().filter(|line| line.is_some()).count()
+        );
+        crate::profile_counter!(
+            "runtime",
+            "artifact_build_shaped_cache_hit_count",
+            cache_report_after
+                .hit_count
+                .saturating_sub(cache_report_before.hit_count)
+        );
+        crate::profile_counter!(
+            "runtime",
+            "artifact_build_shaped_cache_miss_count",
+            cache_report_after
+                .miss_count
+                .saturating_sub(cache_report_before.miss_count)
+        );
+        crate::profile_counter!(
+            "runtime",
+            "artifact_build_font_handle_registration_batch_count",
+            registration_report.registration_batch_count
+        );
+        crate::profile_counter!(
+            "runtime",
+            "artifact_build_font_handle_registration_lock_acquire_count",
+            registration_report.registration_lock_acquire_count
+        );
+        crate::profile_counter!(
+            "runtime",
+            "artifact_build_font_handle_registration_lock_wait_nanos",
+            registration_report.registration_lock_wait_nanos
+        );
+        crate::profile_counter!(
+            "runtime",
+            "artifact_build_font_handle_registration_lock_hold_nanos",
+            registration_report.registration_lock_hold_nanos
+        );
+        crate::profile_counter!(
+            "runtime",
+            "artifact_build_font_handle_registration_snapshot_publish_count",
+            registration_report.registration_snapshot_publish_count
+        );
+    }
+    Some(ResolvedTextGlyphArtifact {
+        source_text,
+        source_text_origin,
+        font_generation,
+        style: artifact_style,
+        writing_mode: layout.writing_mode,
+        lines,
+    })
 }
 
 /// Synthetic visual runs have no one-to-one source slice for artifact re-shaping. They keep the
@@ -308,12 +417,36 @@ pub(crate) fn resolved_text_line_requires_visual_fallback(line: &UiResolvedTextL
             .runs
             .iter()
             .any(|run| !run.text.is_empty() && run.source_range.start == run.source_range.end)
+        || !visual_runs_cover_line_in_order(line)
+}
+
+/// The artifact source-to-visual projection advances through runs with a cursor, so it must not
+/// reinterpret an unordered, overlapping, or partially covered visual run collection.
+fn visual_runs_cover_line_in_order(line: &UiResolvedTextLine) -> bool {
+    if line.runs.is_empty() {
+        return true;
+    }
+
+    let mut expected_start = line.visual_range.start;
+    for run in &line.runs {
+        let Some(expected_end) = run.visual_range.start.checked_add(run.text.len()) else {
+            return false;
+        };
+        if run.visual_range.start != expected_start
+            || run.visual_range.end != expected_end
+            || run.visual_range.end > line.visual_range.end
+        {
+            return false;
+        }
+        expected_start = run.visual_range.end;
+    }
+    expected_start == line.visual_range.end
 }
 
 pub(crate) fn rebuild_resolved_text_glyph_artifact_line(
     artifact: &ResolvedTextGlyphArtifact,
     line_index: usize,
-) -> Option<Arc<ResolvedTextGlyphArtifactLine>> {
+) -> Option<(Arc<ResolvedTextGlyphArtifactLine>, u64)> {
     let line = artifact
         .lines
         .get(line_index)?
@@ -322,6 +455,7 @@ pub(crate) fn rebuild_resolved_text_glyph_artifact_line(
         .clone();
     let mut provider = SharedTextLayoutSession::new();
     let shaped_style = text_style(&artifact.style);
+    let font_generation = shared_font_database_generation();
     let projected = shape_line_for_artifact(
         artifact.source_text.as_ref(),
         artifact.source_text_origin,
@@ -329,16 +463,20 @@ pub(crate) fn rebuild_resolved_text_glyph_artifact_line(
         artifact.writing_mode,
         &line,
         &mut provider,
+        font_generation,
+        artifact_local_profile_metrics_enabled(),
     )?;
-    Some(Arc::new(ResolvedTextGlyphArtifactLine {
+    let rebuilt_line = Arc::new(ResolvedTextGlyphArtifactLine {
         glyphs: visual_glyphs_for_line(
             artifact.source_text.as_ref(),
             artifact.source_text_origin,
             &line,
-            projected,
+            projected.glyphs,
         ),
         layout_line: line,
-    }))
+    });
+    (shared_font_database_generation() == font_generation)
+        .then_some((rebuilt_line, font_generation))
 }
 
 fn shape_line_for_artifact(
@@ -348,7 +486,9 @@ fn shape_line_for_artifact(
     writing_mode: UiTextWritingMode,
     line: &UiResolvedTextLine,
     provider: &mut SharedTextLayoutSession,
-) -> Option<TextShapeResult> {
+    font_generation: u64,
+    collect_profile_metrics: bool,
+) -> Option<ArtifactShapedLine> {
     let source = source_slice(source_text, source_text_origin, line.source_range)?;
     let shaped = if matches!(writing_mode, UiTextWritingMode::VerticalRl) {
         provider.shape_vertical_line(
@@ -372,21 +512,83 @@ fn shape_line_for_artifact(
             },
         )
     };
-    Some(project_shaped_glyph_run_for_runtime(shaped.as_ref()))
+    if shared_font_database_generation() != font_generation {
+        return None;
+    }
+    let projected =
+        project_shaped_run_for_artifact(shaped.as_ref(), font_generation, collect_profile_metrics)?;
+    (shared_font_database_generation() == font_generation).then_some(projected)
+}
+
+fn project_shaped_run_for_artifact(
+    shaped: &ShapedGlyphRun,
+    font_generation: u64,
+    collect_profile_metrics: bool,
+) -> Option<ArtifactShapedLine> {
+    let font_pairs = shaped
+        .lines
+        .iter()
+        .flat_map(|line| {
+            line.glyphs
+                .iter()
+                .map(|glyph| (glyph.font_id, glyph.font_instance_id))
+        })
+        .collect::<Vec<_>>();
+    #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+    let (handles, registration_report) = if collect_profile_metrics {
+        let (handles, report) =
+            register_font_handle_batch_with_report(&font_pairs, font_generation);
+        (handles, Some(report))
+    } else {
+        (
+            register_font_handle_batch(&font_pairs, font_generation),
+            None,
+        )
+    };
+    #[cfg(not(any(feature = "profiling", feature = "profiling-tracy")))]
+    let handles = {
+        let _ = collect_profile_metrics;
+        register_font_handle_batch(&font_pairs, font_generation)
+    };
+    if handles.len() != font_pairs.len() || shared_font_database_generation() != font_generation {
+        return None;
+    }
+    Some(ArtifactShapedLine {
+        glyphs: shaped
+            .lines
+            .iter()
+            .flat_map(|line| line.glyphs.iter())
+            .zip(handles)
+            .map(|(glyph, handles)| project_glyph(glyph, handles))
+            .collect(),
+        #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+        registration_report,
+    })
+}
+
+/// Tracy streams counters continuously, while the CPU recorder should remain inert when idle.
+fn artifact_local_profile_metrics_enabled() -> bool {
+    #[cfg(feature = "profiling-tracy")]
+    {
+        return true;
+    }
+    #[cfg(all(feature = "profiling", not(feature = "profiling-tracy")))]
+    {
+        return crate::core::diagnostics::profiling::capture_active();
+    }
+    #[cfg(not(any(feature = "profiling", feature = "profiling-tracy")))]
+    {
+        false
+    }
 }
 
 fn visual_glyphs_for_line(
     source_text: &str,
     source_text_origin: usize,
     line: &UiResolvedTextLine,
-    shaped: TextShapeResult,
+    mut glyphs: Vec<TextGlyph>,
 ) -> Vec<TextGlyph> {
     let visual_clusters = visual_clusters_for_line(source_text, source_text_origin, line);
-    let mut glyphs = shaped
-        .runs
-        .into_iter()
-        .flat_map(|run| run.glyphs)
-        .collect::<Vec<_>>();
     if visual_clusters.is_empty() {
         return glyphs;
     }
@@ -433,215 +635,19 @@ fn visual_glyphs_for_line(
     projected.into_iter().map(|glyph| glyph.glyph).collect()
 }
 
-#[derive(Clone, Copy)]
-struct VisualCluster {
-    source_range: UiTextRange,
-    visual_index: usize,
-}
-
-struct ProjectedGlyph {
-    glyph: TextGlyph,
-    source_index: usize,
-    visual_index: usize,
-    source_clusters: std::ops::Range<usize>,
-}
-
-fn visual_clusters_for_line(
-    source_text: &str,
-    source_text_origin: usize,
-    line: &UiResolvedTextLine,
-) -> Vec<VisualCluster> {
-    if line.runs.is_empty() {
-        let mut source_graphemes = source_slice(source_text, source_text_origin, line.source_range)
-            .map(|source| {
-                source
-                    .grapheme_indices(true)
-                    .map(|(start, grapheme)| UiTextRange {
-                        start: line.source_range.start + start,
-                        end: line.source_range.start + start + grapheme.len(),
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
-        if matches!(
-            line.direction,
-            zircon_runtime_interface::ui::surface::UiTextDirection::RightToLeft
-        ) {
-            source_graphemes.reverse();
-        }
-        return line
-            .text
-            .grapheme_indices(true)
-            .enumerate()
-            .map(|(visual_index, _)| VisualCluster {
-                source_range: source_graphemes
-                    .get(visual_index)
-                    .copied()
-                    .unwrap_or(line.source_range),
-                visual_index,
-            })
-            .collect();
+/// The artifact accepts either its complete source or precisely one absolute layout slice.
+fn source_text_origin(source_text: &str, layout_source_range: UiTextRange) -> Option<usize> {
+    if layout_source_range.start > layout_source_range.end {
+        return None;
     }
-    let run_maps = line
-        .runs
-        .iter()
-        .map(|run| RunSourceMap::new(source_text, source_text_origin, run))
-        .collect::<Vec<_>>();
-    let mut first_run = 0_usize;
-    line.text
-        .grapheme_indices(true)
-        .enumerate()
-        .map(|(visual_index, (start, grapheme))| {
-            let visual_range = UiTextRange {
-                start: line.visual_range.start + start,
-                end: line.visual_range.start + start + grapheme.len(),
-            };
-            while run_maps
-                .get(first_run)
-                .is_some_and(|run| run.visual_range.end <= visual_range.start)
-            {
-                first_run += 1;
-            }
-            let mut source_range = None;
-            for run in run_maps[first_run..]
-                .iter()
-                .take_while(|run| run.visual_range.start < visual_range.end)
-            {
-                if let Some(range) = run.source_range_for_visual(visual_range) {
-                    source_range = Some(merge_ranges(source_range, range));
-                }
-            }
-            VisualCluster {
-                source_range: source_range.unwrap_or(line.source_range),
-                visual_index,
-            }
-        })
-        .collect()
-}
-
-struct RunSourceMap {
-    visual_range: UiTextRange,
-    visual_graphemes: Vec<UiTextRange>,
-    source_graphemes: Vec<UiTextRange>,
-}
-
-impl RunSourceMap {
-    fn new(
-        source_text: &str,
-        source_text_origin: usize,
-        run: &zircon_runtime_interface::ui::surface::UiResolvedTextRun,
-    ) -> Self {
-        let visual_graphemes = run
-            .text
-            .grapheme_indices(true)
-            .map(|(start, grapheme)| UiTextRange {
-                start: run.visual_range.start + start,
-                end: run.visual_range.start + start + grapheme.len(),
-            })
-            .collect::<Vec<_>>();
-        let mut source_graphemes = source_slice(source_text, source_text_origin, run.source_range)
-            .map(|source| {
-                source
-                    .grapheme_indices(true)
-                    .map(|(start, grapheme)| UiTextRange {
-                        start: run.source_range.start + start,
-                        end: run.source_range.start + start + grapheme.len(),
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
-        if source_graphemes.len() != visual_graphemes.len() {
-            source_graphemes = vec![run.source_range; visual_graphemes.len()];
-        } else if matches!(
-            run.direction,
-            zircon_runtime_interface::ui::surface::UiTextDirection::RightToLeft
-        ) {
-            source_graphemes.reverse();
-        }
-        Self {
-            visual_range: run.visual_range,
-            visual_graphemes,
-            source_graphemes,
-        }
+    if layout_source_range.end <= source_text.len() {
+        return Some(0);
     }
-
-    fn source_range_for_visual(&self, visual_range: UiTextRange) -> Option<UiTextRange> {
-        let index = self
-            .visual_graphemes
-            .partition_point(|range| range.end <= visual_range.start);
-        self.visual_graphemes
-            .get(index)
-            .filter(|range| ranges_overlap(**range, visual_range))?;
-        self.source_graphemes.get(index).copied()
-    }
+    (source_text.len() == layout_source_range.end - layout_source_range.start)
+        .then_some(layout_source_range.start)
 }
 
-fn source_cluster_range_for_glyph(
-    source_order: &[VisualCluster],
-    glyph: &TextGlyph,
-) -> std::ops::Range<usize> {
-    let start = source_order
-        .partition_point(|cluster| cluster.source_range.end <= glyph.source_range.start);
-    let end =
-        source_order.partition_point(|cluster| cluster.source_range.start < glyph.source_range.end);
-    start..end
-}
-
-fn apply_resolved_advances(
-    glyphs: &mut [ProjectedGlyph],
-    source_order: &[VisualCluster],
-    advances: &[f32],
-    cluster_count: usize,
-) {
-    if advances.len() != cluster_count {
-        return;
-    }
-    for glyph in glyphs
-        .iter_mut()
-        .filter(|glyph| !glyph.source_clusters.is_empty())
-    {
-        glyph.glyph.advance = 0.0;
-    }
-    let mut first_glyph_by_cluster = vec![None; cluster_count];
-    for (glyph_index, glyph) in glyphs.iter().enumerate() {
-        for cluster in &source_order[glyph.source_clusters.clone()] {
-            first_glyph_by_cluster[cluster.visual_index].get_or_insert(glyph_index);
-        }
-    }
-    for (cluster_index, advance) in advances.iter().copied().enumerate() {
-        let Some(glyph_index) = first_glyph_by_cluster[cluster_index] else {
-            continue;
-        };
-        if advance.is_finite() {
-            glyphs[glyph_index].glyph.advance += advance.max(0.0);
-        }
-    }
-}
-
-fn merge_ranges(current: Option<UiTextRange>, next: UiTextRange) -> UiTextRange {
-    let Some(current) = current else {
-        return next;
-    };
-    UiTextRange {
-        start: current.start.min(next.start),
-        end: current.end.max(next.end),
-    }
-}
-
-fn ranges_overlap(left: UiTextRange, right: UiTextRange) -> bool {
-    left.start < right.end && right.start < left.end
-}
-
-fn source_text_origin(source_text: &str, layout_source_range: UiTextRange) -> usize {
-    (source_text.len()
-        == layout_source_range
-            .end
-            .saturating_sub(layout_source_range.start))
-    .then_some(layout_source_range.start)
-    .unwrap_or_default()
-}
-
-fn source_slice(
+pub(super) fn source_slice(
     source_text: &str,
     source_text_origin: usize,
     source_range: UiTextRange,

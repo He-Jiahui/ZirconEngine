@@ -1,7 +1,7 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 pub(super) use super::super::super::bounded_extent as badge_bounded_extent;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    HostControlMetrics, current_host_metrics,
+    current_host_metrics, HostControlMetrics,
 };
 
 pub(super) const BADGE_STANDARD_HEIGHT: f32 = 20.0;

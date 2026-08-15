@@ -1,4 +1,4 @@
-use zircon_runtime_interface::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::layout::{UiFrame, UiPoint};
 
 const GRID_PADDING: f32 = 8.0;
 const GRID_GAP: f32 = 8.0;
@@ -72,6 +72,23 @@ impl AssetThumbnailGridMetrics {
         ))
     }
 
+    pub(crate) fn item_index_at_point(self, point: UiPoint) -> Option<usize> {
+        if self.columns == 0 || point.x < GRID_PADDING || point.y < GRID_PADDING {
+            return None;
+        }
+
+        let column = ((point.x - GRID_PADDING) / (self.card_width + GRID_GAP)).floor() as usize;
+        let row = ((point.y - GRID_PADDING) / (self.card_height + GRID_GAP)).floor() as usize;
+        if column >= self.columns {
+            return None;
+        }
+
+        let index = row.checked_mul(self.columns)?.checked_add(column)?;
+        self.item_frame(index)
+            .filter(|frame| frame.contains_point(point))
+            .map(|_| index)
+    }
+
     pub(crate) fn content_extent(self) -> f32 {
         if self.columns == 0 {
             return 0.0;
@@ -126,5 +143,23 @@ mod tests {
             assert!(metrics.item_frame(0).is_none());
             assert_eq!(metrics.content_extent(), 0.0);
         }
+    }
+
+    #[test]
+    fn point_lookup_rejects_grid_gaps_and_resolves_cards_without_scanning() {
+        let metrics = AssetThumbnailGridMetrics::new(420.0, 12);
+        let second = metrics.item_frame(1).expect("second thumbnail");
+
+        assert_eq!(
+            metrics.item_index_at_point(UiPoint::new(
+                second.x + second.width * 0.5,
+                second.y + second.height * 0.5,
+            )),
+            Some(1)
+        );
+        assert_eq!(
+            metrics.item_index_at_point(UiPoint::new(second.x - GRID_GAP * 0.5, second.y + 4.0)),
+            None
+        );
     }
 }

@@ -45,6 +45,15 @@ fn painter_state_from_source(source: UiRenderPainterStateSource<'_>) -> UiPainte
             || bool_attribute(source.metadata, "pressed").unwrap_or(false),
         focused: component_bool(component_flags, |flags| flags.focused)
             || bool_attribute(source.metadata, "focused").unwrap_or(false),
+        focus_visible: component_bool(component_flags, |flags| flags.focus_visible)
+            || bool_attribute(source.metadata, "focus_visible")
+                .or_else(|| bool_attribute(source.metadata, "focusVisible"))
+                // Static painter fixtures predate a live focus owner. Preserve their focus
+                // styling until runtime input establishes semantic focus for the component.
+                .unwrap_or(
+                    bool_attribute(source.metadata, "focused").unwrap_or(false)
+                        && !component_bool(component_flags, |flags| flags.focused),
+                ),
         disabled: component_bool(component_flags, |flags| flags.disabled)
             || !source.state_flags.enabled
             || bool_attribute(source.metadata, "disabled").unwrap_or(false),
@@ -89,4 +98,40 @@ fn bool_attribute(metadata: Option<&UiTemplateNodeMetadata>, key: &str) -> Optio
     metadata
         .and_then(|metadata| metadata.attributes.get(key))
         .and_then(Value::as_bool)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn static_focus_preview_yields_to_runtime_focus_visibility() {
+        let mut metadata = UiTemplateNodeMetadata::default();
+        metadata
+            .attributes
+            .insert("focused".to_string(), Value::Boolean(true));
+        let state_flags = UiStateFlags {
+            enabled: true,
+            ..UiStateFlags::default()
+        };
+
+        let static_preview =
+            UiRenderPainterStateSource::new(Some(&metadata), &state_flags, None).painter_state();
+        assert!(static_preview.focused);
+        assert!(static_preview.focus_visible);
+
+        let mut pointer_focus = UiComponentState::default();
+        pointer_focus.flags.focused = true;
+        let pointer =
+            UiRenderPainterStateSource::new(Some(&metadata), &state_flags, Some(&pointer_focus))
+                .painter_state();
+        assert!(pointer.focused);
+        assert!(!pointer.focus_visible);
+
+        pointer_focus.flags.focus_visible = true;
+        let keyboard =
+            UiRenderPainterStateSource::new(Some(&metadata), &state_flags, Some(&pointer_focus))
+                .painter_state();
+        assert!(keyboard.focus_visible);
+    }
 }

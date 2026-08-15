@@ -31,8 +31,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn timelin
     outlined: bool,
     tone: [u8; 4],
 ) -> Option<[u8; 4]> {
-    resolved_style_color(node.button_style.element.border_color.as_ref())
-        .or_else(|| if outlined { Some(tone) } else { None })
+    resolved_style_color(node.button_style.element.border_color.as_ref()).or_else(|| {
+        if outlined {
+            Some(tone)
+        } else {
+            None
+        }
+    })
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn timeline_dot_border_width(

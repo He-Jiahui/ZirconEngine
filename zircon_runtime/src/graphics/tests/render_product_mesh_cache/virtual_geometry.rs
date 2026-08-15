@@ -538,6 +538,7 @@ fn automatic_virtual_geometry_model_asset(uri: AssetUri) -> ModelAsset {
         vertices,
         indices,
         mesh: None,
+        mesh_sdf: None,
         virtual_geometry: Some(virtual_geometry),
     };
     primitive.assign_virtual_geometry_vertex_ordinals();

@@ -1,6 +1,6 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::menu_popup_metrics::{
-    MENU_POPUP_EDGE_INSET, MENU_POPUP_ROW_HEIGHT, menu_popup_outer_padding, menu_popup_row_stride,
+    menu_popup_outer_padding, menu_popup_row_stride, MENU_POPUP_EDGE_INSET, MENU_POPUP_ROW_HEIGHT,
 };
 
 pub(in crate::ui::retained_host::host_contract) fn menu_popup_row_frame(

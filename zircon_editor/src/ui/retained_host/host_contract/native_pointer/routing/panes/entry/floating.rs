@@ -1,7 +1,7 @@
 use crate::ui::retained_host::host_contract::data::HostWindowPresentationData;
 
-use super::super::super::PanePointerRoute;
 use super::super::super::geometry::{contains, floating_window_content_frame};
+use super::super::super::PanePointerRoute;
 use super::super::mode::PaneRouteMode;
 use super::super::pane::pane_route_from_pane;
 
@@ -16,6 +16,7 @@ pub(super) fn route_floating_window_pane(
     x: f32,
     y: f32,
     mode: PaneRouteMode,
+    console_scroll_px: f32,
 ) -> FloatingPaneRoute {
     let scene = &presentation.host_scene_data;
     for row in (0..scene.floating_layer.floating_windows.row_count()).rev() {
@@ -31,6 +32,7 @@ pub(super) fn route_floating_window_pane(
                 y,
                 Some(window.window_id.as_str()),
                 mode,
+                console_scroll_px,
             ) {
                 Some(route) => FloatingPaneRoute::Routed(route),
                 None => FloatingPaneRoute::Occluded,

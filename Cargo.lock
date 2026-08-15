@@ -8630,6 +8630,7 @@ dependencies = [
  "libloading 0.9.0",
  "serde",
  "serde_json",
+ "sha2",
  "softbuffer",
  "toml 1.1.2+spec-1.1.0",
  "tracing",
@@ -8676,6 +8677,7 @@ version = "0.1.0"
 dependencies = [
  "zircon_editor",
  "zircon_plugin_navigation_editor",
+ "zircon_plugin_neural_editor",
  "zircon_runtime",
 ]
 
@@ -8689,6 +8691,7 @@ dependencies = [
  "zircon_plugin_hybrid_gi_runtime",
  "zircon_plugin_navigation_runtime",
  "zircon_plugin_net_runtime",
+ "zircon_plugin_neural_runtime",
  "zircon_plugin_particles_runtime",
  "zircon_plugin_rendering_runtime",
  "zircon_plugin_solari_runtime",
@@ -8812,6 +8815,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "zircon_plugin_neural_editor"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "zircon_editor",
+ "zircon_plugin_neural_runtime",
+ "zircon_plugin_sdk",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_neural_post_process_runtime"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_neural_runtime",
+ "zircon_plugin_rendering_post_process_runtime",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_neural_runtime"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_neural_post_process_runtime",
+ "zircon_plugin_sdk",
+ "zircon_runtime",
+]
+
+[[package]]
 name = "zircon_plugin_particles_runtime"
 version = "0.1.0"
 dependencies = [
@@ -8829,6 +8861,14 @@ dependencies = [
  "serde",
  "toml 1.1.2+spec-1.1.0",
  "zircon_plugin_sdk",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_rendering_post_process_runtime"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_rendering_runtime",
  "zircon_runtime",
 ]
 
@@ -8998,6 +9038,7 @@ name = "zircon_runtime_interface"
 version = "0.1.0"
 dependencies = [
  "bincode",
+ "blake3",
  "glam 0.32.1",
  "semver",
  "serde",

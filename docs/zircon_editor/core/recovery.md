@@ -28,6 +28,15 @@ always `JobCategory::Misc`, `JobPriority::Background`, and the save mutex group
 provided by the save owner. Editor14 remains the only job queue owner and must
 submit and report the terminal task.
 
+`AutosaveJobAdapter` reserves the selected batch through that shared admission
+owner before it materializes document requests. Completion polling is bounded by
+an explicit ticket count; the default is `DEFAULT_AUTOSAVE_COMPLETION_BUDGET`
+(64). A poll reports the current batch's cumulative succeeded/failed counts and
+the remaining ticket count, so consumers must not re-apply intermediate counts
+as deltas. Pending tickets rotate through one retained `VecDeque`; the terminal
+poll advances the scheduler exactly once, returns the final cumulative counts,
+and resets the accumulator for the next interval.
+
 ## Snapshot Store
 
 `AutosaveStore` writes snapshots only below:
@@ -36,33 +45,60 @@ submit and report the terminal task.
 <project-root>/.zircon/autosave/<document-id>/<sequence>.<extension>
 ```
 
+`<project-root>` is the physical operation identity selected by the shared project-path resolver, so directory aliases do not create a second autosave tree.
+
 Document identifiers and extensions accept only ASCII letters, digits, `_`, and
-`-`; zero sequences and traversal-shaped values are rejected. A snapshot is
+`-`; zero sequences and traversal-shaped values are rejected. Every snapshot
+also receives an `AutosaveSourcePath`: a non-empty UTF-8 path made only of
+project-relative normal components. It is recovery metadata, never an
+authority to open, copy, rewrite, or mark the source file saved. A snapshot is
 written to a unique temporary file in the destination directory, flushed, then
 renamed into place. Non-Windows targets also synchronize the parent directory.
-No autosave API accepts a source path or copies, rewrites, or marks an
-authoritative source file saved.
 
-Each `AutosaveStore` clone shares one in-process sequence reservation set. A
-document/sequence pair is unavailable while its write or retention rotation is
-in flight; existing snapshots with the same numeric sequence are rejected even
-when the requested extension differs. The store keeps the latest three numeric
-sequences per document. If rotation fails after a new snapshot is durable, it
-returns `AutosaveError::RotationAfterWrite` with the persisted path so callers
-must allocate a new sequence rather than retry the same one.
+Each document/sequence write first claims a hidden per-sequence marker with an
+atomic create-new operation. The marker is shared across independent
+`AutosaveStore` instances and processes, so a document/sequence pair remains
+unavailable while its write or retention rotation is in flight. Existing
+snapshots with the same numeric sequence are rejected even when the requested
+extension differs. The store keeps the latest three numeric sequences per
+document. If rotation fails after a new snapshot is durable, it returns
+`AutosaveError::RotationAfterWrite` with the persisted path so callers must
+allocate a new sequence rather than retry the same one.
 
-An interrupted atomic write can leave a hidden temporary file. Such files are
-ignored by snapshot discovery and sequence rotation; there is no persistent
-autosave reservation or claim file to recover.
+An interrupted atomic write can leave a hidden temporary file or its
+per-sequence marker. Both are ignored by snapshot discovery and sequence
+rotation. A retained marker prevents only reuse of its numeric sequence; the
+runtime does not delete it by inference, because project-session admission owns
+safe interrupted-process repair.
+
+## Recovery Catalog
+
+Each document autosave directory has one immutable `recovery.json` that binds
+the document id to its validated `AutosaveSourcePath`. The first mapping is
+published with no-replace semantics; a concurrent or later write must read the
+same mapping, and a different source path is rejected. This prevents a later
+snapshot from silently changing the document restored by an earlier snapshot.
+
+`AutosaveStore::recovery_candidates()` enumerates only directories with valid
+document identifiers, valid metadata, and one unambiguous latest numeric
+snapshot. It reconstructs `RestoreCandidate` with the project-relative source
+resolved under the project root. Missing metadata, malformed metadata, an
+invalid document directory, or duplicate snapshot sequence is an explicit
+error rather than a guessed recovery choice. A missing source file remains a
+candidate with no source modification timestamp, preserving the recovery UI's
+explicit decision requirement.
 
 ## Project Session Boundary
 
-The in-process reservation cannot authorize multiple editor processes to write
-the same project. `SessionGuard` persists the one project session record at:
+An autosave sequence reservation cannot authorize multiple editor processes to
+write the same project. `SessionGuard` persists the one project session record
+at:
 
 ```text
 <project-root>/.zircon/session.lock
 ```
+
+`<project-root>` is the physical operation identity selected by the shared project-path resolver, so directory aliases address the same persisted session lock and ownership lease.
 
 Each record carries the process id, a process-instance identity, and the latest
 heartbeat. Initial acquisition publishes a fully flushed staging record without

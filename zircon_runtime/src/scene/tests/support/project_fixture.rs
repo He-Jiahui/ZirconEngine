@@ -1,8 +1,8 @@
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::asset::AssetUri;
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
+use crate::asset::AssetUri;
 use zircon_runtime_interface::project::RelPath;
 
 use super::{

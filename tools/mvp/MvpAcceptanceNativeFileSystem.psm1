@@ -217,6 +217,16 @@ public static class ZirconMvpAcceptanceNativeFileSystem
         return information.VolumeSerialNumber.ToString("X8") + ":" + fileIndex.ToString("X16") + ":" + creationTime.ToString("X16");
     }
 
+    public static long GetLength(SafeFileHandle handle)
+    {
+        ByHandleFileInformation information;
+        if (!GetFileInformationByHandle(handle, out information))
+        {
+            throw new Win32Exception(Marshal.GetLastWin32Error(), "Unable to read handle file length.");
+        }
+        return ((long)information.FileSizeHigh << 32) | information.FileSizeLow;
+    }
+
     public static void MarkForDelete(SafeFileHandle handle)
     {
         var information = new FileDispositionInformation { DeleteFile = true };
@@ -722,9 +732,10 @@ function Protect-MvpAcceptanceStagingDirectoryForPublication {
             throw "Acceptance publication root '$absolutePath' no longer identifies the frozen partial tree."
         }
 
-        $security = Get-Acl -LiteralPath $absolutePath -ErrorAction Stop
-        $originalSddl = $security.GetSecurityDescriptorSddlForm(
-            [Security.AccessControl.AccessControlSections]::All)
+        $directory = [IO.DirectoryInfo]::new($absolutePath)
+        $accessSections = [Security.AccessControl.AccessControlSections]::Access
+        $security = [IO.FileSystemAclExtensions]::GetAccessControl($directory, $accessSections)
+        $originalSddl = $security.GetSecurityDescriptorSddlForm($accessSections)
         $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent().User
         if ($null -eq $currentUser) {
             throw "Acceptance publication root '$absolutePath' has no current Windows security identity."
@@ -742,7 +753,7 @@ function Protect-MvpAcceptanceStagingDirectoryForPublication {
             [Security.AccessControl.PropagationFlags]::None,
             [Security.AccessControl.AccessControlType]::Deny)
         $security.AddAccessRule($freezeRule) | Out-Null
-        Set-Acl -LiteralPath $absolutePath -AclObject $security -ErrorAction Stop
+        [IO.FileSystemAclExtensions]::SetAccessControl($directory, $security)
         return [pscustomobject]@{
             path = $absolutePath
             identity = $identity
@@ -786,9 +797,10 @@ function Unprotect-MvpAcceptanceStagingDirectoryForPublication {
             [ZirconMvpAcceptanceNativeFileSystem]::GetIdentity($directoryHandle) -ne $expectedIdentity) {
             throw "Acceptance publication root '$absolutePath' changed before its failure cleanup could restore access."
         }
+        $accessSections = [Security.AccessControl.AccessControlSections]::Access
         $security = [Security.AccessControl.DirectorySecurity]::new()
-        $security.SetSecurityDescriptorSddlForm($originalSddl)
-        Set-Acl -LiteralPath $absolutePath -AclObject $security -ErrorAction Stop
+        $security.SetSecurityDescriptorSddlForm($originalSddl, $accessSections)
+        [IO.FileSystemAclExtensions]::SetAccessControl([IO.DirectoryInfo]::new($absolutePath), $security)
     }
     finally {
         if ($null -ne $directoryHandle) {

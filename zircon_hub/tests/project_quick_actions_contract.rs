@@ -52,6 +52,8 @@ fn assert_not_contains_any(source_name: &str, source: &str, snippets: &[&str]) {
 #[test]
 fn quick_action_dtos_are_scope_derived_in_tauri_view_model() {
     let view_model = read_crate_file("src/tauri_app/view_model.rs");
+    let quick_actions = read_crate_file("src/tauri_app/view_model/quick_actions.rs");
+    let view_model_tests = read_crate_file("src/tauri_app/view_model/tests.rs");
 
     assert_contains_all(
         "view_model.rs",
@@ -60,6 +62,12 @@ fn quick_action_dtos_are_scope_derived_in_tauri_view_model() {
             "pub(crate) struct HubQuickAction",
             "pub enabled: bool",
             "quick_actions: quick_actions(snapshot)",
+        ],
+    );
+    assert_contains_all(
+        "view_model/quick_actions.rs",
+        &quick_actions,
+        &[
             "fn quick_actions(snapshot: &HubSnapshot) -> Vec<HubQuickAction>",
             "let project_target = quick_action_project_target(snapshot);",
             "enum QuickActionKind",
@@ -81,6 +89,12 @@ fn quick_action_dtos_are_scope_derived_in_tauri_view_model() {
             "Bound Source Engine for {name} is unavailable",
             "Selected project is no longer available",
             "Open Editor without a project",
+        ],
+    );
+    assert_contains_all(
+        "view_model/tests.rs",
+        &view_model_tests,
+        &[
             "fn quick_actions_use_selected_project_scope_and_engine_binding()",
             "fn quick_actions_disable_unbound_or_stale_project_targets()",
             "fn quick_actions_use_latest_recent_only_when_no_project_is_selected()",

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-EXPECTED_SOURCE_FILE_COUNT = 25
+EXPECTED_SOURCE_FILE_COUNT = 26
 EXPECTED_GUARD_FILE_COUNT = 22
 EXPECTED_WORKER_DIAGNOSTIC_COUNT = 7
 EXPECTED_ARTIFACT_STORE_ROUNDTRIP_COUNT = 4
@@ -32,6 +32,7 @@ RUNTIME_04_SOURCE_FILES = (
     "zircon_runtime/src/asset/artifact/store.rs",
     "zircon_runtime/src/asset/module.rs",
     "zircon_runtime/src/core/resource/manager/registry_ops.rs",
+    "zircon_runtime/src/core/resource/manager/commit.rs",
     "zircon_runtime_interface/src/resource/resource_record.rs",
 )
 
@@ -55,7 +56,9 @@ RUNTIME_04_GUARD_FILES = (
     "zircon_runtime/src/tests/runtime_absorption/asset_worker_policy.rs",
     "zircon_runtime/src/tests/runtime_absorption/asset_worker_policy/worker_pool.rs",
     "zircon_runtime/src/tests/runtime_absorption/asset_pipeline.rs",
+    "zircon_runtime/src/tests/runtime_absorption/asset_pipeline/cargo_gate.rs",
     "zircon_runtime/src/tests/runtime_absorption/asset_pipeline/mirror_docs.rs",
+    "zircon_runtime/src/tests/runtime_absorption/asset_pipeline/split_layout.rs",
 )
 
 RUNTIME_04_ARTIFACT_STORE_ROUNDTRIP_FILES = (

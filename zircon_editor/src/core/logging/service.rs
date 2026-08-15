@@ -183,7 +183,7 @@ impl EditorLogService {
     pub fn emit(&self, entry: LogEntry) -> Result<LogWriteReport, EditorLogError> {
         #[cfg(test)]
         self.run_before_emission_hook();
-        let (record, persisted_to_disk, persistence_error, should_dispatch_event) = {
+        let (record, persisted_to_disk, persistence_error, event_queue_outcome) = {
             let _emission = self.lock_emission();
             let record = self.store.push(entry)?;
             #[cfg(test)]
@@ -235,6 +235,23 @@ impl EditorLogService {
 
     pub fn record(&self, sequence: u64) -> Option<LogRecord> {
         self.store.record(sequence)
+    }
+
+    pub fn clear(&self) -> usize {
+        let (cleared, dispatch_now) = {
+            let _emission = self.lock_emission();
+            let (cleared, through_sequence) = self.store.clear();
+            let dispatch_now = through_sequence
+                .zip(self.lock_event_sink().clone())
+                .is_some_and(|(through_sequence, sink)| {
+                    self.enqueue_clear_resync(sink, through_sequence, cleared)
+                });
+            (cleared, dispatch_now)
+        };
+        if dispatch_now {
+            let _ = self.dispatch_pending_events();
+        }
+        cleared
     }
 
     pub fn diagnostics(&self) -> EditorLogDiagnostics {
@@ -306,6 +323,31 @@ impl EditorLogService {
             state.dispatching = true;
         }
         LogEventQueueOutcome::Enqueued { dispatch_now }
+    }
+
+    fn enqueue_clear_resync(
+        &self,
+        sink: Arc<dyn EditorLogEventSink>,
+        through_sequence: u64,
+        cleared: usize,
+    ) -> bool {
+        let mut state = self.lock_event_dispatch();
+        state.pending.clear();
+        state.pending_bytes = 0;
+        let through_sequence = state.resync.take().map_or(through_sequence, |resync| {
+            through_sequence.max(resync.through_sequence)
+        });
+        state.resync = Some(LogEventResync {
+            sink,
+            through_sequence,
+        });
+        state.resync_required_records =
+            state.resync_required_records.saturating_add(cleared as u64);
+        let dispatch_now = !state.dispatching;
+        if dispatch_now {
+            state.dispatching = true;
+        }
+        dispatch_now
     }
 
     fn dispatch_pending_events(&self) -> LogEventDelivery {

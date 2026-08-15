@@ -1,6 +1,6 @@
 use super::super::super::{
-    RetainedEditorHost,
     close_prompt::{ClosePromptTarget, PendingClosePrompt},
+    RetainedEditorHost,
 };
 
 impl RetainedEditorHost {

@@ -1,6 +1,6 @@
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
 use crate::ui::retained_host::host_contract::paint_theme::{
-    HostControlMetrics, current_host_metrics,
+    current_host_metrics, HostControlMetrics,
 };
 
 use super::super::super::component_variant_contains;

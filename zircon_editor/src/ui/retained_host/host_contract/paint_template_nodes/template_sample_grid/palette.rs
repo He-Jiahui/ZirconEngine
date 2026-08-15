@@ -1,14 +1,46 @@
-pub(super) const OUTER_SURFACE: [u8; 4] = [17, 20, 24, 255];
-pub(super) const OUTER_BORDER: [u8; 4] = [49, 55, 62, 255];
-pub(super) const PLOT_SURFACE: [u8; 4] = [20, 23, 27, 255];
-pub(super) const PLOT_BORDER: [u8; 4] = [61, 68, 75, 255];
-pub(super) const GRID_LINE: [u8; 4] = [73, 81, 89, 150];
-pub(super) const ZERO_AXIS: [u8; 4] = [112, 121, 129, 210];
-pub(super) const TICK_TEXT: [u8; 4] = [151, 157, 163, 255];
-pub(super) const AXIS_TEXT: [u8; 4] = [190, 195, 199, 255];
-pub(super) const POINT: [u8; 4] = [162, 170, 177, 255];
-pub(super) const POINT_CENTER: [u8; 4] = [45, 50, 56, 255];
-pub(super) const SELECTED_POINT: [u8; 4] = [24, 187, 214, 255];
-pub(super) const SELECTED_HALO: [u8; 4] = [24, 187, 214, 82];
-pub(super) const SELECTED_LABEL_SURFACE: [u8; 4] = [18, 55, 64, 244];
-pub(super) const SELECTED_LABEL_TEXT: [u8; 4] = [214, 244, 248, 255];
+use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+
+const GRID_LINE_ALPHA: u8 = 150;
+const ZERO_AXIS_ALPHA: u8 = 210;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) struct SampleGridPalette {
+    pub outer_surface: [u8; 4],
+    pub outer_border: [u8; 4],
+    pub plot_surface: [u8; 4],
+    pub plot_border: [u8; 4],
+    pub grid_line: [u8; 4],
+    pub zero_axis: [u8; 4],
+    pub tick_text: [u8; 4],
+    pub axis_text: [u8; 4],
+    pub point: [u8; 4],
+    pub selected_point: [u8; 4],
+    pub selected_label_surface: [u8; 4],
+    pub selected_label_text: [u8; 4],
+}
+
+pub(super) fn sample_grid_palette() -> SampleGridPalette {
+    sample_grid_palette_from_host(current_host_palette())
+}
+
+pub(super) fn sample_grid_palette_from_host(host: HostMaterialPalette) -> SampleGridPalette {
+    SampleGridPalette {
+        outer_surface: host.surface,
+        outer_border: host.border,
+        plot_surface: host.surface_inset,
+        plot_border: host.separator_strong,
+        grid_line: with_alpha(host.separator_soft, GRID_LINE_ALPHA),
+        zero_axis: with_alpha(host.separator_strong, ZERO_AXIS_ALPHA),
+        tick_text: host.text_muted,
+        axis_text: host.text,
+        point: host.text_muted,
+        selected_point: host.accent,
+        selected_label_surface: host.popup,
+        selected_label_text: host.text,
+    }
+}
+
+fn with_alpha(mut color: [u8; 4], alpha: u8) -> [u8; 4] {
+    color[3] = alpha;
+    color
+}

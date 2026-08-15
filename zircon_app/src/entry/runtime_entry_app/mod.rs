@@ -24,10 +24,11 @@ mod window_events;
 mod window_lifecycle;
 mod window_surface;
 
-use std::{path::PathBuf, sync::Arc};
+use std::{num::NonZeroU64, sync::Arc};
 
 use winit::dpi::PhysicalPosition;
 use winit::window::Window;
+use zircon_runtime::asset::project::ResolvedProjectPath;
 use zircon_runtime::core::framework::window::{WindowDescriptor, WindowLifecyclePolicy};
 use zircon_runtime_interface::{ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1};
 
@@ -45,10 +46,10 @@ pub(super) struct RuntimeEntryApp {
     window_lifecycle_policy: WindowLifecyclePolicy,
     presenter: Option<SoftbufferRuntimePresenter>,
     surface_present_enabled: bool,
-    surface_present_failed: bool,
     surface_present_attempted: bool,
-    exit_after_first_presented_frame: bool,
-    first_frame_capture_path: Option<PathBuf>,
+    exit_after_presented_frames: Option<NonZeroU64>,
+    presented_frame_count: u64,
+    first_frame_capture_path: Option<ResolvedProjectPath>,
     require_persisted_scene_diagnostics: bool,
     first_frame_capture_written: bool,
     first_frame_product_diagnostics_emitted: bool,

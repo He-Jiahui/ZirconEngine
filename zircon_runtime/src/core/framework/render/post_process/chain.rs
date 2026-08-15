@@ -1,5 +1,6 @@
 use std::fmt;
 
+use super::super::RenderPipelinePhase;
 use super::PostProcessEffectKind;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -76,6 +77,28 @@ impl PostProcessChainSlot {
         }
     }
 
+    /// Classifies the compatibility slot by the canonical view-family phase.
+    ///
+    /// The old backbone remains available while graph compilation migrates to phase-based
+    /// scheduling. This prevents individual executors from inferring colour-space or upscale
+    /// order from neighbouring list entries.
+    pub const fn pipeline_phase(self) -> RenderPipelinePhase {
+        match self {
+            Self::TaaResolve => RenderPipelinePhase::TemporalReconstruction,
+            Self::DepthOfField
+            | Self::MotionBlur
+            | Self::Bloom
+            | Self::ExposureHistogram
+            | Self::ExposureResolve
+            | Self::SceneComposite
+            | Self::Blur => RenderPipelinePhase::SceneLinearPostProcess,
+            Self::ColorLutBake | Self::Uber => RenderPipelinePhase::DisplayMapping,
+            Self::TerminalAntiAlias => RenderPipelinePhase::DisplayPostProcess,
+            Self::Upscale => RenderPipelinePhase::SpatialUpscale,
+            Self::OutputTransfer => RenderPipelinePhase::OutputTransform,
+        }
+    }
+
     pub const fn from_current_effect_kind(kind: PostProcessEffectKind) -> Self {
         match kind {
             PostProcessEffectKind::TaaResolve => Self::TaaResolve,
@@ -107,7 +130,7 @@ impl fmt::Display for PostProcessChainSlot {
 
 #[cfg(test)]
 mod tests {
-    use super::{PostProcessChainSlot, PostProcessEffectKind};
+    use super::{PostProcessChainSlot, PostProcessEffectKind, RenderPipelinePhase};
 
     #[test]
     fn render_post_chain_backbone_order_is_stable() {
@@ -238,5 +261,67 @@ mod tests {
                 "post.output-transfer",
             ]
         );
+    }
+
+    #[test]
+    fn render_post_chain_slots_map_to_view_family_phases() {
+        let mappings = [
+            (
+                PostProcessChainSlot::TaaResolve,
+                RenderPipelinePhase::TemporalReconstruction,
+            ),
+            (
+                PostProcessChainSlot::DepthOfField,
+                RenderPipelinePhase::SceneLinearPostProcess,
+            ),
+            (
+                PostProcessChainSlot::MotionBlur,
+                RenderPipelinePhase::SceneLinearPostProcess,
+            ),
+            (
+                PostProcessChainSlot::Bloom,
+                RenderPipelinePhase::SceneLinearPostProcess,
+            ),
+            (
+                PostProcessChainSlot::ExposureHistogram,
+                RenderPipelinePhase::SceneLinearPostProcess,
+            ),
+            (
+                PostProcessChainSlot::ExposureResolve,
+                RenderPipelinePhase::SceneLinearPostProcess,
+            ),
+            (
+                PostProcessChainSlot::SceneComposite,
+                RenderPipelinePhase::SceneLinearPostProcess,
+            ),
+            (
+                PostProcessChainSlot::Blur,
+                RenderPipelinePhase::SceneLinearPostProcess,
+            ),
+            (
+                PostProcessChainSlot::ColorLutBake,
+                RenderPipelinePhase::DisplayMapping,
+            ),
+            (
+                PostProcessChainSlot::Uber,
+                RenderPipelinePhase::DisplayMapping,
+            ),
+            (
+                PostProcessChainSlot::TerminalAntiAlias,
+                RenderPipelinePhase::DisplayPostProcess,
+            ),
+            (
+                PostProcessChainSlot::Upscale,
+                RenderPipelinePhase::SpatialUpscale,
+            ),
+            (
+                PostProcessChainSlot::OutputTransfer,
+                RenderPipelinePhase::OutputTransform,
+            ),
+        ];
+
+        for (slot, expected_phase) in mappings {
+            assert_eq!(slot.pipeline_phase(), expected_phase, "{slot}");
+        }
     }
 }

@@ -15,12 +15,12 @@ pub use hierarchy_host_event::EditorHierarchyEvent;
 pub use inspector_field_change::InspectorFieldChange;
 pub use journal::EditorEventJournal;
 pub(crate) use journal::EditorEventJournalStore;
+pub(crate) use listener::{listener_deliveries, listener_descriptors, listener_status};
 pub use listener::{
     EditorEventListenerControlRequest, EditorEventListenerControlResponse,
-    EditorEventListenerDelivery, EditorEventListenerDescriptor, EditorEventListenerFilter,
-    EditorEventListenerRegistry, EditorEventListenerStatus,
+    EditorEventListenerDelivery, EditorEventListenerDeliveryPage, EditorEventListenerDescriptor,
+    EditorEventListenerFilter, EditorEventListenerRegistry, EditorEventListenerStatus,
 };
-pub(crate) use listener::{listener_deliveries, listener_descriptors, listener_status};
 pub use replay::EditorEventReplay;
 pub use retention::{
     EditorEventRetentionBudget, EditorEventRetentionBudgetSnapshot, EditorEventRetentionBudgets,
@@ -28,7 +28,9 @@ pub use retention::{
     EditorEventRetentionClassDiagnostics, EditorEventRetentionDiagnostics,
     EditorEventRetentionPolicy,
 };
-pub(crate) use retention::{EditorEventRetentionStore, SharedEditorEventRecord};
+pub(crate) use retention::{
+    EditorEventRetentionPage, EditorEventRetentionStore, SharedEditorEventRecord,
+};
 pub use selection_host_event::SelectionHostEvent;
 pub use service::EditorEventService;
 pub use types::{
@@ -39,7 +41,7 @@ pub use types::{
     EditorViewportEvent,
 };
 pub use workbench::{
-    ActivityDrawerMode, ActivityDrawerSlot, ConsoleMessageFilter, LayoutCommand, MainPageId,
-    MenuAction, SplitAxis, SplitPlacement, TabInsertionAnchor, TabInsertionSide, ViewDescriptorId,
-    ViewHost, ViewInstanceId, WorkspaceTarget,
+    ActivityDrawerMode, ActivityDrawerSlot, ConsoleMessageFilter, ConsoleSourceFilter,
+    LayoutCommand, MainPageId, MenuAction, SplitAxis, SplitPlacement, TabInsertionAnchor,
+    TabInsertionSide, ViewDescriptorId, ViewHost, ViewInstanceId, WorkspaceTarget,
 };

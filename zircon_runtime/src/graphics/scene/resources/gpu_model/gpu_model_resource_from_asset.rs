@@ -7,18 +7,14 @@ use super::super::GpuMeshResource;
 use super::GpuModelResource;
 
 impl GpuModelResource {
-    pub(in crate::graphics::scene::resources) fn from_asset_with_mesh_assets<F>(
+    pub(in crate::graphics::scene::resources) fn from_primitives(
         device: &wgpu::Device,
         id: ResourceId,
-        asset: &ModelAsset,
-        load_mesh_asset: F,
-    ) -> Self
-    where
-        F: FnMut(&AssetReference) -> Option<MeshAsset>,
-    {
+        primitives: Vec<ModelPrimitiveAsset>,
+    ) -> Self {
         Self {
             id,
-            meshes: model_primitives_preferring_mesh_assets(asset, load_mesh_asset)
+            meshes: primitives
                 .into_iter()
                 .map(|primitive| Arc::new(GpuMeshResource::from_asset(device, primitive)))
                 .collect(),
@@ -105,6 +101,7 @@ mod tests {
             ],
             indices: vec![0, 1, 2],
             mesh,
+            mesh_sdf: None,
             virtual_geometry: None,
         }
     }

@@ -1,8 +1,7 @@
 use crate::scene::components::{Name, RenderLayerMask};
 use crate::scene::ecs::{
-    ArchetypeId, Changed, Component, ComponentStorageLocation, Mut, QueryDataAccess,
-    QueryEntityError, QueryFilter, QuerySingleError, QueryState, Ref, StableEntityLocation,
-    StorageType, UniqueEntityArray, With, Without,
+    ArchetypeId, Changed, Component, Mut, QueryEntityError, QuerySingleError, QueryState, Ref,
+    StableEntityLocation, StorageType, UniqueEntityArray, With, Without,
 };
 use crate::scene::{EntityId, World};
 
@@ -33,24 +32,6 @@ fn expect_query_error<T>(result: Result<T, QueryEntityError>) -> QueryEntityErro
         Ok(_) => panic!("expected query error"),
         Err(error) => error,
     }
-}
-
-fn cached_component_locations_for<D, F>(
-    query: &QueryState<D, F>,
-    index: usize,
-) -> &[ComponentStorageLocation]
-where
-    D: QueryDataAccess,
-    F: QueryFilter,
-{
-    let offsets = query.cached_component_location_offsets();
-    let start = *offsets
-        .get(index)
-        .expect("cached component location start offset");
-    let end = *offsets
-        .get(index + 1)
-        .expect("cached component location end offset");
-    &query.cached_component_locations()[start..end]
 }
 
 mod cached_queries;

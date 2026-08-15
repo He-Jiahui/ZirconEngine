@@ -21,10 +21,13 @@ fn world_generation_advances_only_for_successful_structural_mutations() {
     assert!(world.set_parent_checked(child, Some(root)).unwrap());
     assert_eq!(world.world_generation(), 3);
 
-    assert!(!world.remove_entity(u64::MAX));
+    assert!(matches!(
+        world.remove_entity(u64::MAX),
+        Err(crate::scene::SceneError::MissingEntity { entity, .. }) if entity == u64::MAX
+    ));
     assert_eq!(world.world_generation(), 3);
 
-    assert!(world.remove_entity(child));
+    world.remove_entity(child).unwrap();
     assert_eq!(world.world_generation(), 4);
 }
 
@@ -63,7 +66,7 @@ fn fixed_presence_rebuild_marks_derived_state_before_lifecycle_callbacks() {
     world.flush_pending_scene_systems();
     assert!(!world.has_pending_scene_systems());
 
-    let query_revision = world.query_cache_revision();
+    let lifecycle_visibility_revision = world.lifecycle_visibility_revision();
     let observations = Arc::new(Mutex::new(Vec::new()));
     for kind in [LifecycleEventKind::Add, LifecycleEventKind::Insert] {
         let observations = observations.clone();
@@ -72,7 +75,7 @@ fn fixed_presence_rebuild_marks_derived_state_before_lifecycle_callbacks() {
                 event.kind(),
                 world.has_pending_scene_systems(),
                 world.world_generation(),
-                world.query_cache_revision(),
+                world.lifecycle_visibility_revision(),
                 world.get::<Name>(event.entity()).is_some(),
             ));
         });
@@ -84,12 +87,18 @@ fn fixed_presence_rebuild_marks_derived_state_before_lifecycle_callbacks() {
     assert_eq!(
         *observations.lock().unwrap(),
         vec![
-            (LifecycleEventKind::Add, true, 0, query_revision + 1, true),
+            (
+                LifecycleEventKind::Add,
+                true,
+                0,
+                lifecycle_visibility_revision + 1,
+                true,
+            ),
             (
                 LifecycleEventKind::Insert,
                 true,
                 0,
-                query_revision + 1,
+                lifecycle_visibility_revision + 1,
                 true,
             ),
         ]
@@ -197,4 +206,28 @@ fn world_generation_is_runtime_state_not_persisted_scene_data() {
 
     let restored: World = serde_json::from_value(encoded).unwrap();
     assert_eq!(restored.world_generation(), 0);
+}
+
+#[test]
+fn lifecycle_visibility_revision_is_runtime_state_rebuilt_once_per_world_reconstruction() {
+    let mut world = World::empty();
+    world.spawn_node(NodeKind::Empty);
+    let source_revision = world.lifecycle_visibility_revision();
+
+    let cloned = world.clone();
+    assert_eq!(
+        cloned.lifecycle_visibility_revision(),
+        source_revision + 1,
+        "clone rebuilds component rows once after copying runtime state"
+    );
+
+    let encoded = serde_json::to_value(&world).unwrap();
+    assert!(encoded.get("lifecycle_visibility_revision").is_none());
+
+    let restored: World = serde_json::from_value(encoded).unwrap();
+    assert_eq!(
+        restored.lifecycle_visibility_revision(),
+        1,
+        "deserialize rebuilds component rows once from a fresh runtime revision"
+    );
 }

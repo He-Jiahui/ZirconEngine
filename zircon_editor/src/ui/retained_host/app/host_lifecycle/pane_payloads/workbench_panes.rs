@@ -1,5 +1,5 @@
 use super::super::super::{
-    RetainedEditorHost, pane_payload_visibility, runtime_diagnostics_visibility,
+    pane_payload_visibility, runtime_diagnostics_visibility, RetainedEditorHost,
 };
 use crate::ui::layouts::windows::workbench_host_window::{
     BuildExportPaneViewData, ModulePluginsPaneViewData,

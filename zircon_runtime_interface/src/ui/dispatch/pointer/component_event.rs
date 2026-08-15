@@ -13,18 +13,63 @@ use crate::ui::{
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiTemplateActionInvocation {
-    pub route: String,
+    target: UiTemplateActionTarget,
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub payload: BTreeMap<String, UiValue>,
 }
 
 impl UiTemplateActionInvocation {
-    pub fn new(route: impl Into<String>, payload: BTreeMap<String, UiValue>) -> Self {
+    /// Constructs a parameterized local or operation route.
+    pub fn route(route: impl Into<String>, payload: BTreeMap<String, UiValue>) -> Self {
         Self {
-            route: route.into(),
+            target: UiTemplateActionTarget::route(route),
             payload,
         }
     }
+
+    pub fn action(action: impl Into<String>) -> Self {
+        Self {
+            target: UiTemplateActionTarget::action(action),
+            payload: BTreeMap::new(),
+        }
+    }
+
+    pub fn target_id(&self) -> &str {
+        &self.target.id
+    }
+
+    pub fn is_action(&self) -> bool {
+        self.target.kind == UiTemplateActionTargetKind::Action
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+struct UiTemplateActionTarget {
+    kind: UiTemplateActionTargetKind,
+    id: String,
+}
+
+impl UiTemplateActionTarget {
+    pub fn action(id: impl Into<String>) -> Self {
+        Self {
+            kind: UiTemplateActionTargetKind::Action,
+            id: id.into(),
+        }
+    }
+
+    pub fn route(id: impl Into<String>) -> Self {
+        Self {
+            kind: UiTemplateActionTargetKind::Route,
+            id: id.into(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum UiTemplateActionTargetKind {
+    Action,
+    Route,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -112,7 +157,7 @@ mod tests {
             },
             UiPointerComponentEventReason::DefaultClick,
         )
-        .with_template_action(UiTemplateActionInvocation::new(
+        .with_template_action(UiTemplateActionInvocation::route(
             "navigation.bake.surface",
             BTreeMap::from([
                 ("surface_entity".to_string(), UiValue::Int(73)),
@@ -121,6 +166,11 @@ mod tests {
         ));
 
         let encoded = serde_json::to_value(&event).expect("pointer event should serialize");
+        assert_eq!(encoded["template_action"]["target"]["kind"], "route");
+        assert_eq!(
+            encoded["template_action"]["target"]["id"],
+            "navigation.bake.surface"
+        );
         assert_eq!(
             encoded["template_action"]["payload"]["surface_entity"],
             serde_json::json!({ "Int": 73 })
@@ -155,5 +205,19 @@ mod tests {
         let restored: UiPointerComponentEvent =
             serde_json::from_value(encoded).expect("legacy pointer event should deserialize");
         assert_eq!(restored.template_action, None);
+    }
+
+    #[test]
+    fn template_action_round_trip_preserves_authored_action_identity() {
+        let action = UiTemplateActionInvocation::action("view.console.clear");
+
+        let encoded = serde_json::to_value(&action).expect("template action should serialize");
+        assert_eq!(encoded["target"]["kind"], "action");
+        assert_eq!(encoded["target"]["id"], "view.console.clear");
+        assert!(encoded.get("payload").is_none());
+
+        let restored: UiTemplateActionInvocation =
+            serde_json::from_value(encoded).expect("template action should deserialize");
+        assert_eq!(restored, action);
     }
 }

@@ -1,6 +1,6 @@
 use crate::ui::retained_host as host_contract;
 use crate::ui::workbench::autolayout::{
-    WorkbenchLayoutTier, workbench_layout_tier_for_logical_width,
+    workbench_layout_tier_for_logical_width, WorkbenchLayoutTier,
 };
 
 pub(in crate::ui::retained_host::ui) const TABLE_LAYOUT_NARROW_VARIANT: &str = "layoutNarrow";
@@ -67,12 +67,11 @@ mod tests {
 
         let node = apply_table_layout_context_variant(node, 640.0);
 
-        assert!(
-            node.component_variant
-                .as_str()
-                .split_whitespace()
-                .any(|token| token == TABLE_LAYOUT_NARROW_VARIANT)
-        );
+        assert!(node
+            .component_variant
+            .as_str()
+            .split_whitespace()
+            .any(|token| token == TABLE_LAYOUT_NARROW_VARIANT));
     }
 
     #[test]

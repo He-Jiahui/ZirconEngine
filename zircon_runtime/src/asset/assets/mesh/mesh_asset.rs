@@ -11,11 +11,11 @@ use crate::core::resource::ResourceId;
 
 use super::super::model::{ModelPrimitiveAsset, VirtualGeometryAsset};
 use super::{
-    MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
-    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0,
-    MESH_ATTRIBUTE_UV1, MeshAssetUsage, MeshAttributeSummary, MeshAttributeValues, MeshIndexFormat,
-    MeshIndices, MeshMorphTargetAsset, MeshMorphTargetAttributeSummary, MeshSkinAsset,
-    MeshValidationError,
+    MeshAssetUsage, MeshAttributeSummary, MeshAttributeValues, MeshIndexFormat, MeshIndices,
+    MeshMorphTargetAsset, MeshMorphTargetAttributeSummary, MeshSdfAsset, MeshSkinAsset,
+    MeshValidationError, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX,
+    MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
+    MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0, MESH_ATTRIBUTE_UV1,
 };
 
 mod management;
@@ -48,6 +48,8 @@ pub struct MeshAsset {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skin: Option<MeshSkinAsset>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mesh_sdf: Option<MeshSdfAsset>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub virtual_geometry: Option<VirtualGeometryAsset>,
 }
 
@@ -66,6 +68,7 @@ impl MeshAsset {
             asset_usage: MeshAssetUsage::default(),
             morph_targets: Vec::new(),
             skin: None,
+            mesh_sdf: None,
             virtual_geometry: None,
         };
         asset.validate()?;
@@ -181,6 +184,7 @@ impl MeshAsset {
             asset_usage: MeshAssetUsage::default(),
             morph_targets: Vec::new(),
             skin: None,
+            mesh_sdf: primitive.mesh_sdf.clone(),
             virtual_geometry: primitive.virtual_geometry.clone(),
         }
     }
@@ -218,6 +222,7 @@ impl MeshAsset {
                 .as_ref()
                 .map_or_else(Vec::new, MeshIndices::to_u32_vec),
             mesh: None,
+            mesh_sdf: self.mesh_sdf.clone(),
             virtual_geometry: self.virtual_geometry.clone(),
         };
         primitive.assign_virtual_geometry_vertex_ordinals();

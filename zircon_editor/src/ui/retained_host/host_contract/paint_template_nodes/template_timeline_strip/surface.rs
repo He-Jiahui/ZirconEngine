@@ -1,16 +1,16 @@
-use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use crate::ui::timeline_strip::{TimelineStripGeneration, TimelineStripStaticContent};
+
+use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::geometry::TimelineStripGeometry;
 use super::metrics::TimelineStripMetrics;
 use super::palette::TimelineStripPalette;
 
-pub(super) const MAX_TIMELINE_TICKS: usize = 4_096;
-
 pub(super) fn push_timeline_surface(
     commands: &mut Vec<HostPaintCommand>,
-    node: &TemplatePaneNodeData,
+    generation: &TimelineStripGeneration,
     geometry: &TimelineStripGeometry,
-    ticks: &[f32],
+    static_content: &TimelineStripStaticContent,
     clip: &FrameRect,
     order: i32,
     opacity: f32,
@@ -48,8 +48,8 @@ pub(super) fn push_timeline_surface(
         opacity,
     ));
 
-    for &tick in ticks {
-        let x = geometry.x_for_time(tick, node.timeline_strip.duration);
+    for tick in static_content.ticks() {
+        let x = geometry.x_for_time(tick.value(), generation.duration());
         commands.push(HostPaintCommand::quad(
             FrameRect {
                 x,
@@ -80,10 +80,8 @@ pub(super) fn push_timeline_surface(
         0.0,
         opacity,
     ));
-    let progress_width = (geometry.x_for_time(
-        node.timeline_strip.current_time,
-        node.timeline_strip.duration,
-    ) - geometry.track.x)
+    let progress_width = (geometry.x_for_time(generation.current_time(), generation.duration())
+        - geometry.track.x)
         .clamp(0.0, geometry.track.width);
     if progress_width > 0.0 {
         commands.push(HostPaintCommand::quad(
@@ -99,60 +97,5 @@ pub(super) fn push_timeline_surface(
             0.0,
             opacity,
         ));
-    }
-}
-
-pub(super) fn timeline_ticks(duration: f32, interval: f32, max_ticks: usize) -> Vec<f32> {
-    if !duration.is_finite() || !interval.is_finite() || duration <= 0.0 || interval <= 0.0 {
-        return vec![0.0, 1.0];
-    }
-
-    let max_ticks = max_ticks.clamp(2, MAX_TIMELINE_TICKS);
-    let requested_segments = (duration / interval).ceil();
-    let segment_budget = max_ticks - 1;
-    let segment_count =
-        if !requested_segments.is_finite() || requested_segments >= segment_budget as f32 {
-            segment_budget
-        } else {
-            (requested_segments as usize).max(1)
-        };
-    let step = if requested_segments > segment_count as f32 {
-        duration / segment_count as f32
-    } else {
-        interval
-    };
-    let mut ticks = Vec::with_capacity(segment_count + 1);
-    for index in 0..segment_count {
-        ticks.push(index as f32 * step);
-    }
-    ticks.push(duration);
-    ticks
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn timeline_ticks_are_bounded_and_keep_the_duration_endpoint() {
-        let ticks = timeline_ticks(10.0, f32::MIN_POSITIVE, 128);
-
-        assert_eq!(ticks.len(), 128);
-        assert_eq!(ticks.first().copied(), Some(0.0));
-        assert_eq!(ticks.last().copied(), Some(10.0));
-    }
-
-    #[test]
-    fn timeline_ticks_respect_smaller_visual_budget() {
-        let ticks = timeline_ticks(3.0, 0.5, 4);
-
-        assert_eq!(ticks, vec![0.0, 1.0, 2.0, 3.0]);
-    }
-
-    #[test]
-    fn timeline_ticks_keep_requested_interval_within_budget() {
-        let ticks = timeline_ticks(3.0, 0.5, 32);
-
-        assert_eq!(ticks, vec![0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]);
     }
 }

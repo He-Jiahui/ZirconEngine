@@ -15,11 +15,15 @@ impl WelcomeRecentPointerBridge {
             return false;
         }
 
+        let surface_geometry_changed =
+            self.layout.pane_size != layout.pane_size || self.layout_metrics != layout_metrics;
         self.layout = layout;
         self.state = state;
         self.layout_metrics = layout_metrics;
         self.clamp_scroll_offset();
-        self.rebuild_surface();
+        if surface_geometry_changed {
+            self.patch_surface_geometry();
+        }
         true
     }
 
@@ -40,7 +44,7 @@ impl WelcomeRecentPointerBridge {
         self.state = state;
         self.layout_metrics = layout_metrics;
         self.clamp_scroll_offset();
-        self.rebuild_surface();
+        self.patch_surface_geometry();
         true
     }
 
@@ -52,7 +56,7 @@ impl WelcomeRecentPointerBridge {
 
         self.layout_metrics = layout_metrics;
         self.clamp_scroll_offset();
-        self.rebuild_surface();
+        self.patch_surface_geometry();
     }
 }
 

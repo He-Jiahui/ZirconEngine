@@ -27,7 +27,7 @@ pub(super) fn assert_extract_evidence(sources: &HotspotInventorySources) {
         "pub(super) struct RuntimeFrameExtractCache",
         "struct RuntimeFrameExtractCacheKey",
         "change_tick: world.read_change_tick()",
-        "query_cache_revision: world.query_cache_revision()",
+        "lifecycle_visibility_revision: world.lifecycle_visibility_revision()",
         "active_camera: world.active_camera()",
         "RuntimeFrameExtractCacheStatus::Rebuilt => 1",
         "RuntimeFrameExtractCacheStatus::Reused => 0",
@@ -42,4 +42,11 @@ pub(super) fn assert_extract_evidence(sources: &HotspotInventorySources) {
             "extract cache path should retain `{required_extract_cache_anchor}`"
         );
     }
+
+    assert!(
+        !sources
+            .session_extract_cache
+            .contains("query_cache_revision"),
+        "frame extraction must not depend on the removed global query-cache revision"
+    );
 }

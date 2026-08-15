@@ -22,7 +22,8 @@ use crate::core::framework::render::{
     wgsl_include_paths, MaterialPropertyOverrideBlock, RenderCameraTargetGraphImportReport,
     RenderCameraTargetWritebackReport, RenderColorLookupTextureLayout,
     RenderMaterialPropertyUniformPayload, RenderMaterialReadinessReport,
-    RenderMaterialReadinessSummary, RenderShaderDefinitionValue,
+    RenderMaterialReadinessSummary, RenderMeshBounds, RenderMeshSnapshot,
+    RenderShaderDefinitionValue,
 };
 use crate::core::resource::ResourceId;
 use crate::graphics::shader::ShaderTemplateInclude;
@@ -39,6 +40,48 @@ use super::super::{
 };
 use super::resource_streamer_ensure_shader_source::shader_dependency_ids;
 use super::ResourceStreamer;
+
+fn geometry_seed_for_prepared(
+    local_bounds: RenderMeshBounds,
+    resource_revision: u64,
+    deformation: &super::super::prepared::PreparedGeometryDeformation,
+    static_mesh_sdf: &crate::graphics::RuntimePrepareMeshSdfSeed,
+    morph_weights: &[f32],
+) -> crate::graphics::RuntimePrepareMeshGeometrySeed {
+    use crate::graphics::{
+        RuntimePrepareMeshGeometrySeed, RuntimePrepareMeshSdfDeformationReason,
+        RuntimePrepareMeshSdfSeed,
+    };
+
+    let has_active_morph = morph_weights
+        .iter()
+        .any(|weight| weight.is_finite() && weight.abs() > f32::EPSILON);
+    let local_bounds = deformation.local_bounds_for_morph_weights(local_bounds, morph_weights);
+    let mesh_sdf = if deformation.has_skinning() {
+        RuntimePrepareMeshSdfSeed::Deforming(RuntimePrepareMeshSdfDeformationReason::Skinning)
+    } else if has_active_morph {
+        RuntimePrepareMeshSdfSeed::Deforming(
+            RuntimePrepareMeshSdfDeformationReason::ActiveMorphTargets,
+        )
+    } else {
+        static_mesh_sdf.clone()
+    };
+    RuntimePrepareMeshGeometrySeed {
+        local_bounds,
+        resource_revision,
+        shape_revision: morph_shape_revision(morph_weights),
+        mesh_sdf,
+    }
+}
+
+fn morph_shape_revision(morph_weights: &[f32]) -> u64 {
+    let mut revision = 0xcbf2_9ce4_8422_2325_u64;
+    for weight in morph_weights {
+        revision ^= u64::from(weight.to_bits());
+        revision = revision.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    revision ^ u64::try_from(morph_weights.len()).unwrap_or(u64::MAX)
+}
 
 impl ResourceStreamer {
     pub(crate) fn asset_manager(&self) -> Result<Arc<ProjectAssetManager>, GraphicsError> {
@@ -74,6 +117,35 @@ impl ResourceStreamer {
 
     pub(crate) fn mesh_revision(&self, id: &ResourceId) -> Option<u64> {
         self.meshes.get(id).map(|prepared| prepared.revision)
+    }
+
+    pub(crate) fn render_mesh_geometry_seed(
+        &self,
+        mesh: &RenderMeshSnapshot,
+    ) -> Option<crate::graphics::RuntimePrepareMeshGeometrySeed> {
+        mesh.mesh
+            .and_then(|handle| {
+                self.meshes.get(&handle.id()).map(|prepared| {
+                    geometry_seed_for_prepared(
+                        prepared.local_bounds,
+                        prepared.revision,
+                        &prepared.deformation,
+                        &prepared.mesh_sdf,
+                        &mesh.morph_weights,
+                    )
+                })
+            })
+            .or_else(|| {
+                self.models.get(&mesh.model.id()).map(|prepared| {
+                    geometry_seed_for_prepared(
+                        prepared.local_bounds,
+                        prepared.revision,
+                        &prepared.deformation,
+                        &prepared.mesh_sdf,
+                        &mesh.morph_weights,
+                    )
+                })
+            })
     }
 
     pub(crate) fn mesh_asset(&self, id: &ResourceId) -> Option<&Arc<MeshAsset>> {

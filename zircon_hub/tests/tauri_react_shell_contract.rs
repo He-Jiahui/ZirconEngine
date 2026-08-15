@@ -84,7 +84,8 @@ fn tauri_shell_points_at_vite_react_frontend() {
     let package_json = read_crate_file("package.json");
     for snippet in [
         "\"dev\": \"vite --host 127.0.0.1 --port 1420\"",
-        "\"build\": \"tsc -b && vite build\"",
+        "\"build\": \"npm run typecheck && vite build\"",
+        "\"typecheck\": \"tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json\"",
         "\"tauri:dev\": \"tauri dev\"",
         "\"@tauri-apps/api\": \"2.11.0\"",
         "\"@tauri-apps/cli\": \"2.11.2\"",
@@ -168,6 +169,7 @@ fn tauri_cutover_has_no_compiled_slint_entry_path() {
 
 #[test]
 fn tauri_commands_project_backend_runtime_state_instead_of_reference_data() {
+    let tauri_app = read_crate_file("src/tauri_app/mod.rs");
     let commands = read_crate_file("src/tauri_app/commands.rs");
     let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
     let action_tasks = read_crate_file("src/tauri_app/runtime_state/action_tasks.rs");
@@ -182,16 +184,22 @@ fn tauri_commands_project_backend_runtime_state_instead_of_reference_data() {
     let view_model = read_crate_file("src/tauri_app/view_model.rs");
     let action_history_dto = read_crate_file("src/tauri_app/view_model/action_history.rs");
     let tauri_tree = format!(
-        "{commands}\n{runtime_state}\n{action_tasks}\n{scoped_views}\n{build_actions}\n{editor_launch_actions}\n{quick_actions}\n{project_delivery_actions}\n{view_model}\n{action_history_dto}"
+        "{tauri_app}\n{commands}\n{runtime_state}\n{action_tasks}\n{scoped_views}\n{build_actions}\n{editor_launch_actions}\n{quick_actions}\n{project_delivery_actions}\n{view_model}\n{action_history_dto}"
     );
 
     for snippet in [
         "struct HubCommandState",
         "Mutex<HubRuntimeSession>",
-        "app.emit(\"hub-state-changed\", view_model)",
+        "app.emit(\"hub-state-changed\", &view_model)",
         "HubConfig::load(&config_path)",
-        "load_editor_recent_project_session(&editor_config_path)",
-        "merge_recent_projects(config.recent_projects, editor_recent.recent_projects)",
+        "hub_recent_projects_path",
+        "reconcile_shared_recent_projects(",
+        "shared_recent_projects_snapshot",
+        "load_shared_recent_projects(&self.shared_recent_projects_path)",
+        "refresh_shared_recent_projects_on_focus",
+        "focus_refresh_pending",
+        "refresh_recent_projects_on_window_focus",
+        "WindowEvent::Focused(true)",
         "HubSnapshot {",
         "HubViewModel::from_snapshot(&self.snapshot())",
         "discover_asset_catalog_for_scope",

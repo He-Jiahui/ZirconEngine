@@ -7,7 +7,7 @@ use super::super::super::super::paint_text::{
     draw_text_with_size_and_style, measure_runtime_text_width,
 };
 use super::super::super::super::paint_theme::current_host_metrics;
-use super::super::super::{ACCENT, SEPARATOR, first_non_empty};
+use super::super::super::{first_non_empty, ACCENT, SEPARATOR};
 use super::super::style::{
     WELCOME_MUTED_TEXT, WELCOME_SUCCESS, WELCOME_SURFACE_INSET, WELCOME_TEXT,
 };

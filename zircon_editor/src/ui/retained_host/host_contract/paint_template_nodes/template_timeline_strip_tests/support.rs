@@ -1,7 +1,9 @@
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::host_contract::data::{
-    TemplateNodeFrameData, TemplatePaneNodeData, TemplatePaneTimelineKeyData,
-    TemplatePaneTimelineStripData,
+    TemplateNodeFrameData, TemplatePaneNodeData, TemplatePaneTimelineStripData,
+};
+use crate::ui::timeline_strip::{
+    TimelineStripGeneration, TimelineStripGenerationInput, TimelineStripKey,
 };
 
 use super::super::super::template_nodes::paint_template_nodes_for_test;
@@ -13,22 +15,16 @@ pub(super) fn timeline_strip_node(width: f32, height: f32) -> TemplatePaneNodeDa
         component_role: "canvas".into(),
         component_variant: "timeline-strip".into(),
         timeline_strip: TemplatePaneTimelineStripData {
-            duration: 3.0,
-            current_time: 2.25,
-            tick_interval: 0.5,
-            track_label: "Run_Fwd".into(),
-            keys: model_rc(vec![
-                TemplatePaneTimelineKeyData {
-                    time: 0.0,
-                    label: "Start".into(),
-                    selected: false,
-                },
-                TemplatePaneTimelineKeyData {
-                    time: 2.0,
-                    label: "Run_Fwd".into(),
-                    selected: true,
-                },
-            ]),
+            generation: TimelineStripGeneration::new(TimelineStripGenerationInput {
+                duration: 3.0,
+                current_time: 2.25,
+                tick_interval: 0.5,
+                track_label: "Run_Fwd".to_owned(),
+                keys: vec![
+                    TimelineStripKey::new(0.0, "Start", false),
+                    TimelineStripKey::new(2.0, "Run_Fwd", true),
+                ],
+            }),
         },
         frame: TemplateNodeFrameData {
             x: 0.0,

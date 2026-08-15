@@ -269,20 +269,16 @@ fn render_extract_separates_directional_point_and_spot_lights() {
 
     let frame_extract = world.to_render_frame_extract();
     assert_eq!(frame_extract.lighting.directional_lights.len(), 1);
-    assert!(
-        frame_extract
-            .lighting
-            .point_lights
-            .iter()
-            .any(|light| light.node_id == point)
-    );
-    assert!(
-        frame_extract
-            .lighting
-            .spot_lights
-            .iter()
-            .any(|light| light.node_id == spot)
-    );
+    assert!(frame_extract
+        .lighting
+        .point_lights
+        .iter()
+        .any(|light| light.node_id == point));
+    assert!(frame_extract
+        .lighting
+        .spot_lights
+        .iter()
+        .any(|light| light.node_id == spot));
 }
 
 #[test]
@@ -385,11 +381,9 @@ fn render_product_pbr_world_frame_extract_exposes_authored_ambient_and_rect_ligh
 
     let default_ambient = RenderAmbientLightSnapshot::default();
     assert!(default_ambient.renderer_degraded);
-    assert!(
-        default_ambient
-            .degradation_reason
-            .as_deref()
-            .unwrap()
-            .contains("no authored scene component")
-    );
+    assert!(default_ambient
+        .degradation_reason
+        .as_deref()
+        .unwrap()
+        .contains("no authored scene component"));
 }

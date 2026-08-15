@@ -27,12 +27,17 @@ related_code:
   - zircon_editor/src/core/editor_message/message/protocol.rs
   - zircon_editor/src/core/editor_message/message/request.rs
   - zircon_editor/src/core/editor_message/message/response.rs
+  - zircon_editor/src/core/editor_message/message/scene_inspection/mod.rs
+  - zircon_editor/src/core/editor_message/message/scene_inspection/message.rs
+  - zircon_editor/src/core/editor_message/message/scene_inspection/selection_delta.rs
   - zircon_editor/src/core/editor_message/message/transaction.rs
   - zircon_editor/src/core/context/editor_context.rs
   - zircon_editor/src/core/editor_event/service/editor_event_service.rs
   - zircon_editor/src/core/jobs/event.rs
   - zircon_editor/src/core/jobs/pump.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
+  - zircon_editor/src/ui/host/scene_inspection_publication.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
 implementation_files:
   - zircon_editor/src/core/editor_message/mod.rs
   - zircon_editor/src/core/editor_message/bus.rs
@@ -61,6 +66,9 @@ implementation_files:
   - zircon_editor/src/core/editor_message/message/protocol.rs
   - zircon_editor/src/core/editor_message/message/request.rs
   - zircon_editor/src/core/editor_message/message/response.rs
+  - zircon_editor/src/core/editor_message/message/scene_inspection/mod.rs
+  - zircon_editor/src/core/editor_message/message/scene_inspection/message.rs
+  - zircon_editor/src/core/editor_message/message/scene_inspection/selection_delta.rs
   - zircon_editor/src/core/editor_message/message/transaction.rs
   - zircon_editor/src/core/jobs/event.rs
   - zircon_editor/src/core/jobs/pump.rs
@@ -80,6 +88,7 @@ tests:
   - zircon_editor/src/tests/editor_message/bus/publish.rs
   - zircon_editor/src/tests/editor_message/bus/request.rs
   - zircon_editor/src/tests/editor_message/refresh.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/template_bridge/workbench_projection/scene_fragment.rs
   - tests/acceptance/editor-architecture-plan-01-m1.md
 doc_type: module-detail
 ---
@@ -90,7 +99,7 @@ doc_type: module-detail
 
 `core::editor_message` is the L1 messaging boundary shared by headless editor services and UI consumers. It routes small typed facts to multiple subscribers, records request deliveries, and accumulates view invalidation without making the message bus a second source of authoritative editor state.
 
-Plan 01 M1.1 removes the old `Empty` and `Text` payloads. A message now belongs to the document, transaction, mode, focus, or job family, or carries a schema-labelled JSON custom payload. Heavy document, history, world, selection, and active-job state remains behind its owning query surface.
+Plan 01 M1.1 removes the old `Empty` and `Text` payloads. A message now belongs to the document, transaction, mode, focus, job, tool, or scene-inspection family, or carries a schema-labelled JSON custom payload. Heavy document, history, world, selection, and active-job state remains behind its owning query surface.
 
 ## Related Files
 
@@ -103,7 +112,7 @@ Subscribers register exact `EditorTopic` values. `publish` targets matching subs
 Each inbox has three independent count limits, a 2 MiB default single-delivery logical byte limit, a 16 MiB default total logical retained-payload limit, and one protocol-owned retention policy:
 
 - `Lossless`: transaction events, document open/close/save, play-state edges, job start/terminal events, and every synchronous request. A full lossless lane preserves existing edges and reports backpressure instead of discarding them; a request does not invoke its handler when admission fails.
-- `Latest`: document dirty state, focus request/object, scene mode, selection revision per domain, and job progress per job id. Publishing the same semantic key replaces the older queued state while moving the new state to its publication position. Under total-byte pressure the inbox first plans any required eviction of other older Latest entries, then atomically commits the replacement; dispatch reports expose both coalescing and dropping when both occur.
+- `Latest`: document dirty state, focus request/object, scene mode, selection revision per domain, scene inspection, and job progress per job id. Publishing the same semantic key replaces the older queued state while moving the new state to its publication position. Scene-inspection replacement composes revision-checked selection deltas relative to the oldest retained revision; a revision gap requests selection-only authoritative repair instead of carrying a complete selection snapshot on every hierarchy patch. Under total-byte pressure the inbox first plans any required eviction of other older Latest entries, then atomically commits the replacement; dispatch reports expose both coalescing and dropping when both occur.
 - `Bounded`: schema-labelled custom messages whose semantics are unknown to the core. A full lane evicts its oldest bounded item and increments an explicit drop counter.
 
 `EditorMessageInboxStats` exposes depth by class, drained/coalesced/dropped/backpressured totals, and queue age in publication messages. Production consumers drain deliveries; the old cloning inspection helper is test-only and cannot become a per-frame production polling API.
@@ -124,17 +133,17 @@ If the handler unregisters the target during phase 2, phase 3 returns `EditorMes
 
 Every protocol transports every built-in payload family without conversion:
 
-| Protocol | Document | Transaction | Mode | Focus | Job |
-|---|---|---|---|---|---|
-| Publish | exact-topic fan-out | exact-topic fan-out | exact-topic fan-out | exact-topic fan-out | main-thread pump fan-out |
-| Request | one target + response | one target + response | one target + response | one target + response | one target + response |
-| Broadcast | all subscribers | all subscribers | all subscribers | all subscribers | all subscribers |
+| Protocol | Document | Transaction | Mode | Focus | Job | Scene inspection |
+|---|---|---|---|---|---|---|
+| Publish | exact-topic fan-out | exact-topic fan-out | exact-topic fan-out | exact-topic fan-out | main-thread pump fan-out | exact-topic retained fragment fan-out |
+| Request | one target + response | one target + response | one target + response | one target + response | one target + response | one target + response |
+| Broadcast | all subscribers | all subscribers | all subscribers | all subscribers | all subscribers | all subscribers |
 
-Built-in topic strings are `editor.document`, `editor.transaction`, `editor.mode`, `editor.focus`, and `editor.job`. Job workers never invoke subscribers: they write `JobEvent` values to the jobs channel, and the main-thread `pump_events()` publishes them. The topic parser continues to require at least two non-empty lowercase namespace segments.
+Built-in topic strings include `editor.document`, `editor.transaction`, `editor.mode`, `editor.focus`, `editor.job`, and `editor.scene_inspection`. Job workers never invoke subscribers: they write `JobEvent` values to the jobs channel, and the main-thread `pump_events()` publishes them. The topic parser continues to require at least two non-empty lowercase namespace segments.
 
 ## Data And Invalidation Flow
 
-`EditorMessage` may carry an `EditorViewDirtyMark`. The mutable bus merges marks in `ViewDirtySet` by `ViewInstanceId` until the frame boundary drains them. `EditorHostEventController::refresh_view` emits a schema-labelled internal custom message through the manager-owned `EditorContext` bus and still falls back to full reflection materialization. M1.2 already removed the bus from the deleted editor-event aggregate; editor-layout owns eventual partial snapshot publication.
+`EditorMessage` may carry an `EditorViewDirtyMark`. The mutable bus merges marks in `ViewDirtySet` by `ViewInstanceId` until the frame boundary drains them. `EditorHostEventController::refresh_view` emits an internal dirty message through the manager-owned `EditorContext` bus. A pure `TREE_STRUCTURE` drain publishes a generation-matched `SceneInspectionMessage`; the retained hierarchy applies sparse row patches and performs an explicit hierarchy reflow only for topology changes, filtering, or generation gaps. Wider masks remain eligible for the existing complete reflection fallback.
 
 ## Edge Cases And Constraints
 

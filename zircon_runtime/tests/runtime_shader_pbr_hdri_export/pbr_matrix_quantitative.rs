@@ -3,11 +3,12 @@
 use std::fmt::Write;
 
 use zircon_runtime::core::framework::render::{
-    build_environment_brdf_lut, cubemap_direction_from_scaled_uv,
+    build_environment_brdf_lut_with_extent, cubemap_direction_from_scaled_uv,
     cubemap_face_scaled_uv_from_direction, cubemap_texel_solid_angle,
     source_cubemap_evaluate_irradiance_sh9, source_cubemap_face_mip_offset,
     source_cubemap_mip_size, source_cubemap_pmrem_mip_from_roughness, CubemapFace,
-    SourceCubemapEnvironment, ENVIRONMENT_BRDF_LUT_SIZE,
+    SourceCubemapEnvironment, ENVIRONMENT_BRDF_LUT_HEIGHT, ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT,
+    ENVIRONMENT_BRDF_LUT_WIDTH,
 };
 use zircon_runtime::graphics::ViewportFrame;
 
@@ -129,7 +130,11 @@ pub(super) fn assert_plan06_quantitative_gates(
     assert_eq!(frequency_hdr.len(), hdr.len());
     assert_eq!(frequency_diffuse_hdr.len(), hdr.len());
 
-    let brdf_lut = build_environment_brdf_lut(ENVIRONMENT_BRDF_LUT_SIZE, 1024);
+    let brdf_lut = build_environment_brdf_lut_with_extent(
+        ENVIRONMENT_BRDF_LUT_WIDTH,
+        ENVIRONMENT_BRDF_LUT_HEIGHT,
+        ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT,
+    );
     let cells = build_cell_samples(
         frame.width,
         frame.height,
@@ -524,17 +529,18 @@ fn source_cubemap_solid_angle_mean_luma(environment: &SourceCubemapEnvironment) 
 }
 
 fn sample_brdf_response(lut: &[[f32; 2]], no_v: f32, roughness: f32, f0: [f32; 3]) -> [f32; 3] {
-    let size = ENVIRONMENT_BRDF_LUT_SIZE;
-    let x = no_v.clamp(0.0, 1.0) * size as f32 - 0.5;
-    let y = roughness.clamp(0.0, 1.0) * size as f32 - 0.5;
+    let width = ENVIRONMENT_BRDF_LUT_WIDTH;
+    let height = ENVIRONMENT_BRDF_LUT_HEIGHT;
+    let x = no_v.clamp(0.0, 1.0) * width as f32 - 0.5;
+    let y = roughness.clamp(0.0, 1.0) * height as f32 - 0.5;
     let x0 = x.floor() as i32;
     let y0 = y.floor() as i32;
     let tx = x - x.floor();
     let ty = y - y.floor();
     let sample = |sx: i32, sy: i32| {
-        let sx = sx.clamp(0, size as i32 - 1) as usize;
-        let sy = sy.clamp(0, size as i32 - 1) as usize;
-        lut[sy * size as usize + sx]
+        let sx = sx.clamp(0, width as i32 - 1) as usize;
+        let sy = sy.clamp(0, height as i32 - 1) as usize;
+        lut[sy * width as usize + sx]
     };
     let ab = lerp2(
         lerp2(sample(x0, y0), sample(x0 + 1, y0), tx),

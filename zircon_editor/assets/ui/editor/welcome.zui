@@ -1,5 +1,3 @@
-stylesheets = []
-
 [asset]
 kind = "view"
 id = "res://ui/editor/welcome.zui"
@@ -8,6 +6,49 @@ display_name = "Welcome"
 
 [imports]
 styles = ["res://ui/theme/editor_base.zui", "res://ui/theme/editor_material.zui", "res://ui/editor/theme/editor_tokens.zui"]
+
+[[stylesheets]]
+id = "welcome_workbench_controls"
+
+[[stylesheets.rules]]
+selector = ".welcome-workbench-control"
+set = { self = { background = { color = "$editor.surface.1" }, foreground = { color = "$editor.text.primary" }, border = { color = "$editor.border", width = "$editor.control.border_width", radius = "$editor.control.radius.control" }, font = { size = "$editor.typography.body.size" } } }
+
+[[stylesheets.rules]]
+selector = ".welcome-workbench-control:hover"
+set = { self = { background = { color = "$editor.surface.hover" }, border = { color = "$editor.border", width = "$editor.control.border_width", radius = "$editor.control.radius.control" } } }
+
+[[stylesheets.rules]]
+selector = ".welcome-workbench-control:pressed"
+set = { self = { background = { color = "$editor.surface.3" }, border = { color = "$editor.accent", width = "$editor.control.border_width", radius = "$editor.control.radius.control" } } }
+
+[[stylesheets.rules]]
+selector = ".welcome-workbench-control:focus"
+set = { self = { border = { color = "$editor.accent", width = "$editor.control.border_width", radius = "$editor.control.radius.control" } } }
+
+[[stylesheets.rules]]
+selector = ".welcome-workbench-control:disabled"
+set = { self = { background = { color = "$editor.surface.disabled" }, foreground = { color = "$editor.text.disabled" }, border = { color = "$editor.border.disabled", width = "$editor.control.border_width", radius = "$editor.control.radius.control" } } }
+
+[[stylesheets.rules]]
+selector = ".welcome-workbench-field"
+set = { self = { background = { color = "$editor.surface.recessed" } } }
+
+[[stylesheets.rules]]
+selector = ".welcome-workbench-secondary-action"
+set = { self = { button_variant = "outlined", button_color = "secondary", button_size = "medium" } }
+
+[[stylesheets.rules]]
+selector = ".welcome-workbench-primary-action"
+set = { self = { button_variant = "contained", button_color = "primary", button_size = "medium", background = { color = "$editor.accent" }, foreground = { color = "$editor.text.primary" }, border = { color = "$editor.accent", width = "$editor.control.border_width", radius = "$editor.control.radius.control" } } }
+
+[[stylesheets.rules]]
+selector = ".welcome-workbench-primary-action:hover"
+set = { self = { background = { color = "$editor.accent.soft" } } }
+
+[[stylesheets.rules]]
+selector = ".welcome-workbench-primary-action:pressed"
+set = { self = { background = { color = "$editor.surface.3" } } }
 
 [root]
 node = "welcome_root"
@@ -51,28 +92,28 @@ layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.pa
 [nodes.startup_chooser_button_workbench]
 component = "Button"
 control_id = "WelcomeStartupWorkbenchButton"
-classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
+classes = ["showcase-field", "material-control", "material-button", "material-text-button", "welcome-workbench-control", "welcome-workbench-secondary-action"]
 props = { text = "Default Workbench", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", height = "$editor.control.height.compact" }
 events = [{ id = "Welcome/OpenStartupWorkbench", event = "Click", route = "workbench.welcome.open_startup_workbench" }]
 
 [nodes.startup_chooser_button_demo]
 component = "Button"
 control_id = "WelcomeStartupDemoButton"
-classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
+classes = ["showcase-field", "material-control", "material-button", "material-text-button", "welcome-workbench-control", "welcome-workbench-secondary-action"]
 props = { text = "Component Showcase", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", height = "$editor.control.height.compact" }
 events = [{ id = "Welcome/OpenStartupDemo", event = "Click", route = "workbench.welcome.open_startup_demo" }]
 
 [nodes.startup_chooser_button_asset]
 component = "Button"
 control_id = "WelcomeStartupAssetWindowButton"
-classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
+classes = ["showcase-field", "material-control", "material-button", "material-text-button", "welcome-workbench-control", "welcome-workbench-secondary-action"]
 props = { text = "Asset Window", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", height = "$editor.control.height.compact" }
 events = [{ id = "Welcome/OpenStartupAssetWindow", event = "Click", route = "workbench.welcome.open_startup_asset_window" }]
 
 [nodes.startup_chooser_button_ui_layout]
 component = "Button"
 control_id = "WelcomeStartupUILayoutEditorButton"
-classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
+classes = ["showcase-field", "material-control", "material-button", "material-text-button", "welcome-workbench-control", "welcome-workbench-secondary-action"]
 props = { text = "UI Layout Editor", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", height = "$editor.control.height.compact" }
 events = [{ id = "Welcome/OpenStartupUILayoutEditor", event = "Click", route = "workbench.welcome.open_startup_ui_layout_editor" }]
 
@@ -127,7 +168,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.ga
 [nodes.project_name_field]
 component = "TextField"
 control_id = "WelcomeProjectNameField"
-classes = ["showcase-field", "material-control", "material-outlined-field"]
+classes = ["showcase-field", "material-control", "material-outlined-field", "welcome-workbench-control", "welcome-workbench-field"]
 props = { value = "ZirconProject", placeholder = "Project name", validation_level = "normal", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", height = "$editor.control.height.large" }
 layout = { width = { max = 680.0, stretch = "Stretch" }, height = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" } }
 
@@ -148,7 +189,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.ga
 [nodes.location_field]
 component = "TextField"
 control_id = "WelcomeLocationField"
-classes = ["showcase-field", "material-control", "material-outlined-field"]
+classes = ["showcase-field", "material-control", "material-outlined-field", "welcome-workbench-control", "welcome-workbench-field"]
 props = { value = "Documents/ZirconProjects", placeholder = "Location", validation_level = "normal", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", height = "$editor.control.height.large" }
 layout = { width = { max = 680.0, stretch = "Stretch" }, height = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" } }
 
@@ -185,14 +226,14 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 [nodes.open_existing_button]
 component = "Button"
 control_id = "WelcomeOpenExistingButton"
-classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
+classes = ["showcase-field", "material-control", "material-button", "material-text-button", "welcome-workbench-control", "welcome-workbench-secondary-action"]
 props = { text = "Open", surface_variant = "inset", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", height = "$editor.control.height.default" }
 events = [{ id = "Welcome/OpenExisting", event = "Click", route = "workbench.welcome.open_existing" }]
 
 [nodes.create_project_button]
 component = "Button"
 control_id = "WelcomeCreateProjectButton"
-classes = ["showcase-field", "material-control", "material-button", "material-button-primary"]
+classes = ["showcase-field", "material-control", "material-button", "material-button-primary", "welcome-workbench-control", "welcome-workbench-primary-action"]
 props = { text = "Create Project", surface_variant = "accent", button_variant = "primary", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", validation_level = "normal", height = "$editor.control.height.default" }
 events = [{ id = "Welcome/CreateProject", event = "Click", route = "workbench.welcome.create_project" }]
 

@@ -3,22 +3,23 @@ use super::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc;
 use std::sync::{Arc, Condvar, Mutex, OnceLock};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use super::super::super::abi_declarations::{
     NativePluginByteSliceV2, NativePluginCallbackStatusV2, NativePluginOutputSinkV4,
     NativePluginOwnedByteBufferV2,
 };
 use super::super::super::behavior_calls::NativePluginCommandTable;
+use super::super::super::benchmark_harness::{BenchmarkMeasurement, BenchmarkRunMetadata};
 
-struct SlowCallbackProbe {
+pub(super) struct SlowCallbackProbe {
     entered: Mutex<Option<mpsc::Sender<()>>>,
     released: Mutex<bool>,
     release_signal: Condvar,
 }
 
 impl SlowCallbackProbe {
-    fn new(entered: mpsc::Sender<()>) -> Self {
+    pub(super) fn new(entered: mpsc::Sender<()>) -> Self {
         Self {
             entered: Mutex::new(Some(entered)),
             released: Mutex::new(false),
@@ -26,7 +27,7 @@ impl SlowCallbackProbe {
         }
     }
 
-    fn wait_for_release(&self) {
+    pub(super) fn wait_for_release(&self) {
         if let Some(entered) = self
             .entered
             .lock()
@@ -45,7 +46,7 @@ impl SlowCallbackProbe {
             .unwrap_or_else(std::sync::PoisonError::into_inner);
     }
 
-    fn release(&self) {
+    pub(super) fn release(&self) {
         *self
             .released
             .lock()
@@ -54,7 +55,7 @@ impl SlowCallbackProbe {
     }
 }
 
-fn callback_concurrency_fixture_lock() -> std::sync::MutexGuard<'static, ()> {
+pub(super) fn callback_concurrency_fixture_lock() -> std::sync::MutexGuard<'static, ()> {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
     LOCK.get_or_init(|| Mutex::new(()))
         .lock()
@@ -66,12 +67,17 @@ fn reentrant_host_slot() -> &'static Mutex<Option<Arc<NativePluginLiveHost>>> {
     HOST.get_or_init(|| Mutex::new(None))
 }
 
-fn slow_callback_slot() -> &'static Mutex<Option<Arc<SlowCallbackProbe>>> {
+pub(super) fn slow_callback_slot() -> &'static Mutex<Option<Arc<SlowCallbackProbe>>> {
     static PROBE: OnceLock<Mutex<Option<Arc<SlowCallbackProbe>>>> = OnceLock::new();
     PROBE.get_or_init(|| Mutex::new(None))
 }
 
-fn state_restore_count() -> &'static AtomicUsize {
+pub(super) fn state_restore_count() -> &'static AtomicUsize {
+    static COUNT: AtomicUsize = AtomicUsize::new(0);
+    &COUNT
+}
+
+pub(super) fn replacement_unload_count() -> &'static AtomicUsize {
     static COUNT: AtomicUsize = AtomicUsize::new(0);
     &COUNT
 }
@@ -130,7 +136,7 @@ unsafe extern "C" fn successful_unload() -> NativePluginCallbackStatusV2 {
     }
 }
 
-unsafe extern "C" fn slow_unload() -> NativePluginCallbackStatusV2 {
+pub(super) unsafe extern "C" fn slow_unload() -> NativePluginCallbackStatusV2 {
     let probe = slow_callback_slot()
         .lock()
         .unwrap_or_else(std::sync::PoisonError::into_inner)
@@ -138,6 +144,11 @@ unsafe extern "C" fn slow_unload() -> NativePluginCallbackStatusV2 {
         .expect("slow unload fixture should be installed")
         .clone();
     probe.wait_for_release();
+    successful_unload()
+}
+
+pub(super) unsafe extern "C" fn counted_replacement_unload() -> NativePluginCallbackStatusV2 {
+    replacement_unload_count().fetch_add(1, Ordering::SeqCst);
     successful_unload()
 }
 
@@ -225,7 +236,7 @@ pub(super) fn callback_test_behavior(
     }
 }
 
-fn stateful_callback_test_behavior(
+pub(super) fn stateful_callback_test_behavior(
     invoke_command: super::super::super::abi_declarations::NativePluginInvokeCommandFnV4,
 ) -> NativePluginBehavior {
     let mut behavior = callback_test_behavior(invoke_command);
@@ -589,77 +600,6 @@ fn unload_reopens_the_retained_generation_when_loaded_lock_reacquisition_fails()
 }
 
 #[test]
-fn hot_reload_reopens_the_retained_generation_when_loaded_lock_reacquisition_fails() {
-    let _fixture = callback_concurrency_fixture_lock();
-    state_restore_count().store(0, Ordering::SeqCst);
-    let host = Arc::new(NativePluginLiveHost::default());
-    let mut old_behavior = stateful_callback_test_behavior(successful_runtime_command);
-    old_behavior.unload = Some(slow_unload);
-    let old_plugin = native_live_host_test_plugin_with_behavior("physics", old_behavior);
-    {
-        let mut loaded = lock_loaded_native_plugins(&host.loaded)
-            .expect("test should lock the native live host");
-        loaded.insert(
-            live_key(PluginModuleKind::Runtime, "physics"),
-            old_plugin.clone(),
-        );
-    }
-    let (entered_tx, entered_rx) = mpsc::channel();
-    let probe = Arc::new(SlowCallbackProbe::new(entered_tx));
-    *slow_callback_slot()
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(probe.clone());
-
-    let reload_host = Arc::clone(&host);
-    let reload = std::thread::spawn(move || {
-        reload_host.hot_reload_reported_plugin(
-            NativePluginLoadReport::from_loaded(vec![native_live_host_test_plugin_with_behavior(
-                "physics",
-                stateful_callback_test_behavior(successful_runtime_command),
-            )]),
-            std::path::Path::new("reload-root"),
-            "physics",
-            PluginModuleKind::Runtime,
-        )
-    });
-    entered_rx
-        .recv_timeout(Duration::from_secs(1))
-        .expect("hot reload should enter the old plugin unload callback");
-
-    let poison_host = Arc::clone(&host);
-    let poison = std::thread::spawn(move || {
-        let _guard = poison_host
-            .loaded
-            .entries
-            .lock()
-            .expect("test should lock the live host map");
-        panic!("poison the hot-reload loaded-lock reacquisition");
-    })
-    .join();
-    assert!(poison.is_err());
-
-    probe.release();
-    let error = reload
-        .join()
-        .expect("hot-reload worker should not panic")
-        .expect_err("a poisoned hot-reload lock should produce a typed lifecycle error");
-    *slow_callback_slot()
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
-
-    assert!(error.contains("native plugin live host lock is poisoned"));
-    assert!(
-        old_plugin.callback_owner_lease().is_ok(),
-        "the failed hot reload must reopen callback admission for its retained generation"
-    );
-    assert_eq!(
-        state_restore_count().load(Ordering::SeqCst),
-        2,
-        "a failed publication must restore the saved runtime state to both replacement and retained generations"
-    );
-}
-
-#[test]
 fn native_runtime_broadcast_snapshot_preserves_sorted_plugin_order() {
     let host = NativePluginLiveHost::default();
     {
@@ -729,74 +669,124 @@ fn aborted_broadcast_snapshot_does_not_record_unexecuted_callbacks() {
         .cancel_lifecycle_transition();
 }
 
+const BROADCAST_BENCHMARK_WARMUP_ITERATIONS: usize = 100;
+const BROADCAST_BENCHMARK_ITERATIONS: usize = 1_000;
+
 #[test]
-#[ignore = "manual 1/8/32 native callback broadcast microbenchmark"]
-fn native_runtime_broadcast_1_8_32_plugin_benchmark() {
-    for plugin_count in [1_usize, 8, 32] {
-        let host = NativePluginLiveHost::default();
-        {
-            let mut loaded = lock_loaded_native_plugins(&host.loaded)
-                .expect("benchmark should lock the native live host");
-            for index in (0..plugin_count).rev() {
-                let plugin_id = format!("plugin-{index:02}");
-                loaded.insert(
-                    live_key(PluginModuleKind::Runtime, &plugin_id),
-                    native_live_host_test_plugin_with_behavior(
-                        &plugin_id,
-                        callback_test_behavior(successful_runtime_command),
-                    ),
-                );
-            }
-        }
-        let started = std::time::Instant::now();
-        for _ in 0..100 {
-            let report = host
-                .dispatch_runtime_plugin_command("benchmark", b"")
-                .expect("benchmark broadcast should succeed");
-            assert_eq!(report.calls.len(), plugin_count);
-            assert!(report
-                .calls
-                .windows(2)
-                .all(|calls| calls[0].plugin_id < calls[1].plugin_id));
-        }
-        let callback_diagnostics = (0..plugin_count)
-            .map(|index| {
-                host.plugin_callback_diagnostics(
-                    format!("plugin-{index:02}"),
-                    PluginModuleKind::Runtime,
-                )
-                .expect("benchmark plugin callback diagnostics")
-            })
-            .collect::<Vec<_>>();
-        let completed_callbacks = callback_diagnostics
-            .iter()
-            .map(|diagnostics| diagnostics.completed_callbacks)
-            .sum::<u64>();
-        let total_callback_duration_ns = callback_diagnostics
-            .iter()
-            .map(|diagnostics| diagnostics.total_callback_duration_ns)
-            .sum::<u64>();
-        let max_callback_duration_ns = callback_diagnostics
-            .iter()
-            .map(|diagnostics| diagnostics.max_callback_duration_ns)
-            .max()
-            .unwrap_or_default();
-        let live_host_diagnostics = host.live_host_diagnostics();
-        assert_eq!(completed_callbacks, (plugin_count * 100) as u64);
-        assert!(callback_diagnostics
-            .iter()
-            .all(|diagnostics| diagnostics.active_callbacks == 0));
-        eprintln!(
-            "native callback broadcast: plugins={plugin_count} iterations=100 elapsed_ns={} \
-             completed_callbacks={completed_callbacks} total_callback_duration_ns={total_callback_duration_ns} \
-             max_callback_duration_ns={max_callback_duration_ns} loaded_lock_acquisitions={} \
-             total_loaded_lock_wait_ns={} max_loaded_lock_wait_ns={}",
-            started.elapsed().as_nanos(),
-            live_host_diagnostics.loaded_lock_acquisitions,
-            live_host_diagnostics.total_loaded_lock_wait_ns,
-            live_host_diagnostics.max_loaded_lock_wait_ns,
+#[ignore = "manual 1-plugin native callback broadcast benchmark"]
+fn native_runtime_broadcast_1_plugin_benchmark() {
+    run_native_runtime_broadcast_benchmark(1);
+}
+
+#[test]
+#[ignore = "manual 8-plugin native callback broadcast benchmark"]
+fn native_runtime_broadcast_8_plugin_benchmark() {
+    run_native_runtime_broadcast_benchmark(8);
+}
+
+#[test]
+#[ignore = "manual 32-plugin native callback broadcast benchmark"]
+fn native_runtime_broadcast_32_plugin_benchmark() {
+    run_native_runtime_broadcast_benchmark(32);
+}
+
+fn run_native_runtime_broadcast_benchmark(plugin_count: usize) {
+    let metadata = BenchmarkRunMetadata::from_environment(
+        "native_runtime_broadcast",
+        format!("plugins={plugin_count},iterations={BROADCAST_BENCHMARK_ITERATIONS}"),
+    )
+    .expect("benchmark metadata must be bound to a managed optimized-profile run");
+    let host = native_runtime_broadcast_benchmark_host(plugin_count);
+
+    run_native_runtime_broadcast_batch(&host, plugin_count, BROADCAST_BENCHMARK_WARMUP_ITERATIONS);
+    let completed_callbacks_before = completed_broadcast_callbacks(&host, plugin_count);
+    let diagnostics_before = host.live_host_diagnostics();
+    let started = Instant::now();
+    for _ in 0..BROADCAST_BENCHMARK_ITERATIONS {
+        std::hint::black_box(
+            host.dispatch_runtime_plugin_command("benchmark", b"")
+                .expect("benchmark broadcast should succeed"),
         );
     }
+    let elapsed = started.elapsed();
+    let diagnostics_after = host.live_host_diagnostics();
+    let completed_callbacks_after = completed_broadcast_callbacks(&host, plugin_count);
+
+    assert_eq!(
+        completed_callbacks_after - completed_callbacks_before,
+        (plugin_count * BROADCAST_BENCHMARK_ITERATIONS) as u64,
+    );
+    metadata.emit(BenchmarkMeasurement {
+        warmup_operations: (plugin_count * BROADCAST_BENCHMARK_WARMUP_ITERATIONS) as u64,
+        measured_operations: (plugin_count * BROADCAST_BENCHMARK_ITERATIONS) as u64,
+        elapsed,
+        counters: &[
+            (
+                "loaded_lock_acquisitions",
+                diagnostics_after
+                    .loaded_lock_acquisitions
+                    .saturating_sub(diagnostics_before.loaded_lock_acquisitions),
+            ),
+            (
+                "loaded_lock_wait_ns",
+                diagnostics_after
+                    .total_loaded_lock_wait_ns
+                    .saturating_sub(diagnostics_before.total_loaded_lock_wait_ns),
+            ),
+        ],
+        latency_sample: None,
+    });
+}
+
+fn native_runtime_broadcast_benchmark_host(plugin_count: usize) -> NativePluginLiveHost {
+    let host = NativePluginLiveHost::default();
+    let mut loaded = lock_loaded_native_plugins(&host.loaded)
+        .expect("benchmark should lock the native live host");
+    for index in (0..plugin_count).rev() {
+        let plugin_id = format!("plugin-{index:02}");
+        loaded.insert(
+            live_key(PluginModuleKind::Runtime, &plugin_id),
+            native_live_host_test_plugin_with_behavior(
+                &plugin_id,
+                callback_test_behavior(successful_runtime_command),
+            ),
+        );
+    }
+    drop(loaded);
+    host
+}
+
+fn run_native_runtime_broadcast_batch(
+    host: &NativePluginLiveHost,
+    plugin_count: usize,
+    iterations: usize,
+) {
+    for _ in 0..iterations {
+        let report = host
+            .dispatch_runtime_plugin_command("benchmark", b"")
+            .expect("benchmark broadcast warm-up should succeed");
+        assert_eq!(report.calls.len(), plugin_count);
+        assert!(report
+            .calls
+            .windows(2)
+            .all(|calls| calls[0].plugin_id < calls[1].plugin_id));
+    }
+}
+
+fn completed_broadcast_callbacks(host: &NativePluginLiveHost, plugin_count: usize) -> u64 {
+    (0..plugin_count)
+        .map(|index| {
+            host.plugin_callback_diagnostics(
+                format!("plugin-{index:02}"),
+                PluginModuleKind::Runtime,
+            )
+            .expect("benchmark plugin callback diagnostics")
+        })
+        .map(|diagnostics| {
+            assert_eq!(diagnostics.active_callbacks, 0);
+            diagnostics.completed_callbacks
+        })
+        .sum()
 }
 
 #[test]

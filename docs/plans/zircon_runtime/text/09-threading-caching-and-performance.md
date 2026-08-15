@@ -378,3 +378,72 @@ this is a shared structure/import diagnostic rather than a cache regression fail
 The plan remains `implemented / resolving_failure / managed_validation_pending`; rerun
 the same exact cache command after its owning source path is repaired, then continue to
 the real WGPU product framebuffer.
+
+2026-08-14 pre-Cargo static recovery: UI12 current-source diagnostics no longer read the
+private SDF renderer through `ScreenSpaceUiTextPrepareReport`; the public crate-local
+`sdf_generation` projection supplies the three base-stat counters instead. The production
+font-manifest resolver now adapts the runtime asset-path function through a concrete
+closure, closing the higher-ranked `FnOnce` inference failure. In the same non-algorithmic
+Text09 infrastructure slice, `NativeBitmapAtlasPrepareReport` and the idle-report
+constructor moved to `text/native_bitmap_atlas/report.rs`, while
+`NativeBitmapAtlasTextArea` moved to `text/native_bitmap_atlas/text_area.rs`. The frame
+state, source-image details, per-frame budget and frame driver now belong to
+`text/native_bitmap_atlas/frame.rs`; `retry_frame` and `storage` import that sibling
+owner directly. The atlas root is now declaration/re-export wiring only, and the input
+fields remain visible only to its parent module. Scoped `rustfmt --check`, tracked
+`git diff --check`, and source-owner assertions passed. The repository-wide structure
+guard exceeded its 65-second window without a result, so it is not counted as passed.
+UI12 has not released the Cargo lane: no Cargo, timing measurement, WGPU framebuffer,
+PNG, milestone output record, commit, or WeCom notification is claimed. Text09 therefore remains
+`implemented / resolving_failure / managed_validation_pending`.
+
+2026-08-14 PF-M5 current-source reconciliation: the Text09 design section still lists the
+three long-document requirements, but the current source already implements its constrained
+MVP subset. `text/hard_line.rs` owns the shared hard-line scanner and a 64 KiB,
+grapheme-safe shaping-run cap; `HardLineIndexCache` keys a bounded retained offset index by
+`TextDocumentKey(owner, revision)` and bypasses rather than retaining oversized or unkeyed
+documents. For retained Plain/HorizontalTb/None/Clip input only,
+`ui/text/layout_engine/viewport.rs` materializes the viewport plus explicit overscan while
+keeping the full document height, and the persistent cache routes a strict partial window to
+same-frame dedup instead of caching viewport-specific geometry. Current source regressions cover
+the 10,000-line visible-only case, a single edited paragraph yielding two shaped-cache hits and
+one miss, and a 64 KiB unbroken run splitting into contiguous source ranges. This matches the
+relevant Unreal `FTextLayout` design direction: stable line models carry estimated geometry and
+dirty state, while lazy line views are generated only around the viewport. It does **not** claim
+the wider PF-M5 scope complete: wrapped, rich, vertical, and editable layouts remain deliberately
+on their complete-layout path until they have equivalent paragraph-height and scroll-anchor
+contracts. The existing M5 manifest records the same boundary; this reconciliation adds no
+algorithm change or validation claim. With UI12 still holding the validation lane, Cargo,
+profiling, WGPU output, screenshot, milestone commit, and WeCom notification remain pending.
+
+2026-08-14 priority-review synchronization: the stale Text locale review in
+`engine-code-review-findings-2026-06.md` no longer describes per-run `locl` or variable axes as
+an open cosmic-text capability. Current source itemizes once and routes each horizontal run through
+the canonical RustyBuzz direct owner with its normalized language; cosmic remains whole-request
+fallback. Exact Calibri Russian/Serbian `locl` and variable-width-axis regressions are present in
+that owner. The related product proof harness is likewise current-source structural evidence only:
+it requires framebuffer pixel changes across native/SDF/VerticalRl/rich cases, rejects both
+workspace and configured Cargo `target` paths, and atomically writes the accepted PNG path. No
+Cargo, measurement, WGPU execution, new image, acceptance, commit, or WeCom notification is
+claimed by this synchronization.
+
+2026-08-14 product-proof fixture isolation: `product_proof_work_path` already combines the
+workspace-local label with process/time entropy, but both ignored WGPU product proofs previously
+used the same `fixture` namespace. `product_fixture_asset_manager` now accepts an explicit,
+validated label; the callers use `multilingual-fixture` and `dpi-fixture`, so even a degraded
+clock cannot give the two cases the same fixture directory name. The path-owner regression checks
+both prefixes and the shared workspace-local parent. Scoped `rustfmt --check`, `git diff --check`,
+and a complete static call-site audit passed. UI12 still owns the validation lane, so no Cargo,
+WGPU execution, PNG, timing data, acceptance, milestone record, commit, or WeCom notification is
+claimed by this infrastructure completion.
+
+2026-08-14 PF-M4 current-source reconciliation: the early scroll-list unit test deliberately
+limits itself to UI measurement/layout cache behavior, but it is not the only performance guard.
+The ignored real-WGPU `render_profiling/text_baseline/scroll_turnover.rs` uses a 1,000-row virtual
+list with a 100-row window and 10-row turnover. After warmup it records every native raster and
+atlas-upload counter for 300 measured frames, requires zero shaped/layout/source-cache/slot-cache
+misses, zero worker pressure/placeholders, and zero native upload copies, bytes, requeues, and
+failures while retaining positive native instances and draws. The metric plumbing is therefore
+implemented; this is not a reason to create another counter path or change a hot algorithm before
+the managed measurement run. UI12 still has not released the Cargo lane, so the WGPU baseline has
+not been executed here and no timing, power, PNG, acceptance, commit, or WeCom result is claimed.

@@ -14,6 +14,12 @@ fn render_shader_template_assembles_standard_material_surface_source() {
     assert!(surface_source
         .source
         .contains("scene.camera_world_position.w"));
+    assert!(surface_source.source.contains(
+        "mix(1.0, occlusion_sample, clamp(standard_material_properties.data0.z, 0.0, 1.0))"
+    ));
+    assert!(!surface_source
+        .source
+        .contains("standard_material_properties.data0.z * occlusion_sample"));
 
     assert!(surface_source
         .features

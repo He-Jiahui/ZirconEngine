@@ -67,7 +67,11 @@ Editor 15 将当前 test binary 按顶层 owner 拆分后，`core::` 65 tests �
 | Editor10 M1/M2 / Editor15 M1 | ProjectAuthority core boundary exact failure | `open-已取得精确根因` | 2026-07-12 | 当前 Editor test binary 的 `core::` 分片 64/65；唯一失败为 boundary guard 扫描自身并命中 6 个 forbidden needle 字面量。 |
 | Editor10 M1/M2 / Editor09 M1 | 当前源码完整门停滞前复现 | `open-继续由功能owner处理` | 2026-07-13 | job `e81ed19d256f40c28ddb2437e9a18460` 再次记录 ProjectAuthority boundary、asset references 与两个 workbench project roundtrip 失败；asset-reference exact 为 `left=[]`、`right=6 GUIDs`。日志 `.codex/tmp/editor09-m1-full-lib-test-r2-20260713.log`；不在 Editor09 复制 ProjectAuthority/reference registry。 |
 | Editor10 M1/M2 | 当前源码功能修复 | `open-实现与静态门完成-独立复审/受管行为门待执行` | 2026-07-17 | boundary guard 已排除自身测试目录且保留全部生产禁用词；ProjectAuthority generation、document roundtrip 与 AssetRef consumer 当前源码已收束，详见 `2026-07-17-project-authority-reference-regression-closeout.md`。未取得 current-source exact Cargo 输出前不改 fixed。 |
+| Editor10 M1/M2 | clean-HEAD 不可变完整门 | `open-目标测试未执行-上层编译阻断` | 2026-08-05 | 协调器 validation-copy job `ac4153eb48e74c5bb47194928a5772f8`、run `459c4c003f4140e5babeb8c04a8d3b8f` 固定 HEAD `94cf43ec3` 与输入哈希 `e19f08dcdad2a54765b4795551cc5998a23ba1b8c9d1559dcc3a0a50c5824346`，显式包含 17 个 renderable-empty 模板和 pinned `zr_vm` 外部源；Runtime 成功编译后，Editor test binary 因 686 个无关编译错误退出 `101`，`0 tests`。首个 `project` 聚焦组未执行，后续 `asset_references` 与全量门被 `&&` 正确阻止；因此不执行 `failure return`。 |
 
 ## 修复结果与回传
 
 - 状态：`open / 待修复`；Editor10 完成 exact 归因和修复后在本文件回填验证，并向来源 Editor08 回传。
+- 2026-08-05 的不可变副本已排除模板遗漏、外部本地依赖和共享工作树脏改动三类环境干扰；
+  剩余阻塞是 clean HEAD 的 Editor test binary 编译失败。声明的 project/reference 行为门仍未开始，
+  本 handoff 保持 `open`。

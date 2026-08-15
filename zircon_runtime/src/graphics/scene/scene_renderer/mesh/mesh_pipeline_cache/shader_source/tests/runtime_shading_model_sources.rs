@@ -5,17 +5,17 @@ use crate::asset::{
     AssetReference, ProjectAssetManager, ShaderAsset, ShaderEntryPointAsset, ShaderSourceLanguage,
 };
 use crate::core::framework::render::{
-    GBufferChannelMask, GEOMETRY_SOURCE_ID_STATIC_MESH, SHADING_MODEL_PLUGIN_ID_START,
-    ShaderAssetKind, ShadingModelDescriptor, ShadingModelId, builtin_geometry_source_descriptor,
+    builtin_geometry_source_descriptor, GBufferChannelMask, ShaderAssetKind,
+    ShadingModelDescriptor, ShadingModelId, GEOMETRY_SOURCE_ID_STATIC_MESH,
+    SHADING_MODEL_PLUGIN_ID_START,
 };
 use crate::core::resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord};
 use crate::graphics::backend::RenderBackend;
-use crate::graphics::scene::resources::{ResourceStreamer, default_pipeline_key};
+use crate::graphics::scene::resources::{default_pipeline_key, ResourceStreamer};
 
 use super::super::{
-    MESH_SHADER_TEMPLATE_REVISION,
     mesh_pipeline_deferred_gbuffer_template_source_for_geometry_descriptor_with_streamer,
-    mesh_pipeline_shader_source_for_geometry_descriptor,
+    mesh_pipeline_shader_source_for_geometry_descriptor, MESH_SHADER_TEMPLATE_REVISION,
 };
 
 const CUSTOM_TOON_FORWARD_INCLUDE: &str = r#"
@@ -114,11 +114,9 @@ fn runtime_custom_shading_model_sources_compile_as_wgpu_modules() {
     let forward_source =
         mesh_pipeline_shader_source_for_geometry_descriptor(&streamer, &key, &geometry_source)
             .expect("forward runtime custom shading model source");
-    assert!(
-        forward_source
-            .wgsl_source
-            .contains("ZR_SHADING_TOON_DEBUG_ID")
-    );
+    assert!(forward_source
+        .wgsl_source
+        .contains("ZR_SHADING_TOON_DEBUG_ID"));
     validate_wgpu_shader_module(
         &backend.device,
         "zircon-test-runtime-custom-shading-forward",
@@ -132,11 +130,9 @@ fn runtime_custom_shading_model_sources_compile_as_wgpu_modules() {
             &geometry_source,
         )
         .expect("gbuffer runtime custom shading model source");
-    assert!(
-        gbuffer_source
-            .wgsl_source
-            .contains("ZR_GBUFFER_TOON_DEBUG_ID")
-    );
+    assert!(gbuffer_source
+        .wgsl_source
+        .contains("ZR_GBUFFER_TOON_DEBUG_ID"));
     validate_wgpu_shader_module(
         &backend.device,
         "zircon-test-runtime-custom-shading-gbuffer",
@@ -170,21 +166,15 @@ fn builtin_fallback_shader_loaded_as_surface_still_uses_standard_material_templa
     let forward_source =
         mesh_pipeline_shader_source_for_geometry_descriptor(&streamer, &key, &geometry_source)
             .expect("fallback shader should assemble as standard forward template");
-    assert!(
-        forward_source
-            .wgsl_source
-            .contains("fn zr_material_surface(")
-    );
-    assert!(
-        forward_source
-            .wgsl_source
-            .contains("standard_material_properties.data8.z")
-    );
-    assert!(
-        !forward_source
-            .wgsl_source
-            .contains("struct MaterialPropertyUniform")
-    );
+    assert!(forward_source
+        .wgsl_source
+        .contains("fn zr_material_surface("));
+    assert!(forward_source
+        .wgsl_source
+        .contains("standard_material_properties.data8.z"));
+    assert!(!forward_source
+        .wgsl_source
+        .contains("struct MaterialPropertyUniform"));
     validate_wgpu_shader_module(
         &backend.device,
         "zircon-test-fallback-forward-standard-template",
@@ -198,21 +188,15 @@ fn builtin_fallback_shader_loaded_as_surface_still_uses_standard_material_templa
             &geometry_source,
         )
         .expect("fallback shader should assemble as standard GBuffer template");
-    assert!(
-        gbuffer_source
-            .wgsl_source
-            .contains("// include: zr_gbuffer_encode_standard_pbr.wgsl")
-    );
-    assert!(
-        gbuffer_source
-            .wgsl_source
-            .contains("standard_material_properties.data8.z")
-    );
-    assert!(
-        !gbuffer_source
-            .wgsl_source
-            .contains("struct MaterialPropertyUniform")
-    );
+    assert!(gbuffer_source
+        .wgsl_source
+        .contains("// include: zr_gbuffer_encode_standard_pbr.wgsl"));
+    assert!(gbuffer_source
+        .wgsl_source
+        .contains("standard_material_properties.data8.z"));
+    assert!(!gbuffer_source
+        .wgsl_source
+        .contains("struct MaterialPropertyUniform"));
     validate_wgpu_shader_module(
         &backend.device,
         "zircon-test-fallback-gbuffer-standard-template",
@@ -280,36 +264,39 @@ fn register_shader(asset_manager: &ProjectAssetManager, locator_text: &str, sour
     let id = ResourceId::from_locator(&locator);
     let record = ResourceRecord::new(id, ResourceKind::Shader, locator.clone())
         .with_source_hash(format!("{locator_text}-hash"));
-    asset_manager.resource_manager().register_ready(
-        record,
-        ShaderAsset {
-            uri: locator,
-            kind: ShaderAssetKind::Include,
-            source_language: ShaderSourceLanguage::Wgsl,
-            source: source.to_string(),
-            wgsl_source: String::new(),
-            import_path: None,
-            entry_points: Vec::new(),
-            dependencies: Vec::new(),
-            source_files: Vec::new(),
-            imports: Vec::new(),
-            shader_defs: Vec::new(),
-            property_schema: Vec::new(),
-            options: Vec::new(),
-            texture_slots: Vec::new(),
-            shading_model: None,
-            render_state: Default::default(),
-            queue: None,
-            disabled_passes: Vec::new(),
-            resources: Vec::new(),
-            material_property_layout: Default::default(),
-            material_option_table: Default::default(),
-            generated_material_wgsl: String::new(),
-            editor: Default::default(),
-            pipeline_layout: Default::default(),
-            validation_diagnostics: Vec::new(),
-        },
-    );
+    asset_manager
+        .resource_manager()
+        .register_ready(
+            record,
+            ShaderAsset {
+                uri: locator,
+                kind: ShaderAssetKind::Include,
+                source_language: ShaderSourceLanguage::Wgsl,
+                source: source.to_string(),
+                wgsl_source: String::new(),
+                import_path: None,
+                entry_points: Vec::new(),
+                dependencies: Vec::new(),
+                source_files: Vec::new(),
+                imports: Vec::new(),
+                shader_defs: Vec::new(),
+                property_schema: Vec::new(),
+                options: Vec::new(),
+                texture_slots: Vec::new(),
+                shading_model: None,
+                render_state: Default::default(),
+                queue: None,
+                disabled_passes: Vec::new(),
+                resources: Vec::new(),
+                material_property_layout: Default::default(),
+                material_option_table: Default::default(),
+                generated_material_wgsl: String::new(),
+                editor: Default::default(),
+                pipeline_layout: Default::default(),
+                validation_diagnostics: Vec::new(),
+            },
+        )
+        .expect("register shader resource");
 }
 
 fn register_surface_full_pass_shader(
@@ -321,45 +308,48 @@ fn register_surface_full_pass_shader(
     let id = ResourceId::from_locator(&locator);
     let record = ResourceRecord::new(id, ResourceKind::Shader, locator.clone())
         .with_source_hash(format!("{locator_text}-hash"));
-    asset_manager.resource_manager().register_ready(
-        record,
-        ShaderAsset {
-            uri: locator.clone(),
-            kind: ShaderAssetKind::Surface,
-            source_language: ShaderSourceLanguage::Wgsl,
-            source: source.to_string(),
-            wgsl_source: source.to_string(),
-            import_path: None,
-            entry_points: vec![
-                ShaderEntryPointAsset {
-                    name: "vs_main".to_string(),
-                    stage: "vertex".to_string(),
-                },
-                ShaderEntryPointAsset {
-                    name: "fs_main".to_string(),
-                    stage: "fragment".to_string(),
-                },
-            ],
-            dependencies: Vec::new(),
-            source_files: Vec::new(),
-            imports: Vec::new(),
-            shader_defs: Vec::new(),
-            property_schema: Vec::new(),
-            options: Vec::new(),
-            texture_slots: Vec::new(),
-            shading_model: None,
-            render_state: Default::default(),
-            queue: None,
-            disabled_passes: Vec::new(),
-            resources: Vec::new(),
-            material_property_layout: Default::default(),
-            material_option_table: Default::default(),
-            generated_material_wgsl: String::new(),
-            editor: Default::default(),
-            pipeline_layout: Default::default(),
-            validation_diagnostics: Vec::new(),
-        },
-    );
+    asset_manager
+        .resource_manager()
+        .register_ready(
+            record,
+            ShaderAsset {
+                uri: locator.clone(),
+                kind: ShaderAssetKind::Surface,
+                source_language: ShaderSourceLanguage::Wgsl,
+                source: source.to_string(),
+                wgsl_source: source.to_string(),
+                import_path: None,
+                entry_points: vec![
+                    ShaderEntryPointAsset {
+                        name: "vs_main".to_string(),
+                        stage: "vertex".to_string(),
+                    },
+                    ShaderEntryPointAsset {
+                        name: "fs_main".to_string(),
+                        stage: "fragment".to_string(),
+                    },
+                ],
+                dependencies: Vec::new(),
+                source_files: Vec::new(),
+                imports: Vec::new(),
+                shader_defs: Vec::new(),
+                property_schema: Vec::new(),
+                options: Vec::new(),
+                texture_slots: Vec::new(),
+                shading_model: None,
+                render_state: Default::default(),
+                queue: None,
+                disabled_passes: Vec::new(),
+                resources: Vec::new(),
+                material_property_layout: Default::default(),
+                material_option_table: Default::default(),
+                generated_material_wgsl: String::new(),
+                editor: Default::default(),
+                pipeline_layout: Default::default(),
+                validation_diagnostics: Vec::new(),
+            },
+        )
+        .expect("register surface shader resource");
     locator
 }
 

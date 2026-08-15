@@ -10,6 +10,7 @@ fixing_child_dir: docs/plans/zircon_editor/editor/02
 plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/core/runtime_event_consumer/host.rs
+  - zircon_editor/src/core/runtime_event_consumer/host/execution_support.rs
   - zircon_runtime/src/dynamic_api/session/event_mirror.rs
   - zircon_editor/src/core/gateway/session.rs
 tests:
@@ -51,7 +52,7 @@ consumer registry 的 generation/sequence state 与外部 drain、decode、callb
 
 ## 修复结果与回传
 
-Open state: `Editor02 review clean / Cargo pending；Plugins01 bounded transport 依赖仍开放`。
+Open state: `2026-08-05 forward repair source static green / global-budget fairness increment independent second review pending / managed Cargo pending；Plugins01 bounded transport 依赖仍开放`。
 
 - `pump` 已硬切为 active consumer 快照，gateway drain、decode 与 typed callback 均在 active 锁外执行；递归 pump 通过单 owner guard 返回空报告，不形成第二 delivery owner。
 - 全量 transport drain 后的未消费 delivery 由匹配 generation 的 Editor02 pending queue 保序持有；全局 count、per-consumer count、elapsed time 与 slow-callback threshold 统一受 `EditorRuntimeEventPumpBudget` 管理。
@@ -66,6 +67,10 @@ Open state: `Editor02 review clean / Cargo pending；Plugins01 bounded transport
 |---|---|---|---|
 | 2026-07-22 | `review_clean_static_green_validation_pending` | 首轮独立审查 0/3/3；Editor02 owner 的 atomic lifecycle gate、错误公平性、payload move、指标命名与计划状态已按 TDD 整改；第二轮发现 3/2 配额起点偏置并修复。 | 静态合同 6/6，最终独立复审 0/0/0。Plugins01 全量 drain 根因已转交对应 failure；受管 Cargo、bounded transport、failure return 与 managed commit 待完成。 |
 | 2026-07-22 | `transport_evidence_review_clean_validation_pending` | snapshot819 后仅本文新增真实 transport/FakeGateway 证据；exact10 静态合同 `6/6 GREEN`，rustfmt 与 diff-check 已刷新并通过。 | 独立增量复审 `0/0/0`，确认 budget 只约束 apply、完整 Vec drain 与无 byte/deadline pending 仍存在。Plugins01 failure 保持 open；未运行 Cargo，不作 fixed return。 |
+| 2026-08-05 CST | `source_forward_repair_static_green / independent_second_review_green / managed_validation_pending` | Host hard-cut 为 pending-first 单页移交：pending 时不跨 gateway，清空后下 tick 才取下一页；pending byte upper bound/oldest age 进入 report，per-consumer batch 在锁外 validate/callback 后条件写回 sequence 和剩余队列。 | 新回归锁定 no-redrain、后续页保序、pending byte/age、panic tail/sequence 恢复；ignored ABI storm 仅把 drain 时取得的 runtime backlog 标记为带 observation age 的 `last_observed_*` 样本，不把 pending-only tick 伪报为当前 runtime 状态。supporting Python structure contract 已从废弃的 `commit_delivery_sequence`/Editor02 benchmark 名称前向硬切至 pending-batch take/restore guard 与 Plugins01 ABI benchmark，先前 2/6 RED 后当前 `6/6 GREEN`。`rustfmt`、scoped diff 与结构合同通过，独立二审 `0/0/0`；受管 Cargo 和 callback/stall/payload/64-consumer 矩阵仍待完成，failure 保持 open。 |
+| 2026-08-05 CST | pending recovery receipt | `source_forward_repair_static_green / independent_second_review_green / managed_validation_queued` | current source manifest 封存 host/pump、session transport、runtime event mirror 与 panic-tail regression；coordinator 负责 focused recovery gate。 | Ticket `38ceec5bcf8e4177a2f483d51a957f98` 已收到 queued receipt；未轮询，Plugins01 transport blocker 与动态矩阵仍保留，failure 保持 open。 |
+| 2026-08-05 CST | host execution-support module boundary | `source_forward_repair_static_green / independent_second_review_pending / managed_validation_queued` | `host.rs` 保留 active/pending/commit 状态所有权，执行原子 guard、P95、delivery validation 与 unsubscribe error mapping 提取到私有 `host/execution_support.rs`；host 降至 797 行，support 为 135 行。结构复核曾发现 root 的 `Ordering::Relaxed` 仍服务 generation `fetch_add`，已立即恢复显式 import。 | `rustfmt --check`、host ownership/topology/import 静态合同、四组 Editor02 Python 合同 `26/26` 与 scoped diff 通过；本次结构增量待独立二审，queued receipt 不视为 Cargo GREEN，failure 保持 open。 |
+| 2026-08-05 CST | global-budget round-robin fairness | `source_forward_repair_static_green / independent_second_review_pending / managed_validation_pending` | cursor 按已访问 consumer 数量推进到旋转快照中的首个未访问 consumer；零预算帧不改 cursor。私有 `host/round_robin.rs` 固化该策略，回归覆盖 4 consumer 的 3-event 全局预算、零预算保持，以及 64 consumer 的八个 8-event 窗口均恰好消费一次。 | `rustfmt --check` 与 bounded-pump Python 静态合同 `7/7 GREEN` 通过；`git diff --check` 无空白错误（仅工作区换行提示）。本增量尚待独立二审与受管 Cargo，不能作为 0/0/0 或 failure fixed 证据。 |
 
 2026-07-22逐文件复核确认本failure必须保持open：`max_events/max_elapsed`只约束apply循环，`gateway.drain_plugin_events`仍先返回无上限完整Vec并全部append无界pending；每delivery还有take/commit两次active-map锁。Runtime10/Plugins01需把count+bytes+deadline推入typed producer/ABI，并返回remaining/oldest age；不得把Editor侧budget误写成transport有界。
 
@@ -78,3 +83,7 @@ Performance01按当前SHA重读`runtime_event_consumer/**` 6/6（1,180行）、1
 Failure仍保持open，但最低当前根因已收窄为Editor host retention和稳态poll：每个visited consumer先drain一页再apply，pending VecDeque无entry/bytes/oldest-age上限，慢callback可逐tick把有界runtime queue迁入无界Editor RSS；pending非空也继续请求新页。每event仍分别锁active map做pop和sequence commit。active play空consumer也逐tick跨ABI执行空JSON batch encode/decode，而controller每tick全量capability snapshot/reconcile归PERF-MVP-565。
 
 Editor02验收更新为：pending非空时不再drain，per-consumer pending至多一页或更严格entry+bytes+age预算；batch/per-consumer owner减少全局锁；保留generation/sequence/fairness。Plugins01/Runtime10负责empty page零编码、remaining/oldest-age和必要的新request-aware ABI。矩阵必须含callback 0/1/4/16ms、stall 60s、payload 128KiB、consumers 64，并记录runtime+editor queue bytes/age/RSS。当前6文件rustfmt GREEN；managed Cargo、ignored真实ABI benchmark与F4 WPR未运行，不能fixed return。
+
+## 2026-08-05 Editor02 current-source forward repair
+
+host 只在 snapshot 无 editor pending 时跨 gateway 获取一页；已有 pending 的 tick 先消费本地 delivery，清空后的下一 tick 才取得 runtime 的后续页。每个 active consumer 保存该唯一页的 conservative encoded-byte upper bound 与 editor-residency 起点，report 新增 `pending_encoded_bytes_upper_bound` 与 `pending_oldest_age`，不将页内已消费部分伪报为精确 RSS。pump 把一个 consumer 的 queue 一次性取出为 local batch，在 global active mutex 外验证和回调，随后按 generation/subscription 条件一次写回已提交 sequence 与未消费尾部；回调 panic 时 RAII guard 也会先恢复未消费尾部与最后成功 sequence，再继续 unwind。runtime backlog report 已硬切为带 observation age 的 `last_observed_*` 完整样本，pending-only tick 不再伪报为当前 runtime 状态。fake regression 覆盖 no-redrain、后续页保序、panic tail/sequence 恢复；ignored ABI storm 只在新 drain 样本上断言 runtime/editor backlog 关系，并继续限制 editor pending byte upper bound 至单页。独立二审 `0/0/0`；受管 Cargo 与 callback/stall/payload/64-consumer 动态矩阵仍待完成，failure 保持 open。

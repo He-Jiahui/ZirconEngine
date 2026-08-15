@@ -65,6 +65,13 @@ impl TaskPool {
         self.pool.install(task)
     }
 
+    pub(crate) fn in_place_scope<'scope, OP, R>(&self, task: OP) -> R
+    where
+        OP: FnOnce(&rayon::Scope<'scope>) -> R,
+    {
+        self.pool.in_place_scope(task)
+    }
+
     pub fn join<A, B, RA, RB>(&self, task_a: A, task_b: B) -> (RA, RB)
     where
         A: FnOnce() -> RA + Send,

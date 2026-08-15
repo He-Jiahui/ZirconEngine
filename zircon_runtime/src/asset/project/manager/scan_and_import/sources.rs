@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::asset::project::ProjectGenerationObservation;
 use crate::asset::project::{AssetMetaDocument, AssetSourceUnit};
 use crate::asset::reference_resolver::persisted_source_path_for_locator;
 use crate::asset::{AssetImportError, AssetUri};
@@ -119,15 +120,21 @@ impl ProjectManager {
 
     pub(super) fn collect_import_sources(
         &self,
+        observation: &mut ProjectGenerationObservation,
     ) -> Result<Vec<AssetImportSource>, AssetImportError> {
         let mut sources = Vec::new();
         let project_roots = self.package_assets.project_roots().to_vec();
         for root in &project_roots {
-            self.collect_import_sources_for_root(root, None, &mut sources)?;
+            self.collect_import_sources_for_root(root, None, &mut sources, observation)?;
         }
 
         for (package_id, root) in self.package_assets.iter() {
-            self.collect_import_sources_for_root(root, Some(package_id), &mut sources)?;
+            self.collect_import_sources_for_root(
+                root,
+                Some(package_id),
+                &mut sources,
+                observation,
+            )?;
         }
 
         reject_duplicate_project_uris(&sources)?;
@@ -140,8 +147,10 @@ impl ProjectManager {
         root: &Path,
         package_id: Option<&str>,
         sources: &mut Vec<AssetImportSource>,
+        observation: &mut ProjectGenerationObservation,
     ) -> Result<(), AssetImportError> {
-        let mut compound_sources = self.collect_compound_sources_for_root(root, package_id)?;
+        let mut compound_sources =
+            self.collect_compound_sources_for_root(root, package_id, observation)?;
         let compound_roots = compound_sources
             .iter()
             .filter_map(|source| source.compound_root.clone())
@@ -175,6 +184,7 @@ impl ProjectManager {
         &self,
         root: &Path,
         package_id: Option<&str>,
+        observation: &mut ProjectGenerationObservation,
     ) -> Result<Vec<AssetImportSource>, AssetImportError> {
         let mut meta_files = Vec::new();
         collect_matching_files(root, &mut meta_files, |path| {
@@ -185,7 +195,7 @@ impl ProjectManager {
         let mut sources = Vec::new();
 
         for meta_path in meta_files {
-            let Ok(meta) = AssetMetaDocument::load(&meta_path) else {
+            let Ok(meta) = observation.load_metadata_document(&meta_path) else {
                 continue;
             };
             if meta.unit != AssetSourceUnit::Compound {

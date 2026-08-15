@@ -19,26 +19,27 @@ pub(crate) use align::{
     justify_line_advances,
 };
 pub(crate) use line_break::{
-    BOUNDARY_SHAPING_CONTEXT_GRAPHEMES, corrected_glyph_ranges_with_provider,
-    line_break_chunks_with_provider, line_text_fits_with_provider, should_wrap_before_accumulated,
-    soft_hyphen_break_suffix_at, trailing_wrap_space_byte_len, trim_leading_wrap_spaces,
-    word_smart_line_break_chunks_with_provider,
+    corrected_glyph_ranges_with_provider, line_break_chunks_with_provider,
+    line_text_fits_with_provider, should_wrap_before_accumulated, soft_hyphen_break_suffix_at,
+    trailing_wrap_space_byte_len, trim_leading_wrap_spaces,
+    word_smart_line_break_chunks_with_provider, BOUNDARY_SHAPING_CONTEXT_GRAPHEMES,
 };
 pub(crate) use measure::{
-    TextLineMetrics, line_metrics_with_provider, measure_line_width,
-    measure_line_width_with_provider, measure_text_size, measure_text_size_with_provider,
-    measure_text_source_range_width, measure_text_source_range_width_with_provider,
-    measured_grapheme_widths, measured_grapheme_widths_with_provider,
+    line_metrics_with_provider, measure_line_width, measure_line_width_with_provider,
+    measure_text_size, measure_text_size_with_provider, measure_text_source_range_width,
+    measure_text_source_range_width_with_provider, measured_grapheme_widths,
+    measured_grapheme_widths_with_provider, TextLineMetrics,
 };
 pub(crate) use overflow::{
-    ELLIPSIS, EllipsisPlacement, retained_grapheme_counts, trim_end_ellipsis_trailing_graphemes,
+    retained_grapheme_counts, trim_end_ellipsis_trailing_graphemes, EllipsisPlacement, ELLIPSIS,
 };
 pub(crate) use rich::{
-    RichWordWrapMode, layout_rich_line_with_provider, layout_rich_text_glyph_wrapped_with_provider,
+    layout_rich_line_with_provider, layout_rich_text_glyph_wrapped_with_provider,
     layout_rich_text_with_provider, layout_rich_text_word_wrapped_with_provider,
     resolve_rich_run_style, rich_forced_line_ranges, rich_glyph_line_ranges_with_provider,
-    rich_word_line_ranges_with_provider,
+    rich_word_line_ranges_with_provider, RichWordWrapMode,
 };
+pub(crate) use rich_advance_index::{resolved_text_spans, ResolvedRichTextSpan};
 pub(crate) use rich_source::{RichTextLayoutRun, RichTextLayoutSource};
 pub(crate) use rich_vertical::rich_vertical_columns_with_provider;
 pub(crate) use tab::{tab_aligned_advances, tab_interval_width};

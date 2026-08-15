@@ -69,7 +69,7 @@ fn popup_row_palette() -> &'static PopupRowPalette {
 
 const POPUP_RENDER_Z_OFFSET: i32 = 100;
 
-pub(super) fn popup_base_z(z_index: i32) -> i32 {
+pub(crate) fn popup_base_z(z_index: i32) -> i32 {
     z_index.saturating_add(POPUP_RENDER_Z_OFFSET)
 }
 
@@ -88,6 +88,7 @@ pub(super) fn option_popup_layout_bounds(
 pub(super) fn option_popup_frame_within(
     metadata: &UiTemplateNodeMetadata,
     control_frame: UiFrame,
+    anchor_frame: UiFrame,
     row_count: usize,
     bounds: Option<UiFrame>,
 ) -> Option<UiFrame> {
@@ -98,7 +99,7 @@ pub(super) fn option_popup_frame_within(
     if metadata.component == "DropdownPopup" && !has_popup_position_metadata(metadata) {
         return Some(control_frame);
     }
-    let anchor_frame = popup_anchor_frame(metadata, control_frame);
+    let anchor_frame = popup_anchor_frame(metadata, anchor_frame);
     anchored_popup_frame(
         metadata,
         anchor_frame,
@@ -279,6 +280,7 @@ impl PopupRowPaintState {
             hovered,
             pressed,
             focused,
+            focus_visible: focused,
             disabled,
             loading,
             checked: selected,

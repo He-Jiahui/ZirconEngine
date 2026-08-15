@@ -15,7 +15,7 @@ use super::{
     measure::measure_node,
     pipeline::{assert_layout_pass_stage, UiLayoutPassStage},
     responsive_mui::{apply_mui_responsive_layout, apply_mui_responsive_layout_for_nodes},
-    slot::slot_for_container_child,
+    slot::{slot_for_container_child, UiLayoutSlotIndex},
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -40,14 +40,15 @@ pub(crate) fn compute_incremental_layout_tree_with_text_measure_cache(
     mut text_measure_cache: Option<&mut UiTextMeasureCache>,
     dirty_node_ids: &BTreeSet<UiNodeId>,
     root_size_changed: bool,
-    slot_indices: &BTreeMap<UiNodeId, usize>,
+    layout_slot_index: &UiLayoutSlotIndex,
 ) -> Result<UiIncrementalLayoutStats, UiTreeError> {
     assert_layout_pass_stage(UiLayoutPassStage::ResponsiveStyleResolution, 0);
+    layout_slot_index.ensure_initialized(tree);
     let mut layout_dirty_node_ids = dirty_node_ids.clone();
     if root_size_changed {
         apply_mui_responsive_layout(tree, root_size)?;
     } else {
-        apply_mui_responsive_layout_for_nodes(tree, root_size, dirty_node_ids, slot_indices)?;
+        apply_mui_responsive_layout_for_nodes(tree, root_size, dirty_node_ids, layout_slot_index)?;
     }
     layout_dirty_node_ids.extend(tree.pending_mutation_node_ids().iter().copied());
 
@@ -61,7 +62,12 @@ pub(crate) fn compute_incremental_layout_tree_with_text_measure_cache(
 
     assert_layout_pass_stage(UiLayoutPassStage::Measurement, 1);
     for root_id in &roots {
-        measure_node(tree, *root_id, text_measure_cache.as_deref_mut())?;
+        measure_node(
+            tree,
+            *root_id,
+            text_measure_cache.as_deref_mut(),
+            layout_slot_index,
+        )?;
     }
 
     assert_layout_pass_stage(UiLayoutPassStage::BackendSelection, 2);
@@ -69,7 +75,13 @@ pub(crate) fn compute_incremental_layout_tree_with_text_measure_cache(
     assert_layout_pass_stage(UiLayoutPassStage::ZirconFallbackArrangement, 4);
     assert_layout_pass_stage(UiLayoutPassStage::ClipAndVirtualWindowPropagation, 5);
     for root_id in roots {
-        arrange_layout_root(tree, root_id, root_size, &mut engine_context)?;
+        arrange_layout_root(
+            tree,
+            root_id,
+            root_size,
+            layout_slot_index,
+            &mut engine_context,
+        )?;
     }
 
     let geometry_changed_node_ids = visited
@@ -172,6 +184,7 @@ fn arrange_layout_root(
     tree: &mut UiTree,
     root_id: UiNodeId,
     root_size: UiSize,
+    slot_index: &UiLayoutSlotIndex,
     engine_context: &mut UiLayoutPassEngineContext,
 ) -> Result<(), UiTreeError> {
     let parent_id = tree
@@ -179,7 +192,14 @@ fn arrange_layout_root(
         .ok_or(UiTreeError::MissingNode(root_id))?
         .parent;
     let Some(parent_id) = parent_id else {
-        return arrange_node(tree, root_id, root_frame(root_size), None, engine_context);
+        return arrange_node(
+            tree,
+            root_id,
+            root_frame(root_size),
+            None,
+            slot_index,
+            engine_context,
+        );
     };
 
     let parent = tree
@@ -192,10 +212,17 @@ fn arrange_layout_root(
         tree,
         root_id,
         parent_frame,
-        slot_for_container_child(tree, parent_id, root_id, parent_container),
+        slot_for_container_child(tree, slot_index, parent_id, root_id, parent_container),
     )?;
 
-    arrange_node(tree, root_id, child_frame, inherited_clip, engine_context)
+    arrange_node(
+        tree,
+        root_id,
+        child_frame,
+        inherited_clip,
+        slot_index,
+        engine_context,
+    )
 }
 
 fn collect_subtree_nodes(

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use crate::ui::retained_host::host_contract::data::FrameRect;
@@ -41,7 +43,7 @@ pub(in crate::ui::retained_host::host_contract) struct ChromeImagePayload {
     pub(in crate::ui::retained_host::host_contract) width: u32,
     pub(in crate::ui::retained_host::host_contract) height: u32,
     pub(in crate::ui::retained_host::host_contract) upload_bytes: u64,
-    pub(in crate::ui::retained_host::host_contract) rgba: Option<Vec<u8>>,
+    pub(in crate::ui::retained_host::host_contract) rgba: Option<Arc<[u8]>>,
     pub(in crate::ui::retained_host::host_contract) atlas_uv: Option<ChromeImageUvRect>,
 }
 

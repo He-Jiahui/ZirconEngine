@@ -267,6 +267,18 @@ impl EditorState {
                 self.cancel_gizmo_transaction()?;
                 self.viewport_controller.apply_command(None, command)
             }
+            ViewportCommand::CancelInteraction => {
+                let transformed_node = self
+                    .gizmo_transaction
+                    .as_ref()
+                    .map(|capture| capture.node_id)
+                    .or_else(|| self.viewport_controller.selection().active_primary());
+                let mut feedback = ViewportFeedback::default();
+                if self.cancel_gizmo_transaction()? {
+                    feedback.transformed_node = transformed_node;
+                }
+                Ok(feedback)
+            }
             ViewportCommand::PointerMoved { x, y } => self.handle_viewport_input(
                 ViewportInput::PointerMoved(zircon_runtime_interface::math::Vec2::new(*x, *y)),
             ),

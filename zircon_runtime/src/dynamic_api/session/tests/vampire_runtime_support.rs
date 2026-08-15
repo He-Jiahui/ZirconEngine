@@ -3,9 +3,9 @@ use std::{env, path::Path};
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::math::{Transform, Vec3};
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeViewportHandle,
     ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
-    ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
+    ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1, ZrByteSlice,
+    ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeViewportHandle,
 };
 
 use super::super::{RuntimeDynamicSession, RuntimeProjectConfig};
@@ -129,7 +129,7 @@ pub(super) fn remove_script_entities_by_role_except(
     session.level.with_world_mut(|world| {
         for entity in entities {
             if Some(entity) != keep {
-                world.remove_entity(entity);
+                world.remove_entity(entity).unwrap();
             }
         }
     });

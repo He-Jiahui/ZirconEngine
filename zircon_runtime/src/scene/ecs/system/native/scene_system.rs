@@ -1,8 +1,8 @@
 use std::fmt;
 
 use crate::scene::ecs::{
-    SceneSystemMetadata, SceneSystemThreadAffinity, SystemOrderingConstraint, SystemParamAccess,
-    SystemSetId, SystemStage, WorkerCommandBuffer,
+    DeferredSystemKey, SceneSystemMetadata, SceneSystemThreadAffinity, SystemOrderingConstraint,
+    SystemParamAccess, SystemSetId, SystemStage, WorkerCommandBuffer,
 };
 use crate::scene::World;
 
@@ -23,10 +23,15 @@ pub trait SceneSystem: Send + 'static {
         false
     }
 
+    /// Injected from the topologically compiled schedule before this system
+    /// can enqueue deferred work.
+    fn bind_deferred_system_key(&mut self, _key: DeferredSystemKey) {}
+
     fn supports_worker_dispatch(&self) -> bool {
         self.thread_affinity() == SceneSystemThreadAffinity::WorkerSafe
             && self.supports_worldless_execution()
             && self.constraints().is_empty()
+            && !self.access().has_conservative_world_access()
     }
 
     /// Returns the system-owned local command buffer after a worldless callback.

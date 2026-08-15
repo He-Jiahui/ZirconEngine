@@ -15,9 +15,9 @@ use crate::scene::components::{
     RigidBodyType,
 };
 use crate::scene::{
-    EntityId, NodeKind, ReflectComponent, ReflectResource, RuntimeTypeRegistration, TypeRegistry,
-    World, json_from_reflected, reflected_from_json, reflected_from_scene_value,
-    scene_value_from_reflected,
+    json_from_reflected, reflected_from_json, reflected_from_scene_value,
+    scene_value_from_reflected, EntityId, NodeKind, ReflectComponent, ReflectResource,
+    RuntimeTypeRegistration, TypeRegistry, World,
 };
 
 mod address_routing;
@@ -122,16 +122,21 @@ fn dummy_resource_adapter() -> ReflectResource {
     ReflectResource {
         estimate_stage_clone_bytes: None,
         stage_clone: None,
+        transfer_preflight: dummy_resource_transfer_preflight,
         ensure: None,
         contains: dummy_resource_contains,
         read_field: dummy_resource_read_field,
         read_fields: dummy_resource_read_fields,
-        write_field: dummy_resource_write_field,
+        write_fields_by_slot: dummy_resource_write_fields_by_slot,
     }
 }
 
 fn dummy_resource_contains(_: &World) -> bool {
     true
+}
+
+fn dummy_resource_transfer_preflight(_: &mut World, _: &mut World) -> Result<(), ReflectError> {
+    Ok(())
 }
 
 fn dummy_resource_read_field(_: &World, field_name: &str) -> Result<ReflectedValue, ReflectError> {
@@ -151,11 +156,19 @@ fn dummy_resource_read_fields(_: &World) -> Result<Vec<ReflectFieldValue>, Refle
     )])
 }
 
-fn dummy_resource_write_field(
+fn dummy_resource_write_fields_by_slot(
     world: &mut World,
-    field_name: &str,
-    value: ReflectedValue,
+    fields: Vec<(u32, ReflectedValue)>,
 ) -> Result<bool, ReflectError> {
-    let current = dummy_resource_read_field(world, field_name)?;
-    Ok(current != value)
+    let mut changed = false;
+    for (field_slot, value) in fields {
+        if field_slot != 0 {
+            return Err(ReflectError::UnknownField {
+                type_path: "plugin_a::ProbeResource".to_string(),
+                field_name: format!("#{field_slot}"),
+            });
+        }
+        changed |= dummy_resource_read_field(world, "enabled")? != value;
+    }
+    Ok(changed)
 }

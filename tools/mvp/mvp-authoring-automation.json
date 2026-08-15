@@ -57,6 +57,30 @@
     {
       "path": {
         "view_id": "WorkbenchMenuBar",
+        "control_id": "Undo",
+        "event_kind": "Click"
+      },
+      "payload": {
+        "MenuAction": {
+          "action_id": "workbench.history.undo"
+        }
+      }
+    },
+    {
+      "path": {
+        "view_id": "WorkbenchMenuBar",
+        "control_id": "Redo",
+        "event_kind": "Click"
+      },
+      "payload": {
+        "MenuAction": {
+          "action_id": "workbench.history.redo"
+        }
+      }
+    },
+    {
+      "path": {
+        "view_id": "WorkbenchMenuBar",
         "control_id": "SaveProject",
         "event_kind": "Click"
       },

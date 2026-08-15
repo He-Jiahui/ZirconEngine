@@ -12,13 +12,15 @@ HANDLE_STATE_ANCHORS = (
 
 RESOURCE_RELOAD_ANCHORS = (
     "pub fn start_reload(",
+    "ResourceMutationBatch::new().start_reload(id, diagnostics)",
     "ResourceState::Ready | ResourceState::Reloading | ResourceState::Error",
-    "record.state = crate::core::resource::ResourceState::Reloading;",
-    "self.set_runtime_state(id, RuntimeResourceState::Reloading);",
+    "record.state = ResourceState::Reloading;",
+    "entry.runtime_state = Some(RuntimeResourceState::Reloading);",
     "pub fn fail_reload(",
     "ResourceEventKind::ReloadFailed",
-    "if matches!(previous_state, Some(ResourceState::Error))",
-    "resource_manager.start_reload(metadata.id(), Vec::new());",
+    ".is_some_and(|previous| previous.state == ResourceState::Error)",
+    "&& !recover_from_error",
+    "batch.upsert_imported_erased(metadata, imported.into_resource_data())",
 )
 
 WORKER_POOL_ANCHORS = (

@@ -77,11 +77,9 @@ fn viewport_selection_uses_the_active_world_domain_model() {
     assert_eq!(viewport.selection().active_primary(), Some(11));
     assert_eq!(ordered_items(viewport.selection(), WorldDomain::Edit), [11]);
 
-    assert!(
-        viewport
-            .selection_mut()
-            .set_active_domain(WorldDomain::Play)
-    );
+    assert!(viewport
+        .selection_mut()
+        .set_active_domain(WorldDomain::Play));
     assert_eq!(viewport.selection().active_primary(), None);
     assert!(viewport.selection_mut().select_only_active(42));
     assert_eq!(ordered_items(viewport.selection(), WorldDomain::Play), [42]);

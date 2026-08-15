@@ -1,3 +1,7 @@
+use super::ibl_bake_recipe::{
+    IblBakeDiffuseIntegrator, IblBakeRecipeIdentity, CANONICAL_IBL_BAKE_ALGORITHM_VERSION,
+    CANONICAL_IBL_BAKE_RECIPE,
+};
 use super::rgba16f::{
     append_rgb_as_rgba16f_texels, append_rgba16f_texels, decode_rgb_from_rgba16f_texels,
     decode_rgba16f_texels, RGBA16F_TEXEL_SIZE_BYTES,
@@ -12,17 +16,36 @@ use crate::core::math::Real;
 use std::ops::{BitOr, BitOrAssign, Range};
 
 const IBL_BAKE_ARTIFACT_MAGIC: [u8; 8] = *b"ZRIBLBAK";
-const IBL_BAKE_ARTIFACT_FORMAT_VERSION: u32 = 2;
+const IBL_BAKE_ARTIFACT_FORMAT_VERSION: u32 = 4;
 
-// Bump when source projection or PMREM sampling changes so derived HDRI artifacts rebuild.
-pub const IBL_BAKE_ALGORITHM_VERSION: u64 = 2026_08_02_0005;
-pub const IBL_BAKE_ARTIFACT_HEADER_SIZE: usize = 116;
+// Bump when a persisted bake recipe changes so stale CPU or runtime-cache HDRI artifacts rebuild.
+pub const IBL_BAKE_ALGORITHM_VERSION: u64 = CANONICAL_IBL_BAKE_ALGORITHM_VERSION;
+pub const IBL_BAKE_ARTIFACT_HEADER_SIZE: usize = 120;
+pub const IBL_BAKE_ARTIFACT_PAYLOAD_CHECKSUM_SIZE: usize = 32;
 pub const IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES: usize = RGBA16F_TEXEL_SIZE_BYTES;
 pub const IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES: usize =
     SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT * 4 * std::mem::size_of::<f32>();
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct IblBakeArtifactContents(u32);
+
+/// Distinguishes artifacts produced by non-equivalent CPU and GPU integrators.
+#[repr(u32)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum IblBakeArtifactProducer {
+    AssetImporterCpu = 1,
+    RendererGpuRuntime = 2,
+}
+
+impl IblBakeArtifactProducer {
+    const fn from_bits(bits: u32) -> Option<Self> {
+        match bits {
+            1 => Some(Self::AssetImporterCpu),
+            2 => Some(Self::RendererGpuRuntime),
+            _ => None,
+        }
+    }
+}
 
 impl IblBakeArtifactContents {
     pub const NONE: Self = Self(0);
@@ -126,6 +149,7 @@ impl IblBakeArtifactRequest {
 pub struct IblBakeArtifactDescriptor {
     bake_key: IblBakeKey,
     algorithm_version: u64,
+    producer: IblBakeArtifactProducer,
     source_face_size: u32,
     source_mip_count: u32,
     face_size: u32,
@@ -143,6 +167,7 @@ impl IblBakeArtifactDescriptor {
         Self {
             bake_key,
             algorithm_version: IBL_BAKE_ALGORITHM_VERSION,
+            producer: IblBakeArtifactProducer::AssetImporterCpu,
             source_face_size: face_size.max(1),
             source_mip_count: mip_count.max(1),
             face_size: face_size.max(1),
@@ -155,6 +180,21 @@ impl IblBakeArtifactDescriptor {
         Self {
             bake_key: request.bake_key(),
             algorithm_version: IBL_BAKE_ALGORITHM_VERSION,
+            producer: IblBakeArtifactProducer::AssetImporterCpu,
+            source_face_size: request.source_face_size(),
+            source_mip_count: request.source_mip_count(),
+            face_size: request.pmrem_face_size(),
+            mip_count: request.pmrem_mip_count(),
+            contents: request.required_contents(),
+        }
+    }
+
+    /// Runtime-cache artifacts are GPU-produced fallbacks, never canonical derived assets.
+    pub fn current_for_runtime_cache_request(request: &IblBakeArtifactRequest) -> Self {
+        Self {
+            bake_key: request.bake_key(),
+            algorithm_version: IBL_BAKE_ALGORITHM_VERSION,
+            producer: IblBakeArtifactProducer::RendererGpuRuntime,
             source_face_size: request.source_face_size(),
             source_mip_count: request.source_mip_count(),
             face_size: request.pmrem_face_size(),
@@ -169,6 +209,27 @@ impl IblBakeArtifactDescriptor {
 
     pub const fn algorithm_version(&self) -> u64 {
         self.algorithm_version
+    }
+
+    pub const fn producer(&self) -> IblBakeArtifactProducer {
+        self.producer
+    }
+
+    pub const fn recipe_identity(&self) -> IblBakeRecipeIdentity {
+        match self.producer {
+            IblBakeArtifactProducer::AssetImporterCpu => IblBakeRecipeIdentity::new(
+                self.algorithm_version,
+                CANONICAL_IBL_BAKE_RECIPE.pmrem_integrator(),
+                IblBakeDiffuseIntegrator::AssetImporterCpuSolidAngle,
+                CANONICAL_IBL_BAKE_RECIPE.output_format(),
+            ),
+            IblBakeArtifactProducer::RendererGpuRuntime => IblBakeRecipeIdentity::new(
+                self.algorithm_version,
+                CANONICAL_IBL_BAKE_RECIPE.pmrem_integrator(),
+                IblBakeDiffuseIntegrator::RendererGpuRuntimeHammersley,
+                CANONICAL_IBL_BAKE_RECIPE.output_format(),
+            ),
+        }
     }
 
     pub const fn source_face_size(&self) -> u32 {
@@ -215,6 +276,15 @@ impl IblBakeArtifactDescriptor {
     }
 
     pub fn is_current_for(&self, request: &IblBakeArtifactRequest) -> bool {
+        self.producer == IblBakeArtifactProducer::AssetImporterCpu && self.matches_request(request)
+    }
+
+    pub fn is_current_runtime_cache_for(&self, request: &IblBakeArtifactRequest) -> bool {
+        self.producer == IblBakeArtifactProducer::RendererGpuRuntime
+            && self.matches_request(request)
+    }
+
+    fn matches_request(&self, request: &IblBakeArtifactRequest) -> bool {
         self.algorithm_version == IBL_BAKE_ALGORITHM_VERSION
             && self.bake_key == request.bake_key
             && self.source_face_size == request.source_face_size()
@@ -250,6 +320,7 @@ impl IblBakeArtifactHeader {
         write_u32(&mut bytes, &mut cursor, self.descriptor.face_size);
         write_u32(&mut bytes, &mut cursor, self.descriptor.mip_count);
         write_u32(&mut bytes, &mut cursor, self.descriptor.contents.bits());
+        write_u32(&mut bytes, &mut cursor, self.descriptor.producer as u32);
         write_ibl_bake_key(&mut bytes, &mut cursor, self.descriptor.bake_key);
         bytes
     }
@@ -274,11 +345,14 @@ impl IblBakeArtifactHeader {
         let face_size = read_u32(bytes, &mut cursor);
         let mip_count = read_u32(bytes, &mut cursor);
         let contents = IblBakeArtifactContents(read_u32(bytes, &mut cursor));
+        let producer = IblBakeArtifactProducer::from_bits(read_u32(bytes, &mut cursor))
+            .ok_or(IblBakeArtifactHeaderError::InvalidProducer)?;
         let bake_key = read_ibl_bake_key(bytes, &mut cursor);
         Ok(Self {
             descriptor: IblBakeArtifactDescriptor {
                 bake_key,
                 algorithm_version,
+                producer,
                 source_face_size,
                 source_mip_count,
                 face_size,
@@ -294,6 +368,7 @@ pub enum IblBakeArtifactHeaderError {
     InvalidLength,
     InvalidMagic,
     UnsupportedFormatVersion(u32),
+    InvalidProducer,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -499,7 +574,15 @@ pub fn select_ibl_bake_artifact(
 ) -> IblBakeArtifactSelection {
     let rejected_candidate_count = candidates
         .iter()
-        .filter(|candidate| !candidate.descriptor.is_current_for(request))
+        .filter(|candidate| match candidate.source {
+            IblBakeArtifactSource::AssetDerivedArtifact => {
+                !candidate.descriptor.is_current_for(request)
+            }
+            IblBakeArtifactSource::RuntimeCache => {
+                !candidate.descriptor.is_current_runtime_cache_for(request)
+            }
+            IblBakeArtifactSource::RuntimeCompute => true,
+        })
         .count();
 
     for source in [
@@ -507,7 +590,16 @@ pub fn select_ibl_bake_artifact(
         IblBakeArtifactSource::RuntimeCache,
     ] {
         if let Some(candidate) = candidates.iter().find(|candidate| {
-            candidate.source == source && candidate.descriptor.is_current_for(request)
+            candidate.source == source
+                && match source {
+                    IblBakeArtifactSource::AssetDerivedArtifact => {
+                        candidate.descriptor.is_current_for(request)
+                    }
+                    IblBakeArtifactSource::RuntimeCache => {
+                        candidate.descriptor.is_current_runtime_cache_for(request)
+                    }
+                    IblBakeArtifactSource::RuntimeCompute => false,
+                }
         }) {
             return IblBakeArtifactSelection {
                 source,
@@ -693,6 +785,30 @@ mod tests {
                 .descriptor(),
             descriptor
         );
+    }
+
+    #[test]
+    fn descriptor_recipe_identity_keeps_cpu_and_runtime_integrators_distinct() {
+        let request = IblBakeArtifactRequest::new(
+            ProceduralSkyParams::default_gradient().ibl_bake_key(),
+            128,
+            8,
+        );
+        let asset = IblBakeArtifactDescriptor::current_for_request(&request);
+        let runtime = IblBakeArtifactDescriptor::current_for_runtime_cache_request(&request);
+        let stale = runtime.with_algorithm_version(IBL_BAKE_ALGORITHM_VERSION - 1);
+
+        assert_eq!(
+            asset.recipe_identity(),
+            CANONICAL_IBL_BAKE_RECIPE.asset_recipe_identity()
+        );
+        assert_eq!(
+            runtime.recipe_identity(),
+            CANONICAL_IBL_BAKE_RECIPE.runtime_recipe_identity()
+        );
+        assert_ne!(asset.recipe_identity(), runtime.recipe_identity());
+        assert_ne!(stale.recipe_identity(), runtime.recipe_identity());
+        assert!(!stale.is_current_runtime_cache_for(&request));
     }
 
     #[test]

@@ -1,6 +1,6 @@
 use crate::ui::retained_host::host_contract::data::HostPageChromeData;
 
-use super::super::super::{ChromePointerRoute, geometry::contains};
+use super::super::super::{geometry::contains, ChromePointerRoute};
 
 pub(in crate::ui::retained_host::host_contract::native_pointer::routing::chrome) fn route_host_page_tabs(
     page_chrome: &HostPageChromeData,

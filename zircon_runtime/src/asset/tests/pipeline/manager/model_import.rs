@@ -98,6 +98,7 @@ fn sample_virtual_geometry_model_asset() -> ModelAsset {
             ],
             indices: vec![0, 1, 2],
             mesh: None,
+            mesh_sdf: None,
             virtual_geometry: Some(VirtualGeometryAsset {
                 hierarchy_buffer: vec![
                     VirtualGeometryHierarchyNodeAsset {

@@ -52,7 +52,6 @@ impl RuntimeEntryApp {
 
     pub(in crate::entry::runtime_entry_app) fn enable_surface_present(&mut self) {
         self.surface_present_enabled = true;
-        self.surface_present_failed = false;
         write_log("runtime_surface_present", "runtime_surface_present_enabled");
     }
 
@@ -63,12 +62,6 @@ impl RuntimeEntryApp {
             "runtime_surface_present_fallback",
         );
     }
-
-    pub(in crate::entry::runtime_entry_app) fn fail_surface_present(&mut self) {
-        self.surface_present_failed = true;
-        write_warn("runtime_surface_present", "runtime_surface_present_failed");
-        self.fallback_surface_present();
-    }
 }
 
 impl Drop for RuntimeEntryApp {
@@ -77,12 +70,19 @@ impl Drop for RuntimeEntryApp {
         write_log(
             "runtime_frame_cadence",
             format!(
-                "runtime_frame_cadence_summary policy={} requests={} pumps={} idle_suppressed={} redraw_requests={}",
+                "runtime_frame_cadence_summary policy={} request_attempts={} requests_accepted={} requests_coalesced={} requests_ignored={} pumps={} idle_suppressed={} redraw_requests={} focus_transitions={} occlusion_transitions={} low_power_pumps={} low_power_suppressed={}",
                 self.frame_cadence.policy().as_str(),
                 cadence.frame_requests,
+                cadence.frame_requests_accepted,
+                cadence.frame_requests_coalesced,
+                cadence.frame_requests_ignored,
                 cadence.frame_pumps,
                 cadence.idle_pumps_suppressed,
                 cadence.redraw_requests,
+                cadence.focus_transitions,
+                cadence.occlusion_transitions,
+                cadence.low_power_pumps,
+                cadence.low_power_pumps_suppressed,
             ),
         );
         #[cfg(feature = "gamepad-gilrs")]

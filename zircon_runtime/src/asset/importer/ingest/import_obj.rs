@@ -1,7 +1,7 @@
 use super::model_mesh_subassets::model_outcome_with_mesh_subassets;
 use super::primitive_from_indexed_mesh::primitive_from_indexed_mesh;
 use crate::asset::assets::ModelAsset;
-use crate::asset::{AssetImportContext, AssetImportError, AssetImportOutcome};
+use crate::asset::{AssetImportContext, AssetImportError, AssetImportOutcome, MeshSdfCookBudget};
 
 pub(crate) fn import_obj(
     context: &AssetImportContext,
@@ -18,6 +18,8 @@ pub(crate) fn import_obj(
 
     let source_hint = context.uri.to_string();
     let virtual_geometry_request = context.virtual_geometry_cook_request()?;
+    let mesh_sdf_request = context.mesh_sdf_cook_request()?;
+    let mut mesh_sdf_budget = MeshSdfCookBudget::default();
     let primitives = models
         .into_iter()
         .map(|model| {
@@ -34,6 +36,8 @@ pub(crate) fn import_obj(
                 Some(model.name.as_str()),
                 &source_hint,
                 &virtual_geometry_request,
+                &mesh_sdf_request,
+                &mut mesh_sdf_budget,
             )
         })
         .collect::<Result<Vec<_>, _>>()?;

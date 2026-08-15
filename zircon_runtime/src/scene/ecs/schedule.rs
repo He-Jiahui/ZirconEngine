@@ -5,9 +5,9 @@ use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 #[cfg(test)]
 use super::ScheduledSceneStep;
 use super::{
-    BoxedRuntimeSceneSystem, BoxedSceneSystem, IntoSceneSystem, SceneScheduleStagePlan,
-    SceneSystem, SceneSystemDescriptor, SceneSystemRegistry, ScheduleConflictGraph, ScheduleError,
-    SystemParam, SystemStage,
+    BoxedRuntimeSceneSystem, BoxedSceneSystem, IntoSceneSystem, IntoWorldlessSceneSystem,
+    SceneScheduleStagePlan, SceneSystem, SceneSystemDescriptor, SceneSystemRegistry,
+    ScheduleConflictGraph, ScheduleError, SystemParam, SystemStage, WorldlessSystemParam,
 };
 
 #[derive(Debug, Serialize)]
@@ -81,6 +81,36 @@ impl Schedule {
         Ok(())
     }
 
+    pub fn register_worldless_native_system<P, S>(
+        &mut self,
+        id: impl Into<String>,
+        stage: SystemStage,
+        order: i32,
+        world: &mut crate::scene::World,
+        system: S,
+    ) -> Result<(), ScheduleError>
+    where
+        P: WorldlessSystemParam + 'static,
+        P::State: Send,
+        S: IntoWorldlessSceneSystem<P>,
+    {
+        let id = id.into();
+        self.ensure_id_not_taken(&id)?;
+        self.systems.register_worldless_native_system::<P, S>(
+            id.clone(),
+            stage,
+            order,
+            world,
+            system,
+        )?;
+        if let Err(error) = self.refresh_or_defer_executor_plan() {
+            self.systems.remove_native_system(&id);
+            self.refresh_or_defer_executor_plan()?;
+            return Err(error);
+        }
+        Ok(())
+    }
+
     pub(crate) fn register_boxed_native_system(
         &mut self,
         system: BoxedSceneSystem,
@@ -145,6 +175,10 @@ impl Schedule {
         let system = self.systems.take_native_system(id)?;
         self.taken_native_system_ids.push(system.id().to_string());
         Some(system)
+    }
+
+    pub(crate) fn native_system_deferred_key(&self, id: &str) -> Option<super::DeferredSystemKey> {
+        self.executor_plan.native_system_deferred_key(id)
     }
 
     pub(crate) fn take_runtime_system(&mut self, id: &str) -> Option<BoxedRuntimeSceneSystem> {

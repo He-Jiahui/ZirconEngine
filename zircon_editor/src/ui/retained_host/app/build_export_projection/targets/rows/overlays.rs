@@ -2,7 +2,7 @@ use std::path::Path;
 
 use crate::ui::layouts::windows::workbench_host_window::BuildExportTargetViewData;
 
-use super::super::super::super::{RetainedEditorHost, build_export_actions};
+use super::super::super::super::{build_export_actions, RetainedEditorHost};
 use super::super::diagnostics::prepend_desktop_export_output_diagnostic;
 
 pub(in super::super) fn apply_target_overlays(

@@ -67,4 +67,4 @@ component = "Button"
 control_id = "DeleteSelected"
 props = { label = "Delete", text = "Delete", text_tone = "danger", surface_variant = "danger", button_variant = "danger", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_min_height = "$editor.control.height.dense", input_clickable = true, input_focusable = true }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-events = [{ id = "InspectorView/DeleteSelected", event = "Click", route = "workbench.selection.delete_selected" }]
+events = [{ id = "InspectorView/DeleteSelected", event = "Click", action = { action = "scene.node.delete_selected" } }]

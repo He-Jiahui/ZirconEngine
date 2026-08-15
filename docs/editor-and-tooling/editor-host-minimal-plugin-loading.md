@@ -26,7 +26,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_extension_registration.rs
   - zircon_editor/src/ui/host/editor_extension_views.rs
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access/
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
   - zircon_editor/src/ui/host/minimal_host_contract.rs
   - zircon_editor/src/ui/host/host_capability_bridge.rs
@@ -78,7 +78,7 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_extension_registration.rs
   - zircon_editor/src/ui/host/editor_extension_views.rs
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access/
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
   - zircon_editor/src/ui/host/minimal_host_contract.rs
   - zircon_editor/src/ui/host/host_capability_bridge.rs

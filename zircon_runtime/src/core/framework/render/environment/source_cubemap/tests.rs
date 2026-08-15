@@ -2,6 +2,16 @@ use super::*;
 
 mod projection;
 
+fn wgsl_real_literal(value: Real) -> String {
+    assert!(value.is_finite(), "WGSL literals must be finite: {value:?}");
+    let literal = format!("{value:?}");
+    if literal.contains(['.', 'e', 'E']) {
+        literal
+    } else {
+        format!("{literal}.0")
+    }
+}
+
 #[test]
 fn cloned_mip_chain_shares_immutable_texel_storage() {
     let cubemap = SourceCubemapMipChain::new(
@@ -87,6 +97,13 @@ fn source_cubemap_pmrem_layout_uses_independent_result_size_and_full_mip_chain()
         pmrem_layout.face_size(),
         SourceCubemapPrefilterQuality::Fast,
     );
+    let canonical = build_source_cubemap_from_source_mips_with_pmrem_layout(
+        source_face_size,
+        source_mip_count,
+        source_cubemap.source_texels.to_vec(),
+        pmrem_layout,
+        SourceCubemapPrefilterQuality::Fast,
+    );
 
     assert_eq!(pmrem_layout.face_size(), 32);
     assert_eq!(pmrem_layout.mip_count(), 6);
@@ -94,9 +111,82 @@ fn source_cubemap_pmrem_layout_uses_independent_result_size_and_full_mip_chain()
     assert_eq!(cubemap.source_mip_count(), source_mip_count);
     assert_eq!(cubemap.pmrem_face_size(), 32);
     assert_eq!(cubemap.pmrem_mip_count(), 6);
+    assert!(std::sync::Arc::ptr_eq(
+        &source_cubemap.source_texels,
+        &cubemap.source_texels
+    ));
+    assert_eq!(cubemap.irradiance_sh9(), canonical.irradiance_sh9());
+    assert_eq!(cubemap.pmrem_texels(), canonical.pmrem_texels());
     for texel in cubemap.pmrem_texels() {
         assert_vec4_close(*texel, [0.25, 0.5, 0.75, 1.0]);
     }
+}
+
+#[test]
+fn source_cubemap_pmrem_reconfiguration_recomputes_artifact_sh9_from_source_storage() {
+    let source_face_size = 4;
+    let source_mip_count = source_cubemap_mip_count(source_face_size);
+    let source = SourceCubemapMipChain::new(
+        source_face_size,
+        source_mip_count,
+        vec![
+            [0.25, 0.5, 0.75, 1.0];
+            source_cubemap_sample_count(source_face_size, source_mip_count)
+        ],
+        1,
+        1,
+        vec![[0.25, 0.5, 0.75, 1.0]; SOURCE_CUBEMAP_FACE_COUNT],
+    );
+    let source_irradiance_sh9 = source.source_irradiance_sh9;
+    let artifact_source = source.with_bake_artifact_pmrem(
+        1,
+        1,
+        vec![[0.25, 0.5, 0.75, 1.0]; SOURCE_CUBEMAP_FACE_COUNT],
+        [[9.0, 8.0, 7.0, 1.0]; SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT],
+    );
+    assert_eq!(artifact_source.source_irradiance_sh9, source_irradiance_sh9);
+    let pmrem_layout = SourceCubemapPmremLayout::from_face_size(4);
+    let rebaked = artifact_source.with_pmrem_face_size(
+        pmrem_layout.face_size(),
+        SourceCubemapPrefilterQuality::Fast,
+    );
+    let canonical = build_source_cubemap_from_source_mips_with_pmrem_layout(
+        source_face_size,
+        source_mip_count,
+        artifact_source.source_texels.to_vec(),
+        pmrem_layout,
+        SourceCubemapPrefilterQuality::Fast,
+    );
+
+    assert_ne!(artifact_source.irradiance_sh9(), canonical.irradiance_sh9());
+    assert!(std::sync::Arc::ptr_eq(
+        &artifact_source.source_texels,
+        &rebaked.source_texels
+    ));
+    assert_eq!(rebaked.irradiance_sh9(), canonical.irradiance_sh9());
+    assert_eq!(rebaked.source_irradiance_sh9, source_irradiance_sh9);
+    assert_eq!(rebaked.pmrem_texels(), canonical.pmrem_texels());
+}
+
+#[test]
+fn source_cubemap_pmrem_reconfiguration_uses_cached_source_sh9() {
+    const SOURCE: &str = include_str!("../source_cubemap.rs");
+    let reconfiguration = SOURCE
+        .split("pub fn with_pmrem_face_size")
+        .nth(1)
+        .expect("source cubemap should retain PMREM reconfiguration")
+        .split("pub fn from_captured_faces_with_parallel_executor")
+        .next()
+        .expect("PMREM reconfiguration should end before captured-face construction");
+
+    assert!(
+        reconfiguration.contains("let irradiance_sh9 = self.source_irradiance_sh9;"),
+        "PMREM-only reconfiguration must reuse cached source-derived SH9"
+    );
+    assert!(
+        !reconfiguration.contains("source_cubemap_irradiance_sh9_from_texels("),
+        "PMREM-only reconfiguration must not rescan the immutable source pyramid for SH9"
+    );
 }
 
 #[test]
@@ -208,14 +298,34 @@ fn source_cubemap_pmrem_wgsl_lookup_matches_public_roughness_contract() {
         "\n",
         include_str!("../../../../../graphics/shader/wgsl/zr_environment.wgsl"),
     );
-    let expected = format!(
-        "return clamp(max_mip - {SOURCE_CUBEMAP_ROUGHEST_MIP:.1} + {SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE:.1} * log2(clamped_roughness), 0.0, max_mip);"
-    );
-
+    let expected_constants = [
+        format!(
+            "const ZR_ENVIRONMENT_ROUGHEST_PMREM_MIP: f32 = {};",
+            wgsl_real_literal(SOURCE_CUBEMAP_ROUGHEST_MIP),
+        ),
+        format!(
+            "const ZR_ENVIRONMENT_PMREM_ROUGHNESS_MIP_SCALE: f32 = {};",
+            wgsl_real_literal(SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE),
+        ),
+    ];
+    for expected in expected_constants {
+        assert!(
+            ENVIRONMENT_WGSL.contains(&expected),
+            "environment WGSL must use the source-cubemap PMREM roughness constants: {expected}"
+        );
+    }
     assert!(
-        ENVIRONMENT_WGSL.contains(&expected),
-        "environment WGSL must use the source-cubemap PMREM roughness constants"
+        ENVIRONMENT_WGSL.contains(
+            "max_mip - ZR_ENVIRONMENT_ROUGHEST_PMREM_MIP\n            + ZR_ENVIRONMENT_PMREM_ROUGHNESS_MIP_SCALE * log2(clamped_roughness),"
+        ),
+        "environment WGSL must apply its PMREM roughness constants to the lookup"
     );
+}
+
+#[test]
+fn source_cubemap_wgsl_literals_preserve_fractional_precision() {
+    assert_eq!(wgsl_real_literal(1.0), "1.0");
+    assert_eq!(wgsl_real_literal(1.25), "1.25");
 }
 
 #[test]

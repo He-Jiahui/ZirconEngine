@@ -263,5 +263,6 @@ fn runtime_ui_acceptance_extract() -> UiRenderExtract {
                 },
             ],
         },
+        raster_scale: 1.0,
     }
 }

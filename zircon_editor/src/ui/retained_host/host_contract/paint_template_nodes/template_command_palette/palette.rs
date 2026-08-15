@@ -1,4 +1,4 @@
-use super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
+use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchCommandPalettePalette
@@ -16,8 +16,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub match_indicator_disabled: [u8; 4],
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn command_palette_palette()
--> WorkbenchCommandPalettePalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn command_palette_palette(
+) -> WorkbenchCommandPalettePalette {
     command_palette_palette_from_host(current_host_palette())
 }
 

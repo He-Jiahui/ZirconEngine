@@ -54,6 +54,20 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     );
     record_count(
         store,
+        "render.ui.text.raster.persistent_key_count",
+        frame_index,
+        stats.last_ui_text_raster_persistent_key_count,
+        &["render", "ui", "text", "raster", "cache"],
+    );
+    record_count(
+        store,
+        "render.ui.text.raster.source_cache_miss_count",
+        frame_index,
+        stats.last_ui_text_raster_source_cache_miss_count,
+        &["render", "ui", "text", "raster", "cache"],
+    );
+    record_count(
+        store,
         "render.ui.text.raster.missing_image_count",
         frame_index,
         stats.last_ui_text_missing_raster_image_count,
@@ -100,6 +114,27 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         frame_index,
         stats.last_ui_text_raster_renderer_upload_failure_count,
         &["render", "ui", "text", "raster", "upload"],
+    );
+    record_count(
+        store,
+        "render.ui.text.sdf_generation.pending_batch_count",
+        frame_index,
+        stats.last_ui_text_sdf_generation_pending_batch_count,
+        &["render", "ui", "text", "sdf", "generation"],
+    );
+    record_count(
+        store,
+        "render.ui.text.sdf_generation.completion_backlog_count",
+        frame_index,
+        stats.last_ui_text_sdf_generation_completion_backlog_count,
+        &["render", "ui", "text", "sdf", "generation"],
+    );
+    record_count(
+        store,
+        "render.ui.text.sdf_generation.failure_count",
+        frame_index,
+        stats.last_ui_text_sdf_generation_failure_count,
+        &["render", "ui", "text", "sdf", "generation"],
     );
     record_count(
         store,

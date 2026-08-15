@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::ui::workbench::layout::DocumentNode;
 use crate::ui::workbench::view::{ViewDescriptor, ViewDescriptorId, ViewInstance, ViewInstanceId};
 
-use super::{DocumentWorkspaceSnapshot, resolve_view_tab};
+use super::{resolve_view_tab, DocumentWorkspaceSnapshot};
 
 pub(crate) fn resolve_document_workspace(
     node: &DocumentNode,

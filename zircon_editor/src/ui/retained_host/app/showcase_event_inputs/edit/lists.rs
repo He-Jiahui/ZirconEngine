@@ -1,7 +1,7 @@
 use crate::ui::template_runtime::UiComponentShowcaseDemoEventInput;
 
 use super::super::{
-    DEFAULT_PAGED_LIST_PAGE_SIZE, DEFAULT_VIRTUAL_LIST_VISIBLE_COUNT, action_matches,
+    action_matches, DEFAULT_PAGED_LIST_PAGE_SIZE, DEFAULT_VIRTUAL_LIST_VISIBLE_COUNT,
 };
 
 pub(super) fn demo_list_edit_input(

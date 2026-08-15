@@ -1,4 +1,4 @@
-use super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
+use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
 const OUTER_RADIUS_SCALE: f32 = 0.5;
 const KEY_RADIUS_SCALE: f32 = 3.0;

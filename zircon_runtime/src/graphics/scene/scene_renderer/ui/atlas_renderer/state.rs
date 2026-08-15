@@ -41,14 +41,16 @@ pub(in crate::graphics::scene::scene_renderer::ui) struct GlyphAtlasBitmapRender
     pub(super) atlas_layer_count: u32,
     pub(super) atlas_storage_format: GlyphAtlasStorageFormat,
     pub(super) storage_pass_count: usize,
-    pub(super) storage_pass_visible_glyph_count: usize,
+    /// Cross-UI prepare reporting projects one glyph-atlas instance per visible glyph.
+    pub(in crate::graphics::scene::scene_renderer::ui) storage_pass_visible_glyph_count: usize,
     pub(super) mixed_atlas_storage_format: bool,
     pub(super) atlas_resized: bool,
     pub(super) vertex_count: usize,
     pub(super) vertex_buffer_byte_len: usize,
     pub(super) instance_buffer_capacity_byte_len: usize,
     pub(super) instance_buffer_reallocation_count: usize,
-    pub(super) draw_command_count: usize,
+    /// Cross-UI prepare reporting exposes the final painter-order draw command count.
+    pub(in crate::graphics::scene::scene_renderer::ui) draw_command_count: usize,
     pub(super) pipeline_count: usize,
     pub(super) requires_background_composite: bool,
     pub(super) upload_plan_build_count: usize,

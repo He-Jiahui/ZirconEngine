@@ -9,8 +9,7 @@ mod viewport_content_frame;
 mod window_minimums;
 
 pub use compute::{
-    compute_workbench_shell_geometry,
-    compute_workbench_shell_geometry_with_region_defaults,
+    compute_workbench_shell_geometry, compute_workbench_shell_geometry_with_region_defaults,
     compute_workbench_shell_geometry_with_region_defaults_and_scale_mode,
     compute_workbench_shell_geometry_with_scale_mode,
 };

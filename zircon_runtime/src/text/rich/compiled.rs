@@ -213,11 +213,16 @@ impl CompiledRichText {
                 run.style
                     .family
                     .as_ref()
-                    .map_or(0, |family| family.as_str().len())
+                    .map_or(0, |family| family.0.capacity())
                     + run.style.features.as_ref().map_or(0, |features| {
                         features.capacity() * size_of::<OpenTypeFeature>()
                     })
                     + run.link.as_ref().map_or(0, |link| link.href.capacity())
+                    + match run.inline.as_ref() {
+                        Some(InlineObjectRef::Icon { font, .. }) => font.0.capacity(),
+                        Some(InlineObjectRef::Image { .. } | InlineObjectRef::Widget { .. })
+                        | None => 0,
+                    }
             })
             .sum::<usize>();
         let table_bytes = self
@@ -348,8 +353,38 @@ fn to_u32(value: usize) -> u32 {
 mod tests {
     use super::CompiledRichText;
     use crate::text::{
-        ParagraphOverride, RichParseResult, RichTable, RichTableCell, RichTableColumn, StyledRun,
+        FontFamilyName, InlineObjectRef, ParagraphOverride, RichParseResult, RichTable,
+        RichTableCell, RichTableColumn, StyledRun,
     };
+
+    #[test]
+    fn compiled_rich_text_estimate_counts_inline_icon_font_storage() {
+        let icon_font = "F".repeat(4 * 1024);
+        let compiled_with_empty_font = compiled_icon_with_font("");
+        let compiled_with_large_font = compiled_icon_with_font(&icon_font);
+
+        assert!(
+            compiled_with_large_font.estimated_bytes()
+                >= compiled_with_empty_font
+                    .estimated_bytes()
+                    .saturating_add(icon_font.len())
+        );
+    }
+
+    fn compiled_icon_with_font(font: &str) -> CompiledRichText {
+        CompiledRichText::from_projection(RichParseResult {
+            text: "\u{fffc}".into(),
+            runs: vec![StyledRun {
+                byte_range: (0, 3),
+                inline: Some(InlineObjectRef::Icon {
+                    glyph: '\u{25a1}',
+                    font: FontFamilyName::new(font),
+                }),
+                ..StyledRun::default()
+            }],
+            ..RichParseResult::default()
+        })
+    }
 
     #[test]
     fn compiled_rich_text_indexes_each_table_cell_projection() {

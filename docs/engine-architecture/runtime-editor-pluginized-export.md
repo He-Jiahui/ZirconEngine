@@ -718,7 +718,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_extension_registration.rs
   - zircon_editor/src/ui/host/editor_extension_views.rs
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access/
   - zircon_editor/src/ui/template_runtime/component_adapter/component_drawer.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/mod.rs
@@ -1528,7 +1528,7 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_extension_registration.rs
   - zircon_editor/src/ui/host/editor_extension_views.rs
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access/
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/mod.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/mod.rs

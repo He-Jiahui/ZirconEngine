@@ -1,3 +1,4 @@
+use crate::scene::components::Name;
 use crate::scene::world::World;
 use crate::scene::EntityId;
 
@@ -33,7 +34,7 @@ impl World {
             .into_iter()
             .filter(|entity| *entity != root)
             .filter_map(|entity| {
-                self.names.get(&entity).map(|name| {
+                self.get::<Name>(entity).map(|name| {
                     CompiledDescendantNameEntry::new(entity, name.0.clone().into_boxed_str())
                 })
             })
@@ -90,17 +91,16 @@ impl World {
     }
 
     pub(in crate::scene::world) fn invalidate_all_scene_binding_generations(&mut self) {
-        self.scene_binding_generations
-            .advance_roots(self.entities.iter().copied());
+        let entities = self.stable_entity_ids().collect::<Vec<_>>();
+        self.scene_binding_generations.advance_roots(entities);
     }
 
     /// Makes every topology binding in this replacement world stale relative
     /// to the retired world, even when entity identifiers are reused.
     pub(in crate::scene) fn advance_scene_binding_generations_after(&mut self, previous: &World) {
-        self.scene_binding_generations.advance_roots_after(
-            &previous.scene_binding_generations,
-            self.entities.iter().copied(),
-        );
+        let entities = self.stable_entity_ids().collect::<Vec<_>>();
+        self.scene_binding_generations
+            .advance_roots_after(&previous.scene_binding_generations, entities);
     }
 
     fn advance_scene_binding_generations(&mut self, first_root: Option<EntityId>) {

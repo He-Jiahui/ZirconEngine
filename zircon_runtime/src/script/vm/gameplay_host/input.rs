@@ -3,19 +3,20 @@ use crate::core::framework::script::{ScriptHostCallFrame, ScriptHostError, Scrip
 use crate::core::manager::{input_manager_handle, resolve_manager_service};
 use crate::script::runtime_context_for_frame;
 
-use super::values::{expect_string, parse_key_code, script_core_error};
+use super::values::{parse_key_code, script_core_error, with_string};
 
 pub(super) fn key_pressed(
     context: &ScriptHostCallFrame<'_>,
 ) -> Result<ScriptHostValue, ScriptHostError> {
-    let key = expect_string(context, 0)?;
     let runtime = runtime_context_for_frame(context)?;
     let core = runtime.core_handle()?;
     let input = input_manager_handle(&core)
         .and_then(|handle| resolve_manager_service(&core, handle))
         .map_err(script_core_error)?;
     let snapshot = input.snapshot();
-    Ok(ScriptHostValue::Bool(snapshot_key_pressed(&snapshot, key)))
+    with_string(context, 0, |key: &str| {
+        Ok(ScriptHostValue::Bool(snapshot_key_pressed(&snapshot, key)))
+    })
 }
 
 fn snapshot_key_pressed(snapshot: &InputSnapshot, key: &str) -> bool {

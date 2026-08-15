@@ -2,6 +2,7 @@
 
 pub mod asset;
 mod avatar_mask;
+mod clip_event_sampling;
 mod error;
 mod event;
 mod gpu_skinning;
@@ -40,6 +41,12 @@ pub use asset::{
     AnimationTransitionConditionAsset, AnimationTransitionInterruptionPolicyAsset,
 };
 pub use avatar_mask::AnimationAvatarMask;
+pub use clip_event_sampling::{
+    AnimationClipEvent, AnimationClipEventBatchAdmission, AnimationClipEventQueueAdmission,
+    AnimationClipEventSampler, AnimationClipEventSamplingBatch, AnimationClipEventSamplingCursor,
+    AnimationClipEventSamplingLimits, AnimationClipEventSamplingRange,
+    AnimationClipEventSamplingRequest,
+};
 pub use error::{AnimationError, AnimationResult};
 pub use event::AnimationEventRecord;
 pub use gpu_skinning::{AnimationGpuSkinningReadiness, AnimationSkinningBackend};

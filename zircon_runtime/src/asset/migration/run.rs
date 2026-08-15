@@ -4,7 +4,7 @@ use zircon_runtime_interface::project::RelPath;
 
 use crate::asset::project::{ProjectManifest, ProjectPaths};
 
-use super::document::{migrate_document, PendingDocument};
+use super::document::migrate_document;
 use super::resolver::MigrationResolver;
 use super::resolver_index::MigrationResolverIndex;
 use super::scan::MigrationInventory;

@@ -89,13 +89,9 @@ fn registry_hot_identity_and_reverse_queries_use_derived_indexes() {
     assert!(index_source.contains("entry_uuids_by_source"));
     assert!(index_source.contains("dependency_paths_by_uuid"));
     assert!(index_source.contains("referencers_by_path"));
-    assert!(
-        !query_source
-            .contains(".values()\n            .filter(|entry| entry.dependencies().contains")
-    );
-    assert!(
-        !query_source.contains(".values()\n            .find(|entry| AssetId::from_asset_uuid")
-    );
+    assert!(!query_source
+        .contains(".values()\n            .filter(|entry| entry.dependencies().contains"));
+    assert!(!query_source.contains(".values()\n            .find(|entry| AssetId::from_asset_uuid"));
     assert!(!index_source.contains(".values()\n            .filter(|entry| same_source_path"));
     let targeted_source = include_str!("../../registry/targeted.rs");
     assert!(!targeted_source.contains("entries_by_uuid\n            .values()"));

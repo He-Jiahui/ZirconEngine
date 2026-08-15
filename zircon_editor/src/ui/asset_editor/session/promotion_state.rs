@@ -6,19 +6,19 @@ use super::{
     hierarchy_projection::selection_for_node,
     lifecycle::v2_projection::serialize_v2_projection_document,
     palette::{
-        build_palette_entries,
-        convert_selected_node_to_reference as tree_convert_selected_node_to_reference,
         UiAssetPaletteEntryKind,
+        convert_selected_node_to_reference as tree_convert_selected_node_to_reference,
     },
     promote_widget::{
-        can_promote_selected_component_to_external_widget, default_external_widget_draft,
+        UiAssetExternalWidgetDraft, can_promote_selected_component_to_external_widget,
+        default_external_widget_draft,
         promote_selected_component_to_external_widget as tree_promote_selected_component_to_external_widget,
-        selected_local_component_name, UiAssetExternalWidgetDraft,
+        selected_local_component_name,
     },
     theme_authoring::{
-        can_promote_local_theme_to_external_style_asset, default_external_style_draft,
+        UiAssetExternalStyleDraft, can_promote_local_theme_to_external_style_asset,
+        default_external_style_draft,
         promote_local_theme_to_external_style_asset as tree_promote_local_theme_to_external_style_asset,
-        UiAssetExternalStyleDraft,
     },
     theme_state::theme_document_replay_bundle,
     tree_editing::extract_selected_node_to_component as tree_extract_selected_node_to_component,
@@ -49,9 +49,7 @@ impl UiAssetEditorSession {
         let Some(selected_palette_index) = self.selected_palette_index else {
             return Ok(false);
         };
-        let palette_entries =
-            build_palette_entries(&self.last_valid_document, &self.compiler_imports.widgets);
-        let Some(entry) = palette_entries.get(selected_palette_index) else {
+        let Some(entry) = self.palette_catalog.entry(selected_palette_index) else {
             return Ok(false);
         };
         let mut document = self.last_valid_document.clone();
@@ -59,7 +57,7 @@ impl UiAssetEditorSession {
             &mut document,
             &self.selection,
             entry,
-            &self.compiler_imports.widgets,
+            self.palette_catalog.reference_imports(),
         ) else {
             return Ok(false);
         };

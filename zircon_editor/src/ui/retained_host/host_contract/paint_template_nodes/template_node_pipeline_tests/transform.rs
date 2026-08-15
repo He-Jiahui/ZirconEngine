@@ -3,7 +3,7 @@ use crate::ui::layouts::common::model_rc;
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::paint_frame::HostRgbaFrame;
 use super::super::{
-    TemplateNodePaintTransform, draw_template_nodes, draw_template_nodes_with_transform,
+    draw_template_nodes, draw_template_nodes_with_transform, TemplateNodePaintTransform,
 };
 use super::support::{changed_pixel_count, panel_node, rect};
 
@@ -128,8 +128,27 @@ fn template_node_paint_transform_none_matches_existing_draw_path() {
 }
 
 #[test]
-fn template_node_transform_consumes_the_owned_model_row_without_a_second_clone() {
+fn template_node_transform_clones_only_the_filtered_owned_model_row() {
     let production = include_str!("../template_node_pipeline/draw.rs");
 
-    assert!(!production.contains("source_node.clone()"));
+    assert_eq!(production.matches("source_node.clone()").count(), 1);
+}
+
+#[test]
+fn template_node_pipeline_filters_borrowed_geometry_before_cloning_a_row() {
+    let production = include_str!("../template_node_pipeline/draw.rs");
+    let borrowed = production
+        .find("nodes.get(row)")
+        .expect("paint collection should borrow the source row first");
+    let owned = production[borrowed..]
+        .find("source_node.clone()")
+        .map(|offset| borrowed + offset)
+        .expect("visible rows should be cloned only after the borrowed filter");
+    let prefilter = production[borrowed..]
+        .find("template_node_intersects_clip")
+        .map(|offset| borrowed + offset)
+        .expect("borrowed node geometry should be checked against damage");
+
+    assert!(prefilter < owned);
+    assert!(!production.contains("nodes.row_data(row)"));
 }

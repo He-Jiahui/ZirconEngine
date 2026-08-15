@@ -268,7 +268,7 @@ impl HubRuntimeSession {
         request: &HubActionRequest,
     ) -> Result<(), HubError> {
         if self.set_background_action_status(request) {
-            self.persist(None)
+            self.persist()
         } else {
             Ok(())
         }
@@ -363,7 +363,7 @@ impl HubRuntimeSession {
         )
         .with_operation(operation, target)
         .with_task_id(self.task_status.task_id);
-        self.persist(None)
+        self.persist()
     }
 
     pub(in crate::tauri_app) fn record_background_worker_panic(
@@ -825,18 +825,18 @@ mod tests {
         project: &std::path::Path,
     ) -> HubRuntimeSession {
         let config_path = temp.join("hub.toml");
-        let editor_config_path = temp.join("editor.json");
+        let shared_recent_projects_path = temp.join("recent_projects.json");
         let mut config = HubConfig::default();
         config.settings.default_build_output_dir = temp.join("out");
         config.recent_projects = vec![RecentProject::fixture(name, project, 1)];
         config.runtime.selected_project_path = Some(project.to_path_buf());
         config.save(&config_path).unwrap();
         fs::write(
-            &editor_config_path,
-            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+            &shared_recent_projects_path,
+            r#"{"protocol_version":1,"projects":[]}"#,
         )
         .unwrap();
-        HubRuntimeSession::load_from_paths(config_path, editor_config_path).unwrap()
+        HubRuntimeSession::load_from_paths(config_path, shared_recent_projects_path).unwrap()
     }
 
     fn session_with_projects(
@@ -845,7 +845,7 @@ mod tests {
         selected_project: &std::path::Path,
     ) -> HubRuntimeSession {
         let config_path = temp.join("hub.toml");
-        let editor_config_path = temp.join("editor.json");
+        let shared_recent_projects_path = temp.join("recent_projects.json");
         let mut config = HubConfig::default();
         config.settings.default_build_output_dir = temp.join("out");
         config.recent_projects = projects
@@ -855,11 +855,11 @@ mod tests {
         config.runtime.selected_project_path = Some(selected_project.to_path_buf());
         config.save(&config_path).unwrap();
         fs::write(
-            &editor_config_path,
-            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+            &shared_recent_projects_path,
+            r#"{"protocol_version":1,"projects":[]}"#,
         )
         .unwrap();
-        HubRuntimeSession::load_from_paths(config_path, editor_config_path).unwrap()
+        HubRuntimeSession::load_from_paths(config_path, shared_recent_projects_path).unwrap()
     }
 
     fn background_request(action_id: &str) -> HubActionRequest {

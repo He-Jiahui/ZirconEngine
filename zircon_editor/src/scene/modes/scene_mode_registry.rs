@@ -5,8 +5,8 @@ use crate::core::editor_message::SceneModeId;
 use crate::core::plugin::run_editor_plugin_boundary;
 
 use super::{
-    EditorSceneMode, SceneModeRegistration, SceneModeRegistryError,
-    isolated_scene_mode::IsolatedSceneMode,
+    isolated_scene_mode::IsolatedSceneMode, EditorSceneMode, SceneModeRegistration,
+    SceneModeRegistryError,
 };
 
 #[derive(Clone, Debug, Default)]

@@ -18,4 +18,4 @@ use geometry::{icon_button_paint_rect, icon_glyph_rect};
 #[cfg(test)]
 use identity::is_workbench_icon_button;
 #[cfg(test)]
-use style::{IconButtonContext, icon_button_context, icon_button_style};
+use style::{icon_button_context, icon_button_style, IconButtonContext};

@@ -37,8 +37,7 @@ impl UiRuntimeTreeLayoutExt for UiTree {
 
 fn mark_layout_dirty_local(tree: &mut UiTree, node_id: UiNodeId) -> Result<(), UiTreeError> {
     let node = tree
-        .nodes
-        .get_mut(&node_id)
+        .node_mut(node_id)
         .ok_or(UiTreeError::MissingNode(node_id))?;
     node.dirty.layout = true;
     node.dirty.hit_test = true;

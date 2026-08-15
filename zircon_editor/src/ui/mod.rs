@@ -16,7 +16,9 @@ pub mod retained_host;
 pub(crate) mod sample_grid;
 pub(crate) mod template;
 pub mod template_runtime;
+pub(crate) mod timeline_strip;
 pub(crate) mod v2_design_tokens;
+pub(crate) mod weight_heatmap;
 pub(crate) mod widgets;
 pub mod workbench;
 

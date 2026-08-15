@@ -7,7 +7,7 @@ use crate::core::framework::render::{
 use crate::core::math::{UVec2, Vec4};
 use crate::graphics::types::ViewportRenderFrame;
 use crate::render_graph::RenderGraphAttachmentOps;
-use crate::text::layout_text;
+use crate::ui::surface::layout_text;
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
 use zircon_runtime_interface::ui::surface::{
@@ -20,6 +20,7 @@ use zircon_runtime_interface::ui::surface::{
 mod background;
 mod clipping;
 mod distance_field_effects;
+mod fallback_provenance;
 mod glyph_artifacts;
 mod parity;
 mod rich_inline;
@@ -79,6 +80,7 @@ fn screen_space_ui_plan_keeps_text_batches_for_quad_commands() {
                     opacity: 1.0,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(200, 100),
     );
@@ -97,6 +99,39 @@ fn screen_space_ui_plan_keeps_text_batches_for_quad_commands() {
         ])
     );
     assert!(plan.sdf_texts.is_empty());
+}
+
+#[test]
+fn screen_space_ui_plan_carries_extract_raster_scale_to_native_text() {
+    let plan = plan_screen_space_ui_batches(
+        &UiRenderExtract {
+            tree_id: UiTreeId::new("runtime.ui.raster-scale"),
+            list: UiRenderList {
+                commands: vec![UiRenderCommand {
+                    node_id: UiNodeId::new(1),
+                    kind: UiRenderCommandKind::Text,
+                    frame: UiFrame::new(8.0, 12.0, 120.0, 36.0),
+                    clip_frame: None,
+                    z_index: 0,
+                    style: UiResolvedStyle {
+                        font_size: 18.0,
+                        line_height: 22.0,
+                        text_render_mode: UiTextRenderMode::Native,
+                        ..UiResolvedStyle::default()
+                    },
+                    text_layout: None,
+                    text: Some("Crisp at 2x".to_string()),
+                    image: None,
+                    opacity: 1.0,
+                }],
+            },
+            raster_scale: 2.0,
+        },
+        UVec2::new(200, 100),
+    );
+
+    assert_eq!(plan.native_texts.len(), 1);
+    assert_eq!(plan.native_texts[0].raster_scale, 2.0);
 }
 
 #[test]
@@ -124,6 +159,7 @@ fn screen_space_ui_plan_preserves_auto_text_route_identity_and_generation() {
             list: UiRenderList {
                 commands: vec![command.clone()],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(200, 100),
     );
@@ -133,6 +169,7 @@ fn screen_space_ui_plan_preserves_auto_text_route_identity_and_generation() {
             list: UiRenderList {
                 commands: vec![command.clone()],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(200, 100),
     );
@@ -156,6 +193,7 @@ fn screen_space_ui_plan_preserves_auto_text_route_identity_and_generation() {
             list: UiRenderList {
                 commands: vec![changed],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(200, 100),
     );
@@ -205,6 +243,7 @@ fn screen_space_ui_plan_infers_text_background_from_prior_opaque_quad() {
                     },
                 ],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(200, 100),
     );
@@ -276,6 +315,7 @@ fn screen_space_ui_plan_keeps_inherited_background_unknown_after_transparent_ove
                     },
                 ],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(200, 100),
     );
@@ -325,6 +365,7 @@ fn screen_space_ui_plan_keeps_transparent_text_background_unknown_with_prior_qua
                     },
                 ],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(200, 100),
     );
@@ -356,6 +397,7 @@ fn screen_space_ui_plan_infers_text_background_from_framebuffer_background() {
                     opacity: 1.0,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(200, 100),
         Some([0.02, 0.03, 0.04, 1.0]),
@@ -408,6 +450,7 @@ fn screen_space_ui_plan_blocks_framebuffer_background_after_transparent_overlay(
                     },
                 ],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(200, 100),
         Some([0.02, 0.03, 0.04, 1.0]),
@@ -444,6 +487,7 @@ fn screen_space_ui_plan_routes_sdf_text_to_a_separate_batch() {
                     opacity: 1.0,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(320, 180),
     );
@@ -480,6 +524,7 @@ fn screen_space_ui_plan_keeps_auto_text_in_a_separate_batch() {
                     opacity: 1.0,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(320, 180),
     );
@@ -565,6 +610,7 @@ fn screen_space_ui_plan_splits_rich_text_runs_from_shared_paint() {
                     opacity: 1.0,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(220, 80),
     );
@@ -584,76 +630,6 @@ fn screen_space_ui_plan_splits_rich_text_runs_from_shared_paint() {
     assert!(plan.native_texts[1].style.strong);
     assert!(plan.native_texts[2].style.code);
     assert!(plan.native_texts.iter().all(|text| text.font_weight == 500));
-}
-
-#[test]
-fn screen_space_ui_plan_routes_virtual_resolved_text_to_sdf_for_exact_advances() {
-    let plan = plan_screen_space_ui_batches(
-        &UiRenderExtract {
-            tree_id: UiTreeId::new("runtime.ui.arabic-justify"),
-            list: UiRenderList {
-                commands: vec![UiRenderCommand {
-                    node_id: UiNodeId::new(27),
-                    kind: UiRenderCommandKind::Text,
-                    frame: UiFrame::new(10.0, 20.0, 80.0, 16.0),
-                    clip_frame: None,
-                    z_index: 0,
-                    style: UiResolvedStyle {
-                        foreground_color: Some("#ffffff".to_string()),
-                        font_size: 12.0,
-                        line_height: 16.0,
-                        text_align: UiTextAlign::Justify,
-                        text_direction: UiTextDirection::RightToLeft,
-                        text_render_mode: UiTextRenderMode::Native,
-                        ..UiResolvedStyle::default()
-                    },
-                    text_layout: Some(UiResolvedTextLayout {
-                        text_align: UiTextAlign::Justify,
-                        wrap: UiTextWrap::None,
-                        direction: UiTextDirection::RightToLeft,
-                        writing_mode: UiTextWritingMode::HorizontalTb,
-                        overflow: UiTextOverflow::Clip,
-                        font_size: 12.0,
-                        line_height: 16.0,
-                        measured_width: 80.0,
-                        measured_height: 16.0,
-                        source_range: UiTextRange { start: 0, end: 8 },
-                        lines: vec![UiResolvedTextLine {
-                            text: "سـلام".to_string(),
-                            frame: UiFrame::new(10.0, 20.0, 80.0, 16.0),
-                            source_range: UiTextRange { start: 0, end: 8 },
-                            visual_range: UiTextRange { start: 0, end: 10 },
-                            measured_width: 80.0,
-                            glyph_advances: vec![16.0; 5],
-                            baseline: 12.0,
-                            direction: UiTextDirection::RightToLeft,
-                            runs: vec![UiResolvedTextRun {
-                                kind: UiTextRunKind::Plain,
-                                text: "ـ".to_string(),
-                                source_range: UiTextRange { start: 2, end: 2 },
-                                visual_range: UiTextRange { start: 2, end: 4 },
-                                direction: UiTextDirection::RightToLeft,
-                            }],
-                            ellipsized: false,
-                        }],
-                        boxes: Vec::new(),
-                        overflow_clipped: false,
-                        editable: None,
-                        rich_text_artifact: None,
-                    }),
-                    text: Some("سلام".to_string()),
-                    image: None,
-                    opacity: 1.0,
-                }],
-            },
-        },
-        UVec2::new(160, 64),
-    );
-
-    assert!(plan.native_texts.is_empty());
-    assert_eq!(plan.sdf_texts.len(), 1);
-    assert_eq!(plan.sdf_texts[0].text, "سـلام");
-    assert_eq!(plan.sdf_texts[0].glyph_advances, vec![16.0; 5]);
 }
 
 #[test]
@@ -727,6 +703,7 @@ fn screen_space_ui_plan_uses_shared_text_decorations_as_pre_and_post_text_draws(
                     opacity: 1.0,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(80, 48),
     );

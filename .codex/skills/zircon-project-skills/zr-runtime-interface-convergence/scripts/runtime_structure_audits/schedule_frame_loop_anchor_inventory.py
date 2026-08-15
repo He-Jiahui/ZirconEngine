@@ -45,8 +45,8 @@ FIXED_PLAN_ANCHORS = (
     ".clamp(0.0, 1.0)",
 )
 UI_EXTRACT_ANCHORS = (
-    "fn current_ui_extract(&self)",
-    "let ui = self.current_ui_extract();",
+    "pub(super) fn current_ui_extract(",
+    "let ui = self.current_ui_extract()?;",
     "runtime_session_menu_extract(world, viewport_size)",
     ".or_else(|| runtime_session_hud_extract(world, viewport_size))",
     "submit_extract_with_ui",
@@ -71,7 +71,7 @@ SCHEDULE_RUNNER_ANCHORS = (
     "const fn schedule_stage_profile_name(stage: SystemStage) -> &'static str",
     "ScheduledSceneStepRef::Internal",
     "ScheduledSceneStepRef::ApplyDeferred",
-    "ScheduledSceneStepRef::Hook",
+    "ScheduledSceneStepRef::Runtime",
     "world.apply_deferred()",
 )
 PARALLEL_EXECUTOR_ANCHORS = (

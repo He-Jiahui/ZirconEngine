@@ -5,7 +5,7 @@ use std::{
     ops::Range,
 };
 
-use crate::text::{HardLine, visit_hard_lines};
+use crate::text::{visit_hard_lines, HardLine};
 
 pub(crate) const DEFAULT_HARD_LINE_INDEX_CACHE_CAPACITY: usize = 16;
 pub(crate) const DEFAULT_HARD_LINE_INDEX_CACHE_MAX_BYTES: usize = 32 * 1024 * 1024;

@@ -1,4 +1,5 @@
 use crate::core::math::{Real, Transform};
+use crate::scene::components::LocalTransform;
 use crate::scene::EntityId;
 
 use super::{SceneError, SceneResult, World};
@@ -33,8 +34,10 @@ pub(super) fn validate_transform_for_write(
 }
 
 pub(super) fn validate_persisted_transforms(world: &World) -> SceneResult<()> {
-    for (&entity, local_transform) in &world.local_transforms {
-        validate_transform_for_write(entity, local_transform.transform)?;
+    for entity in world.entity_ids_for_query() {
+        if let Some(local_transform) = world.get::<LocalTransform>(entity) {
+            validate_transform_for_write(entity, local_transform.transform)?;
+        }
     }
     Ok(())
 }

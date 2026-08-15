@@ -18,7 +18,7 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
-    surface::{UiSurface, input},
+    surface::{input, UiSurface},
 };
 
 use super::{

@@ -1,16 +1,21 @@
 from __future__ import annotations
 
 
-EXPECTED_SOURCE_FILE_COUNT = 69
+EXPECTED_SOURCE_FILE_COUNT = 75
 EXPECTED_TEST_FILE_COUNT = 10
 
 RUNTIME_08_SOURCE_FILES = (
     "zircon_runtime/src/scene/ecs/archetype/mod.rs",
     "zircon_runtime/src/scene/ecs/archetype/id.rs",
     "zircon_runtime/src/scene/ecs/archetype/index.rs",
-    "zircon_runtime/src/scene/ecs/archetype/move_result.rs",
     "zircon_runtime/src/scene/ecs/archetype/record.rs",
     "zircon_runtime/src/scene/ecs/archetype/signature.rs",
+    "zircon_runtime/src/scene/ecs/archetype/table/mod.rs",
+    "zircon_runtime/src/scene/ecs/archetype/table/column.rs",
+    "zircon_runtime/src/scene/ecs/archetype/table/error.rs",
+    "zircon_runtime/src/scene/ecs/archetype/table/preflighted_row.rs",
+    "zircon_runtime/src/scene/ecs/archetype/table/table.rs",
+    "zircon_runtime/src/scene/ecs/archetype/table/taken_row.rs",
     "zircon_runtime/src/scene/ecs/bundle.rs",
     "zircon_runtime/src/scene/ecs/storage_type.rs",
     "zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs",
@@ -18,7 +23,6 @@ RUNTIME_08_SOURCE_FILES = (
     "zircon_runtime/src/scene/ecs/storage/component_storage/location.rs",
     "zircon_runtime/src/scene/ecs/storage/component_storage/sparse.rs",
     "zircon_runtime/src/scene/ecs/storage/component_storage/store.rs",
-    "zircon_runtime/src/scene/ecs/storage/component_storage/table.rs",
     "zircon_runtime/src/scene/ecs/storage/component_storage/component_results.rs",
     "zircon_runtime/src/scene/ecs/component/mod.rs",
     "zircon_runtime/src/scene/ecs/component/id.rs",
@@ -71,6 +75,8 @@ RUNTIME_08_SOURCE_FILES = (
     "zircon_runtime/src/scene/ecs/change_detection/wrappers.rs",
     "zircon_runtime/src/scene/ecs/removal.rs",
     "zircon_runtime/src/scene/world/identity.rs",
+    "zircon_runtime/src/scene/world/typed_api/component_row.rs",
+    "zircon_runtime/src/scene/world/typed_api/projection_rebuild.rs",
     "zircon_runtime/src/scene/world/observers.rs",
     "zircon_runtime/src/scene/world/events.rs",
     "zircon_runtime/src/scene/world/messages.rs",
@@ -85,6 +91,8 @@ RUNTIME_08_TEST_FILES = (
     "zircon_runtime/src/scene/tests/component_structure/runtime_08_owner_tree.rs",
     "zircon_runtime/src/tests/runtime_absorption/ecs_kernel_data.rs",
     "zircon_runtime/src/tests/runtime_absorption/ecs_kernel_data/inventory.rs",
+    "zircon_runtime/src/tests/runtime_absorption/ecs_kernel_data/guard_coverage.rs",
+    "zircon_runtime/src/tests/runtime_absorption/ecs_kernel_data/docs.rs",
 )
 
 MIRROR_DOCS_GUARD = (

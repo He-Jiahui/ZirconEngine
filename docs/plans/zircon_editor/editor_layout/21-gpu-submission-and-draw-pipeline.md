@@ -6,10 +6,10 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/batch/plan.rs
   - zircon_runtime_interface/src/ui/surface/render/batch/clip.rs
   - zircon_runtime/src/ui/surface/render/extract.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/batching.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs
-  - zircon_runtime/src/rhi
-  - zircon_runtime/src/rhi_wgpu
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry.rs
+  - zircon_runtime/crates/zr_rhi
+  - zircon_runtime/crates/zr_rhi_wgpu
 plan_sources:
   - docs/plans/zircon_editor/editor_layout/10-real-rendering-pipeline-and-contract.md
   - docs/plans/zircon_editor/editor_layout/09-incremental-message-bus-and-refresh.md
@@ -31,7 +31,7 @@ status: in_progress
 
 - `batch/key.rs` 已把 clip、primitive、shader、resource、text backend、draw effects 与 opacity class 纳入 `UiBatchKey`；layer 明确不进 key。`batch/plan.rs` 按 `(z_index, paint_order, source index)` 排序，只合并同 layer 的相邻同 key 元素，并记录 range/source/split reason/stats。
 - `batch/clip.rs` 已去重 clip state，并用 push/pop stack 对嵌套 scissor 求交；复杂 stencil 与后端 clip handle 生命周期仍需完成/验证。
-- `rhi_wgpu/ui_surface/batching.rs` 已按 dependency depth 构建 solid/image/text draw ops，集中 solid vertices/instances 与 image vertices，并通过 `CompiledUiBatchPlanCache` 区分 generation cache build/hit。对应 stats initializer 的源码修复已可见，但 open failure 仍要求稳定 current-source managed gate 与来源回传。
+- `zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs` 已按 dependency depth 构建 solid/image/text draw ops，集中 solid vertices/instances 与 image vertices，并通过 `CompiledUiBatchPlanCache` 区分 generation cache build/hit。对应 stats initializer 的源码修复已可见，但 open failure 仍要求稳定 current-source managed gate 与来源回传。
 - `10` §2.2 的脏区/重提取、动态图集、复杂裁剪和 backend 持久资源仍缺完整跨层验收；不能因 DTO/CPU plan 已存在而宣称 GPU 提交完成。
 
 ## 3. 设计
@@ -121,7 +121,7 @@ pub fn dirty_region(dirty: &ViewDirtySet, arranged: &ArrangedTree) -> Vec<UiRect
 | 新增(契约) | `docs/ui-and-layout/gpu-submission-contract.md` | 批次键/裁剪栈/图集/顶点/layer/增量上屏 |
 | DTO | `iface .../render/batch.rs` | `UiBatchKey` 合并语义 + 裁剪句柄 + 顶点 |
 | 提取/批次 | `runtime .../render/extract.rs` + 新 batch owner | 排序合并 + 裁剪栈 + 图集合批 |
-| 运行时 | `zircon_runtime/src/rhi(_wgpu)` | 消费批次计划做 wgpu 提交(实现细节,不在本契约) |
+| 运行时 | `zircon_runtime/crates/zr_rhi(_wgpu)` | 消费批次计划做 wgpu 提交(实现细节,不在本契约) |
 
 ## 6. 里程碑切片化
 

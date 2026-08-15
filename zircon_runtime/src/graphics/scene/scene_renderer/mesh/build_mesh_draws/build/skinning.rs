@@ -112,6 +112,7 @@ fn skin_model_primitive_with_palette(
             .collect(),
         indices: primitive.indices.clone(),
         mesh: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     }
 }

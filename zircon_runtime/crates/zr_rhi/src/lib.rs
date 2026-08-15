@@ -33,9 +33,10 @@ pub use native_surface::RenderNativeSurfaceTarget;
 pub use ui_surface::{
     UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDescriptor, UiSurfaceDrawList,
     UiSurfaceImagePayload, UiSurfaceImageResource, UiSurfaceImageResourceTable,
-    UiSurfaceImageUvRect, UiSurfacePresentStats, UiSurfacePresentStatsAccumulator,
-    UiSurfacePresenter, UiSurfaceRect, UiSurfaceResolvedCommandKind, UiSurfaceStyle,
-    UiSurfaceStyleHandle, UiSurfaceStyledPayload, UiSurfaceTextStyle,
+    UiSurfaceImageUvRect, UiSurfacePresentOutcome, UiSurfacePresentStats,
+    UiSurfacePresentStatsAccumulator, UiSurfacePresenter, UiSurfaceRect,
+    UiSurfaceResolvedCommandKind, UiSurfaceStyle, UiSurfaceStyleHandle, UiSurfaceStyledPayload,
+    UiSurfaceTextStyle,
 };
 
 #[cfg(test)]

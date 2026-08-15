@@ -47,9 +47,14 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
         )
         .with_executor_id(EXECUTOR_ID)
         .with_side_effects()
-        .with_compute_workload(RenderGraphComputeWorkload::viewport(
+        .with_compute_workload(RenderGraphComputeWorkload::per_pixel(
             CONTACT_SHADOW_PIPELINE_LABEL,
             CONTACT_SHADOW_WORKGROUP_SIZE,
+            PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION,
+            [
+                CONTACT_SHADOW_WORKGROUP_SIZE[0],
+                CONTACT_SHADOW_WORKGROUP_SIZE[1],
+            ],
         ))
         .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
         .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
@@ -501,19 +506,21 @@ mod tests {
         assert_eq!(pass.queue, QueueLane::AsyncCompute);
         assert_eq!(pass.executor_id.as_str(), EXECUTOR_ID);
         assert!(pass.flags.has_side_effects);
+        let workload = pass
+            .compute_workload
+            .as_ref()
+            .expect("contact shadow pass should declare a compute workload");
+        assert_eq!(workload.pipeline_label, CONTACT_SHADOW_PIPELINE_LABEL);
+        assert_eq!(workload.workgroup_size, CONTACT_SHADOW_WORKGROUP_SIZE);
         assert_eq!(
-            pass.compute_workload.as_ref().map(|workload| {
-                (
-                    workload.pipeline_label.as_str(),
-                    workload.workgroup_size,
-                    &workload.dispatch_extent,
-                )
-            }),
-            Some((
-                CONTACT_SHADOW_PIPELINE_LABEL,
-                CONTACT_SHADOW_WORKGROUP_SIZE,
-                &RenderGraphComputeDispatchExtent::Viewport,
-            ))
+            workload.dispatch_extent,
+            RenderGraphComputeDispatchExtent::PerPixel {
+                target: PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION.to_string(),
+                local_size: [
+                    CONTACT_SHADOW_WORKGROUP_SIZE[0],
+                    CONTACT_SHADOW_WORKGROUP_SIZE[1],
+                ],
+            }
         );
 
         assert!(pass.resources.iter().any(|resource| {
@@ -567,7 +574,13 @@ mod tests {
             pass.compute_workload
                 .as_ref()
                 .map(|workload| &workload.dispatch_extent),
-            Some(&RenderGraphComputeDispatchExtent::Viewport)
+            Some(&RenderGraphComputeDispatchExtent::PerPixel {
+                target: PostProcessGraphResourceNames::CONTACT_SHADOW_OCCLUSION.to_string(),
+                local_size: [
+                    CONTACT_SHADOW_WORKGROUP_SIZE[0],
+                    CONTACT_SHADOW_WORKGROUP_SIZE[1],
+                ],
+            })
         );
         pass_resource_access(
             &enabled,

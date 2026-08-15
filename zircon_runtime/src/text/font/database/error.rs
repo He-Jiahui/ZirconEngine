@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use crate::asset::assets::{FontFaceExtractionError, FontSourceDecodeError};
-use crate::text::font::instance::FontInstanceError;
 use crate::text::FontFaceId;
+use crate::text::font::instance::FontInstanceError;
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum FontDatabaseError {

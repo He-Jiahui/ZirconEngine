@@ -1,14 +1,14 @@
 use std::{
     sync::{
-        Arc, Mutex, MutexGuard,
         atomic::{AtomicBool, Ordering},
+        Arc, Mutex, MutexGuard,
     },
     time::{Duration, Instant},
 };
 
 use crate::{
     asset::{AssetEvent, SceneAsset},
-    core::{JobHandle, JobScheduler, framework::tasks::AsyncTaskState},
+    core::{framework::tasks::AsyncTaskState, JobHandle, JobScheduler},
     scene::dynamic_scene::{DynamicSceneError, PreparedDynamicSceneSpawn, StagedDynamicSceneSpawn},
 };
 

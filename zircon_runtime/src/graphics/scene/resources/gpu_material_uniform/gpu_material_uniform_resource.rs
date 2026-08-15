@@ -108,6 +108,7 @@ pub(crate) fn standard_material_uniform_contents(
     standard_material_uniform_contents_from_values(
         material.metallic,
         material.roughness,
+        material.occlusion_strength,
         material.emissive.to_array(),
         material.unlit,
         material.shading_model_id.value(),
@@ -124,6 +125,7 @@ fn fallback_standard_material_uniform_contents() -> [u8; GPU_MATERIAL_UNIFORM_MI
     standard_material_uniform_contents_from_values(
         0.0,
         1.0,
+        1.0,
         [0.0, 0.0, 0.0],
         false,
         2,
@@ -139,6 +141,7 @@ fn fallback_standard_material_uniform_contents() -> [u8; GPU_MATERIAL_UNIFORM_MI
 fn standard_material_uniform_contents_from_values(
     metallic: f32,
     roughness: f32,
+    occlusion_strength: f32,
     emissive: [f32; 3],
     unlit: bool,
     shading_model_id: u8,
@@ -152,7 +155,7 @@ fn standard_material_uniform_contents_from_values(
     let mut values = [0.0_f32; 48];
     values[0] = finite_or(metallic, 0.0).clamp(0.0, 1.0);
     values[1] = finite_or(roughness, 1.0).clamp(STANDARD_MATERIAL_MIN_ROUGHNESS, 1.0);
-    values[2] = 1.0;
+    values[2] = finite_or(occlusion_strength, 1.0).clamp(0.0, 1.0);
     values[3] = if unlit { 1.0 } else { 0.0 };
     values[4] = finite_or(emissive[0], 0.0).max(0.0);
     values[5] = finite_or(emissive[1], 0.0).max(0.0);
@@ -265,6 +268,7 @@ mod tests {
             standard_material_uniform_contents_from_values(
                 1.4,
                 0.0,
+                0.25,
                 [0.25, -1.0, 2.0],
                 true,
                 0,
@@ -279,7 +283,7 @@ mod tests {
         assert_eq!(bytes.len(), GPU_MATERIAL_UNIFORM_MIN_SIZE);
         assert_eq!(f32_at(&bytes, 0), 1.0);
         assert_eq!(f32_at(&bytes, 4), STANDARD_MATERIAL_MIN_ROUGHNESS);
-        assert_eq!(f32_at(&bytes, 8), 1.0);
+        assert_eq!(f32_at(&bytes, 8), 0.25);
         assert_eq!(f32_at(&bytes, 12), 1.0);
         assert_eq!(f32_at(&bytes, 16), 0.25);
         assert_eq!(f32_at(&bytes, 20), 0.0);
@@ -290,10 +294,35 @@ mod tests {
     }
 
     #[test]
+    fn standard_material_uniform_clamps_occlusion_strength_at_data0_z() {
+        for (occlusion_strength, expected) in
+            [(f32::NAN, 1.0), (-1.0, 0.0), (0.25, 0.25), (1.4, 1.0)]
+        {
+            let bytes = standard_material_uniform_contents_from_values(
+                0.5,
+                0.5,
+                occlusion_strength,
+                [0.0; 3],
+                false,
+                2,
+                0.0,
+                0,
+                None,
+                [RenderMaterialTextureTransform::default(); STANDARD_TEXTURE_TRANSFORM_COUNT],
+                [0; STANDARD_TEXTURE_TRANSFORM_COUNT],
+                &StandardPbrMaterialFeatures::default(),
+            );
+
+            assert_eq!(f32_at(&bytes, 8), expected);
+        }
+    }
+
+    #[test]
     fn standard_material_uniform_packs_per_slot_texture_transforms() {
         let bytes = standard_material_uniform_contents_from_values(
             0.5,
             0.5,
+            1.0,
             [0.0, 0.0, 0.0],
             false,
             2,
@@ -326,6 +355,7 @@ mod tests {
         let bytes = standard_material_uniform_contents_from_values(
             0.5,
             0.5,
+            1.0,
             [0.0, 0.0, 0.0],
             false,
             16,
@@ -352,6 +382,7 @@ mod tests {
             let bytes = standard_material_uniform_contents_from_values(
                 0.5,
                 0.5,
+                1.0,
                 [0.0, 0.0, 0.0],
                 false,
                 2,
@@ -372,6 +403,7 @@ mod tests {
         let bytes = standard_material_uniform_contents_from_values(
             0.0,
             0.5,
+            1.0,
             [0.0; 3],
             false,
             16,
@@ -404,6 +436,7 @@ mod tests {
         let bytes = standard_material_uniform_contents_from_values(
             0.0,
             0.5,
+            1.0,
             [0.0; 3],
             false,
             2,

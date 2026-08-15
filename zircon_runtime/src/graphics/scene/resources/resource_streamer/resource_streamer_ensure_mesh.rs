@@ -5,7 +5,9 @@ use crate::core::resource::{MeshMarker, ResourceHandle};
 
 use crate::graphics::types::GraphicsError;
 
-use super::super::prepared::PreparedMesh;
+use super::super::prepared::{
+    mesh_sdf_seed_from_primitives, PreparedGeometryDeformation, PreparedMesh,
+};
 use super::super::GpuMeshResource;
 use super::ResourceStreamer;
 
@@ -29,15 +31,23 @@ impl ResourceStreamer {
             .asset_manager()?
             .load_mesh_asset(id)
             .map_err(|error| GraphicsError::Asset(error.to_string()))?;
+        let local_bounds = mesh
+            .bounds()
+            .map_err(|error| GraphicsError::Asset(error.to_string()))?;
         let primitive = mesh
             .to_model_primitive()
             .map_err(|error| GraphicsError::Asset(error.to_string()))?;
+        let deformation = PreparedGeometryDeformation::from_mesh_asset(&mesh);
+        let mesh_sdf = mesh_sdf_seed_from_primitives(std::slice::from_ref(&primitive));
         let asset = Arc::<MeshAsset>::new(mesh);
         let resource = Arc::new(GpuMeshResource::from_asset(device, primitive));
         self.meshes.insert(
             id,
             PreparedMesh {
                 revision,
+                local_bounds,
+                deformation,
+                mesh_sdf,
                 asset,
                 resource,
             },

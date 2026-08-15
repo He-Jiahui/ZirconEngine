@@ -1,27 +1,58 @@
-use std::fs;
 use std::io;
-use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::path::Path;
 
 use super::document::PendingDocument;
 use super::{AssetMigrationError, AssetMigrationTransactionPhase};
-
-static NEXT_TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);
-
-mod commit;
-mod journal;
-mod journal_owner;
-mod schema;
-mod stage;
-mod toml_evidence;
-use commit::{cleanup_committed_artifacts, commit_document, rollback_and_cleanup, should_fail};
-use journal::{
-    activate_journal, create_intent_journal, record_document_prepared, record_document_state,
-    record_phase,
+use crate::core::resource::io::transaction::{
+    commit_prepared_files, DurableCommitDisposition, DurableCommitReport, DurableTransactionError,
+    PreparedFileWrite, TransactionFault, TransactionPhase,
 };
-pub(super) use schema::{CommitFault, JOURNAL_DIRECTORY};
-use schema::{JournalPhase, JournalState};
-use stage::{cleanup_staging, stage_document};
+
+mod journal_owner;
+mod recovery;
+mod toml_evidence;
+
+pub(in crate::asset::migration) const JOURNAL_DIRECTORY: &str = "asset-migration";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(in crate::asset::migration) enum CommitFault {
+    Never,
+    #[cfg(test)]
+    At(usize),
+    #[cfg(test)]
+    AtWithRestoreFailure {
+        commit_index: usize,
+        restore_index: usize,
+    },
+    #[cfg(test)]
+    CrashAfter(usize),
+    #[cfg(test)]
+    CrashAfterAllCommitted,
+    #[cfg(test)]
+    FailCommitPointSync,
+    #[cfg(test)]
+    CrashAfterCleanup,
+    #[cfg(test)]
+    CrashAfterRollbackCompleted {
+        commit_index: usize,
+    },
+    #[cfg(test)]
+    FailRollbackJournalDelete {
+        commit_index: usize,
+    },
+    #[cfg(test)]
+    FailStageWrite(usize),
+    #[cfg(test)]
+    FailBackupCopy(usize),
+    #[cfg(test)]
+    FailRetiredBackupSync(usize),
+    #[cfg(test)]
+    CrashAfterStaging(usize),
+    #[cfg(test)]
+    CrashAfterTargetReplace(usize),
+    #[cfg(test)]
+    CrashAfterRetiredDelete(usize),
+}
 
 pub(super) fn apply_transaction(
     project_root: &Path,
@@ -31,161 +62,165 @@ pub(super) fn apply_transaction(
     if pending.is_empty() {
         return Ok(());
     }
-    let transaction_id = next_transaction_id();
-    let journal = create_intent_journal(project_root, &pending, &transaction_id)?;
-    let mut staged = Vec::with_capacity(pending.len());
-    for (index, document) in pending.into_iter().enumerate() {
-        match stage_document(document, &transaction_id, fault, index) {
-            Ok(document) => {
-                staged.push(document);
-                if let Err(error) = record_document_prepared(&journal, index, &staged[index]) {
-                    cleanup_staging(&staged);
-                    let _ = remove_if_exists(&journal);
-                    return Err(error);
-                }
-                #[cfg(test)]
-                if matches!(fault, CommitFault::CrashAfterStaging(fault_index) if fault_index == index)
-                {
-                    return Err(transaction_error(
-                        AssetMigrationTransactionPhase::Stage,
-                        journal,
-                        io::Error::new(
-                            io::ErrorKind::Interrupted,
-                            "injected post-stage process interruption",
-                        ),
-                    ));
-                }
+    let journal_directory = journal_owner::ensure_journal_directory(project_root)?;
+    let writes = pending
+        .into_iter()
+        .map(|document| {
+            let write = PreparedFileWrite::new(document.path, document.bytes);
+            match document.retired_path {
+                Some(path) => write.retiring(path),
+                None => write,
             }
-            Err(error) => {
-                cleanup_staging(&staged);
-                let _ = remove_if_exists(&journal);
-                return Err(error);
-            }
-        }
-    }
-    if let Err(error) = activate_journal(&journal) {
-        cleanup_staging(&staged);
-        let _ = remove_if_exists(&journal);
-        return Err(error);
-    }
-
-    for index in 0..staged.len() {
-        if should_fail(fault, index) {
-            let path = staged[index].target.clone();
-            let source = io::Error::new(io::ErrorKind::Other, "injected migration commit failure");
-            rollback_and_cleanup(&journal, &mut staged, index, fault)?;
-            return Err(transaction_error(
-                AssetMigrationTransactionPhase::Commit,
-                path,
-                source,
-            ));
-        }
-        staged[index].committing = true;
-        record_document_state(&journal, index, JournalState::Committing)?;
-        if let Err(source) = commit_document(&mut staged[index], fault, index) {
-            let path = staged[index].target.clone();
-            #[cfg(test)]
-            if matches!(
-                fault,
-                CommitFault::CrashAfterTargetReplace(fault_index)
-                    | CommitFault::CrashAfterRetiredDelete(fault_index)
-                    if fault_index == index
-            ) {
-                return Err(transaction_error(
-                    AssetMigrationTransactionPhase::Commit,
-                    path,
-                    source,
-                ));
-            }
-            rollback_and_cleanup(&journal, &mut staged, index + 1, fault)?;
-            return Err(transaction_error(
-                AssetMigrationTransactionPhase::Commit,
-                path,
-                source,
-            ));
-        }
-        staged[index].committing = false;
-        if let Err(error) = record_document_state(&journal, index, JournalState::Committed) {
-            rollback_and_cleanup(&journal, &mut staged, index + 1, fault)?;
-            return Err(error);
-        }
-        #[cfg(test)]
-        if matches!(fault, CommitFault::CrashAfter(crash_index) if crash_index == index) {
-            return Err(transaction_error(
-                AssetMigrationTransactionPhase::Commit,
-                staged[index].target.clone(),
-                io::Error::new(io::ErrorKind::Interrupted, "injected process interruption"),
-            ));
-        }
-    }
-
-    record_phase(&journal, JournalPhase::AllCommitted)?;
-    #[cfg(test)]
-    if fault == CommitFault::CrashAfterAllCommitted {
-        return Err(transaction_error(
-            AssetMigrationTransactionPhase::Commit,
-            journal,
-            io::Error::new(
-                io::ErrorKind::Interrupted,
-                "injected all-committed interruption",
+        })
+        .collect();
+    let mut report = DurableCommitReport::default();
+    let result = commit_prepared_files(
+        &journal_directory,
+        "migrate",
+        writes,
+        fault.into_core(),
+        &mut report,
+    );
+    let disposition = result.map_err(map_transaction_error)?;
+    if disposition == DurableCommitDisposition::CommitRecoveryDeferred {
+        return Err(AssetMigrationError::Transaction {
+            phase: AssetMigrationTransactionPhase::Commit,
+            path: journal_directory,
+            source: io::Error::other(
+                "migration commit marker durability is unresolved; rerun apply mode to recover the pending transaction",
             ),
-        ));
+        });
     }
-    record_phase(&journal, JournalPhase::Cleanup)?;
-    #[cfg(test)]
-    if fault == CommitFault::CrashAfterCleanup {
-        return Err(transaction_error(
-            AssetMigrationTransactionPhase::Commit,
-            journal,
-            io::Error::new(io::ErrorKind::Interrupted, "injected cleanup interruption"),
-        ));
-    }
-    cleanup_committed_artifacts(&journal, &staged)?;
     Ok(())
 }
 
-mod recovery;
+impl CommitFault {
+    fn into_core(self) -> TransactionFault {
+        match self {
+            Self::Never => TransactionFault::None,
+            #[cfg(test)]
+            Self::At(index) => TransactionFault::BeforeCommit(index),
+            #[cfg(test)]
+            Self::AtWithRestoreFailure {
+                commit_index,
+                restore_index,
+            } => TransactionFault::RestoreFailure {
+                commit_index,
+                restore_index,
+            },
+            #[cfg(test)]
+            Self::CrashAfter(index) => TransactionFault::CrashAfterCommit(index),
+            #[cfg(test)]
+            Self::CrashAfterAllCommitted => TransactionFault::CrashAfterAllCommitted,
+            #[cfg(test)]
+            Self::FailCommitPointSync => TransactionFault::FailCommitPointSync,
+            #[cfg(test)]
+            Self::CrashAfterCleanup => TransactionFault::CrashAfterCleanup,
+            #[cfg(test)]
+            Self::CrashAfterRollbackCompleted { commit_index } => {
+                TransactionFault::CrashAfterRollbackCompleted { commit_index }
+            }
+            #[cfg(test)]
+            Self::FailRollbackJournalDelete { commit_index } => {
+                TransactionFault::FailRollbackJournalDelete { commit_index }
+            }
+            #[cfg(test)]
+            Self::FailStageWrite(index) => TransactionFault::FailStageWrite(index),
+            #[cfg(test)]
+            Self::FailBackupCopy(index) => TransactionFault::FailBackupCopy(index),
+            #[cfg(test)]
+            Self::FailRetiredBackupSync(index) => TransactionFault::FailRetiredBackupSync(index),
+            #[cfg(test)]
+            Self::CrashAfterStaging(index) => TransactionFault::CrashAfterStaging(index),
+            #[cfg(test)]
+            Self::CrashAfterTargetReplace(index) => {
+                TransactionFault::CrashAfterTargetReplace(index)
+            }
+            #[cfg(test)]
+            Self::CrashAfterRetiredDelete(index) => {
+                TransactionFault::CrashAfterRetiredDelete(index)
+            }
+        }
+    }
+}
+
+pub(in crate::asset::migration) fn map_transaction_error(
+    error: DurableTransactionError,
+) -> AssetMigrationError {
+    match error {
+        DurableTransactionError::InvalidJournal { path, reason } => {
+            AssetMigrationError::InvalidJournal { path, reason }
+        }
+        DurableTransactionError::JournalDeserialize { path, source } => {
+            AssetMigrationError::JournalDeserialize { path, source }
+        }
+        DurableTransactionError::Operation {
+            phase,
+            path,
+            source,
+        } => AssetMigrationError::Transaction {
+            phase: match phase {
+                TransactionPhase::Recovery => AssetMigrationTransactionPhase::Recovery,
+                TransactionPhase::Stage => AssetMigrationTransactionPhase::Stage,
+                TransactionPhase::Commit => AssetMigrationTransactionPhase::Commit,
+                TransactionPhase::Rollback => AssetMigrationTransactionPhase::Rollback,
+            },
+            path,
+            source,
+        },
+    }
+}
 
 pub(in crate::asset::migration) use recovery::{
     detect_pending_transactions, recover_pending_transactions,
 };
 
-fn remove_if_exists(path: &Path) -> io::Result<()> {
-    match fs::remove_file(path) {
-        Ok(()) => Ok(()),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(error),
+fn recovery_io(path: &Path, source: io::Error) -> AssetMigrationError {
+    AssetMigrationError::Transaction {
+        phase: AssetMigrationTransactionPhase::Recovery,
+        path: path.to_path_buf(),
+        source,
     }
 }
 
-fn next_transaction_id() -> String {
-    let id = NEXT_TRANSACTION_ID.fetch_add(1, Ordering::Relaxed);
-    format!("{}-{id}", std::process::id())
-}
+#[cfg(test)]
+mod tests {
+    use std::fs;
 
-pub(super) fn valid_transaction_id(value: &str) -> bool {
-    let mut parts = value.split('-');
-    parts.next().is_some_and(|part| part.parse::<u32>().is_ok())
-        && parts.next().is_some_and(|part| part.parse::<u64>().is_ok())
-        && parts.next().is_none()
-}
+    use super::*;
 
-fn transaction_sibling(parent: &Path, target: &Path, role: &str, transaction_id: &str) -> PathBuf {
-    let name = target
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("asset");
-    parent.join(format!(".{name}.zr-migrate-{role}-{transaction_id}"))
-}
+    #[test]
+    fn migration_reports_an_unsynced_commit_point_as_pending_recovery() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon-migration-commit-point-sync-{}-{}",
+            std::process::id(),
+            crate::core::resource::io::NEXT_ATOMIC_FILE_ID
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        ));
+        let target = root.join("asset.zmeta");
+        fs::create_dir_all(&root).unwrap();
+        fs::write(&target, b"old-generation").unwrap();
 
-pub(super) fn transaction_error(
-    phase: AssetMigrationTransactionPhase,
-    path: PathBuf,
-    source: io::Error,
-) -> AssetMigrationError {
-    AssetMigrationError::Transaction {
-        phase,
-        path,
-        source,
+        let error = apply_transaction(
+            &root,
+            vec![PendingDocument {
+                path: target.clone(),
+                bytes: b"new-generation".to_vec(),
+                reference_count: 0,
+                retired_path: None,
+            }],
+            CommitFault::FailCommitPointSync,
+        )
+        .expect_err("migration must not report an unresolved commit marker as durable apply");
+
+        assert!(error.to_string().contains("durability is unresolved"));
+        assert_eq!(fs::read(&target).unwrap(), b"new-generation");
+        assert_eq!(
+            fs::read_dir(root.join(".zircon").join(JOURNAL_DIRECTORY))
+                .unwrap()
+                .count(),
+            1
+        );
+        fs::remove_dir_all(root).unwrap();
     }
 }

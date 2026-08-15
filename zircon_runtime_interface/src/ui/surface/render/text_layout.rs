@@ -124,6 +124,7 @@ pub struct UiResolvedTextLine {
     /// runtime text layout owner before shaped/render DTO projection.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub glyph_advances: Vec<f32>,
+    /// Cross-axis offset relative to `frame`: y for horizontal text and x for `VerticalRl`.
     pub baseline: f32,
     pub direction: UiTextDirection,
     pub runs: Vec<UiResolvedTextRun>,

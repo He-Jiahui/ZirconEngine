@@ -91,6 +91,8 @@ fn merge_hybrid_gi_readback_outputs(
         completed_trace_region_ids,
         probe_irradiance_rgb,
         probe_rt_lighting_rgb,
+        radiance_cache_gpu_stage_dispatch_counts,
+        global_sdf_stats,
         scene_prepare,
     } = sideband_outputs;
     renderer_outputs.cache_entries.extend(cache_entries);
@@ -106,6 +108,16 @@ fn merge_hybrid_gi_readback_outputs(
     renderer_outputs
         .probe_rt_lighting_rgb
         .extend(probe_rt_lighting_rgb);
+    for (renderer_count, sideband_count) in renderer_outputs
+        .radiance_cache_gpu_stage_dispatch_counts
+        .iter_mut()
+        .zip(radiance_cache_gpu_stage_dispatch_counts)
+    {
+        *renderer_count = renderer_count.saturating_add(sideband_count);
+    }
+    if renderer_outputs.global_sdf_stats.is_none() {
+        renderer_outputs.global_sdf_stats = global_sdf_stats;
+    }
     if renderer_outputs
         .scene_prepare
         .has_runtime_feedback_payload()
@@ -138,6 +150,7 @@ fn append_hybrid_gi_scene_prepare_readback(
         voxel_cell_dominant_nodes,
         voxel_cell_dominant_samples,
         probe_trace_tiles,
+        probe_trace_diagnostics,
         probe_trace_dispatch,
         texture_width,
         texture_height,
@@ -176,6 +189,9 @@ fn append_hybrid_gi_scene_prepare_readback(
         .voxel_cell_dominant_samples
         .extend(voxel_cell_dominant_samples);
     renderer_outputs.probe_trace_tiles.extend(probe_trace_tiles);
+    renderer_outputs
+        .probe_trace_diagnostics
+        .extend(probe_trace_diagnostics);
     renderer_outputs.probe_trace_dispatch = [
         renderer_outputs.probe_trace_dispatch[0].max(probe_trace_dispatch[0]),
         renderer_outputs.probe_trace_dispatch[1].max(probe_trace_dispatch[1]),
@@ -269,9 +285,9 @@ mod tests {
         merge_virtual_geometry_readback_outputs,
     };
     use crate::core::framework::render::{
-        RenderHybridGiReadbackOutputs, RenderHybridGiScenePrepareReadbackOutputs,
-        RenderHybridGiScenePrepareSample, RenderParticleGpuReadbackOutputs,
-        RenderVirtualGeometryNodeClusterCullReadbackOutputs,
+        RenderHybridGiGlobalSdfStats, RenderHybridGiReadbackOutputs,
+        RenderHybridGiScenePrepareReadbackOutputs, RenderHybridGiScenePrepareSample,
+        RenderParticleGpuReadbackOutputs, RenderVirtualGeometryNodeClusterCullReadbackOutputs,
         RenderVirtualGeometryPageAssignmentRecord, RenderVirtualGeometryReadbackOutputs,
     };
 
@@ -280,6 +296,7 @@ mod tests {
         let merged = merge_hybrid_gi_readback_outputs(
             RenderHybridGiReadbackOutputs {
                 completed_probe_ids: vec![10],
+                radiance_cache_gpu_stage_dispatch_counts: [1, 2, 3, 4, 5, 6],
                 scene_prepare: RenderHybridGiScenePrepareReadbackOutputs {
                     atlas_samples: vec![RenderHybridGiScenePrepareSample {
                         index: 1,
@@ -292,6 +309,7 @@ mod tests {
             },
             RenderHybridGiReadbackOutputs {
                 completed_probe_ids: vec![11],
+                radiance_cache_gpu_stage_dispatch_counts: [6, 5, 4, 3, 2, 1],
                 scene_prepare: RenderHybridGiScenePrepareReadbackOutputs {
                     voxel_samples: vec![RenderHybridGiScenePrepareSample {
                         index: 4,
@@ -305,9 +323,37 @@ mod tests {
         );
 
         assert_eq!(merged.completed_probe_ids, vec![10, 11]);
+        assert_eq!(merged.radiance_cache_gpu_stage_dispatch_counts, [7; 6]);
         assert_eq!(merged.scene_prepare.atlas_samples.len(), 1);
         assert_eq!(merged.scene_prepare.voxel_samples.len(), 1);
         assert_eq!(merged.scene_prepare.texture_width, 64);
+    }
+
+    #[test]
+    fn merge_hybrid_gi_sideband_preserves_renderer_global_sdf_stats() {
+        let merged = merge_hybrid_gi_readback_outputs(
+            RenderHybridGiReadbackOutputs {
+                global_sdf_stats: Some(RenderHybridGiGlobalSdfStats {
+                    resident_page_count: 8,
+                    uploaded_page_count: 2,
+                    ..RenderHybridGiGlobalSdfStats::default()
+                }),
+                ..RenderHybridGiReadbackOutputs::default()
+            },
+            RenderHybridGiReadbackOutputs {
+                global_sdf_stats: Some(RenderHybridGiGlobalSdfStats {
+                    resident_page_count: 1,
+                    ..RenderHybridGiGlobalSdfStats::default()
+                }),
+                ..RenderHybridGiReadbackOutputs::default()
+            },
+        );
+
+        let stats = merged
+            .global_sdf_stats
+            .expect("renderer Global SDF stats must remain authoritative");
+        assert_eq!(stats.resident_page_count, 8);
+        assert_eq!(stats.uploaded_page_count, 2);
     }
 
     #[test]

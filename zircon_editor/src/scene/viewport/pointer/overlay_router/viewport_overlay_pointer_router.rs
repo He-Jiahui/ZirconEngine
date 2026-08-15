@@ -3,11 +3,11 @@ use std::sync::{Arc, Mutex};
 use zircon_runtime::core::framework::render::RenderVisibleSpatialQuerySnapshot;
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 
-use crate::scene::viewport::ViewportInteractionExtract;
 use crate::scene::viewport::pointer::{
     precision::SharedResolutionState, viewport_pointer_layout::ViewportPointerLayout,
     viewport_renderable_pick_candidate::ViewportRenderablePickCandidate,
 };
+use crate::scene::viewport::ViewportInteractionExtract;
 
 pub(crate) struct ViewportOverlayPointerRouter {
     pub(in crate::scene::viewport::pointer) layout: ViewportPointerLayout,

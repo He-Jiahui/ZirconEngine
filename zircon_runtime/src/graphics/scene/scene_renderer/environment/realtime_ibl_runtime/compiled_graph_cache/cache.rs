@@ -9,17 +9,27 @@ use super::variant::RealtimeIblCompiledGraphVariant;
 // work-slot choices. Updating that scheduler requires revisiting this bound.
 const REALTIME_IBL_TOPOLOGY_VARIANT_CAPACITY: usize = 34;
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(in crate::graphics) struct RealtimeIblCompiledGraphCacheStats {
+    pub cache_hit_count: u64,
+    pub cache_miss_count: u64,
+    pub compile_count: u64,
+    pub variant_count: usize,
+}
+
 pub(in crate::graphics) struct RealtimeIblCompiledGraphCache {
     variants: Vec<RealtimeIblCompiledGraphVariant>,
-    #[cfg(test)]
-    compile_count: usize,
+    cache_hit_count: u64,
+    cache_miss_count: u64,
+    compile_count: u64,
 }
 
 impl RealtimeIblCompiledGraphCache {
     pub(in crate::graphics) fn new() -> Self {
         Self {
             variants: Vec::with_capacity(REALTIME_IBL_TOPOLOGY_VARIANT_CAPACITY),
-            #[cfg(test)]
+            cache_hit_count: 0,
+            cache_miss_count: 0,
             compile_count: 0,
         }
     }
@@ -34,9 +44,11 @@ impl RealtimeIblCompiledGraphCache {
             .iter()
             .position(|variant| variant.matches(request, batch))
         {
+            self.cache_hit_count = self.cache_hit_count.saturating_add(1);
             return Ok(&self.variants[index]);
         }
 
+        self.cache_miss_count = self.cache_miss_count.saturating_add(1);
         assert!(
             self.variants.len() < REALTIME_IBL_TOPOLOGY_VARIANT_CAPACITY,
             "realtime IBL scheduler exceeded its fixed topology cache capacity"
@@ -46,29 +58,18 @@ impl RealtimeIblCompiledGraphCache {
         let graph = builder.compile()?;
         self.variants.push(RealtimeIblCompiledGraphVariant::new(
             request, batch, plan, graph,
-        ));
-        self.record_compile();
-        Ok(self
-            .variants
-            .last()
-            .expect("compiled realtime IBL graph variant was just inserted"))
+        )?);
+        self.compile_count = self.compile_count.saturating_add(1);
+        let last_index = self.variants.len() - 1;
+        Ok(&self.variants[last_index])
     }
 
-    #[cfg(test)]
-    pub(in crate::graphics) fn variant_count(&self) -> usize {
-        self.variants.len()
+    pub(in crate::graphics) fn stats(&self) -> RealtimeIblCompiledGraphCacheStats {
+        RealtimeIblCompiledGraphCacheStats {
+            cache_hit_count: self.cache_hit_count,
+            cache_miss_count: self.cache_miss_count,
+            compile_count: self.compile_count,
+            variant_count: self.variants.len(),
+        }
     }
-
-    #[cfg(test)]
-    pub(in crate::graphics) fn compile_count(&self) -> usize {
-        self.compile_count
-    }
-
-    #[cfg(test)]
-    fn record_compile(&mut self) {
-        self.compile_count += 1;
-    }
-
-    #[cfg(not(test))]
-    fn record_compile(&mut self) {}
 }

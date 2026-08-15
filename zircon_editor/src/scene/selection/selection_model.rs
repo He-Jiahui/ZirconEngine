@@ -1,7 +1,7 @@
 use indexmap::IndexSet;
 use zircon_runtime::core::framework::scene::EntityId;
 
-use super::{SelectionMutation, WorldDomain, domain_selection::DomainSelection};
+use super::{domain_selection::DomainSelection, SelectionMutation, WorldDomain};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SelectionModel {

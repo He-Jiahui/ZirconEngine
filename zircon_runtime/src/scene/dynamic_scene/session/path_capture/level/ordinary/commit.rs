@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::scene::LevelSystem;
 
 use super::super::super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveManifest, io,
+    io, RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveManifest,
 };
 
 impl RuntimeSessionArchive {

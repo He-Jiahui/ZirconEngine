@@ -1,5 +1,5 @@
 use super::super::model::WorkbenchIconButtonContext;
-use super::super::palette::{WorkbenchIconButtonPalette, workbench_icon_button_palette};
+use super::super::palette::{workbench_icon_button_palette, WorkbenchIconButtonPalette};
 use super::super::state::{
     icon_button_node_is_hot, icon_button_node_is_selected, is_unavailable_icon_button_state,
 };

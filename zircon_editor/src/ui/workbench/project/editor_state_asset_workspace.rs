@@ -1,6 +1,6 @@
 use crate::core::asset::AssetTypeId;
 use zircon_runtime::asset::AssetUri;
-use zircon_runtime::core::framework::asset::ResourceManagementGeneration;
+use zircon_runtime::core::resource::ResourceManagementGeneration;
 use zircon_runtime_interface::resource::ResourceKind;
 
 use crate::ui::host::editor_asset_manager::{

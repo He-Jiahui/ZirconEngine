@@ -1,4 +1,4 @@
-use super::authoring_boundary::{SOURCE_AUTHORING_TOKENS, assert_text_excludes_authoring_tokens};
+use super::authoring_boundary::{assert_text_excludes_authoring_tokens, SOURCE_AUTHORING_TOKENS};
 
 mod component_registry;
 mod component_storage_dispatch;

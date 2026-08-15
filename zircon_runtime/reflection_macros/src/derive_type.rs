@@ -105,7 +105,7 @@ fn field_tokens(fields: &Fields) -> syn::Result<(Vec<TokenStream2>, Vec<TokenStr
             field_type,
             args.value_kind.clone().map(path_tokens),
             args.type_name.clone(),
-            quote!(::zircon_runtime::core::framework::script::ScriptHostFromValue),
+            quote!(::zircon_runtime::core::framework::script::ScriptHostFromArgument),
         );
         let projection_type_ref = registration_type_ref.clone();
         let documentation = args

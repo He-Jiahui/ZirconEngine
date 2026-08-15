@@ -413,10 +413,12 @@ fn rendering_ssao_descriptor() -> RenderFeatureDescriptor {
             "ssao-evaluate",
             QueueLane::AsyncCompute,
         )
-        .with_executor_id("ao.ssao-evaluate")
-        .with_compute_workload(RenderGraphComputeWorkload::viewport(
+        .with_executor_id("compute.generic")
+        .with_compute_workload(RenderGraphComputeWorkload::per_pixel(
             "zircon-ssao-pipeline",
             [8, 8, 1],
+            PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
+            [8, 8],
         ))
         .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
         .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)

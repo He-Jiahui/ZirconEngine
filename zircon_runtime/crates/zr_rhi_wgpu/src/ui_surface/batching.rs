@@ -145,6 +145,7 @@ impl CompiledUiBatchPlanCache {
             if let Some(plan) = &self.plan {
                 let draw_list_stats = if use_full_draw_list_stats {
                     plan.full_draw_list_stats.map(|mut stats| {
+                        stats.surface_size = draw_list.surface_size;
                         stats.command_visibility_scan_count = 0;
                         stats.command_stats_cache_hit_count = 1;
                         stats

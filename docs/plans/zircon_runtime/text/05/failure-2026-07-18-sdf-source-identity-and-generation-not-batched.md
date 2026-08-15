@@ -61,3 +61,11 @@ PERF-MVP-250：动态glyph先在distance-field wrapper parse face，generator再
 - current production owners 为 `generation_scheduler.rs` 447 行、`generation_source.rs` 219、`font_bake.rs` 724、`source_context.rs` 202、`offline_source.rs` 364、`glyph_cache.rs` 124、`prepared_atlas.rs` 108，均低于 800 行 warning；production panic/unwrap/expect/dead-code allow、旧 per-glyph source parse 和独立 failure probe 扫描为 0。
 
 当前不标记 fixed：Text05 尚无 managed validation receipt，本轮未直接执行 Cargo；1/100/10k 的 current-source compile、p50/p95/RSS、TTC/variation/system-font/reload/cancel/checksum 组合门仍待 coordinator 后续唤醒执行。没有轮询 queued/running 状态，也没有把旧结果冒充当前验收。
+
+## 2026-08-11 静态复核
+
+状态维持 `open / resolving_failure / non_validation_implementation_complete / secondary_review_complete / managed_validation_pending`。
+
+- `SdfGenerationSourceCache` 继续以 `(FontFaceId, variation_hash)` 缓存 generation-owned self-referential parsed-face context；同一 face 的 standalone bytes 与 source hash 只物化一次，context 以稳定 handle 参与动态和异步批分组。
+- `SdfFontBakeCache` 在观察到共享字体 generation 变化时先 cancel 异步 work，再清理 source context、glyph、atlas、offline artifact 与派生 face cache；旧 generation 不会提交到新代。
+- 本次只做源码与静态契约复核，未运行 Cargo、WGPU、截图或性能矩阵；1/100/10k、p50/p95/RSS 与组合环境门仍只接受后续协调器 managed receipt。

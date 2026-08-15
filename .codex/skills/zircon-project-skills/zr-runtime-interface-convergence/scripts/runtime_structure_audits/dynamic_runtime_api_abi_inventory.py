@@ -6,6 +6,9 @@ SOURCE_FILES = (
     "zircon_runtime_interface/src/runtime_api/host_requests.rs",
     "zircon_runtime_interface/src/runtime_api/operation.rs",
     "zircon_runtime_interface/src/runtime_api/plugin_event_mirror.rs",
+    "zircon_runtime_interface/src/world_sync/query.rs",
+    "zircon_runtime_interface/src/world_sync/watch.rs",
+    "zircon_runtime_interface/src/world_sync/invalidation.rs",
     "zircon_runtime_interface/src/plugin_api.rs",
     "zircon_runtime_interface/src/profiling.rs",
     "zircon_runtime_interface/src/tests/abi_safety_contracts.rs",
@@ -14,6 +17,7 @@ SOURCE_FILES = (
     "zircon_runtime/src/dynamic_api/session.rs",
     "zircon_runtime/src/dynamic_api/session/construction.rs",
     "zircon_runtime/src/dynamic_api/session/ffi.rs",
+    "zircon_runtime/src/dynamic_api/session/world_sync.rs",
     "zircon_runtime/src/dynamic_api/session/hooks.rs",
     "zircon_runtime/src/dynamic_api/session/linked_session.rs",
     "zircon_runtime/src/dynamic_api/session/state.rs",
@@ -50,11 +54,11 @@ SOURCE_FILES = (
     "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
     "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
 )
-EXPECTED_SOURCE_FILE_COUNT = 48
+EXPECTED_SOURCE_FILE_COUNT = 51
 
 EXPECTED_FUNCTION_TABLES = (
     ("zircon_runtime_interface/src/runtime_api/api_table.rs", "ZrHostApiV1", 4),
-    ("zircon_runtime_interface/src/runtime_api/api_table.rs", "ZrRuntimeApiV2", 19),
+    ("zircon_runtime_interface/src/runtime_api/api_table.rs", "ZrRuntimeApiV6", 24),
     ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostApiV3", 7),
     ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostEcsApiV1", 3),
     ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostAssetApiV1", 1),
@@ -83,4 +87,8 @@ RUNTIME_SESSION_OPERATIONS = (
     "submit_operation",
     "poll_operation",
     "harvest_operation",
+    "query_world",
+    "watch_world",
+    "unwatch_world",
+    "drain_world_invalidations",
 )

@@ -30,10 +30,10 @@ fn runtime_15_render_graph_builder_compile_is_child_owner() {
     for moved_compile_owner in [
         "pub fn compile(",
         "fn validate_unique_resource_names(",
-        "fn validate_write_dependencies(",
+        "fn validate_compute_dispatch_resources(",
+        "fn validate_compute_pass_metadata(",
         "fn infer_resource_dependencies(",
         "fn topological_order(",
-        "fn validate_reads_have_ordered_producers(",
         "fn cull_passes(",
         "fn resource_lifetimes(",
         "struct LatestWriter",
@@ -54,9 +54,10 @@ fn runtime_15_render_graph_builder_compile_is_child_owner() {
             "impl RenderGraphBuilder",
             "CompiledRenderGraph::new(",
             "RenderGraphPassResourceAccess",
-            "RenderGraphError::WriteAfterWriteMissingDependency",
+            "RenderGraphError::ReadAfterDiscardedStore",
             "RenderGraphError::MissingCullRoot",
             "RenderGraphResourceLifetime",
+            "struct InferredResourceDependencies",
         ],
     );
 

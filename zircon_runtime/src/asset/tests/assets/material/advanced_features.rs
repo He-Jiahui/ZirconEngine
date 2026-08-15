@@ -1,6 +1,6 @@
 use super::*;
 use crate::core::framework::render::{
-    STANDARD_PBR_TRANSMISSION_RENDER_QUEUE, StandardPbrMaterialFeatures,
+    StandardPbrMaterialFeatures, STANDARD_PBR_TRANSMISSION_RENDER_QUEUE,
 };
 
 #[test]
@@ -73,11 +73,9 @@ url = "res://textures/clearcoat-normal.png"
         "attenuation_distance",
     ] {
         assert!(material.shader_property_override(property).is_none());
-        assert!(
-            material
-                .shader_property_overrides()
-                .all(|(name, _)| name != property)
-        );
+        assert!(material
+            .shader_property_overrides()
+            .all(|(name, _)| name != property));
     }
 }
 

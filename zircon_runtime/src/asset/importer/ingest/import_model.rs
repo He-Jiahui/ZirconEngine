@@ -1,5 +1,7 @@
 use super::model_mesh_subassets::model_outcome_with_mesh_subassets;
-use super::primitive_from_indexed_mesh::backfill_virtual_geometry_for_model;
+use super::primitive_from_indexed_mesh::{
+    backfill_mesh_sdf_for_model, backfill_virtual_geometry_for_model,
+};
 use crate::asset::assets::ModelAsset;
 use crate::asset::{AssetImportContext, AssetImportError, AssetImportOutcome};
 
@@ -11,7 +13,9 @@ pub(crate) fn import_model(
         context.resolve_project_asset_ref(reference)
     })?;
     let virtual_geometry_request = context.virtual_geometry_cook_request()?;
+    let mesh_sdf_request = context.mesh_sdf_cook_request()?;
     backfill_virtual_geometry_for_model(&mut model, &virtual_geometry_request);
+    backfill_mesh_sdf_for_model(&mut model, &mesh_sdf_request)?;
     Ok(
         model_outcome_with_mesh_subassets(context.uri.clone(), model)
             .with_reference_repairs(context.reference_repairs()),

@@ -1,17 +1,17 @@
 use crate::core::editor_event::{EditorEvent, EditorViewportEvent};
 use crate::scene::viewport::DisplayMode;
-use crate::tests::editor_event::support::{EventRuntimeHarness, env_lock};
+use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::retained_host::callback_dispatch::{
-    BuiltinViewportToolbarTemplateBridge, dispatch_shared_viewport_toolbar_pointer_click,
+    dispatch_shared_viewport_toolbar_pointer_click, BuiltinViewportToolbarTemplateBridge,
 };
 use crate::ui::retained_host::viewport_toolbar_pointer::{
-    ViewportToolbarPointerBridge, build_viewport_toolbar_pointer_layout,
+    build_viewport_toolbar_pointer_layout, ViewportToolbarPointerBridge,
 };
 use zircon_runtime_interface::ui::layout::{UiPoint, UiSize};
 
 #[test]
-fn shared_viewport_toolbar_pointer_click_falls_back_to_surface_projection_when_control_rect_is_empty()
- {
+fn shared_viewport_toolbar_pointer_click_falls_back_to_surface_projection_when_control_rect_is_empty(
+) {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_retained_viewport_toolbar_projection_fallback");

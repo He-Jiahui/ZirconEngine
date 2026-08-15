@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
@@ -25,6 +25,22 @@ use crate::ui::workbench::project::{
 use crate::ui::workbench::view::ViewInstanceId;
 
 #[test]
+fn f3_project_fixture_roots_follow_the_resolved_test_binary_directory() {
+    let root = unique_mvp_project_root("physical-root");
+    let executable = std::env::current_exe().expect("locate the F3 test executable");
+    let binary_directory = executable
+        .parent()
+        .expect("F3 test executable must have a parent directory");
+    let resolved_binary_directory =
+        ProjectPaths::resolve_existing(binary_directory).expect("resolve F3 test binary directory");
+
+    assert!(
+        root.starts_with(resolved_binary_directory.operation_path()),
+        "F3 project fixture output must retain the test binary's physical output root"
+    );
+}
+
+#[test]
 fn editor_project_document_roundtrips_world_and_workspace() {
     const TRANSFORM_X_DELTA: f32 = 4.25;
 
@@ -32,11 +48,11 @@ fn editor_project_document_roundtrips_world_and_workspace() {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let root = std::env::temp_dir().join(format!("zircon_editor_project_{unique}"));
+    let root = unique_mvp_project_root(format!("editor-project-{unique}"));
     create_renderable_project(&root);
     let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
-    let initial = EditorProjectDocument::load_from_project(&project).unwrap();
+    let initial = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
     let cube = initial
         .world
         .nodes()
@@ -146,7 +162,7 @@ fn editor_project_document_roundtrips_world_and_workspace() {
 
     let mut reopened_project = ProjectManager::open(&root).unwrap();
     reopened_project.scan_and_import().unwrap();
-    let loaded = EditorProjectDocument::load_from_project(&reopened_project).unwrap();
+    let loaded = EditorProjectDocument::load_from_project_for_tests(&reopened_project).unwrap();
     let paths = ProjectPaths::from_root(&root).unwrap();
 
     assert!(paths.manifest_path().exists());
@@ -250,11 +266,11 @@ fn editor_project_document_current_scene_save_is_byte_stable() {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let root = std::env::temp_dir().join(format!("zircon_editor_canonical_save_{unique}"));
+    let root = unique_mvp_project_root(format!("canonical-save-{unique}"));
     create_renderable_project(&root);
     let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
-    let document = EditorProjectDocument::load_from_project(&project).unwrap();
+    let document = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
     let scene_path = root.join("assets").join("scenes").join("main.scene.toml");
 
     EditorProjectDocument::save_to_project(
@@ -291,11 +307,11 @@ fn editor_project_document_failed_scene_save_preserves_dirty_baseline_and_last_v
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let root = std::env::temp_dir().join(format!("zircon_editor_failed_save_{unique}"));
+    let root = unique_mvp_project_root(format!("failed-save-{unique}"));
     create_renderable_project(&root);
     let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
-    let document = EditorProjectDocument::load_from_project(&project).unwrap();
+    let document = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
     let cube = document
         .world
         .nodes()
@@ -369,11 +385,11 @@ fn editor_project_document_failed_scene_save_restores_the_previous_workspace() {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let root = std::env::temp_dir().join(format!("zircon_editor_workspace_rollback_{unique}"));
+    let root = unique_mvp_project_root(format!("workspace-rollback-{unique}"));
     create_renderable_project(&root);
     let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
-    let document = EditorProjectDocument::load_from_project(&project).unwrap();
+    let document = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
     let previous_workspace = ProjectEditorWorkspace {
         layout_version: 1,
         workbench: WorkbenchLayout::default(),
@@ -407,7 +423,7 @@ fn editor_project_document_failed_scene_save_restores_the_previous_workspace() {
 
     fs::remove_file(&scene_directory).unwrap();
     fs::rename(&displaced_scene_directory, &scene_directory).unwrap();
-    let restored = EditorProjectDocument::load_from_project(&project).unwrap();
+    let restored = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
     assert_eq!(
         restored.editor_workspace,
         Some(previous_workspace),
@@ -426,11 +442,11 @@ fn editor_project_document_workspace_write_failure_keeps_last_valid_scene() {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let root = std::env::temp_dir().join(format!("zircon_editor_workspace_save_{unique}"));
+    let root = unique_mvp_project_root(format!("workspace-save-{unique}"));
     create_renderable_project(&root);
     let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
-    let document = EditorProjectDocument::load_from_project(&project).unwrap();
+    let document = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
     let mut changed_world = document.world.clone();
     let cube = changed_world
         .nodes()
@@ -482,13 +498,13 @@ fn editor_project_document_projects_persisted_missing_and_invalid_project_settin
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let root = std::env::temp_dir().join(format!("zircon_editor_project_settings_{unique}"));
+    let root = unique_mvp_project_root(format!("project-settings-{unique}"));
     create_renderable_project(&root);
     let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
     let settings_path = root.join(".zircon").join("settings.toml");
 
-    let persisted = EditorProjectDocument::load_from_project(&project).unwrap();
+    let persisted = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
     assert_eq!(
         persisted.project_settings,
         ProjectSettingsLoadState::Persisted {
@@ -499,7 +515,7 @@ fn editor_project_document_projects_persisted_missing_and_invalid_project_settin
     assert_eq!(persisted.project_settings.startup_status(), "persisted-v1");
 
     fs::remove_file(&settings_path).unwrap();
-    let missing = EditorProjectDocument::load_from_project(&project).unwrap();
+    let missing = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
     assert_eq!(
         missing.project_settings,
         ProjectSettingsLoadState::Missing {
@@ -512,7 +528,7 @@ fn editor_project_document_projects_persisted_missing_and_invalid_project_settin
     );
 
     fs::write(&settings_path, "not a versioned settings envelope").unwrap();
-    let invalid = EditorProjectDocument::load_from_project(&project).unwrap();
+    let invalid = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
     let ProjectSettingsLoadState::Invalid { path, message } = &invalid.project_settings else {
         panic!("corrupt project settings must remain an explicit degraded startup state");
     };
@@ -538,8 +554,7 @@ fn editor_project_document_ignores_unknown_workspace_format_with_diagnostic() {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let root =
-        std::env::temp_dir().join(format!("zircon_editor_project_future_workspace_{unique}"));
+    let root = unique_mvp_project_root(format!("future-workspace-{unique}"));
     create_renderable_project(&root);
     let workspace = ProjectEditorWorkspace {
         layout_version: 1,
@@ -558,7 +573,7 @@ fn editor_project_document_ignores_unknown_workspace_format_with_diagnostic() {
         .replace("\"format_version\": 1", "\"format_version\": 999");
     fs::write(&workspace_path, source).unwrap();
 
-    let loaded = EditorProjectDocument::load_from_project(&project).unwrap();
+    let loaded = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
 
     assert!(loaded.editor_workspace.is_none());
     assert_eq!(loaded.workspace_restore_diagnostics.len(), 1);
@@ -577,18 +592,32 @@ fn editor_project_document_loads_from_the_active_generation_without_reopening_ma
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let root = std::env::temp_dir().join(format!("zircon_editor_generation_{unique}"));
+    let root = unique_mvp_project_root(format!("generation-{unique}"));
     create_renderable_project(&root);
     let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
     EditorProjectDocument::save_to_project(&project, &world, None).unwrap();
     fs::remove_file(root.join("zircon-project.toml")).unwrap();
 
-    let loaded = EditorProjectDocument::load_from_project(&project).unwrap();
+    let loaded = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
 
     assert_eq!(loaded.manifest.name, project.manifest().name);
     assert_eq!(loaded.world.nodes().len(), world.nodes().len());
     let _ = fs::remove_dir_all(&root);
+}
+
+fn unique_mvp_project_root(label: impl AsRef<str>) -> PathBuf {
+    let executable = std::env::current_exe().expect("locate the F3 test executable");
+    let binary_directory = executable
+        .parent()
+        .expect("F3 test executable must have a parent directory");
+    let binary_directory = ProjectPaths::resolve_existing(binary_directory)
+        .expect("resolve the F3 test binary directory");
+
+    binary_directory
+        .operation_path()
+        .join("zircon-mvp-fixtures")
+        .join(label.as_ref())
 }
 
 fn create_renderable_project(root: &Path) {

@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
-    GeometryPhaseInput, MeshPhaseInput, RenderMeshSnapshot, RenderPhaseMeshSource,
-    RenderPhaseQueue, RenderQueueValue, build_mesh_phase_queue,
+    build_mesh_phase_queue, GeometryPhaseInput, MeshPhaseInput, RenderMeshSnapshot,
+    RenderPhaseMeshSource, RenderPhaseQueue, RenderQueueValue,
 };
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::types::ViewportRenderFrame;
@@ -227,7 +227,7 @@ mod tests {
     use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
     use crate::graphics::ViewportRenderFrame;
 
-    use super::{MaterialPhaseSortOffsets, phase_ordered_meshes_with_material_offsets};
+    use super::{phase_ordered_meshes_with_material_offsets, MaterialPhaseSortOffsets};
 
     #[test]
     fn phase_ordering_indexes_extract_inputs_before_queue_projection() {

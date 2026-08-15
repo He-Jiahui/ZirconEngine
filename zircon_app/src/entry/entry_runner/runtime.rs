@@ -3,11 +3,13 @@ use std::{
     error::Error,
     ffi::OsString,
     fmt::{self, Display, Formatter},
+    io::Write,
+    num::NonZeroU64,
     path::{Path, PathBuf},
 };
 
 use winit::event_loop::EventLoop;
-use zircon_runtime::asset::project::ProjectPaths;
+use zircon_runtime::asset::project::{ProjectPaths, ResolvedProjectPath, PROJECT_MANIFEST_FILE};
 use zircon_runtime::core::framework::window::{
     WindowDescriptor, WindowExitCondition, WindowLifecyclePolicy,
 };
@@ -17,16 +19,97 @@ use super::super::runtime_entry_app::{
     RuntimeEntryApp, RuntimeEntryAppConfig, RuntimeEntryAppFailureState,
 };
 use super::super::runtime_library::{LoadedRuntime, RuntimeSession, RuntimeWakeRegistration};
-use super::EntryRunner;
-use super::diagnostic_log_args::parse_diagnostic_log_startup_args;
 use super::runtime_session_args::{
-    RUNTIME_SESSION_STARTUP_HELP, RuntimeSessionProfile, invalid_runtime_project_root_error,
-    missing_runtime_project_manifest_error, parse_runtime_session_startup_args,
-    unknown_runtime_argument_error,
+    invalid_runtime_project_root_error, missing_runtime_project_manifest_error,
+    parse_runtime_session_startup_args, play_startup_requires_project_error,
+    unknown_runtime_argument_error, RuntimeSessionProfile, RUNTIME_SESSION_STARTUP_HELP,
 };
+use super::EntryRunner;
+use crate::entry::cli::parse_diagnostic_log_startup_args;
 
 const RUNTIME_EXIT_AFTER_FIRST_FRAME_ENV: &str = "ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME";
+const RUNTIME_EXIT_AFTER_PRESENTED_FRAMES_ENV: &str = "ZIRCON_RUNTIME_EXIT_AFTER_PRESENTED_FRAMES";
 const RUNTIME_FRAME_CAPTURE_PNG_ENV: &str = "ZIRCON_RUNTIME_CAPTURE_FRAME_PNG";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum PlayStartupReportPhase {
+    Starting,
+    Ready,
+    StartFailed,
+    Terminal,
+}
+
+impl PlayStartupReportPhase {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Starting => "starting",
+            Self::Ready => "ready",
+            Self::StartFailed => "start-failed",
+            Self::Terminal => "terminal",
+        }
+    }
+}
+
+/// A typed Play report outlet carried by the existing bounded child-output pump.
+///
+/// The outlet name remains logical so it can be promoted to a native transport without changing
+/// the runtime startup ABI. Each report is emitted as one newline-delimited, machine-readable
+/// record on stdout; the editor owns process output transport and lifecycle cancellation.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct RuntimePlayStartupReporter {
+    outlet: String,
+}
+
+impl RuntimePlayStartupReporter {
+    fn new(outlet: impl Into<String>) -> Self {
+        Self {
+            outlet: outlet.into(),
+        }
+    }
+
+    fn emit(
+        &self,
+        phase: PlayStartupReportPhase,
+        detail: impl AsRef<str>,
+    ) -> Result<(), RuntimeStartupExecutionError> {
+        let record = play_startup_report_record(&self.outlet, phase, detail.as_ref());
+        std::io::stdout()
+            .lock()
+            .write_all(record.as_bytes())
+            .map_err(|error| {
+                runtime_startup_execution_error(
+                    "runtime_play_report",
+                    self.outlet.as_str(),
+                    format!("failed to write Play startup report: {error}"),
+                    "ensure the editor-owned runtime output channel is writable before starting Play",
+                )
+            })
+    }
+}
+
+fn play_startup_report_record(outlet: &str, phase: PlayStartupReportPhase, detail: &str) -> String {
+    format!(
+        "zircon_play_report outlet={outlet} phase={} detail={}\n",
+        phase.as_str(),
+        sanitize_play_report_detail(detail),
+    )
+}
+
+fn sanitize_play_report_detail(detail: &str) -> String {
+    detail.replace('\r', " ").replace('\n', " ")
+}
+
+fn report_play_startup(
+    reporter: Option<&RuntimePlayStartupReporter>,
+    phase: PlayStartupReportPhase,
+    detail: impl AsRef<str>,
+) -> Result<(), Box<dyn Error>> {
+    reporter
+        .map(|reporter| reporter.emit(phase, detail))
+        .transpose()
+        .map(|_| ())
+        .map_err(|error| Box::new(error) as Box<dyn Error>)
+}
 
 #[derive(Debug)]
 struct RuntimeStartupExecutionError {
@@ -64,13 +147,25 @@ fn runtime_startup_execution_error(
 
 fn runtime_session_startup_request(
     profile: RuntimeSessionProfile,
-    project_root: Option<&Path>,
+    project_root: Option<&ResolvedProjectPath>,
 ) -> String {
     let project_root = project_root
-        .map(ProjectPaths::display_path)
+        .map(ResolvedProjectPath::display_path)
         .map(|project_root| project_root.display().to_string())
         .unwrap_or_else(|| "<none>".to_owned());
     format!("profile={} project={project_root}", profile.as_str())
+}
+
+/// Runtime ABI calls require the operation path, but their type-erased diagnostics must not
+/// expose a Windows verbatim path outside the resolver boundary.
+fn runtime_project_diagnostic_cause(
+    project_root: Option<&ResolvedProjectPath>,
+    source: impl Display,
+) -> String {
+    match project_root {
+        Some(root) => root.display_diagnostic(source),
+        None => source.to_string(),
+    }
 }
 
 /// Resolves the command-line project root to the one physical identity used by the runtime.
@@ -79,16 +174,27 @@ fn runtime_session_startup_request(
 /// boundary instead of allowing downstream runtime services to resolve them independently.
 fn resolve_runtime_project_root(
     project_root: Option<&Path>,
-) -> Result<Option<PathBuf>, Box<dyn Error>> {
+) -> Result<Option<ResolvedProjectPath>, Box<dyn Error>> {
     let Some(requested_root) = project_root else {
         return Ok(None);
     };
-    let project_root = ProjectPaths::resolve_existing_path(requested_root)
+    let project_root = ProjectPaths::resolve_existing(requested_root)
         .map_err(|_| invalid_runtime_project_root_error(requested_root))?;
-    if !project_root.is_dir() {
+    let project_root = if ProjectPaths::is_project_manifest_file(project_root.operation_path()) {
+        project_root
+            .parent()
+            .ok_or_else(|| invalid_runtime_project_root_error(requested_root))?
+    } else {
+        project_root
+    };
+    if !project_root.operation_path().is_dir() {
         return Err(invalid_runtime_project_root_error(requested_root).into());
     }
-    if !project_root.join("zircon-project.toml").is_file() {
+    if !project_root
+        .operation_path()
+        .join(PROJECT_MANIFEST_FILE)
+        .is_file()
+    {
         return Err(missing_runtime_project_manifest_error(requested_root).into());
     }
     Ok(Some(project_root))
@@ -96,24 +202,30 @@ fn resolve_runtime_project_root(
 
 fn runtime_library_startup_error(
     profile: RuntimeSessionProfile,
-    project_root: Option<&Path>,
+    project_root: Option<&ResolvedProjectPath>,
     source: impl Display,
 ) -> RuntimeStartupExecutionError {
     runtime_startup_execution_error(
         "runtime_library",
         runtime_session_startup_request(profile, project_root),
-        format!("runtime library loading failed: {source}"),
-        "stage a compatible runtime library beside zircon_runtime or configure ZIRCON_RUNTIME_LIBRARY with an absolute path",
+        format!(
+            "runtime library loading failed: {}",
+            runtime_project_diagnostic_cause(project_root, source)
+        ),
+        "stage a compatible runtime library beside zircon_runtime or configure ZIRCON_RUNTIME_LIBRARY with a path relative to the product executable or an absolute path",
     )
 }
 
-fn runtime_frame_capture_path_from_env() -> Result<Option<PathBuf>, RuntimeStartupExecutionError> {
-    runtime_frame_capture_path_from_value(env::var_os(RUNTIME_FRAME_CAPTURE_PNG_ENV))
+fn runtime_frame_capture_path_from_env(
+    project_root: Option<&ResolvedProjectPath>,
+) -> Result<Option<ResolvedProjectPath>, RuntimeStartupExecutionError> {
+    runtime_frame_capture_path_from_value(env::var_os(RUNTIME_FRAME_CAPTURE_PNG_ENV), project_root)
 }
 
 fn runtime_frame_capture_path_from_value(
     value: Option<OsString>,
-) -> Result<Option<PathBuf>, RuntimeStartupExecutionError> {
+    project_root: Option<&ResolvedProjectPath>,
+) -> Result<Option<ResolvedProjectPath>, RuntimeStartupExecutionError> {
     let Some(value) = value else {
         return Ok(None);
     };
@@ -122,34 +234,73 @@ fn runtime_frame_capture_path_from_value(
             "runtime_app",
             RUNTIME_FRAME_CAPTURE_PNG_ENV,
             "first-frame PNG capture path is empty or blank",
-            "set ZIRCON_RUNTIME_CAPTURE_FRAME_PNG to a writable absolute PNG path or unset it",
+            "set ZIRCON_RUNTIME_CAPTURE_FRAME_PNG to a writable PNG path or unset it",
         ));
     }
     let path = PathBuf::from(value);
-    if !path.is_absolute() {
-        return Err(runtime_startup_execution_error(
+    let resolved = match project_root {
+        Some(project_root) if !path.is_absolute() => {
+            ProjectPaths::resolve_path_from(project_root, &path)
+        }
+        _ => ProjectPaths::resolve_path(&path),
+    };
+    resolved.map(Some).map_err(|error| {
+        runtime_startup_execution_error(
             "runtime_app",
             format!(
                 "{RUNTIME_FRAME_CAPTURE_PNG_ENV}={}",
                 ProjectPaths::display_path(&path).display()
             ),
-            "first-frame PNG capture path must be absolute",
-            "set ZIRCON_RUNTIME_CAPTURE_FRAME_PNG to a writable absolute PNG path or unset it",
-        ));
+            format!("could not resolve first-frame PNG capture path: {error}"),
+            "set ZIRCON_RUNTIME_CAPTURE_FRAME_PNG to a writable PNG path or unset it",
+        )
+    })
+}
+
+fn runtime_presented_frame_exit_limit_from_env(
+) -> Result<Option<NonZeroU64>, RuntimeStartupExecutionError> {
+    runtime_presented_frame_exit_limit_from_values(
+        env::var_os(RUNTIME_EXIT_AFTER_FIRST_FRAME_ENV)
+            .as_deref()
+            .and_then(|value| value.to_str()),
+        env::var_os(RUNTIME_EXIT_AFTER_PRESENTED_FRAMES_ENV),
+    )
+}
+
+fn runtime_presented_frame_exit_limit_from_values(
+    first_frame_exit: Option<&str>,
+    value: Option<OsString>,
+) -> Result<Option<NonZeroU64>, RuntimeStartupExecutionError> {
+    if runtime_exit_after_first_frame_enabled_value(first_frame_exit) {
+        return Ok(Some(NonZeroU64::MIN));
     }
-    ProjectPaths::resolve_root(&path)
-        .map(Some)
-        .map_err(|error| {
-            runtime_startup_execution_error(
-                "runtime_app",
-                format!(
-                    "{RUNTIME_FRAME_CAPTURE_PNG_ENV}={}",
-                    ProjectPaths::display_path(&path).display()
-                ),
-                format!("could not resolve first-frame PNG capture path: {error}"),
-                "set ZIRCON_RUNTIME_CAPTURE_FRAME_PNG to a writable absolute PNG path or unset it",
-            )
-        })
+    runtime_presented_frame_exit_limit_from_value(value)
+}
+
+fn runtime_presented_frame_exit_limit_from_value(
+    value: Option<OsString>,
+) -> Result<Option<NonZeroU64>, RuntimeStartupExecutionError> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
+    let Some(value) = value.to_str() else {
+        return Err(runtime_startup_execution_error(
+            "runtime_app",
+            RUNTIME_EXIT_AFTER_PRESENTED_FRAMES_ENV,
+            "presented-frame exit limit is not valid UTF-8",
+            "set ZIRCON_RUNTIME_EXIT_AFTER_PRESENTED_FRAMES to a positive decimal frame count or unset it",
+        ));
+    };
+    let limit = value.trim().parse::<u64>().ok().and_then(NonZeroU64::new);
+    limit.ok_or_else(|| {
+        runtime_startup_execution_error(
+            "runtime_app",
+            format!("{RUNTIME_EXIT_AFTER_PRESENTED_FRAMES_ENV}={value}"),
+            "presented-frame exit limit must be a positive decimal frame count",
+            "set ZIRCON_RUNTIME_EXIT_AFTER_PRESENTED_FRAMES to a positive decimal frame count or unset it",
+        )
+    })
+    .map(Some)
 }
 
 fn runtime_process_teardown_complete_diagnostic() -> &'static str {
@@ -219,9 +370,65 @@ impl EntryRunner {
             )
             .into());
         }
+        if runtime_session_args.project_root.is_none() {
+            if runtime_session_args.play_scene.is_some() {
+                return Err(play_startup_requires_project_error("--play-scene").into());
+            }
+            if runtime_session_args.play_report_pipe.is_some() {
+                return Err(play_startup_requires_project_error("--play-report-pipe").into());
+            }
+        }
+        let play_reporter = runtime_session_args
+            .play_report_pipe
+            .as_deref()
+            .map(RuntimePlayStartupReporter::new);
         let project_root =
-            resolve_runtime_project_root(runtime_session_args.project_root.as_deref())?;
-        let first_frame_capture_path = runtime_frame_capture_path_from_env()?;
+            match resolve_runtime_project_root(runtime_session_args.project_root.as_deref()) {
+                Ok(project_root) => project_root,
+                Err(error) => {
+                    report_play_startup(
+                        play_reporter.as_ref(),
+                        PlayStartupReportPhase::StartFailed,
+                        "stage=project-root-resolve",
+                    )?;
+                    return Err(error);
+                }
+            };
+        let first_frame_capture_path =
+            match runtime_frame_capture_path_from_env(project_root.as_ref()) {
+                Ok(path) => path,
+                Err(error) => {
+                    report_play_startup(
+                        play_reporter.as_ref(),
+                        PlayStartupReportPhase::StartFailed,
+                        "stage=frame-capture-path-resolve",
+                    )?;
+                    return Err(error.into());
+                }
+            };
+        let presented_frame_exit_limit = match runtime_presented_frame_exit_limit_from_env() {
+            Ok(limit) => limit,
+            Err(error) => {
+                report_play_startup(
+                    play_reporter.as_ref(),
+                    PlayStartupReportPhase::StartFailed,
+                    "stage=presented-frame-exit-limit-resolve",
+                )?;
+                return Err(error.into());
+            }
+        };
+        report_play_startup(
+            play_reporter.as_ref(),
+            PlayStartupReportPhase::Starting,
+            format!(
+                "profile={} scene={}",
+                runtime_session_args.profile.as_str(),
+                runtime_session_args.play_scene.as_ref().map_or(
+                    "<default>",
+                    zircon_runtime_interface::project::RelPath::as_str
+                ),
+            ),
+        )?;
         zircon_runtime::diagnostic_log::initialize_unity_process_log_with_config(
             "runtime",
             diagnostic_args.filter,
@@ -232,28 +439,50 @@ impl EntryRunner {
         let profile_capture =
             zircon_runtime::core::diagnostics::profiling::start_capture_from_env("runtime");
         zircon_runtime::diagnostic_log::write_log("runtime_app", "runtime_library_load_start");
-        let runtime = LoadedRuntime::load_default().map_err(|error| {
+        let runtime = match LoadedRuntime::load_default().map_err(|error| {
             runtime_library_startup_error(
                 runtime_session_args.profile,
-                project_root.as_deref(),
+                project_root.as_ref(),
                 error,
             )
-        })?;
+        }) {
+            Ok(runtime) => runtime,
+            Err(error) => {
+                report_play_startup(
+                    play_reporter.as_ref(),
+                    PlayStartupReportPhase::StartFailed,
+                    "stage=runtime-library-load",
+                )?;
+                return Err(error.into());
+            }
+        };
         zircon_runtime::diagnostic_log::write_log("runtime_app", "runtime_library_load_done");
-        let event_loop = EventLoop::new().map_err(|error| {
+        let event_loop = match EventLoop::new().map_err(|error| {
             runtime_startup_execution_error(
                 "runtime_event_loop",
                 "desktop_event_loop",
                 format!("event loop creation failed: {error}"),
                 "verify the desktop session can create an event loop and retry zircon_runtime",
             )
-        })?;
+        }) {
+            Ok(event_loop) => event_loop,
+            Err(error) => {
+                report_play_startup(
+                    play_reporter.as_ref(),
+                    PlayStartupReportPhase::StartFailed,
+                    "stage=event-loop-create",
+                )?;
+                return Err(error.into());
+            }
+        };
         let wake_registration = RuntimeWakeRegistration::register(event_loop.create_proxy());
         zircon_runtime::diagnostic_log::write_log("runtime_app", "runtime_session_create_start");
-        let session = RuntimeSession::create_with_profile_and_project(
+        let session = match RuntimeSession::create_with_profile_and_project(
             runtime,
             runtime_session_args.profile.as_bytes(),
-            project_root.as_deref(),
+            project_root.as_ref().map(ResolvedProjectPath::operation_path),
+            runtime_session_args.play_scene.as_ref(),
+            runtime_session_args.play_report_pipe.as_deref(),
             Some(wake_registration),
         )
         .map_err(|error| {
@@ -261,20 +490,39 @@ impl EntryRunner {
                 "runtime_session",
                 runtime_session_startup_request(
                     runtime_session_args.profile,
-                    project_root.as_deref(),
+                    project_root.as_ref(),
                 ),
-                format!("runtime session creation failed: {error}"),
+                format!(
+                    "runtime session creation failed: {}",
+                    runtime_project_diagnostic_cause(project_root.as_ref(), error)
+                ),
                 "verify the selected profile, project, and runtime library ABI before retrying zircon_runtime",
             )
-        })?;
+        }) {
+            Ok(session) => session,
+            Err(error) => {
+                report_play_startup(
+                    play_reporter.as_ref(),
+                    PlayStartupReportPhase::StartFailed,
+                    "stage=runtime-session-create",
+                )?;
+                return Err(error.into());
+            }
+        };
         let session_teardown_failure = session.teardown_failure_state();
         zircon_runtime::diagnostic_log::write_log("runtime_app", "runtime_session_create_done");
-        let host_config = runtime_entry_app_config_for_session_profile_with_first_frame_exit(
-            runtime_session_args.profile,
-            runtime_exit_after_first_frame_enabled(),
-        )
-        .with_persisted_scene_diagnostics(project_root.is_some())
-        .with_first_frame_capture_path(first_frame_capture_path);
+        report_play_startup(
+            play_reporter.as_ref(),
+            PlayStartupReportPhase::Ready,
+            "stage=runtime-session-create",
+        )?;
+        let host_config =
+            runtime_entry_app_config_for_session_profile_with_presented_frame_exit_limit(
+                runtime_session_args.profile,
+                presented_frame_exit_limit,
+            )
+            .with_persisted_scene_diagnostics(project_root.is_some())
+            .with_first_frame_capture_path(first_frame_capture_path);
         let failure_state = RuntimeEntryAppFailureState::default();
         let app = RuntimeEntryApp::new(session, host_config, failure_state.clone());
         let result = event_loop.run_app(app);
@@ -302,18 +550,31 @@ impl EntryRunner {
                 "runtime_session",
                 runtime_session_startup_request(
                     runtime_session_args.profile,
-                    project_root.as_deref(),
+                    project_root.as_ref(),
                 ),
-                format!("runtime session teardown failed: {error}"),
+                format!(
+                    "runtime session teardown failed: {}",
+                    runtime_project_diagnostic_cause(project_root.as_ref(), error)
+                ),
                 "verify the runtime surface and session lifecycle, then restart zircon_runtime",
             )) as Box<dyn Error>
         });
-        finish_runtime_process(
-            runtime_session_startup_request(runtime_session_args.profile, project_root.as_deref()),
+        let terminal_result = finish_runtime_process(
+            runtime_session_startup_request(runtime_session_args.profile, project_root.as_ref()),
             event_loop_failure,
             runtime_app_failure,
             runtime_session_failure,
+        );
+        report_play_startup(
+            play_reporter.as_ref(),
+            PlayStartupReportPhase::Terminal,
+            if terminal_result.is_ok() {
+                "status=ok"
+            } else {
+                "status=failed"
+            },
         )?;
+        terminal_result?;
         zircon_runtime::diagnostic_log::write_log(
             "runtime_app",
             runtime_process_teardown_complete_diagnostic(),
@@ -326,15 +587,15 @@ impl EntryRunner {
 fn runtime_entry_app_config_for_session_profile(
     profile: RuntimeSessionProfile,
 ) -> RuntimeEntryAppConfig {
-    runtime_entry_app_config_for_session_profile_with_first_frame_exit(
+    runtime_entry_app_config_for_session_profile_with_presented_frame_exit_limit(
         profile,
-        runtime_exit_after_first_frame_enabled(),
+        runtime_exit_after_first_frame_enabled().then_some(NonZeroU64::MIN),
     )
 }
 
-fn runtime_entry_app_config_for_session_profile_with_first_frame_exit(
+fn runtime_entry_app_config_for_session_profile_with_presented_frame_exit_limit(
     profile: RuntimeSessionProfile,
-    exit_after_first_frame: bool,
+    exit_after_presented_frames: Option<NonZeroU64>,
 ) -> RuntimeEntryAppConfig {
     let config = match profile {
         RuntimeSessionProfile::Runtime | RuntimeSessionProfile::RuntimePipelined => {
@@ -353,8 +614,8 @@ fn runtime_entry_app_config_for_session_profile_with_first_frame_exit(
                 )
         }
     };
-    if exit_after_first_frame {
-        config.with_exit_after_first_presented_frame(true)
+    if let Some(limit) = exit_after_presented_frames {
+        config.with_exit_after_presented_frames(limit)
     } else {
         config
     }
@@ -376,7 +637,64 @@ fn runtime_exit_after_first_frame_enabled_value(value: Option<&str>) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::num::NonZeroU64;
+
     use super::*;
+
+    #[test]
+    fn f0_runtime_project_fixture_roots_follow_the_resolved_test_binary_directory() {
+        let root = runtime_mvp_fixture_root("physical-root");
+        let executable = std::env::current_exe().expect("locate the F0 runtime test executable");
+        let binary_directory = executable
+            .parent()
+            .expect("F0 runtime test executable must have a parent directory");
+        let resolved_binary_directory = ProjectPaths::resolve_existing(binary_directory)
+            .expect("resolve F0 test binary directory");
+
+        assert!(
+            root.starts_with(resolved_binary_directory.operation_path()),
+            "F0 runtime fixture output must retain the test binary's physical output root"
+        );
+    }
+
+    fn runtime_mvp_fixture_root(label: impl AsRef<str>) -> PathBuf {
+        let executable = std::env::current_exe().expect("locate the F0 runtime test executable");
+        let binary_directory = executable
+            .parent()
+            .expect("F0 runtime test executable must have a parent directory");
+        let binary_directory = ProjectPaths::resolve_existing(binary_directory)
+            .expect("resolve the F0 runtime test binary directory");
+
+        binary_directory
+            .operation_path()
+            .join("zircon-mvp-fixtures")
+            .join(label.as_ref())
+    }
+
+    #[test]
+    fn play_startup_report_records_typed_ordered_phases_without_newlines() {
+        assert_eq!(
+            play_startup_report_record(
+                "zircon-play-report-42",
+                PlayStartupReportPhase::Starting,
+                "profile=runtime\nscene=.zircon/play/42/play-scene.zrscene.json",
+            ),
+            "zircon_play_report outlet=zircon-play-report-42 phase=starting detail=profile=runtime scene=.zircon/play/42/play-scene.zrscene.json\n"
+        );
+        assert_eq!(PlayStartupReportPhase::Ready.as_str(), "ready");
+        assert_eq!(PlayStartupReportPhase::StartFailed.as_str(), "start-failed");
+        assert_eq!(PlayStartupReportPhase::Terminal.as_str(), "terminal");
+    }
+
+    #[test]
+    fn play_startup_reporting_without_an_outlet_is_a_successful_no_op() {
+        assert!(report_play_startup(
+            None,
+            PlayStartupReportPhase::Starting,
+            "profile=runtime scene=<default>",
+        )
+        .is_ok());
+    }
 
     #[test]
     fn runtime_session_profile_selects_default_game_host_config() {
@@ -384,11 +702,9 @@ mod tests {
 
         assert!(config.window_descriptor().primary_window.is_some());
         assert_eq!(config.event_loop_policy(), EventLoopPolicy::Game);
-        assert!(
-            config
-                .window_lifecycle_policy()
-                .should_exit_after_primary_close()
-        );
+        assert!(config
+            .window_lifecycle_policy()
+            .should_exit_after_primary_close());
     }
 
     #[test]
@@ -429,9 +745,9 @@ mod tests {
 
     #[test]
     fn first_frame_exit_flag_projects_into_runtime_host_config() {
-        let config = runtime_entry_app_config_for_session_profile_with_first_frame_exit(
+        let config = runtime_entry_app_config_for_session_profile_with_presented_frame_exit_limit(
             RuntimeSessionProfile::Runtime,
-            true,
+            Some(NonZeroU64::MIN),
         );
 
         assert!(config.exit_after_first_presented_frame());
@@ -446,6 +762,47 @@ mod tests {
         assert!(runtime_exit_after_first_frame_enabled_value(Some("1")));
         assert!(runtime_exit_after_first_frame_enabled_value(Some("TRUE")));
         assert!(runtime_exit_after_first_frame_enabled_value(Some("yes")));
+    }
+
+    #[test]
+    fn presented_frame_exit_limit_accepts_only_a_positive_decimal_count() {
+        assert_eq!(
+            runtime_presented_frame_exit_limit_from_value(Some(OsString::from("120"))).unwrap(),
+            Some(NonZeroU64::new(120).unwrap())
+        );
+        assert_eq!(
+            runtime_presented_frame_exit_limit_from_value(None).unwrap(),
+            None
+        );
+        for value in ["", " ", "0", "-1", "one"] {
+            assert!(
+                runtime_presented_frame_exit_limit_from_value(Some(OsString::from(value))).is_err()
+            );
+        }
+    }
+
+    #[test]
+    fn first_frame_exit_setting_takes_precedence_over_the_multi_frame_value() {
+        assert_eq!(
+            runtime_presented_frame_exit_limit_from_values(
+                Some("true"),
+                Some(OsString::from("not-a-number")),
+            )
+            .unwrap(),
+            Some(NonZeroU64::MIN)
+        );
+    }
+
+    #[test]
+    fn presented_frame_exit_limit_projects_into_runtime_host_config() {
+        let limit = NonZeroU64::new(120).unwrap();
+        let config = runtime_entry_app_config_for_session_profile_with_presented_frame_exit_limit(
+            RuntimeSessionProfile::Runtime,
+            Some(limit),
+        );
+
+        assert_eq!(config.exit_after_presented_frames(), Some(limit));
+        assert!(!config.exit_after_first_presented_frame());
     }
 
     #[test]
@@ -465,15 +822,37 @@ mod tests {
 
     #[test]
     fn runtime_library_failure_uses_the_selected_session_request() {
+        let project_root = ProjectPaths::resolve_path(Path::new("C:/projects/basic"))
+            .expect("diagnostic project path should resolve");
         let error = runtime_library_startup_error(
             RuntimeSessionProfile::Dev,
-            Some(Path::new("C:/projects/basic")),
+            Some(&project_root),
             "runtime ABI version mismatch",
         );
 
         assert_eq!(
             error.to_string(),
-            "runtime startup diagnostic: component=runtime_library requested=profile=dev project=C:/projects/basic cause=runtime library loading failed: runtime ABI version mismatch recovery=stage a compatible runtime library beside zircon_runtime or configure ZIRCON_RUNTIME_LIBRARY with an absolute path"
+            format!(
+                "runtime startup diagnostic: component=runtime_library requested=profile=dev project={} cause=runtime library loading failed: runtime ABI version mismatch recovery=stage a compatible runtime library beside zircon_runtime or configure ZIRCON_RUNTIME_LIBRARY with a path relative to the product executable or an absolute path",
+                project_root.display_path().display()
+            )
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn runtime_session_diagnostic_uses_the_resolved_project_display_view() {
+        let project_root = ProjectPaths::resolve_path(r"\\?\C:\ZirconBuilds\stage\project")
+            .expect("Windows project root should resolve");
+        let operation_path = project_root.operation_path().display();
+
+        let diagnostic = project_root.display_diagnostic(format!(
+            "runtime project open failed at {operation_path}\\zircon-project.toml"
+        ));
+
+        assert_eq!(
+            diagnostic,
+            r"runtime project open failed at C:\ZirconBuilds\stage\project\zircon-project.toml"
         );
     }
 
@@ -492,8 +871,50 @@ mod tests {
 
         assert_eq!(
             resolved,
-            ProjectPaths::resolve_existing_path(&template_root).unwrap()
+            ProjectPaths::resolve_existing(&template_root).unwrap()
         );
+    }
+
+    #[test]
+    fn runtime_project_root_resolution_accepts_the_project_manifest_input() {
+        let template_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("templates")
+            .join("projects")
+            .join("renderable-empty");
+        let manifest = template_root.join(PROJECT_MANIFEST_FILE);
+
+        let resolved = resolve_runtime_project_root(Some(&manifest))
+            .unwrap()
+            .expect("a project manifest input must resolve to its project root");
+
+        assert_eq!(
+            resolved,
+            ProjectPaths::resolve_existing(&template_root).unwrap()
+        );
+    }
+
+    #[test]
+    fn runtime_project_root_resolution_keeps_a_manifest_named_directory_as_the_root() {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("system clock must be after the Unix epoch")
+            .as_nanos();
+        let location =
+            runtime_mvp_fixture_root(format!("project-root-{unique}-{}", std::process::id()));
+        let project_root = location.join(PROJECT_MANIFEST_FILE);
+        std::fs::create_dir_all(&project_root).unwrap();
+        std::fs::write(project_root.join(PROJECT_MANIFEST_FILE), "[project]\n").unwrap();
+
+        let resolved = resolve_runtime_project_root(Some(&project_root))
+            .unwrap()
+            .expect("a directory input must remain the project root regardless of its name");
+
+        assert_eq!(
+            resolved,
+            ProjectPaths::resolve_existing(&project_root).unwrap()
+        );
+        std::fs::remove_dir_all(location).unwrap();
     }
 
     #[cfg(windows)]
@@ -504,7 +925,7 @@ mod tests {
 
         assert_eq!(
             error.to_string(),
-            "runtime startup diagnostic: component=runtime_app argument=--project requested=C:zircon-project cause=project root is not an existing directory recovery=provide an existing project-root directory after --project"
+            "runtime startup diagnostic: component=runtime_app argument=--project requested=C:zircon-project cause=project input is not an existing directory or zircon-project.toml recovery=provide an existing project-root directory or zircon-project.toml after --project"
         );
     }
 
@@ -547,49 +968,61 @@ mod tests {
     }
 
     #[test]
-    fn runtime_first_frame_capture_path_accepts_an_absolute_environment_value() {
-        let path = std::path::absolute("runtime-first-frame.png").unwrap();
+    fn runtime_first_frame_capture_path_resolves_a_relative_environment_value() {
+        let path = PathBuf::from("captures/runtime-first-frame.png");
 
         assert_eq!(
-            runtime_frame_capture_path_from_value(Some(path.clone().into_os_string())).unwrap(),
-            Some(ProjectPaths::resolve_root(path).unwrap())
+            runtime_frame_capture_path_from_value(Some(path.clone().into_os_string()), None)
+                .unwrap(),
+            Some(ProjectPaths::resolve_path(&path).unwrap())
         );
     }
 
     #[test]
-    fn runtime_first_frame_capture_path_rejects_a_relative_environment_value() {
-        let error = runtime_frame_capture_path_from_value(Some(OsString::from(
-            "captures/runtime-first-frame.png",
-        )))
-        .expect_err("relative capture path must not depend on the process working directory");
+    fn runtime_first_frame_capture_path_resolves_relative_to_the_open_project_root() {
+        let project_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("templates")
+            .join("projects")
+            .join("renderable-empty");
+        let project_root = ProjectPaths::resolve_existing(project_root).unwrap();
+        let path = PathBuf::from("captures/runtime-first-frame.png");
 
         assert_eq!(
-            error.to_string(),
-            "runtime startup diagnostic: component=runtime_app requested=ZIRCON_RUNTIME_CAPTURE_FRAME_PNG=captures/runtime-first-frame.png cause=first-frame PNG capture path must be absolute recovery=set ZIRCON_RUNTIME_CAPTURE_FRAME_PNG to a writable absolute PNG path or unset it"
+            runtime_frame_capture_path_from_value(
+                Some(path.clone().into_os_string()),
+                Some(&project_root),
+            )
+            .unwrap(),
+            Some(ProjectPaths::resolve_path_from(&project_root, &path).unwrap())
         );
     }
 
-    #[cfg(windows)]
     #[test]
-    fn runtime_first_frame_capture_path_resolves_windows_absolute_path_semantics() {
+    fn runtime_first_frame_capture_path_resolves_an_absolute_environment_value() {
         for absolute in [
             PathBuf::from(r"C:\zircon\runtime-first-frame.png"),
             PathBuf::from(r"\\server\share\runtime-first-frame.png"),
         ] {
             assert_eq!(
-                runtime_frame_capture_path_from_value(Some(absolute.clone().into_os_string(),))
-                    .unwrap(),
-                Some(ProjectPaths::resolve_root(absolute).unwrap())
+                runtime_frame_capture_path_from_value(
+                    Some(absolute.clone().into_os_string(),),
+                    None,
+                )
+                .unwrap(),
+                Some(ProjectPaths::resolve_path(absolute).unwrap())
             );
         }
+    }
 
-        for relative in [
-            OsString::from(r"C:runtime-first-frame.png"),
-            OsString::from(r"\runtime-first-frame.png"),
-            OsString::from(r"/runtime-first-frame.png"),
-        ] {
-            assert!(runtime_frame_capture_path_from_value(Some(relative)).is_err());
-        }
+    #[cfg(windows)]
+    #[test]
+    fn runtime_first_frame_capture_path_rejects_windows_drive_relative_input() {
+        assert!(runtime_frame_capture_path_from_value(
+            Some(OsString::from(r"C:runtime-first-frame.png",)),
+            None,
+        )
+        .is_err());
     }
 
     #[cfg(unix)]
@@ -600,8 +1033,8 @@ mod tests {
         let value = OsString::from_vec(vec![b'/', b't', b'm', b'p', b'/', 0xFF]);
 
         assert_eq!(
-            runtime_frame_capture_path_from_value(Some(value.clone())).unwrap(),
-            Some(ProjectPaths::resolve_root(PathBuf::from(value)).unwrap())
+            runtime_frame_capture_path_from_value(Some(value.clone()), None).unwrap(),
+            Some(ProjectPaths::resolve_path(PathBuf::from(value)).unwrap())
         );
     }
 
@@ -612,11 +1045,11 @@ mod tests {
             OsString::from(" "),
             OsString::from("\u{2003}"),
         ] {
-            let error = runtime_frame_capture_path_from_value(Some(value)).unwrap_err();
+            let error = runtime_frame_capture_path_from_value(Some(value), None).unwrap_err();
 
             assert_eq!(
                 error.to_string(),
-                "runtime startup diagnostic: component=runtime_app requested=ZIRCON_RUNTIME_CAPTURE_FRAME_PNG cause=first-frame PNG capture path is empty or blank recovery=set ZIRCON_RUNTIME_CAPTURE_FRAME_PNG to a writable absolute PNG path or unset it"
+                "runtime startup diagnostic: component=runtime_app requested=ZIRCON_RUNTIME_CAPTURE_FRAME_PNG cause=first-frame PNG capture path is empty or blank recovery=set ZIRCON_RUNTIME_CAPTURE_FRAME_PNG to a writable PNG path or unset it"
             );
         }
     }
@@ -642,10 +1075,8 @@ mod tests {
 
     #[test]
     fn missing_runtime_project_root_emits_actionable_startup_diagnostic() {
-        let missing_root = std::env::temp_dir().join(format!(
-            "zircon-runtime-missing-project-{}",
-            std::process::id()
-        ));
+        let missing_root =
+            runtime_mvp_fixture_root(format!("missing-project-{}", std::process::id()));
         let requested = missing_root.display().to_string();
         let error =
             EntryRunner::run_runtime_with_args(["--project".to_string(), requested.clone()])
@@ -654,17 +1085,15 @@ mod tests {
         assert_eq!(
             error.to_string(),
             format!(
-                "runtime startup diagnostic: component=runtime_app argument=--project requested={requested} cause=project root is not an existing directory recovery=provide an existing project-root directory after --project"
+                "runtime startup diagnostic: component=runtime_app argument=--project requested={requested} cause=project input is not an existing directory or zircon-project.toml recovery=provide an existing project-root directory or zircon-project.toml after --project"
             )
         );
     }
 
     #[test]
     fn project_root_without_manifest_emits_actionable_startup_diagnostic() {
-        let project_root = std::env::temp_dir().join(format!(
-            "zircon-runtime-project-without-manifest-{}",
-            std::process::id()
-        ));
+        let project_root =
+            runtime_mvp_fixture_root(format!("project-without-manifest-{}", std::process::id()));
         std::fs::create_dir_all(&project_root).unwrap();
         let requested = project_root.display().to_string();
         let result =

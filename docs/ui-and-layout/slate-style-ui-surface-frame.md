@@ -72,7 +72,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs
   - zircon_editor/src/ui/retained_host/app/invalidation.rs
   - zircon_editor/src/ui/retained_host/app/viewport_image_redraw.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access/
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
   - zircon_editor/src/ui/layouts/views/preview_images.rs
@@ -162,7 +162,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/app/invalidation.rs
   - zircon_editor/src/ui/retained_host/app/viewport_image_redraw.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access/
   - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
   - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
@@ -320,6 +320,8 @@ The shared helpers define the only allowed predicates for node participation:
 2. `UiRenderExtract` from the arranged tree, not from a separate coordinate walk.
 3. `UiHitTestGrid` from the arranged tree, filtered by visibility, enabled state, input policy, clip frame, and z/paint order.
 
+`UiSurface::rebuild_authored_frames(root_size)` is the initial publication path for a retained surface whose owner has already authored absolute frames in `UiTreeNode::layout_cache`, such as a small editor pointer surface projected from committed paint geometry. It derives arranged/render/hit output from those frames, records the current root size, initializes the dirty-node index, and consumes the construction-time dirty state so the first later `rebuild_dirty(root_size)` does not widen solely because its baseline was unknown. A later geometry patch must express the new leaf geometry through layout constraints and parent-local position, mark that node with `UiInvalidationReason::Layout`, and let incremental layout publish the new frame; callers must not overwrite `layout_cache.frame` before the dirty rebuild because that would erase the old/new geometry delta used by arranged, hit-grid, render-damage, and projected-hit patches. The parent `LayoutBoundary` remains responsible for deciding whether that leaf update stays local or propagates through a content-driven container.
+
 Linear layout treats `Collapsed` as non-participating, matching Slate's collapsed semantics: collapsed children do not consume main-axis extent and do not create gaps between neighboring visible children. Template-authored `stretch = "Stretch"` axes are recorded on `UiTreeNode` so a node that explicitly asks to fill remaining linear space is not mistaken for an implicit content-sized leaf.
 
 M1.3 closes the shared slot/panel geometry layer rather than leaving panel behavior in editor host code. `UiSlotSchema` remains the component authoring contract for named component content slots, while runtime layout uses parent-owned `UiSlot` records for child placement. The covered runtime slot fields are `padding`, `alignment`, `linear_sizing`, `canvas_placement`, `grid_placement`, `order`, `z_order`, and `dirty_revision`. The container-to-slot mapping is now: `Free -> Free`, `Container -> Container`, `Overlay -> Overlay`, `HorizontalBox`/`VerticalBox -> Linear`, `WrapBox`/`FlowBox -> Flow`, `GridBox -> Grid`, and `ScrollableBox -> Scrollable`.
@@ -328,7 +330,7 @@ The shared panel inventory is: Free/Container preserve node anchor, pivot, and p
 
 The M3 layout-engine interface preflight records this split in `UiLayoutEngineFamily` and `UiLayoutEngineSelectionReport`: flex/grid/block-compatible families may route to a future Taffy-backed engine, but Free, Container, Overlay, Scrollable, and virtualized-list behavior remains Zircon-owned unless a later runtime slice proves equivalent `UiSurfaceFrame` output. This keeps Bevy-style layout-engine adoption from bypassing the Slate-style arranged-frame, render, and hit-test authority documented here.
 
-The hit grid stores spatial cells and entries sorted by paint priority. Querying a point through `hit_test_surface_frame(...)` returns `UiHitTestResult` with the top node, front-to-back stack, and `UiHitPath`. Editor adapters should use this runtime helper for submitted frames instead of rebuilding a local hit index around each host control family.
+The hit grid stores spatial cells and entries sorted by paint priority. Each newly built entry also snapshots its effective input policy and bubble route from the same arranged-tree generation, so pointer queries do not rescan the arranged node vector or ancestor chain; older serialized entries without those defaulted fields retain the arranged-tree fallback. Querying a point through `hit_test_surface_frame(...)` returns `UiHitTestResult` with the top node, top hit-grid entry index, front-to-back stack, and `UiHitPath`; `top_entry(...)` resolves cached control metadata without another arranged-tree lookup. Editor adapters should use these runtime helpers for submitted frames instead of rebuilding a local hit index around each host control family.
 
 `UiHitTestQuery` extends the plain point query for the Slate custom-hit path slice. `cursor_radius` mirrors Unreal `FHittestGrid::GetBubblePath(... CursorRadius ...)`: exact point hits are considered first, and radius-only candidates are a fallback ordered by distance while still respecting z/paint order inside each class. `virtual_pointer` mirrors Unreal `FVirtualPointerPosition` and UMG `FWidget3DHitTester`: a host-side mapper or future 3D raycast backend converts a screen/world hit into surface-local current/previous coordinates, then the shared hit grid resolves the normal `UiHitPath`. This keeps custom and world-space UI from inventing a separate dispatch path; they supply a mapped query and still consume `UiSurfaceFrame.arranged_tree + hit_grid`.
 

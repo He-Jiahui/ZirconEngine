@@ -28,6 +28,11 @@ const TRACE_SOURCE_SURFACE_CACHE: u32 = 1u;
 const TRACE_SOURCE_VOXEL: u32 = 2u;
 const TRACE_SOURCE_SCREEN_HIT: u32 = 3u;
 const TRACE_SOURCE_DEPTH_FALLBACK: u32 = 4u;
+const HYBRID_GI_DEBUG_VIEW_NONE: u32 = 0u;
+const HYBRID_GI_DEBUG_VIEW_CARDS: u32 = 1u;
+const HYBRID_GI_DEBUG_VIEW_SURFACE_CACHE: u32 = 2u;
+const HYBRID_GI_DEBUG_VIEW_VOXEL_CLIPMAP: u32 = 3u;
+const HYBRID_GI_DEBUG_VIEW_INPUT_SET: u32 = 4u;
 const TEMPORAL_NORMAL_CODE_MASK: u32 = 63u;
 const TEMPORAL_SOURCE_STRIDE: u32 = 64u;
 const TEMPORAL_NORMAL_DOT_THRESHOLD: f32 = 0.75;
@@ -256,6 +261,49 @@ fn current_gi_sample_at_tile(tile_coord: vec2<u32>) -> CurrentGiSample {
     return current_gi_sample(tile_uv);
 }
 
+fn card_debug_color(signature: f32) -> vec3<f32> {
+    let phase = signature * 17.0;
+    return vec3<f32>(0.25) + fract(vec3<f32>(
+        phase + 0.11,
+        phase * 0.73 + 0.37,
+        phase * 1.31 + 0.61,
+    )) * 0.75;
+}
+
+fn debug_radiance(current: CurrentGiSample, debug_view: u32) -> vec3<f32> {
+    if (current.valid == 0.0) {
+        return vec3<f32>(0.0);
+    }
+    if (debug_view == HYBRID_GI_DEBUG_VIEW_CARDS) {
+        if (current.source != TRACE_SOURCE_SURFACE_CACHE) {
+            return vec3<f32>(0.0);
+        }
+        return card_debug_color(current.signature);
+    }
+    if (debug_view == HYBRID_GI_DEBUG_VIEW_SURFACE_CACHE) {
+        return select(vec3<f32>(0.0), current.radiance, current.source == TRACE_SOURCE_SURFACE_CACHE);
+    }
+    if (debug_view == HYBRID_GI_DEBUG_VIEW_VOXEL_CLIPMAP) {
+        return select(vec3<f32>(0.0), current.radiance, current.source == TRACE_SOURCE_VOXEL);
+    }
+    if (debug_view == HYBRID_GI_DEBUG_VIEW_INPUT_SET) {
+        if (current.source == TRACE_SOURCE_SURFACE_CACHE) {
+            return vec3<f32>(0.1, 1.0, 0.25);
+        }
+        if (current.source == TRACE_SOURCE_VOXEL) {
+            return vec3<f32>(0.15, 0.4, 1.0);
+        }
+        if (current.source == TRACE_SOURCE_SCREEN_HIT) {
+            return vec3<f32>(1.0, 0.85, 0.1);
+        }
+        if (current.source == TRACE_SOURCE_DEPTH_FALLBACK) {
+            return vec3<f32>(1.0, 0.2, 0.8);
+        }
+        return vec3<f32>(0.02);
+    }
+    return current.radiance;
+}
+
 fn spatial_sample_is_compatible(center: CurrentGiSample, candidate: CurrentGiSample) -> bool {
     if (candidate.valid == 0.0 || candidate.source != center.source) {
         return false;
@@ -375,6 +423,20 @@ fn fs_main(input: VertexOutput) -> HybridGiTemporalResolveOutput {
         vec2<u32>(u32(input.position.x), u32(input.position.y)),
         size - vec2<u32>(1u),
     );
+    let debug_view = temporal_params.viewport_and_flags.w;
+    if (debug_view != HYBRID_GI_DEBUG_VIEW_NONE) {
+        let current = current_gi_sample(input.uv);
+        var output: HybridGiTemporalResolveOutput;
+        output.lighting = vec4<f32>(debug_radiance(current, debug_view), 1.0);
+        output.temporal_metadata = vec4<f32>(
+            current.depth,
+            pack_temporal_source_and_normal(current.source, current.normal_code),
+            current.signature,
+            RESET_CONFIDENCE,
+        );
+        return output;
+    }
+
     let current = spatially_filtered_current_gi_sample(input.uv);
     let velocity = textureLoad(scene_velocity_tex, vec2<i32>(coord), 0).xy;
     let history_pixel = reproject_history_pixel(coord, velocity, size);

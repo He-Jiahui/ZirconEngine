@@ -15,7 +15,7 @@ tests:
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_runtime_interface/src/tests/render_contracts.rs
   - zircon_runtime_interface/src/tests/input_response_contracts.rs
-  - zircon_runtime_interface/src/ui/focus_tests.rs
+  - zircon_runtime_interface/src/ui/focus/focus_tests.rs
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending
 ---

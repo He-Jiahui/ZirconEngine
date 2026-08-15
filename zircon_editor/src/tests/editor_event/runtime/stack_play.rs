@@ -148,12 +148,10 @@ fn plugin_bridge_activation_matrix_projects_to_editor_snapshot() {
     assert_eq!(bridge.rows[0].interface_id, "physics.query.v1");
     assert_eq!(bridge.rows[0].owner_module_slot, 2);
     assert_eq!(bridge.rows[0].status, "Enabled");
-    assert!(
-        bridge
-            .diagnostic_lines
-            .iter()
-            .any(|line| line.contains("bridge.interface"))
-    );
+    assert!(bridge
+        .diagnostic_lines
+        .iter()
+        .any(|line| line.contains("bridge.interface")));
 
     runtime
         .runtime
@@ -162,14 +160,12 @@ fn plugin_bridge_activation_matrix_projects_to_editor_snapshot() {
             EditorEvent::WorkbenchMenu(MenuAction::ExitPlayMode),
         )
         .expect("exit play mode");
-    assert!(
-        runtime
-            .runtime
-            .editor_snapshot()
-            .bridge_diagnostics
-            .rows
-            .is_empty()
-    );
+    assert!(runtime
+        .runtime
+        .editor_snapshot()
+        .bridge_diagnostics
+        .rows
+        .is_empty());
 }
 
 #[test]

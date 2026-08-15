@@ -6,8 +6,8 @@ use crate::ui::workbench::view::{
 };
 
 use super::super::workbench::{
-    ActivityDrawerSnapshot, FloatingWindowSnapshot, MainPageSnapshot, WorkbenchSnapshot,
-    resolve_document_workspace, resolve_view_tab,
+    resolve_document_workspace, resolve_view_tab, ActivityDrawerSnapshot, FloatingWindowSnapshot,
+    MainPageSnapshot, WorkbenchSnapshot,
 };
 use super::{EditorChromeSnapshot, EditorDataSnapshot};
 

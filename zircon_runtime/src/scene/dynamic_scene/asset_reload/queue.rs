@@ -8,10 +8,14 @@ use std::{collections::HashMap, time::Instant};
 
 use crate::{
     asset::{
-        AssetEvent, AssetEventReceiver, AssetId, AssetUri, ProjectAssetManager, SceneAsset,
-        facade::AssetEventPoll, project::ProjectManager,
+        facade::AssetEventPoll, project::ProjectManager, AssetEvent, AssetEventReceiver, AssetId,
+        AssetUri, ProjectAssetManager, SceneAsset,
     },
-    core::{JobScheduler, resource::ResourceManager},
+    core::{
+        framework::channel::{ChannelReceiver, ChannelWakeCallback},
+        resource::ResourceManager,
+        JobScheduler,
+    },
     scene::LevelSystem,
 };
 
@@ -57,6 +61,7 @@ pub struct DynamicSceneAssetReloadQueue {
     catalog_generation_sequence: u64,
     resource_manager: ResourceManager,
     events: AssetEventReceiver<SceneAsset>,
+    runtime_frame_wake_token: Option<ChannelReceiver<()>>,
     carried_event: Option<AssetEventPoll<SceneAsset>>,
     reconciliation: Option<DynamicSceneAssetReloadReconciliation>,
     pending: HashMap<AssetId, DynamicSceneAssetReloadTask>,
@@ -123,6 +128,7 @@ impl DynamicSceneAssetReloadQueue {
             catalog_generation_sequence,
             resource_manager,
             events,
+            runtime_frame_wake_token: None,
             carried_event: None,
             reconciliation: None,
             pending: HashMap::new(),
@@ -168,6 +174,14 @@ impl DynamicSceneAssetReloadQueue {
         )
     }
 
+    pub(crate) fn install_runtime_frame_wake(&mut self, wake: ChannelWakeCallback) {
+        let DynamicSceneReloadProjectSource::AssetManager(asset_manager) = &self.project_source
+        else {
+            return;
+        };
+        self.runtime_frame_wake_token = Some(asset_manager.subscribe_project_generation_wake(wake));
+    }
+
     pub fn limits(&self) -> DynamicSceneAssetReloadLimits {
         self.limits
     }
@@ -200,6 +214,7 @@ impl DynamicSceneAssetReloadQueue {
         scheduler: &JobScheduler,
         world: &mut World,
     ) -> DynamicSceneAssetReloadFrameApplyReport {
+        self.drain_runtime_frame_wake_token();
         let drain = self.drain_events(scheduler);
         let mut apply = self.commit_staged_into_world(world);
         let ready = self.collect_ready_report();
@@ -218,6 +233,7 @@ impl DynamicSceneAssetReloadQueue {
         scheduler: &JobScheduler,
         level: &LevelSystem,
     ) -> DynamicSceneAssetReloadFrameApplyReport {
+        self.drain_runtime_frame_wake_token();
         let drain = self.drain_events(scheduler);
         let mut apply = self.commit_staged_into_level(level);
         let ready = self.collect_ready_report();
@@ -237,6 +253,20 @@ impl DynamicSceneAssetReloadQueue {
 
     fn active_worker_count(&self) -> usize {
         self.pending.len().saturating_add(self.target_staging.len())
+    }
+
+    fn drain_runtime_frame_wake_token(&self) {
+        let Some(token) = self.runtime_frame_wake_token.as_ref() else {
+            return;
+        };
+        let _ = token.try_recv();
+    }
+
+    pub(crate) fn has_pending_work(&self) -> bool {
+        self.pending_count() > 0
+            || self.carried_event.is_some()
+            || self.reconciliation.is_some()
+            || !self.events.is_empty()
     }
 }
 

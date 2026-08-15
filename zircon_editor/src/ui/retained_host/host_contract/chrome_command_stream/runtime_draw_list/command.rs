@@ -3,10 +3,14 @@ use zircon_runtime::rhi::{UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceImage
 use super::super::{ChromeCommand, ChromeCommandKind};
 use super::geometry::{ui_image_uv_rect, ui_rect};
 use super::text_style::{ui_text_font_family, ui_text_font_weight, ui_text_style};
+use crate::ui::retained_host::host_contract::paint_text::{
+    capture_runtime_text_faces, HostRuntimeTextFaces,
+};
 
 pub(super) fn ui_surface_command_from_chrome(
     command: &ChromeCommand,
     image_pixels_are_in_resource_table: bool,
+    text_faces: &mut Option<HostRuntimeTextFaces>,
 ) -> UiSurfaceCommand {
     UiSurfaceCommand {
         z_index: command.z_index,
@@ -35,15 +39,18 @@ pub(super) fn ui_surface_command_from_chrome(
                 size,
                 line_height,
                 style,
-            } => UiSurfaceCommandKind::Text {
-                text: text.clone(),
-                color: *color,
-                font_family: Some(ui_text_font_family(*style)),
-                font_weight: ui_text_font_weight(*style),
-                font_size: *size,
-                line_height: *line_height,
-                style: ui_text_style(*style),
-            },
+            } => {
+                let text_faces = text_faces.get_or_insert_with(capture_runtime_text_faces);
+                UiSurfaceCommandKind::Text {
+                    text: text.clone(),
+                    color: *color,
+                    font_family: Some(ui_text_font_family(*style, text_faces)),
+                    font_weight: ui_text_font_weight(*style, text_faces),
+                    font_size: *size,
+                    line_height: *line_height,
+                    style: ui_text_style(*style),
+                }
+            }
             ChromeCommandKind::Image { payload } => UiSurfaceCommandKind::Image {
                 payload: UiSurfaceImagePayload {
                     resource_key: payload.resource_key.clone(),
@@ -52,7 +59,7 @@ pub(super) fn ui_surface_command_from_chrome(
                     height: payload.height,
                     upload_bytes: payload.upload_bytes,
                     rgba: (!image_pixels_are_in_resource_table)
-                        .then(|| payload.rgba.clone())
+                        .then(|| payload.rgba.as_ref().map(|rgba| rgba.as_ref().to_vec()))
                         .flatten(),
                     atlas_uv: payload.atlas_uv.map(ui_image_uv_rect),
                 },
@@ -62,7 +69,10 @@ pub(super) fn ui_surface_command_from_chrome(
     }
 }
 
-pub(super) fn ui_surface_command_from_owned_chrome(command: ChromeCommand) -> UiSurfaceCommand {
+pub(super) fn ui_surface_command_from_owned_chrome(
+    command: ChromeCommand,
+    text_faces: &mut Option<HostRuntimeTextFaces>,
+) -> UiSurfaceCommand {
     UiSurfaceCommand {
         z_index: command.z_index,
         frame: ui_rect(&command.frame),
@@ -90,15 +100,18 @@ pub(super) fn ui_surface_command_from_owned_chrome(command: ChromeCommand) -> Ui
                 size,
                 line_height,
                 style,
-            } => UiSurfaceCommandKind::Text {
-                text,
-                color,
-                font_family: Some(ui_text_font_family(style)),
-                font_weight: ui_text_font_weight(style),
-                font_size: size,
-                line_height,
-                style: ui_text_style(style),
-            },
+            } => {
+                let text_faces = text_faces.get_or_insert_with(capture_runtime_text_faces);
+                UiSurfaceCommandKind::Text {
+                    text,
+                    color,
+                    font_family: Some(ui_text_font_family(style, text_faces)),
+                    font_weight: ui_text_font_weight(style, text_faces),
+                    font_size: size,
+                    line_height,
+                    style: ui_text_style(style),
+                }
+            }
             ChromeCommandKind::Image { payload } => UiSurfaceCommandKind::Image {
                 payload: UiSurfaceImagePayload {
                     resource_key: payload.resource_key,
@@ -106,7 +119,7 @@ pub(super) fn ui_surface_command_from_owned_chrome(command: ChromeCommand) -> Ui
                     width: payload.width,
                     height: payload.height,
                     upload_bytes: payload.upload_bytes,
-                    rgba: payload.rgba,
+                    rgba: payload.rgba.map(|rgba| rgba.as_ref().to_vec()),
                     atlas_uv: payload.atlas_uv.map(ui_image_uv_rect),
                 },
             },

@@ -3,7 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
-use zircon_runtime::asset::{SpriteAtlasAsset, validate_sprite_atlas_asset};
+use zircon_runtime::asset::{validate_sprite_atlas_asset, SpriteAtlasAsset};
 
 const MAX_ATLAS_MANIFEST_CACHE_ENTRIES: usize = 64;
 
@@ -39,8 +39,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_at
     atlas
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn clear_atlas_manifest_cache()
- {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn clear_atlas_manifest_cache(
+) {
     if let Some(cache) = ATLAS_MANIFEST_CACHE.get() {
         cache
             .lock()

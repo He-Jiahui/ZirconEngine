@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::time::Duration;
 
 use crate::core::editor_event::{
@@ -7,10 +8,29 @@ use crate::core::notifications::{
     NotificationId, NotificationSource, ToastNotification, ToastSeverity,
 };
 use crate::ui::retained_host::HostInvalidationMask;
+use crate::ui::workbench::layout::ActivityDrawerSlot;
+use crate::ui::workbench::view::ViewInstanceId;
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) struct HostShellContentScope {
+    pub(crate) slot: ActivityDrawerSlot,
+    pub(crate) instance_id: ViewInstanceId,
+}
+
+impl HostShellContentScope {
+    pub(crate) fn new(slot: ActivityDrawerSlot, instance_id: ViewInstanceId) -> Self {
+        Self {
+            slot: slot.canonical(),
+            instance_id,
+        }
+    }
+}
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct UiHostEventEffects {
     pub dirty_domains: HostInvalidationMask,
+    shell_content_scopes: BTreeSet<HostShellContentScope>,
+    pub sync_viewport_chrome: bool,
     pub presentation_dirty: bool,
     pub layout_dirty: bool,
     pub render_dirty: bool,
@@ -51,6 +71,36 @@ impl UiHostEventEffects {
         self.merge_dirty_domains(HostInvalidationMask::PAINT_ONLY);
     }
 
+    pub(crate) fn reuse_layout_for_shell_content(&mut self, scope: HostShellContentScope) {
+        self.dirty_domains.remove(HostInvalidationMask::LAYOUT);
+        self.dirty_domains
+            .remove(HostInvalidationMask::PRESENTATION_DATA);
+        self.dirty_domains
+            .insert(HostInvalidationMask::SHELL_CONTENT);
+        self.layout_dirty = self.dirty_domains.requires_layout();
+        self.presentation_dirty = true;
+        self.shell_content_scopes.insert(scope);
+    }
+
+    pub(crate) fn shell_content_scope(&self) -> Option<HostShellContentScope> {
+        (self.shell_content_scopes.len() == 1)
+            .then(|| self.shell_content_scopes.iter().next().cloned())
+            .flatten()
+    }
+
+    pub(crate) fn merge_shell_content_scope_state_from(&mut self, source: &Self) {
+        let target_is_scoped_or_paint_only = !self.dirty_domains().requires_host_recompute()
+            || !self.shell_content_scopes.is_empty();
+        let source_is_scoped_or_paint_only = !source.dirty_domains().requires_host_recompute()
+            || !source.shell_content_scopes.is_empty();
+        if target_is_scoped_or_paint_only && source_is_scoped_or_paint_only {
+            self.shell_content_scopes
+                .extend(source.shell_content_scopes.iter().cloned());
+        } else {
+            self.shell_content_scopes.clear();
+        }
+    }
+
     pub(crate) fn dirty_domains(&self) -> HostInvalidationMask {
         self.dirty_domains
             .union(HostInvalidationMask::from_dirty_flags(
@@ -61,7 +111,42 @@ impl UiHostEventEffects {
             ))
     }
 
+    pub(crate) fn is_viewport_resize_recompute_compatible(&self) -> bool {
+        let allowed = HostInvalidationMask::PRESENTATION_DATA
+            .union(HostInvalidationMask::RENDER)
+            .union(HostInvalidationMask::PAINT_ONLY);
+        let dirty = self.dirty_domains();
+        dirty.contains(HostInvalidationMask::PRESENTATION_DATA)
+            && dirty.contains(HostInvalidationMask::RENDER)
+            && dirty.intersection(allowed) == dirty
+            && self.shell_content_scopes.is_empty()
+            && !self.sync_viewport_chrome
+            && self.active_layout_preset_name.is_none()
+            && !self.present_welcome_surface
+            && !self.sync_asset_workspace
+            && !self.close_active_project
+            && !self.refresh_asset_details
+            && !self.refresh_visible_asset_previews
+            && !self.import_model_requested
+            && !self.reset_active_layout_preset
+            && !self.open_command_palette_requested
+            && !self.open_scene_picker_requested
+            && !self.create_scene_picker_requested
+            && self.toast_notifications.is_empty()
+    }
+
     pub(crate) fn merge_dirty_domains(&mut self, dirty_domains: HostInvalidationMask) {
+        let shell_content_compatible = dirty_domains.contains(HostInvalidationMask::SHELL_CONTENT)
+            && dirty_domains.intersection(
+                HostInvalidationMask::SHELL_CONTENT
+                    .union(HostInvalidationMask::PRESENTATION_DATA)
+                    .union(HostInvalidationMask::PAINT_ONLY)
+                    .union(HostInvalidationMask::POINTER_HOVER)
+                    .union(HostInvalidationMask::VIEWPORT_IMAGE),
+            ) == dirty_domains;
+        if dirty_domains.requires_host_recompute() && !shell_content_compatible {
+            self.shell_content_scopes.clear();
+        }
         self.dirty_domains.insert(dirty_domains);
         if dirty_domains.requires_layout() {
             self.layout_dirty = true;
@@ -143,6 +228,14 @@ pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &Edi
         }
     }
 
+    if matches!(
+        &record.event,
+        EditorEvent::Viewport(event) if event.changes_chrome_projection()
+    ) {
+        target.sync_viewport_chrome = true;
+        target.request_paint_only();
+    }
+
     match &record.event {
         EditorEvent::Layout(LayoutCommand::SavePreset { name })
         | EditorEvent::Layout(LayoutCommand::LoadPreset { name }) => {
@@ -219,7 +312,7 @@ fn toast_for_record(
     suffix: &str,
     severity: ToastSeverity,
     title_key: &str,
-    message_key: &str,
+    message_key: impl Into<String>,
     lifetime: Duration,
 ) -> Option<ToastNotification> {
     let id =
@@ -235,7 +328,52 @@ mod tests {
         EditorEventSequence, EditorEventSource, EditorEventUndoPolicy, MenuAction,
     };
 
-    use super::{UiHostEventEffects, apply_record_effects};
+    use super::{apply_record_effects, UiHostEventEffects};
+
+    #[test]
+    fn viewport_resize_projection_requires_presentation_and_render_only() {
+        let mut effects = UiHostEventEffects::default();
+        effects.request_presentation();
+        effects.request_render();
+
+        assert!(effects.is_viewport_resize_recompute_compatible());
+
+        effects.request_layout();
+        assert!(!effects.is_viewport_resize_recompute_compatible());
+    }
+
+    #[test]
+    fn viewport_resize_projection_rejects_an_incomplete_effect_set() {
+        let mut presentation_only = UiHostEventEffects::default();
+        presentation_only.request_presentation();
+        assert!(!presentation_only.is_viewport_resize_recompute_compatible());
+
+        let mut render_only = UiHostEventEffects::default();
+        render_only.request_render();
+        assert!(!render_only.is_viewport_resize_recompute_compatible());
+    }
+
+    #[test]
+    fn stable_shell_content_replaces_generic_layout_invalidation() {
+        let mut effects = UiHostEventEffects::default();
+        effects.request_layout();
+        effects.request_presentation();
+
+        let scope = crate::ui::retained_host::HostShellContentScope::new(
+            crate::ui::workbench::layout::ActivityDrawerSlot::LeftBottom,
+            crate::ui::workbench::view::ViewInstanceId::new("editor.module_plugins#main"),
+        );
+        effects.reuse_layout_for_shell_content(scope.clone());
+
+        assert!(!effects.dirty_domains().requires_layout());
+        assert!(effects.dirty_domains().requires_presentation());
+        assert!(effects
+            .dirty_domains()
+            .contains(crate::ui::retained_host::HostInvalidationMask::SHELL_CONTENT));
+        assert!(!effects.layout_dirty);
+        assert!(effects.presentation_dirty);
+        assert_eq!(effects.shell_content_scope(), Some(scope));
+    }
 
     #[test]
     fn project_close_effect_requests_retained_close_and_empty_asset_sync() {

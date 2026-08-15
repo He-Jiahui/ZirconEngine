@@ -3,25 +3,22 @@ use std::hash::{Hash, Hasher};
 use std::sync::OnceLock;
 use std::sync::{Arc, Mutex};
 
-use swash::FontRef;
 use swash::scale::image::Content;
 use swash::scale::{Render, ScaleContext, Source, StrikeWith};
 use swash::zeno::{Format, Vector};
+use swash::FontRef;
 
-use super::super::paint_theme::{HostTextSmoothing, current_host_text_preferences};
-use super::font::{
-    HostTextFontFace, font_bytes_for_face, font_cache_key_for_face, font_collection_index_for_face,
-    font_for_face,
-};
+use super::super::paint_theme::{current_host_text_preferences, HostTextSmoothing};
+use super::font::{host_font_snapshot_for_face, HostTextFontFace, HostTextFontSnapshot};
 use super::sync::lock_recovering_poison;
 
 mod metrics;
 
 use self::metrics::{
-    NATIVE_SWASH_RASTER_SCALE, NATIVE_SWASH_SAMPLE_OFFSET_X, NATIVE_SWASH_SAMPLE_OFFSET_Y,
     fallback_raster_font_size, fallback_raster_scale, fontdue_fallback_sample_offset_x,
     logical_font_size, missing_fontdue_y_offset, normalized_subpixel_offset, raster_metric_scale,
-    swash_hinting_for_size,
+    swash_hinting_for_size, NATIVE_SWASH_RASTER_SCALE, NATIVE_SWASH_SAMPLE_OFFSET_X,
+    NATIVE_SWASH_SAMPLE_OFFSET_Y,
 };
 
 #[derive(Clone)]
@@ -52,11 +49,12 @@ pub(in crate::ui::retained_host::host_contract) enum CachedGlyphRasterSource {
 pub(in crate::ui::retained_host::host_contract) enum CachedGlyphRasterFormat {
     AlphaMask,
     SubpixelMask,
+    ColorRgba,
 }
 
 #[derive(Clone, Copy, Debug, Eq)]
 struct GlyphRasterKey {
-    font_face: HostTextFontFace,
+    font_source: GlyphRasterFontSource,
     font_cache_key: u64,
     glyph_index: u16,
     logical_px_bits: u32,
@@ -67,7 +65,7 @@ struct GlyphRasterKey {
 
 impl PartialEq for GlyphRasterKey {
     fn eq(&self, other: &Self) -> bool {
-        self.font_face == other.font_face
+        self.font_source == other.font_source
             && self.font_cache_key == other.font_cache_key
             && self.glyph_index == other.glyph_index
             && self.logical_px_bits == other.logical_px_bits
@@ -79,7 +77,7 @@ impl PartialEq for GlyphRasterKey {
 
 impl Hash for GlyphRasterKey {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.font_face.hash(state);
+        self.font_source.hash(state);
         self.font_cache_key.hash(state);
         self.glyph_index.hash(state);
         self.logical_px_bits.hash(state);
@@ -89,6 +87,12 @@ impl Hash for GlyphRasterKey {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+enum GlyphRasterFontSource {
+    Host(HostTextFontFace),
+    RuntimeArtifact,
+}
+
 pub(in crate::ui::retained_host::host_contract) fn rasterize_cached_glyph(
     font_face: HostTextFontFace,
     glyph_index: u16,
@@ -96,15 +100,51 @@ pub(in crate::ui::retained_host::host_contract) fn rasterize_cached_glyph(
     raster_scale: f32,
     subpixel_offset: f32,
 ) -> CachedGlyphRaster {
-    static CACHE: OnceLock<Mutex<HashMap<GlyphRasterKey, CachedGlyphRaster>>> = OnceLock::new();
+    let font = host_font_snapshot_for_face(font_face);
+    rasterize_cached_font_glyph(
+        GlyphRasterFontSource::Host(font_face),
+        &font,
+        glyph_index,
+        logical_px,
+        raster_scale,
+        subpixel_offset,
+    )
+}
 
+/// Rasterizes a glyph from an exact runtime-shaped face using the retained-host cache.
+pub(in crate::ui::retained_host::host_contract) fn rasterize_cached_runtime_artifact_glyph(
+    font: &HostTextFontSnapshot,
+    glyph_index: u16,
+    logical_px: f32,
+    raster_scale: f32,
+    subpixel_offset: f32,
+) -> CachedGlyphRaster {
+    rasterize_cached_font_glyph(
+        GlyphRasterFontSource::RuntimeArtifact,
+        font,
+        glyph_index,
+        logical_px,
+        raster_scale,
+        subpixel_offset,
+    )
+}
+
+fn rasterize_cached_font_glyph(
+    font_source: GlyphRasterFontSource,
+    font: &HostTextFontSnapshot,
+    glyph_index: u16,
+    logical_px: f32,
+    raster_scale: f32,
+    subpixel_offset: f32,
+) -> CachedGlyphRaster {
+    static CACHE: OnceLock<Mutex<HashMap<GlyphRasterKey, CachedGlyphRaster>>> = OnceLock::new();
     let logical_px = logical_font_size(logical_px);
     let fallback_raster_scale = fallback_raster_scale(raster_scale);
     let subpixel_offset = normalized_subpixel_offset(subpixel_offset);
     let text_smoothing = current_host_text_preferences().smoothing;
     let key = GlyphRasterKey {
-        font_face,
-        font_cache_key: font_cache_key_for_face(font_face),
+        font_source,
+        font_cache_key: font.cache_key(),
         glyph_index,
         logical_px_bits: logical_px.to_bits(),
         subpixel_offset_bits: subpixel_offset.to_bits(),
@@ -117,7 +157,7 @@ pub(in crate::ui::retained_host::host_contract) fn rasterize_cached_glyph(
     }
 
     let raster = rasterize_swash_glyph(
-        font_face,
+        font,
         glyph_index,
         logical_px,
         subpixel_offset,
@@ -125,7 +165,7 @@ pub(in crate::ui::retained_host::host_contract) fn rasterize_cached_glyph(
     )
     .unwrap_or_else(|| {
         rasterize_fontdue_glyph(
-            font_face,
+            font,
             glyph_index,
             logical_px,
             fallback_raster_scale,
@@ -137,7 +177,7 @@ pub(in crate::ui::retained_host::host_contract) fn rasterize_cached_glyph(
 }
 
 fn rasterize_swash_glyph(
-    font_face: HostTextFontFace,
+    font: &HostTextFontSnapshot,
     glyph_index: u16,
     logical_px: f32,
     subpixel_offset: f32,
@@ -145,14 +185,11 @@ fn rasterize_swash_glyph(
 ) -> Option<CachedGlyphRaster> {
     static SWASH_CONTEXT: OnceLock<Mutex<ScaleContext>> = OnceLock::new();
 
-    let font = FontRef::from_index(
-        font_bytes_for_face(font_face),
-        font_collection_index_for_face(font_face) as usize,
-    )?;
+    let swash_font = FontRef::from_index(font.bytes(), font.collection_index() as usize)?;
     let context = SWASH_CONTEXT.get_or_init(|| Mutex::new(ScaleContext::new()));
     let mut context = lock_recovering_poison(context);
     let mut scaler = context
-        .builder(font)
+        .builder(swash_font)
         .size(logical_px)
         .hint(swash_hinting_for_size(logical_px))
         .build();
@@ -170,11 +207,11 @@ fn rasterize_swash_glyph(
     let left = image.placement.left;
     let top = image.placement.top;
     let (format, bitmap) = swash_bitmap(image.content, image.data, width, height, text_smoothing)?;
-    if !bitmap_has_visible_ink(&bitmap) {
+    if !bitmap_has_visible_ink(format, &bitmap) {
         return None;
     }
     let metrics = swash_metrics(
-        font_face,
+        font,
         glyph_index,
         logical_px,
         NATIVE_SWASH_RASTER_SCALE,
@@ -202,7 +239,7 @@ fn swash_format_for_smoothing(smoothing: HostTextSmoothing) -> Format {
 }
 
 fn swash_metrics(
-    font_face: HostTextFontFace,
+    font: &HostTextFontSnapshot,
     glyph_index: u16,
     logical_px: f32,
     raster_scale: f32,
@@ -212,7 +249,8 @@ fn swash_metrics(
     top: i32,
 ) -> CachedGlyphMetrics {
     let scale = raster_metric_scale(raster_scale);
-    let fontdue_y = font_for_face(font_face)
+    let fontdue_y = font
+        .font()
         .map(|font| {
             let metrics = font.metrics_indexed(glyph_index, logical_px);
             (-metrics.bounds.height - metrics.bounds.ymin).floor()
@@ -263,13 +301,25 @@ fn swash_bitmap(
                 }
             }
         }
-        Content::Color => rgba_to_alpha(data, pixel_count, false)
-            .map(|alpha| (CachedGlyphRasterFormat::AlphaMask, alpha)),
+        Content::Color => {
+            let byte_count = pixel_count.checked_mul(4)?;
+            (data.len() >= byte_count).then(|| {
+                (
+                    CachedGlyphRasterFormat::ColorRgba,
+                    data.into_iter().take(byte_count).collect(),
+                )
+            })
+        }
     }
 }
 
-fn bitmap_has_visible_ink(bitmap: &[u8]) -> bool {
-    bitmap.iter().any(|coverage| *coverage > 0)
+fn bitmap_has_visible_ink(format: CachedGlyphRasterFormat, bitmap: &[u8]) -> bool {
+    match format {
+        CachedGlyphRasterFormat::AlphaMask | CachedGlyphRasterFormat::SubpixelMask => {
+            bitmap.iter().any(|coverage| *coverage > 0)
+        }
+        CachedGlyphRasterFormat::ColorRgba => bitmap.chunks_exact(4).any(|pixel| pixel[3] > 0),
+    }
 }
 
 fn rgba_to_alpha(data: Vec<u8>, pixel_count: usize, subpixel_mask: bool) -> Option<Vec<u8>> {
@@ -289,13 +339,13 @@ fn rgba_to_alpha(data: Vec<u8>, pixel_count: usize, subpixel_mask: bool) -> Opti
 }
 
 fn rasterize_fontdue_glyph(
-    font_face: HostTextFontFace,
+    font: &HostTextFontSnapshot,
     glyph_index: u16,
     logical_px: f32,
     raster_scale: f32,
     subpixel_offset: f32,
 ) -> CachedGlyphRaster {
-    let Some(font) = font_for_face(font_face) else {
+    let Some(font) = font.font() else {
         return empty_fontdue_raster(raster_scale, subpixel_offset);
     };
     let raster_px = fallback_raster_font_size(logical_px, raster_scale);

@@ -112,6 +112,61 @@ fn shared_shell_pointer_route_prefers_native_window_host_bounds_for_floating_att
 }
 
 #[test]
+fn stable_floating_window_identity_patches_geometry_without_replacing_authority() {
+    let window_id = MainPageId::new("window:preview");
+    let floating_windows = vec![floating_window(
+        window_id.clone(),
+        "Preview Popout",
+        Vec::new(),
+        None,
+    )];
+    let mut bridge = HostShellPointerBridge::new();
+    bridge.update_layout_with_native_window_hosts(
+        UiSize::new(1440.0, 900.0),
+        false,
+        &floating_windows,
+        None,
+        &[NativeWindowHostState::new_for_test(
+            window_id.clone(),
+            None,
+            [420.0, 180.0, 520.0, 360.0],
+        )],
+    );
+    let authority_generation = bridge.drag_surface_authority_generation_for_test();
+
+    bridge.update_layout_with_native_window_hosts(
+        UiSize::new(1440.0, 900.0),
+        false,
+        &floating_windows,
+        None,
+        &[NativeWindowHostState::new_for_test(
+            window_id.clone(),
+            None,
+            [760.0, 260.0, 520.0, 360.0],
+        )],
+    );
+
+    assert_eq!(
+        bridge.drag_surface_authority_generation_for_test(),
+        authority_generation,
+        "the same ordered floating-window IDs must reuse drag surface and callback authority"
+    );
+    assert_eq!(bridge.drag_route_at(UiPoint::new(500.0, 260.0)), None);
+    assert_eq!(
+        bridge.drag_route_at(UiPoint::new(980.0, 440.0)),
+        Some(HostShellPointerRoute::FloatingWindow(window_id.clone()))
+    );
+    assert_eq!(
+        bridge.drag_route_at(UiPoint::new(766.0, 440.0)),
+        Some(HostShellPointerRoute::FloatingWindowEdge {
+            window_id,
+            edge: DockEdge::Left,
+        }),
+        "retained edge callbacks must read the newly published geometry snapshot"
+    );
+}
+
+#[test]
 fn shared_shell_pointer_route_reports_floating_window_edge_from_shared_surface() {
     let window_id = MainPageId::new("window:preview");
     let floating_windows = vec![floating_window(

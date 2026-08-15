@@ -1,37 +1,28 @@
+use super::super::ibl_bake_recipe::CANONICAL_IBL_BAKE_RECIPE;
 use super::{
-    normalize_or_positive_z, sample_source_cubemap_trilinear, source_cubemap_face_mip_offset,
-    source_cubemap_mip_size, source_cubemap_roughness_from_pmrem_mip,
+    normalize_or_positive_z, sample_source_cubemap_trilinear, source_cubemap_face_mip_outputs,
+    source_cubemap_mip_size, source_cubemap_roughness_from_pmrem_mip, CubemapFaceMipOutput,
     SourceCubemapPrefilterQuality,
 };
 use crate::core::framework::render::environment::{cubemap_texel_direction, CubemapFace};
 use crate::core::framework::tasks::ParallelSliceExecutor;
 use crate::core::math::Real;
 
-const FULL_ROUGHNESS_COSINE_THRESHOLD: Real = 0.99;
-const FIS_SOLID_ANGLE_TEXEL_SCALE: Real = 2.0;
-const PMREM_LOW_ROUGHNESS_THRESHOLD: Real = 0.1;
-const PMREM_HIGH_ROUGHNESS_THRESHOLD: Real = 0.75;
-
-struct FilteredPmremFace {
-    face: CubemapFace,
-    texels: Vec<[Real; 4]>,
-}
-
 trait PmremFaceExecutor {
-    fn filter_faces<F>(&self, faces: &mut [FilteredPmremFace], filter_face: &F)
+    fn filter_faces<F>(&self, faces: &mut [CubemapFaceMipOutput<'_>], filter_face: &F)
     where
-        F: Fn(CubemapFace) -> Vec<[Real; 4]> + Send + Sync;
+        F: Fn(CubemapFace, &mut [[Real; 4]]) + Send + Sync;
 }
 
 struct SerialPmremFaceExecutor;
 
 impl PmremFaceExecutor for SerialPmremFaceExecutor {
-    fn filter_faces<F>(&self, faces: &mut [FilteredPmremFace], filter_face: &F)
+    fn filter_faces<F>(&self, faces: &mut [CubemapFaceMipOutput<'_>], filter_face: &F)
     where
-        F: Fn(CubemapFace) -> Vec<[Real; 4]> + Send + Sync,
+        F: Fn(CubemapFace, &mut [[Real; 4]]) + Send + Sync,
     {
-        for filtered_face in faces {
-            filtered_face.texels = filter_face(filtered_face.face);
+        for output in faces {
+            filter_face(output.face, &mut *output.texels);
         }
     }
 }
@@ -42,13 +33,13 @@ impl<E> PmremFaceExecutor for ParallelPmremFaceExecutor<'_, E>
 where
     E: ParallelSliceExecutor,
 {
-    fn filter_faces<F>(&self, faces: &mut [FilteredPmremFace], filter_face: &F)
+    fn filter_faces<F>(&self, faces: &mut [CubemapFaceMipOutput<'_>], filter_face: &F)
     where
-        F: Fn(CubemapFace) -> Vec<[Real; 4]> + Send + Sync,
+        F: Fn(CubemapFace, &mut [[Real; 4]]) + Send + Sync,
     {
         self.0.parallel_for(faces, 1, |chunk| {
-            for filtered_face in chunk {
-                filtered_face.texels = filter_face(filtered_face.face);
+            for output in chunk {
+                filter_face(output.face, &mut *output.texels);
             }
         });
     }
@@ -112,8 +103,7 @@ fn prefilter_pmrem_mips_from_source_with_face_executor(
     for mip in 0..pmrem_mip_count.max(1) {
         let mip_size = source_cubemap_mip_size(pmrem_face_size, mip);
         let filter = GgxRadianceFilter::new(mip, pmrem_mip_count, mip_size, quality);
-        let filter_face = |face| {
-            let mut face_texels = vec![[0.0; 4]; mip_size as usize * mip_size as usize];
+        let filter_face = |face, face_texels: &mut [[Real; 4]]| {
             for y in 0..mip_size {
                 for x in 0..mip_size {
                     let direction = cubemap_texel_direction(face, x, y, mip_size);
@@ -127,26 +117,10 @@ fn prefilter_pmrem_mips_from_source_with_face_executor(
                         );
                 }
             }
-            face_texels
         };
-        let mut filtered_faces = CubemapFace::ALL
-            .into_iter()
-            .map(|face| FilteredPmremFace {
-                face,
-                texels: Vec::new(),
-            })
-            .collect::<Vec<_>>();
-        face_executor.filter_faces(&mut filtered_faces, &filter_face);
-        for filtered_face in filtered_faces {
-            let dest_offset = source_cubemap_face_mip_offset(
-                pmrem_face_size,
-                pmrem_mip_count,
-                filtered_face.face,
-                mip,
-            );
-            pmrem_texels[dest_offset..dest_offset + filtered_face.texels.len()]
-                .copy_from_slice(&filtered_face.texels);
-        }
+        let mut outputs =
+            source_cubemap_face_mip_outputs(pmrem_texels, pmrem_face_size, pmrem_mip_count, mip);
+        face_executor.filter_faces(&mut outputs, &filter_face);
     }
 }
 
@@ -192,7 +166,7 @@ fn ggx_prefilter_direction(
         );
     }
 
-    if filter.roughness >= FULL_ROUGHNESS_COSINE_THRESHOLD {
+    if filter.roughness >= CANONICAL_IBL_BAKE_RECIPE.full_roughness_cosine_threshold() {
         return cosine_prefilter_direction(
             texels,
             face_size,
@@ -310,7 +284,7 @@ fn source_lod_for_pdf(
     let source_face_size = source_face_size.max(1) as Real;
     let texel_solid_angle = 4.0 * std::f32::consts::PI
         / (6.0 * source_face_size * source_face_size)
-        * FIS_SOLID_ANGLE_TEXEL_SCALE;
+        * CANONICAL_IBL_BAKE_RECIPE.fis_solid_angle_texel_scale();
     let sample_solid_angle = 1.0 / (sample_count.max(1) as Real * pdf);
     let lod = 0.5 * (sample_solid_angle / texel_solid_angle).max(1.0).log2();
     lod.clamp(0.0, source_mip_count.max(1).saturating_sub(1) as Real)
@@ -322,13 +296,7 @@ fn ggx_sample_count_for_mip(
     quality: SourceCubemapPrefilterQuality,
 ) -> u32 {
     let roughness = source_cubemap_roughness_from_pmrem_mip(mip, mip_count);
-    let normal_sample_count = if mip == 0 || roughness < PMREM_LOW_ROUGHNESS_THRESHOLD {
-        32
-    } else if roughness >= PMREM_HIGH_ROUGHNESS_THRESHOLD {
-        128
-    } else {
-        64
-    };
+    let normal_sample_count = CANONICAL_IBL_BAKE_RECIPE.pmrem_sample_count(roughness, mip);
     match quality {
         SourceCubemapPrefilterQuality::Fast => (normal_sample_count / 2).max(16),
         SourceCubemapPrefilterQuality::Normal => normal_sample_count,
@@ -489,6 +457,72 @@ mod tests {
             ggx_sample_count_for_mip(7, 8, SourceCubemapPrefilterQuality::High),
             256
         );
+    }
+
+    #[test]
+    fn pmrem_face_mip_outputs_write_directly_to_each_face_final_storage() {
+        let face_size = 4;
+        let mip_count = super::super::source_cubemap_mip_count(face_size);
+        let mip = 1;
+        let mip_size = super::super::source_cubemap_mip_size(face_size, mip);
+        let mut texels = vec![
+            [-1.0 as Real; 4];
+            super::super::source_cubemap_sample_count(face_size, mip_count)
+        ];
+        let mut outputs =
+            super::super::source_cubemap_face_mip_outputs(&mut texels, face_size, mip_count, mip);
+
+        assert_eq!(outputs.len(), super::super::SOURCE_CUBEMAP_FACE_COUNT);
+        for output in &mut outputs {
+            output.texels.fill([output.face.index() as Real; 4]);
+        }
+        drop(outputs);
+
+        for face in super::CubemapFace::ALL {
+            let mip_offset =
+                super::super::source_cubemap_face_mip_offset(face_size, mip_count, face, mip);
+            let mip_len = mip_size as usize * mip_size as usize;
+            assert_eq!(
+                &texels[mip_offset..mip_offset + mip_len],
+                vec![[face.index() as Real; 4]; mip_len].as_slice(),
+            );
+            assert_eq!(
+                texels[super::super::source_cubemap_face_mip_offset(face_size, mip_count, face, 0,)],
+                [-1.0; 4],
+            );
+        }
+    }
+
+    #[test]
+    fn pmrem_face_mip_outputs_clamp_mip_before_borrowing_final_storage() {
+        let face_size = 4;
+        let mip_count = super::super::source_cubemap_mip_count(face_size);
+        let last_mip = mip_count - 1;
+        let mut texels = vec![
+            [-1.0 as Real; 4];
+            super::super::source_cubemap_sample_count(face_size, mip_count)
+        ];
+        let mut outputs = super::super::source_cubemap_face_mip_outputs(
+            &mut texels,
+            face_size,
+            mip_count,
+            u32::MAX,
+        );
+
+        for output in &mut outputs {
+            output.texels.fill([output.face.index() as Real; 4]);
+        }
+        drop(outputs);
+
+        for face in super::CubemapFace::ALL {
+            let last_mip_offset =
+                super::super::source_cubemap_face_mip_offset(face_size, mip_count, face, last_mip);
+            assert_eq!(texels[last_mip_offset], [face.index() as Real; 4]);
+            assert_eq!(
+                texels[super::super::source_cubemap_face_mip_offset(face_size, mip_count, face, 0,)],
+                [-1.0; 4],
+            );
+        }
     }
 
     #[test]

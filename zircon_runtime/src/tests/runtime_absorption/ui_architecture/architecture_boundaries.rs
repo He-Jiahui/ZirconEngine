@@ -22,8 +22,8 @@ fn runtime_09_ui_architecture_doc_records_current_boundaries() {
     for required_anchor in [
         "runtime_09_m0_ui_architecture_static_passed",
         "Module Boundary Map",
-        "`ui/` top-level entries: 19",
-        "`surface/` entries: 23",
+        "`ui/` top-level entries: 20",
+        "`surface/` entries: 26",
         "No M0 blocker-level owner inversion",
         "completed_static_passed",
     ] {
@@ -38,7 +38,7 @@ fn runtime_09_ui_architecture_doc_records_current_boundaries() {
     let ui_entries = top_level_entry_names("zircon_runtime/src/ui", false);
     assert_eq!(
         ui_entries.len(),
-        19,
+        20,
         "Runtime 09 M0 architecture doc must be refreshed when ui/ top-level entries change"
     );
     for required_entry in [
@@ -46,6 +46,7 @@ fn runtime_09_ui_architecture_doc_records_current_boundaries() {
         "binding",
         "component",
         "dispatch",
+        "editable_text_composition.rs",
         "event_ui",
         "icon_atlas",
         "layout",
@@ -71,7 +72,7 @@ fn runtime_09_ui_architecture_doc_records_current_boundaries() {
     let surface_entries = top_level_entry_names("zircon_runtime/src/ui/surface", true);
     assert_eq!(
         surface_entries.len(),
-        23,
+        26,
         "Runtime 09 M0 architecture doc must be refreshed when surface/ entries change"
     );
     for required_entry in [
@@ -79,6 +80,9 @@ fn runtime_09_ui_architecture_doc_records_current_boundaries() {
         "pointer",
         "navigation",
         "render",
+        "control_index.rs",
+        "focus",
+        "invalidation.rs",
         "surface.rs",
         "mod.rs",
     ] {
@@ -108,7 +112,7 @@ fn runtime_09_ui_architecture_baselines_match_current_source_scan() {
     let taffy_production_files = files_with_matching_line(&production_ui_files, "taffy");
 
     assert_eq!(
-        legacy_full_hits, 54,
+        legacy_full_hits, 70,
         "update Runtime 09 docs if full legacy baseline changes"
     );
     assert_eq!(
@@ -131,7 +135,7 @@ fn runtime_09_ui_architecture_baselines_match_current_source_scan() {
     );
 
     for required_anchor in [
-        "ui_legacy_hits=54",
+        "ui_legacy_hits=70",
         "ui_legacy_production_hits=0",
         "ui_legacy_production_files=0",
         "ui_taffy_production_hits=175",

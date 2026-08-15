@@ -180,11 +180,16 @@ impl SinkRuntime {
     }
 
     pub(super) fn shutdown(&self, timeout: Duration) -> bool {
+        self.shutdown_for_library_unload(timeout) && self.outputs_succeeded()
+    }
+
+    /// Stops and joins the worker without conflating an output error with worker liveness.
+    ///
+    /// Dynamic-library owners must not unload while the worker can still execute library code.
+    pub(super) fn shutdown_for_library_unload(&self, timeout: Duration) -> bool {
         let deadline = deadline_after(timeout);
         if self.closed.swap(true, Ordering::AcqRel) {
-            return self.wait_for_worker_close(deadline)
-                && self.join_worker()
-                && self.metrics.outputs_succeeded();
+            return self.wait_for_worker_close(deadline) && self.join_worker();
         }
 
         while self.active_senders.load(Ordering::Acquire) != 0 {
@@ -200,10 +205,14 @@ impl SinkRuntime {
             self.closed.store(false, Ordering::Release);
             return false;
         }
-        let Ok(output_result) = receiver.recv_timeout(remaining(deadline)) else {
+        let Ok(_output_result) = receiver.recv_timeout(remaining(deadline)) else {
             return false;
         };
-        self.join_worker() && output_result.is_ok()
+        self.join_worker()
+    }
+
+    pub(super) fn outputs_succeeded(&self) -> bool {
+        self.metrics.outputs_succeeded()
     }
 
     fn wait_for_worker_close(&self, deadline: Instant) -> bool {

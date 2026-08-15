@@ -1,11 +1,7 @@
 use crate::ui::retained_host::host_contract::data::{FrameRect, PaneData};
-use crate::ui::retained_host::primitives::ModelRc;
-use crate::ui::workbench::asset_content_layout::{
-    ACTIVITY_CONTENT_PANEL_CONTROL_ID, BROWSER_CONTENT_TABLE_CONTROL_ID,
-    BROWSER_CONTENT_THUMBNAIL_GRID_CONTROL_ID,
-};
+use crate::ui::workbench::asset_content_layout::{AssetContentPaintMetadata, AssetContentSurface};
 
-use super::super::super::super::{PanePointerRoute, PanePointerTarget, geometry::contains};
+use super::super::super::super::{geometry::contains, PanePointerRoute, PanePointerTarget};
 
 const ACTIVITY_ASSET_SURFACE_MODE: &str = "activity";
 const BROWSER_ASSET_SURFACE_MODE: &str = "browser";
@@ -16,30 +12,29 @@ pub(super) fn route_asset_content_hit(
     x: f32,
     y: f32,
 ) -> Option<PanePointerRoute> {
-    let (nodes, panel_control_ids, surface_mode) = match pane.kind.as_str() {
+    let (nodes, surface, surface_mode) = match pane.kind.as_str() {
         "Assets" => (
             &pane.assets_activity.nodes,
-            &[ACTIVITY_CONTENT_PANEL_CONTROL_ID][..],
+            AssetContentSurface::Activity,
             ACTIVITY_ASSET_SURFACE_MODE,
         ),
         "AssetBrowser" => (
             &pane.asset_browser.nodes,
-            &[
-                BROWSER_CONTENT_THUMBNAIL_GRID_CONTROL_ID,
-                BROWSER_CONTENT_TABLE_CONTROL_ID,
-            ][..],
+            AssetContentSurface::Browser,
             BROWSER_ASSET_SURFACE_MODE,
         ),
         _ => return None,
     };
-    let panel = panel_control_ids
-        .iter()
-        .find_map(|control_id| find_panel(nodes, control_id))?;
+    let metadata = nodes.metadata::<AssetContentPaintMetadata>()?;
+    if metadata.surface() != surface {
+        return None;
+    }
+    let panel = metadata.content_panel()?;
     let panel_frame = FrameRect {
-        x: body.x + panel.frame.x,
-        y: body.y + panel.frame.y,
-        width: panel.frame.width.max(0.0),
-        height: panel.frame.height.max(0.0),
+        x: body.x + panel.x,
+        y: body.y + panel.y,
+        width: panel.width.max(0.0),
+        height: panel.height.max(0.0),
     };
     if !contains(&panel_frame, x, y) {
         return None;
@@ -53,21 +48,15 @@ pub(super) fn route_asset_content_hit(
     ))
 }
 
-fn find_panel(
-    nodes: &ModelRc<crate::ui::retained_host::host_contract::data::TemplatePaneNodeData>,
-    panel_control_id: &str,
-) -> Option<crate::ui::retained_host::host_contract::data::TemplatePaneNodeData> {
-    (0..nodes.row_count())
-        .filter_map(|row| nodes.row_data(row))
-        .find(|node| node.control_id.rsplit('/').next() == Some(panel_control_id))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ui::layouts::common::model_rc;
     use crate::ui::retained_host::host_contract::data::{
         AssetBrowserPaneData, TemplateNodeFrameData, TemplatePaneNodeData,
+    };
+    use crate::ui::retained_host::primitives::ModelRc;
+    use crate::ui::workbench::asset_content_layout::{
+        asset_content_paint_metadata, AssetContentPaintNodeInput,
     };
 
     #[test]
@@ -77,7 +66,7 @@ mod tests {
             ..PaneData::default()
         };
         pane.asset_browser = AssetBrowserPaneData {
-            nodes: model_rc(vec![TemplatePaneNodeData {
+            nodes: browser_nodes(vec![TemplatePaneNodeData {
                 control_id: "AssetBrowserAssetTablePanel".into(),
                 frame: TemplateNodeFrameData {
                     x: 40.0,
@@ -115,7 +104,7 @@ mod tests {
             ..PaneData::default()
         };
         pane.asset_browser = AssetBrowserPaneData {
-            nodes: model_rc(vec![TemplatePaneNodeData {
+            nodes: browser_nodes(vec![TemplatePaneNodeData {
                 control_id: "AssetBrowserThumbGridPanel".into(),
                 frame: TemplateNodeFrameData {
                     x: 40.0,
@@ -153,7 +142,7 @@ mod tests {
             ..PaneData::default()
         };
         pane.asset_browser = AssetBrowserPaneData {
-            nodes: model_rc(vec![
+            nodes: browser_nodes(vec![
                 TemplatePaneNodeData {
                     control_id: "AssetBrowserAssetTablePanel".into(),
                     frame: TemplateNodeFrameData {
@@ -190,5 +179,22 @@ mod tests {
         assert_eq!(route.local_y, 40.0);
         assert_eq!(route.width, 320.0);
         assert_eq!(route.height, 220.0);
+    }
+
+    fn browser_nodes(nodes: Vec<TemplatePaneNodeData>) -> ModelRc<TemplatePaneNodeData> {
+        let metadata = asset_content_paint_metadata(
+            nodes.iter().map(|node| {
+                AssetContentPaintNodeInput::new(
+                    node.control_id.as_str(),
+                    node.frame.x,
+                    node.frame.y,
+                    node.frame.width,
+                    node.frame.height,
+                    node.value_number,
+                )
+            }),
+            AssetContentSurface::Browser,
+        );
+        ModelRc::with_metadata(nodes, metadata)
     }
 }

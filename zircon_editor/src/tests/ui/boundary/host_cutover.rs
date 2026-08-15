@@ -19,7 +19,7 @@ fn editor_manager_becomes_thin_contract_over_editor_ui_host() {
 
     let host_source = std::fs::read_to_string(&host_owner).expect("editor ui host");
     for required in [
-        "core: CoreWeak",
+        "runtime_services: EditorHostRuntimeServices",
         "pub(super) view_registry: Mutex<ViewRegistry>",
         "pub(super) layout_manager: LayoutManager",
         "pub(super) window_host_manager: Mutex<WindowHostManager>",
@@ -65,7 +65,8 @@ fn editor_ui_host_owns_bootstrap_orchestration() {
         std::fs::read_to_string(host_root.join("editor_manager.rs")).expect("editor manager");
 
     for required in [
-        "pub(super) fn bootstrap(core: &CoreHandle, jobs: EditorJobSystem) -> Result<Self, EditorError>",
+        "pub(super) fn bootstrap(",
+        "runtime_services: EditorHostRuntimeServices",
         "host.register_builtin_views()?",
         "host.bootstrap_default_layout()?",
     ] {
@@ -85,7 +86,175 @@ fn editor_ui_host_owns_bootstrap_orchestration() {
         );
     }
     assert!(manager_source.contains("EditorUiHost::bootstrap("));
+    assert!(manager_source.contains("EditorHostRuntimeServices::new(core)"));
     assert!(manager_source.contains("context.dirty_documents().clone()"));
+}
+
+#[test]
+fn editor_ui_host_uses_typed_runtime_services_instead_of_a_core_locator() {
+    let host_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src")
+        .join("ui")
+        .join("host");
+    let host_source =
+        std::fs::read_to_string(host_root.join("editor_ui_host.rs")).expect("editor ui host");
+    let report_source = std::fs::read_to_string(host_root.join("editor_capability_report.rs"))
+        .expect("editor capability report owner");
+    let services_source = std::fs::read_to_string(host_root.join("runtime_services.rs"))
+        .expect("editor host runtime services");
+    let subsystems_source = std::fs::read_to_string(host_root.join("editor_subsystems.rs"))
+        .expect("editor subsystem helpers");
+    let capability_source = std::fs::read_to_string(
+        host_root.join("editor_manager_plugins_export/enablement/capabilities.rs"),
+    )
+    .expect("editor capability enablement");
+    let host_mod = std::fs::read_to_string(host_root.join("mod.rs")).expect("ui host mod");
+
+    assert!(
+        host_mod.contains("mod runtime_services;"),
+        "expected the typed runtime-services owner to be wired into ui::host"
+    );
+    for forbidden in ["CoreHandle", "CoreWeak", "runtime_core("] {
+        assert!(
+            !host_source.contains(forbidden),
+            "editor_ui_host.rs must not retain the generic runtime locator `{forbidden}`"
+        );
+    }
+    for required in [
+        "struct EditorHostRuntimeServices",
+        "fn asset_manager(",
+        "fn editor_asset_manager(",
+        "fn config_manager(",
+        "fn create_runtime_level(",
+        "fn vm_host_capabilities(",
+        "fn vm_plugin_manager(",
+    ] {
+        assert!(
+            services_source.contains(required),
+            "expected the typed runtime-services owner to expose `{required}`"
+        );
+    }
+    for required in [
+        "struct EditorCapabilityConfiguration",
+        "fn capability_configuration(",
+        "fn store_enabled_subsystems(",
+    ] {
+        assert!(
+            services_source.contains(required),
+            "expected the capability transaction owner to expose `{required}`"
+        );
+    }
+    for forbidden in [
+        "pub(crate) fn editor_subsystem_report_from_core",
+        "pub(crate) fn editor_runtime_sandbox_enabled",
+    ] {
+        assert!(
+            !subsystems_source.contains(forbidden),
+            "runtime-backed subsystem helpers must not expose `{forbidden}` crate-wide"
+        );
+    }
+    for required in [
+        "pub(super) fn editor_subsystem_report_from_core",
+        "pub(super) fn editor_runtime_sandbox_enabled",
+    ] {
+        assert!(
+            subsystems_source.contains(required),
+            "expected host-private subsystem helper `{required}`"
+        );
+    }
+    assert!(
+        report_source.contains("fn apply_capability_report("),
+        "expected the capability report owner to apply an already-resolved report"
+    );
+    assert!(
+        host_source.contains("self.apply_capability_report(subsystem_report)"),
+        "refresh_capabilities must delegate report application to its named owner"
+    );
+    for forbidden in [
+        "CoreHandle",
+        "runtime_core(",
+        "refresh_capabilities_from_core",
+    ] {
+        assert!(
+            !capability_source.contains(forbidden),
+            "capability updates must use the typed configuration transaction, not `{forbidden}`"
+        );
+    }
+    for required in [
+        "capability_configuration()",
+        "store_enabled_subsystems",
+        "apply_capability_report",
+    ] {
+        assert!(
+            capability_source.contains(required),
+            "expected capability updates to use `{required}`"
+        );
+    }
+}
+
+#[test]
+fn editor_event_runtime_access_remains_folder_backed_and_uses_the_resource_owner() {
+    let host_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src")
+        .join("ui")
+        .join("host");
+    let legacy_owner = host_root.join("editor_event_runtime_access.rs");
+    let access_root = host_root.join("editor_event_runtime_access");
+    let access_mod = std::fs::read_to_string(access_root.join("mod.rs"))
+        .expect("folder-backed editor event runtime access facade");
+    let asset_access = std::fs::read_to_string(access_root.join("asset_access.rs"))
+        .expect("event runtime asset access");
+
+    assert!(
+        !legacy_owner.exists(),
+        "the legacy flat event-runtime access owner must stay deleted"
+    );
+    for required in [
+        "mod asset_access;",
+        "mod component_dispatch;",
+        "mod event_dispatch;",
+        "mod extension_access;",
+        "mod input_dispatch;",
+        "mod snapshot;",
+        "mod status;",
+    ] {
+        assert!(
+            access_mod.contains(required),
+            "expected the thin event-runtime access facade to mount `{required}`"
+        );
+    }
+    for forbidden in [
+        "core::framework::asset::ResourceManagement",
+        "CoreHandle",
+        "CoreWeak",
+        "ManagerResolver",
+        "LevelSystem",
+    ] {
+        assert!(
+            !asset_access.contains(forbidden),
+            "event runtime asset access must not restore legacy runtime coupling `{forbidden}`"
+        );
+    }
+    assert!(
+        asset_access.contains("core::resource::ResourceManagementGeneration"),
+        "event runtime asset access must consume the canonical resource generation"
+    );
+
+    for entry in std::fs::read_dir(&access_root).expect("event runtime access directory") {
+        let entry = entry.expect("event runtime access directory entry");
+        let path = entry.path();
+        if path.extension().is_some_and(|extension| extension == "rs") {
+            let line_count = std::fs::read_to_string(&path)
+                .expect("event runtime access source")
+                .lines()
+                .count();
+            assert!(
+                line_count <= 800,
+                "event runtime access owner {:?} exceeds the 800-line review budget",
+                path.file_name()
+            );
+        }
+    }
 }
 
 #[test]
@@ -232,9 +401,9 @@ fn editor_ui_host_owns_layout_project_and_workspace_orchestration() {
     let project_wrapper = std::fs::read_to_string(host_root.join("editor_manager_project.rs"))
         .expect("editor manager project wrapper");
     for required in [
-        "self.host.open_project(path)",
+        "self.open_project_document(path)",
         "self.host.save_project(path, world)",
-        "self.host.create_runtime_level(scene)",
+        "self.host.prepare_authoring_world(scene)",
     ] {
         assert!(
             project_wrapper.contains(required),
@@ -430,9 +599,9 @@ fn editor_ui_host_owns_startup_and_welcome_orchestration() {
     let startup_wrapper = std::fs::read_to_string(host_root.join("editor_manager_startup.rs"))
         .expect("startup wrapper");
     for required in [
-        "self.host.resolve_startup_session()",
-        "self.host.open_project_and_remember(path)",
-        "self.host.create_project_and_open(draft)",
+        "resolve_startup_session_with_project_open(|path| self.open_project(path))",
+        "self.open_project_and_remember_with_session(path)",
+        "self.create_project_and_open_with_session(draft)",
         "self.host.recent_projects_snapshot()",
         "self.host.forget_recent_project(path)",
         "self.host.update_recent_project(path)",

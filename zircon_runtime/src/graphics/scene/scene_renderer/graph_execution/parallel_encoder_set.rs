@@ -232,7 +232,7 @@ mod tests {
     use crate::core::{TaskPool, TaskPoolDescriptor};
     use crate::render_graph::{PassFlags, QueueLane, RenderGraphBuilder};
 
-    use super::{ParallelEncoderSet, record_buckets_ordered};
+    use super::{record_buckets_ordered, ParallelEncoderSet};
 
     #[test]
     fn parallel_encoder_partition_respects_topology_layers_and_skips_culled_passes() {

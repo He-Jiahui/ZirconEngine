@@ -4,8 +4,10 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate.rs
   - tools/plugin_structure_audits/capability.py
   - tools/check_conventions.py
+  - tools/convention_exemptions.py
   - tools/check-conventions.ps1
   - tools/tests/test_check_conventions.py
+  - tools/tests/check_conventions/document_paths.py
   - tools/tests/test_frameworks_06_ci_toolchain_contract.py
   - docs/cli-and-tooling/check-conventions.md
   - Cargo.toml
@@ -18,7 +20,7 @@ plan_sources:
   - docs/engine-architecture/hard-cutover-migration-smells-m1.md
   - docs/engine-architecture/non-network-server-naming-m1.md
   - docs/engine-architecture/generated-code-boundary.md
-last_refined: 2026-07-31
+last_refined: 2026-08-09
 status: in_progress
 ---
 
@@ -34,8 +36,8 @@ status: in_progress
 ## 2. 现状与差距
 
 - 规则总纲与 tracked CLI 文档已经提供人类/AI 共用入口，用户优先的 structure/review authorities 也已同步；剩余差距是历史细节文档和 G7 路径仍持续漂移，不能把总纲落地误报为全仓收敛。
-- 统一 `tools/check_conventions.py` 已聚合 Frameworks05 layering、Runtime structure convention、Rust 1.94.1 `cargo fmt --all --check`、Runtime Interface/App scoped `clippy --no-deps -D warnings` 与 docs/G7 审计，并由 CI 安装 fmt/clippy 后调用；feature/profile matrices 由计划 03 的 CI job 持有。未完成项是 workspace/Runtime 全量 clippy、计划 04 Rust `cargo-zircon` plugin checker、`deny.toml`/`cargo deny check`、真实分支全矩阵 acceptance，以及仍为 RED 的全库 G7。
-- 错误处理、日志、panic 策略、unsafe 审查与公共 API rustdoc 已分别由权威总纲 `GEN-Q1..Q7`、`GEN-D4` 成文；当前缺口是这些规则仍部分依赖评审，自动化 G3/专项守卫及豁免统计尚未完整落地。
+- 统一 `tools/check_conventions.py` 已聚合 Frameworks05 layering、Runtime structure convention、Rust 1.94.1 `cargo fmt --all --check`、Runtime Interface/App scoped `clippy --no-deps -D warnings` 与 docs/G7 审计，并由 CI 安装 fmt/clippy 后调用；feature/profile matrices 由计划 03 的 CI job 持有。计划 04 Rust `cargo-zircon plugin new/check/validate` 与 G6 `deny.toml`/双 workspace CI matrix 已实现。未完成项是 workspace/Runtime 全量 clippy、G5/G6 真实 managed/CI acceptance，以及仍为 RED 的全库 G7。
+- 错误处理、日志、panic 策略、unsafe 审查与公共 API rustdoc 已分别由权威总纲 `GEN-Q1..Q7`、`GEN-D4` 成文；Rust allow 豁免自动守卫及按成员/规则统计已落地，当前缺口是其余仍依赖评审的规则尚未全部转为自动化 G3/专项守卫。
 
 ## 3. 规范总纲结构（权威文档：docs/plans/zircon_runtime/frameworks/development-conventions.md，2026-07-02 已落稿）
 
@@ -53,12 +55,12 @@ status: in_progress
 | 守卫 | 拦截什么 | 形态 |
 |------|---------|------|
 | G1 依赖方向 | 上层 crate 反向依赖、app/editor/插件直连 `zr_*`、asset/graphics 引 ui 内部等 | 已由 Frameworks05 layer-direction 与 Runtime structure guards 接入统一 runner；Cargo crate 边界继续天然强制。current static 28/28，不替代 managed Runtime structure gate |
-| G2 结构门 | 根文件行为化、大文件超标、命名禁区、迁移气味词 | Python 与 Rust structure guards 已收编到统一 runner；规则表严格解析 63 rules / 49 MUST，拒绝重复 marker、空规则和未知 guard。current contract tests 19/19，managed Rust gate pending |
+| G2 结构门 | 根文件行为化、大文件超标、命名禁区、迁移气味词 | Python 与 Rust structure guards 已收编到统一 runner；规则表严格解析 63 rules / 49 MUST，拒绝重复 marker、空规则和未知 guard。current convention contract tests 26/26，managed Rust gate pending |
 | G3 fmt/clippy | 格式与 lint | CI 的 convention job 已显式安装与 runner 相同的 Rust 1.94.1 + rustfmt/clippy，并由 1/1 toolchain contract 锁定；runner 执行 `cargo fmt --all --check`，并对 `zircon_runtime_interface`/`zircon_app` 执行 scoped `--no-deps -D warnings`。Runtime/workspace 全量 lint 仍归 M3 渐进收紧，不用全局 allow 绕过 |
 | G4 feature 矩阵 | feature 组合断裂 | 计划 03 profile/feature CI matrices 已落地；runtime selection 双真相与完整 acceptance 仍由计划 03 保持开放 |
-| G5 插件一致性 | manifest 单源漂移、catalog 漏注册、符号缺失 | 声明/生成 manifest 静态 parity 已有守卫；Rust `cargo-zircon plugin check` 尚未实现，不能把 Python validator 冒充该工具或 CI 门 |
-| G6 依赖治理 | license/重复版本/安全通告、重型依赖越层 | 重型依赖越层已有局部守卫；仓内尚无 `deny.toml`，`cargo deny check` 与 license/advisory/duplicate policy 尚未接入 CI |
-| G7 docs 勾稽 | 模块文档 related_code 悬空路径 | current-owner 审计已接入统一 runner/CI 并持续 hard cut 退役路径；全库当前仍为 RED，只有违规明细归零后才可验收 |
+| G5 插件一致性 | manifest 单源漂移、catalog 漏注册、符号缺失 | Rust `cargo-zircon plugin new/check/validate` 已实现，`plugin check` 覆盖 manifest 单源、catalog/workspace/feature 勾稽与 dist artifact 符号探测并接入 CI；当前为 implementation-complete / managed E2E acceptance pending，Python validator 只保留回归层而非兼容入口 |
+| G6 依赖治理 | license/重复版本/安全通告、重型依赖越层 | 根 `deny.toml` 与 root/plugin workspace CI matrix 已实现：advisory ignore 为空，未知 registry/Git source 与 wildcard 依赖拒绝，duplicate version 显式告警，copyleft 仅保留现有 crate 级 MPL-2.0 例外。静态策略契约 4/4、402 manifest wildcard 盘点 0 项和独立复审 C0/I0/M0 已通过；此前 exact7 受管策略契约 4/4 GREEN，当前父计划状态更新后需刷新不可变验证，真实 cargo-deny/CI acceptance 仍待完成 |
+| G7 docs 勾稽 | 模块文档 related_code/implementation_files/tests 悬空路径 | current-owner 审计已接入统一 runner/CI；`tests:` 仅审计整条声明的具体仓库文件并拒绝绝对/越界路径，不把命令、glob、模板、远程 URI 或构建产物误报为 owner。用户优先 structure authority、review findings 与 module-convention 已分别从 186/185/103 项降为 0；已完成的 Runtime05 计划只做 35→0 元数据维护，不重开里程碑。G7 路径 validator 已按父目录缓存普通 leaf，同时对 `..`、symlink/junction leaf 保持 full resolve；Windows reparse 判定使用 Python 3.11 可用的 `lstat` attributes，不静默依赖 3.12 API。current-source old-field report 等价且 full-resolution -78.3926%，31/31 static GREEN。fresh exact7 内容复审为 C0/I0/M0，但 snapshot1615 漏掉 runner 必需的 untracked `tools/convention_exemptions.py`，已按原子提交规则拒绝；fresh exact8 不可变二次审查为 C0/I0/M0。5-sample 墙钟因外部 docs 漂移被拒绝，performance attestation/managed closeout pending。这些 owned 明细均为 0，但共享工作树仍为 RED，全局计数因并发 owner 输入不冻结，只有全库明细归零后才可验收 |
 
 ## 5. 里程碑
 
@@ -73,13 +75,13 @@ status: in_progress
 实现切片：已完成。`ci.yml` 的 convention job 显式安装 Rust 1.94.1 fmt/clippy 并调用统一 runner；runner 聚合 layering、Rust structure、fmt、Interface/App scoped clippy 与 docs/G7，PowerShell/Python wrapper 和 tracked CLI 文档已落地。新增 CI/toolchain contract 同时读取 workflow 与 runner，禁止 workflow 退回 `stable` 而 runner 继续调用未安装的 named toolchain。
 
 测试阶段：
-- `python -B -m unittest tools.tests.test_frameworks_06_ci_toolchain_contract tools.tests.test_check_conventions -v` current static **20/20**；
+- `python -B -m unittest tools.tests.test_frameworks_06_ci_toolchain_contract tools.tests.test_check_conventions -v` current static **31/31**；
 - 分支上 CI 全绿一轮（fmt/clippy 存量违规同批清理，interface/app 体量小可控）；
 - 验收证据：workflow 截图/日志 + check-conventions 脚本文档化（tracked `docs/cli-and-tooling/check-conventions.md`；本地忽略的 `CLAUDE.md` 命令段仅作为工作区便利入口，不充当入库证据）。
 
 ### M2 结构守卫统一入口（G1/G2）
 
-实现切片：代码与静态合同已完成。交叉引用扫描已常驻，Python/Rust guards 进入同一 CI runner，规则表按 63 rules / 49 MUST 严格解析并由 19/19 contract tests 锁定；Frameworks05 layer-direction fresh 28/28。managed `structure_convention`、fmt/clippy 组合门与真实分支 CI acceptance 仍待 current-source 证据，故 M2 不提前标 completed。
+实现切片：代码与静态合同已完成。交叉引用扫描已常驻，Python/Rust guards 进入同一 CI runner，规则表按 63 rules / 49 MUST 严格解析并由 26/26 convention contract tests 锁定；Frameworks05 layer-direction fresh 28/28。managed `structure_convention`、fmt/clippy 组合门与真实分支 CI acceptance 仍待 current-source 证据，故 M2 不提前标 completed。
 
 测试阶段：
 - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter structure_convention` 全绿 + CI job 全绿；
@@ -87,7 +89,7 @@ status: in_progress
 
 ### M3 渐进收紧与收口（G3 全量 / G6）
 
-实现切片：runtime 各域按计划 01 拆分节奏逐 crate 进 clippy 零警告名单；cargo-deny 配置与 CI 接入（配合计划 01 M4）；豁免流程落地（`#[allow]` 必须带 `// EXEMPT(规则ID): 理由` 注释，守卫统计豁免数量趋势）。
+实现切片：runtime 各域按计划 01 拆分节奏逐 crate 进 clippy 零警告名单。Rust 豁免守卫实现已落地到统一 runner：从 workspace manifest 盘点全部 `#[allow]`/`#![allow]`，对首批零警告成员 `zircon_app`/`zircon_runtime_interface` 强制紧邻 `// EXEMPT(已知 MUST 规则ID): 非空理由`，并按成员/规则报告未收紧存量趋势。2026-08-08 exemption lexer/inventory 已抽取到独立 module；抽取后静态契约 23/23、直接 Python 门与 PowerShell `exemptions` JSON 门均 GREEN。2026-08-09 最新共享树库存为 421 个候选文件、148 个实际属性、0 个严格成员违规；该计数是会随并发源码变化的库存快照，不冒充不可变 acceptance。独立二次复审 C0/I0/M0。G6 的 cargo-deny policy 与 CI 双 workspace matrix 已实现，静态契约、独立复审和 exact7 受管策略契约均 GREEN；真实 cargo-deny/CI acceptance 尚待完成。managed 默认 runner acceptance 与 workspace 全量 clippy 也仍待完成，因此 M3 不提前标 completed。
 
 测试阶段：CI 全矩阵绿；验收证据：clippy 名单覆盖全部成员 crate；豁免清单首期报告。
 
@@ -101,7 +103,7 @@ status: in_progress
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-当前状态：M0 已完成；M1 实现 code-complete，但真实分支 CI acceptance 仍待完成；M2 静态实现与独立复审已完成，managed Runtime structure/fmt/clippy 组合证据仍待补齐；M3 未完成。G5、G6 尚未落地，G7 全库仍为 RED，父计划不提升完成状态。Frameworks05/Plugins04 的 animation scene-hook hard cut 已完成静态修复，仍等待 managed compile 与 fixed return。
+当前状态：M0 已完成；M1 实现 code-complete，但真实分支 CI acceptance 仍待完成；M2 静态实现与独立复审已完成，managed Runtime structure/fmt/clippy 组合证据仍待补齐；M3 Rust 豁免守卫功能实现、模块边界 closeout与抽取后二次复审均已完成，G6 实现、静态契约和独立复审已完成，此次父计划/G7 更新后需刷新不可变策略证据，真实 cargo-deny/CI acceptance 和 workspace 全量 clippy 仍待补齐。G5 已 implementation-complete / managed E2E acceptance pending；G7 三份用户优先/结构 owner 与 Runtime05 元数据均已归零、共享工作树仍为 RED且全局计数不冻结。snapshot1615/exact7 因遗漏 `tools/convention_exemptions.py` 已拒绝；fresh exact8 不可变二次审查 C0/I0/M0，managed closeout pending，父计划不提升完成状态。Frameworks05/Plugins04 的 animation scene-hook hard cut 已完成静态修复，仍等待 managed compile 与 fixed return。
 
 - 迁入产出记录：[2026-08-01 产出与性能交接归档](06/2026-08-01-plan-output-and-performance-handoffs.md)
 - fixed 已修复：[scene-test-support-file-budget](06/fixed-2026-07-13-scene-test-support-file-budget.md)

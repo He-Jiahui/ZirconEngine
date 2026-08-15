@@ -15,6 +15,10 @@ use zircon_runtime_interface::ui::{
 
 impl EditorHostEventController {
     pub fn handle_control_request(&self, request: UiControlRequest) -> UiControlResponse {
+        // Retained-host events coalesce reflection dirtiness so native input callbacks do not
+        // synchronously rebuild the legacy reflection tree. A control request is the demand
+        // boundary that must observe the latest materialized snapshot and routes.
+        self.drain_pending_view_refreshes();
         match request {
             UiControlRequest::InvokeBinding { binding } => {
                 UiControlResponse::Invocation(self.invoke_binding(binding))

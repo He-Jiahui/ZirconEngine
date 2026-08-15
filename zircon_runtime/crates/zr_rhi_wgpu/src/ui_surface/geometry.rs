@@ -2,9 +2,8 @@ use bytemuck::{Pod, Zeroable};
 use glyphon::TextBounds;
 
 use zr_rhi::{
-    UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceImageUvRect,
-    UiSurfacePresentStats, UiSurfacePresentStatsAccumulator, UiSurfaceRect,
-    UiSurfaceResolvedCommandKind,
+    UiSurfaceCommand, UiSurfaceDrawList, UiSurfaceImageUvRect, UiSurfacePresentStats,
+    UiSurfacePresentStatsAccumulator, UiSurfaceRect, UiSurfaceResolvedCommandKind,
 };
 
 mod clipping;
@@ -14,10 +13,14 @@ use clipping::clip_solid_triangles_to_rect;
 pub(super) const UI_QUAD_VERTEX_COUNT: u32 = 6;
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+#[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
 pub(super) struct SolidVertex {
     pub(super) position: [f32; 2],
     pub(super) color: [f32; 4],
+    pub(super) local_position: [f32; 2],
+    pub(super) half_extent: [f32; 2],
+    pub(super) corner_radius: f32,
+    pub(super) border_width: f32,
 }
 
 #[repr(C)]
@@ -29,7 +32,7 @@ pub(super) struct SolidInstance {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+#[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable)]
 pub(super) struct ImageVertex {
     pub(super) position: [f32; 2],
     pub(super) uv: [f32; 2],
@@ -377,69 +380,31 @@ fn solid_vertices(
     corner_radius: f32,
 ) -> Vec<SolidVertex> {
     let corner_radius = clamped_corner_radius(frame, corner_radius);
-    if corner_radius > 0.0 {
-        return rounded_rect_vertices(frame, color, size, corner_radius);
-    }
     let positions = quad_positions(frame, size);
     let color = normalized_color(color);
+    let half_extent = [frame.width * 0.5, frame.height * 0.5];
+    let local_positions = [
+        [-half_extent[0], -half_extent[1]],
+        [half_extent[0], -half_extent[1]],
+        [-half_extent[0], half_extent[1]],
+        [half_extent[0], half_extent[1]],
+    ];
+    let vertex = |index| SolidVertex {
+        position: positions[index],
+        color,
+        local_position: local_positions[index],
+        half_extent,
+        corner_radius,
+        border_width: 0.0,
+    };
     vec![
-        SolidVertex {
-            position: positions[0],
-            color,
-        },
-        SolidVertex {
-            position: positions[1],
-            color,
-        },
-        SolidVertex {
-            position: positions[2],
-            color,
-        },
-        SolidVertex {
-            position: positions[2],
-            color,
-        },
-        SolidVertex {
-            position: positions[1],
-            color,
-        },
-        SolidVertex {
-            position: positions[3],
-            color,
-        },
+        vertex(0),
+        vertex(1),
+        vertex(2),
+        vertex(2),
+        vertex(1),
+        vertex(3),
     ]
-}
-
-fn rounded_rect_vertices(
-    frame: UiSurfaceRect,
-    color: [u8; 4],
-    size: (u32, u32),
-    corner_radius: f32,
-) -> Vec<SolidVertex> {
-    let points = rounded_rect_points(frame, corner_radius);
-    let center = ndc_position(
-        frame.x + frame.width * 0.5,
-        frame.y + frame.height * 0.5,
-        size,
-    );
-    let color = normalized_color(color);
-    let mut vertices = Vec::with_capacity(points.len() * 3);
-    for index in 0..points.len() {
-        let next = (index + 1) % points.len();
-        vertices.push(SolidVertex {
-            position: center,
-            color,
-        });
-        vertices.push(SolidVertex {
-            position: ndc_position(points[index].0, points[index].1, size),
-            color,
-        });
-        vertices.push(SolidVertex {
-            position: ndc_position(points[next].0, points[next].1, size),
-            color,
-        });
-    }
-    vertices
 }
 
 fn rounded_border_vertices(
@@ -450,80 +415,11 @@ fn rounded_border_vertices(
     corner_radius: f32,
 ) -> Vec<SolidVertex> {
     let width = width.max(1.0).min(frame.width.min(frame.height) * 0.5);
-    let inner = UiSurfaceRect::new(
-        frame.x + width,
-        frame.y + width,
-        (frame.width - width * 2.0).max(0.0),
-        (frame.height - width * 2.0).max(0.0),
-    );
-    if inner.width <= 0.0 || inner.height <= 0.0 {
-        return rounded_rect_vertices(frame, color, size, corner_radius);
-    }
-    let outer_points = rounded_rect_points(frame, clamped_corner_radius(frame, corner_radius));
-    let inner_points = rounded_rect_points(
-        inner,
-        clamped_corner_radius(inner, (corner_radius - width).max(0.0)),
-    );
-    let color = normalized_color(color);
-    let mut vertices = Vec::with_capacity(outer_points.len() * 6);
-    for index in 0..outer_points.len() {
-        let next = (index + 1) % outer_points.len();
-        let outer_a = ndc_position(outer_points[index].0, outer_points[index].1, size);
-        let outer_b = ndc_position(outer_points[next].0, outer_points[next].1, size);
-        let inner_a = ndc_position(inner_points[index].0, inner_points[index].1, size);
-        let inner_b = ndc_position(inner_points[next].0, inner_points[next].1, size);
-        vertices.extend([
-            SolidVertex {
-                position: outer_a,
-                color,
-            },
-            SolidVertex {
-                position: outer_b,
-                color,
-            },
-            SolidVertex {
-                position: inner_a,
-                color,
-            },
-            SolidVertex {
-                position: inner_a,
-                color,
-            },
-            SolidVertex {
-                position: outer_b,
-                color,
-            },
-            SolidVertex {
-                position: inner_b,
-                color,
-            },
-        ]);
+    let mut vertices = solid_vertices(frame, color, size, corner_radius);
+    for vertex in &mut vertices {
+        vertex.border_width = width;
     }
     vertices
-}
-
-fn rounded_rect_points(frame: UiSurfaceRect, corner_radius: f32) -> Vec<(f32, f32)> {
-    const SEGMENTS: usize = 6;
-    let radius = clamped_corner_radius(frame, corner_radius);
-    let left = frame.x;
-    let top = frame.y;
-    let right = frame.x + frame.width;
-    let bottom = frame.y + frame.height;
-    let centers = [
-        (right - radius, top + radius, -90.0_f32, 0.0_f32),
-        (right - radius, bottom - radius, 0.0_f32, 90.0_f32),
-        (left + radius, bottom - radius, 90.0_f32, 180.0_f32),
-        (left + radius, top + radius, 180.0_f32, 270.0_f32),
-    ];
-    let mut points = Vec::with_capacity(SEGMENTS * centers.len() + centers.len());
-    for (cx, cy, start, end) in centers {
-        for step in 0..=SEGMENTS {
-            let t = step as f32 / SEGMENTS as f32;
-            let angle = (start + (end - start) * t).to_radians();
-            points.push((cx + radius * angle.cos(), cy + radius * angle.sin()));
-        }
-    }
-    points
 }
 
 fn clamped_corner_radius(frame: UiSurfaceRect, corner_radius: f32) -> f32 {
@@ -542,12 +438,6 @@ fn normalized_color(color: [u8; 4]) -> [f32; 4] {
         color[2] as f32 / 255.0,
         color[3] as f32 / 255.0,
     ]
-}
-
-fn ndc_position(x: f32, y: f32, size: (u32, u32)) -> [f32; 2] {
-    let width = size.0.max(1) as f32;
-    let height = size.1.max(1) as f32;
-    [(x / width) * 2.0 - 1.0, 1.0 - (y / height) * 2.0]
 }
 
 fn image_vertices(

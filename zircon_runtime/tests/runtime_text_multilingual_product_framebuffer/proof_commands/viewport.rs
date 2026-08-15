@@ -12,7 +12,7 @@ use zircon_runtime_interface::ui::{
 const LOG_ROW_COUNT: usize = 2_048;
 const LOG_LINE_HEIGHT: f32 = 20.0;
 
-pub(super) fn proof_scrolled_plain_text_viewport() -> UiRenderCommand {
+pub(in super::super) fn proof_scrolled_plain_text_viewport() -> UiRenderCommand {
     let root_id = UiNodeId::new(130);
     let text_id = UiNodeId::new(131);
     let tree_id = UiTreeId::new("runtime.ui.text.viewport.product");
@@ -119,6 +119,7 @@ fn arranged_node(
         paint_order: 0,
         visibility: UiVisibility::Visible,
         input_policy: UiInputPolicy::Inherit,
+        pointer_events: Default::default(),
         enabled: true,
         clickable: false,
         hoverable: false,

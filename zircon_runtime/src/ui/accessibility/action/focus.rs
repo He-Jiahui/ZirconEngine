@@ -28,7 +28,7 @@ pub(super) fn dispatch_focus(
     match surface.focus_node_with_reason(
         target,
         UiFocusChangeReason::Programmatic,
-        UiFocusVisible::visible(UiFocusVisibleReason::Programmatic),
+        UiFocusVisible::hidden(UiFocusVisibleReason::Programmatic),
     ) {
         Ok(_) => finish_focus_success(result, target),
         Err(error) => finish_focus_rejected(result, target, error),

@@ -6,8 +6,8 @@ use crate::core::framework::render::{RenderCameraTarget, RenderViewportRect};
 use crate::core::resource::TextureMarker;
 use crate::scene::components::CameraComponent;
 
-use super::SceneProjectError;
 use super::references::{handle_for_reference, reference_for_handle};
+use super::SceneProjectError;
 pub(super) fn camera_target_from_asset(
     project: &ProjectManager,
     target: SceneCameraTargetAsset,

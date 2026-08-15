@@ -1,4 +1,4 @@
-use super::super::{HostShellPointerRoute, RetainedEditorHost, callback_dispatch};
+use super::super::{callback_dispatch, HostShellPointerRoute, RetainedEditorHost};
 use zircon_runtime_interface::ui::layout::UiPoint;
 
 impl RetainedEditorHost {

@@ -4,6 +4,8 @@ mod commands;
 mod runtime_state;
 mod view_model;
 
+use tauri::Manager;
+
 pub(crate) use action_request::HubActionRequest;
 use commands::HubCommandState;
 pub(crate) use view_model::HubViewModel;
@@ -25,6 +27,13 @@ fn hub_action(
 pub fn run() -> Result<(), crate::HubError> {
     tauri::Builder::default()
         .manage(HubCommandState::load()?)
+        .on_window_event(|window, event| {
+            if matches!(event, tauri::WindowEvent::Focused(true)) {
+                window
+                    .state::<HubCommandState>()
+                    .refresh_recent_projects_on_window_focus(window.app_handle().clone());
+            }
+        })
         .invoke_handler(tauri::generate_handler![hub_state, hub_action])
         .run(tauri::generate_context!())?;
     Ok(())

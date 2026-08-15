@@ -241,9 +241,9 @@ mod tests {
         color_lut_bake_workgroup_size, color_transform_requires_lut_bake,
     };
     use crate::core::framework::render::{
-        COLOR_LUT_SIZE_DEFAULT, RenderColorGradingSettings, RenderColorLookupSettings,
-        RenderColorLookupTextureLayout, RenderPostProcessEffectStackSettings,
-        RenderTonemapOperator, RenderTonemapSettings,
+        RenderColorGradingSettings, RenderColorLookupSettings, RenderColorLookupTextureLayout,
+        RenderPostProcessEffectStackSettings, RenderTonemapOperator, RenderTonemapSettings,
+        COLOR_LUT_SIZE_DEFAULT,
     };
 
     #[test]

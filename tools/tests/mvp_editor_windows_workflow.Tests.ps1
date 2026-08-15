@@ -26,6 +26,7 @@ Assert-WorkflowMatch 'runs-on:\s*windows-latest' 'MVP job must run on windows-la
 Assert-WorkflowMatch 'actions/checkout@v5' 'MVP job must check out the source.'
 Assert-WorkflowMatch 'dtolnay/rust-toolchain@stable' 'MVP job must use the stable Rust toolchain.'
 Assert-WorkflowMatch 'Swatinem/rust-cache@v2' 'MVP job must cache Cargo dependencies.'
+Assert-WorkflowMatch 'MVP_EVIDENCE_ROOT:\s*D:\\ZirconBuilds\\mvp-ci-results-\$\{\{\s*github\.run_id\s*\}\}-\$\{\{\s*github\.run_attempt\s*\}\}' 'MVP diagnostics must use a source-bound approved physical artifact root.'
 
 Assert-WorkflowMatch 'cargo build -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked' 'MVP job must build the staged editor profile.'
 Assert-WorkflowMatch 'cargo build -p zircon_app --bin zircon_runtime --no-default-features --features target-client --locked' 'MVP job must build the staged runtime profile.'
@@ -36,7 +37,7 @@ Assert-WorkflowMatch 'dynamic_api::session::tests::foundation_render::render_pro
 Assert-WorkflowMatch 'tests::workbench::project::document_roundtrip::editor_project_document_roundtrips_world_and_workspace\s+--locked\s+--\s+--exact' 'F3 must use the full libtest id before --exact.'
 Assert-WorkflowMatch 'f4_project_authoring_survives_full_application_restart' 'MVP job must cover the F4 application authoring restart contract.'
 Assert-WorkflowMatch 'cargo test -p zircon_app --test editor_mvp_authoring --no-default-features --features target-editor-host --locked' 'MVP job must run the F4 restart contract through the current App composition integration target.'
-Assert-WorkflowMatch "Select-String -LiteralPath test-results/f4-authoring\.log -SimpleMatch 'test result: ok\. 1 passed; 0 failed' -Quiet" 'F4 must reject a zero-test or multi-test exact result.'
+Assert-WorkflowMatch '\$env:MVP_EVIDENCE_ROOT\\f4-authoring\.log' 'F4 must reject a zero-test or multi-test exact result.'
 Assert-WorkflowMatch 'Stage-MvpProducts\.ps1' 'MVP job must stage source-bound product inputs rather than consume the repository target directory directly.'
 Assert-WorkflowMatch 'Invoke-MvpAcceptance\.ps1' 'MVP job must validate staged product evidence through the acceptance driver.'
 Assert-WorkflowMatch 'mvp-authoring-automation\.json' 'MVP job must exercise the source-bound normal authoring binding request.'
@@ -46,7 +47,20 @@ Assert-WorkflowMatch 'profile-contract-summary\.json' 'MVP job must materialize 
 Assert-WorkflowMatch 'workspace-summary\.json' 'MVP job must materialize the focused workspace build/test summary consumed by F5 acceptance.'
 Assert-WorkflowMatch "summary_kind\s*=\s*'profile-contract'" 'Profile evidence must declare its canonical summary kind.'
 Assert-WorkflowMatch "summary_kind\s*=\s*'workspace'" 'Workspace evidence must declare its canonical summary kind.'
-Assert-WorkflowMatch 'source_fingerprint\s*=\s*\$env:GITHUB_SHA' 'Build summaries must bind to the checked-out source fingerprint.'
+Assert-WorkflowMatch 'Import-Module \.\\tools\\mvp\\MvpProductInputManifest\.psm1' 'Build summaries must use the canonical product-input source fingerprint function.'
+Assert-WorkflowMatch '\$sourceFingerprint\s*=\s*Get-MvpSourceFingerprint -RepositoryRoot \$PWD' 'Build summaries must bind to the complete checked-out source fingerprint.'
+Assert-WorkflowMatch 'source_fingerprint\s*=\s*\$sourceFingerprint' 'Build summaries must retain the canonical source fingerprint.'
+Assert-WorkflowMatch 'Build-MvpProductInputs\.ps1 -ArtifactOutputDirectory \$binaryInputRoot' 'F5 staging must receive managed, source-bound product inputs.'
+Assert-WorkflowMatch '-ProductInputManifest\s+\$productInputManifest' 'F5 staging must not bypass product input provenance with raw artifact paths.'
+Assert-WorkflowMatch '\$binaryInputRoot = Join-Path ''D:\\ZirconBuilds'' "mvp-product-inputs-\$runIdentity"' 'F5 product inputs must use the managed physical artifact root.'
+Assert-WorkflowMatch '\$evidenceRoot = Join-Path ''D:\\ZirconBuilds'' "mvp-f5-evidence-\$runIdentity"' 'F5 evidence must use the managed physical artifact root.'
+Assert-WorkflowMatch '\$env:MVP_EVIDENCE_ROOT' 'MVP diagnostics must resolve from the declared physical artifact root.'
+if ($workflow -match '\$env:RUNNER_TEMP') {
+    throw 'MVP workflow must not route diagnostics, product inputs, or evidence through the runner temporary directory.'
+}
+if ($workflow -match 'test-results') {
+    throw 'MVP workflow must not route diagnostics or evidence through a runner-relative test-results directory.'
+}
 Assert-WorkflowMatch '-ProfileContractSummaryPath\s+\$profileContractSummaryPath' 'F5 acceptance must receive the explicit profile summary input.'
 Assert-WorkflowMatch '-WorkspaceSummaryPath\s+\$workspaceSummaryPath' 'F5 acceptance must receive the explicit workspace summary input.'
 $canonicalBuildGates = @(
@@ -100,7 +114,7 @@ if ($workflow -match 'continue-on-error:\s*true') {
 
 $exactOneTestAssertions = [regex]::Matches(
     $workflow,
-    "Select-String -LiteralPath test-results/f[1234]-[^\r\n]+ -SimpleMatch 'test result: ok\. 1 passed; 0 failed' -Quiet"
+    '\$env:MVP_EVIDENCE_ROOT\\f[1234]-[^\r\n]+ -SimpleMatch ''test result: ok\. 1 passed; 0 failed'' -Quiet'
 ).Count
 if ($exactOneTestAssertions -ne 6) {
     throw 'The three F1, F2, F3, and F4 exact gates must each reject a zero-test or multi-test result.'
@@ -109,5 +123,6 @@ if ($exactOneTestAssertions -ne 6) {
 if ($workflow -match '(?m)^\s*path:\s*(?:target|\*\*/target)') {
     throw 'MVP Windows workflow must not upload the Cargo target tree.'
 }
+Assert-WorkflowMatch 'path:\s*\$\{\{\s*env\.MVP_EVIDENCE_ROOT\s*\}\}' 'MVP workflow must upload the approved physical evidence root.'
 
 Write-Host 'MVP Windows workflow contract passed'

@@ -1,17 +1,70 @@
 use std::any::Any;
+use std::ops::Deref;
 use std::sync::Arc;
 use std::thread;
+use std::time::{Duration, Instant};
 
-use crate::core::runtime::ServiceObject;
 use crate::core::CoreError;
+use crate::core::runtime::ServiceObject;
 use crate::core::{LifecycleState, ServiceKind};
 
 use super::super::contexts::PluginContext;
 use super::super::descriptors::RegistryName;
 use super::super::state::ServiceEntryFactory;
+use super::super::weak::CoreWeak;
 use super::{CoreHandle, RegisteredServiceIdentity};
 
 const RESOLUTION_STACK_FRAME_CAPACITY: usize = 1;
+
+/// A generation-bound service reference. It cannot invoke the service until
+/// [`Self::enter`] acquires a call guard from the owning runtime slot.
+pub struct ServiceHandle<T> {
+    core: CoreWeak,
+    identity: RegisteredServiceIdentity,
+    service: Arc<T>,
+}
+
+impl<T> ServiceHandle<T> {
+    fn new(core: CoreWeak, identity: RegisteredServiceIdentity, service: Arc<T>) -> Self {
+        Self {
+            core,
+            identity,
+            service,
+        }
+    }
+
+    pub fn enter(&self) -> Result<ServiceCallGuard<T>, CoreError> {
+        let core = self.core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+        core.begin_service_call(&self.identity)?;
+        Ok(ServiceCallGuard {
+            core,
+            identity: self.identity.clone(),
+            service: Arc::clone(&self.service),
+        })
+    }
+}
+
+/// An admitted service invocation. Dropping the guard releases the slot's
+/// in-flight count and allows an in-progress shutdown to continue draining.
+pub struct ServiceCallGuard<T> {
+    core: CoreHandle,
+    identity: RegisteredServiceIdentity,
+    service: Arc<T>,
+}
+
+impl<T> Deref for ServiceCallGuard<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.service.as_ref()
+    }
+}
+
+impl<T> Drop for ServiceCallGuard<T> {
+    fn drop(&mut self) {
+        self.core.release_service_call(&self.identity);
+    }
+}
 
 enum NamedServiceResolution {
     Resolved(ServiceObject),
@@ -29,24 +82,46 @@ impl CoreHandle {
         downcast_resolved_service(name, service)
     }
 
+    pub fn resolve_driver_handle<T: Any + Send + Sync>(
+        &self,
+        name: &str,
+    ) -> Result<ServiceHandle<T>, CoreError> {
+        self.resolve_service_handle(name, ServiceKind::Driver)
+    }
+
     pub fn resolve_manager<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
         let service = self.resolve_named_service(name, Some(ServiceKind::Manager))?;
         downcast_resolved_service(name, service)
+    }
+
+    pub fn resolve_manager_handle<T: Any + Send + Sync>(
+        &self,
+        name: &str,
+    ) -> Result<ServiceHandle<T>, CoreError> {
+        self.resolve_service_handle(name, ServiceKind::Manager)
     }
 
     pub(crate) fn registered_manager_identity(
         &self,
         service_name: &str,
     ) -> Result<RegisteredServiceIdentity, CoreError> {
+        self.registered_service_identity(service_name, ServiceKind::Manager)
+    }
+
+    fn registered_service_identity(
+        &self,
+        service_name: &str,
+        expected_kind: ServiceKind,
+    ) -> Result<RegisteredServiceIdentity, CoreError> {
         let services = self.lock_services();
         let Some((name, entry)) = services.get_key_value(service_name) else {
             return Err(CoreError::MissingService(service_name.to_owned()));
         };
         let actual_kind = name.service_kind();
-        if actual_kind != ServiceKind::Manager {
+        if actual_kind != expected_kind {
             return Err(CoreError::ServiceKindMismatch {
                 name: service_name.to_owned(),
-                expected: ServiceKind::Manager,
+                expected: expected_kind,
                 actual: actual_kind,
             });
         }
@@ -80,6 +155,107 @@ impl CoreHandle {
     pub fn resolve_plugin<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
         let service = self.resolve_named_service(name, Some(ServiceKind::Plugin))?;
         downcast_resolved_service(name, service)
+    }
+
+    pub fn resolve_plugin_handle<T: Any + Send + Sync>(
+        &self,
+        name: &str,
+    ) -> Result<ServiceHandle<T>, CoreError> {
+        self.resolve_service_handle(name, ServiceKind::Plugin)
+    }
+
+    fn resolve_service_handle<T: Any + Send + Sync>(
+        &self,
+        service_name: &str,
+        expected_kind: ServiceKind,
+    ) -> Result<ServiceHandle<T>, CoreError> {
+        let service = self.resolve_named_service(service_name, Some(expected_kind))?;
+        let service = downcast_resolved_service(service_name, service)?;
+        let identity = self.registered_service_identity(service_name, expected_kind)?;
+        Ok(ServiceHandle::new(self.downgrade(), identity, service))
+    }
+
+    fn begin_service_call(&self, identity: &RegisteredServiceIdentity) -> Result<(), CoreError> {
+        let mut services = self.lock_services();
+        let Some(entry) = services.get_mut(identity.service()) else {
+            return Err(CoreError::MissingService(identity.service().to_string()));
+        };
+        validate_service_identity(
+            identity,
+            entry.index,
+            entry.generation,
+            identity.service().service_kind(),
+        )?;
+        entry.enter_call(identity.service().as_str())
+    }
+
+    fn release_service_call(&self, identity: &RegisteredServiceIdentity) {
+        let mut services = self.lock_services();
+        let became_idle = services
+            .get_mut(identity.service())
+            .filter(|entry| {
+                entry.index == identity.index() && entry.generation == identity.generation()
+            })
+            .is_some_and(|entry| entry.leave_call());
+        drop(services);
+        if became_idle {
+            self.inner.service_call_changed.notify_all();
+        }
+    }
+
+    pub(super) fn close_service_admission(&self, service_names: &[RegistryName]) {
+        let mut services = self.lock_services();
+        for service_name in service_names {
+            if let Some(entry) = services.get_mut(service_name) {
+                entry.close_admission();
+            }
+        }
+        drop(services);
+        self.notify_service_resolution_changed();
+    }
+
+    pub(super) fn wait_for_service_calls_to_drain(
+        &self,
+        module_name: &str,
+        service_names: &[RegistryName],
+        drain_timeout: Option<Duration>,
+    ) -> Result<(), CoreError> {
+        let started_at = Instant::now();
+        let mut services = self.lock_services();
+        loop {
+            let in_flight_calls = service_names
+                .iter()
+                .filter_map(|service_name| services.get(service_name))
+                .fold(0usize, |total, entry| {
+                    total.saturating_add(entry.in_flight_calls)
+                });
+            if in_flight_calls == 0 {
+                return Ok(());
+            }
+
+            let Some(drain_timeout) = drain_timeout else {
+                services = self
+                    .inner
+                    .service_call_changed
+                    .wait(services)
+                    .unwrap_or_else(|poisoned| poisoned.into_inner());
+                continue;
+            };
+            let remaining = drain_timeout.saturating_sub(started_at.elapsed());
+            if remaining.is_zero() {
+                return Err(CoreError::ServiceCallDrainTimeout {
+                    module: module_name.to_owned(),
+                    budget: drain_timeout,
+                    in_flight_calls,
+                });
+            }
+            let (next_services, _) = self
+                .inner
+                .service_call_changed
+                .wait_timeout(services, remaining)
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            services = next_services;
+        }
     }
 
     pub(crate) fn resolve_named_service(
@@ -296,7 +472,7 @@ impl CoreHandle {
             }
 
             let factory_result = match factory {
-                ServiceEntryFactory::Service(factory) => factory(self),
+                ServiceEntryFactory::Service(factory) => factory(&self.downgrade()),
                 ServiceEntryFactory::Plugin(factory) => {
                     let context = PluginContext {
                         plugin_name: canonical_service_name.to_owned(),
@@ -344,6 +520,7 @@ impl CoreHandle {
                 entry.instance = Some(instance.clone());
                 entry.initialization_owner = None;
                 entry.lifecycle = LifecycleState::Running;
+                entry.open_admission();
                 Ok(instance)
             })();
             self.notify_service_resolution_changed();
@@ -373,16 +550,23 @@ impl CoreHandle {
             self.resolve_registered_service_inner(second_dependency_name, None, stack)?;
             return Ok(());
         }
-        if let [first_dependency_name, second_dependency_name, third_dependency_name] =
-            dependency_names
+        if let [
+            first_dependency_name,
+            second_dependency_name,
+            third_dependency_name,
+        ] = dependency_names
         {
             self.resolve_registered_service_inner(first_dependency_name, None, stack)?;
             self.resolve_registered_service_inner(second_dependency_name, None, stack)?;
             self.resolve_registered_service_inner(third_dependency_name, None, stack)?;
             return Ok(());
         }
-        if let [first_dependency_name, second_dependency_name, third_dependency_name, fourth_dependency_name] =
-            dependency_names
+        if let [
+            first_dependency_name,
+            second_dependency_name,
+            third_dependency_name,
+            fourth_dependency_name,
+        ] = dependency_names
         {
             self.resolve_registered_service_inner(first_dependency_name, None, stack)?;
             self.resolve_registered_service_inner(second_dependency_name, None, stack)?;
@@ -390,8 +574,13 @@ impl CoreHandle {
             self.resolve_registered_service_inner(fourth_dependency_name, None, stack)?;
             return Ok(());
         }
-        if let [first_dependency_name, second_dependency_name, third_dependency_name, fourth_dependency_name, fifth_dependency_name] =
-            dependency_names
+        if let [
+            first_dependency_name,
+            second_dependency_name,
+            third_dependency_name,
+            fourth_dependency_name,
+            fifth_dependency_name,
+        ] = dependency_names
         {
             self.resolve_registered_service_inner(first_dependency_name, None, stack)?;
             self.resolve_registered_service_inner(second_dependency_name, None, stack)?;
@@ -505,13 +694,24 @@ fn resolution_stack_contains(stack: &[RegistryName], service_key: &RegistryName)
                 || second_existing == service_key
                 || third_existing == service_key
         }
-        [first_existing, second_existing, third_existing, fourth_existing] => {
+        [
+            first_existing,
+            second_existing,
+            third_existing,
+            fourth_existing,
+        ] => {
             first_existing == service_key
                 || second_existing == service_key
                 || third_existing == service_key
                 || fourth_existing == service_key
         }
-        [first_existing, second_existing, third_existing, fourth_existing, fifth_existing] => {
+        [
+            first_existing,
+            second_existing,
+            third_existing,
+            fourth_existing,
+            fifth_existing,
+        ] => {
             first_existing == service_key
                 || second_existing == service_key
                 || third_existing == service_key

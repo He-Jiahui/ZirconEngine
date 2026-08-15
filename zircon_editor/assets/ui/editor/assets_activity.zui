@@ -23,7 +23,7 @@ component = "IconButton"
 control_id = "OpenAssetBrowser"
 props = { label = "Open Asset Browser", icon = "folder-open-outline", icon_placement = "icon_only", dispatch_kind = "asset" }
 layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/OpenAssetBrowser", event = "Click", route = "workbench.asset.open_asset_browser" }]
+events = [{ id = "AssetSurface/OpenAssetBrowser", event = "Click", action = { action = "view.asset_browser.open" } }]
 
 [nodes.toolbar_title_row]
 component = "HorizontalBox"

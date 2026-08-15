@@ -77,6 +77,54 @@ function Invoke-ManagedBuild {
     }
 }
 
+function Invoke-ArtifactStagingCoordinator {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$CoordinatorScript,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments
+    )
+
+    $output = @(& $CoordinatorScript --json artifact @Arguments)
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0) {
+        throw "Coordinator product staging command failed with exit code ${exitCode}: $($output -join ' ')"
+    }
+    $json = $output -join "`n"
+    if ([string]::IsNullOrWhiteSpace($json)) {
+        throw 'Coordinator product staging command returned no JSON result.'
+    }
+    try {
+        return $json | ConvertFrom-Json -ErrorAction Stop
+    }
+    catch {
+        throw "Coordinator product staging command returned invalid JSON: $($_.Exception.Message)"
+    }
+}
+
+function Assert-ArtifactStagingLease {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Response,
+
+        [Parameter(Mandatory = $true)]
+        [string]$LeaseId,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ExpectedStatus
+    )
+
+    if (
+        $null -eq $Response.lease -or
+        [string]$Response.lease.leaseId -ne $LeaseId -or
+        [string]$Response.lease.status -ne $ExpectedStatus -or
+        [int]$Response.lease.ownerPid -ne $PID
+    ) {
+        throw "Coordinator product staging returned an invalid '$ExpectedStatus' lifecycle result for lease $LeaseId."
+    }
+}
+
 function Resolve-BundleOutputDirectory {
     param(
         [string]$RequestedPath,
@@ -227,6 +275,7 @@ function Get-BundleDirectoryFileCount {
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $validator = Join-Path $repoRoot '.codex\skills\zircon-dev\scripts\validate-matrix.ps1'
 $pathResolver = Join-Path $repoRoot 'tools\WindowsPathResolver.psm1'
+$coordinator = Join-Path $repoRoot 'tools\zircon-session.ps1'
 $assetSource = Join-Path $repoRoot 'zircon_runtime\assets'
 
 if (-not (Test-Path -LiteralPath $validator -PathType Leaf)) {
@@ -234,6 +283,9 @@ if (-not (Test-Path -LiteralPath $validator -PathType Leaf)) {
 }
 if (-not (Test-Path -LiteralPath $pathResolver -PathType Leaf)) {
     throw "Windows path resolver was not found: $pathResolver"
+}
+if (-not (Test-Path -LiteralPath $coordinator -PathType Leaf)) {
+    throw "Session Coordinator wrapper was not found: $coordinator"
 }
 Import-Module $pathResolver -Force -DisableNameChecking -ErrorAction Stop
 
@@ -257,16 +309,57 @@ if ([System.IO.Directory]::Exists($finalDirectory) -or [System.IO.File]::Exists(
     throw "Refusing to overwrite existing output: $finalDisplayDirectory"
 }
 
-$stagingLeaf = 'mvp-product-inputs-build-editor-{0}' -f ([guid]::NewGuid().ToString('N'))
-$stagingDirectory = Join-ZirconWindowsPath `
-    -Path $bundleOutput.ApprovedRootOperationalPath `
-    -ChildPath $stagingLeaf
+$stagingDirectory = $null
 $stagingCreated = $false
 $approvedRootLease = $null
 $stagingLease = $null
 $cleanupRootLease = $null
+$productStagingLeaseId = $null
+$productStagingStatus = $null
 
 try {
+    $acquireResponse = Invoke-ArtifactStagingCoordinator `
+        -CoordinatorScript $coordinator `
+        -Arguments @(
+            'staging-acquire'
+            '--purpose', 'build-editor'
+            '--final-path', $finalDisplayDirectory
+            '--owner-pid', [string]$PID
+        )
+    if ($null -eq $acquireResponse.lease) {
+        throw 'Coordinator product staging acquire response omitted its lease.'
+    }
+    $productStagingLeaseId = [string]$acquireResponse.lease.leaseId
+    if ($productStagingLeaseId -notmatch '^[0-9a-f]{32}$') {
+        throw "Coordinator product staging acquire returned an invalid lease ID: $productStagingLeaseId"
+    }
+    Assert-ArtifactStagingLease `
+        -Response $acquireResponse `
+        -LeaseId $productStagingLeaseId `
+        -ExpectedStatus 'active'
+    $productStagingStatus = 'active'
+    if (
+        [string]$acquireResponse.lease.purpose -ne 'build-editor' -or
+        -not [string]::Equals(
+            [string]$acquireResponse.lease.finalPath,
+            $finalDisplayDirectory,
+            [System.StringComparison]::OrdinalIgnoreCase)
+    ) {
+        throw 'Coordinator product staging lease is not bound to this build output.'
+    }
+    $stagingResolution = Resolve-ZirconWindowsPath -Path ([string]$acquireResponse.lease.stagingPath)
+    $stagingDirectory = $stagingResolution.OperationalPath.TrimEnd('\')
+    $stagingParent = [System.IO.Path]::GetDirectoryName($stagingDirectory)
+    $stagingLeaf = [System.IO.Path]::GetFileName($stagingDirectory)
+    if (
+        -not [string]::Equals(
+            $stagingParent,
+            $bundleOutput.ApprovedRootOperationalPath,
+            [System.StringComparison]::OrdinalIgnoreCase) -or
+        $stagingLeaf -ne "mvp-product-inputs-build-editor-$productStagingLeaseId"
+    ) {
+        throw "Coordinator product staging path is outside the approved root: $($stagingResolution.DisplayPath)"
+    }
     $approvedRootLease = Open-ZirconWindowsDirectoryLease `
         -Path $bundleOutput.ApprovedRootOperationalPath `
         -ExpectedOperationalPath $bundleOutput.ApprovedRootOperationalPath
@@ -355,11 +448,37 @@ try {
         throw "Output appeared while the build was running; refusing to overwrite it: $finalDisplayDirectory"
     }
 
+    $publishingResponse = Invoke-ArtifactStagingCoordinator `
+        -CoordinatorScript $coordinator `
+        -Arguments @(
+            'staging-begin-publish'
+            '--lease-id', $productStagingLeaseId
+            '--owner-pid', [string]$PID
+        )
+    Assert-ArtifactStagingLease `
+        -Response $publishingResponse `
+        -LeaseId $productStagingLeaseId `
+        -ExpectedStatus 'publishing'
+    $productStagingStatus = 'publishing'
+
     $finalDirectory = Move-ZirconWindowsLeasedPathWithinRoot `
         -SourceLease $stagingLease `
         -Destination $finalDirectory `
         -ApprovedRoot $bundleOutput.ApprovedRootOperationalPath
     $stagingCreated = $false
+
+    $publishedResponse = Invoke-ArtifactStagingCoordinator `
+        -CoordinatorScript $coordinator `
+        -Arguments @(
+            'staging-complete-publish'
+            '--lease-id', $productStagingLeaseId
+            '--owner-pid', [string]$PID
+        )
+    Assert-ArtifactStagingLease `
+        -Response $publishedResponse `
+        -LeaseId $productStagingLeaseId `
+        -ExpectedStatus 'published'
+    $productStagingStatus = 'published'
 
     $finalEditor = Join-ZirconWindowsPath -Path $finalDirectory -ChildPath 'zircon_editor.exe'
     $finalRuntime = Join-ZirconWindowsPath -Path $finalDirectory -ChildPath 'zircon_runtime.dll'
@@ -381,6 +500,7 @@ try {
     }
 }
 catch {
+    $primaryFailure = $_
     if ($stagingCreated) {
         if ($null -eq $stagingLease) {
             Write-Warning 'Skipping staging cleanup because its original directory lease was not acquired.'
@@ -395,13 +515,42 @@ catch {
                     -DenyWrite `
                     -NoFollow
                 Remove-ZirconWindowsLeasedDirectoryTree -Lease $stagingLease
+                $stagingLease.Dispose()
+                $stagingLease = $null
             }
             catch {
                 Write-Warning "Skipping staging cleanup because its held directory could not be deleted: $($_.Exception.Message)"
             }
         }
     }
-    throw
+    if (
+        $null -ne $productStagingLeaseId -and
+        $productStagingStatus -in @('active', 'publishing') -and
+        ($null -eq $stagingDirectory -or
+            (-not [System.IO.Directory]::Exists($stagingDirectory) -and
+             -not [System.IO.File]::Exists($stagingDirectory))) -and
+        -not [System.IO.Directory]::Exists($finalDirectory) -and
+        -not [System.IO.File]::Exists($finalDirectory)
+    ) {
+        try {
+            $releaseResponse = Invoke-ArtifactStagingCoordinator `
+                -CoordinatorScript $coordinator `
+                -Arguments @(
+                    'staging-release'
+                    '--lease-id', $productStagingLeaseId
+                    '--owner-pid', [string]$PID
+                )
+            Assert-ArtifactStagingLease `
+                -Response $releaseResponse `
+                -LeaseId $productStagingLeaseId `
+                -ExpectedStatus 'released'
+            $productStagingStatus = 'released'
+        }
+        catch {
+            Write-Warning "Product staging lease release failed after the primary build error: $($_.Exception.Message)"
+        }
+    }
+    throw $primaryFailure
 }
 finally {
     if ($null -ne $cleanupRootLease) {

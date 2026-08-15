@@ -10,17 +10,20 @@ use zircon_runtime::asset::artifact::{
 };
 use zircon_runtime::core::framework::render::{
     resolve_ibl_bake_artifact_payload, select_ibl_bake_artifact,
+    source_cubemap_environment_from_source_mips_with_bake_artifact,
     source_cubemap_environment_with_bake_artifact, source_cubemap_mip_chain_with_bake_artifact,
     source_cubemap_sample_count, IblBakeArtifactBlob, IblBakeArtifactBlobCandidate,
     IblBakeArtifactBlobError, IblBakeArtifactCandidate, IblBakeArtifactContents,
     IblBakeArtifactDescriptor, IblBakeArtifactHeader, IblBakeArtifactHeaderError,
-    IblBakeArtifactPayload, IblBakeArtifactPayloadError, IblBakeArtifactReadbackError,
-    IblBakeArtifactReadbackSectionKind, IblBakeArtifactReadbackSections, IblBakeArtifactRequest,
-    IblBakeArtifactSource, ProceduralSkyParams, SourceCubemapBakeArtifactError,
-    SourceCubemapEnvironment, SourceCubemapIrradianceCube, SourceCubemapMipChain,
+    IblBakeArtifactPayload, IblBakeArtifactPayloadError, IblBakeArtifactProducer,
+    IblBakeArtifactReadbackError, IblBakeArtifactReadbackSectionKind,
+    IblBakeArtifactReadbackSections, IblBakeArtifactRequest, IblBakeArtifactSource, IblBakeKey,
+    ProceduralSkyParams, SourceCubemapBakeArtifactError, SourceCubemapEnvironment,
+    SourceCubemapIrradianceCube, SourceCubemapMipChain, SourceCubemapPrefilterQuality,
     IBL_BAKE_ALGORITHM_VERSION, IBL_BAKE_ARTIFACT_HEADER_SIZE,
-    IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES, IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES,
-    SOURCE_CUBEMAP_FACE_COUNT, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+    IBL_BAKE_ARTIFACT_PAYLOAD_CHECKSUM_SIZE, IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES,
+    IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, SOURCE_CUBEMAP_FACE_COUNT,
+    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
 };
 
 #[test]
@@ -68,6 +71,13 @@ fn runtime_environment_ibl_bake_artifact_header_round_trips_current_algorithm_ve
     let decoded = IblBakeArtifactHeader::decode(&encoded).expect("header should decode");
     assert_eq!(decoded.descriptor(), descriptor);
 
+    let mut legacy_format = encoded;
+    legacy_format[8..12].copy_from_slice(&3_u32.to_le_bytes());
+    assert_eq!(
+        IblBakeArtifactHeader::decode(&legacy_format),
+        Err(IblBakeArtifactHeaderError::UnsupportedFormatVersion(3))
+    );
+
     let stale = descriptor.with_algorithm_version(IBL_BAKE_ALGORITHM_VERSION - 1);
     assert!(!stale.is_current_for(&request));
     assert_eq!(
@@ -77,15 +87,26 @@ fn runtime_environment_ibl_bake_artifact_header_round_trips_current_algorithm_ve
 }
 
 #[test]
+fn runtime_environment_ibl_bake_version_advances_for_gpu_irradiance_source_lod_contract() {
+    const CANONICAL_DIFFUSE_SOURCE_LOD_ALGORITHM_VERSION: u64 = 2026_08_09_0006;
+
+    assert_eq!(
+        IBL_BAKE_ALGORITHM_VERSION, CANONICAL_DIFFUSE_SOURCE_LOD_ALGORITHM_VERSION,
+        "the GPU irradiance source-mip recipe changes persisted runtime-cache output"
+    );
+}
+
+#[test]
 fn runtime_environment_ibl_bake_artifact_selection_prefers_derived_before_cache_without_dispatch() {
     let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
     let request = IblBakeArtifactRequest::new(key, 128, 8);
     let descriptor =
         IblBakeArtifactDescriptor::current(key, 128, 8, IblBakeArtifactContents::PMREM_SH9);
+    let runtime_descriptor = IblBakeArtifactDescriptor::current_for_runtime_cache_request(&request);
     let stale_derived =
         descriptor.with_algorithm_version(IBL_BAKE_ALGORITHM_VERSION.saturating_sub(1));
     let candidates = [
-        IblBakeArtifactCandidate::runtime_cache(descriptor),
+        IblBakeArtifactCandidate::runtime_cache(runtime_descriptor),
         IblBakeArtifactCandidate::asset_derived(stale_derived),
         IblBakeArtifactCandidate::asset_derived(descriptor),
     ];
@@ -245,7 +266,9 @@ fn runtime_environment_ibl_bake_artifact_blob_round_trips_header_and_payload() {
     assert_eq!(encoded.len(), blob.encoded_len());
     assert_eq!(
         encoded.len(),
-        IBL_BAKE_ARTIFACT_HEADER_SIZE + descriptor.expected_payload_size_bytes()
+        IBL_BAKE_ARTIFACT_HEADER_SIZE
+            + IBL_BAKE_ARTIFACT_PAYLOAD_CHECKSUM_SIZE
+            + descriptor.expected_payload_size_bytes()
     );
     let decoded = IblBakeArtifactBlob::decode(&encoded).expect("blob should decode");
     assert_eq!(decoded.header(), blob.header());
@@ -256,6 +279,36 @@ fn runtime_environment_ibl_bake_artifact_blob_round_trips_header_and_payload() {
     let current = IblBakeArtifactBlob::decode_current_for_request(&request, &encoded)
         .expect("current blob should decode");
     assert_eq!(current.descriptor(), descriptor);
+}
+
+#[test]
+fn runtime_environment_ibl_bake_artifact_blob_rejects_equal_length_payload_corruption() {
+    let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
+    let face_size = 4;
+    let mip_count = 3;
+    let cubemap = shared_layout_mip_chain(
+        face_size,
+        mip_count,
+        vec![[0.25, 0.5, 1.0, 1.0]; source_cubemap_sample_count(face_size, mip_count)],
+    );
+    let descriptor = IblBakeArtifactDescriptor::current(
+        key,
+        face_size,
+        mip_count,
+        IblBakeArtifactContents::PMREM_SH9,
+    );
+    let payload = IblBakeArtifactPayload::from_source_cubemap(descriptor, &cubemap, None)
+        .expect("payload should encode");
+    let mut encoded = IblBakeArtifactBlob::from_payload(payload).encode();
+    let first_payload_byte =
+        IBL_BAKE_ARTIFACT_HEADER_SIZE + IBL_BAKE_ARTIFACT_PAYLOAD_CHECKSUM_SIZE;
+
+    encoded[first_payload_byte] ^= 0x01;
+
+    assert!(matches!(
+        IblBakeArtifactBlob::decode(&encoded),
+        Err(IblBakeArtifactBlobError::PayloadChecksumMismatch { .. })
+    ));
 }
 
 #[test]
@@ -319,10 +372,9 @@ fn runtime_environment_ibl_bake_artifact_runtime_cache_store_reads_current_blob_
     let cache_root = unique_cache_root("hit");
     let store = IblBakeArtifactCacheStore::new(cache_root.join(".zircon").join("cache"));
     let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
-    let descriptor =
-        IblBakeArtifactDescriptor::current(key, 128, 8, IblBakeArtifactContents::PMREM_SH9);
+    let request = IblBakeArtifactRequest::new(key, 128, 8);
+    let descriptor = IblBakeArtifactDescriptor::current_for_runtime_cache_request(&request);
     let blob = pmrem_sh9_blob(descriptor, [0.25, 0.5, 1.0, 1.0]);
-    let request = IblBakeArtifactRequest::new(key, descriptor.face_size(), descriptor.mip_count());
 
     let path = store
         .write_runtime_cache(&blob)
@@ -355,13 +407,33 @@ fn runtime_environment_ibl_bake_artifact_runtime_cache_store_reads_current_blob_
 }
 
 #[test]
+fn runtime_environment_ibl_bake_artifact_runtime_cache_rejects_cpu_provenance() {
+    let cache_root = unique_cache_root("cpu-provenance");
+    let store = IblBakeArtifactCacheStore::new(cache_root.join(".zircon").join("cache"));
+    let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
+    let cpu_descriptor =
+        IblBakeArtifactDescriptor::current(key, 128, 8, IblBakeArtifactContents::PMREM_SH9);
+    let cpu_blob = pmrem_sh9_blob(cpu_descriptor, [0.25, 0.5, 1.0, 1.0]);
+
+    assert!(matches!(
+        store.write_runtime_cache(&cpu_blob),
+        Err(
+            zircon_runtime::asset::artifact::IblBakeArtifactCacheError::InvalidProducer {
+                producer: IblBakeArtifactProducer::AssetImporterCpu
+            }
+        )
+    ));
+
+    let _ = fs::remove_dir_all(cache_root);
+}
+
+#[test]
 fn runtime_environment_ibl_bake_artifact_runtime_cache_store_reports_missing_and_rejected_blobs() {
     let cache_root = unique_cache_root("stale");
     let store = IblBakeArtifactCacheStore::new(cache_root.join(".zircon").join("cache"));
     let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
-    let descriptor =
-        IblBakeArtifactDescriptor::current(key, 128, 8, IblBakeArtifactContents::PMREM_SH9);
-    let request = IblBakeArtifactRequest::new(key, descriptor.face_size(), descriptor.mip_count());
+    let request = IblBakeArtifactRequest::new(key, 128, 8);
+    let descriptor = IblBakeArtifactDescriptor::current_for_runtime_cache_request(&request);
 
     assert_eq!(
         store
@@ -410,10 +482,9 @@ fn runtime_environment_ibl_bake_artifact_runtime_readback_sections_write_cache_b
     let cache_root = unique_cache_root("runtime_writeback");
     let store = IblBakeArtifactCacheStore::new(cache_root.join(".zircon").join("cache"));
     let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
-    let descriptor =
-        IblBakeArtifactDescriptor::current(key, 128, 8, IblBakeArtifactContents::PMREM_SH9_IEM);
-    let request = IblBakeArtifactRequest::new(key, descriptor.face_size(), descriptor.mip_count())
+    let request = IblBakeArtifactRequest::new(key, 128, 8)
         .with_required_contents(IblBakeArtifactContents::PMREM_SH9_IEM);
+    let descriptor = IblBakeArtifactDescriptor::current_for_runtime_cache_request(&request);
     let payload = pmrem_sh9_iem_payload(descriptor);
 
     let report = write_ibl_bake_artifact_runtime_readback(
@@ -432,7 +503,9 @@ fn runtime_environment_ibl_bake_artifact_runtime_readback_sections_write_cache_b
     assert_eq!(report.payload_len(), payload.bytes().len());
     assert_eq!(
         report.encoded_len(),
-        IBL_BAKE_ARTIFACT_HEADER_SIZE + payload.bytes().len()
+        IBL_BAKE_ARTIFACT_HEADER_SIZE
+            + IBL_BAKE_ARTIFACT_PAYLOAD_CHECKSUM_SIZE
+            + payload.bytes().len()
     );
     assert!(report
         .path()
@@ -457,10 +530,9 @@ fn runtime_environment_ibl_bake_artifact_runtime_dispatch_writes_miss_readback_t
     let cache_root = unique_cache_root("runtime_dispatch_writeback");
     let store = IblBakeArtifactCacheStore::new(cache_root.join(".zircon").join("cache"));
     let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
-    let descriptor =
-        IblBakeArtifactDescriptor::current(key, 128, 8, IblBakeArtifactContents::PMREM_SH9_IEM);
-    let request = IblBakeArtifactRequest::new(key, descriptor.face_size(), descriptor.mip_count())
+    let request = IblBakeArtifactRequest::new(key, 128, 8)
         .with_required_contents(IblBakeArtifactContents::PMREM_SH9_IEM);
+    let descriptor = IblBakeArtifactDescriptor::current_for_runtime_cache_request(&request);
     let payload = pmrem_sh9_iem_payload(descriptor);
 
     let first_dispatch = resolve_ibl_bake_artifact_runtime_dispatch(&store, &request, &[])
@@ -579,11 +651,10 @@ fn runtime_environment_ibl_bake_artifact_runtime_writeback_skips_stale_descripto
     let cache_root = unique_cache_root("runtime_writeback_stale");
     let store = IblBakeArtifactCacheStore::new(cache_root.join(".zircon").join("cache"));
     let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
-    let descriptor =
-        IblBakeArtifactDescriptor::current(key, 128, 8, IblBakeArtifactContents::PMREM_SH9);
+    let request = IblBakeArtifactRequest::new(key, 128, 8);
+    let descriptor = IblBakeArtifactDescriptor::current_for_runtime_cache_request(&request);
     let stale_descriptor =
         descriptor.with_algorithm_version(IBL_BAKE_ALGORITHM_VERSION.saturating_sub(1));
-    let request = IblBakeArtifactRequest::new(key, descriptor.face_size(), descriptor.mip_count());
 
     let report = write_ibl_bake_artifact_runtime_readback(
         &store,
@@ -661,13 +732,14 @@ fn runtime_environment_ibl_bake_artifact_readback_sections_reject_missing_and_wr
 fn runtime_environment_ibl_bake_artifact_resolved_payload_prefers_asset_derived_blob_before_cache()
 {
     let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
+    let request = IblBakeArtifactRequest::new(key, 128, 8);
     let descriptor =
         IblBakeArtifactDescriptor::current(key, 128, 8, IblBakeArtifactContents::PMREM_SH9);
+    let runtime_descriptor = IblBakeArtifactDescriptor::current_for_runtime_cache_request(&request);
     let stale_descriptor =
         descriptor.with_algorithm_version(IBL_BAKE_ALGORITHM_VERSION.saturating_sub(1));
-    let request = IblBakeArtifactRequest::new(key, descriptor.face_size(), descriptor.mip_count());
     let asset_blob = pmrem_sh9_blob(descriptor, [0.75, 0.5, 0.25, 1.0]);
-    let cache_blob = pmrem_sh9_blob(descriptor, [0.125, 0.25, 0.5, 1.0]);
+    let cache_blob = pmrem_sh9_blob(runtime_descriptor, [0.125, 0.25, 0.5, 1.0]);
     let stale_asset_blob = pmrem_sh9_blob(stale_descriptor, [1.0, 0.0, 0.0, 1.0]);
 
     let resolved = resolve_ibl_bake_artifact_payload(
@@ -699,12 +771,13 @@ fn runtime_environment_ibl_bake_artifact_resolved_payload_prefers_asset_derived_
 #[test]
 fn runtime_environment_ibl_bake_artifact_resolved_payload_uses_cache_when_asset_is_stale() {
     let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
+    let request = IblBakeArtifactRequest::new(key, 128, 8);
     let descriptor =
         IblBakeArtifactDescriptor::current(key, 128, 8, IblBakeArtifactContents::PMREM_SH9);
+    let runtime_descriptor = IblBakeArtifactDescriptor::current_for_runtime_cache_request(&request);
     let stale_descriptor =
         descriptor.with_algorithm_version(IBL_BAKE_ALGORITHM_VERSION.saturating_sub(1));
-    let request = IblBakeArtifactRequest::new(key, descriptor.face_size(), descriptor.mip_count());
-    let cache_blob = pmrem_sh9_blob(descriptor, [0.25, 0.5, 1.0, 1.0]);
+    let cache_blob = pmrem_sh9_blob(runtime_descriptor, [0.25, 0.5, 1.0, 1.0]);
     let stale_asset_blob = pmrem_sh9_blob(stale_descriptor, [1.0, 0.0, 0.0, 1.0]);
 
     let resolved = resolve_ibl_bake_artifact_payload(
@@ -716,7 +789,7 @@ fn runtime_environment_ibl_bake_artifact_resolved_payload_uses_cache_when_asset_
     );
 
     assert_eq!(resolved.source(), IblBakeArtifactSource::RuntimeCache);
-    assert_eq!(resolved.descriptor(), Some(descriptor));
+    assert_eq!(resolved.descriptor(), Some(runtime_descriptor));
     assert_eq!(resolved.environment_compute_dispatch_count(), 0);
     assert_eq!(resolved.rejected_candidate_count(), 1);
     assert_eq!(
@@ -731,11 +804,12 @@ fn runtime_environment_ibl_bake_artifact_resolved_payload_uses_cache_when_asset_
 #[test]
 fn runtime_environment_ibl_bake_artifact_resolved_payload_miss_requires_compute_without_payload() {
     let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
-    let descriptor =
-        IblBakeArtifactDescriptor::current(key, 128, 8, IblBakeArtifactContents::PMREM_SH9);
-    let request = IblBakeArtifactRequest::new(key, descriptor.face_size(), descriptor.mip_count())
+    let request = IblBakeArtifactRequest::new(key, 128, 8)
         .with_required_contents(IblBakeArtifactContents::PMREM_SH9_IEM);
-    let cache_blob = pmrem_sh9_blob(descriptor, [0.25, 0.5, 1.0, 1.0]);
+    let cache_request = IblBakeArtifactRequest::new(key, 128, 8);
+    let cache_descriptor =
+        IblBakeArtifactDescriptor::current_for_runtime_cache_request(&cache_request);
+    let cache_blob = pmrem_sh9_blob(cache_descriptor, [0.25, 0.5, 1.0, 1.0]);
 
     let resolved = resolve_ibl_bake_artifact_payload(
         &request,
@@ -825,16 +899,14 @@ fn runtime_environment_ibl_bake_artifact_payload_adopts_independent_pmrem_layout
 
 #[test]
 fn runtime_environment_ibl_bake_artifact_payload_applies_optional_iem_to_environment() {
-    let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
-    let descriptor =
-        IblBakeArtifactDescriptor::current(key, 4, 3, IblBakeArtifactContents::PMREM_SH9_IEM);
     let source = shared_layout_mip_chain(
-        descriptor.face_size(),
-        descriptor.mip_count(),
-        vec![
-            [0.0, 0.25, 0.5, 1.0];
-            source_cubemap_sample_count(descriptor.face_size(), descriptor.mip_count())
-        ],
+        4,
+        3,
+        vec![[0.0, 0.25, 0.5, 1.0]; source_cubemap_sample_count(4, 3)],
+    );
+    let mut environment = SourceCubemapEnvironment::new(source, 11, [9, 8, 7, 6]);
+    let descriptor = IblBakeArtifactDescriptor::current_for_request(
+        &environment.ibl_bake_artifact_request(IblBakeArtifactContents::PMREM_SH9_IEM),
     );
     let baked = shared_layout_mip_chain(
         descriptor.face_size(),
@@ -856,11 +928,10 @@ fn runtime_environment_ibl_bake_artifact_payload_applies_optional_iem_to_environ
     let payload =
         IblBakeArtifactPayload::from_source_cubemap(descriptor, &baked, Some(&irradiance_cube))
             .expect("payload with IEM should encode");
-    let mut environment = SourceCubemapEnvironment::new(source, 11, [9, 8, 7, 6]);
     environment.intensity = 1.7;
     environment.rotation_radians = 0.4;
 
-    let applied = source_cubemap_environment_with_bake_artifact(environment, &payload)
+    let applied = source_cubemap_environment_with_bake_artifact(&environment, &payload)
         .expect("artifact payload should apply to matching source environment");
 
     assert_eq!(applied.mip_chain.source_texels()[0], [0.0, 0.25, 0.5, 1.0]);
@@ -868,6 +939,9 @@ fn runtime_environment_ibl_bake_artifact_payload_applies_optional_iem_to_environ
     assert_eq!(applied.irradiance_sh9, *baked.irradiance_sh9());
     assert_eq!(applied.intensity, 1.7);
     assert_eq!(applied.rotation_radians, 0.4);
+    assert_eq!(environment.pmrem_hash, [0; 4]);
+    assert_eq!(environment.bake_artifact_hash, [0; 4]);
+    assert!(environment.irradiance_cube().is_none());
     let applied_iem = applied
         .irradiance_cube()
         .expect("IEM payload should attach an irradiance cube");
@@ -886,20 +960,121 @@ fn runtime_environment_ibl_bake_artifact_payload_applies_optional_iem_to_environ
 }
 
 #[test]
-fn runtime_environment_ibl_bake_artifact_payload_apply_updates_upload_key_without_changing_bake_key(
-) {
-    let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
-    let descriptor =
-        IblBakeArtifactDescriptor::current(key, 4, 3, IblBakeArtifactContents::PMREM_SH9);
-    let source = shared_layout_mip_chain(
+fn runtime_environment_ibl_bake_artifact_rehydrates_source_mips_without_rebaking_pmrem() {
+    let descriptor = IblBakeArtifactDescriptor::current(
+        IblBakeKey::source_cubemap(11, [9, 8, 7, 6]),
+        4,
+        3,
+        IblBakeArtifactContents::PMREM_SH9,
+    );
+    let source_texels = vec![
+        [0.0, 0.25, 0.5, 1.0];
+        source_cubemap_sample_count(
+            descriptor.source_face_size(),
+            descriptor.source_mip_count()
+        )
+    ];
+    let baked = shared_layout_mip_chain(
         descriptor.face_size(),
         descriptor.mip_count(),
         vec![
-            [0.0, 0.25, 0.5, 1.0];
+            [0.75, 0.5, 0.25, 1.0];
             source_cubemap_sample_count(descriptor.face_size(), descriptor.mip_count())
         ],
     );
+    let payload = IblBakeArtifactPayload::from_source_cubemap(descriptor, &baked, None)
+        .expect("artifact payload should encode");
+
+    let hydrated = source_cubemap_environment_from_source_mips_with_bake_artifact(
+        descriptor.source_face_size(),
+        descriptor.source_mip_count(),
+        source_texels.clone(),
+        11,
+        [9, 8, 7, 6],
+        &payload,
+    )
+    .expect("matching source mips and artifact should hydrate directly");
+
+    assert_eq!(hydrated.mip_chain.source_texels(), source_texels.as_slice());
+    assert_eq!(hydrated.mip_chain.pmrem_texels()[0], [0.75, 0.5, 0.25, 1.0]);
+    assert_eq!(hydrated.irradiance_sh9, *baked.irradiance_sh9());
+    assert_eq!(hydrated.source_revision, 11);
+    assert_eq!(hydrated.source_hash, [9, 8, 7, 6]);
+    assert_ne!(hydrated.pmrem_hash, [0; 4]);
+    assert_ne!(hydrated.bake_artifact_hash, [0; 4]);
+    assert!(hydrated.prepared_upload_artifact().is_some());
+
+    let stale_payload = IblBakeArtifactPayload::from_source_cubemap(
+        descriptor.with_algorithm_version(IBL_BAKE_ALGORITHM_VERSION - 1),
+        &baked,
+        None,
+    )
+    .expect("stale CPU artifact payload should encode for rejection coverage");
+    assert!(matches!(
+        source_cubemap_environment_from_source_mips_with_bake_artifact(
+            descriptor.source_face_size(),
+            descriptor.source_mip_count(),
+            source_texels.clone(),
+            11,
+            [9, 8, 7, 6],
+            &stale_payload,
+        ),
+        Err(SourceCubemapBakeArtifactError::NotCurrentForRequest { .. })
+    ));
+
+    let reconfigured = hydrated
+        .mip_chain
+        .with_pmrem_face_size(2, SourceCubemapPrefilterQuality::Fast);
+    let expected_after_reconfiguration = SourceCubemapMipChain::new(
+        descriptor.source_face_size(),
+        descriptor.source_mip_count(),
+        source_texels,
+        descriptor.face_size(),
+        descriptor.mip_count(),
+        baked.pmrem_texels().to_vec(),
+    )
+    .with_pmrem_face_size(2, SourceCubemapPrefilterQuality::Fast);
+    assert_eq!(
+        reconfigured, expected_after_reconfiguration,
+        "future PMREM reconfiguration must restore canonical SH9 from source mips, not artifact SH9"
+    );
+
+    let runtime_payload = IblBakeArtifactPayload::from_source_cubemap(
+        descriptor.with_producer(IblBakeArtifactProducer::RendererGpuRuntime),
+        &baked,
+        None,
+    )
+    .expect("runtime artifact payload should encode");
+    assert!(matches!(
+        source_cubemap_environment_from_source_mips_with_bake_artifact(
+            descriptor.source_face_size(),
+            descriptor.source_mip_count(),
+            hydrated.mip_chain.source_texels().to_vec(),
+            11,
+            [9, 8, 7, 6],
+            &runtime_payload,
+        ),
+        Err(
+            SourceCubemapBakeArtifactError::UnexpectedDirectHydrationProducer {
+                expected: IblBakeArtifactProducer::AssetImporterCpu,
+                actual: IblBakeArtifactProducer::RendererGpuRuntime,
+            }
+        )
+    ));
+}
+
+#[test]
+fn runtime_environment_ibl_bake_artifact_payload_apply_updates_upload_key_without_changing_bake_key(
+) {
+    let source = shared_layout_mip_chain(
+        4,
+        3,
+        vec![[0.0, 0.25, 0.5, 1.0]; source_cubemap_sample_count(4, 3)],
+    );
     let environment = SourceCubemapEnvironment::new(source, 11, [9, 8, 7, 6]);
+    let descriptor = IblBakeArtifactDescriptor::current_for_request(
+        &environment.ibl_bake_artifact_request(IblBakeArtifactContents::PMREM_SH9),
+    );
     let source_bake_key = environment.ibl_bake_key();
     let source_upload_key = environment.texture_upload_key();
     let first_payload = IblBakeArtifactPayload::from_source_cubemap(
@@ -929,14 +1104,13 @@ fn runtime_environment_ibl_bake_artifact_payload_apply_updates_upload_key_withou
     )
     .expect("second payload should encode");
 
-    let first_applied =
-        source_cubemap_environment_with_bake_artifact(environment.clone(), &first_payload)
-            .expect("first payload should apply");
+    let first_applied = source_cubemap_environment_with_bake_artifact(&environment, &first_payload)
+        .expect("first payload should apply");
     let first_applied_again =
-        source_cubemap_environment_with_bake_artifact(environment.clone(), &first_payload)
+        source_cubemap_environment_with_bake_artifact(&environment, &first_payload)
             .expect("same payload should apply deterministically");
     let second_applied =
-        source_cubemap_environment_with_bake_artifact(environment, &second_payload)
+        source_cubemap_environment_with_bake_artifact(&environment, &second_payload)
             .expect("second payload should apply");
 
     assert_eq!(first_applied.ibl_bake_key(), source_bake_key);
@@ -959,14 +1133,11 @@ fn runtime_environment_ibl_bake_artifact_payload_apply_updates_upload_key_withou
 
 #[test]
 fn runtime_environment_iem_only_artifact_change_preserves_pmrem_upload_identity() {
-    let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
-    let descriptor =
-        IblBakeArtifactDescriptor::current(key, 4, 3, IblBakeArtifactContents::PMREM_SH9_IEM);
-    let sample_count = source_cubemap_sample_count(descriptor.face_size(), descriptor.mip_count());
-    let source = shared_layout_mip_chain(
-        descriptor.face_size(),
-        descriptor.mip_count(),
-        vec![[0.0, 0.25, 0.5, 1.0]; sample_count],
+    let sample_count = source_cubemap_sample_count(4, 3);
+    let source = shared_layout_mip_chain(4, 3, vec![[0.0, 0.25, 0.5, 1.0]; sample_count]);
+    let first_source_environment = SourceCubemapEnvironment::new(source.clone(), 11, [9, 8, 7, 6]);
+    let descriptor = IblBakeArtifactDescriptor::current_for_request(
+        &first_source_environment.ibl_bake_artifact_request(IblBakeArtifactContents::PMREM_SH9_IEM),
     );
     let baked = shared_layout_mip_chain(
         descriptor.face_size(),
@@ -993,16 +1164,13 @@ fn runtime_environment_iem_only_artifact_change_preserves_pmrem_upload_identity(
         IblBakeArtifactPayload::from_source_cubemap(descriptor, &baked, Some(&second_iem))
             .expect("second artifact should encode");
 
-    let first_environment = source_cubemap_environment_with_bake_artifact(
-        SourceCubemapEnvironment::new(source.clone(), 11, [9, 8, 7, 6]),
-        &first_payload,
-    )
-    .expect("first artifact should apply");
-    let second_environment = source_cubemap_environment_with_bake_artifact(
-        SourceCubemapEnvironment::new(source, 11, [9, 8, 7, 6]),
-        &second_payload,
-    )
-    .expect("second artifact should apply");
+    let first_environment =
+        source_cubemap_environment_with_bake_artifact(&first_source_environment, &first_payload)
+            .expect("first artifact should apply");
+    let second_source_environment = SourceCubemapEnvironment::new(source, 11, [9, 8, 7, 6]);
+    let second_environment =
+        source_cubemap_environment_with_bake_artifact(&second_source_environment, &second_payload)
+            .expect("second artifact should apply");
 
     assert_ne!(
         first_environment.bake_artifact_hash,
@@ -1046,6 +1214,16 @@ fn runtime_environment_ibl_bake_artifact_payload_apply_rejects_layout_and_missin
             expected_mip_count: 3,
             actual_mip_count: 2
         })
+    );
+    let environment = SourceCubemapEnvironment::new(source.clone(), 11, [9, 8, 7, 6]);
+    let original_environment = environment.clone();
+    assert!(matches!(
+        source_cubemap_environment_with_bake_artifact(&environment, &wrong_layout_payload),
+        Err(SourceCubemapBakeArtifactError::LayoutMismatch { .. })
+    ));
+    assert_eq!(
+        environment, original_environment,
+        "failed artifact application must preserve the source environment"
     );
 
     let pmrem_only_descriptor =

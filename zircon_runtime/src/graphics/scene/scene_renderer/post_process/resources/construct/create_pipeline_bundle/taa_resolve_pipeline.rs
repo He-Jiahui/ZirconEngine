@@ -93,6 +93,8 @@ mod tests {
         assert!(TAA_RESOLVE_SHADER.contains("responsive_and_reactive"));
         assert!(TAA_RESOLVE_SHADER.contains("responsive_rejection"));
         assert!(TAA_RESOLVE_SHADER.contains("load_authored_reactive_mask"));
+        assert!(TAA_RESOLVE_SHADER.contains("textureDimensions(taa_reactive_mask_tex)"));
+        assert!(TAA_RESOLVE_SHADER.contains("let mask_coord = clamp(coord"));
     }
 
     #[test]

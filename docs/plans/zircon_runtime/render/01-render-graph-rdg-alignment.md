@@ -547,6 +547,33 @@ render_product 对拍场景(`cargo test -p zircon_runtime render_product --locke
 - 迁入记录：[`01/2026-07-09-render-graph-rdg-alignment-output-records.md`](01/2026-07-09-render-graph-rdg-alignment-output-records.md)
 - fixed 已修复：[render-framework-pipeline-registration-test-double-migration](../../zircon_editor/editor/09/fixed-2026-07-13-render-framework-pipeline-registration-test-double-migration.md)
 - fixed 已修复：[editor-viewport-resolve-job-guard-drift](../../zircon_editor/editor/09/fixed-2026-07-14-editor-viewport-resolve-job-guard-drift.md)
+- 2026-08-15 Render01 状态：进行中，未验收。已完成静态实现：graph dump 为 transient allocation 输出完整 bucket identity；WGPU framework 新增从 compiled frame retained `scene_color` 读取线性 RGBA16F 的 HDR capture contract、native binding 和 focused regression；view-family 已收敛复用 camera viewport rect，facade 不再重复导出同名类型。待完成：受管 `zircon_runtime` 编译、GPU 真实运行与 PNG 证据、RenderDoc 对拍、协调器验收提交和量化消息；在这些完成前 RG-M4 不标记完成。
+- 2026-08-16 Render01 M4 诊断切片：`RenderGraphDump` 现在仅在 debug dump 构造时以一次 `O(P+E)` 依赖投影输出每个非 culled pass 的 ready layer、全图 `topology_layers` 与 `topology_peak_width`；queue 信息仍在同一 pass 行，因此 RenderDoc marker 对拍可区分“可并行记录”与实际 queue fallback。新增回归覆盖两个独立 producer 的同层宽度、join 的下一层和 culled pass 不计入宽度。`rustfmt --check`、scoped `git diff --check` 与结构守卫通过；受管 Rust unit-test 通道目前因 368 个外部 `cfg(test)` 诊断而未执行该断言，尚无 GPU/RenderDoc/性能结论。
+- 2026-08-16 Render01 M4 capture-consumer 回归：dump pass 行加入 `layer=` 后，`render_framework_graph_stats` 的 capture 对拍解析器会把该字段并入 pass 名，进而使 marker/profile 名称比较失真。已改为显式跳过 `layer=` 并新增含 live 与 culled 行的纯解析回归；`rustfmt --check` 与 scoped `git diff --check` 通过。该回归尚未进入受管 Rust test 执行，不能代替 RenderDoc 或产品捕获验收。
+
+### 2026-08-15 P1 产品测量边界复核
+
+- 已完成：Render17 P1 基线采集/报告合同升级到 schema 4；每次 steady run 固定丢弃 60 个 `app/runtime_redraw` warmup frame，随后只统计连续 300 个同名 primary frame。span/counter 仅计入该时间窗口，避免 nested runtime frame、预热、进程启动和退出时间污染 p50/p95。相关 Pester 静态回归为 52/52；这只证明采集合同，不能替代实测。
+- 已完成：UI12 复用了其受管 current-source `zircon_runtime -SkipTest` 验证，构建 exit 0（dev profile 11m37s，wrapper 801.6s）。该结果关闭了 ViewportSurface 编译阻塞，但不等同于 profiling-product 或 GPU 性能通过。
+- 结构审查：`CapturedFrame` 已携带与 RGBA 同 generation 的 `graph_dump` 和 `frame_profile_json`，但 `zircon_app` 的显式产品导出仍只写 PNG。因而当前基线可关联 timeline/PNG，却不能把 PNG 与其 compiled graph/cache state 作为一个不可分割产物。该导出路径由 Editor16 租约持有，后续应以可选 sidecar 路径为契约一次性导出 PNG、graph dump 与 frame profile，保持默认产品路径零额外格式化/IO。
+- 未完成且不得提前宣称：需要同一 source fingerprint 的 profiling runtime/editor artifact、每场景 3 次 steady capture、同帧 PNG + RenderDoc RDC + graph/profile sidecar；随后才记录 RenderGraph compile/cache、GPU frame、CPU render/RHI、RSS/VRAM 的 p50/p95，并只在内容、分辨率、AA、驱动和 warmup 一致时对照 Unreal。没有这些产物，不提交性能改善或功耗结论。
+
+### 2026-08-15 P0 pass authoring 依赖 DAG 收敛
+
+- 已完成（源实现，待受管验证）：`pass_authoring.rs` 已删除跨全部 stage/pass 的全局 `previous -> pass` 链，并且不再重复维护资源依赖事实。authoring 只声明资源访问并以 `(name, kind)` 做 unique-producer 前置排序；`RenderGraphBuilder::compile` 是唯一的 RAW/WAW/WAR history 与自环过滤所有者。无共享资源的 pass 不再因作者顺序产生依赖。
+- 已完成（源实现，待受管验证）：同一合同已下沉至 `render_graph/builder/compile.rs`。编译从手工 WAW writer-pair/bitset closure 与仅 RAW 推导，收敛为以 manual 边为种子的去重 adjacency 和每资源访问历史；最终 RAW/WAW/WAR 边也是 culling 的唯一依赖回溯来源，防止仅因 WAR 保留的 reader 被错误裁剪。该模型对应 UE RDG 按 pass 参数枚举 texture/buffer access 的依赖事实，而不是按 authoring 顺序强行串行化。
+- 已完成（源实现，待受管验证）：同阶段的 unique-producer 前置不再为每个 Write 重扫全部 pass/资源。现在一次建立 resource -> reader/writer index，再以稳定拓扑排序生成边，复杂度从嵌套全扫描收敛为一次访问索引加实际 edge 数；该步骤仍只负责 producer-before-reader 的声明顺序，资源危害边由统一访问历史负责。
+- 已完成（focused regression 源码）：新增 `compile_keeps_independent_resource_producers_unordered_until_their_consumer`，要求两个独立 producer 均无人工 dependency，只有 join 依赖二者；新增 `compile_preserves_read_write_hazards_for_reused_resources`，要求 Write -> Read -> Write 保留 RAW/WAR/WAW 所需边；新增 `compile_rejects_side_effect_passes_without_declared_resources`，禁止未来将未声明的副作用重新隐藏到 authoring 顺序。静态 `rustfmt --check` 与 `git diff --check` 已通过，旧链模式匹配为 0。
+- 已完成（focused regression 源码）：`render_graph/tests/resources.rs` 以 `seed -> sample -> overwrite -> present` 覆盖 RAW、WAW、WAR 与 culling 保活；`render_graph/tests/culling.rs` 约束编译期只保留一份去重 adjacency、reader history 和最终依赖图回溯。新增 `graph_rejects_attachment_load_after_discarded_transient_store` 锁定 `clear_discard -> load_store` 必须报 `ReadAfterDiscardedStore`，防止 attachment `Load` 被误当成纯写入。最终源码快照的两轮独立静态审查均为 critical 0、important 0、minor 0；`rustfmt --check`、`git diff --check` 和资源危害结构守卫通过。
+- 已记录但不替代 Rust 验收：协调器 actions 验证 `40062d1acf3e4e4087bcf6784e575a9e` 已接受（44/44 coordinator workflow tests）；其执行面不包含 RenderGraph Rust test，且随后新增上述 discard-to-Load regression，故该回执不覆盖当前快照。
+- 未完成且不得提前宣称：需在当前协调器 Cargo 通道释放后，以 source-matched 受管 `zircon_runtime` focused test 运行以上两条回归及默认 pipeline 编译；随后以 graph dump 的 ready-width、async-lane 可调度层和 GPU/CPU profile 量化吞吐改善。当前没有性能、功耗或并行执行收益数据，P0/RG-M4 仍为进行中。
+
+### 2026-08-15 M4 schema/instance 切分前置审查
+
+- 事实：当前 `CompiledGraphCacheKey` 把 `view_width/view_height/render_width/render_height` 与特性、quality、capability 放进同一 fingerprint；这不是可直接删除的冗余。`texture_desc_for` 用其决定 render/view/half-resolution 尺寸、HZB 与 SSR mip 链、froxel 3D 尺寸和 sample count，`buffer_desc_for` 用其决定 OIT 与像素相关 buffer 字节数。因此 resize 继续沿用 concrete `CompiledRenderGraph` 会复用错误的 WGPU 资源描述符，属于正确性错误而非缓存策略选择。
+- 2026-08-15 静态架构审查：`CompiledGraphCache` 的 value 是 `Arc<CompiledRenderPipeline>`，而后者直接持有 concrete `CompiledRenderGraph`；现有 `compiled_render_pipeline_cache_misses_on_viewport_resize` 断言两次 miss/两份 entry，正是上述 descriptor 合同的回归保护。UE `FRDGBuilder::Compile()` 也在 dependency/culling 确定后才进入 execution；Zircon 的正确优化方向是复用无尺寸的 topology/schema，而不是让 concrete graph 越过 extent 生命周期。
+- 后续结构：先发布只含 feature/capability/format/sample-class/pass-resource declaration 的 `PipelineGraphSchema`，再由 `(schema, extent, target binding, dynamic constants)` 生成持有 concrete texture/buffer descriptors 的 `RenderGraphInstance`；外层 schema cache 与内层 instance cache 的 key 分离，但 execution 只接收 immutable instance。不得通过删除现有尺寸字段、放宽全 graph equality 或让 WGPU materializer 在执行期猜测 extent 来制造 cache hit。
+- 受管回归与量化计划：同一默认 pipeline 在 `64x64` 与 `128x64` 必须断言 schema identity 相同、instance identity 不同，且 HZB mip 数、half-resolution extent、OIT/pixel buffer bytes 均按新尺寸重算；相同 extent 重复三次才可断言 instance cache hit。P0 resource-DAG dynamic test 通过后，再采集 schema compile、instance materialization、CPU render/RHI 和 GPU frame 的 p50/p95；未获得 source-matched 产品 trace 前，不报告命中率、功耗或性能改善。
 
 ## 性能审阅交接
 

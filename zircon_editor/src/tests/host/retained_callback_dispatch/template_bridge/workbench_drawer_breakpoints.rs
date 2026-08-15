@@ -50,6 +50,31 @@ fn componentized_workbench_layout_collapses_right_drawer_shell_at_narrow_width()
 }
 
 #[test]
+fn mounted_workbench_batches_state_projection_into_one_layout_pass() {
+    let _guard = match env_lock().lock() {
+        Ok(guard) => guard,
+        Err(error) => panic!("test environment lock is poisoned: {error}"),
+    };
+
+    let fixture = default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
+    let metrics = WorkbenchChromeMetrics::default();
+    let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(900.0, 620.0))
+        .expect("workbench bridge should build");
+    let before = bridge.layout_pass_count();
+
+    bridge
+        .recompute_layout_with_workbench_model(UiSize::new(1280.0, 720.0), &model, &metrics)
+        .expect("workbench layout should recompute");
+
+    assert_eq!(bridge.layout_pass_count() - before, 1);
+}
+
+#[test]
 fn componentized_regular_workbench_reserves_half_width_for_the_document() {
     let _guard = match env_lock().lock() {
         Ok(guard) => guard,

@@ -30,14 +30,26 @@ class PlayEditProtectionContractTests(unittest.TestCase):
         intent = self.source("pending_edits/intent.rs")
         queue = self.source("pending_edits/queue.rs")
         resolution = self.source("pending_edits/resolution.rs")
+        retention = (
+            ROOT
+            / "zircon_editor"
+            / "src"
+            / "core"
+            / "editing"
+            / "operation"
+            / "pending_edit_retention.rs"
+        ).read_text(encoding="utf-8")
 
         self.assertIn("EditorOperationInvocation", intent)
         self.assertIn("Arc<EditorOperationInvocation>", intent)
         self.assertIn("PendingEditId", intent)
         self.assertIn("PendingEditRetention", intent)
-        self.assertIn("EmptyCohortKey", intent)
-        self.assertIn("fn validate", intent)
-        self.assertIn(".validate()", queue)
+        self.assertIn("belongs_to_cohort", intent)
+        self.assertIn("cohort_kind", intent)
+        self.assertIn("NonZeroUsize", retention)
+        self.assertIn("pub fn bounded", retention)
+        self.assertIn("PendingEditCohortKind", retention)
+        self.assertIn("bounded_limits", queue)
         self.assertIn("checked_add", queue)
         self.assertIn("PendingEditQueueLimits", queue)
         self.assertIn("max_payload_bytes", queue)
@@ -63,7 +75,8 @@ class PlayEditProtectionContractTests(unittest.TestCase):
         self.assertLess(gate, backend_start)
         self.assertIn("edit_protection.end_play", controller)
         self.assertIn("route_edit", controller)
-        self.assertIn("retention: PendingEditRetention", controller)
+        self.assertIn("DeferredOperationInvocation", controller)
+        self.assertIn(".route(target, deferred)", controller)
         self.assertIn("apply_pending_edits", controller)
         self.assertIn("discard_pending_edits", controller)
         self.assertIn("pending_edits_summary", controller)
@@ -84,15 +97,15 @@ class PlayEditProtectionContractTests(unittest.TestCase):
         )
         for case in (
             "playing_policy_applies_locks_and_queues_by_target",
-            "latest_retention_replaces_the_payload_without_duplicating_retry_authority",
-            "invalid_retention_is_rejected_at_the_queue_boundary",
-            "bounded_retention_reports_only_declared_cohort_evictions",
-            "lossless_admission_rejects_global_limit_without_dropping_another_intent",
-            "oldest_age_limit_rejects_new_intents_without_discarding_retained_work",
-            "failed_apply_requeues_the_same_intent_for_a_later_budgeted_retry",
+            "latest_retention_coalesces_only_the_same_target_and_operation",
+            "bounded_policy_rejects_zero_limits_before_play_routing",
+            "bounded_retention_evicts_only_its_typed_cohort",
+            "lossless_admission_respects_global_limits_without_dropping_another_intent",
+            "bounded_retention_rejects_new_work_after_its_own_age_limit",
+            "lossless_retention_preserves_fifo_order_and_retry_authority",
             "budgeted_apply_leaves_unattempted_intents_for_the_next_resolution_turn",
             "queued_route_surfaces_declared_bounded_evictions_to_its_caller",
-            "pending_decision_blocks_the_next_play_start",
+            "pending_decision_blocks_the_next_play_start_until_queue_resolution",
             "playing_cannot_resolve_pending_edits",
             "resolution_in_progress_blocks_play_start",
         ):

@@ -541,6 +541,18 @@ pub enum UiPainterResolvedState {
     Loading,
 }
 
+/// Composite visual state consumed by canonical painter recipes.
+///
+/// `primary` owns fill and foreground selection. Focus and drop indicators are
+/// composed independently so they remain visible without replacing that identity.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UiPainterVisualState {
+    pub primary: UiPainterResolvedState,
+    pub focus_visible: bool,
+    pub drop_indicator: bool,
+}
+
 /// Cross-host pseudo-state consumed by painter style selectors.
 ///
 /// Slate keeps event replies separate from widget state; Zircon mirrors that split by storing the
@@ -550,7 +562,11 @@ pub enum UiPainterResolvedState {
 pub struct UiPainterState {
     pub hovered: bool,
     pub pressed: bool,
+    /// Semantic focus ownership. It remains true for pointer, autofocus, and programmatic focus.
     pub focused: bool,
+    /// Keyboard-visible focus affordance. This is intentionally independent from selection and
+    /// checked state so a persistent choice does not render as a focus ring.
+    pub focus_visible: bool,
     pub disabled: bool,
     pub checked: bool,
     pub selected: bool,
@@ -568,51 +584,45 @@ pub struct UiPainterState {
 pub struct UiPainterStyleSelector;
 
 impl UiPainterStyleSelector {
-    pub const fn resolved_state_for_family(
+    pub const fn visual_state_for_family(
         state: UiPainterState,
-        family: UiPainterFamily,
-    ) -> UiPainterResolvedState {
-        match family {
-            UiPainterFamily::Button => Self::button_resolved_state(state),
-            UiPainterFamily::Checkbox | UiPainterFamily::Radio | UiPainterFamily::Toggle => {
-                Self::selection_control_resolved_state(state)
-            }
-            UiPainterFamily::Slider => Self::slider_resolved_state(state),
-            UiPainterFamily::Generic
-            | UiPainterFamily::IconButton
-            | UiPainterFamily::Dropdown
-            | UiPainterFamily::PopupRow
-            | UiPainterFamily::Alert
-            | UiPainterFamily::Tooltip
-            | UiPainterFamily::TextField
-            | UiPainterFamily::ListRow
-            | UiPainterFamily::TreeRow
-            | UiPainterFamily::TableRow
-            | UiPainterFamily::Tab
-            | UiPainterFamily::Toast
-            | UiPainterFamily::Chrome => Self::interactive_resolved_state(state),
+        _family: UiPainterFamily,
+    ) -> UiPainterVisualState {
+        UiPainterVisualState {
+            primary: Self::primary_resolved_state(state),
+            focus_visible: state.focus_visible,
+            drop_indicator: state.drop_hovered,
         }
     }
 
+    pub const fn resolved_state_for_family(
+        state: UiPainterState,
+        _family: UiPainterFamily,
+    ) -> UiPainterResolvedState {
+        Self::legacy_scalar_state(state)
+    }
+
     pub const fn interactive_resolved_state(state: UiPainterState) -> UiPainterResolvedState {
+        Self::legacy_scalar_state(state)
+    }
+
+    const fn primary_resolved_state(state: UiPainterState) -> UiPainterResolvedState {
         if state.disabled {
             UiPainterResolvedState::Disabled
         } else if state.loading {
             UiPainterResolvedState::Loading
-        } else if state.pressed {
-            UiPainterResolvedState::Pressed
-        } else if state.dragging {
-            UiPainterResolvedState::Dragging
-        } else if state.focused {
-            UiPainterResolvedState::Focused
-        } else if state.open {
-            UiPainterResolvedState::Open
-        } else if state.selected {
-            UiPainterResolvedState::Selected
-        } else if state.checked {
-            UiPainterResolvedState::Checked
         } else if state.drop_hovered {
             UiPainterResolvedState::DropHovered
+        } else if state.dragging {
+            UiPainterResolvedState::Dragging
+        } else if state.pressed {
+            UiPainterResolvedState::Pressed
+        } else if state.open {
+            UiPainterResolvedState::Open
+        } else if state.checked {
+            UiPainterResolvedState::Checked
+        } else if state.selected {
+            UiPainterResolvedState::Selected
         } else if state.hovered {
             UiPainterResolvedState::Hovered
         } else {
@@ -621,69 +631,41 @@ impl UiPainterStyleSelector {
     }
 
     pub const fn selection_control_resolved_state(state: UiPainterState) -> UiPainterResolvedState {
-        if state.disabled {
-            UiPainterResolvedState::Disabled
-        } else if state.loading {
-            UiPainterResolvedState::Loading
-        } else if state.pressed {
-            UiPainterResolvedState::Pressed
-        } else if state.dragging {
-            UiPainterResolvedState::Dragging
-        } else if state.focused {
-            UiPainterResolvedState::Focused
-        } else if state.selected {
-            UiPainterResolvedState::Selected
-        } else if state.checked {
-            UiPainterResolvedState::Checked
-        } else if state.drop_hovered {
-            UiPainterResolvedState::DropHovered
-        } else if state.hovered {
-            UiPainterResolvedState::Hovered
-        } else {
-            UiPainterResolvedState::Normal
-        }
+        Self::legacy_scalar_state(state)
     }
 
     pub const fn slider_resolved_state(state: UiPainterState) -> UiPainterResolvedState {
-        if state.disabled {
-            UiPainterResolvedState::Disabled
-        } else if state.loading {
-            UiPainterResolvedState::Loading
-        } else if state.pressed {
-            UiPainterResolvedState::Pressed
-        } else if state.dragging {
-            UiPainterResolvedState::Dragging
-        } else if state.focused {
-            UiPainterResolvedState::Focused
-        } else if state.drop_hovered {
-            UiPainterResolvedState::DropHovered
-        } else if state.hovered {
-            UiPainterResolvedState::Hovered
-        } else {
-            UiPainterResolvedState::Normal
-        }
+        Self::legacy_scalar_state(state)
     }
 
     pub const fn button_resolved_state(state: UiPainterState) -> UiPainterResolvedState {
-        if state.disabled {
-            UiPainterResolvedState::Disabled
-        } else if state.loading {
-            UiPainterResolvedState::Loading
-        } else if state.pressed {
-            UiPainterResolvedState::Pressed
-        } else if state.dragging {
-            UiPainterResolvedState::Hovered
-        } else if state.is_focus_visible() {
+        Self::legacy_scalar_state(state)
+    }
+
+    /// Transitional scalar projection for native painters that have not yet adopted
+    /// `UiPainterVisualState`. M4 removes this lossy focus collapse after every consumer
+    /// paints the independent focus outline from the composite contract.
+    const fn legacy_scalar_state(state: UiPainterState) -> UiPainterResolvedState {
+        let primary = Self::primary_resolved_state(state);
+        if state.focus_visible
+            && matches!(
+                primary,
+                UiPainterResolvedState::Normal
+                    | UiPainterResolvedState::Hovered
+                    | UiPainterResolvedState::Open
+                    | UiPainterResolvedState::Checked
+                    | UiPainterResolvedState::Selected
+            )
+        {
             UiPainterResolvedState::Focused
-        } else if state.is_pointer_hot() || state.open {
-            UiPainterResolvedState::Hovered
         } else {
-            UiPainterResolvedState::Normal
+            primary
         }
     }
 
     pub const fn button_interaction_state(state: UiPainterState) -> ButtonInteractionState {
-        match Self::button_resolved_state(state) {
+        let primary = Self::button_resolved_state(state);
+        match primary {
             UiPainterResolvedState::Disabled => ButtonInteractionState::Disabled,
             UiPainterResolvedState::Loading => ButtonInteractionState::Loading,
             UiPainterResolvedState::Pressed => ButtonInteractionState::Pressed,
@@ -705,6 +687,7 @@ impl UiPainterState {
             hovered: false,
             pressed: false,
             focused: false,
+            focus_visible: false,
             disabled: false,
             checked: false,
             selected: false,
@@ -720,7 +703,7 @@ impl UiPainterState {
     }
 
     pub const fn is_focus_visible(self) -> bool {
-        self.focused || self.checked || self.selected
+        self.focus_visible
     }
 
     pub const fn is_pointer_hot(self) -> bool {
@@ -732,6 +715,10 @@ impl UiPainterState {
         family: UiPainterFamily,
     ) -> UiPainterResolvedState {
         UiPainterStyleSelector::resolved_state_for_family(self, family)
+    }
+
+    pub const fn visual_state_for_family(self, family: UiPainterFamily) -> UiPainterVisualState {
+        UiPainterStyleSelector::visual_state_for_family(self, family)
     }
 
     pub const fn interactive_resolved_state(self) -> UiPainterResolvedState {

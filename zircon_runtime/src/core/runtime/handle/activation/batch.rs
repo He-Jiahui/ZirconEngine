@@ -1,8 +1,13 @@
 use std::time::Duration;
 
-use crate::core::{sort_module_activation_order, CoreError, LifecycleState};
+use std::sync::Arc;
 
-use super::super::super::descriptors::{ModuleDescriptor, RegistryName};
+use crate::core::{CoreError, LifecycleState};
+
+use super::super::super::descriptors::{FrozenModuleGraph, RegistryName};
+use super::super::super::state::{
+    ModuleLifecycleCommand, ModuleLifecycleTransitionPermit, ModuleLifecycleTransitionToken,
+};
 use super::super::CoreHandle;
 use super::service_lifecycle::{
     prepare_reactivation_services, rollback_reactivation_services, validate_reactivation_services,
@@ -11,8 +16,8 @@ use super::service_lifecycle::{
 struct BatchModuleActivation {
     module_name: String,
     previous_lifecycle: LifecycleState,
-    service_names: Box<[RegistryName]>,
-    startup_service_names: Box<[RegistryName]>,
+    service_names: Arc<[RegistryName]>,
+    startup_service_names: Arc<[RegistryName]>,
 }
 
 impl CoreHandle {
@@ -25,15 +30,58 @@ impl CoreHandle {
         ready_timeout: Duration,
     ) -> Result<(), CoreError> {
         crate::profile_scope!("runtime", "core", "activate_registered_modules");
-        let module_order = self.sorted_registered_module_order()?;
-        let pending_modules = self.begin_batch_module_activation(module_order.as_slice())?;
+        let graph = self.frozen_module_graph()?;
+        let mut owner_modules = Vec::with_capacity(graph.module_activation_order().len());
+        let mut transition_tokens = Vec::with_capacity(graph.module_activation_order().len());
+        for module_name in graph.module_activation_order() {
+            match self.acquire_module_lifecycle_transition(
+                module_name,
+                ModuleLifecycleCommand::Activate,
+            )? {
+                ModuleLifecycleTransitionPermit::Owner(token) => {
+                    owner_modules.push(module_name.clone());
+                    transition_tokens.push(token);
+                }
+                ModuleLifecycleTransitionPermit::Completed(Err(error)) => {
+                    self.complete_batch_module_lifecycle_transitions(
+                        &transition_tokens,
+                        Err(error.clone()),
+                    );
+                    return Err(error);
+                }
+                ModuleLifecycleTransitionPermit::Completed(Ok(())) => {}
+                ModuleLifecycleTransitionPermit::Wait => {
+                    return Err(CoreError::ModuleLifecycleCoordinatorUnresolved {
+                        module: module_name.clone(),
+                        command: ModuleLifecycleCommand::Activate.as_str(),
+                    });
+                }
+            }
+        }
+
+        let result = self.activate_owned_modules_with_ready_timeout(
+            &graph,
+            owner_modules.as_slice(),
+            ready_timeout,
+        );
+        self.complete_batch_module_lifecycle_transitions(&transition_tokens, result.clone());
+        result
+    }
+
+    fn activate_owned_modules_with_ready_timeout(
+        &self,
+        graph: &FrozenModuleGraph,
+        module_order: &[String],
+        ready_timeout: Duration,
+    ) -> Result<(), CoreError> {
+        let pending_modules = self.begin_batch_module_activation(graph, module_order)?;
         if pending_modules.is_empty() {
             return Ok(());
         }
 
         let mut built_module_count = 0;
         let mut reactivation_services_prepared = false;
-        let result = (|| {
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             reactivation_services_prepared =
                 self.prepare_batch_reactivation_services(&pending_modules)?;
             for pending_module in &pending_modules {
@@ -64,7 +112,16 @@ impl CoreHandle {
             }
 
             Ok(())
-        })();
+        }))
+        .unwrap_or_else(|_| {
+            Err(CoreError::ModuleLifecycleCallbackPanicked {
+                module: pending_modules
+                    .get(built_module_count)
+                    .map(|pending| pending.module_name.clone())
+                    .unwrap_or_else(|| "batch activation".to_owned()),
+                command: ModuleLifecycleCommand::Activate.as_str(),
+            })
+        });
 
         if let Err(activation_error) = result {
             let rollback_errors =
@@ -80,40 +137,54 @@ impl CoreHandle {
         Ok(())
     }
 
-    fn sorted_registered_module_order(&self) -> Result<Vec<String>, CoreError> {
-        let mut descriptors = self.registered_module_descriptors();
-        descriptors.sort_by(|left, right| left.name.cmp(&right.name));
-        sort_module_activation_order(descriptors.as_slice())
-    }
-
-    fn registered_module_descriptors(&self) -> Vec<ModuleDescriptor> {
-        let modules = self.lock_modules();
-        modules
-            .values()
-            .map(|entry| entry.descriptor().clone())
-            .collect()
+    fn complete_batch_module_lifecycle_transitions(
+        &self,
+        transition_tokens: &[ModuleLifecycleTransitionToken],
+        result: Result<(), CoreError>,
+    ) {
+        for token in transition_tokens {
+            self.complete_module_lifecycle_transition(token, result.clone());
+        }
     }
 
     fn begin_batch_module_activation(
         &self,
+        graph: &FrozenModuleGraph,
         module_order: &[String],
     ) -> Result<Vec<BatchModuleActivation>, CoreError> {
         let mut modules = self.lock_modules();
         let mut pending_modules = Vec::with_capacity(module_order.len());
         for module_name in module_order {
-            let Some(entry) = modules.get_mut(module_name) else {
+            let Some(entry) = modules.get(module_name) else {
                 return Err(CoreError::MissingModule(module_name.clone()));
             };
+            if !matches!(
+                entry.lifecycle,
+                LifecycleState::Registered | LifecycleState::Running | LifecycleState::Unloaded
+            ) {
+                return Err(CoreError::InvalidModuleLifecycleTransition {
+                    module: module_name.clone(),
+                    command: ModuleLifecycleCommand::Activate.as_str(),
+                    state: entry.lifecycle,
+                });
+            }
+        }
+
+        for module_name in module_order {
+            let entry = modules
+                .get_mut(module_name)
+                .expect("prevalidated module should remain registered");
             if entry.lifecycle == LifecycleState::Running {
                 continue;
             }
+            let module_services = graph.module_services(module_name)?;
             let previous_lifecycle = entry.lifecycle;
             entry.lifecycle = LifecycleState::Initializing;
             pending_modules.push(BatchModuleActivation {
                 module_name: module_name.clone(),
                 previous_lifecycle,
-                service_names: entry.service_names.as_ref().into(),
-                startup_service_names: entry.startup_service_names.as_ref().into(),
+                service_names: module_services.service_names().clone(),
+                startup_service_names: module_services.startup_service_names().clone(),
             });
         }
         Ok(pending_modules)
@@ -163,7 +234,7 @@ impl CoreHandle {
                 }
                 continue;
             }
-            for service_name in &pending_module.startup_service_names {
+            for service_name in pending_module.startup_service_names.iter() {
                 if let Some(entry) = services.get_mut(service_name) {
                     if entry.lifecycle == LifecycleState::Running
                         || entry.lifecycle == LifecycleState::Initializing
@@ -188,9 +259,17 @@ impl CoreHandle {
             .iter()
             .rev()
             .filter_map(|pending_module| {
-                self.cleanup_module(&pending_module.module_name)
-                    .err()
-                    .map(|error| (pending_module.module_name.clone(), error))
+                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    self.cleanup_module(&pending_module.module_name)
+                }))
+                .unwrap_or_else(|_| {
+                    Err(CoreError::ModuleLifecycleCallbackPanicked {
+                        module: pending_module.module_name.clone(),
+                        command: ModuleLifecycleCommand::Activate.as_str(),
+                    })
+                })
+                .err()
+                .map(|error| (pending_module.module_name.clone(), error))
             })
             .collect()
     }

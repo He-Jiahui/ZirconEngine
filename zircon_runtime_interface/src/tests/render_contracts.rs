@@ -98,6 +98,7 @@ fn parity_extract_fixture(name: &str, commands: Vec<UiRenderCommand>) -> UiRende
     UiRenderExtract {
         tree_id: UiTreeId::new(format!("ui.render.parity.{name}")),
         list: UiRenderList { commands },
+        raster_scale: 1.0,
     }
 }
 
@@ -546,6 +547,7 @@ fn ui_render_debug_snapshot_exports_batch_replay_data() {
         list: UiRenderList {
             commands: vec![solid_command(1, 0.0, 0.0), solid_command(2, 48.0, 0.0)],
         },
+        raster_scale: 1.0,
     };
 
     let snapshot = UiRenderDebugSnapshot::from_render_extract(&extract);
@@ -560,6 +562,27 @@ fn ui_render_debug_snapshot_exports_batch_replay_data() {
     assert!(serde_json::to_string(&snapshot)
         .unwrap()
         .contains("draw_call_count"));
+}
+
+#[test]
+fn ui_render_extract_normalizes_missing_or_invalid_raster_scale() {
+    assert_eq!(UiRenderExtract::default().normalized_raster_scale(), 1.0);
+
+    let mut legacy_document = serde_json::to_value(UiRenderExtract::default()).unwrap();
+    legacy_document
+        .as_object_mut()
+        .unwrap()
+        .remove("raster_scale");
+    let legacy_extract = serde_json::from_value::<UiRenderExtract>(legacy_document).unwrap();
+    assert_eq!(legacy_extract.normalized_raster_scale(), 1.0);
+
+    let invalid = UiRenderExtract {
+        tree_id: UiTreeId::new("ui.render.invalid-raster-scale"),
+        list: UiRenderList::default(),
+        raster_scale: f32::NAN,
+    };
+
+    assert_eq!(invalid.normalized_raster_scale(), 1.0);
 }
 
 #[test]
@@ -599,6 +622,7 @@ fn ui_renderer_parity_snapshot_exports_canonical_paint_and_batch_rows() {
                 },
             ],
         },
+        raster_scale: 1.0,
     };
 
     let parity = UiRendererParitySnapshot::from_render_extract(&extract);
@@ -712,6 +736,7 @@ fn ui_render_debug_snapshot_carries_renderer_parity_contract() {
         list: UiRenderList {
             commands: vec![solid_command(94, 0.0, 0.0)],
         },
+        raster_scale: 1.0,
     };
 
     let snapshot = UiRenderDebugSnapshot::from_render_extract(&extract);
@@ -742,6 +767,7 @@ fn ui_render_visualizer_snapshot_exports_paint_batch_overlay_and_overdraw_data()
         list: UiRenderList {
             commands: vec![solid_command(61, 0.0, 0.0), solid_command(62, 24.0, 0.0)],
         },
+        raster_scale: 1.0,
     };
 
     let snapshot = UiRenderDebugSnapshot::from_render_extract(&extract);

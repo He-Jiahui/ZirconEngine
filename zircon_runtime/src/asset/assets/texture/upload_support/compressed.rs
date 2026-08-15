@@ -2,8 +2,8 @@ use crate::core::framework::render::RenderImageDimension;
 
 use super::super::TextureAsset;
 use super::{
-    TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadReadiness,
-    TextureUploadSupport, div_ceil, ready, unsupported,
+    div_ceil, ready, unsupported, TextureUploadCompressionFamily, TextureUploadPlan,
+    TextureUploadReadiness, TextureUploadSupport,
 };
 pub(super) fn compressed_plan_readiness(
     texture: &TextureAsset,
@@ -300,5 +300,9 @@ const fn mip_extent(value: u32, level: u32) -> u32 {
     } else {
         value >> level
     };
-    if shifted == 0 { 1 } else { shifted }
+    if shifted == 0 {
+        1
+    } else {
+        shifted
+    }
 }

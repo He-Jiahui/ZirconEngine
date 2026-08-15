@@ -1,6 +1,6 @@
 use super::*;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::{PALETTE, project_host_palette};
+use crate::ui::retained_host::host_contract::paint_theme::{project_host_palette, PALETTE};
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 use zircon_runtime_interface::ui::style::{UiPainterResolvedState, UiRgbaColor, UiStyleColor};
 
@@ -37,6 +37,23 @@ fn text_field_focused_state_uses_starship_primary_outline_without_raising_input_
     assert_eq!(style.state, UiPainterResolvedState::Focused);
     assert_eq!(style.surface, PALETTE.surface_inset);
     assert_eq!(style.border, PALETTE.focus_ring);
+}
+
+#[test]
+fn named_showcase_field_honors_known_hidden_runtime_focus() {
+    let node = TemplatePaneNodeData {
+        control_id: "WorkbenchInputFocused".into(),
+        focused: true,
+        focus_visible_known: true,
+        ..TemplatePaneNodeData::default()
+    };
+
+    let style = select_workbench_text_field_style(&node, false);
+
+    assert_eq!(style.state, UiPainterResolvedState::Normal);
+    assert_eq!(style.surface, PALETTE.surface_inset);
+    assert_eq!(style.border, PALETTE.separator_soft);
+    assert_ne!(style.border, PALETTE.focus_ring);
 }
 
 #[test]

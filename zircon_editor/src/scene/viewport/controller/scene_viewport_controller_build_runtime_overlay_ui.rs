@@ -64,6 +64,7 @@ impl SceneViewportController {
                     opacity: VIEWPORT_HUD_OPACITY,
                 }],
             },
+            raster_scale: 1.0,
         })
     }
 

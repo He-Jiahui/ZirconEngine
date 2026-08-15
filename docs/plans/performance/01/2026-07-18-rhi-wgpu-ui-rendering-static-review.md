@@ -1,12 +1,12 @@
 ---
 related_code:
-  - zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/geometry/tests.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/pipeline.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/render_pass.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/retained_cache.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/surface_setup.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/text.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry/tests.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/pipeline.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/render_pass.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/retained_cache.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/surface_setup.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/text.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/17-performance-and-profiling.md
@@ -15,8 +15,8 @@ reference_sources:
   - dev/bevy/crates/bevy_ui_render/src/render_pass.rs
   - dev/slint/internal/renderers/skia/lib.rs
 tests:
-  - zircon_runtime/src/rhi_wgpu/ui_surface/tests.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/geometry/tests.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/geometry/tests.rs
   - current-source Windows ui_surface tests pending
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending
@@ -26,7 +26,7 @@ status: static_complete_dynamic_pending
 
 ## 范围与覆盖
 
-`geometry/pipeline/render_pass/retained_cache/surface_setup/text`及geometry tests当前源7/7个Rust文件、1,822行已逐文件阅读；连同前一批root/batching/dependency/tests 4文件，`rhi_wgpu/ui_surface`当前源11/11已静态覆盖。动态Cargo、产品规模counter、Softbuffer像素与RenderDoc仍未完成，所以整个RHI批次继续留在`pending.md`。
+`geometry/pipeline/render_pass/retained_cache/surface_setup/text`及geometry tests当前源7/7个Rust文件、1,822行已逐文件阅读；连同前一批root/batching/dependency/tests 4文件，`zr_rhi_wgpu/src/ui_surface`当前源11/11已静态覆盖。动态Cargo、产品规模counter、Softbuffer像素与RenderDoc仍未完成，所以整个RHI批次继续留在`pending.md`。
 
 ## 热路径结论
 

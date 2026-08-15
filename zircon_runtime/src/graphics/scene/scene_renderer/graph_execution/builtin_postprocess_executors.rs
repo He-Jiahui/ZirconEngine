@@ -12,6 +12,7 @@ use self::frame_effects::{
 use self::graph_resources::product_postprocess_executor;
 use self::resource_routing::{
     bloom_input_resource, output_transfer_input_resource, output_transfer_output_resource,
+    terminal_anti_alias_input_resource, upscale_input_resource,
 };
 
 mod frame_effects;
@@ -78,40 +79,18 @@ pub(super) fn taa_resolve_postprocess_executor(
     )
 }
 
-pub(super) fn taa_reactive_mask_clear_executor(
-    context: &mut RenderPassExecutionContext<'_>,
-) -> Result<(), String> {
-    if !frame_uses_taa(context)? {
-        return Ok(());
-    }
-    let attachment_ops = context
-        .attachment_ops_for_write(PostProcessGraphResourceNames::TAA_REACTIVE_MASK)
-        .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
-    let pass_name = context.pass_name.clone();
-    let gpu = context.require_gpu()?;
-    gpu.record_taa_reactive_mask_clear_to_resource(
-        &pass_name,
-        PostProcessGraphResourceNames::TAA_REACTIVE_MASK,
-        attachment_ops,
-    )
-}
-
 pub(super) fn taa_reactive_mask_mesh_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
     if !frame_uses_taa(context)? {
         return Ok(());
     }
-    let attachment_ops = context
-        .attachment_ops_for_write(PostProcessGraphResourceNames::TAA_REACTIVE_MASK)
-        .unwrap_or_else(RenderGraphAttachmentOps::load_store);
     let pass_name = context.pass_name.clone();
     let gpu = context.require_gpu()?;
     gpu.record_taa_reactive_mask_mesh_to_resource(
         &pass_name,
         PostProcessGraphResourceNames::TAA_REACTIVE_MASK,
         PostProcessGraphResourceNames::SCENE_DEPTH,
-        attachment_ops,
     )
 }
 
@@ -141,10 +120,11 @@ pub(super) fn upscale_postprocess_executor(
         .attachment_ops_for_write(PostProcessGraphResourceNames::UPSCALED)
         .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
     let pass_name = context.pass_name.clone();
+    let input_resource = upscale_input_resource(context);
     let gpu = context.require_gpu()?;
     gpu.record_upscale_to_resource(
         &pass_name,
-        PostProcessGraphResourceNames::TONEMAPPED,
+        input_resource,
         PostProcessGraphResourceNames::UPSCALED,
         attachment_ops,
     )
@@ -155,14 +135,15 @@ pub(super) fn fxaa_postprocess_executor(
 ) -> Result<(), String> {
     product_postprocess_executor(context, PostProcessEffectKind::Fxaa)?;
     let attachment_ops = context
-        .attachment_ops_for_write(PostProcessGraphResourceNames::FINAL_COLOR)
+        .attachment_ops_for_write(PostProcessGraphResourceNames::FINAL_COMPOSITED)
         .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
     let pass_name = context.pass_name.clone();
+    let input_resource = terminal_anti_alias_input_resource(context);
     let gpu = context.require_gpu()?;
     gpu.record_fxaa_to_resource(
         &pass_name,
+        input_resource,
         PostProcessGraphResourceNames::FINAL_COMPOSITED,
-        PostProcessGraphResourceNames::FINAL_COLOR,
         attachment_ops,
     )
 }
@@ -172,14 +153,15 @@ pub(super) fn smaa_postprocess_executor(
 ) -> Result<(), String> {
     product_postprocess_executor(context, PostProcessEffectKind::Smaa)?;
     let attachment_ops = context
-        .attachment_ops_for_write(PostProcessGraphResourceNames::FINAL_COLOR)
+        .attachment_ops_for_write(PostProcessGraphResourceNames::FINAL_COMPOSITED)
         .unwrap_or_else(RenderGraphAttachmentOps::clear_store);
     let pass_name = context.pass_name.clone();
+    let input_resource = terminal_anti_alias_input_resource(context);
     let gpu = context.require_gpu()?;
     gpu.record_smaa_to_resource(
         &pass_name,
+        input_resource,
         PostProcessGraphResourceNames::FINAL_COMPOSITED,
-        PostProcessGraphResourceNames::FINAL_COLOR,
         attachment_ops,
     )
 }
@@ -283,20 +265,6 @@ pub(super) fn exposure_resolve_executor(
         PostProcessGraphResourceNames::EXPOSURE_HISTOGRAM,
         PostProcessGraphResourceNames::EXPOSURE_PREVIOUS,
         PostProcessGraphResourceNames::EXPOSURE_CURRENT,
-    )
-}
-
-pub(super) fn ssao_executor(context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
-    let pass_name = context.pass_name.clone();
-    let executor_id = context.executor_id.as_str().to_string();
-    let gpu = context.require_gpu()?;
-    gpu.record_ssao_to_resources(
-        &pass_name,
-        &executor_id,
-        PostProcessGraphResourceNames::SCENE_DEPTH,
-        PostProcessGraphResourceNames::GBUFFER_NORMAL,
-        PostProcessGraphResourceNames::HZB_FURTHEST,
-        PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
     )
 }
 

@@ -1,8 +1,8 @@
 use zircon_runtime_interface::reflect::ReflectedValue;
-use zircon_runtime_interface::serialization::{Format, Loaded, load_versioned};
+use zircon_runtime_interface::serialization::{load_versioned, Format, Loaded};
 
-use super::ReflectedJsonError;
 use super::document::ReflectedJsonDocument;
+use super::ReflectedJsonError;
 
 /// Loads versioned reflected JSON; an unwrapped value is the historical v0 form.
 pub fn reflected_from_json(json: &str) -> Result<Loaded<ReflectedValue>, ReflectedJsonError> {

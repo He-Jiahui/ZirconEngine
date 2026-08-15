@@ -45,7 +45,8 @@ fn zcube_staged_ibl_bundle_keeps_source_cube_separate_from_derived_pmrem() {
     };
     assert_eq!(staged_cubemap.face_size(), source.source_face_size());
     assert_eq!(staged_cubemap.mip_count(), source.source_mip_count());
-    assert_rgba16f_close(staged_cubemap.texels(), source.source_texels());
+    let staged_texels = staged_cubemap.into_texels();
+    assert_rgba16f_close(&staged_texels, source.source_texels());
 
     let asset_read = store
         .asset_derived_store()

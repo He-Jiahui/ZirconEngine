@@ -1,8 +1,8 @@
 use super::super::TextureAsset;
 use super::bytes::read_u32_le;
 use super::{
-    TextureUploadCompressionFamily, TextureUploadPlan, TextureUploadSubresource,
-    texture_descriptor_layer_count, texture_descriptor_mip_count,
+    texture_descriptor_layer_count, texture_descriptor_mip_count, TextureUploadCompressionFamily,
+    TextureUploadPlan, TextureUploadSubresource,
 };
 
 const DDPF_FOURCC: u32 = 0x0000_0004;
@@ -157,7 +157,11 @@ const fn mip_extent(value: u32, level: u32) -> u32 {
     } else {
         value >> level
     };
-    if shifted == 0 { 1 } else { shifted }
+    if shifted == 0 {
+        1
+    } else {
+        shifted
+    }
 }
 
 fn dds_classic_fourcc_upload_layout(

@@ -32,3 +32,9 @@ pub(super) fn floating_window_edge_node_id(index: usize, edge: DockEdge) -> UiNo
     };
     UiNodeId::new(FLOATING_NODE_ID_BASE + index as u64 * FLOATING_NODE_STRIDE + offset)
 }
+
+pub(super) fn floating_window_index_for_node(node_id: UiNodeId) -> Option<usize> {
+    let encoded = node_id.0.checked_sub(FLOATING_NODE_ID_BASE)?;
+    let kind_offset = encoded % FLOATING_NODE_STRIDE;
+    (kind_offset <= 4).then_some((encoded / FLOATING_NODE_STRIDE) as usize)
+}

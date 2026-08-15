@@ -1,7 +1,8 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::reflect::{ReflectFieldInfo, ReflectFieldValue};
+use zircon_runtime_interface::world_sync::{EntityRow, QueryFilter, WorldQuery, WorldQueryResult};
 
 use crate::scene::components::{NodeKind, SceneNode};
 use crate::scene::reflect::RuntimeTypeRegistration;
@@ -50,6 +51,67 @@ impl World {
         }
         build_inspection_fields(self, entity)
     }
+
+    /// Runs one deterministic reflected-component query against the current world generation.
+    ///
+    /// The query boundary intentionally exposes only editor-visible reflected components. Runtime
+    /// storage-only components remain internal until they register an editor reflection contract.
+    pub fn query_world(&self, query: &WorldQuery) -> WorldQueryResult {
+        let generation = self.world_generation();
+        if generation != u64::MAX && query.generation_hint == Some(generation) {
+            return WorldQueryResult::NotModified { generation };
+        }
+
+        let rows = self
+            .node_records()
+            .into_iter()
+            .filter_map(|node| {
+                let fields = self.inspect_fields(node.id);
+                query_matches_reflected_components(&fields, &query.filter).then(|| EntityRow {
+                    entity: node.id,
+                    components: selected_reflected_components(&fields, query),
+                })
+            })
+            .collect();
+        query.result_for_generation(generation, rows)
+    }
+}
+
+fn query_matches_reflected_components(
+    fields: &[WorldInspectionField],
+    filter: &QueryFilter,
+) -> bool {
+    filter.with.iter().all(|type_name| {
+        fields
+            .iter()
+            .any(|field| field.component_type_path.as_str() == type_name.as_str())
+    }) && filter.without.iter().all(|type_name| {
+        !fields
+            .iter()
+            .any(|field| field.component_type_path.as_str() == type_name.as_str())
+    })
+}
+
+fn selected_reflected_components(
+    fields: &[WorldInspectionField],
+    query: &WorldQuery,
+) -> BTreeMap<String, serde_json::Value> {
+    query
+        .select
+        .iter()
+        .filter_map(|selector| {
+            let values = fields
+                .iter()
+                .filter(|field| field.component_type_path.as_str() == selector.type_name.as_str())
+                .filter_map(|field| {
+                    serde_json::to_value(&field.value)
+                        .ok()
+                        .map(|value| (field.field_name.clone(), value))
+                })
+                .collect::<serde_json::Map<_, _>>();
+            (!values.is_empty()).then(|| (selector.type_name.clone(), values.into()))
+        })
+        .collect()
 }
 
 fn build_hierarchy_rows(
@@ -146,21 +208,19 @@ fn push_hierarchy_roots(
             let Some(row_index) = row_indices.get(&pending.entity).copied() else {
                 continue;
             };
-            let mut subtree_hasher = StableSubtreeHasher::new(&rows[row_index].display_name);
             let children = children_by_parent.get(&Some(pending.entity));
-            subtree_hasher.write_u64(children.map_or(0, Vec::len) as u64);
-            if let Some(children) = children {
-                for child in children {
-                    subtree_hasher.write_u64(*child);
+            let subtree_hash = hierarchy_subtree_hash(
+                &rows[row_index].display_name,
+                children.map_or(0, Vec::len),
+                children.into_iter().flatten().map(|child| {
                     let child_hash = if traversed_edges.contains(&(pending.entity, *child)) {
                         subtree_hashes.get(child).copied().unwrap_or_default()
                     } else {
                         0
                     };
-                    subtree_hasher.write_u64(child_hash);
-                }
-            }
-            let subtree_hash = subtree_hasher.finish();
+                    (*child, child_hash)
+                }),
+            );
             rows[row_index].subtree_hash = subtree_hash;
             subtree_hashes.insert(pending.entity, subtree_hash);
             continue;
@@ -238,6 +298,48 @@ impl StableSubtreeHasher {
     const fn finish(self) -> u64 {
         self.value
     }
+}
+
+/// Hashes one hierarchy anchor from its display name and ordered child anchors.
+///
+/// The inspection artifact's incremental path reuses this exact representation when a name
+/// mutation changes only an existing row and its ancestor hashes.
+pub(super) fn hierarchy_subtree_hash(
+    display_name: &str,
+    child_count: usize,
+    children: impl IntoIterator<Item = (EntityId, u64)>,
+) -> u64 {
+    let child_hash_aggregate =
+        children
+            .into_iter()
+            .enumerate()
+            .fold(0, |aggregate, (ordinal, (child, child_hash))| {
+                aggregate ^ hierarchy_child_hash_contribution(ordinal, child, child_hash)
+            });
+    hierarchy_subtree_hash_from_child_aggregate(display_name, child_count, child_hash_aggregate)
+}
+
+pub(super) fn hierarchy_subtree_hash_from_child_aggregate(
+    display_name: &str,
+    child_count: usize,
+    child_hash_aggregate: u64,
+) -> u64 {
+    let mut subtree_hasher = StableSubtreeHasher::new(display_name);
+    subtree_hasher.write_u64(child_count as u64);
+    subtree_hasher.write_u64(child_hash_aggregate);
+    subtree_hasher.finish()
+}
+
+pub(super) fn hierarchy_child_hash_contribution(
+    ordinal: usize,
+    child: EntityId,
+    child_hash: u64,
+) -> u64 {
+    let mut child_hasher = StableSubtreeHasher::new("");
+    child_hasher.write_u64(ordinal as u64);
+    child_hasher.write_u64(child);
+    child_hasher.write_u64(child_hash);
+    child_hasher.finish()
 }
 
 pub(super) fn build_inspection_fields(

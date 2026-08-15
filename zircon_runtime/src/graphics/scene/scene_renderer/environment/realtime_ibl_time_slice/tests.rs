@@ -223,11 +223,9 @@ fn full_update_expands_every_pmrem_mip_over_all_cube_faces() {
     assert_eq!(slices.len(), 8);
     assert_eq!(slices.first().map(|slice| slice.mip_level), Some(0));
     assert_eq!(slices.last().map(|slice| slice.mip_level), Some(7));
-    assert!(
-        slices
-            .iter()
-            .all(|slice| slice.first_face == 0 && slice.face_count == 6)
-    );
+    assert!(slices
+        .iter()
+        .all(|slice| slice.first_face == 0 && slice.face_count == 6));
 }
 
 fn publish_initial(scheduler: &mut RealtimeIblTimeSliceScheduler, key: IblBakeKey) {

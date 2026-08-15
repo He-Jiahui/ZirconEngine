@@ -7,6 +7,7 @@ description = "Stable ABI and DTO contracts for loading the Zircon runtime as a 
 
 [dependencies]
 bincode.workspace = true
+blake3.workspace = true
 glam.workspace = true
 serde.workspace = true
 serde_json = { version = "1.0.149", features = ["raw_value"] }

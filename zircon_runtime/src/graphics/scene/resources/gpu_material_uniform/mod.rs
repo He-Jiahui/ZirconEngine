@@ -1,5 +1,5 @@
 mod gpu_material_uniform_resource;
 
 pub(crate) use gpu_material_uniform_resource::{
-    GpuMaterialUniformResource, GPU_MATERIAL_UNIFORM_MIN_SIZE, standard_material_uniform_contents,
+    standard_material_uniform_contents, GpuMaterialUniformResource, GPU_MATERIAL_UNIFORM_MIN_SIZE,
 };

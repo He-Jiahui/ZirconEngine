@@ -448,10 +448,22 @@ owner coverage is `test_plugin_shader_descriptors_live_in_plugin_shader_descript
 
 ## Output Layout
 
-Given `--out E:\builds\zircon`, the tool writes:
+For an actual Windows build, `--out` is resolved physically before any output
+directory is created. It must resolve below one of `D:\cargo-targets`,
+`E:\cargo-targets`, `F:\cargo-targets`, `D:\targets`, `E:\targets`,
+`F:\targets`, `D:\ZirconBuilds`, `E:\ZirconBuilds`, or `F:\ZirconBuilds`.
+This applies equally to a directory junction: its resolved destination, rather
+than its spelling, determines whether it is allowed. The recommended staged
+product location is `D:\ZirconBuilds`, `E:\ZirconBuilds`, or
+`F:\ZirconBuilds`.
+For the Hub target, the Node/Tauri child also receives
+`npm_config_cache=<out>\targets\hub\npm-cache`; it does not use the Windows
+user-level npm cache.
+
+Given `--out E:\ZirconBuilds\zircon`, the tool writes:
 
 ```text
-E:\builds\zircon\
+E:\ZirconBuilds\zircon\
   ZirconEngine\
     zircon_hub.exe
     zircon_editor.exe
@@ -1467,21 +1479,24 @@ current status is
 
 The editor target also stages a sibling `zircon_runtime.dll`/`so`/`dylib`, because
 `zircon_editor` resolves the runtime library from `ZIRCON_RUNTIME_LIBRARY` or the
-current executable directory. Keeping the library beside the executable fixes the
+current executable directory. A normal relative `ZIRCON_RUNTIME_LIBRARY` value is
+resolved from the product executable directory; an absolute value remains an
+explicit external override. Keeping the library beside the executable fixes the
 common local Cargo layout issue where the dynamic library remains under
 `debug/deps` and `LoadLibraryExW` cannot find it.
 
 Built-in engine asset lookup follows the staged layout. Runtime/editor code first
 honors `ZIRCON_ASSET_ROOT`, then checks `assets` beside the current executable,
-then `assets` under the current working directory, and finally falls back to the
-crate-local `assets` directory for `cargo run` and unit-test workflows. Editor
-call sites pass `zircon_editor/assets` as their development fallback so editor
-templates still resolve from source when no staged payload exists.
+then uses a caller-provided development root or the crate-local `assets` directory
+for `cargo run` and unit-test workflows. The current working directory is not an
+engine-resource root: project `res://` lookup remains owned by the project asset
+system. Editor call sites pass `zircon_editor/assets` as their development fallback
+so editor templates still resolve from source when no staged payload exists.
 
-The lookup returns the first candidate root that contains the requested relative
-file. It only falls back to the first existing root when no candidate contains the
-file, which keeps a staged payload from masking editor-only development assets and
-keeps missing built-ins visible in diagnostics.
+The lookup selects the first existing candidate root once, then resolves every
+requested relative file inside that root. Missing staged files remain missing in
+the staged payload instead of falling through to source-tree assets; diagnostics
+therefore describe the product that actually ran.
 
 ## Startup Logs
 
@@ -1517,7 +1532,7 @@ presentation data, window creation, or rendering.
 The three required decisions are build targets, output directory, and mode:
 
 ```powershell
-    python tools/zircon_build.py --targets hub,editor,runtime --out E:\builds\zircon --mode debug
+    python tools/zircon_build.py --targets hub,editor,runtime --out E:\ZirconBuilds\zircon --mode debug
 ```
 
 `--targets` accepts `hub`, `editor`, `runtime`, `plugins`, or comma-separated
@@ -1530,7 +1545,7 @@ selection; if stdin is not interactive, it exits with a clear error.
 the runtime/app feature set that should be measured:
 
 ```powershell
-python tools/zircon_build.py --targets runtime --out E:\builds\zircon-profile --mode profiling --runtime-features target-client,profiling,profiling-tracy
+python tools/zircon_build.py --targets runtime --out E:\ZirconBuilds\zircon-profile --mode profiling --runtime-features target-client,profiling,profiling-tracy
 ```
 
 The profiling mode is intentionally limited to normal Cargo targets. It rejects
@@ -1545,7 +1560,7 @@ also has the equivalent quick-check path through the PowerShell helper:
 Plugin builds add a fourth selection:
 
 ```powershell
-python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out E:\builds\zircon --mode debug
+python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out E:\ZirconBuilds\zircon --mode debug
 ```
 
 `--plugins` accepts plugin ids, menu numbers, ranges, `all`, `native`, or `rlib`.
@@ -1618,7 +1633,7 @@ types, references, or host-owned objects across a dynamic library boundary.
   "bakes": [
     {
       "font": "zircon_runtime/assets/fonts/FiraSans-Regular.ttf",
-      "cache_root": "E:/builds/zircon-font-cache",
+      "cache_root": "E:/ZirconBuilds/zircon-font-cache",
       "asset_guid": "12345678-90ab-4cde-8f01-234567890abc",
       "face_index": 0,
       "mode": "msdf",
@@ -1634,7 +1649,7 @@ types, references, or host-owned objects across a dynamic library boundary.
 Each bake selects exactly one of `all_cmap: true` or a non-empty `codepoints` list. A codepoint entry is either one Unicode scalar (`U+0041`) or an inclusive range (`U+0041-U+005A`). The Python owner expands ranges in scalar order and deduplicates them. The feature-gated `zircon_font_sdf_bake` Rust binary then decodes the selected font face, deduplicates cmap aliases by glyph id, invokes the shared Runtime fdsm generator, packs the existing R8/RGBA storage formats, and atomically writes one embedded-page `.zsdf` file under `cache_root`.
 
 ```powershell
-python tools/zircon_build.py --targets font-sdf --font-sdf-manifest E:\manifests\font-sdf.json --out E:\builds\zircon-text
+python tools/zircon_build.py --targets font-sdf --font-sdf-manifest E:\ZirconBuilds\manifests\font-sdf.json --out E:\ZirconBuilds\zircon-text
 ```
 
 The Cargo target stays beneath the build tool's managed targets root (`<out>/targets/font-sdf`). Generated `.zsdf` files belong beneath the manifest's project/library cache root, never beneath repository `target/` or the visual framebuffer evidence directory. The binary format and runtime fallback contract are documented in `docs/zircon_runtime/graphics/text/offline-sdf.md`.
@@ -1647,24 +1662,24 @@ Use these fast checks for script changes:
 python -m py_compile tools/zircon_build.py
 python tools/zircon_build.py --help
 python tools/zircon_build.py --list-plugins
-python tools/zircon_build.py --targets hub,editor,runtime --out E:\builds\zircon-smoke --mode debug --dry-run
-python tools/zircon_build.py --targets editor,runtime --out E:\builds\zircon-smoke --mode debug --dry-run
-python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out E:\builds\zircon-smoke --mode debug --dry-run
-python tools/zircon_build.py --targets runtime --out E:\builds\zircon-smoke --mode profiling --runtime-features target-client,profiling,profiling-tracy --dry-run
-python tools/zircon_build.py --targets runtime --out E:\builds\zircon-smoke --mode debug --prewarm-shaders --dry-run
-python tools/zircon_build.py --targets runtime --out E:\builds\zircon-smoke --mode debug --prewarm-shaders --validate-wgpu-shaders --dry-run
-python tools/zircon_build.py --targets runtime --plugins virtual_geometry --out E:\builds\zircon-smoke --mode debug --prewarm-shaders --validate-wgpu-shaders --dry-run
-cargo check -q -p zircon_runtime --bin zircon_font_sdf_bake --no-default-features --features font-sdf-build-tool --target-dir E:\cargo-targets\zircon-font-sdf-bin
+python tools/zircon_build.py --targets hub,editor,runtime --out E:\ZirconBuilds\zircon-smoke --mode debug --dry-run
+python tools/zircon_build.py --targets editor,runtime --out E:\ZirconBuilds\zircon-smoke --mode debug --dry-run
+python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out E:\ZirconBuilds\zircon-smoke --mode debug --dry-run
+python tools/zircon_build.py --targets runtime --out E:\ZirconBuilds\zircon-smoke --mode profiling --runtime-features target-client,profiling,profiling-tracy --dry-run
+python tools/zircon_build.py --targets runtime --out E:\ZirconBuilds\zircon-smoke --mode debug --prewarm-shaders --dry-run
+python tools/zircon_build.py --targets runtime --out E:\ZirconBuilds\zircon-smoke --mode debug --prewarm-shaders --validate-wgpu-shaders --dry-run
+python tools/zircon_build.py --targets runtime --plugins virtual_geometry --out E:\ZirconBuilds\zircon-smoke --mode debug --prewarm-shaders --validate-wgpu-shaders --dry-run
+powershell -ExecutionPolicy Bypass -File .codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -Bin zircon_font_sdf_bake -NoDefaultFeatures -Features font-sdf-build-tool -SkipTest -TargetDir E:\cargo-targets\zircon-font-sdf-bin
 python -m unittest tools.tests.test_zircon_build_font_sdf -v
-cargo check -q -p zircon_runtime --bin zircon_shader_prewarm --no-default-features --features target-server --target-dir E:\cargo-targets\zircon-shader-prewarm-bin
+powershell -ExecutionPolicy Bypass -File .codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -Bin zircon_shader_prewarm -NoDefaultFeatures -Features target-server -SkipTest -TargetDir E:\cargo-targets\zircon-shader-prewarm-bin
 ```
 
 Use a real build when validating executable staging or NativeDynamic publishing:
 
 ```powershell
-python tools/zircon_build.py --targets hub,editor,runtime --out E:\builds\zircon-smoke --mode debug
-python tools/zircon_build.py --targets runtime --plugins virtual_geometry --out E:\builds\zircon-smoke --mode debug --prewarm-shaders --validate-wgpu-shaders
-python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out E:\builds\zircon-smoke --mode debug
+python tools/zircon_build.py --targets hub,editor,runtime --out E:\ZirconBuilds\zircon-smoke --mode debug
+python tools/zircon_build.py --targets runtime --plugins virtual_geometry --out E:\ZirconBuilds\zircon-smoke --mode debug --prewarm-shaders --validate-wgpu-shaders
+python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out E:\ZirconBuilds\zircon-smoke --mode debug
 ```
 
 The first command should leave `zircon_hub`, `zircon_editor`, and the platform runtime library

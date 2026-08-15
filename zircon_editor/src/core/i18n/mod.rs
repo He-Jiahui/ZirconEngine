@@ -15,4 +15,4 @@ pub use service::{
 };
 
 #[cfg(test)]
-pub(super) use service::{MAX_PENDING_LOCALE_EVENT_BYTES, MAX_PENDING_LOCALE_EVENTS};
+pub(super) use service::{MAX_PENDING_LOCALE_EVENTS, MAX_PENDING_LOCALE_EVENT_BYTES};

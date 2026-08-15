@@ -28,7 +28,7 @@ related_code:
   - zircon_plugins/animation/runtime/src/runtime_system.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
   - zircon_runtime/src/animation/sequence.rs
-  - zircon_runtime/src/animation/sequence/apply.rs
+  - zircon_runtime/src/animation/sequence/compiled.rs
   - zircon_runtime/src/animation/sequence/target.rs
   - zircon_runtime/src/animation/sequence/channel_sample.rs
   - zircon_plugins/animation/runtime/src/lib.rs
@@ -185,7 +185,7 @@ implementation_files:
   - zircon_plugins/animation/runtime/src/runtime_system.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
   - zircon_runtime/src/animation/sequence.rs
-  - zircon_runtime/src/animation/sequence/apply.rs
+  - zircon_runtime/src/animation/sequence/compiled.rs
   - zircon_runtime/src/animation/sequence/target.rs
   - zircon_runtime/src/animation/sequence/channel_sample.rs
   - zircon_plugins/animation/runtime/src/lib.rs
@@ -364,7 +364,7 @@ tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/shader_source.rs::tests::mesh_pipeline_shadow_template_source_uses_shadow_pass_surface_only_when_alpha_masked
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/ensure_shadow_pipeline.rs::tests::shadow_mesh_shader_key_includes_shader_variant_identity_and_source_hash
   - cargo test -p zircon_runtime animation_manager_samples_clip_pose_against_skeleton --locked -- --nocapture
-  - cargo test -p zircon_runtime apply_sequence_to_world_resolves_track_paths_and_updates_scene_properties --locked -- --nocapture
+  - cargo test -p zircon_runtime compiled_sequence_applies_mesh_renderer_morph_weight_track --locked -- --nocapture
   - cargo test -p zircon_runtime directory_project_scene_renders_non_background_frame_with_gizmo_overlay --locked -- --nocapture
   - cargo test -p zircon_editor --locked --lib ui::retained_host::app::helpers::tests::derive_animation_assets_from_model_source_preserves_project_asset_ids_across_reimport_with_gltf_buffer_sidecars -- --exact --nocapture
   - cargo test -p zircon_editor --locked --lib ui::retained_host::app::helpers::tests::derive_animation_assets_from_model_source_writes_stable_sibling_skeleton_and_clip_files -- --exact --nocapture
@@ -374,7 +374,6 @@ tests:
   - cargo test -p zircon_editor --locked binding_dispatch --target-dir target/codex-asset-icon-validation-b -- --nocapture --test-threads=1
   - cargo test -p zircon_editor --locked editor_event::runtime --target-dir target/codex-asset-icon-validation-b -- --nocapture --test-threads=1
   - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation animation_manager_rejects_clip_pose_with_non_finite_channel_values --lib
-  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation apply_sequence_to_world_rejects_non_finite_channel_values --lib
   - cargo test -p zircon_editor --locked retained_asset_pointer --target-dir target/codex-asset-icon-validation-b -- --nocapture --test-threads=1
   - cargo test -p zircon_editor --locked workbench_reflection_ -- --nocapture
   - zircon_editor/src/ui/animation_editor/session/tests.rs
@@ -388,7 +387,7 @@ tests:
   - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b scene_asset_toml_roundtrip_preserves_physics_and_animation_components -- --nocapture
   - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b scene_assets_roundtrip_asset_bound_physics_and_animation_components -- --nocapture
   - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b world_project_roundtrip_preserves_physics_and_animation_components -- --nocapture
-  - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b apply_sequence_to_world_resolves_track_paths_and_updates_scene_properties -- --nocapture
+  - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b compiled_sequence_applies_mesh_renderer_morph_weight_track -- --nocapture
   - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b animation_manager_persists_playback_settings_to_runtime_config -- --nocapture
   - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation physics_manager_syncs_world_snapshot_and_exposes_queries_and_contacts --lib
   - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation physics_manager_ray_cast_reports_exit_hit_when_origin_starts_inside_sphere --lib
@@ -397,9 +396,6 @@ tests:
   - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation physics_manager_contacts_respect_collider_collision_masks --lib
   - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation physics_manager_contacts_respect_project_collision_matrix --lib
   - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation physics_manager_ray_cast_query_mask_filters_by_collider_layer_not_collider_mask --lib
-  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation apply_sequence_to_world_clamps_non_finite_timing_to_start --lib
-  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation apply_sequence_to_world_skips_channel_with_non_finite_key_times --lib
-  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation apply_sequence_to_world_rejects_zero_length_quaternion_channel_values --lib
   - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation world_rejects_zero_length_transform_rotation_property_writes --lib
   - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation world_rejects_non_finite_transform_property_writes --lib
   - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation animation_manager_evaluates_graphs_and_parameter_overrides --lib
@@ -727,8 +723,9 @@ doc_type: module-detail
 
 `zircon_plugins/animation/runtime::sequence` 现在提供了第一波 sequence property runtime：
 
-- `apply_sequence_to_world(world, sequence, time_seconds, looping)`
-- `AnimationSequenceApplyReport`
+- `compile_sequence_for_world(world, sequence)`
+- `apply_compiled_sequence_to_world(world, sequence, compiled, time_seconds, looping)`
+- `CompiledAnimationSequenceApplyStats`
 - `AnimationChannelAsset::sample(time_seconds)`
 
 当前行为约束：
@@ -822,7 +819,7 @@ scene 默认阶段顺序已经按当前计划固定为：
   - 把 `PhysicsWorldStepPlan` 和 `PhysicsContactEvent` 缓存在 level runtime state
 - animation
   - 推进 `AnimationPlayerComponent` / `AnimationSequencePlayerComponent` 组件时钟
-  - 通过 `zircon_runtime::animation::apply_sequence_to_world(...)` 解析并应用 asset-backed sequence property track
+  - 通过 `compile_sequence_for_world(...)` 在 asset/edit 边界解析，并以 `apply_compiled_sequence_to_world(...)` 在帧内应用 asset-backed sequence property track
   - 对 clip / graph / state machine 生成 `AnimationPoseOutput` 并缓存到 level runtime state
   - 动画插件把 pose bone 名称匹配到动画根节点下的同名 scene descendants，并写回这些子节点的 local transform
 
@@ -841,7 +838,7 @@ scene 默认阶段顺序已经按当前计划固定为：
 这条 tick 主干里，`looping` 现在已经不再只停在 scene component 字段上，而是会被真正传进采样层：
 
 - clip player 把 `AnimationPlayerComponent.looping` 传给 `sample_clip_pose(...)`
-- sequence player 把 `AnimationSequencePlayerComponent.looping` 传给 `apply_sequence_to_world(...)`
+- sequence player 把 `AnimationSequencePlayerComponent.looping` 传给 `apply_compiled_sequence_to_world(...)`
 - graph / state-machine 不再默认一律回绕；它们会复用 dominant clip instance 自带的 `looping`
 - 因此 non-looping clip / graph / state-machine 在 overshoot 后会钉住最后一帧，looping sequence 仍会按 duration 回绕
 - sequence property sampler 会把非有限 `duration_seconds` 或非有限 `time_seconds` 收束到 0 秒采样，避免 `NaN` 时间穿透 Hermite 轨道并写入 scene property

@@ -37,7 +37,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/asset_worker_policy.rs
   - zircon_runtime/src/tests/runtime_absorption/asset_worker_policy/worker_pool.rs
   - zircon_runtime/src/tests/runtime_absorption/asset_worker_policy/split_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_04.rs
+  - zircon_runtime/src/tests/runtime_absorption/asset_pipeline/cargo_gate.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
   - tools/tests/test_runtime_asset_pipeline_audit.py
   - tools/tests/test_frameworks_02_core_error_single_source.py
@@ -278,3 +278,5 @@ anchors are present in Rust but absent from the audit's source sets, so its
 - coordinator-open failure：[asset-migration-scale-acceptance-matrix](04/failure-2026-07-23-asset-migration-scale-acceptance-matrix.md)
 - coordinator-open failure：[project-catalog-input-generation](04/failure-2026-07-23-project-catalog-input-generation.md)
 - coordinator-open failure：[runtime04-gltf-importer-current-compile-errors](04/failure-2026-08-01-runtime04-gltf-importer-current-compile-errors.md)
+
+Current Runtime 04 source-owner synchronization (2026-08-14): `asset_pipeline_boundary` reports `expected_source_file_count = 26`; `core/resource/manager/commit.rs` is the current transaction-state owner for reload transition validation. This replaces the previous public-facade-only reload source inventory; broader Cargo gates remain pending.

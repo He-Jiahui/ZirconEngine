@@ -349,12 +349,7 @@ fn visualizer_overlays(
                 for line in &shaped.lines {
                     overlays.push(UiRenderVisualizerOverlay {
                         kind: UiRenderVisualizerOverlayKind::TextBaseline,
-                        frame: UiFrame::new(
-                            line.frame.x,
-                            line.frame.y + line.baseline,
-                            line.measured_width,
-                            1.0,
-                        ),
+                        frame: text_baseline_overlay_frame(line, shaped.writing_mode),
                         node_id: Some(element.node_id),
                         paint_index: Some(paint_index),
                         batch_index: batch_index_for_paint_index(plan, paint_index),
@@ -426,6 +421,27 @@ fn visualizer_overlays(
     }
 
     overlays
+}
+
+fn text_baseline_overlay_frame(
+    line: &super::UiShapedTextLine,
+    writing_mode: super::UiTextWritingMode,
+) -> UiFrame {
+    if matches!(writing_mode, super::UiTextWritingMode::VerticalRl) {
+        UiFrame::new(
+            line.frame.x + line.baseline,
+            line.frame.y,
+            1.0,
+            line.measured_width,
+        )
+    } else {
+        UiFrame::new(
+            line.frame.x,
+            line.frame.y + line.baseline,
+            line.measured_width,
+            1.0,
+        )
+    }
 }
 
 fn overdraw_regions(elements: &[UiPaintElement]) -> Vec<UiRenderVisualizerOverdrawRegion> {
@@ -587,5 +603,40 @@ fn add_resource_binding(
 fn push_unique_usize(values: &mut Vec<usize>, value: usize) {
     if !values.contains(&value) {
         values.push(value);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::surface::{UiShapedTextLine, UiTextDirection, UiTextRange, UiTextWritingMode};
+
+    fn shaped_line() -> UiShapedTextLine {
+        UiShapedTextLine {
+            text: "A".to_string(),
+            frame: UiFrame::new(10.0, 20.0, 18.0, 40.0),
+            source_range: UiTextRange { start: 0, end: 1 },
+            visual_range: UiTextRange { start: 0, end: 1 },
+            measured_width: 32.0,
+            baseline: 9.0,
+            direction: UiTextDirection::LeftToRight,
+            ellipsized: false,
+            glyphs: Vec::new(),
+            clusters: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn text_baseline_overlay_uses_writing_mode_cross_axis() {
+        let line = shaped_line();
+
+        assert_eq!(
+            text_baseline_overlay_frame(&line, UiTextWritingMode::HorizontalTb),
+            UiFrame::new(10.0, 29.0, 32.0, 1.0)
+        );
+        assert_eq!(
+            text_baseline_overlay_frame(&line, UiTextWritingMode::VerticalRl),
+            UiFrame::new(19.0, 20.0, 1.0, 32.0)
+        );
     }
 }

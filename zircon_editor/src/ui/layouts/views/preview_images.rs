@@ -8,16 +8,26 @@ use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
 use crate::ui::retained_host::primitives::{Image, Rgba8Pixel, SharedPixelBuffer};
 
 const ICON_PREVIEW_PLACEHOLDER_SIZE: u32 = 24;
+const PREVIEW_IMAGE_CACHE_MAX_SOURCES: usize = 128;
 
 pub(crate) fn load_preview_image(source: &str, icon_name: &str) -> Image {
+    load_preview_image_for_generation(source, icon_name, 0)
+}
+
+pub(crate) fn load_preview_image_for_generation(
+    source: &str,
+    icon_name: &str,
+    resource_generation: u64,
+) -> Image {
     {
         zircon_runtime::profile_scope!("editor", "retained_host", "preview_image_cache_lookup");
         if let Some(image) = cached_preview_image(
-            &preview_image_cache()
+            &mut preview_image_cache()
                 .lock()
                 .expect("preview image cache mutex should not be poisoned"),
             source,
             icon_name,
+            resource_generation,
         ) {
             return image;
         }
@@ -27,12 +37,17 @@ pub(crate) fn load_preview_image(source: &str, icon_name: &str) -> Image {
         zircon_runtime::profile_scope!("editor", "retained_host", "preview_image_load_uncached");
         load_preview_image_uncached(source, icon_name)
     };
-    preview_image_cache()
-        .lock()
-        .expect("preview image cache mutex should not be poisoned")
-        .entry(source.to_owned())
-        .or_default()
-        .insert(icon_name.to_owned(), image.clone());
+    insert_preview_image(
+        &mut preview_image_cache()
+            .lock()
+            .expect("preview image cache mutex should not be poisoned"),
+        source,
+        icon_name,
+        PreviewImageCacheEntry {
+            resource_generation,
+            image: image.clone(),
+        },
+    );
     image
 }
 
@@ -77,18 +92,77 @@ fn icon_preview_placeholder() -> Image {
         .clone()
 }
 
-type PreviewImageCache = HashMap<String, HashMap<String, Image>>;
+struct PreviewImageCacheEntry {
+    resource_generation: u64,
+    image: Image,
+}
 
-fn cached_preview_image(cache: &PreviewImageCache, source: &str, icon_name: &str) -> Option<Image> {
-    cache
-        .get(source)
-        .and_then(|icons| icons.get(icon_name))
-        .cloned()
+#[derive(Default)]
+struct PreviewImageSourceCache {
+    icons: HashMap<String, PreviewImageCacheEntry>,
+    last_used: u64,
+}
+
+#[derive(Default)]
+struct PreviewImageCache {
+    sources: HashMap<String, PreviewImageSourceCache>,
+    clock: u64,
+}
+
+impl PreviewImageCache {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    fn next_access_tick(&mut self) -> u64 {
+        self.clock = self.clock.wrapping_add(1);
+        self.clock
+    }
+}
+
+fn cached_preview_image(
+    cache: &mut PreviewImageCache,
+    source: &str,
+    icon_name: &str,
+    resource_generation: u64,
+) -> Option<Image> {
+    let access_tick = cache.next_access_tick();
+    let source_cache = cache.sources.get_mut(source)?;
+    let image = source_cache
+        .icons
+        .get(icon_name)
+        .filter(|entry| entry.resource_generation == resource_generation)
+        .map(|entry| entry.image.clone())?;
+    source_cache.last_used = access_tick;
+    Some(image)
+}
+
+fn insert_preview_image(
+    cache: &mut PreviewImageCache,
+    source: &str,
+    icon_name: &str,
+    entry: PreviewImageCacheEntry,
+) {
+    if !cache.sources.contains_key(source) && cache.sources.len() == PREVIEW_IMAGE_CACHE_MAX_SOURCES
+    {
+        if let Some(stale_source) = cache
+            .sources
+            .iter()
+            .min_by_key(|(_, entry)| entry.last_used)
+            .map(|(source, _)| source.clone())
+        {
+            cache.sources.remove(&stale_source);
+        }
+    }
+    let access_tick = cache.next_access_tick();
+    let source_cache = cache.sources.entry(source.to_owned()).or_default();
+    source_cache.last_used = access_tick;
+    source_cache.icons.insert(icon_name.to_owned(), entry);
 }
 
 fn preview_image_cache() -> &'static Mutex<PreviewImageCache> {
     static CACHE: OnceLock<Mutex<PreviewImageCache>> = OnceLock::new();
-    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+    CACHE.get_or_init(|| Mutex::new(PreviewImageCache::new()))
 }
 
 #[cfg(test)]
@@ -96,6 +170,7 @@ fn clear_preview_image_cache() {
     preview_image_cache()
         .lock()
         .expect("preview image cache mutex should not be poisoned")
+        .sources
         .clear();
 }
 
@@ -104,8 +179,9 @@ fn preview_image_cache_len() -> usize {
     preview_image_cache()
         .lock()
         .expect("preview image cache mutex should not be poisoned")
+        .sources
         .values()
-        .map(HashMap::len)
+        .map(|entry| entry.icons.len())
         .sum()
 }
 
@@ -175,12 +251,18 @@ fn svg_may_need_fonts(svg: &[u8]) -> bool {
 }
 
 fn preview_image_candidates(source: &str, icon_name: &str) -> Vec<PathBuf> {
-    let assets = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
+    let assets = resolve_editor_asset(Path::new(""));
+    preview_image_candidates_from_asset_root(source, icon_name, &assets)
+}
+
+fn preview_image_candidates_from_asset_root(
+    source: &str,
+    icon_name: &str,
+    assets: &Path,
+) -> Vec<PathBuf> {
     let mut candidates = Vec::new();
     if !source.is_empty() {
-        push_direct_candidate(&mut candidates, source);
         let source = normalized_asset_relative_path(source);
-        push_svg_variants(&mut candidates, resolve_editor_asset(&source));
         push_svg_variants(&mut candidates, assets.join(&source));
         push_svg_variants(&mut candidates, assets.join("icons").join(&source));
     }
@@ -201,13 +283,6 @@ fn resolve_editor_asset(source: impl AsRef<Path>) -> PathBuf {
 
 fn editor_dev_asset_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets")
-}
-
-fn push_direct_candidate(candidates: &mut Vec<PathBuf>, source: &str) {
-    let path = PathBuf::from(source.trim());
-    if path.is_absolute() {
-        push_candidate(candidates, path);
-    }
 }
 
 fn push_svg_variants(candidates: &mut Vec<PathBuf>, path: PathBuf) {
@@ -236,15 +311,22 @@ fn is_svg_path(path: &Path) -> bool {
 
 fn normalized_asset_relative_path(source: &str) -> PathBuf {
     let mut value = source.trim().replace('\\', "/");
-    for prefix in ["res://", "asset://", "assets://"] {
-        if let Some(stripped) = value.strip_prefix(prefix) {
-            value = stripped.to_string();
-            break;
+    if let Some(stripped) = value.strip_prefix("res://") {
+        value = stripped.to_string();
+    }
+    let mut relative = PathBuf::new();
+    for component in Path::new(value.trim_start_matches('/')).components() {
+        match component {
+            std::path::Component::Prefix(_)
+            | std::path::Component::RootDir
+            | std::path::Component::CurDir
+            | std::path::Component::ParentDir => {}
+            std::path::Component::Normal(value)
+                if relative.as_os_str().is_empty() && value == std::ffi::OsStr::new("assets") => {}
+            std::path::Component::Normal(value) => relative.push(value),
         }
     }
-    let value = value.trim_start_matches('/');
-    let value = value.strip_prefix("assets/").unwrap_or(value);
-    Path::new(value).to_path_buf()
+    relative
 }
 
 #[cfg(test)]
@@ -260,6 +342,23 @@ mod tests {
         assert!(size.width > 0);
         assert!(size.height > 0);
         assert!(image.to_rgba8().is_some());
+    }
+
+    #[test]
+    fn preview_candidates_keep_windows_absolute_inputs_inside_the_selected_root() {
+        let root = Path::new("E:/portable-product/assets");
+        let candidates = preview_image_candidates_from_asset_root(
+            r"C:\source-tree\logo.svg",
+            "folder-open-outline",
+            root,
+        );
+
+        assert!(!candidates.is_empty());
+        assert!(
+            candidates
+                .iter()
+                .all(|candidate| candidate.starts_with(root))
+        );
     }
 
     #[test]
@@ -290,12 +389,84 @@ mod tests {
     #[test]
     fn preview_cache_hit_accepts_borrowed_key_components() {
         let mut cache = PreviewImageCache::new();
-        cache
-            .entry("res://icons/close.svg".to_owned())
-            .or_default()
-            .insert("close".to_owned(), Image::default());
+        insert_preview_image(
+            &mut cache,
+            "res://icons/close.svg",
+            "close",
+            PreviewImageCacheEntry {
+                resource_generation: 7,
+                image: Image::default(),
+            },
+        );
 
-        assert!(cached_preview_image(&cache, "res://icons/close.svg", "close").is_some());
+        assert!(cached_preview_image(&mut cache, "res://icons/close.svg", "close", 7).is_some());
+        assert!(cached_preview_image(&mut cache, "res://icons/close.svg", "close", 8).is_none());
+    }
+
+    #[test]
+    fn preview_cache_replaces_an_obsolete_resource_generation() {
+        let mut cache = PreviewImageCache::new();
+        insert_preview_image(
+            &mut cache,
+            "res://icons/close.svg",
+            "close",
+            PreviewImageCacheEntry {
+                resource_generation: 7,
+                image: Image::default(),
+            },
+        );
+        insert_preview_image(
+            &mut cache,
+            "res://icons/close.svg",
+            "close",
+            PreviewImageCacheEntry {
+                resource_generation: 8,
+                image: Image::default(),
+            },
+        );
+
+        assert_eq!(
+            cache
+                .sources
+                .values()
+                .map(|entry| entry.icons.len())
+                .sum::<usize>(),
+            1
+        );
+        assert!(cached_preview_image(&mut cache, "res://icons/close.svg", "close", 7).is_none());
+        assert!(cached_preview_image(&mut cache, "res://icons/close.svg", "close", 8).is_some());
+    }
+
+    #[test]
+    fn preview_cache_evicts_the_least_recently_used_source_bucket_at_capacity() {
+        let mut cache = PreviewImageCache::new();
+        for source_index in 0..PREVIEW_IMAGE_CACHE_MAX_SOURCES {
+            insert_preview_image(
+                &mut cache,
+                &format!("res://icons/{source_index}.svg"),
+                "",
+                PreviewImageCacheEntry {
+                    resource_generation: 1,
+                    image: Image::default(),
+                },
+            );
+        }
+        assert!(cached_preview_image(&mut cache, "res://icons/0.svg", "", 1).is_some());
+
+        insert_preview_image(
+            &mut cache,
+            "res://icons/new.svg",
+            "",
+            PreviewImageCacheEntry {
+                resource_generation: 1,
+                image: Image::default(),
+            },
+        );
+
+        assert_eq!(cache.sources.len(), PREVIEW_IMAGE_CACHE_MAX_SOURCES);
+        assert!(cache.sources.contains_key("res://icons/0.svg"));
+        assert!(!cache.sources.contains_key("res://icons/1.svg"));
+        assert!(cache.sources.contains_key("res://icons/new.svg"));
     }
 
     #[test]

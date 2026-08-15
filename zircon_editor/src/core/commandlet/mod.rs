@@ -3,9 +3,10 @@
 mod runner;
 
 pub use runner::{
-    CommandletExitCode, CommandletMigrationChange, CommandletMigrationIssue,
-    CommandletMigrationReport, CommandletReport, CommandletRequest, CommandletStatus,
-    parse_commandlet_args, run_commandlet, run_commandlet_with_capabilities,
+    AuthoringAutomationCommandletRequest, CommandletExitCode, CommandletHost,
+    CommandletMigrationChange, CommandletMigrationIssue, CommandletMigrationReport,
+    CommandletReport, CommandletRequest, CommandletStatus, parse_commandlet_args, run_commandlet,
+    run_commandlet_with_capabilities, run_commandlet_with_host,
 };
 
 #[cfg(test)]

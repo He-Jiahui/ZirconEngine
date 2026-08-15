@@ -4,7 +4,7 @@ use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 
 use crate::core::commands::{MenuBarModel, MenuItemModel, MenuModel};
 use crate::ui::binding::EditorUiBindingPayload;
-use crate::ui::layouts::views::build_view_template_nodes;
+use crate::ui::layouts::views::build_view_template_node_projection;
 use crate::ui::retained_host::app::compute_window_menu_popup_height;
 use crate::ui::retained_host::callback_dispatch::BuiltinHostOuterShellFrames;
 use crate::ui::retained_host::menu_popup_contract::content_measured_menu_popup_width;
@@ -237,17 +237,18 @@ fn menu_button_frames_from_chrome_asset(
     menu_labels: &[&str],
     menu_count: usize,
 ) -> Vec<UiFrame> {
-    let nodes = build_view_template_nodes(
+    let Ok(nodes) = build_view_template_node_projection(
         "host.menu.pointer.chrome",
         MENU_CHROME_ASSET,
         &[],
         UiSize::new(frame.width.max(0.0), frame.height.max(0.0)),
         &BTreeMap::new(),
-    )
-    .unwrap_or_default();
+    ) else {
+        return fallback_menu_button_frames(frame, menu_labels, menu_count);
+    };
 
     let mut stencil_frames = [UiFrame::default(); MENU_BUTTON_COUNT];
-    for node in nodes {
+    for node in nodes.iter() {
         let Some(index) = node
             .control_id
             .as_str()

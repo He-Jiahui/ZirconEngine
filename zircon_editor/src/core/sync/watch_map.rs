@@ -1,7 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
-use zircon_runtime_interface::world_sync::{InvalidationBatch, WatchToken};
+use zircon_runtime_interface::world_sync::{
+    InvalidationBatch, WatchKey, WatchRegistration, WatchToken,
+};
 
 use crate::core::editor_event::ViewInstanceId;
 use crate::core::editor_message::{EditorViewInvalidationMask, ViewDirtySet};
@@ -15,6 +17,7 @@ pub struct WorldWatchBinding {
     token: WatchToken,
     view: ViewInstanceId,
     mask: EditorViewInvalidationMask,
+    depends_on: Vec<WatchKey>,
 }
 
 impl WorldWatchBinding {
@@ -31,6 +34,15 @@ impl WorldWatchBinding {
     /// Returns the invalidation mask projected for the target view.
     pub fn mask(&self) -> EditorViewInvalidationMask {
         self.mask
+    }
+
+    /// Returns the explicit runtime facts that make this view binding dirty.
+    ///
+    /// The registration remains editor-owned metadata after the opaque token has crossed the
+    /// runtime boundary. Consumers can therefore explain or replace a dirty binding without
+    /// recovering a second source of truth from the runtime subscription table.
+    pub fn depends_on(&self) -> &[WatchKey] {
+        &self.depends_on
     }
 }
 
@@ -62,6 +74,7 @@ pub struct WorldWatchProjection {
     generation: u64,
     dirty: ViewDirtySet,
     matched_tokens: usize,
+    used_canonical_fast_path: bool,
     duplicate_tokens: Vec<WatchToken>,
     unknown_tokens: Vec<WatchToken>,
 }
@@ -88,6 +101,11 @@ impl WorldWatchProjection {
     /// Number of unique dirty tokens that matched a live binding.
     pub fn matched_tokens(&self) -> usize {
         self.matched_tokens
+    }
+
+    /// Returns true when the runtime batch was already strictly sorted and unique.
+    pub fn used_canonical_fast_path(&self) -> bool {
+        self.used_canonical_fast_path
     }
 
     /// Sorted tokens repeated in the runtime batch.
@@ -124,6 +142,24 @@ impl WorldWatchMap {
         self.by_token.get(&token)
     }
 
+    /// Returns an already-owned token for the exact view dependency declaration.
+    ///
+    /// This makes view registration idempotent without collapsing distinct dependencies owned by
+    /// the same view.
+    pub fn token_for(
+        &self,
+        view: &ViewInstanceId,
+        registration: &WatchRegistration,
+        mask: EditorViewInvalidationMask,
+    ) -> Option<WatchToken> {
+        self.by_view.get(view)?.iter().copied().find(|token| {
+            self.by_token.get(token).is_some_and(|binding| {
+                binding.mask() == mask
+                    && binding.depends_on() == std::slice::from_ref(&registration.key)
+            })
+        })
+    }
+
     /// Iterates tokens for one view in sorted token order.
     pub fn tokens_for_view(&self, view: &ViewInstanceId) -> impl Iterator<Item = WatchToken> + '_ {
         self.by_view
@@ -139,6 +175,7 @@ impl WorldWatchMap {
     pub fn bind(
         &mut self,
         token: WatchToken,
+        registration: WatchRegistration,
         view: ViewInstanceId,
         mask: EditorViewInvalidationMask,
     ) -> Result<Option<WorldWatchBinding>, WorldWatchMapError> {
@@ -151,8 +188,15 @@ impl WorldWatchMap {
 
         let previous = self.remove_token(token);
         self.by_view.entry(view.clone()).or_default().insert(token);
-        self.by_token
-            .insert(token, WorldWatchBinding { token, view, mask });
+        self.by_token.insert(
+            token,
+            WorldWatchBinding {
+                token,
+                view,
+                mask,
+                depends_on: vec![registration.key],
+            },
+        );
         Ok(previous)
     }
 
@@ -188,6 +232,10 @@ impl WorldWatchMap {
 
     /// Projects only dirty tokens from the batch; registered watches are never scanned.
     pub fn project(&self, batch: &InvalidationBatch) -> WorldWatchProjection {
+        if batch.has_canonical_dirty_tokens() {
+            return self.project_canonical_dirty_tokens(batch);
+        }
+
         let mut dirty = ViewDirtySet::default();
         let mut seen = BTreeSet::new();
         let mut duplicates = BTreeSet::new();
@@ -211,8 +259,33 @@ impl WorldWatchMap {
             generation: batch.generation,
             dirty,
             matched_tokens,
+            used_canonical_fast_path: false,
             duplicate_tokens: duplicates.into_iter().collect(),
             unknown_tokens: unknown.into_iter().collect(),
+        }
+    }
+
+    fn project_canonical_dirty_tokens(&self, batch: &InvalidationBatch) -> WorldWatchProjection {
+        let mut dirty = ViewDirtySet::default();
+        let mut unknown_tokens = Vec::new();
+        let mut matched_tokens = 0;
+
+        for token in batch.dirty.iter().copied() {
+            if let Some(binding) = self.by_token.get(&token) {
+                dirty.mark_ref(binding.view(), binding.mask);
+                matched_tokens += 1;
+            } else {
+                unknown_tokens.push(token);
+            }
+        }
+
+        WorldWatchProjection {
+            generation: batch.generation,
+            dirty,
+            matched_tokens,
+            used_canonical_fast_path: true,
+            duplicate_tokens: Vec::new(),
+            unknown_tokens,
         }
     }
 

@@ -1,6 +1,6 @@
 use crate::core::framework::render::RenderStats;
 
-use super::{record_count, DiagnosticStore};
+use super::{record_bytes, record_count, DiagnosticStore};
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(
@@ -486,6 +486,24 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     );
     record_count(
         store,
+        "render.mesh.queue.replay_material_bind_group_set_count",
+        frame_index,
+        stats.last_mesh_replay_material_bind_group_set_count,
+        &[
+            "render", "mesh", "queue", "command", "replay", "material", "bind",
+        ],
+    );
+    record_count(
+        store,
+        "render.mesh.queue.replay_material_bind_group_skip_count",
+        frame_index,
+        stats.last_mesh_replay_material_bind_group_skip_count,
+        &[
+            "render", "mesh", "queue", "command", "replay", "material", "bind",
+        ],
+    );
+    record_count(
+        store,
         "render.mesh.queue.indirect_batch_count",
         frame_index,
         stats.last_indirect_batch_count,
@@ -511,5 +529,26 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         frame_index,
         stats.last_indirect_args_count,
         &["render", "mesh", "queue", "indirect", "args"],
+    );
+    record_count(
+        store,
+        "render.mesh.queue.indirect_workspace.created_buffer_count",
+        frame_index,
+        stats.last_indirect_workspace_created_buffer_count,
+        &["render", "mesh", "queue", "indirect", "workspace"],
+    );
+    record_bytes(
+        store,
+        "render.mesh.queue.indirect_workspace.uploaded_byte_count",
+        frame_index,
+        stats.last_indirect_workspace_uploaded_byte_count,
+        &["render", "mesh", "queue", "indirect", "workspace", "upload"],
+    );
+    record_count(
+        store,
+        "render.mesh.queue.indirect_workspace.upload_range_count",
+        frame_index,
+        stats.last_indirect_workspace_upload_range_count,
+        &["render", "mesh", "queue", "indirect", "workspace", "upload"],
     );
 }

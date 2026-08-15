@@ -5,12 +5,12 @@ use zircon_editor::core::editor_authoring_extension::{
     TimelineTrackDescriptor,
 };
 use zircon_editor::core::editor_event::{EditorEvent, MenuAction, ViewDescriptorId};
-use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_editor::core::editor_extension::{
     AssetImporterDescriptor, DrawerDescriptor, EditorExtensionRegistry,
     EditorExtensionRegistryError, EditorMenuItemDescriptor, EditorUiTemplateDescriptor,
     ViewDescriptor,
 };
+use zircon_editor::core::extension::InspectorCustomizationDescriptor;
 use zircon_editor::scene::modes::SceneModeRegistration;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

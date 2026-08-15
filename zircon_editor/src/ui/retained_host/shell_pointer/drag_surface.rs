@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use arc_swap::ArcSwap;
+
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     dispatch::UiPointerDispatchEffect,
@@ -13,18 +15,19 @@ use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFra
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::retained_host::route_intent::{EditorRouteIntent, EditorRouteIntentMap};
 use crate::ui::retained_host::tab_drag::HostDragTargetGroup;
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 use crate::ui::workbench::autolayout::{ShellFrame, ShellSizePx};
 use crate::ui::workbench::layout::DockEdge;
 use crate::ui::workbench::model::FloatingWindowModel;
 
 use super::common::{base_target_state, clamp_frame_to_root, frame_if_visible, update_target_node};
-use super::drag_frames::DragTargetFrames;
+use super::drag_frames::DragHitGeometry;
 use super::effects::{document_edge_effect, edge_effect_in_frame, side_target_effect};
 use super::node_ids::{
-    DOCUMENT_EDGE_BOTTOM_NODE_ID, DOCUMENT_EDGE_LEFT_NODE_ID, DOCUMENT_EDGE_RIGHT_NODE_ID,
-    DOCUMENT_EDGE_TOP_NODE_ID, DRAG_POINTER_ROOT_NODE_ID, DRAG_TARGET_BOTTOM_NODE_ID,
-    DRAG_TARGET_DOCUMENT_NODE_ID, DRAG_TARGET_LEFT_NODE_ID, DRAG_TARGET_RIGHT_NODE_ID,
-    floating_window_attach_node_id, floating_window_edge_node_id,
+    floating_window_attach_node_id, floating_window_edge_node_id, DOCUMENT_EDGE_BOTTOM_NODE_ID,
+    DOCUMENT_EDGE_LEFT_NODE_ID, DOCUMENT_EDGE_RIGHT_NODE_ID, DOCUMENT_EDGE_TOP_NODE_ID,
+    DRAG_POINTER_ROOT_NODE_ID, DRAG_TARGET_BOTTOM_NODE_ID, DRAG_TARGET_DOCUMENT_NODE_ID,
+    DRAG_TARGET_LEFT_NODE_ID, DRAG_TARGET_RIGHT_NODE_ID,
 };
 use super::route::HostShellPointerRoute;
 
@@ -38,7 +41,12 @@ pub(super) fn build_drag_surface(
     floating_windows: &[FloatingWindowModel],
     componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
     floating_window_projection_bundle: Option<&FloatingWindowProjectionBundle>,
-) -> (UiSurface, UiPointerDispatcher, EditorRouteIntentMap) {
+) -> (
+    UiSurface,
+    UiPointerDispatcher,
+    EditorRouteIntentMap,
+    Arc<ArcSwap<DragHitGeometry>>,
+) {
     let mut surface = UiSurface::new(UiTreeId::new("zircon.editor.workbench.shell_pointer.drag"));
     surface.tree.insert_root(
         UiTreeNode::new(
@@ -122,6 +130,315 @@ pub(super) fn build_drag_surface(
         route_intents.bind_node(node_id, route_id, EditorRouteIntent::ShellPointer(route));
     }
 
+    let (root_frame, resolved_geometry) = resolve_drag_hit_geometry(
+        root_size,
+        drawers_visible,
+        floating_windows,
+        componentized_workbench_layout_frames,
+        floating_window_projection_bundle,
+    );
+
+    if let Some(root) = surface.tree.node_mut(DRAG_POINTER_ROOT_NODE_ID) {
+        root.layout_cache.frame = root_frame;
+        root.layout_cache.clip_frame = None;
+        root.state_flags = base_target_state(false);
+    }
+
+    update_target_node(
+        &mut surface,
+        DRAG_TARGET_DOCUMENT_NODE_ID,
+        resolved_geometry.frame(DRAG_TARGET_DOCUMENT_NODE_ID),
+    );
+    update_target_node(
+        &mut surface,
+        DRAG_TARGET_LEFT_NODE_ID,
+        resolved_geometry.frame(DRAG_TARGET_LEFT_NODE_ID),
+    );
+    update_target_node(
+        &mut surface,
+        DRAG_TARGET_RIGHT_NODE_ID,
+        resolved_geometry.frame(DRAG_TARGET_RIGHT_NODE_ID),
+    );
+    update_target_node(
+        &mut surface,
+        DRAG_TARGET_BOTTOM_NODE_ID,
+        resolved_geometry.frame(DRAG_TARGET_BOTTOM_NODE_ID),
+    );
+    update_target_node(
+        &mut surface,
+        DOCUMENT_EDGE_LEFT_NODE_ID,
+        resolved_geometry.frame(DOCUMENT_EDGE_LEFT_NODE_ID),
+    );
+    update_target_node(
+        &mut surface,
+        DOCUMENT_EDGE_RIGHT_NODE_ID,
+        resolved_geometry.frame(DOCUMENT_EDGE_RIGHT_NODE_ID),
+    );
+    update_target_node(
+        &mut surface,
+        DOCUMENT_EDGE_TOP_NODE_ID,
+        resolved_geometry.frame(DOCUMENT_EDGE_TOP_NODE_ID),
+    );
+    update_target_node(
+        &mut surface,
+        DOCUMENT_EDGE_BOTTOM_NODE_ID,
+        resolved_geometry.frame(DOCUMENT_EDGE_BOTTOM_NODE_ID),
+    );
+
+    let hit_geometry = Arc::new(ArcSwap::from_pointee(resolved_geometry));
+    let mut drag_dispatcher = UiPointerDispatcher::default();
+
+    let left_geometry = Arc::clone(&hit_geometry);
+    drag_dispatcher.register(
+        DRAG_TARGET_LEFT_NODE_ID,
+        UiPointerEventKind::Move,
+        move |context| {
+            let geometry = left_geometry.load();
+            side_target_effect(
+                HostDragTargetGroup::Left,
+                &geometry.targets,
+                context.route.point,
+            )
+        },
+    );
+
+    let right_geometry = Arc::clone(&hit_geometry);
+    drag_dispatcher.register(
+        DRAG_TARGET_RIGHT_NODE_ID,
+        UiPointerEventKind::Move,
+        move |context| {
+            let geometry = right_geometry.load();
+            side_target_effect(
+                HostDragTargetGroup::Right,
+                &geometry.targets,
+                context.route.point,
+            )
+        },
+    );
+
+    drag_dispatcher.register(
+        DRAG_TARGET_BOTTOM_NODE_ID,
+        UiPointerEventKind::Move,
+        |_context| UiPointerDispatchEffect::handled(),
+    );
+    drag_dispatcher.register(
+        DRAG_TARGET_DOCUMENT_NODE_ID,
+        UiPointerEventKind::Move,
+        |_context| UiPointerDispatchEffect::handled(),
+    );
+
+    let document_edge_geometry = Arc::clone(&hit_geometry);
+    drag_dispatcher.register(
+        DOCUMENT_EDGE_LEFT_NODE_ID,
+        UiPointerEventKind::Move,
+        move |context| {
+            let geometry = document_edge_geometry.load();
+            document_edge_effect(DockEdge::Left, &geometry.targets, context.route.point)
+        },
+    );
+    let document_edge_geometry = Arc::clone(&hit_geometry);
+    drag_dispatcher.register(
+        DOCUMENT_EDGE_RIGHT_NODE_ID,
+        UiPointerEventKind::Move,
+        move |context| {
+            let geometry = document_edge_geometry.load();
+            document_edge_effect(DockEdge::Right, &geometry.targets, context.route.point)
+        },
+    );
+    let document_edge_geometry = Arc::clone(&hit_geometry);
+    drag_dispatcher.register(
+        DOCUMENT_EDGE_TOP_NODE_ID,
+        UiPointerEventKind::Move,
+        move |context| {
+            let geometry = document_edge_geometry.load();
+            document_edge_effect(DockEdge::Top, &geometry.targets, context.route.point)
+        },
+    );
+    let document_edge_geometry = Arc::clone(&hit_geometry);
+    drag_dispatcher.register(
+        DOCUMENT_EDGE_BOTTOM_NODE_ID,
+        UiPointerEventKind::Move,
+        move |context| {
+            let geometry = document_edge_geometry.load();
+            document_edge_effect(DockEdge::Bottom, &geometry.targets, context.route.point)
+        },
+    );
+
+    for (index, window) in floating_windows.iter().enumerate() {
+        let attach_id = floating_window_attach_node_id(index);
+        let left_edge_id = floating_window_edge_node_id(index, DockEdge::Left);
+        let right_edge_id = floating_window_edge_node_id(index, DockEdge::Right);
+        let top_edge_id = floating_window_edge_node_id(index, DockEdge::Top);
+        let bottom_edge_id = floating_window_edge_node_id(index, DockEdge::Bottom);
+
+        for (node_id, path_suffix, z_index) in [
+            (attach_id, "attach", 100 + index as i32 * 10),
+            (left_edge_id, "edge_left", 101 + index as i32 * 10),
+            (right_edge_id, "edge_right", 102 + index as i32 * 10),
+            (top_edge_id, "edge_top", 103 + index as i32 * 10),
+            (bottom_edge_id, "edge_bottom", 104 + index as i32 * 10),
+        ] {
+            surface
+                .tree
+                .insert_child(
+                    DRAG_POINTER_ROOT_NODE_ID,
+                    UiTreeNode::new(
+                        node_id,
+                        UiNodePath::new(format!(
+                            "editor.workbench.shell_pointer/floating/{}/{}",
+                            window.window_id.0, path_suffix
+                        )),
+                    )
+                    .with_z_index(z_index)
+                    .with_input_policy(UiInputPolicy::Receive)
+                    .with_state_flags(base_target_state(true)),
+                )
+                .expect("drag pointer root must exist");
+            update_target_node(&mut surface, node_id, hit_geometry.load().frame(node_id));
+        }
+
+        route_intents.bind_node(
+            attach_id,
+            drag_route_id(100 + index as u64 * 10),
+            EditorRouteIntent::ShellPointer(HostShellPointerRoute::FloatingWindow(
+                window.window_id.clone(),
+            )),
+        );
+        drag_dispatcher.register(attach_id, UiPointerEventKind::Move, |_context| {
+            UiPointerDispatchEffect::handled()
+        });
+
+        for (node_id, edge) in [
+            (left_edge_id, DockEdge::Left),
+            (right_edge_id, DockEdge::Right),
+            (top_edge_id, DockEdge::Top),
+            (bottom_edge_id, DockEdge::Bottom),
+        ] {
+            route_intents.bind_node(
+                node_id,
+                floating_window_edge_route_id(index, edge),
+                EditorRouteIntent::ShellPointer(HostShellPointerRoute::FloatingWindowEdge {
+                    window_id: window.window_id.clone(),
+                    edge,
+                }),
+            );
+            let floating_geometry = Arc::clone(&hit_geometry);
+            drag_dispatcher.register(node_id, UiPointerEventKind::Move, move |context| {
+                let geometry = floating_geometry.load();
+                let Some(frame) = geometry.frame(context.node_id) else {
+                    return UiPointerDispatchEffect::Unhandled;
+                };
+                edge_effect_in_frame(frame, edge, context.route.point)
+            });
+        }
+    }
+
+    surface.rebuild();
+    (surface, drag_dispatcher, route_intents, hit_geometry)
+}
+
+pub(super) fn patch_drag_surface(
+    surface: &mut UiSurface,
+    hit_geometry: &Arc<ArcSwap<DragHitGeometry>>,
+    root_size: ShellSizePx,
+    drawers_visible: bool,
+    floating_windows: &[FloatingWindowModel],
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
+    floating_window_projection_bundle: Option<&FloatingWindowProjectionBundle>,
+) -> Option<bool> {
+    let (root_frame, next_geometry) = resolve_drag_hit_geometry(
+        root_size,
+        drawers_visible,
+        floating_windows,
+        componentized_workbench_layout_frames,
+        floating_window_projection_bundle,
+    );
+    let base_node_ids = [
+        DRAG_POINTER_ROOT_NODE_ID,
+        DRAG_TARGET_DOCUMENT_NODE_ID,
+        DRAG_TARGET_LEFT_NODE_ID,
+        DRAG_TARGET_RIGHT_NODE_ID,
+        DRAG_TARGET_BOTTOM_NODE_ID,
+        DOCUMENT_EDGE_LEFT_NODE_ID,
+        DOCUMENT_EDGE_RIGHT_NODE_ID,
+        DOCUMENT_EDGE_TOP_NODE_ID,
+        DOCUMENT_EDGE_BOTTOM_NODE_ID,
+    ];
+    let base_nodes_missing = base_node_ids
+        .iter()
+        .any(|node_id| surface.tree.node(*node_id).is_none());
+    let floating_nodes_missing = (0..floating_windows.len()).any(|index| {
+        [
+            floating_window_attach_node_id(index),
+            floating_window_edge_node_id(index, DockEdge::Left),
+            floating_window_edge_node_id(index, DockEdge::Right),
+            floating_window_edge_node_id(index, DockEdge::Top),
+            floating_window_edge_node_id(index, DockEdge::Bottom),
+        ]
+        .into_iter()
+        .any(|node_id| surface.tree.node(node_id).is_none())
+    });
+    if base_nodes_missing || floating_nodes_missing {
+        return None;
+    }
+
+    let root_changed = surface
+        .tree
+        .node(DRAG_POINTER_ROOT_NODE_ID)
+        .is_some_and(|root| {
+            root.layout_cache.frame != root_frame
+                || root.layout_cache.clip_frame.is_some()
+                || root.state_flags != base_target_state(false)
+        });
+    if root_changed {
+        let root = surface
+            .tree
+            .node_mut(DRAG_POINTER_ROOT_NODE_ID)
+            .expect("validated drag pointer root must exist");
+        root.layout_cache.frame = root_frame;
+        root.layout_cache.clip_frame = None;
+        root.state_flags = base_target_state(false);
+    }
+
+    let mut node_patch_count = if root_changed { 1 } else { 0 };
+    for node_id in base_node_ids.into_iter().skip(1) {
+        if update_target_node(surface, node_id, next_geometry.frame(node_id)) {
+            node_patch_count += 1;
+        }
+    }
+    for index in 0..floating_windows.len() {
+        for node_id in [
+            floating_window_attach_node_id(index),
+            floating_window_edge_node_id(index, DockEdge::Left),
+            floating_window_edge_node_id(index, DockEdge::Right),
+            floating_window_edge_node_id(index, DockEdge::Top),
+            floating_window_edge_node_id(index, DockEdge::Bottom),
+        ] {
+            if update_target_node(surface, node_id, next_geometry.frame(node_id)) {
+                node_patch_count += 1;
+            }
+        }
+    }
+    let changed = node_patch_count > 0;
+    if changed {
+        surface.rebuild();
+        hit_geometry.store(Arc::new(next_geometry));
+        record_current_ui_perf_counter(UiPerfCounter::ShellDragGeometryPatchCount, 1.0);
+        record_current_ui_perf_counter(
+            UiPerfCounter::ShellDragNodePatchCount,
+            node_patch_count as f64,
+        );
+    }
+    Some(changed)
+}
+
+fn resolve_drag_hit_geometry(
+    root_size: ShellSizePx,
+    drawers_visible: bool,
+    floating_windows: &[FloatingWindowModel],
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
+    floating_window_projection_bundle: Option<&FloatingWindowProjectionBundle>,
+) -> (UiFrame, DragHitGeometry) {
     let root_frame = UiFrame::new(
         0.0,
         0.0,
@@ -208,185 +525,23 @@ pub(super) fn build_drag_surface(
         root_frame,
     ));
 
-    if let Some(root) = surface.tree.node_mut(DRAG_POINTER_ROOT_NODE_ID) {
-        root.layout_cache.frame = root_frame;
-        root.layout_cache.clip_frame = None;
-        root.state_flags = base_target_state(false);
-    }
-
-    update_target_node(
-        &mut surface,
-        DRAG_TARGET_DOCUMENT_NODE_ID,
+    let floating_frames = floating_windows
+        .iter()
+        .map(|window| {
+            floating_window_projection_bundle
+                .and_then(|bundle| bundle.outer_frame(&window.window_id))
+                .and_then(|frame| frame_if_visible(clamp_frame_to_root(frame, root_frame)))
+        })
+        .collect();
+    let geometry = DragHitGeometry::new(
         document_drag_frame,
-    );
-    update_target_node(&mut surface, DRAG_TARGET_LEFT_NODE_ID, left_drag_frame);
-    update_target_node(&mut surface, DRAG_TARGET_RIGHT_NODE_ID, right_drag_frame);
-    update_target_node(&mut surface, DRAG_TARGET_BOTTOM_NODE_ID, bottom_drag_frame);
-    update_target_node(
-        &mut surface,
-        DOCUMENT_EDGE_LEFT_NODE_ID,
+        left_drag_frame,
+        right_drag_frame,
+        bottom_drag_frame,
         document_edge_frame,
+        floating_frames,
     );
-    update_target_node(
-        &mut surface,
-        DOCUMENT_EDGE_RIGHT_NODE_ID,
-        document_edge_frame,
-    );
-    update_target_node(&mut surface, DOCUMENT_EDGE_TOP_NODE_ID, document_edge_frame);
-    update_target_node(
-        &mut surface,
-        DOCUMENT_EDGE_BOTTOM_NODE_ID,
-        document_edge_frame,
-    );
-
-    let drag_frames = Arc::new(DragTargetFrames {
-        left: left_drag_frame.unwrap_or_default(),
-        right: right_drag_frame.unwrap_or_default(),
-        bottom: bottom_drag_frame.unwrap_or_default(),
-        document: document_edge_frame.unwrap_or_default(),
-    });
-    let mut drag_dispatcher = UiPointerDispatcher::default();
-
-    let left_frames = Arc::clone(&drag_frames);
-    drag_dispatcher.register(
-        DRAG_TARGET_LEFT_NODE_ID,
-        UiPointerEventKind::Move,
-        move |context| {
-            side_target_effect(HostDragTargetGroup::Left, &left_frames, context.route.point)
-        },
-    );
-
-    let right_frames = Arc::clone(&drag_frames);
-    drag_dispatcher.register(
-        DRAG_TARGET_RIGHT_NODE_ID,
-        UiPointerEventKind::Move,
-        move |context| {
-            side_target_effect(
-                HostDragTargetGroup::Right,
-                &right_frames,
-                context.route.point,
-            )
-        },
-    );
-
-    drag_dispatcher.register(
-        DRAG_TARGET_BOTTOM_NODE_ID,
-        UiPointerEventKind::Move,
-        |_context| UiPointerDispatchEffect::handled(),
-    );
-    drag_dispatcher.register(
-        DRAG_TARGET_DOCUMENT_NODE_ID,
-        UiPointerEventKind::Move,
-        |_context| UiPointerDispatchEffect::handled(),
-    );
-
-    let document_edge_frames = Arc::clone(&drag_frames);
-    drag_dispatcher.register(
-        DOCUMENT_EDGE_LEFT_NODE_ID,
-        UiPointerEventKind::Move,
-        move |context| {
-            document_edge_effect(DockEdge::Left, &document_edge_frames, context.route.point)
-        },
-    );
-    let document_edge_frames = Arc::clone(&drag_frames);
-    drag_dispatcher.register(
-        DOCUMENT_EDGE_RIGHT_NODE_ID,
-        UiPointerEventKind::Move,
-        move |context| {
-            document_edge_effect(DockEdge::Right, &document_edge_frames, context.route.point)
-        },
-    );
-    let document_edge_frames = Arc::clone(&drag_frames);
-    drag_dispatcher.register(
-        DOCUMENT_EDGE_TOP_NODE_ID,
-        UiPointerEventKind::Move,
-        move |context| {
-            document_edge_effect(DockEdge::Top, &document_edge_frames, context.route.point)
-        },
-    );
-    let document_edge_frames = Arc::clone(&drag_frames);
-    drag_dispatcher.register(
-        DOCUMENT_EDGE_BOTTOM_NODE_ID,
-        UiPointerEventKind::Move,
-        move |context| {
-            document_edge_effect(DockEdge::Bottom, &document_edge_frames, context.route.point)
-        },
-    );
-
-    for (index, window) in floating_windows.iter().enumerate() {
-        let frame = floating_window_projection_bundle
-            .and_then(|bundle| bundle.outer_frame(&window.window_id))
-            .and_then(|frame| frame_if_visible(clamp_frame_to_root(frame, root_frame)));
-
-        let Some(frame) = frame else {
-            continue;
-        };
-
-        let attach_id = floating_window_attach_node_id(index);
-        let left_edge_id = floating_window_edge_node_id(index, DockEdge::Left);
-        let right_edge_id = floating_window_edge_node_id(index, DockEdge::Right);
-        let top_edge_id = floating_window_edge_node_id(index, DockEdge::Top);
-        let bottom_edge_id = floating_window_edge_node_id(index, DockEdge::Bottom);
-
-        for (node_id, path_suffix, z_index) in [
-            (attach_id, "attach", 100 + index as i32 * 10),
-            (left_edge_id, "edge_left", 101 + index as i32 * 10),
-            (right_edge_id, "edge_right", 102 + index as i32 * 10),
-            (top_edge_id, "edge_top", 103 + index as i32 * 10),
-            (bottom_edge_id, "edge_bottom", 104 + index as i32 * 10),
-        ] {
-            surface
-                .tree
-                .insert_child(
-                    DRAG_POINTER_ROOT_NODE_ID,
-                    UiTreeNode::new(
-                        node_id,
-                        UiNodePath::new(format!(
-                            "editor.workbench.shell_pointer/floating/{}/{}",
-                            window.window_id.0, path_suffix
-                        )),
-                    )
-                    .with_z_index(z_index)
-                    .with_input_policy(UiInputPolicy::Receive)
-                    .with_state_flags(base_target_state(true)),
-                )
-                .expect("drag pointer root must exist");
-            update_target_node(&mut surface, node_id, Some(frame));
-        }
-
-        route_intents.bind_node(
-            attach_id,
-            drag_route_id(100 + index as u64 * 10),
-            EditorRouteIntent::ShellPointer(HostShellPointerRoute::FloatingWindow(
-                window.window_id.clone(),
-            )),
-        );
-        drag_dispatcher.register(attach_id, UiPointerEventKind::Move, |_context| {
-            UiPointerDispatchEffect::handled()
-        });
-
-        for (node_id, edge) in [
-            (left_edge_id, DockEdge::Left),
-            (right_edge_id, DockEdge::Right),
-            (top_edge_id, DockEdge::Top),
-            (bottom_edge_id, DockEdge::Bottom),
-        ] {
-            route_intents.bind_node(
-                node_id,
-                floating_window_edge_route_id(index, edge),
-                EditorRouteIntent::ShellPointer(HostShellPointerRoute::FloatingWindowEdge {
-                    window_id: window.window_id.clone(),
-                    edge,
-                }),
-            );
-            drag_dispatcher.register(node_id, UiPointerEventKind::Move, move |context| {
-                edge_effect_in_frame(frame, edge, context.route.point)
-            });
-        }
-    }
-
-    surface.rebuild();
-    (surface, drag_dispatcher, route_intents)
+    (root_frame, geometry)
 }
 
 const fn drag_route_id(offset: u64) -> UiRouteId {

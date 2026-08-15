@@ -55,7 +55,7 @@ fn runtime_15_scene_ecs_systems_tests_are_folder_backed() {
         &[
             "use super::*;",
             "fn commands_are_deferred_until_apply_deferred",
-            "fn entity_commands_spawn_empty_and_entity_or_spawn_apply_in_queue_order",
+            "fn entity_commands_spawn_empty_and_deferred_handle_apply_in_queue_order",
         ],
     );
     assert_contains_all(

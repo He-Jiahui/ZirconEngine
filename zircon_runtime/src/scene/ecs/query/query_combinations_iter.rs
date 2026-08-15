@@ -5,7 +5,7 @@ use crate::scene::ecs::{
 };
 use crate::scene::{EntityId, World};
 
-use super::cached_query_iter::cached_query_component_locations;
+use super::query_state::{find_cached_archetype_plan, CachedArchetypePlan};
 
 /// Read-only K-combination iterator over a stable snapshot of matching scene entities.
 pub struct QueryCombinationIter<'world, 'state, D, F = (), const K: usize = 2>
@@ -25,11 +25,8 @@ where
 enum QueryCombinationCandidates<'state> {
     Owned(Vec<EntityId>),
     Cached {
-        entities: &'state [EntityId],
-        stable_locations: &'state [StableEntityLocation],
-        component_locations: &'state [ComponentStorageLocation],
-        component_location_offsets: &'state [usize],
-        cache_indices: Vec<usize>,
+        plans: &'state [CachedArchetypePlan],
+        stable_locations: Vec<StableEntityLocation>,
     },
 }
 
@@ -37,7 +34,9 @@ impl QueryCombinationCandidates<'_> {
     fn len(&self) -> usize {
         match self {
             Self::Owned(entities) => entities.len(),
-            Self::Cached { cache_indices, .. } => cache_indices.len(),
+            Self::Cached {
+                stable_locations, ..
+            } => stable_locations.len(),
         }
     }
 }
@@ -47,17 +46,10 @@ where
     D: QueryData,
     F: QueryFilter,
 {
-    pub(crate) fn new(
-        world: &'world World,
-        entities: &[EntityId],
-        ticks: ChangeTickWindow,
-    ) -> Self {
+    pub(crate) fn new(world: &'world World, ticks: ChangeTickWindow) -> Self {
         assert!(K != 0, "query combinations require K greater than zero");
-        if K > entities.len() {
-            return Self::empty(world, ticks);
-        }
         let mut matched_entities = Vec::new();
-        for entity in entities.iter().copied() {
+        for entity in world.entity_ids_for_query() {
             if read_only_combination_candidate_matches::<D, F>(world, entity, ticks) {
                 matched_entities.push(entity);
             }
@@ -88,49 +80,39 @@ where
         }
     }
 
-    pub(crate) fn new_from_cached_entities(
+    pub(crate) fn new_from_cached_plans(
         world: &'world World,
-        entities: &'state [EntityId],
-        stable_locations: &'state [StableEntityLocation],
-        component_locations: &'state [ComponentStorageLocation],
-        component_location_offsets: &'state [usize],
+        plans: &'state [CachedArchetypePlan],
         ticks: ChangeTickWindow,
     ) -> Self {
         assert!(K != 0, "query combinations require K greater than zero");
-        if K > entities.len() {
-            return Self::empty(world, ticks);
-        }
-        let mut cache_indices = Vec::with_capacity(entities.len());
-        let mut index = 0_usize;
-        while index < entities.len() {
-            let entity = entities[index];
-            if stable_locations.get(index).is_some() {
-                if let Some(entity_component_locations) = cached_query_component_locations(
-                    component_locations,
-                    component_location_offsets,
-                    index,
-                ) {
-                    if F::matches_component_locations(
-                        world,
-                        entity,
-                        entity_component_locations,
-                        ticks,
-                    ) {
-                        cache_indices.push(index);
-                    }
-                }
+        let mut stable_locations = Vec::new();
+        let mut component_locations = Vec::new();
+        for stable_location in
+            world.stable_query_location_iter(plans.iter().map(CachedArchetypePlan::archetype_id))
+        {
+            let Some(plan) =
+                find_cached_archetype_plan(plans, stable_location.location.archetype_id)
+            else {
+                continue;
+            };
+            if plan.write_component_locations(world, stable_location, &mut component_locations)
+                && F::matches_component_locations(
+                    world,
+                    stable_location.stable_id,
+                    &component_locations,
+                    ticks,
+                )
+            {
+                stable_locations.push(stable_location);
             }
-            index += 1;
         }
-        if cache_indices.len() < K {
+        if stable_locations.len() < K {
             return Self::empty(world, ticks);
         }
         let candidates = QueryCombinationCandidates::Cached {
-            entities,
+            plans,
             stable_locations,
-            component_locations,
-            component_location_offsets,
-            cache_indices,
         };
         let remaining = combination_count(candidates.len(), K);
         Self {
@@ -153,26 +135,25 @@ where
                         .expect("combination entity should still match query data")
                 }
                 QueryCombinationCandidates::Cached {
-                    entities,
+                    plans,
                     stable_locations,
-                    component_locations,
-                    component_location_offsets,
-                    cache_indices,
                 } => {
-                    let cache_index = cache_indices[candidate_index];
-                    let entity = entities[cache_index];
-                    let stable_location = stable_locations[cache_index];
-                    let component_locations = cached_query_component_locations(
-                        component_locations,
-                        component_location_offsets,
-                        cache_index,
-                    )
-                    .expect("cached combination component locations should stay index-aligned");
+                    let stable_location = stable_locations[candidate_index];
+                    let entity = stable_location.stable_id;
+                    let plan =
+                        find_cached_archetype_plan(plans, stable_location.location.archetype_id)
+                            .expect("cached combination location must retain an archetype plan");
+                    let mut component_locations = Vec::new();
+                    assert!(plan.write_component_locations(
+                        self.world,
+                        stable_location,
+                        &mut component_locations,
+                    ));
                     D::fetch_with_component_locations(
                         self.world,
                         entity,
                         stable_location,
-                        component_locations,
+                        &component_locations,
                         self.ticks,
                     )
                     .expect("cached combination entity should still match query data")

@@ -431,7 +431,10 @@ fn plugin_neural_compute_feature_respects_capability_opt_in_gate() {
     assert_eq!(workload.workgroup_size, [8, 8, 1]);
     assert_eq!(
         workload.dispatch_extent,
-        RenderGraphComputeDispatchExtent::Viewport
+        RenderGraphComputeDispatchExtent::PerPixel {
+            target: PostProcessGraphResourceNames::SCENE_COLOR.to_string(),
+            local_size: [8, 8],
+        }
     );
     assert!(enabled
         .required_extract_sections
@@ -563,9 +566,11 @@ fn plugin_neural_compute_descriptor() -> RenderFeatureDescriptor {
             QueueLane::AsyncCompute,
         )
         .with_executor_id("plugin.neural.inference")
-        .with_compute_workload(RenderGraphComputeWorkload::viewport(
+        .with_compute_workload(RenderGraphComputeWorkload::per_pixel(
             "zircon-neural-inference",
             [8, 8, 1],
+            PostProcessGraphResourceNames::SCENE_COLOR,
+            [8, 8],
         ))
         .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
         .write_buffer("plugin-neural-output")],

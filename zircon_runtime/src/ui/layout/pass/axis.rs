@@ -8,7 +8,7 @@ use zircon_runtime_interface::ui::{
     tree::{UiTree, UiTreeError},
 };
 
-use super::slot::{slot_for_container_child, slot_padding};
+use super::slot::{slot_for_container_child, slot_padding, UiLayoutSlotIndex};
 
 pub(crate) fn resolve_linear_child_main_extents(
     tree: &UiTree,
@@ -17,6 +17,7 @@ pub(crate) fn resolve_linear_child_main_extents(
     axis: UiAxis,
     available_extent: f32,
     gap: f32,
+    slot_index: &UiLayoutSlotIndex,
 ) -> Result<Vec<f32>, UiTreeError> {
     let layout_child_count = children
         .iter()
@@ -37,7 +38,13 @@ pub(crate) fn resolve_linear_child_main_extents(
             constraints.push(collapsed_axis_constraint());
             continue;
         }
-        let slot = slot_for_container_child(tree, parent_id, *child_id, linear_container(axis));
+        let slot = slot_for_container_child(
+            tree,
+            slot_index,
+            parent_id,
+            *child_id,
+            linear_container(axis),
+        );
         let padding = slot_padding(slot);
         let padding_extent = match axis {
             UiAxis::Horizontal => padding.horizontal(),

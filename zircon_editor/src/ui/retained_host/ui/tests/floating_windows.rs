@@ -209,52 +209,38 @@ fn floating_window_overlay_snapshot_captures_shared_frame_and_route_keys() {
     let snapshot =
         EditorUiCompatibilityHarness::capture_floating_window_overlay_snapshot(&floating_windows);
 
-    assert!(
-        snapshot
-            .frame_entries
-            .contains(&"floating-window/window:preview=420,180,360,240".to_string())
-    );
+    assert!(snapshot
+        .frame_entries
+        .contains(&"floating-window/window:preview=420,180,360,240".to_string()));
     assert!(snapshot.route_key_entries.contains(
         &"floating-window/window:preview.attach=floating-window/window:preview".to_string()
     ));
     assert!(snapshot.route_key_entries.contains(
         &"floating-window/window:preview.left=floating-window-edge/window:preview/left".to_string()
     ));
-    assert!(
-        snapshot.route_key_entries.contains(
-            &"floating-window/window:preview.right=floating-window-edge/window:preview/right"
-                .to_string()
-        )
-    );
+    assert!(snapshot.route_key_entries.contains(
+        &"floating-window/window:preview.right=floating-window-edge/window:preview/right"
+            .to_string()
+    ));
     assert!(snapshot.route_key_entries.contains(
         &"floating-window/window:preview.top=floating-window-edge/window:preview/top".to_string()
     ));
-    assert!(
-        snapshot.route_key_entries.contains(
-            &"floating-window/window:preview.bottom=floating-window-edge/window:preview/bottom"
-                .to_string()
-        )
-    );
-    assert!(
-        snapshot
-            .attribute_entries
-            .contains(&"floating-window/window:preview.title=Preview Popout".to_string())
-    );
-    assert!(
-        snapshot.attribute_entries.contains(
-            &"floating-window/window:preview.focus_target_id=editor.game#float".to_string()
-        )
-    );
-    assert!(
-        snapshot.attribute_entries.contains(
-            &"floating-window/window:preview.active_pane.id=editor.game#float".to_string()
-        )
-    );
-    assert!(
-        snapshot
-            .attribute_entries
-            .contains(&"floating-window/window:preview.active_pane.kind=Game".to_string())
-    );
+    assert!(snapshot.route_key_entries.contains(
+        &"floating-window/window:preview.bottom=floating-window-edge/window:preview/bottom"
+            .to_string()
+    ));
+    assert!(snapshot
+        .attribute_entries
+        .contains(&"floating-window/window:preview.title=Preview Popout".to_string()));
+    assert!(snapshot
+        .attribute_entries
+        .contains(&"floating-window/window:preview.focus_target_id=editor.game#float".to_string()));
+    assert!(snapshot
+        .attribute_entries
+        .contains(&"floating-window/window:preview.active_pane.id=editor.game#float".to_string()));
+    assert!(snapshot
+        .attribute_entries
+        .contains(&"floating-window/window:preview.active_pane.kind=Game".to_string()));
 }
 
 #[test]
@@ -351,8 +337,8 @@ fn floating_window_overlay_route_keys_match_shared_shell_pointer_route_normaliza
 }
 
 #[test]
-fn collect_floating_windows_does_not_fall_back_to_legacy_geometry_when_projection_bundle_is_explicitly_provided()
- {
+fn collect_floating_windows_does_not_fall_back_to_legacy_geometry_when_projection_bundle_is_explicitly_provided(
+) {
     let mut fixture = default_preview_fixture();
     let window_id = MainPageId::new("window:preview");
     let scene_instance = ViewInstance {

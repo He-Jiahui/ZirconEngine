@@ -16,6 +16,7 @@ const TRACE_TILE_COUNT: usize = 64;
 const TRACE_SCHEDULE_MAGIC: u32 = 0x4847_4954;
 const HZB_TRACE_MAGIC: u32 = 0x4847_5a42;
 const SURFACE_CACHE_FLAG: u32 = 1 << 10;
+const VOXEL_FALLBACK_FLAG: u32 = 1 << 11;
 const RADIANCE_VALID_FLAG: u32 = 1 << 12;
 const CURRENT_RADIANCE: [u8; 4] = [64, 128, 192, 255];
 const TEST_SIZE: u32 = 4;
@@ -45,6 +46,92 @@ fn resolve_shader_consumes_trace_depth_source_packet() {
     assert!(source.contains("temporal_normal_matches"));
     assert!(source.contains("pack_temporal_source_and_normal"));
     assert!(source.contains("HybridGiTemporalResolveOutput"));
+}
+
+#[test]
+fn resolve_debug_view_codes_match_the_shader_abi_and_disable_history() {
+    let cases = [
+        (RenderHybridGiDebugView::None, 0),
+        (RenderHybridGiDebugView::Cards, 1),
+        (RenderHybridGiDebugView::SurfaceCache, 2),
+        (RenderHybridGiDebugView::VoxelClipmap, 3),
+        (RenderHybridGiDebugView::InputSet, 4),
+    ];
+
+    for (debug_view, expected_code) in cases {
+        assert_eq!(resolve_debug_view_code(debug_view), expected_code);
+        let params = HybridGiTemporalResolveParams::new([0, 0], true, debug_view);
+        assert_eq!(params.viewport_and_flags[..2], [1, 1]);
+        assert_eq!(params.viewport_and_flags[3], expected_code);
+        assert_eq!(
+            params.viewport_and_flags[2],
+            u32::from(debug_view == RenderHybridGiDebugView::None),
+            "debug output must not accumulate stale temporal history"
+        );
+    }
+
+    let source = include_str!("../../hybrid_gi/renderer/shaders/resolve_trace_depth_source.wgsl");
+    assert!(source.contains("fn debug_radiance"));
+    assert!(source.contains("HYBRID_GI_DEBUG_VIEW_CARDS"));
+    assert!(source.contains("HYBRID_GI_DEBUG_VIEW_SURFACE_CACHE"));
+    assert!(source.contains("HYBRID_GI_DEBUG_VIEW_VOXEL_CLIPMAP"));
+    assert!(source.contains("HYBRID_GI_DEBUG_VIEW_INPUT_SET"));
+}
+
+#[test]
+fn resolve_debug_views_select_current_gpu_trace_authority() {
+    let Some((device, queue)) = test_device() else {
+        return;
+    };
+    let surface = run_temporal_resolve(
+        &device,
+        &queue,
+        TemporalCase::new(true, [0.0, 0.0], 0.0, 1)
+            .with_debug_view(RenderHybridGiDebugView::SurfaceCache),
+    );
+    let surface_as_voxel = run_temporal_resolve(
+        &device,
+        &queue,
+        TemporalCase::new(true, [0.0, 0.0], 0.0, 1)
+            .with_debug_view(RenderHybridGiDebugView::VoxelClipmap),
+    );
+    let voxel = run_temporal_resolve(
+        &device,
+        &queue,
+        TemporalCase::new(true, [0.0, 0.0], 0.0, 1)
+            .with_current_trace_flags(VOXEL_FALLBACK_FLAG | RADIANCE_VALID_FLAG)
+            .with_debug_view(RenderHybridGiDebugView::VoxelClipmap),
+    );
+    let input_set = run_temporal_resolve(
+        &device,
+        &queue,
+        TemporalCase::new(true, [0.0, 0.0], 0.0, 1)
+            .with_current_trace_flags(VOXEL_FALLBACK_FLAG | RADIANCE_VALID_FLAG)
+            .with_debug_view(RenderHybridGiDebugView::InputSet),
+    );
+    let cards = run_temporal_resolve(
+        &device,
+        &queue,
+        TemporalCase::new(true, [0.0, 0.0], 0.0, 1)
+            .with_current_support_signatures([341; (TEST_SIZE * TEST_SIZE) as usize])
+            .with_debug_view(RenderHybridGiDebugView::Cards),
+    );
+
+    assert_color_matches_current(surface.lighting);
+    assert_vec4_near(surface_as_voxel.lighting, [0.0, 0.0, 0.0, 1.0], 0.01);
+    assert_vec4_near(
+        voxel.lighting,
+        [
+            f32::from(CURRENT_RADIANCE[0]) / 255.0 * 0.8,
+            f32::from(CURRENT_RADIANCE[1]) / 255.0 * 0.8,
+            f32::from(CURRENT_RADIANCE[2]) / 255.0 * 0.8,
+            1.0,
+        ],
+        0.01,
+    );
+    assert_vec4_near(input_set.lighting, [0.15, 0.4, 1.0, 1.0], 0.01);
+    assert!(cards.lighting[..3].iter().any(|channel| *channel > 0.2));
+    assert!(surface.metadata[3] <= 0.3);
 }
 
 #[test]
@@ -138,81 +225,8 @@ fn resolve_temporal_history_rejects_disoccluded_normal() {
     );
 }
 
-#[test]
-#[ignore]
-fn export_normal_aware_temporal_rejection_wgpu_png() {
-    let Some((device, queue)) = test_device() else {
-        eprintln!("skipping normal-aware temporal Wgpu product because no adapter is available");
-        return;
-    };
-    let accepted =
-        run_temporal_resolve_pixels(&device, &queue, TemporalCase::new(true, [0.0, 0.0], 0.0, 1));
-    let mut checker_normals = [DEFAULT_NORMAL_CODE; (TEST_SIZE * TEST_SIZE) as usize];
-    for y in 0..TEST_SIZE as usize {
-        for x in 0..TEST_SIZE as usize {
-            if (x + y) % 2 == 0 {
-                checker_normals[y * TEST_SIZE as usize + x] = OPPOSITE_NORMAL_CODE;
-            }
-        }
-    }
-    let checker = run_temporal_resolve_pixels(
-        &device,
-        &queue,
-        TemporalCase::new(true, [0.0, 0.0], 0.0, 1).with_current_normal_codes(checker_normals),
-    );
-
-    let mut normal_rejected_pixels = 0_usize;
-    let mut normal_retained_pixels = 0_usize;
-    let mut reprojection_border_pixels = 0_usize;
-    for pixel_index in 0..accepted.len() {
-        let x = pixel_index as u32 % TEST_SIZE;
-        let y = pixel_index as u32 / TEST_SIZE;
-        if x + 1 == TEST_SIZE || y + 1 == TEST_SIZE {
-            assert_vec4_near(
-                checker[pixel_index].lighting,
-                accepted[pixel_index].lighting,
-                0.01,
-            );
-            reprojection_border_pixels += 1;
-            continue;
-        }
-        if checker[pixel_index].metadata[3] <= 0.3 {
-            assert!(checker[pixel_index].lighting[0] + 0.04 < accepted[pixel_index].lighting[0]);
-            normal_rejected_pixels += 1;
-        } else {
-            assert!(checker[pixel_index].metadata[3] > 0.75);
-            assert_vec4_near(
-                checker[pixel_index].lighting,
-                accepted[pixel_index].lighting,
-                0.01,
-            );
-            normal_retained_pixels += 1;
-        }
-    }
-    assert!(normal_rejected_pixels >= 4);
-    assert!(normal_retained_pixels >= 4);
-    assert_eq!(normal_rejected_pixels + normal_retained_pixels, 9);
-    assert_eq!(reprojection_border_pixels, 7);
-
-    let output_dir = render_test_output_dir();
-    fs::create_dir_all(&output_dir).unwrap();
-    write_temporal_normal_matrix_png(
-        output_dir.join(NORMAL_REJECTION_PRODUCT_PNG),
-        &accepted,
-        &checker,
-    );
-    fs::write(
-        output_dir.join(NORMAL_REJECTION_PRODUCT_REPORT),
-        format!(
-            "png={}\nleft=matching_normals_with_reprojection_border\nright=checkerboard_opposite_normals\nwidth=257\nheight=128\ngpu_output_grid=4x4_temporal_resolve_pixels\nnormal_rejected_interior_pixels={}\nnormal_retained_interior_pixels={}\nreprojection_border_pixels={}\nnormal_encoding=6bit_octahedral\ntemporal_metadata_y=source_times_64_plus_normal_code_exact_r16f_integer\nnormal_dot_threshold=0.75\ntrace_tile_words=8\ntrace_buffer_minimum_bytes=2304\nvalidated_scene_normal_inputs=single_sample_plus_msaa_surface_sample\nvalidated_temporal_behavior=depth_source_support_normal_motion_luma_rejection_plus_confidence\n",
-            NORMAL_REJECTION_PRODUCT_PNG,
-            normal_rejected_pixels,
-            normal_retained_pixels,
-            reprojection_border_pixels,
-        ),
-    )
-    .unwrap();
-}
+#[path = "tests/normal_rejection.rs"]
+mod normal_rejection;
 
 #[test]
 fn resolve_temporal_history_reuses_unchanged_support_and_rejects_changed_neighbor() {
@@ -264,6 +278,8 @@ struct TemporalCase {
     previous_signature: f32,
     previous_source: u32,
     previous_normal_code: u32,
+    debug_view: RenderHybridGiDebugView,
+    current_trace_flags: u32,
     current_support_signatures: [u32; (TEST_SIZE * TEST_SIZE) as usize],
     current_normal_codes: [u32; (TEST_SIZE * TEST_SIZE) as usize],
 }
@@ -281,6 +297,8 @@ impl TemporalCase {
             previous_signature,
             previous_source,
             previous_normal_code: DEFAULT_NORMAL_CODE,
+            debug_view: RenderHybridGiDebugView::None,
+            current_trace_flags: SURFACE_CACHE_FLAG | RADIANCE_VALID_FLAG,
             current_support_signatures: [0; (TEST_SIZE * TEST_SIZE) as usize],
             current_normal_codes: [DEFAULT_NORMAL_CODE; (TEST_SIZE * TEST_SIZE) as usize],
         }
@@ -299,6 +317,16 @@ impl TemporalCase {
         signatures: [u32; (TEST_SIZE * TEST_SIZE) as usize],
     ) -> Self {
         self.current_support_signatures = signatures;
+        self
+    }
+
+    const fn with_debug_view(mut self, debug_view: RenderHybridGiDebugView) -> Self {
+        self.debug_view = debug_view;
+        self
+    }
+
+    const fn with_current_trace_flags(mut self, trace_flags: u32) -> Self {
+        self.current_trace_flags = trace_flags;
         self
     }
 }
@@ -322,7 +350,11 @@ fn run_temporal_resolve_pixels(
     queue: &wgpu::Queue,
     case: TemporalCase,
 ) -> Vec<TemporalResult> {
-    let trace_words = test_trace_words(case.current_support_signatures, case.current_normal_codes);
+    let trace_words = test_trace_words(
+        case.current_trace_flags,
+        case.current_support_signatures,
+        case.current_normal_codes,
+    );
     run_temporal_resolve_pixels_with_trace_words(device, queue, case, trace_words)
 }
 
@@ -362,7 +394,11 @@ fn run_temporal_resolve_pixels_with_trace_words(
     );
     let (lighting, lighting_view) = render_target(device, "hybrid-gi-temporal-test-lighting");
     let (metadata, metadata_view) = render_target(device, "hybrid-gi-temporal-test-metadata");
-    let params = HybridGiTemporalResolveParams::new([TEST_SIZE, TEST_SIZE], case.history_available);
+    let params = HybridGiTemporalResolveParams::new(
+        [TEST_SIZE, TEST_SIZE],
+        case.history_available,
+        case.debug_view,
+    );
     let params_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
         label: Some("hybrid-gi-temporal-test-params"),
         contents: bytemuck::bytes_of(&params),
@@ -420,6 +456,7 @@ fn run_temporal_resolve_pixels_with_trace_words(
 }
 
 fn test_trace_words(
+    current_trace_flags: u32,
     current_support_signatures: [u32; (TEST_SIZE * TEST_SIZE) as usize],
     current_normal_codes: [u32; (TEST_SIZE * TEST_SIZE) as usize],
 ) -> [u32; TRACE_WORD_COUNT] {
@@ -437,7 +474,7 @@ fn test_trace_words(
         let offset = TRACE_TILE_WORD_OFFSET + tile_index * TRACE_TILE_WORD_COUNT;
         words[offset] = pack_rgba8(CURRENT_RADIANCE);
         words[offset + 1] = quantize_depth_q24(0.5);
-        words[offset + 3] = SURFACE_CACHE_FLAG | RADIANCE_VALID_FLAG;
+        words[offset + 3] = current_trace_flags;
         words[offset + 7] = DEFAULT_NORMAL_CODE;
     }
     for (pixel_index, signature) in current_support_signatures.into_iter().enumerate() {

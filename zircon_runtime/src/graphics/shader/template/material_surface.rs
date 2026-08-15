@@ -153,7 +153,11 @@ __ZR_SURFACE_NORMAL_ASSIGNMENT__
 __ZR_SURFACE_TANGENT_ASSIGNMENT__
     surface.metallic = clamp(standard_material_properties.data0.x * metallic_roughness.b, 0.0, 1.0);
     surface.roughness = clamp(standard_material_properties.data0.y * metallic_roughness.g, ZR_STANDARD_MATERIAL_SURFACE_MIN_ROUGHNESS, 1.0);
-    surface.occlusion = clamp(standard_material_properties.data0.z * occlusion_sample, 0.0, 1.0);
+    surface.occlusion = clamp(
+        mix(1.0, occlusion_sample, clamp(standard_material_properties.data0.z, 0.0, 1.0)),
+        0.0,
+        1.0,
+    );
     surface.emissive = max(standard_material_properties.data1.rgb, vec3<f32>(0.0)) * emissive_sample;
     surface.alpha_cutoff = standard_material_alpha_cutoff();
     surface.unlit = standard_material_properties.data0.w;

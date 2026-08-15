@@ -11,6 +11,7 @@ mod ecs_cached_query_iter_structure;
 mod ecs_change_detection;
 mod ecs_commands;
 mod ecs_component_storage_structure;
+mod ecs_detached_entity_batch_performance;
 mod ecs_dynamic_components_structure;
 mod ecs_event_mirror;
 mod ecs_events_messages;

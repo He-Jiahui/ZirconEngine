@@ -10,6 +10,7 @@ use super::engine::UiLayoutPassEngineContext;
 use super::measure::measure_node;
 use super::pipeline::{assert_layout_pass_stage, UiLayoutPassStage};
 use super::responsive_mui::apply_mui_responsive_layout;
+use super::slot::UiLayoutSlotIndex;
 
 pub fn compute_layout_tree(
     tree: &mut UiTree,
@@ -21,13 +22,29 @@ pub fn compute_layout_tree(
 pub(crate) fn compute_layout_tree_with_text_measure_cache(
     tree: &mut UiTree,
     root_size: UiSize,
+    text_measure_cache: Option<&mut UiTextMeasureCache>,
+) -> Result<UiLayoutEngineSelectionReport, UiTreeError> {
+    let slot_index = UiLayoutSlotIndex::default();
+    compute_layout_tree_with_text_measure_cache_and_slot_index(
+        tree,
+        root_size,
+        text_measure_cache,
+        &slot_index,
+    )
+}
+
+pub(crate) fn compute_layout_tree_with_text_measure_cache_and_slot_index(
+    tree: &mut UiTree,
+    root_size: UiSize,
     mut text_measure_cache: Option<&mut UiTextMeasureCache>,
+    slot_index: &UiLayoutSlotIndex,
 ) -> Result<UiLayoutEngineSelectionReport, UiTreeError> {
     let profile_layout = std::env::var_os("ZR_UI_LAYOUT_PROFILE").is_some();
     let profile_started = Instant::now();
     assert_layout_pass_stage(UiLayoutPassStage::ResponsiveStyleResolution, 0);
     apply_mui_responsive_layout(tree, root_size)?;
     emit_layout_profile(profile_layout, profile_started, "responsive-style", None);
+    slot_index.refresh_for_tree(tree);
 
     let roots = tree.roots.clone();
     assert_layout_pass_stage(UiLayoutPassStage::Measurement, 1);
@@ -38,7 +55,12 @@ pub(crate) fn compute_layout_tree_with_text_measure_cache(
             "measure-start",
             Some(*root_id),
         );
-        let _ = measure_node(tree, *root_id, text_measure_cache.as_deref_mut())?;
+        let _ = measure_node(
+            tree,
+            *root_id,
+            text_measure_cache.as_deref_mut(),
+            slot_index,
+        )?;
         emit_layout_profile(
             profile_layout,
             profile_started,
@@ -69,6 +91,7 @@ pub(crate) fn compute_layout_tree_with_text_measure_cache(
                 root_size.height.max(0.0),
             ),
             None,
+            slot_index,
             &mut engine_context,
         )?;
         emit_layout_profile(

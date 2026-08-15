@@ -1,24 +1,28 @@
-use crate::graphics::CompiledRenderPipeline;
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::scene::resources::ResourceStreamer;
+use crate::graphics::scene::scene_renderer::core::scene_renderer_core::SceneRendererNeutralGraphBuffers;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionResources, RenderGraphImportedFinalTarget, RenderPassMeshCommandLists,
     TransientResourcePool,
 };
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
 use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
-use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
+use crate::graphics::scene::scene_renderer::post_process::{
+    ScenePostProcessResources, SceneRuntimeFeatureFlags,
+};
 use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
+use crate::graphics::CompiledRenderPipeline;
 
 use super::bind_environment_ibl_graph_resources::bind_environment_ibl_graph_resources;
 use super::bind_execution_owned_graph_resources::bind_execution_owned_graph_resources;
 use super::bind_frame_graph_resources::bind_frame_graph_resources;
 use super::bind_history_graph_resources::{
-    HistoryGraphResourceBindingFlags, bind_history_graph_resources,
+    bind_history_graph_resources, HistoryGraphResourceBindingFlags,
 };
 use super::bind_plugin_graph_resources::bind_plugin_graph_resources;
-use super::final_target_output::{FinalTargetOutputSelection, select_final_target_output};
+use super::bind_taa_reactive_mask_graph_resource::bind_taa_reactive_mask_graph_resource;
+use super::final_target_output::{select_final_target_output, FinalTargetOutputSelection};
 
 pub(super) struct CompiledSceneGraphResourceBindingFlags {
     pub(super) taa_history_enabled: bool,
@@ -33,15 +37,18 @@ pub(super) struct CompiledSceneGraphResourceBindingFlags {
 #[allow(clippy::too_many_arguments)]
 pub(super) fn bind_compiled_scene_graph_resources(
     device: &wgpu::Device,
+    queue: &wgpu::Queue,
     pipeline: &CompiledRenderPipeline,
     streamer: &ResourceStreamer,
     frame: &ViewportRenderFrame,
     target: &mut OffscreenTarget,
+    post_process: &ScenePostProcessResources,
     scene_light_data_buffer: &wgpu::Buffer,
     history_textures: Option<&SceneFrameHistoryTextures>,
     flags: CompiledSceneGraphResourceBindingFlags,
     graph_resources: &mut RenderGraphExecutionResources,
     transient_resource_pool: &mut TransientResourcePool,
+    neutral_graph_buffers: &mut SceneRendererNeutralGraphBuffers,
     mesh_draw_lists: RenderPassMeshCommandLists<'_>,
     hzb_occlusion_culler: Option<&HzbOcclusionCuller>,
     shadow_atlas_resources: &ShadowAtlasResources,
@@ -56,6 +63,7 @@ pub(super) fn bind_compiled_scene_graph_resources(
                 view: resource.view(),
             });
     bind_frame_graph_resources(
+        device,
         pipeline.graph(),
         graph_resources,
         target,
@@ -77,9 +85,24 @@ pub(super) fn bind_compiled_scene_graph_resources(
             volumetric_scattering: flags.history_available && flags.volumetric_history_enabled,
         },
     );
+    bind_ssao_compute_graph_resources(
+        queue,
+        pipeline.graph(),
+        target,
+        post_process,
+        history_textures,
+        flags,
+        graph_resources,
+    );
     bind_environment_ibl_graph_resources(
         pipeline.graph(),
         environment_source_cubemap_view,
+        graph_resources,
+    );
+    bind_taa_reactive_mask_graph_resource(
+        pipeline.graph(),
+        post_process,
+        mesh_draw_lists,
         graph_resources,
     );
     graph_resources
@@ -91,6 +114,7 @@ pub(super) fn bind_compiled_scene_graph_resources(
         .map_err(GraphicsError::Asset)?;
     bind_execution_owned_graph_resources(
         device,
+        neutral_graph_buffers,
         pipeline.graph(),
         graph_resources,
         mesh_draw_lists,
@@ -98,9 +122,52 @@ pub(super) fn bind_compiled_scene_graph_resources(
     );
     bind_plugin_graph_resources(
         device,
+        neutral_graph_buffers,
         pipeline.graph(),
         plugin_external_buffer_bindings,
         graph_resources,
     );
     Ok(final_target_output)
+}
+
+fn bind_ssao_compute_graph_resources(
+    queue: &wgpu::Queue,
+    graph: &crate::render_graph::CompiledRenderGraph,
+    target: &OffscreenTarget,
+    post_process: &ScenePostProcessResources,
+    history_textures: Option<&SceneFrameHistoryTextures>,
+    flags: CompiledSceneGraphResourceBindingFlags,
+    graph_resources: &mut RenderGraphExecutionResources,
+) {
+    use crate::core::framework::render::PostProcessGraphResourceNames;
+
+    if graph
+        .resource_lifetime_by_name(PostProcessGraphResourceNames::SSAO_PARAMS)
+        .is_some()
+    {
+        post_process.write_ssao_compute_params(
+            queue,
+            target.size,
+            flags.history_available,
+            flags.runtime_features.ssao_enabled,
+        );
+        graph_resources.insert_buffer(
+            PostProcessGraphResourceNames::SSAO_PARAMS,
+            post_process.ssao_params_buffer().clone(),
+        );
+    }
+    if graph
+        .resource_lifetime_by_name(
+            PostProcessGraphResourceNames::HISTORY_PREVIOUS_AMBIENT_OCCLUSION,
+        )
+        .is_some()
+    {
+        let view = history_textures
+            .map(|history| history.ambient_occlusion_view.clone())
+            .unwrap_or_else(|| post_process.white_texture_view().clone());
+        graph_resources.import_texture_view(
+            PostProcessGraphResourceNames::HISTORY_PREVIOUS_AMBIENT_OCCLUSION,
+            view,
+        );
+    }
 }

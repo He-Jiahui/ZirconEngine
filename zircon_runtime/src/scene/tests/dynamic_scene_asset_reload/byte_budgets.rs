@@ -1,6 +1,6 @@
 use super::*;
 use crate::core::resource::{
-    ResourceEvent, ResourceEventKind, ResourceLocator, approximate_event_bytes,
+    approximate_event_bytes, ResourceEvent, ResourceEventKind, ResourceLocator,
 };
 use crate::scene::PreparedDynamicSceneSpawn;
 
@@ -44,7 +44,8 @@ fn dynamic_scene_asset_reload_event_bytes_are_cumulative_within_one_tick() {
         shader_id,
         ResourceKind::Shader,
         shader_uri,
-    ));
+    ))
+    .unwrap();
     fixture.register_ready_revision("scene-after-cumulative-filtered-event");
 
     let first = queue.drain_events(&scheduler);
@@ -111,11 +112,13 @@ fn dynamic_scene_asset_reload_ready_bytes_are_cumulative_within_one_tick() {
             .clone()
             .with_source_hash("ready-budget-first"),
         fixture.scene.clone(),
-    );
+    )
+    .unwrap();
     resources.register_ready(
         second_record.with_source_hash("ready-budget-second"),
         second_scene,
-    );
+    )
+    .unwrap();
 
     let drain = drain_until_events(&mut queue, &scheduler, 2);
     assert_eq!(drain.scheduled, 2);
@@ -202,11 +205,13 @@ fn dynamic_scene_asset_reload_target_commits_share_one_cumulative_byte_budget() 
             .clone()
             .with_source_hash("apply-budget-first"),
         fixture.scene.clone(),
-    );
+    )
+    .unwrap();
     resources.register_ready(
         second_record.with_source_hash("apply-budget-second"),
         second_scene,
-    );
+    )
+    .unwrap();
 
     let drain = drain_until_events(&mut queue, &scheduler, 2);
     assert_eq!(drain.scheduled, 2);

@@ -9,8 +9,8 @@ plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/17-performance-and-profiling.md
 tests:
-  - D:\Tools\renderdoc\renderdoccmd.exe replay --loops 1 <capture>
-  - D:\Tools\renderdoc\qrenderdoc.exe --python docs/plans/performance/01/renderdoc_capture_audit.py
+  - renderdoccmd replay --loops 1 <capture>
+  - qrenderdoc --python docs/plans/performance/01/renderdoc_capture_audit.py
 doc_type: testing-guide
 ---
 

@@ -14,8 +14,8 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
 
 use super::super::pending_command_cache_plan::PendingMeshCommandCacheVisibility;
 use super::{
-    PendingMeshCommandCacheExtractItem, PendingMeshCommandCacheExtractionStats,
-    commands_for_extract_item_with_stats,
+    commands_for_extract_item_with_stats, PendingMeshCommandCacheExtractItem,
+    PendingMeshCommandCacheExtractionStats,
 };
 
 #[test]

@@ -4,7 +4,8 @@ use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::plugin::native::{
-    NativePluginBehaviorHealth, NativePluginLiveHost, NativePluginLoader,
+    discover_native_plugins_from_load_manifest, load_discovered_native_plugins,
+    load_discovered_native_runtime_plugins, NativePluginBehaviorHealth, NativePluginHostHandle,
     ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
     ZIRCON_NATIVE_PLUGIN_STATUS_OK, ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
 };
@@ -34,7 +35,7 @@ manifest = "../{outside_name}/plugin.toml"
     )
     .unwrap();
 
-    let report = NativePluginLoader.discover_from_load_manifest(&root);
+    let report = discover_native_plugins_from_load_manifest(&root);
 
     assert!(report.discovered().is_empty(), "{:?}", report.discovered());
     assert!(report.diagnostics().iter().any(|message| message
@@ -51,7 +52,7 @@ fn native_runtime_hot_update_loads_real_fixture_from_export_manifest() {
 
     materialize_native_dynamic_fixture_export_root(&fixture_target, &export_root);
 
-    let host = NativePluginLiveHost::default();
+    let host = NativePluginHostHandle::default();
     let report = host
         .hot_reload_runtime_plugins_from_export_root(&export_root)
         .expect("manifest-driven hot update should load the real runtime fixture");
@@ -121,7 +122,7 @@ fn native_loader_exposes_v3_behavior_boundary_from_real_fixture() {
     )
     .unwrap();
 
-    let report = NativePluginLoader.load_discovered_all(&package_root);
+    let report = load_discovered_native_plugins(&package_root);
 
     assert!(
         report.diagnostics().is_empty(),
@@ -370,7 +371,7 @@ fn native_loader_rejects_unknown_abi_version_with_explicit_report() {
     )
     .unwrap();
 
-    let report = NativePluginLoader.load_discovered_runtime(&package_root);
+    let report = load_discovered_native_runtime_plugins(&package_root);
 
     assert!(report.diagnostics().iter().any(|message| message
         .contains("native plugin native_dynamic_fixture loaded but ABI descriptor is invalid")));

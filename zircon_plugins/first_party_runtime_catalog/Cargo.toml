@@ -19,6 +19,7 @@ base-runtime-plugins = [
 ]
 advanced-render-runtime-plugins = [
     "dep:zircon_plugin_hybrid_gi_runtime",
+    "dep:zircon_plugin_neural_runtime",
     "dep:zircon_plugin_solari_runtime",
     "dep:zircon_plugin_virtual_geometry_runtime",
 ]
@@ -35,6 +36,7 @@ zircon_plugin_animation_runtime = { path = "../animation/runtime", optional = tr
 zircon_plugin_gltf_importer_runtime = { path = "../gltf_importer/runtime", optional = true }
 zircon_plugin_hybrid_gi_runtime = { path = "../hybrid_gi/runtime", optional = true }
 zircon_plugin_navigation_runtime = { path = "../navigation/runtime", optional = true }
+zircon_plugin_neural_runtime = { path = "../neural/runtime", optional = true }
 zircon_plugin_net_runtime = { path = "../net/runtime", optional = true }
 zircon_plugin_particles_runtime = { path = "../particles/runtime", optional = true }
 zircon_plugin_rendering_runtime = { path = "../rendering/runtime", optional = true }

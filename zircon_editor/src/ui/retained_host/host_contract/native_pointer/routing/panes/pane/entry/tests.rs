@@ -18,6 +18,7 @@ fn console_scroll_route_uses_projected_output_viewport_over_template_leaf_hits()
         100.0,
         None,
         PaneRouteMode::PointerScroll,
+        0.0,
     )
     .expect("console output scroll route");
 

@@ -2,16 +2,16 @@
 
 use std::sync::Arc;
 
-use zircon_runtime::asset::{ASSET_MODULE_NAME, project_asset_manager_handle};
+use zircon_runtime::asset::{project_asset_manager_handle, ASSET_MODULE_NAME};
 use zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME;
 use zircon_runtime::core::framework::scene::SCENE_MODULE_NAME;
 use zircon_runtime::core::manager::RegisteredManagerService;
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
-    DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
-    ServiceKind, StartupMode,
+    CoreError, DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec,
+    ModuleDescriptor, ServiceKind, StartupMode,
 };
-use zircon_runtime::engine_module::{EngineModule, dependency_on, factory, qualified_name};
+use zircon_runtime::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 use zircon_runtime::foundation::FOUNDATION_MODULE_NAME;
 use zircon_runtime::ui::UI_MODULE_NAME;
 
@@ -59,7 +59,10 @@ pub fn module_descriptor() -> ModuleDescriptor {
             ServiceKind::Manager,
             "ConfigManager",
         )],
-        factory(|core| Ok(Arc::new(EditorManager::new(core)?) as ServiceObject)),
+        factory(|core| {
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            Ok(Arc::new(EditorManager::new(&core)?) as ServiceObject)
+        }),
     ))
     .with_manager(ManagerDescriptor::new(
         qualified_name(
@@ -77,7 +80,8 @@ pub fn module_descriptor() -> ModuleDescriptor {
             dependency_on(EDITOR_MODULE_NAME, ServiceKind::Manager, "EditorManager"),
         ],
         factory(|core| {
-            let project_assets = project_asset_manager_handle(core)?;
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            let project_assets = project_asset_manager_handle(&core)?;
             let editor_manager = core.resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)?;
             let manager = Arc::new(EditorAssetManagerService::with_runtime_project_manager(
                 core.clone(),

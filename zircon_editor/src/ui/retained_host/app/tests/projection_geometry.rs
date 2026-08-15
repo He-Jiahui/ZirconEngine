@@ -24,8 +24,42 @@ fn root_viewport_toolbar_pointer_click_uses_projection_fallback_in_real_host() {
 }
 
 #[test]
-fn root_viewport_toolbar_pointer_click_prefers_shared_projection_surface_width_over_stale_document_geometry()
- {
+fn root_viewport_toolbar_repeated_click_reuses_published_layout_authority() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_retained_root_viewport_toolbar_cached_click");
+    let baseline = harness.journal_len();
+    let recomputes_before = harness
+        .host
+        .borrow()
+        .viewport_toolbar_bridge
+        .layout_recompute_count();
+
+    for _ in 0..2 {
+        pane_surface_host(&harness.root_ui).invoke_viewport_toolbar_pointer_clicked(
+            "editor.scene#1".into(),
+            300.0,
+            10.0,
+            1280.0,
+            28.0,
+        );
+    }
+
+    assert_eq!(harness.delta_events_since(baseline).len(), 2);
+    assert_eq!(
+        harness
+            .host
+            .borrow()
+            .viewport_toolbar_bridge
+            .layout_recompute_count(),
+        recomputes_before,
+        "click dispatch must consume the published surface frame without rebuilding template layout"
+    );
+}
+
+#[test]
+fn root_viewport_toolbar_pointer_click_prefers_shared_projection_surface_width_over_stale_document_geometry(
+) {
     let _guard = lock_env();
 
     let harness =
@@ -87,8 +121,8 @@ fn root_viewport_toolbar_pointer_click_prefers_shared_projection_surface_width_o
 }
 
 #[test]
-fn root_viewport_toolbar_surface_size_prefers_shared_projection_width_when_document_geometry_is_oversized()
- {
+fn root_viewport_toolbar_surface_size_prefers_shared_projection_width_when_document_geometry_is_oversized(
+) {
     let _guard = lock_env();
 
     let harness =
@@ -131,8 +165,8 @@ fn root_viewport_toolbar_surface_size_prefers_shared_projection_width_when_docum
 }
 
 #[test]
-fn root_document_tab_pointer_click_prefers_shared_projection_surface_width_over_stale_document_geometry()
- {
+fn root_document_tab_pointer_click_prefers_shared_projection_surface_width_over_stale_document_geometry(
+) {
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_retained_root_document_tab_projection_width");
@@ -255,8 +289,8 @@ fn root_host_page_pointer_click_uses_shared_projection_tab_slot() {
 }
 
 #[test]
-fn root_activity_rail_pointer_click_prefers_shared_projection_surface_when_left_region_geometry_is_stale()
- {
+fn root_activity_rail_pointer_click_prefers_shared_projection_surface_when_left_region_geometry_is_stale(
+) {
     let _guard = lock_env();
 
     let harness =

@@ -12,6 +12,8 @@ impl HostDrawerHeaderPointerBridge {
             surface: UiSurface::new(UiTreeId::new("zircon.editor.drawer_header.pointer")),
             dispatcher: UiPointerDispatcher::default(),
             route_intents: Default::default(),
+            #[cfg(test)]
+            surface_authority_generation: 0,
         };
         bridge.rebuild_surface();
         bridge

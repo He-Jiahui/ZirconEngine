@@ -4,9 +4,9 @@ use super::super::super::super::super::{
 };
 use super::anchor::badge_anchor_point;
 use super::metrics::{
-    BADGE_DOT_RADIUS, BADGE_STANDARD_RADIUS, badge_centered_text_x, badge_centered_text_y,
-    badge_overlay_font_size, badge_overlay_rect, badge_overlay_size,
-    badge_overlay_text_line_height, badge_text_width,
+    badge_centered_text_x, badge_centered_text_y, badge_overlay_font_size, badge_overlay_rect,
+    badge_overlay_size, badge_overlay_text_line_height, badge_text_width, BADGE_DOT_RADIUS,
+    BADGE_STANDARD_RADIUS,
 };
 use super::model::BadgeTextFrame;
 

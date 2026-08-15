@@ -1,24 +1,40 @@
-use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use zircon_runtime::asset::project::ProjectPaths;
+use zircon_runtime::asset::project::{ProjectPaths, ResolvedProjectPath, PROJECT_MANIFEST_FILE};
 
 use super::ProjectAuthorityError;
 
-const PROJECT_MANIFEST_FILE: &str = "zircon-project.toml";
-
 pub(super) fn canonical_project_root(path: &Path) -> Result<PathBuf, ProjectAuthorityError> {
+    resolve_project_root_identity(path).map(ResolvedProjectPath::into_operation_path)
+}
+
+/// Resolves a project directory or manifest input once and retains its operation/display views.
+///
+/// Project opens must pass this identity through to `ProjectManager::open_resolved` instead of
+/// converting it to a raw path and asking a lower layer to resolve an alias again.
+pub(super) fn canonical_resolved_project_root(
+    path: &Path,
+) -> Result<ResolvedProjectPath, ProjectAuthorityError> {
+    let resolved = resolve_project_root_identity(path)?;
+    validate_canonical_existing_project_root(resolved.operation_path())?;
+    Ok(resolved)
+}
+
+/// Resolves a project directory or manifest input without requiring that it already exists.
+///
+/// Recent-project and creation-target callers use this to classify absent paths themselves;
+/// open callers use [`canonical_resolved_project_root`] to require a valid project directory.
+pub(super) fn resolve_project_root_identity(
+    path: &Path,
+) -> Result<ResolvedProjectPath, ProjectAuthorityError> {
     reject_blank_project_path(path)?;
-    let root = if path
-        .file_name()
-        .is_some_and(|name| name == OsStr::new(PROJECT_MANIFEST_FILE))
-    {
+    let root = if ProjectPaths::is_project_manifest_file(path) {
         path.parent().unwrap_or(path)
     } else {
         path
     };
-    resolve_project_path(root)
+    resolve_project_path_with_identity(root)
 }
 
 /// Resolves an existing project path, or its deepest existing ancestor when publishing a new one.
@@ -26,8 +42,14 @@ pub(super) fn canonical_project_root(path: &Path) -> Result<PathBuf, ProjectAuth
 /// This turns an OS path alias such as a Windows junction, SUBST drive, or symlink into one
 /// physical project identity before project ownership code reads or writes beneath it.
 pub(super) fn resolve_project_path(path: &Path) -> Result<PathBuf, ProjectAuthorityError> {
+    resolve_project_path_with_identity(path).map(ResolvedProjectPath::into_operation_path)
+}
+
+pub(super) fn resolve_project_path_with_identity(
+    path: &Path,
+) -> Result<ResolvedProjectPath, ProjectAuthorityError> {
     reject_blank_project_path(path)?;
-    ProjectPaths::resolve_root(path)
+    ProjectPaths::resolve_path(path)
         .map_err(|source| ProjectAuthorityError::io("canonicalize project path", path, source))
 }
 

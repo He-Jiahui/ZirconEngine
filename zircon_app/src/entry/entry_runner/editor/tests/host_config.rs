@@ -1,6 +1,7 @@
 use std::ffi::OsString;
 
 use zircon_editor::EditorGuiStartupRequest;
+use zircon_runtime::asset::{project::ProjectPaths, AssetUri};
 
 #[test]
 fn first_frame_exit_flag_projects_into_editor_host_config() {
@@ -9,6 +10,8 @@ fn first_frame_exit_flag_projects_into_editor_host_config() {
     ));
     let config = super::super::editor_host_run_config_with_first_frame_exit(
         startup_request.clone(),
+        None,
+        None,
         true,
         None,
     );
@@ -20,17 +23,35 @@ fn first_frame_exit_flag_projects_into_editor_host_config() {
 #[test]
 fn editor_host_config_carries_the_optional_first_presented_frame_capture() {
     let capture_path = std::path::PathBuf::from("evidence/editor-first-frame.png");
+    let resolved_capture_path = ProjectPaths::resolve_path(&capture_path).unwrap();
     let config = super::super::editor_host_run_config_with_first_frame_exit(
         None,
+        None,
+        None,
         true,
-        Some(capture_path.clone()),
+        Some(resolved_capture_path.clone()),
     );
 
     assert_eq!(
         config.first_presented_frame_capture_path(),
-        Some(capture_path.as_path())
+        Some(&resolved_capture_path)
     );
     assert!(config.exit_after_first_presented_frame());
+}
+
+#[test]
+fn editor_host_config_carries_a_project_startup_scene() {
+    let scene_uri =
+        AssetUri::parse("res://scenes/main.scene.toml").expect("scene URI should parse");
+    let config = super::super::editor_host_run_config_with_first_frame_exit(
+        None,
+        Some(scene_uri.clone()),
+        None,
+        false,
+        None,
+    );
+
+    assert_eq!(config.startup_scene_uri(), Some(&scene_uri));
 }
 
 #[test]
@@ -59,8 +80,8 @@ fn editor_first_frame_exit_requires_an_explicit_enabled_value() {
 }
 
 #[test]
-fn editor_first_frame_capture_path_accepts_an_absolute_environment_value() {
-    let path = std::path::absolute("editor-first-frame.png").unwrap();
+fn editor_first_frame_capture_path_resolves_a_relative_environment_value() {
+    let path = std::path::PathBuf::from("captures/editor-first-frame.png");
 
     assert_eq!(
         super::super::editor_first_frame_capture_path_from_value(None).unwrap(),
@@ -71,27 +92,12 @@ fn editor_first_frame_capture_path_accepts_an_absolute_environment_value() {
             path.clone().into_os_string()
         ))
         .unwrap(),
-        Some(path)
+        Some(ProjectPaths::resolve_path(&path).unwrap())
     );
 }
 
 #[test]
-fn editor_first_frame_capture_path_rejects_a_relative_environment_value() {
-    let error = super::super::editor_first_frame_capture_path_from_value(Some(OsString::from(
-        "captures/editor-first-frame.png",
-    )))
-    .expect_err("relative capture path must not depend on the process working directory");
-
-    assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
-    assert_eq!(
-        error.to_string(),
-        "editor startup diagnostic: component=editor_host requested=ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG=captures/editor-first-frame.png cause=first-frame PNG capture path must be absolute recovery=set ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG to a writable absolute PNG path or unset it"
-    );
-}
-
-#[cfg(windows)]
-#[test]
-fn editor_first_frame_capture_path_preserves_windows_absolute_path_semantics() {
+fn editor_first_frame_capture_path_resolves_an_absolute_environment_value() {
     for absolute in [
         std::path::PathBuf::from(r"C:\zircon\editor-first-frame.png"),
         std::path::PathBuf::from(r"\\server\share\editor-first-frame.png"),
@@ -101,17 +107,20 @@ fn editor_first_frame_capture_path_preserves_windows_absolute_path_semantics() {
                 absolute.clone().into_os_string()
             ))
             .unwrap(),
-            Some(absolute)
+            Some(ProjectPaths::resolve_path(absolute).unwrap())
         );
     }
+}
 
-    for relative in [
-        OsString::from(r"C:editor-first-frame.png"),
-        OsString::from(r"\editor-first-frame.png"),
-        OsString::from(r"/editor-first-frame.png"),
-    ] {
-        assert!(super::super::editor_first_frame_capture_path_from_value(Some(relative)).is_err());
-    }
+#[cfg(windows)]
+#[test]
+fn editor_first_frame_capture_path_rejects_windows_drive_relative_input() {
+    assert!(
+        super::super::editor_first_frame_capture_path_from_value(Some(OsString::from(
+            r"C:editor-first-frame.png",
+        )))
+        .is_err()
+    );
 }
 
 #[cfg(unix)]
@@ -123,7 +132,7 @@ fn editor_first_frame_capture_path_preserves_non_utf8_absolute_path() {
 
     assert_eq!(
         super::super::editor_first_frame_capture_path_from_value(Some(value.clone())).unwrap(),
-        Some(std::path::PathBuf::from(value))
+        Some(ProjectPaths::resolve_path(std::path::PathBuf::from(value)).unwrap())
     );
 }
 
@@ -141,7 +150,7 @@ fn editor_first_frame_capture_path_rejects_an_explicit_empty_or_blank_environmen
         assert!(error
             .to_string()
             .contains("ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG"));
-        assert!(error.to_string().contains("writable absolute PNG path"));
+        assert!(error.to_string().contains("writable PNG path"));
     }
 }
 

@@ -87,3 +87,22 @@ Plugins04 的 scene-hook/evaluator hard cut 已删除旧 `sequence` 根模块，
 - Managed Rust module-resolution reservation `9c4084258b844b11a304f6f9df496ed8` is durably pending
   for the canonical Rust 1.94.1 lib check. Queued validation delays only fixed return; commit and
   fixed return remain pending, so this artifact stays open.
+
+## 2026-08-05 current-source compiled-sequence reconciliation
+
+- Production has advanced beyond the earlier crate-root raw-sequence call: the evaluation pipeline
+  now imports `compile_sequence_for_world` and `apply_compiled_sequence_to_world` from the neutral
+  `zircon_runtime::animation` owner and caches compiled sequences by revision. The stale guard first
+  produced the required RED because it still expected `crate::apply_sequence_to_world`.
+- The guard now asserts the Runtime compiled-sequence owner and both canonical compiled APIs while
+  rejecting every `crate::sequence::` caller. Its exact test is `1/1` GREEN in 13.396 seconds;
+  `py_compile` and scoped `git diff --check` are also exit `0`.
+- The complete Frameworks05 module is not GREEN on current source: it ran 28 tests in 62.148 seconds
+  and ended `27/28` because `zircon_editor/src/core/gateway/in_process.rs` contains an inline
+  production-module test that imports and constructs `DefaultLevelManager`. This is the same
+  Editor01 test-placement boundary described by
+  `docs/plans/zircon_editor/editor/01/failure-2026-07-31-authoring-world-test-concrete-level-manager.md`,
+  but the affected gateway source and canonical test file are currently attributed to the active
+  `20260805-editor02-retention-page-hardcut` Session. Their ownership was not overridden.
+- The declared managed Cargo check and fixed return remain pending until the support failure is
+  resolved and the complete Python gate is `28/28` GREEN. This artifact therefore remains `open`.

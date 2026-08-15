@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -9,6 +10,10 @@ use crate::core::resource::{ResourceLocator, ResourceRecord};
 use super::{AssetMetaDocument, PackageAssetRegistry, ProjectManifest};
 
 static NEXT_CATALOG_INPUT_GENERATION: AtomicU64 = AtomicU64::new(1);
+
+const PROJECT_CATALOG_INPUT_SHARD_COUNT: usize = 64;
+
+type ProjectCatalogInputShard = HashMap<AssetId, Arc<ProjectCatalogInputRecord>>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ProjectCatalogInputRecord {
@@ -70,6 +75,19 @@ impl ProjectCatalogInputRecord {
         }
     }
 
+    fn with_resource(&self, resource: ResourceRecord) -> Self {
+        let artifact_reference_revision = resource.revision;
+        Self {
+            resource,
+            source_path: self.source_path.clone(),
+            meta_path: self.meta_path.clone(),
+            meta: self.meta.clone(),
+            source_mtime_unix_ms: self.source_mtime_unix_ms,
+            artifact_reference_revision,
+            direct_references: Arc::clone(&self.direct_references),
+        }
+    }
+
     #[cfg(test)]
     pub(crate) fn new_for_test(
         resource: ResourceRecord,
@@ -128,10 +146,12 @@ impl ProjectCatalogInputSource {
 #[derive(Clone, Debug)]
 pub struct ProjectCatalogInputGeneration {
     sequence: u64,
+    predecessor_sequence: Option<u64>,
+    delta_from_predecessor: ProjectCatalogInputDelta,
     project_root: PathBuf,
     manifest: ProjectManifest,
     package_assets: PackageAssetRegistry,
-    records: HashMap<AssetId, ProjectCatalogInputRecord>,
+    records: Vec<Arc<ProjectCatalogInputShard>>,
 }
 
 impl ProjectCatalogInputGeneration {
@@ -142,10 +162,12 @@ impl ProjectCatalogInputGeneration {
     ) -> Arc<Self> {
         Arc::new(Self {
             sequence: next_sequence(),
+            predecessor_sequence: None,
+            delta_from_predecessor: ProjectCatalogInputDelta::default(),
             project_root: project_root.to_path_buf(),
             manifest,
             package_assets,
-            records: HashMap::new(),
+            records: empty_catalog_input_shards(),
         })
     }
 
@@ -157,17 +179,7 @@ impl ProjectCatalogInputGeneration {
         records: impl IntoIterator<Item = ResourceRecord>,
         sources: HashMap<AssetId, ProjectCatalogInputSource>,
     ) -> Arc<Self> {
-        let records = records
-            .into_iter()
-            .filter(|record| record.primary_locator.label().is_none())
-            .filter_map(|record| {
-                let source = sources.get(&record.id).cloned()?;
-                Some((
-                    record.id,
-                    ProjectCatalogInputRecord::from_source(record, source),
-                ))
-            })
-            .collect::<HashMap<_, _>>();
+        let records = catalog_input_shards_from_full_scan(records, sources);
         if previous.project_root == project_root
             && previous.manifest == *manifest
             && previous.package_assets == *package_assets
@@ -175,13 +187,90 @@ impl ProjectCatalogInputGeneration {
         {
             return Arc::clone(previous);
         }
-        Arc::new(Self {
+        let mut current = Self {
             sequence: next_sequence(),
+            predecessor_sequence: Some(previous.sequence),
+            delta_from_predecessor: ProjectCatalogInputDelta::default(),
             project_root: project_root.to_path_buf(),
             manifest: manifest.clone(),
             package_assets: package_assets.clone(),
             records,
-        })
+        };
+        current.delta_from_predecessor = catalog_delta_from_full_records(&current, previous);
+        Arc::new(current)
+    }
+
+    /// Publishes a mutation without rebuilding unchanged catalog-input records.
+    ///
+    /// Full scans still use [`Self::publish`]. Targeted imports provide only records whose
+    /// resource state can have changed plus source data for roots whose catalog input changed.
+    pub(crate) fn publish_targeted(
+        previous: &Arc<Self>,
+        project_root: &Path,
+        manifest: &ProjectManifest,
+        package_assets: &PackageAssetRegistry,
+        updated_records: impl IntoIterator<Item = ResourceRecord>,
+        mut updated_sources: HashMap<AssetId, ProjectCatalogInputSource>,
+        removed_ids: impl IntoIterator<Item = AssetId>,
+    ) -> Arc<Self> {
+        let mut records = previous.records.clone();
+        let mut records_changed = false;
+        let mut updated_ids = HashSet::new();
+        let mut touched_ids = HashSet::new();
+
+        for id in removed_ids {
+            touched_ids.insert(id);
+            let shard = Arc::make_mut(&mut records[catalog_input_shard_index(&id)]);
+            records_changed |= shard.remove(&id).is_some();
+        }
+
+        for resource in updated_records {
+            if resource.primary_locator.label().is_some() {
+                continue;
+            }
+            let id = resource.id;
+            touched_ids.insert(id);
+            if !updated_ids.insert(id) {
+                continue;
+            }
+            let record = match updated_sources.remove(&id) {
+                Some(source) => ProjectCatalogInputRecord::from_source(resource, source),
+                None => match previous.record(id) {
+                    Some(previous_record) => previous_record.with_resource(resource),
+                    None => continue,
+                },
+            };
+            let shard = Arc::make_mut(&mut records[catalog_input_shard_index(&id)]);
+            if shard
+                .get(&id)
+                .is_some_and(|existing| existing.as_ref() == &record)
+            {
+                continue;
+            }
+            shard.insert(id, Arc::new(record));
+            records_changed = true;
+        }
+
+        if !records_changed
+            && previous.project_root == project_root
+            && previous.manifest == *manifest
+            && previous.package_assets == *package_assets
+        {
+            return Arc::clone(previous);
+        }
+
+        let mut current = Self {
+            sequence: next_sequence(),
+            predecessor_sequence: Some(previous.sequence),
+            delta_from_predecessor: ProjectCatalogInputDelta::default(),
+            project_root: project_root.to_path_buf(),
+            manifest: manifest.clone(),
+            package_assets: package_assets.clone(),
+            records,
+        };
+        current.delta_from_predecessor =
+            catalog_delta_from_touched_records(&current, previous, &touched_ids);
+        Arc::new(current)
     }
 
     pub(crate) fn publish_metadata(
@@ -196,13 +285,18 @@ impl ProjectCatalogInputGeneration {
         {
             return Arc::clone(previous);
         }
-        Arc::new(Self {
+        let mut current = Self {
             sequence: next_sequence(),
+            predecessor_sequence: Some(previous.sequence),
+            delta_from_predecessor: ProjectCatalogInputDelta::default(),
             project_root: project_root.to_path_buf(),
             manifest: manifest.clone(),
             package_assets: package_assets.clone(),
             records: previous.records.clone(),
-        })
+        };
+        current.delta_from_predecessor =
+            catalog_delta_from_touched_records(&current, previous, &HashSet::new());
+        Arc::new(current)
     }
 
     pub fn sequence(&self) -> u64 {
@@ -222,74 +316,25 @@ impl ProjectCatalogInputGeneration {
     }
 
     pub fn records(&self) -> impl Iterator<Item = &ProjectCatalogInputRecord> {
-        self.records.values()
+        self.records
+            .iter()
+            .flat_map(|shard| shard.values().map(Arc::as_ref))
     }
 
     pub fn record(&self, id: AssetId) -> Option<&ProjectCatalogInputRecord> {
-        self.records.get(&id)
+        self.records[catalog_input_shard_index(&id)]
+            .get(&id)
+            .map(Arc::as_ref)
     }
 
     pub fn delta_since(&self, previous: &Self) -> ProjectCatalogInputDelta {
         if self.sequence == previous.sequence {
             return ProjectCatalogInputDelta::default();
         }
-        if self.project_root != previous.project_root {
-            let mut delta = ProjectCatalogInputDelta {
-                project_metadata_changed: true,
-                added: self.records.values().cloned().collect(),
-                removed: previous.records.values().cloned().collect(),
-                ..ProjectCatalogInputDelta::default()
-            };
-            sort_delta(&mut delta);
-            return delta;
+        if self.predecessor_sequence == Some(previous.sequence) {
+            return self.delta_from_predecessor.clone();
         }
-
-        let mut delta = ProjectCatalogInputDelta {
-            project_metadata_changed: self.manifest != previous.manifest
-                || self.package_assets != previous.package_assets,
-            ..ProjectCatalogInputDelta::default()
-        };
-        for (id, current) in &self.records {
-            let Some(previous_record) = previous.records.get(id) else {
-                delta.added.push(current.clone());
-                continue;
-            };
-            if current.resource.primary_locator != previous_record.resource.primary_locator {
-                delta.renamed.push(ProjectCatalogInputRename {
-                    previous_locator: previous_record.resource.primary_locator.clone(),
-                    current_locator: current.resource.primary_locator.clone(),
-                    previous: previous_record.clone(),
-                    current: current.clone(),
-                });
-            } else if current != previous_record {
-                delta.modified.push(current.clone());
-            }
-        }
-        for (id, previous_record) in &previous.records {
-            if !self.records.contains_key(id) {
-                delta.removed.push(previous_record.clone());
-            }
-        }
-        sort_delta(&mut delta);
-        delta
-    }
-
-    pub(crate) fn input_sources(&self) -> HashMap<AssetId, ProjectCatalogInputSource> {
-        self.records
-            .iter()
-            .map(|(id, record)| {
-                (
-                    *id,
-                    ProjectCatalogInputSource::new(
-                        record.source_path.clone(),
-                        record.meta_path.clone(),
-                        record.meta.clone(),
-                        record.source_mtime_unix_ms,
-                        record.direct_references.to_vec(),
-                    ),
-                )
-            })
-            .collect()
+        catalog_delta_from_full_records(self, previous)
     }
 
     #[cfg(test)]
@@ -301,14 +346,144 @@ impl ProjectCatalogInputGeneration {
     ) -> Arc<Self> {
         Arc::new(Self {
             sequence: next_sequence(),
+            predecessor_sequence: None,
+            delta_from_predecessor: ProjectCatalogInputDelta::default(),
             project_root: project_root.to_path_buf(),
             manifest,
             package_assets,
-            records: records
-                .into_iter()
-                .map(|record| (record.resource.id, record))
-                .collect(),
+            records: catalog_input_shards_from_records(records),
         })
+    }
+}
+
+fn empty_catalog_input_shards() -> Vec<Arc<ProjectCatalogInputShard>> {
+    (0..PROJECT_CATALOG_INPUT_SHARD_COUNT)
+        .map(|_| Arc::new(ProjectCatalogInputShard::new()))
+        .collect()
+}
+
+fn catalog_input_shards_from_full_scan(
+    records: impl IntoIterator<Item = ResourceRecord>,
+    mut sources: HashMap<AssetId, ProjectCatalogInputSource>,
+) -> Vec<Arc<ProjectCatalogInputShard>> {
+    let mut shards = empty_catalog_input_shards();
+    for resource in records {
+        if resource.primary_locator.label().is_some() {
+            continue;
+        }
+        let id = resource.id;
+        let Some(source) = sources.remove(&id) else {
+            continue;
+        };
+        Arc::make_mut(&mut shards[catalog_input_shard_index(&id)]).insert(
+            id,
+            Arc::new(ProjectCatalogInputRecord::from_source(resource, source)),
+        );
+    }
+    shards
+}
+
+fn catalog_input_shards_from_records(
+    records: impl IntoIterator<Item = ProjectCatalogInputRecord>,
+) -> Vec<Arc<ProjectCatalogInputShard>> {
+    let mut shards = empty_catalog_input_shards();
+    for record in records {
+        let id = record.resource.id;
+        Arc::make_mut(&mut shards[catalog_input_shard_index(&id)]).insert(id, Arc::new(record));
+    }
+    shards
+}
+
+fn catalog_input_shard_index(id: &AssetId) -> usize {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    id.hash(&mut hasher);
+    (hasher.finish() as usize) % PROJECT_CATALOG_INPUT_SHARD_COUNT
+}
+
+fn catalog_delta_from_full_records(
+    current: &ProjectCatalogInputGeneration,
+    previous: &ProjectCatalogInputGeneration,
+) -> ProjectCatalogInputDelta {
+    if current.project_root != previous.project_root {
+        let mut delta = ProjectCatalogInputDelta {
+            project_metadata_changed: true,
+            added: current.records().cloned().collect(),
+            removed: previous.records().cloned().collect(),
+            ..ProjectCatalogInputDelta::default()
+        };
+        sort_delta(&mut delta);
+        return delta;
+    }
+
+    let mut delta = ProjectCatalogInputDelta {
+        project_metadata_changed: catalog_project_metadata_changed(current, previous),
+        ..ProjectCatalogInputDelta::default()
+    };
+    for current_record in current.records() {
+        append_catalog_record_delta(
+            &mut delta,
+            previous.record(current_record.resource.id),
+            Some(current_record),
+        );
+    }
+    for previous_record in previous.records() {
+        if current.record(previous_record.resource.id).is_none() {
+            append_catalog_record_delta(&mut delta, Some(previous_record), None);
+        }
+    }
+    sort_delta(&mut delta);
+    delta
+}
+
+fn catalog_delta_from_touched_records(
+    current: &ProjectCatalogInputGeneration,
+    previous: &ProjectCatalogInputGeneration,
+    touched_ids: &HashSet<AssetId>,
+) -> ProjectCatalogInputDelta {
+    if current.project_root != previous.project_root {
+        return catalog_delta_from_full_records(current, previous);
+    }
+
+    let mut delta = ProjectCatalogInputDelta {
+        project_metadata_changed: catalog_project_metadata_changed(current, previous),
+        ..ProjectCatalogInputDelta::default()
+    };
+    for id in touched_ids {
+        append_catalog_record_delta(&mut delta, previous.record(*id), current.record(*id));
+    }
+    sort_delta(&mut delta);
+    delta
+}
+
+fn catalog_project_metadata_changed(
+    current: &ProjectCatalogInputGeneration,
+    previous: &ProjectCatalogInputGeneration,
+) -> bool {
+    current.manifest != previous.manifest || current.package_assets != previous.package_assets
+}
+
+fn append_catalog_record_delta(
+    delta: &mut ProjectCatalogInputDelta,
+    previous: Option<&ProjectCatalogInputRecord>,
+    current: Option<&ProjectCatalogInputRecord>,
+) {
+    match (previous, current) {
+        (None, Some(current)) => delta.added.push(current.clone()),
+        (Some(previous), None) => delta.removed.push(previous.clone()),
+        (Some(previous), Some(current))
+            if current.resource.primary_locator != previous.resource.primary_locator =>
+        {
+            delta.renamed.push(ProjectCatalogInputRename {
+                previous_locator: previous.resource.primary_locator.clone(),
+                current_locator: current.resource.primary_locator.clone(),
+                previous: previous.clone(),
+                current: current.clone(),
+            });
+        }
+        (Some(previous), Some(current)) if current != previous => {
+            delta.modified.push(current.clone());
+        }
+        _ => {}
     }
 }
 

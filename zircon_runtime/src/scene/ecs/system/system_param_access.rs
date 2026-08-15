@@ -12,6 +12,7 @@ pub struct SystemParamAccess {
     message_reads: Vec<TypeId>,
     message_writes: Vec<TypeId>,
     has_deferred_commands: bool,
+    deferred_command_lane_count: u8,
     conservative_world_access: bool,
 }
 
@@ -62,8 +63,13 @@ impl SystemParamAccess {
         Ok(())
     }
 
-    pub fn add_deferred_commands(&mut self) {
+    pub fn add_deferred_commands(&mut self) -> Result<(), SystemParamError> {
+        if self.deferred_command_lane_count != 0 {
+            return Err(SystemParamError::MultipleDeferredCommandParams);
+        }
         self.has_deferred_commands = true;
+        self.deferred_command_lane_count = 1;
+        Ok(())
     }
 
     pub fn add_conservative_world_access(&mut self) {
@@ -132,6 +138,10 @@ impl SystemParamAccess {
         Ok(())
     }
 
+    pub(crate) fn deferred_command_lane_count(&self) -> u8 {
+        self.deferred_command_lane_count
+    }
+
     pub(crate) fn merge_param_set_access(&mut self, other: &Self) {
         for resource_id in other.resource_reads.iter().copied() {
             insert_id(&mut self.resource_reads, resource_id);
@@ -152,6 +162,9 @@ impl SystemParamAccess {
             insert_type_id(&mut self.message_writes, type_id);
         }
         self.has_deferred_commands |= other.has_deferred_commands;
+        self.deferred_command_lane_count = self
+            .deferred_command_lane_count
+            .max(other.deferred_command_lane_count);
         self.conservative_world_access |= other.conservative_world_access;
         self.component_access
             .merge_param_set_unchecked(&other.component_access);

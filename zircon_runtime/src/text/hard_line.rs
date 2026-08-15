@@ -51,6 +51,14 @@ pub(crate) fn hard_line_count(text: &str) -> usize {
     count
 }
 
+/// Returns whether canonical segmentation can produce more than one hard line.
+///
+/// This is the allocation-free rejection path for viewport virtualization. A source separator or
+/// an over-cap run is the only way the plain, unwrapped path can select a strict line subset.
+pub(crate) fn has_multiple_hard_lines(text: &str) -> bool {
+    text.len() > TEXT_SHAPING_RUN_MAX_BYTES || text.chars().any(is_hard_line_separator)
+}
+
 /// Materializes only the requested canonical hard-line range.
 pub(crate) fn hard_line_window(text: &str, range: Range<usize>) -> Vec<HardLine> {
     if range.start >= range.end {
@@ -255,8 +263,9 @@ fn capped_content_end(text: &str, start: usize, end: usize) -> usize {
 #[cfg(test)]
 mod tests {
     use super::{
-        TEXT_SHAPING_RUN_MAX_BYTES, hard_line_count, hard_line_count_and_window, hard_line_end,
-        hard_line_start, hard_line_window, hard_lines, next_hard_line_start, visit_hard_lines,
+        hard_line_count, hard_line_count_and_window, hard_line_end, hard_line_start,
+        hard_line_window, hard_lines, has_multiple_hard_lines, next_hard_line_start,
+        visit_hard_lines, TEXT_SHAPING_RUN_MAX_BYTES,
     };
 
     #[test]
@@ -272,11 +281,9 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![(0..1, 1..3), (3..4, 4..7), (7..8, 8..9), (9..9, 9..9)]
         );
-        assert!(
-            lines
-                .windows(2)
-                .all(|lines| lines[0].source_range().end == lines[1].source_range().start)
-        );
+        assert!(lines
+            .windows(2)
+            .all(|lines| lines[0].source_range().end == lines[1].source_range().start));
     }
 
     #[test]
@@ -297,11 +304,9 @@ mod tests {
         assert_eq!(lines[1].content, TEXT_SHAPING_RUN_MAX_BYTES - 1..text.len());
         assert!(lines[1].separator.is_empty());
         assert!(!lines[1].is_run_cap_break());
-        assert!(
-            lines
-                .windows(2)
-                .all(|lines| lines[0].source_range().end == lines[1].source_range().start)
-        );
+        assert!(lines
+            .windows(2)
+            .all(|lines| lines[0].source_range().end == lines[1].source_range().start));
     }
 
     #[test]
@@ -331,6 +336,19 @@ mod tests {
         let text = "a".repeat(TEXT_SHAPING_RUN_MAX_BYTES + 1);
 
         assert_eq!(hard_line_count(&text), 2);
+    }
+
+    #[test]
+    fn hard_line_multiplicity_fast_path_matches_separators_and_run_cap() {
+        assert!(!has_multiple_hard_lines("single line"));
+        assert!(!has_multiple_hard_lines(
+            &"a".repeat(TEXT_SHAPING_RUN_MAX_BYTES)
+        ));
+        assert!(has_multiple_hard_lines("first\r\nsecond"));
+        assert!(has_multiple_hard_lines("first\u{2028}second"));
+        assert!(has_multiple_hard_lines(
+            &"a".repeat(TEXT_SHAPING_RUN_MAX_BYTES + 1)
+        ));
     }
 
     #[test]

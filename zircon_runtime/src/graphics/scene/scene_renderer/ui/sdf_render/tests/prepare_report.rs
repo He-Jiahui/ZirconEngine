@@ -19,9 +19,7 @@ fn sdf_renderer_uses_persistent_capacity_managed_vertex_buffer() {
     assert!(!renderer.contains("prepare_text_runs_cpu_for_frame"));
     assert!(renderer.contains("atlas_bake: &SdfAtlasBake"));
     assert!(text_system.contains("let mut sdf_atlas_bake = self.text_state.build_sdf_atlas("));
-    assert!(
-        text_system.contains("record_generation_failures(&sdf_atlas_bake.generation_failures)")
-    );
+    assert!(text_system.contains("record_generation_failures(&sdf_atlas_bake.generation_failures)"));
     assert!(text_system.contains("self.sdf_cpu_frame.prepare("));
     assert!(text_system.contains("self.sdf_cpu_frame.invalidate();"));
     assert!(cpu_frame.contains("prepared_sdf_texts"));

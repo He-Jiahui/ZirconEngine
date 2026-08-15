@@ -12,8 +12,8 @@ fn runtime_surface_present_sources_stay_folder_backed() {
     let root = entry_root();
 
     assert!(
-        runtime_app_source.contains("surface_present_failed: bool"),
-        "runtime entry app should remember failed surface-present state"
+        !runtime_app_source.contains("surface_present_failed: bool"),
+        "terminal surface-present failures should use the shared fatal failure state instead of a fallback-only flag"
     );
     assert!(
         runtime_app_source.contains("mod surface_present;"),

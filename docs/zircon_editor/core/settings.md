@@ -1,12 +1,15 @@
 ---
 related_code:
   - zircon_editor/src/core/settings
+  - zircon_editor/src/core/context/builder.rs
+  - zircon_editor/src/core/jobs/quota_settings.rs
   - zircon_editor/src/core/context/editor_context.rs
   - zircon_editor/src/ui/host/editor_manager.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_accessors.rs
   - zircon_runtime/src/core/runtime/tasks/bounded_keyed_io/lane/shutdown.rs
 implementation_files:
+  - zircon_editor/src/core/settings/startup.rs
   - zircon_editor/src/core/settings/registry.rs
   - zircon_editor/src/core/settings/change_log.rs
   - zircon_editor/src/core/settings/persistence.rs
@@ -14,8 +17,10 @@ implementation_files:
 plan_sources:
   - docs/plans/zircon_editor/editor/17-editor-services-and-recovery.md
   - docs/plans/zircon_editor/editor/17/failure-2026-07-30-editor-settings-persistence-and-hot-projection.md
+  - docs/plans/zircon_editor/editor/14/failure-2026-07-23-settings-registry-job-category-quota-migration.md
 tests:
-  - zircon_editor/src/core/settings/tests.rs
+  - zircon_editor/src/core/settings/tests/
+  - zircon_editor/src/core/jobs/tests/quota_settings_contract.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_accessors.rs
 doc_type: module-detail
 ---
@@ -30,9 +35,14 @@ bounded deltas. UI panels never create a registry copy or own persistence.
 ## Authority And Snapshots
 
 Definitions have a validated lowercase dot-separated `SettingsKey`, a maximum
-durable scope, a `SettingSchema`, default value, restart flag, and category
-path. Resolution precedence is Session, Project, User, then the definition
-default. A definition scope restricts the durable layers it may occupy:
+durable scope, a `SettingSchema`, default value, restart flag, and
+locale-neutral `SettingsPresentation`. Presentation stores validated label,
+description, and non-empty category localization keys; it never stores a
+localized display string or slash-separated category text. The authority keeps
+those keys opaque and a UI projection resolves them through one captured
+`EditorI18nService` locale. Resolution precedence is Session, Project, User,
+then the definition default. A definition scope restricts the durable layers it
+may occupy:
 
 | Definition scope | Allowed writes |
 | --- | --- |
@@ -51,10 +61,20 @@ need changes use a cursor/delta API backed by entry, byte, and age budgets; a
 cursor that falls behind receives `requires_snapshot` rather than retaining an
 unbounded history.
 
-User and Project sources are loaded through the authority and cached for the
-active binding. Switching or clearing a project invalidates that binding before
-the next project source is read. Invalid source data is recorded as invalid and
-does not partially replace a valid layer.
+At editor construction, the context composition root creates the one product
+registry and registers each subsystem's built-in definitions. It passes that
+registry to generic `SettingsStartup`, which loads the User layer atomically
+and retains a typed `Loaded`, `Missing`, or `Invalid` provenance. The
+composition root then resolves the complete restart-only job quota set once
+from the loaded registry and runtime scheduler parallelism before moving the
+same registry into `SettingsAuthority`. The current `EditorJobSystem` never
+hot-applies quota changes; persisted changes become admission policy only in
+the next editor context.
+
+Project sources are loaded through the authority and cached for the active
+binding. Switching or clearing a project invalidates that binding before the
+next project source is read. Invalid User or Project source data is recorded as
+invalid and does not partially replace a valid layer.
 
 ## Persistence And Shutdown
 

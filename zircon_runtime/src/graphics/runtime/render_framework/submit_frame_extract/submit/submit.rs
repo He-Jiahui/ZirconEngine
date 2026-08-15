@@ -89,7 +89,7 @@ fn submit_selected_camera_frame(
     let output_policy = ViewportCameraStackOutputPolicy::from(output_policy);
     let owns_viewport_submission = output_policy.owns_viewport_submission();
     let owns_shared_viewport_products = output_policy.owns_shared_viewport_products();
-    let context = {
+    let mut context = {
         crate::profile_scope!("runtime", "render_framework", "build_submission_context");
         match build_frame_submission_context_from_runtime_frame_extract(
             framework,
@@ -143,11 +143,12 @@ fn submit_selected_camera_frame(
             .map(|record| record.async_capture_request(generation))
     })
     .flatten();
+    let environment_ibl_bake_reservation = context.take_environment_ibl_bake_reservation();
     let frame = {
         crate::profile_scope!("runtime", "render_framework", "render_frame_with_pipeline");
         match state
             .renderer
-            .render_frame_with_pipeline_async_capture_task_pool(
+            .render_frame_with_pipeline_async_capture_task_pool_with_environment_ibl_bake_reservation(
                 &runtime_frame,
                 context.compiled_pipeline(),
                 context.capabilities(),
@@ -155,6 +156,7 @@ fn submit_selected_camera_frame(
                 resolved_history.previous_history_available(),
                 framework.compute_task_pool(),
                 viewport_capture,
+                environment_ibl_bake_reservation,
             ) {
             Ok(frame) => frame,
             Err(error) => {
@@ -253,10 +255,11 @@ fn submit_selected_camera_frame(
         let viewport_record =
             viewport_record_mut_after_generation_check(&mut state, viewport, &context)?;
         viewport_record.attach_capture_frame_profile(&frame_profile_write.capture_profile);
-        if let Some(profile) = frame_profile_write.resolved_gpu_profile.as_deref() {
+        for profile in &frame_profile_write.resolved_gpu_profiles {
             viewport_record.attach_capture_frame_profile(profile);
         }
     }
+    state.last_retained_scene_color_viewport = Some(viewport);
     crate::profile_counter!(
         "runtime",
         "render_framework.last_frame_generation",

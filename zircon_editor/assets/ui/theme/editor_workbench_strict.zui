@@ -20,55 +20,55 @@ workbench_selected = "$editor.surface.selected"
 workbench_border = "$editor.border"
 workbench_border_soft = "$editor.separator.soft"
 workbench_accent = "$editor.accent"
-workbench_accent_2 = "#18a8b3"
+workbench_accent_2 = "$editor.accent"
 workbench_accent_soft = "$editor.accent.soft"
-workbench_accent_dim = "#123941"
-workbench_toast_surface = "#153035f7"
-workbench_toast_text = "#b8c4c8"
-workbench_toast_border = "#35c7d014"
+workbench_accent_dim = "$editor.accent.soft"
+workbench_toast_surface = "$editor.popup"
+workbench_toast_text = "$editor.text.secondary"
+workbench_toast_border = "$editor.accent.soft"
 workbench_button_disabled = "$editor.surface.disabled"
 workbench_button_disabled_text = "$editor.text.disabled"
 workbench_button_disabled_border = "$editor.border.disabled"
 workbench_text = "$editor.text.primary"
 workbench_text_muted = "$editor.text.secondary"
-workbench_mesh_title_text = "#b0babf"
-workbench_text_dim = "#6d797f"
-workbench_status_right_text = "#7d8990"
-workbench_status_right_border = "#242c32"
-workbench_status_no_errors_fill = "#57c66d"
-workbench_table_header_text = "#aab5ba"
-workbench_success = "#66c57d"
-workbench_warning = "#f0b84e"
-workbench_error = "#ec6f62"
-workbench_info = "#63b3ff"
-workbench_field = "#11161a"
-workbench_field_hot = "#151b1f"
-workbench_progress_fill = "#414b54"
-workbench_field_component = "#101417"
-workbench_field_component_border = "#252d33"
-workbench_field_component_focused = "#151b1f"
-workbench_field_component_focused_text = "#d6e0e4"
-workbench_field_component_focus_border = "#2a3238"
-workbench_field_component_disabled = "#24292d"
-workbench_field_component_disabled_text = "#7d878d"
-workbench_field_component_disabled_border = "#30383e"
-workbench_segmented = "#1d2327"
-workbench_selection_label = "#828c93"
-workbench_selection_mark = "#141a1e"
-workbench_selection_mark_border = "#424e56"
-workbench_checkbox_checked = "#173942"
-workbench_radio_checked = "#1b272d"
-workbench_radio_checked_border = "#4c5b63"
-workbench_toggle_track = "#0f1417"
-workbench_toggle_track_border = "#354047"
-workbench_toggle_thumb = "#7c878e"
-workbench_toggle_checked_track = "#173942"
-workbench_toggle_checked_border = "#414b54"
-workbench_toggle_checked_thumb = "#a4aeb4"
-workbench_warning_surface = "#3b2d13"
-workbench_error_surface = "#3a1715"
-workbench_success_surface = "#17311f"
-workbench_info_surface = "#10263d"
+workbench_mesh_title_text = "$editor.text.secondary"
+workbench_text_dim = "$editor.text.disabled"
+workbench_status_right_text = "$editor.text.secondary"
+workbench_status_right_border = "$editor.separator.soft"
+workbench_status_no_errors_fill = "$editor.semantic.success"
+workbench_table_header_text = "$editor.text.secondary"
+workbench_success = "$editor.semantic.success"
+workbench_warning = "$editor.semantic.warning"
+workbench_error = "$editor.semantic.error"
+workbench_info = "$editor.semantic.info"
+workbench_field = "$editor.surface.recessed"
+workbench_field_hot = "$editor.surface.2"
+workbench_progress_fill = "$editor.separator.strong"
+workbench_field_component = "$editor.surface.recessed"
+workbench_field_component_border = "$editor.border"
+workbench_field_component_focused = "$editor.surface.1"
+workbench_field_component_focused_text = "$editor.text.primary"
+workbench_field_component_focus_border = "$editor.focus.ring"
+workbench_field_component_disabled = "$editor.surface.disabled"
+workbench_field_component_disabled_text = "$editor.text.disabled"
+workbench_field_component_disabled_border = "$editor.border.disabled"
+workbench_segmented = "$editor.surface.2"
+workbench_selection_label = "$editor.text.secondary"
+workbench_selection_mark = "$editor.surface.1"
+workbench_selection_mark_border = "$editor.separator.strong"
+workbench_checkbox_checked = "$editor.surface.selected"
+workbench_radio_checked = "$editor.surface.selected"
+workbench_radio_checked_border = "$editor.accent"
+workbench_toggle_track = "$editor.track"
+workbench_toggle_track_border = "$editor.border"
+workbench_toggle_thumb = "$editor.text.secondary"
+workbench_toggle_checked_track = "$editor.surface.selected"
+workbench_toggle_checked_border = "$editor.accent"
+workbench_toggle_checked_thumb = "$editor.text.secondary"
+workbench_warning_surface = "$editor.semantic.warning.container"
+workbench_error_surface = "$editor.semantic.error.container"
+workbench_success_surface = "$editor.semantic.success.container"
+workbench_info_surface = "$editor.semantic.info.container"
 workbench_viewport_backdrop = "#151719"
 workbench_viewport_ceiling = "#151a1d"
 workbench_viewport_wall = "#1b1d1f"
@@ -158,6 +158,15 @@ selector = ".workbench-toolbar-group"
 [stylesheets.rules.set.self]
 background_color = "$workbench_surface"
 foreground_color = "$workbench_text"
+
+[[stylesheets.rules]]
+selector = ".workbench-panel-header"
+[stylesheets.rules.set.self]
+background_color = "$workbench_panel_raised"
+foreground_color = "$workbench_text"
+border_color = "$workbench_border_soft"
+border_width = "$editor.control.border_width"
+radius = 0.0
 
 [[stylesheets.rules]]
 selector = ".workbench-icon-button"
@@ -297,15 +306,6 @@ selector = ".workbench-component-property-row:hovered"
 background_color = "$workbench_hover"
 foreground_color = "$workbench_text"
 border_color = "$workbench_hover"
-border_width = 0.0
-radius = 0.0
-
-[[stylesheets.rules]]
-selector = ".workbench-component-property-row:focused"
-[stylesheets.rules.set.self]
-background_color = "$workbench_panel"
-foreground_color = "$workbench_text"
-border_color = "$workbench_panel"
 border_width = 0.0
 radius = 0.0
 
@@ -607,35 +607,6 @@ border_width = "$editor.control.border_width"
 radius = "$editor.control.radius.small"
 
 [[stylesheets.rules]]
-selector = ".workbench-focused"
-[stylesheets.rules.set.self]
-background_color = "$workbench_field_hot"
-border_color = "$workbench_accent"
-border_width = "$editor.control.border_width"
-
-[[stylesheets.rules]]
-selector = ".workbench-field:focused"
-[stylesheets.rules.set.self]
-background_color = "$workbench_field_hot"
-border_color = "$workbench_accent"
-border_width = "$editor.control.border_width"
-
-[[stylesheets.rules]]
-selector = ".workbench-component-field:focused"
-[stylesheets.rules.set.self]
-background_color = "$workbench_field_component_focused"
-foreground_color = "$workbench_field_component_focused_text"
-border_color = "$workbench_field_component_focus_border"
-border_width = "$editor.control.border_width"
-
-[[stylesheets.rules]]
-selector = ".workbench-dropdown:focused"
-[stylesheets.rules.set.self]
-background_color = "$workbench_field_hot"
-border_color = "$workbench_accent"
-border_width = "$editor.control.border_width"
-
-[[stylesheets.rules]]
 selector = ".workbench-muted"
 [stylesheets.rules.set.self]
 foreground_color = "$workbench_text_muted"
@@ -724,6 +695,40 @@ selector = ".workbench-dropdown:popup_open"
 background_color = "$workbench_field_hot"
 foreground_color = "$workbench_text"
 border_color = "$workbench_accent"
+border_width = "$editor.control.border_width"
+
+# Focus is an independent outline overlay. Keep these rules after every
+# primary field/selection/open recipe and do not assign background/foreground.
+[[stylesheets.rules]]
+selector = ".workbench-component-property-row:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-field:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-component-field:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$workbench_field_component_focus_border"
+border_width = "$editor.control.border_width"
+
+[[stylesheets.rules]]
+selector = ".workbench-dropdown:focus-visible"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
+border_width = "$editor.control.border_width"
+
+# Legacy authored focus projection remains border-only until M4 replaces the
+# hard-coded class with retained focus-visible state.
+[[stylesheets.rules]]
+selector = ".workbench-focused"
+[stylesheets.rules.set.self]
+border_color = "$editor.focus.ring"
 border_width = "$editor.control.border_width"
 
 [[stylesheets.rules]]

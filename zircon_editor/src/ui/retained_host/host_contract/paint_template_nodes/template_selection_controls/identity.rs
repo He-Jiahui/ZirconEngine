@@ -1,6 +1,6 @@
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::template_component_family::{
-    TemplateComponentFamily, template_component_family,
+    template_component_family, TemplateComponentFamily,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

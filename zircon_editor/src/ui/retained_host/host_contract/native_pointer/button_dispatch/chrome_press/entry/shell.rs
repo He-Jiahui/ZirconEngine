@@ -15,6 +15,7 @@ pub(super) fn dispatch_chrome_shell_press(
     match route {
         ChromePointerRoute::ActivityRail {
             side,
+            control_id: _,
             local_x,
             local_y,
         } => dispatch_activity_rail_press(ui, side, local_x, local_y),

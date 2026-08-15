@@ -1,5 +1,5 @@
 use crate::ui::retained_host::ui_perf::{
-    UiPerfCounter, UiPerfScenario, current_ui_perf_scenario, record_ui_perf_counter,
+    current_ui_perf_scenario, record_ui_perf_counter, UiPerfCounter, UiPerfScenario,
 };
 
 use super::super::super::data::FrameRect;
@@ -9,6 +9,10 @@ use super::HostRedrawRequest;
 impl HostRedrawRequest {
     pub(crate) fn none() -> Self {
         Self::None
+    }
+
+    pub(crate) fn frame_update_only_for_scenario(scenario: UiPerfScenario) -> Self {
+        Self::FrameUpdate { scenario }
     }
 
     pub(in crate::ui::retained_host::host_contract) fn full_frame() -> Self {

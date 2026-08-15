@@ -2,31 +2,30 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{self, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{
-    Arc,
     atomic::{AtomicU64, Ordering},
+    Arc,
 };
 
 use bincode::Options;
 use serde::{Deserialize, Serialize};
 
+use crate::core::resource::io::atomic_write;
 use crate::core::resource::{ResourceRecord, ResourceScheme};
-use crate::core::resource::io::atomic_file::atomic_write;
 
 use super::cache_payload::ArtifactCacheAsset;
 use super::chunk_residency::{
-    ARTIFACT_CHUNK_BYTES, ARTIFACT_CHUNK_DIRECTORY, ArtifactChunkDescriptor,
-    ArtifactChunkInventory, ArtifactChunkResidency, ArtifactChunkResidencyDiagnostics, ChunkReader,
-    chunk_path,
+    chunk_path, ArtifactChunkDescriptor, ArtifactChunkInventory, ArtifactChunkResidency,
+    ArtifactChunkResidencyDiagnostics, ChunkReader, ARTIFACT_CHUNK_BYTES, ARTIFACT_CHUNK_DIRECTORY,
 };
 use crate::asset::project::ProjectPaths;
 use crate::asset::{
-    AssetImportError, AssetKind, AssetUri, ImportedAsset, asset_kind_for_imported_asset,
+    asset_kind_for_imported_asset, AssetImportError, AssetKind, AssetUri, ImportedAsset,
 };
 
 const ARTIFACT_CACHE_EXTENSION: &str = "zasset";
 const ARTIFACT_CACHE_SUFFIX: &str = ".zasset";
-const ARTIFACT_MANIFEST_MAGIC: &[u8] = b"ZRARTM03";
-const ARTIFACT_MANIFEST_SCHEMA_VERSION: u32 = 3;
+const ARTIFACT_MANIFEST_MAGIC: &[u8] = b"ZRARTM04";
+const ARTIFACT_MANIFEST_SCHEMA_VERSION: u32 = 4;
 const ARTIFACT_STAGING_DIRECTORY: &str = ".staging";
 const ARTIFACT_CACHE_ZSTD_LEVEL: i32 = 1;
 const BLAKE3_HEX_LENGTH: usize = 64;
@@ -49,6 +48,9 @@ pub(crate) struct PreparedArtifactWrite {
     pub(crate) locator: AssetUri,
     pub(crate) artifact_path: PathBuf,
     pub(crate) payload: Vec<u8>,
+    pub(crate) raw_bytes: u64,
+    pub(crate) compressed_bytes: u64,
+    pub(crate) chunk_count: usize,
 }
 
 impl ArtifactStore {
@@ -94,13 +96,16 @@ impl ArtifactStore {
         let cache_asset = ArtifactCacheAsset::from_imported(asset)?;
         let staged = StagedArtifactPayload::write(paths.asset_artifact_root(), &cache_asset)?;
         let chunks = publish_chunks(paths.asset_artifact_root(), staged.path())?;
+        let raw_bytes = staged.raw_bytes();
+        let compressed_bytes = staged.compressed_bytes();
+        let chunk_count = chunks.len();
         let manifest = ArtifactManifest {
             schema_version: ARTIFACT_MANIFEST_SCHEMA_VERSION,
             kind: metadata.kind,
             revision: metadata.revision,
             content_hash: staged.content_hash().to_owned(),
-            raw_bytes: staged.raw_bytes(),
-            compressed_bytes: staged.compressed_bytes(),
+            raw_bytes,
+            compressed_bytes,
             chunks,
         };
         let payload = serialize_manifest(&manifest)?;
@@ -111,6 +116,9 @@ impl ArtifactStore {
             locator: artifact_uri,
             artifact_path,
             payload,
+            raw_bytes,
+            compressed_bytes,
+            chunk_count,
         })
     }
 

@@ -15,6 +15,7 @@ use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextRenderMode};
 use zircon_runtime_interface::ui::surface::{UiTextAlign, UiTextDirection, UiTextWrap};
 
+mod fallback_overlay;
 mod font_assets;
 mod font_id_report;
 mod prepare_report;
@@ -22,17 +23,19 @@ mod resolved_batches;
 mod sdf_cpu_frame;
 mod sdf_fallback;
 
-use self::font_assets::{UiFontAssetCache, ensure_font_asset_record};
-use self::font_id_report::{ScreenSpaceUiTextFontIdReport, accumulate_text_font_id_report};
+use self::font_assets::{ensure_font_asset_record, UiFontAssetCache};
+use self::font_id_report::{accumulate_text_font_id_report, ScreenSpaceUiTextFontIdReport};
+#[cfg(feature = "profiling")]
+use self::prepare_report::record_text_prepare_profile;
+use self::prepare_report::text_prepare_report;
 pub(crate) use self::prepare_report::ScreenSpaceUiTextPrepareReport;
 #[cfg(test)]
 use self::prepare_report::ScreenSpaceUiTextRasterUploadReport;
-use self::prepare_report::text_prepare_report;
-use self::resolved_batches::{AutoTextRasterRouter, resolve_text_batches};
+use self::resolved_batches::{resolve_text_batches, AutoTextRasterRouter};
 use self::sdf_cpu_frame::SdfTextCpuFrame;
+use self::sdf_fallback::apply_sdf_atlas_fallbacks_with_cpu_runs;
 #[cfg(test)]
 use self::sdf_fallback::ScreenSpaceUiTextSdfFallbackReport;
-use self::sdf_fallback::apply_sdf_atlas_fallbacks_with_cpu_runs;
 use super::sdf_atlas::ScreenSpaceUiSdfAtlas;
 #[cfg(test)]
 use super::sdf_atlas::SdfAtlasCacheReport;
@@ -45,9 +48,9 @@ use super::text_pixel_snap::text_origin_device_px;
 #[cfg(test)]
 use crate::text::native_bitmap_atlas;
 use crate::text::native_bitmap_atlas::{
-    NativeBitmapAtlasFrame, NativeBitmapAtlasHandoff, NativeBitmapAtlasPrepareReport,
-    NativeBitmapAtlasStorageSubmission, NativeBitmapAtlasTextArea, bitmap_atlas_page_size,
-    native_bitmap_atlas_handoff_for_report,
+    bitmap_atlas_page_size, native_bitmap_atlas_handoff_for_report, NativeBitmapAtlasFrame,
+    NativeBitmapAtlasHandoff, NativeBitmapAtlasPrepareReport, NativeBitmapAtlasStorageSubmission,
+    NativeBitmapAtlasTextArea,
 };
 
 const DEFAULT_FONT_ASSET: &str = "res://fonts/default.font.toml";
@@ -120,98 +123,105 @@ impl ScreenSpaceUiTextSystem {
         native_texts: &[ScreenSpaceUiTextBatch],
         sdf_texts: &[ScreenSpaceUiTextBatch],
     ) -> Result<(), CoreError> {
-        let asset_manager = self.asset_manager.resolve()?;
-        let mut resolved_texts = resolve_text_batches(
-            &mut self.text_state,
-            &mut self.font_assets,
-            asset_manager.as_ref(),
-            &mut self.auto_raster_router,
-            auto_texts,
-            native_texts,
-            sdf_texts,
-        );
-        if resolved_texts.font_faces_changed() {
-            self.invalidate_font_faces();
-        }
-        self.sdf_atlas.prepare(resolved_texts.sdf_texts());
-        let mut sdf_atlas_bake = self.text_state.build_sdf_atlas(
-            self.sdf_atlas.plan().atlas_size,
-            &self.sdf_atlas.plan().slots,
-            asset_manager.as_ref(),
-        );
-        self.sdf_atlas
-            .record_generation_failures(&sdf_atlas_bake.generation_failures);
-        let cpu_plan_reused = self.sdf_cpu_frame.prepare(
-            resolved_texts.sdf_texts(),
-            resolved_texts.native_texts(),
-            &mut self.text_state,
-            asset_manager.as_ref(),
-        );
-        let sdf_fallback_report = {
-            let (sdf_cpu_runs, native_decoration_metrics) = self.sdf_cpu_frame.outputs_mut();
-            apply_sdf_atlas_fallbacks_with_cpu_runs(
-                &mut resolved_texts.native_texts,
-                &mut resolved_texts.sdf_texts,
-                &self.sdf_atlas.plan().runs,
-                sdf_cpu_runs,
-                native_decoration_metrics,
-            )
-        };
-        if sdf_fallback_report.needs_sdf_cpu_rebuild() {
-            self.sdf_cpu_frame.invalidate();
-        }
-        if sdf_fallback_report.has_whole_batch_fallbacks() {
-            self.sdf_atlas
-                .discard_cached_slots_not_in_texts(resolved_texts.sdf_texts());
+        let prepare_report = {
+            crate::profile_scope!("runtime", "ui_text.prepare", "screen_space_ui_text");
+            let asset_manager = self.asset_manager.resolve()?;
+            self.text_state.begin_sdf_generation_frame();
+            let mut resolved_texts = resolve_text_batches(
+                &mut self.text_state,
+                &mut self.font_assets,
+                asset_manager.as_ref(),
+                &mut self.auto_raster_router,
+                auto_texts,
+                native_texts,
+                sdf_texts,
+            );
+            if resolved_texts.font_faces_changed() {
+                self.invalidate_font_faces();
+            }
             self.sdf_atlas.prepare(resolved_texts.sdf_texts());
-            sdf_atlas_bake = self.text_state.build_sdf_atlas(
+            let mut sdf_atlas_bake = self.text_state.build_sdf_atlas(
                 self.sdf_atlas.plan().atlas_size,
                 &self.sdf_atlas.plan().slots,
                 asset_manager.as_ref(),
             );
             self.sdf_atlas
                 .record_generation_failures(&sdf_atlas_bake.generation_failures);
-        }
-        let sdf_atlas_report = self.sdf_atlas.cache_report();
-        let (sdf_cpu_runs, native_decoration_metrics) = self.sdf_cpu_frame.outputs();
-        self.sdf_renderer.prepare(
-            device,
-            queue,
-            viewport_size,
-            resolved_texts.sdf_texts(),
-            sdf_cpu_runs,
-            resolved_texts.native_texts(),
-            native_decoration_metrics,
-            self.sdf_atlas.plan(),
-            &sdf_atlas_bake,
-            sdf_atlas_report.clone(),
-            cpu_plan_reused,
-        );
-        self.sdf_atlas.mark_prepared_pages_uploaded();
-        let sdf_renderer_report = self.sdf_renderer.prepare_report();
-        let native_font_id_report = self.native.prepare(
-            device,
-            queue,
-            viewport_size,
-            resolved_texts.native_texts(),
-            &mut self.bitmap_atlas_renderer,
-            &mut self.text_state,
-            &mut self.font_assets,
-        );
-        let bitmap_atlas_renderer_report = self.bitmap_atlas_renderer.prepare_report();
-        let missing_glyphs = self.text_state.take_missing_glyph_diagnostics();
-        self.last_prepare_report = text_prepare_report(
-            auto_texts,
-            native_texts,
-            sdf_texts,
-            &resolved_texts,
-            sdf_fallback_report,
-            native_font_id_report,
-            missing_glyphs,
-            bitmap_atlas_renderer_report,
-            sdf_atlas_report,
-            sdf_renderer_report,
-        );
+            let cpu_plan_reused = self.sdf_cpu_frame.prepare(
+                resolved_texts.sdf_texts(),
+                resolved_texts.native_texts(),
+                &mut self.text_state,
+                asset_manager.as_ref(),
+            );
+            let sdf_fallback_report = {
+                let (sdf_cpu_runs, native_decoration_metrics) = self.sdf_cpu_frame.outputs_mut();
+                apply_sdf_atlas_fallbacks_with_cpu_runs(
+                    &mut resolved_texts.native_texts,
+                    &mut resolved_texts.sdf_texts,
+                    &self.sdf_atlas.plan().runs,
+                    sdf_cpu_runs,
+                    native_decoration_metrics,
+                )
+            };
+            if sdf_fallback_report.needs_sdf_cpu_rebuild() {
+                self.sdf_cpu_frame.invalidate();
+            }
+            if sdf_fallback_report.has_whole_batch_fallbacks() {
+                self.sdf_atlas
+                    .discard_cached_slots_not_in_texts(resolved_texts.sdf_texts());
+                self.sdf_atlas.prepare(resolved_texts.sdf_texts());
+                sdf_atlas_bake = self.text_state.build_sdf_atlas(
+                    self.sdf_atlas.plan().atlas_size,
+                    &self.sdf_atlas.plan().slots,
+                    asset_manager.as_ref(),
+                );
+                self.sdf_atlas
+                    .record_generation_failures(&sdf_atlas_bake.generation_failures);
+            }
+            let sdf_atlas_report = self.sdf_atlas.cache_report();
+            let (sdf_cpu_runs, native_decoration_metrics) = self.sdf_cpu_frame.outputs();
+            self.sdf_renderer.prepare(
+                device,
+                queue,
+                viewport_size,
+                resolved_texts.sdf_texts(),
+                sdf_cpu_runs,
+                resolved_texts.native_texts(),
+                native_decoration_metrics,
+                self.sdf_atlas.plan(),
+                &sdf_atlas_bake,
+                sdf_atlas_report.clone(),
+                cpu_plan_reused,
+            );
+            self.sdf_atlas.mark_prepared_pages_uploaded();
+            let sdf_renderer_report = self.sdf_renderer.prepare_report();
+            let native_font_id_report = self.native.prepare(
+                device,
+                queue,
+                viewport_size,
+                resolved_texts.native_texts(),
+                &mut self.bitmap_atlas_renderer,
+                &mut self.text_state,
+                &mut self.font_assets,
+            );
+            let bitmap_atlas_renderer_report = self.bitmap_atlas_renderer.prepare_report();
+            let missing_glyphs = self.text_state.take_missing_glyph_diagnostics();
+            text_prepare_report(
+                auto_texts,
+                native_texts,
+                sdf_texts,
+                &resolved_texts,
+                sdf_fallback_report,
+                native_font_id_report,
+                missing_glyphs,
+                bitmap_atlas_renderer_report,
+                sdf_atlas_report,
+                sdf_renderer_report,
+            )
+        };
+        self.last_prepare_report = prepare_report;
+        #[cfg(feature = "profiling")]
+        record_text_prepare_profile(&self.last_prepare_report);
         Ok(())
     }
 
@@ -262,6 +272,11 @@ impl ScreenSpaceUiTextBackend {
         text_state: &mut TextRenderState,
         font_assets: &UiFontAssetCache,
     ) -> ScreenSpaceUiNativePrepareReport {
+        crate::profile_scope!(
+            "runtime",
+            "ui_text.native_raster_plan",
+            "native_text_prepare"
+        );
         self.viewport.update(
             queue,
             Resolution {
@@ -271,8 +286,7 @@ impl ScreenSpaceUiTextBackend {
         );
 
         if texts.is_empty() {
-            self.atlas.trim();
-            self.render_glyphon = false;
+            self.disable_glyphon();
             let bitmap_atlas = text_state.prepare_idle_bitmap_atlas();
             bitmap_atlas_renderer.prepare_idle();
             return ScreenSpaceUiNativePrepareReport {
@@ -326,7 +340,7 @@ impl ScreenSpaceUiTextBackend {
                     buffer,
                     left: placement.left,
                     top: placement.top,
-                    scale: 1.0,
+                    scale: placement.raster_scale,
                     bounds: placement.bounds,
                     default_color: pack_color(text.color),
                     custom_glyphs: &[],
@@ -360,8 +374,7 @@ impl ScreenSpaceUiTextBackend {
                             atlas_format,
                             bitmap_frame.face_validity(),
                         );
-                    self.render_glyphon = false;
-                    self.atlas.trim();
+                    self.disable_glyphon();
                     shadow_commit
                 } else {
                     bitmap_atlas_renderer.prepare_idle();
@@ -387,14 +400,12 @@ impl ScreenSpaceUiTextBackend {
                     renderer_submissions.as_slice(),
                     bitmap_atlas_page_size(),
                 );
-                self.render_glyphon = false;
-                self.atlas.trim();
+                self.disable_glyphon();
                 shadow_commit
             }
             NativeBitmapAtlasHandoff::NoVisibleGlyphs => {
                 bitmap_atlas_renderer.prepare_idle();
-                self.render_glyphon = false;
-                self.atlas.trim();
+                self.disable_glyphon();
                 GlyphAtlasBitmapPageShadowCommit::default()
             }
             NativeBitmapAtlasHandoff::TransparentPlaceholder => {
@@ -405,8 +416,7 @@ impl ScreenSpaceUiTextBackend {
                     &bitmap_frame,
                     storage_submissions.as_slice(),
                 );
-                self.render_glyphon = false;
-                self.atlas.trim();
+                self.disable_glyphon();
                 shadow_commit
             }
             NativeBitmapAtlasHandoff::GlyphonFallback => {
@@ -436,11 +446,22 @@ impl ScreenSpaceUiTextBackend {
         }
     }
 
+    fn disable_glyphon(&mut self) {
+        // Keep the idle atlas reusable during stable native frames; trim only on a real handoff.
+        if take_glyphon_atlas_trim_transition(&mut self.render_glyphon) {
+            self.atlas.trim();
+        }
+    }
+
     fn render<'pass>(&'pass mut self, pass: &mut wgpu::RenderPass<'pass>) {
         if self.render_glyphon {
             let _ = self.renderer.render(&self.atlas, &self.viewport, pass);
         }
     }
+}
+
+fn take_glyphon_atlas_trim_transition(render_glyphon: &mut bool) -> bool {
+    std::mem::replace(render_glyphon, false)
 }
 
 fn prepare_native_bitmap_atlas_transparent_placeholder(
@@ -549,6 +570,7 @@ fn text_bounds(
 struct NativeTextAreaPlacement {
     left: f32,
     top: f32,
+    raster_scale: f32,
     bounds: TextBounds,
 }
 
@@ -559,7 +581,16 @@ fn native_text_area_placement(
     NativeTextAreaPlacement {
         left: text_origin_device_px(text.frame.x),
         top: text_origin_device_px(text.frame.y),
+        raster_scale: native_text_raster_scale(text.raster_scale),
         bounds: text_bounds(viewport_size, text),
+    }
+}
+
+fn native_text_raster_scale(scale: f32) -> f32 {
+    if scale.is_finite() && scale > 0.0 {
+        scale
+    } else {
+        1.0
     }
 }
 

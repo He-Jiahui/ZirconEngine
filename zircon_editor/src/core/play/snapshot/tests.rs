@@ -22,6 +22,7 @@ fn snapshot_materialization_roundtrips_versioned_scene_and_cleans_owned_root() {
     let text = fs::read_to_string(scene.path()).unwrap();
     let decoded = zircon_runtime::scene::DynamicScene::from_versioned_json(&text).unwrap();
     assert_eq!(decoded.entities.len(), 1);
+    assert!(scene.relative_path().as_str().starts_with(".zircon/play/"));
     let owned_root = scene.path().parent().unwrap().to_path_buf();
     scene.cleanup().unwrap();
     assert!(!owned_root.exists());
@@ -37,10 +38,14 @@ fn persisted_scene_is_borrowed_and_never_deleted() {
     fs::write(&path, "scene = true").unwrap();
     let store = PlaySnapshotStore::default();
     let mut scene = store
-        .materialize(&root, &PlaySceneSource::persisted("scenes/main.scene.toml"))
+        .materialize(
+            &root,
+            &PlaySceneSource::persisted("scenes/main.scene.toml").unwrap(),
+        )
         .unwrap();
 
     assert_eq!(scene.path(), path);
+    assert_eq!(scene.relative_path().as_str(), "scenes/main.scene.toml");
     scene.cleanup().unwrap();
     assert!(path.exists());
     let _ = fs::remove_dir_all(root);

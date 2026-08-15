@@ -127,9 +127,7 @@ fn world_property_enum_parsers_match_normalized_values_without_allocation() {
 
     assert!(parse_mobility_source.contains("normalized_identifier_matches(value, \"dynamic\")"));
     assert!(parse_mobility_source.contains("normalized_identifier_matches(value, \"static\")"));
-    assert!(
-        parse_rigid_body_source.contains("normalized_identifier_matches(value, \"kinematic\")")
-    );
+    assert!(parse_rigid_body_source.contains("normalized_identifier_matches(value, \"kinematic\")"));
     assert!(parse_joint_source.contains("normalized_identifier_matches(value, \"generic6dof\")"));
     assert!(parse_joint_source.contains("normalized_identifier_matches(value, \"sixdof\")"));
     assert!(parse_combine_source.contains("normalized_identifier_matches(value, \"multiply\")"));
@@ -179,14 +177,10 @@ fn world_property_value_conversion_errors_use_direct_result_branches() {
         })
         .expect("read expect_resource_id body");
 
-    assert!(
-        expect_i32_source
-            .contains("ScenePropertyValue::Integer(value) => match i32::try_from(value)")
-    );
-    assert!(
-        expect_i32_source
-            .contains("ScenePropertyValue::Unsigned(value) => match i32::try_from(value)")
-    );
+    assert!(expect_i32_source
+        .contains("ScenePropertyValue::Integer(value) => match i32::try_from(value)"));
+    assert!(expect_i32_source
+        .contains("ScenePropertyValue::Unsigned(value) => match i32::try_from(value)"));
     assert!(expect_i32_source.contains("Ok(value) => Ok(value)"));
     assert!(expect_i32_source.contains("Err(_) => Err(SceneError::PropertyTypeMismatch"));
     assert!(expect_i32_source.contains("expected: \"i32 integer\".to_string()"));

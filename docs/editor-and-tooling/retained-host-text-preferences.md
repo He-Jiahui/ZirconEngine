@@ -6,7 +6,7 @@ related_code:
   - zircon_editor/src/core/settings/mod.rs
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/core/settings/io.rs
-  - zircon_editor/src/core/settings/tests.rs
+  - zircon_editor/src/core/settings/tests/mod.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/typography.rs
@@ -22,7 +22,7 @@ implementation_files:
   - zircon_editor/src/core/settings/mod.rs
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/core/settings/io.rs
-  - zircon_editor/src/core/settings/tests.rs
+  - zircon_editor/src/core/settings/tests/mod.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/typography.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/font.rs
@@ -72,11 +72,11 @@ This keeps the small-component work aligned with the larger editor layout plan: 
 
 `utility_tab_text_role` is part of the same typography token group. It defaults to `ui`, can be changed to `code` through the typed `editor.appearance.design_tokens` user setting, and is projected into `HostTextPreferences` rather than being hardcoded inside the Asset Browser utility-tab component.
 
-`paint_text/font.rs` resolves the current `HostTextPreferences` through `fontdb`. Logical families such as `system-ui` and `monospace` map to system sans/mono queries; explicit user-selected names map to `Family::Name`. Embedded font bytes remain only as a last-resort nonblank fallback when the requested family cannot be resolved.
+`paint_text/font.rs` resolves the current `HostTextPreferences` through `fontdb`. Logical families such as `system-ui` and `monospace` map to system sans/mono queries; explicit user-selected names map to `Family::Name`. Resolution produces a bounded two-generation, three-face snapshot shared by measurement, retained rasterization, and draw-list conversion. When a requested system face is unavailable, the retained host uses face 0 of Runtime Text's packaged `ZirconDefaultComposite-subset.ttc` and publishes its private Runtime fallback alias to both the logical matcher and glyphon's backend database, so CPU retention, Runtime measurement, and GPU drawing address the same bytes without shadowing an explicitly selected system `Fira Mono` face. The global cache retains two snapshots and thread-local lookup keeps only a weak reference, so inactive render threads cannot extend that cache lifetime.
 
 ## Runtime Text Boundary
 
-Button label and retained text width measurement call `zircon_runtime::ui::surface::measure_text_size(...)` through the retained-host helper, using the same resolved runtime font family as the paint path. This keeps layout measurement and drawing on the runtime text interface instead of reintroducing editor-local character-width estimates.
+Button label and retained text width measurement call `zircon_runtime::ui::surface::measure_text_size(...)` through the retained-host helper, using the same resolved runtime font family as the retained raster and GPU chrome draw-list paths. Runtime Text discovers system faces first, then registers the same packaged `Fira Mono` face under a private backend alias, so headless measurement can resolve the retained fallback before GPU UI startup loads `res://fonts/default.font.toml` without changing an explicit system-family selection. Each draw-list captures the three resolved face identities once, while a non-text list performs no font capture. This keeps layout measurement and drawing on the runtime text interface instead of reintroducing editor-local character-width estimates or per-command font-cache synchronization.
 
 Asset Browser utility tabs no longer force `UiTextRunPaintStyle::code` in the component. They use the ordinary UI text style by default, so changing the global UI family changes those labels with the rest of the editor shell. Code/mono remains available only through the global `utility_tab_text_role` preference lane, not through a local font-family override.
 
@@ -86,7 +86,7 @@ The current owner split is:
 
 - `zircon_runtime_interface/src/ui/design_tokens.rs`: public editor typography token shape and theme projection.
 - `paint_theme/typography.rs`: retained-host preference storage and token projection.
-- `paint_text/font.rs`: family resolution, cache key, runtime family projection, and measurement helper.
+- `paint_text/font.rs`: bounded face-set resolution, cache key, Runtime Text family projection, and measurement helper.
 - `paint_text/raster.rs`: glyph cache identity includes the resolved font request key.
 - `template_buttons/content/metrics.rs`: button label style and measurement consumer.
 
@@ -108,4 +108,4 @@ The 2026-07-03 S15.4eb follow-up added the global `utility_tab_text_role` route 
 
 Fresh screenshot evidence was attempted but did not complete: `cargo test -p zircon_editor --lib capture_workbench_component_slate_atlas_visual_artifact --no-default-features --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-segmented-metrics-0703b -- --ignored --exact --test-threads=1 --nocapture` timed out after 20 minutes while compiling/linking and its matching target processes were stopped. Current editor PNG modified times therefore remain `2026-07-03 21:04:27` for `editor-components-workbench-slate-atlas-900x620.png`, `2026-07-03 21:01:14` for `editor-window-m3-asset-browser-900x620.png`, and `2026-07-03 21:01:21` for `editor-window-m3-asset-browser-list-900x620.png`; these are not accepted as proof for S15.4eb visual completion.
 
-The former private appearance TOML route has since been retired. Current persistence stores `EditorDesignTokens`, including `utility_tab_text_role`, through the typed settings registry and canonical `zircon.editor.settings` envelope. `core/settings/tests.rs` owns current-shell round-trip and retired-format rejection coverage; the historical 2026-07-04 private-preference commands above are retained only as dated evidence and are not replay guidance.
+The former private appearance TOML route has since been retired. Current persistence stores `EditorDesignTokens`, including `utility_tab_text_role`, through the typed settings registry and canonical `zircon.editor.settings` envelope. `core/settings/tests/mod.rs` mounts current-shell round-trip and retired-format rejection coverage; the historical 2026-07-04 private-preference commands above are retained only as dated evidence and are not replay guidance.

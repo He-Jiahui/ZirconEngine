@@ -8,6 +8,17 @@ import subprocess
 from pathlib import Path
 from typing import Sequence
 
+try:
+    from .zircon_build_cargo_environment import (
+        assert_managed_windows_build_root,
+        managed_cargo_environment,
+    )
+except ImportError:  # pragma: no cover - direct script import path.
+    from zircon_build_cargo_environment import (
+        assert_managed_windows_build_root,
+        managed_cargo_environment,
+    )
+
 
 HUB_TAURI_BUNDLE_TARGET = "nsis"
 HUB_INSTALLERS_DIR_NAME = "installers"
@@ -62,16 +73,26 @@ def run_tauri_build(config: object, target_dir: Path) -> None:
         command.append("--")
         command.extend(runner_args)
 
-    env = os.environ.copy()
-    env["CARGO_TARGET_DIR"] = str(target_dir)
     if config.dry_run:
         print("DRY-RUN", f"CARGO_TARGET_DIR={target_dir}", _quote_command(command))
         return
+    env = hub_cargo_environment(target_dir)
     print(f"CARGO_TARGET_DIR={target_dir} {_quote_command(command)}")
     subprocess.run(command, cwd=config.repo_root / "zircon_hub", check=True, env=env)
 
 
+def hub_cargo_environment(target_dir: Path) -> dict[str, str]:
+    environment = managed_cargo_environment(target_dir, target_dir)
+    # npm otherwise defaults to LocalAppData on Windows before Tauri invokes Cargo.
+    npm_cache = target_dir.resolve() / "npm-cache"
+    npm_cache.mkdir(parents=True, exist_ok=True)
+    environment["npm_config_cache"] = str(npm_cache)
+    return environment
+
+
 def stage_hub_tauri_outputs(config: object, target_dir: Path) -> None:
+    if not config.dry_run:
+        assert_managed_windows_build_root(config.engine_root)
     bundle_root = target_dir / config.profile_dir / "bundle" / HUB_TAURI_BUNDLE_TARGET
     installers_dir = config.engine_root / HUB_INSTALLERS_DIR_NAME
     if config.dry_run:
@@ -91,6 +112,8 @@ def stage_hub_tauri_outputs(config: object, target_dir: Path) -> None:
 def stage_hub_tauri_installers(
     bundle_root: Path, installers_dir: Path, config: object
 ) -> None:
+    if not config.dry_run:
+        assert_managed_windows_build_root(installers_dir)
     if not bundle_root.exists() or not bundle_root.is_dir():
         raise SystemExit(f"Tauri bundle output is missing: {bundle_root}")
 

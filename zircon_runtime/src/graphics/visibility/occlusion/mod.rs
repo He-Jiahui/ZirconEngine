@@ -78,6 +78,9 @@ pub struct HzbOcclusionCullReport {
     pub candidate_instance_count: u32,
     pub dispatch_group_count: u32,
     pub dispatched_phase_count: u32,
+    pub params_buffer_create_count: u32,
+    pub params_upload_byte_count: u64,
+    pub bind_group_create_count: u32,
     pub history_available: bool,
     pub readback_stats: Option<HzbOcclusionCullReadbackStats>,
     pub readback_stats_source_frame_index: Option<u64>,
@@ -96,6 +99,9 @@ impl HzbOcclusionCullReport {
             candidate_instance_count: 0,
             dispatch_group_count: 0,
             dispatched_phase_count: 0,
+            params_buffer_create_count: 0,
+            params_upload_byte_count: 0,
+            bind_group_create_count: 0,
             history_available: false,
             readback_stats: None,
             readback_stats_source_frame_index: None,
@@ -120,6 +126,9 @@ impl HzbOcclusionCullReport {
             candidate_instance_count,
             dispatch_group_count,
             dispatched_phase_count,
+            params_buffer_create_count: 0,
+            params_upload_byte_count: 0,
+            bind_group_create_count: 0,
             history_available,
             readback_stats: None,
             readback_stats_source_frame_index: None,
@@ -129,6 +138,18 @@ impl HzbOcclusionCullReport {
             indirect_args_readback: None,
             indirect_args_readback_source_frame_index: None,
         }
+    }
+
+    pub const fn with_workspace_stats(
+        mut self,
+        params_buffer_create_count: u32,
+        params_upload_byte_count: u64,
+        bind_group_create_count: u32,
+    ) -> Self {
+        self.params_buffer_create_count = params_buffer_create_count;
+        self.params_upload_byte_count = params_upload_byte_count;
+        self.bind_group_create_count = bind_group_create_count;
+        self
     }
 
     pub const fn with_readback_stats(
@@ -187,6 +208,16 @@ mod tests {
             .with_readback_stats(readback_stats);
 
         assert_eq!(report.readback_stats, Some(readback_stats));
+    }
+
+    #[test]
+    fn hzb_occlusion_report_preserves_workspace_churn() {
+        let report = HzbOcclusionCullReport::single_frame_reproject(6, 42, 1, 1, true)
+            .with_workspace_stats(1, 64, 2);
+
+        assert_eq!(report.params_buffer_create_count, 1);
+        assert_eq!(report.params_upload_byte_count, 64);
+        assert_eq!(report.bind_group_create_count, 2);
     }
 
     #[test]

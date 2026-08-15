@@ -38,6 +38,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn upda
     }
 
     update_quality_profile(state, context);
+    let gpu_timing_status = state.renderer.last_gpu_timing_status();
     let gpu_timer_frame_result = state.renderer.last_gpu_timer_frame_result().cloned();
     let gpu_pipeline_statistics_frame_result = state
         .renderer
@@ -61,6 +62,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn upda
         stats,
         frame_generation,
         cpu_submit_time_us,
+        gpu_timing_status,
         gpu_timer_frame_result.as_ref(),
         gpu_pipeline_statistics_frame_result.as_ref(),
         memory_budget,

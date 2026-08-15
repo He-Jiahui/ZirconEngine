@@ -4,8 +4,8 @@ use std::sync::mpsc::{self, Receiver, Sender};
 
 use super::super::DesktopExportExecutionSummary;
 use super::{
-    DesktopExportProgressSnapshot,
     worker::{DesktopExportJobProgress, DesktopExportJobResult},
+    DesktopExportProgressSnapshot,
 };
 use crate::core::jobs::{CancellationToken, EditorJobSystem, JobTicket};
 use zircon_runtime::asset::project::ProjectManifest;

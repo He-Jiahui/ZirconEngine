@@ -32,15 +32,16 @@ fn timeline_strip_projection_preserves_duration_playhead_track_and_keys() {
     ))
     .expect("timeline strip should project");
 
-    assert_eq!(node.timeline_strip.duration, 3.0);
-    assert_eq!(node.timeline_strip.current_time, 2.25);
-    assert_eq!(node.timeline_strip.tick_interval, 0.5);
-    assert_eq!(node.timeline_strip.track_label.as_str(), "Run_Fwd");
-    assert_eq!(node.timeline_strip.keys.row_count(), 2);
-    let selected = node.timeline_strip.keys.row_data(1).expect("selected key");
-    assert_eq!(selected.time, 2.0);
-    assert_eq!(selected.label.as_str(), "Run_Fwd");
-    assert!(selected.selected);
+    let generation = &node.timeline_strip.generation;
+    assert_eq!(generation.duration(), 3.0);
+    assert_eq!(generation.current_time(), 2.25);
+    assert_eq!(generation.tick_interval(), 0.5);
+    assert_eq!(generation.track_label(), "Run_Fwd");
+    assert_eq!(generation.keys().len(), 2);
+    let selected = &generation.keys()[1];
+    assert_eq!(selected.time(), 2.0);
+    assert_eq!(selected.label(), "Run_Fwd");
+    assert!(selected.selected());
 }
 
 #[test]
@@ -66,16 +67,10 @@ fn timeline_strip_projection_normalizes_ranges_and_filters_malformed_keys() {
     ))
     .expect("timeline strip should project");
 
-    assert_eq!(node.timeline_strip.duration, 1.0);
-    assert_eq!(node.timeline_strip.current_time, 1.0);
-    assert_eq!(node.timeline_strip.tick_interval, 0.25);
-    assert_eq!(node.timeline_strip.keys.row_count(), 1);
-    assert_eq!(
-        node.timeline_strip
-            .keys
-            .row_data(0)
-            .expect("valid key")
-            .time,
-        1.0
-    );
+    let generation = &node.timeline_strip.generation;
+    assert_eq!(generation.duration(), 1.0);
+    assert_eq!(generation.current_time(), 1.0);
+    assert_eq!(generation.tick_interval(), 0.25);
+    assert_eq!(generation.keys().len(), 1);
+    assert_eq!(generation.keys()[0].time(), 1.0);
 }

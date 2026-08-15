@@ -138,6 +138,10 @@ impl SceneViewportController {
         self.state.orbit_controller.set_target(target);
     }
 
+    pub(crate) fn orbit_target(&self) -> Vec3 {
+        self.state.orbit_target
+    }
+
     pub(crate) fn is_handle_drag_active(&self) -> bool {
         matches!(
             self.state.drag,

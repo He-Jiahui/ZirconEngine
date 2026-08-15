@@ -19,10 +19,11 @@ use subassets::{
 };
 #[cfg(feature = "runtime")]
 use zircon_runtime::asset::{
-    cook_virtual_geometry_from_mesh, AssetImportContext, AssetImportError, AssetImportOutcome,
-    ImportedAsset, MeshAttributeValues, MeshMorphTargetAsset, MeshSkinAsset, MeshVertex,
-    ModelAsset, ModelPrimitiveAsset, VirtualGeometryCookConfig, MESH_ATTRIBUTE_NORMAL,
-    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT,
+    cook_mesh_sdf_or_fallback, cook_virtual_geometry_from_mesh, AssetImportContext,
+    AssetImportError, AssetImportOutcome, ImportedAsset, MeshAttributeValues, MeshMorphTargetAsset,
+    MeshSdfCookBudget, MeshSdfCookSettings, MeshSkinAsset, MeshVertex, ModelAsset,
+    ModelPrimitiveAsset, VirtualGeometryCookConfig, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
+    MESH_ATTRIBUTE_TANGENT,
 };
 #[cfg(feature = "runtime")]
 use zircon_runtime::core::math::{Vec2, Vec3};
@@ -49,6 +50,8 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
     let mut meshes = Vec::new();
     let mesh_skins = mesh_skin_assets_by_mesh(&document, &buffers);
     let source_hint = context.uri.to_string();
+    let mesh_sdf_settings = context.mesh_sdf_cook_request()?.settings();
+    let mut mesh_sdf_budget = MeshSdfCookBudget::default();
 
     for mesh in document.meshes() {
         let mut mesh_primitives = Vec::new();
@@ -119,12 +122,16 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
                 &joint_weights,
                 mesh_name,
                 &source_hint,
+                mesh_sdf_settings,
+                &mut mesh_sdf_budget,
             )?;
             primitive_asset.mesh = Some(gltf_label_reference(
                 &context.uri,
                 &format!("Mesh{}/Primitive{}", mesh.index(), primitive.index()),
             ));
-            primitives.push(primitive_asset.clone());
+            let mut model_primitive = primitive_asset.clone();
+            model_primitive.mesh_sdf = None;
+            primitives.push(model_primitive);
             mesh_primitives.push(GltfPrimitiveSubasset {
                 primitive_index: primitive.index(),
                 material_index: primitive.material().index(),
@@ -267,6 +274,8 @@ fn primitive_from_indexed_mesh(
     joint_weights: &[[f32; 4]],
     mesh_name: Option<&str>,
     source_hint: &str,
+    mesh_sdf_settings: Option<MeshSdfCookSettings>,
+    mesh_sdf_budget: &mut MeshSdfCookBudget,
 ) -> Result<ModelPrimitiveAsset, AssetImportError> {
     if positions.len() % 3 != 0 {
         return Err(AssetImportError::Parse(
@@ -334,11 +343,17 @@ fn primitive_from_indexed_mesh(
             ..VirtualGeometryCookConfig::default()
         },
     );
+    let mesh_sdf = match mesh_sdf_settings {
+        Some(settings) => cook_mesh_sdf_or_fallback(&vertices, indices, settings, mesh_sdf_budget)
+            .map_err(|error| AssetImportError::Parse(format!("cook mesh SDF: {error}")))?,
+        None => None,
+    };
 
     Ok(ModelPrimitiveAsset {
         vertices,
         indices: indices.to_vec(),
         mesh: None,
+        mesh_sdf,
         virtual_geometry,
     })
 }

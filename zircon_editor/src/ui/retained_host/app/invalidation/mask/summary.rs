@@ -34,6 +34,12 @@ impl HostInvalidationMask {
         if self.contains(Self::RENDER) {
             names.push("render");
         }
+        if self.contains(Self::SHELL_CONTENT) {
+            names.push("shell-content");
+        }
+        if self.contains(Self::WORKBENCH_PROJECTION) {
+            names.push("workbench-projection");
+        }
         names.join("|")
     }
 }

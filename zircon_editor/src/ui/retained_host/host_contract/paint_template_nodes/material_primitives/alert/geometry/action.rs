@@ -2,7 +2,7 @@ use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeD
 
 use super::super::identity::alert_has_action;
 use super::metrics::{
-    ALERT_ACTION_EDGE, ALERT_ACTION_GAP, ALERT_ACTION_TRAILING, alert_bounded_extent,
+    alert_bounded_extent, ALERT_ACTION_EDGE, ALERT_ACTION_GAP, ALERT_ACTION_TRAILING,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_action_width(

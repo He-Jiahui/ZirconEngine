@@ -1,11 +1,14 @@
 mod builtin_postprocess_executors;
 mod builtin_scene_executors;
+mod compute_pipeline_cache;
 mod frame_command_encoder_set;
+mod generic_compute_executor;
 mod materialization;
 mod materialization_validation;
 pub(crate) mod parallel_encoder_set;
 mod preview_sky_executor;
 mod render_graph_execution_record;
+mod render_graph_execution_resource_identities;
 mod render_graph_execution_resources;
 mod render_pass_execution_context;
 mod render_pass_executor_id;

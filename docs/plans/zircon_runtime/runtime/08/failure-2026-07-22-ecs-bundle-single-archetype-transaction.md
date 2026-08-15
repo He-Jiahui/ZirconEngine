@@ -11,10 +11,13 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/scene/ecs/bundle.rs
   - zircon_runtime/src/scene/world/typed_api.rs
+  - zircon_runtime/src/scene/tests/ecs_typed_api/bundle_width.rs
   - zircon_runtime/src/scene/ecs/storage
   - zircon_runtime/src/scene/ecs/archetype
 tests:
-  - cargo test -p zircon_runtime --lib bundle --locked --jobs 1 -- --nocapture --test-threads=1
+  - one_thousand_bundle_spawns_publish_only_final_archetypes
+  - one_hundred_thousand_bundle_spawns_publish_only_final_archetypes
+  - managed Windows core-min zircon_runtime lib-test filter ecs_typed_api::bundle_width
   - 1..8 component bundle transition and rollback counters
 ---
 
@@ -53,4 +56,49 @@ Bundle只暴露立即执行的`insert_into`，没有component-id/signature预声
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `bundle-width test call repaired / managed current-source verification unavailable`; no pass is claimed.
+
+### 2026-08-08 current-source compile recovery
+
+- The Plugins01 managed native live-host gate was unable to compile its target tests because this
+  Runtime08 test passed a bare `Health` component to `World::spawn` at both the 1k and ignored
+  100k width gates. `Bundle` deliberately implements unary tuples, and `World::spawn` accepts
+  only `B: Bundle`; the two calls now pass `(Health(...),)` through that shared normal path.
+- The former `bundle_transaction.rs:530` `E0308` is already corrected in the current shared
+  source and was not changed by this repair session. Scoped Rust 1.94.1 `rustfmt --check`,
+  `git diff --check`, and source-shape assertions confirm zero bare `Health` spawns and two
+  unary tuple spawns.
+- The required Windows managed core-min lib-test gate was first deferred by compatible pool job
+  `775162eecde34cacb2e2b7d31584d1d4`; that job later released. The post-repair request then
+  failed before job materialization with `database is locked`, and its one controlled retry was
+  not submitted after coordinator health preflight timed out (`cargo.acquire`, two attempts).
+  No Cargo process, test result, broad result, or fixed return is claimed until the same focused
+  gate reaches a terminal current-source outcome.
+
+### 2026-08-09 current-source lifecycle audit
+
+- `BundleTransaction::begin_commit` now calls
+  `World::register_prevalidated_node_identity_without_components`, not the record-restoration
+  path. Staged defaults and explicit bundle values are consequently the only component
+  publishers. `bundle_default_overrides.rs` covers an empty spawn and explicit
+  `Name`/`Hierarchy`/`LocalTransform` overrides with `Add=1`, `Replace=0`, and `Insert=1` per
+  affected component; observers see the final values at first dispatch.
+- Scoped `rustfmt +1.94.1 --check` and `git diff --check` are clean for the owned bundle/runtime
+  sources. This is static source evidence only. The failure remains open: no managed Cargo gate,
+  scale probe, independent post-validation review, failure return, or coordinator milestone
+  commit is claimed.
+
+### 2026-08-09 structure and typed-error audit
+
+- The Runtime08 public path is now `World::{spawn, insert_bundle}` plus the narrow
+  `Bundle::stage_into` staging contract. `Bundle` has no commit/insert authority, and the
+  transaction has no legacy `insert_into` caller or compatibility surface. This keeps behavior
+  in the named `bundle_transaction` leaf owner rather than a root facade.
+- The transaction's externally reachable failure cases use typed `SceneError` variants
+  (`BundleFinalStateNotValidated`, duplicate/width/reservation limits, and transaction
+  invariants); a source scan found no `SceneError::Message` fallback in the bundle contract.
+  `ArchetypeSignature::with_component_added` is idempotent, so staged default/explicit overrides
+  produce the same final signature rather than duplicate membership.
+- `bundle_transaction.rs` is 659 lines, below the structure convention's 800-line warning
+  threshold. These are source-shape checks only; the failure remains open pending the managed
+  Windows lib-test, scale probes, and independent post-validation review.

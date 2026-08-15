@@ -311,6 +311,7 @@ pub enum SaveDirtyViewCompletion {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SaveDirtyViewFailureKind {
     Admission,
+    Job,
     Serialize,
     Write,
     Import,
@@ -319,7 +320,8 @@ pub enum SaveDirtyViewFailureKind {
     MissingCompletion,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
+#[error("{message}")]
 pub struct SaveDirtyViewFailure {
     kind: SaveDirtyViewFailureKind,
     message: String,

@@ -29,6 +29,7 @@ pub(crate) fn undo_policy_for_event(event: &EditorEvent) -> EditorEventUndoPolic
         EditorEvent::WorkbenchMenu(
             MenuAction::ClearConsole
             | MenuAction::SetConsoleMessageFilter(_)
+            | MenuAction::SetConsoleSourceFilter(_)
             | MenuAction::SelectPlayMode(_),
         )
         | EditorEvent::Draft(_)

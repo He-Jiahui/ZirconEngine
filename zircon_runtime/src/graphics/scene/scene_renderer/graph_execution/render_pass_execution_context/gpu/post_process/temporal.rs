@@ -71,7 +71,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         let taa_history_valid = stack
             .history_textures
             .is_some_and(SceneFrameHistoryTextures::taa_scene_color_history_valid);
-        stack.post_process.execute_taa_resolve(
+        let bind_group_created = stack.post_process.execute_taa_resolve(
             self.device,
             self.queue,
             self.encoder,
@@ -83,38 +83,20 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             taa_reactive_mask_view,
             taa_output_view,
             taa_history_current_view,
+            resources.texture_identity(scene_color_resource_name),
+            resources.texture_identity(scene_depth_resource_name),
+            resources.texture_identity(scene_velocity_resource_name),
+            resources.texture_identity(taa_history_previous_resource_name),
+            resources.texture_identity(taa_history_current_resource_name),
+            resources.texture_identity(taa_reactive_mask_resource_name),
             taa_output_attachment_ops,
             taa_history_attachment_ops,
             taa_history_valid,
             self.frame.extract.view.anti_alias,
         );
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_taa_reactive_mask_clear_to_resource(
-        &mut self,
-        pass_name: &str,
-        taa_reactive_mask_resource_name: &str,
-        attachment_ops: RenderGraphAttachmentOps,
-    ) -> Result<(), String> {
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!(
-                "TAA reactive mask clear graph executor for pass `{pass_name}` requires post-process stack context"
-            )
-        })?;
-        let resources = &*self.resources;
-        let resource_resolver = self.resource_resolver;
-        let taa_reactive_mask_view = Self::require_texture_view_by_name(
-            resources,
-            resource_resolver,
-            taa_reactive_mask_resource_name,
-            RenderGraphResourceAccessKind::Write,
-        )?;
-        stack.post_process.execute_taa_reactive_mask_clear(
-            self.encoder,
-            taa_reactive_mask_view,
-            attachment_ops,
-        );
+        if bind_group_created {
+            self.record_taa_resolve_bind_group_create();
+        }
         Ok(())
     }
 

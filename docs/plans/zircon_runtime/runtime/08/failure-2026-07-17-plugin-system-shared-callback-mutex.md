@@ -74,3 +74,8 @@ Open state: `前向复核中`; no pass is claimed.
 - 当前 lowest-owner 源码复核：`SystemRegistrationBuilder`、`ExternalSystemRegistrationBuilder` 和 `RuntimeSceneSystemRegistrationBuilder` 都保存可 clone 的 build template；每次 `build` 创建独立 `CallbackSceneSystem` / `ExternalCallbackSceneSystem` / `FunctionRuntimeSceneSystem`，实例持有自己的 `FnMut` 与 `SystemState`，运行路径不再保存或获取 callback `Mutex`。native replay 当前通过 `register_external_native_system` 进入同一 factory path。
 - 已存在的 source tests 覆盖 typed/external/runtime callback 的 per-instance state；external worker-safe callback 还覆盖两个 World 实例的 overlap。该结论目前仅来自 source review 与未执行的测试源码，native hot-reload/unload generation lifetime、panic 语义以及受管多 World 并行验证仍未获得运行证据。
 - 因此本 artifact 保持 `open`，直到 declared tests 和 native generation lifecycle evidence 在后续受管 validation gate 中返回真实结果。
+
+### 2026-08-13 current-source reconciliation
+
+- native generation lifetime 也已具备生产 owner 与源码矩阵：callback snapshot 持有 generation，foreign call 前取得无 per-call state mutex 的原子 lease；lifecycle transition 在 active callbacks 归零前拒绝 unload/reload。测试覆盖 snapshot 延迟 lease、generation keepalive、failed reload reopen、64-thread lease race 和 zero state-mutex acquire diagnostics。
+- 因此共享 callback mutex handoff 的 production 实现已闭包，未发现 `Arc<Mutex<FnMut>>` 或跨 World 共享 mutable callback state 的回流。剩余仅是 declared per-instance/multi-World/native-generation managed test 与 benchmark terminal evidence；本文件继续 `open`，不以静态 source tests 代替运行结果。

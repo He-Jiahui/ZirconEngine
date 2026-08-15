@@ -3,12 +3,12 @@ use super::super::lighting_pipeline::DeferredLightingPipelineCache;
 use super::DeferredSceneResources;
 use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::ShadingModelDescriptor;
-use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::scene::scene_renderer::advanced_lighting::froxel::VolumetricApplyFallbackResources;
 use crate::graphics::scene::scene_renderer::environment::{
     LightmapGpuBindings, ReflectionProbeGpuBindings,
 };
 use crate::graphics::scene::scene_renderer::shadow::slot::{GpuShadowGlobals, GpuShadowSlot};
+use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::types::GraphicsError;
 use std::time::{Duration, Instant};
 use wgpu::util::DeviceExt;

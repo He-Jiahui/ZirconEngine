@@ -1,11 +1,13 @@
 ---
 related_code:
   - zircon_editor/src/core/jobs
+  - zircon_editor/src/core/asset/dirty/save_batch.rs
+  - zircon_editor/src/core/asset/dirty/save_job_adapter.rs
   - zircon_editor/src/core/context/builder.rs
   - zircon_editor/src/core/context/editor_context.rs
   - zircon_editor/src/core/editor_message/message/payload.rs
   - zircon_editor/src/core/editor_message/topics.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access/status.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/completion.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/job.rs
@@ -43,6 +45,7 @@ implementation_files:
   - zircon_editor/src/core/jobs/ticket.rs
   - zircon_editor/src/core/jobs/pump.rs
   - zircon_editor/src/core/jobs/event.rs
+  - zircon_editor/src/core/asset/dirty/save_job_adapter.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/completion.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/controller/job.rs
@@ -59,7 +62,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/worker.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/job_queue/updates.rs
   - zircon_editor/src/ui/retained_host/app/build_export_wizard_session/session_state.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access/status.rs
   - zircon_editor/src/ui/retained_host/app/job_progress.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/startup/state/construction/assembly.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/tick.rs
@@ -86,6 +89,8 @@ tests:
   - zircon_editor/src/core/jobs/tests/progress_contract.rs
   - zircon_editor/src/core/jobs/tests/background_storm_contract.rs
   - zircon_editor/src/core/jobs/tests/thread_ownership_contract.rs
+  - zircon_editor/src/core/asset/dirty/save_job_adapter/tests.rs
+  - tools/tests/test_editor14_interactive_save_job_adapter_contract.py
   - zircon_editor/src/ui/host/export_cargo_process.rs
   - zircon_editor/src/ui/host/export_process_support/output_capture.rs
   - zircon_editor/src/core/process.rs
@@ -107,7 +112,7 @@ doc_type: module-detail
 
 `EditorContext` 持有一个 `EditorJobSystem`。`EditorContextBuilder` 强制接收外部 `JobScheduler`，`EditorManager` 从 `CoreHandle::scheduler()` 克隆 Runtime 已有调度器后再构造 context；Builder 同时把同一个 `SharedEditorMessageBus` 交给事件服务和 job 回流泵。因此生产 context 不会隐藏创建第二个线程池，job 完成事实也不会绕过 01 消息内核。
 
-`EditorJobSystem` 只保留 `with_scheduler` 与 `with_scheduler_and_bus` 两个显式构造入口。旧的 `Default`、`with_limits`、`with_bus` 已硬删除，调用方无法再通过看似普通的默认构造隐式创建 `JobScheduler`。`#[cfg(test)]` 下的 `core/jobs/test_support.rs` 使用进程级 `OnceLock<JobScheduler>` 为测试夹具共享一份调度器；每个夹具仍获得独立的 admission state、event channel、bus 和配额，但并行库测试不会按夹具倍增 Rayon worker pool。
+`EditorJobSystem` 只保留三个显式构造入口：基础 scheduler、scheduler + bus，以及 composition root 使用的 scheduler + bus + progress observer。旧的 `Default`、`with_limits`、`with_bus` 已硬删除，调用方无法再通过看似普通的默认构造隐式创建 `JobScheduler`。`#[cfg(test)]` 下的 `core/jobs/test_support.rs` 使用进程级 `OnceLock<JobScheduler>` 为测试夹具共享一份调度器；每个夹具仍获得独立的 admission state、event channel、bus 和配额，但并行库测试不会按夹具倍增 Rayon worker pool。
 
 业务任务实现 `EditorJob`。trait 强制任务及输出为 `Send + 'static`，`JobContext` 只提供协作式取消与进度上报，不提供 UI、窗口或 `EditorContext` 访问。这一类型边界阻止 worker 直接改写主线程状态。
 
@@ -115,7 +120,7 @@ doc_type: module-detail
 
 - `after` 依赖直接转换为 `JobScheduler::schedule_after` 的 `JobHandle` 依赖。
 - `MutexGroup` 保存组尾 `JobHandle`，后续任务把组尾追加为依赖，形成 Runtime 原生依赖链。
-- 类别配额在 Editor 准入层计数；默认 Thumbnail 为 2、Export 为 1、Import 为 Runtime worker parallelism，其余类别不额外限流。
+- 类别配额在 Editor 准入层计数；默认 Thumbnail 为 2、Export、InteractiveSave、Play 均为 1，Import、Compile、Index、Misc 使用 Runtime worker parallelism。所有类别在 context startup 时解析为有限值，不保留 `usize::MAX` 逃逸路径。
 - 同一类别出现排队时按 Interactive、Normal、Background，再按 `JobId` 选择。该顺序是 Editor 逻辑准入顺序，不伪装成 Runtime/OS 线程优先级。
 - `CancellationToken` 是协作式取消。启动前已取消的任务不执行；运行中的任务通过 `check_cancelled` 设置检查点。
 - `EditorJobSystem::join` 原样透传 Runtime `JobScheduler::join`，允许一个已准入 job 在同一 runtime pool 内组织有借用的结构化并发。它不创建 Editor worker、不分配新的 `JobId`，也不占第二份类别许可。
@@ -132,6 +137,14 @@ worker 把 `Started/Completed/Failed/Cancelled` 生命周期边缘写入共享�
 `JobTicket` 提供两种读取方式：`wait()` 阻塞取结果，`try_take()` 非阻塞拉取。结果只有一个所有者，成功或通道关闭后再次 `try_take()` 返回 `None`。
 
 业务失败由 `JobError::Failed(JobFailure)` 保存为 `Arc<dyn Error + Send + Sync>`，不再把错误压成 `String`。`JobError::failed(error)` 接受具体错误类型，`JobError::downcast_ref::<E>()` 可在 ticket/session 边界恢复原始类型；clone 共享同一 source 身份，错误相等性不依赖文本。`JobFailure` 与 `JobError::Failed` 都参与标准 `Error::source()` 链，便于诊断器继续遍历底层 IO、进程或业务错误。只有 `JobEventKind::Failed`、状态栏和面板 diagnostics 等展示投影可以调用 `to_string()`；`JobError::Panicked(String)` 仍只表示 Rust panic payload，不冒充业务 typed error。
+
+## 交互式保存批次
+
+`core/asset/dirty/save_job_adapter.rs` 是 canonical `SaveDirtyViewsRequest` 到唯一 `EditorJobSystem` 的最低层桥接。adapter 不拥有 UI、retained host 或第二套线程/队列：它先通过共享 `PendingAdmissionLedger` 原子预留整批 entry/estimated-byte 容量，预留成功后才解析 save mutex、物化 executor/job/result channel，最后以精确 request/spec 合同提交该预留。任何 mutex 解析、commit 校验或提前返回都会由 reservation `Drop` 释放全部 claim；竞争提交因此既不能越过上限，也不能在最终拒绝前迫使保存 payload 被物化。错误使用配置的总上限与当前占用，不把“剩余容量”误报成 policy limit。
+
+每个 job 固定为 `InteractiveSave + Interactive`，pending state 只保留 `SaveDirtyViewIntent` 与共享 `SaveDirtyViewExecutor`。调用方必须提供与 foreground/autosave 相同的稳定 document save `MutexGroup`；adapter 不复制资源键算法，也不在 admission 前序列化文档。完成回流按显式 ticket budget 扫描，默认每次最多 64 项；批次提交后一次性预分配 document completion slots，每张 ticket 只携带固定槽位索引，terminal outcome 以 O(1) 槽位写入，整批 terminal 后再以 O(1) ownership handoff 交回 `SaveDirtyViewsRequest::apply_completions`，由原 dirty/save-token authority 做 generation-safe compare-and-mark 和失败项 retry 选择。
+
+`begin_shutdown` 只停止 adapter 接受新批次并协作取消其自有 tickets；全局 deadline 与 unfinished diagnostics 仍由 `EditorJobSystem::shutdown` 唯一负责。Editor06/09 后续只负责把 DocumentToolkit executor 和 close/save-all 状态机接到该合同，不能在上层重建 save-all worker、同步写盘 fallback 或第二份 dirty 状态。
 
 ## 统一进度中心
 

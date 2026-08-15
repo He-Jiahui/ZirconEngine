@@ -1,6 +1,7 @@
+use arc_swap::ArcSwapOption;
 use std::fs::{File, OpenOptions};
 use std::path::PathBuf;
-use std::sync::OnceLock;
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 use std::time::Duration;
 
 mod metrics;
@@ -14,11 +15,187 @@ use super::level::{
 };
 pub use super::platform::DiagnosticLogLocation;
 use super::platform::{log_directory_candidates, LogDirectoryCandidate};
-use super::settings::{DiagnosticLogSettings, DiagnosticLogSinkSettings};
+use super::settings::{
+    DiagnosticLogSettings, DiagnosticLogSinkSettings, DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT,
+};
 use super::timestamp::current_log_timestamp;
 
-static LOG_STATE: OnceLock<DiagnosticLogState> = OnceLock::new();
+static LOG_CONTROLLER: OnceLock<ProcessLogController> = OnceLock::new();
 static PANIC_FLUSH_HOOK: OnceLock<()> = OnceLock::new();
+
+/// Keeps the current sink generation alive until every dynamic runtime session has stopped.
+///
+/// The state is unpublished before its worker is joined, so a later dynamic session receives a
+/// fresh generation instead of writing to a closed sink.
+struct ProcessLogController {
+    active_state: ArcSwapOption<DiagnosticLogState>,
+    lifecycle: Mutex<ProcessLogLifecycle>,
+}
+
+#[derive(Default)]
+struct ProcessLogLifecycle {
+    dynamic_session_count: usize,
+}
+
+impl Default for ProcessLogController {
+    fn default() -> Self {
+        Self {
+            active_state: ArcSwapOption::empty(),
+            lifecycle: Mutex::new(ProcessLogLifecycle::default()),
+        }
+    }
+}
+
+impl ProcessLogController {
+    fn initialize(&self, settings: DiagnosticLogSettings) -> Arc<DiagnosticLogState> {
+        let _lifecycle = self.lock_lifecycle();
+        self.active_state
+            .load_full()
+            .unwrap_or_else(|| self.publish_state(settings))
+    }
+
+    fn acquire_dynamic_session(&self, settings: DiagnosticLogSettings) -> Arc<DiagnosticLogState> {
+        let mut lifecycle = self.lock_lifecycle();
+        let state = self
+            .active_state
+            .load_full()
+            .unwrap_or_else(|| self.publish_state(settings));
+        lifecycle.dynamic_session_count = lifecycle.dynamic_session_count.saturating_add(1);
+        state
+    }
+
+    fn release_dynamic_session(&self) -> bool {
+        self.release_dynamic_session_with_timeout(DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT)
+    }
+
+    fn release_dynamic_session_with_timeout(&self, timeout: Duration) -> bool {
+        let mut lifecycle = self.lock_lifecycle();
+        if lifecycle.dynamic_session_count == 0 {
+            return false;
+        }
+        if lifecycle.dynamic_session_count > 1 {
+            lifecycle.dynamic_session_count -= 1;
+            return true;
+        }
+
+        if self
+            .shutdown_active_state_for_library_unload(timeout)
+            .is_none()
+        {
+            return false;
+        }
+        lifecycle.dynamic_session_count = 0;
+        true
+    }
+
+    fn shutdown_when_idle(&self, timeout: Duration) -> bool {
+        let lifecycle = self.lock_lifecycle();
+        if lifecycle.dynamic_session_count != 0 {
+            return false;
+        }
+        self.shutdown_active_state_for_library_unload(timeout)
+            .is_some_and(|state| state.outputs_succeeded())
+    }
+
+    fn shutdown_active_state_for_library_unload(
+        &self,
+        timeout: Duration,
+    ) -> Option<Arc<DiagnosticLogState>> {
+        let Some(state) = self.active_state.swap(None) else {
+            return None;
+        };
+        if state.shutdown_for_library_unload(timeout) {
+            return Some(state);
+        }
+        self.active_state.store(Some(state));
+        None
+    }
+
+    fn active_state(&self) -> Option<Arc<DiagnosticLogState>> {
+        self.active_state.load_full()
+    }
+
+    fn publish_state(&self, settings: DiagnosticLogSettings) -> Arc<DiagnosticLogState> {
+        let state = Arc::new(DiagnosticLogState::from_settings(settings));
+        self.active_state.store(Some(Arc::clone(&state)));
+        state
+    }
+
+    fn lock_lifecycle(&self) -> MutexGuard<'_, ProcessLogLifecycle> {
+        self.lifecycle
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    #[cfg(test)]
+    fn dynamic_session_count(&self) -> usize {
+        self.lock_lifecycle().dynamic_session_count
+    }
+
+    #[cfg(test)]
+    fn acquire_dynamic_session_for_test(
+        &self,
+        state: impl FnOnce() -> DiagnosticLogState,
+    ) -> Arc<DiagnosticLogState> {
+        let mut lifecycle = self.lock_lifecycle();
+        let state = self.active_state.load_full().unwrap_or_else(|| {
+            let state = Arc::new(state());
+            self.active_state.store(Some(Arc::clone(&state)));
+            state
+        });
+        lifecycle.dynamic_session_count = lifecycle.dynamic_session_count.saturating_add(1);
+        state
+    }
+
+    #[cfg(test)]
+    fn release_dynamic_session_for_test(&self) -> bool {
+        self.release_dynamic_session()
+    }
+
+    #[cfg(test)]
+    fn release_dynamic_session_with_timeout_for_test(&self, timeout: Duration) -> bool {
+        self.release_dynamic_session_with_timeout(timeout)
+    }
+
+    #[cfg(test)]
+    fn active_state_for_test(&self) -> Option<Arc<DiagnosticLogState>> {
+        self.active_state()
+    }
+
+    #[cfg(test)]
+    fn dynamic_session_count_for_test(&self) -> usize {
+        self.dynamic_session_count()
+    }
+}
+
+pub(crate) struct DynamicProcessLogLease {
+    released: bool,
+}
+
+impl DynamicProcessLogLease {
+    pub(crate) fn shutdown(&mut self) -> bool {
+        if self.released {
+            return true;
+        }
+        if !process_log_controller().release_dynamic_session() {
+            return false;
+        }
+        self.released = true;
+        true
+    }
+}
+
+impl Drop for DynamicProcessLogLease {
+    fn drop(&mut self) {
+        if !self.released {
+            let _ = process_log_controller().release_dynamic_session();
+        }
+    }
+}
+
+fn process_log_controller() -> &'static ProcessLogController {
+    LOG_CONTROLLER.get_or_init(ProcessLogController::default)
+}
 
 pub fn initialize_process_log(channel: impl Into<String>) -> Option<PathBuf> {
     initialize_process_log_with_location(channel, DiagnosticLogLocation::LocalFirst)
@@ -93,17 +270,8 @@ pub fn initialize_process_log_with_settings(settings: DiagnosticLogSettings) -> 
     let requested_console_enabled = settings.console_enabled;
     let requested_file_enabled = settings.file_enabled;
     let requested_sink_settings = settings.sink.clone();
-    let state = LOG_STATE.get_or_init(|| {
-        DiagnosticLogState::new(
-            requested_channel.clone(),
-            settings.location,
-            settings.filter,
-            settings.console_enabled,
-            settings.file_enabled,
-            settings.sink,
-        )
-    });
-    write_log_lazy("diagnostic_log", || {
+    let state = process_log_controller().initialize(settings);
+    state.write_lazy(DiagnosticLogLevel::Log, "diagnostic_log", || {
         format!(
             "active channel={} requested_channel={} active_filter={} requested_filter={} active_console_enabled={} requested_console_enabled={} active_file_enabled={} requested_file_enabled={} queue_capacity={} requested_queue_capacity={} file={}",
             state.channel,
@@ -126,6 +294,14 @@ pub fn initialize_process_log_with_settings(settings: DiagnosticLogSettings) -> 
     state.file_path.clone()
 }
 
+pub(crate) fn acquire_dynamic_unity_process_log(
+    channel: impl Into<String>,
+) -> DynamicProcessLogLease {
+    let settings = DiagnosticLogSettings::unity_compatible(channel);
+    let _state = process_log_controller().acquire_dynamic_session(settings);
+    DynamicProcessLogLease { released: false }
+}
+
 pub fn write_diagnostic_log(scope: &str, message: impl AsRef<str>) {
     write_diagnostic_log_at(DiagnosticLogLevel::Verbose, scope, message);
 }
@@ -135,8 +311,9 @@ pub fn diagnostic_log_allows(level: DiagnosticLogLevel) -> bool {
 }
 
 pub fn diagnostic_log_allows_for_scope(level: DiagnosticLogLevel, scope: &str) -> bool {
-    LOG_STATE
-        .get()
+    process_log_controller()
+        .active_state()
+        .as_deref()
         .is_some_and(|state| state.allows(level, scope))
 }
 
@@ -157,7 +334,7 @@ pub fn write_error(scope: &str, message: impl AsRef<str>) {
 }
 
 pub fn write_diagnostic_log_at(level: DiagnosticLogLevel, scope: &str, message: impl AsRef<str>) {
-    let Some(state) = LOG_STATE.get() else {
+    let Some(state) = process_log_controller().active_state() else {
         return;
     };
     state.write(level, scope, message.as_ref());
@@ -208,14 +385,17 @@ where
     F: FnOnce() -> M,
     M: AsRef<str>,
 {
-    let Some(state) = LOG_STATE.get() else {
+    let Some(state) = process_log_controller().active_state() else {
         return;
     };
     state.write_lazy(level, scope, message);
 }
 
 pub fn diagnostic_log_sink_snapshot() -> Option<DiagnosticLogSinkSnapshot> {
-    LOG_STATE.get().and_then(DiagnosticLogState::snapshot)
+    process_log_controller()
+        .active_state()
+        .as_deref()
+        .and_then(DiagnosticLogState::snapshot)
 }
 
 /// Installs one process-wide panic hook that attempts the bounded crash flush before delegating.
@@ -236,8 +416,9 @@ pub fn install_process_log_panic_flush(timeout: Duration) {
 /// Hosts use this bounded handoff at panic/crash boundaries. It returns `false` when the timeout
 /// expires or any configured output has failed.
 pub fn flush_process_log(timeout: Duration) -> bool {
-    LOG_STATE
-        .get()
+    process_log_controller()
+        .active_state()
+        .as_deref()
         .and_then(|state| state.sink.as_ref())
         .is_some_and(|sink| sink.flush(timeout))
 }
@@ -247,10 +428,7 @@ pub fn flush_process_log(timeout: Duration) -> bool {
 /// The return value is `false` on timeout or output failure; callers must not report durability
 /// from process exit alone.
 pub fn shutdown_process_log(timeout: Duration) -> bool {
-    LOG_STATE
-        .get()
-        .and_then(|state| state.sink.as_ref())
-        .is_some_and(|sink| sink.shutdown(timeout))
+    process_log_controller().shutdown_when_idle(timeout)
 }
 
 struct DiagnosticLogState {
@@ -265,6 +443,17 @@ struct DiagnosticLogState {
 }
 
 impl DiagnosticLogState {
+    fn from_settings(settings: DiagnosticLogSettings) -> Self {
+        Self::new(
+            sanitize_channel_name(settings.channel),
+            settings.location,
+            settings.filter,
+            settings.console_enabled,
+            settings.file_enabled,
+            settings.sink,
+        )
+    }
+
     fn new(
         channel: String,
         location: DiagnosticLogLocation,
@@ -340,6 +529,18 @@ impl DiagnosticLogState {
         self.sink.as_ref().map(SinkRuntime::snapshot)
     }
 
+    fn shutdown_for_library_unload(&self, timeout: Duration) -> bool {
+        self.sink
+            .as_ref()
+            .is_none_or(|sink| sink.shutdown_for_library_unload(timeout))
+    }
+
+    fn outputs_succeeded(&self) -> bool {
+        self.sink
+            .as_ref()
+            .is_some_and(SinkRuntime::outputs_succeeded)
+    }
+
     #[cfg(test)]
     fn for_test(filter: DiagnosticLogFilterConfig) -> Self {
         Self {
@@ -351,6 +552,23 @@ impl DiagnosticLogState {
             file_path: None,
             sink_settings: DiagnosticLogSinkSettings::default(),
             sink: None,
+        }
+    }
+
+    #[cfg(test)]
+    fn with_test_sink(sink: SinkRuntime) -> Self {
+        let filter = DiagnosticLogFilterConfig::new(DiagnosticLogFilter::Minimum(
+            DiagnosticLogLevel::Verbose,
+        ));
+        Self {
+            channel: "test".to_string(),
+            compiled_filter: CompiledDiagnosticLogFilter::new(&filter),
+            filter,
+            console_enabled: false,
+            file_enabled: false,
+            file_path: None,
+            sink_settings: DiagnosticLogSinkSettings::default(),
+            sink: Some(sink),
         }
     }
 }

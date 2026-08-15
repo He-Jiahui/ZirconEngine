@@ -47,7 +47,7 @@ fn missing_session_entry_points_reject_nonzero_handle() {
 }
 
 fn assert_handle_entry_points_reject_session(
-    api: &zircon_runtime_interface::ZrRuntimeApiV4,
+    api: &zircon_runtime_interface::ZrRuntimeApiV6,
     session: ZrRuntimeSessionHandle,
     expected_code: ZrStatusCode,
     expected_message: &str,
@@ -143,4 +143,75 @@ fn assert_handle_entry_points_reject_session(
         expected_message,
     );
     assert!(host_requests.is_empty());
+
+    let query_world = api.query_world.expect("query_world");
+    let query_request =
+        serde_json::to_vec(&zircon_runtime_interface::world_sync::WorldQuery::default())
+            .expect("serialize world query");
+    let mut query_result = ZrOwnedByteBuffer::empty();
+    assert_session_status(
+        unsafe {
+            query_world(
+                session,
+                ZrByteSlice {
+                    data: query_request.as_ptr(),
+                    len: query_request.len(),
+                },
+                &mut query_result,
+            )
+        },
+        expected_code,
+        expected_message,
+    );
+    assert!(query_result.is_empty());
+
+    let watch_world = api.watch_world.expect("watch_world");
+    let watch_request = serde_json::to_vec(
+        &zircon_runtime_interface::world_sync::WatchRegistration::new(
+            zircon_runtime_interface::world_sync::WatchKey::WorldStructure,
+        ),
+    )
+    .expect("serialize world watch");
+    let mut token = zircon_runtime_interface::world_sync::WatchToken::new(0);
+    assert_session_status(
+        unsafe {
+            watch_world(
+                session,
+                ZrByteSlice {
+                    data: watch_request.as_ptr(),
+                    len: watch_request.len(),
+                },
+                &mut token,
+            )
+        },
+        expected_code,
+        expected_message,
+    );
+    assert!(!token.is_valid());
+
+    let unwatch_world = api.unwatch_world.expect("unwatch_world");
+    let mut removed = u8::MAX;
+    assert_session_status(
+        unsafe {
+            unwatch_world(
+                session,
+                zircon_runtime_interface::world_sync::WatchToken::new(1),
+                &mut removed,
+            )
+        },
+        expected_code,
+        expected_message,
+    );
+    assert_eq!(removed, u8::MAX);
+
+    let drain_world_invalidations = api
+        .drain_world_invalidations
+        .expect("drain_world_invalidations");
+    let mut batches = ZrOwnedByteBuffer::empty();
+    assert_session_status(
+        unsafe { drain_world_invalidations(session, &mut batches) },
+        expected_code,
+        expected_message,
+    );
+    assert!(batches.is_empty());
 }

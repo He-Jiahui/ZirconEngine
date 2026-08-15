@@ -1,6 +1,6 @@
 use super::super::super::super::data::TemplatePaneMenuItemData;
 use super::super::super::style_selector::{
-    WorkbenchPopupRowState, WorkbenchPopupRowStyle, select_workbench_popup_row_style,
+    select_workbench_popup_row_style, WorkbenchPopupRowState, WorkbenchPopupRowStyle,
 };
 use super::super::super::template_popup_row_adornments::menu_item_has_flag;
 

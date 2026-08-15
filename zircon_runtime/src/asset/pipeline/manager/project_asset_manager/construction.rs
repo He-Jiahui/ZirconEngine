@@ -1,13 +1,13 @@
 use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, Mutex, RwLock};
 
-use crate::core::CoreError;
 use crate::core::resource::{ResourceManager, RuntimeResourceState};
+use crate::core::CoreError;
 
 use super::super::builtins::resource_manager_with_builtins;
 use super::super::errors::asset_error_message;
-use super::ProjectAssetManager;
 use super::project_asset_manager::{ProjectSourcePathIndex, ProjectWatcherActivation};
+use super::ProjectAssetManager;
 use crate::asset::artifact::IblBakeArtifactCacheStore;
 use crate::asset::project::ProjectManager;
 use crate::asset::worker_pool::{
@@ -45,6 +45,7 @@ impl ProjectAssetManager {
             resource_manager: resource_manager_with_builtins(),
             residency_stripes: Arc::new(std::array::from_fn(|_| Mutex::new(()))),
             change_subscribers: Arc::new(Mutex::new(Vec::new())),
+            generation_wake_subscribers: Arc::new(Mutex::new(Vec::new())),
             watch_error_subscribers: Arc::new(Mutex::new(Vec::new())),
             watcher_activation: Arc::new(Mutex::new(Option::<Arc<ProjectWatcherActivation>>::None)),
             watch_refresh_gate: Arc::new(Mutex::new(())),

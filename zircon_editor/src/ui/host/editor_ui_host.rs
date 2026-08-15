@@ -1,15 +1,14 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use zircon_runtime::core::{CoreError, CoreHandle, CoreWeak};
-
 use crate::core::asset::{DirtyExternalEffectId, DirtyExternalEffectRevision, DirtyRegistry};
 use crate::core::extension::{
-    DocumentCloseLease, DocumentSaveReport, DocumentToolkit, DocumentToolkitDescriptor,
-    DocumentToolkitRegistry, DocumentToolkitSnapshot, SaveCtx, SaveReason, ToolkitInstanceId,
-    ToolkitLayout, ToolkitSaveFailure,
+    DocumentAutosavePayload, DocumentCloseLease, DocumentSaveReport, DocumentToolkit,
+    DocumentToolkitDescriptor, DocumentToolkitRegistry, DocumentToolkitSnapshot, SaveCtx,
+    SaveReason, ToolkitInstanceId, ToolkitLayout, ToolkitSaveFailure,
 };
 use crate::core::jobs::EditorJobSystem;
+use crate::core::logging::EditorLogService;
 use crate::core::settings::SettingsAuthority;
 use crate::ui::workbench::layout::LayoutManager;
 use crate::ui::workbench::view::{ViewInstanceId, ViewRegistry};
@@ -23,17 +22,17 @@ use super::asset_editor_sessions::{
 use super::editor_capabilities::EditorCapabilitySnapshot;
 use super::editor_error::EditorError;
 use super::editor_session_state::EditorSessionState;
-use super::editor_subsystems::{
-    editor_runtime_sandbox_enabled, editor_subsystem_report_from_core, EditorSubsystemReport,
-};
+use super::editor_subsystems::EditorSubsystemReport;
 use super::host_capability_bridge::{register_vm_host_capabilities, EditorHostVmBridgeReport};
 use super::minimal_host_contract::{editor_host_minimal_contract, EditorHostMinimalReport};
+use super::runtime_services::EditorHostRuntimeServices;
 use super::window_host_manager::WindowHostManager;
 
 pub(super) struct EditorUiHost {
-    // EditorManager is registry-owned; the host must upgrade only at operation boundaries.
-    core: CoreWeak,
+    pub(super) runtime_services: EditorHostRuntimeServices,
     pub(super) settings: Arc<SettingsAuthority>,
+    pub(super) logs: Arc<EditorLogService>,
+    pub(super) jobs: EditorJobSystem,
     pub(super) view_registry: Mutex<ViewRegistry>,
     pub(super) layout_manager: LayoutManager,
     pub(super) window_host_manager: Mutex<WindowHostManager>,
@@ -114,28 +113,26 @@ impl EditorUiHost {
         Self::recover_lock(&self.capability_snapshot)
     }
 
-    pub(super) fn runtime_core(&self) -> Result<CoreHandle, EditorError> {
-        self.core
-            .upgrade()
-            .ok_or_else(|| CoreError::RuntimeUnavailable.into())
-    }
-
     pub(super) fn new(
-        core: &CoreHandle,
+        runtime_services: EditorHostRuntimeServices,
         jobs: EditorJobSystem,
+        logs: Arc<EditorLogService>,
         dirty_documents: DirtyRegistry,
         settings: Arc<SettingsAuthority>,
-    ) -> Self {
+    ) -> Result<Self, EditorError> {
         let minimal_report = editor_host_minimal_contract().self_check();
-        let subsystem_report = editor_subsystem_report_from_core(core);
+        let subsystem_report = runtime_services.subsystem_report()?;
         let capability_snapshot =
             EditorCapabilitySnapshot::from_reports(&minimal_report, &subsystem_report);
-        let runtime_sandbox_enabled = editor_runtime_sandbox_enabled(core);
-        let vm_bridge_report = register_vm_host_capabilities(core, runtime_sandbox_enabled);
+        let runtime_sandbox_enabled = runtime_services.runtime_sandbox_enabled()?;
+        let vm_bridge_report =
+            register_vm_host_capabilities(&runtime_services, runtime_sandbox_enabled);
 
-        Self {
-            core: core.downgrade(),
+        Ok(Self {
+            runtime_services,
             settings,
+            logs,
+            jobs: jobs.clone(),
             view_registry: Mutex::new(ViewRegistry::default()),
             layout_manager: LayoutManager,
             window_host_manager: Mutex::new(WindowHostManager::default()),
@@ -152,37 +149,25 @@ impl EditorUiHost {
             subsystem_report: Mutex::new(subsystem_report),
             capability_snapshot: Mutex::new(capability_snapshot),
             vm_bridge_report,
-        }
+        })
     }
 
     pub(super) fn bootstrap(
-        core: &CoreHandle,
+        runtime_services: EditorHostRuntimeServices,
         jobs: EditorJobSystem,
+        logs: Arc<EditorLogService>,
         dirty_documents: DirtyRegistry,
         settings: Arc<SettingsAuthority>,
     ) -> Result<Self, EditorError> {
-        let host = Self::new(core, jobs, dirty_documents, settings);
+        let host = Self::new(runtime_services, jobs, logs, dirty_documents, settings)?;
         host.register_builtin_views()?;
         host.bootstrap_default_layout()?;
         Ok(host)
     }
 
     pub(super) fn refresh_capabilities(&self) -> Result<EditorCapabilitySnapshot, EditorError> {
-        let core = self.runtime_core()?;
-        self.refresh_capabilities_from_core(&core)
-    }
-
-    pub(super) fn refresh_capabilities_from_core(
-        &self,
-        core: &CoreHandle,
-    ) -> Result<EditorCapabilitySnapshot, EditorError> {
-        let subsystem_report = editor_subsystem_report_from_core(core);
-        let snapshot =
-            EditorCapabilitySnapshot::from_reports(&self.minimal_report, &subsystem_report);
-        *self.lock_subsystem_report() = subsystem_report;
-        *self.lock_capability_snapshot() = snapshot.clone();
-        self.register_builtin_views()?;
-        Ok(snapshot)
+        let subsystem_report = self.runtime_services.subsystem_report()?;
+        self.apply_capability_report(subsystem_report)
     }
 
     pub(super) fn register_document_toolkit(
@@ -191,6 +176,8 @@ impl EditorUiHost {
         layout_id: &'static str,
         tab_id: &'static str,
         save: HostDocumentSaveHook,
+        autosave_source_path: HostDocumentAutosaveSourcePathHook,
+        capture_autosave: HostDocumentAutosaveHook,
     ) -> Result<crate::core::editor_message::DocumentId, EditorError> {
         let toolkit_instance = ToolkitInstanceId::parse(instance_id.0.clone())?;
         if let Some(document) = self
@@ -217,6 +204,8 @@ impl EditorUiHost {
                 descriptor,
                 instance: instance_id.clone(),
                 save,
+                autosave_source_path,
+                capture_autosave,
             }))?;
         if let Err(error) = self.dirty_documents.register_document(document) {
             let _ = self.document_toolkits.unregister(&toolkit_instance);
@@ -226,6 +215,39 @@ impl EditorUiHost {
     }
 
     pub(super) fn save_document_toolkit(
+        &self,
+        instance_id: &ViewInstanceId,
+        reason: SaveReason,
+    ) -> Result<DocumentSaveReport, EditorError> {
+        let toolkit_instance = ToolkitInstanceId::parse(instance_id.0.clone())?;
+        let document = self
+            .document_toolkits
+            .document_for_instance(&toolkit_instance)
+            .ok_or_else(|| EditorError::DocumentToolkitNotRegistered {
+                instance: instance_id.0.clone(),
+            })?;
+        let source_path = self
+            .document_toolkits
+            .autosave_source_path(document, self)?;
+        let save_mutex = super::editor_document_autosave::document_save_mutex_group(&source_path)?;
+        let job = self
+            .runtime_services
+            .foreground_document_save_job(instance_id.clone(), reason)?;
+        let ticket = self
+            .jobs
+            .submit(
+                super::editor_document_autosave::ForegroundDocumentSaveJob::spec(
+                    document, save_mutex,
+                ),
+                job,
+            )
+            .map_err(|error| EditorError::Project(error.to_string()))?;
+        ticket
+            .wait()
+            .map_err(|error| EditorError::Project(error.to_string()))
+    }
+
+    pub(super) fn save_document_toolkit_canonical(
         &self,
         instance_id: &ViewInstanceId,
         reason: SaveReason,
@@ -256,6 +278,29 @@ impl EditorUiHost {
         }
         self.sync_document_dirty_projection(instance_id)?;
         Ok(report)
+    }
+
+    pub(super) fn capture_document_autosave(
+        &self,
+        document: crate::core::editor_message::DocumentId,
+        expected_dirty_generation: u64,
+    ) -> Result<DocumentAutosavePayload, EditorError> {
+        let dirty = self.dirty_documents.snapshot(document)?;
+        if !dirty.is_dirty() || dirty.generation() != expected_dirty_generation {
+            return Err(EditorError::Project(format!(
+                "autosave intent for document {document:?} generation {expected_dirty_generation} was superseded"
+            )));
+        }
+        Ok(self.document_toolkits.capture_autosave(document, self)?)
+    }
+
+    pub(super) fn document_autosave_source_path(
+        &self,
+        document: crate::core::editor_message::DocumentId,
+    ) -> Result<std::path::PathBuf, EditorError> {
+        Ok(self
+            .document_toolkits
+            .autosave_source_path(document, self)?)
     }
 
     pub(super) fn begin_document_close(
@@ -375,11 +420,17 @@ impl EditorUiHost {
 
 type HostDocumentSaveHook =
     fn(&EditorUiHost, &ViewInstanceId, &mut SaveCtx) -> Result<(), ToolkitSaveFailure>;
+type HostDocumentAutosaveSourcePathHook =
+    fn(&EditorUiHost, &ViewInstanceId) -> Result<std::path::PathBuf, ToolkitSaveFailure>;
+type HostDocumentAutosaveHook =
+    fn(&EditorUiHost, &ViewInstanceId) -> Result<DocumentAutosavePayload, ToolkitSaveFailure>;
 
 struct HostDocumentToolkit {
     descriptor: DocumentToolkitDescriptor,
     instance: ViewInstanceId,
     save: HostDocumentSaveHook,
+    autosave_source_path: HostDocumentAutosaveSourcePathHook,
+    capture_autosave: HostDocumentAutosaveHook,
 }
 
 impl DocumentToolkit<EditorUiHost> for HostDocumentToolkit {
@@ -389,5 +440,19 @@ impl DocumentToolkit<EditorUiHost> for HostDocumentToolkit {
 
     fn save(&self, host: &EditorUiHost, context: &mut SaveCtx) -> Result<(), ToolkitSaveFailure> {
         (self.save)(host, &self.instance, context)
+    }
+
+    fn autosave_source_path(
+        &self,
+        host: &EditorUiHost,
+    ) -> Result<std::path::PathBuf, ToolkitSaveFailure> {
+        (self.autosave_source_path)(host, &self.instance)
+    }
+
+    fn capture_autosave(
+        &self,
+        host: &EditorUiHost,
+    ) -> Result<DocumentAutosavePayload, ToolkitSaveFailure> {
+        (self.capture_autosave)(host, &self.instance)
     }
 }

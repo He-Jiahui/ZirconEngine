@@ -10,8 +10,16 @@ use crate::ui::retained_host::host_contract::frame_geometry::union_frame;
 pub(super) fn clear_hovered_template_move(ui: &UiHostWindow) -> NativePointerDispatchResult {
     let before = ui.get_pane_interaction_state();
     let pane_host = ui.global::<PaneSurfaceHostContext>();
-    pane_host.invoke_asset_reference_pointer_left("activity".into());
-    pane_host.invoke_asset_reference_pointer_left("browser".into());
+    if before.activity_asset_references_hovered_index >= 0
+        || before.activity_asset_used_by_hovered_index >= 0
+    {
+        pane_host.invoke_asset_reference_pointer_left("activity".into());
+    }
+    if before.browser_asset_references_hovered_index >= 0
+        || before.browser_asset_used_by_hovered_index >= 0
+    {
+        pane_host.invoke_asset_reference_pointer_left("browser".into());
+    }
     ui.clear_hovered_template_node_for_pointer_move();
     let after = ui.get_pane_interaction_state();
     let reference_damage = merge_hover_damage(

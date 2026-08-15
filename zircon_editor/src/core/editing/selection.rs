@@ -111,7 +111,8 @@ impl SelectionSnapshot {
         match self.state.as_ref() {
             SelectionState::Scene(selection) => Ok(selection.clone()),
             _ => Err(EditCommandError::InvariantViolation {
-                invariant: "scene transaction selection snapshot must use the scene selection model",
+                invariant:
+                    "scene transaction selection snapshot must use the scene selection model",
             }),
         }
     }

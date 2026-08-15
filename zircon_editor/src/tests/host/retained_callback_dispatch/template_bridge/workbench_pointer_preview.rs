@@ -34,11 +34,9 @@ fn componentized_workbench_pointer_hover_updates_icon_button_preview_without_aut
         render_background_for_control(&bridge, "WorkbenchToolMove").as_deref(),
         Some("#20262b")
     );
-    assert!(
-        hover_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(hover_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert!(!hover_effects.render_dirty);
     assert!(!hover_effects.presentation_dirty);
     assert!(harness.runtime.journal().records().is_empty());
@@ -56,11 +54,9 @@ fn componentized_workbench_pointer_hover_updates_icon_button_preview_without_aut
         render_background_for_control(&bridge, "WorkbenchToolMove").as_deref(),
         Some("#171c20")
     );
-    assert!(
-        leave_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(leave_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert!(!leave_effects.render_dirty);
     assert!(!leave_effects.presentation_dirty);
     assert!(harness.runtime.journal().records().is_empty());
@@ -122,11 +118,9 @@ fn componentized_workbench_pointer_hover_shows_labeled_icon_tooltip_and_hides_it
         control_string(&bridge, "WorkbenchIconTooltip", "placement").as_deref(),
         Some("bottom")
     );
-    assert!(
-        hover_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(hover_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert!(!hover_effects.render_dirty);
     assert!(!hover_effects.presentation_dirty);
     assert!(harness.runtime.journal().records().is_empty());
@@ -144,11 +138,9 @@ fn componentized_workbench_pointer_hover_shows_labeled_icon_tooltip_and_hides_it
         Some(UiVisibility::Collapsed)
     );
     assert!(!control_bool(&bridge, "WorkbenchIconTooltip", "popup_open"));
-    assert!(
-        leave_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(leave_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert!(!leave_effects.render_dirty);
     assert!(!leave_effects.presentation_dirty);
     assert!(harness.runtime.journal().records().is_empty());
@@ -186,11 +178,9 @@ fn componentized_workbench_pointer_press_hides_an_open_icon_tooltip() {
         Some(UiVisibility::Collapsed)
     );
     assert!(!control_bool(&bridge, "WorkbenchIconTooltip", "popup_open"));
-    assert!(
-        press_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(press_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert!(!press_effects.render_dirty);
     assert!(!press_effects.presentation_dirty);
     assert!(harness.runtime.journal().records().is_empty());
@@ -258,11 +248,9 @@ fn componentized_workbench_search_clear_action_clears_query_and_restores_results
     ] {
         assert!(bridge.control_frame(control_id).is_some());
     }
-    assert!(
-        clear_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(clear_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
 }
 
 #[test]
@@ -294,11 +282,9 @@ fn componentized_workbench_pointer_press_updates_icon_button_preview_before_rele
         render_background_for_control(&bridge, "WorkbenchToolMove").as_deref(),
         Some("#12383d")
     );
-    assert!(
-        press_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(press_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert!(!press_effects.render_dirty);
     assert!(!press_effects.presentation_dirty);
     assert!(harness.runtime.journal().records().is_empty());
@@ -365,11 +351,9 @@ fn componentized_workbench_pointer_drag_updates_slider_value_without_authored_bi
         control_float(&bridge, "WorkbenchInputSlider", "value").unwrap(),
         25.0,
     );
-    assert!(
-        press_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(press_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert!(!press_effects.render_dirty);
     assert!(!press_effects.presentation_dirty);
     assert!(harness.runtime.journal().records().is_empty());
@@ -387,11 +371,9 @@ fn componentized_workbench_pointer_drag_updates_slider_value_without_authored_bi
         control_float(&bridge, "WorkbenchInputSlider", "value").unwrap(),
         80.0,
     );
-    assert!(
-        drag_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(drag_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert!(!drag_effects.render_dirty);
     assert!(!drag_effects.presentation_dirty);
     assert!(harness.runtime.journal().records().is_empty());
@@ -410,11 +392,9 @@ fn componentized_workbench_pointer_drag_updates_slider_value_without_authored_bi
         control_float(&bridge, "WorkbenchInputSlider", "value").unwrap(),
         80.0,
     );
-    assert!(
-        release_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(release_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert!(!release_effects.render_dirty);
     assert!(!release_effects.presentation_dirty);
     assert!(harness.runtime.journal().records().is_empty());
@@ -463,11 +443,9 @@ fn componentized_workbench_pointer_drag_preserves_the_range_slider_upper_endpoin
         control_float(&bridge, "WorkbenchInputRangeSlider", "value").unwrap(),
         80.0,
     );
-    assert!(
-        press_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(press_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert!(!press_effects.render_dirty);
     assert!(!press_effects.presentation_dirty);
     assert!(harness.runtime.journal().records().is_empty());
@@ -488,11 +466,9 @@ fn componentized_workbench_pointer_drag_preserves_the_range_slider_upper_endpoin
         control_float(&bridge, "WorkbenchInputRangeSlider", "value").unwrap(),
         80.0,
     );
-    assert!(
-        drag_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(drag_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert!(!drag_effects.render_dirty);
     assert!(!drag_effects.presentation_dirty);
     assert!(harness.runtime.journal().records().is_empty());

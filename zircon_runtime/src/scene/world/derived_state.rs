@@ -1,13 +1,135 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::core::math::{transform_to_mat4, Mat4, Transform};
 
 use super::World;
-use crate::scene::components::{ActiveInHierarchy, NodeKind, NodeRecord, SceneNode, WorldMatrix};
+use crate::scene::components::{
+    ActiveInHierarchy, ActiveSelf, AmbientLight, AnimationGraphPlayerComponent,
+    AnimationPlayerComponent, AnimationSequencePlayerComponent, AnimationSkeletonComponent,
+    AnimationStateMachinePlayerComponent, CameraComponent, ColliderComponent, DirectionalLight,
+    Hierarchy, JointComponent, LocalTransform, Mesh2dComponent, MeshRenderer, Name, NodeKind,
+    NodeRecord, PointLight, RectLight, RigidBodyComponent, SceneNode, SpotLight, Sprite2dComponent,
+    WorldMatrix,
+};
 use crate::scene::ecs::{InternalSceneSystem, SystemStage};
 use crate::scene::EntityId;
 
 pub(super) const NODE_KIND_ORDINAL_COUNT: usize = 9;
+
+/// Incremental parent-to-children projection used by affected-row mutations.
+/// Dense component rows remain the hierarchy authority; this index only avoids
+/// rebuilding a whole-world traversal for subtree-local work.
+#[derive(Debug, Default)]
+pub(super) struct HierarchyMutationIndex {
+    roots: BTreeMap<usize, EntityId>,
+    children_by_parent: HashMap<EntityId, BTreeMap<usize, EntityId>>,
+    indexed_entities: HashSet<EntityId>,
+    dirty: bool,
+}
+
+impl PartialEq for HierarchyMutationIndex {
+    fn eq(&self, _other: &Self) -> bool {
+        true
+    }
+}
+
+impl HierarchyMutationIndex {
+    fn update_parent(
+        &mut self,
+        entity: EntityId,
+        stable_order: usize,
+        previous_parent: Option<EntityId>,
+        current_parent: Option<EntityId>,
+    ) {
+        if previous_parent != current_parent {
+            if let Some(previous_parent) = previous_parent {
+                self.remove_child(previous_parent, stable_order, entity);
+            } else {
+                self.roots.remove(&stable_order);
+            }
+            if let Some(current_parent) = current_parent {
+                let replaced = self
+                    .children_by_parent
+                    .entry(current_parent)
+                    .or_default()
+                    .insert(stable_order, entity);
+                debug_assert!(replaced.is_none() || replaced == Some(entity));
+            } else {
+                let replaced = self.roots.insert(stable_order, entity);
+                debug_assert!(replaced.is_none() || replaced == Some(entity));
+            }
+        } else if !self.indexed_entities.contains(&entity) {
+            if let Some(current_parent) = current_parent {
+                let replaced = self
+                    .children_by_parent
+                    .entry(current_parent)
+                    .or_default()
+                    .insert(stable_order, entity);
+                debug_assert!(replaced.is_none() || replaced == Some(entity));
+            } else {
+                let replaced = self.roots.insert(stable_order, entity);
+                debug_assert!(replaced.is_none() || replaced == Some(entity));
+            }
+        }
+        self.indexed_entities.insert(entity);
+    }
+
+    fn remove_entity(&mut self, entity: EntityId, stable_order: usize, parent: Option<EntityId>) {
+        if let Some(parent) = parent {
+            self.remove_child(parent, stable_order, entity);
+        } else {
+            self.roots.remove(&stable_order);
+        }
+        self.indexed_entities.remove(&entity);
+        self.children_by_parent.remove(&entity);
+    }
+
+    fn remove_child(&mut self, parent: EntityId, stable_order: usize, entity: EntityId) {
+        let remove_bucket = if let Some(children) = self.children_by_parent.get_mut(&parent) {
+            let removed = children.remove(&stable_order);
+            debug_assert!(removed.is_none() || removed == Some(entity));
+            children.is_empty()
+        } else {
+            false
+        };
+        if remove_bucket {
+            self.children_by_parent.remove(&parent);
+        }
+    }
+
+    fn children_of(&self, parent: EntityId) -> impl DoubleEndedIterator<Item = EntityId> + '_ {
+        self.children_by_parent
+            .get(&parent)
+            .into_iter()
+            .flat_map(|children| children.values().copied())
+    }
+
+    fn roots(&self) -> impl DoubleEndedIterator<Item = EntityId> + '_ {
+        self.roots.values().copied()
+    }
+
+    fn mark_dirty(&mut self) {
+        self.dirty = true;
+    }
+
+    fn mark_current(&mut self) {
+        self.dirty = false;
+    }
+
+    fn is_current_for_entity_count(&self, entity_count: usize) -> bool {
+        !self.dirty && self.indexed_entities.len() == entity_count
+    }
+
+    fn rebuild(&mut self, rows: impl IntoIterator<Item = (EntityId, usize, Option<EntityId>)>) {
+        self.roots.clear();
+        self.children_by_parent.clear();
+        self.indexed_entities.clear();
+        for (entity, stable_order, parent) in rows {
+            self.update_parent(entity, stable_order, None, parent);
+        }
+        self.dirty = false;
+    }
+}
 
 const fn node_kind_ordinal_index(kind: NodeKind) -> usize {
     match kind {
@@ -128,7 +250,7 @@ impl World {
             return None;
         }
 
-        Some(self.active_self_chain_value(entity, &mut HashSet::new()))
+        Some(self.active_self_chain_value(entity))
     }
 
     #[cfg(test)]
@@ -166,14 +288,98 @@ impl World {
             return Vec::new();
         }
 
-        let traversal = self.hierarchy_traversal_index();
+        if !self
+            .hierarchy_mutation_index
+            .is_current_for_entity_count(self.entities.len())
+        {
+            let traversal = self.hierarchy_traversal_index();
+            let mut entities = Vec::new();
+            let mut stack = vec![root];
+            while let Some(entity) = stack.pop() {
+                entities.push(entity);
+                stack.extend(traversal.children_of(entity).iter().rev().copied());
+            }
+            return entities;
+        }
+
         let mut entities = Vec::new();
         let mut stack = vec![root];
         while let Some(entity) = stack.pop() {
             entities.push(entity);
-            stack.extend(traversal.children_of(entity).iter().rev().copied());
+            stack.extend(self.hierarchy_mutation_index.children_of(entity).rev());
         }
         entities
+    }
+
+    pub(super) fn direct_child_entity_ids(&self, parent: EntityId) -> Vec<EntityId> {
+        if !self
+            .hierarchy_mutation_index
+            .is_current_for_entity_count(self.entities.len())
+        {
+            return self
+                .hierarchy_traversal_index()
+                .children_of(parent)
+                .to_vec();
+        }
+        self.hierarchy_mutation_index.children_of(parent).collect()
+    }
+
+    pub(super) fn update_hierarchy_mutation_index(
+        &mut self,
+        entity: EntityId,
+        previous_parent: Option<EntityId>,
+        current_parent: Option<EntityId>,
+    ) {
+        let stable_order = self
+            .stable_entity_order(entity)
+            .expect("hierarchy index entity must retain stable order");
+        self.hierarchy_mutation_index.update_parent(
+            entity,
+            stable_order,
+            previous_parent,
+            current_parent,
+        );
+    }
+
+    pub(super) fn remove_hierarchy_mutation_index_entry(
+        &mut self,
+        entity: EntityId,
+        stable_order: usize,
+        parent: Option<EntityId>,
+    ) {
+        self.hierarchy_mutation_index
+            .remove_entity(entity, stable_order, parent);
+    }
+
+    pub(super) fn mark_hierarchy_mutation_index_dirty(&mut self) {
+        self.hierarchy_mutation_index.mark_dirty();
+    }
+
+    pub(super) fn rebuild_hierarchy_mutation_index(&mut self) {
+        let rows = self
+            .stable_entity_ids()
+            .map(|entity| {
+                (
+                    entity,
+                    self.stable_entity_order(entity)
+                        .expect("stable entity must retain order while rebuilding hierarchy index"),
+                    self.parent_of(entity),
+                )
+            })
+            .collect::<Vec<_>>();
+        self.hierarchy_mutation_index.rebuild(rows);
+    }
+
+    pub(super) fn ensure_hierarchy_mutation_index_current(&mut self) -> usize {
+        if !self
+            .hierarchy_mutation_index
+            .is_current_for_entity_count(self.entities.len())
+        {
+            let visited = self.entities.len();
+            self.rebuild_hierarchy_mutation_index();
+            return visited;
+        }
+        0
     }
 
     fn collect_subtree_records_with_traversal(
@@ -182,12 +388,13 @@ impl World {
         records: &mut Vec<NodeRecord>,
         traversal: &HierarchyTraversalIndex,
     ) {
-        let Some(record) = self.node_record(entity) else {
-            return;
-        };
-        records.push(record);
-        for child in traversal.children_of(entity) {
-            self.collect_subtree_records_with_traversal(*child, records, traversal);
+        let mut stack = vec![entity];
+        while let Some(current) = stack.pop() {
+            let Some(record) = self.node_record(current) else {
+                continue;
+            };
+            records.push(record);
+            stack.extend(traversal.children_of(current).iter().rev().copied());
         }
     }
 
@@ -218,7 +425,7 @@ impl World {
     }
 
     pub(super) fn project_node_for_read(&self, entity: EntityId) -> Option<SceneNode> {
-        let Some(name) = self.names.get(&entity) else {
+        let Some(name) = self.get::<Name>(entity) else {
             return None;
         };
         let Some(kind) = self.node_kind(entity) else {
@@ -230,55 +437,54 @@ impl World {
             kind,
             parent: self.parent_for_read(entity),
             transform: self.local_transform_value(entity),
-            camera: self.cameras.get(&entity).cloned(),
-            mesh: self.mesh_renderers.get(&entity).cloned(),
-            sprite_2d: self.sprite_2d.get(&entity).cloned(),
-            mesh_2d: self.mesh_2d.get(&entity).cloned(),
-            ambient_light: self.ambient_lights.get(&entity).cloned(),
-            directional_light: self.directional_lights.get(&entity).cloned(),
-            point_light: self.point_lights.get(&entity).cloned(),
-            rect_light: self.rect_lights.get(&entity).cloned(),
-            spot_light: self.spot_lights.get(&entity).cloned(),
-            rigid_body: self.rigid_bodies.get(&entity).cloned(),
-            collider: self.colliders.get(&entity).cloned(),
-            joint: self.joints.get(&entity).cloned(),
-            animation_skeleton: self.animation_skeletons.get(&entity).cloned(),
-            animation_player: self.animation_players.get(&entity).cloned(),
-            animation_sequence_player: self.animation_sequence_players.get(&entity).cloned(),
-            animation_graph_player: self.animation_graph_players.get(&entity).cloned(),
+            camera: self.get::<CameraComponent>(entity).cloned(),
+            mesh: self.get::<MeshRenderer>(entity).cloned(),
+            sprite_2d: self.get::<Sprite2dComponent>(entity).cloned(),
+            mesh_2d: self.get::<Mesh2dComponent>(entity).cloned(),
+            ambient_light: self.get::<AmbientLight>(entity).cloned(),
+            directional_light: self.get::<DirectionalLight>(entity).cloned(),
+            point_light: self.get::<PointLight>(entity).cloned(),
+            rect_light: self.get::<RectLight>(entity).cloned(),
+            spot_light: self.get::<SpotLight>(entity).cloned(),
+            rigid_body: self.get::<RigidBodyComponent>(entity).cloned(),
+            collider: self.get::<ColliderComponent>(entity).cloned(),
+            joint: self.get::<JointComponent>(entity).cloned(),
+            animation_skeleton: self.get::<AnimationSkeletonComponent>(entity).cloned(),
+            animation_player: self.get::<AnimationPlayerComponent>(entity).cloned(),
+            animation_sequence_player: self
+                .get::<AnimationSequencePlayerComponent>(entity)
+                .cloned(),
+            animation_graph_player: self.get::<AnimationGraphPlayerComponent>(entity).cloned(),
             animation_state_machine_player: self
-                .animation_state_machine_players
-                .get(&entity)
+                .get::<AnimationStateMachinePlayerComponent>(entity)
                 .cloned(),
         })
     }
 
     pub(super) fn project_world_matrix_for_read(&self, entity: EntityId) -> Option<Mat4> {
-        self.project_world_matrix_for_read_inner(entity, &mut HashSet::new())
-    }
-
-    fn project_world_matrix_for_read_inner(
-        &self,
-        entity: EntityId,
-        seen: &mut HashSet<EntityId>,
-    ) -> Option<Mat4> {
-        if !self.contains_entity(entity) || !seen.insert(entity) {
-            return None;
+        let mut lineage = Vec::new();
+        let mut seen = HashSet::new();
+        let mut current = entity;
+        loop {
+            if !self.contains_entity(current) || !seen.insert(current) {
+                return None;
+            }
+            lineage.push(current);
+            let Some(parent) = self.parent_for_read(current) else {
+                break;
+            };
+            current = parent;
         }
-        let local = self.local_transform_value(entity);
-        let local_matrix = transform_to_mat4(local);
-        let Some(parent) = self.parent_for_read(entity) else {
-            return Some(local_matrix);
-        };
-        let Some(parent_matrix) = self.project_world_matrix_for_read_inner(parent, seen) else {
-            return None;
-        };
 
-        Some(parent_matrix * local_matrix)
+        let mut world = Mat4::IDENTITY;
+        for current in lineage.iter().rev().copied() {
+            world = world * transform_to_mat4(self.local_transform_value(current));
+        }
+        Some(world)
     }
 
     fn parent_for_read(&self, entity: EntityId) -> Option<EntityId> {
-        let Some(hierarchy) = self.hierarchy.get(&entity) else {
+        let Some(hierarchy) = self.get::<Hierarchy>(entity) else {
             return None;
         };
         let Some(parent) = hierarchy.parent else {
@@ -291,41 +497,63 @@ impl World {
         Some(parent)
     }
 
-    fn active_self_chain_value(&self, entity: EntityId, seen: &mut HashSet<EntityId>) -> bool {
-        if !seen.insert(entity) {
-            return false;
-        }
-        if let Some(parent) = self.parent_for_read(entity) {
-            if !self.active_self_chain_value(parent, seen) {
+    fn active_self_chain_value(&self, entity: EntityId) -> bool {
+        let mut seen = HashSet::new();
+        let mut current = entity;
+        loop {
+            if !seen.insert(current) || !self.active_self_value(current) {
                 return false;
             }
+            let Some(parent) = self.parent_for_read(current) else {
+                return true;
+            };
+            current = parent;
         }
-
-        self.active_self_value(entity)
     }
 
     fn rebuild_hierarchy_validity(&mut self) {
         let parents = self.hierarchy_parent_snapshot();
         let mut seen = HashSet::new();
+        let mut hierarchy_updates = Vec::new();
+        let hierarchy_index_was_current = self
+            .hierarchy_mutation_index
+            .is_current_for_entity_count(self.entities.len());
 
-        for entity_index in 0..self.entities.len() {
-            let entity = self.entities[entity_index];
-            let Some(hierarchy) = self.hierarchy.get_mut(&entity) else {
+        let entities = self.stable_entity_ids().collect::<Vec<_>>();
+        for entity in entities {
+            let Some(hierarchy) = self.get::<Hierarchy>(entity) else {
                 continue;
             };
-            let parent = hierarchy.parent;
-            hierarchy.parent = parent.filter(|parent| {
+            let previous_parent = hierarchy.parent;
+            let current_parent = previous_parent.filter(|parent| {
                 *parent != entity
                     && parents.contains_key(parent)
                     && !parent_chain_is_invalid(*parent, entity, &parents, &mut seen)
             });
+            if previous_parent != current_parent {
+                hierarchy_updates.push((entity, previous_parent, current_parent));
+            }
+        }
+        for (entity, previous_parent, current_parent) in hierarchy_updates.iter().copied() {
+            let updated = if let Some(hierarchy) = self.get_mut::<Hierarchy>(entity) {
+                hierarchy.parent = current_parent;
+                true
+            } else {
+                false
+            };
+            if updated && hierarchy_index_was_current {
+                self.update_hierarchy_mutation_index(entity, previous_parent, current_parent);
+            }
+        }
+        if hierarchy_index_was_current {
+            self.hierarchy_mutation_index.mark_current();
         }
     }
 
     fn hierarchy_parent_snapshot(&self) -> HashMap<EntityId, Option<EntityId>> {
         let mut parents = HashMap::with_capacity(self.entities.len());
-        for entity in self.entities.iter().copied() {
-            let parent = match self.hierarchy.get(&entity) {
+        for entity in self.stable_entity_ids() {
+            let parent = match self.get::<Hierarchy>(entity) {
                 Some(hierarchy) => hierarchy.parent,
                 None => None,
             };
@@ -335,29 +563,39 @@ impl World {
     }
 
     fn rebuild_active_in_hierarchy(&mut self) {
-        let traversal = self.hierarchy_traversal_index();
+        self.ensure_hierarchy_mutation_index_current();
+        let traversal = std::mem::take(&mut self.hierarchy_mutation_index);
         for root in traversal.roots() {
-            self.propagate_active_state(*root, true, &traversal);
+            self.propagate_active_state(root, true, &traversal);
         }
+        self.hierarchy_mutation_index = traversal;
     }
 
     fn rebuild_world_matrices(&mut self) {
-        let traversal = self.hierarchy_traversal_index();
+        self.ensure_hierarchy_mutation_index_current();
+        let traversal = std::mem::take(&mut self.hierarchy_mutation_index);
         for root in traversal.roots() {
-            self.propagate_world_matrix(*root, Mat4::IDENTITY, &traversal);
+            self.propagate_world_matrix(root, Mat4::IDENTITY, &traversal);
         }
+        self.hierarchy_mutation_index = traversal;
     }
 
     fn propagate_active_state(
         &mut self,
         entity: EntityId,
         parent_active: bool,
-        traversal: &HierarchyTraversalIndex,
+        traversal: &HierarchyMutationIndex,
     ) {
-        let active = parent_active && self.active_self_value(entity);
-        self.replace_derived_component(entity, ActiveInHierarchy(active));
-        for child in traversal.children_of(entity) {
-            self.propagate_active_state(*child, active, traversal);
+        let mut stack = vec![(entity, parent_active)];
+        while let Some((current, inherited_active)) = stack.pop() {
+            let active = inherited_active && self.active_self_value(current);
+            self.replace_derived_component(current, ActiveInHierarchy(active));
+            stack.extend(
+                traversal
+                    .children_of(current)
+                    .rev()
+                    .map(|child| (child, active)),
+            );
         }
     }
 
@@ -365,24 +603,30 @@ impl World {
         &mut self,
         entity: EntityId,
         parent_world: Mat4,
-        traversal: &HierarchyTraversalIndex,
+        traversal: &HierarchyMutationIndex,
     ) {
-        let local = self.local_transform_value(entity);
-        let local_matrix = transform_to_mat4(local);
-        let world = if self.parent_of(entity).is_some() {
-            parent_world * local_matrix
-        } else {
-            local_matrix
-        };
-        self.replace_derived_component(entity, WorldMatrix(world));
-        for child in traversal.children_of(entity) {
-            self.propagate_world_matrix(*child, world, traversal);
+        let mut stack = vec![(entity, parent_world)];
+        while let Some((current, inherited_world)) = stack.pop() {
+            let local = self.local_transform_value(current);
+            let local_matrix = transform_to_mat4(local);
+            let world = if self.parent_of(current).is_some() {
+                inherited_world * local_matrix
+            } else {
+                local_matrix
+            };
+            self.replace_derived_component(current, WorldMatrix(world));
+            stack.extend(
+                traversal
+                    .children_of(current)
+                    .rev()
+                    .map(|child| (child, world)),
+            );
         }
     }
 
     fn hierarchy_traversal_index(&self) -> HierarchyTraversalIndex {
         let mut index = HierarchyTraversalIndex::with_entity_capacity(self.entities.len());
-        for entity in self.entities.iter().copied() {
+        for entity in self.stable_entity_ids() {
             if let Some(parent) = self.parent_of(entity) {
                 index.push_child(parent, entity);
             } else {
@@ -393,7 +637,7 @@ impl World {
     }
 
     fn local_transform_value(&self, entity: EntityId) -> Transform {
-        let Some(local) = self.local_transforms.get(&entity) else {
+        let Some(local) = self.get::<LocalTransform>(entity) else {
             return Transform::default();
         };
 
@@ -401,7 +645,7 @@ impl World {
     }
 
     fn active_self_value(&self, entity: EntityId) -> bool {
-        let Some(active) = self.active_self.get(&entity) else {
+        let Some(active) = self.get::<ActiveSelf>(entity) else {
             return true;
         };
 
@@ -411,8 +655,9 @@ impl World {
     pub(super) fn refresh_node_cache(&mut self) {
         self.node_cache.clear();
         self.node_cache.reserve(self.entities.len());
-        for entity in self.entities.iter().copied() {
-            let Some(name) = self.names.get(&entity) else {
+        let entities = self.stable_entity_ids().collect::<Vec<_>>();
+        for entity in entities {
+            let Some(name) = self.get::<Name>(entity) else {
                 continue;
             };
             let Some(kind) = self.node_kind(entity) else {
@@ -424,25 +669,26 @@ impl World {
                 kind,
                 parent: self.parent_of(entity),
                 transform: self.local_transform_value(entity),
-                camera: self.cameras.get(&entity).cloned(),
-                mesh: self.mesh_renderers.get(&entity).cloned(),
-                sprite_2d: self.sprite_2d.get(&entity).cloned(),
-                mesh_2d: self.mesh_2d.get(&entity).cloned(),
-                ambient_light: self.ambient_lights.get(&entity).cloned(),
-                directional_light: self.directional_lights.get(&entity).cloned(),
-                point_light: self.point_lights.get(&entity).cloned(),
-                rect_light: self.rect_lights.get(&entity).cloned(),
-                spot_light: self.spot_lights.get(&entity).cloned(),
-                rigid_body: self.rigid_bodies.get(&entity).cloned(),
-                collider: self.colliders.get(&entity).cloned(),
-                joint: self.joints.get(&entity).cloned(),
-                animation_skeleton: self.animation_skeletons.get(&entity).cloned(),
-                animation_player: self.animation_players.get(&entity).cloned(),
-                animation_sequence_player: self.animation_sequence_players.get(&entity).cloned(),
-                animation_graph_player: self.animation_graph_players.get(&entity).cloned(),
+                camera: self.get::<CameraComponent>(entity).cloned(),
+                mesh: self.get::<MeshRenderer>(entity).cloned(),
+                sprite_2d: self.get::<Sprite2dComponent>(entity).cloned(),
+                mesh_2d: self.get::<Mesh2dComponent>(entity).cloned(),
+                ambient_light: self.get::<AmbientLight>(entity).cloned(),
+                directional_light: self.get::<DirectionalLight>(entity).cloned(),
+                point_light: self.get::<PointLight>(entity).cloned(),
+                rect_light: self.get::<RectLight>(entity).cloned(),
+                spot_light: self.get::<SpotLight>(entity).cloned(),
+                rigid_body: self.get::<RigidBodyComponent>(entity).cloned(),
+                collider: self.get::<ColliderComponent>(entity).cloned(),
+                joint: self.get::<JointComponent>(entity).cloned(),
+                animation_skeleton: self.get::<AnimationSkeletonComponent>(entity).cloned(),
+                animation_player: self.get::<AnimationPlayerComponent>(entity).cloned(),
+                animation_sequence_player: self
+                    .get::<AnimationSequencePlayerComponent>(entity)
+                    .cloned(),
+                animation_graph_player: self.get::<AnimationGraphPlayerComponent>(entity).cloned(),
                 animation_state_machine_player: self
-                    .animation_state_machine_players
-                    .get(&entity)
+                    .get::<AnimationStateMachinePlayerComponent>(entity)
                     .cloned(),
             });
         }

@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 
-use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host as host_contract;
+use crate::ui::timeline_strip::{
+    TimelineStripGeneration, TimelineStripGenerationInput, TimelineStripKey,
+};
 
 pub(super) struct ProjectedTimelineStrip {
     pub(super) data: host_contract::TemplatePaneTimelineStripData,
@@ -34,20 +36,20 @@ pub(in crate::ui::retained_host::ui) fn projected_timeline_strip_data(
         .min(duration);
 
     host_contract::TemplatePaneTimelineStripData {
-        duration,
-        current_time,
-        tick_interval,
-        track_label: string_attribute(attributes, "track_label")
-            .unwrap_or_default()
-            .into(),
-        keys: model_rc(timeline_keys(attributes, duration)),
+        generation: TimelineStripGeneration::new(TimelineStripGenerationInput {
+            duration,
+            current_time,
+            tick_interval,
+            track_label: string_attribute(attributes, "track_label").unwrap_or_default(),
+            keys: timeline_keys(attributes, duration),
+        }),
     }
 }
 
 fn timeline_keys(
     attributes: &BTreeMap<String, toml::Value>,
     duration: f32,
-) -> Vec<host_contract::TemplatePaneTimelineKeyData> {
+) -> Vec<TimelineStripKey> {
     attributes
         .get("timeline_keys")
         .and_then(toml::Value::as_array)
@@ -56,19 +58,18 @@ fn timeline_keys(
         .filter_map(toml::Value::as_table)
         .filter_map(|key| {
             let time = number_value(key.get("time")?)?;
-            time.is_finite()
-                .then(|| host_contract::TemplatePaneTimelineKeyData {
-                    time: time.clamp(0.0, duration),
-                    label: key
-                        .get("label")
+            time.is_finite().then(|| {
+                TimelineStripKey::new(
+                    time.clamp(0.0, duration),
+                    key.get("label")
                         .and_then(toml::Value::as_str)
                         .unwrap_or_default()
-                        .into(),
-                    selected: key
-                        .get("selected")
+                        .to_owned(),
+                    key.get("selected")
                         .and_then(toml::Value::as_bool)
                         .unwrap_or(false),
-                })
+                )
+            })
         })
         .collect()
 }

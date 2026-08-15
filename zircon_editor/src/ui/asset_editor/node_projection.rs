@@ -2,6 +2,9 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, OnceLock};
 
+use super::{
+    UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_PATH, UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_PATH,
+};
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::v2_design_tokens::prepare_editor_v2_document;
@@ -10,7 +13,7 @@ use toml::Value;
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
 use zircon_runtime::ui::{
     style::resolve_button_style_from_values,
-    surface::{extract_ui_render_tree, UiSurface},
+    surface::{UiSurface, extract_ui_render_tree},
     v2::{UiV2CompiledDocument, UiV2PrototypeStoreFileCache, UiV2SurfaceBuilder},
 };
 use zircon_runtime_interface::ui::{
@@ -22,16 +25,13 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::layouts::views::{
-    default_transition_duration_ms, default_transition_easing, preferred_binding_id,
-    resolve_commit_action_id, resolve_component_role, resolve_component_variant,
-    resolve_edit_action_id, resolve_node_popup_open, resolve_node_value_number,
-    resolve_node_value_percent, resolve_node_value_text, resolve_transition_in,
-    resolve_transition_kind, resolve_transition_progress, resolve_visual_assets,
-    ViewTemplateFrameData, ViewTemplateNodeData,
+    ViewTemplateFrameData, ViewTemplateNodeData, default_transition_duration_ms,
+    default_transition_easing, preferred_binding_id, resolve_commit_action_id,
+    resolve_component_role, resolve_component_variant, resolve_edit_action_id,
+    resolve_node_popup_open, resolve_node_value_number, resolve_node_value_percent,
+    resolve_node_value_text, resolve_transition_in, resolve_transition_kind,
+    resolve_transition_progress, resolve_visual_assets,
 };
-
-const UI_ASSET_EDITOR_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/ui_asset_editor.zui";
-const UI_ASSET_EDITOR_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_material.zui";
 
 const CENTER_COLUMN_CONTROL_ID: &str = "CenterColumn";
 const DESIGNER_PANEL_CONTROL_ID: &str = "DesignerPanel";
@@ -74,6 +74,42 @@ pub(crate) fn ui_asset_editor_node_projection(size: UiSize) -> UiAssetEditorNode
         .lock()
         .map(|mut session| session.project(size).unwrap_or_default())
         .unwrap_or_default()
+}
+
+pub(crate) fn apply_ui_asset_editor_designer_tool_mode(
+    nodes: &mut [ViewTemplateNodeData],
+    designer_tool_mode: &str,
+) {
+    let active_control_id = match designer_tool_mode {
+        "Resize Slot" => "DesignerResizeSlotButton",
+        "Preview Interact" => "DesignerPreviewInteractButton",
+        _ => "DesignerSelectButton",
+    };
+    for node in nodes {
+        if matches!(
+            node.control_id.as_str(),
+            "DesignerSelectButton" | "DesignerResizeSlotButton" | "DesignerPreviewInteractButton"
+        ) {
+            node.selected = node.control_id.as_str() == active_control_id;
+        }
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn ui_asset_editor_surface_for_test(size: UiSize) -> UiSurface {
+    let document = load_node_projection_document()
+        .expect("ui asset editor test surface should load its V2 document");
+    let prepared_document = prepare_editor_v2_document(document.root_document.as_ref());
+    let mut surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+        UiTreeId::new("ui_asset_editor.node_projection.test".to_string()),
+        &prepared_document,
+        document.compiled.as_ref(),
+    )
+    .expect("ui asset editor test surface should build from its V2 document");
+    surface
+        .compute_layout(size)
+        .expect("ui asset editor test surface should compute its layout");
+    surface
 }
 
 static NODE_PROJECTION_SESSION: OnceLock<Mutex<NodeProjectionSession>> = OnceLock::new();
@@ -130,14 +166,14 @@ struct NodeProjectionDocument {
     compiled: Arc<UiV2CompiledDocument>,
 }
 
-fn load_node_projection_document(
-) -> Result<NodeProjectionDocument, UiAssetEditorNodeProjectionError> {
+fn load_node_projection_document()
+-> Result<NodeProjectionDocument, UiAssetEditorNodeProjectionError> {
     let outcome = node_projection_v2_store_file_cache()
         .lock()
         .expect("ui asset editor v2 projection cache mutex should not be poisoned")
         .load_store([
-            asset_path(UI_ASSET_EDITOR_LAYOUT_ASSET_PATH),
-            asset_path(UI_ASSET_EDITOR_STYLE_ASSET_PATH),
+            asset_path(UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_PATH),
+            asset_path(UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_PATH),
         ])?;
 
     Ok(NodeProjectionDocument {
@@ -152,9 +188,8 @@ fn node_projection_v2_store_file_cache() -> &'static Mutex<UiV2PrototypeStoreFil
 }
 
 fn mark_surface_roots_layout_dirty(surface: &mut UiSurface) {
-    let (roots, nodes) = (&surface.tree.roots, &mut surface.tree.nodes);
-    for root_id in roots {
-        if let Some(root) = nodes.get_mut(root_id) {
+    for root_id in surface.tree.roots.clone() {
+        if let Some(root) = surface.tree.node_mut(root_id) {
             root.dirty.layout = true;
             root.dirty.hit_test = true;
             root.dirty.render = true;
@@ -450,5 +485,24 @@ fn text_align_name(align: UiTextAlign) -> &'static str {
         UiTextAlign::Start => "start",
         UiTextAlign::End => "end",
         UiTextAlign::Justify => "justify",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_PATH, UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_PATH,
+    };
+
+    #[test]
+    fn projection_cache_loads_the_bootstrap_asset_contract() {
+        assert_eq!(
+            UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_PATH,
+            "/assets/ui/editor/ui_asset_editor.zui"
+        );
+        assert_eq!(
+            UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_PATH,
+            "/assets/ui/editor/theme/editor_tokens.zui"
+        );
     }
 }

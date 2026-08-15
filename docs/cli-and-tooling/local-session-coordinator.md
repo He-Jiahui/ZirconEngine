@@ -21,6 +21,8 @@ related_code:
   - tools/session_coordinator/cargo_jobs.py
   - tools/session_coordinator/cargo_run_registration.py
   - tools/session_coordinator/cargo_runner.py
+  - tools/session_coordinator/artifact_product_staging.py
+  - tools/session_coordinator/artifact_governance.py
   - tools/session_coordinator/cleanup.py
   - tools/session_coordinator/legacy.py
   - tools/session_coordinator/audit.py
@@ -48,6 +50,7 @@ related_code:
   - tools/session_coordinator/workflows/store.py
   - tools/session_coordinator/workflows/projections.py
   - tools/zircon-session.ps1
+  - tools/build-editor.ps1
   - tools/cleanup-stale-targets.ps1
   - tools/install-session-coordinator-task.ps1
   - tools/install-session-tray-startup.ps1
@@ -75,6 +78,8 @@ implementation_files:
   - tools/session_coordinator/cargo_jobs.py
   - tools/session_coordinator/cargo_run_registration.py
   - tools/session_coordinator/cargo_runner.py
+  - tools/session_coordinator/artifact_product_staging.py
+  - tools/session_coordinator/artifact_governance.py
   - tools/session_coordinator/cleanup.py
   - tools/session_coordinator/legacy.py
   - tools/session_coordinator/audit.py
@@ -101,6 +106,7 @@ implementation_files:
   - tools/session_coordinator/workflows/store.py
   - tools/session_coordinator/workflows/projections.py
   - tools/zircon-session.ps1
+  - tools/build-editor.ps1
   - tools/cleanup-stale-targets.ps1
   - tools/install-session-coordinator-task.ps1
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
@@ -124,6 +130,7 @@ plan_sources:
   - docs/plans/zircon_tooling/session_coordinator/01/failure-2026-07-15-support-slice-exact-finalize-plan-output-conflict.md
   - docs/plans/zircon_tooling/session_coordinator/01/failure-2026-07-16-stale-session-pending-cpu-reservation-starvation.md
   - docs/plans/zircon_tooling/session_coordinator/01/failure-2026-07-16-legacy-open-failure-pins-stale-sessions.md
+  - docs/plans/zircon_tooling/session_coordinator/01/failure-2026-08-16-build-editor-product-staging-unregistered.md
 tests:
   - tools/session_coordinator/tests/test_database.py
   - tools/session_coordinator/tests/test_server.py
@@ -139,6 +146,8 @@ tests:
   - tools/session_coordinator/tests/test_cargo_jobs.py
   - tools/session_coordinator/tests/test_cargo_reservations.py
   - tools/session_coordinator/tests/test_cleanup.py
+  - tools/session_coordinator/tests/test_artifact_governance.py
+  - tools/session_coordinator/tests/test_artifact_product_staging.py
   - tools/session_coordinator/tests/test_legacy_migration.py
   - tools/session_coordinator/tests/test_retention.py
   - tools/session_coordinator/tests/test_rollout_audit.py
@@ -164,6 +173,7 @@ tests:
   - tools/session_coordinator/tests/test_offline_command_spool.py
   - .codex/skills/zircon-dev/scripts/validate-matrix.Tests.ps1
   - tools/tests/session-coordinator-smoke.Tests.ps1
+  - tools/tests/build-editor.Tests.ps1
 doc_type: workflow-detail
 ---
 
@@ -749,6 +759,26 @@ multiple ticks instead of producing an unbounded scan or transaction.
 Workflow/skill maintenance uses the same transaction with explicit `--maintenance`; the daemon authorizes it with a separate local `ZIRCON_COORDINATOR_MAINTENANCE_TOKEN` capability that is never written to the runtime descriptor or Git. The ordinary shared service bearer and a client boolean are insufficient. Authorized maintenance bypasses business attribution/status checks but retains index scope, repository path, semantic-message and secret guards. Business intermediate versions continue to live in coordinator snapshots rather than Git history.
 
 When persistent maintenance hold is active, `finalize.preview` and `finalize.commit` are available only as `operation@session-id` calls for a Session named in the daemon's maintenance scope. They remain constrained to that Session's live leases and attributed manifest paths; generic finalization, generic Git staging, and normal Cargo admission stay denied. This permits an audited dependency-lock closure without reopening the shared mutation window.
+
+## Managed Product Staging
+
+Production wrappers must acquire a product staging lease before creating a directory below a governed `ZirconBuilds` root. The caller supplies a closed purpose, intended final path, and its PID; the Coordinator verifies the live process identity and generates the only accepted staging path. There is no caller-controlled staging path or prefix exemption.
+
+```powershell
+.\tools\zircon-session.ps1 artifact staging-acquire `
+  --purpose build-editor --final-path D:\ZirconBuilds\editor-current --owner-pid $PID
+.\tools\zircon-session.ps1 artifact staging-begin-publish `
+  --lease-id <lease-id> --owner-pid $PID
+.\tools\zircon-session.ps1 artifact staging-complete-publish `
+  --lease-id <lease-id> --owner-pid $PID
+# Failure only, after both staging and final paths are absent:
+.\tools\zircon-session.ps1 artifact staging-release `
+  --lease-id <lease-id> --owner-pid $PID
+```
+
+`staging-begin-publish` seals the existing staging directory's filesystem identity before the wrapper performs its root-bound atomic rename. `staging-complete-publish` accepts only the same identity at the exact final path, then replaces the temporary exemption with a durable published-artifact identity. A copied directory, caller-created final path, foreign PID, missing path, or illegal state transition fails closed. Filesystem and process probes occur before the short SQLite write transaction; the write segment revalidates the immutable owner/path/status snapshot and performs only a CAS-style lifecycle update.
+
+Startup recovery preserves a live owner's `active` or `publishing` lease. If the owner died after the atomic move, recovery completes publication only when the final directory has the sealed staging identity; every other interrupted state becomes `recovered` and loses its governance exemption. A published path remains managed only while its filesystem identity matches. Deleting and recreating the same pathname therefore produces an ordinary unmanaged artifact rather than inheriting historical authority.
 
 ## Stable Validation Copies
 

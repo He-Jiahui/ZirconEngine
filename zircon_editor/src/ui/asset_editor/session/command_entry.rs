@@ -12,8 +12,8 @@ use super::{
         UiAssetEditorDocumentReplayCommand, UiAssetEditorTreeEdit, UiAssetEditorTreeEditKind,
     },
     ui_asset_editor_session::{
-        remap_source_byte_offset, UiAssetEditorReplayResult, UiAssetEditorSession,
-        UiAssetEditorSessionError,
+        UiAssetEditorReplayResult, UiAssetEditorSession, UiAssetEditorSessionError,
+        remap_source_byte_offset,
     },
     undo_stack::UiAssetEditorUndoExternalEffects,
 };

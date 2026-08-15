@@ -16,7 +16,12 @@ pub const SSS_RECOMBINE_PIPELINE_LABEL: &str = "sss.recombine";
 pub const SSS_TILE_SIZE: [u32; 3] = [8, 8, 1];
 
 pub fn setup_compute_workload() -> RenderGraphComputeWorkload {
-    RenderGraphComputeWorkload::viewport(SSS_SETUP_PIPELINE_LABEL, SSS_TILE_SIZE)
+    RenderGraphComputeWorkload::per_pixel(
+        SSS_SETUP_PIPELINE_LABEL,
+        SSS_TILE_SIZE,
+        PostProcessGraphResourceNames::GBUFFER_MATERIAL,
+        [SSS_TILE_SIZE[0], SSS_TILE_SIZE[1]],
+    )
 }
 
 pub fn scatter_compute_workload() -> RenderGraphComputeWorkload {

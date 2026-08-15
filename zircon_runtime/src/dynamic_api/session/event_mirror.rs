@@ -3,10 +3,10 @@ use std::io::Write;
 use std::ptr;
 
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimePluginEventDeliveryBatchV1,
-    ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimePluginEventSubscriptionHandle, ZrStatus,
-    ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
-    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
+    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1, ZrByteSlice, ZrOwnedByteBuffer,
+    ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventSubscribeRequestV1,
+    ZrRuntimePluginEventSubscriptionHandle, ZrStatus, ZrStatusCode,
 };
 
 #[cfg(test)]
@@ -28,6 +28,15 @@ pub(super) struct RuntimePluginEventSubscriptionState {
 }
 
 impl RuntimeDynamicSession {
+    pub(super) fn shutdown_plugin_event_subscriptions(&mut self) -> bool {
+        let subscriptions = std::mem::take(&mut self.plugin_event_subscriptions);
+        drop(subscriptions);
+        self.level
+            .with_world_mut(|world| world.shutdown_runtime_event_mirrors())
+            .retry_pending
+            == 0
+    }
+
     pub(super) fn subscribe_plugin_event(
         &mut self,
         request: ZrRuntimePluginEventSubscribeRequestV1,
@@ -228,14 +237,17 @@ unsafe extern "C" fn free_runtime_plugin_event_bytes(buffer: ZrOwnedByteBuffer) 
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+
     use serde::Serialize;
     use serde_json::json;
 
     use super::super::profile::RuntimeDynamicSessionProfile;
     use super::*;
     use crate::scene::{
-        RuntimeEventMirrorRegistration, RUNTIME_EVENT_MIRROR_PAGE_MAX_EVENTS,
-        RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES,
+        RUNTIME_EVENT_MIRROR_PAGE_MAX_EVENTS, RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES,
+        RuntimeEventMirrorRegistration, SceneError,
     };
 
     const SEQUENCE_WINDOW_EVENT_ID: &str = "dynamic_api.plugin_event.sequence_window";
@@ -271,6 +283,82 @@ mod tests {
             ))
             .expect("sequence-window plugin subscription");
         (session, subscription)
+    }
+
+    #[test]
+    fn dropping_dynamic_session_quiesces_plugin_event_mirrors() {
+        let readers = Arc::new(AtomicU32::new(0));
+        let readers_for_registration = Arc::clone(&readers);
+        let mut session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
+            .expect("headless dynamic session");
+        session.level.with_world_mut(|world| {
+            world
+                .register_runtime_event_mirror(
+                    RuntimeEventMirrorRegistration::typed::<SequenceWindowEvent>(
+                        SEQUENCE_WINDOW_EVENT_ID,
+                        SEQUENCE_WINDOW_PAYLOAD_SCHEMA,
+                    )
+                    .with_reader_count_callback(move |_world, count| {
+                        readers_for_registration.store(count, Ordering::SeqCst);
+                        Ok(())
+                    }),
+                )
+                .expect("session-drop event mirror registration");
+        });
+        session
+            .subscribe_plugin_event(ZrRuntimePluginEventSubscribeRequestV1::new(
+                ZIRCON_RUNTIME_ABI_VERSION_V1,
+                SEQUENCE_WINDOW_EVENT_ID,
+                SEQUENCE_WINDOW_PAYLOAD_SCHEMA,
+            ))
+            .expect("session-drop plugin subscription");
+        assert_eq!(readers.load(Ordering::SeqCst), 1);
+
+        drop(session);
+
+        assert_eq!(readers.load(Ordering::SeqCst), 0);
+    }
+
+    #[test]
+    fn dynamic_session_shutdown_reports_event_mirror_callback_failure_until_retry_succeeds() {
+        let fail_zero = Arc::new(AtomicBool::new(true));
+        let fail_zero_for_registration = Arc::clone(&fail_zero);
+        let readers = Arc::new(AtomicU32::new(0));
+        let readers_for_registration = Arc::clone(&readers);
+        let mut session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None)
+            .expect("headless dynamic session");
+        session.level.with_world_mut(|world| {
+            world
+                .register_runtime_event_mirror(
+                    RuntimeEventMirrorRegistration::typed::<SequenceWindowEvent>(
+                        SEQUENCE_WINDOW_EVENT_ID,
+                        SEQUENCE_WINDOW_PAYLOAD_SCHEMA,
+                    )
+                    .with_reader_count_callback(move |_world, count| {
+                        if count == 0 && fail_zero_for_registration.load(Ordering::SeqCst) {
+                            return Err(SceneError::EmptyNodeName);
+                        }
+                        readers_for_registration.store(count, Ordering::SeqCst);
+                        Ok(())
+                    }),
+                )
+                .expect("session-shutdown event mirror registration");
+        });
+        session
+            .subscribe_plugin_event(ZrRuntimePluginEventSubscribeRequestV1::new(
+                ZIRCON_RUNTIME_ABI_VERSION_V1,
+                SEQUENCE_WINDOW_EVENT_ID,
+                SEQUENCE_WINDOW_PAYLOAD_SCHEMA,
+            ))
+            .expect("session-shutdown plugin subscription");
+        assert_eq!(readers.load(Ordering::SeqCst), 1);
+
+        assert!(!session.shutdown_before_library_unload());
+        assert_eq!(readers.load(Ordering::SeqCst), 1);
+
+        fail_zero.store(false, Ordering::SeqCst);
+        assert!(session.shutdown_before_library_unload());
+        assert_eq!(readers.load(Ordering::SeqCst), 0);
     }
 
     #[test]

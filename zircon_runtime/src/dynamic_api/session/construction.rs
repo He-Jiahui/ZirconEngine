@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::builtin::RuntimeModuleLoadReport;
 use crate::core::framework::render::{
-    RenderProfileBundle, RenderSubmissionConfig, RENDER_PROFILE_CONFIG_KEY,
+    RENDER_PROFILE_CONFIG_KEY, RenderProfileBundle, RenderSubmissionConfig,
 };
 use crate::core::manager::{input_manager_handle, resolve_manager_service};
 use crate::core::math::{UVec2, Vec2};
@@ -16,11 +16,11 @@ use crate::scene::components::NodeKind;
 
 use super::super::camera_controller::RuntimeCameraController;
 use super::super::runtime_loop::RuntimeRenderBridge;
-use super::project::{project_opened_log, RuntimePreparedProject, RuntimeProjectConfig};
+use super::project::{RuntimePreparedProject, RuntimeProjectConfig, project_opened_log};
 use super::{
-    event_mirror, install_builtin_scene_runtime_hooks, linked_plugins::LinkedRuntimePluginPlan,
     RuntimeDynamicSession, RuntimeDynamicSessionError, RuntimeDynamicSessionProfile,
-    RuntimeDynamicSessionResult,
+    RuntimeDynamicSessionResult, event_mirror, linked_plugins::LinkedRuntimePluginPlan,
+    merge_builtin_script_scene_systems,
 };
 
 fn store_profile_submission_config(
@@ -86,6 +86,10 @@ pub(super) fn build(
                 source,
             },
         )?;
+    let linked_extension_world_plan = merge_builtin_script_scene_systems(
+        &linked_extensions.registry,
+        linked_extension_world_plan,
+    )?;
     let runtime = {
         crate::profile_scope!("runtime", "dynamic_api", "runtime_session_core_new");
         CoreRuntime::new()
@@ -151,29 +155,6 @@ pub(super) fn build(
         "runtime_session",
         "runtime_dynamic_session_modules_activated",
     );
-    if !linked_extensions.registry.scene_hooks().is_empty() {
-        crate::scene::install_scene_runtime_hooks(
-            &runtime.handle(),
-            linked_extensions.registry.scene_hooks().iter().cloned(),
-        )
-        .map_err(|source| RuntimeDynamicSessionError::CoreStep {
-            step: "install linked plugin scene runtime hooks",
-            source,
-        })?;
-    }
-    {
-        crate::profile_scope!(
-            "runtime",
-            "dynamic_api",
-            "runtime_session_install_scene_hooks"
-        );
-        install_builtin_scene_runtime_hooks(&runtime)?;
-    }
-    write_log(
-        "runtime_session",
-        "runtime_dynamic_session_scene_hooks_installed",
-    );
-
     let input_manager = {
         crate::profile_scope!("runtime", "dynamic_api", "runtime_session_resolve_input");
         let handle =
@@ -225,8 +206,11 @@ pub(super) fn build(
                 write_log_lazy("runtime_session", || project_opened_log(&project_info));
                 let project_identity =
                     (!project_info.name.trim().is_empty()).then(|| project_info.name.clone());
-                let scene_uri = (!project_info.default_scene_uri.trim().is_empty())
-                    .then(|| project_info.default_scene_uri.clone());
+                let play_scene_override = project.play_scene_identifier();
+                let scene_uri = play_scene_override.clone().or_else(|| {
+                    (!project_info.default_scene_uri.trim().is_empty())
+                        .then(|| project_info.default_scene_uri.clone())
+                });
                 write_log("runtime_session", "runtime_project_navigation_load_start");
                 project.load_default_navigation(&core).map_err(|source| {
                     RuntimeDynamicSessionError::ProjectStep {
@@ -244,12 +228,21 @@ pub(super) fn build(
                 })?;
                 write_log("runtime_session", "runtime_project_scripts_load_done");
                 write_log("runtime_session", "runtime_project_level_load_start");
-                let level = project.load_default_level(&core).map_err(|source| {
-                    RuntimeDynamicSessionError::ProjectStep {
-                        step: "load default level",
-                        source,
-                    }
-                })?;
+                let level = if project.has_play_scene_override() {
+                    project.load_play_scene_level(&core).map_err(|source| {
+                        RuntimeDynamicSessionError::ProjectStep {
+                            step: "load Play scene override",
+                            source,
+                        }
+                    })?
+                } else {
+                    project.load_default_level(&core).map_err(|source| {
+                        RuntimeDynamicSessionError::ProjectStep {
+                            step: "load default level",
+                            source,
+                        }
+                    })?
+                };
                 (level, project_identity, scene_uri)
             }
             None => (
@@ -285,6 +278,15 @@ pub(super) fn build(
     if scene_asset_reload_queue.is_some() {
         write_log("runtime_session", "runtime_scene_asset_reload_queue_ready");
     }
+    let runtime_ui = match &prepared_project {
+        Some(project) => project.load_runtime_ui_surfaces(&core).map_err(|source| {
+            RuntimeDynamicSessionError::ProjectStep {
+                step: "load declared project UI roots",
+                source,
+            }
+        })?,
+        None => Default::default(),
+    };
     let (orbit_target, selected_model_resource_id, selected_material_resource_id) = {
         crate::profile_scope!(
             "runtime",
@@ -350,14 +352,17 @@ pub(super) fn build(
         next_plugin_event_subscription: 1,
         plugin_event_subscriptions: event_mirror::empty_plugin_event_subscriptions(),
         operations,
+        project_watchers_shutdown: false,
+        dynamic_process_log: None,
+        runtime_ui,
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        store_profile_submission_config, CoreRuntime, RenderProfileBundle, RenderSubmissionConfig,
-        RuntimeDynamicSessionProfile, RENDER_PROFILE_CONFIG_KEY,
+        CoreRuntime, RENDER_PROFILE_CONFIG_KEY, RenderProfileBundle, RenderSubmissionConfig,
+        RuntimeDynamicSessionProfile, store_profile_submission_config,
     };
 
     #[test]

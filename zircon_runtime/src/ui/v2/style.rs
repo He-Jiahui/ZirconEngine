@@ -7,7 +7,7 @@ use zircon_runtime_interface::ui::event_ui::UiNodeId;
 use zircon_runtime_interface::ui::template::{
     UiSelector, UiSelectorCombinator, UiSelectorSegment, UiSelectorSpecificity, UiSelectorToken,
 };
-use zircon_runtime_interface::ui::tree::{UiTree, UiTreeError, UiTreeNode};
+use zircon_runtime_interface::ui::tree::{UiDirtyFlags, UiTree, UiTreeError, UiTreeNode};
 use zircon_runtime_interface::ui::v2::{
     UiV2AssetDocument, UiV2AssetError, UiV2NodeArena, UiV2NodeHandle, UiV2ResolvedStyle,
     UiV2ResolvedStyleSheet, UiV2StyleDeclarationBlock,
@@ -154,6 +154,7 @@ impl UiV2StyleResolver {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct UiV2RuntimeStyleIndex {
     rules: Vec<ResolvedRule>,
+    ancestor_pseudo_segments: Vec<UiSelectorSegment>,
     base_attributes: BTreeMap<UiNodeId, BTreeMap<String, Value>>,
     base_style_overrides: BTreeMap<UiNodeId, BTreeMap<String, Value>>,
     base_style_tokens: BTreeMap<UiNodeId, BTreeMap<String, String>>,
@@ -184,8 +185,14 @@ impl UiV2RuntimeStyleIndex {
             resolve_value_map(&mut rule.set.self_values, &document.tokens, theme, 0);
             resolve_value_map(&mut rule.set.slot, &document.tokens, theme, 0);
         }
+        let ancestor_pseudo_segments = rules
+            .iter()
+            .flat_map(|rule| ancestor_pseudo_segments(&rule.selector))
+            .cloned()
+            .collect();
         Ok(Self {
             rules,
+            ancestor_pseudo_segments,
             base_attributes: BTreeMap::new(),
             base_style_overrides: BTreeMap::new(),
             base_style_tokens: BTreeMap::new(),
@@ -194,6 +201,22 @@ impl UiV2RuntimeStyleIndex {
 
     pub(crate) fn has_runtime_rules(&self) -> bool {
         !self.rules.is_empty()
+    }
+
+    pub(crate) fn node_state_can_affect_descendants(
+        &self,
+        tree: &UiTree,
+        node_id: UiNodeId,
+    ) -> Result<bool, UiTreeError> {
+        let node = tree
+            .nodes
+            .get(&node_id)
+            .ok_or(UiTreeError::MissingNode(node_id))?;
+        let selector_node = SelectorPathNode::from_tree_node(node, None, node.parent.is_none());
+        Ok(self
+            .ancestor_pseudo_segments
+            .iter()
+            .any(|segment| matches_segment_ignoring_state(segment, &selector_node)))
     }
 
     pub(crate) fn capture_baseline_from_tree(&mut self, tree: &UiTree) {
@@ -241,9 +264,9 @@ impl UiV2RuntimeStyleIndex {
         component_states: &crate::ui::surface::UiSurfaceComponentStateStore,
         root_id: UiNodeId,
         mark_dirty: bool,
-    ) -> Result<usize, UiTreeError> {
+    ) -> Result<UiV2RuntimeStyleApplyReport, UiTreeError> {
         if self.rules.is_empty() {
-            return Ok(0);
+            return Ok(UiV2RuntimeStyleApplyReport::default());
         }
         if !tree.nodes.contains_key(&root_id) {
             return Err(UiTreeError::MissingNode(root_id));
@@ -251,10 +274,11 @@ impl UiV2RuntimeStyleIndex {
 
         // Keep the selector path on the traversal stack so deep descendant
         // pseudo-state rules do not rebuild their ancestor chain per node.
-        let mut changed_count = 0;
+        let mut report = UiV2RuntimeStyleApplyReport::default();
         let mut path = runtime_selector_path(tree, component_states, root_id)?;
-        changed_count += self.apply_node_style(tree, root_id, &path, mark_dirty)?;
-
+        if let Some(dirty) = self.apply_node_style(tree, root_id, &path, mark_dirty)? {
+            report.changed_nodes.push((root_id, dirty));
+        }
         let mut stack = vec![RuntimeStyleFrame {
             node_id: root_id,
             next_child: 0,
@@ -278,7 +302,9 @@ impl UiV2RuntimeStyleIndex {
                     component_states.get(child_id),
                     false,
                 ));
-                changed_count += self.apply_node_style(tree, child_id, &path, mark_dirty)?;
+                if let Some(dirty) = self.apply_node_style(tree, child_id, &path, mark_dirty)? {
+                    report.changed_nodes.push((child_id, dirty));
+                }
                 stack.push(RuntimeStyleFrame {
                     node_id: child_id,
                     next_child: 0,
@@ -289,7 +315,28 @@ impl UiV2RuntimeStyleIndex {
             let _ = stack.pop();
             let _ = path.pop();
         }
-        Ok(changed_count)
+        Ok(report)
+    }
+
+    pub(crate) fn apply_to_tree_node(
+        &self,
+        tree: &mut UiTree,
+        component_states: &crate::ui::surface::UiSurfaceComponentStateStore,
+        node_id: UiNodeId,
+        mark_dirty: bool,
+    ) -> Result<UiV2RuntimeStyleApplyReport, UiTreeError> {
+        if self.rules.is_empty() {
+            return Ok(UiV2RuntimeStyleApplyReport::default());
+        }
+        if !tree.nodes.contains_key(&node_id) {
+            return Err(UiTreeError::MissingNode(node_id));
+        }
+        let path = runtime_selector_path(tree, component_states, node_id)?;
+        let mut report = UiV2RuntimeStyleApplyReport::default();
+        if let Some(dirty) = self.apply_node_style(tree, node_id, &path, mark_dirty)? {
+            report.changed_nodes.push((node_id, dirty));
+        }
+        Ok(report)
     }
 
     fn apply_node_style(
@@ -298,9 +345,9 @@ impl UiV2RuntimeStyleIndex {
         node_id: UiNodeId,
         path: &[SelectorPathNode],
         mark_dirty: bool,
-    ) -> Result<usize, UiTreeError> {
+    ) -> Result<Option<UiDirtyFlags>, UiTreeError> {
         let Some(base_attributes) = self.base_attributes.get(&node_id) else {
-            return Ok(0);
+            return Ok(None);
         };
         let mut node_style = UiV2ResolvedStyle::default();
         for rule in &self.rules {
@@ -349,13 +396,13 @@ impl UiV2RuntimeStyleIndex {
             .get_mut(&node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
         let Some(metadata) = node.template_metadata.as_mut() else {
-            return Ok(0);
+            return Ok(None);
         };
         if metadata.attributes == next_attributes
             && metadata.style_overrides == next_style_overrides
             && metadata.style_tokens == next_style_tokens
         {
-            return Ok(0);
+            return Ok(None);
         }
 
         let dirty = dirty_for_runtime_style_delta(&metadata.attributes, &next_attributes);
@@ -368,7 +415,18 @@ impl UiV2RuntimeStyleIndex {
             }
             merge_dirty_flags_into(&mut node.dirty, dirty);
         }
-        Ok(1)
+        Ok(Some(dirty))
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct UiV2RuntimeStyleApplyReport {
+    pub(crate) changed_nodes: Vec<(UiNodeId, UiDirtyFlags)>,
+}
+
+impl UiV2RuntimeStyleApplyReport {
+    pub(crate) fn changed_count(&self) -> usize {
+        self.changed_nodes.len()
     }
 }
 
@@ -432,6 +490,19 @@ fn selector_uses_pseudo_state(selector: &UiSelector) -> bool {
         .iter()
         .flat_map(|segment| segment.tokens.iter())
         .any(|token| matches!(token, UiSelectorToken::State(_)))
+}
+
+fn ancestor_pseudo_segments(selector: &UiSelector) -> impl Iterator<Item = &UiSelectorSegment> {
+    selector
+        .segments
+        .iter()
+        .take(selector.segments.len().saturating_sub(1))
+        .filter(|segment| {
+            segment
+                .tokens
+                .iter()
+                .any(|token| matches!(token, UiSelectorToken::State(_)))
+        })
 }
 
 struct StyleFrame {
@@ -585,6 +656,17 @@ fn matches_segment(segment: &UiSelectorSegment, node: &SelectorPathNode) -> bool
         UiSelectorToken::Class(class_name) => node.classes.iter().any(|class| class == class_name),
         UiSelectorToken::Id(control_id) => node.control_id.as_ref() == Some(control_id),
         UiSelectorToken::State(state) => node.states.iter().any(|value| value == state),
+        UiSelectorToken::Part(_) => false,
+        UiSelectorToken::Host => node.is_host,
+    })
+}
+
+fn matches_segment_ignoring_state(segment: &UiSelectorSegment, node: &SelectorPathNode) -> bool {
+    segment.tokens.iter().all(|token| match token {
+        UiSelectorToken::State(_) => true,
+        UiSelectorToken::Type(component) => node.component == *component,
+        UiSelectorToken::Class(class_name) => node.classes.iter().any(|class| class == class_name),
+        UiSelectorToken::Id(control_id) => node.control_id.as_ref() == Some(control_id),
         UiSelectorToken::Part(_) => false,
         UiSelectorToken::Host => node.is_host,
     })

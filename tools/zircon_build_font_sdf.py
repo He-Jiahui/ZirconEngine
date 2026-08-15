@@ -9,6 +9,11 @@ import uuid
 from pathlib import Path
 from typing import Mapping, Sequence
 
+try:
+    from .zircon_build_cargo_environment import managed_cargo_environment
+except ImportError:  # pragma: no cover - direct script import path.
+    from zircon_build_cargo_environment import managed_cargo_environment
+
 
 FONT_SDF_MANIFEST_VERSION = 1
 FONT_SDF_MODES = ("sdf", "msdf", "mtsdf")
@@ -147,8 +152,11 @@ def bake_font_sdf_manifest(config, manifest_path: Path) -> None:
         if config.dry_run:
             print("DRY-RUN", _quote_command(command))
             continue
+        environment = managed_cargo_environment(
+            config.targets_root / "font-sdf", config.targets_root
+        )
         print(_quote_command(command))
-        subprocess.run(command, cwd=config.repo_root, check=True)
+        subprocess.run(command, cwd=config.repo_root, check=True, env=environment)
 
 
 def _spec_from_record(record: object, repo_root: Path) -> FontSdfBakeSpec:

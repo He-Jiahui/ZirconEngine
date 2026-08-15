@@ -23,6 +23,7 @@ impl HostMenuPointerBridge {
                     self.state.open_menu_index = Some(*index);
                     self.state.popup_scroll_offset = 0.0;
                     self.state.open_submenu_path.clear();
+                    self.refresh_popup_items(false);
                     rebuild = true;
                 }
                 self.state.hovered_menu_index = Some(*index);

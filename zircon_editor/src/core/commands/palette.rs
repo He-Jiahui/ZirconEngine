@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 use std::sync::Arc;
 
-use serde::{Deserialize, Deserializer, Serialize, de};
+use serde::{de, Deserialize, Deserializer, Serialize};
 use zircon_runtime_interface::ui::component::UiValue;
 
 use super::{CommandEvalCtx, EditorCommandDescriptor, WhenClause};
@@ -125,6 +125,7 @@ pub struct EditorCommandPaletteCatalog {
     entries: Arc<[EditorCommandPaletteEntry]>,
     entry_indices: BTreeMap<String, usize>,
     search_documents: Arc<[Box<str>]>,
+    search_postings: Box<[Box<[usize]>; 256]>,
     enablement: Arc<[EditorCommandPaletteEnablement]>,
 }
 
@@ -152,11 +153,22 @@ impl EditorCommandPaletteCatalog {
         let mut entries = Vec::new();
         let mut entry_indices = BTreeMap::new();
         let mut search_documents = Vec::new();
+        let mut search_postings: [Vec<usize>; 256] = std::array::from_fn(|_| Vec::new());
         let mut enablement = Vec::new();
         for descriptor in descriptors {
             let entry = EditorCommandPaletteEntry::from_descriptor(descriptor);
             entry_indices.insert(entry.id.clone(), entries.len());
-            search_documents.push(search_document(&entry));
+            let document = search_document(&entry);
+            let mut indexed_bytes = [false; 256];
+            for byte in document.bytes() {
+                indexed_bytes[usize::from(byte)] = true;
+            }
+            for (byte, present) in indexed_bytes.into_iter().enumerate() {
+                if present {
+                    search_postings[byte].push(entries.len());
+                }
+            }
+            search_documents.push(document);
             enablement.push(EditorCommandPaletteEnablement::from_descriptor(descriptor));
             entries.push(entry);
         }
@@ -165,11 +177,12 @@ impl EditorCommandPaletteCatalog {
             entries: entries.into(),
             entry_indices,
             search_documents: search_documents.into(),
+            search_postings: Box::new(search_postings.map(Vec::into_boxed_slice)),
             enablement: enablement.into(),
         }
     }
 
-    pub(super) fn query_window(
+    pub(crate) fn query_window(
         self: &Arc<Self>,
         context: &CommandEvalCtx,
         query: &str,
@@ -185,7 +198,7 @@ impl EditorCommandPaletteCatalog {
         )
     }
 
-    pub(super) fn query_window_with_mru(
+    pub(crate) fn query_window_with_mru(
         self: &Arc<Self>,
         context: &CommandEvalCtx,
         query: &str,
@@ -193,31 +206,28 @@ impl EditorCommandPaletteCatalog {
         limit: usize,
         mru: &EditorCommandPaletteMru,
     ) -> EditorCommandPaletteQueryWindow {
-        let normalized_query = query.trim().to_lowercase();
-        if normalized_query.is_empty() {
+        let query = EditorCommandPaletteCompiledQuery::new(query);
+        if query.is_empty() {
             return self.unfiltered_window(context, offset, limit, mru);
         }
 
         let mut metrics = EditorCommandPaletteQueryMetrics {
-            owned_buffers: 2,
+            owned_buffers: 3,
             ..EditorCommandPaletteQueryMetrics::default()
         };
         let candidate_limit = (limit > 0)
             .then(|| offset.saturating_add(limit).min(self.entries.len()))
             .unwrap_or_default();
         let mut candidates = BinaryHeap::with_capacity(candidate_limit);
-        for ((index, document), enablement) in self
-            .search_documents
-            .iter()
-            .enumerate()
-            .zip(self.enablement.iter())
-        {
+        let candidate_indices = query.rarest_posting(&self.search_postings);
+        for &index in candidate_indices {
             metrics.visited_entries += 1;
             metrics.enablement_evaluations += 1;
-            if !enablement.is_enabled(context) {
+            if !self.enablement[index].is_enabled(context) {
                 continue;
             }
-            if let Some(score) = fuzzy_score(document, &normalized_query, &mut metrics) {
+            let document = &self.search_documents[index];
+            if let Some(score) = fuzzy_score(document, &query, &mut metrics) {
                 metrics.total_matches += 1;
                 retain_top_candidate(
                     &mut candidates,
@@ -306,11 +316,14 @@ impl EditorCommandPaletteCatalog {
 pub struct EditorCommandPaletteQueryMetrics {
     pub visited_entries: usize,
     pub enablement_evaluations: usize,
+    /// Source document bytes visited by the single-pass fuzzy matcher.
+    pub document_byte_visits: usize,
     pub text_comparisons: usize,
     pub total_matches: usize,
     pub candidate_handles: usize,
     pub retained_handles: usize,
-    /// Owned variable-size buffers: normalized query, bounded candidates, and result handles.
+    /// Owned variable-size buffers: normalized query, prefix table, bounded candidates, and result
+    /// handles.
     pub owned_buffers: usize,
 }
 
@@ -466,43 +479,157 @@ fn search_document(entry: &EditorCommandPaletteEntry) -> Box<str> {
     document.into_boxed_str()
 }
 
+struct EditorCommandPaletteCompiledQuery {
+    normalized: String,
+    prefix_lengths: Box<[usize]>,
+}
+
+impl EditorCommandPaletteCompiledQuery {
+    fn new(query: &str) -> Self {
+        let normalized = query.trim().to_lowercase();
+        let bytes = normalized.as_bytes();
+        let mut prefix_lengths = vec![0; bytes.len()];
+        let mut prefix_len = 0;
+        for index in 1..bytes.len() {
+            while prefix_len > 0 && bytes[index] != bytes[prefix_len] {
+                prefix_len = prefix_lengths[prefix_len - 1];
+            }
+            if bytes[index] == bytes[prefix_len] {
+                prefix_len += 1;
+            }
+            prefix_lengths[index] = prefix_len;
+        }
+        Self {
+            normalized,
+            prefix_lengths: prefix_lengths.into_boxed_slice(),
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.normalized.is_empty()
+    }
+
+    fn bytes(&self) -> &[u8] {
+        self.normalized.as_bytes()
+    }
+
+    fn rarest_posting<'a>(&self, postings: &'a [Box<[usize]>; 256]) -> &'a [usize] {
+        let mut visited = [false; 256];
+        self.bytes()
+            .iter()
+            .copied()
+            .filter(|byte| {
+                let visited = &mut visited[usize::from(*byte)];
+                let first = !*visited;
+                *visited = true;
+                first
+            })
+            .map(|byte| postings[usize::from(byte)].as_ref())
+            .min_by_key(|posting| posting.len())
+            .unwrap_or_default()
+    }
+}
+
 fn fuzzy_score(
     document: &str,
-    query: &str,
+    query: &EditorCommandPaletteCompiledQuery,
     metrics: &mut EditorCommandPaletteQueryMetrics,
 ) -> Option<u8> {
     let document = document.as_bytes();
-    let query = query.as_bytes();
-    metrics.text_comparisons += document.len().saturating_sub(query.len()).saturating_add(1);
-    if document.windows(query.len()).any(|window| window == query) {
-        return Some(255);
-    }
+    let query_bytes = query.bytes();
 
     let mut query_index = 0;
     let mut first_match = None;
     let mut last_match = 0;
     let mut gap_count = 0usize;
+    let mut subsequence_score = None;
+    let mut contiguous_len = 0;
     for (document_index, value) in document.iter().copied().enumerate() {
+        metrics.document_byte_visits += 1;
+
+        while contiguous_len > 0 {
+            metrics.text_comparisons += 1;
+            if query_bytes[contiguous_len] == value {
+                break;
+            }
+            contiguous_len = query.prefix_lengths[contiguous_len - 1];
+        }
         metrics.text_comparisons += 1;
-        if query.get(query_index).copied() != Some(value) {
-            continue;
+        if query_bytes[contiguous_len] == value {
+            contiguous_len += 1;
+            if contiguous_len == query_bytes.len() {
+                return Some(255);
+            }
         }
-        if let Some(previous) = first_match.map(|_| last_match) {
-            gap_count += document_index.saturating_sub(previous + 1);
-        } else {
-            first_match = Some(document_index);
-        }
-        last_match = document_index;
-        query_index += 1;
-        if query_index == query.len() {
-            let start_penalty = first_match.unwrap_or_default().min(48);
-            let gap_penalty = gap_count.min(96);
-            return Some(
-                224usize
-                    .saturating_sub(start_penalty)
-                    .saturating_sub(gap_penalty) as u8,
-            );
+
+        if subsequence_score.is_none() {
+            metrics.text_comparisons += 1;
+            if query_bytes.get(query_index).copied() != Some(value) {
+                continue;
+            }
+            if let Some(previous) = first_match.map(|_| last_match) {
+                gap_count += document_index.saturating_sub(previous + 1);
+            } else {
+                first_match = Some(document_index);
+            }
+            last_match = document_index;
+            query_index += 1;
+            if query_index == query_bytes.len() {
+                let start_penalty = first_match.unwrap_or_default().min(48);
+                let gap_penalty = gap_count.min(96);
+                subsequence_score = Some(
+                    224usize
+                        .saturating_sub(start_penalty)
+                        .saturating_sub(gap_penalty) as u8,
+                );
+            }
         }
     }
-    None
+    subsequence_score
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn single_pass_fuzzy_score_preserves_exact_and_subsequence_ranking() {
+        let exact_query = EditorCommandPaletteCompiledQuery::new("ha");
+        let mut exact_metrics = EditorCommandPaletteQueryMetrics::default();
+        let exact = fuzzy_score("alpha beta", &exact_query, &mut exact_metrics);
+
+        let subsequence_query = EditorCommandPaletteCompiledQuery::new("ab");
+        let mut subsequence_metrics = EditorCommandPaletteQueryMetrics::default();
+        let subsequence = fuzzy_score("alpha beta", &subsequence_query, &mut subsequence_metrics);
+
+        assert_eq!(exact, Some(255));
+        assert_eq!(subsequence, Some(219));
+        assert!(exact_metrics.document_byte_visits <= "alpha beta".len());
+        assert_eq!(subsequence_metrics.document_byte_visits, "alpha beta".len());
+    }
+
+    #[test]
+    fn later_exact_match_still_overrides_an_earlier_subsequence() {
+        let query = EditorCommandPaletteCompiledQuery::new("ab");
+        let mut metrics = EditorCommandPaletteQueryMetrics::default();
+
+        assert_eq!(
+            fuzzy_score("a gap before ab", &query, &mut metrics),
+            Some(255)
+        );
+        assert!(metrics.document_byte_visits < "a gap before ab".len());
+    }
+
+    #[test]
+    fn rarest_posting_keeps_repeated_query_byte_candidates() {
+        let query = EditorCommandPaletteCompiledQuery::new("letter");
+        let mut postings: [Box<[usize]>; 256] =
+            std::array::from_fn(|_| Vec::new().into_boxed_slice());
+        postings[usize::from(b'e')] = vec![2, 7].into_boxed_slice();
+        postings[usize::from(b'l')] = vec![2, 4, 7].into_boxed_slice();
+        postings[usize::from(b't')] = vec![2, 5, 7].into_boxed_slice();
+        postings[usize::from(b'r')] = vec![2, 6, 7].into_boxed_slice();
+
+        assert_eq!(query.rarest_posting(&postings), &[2, 7]);
+    }
 }

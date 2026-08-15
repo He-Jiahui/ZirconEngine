@@ -754,15 +754,14 @@ fn ui_asset_editor_session_exports_sanitized_bug_report_replay_artifact() {
 
     let record = &artifact.records[0];
     assert_eq!(record.label, "Promote Local Theme");
-    assert!(record
-        .redo_external_effects
-        .iter()
-        .any(|effect| effect.effect_id == "upsert_asset_source"
+    assert!(record.redo_external_effects.iter().any(|effect| {
+        effect.effect_id == "upsert_asset_source"
             && effect.asset_id == "res://ui/themes/replay_theme.zui"
             && effect
                 .source
                 .as_ref()
-                .is_some_and(|source| source.byte_len > 0)));
+                .is_some_and(|source| source.byte_len > 0)
+    }));
     assert!(record
         .undo_external_effects
         .iter()

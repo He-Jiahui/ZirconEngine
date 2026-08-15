@@ -9,8 +9,8 @@ use crate::core::framework::scene::SCENE_MODULE_NAME;
 use crate::core::manager::RegisteredManagerService;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
-    DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
-    ServiceKind, StartupMode,
+    CoreError, DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec,
+    ModuleDescriptor, ServiceKind, StartupMode,
 };
 use crate::engine_module::{dependency_on, factory, qualified_name};
 use crate::graphics::{
@@ -109,8 +109,9 @@ pub fn module_descriptor_with_render_features(
             let virtual_geometry_runtime_providers =
                 Arc::clone(&virtual_geometry_runtime_providers);
             move |core| {
+                let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
                 let render_framework = create_render_framework_with_render_features(
-                    core,
+                    &core,
                     render_features.to_vec(),
                     plugin_geometry_sources.to_vec(),
                     plugin_shading_models.to_vec(),

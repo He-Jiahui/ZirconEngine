@@ -56,3 +56,13 @@ World只保存domain级bool dirty，没有generation-owned hierarchy topology、
 ## 修复结果与回传
 
 Open state: `待修复`; no pass is claimed.
+
+## 2026-08-13 前向续作
+
+- subtree record、active hierarchy 和 world-matrix propagation 均改为稳定 child 顺序的显式 DFS 栈，消除深 hierarchy 的递归调用栈风险。
+- dirty-read 的 world matrix 和 active chain 改为迭代 ancestor walk；cycle 仍拒绝、矩阵组合顺序保持 root 到 leaf。
+- `HierarchyMutationIndex` 现同时拥有 stable-order roots 与 child ranges。active/world 全量 rebuild 在 index 当前时直接复用该唯一拓扑，不再各自构造临时 children map；raw `Hierarchy` mutable escape hatch 仍标记 index dirty，下一次 rebuild 只重建一次。
+- hierarchy validity 先以只读 parent snapshot 找出无效边，再只写入实际变化，并在原 index 当前时同步根/child 投影。缺失 parent 行为回归额外断言修剪后节点的 root `WorldMatrix` 与 `ActiveInHierarchy` 都已发布。
+- `HierarchyMutationIndex` 的 current 判定同时要求 indexed entity 数量覆盖 World 的全部 stable entity；`spawn_empty_at` 直接将没有 `Hierarchy` 组件的空 root 以 O(1) 注册入唯一拓扑，计数不一致时仍在派生传播前重建，回归覆盖其 subtree、matrix 与 active 输出。
+- bundle 创建、空实体创建、插入与 deferred entry 从 `typed_api.rs` 提取到 folder-backed `typed_api/bundle_entry.rs`；接口不变，`typed_api.rs` 保持组件访问/存储职责并回落到 800 行以下。
+- 这仍未完成 dirty-frontier、NodeCache/render/inspection 增量投影与 1/1k/100k 确定性计数。未运行 Cargo 或 WGPU，failure 保持 open。

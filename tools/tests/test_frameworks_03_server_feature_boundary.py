@@ -12,6 +12,7 @@ else:
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+WORKSPACE_MANIFEST = REPO_ROOT / "Cargo.toml"
 RUNTIME_MANIFEST = REPO_ROOT / "zircon_runtime" / "Cargo.toml"
 RUNTIME_ROOT = REPO_ROOT / "zircon_runtime" / "src" / "lib.rs"
 RHI_BOUNDARY_TEST = (
@@ -202,6 +203,7 @@ def reachable_feature_graph(
         enable_default_features: bool,
     ) -> None:
         manifest_path = manifest_path.resolve()
+        first_request = manifest_path not in requested_features_by_manifest
         requested = requested_features_by_manifest.setdefault(manifest_path, set())
         requested_before = len(requested)
         requested.update(requested_features)
@@ -210,7 +212,8 @@ def reachable_feature_graph(
             default_before or enable_default_features
         )
         if (
-            len(requested) == requested_before
+            not first_request
+            and len(requested) == requested_before
             and default_features_by_manifest[manifest_path] == default_before
         ):
             return
@@ -296,6 +299,9 @@ def reachable_feature_graph(
 class Frameworks03ServerFeatureBoundaryTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
+        cls.workspace_manifest = tomllib.loads(
+            WORKSPACE_MANIFEST.read_text(encoding="utf-8")
+        )
         cls.manifest = tomllib.loads(RUNTIME_MANIFEST.read_text(encoding="utf-8"))
         cls.root_source = RUNTIME_ROOT.read_text(encoding="utf-8")
         cls.rhi_boundary_test = RHI_BOUNDARY_TEST.read_text(encoding="utf-8")
@@ -358,6 +364,47 @@ class Frameworks03ServerFeatureBoundaryTests(unittest.TestCase):
         neutral_rhi = dependencies["zr_rhi"]
         self.assertIsInstance(neutral_rhi, dict)
         self.assertNotIn("optional", neutral_rhi)
+
+    def test_physical_rhi_members_follow_facade_profiles_without_default_leaks(
+        self,
+    ) -> None:
+        workspace_dependencies = self.workspace_manifest["workspace"]["dependencies"]
+        for dependency in ("zr_rhi", "zr_rhi_wgpu"):
+            self.assertFalse(
+                workspace_dependencies[dependency].get("default-features", True),
+                f"{dependency} defaults must be controlled by zircon_runtime features",
+            )
+
+        forbidden_features = {
+            ("zr_rhi", "platform-winit"),
+            ("zr_rhi_wgpu", "default"),
+            ("zr_rhi_wgpu", "platform-winit"),
+        }
+        for manifest_path in (RUNTIME_MANIFEST, APP_MANIFEST):
+            reachable_features, reachable_packages = reachable_feature_graph(
+                manifest_path,
+                ("target-server",),
+            )
+            self.assertIn("zr_rhi", reachable_packages)
+            self.assertNotIn("zr_rhi_wgpu", reachable_packages)
+            self.assertTrue(reachable_features.isdisjoint(forbidden_features))
+
+            for profile in ("target-client", "target-editor-host"):
+                reachable_features, reachable_packages = reachable_feature_graph(
+                    manifest_path,
+                    (profile,),
+                )
+                self.assertTrue(
+                    {"zr_rhi", "zr_rhi_wgpu"}.issubset(reachable_packages),
+                    f"{manifest_path.parent.name} {profile} must activate the RHI backend",
+                )
+                self.assertTrue(
+                    {
+                        ("zr_rhi", "platform-winit"),
+                        ("zr_rhi_wgpu", "platform-winit"),
+                    }.issubset(reachable_features),
+                    f"{manifest_path.parent.name} {profile} must forward platform-winit",
+                )
 
     def test_neutral_rhi_wgpu_dependency_guard_covers_dotted_keys(self) -> None:
         required_contract = (

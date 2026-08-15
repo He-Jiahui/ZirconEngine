@@ -1,4 +1,4 @@
-use super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
+use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 use super::identity::SectionTitleIcon;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -8,8 +8,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub transform_icon: [u8; 4],
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn section_title_glyph_palette()
--> WorkbenchSectionTitleGlyphPalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn section_title_glyph_palette(
+) -> WorkbenchSectionTitleGlyphPalette {
     section_title_glyph_palette_from_host(current_host_palette())
 }
 

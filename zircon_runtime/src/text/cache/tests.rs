@@ -117,7 +117,7 @@ fn text_measure_cache_get_or_insert_keeps_misses_inside_lru_capacity() {
     for index in 0..3_u64 {
         let key = MeasureKey::new(index, 80.0);
         let text = format!("measure-{index}");
-        cache.get_or_insert_with(key, text, || index);
+        cache.get_or_insert_with(key, text.as_str(), || index);
     }
 
     assert_eq!(cache.len(), 2);
@@ -256,7 +256,7 @@ fn text_layout_cache_get_or_insert_keeps_misses_inside_lru_capacity() {
     for index in 0..3_u64 {
         let key = MeasureKey::new(index, 80.0);
         let text = format!("layout-{index}");
-        cache.get_or_insert_with(key, text, width, 80.0, || index);
+        cache.get_or_insert_with(key, text.as_str(), width, 80.0, || index);
     }
 
     assert_eq!(cache.len(), 2);
@@ -385,11 +385,19 @@ fn text_cache_indexes_keep_hot_lookup_and_eviction_work_constant() {
         let hot_text = format!("cache-entry-{hot_index}");
         let hot_key = MeasureKey::new(hot_index as u64, 128.0);
         let hot_shaped_key = key_for(hot_text.as_str(), &style);
+        let miss_text = format!("cache-miss-{capacity}");
+        let miss_key = MeasureKey::new(capacity as u64 + 5_000, 128.0);
+        let miss_shaped_key = key_for(miss_text.as_str(), &style);
         assert_eq!(
             dedup.get(&hot_key, hot_text.as_str()),
             Some(&(hot_index as u32))
         );
-        assert_eq!(dedup.report().lookup_candidate_count, 1);
+        assert!(dedup.get(&miss_key, miss_text.as_str()).is_none());
+        dedup.insert(hot_key.clone(), hot_text.as_str(), u32::MAX);
+        assert_eq!(dedup.report().hit_count, 1);
+        assert_eq!(dedup.report().miss_count, 1);
+        assert_eq!(dedup.report().update_count, 1);
+        assert_eq!(dedup.report().lookup_candidate_count, 2);
         measure.begin_frame(2);
         layout.begin_frame(2);
         shaped.begin_frame(2);
@@ -403,9 +411,27 @@ fn text_cache_indexes_keep_hot_lookup_and_eviction_work_constant() {
             Some(&(hot_index as u32))
         );
         assert!(shaped.get(&hot_shaped_key, hot_text.as_str()).is_some());
-        assert_eq!(measure.report().lookup_candidate_count, 1);
-        assert_eq!(layout.report().lookup_candidate_count, 1);
-        assert_eq!(shaped.report().lookup_candidate_count, 1);
+        assert!(measure.get(&miss_key, miss_text.as_str()).is_none());
+        assert!(layout.get(&miss_key, miss_text.as_str(), 128.0).is_none());
+        assert!(shaped.get(&miss_shaped_key, miss_text.as_str()).is_none());
+        measure.insert(hot_key.clone(), hot_text.as_str(), u32::MAX);
+        layout.insert(hot_key.clone(), hot_text.as_str(), width, u32::MAX);
+        shaped.insert(
+            hot_shaped_key,
+            dummy_run(hot_text.as_str(), u32::MAX as f32),
+        );
+        assert_eq!(measure.report().hit_count, 1);
+        assert_eq!(layout.report().hit_count, 1);
+        assert_eq!(shaped.report().hit_count, 1);
+        assert_eq!(measure.report().miss_count, 1);
+        assert_eq!(layout.report().miss_count, 1);
+        assert_eq!(shaped.report().miss_count, 1);
+        assert_eq!(measure.report().update_count, 1);
+        assert_eq!(layout.report().update_count, 1);
+        assert_eq!(shaped.report().update_count, 1);
+        assert_eq!(measure.report().lookup_candidate_count, 2);
+        assert_eq!(layout.report().lookup_candidate_count, 2);
+        assert_eq!(shaped.report().lookup_candidate_count, 2);
 
         let replacement_text = format!("cache-replacement-{capacity}");
         let replacement_key = MeasureKey::new(capacity as u64 + 10_000, 128.0);
@@ -420,13 +446,42 @@ fn text_cache_indexes_keep_hot_lookup_and_eviction_work_constant() {
         assert_eq!(measure.report().evicted_count, 1);
         assert_eq!(layout.report().evicted_count, 1);
         assert_eq!(shaped.report().evicted_count, 1);
-        assert_eq!(measure.report().eviction_scan_count, 0);
-        assert_eq!(layout.report().eviction_scan_count, 0);
-        assert_eq!(shaped.report().eviction_scan_count, 0);
+        assert_eq!(measure.report().eviction_scan_count, 1);
+        assert_eq!(layout.report().eviction_scan_count, 1);
+        assert_eq!(shaped.report().eviction_scan_count, 1);
         assert_eq!(measure.report().entry_move_count, 0);
         assert_eq!(layout.report().entry_move_count, 0);
         assert_eq!(shaped.report().entry_move_count, 0);
+        dedup.clear();
+        assert_eq!(dedup.report().clear_count, 1);
+        assert!(dedup.is_empty());
     }
+}
+
+#[test]
+fn persistent_cache_hits_expose_stored_text_for_allocation_free_frame_reuse() {
+    let measure_key = MeasureKey::new(57, 128.0);
+    let measure_text: Arc<str> = Arc::from("measure-shared");
+    let mut measure = TextMeasureCache::with_capacity(2);
+    measure.begin_frame(1);
+    measure.insert(measure_key.clone(), Arc::clone(&measure_text), 7_u32);
+    let (stored_measure_text, value) = measure
+        .get_with_stored_text(&measure_key, measure_text.as_ref())
+        .expect("stored measure entry");
+    assert!(Arc::ptr_eq(stored_measure_text, &measure_text));
+    assert_eq!(*value, 7);
+
+    let layout_key = MeasureKey::new(58, 128.0);
+    let layout_text: Arc<str> = Arc::from("layout-shared");
+    let width = TextLayoutWidthValidity::exact(128.0);
+    let mut layout = TextLayoutCache::with_capacity(2);
+    layout.begin_frame(1);
+    layout.insert(layout_key.clone(), Arc::clone(&layout_text), width, 9_u32);
+    let (stored_layout_text, value) = layout
+        .get_with_stored_text(&layout_key, layout_text.as_ref(), 128.0)
+        .expect("stored layout entry");
+    assert!(Arc::ptr_eq(stored_layout_text, &layout_text));
+    assert_eq!(*value, 9);
 }
 
 #[test]

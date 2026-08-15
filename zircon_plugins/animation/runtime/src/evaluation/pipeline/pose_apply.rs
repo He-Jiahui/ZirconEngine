@@ -8,32 +8,31 @@ use super::AnimationEvaluationPipeline;
 
 pub(super) fn apply_pose_transforms_to_scene_nodes(
     level: &LevelSystem,
+    replacement_epoch: u64,
     poses: &BTreeMap<EntityId, AnimationPoseOutput>,
-) {
-    if poses.is_empty() {
-        return;
-    }
-
-    level.with_world_mut(|world| {
-        let compiled_bindings = {
-            let pipeline = world.resource::<AnimationEvaluationPipeline>();
-            poses
-                .keys()
-                .filter(|root| !pipeline.pose_target_binding_is_current(**root, world))
-                .filter_map(|root| world.compile_descendant_name_index(*root))
-                .collect::<Vec<_>>()
-        };
-        let updates = {
-            let pipeline = world.resource_mut::<AnimationEvaluationPipeline>();
-            for binding in compiled_bindings {
-                pipeline.cache_pose_target_binding(binding);
+) -> bool {
+    level
+        .with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
+            let compiled_bindings = {
+                let pipeline = world.resource::<AnimationEvaluationPipeline>();
+                poses
+                    .keys()
+                    .filter(|root| !pipeline.pose_target_binding_is_current(**root, world))
+                    .filter_map(|root| world.compile_descendant_name_index(*root))
+                    .collect::<Vec<_>>()
+            };
+            let updates = {
+                let pipeline = world.resource_mut::<AnimationEvaluationPipeline>();
+                for binding in compiled_bindings {
+                    pipeline.cache_pose_target_binding(binding);
+                }
+                node_pose_transform_updates(pipeline, poses)
+            };
+            for (entity, transform) in updates {
+                let _ = world.update_transform(entity, transform);
             }
-            node_pose_transform_updates(pipeline, poses)
-        };
-        for (entity, transform) in updates {
-            let _ = world.update_transform(entity, transform);
-        }
-    });
+        })
+        .is_some()
 }
 
 fn node_pose_transform_updates(

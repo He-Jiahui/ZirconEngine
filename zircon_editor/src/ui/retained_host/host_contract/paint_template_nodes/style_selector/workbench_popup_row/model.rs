@@ -24,6 +24,7 @@ impl WorkbenchPopupRowState {
             hovered: self.hovered,
             pressed: self.pressed,
             focused: self.focused,
+            focus_visible: self.focused,
             disabled: self.disabled,
             checked: self.checked,
             selected: self.selected,

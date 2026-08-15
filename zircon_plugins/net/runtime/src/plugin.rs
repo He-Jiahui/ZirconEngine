@@ -3,10 +3,10 @@ use crate::capability::{
 };
 use crate::package::{attach_net_manifest_contributions, net_event_catalogs, net_options};
 use crate::runtime_system::{
-    NET_FLUSH_EGRESS_SYSTEM, NET_MAIN_SYSTEM_SET, NET_POLL_INGRESS_SYSTEM,
-    NET_TRANSPORT_SYSTEM_SET, register_runtime_systems,
+    register_runtime_systems, NET_FLUSH_EGRESS_SYSTEM, NET_MAIN_SYSTEM_SET,
+    NET_POLL_INGRESS_SYSTEM, NET_TRANSPORT_SYSTEM_SET,
 };
-use crate::{PLUGIN_ID, module_descriptor};
+use crate::{module_descriptor, PLUGIN_ID};
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{

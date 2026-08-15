@@ -44,6 +44,87 @@ impl ZrRuntimeHostRequestV1 {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ZrRuntimeProjectSceneTransitionPolicyV1 {
+    #[default]
+    ReplaceActive,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ZrRuntimeProjectSceneTransitionRequestV1 {
+    pub request_id: u64,
+    pub scene_uri: String,
+    pub policy: ZrRuntimeProjectSceneTransitionPolicyV1,
+}
+
+impl ZrRuntimeProjectSceneTransitionRequestV1 {
+    pub fn try_new(
+        request_id: u64,
+        scene_uri: impl Into<String>,
+        policy: ZrRuntimeProjectSceneTransitionPolicyV1,
+    ) -> Result<Self, ZrRuntimeProjectSceneTransitionRequestErrorV1> {
+        let scene_uri = scene_uri.into();
+        validate_project_scene_uri(&scene_uri)?;
+        Ok(Self {
+            request_id,
+            scene_uri,
+            policy,
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ZrRuntimeProjectSceneTransitionStatusV1 {
+    Succeeded,
+    Failed,
+    Superseded,
+    Rejected,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ZrRuntimeProjectSceneTransitionResultV1 {
+    pub request_id: u64,
+    pub scene_uri: String,
+    pub status: ZrRuntimeProjectSceneTransitionStatusV1,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub diagnostic: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+pub enum ZrRuntimeProjectSceneTransitionRequestErrorV1 {
+    #[error("project scene URI must use the res:// scheme")]
+    MissingResourceScheme,
+    #[error("project scene URI must name a project-relative asset")]
+    EmptyResourcePath,
+    #[error("project scene URI must use canonical forward-slash segments")]
+    NonCanonicalResourcePath,
+}
+
+fn validate_project_scene_uri(
+    scene_uri: &str,
+) -> Result<(), ZrRuntimeProjectSceneTransitionRequestErrorV1> {
+    let Some(path) = scene_uri.strip_prefix("res://") else {
+        return Err(ZrRuntimeProjectSceneTransitionRequestErrorV1::MissingResourceScheme);
+    };
+    if path.is_empty() {
+        return Err(ZrRuntimeProjectSceneTransitionRequestErrorV1::EmptyResourcePath);
+    }
+    if scene_uri.trim() != scene_uri
+        || path.starts_with('/')
+        || path.ends_with('/')
+        || path.contains('\\')
+        || path.contains('?')
+        || path.contains('#')
+        || path.chars().any(char::is_control)
+        || path
+            .split('/')
+            .any(|segment| segment.is_empty() || matches!(segment, "." | ".."))
+    {
+        return Err(ZrRuntimeProjectSceneTransitionRequestErrorV1::NonCanonicalResourcePath);
+    }
+    Ok(())
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ZrRuntimeCursorHostRequestV1 {
     pub kind: ZrRuntimeCursorHostRequestKindV1,
@@ -362,5 +443,37 @@ mod tests {
             serde_json::from_value(legacy_text).expect("decode legacy surrounding text");
 
         assert_eq!(text.composition_range, None);
+    }
+
+    #[test]
+    fn project_scene_transition_accepts_only_canonical_project_resource_uris() {
+        let request = ZrRuntimeProjectSceneTransitionRequestV1::try_new(
+            17,
+            "res://scenes/eastbrook_mvp.scene.toml",
+            ZrRuntimeProjectSceneTransitionPolicyV1::ReplaceActive,
+        )
+        .expect("canonical project scene URI");
+
+        assert_eq!(request.request_id, 17);
+        assert_eq!(request.scene_uri, "res://scenes/eastbrook_mvp.scene.toml");
+        for rejected in [
+            "C:/project/scenes/main.scene.toml",
+            "res://",
+            "res:///absolute.scene.toml",
+            "res://scenes/../secret.scene.toml",
+            "res://scenes\\main.scene.toml",
+            "res://scenes//main.scene.toml",
+            "res://scenes/main.scene.toml?variant=debug",
+        ] {
+            assert!(
+                ZrRuntimeProjectSceneTransitionRequestV1::try_new(
+                    18,
+                    rejected,
+                    ZrRuntimeProjectSceneTransitionPolicyV1::ReplaceActive,
+                )
+                .is_err(),
+                "host path or non-canonical URI must be rejected: {rejected}"
+            );
+        }
     }
 }

@@ -14,11 +14,12 @@ use super::scene_prepare_trace_tiles::{
     ScenePrepareProbeTraceTileResources,
 };
 use super::scene_prepare_voxel_samples::store_scene_prepare_voxel_resource_samples;
-use crate::hybrid_gi::renderer::HybridGiScenePrepareResourcesSnapshot;
+use crate::hybrid_gi::renderer::{HybridGiGpuResources, HybridGiScenePrepareResourcesSnapshot};
 
 use super::super::material_capture_source::HybridGiMaterialCaptureSource;
 
 pub(super) fn scene_prepare_resources(
+    resources: &HybridGiGpuResources,
     device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
     streamer: &impl HybridGiMaterialCaptureSource,
@@ -92,7 +93,7 @@ pub(super) fn scene_prepare_resources(
         probe_trace_tile_word_count,
         probe_trace_tile_record_count,
         probe_trace_indirect_arg_word_count,
-    } = scene_prepare_probe_trace_tile_resources(device, encoder, &snapshot);
+    } = scene_prepare_probe_trace_tile_resources(resources, device, encoder, &snapshot);
 
     Some(HybridGiPrepareScenePrepareResources {
         snapshot,

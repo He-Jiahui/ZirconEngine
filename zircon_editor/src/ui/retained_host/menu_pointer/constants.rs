@@ -13,10 +13,7 @@ pub(in crate::ui::retained_host::menu_pointer) const DISMISS_NODE_ID: UiNodeId =
 pub(in crate::ui::retained_host::menu_pointer) const POPUP_NODE_ID: UiNodeId = UiNodeId::new(3);
 pub(in crate::ui::retained_host::menu_pointer) const POPUP_NODE_ID_BASE: u64 = 3;
 pub(in crate::ui::retained_host::menu_pointer) const MENU_BUTTON_NODE_ID_BASE: u64 = 10;
-pub(in crate::ui::retained_host::menu_pointer) const MENU_ITEM_NODE_ID_BASE: u64 = 100;
-pub(in crate::ui::retained_host::menu_pointer) const MENU_ITEM_NODE_ID_LEVEL_STRIDE: u64 = 1000;
 pub(in crate::ui::retained_host::menu_pointer) const MENU_ROUTE_ID_BASE: u64 = 54_000;
-pub(in crate::ui::retained_host::menu_pointer) const MENU_ITEM_ROUTE_ID_LEVEL_STRIDE: u64 = 10_000;
 
 pub(in crate::ui::retained_host::menu_pointer) const POPUP_WIDTHS: [f32; 7] =
     [208.0, 186.0, 218.0, 172.0, 198.0, 224.0, 194.0];

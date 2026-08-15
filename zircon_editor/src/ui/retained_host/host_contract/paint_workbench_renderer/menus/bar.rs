@@ -1,6 +1,6 @@
 use super::super::super::data::{paint_menu_state, FrameRect, HostWindowPresentationData};
 use super::super::super::paint_frame::HostRgbaFrame;
-use super::super::super::paint_primitives::draw_border_clipped;
+use super::super::super::paint_primitives::draw_rect_clipped;
 use super::super::super::paint_text::draw_text_with_size_and_style;
 use super::super::super::paint_theme::{
     current_host_metrics, current_host_palette, HostControlMetrics,
@@ -33,21 +33,42 @@ pub(in crate::ui::retained_host::host_contract) fn draw_menu_bar_labels(
         let Some(menu) = scene.menu_chrome.menus.row_data(row) else {
             continue;
         };
-        let color = if menu_state.open_menu_index == row as i32 {
-            palette.accent
-        } else {
-            palette.text_muted
-        };
+        let visual = menu_bar_control_visual(menu_state.open_menu_index == row as i32, palette);
         let frame_rect = scrolled_menu_frame(&menu_frame.frame, presentation);
+        if let Some(background) = visual.background {
+            draw_rect_clipped(frame, frame_rect.clone(), Some(&clip), background);
+        }
         draw_menu_bar_label(
             frame,
             menu.label.as_str(),
             &frame_rect,
             Some(&clip),
-            color,
+            visual.text_color,
             metrics,
         );
-        draw_border_clipped(frame, frame_rect, Some(&clip), palette.border);
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct MenuBarControlVisual {
+    background: Option<[u8; 4]>,
+    text_color: [u8; 4],
+}
+
+fn menu_bar_control_visual(
+    open: bool,
+    palette: super::super::super::paint_theme::HostMaterialPalette,
+) -> MenuBarControlVisual {
+    if open {
+        MenuBarControlVisual {
+            background: Some(palette.surface_hover),
+            text_color: palette.text,
+        }
+    } else {
+        MenuBarControlVisual {
+            background: None,
+            text_color: palette.text_muted,
+        }
     }
 }
 
@@ -112,6 +133,22 @@ mod tests {
         assert_eq!(label.y, 14.0);
         assert_eq!(label.width, 84.0);
         assert_eq!(label.height, 16.0);
+    }
+
+    #[test]
+    fn menu_bar_control_uses_quiet_resting_material_and_surface_open_feedback() {
+        let mut palette = super::super::super::paint_theme::PALETTE;
+        palette.surface_hover = [32, 48, 60, 255];
+        palette.text = [230, 232, 235, 255];
+        palette.text_muted = [140, 148, 155, 255];
+
+        let resting = menu_bar_control_visual(false, palette);
+        let open = menu_bar_control_visual(true, palette);
+
+        assert_eq!(resting.background, None);
+        assert_eq!(resting.text_color, palette.text_muted);
+        assert_eq!(open.background, Some(palette.surface_hover));
+        assert_eq!(open.text_color, palette.text);
     }
 
     #[test]

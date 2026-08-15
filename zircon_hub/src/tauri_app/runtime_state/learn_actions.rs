@@ -93,7 +93,7 @@ impl HubRuntimeSession {
                     HubMessage::raw_text(resource.path.to_string_lossy().into_owned()),
                 )
                 .with_operation(TaskOperationKind::Hub, resource.title.clone());
-                self.persist(None)
+                self.persist()
             }
             Err(error) => self.record_open_resource_failure(
                 resource.title.clone(),
@@ -128,7 +128,7 @@ impl HubRuntimeSession {
         );
         self.task_status = TaskStatus::error("Open Resource failed", detail, recovery)
             .with_operation(TaskOperationKind::Hub, target);
-        self.persist(None)
+        self.persist()
     }
 }
 
@@ -354,17 +354,17 @@ mod tests {
         )
         .unwrap();
         let config_path = temp.join("hub.toml");
-        let editor_config_path = temp.join("editor.json");
+        let shared_recent_projects_path = temp.join("recent_projects.json");
         let mut config = HubConfig::default();
         config.settings.default_source_dir = source;
         config.settings.default_build_output_dir = temp.join("out");
         config.save(&config_path).unwrap();
         fs::write(
-            &editor_config_path,
-            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+            &shared_recent_projects_path,
+            r#"{"protocol_version":1,"projects":[]}"#,
         )
         .unwrap();
-        HubRuntimeSession::load_from_paths(config_path, editor_config_path).unwrap()
+        HubRuntimeSession::load_from_paths(config_path, shared_recent_projects_path).unwrap()
     }
 
     fn temp_test_dir(prefix: &str) -> PathBuf {

@@ -78,6 +78,8 @@ mod bridge_bindings;
 mod callback_lease;
 #[path = "tests/hot_reload_failures.rs"]
 mod hot_reload_failures;
+#[path = "tests/hot_reload_publication.rs"]
+mod hot_reload_publication;
 #[path = "tests/hot_reload_state.rs"]
 mod hot_reload_state;
 #[path = "tests/hot_update_application.rs"]

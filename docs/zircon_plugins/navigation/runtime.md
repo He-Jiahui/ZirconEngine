@@ -36,6 +36,8 @@ related_code:
   - zircon_plugins/navigation/runtime/src/manager/traversal/selection.rs
   - zircon_plugins/navigation/runtime/src/manager/traversal/state.rs
   - zircon_plugins/navigation/runtime/src/manager/traversal/tests.rs
+  - zircon_plugins/navigation/runtime/src/overlay_frame.rs
+  - zircon_plugins/navigation/runtime/src/plugin.rs
   - zircon_plugins/navigation/runtime/src/component_json.rs
   - zircon_plugins/navigation/runtime/src/off_mesh_connections.rs
   - zircon_plugins/navigation/runtime/src/runtime_obstacles.rs
@@ -50,6 +52,7 @@ related_code:
   - zircon_plugins/navigation/runtime/src/tests/manager.rs
   - zircon_plugins/navigation/runtime/src/tests/off_mesh.rs
   - zircon_plugins/navigation/runtime/src/tests/registration.rs
+  - zircon_plugins/navigation/runtime/src/tests/runtime_mirror.rs
   - zircon_plugins/navigation/runtime/src/tests/support.rs
   - zircon_plugins/navigation/runtime/Cargo.toml
   - zircon_plugins/navigation/native/src/lib.rs
@@ -277,6 +280,6 @@ M3 replaces loaded-navmesh agent steering with one persistent DetourCrowd per `N
 The runtime plugin declares and registers the `navigation.agent_tick` system anchor in `SystemStage::Update` after `ai.behavior_tick`. `NavRepathBudget` is a registered ECS resource; destination changes and blocked `auto_repath` retries consume at most `max_queries_per_frame`. Per-Crowd entity cursors plus a global handle cursor prevent starvation both within and across navmeshes. A budget unit means one actual Crowd `requestMoveTarget`; the prior transient preflight query was removed. Agent add/sync failures are isolated to that entity and reported without aborting other Crowds. `NavMeshAgentDescriptor.writeback_mode` chooses between direct Transform/rotation ownership and the registered `navigation.Component.NavDesiredVelocity` component for character controllers. Partial corridors and failed Crowd targets are reported as blocked instead of being written back as movement. The fresh validator job `de1d93af6e734c9d9af4eda1fb58d737` passed all 47 runtime package tests.
 ## Host event mirror
 
-The runtime registers `NavAgentTickReport` with `register_mirrored_event`; the existing ECS event remains the single source. Connecting the first host reader enables `NavigationDebugCapture`, and disconnecting the final reader disables it. As a result, `debug_agents` is serialized only while an authorized PIE consumer is attached.
+The runtime keeps `NavAgentTickReport` as an ordinary typed ECS event and separately registers the plugin-owned `NavigationOverlayFrame` with `register_mirrored_event`. Each navigation tick constructs the frame from the manager's canonical loaded NavMesh assets plus that tick's agent report. NavMesh load, bake replacement, and clear operations advance the frame's owner generation.
 
-The mirror uses the catalog payload schema `navigation.events.nav_agent_tick_report.v1`. Late subscriptions start at the current ECS cursor and do not replay historical reports.
+Connecting the first overlay-frame reader enables `NavigationDebugCapture`, and disconnecting the final reader disables it. As a result, agent debug vectors are populated only while an authorized PIE consumer is attached. The mirror uses event `navigation.events.overlay_frame` and schema `navigation.events.overlay_frame.v1`; late subscriptions start at the current ECS cursor and do not replay historical frames.

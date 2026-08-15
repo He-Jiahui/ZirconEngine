@@ -3,7 +3,7 @@ use zircon_runtime_interface::project::PersistedAssetReference;
 
 use crate::asset::{AssetReference, ReferenceResolutionError};
 
-use super::codec::{ProjectDocumentArtifact, decode_document, encode_document};
+use super::codec::{decode_document, encode_document, ProjectDocumentArtifact};
 use crate::asset::assets::{ProjectDocumentError, SceneAsset};
 
 #[derive(Deserialize, Serialize)]

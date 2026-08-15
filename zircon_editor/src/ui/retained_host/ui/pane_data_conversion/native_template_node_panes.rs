@@ -62,12 +62,11 @@ mod tests {
         );
         let node = pane.nodes.row_data(0).expect("asset browser table node");
 
-        assert!(
-            node.component_variant
-                .as_str()
-                .split_whitespace()
-                .any(|token| token == "layoutNarrow")
-        );
+        assert!(node
+            .component_variant
+            .as_str()
+            .split_whitespace()
+            .any(|token| token == "layoutNarrow"));
     }
 }
 

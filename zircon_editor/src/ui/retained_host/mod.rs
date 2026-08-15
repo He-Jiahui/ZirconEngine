@@ -32,6 +32,7 @@ pub(crate) mod workbench_popup_actions;
 pub(crate) mod workbench_preview_actions;
 
 pub(crate) use app::HostInvalidationMask;
+pub(crate) use event_bridge::HostShellContentScope;
 pub(crate) use app::build_startup_state;
 pub(crate) use host_contract::*;
 
@@ -42,7 +43,10 @@ pub(crate) use app::{
     NativeFloatingWindowTarget, NativeWindowPresenterStore, collect_native_floating_window_targets,
     configure_native_floating_window_presentation,
 };
-pub use app::{run_editor, run_editor_with_config, run_editor_with_startup_request};
+pub use app::{
+    RetainedHostAutomationResult, run_editor, run_editor_with_config,
+    run_editor_with_startup_request, run_retained_host_automation,
+};
 pub use run_config::EditorHostRunConfig;
 #[cfg(test)]
 pub(crate) use ui::apply_presentation;

@@ -2,8 +2,8 @@ use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeD
 
 use super::super::super::identity::{chip_has_avatar, chip_has_icon, chip_is_small};
 use super::super::metrics::{
-    CHIP_AVATAR_MEDIUM_EDGE, CHIP_AVATAR_SMALL_EDGE, CHIP_ICON_MEDIUM_EDGE, CHIP_ICON_SMALL_EDGE,
-    chip_bounded_extent,
+    chip_bounded_extent, CHIP_AVATAR_MEDIUM_EDGE, CHIP_AVATAR_SMALL_EDGE, CHIP_ICON_MEDIUM_EDGE,
+    CHIP_ICON_SMALL_EDGE,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_leading_edge(

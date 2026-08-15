@@ -1,30 +1,29 @@
-use winit::event::KeyEvent;
-use zircon_runtime_interface::ui::window::UiWindowInputPumpEvent;
-
+use super::super::platform_input::PlatformInputTranslation;
 use super::super::platform_input::{platform_keyboard_input, platform_text_input};
 use super::super::UiHostWindowEventLoop;
+use winit::event::KeyEvent;
 
 impl UiHostWindowEventLoop {
     pub(super) fn handle_keyboard_input(
         &mut self,
         event: KeyEvent,
-        platform_event: Option<UiWindowInputPumpEvent>,
+        platform_event: PlatformInputTranslation,
     ) {
-        self.begin_input_latency_sample();
+        self.begin_input_outcome(platform_event.sequence);
         let result = self
             .host
-            .dispatch_keyboard_event(&event, platform_keyboard_input(platform_event));
+            .dispatch_keyboard_event(&event, platform_keyboard_input(platform_event.event));
         self.dispatch_pointer_result(result);
         self.sync_ime_allowed();
     }
 
-    pub(super) fn handle_ime_input(&mut self, platform_event: Option<UiWindowInputPumpEvent>) {
-        self.begin_input_latency_sample();
-        if let Some(text) = platform_text_input(platform_event) {
+    pub(super) fn handle_ime_input(&mut self, platform_event: PlatformInputTranslation) {
+        self.begin_input_outcome(platform_event.sequence);
+        if let Some(text) = platform_text_input(platform_event.event) {
             let result = self.host.dispatch_focused_text_insert(&text);
             self.dispatch_pointer_result(result);
         } else {
-            self.cancel_input_latency_sample();
+            self.reject_input_outcome();
         }
     }
 }

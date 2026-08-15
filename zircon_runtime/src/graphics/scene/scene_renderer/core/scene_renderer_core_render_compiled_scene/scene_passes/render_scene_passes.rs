@@ -1,8 +1,7 @@
 use crate::core::TaskPool;
-use crate::graphics::CompiledRenderPipeline;
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::debug_markers::{
-    RENDERDOC_MARKER_DEFERRED_LIGHTING, RENDERDOC_MARKER_MAIN_SCENE, pop_group, push_group,
+    pop_group, push_group, RENDERDOC_MARKER_DEFERRED_LIGHTING, RENDERDOC_MARKER_MAIN_SCENE,
 };
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::resources::ResourceStreamer;
@@ -14,6 +13,7 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
 use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
+use crate::graphics::CompiledRenderPipeline;
 
 use super::super::super::super::deferred::DeferredSceneResources;
 use super::super::super::super::mesh::MeshPipelineCache;
@@ -22,7 +22,7 @@ use super::super::super::super::post_process::SceneRuntimeFeatureFlags;
 use super::super::super::super::shadow::atlas::ShadowAtlasResources;
 use super::super::super::super::sprite::SpriteRenderer;
 use super::super::super::scene_renderer_core::SceneRendererCore;
-use super::super::render::execute_graph_stage::{RenderGraphStageExecution, execute_graph_stage};
+use super::super::render::execute_graph_stage::{execute_graph_stage, RenderGraphStageExecution};
 
 impl SceneRendererCore {
     #[allow(clippy::too_many_arguments)]
@@ -112,7 +112,7 @@ impl SceneRendererCore {
                 None,
                 self.hzb_occlusion_culler.as_ref(),
                 None,
-                Some(&self.shadow_map_renderer),
+                self.shadow_map_renderer.as_ref(),
                 Some(&self.shadow_atlas_resources),
                 parallel_recording,
             )?;
@@ -159,7 +159,7 @@ impl SceneRendererCore {
                 None,
                 self.hzb_occlusion_culler.as_ref(),
                 None,
-                Some(&self.shadow_map_renderer),
+                self.shadow_map_renderer.as_ref(),
                 Some(&self.shadow_atlas_resources),
                 parallel_recording,
             )?;
@@ -206,7 +206,7 @@ impl SceneRendererCore {
                 self.sprite_renderer.as_ref(),
                 self.hzb_occlusion_culler.as_ref(),
                 self.particle_renderer.as_ref(),
-                Some(&self.shadow_map_renderer),
+                self.shadow_map_renderer.as_ref(),
                 Some(&self.shadow_atlas_resources),
                 parallel_recording,
             )?;
@@ -267,7 +267,7 @@ impl SceneRendererCore {
                 None,
                 self.hzb_occlusion_culler.as_ref(),
                 Some(post_process_stack),
-                Some(&self.shadow_map_renderer),
+                self.shadow_map_renderer.as_ref(),
                 Some(&self.shadow_atlas_resources),
                 parallel_recording,
             );
@@ -294,7 +294,7 @@ impl SceneRendererCore {
                 self.sprite_renderer.as_ref(),
                 self.hzb_occlusion_culler.as_ref(),
                 self.particle_renderer.as_ref(),
-                Some(&self.shadow_map_renderer),
+                self.shadow_map_renderer.as_ref(),
                 Some(&self.shadow_atlas_resources),
                 parallel_recording,
             )?;

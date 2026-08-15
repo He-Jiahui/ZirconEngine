@@ -35,15 +35,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn split_a
     let tokens = text.split_whitespace().collect::<Vec<_>>();
     match tokens.as_slice() {
         [] => Vec::new(),
-        [
-            name,
-            kind,
-            size,
-            size_unit,
-            revision_label,
-            revision_value,
-            ..,
-        ] if looks_like_size_unit(size_unit) => {
+        [name, kind, size, size_unit, revision_label, revision_value, ..]
+            if looks_like_size_unit(size_unit) =>
+        {
             vec![
                 (*name).to_string(),
                 (*kind).to_string(),
@@ -67,15 +61,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn split_a
                 format!("{revision_label} {revision_value}"),
             ]
         }
-        [
-            name,
-            kind,
-            size,
-            size_unit,
-            modified_value,
-            modified_unit,
-            ..,
-        ] => vec![
+        [name, kind, size, size_unit, modified_value, modified_unit, ..] => vec![
             (*name).to_string(),
             (*kind).to_string(),
             format!("{size} {size_unit}"),

@@ -171,6 +171,7 @@ struct AssetContentRowGroup {
 #[derive(Clone, Debug)]
 pub(crate) struct AssetContentPaintMetadata {
     surface: AssetContentSurface,
+    content_panel: Option<AssetContentRect>,
     viewport: Option<AssetContentRect>,
     activity_references_viewport: Option<AssetContentRect>,
     activity_used_by_viewport: Option<AssetContentRect>,
@@ -349,6 +350,10 @@ impl AssetContentPaintMetadata {
             AssetContentSurface::Activity => activity_geometry(nodes, &identity_index),
             AssetContentSurface::Browser => browser_geometry(nodes, &identity_index),
         };
+        let content_panel = match surface {
+            AssetContentSurface::Activity => viewport,
+            AssetContentSurface::Browser => browser_content_panel(nodes, &identity_index),
+        };
         let browser_source_tree_viewport = (surface == AssetContentSurface::Browser)
             .then(|| {
                 nodes
@@ -368,6 +373,7 @@ impl AssetContentPaintMetadata {
 
         Self {
             surface,
+            content_panel,
             viewport,
             activity_references_viewport,
             activity_used_by_viewport,
@@ -390,6 +396,10 @@ impl AssetContentPaintMetadata {
 
     pub(crate) fn surface(&self) -> AssetContentSurface {
         self.surface
+    }
+
+    pub(crate) fn content_panel(&self) -> Option<AssetContentRect> {
+        self.content_panel
     }
 
     pub(crate) fn viewport(&self) -> Option<AssetContentRect> {
@@ -699,6 +709,20 @@ fn browser_geometry(
         }),
         finite_content_extent(table.value_number),
     )
+}
+
+fn browser_content_panel(
+    nodes: &[AssetContentPaintNodeInput<'_>],
+    identities: &BTreeMap<String, AssetContentNodeIdentity>,
+) -> Option<AssetContentRect> {
+    let find = |target| {
+        nodes.iter().find(|node| {
+            identities.get(node.control_id) == Some(&AssetContentNodeIdentity::Browser(target))
+        })
+    };
+    find(BrowserContentNodeIdentity::ThumbnailGrid)
+        .or_else(|| find(BrowserContentNodeIdentity::TablePanel))
+        .map(|node| node.frame)
 }
 
 fn finite_content_extent(extent: f32) -> f32 {

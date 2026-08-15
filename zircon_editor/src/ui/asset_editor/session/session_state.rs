@@ -4,8 +4,8 @@ use crate::ui::asset_editor::UiDesignerSelectionModel;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetKind};
 
-use super::hierarchy_projection::{parent_for_node, selection_for_node};
 use super::UiAssetEditorSessionError;
+use super::hierarchy_projection::{parent_for_node, selection_for_node};
 
 #[derive(Default)]
 pub(super) struct UiAssetCompilerImports {

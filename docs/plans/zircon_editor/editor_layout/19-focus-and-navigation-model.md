@@ -24,7 +24,7 @@ status: in_progress
 ## 2. 现状(按代码核实)
 
 - runtime tree 已通过 `UiRuntimeTreeFocusExt::next_navigation_target` 实现 Tab、显式邻居、空间方向候选与 modal scope 过滤，相关契约由 interface 的 focus/navigation 模块持有；当前计划不再以“能力全缺”为前提。
-- interface 已在 `ui/focus.rs` 落 `UiFocusContract`、`UiFocusMode`、`UiFocusCause`、`focus_chain`，在 `ui/navigation.rs` 落 `UiTabIndex`、`UiNavigationContract` 与 `UiNavigationBoundary`；runtime `ui/surface/focus.rs` 也已实现 autofocus、MUI modal restore stack、focus-visible 状态与 dirty 标记。当前缺口收窄为非 MUI 通用 scope 的一致语义、focus-visible token/组件视觉接线，以及编辑器端完整键盘/手柄可达性验收。
+- interface 已在 `ui/focus.rs` 落 `UiFocusContract`、`UiFocusMode`、`UiFocusCause`、`focus_chain`，在 `ui/navigation.rs` 落 `UiTabIndex`、`UiNavigationContract` 与 `UiNavigationBoundary`；runtime 已把 MUI overlay 与非 MUI `modal` navigation group 收敛到同一 focus scope 语义：子树继承 group、打开后 autofocus、Tab/方向/程序化焦点共用 trap 判定，关闭时先按节点 id、再按稳定 `UiNodePath` 还原。`UiComponentFlags` 现持有独立的 `focus_visible` 状态，并经运行时样式投影为 `:focus-visible`；仅导航原因置位，指针、程序化、autofocus、restore 和 a11y 聚焦均保持隐藏。编辑器端完整键盘/手柄可达性验收仍待完成。
 - 18 产出 hover/press,但**focus 是独立维度**(键盘焦点 ≠ 指针 hover),需本计划补。
 
 ## 3. 设计
@@ -160,4 +160,6 @@ pub trait UiRuntimeTreeFocusExt {
 
 ## 12. 状态与产出记录
 
-in_progress。S1 的 focus/tab-index/边界 DTO、Tab 链，S2 的显式/空间方向求解，以及 MUI modal restore/focus-visible runtime 状态已有当前源码 owner；后续继续统一非 MUI scope、组件视觉和编辑器端键盘/手柄可达性验收，不据此宣称里程碑完成。
+in_progress。S1 的 focus/tab-index/边界 DTO、Tab 链与 S2 的显式/空间方向求解已有当前源码 owner；S3 的非 MUI 通用 scope、继承式 modal group、稳定路径还原、全局 z-order trap 与任意关闭顺序下的恢复链重接已完成实现。2026-08-10 已补独立 `focus_visible` 组件态，并将其投影为通用 `:focus-visible` 伪状态：导航置位，指针、程序化、autofocus、restore 和 a11y 聚焦隐藏；`UiPointerDispatchEffect` 同批硬切为不携带 visibility 的焦点请求，防止指针路径重新越过该规则。随后已将该状态接入 painter selector 与 retained-host 按钮：`selected`/`checked` 保留活动表面，不再冒充 `Focused` 或获得 focus outline；显式 `focus_visible` 才解析为焦点态。二次独立复审发现的两项 P1 已前向修复：命令按钮的旧 selection/checked focus-outline 断言已改为活动表面断言；V2/component-state 的 `focusVisible` 驼峰别名现统一投影为 `:focus` 与 `:focus-visible`，并有同一原子状态命中两个伪选择器的集成覆盖。shared `UiSurface` 的 runtime focus state 已进一步投影到 host model 与 workbench `TemplatePaneNodeData`：`focus_visible_known` 把 pointer/programmatic/导航等运行时原因与静态作者态分开，已知隐藏焦点只保留语义 focus，不再让 native workbench painter 画 focus outline；静态组件展示继续保留其作者态。直接合成、未从 shared surface 得到原因的 retained 节点仍按原兼容映射处理，故它们仍是 P2 后续项，不能据此宣称所有 native painter 都有完整原因区分。静态格式检查通过。Windows 托管编译/聚焦测试仍在 Cargo 启动前被 coordinator 以 `unmanaged_artifacts_detected` 拒绝，外部路径为 `E:\ZirconBuilds\mvp-supplemental-20260810-184017`，因此不记录测试通过。编辑器键盘/手柄可达性与截图验收也仍待完成，因此不宣称本计划完成。
+
+2026-08-10 复审追加的 retained-host P1 已前向修复：主题选择器生成的 `ButtonInteractionState::Focused` 不再覆盖 `focus_visible_known=true` 的 runtime 决策。已覆盖程序化焦点的隐藏环、导航焦点的可见环、焦点切换后旧节点清理，以及静态 `focused=true` 模板在 full/surface-backed projection 中保持 unknown 作者态。同阶段已删除 TextField painter 按 `WorkbenchInputFocused` control id 强制绘制焦点环的特例，改为统一来源状态；未知作者态保持兼容的 `Focused`，已知隐藏 runtime 焦点解析为 `Normal`，独立复审 P0-P2 为 0。上述测试和改动已通过 `rustfmt --check` 与 scoped `git diff --check`；Cargo 与截图验收仍为待验证状态。

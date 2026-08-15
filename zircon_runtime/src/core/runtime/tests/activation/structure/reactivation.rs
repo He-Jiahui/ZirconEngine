@@ -17,7 +17,8 @@ fn reactivation_lifecycle_is_complete_and_folder_backed() {
         &[
             "mod service_lifecycle;",
             "previous_lifecycle",
-            "entry.service_names.clone()",
+            "let module_services = graph.module_services(module_name)?;",
+            "module_services.service_names().clone()",
             "prepare_module_services_for_reactivation",
             "rollback_module_services_after_failed_reactivation",
             "self.reset_initializing_module(module_name, previous_lifecycle)",
@@ -28,11 +29,20 @@ fn reactivation_lifecycle_is_complete_and_folder_backed() {
         batch,
         &[
             "previous_lifecycle: LifecycleState",
-            "service_names: Box<[RegistryName]>",
+            "service_names: Arc<[RegistryName]>",
+            "module_services.service_names().clone()",
             "prepare_batch_reactivation_services",
             "reset_batch_services",
             "entry.lifecycle = pending_module.previous_lifecycle",
         ],
+    );
+    assert!(
+        !activation.contains("entry.service_names.clone()"),
+        "single reactivation must use the frozen graph's service inventory"
+    );
+    assert!(
+        !batch.contains("entry.service_names.clone()"),
+        "batch reactivation must use the frozen graph's service inventory"
     );
     assert_contains_all(
         "reactivation service lifecycle owner",

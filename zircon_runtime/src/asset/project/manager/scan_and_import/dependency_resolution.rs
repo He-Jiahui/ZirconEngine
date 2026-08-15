@@ -1,7 +1,11 @@
 use std::collections::HashMap;
 
-use crate::asset::{AssetId, AssetUri, ImportedAsset};
-use crate::core::resource::{ResourceDiagnostic, ResourceRecord, ResourceRegistry};
+use crate::asset::{AssetId, AssetImportError, AssetUri, ImportedAsset};
+use crate::core::resource::{
+    ResourceDiagnostic, ResourceRecord, ResourceRegistry, ResourceRegistryStaging,
+};
+
+use super::stage_project_resource;
 
 #[derive(Default)]
 struct ResolvedDependencies {
@@ -29,10 +33,10 @@ fn resolve_dependencies(
 }
 
 pub(super) fn resolve_imported_dependencies(
-    registry: &mut ResourceRegistry,
+    registry: &mut ResourceRegistryStaging,
     imported: &mut [ResourceRecord],
     dependencies_by_id: &HashMap<AssetId, Vec<AssetUri>>,
-) {
+) -> Result<(), AssetImportError> {
     let resolved_by_id = dependencies_by_id
         .iter()
         .map(|(id, dependencies)| (*id, resolve_dependencies(dependencies, registry)))
@@ -40,8 +44,9 @@ pub(super) fn resolve_imported_dependencies(
 
     for record in imported.iter_mut() {
         apply_resolved_dependencies(record, &resolved_by_id);
-        registry.upsert(record.clone());
+        stage_project_resource(registry, record.clone())?;
     }
+    Ok(())
 }
 
 fn apply_resolved_dependencies(

@@ -1552,6 +1552,18 @@ class WorkspaceCopyTests(unittest.TestCase):
             captured_environments[0]["ZR_BENCHMARK_SOURCE_MANIFEST"],
         )
         self.assertEqual("release", captured_environments[0]["ZR_BENCHMARK_CARGO_PROFILE"])
+        benchmark_target = benchmark.target_root
+        self.assertEqual(str(benchmark_target), captured_environments[0]["CARGO_TARGET_DIR"])
+        self.assertEqual(
+            str(benchmark_target / "cargo-home"), captured_environments[0]["CARGO_HOME"]
+        )
+        self.assertEqual(
+            str(benchmark_target / "sccache"), captured_environments[0]["SCCACHE_DIR"]
+        )
+        for name in ("TEMP", "TMP", "TMPDIR"):
+            self.assertEqual(
+                str(benchmark_target / "temporary"), captured_environments[0][name]
+            )
         self.assertNotIn("ZR_BENCHMARK_SOURCE_MANIFEST", captured_environments[1])
         self.assertNotIn("ZR_BENCHMARK_CARGO_PROFILE", captured_environments[1])
         self.assertEqual("111222", benchmark_started["processCreationTime"])

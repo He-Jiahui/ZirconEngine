@@ -1,7 +1,7 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_icon_assets::push_icon_asset_pixels;
-use super::super::segments::{GlyphSegmentSpec, TREE_ACTION_GLYPH_GRID_UNITS, push_segments};
+use super::super::segments::{push_segments, GlyphSegmentSpec, TREE_ACTION_GLYPH_GRID_UNITS};
 
 const TREE_LOCK_ICON: &str = "zircon_editor_shell/scene/lock.svg";
 const LOCK_SEGMENTS: [GlyphSegmentSpec; 4] = [

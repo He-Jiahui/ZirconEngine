@@ -38,6 +38,10 @@ pub fn first_party_registration_for_editor_plugin(
     if _plugin_id == RuntimePluginId::Navigation {
         return Some(zircon_plugin_navigation_editor::plugin_registration());
     }
+    #[cfg(feature = "neural-editor-plugin")]
+    if _plugin_id.key() == "neural" {
+        return Some(zircon_plugin_neural_editor::plugin_registration());
+    }
     // @cargo-zircon:editor-registration-end
     None
 }

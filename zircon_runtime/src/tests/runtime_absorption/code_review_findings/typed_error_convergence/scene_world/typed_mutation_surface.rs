@@ -4,6 +4,7 @@ fn review_f5_world_spawn_bundle_surface_uses_scene_error() {
     let world_mod = include_str!("../../../../../scene/world/mod.rs");
     let world_error = include_str!("../../../../../scene/world/error.rs");
     let typed_api = include_str!("../../../../../scene/world/typed_api.rs");
+    let bundle_entry = include_str!("../../../../../scene/world/typed_api/bundle_entry.rs");
     let identity = include_str!("../../../../../scene/world/identity.rs");
     let fixed_components = include_str!("../../../../../scene/world/typed_api/fixed_components.rs");
     let bundle = include_str!("../../../../../scene/ecs/bundle.rs");
@@ -57,6 +58,7 @@ fn review_f5_world_spawn_bundle_surface_uses_scene_error() {
     ] {
         assert!(
             !typed_api.contains(forbidden)
+                && !bundle_entry.contains(forbidden)
                 && !identity.contains(forbidden)
                 && !fixed_components.contains(forbidden)
                 && !bundle.contains(forbidden),
@@ -73,13 +75,26 @@ fn review_f5_world_spawn_bundle_surface_uses_scene_error() {
         .nth(1)
         .and_then(|source| source.split("pub fn resource_id").next())
         .expect("read World::remove body");
+    let insert_bundle_body = bundle_entry
+        .split("pub(crate) fn insert_bundle<B>")
+        .nth(1)
+        .and_then(|source| source.split("pub(crate) fn begin_bundle_insertion").next())
+        .expect("read World::insert_bundle body");
     assert!(
         !insert_body.contains("error.to_string()") && !remove_body.contains("error.to_string()"),
         "World::insert/remove should preserve storage errors through SceneError instead of stringifying them"
     );
     assert!(
-        !typed_api.contains("error.to_string()") && !identity.contains("error.to_string()"),
+        !typed_api.contains("error.to_string()")
+            && !bundle_entry.contains("error.to_string()")
+            && !identity.contains("error.to_string()"),
         "World typed API identity and presence helpers should preserve typed source errors instead of stringifying them"
+    );
+    assert!(
+        insert_bundle_body.contains("let mut transaction = self.begin_bundle_insertion(entity)?;")
+            && insert_bundle_body.contains("bundle.stage_into(&mut transaction)?;")
+            && insert_bundle_body.contains("transaction.finish()"),
+        "World::insert_bundle must retain exclusive ownership of bundle transaction publication"
     );
 
     for required in [
@@ -95,10 +110,12 @@ fn review_f5_world_spawn_bundle_surface_uses_scene_error() {
         "SceneError::missing_entity(\"insert component on\", entity)",
         "Err(error) => return Err(error.into())",
         ".spawn(entity, EntityLocation::new(ArchetypeId::EMPTY, row))?",
-        "fn insert_into(self, world: &mut World, entity: EntityId) -> SceneResult<()>",
+        "fn stage_into<S>(self, staging: &mut S) -> SceneResult<()>",
+        "fn stage<T>(&mut self, component: T) -> SceneResult<()>",
     ] {
         assert!(
             typed_api.contains(required)
+                || bundle_entry.contains(required)
                 || identity.contains(required)
                 || fixed_components.contains(required)
                 || bundle.contains(required),

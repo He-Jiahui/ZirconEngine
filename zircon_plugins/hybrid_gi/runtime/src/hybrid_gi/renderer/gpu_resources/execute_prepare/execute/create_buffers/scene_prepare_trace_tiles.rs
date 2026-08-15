@@ -5,7 +5,7 @@ use wgpu::util::DeviceExt;
 
 use super::super::super::super::buffer_helpers::create_u32_storage_buffer;
 use super::super::hybrid_gi_prepare_execution_inputs::HybridGiPrepareExecutionInputs;
-use crate::hybrid_gi::renderer::HybridGiScenePrepareResourcesSnapshot;
+use crate::hybrid_gi::renderer::{HybridGiGpuResources, HybridGiScenePrepareResourcesSnapshot};
 
 const DEFAULT_RAYS_PER_TRACE_TILE: u32 = 8;
 const MIN_RAYS_PER_TRACE_TILE: u32 = 4;
@@ -44,6 +44,7 @@ pub(super) fn store_scene_prepare_probe_trace_tiles(
 }
 
 pub(super) fn scene_prepare_probe_trace_tile_resources(
+    resources: &HybridGiGpuResources,
     device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
     snapshot: &HybridGiScenePrepareResourcesSnapshot,
@@ -85,6 +86,7 @@ pub(super) fn scene_prepare_probe_trace_tile_resources(
         wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::INDIRECT,
     );
     encode_probe_trace_tile_generation(
+        resources,
         device,
         encoder,
         &probe_trace_tile_params_buffer,
@@ -121,6 +123,7 @@ fn create_probe_trace_tile_generation_params_buffer(
 }
 
 fn encode_probe_trace_tile_generation(
+    resources: &HybridGiGpuResources,
     device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
     params_buffer: &wgpu::Buffer,
@@ -133,11 +136,9 @@ fn encode_probe_trace_tile_generation(
         return;
     }
 
-    let bind_group_layout = create_probe_trace_tile_generation_bind_group_layout(device);
-    let pipeline = create_probe_trace_tile_generation_pipeline(device, &bind_group_layout);
     let bind_group = create_probe_trace_tile_generation_bind_group(
         device,
-        &bind_group_layout,
+        &resources.probe_trace_tile_generation_bind_group_layout,
         params_buffer,
         seed_buffer,
         output_buffer,
@@ -147,88 +148,13 @@ fn encode_probe_trace_tile_generation(
         label: Some("HybridGiGenerateProbeTraceTilesPass"),
         timestamp_writes: None,
     });
-    pass.set_pipeline(&pipeline);
+    pass.set_pipeline(&resources.probe_trace_tile_generation_pipeline);
     pass.set_bind_group(0, &bind_group, &[]);
     pass.dispatch_workgroups(
         1,
         1,
         record_count as u32 / PROBE_TRACE_TILE_GENERATION_WORKGROUP_SIZE[2],
     );
-}
-
-fn create_probe_trace_tile_generation_bind_group_layout(
-    device: &wgpu::Device,
-) -> wgpu::BindGroupLayout {
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("zircon-hybrid-gi-generate-probe-trace-tiles-bind-group-layout"),
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 1,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: true },
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 2,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: false },
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 3,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: false },
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            },
-        ],
-    })
-}
-
-fn create_probe_trace_tile_generation_pipeline(
-    device: &wgpu::Device,
-    bind_group_layout: &wgpu::BindGroupLayout,
-) -> wgpu::ComputePipeline {
-    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("zircon-hybrid-gi-generate-probe-trace-tiles-shader"),
-        source: wgpu::ShaderSource::Wgsl(
-            include_str!("../../../../shaders/generate_probe_trace_tiles.wgsl").into(),
-        ),
-    });
-    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: Some("zircon-hybrid-gi-generate-probe-trace-tiles-pipeline-layout"),
-        bind_group_layouts: &[Some(bind_group_layout)],
-        immediate_size: 0,
-    });
-    device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-        label: Some("zircon-hybrid-gi-generate-probe-trace-tiles-pipeline"),
-        layout: Some(&pipeline_layout),
-        module: &shader,
-        entry_point: Some("cs_main"),
-        compilation_options: wgpu::PipelineCompilationOptions::default(),
-        cache: None,
-    })
 }
 
 fn create_probe_trace_tile_generation_bind_group(
@@ -387,5 +313,34 @@ mod tests {
             assert_eq!(tiles.len(), 1);
             assert_eq!(tiles[0].3, expected_ray_count);
         }
+    }
+
+    #[test]
+    fn probe_trace_tile_generation_pipeline_is_device_owned_not_frame_created() {
+        let frame_source = include_str!("scene_prepare_trace_tiles.rs");
+        let construct_source = include_str!("../../../new/construct/construct.rs");
+
+        let layout_factory = ["create_probe_trace_tile_generation_", "bind_group_layout"].concat();
+        assert!(construct_source.contains(&layout_factory));
+        let pipeline_factory = ["create_probe_trace_tile_generation_", "pipeline"].concat();
+        let frame_pipeline_use = [
+            "pass.set_pipeline(&resources.",
+            "probe_trace_tile_generation_pipeline);",
+        ]
+        .concat();
+        let frame_layout_factory = ["fn ", &layout_factory, "("].concat();
+        let frame_pipeline_factory = ["fn ", &pipeline_factory, "("].concat();
+
+        assert!(construct_source.contains(
+            "let probe_trace_tile_generation_bind_group_layout =\n            create_probe_trace_tile_generation_bind_group_layout(device);"
+        ));
+        assert!(construct_source.contains(
+            "let probe_trace_tile_generation_pipeline = create_probe_trace_tile_generation_pipeline("
+        ));
+        assert!(construct_source.contains("probe_trace_tile_generation_bind_group_layout,"));
+        assert!(construct_source.contains("probe_trace_tile_generation_pipeline,"));
+        assert!(frame_source.contains(&frame_pipeline_use));
+        assert!(!frame_source.contains(&frame_layout_factory));
+        assert!(!frame_source.contains(&frame_pipeline_factory));
     }
 }

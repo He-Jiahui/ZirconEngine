@@ -134,7 +134,7 @@ The default filter depends on the Rust build profile:
 
 The global runtime override is `ZIRCON_LOG_LEVEL=verbose|debug|log|warn|error|off`. Scoped filter overrides use this precedence: `ZIRCON_LOG_FILTER`, then the shorter `ZIRCON_LOG` alias, then Bevy-style `RUST_LOG` as a fallback when no Zircon filter variable is set. The `trace`, `info`, `warning`, `err`, `none`, and `quiet` aliases are accepted for command-line friendliness, but documentation and scripts should prefer the canonical names.
 
-The exported editor and runtime binaries also accept `--log-level <level>` and `--log-level=<level>`. Startup arguments take precedence over `ZIRCON_LOG_LEVEL`. The editor strips `--log-level` before parsing headless operation-control arguments, so commands such as `--operation ... --headless --log-level warn` keep their existing operation semantics. The runtime binary currently accepts only diagnostic startup arguments; any remaining argument after diagnostic parsing is rejected as an unknown runtime argument.
+The exported editor and runtime binaries also accept `--log-level <level>` and `--log-level=<level>`. Startup arguments take precedence over `ZIRCON_LOG_LEVEL`. The editor strips `--log-level` before parsing the commandlet launch request, so commands such as `--run plugin-list --log-level warn` preserve the commandlet's typed request semantics. The runtime binary currently accepts only diagnostic startup arguments; any remaining argument after diagnostic parsing is rejected as an unknown runtime argument.
 
 ## Current Diagnostic Producers
 

@@ -30,14 +30,16 @@ pub(super) fn assert_asset_and_animation_evidence(sources: &HotspotInventorySour
         "pub const ANIMATION_EVALUATE_SYSTEM: &str = \"animation.evaluate\";",
         "runtime_scene_system(",
         "pub(crate) fn tick_animation_world(",
-        "enqueue_clip_event_samples(level, scan.clip_event_samples);",
-        "enqueue_clip_event_samples(level, graph_event_samples);",
-        "publish_clip_events(asset_manager, level);",
-        "level.drain_animation_clip_events(asset_manager)",
-        "pub(crate) fn sample_clip_events_budgeted(",
+        "enqueue_clip_event_samples(level, replacement_epoch, scan.clip_event_samples)",
+        "publish_clip_events(asset_manager, level, replacement_epoch)",
+        "ProjectAnimationClipEventSampler::new(asset_manager)",
+        "level.drain_animation_clip_events(replacement_epoch, &sampler)",
+        "fn sample_clip_events_budgeted(",
         "AnimationClipEventSamplingCursor",
         "const ANIMATION_CLIP_EVENT_MAX_DRAIN_SAMPLES: usize = 32;",
-        "pub fn enqueue_animation_clip_event_range(",
+        "const ANIMATION_CLIP_EVENT_MAX_PENDING_SAMPLES: usize =",
+        "with_world_mut_if_replacement_epoch",
+        "pub fn enqueue_animation_clip_event_range_batches(",
         "pub fn drain_animation_clip_events(",
     ] {
         assert!(
@@ -55,6 +57,9 @@ pub(super) fn assert_asset_and_animation_evidence(sources: &HotspotInventorySour
                     .contains(required_animation_evaluation_anchor)
                 || sources
                     .animation_level_system
+                    .contains(required_animation_evaluation_anchor)
+                || sources
+                    .animation_level_runtime
                     .contains(required_animation_evaluation_anchor),
             "animation evaluation should retain `{required_animation_evaluation_anchor}`"
         );

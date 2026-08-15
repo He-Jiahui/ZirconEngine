@@ -52,7 +52,7 @@ target_modes = ["editor_host"]
 capabilities = ["editor.extension.navigation_authoring", "editor.extension.navigation_gizmos"]
 
 [[modules.event_consumers]]
-consumer_id = "navigation.editor.agent_tick"
-event_id = "navigation.events.agent_tick_completed"
-payload_schema = "navigation.events.nav_agent_tick_report.v1"
+consumer_id = "navigation.editor.overlay_frame"
+event_id = "navigation.events.overlay_frame"
+payload_schema = "navigation.events.overlay_frame.v1"
 required_capability = "editor.extension.navigation_gizmos"

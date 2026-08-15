@@ -24,7 +24,6 @@ mod typed_error;
 pub(super) use root_child_rows::*;
 pub(super) use root_paths::*;
 pub(super) use root_sources::*;
-pub(super) use root_statuses::*;
 
 pub(super) fn assert_nested_structure_children_are_mounted() {
     folder_backed_summary::assert_folder_backed_summary_structure_children_are_mounted();

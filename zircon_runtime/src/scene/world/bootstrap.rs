@@ -4,8 +4,9 @@ use crate::core::math::{Quat, Transform, Vec3};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
 use super::{
-    compiled_binding::SceneBindingGenerations, generation::WorldGeneration,
-    world::QueryCacheRevision, World,
+    compiled_binding::SceneBindingGenerations,
+    generation::{LifecycleVisibilityRevision, WorldGeneration},
+    World,
 };
 use crate::scene::components::{
     default_render_layer_mask, ActiveSelf, AmbientLight, CameraComponent, DirectionalLight,
@@ -13,38 +14,15 @@ use crate::scene::components::{
 };
 use crate::scene::ecs::Schedule;
 use crate::scene::EntityId;
+use zircon_runtime_interface::world_sync::WorldFact;
 
 impl World {
     pub fn empty() -> Self {
         let mut world = Self {
             entities: Vec::new(),
+            entity_dense_rows: HashMap::new(),
             kinds: HashMap::new(),
             node_kind_ordinals: Default::default(),
-            names: HashMap::new(),
-            hierarchy: HashMap::new(),
-            local_transforms: HashMap::new(),
-            cameras: HashMap::new(),
-            mesh_renderers: HashMap::new(),
-            sprite_2d: HashMap::new(),
-            mesh_2d: HashMap::new(),
-            ambient_lights: HashMap::new(),
-            directional_lights: HashMap::new(),
-            point_lights: HashMap::new(),
-            rect_lights: HashMap::new(),
-            spot_lights: HashMap::new(),
-            post_process_settings: HashMap::new(),
-            post_process_volumes: HashMap::new(),
-            rigid_bodies: HashMap::new(),
-            colliders: HashMap::new(),
-            joints: HashMap::new(),
-            animation_skeletons: HashMap::new(),
-            animation_players: HashMap::new(),
-            animation_sequence_players: HashMap::new(),
-            animation_graph_players: HashMap::new(),
-            animation_state_machine_players: HashMap::new(),
-            active_self: HashMap::new(),
-            render_layer_masks: HashMap::new(),
-            mobility: HashMap::new(),
             dynamic_components: HashMap::new(),
             dynamic_component_generations: HashMap::new(),
             component_types: Default::default(),
@@ -55,6 +33,8 @@ impl World {
             active_camera: 0,
             schedule: Schedule::default(),
             archetype_index: Default::default(),
+            stable_query_order: Default::default(),
+            hierarchy_mutation_index: Default::default(),
             entity_registry: Default::default(),
             component_registry: Default::default(),
             component_storage: Default::default(),
@@ -65,14 +45,21 @@ impl World {
             event_mirrors: Default::default(),
             messages: Default::default(),
             observers: Default::default(),
+            world_sync_subscriptions: Default::default(),
             staged_lifecycle_events: Vec::new(),
             record_staged_lifecycle_events: false,
             command_queue: Default::default(),
             deferred_command_errors: Vec::new(),
+            deferred_direct_spawn_ordinal: 0,
+            deferred_direct_system_ordinal: 0,
+            deferred_spawn_resolutions: Default::default(),
+            published_deferred_spawns: Default::default(),
             ecs_frame_performance_diagnostics: Default::default(),
-            query_cache_revision: QueryCacheRevision::default(),
+            archetype_assignment_counter: Default::default(),
+            lifecycle_visibility_revision: LifecycleVisibilityRevision::default(),
             world_generation: WorldGeneration::default(),
             scene_binding_generations: SceneBindingGenerations::default(),
+            compiled_scene_property_access_diagnostics: Default::default(),
             change_tick: crate::scene::ecs::ChangeTick::INITIAL,
             last_change_tick: crate::scene::ecs::ChangeTick::ZERO,
             active_change_tick: None,
@@ -102,13 +89,13 @@ impl World {
         let prior_lifecycle_staging =
             std::mem::replace(&mut self.record_staged_lifecycle_events, true);
         let lifecycle_start = self.staged_lifecycle_events.len();
-        self.insert_prevalidated_node_record_without_archetype(record);
-        self.rebuild_fixed_component_presence_into_final_archetype(id);
-        self.bump_query_cache_revision();
+        self.insert_prevalidated_node_record(record);
+        self.bump_lifecycle_visibility_revision();
         self.mark_derived_state_dirty();
         self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
         self.advance_world_generation();
         self.advance_scene_binding_generations_for_new_descendant(id);
+        self.record_world_fact(WorldFact::Spawned(id));
         self.record_staged_lifecycle_events = prior_lifecycle_staging;
         if !prior_lifecycle_staging {
             let lifecycle_events = self.staged_lifecycle_events.split_off(lifecycle_start);

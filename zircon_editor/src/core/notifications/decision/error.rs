@@ -17,6 +17,16 @@ pub enum DecisionNotificationError {
         maximum: usize,
         actual: usize,
     },
+    InvalidMessageArgumentName {
+        name: &'static str,
+    },
+    DuplicateMessageArgument {
+        name: &'static str,
+    },
+    TooManyMessageArguments {
+        maximum: usize,
+        actual: usize,
+    },
     AtLeastTwoOptionsRequired,
     TooManyOptions {
         maximum: usize,
@@ -85,6 +95,20 @@ impl Display for DecisionNotificationError {
             } => write!(
                 formatter,
                 "decision {field} is {actual} bytes; maximum is {maximum} bytes"
+            ),
+            Self::InvalidMessageArgumentName { name } => write!(
+                formatter,
+                "decision message argument name `{name}` must be lowercase ASCII with underscores"
+            ),
+            Self::DuplicateMessageArgument { name } => {
+                write!(
+                    formatter,
+                    "decision message argument `{name}` is duplicated"
+                )
+            }
+            Self::TooManyMessageArguments { maximum, actual } => write!(
+                formatter,
+                "decision notification has {actual} message arguments; maximum is {maximum}"
             ),
             Self::AtLeastTwoOptionsRequired => {
                 formatter.write_str("decision notifications require at least two options")

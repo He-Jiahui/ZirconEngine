@@ -579,10 +579,18 @@ fn render_pbr_matrix_quantitative_frames(
         PBR_MATRIX_OUTPUT_SIZE,
         EnvironmentExtract::source_cubemap(source_environment.clone()),
         |paths| write_pbr_matrix_assets(paths, 48, 96),
-        |renderer, snapshot| {
-            let hdr = renderer
-                .render_scene_color_hdr(snapshot.clone(), PBR_MATRIX_OUTPUT_SIZE)
-                .expect("render Shader 06 linear HDR PBR matrix");
+        |framework, viewport, snapshot| {
+            framework
+                .submit_runtime_frame(
+                    viewport,
+                    ViewportRenderFrame::from_snapshot(snapshot.clone(), PBR_MATRIX_OUTPUT_SIZE),
+                )
+                .expect("submit Shader 06 linear HDR PBR matrix");
+            let hdr = framework
+                .capture_scene_color_hdr(viewport)
+                .expect("capture Shader 06 linear HDR PBR matrix")
+                .expect("compiled Shader 06 HDR PBR matrix should be available")
+                .rgba16f;
             let mut diffuse_snapshot = snapshot.clone();
             diffuse_snapshot.environment =
                 EnvironmentExtract::source_cubemap(diffuse_only_environment(source_environment));
@@ -591,12 +599,23 @@ fn render_pbr_matrix_quantitative_frames(
                 true,
                 Vec4::ZERO,
             );
-            let diffuse_hdr = renderer
-                .render_scene_color_hdr(diffuse_snapshot, PBR_MATRIX_OUTPUT_SIZE)
-                .expect("render Shader 06 diffuse-only HDR PBR matrix baseline");
-            let frame = renderer
-                .render(snapshot, PBR_MATRIX_OUTPUT_SIZE)
-                .expect("render Shader 06 display PBR matrix");
+            framework
+                .submit_runtime_frame(
+                    viewport,
+                    ViewportRenderFrame::from_snapshot(diffuse_snapshot, PBR_MATRIX_OUTPUT_SIZE),
+                )
+                .expect("submit Shader 06 diffuse-only HDR PBR matrix baseline");
+            let diffuse_hdr = framework
+                .capture_scene_color_hdr(viewport)
+                .expect("capture Shader 06 diffuse-only HDR PBR matrix baseline")
+                .expect("compiled diffuse-only HDR PBR matrix should be available")
+                .rgba16f;
+            let frame = submit_runtime_frame_and_capture(
+                framework,
+                viewport,
+                snapshot,
+                PBR_MATRIX_OUTPUT_SIZE,
+            );
             (frame, hdr, diffuse_hdr)
         },
     )

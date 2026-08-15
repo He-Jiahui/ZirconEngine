@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::builtin::{
-    runtime_modules_for_target_with_plugin_registration_reports, RuntimeModuleLoadReport,
+    RuntimeModuleLoadReport, runtime_modules_for_target_with_plugin_registration_reports,
 };
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::project::ProjectPluginManifest;

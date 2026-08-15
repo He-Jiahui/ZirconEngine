@@ -3,7 +3,7 @@ use crate::ui::retained_host::host_contract::data::{
     ConsolePaneData, FloatingWindowData, FrameRect, HostBottomDockSurfaceData,
     HostWindowPresentationData, PaneData, TemplatePaneNodeData,
 };
-use crate::ui::retained_host::primitives::{ModelRc, model_rc};
+use crate::ui::retained_host::primitives::{model_rc, ModelRc};
 
 use super::super::super::super::PanePointerTarget;
 use super::route_pointer_scroll_to_pane;

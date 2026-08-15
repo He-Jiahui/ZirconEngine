@@ -47,9 +47,11 @@ fn caret_frame_for_text_layout_inner(
     let (line_index, line) = caret_line(layout, caret)?;
     let source_map = UiTextLineSourceMap::new(line);
     let visual_offset = source_map.visual_offset_for_caret(caret);
-    let artifact_advance = resolved_glyph_artifact(layout).as_deref().and_then(|artifact| {
-        resolved_text_glyph_artifact_caret_advance(artifact, line_index, line, caret)
-    });
+    let artifact_advance = resolved_glyph_artifact(layout)
+        .as_deref()
+        .and_then(|artifact| {
+            resolved_text_glyph_artifact_caret_advance(artifact, line_index, line, caret)
+        });
     if is_vertical_rl(layout) {
         return Some(UiFrame::new(
             line.frame.x,

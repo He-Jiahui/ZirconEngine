@@ -140,3 +140,139 @@ set = { self = { text = "Bad" } }
         "unexpected error: {error:?}"
     );
 }
+
+#[test]
+fn ui_asset_loader_rejects_action_refs_with_both_command_and_route_targets() {
+    const AMBIGUOUS_ACTION_TARGET_LAYOUT: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.action_policy.ambiguous_target"
+version = 3
+
+[root]
+node_id = "root"
+kind = "native"
+type = "Button"
+control_id = "AmbiguousTarget"
+
+[[root.bindings]]
+id = "Project/OpenOrRun"
+event = "Click"
+
+[root.bindings.action]
+route = "Project.Open"
+action = "runtime.play_mode.enter"
+"##;
+
+    let error = UiAssetLoader::load_toml_str(AMBIGUOUS_ACTION_TARGET_LAYOUT)
+        .expect_err("an action ref with both targets should be rejected");
+
+    assert!(matches!(error, UiAssetError::InvalidDocument { .. }));
+    assert!(error.to_string().contains("Project/OpenOrRun"));
+    assert!(error.to_string().contains("exactly one action target"));
+}
+
+#[test]
+fn ui_asset_loader_rejects_command_actions_with_payload() {
+    const COMMAND_ACTION_WITH_PAYLOAD_LAYOUT: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.action_policy.command_payload"
+version = 3
+
+[root]
+node_id = "root"
+kind = "native"
+type = "Button"
+control_id = "RunMode"
+
+[[root.bindings]]
+id = "Runtime/EnterPlayMode"
+event = "Click"
+
+[root.bindings.action]
+action = "runtime.play_mode.enter"
+
+[root.bindings.action.payload]
+mode = "selected_viewport"
+"##;
+
+    let error = UiAssetLoader::load_toml_str(COMMAND_ACTION_WITH_PAYLOAD_LAYOUT)
+        .expect_err("a command action with route payload should be rejected");
+
+    assert!(matches!(error, UiAssetError::InvalidDocument { .. }));
+    assert!(error.to_string().contains("Runtime/EnterPlayMode"));
+    assert!(error.to_string().contains("must not carry payload"));
+}
+
+#[test]
+fn ui_asset_loader_rejects_action_refs_without_a_non_empty_target() {
+    const MISSING_ACTION_TARGET_LAYOUT: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.action_policy.missing_target"
+version = 3
+
+[root]
+node_id = "root"
+kind = "native"
+type = "Button"
+control_id = "MissingTarget"
+
+[[root.bindings]]
+id = "Project/MissingTarget"
+event = "Click"
+
+[root.bindings.action]
+route = " "
+
+[root.bindings.action.payload]
+path = "samples/minimal"
+"##;
+
+    let error = UiAssetLoader::load_toml_str(MISSING_ACTION_TARGET_LAYOUT)
+        .expect_err("an action ref without one non-empty target should be rejected");
+
+    assert!(matches!(error, UiAssetError::InvalidDocument { .. }));
+    assert!(error.to_string().contains("Project/MissingTarget"));
+    assert!(error.to_string().contains("exactly one non-empty target"));
+}
+
+#[test]
+fn ui_asset_loader_allows_route_actions_with_payload() {
+    const ROUTE_ACTION_WITH_PAYLOAD_LAYOUT: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.action_policy.route_payload"
+version = 3
+
+[root]
+node_id = "root"
+kind = "native"
+type = "Button"
+control_id = "OpenProject"
+
+[[root.bindings]]
+id = "Project/Open"
+event = "Click"
+
+[root.bindings.action]
+route = "Project.Open"
+
+[root.bindings.action.payload]
+path = "samples/minimal"
+"##;
+
+    let document = UiAssetLoader::load_toml_str(ROUTE_ACTION_WITH_PAYLOAD_LAYOUT)
+        .expect("a route action may carry typed payload");
+    let action = document.root.unwrap().bindings[0]
+        .action
+        .expect("route action should remain authored");
+
+    assert_eq!(action.route.as_deref(), Some("Project.Open"));
+    assert!(action.action.is_none());
+    assert_eq!(
+        action.payload.get("path").and_then(toml::Value::as_str),
+        Some("samples/minimal")
+    );
+}

@@ -4,7 +4,7 @@ use crate::rhi::{
 };
 
 use super::{
-    TransientResourcePool, render_graph_execution_resources::RenderGraphExecutionResources,
+    render_graph_execution_resources::RenderGraphExecutionResources, TransientResourcePool,
 };
 
 pub(super) fn materialize_transient_resources(

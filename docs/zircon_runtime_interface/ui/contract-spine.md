@@ -261,7 +261,7 @@ The projection DTOs also expose unified derived-field freshness helpers. `derive
 
 `ui::tree::UiTree` owns the base retained-tree construction and access contract directly: `new`, `insert_root`, `insert_child`, `node`, and `node_mut`. Runtime no longer exposes a separate `UiRuntimeTreeAccessExt` just to build or query tree structure; runtime tree helpers are reserved for behavior such as focus, routing, layout, render ordering, interaction, and scroll semantics.
 
-`ui::surface::UiFocusState` now stores runtime focus facts that need to be visible to hosts and tests: previous focus, pending autofocus, focus-visible policy, focus-change events, and focused-input route records. `captured`, `pressed`, and `hovered` remain on the same state object so cleanup can clear focus/capture/hover coherently when nodes are hidden, disabled, or despawned.
+`ui::surface::UiFocusState` now stores runtime focus facts that need to be visible to hosts and tests: previous focus, pending autofocus, focus-visible policy, focus-change events, focused-input route records, and modal restore entries. A modal restore entry carries both transient node ids and defaulted stable `UiNodePath` identities, so close-time restoration can resolve a rebuilt node before falling back to focus cleanup. `captured`, `pressed`, and `hovered` remain on the same state object so cleanup can clear focus/capture/hover coherently when nodes are hidden, disabled, or despawned.
 
 ## M2/M3 Runtime Consumption
 
@@ -269,7 +269,7 @@ Runtime focus is source-aware. Programmatic calls record `Programmatic`, autofoc
 
 Focused input bubbling uses `UiFocusedInput` rather than host-local state. Keyboard, navigation, text, and IME dispatch store the focused node, bubble route, accepted handler/owner, and acceptance result in `UiFocusState::focused_inputs`.
 
-Contract-aware navigation uses `UiNavigationContract` fields on `UiTreeNode`: tab indices and group order define Next/Previous, non-modal groups contribute ordering, modal groups trap traversal, manual directional targets can point at a node or group, blocked edges suppress movement, and spatial fallback selects the nearest candidate by node center when no manual override exists. Runtime filters manual directional targets through the current modal group so authored overrides cannot escape an active dialog trap.
+Contract-aware navigation uses `UiNavigationContract` fields on `UiTreeNode`: tab indices and group order define Next/Previous, non-modal groups contribute ordering, modal groups trap traversal, manual directional targets can point at a node or group, blocked edges suppress movement, and spatial fallback selects the nearest candidate by node center when no manual override exists. Navigation-group context is inherited by descendants during the single pre-order candidate pass, while an outer modal identity remains active through nested non-modal groups. Runtime applies the same active modal membership test to traversal, manual targets, and programmatic focus, so authored overrides and direct focus requests cannot escape an open generic scope or MUI overlay. Accepted `open`/`popup_open` transitions autofocus the scope and restore by node id or stable path on close. Active scope selection follows global z-order rather than open order; closing any background or foreground scope splices restore references by stable scope identity, so remaining scopes cannot restore focus into already closed content.
 
 ## Boundary Rules
 

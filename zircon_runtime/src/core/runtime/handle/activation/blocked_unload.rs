@@ -3,10 +3,10 @@ use std::collections::HashMap;
 use super::super::super::descriptors::RegistryName;
 use super::super::super::state::ServiceEntry;
 use super::blocked_dependencies::{
-    dependency_slice_contains_service, first_blocked_five_service_dependency,
-    first_blocked_four_service_dependency, first_blocked_three_service_dependency,
-    first_blocked_two_service_dependency, FiveServiceDependencyMatch, FourServiceDependencyMatch,
-    ThreeServiceDependencyMatch, TwoServiceDependencyMatch,
+    FiveServiceDependencyMatch, FourServiceDependencyMatch, ThreeServiceDependencyMatch,
+    TwoServiceDependencyMatch, dependency_slice_contains_service,
+    first_blocked_five_service_dependency, first_blocked_four_service_dependency,
+    first_blocked_three_service_dependency, first_blocked_two_service_dependency,
 };
 
 const BLOCKED_DEPENDENT_INITIAL_CAPACITY: usize = 1;
@@ -29,8 +29,12 @@ pub(super) fn first_blocked_unload(
             third_service_name,
         );
     }
-    if let [first_service_name, second_service_name, third_service_name, fourth_service_name] =
-        unload_order
+    if let [
+        first_service_name,
+        second_service_name,
+        third_service_name,
+        fourth_service_name,
+    ] = unload_order
     {
         return first_blocked_four_service_unload(
             services,
@@ -40,8 +44,13 @@ pub(super) fn first_blocked_unload(
             fourth_service_name,
         );
     }
-    if let [first_service_name, second_service_name, third_service_name, fourth_service_name, fifth_service_name] =
-        unload_order
+    if let [
+        first_service_name,
+        second_service_name,
+        third_service_name,
+        fourth_service_name,
+        fifth_service_name,
+    ] = unload_order
     {
         return first_blocked_five_service_unload(
             services,

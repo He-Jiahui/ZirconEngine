@@ -8,8 +8,10 @@ mod text;
 
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::render_commands::HostPaintCommand;
-use geometry::{SampleGridGeometry, has_paintable_sample_grid_extent};
+use geometry::{has_paintable_sample_grid_extent, SampleGridGeometry};
 use identity::is_sample_grid;
+use metrics::sample_grid_metrics;
+use palette::sample_grid_palette;
 use points::push_sample_points;
 use surface::push_sample_grid_surface;
 use text::push_sample_grid_text;
@@ -33,9 +35,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_sa
     if geometry.plot.width <= 0.0 || geometry.plot.height <= 0.0 {
         return true;
     }
-    push_sample_grid_surface(commands, node, &geometry, clip, order, opacity);
-    push_sample_grid_text(commands, node, &geometry, clip, order, opacity);
-    push_sample_points(commands, node, &geometry, clip, order, opacity);
+    let metrics = sample_grid_metrics();
+    let palette = sample_grid_palette();
+    push_sample_grid_surface(
+        commands, node, &geometry, clip, order, opacity, metrics, palette,
+    );
+    push_sample_grid_text(commands, node, &geometry, clip, order, opacity, palette);
+    push_sample_points(
+        commands, node, &geometry, clip, order, opacity, metrics, palette,
+    );
     true
 }
 

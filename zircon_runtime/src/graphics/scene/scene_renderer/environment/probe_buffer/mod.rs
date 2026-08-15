@@ -4,10 +4,10 @@ mod slot_allocator;
 mod upload;
 
 pub(in crate::graphics::scene::scene_renderer) use gpu_layout::{
-    ReflectionProbeGpuBindings, reflection_probe_bind_group_layout_entries,
+    reflection_probe_bind_group_layout_entries, ReflectionProbeGpuBindings,
 };
 pub(in crate::graphics::scene::scene_renderer) use resources::{
-    PLANAR_REFLECTION_MIP_COUNT, PLANAR_REFLECTION_TEXTURE_SIZE, SceneReflectionProbeResources,
+    SceneReflectionProbeResources, PLANAR_REFLECTION_MIP_COUNT, PLANAR_REFLECTION_TEXTURE_SIZE,
 };
 
 #[cfg(test)]

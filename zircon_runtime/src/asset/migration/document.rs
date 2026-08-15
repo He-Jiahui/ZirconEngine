@@ -2,13 +2,13 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use zircon_runtime_interface::project::{
-    PersistedAssetReference, RetiredAssetRefMigrationError,
-    migrate_retired_persisted_asset_reference_with,
+    migrate_retired_persisted_asset_reference_with, PersistedAssetReference,
+    RetiredAssetRefMigrationError,
 };
 
 use crate::asset::assets::project_document::{
-    ProjectDocumentArtifact, deserialize_material_artifact, deserialize_model_artifact,
-    deserialize_scene_artifact,
+    deserialize_material_artifact, deserialize_model_artifact, deserialize_scene_artifact,
+    ProjectDocumentArtifact,
 };
 
 use super::resolver::{MigrationResolver, ResolutionFailure};

@@ -19,7 +19,7 @@ pub(super) use crate::ui::layouts::windows::workbench_host_window::{
 };
 pub(super) use crate::ui::retained_host::callback_dispatch::BuiltinHostWindowTemplateBridge;
 pub(super) use crate::ui::retained_host::floating_window_projection::{
-    FloatingWindowProjectionBundle, build_floating_window_projection_bundle,
+    build_floating_window_projection_bundle, FloatingWindowProjectionBundle,
 };
 pub(super) use crate::ui::retained_host::shell_pointer::HostShellPointerRoute;
 pub(super) use crate::ui::retained_host::tab_drag::host_shell_pointer_route_group_key;
@@ -27,7 +27,7 @@ pub(super) use crate::ui::template_runtime::{
     EditorUiCompatibilityHarness, EditorUiHostRuntime, UiComponentShowcaseDemoEventInput,
 };
 pub(super) use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
-pub(super) use crate::ui::workbench::fixture::{PreviewFixture, default_preview_fixture};
+pub(super) use crate::ui::workbench::fixture::{default_preview_fixture, PreviewFixture};
 pub(super) use crate::ui::workbench::layout::{DockEdge, MainHostPageLayout, WorkbenchLayout};
 pub(super) use crate::ui::workbench::layout::{
     DocumentNode, FloatingWindowLayout, MainPageId, TabStackLayout,
@@ -71,15 +71,13 @@ pub(super) fn welcome_shell_fixture() -> (
     BTreeMap<String, UiAssetEditorPanePresentation>,
     BTreeMap<String, AnimationEditorPanePresentation>,
 ) {
-    let descriptors = vec![
-        ViewDescriptor::new(
-            ViewDescriptorId::new("editor.welcome"),
-            ViewKind::ActivityWindow,
-            "Welcome",
-        )
-        .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage)
-        .with_icon_key("welcome"),
-    ];
+    let descriptors = vec![ViewDescriptor::new(
+        ViewDescriptorId::new("editor.welcome"),
+        ViewKind::ActivityWindow,
+        "Welcome",
+    )
+    .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage)
+    .with_icon_key("welcome")];
     let welcome_instance = ViewInstance {
         instance_id: ViewInstanceId::new("editor.welcome#1"),
         descriptor_id: ViewDescriptorId::new("editor.welcome"),

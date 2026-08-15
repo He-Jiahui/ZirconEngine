@@ -1,17 +1,19 @@
-use wgpu::util::DeviceExt;
+use std::sync::Arc;
 
 use crate::graphics::scene::scene_renderer::mesh::build_mesh_draws::IndexedIndirectArgs;
 
 use super::{
-    INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES, INDIRECT_VISIBLE_INSTANCE_INDEX_STRIDE_BYTES,
-    IndirectCompactionPlan,
+    IndirectCompactionBatchMetadata, IndirectCompactionPlan,
+    INDIRECT_COMPACTION_METADATA_STRIDE_BYTES, INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES,
+    INDIRECT_VISIBLE_INSTANCE_INDEX_STRIDE_BYTES,
 };
 
+#[derive(Clone)]
 pub(crate) struct MeshIndirectCompactionResources {
-    metadata_buffer: wgpu::Buffer,
-    visible_instance_index_buffer: wgpu::Buffer,
-    draw_count_buffer: wgpu::Buffer,
-    compacted_indirect_args_buffer: wgpu::Buffer,
+    metadata_buffer: Arc<wgpu::Buffer>,
+    visible_instance_index_buffer: Arc<wgpu::Buffer>,
+    draw_count_buffer: Arc<wgpu::Buffer>,
+    compacted_indirect_args_buffer: Arc<wgpu::Buffer>,
     metadata_buffer_byte_size: wgpu::BufferAddress,
     visible_instance_index_buffer_byte_size: wgpu::BufferAddress,
     visible_instance_index_buffer_allocation_byte_size: wgpu::BufferAddress,
@@ -22,81 +24,156 @@ pub(crate) struct MeshIndirectCompactionResources {
     draw_count_capacity: u32,
 }
 
-impl MeshIndirectCompactionResources {
-    pub(crate) fn new(
+#[derive(Default)]
+pub(crate) struct MeshIndirectCompactionWorkspace {
+    metadata_buffer: Option<Arc<wgpu::Buffer>>,
+    visible_instance_index_buffer: Option<Arc<wgpu::Buffer>>,
+    draw_count_buffer: Option<Arc<wgpu::Buffer>>,
+    compacted_indirect_args_buffer: Option<Arc<wgpu::Buffer>>,
+    metadata_capacity_bytes: wgpu::BufferAddress,
+    visible_instance_index_capacity_bytes: wgpu::BufferAddress,
+    draw_count_capacity_bytes: wgpu::BufferAddress,
+    compacted_indirect_args_capacity_bytes: wgpu::BufferAddress,
+    metadata_shadow: Vec<IndirectCompactionBatchMetadata>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct MeshIndirectCompactionPrepareStats {
+    pub(crate) created_buffer_count: u32,
+    pub(crate) uploaded_byte_count: u64,
+    pub(crate) upload_range_count: u32,
+}
+
+impl MeshIndirectCompactionWorkspace {
+    pub(crate) fn prepare(
+        &mut self,
         device: &wgpu::Device,
+        queue: &wgpu::Queue,
         label_prefix: &'static str,
         plan: &IndirectCompactionPlan,
-    ) -> Self {
-        let metadata_label = format!("{label_prefix}-compaction-metadata");
-        let metadata_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some(metadata_label.as_str()),
-            contents: bytemuck::cast_slice(plan.metadata()),
-            usage: compaction_storage_usage(),
-        });
+    ) -> (
+        MeshIndirectCompactionResources,
+        MeshIndirectCompactionPrepareStats,
+    ) {
+        let mut stats = MeshIndirectCompactionPrepareStats::default();
+        let metadata_buffer_recreated = ensure_buffer_capacity(
+            device,
+            &mut self.metadata_buffer,
+            &mut self.metadata_capacity_bytes,
+            plan.metadata_buffer_byte_size(),
+            INDIRECT_COMPACTION_METADATA_STRIDE_BYTES,
+            label_prefix,
+            "compaction-metadata",
+            compaction_storage_usage(),
+        );
+        stats.created_buffer_count += u32::from(metadata_buffer_recreated);
+        let metadata_upload = super::write_changed_pod_ranges(
+            queue,
+            self.metadata_buffer
+                .as_ref()
+                .expect("metadata buffer was prepared"),
+            &mut self.metadata_shadow,
+            plan.metadata(),
+            metadata_buffer_recreated,
+        );
+        stats.uploaded_byte_count = metadata_upload.byte_count;
+        stats.upload_range_count = metadata_upload.range_count;
 
         let visible_instance_index_buffer_byte_size =
             plan.visible_instance_index_buffer_byte_size();
         let visible_instance_index_buffer_allocation_byte_size =
             bindable_storage_buffer_size(visible_instance_index_buffer_byte_size);
-        let visible_instance_index_label = format!("{label_prefix}-visible-instance-index");
-        let visible_instance_index_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some(visible_instance_index_label.as_str()),
-            size: visible_instance_index_buffer_allocation_byte_size,
-            usage: compaction_storage_usage(),
-            mapped_at_creation: false,
-        });
+        let recreated = ensure_buffer_capacity(
+            device,
+            &mut self.visible_instance_index_buffer,
+            &mut self.visible_instance_index_capacity_bytes,
+            visible_instance_index_buffer_allocation_byte_size,
+            INDIRECT_VISIBLE_INSTANCE_INDEX_STRIDE_BYTES,
+            label_prefix,
+            "visible-instance-index",
+            compaction_storage_usage(),
+        );
+        stats.created_buffer_count += u32::from(recreated);
 
-        let draw_count_label = format!("{label_prefix}-compaction-draw-count");
         let draw_count_buffer_byte_size = plan.draw_count_buffer_byte_size();
         let draw_count_buffer_allocation_byte_size =
             bindable_draw_count_buffer_size(draw_count_buffer_byte_size);
-        let draw_count_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some(draw_count_label.as_str()),
-            size: draw_count_buffer_allocation_byte_size,
-            usage: compaction_draw_count_usage(),
-            mapped_at_creation: false,
-        });
+        let recreated = ensure_buffer_capacity(
+            device,
+            &mut self.draw_count_buffer,
+            &mut self.draw_count_capacity_bytes,
+            draw_count_buffer_allocation_byte_size,
+            INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES,
+            label_prefix,
+            "compaction-draw-count",
+            compaction_draw_count_usage(),
+        );
+        stats.created_buffer_count += u32::from(recreated);
 
         let compacted_indirect_args_buffer_byte_size =
             compacted_indirect_args_buffer_byte_size(plan.metadata_count());
-        let compacted_indirect_args_label = format!("{label_prefix}-compacted-indirect-args");
-        let compacted_indirect_args_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some(compacted_indirect_args_label.as_str()),
-            size: compacted_indirect_args_buffer_byte_size,
-            usage: compacted_indirect_args_usage(),
-            mapped_at_creation: false,
-        });
-
-        Self {
-            metadata_buffer,
-            visible_instance_index_buffer,
-            draw_count_buffer,
-            compacted_indirect_args_buffer,
-            metadata_buffer_byte_size: plan.metadata_buffer_byte_size(),
-            visible_instance_index_buffer_byte_size,
-            visible_instance_index_buffer_allocation_byte_size,
-            draw_count_buffer_byte_size,
-            draw_count_buffer_allocation_byte_size,
+        let recreated = ensure_buffer_capacity(
+            device,
+            &mut self.compacted_indirect_args_buffer,
+            &mut self.compacted_indirect_args_capacity_bytes,
             compacted_indirect_args_buffer_byte_size,
-            visible_instance_index_capacity: plan.visible_instance_capacity(),
-            draw_count_capacity: plan.draw_count_count(),
-        }
-    }
+            std::mem::size_of::<IndexedIndirectArgs>() as wgpu::BufferAddress,
+            label_prefix,
+            "compacted-indirect-args",
+            compacted_indirect_args_usage(),
+        );
+        stats.created_buffer_count += u32::from(recreated);
 
-    pub(crate) const fn metadata_buffer(&self) -> &wgpu::Buffer {
+        (
+            MeshIndirectCompactionResources {
+                metadata_buffer: Arc::clone(
+                    self.metadata_buffer
+                        .as_ref()
+                        .expect("metadata buffer was prepared"),
+                ),
+                visible_instance_index_buffer: Arc::clone(
+                    self.visible_instance_index_buffer
+                        .as_ref()
+                        .expect("visible instance index buffer was prepared"),
+                ),
+                draw_count_buffer: Arc::clone(
+                    self.draw_count_buffer
+                        .as_ref()
+                        .expect("draw count buffer was prepared"),
+                ),
+                compacted_indirect_args_buffer: Arc::clone(
+                    self.compacted_indirect_args_buffer
+                        .as_ref()
+                        .expect("compacted indirect args buffer was prepared"),
+                ),
+                metadata_buffer_byte_size: plan.metadata_buffer_byte_size(),
+                visible_instance_index_buffer_byte_size,
+                visible_instance_index_buffer_allocation_byte_size,
+                draw_count_buffer_byte_size,
+                draw_count_buffer_allocation_byte_size,
+                compacted_indirect_args_buffer_byte_size,
+                visible_instance_index_capacity: plan.visible_instance_capacity(),
+                draw_count_capacity: plan.draw_count_count(),
+            },
+            stats,
+        )
+    }
+}
+
+impl MeshIndirectCompactionResources {
+    pub(crate) fn metadata_buffer(&self) -> &wgpu::Buffer {
         &self.metadata_buffer
     }
 
-    pub(crate) const fn visible_instance_index_buffer(&self) -> &wgpu::Buffer {
+    pub(crate) fn visible_instance_index_buffer(&self) -> &wgpu::Buffer {
         &self.visible_instance_index_buffer
     }
 
-    pub(crate) const fn draw_count_buffer(&self) -> &wgpu::Buffer {
+    pub(crate) fn draw_count_buffer(&self) -> &wgpu::Buffer {
         &self.draw_count_buffer
     }
 
-    pub(crate) const fn compacted_indirect_args_buffer(&self) -> &wgpu::Buffer {
+    pub(crate) fn compacted_indirect_args_buffer(&self) -> &wgpu::Buffer {
         &self.compacted_indirect_args_buffer
     }
 
@@ -151,6 +228,41 @@ impl MeshIndirectCompactionResources {
             Some(self.compacted_indirect_args_buffer_byte_size),
         );
     }
+}
+
+pub(super) fn grow_indirect_buffer_capacity(
+    current: wgpu::BufferAddress,
+    required: wgpu::BufferAddress,
+) -> wgpu::BufferAddress {
+    if current >= required {
+        return current;
+    }
+    required.checked_next_power_of_two().unwrap_or(required)
+}
+
+fn ensure_buffer_capacity(
+    device: &wgpu::Device,
+    buffer: &mut Option<Arc<wgpu::Buffer>>,
+    capacity: &mut wgpu::BufferAddress,
+    required: wgpu::BufferAddress,
+    minimum: wgpu::BufferAddress,
+    label_prefix: &str,
+    label_suffix: &str,
+    usage: wgpu::BufferUsages,
+) -> bool {
+    let required = required.max(minimum);
+    if buffer.is_some() && *capacity >= required {
+        return false;
+    }
+    *capacity = grow_indirect_buffer_capacity(*capacity, required);
+    let label = format!("{label_prefix}-{label_suffix}");
+    *buffer = Some(Arc::new(device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some(label.as_str()),
+        size: *capacity,
+        usage,
+        mapped_at_creation: false,
+    })));
+    true
 }
 
 fn bindable_storage_buffer_size(byte_size: wgpu::BufferAddress) -> wgpu::BufferAddress {
@@ -208,13 +320,21 @@ mod tests {
             .next()
             .expect("implementation source");
 
-        assert!(implementation.contains("create_buffer_init"));
+        assert!(implementation.contains("ensure_buffer_capacity"));
         assert!(implementation.contains("visible-instance-index"));
         assert!(implementation.contains("compacted-indirect-args"));
         assert!(implementation.contains("wgpu::BufferUsages::STORAGE"));
         assert!(implementation.contains("wgpu::BufferUsages::COPY_DST"));
         assert!(implementation.contains("wgpu::BufferUsages::COPY_SRC"));
         assert!(implementation.contains("wgpu::BufferUsages::INDIRECT"));
+    }
+
+    #[test]
+    fn indirect_buffer_capacity_is_grow_only_and_power_of_two() {
+        assert_eq!(grow_indirect_buffer_capacity(0, 1), 1);
+        assert_eq!(grow_indirect_buffer_capacity(1, 20), 32);
+        assert_eq!(grow_indirect_buffer_capacity(32, 20), 32);
+        assert_eq!(grow_indirect_buffer_capacity(32, 33), 64);
     }
 
     #[test]

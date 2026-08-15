@@ -6,7 +6,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::retained_host::popup_anchor_metrics::{
-    POPUP_EDGE_MARGIN, clamp_popup_x_to_bounds, toolbar_popup_render_gap,
+    clamp_popup_x_to_bounds, toolbar_popup_render_gap, POPUP_EDGE_MARGIN,
 };
 
 use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;

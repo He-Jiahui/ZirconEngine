@@ -22,7 +22,7 @@ doc_type: module-detail
 
 # Runtime Asset Path Resolution
 
-`zircon_runtime::asset::runtime_asset_path` resolves runtime asset paths against an ordered set of roots: `ZIRCON_ASSET_ROOT`, the executable-local `assets` directory, the current-directory `assets` directory, caller-supplied development roots, and finally the crate asset directory. Input paths are normalized to safe relative form by dropping root, prefix, current-directory, parent-directory, and leading `assets` components.
+`zircon_runtime::asset::runtime_asset_path` treats a nonempty `ZIRCON_ASSET_ROOT` as the authoritative product root. A relative value is resolved from the product executable directory and an absolute value remains an explicit external override; a missing asset stays bound to that root and cannot fall through to source-tree resources. Without the override, resolution selects the first existing root from the executable-local `assets` directory, caller-supplied development roots, and finally the crate asset directory. The process working directory is deliberately excluded because project `res://` resources are resolved by the project asset system, not by the built-in engine-resource resolver. The selected engine root remains stable for every requested file, so a missing product asset cannot be satisfied from a later development root. Input paths are normalized to safe relative form by dropping root, prefix, current-directory, parent-directory, and leading `assets` components.
 
 ## Diagnostics Boundary
 

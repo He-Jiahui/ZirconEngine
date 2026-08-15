@@ -1,5 +1,5 @@
 use super::super::super::super::paint_theme::PALETTE;
-use super::super::{AlertTone, select_workbench_alert_style, select_workbench_toast_style};
+use super::super::{select_workbench_alert_style, select_workbench_toast_style, AlertTone};
 use super::support::positioned_alert_node;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 

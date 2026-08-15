@@ -16,7 +16,9 @@ use super::child_frame::{free_child_frame, linear_child_frame, scrollable_child_
 use super::clip::resolve_clip_frame;
 use super::engine::UiLayoutPassEngineContext;
 use super::measure::measure_wrap_content_size_for_width;
-use super::slot::{ordered_children_for_container, slot_for_container_child, slot_padding};
+use super::slot::{
+    ordered_children_for_container, slot_for_container_child, slot_padding, UiLayoutSlotIndex,
+};
 use super::taffy_arrange::try_arrange_taffy_owned_children;
 
 pub(crate) fn arrange_node(
@@ -24,6 +26,7 @@ pub(crate) fn arrange_node(
     node_id: UiNodeId,
     frame: UiFrame,
     inherited_clip: Option<UiFrame>,
+    slot_index: &UiLayoutSlotIndex,
     engine_context: &mut UiLayoutPassEngineContext,
 ) -> Result<(), UiTreeError> {
     if tree
@@ -60,13 +63,22 @@ pub(crate) fn arrange_node(
         | UiContainerKind::Container
         | UiContainerKind::Overlay => {
             record_zircon_owned_container(engine_context, node_id, container, &children);
-            let children = ordered_children_for_container(tree, node_id, &children, container);
+            let children =
+                ordered_children_for_container(tree, slot_index, node_id, &children, container);
             for child_id in children {
                 let child_frame = {
-                    let slot = slot_for_container_child(tree, node_id, child_id, container);
+                    let slot =
+                        slot_for_container_child(tree, slot_index, node_id, child_id, container);
                     free_child_frame(tree, child_id, frame, slot)?
                 };
-                arrange_node(tree, child_id, child_frame, next_clip, engine_context)?;
+                arrange_node(
+                    tree,
+                    child_id,
+                    child_frame,
+                    next_clip,
+                    slot_index,
+                    engine_context,
+                )?;
             }
         }
         UiContainerKind::BlockBox => {
@@ -76,9 +88,18 @@ pub(crate) fn arrange_node(
                 &children,
                 frame,
                 next_clip,
+                slot_index,
                 engine_context,
             )? {
-                arrange_block_children(tree, node_id, &children, frame, next_clip, engine_context)?;
+                arrange_block_children(
+                    tree,
+                    node_id,
+                    &children,
+                    frame,
+                    next_clip,
+                    slot_index,
+                    engine_context,
+                )?;
             }
         }
         UiContainerKind::Space => {
@@ -96,6 +117,7 @@ pub(crate) fn arrange_node(
                 frame,
                 next_clip,
                 config,
+                slot_index,
                 engine_context,
             )?;
         }
@@ -106,6 +128,7 @@ pub(crate) fn arrange_node(
                 &children,
                 frame,
                 next_clip,
+                slot_index,
                 engine_context,
             )? {
                 arrange_linear_children(
@@ -116,6 +139,7 @@ pub(crate) fn arrange_node(
                     next_clip,
                     UiAxis::Horizontal,
                     config.gap,
+                    slot_index,
                     engine_context,
                 )?;
             }
@@ -127,6 +151,7 @@ pub(crate) fn arrange_node(
                 &children,
                 frame,
                 next_clip,
+                slot_index,
                 engine_context,
             )? {
                 arrange_linear_children(
@@ -137,6 +162,7 @@ pub(crate) fn arrange_node(
                     next_clip,
                     UiAxis::Vertical,
                     config.gap,
+                    slot_index,
                     engine_context,
                 )?;
             }
@@ -150,6 +176,7 @@ pub(crate) fn arrange_node(
                 frame,
                 next_clip,
                 config,
+                slot_index,
                 engine_context,
             )?;
         }
@@ -160,6 +187,7 @@ pub(crate) fn arrange_node(
                 &children,
                 frame,
                 next_clip,
+                slot_index,
                 engine_context,
             )? {
                 arrange_wrap_children(
@@ -169,11 +197,13 @@ pub(crate) fn arrange_node(
                     frame,
                     next_clip,
                     config,
+                    slot_index,
                     engine_context,
                 )?;
             }
 
-            let content_size = wrap_content_size(tree, node_id, &children, config, frame.width)?;
+            let content_size =
+                wrap_content_size(tree, node_id, &children, config, frame.width, slot_index)?;
             let node = tree
                 .node_mut(node_id)
                 .ok_or(UiTreeError::MissingNode(node_id))?;
@@ -186,6 +216,7 @@ pub(crate) fn arrange_node(
                 &children,
                 frame,
                 next_clip,
+                slot_index,
                 engine_context,
             )? {
                 arrange_grid_children(
@@ -195,6 +226,7 @@ pub(crate) fn arrange_node(
                     frame,
                     next_clip,
                     config,
+                    slot_index,
                     engine_context,
                 )?;
             }
@@ -208,6 +240,7 @@ pub(crate) fn arrange_node(
                 frame,
                 next_clip,
                 config,
+                slot_index,
                 engine_context,
             )?;
             let node = tree
@@ -245,17 +278,25 @@ fn arrange_size_box_children(
     frame: UiFrame,
     inherited_clip: Option<UiFrame>,
     config: zircon_runtime_interface::ui::layout::UiSizeBoxConfig,
+    slot_index: &UiLayoutSlotIndex,
     engine_context: &mut UiLayoutPassEngineContext,
 ) -> Result<(), UiTreeError> {
     let container = UiContainerKind::SizeBox(config);
     let content_frame = size_box_content_frame(frame, config.aspect_ratio);
-    let children = ordered_children_for_container(tree, parent_id, children, container);
+    let children = ordered_children_for_container(tree, slot_index, parent_id, children, container);
     for child_id in children {
         let child_frame = {
-            let slot = slot_for_container_child(tree, parent_id, child_id, container);
+            let slot = slot_for_container_child(tree, slot_index, parent_id, child_id, container);
             free_child_frame(tree, child_id, content_frame, slot)?
         };
-        arrange_node(tree, child_id, child_frame, inherited_clip, engine_context)?;
+        arrange_node(
+            tree,
+            child_id,
+            child_frame,
+            inherited_clip,
+            slot_index,
+            engine_context,
+        )?;
     }
     Ok(())
 }
@@ -266,10 +307,11 @@ fn arrange_block_children(
     children: &[UiNodeId],
     frame: UiFrame,
     inherited_clip: Option<UiFrame>,
+    slot_index: &UiLayoutSlotIndex,
     engine_context: &mut UiLayoutPassEngineContext,
 ) -> Result<(), UiTreeError> {
     let container = UiContainerKind::BlockBox;
-    let children = ordered_children_for_container(tree, parent_id, children, container);
+    let children = ordered_children_for_container(tree, slot_index, parent_id, children, container);
     let mut cursor = 0.0;
 
     for child_id in children {
@@ -281,7 +323,7 @@ fn arrange_block_children(
             continue;
         }
 
-        let slot = slot_for_container_child(tree, parent_id, child_id, container);
+        let slot = slot_for_container_child(tree, slot_index, parent_id, child_id, container);
         let main_extent = block_child_outer_height(tree, child_id, slot)?;
         let child_frame = linear_child_frame(
             tree,
@@ -292,7 +334,14 @@ fn arrange_block_children(
             main_extent,
             slot,
         )?;
-        arrange_node(tree, child_id, child_frame, inherited_clip, engine_context)?;
+        arrange_node(
+            tree,
+            child_id,
+            child_frame,
+            inherited_clip,
+            slot_index,
+            engine_context,
+        )?;
         cursor += main_extent;
     }
 
@@ -339,6 +388,7 @@ fn wrap_content_size(
     children: &[UiNodeId],
     config: UiWrapBoxConfig,
     available_width: f32,
+    slot_index: &UiLayoutSlotIndex,
 ) -> Result<UiSize, UiTreeError> {
     let child_desired = children
         .iter()
@@ -359,6 +409,7 @@ fn wrap_content_size(
         config,
         &child_desired,
         available_width,
+        slot_index,
     ))
 }
 
@@ -370,13 +421,14 @@ fn arrange_linear_children(
     inherited_clip: Option<UiFrame>,
     axis: UiAxis,
     gap: f32,
+    slot_index: &UiLayoutSlotIndex,
     engine_context: &mut UiLayoutPassEngineContext,
 ) -> Result<(), UiTreeError> {
     let container = match axis {
         UiAxis::Horizontal => UiContainerKind::HorizontalBox(Default::default()),
         UiAxis::Vertical => UiContainerKind::VerticalBox(Default::default()),
     };
-    let children = ordered_children_for_container(tree, parent_id, children, container);
+    let children = ordered_children_for_container(tree, slot_index, parent_id, children, container);
     let main_extents = resolve_linear_child_main_extents(
         tree,
         parent_id,
@@ -384,6 +436,7 @@ fn arrange_linear_children(
         axis,
         frame_axis_extent(frame, axis),
         gap,
+        slot_index,
     )?;
     let gap = gap.max(0.0);
     let mut cursor = 0.0;
@@ -397,7 +450,7 @@ fn arrange_linear_children(
             cursor += gap;
         }
         let child_frame = {
-            let slot = slot_for_container_child(tree, parent_id, child_id, container);
+            let slot = slot_for_container_child(tree, slot_index, parent_id, child_id, container);
             linear_child_frame(
                 tree,
                 child_id,
@@ -408,7 +461,14 @@ fn arrange_linear_children(
                 slot,
             )?
         };
-        arrange_node(tree, child_id, child_frame, inherited_clip, engine_context)?;
+        arrange_node(
+            tree,
+            child_id,
+            child_frame,
+            inherited_clip,
+            slot_index,
+            engine_context,
+        )?;
         if occupies_layout {
             cursor += main_extents[index];
             placed_count += 1;
@@ -425,6 +485,7 @@ fn arrange_scrollable_children(
     frame: UiFrame,
     inherited_clip: Option<UiFrame>,
     config: UiScrollableBoxConfig,
+    slot_index: &UiLayoutSlotIndex,
     engine_context: &mut UiLayoutPassEngineContext,
 ) -> Result<(), UiTreeError> {
     let (content_size, previous_state, previous_window) = {
@@ -478,7 +539,14 @@ fn arrange_scrollable_children(
             positions[index],
             plan.scroll_state.offset,
         )?;
-        arrange_node(tree, child_id, child_frame, inherited_clip, engine_context)?;
+        arrange_node(
+            tree,
+            child_id,
+            child_frame,
+            inherited_clip,
+            slot_index,
+            engine_context,
+        )?;
     }
 
     Ok(())
@@ -491,10 +559,11 @@ fn arrange_wrap_children(
     frame: UiFrame,
     inherited_clip: Option<UiFrame>,
     config: UiWrapBoxConfig,
+    slot_index: &UiLayoutSlotIndex,
     engine_context: &mut UiLayoutPassEngineContext,
 ) -> Result<(), UiTreeError> {
     let container = UiContainerKind::WrapBox(config);
-    let children = ordered_children_for_container(tree, parent_id, children, container);
+    let children = ordered_children_for_container(tree, slot_index, parent_id, children, container);
     let horizontal_gap = config.horizontal_gap.max(0.0);
     let vertical_gap = config.vertical_gap.max(0.0);
     let available_width = frame.width.max(0.0);
@@ -512,7 +581,7 @@ fn arrange_wrap_children(
             continue;
         }
 
-        let item_size = wrap_item_outer_size(tree, parent_id, child_id, config)?;
+        let item_size = wrap_item_outer_size(tree, slot_index, parent_id, child_id, config)?;
         let item_width = item_size.width;
         let item_height = item_size.height;
         let next_width = if row_items.is_empty() {
@@ -530,6 +599,7 @@ fn arrange_wrap_children(
                 cursor_y,
                 row_height,
                 config,
+                slot_index,
                 engine_context,
             )?;
             cursor_y += row_height + vertical_gap;
@@ -556,6 +626,7 @@ fn arrange_wrap_children(
             cursor_y,
             row_height,
             config,
+            slot_index,
             engine_context,
         )?;
     }
@@ -565,6 +636,7 @@ fn arrange_wrap_children(
 
 fn wrap_item_outer_size(
     tree: &UiTree,
+    slot_index: &UiLayoutSlotIndex,
     parent_id: UiNodeId,
     child_id: UiNodeId,
     config: UiWrapBoxConfig,
@@ -574,6 +646,7 @@ fn wrap_item_outer_size(
         .ok_or(UiTreeError::MissingNode(child_id))?;
     let padding = slot_padding(slot_for_container_child(
         tree,
+        slot_index,
         parent_id,
         child_id,
         UiContainerKind::WrapBox(config),
@@ -616,6 +689,7 @@ fn arrange_wrap_row(
     row_y: f32,
     row_height: f32,
     config: UiWrapBoxConfig,
+    slot_index: &UiLayoutSlotIndex,
     engine_context: &mut UiLayoutPassEngineContext,
 ) -> Result<(), UiTreeError> {
     let container = UiContainerKind::WrapBox(config);
@@ -627,7 +701,7 @@ fn arrange_wrap_row(
             cursor_x += horizontal_gap;
         }
         let child_frame = {
-            let slot = slot_for_container_child(tree, parent_id, child_id, container);
+            let slot = slot_for_container_child(tree, slot_index, parent_id, child_id, container);
             linear_child_frame(
                 tree,
                 child_id,
@@ -638,7 +712,14 @@ fn arrange_wrap_row(
                 slot,
             )?
         };
-        arrange_node(tree, child_id, child_frame, inherited_clip, engine_context)?;
+        arrange_node(
+            tree,
+            child_id,
+            child_frame,
+            inherited_clip,
+            slot_index,
+            engine_context,
+        )?;
         cursor_x += item_width;
     }
     Ok(())

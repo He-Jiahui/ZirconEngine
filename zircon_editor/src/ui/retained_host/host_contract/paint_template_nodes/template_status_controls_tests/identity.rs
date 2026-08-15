@@ -1,4 +1,4 @@
-use super::super::{StatusControlKind, StatusIconKind, StatusSignalKind, status_control_kind};
+use super::super::{status_control_kind, StatusControlKind, StatusIconKind, StatusSignalKind};
 use super::support::status_node;
 
 #[test]

@@ -19,11 +19,11 @@ use zircon_runtime_interface::ui::{
     tree::{UiInputPolicy, UiVisibility},
 };
 
+use super::EditorUiDebugTimelineModel;
 use super::export::{load_snapshot_json, snapshot_to_json};
 use super::model::{EditorUiDebugReflectorModel, EditorUiDebugReflectorSection};
 use super::overlay::EditorUiDebugReflectorOverlayState;
 use super::selection::EditorUiDebugReflectorSelection;
-use super::EditorUiDebugTimelineModel;
 
 #[test]
 fn ui_debug_reflector_model_reports_no_active_surface_state() {
@@ -55,28 +55,38 @@ fn ui_debug_reflector_model_projects_snapshot_rows_and_sections() {
     assert!(model.nodes[1].label.contains("node=2"));
     assert!(model.nodes[1].label.contains("visibility=Visible"));
     assert!(model.nodes[1].label.contains("input=Receive"));
-    assert!(model
-        .details
-        .iter()
-        .any(|detail| detail.contains("Selected: root/button")));
-    assert!(model
-        .details
-        .iter()
-        .any(|detail| detail.contains("Focus: focused=Some(2), captured=Some(2)")));
-    assert!(model
-        .details
-        .iter()
-        .any(|detail| detail.contains("hit_path=[1, 2]") && detail.contains("bubble=[2, 1]")));
-    assert!(model
-        .details
-        .iter()
-        .any(|detail| detail.contains("Reject: node=3")
-            && detail.contains("reason=Disabled")
-            && detail.contains("node is disabled")));
-    assert!(model
-        .sections
-        .iter()
-        .any(|section| section.title == "Render" && section.lines[0] == "commands: 3"));
+    assert!(
+        model
+            .details
+            .iter()
+            .any(|detail| detail.contains("Selected: root/button"))
+    );
+    assert!(
+        model
+            .details
+            .iter()
+            .any(|detail| detail.contains("Focus: focused=Some(2), captured=Some(2)"))
+    );
+    assert!(
+        model
+            .details
+            .iter()
+            .any(|detail| detail.contains("hit_path=[1, 2]") && detail.contains("bubble=[2, 1]"))
+    );
+    assert!(
+        model
+            .details
+            .iter()
+            .any(|detail| detail.contains("Reject: node=3")
+                && detail.contains("reason=Disabled")
+                && detail.contains("node is disabled"))
+    );
+    assert!(
+        model
+            .sections
+            .iter()
+            .any(|section| section.title == "Render" && section.lines[0] == "commands: 3")
+    );
     assert!(model.sections.iter().any(|section| {
         section.title == "Layout Engine"
             && section.lines.iter().any(|line| line == "requests: 2")
@@ -203,10 +213,12 @@ fn ui_debug_reflector_model_projects_render_visualizer_and_parity_sections() {
     let snapshot = snapshot_fixture(Some(UiNodeId::new(2)));
     let model = EditorUiDebugReflectorModel::from_snapshot(&snapshot);
 
-    assert!(model
-        .summary
-        .export_status
-        .contains("3 render visualizer overlays"));
+    assert!(
+        model
+            .summary
+            .export_status
+            .contains("3 render visualizer overlays")
+    );
     assert!(model.sections.iter().any(|section| {
         section.title == "Render Visualizer"
             && section.lines.iter().any(|line| line == "paint elements: 5")
@@ -346,9 +358,11 @@ fn ui_debug_reflector_overlay_derives_render_visualizer_primitives() {
     assert!(primitives.iter().any(|primitive| primitive.kind
         == UiDebugOverlayPrimitiveKind::MaterialBatchBounds
         && primitive.label.as_deref() == Some("batch:0")));
-    assert!(primitives
-        .iter()
-        .any(|primitive| primitive.kind == UiDebugOverlayPrimitiveKind::OverdrawCell));
+    assert!(
+        primitives
+            .iter()
+            .any(|primitive| primitive.kind == UiDebugOverlayPrimitiveKind::OverdrawCell)
+    );
     assert!(primitives.iter().any(|primitive| primitive.kind
         == UiDebugOverlayPrimitiveKind::TextGlyphBounds
         && primitive.node_id == Some(UiNodeId::new(2))));
@@ -361,15 +375,21 @@ fn ui_debug_reflector_overlay_derives_render_visualizer_primitives() {
     }
     .primitives_from_snapshot(&snapshot);
 
-    assert!(!primitives
-        .iter()
-        .any(|primitive| primitive.kind == UiDebugOverlayPrimitiveKind::MaterialBatchBounds));
-    assert!(!primitives
-        .iter()
-        .any(|primitive| primitive.kind == UiDebugOverlayPrimitiveKind::OverdrawCell));
-    assert!(!primitives
-        .iter()
-        .any(|primitive| primitive.kind == UiDebugOverlayPrimitiveKind::TextGlyphBounds));
+    assert!(
+        !primitives
+            .iter()
+            .any(|primitive| primitive.kind == UiDebugOverlayPrimitiveKind::MaterialBatchBounds)
+    );
+    assert!(
+        !primitives
+            .iter()
+            .any(|primitive| primitive.kind == UiDebugOverlayPrimitiveKind::OverdrawCell)
+    );
+    assert!(
+        !primitives
+            .iter()
+            .any(|primitive| primitive.kind == UiDebugOverlayPrimitiveKind::TextGlyphBounds)
+    );
 }
 
 #[test]
@@ -399,11 +419,13 @@ fn ui_debug_timeline_model_projects_selected_historical_frame() {
         model.selected_reflector.summary.title,
         "UI Debug Reflector: 2 nodes, 5 commands, schema v1"
     );
-    assert!(model
-        .selected_reflector
-        .details
-        .iter()
-        .any(|detail| detail.contains("Selected: root/button")));
+    assert!(
+        model
+            .selected_reflector
+            .details
+            .iter()
+            .any(|detail| detail.contains("Selected: root/button"))
+    );
 }
 
 #[test]
@@ -549,12 +571,14 @@ fn unsupported_layout_engine_report_fixture() -> UiLayoutEngineSelectionReport {
     taffy.supported_families.clear();
     let mut zircon = UiLayoutEngineCapability::zircon();
     zircon.supported_families.clear();
-    UiLayoutEngineSelectionReport::from_selections(vec![UiLayoutEngineSelection::select(
-        &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Block),
-        &taffy,
-        &zircon,
-    )
-    .with_node_id(UiNodeId::new(42))])
+    UiLayoutEngineSelectionReport::from_selections(vec![
+        UiLayoutEngineSelection::select(
+            &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Block),
+            &taffy,
+            &zircon,
+        )
+        .with_node_id(UiNodeId::new(42)),
+    ])
 }
 
 fn timeline_fixture(selected_frame: Option<UiDebugTimelineFrameHandle>) -> UiDebugTimelineSnapshot {

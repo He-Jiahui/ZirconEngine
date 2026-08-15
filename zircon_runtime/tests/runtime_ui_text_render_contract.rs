@@ -47,6 +47,7 @@ fn sdf_runtime_ui_text_adds_sparse_real_glyph_delta_over_background() {
             list: UiRenderList {
                 commands: vec![sdf_command],
             },
+            raster_scale: 1.0,
         },
         "runtime.ui.text.sdf.real_glyphs",
         viewport_size,
@@ -61,6 +62,7 @@ fn sdf_runtime_ui_text_adds_sparse_real_glyph_delta_over_background() {
             list: UiRenderList {
                 commands: vec![background_command],
             },
+            raster_scale: 1.0,
         },
         "runtime.ui.text.sdf.real_glyphs.background",
         viewport_size,
@@ -344,13 +346,16 @@ fn template_surface_text_opacity_modulates_glyph_delta_through_formal_ui_pipelin
 
 #[test]
 fn text_capture_settle_requires_two_consecutive_clean_raster_frames() {
-    assert!(text_raster_frame_is_settled(0, 0, 0, 0, 0, 0));
-    assert!(!text_raster_frame_is_settled(1, 0, 0, 0, 0, 0));
-    assert!(!text_raster_frame_is_settled(0, 1, 0, 0, 0, 0));
-    assert!(!text_raster_frame_is_settled(0, 0, 1, 0, 0, 0));
-    assert!(!text_raster_frame_is_settled(0, 0, 0, 1, 0, 0));
-    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 1, 0));
-    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 0, 1));
+    assert!(text_raster_frame_is_settled(0, 0, 0, 0, 0, 0, 0, 0, 0));
+    assert!(!text_raster_frame_is_settled(1, 0, 0, 0, 0, 0, 0, 0, 0));
+    assert!(!text_raster_frame_is_settled(0, 1, 0, 0, 0, 0, 0, 0, 0));
+    assert!(!text_raster_frame_is_settled(0, 0, 1, 0, 0, 0, 0, 0, 0));
+    assert!(!text_raster_frame_is_settled(0, 0, 0, 1, 0, 0, 0, 0, 0));
+    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 1, 0, 0, 0, 0));
+    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 0, 1, 0, 0, 0));
+    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 0, 0, 1, 0, 0));
+    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 0, 0, 0, 1, 0));
+    assert!(!text_raster_frame_is_settled(0, 0, 0, 0, 0, 0, 0, 0, 1));
     assert!(!text_raster_capture_is_stable(false, true));
     assert!(!text_raster_capture_is_stable(true, false));
     assert!(text_raster_capture_is_stable(true, true));
@@ -400,6 +405,7 @@ fn render_custom_text_frame(
             list: UiRenderList {
                 commands: vec![command],
             },
+            raster_scale: 1.0,
         },
         tree_id,
         UVec2::new(320, 180),
@@ -463,6 +469,9 @@ fn render_ui_extract_frame(
             stats.last_ui_text_visible_raster_placeholder_count,
             stats.last_ui_text_raster_renderer_upload_requeued_count,
             stats.last_ui_text_raster_renderer_upload_failure_count,
+            stats.last_ui_text_sdf_generation_pending_batch_count,
+            stats.last_ui_text_sdf_generation_completion_backlog_count,
+            stats.last_ui_text_sdf_generation_failure_count,
         );
         final_stats = Some(stats);
         capture_is_stable = text_raster_capture_is_stable(raster_was_settled, raster_is_settled);
@@ -496,6 +505,9 @@ fn text_raster_frame_is_settled(
     visible_placeholder_count: usize,
     renderer_upload_requeued_count: usize,
     renderer_upload_failure_count: usize,
+    sdf_generation_pending_batch_count: usize,
+    sdf_generation_completion_backlog_count: usize,
+    sdf_generation_failure_count: usize,
 ) -> bool {
     pending_count == 0
         && failed_count == 0
@@ -503,6 +515,9 @@ fn text_raster_frame_is_settled(
         && visible_placeholder_count == 0
         && renderer_upload_requeued_count == 0
         && renderer_upload_failure_count == 0
+        && sdf_generation_pending_batch_count == 0
+        && sdf_generation_completion_backlog_count == 0
+        && sdf_generation_failure_count == 0
 }
 
 fn text_raster_capture_is_stable(

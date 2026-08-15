@@ -63,6 +63,13 @@ fn feature_enabled_first_party_provider_snapshot_reports_compiled_runtime_plugin
     push_expected_runtime_provider(
         &mut expected,
         &mut selections,
+        RuntimePluginId::new("neural"),
+        "neural",
+    );
+    #[cfg(feature = "advanced-render-runtime-plugins")]
+    push_expected_runtime_provider(
+        &mut expected,
+        &mut selections,
         RuntimePluginId::VirtualGeometry,
         "virtual_geometry",
     );

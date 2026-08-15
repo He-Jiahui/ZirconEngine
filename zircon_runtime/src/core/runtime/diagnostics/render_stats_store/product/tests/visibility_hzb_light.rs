@@ -125,6 +125,9 @@ fn render_product_diagnostics_record_hzb_stats() {
         last_hzb_occlusion_candidate_instance_count: 42,
         last_hzb_occlusion_dispatch_group_count: 2,
         last_hzb_occlusion_dispatched_phase_count: 1,
+        last_hzb_occlusion_params_buffer_create_count: 1,
+        last_hzb_occlusion_params_upload_byte_count: 32,
+        last_hzb_occlusion_bind_group_create_count: 1,
         last_hzb_occlusion_history_available: true,
         last_hzb_occlusion_readback_available: true,
         last_hzb_occlusion_readback_pending_count: 3,
@@ -290,6 +293,24 @@ fn render_product_diagnostics_record_light_grid_stats() {
         &store,
         "render.light_grid.average_lights_per_cluster",
         0.375,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.hzb.occlusion.params_buffer_create_count",
+        1.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.hzb.occlusion.params_upload_byte_count",
+        32.0,
+        "bytes",
+    );
+    assert_series(
+        &store,
+        "render.hzb.occlusion.bind_group_create_count",
+        1.0,
         "count",
     );
     assert_series(

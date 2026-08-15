@@ -109,6 +109,86 @@ impl SettingSchema {
     }
 }
 
+/// Locale-neutral presentation identities for one setting definition.
+///
+/// Settings authority keeps these keys but never resolves them to display text.
+/// The UI captures one locale and projects the keys through `EditorI18nService`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SettingsPresentation {
+    label_key: String,
+    description_key: String,
+    category_path: Vec<String>,
+}
+
+impl SettingsPresentation {
+    pub fn new<I, S>(
+        label_key: impl Into<String>,
+        description_key: impl Into<String>,
+        category_path: I,
+    ) -> Result<Self, String>
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        let presentation = Self {
+            label_key: label_key.into(),
+            description_key: description_key.into(),
+            category_path: category_path.into_iter().map(Into::into).collect(),
+        };
+        presentation.validate()?;
+        Ok(presentation)
+    }
+
+    pub fn label_key(&self) -> &str {
+        &self.label_key
+    }
+
+    pub fn description_key(&self) -> &str {
+        &self.description_key
+    }
+
+    pub fn category_path(&self) -> impl ExactSizeIterator<Item = &str> {
+        self.category_path.iter().map(String::as_str)
+    }
+
+    fn validate(&self) -> Result<(), String> {
+        validate_settings_localization_key("label", &self.label_key)?;
+        validate_settings_localization_key("description", &self.description_key)?;
+        if self.category_path.is_empty() {
+            return Err("setting presentation must include at least one category key".into());
+        }
+        if self
+            .category_path
+            .iter()
+            .any(|key| !key.starts_with("settings.category."))
+        {
+            return Err(
+                "setting presentation category keys must start with `settings.category.`".into(),
+            );
+        }
+        for key in &self.category_path {
+            validate_settings_localization_key("category", key)?;
+        }
+        Ok(())
+    }
+}
+
+fn validate_settings_localization_key(field: &str, key: &str) -> Result<(), String> {
+    if !key.starts_with("settings.")
+        || key.len() == "settings.".len()
+        || key.ends_with('.')
+        || key.split('.').any(str::is_empty)
+        || !key
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
+    {
+        return Err(format!(
+            "setting presentation {field} key `{key}` must be a non-empty `settings.` localization key"
+        ));
+    }
+    Ok(())
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct SettingDefinition {
     pub key: SettingsKey,
@@ -116,7 +196,7 @@ pub struct SettingDefinition {
     pub schema: SettingSchema,
     pub default: SettingValue,
     pub requires_restart: bool,
-    pub category_path: String,
+    presentation: SettingsPresentation,
 }
 
 impl SettingDefinition {
@@ -126,16 +206,15 @@ impl SettingDefinition {
         schema: SettingSchema,
         default: SettingValue,
         requires_restart: bool,
-        category_path: impl Into<String>,
+        presentation: SettingsPresentation,
     ) -> Result<Self, String> {
-        let category_path = category_path.into();
         let definition = Self {
             key,
             scope,
             schema,
             default,
             requires_restart,
-            category_path,
+            presentation,
         };
         definition.validate()?;
         Ok(definition)
@@ -144,10 +223,12 @@ impl SettingDefinition {
     pub(crate) fn validate(&self) -> Result<(), String> {
         validate_schema_definition(&self.schema)?;
         self.schema.validate(&self.default)?;
-        if self.category_path.is_empty() || self.category_path.split('/').any(str::is_empty) {
-            return Err("setting category path must use non-empty slash-separated segments".into());
-        }
+        self.presentation.validate()?;
         Ok(())
+    }
+
+    pub fn presentation(&self) -> &SettingsPresentation {
+        &self.presentation
     }
 }
 

@@ -1,8 +1,9 @@
 use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex};
 
 use crate::core::framework::render::{
-    GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceDescriptor, GeometrySourceId,
-    ShaderPipelineDiagnosticStage, ShaderQualityTier, ShaderVariantKey, ShaderVariantMissReport,
+    GeometrySourceDescriptor, GeometrySourceId, ShaderPipelineDiagnosticStage, ShaderQualityTier,
+    ShaderVariantKey, ShaderVariantMissReport, GEOMETRY_SOURCE_ID_STATIC_MESH,
 };
 use crate::graphics::pipeline::{
     PipelineAsyncCompiler, PipelineAsyncQueueResult, RuntimePipelineCache,
@@ -21,7 +22,7 @@ use super::{MeshPipelineVariantRegistry, MeshPipelineVariantResolver};
 pub(in crate::graphics::scene::scene_renderer::mesh) const MAX_ASYNC_BASE_PIPELINES_IN_FLIGHT:
     usize = 64;
 pub(in crate::graphics::scene::scene_renderer::mesh) const MAX_ASYNC_SHADER_SOURCE_VALIDATIONS_IN_FLIGHT: usize = 64;
-const MAX_PENDING_PIPELINE_CREATION_DIAGNOSTICS: usize = 64;
+pub(in crate::graphics::scene::scene_renderer::mesh) const MAX_PENDING_PIPELINE_CREATION_DIAGNOSTICS: usize = 64;
 
 pub(in crate::graphics::scene::scene_renderer::mesh) struct AsyncBasePipelineProduct {
     pub(super) shader_key: String,
@@ -31,6 +32,61 @@ pub(in crate::graphics::scene::scene_renderer::mesh) struct AsyncBasePipelinePro
 
 pub(in crate::graphics::scene::scene_renderer::mesh) type AsyncBasePipelineCompileResult =
     Result<AsyncBasePipelineProduct, String>;
+
+#[derive(Default)]
+pub(super) struct MeshPipelineCreationMetrics {
+    snapshot: Mutex<MeshPipelineCreationMetricsSnapshot>,
+}
+
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+struct MeshPipelineCreationMetricsSnapshot {
+    render_pipeline_creation_count: usize,
+    shader_module_creation_count: usize,
+    render_pipeline_creation_cpu_microseconds: u64,
+    shader_module_creation_cpu_microseconds: u64,
+    async_base_pipeline_queue_wait_count: usize,
+    async_base_pipeline_queue_wait_microseconds: u64,
+}
+
+impl MeshPipelineCreationMetrics {
+    pub(super) fn record_render_pipeline_creation(&self, elapsed: std::time::Duration) {
+        let mut snapshot = self.lock_snapshot();
+        snapshot.render_pipeline_creation_count =
+            snapshot.render_pipeline_creation_count.saturating_add(1);
+        snapshot.render_pipeline_creation_cpu_microseconds = snapshot
+            .render_pipeline_creation_cpu_microseconds
+            .saturating_add(duration_microseconds_saturating(elapsed));
+    }
+
+    pub(super) fn record_shader_module_creation(&self, elapsed: std::time::Duration) {
+        let mut snapshot = self.lock_snapshot();
+        snapshot.shader_module_creation_count =
+            snapshot.shader_module_creation_count.saturating_add(1);
+        snapshot.shader_module_creation_cpu_microseconds = snapshot
+            .shader_module_creation_cpu_microseconds
+            .saturating_add(duration_microseconds_saturating(elapsed));
+    }
+
+    pub(super) fn record_async_base_pipeline_queue_wait(&self, elapsed: std::time::Duration) {
+        let mut snapshot = self.lock_snapshot();
+        snapshot.async_base_pipeline_queue_wait_count = snapshot
+            .async_base_pipeline_queue_wait_count
+            .saturating_add(1);
+        snapshot.async_base_pipeline_queue_wait_microseconds = snapshot
+            .async_base_pipeline_queue_wait_microseconds
+            .saturating_add(duration_microseconds_saturating(elapsed));
+    }
+
+    fn snapshot(&self) -> MeshPipelineCreationMetricsSnapshot {
+        *self.lock_snapshot()
+    }
+
+    fn lock_snapshot(&self) -> std::sync::MutexGuard<'_, MeshPipelineCreationMetricsSnapshot> {
+        self.snapshot
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+}
 
 #[derive(Clone, Copy)]
 pub(in crate::graphics::scene::scene_renderer::mesh) enum PipelineCreationTarget {
@@ -55,6 +111,11 @@ pub(super) struct ShaderSourceValidationKey {
 pub(crate) struct MeshPipelineCache {
     pub(in crate::graphics::scene::scene_renderer::mesh) target_format: wgpu::TextureFormat,
     pub(in crate::graphics::scene::scene_renderer::mesh) mesh_pipeline_layout: wgpu::PipelineLayout,
+    // The fixed EnvironmentOnly Base shader omits the generic forward receiver
+    // ABI at group 1. Keep its dedicated layout separate so generic variants
+    // can continue to use the full scene contract.
+    pub(in crate::graphics::scene::scene_renderer::mesh) environment_only_mesh_pipeline_layout:
+        wgpu::PipelineLayout,
     pub(in crate::graphics::scene::scene_renderer::mesh) oit_fragment_store_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::mesh) oit_mesh_pipeline_layout:
@@ -133,6 +194,7 @@ pub(crate) struct MeshPipelineCache {
     pub(super) allow_async_pipeline_compile: bool,
     pub(super) force_synchronous_base_pipeline_compile: bool,
     pub(super) async_variant_first_frame_miss_count: u32,
+    pub(super) pipeline_creation_metrics: Arc<MeshPipelineCreationMetrics>,
 }
 
 impl MeshPipelineCache {
@@ -187,6 +249,30 @@ impl MeshPipelineCache {
             key.pipeline_key().clone(),
             key.shader_variant_key().clone(),
         ))
+    }
+
+    pub(crate) fn base_pipeline_requires_forward_receiver(
+        &self,
+        variant_id: MeshPipelineVariantId,
+    ) -> bool {
+        self.pipeline_variant_registry
+            .base_pipeline_requires_forward_receiver(variant_id)
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::mesh) fn base_pipeline_layout_for_variant(
+        &self,
+        variant_id: MeshPipelineVariantId,
+    ) -> &wgpu::PipelineLayout {
+        if self.base_pipeline_requires_forward_receiver(variant_id) {
+            &self.mesh_pipeline_layout
+        } else {
+            &self.environment_only_mesh_pipeline_layout
+        }
+    }
+
+    pub(crate) const fn environment_only_pbr_base_profile_enabled(&self) -> bool {
+        self.pipeline_variant_registry
+            .environment_only_pbr_base_profile_enabled()
     }
 
     pub(crate) fn register_geometry_source_descriptor(
@@ -347,7 +433,40 @@ impl MeshPipelineCache {
     }
 
     pub(crate) fn shader_variant_miss_report(&self) -> ShaderVariantMissReport {
-        self.pipeline_variant_registry.miss_report()
+        let mut report = self.pipeline_variant_registry.miss_report();
+        report.record_cached_gpu_object_counts(
+            self.mesh_variant_pipelines.len()
+                + self.oit_mesh_variant_pipelines.len()
+                + self.gbuffer_mesh_pipelines.len()
+                + self.depth_prepass_mesh_pipelines.len()
+                + self.velocity_mesh_pipelines.len()
+                + self.shadow_mesh_pipelines.len()
+                + self.taa_reactive_mask_mesh_pipelines.len()
+                + self.taa_reactive_material_mask_mesh_pipelines.len(),
+            self.shader_modules.len(),
+        );
+        let creation_metrics = self.pipeline_creation_metrics.snapshot();
+        report.record_gpu_object_creation_totals(
+            creation_metrics.render_pipeline_creation_count,
+            creation_metrics.shader_module_creation_count,
+            creation_metrics.render_pipeline_creation_cpu_microseconds,
+            creation_metrics.shader_module_creation_cpu_microseconds,
+        );
+        report.record_async_base_pipeline_queue_wait_totals(
+            creation_metrics.async_base_pipeline_queue_wait_count,
+            creation_metrics.async_base_pipeline_queue_wait_microseconds,
+        );
+        report
+    }
+
+    pub(super) fn record_render_pipeline_creation(&mut self, elapsed: std::time::Duration) {
+        self.pipeline_creation_metrics
+            .record_render_pipeline_creation(elapsed);
+    }
+
+    pub(super) fn record_shader_module_creation(&mut self, elapsed: std::time::Duration) {
+        self.pipeline_creation_metrics
+            .record_shader_module_creation(elapsed);
     }
 
     pub(crate) fn async_pipeline_compile_pending_count(&self) -> u32 {
@@ -507,6 +626,10 @@ impl MeshPipelineCache {
     }
 }
 
+pub(super) fn duration_microseconds_saturating(duration: std::time::Duration) -> u64 {
+    u64::try_from(duration.as_micros()).unwrap_or(u64::MAX)
+}
+
 impl MeshPipelineVariantResolver for MeshPipelineCache {
     fn resolve_variant_for_geometry(
         &mut self,
@@ -530,7 +653,38 @@ mod tests {
     use crate::core::framework::render::ShaderPassType;
     use crate::graphics::scene::resources::default_pipeline_key;
 
-    use super::{MeshPipelineCache, ShaderSourceValidationKey};
+    use super::{
+        duration_microseconds_saturating, MeshPipelineCache, MeshPipelineCreationMetrics,
+        ShaderSourceValidationKey,
+    };
+
+    #[test]
+    fn pipeline_creation_duration_conversion_saturates_at_u64_microseconds() {
+        assert_eq!(
+            duration_microseconds_saturating(std::time::Duration::from_micros(17)),
+            17
+        );
+        assert_eq!(
+            duration_microseconds_saturating(std::time::Duration::from_secs(u64::MAX)),
+            u64::MAX
+        );
+    }
+
+    #[test]
+    fn pipeline_creation_metrics_accumulate_creation_calls_and_cpu_time() {
+        let metrics = MeshPipelineCreationMetrics::default();
+        metrics.record_render_pipeline_creation(std::time::Duration::from_micros(23));
+        metrics.record_shader_module_creation(std::time::Duration::from_micros(17));
+        metrics.record_async_base_pipeline_queue_wait(std::time::Duration::from_micros(11));
+
+        let snapshot = metrics.snapshot();
+        assert_eq!(snapshot.render_pipeline_creation_count, 1);
+        assert_eq!(snapshot.shader_module_creation_count, 1);
+        assert_eq!(snapshot.render_pipeline_creation_cpu_microseconds, 23);
+        assert_eq!(snapshot.shader_module_creation_cpu_microseconds, 17);
+        assert_eq!(snapshot.async_base_pipeline_queue_wait_count, 1);
+        assert_eq!(snapshot.async_base_pipeline_queue_wait_microseconds, 11);
+    }
 
     #[test]
     fn mesh_pipeline_cache_is_send_for_render_framework_state() {

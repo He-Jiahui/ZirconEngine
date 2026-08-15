@@ -46,13 +46,11 @@ fn delta_pack_contains_only_changed_chunks() {
         b"added"
     );
     assert!(delta_reader.read_changed_asset("meshes/keep.bin").is_err());
-    assert!(
-        delta_reader
-            .manifest()
-            .target
-            .asset("meshes/reused-alias.bin")
-            .is_some()
-    );
+    assert!(delta_reader
+        .manifest()
+        .target
+        .asset("meshes/reused-alias.bin")
+        .is_some());
 }
 
 #[test]
@@ -101,11 +99,9 @@ fn delta_pack_applies_to_base_pack() {
         b"new"
     );
     assert!(applied_reader.read_asset("textures/removed.bin").is_err());
-    assert!(
-        applied_reader
-            .read_asset("meshes/reused-source.bin")
-            .is_err()
-    );
+    assert!(applied_reader
+        .read_asset("meshes/reused-source.bin")
+        .is_err());
 }
 
 #[test]

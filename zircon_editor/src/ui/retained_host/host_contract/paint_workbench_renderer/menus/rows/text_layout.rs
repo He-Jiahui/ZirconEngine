@@ -1,6 +1,6 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::menu_popup_metrics::{
-    MENU_POPUP_TEXT_INSET_X, menu_popup_text_width,
+    menu_popup_text_width, MENU_POPUP_TEXT_INSET_X,
 };
 use crate::ui::retained_host::menu_popup_contract::MENU_POPUP_LABEL_SHORTCUT_GAP;
 

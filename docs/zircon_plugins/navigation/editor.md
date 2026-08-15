@@ -5,6 +5,8 @@ related_code:
   - zircon_plugins/navigation/editor/src/bake_panel.rs
   - zircon_plugins/navigation/editor/src/overlay.rs
   - zircon_plugins/navigation/editor/src/runtime_mirror.rs
+  - zircon_plugins/navigation/editor/src/viewport_overlay_provider.rs
+  - zircon_plugins/navigation/runtime/src/overlay_frame.rs
   - zircon_plugins/navigation/runtime/src/agent.rs
   - zircon_runtime/src/core/framework/navigation/agent.rs
   - zircon_plugins/navigation/editor/bake.zui
@@ -20,6 +22,7 @@ implementation_files:
   - zircon_plugins/navigation/editor/src/bake_panel.rs
   - zircon_plugins/navigation/editor/src/overlay.rs
   - zircon_plugins/navigation/editor/src/runtime_mirror.rs
+  - zircon_plugins/navigation/editor/src/viewport_overlay_provider.rs
   - zircon_plugins/navigation/editor/bake.zui
   - zircon_plugins/navigation/editor/debug_gizmos.zui
 plan_sources:
@@ -40,17 +43,18 @@ The Navigation editor package owns optional authoring and diagnostics UI. Runtim
 
 ## PIE event consumer
 
-`navigation_runtime_event_consumers` declares `navigation.editor.agent_tick` as the typed consumer of `navigation.events.agent_tick_completed` with schema `navigation.events.nav_agent_tick_report.v1`. The declaration is projected into `navigation.editor` in the package manifest and retains the shared `NavigationPieMirror` state.
+The plugin declares `navigation.editor.overlay_frame` as the typed consumer of `navigation.events.overlay_frame` with schema `navigation.events.overlay_frame.v1`. The declaration is projected into `navigation.editor` in the package manifest and retains the same `NavigationPieMirror` instance used by the viewport provider.
 
-The editor host subscribes only while PIE is active and `editor.extension.navigation_gizmos` is enabled. Cross-session deliveries, wrong schemas, foreign handles, and stale sequences are rejected before the mirror changes. Exiting PIE unsubscribes and clears the report and agent snapshots.
+The editor host subscribes only while PIE is active and `editor.extension.navigation_gizmos` is enabled. Cross-session deliveries, wrong schemas, foreign handles, stale sequences, and stale NavMesh owner generations are rejected before the mirror changes. Exiting PIE unsubscribes and clears the complete overlay frame.
 
 ## Module Boundaries
 
-- `plugin.rs` is the `zircon_plugin_sdk::authoring_plugin!` declaration and package adapter only; descriptor, manifest, and capabilities have one source.
-- `plugin/registration/` owns extension registration beneath the plugin declaration owner, split into assets, component drawers, commands/menu items, and templates.
+- `plugin.rs` owns the explicit editor plugin declaration and the single shared `NavigationPieMirror`; the runtime consumer and provider registration both receive that same `Arc`.
+- `plugin/registration/` owns extension registration beneath the plugin declaration owner, split into assets, component drawers, commands/menu items, templates, and the viewport provider.
 - `bake_panel.rs` owns the editor-side bake request and progress state machine. Its controller submits only through `NavigationBakeBackend`, maps bake actions to framework `NavMeshBakeRequest`, and does not hold a `World` or call `NavigationManager` directly.
-- `overlay.rs` owns the `navigation.viewport.overlay` tool-mode/provider descriptor, toggle/controller and viewport sink boundary, and converts neutral `NavigationGizmoSnapshot` plus optional PIE agent frames into `SceneGizmoOverlayExtract`. Editor 05 still owes the shared host provider registry/factory.
-- `runtime_mirror.rs` owns the read-only PIE frame cache. It consumes the runtime-registered shared `NavAgentTickReport` event, whose `NavigationAgentDebugState` payload is produced by runtime tick code; frames are accepted only for the active play session and increasing sequence.
+- `overlay.rs` owns neutral conversion from `NavigationGizmoSnapshot` plus a PIE frame into `SceneGizmoOverlayExtract`.
+- `viewport_overlay_provider.rs` owns the real `navigation.viewport.overlay.provider` factory and reads only the shared mirror.
+- `runtime_mirror.rs` owns the read-only PIE frame cache. It consumes the runtime-owned `NavigationOverlayFrame`, which contains canonical NavMesh geometry plus the current agent report; frames are accepted only for the active play session, increasing delivery sequence, and non-decreasing owner generation.
 
 This split keeps the root/entry files thin and prevents registration, retained layout, runtime mirroring, and overlay projection from accumulating in one file.
 
@@ -69,19 +73,19 @@ The three command routes are `navigation.bake.scene`, `navigation.bake.surface`,
 
 ## Viewport Overlay
 
-The overlay command and menu entry use the required path `View/Debug Overlays/Navigation`. It remains a non-undoable view-state pending operation with a payload schema and names the `navigation.viewport.overlay.provider` provider under the gizmo capability. `NavigationOverlayController` submits and clears extracts through `NavigationViewportGizmoSink`; the shared host does not yet resolve that provider id, tracked by the Editor 05 failure handoff.
+The overlay command and menu entry use the required path `View/Debug Overlays/Navigation`. It remains a non-undoable view-state operation with a payload schema and names the `navigation.viewport.overlay.provider` provider under the gizmo capability. The plugin registers that provider with the shared Editor05 host registry. Capability disable and PIE shutdown remove its next extract without a Navigation-specific viewport mutation path.
 
 Area-colored NavMesh triangle/link geometry comes from the framework-owned `NavigationGizmoSnapshot`. Editor projection can independently enable NavMesh areas, off-mesh links, agent paths, desired velocity, and avoidance velocity. Agent pick spheres and path/vector lines are appended to the same `SceneGizmoKind::NavigationMesh` extract, so renderer ownership stays in the shared overlay pipeline.
 
 ## PIE Read-only Mirror
 
-When `NavigationDebugCapture` is enabled, the runtime tick report typed event carries serializable per-agent position, destination, queried path, desired velocity, and avoidance velocity; capture is disabled by default. `NavigationPieMirror::apply_tick_report` moves that shared event under editor-owned play-session/sequence metadata without a duplicate agent vector. Cross-session frames and non-increasing sequences are rejected. Plugins 12 still owes the runtime-client typed consumer wiring.
+When `NavigationDebugCapture` is enabled, the runtime overlay frame carries canonical NavMesh triangles/links and serializable per-agent position, destination, queried path, desired velocity, and avoidance velocity; capture is disabled by default. `NavigationPieMirror::apply_overlay_frame` adds editor-owned play-session and delivery-sequence metadata without duplicating either geometry or the agent vector. Cross-session frames, non-increasing sequences, and stale owner generations are rejected.
 
 The mirror exposes getters only; it has no runtime world reference and no reflect-write API. `debug_gizmos.zui` labels this boundary explicitly and presents overlay toggles, the shared overlay viewport, mirror status, and the agent list.
 
 ## Registration and Capability Behavior
 
-The plugin registers four views, the shared navigation drawer, five component drawers, NavMesh/settings asset editors, templates, command/menu descriptors, and one viewport tool mode. Bake authoring commands require `editor.extension.navigation_authoring`; the overlay command, menu item, and tool mode require `editor.extension.navigation_gizmos`.
+The plugin registers four views, the shared navigation drawer, five component drawers, NavMesh/settings asset editors, templates, command/menu descriptors, and one real viewport overlay provider. Bake authoring commands require `editor.extension.navigation_authoring`; the overlay command, menu item, and provider require `editor.extension.navigation_gizmos`.
 
 All extension registration goes through `EditorExtensionRegistry`; there is no editor-internal side channel.
 

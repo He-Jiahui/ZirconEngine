@@ -646,10 +646,8 @@ fn template_replacement_is_atomic_and_preserves_ticket_and_old_readers() {
     let report = store.revoke(ticket);
     assert!(report.revoked());
     assert_eq!(report.removed().ui_templates(), 1);
-    assert!(
-        store
-            .snapshot()
-            .ui_templates(&capabilities)
-            .all(|descriptor| descriptor.id() != "plugin.sample.template")
-    );
+    assert!(store
+        .snapshot()
+        .ui_templates(&capabilities)
+        .all(|descriptor| descriptor.id() != "plugin.sample.template"));
 }

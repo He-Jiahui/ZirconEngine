@@ -1,26 +1,25 @@
 use std::collections::BTreeMap;
 
 use crate::core::framework::render::{
-    AdvancedLightingExtract, CameraRenderDescriptor, DebugOverlayExtract, EnvironmentExtract,
-    GeometryExtract, GeometryPhaseInput, LightingExtract, MaterialPropertyOverrideBlock,
-    ParticleExtract, PostProcessExtract, PostProcessVolumeExtract, PreviewEnvironmentExtract,
-    ProjectionMode, RenderCameraOrderInput, RenderCameraOrderReport, RenderExposureSettings,
-    RenderFrameExtract, RenderHybridGiExtract, RenderLayerSet, RenderMeshLodSelection,
-    RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderSpriteSnapshot, RenderViewExtract, RenderVirtualGeometryExtract,
-    RenderWorldSnapshotHandle, RendererCommon, SceneViewportExtractRequest,
-    SceneViewportRenderPacket, SpriteExtract, ViewportCameraSnapshot,
     default_viewport_aspect_ratio, render_mesh_stable_instance_key, render_mesh_transform_revision,
-    sort_render_cameras,
+    sort_render_cameras, AdvancedLightingExtract, CameraRenderDescriptor, DebugOverlayExtract,
+    EnvironmentExtract, GeometryExtract, GeometryPhaseInput, LightingExtract,
+    MaterialPropertyOverrideBlock, ParticleExtract, PostProcessExtract, PostProcessVolumeExtract,
+    PreviewEnvironmentExtract, ProjectionMode, RenderCameraOrderInput, RenderCameraOrderReport,
+    RenderExposureSettings, RenderFrameExtract, RenderHybridGiExtract, RenderLayerSet,
+    RenderMeshLodSelection, RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpriteSnapshot, RenderViewExtract,
+    RenderVirtualGeometryExtract, RenderWorldSnapshotHandle, RendererCommon,
+    SceneViewportExtractRequest, SceneViewportRenderPacket, SpriteExtract, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, Vec3, Vec4};
 
-use super::World;
 use super::render_visibility::{build_visibility_input, empty_visibility_input};
+use super::World;
 use crate::scene::components::{
-    MeshRenderer, MeshRendererLodLevel, MeshRendererPrimitiveBinding, PostProcessSettingsComponent,
-    Sprite2dComponent, default_render_layer_mask,
+    default_render_layer_mask, CameraComponent, MeshRenderer, MeshRendererLodLevel,
+    MeshRendererPrimitiveBinding, PostProcessSettingsComponent, Sprite2dComponent,
 };
 
 mod lights;
@@ -45,6 +44,7 @@ impl World {
         &self,
         request: &SceneViewportExtractRequest,
     ) -> SceneViewportRenderPacket {
+        crate::profile_scope!("runtime", "scene", "viewport_render_packet");
         let mut world = self.clone();
         world.build_prepared_viewport_render_packet(request)
     }
@@ -75,17 +75,37 @@ impl World {
 
         let camera_layers = camera_descriptor.culling_mask.clone();
         let camera_position = camera.transform.translation;
-        let mut meshes = Vec::with_capacity(self.mesh_renderers.len());
-        for (entity, mesh) in &self.mesh_renderers {
-            self.visit_render_mesh_snapshots_for_camera(
-                *entity,
-                mesh,
-                &camera_layers,
-                camera_position,
-                |snapshot| meshes.push(snapshot),
-            );
+        let mesh_component_id = self.registered_component_id::<MeshRenderer>();
+        let mut meshes = Vec::with_capacity(
+            mesh_component_id
+                .map(|component_id| self.component_count_for_id(component_id))
+                .unwrap_or(0),
+        );
+        {
+            crate::profile_scope!("runtime", "scene", "render_mesh_visit");
+            if let Some(component_id) = mesh_component_id {
+                self.archetype_index
+                    .for_each_table_component::<MeshRenderer>(component_id, |entity, mesh| {
+                        self.visit_render_mesh_snapshots_for_camera(
+                            entity,
+                            mesh,
+                            &camera_layers,
+                            camera_position,
+                            |snapshot| meshes.push(snapshot),
+                        );
+                    });
+            }
         }
-        meshes.sort_by_key(|mesh| mesh.node_id);
+        {
+            crate::profile_scope!("runtime", "scene", "render_mesh_sort");
+            meshes.sort_by_key(|mesh| mesh.node_id);
+        }
+        crate::profile_counter!("runtime", "viewport_packet_mesh_count", meshes.len());
+        crate::profile_counter!(
+            "runtime",
+            "viewport_packet_mesh_payload_bytes",
+            render_mesh_snapshot_payload_bytes(&meshes)
+        );
 
         let ambient_lights = self.collect_ambient_lights(&camera_layers);
         let directional_lights = self.collect_directional_lights(&camera_layers);
@@ -118,6 +138,7 @@ impl World {
         world: RenderWorldSnapshotHandle,
         request: &SceneViewportExtractRequest,
     ) -> RenderFrameExtract {
+        crate::profile_scope!("runtime", "scene", "render_frame_extract");
         self.run_internal_scene_systems_for_stage(crate::scene::SystemStage::RenderExtract);
         let (camera_descriptor, scene_camera_entity) = self.build_render_camera(request);
         let core_pipeline = camera_descriptor.camera.core_pipeline_kind();
@@ -143,7 +164,7 @@ impl World {
         let visibility = build_visibility_input(&meshes, &sprites, &particles);
 
         let post_process_settings = scene_camera_entity
-            .and_then(|entity| self.post_process_settings.get(&entity))
+            .and_then(|entity| self.get::<PostProcessSettingsComponent>(entity))
             .cloned()
             .unwrap_or_default();
         let post_process_volumes = self.collect_post_process_volumes_for_view(&view);
@@ -210,34 +231,48 @@ impl World {
         Vec<GeometryPhaseInput>,
         BTreeMap<crate::scene::EntityId, MaterialPropertyOverrideBlock>,
     ) {
-        let mut mesh_entries = Vec::with_capacity(self.mesh_renderers.len());
+        let mesh_component_id = self.registered_component_id::<MeshRenderer>();
+        let mut mesh_entries = Vec::with_capacity(
+            mesh_component_id
+                .map(|component_id| self.component_count_for_id(component_id))
+                .unwrap_or(0),
+        );
         let mut material_property_overrides = BTreeMap::new();
-        for (entity, mesh) in &self.mesh_renderers {
-            let first_entry_index = mesh_entries.len();
-            self.visit_render_mesh_snapshots_for_camera(
-                *entity,
-                mesh,
-                camera_layers,
-                camera_position,
-                |snapshot| {
-                    mesh_entries.push((
-                        snapshot,
-                        mesh.material_alpha_mode,
-                        mesh.render_queue,
-                        mesh.material_queue,
-                        mesh.order_in_layer,
-                        mesh.depth_bias,
-                    ));
-                },
-            );
-            if mesh_entries.len() > first_entry_index
-                && !mesh.material_property_overrides.is_empty()
-            {
-                material_property_overrides
-                    .insert(*entity, mesh.material_property_overrides.clone());
+        {
+            crate::profile_scope!("runtime", "scene", "render_mesh_visit");
+            if let Some(component_id) = mesh_component_id {
+                self.archetype_index
+                    .for_each_table_component::<MeshRenderer>(component_id, |entity, mesh| {
+                        let first_entry_index = mesh_entries.len();
+                        self.visit_render_mesh_snapshots_for_camera(
+                            entity,
+                            mesh,
+                            camera_layers,
+                            camera_position,
+                            |snapshot| {
+                                mesh_entries.push((
+                                    snapshot,
+                                    mesh.material_alpha_mode,
+                                    mesh.render_queue,
+                                    mesh.material_queue,
+                                    mesh.order_in_layer,
+                                    mesh.depth_bias,
+                                ));
+                            },
+                        );
+                        if mesh_entries.len() > first_entry_index
+                            && !mesh.material_property_overrides.is_empty()
+                        {
+                            material_property_overrides
+                                .insert(entity, mesh.material_property_overrides.clone());
+                        }
+                    });
             }
         }
-        mesh_entries.sort_by_key(|(mesh, ..)| mesh.node_id);
+        {
+            crate::profile_scope!("runtime", "scene", "render_mesh_sort");
+            mesh_entries.sort_by_key(|(mesh, ..)| mesh.node_id);
+        }
 
         let mut meshes = Vec::with_capacity(mesh_entries.len());
         let mut phase_inputs = Vec::with_capacity(mesh_entries.len());
@@ -259,6 +294,12 @@ impl World {
             );
             meshes.push(mesh);
         }
+        crate::profile_counter!("runtime", "render_frame_mesh_count", meshes.len());
+        crate::profile_counter!(
+            "runtime",
+            "render_frame_mesh_payload_bytes",
+            render_mesh_snapshot_payload_bytes(&meshes)
+        );
 
         (meshes, phase_inputs, material_property_overrides)
     }
@@ -338,13 +379,18 @@ impl World {
     }
 
     fn collect_render_sprites(&self, camera_layers: &RenderLayerSet) -> Vec<RenderSpriteSnapshot> {
-        let mut sprites = self
-            .sprite_2d
-            .iter()
-            .filter_map(|(entity, sprite)| {
-                self.render_sprite_snapshot_for_camera(*entity, sprite, camera_layers)
-            })
-            .collect::<Vec<_>>();
+        let Some(component_id) = self.registered_component_id::<Sprite2dComponent>() else {
+            return Vec::new();
+        };
+        let mut sprites = Vec::with_capacity(self.component_count_for_id(component_id));
+        self.archetype_index
+            .for_each_table_component::<Sprite2dComponent>(component_id, |entity, sprite| {
+                if let Some(snapshot) =
+                    self.render_sprite_snapshot_for_camera(entity, sprite, camera_layers)
+                {
+                    sprites.push(snapshot);
+                }
+            });
         sprites.sort_by_key(|sprite| (sprite.z_order, sprite.entity));
         sprites
     }
@@ -414,19 +460,17 @@ impl World {
 
         let Some(entity) = request
             .active_camera_override
-            .filter(|entity| self.cameras.contains_key(entity))
+            .filter(|entity| self.contains_component::<CameraComponent>(*entity))
             .or_else(|| {
-                self.cameras
-                    .contains_key(&self.active_camera)
+                self.contains_component::<CameraComponent>(self.active_camera)
                     .then_some(self.active_camera)
             })
-            .or_else(|| self.cameras.keys().copied().next())
+            .or_else(|| self.first_scene_camera_entity())
         else {
             return (fallback_render_camera(request), None);
         };
         let component = self
-            .cameras
-            .get(&entity)
+            .get::<CameraComponent>(entity)
             .expect("camera override must refer to camera entity");
         let mut camera = self.build_render_camera_descriptor_for_component(entity, component);
         if request.settings.projection_mode != ProjectionMode::default() {
@@ -436,6 +480,17 @@ impl World {
             camera.apply_target_size(viewport_size);
         }
         (camera, Some(entity))
+    }
+
+    fn first_scene_camera_entity(&self) -> Option<crate::scene::EntityId> {
+        let component_id = self.registered_component_id::<CameraComponent>()?;
+        let mut first_entity: Option<crate::scene::EntityId> = None;
+        self.archetype_index
+            .for_each_table_component::<CameraComponent>(component_id, |entity, _| {
+                // The retired camera map was ordered by stable entity id.
+                first_entity = Some(first_entity.map_or(entity, |current| current.min(entity)));
+            });
+        first_entity
     }
 
     fn build_render_view_extract(
@@ -483,17 +538,6 @@ impl World {
             })
     }
 
-    fn build_render_camera_for_entity(
-        &self,
-        entity: crate::scene::EntityId,
-    ) -> CameraRenderDescriptor {
-        let component = self
-            .cameras
-            .get(&entity)
-            .expect("camera order projection must refer to camera entity");
-        self.build_render_camera_descriptor_for_component(entity, component)
-    }
-
     fn scene_camera_descriptors(&self) -> Vec<CameraRenderDescriptor> {
         self.scene_camera_descriptors_with_override(None)
     }
@@ -502,17 +546,19 @@ impl World {
         &self,
         selected_override: Option<(crate::scene::EntityId, &CameraRenderDescriptor)>,
     ) -> Vec<CameraRenderDescriptor> {
-        let mut cameras = self
-            .cameras
-            .keys()
-            .copied()
-            .map(|entity| match selected_override {
-                Some((selected_entity, descriptor)) if entity == selected_entity => {
-                    descriptor.clone()
-                }
-                _ => self.build_render_camera_for_entity(entity),
-            })
-            .collect::<Vec<_>>();
+        let Some(component_id) = self.registered_component_id::<CameraComponent>() else {
+            return Vec::new();
+        };
+        let mut cameras = Vec::with_capacity(self.component_count_for_id(component_id));
+        self.archetype_index
+            .for_each_table_component::<CameraComponent>(component_id, |entity, component| {
+                cameras.push(match selected_override {
+                    Some((selected_entity, descriptor)) if entity == selected_entity => {
+                        descriptor.clone()
+                    }
+                    _ => self.build_render_camera_descriptor_for_component(entity, component),
+                });
+            });
         cameras.sort_by(|left, right| {
             (
                 left.render_order,
@@ -665,6 +711,16 @@ fn mesh_lod_for_camera<'a>(
         }
     }
     choice
+}
+
+/// Returns the clone payload proxy for mesh snapshots, excluding allocator metadata and other packet DTOs.
+fn render_mesh_snapshot_payload_bytes(meshes: &[RenderMeshSnapshot]) -> usize {
+    meshes.iter().fold(
+        meshes
+            .len()
+            .saturating_mul(std::mem::size_of::<RenderMeshSnapshot>()),
+        |bytes, mesh| bytes.saturating_add(std::mem::size_of_val(mesh.morph_weights.as_slice())),
+    )
 }
 
 fn empty_scene_geometry(camera: ViewportCameraSnapshot) -> RenderSceneGeometryExtract {

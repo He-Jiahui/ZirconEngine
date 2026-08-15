@@ -172,12 +172,10 @@ fn animation_assets_decode_legacy_stream_bytes_with_old_payload_shapes() {
         &legacy_state_machine_from_sample(sample_animation_state_machine_asset()),
     );
     let state_machine = AnimationStateMachineAsset::from_bytes(&state_machine_bytes).unwrap();
-    assert!(
-        state_machine
-            .transitions
-            .iter()
-            .all(|transition| transition.exit_time.is_none())
-    );
+    assert!(state_machine
+        .transitions
+        .iter()
+        .all(|transition| transition.exit_time.is_none()));
     assert!(state_machine.transitions.iter().all(|transition| matches!(
         transition.interruption,
         crate::core::framework::animation::AnimationTransitionInterruptionPolicyAsset::None

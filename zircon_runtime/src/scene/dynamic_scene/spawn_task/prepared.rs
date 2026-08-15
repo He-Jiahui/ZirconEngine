@@ -5,7 +5,10 @@ use crate::{
     scene::{EntityRemap, LevelSystem, World},
 };
 
-use super::super::{scene::CompiledSceneSpawn, DynamicScene, DynamicSceneError};
+use super::super::{
+    scene::{CompiledSceneSpawn, PreflightedSceneMutation},
+    DynamicScene, DynamicSceneError,
+};
 
 /// A validated dynamic scene payload that is ready to apply on the main world.
 #[derive(Clone, Debug, PartialEq)]
@@ -94,7 +97,7 @@ impl PreparedDynamicSceneSpawn {
     ) -> Result<DynamicSceneSpawnTargetSnapshot, DynamicSceneError> {
         let expected_generation = world.world_generation();
         let plan = self.scene.compile_spawn_into(world)?;
-        let (preflight_world, estimated_bytes) = self.scene.capture_compiled_spawn_preflight(
+        let (preflight_world, estimated_bytes) = DynamicScene::capture_compiled_spawn_preflight(
             world,
             &plan,
             target_snapshot_limit_bytes,
@@ -147,13 +150,11 @@ impl PreparedDynamicSceneSpawn {
             plan,
             estimated_bytes: _,
         } = target;
-        self.scene
-            .validate_compiled_spawn_preflight(&mut preflight_world, &plan)?;
+        let mutation = DynamicScene::validate_compiled_spawn_preflight(&mut preflight_world, plan)?;
         Ok(StagedDynamicSceneSpawn {
             expected_generation,
             target_level,
-            scene: self.scene,
-            plan,
+            mutation,
             component_type_count,
             entity_count,
             resource_count,
@@ -178,8 +179,7 @@ impl DynamicSceneSpawnTargetSnapshot {
 pub(crate) struct StagedDynamicSceneSpawn {
     expected_generation: u64,
     target_level: Option<WorldHandle>,
-    scene: DynamicScene,
-    plan: CompiledSceneSpawn,
+    mutation: PreflightedSceneMutation,
     component_type_count: usize,
     entity_count: usize,
     resource_count: usize,
@@ -202,13 +202,12 @@ impl StagedDynamicSceneSpawn {
         let Self {
             expected_generation: _,
             target_level: _,
-            scene,
-            plan,
+            mutation,
             component_type_count: _,
             entity_count: _,
             resource_count: _,
         } = self;
-        scene.apply_preflighted_compiled_spawn_into(world, plan)
+        DynamicScene::commit_preflighted_spawn_into(world, mutation)
     }
 
     pub(crate) fn commit_into_level(
@@ -218,8 +217,7 @@ impl StagedDynamicSceneSpawn {
         let Self {
             expected_generation,
             target_level,
-            scene,
-            plan,
+            mutation,
             component_type_count: _,
             entity_count: _,
             resource_count: _,
@@ -231,7 +229,7 @@ impl StagedDynamicSceneSpawn {
                 actual: format!("{:?}", actual_level),
             });
         }
-        level.apply_preflighted_dynamic_scene_if_generation(expected_generation, &scene, plan)
+        level.commit_preflighted_dynamic_scene_if_generation(expected_generation, mutation)
     }
 }
 

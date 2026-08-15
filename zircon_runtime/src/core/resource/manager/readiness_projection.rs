@@ -62,8 +62,15 @@ impl ResourceReadinessProjection {
 
             if let Some(previous) = self.sources.get(&update.id) {
                 for dependency in &previous.record.dependency_ids {
-                    if let Some(parents) = self.reverse_dependencies.get_mut(dependency) {
-                        parents.remove(&update.id);
+                    let remove_bucket = match self.reverse_dependencies.get_mut(dependency) {
+                        Some(parents) => {
+                            parents.remove(&update.id);
+                            parents.is_empty()
+                        }
+                        None => false,
+                    };
+                    if remove_bucket {
+                        self.reverse_dependencies.remove(dependency);
                     }
                 }
             }
@@ -329,4 +336,38 @@ fn hash_cycle_edge(id: ResourceId) -> u64 {
     "resource-readiness-cycle".hash(&mut hasher);
     id.hash(&mut hasher);
     hasher.finish()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::resource::{ResourceKind, ResourceLocator};
+
+    fn source_update(record: ResourceRecord) -> ResourceReadinessSourceUpdate {
+        ResourceReadinessSourceUpdate {
+            id: record.id,
+            record: Some(record),
+            runtime_state: RuntimeResourceState::Loaded,
+            payload_type_id: Some(TypeId::of::<()>()),
+        }
+    }
+
+    #[test]
+    fn removing_the_last_reverse_edge_reclaims_its_dependency_bucket() {
+        let dependency_id = ResourceId::from_stable_label("temporary-readiness-dependency");
+        let parent_locator = ResourceLocator::parse("res://models/readiness-parent.glb")
+            .expect("valid parent locator");
+        let parent_id = ResourceId::from_locator(&parent_locator);
+        let parent = ResourceRecord::new(parent_id, ResourceKind::Model, parent_locator)
+            .with_state(ResourceState::Ready)
+            .with_dependency_ids(vec![dependency_id]);
+        let mut projection = ResourceReadinessProjection::default();
+
+        projection.apply_updates([source_update(parent.clone())]);
+        assert_eq!(projection.reverse_dependencies.len(), 1);
+
+        projection.apply_updates([source_update(parent.with_dependency_ids(Vec::new()))]);
+
+        assert!(projection.reverse_dependencies.is_empty());
+    }
 }

@@ -126,16 +126,20 @@ fn runtime_sync_removes_an_owner_document_when_its_descriptor_set_is_empty() {
             vec![descriptor],
         )]))
         .expect("runtime should materialize the plugin descriptor before its owner is removed");
-    assert!(runtime
-        .plugin_v2_document_owner("plugin.example.panel")
-        .is_some());
+    assert!(
+        runtime
+            .plugin_v2_document_owner("plugin.example.panel")
+            .is_some()
+    );
 
     runtime
         .sync_plugin_v2_template_descriptor_sets(&BTreeMap::new())
         .expect("an empty enabled-owner set should retire the plugin document atomically");
-    assert!(runtime
-        .plugin_v2_document_owner("plugin.example.panel")
-        .is_none());
+    assert!(
+        runtime
+            .plugin_v2_document_owner("plugin.example.panel")
+            .is_none()
+    );
 }
 
 #[test]
@@ -202,9 +206,11 @@ fn batch_template_sync_keeps_last_good_documents_when_any_candidate_fails() {
         runtime.plugin_v2_document_owner("plugin.one.panel"),
         Some(last_good_owner)
     );
-    assert!(runtime
-        .plugin_v2_document_owner("plugin.two.panel")
-        .is_none());
+    assert!(
+        runtime
+            .plugin_v2_document_owner("plugin.two.panel")
+            .is_none()
+    );
 }
 
 #[test]
@@ -252,9 +258,11 @@ fn batch_template_sync_rejects_cross_owner_document_ids_without_replacing_last_g
         runtime.plugin_v2_document_owner("plugin.last-good.panel"),
         Some(last_good_owner)
     );
-    assert!(runtime
-        .plugin_v2_document_owner("plugin.shared.panel")
-        .is_none());
+    assert!(
+        runtime
+            .plugin_v2_document_owner("plugin.shared.panel")
+            .is_none()
+    );
 }
 
 #[test]
@@ -312,9 +320,11 @@ fn owner_scoped_replacement_returns_invalid_owner_errors_without_publishing() {
             EditorPluginV2DocumentSourceError::InvalidOwnerId { .. }
         ))
     ));
-    assert!(runtime
-        .plugin_v2_document_owner("plugin.test.panel")
-        .is_none());
+    assert!(
+        runtime
+            .plugin_v2_document_owner("plugin.test.panel")
+            .is_none()
+    );
 }
 
 #[test]
@@ -336,9 +346,11 @@ fn stale_generation_cannot_replace_a_newer_plugin_document() {
         runtime.plugin_v2_document_owner("plugin.test.newer"),
         Some(newer)
     );
-    assert!(runtime
-        .plugin_v2_document_owner("plugin.test.older")
-        .is_none());
+    assert!(
+        runtime
+            .plugin_v2_document_owner("plugin.test.older")
+            .is_none()
+    );
 }
 
 #[test]
@@ -358,9 +370,11 @@ fn same_generation_cannot_replace_a_current_plugin_document() {
         runtime.plugin_v2_document_owner("plugin.test.current"),
         Some(owner)
     );
-    assert!(runtime
-        .plugin_v2_document_owner("plugin.test.replaced")
-        .is_none());
+    assert!(
+        runtime
+            .plugin_v2_document_owner("plugin.test.replaced")
+            .is_none()
+    );
 }
 
 #[test]
@@ -380,9 +394,11 @@ fn explicit_generation_cannot_replay_after_its_documents_are_unloaded() {
         runtime.replace_plugin_v2_documents(owner, [source("plugin.test.replayed")]),
         Err(EditorUiHostRuntimeError::PluginDocumentGenerationStale { .. })
     ));
-    assert!(runtime
-        .plugin_v2_document_owner("plugin.test.replayed")
-        .is_none());
+    assert!(
+        runtime
+            .plugin_v2_document_owner("plugin.test.replayed")
+            .is_none()
+    );
 }
 
 #[test]
@@ -398,9 +414,11 @@ fn owner_scoped_replacement_advances_after_an_explicit_catalog_generation() {
         .replace_plugin_v2_documents_for_owner("test.plugin", [source("plugin.test.next")])
         .expect("owner-scoped replacement should advance from the catalog generation");
     assert_eq!(update.owner().generation(), 5);
-    assert!(runtime
-        .plugin_v2_document_owner("plugin.test.current")
-        .is_none());
+    assert!(
+        runtime
+            .plugin_v2_document_owner("plugin.test.current")
+            .is_none()
+    );
     assert_eq!(
         runtime.plugin_v2_document_owner("plugin.test.next"),
         Some(update.owner().clone())

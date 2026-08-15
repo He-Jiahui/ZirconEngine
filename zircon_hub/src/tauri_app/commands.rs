@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex, MutexGuard,
+};
 use std::thread;
 
 use tauri::Emitter;
@@ -12,12 +15,14 @@ use super::view_model::HubViewModel;
 
 pub(super) struct HubCommandState {
     session: Arc<Mutex<HubRuntimeSession>>,
+    focus_refresh_pending: Arc<AtomicBool>,
 }
 
 impl HubCommandState {
     pub(super) fn load() -> Result<Self, HubError> {
         Ok(Self {
             session: Arc::new(Mutex::new(HubRuntimeSession::load()?)),
+            focus_refresh_pending: Arc::new(AtomicBool::new(false)),
         })
     }
 
@@ -30,6 +35,39 @@ impl HubCommandState {
 
     fn session_handle(&self) -> Arc<Mutex<HubRuntimeSession>> {
         Arc::clone(&self.session)
+    }
+
+    pub(super) fn refresh_recent_projects_on_window_focus(&self, app: tauri::AppHandle) {
+        if self.focus_refresh_pending.swap(true, Ordering::AcqRel) {
+            return;
+        }
+
+        let session_handle = self.session_handle();
+        let focus_refresh_pending = Arc::clone(&self.focus_refresh_pending);
+        thread::spawn(move || {
+            let view_model = match session_handle.lock() {
+                Ok(mut session) => {
+                    let should_emit = match session.refresh_shared_recent_projects_on_focus() {
+                        Ok(changed) => changed,
+                        Err(error) => {
+                            eprintln!(
+                                "zircon_hub: failed to refresh shared recent projects: {error}"
+                            );
+                            true
+                        }
+                    };
+                    should_emit.then(|| session.view_model())
+                }
+                Err(_) => {
+                    eprintln!("zircon_hub: Hub runtime state lock is poisoned");
+                    None
+                }
+            };
+            focus_refresh_pending.store(false, Ordering::Release);
+            if let Some(view_model) = view_model {
+                let _ = app.emit("hub-state-changed", &view_model);
+            }
+        });
     }
 }
 

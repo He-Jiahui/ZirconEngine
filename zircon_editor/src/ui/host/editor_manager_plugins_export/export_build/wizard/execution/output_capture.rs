@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -106,7 +107,7 @@ struct StreamCapture {
     hasher: blake3::Hasher,
     byte_count: u64,
     dropped_line_count: u64,
-    tail_lines: Vec<String>,
+    tail_lines: VecDeque<String>,
     line_buffer: IncrementalLineBuffer,
 }
 
@@ -124,7 +125,7 @@ impl StreamCapture {
             hasher: blake3::Hasher::new(),
             byte_count: 0,
             dropped_line_count: 0,
-            tail_lines: Vec::new(),
+            tail_lines: VecDeque::new(),
             line_buffer: IncrementalLineBuffer::default(),
         })
     }
@@ -156,7 +157,7 @@ impl StreamCapture {
             byte_count: self.byte_count,
             digest: self.hasher.finalize().to_hex().to_string(),
             dropped_line_count: self.dropped_line_count,
-            tail_lines: self.tail_lines,
+            tail_lines: self.tail_lines.into_iter().collect(),
         })
     }
 }

@@ -1,4 +1,5 @@
 mod bus;
+mod editor_ui_delta;
 mod ids;
 mod inbox;
 mod message;
@@ -15,13 +16,18 @@ pub use bus::{
     EditorMessageBusError, EditorMessageDispatchError, EditorMessageDispatchReport,
     EditorRequestHandler,
 };
+pub(crate) use editor_ui_delta::EditorUiDeltaQueue;
+pub use editor_ui_delta::{
+    EditorUiDeltaBarrierKind, EditorUiDeltaBatch, EditorUiDeltaEntry, EditorUiNodeDelta,
+};
 pub use ids::{DocumentId, PlayStateKind, SceneModeId, SelectionDomain};
 pub use inbox::{EditorMessageInboxLimits, EditorMessageInboxStats};
 pub use message::{
     DocumentMessage, EditorMessage, EditorMessageDelivery, EditorMessagePayload,
     EditorMessageProtocol, EditorMessageRequest, EditorMessageResponse, EditorViewDirtyMark,
-    FocusMessage, ModeMessage, SceneInspectionFieldsDelta, SceneInspectionMessage,
-    SceneInspectionPropertyPath, ToolMessage, TransactionMessage,
+    FocusMessage, ModeMessage, SceneInspectionFieldsDelta, SceneInspectionHierarchyAnchor,
+    SceneInspectionMessage, SceneInspectionPropertyPath, SceneInspectionSelectionDelta,
+    ToolMessage, TransactionMessage,
 };
 pub use refresh_report::EditorViewRefreshReport;
 pub use shared::SharedEditorMessageBus;

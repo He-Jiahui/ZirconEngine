@@ -84,7 +84,7 @@ fn resolved_text_align(align: UiTextAlign, direction: UiTextDirection) -> UiText
 #[cfg(test)]
 mod tests {
     use super::super::super::super::super::paint_text::{
-        HostTextFontFace, runtime_font_family_for_face,
+        runtime_font_family_for_face, HostTextFontFace,
     };
     use super::*;
     use zircon_runtime::ui::surface::measure_text_size;
@@ -189,10 +189,11 @@ mod tests {
         let text = "editor base.zui";
         let measure_style = retained_runtime_measure_style(&style);
         let runtime_width = measured_text_width(measure_text_size(text, &measure_style).width);
+        let runtime_family = runtime_font_family_for_face(HostTextFontFace::Ui);
 
         assert_eq!(
             measure_style.font_family.as_deref(),
-            Some(runtime_font_family_for_face(HostTextFontFace::Ui))
+            Some(runtime_family.as_ref())
         );
         assert_ne!(measure_style.font_family, style.font_family);
         assert_eq!(
@@ -206,10 +207,11 @@ mod tests {
         let mut style = style(UiTextAlign::Center, UiTextDirection::LeftToRight);
         style.font_weight = 650;
         let measure_style = retained_runtime_measure_style(&style);
+        let runtime_family = runtime_font_family_for_face(HostTextFontFace::UiStrong);
 
         assert_eq!(
             measure_style.font_family.as_deref(),
-            Some(runtime_font_family_for_face(HostTextFontFace::UiStrong))
+            Some(runtime_family.as_ref())
         );
     }
 }

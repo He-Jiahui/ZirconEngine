@@ -2,10 +2,17 @@
 related_code:
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/inspection/mod.rs
+  - zircon_runtime/src/scene/inspection/artifact/mod.rs
+  - zircon_runtime/src/scene/inspection/artifact/cache.rs
+  - zircon_runtime/src/scene/inspection/artifact/data.rs
+  - zircon_runtime/src/scene/inspection/artifact/fields.rs
+  - zircon_runtime/src/scene/inspection/artifact/metrics.rs
+  - zircon_runtime/src/scene/inspection/artifact/overrides.rs
   - zircon_runtime/src/scene/inspection/hierarchy.rs
   - zircon_runtime/src/scene/inspection/field.rs
   - zircon_runtime/src/scene/inspection/snapshot.rs
   - zircon_runtime/src/scene/inspection/tests.rs
+  - zircon_runtime/src/scene/inspection/tests/sparse_artifact.rs
   - zircon_runtime/src/scene/world/generation.rs
   - zircon_runtime/src/scene/world/records.rs
   - zircon_runtime/src/scene/world/typed_api.rs
@@ -55,10 +62,17 @@ related_code:
 implementation_files:
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/inspection/mod.rs
+  - zircon_runtime/src/scene/inspection/artifact/mod.rs
+  - zircon_runtime/src/scene/inspection/artifact/cache.rs
+  - zircon_runtime/src/scene/inspection/artifact/data.rs
+  - zircon_runtime/src/scene/inspection/artifact/fields.rs
+  - zircon_runtime/src/scene/inspection/artifact/metrics.rs
+  - zircon_runtime/src/scene/inspection/artifact/overrides.rs
   - zircon_runtime/src/scene/inspection/hierarchy.rs
   - zircon_runtime/src/scene/inspection/field.rs
   - zircon_runtime/src/scene/inspection/snapshot.rs
   - zircon_runtime/src/scene/inspection/tests.rs
+  - zircon_runtime/src/scene/inspection/tests/sparse_artifact.rs
   - zircon_runtime/src/scene/world/generation.rs
   - zircon_runtime/src/scene/world/generation/tests.rs
   - zircon_runtime/src/scene/world/records.rs
@@ -96,6 +110,7 @@ plan_sources:
   - dev/UnrealEngine/Engine/Source/Editor/AdvancedPreviewScene/Public/SAdvancedPreviewDetailsTab.h
 tests:
   - zircon_runtime/src/scene/inspection/tests.rs
+  - zircon_runtime/src/scene/inspection/tests/sparse_artifact.rs
   - zircon_runtime/src/scene/world/generation/tests.rs
   - zircon_runtime/src/scene/tests/authoring_boundary.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
@@ -130,12 +145,14 @@ This follows the current reference direction: Fyrox keeps graph selection and wo
 ## Public DTOs
 
 - `WorldInspection` contains the runtime-only `generation` header, `focused_entity`, `hierarchy_rows`, and reflected `fields`. Callers can reject a composed or split-read projection when its captured generation no longer matches the world revision.
+- `WorldInspectionArtifact` is the immutable generation-scoped hierarchy publication. Name-only mutations retain the prior row allocation plus persistent sparse entity-indexed replacements; the Patricia index path-copies at most one machine word of branch depth instead of cloning all historical overrides. Ordered child-hash contributions are retained as persistent parent aggregates, so updating one child's subtree hash does not rescan its siblings. `hierarchy_row(entity)` remains directly addressable and a complete row allocation is materialized only when an explicit reflow consumer requests it. Diagnostics separately count changed rows, parent-aggregate updates, and explicit complete-view materializations.
+- `WorldInspectionFieldsArtifact` independently retains the focused entity's reflected fields and publishes property-addressable deltas without making hierarchy patches carry the Inspector payload.
 - `WorldInspectionHierarchyRow` contains entity id, parent id, depth, display name, kind label, stable recursive `subtree_hash`, focused flag, active-in-hierarchy flag, and child presence.
 - `WorldInspectionField` contains reflected component type path, component display name, field name, field display name, value type path, reflected value, writable flag, serializable flag, and plugin-owned flag.
 
 `World::inspect_hierarchy()` is the hierarchy-only entry point and carries no editor selection input. `World::inspect_fields(entity)` is the reflected-field-only entry point and returns an empty list for a missing entity. `World::inspect_world(focused)` is the planned composition façade: it captures `World::world_generation()` into the snapshot header, validates the focused entity, composes those two split reads, and applies the composed snapshot's focused row marker without making the hierarchy query depend on editor state.
 
-Current editor consumers use the split reads directly. Viewport selection validity checks call `World::contains_entity`; the edit-mode projection requests hierarchy and inspector fields independently instead of consuming the composed `WorldInspection` façade. M2 owns cache/diff scheduling that will decide which split projection is recomputed after a watch invalidation; M1 establishes the independent read boundaries but does not yet claim inspector-only UI refresh skips the hierarchy call.
+Current editor consumers use the split reads directly. Viewport selection validity checks call `World::contains_entity`; retained hierarchy publication reads `World::inspection_artifact`, while the focused Inspector reads `World::inspection_fields_artifact`. The artifact cache reuses a stable generation, publishes sparse name deltas when topology is unchanged, and keeps focused-field caching independent, so an Inspector-only refresh does not require a complete hierarchy copy.
 
 ## Reflection Rules
 
@@ -206,7 +223,7 @@ The 2026-06-24 Runtime 15 M3 scene world basics test folder split keeps world pr
 
 ## Validation
 
-`zircon_runtime/src/scene/inspection/tests.rs` verifies split-entry/composition equivalence, subtree-hash propagation for rename/reparent, cycle-edge versus broken-edge identity, deterministic repeated hashing, and a 5k-deep iterative hierarchy walk. `zircon_runtime/src/scene/world/generation/tests.rs` verifies monotonic structural generation, typed component replacement and no-op behavior, fixed-presence dirty/query/lifecycle ordering, failed mutable lookup, atomic rejected single/batch record import, explicit-id spawn counting, and the serde boundary. `zircon_runtime/src/scene/level_system.rs` verifies generation continuity across whole-world replacement. `zircon_runtime/src/scene/tests/inspection.rs` continues to verify hierarchy order, focus filtering, built-in component reflection, plugin-owned dynamic component reflection, writable/read-only field flags, non-mutating invalid-focus behavior, and serialized inspection snapshots free of editor authoring tokens.
+`zircon_runtime/src/scene/inspection/tests.rs` verifies split-entry/composition equivalence, subtree-hash propagation for rename/reparent, cycle-edge versus broken-edge identity, deterministic repeated hashing, and a 5k-deep iterative hierarchy walk. `zircon_runtime/src/scene/inspection/tests/sparse_artifact.rs` owns large and compositional incremental-publication contracts: 5,000 siblings, 100,000 rows, sequential renames, same-generation sibling and ancestor/descendant updates, hash equality with authoritative rebuilds, and cycle fallback to explicit Reflow. `zircon_runtime/src/scene/world/generation/tests.rs` verifies monotonic structural generation, typed component replacement and no-op behavior, fixed-presence dirty/query/lifecycle ordering, failed mutable lookup, atomic rejected single/batch record import, explicit-id spawn counting, and the serde boundary. `zircon_runtime/src/scene/level_system.rs` verifies generation continuity across whole-world replacement. `zircon_runtime/src/scene/tests/inspection.rs` continues to verify hierarchy order, focus filtering, built-in component reflection, plugin-owned dynamic component reflection, writable/read-only field flags, non-mutating invalid-focus behavior, and serialized inspection snapshots free of editor authoring tokens.
 
 `zircon_runtime/src/scene/tests/component_structure.rs` rejects reintroducing the old production `scene/editor_projection` module, checks that the runtime scene public inspection files do not expose `SceneEditor*` symbols, and guards scene/project serialization source files against editor authoring-state names.
 

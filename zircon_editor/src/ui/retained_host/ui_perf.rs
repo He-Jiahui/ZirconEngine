@@ -3,6 +3,10 @@ use std::cell::Cell;
 #[cfg(feature = "profiling")]
 use std::time::Instant;
 
+mod counter_batch;
+
+pub(crate) use counter_batch::record_current_ui_perf_counter_batch;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum UiPerfScenario {
     Startup,
@@ -13,6 +17,7 @@ pub(crate) enum UiPerfScenario {
     WindowResize,
     AssetRefresh,
     ViewportImage,
+    ShellContent,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -20,12 +25,37 @@ pub(crate) enum UiPerfCounter {
     FrameDurationUs,
     InputToDamageUs,
     DamageToSubmitUs,
+    HostInvalidationTransactionCount,
+    HostInvalidationScopeCount,
+    HostInvalidationLegacyDirtyTransactionCount,
+    HostInvalidationFullTargetCount,
+    HostInvalidationShellContentTargetCount,
+    HostInvalidationWorkbenchProjectionTargetCount,
+    HostInvalidationViewPresentationTargetCount,
+    HostInvalidationWindowMetricsTargetCount,
+    HostInvalidationPaintOnlyTargetCount,
     SlowPathRebuildCount,
+    ScopedPresentationPatchCount,
+    ScopedPresentationFloatingWindowRowsVisited,
+    ScopedPresentationFloatingWindowRowsCloned,
+    ScopedPresentationNativePresenterVisitCount,
+    ScopedPresentationDamageRegionCount,
+    ScopedPresentationProjectionMissingCount,
+    ScopedPresentationPresenterCoverageFallbackCount,
     RenderPathCount,
     PresentationRebuildCount,
+    AssetEditorPanePresentationBuildCount,
+    AssetEditorPaneReflectionBuildCount,
+    AssetEditorPanePreviewBuildCount,
+    AssetEditorPaneSourceBuildCount,
+    AssetEditorPaneInspectorBuildCount,
+    AssetEditorPaneStyleBuildCount,
+    AssetEditorPaneThemeBuildCount,
+    AssetEditorPaneCommandAvailabilityBuildCount,
     FullPaintCount,
     RegionPaintCount,
     PaintedPixels,
+    PresentedSurfacePixels,
     RedrawFullFrame,
     RedrawRegion,
     DirtyLayout,
@@ -34,7 +64,33 @@ pub(crate) enum UiPerfCounter {
     DirtyPaintOnly,
     ChromeSnapshotCount,
     WorkbenchModelBuildCount,
+    HierarchyScrollDispatchCount,
+    HierarchySurfaceRebuildCount,
+    HierarchyRowInsertCount,
+    HierarchyDispatcherRebuildCount,
+    HierarchyRouteMapRebuildCount,
+    WelcomeRecentScrollDispatchCount,
+    WelcomeRecentSurfaceRebuildCount,
+    WelcomeRecentAuthorityRebuildCount,
+    WelcomeRecentRowInsertCount,
+    WelcomeRecentGeometryPatchCount,
+    WelcomeRecentDispatcherRebuildCount,
+    WelcomeRecentRouteMapRebuildCount,
+    ShellDragAuthorityRebuildCount,
+    ShellDragNodeInsertCount,
+    ShellDragGeometryPatchCount,
+    ShellDragNodePatchCount,
+    ShellDragDispatcherRebuildCount,
+    ShellDragRouteMapRebuildCount,
     WorkbenchHitIndexBuildCount,
+    WorkbenchHitIndexQueryCount,
+    PanePopupIndexQueryCount,
+    PanePopupIndexCandidateCount,
+    VisualAssetCacheHitCount,
+    VisualAssetCacheMissCount,
+    VisualAssetCacheCandidateBuildCount,
+    SvgTreeCacheMemoryHitCount,
+    SvgTreeCacheMissCount,
     WorkbenchPaintIndexQueryCount,
     WorkbenchPaintIndexCandidateCount,
     ChromeCommandFullRebuildCount,
@@ -49,6 +105,10 @@ pub(crate) enum UiPerfCounter {
     SoftwareFallbackPresentCount,
     GpuUploadBytes,
     GpuImageUploadWrites,
+    GpuImageSharedResolves,
+    GpuImageSharedUploadWrites,
+    GpuImageSharedUploadBytes,
+    GpuImageSharedResidentBytes,
     GpuImageCacheKeyAllocations,
     GpuImageCachePruneVisits,
     GpuImageCacheAdmissionRejects,
@@ -57,6 +117,7 @@ pub(crate) enum UiPerfCounter {
     GpuDrawCalls,
     GpuCompiledDrawCalls,
     GpuRenderPasses,
+    GpuTimestampSupportedPresentCount,
     GpuTimeUs,
     GpuProfileLatencyFrames,
     GpuVisibleCommands,
@@ -195,16 +256,100 @@ macro_rules! counter_name_for_prefix {
             UiPerfCounter::FrameDurationUs => concat!($prefix, ".frame_duration_us"),
             UiPerfCounter::InputToDamageUs => concat!($prefix, ".input_to_damage_us"),
             UiPerfCounter::DamageToSubmitUs => concat!($prefix, ".damage_to_submit_us"),
+            UiPerfCounter::HostInvalidationTransactionCount => {
+                concat!($prefix, ".host_invalidation_transaction_count")
+            }
+            UiPerfCounter::HostInvalidationScopeCount => {
+                concat!($prefix, ".host_invalidation_scope_count")
+            }
+            UiPerfCounter::HostInvalidationLegacyDirtyTransactionCount => {
+                concat!($prefix, ".host_invalidation_legacy_dirty_transaction_count")
+            }
+            UiPerfCounter::HostInvalidationFullTargetCount => {
+                concat!($prefix, ".host_invalidation_full_target_count")
+            }
+            UiPerfCounter::HostInvalidationShellContentTargetCount => {
+                concat!($prefix, ".host_invalidation_shell_content_target_count")
+            }
+            UiPerfCounter::HostInvalidationWorkbenchProjectionTargetCount => {
+                concat!(
+                    $prefix,
+                    ".host_invalidation_workbench_projection_target_count"
+                )
+            }
+            UiPerfCounter::HostInvalidationViewPresentationTargetCount => {
+                concat!($prefix, ".host_invalidation_view_presentation_target_count")
+            }
+            UiPerfCounter::HostInvalidationWindowMetricsTargetCount => {
+                concat!($prefix, ".host_invalidation_window_metrics_target_count")
+            }
+            UiPerfCounter::HostInvalidationPaintOnlyTargetCount => {
+                concat!($prefix, ".host_invalidation_paint_only_target_count")
+            }
             UiPerfCounter::SlowPathRebuildCount => {
                 concat!($prefix, ".slow_path_rebuild_count")
+            }
+            UiPerfCounter::ScopedPresentationPatchCount => {
+                concat!($prefix, ".scoped_presentation_patch_count")
+            }
+            UiPerfCounter::ScopedPresentationFloatingWindowRowsVisited => {
+                concat!($prefix, ".scoped_presentation_floating_window_rows_visited")
+            }
+            UiPerfCounter::ScopedPresentationFloatingWindowRowsCloned => {
+                concat!($prefix, ".scoped_presentation_floating_window_rows_cloned")
+            }
+            UiPerfCounter::ScopedPresentationNativePresenterVisitCount => {
+                concat!($prefix, ".scoped_presentation_native_presenter_visit_count")
+            }
+            UiPerfCounter::ScopedPresentationDamageRegionCount => {
+                concat!($prefix, ".scoped_presentation_damage_region_count")
+            }
+            UiPerfCounter::ScopedPresentationProjectionMissingCount => {
+                concat!($prefix, ".scoped_presentation_projection_missing_count")
+            }
+            UiPerfCounter::ScopedPresentationPresenterCoverageFallbackCount => {
+                concat!(
+                    $prefix,
+                    ".scoped_presentation_presenter_coverage_fallback_count"
+                )
             }
             UiPerfCounter::RenderPathCount => concat!($prefix, ".render_path_count"),
             UiPerfCounter::PresentationRebuildCount => {
                 concat!($prefix, ".presentation_rebuild_count")
             }
+            UiPerfCounter::AssetEditorPanePresentationBuildCount => {
+                concat!($prefix, ".asset_editor_pane_presentation_build_count")
+            }
+            UiPerfCounter::AssetEditorPaneReflectionBuildCount => {
+                concat!($prefix, ".asset_editor_pane_reflection_build_count")
+            }
+            UiPerfCounter::AssetEditorPanePreviewBuildCount => {
+                concat!($prefix, ".asset_editor_pane_preview_build_count")
+            }
+            UiPerfCounter::AssetEditorPaneSourceBuildCount => {
+                concat!($prefix, ".asset_editor_pane_source_build_count")
+            }
+            UiPerfCounter::AssetEditorPaneInspectorBuildCount => {
+                concat!($prefix, ".asset_editor_pane_inspector_build_count")
+            }
+            UiPerfCounter::AssetEditorPaneStyleBuildCount => {
+                concat!($prefix, ".asset_editor_pane_style_build_count")
+            }
+            UiPerfCounter::AssetEditorPaneThemeBuildCount => {
+                concat!($prefix, ".asset_editor_pane_theme_build_count")
+            }
+            UiPerfCounter::AssetEditorPaneCommandAvailabilityBuildCount => {
+                concat!(
+                    $prefix,
+                    ".asset_editor_pane_command_availability_build_count"
+                )
+            }
             UiPerfCounter::FullPaintCount => concat!($prefix, ".full_paint_count"),
             UiPerfCounter::RegionPaintCount => concat!($prefix, ".region_paint_count"),
             UiPerfCounter::PaintedPixels => concat!($prefix, ".painted_pixels"),
+            UiPerfCounter::PresentedSurfacePixels => {
+                concat!($prefix, ".presented_surface_pixels")
+            }
             UiPerfCounter::RedrawFullFrame => concat!($prefix, ".redraw_full_frame"),
             UiPerfCounter::RedrawRegion => concat!($prefix, ".redraw_region"),
             UiPerfCounter::DirtyLayout => concat!($prefix, ".dirty_layout"),
@@ -215,8 +360,86 @@ macro_rules! counter_name_for_prefix {
             UiPerfCounter::WorkbenchModelBuildCount => {
                 concat!($prefix, ".workbench_model_build_count")
             }
+            UiPerfCounter::HierarchyScrollDispatchCount => {
+                concat!($prefix, ".hierarchy_scroll_dispatch_count")
+            }
+            UiPerfCounter::HierarchySurfaceRebuildCount => {
+                concat!($prefix, ".hierarchy_surface_rebuild_count")
+            }
+            UiPerfCounter::HierarchyRowInsertCount => {
+                concat!($prefix, ".hierarchy_row_insert_count")
+            }
+            UiPerfCounter::HierarchyDispatcherRebuildCount => {
+                concat!($prefix, ".hierarchy_dispatcher_rebuild_count")
+            }
+            UiPerfCounter::HierarchyRouteMapRebuildCount => {
+                concat!($prefix, ".hierarchy_route_map_rebuild_count")
+            }
+            UiPerfCounter::WelcomeRecentScrollDispatchCount => {
+                concat!($prefix, ".welcome_recent_scroll_dispatch_count")
+            }
+            UiPerfCounter::WelcomeRecentSurfaceRebuildCount => {
+                concat!($prefix, ".welcome_recent_surface_rebuild_count")
+            }
+            UiPerfCounter::WelcomeRecentAuthorityRebuildCount => {
+                concat!($prefix, ".welcome_recent_authority_rebuild_count")
+            }
+            UiPerfCounter::WelcomeRecentRowInsertCount => {
+                concat!($prefix, ".welcome_recent_row_insert_count")
+            }
+            UiPerfCounter::WelcomeRecentGeometryPatchCount => {
+                concat!($prefix, ".welcome_recent_geometry_patch_count")
+            }
+            UiPerfCounter::WelcomeRecentDispatcherRebuildCount => {
+                concat!($prefix, ".welcome_recent_dispatcher_rebuild_count")
+            }
+            UiPerfCounter::WelcomeRecentRouteMapRebuildCount => {
+                concat!($prefix, ".welcome_recent_route_map_rebuild_count")
+            }
+            UiPerfCounter::ShellDragAuthorityRebuildCount => {
+                concat!($prefix, ".shell_drag_authority_rebuild_count")
+            }
+            UiPerfCounter::ShellDragNodeInsertCount => {
+                concat!($prefix, ".shell_drag_node_insert_count")
+            }
+            UiPerfCounter::ShellDragGeometryPatchCount => {
+                concat!($prefix, ".shell_drag_geometry_patch_count")
+            }
+            UiPerfCounter::ShellDragNodePatchCount => {
+                concat!($prefix, ".shell_drag_node_patch_count")
+            }
+            UiPerfCounter::ShellDragDispatcherRebuildCount => {
+                concat!($prefix, ".shell_drag_dispatcher_rebuild_count")
+            }
+            UiPerfCounter::ShellDragRouteMapRebuildCount => {
+                concat!($prefix, ".shell_drag_route_map_rebuild_count")
+            }
             UiPerfCounter::WorkbenchHitIndexBuildCount => {
                 concat!($prefix, ".workbench_hit_index_build_count")
+            }
+            UiPerfCounter::WorkbenchHitIndexQueryCount => {
+                concat!($prefix, ".workbench_hit_index_query_count")
+            }
+            UiPerfCounter::PanePopupIndexQueryCount => {
+                concat!($prefix, ".pane_popup_index_query_count")
+            }
+            UiPerfCounter::PanePopupIndexCandidateCount => {
+                concat!($prefix, ".pane_popup_index_candidate_count")
+            }
+            UiPerfCounter::VisualAssetCacheHitCount => {
+                concat!($prefix, ".visual_asset_cache_hit_count")
+            }
+            UiPerfCounter::VisualAssetCacheMissCount => {
+                concat!($prefix, ".visual_asset_cache_miss_count")
+            }
+            UiPerfCounter::VisualAssetCacheCandidateBuildCount => {
+                concat!($prefix, ".visual_asset_cache_candidate_build_count")
+            }
+            UiPerfCounter::SvgTreeCacheMemoryHitCount => {
+                concat!($prefix, ".svg_tree_cache_memory_hit_count")
+            }
+            UiPerfCounter::SvgTreeCacheMissCount => {
+                concat!($prefix, ".svg_tree_cache_miss_count")
             }
             UiPerfCounter::WorkbenchPaintIndexQueryCount => {
                 concat!($prefix, ".workbench_paint_index_query_count")
@@ -252,6 +475,18 @@ macro_rules! counter_name_for_prefix {
             }
             UiPerfCounter::GpuUploadBytes => concat!($prefix, ".gpu_upload_bytes"),
             UiPerfCounter::GpuImageUploadWrites => concat!($prefix, ".gpu_image_upload_writes"),
+            UiPerfCounter::GpuImageSharedResolves => {
+                concat!($prefix, ".gpu_image_shared_resolves")
+            }
+            UiPerfCounter::GpuImageSharedUploadWrites => {
+                concat!($prefix, ".gpu_image_shared_upload_writes")
+            }
+            UiPerfCounter::GpuImageSharedUploadBytes => {
+                concat!($prefix, ".gpu_image_shared_upload_bytes")
+            }
+            UiPerfCounter::GpuImageSharedResidentBytes => {
+                concat!($prefix, ".gpu_image_shared_resident_bytes")
+            }
             UiPerfCounter::GpuImageCacheKeyAllocations => {
                 concat!($prefix, ".gpu_image_cache_key_allocations")
             }
@@ -270,6 +505,9 @@ macro_rules! counter_name_for_prefix {
             UiPerfCounter::GpuDrawCalls => concat!($prefix, ".gpu_draw_calls"),
             UiPerfCounter::GpuCompiledDrawCalls => concat!($prefix, ".gpu_compiled_draw_calls"),
             UiPerfCounter::GpuRenderPasses => concat!($prefix, ".gpu_render_passes"),
+            UiPerfCounter::GpuTimestampSupportedPresentCount => {
+                concat!($prefix, ".gpu_timestamp_supported_present_count")
+            }
             UiPerfCounter::GpuTimeUs => concat!($prefix, ".gpu_time_us"),
             UiPerfCounter::GpuProfileLatencyFrames => {
                 concat!($prefix, ".gpu_profile_latency_frames")
@@ -356,12 +594,21 @@ fn counter_name(scenario: UiPerfScenario, counter: UiPerfCounter) -> &'static st
         UiPerfScenario::WindowResize => counter_name_for_prefix!(counter, "ui.window_resize"),
         UiPerfScenario::AssetRefresh => counter_name_for_prefix!(counter, "ui.asset_refresh"),
         UiPerfScenario::ViewportImage => counter_name_for_prefix!(counter, "ui.viewport_image"),
+        UiPerfScenario::ShellContent => counter_name_for_prefix!(counter, "ui.shell_content"),
     }
 }
 
 #[cfg(all(test, feature = "profiling"))]
 mod tests {
     use super::{counter_name, UiPerfCounter, UiPerfScenario};
+
+    #[test]
+    fn shell_content_timer_uses_a_dedicated_counter_prefix() {
+        assert_eq!(
+            counter_name(UiPerfScenario::ShellContent, UiPerfCounter::FrameDurationUs),
+            "ui.shell_content.frame_duration_us"
+        );
+    }
 
     #[test]
     fn overlap_candidates_counter_uses_the_active_scenario_prefix() {
@@ -398,6 +645,110 @@ mod tests {
     fn compiled_ui_presenter_reuse_counters_use_the_active_scenario_prefix() {
         let cases = [
             (
+                UiPerfCounter::HostInvalidationTransactionCount,
+                "ui.startup.host_invalidation_transaction_count",
+            ),
+            (
+                UiPerfCounter::HostInvalidationScopeCount,
+                "ui.startup.host_invalidation_scope_count",
+            ),
+            (
+                UiPerfCounter::HostInvalidationLegacyDirtyTransactionCount,
+                "ui.startup.host_invalidation_legacy_dirty_transaction_count",
+            ),
+            (
+                UiPerfCounter::HostInvalidationFullTargetCount,
+                "ui.startup.host_invalidation_full_target_count",
+            ),
+            (
+                UiPerfCounter::HostInvalidationShellContentTargetCount,
+                "ui.startup.host_invalidation_shell_content_target_count",
+            ),
+            (
+                UiPerfCounter::HostInvalidationWorkbenchProjectionTargetCount,
+                "ui.startup.host_invalidation_workbench_projection_target_count",
+            ),
+            (
+                UiPerfCounter::HostInvalidationViewPresentationTargetCount,
+                "ui.startup.host_invalidation_view_presentation_target_count",
+            ),
+            (
+                UiPerfCounter::HostInvalidationWindowMetricsTargetCount,
+                "ui.startup.host_invalidation_window_metrics_target_count",
+            ),
+            (
+                UiPerfCounter::HostInvalidationPaintOnlyTargetCount,
+                "ui.startup.host_invalidation_paint_only_target_count",
+            ),
+            (
+                UiPerfCounter::PresentedSurfacePixels,
+                "ui.startup.presented_surface_pixels",
+            ),
+            (
+                UiPerfCounter::GpuTimestampSupportedPresentCount,
+                "ui.startup.gpu_timestamp_supported_present_count",
+            ),
+            (
+                UiPerfCounter::GpuImageSharedResidentBytes,
+                "ui.startup.gpu_image_shared_resident_bytes",
+            ),
+            (
+                UiPerfCounter::ScopedPresentationFloatingWindowRowsVisited,
+                "ui.startup.scoped_presentation_floating_window_rows_visited",
+            ),
+            (
+                UiPerfCounter::ScopedPresentationFloatingWindowRowsCloned,
+                "ui.startup.scoped_presentation_floating_window_rows_cloned",
+            ),
+            (
+                UiPerfCounter::ScopedPresentationNativePresenterVisitCount,
+                "ui.startup.scoped_presentation_native_presenter_visit_count",
+            ),
+            (
+                UiPerfCounter::ScopedPresentationDamageRegionCount,
+                "ui.startup.scoped_presentation_damage_region_count",
+            ),
+            (
+                UiPerfCounter::ScopedPresentationProjectionMissingCount,
+                "ui.startup.scoped_presentation_projection_missing_count",
+            ),
+            (
+                UiPerfCounter::ScopedPresentationPresenterCoverageFallbackCount,
+                "ui.startup.scoped_presentation_presenter_coverage_fallback_count",
+            ),
+            (
+                UiPerfCounter::AssetEditorPanePresentationBuildCount,
+                "ui.startup.asset_editor_pane_presentation_build_count",
+            ),
+            (
+                UiPerfCounter::AssetEditorPaneReflectionBuildCount,
+                "ui.startup.asset_editor_pane_reflection_build_count",
+            ),
+            (
+                UiPerfCounter::AssetEditorPanePreviewBuildCount,
+                "ui.startup.asset_editor_pane_preview_build_count",
+            ),
+            (
+                UiPerfCounter::AssetEditorPaneSourceBuildCount,
+                "ui.startup.asset_editor_pane_source_build_count",
+            ),
+            (
+                UiPerfCounter::AssetEditorPaneInspectorBuildCount,
+                "ui.startup.asset_editor_pane_inspector_build_count",
+            ),
+            (
+                UiPerfCounter::AssetEditorPaneStyleBuildCount,
+                "ui.startup.asset_editor_pane_style_build_count",
+            ),
+            (
+                UiPerfCounter::AssetEditorPaneThemeBuildCount,
+                "ui.startup.asset_editor_pane_theme_build_count",
+            ),
+            (
+                UiPerfCounter::AssetEditorPaneCommandAvailabilityBuildCount,
+                "ui.startup.asset_editor_pane_command_availability_build_count",
+            ),
+            (
                 UiPerfCounter::InputToDamageUs,
                 "ui.startup.input_to_damage_us",
             ),
@@ -408,6 +759,38 @@ mod tests {
             (
                 UiPerfCounter::WorkbenchHitIndexBuildCount,
                 "ui.startup.workbench_hit_index_build_count",
+            ),
+            (
+                UiPerfCounter::WorkbenchHitIndexQueryCount,
+                "ui.startup.workbench_hit_index_query_count",
+            ),
+            (
+                UiPerfCounter::PanePopupIndexQueryCount,
+                "ui.startup.pane_popup_index_query_count",
+            ),
+            (
+                UiPerfCounter::PanePopupIndexCandidateCount,
+                "ui.startup.pane_popup_index_candidate_count",
+            ),
+            (
+                UiPerfCounter::VisualAssetCacheHitCount,
+                "ui.startup.visual_asset_cache_hit_count",
+            ),
+            (
+                UiPerfCounter::VisualAssetCacheMissCount,
+                "ui.startup.visual_asset_cache_miss_count",
+            ),
+            (
+                UiPerfCounter::VisualAssetCacheCandidateBuildCount,
+                "ui.startup.visual_asset_cache_candidate_build_count",
+            ),
+            (
+                UiPerfCounter::SvgTreeCacheMemoryHitCount,
+                "ui.startup.svg_tree_cache_memory_hit_count",
+            ),
+            (
+                UiPerfCounter::SvgTreeCacheMissCount,
+                "ui.startup.svg_tree_cache_miss_count",
             ),
             (
                 UiPerfCounter::WorkbenchPaintIndexQueryCount,
@@ -473,6 +856,111 @@ mod tests {
 
         for (counter, expected) in cases {
             assert_eq!(counter_name(UiPerfScenario::Startup, counter), expected);
+        }
+    }
+
+    #[test]
+    fn hierarchy_scroll_work_counters_use_the_active_scenario_prefix() {
+        let cases = [
+            (
+                UiPerfCounter::HierarchyScrollDispatchCount,
+                "ui.idle_hover.hierarchy_scroll_dispatch_count",
+            ),
+            (
+                UiPerfCounter::HierarchySurfaceRebuildCount,
+                "ui.idle_hover.hierarchy_surface_rebuild_count",
+            ),
+            (
+                UiPerfCounter::HierarchyRowInsertCount,
+                "ui.idle_hover.hierarchy_row_insert_count",
+            ),
+            (
+                UiPerfCounter::HierarchyDispatcherRebuildCount,
+                "ui.idle_hover.hierarchy_dispatcher_rebuild_count",
+            ),
+            (
+                UiPerfCounter::HierarchyRouteMapRebuildCount,
+                "ui.idle_hover.hierarchy_route_map_rebuild_count",
+            ),
+        ];
+
+        for (counter, expected) in cases {
+            assert_eq!(counter_name(UiPerfScenario::IdleHover, counter), expected);
+        }
+    }
+
+    #[test]
+    fn welcome_recent_scroll_work_counters_use_the_active_scenario_prefix() {
+        let cases = [
+            (
+                UiPerfCounter::WelcomeRecentScrollDispatchCount,
+                "ui.idle_hover.welcome_recent_scroll_dispatch_count",
+            ),
+            (
+                UiPerfCounter::WelcomeRecentSurfaceRebuildCount,
+                "ui.idle_hover.welcome_recent_surface_rebuild_count",
+            ),
+            (
+                UiPerfCounter::WelcomeRecentAuthorityRebuildCount,
+                "ui.idle_hover.welcome_recent_authority_rebuild_count",
+            ),
+            (
+                UiPerfCounter::WelcomeRecentRowInsertCount,
+                "ui.idle_hover.welcome_recent_row_insert_count",
+            ),
+            (
+                UiPerfCounter::WelcomeRecentGeometryPatchCount,
+                "ui.idle_hover.welcome_recent_geometry_patch_count",
+            ),
+            (
+                UiPerfCounter::WelcomeRecentDispatcherRebuildCount,
+                "ui.idle_hover.welcome_recent_dispatcher_rebuild_count",
+            ),
+            (
+                UiPerfCounter::WelcomeRecentRouteMapRebuildCount,
+                "ui.idle_hover.welcome_recent_route_map_rebuild_count",
+            ),
+        ];
+
+        for (counter, expected) in cases {
+            assert_eq!(counter_name(UiPerfScenario::IdleHover, counter), expected);
+        }
+    }
+
+    #[test]
+    fn shell_drag_patch_counters_use_the_window_resize_prefix() {
+        let cases = [
+            (
+                UiPerfCounter::ShellDragAuthorityRebuildCount,
+                "ui.window_resize.shell_drag_authority_rebuild_count",
+            ),
+            (
+                UiPerfCounter::ShellDragNodeInsertCount,
+                "ui.window_resize.shell_drag_node_insert_count",
+            ),
+            (
+                UiPerfCounter::ShellDragGeometryPatchCount,
+                "ui.window_resize.shell_drag_geometry_patch_count",
+            ),
+            (
+                UiPerfCounter::ShellDragNodePatchCount,
+                "ui.window_resize.shell_drag_node_patch_count",
+            ),
+            (
+                UiPerfCounter::ShellDragDispatcherRebuildCount,
+                "ui.window_resize.shell_drag_dispatcher_rebuild_count",
+            ),
+            (
+                UiPerfCounter::ShellDragRouteMapRebuildCount,
+                "ui.window_resize.shell_drag_route_map_rebuild_count",
+            ),
+        ];
+
+        for (counter, expected) in cases {
+            assert_eq!(
+                counter_name(UiPerfScenario::WindowResize, counter),
+                expected
+            );
         }
     }
 }

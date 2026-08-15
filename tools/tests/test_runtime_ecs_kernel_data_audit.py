@@ -19,7 +19,7 @@ class RuntimeEcsKernelDataAuditTests(unittest.TestCase):
 
         audit = ecs_kernel_data_boundary_audit(self.repo_root)
 
-        self.assertEqual(audit["expected_source_file_count"], 69)
+        self.assertEqual(audit["expected_source_file_count"], 75)
         self.assertEqual(audit["expected_test_file_count"], 10)
         self.assertEqual(audit["missing_test_files"], [])
         self.assertEqual(audit["missing_test_anchors"], [])

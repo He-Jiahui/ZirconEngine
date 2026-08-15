@@ -22,8 +22,8 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             )
             .with_executor_id(FXAA_EXECUTOR_ID)
             .with_side_effects()
-            .read_texture(PostProcessGraphResourceNames::FINAL_COMPOSITED)
-            .write_external_texture(PostProcessGraphResourceNames::FINAL_COLOR),
+            .read_texture(PostProcessGraphResourceNames::TONEMAPPED)
+            .write_texture(PostProcessGraphResourceNames::FINAL_COMPOSITED),
             RenderFeaturePassDescriptor::new(
                 RenderPassStage::PostProcess,
                 SMAA_PASS_NAME,
@@ -31,8 +31,8 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             )
             .with_executor_id(SMAA_EXECUTOR_ID)
             .with_side_effects()
-            .read_texture(PostProcessGraphResourceNames::FINAL_COMPOSITED)
-            .write_external_texture(PostProcessGraphResourceNames::FINAL_COLOR),
+            .read_texture(PostProcessGraphResourceNames::TONEMAPPED)
+            .write_texture(PostProcessGraphResourceNames::FINAL_COMPOSITED),
         ],
     )
     .with_capability_requirement(RenderFeatureCapabilityRequirement::ScreenSpaceAntiAlias)

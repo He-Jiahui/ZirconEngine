@@ -133,6 +133,9 @@ fn render_product_diagnostics_record_mesh_indirect_batch_stats() {
         last_indirect_batched_draw_count: 5,
         last_indirect_fallback_draw_count: 4,
         last_indirect_args_count: 5,
+        last_indirect_workspace_created_buffer_count: 4,
+        last_indirect_workspace_uploaded_byte_count: 320,
+        last_indirect_workspace_upload_range_count: 3,
         ..RenderStats::default()
     };
 
@@ -224,6 +227,8 @@ fn render_product_diagnostics_record_mesh_command_cache_counts() {
         last_mesh_command_cache_invalidated_material_count: 2,
         last_mesh_replay_state_change_count: 6,
         last_mesh_replay_bind_skip_count: 7,
+        last_mesh_replay_material_bind_group_set_count: 5,
+        last_mesh_replay_material_bind_group_skip_count: 4,
         ..RenderStats::default()
     };
 
@@ -354,6 +359,36 @@ fn render_product_diagnostics_record_mesh_command_cache_counts() {
         &store,
         "render.mesh.queue.replay_bind_skip_count",
         7.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.mesh.queue.replay_material_bind_group_set_count",
+        5.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.mesh.queue.replay_material_bind_group_skip_count",
+        4.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.mesh.queue.indirect_workspace.created_buffer_count",
+        4.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.mesh.queue.indirect_workspace.uploaded_byte_count",
+        320.0,
+        "bytes",
+    );
+    assert_series(
+        &store,
+        "render.mesh.queue.indirect_workspace.upload_range_count",
+        3.0,
         "count",
     );
 }

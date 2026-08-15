@@ -113,13 +113,11 @@ f 1 2 3
         }
         other => panic!("unexpected root model asset: {other:?}"),
     }
-    assert!(
-        outcome
-            .root_entry()
-            .unwrap()
-            .dependencies
-            .contains(&mesh_uri)
-    );
+    assert!(outcome
+        .root_entry()
+        .unwrap()
+        .dependencies
+        .contains(&mesh_uri));
     let mesh_entry = outcome
         .entries
         .iter()
@@ -153,6 +151,7 @@ fn importer_backfills_virtual_geometry_for_model_toml_without_dropping_base_mesh
             vertices: base_vertices.clone(),
             indices: base_indices.clone(),
             mesh: None,
+            mesh_sdf: None,
             virtual_geometry: None,
         }],
     };
@@ -218,6 +217,7 @@ fn importer_keeps_model_toml_virtual_geometry_disabled_by_default() {
             vertices: base_vertices.clone(),
             indices: base_indices.clone(),
             mesh: None,
+            mesh_sdf: None,
             virtual_geometry: None,
         }],
     };

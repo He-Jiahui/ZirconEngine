@@ -67,7 +67,7 @@ impl RuntimeSessionArchiveCaptureRetentionPlan {
         let report = self.report(archive);
         let RuntimeSessionArchiveCaptureRetentionPlan { slot, prune, .. } = self;
         let (replacements, inserts) = match archive.indexed_slot_index(&slot.slot_id) {
-            Some(slot_index) => (vec![(slot_index, slot)], Vec::new()),
+            Some(_) => (vec![slot], Vec::new()),
             None => (Vec::new(), vec![slot]),
         };
         archive.commit_staged_slot_rows(
@@ -86,8 +86,7 @@ impl RuntimeSessionArchiveCaptureRetentionPlan {
             .map(String::as_str)
             .collect::<BTreeSet<_>>();
         let mut slots = archive
-            .slots
-            .iter()
+            .iter_canonical_slots()
             .filter(|slot| slot.slot_id != self.slot.slot_id)
             .filter(|slot| retained_slot_ids.contains(slot.slot_id.as_str()))
             .map(RuntimeSessionSlot::summary)

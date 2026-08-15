@@ -3,8 +3,8 @@ use std::path::Path;
 use crate::asset::pack::{ZrPackDeltaReader, ZrPackError, ZrPackReader};
 
 use super::{
-    ZrPackDeltaInstallError, ZrPackDeltaInstallReport,
     file_io::{read_pack_file, write_pack_file},
+    ZrPackDeltaInstallError, ZrPackDeltaInstallReport,
 };
 
 pub(super) fn rebuild_to_staging(

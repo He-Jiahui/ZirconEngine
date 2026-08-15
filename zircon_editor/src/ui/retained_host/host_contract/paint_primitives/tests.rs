@@ -74,12 +74,10 @@ fn draw_rect_clipped_skips_disjoint_active_and_explicit_clips() {
         [10, 20, 30, 255],
     );
 
-    assert!(
-        frame
-            .as_bytes()
-            .chunks_exact(4)
-            .all(|pixel| pixel == [0, 0, 0, 255])
-    );
+    assert!(frame
+        .as_bytes()
+        .chunks_exact(4)
+        .all(|pixel| pixel == [0, 0, 0, 255]));
 }
 
 #[test]

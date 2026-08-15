@@ -4,6 +4,7 @@ mod persisted_asset_reference;
 mod project_name;
 mod rel_path;
 mod retired_asset_ref_migration;
+pub mod session_lock;
 mod template_pack;
 
 pub use asset_ref::{AssetRef, AssetRefError};

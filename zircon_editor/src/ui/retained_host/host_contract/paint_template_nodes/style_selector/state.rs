@@ -11,6 +11,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn resolve
             || node.enter_pressed
             || matches!(style_state, ButtonInteractionState::Pressed),
         focused: node.focused || matches!(style_state, ButtonInteractionState::Focused),
+        // The committed editor node contract does not yet carry input modality. M4 replaces
+        // this legacy fallback with the retained runtime focus-visible projection.
+        focus_visible: node.focused || matches!(style_state, ButtonInteractionState::Focused),
         disabled: node.disabled
             || node.button_style.disabled
             || matches!(style_state, ButtonInteractionState::Disabled),

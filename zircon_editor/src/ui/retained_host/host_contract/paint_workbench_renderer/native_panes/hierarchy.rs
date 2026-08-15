@@ -2,10 +2,10 @@ mod row;
 mod viewport;
 
 use crate::ui::retained_host::app::hierarchy_rename::{
-    HIERARCHY_INLINE_RENAME_CONTROL_ID, hierarchy_inline_rename_target_id,
+    hierarchy_inline_rename_target_id, HIERARCHY_INLINE_RENAME_CONTROL_ID,
 };
 use crate::ui::retained_host::hierarchy_pointer::{
-    HierarchyRowMetrics, current_hierarchy_row_metrics, hierarchy_row_metrics_from_host_metrics,
+    current_hierarchy_row_metrics, hierarchy_row_metrics_from_host_metrics, HierarchyRowMetrics,
 };
 
 pub(super) use viewport::hierarchy_viewport_frame;
@@ -166,17 +166,15 @@ mod tests {
             ..viewport.clone()
         };
 
-        assert!(
-            visible_hierarchy_row_range(
-                &viewport,
-                &empty_clip,
-                0.0,
-                10_000,
-                hierarchy_row_metrics_from_host_metrics(
-                    crate::ui::retained_host::host_contract::paint_theme::METRICS,
-                ),
-            )
-            .is_empty()
-        );
+        assert!(visible_hierarchy_row_range(
+            &viewport,
+            &empty_clip,
+            0.0,
+            10_000,
+            hierarchy_row_metrics_from_host_metrics(
+                crate::ui::retained_host::host_contract::paint_theme::METRICS,
+            ),
+        )
+        .is_empty());
     }
 }

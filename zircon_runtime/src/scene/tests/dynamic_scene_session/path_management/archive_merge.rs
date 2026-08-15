@@ -93,22 +93,18 @@ fn runtime_session_archive_merges_archive_from_path_at_path_atomically() {
             .expect("source archive payload should remain readable after path-to-path merge"),
         source_payload
     );
-    assert!(
-        temporary_archive_leftovers(
-            source_path
-                .parent()
-                .expect("source path should have parent")
-        )
-        .is_empty()
-    );
-    assert!(
-        temporary_archive_leftovers(
-            target_path
-                .parent()
-                .expect("target path should have parent")
-        )
-        .is_empty()
-    );
+    assert!(temporary_archive_leftovers(
+        source_path
+            .parent()
+            .expect("source path should have parent")
+    )
+    .is_empty());
+    assert!(temporary_archive_leftovers(
+        target_path
+            .parent()
+            .expect("target path should have parent")
+    )
+    .is_empty());
 
     let _ = fs::remove_dir_all(root);
 }
@@ -189,22 +185,18 @@ fn runtime_session_archive_previews_merge_from_path_without_mutating_archives() 
             .expect("target archive payload should remain readable after merge preview"),
         target_payload
     );
-    assert!(
-        temporary_archive_leftovers(
-            source_path
-                .parent()
-                .expect("source path should have parent")
-        )
-        .is_empty()
-    );
-    assert!(
-        temporary_archive_leftovers(
-            target_path
-                .parent()
-                .expect("target path should have parent")
-        )
-        .is_empty()
-    );
+    assert!(temporary_archive_leftovers(
+        source_path
+            .parent()
+            .expect("source path should have parent")
+    )
+    .is_empty());
+    assert!(temporary_archive_leftovers(
+        target_path
+            .parent()
+            .expect("target path should have parent")
+    )
+    .is_empty());
 
     let _ = fs::remove_dir_all(root);
 }

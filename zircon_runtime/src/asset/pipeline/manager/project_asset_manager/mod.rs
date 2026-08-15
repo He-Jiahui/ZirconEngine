@@ -8,6 +8,7 @@ mod management;
 mod open_project;
 mod project_asset_manager;
 mod readiness;
+mod resource_publication;
 mod runtime;
 mod watch_diagnostics;
 mod watch_dispatch;

@@ -1,7 +1,7 @@
 use super::*;
 use std::sync::Arc;
 
-use zircon_runtime::plugin::native::NativePluginLiveHost;
+use zircon_runtime::plugin::native::NativePluginHostHandle;
 
 struct UnavailableModulePluginLiveHostBackend;
 
@@ -131,8 +131,7 @@ fn runtime_native_live_backend_reports_missing_editor_package_on_hot_reload() {
             .expect("system clock should be after unix epoch")
             .as_nanos()
     ));
-    let backend =
-        NativePluginDevelopmentLiveHostBackend::new(Arc::new(NativePluginLiveHost::default()));
+    let backend = NativePluginDevelopmentLiveHostBackend::new(NativePluginHostHandle::default());
     let error = dispatch_live_plugin_backend_action(
         &backend,
         "physics",

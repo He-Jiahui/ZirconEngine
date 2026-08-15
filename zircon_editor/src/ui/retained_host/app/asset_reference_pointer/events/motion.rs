@@ -11,7 +11,6 @@ impl RetainedEditorHost {
         height: f32,
     ) {
         self.use_committed_pointer_layout();
-        self.focus_callback_source_window();
         let Some(target) = self.prepare_asset_reference_pointer_target(
             surface_mode,
             list_kind,
@@ -22,21 +21,20 @@ impl RetainedEditorHost {
             return;
         };
         let point = UiPoint::new(x, y);
-        let Some(dispatch) = self.dispatch_prepared_asset_reference_pointer(
+        let Some(state) = self.dispatch_prepared_asset_reference_pointer(
             surface_mode,
             list_kind,
             &target,
             false,
-            |bridge| bridge.handle_move(point),
+            |bridge| bridge.update_hovered_row(point),
         ) else {
             return;
         };
 
-        match dispatch {
-            Ok(dispatch) => {
-                self.write_asset_reference_pointer_state(surface_mode, list_kind, dispatch.state);
-            }
-            Err(error) => self.set_status_line(error),
+        if let Some(state) = state {
+            self.write_asset_reference_pointer_state(surface_mode, list_kind, state);
+        } else {
+            self.clear_inactive_asset_reference_pointer_hover(surface_mode, list_kind);
         }
     }
 

@@ -18,7 +18,7 @@ default_classes = ["workbench-rail"]
 component = "VerticalGroup"
 control_id = "WorkbenchWindowActivityRail"
 classes = ["workbench-rail"]
-layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = "$editor.density.activity_rail_width", preferred = "$editor.density.activity_rail_width", max = "$editor.density.activity_rail_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "rail_scene" }, { node = "rail_cube" }, { node = "rail_graph" }, { node = "rail_image" }, { node = "rail_audio" }, { node = "rail_code" }]
 
 [nodes.rail_scene]

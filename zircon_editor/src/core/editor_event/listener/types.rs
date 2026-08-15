@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 use super::super::{
     EditorEventResult, EditorEventRetentionBudgetsSnapshot, EditorEventRetentionDiagnostics,
@@ -18,6 +18,7 @@ pub struct EditorEventListenerDescriptor {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EditorEventListenerDelivery {
     pub listener_id: String,
+    pub delivery_cursor: u64,
     pub event_id: u64,
     pub sequence: u64,
     pub source: EditorEventSource,
@@ -29,10 +30,15 @@ pub struct EditorEventListenerDelivery {
 }
 
 impl EditorEventListenerDelivery {
-    pub(super) fn from_shared(listener_id: &str, payload: &SharedEditorEventRecord) -> Self {
+    pub(crate) fn from_shared(
+        listener_id: &str,
+        delivery_cursor: u64,
+        payload: &SharedEditorEventRecord,
+    ) -> Self {
         let record = payload.record();
         Self {
             listener_id: listener_id.to_string(),
+            delivery_cursor,
             event_id: record.event_id.0,
             sequence: record.sequence.0,
             source: record.source.clone(),
@@ -43,6 +49,13 @@ impl EditorEventListenerDelivery {
             result: record.result.clone(),
         }
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct EditorEventListenerDeliveryPage {
+    pub deliveries: Vec<EditorEventListenerDelivery>,
+    pub next_delivery_cursor: Option<u64>,
+    pub has_more: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -85,16 +98,14 @@ pub enum EditorEventListenerControlRequest {
     QueryListenerStatus {
         listener_id: String,
     },
-    QueryDeliveries {
+    QueryDeliveriesPage {
         listener_id: String,
-    },
-    QueryDeliveriesSince {
-        listener_id: String,
-        after_sequence: u64,
+        after_delivery_cursor: u64,
+        max_deliveries: usize,
     },
     AckDeliveriesThrough {
         listener_id: String,
-        sequence: u64,
+        delivery_cursor: u64,
     },
 }
 

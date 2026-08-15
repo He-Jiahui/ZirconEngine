@@ -1,6 +1,6 @@
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiNodePath, UiRouteId, UiTreeId};
-use zircon_runtime_interface::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::layout::{LayoutBoundary, UiFrame, UiSize};
 use zircon_runtime_interface::ui::tree::{UiInputPolicy, UiTreeNode};
 
 use super::base_state::base_state;
@@ -37,6 +37,7 @@ impl HostDrawerHeaderPointerBridge {
                         UiNodePath::new(format!("editor.drawer_header/{}", surface_layout.key)),
                     )
                     .with_frame(surface_layout.strip_frame)
+                    .with_layout_boundary(LayoutBoundary::ParentDirected)
                     .with_z_index(10 + surface_index as i32)
                     .with_input_policy(UiInputPolicy::Receive)
                     .with_state_flags(base_state(true)),
@@ -95,10 +96,15 @@ impl HostDrawerHeaderPointerBridge {
             }
         }
 
-        surface.rebuild();
+        let root = root_frame(&self.layout);
+        surface.rebuild_authored_frames(UiSize::new(root.width, root.height));
         self.surface = surface;
         self.dispatcher = dispatcher;
         self.route_intents = route_intents;
+        #[cfg(test)]
+        {
+            self.surface_authority_generation = self.surface_authority_generation.saturating_add(1);
+        }
     }
 }
 

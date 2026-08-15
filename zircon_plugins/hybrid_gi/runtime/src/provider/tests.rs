@@ -58,6 +58,16 @@ fn provider_projects_scene_screen_probes_into_neutral_prepared_frame_sideband() 
     assert_eq!(prepared_frame.probe_scene_data[1].probe_id, 1);
     assert_eq!(prepared_frame.probe_scene_data[1].position_x_q, 2240);
     assert_eq!(prepared_frame.probe_scene_data[1].radius_q, 96);
+    let scene_prepare = prepared_frame
+        .scene_prepare
+        .as_ref()
+        .expect("scene descriptors must cross the neutral prepared-frame boundary");
+    assert_eq!(scene_prepare.card_owners.len(), 2);
+    assert_eq!(scene_prepare.voxel_clipmaps.len(), 1);
+    assert!(scene_prepare
+        .card_owners
+        .iter()
+        .any(|owner| owner.stable_instance_key == meshes[0].stable_instance_key));
 }
 
 #[test]
@@ -95,6 +105,8 @@ fn provider_projects_probe_rt_lighting_history_into_neutral_prepared_frame_sideb
     let prepared_frame = neutral_prepared_frame_from_prepare(
         &prepare,
         &resolve_runtime,
+        &HybridGiScenePrepareFrame::default(),
+        1,
         RenderHybridGiCompositePolicy::default(),
         Some(RenderHybridGiExtract::default().resolved_settings(false)),
     );
@@ -151,7 +163,7 @@ fn provider_projects_neutral_voxel_readback_into_scene_prepare_resources() {
 }
 
 #[test]
-fn provider_prepare_frame_projects_scene_prepare_frame_into_neutral_renderer_outputs() {
+fn provider_prepared_scene_frame_waits_for_collector_readback() {
     let provider = PluginHybridGiRuntimeProvider;
     let mut state = provider.create_state();
     let extract = scene_prepare_extract();
@@ -170,10 +182,14 @@ fn provider_prepare_frame_projects_scene_prepare_frame_into_neutral_renderer_out
             None,
             11,
         ));
-        let scene_prepare = &prepare.renderer_outputs().hybrid_gi.scene_prepare;
+        assert!(prepare.renderer_outputs().is_empty());
+        let scene_prepare = prepare
+            .prepared_frame()
+            .and_then(|frame| frame.scene_prepare.as_ref())
+            .expect("provider must publish scene preparation through the neutral sideband");
         (
-            scene_prepare.occupied_atlas_slots[0],
-            scene_prepare.occupied_capture_slots[0],
+            scene_prepare.card_capture_requests[0].atlas_slot_id,
+            scene_prepare.card_capture_requests[0].capture_slot_id,
         )
     };
     state.update_after_render(HybridGiRuntimeFeedback::new(
@@ -208,52 +224,32 @@ fn provider_prepare_frame_projects_scene_prepare_frame_into_neutral_renderer_out
         None,
         12,
     ));
-    let scene_prepare = &prepare.renderer_outputs().hybrid_gi.scene_prepare;
+    assert!(prepare.renderer_outputs().is_empty());
+    let scene_prepare = prepare
+        .prepared_frame()
+        .and_then(|frame| frame.scene_prepare.as_ref())
+        .expect("completion must update the next neutral scene-prepare sideband");
 
     assert!(
-        scene_prepare.has_runtime_feedback_payload(),
-        "scene-representation voxel payload should cross the neutral prepare sideband"
+        !scene_prepare.surface_cache_page_contents.is_empty(),
+        "completion-backed surface cache state must cross the neutral prepare sideband"
     );
-    assert!(scene_prepare.surface_cache_pages.iter().any(|page| {
-        page.owner_card_id == 77
-            && f32::from_bits(page.bounds_radius_bits) > 0.0
-            && page.radiance_rgba8[3] == u8::MAX
-    }));
-    assert!(scene_prepare.voxel_clipmaps.iter().any(|clipmap| {
-        clipmap.clipmap_id == 0 && f32::from_bits(clipmap.half_extent_bits) > 0.0
-    }));
-    assert_eq!(scene_prepare.voxel_clipmap_ids, vec![0]);
+    assert!(scene_prepare
+        .surface_cache_page_contents
+        .iter()
+        .any(|page| {
+            page.owner_card_id == 77
+                && page.bounds_radius > 0.0
+                && page.atlas_sample_rgba[3] == u8::MAX
+        }));
+    assert!(scene_prepare
+        .voxel_clipmaps
+        .iter()
+        .any(|clipmap| clipmap.clipmap_id == 0 && clipmap.half_extent > 0.0));
     assert!(scene_prepare
         .voxel_cells
         .iter()
-        .any(|cell| cell.clipmap_id == 0 && cell.occupancy > 0));
-    assert!(scene_prepare
-        .voxel_occupancy_masks
-        .iter()
-        .any(|mask| mask.clipmap_id == 0 && mask.occupancy_mask != 0));
-    assert!(scene_prepare
-        .voxel_cell_dominant_nodes
-        .iter()
-        .any(|cell| cell.dominant_node_id == 77));
-    assert!(scene_prepare
-        .voxel_cell_dominant_samples
-        .iter()
-        .any(|sample| sample.rgba8[3] == u8::MAX));
-    assert!(
-        !scene_prepare.surface_cache_depth_samples.is_empty(),
-        "surface-cache depth copy samples should cross the neutral prepare sideband"
-    );
-    assert!(scene_prepare
-        .surface_cache_depth_samples
-        .iter()
-        .any(|sample| sample.rgba8[0] == sample.rgba8[1]
-            && sample.rgba8[1] == sample.rgba8[2]
-            && sample.rgba8[3] == u8::MAX));
-    assert!(
-        !scene_prepare.probe_trace_tiles.is_empty(),
-        "probe trace tile schedule should cross the neutral prepare sideband"
-    );
-    assert_eq!(scene_prepare.probe_trace_dispatch, [1, 1, 1]);
+        .any(|cell| cell.clipmap_id == 0 && cell.occupancy_count > 0));
 }
 
 #[test]

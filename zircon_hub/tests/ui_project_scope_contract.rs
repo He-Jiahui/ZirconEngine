@@ -131,6 +131,8 @@ fn rust_state_modules_own_project_scope_metadata_and_runtime_persistence() {
 #[test]
 fn tauri_view_model_exposes_project_scope_dtos_and_visible_labels() {
     let view_model = read_crate_file("src/tauri_app/view_model.rs");
+    let quick_actions = read_crate_file("src/tauri_app/view_model/quick_actions.rs");
+    let view_model_tests = read_crate_file("src/tauri_app/view_model/tests.rs");
     let types = read_crate_file("web/src/types/hub.ts");
 
     assert_contains_all(
@@ -161,14 +163,24 @@ fn tauri_view_model_exposes_project_scope_dtos_and_visible_labels() {
             "template_label: project_template_label(",
             "text.pair(\"Available\", \"可用\")",
             "text.pair(\"Missing\", \"缺失\")",
+            "use display::{",
+        ],
+    );
+    assert_contains_all(
+        "view_model/quick_actions.rs",
+        &quick_actions,
+        &[
             "fn quick_actions(snapshot: &HubSnapshot) -> Vec<HubQuickAction>",
             "HubActionId::BuildProject.as_str()",
             "HubActionId::InstallDevice.as_str()",
             "HubActionId::PackageProject.as_str()",
             "HubActionId::OpenEditor.as_str()",
-            "use display::{",
-            "relative_time_uses_compact_labels",
         ],
+    );
+    assert_contains_all(
+        "view_model/tests.rs",
+        &view_model_tests,
+        &["relative_time_uses_compact_labels"],
     );
     assert_contains_all(
         "types/hub.ts",

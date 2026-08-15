@@ -92,21 +92,15 @@ mod tests {
             .expect("search edit should dispatch")
             .expect("search edit should bind");
 
-        assert!(
-            bridge
-                .control_frame("WorkbenchExtensionBlendSpaceIdleRunRow")
-                .is_none()
-        );
-        assert!(
-            bridge
-                .control_frame("WorkbenchExtensionBlendSpaceStrafeRow")
-                .is_some()
-        );
-        assert!(
-            bridge
-                .control_frame("WorkbenchExtensionBlendSpaceSprintRow")
-                .is_none()
-        );
+        assert!(bridge
+            .control_frame("WorkbenchExtensionBlendSpaceIdleRunRow")
+            .is_none());
+        assert!(bridge
+            .control_frame("WorkbenchExtensionBlendSpaceStrafeRow")
+            .is_some());
+        assert!(bridge
+            .control_frame("WorkbenchExtensionBlendSpaceSprintRow")
+            .is_none());
         assert!(bridge.control_bool("WorkbenchExtensionBlendSpaceStrafeRow", "selected"));
         assert!(bridge.control_frame(EMPTY_SEARCH_CONTROL).is_none());
 
@@ -122,11 +116,9 @@ mod tests {
             .expect("search commit should dispatch")
             .expect("search commit should bind");
 
-        assert!(
-            bridge
-                .control_frame("WorkbenchExtensionBlendSpaceStrafeRow")
-                .is_none()
-        );
+        assert!(bridge
+            .control_frame("WorkbenchExtensionBlendSpaceStrafeRow")
+            .is_none());
         assert!(bridge.control_frame(EMPTY_SEARCH_CONTROL).is_some());
 
         bridge

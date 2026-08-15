@@ -1,0 +1,619 @@
+use serde::{Deserialize, Serialize};
+
+use crate::ui::{
+    accessibility::UiAccessibilityActionRequest,
+    component::UiDragPayload,
+    dispatch::{
+        UiDragDropInputEventKind, UiDragSessionId, UiImeDeleteSurrounding, UiImeInputEvent,
+        UiImeInputEventKind, UiImePreeditClause, UiImePreeditClauseError, UiKeyboardInputState,
+        UiPointerEvent, UiPointerId, UiPreciseScrollDelta, UiTextByteRange,
+        UiTooltipTimerInputEventKind,
+    },
+    event_ui::UiNodeId,
+    layout::UiPoint,
+    surface::{UiNavigationEventKind, UiPointerButton, UiPointerEventKind},
+};
+
+use super::{UiWindowInputContext, UiWindowPlatformInputEventKind, UiWindowTouchPhase};
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UiWindowPlatformInputEvent {
+    pub context: UiWindowInputContext,
+    pub kind: UiWindowPlatformInputEventKind,
+}
+
+impl UiWindowPlatformInputEvent {
+    pub const fn new(context: UiWindowInputContext, kind: UiWindowPlatformInputEventKind) -> Self {
+        Self { context, kind }
+    }
+
+    pub const fn pointer(
+        context: UiWindowInputContext,
+        event: UiPointerEvent,
+        precise_scroll: Option<UiPreciseScrollDelta>,
+    ) -> Self {
+        Self::new(
+            context,
+            UiWindowPlatformInputEventKind::Pointer {
+                event,
+                precise_scroll,
+            },
+        )
+    }
+
+    pub const fn mouse_move(context: UiWindowInputContext, point: UiPoint) -> Self {
+        Self::pointer(
+            context,
+            UiPointerEvent::new(UiPointerEventKind::Move, point),
+            None,
+        )
+    }
+
+    pub const fn cursor_entered(context: UiWindowInputContext, point: UiPoint) -> Self {
+        Self::mouse_move(context, point)
+    }
+
+    pub const fn cursor_left(context: UiWindowInputContext, point: UiPoint) -> Self {
+        Self::pointer(
+            context,
+            UiPointerEvent::new(UiPointerEventKind::Cancel, point),
+            None,
+        )
+    }
+
+    pub const fn mouse_capture_lost(context: UiWindowInputContext, point: UiPoint) -> Self {
+        Self::cursor_left(context, point)
+    }
+
+    pub const fn mouse_wheel(context: UiWindowInputContext, point: UiPoint, delta: f32) -> Self {
+        Self::pointer(
+            context,
+            UiPointerEvent::new(UiPointerEventKind::Scroll, point).with_scroll_delta(delta),
+            Some(UiPreciseScrollDelta::lines(0.0, delta)),
+        )
+    }
+
+    pub const fn mouse_wheel_delta(
+        context: UiWindowInputContext,
+        point: UiPoint,
+        delta: UiPreciseScrollDelta,
+    ) -> Self {
+        Self::pointer(
+            context,
+            UiPointerEvent::new(UiPointerEventKind::Scroll, point).with_scroll_delta(delta.y),
+            Some(delta),
+        )
+    }
+
+    pub const fn raw_mouse_motion(
+        context: UiWindowInputContext,
+        delta_x: f32,
+        delta_y: f32,
+    ) -> Self {
+        Self::new(
+            context,
+            UiWindowPlatformInputEventKind::MouseMotion { delta_x, delta_y },
+        )
+    }
+
+    pub const fn mouse_button_down(
+        context: UiWindowInputContext,
+        button: UiPointerButton,
+        point: UiPoint,
+    ) -> Self {
+        Self::pointer(
+            context,
+            UiPointerEvent::new(UiPointerEventKind::Down, point).with_button(button),
+            None,
+        )
+    }
+
+    pub const fn mouse_button_up(
+        context: UiWindowInputContext,
+        button: UiPointerButton,
+        point: UiPoint,
+    ) -> Self {
+        Self::pointer(
+            context,
+            UiPointerEvent::new(UiPointerEventKind::Up, point).with_button(button),
+            None,
+        )
+    }
+
+    pub const fn mouse_double_click(
+        context: UiWindowInputContext,
+        button: UiPointerButton,
+        point: UiPoint,
+    ) -> Self {
+        Self::pointer(
+            context,
+            UiPointerEvent::new(UiPointerEventKind::Up, point)
+                .with_button(button)
+                .with_click_count(2),
+            None,
+        )
+    }
+
+    pub fn keyboard(
+        context: UiWindowInputContext,
+        state: UiKeyboardInputState,
+        key_code: u32,
+        scan_code: Option<u32>,
+        physical_key: impl Into<String>,
+        logical_key: impl Into<String>,
+        text: Option<String>,
+    ) -> Self {
+        Self::new(
+            context,
+            UiWindowPlatformInputEventKind::Keyboard {
+                state,
+                key_code,
+                scan_code,
+                physical_key: physical_key.into(),
+                logical_key: logical_key.into(),
+                text,
+            },
+        )
+    }
+
+    pub fn key_down(
+        context: UiWindowInputContext,
+        key_code: u32,
+        scan_code: Option<u32>,
+        physical_key: impl Into<String>,
+        logical_key: impl Into<String>,
+        is_repeat: bool,
+    ) -> Self {
+        Self::keyboard(
+            context,
+            if is_repeat {
+                UiKeyboardInputState::Repeated
+            } else {
+                UiKeyboardInputState::Pressed
+            },
+            key_code,
+            scan_code,
+            physical_key,
+            logical_key,
+            None,
+        )
+    }
+
+    pub fn key_up(
+        context: UiWindowInputContext,
+        key_code: u32,
+        scan_code: Option<u32>,
+        physical_key: impl Into<String>,
+        logical_key: impl Into<String>,
+    ) -> Self {
+        Self::keyboard(
+            context,
+            UiKeyboardInputState::Released,
+            key_code,
+            scan_code,
+            physical_key,
+            logical_key,
+            None,
+        )
+    }
+
+    pub fn key_char(context: UiWindowInputContext, character: char, is_repeat: bool) -> Self {
+        let text = character.to_string();
+        Self::keyboard(
+            context,
+            if is_repeat {
+                UiKeyboardInputState::Repeated
+            } else {
+                UiKeyboardInputState::Pressed
+            },
+            u32::from(character),
+            None,
+            "Character",
+            text.clone(),
+            Some(text),
+        )
+    }
+
+    pub fn controller_button_pressed(
+        context: UiWindowInputContext,
+        button: impl Into<String>,
+        is_repeat: bool,
+    ) -> Self {
+        let button = button.into();
+        Self::keyboard(
+            context,
+            if is_repeat {
+                UiKeyboardInputState::Repeated
+            } else {
+                UiKeyboardInputState::Pressed
+            },
+            0,
+            None,
+            button.clone(),
+            button,
+            None,
+        )
+    }
+
+    pub fn controller_button_released(
+        context: UiWindowInputContext,
+        button: impl Into<String>,
+    ) -> Self {
+        let button = button.into();
+        Self::keyboard(
+            context,
+            UiKeyboardInputState::Released,
+            0,
+            None,
+            button.clone(),
+            button,
+            None,
+        )
+    }
+
+    pub fn text(context: UiWindowInputContext, text: impl Into<String>) -> Self {
+        Self::new(
+            context,
+            UiWindowPlatformInputEventKind::Text { text: text.into() },
+        )
+    }
+
+    pub fn ime(
+        context: UiWindowInputContext,
+        kind: UiImeInputEventKind,
+        text: impl Into<String>,
+    ) -> Self {
+        Self::ime_with_cursor_range(context, kind, text, None)
+    }
+
+    pub fn ime_with_cursor_range(
+        context: UiWindowInputContext,
+        kind: UiImeInputEventKind,
+        text: impl Into<String>,
+        cursor_range: Option<UiTextByteRange>,
+    ) -> Self {
+        Self::new(
+            context,
+            UiWindowPlatformInputEventKind::Ime {
+                kind,
+                text: text.into(),
+                cursor_range,
+                preedit_clauses: Vec::new(),
+                delete_surrounding: None,
+            },
+        )
+    }
+
+    pub fn ime_with_preedit_clauses(
+        context: UiWindowInputContext,
+        text: impl Into<String>,
+        cursor_range: Option<UiTextByteRange>,
+        preedit_clauses: Vec<UiImePreeditClause>,
+    ) -> Result<Self, UiImePreeditClauseError> {
+        let text = text.into();
+        UiImeInputEvent::validate_preedit_payload(&text, cursor_range, &preedit_clauses)?;
+        Ok(Self::new(
+            context,
+            UiWindowPlatformInputEventKind::Ime {
+                kind: UiImeInputEventKind::Preedit,
+                text,
+                cursor_range,
+                preedit_clauses,
+                delete_surrounding: None,
+            },
+        ))
+    }
+
+    pub fn ime_delete_surrounding(
+        context: UiWindowInputContext,
+        before_bytes: u32,
+        after_bytes: u32,
+    ) -> Self {
+        Self::new(
+            context,
+            UiWindowPlatformInputEventKind::Ime {
+                kind: UiImeInputEventKind::DeleteSurrounding,
+                text: String::new(),
+                cursor_range: None,
+                preedit_clauses: Vec::new(),
+                delete_surrounding: Some(UiImeDeleteSurrounding::new(before_bytes, after_bytes)),
+            },
+        )
+    }
+
+    pub fn navigation(context: UiWindowInputContext, kind: UiNavigationEventKind) -> Self {
+        Self::new(context, UiWindowPlatformInputEventKind::Navigation { kind })
+    }
+
+    pub fn analog(context: UiWindowInputContext, control: impl Into<String>, value: f32) -> Self {
+        Self::new(
+            context,
+            UiWindowPlatformInputEventKind::Analog {
+                control: control.into(),
+                value,
+            },
+        )
+    }
+
+    pub fn controller_analog(
+        context: UiWindowInputContext,
+        control: impl Into<String>,
+        value: f32,
+    ) -> Self {
+        Self::analog(context, control, value)
+    }
+
+    pub fn drag_drop(
+        context: UiWindowInputContext,
+        kind: UiDragDropInputEventKind,
+        point: UiPoint,
+        session_id: Option<UiDragSessionId>,
+        payload: Option<UiDragPayload>,
+    ) -> Self {
+        Self::new(
+            context,
+            UiWindowPlatformInputEventKind::DragDrop {
+                kind,
+                session_id,
+                point,
+                payload,
+            },
+        )
+    }
+
+    pub fn drag_enter(
+        context: UiWindowInputContext,
+        point: UiPoint,
+        session_id: Option<UiDragSessionId>,
+        payload: Option<UiDragPayload>,
+    ) -> Self {
+        Self::drag_drop(
+            context,
+            UiDragDropInputEventKind::Enter,
+            point,
+            session_id,
+            payload,
+        )
+    }
+
+    pub fn drag_over(
+        context: UiWindowInputContext,
+        point: UiPoint,
+        session_id: Option<UiDragSessionId>,
+    ) -> Self {
+        Self::drag_drop(
+            context,
+            UiDragDropInputEventKind::Over,
+            point,
+            session_id,
+            None,
+        )
+    }
+
+    pub fn drag_leave(
+        context: UiWindowInputContext,
+        point: UiPoint,
+        session_id: Option<UiDragSessionId>,
+    ) -> Self {
+        Self::drag_drop(
+            context,
+            UiDragDropInputEventKind::Leave,
+            point,
+            session_id,
+            None,
+        )
+    }
+
+    pub fn drag_drop_at(
+        context: UiWindowInputContext,
+        point: UiPoint,
+        session_id: Option<UiDragSessionId>,
+        payload: Option<UiDragPayload>,
+    ) -> Self {
+        Self::drag_drop(
+            context,
+            UiDragDropInputEventKind::Drop,
+            point,
+            session_id,
+            payload,
+        )
+    }
+
+    pub fn drag_end(
+        context: UiWindowInputContext,
+        point: UiPoint,
+        session_id: Option<UiDragSessionId>,
+    ) -> Self {
+        Self::drag_drop(
+            context,
+            UiDragDropInputEventKind::End,
+            point,
+            session_id,
+            None,
+        )
+    }
+
+    pub fn popup(
+        context: UiWindowInputContext,
+        kind: crate::ui::dispatch::UiPopupInputEventKind,
+        popup_id: impl Into<String>,
+        owner: Option<UiNodeId>,
+        anchor: Option<UiPoint>,
+    ) -> Self {
+        Self::new(
+            context,
+            UiWindowPlatformInputEventKind::Popup {
+                kind,
+                popup_id: popup_id.into(),
+                owner,
+                anchor,
+            },
+        )
+    }
+
+    pub fn popup_open_requested(
+        context: UiWindowInputContext,
+        popup_id: impl Into<String>,
+        owner: Option<UiNodeId>,
+        anchor: Option<UiPoint>,
+    ) -> Self {
+        Self::popup(
+            context,
+            crate::ui::dispatch::UiPopupInputEventKind::OpenRequested,
+            popup_id,
+            owner,
+            anchor,
+        )
+    }
+
+    pub fn popup_close_requested(
+        context: UiWindowInputContext,
+        popup_id: impl Into<String>,
+        owner: Option<UiNodeId>,
+    ) -> Self {
+        Self::popup(
+            context,
+            crate::ui::dispatch::UiPopupInputEventKind::CloseRequested,
+            popup_id,
+            owner,
+            None,
+        )
+    }
+
+    pub fn popup_dismissed(context: UiWindowInputContext, popup_id: impl Into<String>) -> Self {
+        Self::popup(
+            context,
+            crate::ui::dispatch::UiPopupInputEventKind::Dismissed,
+            popup_id,
+            None,
+            None,
+        )
+    }
+
+    pub fn tooltip_timer(
+        context: UiWindowInputContext,
+        kind: UiTooltipTimerInputEventKind,
+        tooltip_id: impl Into<String>,
+        owner: Option<UiNodeId>,
+    ) -> Self {
+        Self::new(
+            context,
+            UiWindowPlatformInputEventKind::TooltipTimer {
+                kind,
+                tooltip_id: tooltip_id.into(),
+                owner,
+            },
+        )
+    }
+
+    pub fn tooltip_armed(
+        context: UiWindowInputContext,
+        tooltip_id: impl Into<String>,
+        owner: Option<UiNodeId>,
+    ) -> Self {
+        Self::tooltip_timer(
+            context,
+            UiTooltipTimerInputEventKind::Armed,
+            tooltip_id,
+            owner,
+        )
+    }
+
+    pub fn tooltip_elapsed(
+        context: UiWindowInputContext,
+        tooltip_id: impl Into<String>,
+        owner: Option<UiNodeId>,
+    ) -> Self {
+        Self::tooltip_timer(
+            context,
+            UiTooltipTimerInputEventKind::Elapsed,
+            tooltip_id,
+            owner,
+        )
+    }
+
+    pub fn tooltip_canceled(context: UiWindowInputContext, tooltip_id: impl Into<String>) -> Self {
+        Self::tooltip_timer(
+            context,
+            UiTooltipTimerInputEventKind::Canceled,
+            tooltip_id,
+            None,
+        )
+    }
+
+    pub const fn accessibility(
+        context: UiWindowInputContext,
+        request: UiAccessibilityActionRequest,
+    ) -> Self {
+        Self::new(
+            context,
+            UiWindowPlatformInputEventKind::Accessibility { request },
+        )
+    }
+
+    pub const fn touch(
+        context: UiWindowInputContext,
+        phase: UiWindowTouchPhase,
+        pointer_id: UiPointerId,
+        point: UiPoint,
+    ) -> Self {
+        Self::new(
+            context,
+            UiWindowPlatformInputEventKind::Touch {
+                phase,
+                pointer_id,
+                point,
+            },
+        )
+    }
+
+    pub const fn touch_started(
+        context: UiWindowInputContext,
+        pointer_id: UiPointerId,
+        point: UiPoint,
+    ) -> Self {
+        Self::touch(context, UiWindowTouchPhase::Started, pointer_id, point)
+    }
+
+    pub const fn touch_moved(
+        context: UiWindowInputContext,
+        pointer_id: UiPointerId,
+        point: UiPoint,
+    ) -> Self {
+        Self::touch(context, UiWindowTouchPhase::Moved, pointer_id, point)
+    }
+
+    pub const fn touch_force_changed(
+        context: UiWindowInputContext,
+        pointer_id: UiPointerId,
+        point: UiPoint,
+        _force: f32,
+    ) -> Self {
+        Self::touch(context, UiWindowTouchPhase::Moved, pointer_id, point)
+    }
+
+    pub const fn touch_first_move(
+        context: UiWindowInputContext,
+        pointer_id: UiPointerId,
+        point: UiPoint,
+        _force: f32,
+    ) -> Self {
+        Self::touch(context, UiWindowTouchPhase::Moved, pointer_id, point)
+    }
+
+    pub const fn touch_ended(
+        context: UiWindowInputContext,
+        pointer_id: UiPointerId,
+        point: UiPoint,
+    ) -> Self {
+        Self::touch(context, UiWindowTouchPhase::Ended, pointer_id, point)
+    }
+
+    pub const fn touch_canceled(
+        context: UiWindowInputContext,
+        pointer_id: UiPointerId,
+        point: UiPoint,
+    ) -> Self {
+        Self::touch(context, UiWindowTouchPhase::Canceled, pointer_id, point)
+    }
+}

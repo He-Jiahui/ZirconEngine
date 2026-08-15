@@ -1,11 +1,11 @@
 use super::*;
-use crate::text::InstancedFaceId;
 use crate::text::atlas::{
-    GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasUploadMode, GlyphHintingMode, GlyphRasterKey,
-    GlyphSmoothingMode, SyntheticGlyphStyle, glyph_atlas_bitmap_page_shadow_commit,
-    glyph_atlas_bitmap_render_submission_plan,
-    glyph_atlas_bitmap_render_submission_plan_with_atlas,
+    glyph_atlas_bitmap_page_shadow_commit, glyph_atlas_bitmap_render_submission_plan,
+    glyph_atlas_bitmap_render_submission_plan_with_atlas, GlyphAtlasBitmapUploadSourceBytes,
+    GlyphAtlasUploadMode, GlyphHintingMode, GlyphRasterKey, GlyphSmoothingMode,
+    SyntheticGlyphStyle,
 };
+use crate::text::InstancedFaceId;
 
 #[test]
 fn native_bitmap_atlas_storage_split_does_not_promote_later_alpha_to_full_page() {
@@ -259,11 +259,9 @@ fn native_bitmap_atlas_storage_submissions_keep_repeated_format_slots_disjoint()
                 .prepared_upload(submission.source_bytes())
         })
         .collect::<Vec<_>>();
-    assert!(
-        prepared_uploads
-            .iter()
-            .all(|prepared_upload| !prepared_upload.has_failures())
-    );
+    assert!(prepared_uploads
+        .iter()
+        .all(|prepared_upload| !prepared_upload.has_failures()));
     assert_eq!(
         prepared_uploads
             .iter()

@@ -7,8 +7,8 @@ use zircon_runtime_interface::ui::{binding::UiBindingCall, binding::UiBindingVal
 
 use super::ViewportCommand;
 use crate::ui::binding::core::{
-    EditorUiBindingError, required_bool_argument, required_f32_argument, required_string_argument,
-    required_u32_argument,
+    required_bool_argument, required_f32_argument, required_string_argument, required_u32_argument,
+    EditorUiBindingError,
 };
 
 impl ViewportCommand {
@@ -28,6 +28,7 @@ impl ViewportCommand {
                     *selection_mutation,
                 ))),
             Self::LeftReleased => UiBindingCall::new("ViewportCommand.LeftReleased"),
+            Self::CancelInteraction => UiBindingCall::new("ViewportCommand.CancelInteraction"),
             Self::RightPressed { x, y } => UiBindingCall::new("ViewportCommand.RightPressed")
                 .with_argument(UiBindingValue::Float(*x as f64))
                 .with_argument(UiBindingValue::Float(*y as f64)),
@@ -108,6 +109,7 @@ impl ViewportCommand {
                 )?)?,
             },
             "ViewportCommand.LeftReleased" => Self::LeftReleased,
+            "ViewportCommand.CancelInteraction" => Self::CancelInteraction,
             "ViewportCommand.RightPressed" => Self::RightPressed {
                 x: required_f32_argument(&call, 0, "ViewportCommand.RightPressed")?,
                 y: required_f32_argument(&call, 1, "ViewportCommand.RightPressed")?,
@@ -205,10 +207,7 @@ fn parse_selection_mutation(symbol: &str) -> Result<SelectionMutation, EditorUiB
         "Replace" => Ok(SelectionMutation::Replace),
         "Extend" => Ok(SelectionMutation::Extend),
         "Toggle" => Ok(SelectionMutation::Toggle),
-        _ => Err(invalid_enum_argument(
-            "ViewportCommand.LeftPressed",
-            symbol,
-        )),
+        _ => Err(invalid_enum_argument("ViewportCommand.LeftPressed", symbol)),
     }
 }
 
@@ -252,6 +251,16 @@ mod tests {
         let command = ViewportCommand::ToggleOverlayProvider {
             provider_id: "weather.viewport.overlay.provider".to_string(),
         };
+
+        assert_eq!(
+            ViewportCommand::from_call(command.to_call()).unwrap(),
+            Some(command)
+        );
+    }
+
+    #[test]
+    fn cancel_interaction_round_trips_through_the_viewport_codec() {
+        let command = ViewportCommand::CancelInteraction;
 
         assert_eq!(
             ViewportCommand::from_call(command.to_call()).unwrap(),

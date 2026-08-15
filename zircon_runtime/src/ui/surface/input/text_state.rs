@@ -95,7 +95,10 @@ pub(in crate::ui::surface) fn editable_text_input_is_secure(
         && bool_attribute_any(metadata, &["secure", "secure_input", "secureInput"]).unwrap_or(false)
 }
 
-pub(in crate::ui::surface) fn is_editable_text_input(surface: &UiSurface, target: UiNodeId) -> bool {
+pub(in crate::ui::surface) fn is_editable_text_input(
+    surface: &UiSurface,
+    target: UiNodeId,
+) -> bool {
     surface
         .tree
         .nodes

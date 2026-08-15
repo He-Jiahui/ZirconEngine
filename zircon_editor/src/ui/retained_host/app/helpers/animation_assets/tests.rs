@@ -3,10 +3,10 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::derive_animation_assets_from_model_source;
-use zircon_runtime::asset::AssetUri;
 use zircon_runtime::asset::project::{
     AssetMetaDocument, ProjectManager, ProjectManifest, ProjectPaths,
 };
+use zircon_runtime::asset::AssetUri;
 use zircon_runtime::core::framework::animation::{AnimationClipAsset, AnimationSkeletonAsset};
 
 fn unique_temp_dir(prefix: &str) -> PathBuf {
@@ -71,8 +71,8 @@ fn derive_animation_assets_from_model_source_writes_stable_sibling_skeleton_and_
 }
 
 #[test]
-fn derive_animation_assets_from_model_source_preserves_project_asset_ids_across_reimport_with_gltf_buffer_sidecars()
- {
+fn derive_animation_assets_from_model_source_preserves_project_asset_ids_across_reimport_with_gltf_buffer_sidecars(
+) {
     let root = unique_temp_dir("zircon_editor_derived_animation_reimport");
     let paths = ProjectPaths::from_root(&root).unwrap();
     paths
@@ -171,11 +171,9 @@ fn animation_derivatives_stay_beside_a_model_in_the_second_manifest_root() {
 
     assert!(shared_models.join("hero.skeleton.zranim").is_file());
     assert!(shared_models.join("hero.idle.clip.zranim").is_file());
-    assert!(
-        !root
-            .join("game-assets/models/hero.skeleton.zranim")
-            .exists()
-    );
+    assert!(!root
+        .join("game-assets/models/hero.skeleton.zranim")
+        .exists());
     let _ = fs::remove_dir_all(root);
 }
 

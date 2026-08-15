@@ -2,22 +2,22 @@ use crate::buffer::{ZrByteSlice, ZrOwnedByteBuffer};
 use crate::handles::{ZrRuntimeSessionHandle, ZrRuntimeViewportHandle};
 pub use crate::profiling::ZrRuntimeProfileControlFnV1;
 use crate::status::ZrStatus;
+use crate::world_sync::WatchToken;
 
 use super::{
     ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeBindViewportSurfaceRequestV1,
     ZrRuntimeDrainPluginEventsFnV1, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1,
     ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeHarvestOperationFnV1,
-    ZrRuntimeHighlightSetV1,
-    ZrRuntimeHostFetchRequestV1, ZrRuntimePollOperationFnV2, ZrRuntimeSessionConfigV2,
-    ZrRuntimeSubmitOperationFnV1, ZrRuntimeSubscribePluginEventFnV1,
+    ZrRuntimeHighlightSetV1, ZrRuntimeHostFetchRequestV1, ZrRuntimePollOperationFnV2,
+    ZrRuntimeSessionConfigV3, ZrRuntimeSubmitOperationFnV1, ZrRuntimeSubscribePluginEventFnV1,
     ZrRuntimeUnsubscribePluginEventFnV1,
 };
 
-pub const ZR_RUNTIME_GET_API_SYMBOL_V4: &[u8] = b"zircon_runtime_get_api_v4\0";
+pub const ZR_RUNTIME_GET_API_SYMBOL_V6: &[u8] = b"zircon_runtime_get_api_v6\0";
 
-pub type ZrRuntimeGetApiFnV4 = unsafe extern "C" fn(*const ZrHostApiV1) -> *const ZrRuntimeApiV4;
-pub type ZrRuntimeCreateSessionFnV2 =
-    unsafe extern "C" fn(ZrRuntimeSessionConfigV2, *mut ZrRuntimeSessionHandle) -> ZrStatus;
+pub type ZrRuntimeGetApiFnV6 = unsafe extern "C" fn(*const ZrHostApiV1) -> *const ZrRuntimeApiV6;
+pub type ZrRuntimeCreateSessionFnV3 =
+    unsafe extern "C" fn(ZrRuntimeSessionConfigV3, *mut ZrRuntimeSessionHandle) -> ZrStatus;
 pub type ZrRuntimeDestroySessionFnV1 = unsafe extern "C" fn(ZrRuntimeSessionHandle) -> ZrStatus;
 pub type ZrRuntimeHandleEventFnV1 =
     unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrRuntimeEventV1) -> ZrStatus;
@@ -45,6 +45,14 @@ pub type ZrRuntimeDrainHostRequestsFnV1 =
     unsafe extern "C" fn(ZrRuntimeSessionHandle, *mut ZrOwnedByteBuffer) -> ZrStatus;
 pub type ZrRuntimeHostFetchFnV1 =
     unsafe extern "C" fn(ZrRuntimeHostFetchRequestV1, *mut ZrOwnedByteBuffer) -> ZrStatus;
+pub type ZrRuntimeQueryWorldFnV1 =
+    unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrByteSlice, *mut ZrOwnedByteBuffer) -> ZrStatus;
+pub type ZrRuntimeWatchWorldFnV1 =
+    unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrByteSlice, *mut WatchToken) -> ZrStatus;
+pub type ZrRuntimeUnwatchWorldFnV1 =
+    unsafe extern "C" fn(ZrRuntimeSessionHandle, WatchToken, *mut u8) -> ZrStatus;
+pub type ZrRuntimeDrainWorldInvalidationsFnV1 =
+    unsafe extern "C" fn(ZrRuntimeSessionHandle, *mut ZrOwnedByteBuffer) -> ZrStatus;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
@@ -66,16 +74,16 @@ impl ZrHostApiV1 {
     }
 }
 
-/// The immutable runtime API V4 table.
+/// The immutable runtime API V6 table.
 ///
 /// This shape is frozen. Any future field addition requires a new table
 /// version and a coordinated hard cutover of all dynamic hosts.
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
-pub struct ZrRuntimeApiV4 {
+pub struct ZrRuntimeApiV6 {
     pub abi_version: u32,
     pub size_bytes: usize,
-    pub create_session: Option<ZrRuntimeCreateSessionFnV2>,
+    pub create_session: Option<ZrRuntimeCreateSessionFnV3>,
     pub destroy_session: Option<ZrRuntimeDestroySessionFnV1>,
     pub handle_event: Option<ZrRuntimeHandleEventFnV1>,
     pub capture_frame: Option<ZrRuntimeCaptureFrameFnV1>,
@@ -93,12 +101,16 @@ pub struct ZrRuntimeApiV4 {
     pub submit_operation: Option<ZrRuntimeSubmitOperationFnV1>,
     pub poll_operation: Option<ZrRuntimePollOperationFnV2>,
     pub harvest_operation: Option<ZrRuntimeHarvestOperationFnV1>,
+    pub query_world: Option<ZrRuntimeQueryWorldFnV1>,
+    pub watch_world: Option<ZrRuntimeWatchWorldFnV1>,
+    pub unwatch_world: Option<ZrRuntimeUnwatchWorldFnV1>,
+    pub drain_world_invalidations: Option<ZrRuntimeDrainWorldInvalidationsFnV1>,
 }
 
-impl ZrRuntimeApiV4 {
+impl ZrRuntimeApiV6 {
     pub const fn empty() -> Self {
         Self {
-            abi_version: crate::version::ZIRCON_RUNTIME_API_VERSION_V4,
+            abi_version: crate::version::ZIRCON_RUNTIME_API_VERSION_V6,
             size_bytes: core::mem::size_of::<Self>(),
             create_session: None,
             destroy_session: None,
@@ -118,6 +130,10 @@ impl ZrRuntimeApiV4 {
             submit_operation: None,
             poll_operation: None,
             harvest_operation: None,
+            query_world: None,
+            watch_world: None,
+            unwatch_world: None,
+            drain_world_invalidations: None,
         }
     }
 }

@@ -1,12 +1,12 @@
 ---
 related_code:
-  - zircon_runtime/src/rhi/tests
+  - zircon_runtime/crates/zr_rhi/src/tests
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/17-performance-and-profiling.md
 reference_sources:
-  - zircon_runtime/src/rhi
-  - zircon_runtime/src/rhi_wgpu
+  - zircon_runtime/crates/zr_rhi/src
+  - zircon_runtime/crates/zr_rhi_wgpu/src
 tests:
   - current-source Windows zircon_runtime RHI tests pending
 doc_type: implementation-evidence
@@ -17,7 +17,7 @@ status: static_complete_dynamic_pending
 
 ## 范围与覆盖
 
-`zircon_runtime/src/rhi/tests/**`当前源26/26个Rust文件、5,746行已逐文件阅读，覆盖boundary、capabilities/descriptors、command list、debug markers/status、resource/device lifecycle、bind groups、pipelines、render pass clear/lifetime/view/resolve/state、buffer/texture copy及usage/range错误合同。
+`zircon_runtime/crates/zr_rhi/src/tests/**`当前源26/26个Rust文件、5,746行已逐文件阅读，覆盖boundary、capabilities/descriptors、command list、debug markers/status、resource/device lifecycle、bind groups、pipelines、render pass clear/lifetime/view/resolve/state、buffer/texture copy及usage/range错误合同。
 
 这些测试全部驱动CPU deterministic `WgpuRenderDevice` test double，资源与command规模很小。它们能保护PERF-MVP-226的distinct/self-overlap buffer copy、row-stride/mip/layer/cube texture copy及validation错误语义，但不能证明真实adapter、queue、fence、GPU memory、readback等待、timestamp或RenderDoc结果。
 

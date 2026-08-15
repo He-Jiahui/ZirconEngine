@@ -1,7 +1,7 @@
 use std::io;
 use std::path::Path;
 
-use crate::core::resource::io::atomic_file::stage_atomic_write;
+use crate::core::resource::io::stage_atomic_write;
 
 use super::commit_fence::ConfigCommitFence;
 

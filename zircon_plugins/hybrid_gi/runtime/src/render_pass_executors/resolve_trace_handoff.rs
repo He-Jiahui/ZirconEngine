@@ -1,5 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
+use zircon_runtime::core::framework::render::RenderHybridGiDebugView;
 use zircon_runtime::graphics::{RenderPassExecutionContext, RenderPassGpuExecutionContext};
 use zircon_runtime::render_graph::RenderGraphResourceAccessKind;
 use zircon_runtime::rhi::TextureFormat;
@@ -24,13 +25,17 @@ struct HybridGiTemporalResolveParams {
 }
 
 impl HybridGiTemporalResolveParams {
-    fn new(viewport_size: [u32; 2], history_available: bool) -> Self {
+    fn new(
+        viewport_size: [u32; 2],
+        history_available: bool,
+        debug_view: RenderHybridGiDebugView,
+    ) -> Self {
         Self {
             viewport_and_flags: [
                 viewport_size[0].max(1),
                 viewport_size[1].max(1),
-                u32::from(history_available),
-                0,
+                u32::from(history_available && debug_view == RenderHybridGiDebugView::None),
+                resolve_debug_view_code(debug_view),
             ],
             blend_and_rejection: [
                 HYBRID_GI_TEMPORAL_HISTORY_WEIGHT,
@@ -39,6 +44,16 @@ impl HybridGiTemporalResolveParams {
                 HYBRID_GI_TEMPORAL_LUMA_REJECTION_THRESHOLD,
             ],
         }
+    }
+}
+
+const fn resolve_debug_view_code(debug_view: RenderHybridGiDebugView) -> u32 {
+    match debug_view {
+        RenderHybridGiDebugView::None => 0,
+        RenderHybridGiDebugView::Cards => 1,
+        RenderHybridGiDebugView::SurfaceCache => 2,
+        RenderHybridGiDebugView::VoxelClipmap => 3,
+        RenderHybridGiDebugView::InputSet => 4,
     }
 }
 
@@ -98,9 +113,17 @@ pub(super) fn record_resolve_trace_handoff(
         ));
     }
     let viewport_size = gpu.viewport_size();
+    let debug_view = gpu
+        .frame_extract()
+        .lighting
+        .hybrid_global_illumination
+        .as_ref()
+        .filter(|extract| extract.enabled)
+        .map_or(RenderHybridGiDebugView::None, |extract| extract.debug_view);
     let params = HybridGiTemporalResolveParams::new(
         [viewport_size.x, viewport_size.y],
         gpu.hybrid_gi_history_available(),
+        debug_view,
     );
     let params_buffer = gpu
         .device

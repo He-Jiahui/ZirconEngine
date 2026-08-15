@@ -1,7 +1,11 @@
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 
-use crate::ui::layouts::views::view_projection::build_view_template_nodes;
-use crate::ui::retained_host::primitives::ModelRc;
+use crate::ui::layouts::views::view_projection::{
+    ViewTemplateResourceGeneration, build_view_template_node_projection,
+    compose_view_template_node_model, view_template_resource_generation,
+};
+use crate::ui::retained_host::{primitives::ModelRc, runtime_text_metrics_generation};
 use crate::ui::workbench::asset_content_layout::{
     AssetContentPaintNodeInput, AssetContentSurface, asset_content_paint_metadata,
 };
@@ -11,15 +15,14 @@ use crate::ui::workbench::snapshot::{
 use zircon_runtime_interface::resource::ResourceKind;
 use zircon_runtime_interface::ui::layout::UiSize;
 
-use super::{ViewTemplateNodeData, load_preview_image};
+use super::{ViewTemplateNodeData, load_preview_image_for_generation};
 use compact_layout::{apply_asset_browser_compact_layout, apply_asset_browser_sources_layout};
 use labels::asset_state_label;
 use reference_nodes::{apply_asset_browser_reference_layout, sync_asset_browser_reference_nodes};
 use selection_text::{
-    has_asset_selection, selected_asset, selected_folder, selected_folder_breadcrumb,
-    selection_diagnostics_text, selection_display_name, selection_identity, selection_kind_label,
-    selection_locator, selection_metadata_body, selection_metadata_summary,
-    selection_revision_label,
+    has_asset_selection, selected_asset, selected_folder_breadcrumb, selection_diagnostics_text,
+    selection_display_name, selection_identity, selection_kind_label, selection_locator,
+    selection_metadata_body, selection_metadata_summary, selection_revision_label,
 };
 use source_tree_nodes::sync_asset_browser_source_tree_nodes;
 use stack_layout::apply_asset_browser_standard_stack_layout;
@@ -64,11 +67,99 @@ const ASSET_BROWSER_MATERIAL_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_m
 const ASSET_BROWSER_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.zui";
 const ASSET_BROWSER_MATERIAL_STYLE_ASSET_ID: &str = "res://ui/theme/editor_material.zui";
 const ASSET_BROWSER_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.zui";
+const ASSET_BROWSER_STYLE_IMPORTS: [(&str, &str); 2] = [
+    (
+        ASSET_BROWSER_MATERIAL_STYLE_ASSET_ID,
+        ASSET_BROWSER_MATERIAL_STYLE_ASSET_PATH,
+    ),
+    (ASSET_BROWSER_STYLE_ASSET_ID, ASSET_BROWSER_STYLE_ASSET_PATH),
+];
+
+struct AssetBrowserPaneProjectionCacheEntry {
+    input: AssetBrowserProjectionInput,
+    resource_generation: ViewTemplateResourceGeneration,
+    text_metrics_generation: [u64; 3],
+    composition_generation: u64,
+    width_bits: u32,
+    height_bits: u32,
+    nodes: ModelRc<ViewTemplateNodeData>,
+}
+
+struct AssetBrowserProjectionInput {
+    project_root: String,
+    catalog_revision: u64,
+    view_mode: AssetViewMode,
+    utility_tab: AssetUtilityTab,
+    search_query: String,
+    kind_filter: Option<ResourceKind>,
+    selected_folder_id: Option<String>,
+    selected_asset_uuid: Option<String>,
+}
+
+impl AssetBrowserProjectionInput {
+    fn new(snapshot: &AssetWorkspaceSnapshot) -> Self {
+        Self {
+            project_root: snapshot.project_root.clone(),
+            catalog_revision: snapshot.catalog_revision,
+            view_mode: snapshot.view_mode,
+            utility_tab: snapshot.utility_tab,
+            search_query: snapshot.search_query.clone(),
+            kind_filter: snapshot.kind_filter.clone(),
+            selected_folder_id: snapshot.selected_folder_id.clone(),
+            selected_asset_uuid: snapshot.selected_asset_uuid.clone(),
+        }
+    }
+
+    fn matches(&self, snapshot: &AssetWorkspaceSnapshot) -> bool {
+        self.project_root == snapshot.project_root
+            && self.catalog_revision == snapshot.catalog_revision
+            && self.view_mode == snapshot.view_mode
+            && self.utility_tab == snapshot.utility_tab
+            && self.search_query == snapshot.search_query
+            && self.kind_filter == snapshot.kind_filter
+            && self.selected_folder_id == snapshot.selected_folder_id
+            && self.selected_asset_uuid == snapshot.selected_asset_uuid
+    }
+}
+
+thread_local! {
+    static ASSET_BROWSER_PANE_PROJECTION_CACHE: RefCell<Option<AssetBrowserPaneProjectionCacheEntry>> =
+        const { RefCell::new(None) };
+}
 
 pub(crate) fn asset_browser_pane_nodes(
     snapshot: &AssetWorkspaceSnapshot,
     size: UiSize,
 ) -> ModelRc<ViewTemplateNodeData> {
+    let width_bits = size.width.to_bits();
+    let height_bits = size.height.to_bits();
+    let resource_generation = view_template_resource_generation(
+        ASSET_BROWSER_LAYOUT_ASSET_PATH,
+        &ASSET_BROWSER_STYLE_IMPORTS,
+    );
+    let text_metrics_generation = runtime_text_metrics_generation();
+    if let Some(nodes) = ASSET_BROWSER_PANE_PROJECTION_CACHE.with(|cache| {
+        let cache = cache.borrow();
+        cache.as_ref().and_then(|cached| {
+            (cached.width_bits == width_bits
+                && cached.height_bits == height_bits
+                && cached.input.matches(snapshot)
+                && resource_generation
+                    .as_ref()
+                    .is_some_and(|current| current == &cached.resource_generation)
+                && cached.text_metrics_generation == text_metrics_generation)
+                .then(|| cached.nodes.clone())
+        })
+    }) {
+        return nodes;
+    }
+    let composition_generation = ASSET_BROWSER_PANE_PROJECTION_CACHE.with(|cache| {
+        cache
+            .borrow()
+            .as_ref()
+            .map_or(1, |cached| cached.composition_generation.wrapping_add(1))
+    });
+
     let mut text_overrides = BTreeMap::new();
     let selected_asset = selected_asset(snapshot);
     let project_root = if snapshot.project_root.is_empty() {
@@ -76,7 +167,6 @@ pub(crate) fn asset_browser_pane_nodes(
     } else {
         snapshot.project_root.clone()
     };
-    let selected_folder = selected_folder(snapshot);
     let selection_name = selection_display_name(&snapshot.selection, selected_asset);
     let selection_locator = selection_locator(&snapshot.selection, selected_asset);
     let selection_kind = selection_kind_label(&snapshot.selection, selected_asset).to_string();
@@ -277,14 +367,7 @@ pub(crate) fn asset_browser_pane_nodes(
         "AssetBrowserPluginsTabButton".to_string(),
         "Plugins".to_string(),
     );
-    text_overrides.insert(
-        "SearchEdited".to_string(),
-        if snapshot.search_query.is_empty() {
-            "Search".to_string()
-        } else {
-            snapshot.search_query.clone()
-        },
-    );
+    text_overrides.insert("SearchEdited".to_string(), snapshot.search_query.clone());
     text_overrides.insert(
         "AssetBrowserContentHeaderPathText".to_string(),
         selected_folder_breadcrumb(snapshot).unwrap_or(catalog_summary.clone()),
@@ -315,54 +398,106 @@ pub(crate) fn asset_browser_pane_nodes(
             "Select a table row to inspect".to_string(),
         );
     }
-    let mut nodes = build_view_template_nodes(
+    let Ok(projection) = build_view_template_node_projection(
         "asset_browser.template_projection",
         ASSET_BROWSER_LAYOUT_ASSET_PATH,
-        &[
-            (
-                ASSET_BROWSER_MATERIAL_STYLE_ASSET_ID,
-                ASSET_BROWSER_MATERIAL_STYLE_ASSET_PATH,
-            ),
-            (ASSET_BROWSER_STYLE_ASSET_ID, ASSET_BROWSER_STYLE_ASSET_PATH),
-        ],
+        &ASSET_BROWSER_STYLE_IMPORTS,
         size,
         &text_overrides,
-    )
-    .unwrap_or_default();
-    sync_asset_table_nodes(&mut nodes, snapshot);
-    sync_asset_browser_source_tree_nodes(&mut nodes, snapshot);
-    sync_asset_browser_reference_nodes(&mut nodes, snapshot);
-    let toolbar_layout = apply_asset_browser_toolbar_layout(&mut nodes, size.width);
-    apply_asset_browser_visual_state(&mut nodes, snapshot);
-    apply_asset_browser_table_cells(&mut nodes, &asset_table_rows);
-    append_asset_browser_thumbnail_nodes(&mut nodes, snapshot);
-    sync_asset_browser_summary_nodes(&mut nodes, snapshot);
-    retain_active_utility_tab_nodes(&mut nodes, snapshot.utility_tab);
-    if let Some(toolbar_layout) = toolbar_layout.as_ref() {
-        apply_asset_browser_standard_stack_layout(&mut nodes, size, toolbar_layout);
-    }
-    apply_asset_browser_compact_layout(
-        &mut nodes,
-        size,
-        snapshot.view_mode,
-        toolbar_layout.map(|layout| layout.main_y),
-    );
-    apply_asset_browser_sources_layout(&mut nodes);
-    apply_asset_browser_reference_layout(&mut nodes);
-    let metadata = asset_content_paint_metadata(
-        nodes.iter().map(|node| {
-            AssetContentPaintNodeInput::new(
-                node.control_id.as_str(),
-                node.frame.x,
-                node.frame.y,
-                node.frame.width,
-                node.frame.height,
-                node.value_number,
+    ) else {
+        return ModelRc::default();
+    };
+    let nodes = compose_view_template_node_model(
+        "asset_browser.template_composition",
+        projection,
+        &composition_generation,
+        |nodes| {
+            sync_asset_table_nodes(nodes, snapshot);
+            sync_asset_browser_source_tree_nodes(nodes, snapshot);
+            sync_asset_browser_reference_nodes(nodes, snapshot);
+            let toolbar_layout = apply_asset_browser_toolbar_layout(nodes, size.width);
+            apply_asset_browser_visual_state(nodes, snapshot);
+            apply_asset_browser_table_cells(nodes, &asset_table_rows);
+            append_asset_browser_thumbnail_nodes(nodes, snapshot);
+            sync_asset_browser_summary_nodes(nodes, snapshot);
+            retain_active_utility_tab_nodes(nodes, snapshot.utility_tab);
+            if let Some(toolbar_layout) = toolbar_layout.as_ref() {
+                apply_asset_browser_standard_stack_layout(nodes, size, toolbar_layout);
+            }
+            apply_asset_browser_compact_layout(
+                nodes,
+                size,
+                snapshot.view_mode,
+                toolbar_layout.map(|layout| layout.main_y),
+            );
+            apply_asset_browser_sources_layout(nodes);
+            apply_asset_browser_reference_layout(nodes);
+            asset_content_paint_metadata(
+                nodes.iter().map(|node| {
+                    AssetContentPaintNodeInput::new(
+                        node.control_id.as_str(),
+                        node.frame.x,
+                        node.frame.y,
+                        node.frame.width,
+                        node.frame.height,
+                        node.value_number,
+                    )
+                }),
+                AssetContentSurface::Browser,
             )
-        }),
-        AssetContentSurface::Browser,
+        },
     );
-    ModelRc::with_metadata(nodes, metadata)
+    ASSET_BROWSER_PANE_PROJECTION_CACHE.with(|cache| {
+        *cache.borrow_mut() =
+            resource_generation.map(|resource_generation| AssetBrowserPaneProjectionCacheEntry {
+                input: AssetBrowserProjectionInput::new(snapshot),
+                resource_generation,
+                text_metrics_generation,
+                composition_generation,
+                width_bits,
+                height_bits,
+                nodes: nodes.clone(),
+            });
+    });
+    nodes
+}
+
+#[cfg(test)]
+pub(super) fn clear_asset_browser_pane_projection_cache_for_tests() {
+    ASSET_BROWSER_PANE_PROJECTION_CACHE.with(|cache| *cache.borrow_mut() = None);
+}
+
+#[cfg(test)]
+#[test]
+fn stable_asset_browser_snapshot_reuses_the_composed_model() {
+    super::view_projection::clear_view_template_projection_caches_for_tests();
+    clear_asset_browser_pane_projection_cache_for_tests();
+    let snapshot = AssetWorkspaceSnapshot::default();
+    let stable_snapshot = snapshot.clone();
+    let size = UiSize::new(900.0, 620.0);
+
+    let first = asset_browser_pane_nodes(&snapshot, size);
+    let stable = asset_browser_pane_nodes(&stable_snapshot, size);
+
+    assert!(first.shares_values_with(&stable));
+}
+
+#[cfg(test)]
+#[test]
+fn catalog_generation_change_invalidates_the_pane_cache() {
+    super::view_projection::clear_view_template_projection_caches_for_tests();
+    clear_asset_browser_pane_projection_cache_for_tests();
+    let snapshot = AssetWorkspaceSnapshot::default();
+    let mut changed = snapshot.clone();
+    changed.selection.display_name = "Changed selection".to_string();
+    changed.catalog_revision = changed.catalog_revision.wrapping_add(1);
+    let size = UiSize::new(900.0, 620.0);
+
+    let first = asset_browser_pane_nodes(&snapshot, size);
+    let next = asset_browser_pane_nodes(&changed, size);
+
+    assert!(!first.shares_values_with(&next));
+    assert!(next.iter().any(|node| node.text == "Changed selection"));
 }
 
 fn apply_asset_browser_visual_state(
@@ -486,7 +621,12 @@ fn apply_asset_browser_visual_state(
         },
         if has_content_preview { 1.0 } else { 0.0 },
     );
-    update_asset_preview_visual_icon(nodes, "AssetBrowserContentPreviewVisual", selected_asset);
+    update_asset_preview_visual_icon(
+        nodes,
+        "AssetBrowserContentPreviewVisual",
+        selected_asset,
+        snapshot.catalog_revision,
+    );
     mark_panel_selected(nodes, "AssetBrowserContentPreviewCard", has_content_preview);
     update_panel_surface(
         nodes,
@@ -504,6 +644,7 @@ fn apply_asset_browser_visual_state(
         nodes,
         "AssetBrowserDetailsPreviewVisualPanel",
         selected_asset,
+        snapshot.catalog_revision,
     );
     update_panel_surface(
         nodes,
@@ -525,7 +666,12 @@ fn apply_asset_browser_visual_state(
         },
         if has_selection { 1.0 } else { 0.0 },
     );
-    update_asset_preview_visual_icon(nodes, "AssetBrowserPreviewVisualPanel", selected_asset);
+    update_asset_preview_visual_icon(
+        nodes,
+        "AssetBrowserPreviewVisualPanel",
+        selected_asset,
+        snapshot.catalog_revision,
+    );
     mark_panel_selected(
         nodes,
         "AssetBrowserPreviewPanel",
@@ -585,12 +731,13 @@ fn update_asset_preview_visual_icon(
     nodes: &mut [ViewTemplateNodeData],
     control_id: &str,
     asset: Option<&AssetItemSnapshot>,
+    workspace_generation: u64,
 ) {
     if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
         if let Some(asset) = asset {
             node.component_role = "asset-thumbnail-visual".into();
             node.component_variant = asset.asset_type.icon_name.clone().into();
-            update_asset_preview_visual_image(node, asset);
+            update_asset_preview_visual_image(node, asset, workspace_generation);
         } else {
             node.component_role = "".into();
             node.component_variant = "".into();
@@ -599,8 +746,17 @@ fn update_asset_preview_visual_icon(
     }
 }
 
-fn update_asset_preview_visual_image(node: &mut ViewTemplateNodeData, asset: &AssetItemSnapshot) {
-    let preview_image = load_preview_image(asset.preview_artifact_path.as_str(), "");
+fn update_asset_preview_visual_image(
+    node: &mut ViewTemplateNodeData,
+    asset: &AssetItemSnapshot,
+    workspace_generation: u64,
+) {
+    let resource_generation = workspace_generation ^ asset.resource_revision.unwrap_or_default();
+    let preview_image = load_preview_image_for_generation(
+        asset.preview_artifact_path.as_str(),
+        "",
+        resource_generation,
+    );
     let preview_size = preview_image.size();
     node.media_source = asset.preview_artifact_path.clone().into();
     node.has_preview_image = preview_size.width > 0 && preview_size.height > 0;

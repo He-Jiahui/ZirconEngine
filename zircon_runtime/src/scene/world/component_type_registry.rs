@@ -22,22 +22,38 @@ impl PartialEq for ComponentTypeRegistry {
 impl Eq for ComponentTypeRegistry {}
 
 impl ComponentTypeRegistry {
-    pub fn register(&mut self, descriptor: ComponentTypeDescriptor) -> SceneResult<()> {
+    pub(super) fn validate_new_descriptor(
+        &self,
+        descriptor: &ComponentTypeDescriptor,
+    ) -> SceneResult<()> {
         if !component_type_belongs_to_plugin(&descriptor.type_id, &descriptor.plugin_id) {
             return Err(SceneError::ComponentTypePluginPrefixMismatch {
-                type_id: descriptor.type_id,
-                plugin_id: descriptor.plugin_id,
+                type_id: descriptor.type_id.clone(),
+                plugin_id: descriptor.plugin_id.clone(),
             });
         }
         if self.descriptors.contains_key(&descriptor.type_id) {
             return Err(SceneError::DuplicateComponentType {
-                type_id: descriptor.type_id,
+                type_id: descriptor.type_id.clone(),
             });
         }
+        Ok(())
+    }
+
+    pub fn register(&mut self, descriptor: ComponentTypeDescriptor) -> SceneResult<()> {
+        self.validate_new_descriptor(&descriptor)?;
         let type_id = descriptor.type_id.clone();
         self.descriptors.insert(type_id.clone(), descriptor);
         self.advance_schema_generation(&type_id);
         Ok(())
+    }
+
+    pub(super) fn publish_prevalidated(&mut self, descriptor: ComponentTypeDescriptor) {
+        let type_id = descriptor.type_id.clone();
+        debug_assert!(self.validate_new_descriptor(&descriptor).is_ok());
+        let previous = self.descriptors.insert(type_id.clone(), descriptor);
+        debug_assert!(previous.is_none());
+        self.advance_schema_generation(&type_id);
     }
 
     pub fn descriptor(&self, type_id: &str) -> Option<&ComponentTypeDescriptor> {

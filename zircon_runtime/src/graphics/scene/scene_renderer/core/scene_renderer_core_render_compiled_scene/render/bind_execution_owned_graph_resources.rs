@@ -1,38 +1,29 @@
-use bytemuck::{bytes_of, cast_slice};
-use wgpu::util::DeviceExt;
-
 use crate::core::framework::render::PostProcessGraphResourceNames;
+use crate::graphics::scene::scene_renderer::core::scene_renderer_core::{
+    HzbNeutralBuffers, LightGridNeutralBuffers, SceneRendererNeutralGraphBuffers,
+};
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionResources, RenderPassMeshCommandLists,
 };
 use crate::graphics::scene::scene_renderer::hzb::{
-    HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE, HZB_OCCLUSION_COMPACTION_METADATA_RESOURCE,
-    HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE, HZB_OCCLUSION_DRAW_COUNT_RESOURCE,
+    HzbOcclusionCuller, HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE,
+    HZB_OCCLUSION_COMPACTION_METADATA_RESOURCE, HZB_OCCLUSION_DRAW_COUNT_RESOURCE,
     HZB_OCCLUSION_INDIRECT_ARGS_RESOURCE, HZB_OCCLUSION_STATS_RESOURCE,
-    HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE, HzbOcclusionCuller,
+    HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE,
 };
-use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::{
-    LIGHT_GRID_EMPTY_ZBIN_HEADER, LightGridParams,
-};
-use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
-    INDEXED_INDIRECT_ARGS_STRIDE_BYTES, INDIRECT_COMPACTION_METADATA_STRIDE_BYTES,
-    INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES, INDIRECT_VISIBLE_INSTANCE_INDEX_STRIDE_BYTES,
-    MeshIndirectDrawExecution,
-};
+use crate::graphics::scene::scene_renderer::mesh::mesh_pass::MeshIndirectDrawExecution;
 use crate::render_graph::CompiledRenderGraph;
 
-const HZB_FALLBACK_STORAGE_USAGE: wgpu::BufferUsages = wgpu::BufferUsages::STORAGE
-    .union(wgpu::BufferUsages::COPY_DST)
-    .union(wgpu::BufferUsages::COPY_SRC);
-const HZB_FALLBACK_INDIRECT_STORAGE_USAGE: wgpu::BufferUsages =
-    HZB_FALLBACK_STORAGE_USAGE.union(wgpu::BufferUsages::INDIRECT);
-const LIGHT_GRID_FALLBACK_PARAMS_USAGE: wgpu::BufferUsages =
-    wgpu::BufferUsages::UNIFORM.union(wgpu::BufferUsages::COPY_DST);
-const LIGHT_GRID_FALLBACK_STORAGE_USAGE: wgpu::BufferUsages =
-    wgpu::BufferUsages::STORAGE.union(wgpu::BufferUsages::COPY_DST);
+const HZB_INDIRECT_ARGS_EXECUTION_BACKING: &str = "hzb-occlusion-indirect-args:phase0";
+const HZB_METADATA_EXECUTION_BACKING: &str = "hzb-occlusion-compaction-metadata:phase0";
+const HZB_COMPACTED_ARGS_EXECUTION_BACKING: &str = "hzb-occlusion-compacted-indirect-args:phase0";
+const HZB_VISIBLE_INDEX_EXECUTION_BACKING: &str = "hzb-occlusion-visible-instance-index:phase0";
+const HZB_DRAW_COUNT_EXECUTION_BACKING: &str = "hzb-occlusion-draw-count:phase0";
+const HZB_STATS_EXECUTION_BACKING: &str = "hzb-occlusion-stats:shared";
 
 pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) fn bind_execution_owned_graph_resources(
     device: &wgpu::Device,
+    neutral_buffers: &mut SceneRendererNeutralGraphBuffers,
     graph: &CompiledRenderGraph,
     resources: &mut RenderGraphExecutionResources,
     mesh_draw_lists: RenderPassMeshCommandLists<'_>,
@@ -43,49 +34,28 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
         .into_iter()
         .flatten()
         .next();
-    bind_light_grid_external_buffers(device, graph, resources);
-    bind_hzb_occlusion_external_buffers(
-        device,
-        graph,
-        resources,
-        first_hzb_execution,
-        hzb_occlusion_culler,
-    );
+    if graph_declares_any_light_grid_external(graph) {
+        bind_light_grid_external_buffers(graph, resources, neutral_buffers.light_grid(device));
+    }
+    if graph_declares_any_hzb_occlusion_external(graph) {
+        bind_hzb_occlusion_external_buffers(
+            graph,
+            resources,
+            first_hzb_execution,
+            hzb_occlusion_culler,
+            neutral_buffers.hzb(device),
+        );
+    }
 }
 
 fn bind_light_grid_external_buffers(
-    device: &wgpu::Device,
     graph: &CompiledRenderGraph,
     resources: &mut RenderGraphExecutionResources,
+    neutral: &LightGridNeutralBuffers,
 ) {
-    if !graph_declares_any_light_grid_external(graph) {
-        return;
+    for logical_name in LIGHT_GRID_EXTERNAL_BUFFER_NAMES {
+        bind_light_grid_execution_buffer(graph, resources, logical_name, neutral);
     }
-
-    bind_light_grid_execution_buffer(
-        device,
-        graph,
-        resources,
-        PostProcessGraphResourceNames::LIGHT_GRID_PARAMS,
-        "zircon-light-grid-params-execution-fallback",
-        create_light_grid_params_fallback_buffer,
-    );
-    bind_light_grid_execution_buffer(
-        device,
-        graph,
-        resources,
-        PostProcessGraphResourceNames::LIGHT_ZBINS,
-        "zircon-light-grid-zbins-execution-fallback",
-        create_light_grid_zbins_fallback_buffer,
-    );
-    bind_light_grid_execution_buffer(
-        device,
-        graph,
-        resources,
-        PostProcessGraphResourceNames::LIGHT_TILE_MASKS,
-        "zircon-light-grid-tile-masks-execution-fallback",
-        create_light_grid_tile_masks_fallback_buffer,
-    );
 }
 
 fn graph_declares_any_light_grid_external(graph: &CompiledRenderGraph) -> bool {
@@ -95,143 +65,83 @@ fn graph_declares_any_light_grid_external(graph: &CompiledRenderGraph) -> bool {
 }
 
 fn bind_light_grid_execution_buffer(
-    device: &wgpu::Device,
     graph: &CompiledRenderGraph,
     resources: &mut RenderGraphExecutionResources,
     logical_name: &'static str,
-    fallback_label: &'static str,
-    create_fallback: impl FnOnce(&wgpu::Device, &'static str) -> wgpu::Buffer,
+    neutral: &LightGridNeutralBuffers,
 ) {
     if graph.resource_lifetime_by_name(logical_name).is_none() || resources.has_buffer(logical_name)
     {
         return;
     }
 
-    let fallback = create_fallback(device, fallback_label);
-    resources.bind_execution_owned_buffer(
-        logical_name,
-        light_grid_execution_backing_name(logical_name),
-        &fallback,
-    );
-}
-
-fn create_light_grid_params_fallback_buffer(
-    device: &wgpu::Device,
-    label: &'static str,
-) -> wgpu::Buffer {
-    device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some(label),
-        contents: bytes_of(&LightGridParams::disabled()),
-        usage: LIGHT_GRID_FALLBACK_PARAMS_USAGE,
-    })
-}
-
-fn create_light_grid_zbins_fallback_buffer(
-    device: &wgpu::Device,
-    label: &'static str,
-) -> wgpu::Buffer {
-    let words = [LIGHT_GRID_EMPTY_ZBIN_HEADER, 0, 0];
-    device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some(label),
-        contents: cast_slice(&words),
-        usage: LIGHT_GRID_FALLBACK_STORAGE_USAGE,
-    })
-}
-
-fn create_light_grid_tile_masks_fallback_buffer(
-    device: &wgpu::Device,
-    label: &'static str,
-) -> wgpu::Buffer {
-    let words = [0_u32];
-    device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some(label),
-        contents: cast_slice(&words),
-        usage: LIGHT_GRID_FALLBACK_STORAGE_USAGE,
-    })
-}
-
-fn light_grid_execution_backing_name(logical_name: &str) -> String {
-    format!("{logical_name}:light-grid-execution-fallback")
+    if let Some((buffer, backing_name)) = neutral.buffer(logical_name) {
+        resources.bind_execution_owned_buffer(logical_name, backing_name, buffer);
+    }
 }
 
 fn bind_hzb_occlusion_external_buffers(
-    device: &wgpu::Device,
     graph: &CompiledRenderGraph,
     resources: &mut RenderGraphExecutionResources,
     first_execution: Option<&MeshIndirectDrawExecution>,
     hzb_occlusion_culler: Option<&HzbOcclusionCuller>,
+    neutral: &HzbNeutralBuffers,
 ) {
-    if !graph_declares_any_hzb_occlusion_external(graph) {
-        return;
-    }
-
     bind_hzb_execution_buffer(
-        device,
         graph,
         resources,
         HZB_OCCLUSION_INDIRECT_ARGS_RESOURCE,
-        "hzb-occlusion-source-indirect-args",
         first_execution.map(MeshIndirectDrawExecution::args_buffer),
-        INDEXED_INDIRECT_ARGS_STRIDE_BYTES,
-        HZB_FALLBACK_INDIRECT_STORAGE_USAGE,
+        HZB_INDIRECT_ARGS_EXECUTION_BACKING,
+        neutral,
     );
     bind_hzb_execution_buffer(
-        device,
         graph,
         resources,
         HZB_OCCLUSION_COMPACTION_METADATA_RESOURCE,
-        "hzb-occlusion-compaction-metadata",
         first_execution.map(|execution| execution.compaction_resources().metadata_buffer()),
-        INDIRECT_COMPACTION_METADATA_STRIDE_BYTES,
-        HZB_FALLBACK_STORAGE_USAGE,
+        HZB_METADATA_EXECUTION_BACKING,
+        neutral,
     );
     bind_hzb_execution_buffer(
-        device,
         graph,
         resources,
         HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE,
-        "hzb-occlusion-compacted-indirect-args",
         first_execution.map(|execution| {
             execution
                 .compaction_resources()
                 .compacted_indirect_args_buffer()
         }),
-        INDEXED_INDIRECT_ARGS_STRIDE_BYTES,
-        HZB_FALLBACK_INDIRECT_STORAGE_USAGE,
+        HZB_COMPACTED_ARGS_EXECUTION_BACKING,
+        neutral,
     );
     bind_hzb_execution_buffer(
-        device,
         graph,
         resources,
         HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE,
-        "hzb-occlusion-visible-instance-index",
         first_execution.map(|execution| {
             execution
                 .compaction_resources()
                 .visible_instance_index_buffer()
         }),
-        INDIRECT_VISIBLE_INSTANCE_INDEX_STRIDE_BYTES,
-        HZB_FALLBACK_STORAGE_USAGE,
+        HZB_VISIBLE_INDEX_EXECUTION_BACKING,
+        neutral,
     );
     bind_hzb_execution_buffer(
-        device,
         graph,
         resources,
         HZB_OCCLUSION_DRAW_COUNT_RESOURCE,
-        "hzb-occlusion-draw-count",
         first_execution.map(|execution| execution.compaction_resources().draw_count_buffer()),
-        INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES,
-        HZB_FALLBACK_INDIRECT_STORAGE_USAGE,
+        HZB_DRAW_COUNT_EXECUTION_BACKING,
+        neutral,
     );
     bind_hzb_execution_buffer(
-        device,
         graph,
         resources,
         HZB_OCCLUSION_STATS_RESOURCE,
-        "hzb-occlusion-stats",
         hzb_occlusion_culler.map(HzbOcclusionCuller::stats_buffer),
-        HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE,
-        HZB_FALLBACK_STORAGE_USAGE,
+        HZB_STATS_EXECUTION_BACKING,
+        neutral,
     );
 }
 
@@ -242,45 +152,23 @@ fn graph_declares_any_hzb_occlusion_external(graph: &CompiledRenderGraph) -> boo
 }
 
 fn bind_hzb_execution_buffer(
-    device: &wgpu::Device,
     graph: &CompiledRenderGraph,
     resources: &mut RenderGraphExecutionResources,
     logical_name: &'static str,
-    fallback_label: &'static str,
     buffer: Option<&wgpu::Buffer>,
-    fallback_size: wgpu::BufferAddress,
-    fallback_usage: wgpu::BufferUsages,
+    execution_backing_name: &'static str,
+    neutral: &HzbNeutralBuffers,
 ) {
     if graph.resource_lifetime_by_name(logical_name).is_none() {
         return;
     }
     if let Some(buffer) = buffer {
-        resources.bind_execution_owned_buffer(
-            logical_name,
-            execution_owned_backing_name(logical_name, false),
-            buffer,
-        );
+        resources.bind_execution_owned_buffer(logical_name, execution_backing_name, buffer);
         return;
     }
 
-    let fallback = device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some(fallback_label),
-        size: fallback_size,
-        usage: fallback_usage,
-        mapped_at_creation: false,
-    });
-    resources.bind_execution_owned_buffer(
-        logical_name,
-        execution_owned_backing_name(logical_name, true),
-        &fallback,
-    );
-}
-
-fn execution_owned_backing_name(logical_name: &str, fallback: bool) -> String {
-    if fallback {
-        format!("{logical_name}:hzb-execution-fallback")
-    } else {
-        format!("{logical_name}:hzb-execution-phase0")
+    if let Some((buffer, backing_name)) = neutral.buffer(logical_name) {
+        resources.bind_execution_owned_buffer(logical_name, backing_name, buffer);
     }
 }
 
@@ -314,8 +202,15 @@ mod tests {
         };
         let graph = hzb_external_graph();
         let mut resources = RenderGraphExecutionResources::new();
+        let mut neutral_buffers = SceneRendererNeutralGraphBuffers::default();
 
-        bind_hzb_occlusion_external_buffers(&backend.device, &graph, &mut resources, None, None);
+        bind_hzb_occlusion_external_buffers(
+            &graph,
+            &mut resources,
+            None,
+            None,
+            neutral_buffers.hzb(&backend.device),
+        );
 
         let report = resources
             .validate_materialized_graph_resources(&graph)
@@ -331,7 +226,7 @@ mod tests {
         assert_eq!(aliases.buffer_aliases.len(), 6);
         assert!(aliases.buffer_aliases.iter().any(|alias| {
             alias.logical_name == HZB_OCCLUSION_INDIRECT_ARGS_RESOURCE
-                && alias.backing_name.ends_with(":hzb-execution-fallback")
+                && alias.backing_name == HZB_INDIRECT_ARGS_NEUTRAL_BACKING
         }));
     }
 
@@ -346,6 +241,11 @@ mod tests {
         assert!(product.contains("let first_hzb_execution ="));
         assert!(product.contains(".flatten()"));
         assert!(product.contains(".next();"));
+        assert!(product.contains("neutral_buffers.light_grid(device)"));
+        assert!(product.contains("neutral_buffers.hzb(device)"));
+        assert!(!product.contains("create_buffer"));
+        assert!(!product.contains("create_buffer_init"));
+        assert!(!product.contains("format!("));
     }
 
     #[test]
@@ -355,8 +255,13 @@ mod tests {
         };
         let graph = light_grid_external_graph();
         let mut resources = RenderGraphExecutionResources::new();
+        let mut neutral_buffers = SceneRendererNeutralGraphBuffers::default();
 
-        bind_light_grid_external_buffers(&backend.device, &graph, &mut resources);
+        bind_light_grid_external_buffers(
+            &graph,
+            &mut resources,
+            neutral_buffers.light_grid(&backend.device),
+        );
 
         let report = resources
             .validate_materialized_graph_resources(&graph)
@@ -372,10 +277,7 @@ mod tests {
         assert_eq!(aliases.buffer_aliases.len(), 3);
         for logical_name in LIGHT_GRID_EXTERNAL_BUFFER_NAMES {
             assert!(aliases.buffer_aliases.iter().any(|alias| {
-                alias.logical_name == *logical_name
-                    && alias
-                        .backing_name
-                        .ends_with(":light-grid-execution-fallback")
+                alias.logical_name == *logical_name && alias.backing_name.ends_with(":neutral")
             }));
         }
     }

@@ -183,9 +183,11 @@ mod tests {
         let stack = EditorUiDesignStack::material_fyrox_jetbrains_unreal();
         let layout = stack.default_workbench_layout();
 
-        let [MainHostPageLayout::WorkbenchPage {
-            document_workspace, ..
-        }] = layout.main_pages.as_slice()
+        let [
+            MainHostPageLayout::WorkbenchPage {
+                document_workspace, ..
+            },
+        ] = layout.main_pages.as_slice()
         else {
             panic!("default layout should expose one main workbench page");
         };

@@ -4,7 +4,7 @@ use crate::graphics::pipeline::{
     PipelineAsyncCompileError, PipelineAsyncQueueResult, PipelinePlaceholderPolicy,
 };
 use crate::graphics::scene::resources::{
-    PipelineKey, ResourceStreamer, default_pipeline_key, fallback_shader_uri,
+    default_pipeline_key, fallback_shader_uri, PipelineKey, ResourceStreamer,
 };
 use crate::graphics::shader::{ShaderVariantCacheDiskKey, ShaderVariantCacheDiskLookup};
 use crate::graphics::types::GraphicsError;
@@ -12,7 +12,7 @@ use crate::graphics::types::GraphicsError;
 use super::super::mesh_pass::{MeshPassPipelineKind, MeshPipelineVariantId};
 use super::super::mesh_pipeline::create_mesh_pipeline;
 use super::shader_source::{
-    MeshPipelineShaderSource, mesh_pipeline_shader_source_for_geometry_descriptor_with_features,
+    mesh_pipeline_shader_source_for_geometry_descriptor_with_features, MeshPipelineShaderSource,
 };
 use super::{AsyncBasePipelineProduct, MeshPipelineCache, PipelineCreationTarget};
 
@@ -91,9 +91,8 @@ impl MeshPipelineCache {
         streamer: &ResourceStreamer,
         variant_id: MeshPipelineVariantId,
     ) -> Option<&'a wgpu::RenderPipeline> {
-        let allow_synchronous_fallback = !self
-            .background_base_pipeline_variants
-            .contains(&variant_id);
+        let allow_synchronous_fallback =
+            !self.background_base_pipeline_variants.contains(&variant_id);
         self.ensure_pipeline_for_variant_with_async_placeholder(
             device,
             streamer,
@@ -130,6 +129,7 @@ impl MeshPipelineCache {
         if kind != MeshPassPipelineKind::Base {
             return None;
         }
+        let base_pipeline_layout = self.base_pipeline_layout_for_variant(variant_id).clone();
         if allow_async_placeholder
             && self.allow_async_pipeline_compile
             && !allow_synchronous_fallback
@@ -174,13 +174,13 @@ impl MeshPipelineCache {
             && self.async_base_pipeline_compiler.is_none()
             && !allow_synchronous_fallback
         {
-            let message =
-                "async Base pipeline compiler is unavailable; preserving the nonblocking SkipDraw placeholder";
+            let message = "async Base pipeline compiler is unavailable; preserving the nonblocking SkipDraw placeholder";
             self.record_shader_variant_pipeline_creation_message(&shader_variant_key, message);
             self.mark_background_base_pipeline_failure(variant_id, message);
             return None;
         }
-        let Some(geometry_source) = self.geometry_source_descriptor_for_variant(&shader_variant_key)
+        let Some(geometry_source) =
+            self.geometry_source_descriptor_for_variant(&shader_variant_key)
         else {
             self.mark_background_base_pipeline_failure(
                 variant_id,
@@ -228,13 +228,14 @@ impl MeshPipelineCache {
         {
             let queue_async_pipeline = {
                 let device = device.clone();
-                let layout = self.mesh_pipeline_layout.clone();
+                let layout = base_pipeline_layout.clone();
                 let target_format = self.target_format;
                 let async_pipeline_key = pipeline_key.clone();
                 let async_shader_key = shader_key.clone();
                 let async_cached_shader = cached_shader.clone();
                 let async_compiled_source = compiled_source.clone();
                 let async_runtime_pipeline_cache = self.runtime_pipeline_cache.cache().cloned();
+                let pipeline_creation_metrics = self.pipeline_creation_metrics.clone();
                 move || {
                     let device = device.clone();
                     let layout = layout.clone();
@@ -243,18 +244,31 @@ impl MeshPipelineCache {
                     let async_cached_shader = async_cached_shader.clone();
                     let async_compiled_source = async_compiled_source.clone();
                     let async_runtime_pipeline_cache = async_runtime_pipeline_cache.clone();
+                    let pipeline_creation_metrics = pipeline_creation_metrics.clone();
+                    let queued_at = std::time::Instant::now();
                     move || {
+                        pipeline_creation_metrics
+                            .record_async_base_pipeline_queue_wait(queued_at.elapsed());
                         let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
-                        let shader_module = async_cached_shader.unwrap_or_else(|| {
-                            device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                                label: Some("zircon-mesh-shader"),
-                                source: wgpu::ShaderSource::Wgsl(
-                                    async_compiled_source
-                                        .expect("uncached async shader source")
-                                        .into(),
-                                ),
-                            })
-                        });
+                        let shader_module = match async_cached_shader {
+                            Some(shader_module) => shader_module,
+                            None => {
+                                let creation_started = std::time::Instant::now();
+                                let shader_module =
+                                    device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                                        label: Some("zircon-mesh-shader"),
+                                        source: wgpu::ShaderSource::Wgsl(
+                                            async_compiled_source
+                                                .expect("uncached async shader source")
+                                                .into(),
+                                        ),
+                                    });
+                                pipeline_creation_metrics
+                                    .record_shader_module_creation(creation_started.elapsed());
+                                shader_module
+                            }
+                        };
+                        let render_pipeline_creation_started = std::time::Instant::now();
                         let pipeline = create_mesh_pipeline(
                             &device,
                             &layout,
@@ -262,6 +276,9 @@ impl MeshPipelineCache {
                             target_format,
                             &async_pipeline_key,
                             async_runtime_pipeline_cache.as_ref(),
+                        );
+                        pipeline_creation_metrics.record_render_pipeline_creation(
+                            render_pipeline_creation_started.elapsed(),
                         );
                         if let Some(error) = pollster::block_on(error_scope.pop()) {
                             return Err(error.to_string());
@@ -302,9 +319,11 @@ impl MeshPipelineCache {
                 PipelineAsyncQueueResult::AlreadyPending => return None,
                 PipelineAsyncQueueResult::Full => return None,
                 PipelineAsyncQueueResult::WorkerUnavailable if !allow_synchronous_fallback => {
-                    let message =
-                        "async Base pipeline compiler is unavailable; preserving the nonblocking SkipDraw placeholder";
-                    self.record_shader_variant_pipeline_creation_message(&shader_variant_key, message);
+                    let message = "async Base pipeline compiler is unavailable; preserving the nonblocking SkipDraw placeholder";
+                    self.record_shader_variant_pipeline_creation_message(
+                        &shader_variant_key,
+                        message,
+                    );
                     self.mark_background_base_pipeline_failure(variant_id, message);
                     return None;
                 }
@@ -313,6 +332,7 @@ impl MeshPipelineCache {
         }
         let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
         if !self.shader_modules.contains_key(&shader_key) {
+            let creation_started = std::time::Instant::now();
             let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("zircon-mesh-shader"),
                 source: wgpu::ShaderSource::Wgsl(
@@ -321,22 +341,27 @@ impl MeshPipelineCache {
                         .into(),
                 ),
             });
+            let creation_elapsed = creation_started.elapsed();
             self.shader_modules.insert(shader_key.clone(), module);
+            self.record_shader_module_creation(creation_elapsed);
         }
         if !self.mesh_variant_pipelines.contains_key(&variant_id) {
             let shader = self
                 .shader_modules
                 .get(&shader_key)
                 .expect("shader module cached");
+            let creation_started = std::time::Instant::now();
             let pipeline = create_mesh_pipeline(
                 device,
-                &self.mesh_pipeline_layout,
+                &base_pipeline_layout,
                 shader,
                 self.target_format,
                 &pipeline_key,
                 self.runtime_pipeline_cache.cache(),
             );
+            let creation_elapsed = creation_started.elapsed();
             self.mesh_variant_pipelines.insert(variant_id, pipeline);
+            self.record_render_pipeline_creation(creation_elapsed);
         }
         self.track_pipeline_creation_error_scope(
             &shader_variant_key,
@@ -455,10 +480,7 @@ impl MeshPipelineCache {
                             &error,
                         );
                     }
-                    self.mark_background_base_pipeline_failure(
-                        variant_id,
-                        format!("{error:?}"),
-                    );
+                    self.mark_background_base_pipeline_failure(variant_id, format!("{error:?}"));
                     continue;
                 }
             };

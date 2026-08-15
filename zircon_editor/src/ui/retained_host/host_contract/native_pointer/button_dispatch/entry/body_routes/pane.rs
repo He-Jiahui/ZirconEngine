@@ -8,7 +8,7 @@ pub(super) fn dispatch_pane_body_route(
 ) -> Option<NativePointerDispatchResult> {
     dispatch_pane_route_button(
         input.ui,
-        input.presentation,
+        input.presentation.structure(),
         input.state,
         input.button,
         input.button_id,

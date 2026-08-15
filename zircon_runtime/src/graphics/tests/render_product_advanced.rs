@@ -382,7 +382,7 @@ fn render_hzb_occlusion_wall_scene(
     render_hzb_occlusion_wall_scene_with_submission_config(
         capabilities,
         viewport_size,
-        RenderSubmissionConfig::synchronous().with_hzb_indirect_args_readback(),
+        RenderSubmissionConfig::synchronous().with_hzb_diagnostics_readback(),
     )
 }
 
@@ -393,9 +393,7 @@ fn render_hzb_occlusion_wall_scene_with_submission_config(
 ) -> (CapturedFrame, RenderStats) {
     let server =
         WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
-    server
-        .set_submission_config(submission_config)
-        .unwrap();
+    server.set_submission_config(submission_config).unwrap();
     server.override_capabilities_for_tests(capabilities);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))

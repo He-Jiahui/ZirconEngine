@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: open
+status: source_complete_dynamic_validation_pending
 created_at: 2026-07-18
 summary_slug: ui-surface-per-present-geometry-text-and-pass-rebuild
 origin_plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md

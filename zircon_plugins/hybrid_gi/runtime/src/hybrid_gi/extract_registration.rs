@@ -4,6 +4,7 @@ use zircon_runtime::core::framework::render::{
     RenderHybridGiExtract, RenderHybridGiResolvedSettings, RenderMeshSnapshot,
     RenderPointLightSnapshot, RenderSpotLightSnapshot,
 };
+use zircon_runtime::core::math::Vec3;
 
 impl HybridGiRuntimeState {
     pub(crate) fn composite_policy(&self) -> RenderHybridGiCompositePolicy {
@@ -24,17 +25,45 @@ impl HybridGiRuntimeState {
         baked_lighting: Option<&LightmapConsumeContract>,
         has_baked_probe_grid: bool,
     ) {
+        self.register_scene_extract_with_view_state(
+            extract,
+            meshes,
+            directional_lights,
+            point_lights,
+            spot_lights,
+            baked_lighting,
+            has_baked_probe_grid,
+            None,
+            false,
+        );
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn register_scene_extract_with_view_state(
+        &mut self,
+        extract: Option<&RenderHybridGiExtract>,
+        meshes: &[RenderMeshSnapshot],
+        directional_lights: &[RenderDirectionalLightSnapshot],
+        point_lights: &[RenderPointLightSnapshot],
+        spot_lights: &[RenderSpotLightSnapshot],
+        baked_lighting: Option<&LightmapConsumeContract>,
+        has_baked_probe_grid: bool,
+        camera_position: Option<Vec3>,
+        history_invalidated: bool,
+    ) {
         let enabled_extract = extract.filter(|extract| extract.enabled);
         self.register_extract(enabled_extract);
         if enabled_extract.is_some() {
             self.scene_representation_mut()
-                .synchronize_scene_with_baked(
+                .synchronize_scene_with_baked_and_view_state(
                     meshes,
                     directional_lights,
                     point_lights,
                     spot_lights,
                     baked_lighting,
                     has_baked_probe_grid,
+                    camera_position,
+                    history_invalidated,
                 );
         }
     }

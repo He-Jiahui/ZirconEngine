@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use super::{
@@ -8,7 +9,7 @@ const DEFAULT_ESTIMATED_PENDING_BYTES: usize = 4 * 1024;
 
 #[derive(Clone, Debug)]
 pub struct EditorJobSpec {
-    pub(super) label: String,
+    pub(super) label: Arc<str>,
     pub(super) category: JobCategory,
     pub(super) priority: JobPriority,
     pub(super) mutex_group: Option<MutexGroup>,
@@ -22,7 +23,7 @@ pub struct EditorJobSpec {
 impl EditorJobSpec {
     pub fn new(label: impl Into<String>, category: JobCategory) -> Self {
         Self {
-            label: label.into(),
+            label: Arc::from(label.into()),
             category,
             priority: JobPriority::Normal,
             mutex_group: None,

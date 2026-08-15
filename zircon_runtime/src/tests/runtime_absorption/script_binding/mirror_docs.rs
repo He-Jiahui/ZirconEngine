@@ -8,7 +8,7 @@ use super::support::{assert_file_line_budget, assert_files_exist, count_occurren
 
 #[test]
 fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
-    assert_eq!(EXPECTED_RUNTIME_13_SOURCE_FILES.len(), 18);
+    assert_eq!(EXPECTED_RUNTIME_13_SOURCE_FILES.len(), 24);
     assert_eq!(EXPECTED_RUNTIME_13_TEST_FILES.len(), 3);
 
     let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -35,6 +35,20 @@ fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
         "Runtime 13 gameplay host tests",
     );
 
+    let script_framework_facade = include_str!("../../../core/framework/script.rs");
+    for declaration in [
+        "#[path = \"script/argument_views.rs\"]",
+        "#[path = \"script/call_frame.rs\"]",
+        "#[path = \"script/descriptors.rs\"]",
+        "#[path = \"script/hot_path_metrics.rs\"]",
+        "#[path = \"script/value_contracts.rs\"]",
+    ] {
+        assert!(
+            script_framework_facade.contains(declaration),
+            "Runtime 13 framework facade must retain the split declaration `{declaration}`"
+        );
+    }
+
     let builtin_host = include_str!("../../../script/vm/host/builtin_host_modules.rs");
     let gameplay_host = include_str!("../../../script/vm/gameplay_host.rs");
     assert_eq!(
@@ -44,7 +58,7 @@ fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
     );
     assert_eq!(
         count_occurrences(gameplay_host, "HostExportFunction::new("),
-        39,
+        40,
         "Runtime 13 gameplay callback count should match script_binding_boundary"
     );
     assert_eq!(
@@ -103,6 +117,15 @@ fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
     for (doc_name, doc_source) in mirror_docs {
         assert_contains_all(doc_name, doc_source, SCRIPT_BINDING_MIRROR_DOC_ANCHORS);
     }
+}
+
+#[test]
+fn runtime_13_script_binding_cargo_gate_stays_visible_until_script_filters_pass() {
+    let plan = include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/13-script-binding-and-reflection.md"
+    );
+    assert!(plan.contains("cargo test -p zircon_runtime --lib script --locked -- --nocapture"));
+    assert!(plan.contains("code_static_pending_cargo"));
 }
 
 fn assert_contains_all(label: &str, source: &str, required: &[&str]) {

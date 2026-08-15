@@ -53,8 +53,10 @@ fn plugin_resource_available_to_systems() {
             owner,
             "weather.apply",
             SystemStage::Update,
-            |(config, mut observed): (Res<'_, WeatherConfig>, ResMut<'_, WeatherObserved>)| {
-                observed.0.push(config.0);
+            || {
+                |(config, mut observed): (Res<'_, WeatherConfig>, ResMut<'_, WeatherObserved>)| {
+                    observed.0.push(config.0);
+                }
             },
         )
         .in_set(weather_set)
@@ -104,7 +106,7 @@ fn plugin_system_constraints_order_registered_native_systems() {
             owner,
             "weather.second",
             SystemStage::Update,
-            |mut observed: ResMut<'_, WeatherObserved>| observed.0.push(2),
+            || |mut observed: ResMut<'_, WeatherObserved>| observed.0.push(2),
         )
         .in_set(set)
         .with_order(-100)
@@ -116,7 +118,7 @@ fn plugin_system_constraints_order_registered_native_systems() {
             owner,
             "weather.first",
             SystemStage::Update,
-            |mut observed: ResMut<'_, WeatherObserved>| observed.0.push(1),
+            || |mut observed: ResMut<'_, WeatherObserved>| observed.0.push(1),
         )
         .in_set(set)
         .with_order(100)
@@ -150,7 +152,7 @@ fn plugin_system_lands_in_stage_plan() {
             owner,
             "weather.stage-plan-reader",
             SystemStage::Update,
-            |_: Res<'_, WeatherConfig>| {},
+            || |_: Res<'_, WeatherConfig>| {},
         )
         .in_set(set)
         .register()
@@ -181,7 +183,7 @@ fn plugin_system_access_joins_conflict_graph() {
             owner,
             "weather.read-config",
             SystemStage::Update,
-            |_: Res<'_, WeatherConfig>| {},
+            || |_: Res<'_, WeatherConfig>| {},
         )
         .register()
         .unwrap();
@@ -190,7 +192,7 @@ fn plugin_system_access_joins_conflict_graph() {
             owner,
             "weather.write-config",
             SystemStage::Update,
-            |_: ResMut<'_, WeatherConfig>| {},
+            || |_: ResMut<'_, WeatherConfig>| {},
         )
         .register()
         .unwrap();
@@ -231,14 +233,17 @@ fn plugin_runtime_scene_system_registrations_apply_to_world() {
                 owner,
                 "weather.runtime-context",
                 SystemStage::Update,
-                move |context: RuntimeSceneSystemContext<'_>| {
-                    context.level.with_world(|_| {
-                        events
-                            .lock()
-                            .unwrap()
-                            .push(format!("runtime-context={:.3}", context.delta_seconds));
-                    });
-                    Ok(())
+                move || {
+                    let events = Arc::clone(&events);
+                    move |context: RuntimeSceneSystemContext<'_>| {
+                        context.level.with_world(|_| {
+                            events
+                                .lock()
+                                .unwrap()
+                                .push(format!("runtime-context={:.3}", context.delta_seconds));
+                        });
+                        Ok(())
+                    }
                 },
             )
             .in_set(weather_set)

@@ -23,7 +23,8 @@ pub use protocol::EditorMessageProtocol;
 pub use request::EditorMessageRequest;
 pub use response::EditorMessageResponse;
 pub use scene_inspection::{
-    SceneInspectionFieldsDelta, SceneInspectionMessage, SceneInspectionPropertyPath,
+    SceneInspectionFieldsDelta, SceneInspectionHierarchyAnchor, SceneInspectionMessage,
+    SceneInspectionPropertyPath, SceneInspectionSelectionDelta,
 };
 pub use tool::ToolMessage;
 pub use transaction::TransactionMessage;

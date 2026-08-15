@@ -52,6 +52,7 @@ pub(super) const STATIC_PLUGIN_MANIFESTS: &[(&str, &str)] = &[
         include_str!("../../../navigation/plugin.toml"),
     ),
     ("net", include_str!("../../../net/plugin.toml")),
+    ("neural", include_str!("../../../neural/plugin.toml")),
     (
         "obj_importer",
         include_str!("../../../obj_importer/plugin.toml"),

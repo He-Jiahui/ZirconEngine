@@ -63,6 +63,12 @@ Editor core/runtime 边界没有 per-viewport、generation-bound 的 editor over
 
 Open state: `待修复`; 当前没有 gateway 实现、受管 Cargo 结果或 accepted closeout 声明。
 
+### 2026-08-15 current-source boundary re-review（未验收）
+
+上面的“没有 gateway 实现”已不再符合共享当前源，不能据此重复建立第二条 overlay 通道。当前 `EditorRuntimeGateway`/stable handle、InProcess、Detached 和 Session gateway 均有 `submit_highlight_set`；`ZrRuntimeApiV6`、runtime FFI、`RuntimeDynamicSession` latest-value storage、app runtime-library loader 与 `EditorCoreProfile` capability 也都接通 `runtime.editor_overlay.highlight_set`。静态现有测试覆盖 canonical entity sort、session ABI viewport 隔离/过期 generation、session capability-missing 和 detached typed error；未在本轮运行 Cargo，故这不是 managed GREEN 或 fixed return。
+
+当前未闭合的旧架构位于 Editor05 viewport consumer：`scene/viewport/render_packet.rs` 仍由 `&Scene` 构造 `RenderOverlayExtract.selection: Vec<SelectionHighlightExtract>`，且没有调用 gateway。该 owner 必须将 active-domain 多选投影为 generation-bound `EditorRuntimeHighlightSet`，经 viewport gateway 一次提交，并物理删除 `SelectionHighlightExtract`、`overlays.selection` 及旧 direct-`Scene` selection extract；不得新增 alias、双写或 fallback。Editor01 不再修改这些 Editor05-owned projection 文件。共享 current-source 仍为脏工作树，所有 lower-contract 文件的 owner/validation/commit 继续以 coordinator transfer 为准。
+
 ## 产出记录与时间
 
 | 日期 | 项目 | 状态 | 证据 |

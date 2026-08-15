@@ -1,13 +1,13 @@
 use std::sync::{
-    Arc, OnceLock,
     atomic::{AtomicUsize, Ordering},
+    Arc, OnceLock,
 };
 
 use crate::asset::pipeline::manager::{ProjectAssetManager, ProjectAssetManagerAccess};
 use crate::core::framework::render::{
     CapturedFrame, CorePipelineKind, ProjectionMode, RenderFrameExtract, RenderFramework,
-    RenderPipelineHandle, RenderStats, RenderSubmissionConfig, RenderViewportDescriptor,
-    RenderWorldSnapshotHandle,
+    RenderGraphParallelRecordingReport, RenderPipelineHandle, RenderStats, RenderSubmissionConfig,
+    RenderViewportDescriptor, RenderWorldSnapshotHandle,
 };
 use crate::core::math::UVec2;
 use crate::core::{TaskPool, TaskPoolDescriptor};
@@ -261,10 +261,18 @@ fn render_perf_parallel_recording_product_path_preserves_topology_and_pixels() {
     assert_parallel_recording_pass_order(&parallel.stats);
     assert_eq!(serial.trace.worker_record_count(), 0);
     assert_eq!(serial.trace.non_worker_record_count(), 2);
+    assert_eq!(
+        serial.stats.last_graph_parallel_recording_report,
+        RenderGraphParallelRecordingReport::default()
+    );
     assert!(parallel.trace.worker_record_count() > 0);
     assert_eq!(
         parallel.trace.worker_record_count() + parallel.trace.non_worker_record_count(),
         2
+    );
+    assert_eq!(
+        parallel.stats.last_graph_parallel_recording_report,
+        RenderGraphParallelRecordingReport::new(1, 2, 1, 2)
     );
 }
 
@@ -295,27 +303,58 @@ fn render_perf_prewarm_zero_first_frame_miss() {
     assert_eq!(first.cache_hit_count(), 0);
     assert_eq!(first.failed_count(), 0, "failures={:?}", first.failures());
 
+    let viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(STANDARD_VIEWPORT_SIZE))
+        .unwrap();
+    let mut first_extract = RenderFrameExtract::from_snapshot(
+        RenderWorldSnapshotHandle::new(1),
+        World::new().to_render_snapshot(),
+    );
+    first_extract.apply_viewport_size(STANDARD_VIEWPORT_SIZE);
+    framework
+        .submit_frame_extract(viewport, first_extract)
+        .unwrap();
+    let first_stats = framework.query_stats().unwrap();
+    let first_creation_metrics = &first_stats.last_shader_variant_miss_report;
+    assert!(first_creation_metrics.render_pipeline_creation_count > 0);
+    assert!(first_creation_metrics.shader_module_creation_count > 0);
+    assert_eq!(
+        first_creation_metrics.render_pipeline_creation_count,
+        first_creation_metrics.cached_render_pipeline_count
+    );
+
     let repeated = framework.prewarm_shader_pipelines(&manifest).unwrap();
     assert_eq!(repeated.ready_count(), repeated.requested_count());
     assert_eq!(repeated.cache_hit_count(), repeated.requested_count());
     assert_eq!(repeated.failed_count(), 0);
 
-    let viewport = framework
-        .create_viewport(RenderViewportDescriptor::new(STANDARD_VIEWPORT_SIZE))
-        .unwrap();
-    let mut extract = RenderFrameExtract::from_snapshot(
-        RenderWorldSnapshotHandle::new(1),
+    let mut repeated_extract = RenderFrameExtract::from_snapshot(
+        RenderWorldSnapshotHandle::new(2),
         World::new().to_render_snapshot(),
     );
-    extract.apply_viewport_size(STANDARD_VIEWPORT_SIZE);
-    framework.submit_frame_extract(viewport, extract).unwrap();
+    repeated_extract.apply_viewport_size(STANDARD_VIEWPORT_SIZE);
+    framework
+        .submit_frame_extract(viewport, repeated_extract)
+        .unwrap();
+    let repeated_stats = framework.query_stats().unwrap();
+    let repeated_creation_metrics = &repeated_stats.last_shader_variant_miss_report;
     assert_eq!(
-        framework
-            .query_stats()
-            .unwrap()
-            .last_variant_first_frame_miss_count,
-        0
+        repeated_creation_metrics.render_pipeline_creation_count,
+        first_creation_metrics.render_pipeline_creation_count
     );
+    assert_eq!(
+        repeated_creation_metrics.shader_module_creation_count,
+        first_creation_metrics.shader_module_creation_count
+    );
+    assert_eq!(
+        repeated_creation_metrics.render_pipeline_creation_cpu_microseconds,
+        first_creation_metrics.render_pipeline_creation_cpu_microseconds
+    );
+    assert_eq!(
+        repeated_creation_metrics.shader_module_creation_cpu_microseconds,
+        first_creation_metrics.shader_module_creation_cpu_microseconds
+    );
+    assert_eq!(repeated_stats.last_variant_first_frame_miss_count, 0);
 }
 
 fn standard_empty_scene_frames() -> &'static (RenderStats, RenderStats) {
@@ -398,6 +437,7 @@ fn render_parallel_recording_product_frame(
             ProjectAssetManagerAccess::for_test(Arc::new(ProjectAssetManager::default())),
             [parallel_recording_feature_descriptor()],
             parallel_recording_executor_registrations(Arc::clone(&trace)),
+            Vec::new(),
             Vec::new(),
             Vec::new(),
             Vec::new(),

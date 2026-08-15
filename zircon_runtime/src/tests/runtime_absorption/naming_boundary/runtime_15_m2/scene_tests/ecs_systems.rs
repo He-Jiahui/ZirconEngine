@@ -76,18 +76,4 @@ fn runtime_15_scene_ecs_systems_many_single_queries_uses_owner_name() {
         !test_budget_guard.contains("scene/tests/ecs_systems/query_helpers.rs"),
         "scene ECS systems test-budget guard should not keep retired query_helpers path"
     );
-
-    let docs = [];
-    for (label, source) in docs {
-        assert_contains_all(
-            label,
-            &source,
-            &[
-                "Runtime 15 M2 scene ECS systems many/single queries module naming hard cutover",
-                "runtime_15_scene_ecs_systems_many_single_queries_naming_hard_cutover_static_passed_cargo_timeout_no_result",
-                "scene/tests/ecs_systems/many_single_queries.rs",
-                "runtime_15_scene_ecs_systems_many_single_queries_uses_owner_name",
-            ],
-        );
-    }
 }

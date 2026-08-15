@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: open
+status: source_complete_dynamic_validation_pending
 created_at: 2026-07-17
 summary_slug: hzb-per-frame-blocking-readback
 origin_plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md
@@ -13,7 +13,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/hzb/hzb_occlusion_culler.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/indirect_draw_execution.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame.rs
-  - zircon_runtime/src/rhi_wgpu/gpu_readback_queue/queue.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/queue.rs
 tests:
   - default pipeline steady frame has no blocking HZB readback
   - delayed HZB stats ring freshness and drop test
@@ -55,8 +55,14 @@ tests:
 
 ## 修复结果与回传
 
-Render04 now reserves bounded HZB stats/explicit debug args queues, consumes only ready FIFO
-results, and reports pending/drop/age diagnostics. The shared WGPU readback queue now rejects a
-busy frame slot after a non-blocking poll instead of waiting for GPU completion; the normal render
-path already treats that rejection as a skipped diagnostic frame. Default indirect-args inspection
-remains opt-in. Focused source tests and managed WGPU performance/capture validation remain pending.
+2026-08-13 source closeout：`RenderSubmissionConfig::hzb_diagnostics_readback` 以默认关闭的
+统一开关显式控制 stats、indirect args 与 draw-count CPU 诊断。普通产品帧不再申请任何 HZB
+readback copy；只有显式启用且本帧实际 dispatch HZB 时才进入共享 `GpuReadbackQueue`。诊断帧在
+stats 与 indirect pending 队列均有容量时才整体准入，容量不足只累计 drop，不生成半帧诊断。
+ready 结果按 source frame FIFO 延迟消费并报告 generation/frame、pending、drop 与 age；共享三槽
+staging ring 只执行 non-blocking poll，busy slot 不等待 GPU。
+
+本切片已完成 scoped `rustfmt`、旧配置/API 名扫描与 `git diff --check`，源码合同锁定默认零读回、
+显式 opt-in、whole-frame admission 和 skipped-frame 诊断。Cargo/WGPU、1/100/10k candidate timing、
+RenderDoc capture、copy/allocation 计数和 `docs/tests/runtime/render` 当前源码 PNG 仍由 coordinator
+执行；因此该 failure 仅为 source complete，尚未 accepted closeout。

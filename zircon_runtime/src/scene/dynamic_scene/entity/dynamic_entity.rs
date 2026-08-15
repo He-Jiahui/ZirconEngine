@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::scene::EntityId;
 use crate::scene::components::NodeRecord;
 use crate::scene::dynamic_scene::entity::DynamicComponent;
+use crate::scene::EntityId;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DynamicEntity {

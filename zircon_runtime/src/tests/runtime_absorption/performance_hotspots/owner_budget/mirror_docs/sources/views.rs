@@ -65,7 +65,6 @@ impl MirrorDocsSources {
             self.submit_context_split_layout_guard,
             self.submit_context_status_docs_guard,
             self.submit_error_paths_guard,
-            self.cargo_gate_guard,
         ]
     }
 

@@ -5,7 +5,7 @@ struct IblIrradianceCubeParams {
     source_face_size: u32,
     irradiance_face_size: u32,
     sample_count: u32,
-    _pad0: u32,
+    source_mip_level: u32,
 };
 
 @group(0) @binding(0) var<uniform> params: IblIrradianceCubeParams;
@@ -90,7 +90,14 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var color = vec3<f32>(0.0, 0.0, 0.0);
     for (var i = 0u; i < sample_count; i = i + 1u) {
         let sample_dir = cosine_sample_hemisphere(hammersley(i, sample_count), normal);
-        color = color + textureSampleLevel(source_cubemap, source_sampler, sample_dir, 0.0).rgb;
+        color = color
+            + textureSampleLevel(
+                source_cubemap,
+                source_sampler,
+                sample_dir,
+                f32(params.source_mip_level),
+            )
+                .rgb;
     }
 
     let irradiance = color / f32(sample_count);

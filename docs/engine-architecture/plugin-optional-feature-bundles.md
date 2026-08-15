@@ -10,9 +10,11 @@ related_code:
   - zircon_runtime/Cargo.toml
   - zircon_app/Cargo.toml
   - zircon_app/src/plugins/groups.rs
+  - zircon_runtime/src/plugin/runtime_profile/assembly_presets.rs
   - zircon_runtime/src/plugin/runtime_profile/availability.rs
+  - zircon_runtime/src/plugin/runtime_profile/availability_projection.rs
+  - zircon_runtime/src/plugin/runtime_profile/availability_projection/generation.rs
   - zircon_runtime/src/plugin/runtime_profile/availability_report.rs
-  - zircon_runtime/src/plugin/runtime_profile/defaults.rs
   - zircon_runtime/src/plugin/runtime_profile/descriptor.rs
   - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_feature_selection.rs
   - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_selection.rs
@@ -198,9 +200,11 @@ implementation_files:
   - zircon_runtime/src/plugin/package_manifest/plugin_feature_dependency.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
   - zircon_runtime/src/plugin/runtime_profile.rs
+  - zircon_runtime/src/plugin/runtime_profile/assembly_presets.rs
   - zircon_runtime/src/plugin/runtime_profile/availability.rs
+  - zircon_runtime/src/plugin/runtime_profile/availability_projection.rs
+  - zircon_runtime/src/plugin/runtime_profile/availability_projection/generation.rs
   - zircon_runtime/src/plugin/runtime_profile/availability_report.rs
-  - zircon_runtime/src/plugin/runtime_profile/defaults.rs
   - zircon_runtime/src/plugin/runtime_profile/descriptor.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin/feature.rs
@@ -434,7 +438,7 @@ Native-aware project completion now preserves those optional feature selections 
 
 M1 adds explicit maturity and capability-status metadata beside the existing optional-feature model. `RuntimePluginDescriptor` and `PluginPackageManifest` now carry `PluginMaturity`, while `PluginPackageManifest.capability_statuses` records the status of each public capability or feature capability. These fields are metadata gates only; they do not replace `DependencySpec` or `RuntimeExtensionRegistry` contributions.
 
-`RuntimeProfileDescriptor` groups default and optional runtime plugin selections for `minimal`, `client_2d`, `client_3d`, `editor`, `dev`, and `server`. The runtime profile boundary is folder-backed: `runtime_profile.rs` only publishes the API surface, `descriptor.rs` owns profile declarations and deterministic `ProjectPluginManifest` projection, `defaults.rs` owns the built-in profile rows, `availability_report.rs` owns the structured report buckets and diagnostic lines, and `availability.rs` owns provider/link/native-dynamic availability evaluation. The resulting `RuntimePluginAvailabilityReport` separates available, linked, externalized, stub, target-blocked, maturity-blocked, and missing-required plugin states without mixing those policy checks into the declaration structs.
+`RuntimeProfileDescriptor` groups default and optional runtime plugin selections for `minimal`, `client_2d`, `client_3d`, `editor`, `dev`, and `server`. The runtime profile boundary is folder-backed: `runtime_profile.rs` only publishes the API surface, `descriptor.rs` owns profile declaration types and deterministic `ProjectPluginManifest` projection, `assembly_presets.rs` owns generated built-in preset rows and descriptor construction, `availability_projection.rs` plus `availability_projection/generation.rs` own reusable provider membership/indexes and immutable availability generations, `availability_report.rs` owns the structured report buckets and diagnostic lines, and `availability.rs` owns provider/link/native-dynamic availability evaluation. The resulting `RuntimePluginAvailabilityReport` separates available, linked, externalized, stub, target-blocked, maturity-blocked, and missing-required plugin states without mixing those policy checks into the declaration structs.
 
 Stable/default-style profiles reject required `Externalized`, `Stub`, and below-minimum maturity plugins. Optional advanced plugins such as particles, virtual geometry, hybrid GI, and physics use the same report gates but populate warning buckets without blocking `missing_required`.
 

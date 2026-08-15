@@ -9,13 +9,13 @@ mod selection;
 mod viewport;
 mod welcome;
 
-pub use animation::{dispatch_animation_binding, AnimationHostEvent};
-pub use asset::{dispatch_asset_binding, AssetHostEvent};
+pub use animation::{AnimationHostEvent, dispatch_animation_binding};
+pub use asset::{AssetHostEvent, dispatch_asset_binding};
 pub use docking::dispatch_docking_binding;
-pub use draft::{apply_draft_binding, dispatch_draft_binding, DraftHostEvent};
+pub use draft::{DraftHostEvent, apply_draft_binding, dispatch_draft_binding};
 pub use error::EditorBindingDispatchError;
 pub(crate) use inspector::apply_inspector_draft_field;
-pub use inspector::{apply_inspector_binding, dispatch_inspector_binding, InspectorBindingBatch};
+pub use inspector::{InspectorBindingBatch, apply_inspector_binding, dispatch_inspector_binding};
 pub use selection::{apply_selection_binding, dispatch_selection_binding};
 pub use viewport::{apply_viewport_binding, dispatch_viewport_binding};
-pub use welcome::{dispatch_welcome_binding, WelcomeHostEvent};
+pub use welcome::{WelcomeHostEvent, dispatch_welcome_binding};

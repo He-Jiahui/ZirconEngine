@@ -111,6 +111,8 @@ pub(crate) struct TemplatePaneNodeData {
     pub checked: bool,
     pub expanded: bool,
     pub focused: bool,
+    pub focus_visible: bool,
+    pub focus_visible_known: bool,
     pub hovered: bool,
     pub pressed: bool,
     pub dragging: bool,

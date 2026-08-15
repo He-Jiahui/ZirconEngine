@@ -1,6 +1,6 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::segments::{GlyphSegmentSpec, push_segments};
+use super::super::segments::{push_segments, GlyphSegmentSpec};
 
 const RIGHT_CHEVRON_SEGMENTS: [GlyphSegmentSpec; 3] = [
     GlyphSegmentSpec::new(5, 3, 2, 3),

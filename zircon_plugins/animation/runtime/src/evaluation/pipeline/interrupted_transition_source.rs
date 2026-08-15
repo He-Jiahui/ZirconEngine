@@ -6,7 +6,7 @@ use super::AnimationEvaluationPipeline;
 use zircon_runtime::core::framework::animation::AnimationPoseOutput;
 use zircon_runtime::scene::EntityId;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(super) struct InterruptedTransitionSource {
     pub(super) from_state: String,
     pub(super) to_state: String,

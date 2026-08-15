@@ -159,12 +159,16 @@ fn compiled_graph_stats_are_materialized_during_graph_construction() {
 }
 
 #[test]
-fn compile_reachability_uses_a_bounded_bitset_closure() {
+fn compile_resource_hazards_split_execution_and_provenance_adjacency() {
     let compile_source = include_str!("../builder/compile.rs");
 
-    assert!(compile_source.contains("struct ManualPassReachability"));
-    assert!(compile_source.contains("Vec<Vec<u64>>"));
-    assert!(!compile_source.contains("let additions = reachable[intermediate].clone();"));
+    assert!(compile_source.contains("struct DependencyAdjacency"));
+    assert!(compile_source.contains("membership: Vec<HashSet<RenderPassId>>"));
+    assert!(compile_source.contains("let mut execution_dependencies"));
+    assert!(compile_source.contains("let mut culling_dependencies"));
+    assert!(compile_source.contains("struct ResourceAccessHistory"));
+    assert!(compile_source.contains("readers_since_last_write"));
+    assert!(!compile_source.contains("struct ManualPassReachability"));
 }
 
 #[test]
@@ -178,12 +182,29 @@ fn compile_lifetime_analysis_reuses_resource_declaration_metadata() {
 }
 
 #[test]
-fn compile_writer_validation_checks_the_topological_writer_chain() {
+fn compile_lifetime_analysis_returns_typed_error_instead_of_panicking() {
+    let compile_source = include_str!("../builder/compile.rs");
+    let error_source = include_str!("../error.rs");
+
+    assert!(
+        compile_source.contains(") -> Result<Vec<RenderGraphResourceLifetime>, RenderGraphError>")
+    );
+    assert!(compile_source.contains("RenderGraphError::ResourceDeclarationMissing"));
+    assert!(!compile_source.contains(".expect(\"resource accesses are validated"));
+    assert!(error_source.contains("ResourceDeclarationMissing"));
+}
+
+#[test]
+fn compile_resource_hazard_inference_tracks_writers_and_readers() {
     let compile_source = include_str!("../builder/compile.rs");
 
-    assert!(compile_source.contains("writer_ids.sort_by_key"));
-    assert!(compile_source.contains("writer_ids.windows(2)"));
-    assert!(!compile_source.contains("writer_ids.iter().skip(index + 1)"));
+    assert!(compile_source.contains("execution_dependencies.add_dependency(writer.pass, pass.id);"));
+    assert!(compile_source.contains("culling_dependencies.add_dependency(writer.pass, pass.id);"));
+    assert!(
+        compile_source.contains("for reader in history.readers_since_last_write.iter().copied()")
+    );
+    assert!(!compile_source.contains("validate_write_dependencies"));
+    assert!(!compile_source.contains("writer_ids.windows(2)"));
 }
 
 #[test]
@@ -199,4 +220,6 @@ fn compile_culling_does_not_allocate_a_write_list_per_pass() {
     let culling = &compile_source[culling_start..culling_end];
 
     assert!(!culling.contains(".collect::<Vec<_>>()"));
+    assert!(culling.contains("dependencies[pass.0].iter().copied()"));
+    assert!(!culling.contains("pass.dependencies.iter().copied()"));
 }

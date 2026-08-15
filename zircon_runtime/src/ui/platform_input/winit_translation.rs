@@ -32,7 +32,13 @@ pub fn translate_winit_window_event(
         winit::event::WindowEvent::SurfaceResized(size) => Some(window_event(
             &context,
             UiWindowEventKind::Resized {
-                metrics: window_metrics_from_physical_size(*size),
+                metrics: window_metrics_from_physical_size(*size, context.window_metrics),
+            },
+        )),
+        winit::event::WindowEvent::ScaleFactorChanged { scale_factor, .. } => Some(window_event(
+            &context,
+            UiWindowEventKind::ScaleFactorChanged {
+                scale_factor: *scale_factor,
             },
         )),
         winit::event::WindowEvent::Moved(position) => Some(window_event(
@@ -317,11 +323,21 @@ fn window_metadata(context: &UiWindowInputContext) -> UiWindowEventMetadata {
     .synthetic(context.metadata.synthetic)
 }
 
-fn window_metrics_from_physical_size(size: PhysicalSize<u32>) -> UiWindowMetrics {
+fn window_metrics_from_physical_size(
+    size: PhysicalSize<u32>,
+    prior_metrics: Option<UiWindowMetrics>,
+) -> UiWindowMetrics {
+    let scale_factor = prior_metrics
+        .map(|metrics| metrics.scale_factor)
+        .filter(|scale_factor| scale_factor.is_finite() && *scale_factor > 0.0)
+        .unwrap_or(1.0);
     UiWindowMetrics::new(
-        UiSize::new(size.width as f32, size.height as f32),
+        UiSize::new(
+            size.width as f32 / scale_factor as f32,
+            size.height as f32 / scale_factor as f32,
+        ),
         UiWindowPixelSize::new(size.width, size.height),
-        1.0,
+        scale_factor,
     )
 }
 
@@ -338,9 +354,11 @@ fn clamp_byte_index(value: usize) -> u32 {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::{Arc, Mutex};
+
     use winit::event::{
         ButtonSource, ElementState, FingerId, Ime, KeyEvent, MouseScrollDelta, PointerKind,
-        PointerSource,
+        PointerSource, SurfaceSizeWriter,
     };
     use winit::keyboard::{
         Key, KeyCode, KeyLocation, ModifiersState, NamedKey, NativeKeyCode, PhysicalKey,
@@ -351,9 +369,11 @@ mod tests {
             UiInputTimestamp, UiKeyboardInputState, UiPointerId, UiPointerSource,
             UiPreciseScrollDelta, UiWindowId,
         },
-        layout::UiPoint,
+        layout::{UiPoint, UiSize},
         surface::{UiPointerButton, UiPointerEventKind},
-        window::{UiWindowEventKind, UiWindowInputContext, UiWindowInputPumpEvent},
+        window::{
+            UiWindowEventKind, UiWindowInputContext, UiWindowInputPumpEvent, UiWindowMetrics,
+        },
     };
 
     use super::{
@@ -696,6 +716,43 @@ mod tests {
         assert_eq!(metrics.logical_size.width, 1280.0);
         assert_eq!(metrics.logical_size.height, 720.0);
 
+        let suggested_size = Arc::new(Mutex::new(winit::dpi::PhysicalSize::new(2560, 1440)));
+        let scale_changed = super::translate_winit_window_event(
+            context.clone(),
+            &winit::event::WindowEvent::ScaleFactorChanged {
+                scale_factor: 2.0,
+                surface_size_writer: SurfaceSizeWriter::new(Arc::downgrade(&suggested_size)),
+            },
+        )
+        .expect("scale-factor change should translate");
+        let UiWindowInputPumpEvent::Window(scale_changed) = scale_changed else {
+            panic!("scale-factor change should produce window pump event");
+        };
+        let UiWindowEventKind::ScaleFactorChanged { scale_factor } = scale_changed.kind else {
+            panic!("scale-factor change should preserve the DPI payload");
+        };
+        assert_eq!(scale_factor, 2.0);
+
+        let resized_after_scale = super::translate_winit_window_event(
+            context.clone().with_window_metrics(UiWindowMetrics::new(
+                UiSize::new(1280.0, 720.0),
+                zircon_runtime_interface::ui::window::UiWindowPixelSize::new(1280, 720),
+                2.0,
+            )),
+            &winit::event::WindowEvent::SurfaceResized(winit::dpi::PhysicalSize::new(2560, 1440)),
+        )
+        .expect("resized surface should preserve the prior DPI scale");
+        let UiWindowInputPumpEvent::Window(resized_after_scale) = resized_after_scale else {
+            panic!("resized surface should produce window pump event");
+        };
+        let UiWindowEventKind::Resized { metrics } = resized_after_scale.kind else {
+            panic!("resized surface should preserve metrics");
+        };
+        assert_eq!(metrics.scale_factor, 2.0);
+        assert_eq!(metrics.logical_size, UiSize::new(1280.0, 720.0));
+        assert_eq!(metrics.physical_size.width, 2560);
+        assert_eq!(metrics.physical_size.height, 1440);
+
         let redraw = super::translate_winit_window_event(
             context,
             &winit::event::WindowEvent::RedrawRequested,
@@ -715,6 +772,7 @@ mod tests {
     fn input_context() -> UiWindowInputContext {
         UiWindowInputContext {
             metadata: input_metadata(),
+            ..UiWindowInputContext::default()
         }
     }
 

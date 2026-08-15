@@ -72,6 +72,7 @@ fn full_realtime_ibl_graph_records_and_submits_without_wgpu_validation_errors() 
             &request,
             &sky,
             &plan,
+            &plan.passes,
             &resources,
             &mut pipeline_cache,
         )

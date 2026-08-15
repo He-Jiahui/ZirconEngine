@@ -88,11 +88,9 @@ fn recorded_atlas_images_keep_shared_resource_key_and_distinct_uvs() {
     );
     assert!(images.iter().all(|payload| payload.width == 4));
     assert!(images.iter().all(|payload| payload.height == 4));
-    assert!(
-        images
-            .iter()
-            .all(|payload| payload.rgba.as_ref().is_some_and(|rgba| rgba.len() == 64))
-    );
+    assert!(images
+        .iter()
+        .all(|payload| payload.rgba.as_ref().is_some_and(|rgba| rgba.len() == 64)));
 }
 
 #[test]
@@ -149,7 +147,7 @@ fn command_stream_replay_samples_atlas_uv_from_embedded_atlas_bytes() {
             width: 2,
             height: 1,
             upload_bytes: 8,
-            rgba: Some(vec![255, 0, 0, 255, 0, 0, 255, 255]),
+            rgba: Some(vec![255, 0, 0, 255, 0, 0, 255, 255].into()),
             atlas_uv: Some(ChromeImageUvRect {
                 min: [0.5, 0.0],
                 max: [1.0, 1.0],
@@ -180,7 +178,7 @@ fn recorded_atlas_image(
             resource_key: format!("source:{z_index}"),
             width: 1,
             height: 1,
-            rgba: Some(vec![z_index as u8, 0, 0, 255]),
+            rgba: Some(vec![z_index as u8, 0, 0, 255].into()),
             atlas: Some(atlas),
         },
     }
@@ -202,7 +200,7 @@ fn atlas_image(resource_key: &str, min: [f32; 2], max: [f32; 2]) -> HostPaintAtl
         resource_generation: 0,
         width: 4,
         height: 4,
-        rgba: Some(vec![255; 64]),
+        rgba: Some(vec![255; 64].into()),
         uv: HostPaintImageUvRect { min, max },
     }
 }

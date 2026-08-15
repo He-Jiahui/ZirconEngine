@@ -4,7 +4,7 @@ use zircon_runtime::scene::{NodeId, WorldInspectionHierarchyRow};
 
 use crate::ui::retained_host::{HostTextInputFocusData, UiHostContext};
 
-use super::{FrameRect, HostInvalidationMask, RetainedEditorHost, SceneEntries, callback_dispatch};
+use super::{callback_dispatch, FrameRect, HostInvalidationMask, RetainedEditorHost, SceneEntries};
 
 pub(in crate::ui::retained_host) const HIERARCHY_INLINE_RENAME_CONTROL_ID: &str =
     "HierarchyInlineRename";
@@ -221,10 +221,8 @@ mod tests {
         let production = source.split("#[cfg(test)]").next().unwrap_or(source);
 
         assert!(production.contains("self.runtime.editor_snapshot().scene_entries"));
-        assert!(
-            !production
-                .contains("single_selected_hierarchy_rename_target(&self.hierarchy_scene_entries)")
-        );
+        assert!(!production
+            .contains("single_selected_hierarchy_rename_target(&self.hierarchy_scene_entries)"));
     }
 
     #[test]

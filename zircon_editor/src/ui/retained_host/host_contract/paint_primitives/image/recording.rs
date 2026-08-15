@@ -1,5 +1,6 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 
 use super::super::super::data::FrameRect;
 use super::super::super::paint_frame::{HostPaintAtlasImage, HostRgbaFrame};
@@ -7,13 +8,14 @@ use super::super::super::paint_frame::{HostPaintAtlasImage, HostRgbaFrame};
 #[derive(Clone, Copy)]
 pub(in crate::ui::retained_host::host_contract) enum ImageRecordingMetadata<'a> {
     ResourceKey(Option<&'a str>),
+    SharedResourceKey(Option<&'a str>, &'a Arc<[u8]>),
     Atlas(&'a HostPaintAtlasImage),
 }
 
 impl ImageRecordingMetadata<'_> {
     pub(in crate::ui::retained_host::host_contract) fn is_valid(self) -> bool {
         match self {
-            Self::ResourceKey(_) => true,
+            Self::ResourceKey(_) | Self::SharedResourceKey(_, _) => true,
             Self::Atlas(atlas) => {
                 !atlas.resource_key.is_empty() && atlas.width > 0 && atlas.height > 0
             }
@@ -40,7 +42,21 @@ impl ImageRecordingMetadata<'_> {
                     resource_key,
                     image_width,
                     image_height,
-                    Some(rgba.to_vec()),
+                    Some(Arc::from(rgba)),
+                    None,
+                );
+            }
+            Self::SharedResourceKey(resource_key, shared_rgba) => {
+                let resource_key = resource_key
+                    .map(str::to_string)
+                    .unwrap_or_else(|| rgba_resource_key(image_width, image_height, rgba));
+                frame.record_image(
+                    rect,
+                    clip,
+                    resource_key,
+                    image_width,
+                    image_height,
+                    Some(Arc::clone(shared_rgba)),
                     None,
                 );
             }

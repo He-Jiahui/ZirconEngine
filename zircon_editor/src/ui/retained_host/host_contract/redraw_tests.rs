@@ -30,6 +30,36 @@ fn redraw_region_merge_unions_damage_without_frame_update() {
 }
 
 #[test]
+fn frame_update_only_runs_tick_without_requesting_a_present() {
+    let redraw = HostRedrawRequest::frame_update_only_for_scenario(UiPerfScenario::AssetRefresh);
+
+    assert!(redraw.request_redraw());
+    assert!(redraw.requires_frame_update());
+    assert!(!redraw.requires_present());
+    assert_eq!(redraw.damage_region(), None);
+    assert_eq!(redraw.scenario(), UiPerfScenario::AssetRefresh);
+}
+
+#[test]
+fn visual_damage_absorbs_a_frame_update_only_request() {
+    let frame = FrameRect {
+        x: 8.0,
+        y: 10.0,
+        width: 20.0,
+        height: 12.0,
+    };
+    let redraw = HostRedrawRequest::region_for_scenario(UiPerfScenario::Click, frame.clone())
+        .merge(HostRedrawRequest::frame_update_only_for_scenario(
+            UiPerfScenario::AssetRefresh,
+        ));
+
+    assert!(redraw.requires_frame_update());
+    assert!(redraw.requires_present());
+    assert_eq!(redraw.damage_region(), Some(&frame));
+    assert_eq!(redraw.scenario(), UiPerfScenario::AssetRefresh);
+}
+
+#[test]
 fn redraw_full_merge_overrides_region_and_preserves_frame_update() {
     let redraw = HostRedrawRequest::region(FrameRect {
         x: 8.0,

@@ -50,11 +50,12 @@ class Editor03SceneTransactionHardcutTests(unittest.TestCase):
             ".transactions()",
             ".begin(",
             "scope.push(",
-            "scope.commit(",
+            ".commit_after_apply(",
             "scene editing is disabled during play mode",
         ]:
             self.assertIn(required, intents)
         self.assertNotIn("self.history", intents)
+        self.assertNotIn("scope.commit(", intents)
         self.assertIn("pub fn with_default_selection_with_context", construction)
 
     def test_cli_operation_injects_the_manager_context(self) -> None:
@@ -86,8 +87,11 @@ class Editor03SceneTransactionHardcutTests(unittest.TestCase):
         )
         tests = source("zircon_editor/src/tests/editing/history.rs")
 
-        self.assertIn("scene: Option<LevelSystem>", context)
+        self.assertIn("gateway: EditorRuntimeGatewayHandle", context)
         self.assertIn("bind_scene", context)
+        self.assertIn(".with_world(&mut", context)
+        self.assertIn(".with_world_mut(&mut", context)
+        self.assertNotIn("scene: Option<LevelSystem>", context)
         self.assertIn("capture_does_not_mutate", tests)
         self.assertIn("transaction_history", tests)
         self.assertIn("initial: Transform", viewport)
@@ -190,8 +194,17 @@ class Editor03SceneTransactionHardcutTests(unittest.TestCase):
         controller = source(
             "zircon_editor/src/ui/host/editor_host_event_controller.rs"
         )
-        runtime_access = source(
-            "zircon_editor/src/ui/host/editor_event_runtime_access.rs"
+        runtime_access = "\n".join(
+            source(path)
+            for path in [
+                "zircon_editor/src/ui/host/editor_event_runtime_access/asset_access.rs",
+                "zircon_editor/src/ui/host/editor_event_runtime_access/component_dispatch.rs",
+                "zircon_editor/src/ui/host/editor_event_runtime_access/event_dispatch.rs",
+                "zircon_editor/src/ui/host/editor_event_runtime_access/extension_access.rs",
+                "zircon_editor/src/ui/host/editor_event_runtime_access/input_dispatch.rs",
+                "zircon_editor/src/ui/host/editor_event_runtime_access/snapshot.rs",
+                "zircon_editor/src/ui/host/editor_event_runtime_access/status.rs",
+            ]
         )
         interaction = source("zircon_editor/src/scene/viewport/interaction/mod.rs")
         viewport = source("zircon_editor/src/scene/viewport/mod.rs")
@@ -250,6 +263,9 @@ class Editor03SceneTransactionHardcutTests(unittest.TestCase):
         transaction = source(
             "zircon_editor/src/core/editing/engine/transaction.rs"
         )
+        exclusive_transition = source(
+            "zircon_editor/src/core/editing/engine/transaction/exclusive_transition.rs"
+        )
         intents = source(
             "zircon_editor/src/ui/workbench/state/editor_state_apply_intent.rs"
         )
@@ -264,7 +280,7 @@ class Editor03SceneTransactionHardcutTests(unittest.TestCase):
         )
 
         self.assertIn("begin_exclusive_transition", transaction)
-        self.assertIn("clear_history_and_context", transaction)
+        self.assertIn("clear_history_and_context", exclusive_transition)
         self.assertIn("prepare_non_gizmo_scene_action", intents)
         self.assertIn("execute_gizmo_scene_command", viewport)
         for regression in [

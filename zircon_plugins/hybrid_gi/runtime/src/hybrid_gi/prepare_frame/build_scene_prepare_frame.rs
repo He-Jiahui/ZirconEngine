@@ -69,6 +69,11 @@ impl HybridGiRuntimeState {
                 .scene_representation()
                 .voxel_scene()
                 .voxel_cells_snapshot(),
+            card_owner_stable_instance_keys: scene_representation.card_owner_stable_instance_keys(),
+            radiance_cache_bootstrap_updates: scene_representation
+                .radiance_cache_gpu_bootstrap_updates(),
+            radiance_cache_updates: scene_representation.radiance_cache_gpu_updates(),
+            radiance_cache_consumes: scene_representation.radiance_cache_gpu_consumes(),
         }
     }
 }
@@ -118,6 +123,54 @@ mod tests {
                 atlas_sample_rgba: [10, 20, 30, 255],
                 capture_sample_rgba: [40, 50, 60, 255],
             }]
+        );
+    }
+
+    #[test]
+    fn build_scene_prepare_frame_exports_completed_radiance_cache_for_gpu_update_and_consume() {
+        let mut state = HybridGiRuntimeState::default();
+        let mut extract = hybrid_gi_settings(1);
+        extract.trace_budget = 1;
+        let mesh = mesh_at(
+            7,
+            "res://materials/radiance-cache-gpu-prepare.mat",
+            Vec3::new(3.0, 0.5, -1.0),
+            2.0,
+        );
+
+        state.register_scene_extract(Some(&extract), &[mesh.clone()], &[], &[], &[], None, false);
+        let changed_frame = state.build_scene_prepare_frame();
+        assert!(
+            !changed_frame.radiance_cache_updates.is_empty(),
+            "a completed changed generation must export bounded slot updates for GPU storage"
+        );
+        assert_eq!(
+            changed_frame.radiance_cache_bootstrap_updates, changed_frame.radiance_cache_updates,
+            "the first generation must be sufficient to bootstrap a fresh renderer instance"
+        );
+        assert!(
+            !changed_frame.radiance_cache_consumes.is_empty(),
+            "a completed changed generation must export the eight-corner screen-probe consume mapping"
+        );
+        assert!(changed_frame
+            .radiance_cache_updates
+            .iter()
+            .all(|update| update.generation > 0));
+
+        state.register_scene_extract(Some(&extract), &[mesh], &[], &[], &[], None, false);
+        let stable_frame = state.build_scene_prepare_frame();
+        assert!(
+            stable_frame.radiance_cache_updates.is_empty(),
+            "stable frames must retain the GPU RC storage instead of uploading an unchanged generation"
+        );
+        assert_eq!(
+            stable_frame.radiance_cache_bootstrap_updates,
+            changed_frame.radiance_cache_bootstrap_updates,
+            "stable frames must retain a CPU-side recovery snapshot for renderer-instance eviction"
+        );
+        assert_eq!(
+            stable_frame.radiance_cache_consumes, changed_frame.radiance_cache_consumes,
+            "stable screen-probe consumption must retain the completed slot/weight mapping"
         );
     }
 

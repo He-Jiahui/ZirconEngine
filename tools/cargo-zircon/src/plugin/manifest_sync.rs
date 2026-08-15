@@ -434,9 +434,10 @@ fn synchronize_modules(
     let desired_dist_crate = distribution_crate_name(declaration)?;
     let owned_sibling_dist_crate = sibling_distribution_crate_name(declaration.crate_name());
     let dist_module_name = format!("{}.dist", declaration.id());
-    let has_separate_dist_module = desired_dist_crate
+    let separate_dist_crate = desired_dist_crate
         .as_deref()
-        .is_some_and(|dist_crate| dist_crate != declaration.crate_name());
+        .filter(|dist_crate| *dist_crate != declaration.crate_name());
+    let has_separate_dist_module = separate_dist_crate.is_some();
     let mut found_primary = false;
     let primary_capabilities = declaration.capabilities_for_module_kind(primary_kind);
     let dist_capabilities =
@@ -464,14 +465,10 @@ fn synchronize_modules(
             && (module.get("name").and_then(Value::as_str) == Some(dist_module_name.as_str())
                 || owned_sibling_dist_crate.as_deref()
                     == module.get("crate_name").and_then(Value::as_str));
-        if has_separate_dist_module && is_owned_dist {
+        if let Some(dist_crate) = separate_dist_crate.filter(|_| is_owned_dist) {
             insert_string(module, "name", &dist_module_name);
             insert_string(module, "kind", "native");
-            insert_string(
-                module,
-                "crate_name",
-                desired_dist_crate.as_deref().expect("separate dist crate"),
-            );
+            insert_string(module, "crate_name", dist_crate);
             insert_string_array(module, "target_modes", declaration.targets());
             insert_string_array(module, "capabilities", dist_capabilities);
         }
@@ -501,19 +498,17 @@ fn synchronize_modules(
     } else {
         false
     };
-    if has_separate_dist_module && !found_dist {
-        let mut module = Map::new();
-        insert_string(&mut module, "name", &dist_module_name);
-        insert_string(&mut module, "kind", "native");
-        insert_string(
-            &mut module,
-            "crate_name",
-            desired_dist_crate.as_deref().expect("separate dist crate"),
-        );
-        insert_string_array(&mut module, "target_modes", declaration.targets());
-        insert_string_array(&mut module, "capabilities", dist_capabilities);
-        modules.push(Value::Table(module));
-    } else if !has_separate_dist_module {
+    if let Some(dist_crate) = separate_dist_crate {
+        if !found_dist {
+            let mut module = Map::new();
+            insert_string(&mut module, "name", &dist_module_name);
+            insert_string(&mut module, "kind", "native");
+            insert_string(&mut module, "crate_name", dist_crate);
+            insert_string_array(&mut module, "target_modes", declaration.targets());
+            insert_string_array(&mut module, "capabilities", dist_capabilities);
+            modules.push(Value::Table(module));
+        }
+    } else {
         modules.retain(|module| {
             let Some(module) = module.as_table() else {
                 return true;

@@ -56,7 +56,7 @@ pub fn write_ibl_bake_artifact_runtime_readback(
     readback: IblBakeArtifactReadbackSections,
 ) -> Result<IblBakeArtifactRuntimeWritebackReport, IblBakeArtifactRuntimeWritebackError> {
     let descriptor = readback.descriptor();
-    if !descriptor.is_current_for(request) {
+    if !descriptor.is_current_runtime_cache_for(request) {
         return Ok(IblBakeArtifactRuntimeWritebackReport {
             status: IblBakeArtifactRuntimeWritebackStatus::SkippedDescriptorNotCurrent,
             descriptor,

@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use zircon_runtime_interface::resource::ResourceId;
 use zircon_runtime_interface::world_sync::{
@@ -161,6 +161,8 @@ pub struct SubscriptionTable {
     pending_oldest_generation: Option<u64>,
     pending_age_overflowed: bool,
     pending_dirty: BTreeSet<WatchToken>,
+    ancestry_scratch: Vec<EntityId>,
+    ancestry_seen: HashSet<EntityId>,
     limits: SubscriptionTableLimits,
     diagnostics: SubscriptionTableDiagnostics,
 }
@@ -186,6 +188,8 @@ impl SubscriptionTable {
             pending_oldest_generation: None,
             pending_age_overflowed: false,
             pending_dirty: BTreeSet::new(),
+            ancestry_scratch: Vec::new(),
+            ancestry_seen: HashSet::new(),
             limits,
             diagnostics: SubscriptionTableDiagnostics::default(),
         }
@@ -229,17 +233,33 @@ impl SubscriptionTable {
     /// Marks subscribed roots in one bounded walk of the entity's current ancestry.
     /// Reparent callers invoke this once before and once after mutation to cover both chains.
     pub fn invalidate_subtree(&mut self, world: &World, entity: EntityId) {
-        let ancestor_chain = ancestor_chain(entity, |current| world.parent_of(current));
+        let scratch_capacity = self.ancestry_scratch.capacity();
+        let seen_capacity = self.ancestry_seen.capacity();
+        self.ancestry_scratch.clear();
+        self.ancestry_seen.clear();
+        let mut current = Some(entity);
+        while let Some(ancestor) = current {
+            if !self.ancestry_seen.insert(ancestor) {
+                break;
+            }
+            self.ancestry_scratch.push(ancestor);
+            current = world.parent_of(ancestor);
+        }
         self.diagnostics.ancestor_walks = self.diagnostics.ancestor_walks.saturating_add(1);
-        self.diagnostics.ancestor_visited_allocations = self
-            .diagnostics
-            .ancestor_visited_allocations
-            .saturating_add(1);
+        if self.ancestry_scratch.capacity() > scratch_capacity
+            || self.ancestry_seen.capacity() > seen_capacity
+        {
+            self.diagnostics.ancestor_visited_allocations = self
+                .diagnostics
+                .ancestor_visited_allocations
+                .saturating_add(1);
+        }
         self.diagnostics.ancestor_nodes = self
             .diagnostics
             .ancestor_nodes
-            .saturating_add(ancestor_chain.len() as u64);
-        for ancestor in ancestor_chain {
+            .saturating_add(self.ancestry_scratch.len() as u64);
+        for index in 0..self.ancestry_scratch.len() {
+            let ancestor = self.ancestry_scratch[index];
             self.diagnostics.direct_key_probes =
                 self.diagnostics.direct_key_probes.saturating_add(1);
             if let Some(tokens) = self.subtree_tokens.get(&ancestor) {
@@ -457,29 +477,24 @@ fn remove_indexed_token<K: Ord>(
     }
 }
 
-fn ancestor_chain(
-    entity: EntityId,
-    mut parent_of: impl FnMut(EntityId) -> Option<EntityId>,
-) -> Vec<EntityId> {
-    let mut chain = Vec::new();
-    let mut visited = BTreeSet::new();
-    let mut current = Some(entity);
-    while let Some(entity) = current {
-        if !visited.insert(entity) {
-            break;
-        }
-        chain.push(entity);
-        current = parent_of(entity);
-    }
-    chain
-}
-
+#[cfg(test)]
 fn ancestor_chain_contains(
     entity: EntityId,
     root: EntityId,
-    parent_of: impl FnMut(EntityId) -> Option<EntityId>,
+    mut parent_of: impl FnMut(EntityId) -> Option<EntityId>,
 ) -> bool {
-    ancestor_chain(entity, parent_of).contains(&root)
+    let mut visited = BTreeSet::new();
+    let mut current = Some(entity);
+    while let Some(ancestor) = current {
+        if !visited.insert(ancestor) {
+            return false;
+        }
+        if ancestor == root {
+            return true;
+        }
+        current = parent_of(ancestor);
+    }
+    false
 }
 
 fn merge_fact(existing: &mut WorldFact, incoming: WorldFact) {

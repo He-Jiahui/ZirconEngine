@@ -18,9 +18,12 @@ pub struct RenderSubmissionConfig {
     /// Creates timestamp-query resources only while explicitly enabled and supported.
     #[serde(default)]
     pub allow_gpu_timing: bool,
-    /// Enables asynchronous CPU inspection of GPU-resident HZB indirect arguments.
+    /// Enables asynchronous HZB CPU diagnostics (stats, indirect args, and draw counts).
+    ///
+    /// Disabled by default so ordinary product frames keep HZB results GPU-resident and issue no
+    /// HZB readback copies. Enabled sampling uses the shared bounded readback ring.
     #[serde(default)]
-    pub hzb_indirect_args_readback: bool,
+    pub hzb_diagnostics_readback: bool,
     #[serde(default)]
     pub async_pipeline_compile: bool,
 }
@@ -32,7 +35,7 @@ impl RenderSubmissionConfig {
             parallel_record: false,
             min_passes_per_bucket: DEFAULT_PARALLEL_RECORD_MIN_PASSES_PER_BUCKET,
             allow_gpu_timing: false,
-            hzb_indirect_args_readback: false,
+            hzb_diagnostics_readback: false,
             async_pipeline_compile: false,
         }
     }
@@ -64,8 +67,8 @@ impl RenderSubmissionConfig {
         self
     }
 
-    pub const fn with_hzb_indirect_args_readback(mut self) -> Self {
-        self.hzb_indirect_args_readback = true;
+    pub const fn with_hzb_diagnostics_readback(mut self) -> Self {
+        self.hzb_diagnostics_readback = true;
         self
     }
 }
@@ -92,7 +95,7 @@ mod tests {
         );
         assert!(!RenderSubmissionConfig::default().parallel_record);
         assert!(!RenderSubmissionConfig::default().allow_gpu_timing);
-        assert!(!RenderSubmissionConfig::default().hzb_indirect_args_readback);
+        assert!(!RenderSubmissionConfig::default().hzb_diagnostics_readback);
         assert!(!RenderSubmissionConfig::default().async_pipeline_compile);
         assert_eq!(
             RenderSubmissionConfig::default().min_passes_per_bucket,
@@ -136,11 +139,11 @@ mod tests {
     }
 
     #[test]
-    fn hzb_indirect_args_readback_is_explicit_and_disabled_by_default() {
-        let config = RenderSubmissionConfig::synchronous().with_hzb_indirect_args_readback();
+    fn hzb_cpu_diagnostics_readback_is_explicit_and_disabled_by_default() {
+        let config = RenderSubmissionConfig::synchronous().with_hzb_diagnostics_readback();
 
-        assert!(config.hzb_indirect_args_readback);
-        assert!(!RenderSubmissionConfig::default().hzb_indirect_args_readback);
-        assert!(!RenderSubmissionConfig::pipelined().hzb_indirect_args_readback);
+        assert!(config.hzb_diagnostics_readback);
+        assert!(!RenderSubmissionConfig::default().hzb_diagnostics_readback);
+        assert!(!RenderSubmissionConfig::pipelined().hzb_diagnostics_readback);
     }
 }

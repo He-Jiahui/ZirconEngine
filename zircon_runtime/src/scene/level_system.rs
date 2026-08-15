@@ -1,28 +1,29 @@
 //! Runtime level instance wrapping one ECS world plus lifecycle metadata.
 
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
-#[cfg(feature = "animation")]
-use std::collections::BTreeMap;
-
-#[cfg(feature = "animation")]
-use crate::animation::{
-    AnimationClipEvent, AnimationClipEventSamplingLimits, sample_clip_events_budgeted,
+use zircon_runtime_interface::world_sync::{
+    InvalidationBatch, WatchRegistration, WatchToken, WorldFact,
 };
-#[cfg(feature = "animation")]
-use crate::asset::{AssetId, ProjectAssetManager};
-use crate::core::framework::animation::AnimationPoseOutput;
+
+use crate::core::framework::animation::{
+    AnimationClipEventBatchAdmission, AnimationClipEventQueueAdmission, AnimationPoseOutput,
+};
 use crate::core::framework::render::{HighlightSet, ViewportHighlightSet, ViewportHighlightStore};
 use crate::core::framework::scene::WorldHandle;
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle, RuntimeTimeAdvance};
 use crate::scene::{
-    EntityId, EntityRemap, WORLD_DRIVER_NAME, WorldDriver,
     dynamic_scene::{CompiledSceneSpawn, DynamicScene, DynamicSceneError},
     ecs::RuntimeSceneSystemContext,
+    inspection::SubscriptionTable,
     world::World,
+    EntityId, EntityRemap, WorldDriver, WORLD_DRIVER_NAME,
 };
 
+#[cfg(feature = "animation")]
+mod animation_runtime;
 mod frame_state;
 #[cfg(feature = "physics-contracts")]
 #[path = "level_system/physics_runtime_enabled.rs"]
@@ -35,13 +36,10 @@ mod physics_runtime;
 pub(crate) use frame_state::AnimationPlaybackStateSnapshot;
 pub(crate) use frame_state::LevelFrameStateSnapshot;
 
+#[cfg(feature = "animation")]
+use frame_state::AnimationRuntimeState;
 use frame_state::ScriptRuntimeState;
-#[cfg(feature = "animation")]
-use frame_state::{AnimationClipEventDrainMetrics, AnimationRuntimeState};
 use physics_runtime::PhysicsRuntimeState;
-
-#[cfg(feature = "animation")]
-const ANIMATION_CLIP_EVENT_MAX_DRAIN_SAMPLES: usize = 32;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LevelLifecycleState {
@@ -60,11 +58,13 @@ pub struct LevelMetadata {
 pub struct LevelSystem {
     handle: WorldHandle,
     inner: Arc<Mutex<World>>,
+    world_replacement_epoch: Arc<AtomicU64>,
     physics_state: Arc<Mutex<PhysicsRuntimeState>>,
     #[cfg(feature = "animation")]
     animation_state: Arc<Mutex<AnimationRuntimeState>>,
     script_state: Arc<Mutex<ScriptRuntimeState>>,
     frame_state: Arc<Mutex<Arc<LevelFrameStateSnapshot>>>,
+    world_subscriptions: Arc<Mutex<SubscriptionTable>>,
     viewport_highlights: Arc<Mutex<ViewportHighlightStore>>,
     metadata: Arc<Mutex<LevelMetadata>>,
     lifecycle: Arc<Mutex<LevelLifecycleState>>,
@@ -94,9 +94,13 @@ impl LevelSystem {
         metadata: LevelMetadata,
     ) -> Self {
         let world_generation = lock_poison_recovered(&inner).world_generation();
+        let world_subscriptions = Arc::new(Mutex::new(SubscriptionTable::default()));
+        lock_poison_recovered(&inner)
+            .attach_world_sync_subscriptions(Arc::clone(&world_subscriptions));
         Self {
             handle,
             inner,
+            world_replacement_epoch: Arc::new(AtomicU64::new(1)),
             physics_state: Arc::new(Mutex::new(PhysicsRuntimeState::default())),
             #[cfg(feature = "animation")]
             animation_state: Arc::new(Mutex::new(AnimationRuntimeState::default())),
@@ -104,6 +108,7 @@ impl LevelSystem {
             frame_state: Arc::new(Mutex::new(Arc::new(LevelFrameStateSnapshot::new(
                 world_generation,
             )))),
+            world_subscriptions,
             viewport_highlights: Arc::new(Mutex::new(ViewportHighlightStore::default())),
             metadata: Arc::new(Mutex::new(metadata)),
             lifecycle: Arc::new(Mutex::new(LevelLifecycleState::Loaded)),
@@ -121,12 +126,7 @@ impl LevelSystem {
 
     /// Replaces the editor overlay input retained for one viewport when its
     /// generation is at least as recent as the currently retained value.
-    pub fn submit_highlight_set(
-        &self,
-        viewport: u64,
-        generation: u64,
-        set: HighlightSet,
-    ) -> bool {
+    pub fn submit_highlight_set(&self, viewport: u64, generation: u64, set: HighlightSet) -> bool {
         lock_poison_recovered(&self.viewport_highlights).submit(viewport, generation, set)
     }
 
@@ -139,6 +139,52 @@ impl LevelSystem {
     /// Returns the current World generation for work that will publish a sealed frame payload.
     pub fn world_generation(&self) -> u64 {
         self.with_world(World::world_generation)
+    }
+
+    /// Captures the identity of the installed World after any replacement reset completes.
+    pub fn capture_world_replacement_epoch(&self) -> u64 {
+        let _world = self.lock_world();
+        self.world_replacement_epoch.load(Ordering::Acquire)
+    }
+
+    /// Mutates the World only if it is still the instance identified by `replacement_epoch`.
+    pub fn with_world_mut_if_replacement_epoch<R>(
+        &self,
+        replacement_epoch: u64,
+        write: impl FnOnce(&mut World) -> R,
+    ) -> Option<R> {
+        let mut world = self.lock_world();
+        if self.world_replacement_epoch.load(Ordering::Acquire) != replacement_epoch {
+            return None;
+        }
+        Some(write(&mut world))
+    }
+
+    /// Registers one runtime-owned world watch for this level session.
+    pub fn watch_world(&self, registration: WatchRegistration) -> WatchToken {
+        lock_poison_recovered(&self.world_subscriptions).watch(registration)
+    }
+
+    /// Revokes a world watch and its pending dirty state.
+    pub fn unwatch_world(&self, token: WatchToken) -> bool {
+        lock_poison_recovered(&self.world_subscriptions).unwatch(token)
+    }
+
+    /// Records one session-level fact that originates outside direct World mutation APIs.
+    pub fn record_world_fact(&self, fact: WorldFact) {
+        self.lock_world().record_world_fact(fact);
+    }
+
+    /// Seals the facts and dirty tokens observed since the previous drain.
+    ///
+    /// World mutation callbacks lock the world before the subscription table. Holding the same
+    /// order here stamps the batch with the generation that covers every included fact.
+    pub fn drain_world_invalidations(&self) -> Vec<InvalidationBatch> {
+        let world = self.lock_world();
+        lock_poison_recovered(&self.world_subscriptions)
+            .flush(world.world_generation())
+            .into_iter()
+            .collect()
     }
 
     pub(crate) fn lock_world(&self) -> MutexGuard<'_, World> {
@@ -215,7 +261,7 @@ impl LevelSystem {
         let expected_generation = current.world_generation();
         let plan = scene.compile_spawn_into(&current)?;
         let (preflight_world, estimated_bytes) =
-            scene.capture_compiled_spawn_preflight(&current, &plan, limit_bytes)?;
+            DynamicScene::capture_compiled_spawn_preflight(&current, &plan, limit_bytes)?;
         Ok((
             self.world_handle(),
             expected_generation,
@@ -225,11 +271,10 @@ impl LevelSystem {
         ))
     }
 
-    pub(crate) fn apply_preflighted_dynamic_scene_if_generation(
+    pub(crate) fn commit_preflighted_dynamic_scene_if_generation(
         &self,
         expected_generation: u64,
-        scene: &DynamicScene,
-        plan: CompiledSceneSpawn,
+        mutation: crate::scene::dynamic_scene::PreflightedSceneMutation,
     ) -> Result<EntityRemap, DynamicSceneError> {
         let mut current = self.lock_world();
         let actual_generation = current.world_generation();
@@ -239,7 +284,7 @@ impl LevelSystem {
                 actual_generation,
             });
         }
-        scene.apply_preflighted_compiled_spawn_into(&mut current, plan)
+        DynamicScene::commit_preflighted_spawn_into(&mut current, mutation)
     }
 
     pub fn replace(&self, world: World) {
@@ -257,21 +302,36 @@ impl LevelSystem {
             if actual_generation != expected_generation {
                 return Err(actual_generation);
             }
-            current.commit_staged_scene_state(world)
+            self.world_replacement_epoch.fetch_add(1, Ordering::AcqRel);
+            current.clear_all_events();
+            let retired = current.commit_staged_scene_state(world);
+            current.attach_world_sync_subscriptions(Arc::clone(&self.world_subscriptions));
+            self.reset_runtime_state_after_world_replacement(&mut current);
+            retired
         };
         drop(retired);
         Ok(())
     }
 
     pub fn replace_world_and_reset_runtime_state(&self, world: World) {
-        // Frame publication and replacement use the same World -> frame-state order so a
-        // producer from the retired world cannot publish after this reset completes.
-        let mut current = self.lock_world();
-        let mut world = world;
-        world.advance_dynamic_component_generations_after(&current);
-        world.advance_scene_binding_generations_after(&current);
-        world.advance_world_generation_after(current.world_generation());
-        *current = world;
+        let retired = {
+            let mut current = self.lock_world();
+            self.world_replacement_epoch.fetch_add(1, Ordering::AcqRel);
+            let mut world = world;
+            world.advance_dynamic_component_generations_after(&current);
+            world.advance_scene_binding_generations_after(&current);
+            world.advance_world_generation_after(current.world_generation());
+            let retired = std::mem::replace(&mut *current, world);
+            current.attach_world_sync_subscriptions(Arc::clone(&self.world_subscriptions));
+            self.reset_runtime_state_after_world_replacement(&mut current);
+            retired
+        };
+        drop(retired);
+    }
+
+    /// Resets World-coupled state while the replacement caller still owns the World lane.
+    fn reset_runtime_state_after_world_replacement(&self, current: &mut World) {
+        physics_runtime::clear_retained_pose_resources(current);
         let world_generation = current.world_generation();
         let mut frame_state = self.lock_frame_state();
         #[cfg(feature = "animation")]
@@ -279,7 +339,7 @@ impl LevelSystem {
             Self::publish_animation_frame(
                 &mut frame_state,
                 world_generation,
-                Arc::new(BTreeMap::new()),
+                Arc::new(std::collections::BTreeMap::new()),
             );
         }
         #[cfg(not(feature = "animation"))]
@@ -287,8 +347,6 @@ impl LevelSystem {
             *frame_state = Arc::new(LevelFrameStateSnapshot::new(world_generation));
         }
         drop(frame_state);
-        drop(current);
-
         self.lock_physics_state().reset_after_world_replacement();
         #[cfg(feature = "animation")]
         {
@@ -340,218 +398,6 @@ impl LevelSystem {
         Arc::clone(&self.lock_frame_state())
     }
 
-    #[cfg(feature = "animation")]
-    pub(crate) fn animation_requires_continuous_frame(&self) -> bool {
-        let state = self.lock_animation_state();
-        state.animation_requires_continuous_frame
-            || state.animation_event_backlog_requires_continuous_frame
-    }
-
-    #[cfg(feature = "animation")]
-    pub fn record_animation_requires_continuous_frame(&self, requires_continuous_frame: bool) {
-        self.lock_animation_state()
-            .animation_requires_continuous_frame = requires_continuous_frame;
-    }
-
-    #[cfg(feature = "animation")]
-    pub fn record_animation_event_backlog_continuity(&self, requires_continuous_frame: bool) {
-        self.lock_animation_state()
-            .animation_event_backlog_requires_continuous_frame = requires_continuous_frame;
-    }
-
-    #[cfg(feature = "animation")]
-    pub(crate) fn animation_playback_snapshot(&self) -> Arc<AnimationPlaybackStateSnapshot> {
-        Arc::clone(&self.lock_animation_state().playback_state)
-    }
-
-    #[cfg(feature = "animation")]
-    pub fn enqueue_animation_clip_event_range(
-        &self,
-        entity: EntityId,
-        clip_id: AssetId,
-        from_time_seconds: Real,
-        to_time_seconds: Real,
-        looping: bool,
-    ) {
-        self.lock_animation_state().enqueue_clip_event_sample(
-            entity,
-            clip_id,
-            from_time_seconds,
-            to_time_seconds,
-            looping,
-        );
-    }
-
-    #[cfg(feature = "animation")]
-    pub fn drain_animation_clip_events(
-        &self,
-        asset_manager: &ProjectAssetManager,
-    ) -> Vec<AnimationClipEvent> {
-        let limits = AnimationClipEventSamplingLimits::default();
-        let mut events = Vec::new();
-        let mut emitted_event_bytes: usize = 0;
-        let mut metrics = AnimationClipEventDrainMetrics::default();
-
-        for _ in 0..ANIMATION_CLIP_EVENT_MAX_DRAIN_SAMPLES {
-            let Some(mut pending) = self.lock_animation_state().take_clip_event_sample() else {
-                break;
-            };
-            let Some(remaining_event_bytes) =
-                limits.max_event_bytes.checked_sub(emitted_event_bytes)
-            else {
-                pending.age_frames = pending.age_frames.saturating_add(1);
-                self.lock_animation_state()
-                    .requeue_clip_event_sample_front(pending);
-                metrics.budget_exhausted = true;
-                break;
-            };
-            if remaining_event_bytes == 0 {
-                pending.age_frames = pending.age_frames.saturating_add(1);
-                self.lock_animation_state()
-                    .requeue_clip_event_sample_front(pending);
-                metrics.budget_exhausted = true;
-                break;
-            }
-            let remaining_events = limits.max_events.saturating_sub(events.len());
-            if remaining_events == 0 {
-                pending.age_frames = pending.age_frames.saturating_add(1);
-                self.lock_animation_state()
-                    .requeue_clip_event_sample_front(pending);
-                metrics.budget_exhausted = true;
-                break;
-            }
-            let Ok(clip) = asset_manager.load_animation_clip_asset(pending.clip_id) else {
-                pending.age_frames = pending.age_frames.saturating_add(1);
-                self.lock_animation_state()
-                    .requeue_clip_event_sample_back(pending);
-                metrics.unavailable_asset_count = metrics.unavailable_asset_count.saturating_add(1);
-                continue;
-            };
-
-            let batch = sample_clip_events_budgeted(
-                &clip,
-                pending.entity,
-                pending.from_time_seconds,
-                pending.to_time_seconds,
-                pending.looping,
-                Some(pending.cursor.clone()),
-                AnimationClipEventSamplingLimits {
-                    max_events: remaining_events,
-                    max_event_bytes: remaining_event_bytes,
-                    max_playback_span_seconds: limits.max_playback_span_seconds,
-                },
-            );
-            emitted_event_bytes = emitted_event_bytes.saturating_add(batch.emitted_event_bytes);
-            metrics.oversized_event_count = metrics
-                .oversized_event_count
-                .saturating_add(batch.oversized_event_count);
-            metrics.budget_exhausted |= batch.budget_exhausted;
-            events.extend(batch.events);
-            if let Some(cursor) = batch.next_cursor {
-                pending.cursor = cursor;
-                pending.age_frames = pending.age_frames.saturating_add(1);
-                self.lock_animation_state()
-                    .requeue_clip_event_sample_front(pending);
-                break;
-            }
-        }
-
-        let (deferred_range_count, oldest_pending_age_frames) =
-            self.lock_animation_state().clip_event_backlog();
-        metrics.deferred_range_count = deferred_range_count;
-        metrics.oldest_pending_age_frames = oldest_pending_age_frames;
-        self.lock_animation_state().record_clip_event_drain(metrics);
-        events
-    }
-
-    #[cfg(feature = "animation")]
-    pub fn animation_clip_event_backlog_len(&self) -> usize {
-        self.lock_animation_state().clip_event_backlog().0
-    }
-
-    #[cfg(feature = "animation")]
-    pub(crate) fn animation_clip_event_drain_metrics(&self) -> (usize, u64, bool, usize, usize) {
-        let metrics = self.lock_animation_state().last_clip_event_drain();
-        (
-            metrics.deferred_range_count,
-            metrics.oldest_pending_age_frames,
-            metrics.budget_exhausted,
-            metrics.oversized_event_count,
-            metrics.unavailable_asset_count,
-        )
-    }
-
-    #[cfg(feature = "animation")]
-    pub fn record_animation_poses(
-        &self,
-        world_generation: u64,
-        animation_poses: BTreeMap<EntityId, crate::core::framework::animation::AnimationPoseOutput>,
-    ) -> bool {
-        self.record_animation_pose_snapshot(world_generation, Arc::new(animation_poses))
-    }
-
-    /// Publishes an immutable animation pose snapshot without cloning a
-    /// plugin-owned paused-pose cache on frames that produced no new samples.
-    ///
-    /// The caller must capture `world_generation` before producing the payload. A false return
-    /// means replacement retired that generation, so the payload must not be applied to the new
-    /// World.
-    #[cfg(feature = "animation")]
-    pub fn record_animation_pose_snapshot(
-        &self,
-        world_generation: u64,
-        animation_poses: Arc<
-            BTreeMap<EntityId, crate::core::framework::animation::AnimationPoseOutput>,
-        >,
-    ) -> bool {
-        let published = self.frame_state_snapshot();
-        let published_matches_payload =
-            published.animation_poses().as_ref() == animation_poses.as_ref();
-        let world = self.lock_world();
-        if world_generation != world.world_generation() {
-            return false;
-        }
-        let mut current = self.lock_frame_state();
-        if published_matches_payload
-            && published.world_generation() == world_generation
-            && Arc::ptr_eq(&published, &current)
-        {
-            return true;
-        }
-        if current.world_generation() == world_generation
-            && Arc::ptr_eq(current.animation_poses(), &animation_poses)
-        {
-            return true;
-        }
-
-        Self::publish_animation_frame(&mut current, world_generation, animation_poses);
-        true
-    }
-
-    #[cfg(feature = "animation")]
-    pub fn record_animation_playback_times(
-        &self,
-        animation_graph_times: BTreeMap<EntityId, Real>,
-        animation_state_machine_times: BTreeMap<EntityId, Real>,
-        animation_state_machine_transitions: BTreeMap<EntityId, AnimationStateTransitionRuntime>,
-    ) {
-        let mut animation_state = self.lock_animation_state();
-        let published = &animation_state.playback_state;
-        if published.animation_graph_times().as_ref() == &animation_graph_times
-            && published.animation_state_machine_times().as_ref() == &animation_state_machine_times
-            && published.animation_state_machine_transitions().as_ref()
-                == &animation_state_machine_transitions
-        {
-            return;
-        }
-
-        animation_state.playback_state = Arc::new(published.with_values(
-            animation_graph_times,
-            animation_state_machine_times,
-            animation_state_machine_transitions,
-        ));
-    }
-
     pub fn script_binding_started(&self, entity: EntityId, binding_key: &str) -> bool {
         self.lock_script_state().contains(entity, binding_key)
     }
@@ -583,18 +429,6 @@ impl LevelSystem {
     pub fn registered_subsystems(&self) -> Vec<String> {
         self.lock_subsystems().clone()
     }
-
-    #[cfg(feature = "animation")]
-    fn publish_animation_frame(
-        frame_state: &mut Arc<LevelFrameStateSnapshot>,
-        world_generation: u64,
-        animation_poses: Arc<
-            BTreeMap<EntityId, crate::core::framework::animation::AnimationPoseOutput>,
-        >,
-    ) {
-        *frame_state =
-            Arc::new(frame_state.with_animation_poses(world_generation, animation_poses));
-    }
 }
 
 impl std::fmt::Debug for LevelSystem {
@@ -609,8 +443,12 @@ impl std::fmt::Debug for LevelSystem {
 
 #[cfg(test)]
 mod tests {
-    use std::panic::{AssertUnwindSafe, catch_unwind};
+    #[cfg(feature = "animation")]
+    use std::collections::BTreeMap;
+    use std::panic::{catch_unwind, AssertUnwindSafe};
 
+    #[cfg(feature = "animation")]
+    use crate::core::framework::animation::AnimationClipEventSamplingRange;
     use crate::core::framework::scene::{ComponentPropertyPath, EntityPath};
     #[cfg(feature = "animation")]
     use crate::core::resource::ResourceId;
@@ -643,7 +481,8 @@ mod tests {
             assert_eq!(level.animation_playback_snapshot().generation(), 0);
             level.record_animation_requires_continuous_frame(true);
             assert!(level.animation_requires_continuous_frame());
-            assert!(level.record_animation_poses(level.world_generation(), BTreeMap::new()));
+            let replacement_epoch = level.capture_world_replacement_epoch();
+            assert!(level.record_animation_poses(replacement_epoch, BTreeMap::new()));
         }
 
         poison_mutex(&level.frame_state);
@@ -746,17 +585,36 @@ mod tests {
             Arc::new(Mutex::new(World::empty())),
             LevelMetadata::default(),
         );
-        level.enqueue_animation_clip_event_range(
-            17,
-            ResourceId::from_stable_label("animation.pending-event"),
-            0.0,
-            120.0,
-            true,
+        let replacement_epoch = level.capture_world_replacement_epoch();
+        assert_eq!(
+            level.enqueue_animation_clip_event_range_batches(
+                replacement_epoch,
+                vec![vec![AnimationClipEventSamplingRange {
+                    entity: 17,
+                    clip_id: ResourceId::from_stable_label("animation.pending-event"),
+                    from_time_seconds: 0.0,
+                    to_time_seconds: 120.0,
+                    looping: true,
+                }]],
+            ),
+            AnimationClipEventQueueAdmission::Current {
+                batch_admissions: vec![AnimationClipEventBatchAdmission::Admitted],
+                admitted_range_count: 1,
+                deferred_range_count: 0,
+                rejected_range_count: 0,
+            },
         );
 
-        assert_eq!(level.animation_clip_event_backlog_len(), 1);
+        assert_eq!(
+            level.animation_clip_event_backlog_len(replacement_epoch),
+            Some(1)
+        );
         level.replace_world_and_reset_runtime_state(World::empty());
-        assert_eq!(level.animation_clip_event_backlog_len(), 0);
+        let current_epoch = level.capture_world_replacement_epoch();
+        assert_eq!(
+            level.animation_clip_event_backlog_len(current_epoch),
+            Some(0)
+        );
         assert_eq!(level.animation_clip_event_drain_metrics().0, 0);
     }
 

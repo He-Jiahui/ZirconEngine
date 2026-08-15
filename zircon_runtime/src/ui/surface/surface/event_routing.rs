@@ -206,7 +206,7 @@ impl UiSurface {
             modifiers,
             event.scroll_delta,
         )?;
-        let mut result = dispatcher.dispatch(&self.tree, route)?;
+        let mut result = dispatcher.dispatch_surface_route(&self.tree, &route)?;
         if let Some(node_id) = result.captured_by {
             if capture_before_dispatch != Some(node_id) {
                 result.diagnostics.capture_started = true;
@@ -513,10 +513,12 @@ impl UiSurface {
                 }
             }
         }
+        let route_target = route.target;
+        let route_kind = route.kind;
         let mut result = dispatcher.dispatch(&self.tree, route)?;
         if result.focus_changed_to.is_none() {
-            if let Some(node_id) = self.tree.next_navigation_target(route.target, route.kind)? {
-                result.handled_by = Some(route.target.unwrap_or(node_id));
+            if let Some(node_id) = self.tree.next_navigation_target(route_target, route_kind)? {
+                result.handled_by = Some(route_target.unwrap_or(node_id));
                 result.focus_changed_to = Some(node_id);
             }
         }

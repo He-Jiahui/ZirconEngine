@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: open
+status: source_complete_dynamic_validation_pending
 created_at: 2026-07-17
 summary_slug: ssr-history-resource-descriptor-drift
 origin_plan: docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md

@@ -1,16 +1,13 @@
 use std::ffi::OsString;
 use std::io::{BufWriter, Write};
-use std::path::{Path, PathBuf};
+#[cfg(windows)]
+use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use image::ImageEncoder;
-use zircon_runtime::asset::project::ProjectPaths;
+use zircon_runtime::asset::project::ResolvedProjectPath;
 
 static NEXT_CAPTURE_STAGING_ID: AtomicU64 = AtomicU64::new(1);
-
-fn frame_capture_display_path(path: &Path) -> PathBuf {
-    ProjectPaths::display_path(path)
-}
 
 trait FrameCaptureSync {
     fn sync_frame_capture(&self) -> std::io::Result<()>;
@@ -23,7 +20,7 @@ impl FrameCaptureSync for std::fs::File {
 }
 
 pub(super) fn write_runtime_frame_png(
-    path: &Path,
+    path: &ResolvedProjectPath,
     width: u32,
     height: u32,
     rgba: &[u8],
@@ -42,13 +39,19 @@ pub(super) fn write_runtime_frame_png(
         ));
     }
     if let Some(parent) = path
+        .operation_path()
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
     {
+        let display_parent = path
+            .display_path()
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+            .unwrap_or(path.display_path());
         std::fs::create_dir_all(parent).map_err(|error| {
             format!(
                 "create frame capture directory {}: {error}",
-                frame_capture_display_path(parent).display()
+                display_parent.display()
             )
         })?;
     }
@@ -61,8 +64,8 @@ pub(super) fn write_runtime_frame_png(
             &staging_path,
             format!(
                 "commit frame capture {} from {}: {error}",
-                frame_capture_display_path(path).display(),
-                frame_capture_display_path(&staging_path).display()
+                path.display_path().display(),
+                staging_path.display_path().display()
             ),
         ));
     }
@@ -70,15 +73,18 @@ pub(super) fn write_runtime_frame_png(
 }
 
 fn commit_frame_capture_staging_file(
-    staging_path: &Path,
-    final_path: &Path,
+    staging_path: &ResolvedProjectPath,
+    final_path: &ResolvedProjectPath,
 ) -> std::io::Result<()> {
     #[cfg(windows)]
-    if final_path.exists() {
-        return replace_existing_frame_capture_file(staging_path, final_path);
+    if final_path.operation_path().exists() {
+        return replace_existing_frame_capture_file(
+            staging_path.operation_path(),
+            final_path.operation_path(),
+        );
     }
 
-    std::fs::rename(staging_path, final_path)
+    std::fs::rename(staging_path.operation_path(), final_path.operation_path())
 }
 
 #[cfg(windows)]
@@ -128,13 +134,15 @@ fn replace_existing_frame_capture_file(
     }
 }
 
-fn reserve_frame_capture_staging_file(path: &Path) -> Result<(PathBuf, std::fs::File), String> {
+fn reserve_frame_capture_staging_file(
+    path: &ResolvedProjectPath,
+) -> Result<(ResolvedProjectPath, std::fs::File), String> {
     const MAX_STAGING_ATTEMPTS: usize = 64;
 
-    let file_name = path.file_name().ok_or_else(|| {
+    let file_name = path.operation_path().file_name().ok_or_else(|| {
         format!(
             "frame capture path {} has no file name",
-            frame_capture_display_path(path).display()
+            path.display_path().display()
         )
     })?;
     for _ in 0..MAX_STAGING_ATTEMPTS {
@@ -145,27 +153,27 @@ fn reserve_frame_capture_staging_file(path: &Path) -> Result<(PathBuf, std::fs::
         match std::fs::OpenOptions::new()
             .write(true)
             .create_new(true)
-            .open(&staging_path)
+            .open(staging_path.operation_path())
         {
             Ok(file) => return Ok((staging_path, file)),
             Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
             Err(error) => {
                 return Err(format!(
                     "create frame capture staging file {}: {error}",
-                    frame_capture_display_path(&staging_path).display()
+                    staging_path.display_path().display()
                 ));
             }
         }
     }
     Err(format!(
         "could not reserve a frame capture staging file beside {} after {MAX_STAGING_ATTEMPTS} attempts",
-        frame_capture_display_path(path).display()
+        path.display_path().display()
     ))
 }
 
 fn encode_frame_capture_staging_file(
     staging_file: std::fs::File,
-    final_path: &Path,
+    final_path: &ResolvedProjectPath,
     width: u32,
     height: u32,
     rgba: &[u8],
@@ -176,7 +184,7 @@ fn encode_frame_capture_staging_file(
         .map_err(|error| {
             format!(
                 "encode frame capture {}: {error}",
-                frame_capture_display_path(final_path).display()
+                final_path.display_path().display()
             )
         })?;
     // Buffered encoder success is not durable until both userspace and filesystem writes finish.
@@ -185,34 +193,37 @@ fn encode_frame_capture_staging_file(
     Ok(())
 }
 
-fn flush_frame_capture_writer(writer: &mut impl Write, final_path: &Path) -> Result<(), String> {
+fn flush_frame_capture_writer(
+    writer: &mut impl Write,
+    final_path: &ResolvedProjectPath,
+) -> Result<(), String> {
     writer.flush().map_err(|error| {
         format!(
             "flush frame capture {}: {error}",
-            frame_capture_display_path(final_path).display()
+            final_path.display_path().display()
         )
     })
 }
 
 fn sync_frame_capture_writer(
     writer: &impl FrameCaptureSync,
-    final_path: &Path,
+    final_path: &ResolvedProjectPath,
 ) -> Result<(), String> {
     writer.sync_frame_capture().map_err(|error| {
         format!(
             "sync frame capture {}: {error}",
-            frame_capture_display_path(final_path).display()
+            final_path.display_path().display()
         )
     })
 }
 
-fn remove_staging_after_failure(staging_path: &Path, failure: String) -> String {
-    match std::fs::remove_file(staging_path) {
+fn remove_staging_after_failure(staging_path: &ResolvedProjectPath, failure: String) -> String {
+    match std::fs::remove_file(staging_path.operation_path()) {
         Ok(()) => failure,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => failure,
         Err(error) => format!(
             "{failure}; cleanup frame capture staging file {} failed: {error}",
-            frame_capture_display_path(staging_path).display()
+            staging_path.display_path().display()
         ),
     }
 }
@@ -220,11 +231,13 @@ fn remove_staging_after_failure(staging_path: &Path, failure: String) -> String 
 #[cfg(test)]
 mod tests {
     use std::io::Write;
+    use std::path::Path;
 
     use super::{
-        flush_frame_capture_writer, frame_capture_display_path, sync_frame_capture_writer,
-        write_runtime_frame_png, FrameCaptureSync,
+        flush_frame_capture_writer, sync_frame_capture_writer, write_runtime_frame_png,
+        FrameCaptureSync,
     };
+    use zircon_runtime::asset::project::{ProjectPaths, ResolvedProjectPath};
 
     struct FlushFailureWriter;
 
@@ -246,11 +259,41 @@ mod tests {
         }
     }
 
+    fn resolve_capture_path(path: &Path) -> ResolvedProjectPath {
+        ProjectPaths::resolve_path(path).expect("capture path should resolve")
+    }
+
     fn capture_test_root(case_name: &str) -> std::path::PathBuf {
-        std::env::temp_dir().join(format!(
-            "zircon-runtime-frame-capture-{}-{case_name}",
-            std::process::id()
-        ))
+        let executable = std::env::current_exe().expect("locate the frame-capture test executable");
+        let binary_directory = executable
+            .parent()
+            .expect("frame-capture test executable must have a parent directory");
+        let binary_directory = ProjectPaths::resolve_existing(binary_directory)
+            .expect("resolve the frame-capture test binary directory");
+
+        binary_directory
+            .operation_path()
+            .join("zircon-mvp-fixtures")
+            .join(format!(
+                "zircon-runtime-frame-capture-{}-{case_name}",
+                std::process::id()
+            ))
+    }
+
+    #[test]
+    fn frame_capture_fixture_roots_follow_the_resolved_test_binary_directory() {
+        let root = capture_test_root("physical-root");
+        let executable = std::env::current_exe().expect("locate the frame-capture test executable");
+        let binary_directory = executable
+            .parent()
+            .expect("frame-capture test executable must have a parent directory");
+        let resolved_binary_directory = ProjectPaths::resolve_existing(binary_directory)
+            .expect("resolve frame-capture test binary directory");
+
+        assert!(
+            root.starts_with(resolved_binary_directory.operation_path()),
+            "frame-capture fixture output must retain the test binary's physical output root"
+        );
     }
 
     fn partial_capture_files(root: &std::path::Path) -> Vec<std::path::PathBuf> {
@@ -270,24 +313,20 @@ mod tests {
 
     #[test]
     fn runtime_frame_png_encoder_roundtrips_rgba_pixels() {
-        let path = std::env::temp_dir().join(format!(
-            "zircon_runtime_frame_capture_{}_{}.png",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system time after Unix epoch")
-                .as_nanos()
-        ));
+        let root = capture_test_root("png-roundtrip");
+        let path = root.join("runtime-first-frame.png");
         let rgba = [
             255, 0, 0, 255, // red
             0, 255, 0, 128, // green with alpha
         ];
+        let resolved_path = resolve_capture_path(&path);
 
-        write_runtime_frame_png(&path, 2, 1, &rgba).expect("frame capture PNG should encode");
+        write_runtime_frame_png(&resolved_path, 2, 1, &rgba)
+            .expect("frame capture PNG should encode");
         let decoded = image::open(&path)
             .expect("written frame capture PNG should decode")
             .to_rgba8();
-        let _ = std::fs::remove_file(&path);
+        std::fs::remove_dir_all(root).expect("remove frame capture PNG fixture");
 
         assert_eq!(decoded.dimensions(), (2, 1));
         assert_eq!(decoded.as_raw(), &rgba);
@@ -295,20 +334,16 @@ mod tests {
 
     #[test]
     fn runtime_frame_png_encoder_rejects_mismatched_rgba_without_writing_evidence() {
-        let path = std::env::temp_dir().join(format!(
-            "zircon_runtime_frame_capture_invalid_{}_{}.png",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system time after Unix epoch")
-                .as_nanos()
-        ));
+        let root = capture_test_root("invalid-rgba");
+        let path = root.join("runtime-first-frame.png");
+        let resolved_path = resolve_capture_path(&path);
 
-        let error = write_runtime_frame_png(&path, 2, 1, &[255, 0, 0, 255])
+        let error = write_runtime_frame_png(&resolved_path, 2, 1, &[255, 0, 0, 255])
             .expect_err("truncated RGBA frame must not produce PNG evidence");
 
         assert!(error.contains("does not match 2x1 output"));
         assert!(!path.exists());
+        let _ = std::fs::remove_dir_all(root);
     }
 
     #[test]
@@ -317,8 +352,9 @@ mod tests {
         let path = root.join("runtime-first-frame.png");
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&path).unwrap();
+        let resolved_path = resolve_capture_path(&path);
 
-        let error = write_runtime_frame_png(&path, 1, 1, &[255, 0, 0, 255])
+        let error = write_runtime_frame_png(&resolved_path, 1, 1, &[255, 0, 0, 255])
             .expect_err("a directory cannot be committed as PNG evidence");
 
         assert!(error.contains("commit frame capture"), "{error}");
@@ -333,8 +369,9 @@ mod tests {
         let path = root.join("runtime-first-frame.png");
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).unwrap();
+        let resolved_path = resolve_capture_path(&path);
 
-        let error = write_runtime_frame_png(&path, 0, 1, &[])
+        let error = write_runtime_frame_png(&resolved_path, 0, 1, &[])
             .expect_err("zero-width PNG evidence must fail during encoding");
 
         assert!(error.contains("encode frame capture"), "{error}");
@@ -350,8 +387,9 @@ mod tests {
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).unwrap();
         std::fs::write(&path, b"stale evidence").unwrap();
+        let resolved_path = resolve_capture_path(&path);
 
-        write_runtime_frame_png(&path, 1, 1, &[1, 2, 3, 255])
+        write_runtime_frame_png(&resolved_path, 1, 1, &[1, 2, 3, 255])
             .expect("complete PNG should atomically replace stale evidence");
         let decoded = image::open(&path).unwrap().to_rgba8();
 
@@ -363,30 +401,15 @@ mod tests {
 
     #[test]
     fn frame_capture_flush_and_sync_failures_are_not_reported_as_success() {
-        let path = std::path::Path::new("runtime-first-frame.png");
-        let flush_error = flush_frame_capture_writer(&mut FlushFailureWriter, path)
+        let path = resolve_capture_path(Path::new("runtime-first-frame.png"));
+        let flush_error = flush_frame_capture_writer(&mut FlushFailureWriter, &path)
             .expect_err("flush failure must block frame capture commit");
-        let sync_error = sync_frame_capture_writer(&SyncFailureWriter, path)
+        let sync_error = sync_frame_capture_writer(&SyncFailureWriter, &path)
             .expect_err("sync failure must block frame capture commit");
 
-        assert_eq!(
-            flush_error,
-            "flush frame capture runtime-first-frame.png: flush unavailable"
-        );
-        assert_eq!(
-            sync_error,
-            "sync frame capture runtime-first-frame.png: sync unavailable"
-        );
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn frame_capture_error_paths_hide_windows_verbatim_prefixes() {
-        assert_eq!(
-            frame_capture_display_path(std::path::Path::new(
-                r"\\?\C:\zircon\evidence\runtime-first-frame.png"
-            )),
-            std::path::PathBuf::from(r"C:\zircon\evidence\runtime-first-frame.png")
-        );
+        assert!(flush_error.contains("flush frame capture"));
+        assert!(flush_error.contains("flush unavailable"));
+        assert!(sync_error.contains("sync frame capture"));
+        assert!(sync_error.contains("sync unavailable"));
     }
 }

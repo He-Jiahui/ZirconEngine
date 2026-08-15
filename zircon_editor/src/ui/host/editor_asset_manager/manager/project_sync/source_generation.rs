@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use zircon_runtime::asset::project::{PackageAssetRegistry, ProjectManager, ProjectManifest};
-use zircon_runtime::core::resource::{ResourceId, ResourceRecord};
+use zircon_runtime::core::resource::{ResourceId, ResourceKind, ResourceRecord};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(in crate::ui::host::editor_asset_manager::manager) struct EditorAssetProjectSourceGeneration {
@@ -106,6 +106,24 @@ impl EditorAssetProjectSourceDelta {
             && self.removed.is_empty()
             && self.renamed.is_empty()
     }
+
+    pub(in crate::ui::host::editor_asset_manager::manager) fn touched_record_count(&self) -> usize {
+        self.added.len() + self.modified.len() + self.removed.len() + self.renamed.len()
+    }
+
+    pub(in crate::ui::host::editor_asset_manager::manager) fn affects_shader(&self) -> bool {
+        self.project_metadata_changed
+            || self
+                .added
+                .iter()
+                .chain(&self.modified)
+                .chain(&self.removed)
+                .any(|record| record.kind == ResourceKind::Shader)
+            || self.renamed.iter().any(|rename| {
+                rename.previous.kind == ResourceKind::Shader
+                    || rename.current.kind == ResourceKind::Shader
+            })
+    }
 }
 
 fn sort_delta(delta: &mut EditorAssetProjectSourceDelta) {
@@ -170,6 +188,27 @@ mod tests {
         assert_eq!(delta.renamed.len(), 1);
         assert!(!delta.is_unchanged());
         assert!(current.delta_since(&current).is_unchanged());
+    }
+
+    #[test]
+    fn source_delta_reports_shader_impact_and_touched_count() {
+        let mut shader = record("res://shader.asset");
+        shader.kind = ResourceKind::Shader;
+        let mut data = record("res://data.asset");
+        data.source_hash = "changed".to_string();
+        let delta = super::EditorAssetProjectSourceDelta {
+            added: vec![shader],
+            modified: vec![data],
+            ..super::EditorAssetProjectSourceDelta::default()
+        };
+
+        assert_eq!(delta.touched_record_count(), 2);
+        assert!(delta.affects_shader());
+        assert!(!super::EditorAssetProjectSourceDelta {
+            modified: vec![record("res://only-data.asset")],
+            ..super::EditorAssetProjectSourceDelta::default()
+        }
+        .affects_shader());
     }
 
     fn record(locator_text: &str) -> ResourceRecord {

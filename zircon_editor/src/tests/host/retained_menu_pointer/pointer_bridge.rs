@@ -112,6 +112,53 @@ fn shared_menu_pointer_bridge_scrolls_window_popup_using_shared_scroll_state() {
 }
 
 #[test]
+fn shared_menu_pointer_bridge_keeps_large_popup_item_authority_virtual() {
+    let layout = window_menu_layout(10_000);
+    let expected_surface_nodes = layout.button_frames.len() + 3;
+    let mut bridge = HostMenuPointerBridge::new();
+    bridge.sync(
+        layout,
+        HostMenuPointerState {
+            open_menu_index: Some(5),
+            hovered_menu_index: Some(5),
+            ..HostMenuPointerState::default()
+        },
+    );
+
+    let authority_generation = bridge.surface_authority_generation_for_test();
+    assert_eq!(
+        bridge.surface_node_count_for_test(),
+        expected_surface_nodes,
+        "logical menu items must not become retained hit-test nodes"
+    );
+
+    let popup_point = UiPoint::new(280.0, 110.0);
+    let scrolled = bridge
+        .handle_scroll(popup_point, 5_000.0 * 30.0)
+        .expect("large popup should scroll through its fixed surface authority");
+    assert_eq!(scrolled.route, Some(HostMenuPointerRoute::PopupSurface(5)));
+    assert_eq!(scrolled.state.hovered_item_index, Some(5_002));
+    assert_eq!(
+        bridge.surface_authority_generation_for_test(),
+        authority_generation,
+        "scrolling popup content must not rebuild popup node authority"
+    );
+    assert_eq!(bridge.surface_node_count_for_test(), expected_surface_nodes);
+
+    let clicked = bridge
+        .handle_click(popup_point)
+        .expect("item revealed by scroll should route without another sync");
+    assert_eq!(
+        clicked.route,
+        Some(HostMenuPointerRoute::MenuItem {
+            menu_index: 5,
+            item_index: 5_002,
+            action_id: "workbench.layout.preset.load.alpha-5000".to_string(),
+        })
+    );
+}
+
+#[test]
 fn shared_menu_pointer_bridge_scrolls_overwide_menu_bar_to_extension_button() {
     let mut layout = default_menu_layout();
     layout.shell_frame = UiFrame::new(0.0, 0.0, 180.0, 120.0);

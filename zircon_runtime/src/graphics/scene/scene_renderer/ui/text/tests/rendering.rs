@@ -1,13 +1,27 @@
 use std::collections::HashMap;
 
-use super::super::font_assets::{LoadedUiFontAsset, effective_text_render_mode};
+use super::super::font_assets::{effective_text_render_mode, LoadedUiFontAsset};
 use super::super::resolved_batches::{
-    AutoTextRasterRouter, ResolvedScreenSpaceUiTextBatches, resolved_auto_text_render_mode,
+    resolved_auto_text_render_mode, AutoTextRasterRouter, ResolvedScreenSpaceUiTextBatches,
 };
 use super::super::*;
 use super::support::text_batch;
 use crate::asset::ProjectAssetManager;
+use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiTextRouteIdentity;
 use zircon_runtime_interface::ui::surface::{UiTextRange, UiTextWritingMode};
+
+#[test]
+fn glyphon_atlas_trim_only_transitions_once_per_fallback_exit() {
+    let mut render_glyphon = true;
+
+    assert!(super::super::take_glyphon_atlas_trim_transition(
+        &mut render_glyphon
+    ));
+    assert!(!render_glyphon);
+    assert!(!super::super::take_glyphon_atlas_trim_transition(
+        &mut render_glyphon
+    ));
+}
 
 #[test]
 fn text_backend_routing_keeps_explicit_native_out_of_sdf_atlas_batches() {
@@ -450,4 +464,21 @@ fn native_text_area_placement_drops_non_finite_origin_values() {
     assert_eq!(placement.top, 0.0);
     assert_eq!(placement.bounds.left, 0);
     assert_eq!(placement.bounds.top, 0);
+}
+
+#[test]
+fn native_text_area_placement_uses_normalized_raster_scale() {
+    let mut text = text_batch("DPI", UiTextRenderMode::Native);
+    text.raster_scale = 2.0;
+
+    assert_eq!(
+        native_text_area_placement(crate::core::math::UVec2::new(200, 80), &text).raster_scale,
+        2.0
+    );
+
+    text.raster_scale = f32::NAN;
+    assert_eq!(
+        native_text_area_placement(crate::core::math::UVec2::new(200, 80), &text).raster_scale,
+        1.0
+    );
 }

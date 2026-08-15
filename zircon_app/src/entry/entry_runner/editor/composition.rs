@@ -1,31 +1,48 @@
 use std::error::Error;
-use std::fmt::Display;
 use std::path::Path;
 use std::sync::Arc;
 
 use zircon_editor::{
-    ui::host::{EditorHostEventController, EditorHostStartupSession, EditorManager},
-    EditorGuiStartupRequest, EDITOR_MANAGER_NAME,
+    run_retained_host_automation, EditorGuiStartupRequest, EditorHostRunConfig,
+    RetainedHostAutomationResult,
 };
-use zircon_runtime::core::math::UVec2;
+use zircon_runtime::asset::project::{ProjectManager, ResolvedProjectPath};
 use zircon_runtime::core::CoreHandle;
 
 use super::super::super::runtime_library::{LoadedRuntime, RuntimeSession};
 use super::{
-    editor_startup_diagnostic_error, prepare_editor_gui_startup, EditorStartupPreparation,
-    EntryRunner,
+    editor_startup_diagnostic_error, prepare_editor_gui_startup,
+    prepare_editor_gui_startup_with_resolved_project, EditorStartupPreparation, EntryRunner,
 };
 
 /// Complete non-windowed editor composition for product authoring and integration hosts.
 pub struct EditorApplicationComposition {
-    host: EditorHostStartupSession,
-    _runtime_session: Arc<RuntimeSession>,
-    _core: CoreHandle,
+    startup_request: Option<EditorGuiStartupRequest>,
+    prepared_project: ProjectManager,
+    editor_plugin_registrations: Vec<zircon_editor::EditorPluginRegistrationReport>,
+    runtime_capabilities: zircon_editor::RuntimeCapabilities,
+    runtime_session: Arc<RuntimeSession>,
+    core: CoreHandle,
 }
 
 impl EditorApplicationComposition {
     pub fn open_project(project_root: impl AsRef<Path>) -> Result<Self, Box<dyn Error>> {
         let startup_request = EditorGuiStartupRequest::open_project(project_root.as_ref());
+        Self::from_prepared_startup(prepare_editor_gui_startup(Some(startup_request))?)
+    }
+
+    /// Opens a project from the physical identity already resolved by a process entry boundary.
+    pub fn open_resolved_project(
+        project_root: ResolvedProjectPath,
+    ) -> Result<Self, Box<dyn Error>> {
+        Self::from_prepared_startup(prepare_editor_gui_startup_with_resolved_project(
+            project_root,
+        )?)
+    }
+
+    fn from_prepared_startup(
+        prepared_startup: EditorStartupPreparation,
+    ) -> Result<Self, Box<dyn Error>> {
         let EditorStartupPreparation {
             entry_config,
             startup_request,
@@ -33,7 +50,8 @@ impl EditorApplicationComposition {
             editor_plugin_registrations,
             runtime_plugin_registrations,
             runtime_capabilities,
-        } = prepare_editor_gui_startup(Some(startup_request))?;
+            ..
+        } = prepared_startup;
         let prepared_project = prepared_project.ok_or_else(|| {
             std::io::Error::other("project composition preparation did not open its project")
         })?;
@@ -41,7 +59,6 @@ impl EditorApplicationComposition {
             entry_config,
             runtime_plugin_registrations.clone(),
         )?;
-        let manager = core.resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)?;
         let runtime_library = LoadedRuntime::linked()?;
         let runtime_session = Arc::new(RuntimeSession::create_linked_with_profile_and_project(
             runtime_library,
@@ -49,68 +66,72 @@ impl EditorApplicationComposition {
             None,
             runtime_plugin_registrations,
         )?);
-        let runtime_teardown_failure = runtime_session.teardown_failure_state();
-        let host_result: Result<_, Box<dyn Error>> = (|| {
-            let runtime_gateway = runtime_session.editor_gateway(runtime_capabilities)?;
-            let host = EditorHostStartupSession::open_with_prepared_project(
-                manager,
-                startup_request,
-                Some(prepared_project),
-                UVec2::new(1280, 720),
-            )?;
-            host.controller().attach_play_gateway(runtime_gateway)?;
-            for registration in editor_plugin_registrations {
-                host.controller()
-                    .register_editor_plugin_registration(registration)?;
-            }
-            Ok(host)
-        })();
-        let host = match host_result {
-            Ok(host) => host,
-            Err(error) => {
-                drop(runtime_session);
-                return Err(editor_composition_open_error(
-                    error,
-                    runtime_teardown_failure.take(),
-                ));
-            }
-        };
-
         Ok(Self {
-            host,
-            _runtime_session: runtime_session,
-            _core: core,
+            startup_request,
+            prepared_project,
+            editor_plugin_registrations,
+            runtime_capabilities,
+            runtime_session,
+            core,
         })
     }
 
-    pub fn editor_host(&self) -> &EditorHostEventController {
-        self.host.controller()
+    pub fn prepared_project(&self) -> &ProjectManager {
+        &self.prepared_project
     }
 
-    pub fn startup_session(
-        &self,
-    ) -> &zircon_editor::ui::workbench::startup::EditorStartupSessionDocument {
-        self.host.startup_session()
-    }
-
-    /// Returns the runtime inspection generation activated while opening this project.
-    pub fn opened_project_inspection_generation(&self) -> Option<u64> {
-        self.host
-            .startup_session()
-            .project
-            .as_ref()
-            .map(|project| project.world.inspection_artifact().generation())
+    /// Transfers bootstrap ownership into the editor's production retained-host automation path.
+    pub fn run_retained_host_automation(
+        self,
+        bindings: &[zircon_editor::ui::binding::EditorUiBinding],
+    ) -> Result<RetainedHostAutomationResult, Box<dyn Error>> {
+        let Self {
+            startup_request,
+            prepared_project,
+            editor_plugin_registrations,
+            runtime_capabilities,
+            runtime_session,
+            core,
+        } = self;
+        let runtime_teardown_failure = runtime_session.teardown_failure_state();
+        let result = (|| {
+            let runtime_gateway = runtime_session.editor_gateway(runtime_capabilities)?;
+            let config = EditorHostRunConfig::new()
+                .with_startup_request(startup_request)
+                .with_prepared_project(Some(prepared_project))
+                .with_editor_plugin_registrations(editor_plugin_registrations);
+            run_retained_host_automation(core.clone(), runtime_gateway, config, bindings)
+        })();
+        drop(core);
+        drop(runtime_session);
+        match (result, runtime_teardown_failure.take()) {
+            (Ok(result), None) => Ok(result),
+            (Ok(_), Some(teardown_failure)) => Err(editor_startup_diagnostic_error(
+                "runtime_session",
+                "editor_application_composition",
+                format!("runtime session teardown failed: {teardown_failure}"),
+                "close the retained editor host before releasing the linked runtime session, then verify its lifecycle",
+            )
+            .into()),
+            (Err(error), None) => Err(error),
+            (Err(error), Some(teardown_failure)) => Err(format!(
+                "retained-host automation failed: {error}; runtime session teardown also failed: {teardown_failure}"
+            )
+            .into()),
+        }
     }
 
     /// Releases every gateway owner and reports a runtime session teardown failure.
     pub fn close(self) -> Result<(), Box<dyn Error>> {
         let Self {
-            host,
-            _runtime_session: runtime_session,
-            _core: core,
+            startup_request: _,
+            prepared_project: _,
+            editor_plugin_registrations: _,
+            runtime_capabilities: _,
+            runtime_session,
+            core,
         } = self;
         let runtime_teardown_failure = runtime_session.teardown_failure_state();
-        drop(host);
         drop(core);
         drop(runtime_session);
         if let Some(error) = runtime_teardown_failure.take() {
@@ -126,33 +147,23 @@ impl EditorApplicationComposition {
     }
 }
 
-fn editor_composition_open_error<E>(
-    open_error: Box<dyn Error>,
-    teardown_failure: Option<E>,
-) -> Box<dyn Error>
-where
-    E: Display,
-{
-    match teardown_failure {
-        Some(teardown_failure) => format!(
-            "editor composition initialization failed: {open_error}; runtime session teardown also failed: {teardown_failure}"
-        )
-        .into(),
-        None => open_error,
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::editor_composition_open_error;
-
     #[test]
-    fn project_composition_propagates_gateway_attachment_failure() {
+    fn project_composition_transfers_the_gateway_to_the_retained_host_runner() {
         let source = include_str!("composition.rs");
 
         assert!(
-            source.contains("host.controller().attach_play_gateway(runtime_gateway)?;"),
-            "project composition must not continue after a runtime gateway replacement failure"
+            source.contains(
+                "let runtime_gateway = runtime_session.editor_gateway(runtime_capabilities)?;"
+            ),
+            "composition must create the runtime gateway before entering the retained host"
+        );
+        assert!(
+            source.contains(
+                "run_retained_host_automation(core.clone(), runtime_gateway, config, bindings)"
+            ),
+            "composition must transfer automation to zircon_editor's retained host"
         );
     }
 
@@ -166,7 +177,6 @@ mod tests {
         let mut offset = 0;
         for needle in [
             "let runtime_teardown_failure = runtime_session.teardown_failure_state();",
-            "drop(host);",
             "drop(core);",
             "drop(runtime_session);",
             "if let Some(error) = runtime_teardown_failure.take()",
@@ -175,47 +185,6 @@ mod tests {
             let index = close[offset..]
                 .find(needle)
                 .unwrap_or_else(|| panic!("composition close path is missing `{needle}`"));
-            offset += index + needle.len();
-        }
-    }
-
-    #[test]
-    fn project_composition_open_combines_initialization_and_teardown_failures() {
-        let error = editor_composition_open_error(
-            "runtime gateway attachment failed".into(),
-            Some("runtime session destroy failed"),
-        );
-
-        assert_eq!(
-            error.to_string(),
-            "editor composition initialization failed: runtime gateway attachment failed; runtime session teardown also failed: runtime session destroy failed"
-        );
-    }
-
-    #[test]
-    fn project_composition_open_releases_partial_runtime_before_returning_error() {
-        let source = include_str!("composition.rs");
-        let open = source
-            .split("pub fn open_project")
-            .nth(1)
-            .expect("project composition should expose project open");
-        let mut offset = 0;
-        for needle in [
-            "let runtime_teardown_failure = runtime_session.teardown_failure_state();",
-            "let host_result: Result<_, Box<dyn Error>> = (|| {",
-            "runtime_session.editor_gateway(runtime_capabilities)?",
-            "host.controller().attach_play_gateway(runtime_gateway)?;",
-            "for registration in editor_plugin_registrations",
-            "register_editor_plugin_registration(registration)?;",
-            "Ok(host)",
-            "let host = match host_result",
-            "drop(runtime_session);",
-            "editor_composition_open_error(error, runtime_teardown_failure.take())",
-            "Ok(Self",
-        ] {
-            let index = open[offset..]
-                .find(needle)
-                .unwrap_or_else(|| panic!("composition open path is missing `{needle}`"));
             offset += index + needle.len();
         }
     }

@@ -10,18 +10,83 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+$pathResolver = Join-Path $PSScriptRoot "WindowsPathResolver.psm1"
+if (-not (Test-Path -LiteralPath $pathResolver -PathType Leaf)) {
+    throw "Windows path resolver was not found: $pathResolver"
+}
+Import-Module $pathResolver -Force -DisableNameChecking -ErrorAction Stop
 
-function Assert-AllowedCargoTargetPath {
-    param([string]$Path)
+function Resolve-ManagedCargoTargetPath {
+    param([Parameter(Mandatory)][string]$Path)
 
-    $candidate = [System.IO.Path]::GetFullPath($Path).TrimEnd('\', '/')
-    foreach ($allowedRoot in @('D:\cargo-targets', 'E:\cargo-targets', 'F:\cargo-targets')) {
-        $root = [System.IO.Path]::GetFullPath($allowedRoot).TrimEnd('\', '/')
-        if ($candidate.StartsWith($root + '\', [System.StringComparison]::OrdinalIgnoreCase)) {
-            return $candidate
+    $targetResolution = Resolve-ZirconWindowsPath -Path $Path
+    $candidate = $targetResolution.OperationalPath.TrimEnd('\', '/')
+    foreach ($allowedRootPath in @('D:\cargo-targets', 'E:\cargo-targets', 'F:\cargo-targets')) {
+        $allowedRoot = (Resolve-ZirconWindowsPath -Path $allowedRootPath).OperationalPath.TrimEnd('\', '/')
+        if ($candidate.StartsWith($allowedRoot + '\', [System.StringComparison]::OrdinalIgnoreCase)) {
+            return $targetResolution
         }
     }
-    throw "Cargo build output must be below D:\cargo-targets, E:\cargo-targets, or F:\cargo-targets: $candidate"
+
+    throw "Cargo build output must physically resolve below D:\cargo-targets, E:\cargo-targets, or F:\cargo-targets: $($targetResolution.DisplayPath)"
+}
+
+function Assert-ManagedCargoChildPath {
+    param(
+        [Parameter(Mandatory)][object]$ParentResolution,
+        [Parameter(Mandatory)][object]$ChildResolution,
+        [Parameter(Mandatory)][string]$Label
+    )
+
+    $parent = $ParentResolution.OperationalPath.TrimEnd('\', '/')
+    $child = $ChildResolution.OperationalPath.TrimEnd('\', '/')
+    if (-not $child.StartsWith($parent + '\', [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "$Label must physically resolve below $($ParentResolution.DisplayPath): $($ChildResolution.DisplayPath)"
+    }
+}
+
+function Push-ManagedCargoEnvironment {
+    param([Parameter(Mandatory)][object]$TargetResolution)
+
+    $cargoHomeResolution = Resolve-ZirconWindowsPath -Path (Join-Path $TargetResolution.DisplayPath 'cargo-home')
+    $sccacheResolution = Resolve-ZirconWindowsPath -Path (Join-Path $TargetResolution.DisplayPath 'sccache')
+    $temporaryResolution = Resolve-ZirconWindowsPath -Path (Join-Path $TargetResolution.DisplayPath 'temporary')
+    foreach ($childResolution in @($cargoHomeResolution, $sccacheResolution, $temporaryResolution)) {
+        Assert-ManagedCargoChildPath -ParentResolution $TargetResolution -ChildResolution $childResolution -Label 'Managed Cargo directory'
+    }
+    foreach ($resolution in @($TargetResolution, $cargoHomeResolution, $sccacheResolution, $temporaryResolution)) {
+        [System.IO.Directory]::CreateDirectory($resolution.OperationalPath) | Out-Null
+    }
+
+    $names = @('CARGO_TARGET_DIR', 'CARGO_HOME', 'SCCACHE_DIR', 'TEMP', 'TMP', 'TMPDIR')
+    $previousValues = @{}
+    foreach ($name in $names) {
+        $previousValues[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
+    }
+    try {
+        [Environment]::SetEnvironmentVariable('CARGO_TARGET_DIR', $TargetResolution.DisplayPath, 'Process')
+        [Environment]::SetEnvironmentVariable('CARGO_HOME', $cargoHomeResolution.DisplayPath, 'Process')
+        [Environment]::SetEnvironmentVariable('SCCACHE_DIR', $sccacheResolution.DisplayPath, 'Process')
+        foreach ($name in @('TEMP', 'TMP', 'TMPDIR')) {
+            [Environment]::SetEnvironmentVariable($name, $temporaryResolution.DisplayPath, 'Process')
+        }
+    }
+    catch {
+        foreach ($name in $names) {
+            [Environment]::SetEnvironmentVariable($name, $previousValues[$name], 'Process')
+        }
+        throw
+    }
+
+    return [pscustomobject]@{ PreviousValues = $previousValues }
+}
+
+function Pop-ManagedCargoEnvironment {
+    param([Parameter(Mandatory)][object]$Lease)
+
+    foreach ($name in $Lease.PreviousValues.Keys) {
+        [Environment]::SetEnvironmentVariable($name, $Lease.PreviousValues[$name], 'Process')
+    }
 }
 
 $repoRoot = Split-Path $PSScriptRoot -Parent
@@ -45,14 +110,12 @@ if ([string]::IsNullOrWhiteSpace($TargetDir)) {
     $repoDrive = [System.IO.Path]::GetPathRoot($repoRoot).TrimEnd('\')
     $TargetDir = Join-Path $repoDrive "cargo-targets\zircon-runtime-profile-matrix"
 }
-$resolvedTargetDir = Assert-AllowedCargoTargetPath -Path $TargetDir
-New-Item -ItemType Directory -Force -Path $resolvedTargetDir | Out-Null
+$targetResolution = Resolve-ManagedCargoTargetPath -Path $TargetDir
+$environmentLease = Push-ManagedCargoEnvironment -TargetResolution $targetResolution
 
-$oldTargetDir = $env:CARGO_TARGET_DIR
 $failedProfiles = [System.Collections.Generic.List[string]]::new()
 Push-Location $repoRoot
 try {
-    $env:CARGO_TARGET_DIR = $resolvedTargetDir
     foreach ($row in $rows) {
         $cargoArgs = [System.Collections.Generic.List[string]]::new()
         foreach ($argument in @(
@@ -84,12 +147,7 @@ try {
 }
 finally {
     Pop-Location
-    if ($null -eq $oldTargetDir) {
-        Remove-Item Env:CARGO_TARGET_DIR -ErrorAction SilentlyContinue
-    }
-    else {
-        $env:CARGO_TARGET_DIR = $oldTargetDir
-    }
+    Pop-ManagedCargoEnvironment -Lease $environmentLease
 }
 
 if ($failedProfiles.Count -gt 0) {

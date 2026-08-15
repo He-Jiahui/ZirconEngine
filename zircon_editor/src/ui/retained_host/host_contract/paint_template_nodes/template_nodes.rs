@@ -13,6 +13,7 @@ mod ordering;
 mod specialized;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use commands::push_template_node_commands;
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use geometry::template_node_intersects_clip;
 
 #[cfg(test)]
 pub(crate) fn paint_template_nodes_for_test(

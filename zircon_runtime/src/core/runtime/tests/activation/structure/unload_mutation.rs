@@ -6,17 +6,21 @@ fn successful_unload_mutation_keeps_exact_count_fast_paths() {
     let unload_mutation_source = unload_mutation_source();
     let activation_tests_source = activation_tests_source();
 
-    let empty_shutdown_index = activation_source
-        .find("if entry.shutdown_service_names.is_empty()")
-        .expect("deactivation should fast-path modules with no shutdown services");
+    let graph_lookup_index = activation_source
+        .find("let module_services = graph.module_services(module_name)?;")
+        .expect("deactivation should read shutdown services from the frozen module graph");
     let shutdown_clone_index = activation_source
-        .find("entry.shutdown_service_names.clone()")
-        .expect("deactivation should clone cached shutdown services for non-empty modules");
+        .find("module_services.shutdown_service_names().clone()")
+        .expect("deactivation should clone graph-owned shutdown services before releasing the module lock");
     let service_precheck_index = activation_source
         .find("let blocked_unload = {")
         .expect("deactivation should retain blocked-unload precheck for non-empty modules");
-    assert!(empty_shutdown_index < shutdown_clone_index);
-    assert!(empty_shutdown_index < service_precheck_index);
+    assert!(graph_lookup_index < shutdown_clone_index);
+    assert!(shutdown_clone_index < service_precheck_index);
+    assert!(
+        !activation_source.contains("entry.shutdown_service_names"),
+        "deactivation must not derive shutdown ordering from mutable module entries after graph freeze"
+    );
     assert!(activation_source.contains("fn finish_module_deactivation("));
     assert!(activation_source.contains("let unload_order = unload_order.as_ref()"));
     assert!(activation_source.contains("unload_services(&mut services, unload_order);"));

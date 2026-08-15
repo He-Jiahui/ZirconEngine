@@ -160,6 +160,27 @@ fn invalidation_batch_round_trip_preserves_generation_tokens_and_facts() {
 }
 
 #[test]
+fn canonical_dirty_tokens_require_strictly_increasing_runtime_tokens() {
+    let canonical = InvalidationBatch {
+        generation: 23,
+        dirty: vec![WatchToken::new(2), WatchToken::new(5)],
+        facts: Vec::new(),
+    };
+    let duplicated = InvalidationBatch {
+        dirty: vec![WatchToken::new(2), WatchToken::new(2)],
+        ..canonical.clone()
+    };
+    let unordered = InvalidationBatch {
+        dirty: vec![WatchToken::new(5), WatchToken::new(2)],
+        ..canonical.clone()
+    };
+
+    assert!(canonical.has_canonical_dirty_tokens());
+    assert!(!duplicated.has_canonical_dirty_tokens());
+    assert!(!unordered.has_canonical_dirty_tokens());
+}
+
+#[test]
 fn world_sync_contract_rejects_retired_or_unknown_wire_fields() {
     let query = r#"{
         "filter":{"with":[],"without":[]},

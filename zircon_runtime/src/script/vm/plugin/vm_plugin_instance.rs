@@ -38,6 +38,10 @@ pub trait VmPluginInstance: Send + Sync {
     }
 
     /// Performs one cooperative collection slice within the host-provided remaining budget.
+    ///
+    /// Implementations must retain any unfinished collector cursor in the instance and check the
+    /// supplied budget at bounded work intervals. `pause_micros` is backend telemetry; the host
+    /// measures wall time independently and owns the frame deadline.
     fn gc_step(&mut self, _budget: VmGcBudget) -> Result<VmGcStepOutcome, VmError> {
         Ok(VmGcStepOutcome::default())
     }

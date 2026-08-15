@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
 use crate::asset::{
-    AssetUri, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
-    MESH_ATTRIBUTE_TANGENT, MeshAttributeFormat, MeshAttributeSummary, MeshAttributeValues,
-    MeshIndices, MeshMorphTargetAsset, MeshMorphTargetAttributeSummary, MeshValidationError,
+    AssetUri, MeshAttributeFormat, MeshAttributeSummary, MeshAttributeValues, MeshIndices,
+    MeshMorphTargetAsset, MeshMorphTargetAttributeSummary, MeshValidationError,
+    MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT,
 };
 use crate::core::math::Vec3;
 
@@ -72,30 +72,22 @@ fn mesh_asset_to_morphed_model_primitive_applies_weighted_position_normal_tangen
 
     let primitive = mesh.to_morphed_model_primitive(&[0.5, 1.0]).unwrap();
 
-    assert!(
-        Vec3::from_array(primitive.vertices[0].position)
-            .abs_diff_eq(Vec3::new(1.0, 0.0, 0.5), 1.0e-6)
-    );
-    assert!(
-        Vec3::from_array(primitive.vertices[0].normal)
-            .abs_diff_eq(Vec3::new(0.0, 0.5, 1.0).normalize(), 1.0e-6)
-    );
-    assert!(
-        Vec3::from_array([
-            primitive.vertices[0].tangent[0],
-            primitive.vertices[0].tangent[1],
-            primitive.vertices[0].tangent[2],
-        ])
-        .abs_diff_eq(Vec3::new(1.0, 0.5, 0.0).normalize(), 1.0e-6)
-    );
+    assert!(Vec3::from_array(primitive.vertices[0].position)
+        .abs_diff_eq(Vec3::new(1.0, 0.0, 0.5), 1.0e-6));
+    assert!(Vec3::from_array(primitive.vertices[0].normal)
+        .abs_diff_eq(Vec3::new(0.0, 0.5, 1.0).normalize(), 1.0e-6));
+    assert!(Vec3::from_array([
+        primitive.vertices[0].tangent[0],
+        primitive.vertices[0].tangent[1],
+        primitive.vertices[0].tangent[2],
+    ])
+    .abs_diff_eq(Vec3::new(1.0, 0.5, 0.0).normalize(), 1.0e-6));
     assert_eq!(primitive.vertices[0].tangent[3], 1.0);
-    assert!(
-        primitive.vertices[0]
-            .color
-            .iter()
-            .zip([1.1, 0.8, 1.05, 0.7])
-            .all(|(actual, expected)| (*actual - expected).abs() <= 1.0e-6)
-    );
+    assert!(primitive.vertices[0]
+        .color
+        .iter()
+        .zip([1.1, 0.8, 1.05, 0.7])
+        .all(|(actual, expected)| (*actual - expected).abs() <= 1.0e-6));
     assert_eq!(primitive.indices, vec![0, 1, 2]);
     assert_eq!(primitive.virtual_geometry, mesh.virtual_geometry);
 }

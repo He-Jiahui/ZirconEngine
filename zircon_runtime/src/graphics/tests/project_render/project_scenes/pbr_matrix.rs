@@ -62,8 +62,7 @@ pub(super) fn render_pbr_matrix_frame_with_environment(
     let world = World::load_scene_from_uri(&project, &scene_uri).unwrap();
     let snapshot = build_pbr_matrix_snapshot(&world, environment);
 
-    let mut renderer = SceneRenderer::new_for_test(asset_manager).unwrap();
-    let frame = renderer.render(snapshot, PBR_MATRIX_OUTPUT_SIZE).unwrap();
+    let frame = render_snapshot_through_framework(asset_manager, snapshot, PBR_MATRIX_OUTPUT_SIZE);
 
     let _ = fs::remove_dir_all(root);
     frame

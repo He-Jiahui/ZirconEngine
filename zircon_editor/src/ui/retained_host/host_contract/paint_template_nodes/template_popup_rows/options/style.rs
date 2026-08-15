@@ -1,6 +1,6 @@
 use super::super::super::super::data::TemplatePaneOptionData;
 use super::super::super::style_selector::{
-    WorkbenchPopupRowState, WorkbenchPopupRowStyle, select_workbench_popup_row_style,
+    select_workbench_popup_row_style, WorkbenchPopupRowState, WorkbenchPopupRowStyle,
 };
 
 pub(super) fn popup_option_row_marked(option: &TemplatePaneOptionData) -> bool {

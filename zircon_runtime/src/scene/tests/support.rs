@@ -3,13 +3,13 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::asset::assets::{
-    AlphaMode, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0, MaterialAsset,
-    MeshAsset, MeshAttributeValues, MeshIndices, PhysicsMaterialAsset,
+    AlphaMode, MaterialAsset, MeshAsset, MeshAttributeValues, MeshIndices, PhysicsMaterialAsset,
     SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset,
     SceneAnimationSkeletonAsset, SceneAnimationStateMachinePlayerAsset, SceneAsset,
     SceneCameraAsset, SceneColliderAsset, SceneColliderShapeAsset, SceneEntityAsset,
     SceneJointAsset, SceneJointKindAsset, SceneMeshInstanceAsset, SceneMobilityAsset,
-    SceneRigidBodyAsset, SceneRigidBodyTypeAsset, TransformAsset,
+    SceneRigidBodyAsset, SceneRigidBodyTypeAsset, TransformAsset, MESH_ATTRIBUTE_NORMAL,
+    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
 };
 use crate::asset::project::ProjectManager;
 use crate::asset::{AssetReference, AssetUri};
@@ -22,9 +22,9 @@ use crate::core::framework::animation::{
     AnimationStateMachineAsset, AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
 };
 use crate::core::framework::render::RenderMeshTopology;
+use crate::core::framework::scene::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
 use crate::core::framework::scene::ComponentPropertyPath;
 use crate::core::framework::scene::EntityPath;
-use crate::core::framework::scene::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, MaterialMarker, MeshMarker, ModelMarker, PhysicsMaterialMarker,

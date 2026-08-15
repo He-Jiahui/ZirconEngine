@@ -1,3 +1,4 @@
+use crate::ui::retained_host::console_output::ConsoleOutputPaintMetadata;
 use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 use zircon_runtime_interface::ui::surface::UiSurfaceFrame;
 
@@ -11,8 +12,10 @@ use super::popup_rows::{
     hit_test_template_popup_node, hit_test_template_popup_rows, TemplatePopupRowHit,
 };
 use super::surface_frame_builder::is_dispatchable;
+use super::HostPaneTemplateHitIndex;
 use super::HostWorkbenchHitIndex;
 use super::TemplateNodePointerHit;
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
 pub(super) fn hit_test_template_nodes(
     nodes: &ModelRc<TemplatePaneNodeData>,
@@ -20,8 +23,9 @@ pub(super) fn hit_test_template_nodes(
     origin: &FrameRect,
     x: f32,
     y: f32,
+    popup_index: Option<&HostPaneTemplateHitIndex>,
 ) -> Option<TemplateNodePointerHit> {
-    match hit_test_template_popup_rows(nodes, origin, x, y) {
+    match hit_test_template_popup_rows(nodes, popup_index, origin, x, y) {
         Some(TemplatePopupRowHit::Hit(hit)) => return Some(hit),
         Some(TemplatePopupRowHit::Blocked) => return None,
         None => {}
@@ -33,12 +37,74 @@ pub(super) fn hit_test_template_nodes(
     Some(template_node_pointer_hit(node, origin, y))
 }
 
+pub(super) fn hit_test_scrolled_console_template_nodes(
+    nodes: &ModelRc<TemplatePaneNodeData>,
+    metadata: &ConsoleOutputPaintMetadata,
+    origin: &FrameRect,
+    x: f32,
+    y: f32,
+    scroll_px: f32,
+    popup_index: Option<&HostPaneTemplateHitIndex>,
+) -> Option<TemplateNodePointerHit> {
+    match hit_test_template_popup_rows(nodes, popup_index, origin, x, y) {
+        Some(TemplatePopupRowHit::Hit(hit)) => return Some(hit),
+        Some(TemplatePopupRowHit::Blocked) => return None,
+        None => {}
+    }
+
+    let scroll_px = scroll_px.max(0.0);
+    for row in metadata
+        .visible_line_node_rows(nodes.row_count(), scroll_px)
+        .rev()
+    {
+        let node = nodes.get(row)?;
+        if !is_dispatchable(node) {
+            continue;
+        }
+        let mut frame = template_node_frame(node, origin);
+        frame.y -= scroll_px;
+        if frame.width <= 0.0 || frame.height <= 0.0 || !contains_point(&frame, x, y) {
+            continue;
+        }
+        return Some(template_node_pointer_hit_with_frame(node, frame, y));
+    }
+    None
+}
+
+pub(super) fn hit_test_console_static_template_nodes(
+    nodes: &ModelRc<TemplatePaneNodeData>,
+    metadata: &ConsoleOutputPaintMetadata,
+    origin: &FrameRect,
+    x: f32,
+    y: f32,
+    popup_index: Option<&HostPaneTemplateHitIndex>,
+) -> Option<TemplateNodePointerHit> {
+    match hit_test_template_popup_rows(nodes, popup_index, origin, x, y) {
+        Some(TemplatePopupRowHit::Hit(hit)) => return Some(hit),
+        Some(TemplatePopupRowHit::Blocked) => return None,
+        None => {}
+    }
+
+    let line_rows = metadata.line_node_rows(nodes.row_count());
+    for row in (0..nodes.row_count()).rev() {
+        if line_rows.contains(&row) {
+            continue;
+        }
+        let node = nodes.get(row)?;
+        if is_dispatchable(node) && template_node_accepts_point(node, origin, x, y) {
+            return Some(template_node_pointer_hit(node, origin, y));
+        }
+    }
+    None
+}
+
 pub(super) fn hit_test_workbench_template_nodes_with_index(
     nodes: &ModelRc<TemplatePaneNodeData>,
     index: &HostWorkbenchHitIndex,
     x: f32,
     y: f32,
 ) -> Option<TemplateNodePointerHit> {
+    record_current_ui_perf_counter(UiPerfCounter::WorkbenchHitIndexQueryCount, 1.0);
     index.begin_query();
     let origin = index.origin()?;
     for row in index.popup_rows().iter().rev().copied() {
@@ -93,6 +159,14 @@ fn template_node_pointer_hit(
     y: f32,
 ) -> TemplateNodePointerHit {
     let frame = template_node_frame(node, origin);
+    template_node_pointer_hit_with_frame(node, frame, y)
+}
+
+fn template_node_pointer_hit_with_frame(
+    node: &TemplatePaneNodeData,
+    frame: FrameRect,
+    y: f32,
+) -> TemplateNodePointerHit {
     let component_family = template_component_family(node);
     let table_row = (component_family == Some(TemplateComponentFamily::Table))
         .then(|| table_row_hit(node, &frame, y))

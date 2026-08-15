@@ -11,8 +11,8 @@ use crate::graphics::scene::scene_renderer::ui::render::{
     ScreenSpaceUiTextRouteIdentity,
 };
 use crate::text::atlas::{
-    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT, GlyphAtlasFormat, GlyphAtlasPageKey,
-    GlyphAtlasPageSpec, GlyphAtlasSet, GlyphAtlasStorageFormat,
+    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet,
+    GlyphAtlasStorageFormat, GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
 };
 use crate::text::sdf::{SdfBakeParams, SdfMode};
 use crate::text::{ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine, ShapedGlyphRotation};
@@ -36,10 +36,12 @@ fn text_batch(text: &str, frame: UiFrame) -> ScreenSpaceUiTextBatch {
             None,
         ),
         command_generation: 1,
+        raster_scale: 1.0,
         text: text.to_string(),
         frame,
         clip_frame: None,
         source_range: None,
+        is_source_isomorphic_layout_line: false,
         glyph_advances: Vec::new(),
         shaped_glyphs: Vec::new(),
         preserve_shaped_glyphs: false,

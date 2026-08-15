@@ -322,23 +322,25 @@ fn linked_plugin_registration_with_events_per_tick(
             |_world, _reader_count| Ok(()),
         )
         .unwrap();
-    let mut frame = 0;
     extensions
         .register_runtime_scene_system(
             owner,
             "navigation.linked_session_tick",
             SystemStage::Update,
-            move |context| {
-                context
-                    .core
-                    .resolve_driver::<LinkedSessionDriver>(LINKED_DRIVER_NAME)?;
-                context.level.with_world_mut(|world| {
-                    for _ in 0..events_per_tick {
-                        frame += 1;
-                        world.send_event(LinkedSessionTick { frame });
-                    }
-                });
-                Ok(())
+            move || {
+                let mut frame = 0;
+                move |context| {
+                    context
+                        .core
+                        .resolve_driver::<LinkedSessionDriver>(LINKED_DRIVER_NAME)?;
+                    context.level.with_world_mut(|world| {
+                        for _ in 0..events_per_tick {
+                            frame += 1;
+                            world.send_event(LinkedSessionTick { frame });
+                        }
+                    });
+                    Ok(())
+                }
             },
         )
         .register()

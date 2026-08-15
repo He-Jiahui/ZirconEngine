@@ -4,7 +4,9 @@ use super::*;
 
 #[test]
 fn retained_text_raster_uses_swash_for_ui_face() {
-    let glyph_index = font_for_face(HostTextFontFace::Ui)
+    let font = host_font_snapshot_for_face(HostTextFontFace::Ui);
+    let glyph_index = font
+        .font()
         .expect("ui retained-host font")
         .lookup_glyph_index('P');
     let raster = rasterize_cached_glyph(HostTextFontFace::Ui, glyph_index, 13.0, 3.0, 0.0);
@@ -54,6 +56,21 @@ fn swash_subpixel_mask_can_follow_grayscale_smoothing_preference() {
 }
 
 #[test]
+fn swash_color_bitmap_preserves_its_rgba_pixels() {
+    let (format, bitmap) = swash_bitmap(
+        Content::Color,
+        vec![12, 34, 56, 78, 90, 120, 150, 255],
+        2,
+        1,
+        HostTextSmoothing::Grayscale,
+    )
+    .expect("color bitmap should stay renderable");
+
+    assert_eq!(format, CachedGlyphRasterFormat::ColorRgba);
+    assert_eq!(bitmap, vec![12, 34, 56, 78, 90, 120, 150, 255]);
+}
+
+#[test]
 fn swash_render_format_tracks_text_smoothing_preference() {
     assert_eq!(
         swash_format_for_smoothing(HostTextSmoothing::Grayscale),
@@ -78,7 +95,9 @@ fn retained_text_raster_disables_swash_hinting_for_compact_editor_labels() {
 
 #[test]
 fn retained_text_raster_cache_separates_subpixel_bins_for_same_glyph() {
-    let glyph_index = font_for_face(HostTextFontFace::Ui)
+    let font = host_font_snapshot_for_face(HostTextFontFace::Ui);
+    let glyph_index = font
+        .font()
         .expect("ui retained-host font")
         .lookup_glyph_index('e');
 
@@ -92,7 +111,8 @@ fn retained_text_raster_cache_separates_subpixel_bins_for_same_glyph() {
 
 #[test]
 fn retained_text_raster_keeps_swash_for_tiny_editor_label_glyphs() {
-    let font = font_for_face(HostTextFontFace::Ui).expect("ui retained-host font");
+    let font = host_font_snapshot_for_face(HostTextFontFace::Ui);
+    let font = font.font().expect("ui retained-host font");
     for (text, px) in [
         ("editor base.zui", 10.0_f32),
         ("folder-op...line.svg", 8.5_f32),
@@ -119,26 +139,32 @@ fn retained_text_raster_normalizes_invalid_subpixel_offsets() {
 
 #[test]
 fn swash_metrics_x_offset_is_relative_to_pen_origin() {
-    let glyph_index = font_for_face(HostTextFontFace::Ui)
+    let font = host_font_snapshot_for_face(HostTextFontFace::Ui);
+    let glyph_index = font
+        .font()
         .expect("ui retained-host font")
         .lookup_glyph_index('j');
-    let metrics = swash_metrics(HostTextFontFace::Ui, glyph_index, 13.0, 1.0, 7, 11, -2, 9);
+    let metrics = swash_metrics(&font, glyph_index, 13.0, 1.0, 7, 11, -2, 9);
 
     assert_eq!(metrics.x_offset, -2);
 }
 
 #[test]
 fn fontdue_fallback_metrics_x_offset_is_relative_to_pen_origin() {
-    let font = font_for_face(HostTextFontFace::Ui).expect("ui retained-host font");
-    let glyph_index = font.lookup_glyph_index('j');
+    let font = host_font_snapshot_for_face(HostTextFontFace::Ui);
+    let glyph_index = font
+        .font()
+        .expect("ui retained-host font")
+        .lookup_glyph_index('j');
     let raster_scale = 3.0;
-    let (raster_metrics, _) =
-        font.rasterize_indexed(glyph_index, fallback_raster_font_size(13.0, raster_scale));
+    let (raster_metrics, _) = font
+        .font()
+        .expect("ui retained-host font")
+        .rasterize_indexed(glyph_index, fallback_raster_font_size(13.0, raster_scale));
     let raster_left_px = raster_metrics.xmin as f32 / raster_scale;
     let expected_x_offset = raster_left_px.floor() as i32;
 
-    let raster =
-        rasterize_fontdue_glyph(HostTextFontFace::Ui, glyph_index, 13.0, raster_scale, 0.5);
+    let raster = rasterize_fontdue_glyph(&font, glyph_index, 13.0, raster_scale, 0.5);
 
     assert_eq!(raster.metrics.x_offset, expected_x_offset);
     assert_eq!(
@@ -156,10 +182,30 @@ fn fontdue_fallback_sample_offset_keeps_bitmap_left_fraction() {
 
 #[test]
 fn visible_low_coverage_swash_masks_remain_usable() {
-    assert!(bitmap_has_visible_ink(&[1]));
-    assert!(bitmap_has_visible_ink(&[0, 64, 0]));
-    assert!(!bitmap_has_visible_ink(&[]));
-    assert!(!bitmap_has_visible_ink(&[0, 0, 0]));
+    assert!(bitmap_has_visible_ink(
+        CachedGlyphRasterFormat::AlphaMask,
+        &[1]
+    ));
+    assert!(bitmap_has_visible_ink(
+        CachedGlyphRasterFormat::SubpixelMask,
+        &[0, 64, 0]
+    ));
+    assert!(!bitmap_has_visible_ink(
+        CachedGlyphRasterFormat::AlphaMask,
+        &[]
+    ));
+    assert!(!bitmap_has_visible_ink(
+        CachedGlyphRasterFormat::AlphaMask,
+        &[0, 0, 0]
+    ));
+    assert!(bitmap_has_visible_ink(
+        CachedGlyphRasterFormat::ColorRgba,
+        &[12, 34, 56, 1]
+    ));
+    assert!(!bitmap_has_visible_ink(
+        CachedGlyphRasterFormat::ColorRgba,
+        &[12, 34, 56, 0]
+    ));
 }
 
 #[test]

@@ -1,11 +1,252 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::{mpsc, Arc, Mutex};
+use std::thread;
+use std::time::Duration;
+use std::{panic, panic::AssertUnwindSafe};
 
 use super::super::super::super::*;
 use super::super::super::fixtures::{TestDriver, TestManager};
 use crate::core::runtime::ServiceObject;
 use crate::core::CoreError;
-use crate::core::{LifecycleState, ServiceKind, StartupMode};
+use crate::core::{
+    CoreResult, LifecycleState, ModuleContext, ModuleLifecycle, ServiceKind, StartupMode,
+};
+
+struct ActivationTransitionGate {
+    build_calls: Arc<AtomicUsize>,
+    cleanup_calls: Arc<AtomicUsize>,
+    first_build_started: Mutex<Option<mpsc::SyncSender<()>>>,
+    second_build_started: Mutex<Option<mpsc::SyncSender<()>>>,
+    cleanup_started: Mutex<Option<mpsc::SyncSender<()>>>,
+    release_first_build: Mutex<mpsc::Receiver<()>>,
+}
+
+impl std::fmt::Debug for ActivationTransitionGate {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("ActivationTransitionGate")
+            .finish_non_exhaustive()
+    }
+}
+
+impl ModuleLifecycle for ActivationTransitionGate {
+    fn build(&self, _context: &ModuleContext) -> CoreResult<()> {
+        match self.build_calls.fetch_add(1, Ordering::SeqCst) {
+            0 => {
+                if let Some(sender) = self.first_build_started.lock().unwrap().take() {
+                    sender.send(()).unwrap();
+                }
+                self.release_first_build.lock().unwrap().recv().unwrap();
+            }
+            _ => {
+                if let Some(sender) = self.second_build_started.lock().unwrap().take() {
+                    sender.send(()).unwrap();
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn cleanup(&self, _context: &ModuleContext) -> CoreResult<()> {
+        self.cleanup_calls.fetch_add(1, Ordering::SeqCst);
+        if let Some(sender) = self.cleanup_started.lock().unwrap().take() {
+            sender.send(()).unwrap();
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+struct PanicBuildLifecycle;
+
+impl ModuleLifecycle for PanicBuildLifecycle {
+    fn build(&self, _context: &ModuleContext) -> CoreResult<()> {
+        panic!("m2 module build panic")
+    }
+}
+
+#[derive(Debug)]
+struct ReentrantActivationLifecycle;
+
+impl ModuleLifecycle for ReentrantActivationLifecycle {
+    fn build(&self, context: &ModuleContext) -> CoreResult<()> {
+        let core = context
+            .core
+            .upgrade()
+            .expect("module callback must retain a live runtime handle");
+        let error = core
+            .activate_module(context.module_name.as_str())
+            .expect_err("same-module callback activation must not reenter build");
+        assert!(matches!(
+            error,
+            CoreError::ModuleLifecycleCommandReentrant { module, command }
+                if module == context.module_name.as_str() && command == "activate"
+        ));
+        Ok(())
+    }
+}
+
+fn activation_transition_gate(
+    build_calls: Arc<AtomicUsize>,
+    cleanup_calls: Arc<AtomicUsize>,
+) -> (
+    Arc<ActivationTransitionGate>,
+    mpsc::Receiver<()>,
+    mpsc::Receiver<()>,
+    mpsc::Receiver<()>,
+    mpsc::Sender<()>,
+) {
+    let (first_build_started_sender, first_build_started) = mpsc::sync_channel(1);
+    let (second_build_started_sender, second_build_started) = mpsc::sync_channel(1);
+    let (cleanup_started_sender, cleanup_started) = mpsc::sync_channel(1);
+    let (release_first_build, release_first_build_receiver) = mpsc::sync_channel(1);
+    (
+        Arc::new(ActivationTransitionGate {
+            build_calls,
+            cleanup_calls,
+            first_build_started: Mutex::new(Some(first_build_started_sender)),
+            second_build_started: Mutex::new(Some(second_build_started_sender)),
+            cleanup_started: Mutex::new(Some(cleanup_started_sender)),
+            release_first_build: Mutex::new(release_first_build_receiver),
+        }),
+        first_build_started,
+        second_build_started,
+        cleanup_started,
+        release_first_build,
+    )
+}
+
+#[test]
+fn concurrent_activation_shares_one_build_transaction() {
+    let runtime = CoreRuntime::new();
+    let build_calls = Arc::new(AtomicUsize::new(0));
+    let cleanup_calls = Arc::new(AtomicUsize::new(0));
+    let (lifecycle, first_build_started, second_build_started, _cleanup_started, release_build) =
+        activation_transition_gate(Arc::clone(&build_calls), cleanup_calls);
+    runtime
+        .register_module(
+            ModuleDescriptor::new("ConcurrentActivationModule", "M0 activation serialization")
+                .with_lifecycle(lifecycle),
+        )
+        .unwrap();
+
+    let first_runtime = runtime.clone();
+    let first_activation =
+        thread::spawn(move || first_runtime.activate_module("ConcurrentActivationModule"));
+    first_build_started
+        .recv_timeout(Duration::from_secs(1))
+        .expect("first activation should enter build before the competing command starts");
+
+    let second_runtime = runtime.clone();
+    let second_activation =
+        thread::spawn(move || second_runtime.activate_module("ConcurrentActivationModule"));
+    let duplicate_build_started = second_build_started
+        .recv_timeout(Duration::from_millis(100))
+        .is_ok();
+    release_build.send(()).unwrap();
+
+    first_activation.join().unwrap().unwrap();
+    second_activation.join().unwrap().unwrap();
+
+    assert!(
+        !duplicate_build_started,
+        "a same-module activation must join the active transaction instead of entering build twice"
+    );
+    assert_eq!(build_calls.load(Ordering::SeqCst), 1);
+
+    let handle = runtime.handle();
+    let modules = handle.inner.modules.lock().unwrap();
+    let module = modules
+        .get("ConcurrentActivationModule")
+        .expect("activated module should remain registered");
+    assert_eq!(module.lifecycle, LifecycleState::Running);
+}
+
+#[test]
+fn deactivation_does_not_cleanup_while_activation_build_is_in_flight() {
+    let runtime = CoreRuntime::new();
+    let build_calls = Arc::new(AtomicUsize::new(0));
+    let cleanup_calls = Arc::new(AtomicUsize::new(0));
+    let (lifecycle, first_build_started, _second_build_started, cleanup_started, release_build) =
+        activation_transition_gate(build_calls, Arc::clone(&cleanup_calls));
+    runtime
+        .register_module(
+            ModuleDescriptor::new(
+                "ActivationDeactivationModule",
+                "M0 transition serialization",
+            )
+            .with_lifecycle(lifecycle),
+        )
+        .unwrap();
+
+    let activation_runtime = runtime.clone();
+    let activation =
+        thread::spawn(move || activation_runtime.activate_module("ActivationDeactivationModule"));
+    first_build_started
+        .recv_timeout(Duration::from_secs(1))
+        .expect("activation should enter build before deactivation begins");
+
+    let deactivation_runtime = runtime.clone();
+    let deactivation = thread::spawn(move || {
+        deactivation_runtime.deactivate_module("ActivationDeactivationModule")
+    });
+    let cleanup_started_before_activation_committed = cleanup_started
+        .recv_timeout(Duration::from_millis(100))
+        .is_ok();
+    release_build.send(()).unwrap();
+
+    activation.join().unwrap().unwrap();
+    deactivation.join().unwrap().unwrap();
+
+    assert!(
+        !cleanup_started_before_activation_committed,
+        "a conflicting deactivation must not clean up a module whose activation has not committed"
+    );
+    assert_eq!(cleanup_calls.load(Ordering::SeqCst), 1);
+
+    let handle = runtime.handle();
+    let modules = handle.inner.modules.lock().unwrap();
+    let module = modules
+        .get("ActivationDeactivationModule")
+        .expect("deactivated module should remain registered");
+    assert_eq!(module.lifecycle, LifecycleState::Unloaded);
+}
+
+#[test]
+fn module_callback_panic_is_reported_as_a_typed_activation_failure() {
+    let runtime = CoreRuntime::new();
+    runtime
+        .register_module(
+            ModuleDescriptor::new("PanicBuildModule", "M2 callback panic")
+                .with_lifecycle(Arc::new(PanicBuildLifecycle)),
+        )
+        .unwrap();
+
+    let activation = panic::catch_unwind(AssertUnwindSafe(|| {
+        runtime.activate_module("PanicBuildModule")
+    }));
+    let activation = activation.expect("a module callback panic must not escape the lifecycle API");
+    assert!(matches!(
+        activation,
+        Err(CoreError::ModuleLifecycleCallbackPanicked { module, command })
+            if module == "PanicBuildModule" && command == "activate"
+    ));
+}
+
+#[test]
+fn same_module_reentrant_activation_returns_a_typed_error_without_reentering_build() {
+    let runtime = CoreRuntime::new();
+    runtime
+        .register_module(
+            ModuleDescriptor::new("ReentrantActivationModule", "M2 reentrant activation")
+                .with_lifecycle(Arc::new(ReentrantActivationLifecycle)),
+        )
+        .unwrap();
+
+    runtime
+        .activate_module("ReentrantActivationModule")
+        .unwrap();
+}
 
 #[test]
 fn immediate_services_activate_in_dependency_order() {

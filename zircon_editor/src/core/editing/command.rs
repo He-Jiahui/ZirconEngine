@@ -233,14 +233,10 @@ impl CreateNodeCommand {
                 invariant: "create command must be applied before it can be reverted",
             }));
         };
-        let removed = context
+        context
             .with_scene_mut(|scene| scene.remove_entity(node_id))
-            .map_err(unchanged)?;
-        if !removed {
-            return Err(unchanged(EditCommandError::TargetMissing {
-                target: format!("scene node {node_id}"),
-            }));
-        }
+            .map_err(unchanged)?
+            .map_err(|error| unchanged(external_error(error.to_string())))?;
         Ok(())
     }
 
@@ -302,7 +298,9 @@ impl DeleteNodeCommand {
         let preferred_camera = self.active_camera_after;
         let (active_camera, surviving) = context
             .with_scene_mut(|scene| {
-                let removed = scene.remove_entity_recursive(root_id);
+                let removed = scene
+                    .remove_entity_recursive(root_id)
+                    .map_err(|error| external_error(error.to_string()))?;
                 if removed.is_empty() {
                     return Err(EditCommandError::TargetMissing {
                         target: format!("scene node {root_id}"),

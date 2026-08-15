@@ -3,9 +3,10 @@ use std::collections::BTreeMap;
 use super::super::*;
 use crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot;
 use crate::ui::layouts::windows::workbench_host_window::{
-    BuildExportPaneViewData, ModulePluginsPaneViewData,
+    find_tab_snapshot, BuildExportPaneViewData, ModulePluginsPaneViewData,
 };
 use crate::ui::workbench::snapshot::ViewContentKind;
+use crate::ui::workbench::view::ViewInstanceId;
 use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
 mod editor_panes;
@@ -24,6 +25,91 @@ pub(super) struct HostLifecyclePanePayloads {
 }
 
 impl RetainedEditorHost {
+    pub(super) fn collect_shell_content_pane_payloads(
+        &self,
+        chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
+        target_kind: ViewContentKind,
+        target_instance_id: Option<&str>,
+    ) -> HostLifecyclePanePayloads {
+        zircon_runtime::profile_scope!(
+            "editor",
+            "retained_host",
+            "recompute_collect_shell_content_payloads"
+        );
+        let preset_names = self.runtime.preset_names();
+        let collect_ui_asset_panes = target_kind == ViewContentKind::UiAssetEditor;
+        let collect_animation_panes = matches!(
+            target_kind,
+            ViewContentKind::AnimationSequenceEditor | ViewContentKind::AnimationGraphEditor
+        );
+        let ui_asset_panes = if collect_ui_asset_panes {
+            target_instance_id
+                .and_then(|instance_id| {
+                    let view_id = ViewInstanceId::new(instance_id);
+                    self.editor_manager
+                        .ui_asset_editor_pane_presentation(&view_id)
+                        .ok()
+                        .map(|presentation| (instance_id.to_owned(), presentation))
+                })
+                .into_iter()
+                .collect()
+        } else {
+            BTreeMap::new()
+        };
+        let animation_panes = if collect_animation_panes {
+            target_instance_id
+                .and_then(|instance_id| {
+                    let view_id = ViewInstanceId::new(instance_id);
+                    self.editor_manager
+                        .animation_editor_pane_presentation(&view_id)
+                        .ok()
+                        .map(|presentation| (instance_id.to_owned(), presentation))
+                })
+                .into_iter()
+                .collect()
+        } else {
+            BTreeMap::new()
+        };
+        let runtime_diagnostics = if matches!(
+            target_kind,
+            ViewContentKind::RuntimeDiagnostics | ViewContentKind::PerformanceTimeline
+        ) {
+            self.runtime_diagnostics_with_profile()
+        } else {
+            RuntimeDiagnosticsSnapshot::default()
+        };
+        let module_plugins = if target_kind == ViewContentKind::ModulePlugins {
+            self.module_plugins_pane_data(chrome)
+        } else {
+            ModulePluginsPaneViewData::default()
+        };
+        let build_export = if target_kind == ViewContentKind::BuildExport {
+            self.build_export_pane_data(chrome)
+        } else {
+            BuildExportPaneViewData::default()
+        };
+        let template_v2_data = target_instance_id
+            .and_then(|instance_id| find_tab_snapshot(chrome, instance_id))
+            .and_then(|tab| tab.pane_template.as_ref())
+            .and_then(|template| {
+                self.runtime
+                    .ui_template_pane_data_snapshot(&template.body.document_id)
+                    .map(|snapshot| (template.body.document_id.clone(), snapshot))
+            })
+            .into_iter()
+            .collect();
+
+        HostLifecyclePanePayloads {
+            preset_names,
+            ui_asset_panes,
+            animation_panes,
+            runtime_diagnostics,
+            module_plugins,
+            build_export,
+            template_v2_data,
+        }
+    }
+
     pub(super) fn collect_host_lifecycle_pane_payloads(
         &self,
         model: &WorkbenchViewModel,
@@ -121,5 +207,31 @@ mod performance_tests {
 
         assert_eq!(sources.matches(&instance_snapshot).count(), 1);
         assert!(sources.contains("collect_ui_asset_panes || collect_animation_panes"));
+    }
+
+    #[test]
+    fn shell_content_payloads_are_gated_by_the_target_kind() {
+        let source = include_str!("pane_payloads.rs");
+        let targeted = source
+            .split("fn collect_shell_content_pane_payloads")
+            .nth(1)
+            .and_then(|body| body.split("fn collect_host_lifecycle_pane_payloads").next())
+            .expect("targeted shell content payload collector");
+
+        for kind in [
+            "ViewContentKind::UiAssetEditor",
+            "ViewContentKind::AnimationSequenceEditor",
+            "ViewContentKind::AnimationGraphEditor",
+            "ViewContentKind::RuntimeDiagnostics",
+            "ViewContentKind::PerformanceTimeline",
+            "ViewContentKind::ModulePlugins",
+            "ViewContentKind::BuildExport",
+        ] {
+            assert!(targeted.contains(kind), "missing targeted gate for {kind}");
+        }
+        assert!(!targeted.contains("should_collect_payload_for_kind"));
+        assert!(!targeted.contains("current_view_instances"));
+        assert!(!targeted.contains("ui_template_pane_data_snapshots()"));
+        assert!(targeted.contains("target_instance_id"));
     }
 }

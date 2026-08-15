@@ -124,11 +124,9 @@ mod tests {
 
         assert!(source.wgsl_source.contains("fn vs_main("));
         assert!(source.wgsl_source.contains("fn fs_taa_reactive_mask("));
-        assert!(
-            source
-                .wgsl_source
-                .contains("fn fs_taa_reactive_material_mask(")
-        );
+        assert!(source
+            .wgsl_source
+            .contains("fn fs_taa_reactive_material_mask("));
         assert!(source.wgsl_source.contains("surface.custom0.x"));
     }
 

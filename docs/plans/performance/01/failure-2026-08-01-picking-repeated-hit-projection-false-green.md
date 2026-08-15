@@ -80,3 +80,22 @@ Sol/High 终审修复后的最终源码由 managed job `367cc00c08394ae4b4705d2f
 同日第三轮 Sol/High 产品调用链复核发现 `run_picking_pipeline` 只有测试调用者，editor live dispatcher 的 route+debug 仍重复投影。新的行为 RED 先引用不存在的 `resolve_picking_outputs`，随后公共组合 resolver、framework pipeline 与 editor adapter 完成单一 authority 接线；真实多 output、双 pointer、non-hoverable/blocking 测试要求 builder=1、pointer sort=2，并验证 hover/report parity。同步删除只排除历史源码字符串的 pointer-event receipt；Runtime15 Picking folder guard 删除硬编码 `20` 测试总数，保留目录 owner 与 800 行预算。foreign Cargo reservation 仍阻止 managed GREEN，因此 failure 继续 `open`。
 
 本轮最终静态验证：固定 edition 的 `rustfmt --check` 通过，scoped `git diff --check` 通过，runtime pipeline 与 editor route+debug 产品调用链均只接入组合 resolver，两个已删除设置字段和两类过时 receipt 断言均无残留；handoff validator 为 556/0，plan-output audit 通过。未运行 Cargo，原因仍是 foreign reservation `431063bb4a79447488688bcf7f90dea1`，所以这些证据不能替代 focused `1/1` GREEN。
+
+## 2026-08-14 全模块结构性复审
+
+本轮按当前工作树重新逐文件阅读 `zircon_runtime/src/core/framework/picking/**` **23/23**（2,069 行）与 `zircon_runtime/src/tests/picking/**` **6/6**（889 行），并回查 editor 的 `runtime_picking_adapter.rs`、`overlay_router/build_dispatcher.rs` 产品组合入口。生产目录静态计数为 23 次显式 `.clone()`、13 次 `.collect()`、1 个排序调用；排序 authority 只在 `pointer_hits.rs`，组合 resolver 对一批 outputs 只建一次 per-pointer map，report 借用、hover 消费，当前修复方向成立。
+
+结构性参考依据不是相似命名，而是同一 picking/selection 数据流：
+
+- Bevy `dev/bevy/crates/bevy_picking/src/backend.rs:24-30` 明确允许 backend 用 spatial hierarchy，并允许 blocking hit 终止更低层；`hover.rs:105,134-140,181` 以 `Local<OverMap>` 跨帧保留容器，swap previous/current 后 clear 复用，再按层排序一次。Zircon 的单批 projection authority 与共享 hover storage与此方向一致，下一步应验证稳态容器复用，而不是再加一套缓存。
+- Unreal `dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/UnrealClient.cpp:1901-2019` 用 `bHitProxiesCached`/显式 invalidation 控制 hit-proxy 重绘，只在需要 fetch 时执行 `ReadSurfaceData` 与 `FlushRenderingCommands`；`LevelEditorViewport.cpp:2882-2900` 的特殊 gizmo-underlying click 才失效并重取。Zircon 的 renderer/scene 级 picking 不能退化为每帧同步 GPU readback，也不能让 debug 查询触发第二次 projection。
+- Fyrox `dev/Fyrox/editor/src/interaction/select_mode.rs:50,112-134` 保留并 `clear()` 复用 traversal stack；框选图遍历发生在选择交互边界，而不是为每次 move 新建递归容器。这支持把昂贵选择工作限制在 invalidation/interaction boundary，并复用 scratch。
+
+当前仍有两个未量化的架构风险，因此本轮不直接改生产代码：
+
+1. `PrimitivePickingBackend::collect_hits` 对每条 ray 扫描全部 primitive，复杂度为 `O(R * N)`。它只能作为小规模 overlay/test backend；大场景 renderable picking 必须由 Render04/Editor05 提供 BVH、visible query、physics query 或 renderer-owned PickId/hit proxy，backend 输入规模应接近 broad-phase candidates，而不是 scene primitive 总数。
+2. `PickingEventState::active_buttons` 对复合 button map 做全表扫描并构造临时 `Vec`，drag/cancel 状态还有多处 owned clone。先在真实 pointer/button storm 中记录 visits、temporary bytes、COW fallback 与 event count；没有产品占比证据前，不引入第二份易漂移索引。
+
+后续规模门：`rays={1,10,100}`、`primitives={10,1k,100k}`、`pointers={1,10,1k}`、`buttons={1,10,1k}`。每批 projection builder 必须为 1、每 active pointer group sort 不超过 1、selected-hit clone 为 0；scene backend candidate visits 必须随 broad-phase 结果而不是总 primitive 线性增长；普通帧 output/event-state 共享 storage，COW 只在 mutation；再记录 allocation bytes、comparisons、main-thread p50/p95/p99 与 worker overlap。
+
+2026-08-14 fresh managed `-DryRun` 尚未生成 Cargo 命令：协调器以 `unmanaged_artifacts_detected` 拒绝，报告的是 D/E/F 上其他 Session 的 target/fixture，目标测试执行数仍为 0。固定 Rust 1.94.1 的相关文件 `rustfmt --check` 与 scoped `git diff --check` 已通过，但本 failure 保持 `open`，Picking 的 29 个文件继续留在 `pending.md`。

@@ -9,10 +9,10 @@ use crate::ui::retained_host::host_contract::paint_geometry::{
 use crate::ui::retained_host::host_contract::paint_template_nodes::TemplateNodePaintTransform;
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::workbench::asset_content_layout::{
+    activity_reference_row_index, browser_reference_row_index, browser_source_tree_row_index,
     ActivityAssetReferenceListKind, ActivityContentNodeIdentity, AssetContentNodeIdentity,
     AssetContentPaintMetadata, AssetContentRect, AssetContentSurface,
-    BrowserAssetReferenceListKind, BrowserContentNodeIdentity, activity_reference_row_index,
-    browser_reference_row_index, browser_source_tree_row_index,
+    BrowserAssetReferenceListKind, BrowserContentNodeIdentity,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_workbench_renderer::docks::pane::template_nodes)

@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::sync::atomic::{AtomicU64, AtomicU8, Ordering};
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicU8, AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
 use zircon_runtime_interface::{
@@ -14,6 +14,14 @@ use super::{
     EditorRuntimeEventConsumerRegistry, EditorRuntimeEventPumpBudget, EditorRuntimeEventPumpReport,
 };
 
+mod execution_support;
+mod round_robin;
+
+use execution_support::{
+    p95_duration, unsubscribe_consumer, validate_delivery, LifecycleExecutionGuard,
+    PumpExecutionGuard,
+};
+
 const EXECUTION_IDLE: u8 = 0;
 const EXECUTION_PUMP: u8 = 1;
 const EXECUTION_LIFECYCLE: u8 = 2;
@@ -24,6 +32,11 @@ struct ActiveConsumer {
     generation: u64,
     last_sequence: Option<u64>,
     pending: VecDeque<ZrRuntimePluginEventDeliveryV1>,
+    pending_encoded_bytes_upper_bound: usize,
+    pending_since: Option<Instant>,
+    last_observed_runtime_remaining_deliveries: Option<usize>,
+    last_observed_runtime_oldest_pending_age_millis: Option<u64>,
+    runtime_backlog_observed_at: Option<Instant>,
 }
 
 #[derive(Clone)]
@@ -32,6 +45,7 @@ struct ActiveConsumerSnapshot {
     registration: EditorRuntimeEventConsumerRegistration,
     subscription: ZrRuntimePluginEventSubscriptionHandle,
     generation: u64,
+    has_pending: bool,
 }
 
 #[derive(Clone)]
@@ -39,6 +53,63 @@ struct ActiveConsumerIdentity {
     consumer_id: String,
     subscription: ZrRuntimePluginEventSubscriptionHandle,
     generation: u64,
+}
+
+struct PendingDeliveryBatch {
+    deliveries: VecDeque<ZrRuntimePluginEventDeliveryV1>,
+    last_sequence: Option<u64>,
+    encoded_bytes_upper_bound: usize,
+    pending_since: Option<Instant>,
+}
+
+/// Restores the locally owned delivery batch if the callback unwinds before the normal commit.
+///
+/// The delivery currently executing in a callback has transferred payload ownership and cannot be
+/// replayed without changing the consumer ABI. Every later delivery and the last successful
+/// sequence are nevertheless returned to the matching generation before unwinding continues.
+struct PendingDeliveryBatchRestoreGuard<'a> {
+    host: &'a EditorRuntimeEventConsumerHost,
+    snapshot: &'a ActiveConsumerSnapshot,
+    batch: Option<PendingDeliveryBatch>,
+}
+
+impl<'a> PendingDeliveryBatchRestoreGuard<'a> {
+    fn new(
+        host: &'a EditorRuntimeEventConsumerHost,
+        snapshot: &'a ActiveConsumerSnapshot,
+        batch: PendingDeliveryBatch,
+    ) -> Self {
+        Self {
+            host,
+            snapshot,
+            batch: Some(batch),
+        }
+    }
+
+    fn batch(&self) -> &PendingDeliveryBatch {
+        self.batch
+            .as_ref()
+            .expect("pending delivery batch remains owned until it is restored")
+    }
+
+    fn batch_mut(&mut self) -> &mut PendingDeliveryBatch {
+        self.batch
+            .as_mut()
+            .expect("pending delivery batch remains owned until it is restored")
+    }
+
+    fn restore(&mut self) -> bool {
+        let Some(batch) = self.batch.take() else {
+            return true;
+        };
+        self.host.restore_pending_batch(self.snapshot, batch)
+    }
+}
+
+impl Drop for PendingDeliveryBatchRestoreGuard<'_> {
+    fn drop(&mut self) {
+        let _ = self.restore();
+    }
 }
 
 pub struct EditorRuntimeEventConsumerHost {
@@ -278,6 +349,11 @@ impl EditorRuntimeEventConsumerHost {
                         generation: identity.generation,
                         last_sequence: None,
                         pending: VecDeque::new(),
+                        pending_encoded_bytes_upper_bound: 0,
+                        pending_since: None,
+                        last_observed_runtime_remaining_deliveries: None,
+                        last_observed_runtime_oldest_pending_age_millis: None,
+                        runtime_backlog_observed_at: None,
                     },
                 );
             added.push(identity);
@@ -314,7 +390,7 @@ impl EditorRuntimeEventConsumerHost {
         let mut report = EditorRuntimeEventPumpReport::default();
         let mut runtime_drain_samples = Vec::with_capacity(snapshots.len());
         let mut decode_samples = Vec::with_capacity(snapshots.len());
-        let mut visited_any = false;
+        let mut visited_consumer_count = 0;
         let mut first_error = None;
 
         for snapshot in &snapshots {
@@ -322,40 +398,56 @@ impl EditorRuntimeEventConsumerHost {
             {
                 break;
             }
-            visited_any = true;
-            let page = match gateway.drain_plugin_events(snapshot.subscription) {
-                Ok(page) => page,
-                Err(message) => {
-                    first_error.get_or_insert(EditorRuntimeEventConsumerError::Gateway {
-                        consumer_id: snapshot.consumer_id.clone(),
-                        message: message.to_string(),
-                    });
-                    continue;
-                }
-            };
-            report.record_drained_page(
-                page.deliveries().len(),
-                page.encoded_bytes(),
-                page.runtime_drain_elapsed(),
-                page.decode_elapsed(),
-                page.runtime_remaining_deliveries(),
-                page.runtime_oldest_pending_age_millis(),
-            );
-            runtime_drain_samples.push(page.runtime_drain_elapsed());
-            decode_samples.push(page.decode_elapsed());
-            report.record_dropped(self.append_drained_deliveries(snapshot, page.into_deliveries()));
+            visited_consumer_count += 1;
+            if !snapshot.has_pending {
+                let page = match gateway.drain_plugin_events(snapshot.subscription) {
+                    Ok(page) => page,
+                    Err(message) => {
+                        first_error.get_or_insert(EditorRuntimeEventConsumerError::Gateway {
+                            consumer_id: snapshot.consumer_id.clone(),
+                            message: message.to_string(),
+                        });
+                        continue;
+                    }
+                };
+                let page_encoded_bytes = page.encoded_bytes();
+                let runtime_remaining_deliveries = page.runtime_remaining_deliveries();
+                let runtime_oldest_pending_age_millis = page.runtime_oldest_pending_age_millis();
+                report.record_drained_page(
+                    page.deliveries().len(),
+                    page_encoded_bytes,
+                    page.runtime_drain_elapsed(),
+                    page.decode_elapsed(),
+                );
+                runtime_drain_samples.push(page.runtime_drain_elapsed());
+                decode_samples.push(page.decode_elapsed());
+                report.record_dropped(self.append_drained_deliveries(
+                    snapshot,
+                    page.into_deliveries(),
+                    page_encoded_bytes,
+                    runtime_remaining_deliveries,
+                    runtime_oldest_pending_age_millis,
+                ));
+            }
 
+            let Some(batch) = self.take_pending_batch(snapshot) else {
+                continue;
+            };
+            let mut pending = PendingDeliveryBatchRestoreGuard::new(self, snapshot, batch);
             let mut applied_for_consumer = 0;
             while report.applied() < budget.max_events()
                 && applied_for_consumer < budget.max_events_per_consumer()
                 && started.elapsed() < budget.max_elapsed()
             {
-                let Some((delivery, last_sequence)) = self.take_next_delivery(snapshot) else {
+                let Some(delivery) = pending.batch_mut().deliveries.pop_front() else {
                     break;
                 };
-                if let Err(error) =
-                    validate_delivery(snapshot, runtime_session_id, last_sequence, &delivery)
-                {
+                if let Err(error) = validate_delivery(
+                    snapshot,
+                    runtime_session_id,
+                    pending.batch().last_sequence,
+                    &delivery,
+                ) {
                     report.record_dropped(1);
                     first_error.get_or_insert(error);
                     break;
@@ -379,15 +471,16 @@ impl EditorRuntimeEventConsumerHost {
 
                 report.record_applied(callback_elapsed, budget.slow_callback_threshold());
                 applied_for_consumer += 1;
-                let committed = self.commit_delivery_sequence(snapshot, sequence);
-                debug_assert!(committed, "lifecycle owner changed during an active pump");
+                pending.batch_mut().last_sequence = Some(sequence);
             }
+            let committed = pending.restore();
+            debug_assert!(committed, "lifecycle owner changed during an active pump");
         }
         report.set_drain_percentiles(
             p95_duration(&mut runtime_drain_samples),
             p95_duration(&mut decode_samples),
         );
-        self.advance_round_robin_start(&snapshots, visited_any);
+        self.advance_round_robin_start(&snapshots, visited_consumer_count);
         self.finish_pump_report(&mut report);
         first_error.map_or(Ok(report), Err)
     }
@@ -527,6 +620,7 @@ impl EditorRuntimeEventConsumerHost {
                 registration: consumer.registration.clone(),
                 subscription: consumer.subscription,
                 generation: consumer.generation,
+                has_pending: !consumer.pending.is_empty(),
             })
             .collect::<Vec<_>>();
         drop(active);
@@ -550,6 +644,9 @@ impl EditorRuntimeEventConsumerHost {
         &self,
         snapshot: &ActiveConsumerSnapshot,
         deliveries: Vec<ZrRuntimePluginEventDeliveryV1>,
+        encoded_bytes_upper_bound: usize,
+        runtime_remaining_deliveries: usize,
+        runtime_oldest_pending_age_millis: u64,
     ) -> usize {
         let mut active = self
             .active
@@ -561,31 +658,52 @@ impl EditorRuntimeEventConsumerHost {
         }) else {
             return deliveries.len();
         };
+        debug_assert!(consumer.pending.is_empty());
+        consumer.last_observed_runtime_remaining_deliveries = Some(runtime_remaining_deliveries);
+        consumer.last_observed_runtime_oldest_pending_age_millis =
+            Some(runtime_oldest_pending_age_millis);
+        consumer.runtime_backlog_observed_at = Some(Instant::now());
+        if deliveries.is_empty() {
+            return 0;
+        }
+        consumer.pending_encoded_bytes_upper_bound = encoded_bytes_upper_bound;
+        consumer.pending_since = Some(Instant::now());
         consumer.pending.extend(deliveries);
         0
     }
 
-    fn take_next_delivery(
+    fn take_pending_batch(
         &self,
         snapshot: &ActiveConsumerSnapshot,
-    ) -> Option<(ZrRuntimePluginEventDeliveryV1, Option<u64>)> {
+    ) -> Option<PendingDeliveryBatch> {
         let mut active = self
             .active
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let consumer = active.get_mut(&snapshot.consumer_id)?;
-        (consumer.generation == snapshot.generation
-            && consumer.subscription == snapshot.subscription)
-            .then(|| {
-                consumer
-                    .pending
-                    .pop_front()
-                    .map(|delivery| (delivery, consumer.last_sequence))
-            })
-            .flatten()
+        if consumer.generation != snapshot.generation
+            || consumer.subscription != snapshot.subscription
+        {
+            return None;
+        }
+        if consumer.pending.is_empty() {
+            return None;
+        }
+        Some(PendingDeliveryBatch {
+            deliveries: std::mem::take(&mut consumer.pending),
+            last_sequence: consumer.last_sequence,
+            encoded_bytes_upper_bound: std::mem::take(
+                &mut consumer.pending_encoded_bytes_upper_bound,
+            ),
+            pending_since: consumer.pending_since.take(),
+        })
     }
 
-    fn commit_delivery_sequence(&self, snapshot: &ActiveConsumerSnapshot, sequence: u64) -> bool {
+    fn restore_pending_batch(
+        &self,
+        snapshot: &ActiveConsumerSnapshot,
+        pending: PendingDeliveryBatch,
+    ) -> bool {
         let mut active = self
             .active
             .lock()
@@ -596,21 +714,16 @@ impl EditorRuntimeEventConsumerHost {
         }) else {
             return false;
         };
-        consumer.last_sequence = Some(sequence);
-        true
-    }
-
-    fn advance_round_robin_start(&self, snapshots: &[ActiveConsumerSnapshot], visited_any: bool) {
-        if !visited_any || snapshots.is_empty() {
-            return;
+        consumer.last_sequence = pending.last_sequence;
+        consumer.pending = pending.deliveries;
+        if consumer.pending.is_empty() {
+            consumer.pending_encoded_bytes_upper_bound = 0;
+            consumer.pending_since = None;
+        } else {
+            consumer.pending_encoded_bytes_upper_bound = pending.encoded_bytes_upper_bound;
+            consumer.pending_since = pending.pending_since;
         }
-        let next = snapshots
-            .get(1 % snapshots.len())
-            .map(|snapshot| snapshot.consumer_id.clone());
-        *self
-            .round_robin_cursor
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner()) = next;
+        true
     }
 
     fn finish_pump_report(&self, report: &mut EditorRuntimeEventPumpReport) {
@@ -628,8 +741,38 @@ impl EditorRuntimeEventConsumerHost {
             })
             .max()
             .unwrap_or_default();
+        let pending_encoded_bytes_upper_bound = active
+            .values()
+            .map(|consumer| consumer.pending_encoded_bytes_upper_bound)
+            .sum();
+        let pending_oldest_age = active
+            .values()
+            .filter_map(|consumer| consumer.pending_since.map(|since| since.elapsed()))
+            .max()
+            .unwrap_or_default();
+        let last_observed_runtime_backlog = active
+            .values()
+            .try_fold(
+                (0_usize, 0_u64, Duration::ZERO),
+                |(remaining_total, oldest_pending_age, observation_age), consumer| {
+                    Some((
+                        remaining_total
+                            .saturating_add(consumer.last_observed_runtime_remaining_deliveries?),
+                        oldest_pending_age
+                            .max(consumer.last_observed_runtime_oldest_pending_age_millis?),
+                        observation_age.max(consumer.runtime_backlog_observed_at?.elapsed()),
+                    ))
+                },
+            )
+            .filter(|_| !active.is_empty());
         drop(active);
-        report.set_queue_pressure(queue_depth, pending_sequence_span);
+        report.set_queue_pressure(
+            queue_depth,
+            pending_sequence_span,
+            pending_encoded_bytes_upper_bound,
+            pending_oldest_age,
+        );
+        report.set_last_observed_runtime_backlog(last_observed_runtime_backlog);
         self.store_pump_report(*report);
     }
 
@@ -638,127 +781,5 @@ impl EditorRuntimeEventConsumerHost {
             .last_pump_report
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner()) = report;
-    }
-}
-
-fn p95_duration(samples: &mut [Duration]) -> Duration {
-    if samples.is_empty() {
-        return Duration::ZERO;
-    }
-    samples.sort_unstable();
-    let index = samples.len().saturating_mul(95).div_ceil(100) - 1;
-    samples[index]
-}
-
-struct PumpExecutionGuard<'a> {
-    execution_state: &'a AtomicU8,
-}
-
-impl<'a> PumpExecutionGuard<'a> {
-    fn enter(execution_state: &'a AtomicU8) -> Option<Self> {
-        execution_state
-            .compare_exchange(
-                EXECUTION_IDLE,
-                EXECUTION_PUMP,
-                Ordering::Acquire,
-                Ordering::Relaxed,
-            )
-            .ok()
-            .map(|_| Self { execution_state })
-    }
-}
-
-impl Drop for PumpExecutionGuard<'_> {
-    fn drop(&mut self) {
-        self.execution_state
-            .store(EXECUTION_IDLE, Ordering::Release);
-    }
-}
-
-struct LifecycleExecutionGuard<'a> {
-    execution_state: &'a AtomicU8,
-}
-
-impl<'a> LifecycleExecutionGuard<'a> {
-    fn enter(
-        execution_state: &'a AtomicU8,
-        operation: &'static str,
-    ) -> Result<Self, EditorRuntimeEventConsumerError> {
-        execution_state
-            .compare_exchange(
-                EXECUTION_IDLE,
-                EXECUTION_LIFECYCLE,
-                Ordering::Acquire,
-                Ordering::Relaxed,
-            )
-            .map(|_| Self { execution_state })
-            .map_err(|_| EditorRuntimeEventConsumerError::LifecycleMutationBusy { operation })
-    }
-}
-
-impl Drop for LifecycleExecutionGuard<'_> {
-    fn drop(&mut self) {
-        self.execution_state
-            .store(EXECUTION_IDLE, Ordering::Release);
-    }
-}
-
-fn validate_delivery(
-    snapshot: &ActiveConsumerSnapshot,
-    runtime_session_id: u64,
-    last_sequence: Option<u64>,
-    delivery: &ZrRuntimePluginEventDeliveryV1,
-) -> Result<(), EditorRuntimeEventConsumerError> {
-    let manifest = snapshot.registration.manifest();
-    if delivery.play_session_id != runtime_session_id {
-        return Err(EditorRuntimeEventConsumerError::WrongSession {
-            consumer_id: snapshot.consumer_id.clone(),
-            expected: runtime_session_id,
-            actual: delivery.play_session_id,
-        });
-    }
-    if delivery.subscription != snapshot.subscription {
-        return Err(EditorRuntimeEventConsumerError::ForeignSubscription {
-            consumer_id: snapshot.consumer_id.clone(),
-        });
-    }
-    if delivery.event_id != manifest.event_id {
-        return Err(EditorRuntimeEventConsumerError::EventMismatch {
-            consumer_id: snapshot.consumer_id.clone(),
-            expected: manifest.event_id.clone(),
-            actual: delivery.event_id.clone(),
-        });
-    }
-    if delivery.payload_schema != manifest.payload_schema {
-        return Err(EditorRuntimeEventConsumerError::SchemaMismatch {
-            consumer_id: snapshot.consumer_id.clone(),
-            expected: manifest.payload_schema.clone(),
-            actual: delivery.payload_schema.clone(),
-        });
-    }
-    if last_sequence.is_some_and(|sequence| delivery.sequence <= sequence) {
-        return Err(EditorRuntimeEventConsumerError::StaleSequence {
-            consumer_id: snapshot.consumer_id.clone(),
-            sequence: delivery.sequence,
-        });
-    }
-    Ok(())
-}
-
-fn unsubscribe_consumer(
-    gateway: &dyn EditorRuntimeGateway,
-    consumer_id: &str,
-    subscription: ZrRuntimePluginEventSubscriptionHandle,
-) -> Result<(), EditorRuntimeEventConsumerError> {
-    match gateway.unsubscribe_plugin_event(subscription) {
-        Ok(true) => Ok(()),
-        Ok(false) => Err(EditorRuntimeEventConsumerError::Gateway {
-            consumer_id: consumer_id.to_string(),
-            message: "runtime did not remove the plugin event subscription".to_string(),
-        }),
-        Err(message) => Err(EditorRuntimeEventConsumerError::Gateway {
-            consumer_id: consumer_id.to_string(),
-            message: message.to_string(),
-        }),
     }
 }

@@ -7,5 +7,7 @@ pub(super) fn build(context: &PanePayloadBuildContext<'_>) -> PanePayload {
         levels: context.chrome.console_output.levels_arc(),
         counts: context.chrome.console_output.counts(),
         filter: context.chrome.console_output.filter(),
+        source_filter: context.chrome.console_output.source_filter(),
+        jump_sequences: context.chrome.console_output.jump_sequences_arc(),
     })
 }

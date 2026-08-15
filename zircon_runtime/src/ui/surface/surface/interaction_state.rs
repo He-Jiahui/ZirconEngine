@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
     component::UiComponentEvent,
@@ -48,10 +50,14 @@ impl UiSurface {
     ) -> Result<Vec<UiComponentEventReport>, UiTreeError> {
         let hovered = std::mem::take(&mut self.focus.hovered);
         let mut reports = Vec::new();
-        for node_id in hovered {
-            if self.component_states.set_hovered(node_id, false) {
-                self.mark_component_state_render_dirty(node_id)?;
+        let mut changed_node_ids = BTreeSet::new();
+        for node_id in &hovered {
+            if self.component_states.set_hovered(*node_id, false) {
+                changed_node_ids.insert(*node_id);
             }
+        }
+        self.mark_component_states_render_dirty(&changed_node_ids)?;
+        for node_id in hovered {
             self.push_hover_leave_reports(node_id, &mut reports)?;
         }
         Ok(reports)

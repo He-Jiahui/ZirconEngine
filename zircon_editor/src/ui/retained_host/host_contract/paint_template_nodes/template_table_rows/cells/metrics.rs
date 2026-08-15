@@ -1,5 +1,5 @@
 use super::super::super::super::paint_text::measure_runtime_text_width;
-use super::super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
+use super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
 pub(super) const TABLE_COLUMN_COUNT: usize = 4;
 const TABLE_COLUMN_RATIOS: [f32; TABLE_COLUMN_COUNT] = [0.36, 0.27, 0.19, 0.18];

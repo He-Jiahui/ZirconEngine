@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ui::event_ui::UiNodeId;
+use crate::ui::event_ui::{UiNodeId, UiNodePath};
 use crate::ui::focus::{UiFocusChangeEvent, UiFocusVisible, UiFocusedInput};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -35,7 +35,11 @@ impl UiFocusPath {
 #[serde(default)]
 pub struct UiModalFocusRestoreState {
     pub modal: UiNodeId,
+    #[serde(default)]
+    pub modal_path: Option<UiNodePath>,
     pub restore: Option<UiNodeId>,
+    #[serde(default)]
+    pub restore_path: Option<UiNodePath>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

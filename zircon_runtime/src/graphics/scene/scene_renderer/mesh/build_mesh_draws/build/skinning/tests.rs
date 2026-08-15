@@ -1,14 +1,14 @@
 use std::collections::BTreeMap;
 
 use super::{
-    SkinnedMeshJointPalette, prepare_skinned_mesh_asset_primitive, prepare_skinned_model_primitive,
-    skin_mesh_asset_primitive, skin_model_primitive,
+    prepare_skinned_mesh_asset_primitive, prepare_skinned_model_primitive,
+    skin_mesh_asset_primitive, skin_model_primitive, SkinnedMeshJointPalette,
 };
 use crate::asset::{
-    AssetUri, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT,
-    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0,
-    MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset, MeshVertex,
-    ModelPrimitiveAsset,
+    AssetUri, MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset, MeshVertex,
+    ModelPrimitiveAsset, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX,
+    MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
+    MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0,
 };
 use crate::core::framework::animation::{
     AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource,
@@ -104,6 +104,7 @@ fn prepared_skinned_model_primitive_keeps_cpu_skinning_when_palette_exceeds_stor
         vertices: vec![MeshVertex::new(Vec3::ZERO, Vec3::X, Vec2::ZERO)],
         indices: vec![0],
         mesh: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
     let skeleton = oversized_storage_skeleton();
@@ -138,6 +139,7 @@ fn skin_model_primitive_rotates_weighted_vertex_around_joint_bind_origin() {
         ],
         indices: vec![0],
         mesh: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
     let skeleton = unit_test_skeleton();

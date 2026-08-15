@@ -96,11 +96,12 @@ impl SdfFontBakeCache {
             let mut resolved = vec![None; pending.len()];
 
             for (pending_index, glyph) in pending.iter_mut().enumerate() {
-                let resolved_shaped_face = self
+                let shaped_resolution = self
                     .shaped_face_resolutions
                     .get(&glyph.key)
                     .copied()
                     .flatten();
+                let resolved_shaped_face = shaped_resolution.map(|resolution| resolution.face);
                 let Some(face) = glyph.faces.get(glyph.next_face).copied() else {
                     let error = glyph
                         .last_error
@@ -113,10 +114,15 @@ impl SdfFontBakeCache {
                 };
                 glyph.next_face = glyph.next_face.saturating_add(1);
                 let _ = self.ensure_sdf_font(face, font_database);
-                let source = match self
-                    .source_contexts
-                    .resolve(&glyph.key, face, font_database)
-                {
+                let resolved_instance = shaped_resolution
+                    .filter(|resolution| resolution.face == face)
+                    .and_then(|resolution| resolution.instance);
+                let source = match self.source_contexts.resolve(
+                    &glyph.key,
+                    face,
+                    resolved_instance,
+                    font_database,
+                ) {
                     Ok(source) => source,
                     Err(error) => {
                         glyph.last_error = Some(error);

@@ -273,6 +273,7 @@ fn translate_window_event(event: WindowEvent) -> Option<UiWindowInputPumpEvent> 
 fn input_context(modifiers: ModifiersState) -> UiWindowInputContext {
     UiWindowInputContext {
         metadata: input_metadata(),
+        ..UiWindowInputContext::default()
     }
     .with_modifiers(translate_winit_modifiers(modifiers))
 }

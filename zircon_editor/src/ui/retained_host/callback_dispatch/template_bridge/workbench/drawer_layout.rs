@@ -8,10 +8,10 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::workbench::autolayout::{
-    ShellRegionId, WorkbenchChromeMetrics, WorkbenchLayoutTier, balanced_side_widths_for_budget,
-    compact_bottom_height_limit, compact_side_width_limit, minimum_document_width_fraction,
-    right_drawer_should_collapse_for_physical_width, workbench_layout_tier_for_physical_width,
-    workbench_logical_width_for_scale,
+    balanced_side_widths_for_budget, compact_bottom_height_limit, compact_side_width_limit,
+    minimum_document_width_fraction, right_drawer_should_collapse_for_physical_width,
+    workbench_layout_tier_for_physical_width, ShellRegionId, WorkbenchChromeMetrics,
+    WorkbenchLayoutTier,
 };
 use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot};
 use crate::ui::workbench::model::WorkbenchViewModel;
@@ -31,8 +31,6 @@ pub(super) const BOTTOM_DRAWER_SHELL_CONTROL_ID: &str = "BottomDrawerShellRoot";
 pub(super) const BOTTOM_DRAWER_HEADER_CONTROL_ID: &str = "BottomDrawerHeaderRoot";
 pub(super) const BOTTOM_DRAWER_CONTENT_CONTROL_ID: &str = "BottomDrawerContentRoot";
 
-const AUTHORED_DRAWER_HEADER_HEIGHT: f32 = 42.0;
-
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 struct WorkbenchDrawerRegionInput {
     visible: bool,
@@ -49,15 +47,6 @@ struct WorkbenchDrawerLayoutInputs {
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct WorkbenchDrawerLayoutAnchors {
     body_height: f32,
-}
-
-impl WorkbenchDrawerLayoutAnchors {
-    fn from_body_frame(body_frame: Option<UiFrame>) -> Option<Self> {
-        let body_frame = body_frame.filter(frame_is_visible)?;
-        let body_height = body_frame.height.max(0.0);
-
-        Some(Self { body_height })
-    }
 }
 
 impl WorkbenchDrawerLayoutInputs {
@@ -79,7 +68,7 @@ impl WorkbenchDrawerLayoutInputs {
             bottom: drawer_region_input(
                 &model.drawer_ring.drawers,
                 &[ActivityDrawerSlot::Bottom],
-                AUTHORED_DRAWER_HEADER_HEIGHT,
+                metrics.panel_header_height,
             ),
         }
     }
@@ -117,48 +106,55 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         model: &WorkbenchViewModel,
         metrics: &WorkbenchChromeMetrics,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        let shell_size = self.recompute_layout_at_mount(mount_frame)?;
-        let logical_toolbar_width =
-            workbench_logical_width_for_scale(shell_size.width, scale_factor);
-        self.apply_toolbar_run_state(model)?;
-        self.apply_asset_creation_menu_state(model, shell_size)?;
-        self.apply_responsive_toolbar_layout(UiSize::new(
-            logical_toolbar_width,
-            shell_size.height,
-        ))?;
-        let anchors = self.componentized_drawer_layout_anchors(shell_size);
-        apply_workbench_drawer_layout_to_surface(
-            &mut self.template_surface.surface,
-            shell_size,
-            scale_factor,
-            model,
-            metrics,
-            anchors,
-        )?;
-        apply_workbench_responsive_layout(
-            &mut self.template_surface.surface,
-            shell_size,
-            scale_factor,
-        )?;
-        self.template_surface
-            .recompute_layout(self.runtime.as_ref(), shell_size)?;
+        let shell_size = self.prepare_layout_at_mount_with_scale(mount_frame, scale_factor);
+        let logical_toolbar_width = shell_size.width;
+        {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "workbench_bridge_state_projection"
+            );
+            self.apply_toolbar_run_state(model)?;
+            self.apply_asset_creation_menu_state(model, shell_size)?;
+            self.apply_responsive_toolbar_layout(UiSize::new(
+                logical_toolbar_width,
+                shell_size.height,
+            ))?;
+            self.refresh_command_palette_popup_anchor()?;
+        }
+        {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "workbench_bridge_drawer_projection"
+            );
+            apply_workbench_drawer_layout_to_surface(
+                &mut self.template_surface.surface,
+                shell_size,
+                1.0,
+                model,
+                metrics,
+                None,
+            )?;
+        }
+        {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "workbench_bridge_responsive_projection"
+            );
+            apply_workbench_responsive_layout(&mut self.template_surface.surface, shell_size, 1.0)?;
+        }
+        {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "workbench_bridge_surface_recompute"
+            );
+            self.template_surface
+                .recompute_layout(self.runtime.as_ref(), shell_size)?;
+        }
         Ok(())
-    }
-
-    fn componentized_drawer_layout_anchors(
-        &self,
-        shell_size: UiSize,
-    ) -> Option<WorkbenchDrawerLayoutAnchors> {
-        let frames = self.template_surface.frames;
-        let body_y = frames.top_toolbar.y + frames.top_toolbar.height;
-        let body_bottom = frames.status_bar.y.max(body_y);
-        let body_frame = UiFrame::new(
-            0.0,
-            body_y,
-            shell_size.width.max(0.0),
-            (body_bottom - body_y).max(0.0),
-        );
-        WorkbenchDrawerLayoutAnchors::from_body_frame(Some(body_frame))
     }
 }
 
@@ -328,7 +324,7 @@ fn compacted_bottom_region_input(
         // The compact bottom drawer keeps its tab strip as the re-open affordance,
         // but yields the remaining vertical budget to the active document surface.
         return WorkbenchDrawerRegionInput {
-            extent: AUTHORED_DRAWER_HEADER_HEIGHT,
+            extent: metrics.panel_header_height.max(0.0),
             ..region
         };
     }
@@ -414,10 +410,6 @@ fn surface_control_node_id(
     })
 }
 
-fn frame_is_visible(frame: &UiFrame) -> bool {
-    frame.width > f32::EPSILON && frame.height > f32::EPSILON
-}
-
 fn apply_fixed_control_width(
     surface: &mut UiSurface,
     control_id: &str,
@@ -492,6 +484,34 @@ fn fixed_axis(size: f32) -> AxisConstraint {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ui::workbench::fixture::default_preview_fixture;
+
+    #[test]
+    fn collapsed_bottom_drawer_input_uses_the_callers_panel_header_metric() {
+        let fixture = default_preview_fixture();
+        let chrome = fixture.build_chrome();
+        let mut model = WorkbenchViewModel::build(
+            &crate::core::commands::EditorCommandRegistry::default_workbench(),
+            &chrome,
+        );
+        let bottom = model
+            .drawer_ring
+            .drawers
+            .get_mut(&ActivityDrawerSlot::Bottom)
+            .expect("preview fixture should expose a bottom drawer");
+        bottom.mode = ActivityDrawerMode::Collapsed;
+        bottom.visible = true;
+        assert!(!bottom.tabs.is_empty());
+
+        let metrics = WorkbenchChromeMetrics {
+            panel_header_height: 31.0,
+            ..WorkbenchChromeMetrics::default()
+        };
+        let inputs = WorkbenchDrawerLayoutInputs::from_workbench_model(&model, &metrics);
+
+        assert!(inputs.bottom.visible);
+        assert_eq!(inputs.bottom.extent, metrics.panel_header_height);
+    }
 
     #[test]
     fn narrow_width_collapses_a_visible_bottom_drawer_to_its_tab_strip() {
@@ -499,14 +519,18 @@ mod tests {
             visible: true,
             extent: 228.0,
         };
+        let metrics = WorkbenchChromeMetrics {
+            panel_header_height: 31.0,
+            ..WorkbenchChromeMetrics::default()
+        };
         let compacted = compacted_bottom_region_input(
             pinned_drawer,
             UiSize::new(640.0, 520.0),
             1.0,
-            WorkbenchChromeMetrics::default(),
+            metrics,
             Some(WorkbenchDrawerLayoutAnchors { body_height: 420.0 }),
         );
 
-        assert_eq!(compacted.extent, AUTHORED_DRAWER_HEADER_HEIGHT);
+        assert_eq!(compacted.extent, metrics.panel_header_height);
     }
 }

@@ -5,12 +5,13 @@ use std::sync::Arc;
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::core::framework::render::{
     EnvironmentExtract, FallbackSkyboxKind, OverlayLineSegment, OverlayPickShape,
-    PreviewEnvironmentExtract, ProjectionMode, RenderOverlayExtract, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, SceneGizmoKind, SceneGizmoOverlayExtract, SceneViewportExtractRequest,
-    ViewportCameraSnapshot, ViewportRenderSettings,
+    PreviewEnvironmentExtract, ProjectionMode, RenderFramework, RenderOverlayExtract,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderViewportDescriptor, SceneGizmoKind,
+    SceneGizmoOverlayExtract, SceneViewportExtractRequest, ViewportCameraSnapshot,
+    ViewportRenderSettings,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
-use zircon_runtime::graphics::SceneRenderer;
+use zircon_runtime::graphics::{ViewportRenderFrame, WgpuRenderFramework};
 use zircon_runtime::scene::world::World;
 
 mod support;
@@ -246,10 +247,20 @@ fn neutral_overlay_packet_renders_scene_gizmo_without_runtime_world_context() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let asset_runtime = support::ProjectAssetTestRuntime::new(asset_manager);
     let viewport_size = UVec2::new(320, 240);
-    let mut renderer = SceneRenderer::new(asset_runtime.access()).unwrap();
-    let frame = renderer
-        .render(overlay_only_snapshot(viewport_size), viewport_size)
+    let framework = WgpuRenderFramework::new(asset_runtime.access()).unwrap();
+    let viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();
+    framework
+        .submit_runtime_frame(
+            viewport,
+            ViewportRenderFrame::from_snapshot(overlay_only_snapshot(viewport_size), viewport_size),
+        )
+        .unwrap();
+    let frame = framework
+        .capture_frame(viewport)
+        .unwrap()
+        .expect("compiled overlay frame should be available");
 
     let green_pixels = dominant_green_pixels(&frame.rgba);
     assert!(

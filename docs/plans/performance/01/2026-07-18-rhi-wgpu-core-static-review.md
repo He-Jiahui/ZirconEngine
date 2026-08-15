@@ -1,17 +1,17 @@
 ---
 related_code:
-  - zircon_runtime/src/rhi_wgpu/bind_group_validation.rs
-  - zircon_runtime/src/rhi_wgpu/capabilities.rs
-  - zircon_runtime/src/rhi_wgpu/command_validation.rs
-  - zircon_runtime/src/rhi_wgpu/command_validation/render_state.rs
-  - zircon_runtime/src/rhi_wgpu/device.rs
-  - zircon_runtime/src/rhi_wgpu/device/command_list.rs
-  - zircon_runtime/src/rhi_wgpu/mod.rs
-  - zircon_runtime/src/rhi_wgpu/pipeline_validation.rs
-  - zircon_runtime/src/rhi_wgpu/render_pass_validation.rs
-  - zircon_runtime/src/rhi_wgpu/resource_validation.rs
-  - zircon_runtime/src/rhi_wgpu/tests.rs
-  - zircon_runtime/src/rhi_wgpu/texture_copy.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/bind_group_validation.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/capabilities.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/command_validation.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/command_validation/render_state.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/device.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/device/command_list.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/lib.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/pipeline_validation.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/render_pass_validation.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/resource_validation.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/tests/mod.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/texture_copy.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/17-performance-and-profiling.md
@@ -19,7 +19,7 @@ reference_sources:
   - dev/bevy/crates/bevy_render/src/gpu_readback.rs
   - dev/UnrealEngine/Engine/Source/Runtime/RHI/Public/RHICommandList.h
 tests:
-  - zircon_runtime/src/rhi/tests
+  - zircon_runtime/crates/zr_rhi/src/tests
   - current-source Windows zircon_runtime RHI tests pending
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending
@@ -29,7 +29,7 @@ status: static_complete_dynamic_pending
 
 ## 范围与调用图
 
-当前源12/12个Rust文件、3,074行已逐文件阅读，覆盖resource/pipeline/bind-group/render-pass/command validation、recorded command list、CPU resource state、copy execution与capability mapping。非测试调用图对`WgpuRenderDevice::{new_headless,new_with_surface_support}`为零；当前消费者全部位于`zircon_runtime/src/rhi/tests/**`，产品graphics backend与UI native presenter不经过该device。
+当前源12/12个Rust文件、3,074行已逐文件阅读，覆盖resource/pipeline/bind-group/render-pass/command validation、recorded command list、CPU resource state、copy execution与capability mapping。非测试调用图对`WgpuRenderDevice::{new_headless,new_with_surface_support}`为零；当前消费者全部位于`zircon_runtime/crates/zr_rhi/src/tests/**`，产品graphics backend与UI native presenter不经过该device。
 
 因此这里的`Arc<Mutex<WgpuRenderDeviceState>>`、CPU `Vec<u8>`资源、submit校验+执行双遍、即时完成fence和同步readback是contract test double事实，不是当前F2/F4产品帧证据。`caps`却声明async copy/debugger capture且类型公开名为WGPU，若未来误接产品会形成全局串行、双份host memory和虚假fence语义；该边界已交接Render17。
 

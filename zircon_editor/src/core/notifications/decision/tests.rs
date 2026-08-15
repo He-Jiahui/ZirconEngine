@@ -10,11 +10,9 @@ fn center() -> DecisionNotificationCenter {
 fn core_root_mounts_the_typed_notification_contract() {
     let core_root = include_str!("../../mod.rs");
 
-    assert!(
-        core_root
-            .lines()
-            .any(|line| line.trim() == "pub mod notifications;")
-    );
+    assert!(core_root
+        .lines()
+        .any(|line| line.trim() == "pub mod notifications;"));
 }
 
 #[test]
@@ -24,14 +22,12 @@ fn editor_context_owns_an_empty_decision_notification_center() {
 
     let context = EditorContextBuilder::new(test_job_scheduler()).build();
 
-    assert!(
-        context
-            .notifications()
-            .decisions()
-            .unwrap()
-            .pending_snapshot()
-            .is_empty()
-    );
+    assert!(context
+        .notifications()
+        .decisions()
+        .unwrap()
+        .pending_snapshot()
+        .is_empty());
 }
 
 fn configured_center(

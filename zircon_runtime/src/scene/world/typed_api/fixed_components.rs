@@ -8,6 +8,7 @@ use crate::scene::components::{
 };
 use crate::scene::ecs::Component;
 use crate::scene::EntityId;
+use std::collections::HashMap;
 
 use crate::scene::{SceneResult, World};
 
@@ -49,55 +50,260 @@ impl_component_for_scene_type!(
     Mobility,
 );
 
-trait FixedSceneComponent: Component {
-    fn insert_fixed(world: &mut World, entity: EntityId, component: &Self);
+/// Temporary clone/rebuild transport for runtime-only post-process values.
+///
+/// These components deliberately have no persistent `World` map. The snapshot
+/// exists only while rebuilding the canonical generic storage, so it cannot
+/// become a second live owner.
+pub(in crate::scene::world) struct RuntimeOnlyPostProcessComponentSnapshot {
+    pub(in crate::scene::world) settings: Vec<(EntityId, PostProcessSettingsComponent)>,
+    pub(in crate::scene::world) volumes: Vec<(EntityId, PostProcessVolumeComponent)>,
 }
 
-macro_rules! fixed_component_map {
-    ($ty:ty, $field:ident) => {
-        impl FixedSceneComponent for $ty {
-            fn insert_fixed(world: &mut World, entity: EntityId, component: &Self) {
-                world.$field.insert(entity, component.clone());
-            }
-        }
-    };
+/// Temporary persistence transport for the core entity values whose runtime
+/// owner is the generic component store.
+pub(in crate::scene::world) struct PersistentEntityCoreComponentSnapshot {
+    pub(in crate::scene::world) names: HashMap<EntityId, Name>,
+    pub(in crate::scene::world) hierarchy: HashMap<EntityId, Hierarchy>,
+    pub(in crate::scene::world) local_transforms: HashMap<EntityId, LocalTransform>,
+    pub(in crate::scene::world) active_self: HashMap<EntityId, ActiveSelf>,
 }
 
-fixed_component_map!(Name, names);
-fixed_component_map!(Hierarchy, hierarchy);
-fixed_component_map!(ActiveSelf, active_self);
-fixed_component_map!(RenderLayerMask, render_layer_masks);
-fixed_component_map!(CameraComponent, cameras);
-fixed_component_map!(MeshRenderer, mesh_renderers);
-fixed_component_map!(Sprite2dComponent, sprite_2d);
-fixed_component_map!(Mesh2dComponent, mesh_2d);
-fixed_component_map!(RigidBodyComponent, rigid_bodies);
-fixed_component_map!(ColliderComponent, colliders);
-fixed_component_map!(JointComponent, joints);
-fixed_component_map!(AnimationSkeletonComponent, animation_skeletons);
-fixed_component_map!(AnimationPlayerComponent, animation_players);
-fixed_component_map!(AnimationSequencePlayerComponent, animation_sequence_players);
-fixed_component_map!(AnimationGraphPlayerComponent, animation_graph_players);
-fixed_component_map!(
-    AnimationStateMachinePlayerComponent,
-    animation_state_machine_players
-);
-fixed_component_map!(AmbientLight, ambient_lights);
-fixed_component_map!(DirectionalLight, directional_lights);
-fixed_component_map!(PointLight, point_lights);
-fixed_component_map!(RectLight, rect_lights);
-fixed_component_map!(SpotLight, spot_lights);
-fixed_component_map!(PostProcessSettingsComponent, post_process_settings);
-fixed_component_map!(PostProcessVolumeComponent, post_process_volumes);
-fixed_component_map!(Mobility, mobility);
+/// Temporary persistence transport for scene-render values whose runtime owner
+/// is the generic component store.
+pub(in crate::scene::world) struct PersistentSceneRenderComponentSnapshot {
+    pub(in crate::scene::world) render_layer_masks: HashMap<EntityId, RenderLayerMask>,
+    pub(in crate::scene::world) cameras: HashMap<EntityId, CameraComponent>,
+    pub(in crate::scene::world) mesh_renderers: HashMap<EntityId, MeshRenderer>,
+    pub(in crate::scene::world) mobility: HashMap<EntityId, Mobility>,
+}
 
-impl FixedSceneComponent for LocalTransform {
-    fn insert_fixed(world: &mut World, entity: EntityId, component: &Self) {
-        world.local_transforms.insert(entity, *component);
-    }
+/// Temporary persistence transport for physics values whose runtime owner is
+/// the generic component store. This exists only across clone, serde and
+/// storage-projection rebuild boundaries.
+pub(in crate::scene::world) struct PersistentPhysicsComponentSnapshot {
+    pub(in crate::scene::world) rigid_bodies: HashMap<EntityId, RigidBodyComponent>,
+    pub(in crate::scene::world) colliders: HashMap<EntityId, ColliderComponent>,
+    pub(in crate::scene::world) joints: HashMap<EntityId, JointComponent>,
+}
+
+/// Temporary persistence transport for light values whose runtime owner is
+/// the generic component store.
+pub(in crate::scene::world) struct PersistentLightingComponentSnapshot {
+    pub(in crate::scene::world) ambient_lights: HashMap<EntityId, AmbientLight>,
+    pub(in crate::scene::world) directional_lights: HashMap<EntityId, DirectionalLight>,
+    pub(in crate::scene::world) point_lights: HashMap<EntityId, PointLight>,
+    pub(in crate::scene::world) rect_lights: HashMap<EntityId, RectLight>,
+    pub(in crate::scene::world) spot_lights: HashMap<EntityId, SpotLight>,
+}
+
+/// Temporary persistence transport for 2D render values whose runtime owner
+/// is the generic component store.
+pub(in crate::scene::world) struct PersistentRender2dComponentSnapshot {
+    pub(in crate::scene::world) sprite_2d: HashMap<EntityId, Sprite2dComponent>,
+    pub(in crate::scene::world) mesh_2d: HashMap<EntityId, Mesh2dComponent>,
+}
+
+/// Temporary persistence transport for animation runtime values whose
+/// runtime owner is the generic component store.
+pub(in crate::scene::world) struct PersistentAnimationRuntimeComponentSnapshot {
+    pub(in crate::scene::world) skeletons: HashMap<EntityId, AnimationSkeletonComponent>,
+    pub(in crate::scene::world) players: HashMap<EntityId, AnimationPlayerComponent>,
+    pub(in crate::scene::world) sequence_players:
+        HashMap<EntityId, AnimationSequencePlayerComponent>,
+    pub(in crate::scene::world) graph_players: HashMap<EntityId, AnimationGraphPlayerComponent>,
+    pub(in crate::scene::world) state_machine_players:
+        HashMap<EntityId, AnimationStateMachinePlayerComponent>,
 }
 
 impl World {
+    pub(in crate::scene::world) fn persistent_scene_render_component_snapshot(
+        &self,
+    ) -> PersistentSceneRenderComponentSnapshot {
+        PersistentSceneRenderComponentSnapshot {
+            render_layer_masks: self.persistent_component_snapshot::<RenderLayerMask>(),
+            cameras: self.persistent_component_snapshot::<CameraComponent>(),
+            mesh_renderers: self.persistent_component_snapshot::<MeshRenderer>(),
+            mobility: self.persistent_component_snapshot::<Mobility>(),
+        }
+    }
+
+    pub(in crate::scene::world) fn persistent_scene_render_component_snapshot_from_serialized_maps(
+        render_layer_masks: HashMap<EntityId, RenderLayerMask>,
+        cameras: HashMap<EntityId, CameraComponent>,
+        mesh_renderers: HashMap<EntityId, MeshRenderer>,
+        mobility: HashMap<EntityId, Mobility>,
+    ) -> PersistentSceneRenderComponentSnapshot {
+        PersistentSceneRenderComponentSnapshot {
+            render_layer_masks,
+            cameras,
+            mesh_renderers,
+            mobility,
+        }
+    }
+
+    pub(in crate::scene::world) fn persistent_entity_core_component_snapshot(
+        &self,
+    ) -> PersistentEntityCoreComponentSnapshot {
+        PersistentEntityCoreComponentSnapshot {
+            names: self.persistent_component_snapshot::<Name>(),
+            hierarchy: self.persistent_component_snapshot::<Hierarchy>(),
+            local_transforms: self.persistent_component_snapshot::<LocalTransform>(),
+            active_self: self.persistent_component_snapshot::<ActiveSelf>(),
+        }
+    }
+
+    pub(in crate::scene::world) fn persistent_entity_core_component_snapshot_from_serialized_maps(
+        names: HashMap<EntityId, Name>,
+        hierarchy: HashMap<EntityId, Hierarchy>,
+        local_transforms: HashMap<EntityId, LocalTransform>,
+        active_self: HashMap<EntityId, ActiveSelf>,
+    ) -> PersistentEntityCoreComponentSnapshot {
+        PersistentEntityCoreComponentSnapshot {
+            names,
+            hierarchy,
+            local_transforms,
+            active_self,
+        }
+    }
+
+    pub(in crate::scene::world) fn runtime_only_post_process_component_snapshot(
+        &self,
+    ) -> RuntimeOnlyPostProcessComponentSnapshot {
+        RuntimeOnlyPostProcessComponentSnapshot {
+            settings: self.runtime_only_component_snapshot::<PostProcessSettingsComponent>(),
+            volumes: self.runtime_only_component_snapshot::<PostProcessVolumeComponent>(),
+        }
+    }
+
+    pub(in crate::scene::world) fn persistent_physics_component_snapshot(
+        &self,
+    ) -> PersistentPhysicsComponentSnapshot {
+        PersistentPhysicsComponentSnapshot {
+            rigid_bodies: self.persistent_component_snapshot::<RigidBodyComponent>(),
+            colliders: self.persistent_component_snapshot::<ColliderComponent>(),
+            joints: self.persistent_component_snapshot::<JointComponent>(),
+        }
+    }
+
+    pub(in crate::scene::world) fn persistent_physics_component_snapshot_from_serialized_maps(
+        rigid_bodies: HashMap<EntityId, RigidBodyComponent>,
+        colliders: HashMap<EntityId, ColliderComponent>,
+        joints: HashMap<EntityId, JointComponent>,
+    ) -> PersistentPhysicsComponentSnapshot {
+        PersistentPhysicsComponentSnapshot {
+            rigid_bodies,
+            colliders,
+            joints,
+        }
+    }
+
+    pub(in crate::scene::world) fn persistent_lighting_component_snapshot(
+        &self,
+    ) -> PersistentLightingComponentSnapshot {
+        PersistentLightingComponentSnapshot {
+            ambient_lights: self.persistent_component_snapshot::<AmbientLight>(),
+            directional_lights: self.persistent_component_snapshot::<DirectionalLight>(),
+            point_lights: self.persistent_component_snapshot::<PointLight>(),
+            rect_lights: self.persistent_component_snapshot::<RectLight>(),
+            spot_lights: self.persistent_component_snapshot::<SpotLight>(),
+        }
+    }
+
+    pub(in crate::scene::world) fn persistent_lighting_component_snapshot_from_serialized_maps(
+        ambient_lights: HashMap<EntityId, AmbientLight>,
+        directional_lights: HashMap<EntityId, DirectionalLight>,
+        point_lights: HashMap<EntityId, PointLight>,
+        rect_lights: HashMap<EntityId, RectLight>,
+        spot_lights: HashMap<EntityId, SpotLight>,
+    ) -> PersistentLightingComponentSnapshot {
+        PersistentLightingComponentSnapshot {
+            ambient_lights,
+            directional_lights,
+            point_lights,
+            rect_lights,
+            spot_lights,
+        }
+    }
+
+    pub(in crate::scene::world) fn persistent_render_2d_component_snapshot(
+        &self,
+    ) -> PersistentRender2dComponentSnapshot {
+        PersistentRender2dComponentSnapshot {
+            sprite_2d: self.persistent_component_snapshot::<Sprite2dComponent>(),
+            mesh_2d: self.persistent_component_snapshot::<Mesh2dComponent>(),
+        }
+    }
+
+    pub(in crate::scene::world) fn persistent_render_2d_component_snapshot_from_serialized_maps(
+        sprite_2d: HashMap<EntityId, Sprite2dComponent>,
+        mesh_2d: HashMap<EntityId, Mesh2dComponent>,
+    ) -> PersistentRender2dComponentSnapshot {
+        PersistentRender2dComponentSnapshot { sprite_2d, mesh_2d }
+    }
+
+    pub(in crate::scene::world) fn persistent_animation_runtime_component_snapshot(
+        &self,
+    ) -> PersistentAnimationRuntimeComponentSnapshot {
+        PersistentAnimationRuntimeComponentSnapshot {
+            skeletons: self.persistent_component_snapshot::<AnimationSkeletonComponent>(),
+            players: self.persistent_component_snapshot::<AnimationPlayerComponent>(),
+            sequence_players: self
+                .persistent_component_snapshot::<AnimationSequencePlayerComponent>(),
+            graph_players: self.persistent_component_snapshot::<AnimationGraphPlayerComponent>(),
+            state_machine_players: self
+                .persistent_component_snapshot::<AnimationStateMachinePlayerComponent>(),
+        }
+    }
+
+    pub(in crate::scene::world) fn persistent_animation_runtime_component_snapshot_from_serialized_maps(
+        skeletons: HashMap<EntityId, AnimationSkeletonComponent>,
+        players: HashMap<EntityId, AnimationPlayerComponent>,
+        sequence_players: HashMap<EntityId, AnimationSequencePlayerComponent>,
+        graph_players: HashMap<EntityId, AnimationGraphPlayerComponent>,
+        state_machine_players: HashMap<EntityId, AnimationStateMachinePlayerComponent>,
+    ) -> PersistentAnimationRuntimeComponentSnapshot {
+        PersistentAnimationRuntimeComponentSnapshot {
+            skeletons,
+            players,
+            sequence_players,
+            graph_players,
+            state_machine_players,
+        }
+    }
+
+    fn runtime_only_component_snapshot<T>(&self) -> Vec<(EntityId, T)>
+    where
+        T: Component + Clone,
+    {
+        let Some(component_id) = self.registered_component_id::<T>() else {
+            return Vec::new();
+        };
+
+        let mut snapshot = Vec::with_capacity(self.archetype_index.component_len(component_id));
+        self.archetype_index
+            .for_each_table_component::<T>(component_id, |entity, component| {
+                snapshot.push((entity, component.clone()));
+            });
+        snapshot
+    }
+
+    fn persistent_component_snapshot<T>(&self) -> HashMap<EntityId, T>
+    where
+        T: Component + Clone,
+    {
+        let Some(component_id) = self.registered_component_id::<T>() else {
+            return HashMap::new();
+        };
+
+        let mut snapshot = HashMap::with_capacity(self.archetype_index.component_len(component_id));
+        self.archetype_index
+            .for_each_table_component::<T>(component_id, |entity, component| {
+                snapshot.insert(entity, component.clone());
+            });
+        snapshot
+    }
+
     pub(super) fn validate_fixed_component<T>(
         &self,
         entity: EntityId,
@@ -115,541 +321,4 @@ impl World {
         }
         Ok(())
     }
-
-    pub(super) fn insert_fixed_component<T>(
-        &mut self,
-        entity: EntityId,
-        component: &T,
-    ) -> SceneResult<()>
-    where
-        T: Component,
-    {
-        self.validate_fixed_component(entity, component)?;
-        self.insert_prevalidated_fixed_component(entity, component);
-        Ok(())
-    }
-
-    pub(super) fn insert_prevalidated_fixed_component<T>(&mut self, entity: EntityId, component: &T)
-    where
-        T: Component,
-    {
-        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<Name>() {
-            Name::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<Hierarchy>() {
-            Hierarchy::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<LocalTransform>()
-        {
-            self.local_transforms.insert(entity, *component);
-            return;
-        }
-        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<ActiveSelf>() {
-            ActiveSelf::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<RenderLayerMask>()
-        {
-            RenderLayerMask::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<CameraComponent>()
-        {
-            CameraComponent::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<MeshRenderer>() {
-            MeshRenderer::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) =
-            (component as &dyn std::any::Any).downcast_ref::<Sprite2dComponent>()
-        {
-            Sprite2dComponent::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<Mesh2dComponent>()
-        {
-            Mesh2dComponent::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) =
-            (component as &dyn std::any::Any).downcast_ref::<RigidBodyComponent>()
-        {
-            RigidBodyComponent::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) =
-            (component as &dyn std::any::Any).downcast_ref::<ColliderComponent>()
-        {
-            ColliderComponent::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<JointComponent>()
-        {
-            JointComponent::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) =
-            (component as &dyn std::any::Any).downcast_ref::<AnimationSkeletonComponent>()
-        {
-            AnimationSkeletonComponent::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) =
-            (component as &dyn std::any::Any).downcast_ref::<AnimationPlayerComponent>()
-        {
-            AnimationPlayerComponent::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) =
-            (component as &dyn std::any::Any).downcast_ref::<AnimationSequencePlayerComponent>()
-        {
-            AnimationSequencePlayerComponent::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) =
-            (component as &dyn std::any::Any).downcast_ref::<AnimationGraphPlayerComponent>()
-        {
-            AnimationGraphPlayerComponent::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) =
-            (component as &dyn std::any::Any).downcast_ref::<AnimationStateMachinePlayerComponent>()
-        {
-            AnimationStateMachinePlayerComponent::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<AmbientLight>() {
-            AmbientLight::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) =
-            (component as &dyn std::any::Any).downcast_ref::<DirectionalLight>()
-        {
-            DirectionalLight::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<PointLight>() {
-            PointLight::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<RectLight>() {
-            RectLight::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<SpotLight>() {
-            SpotLight::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) =
-            (component as &dyn std::any::Any).downcast_ref::<PostProcessSettingsComponent>()
-        {
-            PostProcessSettingsComponent::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) =
-            (component as &dyn std::any::Any).downcast_ref::<PostProcessVolumeComponent>()
-        {
-            PostProcessVolumeComponent::insert_fixed(self, entity, component);
-            return;
-        }
-        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<Mobility>() {
-            Mobility::insert_fixed(self, entity, component);
-        }
-    }
-
-    pub(super) fn remove_fixed_component_value<T>(&mut self, entity: EntityId) -> Option<T>
-    where
-        T: Component,
-    {
-        let type_id = std::any::TypeId::of::<T>();
-        if type_id == std::any::TypeId::of::<Name>() {
-            self.names.remove(&entity).map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<Hierarchy>() {
-            self.hierarchy.remove(&entity).map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<LocalTransform>() {
-            self.local_transforms
-                .remove(&entity)
-                .map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<ActiveSelf>() {
-            self.active_self.remove(&entity).map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<RenderLayerMask>() {
-            self.render_layer_masks
-                .remove(&entity)
-                .map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<CameraComponent>() {
-            self.cameras.remove(&entity).map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<MeshRenderer>() {
-            self.mesh_renderers
-                .remove(&entity)
-                .map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<Sprite2dComponent>() {
-            self.sprite_2d.remove(&entity).map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<Mesh2dComponent>() {
-            self.mesh_2d.remove(&entity).map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<RigidBodyComponent>() {
-            self.rigid_bodies.remove(&entity).map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<ColliderComponent>() {
-            self.colliders.remove(&entity).map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<JointComponent>() {
-            self.joints.remove(&entity).map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<AnimationSkeletonComponent>() {
-            self.animation_skeletons
-                .remove(&entity)
-                .map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<AnimationPlayerComponent>() {
-            self.animation_players
-                .remove(&entity)
-                .map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<AnimationSequencePlayerComponent>() {
-            self.animation_sequence_players
-                .remove(&entity)
-                .map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<AnimationGraphPlayerComponent>() {
-            self.animation_graph_players
-                .remove(&entity)
-                .map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<AnimationStateMachinePlayerComponent>() {
-            self.animation_state_machine_players
-                .remove(&entity)
-                .map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<AmbientLight>() {
-            self.ambient_lights
-                .remove(&entity)
-                .map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<DirectionalLight>() {
-            self.directional_lights
-                .remove(&entity)
-                .map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<PointLight>() {
-            self.point_lights.remove(&entity).map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<RectLight>() {
-            self.rect_lights.remove(&entity).map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<SpotLight>() {
-            self.spot_lights.remove(&entity).map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<PostProcessSettingsComponent>() {
-            self.post_process_settings
-                .remove(&entity)
-                .map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<PostProcessVolumeComponent>() {
-            self.post_process_volumes
-                .remove(&entity)
-                .map(cast_fixed_component)
-        } else if type_id == std::any::TypeId::of::<Mobility>() {
-            self.mobility.remove(&entity).map(cast_fixed_component)
-        } else {
-            None
-        }
-    }
-
-    pub(super) fn fixed_component_ref<T>(&self, entity: EntityId) -> Option<&T>
-    where
-        T: Component,
-    {
-        let type_id = std::any::TypeId::of::<T>();
-        if type_id == std::any::TypeId::of::<Name>() {
-            self.names.get(&entity).and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<Hierarchy>() {
-            self.hierarchy.get(&entity).and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<LocalTransform>() {
-            self.local_transforms.get(&entity).and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<ActiveSelf>() {
-            self.active_self.get(&entity).and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<RenderLayerMask>() {
-            self.render_layer_masks
-                .get(&entity)
-                .and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<CameraComponent>() {
-            self.cameras.get(&entity).and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<MeshRenderer>() {
-            self.mesh_renderers.get(&entity).and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<Sprite2dComponent>() {
-            self.sprite_2d.get(&entity).and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<Mesh2dComponent>() {
-            self.mesh_2d.get(&entity).and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<RigidBodyComponent>() {
-            self.rigid_bodies.get(&entity).and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<ColliderComponent>() {
-            self.colliders.get(&entity).and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<JointComponent>() {
-            self.joints.get(&entity).and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<AnimationSkeletonComponent>() {
-            self.animation_skeletons
-                .get(&entity)
-                .and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<AnimationPlayerComponent>() {
-            self.animation_players.get(&entity).and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<AnimationSequencePlayerComponent>() {
-            self.animation_sequence_players
-                .get(&entity)
-                .and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<AnimationGraphPlayerComponent>() {
-            self.animation_graph_players
-                .get(&entity)
-                .and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<AnimationStateMachinePlayerComponent>() {
-            self.animation_state_machine_players
-                .get(&entity)
-                .and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<AmbientLight>() {
-            self.ambient_lights.get(&entity).and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<DirectionalLight>() {
-            self.directional_lights
-                .get(&entity)
-                .and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<PointLight>() {
-            self.point_lights.get(&entity).and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<RectLight>() {
-            self.rect_lights.get(&entity).and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<SpotLight>() {
-            self.spot_lights.get(&entity).and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<PostProcessSettingsComponent>() {
-            self.post_process_settings
-                .get(&entity)
-                .and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<PostProcessVolumeComponent>() {
-            self.post_process_volumes
-                .get(&entity)
-                .and_then(cast_fixed_ref)
-        } else if type_id == std::any::TypeId::of::<Mobility>() {
-            self.mobility.get(&entity).and_then(cast_fixed_ref)
-        } else {
-            None
-        }
-    }
-
-    pub(super) fn fixed_component_mut<T>(&mut self, entity: EntityId) -> Option<&mut T>
-    where
-        T: Component,
-    {
-        let type_id = std::any::TypeId::of::<T>();
-        if type_id == std::any::TypeId::of::<Name>() {
-            self.names.get_mut(&entity).and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<Hierarchy>() {
-            self.hierarchy.get_mut(&entity).and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<LocalTransform>() {
-            self.local_transforms
-                .get_mut(&entity)
-                .and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<ActiveSelf>() {
-            self.active_self.get_mut(&entity).and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<RenderLayerMask>() {
-            self.render_layer_masks
-                .get_mut(&entity)
-                .and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<CameraComponent>() {
-            self.cameras.get_mut(&entity).and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<MeshRenderer>() {
-            self.mesh_renderers
-                .get_mut(&entity)
-                .and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<Sprite2dComponent>() {
-            self.sprite_2d.get_mut(&entity).and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<Mesh2dComponent>() {
-            self.mesh_2d.get_mut(&entity).and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<RigidBodyComponent>() {
-            self.rigid_bodies.get_mut(&entity).and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<ColliderComponent>() {
-            self.colliders.get_mut(&entity).and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<JointComponent>() {
-            self.joints.get_mut(&entity).and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<AnimationSkeletonComponent>() {
-            self.animation_skeletons
-                .get_mut(&entity)
-                .and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<AnimationPlayerComponent>() {
-            self.animation_players
-                .get_mut(&entity)
-                .and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<AnimationSequencePlayerComponent>() {
-            self.animation_sequence_players
-                .get_mut(&entity)
-                .and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<AnimationGraphPlayerComponent>() {
-            self.animation_graph_players
-                .get_mut(&entity)
-                .and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<AnimationStateMachinePlayerComponent>() {
-            self.animation_state_machine_players
-                .get_mut(&entity)
-                .and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<AmbientLight>() {
-            self.ambient_lights
-                .get_mut(&entity)
-                .and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<DirectionalLight>() {
-            self.directional_lights
-                .get_mut(&entity)
-                .and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<PointLight>() {
-            self.point_lights.get_mut(&entity).and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<RectLight>() {
-            self.rect_lights.get_mut(&entity).and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<SpotLight>() {
-            self.spot_lights.get_mut(&entity).and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<PostProcessSettingsComponent>() {
-            self.post_process_settings
-                .get_mut(&entity)
-                .and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<PostProcessVolumeComponent>() {
-            self.post_process_volumes
-                .get_mut(&entity)
-                .and_then(cast_fixed_mut)
-        } else if type_id == std::any::TypeId::of::<Mobility>() {
-            self.mobility.get_mut(&entity).and_then(cast_fixed_mut)
-        } else {
-            None
-        }
-    }
-
-    pub(super) fn is_fixed_component_type<T>(&self) -> bool
-    where
-        T: Component,
-    {
-        let type_id = std::any::TypeId::of::<T>();
-        type_id == std::any::TypeId::of::<Name>()
-            || type_id == std::any::TypeId::of::<Hierarchy>()
-            || type_id == std::any::TypeId::of::<LocalTransform>()
-            || type_id == std::any::TypeId::of::<ActiveSelf>()
-            || type_id == std::any::TypeId::of::<RenderLayerMask>()
-            || type_id == std::any::TypeId::of::<CameraComponent>()
-            || type_id == std::any::TypeId::of::<MeshRenderer>()
-            || type_id == std::any::TypeId::of::<Sprite2dComponent>()
-            || type_id == std::any::TypeId::of::<Mesh2dComponent>()
-            || type_id == std::any::TypeId::of::<RigidBodyComponent>()
-            || type_id == std::any::TypeId::of::<ColliderComponent>()
-            || type_id == std::any::TypeId::of::<JointComponent>()
-            || type_id == std::any::TypeId::of::<AnimationSkeletonComponent>()
-            || type_id == std::any::TypeId::of::<AnimationPlayerComponent>()
-            || type_id == std::any::TypeId::of::<AnimationSequencePlayerComponent>()
-            || type_id == std::any::TypeId::of::<AnimationGraphPlayerComponent>()
-            || type_id == std::any::TypeId::of::<AnimationStateMachinePlayerComponent>()
-            || type_id == std::any::TypeId::of::<AmbientLight>()
-            || type_id == std::any::TypeId::of::<DirectionalLight>()
-            || type_id == std::any::TypeId::of::<PointLight>()
-            || type_id == std::any::TypeId::of::<RectLight>()
-            || type_id == std::any::TypeId::of::<SpotLight>()
-            || type_id == std::any::TypeId::of::<PostProcessSettingsComponent>()
-            || type_id == std::any::TypeId::of::<PostProcessVolumeComponent>()
-            || type_id == std::any::TypeId::of::<Mobility>()
-    }
-
-    pub(in crate::scene::world) fn rebuild_fixed_component_presence_for_entity(
-        &mut self,
-        entity: EntityId,
-    ) {
-        macro_rules! insert_presence {
-            ($field:ident) => {
-                if let Some(component) = self.$field.get(&entity).cloned() {
-                    self.insert_rebuilt_fixed_component_presence(entity, component);
-                }
-            };
-        }
-
-        insert_presence!(names);
-        insert_presence!(hierarchy);
-        insert_presence!(local_transforms);
-        insert_presence!(active_self);
-        insert_presence!(render_layer_masks);
-        insert_presence!(cameras);
-        insert_presence!(mesh_renderers);
-        insert_presence!(sprite_2d);
-        insert_presence!(mesh_2d);
-        insert_presence!(rigid_bodies);
-        insert_presence!(colliders);
-        insert_presence!(joints);
-        insert_presence!(animation_skeletons);
-        insert_presence!(animation_players);
-        insert_presence!(animation_sequence_players);
-        insert_presence!(animation_graph_players);
-        insert_presence!(animation_state_machine_players);
-        insert_presence!(ambient_lights);
-        insert_presence!(directional_lights);
-        insert_presence!(point_lights);
-        insert_presence!(rect_lights);
-        insert_presence!(spot_lights);
-        insert_presence!(post_process_settings);
-        insert_presence!(post_process_volumes);
-        insert_presence!(mobility);
-    }
-
-    /// Populates fixed storage before assigning one final archetype signature.
-    pub(in crate::scene::world) fn rebuild_fixed_component_presence_into_final_archetype(
-        &mut self,
-        entity: EntityId,
-    ) {
-        self.rebuild_fixed_component_presence_without_final_archetype(entity);
-        self.refresh_entity_archetype(entity);
-    }
-
-    pub(in crate::scene::world) fn rebuild_fixed_component_presence_without_final_archetype(
-        &mut self,
-        entity: EntityId,
-    ) {
-        macro_rules! insert_presence {
-            ($field:ident) => {
-                if let Some(component) = self.$field.get(&entity).cloned() {
-                    self.insert_rebuilt_fixed_component_presence_without_archetype(
-                        entity, component,
-                    );
-                }
-            };
-        }
-
-        insert_presence!(names);
-        insert_presence!(hierarchy);
-        insert_presence!(local_transforms);
-        insert_presence!(active_self);
-        insert_presence!(render_layer_masks);
-        insert_presence!(cameras);
-        insert_presence!(mesh_renderers);
-        insert_presence!(sprite_2d);
-        insert_presence!(mesh_2d);
-        insert_presence!(rigid_bodies);
-        insert_presence!(colliders);
-        insert_presence!(joints);
-        insert_presence!(animation_skeletons);
-        insert_presence!(animation_players);
-        insert_presence!(animation_sequence_players);
-        insert_presence!(animation_graph_players);
-        insert_presence!(animation_state_machine_players);
-        insert_presence!(ambient_lights);
-        insert_presence!(directional_lights);
-        insert_presence!(point_lights);
-        insert_presence!(rect_lights);
-        insert_presence!(spot_lights);
-        insert_presence!(post_process_settings);
-        insert_presence!(post_process_volumes);
-        insert_presence!(mobility);
-    }
-}
-
-fn cast_fixed_component<T, U>(component: U) -> T
-where
-    T: Component,
-    U: std::any::Any,
-{
-    match (Box::new(component) as Box<dyn std::any::Any>).downcast::<T>() {
-        Ok(component) => *component,
-        Err(_) => panic!("fixed component type dispatch must match concrete component"),
-    }
-}
-
-fn cast_fixed_ref<T, U>(component: &U) -> Option<&T>
-where
-    T: Component,
-    U: std::any::Any,
-{
-    (component as &dyn std::any::Any).downcast_ref::<T>()
-}
-
-fn cast_fixed_mut<T, U>(component: &mut U) -> Option<&mut T>
-where
-    T: Component,
-    U: std::any::Any,
-{
-    (component as &mut dyn std::any::Any).downcast_mut::<T>()
 }

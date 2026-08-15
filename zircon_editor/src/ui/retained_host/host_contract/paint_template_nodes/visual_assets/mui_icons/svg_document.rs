@@ -1,12 +1,9 @@
-use std::{fs, path::Path};
-
 use super::parser::path_elements;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn module_svg(
-    path: &Path,
+    source: &str,
 ) -> Option<String> {
-    let source = fs::read_to_string(path).ok()?;
-    let paths = path_elements(&source);
+    let paths = path_elements(source);
     if paths.is_empty() {
         return None;
     }

@@ -1,6 +1,6 @@
 use winit::event_loop::ActiveEventLoop;
-use zircon_runtime::asset::project::ProjectPaths;
-use zircon_runtime::diagnostic_log::{write_log, write_warn};
+use zircon_runtime::asset::project::ResolvedProjectPath;
+use zircon_runtime::diagnostic_log::write_log;
 
 use super::super::RuntimeEntryApp;
 
@@ -11,34 +11,41 @@ impl RuntimeEntryApp {
     ) {
         zircon_runtime::profile_frame!("app", "runtime_redraw");
         zircon_runtime::profile_scope!("app", "runtime_entry", "redraw_requested");
-        if self.surface_present_enabled && !self.surface_present_failed {
+        if self.surface_present_enabled {
             match self
                 .session
                 .present_viewport(self.viewport, self.viewport_size)
             {
                 Ok(true) => {
-                    self.complete_first_presented_frame(event_loop);
+                    zircon_runtime::profile_counter!("app", "runtime_entry.native_present", 1_u8);
+                    self.complete_presented_frame(event_loop);
                     return;
                 }
                 Ok(false) => {
-                    write_warn(
+                    self.report_fatal_failure(
                         "runtime_surface_present",
                         format!(
-                            "runtime_surface_present_returned_false viewport={:?} size={}x{}",
+                            "viewport={:?} size={}x{}",
                             self.viewport, self.viewport_size.width, self.viewport_size.height
                         ),
+                        "native surface presentation returned unavailable after a successful bind",
+                        "verify the runtime surface contract and restart zircon_runtime",
                     );
-                    self.fail_surface_present();
+                    event_loop.exit();
+                    return;
                 }
                 Err(error) => {
-                    write_warn(
+                    self.report_fatal_failure(
                         "runtime_surface_present",
                         format!(
-                            "runtime_surface_present_error viewport={:?} size={}x{} error={error}",
+                            "viewport={:?} size={}x{}",
                             self.viewport, self.viewport_size.width, self.viewport_size.height
                         ),
+                        format!("native surface presentation failed: {error}"),
+                        "verify the graphics adapter and window surface, then restart zircon_runtime",
                     );
-                    self.fail_surface_present();
+                    event_loop.exit();
+                    return;
                 }
             }
         }
@@ -46,24 +53,32 @@ impl RuntimeEntryApp {
             return;
         }
         let fallback_result = if let Some(presenter) = self.presenter.as_mut() {
+            zircon_runtime::profile_counter!("app", "runtime_entry.fallback_capture_request", 1_u8);
             match self
                 .session
                 .capture_frame(self.viewport, self.viewport_size)
             {
-                Ok(frame) => presenter.present(&frame).map_err(|error| {
-                    (
-                        format!(
-                            "viewport={:?} size={}x{} frame={}x{}",
-                            self.viewport,
-                            self.viewport_size.width,
-                            self.viewport_size.height,
-                            frame.width(),
-                            frame.height()
-                        ),
-                        format!("fallback presentation failed: {error}"),
-                        "verify the graphics adapter and window surface, then restart zircon_runtime",
-                    )
-                }),
+                Ok(frame) => {
+                    zircon_runtime::profile_counter!(
+                        "app",
+                        "runtime_entry.fallback_rgba_bytes",
+                        frame.rgba().len()
+                    );
+                    presenter.present(&frame).map_err(|error| {
+                        (
+                            format!(
+                                "viewport={:?} size={}x{} frame={}x{}",
+                                self.viewport,
+                                self.viewport_size.width,
+                                self.viewport_size.height,
+                                frame.width(),
+                                frame.height()
+                            ),
+                            format!("fallback presentation failed: {error}"),
+                            "verify the graphics adapter and window surface, then restart zircon_runtime",
+                        )
+                    })
+                }
                 Err(error) => Err((
                     format!(
                         "viewport={:?} size={}x{}",
@@ -77,7 +92,10 @@ impl RuntimeEntryApp {
             return;
         };
         match fallback_result {
-            Ok(()) => self.complete_first_presented_frame(event_loop),
+            Ok(()) => {
+                zircon_runtime::profile_counter!("app", "runtime_entry.fallback_cpu_present", 1_u8);
+                self.complete_presented_frame(event_loop);
+            }
             Err((context, error, recovery_hint)) => {
                 self.report_fatal_failure("runtime_surface_present", context, error, recovery_hint);
                 event_loop.exit();
@@ -87,13 +105,14 @@ impl RuntimeEntryApp {
 }
 
 impl RuntimeEntryApp {
-    fn complete_first_presented_frame(&mut self, event_loop: &dyn ActiveEventLoop) {
+    fn complete_presented_frame(&mut self, event_loop: &dyn ActiveEventLoop) {
+        zircon_runtime::profile_counter!("app", "runtime_entry.presented_frame", 1_u8);
         if let Err(error) = self.capture_first_presented_frame_if_requested() {
             self.report_fatal_failure(
                 "runtime_frame_capture",
                 self.first_frame_capture_path
-                    .as_deref()
-                    .map(ProjectPaths::display_path)
+                    .as_ref()
+                    .map(ResolvedProjectPath::display_path)
                     .map(|path| path.display().to_string())
                     .unwrap_or_else(|| "<not-requested>".to_owned()),
                 format!("first presented frame capture failed: {error}"),
@@ -117,9 +136,11 @@ impl RuntimeEntryApp {
                 return;
             }
         }
-        if let Some(diagnostic) =
-            first_presented_frame_diagnostic(self.exit_after_first_presented_frame)
-        {
+        self.presented_frame_count = self.presented_frame_count.saturating_add(1);
+        if let Some(diagnostic) = presented_frame_exit_diagnostic(
+            self.presented_frame_count,
+            self.exit_after_presented_frames,
+        ) {
             write_log("runtime_surface_present", diagnostic);
             event_loop.exit();
         }
@@ -136,7 +157,7 @@ impl RuntimeEntryApp {
 
     fn capture_first_presented_frame_if_requested(&mut self) -> Result<(), String> {
         if !should_capture_first_presented_frame(
-            self.first_frame_capture_path.as_deref(),
+            self.first_frame_capture_path.as_ref(),
             self.first_frame_capture_written,
         ) {
             return Ok(());
@@ -144,10 +165,20 @@ impl RuntimeEntryApp {
         let Some(path) = self.first_frame_capture_path.clone() else {
             return Ok(());
         };
+        zircon_runtime::profile_counter!(
+            "app",
+            "runtime_entry.explicit_frame_capture_request",
+            1_u8
+        );
         let frame = self
             .session
             .capture_frame(self.viewport, self.viewport_size)
             .map_err(|error| format!("capture runtime frame: {error}"))?;
+        zircon_runtime::profile_counter!(
+            "app",
+            "runtime_entry.explicit_frame_capture_rgba_bytes",
+            frame.rgba().len()
+        );
         super::super::frame_capture::write_runtime_frame_png(
             &path,
             frame.width(),
@@ -155,12 +186,11 @@ impl RuntimeEntryApp {
             frame.rgba(),
         )?;
         self.first_frame_capture_written = true;
-        let display_path = ProjectPaths::display_path(&path);
         write_log(
             "runtime_surface_present",
             format!(
                 "runtime_product_frame_capture_written path={} frame={}x{}",
-                display_path.display(),
+                path.display_path().display(),
                 frame.width(),
                 frame.height()
             ),
@@ -169,36 +199,60 @@ impl RuntimeEntryApp {
     }
 }
 
-fn first_presented_frame_diagnostic(enabled: bool) -> Option<&'static str> {
-    enabled.then_some("runtime_first_frame_presented")
+fn presented_frame_exit_diagnostic(
+    presented_frame_count: u64,
+    limit: Option<std::num::NonZeroU64>,
+) -> Option<String> {
+    let limit = limit?;
+    (presented_frame_count >= limit.get()).then(|| {
+        if limit == std::num::NonZeroU64::MIN {
+            "runtime_first_frame_presented".to_string()
+        } else {
+            format!(
+                "runtime_presented_frame_limit_reached limit={} count={presented_frame_count}",
+                limit
+            )
+        }
+    })
 }
 
 fn should_emit_first_frame_product_diagnostics(emitted: bool) -> bool {
     !emitted
 }
 
-fn should_capture_first_presented_frame(path: Option<&std::path::Path>, written: bool) -> bool {
+fn should_capture_first_presented_frame(path: Option<&ResolvedProjectPath>, written: bool) -> bool {
     path.is_some() && !written
 }
 
 #[cfg(test)]
 mod tests {
+    use std::num::NonZeroU64;
+
+    use zircon_runtime::asset::project::ProjectPaths;
+
     use super::{
-        first_presented_frame_diagnostic, should_capture_first_presented_frame,
+        presented_frame_exit_diagnostic, should_capture_first_presented_frame,
         should_emit_first_frame_product_diagnostics,
     };
 
     #[test]
     fn first_frame_exit_emits_a_presented_frame_diagnostic() {
         assert_eq!(
-            first_presented_frame_diagnostic(true),
-            Some("runtime_first_frame_presented")
+            presented_frame_exit_diagnostic(1, Some(NonZeroU64::MIN)),
+            Some("runtime_first_frame_presented".to_string())
         );
     }
 
     #[test]
-    fn continuous_runtime_records_product_diagnostics_without_requesting_exit() {
-        assert_eq!(first_presented_frame_diagnostic(false), None);
+    fn presented_frame_exit_waits_for_the_configured_successful_present_count() {
+        let limit = NonZeroU64::new(120).unwrap();
+
+        assert_eq!(presented_frame_exit_diagnostic(119, Some(limit)), None);
+        assert_eq!(
+            presented_frame_exit_diagnostic(120, Some(limit)),
+            Some("runtime_presented_frame_limit_reached limit=120 count=120".to_string())
+        );
+        assert_eq!(presented_frame_exit_diagnostic(120, None), None);
         assert!(should_emit_first_frame_product_diagnostics(false));
     }
 
@@ -209,10 +263,11 @@ mod tests {
 
     #[test]
     fn requested_first_frame_capture_runs_once_after_a_presented_frame() {
-        let path = std::path::Path::new("E:/evidence/runtime-first-frame.png");
+        let path = ProjectPaths::resolve_path("E:/evidence/runtime-first-frame.png")
+            .expect("capture path should resolve");
 
-        assert!(should_capture_first_presented_frame(Some(path), false));
-        assert!(!should_capture_first_presented_frame(Some(path), true));
+        assert!(should_capture_first_presented_frame(Some(&path), false));
+        assert!(!should_capture_first_presented_frame(Some(&path), true));
         assert!(!should_capture_first_presented_frame(None, false));
     }
 
@@ -228,5 +283,25 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(calls, vec![expected_call.as_str()]);
+    }
+
+    #[test]
+    fn present_paths_keep_the_p1_capture_and_present_measurement_points() {
+        let source = include_str!("redraw.rs");
+
+        for name in [
+            "runtime_entry.native_present",
+            "runtime_entry.fallback_capture_request",
+            "runtime_entry.fallback_rgba_bytes",
+            "runtime_entry.fallback_cpu_present",
+            "runtime_entry.presented_frame",
+            "runtime_entry.explicit_frame_capture_request",
+            "runtime_entry.explicit_frame_capture_rgba_bytes",
+        ] {
+            assert!(
+                source.contains(name),
+                "P1 presentation reporting must retain the `{name}` counter"
+            );
+        }
     }
 }

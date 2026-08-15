@@ -218,12 +218,10 @@ fn loading_phase_publishes_only_eligible_extensions_in_one_manager_generation() 
         Some(initial.generation())
     );
     assert!(initial.active_extensions().registry.views().is_empty());
-    assert!(
-        initial
-            .entries()
-            .iter()
-            .all(|entry| entry.state() == EditorPluginState::Validated)
-    );
+    assert!(initial
+        .entries()
+        .iter()
+        .all(|entry| entry.state() == EditorPluginState::Validated));
 
     let pre = manager
         .advance_loading_phase(EditorPluginLoadingPhase::PreWorkbench)
@@ -304,26 +302,22 @@ fn loading_phase_dispatches_lifecycle_only_when_the_manager_reaches_the_phase() 
     )
     .expect("the lifecycle fixture should be admitted");
 
-    assert!(
-        plugin
-            .events
-            .lock()
-            .expect("lifecycle event fixture lock should not be poisoned")
-            .is_empty()
-    );
+    assert!(plugin
+        .events
+        .lock()
+        .expect("lifecycle event fixture lock should not be poisoned")
+        .is_empty());
     manager
         .advance_loading_phase(EditorPluginLoadingPhase::PreWorkbench)
         .expect("the pre-workbench phase should publish without lifecycle callbacks");
     manager
         .advance_loading_phase(EditorPluginLoadingPhase::Default)
         .expect("the default phase should publish without lifecycle callbacks");
-    assert!(
-        plugin
-            .events
-            .lock()
-            .expect("lifecycle event fixture lock should not be poisoned")
-            .is_empty()
-    );
+    assert!(plugin
+        .events
+        .lock()
+        .expect("lifecycle event fixture lock should not be poisoned")
+        .is_empty());
 
     manager
         .advance_loading_phase(EditorPluginLoadingPhase::PostWorkbench)
@@ -390,13 +384,11 @@ fn lifecycle_retry_retries_only_unsuccessful_stages_and_clears_the_manager_fault
             recovered.entry(package_id).map(|entry| entry.state()),
             Some(EditorPluginState::Active)
         );
-        assert!(
-            recovered
-                .catalog_snapshot()
-                .registration(package_id)
-                .expect("the retry fixture registration should remain published")
-                .is_success()
-        );
+        assert!(recovered
+            .catalog_snapshot()
+            .registration(package_id)
+            .expect("the retry fixture registration should remain published")
+            .is_success());
         assert_eq!(
             *plugin
                 .events

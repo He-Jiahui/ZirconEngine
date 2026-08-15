@@ -2,7 +2,7 @@ use crate::ui::retained_host::host_contract::data::{FrameRect, SceneNodeData};
 use crate::ui::retained_host::host_contract::paint_frame::HostRgbaFrame;
 use crate::ui::retained_host::host_contract::paint_primitives::draw_text_bars_clipped;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    HostControlMetrics, current_host_metrics,
+    current_host_metrics, HostControlMetrics,
 };
 
 use super::super::super::super::{ACCENT, MUTED_TEXT};

@@ -2,20 +2,20 @@ use std::marker::PhantomData;
 use std::path::Path;
 use std::slice;
 use std::sync::atomic::{AtomicBool, Ordering};
-#[cfg(feature = "target-editor-host")]
 use std::sync::Arc;
 use std::time::Duration;
 
 use zircon_runtime::plugin::RuntimePluginRegistrationReport;
+use zircon_runtime_interface::project::RelPath;
 use zircon_runtime_interface::{
     ProfileControlRequest, ProfileControlResponse, ZrByteSlice, ZrOwnedByteBuffer,
     ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1,
     ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
     ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventDeliveryV1,
     ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimePluginEventSubscriptionHandle,
-    ZrRuntimeSessionConfigV2, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZrRuntimeSessionConfigV3, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
     ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZIRCON_RUNTIME_ABI_VERSION_V2, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V3, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
     ZR_RUNTIME_FRAME_DEMAND_IDLE_V1, ZR_RUNTIME_FRAME_DEMAND_IMMEDIATE_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
@@ -71,7 +71,7 @@ pub(crate) struct RuntimeSession {
     runtime: Option<LoadedRuntime>,
     handle: ZrRuntimeSessionHandle,
     wake_registration: Option<RuntimeWakeRegistration>,
-    viewport_surface_bound: AtomicBool,
+    viewport_surface_bound: Arc<AtomicBool>,
     teardown_failure_state: RuntimeSessionTeardownFailureState,
 }
 
@@ -92,8 +92,14 @@ impl RuntimeSession {
                 self.handle,
                 capabilities,
             )?
-        };
+        }
+        .with_viewport_surface_lifecycle_state(self.viewport_surface_lifecycle_state());
         Ok(Arc::new(gateway))
+    }
+
+    #[cfg(feature = "target-editor-host")]
+    fn viewport_surface_lifecycle_state(&self) -> Arc<AtomicBool> {
+        self.viewport_surface_bound.clone()
     }
 
     #[cfg(feature = "target-editor-host")]
@@ -101,31 +107,47 @@ impl RuntimeSession {
         runtime: LoadedRuntime,
         profile: &'static [u8],
     ) -> Result<Self, RuntimeLibraryError> {
-        Self::create_with_profile_and_project(runtime, profile, None, None)
+        Self::create_with_profile_and_project(runtime, profile, None, None, None, None)
     }
 
     pub(in crate::entry) fn create_with_profile_and_project(
         runtime: LoadedRuntime,
         profile: &'static [u8],
         project_root: Option<&Path>,
+        play_scene: Option<&RelPath>,
+        play_report_pipe: Option<&str>,
         wake_registration: Option<RuntimeWakeRegistration>,
     ) -> Result<Self, RuntimeLibraryError> {
         let create_session = runtime.create_session();
         let mut handle = ZrRuntimeSessionHandle::invalid();
         let project_root = project_root_for_abi(project_root)?;
-        let project_manifest = project_root
+        let project_root = project_root
             .filter(|root| !root.is_empty())
             .map(|root| ZrByteSlice {
                 data: root.as_ptr(),
                 len: root.len(),
             })
             .unwrap_or_else(ZrByteSlice::empty);
+        let play_scene = play_scene
+            .map(|scene| ZrByteSlice {
+                data: scene.as_str().as_ptr(),
+                len: scene.as_str().len(),
+            })
+            .unwrap_or_else(ZrByteSlice::empty);
+        let play_report_pipe = play_report_pipe
+            .map(|pipe| ZrByteSlice {
+                data: pipe.as_ptr(),
+                len: pipe.len(),
+            })
+            .unwrap_or_else(ZrByteSlice::empty);
         let status = unsafe {
             create_session(
-                ZrRuntimeSessionConfigV2 {
-                    abi_version: ZIRCON_RUNTIME_ABI_VERSION_V2,
+                ZrRuntimeSessionConfigV3 {
+                    abi_version: ZIRCON_RUNTIME_ABI_VERSION_V3,
                     profile: ZrByteSlice::from_static(profile),
-                    project_manifest,
+                    project_root,
+                    play_scene,
+                    play_report_pipe,
                     wake_sink: wake_registration
                         .as_ref()
                         .map(RuntimeWakeRegistration::sink)
@@ -144,7 +166,7 @@ impl RuntimeSession {
             runtime: Some(runtime),
             handle,
             wake_registration,
-            viewport_surface_bound: AtomicBool::new(false),
+            viewport_surface_bound: Arc::new(AtomicBool::new(false)),
             teardown_failure_state: RuntimeSessionTeardownFailureState::default(),
         })
     }
@@ -170,7 +192,7 @@ impl RuntimeSession {
             runtime: Some(runtime),
             handle,
             wake_registration: None,
-            viewport_surface_bound: AtomicBool::new(false),
+            viewport_surface_bound: Arc::new(AtomicBool::new(false)),
             teardown_failure_state: RuntimeSessionTeardownFailureState::default(),
         })
     }
@@ -480,18 +502,24 @@ impl Drop for RuntimeSession {
                 }
             }
             Err(error) => {
+                let detail = error.to_string();
                 self.teardown_failure_state.record(error);
-                if let Some(wake_registration) = self.wake_registration.take() {
-                    // A failed destroy cannot prove the runtime released its copied callback.
-                    std::mem::forget(wake_registration);
-                }
-                if let Some(runtime) = self.runtime.take() {
-                    // The runtime may still execute session code after rejecting destruction.
-                    std::mem::forget(runtime);
-                }
+                abort_after_runtime_session_teardown_failure(&detail);
             }
         }
     }
+}
+
+/// A failed dynamic-session destroy cannot prove that copied callbacks and DLL workers stopped.
+///
+/// Returning into normal Rust drop would unload the library or release host callback storage while
+/// that code may still execute. Process termination is the only safe terminal path; successful
+/// teardown continues through ordinary drop and releases the dynamic library normally.
+fn abort_after_runtime_session_teardown_failure(detail: &str) -> ! {
+    eprintln!(
+        "fatal runtime session teardown failure: {detail}; aborting before dynamic library unload"
+    );
+    std::process::abort();
 }
 
 pub(crate) struct RuntimeFrame<'session> {

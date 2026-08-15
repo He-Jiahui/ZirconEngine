@@ -59,7 +59,7 @@ Frameworks 总索引只保留计划集当前现状、架构决策与子计划路
 | # | 问题 | 证据 | 承接计划 |
 |---|------|------|---------|
 | P1 | 单 crate 巨石：1,075,165 行 current Rust source 仍是单编译单元，无法按域并行/增量编译 | `zircon_runtime/src`、`zircon_runtime/Cargo.toml` | 01 |
-| P2 | 历史声明顺序、graphics→scene、graphics→ui、asset→text 与 `rhi→rhi_wgpu` 直接边已硬切清零；source-cubemap projection 测试也已改用中立 `ParallelSliceExecutor`，current crate-DAG 阻断只剩 `scene→animation=2` | `01/baselines/2026-07-30-runtime-domain-dependencies-production-only.json`、`01/2026-07-30-m1-contracts-kernel-test-boundary.md`、`01/failure-2026-08-02-rhi-wgpu-presenter-and-backend-contract-test-owner.md` | 01、05 |
+| P2 | 2026-07-30 历史 production baseline 的 `scene→animation=2` 与 `rhi→rhi_wgpu=1` 均已硬切清零；current production-domain reverse edge 为 0，scene 只依赖中立 `core::framework::animation` contract，source-cubemap projection 测试也已改用中立 `ParallelSliceExecutor` | `01/baselines/2026-07-30-runtime-domain-dependencies-production-only.json`、`01/failure-2026-07-30-scene-animation-optional-feature-compile-boundary.md`、`01/2026-07-30-m1-contracts-kernel-test-boundary.md`、`01/failure-2026-08-02-rhi-wgpu-presenter-and-backend-contract-test-owner.md` | 01、05 |
 | P3 | 域 feature/cfg 与 profile/domain CI source matrix 已落地；真实剩余是运行期 module/plugin selection 仍手写在 `runtime_profile/defaults.rs`，尚未与 feature preset TOML 单源生成，current-main acceptance 也 pending | `zircon_runtime/runtime-feature-presets.toml`、`src/plugin/runtime_profile/defaults.rs` | 03 |
 | P4 | 四阶段 lifecycle、InitLevel、descriptor 与统一 sorter spine 已落地；Minimal 等生产组装仍有独立构造/选择路径，真实 readiness signal、SDK/native/managed consumers 与 current managed acceptance 未闭合 | `src/core/runtime/lifecycle.rs`、`src/builtin/runtime_modules`、`zircon_app/src/plugins` | 02 |
 | P5 | runtime `declare_plugin!`、generated manifest parity、typed `PluginLoadError` 与 live-host/fixture reload 已落地；dist ABI identity/capability/symbol 仍手写，Rust `cargo-zircon` 三命令不存在，gltf importer reload callbacks 仍为空 | `zircon_plugins/plugin_sdk/src/declaration.rs`、`zircon_plugins/gltf_importer/dist/src/lib.rs`、`zircon_runtime/src/plugin/native_plugin_loader` | 04 |
@@ -94,7 +94,8 @@ Frameworks 总索引只保留计划集当前现状、架构决策与子计划路
 │                                        builtin 模块组装、curated re-export；对外路径
 │                                        zircon_runtime::* 不变）
 └── zircon_runtime/crates/            ← 内部成员 crate（不发布、无独立稳定性承诺）
-    ├── layer 0a  zr_math / zr_resource / zr_contracts（纯契约 trait/DTO，按域 feature 门控）
+    ├── layer 0a  zr_math（数学实现）/ zr_resource（资源基础实现）/
+    │             zr_contracts（纯 trait/DTO，按域 feature 门控）
     ├── layer 0b  zr_kernel（core/runtime + engine_module；只依赖 0a）
     ├── layer 1   zr_diagnostics / zr_foundation / zr_platform / zr_input
     ├── layer 2   zr_asset / zr_scene
@@ -104,7 +105,18 @@ Frameworks 总索引只保留计划集当前现状、架构决策与子计划路
     └── optional  zr_script / zr_animation / zr_navigation
 ```
 
-依赖方向自下而上单向，M1 固定为 `zr_math/zr_resource → zr_contracts → zr_kernel → zr_diagnostics`，再进入 foundation/platform/input 与中重域，最后到 graphics/ui 和门面；由 Cargo 强制，替代模块内纪律（P2）。`zr_operation` 是依赖 kernel/contracts/scene/interface 的 layer-3 supporting crate，optional navigation 可依赖它；不得把 operation 并入 kernel 或留在门面实现。`zr_text` 也是 layer-3，但只拥有 backend-neutral shaping/layout/font/source/SDF；GPU atlas/upload/draw 归 layer-4 `zr_graphics::text_backend` 或 `zr_rhi_wgpu`，禁止 `zr_text` 直接依赖完整 wgpu/naga/glyphon 或与 graphics 成环。这是对收束计划中"runtime 物理吸收为单 crate"实现细节的显式修订：**吸收层语义不变（外部只见 `zircon_runtime`），物理编译单元分层**。2026-07-30 M0 已锁定 `zr_` 命名、crate 清单与物理切片顺序；2026-07-31 又同步锁定 operation/text owner 边界。四份受管 cold/incremental timings 尚未生成，所以 M0 仍未完成。
+依赖方向自下而上单向，M1 固定为 `zr_math/zr_resource → zr_contracts → zr_kernel → zr_diagnostics`，
+再进入 foundation/platform/input 与中重域，最后到 graphics/ui 和门面；由 Cargo 强制，替代模块内纪律
+（P2）。`zr_math` 与 `zr_resource` 是零重依赖 foundation implementation，只有 `zr_contracts` 是纯
+trait/DTO；`zr_resource -> zircon_runtime_interface::resource` 是批准的稳定 ABI DTO 依赖，atomic
+persistence 的唯一 implementation owner 是 `zr_resource::io`。`zr_operation` 是依赖
+kernel/contracts/scene/interface 的 layer-3 supporting crate，optional navigation 可依赖它；不得把
+operation 并入 kernel 或留在门面实现。`zr_text` 也是 layer-3，但只拥有 backend-neutral
+shaping/layout/font/source/SDF；GPU atlas/upload/draw 归 layer-4 `zr_graphics::text_backend` 或
+`zr_rhi_wgpu`，禁止 `zr_text` 直接依赖完整 wgpu/naga/glyphon 或与 graphics 成环。这是对收束计划中
+"runtime 物理吸收为单 crate"实现细节的显式修订：**吸收层语义不变（外部只见 `zircon_runtime`），物理
+编译单元分层**。2026-07-30 M0 已锁定 `zr_` 命名、crate 清单与物理切片顺序；2026-07-31 又同步锁定
+operation/text owner 边界。四份受管 cold/incremental timings 尚未生成，所以 M0 仍未完成。
 
 依赖治理同步执行 stable-first。当前 `notify 9.0.0-rc.3`、`winit 0.31.0-beta.2`、
 `zip 9.0.0-pre2` 只能以精确 package/version、owner、理由、到期日与 ticket 的限期例外存在；
@@ -125,7 +137,11 @@ Frameworks 总索引只保留计划集当前现状、架构决策与子计划路
 
 ### D5：跨域接缝全部走契约
 
-历史 asset→ui、graphics→ui、graphics→scene、asset→text 与 rhi→rhi_wgpu 生产直接边已硬切为 0；对应共享类型/服务继续由中立 contract + handle/registry 或物理 backend crate 承接，不恢复旧 owner 或 facade shim。current successor 只剩 `scene→animation=2` 硬反向边需要在物理拆分前收敛。详见计划 01 current baseline 与计划 05。
+历史 asset→ui、graphics→ui、graphics→scene、asset→text 与 rhi→rhi_wgpu 生产直接边已硬切为 0；
+2026-07-30 baseline 中的 `scene→animation=2` 也已由 sampling contract inversion 收敛为 current 0，
+scene 只依赖中立 `core::framework::animation` contract。对应共享类型/服务继续由中立 contract +
+handle/registry 或物理 backend crate 承接，不恢复旧 owner 或 facade shim。详见计划 01 current
+baseline、scene-animation failure 的 hard-cut 记录与计划 05。
 
 ### D6：规范即守卫
 

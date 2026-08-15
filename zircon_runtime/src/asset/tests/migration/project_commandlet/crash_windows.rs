@@ -32,8 +32,8 @@ fn minted_sidecar_commit_crash_is_whitelisted_and_next_apply_converges() {
         "unexpected migration journal name: {journal_name}"
     );
     assert!(
-        journal_name.ends_with(".toml"),
-        "migration journal must retain its TOML suffix: {journal_name}"
+        journal_name.ends_with(".zrjournal"),
+        "migration journal must use the framed journal suffix: {journal_name}"
     );
 
     let recovered =
@@ -158,7 +158,8 @@ fn append_journal_records_each_document_once_and_recovers_after_commit_interrupt
         .expect("interruption must retain one transaction journal")
         .unwrap()
         .path();
-    let journal_source = fs::read_to_string(&journal).unwrap();
+    let journal_bytes = fs::read(&journal).unwrap();
+    let journal_source = String::from_utf8_lossy(&journal_bytes);
     assert_eq!(
         journal_source.matches("[[documents]]").count(),
         document_count
@@ -186,11 +187,16 @@ fn append_journal_records_each_document_once_and_recovers_after_commit_interrupt
 
 #[test]
 fn direct_transaction_replacement_keeps_platform_durability_barrier() {
-    const COMMIT_SOURCE: &str = include_str!("../../../migration/transaction/commit.rs");
-    const JOURNAL_SOURCE: &str = include_str!("../../../migration/transaction/journal.rs");
+    const ATOMIC_TRANSACTION_SOURCE: &str =
+        include_str!("../../../../core/resource/io/atomic_file/transaction.rs");
+    const ATOMIC_PLATFORM_SOURCE: &str =
+        include_str!("../../../../core/resource/io/atomic_file/platform.rs");
+    const COMMIT_SOURCE: &str = include_str!("../../../../core/resource/io/transaction/commit.rs");
+    const JOURNAL_SOURCE: &str =
+        include_str!("../../../../core/resource/io/transaction/journal.rs");
 
     assert!(
-        COMMIT_SOURCE.contains("sync_parent_directory(target)"),
+        ATOMIC_TRANSACTION_SOURCE.contains("sync_parent_directory(target)"),
         "a committed target replacement must persist its directory entry on Unix"
     );
     assert!(
@@ -198,15 +204,15 @@ fn direct_transaction_replacement_keeps_platform_durability_barrier() {
         "retired sidecar deletion must persist its directory entry on Unix"
     );
     assert!(
-        COMMIT_SOURCE.contains("REPLACEFILE_WRITE_THROUGH"),
+        ATOMIC_PLATFORM_SOURCE.contains("REPLACEFILE_WRITE_THROUGH"),
         "Windows replacement must request a write-through commit"
     );
     assert!(
-        COMMIT_SOURCE.contains("MOVEFILE_WRITE_THROUGH"),
+        ATOMIC_PLATFORM_SOURCE.contains("MOVEFILE_WRITE_THROUGH"),
         "Windows first-write promotion must request a write-through rename"
     );
     assert!(
-        JOURNAL_SOURCE.contains("sync_committed_journal(path)"),
+        JOURNAL_SOURCE.contains(".open(path)?") && JOURNAL_SOURCE.contains(".sync_all()"),
         "the immutable intent must be synced after its atomic replacement"
     );
     assert!(
@@ -214,13 +220,13 @@ fn direct_transaction_replacement_keeps_platform_durability_barrier() {
         "Windows journal flushing requires a read-write committed-file handle"
     );
     assert!(
-        JOURNAL_SOURCE.contains("fs::File::open(parent)?.sync_all()"),
+        JOURNAL_SOURCE.contains("sync_parent_directory(path)"),
         "the immutable intent must persist its parent directory entry on Unix"
     );
 }
 
 #[test]
-fn target_replace_before_journal_sync_converges_without_backup_restore() {
+fn target_replace_before_committed_transition_rolls_back_then_converges() {
     let root = fixture_root("transaction-target-replace-window");
     write_manifest(&root, &["assets"]);
     let guid: AssetUuid = "fd111111-2222-4333-8444-555555555555".parse().unwrap();

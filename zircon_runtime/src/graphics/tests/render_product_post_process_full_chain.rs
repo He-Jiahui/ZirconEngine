@@ -259,13 +259,13 @@ fn render_product_post_full_chain_all_effects_on() {
         POST_COLOR_LUT_BAKE_EXECUTOR_ID,
         POST_UBER_EXECUTOR_ID,
     );
-    assert_graph_executor_order(&stats, POST_UBER_EXECUTOR_ID, POST_UPSCALE_EXECUTOR_ID);
+    assert_graph_executor_order(&stats, POST_UBER_EXECUTOR_ID, SMAA_EXECUTOR_ID);
+    assert_graph_executor_order(&stats, SMAA_EXECUTOR_ID, POST_UPSCALE_EXECUTOR_ID);
     assert_graph_executor_order(
         &stats,
         POST_UPSCALE_EXECUTOR_ID,
         POST_OUTPUT_TRANSFER_EXECUTOR_ID,
     );
-    assert_graph_executor_order(&stats, POST_OUTPUT_TRANSFER_EXECUTOR_ID, SMAA_EXECUTOR_ID);
 
     assert_eq!(
         stats.last_post_process_effect_stack_report.active_families,
@@ -630,7 +630,9 @@ pub(super) fn assert_terminal_signal_has_chromatic_content(
         chromatic_pixels >= minimum_chromatic_pixels,
         "full-chain product frame must retain chromatic scene content; chromatic_pixels={chromatic_pixels}, minimum={minimum_chromatic_pixels}; full={}; baseline={}; exposure={}",
         frame_rgb_color_summary(frame),
-        baseline.map(frame_rgb_color_summary).unwrap_or_else(|| "not-captured".to_string()),
+        baseline
+            .map(frame_rgb_color_summary)
+            .unwrap_or_else(|| "not-captured".to_string()),
         exposure_diagnostics.as_deref().unwrap_or("not-captured"),
     );
 }

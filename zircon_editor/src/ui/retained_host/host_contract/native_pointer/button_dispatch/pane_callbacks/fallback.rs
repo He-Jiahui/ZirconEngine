@@ -1,9 +1,9 @@
 use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 
-use super::super::super::NativePointerButtonState;
 use super::super::super::pane_button_damage::pane_pointer_press_damage_frame;
 use super::super::super::routing::PanePointerRoute;
+use super::super::super::NativePointerButtonState;
 
 pub(super) fn dispatch_passive_pane_button(
     state: NativePointerButtonState,

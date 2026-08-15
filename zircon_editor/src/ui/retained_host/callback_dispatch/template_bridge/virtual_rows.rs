@@ -116,7 +116,7 @@ impl TemplateBridgeVirtualRowSequence {
         surface: &mut UiSurface,
         total_row_count: usize,
         configure_metadata: F,
-    ) -> Result<(), TemplateBridgeVirtualRowsError>
+    ) -> Result<bool, TemplateBridgeVirtualRowsError>
     where
         F: FnMut(
             UiTemplateNodeMetadata,
@@ -124,8 +124,9 @@ impl TemplateBridgeVirtualRowSequence {
         ) -> UiTemplateNodeMetadata,
     {
         let required_virtual_count = total_row_count.saturating_sub(self.authored_row_count);
-        self.prune(surface, required_virtual_count)?;
-        self.ensure(surface, required_virtual_count, configure_metadata)
+        let pruned = self.prune(surface, required_virtual_count)?;
+        let ensured = self.ensure(surface, required_virtual_count, configure_metadata)?;
+        Ok(pruned || ensured)
     }
 
     pub(crate) fn virtual_control_ids(&self, surface: &UiSurface) -> Vec<String> {
@@ -149,25 +150,12 @@ impl TemplateBridgeVirtualRowSequence {
             .collect()
     }
 
-    pub(crate) fn contains_control(&self, surface: &UiSurface, control_id: &str) -> bool {
-        self.virtual_row_number(control_id)
-            .is_some_and(|row_number| {
-                row_number > self.authored_row_count
-                    && surface.tree.nodes.values().any(|node| {
-                        node.template_metadata
-                            .as_ref()
-                            .and_then(|metadata| metadata.control_id.as_deref())
-                            == Some(control_id)
-                    })
-            })
-    }
-
     fn ensure<F>(
         &self,
         surface: &mut UiSurface,
         required_virtual_count: usize,
         mut configure_metadata: F,
-    ) -> Result<(), TemplateBridgeVirtualRowsError>
+    ) -> Result<bool, TemplateBridgeVirtualRowsError>
     where
         F: FnMut(
             UiTemplateNodeMetadata,
@@ -175,7 +163,7 @@ impl TemplateBridgeVirtualRowSequence {
         ) -> UiTemplateNodeMetadata,
     {
         if required_virtual_count == 0 {
-            return Ok(());
+            return Ok(false);
         }
 
         let parent_id = required_control_node_id(surface, &self.parent_control_id)?;
@@ -201,6 +189,7 @@ impl TemplateBridgeVirtualRowSequence {
             })
             .collect::<HashSet<_>>();
         let mut next_node_id = next_node_id(surface).0;
+        let mut inserted = false;
 
         for virtual_index in 0..required_virtual_count {
             let row_number = self.authored_row_count + virtual_index + 1;
@@ -226,16 +215,17 @@ impl TemplateBridgeVirtualRowSequence {
                 parent_id,
                 node_id,
             ));
+            inserted = true;
         }
 
-        Ok(())
+        Ok(inserted)
     }
 
     fn prune(
         &self,
         surface: &mut UiSurface,
         required_virtual_count: usize,
-    ) -> Result<(), TemplateBridgeVirtualRowsError> {
+    ) -> Result<bool, TemplateBridgeVirtualRowsError> {
         let retained_max_row_number = self.authored_row_count + required_virtual_count;
         let mut stale_rows = surface
             .tree
@@ -251,11 +241,12 @@ impl TemplateBridgeVirtualRowSequence {
             })
             .collect::<Vec<_>>();
         stale_rows.sort_by(|left, right| right.0.cmp(&left.0));
+        let pruned = !stale_rows.is_empty();
 
         for (_, node_id) in stale_rows {
             let _ = surface.detach_subtree_to_pool(node_id)?;
         }
-        Ok(())
+        Ok(pruned)
     }
 
     fn virtual_row_from_prototype<F>(

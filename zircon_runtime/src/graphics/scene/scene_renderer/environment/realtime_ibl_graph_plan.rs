@@ -4,6 +4,7 @@ use crate::render_graph::{
     RenderGraphExternalResourceBinding, RenderGraphResourceUsageFlags, RenderPassId,
 };
 
+use super::ibl_bake_graph_plan::ibl_bake_terminal_pmrem_average_mip;
 use super::realtime_ibl_time_slice::{
     CubeFaceRange, IblRealtimeBufferSlot, RealtimeIblFrameBatch, RealtimeIblOperation,
     RealtimeIblPrefilterDispatchSlice,
@@ -95,7 +96,6 @@ pub(in crate::graphics) fn append_realtime_ibl_graph_plan(
     let ready = select_slot(&slot_a, &slot_b, batch.ready_slot()).clone();
     let work = select_slot(&slot_a, &slot_b, batch.work_slot()).clone();
     let mut passes = Vec::new();
-    let mut previous = None;
 
     for operation in batch.operations() {
         match *operation {
@@ -106,10 +106,8 @@ pub(in crate::graphics) fn append_realtime_ibl_graph_plan(
                     capture_pass_name("sky", faces),
                     REALTIME_IBL_CAPTURE_SKY_EXECUTOR_ID,
                     workload.clone(),
-                    previous,
                 )?;
                 builder.write_storage_external(pass, work.source.storage_mips[0].handle)?;
-                previous = Some(pass);
                 passes.push(RealtimeIblGraphPass {
                     kind: RealtimeIblGraphPassKind::CaptureSky(faces),
                     pass_id: pass,
@@ -123,10 +121,8 @@ pub(in crate::graphics) fn append_realtime_ibl_graph_plan(
                     capture_pass_name("cloud", faces),
                     REALTIME_IBL_CAPTURE_CLOUD_EXECUTOR_ID,
                     workload.clone(),
-                    previous,
                 )?;
                 builder.write_storage_external(pass, work.source.storage_mips[0].handle)?;
-                previous = Some(pass);
                 passes.push(RealtimeIblGraphPass {
                     kind: RealtimeIblGraphPassKind::CaptureCloud(faces),
                     pass_id: pass,
@@ -150,7 +146,6 @@ pub(in crate::graphics) fn append_realtime_ibl_graph_plan(
                         format!("env.realtime_ibl.generate_source_mip.mip{mip_level}"),
                         REALTIME_IBL_GENERATE_SOURCE_MIPS_EXECUTOR_ID,
                         workload.clone(),
-                        previous,
                     )?;
                     builder.read_external(
                         pass,
@@ -160,7 +155,6 @@ pub(in crate::graphics) fn append_realtime_ibl_graph_plan(
                         pass,
                         work.source.storage_mips[mip_level as usize].handle,
                     )?;
-                    previous = Some(pass);
                     passes.push(RealtimeIblGraphPass {
                         kind: RealtimeIblGraphPassKind::GenerateSourceMip { mip_level },
                         pass_id: pass,
@@ -176,13 +170,24 @@ pub(in crate::graphics) fn append_realtime_ibl_graph_plan(
                         face_count: faces.count,
                     };
                     let mip_size = mip_dimension(request.pmrem_face_size(), u32::from(mip_level));
+                    let writes_terminal_average_to_all_faces = faces.first == 0
+                        && u32::from(faces.count) == CUBE_FACE_COUNT
+                        && ibl_bake_terminal_pmrem_average_mip(
+                            request.pmrem_face_size(),
+                            request.pmrem_mip_count(),
+                            u32::from(mip_level),
+                        );
                     let workload = RenderGraphComputeWorkload::fixed(
                         "zircon-env-realtime-ibl-prefilter",
                         REALTIME_IBL_WORKGROUP_SIZE,
                         [
                             div_ceil(mip_size, REALTIME_IBL_WORKGROUP_SIZE[0]),
                             div_ceil(mip_size, REALTIME_IBL_WORKGROUP_SIZE[1]),
-                            u32::from(faces.count),
+                            if writes_terminal_average_to_all_faces {
+                                1
+                            } else {
+                                u32::from(faces.count)
+                            },
                         ],
                     );
                     let pass = add_pass(
@@ -190,14 +195,12 @@ pub(in crate::graphics) fn append_realtime_ibl_graph_plan(
                         prefilter_pass_name(slice),
                         REALTIME_IBL_PREFILTER_EXECUTOR_ID,
                         workload.clone(),
-                        previous,
                     )?;
                     builder.read_external(pass, work.source.sampled.handle)?;
                     builder.write_storage_external(
                         pass,
                         work.pmrem.storage_mips[usize::from(mip_level)].handle,
                     )?;
-                    previous = Some(pass);
                     passes.push(RealtimeIblGraphPass {
                         kind: RealtimeIblGraphPassKind::Prefilter(slice),
                         pass_id: pass,
@@ -216,11 +219,9 @@ pub(in crate::graphics) fn append_realtime_ibl_graph_plan(
                     "env.realtime_ibl.project_sh9".to_string(),
                     REALTIME_IBL_PROJECT_SH9_EXECUTOR_ID,
                     workload.clone(),
-                    previous,
                 )?;
                 builder.read_external(pass, work.source.sampled.handle)?;
                 builder.write_storage_external(pass, work.sh9.handle)?;
-                previous = Some(pass);
                 passes.push(RealtimeIblGraphPass {
                     kind: RealtimeIblGraphPassKind::ProjectDiffuseSh9,
                     pass_id: pass,
@@ -267,15 +268,28 @@ fn import_texture_resources(
     prefix: String,
     mip_count: u32,
 ) -> RealtimeIblGraphTextureResources {
-    let sampled = import_external_texture(builder, format!("{prefix}.sampled"));
+    let allocation_alias_group = format!("{prefix}.allocation");
+    let sampled = import_external_texture(
+        builder,
+        format!("{prefix}.sampled"),
+        &allocation_alias_group,
+    );
     let sampled_mips = (0..mip_count)
         .map(|mip_level| {
-            import_external_texture(builder, format!("{prefix}.sampled.mip{mip_level}"))
+            import_external_texture(
+                builder,
+                format!("{prefix}.sampled.mip{mip_level}"),
+                &allocation_alias_group,
+            )
         })
         .collect();
     let storage_mips = (0..mip_count)
         .map(|mip_level| {
-            import_external_texture(builder, format!("{prefix}.storage.mip{mip_level}"))
+            import_external_texture(
+                builder,
+                format!("{prefix}.storage.mip{mip_level}"),
+                &allocation_alias_group,
+            )
         })
         .collect();
     RealtimeIblGraphTextureResources {
@@ -288,11 +302,13 @@ fn import_texture_resources(
 fn import_external_texture(
     builder: &mut RenderGraphBuilder,
     name: String,
+    allocation_alias_group: &str,
 ) -> RealtimeIblGraphExternalResource {
-    let handle = builder.import_external_resource_with_usage_and_binding(
+    let handle = builder.import_external_resource_with_usage_binding_and_alias_group(
         name.clone(),
         RenderGraphResourceUsageFlags::persistent(),
         RenderGraphExternalResourceBinding::required_texture(),
+        allocation_alias_group,
     );
     RealtimeIblGraphExternalResource { name, handle }
 }
@@ -325,13 +341,9 @@ fn add_pass(
     name: String,
     executor: &'static str,
     workload: RenderGraphComputeWorkload,
-    previous: Option<RenderPassId>,
 ) -> Result<RenderPassId, RenderGraphError> {
     let pass = builder.add_pass_with_executor(name, QueueLane::AsyncCompute, Some(executor));
     builder.set_compute_workload(pass, workload)?;
-    if let Some(previous) = previous {
-        builder.add_dependency(previous, pass)?;
-    }
     Ok(pass)
 }
 
@@ -370,7 +382,11 @@ const fn slot_resource_prefix(slot: IblRealtimeBufferSlot) -> &'static str {
 
 const fn mip_dimension(base_size: u32, mip_level: u32) -> u32 {
     let shifted = base_size >> mip_level;
-    if shifted == 0 { 1 } else { shifted }
+    if shifted == 0 {
+        1
+    } else {
+        shifted
+    }
 }
 
 const fn div_ceil(value: u32, divisor: u32) -> u32 {

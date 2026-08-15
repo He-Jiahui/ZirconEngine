@@ -68,7 +68,8 @@ dkms.conf
 /.vs
 /CMakeSettings.json
 /.notes
-/.codex
+/.codex/*
+!/.codex/config.toml
 /.codex_tmp
 
 /.worktrees
@@ -88,6 +89,10 @@ CLAUDE.md
 /.superpowers
 
 __pycache__/
+
+# Viewer unit-test fixtures are generated under the evidence root, but are not evidence.
+/docs/tests/runtime/shader/.viewer-test-artifacts/
+/docs/tests/runtime/shader/.gpu-timing-validator-test-artifacts/
 
 # Zircon Hub Tauri/React frontend output
 /zircon_hub/node_modules/
@@ -120,6 +125,9 @@ __pycache__/
 *.exit
 *.txt
 
-examples/
+examples/*
+!examples/vampire/
+examples/vampire/*
+!examples/vampire/README.md
 
 worktrees/

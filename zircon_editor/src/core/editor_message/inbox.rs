@@ -1,7 +1,7 @@
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet};
 
-use super::EditorMessageDelivery;
 use super::retention::{EditorMessageCoalescingKey, EditorMessageRetention};
+use super::EditorMessageDelivery;
 
 const DEFAULT_LOSSLESS_CAPACITY: usize = 4_096;
 const DEFAULT_BOUNDED_CAPACITY: usize = 256;
@@ -125,8 +125,8 @@ pub(super) struct EditorMessageInbox {
     limits: EditorMessageInboxLimits,
     deliveries: BTreeMap<u64, EditorMessageDelivery>,
     latest_by_key: BTreeMap<EditorMessageCoalescingKey, u64>,
-    latest_order: VecDeque<(EditorMessageCoalescingKey, u64)>,
-    bounded_order: VecDeque<u64>,
+    latest_order: BTreeMap<u64, EditorMessageCoalescingKey>,
+    bounded_order: BTreeSet<u64>,
     lossless_depth: usize,
     bounded_depth: usize,
     latest_depth: usize,
@@ -143,8 +143,8 @@ impl EditorMessageInbox {
             limits,
             deliveries: BTreeMap::new(),
             latest_by_key: BTreeMap::new(),
-            latest_order: VecDeque::new(),
-            bounded_order: VecDeque::new(),
+            latest_order: BTreeMap::new(),
+            bounded_order: BTreeSet::new(),
             lossless_depth: 0,
             bounded_depth: 0,
             latest_depth: 0,
@@ -226,15 +226,24 @@ impl EditorMessageInbox {
         key: EditorMessageCoalescingKey,
         delivery: EditorMessageDelivery,
     ) -> EditorMessageInboxEnqueue {
-        if delivery.retained_bytes() > self.limits.max_delivery_bytes {
-            self.dropped = self.dropped.saturating_add(1);
-            return EditorMessageInboxEnqueue::Dropped;
-        }
-
         if let Some(previous_sequence) = self.latest_by_key.get(&key).copied() {
+            if previous_sequence >= delivery.sequence() {
+                self.coalesced = self.coalesced.saturating_add(1);
+                return EditorMessageInboxEnqueue::Coalesced;
+            }
+            let Some(previous) = self.deliveries.get(&previous_sequence) else {
+                self.dropped = self.dropped.saturating_add(1);
+                return EditorMessageInboxEnqueue::Dropped;
+            };
+            let delivery = delivery.coalesce_latest_from(previous);
+            if delivery.retained_bytes() > self.limits.max_delivery_bytes {
+                self.dropped = self.dropped.saturating_add(1);
+                return EditorMessageInboxEnqueue::Dropped;
+            }
             let Some(evictions) = self.latest_replacement_evictions_for(
                 key,
                 previous_sequence,
+                delivery.sequence(),
                 delivery.retained_bytes(),
             ) else {
                 self.dropped = self.dropped.saturating_add(1);
@@ -251,7 +260,7 @@ impl EditorMessageInbox {
             let sequence = delivery.sequence();
             self.insert_delivery(delivery);
             self.latest_by_key.insert(key, sequence);
-            self.latest_order.push_back((key, sequence));
+            self.latest_order.insert(sequence, key);
             self.latest_depth = self.latest_depth.saturating_add(1);
             self.coalesced = self.coalesced.saturating_add(1);
             return if evictions.is_empty() {
@@ -261,7 +270,14 @@ impl EditorMessageInbox {
             };
         }
 
-        let Some(evictions) = self.latest_evictions_for(delivery.retained_bytes()) else {
+        if delivery.retained_bytes() > self.limits.max_delivery_bytes {
+            self.dropped = self.dropped.saturating_add(1);
+            return EditorMessageInboxEnqueue::Dropped;
+        }
+
+        let Some(evictions) =
+            self.latest_evictions_for(delivery.sequence(), delivery.retained_bytes())
+        else {
             self.dropped = self.dropped.saturating_add(1);
             return EditorMessageInboxEnqueue::Dropped;
         };
@@ -275,7 +291,7 @@ impl EditorMessageInbox {
         let sequence = delivery.sequence();
         self.insert_delivery(delivery);
         self.latest_by_key.insert(key, sequence);
-        self.latest_order.push_back((key, sequence));
+        self.latest_order.insert(sequence, key);
         self.latest_depth = self.latest_depth.saturating_add(1);
         if evictions.is_empty() {
             EditorMessageInboxEnqueue::Enqueued
@@ -289,7 +305,9 @@ impl EditorMessageInbox {
             self.dropped = self.dropped.saturating_add(1);
             return EditorMessageInboxEnqueue::Dropped;
         }
-        let Some(evictions) = self.bounded_evictions_for(delivery.retained_bytes()) else {
+        let Some(evictions) =
+            self.bounded_evictions_for(delivery.sequence(), delivery.retained_bytes())
+        else {
             self.dropped = self.dropped.saturating_add(1);
             return EditorMessageInboxEnqueue::Dropped;
         };
@@ -302,7 +320,7 @@ impl EditorMessageInbox {
 
         let sequence = delivery.sequence();
         self.insert_delivery(delivery);
-        self.bounded_order.push_back(sequence);
+        self.bounded_order.insert(sequence);
         self.bounded_depth = self.bounded_depth.saturating_add(1);
         if evictions.is_empty() {
             EditorMessageInboxEnqueue::Enqueued
@@ -313,18 +331,22 @@ impl EditorMessageInbox {
 
     fn latest_evictions_for(
         &self,
+        incoming_sequence: u64,
         incoming_bytes: usize,
     ) -> Option<Vec<(EditorMessageCoalescingKey, u64)>> {
         let mut retained_bytes = self.retained_bytes;
         let mut latest_depth = self.latest_depth;
         let mut evictions = Vec::new();
-        for (key, sequence) in &self.latest_order {
+        for (sequence, key) in &self.latest_order {
             if latest_depth < self.limits.latest_capacity
                 && retained_bytes
                     .checked_add(incoming_bytes)
                     .is_some_and(|bytes| bytes <= self.limits.retained_bytes_capacity)
             {
                 return Some(evictions);
+            }
+            if *sequence >= incoming_sequence {
+                return None;
             }
             let delivery = self.deliveries.get(sequence)?;
             retained_bytes = retained_bytes.checked_sub(delivery.retained_bytes())?;
@@ -342,13 +364,14 @@ impl EditorMessageInbox {
         &self,
         replaced_key: EditorMessageCoalescingKey,
         replaced_sequence: u64,
+        incoming_sequence: u64,
         incoming_bytes: usize,
     ) -> Option<Vec<(EditorMessageCoalescingKey, u64)>> {
         let replaced = self.deliveries.get(&replaced_sequence)?;
         let mut retained_bytes = self.retained_bytes.checked_sub(replaced.retained_bytes())?;
         let mut latest_depth = self.latest_depth.checked_sub(1)?;
         let mut evictions = Vec::new();
-        for (key, sequence) in &self.latest_order {
+        for (sequence, key) in &self.latest_order {
             if (*key, *sequence) == (replaced_key, replaced_sequence) {
                 continue;
             }
@@ -358,6 +381,9 @@ impl EditorMessageInbox {
                     .is_some_and(|bytes| bytes <= self.limits.retained_bytes_capacity)
             {
                 return Some(evictions);
+            }
+            if *sequence >= incoming_sequence {
+                return None;
             }
             let delivery = self.deliveries.get(sequence)?;
             retained_bytes = retained_bytes.checked_sub(delivery.retained_bytes())?;
@@ -371,7 +397,11 @@ impl EditorMessageInbox {
         .then_some(evictions)
     }
 
-    fn bounded_evictions_for(&self, incoming_bytes: usize) -> Option<Vec<u64>> {
+    fn bounded_evictions_for(
+        &self,
+        incoming_sequence: u64,
+        incoming_bytes: usize,
+    ) -> Option<Vec<u64>> {
         let mut retained_bytes = self.retained_bytes;
         let mut bounded_depth = self.bounded_depth;
         let mut evictions = Vec::new();
@@ -382,6 +412,9 @@ impl EditorMessageInbox {
                     .is_some_and(|bytes| bytes <= self.limits.retained_bytes_capacity)
             {
                 return Some(evictions);
+            }
+            if *sequence >= incoming_sequence {
+                return None;
             }
             let delivery = self.deliveries.get(sequence)?;
             retained_bytes = retained_bytes.checked_sub(delivery.retained_bytes())?;
@@ -404,13 +437,7 @@ impl EditorMessageInbox {
 
     fn remove_latest(&mut self, key: EditorMessageCoalescingKey, sequence: u64) {
         self.latest_by_key.remove(&key);
-        if let Some(index) = self
-            .latest_order
-            .iter()
-            .position(|candidate| *candidate == (key, sequence))
-        {
-            self.latest_order.remove(index);
-        }
+        self.latest_order.remove(&sequence);
         if let Some(delivery) = self.deliveries.remove(&sequence) {
             self.retained_bytes = self
                 .retained_bytes
@@ -420,15 +447,7 @@ impl EditorMessageInbox {
     }
 
     fn remove_bounded(&mut self, sequence: u64) {
-        if self.bounded_order.front().copied() == Some(sequence) {
-            self.bounded_order.pop_front();
-        } else if let Some(index) = self
-            .bounded_order
-            .iter()
-            .position(|candidate| *candidate == sequence)
-        {
-            self.bounded_order.remove(index);
-        }
+        self.bounded_order.remove(&sequence);
         if let Some(delivery) = self.deliveries.remove(&sequence) {
             self.retained_bytes = self
                 .retained_bytes
@@ -443,5 +462,72 @@ impl EditorMessageInbox {
                 .retained_bytes
                 .checked_add(incoming_bytes)
                 .is_some_and(|bytes| bytes <= self.limits.retained_bytes_capacity)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::editor_message::{
+        EditorMessage, EditorMessagePayload, EditorMessageProtocol, EditorTopic, FocusMessage,
+        SelectionDomain,
+    };
+
+    use super::{EditorMessageDelivery, EditorMessageInbox, EditorMessageInboxLimits};
+
+    fn latest_delivery(sequence: u64, revision: u64) -> EditorMessageDelivery {
+        EditorMessageDelivery::with_sequence(
+            EditorMessageProtocol::Publish,
+            EditorTopic::parse("editor.inbox.order").expect("valid inbox test topic"),
+            EditorMessage::new(EditorMessagePayload::Focus(
+                FocusMessage::SelectionChanged {
+                    domain: SelectionDomain::Scene,
+                    revision,
+                },
+            )),
+            sequence,
+        )
+    }
+
+    fn bounded_delivery(sequence: u64, revision: u64) -> EditorMessageDelivery {
+        EditorMessageDelivery::with_sequence(
+            EditorMessageProtocol::Publish,
+            EditorTopic::parse("editor.inbox.order").expect("valid inbox test topic"),
+            EditorMessage::custom(
+                "editor.inbox.order.v1",
+                serde_json::json!({ "revision": revision }),
+            ),
+            sequence,
+        )
+    }
+
+    #[test]
+    fn out_of_order_latest_delivery_keeps_the_highest_sequence() {
+        let mut inbox = EditorMessageInbox::new(EditorMessageInboxLimits::default());
+        inbox.enqueue(latest_delivery(2, 2));
+        inbox.enqueue(latest_delivery(1, 1));
+
+        let deliveries = inbox.deliveries();
+        assert_eq!(deliveries.len(), 1);
+        assert_eq!(deliveries[0].sequence(), 2);
+        assert_eq!(
+            deliveries[0].message(),
+            &EditorMessage::new(EditorMessagePayload::Focus(
+                FocusMessage::SelectionChanged {
+                    domain: SelectionDomain::Scene,
+                    revision: 2,
+                },
+            ))
+        );
+    }
+
+    #[test]
+    fn out_of_order_bounded_delivery_evicts_the_lowest_sequence() {
+        let mut inbox = EditorMessageInbox::new(EditorMessageInboxLimits::new(1, 1, 1));
+        inbox.enqueue(bounded_delivery(2, 2));
+        inbox.enqueue(bounded_delivery(1, 1));
+
+        let deliveries = inbox.deliveries();
+        assert_eq!(deliveries.len(), 1);
+        assert_eq!(deliveries[0].sequence(), 2);
     }
 }

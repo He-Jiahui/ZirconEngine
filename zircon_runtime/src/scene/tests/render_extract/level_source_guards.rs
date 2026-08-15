@@ -26,8 +26,9 @@ fn level_system_render_extract_uses_world_direct_path_and_merges_animation_poses
         });
     let missing_entity = 99_999;
     let pose = test_pose("hip");
+    let replacement_epoch = level.capture_world_replacement_epoch();
     assert!(level.record_animation_poses(
-        level.world_generation(),
+        replacement_epoch,
         BTreeMap::from([
             (mesh_with_skeleton, pose.clone()),
             (mesh_without_skeleton, test_pose("filtered-no-skeleton")),
@@ -44,13 +45,11 @@ fn level_system_render_extract_uses_world_direct_path_and_merges_animation_poses
     );
 
     assert_eq!(extract.world.raw(), 705);
-    assert!(
-        extract
-            .geometry
-            .meshes
-            .iter()
-            .any(|mesh| mesh.node_id == mesh_with_skeleton)
-    );
+    assert!(extract
+        .geometry
+        .meshes
+        .iter()
+        .any(|mesh| mesh.node_id == mesh_with_skeleton));
     assert_eq!(extract.animation_poses.len(), 1);
     assert_eq!(extract.animation_poses[0].entity, mesh_with_skeleton);
     assert_eq!(extract.animation_poses[0].skeleton, skeleton_handle.id());
@@ -65,11 +64,11 @@ fn level_frame_snapshot_publishes_a_new_animation_generation_without_retiring_th
     let entity = level.with_world_mut(|world| world.spawn_node(NodeKind::Mesh));
     let pose = test_pose("frame-snapshot");
     let initial = level.frame_state_snapshot();
+    let replacement_epoch = level.capture_world_replacement_epoch();
 
-    assert!(level.record_animation_poses(
-        level.world_generation(),
-        BTreeMap::from([(entity, pose.clone())]),
-    ));
+    assert!(
+        level.record_animation_poses(replacement_epoch, BTreeMap::from([(entity, pose.clone())]),)
+    );
     let published = level.frame_state_snapshot();
 
     assert_eq!(initial.animation_generation(), 0);
@@ -81,10 +80,9 @@ fn level_frame_snapshot_publishes_a_new_animation_generation_without_retiring_th
         "a new animation publication must not mutate an earlier frame handle"
     );
 
-    assert!(level.record_animation_poses(
-        level.world_generation(),
-        BTreeMap::from([(entity, pose.clone())]),
-    ));
+    assert!(
+        level.record_animation_poses(replacement_epoch, BTreeMap::from([(entity, pose.clone())]),)
+    );
     let unchanged = level.frame_state_snapshot();
     assert_eq!(
         unchanged.animation_generation(),
@@ -95,7 +93,7 @@ fn level_frame_snapshot_publishes_a_new_animation_generation_without_retiring_th
         "an unchanged pose payload must retain its sealed frame handle"
     );
 
-    assert!(level.record_animation_poses(level.world_generation(), BTreeMap::new()));
+    assert!(level.record_animation_poses(replacement_epoch, BTreeMap::new()));
     let cleared = level.frame_state_snapshot();
     assert_eq!(cleared.animation_generation(), 2);
     assert!(cleared.animation_poses().is_empty());

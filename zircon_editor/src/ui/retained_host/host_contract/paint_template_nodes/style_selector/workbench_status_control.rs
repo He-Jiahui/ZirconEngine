@@ -12,7 +12,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use icons:
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use model::WORKBENCH_SEMANTIC_STATUS_SIGNAL_VARIANT;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use model::{
-    WORKBENCH_DIAGNOSTIC_SIGNAL_VARIANT, WorkbenchStatusSignalKind, WorkbenchStatusSignalStyle,
+    WorkbenchStatusSignalKind, WorkbenchStatusSignalStyle, WORKBENCH_DIAGNOSTIC_SIGNAL_VARIANT,
 };
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use palette::WORKBENCH_STATUS_NO_ERRORS_FILL;

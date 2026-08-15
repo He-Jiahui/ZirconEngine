@@ -129,9 +129,7 @@ mod tests {
         assert!(source.contains(
             "create_forward_shadow_receiver_bind_group(\n                self.device,\n                self.shadow_atlas_resources,\n                None,\n                None,\n                None,\n            )"
         ));
-        assert!(
-            source.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[])")
-        );
+        assert!(source.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[])"));
     }
 
     #[test]

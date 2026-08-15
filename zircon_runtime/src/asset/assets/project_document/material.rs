@@ -5,9 +5,9 @@ use zircon_runtime_interface::project::PersistedAssetReference;
 
 use crate::asset::{AssetReference, ReferenceResolutionError, ZMaterialDocument};
 
-use super::codec::{ProjectDocumentArtifact, decode_document, encode_document};
-use crate::asset::assets::ProjectDocumentError;
+use super::codec::{decode_document, encode_document, ProjectDocumentArtifact};
 use crate::asset::assets::material::validate_zmaterial_version;
+use crate::asset::assets::ProjectDocumentError;
 
 #[derive(Deserialize, Serialize)]
 #[serde(bound(serialize = "R: Serialize", deserialize = "R: Deserialize<'de>"))]

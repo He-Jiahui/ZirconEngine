@@ -106,15 +106,23 @@ fn view_presentations_keep_asset_and_welcome_host_contract_dtos_at_ui_boundary_o
 
 #[test]
 fn v2_view_projection_uses_runtime_v2_file_cache_without_editor_local_loader() {
-    let view_projection = std::fs::read_to_string(
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("src")
-            .join("ui")
-            .join("layouts")
-            .join("views")
-            .join("view_projection.rs"),
-    )
-    .expect("view projection source");
+    let view_projection_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src")
+        .join("ui")
+        .join("layouts")
+        .join("views")
+        .join("view_projection.rs");
+    let view_projection = format!(
+        "{}\n{}",
+        std::fs::read_to_string(&view_projection_root).expect("view projection source"),
+        std::fs::read_to_string(
+            view_projection_root
+                .parent()
+                .expect("view projection parent")
+                .join("view_projection/store_cache.rs")
+        )
+        .expect("view projection store cache source")
+    );
 
     for required in [
         "UiV2PrototypeStoreFileCache",

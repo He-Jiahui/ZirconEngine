@@ -1,13 +1,13 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::editor_message::{
-    EditorMessage, EditorMessagePayload, EditorTopic, SharedEditorMessageBus, TOPIC_TOOL,
-    ToolMessage,
+    EditorMessage, EditorMessagePayload, EditorTopic, SharedEditorMessageBus, ToolMessage,
+    TOPIC_TOOL,
 };
 use crate::core::tools::{
-    AcquireOutcome, AcquireSetOutcome, DEFAULT_MAX_QUEUE_PER_RESOURCE, ExclusiveResource,
-    ReleaseAllOutcome, ReleaseOutcome, ReleaseSetOutcome, ToolId, ToolLifecycleEvent,
-    ToolResourceSet, ToolScheduleReport, ToolScheduler, WithdrawOutcome, WithdrawSetOutcome,
+    AcquireOutcome, AcquireSetOutcome, ExclusiveResource, ReleaseAllOutcome, ReleaseOutcome,
+    ReleaseSetOutcome, ToolId, ToolLifecycleEvent, ToolResourceSet, ToolScheduleReport,
+    ToolScheduler, WithdrawOutcome, WithdrawSetOutcome, DEFAULT_MAX_QUEUE_PER_RESOURCE,
 };
 
 /// Thread-safe owner of the one editor-wide exclusive-resource scheduler.

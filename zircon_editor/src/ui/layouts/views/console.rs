@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
-use crate::ui::layouts::common::model_rc;
-use crate::ui::layouts::views::view_projection::build_view_template_nodes;
+use crate::ui::layouts::views::view_projection::{
+    ViewTemplateNodePatch, build_view_template_node_projection_with_patches,
+};
 use crate::ui::retained_host::primitives::ModelRc;
 use zircon_runtime_interface::ui::layout::UiSize;
 
@@ -23,49 +24,57 @@ pub(crate) fn console_pane_nodes(status_text: &str, size: UiSize) -> ModelRc<Vie
     );
     text_overrides.insert("ConsoleHeader".to_string(), "Console".to_string());
 
-    let mut nodes = build_view_template_nodes(
+    let node_patches = console_visual_state_patches(!status_text.is_empty());
+    let Ok(projection) = build_view_template_node_projection_with_patches(
         "console.template_projection",
         CONSOLE_LAYOUT_ASSET_PATH,
         &[(CONSOLE_STYLE_ASSET_ID, CONSOLE_STYLE_ASSET_PATH)],
         size,
         &text_overrides,
-    )
-    .unwrap_or_default();
-    apply_console_visual_state(&mut nodes, !status_text.is_empty());
-    model_rc(nodes)
+        &node_patches,
+    ) else {
+        return ModelRc::default();
+    };
+    projection.into_model()
 }
 
-fn apply_console_visual_state(nodes: &mut [ViewTemplateNodeData], has_status: bool) {
-    mark_console_node(nodes, "ConsoleHeader", has_status, "panel", "default");
+fn console_visual_state_patches(has_status: bool) -> BTreeMap<String, ViewTemplateNodePatch> {
+    let mut patches = BTreeMap::new();
     mark_console_node(
-        nodes,
+        &mut patches,
+        "ConsoleHeader",
+        has_status,
+        "panel",
+        "default",
+    );
+    mark_console_node(
+        &mut patches,
         "ConsoleBodySection",
         has_status,
         if has_status { "panel" } else { "inset" },
         if has_status { "default" } else { "muted" },
     );
     mark_console_node(
-        nodes,
+        &mut patches,
         "ConsoleTextPanel",
         has_status,
         if has_status { "panel" } else { "inset" },
         if has_status { "default" } else { "muted" },
     );
+    patches
 }
 
 fn mark_console_node(
-    nodes: &mut [ViewTemplateNodeData],
+    patches: &mut BTreeMap<String, ViewTemplateNodePatch>,
     control_id: &str,
     active: bool,
     surface_variant: &str,
     text_tone: &str,
 ) {
-    if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
-        node.selected = active;
-        node.focused = false;
-        node.surface_variant = surface_variant.into();
-        node.text_tone = text_tone.into();
-    }
+    patches.insert(
+        control_id.to_string(),
+        ViewTemplateNodePatch::visual_state(active, false, surface_variant, text_tone),
+    );
 }
 
 #[cfg(test)]
@@ -133,5 +142,13 @@ mod tests {
         assert_eq!(text.text.to_string(), "Build completed");
         assert_eq!(text.text_tone.to_string(), "default");
         assert!(!text.focused);
+    }
+
+    #[test]
+    fn stable_console_projection_reuses_the_same_retained_rows() {
+        let first = console_pane_nodes("Build completed", UiSize::new(360.0, 240.0));
+        let stable = console_pane_nodes("Build completed", UiSize::new(360.0, 240.0));
+
+        assert!(first.shares_values_with(&stable));
     }
 }

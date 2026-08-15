@@ -37,11 +37,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn missing
         resource_key: cache_key.clone(),
         width: target.width,
         height: target.height,
-        rgba,
+        rgba: rgba.into(),
         atlas: None,
     };
     let image = image.is_valid().then_some(image);
-    store_visual_asset_pixels(cache_key, image.clone());
+    store_visual_asset_pixels(cache_key, base_key, std::iter::empty(), image.clone());
     image
 }
 

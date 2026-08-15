@@ -40,6 +40,7 @@ fn mesh_asset_reports_draw_element_and_primitive_counts_without_descriptor() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
     let triangle_strip = MeshAsset {
@@ -50,6 +51,7 @@ fn mesh_asset_reports_draw_element_and_primitive_counts_without_descriptor() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
     let invalid_triangle = MeshAsset {
@@ -60,6 +62,7 @@ fn mesh_asset_reports_draw_element_and_primitive_counts_without_descriptor() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
 
@@ -113,6 +116,7 @@ fn mesh_asset_reports_attribute_summaries_without_value_inspection() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
 
@@ -222,6 +226,7 @@ fn mesh_asset_management_record_set_summarizes_valid_and_invalid_rows() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
     let valid_id = ResourceId::from_locator(&valid_mesh.uri);
@@ -236,11 +241,9 @@ fn mesh_asset_management_record_set_summarizes_valid_and_invalid_rows() {
     assert_eq!(record_set.records[0].mesh_id, valid_id);
     assert_eq!(record_set.failures.len(), 1);
     assert_eq!(record_set.failures[0].mesh_id, invalid_id);
-    assert!(
-        record_set.failures[0]
-            .diagnostic
-            .contains("missing required position attribute")
-    );
+    assert!(record_set.failures[0]
+        .diagnostic
+        .contains("missing required position attribute"));
     let summary = &record_set.summary;
     assert_eq!(summary.mesh_count, 2);
     assert_eq!(summary.valid_mesh_count, 1);

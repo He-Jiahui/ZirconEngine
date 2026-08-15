@@ -2,13 +2,13 @@ use std::collections::BTreeMap;
 
 use crate::ui::animation_editor::AnimationEditorPanePresentation;
 use crate::ui::asset_editor::UiAssetEditorPanePresentation;
-use crate::ui::retained_host::UiHostWindow;
 use crate::ui::retained_host::callback_dispatch::{
     BuiltinHostWindowTemplateBridge, BuiltinWorkbenchWindowTemplateSurfaceBridge,
     WorkbenchCommandPaletteOpenState,
 };
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::retained_host::primitives::PhysicalSize;
+use crate::ui::retained_host::UiHostWindow;
 use crate::ui::template_runtime::RetainedUiHostProjection;
 use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
 use crate::ui::workbench::fixture::default_preview_fixture;

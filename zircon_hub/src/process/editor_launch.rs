@@ -1,8 +1,13 @@
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
 
+use zircon_runtime_interface::hub_protocol::{HubSessionToken, HUB_PROTOCOL_VERSION_V1};
+
 use crate::error::HubError;
 use crate::projects::CreateProjectRequest;
+
+const HUB_PROTOCOL_ARGUMENT: &str = "--hub-protocol";
+const HUB_SESSION_ARGUMENT: &str = "--hub-session";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EditorLaunchRequest {
@@ -65,6 +70,17 @@ impl EditorLaunchCommand {
             .chain(self.args.iter().cloned())
             .collect()
     }
+
+    /// Adds the v1 Hub handshake arguments without changing the launch request itself.
+    pub fn with_hub_handshake(mut self, session: HubSessionToken) -> Self {
+        self.args.extend([
+            HUB_SESSION_ARGUMENT.to_string(),
+            session.to_string(),
+            HUB_PROTOCOL_ARGUMENT.to_string(),
+            HUB_PROTOCOL_VERSION_V1.to_string(),
+        ]);
+        self
+    }
 }
 
 pub fn launch_editor(command: &EditorLaunchCommand) -> Result<Child, HubError> {
@@ -103,6 +119,8 @@ fn sibling_editor_executable() -> Option<PathBuf> {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
     use crate::projects::{CreateProjectRequest, ProjectTemplate};
 
@@ -139,6 +157,31 @@ mod tests {
                 "E:/Projects",
                 "--template",
                 "renderable-empty",
+            ]
+        );
+    }
+
+    #[test]
+    fn hub_handshake_arguments_use_the_typed_token_and_protocol_v1() {
+        let token = HubSessionToken::from_str("0d9a5890-0e44-4e2a-b77e-3e5d4fdf1e52")
+            .expect("parse deterministic test token");
+        let command = EditorLaunchCommand::new(
+            "zircon_editor.exe",
+            EditorLaunchRequest::OpenProject {
+                project_path: PathBuf::from("E:/Projects/My Game"),
+            },
+        )
+        .with_hub_handshake(token);
+
+        assert_eq!(
+            command.args,
+            vec![
+                "--project",
+                "E:/Projects/My Game",
+                "--hub-session",
+                "0d9a5890-0e44-4e2a-b77e-3e5d4fdf1e52",
+                "--hub-protocol",
+                "1",
             ]
         );
     }

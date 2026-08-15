@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use super::super::slot_id::validate_canonical_slot_id;
 use super::super::{
-    RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION, RuntimeSessionArchive, RuntimeSessionArchiveError,
+    RuntimeSessionArchive, RuntimeSessionArchiveError, RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
 };
 
 pub(in crate::scene::dynamic_scene::session) fn ensure_supported(
@@ -16,7 +16,7 @@ pub(in crate::scene::dynamic_scene::session) fn ensure_supported(
     }
 
     let mut seen = BTreeSet::new();
-    for slot in &archive.slots {
+    for slot in archive.iter_dense_slot_rows() {
         validate_canonical_slot_id(&slot.slot_id)?;
         slot.scene.ensure_supported()?;
         if !seen.insert(slot.slot_id.as_str()) {

@@ -28,6 +28,47 @@ fn text_font_database_query_best_match_weight_distance() {
 }
 
 #[test]
+fn text_font_database_private_alias_selects_packaged_face_without_shadowing_system_family() {
+    let mut database = FontDatabase::default();
+    let bytes: Arc<[u8]> = Arc::from(
+        std::fs::read(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("assets/fonts/FiraSans-Regular.ttf"),
+        )
+        .expect("read a real font source for glyphon backend registration"),
+    );
+    let system = database
+        .register_stored_face(
+            FontFaceDescriptor::regular("Fira Mono"),
+            Arc::clone(&bytes),
+            None,
+        )
+        .expect("register system Fira Mono face");
+    let packaged = database
+        .register_stored_face(FontFaceDescriptor::regular("Fira Mono"), bytes, None)
+        .expect("register packaged Fira Mono face");
+    assert!(database.register_font_family_alias(
+        packaged,
+        FontFamilyName::from("Zircon Runtime Fallback Mono"),
+    ));
+
+    assert_eq!(
+        database
+            .match_face(&FontQuery::single_family("Fira Mono"))
+            .map(|matched| matched.face),
+        Some(system),
+        "an explicit user family must keep its system face when the packaged face has the same name"
+    );
+    assert_eq!(
+        database
+            .match_face(&FontQuery::single_family("Zircon Runtime Fallback Mono"))
+            .map(|matched| matched.face),
+        Some(packaged),
+        "retained fallback must address the exact packaged bytes through its private runtime alias"
+    );
+}
+
+#[test]
 fn text_font_database_match_cache_invalidates_when_a_better_face_registers() {
     let mut database = FontDatabase::default();
     let regular = database

@@ -10,10 +10,14 @@ fixing_child_dir: docs/plans/zircon_plugins/05
 related_code:
   - zircon_plugins/navigation/editor/src/overlay.rs
   - zircon_plugins/navigation/editor/src/runtime_mirror.rs
+  - zircon_plugins/navigation/editor/src/viewport_overlay_provider.rs
   - zircon_plugins/navigation/editor/src/plugin.rs
+  - zircon_plugins/navigation/plugin.toml
+  - zircon_plugins/navigation/runtime/src/overlay_frame.rs
   - zircon_plugins/navigation/runtime
 tests:
-  - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -Package zircon_plugin_navigation_editor -TargetDir E:/cargo-targets/zircon-navigation-overlay-source -SkipBuild
+  - python -m unittest tools.tests.test_plugins_05_navigation_overlay -v
+  - cargo +1.94.1 test -p zircon_plugin_navigation_runtime -p zircon_plugin_navigation_editor --lib --locked --jobs 1 -- --nocapture --test-threads=1
 ---
 
 # Plugins05: Navigation overlay frame production is absent
@@ -90,3 +94,31 @@ failure until this dependency and the shared registry are both accepted.
 | --- | --- | --- |
 | 2026-07-30 22:20 +08:00 | `open / cross-plan dependency recorded` | 当前 Navigation registration 仅保存 provider ID；`core::plugin` active catalog 的 descriptor materialization 没有 provider factory 贡献，也没有把 active registry 安装到 host 的生命周期路径。该共享根因复用现有 Editor12 handoff，Plugins05 仍只负责 canonical frame 与真实 factory，不可引入直接 host 注入。 |
 | 2026-08-01 | `host dependency implemented / Plugins05 open` | Editor05 已接通 executable extension/provider factory、capability lifecycle 与 shared interaction extract；Navigation descriptor-only pseudo mode 已删除。剩余缺口只在 Plugins05 canonical NavMesh+PIE frame 和真实 provider registration，仍不得用空 frame 或 PassThrough mode 代替。 |
+
+## 2026-08-05 current-source implementation and managed validation blockers
+
+- Plugins05 now publishes `NavigationOverlayFrame` from the concrete plugin-owned runtime manager.
+  The frame carries a monotonically advanced owner generation, canonical NavMesh triangles and
+  off-mesh links, plus the current agent tick report. The mirrored event is the sole editor PIE
+  consumer payload; `NavigationEditorPlugin` passes the same `Arc<Mutex<NavigationPieMirror>>` to
+  both the runtime consumer and the registered viewport provider factory.
+- The focused structural guard is `1/1` GREEN, scoped Rust 1.94.1 formatting with
+  `skip_children=true` is GREEN, `py_compile` and scoped `git diff --check` are exit `0`. The real
+  provider test covers area geometry, agent paths, avoidance vectors, provider capability metadata,
+  and empty extraction immediately after PIE shutdown.
+- The first immutable Cargo job `fcfa4d7ac1e44c668620e41d7ca1aa61` (request
+  `34c89dfde9c94e39b5ab0cbf4dba3428`, run `945f6429174e4322a00e83745580ede4`, input
+  `9ffefdb05df0e9ff2560d67527d0cbbf8403a56f177cdece716899a0b4dd9872`) exited `101` before
+  Navigation compiled because clean HEAD `zircon_runtime/src/asset/project/paths.rs` calls
+  nonexistent ASCII methods on `&u16`.
+- A second immutable job used the current `paths.rs` only as an explicit external validation
+  overlay, never as a Plugins05 owned or staged file. Job `6bf93ea3fd8f4156abf6225727e6447b`
+  (request `844d1c35b7294d0abd3b2cf2717801b6`, run
+  `f301f10a16414ce58aa7c149c491776c`, input
+  `80c42b6704834586a276103d55713e0cbc3298854bd818461fec4eb998c4be7d`) passed the Runtime
+  blocker and then exited `101` while compiling `zircon_editor`: 27 external current-source drift
+  errors across recovery, settings, logging, notification, retained-host, and related owners. No
+  Navigation source diagnostic was emitted and no Navigation test executed.
+- Because the declared managed Cargo gate has not executed, this artifact remains `open`. The
+  Plugins05 implementation, commit, fixed return, and WeCom completion message remain pending; the
+  unrelated shared Editor changes are not absorbed into this failure.

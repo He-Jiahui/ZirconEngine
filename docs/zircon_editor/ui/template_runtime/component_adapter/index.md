@@ -6,7 +6,7 @@ related_code:
   - zircon_editor/src/ui/template_runtime/component_adapter/inspector.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/reflection.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/command.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access/component_dispatch.rs
   - zircon_editor/src/tests/ui/component_adapter.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/10-code-structure-and-module-conventions.md
@@ -37,7 +37,7 @@ status: active
 
 ## 接线契约
 
-`EditorUiComponentAdapterRegistry::data_sources()` 由 `ui/host/editor_event_runtime_access.rs` 暴露给 editor event runtime access，测试覆盖位于 `src/tests/ui/component_adapter.rs`。因此 registry helper 不是半成品死代码，不能通过 `#[allow(dead_code)]` 逃避结构审计。
+`EditorUiComponentAdapterRegistry::data_sources()` 由 `ui/host/editor_event_runtime_access/component_dispatch.rs` 暴露给 editor host，测试覆盖位于 `src/tests/ui/component_adapter.rs`。因此 registry helper 不是半成品死代码，不能通过 `#[allow(dead_code)]` 逃避结构审计。
 
 ## 2026-06-22 结构治理记录
 

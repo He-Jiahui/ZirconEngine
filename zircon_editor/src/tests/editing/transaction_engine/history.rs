@@ -5,7 +5,7 @@ use crate::core::editing::engine::{
 };
 use crate::core::editor_message::DocumentId;
 
-use super::fixture::{DeltaCommand, FixtureContext, finalized_counter};
+use super::fixture::{finalized_counter, DeltaCommand, FixtureContext};
 
 fn mark_current_saved(engine: &EditorTransactionEngine, history: HistoryContextId) {
     let token = engine.capture_save_token(history).unwrap();

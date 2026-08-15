@@ -1,10 +1,11 @@
 use std::fs;
 use std::path::PathBuf;
 
-use crate::asset::AssetUri;
 use crate::asset::project::{
     ProjectManifest, ProjectManifestError, ProjectPaths, ProjectScriptManifest,
 };
+use crate::asset::AssetUri;
+use crate::core::resource::io::AtomicWriteFault;
 use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 use crate::{
     core::framework::project::ExportBuildMode, core::framework::project::ExportPackagingStrategy,
@@ -36,14 +37,80 @@ fn project_manifest_roundtrip_preserves_default_scene_and_paths() {
     let loaded = ProjectManifest::load(paths.manifest_path()).unwrap();
 
     assert_eq!(loaded, manifest);
-    assert!(
-        paths
-            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
-            .is_dir()
-    );
+    assert!(paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .is_dir());
     assert!(paths.asset_artifact_root().is_dir());
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manifest_roundtrip_preserves_declared_ui_roots() {
+    let root = unique_temp_project_root("manifest_ui_roots");
+    let path = root.join("zircon-project.toml");
+    let mut manifest = ProjectManifest::new(
+        "Ui Roots",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    );
+    manifest.ui_roots = vec![
+        AssetUri::parse("res://ui/hud.zui").unwrap(),
+        AssetUri::parse("res://ui/menu.zui").unwrap(),
+    ];
+
+    manifest.save(&path).unwrap();
+
+    assert_eq!(ProjectManifest::load(&path).unwrap(), manifest);
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manifest_rejects_non_project_or_duplicate_ui_roots() {
+    let non_project = ProjectManifest::from_toml_str(
+        r#"
+name = "Invalid UI Root"
+format_version = 2
+default_scene = "res://scenes/main.scene.toml"
+library_version = 1
+ui_roots = ["builtin://ui/hud.zui"]
+"#,
+    )
+    .unwrap_err();
+    assert!(matches!(
+        non_project,
+        ProjectManifestError::InvalidUiRootScheme { .. }
+    ));
+
+    let duplicate = ProjectManifest::from_toml_str(
+        r#"
+name = "Duplicate UI Root"
+format_version = 2
+default_scene = "res://scenes/main.scene.toml"
+library_version = 1
+ui_roots = ["res://ui/hud.zui", "res://ui/hud.zui"]
+"#,
+    )
+    .unwrap_err();
+    assert!(matches!(
+        duplicate,
+        ProjectManifestError::DuplicateUiRoot { .. }
+    ));
+
+    let labelled = ProjectManifest::from_toml_str(
+        r#"
+name = "Labelled UI Root"
+format_version = 2
+default_scene = "res://scenes/main.scene.toml"
+library_version = 1
+ui_roots = ["res://ui/hud.zui#Hud"]
+"#,
+    )
+    .unwrap_err();
+    assert!(matches!(
+        labelled,
+        ProjectManifestError::LabelledUiRoot { .. }
+    ));
 }
 
 #[test]
@@ -142,6 +209,69 @@ fn project_manifest_save_is_stable_and_writes_only_v2() {
     assert!(first.contains("asset_roots = [\"game-assets\", \"shared-assets\"]"));
     assert_eq!(first, second);
     assert_eq!(loaded.migrated_from, None);
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manifest_atomic_save_faults_keep_the_previous_manifest_readable() {
+    let root = unique_temp_project_root("manifest_atomic_faults");
+    let path = root.join("zircon-project.toml");
+    let original = ProjectManifest::new(
+        "Original Sandbox",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        4,
+    );
+    original.save(&path).unwrap();
+    let original_bytes = fs::read(&path).unwrap();
+
+    let replacement = ProjectManifest::new(
+        "Replacement Sandbox",
+        AssetUri::parse("res://scenes/replacement.scene.toml").unwrap(),
+        5,
+    );
+    for fault in [
+        AtomicWriteFault::Write,
+        AtomicWriteFault::Sync,
+        AtomicWriteFault::Replace,
+    ] {
+        let error = replacement
+            .save_with_atomic_fault(&path, fault)
+            .unwrap_err();
+
+        assert!(matches!(error, ProjectManifestError::Write { .. }));
+        assert_eq!(fs::read(&path).unwrap(), original_bytes);
+        assert_eq!(ProjectManifest::load(&path).unwrap(), original);
+        assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[cfg(windows)]
+#[test]
+fn project_manifest_atomic_save_restores_after_windows_replace_failure() {
+    let root = unique_temp_project_root("manifest_windows_replace_recovery");
+    let path = root.join("zircon-project.toml");
+    let original = ProjectManifest::new(
+        "Original Sandbox",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        4,
+    );
+    original.save(&path).unwrap();
+
+    let replacement = ProjectManifest::new(
+        "Replacement Sandbox",
+        AssetUri::parse("res://scenes/replacement.scene.toml").unwrap(),
+        5,
+    );
+    let error = replacement
+        .save_with_atomic_fault(&path, AtomicWriteFault::ReplaceAfterBackup)
+        .unwrap_err();
+
+    assert!(matches!(error, ProjectManifestError::Write { .. }));
+    assert_eq!(ProjectManifest::load(&path).unwrap(), original);
+    assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
 
     let _ = fs::remove_dir_all(root);
 }
@@ -251,17 +381,13 @@ fn project_manifest_roundtrip_preserves_plugins_and_export_profiles() {
         client.profile.runtime_profile_id,
         Some(RuntimeProfileId::Client3d)
     );
-    assert!(
-        client
-            .linked_runtime_crates
-            .contains(&"zircon_plugin_sound_runtime".to_string())
-    );
-    assert!(
-        client
-            .generated_files
-            .iter()
-            .any(|file| file.path == "src/main.rs")
-    );
+    assert!(client
+        .linked_runtime_crates
+        .contains(&"zircon_plugin_sound_runtime".to_string()));
+    assert!(client
+        .generated_files
+        .iter()
+        .any(|file| file.path == "src/main.rs"));
 
     let server = ExportBuildPlan::from_project_manifest(&loaded, "server").unwrap();
     assert_eq!(server.profile.target_mode, RuntimeTargetMode::ServerRuntime);
@@ -269,12 +395,10 @@ fn project_manifest_roundtrip_preserves_plugins_and_export_profiles() {
         server.profile.target_platform,
         ExportTargetPlatform::Headless
     );
-    assert!(
-        server
-            .generated_files
-            .iter()
-            .any(|file| file.path == "Cargo.toml")
-    );
+    assert!(server
+        .generated_files
+        .iter()
+        .any(|file| file.path == "Cargo.toml"));
 
     let _ = fs::remove_dir_all(root);
 }
@@ -332,16 +456,14 @@ output_name = "client"
     let expected = "export profile \"client\" must declare runtime_profile_id explicitly";
 
     assert!(plan.has_fatal_diagnostics());
-    assert!(
-        plan.diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic == expected)
-    );
-    assert!(
-        plan.fatal_diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic == expected)
-    );
+    assert!(plan
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic == expected));
+    assert!(plan
+        .fatal_diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic == expected));
     assert_eq!(plan.runtime_plugin_availability, Default::default());
 }
 

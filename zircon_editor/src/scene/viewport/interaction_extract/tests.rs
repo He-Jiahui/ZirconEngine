@@ -122,3 +122,36 @@ fn render_path_seeds_the_same_runtime_mesh_extract_used_by_pointer() {
             .collect::<Vec<_>>()
     );
 }
+
+#[test]
+fn interaction_extract_profiling_distinguishes_cache_and_pointer_fallback_work() {
+    let source = include_str!("cache.rs");
+    let compact_source = source
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .collect::<String>();
+
+    for counter in [
+        "interaction_extract_cache_hit",
+        "interaction_extract_cache_miss",
+        "interaction_mesh_copy_payload_bytes",
+    ] {
+        let invocation_prefix =
+            format!("zircon_runtime::profile_counter!(\"editor\",\"{counter}\",");
+        assert!(
+            compact_source.contains(&invocation_prefix),
+            "interaction extract profiling must keep `{counter}` observable"
+        );
+    }
+    for scope in [
+        "interaction_extract_rebuild",
+        "pointer_fallback_packet_build",
+    ] {
+        let invocation =
+            format!("zircon_runtime::profile_scope!(\"editor\",\"viewport\",\"{scope}\");");
+        assert!(
+            compact_source.contains(&invocation),
+            "interaction extract profiling must keep `{scope}` observable"
+        );
+    }
+}

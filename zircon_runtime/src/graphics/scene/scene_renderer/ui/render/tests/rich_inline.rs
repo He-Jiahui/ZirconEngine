@@ -39,6 +39,7 @@ fn screen_space_ui_plan_places_html_inline_image_without_placeholder_glyph() {
                     opacity: 1.0,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(260, 100),
     );
@@ -58,11 +59,10 @@ fn screen_space_ui_plan_places_html_inline_image_without_placeholder_glyph() {
     assert_eq!(plan.native_texts.len(), 2);
     assert_eq!(plan.native_texts[0].text, "before");
     assert_eq!(plan.native_texts[1].text, "after");
-    assert!(
-        plan.native_texts
-            .iter()
-            .all(|batch| !batch.text.contains('\u{fffc}'))
-    );
+    assert!(plan
+        .native_texts
+        .iter()
+        .all(|batch| !batch.text.contains('\u{fffc}')));
 }
 
 #[test]
@@ -96,6 +96,7 @@ fn screen_space_ui_plan_renders_bbcode_icon_as_glyph_batch() {
                     opacity: 1.0,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(280, 100),
     );
@@ -106,11 +107,10 @@ fn screen_space_ui_plan_renders_bbcode_icon_as_glyph_batch() {
         .find(|batch| batch.text == "★")
         .expect("inline icon glyph batch");
     assert_eq!(icon.font_family.as_deref(), Some("Zircon Icons"));
-    assert!(
-        plan.native_texts
-            .iter()
-            .all(|batch| !batch.text.contains('\u{fffc}'))
-    );
+    assert!(plan
+        .native_texts
+        .iter()
+        .all(|batch| !batch.text.contains('\u{fffc}')));
     assert!(plan.images.is_empty());
     assert!(plan.vertices.is_empty());
 }
@@ -149,17 +149,17 @@ fn screen_space_ui_plan_keeps_inline_image_retained_by_ellipsis() {
                     opacity: 1.0,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(100, 80),
     );
 
     assert_eq!(plan.images.len(), 1);
     assert!((plan.images[0].frame.width - 16.0).abs() < 0.01);
-    assert!(
-        plan.native_texts
-            .iter()
-            .all(|batch| !batch.text.contains('\u{fffc}'))
-    );
+    assert!(plan
+        .native_texts
+        .iter()
+        .all(|batch| !batch.text.contains('\u{fffc}')));
 }
 
 #[test]
@@ -209,6 +209,7 @@ fn screen_space_ui_plan_places_rtl_inline_image_at_visual_run_offset() {
                     opacity: 1.0,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(260, 100),
     );
@@ -265,6 +266,7 @@ fn screen_space_ui_plan_places_vertical_rl_inline_image_at_main_axis_offset() {
                     opacity: 1.0,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(100, 100),
     );

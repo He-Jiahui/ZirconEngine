@@ -1,11 +1,22 @@
+use crate::core::math::Real;
+
 use super::{
-    source_cubemap_sample_count, IblBakeArtifactContents, IblBakeArtifactPayload,
-    SourceCubemapEnvironment, SourceCubemapIrradianceCube, SourceCubemapMipChain,
-    SOURCE_CUBEMAP_FACE_COUNT, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+    source_cubemap_sample_count, IblBakeArtifactContents, IblBakeArtifactDescriptor,
+    IblBakeArtifactPayload, IblBakeArtifactProducer, IblBakeArtifactRequest, IblBakeKey,
+    SourceCubemapEnvironment, SourceCubemapIrradianceCube, SourceCubemapIrradianceSh9,
+    SourceCubemapMipChain, SOURCE_CUBEMAP_FACE_COUNT, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SourceCubemapBakeArtifactError {
+    UnexpectedDirectHydrationProducer {
+        expected: IblBakeArtifactProducer,
+        actual: IblBakeArtifactProducer,
+    },
+    NotCurrentForRequest {
+        expected: IblBakeArtifactRequest,
+        actual: IblBakeArtifactDescriptor,
+    },
     LayoutMismatch {
         expected_face_size: u32,
         actual_face_size: u32,
@@ -25,43 +36,169 @@ pub enum SourceCubemapBakeArtifactError {
     },
 }
 
-impl SourceCubemapEnvironment {
-    pub(super) fn replace_bake_artifact_content(
-        &mut self,
-        mip_chain: SourceCubemapMipChain,
-        pmrem_hash: [u32; 4],
-        bake_artifact_hash: [u32; 4],
-        irradiance_cube: Option<SourceCubemapIrradianceCube>,
-    ) {
-        let irradiance_sh9 = *mip_chain.irradiance_sh9();
-        let mut replacement = Self::new(mip_chain, self.source_revision, self.source_hash);
-        replacement.irradiance_sh9 = irradiance_sh9;
-        replacement.pmrem_hash = pmrem_hash;
-        replacement.bake_artifact_hash = bake_artifact_hash;
-        replacement.intensity = self.intensity;
-        replacement.rotation_radians = self.rotation_radians;
-        replacement.irradiance_cube = irradiance_cube;
-        // Replacing the value drops cached rows before the next upload artifact is built.
-        *self = replacement;
-    }
-}
-
 pub fn source_cubemap_mip_chain_with_bake_artifact(
     source: &SourceCubemapMipChain,
     payload: &IblBakeArtifactPayload,
 ) -> Result<SourceCubemapMipChain, SourceCubemapBakeArtifactError> {
+    let sections = decode_bake_artifact_sections(
+        source.source_face_size(),
+        source.source_mip_count(),
+        payload,
+    )?;
+
+    Ok(source.with_bake_artifact_pmrem(
+        sections.pmrem_face_size,
+        sections.pmrem_mip_count,
+        sections.pmrem_texels,
+        sections.irradiance_sh9,
+    ))
+}
+
+/// Restores a staged source cubemap using its already-baked CPU artifact.
+///
+/// This path intentionally avoids reconstructing PMREM from the source texels.
+/// The artifact supplies the active SH9 value, while source-derived SH9 remains
+/// a separate canonical cache for future PMREM reconfiguration.
+pub fn source_cubemap_environment_from_source_mips_with_bake_artifact(
+    source_face_size: u32,
+    source_mip_count: u32,
+    source_texels: Vec<[Real; 4]>,
+    source_revision: u64,
+    source_hash: [u32; 4],
+    payload: &IblBakeArtifactPayload,
+) -> Result<SourceCubemapEnvironment, SourceCubemapBakeArtifactError> {
+    if payload.descriptor().producer() != IblBakeArtifactProducer::AssetImporterCpu {
+        return Err(
+            SourceCubemapBakeArtifactError::UnexpectedDirectHydrationProducer {
+                expected: IblBakeArtifactProducer::AssetImporterCpu,
+                actual: payload.descriptor().producer(),
+            },
+        );
+    }
+    let sections = decode_bake_artifact_sections(source_face_size, source_mip_count, payload)?;
+    let request = IblBakeArtifactRequest::new(
+        IblBakeKey::source_cubemap(source_revision, source_hash),
+        source_face_size,
+        source_mip_count,
+    )
+    .with_pmrem_layout(sections.pmrem_face_size, sections.pmrem_mip_count)
+    .with_required_contents(payload.descriptor().contents());
+    ensure_payload_is_current_for_request(&request, payload)?;
+    let source_irradiance_sh9 = SourceCubemapMipChain::source_irradiance_sh9_from_source_texels(
+        &source_texels,
+        source_face_size,
+        source_mip_count,
+    );
+    let mip_chain = SourceCubemapMipChain::new_with_source_texels_and_irradiance_sh9_pair(
+        source_face_size,
+        source_mip_count,
+        source_texels,
+        sections.pmrem_face_size,
+        sections.pmrem_mip_count,
+        sections.pmrem_texels,
+        source_irradiance_sh9,
+        sections.irradiance_sh9,
+    );
+    source_cubemap_environment_from_hydrated_mip_chain(
+        mip_chain,
+        source_revision,
+        source_hash,
+        1.0,
+        0.0,
+        payload,
+    )
+}
+
+pub fn source_cubemap_environment_with_bake_artifact(
+    environment: &SourceCubemapEnvironment,
+    payload: &IblBakeArtifactPayload,
+) -> Result<SourceCubemapEnvironment, SourceCubemapBakeArtifactError> {
+    let mip_chain = source_cubemap_mip_chain_with_bake_artifact(&environment.mip_chain, payload)?;
+    let request = environment.ibl_bake_artifact_request(payload.descriptor().contents());
+    ensure_payload_is_current_for_request(&request, payload)?;
+    source_cubemap_environment_from_hydrated_mip_chain(
+        mip_chain,
+        environment.source_revision,
+        environment.source_hash,
+        environment.intensity,
+        environment.rotation_radians,
+        payload,
+    )
+}
+
+fn ensure_payload_is_current_for_request(
+    request: &IblBakeArtifactRequest,
+    payload: &IblBakeArtifactPayload,
+) -> Result<(), SourceCubemapBakeArtifactError> {
     let descriptor = payload.descriptor();
-    if descriptor.source_face_size() != source.source_face_size()
-        || descriptor.source_mip_count() != source.source_mip_count()
+    let is_current = match descriptor.producer() {
+        IblBakeArtifactProducer::AssetImporterCpu => descriptor.is_current_for(request),
+        IblBakeArtifactProducer::RendererGpuRuntime => {
+            descriptor.is_current_runtime_cache_for(request)
+        }
+    };
+    if is_current {
+        Ok(())
+    } else {
+        Err(SourceCubemapBakeArtifactError::NotCurrentForRequest {
+            expected: *request,
+            actual: descriptor,
+        })
+    }
+}
+
+fn source_cubemap_environment_from_hydrated_mip_chain(
+    mip_chain: SourceCubemapMipChain,
+    source_revision: u64,
+    source_hash: [u32; 4],
+    intensity: Real,
+    rotation_radians: Real,
+    payload: &IblBakeArtifactPayload,
+) -> Result<SourceCubemapEnvironment, SourceCubemapBakeArtifactError> {
+    let irradiance_cube = if payload
+        .descriptor()
+        .contents()
+        .contains(IblBakeArtifactContents::IEM)
+    {
+        Some(decode_irradiance_cube(payload)?)
+    } else {
+        None
+    };
+    let pmrem_hash = pmrem_payload_hash(payload)?;
+    let mut hydrated = SourceCubemapEnvironment::new(mip_chain, source_revision, source_hash);
+    hydrated.pmrem_hash = pmrem_hash;
+    hydrated.bake_artifact_hash = bake_artifact_payload_hash(payload);
+    hydrated.intensity = intensity;
+    hydrated.rotation_radians = rotation_radians;
+    hydrated.irradiance_cube = irradiance_cube;
+    Ok(hydrated
+        .with_accepted_bake_artifact_descriptor(payload.descriptor())
+        .with_prepared_upload_artifact())
+}
+
+struct SourceCubemapBakeArtifactSections {
+    pmrem_face_size: u32,
+    pmrem_mip_count: u32,
+    pmrem_texels: Vec<[Real; 4]>,
+    irradiance_sh9: SourceCubemapIrradianceSh9,
+}
+
+fn decode_bake_artifact_sections(
+    source_face_size: u32,
+    source_mip_count: u32,
+    payload: &IblBakeArtifactPayload,
+) -> Result<SourceCubemapBakeArtifactSections, SourceCubemapBakeArtifactError> {
+    let descriptor = payload.descriptor();
+    if descriptor.source_face_size() != source_face_size
+        || descriptor.source_mip_count() != source_mip_count
     {
         return Err(SourceCubemapBakeArtifactError::LayoutMismatch {
-            expected_face_size: source.source_face_size(),
+            expected_face_size: source_face_size,
             actual_face_size: descriptor.source_face_size(),
-            expected_mip_count: source.source_mip_count(),
+            expected_mip_count: source_mip_count,
             actual_mip_count: descriptor.source_mip_count(),
         });
     }
-
     if !descriptor
         .contents()
         .contains(IblBakeArtifactContents::PMREM)
@@ -86,39 +223,12 @@ pub fn source_cubemap_mip_chain_with_bake_artifact(
         .decode_irradiance_sh9()
         .ok_or(SourceCubemapBakeArtifactError::MissingIrradianceSh9)?;
 
-    Ok(source.with_bake_artifact_pmrem(
-        descriptor.face_size(),
-        descriptor.mip_count(),
+    Ok(SourceCubemapBakeArtifactSections {
+        pmrem_face_size: descriptor.face_size(),
+        pmrem_mip_count: descriptor.mip_count(),
         pmrem_texels,
         irradiance_sh9,
-    ))
-}
-
-pub fn source_cubemap_environment_with_bake_artifact(
-    mut environment: SourceCubemapEnvironment,
-    payload: &IblBakeArtifactPayload,
-) -> Result<SourceCubemapEnvironment, SourceCubemapBakeArtifactError> {
-    // The replacement environment owns newly decoded PMREM/IEM payloads, so
-    // release obsolete pre-encoded GPU rows before allocating them.
-    environment.discard_prepared_upload_artifact();
-    let mip_chain = source_cubemap_mip_chain_with_bake_artifact(&environment.mip_chain, payload)?;
-    let irradiance_cube = if payload
-        .descriptor()
-        .contents()
-        .contains(IblBakeArtifactContents::IEM)
-    {
-        Some(decode_irradiance_cube(payload)?)
-    } else {
-        None
-    };
-    let pmrem_hash = pmrem_payload_hash(payload)?;
-    environment.replace_bake_artifact_content(
-        mip_chain,
-        pmrem_hash,
-        bake_artifact_payload_hash(payload),
-        irradiance_cube,
-    );
-    Ok(environment.with_prepared_upload_artifact())
+    })
 }
 
 fn bake_artifact_payload_hash(payload: &IblBakeArtifactPayload) -> [u32; 4] {
@@ -132,6 +242,7 @@ fn bake_artifact_payload_hash(payload: &IblBakeArtifactPayload) -> [u32; 4] {
     update_u32_array_hash(&mut hasher, &bake_key.ground_color);
     update_u32_array_hash(&mut hasher, &bake_key.source_hash);
     hasher.update(&descriptor.algorithm_version().to_le_bytes());
+    hasher.update(&(descriptor.producer() as u32).to_le_bytes());
     hasher.update(&descriptor.source_face_size().to_le_bytes());
     hasher.update(&descriptor.source_mip_count().to_le_bytes());
     hasher.update(&descriptor.face_size().to_le_bytes());

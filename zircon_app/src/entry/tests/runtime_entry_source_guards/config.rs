@@ -33,6 +33,7 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
         runtime_config_source.contains("WindowDescriptor")
             && runtime_config_source.contains("EventLoopPolicy")
             && runtime_config_source.contains("WindowLifecyclePolicy")
+            && runtime_config_source.contains("exit_after_presented_frames")
             && runtime_config_source.contains("exit_after_first_presented_frame")
             && runtime_config_source.contains("require_persisted_scene_diagnostics"),
         "runtime entry app config should carry the neutral window descriptor, event-loop policy, lifecycle policy, first-frame exit validation policy, and persisted-scene diagnostic policy"
@@ -41,6 +42,8 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
         runtime_config_source.contains("with_window_lifecycle_policy")
             && runtime_config_source.contains("with_close_when_requested")
             && runtime_config_source.contains("window_lifecycle_policy(&self)")
+            && runtime_config_source.contains("with_exit_after_presented_frames")
+            && runtime_config_source.contains("exit_after_presented_frames(&self)")
             && runtime_config_source.contains("with_exit_after_first_presented_frame")
             && runtime_config_source.contains("exit_after_first_presented_frame(&self)")
             && runtime_config_source.contains("with_persisted_scene_diagnostics")
@@ -54,16 +57,17 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
             "window_descriptor: WindowDescriptor",
             "event_loop_policy: EventLoopPolicy",
             "window_lifecycle_policy: WindowLifecyclePolicy",
-            "exit_after_first_presented_frame: bool",
+            "exit_after_presented_frames: Option<NonZeroU64>",
             "require_persisted_scene_diagnostics: bool",
             "fn with_window_descriptor",
             "fn with_event_loop_policy",
             "fn with_window_lifecycle_policy",
             "fn with_exit_after_first_presented_frame",
+            "fn with_exit_after_presented_frames",
             "fn with_persisted_scene_diagnostics",
             "impl Default for RuntimeEntryAppConfig",
             "EventLoopPolicy::Game",
-            "exit_after_first_presented_frame: false",
+            "exit_after_presented_frames: None",
             "require_persisted_scene_diagnostics: false",
         ],
         "runtime app-config implementation should keep host policy fields, builder methods, and defaults source-visible",
@@ -73,13 +77,14 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
             && runtime_construct_source.contains("config.window_descriptor")
             && runtime_construct_source.contains("config.event_loop_policy")
             && runtime_construct_source.contains("config.window_lifecycle_policy")
-            && runtime_construct_source.contains("config.exit_after_first_presented_frame")
+            && runtime_construct_source.contains("config.exit_after_presented_frames")
             && runtime_construct_source.contains("config.require_persisted_scene_diagnostics"),
         "runtime entry construction should seed host state and persisted-scene diagnostic policy from RuntimeEntryAppConfig"
     );
     assert!(
         runtime_app_source.contains("window_lifecycle_policy: WindowLifecyclePolicy")
-            && runtime_app_source.contains("exit_after_first_presented_frame: bool")
+            && runtime_app_source.contains("exit_after_presented_frames: Option<NonZeroU64>")
+            && runtime_app_source.contains("presented_frame_count: u64")
             && runtime_app_source.contains("require_persisted_scene_diagnostics: bool")
             && runtime_app_source.contains("failure_state: RuntimeEntryAppFailureState"),
         "runtime entry construction should retain close/exit, first-frame-exit, persisted-scene diagnostic, and terminal callback-failure policies"
@@ -91,7 +96,7 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
         "runtime entry failures should remain actionable and retain the first terminal callback failure"
     );
     let session_create_start = runtime_runner_source
-        .find("let session = RuntimeSession::create_with_profile_and_project(")
+        .find("let session = match RuntimeSession::create_with_profile_and_project(")
         .expect("runtime runner should create a dynamic runtime session");
     let session_create_done = runtime_runner_source[session_create_start..]
         .find("\"runtime_session_create_done\"")
@@ -103,13 +108,15 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
         &[
             "RuntimeSession::create_with_profile_and_project(",
             "runtime_session_args.profile.as_bytes(),",
-            "project_root.as_deref(),",
+            "project_root.as_ref().map(ResolvedProjectPath::operation_path),",
+            "runtime_session_args.play_scene.as_ref(),",
+            "runtime_session_args.play_report_pipe.as_deref(),",
             ".map_err(|error|",
             "\"runtime_session\"",
             "runtime_session_startup_request(",
             "runtime_session_args.profile,",
-            "project_root.as_deref(),",
-            "format!(\"runtime session creation failed: {error}\")",
+            "project_root.as_ref(),",
+            "runtime_project_diagnostic_cause(project_root.as_ref(), error)",
         ],
         "runtime session creation should retain the selected profile and resolved project identity through the typed product diagnostic boundary",
     );
@@ -122,11 +129,12 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
         &[
             "parse_runtime_session_startup_args",
             "let project_root =",
-            "resolve_runtime_project_root(runtime_session_args.project_root.as_deref())?",
+            "resolve_runtime_project_root(runtime_session_args.project_root.as_deref())",
+            "runtime_presented_frame_exit_limit_from_env()",
             "RuntimeSession::create_with_profile_and_project",
-            "project_root.as_deref()",
-            "runtime_entry_app_config_for_session_profile_with_first_frame_exit",
-            "runtime_exit_after_first_frame_enabled()",
+            "project_root.as_ref().map(ResolvedProjectPath::operation_path)",
+            "runtime_entry_app_config_for_session_profile_with_presented_frame_exit_limit",
+            "presented_frame_exit_limit",
             ".with_persisted_scene_diagnostics(project_root.is_some())",
             "RuntimeEntryAppFailureState::default()",
             "RuntimeEntryApp::new(session, host_config, failure_state.clone())",
@@ -135,8 +143,8 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
             "let runtime_app_failure = failure_state",
             ".take()",
             "let runtime_session_failure = session_teardown_failure.take().map",
-            "finish_runtime_process(",
-            ")?;",
+            "let terminal_result = finish_runtime_process(",
+            "terminal_result?;",
             "runtime_process_teardown_complete_diagnostic()",
         ],
         "runtime runner should derive the app host config from the parsed session profile and aggregate terminal failures after the event loop ends",
@@ -144,6 +152,10 @@ fn runtime_runner_projects_session_profile_into_app_host_config() {
     assert!(
         runtime_runner_source.contains("ZIRCON_RUNTIME_EXIT_AFTER_FIRST_FRAME"),
         "runtime startup smoke should keep the first-frame exit validation hook source-visible"
+    );
+    assert!(
+        runtime_runner_source.contains("ZIRCON_RUNTIME_EXIT_AFTER_PRESENTED_FRAMES"),
+        "runtime profiling should keep the explicit presented-frame exit limit source-visible"
     );
     for required in [
         "RuntimeSessionProfile::Runtime | RuntimeSessionProfile::RuntimePipelined",

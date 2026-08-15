@@ -3,11 +3,10 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 
 use zircon_runtime::core::framework::render::{
-    GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
-    GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
-    GEOMETRY_SOURCE_PLUGIN_ID_START, GeometrySourceId, SHADING_MODEL_PLUGIN_ID_START,
-    ShaderQualityTier, ShaderVariantPrewarmExecutionBudget, ShadingModelId,
-    builtin_geometry_source_descriptors,
+    builtin_geometry_source_descriptors, GeometrySourceId, ShaderQualityTier,
+    ShaderVariantPrewarmExecutionBudget, ShadingModelId, GEOMETRY_SOURCE_ID_MORPHED_MESH,
+    GEOMETRY_SOURCE_ID_SKINNED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH,
+    GEOMETRY_SOURCE_ID_STATIC_MESH, GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_PLUGIN_ID_START,
 };
 
 use super::error::{ShaderPrewarmArgsError, ShaderPrewarmArgsResult};
@@ -387,9 +386,9 @@ mod tests {
     use std::ffi::OsString;
 
     use zircon_runtime::core::framework::render::{
-        GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
+        GeometrySourceId, GEOMETRY_SOURCE_ID_MORPHED_MESH, GEOMETRY_SOURCE_ID_SKINNED_MESH,
         GEOMETRY_SOURCE_ID_SKINNED_MORPHED_MESH, GEOMETRY_SOURCE_ID_STATIC_MESH,
-        GEOMETRY_SOURCE_PLUGIN_ID_START, GeometrySourceId, SHADING_MODEL_PLUGIN_ID_START,
+        GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_PLUGIN_ID_START,
     };
 
     use super::super::error::ShaderPrewarmArgsError;
@@ -608,11 +607,9 @@ mod tests {
         .unwrap_err();
 
         assert!(matches!(error, ShaderPrewarmArgsError::Usage(_)));
-        assert!(
-            error
-                .to_string()
-                .contains("plugin shading model ids must be >= 16")
-        );
+        assert!(error
+            .to_string()
+            .contains("plugin shading model ids must be >= 16"));
     }
 
     #[test]
@@ -630,11 +627,9 @@ mod tests {
         .unwrap_err();
 
         assert!(matches!(error, ShaderPrewarmArgsError::Usage(_)));
-        assert!(
-            error
-                .to_string()
-                .contains("plugin geometry source ids must be >= 4")
-        );
+        assert!(error
+            .to_string()
+            .contains("plugin geometry source ids must be >= 4"));
     }
 
     #[test]

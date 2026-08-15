@@ -169,13 +169,11 @@ mod tests {
         assert_eq!(manifest.maturity, descriptor.maturity());
         assert_eq!(manifest.supported_targets, descriptor.target_modes());
         assert_eq!(manifest.capabilities, descriptor.capabilities());
-        assert!(
-            manifest
-                .modules
-                .iter()
-                .any(|module| module.name == "navigation.runtime"
-                    && module.crate_name == "zircon_plugin_navigation_runtime"
-                    && module.system_anchors == ["navigation.runtime.tick".to_string()])
-        );
+        assert!(manifest
+            .modules
+            .iter()
+            .any(|module| module.name == "navigation.runtime"
+                && module.crate_name == "zircon_plugin_navigation_runtime"
+                && module.system_anchors == ["navigation.runtime.tick".to_string()]));
     }
 }

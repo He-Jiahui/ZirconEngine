@@ -1,4 +1,7 @@
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Arc, OnceLock,
+};
 
 use crate::graphics::{RenderFeatureCapabilityRequirement, RendererFeatureAsset};
 use crate::render_graph::CompiledRenderGraph;
@@ -12,6 +15,7 @@ static NEXT_VALIDATION_GENERATION: AtomicU64 = AtomicU64::new(1);
 pub(crate) struct CompiledRenderPipelineRuntimeMetadata {
     runtime_feature_flags: CompiledRenderPipelineRuntimeFeatureFlags,
     resource_write_index: CompiledRenderPipelineResourceWriteIndex,
+    graph_dump_text: OnceLock<Arc<str>>,
     validation_generation: u64,
 }
 
@@ -36,6 +40,7 @@ impl CompiledRenderPipelineRuntimeMetadata {
                 capability_requirements,
             ),
             resource_write_index: CompiledRenderPipelineResourceWriteIndex::from_graph(graph),
+            graph_dump_text: OnceLock::new(),
             validation_generation: next_validation_generation(),
         }
     }
@@ -46,6 +51,13 @@ impl CompiledRenderPipelineRuntimeMetadata {
 
     pub(super) fn writes_resource(&self, resource_name: &str) -> bool {
         self.resource_write_index.contains(resource_name)
+    }
+
+    pub(super) fn graph_dump_text(&self, graph: &CompiledRenderGraph) -> Arc<str> {
+        Arc::clone(
+            self.graph_dump_text
+                .get_or_init(|| Arc::from(graph.dump().to_text())),
+        )
     }
 
     pub(super) const fn validation_generation(&self) -> u64 {

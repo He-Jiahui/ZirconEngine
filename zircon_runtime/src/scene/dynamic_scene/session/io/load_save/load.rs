@@ -4,7 +4,7 @@ use std::path::Path;
 
 use super::super::super::archive::RuntimeSessionArchiveWirePayload;
 use super::super::super::{
-    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES, RuntimeSessionArchive, RuntimeSessionArchiveError,
+    RuntimeSessionArchive, RuntimeSessionArchiveError, MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES,
 };
 
 const ARCHIVE_READ_BUFFER_BYTES: usize = 64 * 1024;
@@ -44,7 +44,6 @@ fn load_file(file: fs::File) -> Result<RuntimeSessionArchive, RuntimeSessionArch
 
     let mut archive = RuntimeSessionArchive::from_deserialized_payload(decoded?.into());
     archive.normalize_slot_metadata();
-    archive.sort_slots();
     archive.record_normalized();
     archive.ensure_supported()?;
     archive.record_validated();

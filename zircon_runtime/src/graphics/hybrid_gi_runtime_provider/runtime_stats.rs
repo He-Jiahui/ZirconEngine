@@ -1,4 +1,7 @@
-use crate::core::framework::render::RenderHybridGiResolvedSettings;
+use crate::core::framework::render::{
+    RenderHybridGiGlobalSdfStats, RenderHybridGiResolvedSettings,
+    RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT,
+};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct HybridGiRuntimeStats {
@@ -9,6 +12,15 @@ pub struct HybridGiRuntimeStats {
     scene_card_count: usize,
     scene_screen_probe_count: usize,
     scene_radiance_cache_entry_count: usize,
+    radiance_cache_resident_probe_count: usize,
+    radiance_cache_update_probe_count: usize,
+    radiance_cache_truncated_demand_count: usize,
+    radiance_cache_generation: u64,
+    radiance_cache_scroll_count: u64,
+    radiance_cache_history_clear_count: u64,
+    radiance_cache_gpu_stage_dispatch_counts:
+        [u32; RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT],
+    global_sdf_stats: RenderHybridGiGlobalSdfStats,
     surface_cache_resident_page_count: usize,
     surface_cache_dirty_page_count: usize,
     surface_cache_feedback_card_count: usize,
@@ -33,6 +45,12 @@ impl HybridGiRuntimeStats {
         scene_card_count: usize,
         scene_screen_probe_count: usize,
         scene_radiance_cache_entry_count: usize,
+        radiance_cache_resident_probe_count: usize,
+        radiance_cache_update_probe_count: usize,
+        radiance_cache_truncated_demand_count: usize,
+        radiance_cache_generation: u64,
+        radiance_cache_scroll_count: u64,
+        radiance_cache_history_clear_count: u64,
         surface_cache_resident_page_count: usize,
         surface_cache_dirty_page_count: usize,
         surface_cache_feedback_card_count: usize,
@@ -53,6 +71,14 @@ impl HybridGiRuntimeStats {
             scene_card_count,
             scene_screen_probe_count,
             scene_radiance_cache_entry_count,
+            radiance_cache_resident_probe_count,
+            radiance_cache_update_probe_count,
+            radiance_cache_truncated_demand_count,
+            radiance_cache_generation,
+            radiance_cache_scroll_count,
+            radiance_cache_history_clear_count,
+            radiance_cache_gpu_stage_dispatch_counts: Default::default(),
+            global_sdf_stats: Default::default(),
             surface_cache_resident_page_count,
             surface_cache_dirty_page_count,
             surface_cache_feedback_card_count,
@@ -73,6 +99,19 @@ impl HybridGiRuntimeStats {
         resolved_settings: Option<RenderHybridGiResolvedSettings>,
     ) -> Self {
         self.resolved_settings = resolved_settings;
+        self
+    }
+
+    pub fn with_radiance_cache_gpu_stage_dispatch_counts(
+        mut self,
+        counts: [u32; RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT],
+    ) -> Self {
+        self.radiance_cache_gpu_stage_dispatch_counts = counts;
+        self
+    }
+
+    pub fn with_global_sdf_stats(mut self, stats: RenderHybridGiGlobalSdfStats) -> Self {
+        self.global_sdf_stats = stats;
         self
     }
 
@@ -102,6 +141,40 @@ impl HybridGiRuntimeStats {
 
     pub fn scene_radiance_cache_entry_count(&self) -> usize {
         self.scene_radiance_cache_entry_count
+    }
+
+    pub fn radiance_cache_resident_probe_count(&self) -> usize {
+        self.radiance_cache_resident_probe_count
+    }
+
+    pub fn radiance_cache_update_probe_count(&self) -> usize {
+        self.radiance_cache_update_probe_count
+    }
+
+    pub fn radiance_cache_truncated_demand_count(&self) -> usize {
+        self.radiance_cache_truncated_demand_count
+    }
+
+    pub fn radiance_cache_generation(&self) -> u64 {
+        self.radiance_cache_generation
+    }
+
+    pub fn radiance_cache_scroll_count(&self) -> u64 {
+        self.radiance_cache_scroll_count
+    }
+
+    pub fn radiance_cache_history_clear_count(&self) -> u64 {
+        self.radiance_cache_history_clear_count
+    }
+
+    pub fn radiance_cache_gpu_stage_dispatch_counts(
+        &self,
+    ) -> [u32; RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT] {
+        self.radiance_cache_gpu_stage_dispatch_counts
+    }
+
+    pub fn global_sdf_stats(&self) -> RenderHybridGiGlobalSdfStats {
+        self.global_sdf_stats
     }
 
     pub fn surface_cache_resident_page_count(&self) -> usize {

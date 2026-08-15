@@ -368,7 +368,7 @@ fn assert_ssao_shared_hzb_product_path(stats: &RenderStats) {
     assert_graph_pass_executed(stats, "hzb-build");
     assert_graph_pass_executed(stats, "ssao-evaluate");
     assert_graph_executor_executed(stats, "visibility.hzb-build");
-    assert_graph_executor_executed(stats, "ao.ssao-evaluate");
+    assert_graph_executor_executed(stats, "compute.generic");
     assert!(
         stats.last_hzb_mip_count > 1,
         "SSAO product path should build a shared HZB mip chain; stats={stats:?}"

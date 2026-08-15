@@ -26,20 +26,20 @@ tests:
 
 ## 失败现象与复现证据
 
-Plan10 M2.3 已实现 `zircon_runtime::asset::migration`，但当前编辑器可执行体尚不能合法执行：
+Plan10 M2.3 已实现 `zircon_runtime::asset::migration`。源码复核（2026-08-15）确认当前编辑器可执行体已通过 `zircon_app::entry::cli::EditorLaunchArgs` 在 GUI 启动前路由：
 
 ```text
 zircon_editor --run migrate-assets --project <project-root> --dry-run
 zircon_editor --run migrate-assets --project <project-root> --apply
 ```
 
-曾尝试的 `zircon_app/src/commandlet` 本地解析/分派实现已删除：它建立了第二套注册事实，绕过 Plan16 规定的 `zircon_editor::core::commands` 唯一注册表，也无法诚实满足 0/1/2/3 退出码与 capability 门禁。当前保留该入口会让 Runtime 能力看似可用、实际却与统一命令架构分叉，因此 Plan10 不声明 CLI 验收通过。
+`zircon_editor::core::commandlet::runner` 使用 `EditorCommandRegistry::default_workbench()` 的 `migrate-assets` 描述符、Headless capability 投影与 Runtime migration API；`EntryRunner::run_editor_with_args_exit_code` 输出稳定 JSON，并返回 0/1/2/3。未重新引入 `zircon_app/src/commandlet` 的第二注册表或命令专用旁路。
 
-`zircon_app/src/entry/cli` 同样尚不存在，因此不列入可机器验证的 `related_code`；未来 Plan16 落地合法进程宿主后再记录真实 owner。正文保留该缺口与验收要求，不以虚假路径或兼容目录把 open handoff 伪装为已完成。
+本 failure 仍保持 open：声明的受管 Cargo 验收尚未在共享验证窗口执行。commandlet 文件系统 fixture 现强制使用 `CARGO_TARGET_DIR/zircon_editor_commandlet_tests`，并在 Windows 拒绝 C: 以外未受管的输出盘；这消除了测试在系统临时目录产生 C 盘产物的路径。
 
 ## 最低共享层根因
 
-Plan16 M2 的 `zircon_editor/src/core/commandlet/runner.rs`、统一 `EditorLaunchArgs --run` 路由与 Plan08 命令注册表 CLI 投影尚未落地。Runtime 任务实现可以独立完成，但缺少上层唯一合法的进程入口 owner；该缺口不能由 Runtime 或 `zircon_app` 自建兼容入口修补。
+交接建立时，Plan16 M2 的 `zircon_editor/src/core/commandlet/runner.rs`、统一 `EditorLaunchArgs --run` 路由与 Plan08 命令注册表 CLI 投影尚未落地。当前源码已落实这条唯一入口；剩余根因是没有与当前快照哈希匹配的受管编译/单测证据，因此不能将源码存在误写为 CLI 验收通过。
 
 ## 架构修复验收
 
@@ -59,8 +59,8 @@ Plan16 M2 的 `zircon_editor/src/core/commandlet/runner.rs`、统一 `EditorLaun
 
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据 |
 |---|---|---|---|---|
-| Editor 16 M2 | `migrate-assets` 统一注册投影与无头 runner | `待修复-Runtime能力已就绪-CLI入口未接线` | 2026-07-11 | Plan10 M2.3 已提供 `zircon_runtime::asset::migration` dry-run/apply 与事务 API；错误的 `zircon_app/src/commandlet` 第二注册表实现已删除，当前无合法 `--run migrate-assets` 入口，须由 Plan16 M2 接入 Plan08 唯一注册表。 |
+| Editor 16 M2 | `migrate-assets` 统一注册投影与无头 runner | `修复中-源码已接线-受管验证待执行` | 2026-08-15 | `EditorLaunchArgs` 已将 `--run` 路由至 Editor core 唯一注册表；runner 已覆盖 migration 与 capability/退出码 JSON 映射；fixture 输出已改为受管 `CARGO_TARGET_DIR`。尚未取得声明 Cargo 验收的当前快照证据，failure 保持 open。 |
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `源码修复已完成，受管验证待执行`; no pass is claimed.

@@ -5,7 +5,11 @@ use serde::{Deserialize, Serialize};
 use crate::core::framework::scene::EntityId;
 
 use super::camera_stack::CameraRenderDescriptor;
-use super::{CorePipelineKind, RenderVirtualGeometryDebugState, TemporalJitterSample};
+use super::view_family::MAX_RENDER_RESOLUTION_FRACTION;
+use super::{
+    CorePipelineKind, RenderResolutionPolicy, RenderUpscalerKind, RenderViewFamilyPipeline,
+    RenderVirtualGeometryDebugState, TemporalJitterSample,
+};
 
 pub type RenderLayer = u32;
 
@@ -60,8 +64,28 @@ impl ViewportCameraSnapshot {
     }
 
     pub fn effective_render_size(&self, target_size: UVec2) -> UVec2 {
-        self.dynamic_resolution
-            .apply_to_size(self.effective_viewport_size(target_size))
+        self.render_view_family_pipeline(target_size, RenderUpscalerKind::Spatial)
+            .resolution()
+            .primary_extent()
+    }
+
+    /// Converts the legacy camera scale into the primary fraction of a view-family plan.
+    ///
+    /// The upscaler category remains a render-graph decision: a camera scale alone must not
+    /// silently turn TAA, a vendor SDK, or temporal history on.
+    pub fn render_view_family_pipeline(
+        &self,
+        target_size: UVec2,
+        upscaler: RenderUpscalerKind,
+    ) -> RenderViewFamilyPipeline {
+        RenderViewFamilyPipeline::resolve(
+            self.effective_viewport_size(target_size),
+            RenderResolutionPolicy::with_scales(
+                self.dynamic_resolution.clamped_scale(),
+                MAX_RENDER_RESOLUTION_FRACTION,
+            ),
+            upscaler,
+        )
     }
 }
 
@@ -459,7 +483,46 @@ fn clamp_viewport_axis_position(position: u32, target: u32) -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use super::RenderLayerSet;
+    use crate::core::math::UVec2;
+
+    use super::{RenderLayerSet, RenderUpscalerKind, ViewportCameraSnapshot};
+
+    #[test]
+    fn default_camera_preserves_the_view_family_full_resolution_contract() {
+        let pipeline = ViewportCameraSnapshot::default()
+            .render_view_family_pipeline(UVec2::new(1920, 1080), RenderUpscalerKind::Spatial);
+
+        assert_eq!(
+            pipeline.resolution().primary_extent(),
+            UVec2::new(1920, 1080)
+        );
+        assert_eq!(
+            pipeline.resolution().secondary_extent(),
+            UVec2::new(1920, 1080)
+        );
+    }
+
+    #[test]
+    fn camera_dynamic_resolution_adapts_into_the_view_family_resolution_policy() {
+        let mut camera = ViewportCameraSnapshot::default();
+        camera.dynamic_resolution = super::RenderDynamicResolutionSettings::fixed_scale(2.0 / 3.0);
+
+        let pipeline = camera
+            .render_view_family_pipeline(UVec2::new(1920, 1080), RenderUpscalerKind::Temporal);
+
+        assert_eq!(
+            pipeline.resolution().display_extent(),
+            UVec2::new(1920, 1080)
+        );
+        assert_eq!(
+            pipeline.resolution().primary_extent(),
+            UVec2::new(1280, 720)
+        );
+        assert_eq!(
+            pipeline.resolution().temporal_history_extent(),
+            Some(UVec2::new(1920, 1080))
+        );
+    }
 
     #[test]
     fn render_layer_schema_v1_uses_single_block_fast_paths() {

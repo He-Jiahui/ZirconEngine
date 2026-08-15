@@ -208,7 +208,6 @@ related_code:
   - zircon_runtime/src/ui/text/layout_engine/vertical.rs
   - zircon_runtime/src/text/sdf/params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/text.rs
   - zircon_runtime/Cargo.toml
 design_references:
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Fonts/FontCache.h

@@ -116,10 +116,9 @@ mod tests {
     use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
     use crate::ui::retained_host::host_contract::data::TemplateNodeFrameData;
     use crate::ui::workbench::asset_content_layout::{
-        ActivityAssetReferenceListKind, AssetContentPaintNodeInput,
-        BROWSER_CONTENT_PREVIEW_CONTROL_ID, BROWSER_CONTENT_TABLE_CONTROL_ID,
-        BROWSER_CONTENT_TABLE_HEADER_CONTROL_ID, BrowserAssetReferenceListKind,
-        asset_content_paint_metadata,
+        asset_content_paint_metadata, ActivityAssetReferenceListKind, AssetContentPaintNodeInput,
+        BrowserAssetReferenceListKind, BROWSER_CONTENT_PREVIEW_CONTROL_ID,
+        BROWSER_CONTENT_TABLE_CONTROL_ID, BROWSER_CONTENT_TABLE_HEADER_CONTROL_ID,
     };
 
     #[test]

@@ -31,8 +31,9 @@ pub use graph_reports::{
     MotionVectorCameraStatus, RenderGraphExecutionAliasRecord, RenderGraphExecutionAliasReport,
     RenderGraphExecutionCoverageReport, RenderGraphExecutionProfileReport,
     RenderGraphExecutionResourceReport, RenderGraphMaterializationReport,
-    RenderGraphPassProfileMetrics, RenderGraphPassProfileRecord, RenderGraphStageExecutionReport,
-    RenderGraphTransientPoolReport, RenderSceneVelocityReadbackReport,
+    RenderGraphParallelRecordingReport, RenderGraphPassProfileMetrics,
+    RenderGraphPassProfileRecord, RenderGraphStageExecutionReport, RenderGraphTransientPoolReport,
+    RenderSceneVelocityReadbackReport,
 };
 pub use handles::{FrameHistoryHandle, RenderPipelineHandle, RenderViewportHandle};
 pub use history::{FrameHistoryInvalidationReason, FrameHistoryStatus, RenderHistoryCopyReport};
@@ -53,6 +54,7 @@ use super::{
     RenderVirtualGeometryHardwareRasterizationSource,
     RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometrySelectedClusterSource,
     RenderVirtualGeometryVisBuffer64Source, SolariRuntimeReport,
+    RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -126,6 +128,9 @@ pub struct RenderStats {
     pub last_hzb_occlusion_candidate_instance_count: usize,
     pub last_hzb_occlusion_dispatch_group_count: usize,
     pub last_hzb_occlusion_dispatched_phase_count: usize,
+    pub last_hzb_occlusion_params_buffer_create_count: usize,
+    pub last_hzb_occlusion_params_upload_byte_count: u64,
+    pub last_hzb_occlusion_bind_group_create_count: usize,
     pub last_hzb_occlusion_history_available: bool,
     pub last_hzb_occlusion_readback_available: bool,
     /// Source frame for the asynchronously completed HZB stats readback.
@@ -198,6 +203,7 @@ pub struct RenderStats {
     pub last_graph_execution_alias_report: RenderGraphExecutionAliasReport,
     pub last_graph_execution_coverage_report: RenderGraphExecutionCoverageReport,
     pub last_graph_execution_profile_report: RenderGraphExecutionProfileReport,
+    pub last_graph_parallel_recording_report: RenderGraphParallelRecordingReport,
     pub last_graph_stage_execution_report: RenderGraphStageExecutionReport,
     pub last_scene_velocity_readback_report: RenderSceneVelocityReadbackReport,
     pub last_exposure_readback_report: RenderExposureReadbackReport,
@@ -218,6 +224,12 @@ pub struct RenderStats {
     pub last_graph_requested_msaa_sample_count: u32,
     pub last_graph_effective_msaa_sample_count: u32,
     pub last_anti_alias_graph_executed_pass_count: usize,
+    /// Actual WGPU TAA reactive-mask passes, excluding the retained logical node for empty streams.
+    pub last_taa_reactive_mask_encoded_pass_count: usize,
+    /// R8 bytes written by actual TAA reactive-mask passes in the latest frame.
+    pub last_taa_reactive_mask_encoded_write_bytes: u64,
+    /// Number of TAA resolve bind groups created before a stable resource-generation cache exists.
+    pub last_taa_resolve_bind_group_create_count: usize,
     pub last_virtual_geometry_graph_executed_pass_count: usize,
     pub last_hybrid_gi_graph_executed_pass_count: usize,
     pub last_particle_graph_executed_pass_count: usize,
@@ -238,6 +250,10 @@ pub struct RenderStats {
     pub last_ui_text_unmapped_glyph_count: usize,
     pub last_ui_text_visible_raster_glyph_count: usize,
     pub last_ui_text_raster_source_image_count: usize,
+    /// Unique persistent physical raster keys bound to live native source-cache entries.
+    pub last_ui_text_raster_persistent_key_count: usize,
+    /// Exact native bitmap-source cache misses observed while preparing the last UI frame.
+    pub last_ui_text_raster_source_cache_miss_count: usize,
     pub last_ui_text_missing_raster_image_count: usize,
     pub last_ui_text_visible_missing_raster_image_count: usize,
     pub last_ui_text_visible_raster_placeholder_count: usize,
@@ -245,6 +261,12 @@ pub struct RenderStats {
     pub last_ui_text_raster_worker_failed_count: usize,
     pub last_ui_text_raster_renderer_upload_requeued_count: usize,
     pub last_ui_text_raster_renderer_upload_failure_count: usize,
+    /// SDF/MSDF generation batches still owned by the bounded text scheduler.
+    pub last_ui_text_sdf_generation_pending_batch_count: usize,
+    /// Completed SDF/MSDF batches not yet applied to the prepared atlas.
+    pub last_ui_text_sdf_generation_completion_backlog_count: usize,
+    /// Current-frame SDF/MSDF glyph generation failures, including deferred work.
+    pub last_ui_text_sdf_generation_failure_count: usize,
     pub last_ui_text_layout_fallback_count: u64,
     pub last_ui_text_invalid_font_size_count: u64,
     pub last_ui_text_invalid_language_count: u64,
@@ -313,10 +335,17 @@ pub struct RenderStats {
     pub last_mesh_command_cache_invalidated_material_count: usize,
     pub last_mesh_replay_state_change_count: usize,
     pub last_mesh_replay_bind_skip_count: usize,
+    /// Actual group-2 material `set_bind_group` calls encoded during mesh replay.
+    pub last_mesh_replay_material_bind_group_set_count: usize,
+    /// Group-2 material bind requests skipped because the currently bound table matched.
+    pub last_mesh_replay_material_bind_group_skip_count: usize,
     pub last_indirect_batch_count: usize,
     pub last_indirect_batched_draw_count: usize,
     pub last_indirect_fallback_draw_count: usize,
     pub last_indirect_args_count: usize,
+    pub last_indirect_workspace_created_buffer_count: usize,
+    pub last_indirect_workspace_uploaded_byte_count: u64,
+    pub last_indirect_workspace_upload_range_count: usize,
     pub last_gpu_scene_primitive_count: u32,
     pub last_gpu_scene_instance_count: u32,
     pub last_gpu_scene_dirty_entry_count: usize,
@@ -413,6 +442,15 @@ pub struct RenderStats {
     pub last_hybrid_gi_scene_card_count: usize,
     pub last_hybrid_gi_scene_screen_probe_count: usize,
     pub last_hybrid_gi_scene_radiance_cache_entry_count: usize,
+    pub last_hybrid_gi_radiance_cache_resident_probe_count: usize,
+    pub last_hybrid_gi_radiance_cache_update_probe_count: usize,
+    pub last_hybrid_gi_radiance_cache_truncated_demand_count: usize,
+    pub last_hybrid_gi_radiance_cache_generation: u64,
+    pub last_hybrid_gi_radiance_cache_scroll_count: u64,
+    pub last_hybrid_gi_radiance_cache_history_clear_count: u64,
+    /// GPU-authored item counts for the five update stages, followed by committed consumes.
+    pub last_hybrid_gi_radiance_cache_gpu_stage_dispatch_counts:
+        [u32; RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT],
     pub last_hybrid_gi_surface_cache_resident_page_count: usize,
     pub last_hybrid_gi_surface_cache_dirty_page_count: usize,
     pub last_hybrid_gi_surface_cache_feedback_card_count: usize,
@@ -424,6 +462,32 @@ pub struct RenderStats {
     pub last_hybrid_gi_voxel_resident_clipmap_count: usize,
     pub last_hybrid_gi_voxel_dirty_clipmap_count: usize,
     pub last_hybrid_gi_voxel_invalidated_clipmap_count: usize,
+    pub last_hybrid_gi_global_sdf_cpu_prepare_time_us: u64,
+    pub last_hybrid_gi_global_sdf_cpu_mesh_object_collection_time_us: u64,
+    pub last_hybrid_gi_global_sdf_cpu_mesh_scene_sync_time_us: u64,
+    pub last_hybrid_gi_global_sdf_cpu_residency_time_us: u64,
+    pub last_hybrid_gi_global_sdf_cpu_influence_update_time_us: u64,
+    pub last_hybrid_gi_global_sdf_cpu_candidate_build_time_us: u64,
+    pub last_hybrid_gi_global_sdf_mesh_projection_cache_hit: bool,
+    pub last_hybrid_gi_global_sdf_object_count: usize,
+    pub last_hybrid_gi_global_sdf_resident_page_count: usize,
+    pub last_hybrid_gi_global_sdf_sampleable_page_count: usize,
+    pub last_hybrid_gi_global_sdf_dirty_page_count: usize,
+    pub last_hybrid_gi_global_sdf_dispatched_page_count: usize,
+    pub last_hybrid_gi_global_sdf_uploaded_page_count: usize,
+    pub last_hybrid_gi_global_sdf_deferred_page_count: usize,
+    pub last_hybrid_gi_global_sdf_candidate_overflow_page_count: usize,
+    pub last_hybrid_gi_global_sdf_candidate_contributor_count: usize,
+    pub last_hybrid_gi_global_sdf_clipmap_fallback_count: usize,
+    pub last_hybrid_gi_global_sdf_candidate_bucket_capacity_bytes: u64,
+    pub last_hybrid_gi_global_sdf_persistent_resource_byte_count: u64,
+    pub last_hybrid_gi_global_sdf_transient_buffer_creation_count: usize,
+    pub last_hybrid_gi_global_sdf_transient_bind_group_creation_count: usize,
+    pub last_hybrid_gi_global_sdf_transient_parameter_upload_byte_count: u64,
+    pub last_hybrid_gi_global_sdf_transient_page_upload_byte_count: u64,
+    pub last_hybrid_gi_global_sdf_transient_mesh_upload_byte_count: u64,
+    pub last_hybrid_gi_global_sdf_transient_completion_upload_byte_count: u64,
+    pub last_hybrid_gi_global_sdf_transient_upload_byte_count: u64,
     pub last_hybrid_gi_payload_source: RenderHybridGiPayloadSource,
     pub last_hybrid_gi_resolved_settings: Option<RenderHybridGiResolvedSettings>,
     pub device_diagnostics: Option<RenderDeviceDiagnostics>,

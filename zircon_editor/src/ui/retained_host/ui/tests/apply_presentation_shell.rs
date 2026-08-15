@@ -97,3 +97,16 @@ fn apply_presentation_projects_default_design_stack_ids_into_host_shell() {
     assert_eq!(host_shell.window_model_preset_id, "unreal_window_model");
     assert!(ui.get_host_presentation().menu_state.open_menu_index >= -1);
 }
+
+#[test]
+fn committed_shell_content_patch_has_a_dedicated_performance_scenario() {
+    let source = include_str!("../../app/host_lifecycle/recompute/presentation.rs");
+    let committed_patch = source
+        .split("fn apply_committed_shell_content_presentation")
+        .nth(1)
+        .and_then(|body| body.split("fn apply_shell_content_presentation").next())
+        .expect("committed shell-content patch entry");
+
+    assert!(committed_patch.contains("UiPerfScenario::ShellContent"));
+    assert!(committed_patch.contains("time_ui_perf_scenario"));
+}

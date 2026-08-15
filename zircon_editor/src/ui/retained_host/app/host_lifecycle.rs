@@ -5,6 +5,7 @@ mod pane_payloads;
 mod recompute;
 mod recompute_viewport;
 mod render_submission;
+mod scene_hierarchy_refresh;
 mod shell_metrics;
 mod startup;
 mod tick;

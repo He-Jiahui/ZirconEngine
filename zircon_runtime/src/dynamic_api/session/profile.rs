@@ -1,5 +1,5 @@
 use crate::core::framework::platform::RuntimeTargetMode;
-use crate::diagnostic_log::{DiagnosticStoreLogSchedule, DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT};
+use crate::diagnostic_log::{DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT, DiagnosticStoreLogSchedule};
 
 const DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME: u32 = 8;
 const RUNTIME_SESSION_PROFILE_RUNTIME: &[u8] = b"runtime";

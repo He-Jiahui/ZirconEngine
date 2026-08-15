@@ -1,5 +1,5 @@
 use super::geometry::vertical_scrollbar_geometry;
-use super::style::{WorkbenchScrollbarMetrics, workbench_scrollbar_metrics_from_host};
+use super::style::{workbench_scrollbar_metrics_from_host, WorkbenchScrollbarMetrics};
 use super::{
     asset::{
         activity_asset_content_viewport_and_extent,
@@ -18,8 +18,8 @@ use crate::ui::retained_host::host_contract::data::{
 use crate::ui::retained_host::host_contract::paint_frame::HostRgbaFrame;
 use crate::ui::retained_host::host_contract::paint_theme::METRICS;
 use crate::ui::workbench::asset_content_layout::{
-    ActivityAssetReferenceListKind, AssetContentPaintNodeInput, AssetContentSurface,
-    BrowserAssetReferenceListKind, asset_content_paint_metadata,
+    asset_content_paint_metadata, ActivityAssetReferenceListKind, AssetContentPaintNodeInput,
+    AssetContentSurface, BrowserAssetReferenceListKind,
 };
 
 #[test]

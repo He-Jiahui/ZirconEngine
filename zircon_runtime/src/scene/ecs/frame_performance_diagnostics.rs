@@ -1,10 +1,184 @@
 use crate::core::diagnostics::{DiagnosticStore, FrameDiagnostics};
 use crate::core::CoreHandle;
 
-use super::{ChangeDetectionScanStats, NativeSystemScheduleDiagnostics, QueryStateCacheStats};
+use super::{
+    ArchetypeIndexPerformanceStats, BundleTransactionDiagnostics, ChangeDetectionScanStats,
+    NativeSystemScheduleDiagnostics, QueryStateCacheStats,
+};
+
+pub const ECS_DETACHED_BATCH_COMMIT_COUNT_DIAGNOSTIC: &str =
+    "scene.ecs.detached_batch.commit_count";
+pub const ECS_DETACHED_BATCH_REJECTED_PREFLIGHTS_DIAGNOSTIC: &str =
+    "scene.ecs.detached_batch.rejected_preflights";
+pub const ECS_DETACHED_BATCH_FULL_WORLD_CLONE_BYTES_DIAGNOSTIC: &str =
+    "scene.ecs.detached_batch.full_world_clone_bytes";
+pub const ECS_DETACHED_BATCH_NODE_RECORD_CLONE_BYTES_DIAGNOSTIC: &str =
+    "scene.ecs.detached_batch.node_record_clone_bytes";
+pub const ECS_DETACHED_BATCH_MOVED_ROWS_DIAGNOSTIC: &str = "scene.ecs.detached_batch.moved_rows";
+pub const ECS_DETACHED_BATCH_MOVED_TABLE_COMPONENTS_DIAGNOSTIC: &str =
+    "scene.ecs.detached_batch.moved_table_components";
+pub const ECS_DETACHED_BATCH_MOVED_SPARSE_COMPONENTS_DIAGNOSTIC: &str =
+    "scene.ecs.detached_batch.moved_sparse_components";
+pub const ECS_DETACHED_BATCH_MOVED_DYNAMIC_COMPONENTS_DIAGNOSTIC: &str =
+    "scene.ecs.detached_batch.moved_dynamic_components";
+pub const ECS_DETACHED_BATCH_SWAP_REPAIRS_DIAGNOSTIC: &str =
+    "scene.ecs.detached_batch.swap_repairs";
+pub const ECS_DETACHED_BATCH_ARCHETYPE_PUBLICATIONS_DIAGNOSTIC: &str =
+    "scene.ecs.detached_batch.archetype_publications";
+pub const ECS_DETACHED_BATCH_LIFECYCLE_EVENTS_DIAGNOSTIC: &str =
+    "scene.ecs.detached_batch.lifecycle_events";
+pub const ECS_DETACHED_BATCH_GENERATION_ADVANCES_DIAGNOSTIC: &str =
+    "scene.ecs.detached_batch.generation_advances";
+pub const ECS_DETACHED_BATCH_ORDERED_REMOVALS_DIAGNOSTIC: &str =
+    "scene.ecs.detached_batch.ordered_removals";
+pub const ECS_DETACHED_BATCH_HIERARCHY_INDEX_LOOKUPS_DIAGNOSTIC: &str =
+    "scene.ecs.detached_batch.hierarchy_index_lookups";
+pub const ECS_DETACHED_BATCH_CAMERA_INDEX_LOOKUPS_DIAGNOSTIC: &str =
+    "scene.ecs.detached_batch.camera_index_lookups";
+pub const ECS_DETACHED_BATCH_ROLLBACK_BYTES_DIAGNOSTIC: &str =
+    "scene.ecs.detached_batch.rollback_bytes";
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct DetachedEntityBatchOperationStats {
+    pub(crate) moved_rows: u64,
+    pub(crate) moved_table_components: u64,
+    pub(crate) moved_sparse_components: u64,
+    pub(crate) moved_dynamic_components: u64,
+    pub(crate) swap_repairs: u64,
+    pub(crate) archetype_publications: u64,
+    pub(crate) lifecycle_events: u64,
+    pub(crate) ordered_removals: u64,
+    pub(crate) hierarchy_index_lookups: u64,
+    pub(crate) camera_index_lookups: u64,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct DetachedEntityBatchDiagnostics {
+    pub commit_count: u64,
+    pub rejected_preflights: u64,
+    pub full_world_clone_bytes: u64,
+    pub node_record_clone_bytes: u64,
+    pub moved_rows: u64,
+    pub moved_table_components: u64,
+    pub moved_sparse_components: u64,
+    pub moved_dynamic_components: u64,
+    pub swap_repairs: u64,
+    pub archetype_publications: u64,
+    pub lifecycle_events: u64,
+    pub generation_advances: u64,
+    pub ordered_removals: u64,
+    pub hierarchy_index_lookups: u64,
+    pub camera_index_lookups: u64,
+    pub rollback_bytes: u64,
+}
+
+impl DetachedEntityBatchDiagnostics {
+    pub(crate) fn record_commit(&mut self, stats: DetachedEntityBatchOperationStats) {
+        self.commit_count = self.commit_count.saturating_add(1);
+        self.moved_rows = self.moved_rows.saturating_add(stats.moved_rows);
+        self.moved_table_components = self
+            .moved_table_components
+            .saturating_add(stats.moved_table_components);
+        self.moved_sparse_components = self
+            .moved_sparse_components
+            .saturating_add(stats.moved_sparse_components);
+        self.moved_dynamic_components = self
+            .moved_dynamic_components
+            .saturating_add(stats.moved_dynamic_components);
+        self.swap_repairs = self.swap_repairs.saturating_add(stats.swap_repairs);
+        self.archetype_publications = self
+            .archetype_publications
+            .saturating_add(stats.archetype_publications);
+        self.lifecycle_events = self.lifecycle_events.saturating_add(stats.lifecycle_events);
+        self.generation_advances = self.generation_advances.saturating_add(1);
+        self.ordered_removals = self.ordered_removals.saturating_add(stats.ordered_removals);
+        self.hierarchy_index_lookups = self
+            .hierarchy_index_lookups
+            .saturating_add(stats.hierarchy_index_lookups);
+        self.camera_index_lookups = self
+            .camera_index_lookups
+            .saturating_add(stats.camera_index_lookups);
+    }
+
+    pub(crate) fn record_rejected_preflight(&mut self) {
+        self.rejected_preflights = self.rejected_preflights.saturating_add(1);
+    }
+
+    fn diagnostic_values(&self) -> [(&'static str, f64); 16] {
+        [
+            (
+                ECS_DETACHED_BATCH_COMMIT_COUNT_DIAGNOSTIC,
+                self.commit_count as f64,
+            ),
+            (
+                ECS_DETACHED_BATCH_REJECTED_PREFLIGHTS_DIAGNOSTIC,
+                self.rejected_preflights as f64,
+            ),
+            (
+                ECS_DETACHED_BATCH_FULL_WORLD_CLONE_BYTES_DIAGNOSTIC,
+                self.full_world_clone_bytes as f64,
+            ),
+            (
+                ECS_DETACHED_BATCH_NODE_RECORD_CLONE_BYTES_DIAGNOSTIC,
+                self.node_record_clone_bytes as f64,
+            ),
+            (
+                ECS_DETACHED_BATCH_MOVED_ROWS_DIAGNOSTIC,
+                self.moved_rows as f64,
+            ),
+            (
+                ECS_DETACHED_BATCH_MOVED_TABLE_COMPONENTS_DIAGNOSTIC,
+                self.moved_table_components as f64,
+            ),
+            (
+                ECS_DETACHED_BATCH_MOVED_SPARSE_COMPONENTS_DIAGNOSTIC,
+                self.moved_sparse_components as f64,
+            ),
+            (
+                ECS_DETACHED_BATCH_MOVED_DYNAMIC_COMPONENTS_DIAGNOSTIC,
+                self.moved_dynamic_components as f64,
+            ),
+            (
+                ECS_DETACHED_BATCH_SWAP_REPAIRS_DIAGNOSTIC,
+                self.swap_repairs as f64,
+            ),
+            (
+                ECS_DETACHED_BATCH_ARCHETYPE_PUBLICATIONS_DIAGNOSTIC,
+                self.archetype_publications as f64,
+            ),
+            (
+                ECS_DETACHED_BATCH_LIFECYCLE_EVENTS_DIAGNOSTIC,
+                self.lifecycle_events as f64,
+            ),
+            (
+                ECS_DETACHED_BATCH_GENERATION_ADVANCES_DIAGNOSTIC,
+                self.generation_advances as f64,
+            ),
+            (
+                ECS_DETACHED_BATCH_ORDERED_REMOVALS_DIAGNOSTIC,
+                self.ordered_removals as f64,
+            ),
+            (
+                ECS_DETACHED_BATCH_HIERARCHY_INDEX_LOOKUPS_DIAGNOSTIC,
+                self.hierarchy_index_lookups as f64,
+            ),
+            (
+                ECS_DETACHED_BATCH_CAMERA_INDEX_LOOKUPS_DIAGNOSTIC,
+                self.camera_index_lookups as f64,
+            ),
+            (
+                ECS_DETACHED_BATCH_ROLLBACK_BYTES_DIAGNOSTIC,
+                self.rollback_bytes as f64,
+            ),
+        ]
+    }
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct EcsFramePerformanceDiagnostics {
+    pub bundle_transactions: BundleTransactionDiagnostics,
+    pub detached_entity_batches: DetachedEntityBatchDiagnostics,
+    pub archetype_index: ArchetypeIndexPerformanceStats,
     pub query: QueryStateCacheStats,
     pub change_detection: ChangeDetectionScanStats,
     pub native_system_schedule: NativeSystemScheduleDiagnostics,
@@ -12,7 +186,15 @@ pub struct EcsFramePerformanceDiagnostics {
 
 impl EcsFramePerformanceDiagnostics {
     pub fn new(query: QueryStateCacheStats, change_detection: ChangeDetectionScanStats) -> Self {
+        let archetype_index = ArchetypeIndexPerformanceStats {
+            component_index_probes: query.archetype_index_component_probes,
+            signature_membership_checks: query.archetype_index_signature_membership_checks,
+            ..Default::default()
+        };
         Self {
+            bundle_transactions: BundleTransactionDiagnostics::default(),
+            detached_entity_batches: DetachedEntityBatchDiagnostics::default(),
+            archetype_index,
             query,
             change_detection,
             native_system_schedule: NativeSystemScheduleDiagnostics::default(),
@@ -26,6 +208,30 @@ impl EcsFramePerformanceDiagnostics {
             .query
             .cache_rebuilds
             .saturating_add(stats.cache_rebuilds);
+        self.query.archetype_plan_compilations = self
+            .query
+            .archetype_plan_compilations
+            .saturating_add(stats.archetype_plan_compilations);
+        self.query.archetype_component_membership_checks = self
+            .query
+            .archetype_component_membership_checks
+            .saturating_add(stats.archetype_component_membership_checks);
+        self.query.table_column_slot_bindings = self
+            .query
+            .table_column_slot_bindings
+            .saturating_add(stats.table_column_slot_bindings);
+        self.query.sparse_component_bindings = self
+            .query
+            .sparse_component_bindings
+            .saturating_add(stats.sparse_component_bindings);
+        self.archetype_index.component_index_probes = self
+            .archetype_index
+            .component_index_probes
+            .saturating_add(stats.archetype_index_component_probes);
+        self.archetype_index.signature_membership_checks = self
+            .archetype_index
+            .signature_membership_checks
+            .saturating_add(stats.archetype_index_signature_membership_checks);
         self.query.cached_revision = self.query.cached_revision.max(stats.cached_revision);
         self.query.cached_archetype_count = self
             .query
@@ -45,8 +251,31 @@ impl EcsFramePerformanceDiagnostics {
             .saturating_add(stats.matched_entity_count);
     }
 
+    pub fn add_archetype_index_stats(&mut self, stats: ArchetypeIndexPerformanceStats) {
+        self.archetype_index.component_index_probes = self
+            .archetype_index
+            .component_index_probes
+            .saturating_add(stats.component_index_probes);
+        self.archetype_index.signature_membership_checks = self
+            .archetype_index
+            .signature_membership_checks
+            .saturating_add(stats.signature_membership_checks);
+        self.archetype_index.row_appends = self
+            .archetype_index
+            .row_appends
+            .saturating_add(stats.row_appends);
+    }
+
     pub fn add_change_detection_stats(&mut self, stats: ChangeDetectionScanStats) {
         self.change_detection.merge(stats);
+    }
+
+    pub(crate) fn bundle_transactions_mut(&mut self) -> &mut BundleTransactionDiagnostics {
+        &mut self.bundle_transactions
+    }
+
+    pub(crate) fn detached_entity_batches_mut(&mut self) -> &mut DetachedEntityBatchDiagnostics {
+        &mut self.detached_entity_batches
     }
 
     pub(crate) fn native_system_schedule_mut(&mut self) -> &mut NativeSystemScheduleDiagnostics {
@@ -54,6 +283,26 @@ impl EcsFramePerformanceDiagnostics {
     }
 
     pub fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
+        self.bundle_transactions
+            .record_diagnostics(store, frame_index);
+        for (path, value) in self.detached_entity_batches.diagnostic_values() {
+            store.record(
+                path,
+                frame_index,
+                value,
+                Some("count"),
+                ["ecs", "detached_batch"],
+            );
+        }
+        for (path, value) in self.archetype_index.diagnostic_values() {
+            store.record(
+                path,
+                frame_index,
+                value,
+                Some("count"),
+                ["ecs", "archetype"],
+            );
+        }
         self.query.record_diagnostics(store, frame_index);
         self.change_detection.record_diagnostics(store, frame_index);
         self.native_system_schedule
@@ -61,6 +310,25 @@ impl EcsFramePerformanceDiagnostics {
     }
 
     pub fn publish(&self, core: &CoreHandle, frame_index: u64) {
+        self.bundle_transactions.publish(core, frame_index);
+        for (path, value) in self.detached_entity_batches.diagnostic_values() {
+            core.record_diagnostic(
+                path,
+                frame_index,
+                value,
+                Some("count"),
+                ["ecs", "detached_batch"],
+            );
+        }
+        for (path, value) in self.archetype_index.diagnostic_values() {
+            core.record_diagnostic(
+                path,
+                frame_index,
+                value,
+                Some("count"),
+                ["ecs", "archetype"],
+            );
+        }
         for (path, value) in self.query.diagnostic_values() {
             core.record_diagnostic(path, frame_index, value, Some("count"), ["ecs", "query"]);
         }

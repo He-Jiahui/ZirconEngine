@@ -173,6 +173,11 @@ impl UiHostWindow {
         }
         redraw
     }
+
+    #[cfg(test)]
+    pub(crate) fn take_external_redraw_for_test(&self) -> HostRedrawRequest {
+        self.take_external_redraw()
+    }
 }
 
 #[cfg(test)]

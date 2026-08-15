@@ -1,8 +1,11 @@
 use std::path::Path;
 
 mod contract;
+mod manifest_index;
+mod metrics;
 mod service;
 mod ticket;
+mod work;
 
 pub(crate) use contract::{
     NativePluginDiscoveryInputIdentity, NativePluginDiscoveryRefreshBudget,
@@ -17,6 +20,10 @@ pub(crate) use contract::{
 };
 pub(crate) use service::NativePluginDiscoveryRefreshService;
 pub(crate) use ticket::{NativePluginDiscoveryRefreshTerminal, NativePluginDiscoveryRefreshTicket};
+pub(super) use work::{NativePluginDiscoveryManifestAction, NativePluginDiscoveryRefreshWork};
+
+#[cfg(test)]
+pub(crate) use metrics::NativePluginDiscoveryRefreshMetrics;
 
 pub(super) fn native_plugin_discovery_refresh_service(
     capability: super::discover::authority::NativePluginDiscoveryAuthorityCapability,

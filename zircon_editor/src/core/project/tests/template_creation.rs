@@ -4,10 +4,16 @@ use crate::core::settings::{
     settings_registry_with_defaults, SettingsLoad, SettingsScope, SettingsStore,
 };
 use zircon_runtime::asset::{
-    project::{ProjectManager, ProjectPaths}, AssetReference, AssetRegistryDiagnostic, AssetUri,
-    ReferenceResolutionError, SceneAsset, SceneMobilityAsset,
+    project::{ProjectManager, ProjectPaths},
+    AssetReference, AssetRegistryDiagnostic, AssetUri, ReferenceResolutionError, SceneAsset,
+    SceneCameraAsset, SceneEntityAsset, SceneMobilityAsset,
+};
+use zircon_runtime::core::framework::platform::RuntimeTargetMode;
+use zircon_runtime::core::framework::{
+    ExportBuildMode, ExportPackagingStrategy, ExportTargetPlatform,
 };
 use zircon_runtime::core::resource::ResourceState;
+use zircon_runtime_interface::math::{view_matrix, Quat, Transform, Vec3};
 use zircon_runtime_interface::project::PROJECT_MANIFEST_FORMAT_VERSION;
 use zircon_runtime_interface::resource::ResourceScheme;
 
@@ -31,6 +37,26 @@ fn template_creation_copies_pack_rewrites_manifest_and_opens() {
     assert_eq!(
         opened.manifest().summary().format_version,
         PROJECT_MANIFEST_FORMAT_VERSION
+    );
+    let export_profile = opened
+        .manifest()
+        .export_profiles
+        .iter()
+        .find(|profile| profile.name == "desktop_windows")
+        .expect("RenderableEmpty manifest must retain the Windows client export profile");
+    assert_eq!(export_profile.target_mode, RuntimeTargetMode::ClientRuntime);
+    assert_eq!(
+        export_profile.target_platform,
+        ExportTargetPlatform::Windows
+    );
+    assert_eq!(export_profile.build_mode, ExportBuildMode::Release);
+    assert_eq!(
+        export_profile.strategies,
+        vec![
+            ExportPackagingStrategy::SourceTemplate,
+            ExportPackagingStrategy::LibraryEmbed,
+            ExportPackagingStrategy::NativeDynamic,
+        ]
     );
     assert_eq!(opened.paths().root(), created.root.as_path());
     for relative in [
@@ -186,9 +212,56 @@ fn renderable_empty_template_has_the_f2_camera_cube_and_sun_contract() {
         mesh.material.locator.to_string(),
         "res://materials/default.zmaterial"
     );
+    assert_template_point_is_visible_at_mvp_runtime_aspect_ratio(
+        camera,
+        projection,
+        cube.transform.translation,
+        "initial Cube",
+    );
+    let mut f4_authored_cube_translation = cube.transform.translation;
+    f4_authored_cube_translation[0] = 42.0;
+    assert_template_point_is_visible_at_mvp_runtime_aspect_ratio(
+        camera,
+        projection,
+        f4_authored_cube_translation,
+        "F4-authored Cube",
+    );
 
     drop(created);
     fs::remove_dir_all(location).unwrap();
+}
+
+fn assert_template_point_is_visible_at_mvp_runtime_aspect_ratio(
+    camera: &SceneEntityAsset,
+    projection: &SceneCameraAsset,
+    point: [f32; 3],
+    label: &str,
+) {
+    const MVP_RUNTIME_ASPECT_RATIO: f32 = 16.0 / 9.0;
+
+    assert!(
+        projection.fov_y_radians > 0.0 && projection.fov_y_radians < std::f32::consts::PI,
+        "RenderableEmpty Camera must have a finite perspective field of view"
+    );
+    let camera_transform = Transform {
+        translation: Vec3::from_array(camera.transform.translation),
+        rotation: Quat::from_array(camera.transform.rotation),
+        scale: Vec3::from_array(camera.transform.scale),
+    };
+    let cube_in_view = view_matrix(camera_transform).transform_point3(Vec3::from_array(point));
+    let depth = -cube_in_view.z;
+    assert!(
+        depth > projection.z_near && depth < projection.z_far,
+        "{label} must remain between Camera near/far planes, view_space={cube_in_view:?}"
+    );
+
+    let vertical_half_extent = depth * (projection.fov_y_radians * 0.5).tan();
+    let horizontal_half_extent = vertical_half_extent * MVP_RUNTIME_ASPECT_RATIO;
+    assert!(
+        cube_in_view.x.abs() < horizontal_half_extent
+            && cube_in_view.y.abs() < vertical_half_extent,
+        "{label} center must remain inside the MVP runtime view frustum, view_space={cube_in_view:?}"
+    );
 }
 
 #[test]

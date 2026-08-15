@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capture_frame
   - zircon_runtime/src/graphics/runtime/render_framework/graphics_debugger_capture
-  - zircon_editor/src/ui/retained_host/viewport/poll_image.rs
+  - zircon_editor/src/ui/retained_host/viewport/poll_captured_frame.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md

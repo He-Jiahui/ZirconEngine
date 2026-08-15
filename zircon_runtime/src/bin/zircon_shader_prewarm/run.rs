@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use zircon_runtime::core::framework::render::{
-    GEOMETRY_SOURCE_ID_STATIC_MESH, ShaderQualityTier, ShaderVariantPrewarmManifest,
-    ShaderVariantPrewarmReport,
+    ShaderQualityTier, ShaderVariantPrewarmManifest, ShaderVariantPrewarmReport,
+    GEOMETRY_SOURCE_ID_STATIC_MESH,
 };
 use zircon_runtime::dynamic_api::{
     default_shader_variant_cache_root_for_project, prewarm_shader_variants_with_execution_budget,
@@ -18,17 +18,18 @@ use super::error::{
     ShaderPrewarmResourceRegistryResult,
 };
 use super::manifest::{
-    ShaderPrewarmAssetInventory,
     asset_root_manifest_from_inventory_with_resource_registry_revisions_and_external_inputs,
     builtin_fallback_manifest_for_quality_tiers_and_geometry_sources, merge_manifests,
     permutation_registry::{
-        ShaderPrewarmPermutationRegistryOverlay, shader_permutation_registry_paths,
+        shader_permutation_registry_paths, ShaderPrewarmPermutationRegistryOverlay,
     },
     read_manifest,
     resource_registry::{
-        ShaderPrewarmResourceRegistryOverlay, shader_resource_records_from_asset_roots,
+        shader_resource_records_from_asset_roots,
         shader_resource_records_from_loaded_meta_document_refs,
+        ShaderPrewarmResourceRegistryOverlay,
     },
+    ShaderPrewarmAssetInventory,
 };
 
 pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String> {
@@ -400,11 +401,9 @@ mod tests {
         assert_eq!(report["written_count"], 0);
         assert_eq!(report["failed_count"], 0);
         assert_eq!(report["failures"], serde_json::json!([]));
-        assert!(
-            report["preflight_error"]
-                .as_str()
-                .is_some_and(|error| error.contains("max_resident_source_bytes must be non-zero"))
-        );
+        assert!(report["preflight_error"]
+            .as_str()
+            .is_some_and(|error| error.contains("max_resident_source_bytes must be non-zero")));
 
         fs::remove_dir_all(root).expect("fixture root should be removed");
     }

@@ -1,29 +1,38 @@
+use std::borrow::Cow;
 use std::fmt;
 use std::ops::Range;
 use std::sync::{Arc, Mutex};
 
-#[cfg(test)]
 use crate::core::framework::render::{
-    FallbackSkyboxKind, PreviewEnvironmentExtract, RenderOverlayExtract,
-    RenderSceneGeometryExtract, ViewportCameraSnapshot,
-};
-use crate::core::framework::render::{
-    RenderFrameExtract, RenderHybridGiReadbackOutputs, RenderPluginRendererOutputs,
-    RenderPreparedRuntimeSidebands, RenderSceneSnapshot, RenderVirtualGeometryReadbackOutputs,
+    RenderBudgetKey, RenderFrameExtract, RenderHybridGiReadbackOutputs, RenderMeshSnapshot,
+    RenderPluginRendererOutputs, RenderPreparedRuntimeSidebands, RenderSceneSnapshot,
+    RenderVirtualGeometryReadbackOutputs,
 };
 use crate::core::math::{UVec2, Vec3, Vec4};
 use crate::core::resource::ResourceId;
 use crate::graphics::scene::resources::MaterialCaptureSeed;
 use crate::graphics::scene::resources::ResourceStreamer;
-use crate::graphics::GraphicsError;
-use crate::graphics::ViewportRenderFrame;
-use zr_rhi_wgpu::{GpuReadbackQueue, ReadbackError};
+use crate::graphics::{GraphicsError, RuntimePrepareMeshGeometrySeed, ViewportRenderFrame};
+use zr_rhi_wgpu::{GpuPassTimer, GpuPassTimestampScope, GpuReadbackQueue, ReadbackError};
 
 pub trait RuntimePrepareCollector: Send + Sync {
     fn collect(
         &self,
         context: &mut RuntimePrepareCollectorContext<'_>,
     ) -> Result<RenderPluginRendererOutputs, GraphicsError>;
+}
+
+/// Opaque shared-timer scope for one runtime-prepare GPU dispatch group.
+pub struct RuntimePrepareGpuPassScope {
+    pass_name: String,
+    timestamp_scope: Option<GpuPassTimestampScope>,
+}
+
+pub(crate) struct RuntimePrepareGpuPassProfile {
+    pub(crate) pass_name: String,
+    pub(crate) executor_id: String,
+    pub(crate) budget_key: RenderBudgetKey,
+    pub(crate) cpu_elapsed_micros: u64,
 }
 
 pub struct RuntimePrepareCollectorContext<'a> {
@@ -35,9 +44,14 @@ pub struct RuntimePrepareCollectorContext<'a> {
     streamer: &'a ResourceStreamer,
     external_buffer_bindings: &'a mut Vec<RuntimePrepareExternalBufferBinding>,
     gpu_readbacks: Option<&'a mut Vec<RuntimePrepareGpuReadbackRequest>>,
+    gpu_work_admitted: bool,
+    gpu_pass_timer: Option<&'a mut GpuPassTimer>,
+    gpu_pass_profiles: Option<&'a mut Vec<RuntimePrepareGpuPassProfile>>,
 }
 
 impl<'a> RuntimePrepareCollectorContext<'a> {
+    pub const MAX_IN_FLIGHT_GPU_READBACK_FRAMES: usize = GpuReadbackQueue::FRAME_SLOTS;
+
     pub(crate) fn new(
         device: &'a wgpu::Device,
         queue: &'a wgpu::Queue,
@@ -55,6 +69,9 @@ impl<'a> RuntimePrepareCollectorContext<'a> {
             streamer,
             external_buffer_bindings,
             gpu_readbacks: None,
+            gpu_work_admitted: false,
+            gpu_pass_timer: None,
+            gpu_pass_profiles: None,
         }
     }
 
@@ -76,6 +93,99 @@ impl<'a> RuntimePrepareCollectorContext<'a> {
             streamer,
             external_buffer_bindings,
             gpu_readbacks: Some(gpu_readbacks),
+            gpu_work_admitted: true,
+            gpu_pass_timer: None,
+            gpu_pass_profiles: None,
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new_with_gpu_readbacks_and_gpu_work_admission(
+        device: &'a wgpu::Device,
+        queue: &'a wgpu::Queue,
+        encoder: &'a mut wgpu::CommandEncoder,
+        streamer: &'a ResourceStreamer,
+        frame: &'a ViewportRenderFrame,
+        external_buffer_bindings: &'a mut Vec<RuntimePrepareExternalBufferBinding>,
+        gpu_readbacks: &'a mut Vec<RuntimePrepareGpuReadbackRequest>,
+        gpu_work_admitted: bool,
+        gpu_pass_timer: Option<&'a mut GpuPassTimer>,
+        gpu_pass_profiles: &'a mut Vec<RuntimePrepareGpuPassProfile>,
+    ) -> Self {
+        Self {
+            device,
+            queue,
+            encoder,
+            frame_extract: &frame.extract,
+            frame,
+            streamer,
+            external_buffer_bindings,
+            gpu_readbacks: gpu_work_admitted.then_some(gpu_readbacks),
+            gpu_work_admitted,
+            gpu_pass_timer,
+            gpu_pass_profiles: Some(gpu_pass_profiles),
+        }
+    }
+
+    /// New runtime-prepare GPU work is valid only when its shared completion frame exists.
+    pub fn gpu_work_admitted(&self) -> bool {
+        self.gpu_work_admitted
+    }
+
+    pub fn begin_gpu_pass(&mut self, pass_name: impl Into<String>) -> RuntimePrepareGpuPassScope {
+        let pass_name = pass_name.into();
+        let timestamp_scope = if self.gpu_work_admitted {
+            let (gpu_pass_timer, encoder) = (&mut self.gpu_pass_timer, &mut self.encoder);
+            gpu_pass_timer
+                .as_deref_mut()
+                .and_then(|timer| timer.begin_pass(encoder, &pass_name))
+        } else {
+            None
+        };
+        RuntimePrepareGpuPassScope {
+            pass_name,
+            timestamp_scope,
+        }
+    }
+
+    pub fn end_gpu_pass(
+        &mut self,
+        scope: RuntimePrepareGpuPassScope,
+        executor_id: impl Into<String>,
+        budget_key: RenderBudgetKey,
+        cpu_elapsed_micros: u64,
+    ) {
+        if !self.gpu_work_admitted {
+            return;
+        }
+        let RuntimePrepareGpuPassScope {
+            pass_name,
+            timestamp_scope,
+        } = scope;
+        self.close_gpu_pass_timestamp_scope(timestamp_scope);
+        if let Some(profiles) = self.gpu_pass_profiles.as_deref_mut() {
+            profiles.push(RuntimePrepareGpuPassProfile {
+                pass_name,
+                executor_id: executor_id.into(),
+                budget_key,
+                cpu_elapsed_micros,
+            });
+        }
+    }
+
+    /// Closes an admitted scope when its attempted work encoded no GPU dispatch.
+    pub fn discard_gpu_pass(&mut self, scope: RuntimePrepareGpuPassScope) {
+        if self.gpu_work_admitted {
+            self.close_gpu_pass_timestamp_scope(scope.timestamp_scope);
+        }
+    }
+
+    fn close_gpu_pass_timestamp_scope(&mut self, timestamp_scope: Option<GpuPassTimestampScope>) {
+        if let Some(timestamp_scope) = timestamp_scope {
+            let (gpu_pass_timer, encoder) = (&mut self.gpu_pass_timer, &mut self.encoder);
+            if let Some(timer) = gpu_pass_timer.as_deref_mut() {
+                timer.end_pass(encoder, timestamp_scope);
+            }
         }
     }
 
@@ -130,6 +240,13 @@ impl<'a> RuntimePrepareCollectorContext<'a> {
             .map(RuntimePrepareMaterialCaptureSeed::from_material_capture_seed)
     }
 
+    pub fn mesh_geometry_seed(
+        &self,
+        mesh: &RenderMeshSnapshot,
+    ) -> Option<RuntimePrepareMeshGeometrySeed> {
+        self.streamer.render_mesh_geometry_seed(mesh)
+    }
+
     pub fn sample_texture_rgba(&self, id: Option<ResourceId>, uv: [f32; 2]) -> Option<Vec4> {
         self.streamer.sample_texture_rgba(id, uv)
     }
@@ -152,6 +269,21 @@ impl<'a> RuntimePrepareCollectorContext<'a> {
     ) {
         self.external_buffer_bindings
             .push(RuntimePrepareExternalBufferBinding::new(
+                logical_name,
+                backing_name,
+                buffer,
+            ));
+    }
+
+    /// Registers compile-time resource identities without allocating binding names per frame.
+    pub fn register_static_external_buffer_binding_with_backing(
+        &mut self,
+        logical_name: &'static str,
+        backing_name: &'static str,
+        buffer: &wgpu::Buffer,
+    ) {
+        self.external_buffer_bindings
+            .push(RuntimePrepareExternalBufferBinding::new_static(
                 logical_name,
                 backing_name,
                 buffer,
@@ -255,9 +387,11 @@ pub struct RuntimePrepareMaterialCaptureSeed {
     pub emissive: Vec3,
     pub metallic: f32,
     pub roughness: f32,
+    pub occlusion_strength: f32,
     pub double_sided: bool,
     pub alpha_blend: bool,
     pub alpha_cutoff: Option<f32>,
+    pub cast_shadows: bool,
     pub base_color_texture: Option<ResourceId>,
     pub normal_texture: Option<ResourceId>,
     pub metallic_roughness_texture: Option<ResourceId>,
@@ -272,9 +406,11 @@ impl RuntimePrepareMaterialCaptureSeed {
             emissive: seed.emissive,
             metallic: seed.metallic,
             roughness: seed.roughness,
+            occlusion_strength: seed.occlusion_strength,
             double_sided: seed.double_sided,
             alpha_blend: seed.alpha_blend,
             alpha_cutoff: seed.alpha_cutoff,
+            cast_shadows: seed.cast_shadows,
             base_color_texture: seed.base_color_texture,
             normal_texture: seed.normal_texture,
             metallic_roughness_texture: seed.metallic_roughness_texture,
@@ -286,8 +422,8 @@ impl RuntimePrepareMaterialCaptureSeed {
 
 #[derive(Clone)]
 pub(crate) struct RuntimePrepareExternalBufferBinding {
-    logical_name: String,
-    backing_name: String,
+    logical_name: Cow<'static, str>,
+    backing_name: Cow<'static, str>,
     buffer: wgpu::Buffer,
 }
 
@@ -298,18 +434,30 @@ impl RuntimePrepareExternalBufferBinding {
         buffer: &wgpu::Buffer,
     ) -> Self {
         Self {
-            logical_name: logical_name.into(),
-            backing_name: backing_name.into(),
+            logical_name: Cow::Owned(logical_name.into()),
+            backing_name: Cow::Owned(backing_name.into()),
+            buffer: buffer.clone(),
+        }
+    }
+
+    fn new_static(
+        logical_name: &'static str,
+        backing_name: &'static str,
+        buffer: &wgpu::Buffer,
+    ) -> Self {
+        Self {
+            logical_name: Cow::Borrowed(logical_name),
+            backing_name: Cow::Borrowed(backing_name),
             buffer: buffer.clone(),
         }
     }
 
     pub(crate) fn logical_name(&self) -> &str {
-        &self.logical_name
+        self.logical_name.as_ref()
     }
 
     pub(crate) fn backing_name(&self) -> &str {
-        &self.backing_name
+        self.backing_name.as_ref()
     }
 
     pub(crate) fn buffer(&self) -> &wgpu::Buffer {
@@ -380,234 +528,5 @@ impl fmt::Debug for RuntimePrepareCollectorRegistration {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::core::framework::render::{
-        RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderWorldSnapshotHandle,
-    };
-    use crate::graphics::backend::RenderBackend;
-
-    #[test]
-    fn collector_context_exposes_viewport_size_extract_and_prepared_sidebands() {
-        let backend = RenderBackend::new_offscreen().unwrap();
-        let RenderBackend { device, queue, .. } = backend;
-        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("zircon-runtime-prepare-context-test-encoder"),
-        });
-        let streamer = test_resource_streamer(&device, &queue);
-        let extract = RenderFrameExtract::from_snapshot(
-            RenderWorldSnapshotHandle::new(44),
-            empty_scene_snapshot(),
-        );
-        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(1280, 720))
-            .with_prepared_runtime_sidebands(RenderPreparedRuntimeSidebands::new(
-                RenderPluginRendererOutputs {
-                    virtual_geometry: RenderVirtualGeometryReadbackOutputs {
-                        node_cluster_cull: RenderVirtualGeometryNodeClusterCullReadbackOutputs {
-                            page_request_ids: vec![300],
-                            ..RenderVirtualGeometryNodeClusterCullReadbackOutputs::default()
-                        },
-                        ..RenderVirtualGeometryReadbackOutputs::default()
-                    },
-                    hybrid_gi: RenderHybridGiReadbackOutputs {
-                        completed_probe_ids: vec![7],
-                        ..RenderHybridGiReadbackOutputs::default()
-                    },
-                    ..RenderPluginRendererOutputs::default()
-                },
-                vec![11],
-                vec![22],
-            ));
-
-        let mut external_buffer_bindings = Vec::new();
-        let context = RuntimePrepareCollectorContext::new(
-            &device,
-            &queue,
-            &mut encoder,
-            &streamer,
-            &frame,
-            &mut external_buffer_bindings,
-        );
-
-        assert_eq!(context.viewport_size(), UVec2::new(1280, 720));
-        assert_eq!(context.frame_extract().world.raw(), 44);
-        assert_eq!(context.scene_snapshot().scene.meshes.len(), 0);
-        assert_eq!(
-            context
-                .prepared_hybrid_gi_readback_outputs()
-                .completed_probe_ids,
-            vec![7]
-        );
-        assert_eq!(
-            context
-                .prepared_virtual_geometry_readback_outputs()
-                .node_cluster_cull
-                .page_request_ids,
-            vec![300]
-        );
-        assert_eq!(context.prepared_hybrid_gi_evictable_probe_ids(), &[11]);
-        assert_eq!(
-            context.prepared_virtual_geometry_evictable_page_ids(),
-            &[22]
-        );
-    }
-
-    #[test]
-    fn collector_context_registers_external_buffer_bindings() {
-        let backend = RenderBackend::new_offscreen().unwrap();
-        let RenderBackend { device, queue, .. } = backend;
-        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("zircon-runtime-prepare-context-buffer-binding-test-encoder"),
-        });
-        let streamer = test_resource_streamer(&device, &queue);
-        let frame = ViewportRenderFrame::from_snapshot(empty_scene_snapshot(), UVec2::new(64, 64));
-        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("zircon-runtime-prepare-context-external-buffer"),
-            size: 32,
-            usage: wgpu::BufferUsages::STORAGE,
-            mapped_at_creation: false,
-        });
-        let mut external_buffer_bindings = Vec::new();
-
-        {
-            let mut context = RuntimePrepareCollectorContext::new(
-                &device,
-                &queue,
-                &mut encoder,
-                &streamer,
-                &frame,
-                &mut external_buffer_bindings,
-            );
-            context.register_external_buffer_binding_with_backing(
-                "particles.gpu.counters",
-                "particles.gpu.counters:test-runtime-prepare",
-                &buffer,
-            );
-        }
-
-        assert_eq!(external_buffer_bindings.len(), 1);
-        assert_eq!(
-            external_buffer_bindings[0].logical_name(),
-            "particles.gpu.counters"
-        );
-        assert_eq!(
-            external_buffer_bindings[0].backing_name(),
-            "particles.gpu.counters:test-runtime-prepare"
-        );
-    }
-
-    #[test]
-    fn collector_context_returns_nonblocking_shared_queue_readback_handles() {
-        let backend = RenderBackend::new_offscreen().unwrap();
-        let RenderBackend { device, queue, .. } = backend;
-        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("zircon-runtime-prepare-context-readback-test-encoder"),
-        });
-        let streamer = test_resource_streamer(&device, &queue);
-        let frame = ViewportRenderFrame::from_snapshot(empty_scene_snapshot(), UVec2::new(1, 1));
-        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("zircon-runtime-prepare-context-readback-source"),
-            size: 4,
-            usage: wgpu::BufferUsages::COPY_SRC,
-            mapped_at_creation: false,
-        });
-        let mut external_buffer_bindings = Vec::new();
-        let mut gpu_readbacks = Vec::new();
-        let mut context = RuntimePrepareCollectorContext::new_with_gpu_readbacks(
-            &device,
-            &queue,
-            &mut encoder,
-            &streamer,
-            &frame,
-            &mut external_buffer_bindings,
-            &mut gpu_readbacks,
-        );
-
-        let readback = context
-            .request_gpu_readback("test.runtime-prepare", &buffer, 0..4)
-            .unwrap();
-
-        assert!(!readback.is_ready());
-        assert_eq!(gpu_readbacks.len(), 1);
-        gpu_readbacks.pop().unwrap().fail("test readback rejection");
-        assert!(readback.is_ready());
-        assert!(readback.try_take().unwrap().is_err());
-    }
-
-    #[test]
-    fn collector_context_exposes_material_capture_streamer_accessors() {
-        let backend = RenderBackend::new_offscreen().unwrap();
-        let RenderBackend { device, queue, .. } = backend;
-        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("zircon-runtime-prepare-context-material-capture-test-encoder"),
-        });
-        let streamer = test_resource_streamer(&device, &queue);
-        let frame = ViewportRenderFrame::from_snapshot(empty_scene_snapshot(), UVec2::new(4, 4));
-        let mut external_buffer_bindings = Vec::new();
-        let context = RuntimePrepareCollectorContext::new(
-            &device,
-            &queue,
-            &mut encoder,
-            &streamer,
-            &frame,
-            &mut external_buffer_bindings,
-        );
-
-        let missing_material = ResourceId::from_stable_label("res://materials/missing.zmat");
-        assert!(context.material_capture_seed(&missing_material).is_none());
-        assert!(context.sample_texture_rgba(None, [0.5, 0.5]).is_none());
-    }
-
-    fn test_resource_streamer(device: &wgpu::Device, queue: &wgpu::Queue) -> ResourceStreamer {
-        let texture_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("zircon-runtime-prepare-context-test-texture-layout"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        multisampled: false,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-            ],
-        });
-        ResourceStreamer::new_for_test(
-            Arc::new(crate::asset::pipeline::manager::ProjectAssetManager::default()),
-            device,
-            queue,
-            &texture_layout,
-        )
-    }
-
-    fn empty_scene_snapshot() -> RenderSceneSnapshot {
-        RenderSceneSnapshot {
-            scene: RenderSceneGeometryExtract {
-                camera: ViewportCameraSnapshot::default(),
-                meshes: Vec::new(),
-                directional_lights: Vec::new(),
-                point_lights: Vec::new(),
-                spot_lights: Vec::new(),
-                ambient_lights: Vec::new(),
-                rect_lights: Vec::new(),
-            },
-            overlays: RenderOverlayExtract::default(),
-            environment: crate::core::framework::render::EnvironmentExtract::default(),
-            preview: PreviewEnvironmentExtract {
-                lighting_enabled: false,
-                skybox_enabled: false,
-                fallback_skybox: FallbackSkyboxKind::None,
-                clear_color: Vec4::ZERO,
-            },
-            virtual_geometry_debug: None,
-        }
-    }
-}
+#[path = "runtime_prepare_collector/tests.rs"]
+mod tests;

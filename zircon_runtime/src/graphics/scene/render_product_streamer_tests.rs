@@ -74,7 +74,9 @@ fn pbr_material_with_all_texture_slots() -> MaterialAsset {
         emissive_texture: Some(asset_reference("res://textures/emissive.png")),
         alpha_mode: AlphaMode::Mask { cutoff: 0.42 },
         double_sided: true,
-        property_values: Default::default(),
+        property_values: [("occlusion_strength".to_string(), toml::Value::Float(0.25))]
+            .into_iter()
+            .collect(),
         texture_slots: [
             (
                 "base_color",

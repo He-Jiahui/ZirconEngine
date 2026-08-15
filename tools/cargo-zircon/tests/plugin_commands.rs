@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -5,6 +6,220 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use cargo_zircon::plugin::check::check_plugin_workspace;
 use cargo_zircon::plugin::scaffold::{scaffold_plugin, NewPluginOptions, PluginKind};
 use cargo_zircon::plugin::validate::{validate_native_artifact, validate_plugin_manifest};
+use syn::parse::Parser;
+use syn::visit::{self, Visit};
+
+#[test]
+fn production_plugin_tooling_avoids_panic_shortcuts() {
+    let source_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    for path in production_rust_sources(&source_root) {
+        let source = fs::read_to_string(&path).expect("production Rust source should be readable");
+        let syntax = syn::parse_file(&source).expect("production Rust source should parse");
+        let mut audit = PanicShortcutAudit::default();
+        audit.visit_file(&syntax);
+        assert!(
+            audit.violations.is_empty(),
+            "{} contains production panic shortcuts: {}",
+            path.display(),
+            audit.violations.join(", ")
+        );
+    }
+}
+
+#[derive(Default)]
+struct PanicShortcutAudit {
+    violations: Vec<String>,
+}
+
+impl<'ast> Visit<'ast> for PanicShortcutAudit {
+    fn visit_item_mod(&mut self, node: &'ast syn::ItemMod) {
+        if has_test_cfg(&node.attrs) {
+            return;
+        }
+        visit::visit_item_mod(self, node);
+    }
+
+    fn visit_expr_method_call(&mut self, node: &'ast syn::ExprMethodCall) {
+        if node.method == "unwrap" || node.method == "expect" {
+            self.violations.push(format!(".{}()", node.method));
+        }
+        visit::visit_expr_method_call(self, node);
+    }
+
+    fn visit_expr_call(&mut self, node: &'ast syn::ExprCall) {
+        if let syn::Expr::Path(function) = node.func.as_ref() {
+            if let Some(method) = function.path.segments.last() {
+                if method.ident == "unwrap" || method.ident == "expect" {
+                    self.violations.push(format!("{}(...)", method.ident));
+                }
+            }
+        }
+        visit::visit_expr_call(self, node);
+    }
+
+    fn visit_macro(&mut self, node: &'ast syn::Macro) {
+        if node
+            .path
+            .segments
+            .last()
+            .is_some_and(|segment| segment.ident == "panic")
+        {
+            self.violations.push("panic!".to_string());
+        }
+        self.visit_macro_tokens(node.tokens.clone());
+        visit::visit_macro(self, node);
+    }
+}
+
+impl PanicShortcutAudit {
+    fn visit_macro_tokens(&mut self, tokens: proc_macro2::TokenStream) {
+        if let Ok(expression) = syn::parse2::<syn::Expr>(tokens.clone()) {
+            let mut nested = Self::default();
+            nested.visit_expr(&expression);
+            self.violations.extend(nested.violations);
+            return;
+        }
+
+        let parser = syn::punctuated::Punctuated::<syn::Expr, syn::Token![,]>::parse_terminated;
+        if let Ok(expressions) = parser.parse2(tokens.clone()) {
+            for expression in expressions {
+                let mut nested = Self::default();
+                nested.visit_expr(&expression);
+                self.violations.extend(nested.violations);
+            }
+            return;
+        }
+
+        self.visit_unparsed_macro_tokens(tokens);
+    }
+
+    fn visit_unparsed_macro_tokens(&mut self, tokens: proc_macro2::TokenStream) {
+        let trees = tokens.into_iter().collect::<Vec<_>>();
+        for tree in &trees {
+            if let proc_macro2::TokenTree::Group(group) = tree {
+                self.visit_unparsed_macro_tokens(group.stream());
+            }
+        }
+
+        for (index, tree) in trees.iter().enumerate() {
+            let proc_macro2::TokenTree::Ident(identifier) = tree else {
+                continue;
+            };
+            let name = identifier.to_string();
+            if name == "panic" && is_punctuation(trees.get(index + 1), '!') {
+                self.violations.push("panic!".to_string());
+            }
+            if name != "unwrap" && name != "expect" {
+                continue;
+            }
+
+            let is_method = is_punctuation(index.checked_sub(1).and_then(|i| trees.get(i)), '.');
+            let is_associated_function =
+                is_punctuation(index.checked_sub(1).and_then(|i| trees.get(i)), ':')
+                    && is_punctuation(index.checked_sub(2).and_then(|i| trees.get(i)), ':');
+            let is_call = matches!(
+                trees.get(index + 1),
+                Some(proc_macro2::TokenTree::Group(group))
+                    if group.delimiter() == proc_macro2::Delimiter::Parenthesis
+            );
+            if (is_method || is_associated_function) && is_call {
+                self.violations.push(format!("{name}(...)"));
+            }
+        }
+    }
+}
+
+fn is_punctuation(tree: Option<&proc_macro2::TokenTree>, expected: char) -> bool {
+    matches!(tree, Some(proc_macro2::TokenTree::Punct(punctuation)) if punctuation.as_char() == expected)
+}
+
+#[test]
+fn panic_shortcut_audit_catches_method_ufcs_and_macro_forms() {
+    let syntax = syn::parse_file(
+        r#"
+fn production_shortcuts(value: Option<u8>, result: Result<u8, &str>) {
+    value.unwrap();
+    Option::unwrap(value);
+    Result::expect(result, "value");
+    std::panic!("failure");
+    dbg!(value.unwrap());
+}
+
+macro_rules! extract {
+    ($value:expr) => { $value.unwrap() };
+}
+"#,
+    )
+    .expect("synthetic production source should parse");
+    let mut audit = PanicShortcutAudit::default();
+    audit.visit_file(&syntax);
+
+    assert!(audit
+        .violations
+        .iter()
+        .any(|violation| violation == ".unwrap()"));
+    assert!(audit
+        .violations
+        .iter()
+        .any(|violation| violation == "unwrap(...)"));
+    assert!(audit
+        .violations
+        .iter()
+        .any(|violation| violation == "expect(...)"));
+    assert!(audit
+        .violations
+        .iter()
+        .any(|violation| violation == "panic!"));
+    assert!(
+        audit
+            .violations
+            .iter()
+            .filter(|violation| violation.as_str() == ".unwrap()")
+            .count()
+            >= 2,
+        "macro token expressions should also be audited"
+    );
+    assert!(
+        audit
+            .violations
+            .iter()
+            .filter(|violation| violation.contains("unwrap"))
+            .count()
+            >= 4,
+        "non-expression macro DSL tokens should also be audited"
+    );
+}
+
+#[test]
+fn production_source_inventory_excludes_out_of_line_test_modules() {
+    let root = unique_test_directory();
+    let source_root = root.join("src");
+    write(
+        &source_root.join("lib.rs"),
+        "mod production;\n#[cfg(test)]\nmod tests;\n",
+    );
+    write(&source_root.join("production.rs"), "pub fn run() {}\n");
+    write(
+        &source_root.join("tests.rs"),
+        "#[test]\nfn helper() { Some(1).unwrap(); }\n",
+    );
+
+    let sources = production_rust_sources(&source_root);
+    assert!(sources.contains(&source_root.join("lib.rs")));
+    assert!(sources.contains(&source_root.join("production.rs")));
+    assert!(!sources.contains(&source_root.join("tests.rs")));
+
+    fs::remove_dir_all(root).expect("temporary source inventory should be removable");
+}
+
+fn has_test_cfg(attributes: &[syn::Attribute]) -> bool {
+    attributes.iter().any(|attribute| {
+        attribute.path().is_ident("cfg")
+            && attribute
+                .parse_args::<syn::Ident>()
+                .is_ok_and(|condition| condition == "test")
+    })
+}
 
 #[test]
 fn validate_reports_typed_manifest_diagnostics_with_repair_hints() {
@@ -586,6 +801,107 @@ zircon_first_party_runtime_catalog = { path = "../zircon_plugins/first_party_run
 fn write(path: &Path, contents: &str) {
     fs::create_dir_all(path.parent().unwrap()).unwrap();
     fs::write(path, contents).unwrap();
+}
+
+fn collect_rust_sources(directory: &Path, sources: &mut Vec<PathBuf>) {
+    for entry in fs::read_dir(directory).expect("source directory should be readable") {
+        let path = entry.expect("source entry should be readable").path();
+        if path.is_dir() {
+            collect_rust_sources(&path, sources);
+        } else if path.extension().and_then(|extension| extension.to_str()) == Some("rs") {
+            sources.push(path);
+        }
+    }
+}
+
+fn production_rust_sources(directory: &Path) -> Vec<PathBuf> {
+    let mut sources = Vec::new();
+    collect_rust_sources(directory, &mut sources);
+    let test_only_sources = collect_test_only_module_sources(&sources);
+    sources.retain(|path| !test_only_sources.contains(path));
+    sources
+}
+
+fn collect_test_only_module_sources(sources: &[PathBuf]) -> HashSet<PathBuf> {
+    let mut test_only_sources = HashSet::new();
+    for source_path in sources {
+        let source = fs::read_to_string(source_path).expect("Rust source should be readable");
+        let syntax = syn::parse_file(&source).expect("Rust source should parse");
+        let module_directory = child_module_directory(source_path);
+        let mut collector = TestOnlyModuleCollector {
+            module_directory,
+            test_only_sources: &mut test_only_sources,
+        };
+        collector.visit_file(&syntax);
+    }
+    test_only_sources
+}
+
+struct TestOnlyModuleCollector<'a> {
+    module_directory: PathBuf,
+    test_only_sources: &'a mut HashSet<PathBuf>,
+}
+
+impl<'ast> Visit<'ast> for TestOnlyModuleCollector<'_> {
+    fn visit_item_mod(&mut self, node: &'ast syn::ItemMod) {
+        if has_test_cfg(&node.attrs) {
+            if node.content.is_none() {
+                self.test_only_sources
+                    .extend(module_source_candidates(&self.module_directory, node));
+            }
+            return;
+        }
+
+        if let Some((_, items)) = &node.content {
+            let mut nested = TestOnlyModuleCollector {
+                module_directory: self.module_directory.join(node.ident.to_string()),
+                test_only_sources: self.test_only_sources,
+            };
+            for item in items {
+                nested.visit_item(item);
+            }
+        }
+    }
+}
+
+fn child_module_directory(source_path: &Path) -> PathBuf {
+    let parent = source_path
+        .parent()
+        .expect("Rust source should have a parent directory");
+    match source_path.file_name().and_then(|name| name.to_str()) {
+        Some("lib.rs" | "main.rs" | "mod.rs") => parent.to_path_buf(),
+        _ => parent.join(
+            source_path
+                .file_stem()
+                .expect("Rust source should have a file stem"),
+        ),
+    }
+}
+
+fn module_source_candidates(module_directory: &Path, node: &syn::ItemMod) -> Vec<PathBuf> {
+    if let Some(path) = node.attrs.iter().find_map(|attribute| {
+        if !attribute.path().is_ident("path") {
+            return None;
+        }
+        let syn::Meta::NameValue(name_value) = &attribute.meta else {
+            return None;
+        };
+        let syn::Expr::Lit(expression) = &name_value.value else {
+            return None;
+        };
+        let syn::Lit::Str(path) = &expression.lit else {
+            return None;
+        };
+        Some(path.value())
+    }) {
+        return vec![module_directory.join(path)];
+    }
+
+    let module_name = node.ident.to_string();
+    vec![
+        module_directory.join(format!("{module_name}.rs")),
+        module_directory.join(module_name).join("mod.rs"),
+    ]
 }
 
 fn unique_test_directory() -> PathBuf {

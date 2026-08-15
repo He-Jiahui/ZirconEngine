@@ -14,9 +14,7 @@ fn derived_world_matrix_uses_component_storage_without_a_fixed_owner() {
         world.get::<WorldMatrix>(entity).map(|matrix| matrix.0),
         Some(projected)
     );
-    assert!(!world.has_fixed_component_owner::<WorldMatrix>());
     assert!(world.contains_component::<ActiveInHierarchy>(entity));
-    assert!(!world.has_fixed_component_owner::<ActiveInHierarchy>());
 }
 
 #[test]
@@ -52,7 +50,7 @@ fn derived_state_projected_reads_use_direct_parent_branches() {
             .join("derived_state.rs"),
     );
     let world_matrix = source
-        .split("fn project_world_matrix_for_read_inner")
+        .split("pub(super) fn project_world_matrix_for_read")
         .nth(1)
         .and_then(|text| text.split("fn parent_for_read").next())
         .expect("read projected world matrix body");
@@ -68,19 +66,21 @@ fn derived_state_projected_reads_use_direct_parent_branches() {
         .expect("read active self chain body");
 
     assert!(
-        world_matrix.contains("let Some(parent) = self.parent_for_read(entity) else")
-            && world_matrix.contains("return Some(local_matrix);")
-            && world_matrix.contains(
-                "let Some(parent_matrix) = self.project_world_matrix_for_read_inner(parent, seen) else"
-            )
-            && world_matrix.contains("return None;")
-            && world_matrix.contains("Some(parent_matrix * local_matrix)")
+        world_matrix.contains("let mut lineage = Vec::new();")
+            && world_matrix.contains("let mut seen = HashSet::new();")
+            && world_matrix.contains("loop {")
+            && world_matrix.contains("let Some(parent) = self.parent_for_read(current) else")
+            && world_matrix.contains("for current in lineage.iter().rev().copied()")
+            && world_matrix
+                .contains("world = world * transform_to_mat4(self.local_transform_value(current));")
+            && world_matrix.contains("Some(world)")
+            && !world_matrix.contains("project_world_matrix_for_read_inner")
             && !world_matrix.contains(".map(|parent|")
             && !world_matrix.contains(".unwrap_or(Some(local_matrix))"),
-        "projected world-matrix reads must branch directly on parent and recursive parent matrix presence"
+        "projected world-matrix reads must compose the parent lineage iteratively without a recursive ancestor walk"
     );
     assert!(
-        parent_for_read.contains("let Some(hierarchy) = self.hierarchy.get(&entity) else")
+        parent_for_read.contains("let Some(hierarchy) = self.get::<Hierarchy>(entity) else")
             && parent_for_read.contains("let Some(parent) = hierarchy.parent else")
             && parent_for_read.contains("if parent == entity || !self.contains_entity(parent)")
             && parent_for_read.contains("Some(parent)")
@@ -89,13 +89,15 @@ fn derived_state_projected_reads_use_direct_parent_branches() {
         "parent_for_read must resolve valid parents through direct Option branches"
     );
     assert!(
-        active_chain.contains("if let Some(parent) = self.parent_for_read(entity)")
-            && active_chain.contains("if !self.active_self_chain_value(parent, seen)")
+        active_chain.contains("let mut seen = HashSet::new();")
+            && active_chain.contains("loop {")
+            && active_chain
+                .contains("if !seen.insert(current) || !self.active_self_value(current)")
+            && active_chain.contains("let Some(parent) = self.parent_for_read(current) else")
             && active_chain.contains("return false;")
-            && active_chain.contains("self.active_self_value(entity)")
             && !active_chain.contains(".map(|parent|")
             && !active_chain.contains(".unwrap_or(true)"),
-        "active-chain reads must branch directly on optional parent state"
+        "active-chain reads must iterate optional parent state without recursive ancestry calls"
     );
 }
 
@@ -138,8 +140,7 @@ fn derived_state_projected_value_reads_use_direct_branches() {
         active_read.contains("let Some(active) = self.get::<ActiveInHierarchy>(entity) else")
             && active_read.contains("return Some(active.0);")
             && active_read.contains("if !self.contains_entity(entity)")
-            && active_read
-                .contains("Some(self.active_self_chain_value(entity, &mut HashSet::new()))")
+            && active_read.contains("Some(self.active_self_chain_value(entity))")
             && !active_read.contains(".map(|active| active.0)")
             && !active_read.contains(".then(||"),
         "projected active reads must branch directly for cached and dirty paths"
@@ -187,10 +188,10 @@ fn derived_state_default_component_reads_use_direct_branches() {
         })
         .expect("read project_node_for_read body");
     let world_matrix = source
-        .split("fn project_world_matrix_for_read_inner")
+        .split("pub(super) fn project_world_matrix_for_read")
         .nth(1)
         .and_then(|text| text.split("fn parent_for_read").next())
-        .expect("read project_world_matrix_for_read_inner body");
+        .expect("read project_world_matrix_for_read body");
     let propagate_world = source
         .split("fn propagate_world_matrix")
         .nth(1)
@@ -222,28 +223,30 @@ fn derived_state_default_component_reads_use_direct_branches() {
     .join("\n");
 
     assert!(
-        local_value.contains("let Some(local) = self.local_transforms.get(&entity) else")
+        local_value.contains("let Some(local) = self.get::<LocalTransform>(entity) else")
             && local_value.contains("return Transform::default();")
             && local_value.contains("local.transform"),
         "local transform defaults must use a direct lookup branch"
     );
     assert!(
-        active_value.contains("let Some(active) = self.active_self.get(&entity) else")
+        active_value.contains("let Some(active) = self.get::<ActiveSelf>(entity) else")
             && active_value.contains("return true;")
             && active_value.contains("active.0"),
         "active-self defaults must use a direct lookup branch"
     );
     assert!(
-        project_node.contains("let Some(name) = self.names.get(&entity) else")
+        project_node.contains("let Some(name) = self.get::<Name>(entity) else")
             && project_node.contains("let Some(kind) = self.node_kind(entity) else")
             && project_node.contains("name: name.0.clone()")
             && project_node.contains("transform: self.local_transform_value(entity)"),
         "projected node reads must branch directly for name/kind and reuse local transform helper"
     );
     assert!(
-        world_matrix.contains("let local = self.local_transform_value(entity);")
+        world_matrix.contains("let mut lineage = Vec::new();")
+            && world_matrix.contains("for current in lineage.iter().rev().copied()")
+            && world_matrix.contains("self.local_transform_value(current)")
             && propagate_world.contains("let local = self.local_transform_value(entity);")
-            && refresh.contains("let Some(name) = self.names.get(&entity) else")
+            && refresh.contains("let Some(name) = self.get::<Name>(entity) else")
             && refresh.contains("name: name.0.clone()")
             && refresh.contains("transform: self.local_transform_value(entity)"),
         "world-matrix and node-cache rebuilds must reuse direct default/name branches"
@@ -273,7 +276,7 @@ fn node_records_projection_uses_pre_sized_push_snapshot() {
 
     assert!(
         node_records.contains("let mut nodes = Vec::with_capacity(self.entities.len());")
-            && node_records.contains("for entity in self.entities.iter().copied()")
+            && node_records.contains("for entity in self.stable_entity_ids()")
             && node_records.contains("self.project_node_for_read(entity)")
             && node_records.contains("nodes.push(node);")
             && node_records.contains("nodes.sort_by_key(|node| node.id);")
@@ -309,25 +312,25 @@ fn world_query_scalar_accessors_use_direct_lookup_branches() {
         .expect("read render_layer_mask body");
 
     assert!(
-        parent_of.contains("let Some(hierarchy) = self.hierarchy.get(&entity) else")
+        parent_of.contains("let Some(hierarchy) = self.get::<Hierarchy>(entity) else")
             && parent_of.contains("return None;")
             && parent_of.contains("hierarchy.parent")
             && !parent_of.contains(".and_then(|hierarchy| hierarchy.parent)"),
         "parent_of must branch directly on hierarchy presence"
     );
     assert!(
-        active_self.contains("let Some(active) = self.active_self.get(&entity) else")
+        active_self.contains("let Some(active) = self.get::<ActiveSelf>(entity) else")
             && active_self.contains("return None;")
             && active_self.contains("Some(active.0)")
             && !active_self.contains(".map(|active| active.0)"),
-        "active_self must branch directly on fixed active component presence"
+        "active_self must branch directly on generic active component presence"
     );
     assert!(
-        render_layer_mask.contains("let Some(mask) = self.render_layer_masks.get(&entity) else")
+        render_layer_mask.contains("let Some(mask) = self.get::<RenderLayerMask>(entity) else")
             && render_layer_mask.contains("return None;")
             && render_layer_mask.contains("Some(mask.0)")
             && !render_layer_mask.contains(".map(|mask| mask.0)"),
-        "render_layer_mask must branch directly on fixed render-layer component presence"
+        "render_layer_mask must branch directly on generic render-layer component presence"
     );
 }
 
@@ -349,7 +352,7 @@ fn retained_node_cache_refresh_reuses_pre_sized_storage() {
     assert!(
         refresh.contains("self.node_cache.clear();")
             && refresh.contains("self.node_cache.reserve(self.entities.len());")
-            && refresh.contains("for entity in self.entities.iter().copied()")
+            && refresh.contains("for entity in self.stable_entity_ids()")
             && refresh.contains("self.node_cache.push(SceneNode")
             && refresh.contains("parent: self.parent_of(entity)")
             && !refresh.contains("self.node_cache = self")

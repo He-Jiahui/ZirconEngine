@@ -1,5 +1,6 @@
-use std::path::PathBuf;
+use std::num::NonZeroU64;
 
+use zircon_runtime::asset::project::ResolvedProjectPath;
 use zircon_runtime::core::framework::window::{WindowDescriptor, WindowLifecyclePolicy};
 use zircon_runtime::platform::EventLoopPolicy;
 
@@ -8,8 +9,8 @@ pub(in crate::entry) struct RuntimeEntryAppConfig {
     pub(in crate::entry::runtime_entry_app) window_descriptor: WindowDescriptor,
     pub(in crate::entry::runtime_entry_app) event_loop_policy: EventLoopPolicy,
     pub(in crate::entry::runtime_entry_app) window_lifecycle_policy: WindowLifecyclePolicy,
-    pub(in crate::entry::runtime_entry_app) exit_after_first_presented_frame: bool,
-    pub(in crate::entry::runtime_entry_app) first_frame_capture_path: Option<PathBuf>,
+    pub(in crate::entry::runtime_entry_app) exit_after_presented_frames: Option<NonZeroU64>,
+    pub(in crate::entry::runtime_entry_app) first_frame_capture_path: Option<ResolvedProjectPath>,
     pub(in crate::entry::runtime_entry_app) require_persisted_scene_diagnostics: bool,
 }
 
@@ -50,11 +51,19 @@ impl RuntimeEntryAppConfig {
     }
 
     pub(in crate::entry) fn with_exit_after_first_presented_frame(mut self, exit: bool) -> Self {
-        self.exit_after_first_presented_frame = exit;
+        self.exit_after_presented_frames = exit.then_some(NonZeroU64::MIN);
         self
     }
 
-    pub(in crate::entry) fn with_first_frame_capture_path(mut self, path: Option<PathBuf>) -> Self {
+    pub(in crate::entry) fn with_exit_after_presented_frames(mut self, limit: NonZeroU64) -> Self {
+        self.exit_after_presented_frames = Some(limit);
+        self
+    }
+
+    pub(in crate::entry) fn with_first_frame_capture_path(
+        mut self,
+        path: Option<ResolvedProjectPath>,
+    ) -> Self {
         self.first_frame_capture_path = path;
         self
     }
@@ -81,12 +90,17 @@ impl RuntimeEntryAppConfig {
 
     #[cfg(test)]
     pub(in crate::entry) fn exit_after_first_presented_frame(&self) -> bool {
-        self.exit_after_first_presented_frame
+        self.exit_after_presented_frames == Some(NonZeroU64::MIN)
     }
 
     #[cfg(test)]
-    pub(in crate::entry) fn first_frame_capture_path(&self) -> Option<&std::path::Path> {
-        self.first_frame_capture_path.as_deref()
+    pub(in crate::entry) fn exit_after_presented_frames(&self) -> Option<NonZeroU64> {
+        self.exit_after_presented_frames
+    }
+
+    #[cfg(test)]
+    pub(in crate::entry) fn first_frame_capture_path(&self) -> Option<&ResolvedProjectPath> {
+        self.first_frame_capture_path.as_ref()
     }
 
     #[cfg(test)]
@@ -101,7 +115,7 @@ impl Default for RuntimeEntryAppConfig {
             window_descriptor: WindowDescriptor::default(),
             event_loop_policy: EventLoopPolicy::Game,
             window_lifecycle_policy: WindowLifecyclePolicy::default(),
-            exit_after_first_presented_frame: false,
+            exit_after_presented_frames: None,
             first_frame_capture_path: None,
             require_persisted_scene_diagnostics: false,
         }
@@ -110,6 +124,8 @@ impl Default for RuntimeEntryAppConfig {
 
 #[cfg(test)]
 mod tests {
+    use std::num::NonZeroU64;
+
     use super::*;
 
     #[test]
@@ -163,14 +179,23 @@ mod tests {
     }
 
     #[test]
+    fn runtime_entry_app_config_can_exit_after_a_requested_presented_frame_count() {
+        let limit = NonZeroU64::new(120).unwrap();
+        let config = RuntimeEntryAppConfig::default().with_exit_after_presented_frames(limit);
+
+        assert_eq!(config.exit_after_presented_frames(), Some(limit));
+        assert!(!config.exit_after_first_presented_frame());
+    }
+
+    #[test]
     fn runtime_entry_app_config_can_request_a_first_frame_capture() {
         let path = std::path::PathBuf::from("E:/evidence/runtime-first-frame.png");
-        let config = RuntimeEntryAppConfig::default().with_first_frame_capture_path(Some(path));
+        let resolved_path = zircon_runtime::asset::project::ProjectPaths::resolve_path(&path)
+            .expect("capture path should resolve");
+        let config = RuntimeEntryAppConfig::default()
+            .with_first_frame_capture_path(Some(resolved_path.clone()));
 
-        assert_eq!(
-            config.first_frame_capture_path(),
-            Some(std::path::Path::new("E:/evidence/runtime-first-frame.png"))
-        );
+        assert_eq!(config.first_frame_capture_path(), Some(&resolved_path));
     }
 
     #[test]

@@ -46,6 +46,7 @@ fn parse_ui_counter(counter: &ProfileCounterSnapshot) -> Option<(&str, &str)> {
 struct UiScenarioAccumulator {
     hotspot: UiScenarioHotspot,
     frame_durations_us: Vec<u64>,
+    gpu_times_us: Vec<u64>,
 }
 
 impl UiScenarioAccumulator {
@@ -53,6 +54,7 @@ impl UiScenarioAccumulator {
         Self {
             hotspot: UiScenarioHotspot::empty(scenario),
             frame_durations_us: Vec::new(),
+            gpu_times_us: Vec::new(),
         }
     }
 
@@ -60,6 +62,63 @@ impl UiScenarioAccumulator {
         let value = counter_value(counter);
         match metric {
             "frame_duration_us" => self.frame_durations_us.push(value),
+            "host_invalidation_transaction_count" => {
+                self.hotspot.host_invalidation_transaction_count = self
+                    .hotspot
+                    .host_invalidation_transaction_count
+                    .saturating_add(value)
+            }
+            "host_invalidation_scope_count" => {
+                self.hotspot.host_invalidation_scope_count = self
+                    .hotspot
+                    .host_invalidation_scope_count
+                    .saturating_add(value)
+            }
+            "host_invalidation_legacy_dirty_transaction_count" => {
+                self.hotspot
+                    .host_invalidation_legacy_dirty_transaction_count = self
+                    .hotspot
+                    .host_invalidation_legacy_dirty_transaction_count
+                    .saturating_add(value)
+            }
+            "host_invalidation_full_target_count" => {
+                self.hotspot.host_invalidation_full_target_count = self
+                    .hotspot
+                    .host_invalidation_full_target_count
+                    .saturating_add(value)
+            }
+            "host_invalidation_shell_content_target_count" => {
+                self.hotspot.host_invalidation_shell_content_target_count = self
+                    .hotspot
+                    .host_invalidation_shell_content_target_count
+                    .saturating_add(value)
+            }
+            "host_invalidation_workbench_projection_target_count" => {
+                self.hotspot
+                    .host_invalidation_workbench_projection_target_count = self
+                    .hotspot
+                    .host_invalidation_workbench_projection_target_count
+                    .saturating_add(value)
+            }
+            "host_invalidation_view_presentation_target_count" => {
+                self.hotspot
+                    .host_invalidation_view_presentation_target_count = self
+                    .hotspot
+                    .host_invalidation_view_presentation_target_count
+                    .saturating_add(value)
+            }
+            "host_invalidation_window_metrics_target_count" => {
+                self.hotspot.host_invalidation_window_metrics_target_count = self
+                    .hotspot
+                    .host_invalidation_window_metrics_target_count
+                    .saturating_add(value)
+            }
+            "host_invalidation_paint_only_target_count" => {
+                self.hotspot.host_invalidation_paint_only_target_count = self
+                    .hotspot
+                    .host_invalidation_paint_only_target_count
+                    .saturating_add(value)
+            }
             "slow_path_rebuild_count" => {
                 self.hotspot.slow_path_rebuild_count =
                     self.hotspot.slow_path_rebuild_count.saturating_add(value)
@@ -74,6 +133,55 @@ impl UiScenarioAccumulator {
                     .presentation_rebuild_count
                     .saturating_add(value)
             }
+            "asset_editor_pane_presentation_build_count" => {
+                self.hotspot.asset_editor_pane_presentation_build_count = self
+                    .hotspot
+                    .asset_editor_pane_presentation_build_count
+                    .saturating_add(value)
+            }
+            "asset_editor_pane_reflection_build_count" => {
+                self.hotspot.asset_editor_pane_reflection_build_count = self
+                    .hotspot
+                    .asset_editor_pane_reflection_build_count
+                    .saturating_add(value)
+            }
+            "asset_editor_pane_preview_build_count" => {
+                self.hotspot.asset_editor_pane_preview_build_count = self
+                    .hotspot
+                    .asset_editor_pane_preview_build_count
+                    .saturating_add(value)
+            }
+            "asset_editor_pane_source_build_count" => {
+                self.hotspot.asset_editor_pane_source_build_count = self
+                    .hotspot
+                    .asset_editor_pane_source_build_count
+                    .saturating_add(value)
+            }
+            "asset_editor_pane_inspector_build_count" => {
+                self.hotspot.asset_editor_pane_inspector_build_count = self
+                    .hotspot
+                    .asset_editor_pane_inspector_build_count
+                    .saturating_add(value)
+            }
+            "asset_editor_pane_style_build_count" => {
+                self.hotspot.asset_editor_pane_style_build_count = self
+                    .hotspot
+                    .asset_editor_pane_style_build_count
+                    .saturating_add(value)
+            }
+            "asset_editor_pane_theme_build_count" => {
+                self.hotspot.asset_editor_pane_theme_build_count = self
+                    .hotspot
+                    .asset_editor_pane_theme_build_count
+                    .saturating_add(value)
+            }
+            "asset_editor_pane_command_availability_build_count" => {
+                self.hotspot
+                    .asset_editor_pane_command_availability_build_count = self
+                    .hotspot
+                    .asset_editor_pane_command_availability_build_count
+                    .saturating_add(value)
+            }
             "full_paint_count" => {
                 self.hotspot.full_paint_count = self.hotspot.full_paint_count.saturating_add(value)
             }
@@ -83,6 +191,10 @@ impl UiScenarioAccumulator {
             }
             "painted_pixels" => {
                 self.hotspot.painted_pixels = self.hotspot.painted_pixels.saturating_add(value)
+            }
+            "presented_surface_pixels" => {
+                self.hotspot.presented_surface_pixels =
+                    self.hotspot.presented_surface_pixels.saturating_add(value)
             }
             "redraw_full_frame" => {
                 self.hotspot.redraw_full_frame_count =
@@ -118,6 +230,100 @@ impl UiScenarioAccumulator {
                     .workbench_model_build_count
                     .saturating_add(value)
             }
+            "workbench_hit_index_build_count" => {
+                self.hotspot.workbench_hit_index_build_count = self
+                    .hotspot
+                    .workbench_hit_index_build_count
+                    .saturating_add(value)
+            }
+            "workbench_hit_index_query_count" => {
+                self.hotspot.workbench_hit_index_query_count = self
+                    .hotspot
+                    .workbench_hit_index_query_count
+                    .saturating_add(value)
+            }
+            "pane_popup_index_query_count" => {
+                self.hotspot.pane_popup_index_query_count = self
+                    .hotspot
+                    .pane_popup_index_query_count
+                    .saturating_add(value)
+            }
+            "pane_popup_index_candidate_count" => {
+                self.hotspot.pane_popup_index_candidate_count = self
+                    .hotspot
+                    .pane_popup_index_candidate_count
+                    .saturating_add(value)
+            }
+            "visual_asset_targeted_invalidation_count" => {
+                self.hotspot.visual_asset_targeted_invalidation_count = self
+                    .hotspot
+                    .visual_asset_targeted_invalidation_count
+                    .saturating_add(value)
+            }
+            "svg_tree_targeted_invalidation_count" => {
+                self.hotspot.svg_tree_targeted_invalidation_count = self
+                    .hotspot
+                    .svg_tree_targeted_invalidation_count
+                    .saturating_add(value)
+            }
+            "visual_asset_reconcile_source_visit_count" => {
+                self.hotspot.visual_asset_reconcile_source_visit_count = self
+                    .hotspot
+                    .visual_asset_reconcile_source_visit_count
+                    .saturating_add(value)
+            }
+            "visual_asset_reconciled_invalidation_count" => {
+                self.hotspot.visual_asset_reconciled_invalidation_count = self
+                    .hotspot
+                    .visual_asset_reconciled_invalidation_count
+                    .saturating_add(value)
+            }
+            "svg_tree_reconcile_source_visit_count" => {
+                self.hotspot.svg_tree_reconcile_source_visit_count = self
+                    .hotspot
+                    .svg_tree_reconcile_source_visit_count
+                    .saturating_add(value)
+            }
+            "svg_tree_reconciled_invalidation_count" => {
+                self.hotspot.svg_tree_reconciled_invalidation_count = self
+                    .hotspot
+                    .svg_tree_reconciled_invalidation_count
+                    .saturating_add(value)
+            }
+            "visual_asset_full_invalidation_count" => {
+                self.hotspot.visual_asset_full_invalidation_count = self
+                    .hotspot
+                    .visual_asset_full_invalidation_count
+                    .saturating_add(value)
+            }
+            "visual_asset_cache_hit_count" => {
+                self.hotspot.visual_asset_cache_hit_count = self
+                    .hotspot
+                    .visual_asset_cache_hit_count
+                    .saturating_add(value)
+            }
+            "visual_asset_cache_miss_count" => {
+                self.hotspot.visual_asset_cache_miss_count = self
+                    .hotspot
+                    .visual_asset_cache_miss_count
+                    .saturating_add(value)
+            }
+            "visual_asset_cache_candidate_build_count" => {
+                self.hotspot.visual_asset_cache_candidate_build_count = self
+                    .hotspot
+                    .visual_asset_cache_candidate_build_count
+                    .saturating_add(value)
+            }
+            "svg_tree_cache_memory_hit_count" => {
+                self.hotspot.svg_tree_cache_memory_hit_count = self
+                    .hotspot
+                    .svg_tree_cache_memory_hit_count
+                    .saturating_add(value)
+            }
+            "svg_tree_cache_miss_count" => {
+                self.hotspot.svg_tree_cache_miss_count =
+                    self.hotspot.svg_tree_cache_miss_count.saturating_add(value)
+            }
             "chrome_command_full_rebuild_count" => {
                 self.hotspot.chrome_command_full_rebuild_count = self
                     .hotspot
@@ -139,8 +345,87 @@ impl UiScenarioAccumulator {
             "gpu_upload_bytes" => {
                 self.hotspot.gpu_upload_bytes = self.hotspot.gpu_upload_bytes.saturating_add(value)
             }
+            "gpu_image_upload_writes" => {
+                self.hotspot.gpu_image_upload_write_count = self
+                    .hotspot
+                    .gpu_image_upload_write_count
+                    .saturating_add(value)
+            }
+            "gpu_image_shared_resolves" => {
+                self.hotspot.gpu_image_shared_resolve_count = self
+                    .hotspot
+                    .gpu_image_shared_resolve_count
+                    .saturating_add(value)
+            }
+            "gpu_image_shared_upload_writes" => {
+                self.hotspot.gpu_image_shared_upload_write_count = self
+                    .hotspot
+                    .gpu_image_shared_upload_write_count
+                    .saturating_add(value)
+            }
+            "gpu_image_shared_upload_bytes" => {
+                self.hotspot.gpu_image_shared_upload_bytes = self
+                    .hotspot
+                    .gpu_image_shared_upload_bytes
+                    .saturating_add(value)
+            }
+            "gpu_image_shared_resident_bytes" => {
+                self.hotspot.gpu_image_shared_resident_bytes =
+                    self.hotspot.gpu_image_shared_resident_bytes.max(value)
+            }
+            "gpu_image_cache_key_allocations" => {
+                self.hotspot.gpu_image_cache_key_allocation_count = self
+                    .hotspot
+                    .gpu_image_cache_key_allocation_count
+                    .saturating_add(value)
+            }
+            "gpu_image_cache_prune_visits" => {
+                self.hotspot.gpu_image_cache_prune_visit_count = self
+                    .hotspot
+                    .gpu_image_cache_prune_visit_count
+                    .saturating_add(value)
+            }
+            "gpu_image_cache_admission_rejects" => {
+                self.hotspot.gpu_image_cache_admission_reject_count = self
+                    .hotspot
+                    .gpu_image_cache_admission_reject_count
+                    .saturating_add(value)
+            }
+            "gpu_image_invalid_payloads" => {
+                self.hotspot.gpu_image_invalid_payload_count = self
+                    .hotspot
+                    .gpu_image_invalid_payload_count
+                    .saturating_add(value)
+            }
+            "gpu_image_cache_resident_bytes" => {
+                self.hotspot.gpu_image_cache_resident_bytes =
+                    self.hotspot.gpu_image_cache_resident_bytes.max(value)
+            }
+            "gpu_image_prepare_command_visits" => {
+                self.hotspot.gpu_image_prepare_command_visit_count = self
+                    .hotspot
+                    .gpu_image_prepare_command_visit_count
+                    .saturating_add(value)
+            }
+            "gpu_image_prepare_cache_hits" => {
+                self.hotspot.gpu_image_prepare_cache_hit_count = self
+                    .hotspot
+                    .gpu_image_prepare_cache_hit_count
+                    .saturating_add(value)
+            }
             "gpu_draw_calls" => {
                 self.hotspot.gpu_draw_calls = self.hotspot.gpu_draw_calls.saturating_add(value)
+            }
+            "gpu_timestamp_supported_present_count" => {
+                self.hotspot.gpu_timestamp_supported_present_count = self
+                    .hotspot
+                    .gpu_timestamp_supported_present_count
+                    .saturating_add(value)
+            }
+            "gpu_time_us" => self.gpu_times_us.push(value),
+            "gpu_profile_latency_frames" => {
+                self.hotspot.gpu_profile_latency_max_frames =
+                    self.hotspot.gpu_profile_latency_max_frames.max(value)
             }
             "gpu_visible_commands" => {
                 self.hotspot.gpu_visible_commands =
@@ -150,12 +435,44 @@ impl UiScenarioAccumulator {
                 self.hotspot.gpu_visible_draw_items =
                     self.hotspot.gpu_visible_draw_items.saturating_add(value)
             }
+            "gpu_compiled_draw_items" => {
+                self.hotspot.gpu_compiled_draw_items =
+                    self.hotspot.gpu_compiled_draw_items.saturating_add(value)
+            }
             "gpu_batch_layers" => {
                 self.hotspot.gpu_batch_layers = self.hotspot.gpu_batch_layers.saturating_add(value)
             }
             "gpu_batch_dependencies" => {
                 self.hotspot.gpu_batch_dependencies =
                     self.hotspot.gpu_batch_dependencies.saturating_add(value)
+            }
+            "gpu_batch_plan_builds" => {
+                self.hotspot.gpu_batch_plan_build_count = self
+                    .hotspot
+                    .gpu_batch_plan_build_count
+                    .saturating_add(value)
+            }
+            "gpu_batch_plan_cache_hits" => {
+                self.hotspot.gpu_batch_plan_cache_hit_count = self
+                    .hotspot
+                    .gpu_batch_plan_cache_hit_count
+                    .saturating_add(value)
+            }
+            "gpu_vertex_buffer_creates" => {
+                self.hotspot.gpu_vertex_buffer_create_count = self
+                    .hotspot
+                    .gpu_vertex_buffer_create_count
+                    .saturating_add(value)
+            }
+            "gpu_vertex_upload_bytes" => {
+                self.hotspot.gpu_vertex_upload_bytes =
+                    self.hotspot.gpu_vertex_upload_bytes.saturating_add(value)
+            }
+            "gpu_retained_cache_copy_bytes" => {
+                self.hotspot.gpu_retained_cache_copy_bytes = self
+                    .hotspot
+                    .gpu_retained_cache_copy_bytes
+                    .saturating_add(value)
             }
             _ => {}
         }
@@ -166,6 +483,11 @@ impl UiScenarioAccumulator {
         self.hotspot.frame_count = self.frame_durations_us.len() as u64;
         self.hotspot.frame_p95_us = percentile(&self.frame_durations_us, 95);
         self.hotspot.frame_max_us = self.frame_durations_us.last().copied().unwrap_or(0);
+        self.gpu_times_us.sort_unstable();
+        self.hotspot.gpu_time_sample_count = self.gpu_times_us.len() as u64;
+        self.hotspot.gpu_time_p50_us = percentile(&self.gpu_times_us, 50);
+        self.hotspot.gpu_time_p95_us = percentile(&self.gpu_times_us, 95);
+        self.hotspot.gpu_time_max_us = self.gpu_times_us.last().copied().unwrap_or(0);
         self.hotspot
     }
 }
@@ -219,6 +541,40 @@ fn alerts_for_scenarios(scenarios: &[UiScenarioHotspot]) -> Vec<UiHotspotAlert> 
                 "Viewport image updates should upload texture bytes through the GPU presenter instead of dirtying layout or repainting through software.",
             ));
         }
+        if scenario.gpu_image_cache_admission_reject_count > 0 {
+            alerts.push(alert(
+                scenario,
+                "gpu_image_cache_rejected_active_resources",
+                "The GPU image cache rejected resources during the scenario; inspect unstable image identities and cache budgets.",
+            ));
+        }
+        if scenario.gpu_image_invalid_payload_count > 0 {
+            alerts.push(alert(
+                scenario,
+                "gpu_image_payload_was_invalid",
+                "The GPU image cache rejected malformed or incomplete image payloads.",
+            ));
+        }
+        if matches!(scenario.scenario.as_str(), "idle_hover" | "click")
+            && scenario.gpu_batch_plan_cache_hit_count > 0
+        {
+            alerts.push(alert(
+                scenario,
+                "live_patch_reused_compiled_full_projection",
+                "Live hover/click damage streams are partial projections and must not reuse a versioned full-projection batch plan.",
+            ));
+        }
+        if matches!(
+            scenario.scenario.as_str(),
+            "idle_hover" | "click" | "window_resize"
+        ) && scenario.visual_asset_full_invalidation_count > 0
+        {
+            alerts.push(alert(
+                scenario,
+                "non_asset_interaction_cleared_visual_asset_caches",
+                "Pointer and resize scenarios must not clear SVG, raster, or icon-atlas caches.",
+            ));
+        }
         if matches!(scenario.scenario.as_str(), "idle_hover" | "click")
             && scenario.presentation_rebuild_count > 0
         {
@@ -226,6 +582,15 @@ fn alerts_for_scenarios(scenarios: &[UiScenarioHotspot]) -> Vec<UiHotspotAlert> 
                 scenario,
                 "non_structural_interaction_rebuilt_presentation",
                 "Hover/click should stay paint-only unless component structure changed.",
+            ));
+        }
+        if matches!(scenario.scenario.as_str(), "idle_hover" | "click")
+            && scenario.asset_editor_pane_presentation_build_count > 0
+        {
+            alerts.push(alert(
+                scenario,
+                "non_structural_interaction_rebuilt_asset_editor_pane_presentation",
+                "Hover/click should not rebuild the asset editor pane presentation unless the asset editor state changed.",
             ));
         }
         if scenario.scenario == "idle_hover"
@@ -325,6 +690,79 @@ mod tests {
         snapshot
             .counters
             .push(counter("ui.idle_hover.painted_pixels", 120.0));
+        for (name, value) in [
+            ("ui.idle_hover.presented_surface_pixels", 480.0),
+            ("ui.idle_hover.host_invalidation_transaction_count", 4.0),
+            ("ui.idle_hover.host_invalidation_scope_count", 5.0),
+            (
+                "ui.idle_hover.host_invalidation_legacy_dirty_transaction_count",
+                1.0,
+            ),
+            ("ui.idle_hover.host_invalidation_full_target_count", 1.0),
+            (
+                "ui.idle_hover.host_invalidation_shell_content_target_count",
+                1.0,
+            ),
+            (
+                "ui.idle_hover.host_invalidation_workbench_projection_target_count",
+                1.0,
+            ),
+            (
+                "ui.idle_hover.host_invalidation_view_presentation_target_count",
+                1.0,
+            ),
+            (
+                "ui.idle_hover.host_invalidation_window_metrics_target_count",
+                0.0,
+            ),
+            (
+                "ui.idle_hover.host_invalidation_paint_only_target_count",
+                0.0,
+            ),
+        ] {
+            snapshot.counters.push(counter(name, value));
+        }
+        snapshot.counters.push(counter(
+            "ui.idle_hover.asset_editor_pane_presentation_build_count",
+            4.0,
+        ));
+        snapshot.counters.push(counter(
+            "ui.idle_hover.asset_editor_pane_reflection_build_count",
+            5.0,
+        ));
+        snapshot.counters.push(counter(
+            "ui.idle_hover.asset_editor_pane_preview_build_count",
+            6.0,
+        ));
+        snapshot.counters.push(counter(
+            "ui.idle_hover.asset_editor_pane_source_build_count",
+            7.0,
+        ));
+        snapshot.counters.push(counter(
+            "ui.idle_hover.asset_editor_pane_inspector_build_count",
+            8.0,
+        ));
+        snapshot.counters.push(counter(
+            "ui.idle_hover.asset_editor_pane_style_build_count",
+            9.0,
+        ));
+        snapshot.counters.push(counter(
+            "ui.idle_hover.asset_editor_pane_theme_build_count",
+            10.0,
+        ));
+        snapshot.counters.push(counter(
+            "ui.idle_hover.asset_editor_pane_command_availability_build_count",
+            11.0,
+        ));
+        for (name, value) in [
+            ("ui.idle_hover.gpu_timestamp_supported_present_count", 3.0),
+            ("ui.idle_hover.gpu_time_us", 100.0),
+            ("ui.idle_hover.gpu_time_us", 200.0),
+            ("ui.idle_hover.gpu_time_us", 400.0),
+            ("ui.idle_hover.gpu_profile_latency_frames", 2.0),
+        ] {
+            snapshot.counters.push(counter(name, value));
+        }
         snapshot
             .counters
             .push(counter("ui.drawer_resize.slow_path_rebuild_count", 1.0));
@@ -334,7 +772,7 @@ mod tests {
 
         let report = super::analyze_ui_hotspots(&snapshot);
 
-        assert_eq!(report.generated_from_counter_count, 4);
+        assert_eq!(report.generated_from_counter_count, 27);
         let idle = report
             .scenarios
             .iter()
@@ -343,10 +781,113 @@ mod tests {
         assert_eq!(idle.redraw_region_count, 2);
         assert_eq!(idle.chrome_command_patch_count, 3);
         assert_eq!(idle.painted_pixels, 120);
+        assert_eq!(idle.presented_surface_pixels, 480);
+        assert_eq!(idle.host_invalidation_transaction_count, 4);
+        assert_eq!(idle.host_invalidation_scope_count, 5);
+        assert_eq!(idle.host_invalidation_legacy_dirty_transaction_count, 1);
+        assert_eq!(idle.host_invalidation_full_target_count, 1);
+        assert_eq!(idle.host_invalidation_shell_content_target_count, 1);
+        assert_eq!(idle.host_invalidation_workbench_projection_target_count, 1);
+        assert_eq!(idle.host_invalidation_view_presentation_target_count, 1);
+        assert_eq!(idle.host_invalidation_window_metrics_target_count, 0);
+        assert_eq!(idle.host_invalidation_paint_only_target_count, 0);
+        assert_eq!(idle.asset_editor_pane_presentation_build_count, 4);
+        assert_eq!(idle.asset_editor_pane_reflection_build_count, 5);
+        assert_eq!(idle.asset_editor_pane_preview_build_count, 6);
+        assert_eq!(idle.asset_editor_pane_source_build_count, 7);
+        assert_eq!(idle.asset_editor_pane_inspector_build_count, 8);
+        assert_eq!(idle.asset_editor_pane_style_build_count, 9);
+        assert_eq!(idle.asset_editor_pane_theme_build_count, 10);
+        assert_eq!(idle.asset_editor_pane_command_availability_build_count, 11);
+        assert_eq!(idle.gpu_timestamp_supported_present_count, 3);
+        assert_eq!(idle.gpu_time_sample_count, 3);
+        assert_eq!(idle.gpu_time_p50_us, 200);
+        assert_eq!(idle.gpu_time_p95_us, 400);
+        assert_eq!(idle.gpu_time_max_us, 400);
+        assert_eq!(idle.gpu_profile_latency_max_frames, 2);
         assert!(report
             .alerts
             .iter()
             .any(|alert| alert.rule == "resize_triggered_slow_path_rebuild"));
+        assert!(report.alerts.iter().any(|alert| {
+            alert.rule == "non_structural_interaction_rebuilt_asset_editor_pane_presentation"
+        }));
+    }
+
+    #[test]
+    fn ui_hotspots_preserve_hit_index_and_gpu_image_cache_evidence() {
+        let mut snapshot = ProfileSnapshot::default();
+        for (name, value) in [
+            ("ui.idle_hover.workbench_hit_index_query_count", 8.0),
+            ("ui.idle_hover.pane_popup_index_query_count", 4.0),
+            ("ui.idle_hover.pane_popup_index_candidate_count", 0.0),
+            ("ui.idle_hover.gpu_image_upload_writes", 1.0),
+            ("ui.idle_hover.gpu_image_shared_resolves", 3.0),
+            ("ui.idle_hover.gpu_image_prepare_cache_hits", 7.0),
+            ("ui.idle_hover.gpu_image_cache_resident_bytes", 1024.0),
+            ("ui.idle_hover.gpu_compiled_draw_items", 12.0),
+            ("ui.idle_hover.gpu_batch_plan_builds", 3.0),
+            ("ui.idle_hover.gpu_batch_plan_cache_hits", 0.0),
+            ("ui.idle_hover.gpu_vertex_buffer_creates", 2.0),
+            ("ui.idle_hover.gpu_vertex_upload_bytes", 4096.0),
+            ("ui.idle_hover.gpu_retained_cache_copy_bytes", 8192.0),
+            ("ui.idle_hover.visual_asset_cache_hit_count", 9.0),
+            ("ui.idle_hover.svg_tree_cache_memory_hit_count", 2.0),
+            (
+                "ui.idle_hover.visual_asset_reconcile_source_visit_count",
+                5.0,
+            ),
+            (
+                "ui.idle_hover.visual_asset_reconciled_invalidation_count",
+                1.0,
+            ),
+            ("ui.idle_hover.svg_tree_reconcile_source_visit_count", 3.0),
+            ("ui.idle_hover.svg_tree_reconciled_invalidation_count", 1.0),
+        ] {
+            snapshot.counters.push(counter(name, value));
+        }
+
+        let report = super::analyze_ui_hotspots(&snapshot);
+        let idle = report
+            .scenarios
+            .iter()
+            .find(|scenario| scenario.scenario == "idle_hover")
+            .expect("idle hover scenario");
+
+        assert_eq!(idle.workbench_hit_index_query_count, 8);
+        assert_eq!(idle.pane_popup_index_query_count, 4);
+        assert_eq!(idle.pane_popup_index_candidate_count, 0);
+        assert_eq!(idle.gpu_image_upload_write_count, 1);
+        assert_eq!(idle.gpu_image_shared_resolve_count, 3);
+        assert_eq!(idle.gpu_image_prepare_cache_hit_count, 7);
+        assert_eq!(idle.gpu_image_cache_resident_bytes, 1024);
+        assert_eq!(idle.gpu_compiled_draw_items, 12);
+        assert_eq!(idle.gpu_batch_plan_build_count, 3);
+        assert_eq!(idle.gpu_batch_plan_cache_hit_count, 0);
+        assert_eq!(idle.gpu_vertex_buffer_create_count, 2);
+        assert_eq!(idle.gpu_vertex_upload_bytes, 4096);
+        assert_eq!(idle.gpu_retained_cache_copy_bytes, 8192);
+        assert_eq!(idle.visual_asset_cache_hit_count, 9);
+        assert_eq!(idle.svg_tree_cache_memory_hit_count, 2);
+        assert_eq!(idle.visual_asset_reconcile_source_visit_count, 5);
+        assert_eq!(idle.visual_asset_reconciled_invalidation_count, 1);
+        assert_eq!(idle.svg_tree_reconcile_source_visit_count, 3);
+        assert_eq!(idle.svg_tree_reconciled_invalidation_count, 1);
+    }
+
+    #[test]
+    fn live_interaction_compiled_plan_cache_hit_is_flagged() {
+        let mut snapshot = ProfileSnapshot::default();
+        snapshot
+            .counters
+            .push(counter("ui.click.gpu_batch_plan_cache_hits", 1.0));
+
+        let report = super::analyze_ui_hotspots(&snapshot);
+
+        assert!(report
+            .alerts
+            .iter()
+            .any(|alert| alert.rule == "live_patch_reused_compiled_full_projection"));
     }
 
     #[test]

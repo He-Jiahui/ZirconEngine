@@ -29,6 +29,9 @@ def build_report(root: Path) -> dict[str, Any]:
             "oversized_production_file_count": module_convention_gate[
                 "oversized_production_file_count"
             ],
+            "oversized_test_file_count": module_convention_gate[
+                "oversized_test_file_count"
+            ],
             "production_dead_code_suppression_count": module_convention_gate[
                 "production_dead_code_suppression_count"
             ],
@@ -46,6 +49,7 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Migration debt count: {gate['migration_debt_count']}",
         f"- Production files: {gate['production_file_count']}",
         f"- Oversized production files: {gate['oversized_production_file_count']}",
+        f"- Oversized test files: {gate['oversized_test_file_count']}",
         f"- Production dead-code suppressions: {gate['production_dead_code_suppression_count']}",
         f"- Banned name modules: {gate['banned_name_module_count']}",
         f"- UI owner boundary violations: {gate['ui_module_owner_boundary_violation_count']}",
@@ -54,6 +58,7 @@ def render_markdown(report: dict[str, Any]) -> str:
     ]
     for title, key in [
         ("Oversized Production Files", "oversized_production_files"),
+        ("Oversized Test Files", "oversized_test_files"),
         ("Production Dead-Code Suppressions", "production_dead_code_suppressions"),
         ("Banned Name Modules", "banned_name_modules"),
         ("UI Owner Boundary Violations", "ui_module_owner_boundary_violations"),
@@ -70,6 +75,14 @@ def render_markdown(report: dict[str, Any]) -> str:
         lines.append("")
         lines.append("## Missing Visual Style Owner Files")
         lines.extend(f"- `{path}`" for path in missing_visual_style)
+    test_exemptions = gate["oversized_test_file_exemptions"]
+    if test_exemptions:
+        lines.append("")
+        lines.append("## Oversized Test File Exemptions")
+        lines.extend(
+            f"- `{entry['path']}`: {entry['reason']}"
+            for entry in test_exemptions
+        )
     return "\n".join(lines) + "\n"
 
 

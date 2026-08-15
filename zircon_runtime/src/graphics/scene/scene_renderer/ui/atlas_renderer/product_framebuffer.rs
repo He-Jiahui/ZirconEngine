@@ -4,11 +4,11 @@ use std::{
 };
 
 use crate::core::math::UVec2;
-use crate::graphics::backend::{RenderBackend, read_texture_rgba};
+use crate::graphics::backend::{read_texture_rgba, RenderBackend};
 use crate::text::atlas::render_plan::GlyphAtlasScreenRect;
 use crate::text::atlas::{
-    GlyphAtlasBitmapSource, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat,
-    glyph_atlas_bitmap_render_submission_plan,
+    glyph_atlas_bitmap_render_submission_plan, GlyphAtlasBitmapSource,
+    GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat,
 };
 
 use super::GlyphAtlasBitmapRenderer;

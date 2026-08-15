@@ -30,6 +30,27 @@ fn editor_gui_startup_parser_accepts_project_path() {
 }
 
 #[test]
+fn editor_gui_startup_parser_rejects_retired_operation_control_flags() {
+    for args in [
+        vec![
+            "--operation".to_string(),
+            "window.layout.reset".to_string(),
+            "--headless".to_string(),
+        ],
+        vec!["--list-operations".to_string(), "--headless".to_string()],
+        vec!["--operation-history".to_string(), "--headless".to_string()],
+    ] {
+        let error = EditorGuiStartupRequestArgs::parse(args).unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .starts_with("unknown editor GUI startup argument `"),
+            "retired operation control flags must fail in the unified launch parser: {error}"
+        );
+    }
+}
+
+#[test]
 fn editor_gui_startup_parser_accepts_builtin_view_request() {
     let request = EditorGuiStartupRequestArgs::parse([
         "--builtin-view".to_string(),
@@ -161,17 +182,10 @@ fn editor_host_startup_request_hides_windows_verbatim_project_path_prefixes() {
 
 #[test]
 fn create_startup_request_is_materialized_before_runtime_session_startup() {
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let location = std::env::temp_dir().join(format!(
-        "zircon_app_editor_startup_create_{}_{}",
-        std::process::id(),
-        unique
-    ));
+    let location = unique_temp_project_root("editor-startup-create");
     std::fs::create_dir_all(&location).unwrap();
     let project_root = location.join("StartupProject");
+    let resolved_project_root = ProjectPaths::resolve_path(&project_root).unwrap();
 
     let prepared =
         prepare_editor_gui_startup(Some(EditorGuiStartupRequest::create_renderable_empty(
@@ -182,11 +196,13 @@ fn create_startup_request_is_materialized_before_runtime_session_startup() {
 
     assert_eq!(
         prepared.startup_request,
-        Some(EditorGuiStartupRequest::open_project(&project_root))
+        Some(EditorGuiStartupRequest::open_project(
+            resolved_project_root.operation_path()
+        ))
     );
     assert_eq!(
         prepared.prepared_project.as_ref().unwrap().paths().root(),
-        project_root.as_path()
+        resolved_project_root.operation_path()
     );
     assert!(project_root.join("zircon-project.toml").is_file());
 
@@ -195,11 +211,39 @@ fn create_startup_request_is_materialized_before_runtime_session_startup() {
 }
 
 #[test]
+fn editor_gui_startup_normalizes_a_manifest_input_to_its_resolved_project_root() {
+    let root = unique_temp_project_root("startup_manifest_input");
+    write_project_manifest_with_plugins(&root, 0);
+    let manifest = root.join(zircon_runtime::asset::project::PROJECT_MANIFEST_FILE);
+    let resolved_root = ProjectPaths::resolve_path(&root).unwrap();
+
+    let prepared =
+        prepare_editor_gui_startup(Some(EditorGuiStartupRequest::open_project(&manifest))).unwrap();
+
+    assert_eq!(
+        prepared.startup_request,
+        Some(EditorGuiStartupRequest::open_project(
+            resolved_root.operation_path()
+        ))
+    );
+    assert_eq!(
+        prepared.prepared_project.as_ref().unwrap().paths().root(),
+        resolved_root.operation_path()
+    );
+
+    drop(prepared);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn editor_entry_has_one_prepared_startup_projection_owner() {
     let source = include_str!("../../editor.rs");
 
     assert!(source.contains("prepare_editor_gui_startup(gui_startup_request)"));
-    assert!(source.contains("} = prepare_editor_operation_startup()?;"));
+    assert!(
+        !source.contains("EditorCliOperationRequest"),
+        "the retired operation-control parser must not remain in the editor entry"
+    );
     assert_eq!(
         source
             .matches("ProjectAuthority::default().open_project(")
@@ -207,12 +251,16 @@ fn editor_entry_has_one_prepared_startup_projection_owner() {
         1,
         "the entry preparation owns the one project open for a startup generation"
     );
+    assert!(
+        !source.contains("ProjectManager::open("),
+        "the entry must use ProjectAuthority's resolve-once operation instead of reopening a raw path"
+    );
     assert_eq!(
         source
             .matches("first_party_runtime_plugin_registrations_for_config(")
             .count(),
         1,
-        "GUI and CLI startup must consume one runtime registration projection"
+        "GUI startup must consume one runtime registration projection"
     );
     assert_eq!(
         source
@@ -351,17 +399,6 @@ fn editor_gui_startup_injects_selected_native_registrations_from_the_prepared_pr
 }
 
 #[test]
-fn editor_gui_startup_parser_leaves_headless_args_for_operation_parser() {
-    assert!(EditorGuiStartupRequestArgs::parse([
-        "--operation".to_string(),
-        "window.layout.reset".to_string(),
-        "--headless".to_string(),
-    ])
-    .unwrap()
-    .is_none());
-}
-
-#[test]
 fn editor_gui_startup_parser_rejects_create_without_required_fields() {
     let error = EditorGuiStartupRequestArgs::parse([
         "--create-project".to_string(),
@@ -394,11 +431,39 @@ fn unique_temp_project_root(label: &str) -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    std::env::temp_dir().join(format!(
-        "zircon_app_{label}_{}_{}",
-        std::process::id(),
-        unique
-    ))
+    let executable =
+        std::env::current_exe().expect("locate the editor GUI startup test executable");
+    let binary_directory = executable
+        .parent()
+        .expect("editor GUI startup test executable must have a parent directory");
+    let binary_directory = ProjectPaths::resolve_existing(binary_directory)
+        .expect("resolve the editor GUI startup test binary directory");
+
+    binary_directory
+        .operation_path()
+        .join("zircon-mvp-fixtures")
+        .join(format!(
+            "zircon_app_{label}_{}_{}",
+            std::process::id(),
+            unique
+        ))
+}
+
+#[test]
+fn editor_gui_startup_fixture_roots_follow_the_resolved_test_binary_directory() {
+    let root = unique_temp_project_root("physical-root");
+    let executable =
+        std::env::current_exe().expect("locate the editor GUI startup test executable");
+    let binary_directory = executable
+        .parent()
+        .expect("editor GUI startup test executable must have a parent directory");
+    let resolved_binary_directory = ProjectPaths::resolve_existing(binary_directory)
+        .expect("resolve editor GUI startup test binary directory");
+
+    assert!(
+        root.starts_with(resolved_binary_directory.operation_path()),
+        "editor GUI startup fixture output must retain the test binary's physical output root"
+    );
 }
 
 fn write_project_manifest_with_plugins(root: &std::path::Path, plugin_count: usize) {

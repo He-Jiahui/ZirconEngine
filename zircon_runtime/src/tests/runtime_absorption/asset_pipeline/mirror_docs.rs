@@ -1,10 +1,10 @@
 use std::path::Path;
 
+use super::cargo_gate::assert_runtime_04_mirror_docs;
 use super::inventory::{
-    ASSET_PIPELINE_MIRROR_DOC_ANCHORS, EXPECTED_RUNTIME_04_BEHAVIOR_TEST_ANCHORS,
-    EXPECTED_RUNTIME_04_GUARD_ANCHORS, EXPECTED_RUNTIME_04_GUARD_FILES,
-    EXPECTED_RUNTIME_04_SOURCE_FILES, RUNTIME_11_SHARED_COMPLETION_TEST_ANCHORS,
-    RUNTIME_11_WORKER_TIMER_TEST_ANCHORS,
+    EXPECTED_RUNTIME_04_BEHAVIOR_TEST_ANCHORS, EXPECTED_RUNTIME_04_GUARD_ANCHORS,
+    EXPECTED_RUNTIME_04_GUARD_FILES, EXPECTED_RUNTIME_04_SOURCE_FILES,
+    RUNTIME_11_SHARED_COMPLETION_TEST_ANCHORS, RUNTIME_11_WORKER_TIMER_TEST_ANCHORS,
 };
 use super::support::{assert_contains_all, assert_files_exist};
 
@@ -47,7 +47,9 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
         include_str!("../asset_surface/facade_query.rs"),
         include_str!("../asset_worker_policy.rs"),
         include_str!("../asset_worker_policy/worker_pool.rs"),
+        include_str!("cargo_gate.rs"),
         include_str!("mirror_docs.rs"),
+        include_str!("split_layout.rs"),
         include_str!("../../../asset/facade/load_state.rs"),
     ]
     .join("\n");
@@ -112,54 +114,7 @@ fn runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts() {
         ],
     );
 
-    let mirror_docs = [
-        (
-            "Runtime 04 plan",
-            include_str!(
-                "../../../../../docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md"
-            ),
-        ),
-        (
-            "runtime index",
-            include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
-        ),
-        (
-            "asset facade doc",
-            include_str!("../../../../../docs/zircon_runtime/asset/facade.md"),
-        ),
-        (
-            "asset worker pool doc",
-            include_str!("../../../../../docs/zircon_runtime/asset/worker_pool.md"),
-        ),
-        (
-            "asset watcher doc",
-            include_str!("../../../../../docs/zircon_runtime/asset/watcher.md"),
-        ),
-        (
-            "asset artifact doc",
-            include_str!("../../../../../docs/zircon_runtime/asset/artifact.md"),
-        ),
-        (
-            "core resource doc",
-            include_str!("../../../../../docs/zircon_runtime/core/resource.md"),
-        ),
-        (
-            "M0 review",
-            include_str!(
-                "../../../../../docs/engine-architecture/runtime-architecture-review-m0.md"
-            ),
-        ),
-        (
-            "runtime-interface convergence",
-            include_str!(
-                "../../../../../docs/engine-architecture/runtime-interface-convergence.md"
-            ),
-        ),
-    ];
-
-    for (doc_name, doc_source) in mirror_docs {
-        assert_contains_all(doc_name, doc_source, ASSET_PIPELINE_MIRROR_DOC_ANCHORS);
-    }
+    assert_runtime_04_mirror_docs();
 
     assert!(
         !workspace_root.join("zircon_asset/src/lib.rs").exists(),

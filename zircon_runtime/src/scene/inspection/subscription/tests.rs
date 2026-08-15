@@ -5,10 +5,10 @@ use zircon_runtime_interface::world_sync::{
     AssetReloadFrameApplyReportDto, WatchKey, WatchRegistration, WorldFact,
 };
 
-use crate::scene::World;
 use crate::scene::components::NodeKind;
+use crate::scene::World;
 
-use super::{SubscriptionTable, SubscriptionTableLimits, ancestor_chain_contains};
+use super::{ancestor_chain_contains, SubscriptionTable, SubscriptionTableLimits};
 
 #[test]
 fn watch_allocates_distinct_tokens_and_unwatch_revokes_pending_dirty() {
@@ -48,7 +48,9 @@ fn typed_indexes_route_without_scanning_unrelated_watch_variants() {
     table.invalidate_component_type("tests.Health");
     table.invalidate_asset(scene);
 
-    assert_eq!(table.flush(9).unwrap().dirty, vec![component, asset]);
+    let batch = table.flush(9).unwrap();
+    assert_eq!(batch.dirty, vec![component, asset]);
+    assert!(batch.has_canonical_dirty_tokens());
     let diagnostics = table.diagnostics();
     assert_eq!(diagnostics.direct_key_probes(), 2);
     assert_eq!(diagnostics.matched_tokens(), 2);
@@ -80,6 +82,32 @@ fn subtree_invalidation_walks_ancestry_once_for_many_watches() {
     assert_eq!(diagnostics.ancestor_visited_allocations(), 1);
     assert_eq!(diagnostics.ancestor_nodes(), 2);
     assert_eq!(diagnostics.direct_key_probes(), 2);
+}
+
+#[test]
+fn repeated_subtree_invalidation_reuses_its_session_owned_ancestry_scratch() {
+    let mut world = World::empty();
+    let root = world.spawn_node(NodeKind::Empty);
+    let child = world.spawn_node(NodeKind::Empty);
+    world.set_parent_checked(child, Some(root)).unwrap();
+
+    let mut table = SubscriptionTable::default();
+    table.watch(WatchRegistration::new(WatchKey::Subtree { root }));
+
+    table.invalidate_subtree(&world, child);
+    table.flush(world.world_generation());
+    let warmed = table.diagnostics();
+
+    table.invalidate_subtree(&world, child);
+    table.flush(world.world_generation());
+    let repeated = table.diagnostics();
+
+    assert_eq!(repeated.ancestor_walks(), warmed.ancestor_walks() + 1);
+    assert_eq!(
+        repeated.ancestor_visited_allocations(),
+        warmed.ancestor_visited_allocations(),
+        "same-depth invalidation must reuse the session-owned ancestry scratch"
+    );
 }
 
 #[test]

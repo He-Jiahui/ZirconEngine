@@ -27,6 +27,20 @@ fn clamp_positive(value: f32) -> f32 {
     value.max(0.0)
 }
 
+fn material_occlusion(sample: f32, strength: f32) -> f32 {
+    let sample = if sample.is_finite() {
+        clamp01(sample)
+    } else {
+        1.0
+    };
+    let strength = if strength.is_finite() {
+        clamp01(strength)
+    } else {
+        1.0
+    };
+    clamp01(1.0 + (sample - 1.0) * strength)
+}
+
 fn saturate_vec3(value: Vec3) -> Vec3 {
     Vec3::new(clamp01(value.x), clamp01(value.y), clamp01(value.z))
 }
@@ -261,9 +275,11 @@ fn default_material_capture_seed() -> HybridGiMaterialCaptureSeed {
         emissive: Vec3::ZERO,
         metallic: 0.0,
         roughness: 1.0,
+        occlusion_strength: 1.0,
         double_sided: false,
         alpha_blend: false,
         alpha_cutoff: None,
+        cast_shadows: true,
         base_color_texture: None,
         normal_texture: None,
         metallic_roughness_texture: None,
@@ -294,13 +310,10 @@ pub(super) fn mesh_capture_radiance(
         sample_material_texture_rgba(streamer, material.base_color_texture, texture_uv);
     let metallic_roughness_texture =
         sample_material_texture_rgb(streamer, material.metallic_roughness_texture, texture_uv);
-    let occlusion = clamp01(sample_material_texture_value(
-        streamer,
-        material.occlusion_texture,
-        texture_uv,
-        0,
-        1.0,
-    ));
+    let occlusion = material_occlusion(
+        sample_material_texture_value(streamer, material.occlusion_texture, texture_uv, 0, 1.0),
+        material.occlusion_strength,
+    );
     let emissive_texture =
         sample_material_texture_rgb(streamer, material.emissive_texture, texture_uv);
     let material_albedo = component_mul(
@@ -432,9 +445,13 @@ pub(super) fn scene_voxel_clipmap_rgba(
 #[cfg(test)]
 mod tests {
     use zircon_runtime::core::framework::render::{
-        RenderDirectionalLightSnapshot, RenderLayerSet, RenderPointLightSnapshot,
-        RenderSpotLightSnapshot,
+        render_mesh_stable_instance_key, render_mesh_transform_revision,
+        RenderDirectionalLightSnapshot, RenderLayerSet, RenderMeshStaticState,
+        RenderPointLightSnapshot, RenderSpotLightSnapshot, RendererCommon,
     };
+    use zircon_runtime::core::framework::scene::Mobility;
+    use zircon_runtime::core::math::Transform;
+    use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
     use super::*;
 
@@ -525,5 +542,95 @@ mod tests {
 
         assert!(inside.z > 0.0);
         assert_eq!(outside, Vec3::ZERO);
+    }
+
+    #[test]
+    fn material_occlusion_applies_gltf_strength() {
+        assert_eq!(material_occlusion(0.2, 0.0), 1.0);
+        assert!((material_occlusion(0.2, 0.25) - 0.8).abs() <= f32::EPSILON);
+        assert!((material_occlusion(0.2, 1.0) - 0.2).abs() <= f32::EPSILON);
+        assert_eq!(material_occlusion(f32::NAN, 1.0), 1.0);
+        assert_eq!(material_occlusion(0.2, f32::NAN), 0.2);
+    }
+
+    #[test]
+    fn card_capture_applies_gltf_occlusion_strength_to_indirect_light() {
+        let no_occlusion = capture_ambient_with_occlusion_strength(0.0);
+        let quarter_strength = capture_ambient_with_occlusion_strength(0.25);
+        let full_strength = capture_ambient_with_occlusion_strength(1.0);
+
+        assert!((no_occlusion.x - 0.08).abs() <= 0.000_001);
+        assert!((quarter_strength.x - 0.064).abs() <= 0.000_001);
+        assert!((full_strength.x - 0.016).abs() <= 0.000_001);
+        assert!(no_occlusion.x > quarter_strength.x);
+        assert!(quarter_strength.x > full_strength.x);
+    }
+
+    struct OcclusionCaptureSource {
+        seed: HybridGiMaterialCaptureSeed,
+        occlusion_texture: ResourceId,
+    }
+
+    impl HybridGiMaterialCaptureSource for OcclusionCaptureSource {
+        fn material_capture_seed(&self, _id: &ResourceId) -> Option<HybridGiMaterialCaptureSeed> {
+            Some(self.seed)
+        }
+
+        fn sample_texture_rgba(&self, id: Option<ResourceId>, _uv: [f32; 2]) -> Option<Vec4> {
+            (id == Some(self.occlusion_texture)).then_some(Vec4::splat(0.2))
+        }
+    }
+
+    fn capture_ambient_with_occlusion_strength(occlusion_strength: f32) -> Vec3 {
+        let material_id = ResourceId::from_stable_label("res://materials/occlusion.zmaterial");
+        let occlusion_texture = ResourceId::from_stable_label("res://textures/occlusion.png");
+        let source = OcclusionCaptureSource {
+            seed: HybridGiMaterialCaptureSeed {
+                base_color: Vec4::ONE,
+                emissive: Vec3::ZERO,
+                metallic: 0.0,
+                roughness: 1.0,
+                occlusion_strength,
+                double_sided: false,
+                alpha_blend: false,
+                alpha_cutoff: None,
+                cast_shadows: true,
+                base_color_texture: None,
+                normal_texture: None,
+                metallic_roughness_texture: None,
+                occlusion_texture: Some(occlusion_texture),
+                emissive_texture: None,
+            },
+            occlusion_texture,
+        };
+        let transform = Transform::from_translation(Vec3::ZERO);
+        let mesh = RenderMeshSnapshot {
+            node_id: 1,
+            stable_instance_key: render_mesh_stable_instance_key(1, 0),
+            transform_revision: render_mesh_transform_revision(&transform),
+            transform,
+            model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
+                "builtin://cube",
+            )),
+            mesh: None,
+            material: ResourceHandle::<MaterialMarker>::new(material_id),
+            mesh_lod: None,
+            morph_weights: Vec::new(),
+            tint: Vec4::ONE,
+            mobility: Mobility::Static,
+            static_state: RenderMeshStaticState::from_transform_static(true),
+            common: RendererCommon {
+                layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
+                is_static: true,
+                ..RendererCommon::default()
+            },
+        };
+
+        mesh_capture_radiance(
+            &mesh,
+            Vec3::ZERO,
+            &source,
+            &HybridGiPrepareExecutionInputs::default(),
+        )
     }
 }

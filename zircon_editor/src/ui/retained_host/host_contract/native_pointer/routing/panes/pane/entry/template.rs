@@ -10,11 +10,12 @@ pub(super) fn route_template_node_hit(
     x: f32,
     y: f32,
     mode: PaneRouteMode,
+    console_scroll_px: f32,
 ) -> Option<PanePointerRoute> {
     if !mode.allows_template_hit(pane) {
         return None;
     }
-    let hit = surface_hit_test::hit_test_pane_template_node(pane, body, x, y)?;
+    let hit = surface_hit_test::hit_test_pane_template_node(pane, body, x, y, console_scroll_px)?;
     Some(PanePointerRoute::new(
         PanePointerTarget::TemplateNode(hit),
         body,

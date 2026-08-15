@@ -1,10 +1,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::input::{
-    ButtonInputState, CursorHostRequest, FileDragDropEvent, GamepadAxis, GamepadAxisState,
-    GamepadAxisTransition, GamepadButton, GamepadButtonValueState, GamepadId, GamepadRumbleRequest,
-    ImeDeleteSurrounding, ImeHostRequest, ImePreedit, InputButton, MouseScrollUnit,
-    MouseWheelEvent, TouchPoint, WindowStatusEvent,
+    ButtonInputState, CursorGrabMode, CursorHostRequest, FileDragDropEvent, GamepadAxis,
+    GamepadAxisState, GamepadAxisTransition, GamepadButton, GamepadButtonValueState, GamepadId,
+    GamepadRumbleRequest, ImeDeleteSurrounding, ImeHostRequest, ImePreedit, InputButton,
+    MouseScrollUnit, MouseWheelEvent, TouchPoint, WindowStatusEvent,
 };
 
 use super::event_buffer::{FrameEventBuffer, InputEventRecorder};
@@ -69,6 +69,46 @@ impl Default for InputState {
 }
 
 impl InputState {
+    /// Losing interactive focus ends active controls but does not disconnect attached devices.
+    pub(crate) fn clear_active_input_for_focus_loss(&mut self) {
+        self.buttons.release_all();
+        self.wheel_accumulator = 0.0;
+        self.mouse_wheel_accumulator = [0.0, 0.0];
+        self.mouse_wheel_unit = MouseScrollUnit::Line;
+        self.mouse_wheel_events.clear();
+        self.mouse_motion_accumulator = [0.0, 0.0];
+        self.active_touches.clear();
+        self.gamepad_button_values.clear();
+        self.ime_enabled = false;
+        self.ime_preedit = None;
+        self.ime_host_requests.clear();
+        self.ime_host_requests.push(ImeHostRequest::Disable);
+        self.cursor_host_requests.clear();
+        self.cursor_host_requests
+            .push(CursorHostRequest::set_grab_mode(CursorGrabMode::None));
+
+        let axes = std::mem::take(&mut self.gamepad_axes);
+        for ((gamepad, axis), previous_value) in axes {
+            if previous_value == 0.0 {
+                continue;
+            }
+            if let Some(transition) = self
+                .gamepad_axis_transitions
+                .iter_mut()
+                .find(|transition| transition.gamepad == gamepad && transition.axis == axis)
+            {
+                transition.value = 0.0;
+            } else {
+                self.gamepad_axis_transitions.push(GamepadAxisTransition {
+                    gamepad,
+                    axis,
+                    previous_value,
+                    value: 0.0,
+                });
+            }
+        }
+    }
+
     pub(crate) fn gamepad_axis_states(&self) -> Vec<GamepadAxisState> {
         self.gamepad_axes
             .iter()

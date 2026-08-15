@@ -1,16 +1,16 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use crossbeam_channel::{Receiver, Sender, TrySendError, after, bounded, never, select};
+use crossbeam_channel::{after, bounded, never, select, Receiver, Sender, TrySendError};
 use notify::Event;
 
 use super::asset_watch_batch::{AssetWatchBatch, AssetWatchBatchDiagnostics};
 use super::asset_watch_event::AssetWatchEvent;
 use super::asset_watcher::AssetWatcherOptions;
-use super::fold_events::{FoldedAssetChangeMap, finish_folded_events, fold_event};
+use super::fold_events::{finish_folded_events, fold_event, FoldedAssetChangeMap};
 use super::map_notify_event::map_notify_event;
 use super::{AssetChange, AssetWatchError};
 

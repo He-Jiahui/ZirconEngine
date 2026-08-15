@@ -28,8 +28,9 @@ mod ui_surface;
 
 pub use capabilities::wgpu_backend_caps;
 pub use gpu_pass_timer::{
-    GpuPassTimer, GpuPassTimestampScope, GpuPassTiming, GpuTimerFrameResult,
-    DEFAULT_GPU_TIMER_MAX_PASSES, GPU_TIMESTAMP_REQUIRED_FEATURES,
+    GpuPassTimer, GpuPassTimestampScope, GpuPassTiming, GpuTimerFrameObservation,
+    GpuTimerFrameResult, GpuTimerFrameStatus, DEFAULT_GPU_TIMER_MAX_PASSES,
+    GPU_TIMESTAMP_REQUIRED_FEATURES,
 };
 pub use gpu_pipeline_statistics::{
     GpuPassPipelineStatistics, GpuPipelineStatistics, GpuPipelineStatisticsFrameResult,
@@ -40,8 +41,8 @@ pub use gpu_readback_queue::{
     GpuReadbackQueue, ReadbackCallback, ReadbackError, ReadbackPollStats, ReadbackTicket,
 };
 pub use ui_surface::{
-    WgpuUiExternalImage, WgpuUiSurfaceContext, WgpuUiSurfaceExternalImageProvider,
-    WgpuUiSurfacePresenter,
+    WgpuUiExternalImage, WgpuUiExternalImageAlphaMode, WgpuUiSharedImageRegistry,
+    WgpuUiSurfaceContext, WgpuUiSurfaceExternalImageProvider, WgpuUiSurfacePresenter,
 };
 
 #[cfg(test)]

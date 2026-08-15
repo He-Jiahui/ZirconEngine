@@ -1,7 +1,7 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_button_glyphs::{
-    ButtonGlyph, button_glyph_for_key, button_icon_size, push_button_glyph,
+    button_glyph_for_key, button_icon_size, push_button_glyph, ButtonGlyph,
 };
 use super::super::super::template_icon_assets::push_icon_asset_pixels;
 use super::super::identity::button_key;

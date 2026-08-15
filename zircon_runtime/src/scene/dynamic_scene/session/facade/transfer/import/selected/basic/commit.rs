@@ -1,5 +1,5 @@
 use super::super::super::super::super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionSlotSelector, slot_import,
+    slot_import, RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionSlotSelector,
 };
 
 impl RuntimeSessionArchive {

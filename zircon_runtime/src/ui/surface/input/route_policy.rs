@@ -17,21 +17,7 @@ pub(super) fn route_policy_for_input_event(
     event: &UiInputEvent,
 ) -> UiInputRoutePolicy {
     match event {
-        UiInputEvent::Pointer(pointer) => match pointer.event.kind {
-            UiPointerEventKind::Up if pointer_event_has_capture(input, pointer) => {
-                UiInputRoutePolicy::PointerCapture
-            }
-            UiPointerEventKind::Down | UiPointerEventKind::Up | UiPointerEventKind::Scroll => {
-                UiInputRoutePolicy::Bubble
-            }
-            UiPointerEventKind::Move if pointer_event_has_capture(input, pointer) => {
-                UiInputRoutePolicy::PointerCapture
-            }
-            UiPointerEventKind::Cancel if pointer_event_has_capture(input, pointer) => {
-                UiInputRoutePolicy::PointerCapture
-            }
-            UiPointerEventKind::Move | UiPointerEventKind::Cancel => UiInputRoutePolicy::Direct,
-        },
+        UiInputEvent::Pointer(pointer) => pointer_route_policy(input, pointer),
         UiInputEvent::Keyboard(_) | UiInputEvent::Text(_) | UiInputEvent::Ime(_) => {
             UiInputRoutePolicy::FocusPath
         }
@@ -93,10 +79,16 @@ fn annotate_route_policy_fields(
 pub(super) fn annotate_pointer_route_trace(
     surface: &UiSurface,
     route: &UiPointerRoute,
-    event: &UiInputEvent,
+    pointer: &UiPointerInputEvent,
     result: &mut UiInputDispatchResult,
 ) {
-    let _ = annotate_route_policy_fields(surface, event, result);
+    let released_capture_target = pointer_capture_release_target_for_pointer(pointer, result);
+    result.diagnostics.route_policy = if released_capture_target.is_some() {
+        UiInputRoutePolicy::PointerCapture
+    } else {
+        pointer_route_policy(&surface.input, pointer)
+    };
+    annotate_pointer_source(pointer, result);
     if is_capture_terminal_pointer_route(route) {
         result.diagnostics.route_policy = UiInputRoutePolicy::PointerCapture;
     }
@@ -179,6 +171,45 @@ fn pointer_event_has_capture(input: &UiSurfaceInputState, pointer: &UiPointerInp
         .is_some_and(|pointer_id| input.pointer_capture_owner(pointer_id).is_some())
 }
 
+fn pointer_route_policy(
+    input: &UiSurfaceInputState,
+    pointer: &UiPointerInputEvent,
+) -> UiInputRoutePolicy {
+    match pointer.event.kind {
+        UiPointerEventKind::Up if pointer_event_has_capture(input, pointer) => {
+            UiInputRoutePolicy::PointerCapture
+        }
+        UiPointerEventKind::Down | UiPointerEventKind::Up | UiPointerEventKind::Scroll => {
+            UiInputRoutePolicy::Bubble
+        }
+        UiPointerEventKind::Move if pointer_event_has_capture(input, pointer) => {
+            UiInputRoutePolicy::PointerCapture
+        }
+        UiPointerEventKind::Cancel if pointer_event_has_capture(input, pointer) => {
+            UiInputRoutePolicy::PointerCapture
+        }
+        UiPointerEventKind::Move | UiPointerEventKind::Cancel => UiInputRoutePolicy::Direct,
+    }
+}
+
+fn annotate_pointer_source(pointer: &UiPointerInputEvent, result: &mut UiInputDispatchResult) {
+    let source = match pointer.metadata.pointer_source {
+        zircon_runtime_interface::ui::dispatch::UiPointerSource::Mouse => "pointer_source=Mouse",
+        zircon_runtime_interface::ui::dispatch::UiPointerSource::Touch => "pointer_source=Touch",
+        zircon_runtime_interface::ui::dispatch::UiPointerSource::Pen => "pointer_source=Pen",
+        zircon_runtime_interface::ui::dispatch::UiPointerSource::Unknown => {
+            "pointer_source=Unknown"
+        }
+    };
+    result.diagnostics.notes.push(source.to_string());
+    if pointer.metadata.pointer_source.is_touch_like() {
+        result
+            .diagnostics
+            .notes
+            .push("touch_like_pointer".to_string());
+    }
+}
+
 fn pointer_capture_release_target(
     event: &UiInputEvent,
     result: &UiInputDispatchResult,
@@ -186,6 +217,30 @@ fn pointer_capture_release_target(
     let UiInputEvent::Pointer(pointer) = event else {
         return None;
     };
+    if !matches!(
+        pointer.event.kind,
+        UiPointerEventKind::Up | UiPointerEventKind::Cancel
+    ) {
+        return None;
+    }
+    let pointer_id = pointer.metadata.pointer_id.unwrap_or_default();
+    result
+        .applied_effects
+        .iter()
+        .find_map(|applied| match &applied.effect {
+            UiDispatchEffect::ReleasePointerCapture {
+                target,
+                pointer_id: released_pointer_id,
+                ..
+            } if *released_pointer_id == pointer_id => Some(*target),
+            _ => None,
+        })
+}
+
+fn pointer_capture_release_target_for_pointer(
+    pointer: &UiPointerInputEvent,
+    result: &UiInputDispatchResult,
+) -> Option<UiNodeId> {
     if !matches!(
         pointer.event.kind,
         UiPointerEventKind::Up | UiPointerEventKind::Cancel

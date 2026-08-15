@@ -85,6 +85,128 @@ fn componentized_workbench_control_dispatch_updates_state_and_emits_typed_event(
 }
 
 #[test]
+fn componentized_workbench_hierarchy_control_dispatches_its_synced_scene_node_id() {
+    let _guard = env_lock().lock().unwrap();
+
+    let harness = EventRuntimeHarness::new("zircon_componentized_workbench_hierarchy_dispatch");
+    let mut bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    bridge
+        .sync_scene_and_inspector(
+            &SceneEntries::from_entries(
+                vec![
+                    SceneEntry {
+                        id: 41,
+                        name: "World".to_string(),
+                        depth: 0,
+                    },
+                    SceneEntry {
+                        id: 77,
+                        name: "Gameplay".to_string(),
+                        depth: 1,
+                    },
+                ],
+                [],
+            ),
+            None,
+        )
+        .unwrap();
+
+    dispatch_componentized_workbench_control(
+        &harness.runtime,
+        &mut bridge,
+        "WorkbenchSceneEnvironmentItem",
+        UiEventKind::Click,
+    )
+    .expect("synced hierarchy row should dispatch")
+    .unwrap();
+
+    assert_eq!(
+        harness.runtime.journal().records().last().unwrap().event,
+        EditorEvent::Selection(SelectionHostEvent::SelectSceneNode { node_id: 77 })
+    );
+}
+
+#[test]
+fn componentized_workbench_virtual_hierarchy_control_uses_the_projection_reverse_index() {
+    let _guard = env_lock().lock().unwrap();
+
+    let harness = EventRuntimeHarness::new("zircon_componentized_workbench_virtual_hierarchy");
+    let mut bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    bridge
+        .sync_scene_and_inspector(
+            &SceneEntries::from_entries(
+                (1..=11)
+                    .map(|id| SceneEntry {
+                        id,
+                        name: format!("Entity {id}"),
+                        depth: 0,
+                    })
+                    .collect(),
+                [],
+            ),
+            None,
+        )
+        .unwrap();
+
+    dispatch_componentized_workbench_control(
+        &harness.runtime,
+        &mut bridge,
+        "WorkbenchSceneVirtualItem11",
+        UiEventKind::Click,
+    )
+    .expect("synced virtual hierarchy row should dispatch")
+    .unwrap();
+
+    assert_eq!(
+        harness.runtime.journal().records().last().unwrap().event,
+        EditorEvent::Selection(SelectionHostEvent::SelectSceneNode { node_id: 11 })
+    );
+}
+
+#[test]
+fn componentized_workbench_virtual_hierarchy_control_preserves_high_entity_ids() {
+    let _guard = env_lock().lock().unwrap();
+
+    let high_entity_id = i64::MAX as u64 + 1;
+    let harness = EventRuntimeHarness::new("zircon_componentized_workbench_high_entity_id");
+    let mut bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    let mut entries = (1..=10)
+        .map(|id| SceneEntry {
+            id,
+            name: format!("Entity {id}"),
+            depth: 0,
+        })
+        .collect::<Vec<_>>();
+    entries.push(SceneEntry {
+        id: high_entity_id,
+        name: "High entity".to_string(),
+        depth: 0,
+    });
+    bridge
+        .sync_scene_and_inspector(&SceneEntries::from_entries(entries, []), None)
+        .unwrap();
+
+    dispatch_componentized_workbench_control(
+        &harness.runtime,
+        &mut bridge,
+        "WorkbenchSceneVirtualItem11",
+        UiEventKind::Click,
+    )
+    .expect("synced virtual hierarchy row should dispatch")
+    .unwrap();
+
+    assert_eq!(
+        harness.runtime.journal().records().last().unwrap().event,
+        EditorEvent::Selection(SelectionHostEvent::SelectSceneNode {
+            node_id: high_entity_id
+        })
+    );
+}
+
+#[test]
 fn componentized_workbench_pointer_dispatch_hits_tool_control_and_emits_typed_event() {
     let _guard = env_lock().lock().unwrap();
 

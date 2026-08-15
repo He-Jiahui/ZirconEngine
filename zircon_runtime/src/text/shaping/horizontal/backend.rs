@@ -82,6 +82,8 @@ pub(in crate::text::shaping) fn shape_horizontal_run(
         projected_features.push(Feature::new(Tag::from_bytes(b"kern"), 0, ..));
     }
 
+    #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+    super::super::cosmic::record_direct_backend_shape_call();
     let shaped = rustybuzz::shape(&face, &projected_features, buffer);
     let glyphs = shaped
         .glyph_infos()

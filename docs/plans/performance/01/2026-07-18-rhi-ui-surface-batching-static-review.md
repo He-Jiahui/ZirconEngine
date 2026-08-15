@@ -1,10 +1,10 @@
 ---
 related_code:
-  - zircon_runtime/src/rhi/ui_surface.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/batching.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/batching/dependency_depths.rs
-  - zircon_runtime/src/rhi_wgpu/ui_surface/tests.rs
+  - zircon_runtime/crates/zr_rhi/src/ui_surface.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching/dependency_depths.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/17-performance-and-profiling.md
@@ -12,9 +12,9 @@ reference_sources:
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/Rendering/ElementBatcher.cpp
   - dev/slint/internal/core/partial_renderer.rs
 tests:
-  - zircon_runtime/src/rhi_wgpu/ui_surface/batching.rs::batch_plan_prunes_axis_disjoint_overlap_candidates
-  - zircon_runtime/src/rhi_wgpu/ui_surface/tests.rs::full_redraw_without_damage_borrows_the_original_draw_list
-  - zircon_runtime/src/rhi_wgpu/ui_surface/tests.rs::cache_bootstrap_full_redraw_owns_an_unclipped_damage_list
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs::batch_plan_prunes_axis_disjoint_overlap_candidates
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs::full_redraw_without_damage_borrows_the_original_draw_list
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs::cache_bootstrap_full_redraw_owns_an_unclipped_damage_list
   - current-source Windows zircon_runtime ui_surface tests pending
   - current-source GPU/Softbuffer/RenderDoc comparison pending
 doc_type: implementation-evidence
@@ -25,7 +25,7 @@ status: static_complete_dynamic_pending
 
 ## 范围与覆盖
 
-`zircon_runtime/src/rhi/ui_surface.rs`及`rhi_wgpu/ui_surface/{root,batching.rs,batching/dependency_depths.rs,tests.rs}`当前源 **5/5** 个Rust文件、**2,331** 行已逐文件阅读；调用链覆盖neutral draw-list stats、headless/native present、batch plan、full/damage模式和测试。整个RHI/RHI-WGPU当前源因新增child变为56文件，本证据不冒充其余51文件已读完。
+`zircon_runtime/crates/zr_rhi/src/ui_surface.rs`及`zr_rhi_wgpu/src/ui_surface/{root,batching.rs,batching/dependency_depths.rs,tests.rs}`当前源 **5/5** 个Rust文件、**2,331** 行已逐文件阅读；调用链覆盖neutral draw-list stats、headless/native present、batch plan、full/damage模式和测试。整个RHI/RHI-WGPU当前源因新增child变为56文件，本证据不冒充其余51文件已读完。
 
 ## 热点与直接修复
 

@@ -8,10 +8,8 @@ use std::time::{Duration, Instant};
 use serde_json::{json, Value};
 
 use crate::core::framework::foundation::ConfigManager;
+use crate::core::resource::io::{atomic_write_with_fault, stage_atomic_write, AtomicWriteFault};
 use crate::core::CoreRuntime;
-use crate::core::resource::io::atomic_file::{
-    atomic_write_with_fault, stage_atomic_write, AtomicWriteFault,
-};
 
 use super::config_manager::{
     ConfigCommitFenceForTest, ConfigFileWriterForTest, DefaultConfigManager,

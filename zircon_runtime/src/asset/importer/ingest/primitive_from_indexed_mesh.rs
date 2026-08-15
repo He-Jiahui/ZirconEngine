@@ -3,7 +3,8 @@ use crate::core::math::{Vec2, Vec3};
 use super::generate_normals::generate_normals;
 use crate::asset::assets::{ModelAsset, ModelPrimitiveAsset};
 use crate::asset::{
-    AssetImportError, MeshVertex, VirtualGeometryCookRequest, cook_virtual_geometry_from_mesh,
+    AssetImportError, MeshSdfCookBudget, MeshSdfCookRequest, MeshVertex,
+    VirtualGeometryCookRequest, cook_mesh_sdf_or_fallback, cook_virtual_geometry_from_mesh,
 };
 
 pub(super) fn primitive_from_indexed_mesh(
@@ -19,6 +20,8 @@ pub(super) fn primitive_from_indexed_mesh(
     mesh_name: Option<&str>,
     source_hint: &str,
     virtual_geometry_request: &VirtualGeometryCookRequest,
+    mesh_sdf_request: &MeshSdfCookRequest,
+    mesh_sdf_budget: &mut MeshSdfCookBudget,
 ) -> Result<ModelPrimitiveAsset, AssetImportError> {
     if positions.len() % 3 != 0 {
         return Err(AssetImportError::Parse(
@@ -90,15 +93,43 @@ pub(super) fn primitive_from_indexed_mesh(
             .cook_config_for(mesh_name, source_hint)
             .and_then(|config| cook_virtual_geometry_from_mesh(&vertices, indices, config))
     };
+    let mesh_sdf = match mesh_sdf_request.settings() {
+        Some(settings) => cook_mesh_sdf_or_fallback(&vertices, indices, settings, mesh_sdf_budget)
+            .map_err(|error| AssetImportError::Parse(format!("cook mesh SDF: {error}")))?,
+        None => None,
+    };
 
     let mut primitive = ModelPrimitiveAsset {
         vertices,
         indices: indices.to_vec(),
         mesh: None,
+        mesh_sdf,
         virtual_geometry,
     };
     primitive.assign_virtual_geometry_vertex_ordinals();
     Ok(primitive)
+}
+
+pub(super) fn backfill_mesh_sdf_for_model(
+    model: &mut ModelAsset,
+    mesh_sdf_request: &MeshSdfCookRequest,
+) -> Result<(), AssetImportError> {
+    let Some(settings) = mesh_sdf_request.settings() else {
+        return Ok(());
+    };
+    let mut mesh_sdf_budget = MeshSdfCookBudget::default();
+    for primitive in &mut model.primitives {
+        if primitive.mesh_sdf.is_none() && !primitive.vertices.is_empty() {
+            primitive.mesh_sdf = cook_mesh_sdf_or_fallback(
+                &primitive.vertices,
+                &primitive.indices,
+                settings,
+                &mut mesh_sdf_budget,
+            )
+            .map_err(|error| AssetImportError::Parse(format!("cook mesh SDF: {error}")))?;
+        }
+    }
+    Ok(())
 }
 
 pub(super) fn backfill_virtual_geometry_for_model(

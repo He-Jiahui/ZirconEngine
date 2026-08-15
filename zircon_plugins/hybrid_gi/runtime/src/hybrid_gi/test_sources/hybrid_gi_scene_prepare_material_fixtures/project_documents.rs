@@ -151,6 +151,7 @@ pub(super) fn write_triangle_model(asset_root: &RelPath, path: PathBuf) {
             ],
             indices: vec![0, 1, 2],
             mesh: None,
+            mesh_sdf: None,
             virtual_geometry: None,
         }],
     };
@@ -272,13 +273,13 @@ fn persist_fixture_reference(
 ) -> Result<PersistedAssetReference, ReferenceResolutionError> {
     match reference.locator.scheme() {
         ResourceScheme::Builtin => {
-            return Ok(PersistedAssetReference::builtin(reference.locator.clone()))
+            return Ok(PersistedAssetReference::builtin(reference.locator.clone()));
         }
         ResourceScheme::Res => {}
         _ => {
             return Err(ReferenceResolutionError::UnsupportedScheme {
                 locator: reference.locator.clone(),
-            })
+            });
         }
     }
 

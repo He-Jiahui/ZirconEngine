@@ -3,11 +3,11 @@ use std::path::{Path, PathBuf};
 use crate::ui::retained_host::app::RetainedEditorHost;
 use crate::ui::workbench::project::project_root_path;
 
-use super::super::DesktopExportActionError;
 use super::super::default_desktop_export_output_root;
 use super::super::output_folder::{
     pick_output_folder, reveal_path_in_file_browser, stable_picker_initial_dir,
 };
+use super::super::DesktopExportActionError;
 
 impl RetainedEditorHost {
     pub(super) fn choose_desktop_export_output(&mut self, profile_name: &str) {

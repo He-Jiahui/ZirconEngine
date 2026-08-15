@@ -1,8 +1,8 @@
 use super::dedup::zrpack_content_hash;
 use super::manifest::validate_zrpack_document_manifest;
 use super::{
-    ZRPACK_FORMAT_VERSION, ZRPACK_MAGIC, ZrChunkEntry, ZrPackAssetEntry, ZrPackDocumentManifest,
-    ZrPackError, writer::header_size,
+    writer::header_size, ZrChunkEntry, ZrPackAssetEntry, ZrPackDocumentManifest, ZrPackError,
+    ZRPACK_FORMAT_VERSION, ZRPACK_MAGIC,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -4,24 +4,14 @@ use std::time::Duration;
 use crate::core::notifications::{
     NotificationId, NotificationSource, ToastNotification, ToastNotificationError, ToastSeverity,
 };
-use crate::ui::activity::activity_toast_views;
+use crate::ui::activity::{activity_progress_views, activity_toast_views};
 use crate::ui::template_runtime::WORKBENCH_WINDOW_DOCUMENT_ID;
 
 impl RetainedEditorHost {
+    /// Retained only for the componentized host regression harness.
+    #[cfg(test)]
     pub(super) fn sync_pending_play_decisions(&mut self) {
-        if !self.active_activity_window_template_document_is(WORKBENCH_WINDOW_DOCUMENT_ID) {
-            return;
-        }
-        let Ok(options) = self.runtime.pending_play_decision_options() else {
-            return;
-        };
-        match self
-            .workbench_window_bridge
-            .sync_pending_play_decision_options(&options)
-        {
-            Ok(true) => self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA),
-            Ok(false) | Err(_) => {}
-        }
+        self.sync_activity_notifications();
     }
 
     pub(super) fn publish_activity_toasts(&mut self, notifications: &[ToastNotification]) {
@@ -40,18 +30,48 @@ impl RetainedEditorHost {
                 Err(error) => self.set_status_line(error.to_string()),
             }
         }
-        self.sync_activity_toasts();
+        self.sync_activity_notifications();
     }
 
-    pub(super) fn sync_activity_toasts(&mut self) {
+    pub(super) fn sync_activity_notifications(&mut self) {
         if !self.active_activity_window_template_document_is(WORKBENCH_WINDOW_DOCUMENT_ID) {
             return;
         }
-        let (now, snapshots) = self.runtime.context().notifications().live_toast_snapshot();
-        let toasts = activity_toast_views(&snapshots, self.runtime.context().i18n(), now);
-        match self.workbench_window_bridge.sync_activity_toasts(&toasts) {
-            Ok(true) => self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA),
-            Ok(false) => {}
+        let pending_decisions = match self.runtime.pending_play_decision_options() {
+            Ok(options) => options,
+            Err(error) => {
+                self.set_status_line(error);
+                return;
+            }
+        };
+        let (toasts, progress) = {
+            let context = self.runtime.context();
+            let (now, toast_snapshots) = context.notifications().live_toast_snapshot();
+            let toasts = activity_toast_views(&toast_snapshots, context.i18n(), now);
+            let job_progress = context.jobs().progress();
+            let progress_snapshots = context.notifications().progress().snapshot(&job_progress);
+            let progress = activity_progress_views(&progress_snapshots, context.i18n());
+            (toasts, progress)
+        };
+        let notification_changed = match self.workbench_window_bridge.prepare_notification_snapshot(
+            &pending_decisions,
+            &toasts,
+            &progress,
+        ) {
+            Ok(changed) => changed,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        };
+        if !notification_changed && !self.pending_activity_projection_refresh {
+            return;
+        }
+        match self.workbench_window_bridge.refresh_prepared_state_change() {
+            Ok(()) => {
+                self.pending_activity_projection_refresh = false;
+                self.invalidate_host(HostInvalidationMask::WORKBENCH_PROJECTION);
+            }
             Err(error) => self.set_status_line(error.to_string()),
         }
     }

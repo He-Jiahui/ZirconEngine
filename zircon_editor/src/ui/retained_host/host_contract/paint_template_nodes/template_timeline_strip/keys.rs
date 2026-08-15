@@ -1,4 +1,6 @@
-use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use crate::ui::timeline_strip::TimelineStripGeneration;
+
+use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::geometry::TimelineStripGeometry;
 use super::metrics::TimelineStripMetrics;
@@ -6,7 +8,7 @@ use super::palette::TimelineStripPalette;
 
 pub(super) fn push_timeline_keys_and_playhead(
     commands: &mut Vec<HostPaintCommand>,
-    node: &TemplatePaneNodeData,
+    generation: &TimelineStripGeneration,
     geometry: &TimelineStripGeometry,
     clip: &FrameRect,
     order: i32,
@@ -14,10 +16,7 @@ pub(super) fn push_timeline_keys_and_playhead(
     metrics: TimelineStripMetrics,
     palette: TimelineStripPalette,
 ) {
-    let playhead_x = geometry.x_for_time(
-        node.timeline_strip.current_time,
-        node.timeline_strip.duration,
-    );
+    let playhead_x = geometry.x_for_time(generation.current_time(), generation.duration());
     commands.push(HostPaintCommand::quad(
         FrameRect {
             x: playhead_x - metrics.playhead_width * 0.5,
@@ -47,17 +46,14 @@ pub(super) fn push_timeline_keys_and_playhead(
         opacity,
     );
 
-    for row in 0..node.timeline_strip.keys.row_count() {
-        let Some(key) = node.timeline_strip.keys.row_data(row) else {
-            continue;
-        };
-        let x = geometry.x_for_time(key.time, node.timeline_strip.duration);
+    for key in generation.keys() {
+        let x = geometry.x_for_time(key.time(), generation.duration());
         let y = geometry.track.y + geometry.track.height * 0.5;
         push_diamond(
             commands,
             x,
             y,
-            if key.selected {
+            if key.selected() {
                 metrics.key_radius + 1
             } else {
                 metrics.key_radius

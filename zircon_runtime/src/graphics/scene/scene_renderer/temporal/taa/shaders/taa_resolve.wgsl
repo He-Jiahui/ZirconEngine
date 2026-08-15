@@ -130,8 +130,10 @@ fn sample_reprojected_history(history_pixel: vec2<f32>, size: vec2<u32>) -> vec4
     return textureLoad(taa_history_previous_tex, clamp_coord(rounded, size), 0);
 }
 
-fn load_authored_reactive_mask(coord: vec2<i32>, size: vec2<u32>) -> f32 {
-    return clamp(textureLoad(taa_reactive_mask_tex, clamp_coord(coord, size), 0).r, 0.0, 1.0);
+fn load_authored_reactive_mask(coord: vec2<i32>) -> f32 {
+    let mask_size = vec2<i32>(textureDimensions(taa_reactive_mask_tex));
+    let mask_coord = clamp(coord, vec2<i32>(0), mask_size - vec2<i32>(1));
+    return clamp(textureLoad(taa_reactive_mask_tex, mask_coord, 0).r, 0.0, 1.0);
 }
 
 fn responsive_rejection(current_color: vec3<f32>, history_color: vec3<f32>, velocity: vec2<f32>) -> f32 {
@@ -203,7 +205,7 @@ fn fs_taa_resolve(@builtin(position) position: vec4<f32>) -> TaaResolveOutput {
         neighborhood[1]
     );
     let clamped_history = ycocg_to_rgb(clamped_history_ycocg);
-    let authored_reactive = load_authored_reactive_mask(coord_i32, size);
+    let authored_reactive = load_authored_reactive_mask(coord_i32);
     let responsive = max(responsive_rejection(current.rgb, clamped_history, velocity), authored_reactive);
     let weight = history_weight(history_pixel, velocity, depth, depth_delta, history.a, responsive, size);
     let resolved = vec4<f32>(mix(current.rgb, clamped_history, weight), current.a);

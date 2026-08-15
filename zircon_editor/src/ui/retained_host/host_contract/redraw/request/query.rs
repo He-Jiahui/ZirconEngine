@@ -1,4 +1,4 @@
-use crate::ui::retained_host::ui_perf::{UiPerfScenario, current_ui_perf_scenario};
+use crate::ui::retained_host::ui_perf::{current_ui_perf_scenario, UiPerfScenario};
 
 use super::super::super::data::FrameRect;
 use super::HostRedrawRequest;
@@ -11,26 +11,34 @@ impl HostRedrawRequest {
     pub(crate) fn requires_frame_update(&self) -> bool {
         matches!(
             self,
-            Self::Full {
-                frame_update: true,
-                ..
-            } | Self::Region {
-                frame_update: true,
-                ..
-            }
+            Self::FrameUpdate { .. }
+                | Self::Full {
+                    frame_update: true,
+                    ..
+                }
+                | Self::Region {
+                    frame_update: true,
+                    ..
+                }
         )
+    }
+
+    pub(crate) fn requires_present(&self) -> bool {
+        matches!(self, Self::Full { .. } | Self::Region { .. })
     }
 
     pub(crate) fn damage_region(&self) -> Option<&FrameRect> {
         match self {
             Self::Region { frame, .. } => Some(frame),
-            Self::None | Self::Full { .. } => None,
+            Self::None | Self::FrameUpdate { .. } | Self::Full { .. } => None,
         }
     }
 
     pub(crate) fn scenario(&self) -> UiPerfScenario {
         match self {
-            Self::Full { scenario, .. } | Self::Region { scenario, .. } => *scenario,
+            Self::FrameUpdate { scenario }
+            | Self::Full { scenario, .. }
+            | Self::Region { scenario, .. } => *scenario,
             Self::None => current_ui_perf_scenario(),
         }
     }

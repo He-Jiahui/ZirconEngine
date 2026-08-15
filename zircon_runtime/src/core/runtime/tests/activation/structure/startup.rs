@@ -7,8 +7,12 @@ fn startup_resolution_keeps_exact_count_fast_paths() {
     let activation_tests_source = activation_tests_source();
 
     assert!(
+        activation_source.contains("let module_services = graph.module_services(module_name)?;")
+    );
+    assert!(
         activation_source.contains("let (previous_lifecycle, service_names, startup_services) = {")
     );
+    assert!(activation_source.contains("module_services.startup_service_names().clone()"));
     assert!(
         activation_source.contains("self.resolve_startup_services(startup_services.as_ref())?;")
     );
@@ -39,17 +43,23 @@ fn startup_resolution_keeps_exact_count_fast_paths() {
         "fn activate_exact_five_immediate_services_initializes_each_cached_startup_entry_once()"
     ));
 
-    let empty_startup_index = activation_source
-        .find("if entry.startup_service_names.is_empty()")
-        .expect("activation should fast-path modules with no startup services");
+    let graph_lookup_index = activation_source
+        .find("let module_services = graph.module_services(module_name)?;")
+        .expect("activation should read startup services from the frozen module graph");
     let startup_clone_index = activation_source
-        .find("entry.startup_service_names.clone()")
-        .expect("activation should clone cached startup services for non-empty modules");
+        .find("module_services.startup_service_names().clone()")
+        .expect(
+            "activation should clone graph-owned startup services before releasing the module lock",
+        );
     let startup_resolve_index = activation_source
         .find("self.resolve_startup_services(startup_services.as_ref())?;")
         .expect("activation should route non-empty startup lists through the typed helper");
-    assert!(empty_startup_index < startup_clone_index);
-    assert!(empty_startup_index < startup_resolve_index);
+    assert!(graph_lookup_index < startup_clone_index);
+    assert!(startup_clone_index < startup_resolve_index);
+    assert!(
+        !activation_source.contains("entry.startup_service_names"),
+        "activation must not derive startup ordering from mutable module entries after graph freeze"
+    );
 
     let startup_helper_index = startup_source
         .find("fn resolve_startup_services(")

@@ -10,6 +10,7 @@ use zircon_runtime::core::math::Real;
 use crate::{ParticleEmitterHandle, ParticleSimulationBackend, ParticleSystemAsset};
 
 use super::backend::{ParticleGpuBackend, ParticleGpuBackendError, ParticleGpuBuffers};
+use super::neutral_buffers::ParticleGpuNeutralBuffers;
 use super::planner::{ParticleGpuFrameParams, ParticleGpuFramePlanner};
 use super::ParticleGpuReadbackRequest;
 use crate::service::ParticleGpuRuntimeInstance;
@@ -90,9 +91,25 @@ pub struct ParticleGpuRuntimeOwner {
     aggregate_asset: Option<ParticleSystemAsset>,
     aggregate_backend: Option<ParticleGpuBackend>,
     aggregate_executed: bool,
+    neutral_buffers: ParticleGpuNeutralBuffers,
 }
 
 impl ParticleGpuRuntimeOwner {
+    pub fn prepare_neutral_frame(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        encoder: &mut wgpu::CommandEncoder,
+        frame: &RenderParticleGpuFrameExtract,
+    ) -> Option<ParticleGpuRuntimeBufferBindings<'_>> {
+        self.aggregate_executed = false;
+        self.neutral_buffers.prepare(device, queue, encoder, frame)
+    }
+
+    pub fn deactivate(&mut self) {
+        self.retain_instances(&[]);
+    }
+
     pub fn execute_instances(
         &mut self,
         device: &wgpu::Device,

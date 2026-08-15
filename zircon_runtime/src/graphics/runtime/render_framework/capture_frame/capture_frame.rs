@@ -1,6 +1,8 @@
 use std::sync::TryLockError;
 
-use crate::core::framework::render::{CapturedFrame, RenderFrameworkError, RenderViewportHandle};
+use crate::core::framework::render::{
+    CapturedFrame, CapturedHdrFrame, RenderFrameworkError, RenderViewportHandle,
+};
 
 use super::super::render_framework_backend_error::render_framework_backend_error;
 use super::super::wgpu_render_framework::WgpuRenderFramework;
@@ -75,6 +77,36 @@ pub(in crate::graphics::runtime::render_framework) fn capture_frame_if_newer(
     Ok(Some(frame))
 }
 
+pub(in crate::graphics::runtime::render_framework) fn capture_scene_color_hdr(
+    framework: &WgpuRenderFramework,
+    viewport: RenderViewportHandle,
+) -> Result<Option<CapturedHdrFrame>, RenderFrameworkError> {
+    crate::profile_scope!("runtime", "render_framework", "capture_scene_color_hdr");
+    framework.finish_submission()?;
+    let _operation_guard = framework.lock_operation();
+    let mut state = framework.lock_state();
+    if !state.viewports.contains_key(&viewport) {
+        return Err(RenderFrameworkError::UnknownViewport {
+            viewport: viewport.raw(),
+        });
+    }
+    if state.last_retained_scene_color_viewport != Some(viewport) {
+        return Ok(None);
+    }
+    state
+        .renderer
+        .wait_for_readback_completions()
+        .map_err(render_framework_backend_error)?;
+    let frame = state
+        .renderer
+        .capture_latest_scene_color_hdr()
+        .map_err(render_framework_backend_error)?;
+    if frame.is_some() {
+        state.stats.captured_frames += 1;
+    }
+    Ok(frame)
+}
+
 pub(in crate::graphics::runtime::render_framework) fn poll_captured_frame_if_newer(
     framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
@@ -143,6 +175,34 @@ mod tests {
             .expect("capture should still serialize frame state access");
 
         assert!(finish_submission < operation_lock);
+    }
+
+    #[test]
+    fn hdr_capture_finishes_submission_before_reading_retained_scene_color() {
+        let source = include_str!("capture_frame.rs");
+        let hdr_capture = source
+            .split("fn capture_scene_color_hdr")
+            .nth(1)
+            .expect("HDR capture entry point should exist")
+            .split("fn poll_captured_frame_if_newer")
+            .next()
+            .expect("HDR capture should end before the nonblocking polling path");
+        let finish_submission = hdr_capture
+            .find("framework.finish_submission()?;")
+            .expect("HDR capture should collect a pending pipelined result");
+        let retained_viewport = hdr_capture
+            .find("last_retained_scene_color_viewport")
+            .expect("HDR capture should reject a retained target from another viewport");
+        let readback_wait = hdr_capture
+            .find("wait_for_readback_completions")
+            .expect("HDR capture should wait for completed GPU work");
+        let retained_scene_color = hdr_capture
+            .find("capture_latest_scene_color_hdr")
+            .expect("HDR capture should read the renderer-owned scene color");
+
+        assert!(finish_submission < readback_wait);
+        assert!(retained_viewport < readback_wait);
+        assert!(readback_wait < retained_scene_color);
     }
 
     #[test]

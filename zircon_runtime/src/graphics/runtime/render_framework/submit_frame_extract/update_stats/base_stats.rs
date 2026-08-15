@@ -150,6 +150,8 @@ pub(super) fn update_base_stats(
         .clone();
     state.stats.last_graph_execution_profile_report =
         state.renderer.last_render_graph_execution_profile_report();
+    state.stats.last_graph_parallel_recording_report =
+        state.renderer.last_render_graph_parallel_recording_report();
     state.stats.last_graph_stage_execution_report =
         state.renderer.last_render_graph_stage_execution_report();
     state.stats.last_scene_velocity_readback_report =
@@ -203,6 +205,12 @@ pub(super) fn update_base_stats(
     state.stats.last_advanced_provider_reports = context.advanced_provider_reports().to_vec();
     state.stats.last_solari_runtime_report = context.solari_runtime_report().clone();
     state.stats.last_anti_alias_graph_executed_pass_count = executor_pass_counts.anti_alias;
+    (
+        state.stats.last_taa_reactive_mask_encoded_pass_count,
+        state.stats.last_taa_reactive_mask_encoded_write_bytes,
+    ) = state.renderer.last_taa_reactive_mask_encoding();
+    state.stats.last_taa_resolve_bind_group_create_count =
+        state.renderer.last_taa_resolve_bind_group_create_count();
     let hzb_plan = HzbBuilder::new(context.render_size()).build_plan();
     state.stats.last_hzb_mip_count = hzb_plan.mip_count as usize;
     state.stats.last_hzb_graph_executed_pass_count = executor_pass_counts.hzb;
@@ -265,6 +273,11 @@ pub(super) fn update_base_stats(
         ui_text_report.raster_upload.visible_raster_glyph_count;
     state.stats.last_ui_text_raster_source_image_count =
         ui_text_report.raster_upload.source_image_count;
+    state.stats.last_ui_text_raster_persistent_key_count = ui_text_report
+        .raster_upload
+        .source_cache_persistent_raster_key_count;
+    state.stats.last_ui_text_raster_source_cache_miss_count =
+        ui_text_report.raster_upload.source_cache_miss_count;
     state.stats.last_ui_text_missing_raster_image_count =
         ui_text_report.raster_upload.missing_raster_image_count;
     state.stats.last_ui_text_visible_missing_raster_image_count = ui_text_report
@@ -284,6 +297,14 @@ pub(super) fn update_base_stats(
         .stats
         .last_ui_text_raster_renderer_upload_failure_count =
         ui_text_report.raster_upload.renderer_upload_failure_count;
+    state.stats.last_ui_text_sdf_generation_pending_batch_count =
+        ui_text_report.sdf_generation.pending_batch_count;
+    state
+        .stats
+        .last_ui_text_sdf_generation_completion_backlog_count =
+        ui_text_report.sdf_generation.completion_backlog_count;
+    state.stats.last_ui_text_sdf_generation_failure_count =
+        ui_text_report.sdf_generation.failure_count;
     state.stats.last_ui_text_layout_fallback_count = ui_text_report.layout_fallbacks.fallback_count;
     state.stats.last_ui_text_invalid_font_size_count =
         ui_text_report.layout_fallbacks.invalid_font_size_count;
@@ -451,12 +472,22 @@ pub(super) fn update_base_stats(
         prepared_mesh_queue_stats.cache_invalidated_material_count;
     state.stats.last_mesh_replay_state_change_count = prepared_mesh_queue_stats.state_change_count;
     state.stats.last_mesh_replay_bind_skip_count = prepared_mesh_queue_stats.bind_skip_count;
+    state.stats.last_mesh_replay_material_bind_group_set_count =
+        prepared_mesh_queue_stats.material_bind_group_set_count;
+    state.stats.last_mesh_replay_material_bind_group_skip_count =
+        prepared_mesh_queue_stats.material_bind_group_skip_count;
     state.stats.last_indirect_batch_count = prepared_mesh_queue_stats.indirect_batch_count;
     state.stats.last_indirect_batched_draw_count =
         prepared_mesh_queue_stats.indirect_batched_draw_count;
     state.stats.last_indirect_fallback_draw_count =
         prepared_mesh_queue_stats.indirect_fallback_draw_count;
     state.stats.last_indirect_args_count = prepared_mesh_queue_stats.indirect_args_count;
+    state.stats.last_indirect_workspace_created_buffer_count =
+        prepared_mesh_queue_stats.indirect_workspace_created_buffer_count;
+    state.stats.last_indirect_workspace_uploaded_byte_count =
+        prepared_mesh_queue_stats.indirect_workspace_uploaded_byte_count;
+    state.stats.last_indirect_workspace_upload_range_count =
+        prepared_mesh_queue_stats.indirect_workspace_upload_range_count;
     state.stats.last_gpu_scene_primitive_count =
         prepared_mesh_queue_stats.gpu_scene_primitive_count;
     state.stats.last_gpu_scene_instance_count = prepared_mesh_queue_stats.gpu_scene_instance_count;
@@ -612,6 +643,9 @@ fn update_hzb_occlusion_stats(stats: &mut RenderStats, report: Option<HzbOcclusi
         stats.last_hzb_occlusion_candidate_instance_count = 0;
         stats.last_hzb_occlusion_dispatch_group_count = 0;
         stats.last_hzb_occlusion_dispatched_phase_count = 0;
+        stats.last_hzb_occlusion_params_buffer_create_count = 0;
+        stats.last_hzb_occlusion_params_upload_byte_count = 0;
+        stats.last_hzb_occlusion_bind_group_create_count = 0;
         stats.last_hzb_occlusion_history_available = false;
         stats.last_hzb_occlusion_readback_available = false;
         stats.last_hzb_occlusion_readback_source_frame_index = None;
@@ -636,6 +670,10 @@ fn update_hzb_occlusion_stats(stats: &mut RenderStats, report: Option<HzbOcclusi
     stats.last_hzb_occlusion_candidate_instance_count = report.candidate_instance_count as usize;
     stats.last_hzb_occlusion_dispatch_group_count = report.dispatch_group_count as usize;
     stats.last_hzb_occlusion_dispatched_phase_count = report.dispatched_phase_count as usize;
+    stats.last_hzb_occlusion_params_buffer_create_count =
+        report.params_buffer_create_count as usize;
+    stats.last_hzb_occlusion_params_upload_byte_count = report.params_upload_byte_count;
+    stats.last_hzb_occlusion_bind_group_create_count = report.bind_group_create_count as usize;
     stats.last_hzb_occlusion_history_available = report.history_available;
     stats.last_hzb_occlusion_readback_pending_count = report.readback_pending_count as usize;
     stats.last_hzb_occlusion_readback_dropped_count = report.readback_dropped_count as usize;

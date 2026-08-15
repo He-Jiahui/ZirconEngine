@@ -1,14 +1,16 @@
 use std::collections::{BTreeMap, BTreeSet};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, Instant};
 
 use serde::Deserialize;
 use zircon_runtime_interface::{
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
-    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1, ZrByteSlice, ZrOwnedByteBuffer,
-    ZrRuntimeApiV4, ZrRuntimeEventV1, ZrRuntimePluginEventDeliveryBatchV1,
-    ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle,
-    ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus,
+    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV6, ZrRuntimeEventV1,
+    ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventDeliveryV1,
+    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportSizeV1, ZrStatus, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
+    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
 };
 
 use crate::core::gateway::{
@@ -117,7 +119,7 @@ unsafe extern "C" fn abi_drain_plugin_events(
 }
 
 fn abi_gateway() -> SessionGateway {
-    let mut api = ZrRuntimeApiV4::empty();
+    let mut api = ZrRuntimeApiV6::empty();
     api.subscribe_plugin_event = Some(abi_subscribe_plugin_event);
     api.unsubscribe_plugin_event = Some(abi_unsubscribe_plugin_event);
     api.drain_plugin_events = Some(abi_drain_plugin_events);
@@ -146,6 +148,44 @@ struct RecordingState {
     session: Option<u64>,
     sequences: Vec<u64>,
     callback_delay: Duration,
+}
+
+struct PanicOnceState {
+    session: Option<u64>,
+    sequences: Vec<u64>,
+    panic_on_sequence: u64,
+    panicked: bool,
+}
+
+impl EditorRuntimeEventConsumerState for PanicOnceState {
+    type Payload = Payload;
+    type Error = ConsumerError;
+
+    fn begin_session(&mut self, play_session_id: u64) {
+        self.session = Some(play_session_id);
+    }
+
+    fn consume(
+        &mut self,
+        play_session_id: u64,
+        sequence: u64,
+        payload: Self::Payload,
+    ) -> Result<(), Self::Error> {
+        assert_eq!(self.session, Some(play_session_id));
+        assert_eq!(payload.value, sequence);
+        if sequence == self.panic_on_sequence && !self.panicked {
+            self.panicked = true;
+            panic!("injected consumer callback panic");
+        }
+        self.sequences.push(sequence);
+        Ok(())
+    }
+
+    fn end_session(&mut self, play_session_id: u64) {
+        if self.session == Some(play_session_id) {
+            self.session = None;
+        }
+    }
 }
 
 impl EditorRuntimeEventConsumerState for RecordingState {
@@ -269,6 +309,7 @@ struct FakeGateway {
     session: ZrRuntimeSessionHandle,
     next_subscription: Mutex<u64>,
     deliveries: Mutex<BTreeMap<u64, Vec<ZrRuntimePluginEventDeliveryV1>>>,
+    drain_calls: Mutex<BTreeMap<u64, usize>>,
     failing_drains: Mutex<BTreeSet<u64>>,
 }
 
@@ -278,6 +319,7 @@ impl FakeGateway {
             session: ZrRuntimeSessionHandle::new(session),
             next_subscription: Mutex::new(10),
             deliveries: Mutex::new(BTreeMap::new()),
+            drain_calls: Mutex::new(BTreeMap::new()),
             failing_drains: Mutex::new(BTreeSet::new()),
         }
     }
@@ -300,6 +342,15 @@ impl FakeGateway {
 
     fn fail_drain(&self, subscription: u64) {
         self.failing_drains.lock().unwrap().insert(subscription);
+    }
+
+    fn drain_call_count(&self, subscription: u64) -> usize {
+        self.drain_calls
+            .lock()
+            .unwrap()
+            .get(&subscription)
+            .copied()
+            .unwrap_or_default()
     }
 }
 
@@ -341,6 +392,12 @@ impl EditorRuntimeGateway for FakeGateway {
         &self,
         subscription: ZrRuntimePluginEventSubscriptionHandle,
     ) -> Result<EditorRuntimePluginEventPage, GatewayError> {
+        *self
+            .drain_calls
+            .lock()
+            .unwrap()
+            .entry(subscription.raw())
+            .or_default() += 1;
         if self
             .failing_drains
             .lock()
@@ -351,12 +408,17 @@ impl EditorRuntimeGateway for FakeGateway {
                 message: "injected drain failure".to_string(),
             });
         }
-        Ok(EditorRuntimePluginEventPage::synthetic(
-            self.deliveries
-                .lock()
-                .unwrap()
-                .remove(&subscription.raw())
-                .unwrap_or_default(),
+        let deliveries = self
+            .deliveries
+            .lock()
+            .unwrap()
+            .remove(&subscription.raw())
+            .unwrap_or_default();
+        Ok(EditorRuntimePluginEventPage::new(
+            deliveries,
+            subscription.raw() as usize * 10,
+            Duration::ZERO,
+            Duration::ZERO,
         ))
     }
 
@@ -421,7 +483,10 @@ fn bounded_pump_defers_backlog_without_losing_order() {
     let gateway = Arc::new(FakeGateway::new(7));
     let host =
         EditorRuntimeEventConsumerHost::new(EditorRuntimeGatewayHandle::new(gateway.clone()));
-    let state = Arc::new(Mutex::new(RecordingState::default()));
+    let state = Arc::new(Mutex::new(RecordingState {
+        callback_delay: Duration::from_millis(1),
+        ..RecordingState::default()
+    }));
     register_state(&host, "tests.consumer.a", "tests.events.a", state.clone());
     host.begin_play_session(100, &[CAPABILITY.to_string()])
         .unwrap();
@@ -432,10 +497,38 @@ fn bounded_pump_defers_backlog_without_losing_order() {
     let first = host.pump_with_budget(budget(3, 3)).unwrap();
     assert_eq!(first.applied(), 3);
     assert_eq!(first.drained(), 10);
-    assert_eq!(first.drained_encoded_bytes(), 0);
+    assert_eq!(first.drained_encoded_bytes(), 110);
     assert_eq!(first.deferred(), 7);
     assert_eq!(first.queue_depth(), 7);
+    assert_eq!(first.pending_encoded_bytes_upper_bound(), 110);
+    assert!(!first.pending_oldest_age().is_zero());
+    assert_eq!(first.last_observed_runtime_remaining_deliveries(), Some(0));
+    assert_eq!(
+        first.last_observed_runtime_oldest_pending_age_millis(),
+        Some(0)
+    );
+    assert!(first
+        .last_observed_runtime_backlog_observation_age()
+        .is_some());
+    assert_eq!(gateway.drain_call_count(11), 1);
     assert_eq!(state.lock().unwrap().sequences, [1, 2, 3]);
+
+    for sequence in 11..=12 {
+        gateway.push(11, "tests.events.a", sequence);
+    }
+    let second = host.pump_with_budget(budget(3, 3)).unwrap();
+    assert_eq!(second.applied(), 3);
+    assert_eq!(second.drained(), 0);
+    assert_eq!(second.last_observed_runtime_remaining_deliveries(), Some(0));
+    assert_eq!(
+        second.last_observed_runtime_oldest_pending_age_millis(),
+        Some(0)
+    );
+    assert!(second
+        .last_observed_runtime_backlog_observation_age()
+        .is_some());
+    assert_eq!(gateway.drain_call_count(11), 1);
+    assert_eq!(state.lock().unwrap().sequences, [1, 2, 3, 4, 5, 6]);
 
     while host.last_pump_report().queue_depth() != 0 {
         host.pump_with_budget(budget(3, 3)).unwrap();
@@ -443,6 +536,72 @@ fn bounded_pump_defers_backlog_without_losing_order() {
     assert_eq!(
         state.lock().unwrap().sequences,
         (1..=10).collect::<Vec<_>>()
+    );
+
+    let next_page = host.pump_with_budget(budget(3, 3)).unwrap();
+    assert_eq!(next_page.applied(), 2);
+    assert_eq!(next_page.drained(), 2);
+    assert_eq!(gateway.drain_call_count(11), 2);
+    assert_eq!(
+        state.lock().unwrap().sequences,
+        (1..=12).collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn callback_panic_restores_pending_tail_and_last_sequence() {
+    let gateway = Arc::new(FakeGateway::new(7));
+    let host =
+        EditorRuntimeEventConsumerHost::new(EditorRuntimeGatewayHandle::new(gateway.clone()));
+    let state = Arc::new(Mutex::new(PanicOnceState {
+        session: None,
+        sequences: Vec::new(),
+        panic_on_sequence: 3,
+        panicked: false,
+    }));
+    register_state(
+        &host,
+        "tests.consumer.panic",
+        "tests.events.panic",
+        state.clone(),
+    );
+    host.begin_play_session(101, &[CAPABILITY.to_string()])
+        .unwrap();
+    for sequence in [1, 2, 3, 2, 4] {
+        gateway.push(11, "tests.events.panic", sequence);
+    }
+
+    let panic = catch_unwind(AssertUnwindSafe(|| {
+        let _ = host.pump_with_budget(budget(5, 5));
+    }));
+    assert!(panic.is_err());
+    assert_eq!(gateway.drain_call_count(11), 1);
+
+    let error = host
+        .pump_with_budget(budget(5, 5))
+        .expect_err("the restored last sequence must reject the pending stale delivery");
+    assert!(matches!(
+        error,
+        EditorRuntimeEventConsumerError::StaleSequence { sequence: 2, .. }
+    ));
+    assert_eq!(gateway.drain_call_count(11), 1);
+    assert_eq!(
+        state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .sequences,
+        [1, 2]
+    );
+
+    let recovered = host.pump_with_budget(budget(5, 5)).unwrap();
+    assert_eq!(recovered.applied(), 1);
+    assert_eq!(gateway.drain_call_count(11), 1);
+    assert_eq!(
+        state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .sequences,
+        [1, 2, 4]
     );
 }
 
@@ -674,7 +833,7 @@ fn managed_thousand_and_ten_thousand_delivery_budget_report() {
 }
 
 fn run_abi_delivery_storm(delivery_count: u64) -> serde_json::Value {
-    const MAX_EVENTS_PER_TICK: usize = 64;
+    const MAX_EVENTS_PER_TICK: usize = 32;
 
     *ABI_EVENT_BACKLOG.lock().expect("lock ABI event backlog") = AbiEventBacklog {
         remaining: delivery_count,
@@ -703,8 +862,10 @@ fn run_abi_delivery_storm(delivery_count: u64) -> serde_json::Value {
     let mut max_page_bytes = 0_usize;
     let mut pending_peak = 0_usize;
     let mut max_pending_sequence_span = 0_u64;
-    let mut runtime_remaining_peak = 0_usize;
-    let mut max_runtime_oldest_pending_age_millis = 0_u64;
+    let mut max_editor_pending_encoded_bytes_upper_bound = 0_usize;
+    let mut max_editor_pending_oldest_age_millis = 0_u128;
+    let mut last_observed_runtime_remaining_peak = 0_usize;
+    let mut max_last_observed_runtime_oldest_pending_age_millis = 0_u64;
     while applied < delivery_count as usize {
         let started = Instant::now();
         let report = host
@@ -724,29 +885,48 @@ fn run_abi_delivery_storm(delivery_count: u64) -> serde_json::Value {
         max_page_bytes = max_page_bytes.max(report.drained_encoded_bytes());
         pending_peak = pending_peak.max(report.queue_depth());
         max_pending_sequence_span = max_pending_sequence_span.max(report.pending_sequence_span());
-        runtime_remaining_peak = runtime_remaining_peak.max(report.runtime_remaining_deliveries());
-        max_runtime_oldest_pending_age_millis =
-            max_runtime_oldest_pending_age_millis.max(report.runtime_oldest_pending_age_millis());
+        max_editor_pending_encoded_bytes_upper_bound = max_editor_pending_encoded_bytes_upper_bound
+            .max(report.pending_encoded_bytes_upper_bound());
+        max_editor_pending_oldest_age_millis =
+            max_editor_pending_oldest_age_millis.max(report.pending_oldest_age().as_millis());
+        if let Some(remaining) = report.last_observed_runtime_remaining_deliveries() {
+            last_observed_runtime_remaining_peak =
+                last_observed_runtime_remaining_peak.max(remaining);
+        }
+        if let Some(oldest_pending_age_millis) =
+            report.last_observed_runtime_oldest_pending_age_millis()
+        {
+            max_last_observed_runtime_oldest_pending_age_millis =
+                max_last_observed_runtime_oldest_pending_age_millis.max(oldest_pending_age_millis);
+        }
         assert!(report.applied() <= MAX_EVENTS_PER_TICK);
         assert!(report.drained() <= ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1);
         assert!(
             report.drained_encoded_bytes() <= ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1
         );
+        assert!(
+            report.pending_encoded_bytes_upper_bound()
+                <= ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1
+        );
         assert_eq!(report.runtime_drain_p95(), report.runtime_drain_elapsed());
         assert_eq!(report.decode_p95(), report.decode_elapsed());
         assert_eq!(report.dropped(), 0);
-        assert_eq!(
-            report.runtime_remaining_deliveries(),
-            delivery_count as usize - applied
-        );
-        assert_eq!(
-            report.runtime_oldest_pending_age_millis(),
-            if report.runtime_remaining_deliveries() == 0 {
-                0
-            } else {
-                17
-            }
-        );
+        if report.drained() > 0 {
+            let remaining = report
+                .last_observed_runtime_remaining_deliveries()
+                .expect("a drain creates a complete runtime backlog observation");
+            assert_eq!(
+                remaining.saturating_add(report.queue_depth()),
+                delivery_count as usize - applied
+            );
+            assert_eq!(
+                report.last_observed_runtime_oldest_pending_age_millis(),
+                Some(if remaining == 0 { 0 } else { 17 })
+            );
+            assert!(report
+                .last_observed_runtime_backlog_observation_age()
+                .is_some());
+        }
     }
 
     assert_eq!(applied, delivery_count as usize);
@@ -779,8 +959,10 @@ fn run_abi_delivery_storm(delivery_count: u64) -> serde_json::Value {
         "max_page_bytes": max_page_bytes,
         "pending_peak": pending_peak,
         "max_pending_sequence_span": max_pending_sequence_span,
-        "runtime_remaining_peak": runtime_remaining_peak,
-        "max_runtime_oldest_pending_age_millis": max_runtime_oldest_pending_age_millis,
+        "max_editor_pending_encoded_bytes_upper_bound": max_editor_pending_encoded_bytes_upper_bound,
+        "max_editor_pending_oldest_age_millis": max_editor_pending_oldest_age_millis,
+        "last_observed_runtime_remaining_peak": last_observed_runtime_remaining_peak,
+        "max_last_observed_runtime_oldest_pending_age_millis": max_last_observed_runtime_oldest_pending_age_millis,
         "tick_p95_ns": tick_p95_ns,
         "runtime_drain_p95_ns": runtime_drain_p95_ns,
         "decode_p95_ns": decode_p95_ns,
@@ -796,3 +978,6 @@ fn percentile_index(sample_count: usize) -> usize {
 
 #[path = "runtime_event_consumer_bounded_pump/real_runtime_abi.rs"]
 mod real_runtime_abi;
+
+#[path = "runtime_event_consumer_bounded_pump/round_robin.rs"]
+mod round_robin;

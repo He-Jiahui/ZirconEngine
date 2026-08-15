@@ -1,7 +1,9 @@
 use zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
-use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use crate::ui::weight_heatmap::WeightHeatmapGeneration;
+
+use super::super::super::data::FrameRect;
 use super::super::super::paint_text::measure_runtime_text_width;
 use super::super::render_commands::HostPaintCommand;
 use super::geometry::WeightHeatmapGeometry;
@@ -11,16 +13,13 @@ const LEGEND_FONT_SIZE: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE;
 const LEGEND_LINE_HEIGHT: f32 = EditorTypographyTokens::WORKBENCH_CAPTION_SIZE
     * EditorTypographyTokens::WORKBENCH_LINE_HEIGHT_RATIO;
 
-pub(super) fn legend_label_width(node: &TemplatePaneNodeData) -> f32 {
-    legend_label_width_from_labels(
-        node.weight_heatmap.high_label.as_str(),
-        node.weight_heatmap.low_label.as_str(),
-    )
+pub(super) fn legend_label_width(generation: &WeightHeatmapGeneration) -> f32 {
+    legend_label_width_from_labels(generation.high_label(), generation.low_label())
 }
 
 pub(super) fn push_heatmap_legend_text(
     commands: &mut Vec<HostPaintCommand>,
-    node: &TemplatePaneNodeData,
+    generation: &WeightHeatmapGeneration,
     geometry: &WeightHeatmapGeometry,
     clip: &FrameRect,
     order: i32,
@@ -28,7 +27,7 @@ pub(super) fn push_heatmap_legend_text(
 ) {
     push_label(
         commands,
-        node.weight_heatmap.high_label.to_string(),
+        generation.high_label().to_owned(),
         geometry.legend.y,
         geometry,
         clip,
@@ -37,7 +36,7 @@ pub(super) fn push_heatmap_legend_text(
     );
     push_label(
         commands,
-        node.weight_heatmap.low_label.to_string(),
+        generation.low_label().to_owned(),
         geometry.legend.y + geometry.legend.height - LEGEND_LINE_HEIGHT,
         geometry,
         clip,

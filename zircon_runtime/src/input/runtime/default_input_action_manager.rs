@@ -36,7 +36,8 @@ impl InputActionManager for DefaultInputActionManager {
     }
 
     fn evaluate_actions(&self, frame: &InputFrameSnapshot) -> InputActionState {
-        self.lock_evaluator().evaluate(frame)
+        self.lock_evaluator()
+            .evaluate_while_manager_locked(frame, &[], &[], &[])
     }
 
     fn evaluate_actions_with_consumed_buttons(
@@ -45,7 +46,7 @@ impl InputActionManager for DefaultInputActionManager {
         consumed_buttons: &[InputButton],
     ) -> InputActionState {
         self.lock_evaluator()
-            .evaluate_with_consumed_buttons(frame, consumed_buttons)
+            .evaluate_while_manager_locked(frame, &[], consumed_buttons, &[])
     }
 
     fn evaluate_actions_with_consumed_input(
@@ -54,8 +55,12 @@ impl InputActionManager for DefaultInputActionManager {
         consumed_buttons: &[InputButton],
         consumed_axes: &[GamepadAxisInput],
     ) -> InputActionState {
-        self.lock_evaluator()
-            .evaluate_with_consumed_input(frame, consumed_buttons, consumed_axes)
+        self.lock_evaluator().evaluate_while_manager_locked(
+            frame,
+            &[],
+            consumed_buttons,
+            consumed_axes,
+        )
     }
 
     fn evaluate_actions_with_active_contexts(
@@ -64,7 +69,7 @@ impl InputActionManager for DefaultInputActionManager {
         active_contexts: &[&str],
     ) -> InputActionState {
         self.lock_evaluator()
-            .evaluate_with_active_contexts(frame, active_contexts)
+            .evaluate_while_manager_locked(frame, active_contexts, &[], &[])
     }
 
     fn evaluate_actions_with_active_contexts_and_consumed_buttons(
@@ -73,12 +78,12 @@ impl InputActionManager for DefaultInputActionManager {
         active_contexts: &[&str],
         consumed_buttons: &[InputButton],
     ) -> InputActionState {
-        self.lock_evaluator()
-            .evaluate_with_active_contexts_and_consumed_buttons(
-                frame,
-                active_contexts,
-                consumed_buttons,
-            )
+        self.lock_evaluator().evaluate_while_manager_locked(
+            frame,
+            active_contexts,
+            consumed_buttons,
+            &[],
+        )
     }
 
     fn evaluate_actions_with_active_contexts_and_consumed_input(
@@ -88,13 +93,12 @@ impl InputActionManager for DefaultInputActionManager {
         consumed_buttons: &[InputButton],
         consumed_axes: &[GamepadAxisInput],
     ) -> InputActionState {
-        self.lock_evaluator()
-            .evaluate_with_active_contexts_and_consumed_input(
-                frame,
-                active_contexts,
-                consumed_buttons,
-                consumed_axes,
-            )
+        self.lock_evaluator().evaluate_while_manager_locked(
+            frame,
+            active_contexts,
+            consumed_buttons,
+            consumed_axes,
+        )
     }
 }
 

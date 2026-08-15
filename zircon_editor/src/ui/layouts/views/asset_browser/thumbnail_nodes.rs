@@ -4,7 +4,9 @@ use super::name_lines::{RuntimeNameLineSplit, split_display_name_lines};
 use zircon_runtime_interface::ui::design_tokens::{EditorControlTokens, EditorTypographyTokens};
 
 use crate::ui::layouts::common::model_rc;
-use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData, load_preview_image};
+use crate::ui::layouts::views::{
+    ViewTemplateFrameData, ViewTemplateNodeData, load_preview_image_for_generation,
+};
 use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetViewMode, AssetWorkspaceSnapshot};
 
@@ -39,7 +41,12 @@ pub(super) fn append_asset_browser_thumbnail_nodes(
         let selected =
             asset.selected || snapshot.selected_asset_uuid.as_deref() == Some(asset.uuid.as_str());
         nodes.push(thumbnail_card_node(index, selected));
-        nodes.push(thumbnail_visual_node(index, selected, asset));
+        nodes.push(thumbnail_visual_node(
+            index,
+            selected,
+            asset,
+            snapshot.catalog_revision,
+        ));
         nodes.push(thumbnail_info_band_node(index, selected));
         if selected {
             nodes.push(thumbnail_selection_marker_node(index));
@@ -129,8 +136,14 @@ fn thumbnail_visual_node(
     index: usize,
     selected: bool,
     asset: &AssetItemSnapshot,
+    workspace_generation: u64,
 ) -> ViewTemplateNodeData {
-    let preview_image = load_preview_image(asset.preview_artifact_path.as_str(), "");
+    let resource_generation = workspace_generation ^ asset.resource_revision.unwrap_or_default();
+    let preview_image = load_preview_image_for_generation(
+        asset.preview_artifact_path.as_str(),
+        "",
+        resource_generation,
+    );
     let preview_size = preview_image.size();
     ViewTemplateNodeData {
         node_id: thumbnail_node_id("Visual", index).into(),

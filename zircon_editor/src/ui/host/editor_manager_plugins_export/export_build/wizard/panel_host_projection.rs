@@ -158,6 +158,8 @@ fn slot_entry_node(
         checked: false,
         expanded: false,
         focused: false,
+        focus_visible: false,
+        focus_visible_known: false,
         hovered: false,
         pressed: false,
         dragging: false,

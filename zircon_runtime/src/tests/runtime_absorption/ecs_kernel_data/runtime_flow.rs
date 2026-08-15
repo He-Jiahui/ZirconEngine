@@ -1,28 +1,41 @@
 use super::support::assert_source_anchors;
 
 pub(super) fn assert_runtime_08_flow_anchors() {
+    let observer_sources = [
+        include_str!("../../../scene/ecs/observer/mod.rs"),
+        include_str!("../../../scene/ecs/observer/callback_registry.rs"),
+        include_str!("../../../scene/ecs/observer/callbacks.rs"),
+        include_str!("../../../scene/ecs/observer/entry.rs"),
+        include_str!("../../../scene/ecs/observer/id.rs"),
+        include_str!("../../../scene/ecs/observer/store.rs"),
+        include_str!("../../../scene/world/observers.rs"),
+    ];
     assert_source_anchors(
         "Runtime 08 observer",
-        &[
-            include_str!("../../../scene/ecs/observer/mod.rs"),
-            include_str!("../../../scene/ecs/observer/callback_registry.rs"),
-            include_str!("../../../scene/ecs/observer/callbacks.rs"),
-            include_str!("../../../scene/ecs/observer/entry.rs"),
-            include_str!("../../../scene/ecs/observer/id.rs"),
-            include_str!("../../../scene/ecs/observer/store.rs"),
-            include_str!("../../../scene/world/observers.rs"),
-        ],
+        &observer_sources,
         &[
             "pub struct ObserverStore",
             "pub fn observe_lifecycle(",
             "pub fn observe_event<E>(",
             "pub fn observe_entity_event<E>(",
-            "pub fn remove(&mut self, id: ObserverId) -> bool",
+            "pub fn remove(&mut self, id: ObserverId) -> SceneResult<()>",
             "pub(crate) fn lifecycle_callbacks(",
-            "let mut callbacks = Vec::with_capacity(callback_count);",
-            "callbacks.push(observer.callback.clone());",
+            "lifecycle_buckets: HashMap<LifecycleObserverKey, Arc<BTreeMap<ObserverId, LifecycleObserver>>>",
+            "observer_locations: HashMap<ObserverId, ObserverBucket>",
         ],
     );
+    let observer_source = observer_sources.join("\n");
+    for retired_anchor in [
+        "pub fn remove(&mut self, id: ObserverId) -> bool",
+        "lifecycle_buckets: HashMap<LifecycleObserverKey, Arc<[LifecycleObserver]>>",
+        "let mut callbacks = Vec::with_capacity(callback_count);",
+        "callbacks.push(observer.callback.clone());",
+    ] {
+        assert!(
+            !observer_source.contains(retired_anchor),
+            "Runtime 08 observer hard cut must not retain `{retired_anchor}`"
+        );
+    }
     assert_source_anchors(
         "Runtime 08 deferred command",
         &[

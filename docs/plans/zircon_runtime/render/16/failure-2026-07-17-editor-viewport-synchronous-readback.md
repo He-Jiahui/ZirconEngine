@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: open
+status: source_complete_dynamic_validation_pending
 created_at: 2026-07-17
 summary_slug: editor-viewport-synchronous-readback
 origin_plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md
@@ -67,7 +67,19 @@ Editor retained viewport 用 `submit_frame_extract_with_ui` 提交常规帧。re
 
 ## 修复结果与回传
 
-Open state: `待 Render16 + Editor01 分离 product texture 与 explicit capture，并完成动态验收`。
+2026-08-13 source closeout：同-device 常规 viewport 帧已发布 backend-neutral
+`RenderViewportProduct`，运行时在三代有界 registry 中保留独立 GPU texture snapshot，retained UI
+通过 external-image provider 按 resource key/generation 解析，不携带 CPU pixels。presenter 首次
+`confirm_resident` 后关闭该 viewport 的 async capture；确认前或无兼容 presenter 时，fallback 只
+通过共享三槽 `GpuReadbackQueue` 与有界 latest-ready mailbox 异步回传，poll 使用 try-lock 和
+non-blocking device poll。显式 screenshot/headless `capture_frame` 继续作为独立同步 API，未混回
+普通 submit。
+
+Editor poll/product/capture 均在 framework 调用前释放 shared state mutex；GPU product 路径不等待
+submit operation，错误不重发 stale generation。resize lifecycle 已将 framework destroy/create 放在
+shared mutex 外，但 burst coalescing、device-loss/resize 产品动态证据、1080p/4K WPR/Tracy、copy
+bytes/live-owner/peak-RSS 与 RenderDoc/PNG 仍待 coordinator。因此当前状态为
+`source_complete_dynamic_validation_pending`，不记 accepted closeout。
 
 ## 产出记录与时间
 

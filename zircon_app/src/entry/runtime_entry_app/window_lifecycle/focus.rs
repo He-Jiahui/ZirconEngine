@@ -12,6 +12,9 @@ impl RuntimeEntryApp {
         event_loop: &dyn ActiveEventLoop,
         focused: bool,
     ) {
+        if self.frame_cadence.set_window_focused(focused) {
+            self.request_runtime_frame();
+        }
         let state = if focused {
             ZR_RUNTIME_LIFECYCLE_STATE_FOREGROUND_V1
         } else {

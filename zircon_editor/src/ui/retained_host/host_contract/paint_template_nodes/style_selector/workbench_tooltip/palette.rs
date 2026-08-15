@@ -1,6 +1,6 @@
 use super::model::WorkbenchTooltipStyle;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    HostMaterialPalette, current_host_palette,
+    current_host_palette, HostMaterialPalette,
 };
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
@@ -53,8 +53,8 @@ pub(super) fn tooltip_normal_style_from_palette(
     }
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tooltip_palette()
--> WorkbenchTooltipPalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tooltip_palette(
+) -> WorkbenchTooltipPalette {
     tooltip_palette_from_host(current_host_palette())
 }
 

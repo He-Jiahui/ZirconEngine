@@ -1,6 +1,6 @@
 use super::super::super::style_selector::{
-    WorkbenchStatusSignalKind as StatusSignalKind, WorkbenchStatusSignalStyle,
-    select_workbench_status_signal_style,
+    select_workbench_status_signal_style, WorkbenchStatusSignalKind as StatusSignalKind,
+    WorkbenchStatusSignalStyle,
 };
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 

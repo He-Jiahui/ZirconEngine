@@ -79,16 +79,19 @@ fn queued_two_bone_ik_runs_after_pose_blend_before_pose_apply() {
     .unwrap();
     let target = Vec3::new(1.2, 0.8, 0.0);
     animation
-        .queue_ik_command(AnimationIkCommand::TwoBone(AnimationTwoBoneIkCommand {
-            world: level.world_handle(),
-            entity,
-            root: AnimationTargetId::from_segments(["Root"]),
-            mid: AnimationTargetId::from_segments(["Root", "Mid"]),
-            tip: AnimationTargetId::from_segments(["Root", "Mid", "Tip"]),
-            target,
-            pole: Some(Vec3::Z),
-            weight: 1.0,
-        }))
+        .queue_ik_command(
+            level.capture_world_replacement_epoch(),
+            AnimationIkCommand::TwoBone(AnimationTwoBoneIkCommand {
+                world: level.world_handle(),
+                entity,
+                root: AnimationTargetId::from_segments(["Root"]),
+                mid: AnimationTargetId::from_segments(["Root", "Mid"]),
+                tip: AnimationTargetId::from_segments(["Root", "Mid", "Tip"]),
+                target,
+                pole: Some(Vec3::Z),
+                weight: 1.0,
+            }),
+        )
         .unwrap();
 
     runtime.tick_level_seconds(&level, 0.0).unwrap();
@@ -109,7 +112,12 @@ fn queued_two_bone_ik_runs_after_pose_blend_before_pose_apply() {
         solved_tip.abs_diff_eq(target, 1.0e-4),
         "expected {target:?}, got {solved_tip:?}"
     );
-    assert!(animation.drain_ik_commands(level.world_handle()).is_empty());
+    assert!(animation
+        .drain_ik_commands(
+            level.world_handle(),
+            level.capture_world_replacement_epoch()
+        )
+        .is_empty());
 }
 
 #[test]
@@ -174,15 +182,18 @@ fn queued_look_at_uses_model_space_target_and_clamps_final_pose() {
     )
     .unwrap();
     animation
-        .queue_ik_command(AnimationIkCommand::LookAt(AnimationLookAtCommand {
-            world: level.world_handle(),
-            entity,
-            bone: AnimationTargetId::from_segments(["Root"]),
-            target: Vec3::Y,
-            axis: Vec3::X,
-            clamp_degrees: 30.0,
-            weight: 1.0,
-        }))
+        .queue_ik_command(
+            level.capture_world_replacement_epoch(),
+            AnimationIkCommand::LookAt(AnimationLookAtCommand {
+                world: level.world_handle(),
+                entity,
+                bone: AnimationTargetId::from_segments(["Root"]),
+                target: Vec3::Y,
+                axis: Vec3::X,
+                clamp_degrees: 30.0,
+                weight: 1.0,
+            }),
+        )
         .unwrap();
 
     runtime.tick_level_seconds(&level, 0.0).unwrap();

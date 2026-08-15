@@ -19,4 +19,4 @@ component = "IconButton"
 control_id = "TriggerAction"
 props = { label = "Action", icon = "flash-outline", icon_placement = "leading" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-events = [{ id = "PaneSurface/TriggerAction", event = "Click", route = "workbench.project.open" }]
+events = [{ id = "PaneSurface/TriggerAction", event = "Click", action = { action = "file.project.open" } }]

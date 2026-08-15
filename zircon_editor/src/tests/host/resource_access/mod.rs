@@ -1,5 +1,7 @@
 use std::sync::Arc;
-use zircon_runtime::core::framework::asset::{ResourceManagementGeneration, ResourceManager};
+use zircon_runtime::core::{
+    framework::asset::ResourceManager, resource::ResourceManagementGeneration,
+};
 use zircon_runtime_interface::resource::{
     MaterialMarker, ModelMarker, ResourceDiagnostic, ResourceHandle, ResourceId, ResourceKind,
     ResourceLocator, ResourceRecord, ResourceState,

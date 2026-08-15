@@ -75,6 +75,12 @@ fn runtime_render_device_snapshot(
         max_sampled_textures_per_shader_stage: diagnostics
             .limits
             .max_sampled_textures_per_shader_stage,
+        max_binding_array_elements_per_shader_stage: diagnostics
+            .limits
+            .max_binding_array_elements_per_shader_stage,
+        max_binding_array_sampler_elements_per_shader_stage: diagnostics
+            .limits
+            .max_binding_array_sampler_elements_per_shader_stage,
         max_storage_buffers_per_shader_stage: diagnostics
             .limits
             .max_storage_buffers_per_shader_stage,
@@ -133,6 +139,8 @@ mod tests {
                     max_texture_dimension_2d: 16_384,
                     max_texture_array_layers: 256,
                     max_sampled_textures_per_shader_stage: 16,
+                    max_binding_array_elements_per_shader_stage: 500_000,
+                    max_binding_array_sampler_elements_per_shader_stage: 1_000,
                     max_storage_buffers_per_shader_stage: 8,
                     max_storage_buffer_binding_size: 134_217_728,
                 },
@@ -148,6 +156,14 @@ mod tests {
         assert_eq!(snapshot.max_texture_dimension_2d, 16_384);
         assert_eq!(snapshot.max_texture_array_layers, 256);
         assert_eq!(snapshot.max_sampled_textures_per_shader_stage, 16);
+        assert_eq!(
+            snapshot.max_binding_array_elements_per_shader_stage,
+            500_000
+        );
+        assert_eq!(
+            snapshot.max_binding_array_sampler_elements_per_shader_stage,
+            1_000
+        );
         assert_eq!(snapshot.max_storage_buffers_per_shader_stage, 8);
         assert_eq!(snapshot.max_storage_buffer_binding_size, 134_217_728);
     }

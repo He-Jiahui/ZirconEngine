@@ -1,8 +1,8 @@
 use std::sync::OnceLock;
 
 use crate::core::framework::render::{
-    build_environment_brdf_lut, EnvironmentBrdfLutTexel, ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT,
-    ENVIRONMENT_BRDF_LUT_SIZE,
+    build_environment_brdf_lut_with_extent, EnvironmentBrdfLutTexel, ENVIRONMENT_BRDF_LUT_HEIGHT,
+    ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT, ENVIRONMENT_BRDF_LUT_WIDTH,
 };
 
 use super::half_float::push_f16_le_bytes;
@@ -20,8 +20,8 @@ impl SceneEnvironmentBrdfLut {
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("zircon-scene-environment-brdf-lut"),
             size: wgpu::Extent3d {
-                width: ENVIRONMENT_BRDF_LUT_SIZE,
-                height: ENVIRONMENT_BRDF_LUT_SIZE,
+                width: ENVIRONMENT_BRDF_LUT_WIDTH,
+                height: ENVIRONMENT_BRDF_LUT_HEIGHT,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
@@ -53,12 +53,12 @@ impl SceneEnvironmentBrdfLut {
             cached_environment_brdf_lut_rg16float_bytes(),
             wgpu::TexelCopyBufferLayout {
                 offset: 0,
-                bytes_per_row: Some(ENVIRONMENT_BRDF_LUT_SIZE * 4),
-                rows_per_image: Some(ENVIRONMENT_BRDF_LUT_SIZE),
+                bytes_per_row: Some(ENVIRONMENT_BRDF_LUT_WIDTH * 4),
+                rows_per_image: Some(ENVIRONMENT_BRDF_LUT_HEIGHT),
             },
             wgpu::Extent3d {
-                width: ENVIRONMENT_BRDF_LUT_SIZE,
-                height: ENVIRONMENT_BRDF_LUT_SIZE,
+                width: ENVIRONMENT_BRDF_LUT_WIDTH,
+                height: ENVIRONMENT_BRDF_LUT_HEIGHT,
                 depth_or_array_layers: 1,
             },
         );
@@ -91,8 +91,9 @@ impl SceneEnvironmentBrdfLut {
 fn cached_environment_brdf_lut_rg16float_bytes() -> &'static [u8] {
     static ENCODED_BYTES: OnceLock<Vec<u8>> = OnceLock::new();
     cache_environment_brdf_lut_bytes(&ENCODED_BYTES, || {
-        let texels = build_environment_brdf_lut(
-            ENVIRONMENT_BRDF_LUT_SIZE,
+        let texels = build_environment_brdf_lut_with_extent(
+            ENVIRONMENT_BRDF_LUT_WIDTH,
+            ENVIRONMENT_BRDF_LUT_HEIGHT,
             ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT,
         );
         rg16float_texels(&texels)

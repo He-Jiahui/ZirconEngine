@@ -31,7 +31,7 @@ related_code:
   - zircon_editor/src/core/settings/mod.rs
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/core/settings/io.rs
-  - zircon_editor/src/core/settings/tests.rs
+  - zircon_editor/src/core/settings/tests/mod.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/replay.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands/draw.rs
@@ -85,7 +85,7 @@ implementation_files:
   - zircon_editor/src/core/settings/mod.rs
   - zircon_editor/src/core/settings/defaults.rs
   - zircon_editor/src/core/settings/io.rs
-  - zircon_editor/src/core/settings/tests.rs
+  - zircon_editor/src/core/settings/tests/mod.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/style/text.rs

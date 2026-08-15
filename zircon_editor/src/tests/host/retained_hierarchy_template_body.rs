@@ -6,8 +6,8 @@ use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::blank_viewport_chrome;
 use crate::ui::layouts::windows::workbench_host_window::{
-    HierarchyPaneViewData, PaneContentSize, PanePayloadBuildContext, PanePresentation,
-    PaneShellPresentation, SceneNodeData, build_pane_body_presentation,
+    build_pane_body_presentation, HierarchyPaneViewData, PaneContentSize, PanePayloadBuildContext,
+    PanePresentation, PaneShellPresentation, SceneNodeData,
 };
 use crate::ui::retained_host::to_host_contract_hierarchy_pane_from_host_pane;
 use crate::ui::workbench::layout::MainPageId;

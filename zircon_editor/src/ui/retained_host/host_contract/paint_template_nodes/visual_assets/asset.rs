@@ -4,7 +4,7 @@ use super::candidates::{icon_candidates, image_candidates};
 use super::keys::visual_asset_cache_key;
 use super::loading::{load_pixels_from_candidates, missing_icon_pixels};
 use super::pixels::HostPaintImagePixels;
-use super::target::{MUI_ICON_DEFAULT_EDGE, RasterTargetSize};
+use super::target::{RasterTargetSize, MUI_ICON_DEFAULT_EDGE};
 use super::tint::ICON_TINT;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_visual_asset_pixels(
@@ -29,7 +29,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_ex
 ) -> Option<HostPaintImagePixels> {
     let target = RasterTargetSize::new(target_width, target_height)?;
     let key = visual_asset_cache_key(&UiVisualAssetRef::Icon(icon_name.to_owned()));
-    load_pixels_from_candidates(icon_candidates(icon_name), &key, Some(target), tint)
+    load_pixels_from_candidates(|| icon_candidates(icon_name), &key, Some(target), tint)
 }
 
 fn load_visual_asset_pixels_for_target(
@@ -44,7 +44,7 @@ fn load_visual_asset_pixels_for_target(
                 height: MUI_ICON_DEFAULT_EDGE,
             });
             load_pixels_from_candidates(
-                icon_candidates(icon_name),
+                || icon_candidates(icon_name),
                 &key,
                 Some(target),
                 Some(ICON_TINT),
@@ -52,7 +52,7 @@ fn load_visual_asset_pixels_for_target(
             .or_else(|| missing_icon_pixels(&key, target, Some(ICON_TINT)))
         }
         UiVisualAssetRef::Image(source) => {
-            load_pixels_from_candidates(image_candidates(source), &key, target, None)
+            load_pixels_from_candidates(|| image_candidates(source), &key, target, None)
         }
     }
 }

@@ -65,12 +65,10 @@ fn spawn_node_reuses_copy_node_kind_without_spawn_path_clones() {
         "NodeKind must stay copyable so spawn-node bootstrap paths can pass kinds by value without cloning"
     );
     assert!(
-        spawn_node.contains("self.ordinal_for(kind)")
-            && spawn_node.contains("self.kinds.insert(id, kind);")
-            && spawn_node.contains("self.record_node_kind_added(kind);")
-            && spawn_node.contains("self.place_empty_entity_in_archetype(id);")
+        spawn_node.contains("let record = self.default_node_record(id, kind);")
+            && spawn_node.contains("self.insert_prevalidated_node_record(record);")
             && !spawn_node.contains("kind.clone()"),
-        "spawn_node must reuse Copy NodeKind values for ordinal lookup, cached count maintenance, empty-archetype placement, storage insertion, and component-kind branching"
+        "spawn_node must reuse Copy NodeKind values while one prevalidated record transaction publishes the complete row"
     );
     assert!(
         node_kind.contains("self.kinds.get(&entity).copied()") && !node_kind.contains(".cloned()"),

@@ -1,4 +1,4 @@
-mod events;
+mod commit;
 mod lazy_registration;
 mod lease_ops;
 mod management_projection;
@@ -10,4 +10,8 @@ mod resource_manager;
 mod revision;
 mod runtime_slot;
 
+#[cfg(test)]
+mod tests;
+
+pub(crate) use commit::PreparedResourceMutation;
 pub use resource_manager::{ResourceManager, ResourceRegistryReadGuard};

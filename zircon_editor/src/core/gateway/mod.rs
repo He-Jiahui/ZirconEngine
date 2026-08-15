@@ -13,9 +13,9 @@ pub use capabilities::{
     PluginActivationState, PluginSummaryEntry, RuntimeCapabilities, SessionProfileKind,
 };
 pub use contract::{
-    EditorRuntimeFrame, EditorRuntimeFrameDemand, EditorRuntimeGateway, EditorRuntimePluginEventPage,
+    EditorRuntimeFrame, EditorRuntimeFrameDemand, EditorRuntimeGateway,
+    EditorRuntimePluginEventPage,
 };
-pub(crate) use contract::EditorRuntimeFramePixels;
 pub use detached::DetachedEditorRuntimeGateway;
 pub use error::GatewayError;
 pub use handle::EditorRuntimeGatewayHandle;

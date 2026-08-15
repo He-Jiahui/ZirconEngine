@@ -9,14 +9,20 @@ origin_child_dir: docs/plans/performance/01
 fixing_child_dir: docs/plans/zircon_plugins/01
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/plugin/runtime_profile/defaults.rs
+  - zircon_runtime/src/plugin/runtime_profile/assembly_presets.rs
   - zircon_runtime/src/plugin/runtime_profile/availability.rs
+  - zircon_runtime/src/plugin/runtime_profile/availability_projection.rs
+  - zircon_runtime/src/plugin/runtime_profile/availability_projection/generation.rs
   - zircon_runtime/src/plugin/package_manifest/builtin_catalog.rs
   - zircon_runtime/src/builtin/runtime_modules/availability.rs
+  - zircon_runtime/src/builtin/runtime_modules/tests/availability.rs
+  - zircon_runtime/src/tests/plugin_extensions/profile_availability_projection.rs
 tests:
-  - runtime profile availability build-count benchmark
-  - 1/100/1000 provider selection scaling test
-  - availability report byte-equivalence test
+  - runtime_profile_module_assembly_builds_one_availability_projection
+  - availability_projection_membership_steps_scale_linearly
+  - availability_projection_manifest_selection_index_steps_scale_linearly
+  - availability_projection_builtin_catalog_registration_report_is_byte_equivalent
+  - availability_generation_shares_required_rows_and_materializes_report_bytes
 ---
 
 # Plugins01：runtime profile availability 重建与二次投影
@@ -61,7 +67,7 @@ registration-report 路径先把 linked/native provider id 分别放入 `Vec<Str
 
 ## 修复结果与回传
 
-Open state: `待 Plugins01 建立 bootstrap availability generation projection 与规模化 build-count 回归`。
+Open state: `implementation_complete / current-source static review complete / managed focused-broad and failure return pending`。
 
 ### 2026-07-18 实现进度（focused GREEN，broad 待队列）
 
@@ -91,3 +97,47 @@ Open state: `待 Plugins01 建立 bootstrap availability generation projection �
 - `RuntimePluginAvailabilityGeneration` 现在在 runtime plugin 公共边界提供不可变 category index、runtime-id index 与 compact summary；其 row 借用 package id 并以枚举保存原因，完整 reason/id 条目仅由 `RuntimePluginAvailabilityRow::detail` 或 `materialize_report` 在导出/诊断边界显式生成。
 - required failure 只保存一个 entry row，primary category 和 `missing_required` 通过索引共享该 row；新增 `availability_generation_shares_required_rows_and_materializes_report_bytes` 覆盖指针同一性、summary、公开重导出和旧报告字节等价。
 - 受限源范围 `rustfmt --config skip_children=true --check`、`git diff --check` 及公开边界/单行所有权源码守卫已通过。当前全局受管 Cargo 队列由其他 Session 占用，尚未获得本切片 current-source focused/broad 结果；本 handoff 保持 `open`，不得回传 fixed。
+- 2026-08-08 文档契约复核已将 `docs/engine-architecture/plugin-optional-feature-bundles.md` 从已删除的 `runtime_profile/defaults.rs` 硬切到 `assembly_presets.rs`，并显式列出 `availability_projection.rs` 与其 `generation.rs` 子模块。该更新只修复本切片的路径/所有权叙述；全仓 document-path audit 仍有其他计划的历史缺口，受管 focused/broad 和 fixed return 状态不变。
+
+### 2026-08-08 current-source broad compile recovery
+
+- Windows coordinator-managed current-source gate `zircon_runtime --lib profile_availability_projection`
+  (job `00794c7e9681449c81fc4522a3e8000f`, target
+  `D:\\cargo-targets\\zircon-engine\\pool\\841a130ffbd3fd2e938e76b488988119044b676acced751dae7166d95d7f1025`)
+  reached the package build and exited `101`; the filtered test binary was not produced, so this is
+  not test evidence and this handoff remains `open`.
+- A same-source Windows build-only reproduction preserved the diagnostic log and identified three
+  lower-layer compile blockers outside the availability projection: Rust 2021 rejects the let-chain
+  in `render_graph/builder/compile.rs:231`, and `scene/world/render.rs:535` plus `:550` still access
+  the removed `World::cameras` field. The first belongs to the Render01 render-graph boundary; the
+  latter two require the Render07 World storage/render migration to advance together.
+- No profile-specific bypass, compatibility field, or retry is permitted. After those lower-layer
+  repairs land, rerun this exact current-source broad gate before a `failure return`.
+
+### 2026-08-10 compile-boundary static re-audit
+
+- The historical `graphics/render_graph/builder/compile.rs` path no longer exists in current source,
+  so its Rust 2021 let-chain diagnostic cannot be reproduced at that owner path.
+- `scene/world/render.rs` no longer reads a removed `World::cameras` field. Its remaining camera
+  projection uses `view.cameras` from the current render view snapshot.
+- This makes the availability focused/broad retry source-ready at static scope only. No Cargo was
+  started because the coordinator still reports a foreign running job and unmanaged D/E/F artifact
+  governance failures. A fresh managed test result and failure return remain required; this handoff
+  stays `open`.
+
+### 2026-08-11 duplicate runtime-id default selection correction
+
+- Current-source review found that `generation_for_profile_defaults` concatenated default and
+  optional plugin ids directly, while manifest selections already used an indexed first-position
+  merge. A runtime id appearing in both lists could therefore materialize duplicate availability
+  rows and bypass the required-OR contract.
+- Both entry points now use `merge_runtime_plugin_selection`: the first occurrence fixes output
+  order and later occurrences merge `required` with OR. The regression
+  `availability_profile_defaults_merge_duplicate_runtime_ids_with_required_or` covers a false
+  default, an optional duplicate, and a later required default, asserting one required row.
+- Rust `1.94.1` rustfmt, scoped `git diff --check`, and the source contract guard pass. No Cargo
+  was started: coordinator artifact audit reports unmanaged
+  `E:\ZirconBuilds\mvp-perf` and
+  `E:\ZirconBuilds\mvp-product-inputs-profile-20260811-current-source`; foreign validation-copy
+  `5945e3ef29d74bd69602adca02e243b5` remains untouched. This handoff stays `open` pending a
+  legal current-source focused/broad gate and failure return.

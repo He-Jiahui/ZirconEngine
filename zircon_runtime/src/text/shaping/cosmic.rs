@@ -1,10 +1,12 @@
+#[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+use std::cell::Cell;
 use std::time::Instant;
 
 use crate::core::framework::text::TextDirection;
 use crate::text::{TextRange, TextStyle};
 use glyphon::{
-    Attrs, Buffer, Family, LayoutGlyph, Metrics, Shaping, Weight, Wrap,
     cosmic_text::{BidiParagraphs, FeatureTag, FontFeatures, LineEnding, LineIter},
+    Attrs, Buffer, Family, LayoutGlyph, Metrics, Shaping, Weight, Wrap,
 };
 
 use crate::text::font::FontDatabase;
@@ -18,12 +20,12 @@ use super::horizontal::shape_horizontal_request;
 use super::line_break::{ClusterLineBreakFlags, LineBreakOpportunityMap};
 use super::normalize::ShapingTextView;
 use super::script_segment::{
-    ScriptSegment, script_for_range, script_segments, shaped_script_for_cluster,
+    script_for_range, script_segments, shaped_script_for_cluster, ScriptSegment,
 };
 use super::vertical::{apply_vertical_layout, shape_vertical_request};
 
-mod font_system_cache;
 mod fallback;
+mod font_system_cache;
 mod hard_lines;
 
 use super::fallback_text_spans;
@@ -66,17 +68,25 @@ fn shape_with_cosmic(
             fallback_started,
             request.text,
         );
+        #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+        begin_direct_shape_profile_metrics();
         if matches!(request.orientation, TextOrientation::Horizontal) {
             if let Some(shaped) =
                 shape_horizontal_request(request, bidi, &fallback_spans, font_database)
             {
+                #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+                record_direct_shape_profile_metrics(&shaped, request.text);
                 return Some(shaped);
             }
         } else if let Some(shaped) =
             shape_vertical_request(request, bidi, &fallback_spans, font_database)
         {
+            #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+            record_direct_shape_profile_metrics(&shaped, request.text);
             return Some(shaped);
         }
+        #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+        discard_direct_shape_profile_metrics();
         if crate::text::hard_lines(request.text)
             .iter()
             .any(crate::text::HardLine::is_run_cap_break)
@@ -171,6 +181,11 @@ fn shape_with_cosmic(
     shaped
 }
 
+#[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+thread_local! {
+    static DIRECT_SHAPE_BACKEND_CALL_COUNT: Cell<Option<usize>> = const { Cell::new(None) };
+}
+
 fn emit_slow_cosmic_profile(enabled: bool, stage: &str, started: Instant, text: &str) {
     if !enabled {
         return;
@@ -183,6 +198,76 @@ fn emit_slow_cosmic_profile(enabled: bool, stage: &str, started: Instant, text: 
         "ui-layout-profile stage=slow-text-{stage} elapsed_ms={elapsed_ms} text_bytes={}",
         text.len(),
     );
+}
+
+/// Records only a completed direct request. Fallback shaping deliberately does not contribute to
+/// this stream, so the scale harness can reject a regression to a second backend path.
+#[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+fn record_direct_shape_profile_metrics(shaped: &ShapedGlyphRun, text: &str) {
+    let Some(backend_shape_calls) = take_direct_shape_backend_call_count() else {
+        return;
+    };
+    let glyph_count = shaped
+        .lines
+        .iter()
+        .map(|line| line.glyphs.len())
+        .sum::<usize>();
+    crate::profile_counter!("runtime", "text_direct_shape_request_count", 1);
+    crate::profile_counter!("runtime", "text_direct_shape_input_byte_count", text.len());
+    crate::profile_counter!(
+        "runtime",
+        "text_direct_shape_output_glyph_count",
+        glyph_count
+    );
+    crate::profile_counter!(
+        "runtime",
+        "text_direct_backend_shape_call_count",
+        backend_shape_calls
+    );
+}
+
+/// Starts a request-local counter only while a managed capture is active. The backend leafs then
+/// increment this TLS value so a long text run does not lock the profiler once per segment.
+#[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+fn begin_direct_shape_profile_metrics() {
+    DIRECT_SHAPE_BACKEND_CALL_COUNT.with(|count| {
+        count.set(direct_shape_profile_metrics_enabled().then_some(0));
+    });
+}
+
+#[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+fn discard_direct_shape_profile_metrics() {
+    DIRECT_SHAPE_BACKEND_CALL_COUNT.with(|count| count.set(None));
+}
+
+#[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+pub(super) fn record_direct_backend_shape_call() {
+    DIRECT_SHAPE_BACKEND_CALL_COUNT.with(|count| {
+        if let Some(call_count) = count.get() {
+            count.set(Some(call_count.saturating_add(1)));
+        }
+    });
+}
+
+#[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+fn take_direct_shape_backend_call_count() -> Option<usize> {
+    DIRECT_SHAPE_BACKEND_CALL_COUNT.with(|count| count.replace(None))
+}
+
+#[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+fn direct_shape_profile_metrics_enabled() -> bool {
+    #[cfg(feature = "profiling-tracy")]
+    {
+        return true;
+    }
+    #[cfg(all(feature = "profiling", not(feature = "profiling-tracy")))]
+    {
+        return crate::core::diagnostics::profiling::capture_active();
+    }
+    #[cfg(not(any(feature = "profiling", feature = "profiling-tracy")))]
+    {
+        false
+    }
 }
 
 fn line_from_layout_run(

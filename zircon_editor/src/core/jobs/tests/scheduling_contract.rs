@@ -5,9 +5,9 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use super::super::{
-    test_job_system, test_job_system_with_limits, CancellationToken, EditorJob, EditorJobLimits,
-    EditorJobSpec, JobCategory, JobContext, JobError, JobPriority, JobSubmitError, JobTicket,
-    MutexGroup,
+    CancellationToken, EditorJob, EditorJobLimits, EditorJobSpec, JobCategory, JobContext,
+    JobError, JobPriority, JobSubmitError, JobTicket, MutexGroup, test_job_system,
+    test_job_system_with_limits,
 };
 use super::RecordingJob;
 
@@ -303,6 +303,42 @@ fn queued_jobs_are_admitted_by_priority_then_submission_order() {
 }
 
 #[test]
+fn system_root_is_a_structural_leaf_module_entry() {
+    let source = include_str!("../system/mod.rs");
+
+    for module in [
+        "construction",
+        "submission",
+        "lifecycle",
+        "scheduling",
+        "progress_observer",
+    ] {
+        assert!(
+            source.contains(&format!("mod {module};")),
+            "system root must declare the {module} owner"
+        );
+    }
+    assert!(source.contains("pub use admission_reservation::EditorJobBatchAdmissionReservation;"));
+    assert!(!source.contains("impl EditorJobSystem"));
+    assert!(!source.contains("struct EditorJobSystemInner"));
+}
+
+#[test]
+fn pending_behavior_contracts_stay_in_folder_backed_test_owners() {
+    let pending = include_str!("../system/pending.rs");
+    let tests = include_str!("../system/pending/tests/mod.rs");
+    let fairness = include_str!("../system/pending/tests/fairness.rs");
+
+    assert!(pending.contains("mod tests;"));
+    assert!(!pending.contains("mod tests {"));
+    assert!(tests.contains("mod admission;"));
+    assert!(tests.contains("mod fairness;"));
+    assert!(
+        fairness.contains("ready_background_job_is_selected_within_one_weighted_fairness_round")
+    );
+}
+
+#[test]
 fn queued_cancel_completes_without_waiting_for_category_capacity() {
     let jobs =
         test_job_system_with_limits(EditorJobLimits::default().with_limit(JobCategory::Export, 1));
@@ -403,9 +439,11 @@ fn shutdown_after_all_jobs_finish_is_empty_idempotent_and_shared_by_clones() {
 
     let unfinished = jobs.shutdown(Instant::now() + Duration::from_secs(5));
     assert!(unfinished.is_empty());
-    assert!(clone
-        .shutdown(Instant::now() + Duration::from_secs(5))
-        .is_empty());
+    assert!(
+        clone
+            .shutdown(Instant::now() + Duration::from_secs(5))
+            .is_empty()
+    );
     assert_eq!(
         clone
             .submit(
@@ -467,9 +505,10 @@ fn shutdown_cancels_pending_immediately_and_reports_non_cooperative_timeout() {
 
     release_sender.send(()).unwrap();
     assert_eq!(running.wait(), Ok(()));
-    assert!(jobs
-        .shutdown(Instant::now() + Duration::from_secs(5))
-        .is_empty());
+    assert!(
+        jobs.shutdown(Instant::now() + Duration::from_secs(5))
+            .is_empty()
+    );
 }
 
 #[test]

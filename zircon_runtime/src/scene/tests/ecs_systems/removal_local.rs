@@ -16,11 +16,9 @@ fn removed_components_reader_observes_direct_and_deferred_removals() {
     type RemovedHealth = RemovedComponentsParam<Health>;
     let mut system = SystemState::<RemovedHealth>::new(&mut world).unwrap();
 
-    assert!(
-        system
-            .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
-            .is_empty()
-    );
+    assert!(system
+        .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
+        .is_empty());
 
     world.remove::<Health>(direct).unwrap();
     {

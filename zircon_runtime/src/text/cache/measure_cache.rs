@@ -115,8 +115,14 @@ where
     }
 
     pub(crate) fn get(&mut self, key: &K, text: &str) -> Option<&V> {
+        self.get_with_stored_text(key, text).map(|(_, value)| value)
+    }
+
+    pub(crate) fn get_with_stored_text(&mut self, key: &K, text: &str) -> Option<(&Arc<str>, &V)> {
         let slot = self.find_slot(key, text)?;
-        self.index.entry(slot).map(|entry| &entry.value)
+        self.index
+            .entry(slot)
+            .map(|entry| (&entry.text, &entry.value))
     }
 
     pub(crate) fn insert(&mut self, key: K, text: impl Into<Arc<str>>, value: V) -> &V {
@@ -147,12 +153,11 @@ where
     pub(crate) fn get_or_insert_with(
         &mut self,
         key: K,
-        text: impl Into<Arc<str>>,
+        text: &str,
         measure: impl FnOnce() -> V,
     ) -> (&V, bool) {
-        let text = text.into();
         let slot = self
-            .find_slot(&key, text.as_ref())
+            .find_slot(&key, text)
             .filter(|slot| self.index.entry(*slot).is_some());
         if slot.is_none() {
             self.trim_before_insert();
@@ -164,7 +169,7 @@ where
             |_, ()| {},
             |()| TextMeasureCacheEntry {
                 key,
-                text,
+                text: Arc::from(text),
                 value: measure(),
             },
         );
@@ -201,24 +206,32 @@ where
 
     fn trim_before_insert(&mut self) {
         let mut evicted = 0_u64;
+        let mut eviction_scans = 0_u64;
+        let mut entry_moves = 0_u64;
         while self.index.len() >= self.capacity {
-            if self.index.pop_oldest().is_none() {
+            let Some((_, work)) = self.index.pop_oldest_with_work() else {
                 break;
-            }
+            };
             evicted = evicted.saturating_add(1);
+            eviction_scans = eviction_scans.saturating_add(work.scan_count as u64);
+            entry_moves = entry_moves.saturating_add(work.entry_move_count as u64);
         }
-        self.record_evictions(evicted);
+        self.record_evictions(evicted, eviction_scans, entry_moves);
     }
 
     fn trim_to_capacity(&mut self) {
         let mut evicted = 0_u64;
+        let mut eviction_scans = 0_u64;
+        let mut entry_moves = 0_u64;
         while self.index.len() > self.capacity {
-            if self.index.pop_oldest().is_none() {
+            let Some((_, work)) = self.index.pop_oldest_with_work() else {
                 break;
-            }
+            };
             evicted = evicted.saturating_add(1);
+            eviction_scans = eviction_scans.saturating_add(work.scan_count as u64);
+            entry_moves = entry_moves.saturating_add(work.entry_move_count as u64);
         }
-        self.record_evictions(evicted);
+        self.record_evictions(evicted, eviction_scans, entry_moves);
     }
 
     fn record_lookup(&mut self, candidate_count: usize) {
@@ -228,7 +241,15 @@ where
             .saturating_add(candidate_count as u64);
     }
 
-    fn record_evictions(&mut self, evicted: u64) {
+    fn record_evictions(&mut self, evicted: u64, eviction_scans: u64, entry_moves: u64) {
+        self.frame_report.eviction_scan_count = self
+            .frame_report
+            .eviction_scan_count
+            .saturating_add(eviction_scans);
+        self.frame_report.entry_move_count = self
+            .frame_report
+            .entry_move_count
+            .saturating_add(entry_moves);
         if evicted > 0 {
             self.frame_report.evicted_count =
                 self.frame_report.evicted_count.saturating_add(evicted);

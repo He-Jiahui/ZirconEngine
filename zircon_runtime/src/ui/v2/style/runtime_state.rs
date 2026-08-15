@@ -34,6 +34,11 @@ pub(super) fn collect_runtime_pseudo_states(
     if let Some(component_state) = component_state {
         collect_bool_state("hovered", component_state.flags.hovered, &mut states);
         collect_bool_state("focused", component_state.flags.focused, &mut states);
+        collect_bool_state(
+            "focus_visible",
+            component_state.flags.focus_visible,
+            &mut states,
+        );
         collect_bool_state("pressed", component_state.flags.pressed, &mut states);
         collect_bool_state("checked", component_state.flags.checked, &mut states);
         collect_bool_state("disabled", component_state.flags.disabled, &mut states);
@@ -65,18 +70,18 @@ pub(super) fn collect_runtime_pseudo_states(
 fn append_resolved_painter_state(component: &str, states: &mut Vec<String>) {
     let state = painter_state_from_selector_states(states);
     let family = painter_family_for_component(component);
-    let resolved = UiPainterStyleSelector::resolved_state_for_family(state, family);
+    let resolved = UiPainterStyleSelector::visual_state_for_family(state, family).primary;
     append_resolved_state_aliases(resolved, states);
 }
 
 fn painter_state_from_selector_states(states: &[String]) -> UiPainterState {
+    let focus_visible =
+        has_selector_state(states, &["focus-visible", "focus_visible", "focusVisible"]);
     UiPainterState {
         hovered: has_selector_state(states, &["hover", "hovered"]),
         pressed: has_selector_state(states, &["active", "press", "pressed"]),
-        focused: has_selector_state(
-            states,
-            &["focus", "focused", "focus-visible", "focus_visible"],
-        ),
+        focused: has_selector_state(states, &["focus", "focused"]) || focus_visible,
+        focus_visible,
         disabled: has_selector_state(states, &["disabled"]),
         checked: has_selector_state(states, &["checked"]),
         selected: has_selector_state(states, &["selected"]),
@@ -186,13 +191,13 @@ fn collect_bool_state(name: &str, enabled: bool, states: &mut Vec<String>) {
 }
 
 fn push_state_with_alias(name: &str, states: &mut Vec<String>) {
-    if !states.iter().any(|state| state == name) {
-        states.push(name.to_string());
+    append_state(states, name);
+    if matches!(name, "focus_visible" | "focus-visible" | "focusVisible") {
+        append_state(states, "focused");
+        append_state(states, "focus");
     }
     if let Some(alias) = pseudo_alias(name) {
-        if !states.iter().any(|state| state == alias) {
-            states.push(alias.to_string());
-        }
+        append_state(states, alias);
     }
 }
 
@@ -203,6 +208,9 @@ fn is_retained_runtime_state(name: &str) -> bool {
             | "hovered"
             | "focus"
             | "focused"
+            | "focus_visible"
+            | "focus-visible"
+            | "focusVisible"
             | "active"
             | "pressed"
             | "checked"
@@ -224,6 +232,8 @@ fn pseudo_alias(name: &str) -> Option<&'static str> {
         "hovered" => Some("hover"),
         "pressed" => Some("active"),
         "focused" => Some("focus"),
+        "focus_visible" => Some("focus-visible"),
+        "focusVisible" => Some("focus-visible"),
         "disabled" => Some("disabled"),
         "checked" => Some("checked"),
         "selected" => Some("selected"),
@@ -241,6 +251,9 @@ pub(super) fn apply_retained_runtime_state_attributes(
         "hovered",
         "focus",
         "focused",
+        "focus_visible",
+        "focus-visible",
+        "focusVisible",
         "active",
         "pressed",
         "checked",
@@ -261,6 +274,7 @@ pub(super) fn apply_retained_runtime_state_attributes(
     for state in [
         "hovered",
         "focused",
+        "focus_visible",
         "pressed",
         "checked",
         "disabled",

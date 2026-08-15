@@ -2,11 +2,14 @@ mod hybrid_gi_prepare;
 mod hybrid_gi_resolve_runtime;
 
 pub(crate) use hybrid_gi_prepare::{
-    hybrid_gi_voxel_clipmap_bounds_cell_ranges, hybrid_gi_voxel_clipmap_cell_bit_index,
-    hybrid_gi_voxel_clipmap_cell_center, HybridGiPrepareCardCaptureRequest, HybridGiPrepareFrame,
-    HybridGiPrepareProbe, HybridGiPrepareSurfaceCacheDepthSourceSample,
-    HybridGiPrepareSurfaceCachePageContent, HybridGiPrepareUpdateRequest, HybridGiPrepareVoxelCell,
-    HybridGiPrepareVoxelClipmap, HybridGiScenePrepareFrame, HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT,
+    hybrid_gi_voxel_clipmap_aabb_cell_ranges, hybrid_gi_voxel_clipmap_bounds_cell_ranges,
+    hybrid_gi_voxel_clipmap_cell_bit_index, hybrid_gi_voxel_clipmap_cell_center,
+    HybridGiPrepareCardCaptureRequest, HybridGiPrepareFrame, HybridGiPrepareProbe,
+    HybridGiPrepareRadianceCacheConsume, HybridGiPrepareRadianceCacheUpdate,
+    HybridGiPrepareSurfaceCacheDepthSourceSample, HybridGiPrepareSurfaceCachePageContent,
+    HybridGiPrepareUpdateRequest, HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap,
+    HybridGiScenePrepareFrame, HYBRID_GI_RADIANCE_CACHE_INTERPOLATION_CORNER_COUNT,
+    HYBRID_GI_RADIANCE_CACHE_MAX_RESIDENT_PROBE_COUNT, HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT,
     HYBRID_GI_VOXEL_CLIPMAP_CELL_RESOLUTION,
 };
 pub(crate) use hybrid_gi_resolve_runtime::{

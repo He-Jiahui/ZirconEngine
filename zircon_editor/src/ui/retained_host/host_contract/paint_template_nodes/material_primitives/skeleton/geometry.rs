@@ -1,5 +1,5 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
+use super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 use super::super::{bounded_extent, component_variant_contains};
 
 const SKELETON_TEXT_SCALE_Y: f32 = 0.60;

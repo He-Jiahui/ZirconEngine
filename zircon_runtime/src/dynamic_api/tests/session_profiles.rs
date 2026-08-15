@@ -72,7 +72,7 @@ fn session_ui_extract_remains_documented_dynamic_session_side_path() {
         .find("fn present_viewport(\n        &mut self,")
         .expect("RuntimeDynamicSession::present_viewport implementation");
     let ui_extract_start = extract_source
-        .find("fn current_ui_extract(&self)")
+        .find("fn current_ui_extract(\n        &mut self,")
         .expect("current_ui_extract implementation");
     let resize_start = extract_source[ui_extract_start..]
         .find("fn resize_viewport")
@@ -82,11 +82,11 @@ fn session_ui_extract_remains_documented_dynamic_session_side_path() {
 
     assert!(
         session_source[capture_start..present_start]
-            .contains("let ui = self.current_ui_extract();"),
+            .contains("let ui = self.current_ui_extract()?;"),
         "capture_frame should keep the documented UI extract side path explicit"
     );
     assert!(
-        session_source[present_start..].contains("let ui = self.current_ui_extract();"),
+        session_source[present_start..].contains("let ui = self.current_ui_extract()?;"),
         "present_viewport should keep the documented UI extract side path explicit"
     );
     assert!(ui_extract_body.contains("runtime_session_menu_extract(world, viewport_size)"));
@@ -96,6 +96,11 @@ fn session_ui_extract_remains_documented_dynamic_session_side_path() {
     assert!(
         !ui_extract_body.contains("SystemStage::RenderExtract"),
         "current UI extract side path is not owned by the scheduled RenderExtract stage yet"
+    );
+    assert!(
+        ui_extract_body.contains(".runtime_ui")
+            && ui_extract_body.contains(".render_extract(viewport_size)"),
+        "project-owned UI surfaces must take precedence over legacy world preview extractors"
     );
 }
 

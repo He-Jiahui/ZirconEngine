@@ -1,9 +1,9 @@
 use std::{marker::PhantomData, ptr::NonNull};
 
-use super::cached_query_iter::{cached_query_component_locations, cached_query_entity_index};
+use super::query_state::{find_cached_archetype_plan, CachedArchetypePlan};
 use crate::scene::ecs::{
     ChangeDetectionScanStats, ChangeTickWindow, ComponentStorageLocation, QueryData, QueryFilter,
-    QueryState, StableEntityLocation,
+    QueryState,
 };
 use crate::scene::{EntityId, World};
 
@@ -44,13 +44,9 @@ where
     I::Item: QueryEntityItem,
 {
     world: &'world World,
-    cached_entity_indices: &'state [(EntityId, usize)],
-    cached_locations: &'state [StableEntityLocation],
-    cached_component_locations: &'state [ComponentStorageLocation],
-    cached_component_location_offsets: &'state [usize],
+    plans: &'state [CachedArchetypePlan],
+    component_locations: Vec<ComponentStorageLocation>,
     change_detection_stats: ChangeDetectionScanStats,
-    // Cached slices keep the originating QueryState alive; the raw sink avoids
-    // imposing an extra state-reference lifetime on query item output.
     state: Option<NonNull<QueryState<D, F>>>,
     entities: I,
     ticks: ChangeTickWindow,
@@ -91,10 +87,7 @@ where
 {
     pub(crate) fn new<EntityList>(
         world: &'world World,
-        cached_entity_indices: &'state [(EntityId, usize)],
-        cached_locations: &'state [StableEntityLocation],
-        cached_component_locations: &'state [ComponentStorageLocation],
-        cached_component_location_offsets: &'state [usize],
+        plans: &'state [CachedArchetypePlan],
         entities: EntityList,
         ticks: ChangeTickWindow,
         state: &'state QueryState<D, F>,
@@ -105,10 +98,8 @@ where
     {
         Self {
             world,
-            cached_entity_indices,
-            cached_locations,
-            cached_component_locations,
-            cached_component_location_offsets,
+            plans,
+            component_locations: Vec::new(),
             change_detection_stats: ChangeDetectionScanStats::default(),
             state: Some(NonNull::from(state)),
             entities: entities.into_iter(),
@@ -150,42 +141,36 @@ where
     type Item = D::Item<'world>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let cached_entity_indices = self.cached_entity_indices;
-        let cached_locations = self.cached_locations;
-        let cached_component_locations = self.cached_component_locations;
-        let cached_component_location_offsets = self.cached_component_location_offsets;
-        let ticks = self.ticks;
-        let world = self.world;
-
         for entity_item in self.entities.by_ref() {
             let entity = entity_item.entity_id();
-            let Some(index) = cached_query_entity_index(cached_entity_indices, entity) else {
+            let Some(stable_location) = self.world.internal_entity_location(entity) else {
                 continue;
             };
-            let stable_location = cached_locations.get(index).copied()?;
-            let component_locations = cached_query_component_locations(
-                cached_component_locations,
-                cached_component_location_offsets,
-                index,
-            )?;
-            let filter_matches = if self.state.is_some() {
-                F::matches_component_locations_with_stats(
-                    world,
-                    entity,
-                    component_locations,
-                    ticks,
-                    &mut self.change_detection_stats,
-                )
-            } else {
-                F::matches_component_locations(world, entity, component_locations, ticks)
+            let Some(plan) =
+                find_cached_archetype_plan(self.plans, stable_location.location.archetype_id)
+            else {
+                continue;
             };
-            if filter_matches {
+            if !plan.write_component_locations(
+                self.world,
+                stable_location,
+                &mut self.component_locations,
+            ) {
+                continue;
+            }
+            if F::matches_component_locations_with_stats(
+                self.world,
+                entity,
+                &self.component_locations,
+                self.ticks,
+                &mut self.change_detection_stats,
+            ) {
                 if let Some(item) = D::fetch_with_component_locations(
-                    world,
+                    self.world,
                     entity,
                     stable_location,
-                    component_locations,
-                    ticks,
+                    &self.component_locations,
+                    self.ticks,
                 ) {
                     return Some(item);
                 }
@@ -204,8 +189,8 @@ where
 {
     fn drop(&mut self) {
         if let Some(state) = self.state {
-            // SAFETY: cached constructors derive this pointer from the same
-            // QueryState borrow that owns the cached slices held by the iterator.
+            // SAFETY: the pointer originates from the QueryState borrow that owns
+            // the plans held by this iterator.
             let state = unsafe { state.as_ref() };
             state.record_change_detection_stats(self.change_detection_stats);
         }

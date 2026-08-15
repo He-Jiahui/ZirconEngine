@@ -9,10 +9,10 @@ use crate::graphics::material::ShadingModelIncludeSourceSet;
 
 use super::material_surface::STANDARD_MATERIAL_SURFACE_ENTRY_POINT;
 use super::module_registry::{
-    bindless_material_include, geometry_source_include_for, gpu_scene_include, scene_runtime_include,
-    shading_model_forward_include_for, shading_model_forward_include_token, surface_types_include,
-    ShaderModuleRegistry, ShaderModuleResolutionError, ShaderTemplateInclude,
-    ShaderTemplateIncludeRegistry,
+    bindless_material_include, geometry_source_include_for, gpu_scene_include,
+    scene_runtime_include, shading_model_forward_include_for, shading_model_forward_include_token,
+    surface_types_include, ShaderModuleRegistry, ShaderModuleResolutionError,
+    ShaderTemplateInclude, ShaderTemplateIncludeRegistry,
 };
 use super::pass_specialization::{
     pass_template_for_shading_model, MATERIAL_SHADER_TEMPLATE_REVISION,

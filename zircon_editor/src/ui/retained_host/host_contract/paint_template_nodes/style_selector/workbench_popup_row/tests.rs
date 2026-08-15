@@ -1,7 +1,7 @@
 use super::model::WorkbenchPopupRowState;
 use super::palette::workbench_popup_row_palette_from_host;
 use super::selection::select_workbench_popup_row_style;
-use crate::ui::retained_host::host_contract::paint_theme::{PALETTE, current_host_palette};
+use crate::ui::retained_host::host_contract::paint_theme::{current_host_palette, PALETTE};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 #[test]

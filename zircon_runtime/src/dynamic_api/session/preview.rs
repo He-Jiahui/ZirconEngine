@@ -16,8 +16,8 @@ pub(in crate::dynamic_api::session) fn empty_captured_frame(size: UVec2) -> Capt
     CapturedFrame::new(width, height, rgba, 0)
 }
 
-pub(in crate::dynamic_api::session) fn dynamic_preview_accessibility_snapshot(
-) -> UiAccessibilityTreeSnapshot {
+pub(in crate::dynamic_api::session) fn dynamic_preview_accessibility_snapshot()
+-> UiAccessibilityTreeSnapshot {
     let root = UiNodeId::new(1);
     UiAccessibilityTreeSnapshot {
         tree_id: UiTreeId::new("zircon-runtime-dynamic-preview"),

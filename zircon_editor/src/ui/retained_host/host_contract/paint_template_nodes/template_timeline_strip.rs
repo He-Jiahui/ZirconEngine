@@ -8,12 +8,13 @@ mod text;
 
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::render_commands::HostPaintCommand;
-use geometry::{TimelineStripGeometry, has_paintable_timeline_strip_extent};
+use crate::ui::timeline_strip::TimelineStripGeneration;
+use geometry::{has_paintable_timeline_strip_extent, TimelineStripGeometry};
 use identity::is_timeline_strip;
 use keys::push_timeline_keys_and_playhead;
 use metrics::timeline_metrics;
 use palette::timeline_palette;
-use surface::{MAX_TIMELINE_TICKS, push_timeline_surface, timeline_ticks};
+use surface::push_timeline_surface;
 use text::push_timeline_text;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_timeline_strip_commands(
@@ -37,22 +38,32 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ti
     if geometry.plot.width <= 0.0 || geometry.plot.height <= 0.0 {
         return true;
     }
-    let tick_budget = (geometry.plot.width.ceil().max(1.0) as usize)
-        .saturating_add(1)
-        .clamp(2, MAX_TIMELINE_TICKS);
-    let ticks = timeline_ticks(
-        node.timeline_strip.duration,
-        node.timeline_strip.tick_interval,
-        tick_budget,
-    );
+    let generation = &node.timeline_strip.generation;
+    let static_content = generation.static_content_for_plot_width(geometry.plot.width);
     push_timeline_surface(
-        commands, node, &geometry, &ticks, clip, order, opacity, metrics, palette,
+        commands,
+        generation,
+        &geometry,
+        &static_content,
+        clip,
+        order,
+        opacity,
+        metrics,
+        palette,
     );
     push_timeline_text(
-        commands, node, &geometry, &ticks, clip, order, opacity, metrics, palette,
+        commands,
+        generation,
+        &geometry,
+        &static_content,
+        clip,
+        order,
+        opacity,
+        metrics,
+        palette,
     );
     push_timeline_keys_and_playhead(
-        commands, node, &geometry, clip, order, opacity, metrics, palette,
+        commands, generation, &geometry, clip, order, opacity, metrics, palette,
     );
     true
 }

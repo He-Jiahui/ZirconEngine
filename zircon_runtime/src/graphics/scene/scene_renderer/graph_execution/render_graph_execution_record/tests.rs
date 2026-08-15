@@ -1,7 +1,8 @@
 use crate::core::framework::render::{
     RenderBudgetKey, RenderColorLutReadbackReport, RenderExposureReadbackReport,
-    RenderGraphExecutionResourceReport, RenderGraphPassProfileMetrics,
-    RenderGraphStageExecutionReport, RenderHistoryCopyReport, RenderSceneVelocityReadbackReport,
+    RenderGraphExecutionResourceReport, RenderGraphParallelRecordingReport,
+    RenderGraphPassProfileMetrics, RenderGraphStageExecutionReport, RenderHistoryCopyReport,
+    RenderSceneVelocityReadbackReport,
 };
 use crate::core::math::UVec2;
 use crate::graphics::pipeline::RenderPassStage;
@@ -26,6 +27,19 @@ fn stage_execution_report_uses_fixed_stage_storage() {
     assert!(
         source.contains("[false; RenderPassStage::ALL.len()]"),
         "stage diagnostics should use the fixed RenderPassStage domain"
+    );
+}
+
+#[test]
+fn parallel_recording_report_distinguishes_eligibility_from_execution() {
+    let mut record = RenderGraphExecutionRecord::default();
+
+    record.record_parallel_recording_eligibility(3);
+    record.record_parallel_recording_execution(2);
+
+    assert_eq!(
+        record.parallel_recording_report(),
+        RenderGraphParallelRecordingReport::new(1, 3, 1, 2)
     );
 }
 
@@ -165,6 +179,18 @@ fn execution_record_preserves_light_grid_report() {
 }
 
 #[test]
+fn execution_record_accumulates_actual_taa_reactive_mask_encoding() {
+    let mut record = RenderGraphExecutionRecord::default();
+
+    record.add_taa_reactive_mask_encoding(1, 320 * 240);
+    record.add_taa_reactive_mask_encoding(1, 160 * 120);
+    record.add_taa_resolve_bind_group_create_count(2);
+
+    assert_eq!(record.taa_reactive_mask_encoding(), (2, 96_000));
+    assert_eq!(record.taa_resolve_bind_group_create_count(), 2);
+}
+
+#[test]
 fn execution_record_counts_queue_lanes_from_executed_passes() {
     let mut record = RenderGraphExecutionRecord::default();
 
@@ -215,7 +241,10 @@ fn execution_record_preserves_executed_pass_resource_accesses() {
 #[test]
 fn execution_record_preserves_executed_pass_dependencies() {
     let mut record = RenderGraphExecutionRecord::default();
-    let dependencies = vec![RenderPassId(2), RenderPassId(5)];
+    let dependencies = vec![
+        RenderPassId::from_index(2, 0),
+        RenderPassId::from_index(5, 0),
+    ];
 
     record.push_executed_pass_with_declared_queue_dependencies_and_resources(
         "lighting",
@@ -423,7 +452,7 @@ fn profile_report_preserves_per_pass_compute_metrics() {
     let compute_dispatches = vec![
         RenderGraphComputeDispatchRecord::new(
             "ssao-evaluate",
-            "ao.ssao-evaluate",
+            "compute.generic",
             "zircon-ssao-pipeline",
             [8, 8, 1],
             [40, 30, 1],
@@ -432,7 +461,7 @@ fn profile_report_preserves_per_pass_compute_metrics() {
         .with_uploaded_bytes(128),
         RenderGraphComputeDispatchRecord::new(
             "ssao-evaluate",
-            "ao.ssao-evaluate",
+            "compute.generic",
             "zircon-ssao-blur-pipeline",
             [8, 8, 1],
             [40, 30, 1],
@@ -442,7 +471,7 @@ fn profile_report_preserves_per_pass_compute_metrics() {
     ];
     record.push_pass_profile_with_budget_key_and_compute_dispatches(
         "ssao-evaluate",
-        "ao.ssao-evaluate",
+        "compute.generic",
         RenderBudgetKey::Ssao,
         31,
         RenderGraphPassProfileMetrics::new(3, 0, 7),

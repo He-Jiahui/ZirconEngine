@@ -4,6 +4,7 @@ use super::template_bridges::create_startup_template_bridges;
 use super::*;
 use crate::core::gui_startup_request::EditorGuiStartupRequest;
 use zircon_runtime::asset::project::ProjectManager;
+use zircon_runtime_interface::hub_protocol::HubSessionToken;
 
 mod finalize;
 mod runtime_backend;
@@ -17,12 +18,13 @@ use shell_bootstrap::{resolve_startup_shell_scale_factor, resolve_startup_shell_
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn new_with_viewport(
-        core: CoreHandle,
+        runtime_lease: RetainedHostRuntimeLease,
         runtime_gateway: SharedEditorRuntimeGateway,
         ui: UiHostWindow,
         viewport: RetainedViewportController,
         startup_request: Option<EditorGuiStartupRequest>,
         prepared_project: Option<ProjectManager>,
+        hub_launch_session: Option<HubSessionToken>,
     ) -> Result<Self, Box<dyn Error>> {
         zircon_runtime::profile_scope!("editor", "retained_host", "new_with_viewport");
         #[cfg(not(feature = "profiling"))]
@@ -30,8 +32,14 @@ impl RetainedEditorHost {
 
         ui.set_runtime_presenter_factory(viewport.runtime_presenter_factory());
 
-        let startup_managers =
-            resolve_startup_managers(&core, ui.background_event_wake_callback())?;
+        let startup_managers = resolve_startup_managers(
+            runtime_lease.bootstrap_core(),
+            ui.background_event_wake_callback(),
+        )?;
+        startup_managers
+            .editor_manager
+            .configure_hub_launch_session(hub_launch_session);
+        ui.bind_profile_artifact_jobs(startup_managers.editor_manager.context().jobs().clone());
         let viewport_size = UVec2::new(1280, 720);
         let startup_session_state = resolve_startup_session_state(
             startup_managers.editor_manager.clone(),
@@ -55,7 +63,8 @@ impl RetainedEditorHost {
             startup_managers,
             #[cfg(feature = "profiling")]
             runtime_gateway,
-            native_plugin_live_host: runtime_backend.native_plugin_live_host,
+            runtime_lease,
+            native_plugin_host: runtime_backend.native_plugin_host,
             viewport,
             startup_session,
             viewport_size,

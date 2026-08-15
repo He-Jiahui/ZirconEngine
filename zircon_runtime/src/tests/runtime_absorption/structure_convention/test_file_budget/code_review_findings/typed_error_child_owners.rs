@@ -22,7 +22,10 @@ mod structure_assertions;
 pub(super) use root_child_rows::*;
 pub(super) use root_paths::*;
 pub(super) use root_sources::*;
-pub(super) use root_statuses::*;
+
+pub(super) const GUARD: &str =
+    "runtime_15_code_review_findings_typed_error_structure_guard_is_child_owner";
+pub(super) const TYPED_ERROR_CHILD_OWNER_LINE_BUDGET: usize = 800;
 
 pub(super) fn assert_typed_error_child_owners_are_folder_backed() {
     structure_assertions::assert_typed_error_child_owners_are_folder_backed();
@@ -38,8 +41,4 @@ pub(super) fn assert_typed_error_line_budgets() {
 
 pub(super) fn typed_error_review_guard_count() -> usize {
     source_inventory::typed_error_review_guard_count()
-}
-
-pub(super) fn assert_typed_error_status_docs_are_synced() {
-    status_docs::assert_typed_error_status_docs_are_synced();
 }

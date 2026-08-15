@@ -28,9 +28,10 @@ use super::{
 use crate::core::framework::bridge::PluginInterface;
 #[cfg(test)]
 use crate::core::framework::script::{
-    ScriptHostFieldDescriptor, ScriptHostFunctionDescriptor, ScriptHostModuleDescriptor,
-    ScriptHostParameterDescriptor, ScriptHostPrototypeKind, ScriptHostTypeDescriptor,
-    ScriptHostTypeRef, ScriptHostValue, ScriptHostValueKind, ZirconScriptType,
+    ScriptHostArguments, ScriptHostError, ScriptHostFieldDescriptor, ScriptHostFunctionDescriptor,
+    ScriptHostModuleDescriptor, ScriptHostOwnedArgumentSource, ScriptHostParameterDescriptor,
+    ScriptHostPrototypeKind, ScriptHostTypeDescriptor, ScriptHostTypeRef, ScriptHostValue,
+    ScriptHostValueKind, ScriptHostValueRef, ZirconScriptType,
 };
 #[cfg(test)]
 use crate::core::{CoreRuntime, PluginContext};

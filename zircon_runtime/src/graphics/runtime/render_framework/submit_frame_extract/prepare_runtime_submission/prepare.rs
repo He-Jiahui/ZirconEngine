@@ -78,6 +78,10 @@ fn prepare_hybrid_gi_runtime(
         context.scene_has_baked_probe_grid(),
         context.hybrid_gi_update_plan(),
         context.predicted_generation(),
+    )
+    .with_view_state(
+        Some(context.scene_camera_position()),
+        context.hybrid_gi_history_invalidated(),
     );
     Ok(Some(
         record

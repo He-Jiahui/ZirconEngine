@@ -113,7 +113,7 @@ The module does not own imported model parsing, scene component storage, GPU buf
 
 `RenderMeshTopology` mirrors the topology family used by Bevy and WGPU: triangle list, triangle strip, line list, line strip, and point list. The descriptor intentionally records topology before pipeline selection so Core2d/Core3d phase queueing can stay independent from concrete index-buffer details.
 
-`RenderMeshBounds` stores min, max, center, and radius. `RenderMeshBounds::from_positions(...)` computes a neutral AABB plus bounding radius from positions; graphics culling and editor debug overlays can consume it without reopening asset payloads.
+`RenderMeshBounds` stores min, max, center, and radius. `RenderMeshBounds::from_positions(...)` computes a neutral AABB plus bounding radius from positions, while `from_min_max(...)` constructs the same invariant from prepared resource metadata. `transformed(...)` conservatively transforms the local AABB through translation, rotation, and non-uniform scale by projecting all three half-extent axes; consumers therefore retain an exact transformed AABB and a conservative radius without reopening vertex payloads.
 
 `RenderMeshKind` distinguishes planar 2D meshes from spatial 3D meshes. Asset projection currently treats all-`z == 0` position sets as `Planar2d`, marks those as suitable for both 2D and 3D, and marks non-planar meshes as `Spatial3d`.
 

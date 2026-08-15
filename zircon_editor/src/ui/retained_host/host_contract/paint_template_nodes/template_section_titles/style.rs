@@ -1,6 +1,6 @@
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::paint_theme::{
-    HostControlMetrics, HostMaterialPalette, current_host_metrics, current_host_palette,
+    current_host_metrics, current_host_palette, HostControlMetrics, HostMaterialPalette,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -24,8 +24,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub separator: [u8; 4],
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn section_title_metrics()
--> WorkbenchSectionTitleMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn section_title_metrics(
+) -> WorkbenchSectionTitleMetrics {
     section_title_metrics_from_host(current_host_metrics())
 }
 
@@ -42,8 +42,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn section
     }
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn section_title_palette()
--> WorkbenchSectionTitlePalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn section_title_palette(
+) -> WorkbenchSectionTitlePalette {
     section_title_palette_from_host(current_host_palette())
 }
 

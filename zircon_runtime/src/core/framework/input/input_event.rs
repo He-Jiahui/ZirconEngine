@@ -36,7 +36,7 @@ pub enum InputEvent {
     Ime(ImeEvent),
     ImeHostRequest(ImeHostRequest),
     CursorHostRequest(CursorHostRequest),
-    KeyboardFocusLost,
+    FocusLost,
     Touch {
         id: u64,
         phase: TouchPhase,

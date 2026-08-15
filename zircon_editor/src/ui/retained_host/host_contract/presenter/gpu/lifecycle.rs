@@ -16,6 +16,7 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
             surface_cache_initialized: false,
             native_resize_projection_size: clamp_size(size),
             native_resize_draw_list: None,
+            native_resize_generation: 0,
             #[cfg(test)]
             native_resize_snapshot_build_count: 0,
             #[cfg(test)]
@@ -28,6 +29,9 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
         size: (u32, u32),
     ) -> HostPresenterResult<()> {
         let size = clamp_size(size);
+        if size == self.size {
+            return Ok(());
+        }
         if self.native_resize_draw_list.is_none() {
             self.native_resize_projection_size = (
                 self.native_resize_projection_size

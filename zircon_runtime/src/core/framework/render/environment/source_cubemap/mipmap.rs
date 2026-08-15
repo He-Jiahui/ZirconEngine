@@ -1,7 +1,8 @@
 use super::super::cubemap_projection::cubemap_side_space_direction;
 use super::{
     average_last_mip_faces, mip_texel, sample_cubemap_linear_at_mip,
-    source_cubemap_face_mip_offset, source_cubemap_mip_size,
+    source_cubemap_face_mip_offset, source_cubemap_face_mip_outputs, source_cubemap_mip_size,
+    CubemapFaceMipOutput,
 };
 use crate::core::framework::render::environment::{
     cubemap_texel_direction, cubemap_texel_solid_angle, CubemapFace,
@@ -15,26 +16,21 @@ const SOURCE_MIPMAP_INPUT_QUALITY_BIAS: Real = 3.0;
 const SOURCE_MIPMAP_NORMALIZED_SPHERE_RADIUS: Real = 0.282_094_78;
 const SOURCE_MIPMAP_NODE_RADIUS_SCALE: Real = 2.0;
 
-struct FilteredCubemapFace {
-    face: CubemapFace,
-    texels: Vec<[Real; 4]>,
-}
-
 trait SourceMipmapFaceExecutor {
-    fn filter_faces<F>(&self, faces: &mut [FilteredCubemapFace], filter_face: &F)
+    fn filter_faces<F>(&self, faces: &mut [CubemapFaceMipOutput<'_>], filter_face: &F)
     where
-        F: Fn(CubemapFace) -> Vec<[Real; 4]> + Send + Sync;
+        F: Fn(CubemapFace, &mut [[Real; 4]]) + Send + Sync;
 }
 
 struct SerialSourceMipmapFaceExecutor;
 
 impl SourceMipmapFaceExecutor for SerialSourceMipmapFaceExecutor {
-    fn filter_faces<F>(&self, faces: &mut [FilteredCubemapFace], filter_face: &F)
+    fn filter_faces<F>(&self, faces: &mut [CubemapFaceMipOutput<'_>], filter_face: &F)
     where
-        F: Fn(CubemapFace) -> Vec<[Real; 4]> + Send + Sync,
+        F: Fn(CubemapFace, &mut [[Real; 4]]) + Send + Sync,
     {
-        for filtered_face in faces {
-            filtered_face.texels = filter_face(filtered_face.face);
+        for output in faces {
+            filter_face(output.face, &mut *output.texels);
         }
     }
 }
@@ -45,13 +41,13 @@ impl<E> SourceMipmapFaceExecutor for ParallelSourceMipmapFaceExecutor<'_, E>
 where
     E: ParallelSliceExecutor,
 {
-    fn filter_faces<F>(&self, faces: &mut [FilteredCubemapFace], filter_face: &F)
+    fn filter_faces<F>(&self, faces: &mut [CubemapFaceMipOutput<'_>], filter_face: &F)
     where
-        F: Fn(CubemapFace) -> Vec<[Real; 4]> + Send + Sync,
+        F: Fn(CubemapFace, &mut [[Real; 4]]) + Send + Sync,
     {
         self.0.parallel_for(faces, 1, |chunk| {
-            for filtered_face in chunk {
-                filtered_face.texels = filter_face(filtered_face.face);
+            for output in chunk {
+                filter_face(output.face, &mut *output.texels);
             }
         });
     }
@@ -187,8 +183,7 @@ fn filter_source_mip_from_angular_footprint(
             })
             .collect::<Vec<_>>()
     });
-    let filter_face = |face| {
-        let mut face_texels = vec![[0.0; 4]; mip_size as usize * mip_size as usize];
+    let filter_face = |face, face_texels: &mut [[Real; 4]]| {
         for y in 0..mip_size {
             for x in 0..mip_size {
                 let direction = cubemap_texel_direction(face, x, y, mip_size);
@@ -204,27 +199,13 @@ fn filter_source_mip_from_angular_footprint(
                 );
             }
         }
-        face_texels
     };
-    let mut filtered_faces = CubemapFace::ALL
-        .into_iter()
-        .map(|face| FilteredCubemapFace {
-            face,
-            texels: Vec::new(),
-        })
-        .collect::<Vec<_>>();
+    let mut outputs = source_cubemap_face_mip_outputs(output_mips, face_size, mip_count, mip);
     // Match Unreal's >=128 source threshold and one-worker-per-face scheduling policy.
     if input_size >= 128 {
-        face_executor.filter_faces(&mut filtered_faces, &filter_face);
+        face_executor.filter_faces(&mut outputs, &filter_face);
     } else {
-        SerialSourceMipmapFaceExecutor.filter_faces(&mut filtered_faces, &filter_face);
-    }
-
-    for filtered_face in filtered_faces {
-        let dest_offset =
-            source_cubemap_face_mip_offset(face_size, mip_count, filtered_face.face, mip);
-        output_mips[dest_offset..dest_offset + filtered_face.texels.len()]
-            .copy_from_slice(&filtered_face.texels);
+        SerialSourceMipmapFaceExecutor.filter_faces(&mut outputs, &filter_face);
     }
 }
 
@@ -453,4 +434,56 @@ fn add_weighted(accumulator: &mut [Real; 4], texel: [Real; 4], weight: Real) {
     accumulator[1] += texel[1] * weight;
     accumulator[2] += texel[2] * weight;
     accumulator[3] += texel[3] * weight;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        source_cubemap_mips_from_base, source_cubemap_mips_from_base_with_parallel_executor,
+    };
+    use crate::core::framework::tasks::ParallelSliceExecutor;
+    use crate::core::math::Real;
+
+    #[derive(Default)]
+    struct CountingParallelSliceExecutor(std::sync::atomic::AtomicUsize);
+
+    impl ParallelSliceExecutor for CountingParallelSliceExecutor {
+        fn parallel_for<T, F>(&self, items: &mut [T], chunk_size: usize, task: F)
+        where
+            T: Send,
+            F: Fn(&mut [T]) + Send + Sync,
+        {
+            self.0.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            for chunk in items.chunks_mut(chunk_size.max(1)) {
+                task(chunk);
+            }
+        }
+    }
+
+    #[test]
+    fn parallel_angular_mipmap_writes_final_storage_and_matches_serial_output() {
+        let face_size = 128;
+        let mip_count = super::super::source_cubemap_mip_count(face_size);
+        let base_texels = (0..super::super::source_cubemap_sample_count(face_size, mip_count))
+            .map(|index| {
+                let value = (index % 17) as Real / 16.0;
+                [value, value * 0.5, 1.0 - value, 1.0]
+            })
+            .collect::<Vec<_>>();
+        let serial = source_cubemap_mips_from_base(&base_texels, face_size, mip_count);
+
+        let executor = CountingParallelSliceExecutor::default();
+        let parallel = source_cubemap_mips_from_base_with_parallel_executor(
+            &base_texels,
+            face_size,
+            mip_count,
+            &executor,
+        );
+
+        assert_eq!(parallel, serial);
+        assert!(
+            executor.0.load(std::sync::atomic::Ordering::Relaxed) > 0,
+            "a 128-face input must retain the angular face-parallel schedule"
+        );
+    }
 }

@@ -3,9 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 
 
-EXPECTED_UI_ENTRY_COUNT = 19
-EXPECTED_SURFACE_ENTRY_COUNT = 23
-EXPECTED_LEGACY_FULL_HITS = 54
+EXPECTED_UI_ENTRY_COUNT = 20
+EXPECTED_SURFACE_ENTRY_COUNT = 26
+EXPECTED_LEGACY_FULL_HITS = 70
 EXPECTED_LEGACY_PRODUCTION_HITS = 0
 EXPECTED_LEGACY_PRODUCTION_FILE_COUNT = 0
 EXPECTED_TAFFY_PRODUCTION_HITS = 175
@@ -71,6 +71,7 @@ EXPECTED_UI_ENTRIES = (
     "binding",
     "component",
     "dispatch",
+    "editable_text_composition.rs",
     "event_ui",
     "icon_atlas",
     "layout",
@@ -91,12 +92,15 @@ EXPECTED_UI_ENTRIES = (
 EXPECTED_SURFACE_ENTRIES = (
     "arranged.rs",
     "component_state.rs",
+    "control_index.rs",
     "diagnostics.rs",
     "ecs_projection.rs",
+    "focus",
     "focus.rs",
     "frame_hit_test.rs",
     "input",
     "interaction_gate.rs",
+    "invalidation.rs",
     "mod.rs",
     "navigation",
     "node_pool.rs",
@@ -219,7 +223,7 @@ RUNTIME_09_DOC_ANCHORS = (
     "compiled_template_artifact_stays_binary_leaf_dto_not_generated_source",
     "// @generated <generator> - do not edit by hand",
     "v2-replacement-mainline",
-    "ui_legacy_hits=54",
+    "ui_legacy_hits=70",
     "ui_legacy_production_hits=0",
     "ui_legacy_production_files=0",
     "ui_taffy_production_hits=175",

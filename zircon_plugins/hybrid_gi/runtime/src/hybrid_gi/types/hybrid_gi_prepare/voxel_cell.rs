@@ -32,10 +32,29 @@ pub fn hybrid_gi_voxel_clipmap_bounds_cell_ranges(
         return None;
     }
 
-    let clipmap_min = clipmap.center - Vec3::splat(clipmap.half_extent);
-    let clipmap_extent = clipmap.half_extent * 2.0;
     let bounds_min = bounds_center - Vec3::splat(bounds_radius);
     let bounds_max = bounds_center + Vec3::splat(bounds_radius);
+
+    hybrid_gi_voxel_clipmap_aabb_cell_ranges(clipmap, bounds_min, bounds_max)
+}
+
+pub fn hybrid_gi_voxel_clipmap_aabb_cell_ranges(
+    clipmap: &HybridGiPrepareVoxelClipmap,
+    bounds_min: Vec3,
+    bounds_max: Vec3,
+) -> Option<[(usize, usize); 3]> {
+    if !clipmap.center.is_finite()
+        || !clipmap.half_extent.is_finite()
+        || !bounds_min.is_finite()
+        || !bounds_max.is_finite()
+        || clipmap.half_extent <= 0.0
+        || bounds_max.cmplt(bounds_min).any()
+    {
+        return None;
+    }
+
+    let clipmap_min = clipmap.center - Vec3::splat(clipmap.half_extent);
+    let clipmap_extent = clipmap.half_extent * 2.0;
 
     Some([
         mesh_axis_range(clipmap_min.x, clipmap_extent, bounds_min.x, bounds_max.x)?,

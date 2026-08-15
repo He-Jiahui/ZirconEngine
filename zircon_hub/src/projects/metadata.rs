@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
+use zircon_runtime_interface::hub_protocol::hub_recent_project_path_key;
 
 pub type ProjectMetadataMap = BTreeMap<String, ProjectMetadata>;
 
@@ -22,15 +23,7 @@ impl ProjectMetadata {
 }
 
 pub fn project_metadata_key(path: impl AsRef<Path>) -> String {
-    let mut text = path.as_ref().to_string_lossy().replace('\\', "/");
-    while text.ends_with('/') && text.len() > 1 {
-        text.pop();
-    }
-    if cfg!(target_os = "windows") || looks_like_windows_drive_path(&text) {
-        text.to_ascii_lowercase()
-    } else {
-        text
-    }
+    hub_recent_project_path_key(path)
 }
 
 pub fn project_filesystem_path_key(path: impl AsRef<Path>) -> String {
@@ -56,11 +49,6 @@ fn strip_windows_extended_length_prefix(path: PathBuf) -> PathBuf {
         return PathBuf::from(stripped.to_string());
     }
     path
-}
-
-fn looks_like_windows_drive_path(path: &str) -> bool {
-    let bytes = path.as_bytes();
-    bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':'
 }
 
 pub fn project_paths_match(left: impl AsRef<Path>, right: impl AsRef<Path>) -> bool {

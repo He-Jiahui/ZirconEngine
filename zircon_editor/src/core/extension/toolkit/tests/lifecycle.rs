@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::core::editor_message::DocumentId;
 
-use super::{FixtureToolkit, assert_document_history};
+use super::{assert_document_history, FixtureToolkit};
 use crate::core::extension::{
     DefaultWorkbenchPreset, DocumentToolkitDescriptor, DocumentToolkitRegistry, SaveError,
     SaveReason, ToolkitArea, ToolkitAreaSlot, ToolkitInstanceId, ToolkitLayout, ToolkitLayoutError,

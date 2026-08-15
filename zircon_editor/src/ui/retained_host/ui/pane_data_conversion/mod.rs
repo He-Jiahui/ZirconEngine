@@ -37,6 +37,7 @@ pub(crate) use self::console_projection::{
     to_host_contract_console_pane_from_host_pane_with_runtime,
 };
 pub(crate) use self::generated_bottom_projection::to_host_contract_generated_bottom_pane_from_host_pane;
+pub(crate) use self::hierarchy_projection::to_host_contract_hierarchy_pane_from_host_pane_with_query;
 pub(crate) use self::hierarchy_projection::{
     to_host_contract_hierarchy_pane_from_host_pane,
     to_host_contract_hierarchy_pane_from_host_pane_with_runtime,
@@ -51,17 +52,16 @@ pub(super) use self::native_template_node_panes::{
     to_host_contract_project_overview_pane,
 };
 pub(super) use self::pane_component_projection::{
-    NotificationCenterMetadata, projected_command_palette_options,
-    projected_command_palette_structured_options, projected_notification_center_metadata,
-    projected_notification_center_metadata_from_host, projected_notification_center_option_rows,
-    projected_notification_center_value_text, projected_sample_grid_data,
-    projected_timeline_strip_data, projected_weight_heatmap_data,
+    projected_command_palette_options, projected_command_palette_structured_options,
+    projected_notification_center_metadata, projected_notification_center_metadata_from_host,
+    projected_notification_center_option_rows, projected_notification_center_value_text,
+    projected_sample_grid_data, projected_timeline_strip_data, projected_weight_heatmap_data,
+    NotificationCenterMetadata,
 };
 pub(super) use self::pane_menu_projection::structured_menu_items;
 pub(super) use self::pane_option_projection::structured_options_for_node;
 pub(super) use self::pane_ui_asset_conversion::to_host_contract_ui_asset_pane;
 pub(crate) use self::performance_timeline::to_host_contract_performance_timeline_pane_from_host_pane;
-pub(crate) use self::hierarchy_projection::to_host_contract_hierarchy_pane_from_host_pane_with_query;
 pub(crate) use self::runtime_diagnostics::{
     refresh_runtime_diagnostics_debug_reflector_from_body_surface,
     to_host_contract_runtime_diagnostics_pane_from_host_pane,

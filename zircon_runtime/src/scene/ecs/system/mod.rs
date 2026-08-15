@@ -19,16 +19,17 @@ pub use local::{Local, LocalParam};
 pub use messages::{MessageReader, MessageReaderParam, MessageWriter, MessageWriterParam};
 pub use native::{
     BoxedRuntimeSceneSystem, BoxedSceneSystem, FunctionRuntimeSceneSystem, FunctionSceneSystem,
-    IntoSceneSystem, RuntimeSceneSystem, RuntimeSceneSystemContext, SceneSystem,
-    SceneSystemMetadata, SceneSystemThreadAffinity,
+    IntoSceneSystem, IntoWorldlessSceneSystem, RuntimeSceneSystem, RuntimeSceneSystemContext,
+    SceneSystem, SceneSystemMetadata, SceneSystemThreadAffinity, WorldlessFunctionSceneSystem,
 };
 pub use param_set::{ParamSet, ParamSetItem, ParamSetParam};
 pub use query::Query;
 pub use removed_components::{RemovedComponents, RemovedComponentsParam};
 pub use res::{Res, ResMut, ResMutParam, ResParam};
-pub use system_param::SystemParam;
+pub use system_param::{SystemParam, WorldlessSystemParam};
 pub use system_param_access::{SystemParamAccess, SystemParamConflictKind};
 pub use system_param_error::SystemParamError;
 pub use system_state::SystemState;
 
 pub(crate) use native::{ScheduledSceneStep, ScheduledSceneStepRef};
+pub(crate) use system_param::worldless_private;

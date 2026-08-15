@@ -36,6 +36,7 @@ fn screen_space_ui_effects_force_small_native_text_onto_distance_field_batches()
             list: UiRenderList {
                 commands: vec![command],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(160, 48),
     );
@@ -82,6 +83,7 @@ fn screen_space_ui_glow_selects_mtsdf_true_distance() {
             list: UiRenderList {
                 commands: vec![command],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(160, 48),
     );

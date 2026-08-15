@@ -4,7 +4,8 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 
 use crate::asset::{
-    AssetImportError, AssetKind, AssetUri, ImportedAsset, VirtualGeometryCookRequest,
+    AssetImportError, AssetKind, AssetUri, ImportedAsset, MeshSdfCookRequest,
+    VirtualGeometryCookRequest,
 };
 use crate::core::resource::ResourceDiagnostic;
 
@@ -208,6 +209,11 @@ impl AssetImportContext {
         &self,
     ) -> Result<VirtualGeometryCookRequest, AssetImportError> {
         VirtualGeometryCookRequest::from_import_settings(&self.import_settings)
+            .map_err(AssetImportError::Parse)
+    }
+
+    pub fn mesh_sdf_cook_request(&self) -> Result<MeshSdfCookRequest, AssetImportError> {
+        MeshSdfCookRequest::from_import_settings(&self.import_settings)
             .map_err(AssetImportError::Parse)
     }
 

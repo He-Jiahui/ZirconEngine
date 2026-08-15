@@ -1,5 +1,5 @@
 use crate::ui::retained_host::host_contract::data::{
-    FrameRect, HostMenuChromeItemData, HostWindowPresentationData,
+    FrameRect, HostMenuChromeItemData, HostMenuStateData, HostWindowPresentationData,
 };
 use crate::ui::retained_host::primitives::ModelRc;
 
@@ -9,6 +9,7 @@ use super::hit::NestedMenuLevelHit;
 
 pub(super) fn nested_menu_level_hit(
     presentation: &HostWindowPresentationData,
+    menu_state: &HostMenuStateData,
     items: &ModelRc<HostMenuChromeItemData>,
     parent_popup: &FrameRect,
     selected_index: usize,
@@ -22,6 +23,7 @@ pub(super) fn nested_menu_level_hit(
     }
     let popup = nested_submenu_popup_frame(
         presentation,
+        menu_state,
         parent_popup,
         selected_index,
         branch.children.row_count(),

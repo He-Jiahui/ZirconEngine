@@ -11,10 +11,11 @@ fn autofocus_records_initial_focus_change_and_visible_reason() {
     assert_eq!(surface.focus.previous, None);
     assert_eq!(event.current, Some(id(2)));
     assert_eq!(event.reason, UiFocusChangeReason::Autofocus);
-    assert!(event.visible.visible);
+    assert!(!event.visible.visible);
     assert_eq!(event.visible.reason, UiFocusVisibleReason::Programmatic);
     assert_eq!(surface.focus.changes, vec![event]);
     assert!(surface.component_state(id(2)).unwrap().flags.focused);
+    assert!(!surface.component_state(id(2)).unwrap().flags.focus_visible);
 }
 
 #[test]
@@ -23,6 +24,7 @@ fn pointer_and_navigation_focus_sources_update_visible_reason() {
 
     surface.focus_node(id(2)).unwrap();
     assert!(surface.component_state(id(2)).unwrap().flags.focused);
+    assert!(!surface.component_state(id(2)).unwrap().flags.focus_visible);
     surface
         .dispatch_navigation_event(
             &UiNavigationDispatcher::default(),
@@ -32,7 +34,9 @@ fn pointer_and_navigation_focus_sources_update_visible_reason() {
 
     assert_eq!(surface.focus.focused, Some(id(3)));
     assert!(!surface.component_state(id(2)).unwrap().flags.focused);
+    assert!(!surface.component_state(id(2)).unwrap().flags.focus_visible);
     assert!(surface.component_state(id(3)).unwrap().flags.focused);
+    assert!(surface.component_state(id(3)).unwrap().flags.focus_visible);
     assert!(surface.focus.focus_visible.visible);
     assert_eq!(
         surface.focus.focus_visible.reason,

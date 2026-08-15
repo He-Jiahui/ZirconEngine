@@ -2,7 +2,7 @@ use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::material_state_layer::push_state_layer_commands;
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::{
-    WorkbenchButtonKind, is_asset_browser_toolbar_chip_button, is_tab_like_workbench_button,
+    is_asset_browser_toolbar_chip_button, is_tab_like_workbench_button, WorkbenchButtonKind,
 };
 use super::geometry::frame_is_within;
 use super::layers::{content_order, surface_overlay_order};

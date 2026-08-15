@@ -7,9 +7,9 @@ use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ProjectPluginManifest;
 
 use super::{
+    apply_enablement_request, has_failed_disabled_lifecycle, validate_enablement_request,
     EditorPluginManager, EditorPluginManagerEntry, EditorPluginManagerSnapshot,
-    EditorPluginTransitionError, apply_enablement_request, has_failed_disabled_lifecycle,
-    validate_enablement_request,
+    EditorPluginTransitionError,
 };
 
 /// Applies all editor-package selections after checking every state transition without side

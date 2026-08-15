@@ -14,4 +14,18 @@ pub(crate) struct HierarchyPointerBridge {
     pub(super) surface: UiSurface,
     pub(super) dispatcher: UiPointerDispatcher,
     pub(super) route_intents: EditorRouteIntentMap,
+    #[cfg(test)]
+    pub(super) surface_authority_generation: u64,
+}
+
+impl HierarchyPointerBridge {
+    #[cfg(test)]
+    pub(crate) fn surface_node_count_for_test(&self) -> usize {
+        self.surface.tree.nodes.len()
+    }
+
+    #[cfg(test)]
+    pub(crate) const fn surface_authority_generation_for_test(&self) -> u64 {
+        self.surface_authority_generation
+    }
 }

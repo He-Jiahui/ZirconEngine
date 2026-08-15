@@ -81,6 +81,12 @@ impl OitBufferPlan {
             count_buffer_size_bytes: pixel_count.saturating_mul(OIT_GPU_COUNT_SIZE_BYTES),
         }
     }
+
+    pub(crate) const fn fits_storage_binding_size_limit(self, max_binding_size_bytes: u64) -> bool {
+        max_binding_size_bytes > 0
+            && self.layer_buffer_size_bytes <= max_binding_size_bytes
+            && self.count_buffer_size_bytes <= max_binding_size_bytes
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -189,6 +195,27 @@ mod tests {
         assert_eq!(plan.fragment_capacity, 230_400);
         assert_eq!(plan.layer_buffer_size_bytes, 230_400 * 8);
         assert_eq!(plan.count_buffer_size_bytes, 57_600 * 4);
+    }
+
+    #[test]
+    fn render_oit_buffer_plan_requires_each_storage_buffer_to_fit_the_device_limit() {
+        let plan = OitBufferPlan {
+            pixel_count: 16,
+            fragments_per_pixel_capacity: 4,
+            fragment_capacity: 64,
+            layer_buffer_size_bytes: 512,
+            count_buffer_size_bytes: 64,
+        };
+
+        assert!(!plan.fits_storage_binding_size_limit(0));
+        assert!(!plan.fits_storage_binding_size_limit(511));
+        assert!(plan.fits_storage_binding_size_limit(512));
+
+        let oversized_counts = OitBufferPlan {
+            count_buffer_size_bytes: 513,
+            ..plan
+        };
+        assert!(!oversized_counts.fits_storage_binding_size_limit(512));
     }
 
     #[test]

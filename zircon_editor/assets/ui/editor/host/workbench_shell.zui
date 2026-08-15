@@ -93,7 +93,7 @@ children = [{ node = "activity_rail" }, { node = "document_host" }]
 component = "ActivityRail"
 control_id = "ActivityRailRoot"
 classes = ["workbench-rail"]
-layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = "$editor.density.activity_rail_width", preferred = "$editor.density.activity_rail_width", max = "$editor.density.activity_rail_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { clip = true, container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "hierarchy_toggle" }, { node = "assets_toggle" }, { node = "console_toggle" }]
 
 [nodes.assets_toggle]

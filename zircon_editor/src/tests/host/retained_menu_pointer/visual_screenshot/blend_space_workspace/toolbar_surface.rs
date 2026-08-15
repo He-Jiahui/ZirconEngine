@@ -56,23 +56,40 @@ fn blend_space_title_and_preview_toolbars_share_the_panel_header_surface_contrac
         .get("blend_space_preview_toolbar")
         .and_then(toml::Value::as_table)
         .expect("Blend Space preview toolbar should exist");
+    let classes = preview_toolbar
+        .get("classes")
+        .and_then(toml::Value::as_array)
+        .expect("Blend Space preview toolbar should use a shared surface class");
+    assert!(
+        classes
+            .iter()
+            .any(|class_name| class_name.as_str() == Some("workbench-panel-toolbar")),
+        "Blend Space preview toolbar must inherit its visual surface from the shared panel-toolbar class"
+    );
     let props = preview_toolbar
         .get("props")
         .and_then(toml::Value::as_table)
-        .expect("Blend Space preview toolbar should declare surface props");
+        .expect("Blend Space preview toolbar should declare layout props");
 
     for (property, expected) in [
-        ("background_color", "$editor.surface.3"),
-        ("border_color", "$editor.separator.soft"),
-        ("border_width", "$editor.control.border_width"),
-        ("corner_radius", "$editor.control.radius.control"),
         ("layout_padding_left", "$editor.density.gap.medium"),
         ("layout_padding_right", "$editor.density.gap.medium"),
     ] {
         assert_eq!(
             props.get(property).and_then(toml::Value::as_str),
             Some(expected),
-            "Blend Space preview toolbar must source `{property}` from the shared panel-header token contract"
+            "Blend Space preview toolbar must source `{property}` from the shared density tokens"
+        );
+    }
+    for property in [
+        "background_color",
+        "border_color",
+        "border_width",
+        "corner_radius",
+    ] {
+        assert!(
+            !props.contains_key(property),
+            "Blend Space preview toolbar must not duplicate shared `{property}` styling"
         );
     }
     let layout = preview_toolbar

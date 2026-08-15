@@ -11,9 +11,7 @@ pub enum UiPointerDispatchEffect {
     Passthrough,
     CapturePointer,
     ReleasePointerCapture,
-    SetFocus {
-        focus_visible: bool,
-    },
+    SetFocus,
     ClearFocus,
     RequestDirty(UiDirtyFlags),
     RequestDamage(UiFrame),
@@ -40,8 +38,8 @@ impl UiPointerDispatchEffect {
         Self::ReleasePointerCapture
     }
 
-    pub const fn set_focus(focus_visible: bool) -> Self {
-        Self::SetFocus { focus_visible }
+    pub const fn set_focus() -> Self {
+        Self::SetFocus
     }
 
     pub const fn clear_focus() -> Self {

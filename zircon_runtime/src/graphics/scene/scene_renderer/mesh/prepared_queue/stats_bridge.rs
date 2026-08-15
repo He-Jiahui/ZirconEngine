@@ -1,7 +1,9 @@
 use super::super::build_mesh_draws::{
     PendingMeshCommandCacheExtractionStats, PendingMeshCommandCachePlanStats,
 };
-use super::super::mesh_pass::{MeshDrawReplayStats, MeshPassCommandBufferStats};
+use super::super::mesh_pass::{
+    MeshDrawReplayStats, MeshIndirectWorkspaceFrameStats, MeshPassCommandBufferStats,
+};
 use super::{
     PreparedMeshQueueStats, PreparedMeshVirtualGeometryExecutionStats,
     PreparedMeshVirtualGeometryIndirectStats,
@@ -74,6 +76,16 @@ impl PreparedMeshQueueStats {
         self
     }
 
+    pub(crate) fn with_indirect_workspace_stats(
+        mut self,
+        stats: MeshIndirectWorkspaceFrameStats,
+    ) -> Self {
+        self.indirect_workspace_created_buffer_count = stats.created_buffer_count as usize;
+        self.indirect_workspace_uploaded_byte_count = stats.uploaded_byte_count;
+        self.indirect_workspace_upload_range_count = stats.upload_range_count as usize;
+        self
+    }
+
     pub(crate) fn with_virtual_geometry_indirect_stats(
         mut self,
         stats: PreparedMeshVirtualGeometryIndirectStats,
@@ -107,6 +119,8 @@ impl PreparedMeshQueueStats {
         self.direct_draw_call_count = replay_stats.direct_draw_call_count as usize;
         self.state_change_count = replay_stats.state_change_count as usize;
         self.bind_skip_count = replay_stats.bind_skip_count as usize;
+        self.material_bind_group_set_count = replay_stats.material_bind_group_set_count as usize;
+        self.material_bind_group_skip_count = replay_stats.material_bind_group_skip_count as usize;
         self
     }
 }

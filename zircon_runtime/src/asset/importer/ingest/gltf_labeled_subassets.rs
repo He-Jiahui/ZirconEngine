@@ -111,6 +111,7 @@ pub(crate) fn add_gltf_mesh_subassets(
                     vertices: Vec::new(),
                     indices: Vec::new(),
                     mesh: Some(AssetReference::from_locator(primitive.mesh.uri.clone())),
+                    mesh_sdf: None,
                     virtual_geometry: None,
                 })
                 .collect(),

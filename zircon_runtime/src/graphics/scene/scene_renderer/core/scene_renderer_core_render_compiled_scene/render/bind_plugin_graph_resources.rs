@@ -1,25 +1,20 @@
-use std::collections::BTreeSet;
-
-use crate::graphics::RuntimePrepareExternalBufferBinding;
+use crate::graphics::scene::scene_renderer::core::scene_renderer_core::SceneRendererNeutralGraphBuffers;
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
+use crate::graphics::RuntimePrepareExternalBufferBinding;
 use crate::render_graph::{
     CompiledRenderGraph, RenderGraphExternalResourceType, RenderGraphResourceDesc,
 };
 
-const PLUGIN_FALLBACK_BUFFER_USAGE: wgpu::BufferUsages = wgpu::BufferUsages::STORAGE
-    .union(wgpu::BufferUsages::COPY_DST)
-    .union(wgpu::BufferUsages::COPY_SRC)
-    .union(wgpu::BufferUsages::INDIRECT);
 const MIN_PLUGIN_EXTERNAL_BUFFER_SIZE: wgpu::BufferAddress =
     std::mem::size_of::<u32>() as wgpu::BufferAddress;
 
 pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) fn bind_plugin_graph_resources(
     device: &wgpu::Device,
+    neutral_buffers: &mut SceneRendererNeutralGraphBuffers,
     graph: &CompiledRenderGraph,
     external_buffer_bindings: &[RuntimePrepareExternalBufferBinding],
     resources: &mut RenderGraphExecutionResources,
 ) {
-    let mut bound_logical_names = BTreeSet::new();
     for binding in external_buffer_bindings {
         let logical_name = binding.logical_name();
         if !graph_declares_typed_external_buffer(graph, logical_name) {
@@ -31,28 +26,26 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             binding.backing_name(),
             binding.buffer(),
         );
-        bound_logical_names.insert(logical_name.to_string());
     }
 
     for logical_name in FIRST_PARTY_PLUGIN_EXTERNAL_BUFFERS {
-        if bound_logical_names.contains(*logical_name) {
+        if PARTICLE_PLUGIN_EXTERNAL_BUFFERS.contains(logical_name) {
+            continue;
+        }
+        if resources.has_buffer(logical_name) {
             continue;
         }
         if !graph_declares_typed_external_buffer(graph, logical_name) {
             continue;
         }
 
-        let fallback = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some(plugin_external_fallback_label(logical_name)),
-            size: plugin_external_fallback_size(logical_name),
-            usage: PLUGIN_FALLBACK_BUFFER_USAGE,
-            mapped_at_creation: false,
-        });
-        resources.bind_execution_owned_buffer(
-            *logical_name,
-            plugin_external_fallback_backing_name(logical_name),
-            &fallback,
-        );
+        if let Some((buffer, backing_name)) = neutral_buffers.plugin_buffer(
+            device,
+            logical_name,
+            plugin_external_fallback_size(logical_name),
+        ) {
+            resources.bind_execution_owned_buffer(*logical_name, backing_name, buffer);
+        }
     }
 }
 
@@ -68,30 +61,6 @@ fn graph_declares_typed_external_buffer(graph: &CompiledRenderGraph, logical_nam
 
 fn plugin_external_fallback_size(logical_name: &str) -> wgpu::BufferAddress {
     plugin_external_buffer_min_size(logical_name).max(MIN_PLUGIN_EXTERNAL_BUFFER_SIZE)
-}
-
-fn plugin_external_fallback_label(logical_name: &str) -> &'static str {
-    match logical_name {
-        "particles.gpu.indirect-draw-args" => {
-            "zircon-plugin-external-particles-indirect-draw-args-fallback"
-        }
-        "particles.gpu.debug-readback" => {
-            "zircon-plugin-external-particles-debug-readback-fallback"
-        }
-        "particles.gpu.emitter-params" => {
-            "zircon-plugin-external-particles-emitter-params-fallback"
-        }
-        "particles.gpu.alive-indices" => "zircon-plugin-external-particles-alive-indices-fallback",
-        "particles.gpu.particles-a" => "zircon-plugin-external-particles-a-fallback",
-        "particles.gpu.particles-b" => "zircon-plugin-external-particles-b-fallback",
-        "particles.gpu.counters" => "zircon-plugin-external-particles-counters-fallback",
-        "virtual-geometry-feedback" => "zircon-plugin-external-virtual-geometry-feedback-fallback",
-        _ => "zircon-plugin-external-buffer-fallback",
-    }
-}
-
-fn plugin_external_fallback_backing_name(logical_name: &str) -> String {
-    format!("{logical_name}:plugin-external-fallback")
 }
 
 fn plugin_external_buffer_min_size(logical_name: &str) -> wgpu::BufferAddress {
@@ -115,6 +84,15 @@ const FIRST_PARTY_PLUGIN_EXTERNAL_BUFFERS: &[&str] = &[
     "particles.gpu.debug-readback",
     "virtual-geometry-feedback",
 ];
+const PARTICLE_PLUGIN_EXTERNAL_BUFFERS: &[&str] = &[
+    "particles.gpu.particles-a",
+    "particles.gpu.emitter-params",
+    "particles.gpu.particles-b",
+    "particles.gpu.counters",
+    "particles.gpu.alive-indices",
+    "particles.gpu.indirect-draw-args",
+    "particles.gpu.debug-readback",
+];
 
 #[cfg(test)]
 mod tests {
@@ -132,8 +110,15 @@ mod tests {
         };
         let graph = plugin_external_graph();
         let mut resources = RenderGraphExecutionResources::new();
+        let mut neutral_buffers = SceneRendererNeutralGraphBuffers::default();
 
-        bind_plugin_graph_resources(&backend.device, &graph, &[], &mut resources);
+        bind_plugin_graph_resources(
+            &backend.device,
+            &mut neutral_buffers,
+            &graph,
+            &[],
+            &mut resources,
+        );
 
         let report = resources
             .validate_materialized_graph_resources(&graph)
@@ -143,25 +128,28 @@ mod tests {
             report.report_only_external_count,
             FIRST_PARTY_PLUGIN_EXTERNAL_BUFFERS.len()
         );
+        assert_eq!(report.bound_report_only_external_count, 1);
+        assert_eq!(report.bound_external_count(), 1);
         assert_eq!(
-            report.bound_report_only_external_count,
-            FIRST_PARTY_PLUGIN_EXTERNAL_BUFFERS.len()
+            report.missing_report_only_external_count,
+            PARTICLE_PLUGIN_EXTERNAL_BUFFERS.len()
         );
         assert_eq!(
-            report.bound_external_count(),
-            FIRST_PARTY_PLUGIN_EXTERNAL_BUFFERS.len()
+            report.missing_external_count(),
+            PARTICLE_PLUGIN_EXTERNAL_BUFFERS.len()
         );
-        assert_eq!(report.missing_external_count(), 0);
-        assert!(report.is_complete());
+        assert!(report.materialized_resources_complete());
+        assert!(!report.is_complete());
         let aliases = resources.resource_alias_report();
-        assert_eq!(
-            aliases.buffer_aliases.len(),
-            FIRST_PARTY_PLUGIN_EXTERNAL_BUFFERS.len()
-        );
+        assert_eq!(aliases.buffer_aliases.len(), 1);
         assert!(aliases.buffer_aliases.iter().any(|alias| {
             alias.logical_name == "virtual-geometry-feedback"
-                && alias.backing_name.ends_with(":plugin-external-fallback")
+                && alias.backing_name.ends_with(":plugin-neutral")
         }));
+        assert!(!aliases
+            .buffer_aliases
+            .iter()
+            .any(|alias| alias.logical_name.starts_with("particles.gpu.")));
     }
 
     #[test]
@@ -171,10 +159,17 @@ mod tests {
         };
         let graph = mixed_external_graph();
         let mut resources = RenderGraphExecutionResources::new();
+        let mut neutral_buffers = SceneRendererNeutralGraphBuffers::default();
 
-        bind_plugin_graph_resources(&backend.device, &graph, &[], &mut resources);
+        bind_plugin_graph_resources(
+            &backend.device,
+            &mut neutral_buffers,
+            &graph,
+            &[],
+            &mut resources,
+        );
 
-        assert!(resources.has_buffer("particles.gpu.counters"));
+        assert!(!resources.has_buffer("particles.gpu.counters"));
         assert!(!resources.has_buffer("third-party.plugin.buffer"));
         assert!(!resources.has_bound_resource("particles.gpu.untyped"));
         let report = resources
@@ -182,10 +177,10 @@ mod tests {
             .expect("report-only unknown externals should not fail validation");
         assert_eq!(report.required_external_count, 0);
         assert_eq!(report.report_only_external_count, 3);
-        assert_eq!(report.bound_report_only_external_count, 1);
-        assert_eq!(report.missing_report_only_external_count, 2);
-        assert_eq!(report.bound_external_count(), 1);
-        assert_eq!(report.missing_external_count(), 2);
+        assert_eq!(report.bound_report_only_external_count, 0);
+        assert_eq!(report.missing_report_only_external_count, 3);
+        assert_eq!(report.bound_external_count(), 0);
+        assert_eq!(report.missing_external_count(), 3);
         assert!(report.materialized_resources_complete());
         assert!(!report.is_complete());
     }
@@ -203,27 +198,39 @@ mod tests {
             mapped_at_creation: false,
         });
         let mut resources = RenderGraphExecutionResources::new();
+        let mut neutral_buffers = SceneRendererNeutralGraphBuffers::default();
         let bindings = [RuntimePrepareExternalBufferBinding::new(
             "particles.gpu.counters",
             "particles.gpu.counters:runtime-prepare-test",
             &actual,
         )];
 
-        bind_plugin_graph_resources(&backend.device, &graph, &bindings, &mut resources);
+        bind_plugin_graph_resources(
+            &backend.device,
+            &mut neutral_buffers,
+            &graph,
+            &bindings,
+            &mut resources,
+        );
 
         let aliases = resources.resource_alias_report();
         assert!(aliases.buffer_aliases.iter().any(|alias| {
             alias.logical_name == "particles.gpu.counters"
                 && alias.backing_name == "particles.gpu.counters:runtime-prepare-test"
         }));
-        assert!(!aliases.buffer_aliases.iter().any(|alias| {
-            alias.logical_name == "particles.gpu.counters"
-                && alias.backing_name.ends_with(":plugin-external-fallback")
-        }));
+        assert_eq!(
+            aliases
+                .buffer_aliases
+                .iter()
+                .filter(|alias| alias.logical_name.starts_with("particles.gpu."))
+                .count(),
+            1
+        );
         let report = resources
             .validate_materialized_graph_resources(&graph)
             .expect("runtime prepare buffer plus fallbacks should satisfy plugin graph resources");
-        assert!(report.is_complete());
+        assert!(report.materialized_resources_complete());
+        assert_eq!(report.missing_report_only_external_count, 6);
     }
 
     #[test]
@@ -239,13 +246,20 @@ mod tests {
             mapped_at_creation: false,
         });
         let mut resources = RenderGraphExecutionResources::new();
+        let mut neutral_buffers = SceneRendererNeutralGraphBuffers::default();
         let bindings = [RuntimePrepareExternalBufferBinding::new(
             "third-party.plugin.buffer",
             "third-party.plugin.buffer:runtime-prepare-test",
             &actual,
         )];
 
-        bind_plugin_graph_resources(&backend.device, &graph, &bindings, &mut resources);
+        bind_plugin_graph_resources(
+            &backend.device,
+            &mut neutral_buffers,
+            &graph,
+            &bindings,
+            &mut resources,
+        );
 
         assert!(resources.has_buffer("third-party.plugin.buffer"));
         let report = resources
@@ -256,6 +270,20 @@ mod tests {
         assert_eq!(report.bound_report_only_external_count, 1);
         assert_eq!(report.bound_external_count(), 1);
         assert!(report.is_complete());
+    }
+
+    #[test]
+    fn product_plugin_binder_does_not_create_frame_local_buffers_or_names() {
+        let source = include_str!("bind_plugin_graph_resources.rs")
+            .split("\n#[cfg(test)]")
+            .next()
+            .unwrap_or_default();
+
+        assert!(!source.contains("create_buffer"));
+        assert!(!source.contains("format!("));
+        assert!(!source.contains("BTreeSet"));
+        assert!(source.contains("PARTICLE_PLUGIN_EXTERNAL_BUFFERS.contains(logical_name)"));
+        assert!(source.contains("neutral_buffers.plugin_buffer("));
     }
 
     fn plugin_external_graph() -> CompiledRenderGraph {

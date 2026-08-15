@@ -1,30 +1,39 @@
 use std::sync::{Arc, Mutex};
-use zircon_runtime::core::framework::navigation::{NavAgentTickReport, NavigationAgentDebugState};
 
 use zircon_editor::core::runtime_event_consumer::{
     EditorRuntimeEventConsumerManifest, EditorRuntimeEventConsumerRegistration,
     EditorRuntimeEventConsumerState,
 };
+use zircon_runtime::core::framework::navigation::{
+    NavAgentTickReport, NavigationAgentDebugState, NavigationGizmoSnapshot,
+};
 
 use crate::NAVIGATION_GIZMOS_CAPABILITY;
 
-pub const NAVIGATION_TICK_CONSUMER_ID: &str = "navigation.editor.agent_tick";
-pub const NAVIGATION_TICK_EVENT_ID: &str = "navigation.events.agent_tick_completed";
-pub const NAVIGATION_TICK_PAYLOAD_SCHEMA: &str = "navigation.events.nav_agent_tick_report.v1";
+pub use zircon_plugin_navigation_runtime::{
+    NavigationOverlayFrame, NAVIGATION_OVERLAY_FRAME_EVENT_ID,
+    NAVIGATION_OVERLAY_FRAME_PAYLOAD_SCHEMA,
+};
+
+pub const NAVIGATION_OVERLAY_CONSUMER_ID: &str = "navigation.editor.overlay_frame";
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct NavigationPieFrame {
     pub play_session_id: u64,
     pub sequence: u64,
+    pub owner_generation: u64,
+    pub nav_mesh: NavigationGizmoSnapshot,
     pub tick_report: NavAgentTickReport,
 }
 
 impl NavigationPieFrame {
-    pub fn new(play_session_id: u64, sequence: u64, tick_report: NavAgentTickReport) -> Self {
+    pub fn new(play_session_id: u64, sequence: u64, overlay_frame: NavigationOverlayFrame) -> Self {
         Self {
             play_session_id,
             sequence,
-            tick_report,
+            owner_generation: overlay_frame.owner_generation,
+            nav_mesh: overlay_frame.nav_mesh,
+            tick_report: overlay_frame.tick_report,
         }
     }
 }
@@ -34,6 +43,7 @@ pub enum NavigationPieMirrorApply {
     Applied,
     WrongSession,
     Stale,
+    StaleOwnerGeneration,
 }
 
 #[derive(Clone, Copy, Debug, thiserror::Error, PartialEq, Eq)]
@@ -42,20 +52,20 @@ pub enum NavigationPieMirrorError {
     WrongSession,
     #[error("navigation PIE mirror received a stale delivery sequence")]
     Stale,
+    #[error("navigation PIE mirror received a stale owner generation")]
+    StaleOwnerGeneration,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct NavigationPieMirror {
     play_session_id: Option<u64>,
-    sequence: Option<u64>,
-    tick_report: Option<NavAgentTickReport>,
+    frame: Option<NavigationPieFrame>,
 }
 
 impl NavigationPieMirror {
     pub fn begin_session(&mut self, play_session_id: u64) {
         self.play_session_id = Some(play_session_id);
-        self.sequence = None;
-        self.tick_report = None;
+        self.frame = None;
     }
 
     pub fn end_session(&mut self, play_session_id: u64) -> bool {
@@ -71,24 +81,30 @@ impl NavigationPieMirror {
             return NavigationPieMirrorApply::WrongSession;
         }
         if self
-            .sequence
-            .is_some_and(|sequence| frame.sequence <= sequence)
+            .frame
+            .as_ref()
+            .is_some_and(|current| frame.sequence <= current.sequence)
         {
             return NavigationPieMirrorApply::Stale;
         }
-        self.sequence = Some(frame.sequence);
-        self.tick_report = Some(frame.tick_report);
+        if self
+            .frame
+            .as_ref()
+            .is_some_and(|current| frame.owner_generation < current.owner_generation)
+        {
+            return NavigationPieMirrorApply::StaleOwnerGeneration;
+        }
+        self.frame = Some(frame);
         NavigationPieMirrorApply::Applied
     }
 
-    /// Consumes the shared `NavAgentTickReport` event registered by the runtime plugin.
-    pub fn apply_tick_report(
+    pub fn apply_overlay_frame(
         &mut self,
         play_session_id: u64,
         sequence: u64,
-        report: NavAgentTickReport,
+        frame: NavigationOverlayFrame,
     ) -> NavigationPieMirrorApply {
-        self.apply_frame(NavigationPieFrame::new(play_session_id, sequence, report))
+        self.apply_frame(NavigationPieFrame::new(play_session_id, sequence, frame))
     }
 
     pub fn play_session_id(&self) -> Option<u64> {
@@ -96,24 +112,34 @@ impl NavigationPieMirror {
     }
 
     pub fn sequence(&self) -> Option<u64> {
-        self.sequence
+        self.frame.as_ref().map(|frame| frame.sequence)
+    }
+
+    pub fn owner_generation(&self) -> Option<u64> {
+        self.frame.as_ref().map(|frame| frame.owner_generation)
+    }
+
+    pub fn frame(&self) -> Option<&NavigationPieFrame> {
+        self.frame.as_ref()
+    }
+
+    pub fn nav_mesh(&self) -> Option<&NavigationGizmoSnapshot> {
+        self.frame.as_ref().map(|frame| &frame.nav_mesh)
     }
 
     pub fn tick_report(&self) -> Option<&NavAgentTickReport> {
-        self.tick_report.as_ref()
+        self.frame.as_ref().map(|frame| &frame.tick_report)
     }
 
     pub fn agent(&self, entity: u64) -> Option<&NavigationAgentDebugState> {
-        self.tick_report
-            .as_ref()?
+        self.tick_report()?
             .debug_agents
             .iter()
             .find(|agent| agent.entity == entity)
     }
 
     pub fn agents(&self) -> impl ExactSizeIterator<Item = &NavigationAgentDebugState> {
-        self.tick_report
-            .as_ref()
+        self.tick_report()
             .map(|report| report.debug_agents.as_slice())
             .unwrap_or_default()
             .iter()
@@ -121,7 +147,7 @@ impl NavigationPieMirror {
 }
 
 impl EditorRuntimeEventConsumerState for NavigationPieMirror {
-    type Payload = NavAgentTickReport;
+    type Payload = NavigationOverlayFrame;
     type Error = NavigationPieMirrorError;
 
     fn begin_session(&mut self, play_session_id: u64) {
@@ -134,10 +160,13 @@ impl EditorRuntimeEventConsumerState for NavigationPieMirror {
         sequence: u64,
         payload: Self::Payload,
     ) -> Result<(), Self::Error> {
-        match self.apply_tick_report(play_session_id, sequence, payload) {
+        match self.apply_overlay_frame(play_session_id, sequence, payload) {
             NavigationPieMirrorApply::Applied => Ok(()),
             NavigationPieMirrorApply::WrongSession => Err(NavigationPieMirrorError::WrongSession),
             NavigationPieMirrorApply::Stale => Err(NavigationPieMirrorError::Stale),
+            NavigationPieMirrorApply::StaleOwnerGeneration => {
+                Err(NavigationPieMirrorError::StaleOwnerGeneration)
+            }
         }
     }
 
@@ -146,15 +175,16 @@ impl EditorRuntimeEventConsumerState for NavigationPieMirror {
     }
 }
 
-pub fn navigation_runtime_event_consumers() -> Vec<EditorRuntimeEventConsumerRegistration> {
+pub(crate) fn navigation_runtime_event_consumers_with_mirror(
+    mirror: Arc<Mutex<NavigationPieMirror>>,
+) -> Vec<EditorRuntimeEventConsumerRegistration> {
     let manifest = EditorRuntimeEventConsumerManifest::new(
-        NAVIGATION_TICK_CONSUMER_ID,
-        NAVIGATION_TICK_EVENT_ID,
-        NAVIGATION_TICK_PAYLOAD_SCHEMA,
+        NAVIGATION_OVERLAY_CONSUMER_ID,
+        NAVIGATION_OVERLAY_FRAME_EVENT_ID,
+        NAVIGATION_OVERLAY_FRAME_PAYLOAD_SCHEMA,
     )
     .with_required_capability(NAVIGATION_GIZMOS_CAPABILITY);
     vec![EditorRuntimeEventConsumerRegistration::typed(
-        manifest,
-        Arc::new(Mutex::new(NavigationPieMirror::default())),
+        manifest, mirror,
     )]
 }

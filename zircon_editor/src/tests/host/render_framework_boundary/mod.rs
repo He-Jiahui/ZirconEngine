@@ -4,6 +4,9 @@ fn editor_viewport_sources_route_through_render_framework_without_wgpu_preview_b
     let viewport_new_source = include_str!("../../../ui/retained_host/viewport/new.rs");
     let viewport_state_source =
         include_str!("../../../ui/retained_host/viewport/viewport_state.rs");
+    let viewport_access_source =
+        include_str!("../../../ui/retained_host/viewport/render_framework_access.rs");
+    let runtime_lease_source = include_str!("../../../ui/retained_host/app/runtime_lease.rs");
     let viewport_resolve_job_source =
         include_str!("../../../ui/retained_host/viewport/render_framework_resolve_job.rs");
     let viewport_submit_source =
@@ -26,15 +29,22 @@ fn editor_viewport_sources_route_through_render_framework_without_wgpu_preview_b
     let manifest = include_str!("../../../../Cargo.toml");
 
     assert!(
-        viewport_new_source.contains("ViewportState::lazy(core)")
-            && viewport_state_source.contains("RenderFrameworkResolveJob::new(core)")
+        viewport_new_source.contains("ViewportState::lazy(render_framework_access)")
+            && viewport_state_source
+                .contains("RenderFrameworkResolveJob::new(render_framework_access)")
             && viewport_state_source
                 .contains("JobTicket<ManagerServiceHandle<dyn RenderFramework>>")
             && viewport_state_source.contains("JobCategory::Misc")
-            && viewport_resolve_job_source.contains("render_framework_handle(&self.core)")
+            && viewport_access_source.contains("struct ViewportRenderFrameworkAccess")
+            && viewport_access_source.contains("CoreWeak")
+            && viewport_access_source.contains("render_framework_handle(&core)")
+            && viewport_access_source.contains("resolve_manager_service(&core, handle)")
+            && runtime_lease_source.contains("ViewportRenderFrameworkAccess::new(&self.core)")
             && viewport_resolve_job_source.contains("context.check_cancelled()?")
+            && !viewport_state_source.contains("CoreHandle")
+            && !viewport_resolve_job_source.contains("CoreHandle")
             && startup_assembly_source.contains("viewport.bind_jobs(editor_jobs.clone())"),
-        "editor viewport controller should lazily resolve RenderFramework from core"
+        "editor viewport controller should lazily resolve RenderFramework through a typed access without retaining raw CoreHandle"
     );
     let thread_builder = ["std::thread", "::Builder"].concat();
     let join_handle = ["Join", "Handle"].concat();
@@ -113,6 +123,37 @@ fn editor_viewport_sources_route_through_render_framework_without_wgpu_preview_b
     assert!(
         !manifest.contains("wgpu.workspace = true"),
         "zircon_editor/Cargo.toml should not depend on wgpu directly"
+    );
+}
+
+#[test]
+fn retained_host_composition_owns_runtime_lifetime_outside_viewport_state() {
+    let app_source = include_str!("../../../ui/retained_host/app.rs");
+    let constructors_source =
+        include_str!("../../../ui/retained_host/app/host_lifecycle/startup/constructors.rs");
+    let startup_source =
+        include_str!("../../../ui/retained_host/app/host_lifecycle/startup/with_viewport.rs");
+    let construction_input_source = include_str!(
+        "../../../ui/retained_host/app/host_lifecycle/startup/state/construction/input.rs"
+    );
+    let assembly_source = include_str!(
+        "../../../ui/retained_host/app/host_lifecycle/startup/state/construction/assembly.rs"
+    );
+    let viewport_state_source =
+        include_str!("../../../ui/retained_host/viewport/viewport_state.rs");
+    let viewport_job_source =
+        include_str!("../../../ui/retained_host/viewport/render_framework_resolve_job.rs");
+
+    assert!(
+        app_source.contains("runtime_lease: RetainedHostRuntimeLease")
+            && constructors_source.contains("RetainedHostRuntimeLease::new(core)")
+            && startup_source.contains("runtime_lease.bootstrap_core()")
+            && construction_input_source.contains("runtime_lease:")
+            && construction_input_source.contains("RetainedHostRuntimeLease")
+            && assembly_source.contains("runtime_lease,")
+            && !viewport_state_source.contains("CoreHandle")
+            && !viewport_job_source.contains("CoreHandle"),
+        "retained-host composition must retain the runtime while viewport state and jobs use typed weak access"
     );
 }
 

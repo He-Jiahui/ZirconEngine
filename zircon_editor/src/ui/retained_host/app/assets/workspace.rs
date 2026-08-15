@@ -17,11 +17,12 @@ impl RetainedEditorHost {
             .map_err(|error| error.to_string())?;
         let world =
             Scene::load_scene_from_uri(&project, &scene_uri).map_err(|error| error.to_string())?;
-        let level = self
+        let authoring_world = self
             .editor_manager
-            .create_runtime_level(world)
+            .prepare_authoring_world(world)
             .map_err(|error| error.to_string())?;
-        self.runtime.replace_world(level, project_info.root_path)?;
+        self.runtime
+            .replace_world(authoring_world, project_info.root_path)?;
         Ok(())
     }
 

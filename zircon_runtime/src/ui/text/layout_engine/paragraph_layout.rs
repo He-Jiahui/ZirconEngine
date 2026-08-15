@@ -1,9 +1,9 @@
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 
+use crate::text::layout::{measure_line_width_with_provider, tab_interval_width};
 use crate::text::ParagraphOverride;
 use crate::text::SharedTextLayoutSession;
-use crate::text::layout::{measure_line_width_with_provider, tab_interval_width};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiTextAlign, UiTextDirection, UiTextRange,

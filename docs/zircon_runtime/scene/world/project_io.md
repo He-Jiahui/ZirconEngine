@@ -2,9 +2,11 @@
 related_code:
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/world/project_io/camera.rs
+  - zircon_runtime/src/scene/world/project_io/document.rs
   - zircon_runtime/src/scene/world/project_io/physics.rs
   - zircon_runtime/src/scene/world/project_io/post_process.rs
   - zircon_runtime/src/scene/world/project_io/references.rs
+  - zircon_runtime/src/scene/world/project_io/scene_asset.rs
   - zircon_runtime/src/scene/world/project_io/script.rs
   - zircon_runtime/src/scene/world/project_io/transform.rs
   - zircon_runtime/src/tests/runtime_absorption/performance_hotspots.rs
@@ -13,9 +15,11 @@ related_code:
 implementation_files:
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/world/project_io/camera.rs
+  - zircon_runtime/src/scene/world/project_io/document.rs
   - zircon_runtime/src/scene/world/project_io/physics.rs
   - zircon_runtime/src/scene/world/project_io/post_process.rs
   - zircon_runtime/src/scene/world/project_io/references.rs
+  - zircon_runtime/src/scene/world/project_io/scene_asset.rs
   - zircon_runtime/src/scene/world/project_io/script.rs
   - zircon_runtime/src/scene/world/project_io/transform.rs
   - zircon_runtime/src/asset/assets/scene/camera.rs
@@ -27,7 +31,7 @@ plan_sources:
   - docs/plans/zircon_runtime/shader/06-environment-ibl-and-pbr-correctness.md
   - docs/plans/zircon_runtime/render/11-environment-lighting.md
 tests:
-  - rustfmt --edition 2021 --check zircon_runtime/src/scene/world/project_io.rs zircon_runtime/src/scene/world/project_io/camera.rs zircon_runtime/src/scene/world/project_io/physics.rs zircon_runtime/src/scene/world/project_io/post_process.rs zircon_runtime/src/scene/world/project_io/references.rs zircon_runtime/src/scene/world/project_io/script.rs zircon_runtime/src/scene/world/project_io/transform.rs
+  - rustfmt --edition 2021 --check zircon_runtime/src/scene/world/project_io.rs zircon_runtime/src/scene/world/project_io/camera.rs zircon_runtime/src/scene/world/project_io/document.rs zircon_runtime/src/scene/world/project_io/physics.rs zircon_runtime/src/scene/world/project_io/post_process.rs zircon_runtime/src/scene/world/project_io/references.rs zircon_runtime/src/scene/world/project_io/scene_asset.rs zircon_runtime/src/scene/world/project_io/script.rs zircon_runtime/src/scene/world/project_io/transform.rs
   - rustfmt --check zircon_runtime/src/scene/world/project_io.rs zircon_runtime/src/scene/world/render.rs zircon_runtime/src/scene/tests/asset_scene.rs zircon_runtime/src/scene/tests/dynamic_scene_session/capture.rs zircon_runtime/src/scene/tests/dynamic_scene_session/load.rs
   - scene::tests::asset_scene::scene_assets_keep_script_only_entities_as_empty_nodes
   - scene::tests::asset_scene::scene_asset_load_uses_asset_preserving_normalizer_source_guard
@@ -49,15 +53,17 @@ doc_type: module-detail
 
 `zircon_runtime::scene::world::project_io` owns project-file and scene-asset roundtrip behavior for `World`. It loads authored `SceneAsset` data through `ProjectManager`, reconstructs runtime components and resource handles, serializes a `World` back to project JSON or `SceneAsset`, and repairs derived runtime state after loading.
 
-The 2026-06-14 Runtime 07 Project I/O Folder Split keeps the public entry points in `project_io.rs` but moves schema conversion helpers into `project_io/{camera,physics,post_process,references,script,transform}.rs`. This is a behavior-preserving boundary split: callers still use `World::load_scene_from_uri`, `World::from_scene_asset`, `World::save_project`, `World::load_project`, `World::to_project_json`, and `World::to_scene_asset`.
+The 2026-08-11 project I/O owner split keeps the public `World` API unchanged while placing scene-asset conversion and project-document I/O in separate implementation modules. `project_io.rs` is project_io root wiring; `scene_asset.rs` is the scene-asset conversion owner; `document.rs` owns JSON document encoding, decoding, and post-load normalization. Callers continue to use `World::load_scene_from_uri`, `World::from_scene_asset`, `World::to_scene_asset`, `World::save_scene_to_project`, `World::save_project_to_path`, and `World::load_project_from_path`. The existing narrow helpers remain in `project_io/{camera,document,physics,post_process,references,scene_asset,script,transform}.rs`.
 
 ## Related Files
 
-`project_io.rs` is the orchestration file. It owns `SceneProjectError`, `ProjectDocument`, the `World` impl, project file I/O, entity iteration, component assembly, and post-load state repair. After the split, `project_io.rs 772 行` and remains below the repository large-file warning threshold.
+`project_io.rs` is a 15-line module declaration and `SceneProjectError` re-export. `scene_asset.rs` owns URI import/export, entity iteration, runtime component assembly, and scene-asset post-load normalization. `document.rs` owns `SceneProjectError`, project document DTOs, bounded JSON I/O, and project-document post-load normalization. Each implementation file remains below the repository production-file soft budget.
 
 The child modules each own one conversion family:
 
 - `references.rs` maps `AssetReference` values to typed `ResourceHandle<T>` values and back, including builtin fallback locators.
+- `scene_asset.rs` converts `SceneAsset`/`SceneEntityAsset` values and owns `World::{load_scene_from_uri,from_scene_asset,to_scene_asset,save_scene_to_project}`.
+- `document.rs` serializes and reloads project documents and owns `World::{save_project_to_path,load_project_from_path}` plus the shared normalizer.
 - `camera.rs` converts camera targets, viewport rectangles, explicit Core2d/Core3d identity, and `CameraComponent` values.
 - `post_process.rs` converts render post-process settings, volumes, profiles, tonemap, vignette, grain, dither, chromatic aberration, and fog DTOs.
 - `physics.rs` converts collider shapes.
@@ -76,13 +82,13 @@ Camera conversion preserves `core_pipeline` independently from `projection_mode`
 
 ## Design and Rationale
 
-The old single file mixed project document I/O, resource locator mapping, script binding payload decode, transform conversion, camera conversion, post-process conversion, and collider conversion. That made `project_io.rs` a Runtime 07 `runtime-other` large-file hotspot.
+The old single file mixed project document I/O, scene-asset conversion, resource locator mapping, script binding payload decode, transform conversion, camera conversion, post-process conversion, and collider conversion. The 2026-08-11 split removes the root-file hotspot without adding a facade or a second public API.
 
-The split follows the current scene/world owner shape rather than introducing a public facade. `project_io.rs` still hides the implementation behind the existing `World` API, and each child module uses `pub(super)` helpers so callers outside project I/O cannot bind to internal conversion details.
+The split follows the current scene/world owner shape rather than introducing a public facade. The `World` API remains the only public surface, while conversion helpers continue to use `pub(super)` visibility so callers outside project I/O cannot bind to internal details.
 
 ## Control Flow
 
-The entry file decides when a scene is loaded, saved, serialized, or rehydrated. It delegates value conversion to child modules at the point where a component field crosses the asset/runtime boundary. The post-load rehydration step stays in the entry file because it mutates multiple `World` maps and rebuilds runtime registries, schedules, derived state, and active camera/light defaults. The shared `normalize_loaded_state` helper takes an explicit default-node policy so project-document recovery can add runtime defaults while scene-asset import preserves the authored entity set exactly.
+The scene-asset module decides when a scene is loaded or saved and delegates value conversion at each asset/runtime boundary. The document module owns JSON rehydration because it rebuilds runtime registries, schedules, derived state, and active camera/light defaults. Its shared `normalize_loaded_state` helper takes an explicit default-node policy so project-document recovery can add runtime defaults while scene-asset import preserves the authored entity set exactly.
 
 ## Edge Cases and Constraints
 
@@ -94,7 +100,7 @@ Script bindings remain JSON-decoded from the dynamic component store under `scri
 
 ## Test Coverage
 
-`runtime_07_project_io_folder_split_keeps_entry_and_converter_owners` locks the project_io folder split. It verifies the entry file declares the six child modules, keeps the `World` project I/O entry points, does not reclaim converter helper definitions, and requires each child module to retain its narrow `pub(super)` conversion owner.
+`runtime_07_project_io_folder_split_keeps_entry_and_converter_owners` locks the project_io folder split. It verifies root wiring, scene-asset conversion ownership, document I/O ownership, the existing helper modules, and the absence of conversion or document behavior from the root file.
 
 Runtime 05 scene-asset closeout now pins the asset-preserving normalizer through `scene_assets_keep_script_only_entities_as_empty_nodes`: script-only entities remain `NodeKind::Empty`, keep `script.bindings`, and no longer gain default camera/light records during `SceneAsset` roundtrip. The same test also calls `World::to_render_extract()` so sparse asset worlds keep a safe render-extract path without persisting fallback camera/light nodes. Dynamic session single-entity fixtures use explicit `World::empty()` levels when they are testing remap collisions rather than default-level bootstrap contents.
 

@@ -5,11 +5,11 @@ use crate::core::framework::render::{
 };
 use crate::graphics::feature::{
     BuiltinRenderFeature, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
-    RenderFeatureResourceAccess, RenderFeatureResourceDescriptor, RenderFeatureResourceKind,
+    RenderFeatureResourceAccess, RenderFeatureResourceDescriptor, RenderFeatureResourceVersion,
 };
 use crate::graphics::pipeline::declarations::{RenderPipelineCompileOptions, RendererFeatureAsset};
-use crate::graphics::scene::anti_alias::fxaa::FXAA_EXECUTOR_ID;
-use crate::graphics::scene::anti_alias::smaa::SMAA_EXECUTOR_ID;
+use crate::graphics::scene::anti_alias::fxaa::{FXAA_EXECUTOR_ID, FXAA_PASS_NAME};
+use crate::graphics::scene::anti_alias::smaa::{SMAA_EXECUTOR_ID, SMAA_PASS_NAME};
 use crate::graphics::{FrameHistoryBinding, FrameHistorySlot};
 
 pub(super) fn feature_descriptor(feature: &RendererFeatureAsset) -> RenderFeatureDescriptor {
@@ -64,9 +64,7 @@ fn filter_taa_resolve_descriptor(
     descriptor.stage_passes.retain(|pass| {
         !matches!(
             pass.executor_id.as_str(),
-            "temporal.taa-reactive-mask-clear"
-                | "temporal.taa-reactive-mask-mesh"
-                | "temporal.taa-resolve"
+            "temporal.taa-reactive-mask-mesh" | "temporal.taa-resolve"
         )
     });
     descriptor
@@ -243,6 +241,7 @@ fn filter_post_process_pass(
     route_uber_to_latest_color_input(&mut pass, feature, stack);
     route_output_transfer_to_upscaled_input(&mut pass, feature, stack);
     route_output_transfer_to_terminal_anti_alias_input(&mut pass, feature, stack);
+    route_upscale_to_terminal_anti_alias_input(&mut pass, feature, stack);
     (!pass.resources.is_empty()).then_some(pass)
 }
 
@@ -250,7 +249,6 @@ fn post_process_pass_can_be_filtered(feature: BuiltinRenderFeature, executor_id:
     match (feature, executor_id) {
         (BuiltinRenderFeature::Temporal, "temporal.velocity-object")
         | (BuiltinRenderFeature::Temporal, "temporal.velocity-camera")
-        | (BuiltinRenderFeature::Temporal, "temporal.taa-reactive-mask-clear")
         | (BuiltinRenderFeature::Temporal, "temporal.taa-reactive-mask-mesh")
         | (BuiltinRenderFeature::Temporal, "temporal.taa-resolve")
         | (BuiltinRenderFeature::PostProcess, "post.motion-vector-tile-max")
@@ -303,9 +301,7 @@ fn optional_post_process_pass_enabled(
         }
         (
             BuiltinRenderFeature::Temporal,
-            "temporal.taa-reactive-mask-clear"
-            | "temporal.taa-reactive-mask-mesh"
-            | "temporal.taa-resolve",
+            "temporal.taa-reactive-mask-mesh" | "temporal.taa-resolve",
         ) => stack_effect_enabled(stack, PostProcessEffectKind::TaaResolve),
         (BuiltinRenderFeature::Temporal, "temporal.velocity-object")
         | (BuiltinRenderFeature::Temporal, "temporal.velocity-camera") => {
@@ -432,21 +428,51 @@ fn route_bloom_to_latest_scene_color_input(
         if resource.access == RenderFeatureResourceAccess::Read
             && resource.name == PostProcessGraphResourceNames::SCENE_COLOR
         {
-            resource.name = source.to_string();
+            route_resource_to_produced_input(resource, source);
         }
     }
 }
 
-fn latest_post_process_scene_color(stack: &PostProcessStackDescriptor) -> &'static str {
+#[derive(Clone, Copy)]
+struct PostProcessSceneColorInput {
+    name: &'static str,
+    producer_pass_name: Option<&'static str>,
+}
+
+fn latest_post_process_scene_color(
+    stack: &PostProcessStackDescriptor,
+) -> PostProcessSceneColorInput {
     if stack_effect_enabled(stack, PostProcessEffectKind::MotionBlur) {
-        PostProcessGraphResourceNames::MOTION_BLURRED
+        PostProcessSceneColorInput {
+            name: PostProcessGraphResourceNames::MOTION_BLURRED,
+            producer_pass_name: Some("motion-blur"),
+        }
     } else if stack_effect_enabled(stack, PostProcessEffectKind::DepthOfField) {
-        PostProcessGraphResourceNames::DEPTH_OF_FIELDED
+        PostProcessSceneColorInput {
+            name: PostProcessGraphResourceNames::DEPTH_OF_FIELDED,
+            producer_pass_name: Some("depth-of-field"),
+        }
     } else if stack_effect_enabled(stack, PostProcessEffectKind::TaaResolve) {
-        PostProcessGraphResourceNames::TAA_OUTPUT
+        PostProcessSceneColorInput {
+            name: PostProcessGraphResourceNames::TAA_OUTPUT,
+            producer_pass_name: Some("taa-resolve"),
+        }
     } else {
-        PostProcessGraphResourceNames::SCENE_COLOR
+        PostProcessSceneColorInput {
+            name: PostProcessGraphResourceNames::SCENE_COLOR,
+            producer_pass_name: None,
+        }
     }
+}
+
+fn route_resource_to_produced_input(
+    resource: &mut RenderFeatureResourceDescriptor,
+    input: PostProcessSceneColorInput,
+) {
+    resource.name = input.name.to_string();
+    resource.input_version = input.producer_pass_name.map(|producer_pass_name| {
+        RenderFeatureResourceVersion::new(input.name, resource.kind, producer_pass_name)
+    });
 }
 
 fn route_scene_composite_to_latest_scene_color_input(
@@ -465,10 +491,10 @@ fn route_scene_composite_to_latest_scene_color_input(
         if resource.access == RenderFeatureResourceAccess::Read
             && resource.name == PostProcessGraphResourceNames::SCENE_COLOR
         {
-            resource.name = source.to_string();
+            route_resource_to_produced_input(resource, source);
         }
     }
-    retain_single_scene_color_input(pass, source);
+    retain_single_scene_color_input(pass, source.name);
 }
 
 fn route_blur_to_latest_color_input(
@@ -481,7 +507,10 @@ fn route_blur_to_latest_color_input(
     }
 
     let source = if stack_effect_enabled(stack, PostProcessEffectKind::SceneComposite) {
-        PostProcessGraphResourceNames::SCENE_COMPOSITED
+        PostProcessSceneColorInput {
+            name: PostProcessGraphResourceNames::SCENE_COMPOSITED,
+            producer_pass_name: Some("scene-composite"),
+        }
     } else {
         latest_post_process_scene_color(stack)
     };
@@ -489,10 +518,10 @@ fn route_blur_to_latest_color_input(
         if resource.access == RenderFeatureResourceAccess::Read
             && resource.name == PostProcessGraphResourceNames::SCENE_COLOR
         {
-            resource.name = source.to_string();
+            route_resource_to_produced_input(resource, source);
         }
     }
-    retain_single_scene_color_input(pass, source);
+    retain_single_scene_color_input(pass, source.name);
 }
 
 fn route_uber_to_latest_color_input(
@@ -508,9 +537,15 @@ fn route_uber_to_latest_color_input(
         stack_effect_enabled(stack, PostProcessEffectKind::SceneComposite);
     let blur_enabled = stack_effect_enabled(stack, PostProcessEffectKind::Blur);
     let source = if blur_enabled {
-        PostProcessGraphResourceNames::BLURRED
+        PostProcessSceneColorInput {
+            name: PostProcessGraphResourceNames::BLURRED,
+            producer_pass_name: Some("blur"),
+        }
     } else if scene_composite_enabled {
-        PostProcessGraphResourceNames::SCENE_COMPOSITED
+        PostProcessSceneColorInput {
+            name: PostProcessGraphResourceNames::SCENE_COMPOSITED,
+            producer_pass_name: Some("scene-composite"),
+        }
     } else {
         latest_post_process_scene_color(stack)
     };
@@ -518,10 +553,10 @@ fn route_uber_to_latest_color_input(
         if resource.access == RenderFeatureResourceAccess::Read
             && resource.name == PostProcessGraphResourceNames::SCENE_COLOR
         {
-            resource.name = source.to_string();
+            route_resource_to_produced_input(resource, source);
         }
     }
-    retain_single_scene_color_input(pass, source);
+    retain_single_scene_color_input(pass, source.name);
     if scene_composite_enabled {
         pass.resources.retain(|resource| {
             resource.access != RenderFeatureResourceAccess::Read
@@ -575,7 +610,13 @@ fn route_output_transfer_to_upscaled_input(
         if resource.access == RenderFeatureResourceAccess::Read
             && resource.name == PostProcessGraphResourceNames::TONEMAPPED
         {
-            resource.name = PostProcessGraphResourceNames::UPSCALED.to_string();
+            route_resource_to_produced_input(
+                resource,
+                PostProcessSceneColorInput {
+                    name: PostProcessGraphResourceNames::UPSCALED,
+                    producer_pass_name: Some("upscale"),
+                },
+            );
         }
     }
 }
@@ -585,26 +626,65 @@ fn route_output_transfer_to_terminal_anti_alias_input(
     feature: BuiltinRenderFeature,
     stack: &PostProcessStackDescriptor,
 ) {
+    let Some(producer_pass_name) = terminal_anti_alias_pass_name(stack) else {
+        return;
+    };
     if feature != BuiltinRenderFeature::PostProcess
         || pass.executor_id.as_str() != "post.output-transfer"
-        || !post_process_stack_uses_terminal_anti_alias(stack)
     {
         return;
     }
 
     for resource in &mut pass.resources {
-        if resource.access == RenderFeatureResourceAccess::Write
-            && resource.name == PostProcessGraphResourceNames::FINAL_COLOR
+        if resource.access == RenderFeatureResourceAccess::Read
+            && resource.name == PostProcessGraphResourceNames::TONEMAPPED
         {
-            resource.name = PostProcessGraphResourceNames::FINAL_COMPOSITED.to_string();
-            resource.kind = RenderFeatureResourceKind::Texture;
+            route_resource_to_produced_input(
+                resource,
+                PostProcessSceneColorInput {
+                    name: PostProcessGraphResourceNames::FINAL_COMPOSITED,
+                    producer_pass_name: Some(producer_pass_name),
+                },
+            );
         }
     }
 }
 
-fn post_process_stack_uses_terminal_anti_alias(stack: &PostProcessStackDescriptor) -> bool {
-    stack_effect_enabled(stack, PostProcessEffectKind::Fxaa)
-        || stack_effect_enabled(stack, PostProcessEffectKind::Smaa)
+fn route_upscale_to_terminal_anti_alias_input(
+    pass: &mut RenderFeaturePassDescriptor,
+    feature: BuiltinRenderFeature,
+    stack: &PostProcessStackDescriptor,
+) {
+    let Some(producer_pass_name) = terminal_anti_alias_pass_name(stack) else {
+        return;
+    };
+    if feature != BuiltinRenderFeature::PostProcess || pass.executor_id.as_str() != "post.upscale" {
+        return;
+    }
+
+    for resource in &mut pass.resources {
+        if resource.access == RenderFeatureResourceAccess::Read
+            && resource.name == PostProcessGraphResourceNames::TONEMAPPED
+        {
+            route_resource_to_produced_input(
+                resource,
+                PostProcessSceneColorInput {
+                    name: PostProcessGraphResourceNames::FINAL_COMPOSITED,
+                    producer_pass_name: Some(producer_pass_name),
+                },
+            );
+        }
+    }
+}
+
+fn terminal_anti_alias_pass_name(stack: &PostProcessStackDescriptor) -> Option<&'static str> {
+    if stack_effect_enabled(stack, PostProcessEffectKind::Fxaa) {
+        Some(FXAA_PASS_NAME)
+    } else if stack_effect_enabled(stack, PostProcessEffectKind::Smaa) {
+        Some(SMAA_PASS_NAME)
+    } else {
+        None
+    }
 }
 
 fn stack_effect_enabled(stack: &PostProcessStackDescriptor, kind: PostProcessEffectKind) -> bool {

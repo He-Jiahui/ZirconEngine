@@ -1,4 +1,4 @@
-use crate::{render_feature_descriptor, render_pass_executor_registration};
+use crate::render_feature_descriptor;
 
 #[derive(Clone, Debug)]
 pub struct RenderingSsaoRuntimeFeature;
@@ -12,8 +12,7 @@ impl zircon_runtime::plugin::RuntimePluginFeature for RenderingSsaoRuntimeFeatur
         &self,
         registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
-        registry.register_render_feature(render_feature_descriptor())?;
-        registry.register_render_pass_executor(render_pass_executor_registration())
+        registry.register_render_feature(render_feature_descriptor())
     }
 }
 

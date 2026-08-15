@@ -1,12 +1,12 @@
 use std::collections::BTreeMap;
 
 use crate::core::framework::render::{
-    RenderMaterialDiagnosticSource, RenderMaterialValidationError,
+    RenderMaterialDiagnosticSource, RenderMaterialValidationError, StandardPbrMaterialFeatures,
     STANDARD_PBR_DEFAULT_CLEARCOAT_ROUGHNESS, STANDARD_PBR_DEFAULT_IOR,
-    STANDARD_PBR_NO_ATTENUATION_DISTANCE, StandardPbrMaterialFeatures,
+    STANDARD_PBR_NO_ATTENUATION_DISTANCE,
 };
 
-use super::{MaterialAsset, override_f32, override_vec3, texture_slot_reference};
+use super::{override_f32, override_vec3, texture_slot_reference, MaterialAsset};
 
 const CLEARCOAT_PROPERTY: &str = "clearcoat";
 const CLEARCOAT_ROUGHNESS_PROPERTY: &str = "clearcoat_perceptual_roughness";

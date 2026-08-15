@@ -12,7 +12,8 @@ impl HostMenuPointerBridge {
             self.state.popup_scroll_offset = 0.0;
             return;
         };
-        let (viewport_extent, content_extent) = popup_scroll_metrics(&self.layout, menu_index);
+        let (viewport_extent, content_extent) =
+            popup_scroll_metrics(&self.layout, menu_index, self.popup_items.len());
         let max_offset = (content_extent - viewport_extent).max(0.0);
         self.state.popup_scroll_offset = self.state.popup_scroll_offset.clamp(0.0, max_offset);
     }

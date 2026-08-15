@@ -24,12 +24,29 @@ pub struct GpuTimerFrameResult {
     pub pass_timings: Vec<GpuPassTiming>,
 }
 
+/// One timestamp query frame can complete later than the frame that submitted it.
+/// Keep that lifecycle fact independent from framework-facing diagnostic DTOs.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GpuTimerFrameStatus {
+    Pending,
+    Deferred,
+    CapacityExhausted,
+    NoPasses,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct GpuTimerFrameObservation {
+    pub frame_generation: u64,
+    pub status: GpuTimerFrameStatus,
+}
+
 pub struct GpuPassTimer {
     query_set: wgpu::QuerySet,
     resolve_buffer: wgpu::Buffer,
     timestamp_period_ns: f32,
     max_timestamps: u32,
     active_frame: Option<ActiveTimerFrame>,
+    last_frame_observation: Option<GpuTimerFrameObservation>,
     completed_frames: Arc<Mutex<VecDeque<GpuTimerFrameResult>>>,
 }
 
@@ -57,6 +74,7 @@ impl GpuPassTimer {
             timestamp_period_ns: queue.get_timestamp_period(),
             max_timestamps,
             active_frame: None,
+            last_frame_observation: None,
             completed_frames: Arc::new(Mutex::new(VecDeque::new())),
         })
     }
@@ -65,8 +83,10 @@ impl GpuPassTimer {
         self.active_frame = Some(ActiveTimerFrame {
             frame_generation,
             query_count: 0,
+            capacity_exhausted: false,
             pass_names: Vec::with_capacity((self.max_timestamps / TIMESTAMPS_PER_PASS) as usize),
         });
+        self.last_frame_observation = None;
     }
 
     pub fn begin_pass(
@@ -83,6 +103,7 @@ impl GpuPassTimer {
         let active = self.active_frame.as_mut()?;
         let end_query_index = active.query_count.checked_add(1)?;
         if end_query_index >= self.max_timestamps {
+            active.capacity_exhausted = true;
             return None;
         }
         let begin_query_index = active.query_count;
@@ -103,12 +124,12 @@ impl GpuPassTimer {
         &mut self,
         encoder: &mut wgpu::CommandEncoder,
         readback_queue: &mut GpuReadbackQueue,
-    ) {
+    ) -> Option<GpuTimerFrameObservation> {
         let Some(mut active) = self.active_frame.take() else {
-            return;
+            return None;
         };
         let frame_generation = active.frame_generation;
-        if active.query_count > 0 {
+        let status = if active.query_count > 0 {
             let resolved_bytes = u64::from(active.query_count) * TIMESTAMP_SIZE_BYTES;
             encoder.resolve_query_set(
                 &self.query_set,
@@ -139,13 +160,43 @@ impl GpuPassTimer {
                     .unwrap_or_else(|poisoned| poisoned.into_inner());
                 insert_completed_frame_in_order(&mut completed, result);
             });
-            let _ = readback_queue.request_readback_external(
-                "zircon-gpu-pass-timestamps",
-                &self.resolve_buffer,
-                0..resolved_bytes,
-                callback,
-            );
-        }
+            let readback_admitted = readback_queue
+                .request_readback_external(
+                    "zircon-gpu-pass-timestamps",
+                    &self.resolve_buffer,
+                    0..resolved_bytes,
+                    callback,
+                )
+                .is_ok();
+            timer_frame_status(
+                active.query_count,
+                active.capacity_exhausted,
+                readback_admitted,
+            )
+        } else {
+            GpuTimerFrameStatus::NoPasses
+        };
+        let observation = GpuTimerFrameObservation {
+            frame_generation,
+            status,
+        };
+        self.last_frame_observation = Some(observation);
+        Some(observation)
+    }
+
+    /// Records a non-admitted frame without allocating another ring or retrying its readback.
+    pub fn defer_frame(&mut self, frame_generation: u64) -> GpuTimerFrameObservation {
+        self.active_frame = None;
+        let observation = GpuTimerFrameObservation {
+            frame_generation,
+            status: GpuTimerFrameStatus::Deferred,
+        };
+        self.last_frame_observation = Some(observation);
+        observation
+    }
+
+    pub fn last_frame_observation(&self) -> Option<GpuTimerFrameObservation> {
+        self.last_frame_observation
     }
 
     pub fn try_collect(
@@ -207,7 +258,24 @@ impl GpuPassTimestampScope {
 struct ActiveTimerFrame {
     frame_generation: u64,
     query_count: u32,
+    capacity_exhausted: bool,
     pass_names: Vec<String>,
+}
+
+fn timer_frame_status(
+    query_count: u32,
+    capacity_exhausted: bool,
+    readback_admitted: bool,
+) -> GpuTimerFrameStatus {
+    if query_count == 0 {
+        GpuTimerFrameStatus::NoPasses
+    } else if !readback_admitted {
+        GpuTimerFrameStatus::Deferred
+    } else if capacity_exhausted {
+        GpuTimerFrameStatus::CapacityExhausted
+    } else {
+        GpuTimerFrameStatus::Pending
+    }
 }
 
 fn gpu_timestamp_features_supported(features: wgpu::Features) -> bool {
@@ -268,8 +336,8 @@ fn timestamp_delta_us(start: u64, end: u64, timestamp_period_ns: f32) -> u64 {
 mod tests {
     use super::{
         decode_timestamp_pairs, gpu_timestamp_features_supported, insert_completed_frame_in_order,
-        take_oldest_completed_frame, timestamp_delta_us, GpuTimerFrameResult,
-        GPU_TIMESTAMP_REQUIRED_FEATURES,
+        take_oldest_completed_frame, timer_frame_status, timestamp_delta_us, GpuTimerFrameResult,
+        GpuTimerFrameStatus, GPU_TIMESTAMP_REQUIRED_FEATURES,
     };
     use std::collections::VecDeque;
 
@@ -326,5 +394,25 @@ mod tests {
 
         assert_eq!(drained_generations, vec![2, 3, 4]);
         assert!(take_oldest_completed_frame(&mut completed_frames).is_none());
+    }
+
+    #[test]
+    fn timer_observation_distinguishes_deferred_and_capacity_limited_frames() {
+        assert_eq!(
+            timer_frame_status(0, false, true),
+            GpuTimerFrameStatus::NoPasses
+        );
+        assert_eq!(
+            timer_frame_status(2, false, false),
+            GpuTimerFrameStatus::Deferred
+        );
+        assert_eq!(
+            timer_frame_status(2, true, true),
+            GpuTimerFrameStatus::CapacityExhausted
+        );
+        assert_eq!(
+            timer_frame_status(2, false, true),
+            GpuTimerFrameStatus::Pending
+        );
     }
 }

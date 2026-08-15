@@ -4,8 +4,8 @@ use std::sync::{Arc, OnceLock};
 use glyphon::fontdb;
 
 use super::{FontDatabase, FontDatabaseError, StoredFontSource};
-use crate::text::font::descriptors::{descriptor_from_fontdb_face, source_key_from_fontdb_source};
 use crate::text::FontFaceId;
+use crate::text::font::descriptors::{descriptor_from_fontdb_face, source_key_from_fontdb_source};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) enum SystemFontPolicy {

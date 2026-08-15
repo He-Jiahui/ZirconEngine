@@ -1,105 +1,16 @@
-use crate::core::resource::ResourceManager;
-
 use crate::asset::{AssetId, ImportedAsset};
+use crate::core::resource::{ResourceManager, ResourceMutationBatch, ResourceResult};
 
 pub(in crate::asset::pipeline::manager) fn store_runtime_payload(
     resource_manager: &ResourceManager,
     id: AssetId,
+    expected_revision: u64,
     imported: ImportedAsset,
-) {
-    match imported {
-        ImportedAsset::Data(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::Texture(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::Shader(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::Material(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::MaterialGraph(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::Sound(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::Font(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::Scene(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::Model(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::Mesh(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::UiLayout(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::UiWidget(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::UiStyle(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::UiTheme(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::UiIcon(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::UiV2View(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::UiV2Component(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::UiV2Style(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::PhysicsMaterial(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::NavMesh(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::NavigationSettings(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::Terrain(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::TerrainLayerStack(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::TileSet(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::TileMap(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::Prefab(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::AnimationSkeleton(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::AnimationClip(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::AnimationSequence(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::AnimationGraph(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-        ImportedAsset::AnimationStateMachine(asset) => {
-            resource_manager.store_payload(id, asset);
-        }
-    }
+) -> ResourceResult<()> {
+    resource_manager.commit(ResourceMutationBatch::new().store_payload_erased(
+        id,
+        expected_revision,
+        imported.into_resource_data(),
+    ))?;
+    Ok(())
 }

@@ -2,9 +2,9 @@ use thiserror::Error;
 
 use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    RGBA16F_TEXEL_SIZE_BYTES, RenderImageColorSpace, RenderImageDimension,
-    SOURCE_CUBEMAP_FACE_COUNT, SourceCubemapMipChain, decode_rgba16f_texels, encode_rgba16f_texels,
-    source_cubemap_mip_count,
+    decode_rgba16f_texels, encode_rgba16f_texels, source_cubemap_mip_count, RenderImageColorSpace,
+    RenderImageDimension, SourceCubemapMipChain, RGBA16F_TEXEL_SIZE_BYTES,
+    SOURCE_CUBEMAP_FACE_COUNT,
 };
 use crate::core::math::Real;
 
@@ -37,6 +37,12 @@ impl ZcubeSourceCubemap {
 
     pub fn texels(&self) -> &[[Real; 4]] {
         &self.texels
+    }
+
+    /// Transfers decoded source texels into the prepared environment without a
+    /// second full cubemap allocation on a staged-cache hit.
+    pub fn into_texels(self) -> Vec<[Real; 4]> {
+        self.texels
     }
 }
 
@@ -270,7 +276,9 @@ pub enum ZcubeSourceCubemapError {
     UnsupportedTexelFormat(u32),
     #[error("unsupported .zcube contents bitmask {0}")]
     UnsupportedContents(u32),
-    #[error(".zcube extent is too large to validate: face_size={face_size}, mip_count={mip_count}")]
+    #[error(
+        ".zcube extent is too large to validate: face_size={face_size}, mip_count={mip_count}"
+    )]
     ExtentTooLarge { face_size: u32, mip_count: u32 },
     #[error(".zcube payload length mismatch: expected {expected} bytes, found {actual}")]
     InvalidPayloadLength { expected: usize, actual: usize },

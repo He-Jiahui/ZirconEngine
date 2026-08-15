@@ -146,9 +146,10 @@ fn buffer_size_for_len(len: usize, stride: usize) -> u64 {
 mod tests {
     use std::sync::Arc;
 
+    use super::super::layout::GPU_VIRTUAL_GEOMETRY_CLUSTER_WORD_STRIDE;
     use crate::graphics::scene::gpu_scene::{
         GpuScene, GpuVirtualGeometryClusterWord, GpuVirtualGeometryPage,
-        GPU_VIRTUAL_GEOMETRY_CLUSTER_WORD_STRIDE, GPU_VIRTUAL_GEOMETRY_PAGE_FLAG_RESIDENT,
+        GPU_VIRTUAL_GEOMETRY_PAGE_FLAG_RESIDENT,
     };
 
     const TEST_SKINNED_JOINT_MATRIX_COUNT: u64 = 256;

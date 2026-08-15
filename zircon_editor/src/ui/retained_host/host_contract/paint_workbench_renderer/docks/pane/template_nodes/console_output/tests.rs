@@ -26,14 +26,12 @@ fn console_output_projector_visits_visible_rows_and_applies_scroll_with_fixed_cl
             .expect("visible row plan"),
         vec![0, 1, 3, 4, 7]
     );
-    assert!(
-        projector
-            .transform(
-                nodes.row_data(2).expect("first output line"),
-                pane_clip.clone()
-            )
-            .is_none()
-    );
+    assert!(projector
+        .transform(
+            nodes.row_data(2).expect("first output line"),
+            pane_clip.clone()
+        )
+        .is_none());
     let (line, line_clip) = projector
         .transform(
             nodes.row_data(3).expect("second output line"),
@@ -87,14 +85,12 @@ fn console_output_projector_scrolls_severity_and_message_as_one_logical_line() {
 
 #[test]
 fn console_output_projector_requires_projection_metadata() {
-    assert!(
-        ConsoleOutputProjector::new(
-            &ModelRc::with_metadata(Vec::<TemplatePaneNodeData>::new(), ()),
-            &frame(0.0, 0.0, 100.0, 60.0),
-            &HostPaneInteractionStateData::default(),
-        )
-        .is_none()
-    );
+    assert!(ConsoleOutputProjector::new(
+        &ModelRc::with_metadata(Vec::<TemplatePaneNodeData>::new(), ()),
+        &frame(0.0, 0.0, 100.0, 60.0),
+        &HostPaneInteractionStateData::default(),
+    )
+    .is_none());
 }
 
 #[test]

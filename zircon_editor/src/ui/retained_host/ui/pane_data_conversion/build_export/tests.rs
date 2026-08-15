@@ -1,11 +1,11 @@
 use super::super::build_export_wizard_panel::{
-    EXPORT_WIZARD_PANEL_DISPATCH_KIND, build_export_wizard_panel_nodes,
+    build_export_wizard_panel_nodes, EXPORT_WIZARD_PANEL_DISPATCH_KIND,
 };
 use super::*;
 use crate::ui::host::{
+    export_wizard_pipeline_plan, ExportWizardPanelViewModel, ExportWizardPipelineOptions,
     DESKTOP_EXPORT_CANCEL_BINDING_ID, DESKTOP_EXPORT_CANCEL_BUTTON, DESKTOP_EXPORT_STAGE_ROWS_SLOT,
-    DESKTOP_EXPORT_START_BINDING_ID, DESKTOP_EXPORT_START_BUTTON, ExportWizardPanelViewModel,
-    ExportWizardPipelineOptions, export_wizard_pipeline_plan,
+    DESKTOP_EXPORT_START_BINDING_ID, DESKTOP_EXPORT_START_BUTTON,
 };
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::blank_viewport_chrome;
@@ -241,16 +241,12 @@ fn build_export_wizard_panel_nodes_project_retained_export_wizard_panel() {
     )
     .expect("desktop export wizard panel should project");
 
-    assert!(
-        nodes
-            .iter()
-            .any(|node| node.control_id.as_str() == "DesktopExportRoot")
-    );
-    assert!(
-        !nodes
-            .iter()
-            .any(|node| node.control_id.as_str().starts_with("BuildExportRow."))
-    );
+    assert!(nodes
+        .iter()
+        .any(|node| node.control_id.as_str() == "DesktopExportRoot"));
+    assert!(!nodes
+        .iter()
+        .any(|node| node.control_id.as_str().starts_with("BuildExportRow.")));
 
     let start_button = nodes
         .iter()
@@ -294,11 +290,9 @@ fn build_export_wizard_panel_nodes_project_retained_export_wizard_panel() {
         })
         .collect::<Vec<_>>();
     assert!(!stage_rows.is_empty());
-    assert!(
-        stage_rows
-            .iter()
-            .any(|node| node.text.as_str().contains("Validate"))
-    );
+    assert!(stage_rows
+        .iter()
+        .any(|node| node.text.as_str().contains("Validate")));
 }
 
 #[test]
@@ -340,26 +334,18 @@ fn build_export_wizard_panel_uses_typed_plan_instead_of_target_summary_text() {
                 .starts_with(&format!("{DESKTOP_EXPORT_STAGE_ROWS_SLOT}.stage."))
         })
         .collect::<Vec<_>>();
-    assert!(
-        stage_rows
-            .iter()
-            .any(|node| node.text.as_str().contains("SourceTemplate"))
-    );
-    assert!(
-        stage_rows
-            .iter()
-            .any(|node| node.text.as_str().contains("Report"))
-    );
-    assert!(
-        !stage_rows
-            .iter()
-            .any(|node| node.text.as_str().contains("PlatformBundle"))
-    );
-    assert!(
-        !stage_rows
-            .iter()
-            .any(|node| node.text.as_str().contains("NativeDynamic"))
-    );
+    assert!(stage_rows
+        .iter()
+        .any(|node| node.text.as_str().contains("SourceTemplate")));
+    assert!(stage_rows
+        .iter()
+        .any(|node| node.text.as_str().contains("Report")));
+    assert!(!stage_rows
+        .iter()
+        .any(|node| node.text.as_str().contains("PlatformBundle")));
+    assert!(!stage_rows
+        .iter()
+        .any(|node| node.text.as_str().contains("NativeDynamic")));
 }
 
 #[test]

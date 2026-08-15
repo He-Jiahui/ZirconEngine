@@ -80,10 +80,17 @@ layer 3   zr_rhi / zr_rhi_wgpu / zr_render_graph
 layer 2   zr_asset / zr_scene（资产管线 / ECS 世界）
 layer 1   zr_diagnostics / zr_foundation / zr_platform / zr_input
 layer 0b  zr_kernel（生命周期/调度/描述符；只依赖 0a）
-layer 0a  zr_math / zr_resource / zr_contracts（纯契约，按域门控）
+layer 0a  zr_math（数学实现）/ zr_resource（资源基础实现）/
+          zr_contracts（纯 trait/DTO，按域 feature 门控）
 ```
 
-铁律：layer 0 禁止 wgpu/winit 等重依赖；wgpu 只允许出现在 `zr_rhi_wgpu`/`zr_graphics` 依赖树。`zr_operation` 不得并入 kernel，optional navigation 可向下依赖它；`zr_text` 不得直接依赖完整 wgpu/naga/glyphon，GPU text backend 只在 graphics/rhi_wgpu，且 `zr_text ↔ zr_graphics` 循环计数必须为 0。`zircon_app`/`zircon_editor`/插件永远只依赖门面，直连 `zr_*` 是架构违规（守卫 G1）。
+铁律：layer 0 禁止 wgpu/winit 等重依赖；`zr_math` 与 `zr_resource` 是零重依赖的 foundation
+implementation，只有 `zr_contracts` 是纯契约。`zr_resource` 依赖稳定 ABI
+`zircon_runtime_interface::resource` DTO，并由 `zr_resource::io` 唯一拥有共享 atomic persistence；
+wgpu 只允许出现在 `zr_rhi_wgpu`/`zr_graphics` 依赖树。`zr_operation` 不得并入 kernel，optional
+navigation 可向下依赖它；`zr_text` 不得直接依赖完整 wgpu/naga/glyphon，GPU text backend 只在
+graphics/rhi_wgpu，且 `zr_text ↔ zr_graphics` 循环计数必须为 0。`zircon_app`/`zircon_editor`/插件
+永远只依赖门面，直连 `zr_*` 是架构违规（守卫 G1）。
 
 当前物理硬切顺序固定为 `zr_math/zr_resource → zr_contracts → zr_kernel → zr_diagnostics`，再按
 `foundation → platform/input → asset/scene → zr_operation → rhi/rhi_wgpu/render_graph`，随后

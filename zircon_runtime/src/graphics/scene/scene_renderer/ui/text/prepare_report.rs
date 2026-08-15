@@ -1,17 +1,22 @@
-use super::ScreenSpaceUiNativePrepareReport;
 use super::font_id_report::ScreenSpaceUiTextFontIdReport;
 use super::resolved_batches::{AutoTextRasterRouteFrameReport, ResolvedScreenSpaceUiTextBatches};
 use super::sdf_fallback::ScreenSpaceUiTextSdfFallbackReport;
+use super::ScreenSpaceUiNativePrepareReport;
 use crate::graphics::scene::scene_renderer::ui::atlas_renderer::GlyphAtlasBitmapRendererPrepareReport;
 use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiTextBatch;
 use crate::graphics::scene::scene_renderer::ui::sdf_atlas::SdfAtlasCacheReport;
 use crate::graphics::scene::scene_renderer::ui::sdf_render::ScreenSpaceUiSdfPrepareReport;
-use crate::text::TextLayoutFallbackReport;
 use crate::text::font::MissingGlyphDiagnosticsReport;
 use crate::text::native_bitmap_atlas::{
-    NativeBitmapAtlasHandoff, NativeBitmapAtlasPrepareReport,
-    native_bitmap_atlas_handoff_for_report,
+    native_bitmap_atlas_handoff_for_report, NativeBitmapAtlasHandoff,
+    NativeBitmapAtlasPrepareReport,
 };
+use crate::text::TextLayoutFallbackReport;
+
+#[cfg(feature = "profiling")]
+mod profile;
+#[cfg(feature = "profiling")]
+pub(super) use profile::record_text_prepare_profile;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct ScreenSpaceUiTextPrepareReport {
@@ -29,7 +34,15 @@ pub(crate) struct ScreenSpaceUiTextPrepareReport {
     pub(super) native_bitmap_atlas: NativeBitmapAtlasPrepareReport,
     pub(super) bitmap_atlas_renderer: GlyphAtlasBitmapRendererPrepareReport,
     pub(super) sdf_atlas: SdfAtlasCacheReport,
+    pub(crate) sdf_generation: ScreenSpaceUiTextSdfGenerationReport,
     pub(super) sdf_renderer: ScreenSpaceUiSdfPrepareReport,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct ScreenSpaceUiTextSdfGenerationReport {
+    pub(crate) pending_batch_count: usize,
+    pub(crate) completion_backlog_count: usize,
+    pub(crate) failure_count: usize,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -50,13 +63,24 @@ pub(crate) struct ScreenSpaceUiTextRasterUploadReport {
     pub(super) approximate_raster_image_count: usize,
     pub(super) source_cache_hit_count: usize,
     pub(super) source_cache_approximate_hit_count: usize,
-    pub(super) source_cache_miss_count: usize,
+    /// Published to crate-level frame statistics for product diagnostics.
+    pub(crate) source_cache_miss_count: usize,
     pub(super) source_cache_insert_count: usize,
+    pub(super) source_cache_capacity: usize,
+    pub(super) source_cache_entry_count: usize,
+    /// Actual de-duplicated physical raster identities currently retained by the source cache.
+    pub(crate) source_cache_persistent_raster_key_count: usize,
     pub(super) source_cache_resident_byte_count: usize,
     pub(super) source_cache_max_byte_count: usize,
+    pub(super) source_cache_approximate_probe_count: usize,
+    pub(super) source_cache_lru_repair_count: usize,
     pub(super) source_cache_lru_touch_count: usize,
+    pub(super) source_cache_evicted_count: usize,
+    pub(super) source_cache_evicted_byte_count: usize,
     pub(super) source_cache_budget_linked_eviction_count: usize,
     pub(super) source_cache_linked_raster_invalidation_count: usize,
+    pub(super) source_cache_rejected_byte_budget_count: usize,
+    pub(super) source_cache_invalidated_count: usize,
     pub(super) atlas_slot_cache_hit_count: usize,
     pub(super) atlas_slot_cache_miss_count: usize,
     pub(super) atlas_slot_cache_insert_count: usize,
@@ -71,9 +95,30 @@ pub(crate) struct ScreenSpaceUiTextRasterUploadReport {
     pub(crate) worker_pending_count: usize,
     pub(crate) worker_request_deferred_count: usize,
     pub(crate) worker_request_unavailable_count: usize,
+    pub(crate) worker_request_backpressured_count: usize,
+    pub(crate) worker_request_font_copied_byte_count: usize,
+    pub(crate) worker_raster_font_resident_byte_count: usize,
+    pub(crate) worker_raster_font_entry_count: usize,
+    pub(crate) worker_request_cancelled_count: usize,
+    pub(crate) worker_completion_applied_byte_count: usize,
     pub(super) worker_completion_drained_byte_count: usize,
     pub(super) worker_completion_byte_budget_deferred_count: usize,
     pub(super) worker_completion_oversized_accepted_count: usize,
+    pub(crate) worker_pool_budgeted_thread_count: usize,
+    pub(crate) worker_pool_in_flight_count: usize,
+    pub(crate) worker_pool_queued_count: usize,
+    pub(crate) worker_pool_queued_input_byte_count: usize,
+    pub(crate) worker_pool_running_count: usize,
+    pub(crate) worker_pool_completed_total: u64,
+    pub(crate) worker_pool_failed_total: u64,
+    pub(crate) worker_pool_queue_peak_count: usize,
+    pub(crate) worker_pool_completion_backlog_count: usize,
+    pub(crate) worker_pool_completion_backlog_byte_count: usize,
+    pub(crate) worker_pool_completion_backpressured_total: u64,
+    pub(crate) worker_pool_completion_budget_rejected_total: u64,
+    pub(crate) worker_pool_completion_rejected_byte_total: u64,
+    pub(crate) worker_pool_request_backpressured_total: u64,
+    pub(crate) worker_pool_cancelled_total: u64,
     /// Native raster failures or rejected completion images.
     pub(crate) worker_failed_count: usize,
     pub(super) upload_command_count: usize,
@@ -101,6 +146,14 @@ pub(super) fn text_prepare_report(
 ) -> ScreenSpaceUiTextPrepareReport {
     let raster_upload =
         text_raster_upload_report(&native_prepare.bitmap_atlas, &bitmap_atlas_renderer);
+    let sdf_generation = ScreenSpaceUiTextSdfGenerationReport {
+        pending_batch_count: sdf_renderer.bake.generation_scheduler.in_flight_batch_count,
+        completion_backlog_count: sdf_renderer
+            .bake
+            .generation_scheduler
+            .completion_backlog_count,
+        failure_count: sdf_renderer.bake.generation_failure_count,
+    };
     ScreenSpaceUiTextPrepareReport {
         input_auto_text_batch_count: auto_texts.len(),
         input_native_text_batch_count: native_texts.len(),
@@ -116,6 +169,7 @@ pub(super) fn text_prepare_report(
         native_bitmap_atlas: native_prepare.bitmap_atlas,
         bitmap_atlas_renderer,
         sdf_atlas,
+        sdf_generation,
         sdf_renderer,
     }
 }
@@ -142,15 +196,30 @@ pub(super) fn text_raster_upload_report(
         source_cache_approximate_hit_count: native_bitmap_atlas.source_cache.approximate_hit_count,
         source_cache_miss_count: native_bitmap_atlas.source_cache.miss_count,
         source_cache_insert_count: native_bitmap_atlas.source_cache.insert_count,
+        source_cache_capacity: native_bitmap_atlas.source_cache.capacity,
+        source_cache_entry_count: native_bitmap_atlas.source_cache.entry_count,
+        source_cache_persistent_raster_key_count: native_bitmap_atlas
+            .source_cache
+            .persistent_raster_key_count,
         source_cache_resident_byte_count: native_bitmap_atlas.source_cache.resident_byte_count,
         source_cache_max_byte_count: native_bitmap_atlas.source_cache.max_byte_count,
+        source_cache_approximate_probe_count: native_bitmap_atlas
+            .source_cache
+            .approximate_probe_count,
+        source_cache_lru_repair_count: native_bitmap_atlas.source_cache.lru_repair_count,
         source_cache_lru_touch_count: native_bitmap_atlas.source_cache.lru_touch_count,
+        source_cache_evicted_count: native_bitmap_atlas.source_cache.evicted_count,
+        source_cache_evicted_byte_count: native_bitmap_atlas.source_cache.evicted_byte_count,
         source_cache_budget_linked_eviction_count: native_bitmap_atlas
             .source_cache
             .budget_linked_eviction_count,
         source_cache_linked_raster_invalidation_count: native_bitmap_atlas
             .source_cache
             .linked_raster_invalidation_count,
+        source_cache_rejected_byte_budget_count: native_bitmap_atlas
+            .source_cache
+            .rejected_byte_budget_count,
+        source_cache_invalidated_count: native_bitmap_atlas.source_cache.invalidated_count,
         atlas_slot_cache_hit_count: native_bitmap_atlas.submission.slot_cache_hit_count,
         atlas_slot_cache_miss_count: native_bitmap_atlas.submission.slot_cache_miss_count,
         atlas_slot_cache_insert_count: native_bitmap_atlas.submission.slot_cache_insert_count,
@@ -165,6 +234,24 @@ pub(super) fn text_raster_upload_report(
         worker_request_unavailable_count: native_bitmap_atlas
             .source_cache
             .worker_request_unavailable_count,
+        worker_request_backpressured_count: native_bitmap_atlas
+            .source_cache
+            .worker_request_backpressured_count,
+        worker_request_font_copied_byte_count: native_bitmap_atlas
+            .source_cache
+            .worker_request_font_copied_byte_count,
+        worker_raster_font_resident_byte_count: native_bitmap_atlas
+            .source_cache
+            .worker_raster_font_resident_byte_count,
+        worker_raster_font_entry_count: native_bitmap_atlas
+            .source_cache
+            .worker_raster_font_entry_count,
+        worker_request_cancelled_count: native_bitmap_atlas
+            .source_cache
+            .worker_request_cancelled_count,
+        worker_completion_applied_byte_count: native_bitmap_atlas
+            .source_cache
+            .worker_completion_applied_byte_count,
         worker_completion_drained_byte_count: native_bitmap_atlas
             .source_cache
             .worker_completion_drained_byte_count,
@@ -174,6 +261,39 @@ pub(super) fn text_raster_upload_report(
         worker_completion_oversized_accepted_count: native_bitmap_atlas
             .source_cache
             .worker_completion_oversized_accepted_count,
+        worker_pool_budgeted_thread_count: native_bitmap_atlas
+            .source_cache
+            .worker_pool_budgeted_thread_count,
+        worker_pool_in_flight_count: native_bitmap_atlas.source_cache.worker_pool_in_flight_count,
+        worker_pool_queued_count: native_bitmap_atlas.source_cache.worker_pool_queued_count,
+        worker_pool_queued_input_byte_count: native_bitmap_atlas
+            .source_cache
+            .worker_pool_queued_input_byte_count,
+        worker_pool_running_count: native_bitmap_atlas.source_cache.worker_pool_running_count,
+        worker_pool_completed_total: native_bitmap_atlas.source_cache.worker_pool_completed_total,
+        worker_pool_failed_total: native_bitmap_atlas.source_cache.worker_pool_failed_total,
+        worker_pool_queue_peak_count: native_bitmap_atlas
+            .source_cache
+            .worker_pool_queue_peak_count,
+        worker_pool_completion_backlog_count: native_bitmap_atlas
+            .source_cache
+            .worker_pool_completion_backlog_count,
+        worker_pool_completion_backlog_byte_count: native_bitmap_atlas
+            .source_cache
+            .worker_pool_completion_backlog_byte_count,
+        worker_pool_completion_backpressured_total: native_bitmap_atlas
+            .source_cache
+            .worker_pool_completion_backpressured_total,
+        worker_pool_completion_budget_rejected_total: native_bitmap_atlas
+            .source_cache
+            .worker_pool_completion_budget_rejected_total,
+        worker_pool_completion_rejected_byte_total: native_bitmap_atlas
+            .source_cache
+            .worker_pool_completion_rejected_byte_total,
+        worker_pool_request_backpressured_total: native_bitmap_atlas
+            .source_cache
+            .worker_pool_request_backpressured_total,
+        worker_pool_cancelled_total: native_bitmap_atlas.source_cache.worker_pool_cancelled_total,
         worker_failed_count: native_bitmap_atlas
             .source_cache
             .worker_request_failed_count

@@ -1,18 +1,20 @@
-use std::collections::BTreeMap;
+use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::Duration;
 
 use thiserror::Error;
 
 use crate::core::jobs::{
-    EditorJob, EditorJobSpec, EditorJobSystem, JobContext, JobError, JobId, JobSubmitError,
-    JobTicket,
+    EditorJob, EditorJobAdmissionRequest, EditorJobSpec, EditorJobSystem, JobCategory, JobContext,
+    JobError, JobId, JobPriority, JobSubmitError, JobTicket,
 };
 
 use super::{
     AutosaveDocumentId, AutosaveDocumentState, AutosaveExtension, AutosaveJobPolicy, AutosavePlan,
-    AutosaveScheduler, AutosaveStore,
+    AutosaveScheduler, AutosaveSourcePath, AutosaveStore,
 };
+
+pub const DEFAULT_AUTOSAVE_COMPLETION_BUDGET: usize = 64;
 
 /// The immutable bytes produced by the document authority after a queued
 /// autosave ticket has started. They are intentionally absent from admission.
@@ -20,14 +22,21 @@ use super::{
 pub struct AutosaveSnapshot {
     sequence: u64,
     extension: AutosaveExtension,
+    source_path: AutosaveSourcePath,
     bytes: Vec<u8>,
 }
 
 impl AutosaveSnapshot {
-    pub fn new(sequence: u64, extension: AutosaveExtension, bytes: Vec<u8>) -> Self {
+    pub fn new(
+        sequence: u64,
+        extension: AutosaveExtension,
+        source_path: AutosaveSourcePath,
+        bytes: Vec<u8>,
+    ) -> Self {
         Self {
             sequence,
             extension,
+            source_path,
             bytes,
         }
     }
@@ -60,11 +69,6 @@ impl AutosaveDocumentRequest {
             source,
             estimated_pending_bytes: 1,
         }
-    }
-
-    pub fn with_estimated_pending_bytes(mut self, estimated_pending_bytes: usize) -> Self {
-        self.estimated_pending_bytes = estimated_pending_bytes.max(1);
-        self
     }
 
     fn into_job(self, store: AutosaveStore) -> (EditorJobSpec, AutosaveWriteJob) {
@@ -102,6 +106,7 @@ pub struct AutosaveCompletion {
     succeeded: usize,
     failed: usize,
     pending: usize,
+    inspected_tickets: usize,
 }
 
 impl AutosaveCompletion {
@@ -116,18 +121,20 @@ impl AutosaveCompletion {
     pub const fn pending(self) -> usize {
         self.pending
     }
+
+    pub const fn inspected_tickets(self) -> usize {
+        self.inspected_tickets
+    }
 }
 
 #[derive(Debug, Error)]
 pub enum AutosaveAdmissionError {
     #[error("autosave adapter is shutting down and no longer accepts admissions")]
     ShuttingDown,
-    #[error("autosave plan references `{document}` more than once")]
-    DuplicateRequest { document: String },
     #[error("autosave plan requires `{document}`, but no request was supplied")]
     MissingRequest { document: String },
-    #[error("autosave request `{document}` was not present in the due plan")]
-    UnexpectedRequest { document: String },
+    #[error("autosave plan requires `{expected}`, but the request source returned `{actual}`")]
+    MismatchedRequest { expected: String, actual: String },
     #[error(transparent)]
     JobSubmit(#[from] JobSubmitError),
 }
@@ -138,7 +145,10 @@ pub struct AutosaveJobAdapter {
     jobs: EditorJobSystem,
     store: AutosaveStore,
     scheduler: AutosaveScheduler,
-    tickets: Vec<JobTicket<AutosaveWriteResult>>,
+    tickets: VecDeque<JobTicket<AutosaveWriteResult>>,
+    completed_succeeded: usize,
+    completed_failed: usize,
+    next_document_after: Option<AutosaveDocumentId>,
     accepting: bool,
 }
 
@@ -148,7 +158,10 @@ impl AutosaveJobAdapter {
             jobs,
             store,
             scheduler,
-            tickets: Vec::new(),
+            tickets: VecDeque::new(),
+            completed_succeeded: 0,
+            completed_failed: 0,
+            next_document_after: None,
             accepting: true,
         }
     }
@@ -161,38 +174,101 @@ impl AutosaveJobAdapter {
         self.scheduler.is_in_flight()
     }
 
-    /// Plans and admits every due document as one atomic admission group.
+    pub(crate) const fn is_due(&self, now: Duration) -> bool {
+        self.scheduler.is_due(now)
+    }
+
+    pub(crate) fn preflight_schedule(&self, now: Duration) -> Result<bool, AutosaveAdmissionError> {
+        if !self.accepting {
+            return Err(AutosaveAdmissionError::ShuttingDown);
+        }
+        if !self.scheduler.is_due(now) {
+            return Ok(false);
+        }
+        let admission_window = self.jobs.pending_admission_window()?;
+        Ok(admission_window.remaining_entries() != 0
+            && admission_window.remaining_estimated_bytes() != 0)
+    }
+
+    /// Plans and admits one bounded due-document window as an atomic group.
     ///
-    /// A rejected group releases the scheduler immediately, so a later tick can
-    /// retry. Once admitted, all ticket terminal states advance the next normal
-    /// interval; individual write failures never pin scheduler single-flight.
+    /// It reserves the selected entry and byte set before resolving request
+    /// sources or constructing job payloads. A rejected group releases the
+    /// scheduler immediately, so a later tick can retry. Once admitted, all
+    /// ticket terminal states advance the next normal interval; individual
+    /// write failures never pin scheduler single-flight.
     pub fn schedule(
         &mut self,
         now: Duration,
         documents: &[AutosaveDocumentState],
-        requests: impl IntoIterator<Item = AutosaveDocumentRequest>,
+        mut estimated_bytes_for: impl FnMut(&AutosaveDocumentId) -> usize,
+        mut request_for: impl FnMut(&AutosaveDocumentId) -> Option<AutosaveDocumentRequest>,
     ) -> Result<bool, AutosaveAdmissionError> {
         if !self.accepting {
             return Err(AutosaveAdmissionError::ShuttingDown);
         }
-        let Some(plan) = self.scheduler.plan(now, documents) else {
+        if !self.scheduler.is_due(now) || !documents.iter().any(AutosaveDocumentState::is_dirty) {
+            return Ok(false);
+        }
+        let admission_window = self.jobs.pending_admission_window()?;
+        let Some(plan) = self.scheduler.plan_window(
+            now,
+            documents,
+            admission_window.remaining_entries(),
+            self.next_document_after.as_ref(),
+        ) else {
             return Ok(false);
         };
 
-        let requests = match requests_for_plan(&plan, requests) {
+        let selection = select_documents_for_window(
+            &plan,
+            &mut estimated_bytes_for,
+            admission_window.remaining_estimated_bytes(),
+            admission_window.pending_estimated_bytes(),
+            admission_window.max_pending_estimated_bytes(),
+        );
+        if selection.documents.is_empty() {
+            self.scheduler.mark_submission_failed();
+            self.next_document_after = selection.last_examined;
+            return Err(selection
+                .first_rejection
+                .expect("a non-empty autosave plan without selections has a byte rejection")
+                .into());
+        }
+        let selected_documents = selection.documents;
+        let reservation = match self.jobs.reserve_batch_admission(
+            selected_documents
+                .iter()
+                .map(|(_, estimated_pending_bytes)| {
+                    EditorJobAdmissionRequest::new(JobCategory::Misc, *estimated_pending_bytes)
+                        .with_priority(JobPriority::Background)
+                })
+                .collect(),
+        ) {
+            Ok(reservation) => reservation,
+            Err(error) => {
+                self.scheduler.mark_submission_failed();
+                return Err(error.into());
+            }
+        };
+        let requests = match requests_for_documents(&selected_documents, &mut request_for) {
             Ok(requests) => requests,
             Err(error) => {
                 self.scheduler.mark_submission_failed();
                 return Err(error);
             }
         };
+        let next_document_after = selection.resume_after_skipped.or(selection.last_examined);
         let jobs = requests
             .into_iter()
             .map(|request| request.into_job(self.store.clone()))
             .collect::<Vec<_>>();
-        match self.jobs.submit_batch(jobs) {
+        match reservation.commit(jobs) {
             Ok(tickets) => {
-                self.tickets = tickets;
+                self.tickets = tickets.into();
+                self.completed_succeeded = 0;
+                self.completed_failed = 0;
+                self.next_document_after = next_document_after;
                 Ok(true)
             }
             Err(error) => {
@@ -206,19 +282,39 @@ impl AutosaveJobAdapter {
     /// last admitted ticket reaches any terminal state, the scheduler advances
     /// exactly once from this supplied editor-clock instant.
     pub fn pump_completed(&mut self, now: Duration) -> AutosaveCompletion {
-        let mut completion = AutosaveCompletion::default();
-        let mut pending = Vec::with_capacity(self.tickets.len());
-        for ticket in std::mem::take(&mut self.tickets) {
+        self.pump_completed_with_budget(now, DEFAULT_AUTOSAVE_COMPLETION_BUDGET)
+    }
+
+    pub fn pump_completed_with_budget(
+        &mut self,
+        now: Duration,
+        max_tickets: usize,
+    ) -> AutosaveCompletion {
+        let inspected_tickets = max_tickets.min(self.tickets.len());
+        for _ in 0..inspected_tickets {
+            let Some(ticket) = self.tickets.pop_front() else {
+                break;
+            };
             match ticket.try_take() {
-                Some(Ok(_)) => completion.succeeded += 1,
-                Some(Err(_)) => completion.failed += 1,
-                None => pending.push(ticket),
+                Some(Ok(_)) => self.completed_succeeded += 1,
+                Some(Err(_)) => self.completed_failed += 1,
+                None => self.tickets.push_back(ticket),
             }
         }
-        completion.pending = pending.len();
-        self.tickets = pending;
-        if completion.pending == 0 && (completion.succeeded != 0 || completion.failed != 0) {
+
+        let pending = self.tickets.len();
+        let terminal =
+            pending == 0 && (self.completed_succeeded != 0 || self.completed_failed != 0);
+        let completion = AutosaveCompletion {
+            succeeded: self.completed_succeeded,
+            failed: self.completed_failed,
+            pending,
+            inspected_tickets,
+        };
+        if terminal {
             self.scheduler.mark_finished(now);
+            self.completed_succeeded = 0;
+            self.completed_failed = 0;
         }
         completion
     }
@@ -235,34 +331,74 @@ impl AutosaveJobAdapter {
     }
 }
 
-fn requests_for_plan(
+fn select_documents_for_window(
     plan: &AutosavePlan,
-    requests: impl IntoIterator<Item = AutosaveDocumentRequest>,
+    estimated_bytes_for: &mut impl FnMut(&AutosaveDocumentId) -> usize,
+    remaining_estimated_bytes: usize,
+    pending_estimated_bytes: usize,
+    max_pending_estimated_bytes: usize,
+) -> AutosaveDocumentWindowSelection {
+    let mut selected = Vec::with_capacity(plan.documents().len());
+    let mut estimated_bytes = 0_usize;
+    let mut last_examined = None;
+    let mut previous_document = plan.documents().last().cloned();
+    let mut resume_after_skipped = None;
+    let mut first_rejection = None;
+    for document in plan.documents() {
+        last_examined = Some(document.clone());
+        let document_estimated_bytes = estimated_bytes_for(document).max(1);
+        let projected_bytes = estimated_bytes.saturating_add(document_estimated_bytes);
+        if projected_bytes > remaining_estimated_bytes {
+            let temporarily_blocked = document_estimated_bytes <= remaining_estimated_bytes;
+            if temporarily_blocked && resume_after_skipped.is_none() {
+                resume_after_skipped = previous_document.clone();
+            }
+            if first_rejection.is_none() {
+                first_rejection = Some(JobSubmitError::AdmissionByteLimitExceeded {
+                    limit: max_pending_estimated_bytes,
+                    current: pending_estimated_bytes,
+                    requested: document_estimated_bytes,
+                });
+            }
+            continue;
+        }
+        estimated_bytes = projected_bytes;
+        selected.push((document.clone(), document_estimated_bytes));
+        previous_document = Some(document.clone());
+    }
+    AutosaveDocumentWindowSelection {
+        documents: selected,
+        last_examined,
+        resume_after_skipped,
+        first_rejection,
+    }
+}
+
+struct AutosaveDocumentWindowSelection {
+    documents: Vec<(AutosaveDocumentId, usize)>,
+    last_examined: Option<AutosaveDocumentId>,
+    resume_after_skipped: Option<AutosaveDocumentId>,
+    first_rejection: Option<JobSubmitError>,
+}
+
+fn requests_for_documents(
+    documents: &[(AutosaveDocumentId, usize)],
+    request_for: &mut impl FnMut(&AutosaveDocumentId) -> Option<AutosaveDocumentRequest>,
 ) -> Result<Vec<AutosaveDocumentRequest>, AutosaveAdmissionError> {
-    let mut by_document = BTreeMap::new();
-    for request in requests {
-        let document = request.document.clone();
-        if by_document.insert(document.clone(), request).is_some() {
-            return Err(AutosaveAdmissionError::DuplicateRequest {
+    let mut ordered = Vec::with_capacity(documents.len());
+    for (document, estimated_pending_bytes) in documents {
+        let mut request =
+            request_for(document).ok_or_else(|| AutosaveAdmissionError::MissingRequest {
                 document: document.as_str().to_string(),
+            })?;
+        if request.document != *document {
+            return Err(AutosaveAdmissionError::MismatchedRequest {
+                expected: document.as_str().to_string(),
+                actual: request.document.as_str().to_string(),
             });
         }
-    }
-
-    let mut ordered = Vec::with_capacity(plan.documents().len());
-    for document in plan.documents() {
-        let request =
-            by_document
-                .remove(document)
-                .ok_or_else(|| AutosaveAdmissionError::MissingRequest {
-                    document: document.as_str().to_string(),
-                })?;
+        request.estimated_pending_bytes = *estimated_pending_bytes;
         ordered.push(request);
-    }
-    if let Some((document, _)) = by_document.into_iter().next() {
-        return Err(AutosaveAdmissionError::UnexpectedRequest {
-            document: document.as_str().to_string(),
-        });
     }
     Ok(ordered)
 }
@@ -280,11 +416,16 @@ impl EditorJob for AutosaveWriteJob {
         context.check_cancelled()?;
         let snapshot = self.source.capture(&self.document)?;
         context.check_cancelled()?;
+        let sequence = self
+            .store
+            .next_sequence(&self.document, snapshot.sequence)
+            .map_err(JobError::failed)?;
         let snapshot_path = self
             .store
             .write_snapshot(
                 &self.document,
-                snapshot.sequence,
+                &snapshot.source_path,
+                sequence,
                 &snapshot.extension,
                 &snapshot.bytes,
             )

@@ -6,7 +6,7 @@ use crate::ui::workbench::asset_content_layout::{
     BrowserAssetReferenceListKind,
 };
 
-use super::super::super::super::{PanePointerRoute, PanePointerTarget, geometry::contains};
+use super::super::super::super::{geometry::contains, PanePointerRoute, PanePointerTarget};
 
 pub(super) fn route_asset_reference_hit(
     pane: &PaneData,
@@ -128,7 +128,7 @@ mod tests {
     use crate::ui::retained_host::host_contract::native_pointer::routing::PanePointerTarget;
     use crate::ui::retained_host::primitives::ModelRc;
     use crate::ui::workbench::asset_content_layout::{
-        AssetContentPaintNodeInput, AssetContentSurface, asset_content_paint_metadata,
+        asset_content_paint_metadata, AssetContentPaintNodeInput, AssetContentSurface,
     };
 
     #[test]

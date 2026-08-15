@@ -1,7 +1,7 @@
 use zircon_editor::core::commands::{CommandEvalCtx, EditorCommandRegistry};
 use zircon_editor::ui::workbench::autolayout::{
-    AxisConstraint, ShellFrame, ShellRegionId, ShellSizePx, StretchMode, WorkbenchChromeMetrics,
-    compute_workbench_shell_geometry, solve_axis_constraints,
+    compute_workbench_shell_geometry, solve_axis_constraints, AxisConstraint, ShellFrame,
+    ShellRegionId, ShellSizePx, StretchMode, WorkbenchChromeMetrics,
 };
 use zircon_editor::ui::workbench::fixture::default_preview_fixture;
 use zircon_editor::ui::workbench::layout::{

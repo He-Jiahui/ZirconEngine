@@ -15,7 +15,8 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         startup_managers,
         #[cfg(feature = "profiling")]
         runtime_gateway,
-        native_plugin_live_host,
+        runtime_lease,
+        native_plugin_host,
         viewport,
         startup_session,
         viewport_size,
@@ -24,10 +25,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         template_bridges,
     } = input;
     let StartupManagers {
-        asset_manager,
-        editor_asset_manager,
-        resource_manager_resolver,
-        resource_manager,
+        asset_runtime_access,
         editor_manager,
         asset_change_events,
         editor_asset_change_events,
@@ -40,15 +38,14 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
     let mut host = RetainedEditorHost {
         ui,
         self_handle: None,
+        runtime_lease,
         runtime,
         editor_manager,
         module_plugin_projection_cache: Default::default(),
         #[cfg(feature = "profiling")]
         runtime_gateway,
         module_plugin_live_host_backend: Box::new(
-            module_plugin_actions::NativePluginDevelopmentLiveHostBackend::new(
-                native_plugin_live_host,
-            ),
+            module_plugin_actions::NativePluginDevelopmentLiveHostBackend::new(native_plugin_host),
         ),
         desktop_export_reports: BTreeMap::new(),
         desktop_export_jobs: build_export_actions::DesktopExportJobQueue::new(editor_jobs.clone()),
@@ -56,14 +53,12 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         desktop_export_wizard_sessions:
             build_export_wizard_session::DesktopExportWizardSessions::new(editor_jobs),
         viewport,
-        asset_manager,
-        editor_asset_manager,
-        resource_manager_resolver,
-        resource_manager,
+        asset_runtime_access,
         asset_change_events,
         editor_asset_change_events,
         resource_change_events,
         asset_refresh_queue_age: Default::default(),
+        asset_refresh_accumulator: Default::default(),
         startup_session,
         welcome_project_probe: welcome_session::WelcomeProjectProbeState::default(),
         viewport_size,
@@ -73,6 +68,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         plugin_template_capabilities: Vec::new(),
         template_bridge: template_bridges.template_bridge,
         workbench_window_bridge: template_bridges.workbench_window_bridge,
+        host_chrome_projection_cache: Default::default(),
         floating_window_source_bridge: template_bridges.floating_window_source_bridge,
         viewport_toolbar_bridge: template_bridges.viewport_toolbar_bridge,
         viewport_toolbar_pointer_bridge: interaction.viewport_toolbar_pointer_bridge,
@@ -97,6 +93,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         hierarchy_pointer_state: interaction.hierarchy_pointer_state,
         hierarchy_pointer_size: interaction.hierarchy_pointer_size,
         hierarchy_scene_entries: interaction.hierarchy_scene_entries,
+        hierarchy_world_watch: None,
         hierarchy_filter_query: String::new(),
         console_scroll_surface: interaction.console_scroll_surface,
         inspector_scroll_surface: interaction.inspector_scroll_surface,
@@ -118,6 +115,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         shell_scale_mode: ResolutionScaleMode::ConstantPhysical,
         chrome_metrics: WorkbenchChromeMetrics::default(),
         shell_geometry: None,
+        committed_shell_state: None,
         shell_token_region_defaults: None,
         transient_region_preferred: BTreeMap::new(),
         active_drawer_resize: None,
@@ -125,6 +123,8 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         scene_picker_session: None,
         invalidation: HostInvalidationRoot::with_initial_full_rebuild(),
         pending_ui_perf_scenario: None,
+        pending_activity_projection_refresh: false,
+        runtime_diagnostics_visible: false,
         presentation_dirty: true,
         layout_dirty: true,
         window_metrics_dirty: true,
@@ -132,6 +132,9 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
     };
     if host.startup_session.mode == EditorSessionMode::Welcome {
         host.schedule_welcome_project_probe();
+    }
+    if let Err(error) = host.ensure_hierarchy_world_watch() {
+        host.set_status_line(error);
     }
     host
 }

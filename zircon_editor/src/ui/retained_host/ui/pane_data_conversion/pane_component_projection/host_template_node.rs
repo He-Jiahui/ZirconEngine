@@ -8,7 +8,7 @@ use super::drag_overlay::projected_drag_overlay_data;
 use super::popup_actions::projected_popup_actions;
 use super::sample_grid::projected_sample_grid;
 use super::selection_options::projected_selection_options;
-use super::template_node_data::{ProjectedTemplateNodeParts, template_pane_node_data};
+use super::template_node_data::{template_pane_node_data, ProjectedTemplateNodeParts};
 use super::text_layout::projected_text_layout;
 use super::timeline_strip::projected_timeline_strip;
 use super::validation_state::projected_validation_state;

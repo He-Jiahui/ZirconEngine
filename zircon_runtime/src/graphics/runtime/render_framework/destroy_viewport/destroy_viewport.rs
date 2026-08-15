@@ -19,6 +19,7 @@ pub(in crate::graphics::runtime::render_framework) fn destroy_viewport(
             state.renderer.release_history(history.handle());
         }
     }
+    state.viewport_products.remove(viewport);
     state.graphics_debugger.forget_viewport(viewport);
     state.stats.active_viewports = state.viewports.len();
     Ok(())

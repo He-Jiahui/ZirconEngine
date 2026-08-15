@@ -13,7 +13,7 @@ use zircon_runtime_interface::ui::{
     tree::{UiTemplateNodeMetadata, UiTree, UiTreeError},
 };
 
-use super::slot::{slot_for_container_child, slot_padding};
+use super::slot::{slot_for_container_child, slot_padding, UiLayoutSlotIndex};
 use super::{axis::desired_axis, material::measure_material_content};
 
 const UNBOUNDED_WRAP_MEASURE_WIDTH: f32 = f32::INFINITY;
@@ -25,15 +25,23 @@ pub(crate) fn measure_node(
     tree: &mut UiTree,
     node_id: UiNodeId,
     text_measure_cache: Option<&mut UiTextMeasureCache>,
+    slot_index: &UiLayoutSlotIndex,
 ) -> Result<DesiredSize, UiTreeError> {
     let profile_layout = std::env::var_os("ZR_UI_LAYOUT_PROFILE").is_some();
-    measure_node_with_profile(tree, node_id, text_measure_cache, profile_layout)
+    measure_node_with_profile(
+        tree,
+        node_id,
+        text_measure_cache,
+        slot_index,
+        profile_layout,
+    )
 }
 
 fn measure_node_with_profile(
     tree: &mut UiTree,
     node_id: UiNodeId,
     mut text_measure_cache: Option<&mut UiTextMeasureCache>,
+    slot_index: &UiLayoutSlotIndex,
     profile_layout: bool,
 ) -> Result<DesiredSize, UiTreeError> {
     let profile_started = profile_layout.then(Instant::now);
@@ -58,6 +66,7 @@ fn measure_node_with_profile(
             tree,
             *child_id,
             text_measure_cache.as_deref_mut(),
+            slot_index,
             profile_layout,
         )?;
         if tree
@@ -73,6 +82,7 @@ fn measure_node_with_profile(
         node_id,
         container,
         &child_desired,
+        slot_index,
         tree.node(node_id)
             .and_then(|node| node.template_metadata.as_ref()),
         text_measure_cache.as_deref_mut(),
@@ -148,6 +158,7 @@ fn measure_content_size(
     node_id: UiNodeId,
     container: UiContainerKind,
     child_desired: &[(UiNodeId, DesiredSize)],
+    slot_index: &UiLayoutSlotIndex,
     metadata: Option<&UiTemplateNodeMetadata>,
     text_measure_cache: Option<&mut UiTextMeasureCache>,
 ) -> UiSize {
@@ -161,7 +172,7 @@ fn measure_content_size(
         | UiContainerKind::Canvas
         | UiContainerKind::Container
         | UiContainerKind::Overlay => {
-            measure_stacked_content_size(tree, node_id, container, child_desired)
+            measure_stacked_content_size(tree, node_id, container, child_desired, slot_index)
         }
         UiContainerKind::BlockBox => measure_linear_content_size(
             tree,
@@ -170,10 +181,11 @@ fn measure_content_size(
             UiAxis::Vertical,
             0.0,
             child_desired,
+            slot_index,
         ),
         UiContainerKind::Space => UiSize::default(),
         UiContainerKind::SizeBox(config) => measure_size_box_content_size(
-            measure_stacked_content_size(tree, node_id, container, child_desired),
+            measure_stacked_content_size(tree, node_id, container, child_desired, slot_index),
             config.aspect_ratio,
         ),
         UiContainerKind::HorizontalBox(config) => measure_linear_content_size(
@@ -183,6 +195,7 @@ fn measure_content_size(
             UiAxis::Horizontal,
             config.gap,
             child_desired,
+            slot_index,
         ),
         UiContainerKind::VerticalBox(config) => measure_linear_content_size(
             tree,
@@ -191,18 +204,19 @@ fn measure_content_size(
             UiAxis::Vertical,
             config.gap,
             child_desired,
+            slot_index,
         ),
         UiContainerKind::ScrollableBox(config) => {
             measure_plain_linear_content_size(config.axis, config.gap, child_desired)
         }
         UiContainerKind::WrapBox(config) => {
-            measure_wrap_content_size(tree, node_id, container, config, child_desired)
+            measure_wrap_content_size(tree, node_id, container, config, child_desired, slot_index)
         }
         UiContainerKind::GridBox(config) => {
-            measure_grid_content_size(tree, node_id, config, child_desired)
+            measure_grid_content_size(tree, node_id, config, child_desired, slot_index)
         }
         UiContainerKind::MasonryBox(config) => {
-            measure_masonry_content_size(tree, node_id, config, child_desired)
+            measure_masonry_content_size(tree, node_id, config, child_desired, slot_index)
         }
     };
 
@@ -280,18 +294,22 @@ fn measure_stacked_content_size(
     parent_id: UiNodeId,
     container: UiContainerKind,
     child_desired: &[(UiNodeId, DesiredSize)],
+    slot_index: &UiLayoutSlotIndex,
 ) -> UiSize {
     UiSize::new(
         child_desired
             .iter()
             .map(|(child_id, size)| {
-                size.width + slot_padding_for(tree, parent_id, *child_id, container).horizontal()
+                size.width
+                    + slot_padding_for(tree, slot_index, parent_id, *child_id, container)
+                        .horizontal()
             })
             .fold(0.0_f32, f32::max),
         child_desired
             .iter()
             .map(|(child_id, size)| {
-                size.height + slot_padding_for(tree, parent_id, *child_id, container).vertical()
+                size.height
+                    + slot_padding_for(tree, slot_index, parent_id, *child_id, container).vertical()
             })
             .fold(0.0_f32, f32::max),
     )
@@ -304,9 +322,10 @@ fn measure_linear_content_size(
     axis: UiAxis,
     gap: f32,
     child_desired: &[(UiNodeId, DesiredSize)],
+    slot_index: &UiLayoutSlotIndex,
 ) -> UiSize {
     let ordered_desired =
-        ordered_child_desired_for_container(tree, parent_id, container, child_desired);
+        ordered_child_desired_for_container(tree, slot_index, parent_id, container, child_desired);
     measure_linear_content_size_with_padding(
         tree,
         parent_id,
@@ -314,6 +333,7 @@ fn measure_linear_content_size(
         axis,
         gap,
         &ordered_desired,
+        slot_index,
     )
 }
 
@@ -324,6 +344,7 @@ fn measure_linear_content_size_with_padding(
     axis: UiAxis,
     gap: f32,
     child_desired: &[(UiNodeId, DesiredSize)],
+    slot_index: &UiLayoutSlotIndex,
 ) -> UiSize {
     let gap = gap.max(0.0);
     let count = child_desired.len() as f32;
@@ -333,13 +354,16 @@ fn measure_linear_content_size_with_padding(
                 .iter()
                 .map(|(child_id, size)| {
                     size.width
-                        + slot_padding_for(tree, parent_id, *child_id, container).horizontal()
+                        + slot_padding_for(tree, slot_index, parent_id, *child_id, container)
+                            .horizontal()
                 })
                 .fold(0.0_f32, f32::max),
             child_desired
                 .iter()
                 .map(|(child_id, size)| {
-                    size.height + slot_padding_for(tree, parent_id, *child_id, container).vertical()
+                    size.height
+                        + slot_padding_for(tree, slot_index, parent_id, *child_id, container)
+                            .vertical()
                 })
                 .sum::<f32>()
                 + gap * (count - 1.0).max(0.0),
@@ -349,14 +373,17 @@ fn measure_linear_content_size_with_padding(
                 .iter()
                 .map(|(child_id, size)| {
                     size.width
-                        + slot_padding_for(tree, parent_id, *child_id, container).horizontal()
+                        + slot_padding_for(tree, slot_index, parent_id, *child_id, container)
+                            .horizontal()
                 })
                 .sum::<f32>()
                 + gap * (count - 1.0).max(0.0),
             child_desired
                 .iter()
                 .map(|(child_id, size)| {
-                    size.height + slot_padding_for(tree, parent_id, *child_id, container).vertical()
+                    size.height
+                        + slot_padding_for(tree, slot_index, parent_id, *child_id, container)
+                            .vertical()
                 })
                 .fold(0.0_f32, f32::max),
         ),
@@ -402,9 +429,10 @@ fn measure_wrap_content_size(
     container: UiContainerKind,
     config: zircon_runtime_interface::ui::layout::UiWrapBoxConfig,
     child_desired: &[(UiNodeId, DesiredSize)],
+    slot_index: &UiLayoutSlotIndex,
 ) -> UiSize {
     let ordered_desired =
-        ordered_child_desired_for_container(tree, parent_id, container, child_desired);
+        ordered_child_desired_for_container(tree, slot_index, parent_id, container, child_desired);
     measure_wrap_content_size_for_width(
         tree,
         parent_id,
@@ -412,6 +440,7 @@ fn measure_wrap_content_size(
         config,
         &ordered_desired,
         wrap_measure_width(tree, parent_id),
+        slot_index,
     )
 }
 
@@ -420,16 +449,18 @@ fn measure_grid_content_size(
     parent_id: UiNodeId,
     config: UiGridBoxConfig,
     child_desired: &[(UiNodeId, DesiredSize)],
+    slot_index: &UiLayoutSlotIndex,
 ) -> UiSize {
     let container = UiContainerKind::GridBox(config);
     let ordered_desired =
-        ordered_child_desired_for_container(tree, parent_id, container, child_desired);
-    let (columns, rows) = grid_dimensions_for_desired(tree, parent_id, config, &ordered_desired);
+        ordered_child_desired_for_container(tree, slot_index, parent_id, container, child_desired);
+    let (columns, rows) =
+        grid_dimensions_for_desired(tree, slot_index, parent_id, config, &ordered_desired);
     let mut column_widths = vec![0.0_f32; columns];
     let mut row_heights = vec![0.0_f32; rows];
 
     for (index, (child_id, desired)) in ordered_desired.iter().copied().enumerate() {
-        let slot = slot_for_container_child(tree, parent_id, child_id, container);
+        let slot = slot_for_container_child(tree, slot_index, parent_id, child_id, container);
         let placement = grid_placement_for_child(slot, index, columns);
         let column = placement.column.min(columns - 1);
         let row = placement.row.min(rows - 1);
@@ -459,10 +490,11 @@ fn measure_masonry_content_size(
     parent_id: UiNodeId,
     config: UiMasonryBoxConfig,
     child_desired: &[(UiNodeId, DesiredSize)],
+    slot_index: &UiLayoutSlotIndex,
 ) -> UiSize {
     let container = UiContainerKind::MasonryBox(config);
     let ordered_desired =
-        ordered_child_desired_for_container(tree, parent_id, container, child_desired);
+        ordered_child_desired_for_container(tree, slot_index, parent_id, container, child_desired);
     let columns = config.columns.max(1);
     let gap = config.gap.max(0.0);
     let mut column_widths = vec![0.0_f32; columns];
@@ -470,7 +502,7 @@ fn measure_masonry_content_size(
     let mut column_counts = vec![0usize; columns];
 
     for (index, (child_id, desired)) in ordered_desired.iter().copied().enumerate() {
-        let padding = slot_padding_for(tree, parent_id, child_id, container);
+        let padding = slot_padding_for(tree, slot_index, parent_id, child_id, container);
         let column = masonry_target_column(index, config.sequential, &column_heights);
         if column_counts[column] > 0 {
             column_heights[column] += gap;
@@ -514,6 +546,7 @@ pub(super) fn measure_wrap_content_size_for_width(
     config: zircon_runtime_interface::ui::layout::UiWrapBoxConfig,
     child_desired: &[(UiNodeId, DesiredSize)],
     available_width: f32,
+    slot_index: &UiLayoutSlotIndex,
 ) -> UiSize {
     let horizontal_gap = config.horizontal_gap.max(0.0);
     let vertical_gap = config.vertical_gap.max(0.0);
@@ -531,7 +564,7 @@ pub(super) fn measure_wrap_content_size_for_width(
     let mut row_item_count = 0usize;
 
     for (child_id, desired) in child_desired {
-        let padding = slot_padding_for(tree, parent_id, *child_id, container);
+        let padding = slot_padding_for(tree, slot_index, parent_id, *child_id, container);
         let item_width = desired.width.max(config.item_min_width) + padding.horizontal();
         let item_height = desired.height + padding.vertical();
         let next_width = if row_item_count == 0 {
@@ -571,6 +604,7 @@ pub(super) fn measure_wrap_content_size_for_width(
 
 fn ordered_child_desired_for_container(
     tree: &UiTree,
+    slot_index: &UiLayoutSlotIndex,
     parent_id: UiNodeId,
     container: UiContainerKind,
     child_desired: &[(UiNodeId, DesiredSize)],
@@ -580,7 +614,7 @@ fn ordered_child_desired_for_container(
         .copied()
         .enumerate()
         .map(|(index, (child_id, desired))| {
-            let order = slot_for_container_child(tree, parent_id, child_id, container)
+            let order = slot_for_container_child(tree, slot_index, parent_id, child_id, container)
                 .map(|slot| slot.order)
                 .unwrap_or_default();
             (order, index, child_id, desired)
@@ -595,6 +629,7 @@ fn ordered_child_desired_for_container(
 
 fn grid_dimensions_for_desired(
     tree: &UiTree,
+    slot_index: &UiLayoutSlotIndex,
     parent_id: UiNodeId,
     config: UiGridBoxConfig,
     child_desired: &[(UiNodeId, DesiredSize)],
@@ -603,7 +638,7 @@ fn grid_dimensions_for_desired(
     let mut rows = config.rows.max(1);
     let container = UiContainerKind::GridBox(config);
     for (index, (child_id, _)) in child_desired.iter().copied().enumerate() {
-        let slot = slot_for_container_child(tree, parent_id, child_id, container);
+        let slot = slot_for_container_child(tree, slot_index, parent_id, child_id, container);
         let placement = grid_placement_for_child(slot, index, columns);
         columns = columns.max(placement.column + placement.column_span.max(1));
         rows = rows.max(placement.row + placement.row_span.max(1));
@@ -640,12 +675,13 @@ fn masonry_target_column(index: usize, sequential: bool, column_heights: &[f32])
 
 fn slot_padding_for(
     tree: &UiTree,
+    slot_index: &UiLayoutSlotIndex,
     parent_id: UiNodeId,
     child_id: UiNodeId,
     container: UiContainerKind,
 ) -> UiMargin {
     slot_padding(slot_for_container_child(
-        tree, parent_id, child_id, container,
+        tree, slot_index, parent_id, child_id, container,
     ))
 }
 

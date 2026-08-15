@@ -34,11 +34,21 @@ fn runtime13_bridge_host_module_borrows_vm_call_arguments_through_resolved_slots
             9,
             ScriptHostValueKind::Int,
             move |call| {
+                let (first_byte, argument_count) =
+                    call.arguments.with_argument(0, |value| match value {
+                        ScriptHostValueRef::String(value) => {
+                            Ok((usize::from(value.as_bytes()[0]), call.arguments.len()))
+                        }
+                        value => Err(ScriptHostError::new(format!(
+                            "expected string, received {:?}",
+                            value.kind()
+                        ))),
+                    })?;
                 calls_for_method.lock().unwrap().push((
                     call.interface_slot.raw(),
                     call.method_slot,
-                    call.arguments.as_ptr() as usize,
-                    call.arguments.len(),
+                    first_byte,
+                    argument_count,
                 ));
                 Ok(ScriptHostValue::Int(32))
             },
@@ -62,7 +72,6 @@ fn runtime13_bridge_host_module_borrows_vm_call_arguments_through_resolved_slots
         .any(|function| function.name == "sample_temperature"));
 
     let arguments = vec![ScriptHostValue::String("outside".to_string())];
-    let argument_pointer = arguments.as_ptr() as usize;
     let value = exports
         .call_with_capabilities(
             BRIDGE_HOST_MODULE,
@@ -75,7 +84,7 @@ fn runtime13_bridge_host_module_borrows_vm_call_arguments_through_resolved_slots
     assert_eq!(value, ScriptHostValue::Int(32));
     assert_eq!(
         calls.lock().unwrap().as_slice(),
-        &[(slot.raw(), 9, argument_pointer, 1)]
+        &[(slot.raw(), 9, usize::from(b'o'), 1)]
     );
 }
 

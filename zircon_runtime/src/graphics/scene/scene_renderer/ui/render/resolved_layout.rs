@@ -2,14 +2,19 @@ use std::sync::Arc;
 
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
-    UiResolvedTextLayout, UiResolvedTextLine, UiTextDirection, UiTextRange,
+    UiRenderCommand, UiResolvedTextLayout, UiResolvedTextLine, UiTextAlign, UiTextDirection,
+    UiTextRange, UiTextRunPaintStyle, UiTextWrap,
 };
 
 use crate::text::{
     resolve_resolved_text_glyph_artifact, resolved_text_line_requires_visual_fallback,
 };
 
-use super::ScreenSpaceUiGlyphArtifactLine;
+use super::text_provenance::has_source_isomorphic_plain_text_provenance;
+use super::{
+    push_text_batch, PlannedScreenSpaceUi, ScreenSpaceUiBackgroundTracker,
+    ScreenSpaceUiGlyphArtifactLine, ScreenSpaceUiTextRouteContext,
+};
 
 pub(super) struct ResolvedLayoutTextBatch {
     pub(super) text: String,
@@ -18,6 +23,7 @@ pub(super) struct ResolvedLayoutTextBatch {
     pub(super) glyph_advances: Vec<f32>,
     pub(super) direction: UiTextDirection,
     pub(super) glyph_artifact_line: Option<ScreenSpaceUiGlyphArtifactLine>,
+    pub(super) is_source_isomorphic: bool,
 }
 
 pub(super) fn logical_text_batches(
@@ -44,6 +50,7 @@ pub(super) fn logical_text_batches(
                         refreshed_line: None,
                         font_generation: artifact.font_generation,
                     }),
+                    is_source_isomorphic: false,
                 });
             } else if resolved_text_line_requires_visual_fallback(line) {
                 append_visual_line_batch(&mut batches, line);
@@ -66,6 +73,74 @@ pub(super) fn logical_text_batches(
     Some(batches)
 }
 
+pub(super) fn push_resolved_text_layout_line_batches(
+    command: &UiRenderCommand,
+    route_context: &ScreenSpaceUiTextRouteContext,
+    layout: &UiResolvedTextLayout,
+    color: [f32; 4],
+    viewport: UiFrame,
+    raster_scale: f32,
+    backgrounds: &ScreenSpaceUiBackgroundTracker,
+    plan: &mut PlannedScreenSpaceUi,
+) {
+    let Some(batches) = logical_text_batches(layout)
+        .or_else(|| source_isomorphic_plain_text_batches(command, layout))
+    else {
+        return;
+    };
+    for batch in batches {
+        push_text_batch(
+            command,
+            route_context,
+            batch.text,
+            batch.frame,
+            Some(batch.source_range),
+            batch.is_source_isomorphic,
+            batch.glyph_advances,
+            batch.glyph_artifact_line,
+            command.style.font.clone(),
+            command.style.font_family.clone(),
+            command.style.font_weight,
+            layout.font_size,
+            layout.line_height,
+            color,
+            UiTextAlign::Left,
+            batch.direction,
+            layout.writing_mode,
+            UiTextWrap::None,
+            UiTextRunPaintStyle::default(),
+            command.style.text_decorations.clone(),
+            viewport,
+            raster_scale,
+            backgrounds,
+            plan,
+        );
+    }
+}
+
+fn source_isomorphic_plain_text_batches(
+    command: &UiRenderCommand,
+    layout: &UiResolvedTextLayout,
+) -> Option<Vec<ResolvedLayoutTextBatch>> {
+    layout
+        .lines
+        .iter()
+        .map(|line| {
+            has_source_isomorphic_plain_text_provenance(command, line).then(|| {
+                ResolvedLayoutTextBatch {
+                    text: line.text.clone(),
+                    frame: line.frame,
+                    source_range: line.source_range,
+                    glyph_advances: line.glyph_advances.clone(),
+                    direction: line.direction,
+                    glyph_artifact_line: None,
+                    is_source_isomorphic: true,
+                }
+            })
+        })
+        .collect()
+}
+
 fn append_visual_line_batch(batches: &mut Vec<ResolvedLayoutTextBatch>, line: &UiResolvedTextLine) {
     batches.push(ResolvedLayoutTextBatch {
         text: line.text.clone(),
@@ -74,6 +149,7 @@ fn append_visual_line_batch(batches: &mut Vec<ResolvedLayoutTextBatch>, line: &U
         glyph_advances: line.glyph_advances.clone(),
         direction: line.direction,
         glyph_artifact_line: None,
+        is_source_isomorphic: false,
     });
 }
 
@@ -84,12 +160,12 @@ mod tests {
     use super::*;
     use crate::core::framework::text::{TextGlyph, TextGlyphFlags, TextGlyphRotation};
     use crate::text::{
-        ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine,
-        register_resolved_text_glyph_artifact,
+        register_resolved_text_glyph_artifact, ResolvedTextGlyphArtifact,
+        ResolvedTextGlyphArtifactLine,
     };
     use zircon_runtime_interface::ui::surface::{
         UiResolvedStyle, UiResolvedTextLine, UiResolvedTextRun, UiTextAlign, UiTextOverflow,
-        UiTextRunKind, UiTextWrap,
+        UiTextRunKind, UiTextWrap, UiTextWritingMode,
     };
 
     #[test]
@@ -278,13 +354,11 @@ mod tests {
             measured_width: 10.0,
             measured_height: 14.0,
             source_range: UiTextRange { start: 4, end: 6 },
-            lines: vec![
-                artifact.lines[0]
-                    .as_ref()
-                    .expect("artifact line")
-                    .layout_line
-                    .clone(),
-            ],
+            lines: vec![artifact.lines[0]
+                .as_ref()
+                .expect("artifact line")
+                .layout_line
+                .clone()],
             boxes: Vec::new(),
             overflow_clipped: false,
             editable: None,

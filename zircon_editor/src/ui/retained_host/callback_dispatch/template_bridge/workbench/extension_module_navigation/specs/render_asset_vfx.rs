@@ -1,4 +1,4 @@
-use super::types::{ActionControl, ExtensionNavigationSpec, action, spec};
+use super::types::{action, spec, ActionControl, ExtensionNavigationSpec};
 
 const SHADER_EDITOR_TAB_CONTROLS: &[&str] = &[
     "WorkbenchExtensionShaderSourceTab",

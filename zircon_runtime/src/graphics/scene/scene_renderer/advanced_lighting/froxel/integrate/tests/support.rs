@@ -1,4 +1,8 @@
-use super::*;
+use std::path::PathBuf;
+
+use image::{ImageBuffer, ImageFormat, Rgba};
+
+use super::fixture::TEST_OUTPUT;
 
 pub(super) fn write_output_png(path: PathBuf, texels: &[[f32; 4]]) {
     const SCALE: u32 = 16;

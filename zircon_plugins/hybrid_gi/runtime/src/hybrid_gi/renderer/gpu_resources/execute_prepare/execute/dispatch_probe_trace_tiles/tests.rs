@@ -4,11 +4,14 @@ use wgpu::util::DeviceExt;
 
 use super::super::super::super::{
     gpu_pending_probe_input::GpuPendingProbeInput, gpu_resident_probe_input::GpuResidentProbeInput,
+    seed_quantization::quantized_signed,
 };
 use super::*;
 
+mod global_sdf;
 mod multi_ray_quality;
 mod surface_cache_hzb;
+mod voxel_lookup;
 
 #[test]
 fn trace_probe_tiles_shader_writes_trace_lighting_buffer_from_tile_schedule() {
@@ -392,202 +395,13 @@ fn trace_probe_tiles_shader_distributes_surface_cache_ray_steps_by_sample_id() {
     );
 }
 
-#[test]
-fn trace_probe_tiles_shader_uses_voxel_cell_descriptor_when_surface_cache_sample_is_invalid() {
-    let Some((device, queue)) = test_device() else {
-        eprintln!(
-            "skipping trace_probe_tiles voxel fallback Wgpu test because no adapter is available"
-        );
-        return;
-    };
-    let params_buffer = create_probe_trace_tile_dispatch_params_buffer(
-        &device,
-        1,
-        0,
-        1,
-        ProbeTraceTileSurfaceCacheParams {
-            texture_available: 1,
-            atlas_width: 1,
-            atlas_height: 1,
-            atlas_columns: 1,
-            tile_extent: 1,
-        },
-        1,
-    );
-    let resident_probe_buffer = create_storage_buffer(
-        &device,
-        "zircon-hybrid-gi-trace-probe-tiles-voxel-fallback-test-resident-probe",
-        &[resident_probe_input(7)],
-    );
-    let pending_probe_buffer = create_storage_buffer(
-        &device,
-        "zircon-hybrid-gi-trace-probe-tiles-voxel-fallback-test-pending-probe",
-        &[GpuPendingProbeInput::zeroed()],
-    );
-    let probe_trace_tile_buffer = create_storage_buffer(
-        &device,
-        "zircon-hybrid-gi-trace-probe-tiles-voxel-fallback-test-tile-schedule",
-        &[0_u32, 5, 42, 12],
-    );
-    let trace_lighting_buffer = create_trace_lighting_buffer(&device, 3);
-    let readback_buffer = create_readback_buffer(&device, 3);
-    let (_atlas_texture, atlas_view) = create_test_surface_cache_texture(
-        &device,
-        &queue,
-        "zircon-hybrid-gi-trace-probe-tiles-voxel-fallback-test-atlas",
-        [0, 0, 0, 255],
-    );
-    let (_depth_texture, depth_view) = create_test_surface_cache_texture(
-        &device,
-        &queue,
-        "zircon-hybrid-gi-trace-probe-tiles-voxel-fallback-test-depth",
-        [255, 255, 255, 0],
-    );
-    let scene_prepare_descriptor_buffer = create_storage_buffer(
-        &device,
-        "zircon-hybrid-gi-trace-probe-tiles-voxel-fallback-test-descriptor",
-        &[voxel_cell_descriptor_words(5, 42, 4, [32, 64, 96])],
-    );
-    let bind_group_layout = create_probe_trace_tile_dispatch_bind_group_layout(&device);
-    let pipeline = create_probe_trace_tile_dispatch_pipeline(&device, &bind_group_layout);
-    let bind_group = create_probe_trace_tile_dispatch_bind_group(
-        &device,
-        &bind_group_layout,
-        &params_buffer,
-        &resident_probe_buffer,
-        &pending_probe_buffer,
-        &probe_trace_tile_buffer,
-        &trace_lighting_buffer,
-        &atlas_view,
-        &depth_view,
-        &scene_prepare_descriptor_buffer,
-    );
-
-    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-        label: Some("zircon-hybrid-gi-trace-probe-tiles-voxel-fallback-test-encoder"),
-    });
-    encode_probe_trace_tile_dispatch(&mut encoder, &pipeline, &bind_group, 1);
-    encoder.copy_buffer_to_buffer(
-        &trace_lighting_buffer,
-        0,
-        &readback_buffer,
-        0,
-        (3 * std::mem::size_of::<u32>()) as u64,
-    );
-    queue.submit(std::iter::once(encoder.finish()));
-
-    let words = readback_u32s(&device, &readback_buffer, 3);
-    assert_eq!(words[0], 1);
-    assert_eq!(words[1], 7);
-    assert_eq!(
-        words[2],
-        pack_rgb8([32, 64, 96]),
-        "expected invalid surface-cache samples to fall back to voxel cell descriptor radiance"
-    );
-}
-
-#[test]
-fn trace_probe_tiles_shader_cone_traces_multiple_voxel_cells_when_surface_cache_misses() {
-    let Some((device, queue)) = test_device() else {
-        eprintln!(
-            "skipping trace_probe_tiles voxel cone-trace Wgpu test because no adapter is available"
-        );
-        return;
-    };
-    let params_buffer = create_probe_trace_tile_dispatch_params_buffer(
-        &device,
-        1,
-        0,
-        1,
-        ProbeTraceTileSurfaceCacheParams {
-            texture_available: 1,
-            atlas_width: 1,
-            atlas_height: 1,
-            atlas_columns: 1,
-            tile_extent: 1,
-        },
-        4,
-    );
-    let resident_probe_buffer = create_storage_buffer(
-        &device,
-        "zircon-hybrid-gi-trace-probe-tiles-voxel-cone-test-resident-probe",
-        &[resident_probe_input(7)],
-    );
-    let pending_probe_buffer = create_storage_buffer(
-        &device,
-        "zircon-hybrid-gi-trace-probe-tiles-voxel-cone-test-pending-probe",
-        &[GpuPendingProbeInput::zeroed()],
-    );
-    let probe_trace_tile_buffer = create_storage_buffer(
-        &device,
-        "zircon-hybrid-gi-trace-probe-tiles-voxel-cone-test-tile-schedule",
-        &[0_u32, 5, 42, 12],
-    );
-    let trace_lighting_buffer = create_trace_lighting_buffer(&device, 3);
-    let readback_buffer = create_readback_buffer(&device, 3);
-    let (_atlas_texture, atlas_view) = create_test_surface_cache_texture(
-        &device,
-        &queue,
-        "zircon-hybrid-gi-trace-probe-tiles-voxel-cone-test-atlas",
-        [0, 0, 0, 255],
-    );
-    let (_depth_texture, depth_view) = create_test_surface_cache_texture(
-        &device,
-        &queue,
-        "zircon-hybrid-gi-trace-probe-tiles-voxel-cone-test-depth",
-        [255, 255, 255, 0],
-    );
-    let scene_prepare_descriptor_buffer = create_storage_buffer(
-        &device,
-        "zircon-hybrid-gi-trace-probe-tiles-voxel-cone-test-descriptors",
-        &[
-            voxel_cell_descriptor_words_with_half_extent(5, 42, 4, [32, 64, 96], 96),
-            voxel_cell_descriptor_words_with_half_extent(5, 43, 2, [96, 64, 32], 96),
-            voxel_cell_descriptor_words_with_half_extent(5, 48, 8, [240, 0, 0], 96),
-            voxel_cell_descriptor_words_with_half_extent(6, 42, 8, [0, 240, 0], 96),
-        ],
-    );
-    let bind_group_layout = create_probe_trace_tile_dispatch_bind_group_layout(&device);
-    let pipeline = create_probe_trace_tile_dispatch_pipeline(&device, &bind_group_layout);
-    let bind_group = create_probe_trace_tile_dispatch_bind_group(
-        &device,
-        &bind_group_layout,
-        &params_buffer,
-        &resident_probe_buffer,
-        &pending_probe_buffer,
-        &probe_trace_tile_buffer,
-        &trace_lighting_buffer,
-        &atlas_view,
-        &depth_view,
-        &scene_prepare_descriptor_buffer,
-    );
-
-    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-        label: Some("zircon-hybrid-gi-trace-probe-tiles-voxel-cone-test-encoder"),
-    });
-    encode_probe_trace_tile_dispatch(&mut encoder, &pipeline, &bind_group, 1);
-    encoder.copy_buffer_to_buffer(
-        &trace_lighting_buffer,
-        0,
-        &readback_buffer,
-        0,
-        (3 * std::mem::size_of::<u32>()) as u64,
-    );
-    queue.submit(std::iter::once(encoder.finish()));
-
-    let words = readback_u32s(&device, &readback_buffer, 3);
-    assert_eq!(words[0], 1);
-    assert_eq!(words[1], 7);
-    assert_eq!(
-        words[2],
-        pack_rgb8([39, 64, 89]),
-        "expected invalid surface-cache samples to aggregate in-range voxel cell radiance while excluding far cells and other clipmaps"
-    );
-}
-
 fn test_device() -> Option<(wgpu::Device, wgpu::Queue)> {
+    test_device_with_backends(wgpu::Backends::PRIMARY)
+}
+
+fn test_device_with_backends(backends: wgpu::Backends) -> Option<(wgpu::Device, wgpu::Queue)> {
     let mut descriptor = wgpu::InstanceDescriptor::new_without_display_handle();
-    descriptor.backends = wgpu::Backends::PRIMARY;
+    descriptor.backends = backends;
     let instance = wgpu::Instance::new(descriptor);
     let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
         power_preference: wgpu::PowerPreference::LowPower,
@@ -669,15 +483,16 @@ fn voxel_cell_descriptor_words(
     occupancy_count: u32,
     rgb: [u32; 3],
 ) -> [u32; 12] {
+    let zero_position_q = quantized_signed(0.0);
     [
         3,
         clipmap_id,
         cell_index,
         occupancy_count,
         pack_rgb8(rgb),
-        0,
-        0,
-        0,
+        zero_position_q,
+        zero_position_q,
+        zero_position_q,
         0,
         0,
         1,
@@ -695,6 +510,92 @@ fn voxel_cell_descriptor_words_with_half_extent(
     let mut words = voxel_cell_descriptor_words(clipmap_id, cell_index, occupancy_count, rgb);
     words[8] = cell_half_extent_q;
     words
+}
+
+fn voxel_cell_lookup_words(clipmap_id: u32, descriptor_cells: &[(u32, u32)]) -> Vec<u32> {
+    const VOXEL_CELL_COUNT: usize = 64;
+    const LOOKUP_WORDS_PER_CLIPMAP: usize = 1 + VOXEL_CELL_COUNT;
+    const LOOKUP_CLIPMAP_CAPACITY: usize = 8;
+
+    let mut words = vec![u32::MAX; LOOKUP_WORDS_PER_CLIPMAP * LOOKUP_CLIPMAP_CAPACITY];
+    words[0] = clipmap_id;
+    for &(cell_index, descriptor_index) in descriptor_cells {
+        words[1 + cell_index as usize] = descriptor_index;
+    }
+    words
+}
+
+fn voxel_cell_lookup_words_for_descriptors(
+    scene_prepare_descriptors: &[[u32; 12]],
+) -> (u32, Vec<u32>) {
+    const VOXEL_CELL_COUNT: usize = 64;
+    const LOOKUP_WORDS_PER_CLIPMAP: usize = 1 + VOXEL_CELL_COUNT;
+    const LOOKUP_CLIPMAP_CAPACITY: usize = 8;
+    const INVALID_DESCRIPTOR_INDEX: u32 = u32::MAX;
+
+    let mut words =
+        vec![INVALID_DESCRIPTOR_INDEX; LOOKUP_WORDS_PER_CLIPMAP * LOOKUP_CLIPMAP_CAPACITY];
+    let mut clipmap_ids = Vec::new();
+    for (descriptor_index, descriptor) in scene_prepare_descriptors.iter().enumerate() {
+        if descriptor[0] != 3 {
+            continue;
+        }
+        let cell_index = descriptor[2] as usize;
+        if cell_index >= VOXEL_CELL_COUNT {
+            return (0, vec![INVALID_DESCRIPTOR_INDEX; words.len()]);
+        }
+        let clipmap_id = descriptor[1];
+        let lookup_index = match clipmap_ids.iter().position(|id| *id == clipmap_id) {
+            Some(index) => index,
+            None if clipmap_id != INVALID_DESCRIPTOR_INDEX
+                && clipmap_ids.len() < LOOKUP_CLIPMAP_CAPACITY =>
+            {
+                words[clipmap_ids.len() * LOOKUP_WORDS_PER_CLIPMAP] = clipmap_id;
+                clipmap_ids.push(clipmap_id);
+                clipmap_ids.len() - 1
+            }
+            None => return (0, vec![INVALID_DESCRIPTOR_INDEX; words.len()]),
+        };
+        let word_index = lookup_index * LOOKUP_WORDS_PER_CLIPMAP + 1 + cell_index;
+        if words[word_index] != INVALID_DESCRIPTOR_INDEX {
+            return (0, vec![INVALID_DESCRIPTOR_INDEX; words.len()]);
+        }
+        let Ok(descriptor_index) = u32::try_from(descriptor_index) else {
+            return (0, vec![INVALID_DESCRIPTOR_INDEX; words.len()]);
+        };
+        words[word_index] = descriptor_index;
+    }
+
+    (clipmap_ids.len() as u32, words)
+}
+
+#[test]
+fn voxel_lookup_fixture_maps_voxel_descriptors_and_rejects_duplicate_cells() {
+    let (clipmap_count, words) = voxel_cell_lookup_words_for_descriptors(&[
+        [0_u32; 12],
+        voxel_cell_descriptor_words(5, 42, 4, [32, 64, 96]),
+        voxel_cell_descriptor_words(5, 58, 2, [96, 64, 32]),
+    ]);
+
+    assert_eq!(clipmap_count, 1);
+    assert_eq!(words[0], 5);
+    assert_eq!(words[1 + 42], 1);
+    assert_eq!(words[1 + 58], 2);
+
+    let (clipmap_count, words) = voxel_cell_lookup_words_for_descriptors(&[
+        voxel_cell_descriptor_words(5, 42, 4, [32, 64, 96]),
+        voxel_cell_descriptor_words(5, 42, 2, [96, 64, 32]),
+    ]);
+    assert_eq!(clipmap_count, 0);
+    assert!(words.iter().all(|word| *word == u32::MAX));
+}
+
+#[test]
+fn voxel_descriptor_fixture_uses_runtime_signed_position_encoding() {
+    let words = voxel_cell_descriptor_words(7, 2, 4, [24, 96, 160]);
+    let zero_position_q = quantized_signed(0.0);
+
+    assert_eq!(&words[5..8], &[zero_position_q; 3]);
 }
 
 fn create_readback_buffer(device: &wgpu::Device, word_count: usize) -> wgpu::Buffer {

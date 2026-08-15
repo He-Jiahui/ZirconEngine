@@ -79,6 +79,9 @@ pub struct RenderPassGpuExecutionContext<'a> {
     compute_dispatches: Vec<RenderGraphComputeDispatchRecord>,
     hzb_occlusion_cull_report: Option<HzbOcclusionCullReport>,
     light_grid_report: Option<RenderGraphLightGridReport>,
+    taa_reactive_mask_encoded_pass_count: usize,
+    taa_reactive_mask_encoded_write_bytes: u64,
+    taa_resolve_bind_group_create_count: usize,
     motion_vector_camera_status: MotionVectorCameraStatus,
     half_resolution_transparency_depth_sigma: u16,
 }
@@ -151,6 +154,9 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             compute_dispatches: Vec::new(),
             hzb_occlusion_cull_report: None,
             light_grid_report: None,
+            taa_reactive_mask_encoded_pass_count: 0,
+            taa_reactive_mask_encoded_write_bytes: 0,
+            taa_resolve_bind_group_create_count: 0,
             motion_vector_camera_status: MotionVectorCameraStatus::NotRequested,
             half_resolution_transparency_depth_sigma: DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
         }

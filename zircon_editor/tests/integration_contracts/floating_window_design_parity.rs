@@ -3,8 +3,8 @@ use std::path::Path;
 
 use toml::{Table, Value};
 use zircon_editor::ui::workbench::{
-    FLOATING_WINDOW_DESIGN_CONTRACTS, FloatingLayer, FloatingWindow, FloatingWindowContentLayout,
-    FloatingWindowInteractionMode, FloatingWindowKind, FloatingWindowPlacement,
+    FloatingLayer, FloatingWindow, FloatingWindowContentLayout, FloatingWindowInteractionMode,
+    FloatingWindowKind, FloatingWindowPlacement, FLOATING_WINDOW_DESIGN_CONTRACTS,
 };
 
 fn asset_source(relative: &str) -> String {

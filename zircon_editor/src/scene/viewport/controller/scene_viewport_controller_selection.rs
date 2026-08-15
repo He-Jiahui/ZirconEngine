@@ -68,11 +68,9 @@ mod tests {
             panic!("default scene must contain at least two entities");
         };
         let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
-        assert!(
-            controller
-                .selection_mut()
-                .replace_active([*primary, *secondary], Some(*primary))
-        );
+        assert!(controller
+            .selection_mut()
+            .replace_active([*primary, *secondary], Some(*primary)));
 
         assert!(controller.select_nodes(&scene, [*primary], SelectionMutation::Replace));
 
@@ -135,11 +133,9 @@ mod tests {
             SceneModeActivation::Transform(TransformHandleKind::Rotate)
         );
 
-        assert!(
-            controller
-                .selection_mut()
-                .set_active_domain(WorldDomain::Play)
-        );
+        assert!(controller
+            .selection_mut()
+            .set_active_domain(WorldDomain::Play));
         let play = controller.project_command_eval_ctx(CommandEvalCtx::interactive());
         assert!(!WhenClause::SelectionNonEmpty.eval(&play));
     }

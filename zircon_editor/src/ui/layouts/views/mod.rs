@@ -21,7 +21,7 @@ pub(crate) use assets_activity::assets_activity_pane_data;
 pub(crate) use console::console_pane_nodes;
 pub(crate) use hierarchy::hierarchy_pane_nodes;
 pub(crate) use inspector::inspector_pane_nodes;
-pub(crate) use preview_images::load_preview_image;
+pub(crate) use preview_images::{load_preview_image, load_preview_image_for_generation};
 pub(crate) use project_overview::{project_overview_data, project_overview_pane_data};
 pub(crate) use view_data::{
     AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData, NewProjectFormData,
@@ -29,12 +29,14 @@ pub(crate) use view_data::{
 };
 pub(crate) use view_data::{ViewTemplateFrameData, ViewTemplateNodeData};
 pub(crate) use view_projection::{
-    build_view_template_nodes, default_transition_duration_ms, default_transition_easing,
-    preferred_binding_id, resolve_commit_action_id, resolve_component_role,
-    resolve_component_variant, resolve_edit_action_id, resolve_node_popup_open,
-    resolve_node_value_number, resolve_node_value_percent, resolve_node_value_text,
-    resolve_transition_in, resolve_transition_kind, resolve_transition_progress,
-    resolve_visual_assets,
+    ViewTemplateNodePatch, ViewTemplateResourceGeneration, build_view_template_node_projection,
+    build_view_template_node_projection_with_patches, compose_view_template_node_model,
+    default_transition_duration_ms, default_transition_easing, preferred_binding_id,
+    resolve_commit_action_id, resolve_component_role, resolve_component_variant,
+    resolve_edit_action_id, resolve_node_popup_open, resolve_node_value_number,
+    resolve_node_value_percent, resolve_node_value_text, resolve_transition_in,
+    resolve_transition_kind, resolve_transition_progress, resolve_visual_assets,
+    view_template_resource_generation,
 };
 pub(crate) use viewport_chrome::{blank_viewport_chrome, scene_viewport_chrome};
 pub(crate) use welcome::welcome_pane_nodes;

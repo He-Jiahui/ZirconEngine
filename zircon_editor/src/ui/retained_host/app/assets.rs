@@ -12,27 +12,24 @@ mod controls;
 mod refresh;
 mod workspace;
 
-pub(super) use refresh::AssetRefreshQueueAgeState;
+pub(super) use refresh::{AssetRefreshAccumulator, AssetRefreshQueueAgeState};
 
 impl RetainedEditorHost {
     fn asset_manager_at_use_point(
         &self,
     ) -> Result<Arc<dyn AssetManager>, zircon_runtime::core::CoreError> {
-        self.resource_manager_resolver
-            .resolve(self.asset_manager.clone())
+        self.asset_runtime_access.asset_manager()
     }
 
     pub(in crate::ui::retained_host::app) fn editor_asset_manager_at_use_point(
         &self,
     ) -> Result<Arc<dyn EditorAssetManagerContract>, zircon_runtime::core::CoreError> {
-        self.resource_manager_resolver
-            .resolve(self.editor_asset_manager.clone())
+        self.asset_runtime_access.editor_asset_manager()
     }
 
     fn resolve_resource_manager(
         &self,
     ) -> Result<Arc<dyn ResourceManager>, zircon_runtime::core::CoreError> {
-        self.resource_manager_resolver
-            .resolve(self.resource_manager.clone())
+        self.asset_runtime_access.resource_manager()
     }
 }

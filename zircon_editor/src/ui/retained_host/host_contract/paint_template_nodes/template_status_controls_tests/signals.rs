@@ -8,10 +8,9 @@ use super::super::super::template_status_control_geometry::{
 };
 use super::super::super::template_style::text_color;
 use super::super::{
-    PALETTE, STATUS_NO_ERRORS_FILL, StatusControlKind, StatusSignalKind,
     push_status_control_commands, status_control_kind, status_signal_icon_fill,
     status_signal_icon_paint_rect, status_signal_icon_rect, status_signal_text_color,
-    status_signal_text_gap,
+    status_signal_text_gap, StatusControlKind, StatusSignalKind, PALETTE, STATUS_NO_ERRORS_FILL,
 };
 use super::support::{changed_pixel_count, pixel_at, status_node};
 use crate::ui::layouts::common::model_rc;

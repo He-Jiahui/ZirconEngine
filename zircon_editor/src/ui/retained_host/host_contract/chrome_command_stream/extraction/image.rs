@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::super::command::{ChromeImagePayload, ChromeImageUvRect};
 use crate::ui::retained_host::host_contract::paint_frame::HostPaintAtlasImage;
 
@@ -5,7 +7,7 @@ pub(super) fn chrome_image_payload_from_recorded_image(
     resource_key: String,
     width: u32,
     height: u32,
-    rgba: Option<Vec<u8>>,
+    rgba: Option<Arc<[u8]>>,
     atlas: Option<HostPaintAtlasImage>,
     include_image_bytes: bool,
 ) -> ChromeImagePayload {
@@ -32,7 +34,10 @@ fn chrome_atlas_image_payload(
     atlas: HostPaintAtlasImage,
     include_image_bytes: bool,
 ) -> ChromeImagePayload {
-    let atlas_rgba = include_image_bytes.then_some(atlas.rgba).flatten();
+    let atlas_rgba: Option<Arc<[u8]>> = include_image_bytes
+        .then_some(atlas.rgba)
+        .flatten()
+        .map(Arc::<[u8]>::from);
     let upload_bytes = atlas_rgba
         .as_ref()
         .map(|rgba| rgba.len() as u64)

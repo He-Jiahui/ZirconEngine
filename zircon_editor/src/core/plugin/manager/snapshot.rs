@@ -6,8 +6,8 @@ use std::sync::Arc;
 use super::super::catalog_snapshot::EditorPluginCatalogSnapshot;
 use super::super::extension_catalog_report::EditorExtensionCatalogReport;
 use super::{
-    EditorPluginDiscovery, EditorPluginSource, EditorPluginState, build_active_extensions,
-    normalize_entries_for_loading_phase,
+    build_active_extensions, normalize_entries_for_loading_phase, EditorPluginDiscovery,
+    EditorPluginSource, EditorPluginState,
 };
 
 /// One lightweight manager row. Descriptor and capability data stay in the catalog snapshot.

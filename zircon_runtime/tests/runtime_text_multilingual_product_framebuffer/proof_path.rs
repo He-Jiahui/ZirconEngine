@@ -1,17 +1,43 @@
 use std::{
     ffi::OsString,
     path::{Component, Path, PathBuf},
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 const PROOF_FILE_NAME: &str = "runtime_text_mvp_foundation_product_framebuffer_20260801.png";
+const PRODUCT_PROOF_WORK_DIRECTORY: &str = ".runtime_text_product_framebuffer_work";
 
 pub(super) fn proof_path() -> PathBuf {
+    product_proof_directory().join(PROOF_FILE_NAME)
+}
+
+/// Uses a workspace-local, removable root for test fixtures and failed PNG encodes.
+///
+/// Product proof code must not inherit a Windows system temporary directory because that can
+/// place test artifacts on C:. The final accepted framebuffer remains `proof_path()`.
+pub(super) fn product_proof_work_path(label: &str) -> PathBuf {
+    assert!(
+        !label.is_empty()
+            && label
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-'),
+        "product proof work label must be an ASCII path segment: {label:?}",
+    );
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system time must be after Unix epoch")
+        .as_nanos();
+    product_proof_directory()
+        .join(PRODUCT_PROOF_WORK_DIRECTORY)
+        .join(format!("{label}-{}-{nonce}", std::process::id()))
+}
+
+fn product_proof_directory() -> PathBuf {
     workspace_root()
         .join("docs")
         .join("tests")
         .join("runtime")
         .join("text")
-        .join(PROOF_FILE_NAME)
 }
 
 pub(super) fn workspace_root() -> PathBuf {
@@ -115,6 +141,7 @@ mod tests {
     fn product_framebuffer_path_stays_in_docs_text_and_outside_target() {
         let workspace_root = workspace_root();
         let output = proof_path();
+        let work_root = product_proof_work_path("proof-path-test");
 
         assert_eq!(
             output,
@@ -129,6 +156,17 @@ mod tests {
             &output,
             &workspace_root.join("target"),
         ));
+        assert!(work_root.starts_with(
+            workspace_root
+                .join("docs")
+                .join("tests")
+                .join("runtime")
+                .join("text"),
+        ));
+        assert!(product_proof_is_outside_target(
+            &work_root,
+            &workspace_root.join("target"),
+        ));
         assert!(!product_proof_is_outside_target(
             &output,
             &workspace_root.join("docs"),
@@ -138,6 +176,25 @@ mod tests {
             &output,
             &workspace_root.join("DOCS"),
         ));
+    }
+
+    #[test]
+    fn product_proof_work_labels_keep_product_cases_in_distinct_namespaces() {
+        let multilingual = product_proof_work_path("multilingual-fixture");
+        let dpi = product_proof_work_path("dpi-fixture");
+        let multilingual_name = multilingual
+            .file_name()
+            .and_then(|name| name.to_str())
+            .expect("multilingual fixture root name");
+        let dpi_name = dpi
+            .file_name()
+            .and_then(|name| name.to_str())
+            .expect("DPI fixture root name");
+
+        assert!(multilingual_name.starts_with("multilingual-fixture-"));
+        assert!(dpi_name.starts_with("dpi-fixture-"));
+        assert_ne!(multilingual, dpi);
+        assert_eq!(multilingual.parent(), dpi.parent());
     }
 
     #[test]

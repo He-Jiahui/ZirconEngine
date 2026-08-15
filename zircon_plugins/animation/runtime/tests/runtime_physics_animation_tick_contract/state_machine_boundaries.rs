@@ -112,7 +112,9 @@ fn assert_invalid_duration_switches_immediately(duration_seconds: f32) {
             .unwrap();
         entity
     });
-    level.record_animation_playback_times(
+    let replacement_epoch = level.capture_world_replacement_epoch();
+    assert!(level.record_animation_playback_times(
+        replacement_epoch,
         BTreeMap::new(),
         BTreeMap::from([(entity, 0.0)]),
         BTreeMap::from([(
@@ -126,7 +128,7 @@ fn assert_invalid_duration_switches_immediately(duration_seconds: f32) {
                 to_time_seconds: 0.0,
             },
         )]),
-    );
+    ));
 
     runtime.tick_level_seconds(&level, 0.0).unwrap();
 
@@ -145,5 +147,9 @@ fn assert_invalid_duration_switches_immediately(duration_seconds: f32) {
             .clone()),
         Some("Run".to_string())
     );
-    assert!(level.animation_playback_times().2.is_empty());
+    assert!(level
+        .animation_playback_times(level.capture_world_replacement_epoch())
+        .expect("current World exposes playback state")
+        .2
+        .is_empty());
 }

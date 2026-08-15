@@ -18,6 +18,19 @@ pub(in crate::hybrid_gi::scene_representation) struct HybridGiScreenProbeDescrip
 }
 
 impl HybridGiScreenProbeDescriptor {
+    #[cfg(test)]
+    pub(in crate::hybrid_gi::scene_representation) fn for_test(bounds_center: Vec3) -> Self {
+        Self {
+            probe_id: 0,
+            card_id: 0,
+            stable_instance_key: 0,
+            surface_page_id: None,
+            bounds_center,
+            bounds_radius: 1.0,
+            ray_budget: 1,
+        }
+    }
+
     pub(in crate::hybrid_gi::scene_representation) fn probe_id(&self) -> u32 {
         self.probe_id
     }

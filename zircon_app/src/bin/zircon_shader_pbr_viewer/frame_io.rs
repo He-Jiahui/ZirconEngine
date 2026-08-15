@@ -1,10 +1,11 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use zircon_runtime::core::framework::render::ShaderVariantMissReport;
 use zircon_runtime::core::math::UVec2;
 use zircon_runtime::graphics::ViewportFrame;
 
-const READY_FRAME_EVIDENCE_SCHEMA: &str = "zircon_shader_pbr_viewer_ready_frame_evidence_v8";
+const READY_FRAME_EVIDENCE_SCHEMA: &str = "zircon_shader_pbr_viewer_ready_frame_evidence_v12";
 // This reports only reuse inside the viewer's MeshPipelineCache, never a persisted driver PSO.
 const ENVIRONMENT_ONLY_BASE_PREWARM_CACHE_SCOPE: &str = "process_local_mesh_pipeline_cache";
 
@@ -31,6 +32,22 @@ pub(crate) struct ReadyFrameEvidenceMetadata {
     pub(crate) ibl_bake_algorithm_version: u64,
     pub(crate) ibl_staging_status: String,
     pub(crate) ibl_staging_elapsed: Duration,
+    pub(crate) ibl_staging_source_decode: Duration,
+    pub(crate) ibl_staging_cubemap_build: Duration,
+    pub(crate) ibl_staging_equirect_projection: Duration,
+    pub(crate) ibl_staging_source_mip_build: Duration,
+    pub(crate) ibl_staging_pmrem_build: Duration,
+    pub(crate) ibl_staging_sh9_build: Duration,
+    pub(crate) ibl_staging_irradiance_cube_build: Duration,
+    pub(crate) ibl_staging_bundle_write: Duration,
+    pub(crate) ibl_staging_source_zcube_bytes: u64,
+    pub(crate) ibl_staging_asset_derived_bytes: u64,
+    pub(crate) ibl_staging_parallel_executor_work_items: u64,
+    pub(crate) ibl_staging_equirect_projection_parallel_work_items: u64,
+    pub(crate) ibl_staging_source_mip_build_parallel_work_items: u64,
+    pub(crate) ibl_staging_pmrem_build_parallel_work_items: u64,
+    pub(crate) ibl_staging_irradiance_cube_build_parallel_work_items: u64,
+    pub(crate) ibl_staging_irradiance_cube_source_sample_visits: u64,
     pub(crate) ibl_total_elapsed: Duration,
     pub(crate) scene_startup_hdri_decode: Duration,
     pub(crate) scene_startup_project_assets: Duration,
@@ -52,6 +69,7 @@ pub(crate) struct ReadyFrameEvidenceMetadata {
     pub(crate) ready_frame_render_extract: Duration,
     pub(crate) ready_frame_renderer_call: Duration,
     pub(crate) ready_frame_readback_and_completion: Duration,
+    pub(crate) shader_variant_miss_report: ShaderVariantMissReport,
 }
 
 pub(crate) fn startup_frame(size: UVec2) -> ViewportFrame {
@@ -176,6 +194,22 @@ fn write_ready_frame_metadata(
          ibl_bake_algorithm_version={}\n\
          ibl_staging_status={}\n\
          ibl_staging_elapsed_ns={}\n\
+         ibl_staging_source_decode_ns={}\n\
+         ibl_staging_cubemap_build_ns={}\n\
+         ibl_staging_equirect_projection_ns={}\n\
+         ibl_staging_source_mip_build_ns={}\n\
+         ibl_staging_pmrem_build_ns={}\n\
+         ibl_staging_sh9_build_ns={}\n\
+         ibl_staging_irradiance_cube_build_ns={}\n\
+         ibl_staging_bundle_write_ns={}\n\
+         ibl_staging_source_zcube_bytes={}\n\
+         ibl_staging_asset_derived_bytes={}\n\
+         ibl_staging_parallel_executor_work_items={}\n\
+         ibl_staging_equirect_projection_parallel_work_items={}\n\
+         ibl_staging_source_mip_build_parallel_work_items={}\n\
+         ibl_staging_pmrem_build_parallel_work_items={}\n\
+         ibl_staging_irradiance_cube_build_parallel_work_items={}\n\
+         ibl_staging_irradiance_cube_source_sample_visits={}\n\
          ibl_total_elapsed_ns={}\n\
          scene_startup_hdri_decode_ns={}\n\
          scene_startup_project_assets_ns={}\n\
@@ -195,7 +229,19 @@ fn write_ready_frame_metadata(
          ready_frame_render_elapsed_ns={}\n\
          ready_frame_extract_ns={}\n\
          ready_frame_renderer_call_ns={}\n\
-         ready_frame_readback_and_completion_ns={}\n",
+         ready_frame_readback_and_completion_ns={}\n\
+         registered_pipeline_variant_count={}\n\
+         registered_shader_variant_count={}\n\
+         texture_presence_normalized_pipeline_variant_count={}\n\
+         texture_presence_equivalent_pipeline_variant_count={}\n\
+         cached_render_pipeline_count={}\n\
+         cached_shader_module_count={}\n\
+         render_pipeline_creation_count={}\n\
+         shader_module_creation_count={}\n\
+         render_pipeline_creation_cpu_microseconds={}\n\
+         shader_module_creation_cpu_microseconds={}\n\
+         async_base_pipeline_queue_wait_count={}\n\
+         async_base_pipeline_queue_wait_microseconds={}\n",
         metadata.interactive_direct_present_enabled,
         metadata.backend,
         metadata.hdri_path,
@@ -224,6 +270,22 @@ fn write_ready_frame_metadata(
         metadata.ibl_bake_algorithm_version,
         metadata.ibl_staging_status,
         metadata.ibl_staging_elapsed.as_nanos(),
+        metadata.ibl_staging_source_decode.as_nanos(),
+        metadata.ibl_staging_cubemap_build.as_nanos(),
+        metadata.ibl_staging_equirect_projection.as_nanos(),
+        metadata.ibl_staging_source_mip_build.as_nanos(),
+        metadata.ibl_staging_pmrem_build.as_nanos(),
+        metadata.ibl_staging_sh9_build.as_nanos(),
+        metadata.ibl_staging_irradiance_cube_build.as_nanos(),
+        metadata.ibl_staging_bundle_write.as_nanos(),
+        metadata.ibl_staging_source_zcube_bytes,
+        metadata.ibl_staging_asset_derived_bytes,
+        metadata.ibl_staging_parallel_executor_work_items,
+        metadata.ibl_staging_equirect_projection_parallel_work_items,
+        metadata.ibl_staging_source_mip_build_parallel_work_items,
+        metadata.ibl_staging_pmrem_build_parallel_work_items,
+        metadata.ibl_staging_irradiance_cube_build_parallel_work_items,
+        metadata.ibl_staging_irradiance_cube_source_sample_visits,
         metadata.ibl_total_elapsed.as_nanos(),
         metadata.scene_startup_hdri_decode.as_nanos(),
         metadata.scene_startup_project_assets.as_nanos(),
@@ -252,6 +314,42 @@ fn write_ready_frame_metadata(
         metadata.ready_frame_render_extract.as_nanos(),
         metadata.ready_frame_renderer_call.as_nanos(),
         metadata.ready_frame_readback_and_completion.as_nanos(),
+        metadata
+            .shader_variant_miss_report
+            .registered_pipeline_variant_count,
+        metadata
+            .shader_variant_miss_report
+            .registered_shader_variant_count,
+        metadata
+            .shader_variant_miss_report
+            .texture_presence_normalized_pipeline_variant_count,
+        metadata
+            .shader_variant_miss_report
+            .texture_presence_equivalent_pipeline_variant_count,
+        metadata
+            .shader_variant_miss_report
+            .cached_render_pipeline_count,
+        metadata
+            .shader_variant_miss_report
+            .cached_shader_module_count,
+        metadata
+            .shader_variant_miss_report
+            .render_pipeline_creation_count,
+        metadata
+            .shader_variant_miss_report
+            .shader_module_creation_count,
+        metadata
+            .shader_variant_miss_report
+            .render_pipeline_creation_cpu_microseconds,
+        metadata
+            .shader_variant_miss_report
+            .shader_module_creation_cpu_microseconds,
+        metadata
+            .shader_variant_miss_report
+            .async_base_pipeline_queue_wait_count,
+        metadata
+            .shader_variant_miss_report
+            .async_base_pipeline_queue_wait_microseconds,
     );
     std::fs::write(metadata_path, contents).map_err(|error| {
         format!(
@@ -299,6 +397,9 @@ mod tests {
         write_ready_frame_png, ReadyFrameEvidenceMetadata,
     };
     use std::time::Duration;
+    use zircon_runtime::core::framework::render::ShaderVariantMissReport;
+
+    use crate::work_paths::viewer_test_artifact_root;
 
     #[test]
     fn status_frames_clamp_zero_dimensions_and_remain_opaque() {
@@ -319,11 +420,7 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .expect("system time after Unix epoch")
             .as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "zircon_shader_pbr_viewer_ready_frame_{}_{}.png",
-            std::process::id(),
-            unique
-        ));
+        let path = viewer_test_artifact_root("ready-frame-png").join(format!("{unique}.png"));
         let rgba = [
             255, 0, 0, 255, // red
             0, 255, 0, 128, // green with alpha
@@ -333,7 +430,8 @@ mod tests {
         let decoded = image::open(&path)
             .expect("written Ready-frame PNG should decode")
             .to_rgba8();
-        let _ = std::fs::remove_file(&path);
+        std::fs::remove_dir_all(path.parent().expect("test path should have a parent"))
+            .expect("test artifact root should be removed");
 
         assert_eq!(decoded.dimensions(), (2, 1));
         assert_eq!(decoded.as_raw(), &rgba);
@@ -345,17 +443,15 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .expect("system time after Unix epoch")
             .as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "zircon_shader_pbr_viewer_invalid_ready_frame_{}_{}.png",
-            std::process::id(),
-            unique
-        ));
+        let path = viewer_test_artifact_root("invalid-ready-frame").join(format!("{unique}.png"));
 
         let error = write_ready_frame_png(&path, 2, 1, &[255, 0, 0, 255])
             .expect_err("a truncated RGBA frame must not produce evidence");
 
         assert!(error.contains("does not match 2x1 output"));
         assert!(!path.exists());
+        std::fs::remove_dir_all(path.parent().expect("test path should have a parent"))
+            .expect("test artifact root should be removed");
     }
 
     #[test]
@@ -364,11 +460,7 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .expect("system time after Unix epoch")
             .as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "zircon_shader_pbr_viewer_ready_evidence_{}_{}.png",
-            std::process::id(),
-            unique
-        ));
+        let path = viewer_test_artifact_root("ready-frame-evidence").join(format!("{unique}.png"));
         let metadata = ReadyFrameEvidenceMetadata {
             backend: "Dx12".to_owned(),
             interactive_direct_present_enabled: true,
@@ -388,10 +480,26 @@ mod tests {
             environment_only_base_prewarm_elapsed: Duration::from_millis(13),
             camera_yaw_degrees: 12.5,
             camera_pitch_degrees: -7.0,
-            ibl_bake_algorithm_version: 2026_08_02_0005,
-            ibl_staging_status: "Reused".to_owned(),
-            ibl_staging_elapsed: Duration::from_millis(8),
-            ibl_total_elapsed: Duration::from_millis(12),
+            ibl_bake_algorithm_version: 2026_08_09_0006,
+            ibl_staging_status: "Written".to_owned(),
+            ibl_staging_elapsed: Duration::from_millis(34),
+            ibl_staging_source_decode: Duration::from_millis(1),
+            ibl_staging_cubemap_build: Duration::from_millis(18),
+            ibl_staging_equirect_projection: Duration::from_millis(3),
+            ibl_staging_source_mip_build: Duration::from_millis(4),
+            ibl_staging_pmrem_build: Duration::from_millis(5),
+            ibl_staging_sh9_build: Duration::from_millis(6),
+            ibl_staging_irradiance_cube_build: Duration::from_millis(7),
+            ibl_staging_bundle_write: Duration::from_millis(8),
+            ibl_staging_source_zcube_bytes: 1_024,
+            ibl_staging_asset_derived_bytes: 2_048,
+            ibl_staging_parallel_executor_work_items: 42,
+            ibl_staging_equirect_projection_parallel_work_items: 6,
+            ibl_staging_source_mip_build_parallel_work_items: 12,
+            ibl_staging_pmrem_build_parallel_work_items: 24,
+            ibl_staging_irradiance_cube_build_parallel_work_items: 0,
+            ibl_staging_irradiance_cube_source_sample_visits: 37_748_736,
+            ibl_total_elapsed: Duration::from_millis(40),
             scene_startup_hdri_decode: Duration::from_millis(21),
             scene_startup_project_assets: Duration::from_millis(34),
             scene_startup_runtime_bootstrap: Duration::from_millis(55),
@@ -411,6 +519,7 @@ mod tests {
             ready_frame_render_extract: Duration::from_millis(2),
             ready_frame_renderer_call: Duration::from_millis(11),
             ready_frame_readback_and_completion: Duration::from_millis(3),
+            shader_variant_miss_report: shader_variant_miss_report_fixture(),
         };
 
         let metadata_path = write_ready_frame_evidence(&path, 1, 1, &[128, 64, 32, 255], &metadata)
@@ -418,14 +527,14 @@ mod tests {
         let metadata_text =
             std::fs::read_to_string(&metadata_path).expect("evidence metadata should be readable");
 
-        let _ = std::fs::remove_file(&path);
-        let _ = std::fs::remove_file(&metadata_path);
+        std::fs::remove_dir_all(path.parent().expect("test path should have a parent"))
+            .expect("test artifact root should be removed");
 
         assert_eq!(
             metadata_path,
             ready_frame_evidence_metadata_path(&path).unwrap()
         );
-        assert!(metadata_text.contains("schema=zircon_shader_pbr_viewer_ready_frame_evidence_v8"));
+        assert!(metadata_text.contains("schema=zircon_shader_pbr_viewer_ready_frame_evidence_v12"));
         assert!(metadata_text.contains("screenshot_presentation=cpu_readback"));
         assert!(metadata_text.contains("backend=Dx12"));
         assert!(metadata_text.contains("hdri_path=polyhaven_lakes_2k.hdr"));
@@ -449,8 +558,24 @@ mod tests {
         );
         assert!(metadata_text.contains("environment_only_base_prewarm_elapsed_ns=13000000"));
         assert!(metadata_text.contains("interactive_direct_present_enabled=true"));
-        assert!(metadata_text.contains("ibl_bake_algorithm_version=202608020005"));
-        assert!(metadata_text.contains("ibl_staging_status=Reused"));
+        assert!(metadata_text.contains("ibl_bake_algorithm_version=202608090006"));
+        assert!(metadata_text.contains("ibl_staging_status=Written"));
+        assert!(metadata_text.contains("ibl_staging_source_decode_ns=1000000"));
+        assert!(metadata_text.contains("ibl_staging_cubemap_build_ns=18000000"));
+        assert!(metadata_text.contains("ibl_staging_equirect_projection_ns=3000000"));
+        assert!(metadata_text.contains("ibl_staging_source_mip_build_ns=4000000"));
+        assert!(metadata_text.contains("ibl_staging_pmrem_build_ns=5000000"));
+        assert!(metadata_text.contains("ibl_staging_sh9_build_ns=6000000"));
+        assert!(metadata_text.contains("ibl_staging_irradiance_cube_build_ns=7000000"));
+        assert!(metadata_text.contains("ibl_staging_bundle_write_ns=8000000"));
+        assert!(metadata_text.contains("ibl_staging_source_zcube_bytes=1024"));
+        assert!(metadata_text.contains("ibl_staging_asset_derived_bytes=2048"));
+        assert!(metadata_text.contains("ibl_staging_parallel_executor_work_items=42"));
+        assert!(metadata_text.contains("ibl_staging_equirect_projection_parallel_work_items=6"));
+        assert!(metadata_text.contains("ibl_staging_source_mip_build_parallel_work_items=12"));
+        assert!(metadata_text.contains("ibl_staging_pmrem_build_parallel_work_items=24"));
+        assert!(metadata_text.contains("ibl_staging_irradiance_cube_build_parallel_work_items=0"));
+        assert!(metadata_text.contains("ibl_staging_irradiance_cube_source_sample_visits=37748736"));
         assert!(metadata_text.contains("scene_startup_hdri_decode_ns=21000000"));
         assert!(metadata_text.contains("scene_startup_project_assets_ns=34000000"));
         assert!(metadata_text.contains("scene_startup_runtime_bootstrap_ns=55000000"));
@@ -473,6 +598,18 @@ mod tests {
         assert!(metadata_text.contains("one_shot_base_pipeline_wait_elapsed_ns=75000000"));
         assert!(metadata_text.contains("viewer_scene_load_elapsed_ns=7120000000"));
         assert!(metadata_text.contains("viewer_ready_elapsed_ns=7250000000"));
+        assert!(metadata_text.contains("registered_pipeline_variant_count=16"));
+        assert!(metadata_text.contains("registered_shader_variant_count=1"));
+        assert!(metadata_text.contains("texture_presence_normalized_pipeline_variant_count=1"));
+        assert!(metadata_text.contains("texture_presence_equivalent_pipeline_variant_count=15"));
+        assert!(metadata_text.contains("cached_render_pipeline_count=8"));
+        assert!(metadata_text.contains("cached_shader_module_count=2"));
+        assert!(metadata_text.contains("render_pipeline_creation_count=8"));
+        assert!(metadata_text.contains("shader_module_creation_count=2"));
+        assert!(metadata_text.contains("render_pipeline_creation_cpu_microseconds=42000"));
+        assert!(metadata_text.contains("shader_module_creation_cpu_microseconds=17000"));
+        assert!(metadata_text.contains("async_base_pipeline_queue_wait_count=1"));
+        assert!(metadata_text.contains("async_base_pipeline_queue_wait_microseconds=88"));
     }
 
     #[test]
@@ -481,11 +618,8 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .expect("system time after Unix epoch")
             .as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "zircon_shader_pbr_viewer_invalid_evidence_{}_{}.png",
-            std::process::id(),
-            unique
-        ));
+        let path =
+            viewer_test_artifact_root("invalid-ready-evidence").join(format!("{unique}.png"));
         let metadata = ReadyFrameEvidenceMetadata {
             backend: "Dx12".to_owned(),
             interactive_direct_present_enabled: false,
@@ -505,9 +639,25 @@ mod tests {
             environment_only_base_prewarm_elapsed: Duration::ZERO,
             camera_yaw_degrees: 0.0,
             camera_pitch_degrees: 0.0,
-            ibl_bake_algorithm_version: 2026_08_02_0005,
+            ibl_bake_algorithm_version: 2026_08_09_0006,
             ibl_staging_status: "Written".to_owned(),
             ibl_staging_elapsed: Duration::ZERO,
+            ibl_staging_source_decode: Duration::ZERO,
+            ibl_staging_cubemap_build: Duration::ZERO,
+            ibl_staging_equirect_projection: Duration::ZERO,
+            ibl_staging_source_mip_build: Duration::ZERO,
+            ibl_staging_pmrem_build: Duration::ZERO,
+            ibl_staging_sh9_build: Duration::ZERO,
+            ibl_staging_irradiance_cube_build: Duration::ZERO,
+            ibl_staging_bundle_write: Duration::ZERO,
+            ibl_staging_source_zcube_bytes: 0,
+            ibl_staging_asset_derived_bytes: 0,
+            ibl_staging_parallel_executor_work_items: 0,
+            ibl_staging_equirect_projection_parallel_work_items: 0,
+            ibl_staging_source_mip_build_parallel_work_items: 0,
+            ibl_staging_pmrem_build_parallel_work_items: 0,
+            ibl_staging_irradiance_cube_build_parallel_work_items: 0,
+            ibl_staging_irradiance_cube_source_sample_visits: 0,
             ibl_total_elapsed: Duration::ZERO,
             scene_startup_hdri_decode: Duration::ZERO,
             scene_startup_project_assets: Duration::ZERO,
@@ -528,6 +678,7 @@ mod tests {
             ready_frame_render_extract: Duration::ZERO,
             ready_frame_renderer_call: Duration::ZERO,
             ready_frame_readback_and_completion: Duration::ZERO,
+            shader_variant_miss_report: ShaderVariantMissReport::default(),
         };
 
         let error = write_ready_frame_evidence(&path, 2, 1, &[0, 0, 0, 255], &metadata)
@@ -536,6 +687,8 @@ mod tests {
         assert!(error.contains("does not match 2x1 output"));
         assert!(!path.exists());
         assert!(!ready_frame_evidence_metadata_path(&path).unwrap().exists());
+        std::fs::remove_dir_all(path.parent().expect("test path should have a parent"))
+            .expect("test artifact root should be removed");
     }
 
     #[test]
@@ -544,11 +697,8 @@ mod tests {
             .duration_since(std::time::UNIX_EPOCH)
             .expect("system time after Unix epoch")
             .as_nanos();
-        let path = std::env::temp_dir().join(format!(
-            "zircon_shader_pbr_viewer_sidecar_failure_{}_{}.png",
-            std::process::id(),
-            unique
-        ));
+        let path =
+            viewer_test_artifact_root("ready-frame-sidecar-failure").join(format!("{unique}.png"));
         let metadata_path = ready_frame_evidence_metadata_path(&path).unwrap();
         let metadata = ReadyFrameEvidenceMetadata {
             backend: "Dx12".to_owned(),
@@ -569,9 +719,25 @@ mod tests {
             environment_only_base_prewarm_elapsed: Duration::ZERO,
             camera_yaw_degrees: 0.0,
             camera_pitch_degrees: 0.0,
-            ibl_bake_algorithm_version: 2026_08_02_0005,
+            ibl_bake_algorithm_version: 2026_08_09_0006,
             ibl_staging_status: "Written".to_owned(),
             ibl_staging_elapsed: Duration::ZERO,
+            ibl_staging_source_decode: Duration::ZERO,
+            ibl_staging_cubemap_build: Duration::ZERO,
+            ibl_staging_equirect_projection: Duration::ZERO,
+            ibl_staging_source_mip_build: Duration::ZERO,
+            ibl_staging_pmrem_build: Duration::ZERO,
+            ibl_staging_sh9_build: Duration::ZERO,
+            ibl_staging_irradiance_cube_build: Duration::ZERO,
+            ibl_staging_bundle_write: Duration::ZERO,
+            ibl_staging_source_zcube_bytes: 0,
+            ibl_staging_asset_derived_bytes: 0,
+            ibl_staging_parallel_executor_work_items: 0,
+            ibl_staging_equirect_projection_parallel_work_items: 0,
+            ibl_staging_source_mip_build_parallel_work_items: 0,
+            ibl_staging_pmrem_build_parallel_work_items: 0,
+            ibl_staging_irradiance_cube_build_parallel_work_items: 0,
+            ibl_staging_irradiance_cube_source_sample_visits: 0,
             ibl_total_elapsed: Duration::ZERO,
             scene_startup_hdri_decode: Duration::ZERO,
             scene_startup_project_assets: Duration::ZERO,
@@ -592,6 +758,7 @@ mod tests {
             ready_frame_render_extract: Duration::ZERO,
             ready_frame_renderer_call: Duration::ZERO,
             ready_frame_readback_and_completion: Duration::ZERO,
+            shader_variant_miss_report: ShaderVariantMissReport::default(),
         };
         std::fs::create_dir(&metadata_path).expect("sidecar path directory should be created");
 
@@ -604,5 +771,16 @@ mod tests {
 
         assert!(error.contains("write screenshot metadata"));
         assert!(!path.exists());
+        std::fs::remove_dir_all(path.parent().expect("test path should have a parent"))
+            .expect("test artifact root should be removed");
+    }
+
+    fn shader_variant_miss_report_fixture() -> ShaderVariantMissReport {
+        let mut report = ShaderVariantMissReport::default();
+        report.record_registered_variant_counts(16, 1, 1);
+        report.record_cached_gpu_object_counts(8, 2);
+        report.record_gpu_object_creation_totals(8, 2, 42_000, 17_000);
+        report.record_async_base_pipeline_queue_wait_totals(1, 88);
+        report
     }
 }

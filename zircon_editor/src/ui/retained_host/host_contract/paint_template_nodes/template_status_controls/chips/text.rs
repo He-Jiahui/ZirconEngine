@@ -91,8 +91,7 @@ fn leading_label_rect(base: FrameRect, value_rect: &FrameRect) -> FrameRect {
 }
 
 fn right_aligned_text_rect(base: FrameRect, text: &str) -> FrameRect {
-    let measured_width = measure_runtime_text_width(text, status_font_size())
-        + workbench_status_metrics().text_clip_guard;
+    let measured_width = measure_runtime_text_width(text, status_font_size());
     let width = measured_width.min(base.width).max(0.0);
     FrameRect {
         x: base.x + (base.width - width).max(0.0),

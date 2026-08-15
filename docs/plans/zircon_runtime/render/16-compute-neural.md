@@ -127,7 +127,7 @@ runtime 框架侧(compute 框架 + readback):
 | `zircon_runtime/src/graphics/feature/compute_pass_descriptor/mod.rs` + `compute_pass_descriptor.rs` | `ComputePassDescriptor`/`ComputeShaderSource`,以及向 `RenderFeaturePassDescriptor` 的 lowering(自动展开 IO 声明 + compute_workload + executor id) | 新增 |
 | `zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/render_feature_pass_descriptor.rs` | 增 `compute_pass: Option<ComputePassDescriptor>` 字段与 `.with_compute_pass(...)` builder | 修改 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/generic_compute_executor.rs` | `"compute.generic"` executor:按 schema 组 bind group(经 `RgResourceResolver` 解析句柄/名字)、三种 dispatch 录制、pipeline 缓存查询;含 `#[cfg(test)]` | 新增 |
-| `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/compute_pipeline_cache.rs` | shader module + `wgpu::ComputePipeline` 缓存,键 = (shader source 哈希, entry_point);走计划 08 变体缓存同款键控策略 | 新增 |
+| `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/compute_pipeline_cache.rs` | shader module + `wgpu::ComputePipeline` 缓存,热路径 bucket 键 = (shader source/entry point/binding schema 哈希),命中后仍按完整内容判等;条目以有界 LRU 管理,避免插件/NN 特化无界常驻;走计划 08 变体缓存同款键控策略 | 新增 |
 | `zircon_runtime/src/graphics/backend/render_backend/gpu_readback_queue/mod.rs` + `staging_ring.rs` + `ticket.rs` | `GpuReadbackQueue`/`ReadbackTicket`/staging ring;wgpu 类型只在此层 | 新增 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/scene_renderer_core.rs` | `SceneRendererCore` 增 `readback_queue: GpuReadbackQueue` 字段 | 修改 |
 | `zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs` | `with_builtin_noop_executors` 注册 `"compute.generic"`;迁移对象的手写 executor 注册行删除 | 修改 |
@@ -170,6 +170,8 @@ pub struct BindingSchemaEntry {
     pub binding: u32,            // group1 内编号(§8 槽位:compute pass 全部资源属 pass 级 = group1)
     pub resource: String,        // graph 资源名;执行期经 RgResourceResolver 解析为 RgTextureHandle/RgBufferHandle 物理资源
     pub kind: ComputeBindingKind,
+    pub texture_mip_level: Option<u32>, // Some 时绑定一个瞬态纹理 mip;None 为默认 view
+    pub buffer_offset: Option<u64>, // Some 时从设备对齐的 byte offset 绑定 buffer;None 为整个 buffer
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -180,6 +182,8 @@ pub enum RenderGraphComputeDispatchExtent {
     PerPixel { target: String, local_size: [u32; 2] },    // 新:groups = ceil(target_extent / local_size);替代并删除 Viewport
 }
 ```
+
+`SampledTexture` 的 bind-group 多重采样位由目标 `TextureDesc.sample_count` 推导；单采样与 2D MSAA depth/color 均沿用同一 schema，shader 声明必须与实际视图类型匹配。
 
 ```rust
 // graphics/feature/compute_pass_descriptor/compute_pass_descriptor.rs(graphics 层)
@@ -237,11 +241,11 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             workgroup_size: [8, 8, 1],
             bindings: vec![
                 BindingSchemaEntry { binding: 0, resource: "my.params".into(),
-                    kind: ComputeBindingKind::UniformBuffer },
+                    kind: ComputeBindingKind::UniformBuffer, texture_mip_level: None, buffer_offset: None },
                 BindingSchemaEntry { binding: 1, resource: "scene-color".into(),
-                    kind: ComputeBindingKind::SampledTexture },
+                    kind: ComputeBindingKind::SampledTexture, texture_mip_level: None, buffer_offset: None },
                 BindingSchemaEntry { binding: 2, resource: "my.output".into(),
-                    kind: ComputeBindingKind::StorageBufferReadWrite },
+                    kind: ComputeBindingKind::StorageBufferReadWrite, texture_mip_level: None, buffer_offset: None },
             ],
             dispatch: RenderGraphComputeDispatchExtent::PerPixel {
                 target: "scene-color".into(), local_size: [8, 8] },

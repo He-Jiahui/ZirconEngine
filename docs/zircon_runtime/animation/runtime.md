@@ -9,13 +9,14 @@ related_code:
   - zircon_runtime/src/animation/manager/sampling.rs
   - zircon_runtime/src/animation/sequence/conversion.rs
   - zircon_runtime/src/core/framework/animation/error.rs
+  - zircon_runtime/src/core/framework/animation/clip_event_sampling.rs
   - zircon_runtime/src/core/framework/animation/manager.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
   - zircon_runtime/src/scene/level_system.rs
   - zircon_plugins/animation/runtime/src/runtime_system.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs
   - zircon_plugins/animation/runtime/src/evaluation/pipeline/events.rs
-  - zircon_runtime/src/animation/sequence/apply.rs
+  - zircon_runtime/src/animation/sequence/compiled.rs
   - zircon_runtime/src/animation/clip_event.rs
 implementation_files:
   - zircon_runtime/src/animation/mod.rs
@@ -23,9 +24,10 @@ implementation_files:
   - zircon_runtime/src/animation/manager/mod.rs
   - zircon_runtime/src/animation/manager/pose.rs
   - zircon_runtime/src/animation/manager/sampling.rs
-  - zircon_runtime/src/animation/sequence/apply.rs
+  - zircon_runtime/src/animation/sequence/compiled.rs
   - zircon_runtime/src/animation/sequence/conversion.rs
   - zircon_runtime/src/core/framework/animation/error.rs
+  - zircon_runtime/src/core/framework/animation/clip_event_sampling.rs
   - zircon_runtime/src/core/framework/animation/manager.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
   - zircon_runtime/src/scene/level_system.rs
@@ -49,6 +51,7 @@ plan_sources:
   - dev/Fyrox/fyrox-impl/src/scene/animation
   - dev/godot/scene/animation
 tests:
+  - tools/tests/test_frameworks_01_scene_animation_boundary.py::Frameworks01SceneAnimationBoundaryTests::test_scene_does_not_depend_on_optional_animation_implementation
   - zircon_runtime/src/tests/runtime_absorption/service_registry_ownership.rs::registry_owned_services_store_only_weak_runtime_back_references
   - zircon_runtime/src/animation/manager/mod.rs::animation_manager_playback_settings_recover_poisoned_lock
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_animation_manager_lock_poison_recovery_guard_covers_playback_settings
@@ -63,7 +66,7 @@ doc_type: module-detail
 
 # Runtime Animation Module
 
-`zircon_runtime::animation` is the runtime-owned contract and manager module. It registers the canonical `animation.runtime` module identity and installs `DefaultAnimationManager`; the plugin-owned `animation.evaluate` system is the sole production `SystemStage::PostUpdate` evaluator. The evaluator publishes immutable Level pose snapshots through `LevelSystem::record_animation_pose_snapshot`; unchanged paused instances retain their last snapshot and skeletal targets without a new sample or transform apply.
+`core::framework::animation` is the neutral contract owner. `zircon_runtime::animation` owns the manager and concrete sampling implementation, registers the canonical `animation.runtime` module identity, and installs `DefaultAnimationManager`; the plugin-owned `animation.evaluate` system is the sole production `SystemStage::PostUpdate` evaluator. The evaluator publishes immutable Level pose snapshots through `LevelSystem::record_animation_pose_snapshot`; unchanged paused instances retain their last snapshot and skeletal targets without a new sample or transform apply.
 
 The current implementation includes clip event sampling, sequence application, skeleton clip pose sampling, graph evaluation, state machine evaluation, weighted base/additive graph pose blending, and scene-world pose application for named descendants.
 
@@ -75,6 +78,7 @@ The runtime is split into four local responsibilities:
 |---|---|---|---|
 | Module registration | `animation/module.rs` | Implemented | Keep at crate-root module family because it registers the manager service. |
 | Manager API implementation | `animation/manager/mod.rs` and submodules | Implemented | Keep as the runtime implementation of `core::framework::animation::AnimationManager`; the root is folder-backed and the old flat `animation/manager.rs` path is retired. |
+| Clip-event sampling boundary | `core/framework/animation/clip_event_sampling.rs` and `animation/clip_event.rs` | Implemented, validation pending | Neutral request/result/sampler contracts point from scene to the optional implementation; project-asset loading and sampling remain in animation. |
 | Plugin evaluation | `zircon_plugins/animation/runtime/src/runtime_system.rs` and `evaluation/pipeline/` | Implemented | `animation.evaluate` consumes the runtime contracts and is the only production pose/event evaluator. |
 | Sequence helpers | `animation/sequence.rs` and submodules | Implemented | Keep local because sequence sampling is animation-domain behavior, not generic scene behavior. |
 
@@ -96,7 +100,7 @@ Runtime 14 uses Bevy, Fyrox, and Godot only as boundary references, not as featu
 
 ## Ownership
 
-`zircon_runtime::animation` should keep its crate-root seat. Moving it into `core::framework::animation` would mix framework contracts with playback implementation, while moving playback into `scene` would make scene own asset-specific animation behavior.
+`zircon_runtime::animation` should keep its crate-root seat for manager and playback implementation. Neutral DTOs and inversion interfaces belong in `core::framework::animation`; moving project-asset loading or playback algorithms there would mix contracts with implementation, while moving them into `scene` would make scene own asset-specific animation behavior.
 
 `DefaultAnimationManager` is installed in the Runtime service registry, so its runtime back-reference is `CoreWeak`. Construction may borrow `&CoreHandle`, but the manager upgrades only at the playback-settings persistence boundary; a dead Runtime root skips persistence while the manager's already-owned local playback settings remain readable. This prevents the registry entry from retaining the root through `ServiceEntry.instance`.
 
@@ -104,7 +108,8 @@ The stable boundary is:
 
 - `core::framework::animation` defines contracts and DTOs.
 - `asset` owns serialized animation, graph, skeleton, and state machine asset shapes.
-- `animation` owns runtime contracts, manager access, sequence helpers, and the Level-owned event queue.
+- `animation` owns manager access, sequence helpers, project-asset clip-event sampling, and the concrete sampler.
+- `scene` owns the bounded Level event queue, age, retry, and overflow policy through the neutral sampler contract; it does not import the optional animation implementation.
 - `zircon_plugins/animation/runtime` owns plugin package metadata and the sole `animation.evaluate` runtime-system registration and evaluation pipeline.
 - `render` and `graphics` own GPU skinning and draw submission.
 
@@ -112,15 +117,15 @@ The stable boundary is:
 
 The prior `AnimationSceneFrameDiagnostics` and `animation.scene.scanned_entities` rows are Runtime 07 historical evidence, not a current production owner. The plugin evaluator now reports through its evaluation diagnostics while `LevelSystem` owns the bounded event backlog, age, overflow, unavailable-asset, and oversized-event state.
 
-This status is `animation_scene_frame_diagnostics_static_passed_cargo_deferred`. It gives Runtime 07 an evidence path for animation scene-hook frame cost before any M2 optimization is proposed; it does not move animation contracts into `core::framework::animation` and does not claim GPU skinning or draw submission ownership.
+This status is `animation_scene_frame_diagnostics_static_passed_cargo_deferred`. It gives Runtime 07 an evidence path for animation scene-hook frame cost before any M2 optimization is proposed; the neutral clip-event sampling contract does not move playback implementation into core and does not claim GPU skinning or draw submission ownership.
 
 Runtime 14 M0.1 is therefore complete as an architecture judgement. No code migration is required for this slice.
 
-Runtime 14 M1 adds `runtime_animation_backlog_boundary_requires_doc_update` as a backlog/non-goal guard. The guard locks this document to the current code facts: `apply_sequence_to_world` remains the public sequence application hook, `sequence_applies_mesh_renderer_morph_weight_track` proves the existing morph-weight property track baseline, root motion remains backlog debt, `render` and `graphics` own GPU skinning and draw submission, and editor authoring tools stay outside `zircon_runtime::animation`.
+Runtime 14 M1 adds `runtime_animation_backlog_boundary_requires_doc_update` as a backlog/non-goal guard. The guard locks this document to the current code facts: `compile_sequence_for_world` owns the import/edit boundary and `apply_compiled_sequence_to_world` applies its retained typed writers, `compiled_sequence_applies_mesh_renderer_morph_weight_track` proves the existing morph-weight property track baseline, root motion remains backlog debt, `render` and `graphics` own GPU skinning and draw submission, and editor authoring tools stay outside `zircon_runtime::animation`.
 
 Runtime 15 M1 animation manager folder-backed cutover is recorded as `runtime_15_animation_manager_folder_backed_cutover_static_passed_cargo_deferred`. Runtime 15 M1 adds `runtime_15_animation_manager_is_folder_backed` as the structure guard for the manager entry cutover. The guard locks the old flat `animation/manager.rs` path as retired, requires `animation/manager/mod.rs` to own `DefaultAnimationManager` and the child module mounts, and keeps graph, parameters, pose, sampling, and state-machine behavior in `animation/manager/{graph,parameters,pose,sampling,state_machine}.rs`. This closes the `manager.rs` plus `manager/` coexistence debt for animation without changing the service-registration behavior or public `DefaultAnimationManager` facade; the current canonical module identity is `animation.runtime`.
 
-Runtime 15 F5 animation typed errors is recorded as `runtime_15_animation_manager_typed_errors_static_passed_cargo_deferred`. `core::framework::animation` owns `AnimationError` and `AnimationResult`; `AnimationManager::sample_clip_pose`, concrete clip sampling, channel helpers, and the upper `animation::sequence::apply_sequence_to_world(...)` function return `AnimationResult` instead of public `Result<_, String>`. The Frameworks05 cut removed scene writeback from the neutral manager trait, so `animation.evaluate` invokes the upper sequence function directly. `review_f5_animation_manager_uses_animation_error` keeps typed errors synchronized without reintroducing `scene::World` into framework.
+Runtime 15 F5 animation typed errors is recorded as `runtime_15_animation_manager_typed_errors_static_passed_cargo_deferred`. `core::framework::animation` owns `AnimationError` and `AnimationResult`; `AnimationManager::sample_clip_pose`, concrete clip sampling, channel helpers, and `animation::sequence::{compile_sequence_for_world, apply_compiled_sequence_to_world(...)}` return `AnimationResult` instead of public `Result<_, String>`. The Frameworks05 cut removed scene writeback from the neutral manager trait, so `animation.evaluate` retains compiled sequence writers and invokes the compiled upper sequence function directly. `review_f5_animation_manager_uses_animation_error` keeps typed errors synchronized without reintroducing `scene::World` into framework.
 
 ## Playback Settings Lock Recovery
 

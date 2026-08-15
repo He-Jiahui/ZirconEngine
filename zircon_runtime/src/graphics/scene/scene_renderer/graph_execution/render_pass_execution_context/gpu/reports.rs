@@ -97,6 +97,39 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         self.light_grid_report.take()
     }
 
+    pub(in crate::graphics::scene::scene_renderer) fn record_taa_reactive_mask_encoding(
+        &mut self,
+        size: crate::core::math::UVec2,
+    ) {
+        self.taa_reactive_mask_encoded_pass_count =
+            self.taa_reactive_mask_encoded_pass_count.saturating_add(1);
+        self.taa_reactive_mask_encoded_write_bytes = self
+            .taa_reactive_mask_encoded_write_bytes
+            .saturating_add(u64::from(size.x) * u64::from(size.y));
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn taa_reactive_mask_encoding(
+        &self,
+    ) -> (usize, u64) {
+        (
+            self.taa_reactive_mask_encoded_pass_count,
+            self.taa_reactive_mask_encoded_write_bytes,
+        )
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn record_taa_resolve_bind_group_create(
+        &mut self,
+    ) {
+        self.taa_resolve_bind_group_create_count =
+            self.taa_resolve_bind_group_create_count.saturating_add(1);
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn taa_resolve_bind_group_create_count(
+        &self,
+    ) -> usize {
+        self.taa_resolve_bind_group_create_count
+    }
+
     pub(in crate::graphics::scene::scene_renderer) fn motion_vector_camera_status(
         &self,
     ) -> MotionVectorCameraStatus {

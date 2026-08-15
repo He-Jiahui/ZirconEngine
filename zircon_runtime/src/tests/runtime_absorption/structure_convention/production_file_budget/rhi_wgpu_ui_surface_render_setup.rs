@@ -6,12 +6,19 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
     let batching = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs");
     let batching_tests =
         read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching/tests.rs");
+    let image_cache = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/image_cache.rs");
+    let image_resource =
+        read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/image_cache/resource.rs");
+    let presentation =
+        read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/presentation.rs");
     let render_pass = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/render_pass.rs");
     let retained_cache =
         read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/retained_cache.rs");
     let surface_setup =
         read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/surface_setup.rs");
     let tests = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests.rs");
+    let native_submission_tests =
+        read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/tests/native_submission.rs");
     let text = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/text.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
@@ -22,7 +29,7 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
     let rhi_ui_doc = read_repo("docs/zircon_runtime/rhi/ui_surface.md");
 
     assert_contains_all(
-        "WGPU UI surface parent keeps presenter, renderer lifecycle, and image cache responsibilities",
+        "WGPU UI surface parent keeps presenter and renderer resource lifecycle responsibilities",
         &parent,
         &[
             "mod render_pass;",
@@ -30,8 +37,6 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
             "mod surface_setup;",
             "mod text;",
             "use render_pass::{",
-            "record_draw_ops_to_view",
-            "TargetLoad",
             "WgpuUiDrawBufferCache",
             "WgpuUiDrawBufferStats",
             "WgpuUiRecordedDrawStats",
@@ -41,9 +46,8 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
             "use surface_setup::{configure_surface, create_surface, instance_descriptor, request_device};",
             "use text::{WgpuUiTextPrepareStats, WgpuUiTextRenderer};",
             "fn present(",
-            "fn render_draw_list_to_surface",
-            "struct WgpuUiImageResource",
-            "fn image_cache_keys_to_prune",
+            "mod presentation;",
+            "use image_cache::WgpuUiImageCache;",
             "#[cfg(test)]",
             "mod tests;",
         ],
@@ -51,6 +55,10 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
     for moved_owner in [
         "struct WgpuUiDrawBuffers",
         "fn begin_ui_surface_pass",
+        "fn render_draw_list_to_surface",
+        "record_draw_ops_to_view",
+        "enum TargetLoad",
+        "struct WgpuUiImageResource",
         "struct WgpuRetainedSurfaceCache",
         "struct WgpuUiTextRenderer",
         "fn set_surface_viewport",
@@ -85,6 +93,39 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
         ],
     );
     assert_contains_all(
+        "image-cache child owns admission, prepare, and O(1) residency accounting",
+        &image_cache,
+        &[
+            "mod resource;",
+            "pub(super) use resource::WgpuUiImageResource;",
+            "pub(super) fn residency_stats",
+            "fn admit",
+            "fn invalidate",
+        ],
+    );
+    assert_contains_all(
+        "image-resource child owns texture and bind-group construction",
+        &image_resource,
+        &[
+            "pub(in super::super) struct WgpuUiImageResource",
+            "pub(in super::super) bind_group: wgpu::BindGroup",
+            "pub(super) fn new",
+            "pub(super) fn from_external",
+            "create_texture",
+            "create_bind_group",
+        ],
+    );
+    assert_contains_all(
+        "presentation child owns native submission and retained resize projection reuse",
+        &presentation,
+        &[
+            "fn render_draw_list_to_surface",
+            "RetainedProjectionCopy",
+            "fn surface_render_mode",
+            "fn render_damage",
+        ],
+    );
+    assert_contains_all(
         "render-pass child owns draw buffers and render-pass recording",
         &render_pass,
         &[
@@ -109,9 +150,12 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
         &retained_cache,
         &[
             "pub(super) struct WgpuRetainedSurfaceCache",
-            "pub(super) fn initialized",
+            "enum RetainedSurfaceState",
+            "pub(super) fn ordinary_baseline_ready",
+            "pub(super) fn is_projection_ready",
             "pub(super) fn matches",
-            "pub(super) fn mark_initialized",
+            "pub(super) fn mark_ordinary_baseline_ready",
+            "pub(super) fn mark_projection_ready",
             "pub(super) fn record_copy_to_surface",
             "fn retained_copy_byte_count",
         ],
@@ -136,8 +180,19 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
             "fn wgpu_ui_surface_presenter_records_present_stats",
             "fn wgpu_ui_surface_prefers_opaque_swapchain_alpha",
             "fn wgpu_ui_surface_uses_non_srgb_formats_for_byte_exact_editor_parity",
-            "fn wgpu_ui_surface_image_cache_prune_keeps_recent_entries",
-            "image_cache_keys_to_prune",
+            "fn target_only_resize_uses_retained_copy_only_after_the_projection_is_ready",
+            "fn wgpu_ui_surface_image_cache_admission_evicts_the_oldest_inactive_entry",
+            "mod native_submission;",
+        ],
+    );
+    assert_contains_all(
+        "native-submission tests child keeps WGPU submit and shared-device boundary coverage",
+        &native_submission_tests,
+        &[
+            "fn wgpu_ui_surface_marks_the_complete_present_submission_for_renderdoc",
+            "fn wgpu_ui_surface_shared_context_path_does_not_request_a_second_device",
+            "fn wgpu_ui_surface_external_image_path_uses_the_shared_texture_without_cpu_upload",
+            "fn wgpu_ui_surface_presents_submitted_frame_before_readback_error",
         ],
     );
     assert_contains_all(
@@ -158,6 +213,12 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
             "rhi_wgpu/ui_surface/batching/tests.rs",
             batching_tests.as_str(),
         ),
+        ("rhi_wgpu/ui_surface/image_cache.rs", image_cache.as_str()),
+        (
+            "rhi_wgpu/ui_surface/image_cache/resource.rs",
+            image_resource.as_str(),
+        ),
+        ("rhi_wgpu/ui_surface/presentation.rs", presentation.as_str()),
         ("rhi_wgpu/ui_surface/render_pass.rs", render_pass.as_str()),
         (
             "rhi_wgpu/ui_surface/retained_cache.rs",
@@ -168,6 +229,10 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
             surface_setup.as_str(),
         ),
         ("rhi_wgpu/ui_surface/tests.rs", tests.as_str()),
+        (
+            "rhi_wgpu/ui_surface/tests/native_submission.rs",
+            native_submission_tests.as_str(),
+        ),
         ("rhi_wgpu/ui_surface/text.rs", text.as_str()),
     ] {
         let line_count = source.lines().count();
@@ -183,7 +248,6 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
         ("review findings", review_findings.as_str()),
         ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
-        ("RHI UI surface doc", rhi_ui_doc.as_str()),
     ] {
         assert_contains_all(
             label,
@@ -199,4 +263,15 @@ fn runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners() {
             ],
         );
     }
+    assert_contains_all(
+        "RHI UI surface current owner and resize projection contract",
+        &rhi_ui_doc,
+        &[
+            "ui_surface/presentation.rs",
+            "generation-tagged native-resize projection",
+            "ordinary damage baseline",
+            "copy-only resize frames",
+            "runtime_15_rhi_wgpu_ui_surface_render_setup_are_child_owners",
+        ],
+    );
 }

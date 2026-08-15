@@ -2,6 +2,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceNativeFileSystem.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot '..\WindowsPathResolver.psm1') -Force -DisableNameChecking -ErrorAction Stop
 
 function Get-MvpBuildSummaryProperty {
     param(
@@ -75,6 +76,19 @@ function ConvertFrom-MvpBuildTimestamp {
     return $timestamp.ToUniversalTime()
 }
 
+function Assert-MvpBuildSummaryOperationalChildPath {
+    param(
+        [Parameter(Mandatory)][string]$RootPath,
+        [Parameter(Mandatory)][string]$CandidatePath,
+        [Parameter(Mandatory)][string]$Label
+    )
+
+    $rootPrefix = $RootPath.TrimEnd('\') + '\'
+    if (-not $CandidatePath.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "$Label '$CandidatePath' resolves outside build summary directory '$RootPath'."
+    }
+}
+
 function Assert-MvpBuildSummaryEvidence {
     param(
         [Parameter(Mandatory)][string]$Path,
@@ -82,10 +96,10 @@ function Assert-MvpBuildSummaryEvidence {
         [Parameter(Mandatory)][string]$ExpectedSourceFingerprint
     )
 
-    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+    $resolvedPath = (Resolve-ZirconWindowsPath -Path $Path).OperationalPath
+    if (-not [IO.File]::Exists($resolvedPath)) {
         throw "F5 $ExpectedKind build summary '$Path' does not exist or is not a file."
     }
-    $resolvedPath = (Resolve-Path -LiteralPath $Path).Path
     $summaryBytes = [IO.File]::ReadAllBytes($resolvedPath)
     try {
         $summaryText = [Text.UTF8Encoding]::new($false, $true).GetString($summaryBytes)
@@ -133,7 +147,10 @@ function Assert-MvpBuildSummaryEvidence {
         $gateById[$gateId] = $gate
     }
 
-    $summaryDirectory = Split-Path -Parent $resolvedPath
+    $summaryDirectory = [IO.Path]::GetDirectoryName($resolvedPath)
+    if ([string]::IsNullOrWhiteSpace($summaryDirectory)) {
+        throw "F5 $ExpectedKind build summary '$resolvedPath' does not have a parent directory."
+    }
     $gateArtifacts = [System.Collections.Generic.List[object]]::new()
     foreach ($contract in $requiredContracts) {
         $gateId = [string]$contract.gate_id
@@ -171,11 +188,16 @@ function Assert-MvpBuildSummaryEvidence {
         if (-not $relativeEvidencePath.Equals($expectedEvidencePath, [StringComparison]::Ordinal)) {
             throw "F5 $ExpectedKind gate '$gateId' evidence path must be '$expectedEvidencePath'; found '$relativeEvidencePath'."
         }
-        $sourceEvidencePath = Join-Path $summaryDirectory $relativeEvidencePath.Replace('/', '\')
-        if (-not (Test-Path -LiteralPath $sourceEvidencePath -PathType Leaf)) {
+        $sourceEvidencePath = Join-ZirconWindowsPath -Path $summaryDirectory -ChildPath $relativeEvidencePath.Replace('/', '\')
+        $resolvedEvidencePath = (Resolve-ZirconWindowsPath -Path $sourceEvidencePath).OperationalPath
+        Assert-MvpBuildSummaryOperationalChildPath `
+            -RootPath $summaryDirectory `
+            -CandidatePath $resolvedEvidencePath `
+            -Label "F5 $ExpectedKind gate '$gateId' evidence"
+        if (-not [IO.File]::Exists($resolvedEvidencePath)) {
             throw "F5 $ExpectedKind gate '$gateId' evidence '$sourceEvidencePath' does not exist."
         }
-        $evidenceBytes = [IO.File]::ReadAllBytes($sourceEvidencePath)
+        $evidenceBytes = [IO.File]::ReadAllBytes($resolvedEvidencePath)
         $evidenceHash = Get-MvpBytesSha256 -Bytes $evidenceBytes
         $declaredHash = [string](Get-MvpBuildSummaryProperty -Value $evidence -Name 'sha256' -Label "F5 $ExpectedKind gate '$gateId' evidence")
         if (-not $evidenceHash.Equals($declaredHash, [StringComparison]::OrdinalIgnoreCase)) {

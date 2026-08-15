@@ -6,8 +6,8 @@ use crate::core::editing::engine::{
 };
 use crate::core::editor_message::DocumentId;
 use crate::core::extension::{
-    DocumentToolkit, DocumentToolkitDescriptor, DocumentToolkitRegistry, SaveCtx,
-    ToolkitInstanceId, ToolkitLayout, ToolkitSaveFailure,
+    DocumentAutosavePayload, DocumentToolkit, DocumentToolkitDescriptor, DocumentToolkitRegistry,
+    SaveCtx, ToolkitInstanceId, ToolkitLayout, ToolkitSaveFailure,
 };
 use crate::core::gateway::EditorRuntimeGatewayHandle;
 
@@ -63,6 +63,14 @@ impl DocumentToolkit<()> for FixtureToolkit {
 
     fn save(&self, _host: &(), _context: &mut SaveCtx) -> Result<(), ToolkitSaveFailure> {
         Ok(())
+    }
+
+    fn autosave_source_path(&self, _host: &()) -> Result<std::path::PathBuf, ToolkitSaveFailure> {
+        Ok("fixture.zdoc".into())
+    }
+
+    fn capture_autosave(&self, _host: &()) -> Result<DocumentAutosavePayload, ToolkitSaveFailure> {
+        Ok(DocumentAutosavePayload::new("fixture.zdoc", Vec::new()))
     }
 }
 

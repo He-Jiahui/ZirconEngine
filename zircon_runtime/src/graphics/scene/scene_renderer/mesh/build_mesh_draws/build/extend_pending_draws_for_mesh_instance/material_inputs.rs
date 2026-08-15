@@ -59,9 +59,7 @@ pub(super) fn material_taa_reactive_mask_strength(material: Option<&MaterialRunt
         .clamp(0.0, 1.0)
 }
 
-pub(super) fn material_half_resolution_transparency(
-    material: Option<&MaterialRuntime>,
-) -> bool {
+pub(super) fn material_half_resolution_transparency(material: Option<&MaterialRuntime>) -> bool {
     material.is_some_and(|material| material.alpha_blend && material.separate_translucency)
 }
 

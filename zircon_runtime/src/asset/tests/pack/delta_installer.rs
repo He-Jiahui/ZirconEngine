@@ -285,11 +285,9 @@ fn delta_installer_writes_install_receipt_from_staging_and_promotion() {
         receipt.format_version,
         ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION
     );
-    assert!(
-        fs::read_to_string(&receipt_path)
-            .unwrap()
-            .contains("\"format_version\"")
-    );
+    assert!(fs::read_to_string(&receipt_path)
+        .unwrap()
+        .contains("\"format_version\""));
     let _ = fs::remove_dir_all(root);
 }
 
@@ -348,11 +346,9 @@ fn delta_installer_receipt_records_copy_fallback_promotion_method() {
         read_receipt.promotion_method,
         ZrPackPromotionMethod::CopiedAfterRenameFailure
     );
-    assert!(
-        fs::read_to_string(&receipt_path)
-            .unwrap()
-            .contains("\"promotion_method\"")
-    );
+    assert!(fs::read_to_string(&receipt_path)
+        .unwrap()
+        .contains("\"promotion_method\""));
     let _ = fs::remove_dir_all(root);
 }
 

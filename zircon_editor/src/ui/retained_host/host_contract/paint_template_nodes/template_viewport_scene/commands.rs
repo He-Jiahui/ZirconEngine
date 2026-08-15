@@ -10,7 +10,7 @@ use crate::ui::retained_host::host_contract::paint_template_nodes::render_comman
 use crate::ui::retained_host::host_contract::paint_template_nodes::template_viewport_scene_structure::push_base_surface;
 
 use super::geometry::pixel_aligned_rect;
-use super::identity::{ViewportSceneKind, viewport_scene_kind};
+use super::identity::{viewport_scene_kind, ViewportSceneKind};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_viewport_scene_commands(
     commands: &mut Vec<HostPaintCommand>,

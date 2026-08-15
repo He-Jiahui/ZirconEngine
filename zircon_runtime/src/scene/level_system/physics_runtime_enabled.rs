@@ -1,9 +1,20 @@
 use crate::core::framework::physics::{
-    PhysicsContactEvent, PhysicsTriggerEvent, PhysicsWorldStepPlan,
+    PhysicsContactEvent, PhysicsTriggerEvent, PhysicsWorldStepPlan, SimulatedPoseFeed,
+    SkeletalPoseTargets,
 };
+use crate::scene::world::World;
 use std::sync::Arc;
 
 use super::LevelSystem;
+
+pub(super) fn clear_retained_pose_resources(world: &mut World) {
+    if let Some(targets) = world.get_resource_mut::<SkeletalPoseTargets>() {
+        targets.clear();
+    }
+    if let Some(feed) = world.get_resource_mut::<SimulatedPoseFeed>() {
+        feed.clear();
+    }
+}
 
 /// Immutable physics payload published by one LevelSystem physics revision.
 ///
@@ -97,22 +108,37 @@ impl LevelSystem {
         Arc::clone(self.physics_frame_snapshot().triggers())
     }
 
-    pub fn record_physics_step(
+    /// Publishes physics output only while the producer still targets the installed World.
+    ///
+    /// The World lane is acquired before the physics publication lane, matching replacement's
+    /// lock order. This makes a replacement between simulation and publication retire the
+    /// result instead of exposing it through the next World's frame state.
+    pub fn record_physics_step_if_replacement_epoch(
         &self,
+        replacement_epoch: u64,
         step_plan: PhysicsWorldStepPlan,
         contacts: Vec<PhysicsContactEvent>,
         triggers: Vec<PhysicsTriggerEvent>,
-    ) {
+    ) -> bool {
+        let _world = self.lock_world();
+        if self
+            .world_replacement_epoch
+            .load(std::sync::atomic::Ordering::Acquire)
+            != replacement_epoch
+        {
+            return false;
+        }
         let mut state = self.lock_physics_state();
         let published = &state.snapshot;
         if published.step_plan() == Some(step_plan)
             && published.contacts().as_ref() == contacts.as_slice()
             && published.triggers().as_ref() == triggers.as_slice()
         {
-            return;
+            return true;
         }
 
         state.snapshot = Arc::new(published.with_values(step_plan, contacts, triggers));
+        true
     }
 }
 
@@ -143,11 +169,12 @@ mod tests {
             interpolation_alpha: 0.0,
         };
 
-        level.record_physics_step(
+        assert!(level.record_physics_step_if_replacement_epoch(
+            level.capture_world_replacement_epoch(),
             plan,
             Vec::<PhysicsContactEvent>::new(),
             Vec::<PhysicsTriggerEvent>::new(),
-        );
+        ));
 
         assert_eq!(level.last_physics_step_plan(), Some(plan));
         assert!(level.physics_contacts().is_empty());
@@ -172,11 +199,13 @@ mod tests {
         };
         let initial = level.physics_frame_snapshot();
 
-        level.record_physics_step(
+        let replacement_epoch = level.capture_world_replacement_epoch();
+        assert!(level.record_physics_step_if_replacement_epoch(
+            replacement_epoch,
             plan,
             Vec::<PhysicsContactEvent>::new(),
             Vec::<PhysicsTriggerEvent>::new(),
-        );
+        ));
         let published = level.physics_frame_snapshot();
         assert_eq!(initial.generation(), 0);
         assert_eq!(published.generation(), 1);
@@ -184,11 +213,12 @@ mod tests {
         assert!(published.contacts().is_empty());
         assert!(published.triggers().is_empty());
 
-        level.record_physics_step(
+        assert!(level.record_physics_step_if_replacement_epoch(
+            replacement_epoch,
             plan,
             Vec::<PhysicsContactEvent>::new(),
             Vec::<PhysicsTriggerEvent>::new(),
-        );
+        ));
         assert!(Arc::ptr_eq(&published, &level.physics_frame_snapshot()));
         assert!(Arc::ptr_eq(published.contacts(), &level.physics_contacts()));
         assert!(Arc::ptr_eq(published.triggers(), &level.physics_triggers()));
@@ -199,5 +229,24 @@ mod tests {
         assert!(!Arc::ptr_eq(&published, &reset));
         assert!(reset.contacts().is_empty());
         assert_eq!(published.step_plan(), Some(plan));
+    }
+
+    #[test]
+    fn physics_runtime_state_rejects_publication_from_a_retired_replacement_epoch() {
+        let level = LevelSystem::new(
+            WorldHandle::new(44),
+            Arc::new(Mutex::new(World::empty())),
+            LevelMetadata::default(),
+        );
+        let retired_epoch = level.capture_world_replacement_epoch();
+        level.replace_world_and_reset_runtime_state(World::empty());
+
+        assert!(!level.record_physics_step_if_replacement_epoch(
+            retired_epoch,
+            PhysicsWorldStepPlan::default(),
+            Vec::new(),
+            Vec::new(),
+        ));
+        assert_eq!(level.last_physics_step_plan(), None);
     }
 }

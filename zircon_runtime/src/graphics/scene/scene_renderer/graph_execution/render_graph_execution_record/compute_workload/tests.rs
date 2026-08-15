@@ -10,7 +10,7 @@ use super::{
 };
 
 fn dispatch_context() -> RenderGraphComputeWorkloadDispatchContext {
-    RenderGraphComputeWorkloadDispatchContext::new([320, 240], [40, 30], [1024, 1024], 130)
+    RenderGraphComputeWorkloadDispatchContext::new([40, 30], [1024, 1024], 130)
 }
 
 #[test]
@@ -19,8 +19,14 @@ fn froxel_dispatch_extent_tracks_quality_scaled_3d_and_xy_workloads() {
     let scatter = RenderGraphComputeWorkload::froxel_grid("scatter", [4, 4, 4]);
     let integrate = RenderGraphComputeWorkload::froxel_grid_xy("integrate", [8, 8, 1]);
 
-    assert_eq!(context.expected_dispatch_groups(&scatter), [40, 23, 24]);
-    assert_eq!(context.expected_dispatch_groups(&integrate), [20, 12, 1]);
+    assert_eq!(
+        context.expected_dispatch_groups(&scatter),
+        Some([40, 23, 24])
+    );
+    assert_eq!(
+        context.expected_dispatch_groups(&integrate),
+        Some([20, 12, 1])
+    );
 }
 
 #[test]
@@ -29,7 +35,7 @@ fn execution_record_tracks_compute_dispatch_metadata() {
 
     record.push_compute_dispatch(RenderGraphComputeDispatchRecord::new(
         "ssao-evaluate",
-        "ao.ssao-evaluate",
+        "compute.generic",
         "zircon-ssao-pipeline",
         [8, 8, 1],
         [40, 30, 1],
@@ -89,7 +95,7 @@ fn execution_record_aggregates_volumetric_compute_performance_metrics() {
     record.push_compute_dispatch(
         RenderGraphComputeDispatchRecord::new(
             "ssao-evaluate",
-            "ao.ssao-evaluate",
+            "compute.generic",
             "zircon-ssao-pipeline",
             [8, 8, 1],
             [20, 12, 1],
@@ -118,11 +124,14 @@ fn execution_record_audits_planned_compute_workloads_against_dispatches() {
     let planned = RenderGraphComputeWorkload::new(
         "zircon-ssao-pipeline",
         [8, 8, 1],
-        RenderGraphComputeDispatchExtent::Viewport,
+        RenderGraphComputeDispatchExtent::PerPixel {
+            target: "ambient-occlusion".to_string(),
+            local_size: [8, 8],
+        },
     );
     let matched = RenderGraphComputeDispatchRecord::new(
         "ssao-evaluate",
-        "ao.ssao-evaluate",
+        "compute.generic",
         "zircon-ssao-pipeline",
         [8, 8, 1],
         [40, 30, 1],
@@ -139,7 +148,7 @@ fn execution_record_audits_planned_compute_workloads_against_dispatches() {
 
     record.audit_compute_workload(
         "ssao-evaluate",
-        "ao.ssao-evaluate",
+        "compute.generic",
         Some(&planned),
         dispatch_context(),
         std::slice::from_ref(&matched),
@@ -336,8 +345,7 @@ fn compute_workload_audit_preserves_matching_then_unexpected_dispatch_order() {
 #[test]
 fn execution_record_audits_zero_indirect_arg_workload_as_zero_groups() {
     let mut record = RenderGraphExecutionRecord::default();
-    let context =
-        RenderGraphComputeWorkloadDispatchContext::new([320, 240], [40, 30], [1024, 1024], 0);
+    let context = RenderGraphComputeWorkloadDispatchContext::new([40, 30], [1024, 1024], 0);
 
     record.audit_compute_workload(
         "hzb-occlusion-cull",
@@ -370,9 +378,8 @@ fn execution_record_audits_zero_indirect_arg_workload_as_zero_groups() {
 #[test]
 fn execution_record_audits_phase_local_indirect_arg_workload_groups() {
     let mut record = RenderGraphExecutionRecord::default();
-    let context =
-        RenderGraphComputeWorkloadDispatchContext::new([320, 240], [40, 30], [1024, 1024], 3)
-            .with_indirect_args_dispatch_group_count(3);
+    let context = RenderGraphComputeWorkloadDispatchContext::new([40, 30], [1024, 1024], 3)
+        .with_indirect_args_dispatch_group_count(3);
 
     record.audit_compute_workload(
         "hzb-occlusion-cull",
@@ -405,8 +412,7 @@ fn execution_record_audits_phase_local_indirect_arg_workload_groups() {
 #[test]
 fn execution_record_accepts_gpu_generated_indirect_group_count_without_cpu_readback() {
     let mut record = RenderGraphExecutionRecord::default();
-    let context =
-        RenderGraphComputeWorkloadDispatchContext::new([320, 240], [40, 30], [1024, 1024], 0);
+    let context = RenderGraphComputeWorkloadDispatchContext::new([40, 30], [1024, 1024], 0);
     let actual = RenderGraphComputeDispatchRecord::new(
         "sss.scatter",
         "sss.scatter",
@@ -439,16 +445,82 @@ fn execution_record_accepts_gpu_generated_indirect_group_count_without_cpu_readb
 }
 
 #[test]
+fn resource_bound_dispatch_extents_keep_planned_groups_unknown_to_cpu_audit() {
+    let context = dispatch_context();
+    let from_buffer =
+        RenderGraphComputeWorkload::from_buffer("indirect-pipeline", [8, 1, 1], "dispatch-args", 0);
+    let per_pixel = RenderGraphComputeWorkload::per_pixel(
+        "per-pixel-pipeline",
+        [8, 8, 1],
+        "output-color",
+        [8, 8],
+    );
+
+    assert_eq!(context.expected_dispatch_groups(&from_buffer), None);
+    assert_eq!(context.expected_dispatch_groups(&per_pixel), None);
+
+    let mut record = RenderGraphExecutionRecord::default();
+    record.audit_compute_workload(
+        "indirect",
+        "compute.indirect",
+        Some(&from_buffer),
+        context,
+        &[RenderGraphComputeDispatchRecord::new(
+            "indirect",
+            "compute.indirect",
+            "indirect-pipeline",
+            [8, 1, 1],
+            [0, 1, 1],
+            Vec::new(),
+        )
+        .with_gpu_indirect_dispatch_groups()],
+    );
+    record.audit_compute_workload(
+        "per-pixel",
+        "compute.per-pixel",
+        Some(&per_pixel),
+        context,
+        &[RenderGraphComputeDispatchRecord::new(
+            "per-pixel",
+            "compute.per-pixel",
+            "per-pixel-pipeline",
+            [8, 8, 1],
+            [40, 30, 1],
+            Vec::new(),
+        )],
+    );
+
+    assert_eq!(record.compute_workload_matched_count(), 2);
+    assert_eq!(record.compute_workload_mismatch_count(), 0);
+    assert_eq!(
+        record.compute_workload_audit()[0].planned_dispatch_groups,
+        None
+    );
+    assert_eq!(
+        record.compute_workload_audit()[0].actual_dispatch_groups,
+        None
+    );
+    assert_eq!(
+        record.compute_workload_audit()[1].planned_dispatch_groups,
+        None
+    );
+    assert_eq!(
+        record.compute_workload_audit()[1].actual_dispatch_groups,
+        Some([40, 30, 1])
+    );
+}
+
+#[test]
 fn execution_record_flags_compute_workload_label_workgroup_and_extent_mismatches() {
     let mut record = RenderGraphExecutionRecord::default();
     let planned = RenderGraphComputeWorkload::new(
         "zircon-ssao-pipeline",
         [8, 8, 1],
-        RenderGraphComputeDispatchExtent::Viewport,
+        RenderGraphComputeDispatchExtent::Fixed([40, 30, 1]),
     );
     let wrong_label = RenderGraphComputeDispatchRecord::new(
         "ssao-evaluate",
-        "ao.ssao-evaluate",
+        "compute.generic",
         "other-pipeline",
         [8, 8, 1],
         [40, 30, 1],
@@ -456,7 +528,7 @@ fn execution_record_flags_compute_workload_label_workgroup_and_extent_mismatches
     );
     let wrong_workgroup = RenderGraphComputeDispatchRecord::new(
         "ssao-evaluate-2",
-        "ao.ssao-evaluate",
+        "compute.generic",
         "zircon-ssao-pipeline",
         [16, 8, 1],
         [40, 30, 1],
@@ -464,7 +536,7 @@ fn execution_record_flags_compute_workload_label_workgroup_and_extent_mismatches
     );
     let wrong_extent = RenderGraphComputeDispatchRecord::new(
         "ssao-evaluate-3",
-        "ao.ssao-evaluate",
+        "compute.generic",
         "zircon-ssao-pipeline",
         [8, 8, 1],
         [39, 30, 1],
@@ -473,21 +545,21 @@ fn execution_record_flags_compute_workload_label_workgroup_and_extent_mismatches
 
     record.audit_compute_workload(
         "ssao-evaluate",
-        "ao.ssao-evaluate",
+        "compute.generic",
         Some(&planned),
         dispatch_context(),
         &[wrong_label],
     );
     record.audit_compute_workload(
         "ssao-evaluate-2",
-        "ao.ssao-evaluate",
+        "compute.generic",
         Some(&planned),
         dispatch_context(),
         &[wrong_workgroup],
     );
     record.audit_compute_workload(
         "ssao-evaluate-3",
-        "ao.ssao-evaluate",
+        "compute.generic",
         Some(&planned),
         dispatch_context(),
         &[wrong_extent],

@@ -3,7 +3,7 @@ use zircon_runtime::scene::components::NodeKind;
 
 use crate::core::play::PlayKind;
 
-use super::{ConsoleMessageFilter, ViewDescriptorId};
+use super::{ConsoleMessageFilter, ConsoleSourceFilter, ViewDescriptorId};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MenuAction {
@@ -16,6 +16,7 @@ pub enum MenuAction {
     ResetLayout,
     ClearConsole,
     SetConsoleMessageFilter(ConsoleMessageFilter),
+    SetConsoleSourceFilter(ConsoleSourceFilter),
     SelectPlayMode(PlayKind),
     EnterPlayMode,
     ExitPlayMode,

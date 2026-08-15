@@ -209,6 +209,20 @@ fn focus_effects_clear_only_their_current_input_owner() {
     );
 
     assert_eq!(surface.focus.focused, Some(UiNodeId::new(3)));
+    assert!(
+        surface
+            .component_state(UiNodeId::new(3))
+            .unwrap()
+            .flags
+            .focused
+    );
+    assert!(
+        !surface
+            .component_state(UiNodeId::new(3))
+            .unwrap()
+            .flags
+            .focus_visible
+    );
     assert_eq!(surface.input.input_method_owner, None);
     assert!(focus_change.rejected_effects.is_empty());
 }

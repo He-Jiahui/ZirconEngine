@@ -5,6 +5,6 @@ mod raster_commands;
 mod surface;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use identity::{
-    ChartKind, chart_kind,
+    chart_kind, ChartKind,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use surface::push_chart;

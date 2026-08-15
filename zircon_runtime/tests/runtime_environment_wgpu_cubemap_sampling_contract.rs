@@ -48,7 +48,16 @@ fn wgsl_line_break_len_at(bytes: &[u8], index: usize) -> Option<usize> {
 fn is_wgsl_blankspace_character(character: char) -> bool {
     matches!(
         character,
-        ' ' | '\t' | '\n' | '\u{000B}' | '\u{000C}' | '\r' | '\u{0085}' | '\u{200E}' | '\u{200F}' | '\u{2028}' | '\u{2029}'
+        ' ' | '\t'
+            | '\n'
+            | '\u{000B}'
+            | '\u{000C}'
+            | '\r'
+            | '\u{0085}'
+            | '\u{200E}'
+            | '\u{200F}'
+            | '\u{2028}'
+            | '\u{2029}'
     )
 }
 
@@ -325,7 +334,9 @@ fn function_body_ignores_nested_block_comment_signatures() {
 
 #[test]
 fn function_body_ends_line_comments_at_each_wgsl_line_break() {
-    for line_break in ["\r", "\u{000B}", "\u{000C}", "\u{0085}", "\u{2028}", "\u{2029}"] {
+    for line_break in [
+        "\r", "\u{000B}", "\u{000C}", "\u{0085}", "\u{2028}", "\u{2029}",
+    ] {
         let source = format!(
             "// fn commented() {{ stale; }}{line_break}fn commented() {{ let sentinel = 1; }}"
         );
@@ -372,7 +383,10 @@ fn wgsl_function_call_scan_accepts_whitespace_but_not_identifiers_or_comments() 
         "sin"
     ));
     assert!(!contains_wgsl_function_call("\u{0394}sin (value)", "sin"));
-    assert!(!contains_wgsl_function_call("let result = asin (value);", "sin"));
+    assert!(!contains_wgsl_function_call(
+        "let result = asin (value);",
+        "sin"
+    ));
 }
 
 #[test]
@@ -500,7 +514,10 @@ fn runtime_environment_skybox_reuses_reconstructed_normalized_direction() {
 
 #[test]
 fn runtime_environment_source_cubemap_reflections_use_pmrem_before_procedural_fallback() {
-    let reflection = function_body(ENVIRONMENT_SHADER, "fn zr_environment_sky_reflection_color(");
+    let reflection = function_body(
+        ENVIRONMENT_SHADER,
+        "fn zr_environment_sky_reflection_color(",
+    );
 
     for expected in [
         "if (zr_environment_is_source_cubemap() || zr_environment_is_realtime_ibl())",
@@ -569,7 +586,10 @@ fn runtime_environment_procedural_pbr_reuses_normalized_directions() {
         "the public procedural-sky wrapper must retain defensive normalization"
     );
 
-    let diffuse = function_body(ENVIRONMENT_SHADER, "fn zr_environment_diffuse_color_normalized(");
+    let diffuse = function_body(
+        ENVIRONMENT_SHADER,
+        "fn zr_environment_diffuse_color_normalized(",
+    );
     assert!(
         contains_wgsl_function_call(&diffuse, "zr_environment_procedural_sky_color_normalized")
             && diffuse.contains("zr_environment_procedural_sky_color_normalized(normal)"),
@@ -810,8 +830,10 @@ fn runtime_environment_full_metal_skips_zero_weight_diffuse_ibl() {
 
 #[test]
 fn runtime_environment_pbr_diffuse_reuses_its_normalized_normal() {
-    let normalized_diffuse =
-        function_body(ENVIRONMENT_SHADER, "fn zr_environment_diffuse_color_normalized(");
+    let normalized_diffuse = function_body(
+        ENVIRONMENT_SHADER,
+        "fn zr_environment_diffuse_color_normalized(",
+    );
 
     assert!(
         contains_wgsl_function_call(&normalized_diffuse, "zr_environment_sh9_color_normalized")
@@ -833,8 +855,10 @@ fn runtime_environment_pbr_diffuse_reuses_its_normalized_normal() {
 
 #[test]
 fn runtime_environment_sh9_diffuse_tracks_runtime_sky_rotation() {
-    let normalized_diffuse =
-        function_body(ENVIRONMENT_SHADER, "fn zr_environment_diffuse_color_normalized(");
+    let normalized_diffuse = function_body(
+        ENVIRONMENT_SHADER,
+        "fn zr_environment_diffuse_color_normalized(",
+    );
 
     assert_eq!(
         normalized_diffuse
@@ -844,7 +868,10 @@ fn runtime_environment_sh9_diffuse_tracks_runtime_sky_rotation() {
         "source and realtime SH9 diffuse must share the rotation-aware normalized owner"
     );
 
-    let rotated_sh9 = function_body(ENVIRONMENT_SHADER, "fn zr_environment_sh9_color_normalized(");
+    let rotated_sh9 = function_body(
+        ENVIRONMENT_SHADER,
+        "fn zr_environment_sh9_color_normalized(",
+    );
     let rotation = rotated_sh9
         .find("let rotated = zr_environment_rotated_direction(normal);")
         .expect("SH9 diffuse must rotate the normalized world normal with the runtime sky");

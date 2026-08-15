@@ -1,14 +1,14 @@
 use std::sync::{
-    Arc, Mutex, MutexGuard,
     atomic::{AtomicBool, Ordering},
+    Arc, Mutex, MutexGuard,
 };
 
-use crate::core::JobHandle;
 use crate::core::framework::tasks::{AsyncTaskDescriptor, AsyncTaskStatus};
+use crate::core::JobHandle;
 
 use super::super::DynamicSceneError;
-use super::SpawnTaskResult;
 use super::prepared::PreparedDynamicSceneSpawn;
+use super::SpawnTaskResult;
 
 /// Background scene-load/preparation task; world mutation stays on the caller thread.
 #[derive(Debug)]
@@ -123,7 +123,7 @@ pub(super) fn lock_spawn_result(
 
 #[cfg(test)]
 mod tests {
-    use std::panic::{AssertUnwindSafe, catch_unwind};
+    use std::panic::{catch_unwind, AssertUnwindSafe};
 
     use crate::core::framework::tasks::{AsyncTaskHandle, AsyncTaskState};
 

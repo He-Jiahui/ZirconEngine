@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak};
 
 use crate::core::framework::script::ScriptHostValue;
-use crate::core::{CoreError, CoreHandle, CoreRuntime, PluginContext};
+use crate::core::{CoreError, CoreHandle, CoreRuntime, JobScheduler, PluginContext};
 
 use super::super::backend::{BuiltinVmBackendFamily, VmBackendFamily, VmBackendRegistry, VmError};
 use super::super::gc_bridge::{VmGcBudget, VmGcStepReport};
@@ -17,7 +17,8 @@ use super::super::host_interface::{
     VmSystemRegistration, VmSystemStage,
 };
 use super::super::plugin::{
-    discover_vm_plugin_packages, DiscoveredVmPluginPackage, VmPluginPackage, VmPluginPackageSource,
+    DiscoveredVmPluginPackage, VmPluginDiscoveryRequest, VmPluginDiscoveryWorker, VmPluginPackage,
+    VmPluginPackageSource, VmPluginPayloadCache,
 };
 use super::super::reflection::{VmReflectionCatalog, VM_REFLECTION_WORLD_EXTENSION_NAME};
 use super::hot_reload_coordinator::HotReloadCoordinator;
@@ -34,6 +35,8 @@ pub struct VmPluginManager {
     host_interfaces: VmHostInterfaceRegistry,
     reflection_catalog: VmReflectionCatalog,
     coordinator: HotReloadCoordinator,
+    discovery_worker: VmPluginDiscoveryWorker,
+    payload_cache: VmPluginPayloadCache,
     backends: VmBackendRegistry,
     selected_backend: RwLock<String>,
 }
@@ -120,6 +123,18 @@ impl VmPluginManager {
         host: HostRegistry,
         host_exports: HostExportRegistry,
     ) -> Arc<Self> {
+        let discovery_worker = plugin_context
+            .core
+            .upgrade()
+            .map(|core| {
+                let io_pool = core.task_pools().io().clone();
+                VmPluginDiscoveryWorker::with_io_pool(
+                    Default::default(),
+                    io_pool.clone(),
+                    JobScheduler::from_pool(io_pool),
+                )
+            })
+            .unwrap_or_default();
         let manager = Arc::new_cyclic(|weak| Self {
             self_ref: weak.clone(),
             plugin_context,
@@ -128,6 +143,8 @@ impl VmPluginManager {
             host_interfaces: VmHostInterfaceRegistry::default(),
             reflection_catalog: VmReflectionCatalog::default(),
             coordinator: HotReloadCoordinator::new(),
+            discovery_worker,
+            payload_cache: VmPluginPayloadCache::default(),
             backends: VmBackendRegistry::new(),
             selected_backend: RwLock::new(DEFAULT_BACKEND_SELECTOR.to_string()),
         });
@@ -157,7 +174,20 @@ impl VmPluginManager {
         &self,
         root: impl AsRef<Path>,
     ) -> Result<Vec<DiscoveredVmPluginPackage>, VmError> {
-        discover_vm_plugin_packages(root)
+        if self.discovery_worker.is_current_io_worker() {
+            return Err(VmError::Operation(
+                "synchronous plugin discovery cannot wait from its own I/O worker; use submit_package_discovery"
+                    .to_string(),
+            ));
+        }
+        self.submit_package_discovery(root)?.wait()
+    }
+
+    pub fn submit_package_discovery(
+        &self,
+        root: impl AsRef<Path>,
+    ) -> Result<VmPluginDiscoveryRequest, VmError> {
+        self.discovery_worker.submit(root.as_ref().to_path_buf())
     }
 
     pub fn load_package(&self, package: VmPluginPackage) -> Result<PluginSlotId, VmError> {
@@ -173,8 +203,11 @@ impl VmPluginManager {
         let backend = self.backends.resolve(backend_name)?;
         let host =
             self.build_host_context(backend_name, &package, VmPluginPackageSource::default());
-        self.coordinator
-            .load_package(backend_name, backend.as_ref(), package, &host)
+        let result = self
+            .coordinator
+            .load_package(backend_name, backend.as_ref(), package, &host);
+        self.publish_active_interfaces();
+        result
     }
 
     pub fn load_discovered_package(
@@ -182,17 +215,17 @@ impl VmPluginManager {
         package: &DiscoveredVmPluginPackage,
     ) -> Result<PluginSlotId, VmError> {
         let backend = self.backends.resolve(&package.backend_name)?;
-        let host = self.build_host_context(
-            &package.backend_name,
-            &package.package,
-            package.source.clone(),
-        );
-        self.coordinator.load_package(
+        let materialized = self.payload_cache.materialize(package)?;
+        let host =
+            self.build_host_context(&package.backend_name, &materialized, package.source.clone());
+        let result = self.coordinator.load_package(
             &package.backend_name,
             backend.as_ref(),
-            package.package.clone(),
+            materialized,
             &host,
-        )
+        );
+        self.publish_active_interfaces();
+        result
     }
 
     pub fn hot_reload_slot(
@@ -213,8 +246,11 @@ impl VmPluginManager {
         let backend = self.backends.resolve(backend_name)?;
         let host =
             self.build_host_context(backend_name, &package, VmPluginPackageSource::default());
-        self.coordinator
-            .hot_reload(slot, backend_name, backend.as_ref(), package, &host)
+        let result =
+            self.coordinator
+                .hot_reload(slot, backend_name, backend.as_ref(), package, &host);
+        self.publish_active_interfaces();
+        result
     }
 
     pub fn hot_reload_discovered_slot(
@@ -223,22 +259,24 @@ impl VmPluginManager {
         package: &DiscoveredVmPluginPackage,
     ) -> Result<(), VmError> {
         let backend = self.backends.resolve(&package.backend_name)?;
-        let host = self.build_host_context(
-            &package.backend_name,
-            &package.package,
-            package.source.clone(),
-        );
-        self.coordinator.hot_reload(
+        let materialized = self.payload_cache.materialize(package)?;
+        let host =
+            self.build_host_context(&package.backend_name, &materialized, package.source.clone());
+        let result = self.coordinator.hot_reload(
             slot,
             &package.backend_name,
             backend.as_ref(),
-            package.package.clone(),
+            materialized,
             &host,
-        )
+        );
+        self.publish_active_interfaces();
+        result
     }
 
     pub fn unload_slot(&self, slot: PluginSlotId) -> Result<(), VmError> {
-        self.coordinator.unload_slot(slot).map(|_| ())
+        let result = self.coordinator.unload_slot(slot).map(|_| ());
+        self.publish_active_interfaces();
+        result
     }
 
     pub fn slot(&self, slot: PluginSlotId) -> Result<VmPluginSlotRecord, VmError> {
@@ -246,7 +284,23 @@ impl VmPluginManager {
     }
 
     pub fn slot_for_package_name(&self, package_name: &str) -> Result<PluginSlotId, VmError> {
-        self.coordinator.slot_for_package_name(package_name)
+        let Some(matches) = self.host_interfaces.active_slots_for_package(package_name) else {
+            return Err(VmError::Operation(format!(
+                "vm plugin package {package_name} is not loaded"
+            )));
+        };
+        let Some(slot) = matches.first().copied() else {
+            return Err(VmError::Operation(format!(
+                "vm plugin package {package_name} is not loaded"
+            )));
+        };
+        if matches.len() > 1 {
+            return Err(VmError::Operation(format!(
+                "vm plugin package name {package_name} is ambiguous across active slots {:?}",
+                matches.iter().map(|slot| slot.get()).collect::<Vec<_>>()
+            )));
+        }
+        Ok(slot)
     }
 
     pub fn call_slot_export(
@@ -281,10 +335,11 @@ impl VmPluginManager {
         let slot = self
             .slot_for_package_name(package_name)
             .map_err(VmHostInterfaceError::CallbackFailed)?;
-        let record = self
-            .slot(slot)
-            .map_err(VmHostInterfaceError::CallbackFailed)?;
-        let caller = VmInterfaceCaller::new(slot, record.generation, record.manifest.capabilities);
+        let (generation, capabilities) =
+            self.host_interfaces.active_owner(slot).ok_or_else(|| {
+                VmHostInterfaceError::CallbackFailed(VmError::MissingSlot(slot.get()))
+            })?;
+        let caller = VmInterfaceCaller::new(slot, generation, capabilities);
         self.host_interfaces
             .intern_callback(&caller, module_name, export_name)
     }
@@ -314,11 +369,12 @@ impl VmPluginManager {
         stage: VmSystemStage,
         delta_seconds: f32,
     ) -> Result<usize, VmHostInterfaceError> {
-        let systems = self.registered_systems(stage);
+        let systems = self.host_interfaces.systems_snapshot(stage);
         let system_count = systems.len();
-        for mut system in systems {
+        for system in systems.iter() {
+            let mut callback = system.callback;
             self.invoke_callback(
-                &mut system.callback,
+                &mut callback,
                 &[ScriptHostValue::Float(f64::from(delta_seconds))],
             )?;
         }
@@ -327,22 +383,22 @@ impl VmPluginManager {
 
     /// Returns active VM system descriptors for one scheduler stage.
     pub fn registered_systems(&self, stage: VmSystemStage) -> Vec<VmSystemRegistration> {
-        self.host_interfaces.systems(&self.list_slots(), stage)
+        self.host_interfaces.active_systems(stage)
     }
 
     /// Returns active behavior-node descriptors for AI adapters.
     pub fn registered_behavior_nodes(&self) -> Vec<VmBehaviorNodeRegistration> {
-        self.host_interfaces.behavior_nodes(&self.list_slots())
+        self.host_interfaces.active_behavior_nodes()
     }
 
     /// Returns active RPC-handler descriptors for networking adapters.
     pub fn registered_rpc_handlers(&self) -> Vec<VmRpcHandlerRegistration> {
-        self.host_interfaces.rpc_handlers(&self.list_slots())
+        self.host_interfaces.active_rpc_handlers()
     }
 
     /// Returns active editor-operation descriptors for editor adapters.
     pub fn registered_editor_operations(&self) -> Vec<VmEditorOperationRegistration> {
-        self.host_interfaces.editor_operations(&self.list_slots())
+        self.host_interfaces.active_editor_operations()
     }
 
     pub fn list_slots(&self) -> Vec<VmPluginSlotRecord> {
@@ -373,6 +429,24 @@ impl VmPluginManager {
 
     pub fn base_plugin_context(&self) -> &PluginContext {
         &self.plugin_context
+    }
+
+    pub(crate) fn active_generation(&self, slot: PluginSlotId) -> Result<u32, VmError> {
+        self.host_interfaces
+            .active_generation(slot)
+            .ok_or(VmError::MissingSlot(slot.get()))
+    }
+
+    #[cfg(test)]
+    pub(crate) fn active_plugin_snapshot(
+        &self,
+    ) -> Arc<super::super::host_interface::VmHostInterfaceActiveSnapshot> {
+        self.host_interfaces.active_snapshot()
+    }
+
+    fn publish_active_interfaces(&self) {
+        self.host_interfaces
+            .publish_active_slots(self.coordinator.active_slots());
     }
 
     fn detached_plugin_context() -> PluginContext {

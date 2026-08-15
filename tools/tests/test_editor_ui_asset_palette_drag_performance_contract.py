@@ -46,11 +46,23 @@ class EditorUiAssetPaletteDragPerformanceContractTests(unittest.TestCase):
         lifecycle = (
             ROOT / "zircon_editor/src/ui/asset_editor/session/lifecycle.rs"
         ).read_text(encoding="utf-8")
+        palette_catalog_lifecycle = (
+            ROOT
+            / "zircon_editor/src/ui/asset_editor/session/lifecycle/palette_catalog.rs"
+        ).read_text(encoding="utf-8")
 
         self.assertIn("selected_palette_entry: Option<UiAssetPaletteEntry>", session)
-        self.assertIn("self.selected_palette_entry = self", lifecycle)
-        self.assertIn(".selected_palette_index", lifecycle)
-        self.assertIn(".and_then(|index| palette_entries.get(index).cloned())", lifecycle)
+        self.assertIn("palette_catalog: UiAssetPaletteCatalog", session)
+        self.assertIn("palette_catalog::reconcile_palette_catalog_selection(self);", lifecycle)
+        self.assertIn("palette_catalog::refresh_palette_catalog(self)?;", lifecycle)
+        self.assertIn("session.selected_palette_entry = session", palette_catalog_lifecycle)
+        self.assertIn("session.selected_palette_index", palette_catalog_lifecycle)
+        self.assertIn(
+            ".and_then(|index| session.palette_catalog.entry(index).cloned())",
+            palette_catalog_lifecycle,
+        )
+        self.assertNotIn("build_palette_entries", lifecycle)
+        self.assertNotIn("build_palette_entries", palette_catalog_lifecycle)
 
     def test_pointer_move_validates_one_plan_per_drag_resolution(self) -> None:
         source = (

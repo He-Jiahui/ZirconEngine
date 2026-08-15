@@ -5,7 +5,7 @@ use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::scene::{NodeKind, World};
 
 use super::authoring_boundary::{
-    SERIALIZED_AUTHORING_TOKENS, assert_text_excludes_authoring_tokens,
+    assert_text_excludes_authoring_tokens, SERIALIZED_AUTHORING_TOKENS,
 };
 
 const CLOUD_LAYER_TYPE_PATH: &str = "weather.Component.CloudLayer";

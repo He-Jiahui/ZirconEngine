@@ -12,5 +12,12 @@ pub(super) fn dispatch_close_prompt_step(
     x: f32,
     y: f32,
 ) -> Option<NativePointerDispatchResult> {
-    dispatch_close_prompt_button(ui, &input.presentation, state, input.button, x, y)
+    dispatch_close_prompt_button(
+        ui,
+        input.presentation.structure(),
+        state,
+        input.button,
+        x,
+        y,
+    )
 }

@@ -5,6 +5,7 @@ mod bind_execution_owned_graph_resources;
 mod bind_frame_graph_resources;
 mod bind_history_graph_resources;
 mod bind_plugin_graph_resources;
+mod bind_taa_reactive_mask_graph_resource;
 mod build_compiled_scene_draws;
 mod execute_compiled_scene_graph_stages;
 pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) mod execute_graph_stage;

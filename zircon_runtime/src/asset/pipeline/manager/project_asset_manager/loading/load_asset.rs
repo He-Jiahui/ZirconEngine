@@ -1,4 +1,3 @@
-use crate::core::CoreError;
 use crate::core::framework::navigation::{NavMeshAsset, NavigationSettingsAsset};
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
@@ -8,6 +7,7 @@ use crate::core::resource::{
     TerrainMarker, TextureMarker, TileMapMarker, TileSetMarker, UiLayoutMarker, UiStyleMarker,
     UiWidgetMarker,
 };
+use crate::core::CoreError;
 
 use super::super::ProjectAssetManager;
 use crate::asset::{

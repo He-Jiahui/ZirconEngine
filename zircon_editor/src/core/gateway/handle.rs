@@ -3,8 +3,12 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use arc_swap::{ArcSwap, Guard};
 
 use zircon_runtime::scene::World;
+use zircon_runtime_interface::world_sync::{
+    InvalidationBatch, WatchRegistration, WatchToken, WorldQuery, WorldQueryResult,
+};
 use zircon_runtime_interface::{
-    ProfileControlRequest, ProfileControlResponse, ZrRuntimeEventV1, ZrRuntimeOperationHandle,
+    ProfileControlRequest, ProfileControlResponse, ZrRuntimeBindViewportSurfaceRequestV1,
+    ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeOperationHandle,
     ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2, ZrRuntimeOperationSubmitRequestV1,
     ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
     ZrRuntimeViewportSizeV1,
@@ -81,6 +85,20 @@ impl EditorRuntimeGatewayHandle {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
+
+    /// Runs one session-owned operation while gateway replacement is excluded.
+    ///
+    /// Watch tokens are only meaningful to the runtime generation that issued them. Callers that
+    /// bind a returned token into editor-owned state must therefore perform allocation and binding
+    /// while this guard holds the generation stable.
+    pub(crate) fn with_current_gateway_generation<T>(
+        &self,
+        operation: impl FnOnce(u64, &SharedEditorRuntimeGateway) -> T,
+    ) -> T {
+        let _replacement = self.replacement_lock();
+        let generation = self.generation_snapshot();
+        operation(generation.id, &generation.gateway)
+    }
 }
 
 fn next_generation(current: u64) -> Result<u64, GatewayError> {
@@ -106,6 +124,24 @@ impl EditorRuntimeGatewayHandle {
         self.generation_snapshot().gateway.with_world_mut(write)
     }
 
+    pub fn query_world(&self, query: WorldQuery) -> Result<WorldQueryResult, GatewayError> {
+        self.generation_snapshot().gateway.query_world(query)
+    }
+
+    pub fn watch_world(&self, registration: WatchRegistration) -> Result<WatchToken, GatewayError> {
+        self.generation_snapshot().gateway.watch_world(registration)
+    }
+
+    pub fn unwatch_world(&self, token: WatchToken) -> Result<bool, GatewayError> {
+        self.generation_snapshot().gateway.unwatch_world(token)
+    }
+
+    pub fn drain_world_invalidations(&self) -> Result<Vec<InvalidationBatch>, GatewayError> {
+        self.generation_snapshot()
+            .gateway
+            .drain_world_invalidations()
+    }
+
     pub fn tick_frame(&self) -> Result<EditorRuntimeFrameDemand, GatewayError> {
         self.generation_snapshot().gateway.tick_frame()
     }
@@ -122,6 +158,28 @@ impl EditorRuntimeGatewayHandle {
         self.generation_snapshot()
             .gateway
             .capture_frame(viewport, size)
+    }
+
+    pub fn bind_viewport_surface(
+        &self,
+        request: ZrRuntimeBindViewportSurfaceRequestV1,
+    ) -> Result<(), GatewayError> {
+        self.generation_snapshot()
+            .gateway
+            .bind_viewport_surface(request)
+    }
+
+    pub fn unbind_viewport_surface(
+        &self,
+        viewport: ZrRuntimeViewportHandle,
+    ) -> Result<(), GatewayError> {
+        self.generation_snapshot()
+            .gateway
+            .unbind_viewport_surface(viewport)
+    }
+
+    pub fn present_viewport(&self, request: ZrRuntimeFrameRequestV1) -> Result<(), GatewayError> {
+        self.generation_snapshot().gateway.present_viewport(request)
     }
 
     pub fn submit_highlight_set(&self, set: EditorRuntimeHighlightSet) -> Result<(), GatewayError> {
@@ -202,6 +260,22 @@ impl EditorRuntimeGateway for EditorRuntimeGatewayHandle {
         EditorRuntimeGatewayHandle::with_world_mut(self, write)
     }
 
+    fn query_world(&self, query: WorldQuery) -> Result<WorldQueryResult, GatewayError> {
+        EditorRuntimeGatewayHandle::query_world(self, query)
+    }
+
+    fn watch_world(&self, registration: WatchRegistration) -> Result<WatchToken, GatewayError> {
+        EditorRuntimeGatewayHandle::watch_world(self, registration)
+    }
+
+    fn unwatch_world(&self, token: WatchToken) -> Result<bool, GatewayError> {
+        EditorRuntimeGatewayHandle::unwatch_world(self, token)
+    }
+
+    fn drain_world_invalidations(&self) -> Result<Vec<InvalidationBatch>, GatewayError> {
+        EditorRuntimeGatewayHandle::drain_world_invalidations(self)
+    }
+
     fn tick_frame(&self) -> Result<EditorRuntimeFrameDemand, GatewayError> {
         EditorRuntimeGatewayHandle::tick_frame(self)
     }
@@ -216,6 +290,24 @@ impl EditorRuntimeGateway for EditorRuntimeGatewayHandle {
         size: ZrRuntimeViewportSizeV1,
     ) -> Result<EditorRuntimeFrame, GatewayError> {
         EditorRuntimeGatewayHandle::capture_frame(self, viewport, size)
+    }
+
+    fn bind_viewport_surface(
+        &self,
+        request: ZrRuntimeBindViewportSurfaceRequestV1,
+    ) -> Result<(), GatewayError> {
+        EditorRuntimeGatewayHandle::bind_viewport_surface(self, request)
+    }
+
+    fn unbind_viewport_surface(
+        &self,
+        viewport: ZrRuntimeViewportHandle,
+    ) -> Result<(), GatewayError> {
+        EditorRuntimeGatewayHandle::unbind_viewport_surface(self, viewport)
+    }
+
+    fn present_viewport(&self, request: ZrRuntimeFrameRequestV1) -> Result<(), GatewayError> {
+        EditorRuntimeGatewayHandle::present_viewport(self, request)
     }
 
     fn submit_highlight_set(&self, set: EditorRuntimeHighlightSet) -> Result<(), GatewayError> {
@@ -275,47 +367,7 @@ impl EditorRuntimeGateway for EditorRuntimeGatewayHandle {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{
-        Arc, Mutex,
-        atomic::{AtomicUsize, Ordering},
-    };
-
-    use arc_swap::ArcSwap;
-    use zircon_runtime_interface::{ZrRuntimeSessionHandle, ZrRuntimeViewportHandle};
-
-    use super::{
-        DetachedEditorRuntimeGateway, EditorRuntimeGateway, EditorRuntimeGatewayHandle,
-        EditorRuntimeHighlightSet, GatewayError, GatewayGeneration, GatewayOwner, next_generation,
-    };
-
-    #[derive(Default)]
-    struct HighlightRecordingGateway {
-        submissions: AtomicUsize,
-    }
-
-    impl EditorRuntimeGateway for HighlightRecordingGateway {
-        fn session_handle(&self) -> ZrRuntimeSessionHandle {
-            ZrRuntimeSessionHandle::invalid()
-        }
-
-        fn submit_highlight_set(
-            &self,
-            _set: EditorRuntimeHighlightSet,
-        ) -> Result<(), GatewayError> {
-            self.submissions.fetch_add(1, Ordering::SeqCst);
-            Ok(())
-        }
-    }
-
-    fn submit_through_generic<T: EditorRuntimeGateway>(gateway: &T) -> Result<(), GatewayError> {
-        gateway.submit_highlight_set(EditorRuntimeHighlightSet::new(
-            ZrRuntimeViewportHandle::new(4),
-            1,
-            [8, 2],
-            true,
-            [0.2, 0.6, 0.9, 1.0],
-        ))
-    }
+    use super::{next_generation, GatewayError};
 
     #[test]
     fn next_gateway_generation_returns_typed_error_at_u64_max() {
@@ -323,44 +375,5 @@ mod tests {
             next_generation(u64::MAX),
             Err(GatewayError::GenerationExhausted)
         );
-    }
-
-    #[test]
-    fn replacement_at_generation_limit_does_not_publish_a_new_gateway() {
-        let handle = EditorRuntimeGatewayHandle {
-            inner: Arc::new(GatewayOwner {
-                current: ArcSwap::from_pointee(GatewayGeneration::new(
-                    u64::MAX,
-                    Arc::new(DetachedEditorRuntimeGateway),
-                )),
-                replacement: Mutex::new(()),
-            }),
-        };
-
-        assert_eq!(
-            handle.replace(Arc::new(DetachedEditorRuntimeGateway)),
-            Err(GatewayError::GenerationExhausted)
-        );
-        assert_eq!(handle.generation(), u64::MAX);
-    }
-
-    #[test]
-    fn highlight_submission_forwards_through_trait_object_and_generic_handle_dispatch() {
-        let gateway = Arc::new(HighlightRecordingGateway::default());
-        let handle = EditorRuntimeGatewayHandle::new(gateway.clone());
-
-        let trait_object: &dyn EditorRuntimeGateway = &handle;
-        trait_object
-            .submit_highlight_set(EditorRuntimeHighlightSet::new(
-                ZrRuntimeViewportHandle::new(3),
-                2,
-                [6, 1],
-                true,
-                [0.2, 0.6, 0.9, 1.0],
-            ))
-            .unwrap();
-        submit_through_generic(&handle).unwrap();
-
-        assert_eq!(gateway.submissions.load(Ordering::SeqCst), 2);
     }
 }

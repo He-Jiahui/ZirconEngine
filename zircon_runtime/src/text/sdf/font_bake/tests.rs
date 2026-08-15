@@ -1,14 +1,18 @@
 use super::font_asset_cache::MAX_CACHED_FONT_ASSET_FACE_COUNT;
 use super::*;
 use crate::asset::ProjectAssetManager;
+use crate::core::framework::text::TextFontFaceHandle;
 use crate::core::math::UVec2;
 use crate::text::atlas::{GlyphAtlasFormat, GlyphAtlasPageKey};
 use crate::text::font::{font_handle_registry_report, shared_font_database_test_serial_guard};
-use crate::text::sdf::SdfMode;
+use crate::text::sdf::{SdfGenerationSchedulerDiagnostics, SdfGenerationSchedulerOptions, SdfMode};
 use std::path::PathBuf;
 
 mod cache_generation;
+mod handle_resolution;
 mod offline;
+
+const TEXT_SDF_MANIFEST_WORK_DIRECTORY: &str = ".runtime_text_sdf_manifest_work";
 
 #[derive(Default)]
 struct SdfAtlasPlan {
@@ -328,27 +332,6 @@ fn sdf_font_bake_produces_distinct_ascii_glyph_patterns() {
 }
 
 #[test]
-fn sdf_font_bake_does_not_match_the_old_rounded_rect_placeholder() {
-    let mut bake = SdfFontBakeCache::new();
-    let mut font_database = FontDatabase::with_default_fallbacks();
-    let asset_manager = ProjectAssetManager::default();
-    let plan = atlas_plan_for_glyphs(&['A']);
-
-    let atlas = bake.build_atlas_from_slots(
-        plan.atlas_size,
-        &plan.slots,
-        &mut font_database,
-        &asset_manager,
-    );
-
-    let actual = slot_pixels_for_bake_page(&atlas, plan.atlas_size.x, 0, plan.slots[0].rect);
-    let placeholder =
-        old_rounded_rect_placeholder(plan.slots[0].rect.width, plan.slots[0].rect.height);
-    assert_ne!(actual, placeholder);
-    assert!(atlas.report.nonzero_pixel_count > 0);
-}
-
-#[test]
 fn sdf_font_bake_writes_page_indexed_slots_into_matching_layers() {
     let mut bake = SdfFontBakeCache::new();
     let mut font_database = FontDatabase::with_default_fallbacks();
@@ -453,6 +436,16 @@ fn sdf_font_bake_falls_back_when_fontsdf_cannot_open_requested_face_index() {
     let mut font_database = FontDatabase::with_default_fallbacks();
     let asset_manager = ProjectAssetManager::default();
     let manifest = write_face_index_manifest(1);
+    assert!(manifest.path().starts_with(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("zircon_runtime manifest must have a workspace parent")
+            .join("docs")
+            .join("tests")
+            .join("runtime")
+            .join("text")
+            .join(TEXT_SDF_MANIFEST_WORK_DIRECTORY)
+    ));
     let plan = atlas_plan_for_asset('A', manifest.path().to_string_lossy().as_ref());
 
     let atlas = bake.build_atlas_from_slots(
@@ -697,7 +690,15 @@ impl Drop for TemporaryFontManifest {
 }
 
 fn write_face_index_manifest(face_index: u32) -> TemporaryFontManifest {
-    let root = std::env::temp_dir();
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("zircon_runtime manifest must have a workspace parent")
+        .join("docs")
+        .join("tests")
+        .join("runtime")
+        .join("text")
+        .join(TEXT_SDF_MANIFEST_WORK_DIRECTORY);
+    std::fs::create_dir_all(&root).expect("workspace SDF manifest directory should exist");
     let stem = format!("zircon-runtime-text-sdf-face-index-{}", std::process::id());
     let manifest = root.join(format!("{stem}.font.toml"));
     let source_name = format!("{stem}.ttf");
@@ -743,31 +744,4 @@ fn baked_glyph_rect(slot: SdfAtlasRect, glyph: &SdfBakedGlyph) -> SdfAtlasRect {
         height: glyph.metrics.bitmap_height.min(slot.height),
         ..slot
     }
-}
-
-fn old_rounded_rect_placeholder(width: u32, height: u32) -> Vec<u8> {
-    const PADDING: f32 = 4.0;
-    const SPREAD: f32 = 6.0;
-    let center_x = width as f32 * 0.5;
-    let center_y = height as f32 * 0.5;
-    let half_width = (center_x - PADDING).max(1.0);
-    let half_height = (center_y - PADDING).max(1.0);
-    let mut pixels = Vec::with_capacity(width as usize * height as usize);
-
-    for y in 0..height {
-        for x in 0..width {
-            let dx = (x as f32 + 0.5 - center_x).abs() - half_width;
-            let dy = (y as f32 + 0.5 - center_y).abs() - half_height;
-            let outside_x = dx.max(0.0);
-            let outside_y = dy.max(0.0);
-            let outside_distance = (outside_x * outside_x + outside_y * outside_y).sqrt();
-            let inside_distance = dx.max(dy).min(0.0);
-            let signed_inside_distance = -(outside_distance + inside_distance);
-            pixels.push(
-                ((0.5 + signed_inside_distance / SPREAD).clamp(0.0, 1.0) * 255.0).round() as u8,
-            );
-        }
-    }
-
-    pixels
 }

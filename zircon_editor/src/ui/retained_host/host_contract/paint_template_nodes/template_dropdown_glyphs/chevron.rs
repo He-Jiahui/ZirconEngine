@@ -3,7 +3,7 @@ use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::WorkbenchDropdownStyle;
 use super::super::template_dropdown_metrics::WorkbenchDropdownMetrics;
 use super::super::template_icon_assets::push_icon_asset_pixels;
-use super::segments::{DropdownGlyphSegmentSpec, push_segments};
+use super::segments::{push_segments, DropdownGlyphSegmentSpec};
 
 const DROPDOWN_CHEVRON_ICON: &str = "dropdown";
 

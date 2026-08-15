@@ -72,6 +72,10 @@ pub fn first_party_registration_for_runtime_plugin(
         return Some(zircon_plugin_gltf_importer_runtime::plugin_registration());
     }
     #[cfg(feature = "advanced-render-runtime-plugins")]
+    if _id.key() == "neural" {
+        return Some(zircon_plugin_neural_runtime::plugin_registration());
+    }
+    #[cfg(feature = "advanced-render-runtime-plugins")]
     if _id == RuntimePluginId::VirtualGeometry {
         return Some(zircon_plugin_virtual_geometry_runtime::plugin_registration());
     }

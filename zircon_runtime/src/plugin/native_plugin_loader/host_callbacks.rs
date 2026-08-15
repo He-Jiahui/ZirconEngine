@@ -194,8 +194,8 @@ unsafe fn native_host_callback_capture(
     })
 }
 
-fn lock_native_host_callback_captures()
--> std::sync::MutexGuard<'static, BTreeMap<u64, NativePluginHostCallbackCapture>> {
+fn lock_native_host_callback_captures(
+) -> std::sync::MutexGuard<'static, BTreeMap<u64, NativePluginHostCallbackCapture>> {
     native_host_callback_captures()
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
@@ -335,8 +335,8 @@ mod tests {
     };
 
     use super::{
-        NativePluginDescriptor, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
-        granted_capabilities_for_entry, native_capability_list_contains,
+        granted_capabilities_for_entry, native_capability_list_contains, NativePluginDescriptor,
+        ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
     };
 
     #[test]

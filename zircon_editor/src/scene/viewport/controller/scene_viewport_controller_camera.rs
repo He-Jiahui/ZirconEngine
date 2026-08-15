@@ -6,7 +6,7 @@ use zircon_runtime_interface::math::{Transform, UVec2, Vec3};
 
 use crate::scene::viewport::ViewportState;
 
-use super::{SceneViewportController, constants::MIN_CAMERA_DISTANCE};
+use super::{constants::MIN_CAMERA_DISTANCE, SceneViewportController};
 
 const DEFAULT_CAMERA_DISTANCE: f32 = 8.0;
 const DEFAULT_ORTHO_SIZE: f32 = 5.0;

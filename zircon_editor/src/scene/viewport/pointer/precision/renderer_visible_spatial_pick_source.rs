@@ -10,7 +10,7 @@ use crate::scene::viewport::pointer::{
     candidates::renderable_candidate,
     viewport_renderable_pick_candidate::ViewportRenderablePickCandidate,
 };
-use crate::scene::viewport::{ViewportCameraSnapshot, projection::ViewportProjectionContext};
+use crate::scene::viewport::{projection::ViewportProjectionContext, ViewportCameraSnapshot};
 
 use super::PrecisionCandidate;
 

@@ -75,11 +75,10 @@ fn project_manager_imports_labeled_subassets_as_separate_artifacts() {
         root_record.artifact_locator(),
         texture_record.artifact_locator()
     );
-    assert!(
-        meta.entries
-            .iter()
-            .any(|entry| entry.url == texture_uri && entry.asset_kind == AssetKind::Texture)
-    );
+    assert!(meta
+        .entries
+        .iter()
+        .any(|entry| entry.url == texture_uri && entry.asset_kind == AssetKind::Texture));
 
     match manager.load_artifact(&root_uri).unwrap() {
         ImportedAsset::Data(asset) => assert_eq!(asset.text, "atlas"),
@@ -150,12 +149,10 @@ fn project_manager_records_duplicate_imported_asset_label_as_failed_import() {
             .message
             .contains("duplicate asset label Texture0")
     }));
-    assert!(
-        manager
-            .registry()
-            .get_by_locator(&AssetUri::parse("res://bundles/duplicate.multi#Texture0").unwrap())
-            .is_none()
-    );
+    assert!(manager
+        .registry()
+        .get_by_locator(&AssetUri::parse("res://bundles/duplicate.multi#Texture0").unwrap())
+        .is_none());
 
     let _ = fs::remove_dir_all(root);
 }

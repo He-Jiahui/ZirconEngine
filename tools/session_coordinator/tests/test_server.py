@@ -130,6 +130,178 @@ class ServerTests(unittest.TestCase):
             client.command.call_args_list,
         )
 
+    def test_artifact_product_staging_commands_route_closed_lifecycle(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            )
+            application.supervision.mark_healthy()
+            governance = mock.Mock()
+            states = []
+            for status in ("active", "publishing", "published", "released"):
+                state = mock.Mock()
+                state.to_dict.return_value = {
+                    "leaseId": "b" * 32,
+                    "stagingPath": r"D:\ZirconBuilds\mvp-product-inputs-build-editor-b",
+                    "finalPath": r"D:\ZirconBuilds\editor-current",
+                    "ownerPid": 42,
+                    "status": status,
+                }
+                states.append(state)
+            governance.acquire_product_staging.return_value = states[0]
+            governance.begin_product_staging_publish.return_value = states[1]
+            governance.complete_product_staging_publish.return_value = states[2]
+            governance.release_product_staging.return_value = states[3]
+            application.artifact_governance = governance
+
+            acquired = application.command(
+                "artifact.staging_acquire",
+                {
+                    "purpose": "build-editor",
+                    "final_path": r"D:\ZirconBuilds\editor-current",
+                    "owner_pid": 42,
+                },
+            )
+            publishing = application.command(
+                "artifact.staging_begin_publish",
+                {"lease_id": "b" * 32, "owner_pid": 42},
+            )
+            published = application.command(
+                "artifact.staging_complete_publish",
+                {"lease_id": "b" * 32, "owner_pid": 42},
+            )
+            released = application.command(
+                "artifact.staging_release",
+                {"lease_id": "b" * 32, "owner_pid": 42},
+            )
+            for invalid_owner in (True, 42.5, "42"):
+                with self.assertRaises(CoordinatorError) as invalid:
+                    application.command(
+                        "artifact.staging_acquire",
+                        {
+                            "purpose": "build-editor",
+                            "final_path": r"D:\ZirconBuilds\editor-current",
+                            "owner_pid": invalid_owner,
+                        },
+                    )
+                self.assertEqual(
+                    "artifact_product_staging_arguments_invalid",
+                    invalid.exception.code,
+                )
+
+        governance.acquire_product_staging.assert_called_once_with(
+            "build-editor",
+            final_path=r"D:\ZirconBuilds\editor-current",
+            owner_pid=42,
+        )
+        governance.begin_product_staging_publish.assert_called_once_with(
+            "b" * 32, owner_pid=42
+        )
+        governance.complete_product_staging_publish.assert_called_once_with(
+            "b" * 32, owner_pid=42
+        )
+        governance.release_product_staging.assert_called_once_with(
+            "b" * 32, owner_pid=42
+        )
+        self.assertEqual(
+            ["active", "publishing", "published", "released"],
+            [
+                acquired["lease"]["status"],
+                publishing["lease"]["status"],
+                published["lease"]["status"],
+                released["lease"]["status"],
+            ],
+        )
+
+    def test_artifact_product_staging_cli_has_no_caller_staging_path(self) -> None:
+        parser = cli._parser()
+        commands = (
+            parser.parse_args(
+                [
+                    "artifact",
+                    "staging-acquire",
+                    "--purpose",
+                    "build-editor",
+                    "--final-path",
+                    r"D:\ZirconBuilds\editor-current",
+                    "--owner-pid",
+                    "42",
+                ]
+            ),
+            parser.parse_args(
+                [
+                    "artifact",
+                    "staging-begin-publish",
+                    "--lease-id",
+                    "b" * 32,
+                    "--owner-pid",
+                    "42",
+                ]
+            ),
+            parser.parse_args(
+                [
+                    "artifact",
+                    "staging-complete-publish",
+                    "--lease-id",
+                    "b" * 32,
+                    "--owner-pid",
+                    "42",
+                ]
+            ),
+            parser.parse_args(
+                [
+                    "artifact",
+                    "staging-release",
+                    "--lease-id",
+                    "b" * 32,
+                    "--owner-pid",
+                    "42",
+                ]
+            ),
+        )
+        client = mock.Mock()
+        client.command.side_effect = (
+            {"lease": {"status": "active"}},
+            {"lease": {"status": "publishing"}},
+            {"lease": {"status": "published"}},
+            {"lease": {"status": "released"}},
+        )
+
+        with mock.patch.object(cli.CoordinatorClient, "from_runtime", return_value=client):
+            results = [cli._run(arguments) for arguments in commands]
+
+        self.assertEqual(
+            ["active", "publishing", "published", "released"],
+            [result["lease"]["status"] for result in results],
+        )
+        self.assertEqual(
+            [
+                mock.call(
+                    "artifact.staging_acquire",
+                    {
+                        "purpose": "build-editor",
+                        "final_path": r"D:\ZirconBuilds\editor-current",
+                        "owner_pid": 42,
+                    },
+                ),
+                mock.call(
+                    "artifact.staging_begin_publish",
+                    {"lease_id": "b" * 32, "owner_pid": 42},
+                ),
+                mock.call(
+                    "artifact.staging_complete_publish",
+                    {"lease_id": "b" * 32, "owner_pid": 42},
+                ),
+                mock.call(
+                    "artifact.staging_release",
+                    {"lease_id": "b" * 32, "owner_pid": 42},
+                ),
+            ],
+            client.command.call_args_list,
+        )
+
     def test_governance_converge_routes_preview_and_apply_through_audited_service(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

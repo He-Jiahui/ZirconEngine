@@ -1,7 +1,7 @@
 mod mapping;
 mod world_space;
 
-use super::super::{RetainedEditorHost, callback_dispatch};
+use super::super::{callback_dispatch, RetainedEditorHost};
 use mapping::map_viewport_pointer_event;
 use world_space::world_space_ui_pointer_status;
 use zircon_runtime_interface::ui::surface::UiPointerEventKind;

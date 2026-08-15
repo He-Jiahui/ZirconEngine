@@ -1,5 +1,5 @@
 use super::super::workbench_row_selection::selected_row_outline_color;
-use super::palette::{WorkbenchListRowPalette, workbench_list_row_palette};
+use super::palette::{workbench_list_row_palette, WorkbenchListRowPalette};
 use super::state::is_unavailable_list_row_state;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;

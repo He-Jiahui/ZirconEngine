@@ -1,10 +1,10 @@
 use super::palette::{
-    WORKBENCH_SLIDER_TRACK_DISABLED, workbench_slider_palette, workbench_slider_palette_from_host,
+    workbench_slider_palette, workbench_slider_palette_from_host, WORKBENCH_SLIDER_TRACK_DISABLED,
 };
 use super::selection::select_workbench_slider_style;
 use super::state::is_workbench_slider_state_hot;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use crate::ui::retained_host::host_contract::paint_theme::{PALETTE, project_host_palette};
+use crate::ui::retained_host::host_contract::paint_theme::{project_host_palette, PALETTE};
 use crate::ui::retained_host::primitives::Color;
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 use zircon_runtime_interface::ui::style::{UiPainterResolvedState, UiRgbaColor, UiStyleColor};

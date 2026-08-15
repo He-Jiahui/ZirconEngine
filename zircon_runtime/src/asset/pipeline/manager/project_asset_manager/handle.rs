@@ -1,4 +1,4 @@
-use crate::core::manager::{ManagerServiceHandle, manager_service_handle};
+use crate::core::manager::{manager_service_handle, ManagerServiceHandle};
 use crate::core::{CoreError, CoreHandle};
 
 use super::super::PROJECT_ASSET_MANAGER_NAME;

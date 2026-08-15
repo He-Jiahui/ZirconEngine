@@ -1,4 +1,4 @@
-use crate::core::framework::channel::ChannelReceiver;
+use crate::core::framework::channel::{ChannelReceiver, ChannelWakeCallback};
 use crate::core::CoreError;
 use crossbeam_channel::unbounded;
 
@@ -14,7 +14,7 @@ use crate::asset::watch::{AssetChange, AssetChangeKind, AssetWatchError};
 use crate::asset::{
     AssetImportError, AssetImporterCapabilityReport, AssetImporterHandler, AssetUri,
 };
-use crate::core::resource::ResourceScheme;
+use crate::core::resource::{ResourceMutationBatch, ResourceScheme};
 use std::sync::Arc;
 
 impl AssetManagerContract for ProjectAssetManager {
@@ -124,9 +124,14 @@ impl AssetManagerContract for ProjectAssetManager {
     }
 
     fn subscribe_asset_changes(&self) -> ChannelReceiver<AssetChange> {
-        let (sender, receiver) = unbounded();
-        self.lock_change_subscribers().push(sender);
-        receiver
+        self.subscribe_asset_changes_internal(None)
+    }
+
+    fn subscribe_asset_changes_with_wake(
+        &self,
+        wake: ChannelWakeCallback,
+    ) -> ChannelReceiver<AssetChange> {
+        self.subscribe_asset_changes_internal(Some(wake))
     }
 
     fn subscribe_asset_watch_errors(&self) -> ChannelReceiver<AssetWatchError> {
@@ -188,7 +193,7 @@ impl AssetManagerContract for ProjectAssetManager {
             .map(build_status_record);
         let generation = self.project_generation_write();
         let mut project = self.project_write();
-        let Some(active_project) = project.as_mut() else {
+        let Some(active_project) = project.as_ref() else {
             return Err(asset_error_message(
                 "targeted asset import lost its active project before commit",
             ));
@@ -200,16 +205,21 @@ impl AssetManagerContract for ProjectAssetManager {
                 "targeted asset import was superseded by a newer project generation",
             ));
         }
-        prepared_generation.commit().map_err(asset_error)?;
-        self.commit_targeted_project_resource_sync(prepared);
-        *active_project = candidate;
-        drop(project);
+        let commit_outcome = self.commit_targeted_project_resource_sync(
+            prepared,
+            || prepared_generation.commit().map_err(asset_error),
+            || {
+                *project = Some(candidate);
+                drop(project);
+            },
+        )?;
         let published_changes = status
             .is_some()
             .then(|| AssetChange::new(AssetChangeKind::Modified, uri, None))
             .into_iter()
             .collect();
         self.publish_project_generation(generation, published_changes);
+        commit_outcome.ensure_durable().map_err(asset_error)?;
         Ok(status)
     }
 
@@ -227,12 +237,14 @@ impl AssetManagerContract for ProjectAssetManager {
                 active_project.clone(),
             )
         };
-        let imported = candidate.scan_and_import().map_err(asset_error)?;
+        let (imported, prepared_files) = candidate
+            .prepare_full_generation(None)
+            .map_err(asset_error)?;
         let prepared = self.prepare_project_resource_sync(&candidate)?;
         let statuses = imported.iter().map(build_status_record).collect::<Vec<_>>();
         let generation = self.project_generation_write();
         let mut project = self.project_write();
-        let Some(active_project) = project.as_mut() else {
+        let Some(active_project) = project.as_ref() else {
             return Err(asset_error_message(
                 "project reimport lost its active project before commit",
             ));
@@ -244,10 +256,20 @@ impl AssetManagerContract for ProjectAssetManager {
                 "project reimport was superseded by a newer project generation",
             ));
         }
-        clear_removed_project_resources(&self.resource_manager(), &previous_locators, &candidate);
-        self.commit_project_resource_sync(prepared);
-        *active_project = candidate;
-        drop(project);
+        let batch = clear_removed_project_resources(
+            ResourceMutationBatch::new(),
+            &previous_locators,
+            &candidate,
+        );
+        let commit_outcome = self.commit_project_resource_sync(
+            prepared,
+            batch,
+            || prepared_files.commit().map_err(asset_error),
+            || {
+                *project = Some(candidate);
+                drop(project);
+            },
+        )?;
         self.publish_project_generation(
             generation,
             imported
@@ -261,6 +283,7 @@ impl AssetManagerContract for ProjectAssetManager {
                 })
                 .collect(),
         );
+        commit_outcome.ensure_durable().map_err(asset_error)?;
         Ok(statuses)
     }
 }
@@ -278,6 +301,7 @@ mod tests {
         AssetImporterHandler, AssetKind, AssetManager, AssetUri, DataAsset, DataAssetFormat,
         ImportedAsset,
     };
+    use crate::core::resource::ResourceMutationBatch;
 
     use super::ProjectAssetManager;
 
@@ -367,8 +391,18 @@ mod tests {
         let mut project = ProjectManager::open(&root).unwrap();
         project.scan_and_import().unwrap();
         let prepared = manager.prepare_project_resource_sync(&project).unwrap();
-        manager.commit_project_resource_sync(prepared);
-        *manager.project_write() = Some(project);
+        let mut project_state = manager.project_write();
+        manager
+            .commit_project_resource_sync(
+                prepared,
+                ResourceMutationBatch::new(),
+                || Ok(()),
+                || {
+                    *project_state = Some(project);
+                    drop(project_state);
+                },
+            )
+            .unwrap();
         let locator = AssetUri::parse("res://shaders/query.wgsl").unwrap();
         let labelled = AssetUri::parse("res://shaders/query.wgsl#vertex").unwrap();
         let unrelated = AssetUri::parse("res://shaders/unrelated.wgsl").unwrap();
@@ -436,8 +470,18 @@ mod tests {
         project.scan_and_import().unwrap();
         let manager = ProjectAssetManager::default();
         let prepared = manager.prepare_project_resource_sync(&project).unwrap();
-        manager.commit_project_resource_sync(prepared);
-        *manager.project_write() = Some(project);
+        let mut project_state = manager.project_write();
+        manager
+            .commit_project_resource_sync(
+                prepared,
+                ResourceMutationBatch::new(),
+                || Ok(()),
+                || {
+                    *project_state = Some(project);
+                    drop(project_state);
+                },
+            )
+            .unwrap();
         let locator = AssetUri::parse("package://com.zircon.fixture/data/settings.json").unwrap();
 
         assert_eq!(

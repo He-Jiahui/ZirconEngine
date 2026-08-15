@@ -1,12 +1,12 @@
 use super::super::super::super::data::TemplatePaneNodeData;
 use super::super::{
-    CHECKBOX_CHECKED_FILL, PALETTE, checkbox_background, checkbox_border_color,
-    control_accent_color, control_border_color, radio_background, radio_border_color,
-    selection_mark_label_color, selection_text_color, selection_visual_state,
-    selection_visual_unavailable, toggle_thumb_color, toggle_track_color,
+    checkbox_background, checkbox_border_color, control_accent_color, control_border_color,
+    radio_background, radio_border_color, selection_mark_label_color, selection_text_color,
+    selection_visual_state, selection_visual_unavailable, toggle_thumb_color, toggle_track_color,
+    CHECKBOX_CHECKED_FILL, PALETTE,
 };
 use super::support::{
-    SELECTION_MARK_IDLE_FILL, node_with_role, resolved_background_foreground_and_border,
+    node_with_role, resolved_background_foreground_and_border, SELECTION_MARK_IDLE_FILL,
 };
 use zircon_runtime_interface::ui::style::{ResolvedButtonStyle, UiPainterResolvedState};
 

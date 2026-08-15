@@ -1,8 +1,10 @@
-use crate::core::editor_event::{ConsoleMessageFilter, MenuAction, ViewDescriptorId};
+use crate::core::editor_event::{
+    ConsoleMessageFilter, ConsoleSourceFilter, MenuAction, ViewDescriptorId,
+};
 use crate::core::play::PlayKind;
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::workbench::event::{
-    EditorHostEvent, dispatch_editor_host_binding, menu_action_binding,
+    dispatch_editor_host_binding, menu_action_binding, EditorHostEvent,
 };
 use zircon_runtime::scene::components::NodeKind;
 
@@ -90,6 +92,27 @@ fn console_filter_menu_action_bindings_roundtrip_through_headless_dispatch() {
         ConsoleMessageFilter::Error,
     ] {
         let action = MenuAction::SetConsoleMessageFilter(filter);
+        let binding = menu_action_binding(&action);
+
+        assert_eq!(
+            dispatch_editor_host_binding(&binding).unwrap(),
+            EditorHostEvent::Menu(action)
+        );
+    }
+}
+
+#[test]
+fn console_source_filter_bindings_roundtrip_through_headless_dispatch() {
+    for filter in [
+        ConsoleSourceFilter::All,
+        ConsoleSourceFilter::Editor,
+        ConsoleSourceFilter::Runtime,
+        ConsoleSourceFilter::Play,
+        ConsoleSourceFilter::Plugin,
+        ConsoleSourceFilter::Import,
+        ConsoleSourceFilter::ScriptBuild,
+    ] {
+        let action = MenuAction::SetConsoleSourceFilter(filter);
         let binding = menu_action_binding(&action);
 
         assert_eq!(

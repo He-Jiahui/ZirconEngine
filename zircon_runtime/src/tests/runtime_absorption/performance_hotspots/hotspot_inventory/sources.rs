@@ -37,6 +37,7 @@ pub(super) struct HotspotInventorySources {
     pub(super) animation_plugin_events: &'static str,
     pub(super) animation_clip_events: &'static str,
     pub(super) animation_level_system: &'static str,
+    pub(super) animation_level_runtime: &'static str,
     pub(super) root_manifest: &'static str,
     pub(super) runtime_manifest: &'static str,
     pub(super) zircon_build: &'static str,
@@ -127,6 +128,9 @@ impl HotspotInventorySources {
             ),
             animation_clip_events: include_str!("../../../../animation/clip_event.rs"),
             animation_level_system: include_str!("../../../../scene/level_system.rs"),
+            animation_level_runtime: include_str!(
+                "../../../../scene/level_system/animation_runtime.rs"
+            ),
             root_manifest: include_str!("../../../../../../Cargo.toml"),
             runtime_manifest: include_str!("../../../../../../zircon_runtime/Cargo.toml"),
             zircon_build: include_str!("../../../../../../tools/zircon_build.py"),

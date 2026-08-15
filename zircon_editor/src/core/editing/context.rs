@@ -100,6 +100,19 @@ impl CoreEditContext {
         self.selection.scene_selection()
     }
 
+    pub(crate) fn selection_snapshot(&self) -> SelectionSnapshot {
+        self.selection.clone()
+    }
+
+    pub(crate) fn restore_selection_snapshot(
+        &mut self,
+        snapshot: &SelectionSnapshot,
+    ) -> Result<(), EditCommandError> {
+        self.selection = snapshot.clone();
+        self.selection_generation = self.selection_generation.max(snapshot.generation());
+        Ok(())
+    }
+
     pub(crate) fn set_scene_selection(
         &mut self,
         selection: SceneSelection,
@@ -151,9 +164,7 @@ impl EditContext for CoreEditContext {
     }
 
     fn restore_selection(&mut self, snapshot: &SelectionSnapshot) -> Result<(), EditCommandError> {
-        self.selection = snapshot.clone();
-        self.selection_generation = self.selection_generation.max(snapshot.generation());
-        Ok(())
+        self.restore_selection_snapshot(snapshot)
     }
 
     fn as_any(&self) -> &dyn Any {

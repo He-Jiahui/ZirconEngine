@@ -30,4 +30,17 @@ impl ActivityDrawerSlot {
     pub fn is_bottom(self) -> bool {
         matches!(self, Self::Bottom | Self::BottomLeft | Self::BottomRight)
     }
+
+    pub fn shares_region(self, other: Self) -> bool {
+        matches!(
+            (self.canonical(), other.canonical()),
+            (
+                Self::LeftTop | Self::LeftBottom,
+                Self::LeftTop | Self::LeftBottom
+            ) | (
+                Self::RightTop | Self::RightBottom,
+                Self::RightTop | Self::RightBottom
+            ) | (Self::Bottom, Self::Bottom)
+        )
+    }
 }

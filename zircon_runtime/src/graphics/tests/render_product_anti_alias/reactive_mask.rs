@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::{AlphaMode, AssetReference, AssetUri, MaterialAsset};
@@ -17,9 +17,11 @@ use crate::graphics::WgpuRenderFramework;
 
 use super::{
     anti_alias_product_profile, assert_taa_resolve_product_stats,
-    submit_and_capture_anti_alias_product, TAA_REACTIVE_MASK_CLEAR_EXECUTOR_ID,
-    TAA_REACTIVE_MASK_MESH_EXECUTOR_ID, TAA_RESOLVE_EXECUTOR_ID,
+    submit_and_capture_anti_alias_product, TAA_REACTIVE_MASK_MESH_EXECUTOR_ID,
+    TAA_RESOLVE_EXECUTOR_ID,
 };
+
+const TAA_REACTIVE_MASK_WGPU_PNG: &str = "render18_taa_reactive_mask_wgpu_20260813.png";
 
 #[test]
 fn render_product_taa_authored_reactive_mask_records_material_writer_path() {
@@ -53,6 +55,16 @@ fn render_product_taa_authored_reactive_mask_records_material_writer_path() {
         viewport,
         authored_reactive_mask_taa_product_extract(viewport_size, inert_material),
     );
+    let (_, inert_history_flip_stats) = submit_and_capture_anti_alias_product(
+        &framework,
+        viewport,
+        authored_reactive_mask_taa_product_extract(viewport_size, inert_material),
+    );
+    let (_, inert_stable_stats) = submit_and_capture_anti_alias_product(
+        &framework,
+        viewport,
+        authored_reactive_mask_taa_product_extract(viewport_size, inert_material),
+    );
     let (_, reactive_stats) = submit_and_capture_anti_alias_product(
         &framework,
         viewport,
@@ -66,6 +78,9 @@ fn render_product_taa_authored_reactive_mask_records_material_writer_path() {
     assert_eq!(inert_stats.last_material_fallback_count, 0);
     assert_eq!(inert_stats.last_mesh_opaque_draw_count, 1);
     assert_eq!(inert_stats.last_mesh_taa_reactive_mask_command_count, 0);
+    assert_eq!(inert_stats.last_taa_reactive_mask_encoded_pass_count, 0);
+    assert_eq!(inert_stats.last_taa_reactive_mask_encoded_write_bytes, 0);
+    assert_eq!(inert_stats.last_taa_resolve_bind_group_create_count, 1);
 
     assert_taa_resolve_product_stats(&reactive_stats);
     assert_taa_reactive_mask_graph_executed(&reactive_stats);
@@ -74,6 +89,117 @@ fn render_product_taa_authored_reactive_mask_records_material_writer_path() {
     assert_eq!(reactive_stats.last_material_fallback_count, 0);
     assert_eq!(reactive_stats.last_mesh_opaque_draw_count, 1);
     assert_eq!(reactive_stats.last_mesh_taa_reactive_mask_command_count, 1);
+    assert_eq!(reactive_stats.last_taa_reactive_mask_encoded_pass_count, 1);
+    assert_eq!(reactive_stats.last_taa_resolve_bind_group_create_count, 1);
+    assert_eq!(
+        reactive_stats.last_taa_reactive_mask_encoded_write_bytes,
+        u64::from(viewport_size.x) * u64::from(viewport_size.y)
+    );
+    assert_eq!(
+        inert_history_flip_stats.last_taa_resolve_bind_group_create_count, 1,
+        "the alternate TAA history backing must receive its own bind group"
+    );
+    assert_eq!(
+        inert_stable_stats.last_taa_resolve_bind_group_create_count, 0,
+        "once both history slots and transient views are stable, TAA resolve must reuse its bind group"
+    );
+}
+
+#[test]
+#[ignore = "writes TAA reactive-mask WGPU framebuffer evidence under docs/tests/runtime/render"]
+fn export_taa_reactive_mask_wgpu_png() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let inert_material = register_taa_reactive_product_material(
+        &asset_manager,
+        "res://materials/taa-reactive-evidence-inert.zmaterial",
+        0.0,
+    );
+    let reactive_material = register_taa_reactive_product_material(
+        &asset_manager,
+        "res://materials/taa-reactive-evidence-authored.zmaterial",
+        1.0,
+    );
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
+    let viewport_size = UVec2::new(320, 240);
+    let viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(viewport_size))
+        .unwrap();
+    framework
+        .set_quality_profile(
+            viewport,
+            anti_alias_product_profile("runtime-taa-reactive-mask-evidence", true)
+                .with_temporal_history(true),
+        )
+        .unwrap();
+
+    let (_, inert_stats) = submit_and_capture_anti_alias_product(
+        &framework,
+        viewport,
+        authored_reactive_mask_taa_product_extract(viewport_size, inert_material),
+    );
+    let (_, history_flip_stats) = submit_and_capture_anti_alias_product(
+        &framework,
+        viewport,
+        authored_reactive_mask_taa_product_extract(viewport_size, inert_material),
+    );
+    let (_, stable_stats) = submit_and_capture_anti_alias_product(
+        &framework,
+        viewport,
+        authored_reactive_mask_taa_product_extract(viewport_size, inert_material),
+    );
+    let (reactive_frame, reactive_stats) = submit_and_capture_anti_alias_product(
+        &framework,
+        viewport,
+        authored_reactive_mask_taa_product_extract(viewport_size, reactive_material),
+    );
+
+    assert_taa_resolve_product_stats(&inert_stats);
+    assert_eq!(inert_stats.last_taa_reactive_mask_encoded_pass_count, 0);
+    assert_eq!(inert_stats.last_taa_reactive_mask_encoded_write_bytes, 0);
+    assert_eq!(inert_stats.last_taa_resolve_bind_group_create_count, 1);
+    assert_eq!(
+        history_flip_stats.last_taa_resolve_bind_group_create_count,
+        1
+    );
+    assert_eq!(stable_stats.last_taa_resolve_bind_group_create_count, 0);
+
+    assert_taa_resolve_product_stats(&reactive_stats);
+    assert_eq!(reactive_stats.last_mesh_taa_reactive_mask_command_count, 1);
+    assert_eq!(reactive_stats.last_taa_reactive_mask_encoded_pass_count, 1);
+    assert_eq!(
+        reactive_stats.last_taa_reactive_mask_encoded_write_bytes,
+        u64::from(viewport_size.x) * u64::from(viewport_size.y)
+    );
+    assert!(
+        reactive_frame
+            .rgba
+            .chunks_exact(4)
+            .any(|pixel| pixel[..3].iter().any(|channel| *channel != 0)),
+        "TAA reactive-mask evidence frame must contain rendered geometry"
+    );
+
+    let output = repository_root()
+        .join("docs")
+        .join("tests")
+        .join("runtime")
+        .join("render")
+        .join(TAA_REACTIVE_MASK_WGPU_PNG);
+    std::fs::create_dir_all(output.parent().expect("render evidence directory")).unwrap();
+    image::save_buffer_with_format(
+        &output,
+        &reactive_frame.rgba,
+        reactive_frame.width,
+        reactive_frame.height,
+        image::ColorType::Rgba8,
+        image::ImageFormat::Png,
+    )
+    .unwrap();
+    framework.destroy_viewport(viewport).unwrap();
+    assert!(
+        output.is_file(),
+        "missing TAA reactive-mask visual evidence: {}",
+        output.display()
+    );
 }
 
 #[test]
@@ -121,6 +247,18 @@ fn render_product_taa_transparent_reactive_mask_records_alpha_writer_path() {
     assert_eq!(
         transparent_stats.last_mesh_taa_reactive_mask_command_count,
         1
+    );
+    assert_eq!(
+        transparent_stats.last_taa_reactive_mask_encoded_pass_count,
+        1
+    );
+    assert_eq!(
+        transparent_stats.last_taa_resolve_bind_group_create_count,
+        1
+    );
+    assert_eq!(
+        transparent_stats.last_taa_reactive_mask_encoded_write_bytes,
+        u64::from(viewport_size.x) * u64::from(viewport_size.y)
     );
 }
 
@@ -290,11 +428,7 @@ fn authored_reactive_mask_mesh(node_id: u64, material: ResourceId) -> RenderMesh
 }
 
 fn assert_taa_reactive_mask_graph_executed(stats: &RenderStats) {
-    for executor_id in [
-        TAA_REACTIVE_MASK_CLEAR_EXECUTOR_ID,
-        TAA_REACTIVE_MASK_MESH_EXECUTOR_ID,
-        TAA_RESOLVE_EXECUTOR_ID,
-    ] {
+    for executor_id in [TAA_REACTIVE_MASK_MESH_EXECUTOR_ID, TAA_RESOLVE_EXECUTOR_ID] {
         assert!(
             stats
                 .last_graph_executed_executor_ids
@@ -304,4 +438,11 @@ fn assert_taa_reactive_mask_graph_executed(stats: &RenderStats) {
             stats.last_graph_executed_executor_ids
         );
     }
+}
+
+fn repository_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("zircon_runtime should live below the repository root")
+        .to_path_buf()
 }

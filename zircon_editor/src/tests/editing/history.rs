@@ -168,11 +168,9 @@ fn editor_snapshot_consumes_the_stable_runtime_inspection_artifact() {
         .world
         .with_world(|scene| scene.inspection_artifact_diagnostics());
     assert_eq!(after_second, after_first);
-    assert!(
-        first
-            .scene_entries
-            .shares_hierarchy_with(&second.scene_entries)
-    );
+    assert!(first
+        .scene_entries
+        .shares_hierarchy_with(&second.scene_entries));
 
     let camera = state.world.with_world(|scene| {
         scene
@@ -187,11 +185,9 @@ fn editor_snapshot_consumes_the_stable_runtime_inspection_artifact() {
         .expect("selection should update through the editor intent path");
     let selection_changed = state.snapshot();
 
-    assert!(
-        first
-            .scene_entries
-            .shares_hierarchy_with(&selection_changed.scene_entries)
-    );
+    assert!(first
+        .scene_entries
+        .shares_hierarchy_with(&selection_changed.scene_entries));
     assert!(first.scene_entries.is_selected(cube));
     assert!(selection_changed.scene_entries.is_selected(camera));
     assert!(!selection_changed.scene_entries.is_selected(cube));
@@ -203,11 +199,9 @@ fn editor_snapshot_consumes_the_stable_runtime_inspection_artifact() {
     });
     let changed = state.snapshot();
 
-    assert!(
-        !first
-            .scene_entries
-            .shares_hierarchy_with(&changed.scene_entries)
-    );
+    assert!(!first
+        .scene_entries
+        .shares_hierarchy_with(&changed.scene_entries));
     assert_eq!(
         changed
             .scene_entries
@@ -243,11 +237,9 @@ fn editor_snapshot_reuses_the_hierarchy_view_at_thousand_nodes() {
 
     for _ in 0..8 {
         let stable = state.snapshot();
-        assert!(
-            first
-                .scene_entries
-                .shares_hierarchy_with(&stable.scene_entries)
-        );
+        assert!(first
+            .scene_entries
+            .shares_hierarchy_with(&stable.scene_entries));
     }
     assert_eq!(
         state
@@ -269,11 +261,9 @@ fn editor_snapshot_reuses_the_hierarchy_view_at_thousand_nodes() {
         .expect("selection should update through the editor intent path");
     let selection_changed = state.snapshot();
 
-    assert!(
-        first
-            .scene_entries
-            .shares_hierarchy_with(&selection_changed.scene_entries)
-    );
+    assert!(first
+        .scene_entries
+        .shares_hierarchy_with(&selection_changed.scene_entries));
     assert!(selection_changed.scene_entries.is_selected(camera));
     assert_eq!(
         state

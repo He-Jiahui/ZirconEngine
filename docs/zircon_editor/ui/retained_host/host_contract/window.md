@@ -111,11 +111,11 @@ doc_type: module-detail
 
 # Host Contract Window
 
-`window.rs` is the retained editor host's native-window boundary. It now owns only `UiHostWindow`, the shared host state field, child module wiring, and handle re-exports. Lifecycle construction, native metadata, presentation mutation, refresh diagnostics, redraw queueing, event-loop mechanics, text-editing semantics, and test-only native input helpers live under explicit child owners.
+`window.rs` is the retained editor host's native-window boundary. It owns `UiHostWindow`, the shared host state field, narrow profile-artifact job ownership, child module wiring, and handle re-exports. Lifecycle construction, native metadata, presentation mutation, refresh diagnostics, redraw queueing, event-loop mechanics, text-editing semantics, and test-only native input helpers live under explicit child owners.
 
 ## Lifecycle Ownership
 
-`window/lifecycle.rs` owns `UiHostWindow` construction, clone/show/hide/run entry points, handle construction, close-request response, host globals, and exit requests. The module keeps the shared state constructor and platform run path close to the `UiHostWindow` type while preventing lifecycle methods from growing back into the root module.
+`window/lifecycle.rs` owns `UiHostWindow` construction, clone/show/hide/run entry points, handle construction, close-request response, host globals, and exit requests. Startup injects the single `EditorJobSystem` into the profile-artifact owner before host assembly; a replaced or final `UiHostWindow` owner requests cooperative cancellation of its active artifact `JobId`. The module keeps the shared state constructor and platform run path close to the `UiHostWindow` type while preventing lifecycle methods from growing back into the root module.
 
 `window/constants.rs` owns the default native editor canvas size and the stable native host window id used by runtime input metadata and deterministic test metadata.
 
@@ -177,7 +177,7 @@ The handle also exposes the retained host window scale factor. `HostContractStat
 
 ## Module-local Tests
 
-`window/tests.rs` owns the tests that need direct access to `UiHostWindow` internals. It covers refresh diagnostics overlay text, close-request callback mutation without reentrant state borrowing, frame-update redraw requests that preserve damage regions, and one-shot completed frame-update scenario storage. Keeping these regressions in a child module lets `window.rs` remain the production host-state boundary without embedding test bodies at the bottom of the file.
+`window/tests.rs` owns the tests that need direct access to `UiHostWindow` internals. It covers refresh diagnostics overlay text, close-request callback mutation without reentrant state borrowing, frame-update redraw requests that preserve damage regions, and one-shot completed frame-update scenario storage. `window/profile_artifact_job_tests.rs` separately owns the injected job-system and final-owner cancellation regressions. Keeping these regressions in child modules lets `window.rs` remain the production host-state boundary without embedding test bodies at the bottom of the file.
 
 `window/test_support.rs` owns `#[cfg(test)]` native input helper methods on `UiHostWindow`: direct native keyboard dispatch, pointer move/press/release/scroll helpers, focused text helpers, popup navigation helpers, and deterministic keyboard metadata. Keeping this file separate prevents the root window boundary from accumulating test-only native input adapters.
 

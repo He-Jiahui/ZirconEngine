@@ -5,7 +5,9 @@ use zircon_runtime_interface::ui::{
     surface::{UiPaintPayload, UiRenderCommand, UiTextPaintDecorationKind, UiTextWritingMode},
 };
 
+#[path = "proof_assertions/msdf_pixels.rs"]
 mod msdf_pixels;
+#[path = "proof_assertions/table_pixels.rs"]
 mod table_pixels;
 
 pub(super) use msdf_pixels::assert_msdf_sharp_corner_pixels;

@@ -140,12 +140,12 @@ mod tests {
     use std::sync::{Arc, Mutex};
     use std::time::{Duration, Instant};
 
-    use crossbeam_channel::{Sender, bounded};
+    use crossbeam_channel::{bounded, Sender};
 
     use crate::core::framework::scene::{SceneArtifactTerminal, SceneArtifactWaitResult};
     use crate::core::runtime::{TaskPool, TaskPoolDescriptor};
 
-    use super::{MAX_PENDING_SCENE_ARTIFACTS, SceneArtifactIo};
+    use super::{SceneArtifactIo, MAX_PENDING_SCENE_ARTIFACTS};
 
     #[test]
     fn scene_artifact_io_keeps_only_the_latest_queued_generation_for_a_scene() {

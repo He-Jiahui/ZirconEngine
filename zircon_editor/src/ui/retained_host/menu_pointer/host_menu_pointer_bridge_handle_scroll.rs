@@ -6,7 +6,6 @@ use super::host_menu_pointer_bridge::HostMenuPointerBridge;
 use super::host_menu_pointer_dispatch::HostMenuPointerDispatch;
 use super::host_menu_pointer_route_intent::HostMenuPointerRouteIntent;
 use super::menu_item_tree::parent_path;
-use super::node_ids::popup_node_id;
 use super::popup_layout::{clamped_menu_bar_scroll_offset, menu_bar_contains_point};
 use super::route_conversion::to_public_route;
 
@@ -21,7 +20,10 @@ impl HostMenuPointerBridge {
         )?;
 
         let mut refreshed_hover_route = None;
-        if self.state.open_menu_index.is_none() && menu_bar_contains_point(&self.layout, point) {
+        if self.state.open_menu_index.is_none()
+            && delta.is_finite()
+            && menu_bar_contains_point(&self.layout, point)
+        {
             let next_offset = clamped_menu_bar_scroll_offset(
                 &self.layout,
                 self.state.menu_bar_scroll_offset + delta,
@@ -34,15 +36,11 @@ impl HostMenuPointerBridge {
                 );
             }
         } else if self.state.open_menu_index.is_some() {
-            if let Some(popup) = self.surface.tree.node(popup_node_id(0)) {
-                let offset = popup.scroll_state.unwrap_or_default().offset;
-                if (self.state.popup_scroll_offset - offset).abs() > f32::EPSILON {
-                    self.state.popup_scroll_offset = offset;
-                    self.rebuild_surface();
-                }
+            if self.root_popup_accepts_scroll(point) && delta.is_finite() {
+                self.state.popup_scroll_offset += delta;
+                self.clamp_popup_scroll_offset();
             }
-            refreshed_hover_route =
-                Some(self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Move, point))?);
+            refreshed_hover_route = Some(self.project_open_popup_route_at_point(point));
         }
 
         let mut rebuild_after_hover = false;

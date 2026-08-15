@@ -5,13 +5,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
 use zircon_runtime::asset::{
-    ASSET_MODULE_NAME, AssetReference, AssetUri, PhysicsMaterialAsset, ReferenceResolutionError,
-    SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset,
-    SceneAnimationSkeletonAsset, SceneAnimationStateMachinePlayerAsset, SceneAsset,
-    SceneColliderAsset, SceneColliderShapeAsset, SceneEntityAsset, SceneMobilityAsset,
-    TransformAsset, module_descriptor as asset_module_descriptor,
+    module_descriptor as asset_module_descriptor, AssetReference, AssetUri, PhysicsMaterialAsset,
+    ReferenceResolutionError, SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset,
+    SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
+    SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneColliderAsset, SceneColliderShapeAsset,
+    SceneEntityAsset, SceneMobilityAsset, TransformAsset, ASSET_MODULE_NAME,
 };
-use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::core::framework::animation::{
     AnimationClipAsset, AnimationGraphAsset, AnimationGraphNodeAsset, AnimationSequenceAsset,
     AnimationSkeletonAsset, AnimationStateAsset, AnimationStateMachineAsset,
@@ -19,8 +18,9 @@ use zircon_runtime::core::framework::animation::{
 use zircon_runtime::core::framework::scene::physics::{
     PhysicsCombineRule, PhysicsMaterialMetadata,
 };
+use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
-    FOUNDATION_MODULE_NAME, module_descriptor as foundation_module_descriptor,
+    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPath};
 use zircon_runtime_interface::resource::ResourceScheme;
@@ -30,9 +30,9 @@ use crate::core::project::{
     NewProjectDraft, NewProjectTemplate, ProjectAuthority, SceneCreateRequest,
 };
 use crate::tests::support::env_lock;
+use crate::ui::host::editor_asset_manager::{editor_asset_manager_handle, EditorAssetManager};
+use crate::ui::host::module::{module_descriptor, EDITOR_MANAGER_NAME, EDITOR_MODULE_NAME};
 use crate::ui::host::EditorManager;
-use crate::ui::host::editor_asset_manager::{EditorAssetManager, editor_asset_manager_handle};
-use crate::ui::host::module::{EDITOR_MANAGER_NAME, EDITOR_MODULE_NAME, module_descriptor};
 
 fn unique_temp_path(prefix: &str) -> PathBuf {
     let unique = SystemTime::now()

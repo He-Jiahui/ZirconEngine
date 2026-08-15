@@ -18,6 +18,8 @@ fn runtime_entry_translates_focus_changes_to_lifecycle_events() {
         runtime_window_lifecycle_source.as_str(),
         &[
             "fn handle_window_focus_changed",
+            "if self.frame_cadence.set_window_focused(focused)",
+            "self.request_runtime_frame();",
             "let state = if focused",
             "ZR_RUNTIME_LIFECYCLE_STATE_FOREGROUND_V1",
             "ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1",

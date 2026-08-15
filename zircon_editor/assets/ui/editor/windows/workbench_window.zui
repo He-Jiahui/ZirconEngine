@@ -77,10 +77,10 @@ control_id = "WorkbenchWindowContent"
 classes = ["editor-workbench", "workbench-window-content"]
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
-  { node = "top_toolbar" },
-  { node = "main_band" },
-  { node = "component_drawer_shell" },
-  { node = "status_bar" },
+  { node = "top_toolbar", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
+  { node = "main_band", slot = { layout = { linear_size = { rule = "Stretch", value = 4.0 } } } },
+  { node = "component_drawer_shell", slot = { layout = { linear_size = { rule = "StretchContent", value = 1.0 } } } },
+  { node = "status_bar", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
 ]
 
 [nodes.toolbar_main_menu]
@@ -153,13 +153,13 @@ layout = { width = { stretch = "Stretch" }, height = { min = 72.0, preferred = 7
 [nodes.main_band]
 component = "WorkbenchMainBand"
 control_id = "WorkbenchWindowMainBandRegion"
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { width = { stretch = "Stretch" }, height = { priority = 100, weight = 4.0, stretch = "Stretch" } }
 
 [nodes.component_drawer_shell]
 component = "Container"
 control_id = "BottomDrawerShellRoot"
 classes = ["workbench-bottom-drawer-shell"]
-layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 407.0, preferred = 407.0, max = 407.0, stretch = "Fixed" } }
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.chrome.panel_header.height", preferred = "$editor.density.bottom_output_height", max = "$editor.density.bottom_output_height", priority = 20, stretch = "Fixed" } }
 children = [{ node = "component_drawer" }]
 
 [nodes.component_drawer]
@@ -170,4 +170,4 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 [nodes.status_bar]
 component = "WorkbenchStatusBar"
 control_id = "WorkbenchWindowStatusBarRegion"
-layout = { width = { stretch = "Stretch" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" } }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" } }

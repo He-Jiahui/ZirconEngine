@@ -3,12 +3,12 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_runtime::asset::project::ProjectManager;
 use zircon_runtime::asset::AssetUri;
-use zircon_runtime::core::framework::scene::SCENE_MODULE_NAME;
+use zircon_runtime::asset::project::ProjectManager;
 use zircon_runtime::core::CoreRuntime;
+use zircon_runtime::core::framework::scene::SCENE_MODULE_NAME;
 use zircon_runtime::foundation::{
-    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
+    FOUNDATION_MODULE_NAME, module_descriptor as foundation_module_descriptor,
 };
 use zircon_runtime::scene::DefaultLevelManager;
 use zircon_runtime_interface::math::UVec2;
@@ -19,12 +19,12 @@ use crate::core::commands::EditorCommandDescriptor;
 use crate::core::editor_extension::EditorExtensionRegistry;
 use crate::core::editor_operation::EditorOperationPath;
 use crate::core::project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
-use crate::ui::host::editor_asset_manager::{
-    editor_asset_manager_handle, EditorAssetCatalogGeneration,
-};
-use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorHostEventController;
 use crate::ui::host::EditorManager;
+use crate::ui::host::editor_asset_manager::{
+    EditorAssetCatalogGeneration, editor_asset_manager_handle,
+};
+use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
 use crate::ui::host::{
     EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY, EDITOR_SUBSYSTEM_ANIMATION_AUTHORING,
     EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING, EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS,
@@ -128,14 +128,16 @@ impl EventRuntimeHarness {
 
         std::env::remove_var("ZIRCON_CONFIG_PATH");
 
-        let mut state = EditorState::with_default_selection(
-            DefaultLevelManager::default().create_default_level(),
-            UVec2::new(1280, 720),
-        );
-        state.mark_project_open();
         let manager = core
             .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
             .unwrap();
+        // Mirror production startup: the shell and controller share one stable edit gateway.
+        let mut state = EditorState::with_default_selection_with_context(
+            DefaultLevelManager::default().create_default_level(),
+            UVec2::new(1280, 720),
+            manager.context().clone(),
+        );
+        state.mark_project_open();
         let runtime = EditorHostEventController::new(state, manager);
 
         Self {

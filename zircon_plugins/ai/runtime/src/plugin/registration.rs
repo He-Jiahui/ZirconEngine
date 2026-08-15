@@ -314,83 +314,89 @@ pub(super) fn register_runtime_extensions(
         .runtime_scene_system(
             AI_PERCEPTION_TICK_SYSTEM,
             zircon_runtime::scene::SystemStage::Update,
-            move |context| {
-                let world_handle = context.level.world_handle();
-                let now_seconds = context.core.real_time().elapsed_secs_f64();
-                let (sound_sequence, reset) = context.level.with_world_mut(|world| {
-                    let mut subscriptions = world
-                        .remove_resource::<PerceptionEventSubscriptions>()
-                        .unwrap_or_default();
-                    let reset = subscriptions.begin_frame(
-                        world,
-                        perception_activation_id,
-                        context.core.real_time().frame_index(),
-                    );
-                    subscriptions.advance_pending_bus_time(context.delta_seconds);
-                    subscriptions.collect_bus_events(world);
-                    let sound_sequence = subscriptions.sound_sequence();
-                    world.insert_resource(subscriptions);
-                    (sound_sequence, reset)
-                });
-                let sound_read = read_sound_emissions(context.core, world_handle, sound_sequence);
-                let snapshots = context.level.with_world_mut(|world| {
-                    let mut subscriptions = world
-                        .remove_resource::<PerceptionEventSubscriptions>()
-                        .unwrap_or_default();
-                    let inputs = collect_perception_hearing_events(
-                        &mut subscriptions,
-                        sound_read,
-                        now_seconds,
-                    );
-                    let (hearing_events, sound_read, dropped_bus_events) = match inputs {
-                        Ok(inputs) => inputs,
-                        Err(error) => {
-                            world.insert_resource(subscriptions);
-                            return Err(error);
+            move || {
+                let physics_query = physics_query.clone();
+                let perception_manager = Arc::clone(&perception_manager);
+                move |context| {
+                    let world_handle = context.level.world_handle();
+                    let now_seconds = context.core.real_time().elapsed_secs_f64();
+                    let (sound_sequence, reset) = context.level.with_world_mut(|world| {
+                        let mut subscriptions = world
+                            .remove_resource::<PerceptionEventSubscriptions>()
+                            .unwrap_or_default();
+                        let reset = subscriptions.begin_frame(
+                            world,
+                            perception_activation_id,
+                            context.core.real_time().frame_index(),
+                        );
+                        subscriptions.advance_pending_bus_time(context.delta_seconds);
+                        subscriptions.collect_bus_events(world);
+                        let sound_sequence = subscriptions.sound_sequence();
+                        world.insert_resource(subscriptions);
+                        (sound_sequence, reset)
+                    });
+                    let sound_read =
+                        read_sound_emissions(context.core, world_handle, sound_sequence);
+                    let snapshots = context.level.with_world_mut(|world| {
+                        let mut subscriptions = world
+                            .remove_resource::<PerceptionEventSubscriptions>()
+                            .unwrap_or_default();
+                        let inputs = collect_perception_hearing_events(
+                            &mut subscriptions,
+                            sound_read,
+                            now_seconds,
+                        );
+                        let (hearing_events, sound_read, dropped_bus_events) = match inputs {
+                            Ok(inputs) => inputs,
+                            Err(error) => {
+                                world.insert_resource(subscriptions);
+                                return Err(error);
+                            }
+                        };
+                        if let Some(sound_read) = &sound_read {
+                            subscriptions.advance_sound_sequence(sound_read.next_sequence);
                         }
-                    };
-                    if let Some(sound_read) = &sound_read {
-                        subscriptions.advance_sound_sequence(sound_read.next_sequence);
-                    }
-                    let mut budget = world.remove_resource::<AiTickBudget>().unwrap_or_default();
-                    let mut event_adapter = world
-                        .remove_resource::<HearingStimulusAdapter>()
-                        .unwrap_or_default();
-                    if reset {
-                        event_adapter.clear_pending();
-                    }
-                    event_adapter.record_dropped_events(dropped_bus_events);
-                    if let Some(sound_read) = &sound_read {
-                        event_adapter.record_dropped_events(sound_read.missed_events);
-                    }
-                    let mut perceived = world
-                        .remove_resource::<PerceivedStimuli>()
-                        .unwrap_or_default();
-                    tick_perception(
-                        world,
-                        world_handle,
-                        context.delta_seconds,
-                        &mut budget,
-                        &mut perceived,
-                        &mut event_adapter,
-                        &hearing_events,
-                        Some(&physics_query),
-                    );
-                    let snapshots = perceived.snapshots();
-                    world.insert_resource(subscriptions);
-                    world.insert_resource(budget);
-                    world.insert_resource(event_adapter);
-                    world.insert_resource(perceived);
-                    Ok(snapshots)
-                })?;
-                perception_manager
-                    .replace_world_perception_snapshots(world_handle, snapshots)
-                    .map_err(|error| {
-                        zircon_runtime::core::CoreError::Initialization(
-                            AI_PERCEPTION_TICK_SYSTEM.to_string(),
-                            error.to_string(),
-                        )
-                    })
+                        let mut budget =
+                            world.remove_resource::<AiTickBudget>().unwrap_or_default();
+                        let mut event_adapter = world
+                            .remove_resource::<HearingStimulusAdapter>()
+                            .unwrap_or_default();
+                        if reset {
+                            event_adapter.clear_pending();
+                        }
+                        event_adapter.record_dropped_events(dropped_bus_events);
+                        if let Some(sound_read) = &sound_read {
+                            event_adapter.record_dropped_events(sound_read.missed_events);
+                        }
+                        let mut perceived = world
+                            .remove_resource::<PerceivedStimuli>()
+                            .unwrap_or_default();
+                        tick_perception(
+                            world,
+                            world_handle,
+                            context.delta_seconds,
+                            &mut budget,
+                            &mut perceived,
+                            &mut event_adapter,
+                            &hearing_events,
+                            Some(&physics_query),
+                        );
+                        let snapshots = perceived.snapshots();
+                        world.insert_resource(subscriptions);
+                        world.insert_resource(budget);
+                        world.insert_resource(event_adapter);
+                        world.insert_resource(perceived);
+                        Ok(snapshots)
+                    })?;
+                    perception_manager
+                        .replace_world_perception_snapshots(world_handle, snapshots)
+                        .map_err(|error| {
+                            zircon_runtime::core::CoreError::Initialization(
+                                AI_PERCEPTION_TICK_SYSTEM.to_string(),
+                                error.to_string(),
+                            )
+                        })
+                }
             },
         )
         .in_set(AI_MAIN_SYSTEM_SET)
@@ -398,102 +404,107 @@ pub(super) fn register_runtime_extensions(
             AI_BEHAVIOR_TICK_SYSTEM.to_string(),
         ))
         .register()?;
-    let mut debug_reports_by_entity = BTreeMap::new();
     let script_bridge = module.import_interface::<dyn ScriptBehaviorBridge>()?;
     module
         .runtime_scene_system(
             AI_BEHAVIOR_TICK_SYSTEM,
             zircon_runtime::scene::SystemStage::Update,
-            move |context| {
-                let world_handle = context.level.world_handle();
-                let active_entities_before_tick = manager.active_agent_entities(world_handle);
-                context.level.with_world_mut(|world| {
-                    let camera_position = world
-                        .world_transform(world.active_camera())
-                        .map(|transform| transform.translation);
-                    let lod_by_entity = active_entities_before_tick
-                        .iter()
-                        .copied()
-                        .map(|entity| {
-                            let lod = camera_position
-                                .zip(
-                                    world
-                                        .world_transform(entity)
-                                        .map(|transform| transform.translation),
-                                )
-                                .map(|(camera, agent)| {
-                                    AiBehaviorTickLod::from_distance((agent - camera).length())
-                                })
-                                .unwrap_or(AiBehaviorTickLod::Full);
-                            (entity, lod)
-                        })
-                        .collect::<std::collections::BTreeMap<_, _>>();
-                    let mut integration_host =
-                        RuntimeBehaviorIntegrationHost::new(world, Some(script_bridge.clone()));
-                    let reports = manager
-                        .tick_active_agents_with_lod_and_integration_host(
-                            world_handle,
-                            context.delta_seconds,
-                            context.core.real_time().frame_index(),
-                            |entity| lod_by_entity.get(&entity).copied().unwrap_or_default(),
-                            &mut integration_host,
-                        )
-                        .map_err(|error| {
-                            zircon_runtime::core::CoreError::Initialization(
-                                AI_BEHAVIOR_TICK_SYSTEM.to_string(),
-                                error.to_string(),
+            move || {
+                let manager = Arc::clone(&manager);
+                let script_bridge = script_bridge.clone();
+                let mut debug_reports_by_entity = BTreeMap::new();
+                move |context| {
+                    let world_handle = context.level.world_handle();
+                    let active_entities_before_tick = manager.active_agent_entities(world_handle);
+                    context.level.with_world_mut(|world| {
+                        let camera_position = world
+                            .world_transform(world.active_camera())
+                            .map(|transform| transform.translation);
+                        let lod_by_entity = active_entities_before_tick
+                            .iter()
+                            .copied()
+                            .map(|entity| {
+                                let lod = camera_position
+                                    .zip(
+                                        world
+                                            .world_transform(entity)
+                                            .map(|transform| transform.translation),
+                                    )
+                                    .map(|(camera, agent)| {
+                                        AiBehaviorTickLod::from_distance((agent - camera).length())
+                                    })
+                                    .unwrap_or(AiBehaviorTickLod::Full);
+                                (entity, lod)
+                            })
+                            .collect::<std::collections::BTreeMap<_, _>>();
+                        let mut integration_host =
+                            RuntimeBehaviorIntegrationHost::new(world, Some(script_bridge.clone()));
+                        let reports = manager
+                            .tick_active_agents_with_lod_and_integration_host(
+                                world_handle,
+                                context.delta_seconds,
+                                context.core.real_time().frame_index(),
+                                |entity| lod_by_entity.get(&entity).copied().unwrap_or_default(),
+                                &mut integration_host,
                             )
-                        })?;
-                    drop(integration_host);
-                    let active_entities = manager
-                        .active_agent_entities(world_handle)
-                        .into_iter()
-                        .collect::<BTreeSet<_>>();
-                    let snapshots_by_entity = manager
-                        .runtime_snapshot()
-                        .agents
-                        .into_iter()
-                        .filter(|snapshot| snapshot.world == world_handle)
-                        .filter(|snapshot| active_entities.contains(&snapshot.entity))
-                        .map(|snapshot| (snapshot.entity, snapshot))
-                        .collect::<BTreeMap<_, _>>();
-                    let world_id = world_handle.get();
-                    debug_reports_by_entity.retain(|(report_world, entity), _| {
-                        *report_world != world_id || active_entities.contains(entity)
-                    });
-                    for report in &reports {
-                        if let Some(node_result) = report.node_result_event() {
-                            world.send_event(node_result);
+                            .map_err(|error| {
+                                zircon_runtime::core::CoreError::Initialization(
+                                    AI_BEHAVIOR_TICK_SYSTEM.to_string(),
+                                    error.to_string(),
+                                )
+                            })?;
+                        drop(integration_host);
+                        let active_entities = manager
+                            .active_agent_entities(world_handle)
+                            .into_iter()
+                            .collect::<BTreeSet<_>>();
+                        let snapshots_by_entity = manager
+                            .runtime_snapshot()
+                            .agents
+                            .into_iter()
+                            .filter(|snapshot| snapshot.world == world_handle)
+                            .filter(|snapshot| active_entities.contains(&snapshot.entity))
+                            .map(|snapshot| (snapshot.entity, snapshot))
+                            .collect::<BTreeMap<_, _>>();
+                        let world_id = world_handle.get();
+                        debug_reports_by_entity.retain(|(report_world, entity), _| {
+                            *report_world != world_id || active_entities.contains(entity)
+                        });
+                        for report in &reports {
+                            if let Some(node_result) = report.node_result_event() {
+                                world.send_event(node_result);
+                            }
+                            debug_reports_by_entity
+                                .insert((world_id, report.entity), report.clone());
                         }
-                        debug_reports_by_entity.insert((world_id, report.entity), report.clone());
-                    }
-                    let frames = debug_reports_by_entity
-                        .iter()
-                        .filter(|((report_world, entity), _)| {
-                            *report_world == world_id && active_entities.contains(entity)
-                        })
-                        .filter_map(|((_, entity), report)| {
-                            snapshots_by_entity
-                                .get(entity)
-                                .map(|snapshot| AiBehaviorDebugFrame {
-                                    report: report.clone(),
-                                    behavior_tree: snapshot.behavior_tree.clone(),
-                                    blackboard: snapshot.blackboard.clone(),
-                                    perception: snapshot.perception.clone(),
-                                    perception_debug: perception_debug_snapshot(world, *entity),
+                        let frames = debug_reports_by_entity
+                            .iter()
+                            .filter(|((report_world, entity), _)| {
+                                *report_world == world_id && active_entities.contains(entity)
+                            })
+                            .filter_map(|((_, entity), report)| {
+                                snapshots_by_entity.get(entity).map(|snapshot| {
+                                    AiBehaviorDebugFrame {
+                                        report: report.clone(),
+                                        behavior_tree: snapshot.behavior_tree.clone(),
+                                        blackboard: snapshot.blackboard.clone(),
+                                        perception: snapshot.perception.clone(),
+                                        perception_debug: perception_debug_snapshot(world, *entity),
+                                    }
                                 })
-                        })
-                        .collect();
-                    for report in reports {
-                        world.send_event(report);
-                    }
-                    world.send_event(AiBehaviorDebugSnapshot {
-                        world: world_handle,
-                        frames,
-                    });
+                            })
+                            .collect();
+                        for report in reports {
+                            world.send_event(report);
+                        }
+                        world.send_event(AiBehaviorDebugSnapshot {
+                            world: world_handle,
+                            frames,
+                        });
+                        Ok(())
+                    })?;
                     Ok(())
-                })?;
-                Ok(())
+                }
             },
         )
         .in_set(AI_MAIN_SYSTEM_SET)

@@ -4,8 +4,8 @@ use zircon_runtime_interface::{
     ZrRuntimeViewportSizeV1,
 };
 
-use super::RuntimeEntryApp;
 use super::mvp_input_probe::mvp_input_probe_enabled;
+use super::RuntimeEntryApp;
 
 impl RuntimeEntryApp {
     pub(in crate::entry::runtime_entry_app) fn emit_first_frame_product_diagnostics(

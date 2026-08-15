@@ -6,6 +6,8 @@ use super::import_shader;
 use super::import_shader_package;
 #[cfg(test)]
 use super::import_sound;
+#[cfg(feature = "ui")]
+use super::import_ui_v2_asset;
 use super::{
     import_animation_asset, import_authoring_asset, import_cube_lut, import_data_asset,
     import_gltf, import_material, import_mesh, import_model, import_obj, import_physics_material,
@@ -185,6 +187,13 @@ impl AssetImporter {
             descriptor("zircon.builtin.ui_icon.toml", AssetKind::Texture, 1)
                 .with_full_suffixes([".icon.toml"]),
             import_ui_icon_asset::import_ui_icon_asset,
+        )?;
+        #[cfg(feature = "ui")]
+        self.register_function(
+            descriptor("zircon.builtin.ui.zui", AssetKind::UiLayout, 1)
+                .with_full_suffixes([".zui"])
+                .with_additional_output_kinds([AssetKind::UiWidget, AssetKind::UiStyle]),
+            import_ui_v2_asset::import_ui_v2_asset,
         )?;
 
         self.register_function(
@@ -416,8 +425,6 @@ impl AssetImporter {
     #[cfg(test)]
     pub(crate) fn first_wave_plugin_fixture_importers_for_test() -> Vec<FunctionAssetImporter> {
         vec![
-            #[cfg(feature = "ui")]
-            crate::asset::tests::support::ui_document_importer_fixture(),
             FunctionAssetImporter::new(
                 plugin_fixture_descriptor(
                     "texture_importer.image",

@@ -14,8 +14,10 @@ use zircon_runtime::scene::{
 
 use crate::{
     module_descriptor, package_manifest, plugin_registration, DefaultNavigationManager,
-    NAVIGATION_DIST_CRATE_NAME, NAVIGATION_DIST_RUNTIME_ENTRY, NAVIGATION_EVENT_NAMESPACE,
-    NAVIGATION_MAIN_SYSTEM_SET, NAVIGATION_MODULE_NAME, RUNTIME_CAPABILITIES,
+    NavigationOverlayFrame, NAVIGATION_DIST_CRATE_NAME, NAVIGATION_DIST_RUNTIME_ENTRY,
+    NAVIGATION_EVENT_NAMESPACE, NAVIGATION_MAIN_SYSTEM_SET, NAVIGATION_MODULE_NAME,
+    NAVIGATION_OVERLAY_FRAME_EVENT_ID, NAVIGATION_OVERLAY_FRAME_PAYLOAD_SCHEMA,
+    RUNTIME_CAPABILITIES,
 };
 
 #[test]
@@ -139,10 +141,19 @@ fn navigation_registration_contributes_runtime_module_and_components() {
         event.id == "navigation.events.off_mesh_traverse"
             && event.payload_schema == "navigation.events.off_mesh_traverse.v1"
     }));
+    assert!(event_catalog.events.iter().any(|event| {
+        event.id == NAVIGATION_OVERLAY_FRAME_EVENT_ID
+            && event.payload_schema == NAVIGATION_OVERLAY_FRAME_PAYLOAD_SCHEMA
+    }));
     assert!(report.extensions.plugin_events().any(|(_, event)| {
         event
             .type_name()
             .ends_with(std::any::type_name::<OffMeshTraverseEvent>())
+    }));
+    assert!(report.extensions.plugin_events().any(|(_, event)| {
+        event
+            .type_name()
+            .ends_with(std::any::type_name::<NavigationOverlayFrame>())
     }));
     assert!(report
         .package_manifest

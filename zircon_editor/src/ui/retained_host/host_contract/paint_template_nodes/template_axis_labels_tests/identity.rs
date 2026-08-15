@@ -1,4 +1,4 @@
-use super::super::identity::{AxisLabelKind, axis_label_kind};
+use super::super::identity::{axis_label_kind, AxisLabelKind};
 use super::support::label_node;
 
 #[test]

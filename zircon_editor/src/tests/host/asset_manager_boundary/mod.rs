@@ -7,7 +7,7 @@ fn editor_asset_boundary_lives_in_editor_crate() {
     let project_access_source = include_str!("../../../ui/host/project_access.rs");
     let asset_workspace_source =
         include_str!("../../../ui/workbench/project/asset_workspace_state.rs");
-    let accessors_source = include_str!("../../../ui/host/editor_event_runtime_access.rs");
+    let accessors_source = include_str!("../../../ui/host/editor_event_runtime_access/asset_access.rs");
     let core_mod_source = include_str!("../../../core/mod.rs");
     let runtime_asset_root_source = include_str!("../../../../../zircon_runtime/src/asset/mod.rs");
     let runtime_asset_module_source =
@@ -63,7 +63,8 @@ fn editor_asset_boundary_lives_in_editor_crate() {
         "editor event runtime accessors should import editor asset snapshot types from crate::ui::host::editor_asset_manager"
     );
     assert!(
-        startup_managers_source.contains("use crate::ui::host::editor_asset_manager::editor_asset_manager_handle;"),
+        startup_managers_source
+            .contains("use crate::ui::host::editor_asset_manager::editor_asset_manager_handle;"),
         "editor host lifecycle should resolve the editor asset server through a versioned editor-owned handle"
     );
     assert!(
@@ -79,7 +80,8 @@ fn editor_asset_boundary_lives_in_editor_crate() {
         "editor host lifecycle should not resolve generic asset API from zircon_runtime::core::manager::ManagerResolver"
     );
     assert!(
-        project_access_source.contains("use zircon_runtime::asset::{asset_manager_handle, AssetManager};"),
+        project_access_source
+            .contains("use zircon_runtime::asset::{asset_manager_handle, AssetManager};"),
         "editor manager project access should resolve the asset server through a versioned runtime handle"
     );
     assert!(
@@ -178,7 +180,7 @@ fn editor_asset_workspace_uses_canonical_resource_state() {
         include_str!("../../../ui/workbench/project/asset_workspace_state.rs");
     let editor_state_asset_workspace_source =
         include_str!("../../../ui/workbench/project/editor_state_asset_workspace.rs");
-    let accessors_source = include_str!("../../../ui/host/editor_event_runtime_access.rs");
+    let accessors_source = include_str!("../../../ui/host/editor_event_runtime_access/asset_access.rs");
     let resource_access_source = include_str!("../../../ui/host/resource_access.rs");
     let asset_surface_source =
         include_str!("../../../ui/layouts/views/asset_surface_presentation.rs");
@@ -221,7 +223,7 @@ fn editor_asset_workspace_uses_canonical_resource_record() {
         include_str!("../../../ui/workbench/project/asset_workspace_state.rs");
     let editor_state_asset_workspace_source =
         include_str!("../../../ui/workbench/project/editor_state_asset_workspace.rs");
-    let accessors_source = include_str!("../../../ui/host/editor_event_runtime_access.rs");
+    let accessors_source = include_str!("../../../ui/host/editor_event_runtime_access/asset_access.rs");
     let resource_access_source = include_str!("../../../ui/host/resource_access.rs");
     let resource_access_test_source = include_str!("../resource_access/mod.rs");
 

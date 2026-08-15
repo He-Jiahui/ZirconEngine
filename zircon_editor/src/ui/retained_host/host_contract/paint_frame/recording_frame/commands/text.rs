@@ -1,8 +1,8 @@
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::super::data::FrameRect;
-use super::super::super::HostRgbaFrame;
 use super::super::super::recording::HostRecordedPaintKind;
+use super::super::super::HostRgbaFrame;
 use super::record::record_command;
 
 impl HostRgbaFrame {

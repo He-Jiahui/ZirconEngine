@@ -23,7 +23,7 @@ implementation_files:
   - zircon_editor/src/core/asset/type_registry/registry.rs
   - zircon_editor/src/core/asset/type_registry/thumbnail_provider.rs
   - zircon_editor/src/core/asset/type_registry/toolkit.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access/asset_access.rs
   - zircon_editor/src/ui/host/editor_event_execution/asset_event.rs
   - zircon_editor/src/ui/host/editor_extension_registration.rs
   - zircon_editor/src/ui/host/editor_operation_dispatch.rs

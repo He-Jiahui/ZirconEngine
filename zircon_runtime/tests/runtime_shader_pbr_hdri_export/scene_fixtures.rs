@@ -115,6 +115,7 @@ pub(super) fn write_uv_sphere_model(path: PathBuf, model_uri: &str, rings: usize
             vertices,
             indices,
             mesh: None,
+            mesh_sdf: None,
             virtual_geometry: None,
         }],
     };

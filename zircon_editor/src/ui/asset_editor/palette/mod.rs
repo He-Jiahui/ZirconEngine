@@ -1,10 +1,10 @@
-mod build;
+mod catalog;
 mod entry;
 mod instantiate;
 mod native_slots;
 mod placement;
 
-pub(crate) use build::build_palette_entries;
+pub(crate) use catalog::UiAssetPaletteCatalog;
 pub(crate) use entry::{UiAssetPaletteEntry, UiAssetPaletteEntryKind};
 pub(crate) use instantiate::{
     can_convert_selected_node_to_reference, convert_selected_node_to_reference,

@@ -92,6 +92,9 @@ fn window_input_pump_scale_factor_updates_retained_metrics_without_losing_size()
         .notes
         .iter()
         .any(|note| note == "window_scale_factor_updated"));
+
+    surface.rebuild_dirty(metrics.logical_size).unwrap();
+    assert_eq!(surface.render_extract.raster_scale, 1.5);
 }
 
 #[test]

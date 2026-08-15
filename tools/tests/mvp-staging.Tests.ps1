@@ -10,6 +10,14 @@ if ($PSVersionTable.PSEdition -eq 'Core') {
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $stager = Join-Path $repoRoot 'tools\mvp\Stage-MvpProducts.ps1'
 $preflightModule = Join-Path $repoRoot 'tools\mvp\MvpStagingPreflight.psm1'
+$productInputManifestModule = Join-Path $repoRoot 'tools\mvp\MvpProductInputManifest.psm1'
+$fixturePathsModule = Join-Path $repoRoot 'tools\mvp\MvpTestFixturePaths.psm1'
+$stagingTreeManifestModule = Join-Path $repoRoot 'tools\mvp\MvpAcceptanceStagingTreeManifest.psm1'
+$windowsPathResolverModule = Join-Path $repoRoot 'tools\WindowsPathResolver.psm1'
+Import-Module $productInputManifestModule -Force -ErrorAction Stop
+Import-Module $fixturePathsModule -Force -ErrorAction Stop
+Import-Module $stagingTreeManifestModule -Force -ErrorAction Stop
+Import-Module $windowsPathResolverModule -Force -Global -ErrorAction Stop
 
 function Assert-True {
     param([bool]$Condition, [string]$Message)
@@ -61,7 +69,7 @@ function Assert-ProcessJournalEntry {
 }
 
 function New-MvpStagingFixture {
-    $root = Join-Path ([IO.Path]::GetTempPath()) ('zircon mvp staging-' + [guid]::NewGuid().ToString('N'))
+    $root = New-MvpTestFixtureRoot -Prefix 'zircon-mvp-staging'
     $build = Join-Path $root 'build'
     $templates = Join-Path $root 'templates\projects\renderable-empty'
     $engineAssets = Join-Path $root 'engine-assets'
@@ -176,12 +184,14 @@ public static class FixtureProduct
             return 0;
         }
 
+        var commandletIndex = Array.IndexOf(args, "--run");
         var automationIndex = Array.IndexOf(args, "--automation");
-        if (automationIndex >= 0)
+        if (commandletIndex >= 0 && commandletIndex + 1 < args.Length &&
+            args[commandletIndex + 1] == "authoring-automation")
         {
             var automationProjectIndex = Array.IndexOf(args, "--project");
             if (automationProjectIndex < 0 || automationProjectIndex + 1 >= args.Length ||
-                Array.IndexOf(args, "--headless") < 0 ||
+                Array.IndexOf(args, "--headless") >= 0 ||
                 automationIndex + 1 >= args.Length ||
                 !File.Exists(args[automationIndex + 1]))
             {
@@ -211,7 +221,7 @@ public static class FixtureProduct
                 return 32;
             }
             var reportedProjectRoot = Environment.GetEnvironmentVariable("ZIRCON_MVP_FIXTURE_WRONG_AUTOMATION_PROJECT") == "1"
-                ? Path.Combine(Path.GetTempPath(), "wrong-automation-project")
+                ? Path.GetFullPath(Path.Combine(args[automationProjectIndex + 1], "..", "wrong-automation-project"))
                 : args[automationProjectIndex + 1];
             var automationProjectIdentity = "fixture-project";
             var automationManifestPath = Path.Combine(args[automationProjectIndex + 1], "zircon-project.toml");
@@ -231,17 +241,19 @@ public static class FixtureProduct
                 ? "{\"binding_path\":\"Hierarchy/SelectCube:onClick\",\"source\":\"Cli\"}," +
                     "{\"binding_path\":\"Inspector/TransformPositionXCommit:onSubmit\",\"source\":\"Cli\",\"operation_id\":\"inspector.field.apply_batch\",\"transaction_id\":1}," +
                     "{\"binding_path\":\"Inspector/TransformScaleXCommit:onSubmit\",\"source\":\"Cli\",\"operation_id\":\"inspector.field.apply_batch\",\"transaction_id\":2}," +
+                    "{\"binding_path\":\"WorkbenchMenuBar/Undo:onClick\",\"source\":\"Cli\",\"operation_id\":\"edit.history.undo\"}," +
+                    "{\"binding_path\":\"WorkbenchMenuBar/Redo:onClick\",\"source\":\"Cli\",\"operation_id\":\"edit.history.redo\"}," +
                     "{\"binding_path\":\"WorkbenchMenuBar/SaveProject:onClick\",\"source\":\"Cli\",\"operation_id\":\"file.project.save\",\"save_generation\":2}"
                 : "{\"binding_path\":\"Hierarchy/SelectCube:onClick\",\"source\":\"Cli\"}";
             Console.WriteLine(
-                "{\"project_path\":\"" + projectPath +
+                "{\"command\":\"authoring-automation\",\"status\":\"succeeded\",\"exit_code\":0,\"migration\":null,\"plugins\":null,\"automation\":{\"project_path\":\"" + projectPath +
                 "\",\"project_identity\":\"" + automationProjectIdentity +
                 "\",\"manifest_identity\":\"" + automationProjectIdentity + "@v1" +
                 "\",\"scene_uri\":\"res://scenes/main.scene.toml\"" +
                 ",\"selected_model_resource_id\":\"fixture-cube-model-resource\"" +
                 ",\"selected_material_resource_id\":\"fixture-default-material-resource\"" +
                 ",\"opened_project_inspection_generation\":1,\"records\":[" + records + "]," +
-                "\"snapshot\":{\"project_open\":true,\"scene_entry_count\":3,\"selected_node_id\":3,\"selected_node_name\":\"Cube\",\"inspector_translation\":[\"" + translationX + "\",\"0\",\"0\"],\"inspector_scale\":[\"" + scaleX + "\",\"1.00\",\"1.00\"]}}"
+                "\"snapshot\":{\"project_open\":true,\"scene_entry_count\":3,\"selected_node_id\":3,\"selected_node_name\":\"Cube\",\"inspector_translation\":[\"" + translationX + "\",\"0\",\"0\"],\"inspector_scale\":[\"" + scaleX + "\",\"1.00\",\"1.00\"]}}}"
             );
             var automationDiagnosticRoot = Environment.GetEnvironmentVariable("ZIRCON_LOG_ROOT");
             if (!String.IsNullOrWhiteSpace(automationDiagnosticRoot))
@@ -261,6 +273,9 @@ public static class FixtureProduct
 
         Directory.CreateDirectory(diagnosticRoot);
         var logPath = Path.Combine(diagnosticRoot, "fixture.log");
+        File.AppendAllText(logPath,
+            "fixture_asset_root=" + Uri.EscapeDataString(
+                Environment.GetEnvironmentVariable("ZIRCON_ASSET_ROOT") ?? "") + Environment.NewLine);
         var projectIdentity = "fixture-project";
         var projectIndex = Array.IndexOf(args, "--project");
         if (projectIndex >= 0 && projectIndex + 1 < args.Length)
@@ -373,7 +388,7 @@ public static class FixtureProduct
     [IO.File]::WriteAllText((Join-Path $projectCache 'stale.zasset'), 'machine cache', [Text.UTF8Encoding]::new($false))
     [IO.File]::WriteAllText((Join-Path $projectRegistry 'asset-registry.json'), '{"stale":true}', [Text.UTF8Encoding]::new($false))
 
-    return [pscustomobject]@{
+    $fixture = [pscustomobject]@{
         Root = $root
         RuntimeExecutable = Join-Path $build 'zircon_runtime.exe'
         EditorExecutable = Join-Path $build 'zircon_editor.exe'
@@ -384,6 +399,44 @@ public static class FixtureProduct
         ProjectRoot = $project
         StagingRoot = Join-Path $root 'staging'
     }
+    $fixture | Add-Member -NotePropertyName ProductInputManifest -NotePropertyValue (New-MvpProductInputManifestFixture -Fixture $fixture)
+    return $fixture
+}
+
+function New-MvpProductInputManifestFixture {
+    param([Parameter(Mandatory)][pscustomobject]$Fixture)
+
+    $pathsByLogicalId = @{
+        'runtime-executable' = $Fixture.RuntimeExecutable
+        'runtime-library/runtime' = $Fixture.RuntimeLibrary
+        'editor-executable' = $Fixture.EditorExecutable
+        'runtime-library/editor' = $Fixture.EditorRuntimeLibrary
+    }
+    $artifacts = foreach ($specification in Get-MvpProductInputSpecifications) {
+        $path = $pathsByLogicalId[$specification.logical_id]
+        $resolution = Resolve-ZirconWindowsPath -Path $path
+        [ordered]@{
+            LogicalId = $specification.logical_id
+            Package = $specification.package
+            Bin = $specification.bin
+            Features = $specification.features
+            OutputGroup = $specification.output_group
+            ArtifactName = $specification.artifact_name
+            Path = $resolution.DisplayPath
+            Bytes = [IO.FileInfo]::new($resolution.OperationalPath).Length
+            Sha256 = Get-MvpProductInputFileSha256 -Path $resolution.OperationalPath
+        }
+    }
+    $manifestPath = Join-Path $Fixture.Root 'mvp-product-inputs.json'
+    $manifest = [ordered]@{
+        schema_version = 1
+        generated_at_utc = [DateTimeOffset]::UtcNow.ToString('o')
+        source_fingerprint = Get-MvpSourceFingerprint -RepositoryRoot $repoRoot
+        artifact_output_directory = (Resolve-ZirconWindowsPath -Path (Split-Path -Parent $manifestPath)).DisplayPath
+        artifacts = @($artifacts)
+    }
+    [IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 5), [Text.UTF8Encoding]::new($false))
+    return $manifestPath
 }
 
 function Invoke-MvpStager {
@@ -393,15 +446,11 @@ function Invoke-MvpStager {
     )
 
     return & $stager `
-        -RuntimeExecutable $Fixture.RuntimeExecutable `
-        -EditorExecutable $Fixture.EditorExecutable `
-        -RuntimeLibrary $Fixture.RuntimeLibrary `
-        -EditorRuntimeLibrary $Fixture.EditorRuntimeLibrary `
+        -ProductInputManifest $Fixture.ProductInputManifest `
         -TemplateRoot $Fixture.TemplateRoot `
         -EngineAssetRoot $Fixture.EngineAssetRoot `
         -ProjectRoot $Fixture.ProjectRoot `
         -StagingRoot $Fixture.StagingRoot `
-        -SourceFingerprint 'fixture-source-fingerprint' `
         -RunId $RunId `
         -NoLaunch `
         -AllowUnsafeStagingRoot
@@ -409,20 +458,57 @@ function Invoke-MvpStager {
 
 $stagerSource = Get-Content -LiteralPath $stager -Raw -Encoding UTF8
 $preflightSource = Get-Content -LiteralPath $preflightModule -Raw -Encoding UTF8
+$productInputManifestSource = Get-Content -LiteralPath $productInputManifestModule -Raw -Encoding UTF8
 $projectOpenEvidenceSource = Get-Content -LiteralPath (Join-Path $repoRoot 'tools\mvp\MvpProjectOpenEvidence.psm1') -Raw -Encoding UTF8
 Assert-True ($stagerSource -notmatch '`\$') 'MVP staging diagnostics must interpolate their input values.'
 Assert-True ($stagerSource -match 'WindowsPathResolver\.psm1') 'MVP staging must import the shared Windows final-path resolver.'
 Assert-True ($stagerSource -match 'tools\\WindowsPathResolver\.psm1') 'MVP staging must import the shared resolver from tracked tools source.'
+Assert-True ($stagerSource -match 'MvpProductInputManifest\.psm1') 'MVP staging must import the source-bound product input manifest boundary.'
+Assert-True ($stagerSource -match 'Resolve-MvpProductInputManifest -Path \$ProductInputManifest') 'MVP staging must resolve product binaries from their signed input manifest.'
+Assert-True ($stagerSource -match 'Get-MvpSourceFingerprint') 'MVP staging must compare the manifest source fingerprint with the current source.'
+Assert-True ($stagerSource -match 'product_input_manifest = \$productInputManifestEvidence') 'MVP staging must retain immutable product-input manifest evidence.'
+Assert-True ($stagerSource -match "-LogicalId 'product-input-manifest'") 'MVP staging must copy the original product-input manifest into the staged product.'
+Assert-True ($stagerSource -match "-TargetRelativePath 'build\\mvp-product-inputs.json'") 'MVP staging must give the staged product-input manifest a canonical relative path.'
+Assert-True ($stagerSource -match '-ExpectedBytes \(\[Int64\]\$productInputs\.bytes\)') 'MVP staging must reject a product-input manifest replaced after resolution.'
+Assert-True ($stagerSource -match '-ExpectedSha256 \$productInputs\.sha256') 'MVP staging must verify the staged manifest against the digest consumed during resolution.'
+Assert-True ($stagerSource -match 'function Copy-MvpStageFile') 'MVP staging must centralize staged-file identity checks.'
+Assert-True ($stagerSource -match 'Target .* byte length differs from the expected product input') 'MVP staging must reject a copied product input whose bytes differ from its resolved manifest.'
+Assert-True ($stagerSource -match 'Target .* SHA-256 differs from the expected product input') 'MVP staging must reject a copied product input whose hash differs from its resolved manifest.'
+Assert-True ($stagerSource -notmatch '\[string\]\$RuntimeExecutable') 'MVP staging must not accept an unbound runtime executable path.'
+Assert-True ($stagerSource -notmatch '\[string\]\$EditorExecutable') 'MVP staging must not accept an unbound editor executable path.'
 Assert-True ($stagerSource -match 'function Assert-MvpDistinctProfileRuntimeLibraries') 'MVP staging must own the profile-specific runtime-library identity boundary.'
 Assert-True ($stagerSource -match 'Get-ZirconWindowsFileIdentity -Path \$RuntimeLibraryPath') 'MVP staging must compare the runtime DLL through the shared resolver identity.'
 Assert-True ($stagerSource -match 'Get-ZirconWindowsFileIdentity -Path \$EditorRuntimeLibraryPath') 'MVP staging must compare the editor DLL through the shared resolver identity.'
 Assert-True ($stagerSource -match 'Resolve-ZirconWindowsPath -Path \$Path') 'MVP staging must apply approved-root policy to the resolved Windows path.'
-Assert-True ($stagerSource -match 'return \(Resolve-ZirconWindowsPath -Path \$Path\)\.OperationalPath') 'MVP staging must resolve every external file and directory input through the shared Windows final-path resolver.'
+Assert-True ($stagerSource -match 'return \$resolvedPath') 'MVP staging must return external file and directory inputs through the shared Windows final-path resolver.'
+Assert-True ($stagerSource -match '\$resolvedPath = \(Resolve-ZirconWindowsPath -Path \$Path\)\.OperationalPath') 'MVP staging must resolve each input before checking its filesystem type.'
+Assert-True ($stagerSource -match '\[IO\.File\]::Exists\(\$resolvedPath\)') 'MVP staging must validate input files through the resolver operational path.'
+Assert-True ($stagerSource -match '\[IO\.Directory\]::Exists\(\$resolvedPath\)') 'MVP staging must validate input directories through the resolver operational path.'
+Assert-True ($stagerSource -match 'function Get-MvpOperationalFileList') 'MVP staging must enumerate source trees through an operational-path helper.'
+Assert-True ($stagerSource -match '\[IO\.Directory\]::GetFiles\(\$directory\)') 'MVP staging must enumerate source files through Windows PowerShell-compatible System.IO calls.'
+Assert-True ($stagerSource -match '\[IO\.Directory\]::GetDirectories\(\$directory\)') 'MVP staging must traverse source directories through Windows PowerShell-compatible System.IO calls.'
+Assert-True ($stagerSource -match '\[IO\.FileAttributes\]::ReparsePoint') 'MVP staging must not traverse reparse points after resolving source roots.'
+Assert-True ($stagerSource -notmatch 'Get-ChildItem -LiteralPath \$engineAssetRootPath -Recurse -File') 'MVP staging must not enumerate operational source paths through the PowerShell provider.'
+Assert-True ($stagerSource -match '-SourcePath \$engineAssetFile\s+`') 'MVP staging must copy engine assets from their operational string paths.'
+Assert-True ($stagerSource -match '-SourcePath \$templateFile\s+`') 'MVP staging must copy templates from their operational string paths.'
+Assert-True ($stagerSource -match '-SourcePath \$projectFile\s+`') 'MVP staging must copy project files from their operational string paths.'
+Assert-True ($stagerSource -notmatch '-SourcePath \$engineAssetFile\.FullName') 'MVP staging must not read FileInfo members from operational engine asset paths.'
+Assert-True ($stagerSource -notmatch '-SourcePath \$templateFile\.FullName') 'MVP staging must not read FileInfo members from operational template paths.'
+Assert-True ($stagerSource -notmatch '-SourcePath \$projectFile\.FullName') 'MVP staging must not read FileInfo members from operational project paths.'
+Assert-True ($stagerSource -match 'diagnostic_logs = @\(\$diagnosticFiles \| ForEach-Object \{ Get-MvpStagedFileEvidence -Path \$_ ') 'MVP staging must pass operational diagnostic strings directly to evidence collection.'
+Assert-True ($stagerSource -notmatch 'diagnostic_logs = @\(\$diagnosticFiles \| ForEach-Object \{ Get-MvpStagedFileEvidence -Path \$_\.FullName') 'MVP staging must not treat operational diagnostic strings as FileInfo values.'
 Assert-True ($stagerSource -match '\$displayPath = \$resolution\.DisplayPath\.TrimEnd') 'MVP staging must compare its approved-root policy against the resolver display path.'
-Assert-True ($stagerSource -match 'return \$displayPath') 'MVP staging must use its bounded approved display root for PowerShell provider operations.'
+Assert-True ($stagerSource -match 'return \$resolution\.OperationalPath') 'MVP staging must retain the resolved staging root for filesystem operations.'
+Assert-True ($stagerSource -match '\$resolvedDirectory = \(Resolve-ZirconWindowsPath -Path \$StageDirectory\)\.DisplayPath\.TrimEnd') 'MVP staging must compare WMI executable paths through the resolver display boundary.'
+Assert-True ($stagerSource -notmatch '\$resolvedDirectory = \[IO\.Path\]::GetFullPath\(\$StageDirectory\)') 'MVP staging must not compare WMI executable paths against a verbatim operational prefix.'
 Assert-True ($stagerSource -match '\$resolvedRoot = \(Resolve-ZirconWindowsPath -Path \$Root\)\.OperationalPath') 'MVP staging must derive staged-file containment from the resolver operational path.'
 Assert-True ($stagerSource -match '\$resolvedPath = \(Resolve-ZirconWindowsPath -Path \$Path\)\.OperationalPath') 'MVP staging must derive staged-file identity from the resolver operational path.'
-Assert-True ($stagerSource -match '\$createdProjectParentResolution = Resolve-ZirconWindowsPath -Path \(Join-Path \$stageDirectory ''project''\)') 'MVP staging must resolve the created-project parent through the shared Windows final-path resolver.'
+Assert-True ($stagerSource -match '\$createProjectLocation = Join-ZirconWindowsPath -Path \$stageDirectory -ChildPath ''project''') 'MVP staging must establish one physical creation parent inside the stage.'
+Assert-True ($stagerSource -match '\[IO\.Directory\]::CreateDirectory\(\$createProjectLocation\)') 'MVP staging must create the project working directory before launching the editor.'
+Assert-True ($stagerSource -match '-WorkingDirectory \$createProjectLocation') 'MVP staging must make the creation parent the editor working directory.'
+Assert-True ($stagerSource -match "'--location', '\.', '--template', 'renderable-empty'") 'MVP staging must create a project through the portable --location . contract.'
+Assert-True ($stagerSource -notmatch '\$createProjectLocationArgument') 'MVP staging must not pass an absolute creation location to the product CLI.'
+Assert-True ($stagerSource -match '\$createdProjectParentResolution = Resolve-ZirconWindowsPath -Path \(Join-ZirconWindowsPath -Path \$stageDirectory -ChildPath ''project''\)') 'MVP staging must resolve the created-project parent through the shared Windows final-path resolver.'
 Assert-True ($stagerSource -match '(?s)\$createdProjectExpectedResolution = Resolve-ZirconWindowsPath -Path \(Join-ZirconWindowsPath\s+`\s+-Path \$createdProjectParentResolution\.OperationalPath\s+`\s+-ChildPath \$ProjectName\)') 'MVP staging must derive the created-project identity from the resolved parent, not a caller-specific Windows path form.'
 Assert-True ($stagerSource -match '\$createdProjectExpectedRoot = \$createdProjectExpectedResolution\.OperationalPath') 'MVP staging must compare the created-project root using the resolver operational path.'
 Assert-True ($projectOpenEvidenceSource -match '\$resolvedStagingRoot = \$stagingResolution\.OperationalPath') 'MVP project-open evidence must derive staging containment from the resolver operational path.'
@@ -432,6 +518,9 @@ Assert-True ($stagerSource -match 'first_frame_exit_requested') 'MVP staging mus
 Assert-True ($stagerSource -match 'ZIRCON_LOG_ROOT') 'MVP staging must isolate product diagnostics under the stage directory.'
 Assert-True ($stagerSource -match 'ZIRCON_LOG_FILTER') 'MVP staging must override inherited host log filtering for product evidence.'
 Assert-True ($stagerSource -match 'ZIRCON_ASSET_ROOT') 'MVP staging must force products to resolve staged engine assets.'
+Assert-True ($stagerSource -match "ZIRCON_ASSET_ROOT = 'assets'") 'MVP staging must pass the staged asset root as the product-relative assets request.'
+Assert-True ($stagerSource -notmatch 'ZIRCON_ASSET_ROOT\s*=\s*\(Join-ZirconWindowsPath') 'MVP staging must not persist an absolute staged asset root into product configuration.'
+Assert-True ($stagerSource -notmatch "'ZIRCON_ASSET_ROOT',\s*\r?\n\s*'ZIRCON_LOG_ROOT'") 'MVP staging must preserve the product-relative asset request instead of resolving it in the driver.'
 Assert-True ($stagerSource -match 'runtime_first_frame_presented') 'MVP staging must verify the runtime first-presented-frame diagnostic from its log files.'
 Assert-True ($stagerSource -match 'editor_first_frame_presented') 'MVP staging must verify the editor first-presented-frame diagnostic from its log files.'
 Assert-True ($stagerSource -match 'runtime_process_teardown_complete') 'MVP staging must verify runtime teardown after the first presented frame.'
@@ -441,6 +530,7 @@ Assert-True ($stagerSource -match 'ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG') 'MVP 
 Assert-True ($stagerSource -match 'ZIRCON_RUNTIME_MVP_INPUT_PROBE') 'MVP staging must request the runtime host input probe before first-frame evidence.'
 Assert-True ($stagerSource -match 'Get-MvpRuntimeFrameCaptureEvidence') 'MVP staging must inspect the captured runtime PNG rather than only checking its path.'
 Assert-True ($stagerSource -match 'Get-MvpEditorWindowCaptureEvidence') 'MVP staging must inspect the captured editor window PNG rather than only checking its path.'
+Assert-True ($stagerSource -match 'System\.IO\.FileStream\(\s*\r?\n\s*path,\s*\r?\n\s*System\.IO\.FileMode\.Open') 'MVP staging PNG evidence must open resolver paths through a fully qualified System.IO file stream.'
 Assert-True ($stagerSource -match '\$pngEvidenceReferences\s*=\s*@\(') 'MVP staging must compile its PNG evidence helper with an explicit assembly reference collection.'
 Assert-True ($stagerSource -match '\[Security\.Cryptography\.SHA256\]\.Assembly\.Location') 'MVP staging must include the SHA-256 assembly when compiling its PNG evidence helper.'
 Assert-True ($stagerSource -match '-ReferencedAssemblies \$pngEvidenceReferences -ErrorAction Stop') 'MVP staging must pass the complete PNG evidence assembly reference collection to Add-Type.'
@@ -462,6 +552,15 @@ Assert-True ($stagerSource -match 'teardown_complete') 'MVP staging must record 
 Assert-True ($stagerSource -notmatch '\[IO\.Path\]::GetRelativePath') 'MVP staging must remain compatible with Windows PowerShell hosts that lack Path.GetRelativePath.'
 Assert-True ($stagerSource -match 'ProcessStartInfo') 'MVP staging must launch products through the host-compatible process API.'
 Assert-True ($stagerSource -notmatch 'Get-Command Start-Process') 'MVP staging must not require the PowerShell 7-only Start-Process Environment parameter.'
+Assert-True ($stagerSource -match '\$stagedProductRoot = \(Resolve-ZirconWindowsPath -Path \$StageRoot\)\.OperationalPath') 'MVP staging must resolve the process-tree root through the Windows path resolver before launch.'
+Assert-True ($stagerSource -match 'staged_product_root = \$stagedProductRoot') 'MVP staging must retain the resolver operation path for process cleanup and journaling.'
+Assert-True ($stagerSource -notmatch 'staged_product_root = \[IO\.Path\]::GetFullPath\(\$StageRoot\)') 'MVP staging must not derive process cleanup identity through lexical GetFullPath.'
+Assert-True ($stagerSource -match '\$executableResolution = Resolve-ZirconWindowsPath -Path \$ExecutablePath') 'MVP staging must resolve the executable through the Windows path resolver before launch.'
+Assert-True ($stagerSource -match '\$workingDirectoryResolution = Resolve-ZirconWindowsPath -Path \$WorkingDirectory') 'MVP staging must resolve the working directory through the Windows path resolver before launch.'
+Assert-True ($stagerSource -match '\$startInfo\.FileName = \$executableResolution\.OperationalPath') 'MVP staging must launch the executable through the resolver operational path.'
+Assert-True ($stagerSource -match '\$projectRootResolution = if \(\[string\]::IsNullOrWhiteSpace\(\$ProjectRoot\)\)') 'MVP staging must resolve a provided project root once before product launch.'
+Assert-True ($stagerSource -match '\$startInfo\.WorkingDirectory = if \(\$null -eq \$projectRootResolution\)') 'MVP staging must use the project root as the child working directory when a project is selected.'
+Assert-True ($stagerSource.Contains("@('--project', '.') + @(`$Arguments)")) 'MVP staging must pass the selected project through the portable --project . contract.'
 Assert-True ($stagerSource -match 'Assert-MvpStagingProcessesReleased') 'MVP staging must reject a staged executable that survives its product exit.'
 Assert-True ($stagerSource -match 'Assert-MvpStagingProcessesReleased -StageDirectory \$stageDirectory\s*\r?\n\s*if \(\$createExitCode -ne 0\)') 'MVP staging must check that project creation released all staged processes before rejecting a nonzero editor exit.'
 Assert-True ($stagerSource -match 'Get-CimInstance Win32_Process') 'MVP staging must inspect live Windows processes for staged executable paths.'
@@ -472,9 +571,15 @@ Assert-True ($stagerSource -match '\$timeoutCleanupErrors\.Add\(\$_\.Exception\.
 $stderrWriteIndex = $stagerSource.IndexOf('[IO.File]::WriteAllText($StderrPath', [StringComparison]::Ordinal)
 $timeoutThrowIndex = $stagerSource.IndexOf('throw [TimeoutException]::new', [StringComparison]::Ordinal)
 Assert-True ($stderrWriteIndex -ge 0 -and $timeoutThrowIndex -gt $stderrWriteIndex) 'MVP staging must persist process logs before reporting a timeout or timeout-cleanup failure.'
-Assert-True ($stagerSource -match 'diff --no-ext-diff --binary HEAD') 'MVP source fingerprints must include the current tracked working-tree content.'
-Assert-True ($stagerSource -match 'ls-files --others --exclude-standard') 'MVP source fingerprints must enumerate untracked source inputs.'
-Assert-True ($stagerSource -match 'untracked source input') 'MVP source fingerprints must hash each untracked source input.'
+Assert-True ($productInputManifestSource -match "@\('diff', '--no-ext-diff', '--raw', '--no-abbrev', '-z', 'HEAD'\)") 'MVP source fingerprints must enumerate the current tracked working-tree content.'
+Assert-True ($productInputManifestSource -match "@\('hash-object', '--no-filters', '--'\)") 'MVP source fingerprints must hash each tracked working-tree file without a PowerShell stdin encoding boundary.'
+Assert-True ($productInputManifestSource -match 'Add-MvpTrackedSourceContentHashBatch') 'MVP source fingerprints must batch tracked content hashes below the Windows process argument limit.'
+Assert-True ($productInputManifestSource -match 'RedirectStandardOutput = \$true') 'MVP source fingerprints must collect Git stdout outside the PowerShell native-command pipeline.'
+Assert-True ($productInputManifestSource -match 'RedirectStandardError = \$true') 'MVP source fingerprints must isolate Git stderr from fingerprint material.'
+Assert-True ($productInputManifestSource -match 'BaseStream\.CopyToAsync') 'MVP source fingerprints must retain Git stdout as raw bytes.'
+Assert-True ($productInputManifestSource -match 'Add-MvpFingerprintSegment') 'MVP source fingerprints must frame raw Git bytes without ambiguous text delimiters.'
+Assert-True ($productInputManifestSource -match "@\('ls-files', '-z', '--others', '--exclude-standard'\)") 'MVP source fingerprints must enumerate untracked source inputs with NUL path separators.'
+Assert-True ($productInputManifestSource -match 'untracked source input') 'MVP source fingerprints must hash each untracked source input.'
 Assert-True ($stagerSource -match 'function Get-FileSha256') 'MVP staging must hash files without a PowerShell module auto-load dependency.'
 Assert-True ($stagerSource -notmatch 'Get-FileHash') 'MVP staging must not require the Get-FileHash cmdlet in the Windows PowerShell host.'
 Assert-True ($stagerSource -notmatch '(?m)^\s*\[string\]\$Toolchain\s*[,)]') 'MVP staging must not accept caller-provided toolchain provenance.'
@@ -482,6 +587,9 @@ Assert-True ($stagerSource -notmatch '(?m)^\s*\[string\]\$Target\s*[,)]') 'MVP s
 Assert-True ($stagerSource -match 'rustc -Vv') 'MVP staging must record toolchain provenance from the active Rust compiler.'
 Assert-True ($stagerSource -match 'MvpStagingPreflight\.psm1') 'MVP staging must import its dedicated environment preflight boundary.'
 Assert-True ($preflightSource -match 'function Get-MvpStagingRequiredBytes') 'MVP staging must derive its disk budget from the files that will be copied.'
+Assert-True ($preflightSource -match '\[IO\.File\]::Exists\(\$path\)') 'MVP staging preflight must validate resolved source files through System.IO.'
+Assert-True ($preflightSource -match '\[IO\.FileInfo\]::new\(\$path\)') 'MVP staging preflight must size resolved source files through System.IO.'
+Assert-True ($preflightSource -notmatch 'Get-Item -LiteralPath \$path') 'MVP staging preflight must not send resolver operational input paths through the PowerShell provider.'
 Assert-True ($preflightSource -match 'function Assert-MvpStagingDiskCapacity') 'MVP staging must reject a run before copying when its staging drive lacks capacity.'
 Assert-True ($preflightSource -match 'function Assert-MvpStagingCapacityValues') 'MVP staging capacity policy must have a directly testable value boundary.'
 Assert-True ($preflightSource -match 'function Get-MvpInteractiveDesktopPreflight') 'MVP staging must check the interactive desktop before launching windowed products.'
@@ -489,8 +597,11 @@ Assert-True ($preflightSource -match 'function Assert-MvpInteractiveSessionValue
 Assert-True ($preflightSource -match 'function Assert-MvpAttachedDisplayCount') 'MVP staging monitor policy must have a directly testable value boundary.'
 Assert-True ($preflightSource -match 'function Assert-MvpStagingEntryBudget') 'MVP staging must verify copied manifest entries against the preflight byte budget.'
 $preflightIndex = $stagerSource.IndexOf('$preflight = Get-MvpStagingPreflight', [StringComparison]::Ordinal)
-$partialDirectoryCreateIndex = $stagerSource.IndexOf('New-Item -ItemType Directory -Force -Path $partialDirectory', [StringComparison]::Ordinal)
+$partialDirectoryCreateIndex = $stagerSource.IndexOf('[IO.Directory]::CreateDirectory($partialDirectory)', [StringComparison]::Ordinal)
 Assert-True ($preflightIndex -ge 0 -and $partialDirectoryCreateIndex -gt $preflightIndex) 'MVP staging must complete disk and desktop preflight before creating its partial output directory.'
+Assert-True ($stagerSource -notmatch 'Get-ChildItem -LiteralPath \$diagnosticRoot') 'MVP staging must enumerate product diagnostics through the operational-path helper.'
+Assert-True ($stagerSource -match 'Move-ZirconWindowsPath -Source \$partialDirectory -Destination \$stageDirectory') 'MVP staging must publish its resolved staging directory without the PowerShell provider.'
+Assert-True ($stagerSource -match 'staging_root = \(Resolve-ZirconWindowsPath -Path \$stageDirectory\)\.DisplayPath') 'MVP staging results must expose a display path instead of the operational path.'
 Assert-True ($stagerSource -match 'preflight = \$preflight') 'MVP staging manifest must retain the source-bound environment preflight evidence.'
 $entryBudgetIndex = $stagerSource.IndexOf('$null = Assert-MvpStagingEntryBudget', [StringComparison]::Ordinal)
 $manifestIndex = $stagerSource.IndexOf('$manifest = [ordered]@{', [StringComparison]::Ordinal)
@@ -550,10 +661,20 @@ Assert-True ($stagerSource -match 'createdProjectExpectedRoot') 'MVP staging mus
 Assert-True ($stagerSource -match 'createdProjectExpectedResolution\.OperationalPath') 'MVP staging must compare a created project root by physical identity.'
 Assert-True ($stagerSource -match 'Resolve-ZirconWindowsPath -Path \(\[string\]\$fields\.project_path\)') 'MVP staging must compare editor product diagnostics by physical project identity.'
 Assert-True ($stagerSource -match 'Resolve-ZirconWindowsPath -Path \$reportedProjectPath') 'MVP staging must compare authoring automation project identities through the shared resolver.'
+Assert-True ($stagerSource -match 'if \(\$reportedProjectPath -eq ''\.''\)') 'MVP staging must accept the explicit project-relative authoring report emitted from a project-root child cwd.'
+Assert-True ($stagerSource -match 'Expected ''\.'' or an absolute path') 'MVP staging must reject ambiguous relative authoring report paths.'
+Assert-True ($stagerSource -match 'Test-MvpFullyQualifiedWindowsPath -Path \$reportedProjectPath') 'MVP staging must reject drive-relative and root-relative authoring report paths before resolving them.'
+Assert-True ($stagerSource -match '\$automationRequestArgument = \(Resolve-ZirconWindowsPath -Path \$AutomationRequestPath\)\.DisplayPath') 'MVP staging must pass authoring automation requests through the display-path product CLI boundary.'
+Assert-True ($stagerSource -match '''--run'', ''authoring-automation'', ''--automation'', \$automationRequestArgument') 'MVP staging must invoke authoring through the canonical commandlet while passing the resolver display path.'
+Assert-True ($stagerSource -match '\$commandlet = \$reports\[0\]') 'MVP staging must validate the outer commandlet envelope before reading authoring evidence.'
+Assert-True ($stagerSource -match '\$report = \$commandlet\.automation') 'MVP staging must read authoring evidence only from the typed commandlet payload.'
+Assert-True ($stagerSource -match '-ProjectRoot \$ProjectRoot') 'MVP authoring automation must reuse the project-relative staged process launch contract.'
+Assert-True ($stagerSource -match '\$productPathEnvironmentVariables = @\(') 'MVP staging must centralize path-bearing product environment variables.'
+Assert-True ($stagerSource -match 'Resolve-ZirconWindowsPath -Path \$environmentValue\)\.DisplayPath') 'MVP staging must pass environment paths to products in display form for product-side resolution.'
 $releaseSource = Get-Content -LiteralPath (Join-Path $repoRoot 'tools\mvp\MvpStagingRelease.psm1') -Raw -Encoding UTF8
 Assert-True ($releaseSource -match 'Resolve-ZirconWindowsPath -Path \$ProjectDirectory\)\.OperationalPath') 'MVP staging release probes must retain the physical path for filesystem operations.'
 Assert-True ($stagerSource -match 'Resolve-ZirconWindowsPath -Path \$stagedProjectRoot\)\.DisplayPath') 'MVP staging result output must expose a display path rather than a verbatim operational path.'
-Assert-True ($stagerSource -match '\$projectRootArgument = \(Resolve-ZirconWindowsPath -Path \$ProjectRoot\)\.DisplayPath') 'MVP staging must pass a display project path at the product CLI boundary, where the product resolves its physical identity.'
+Assert-True ($stagerSource -notmatch '\$projectRootArgument = \(Resolve-ZirconWindowsPath -Path \$ProjectRoot\)\.DisplayPath') 'MVP staging must not pass an absolute project path to child product processes.'
 Assert-True ($stagerSource -match "'--create-project', '--project-name'") 'MVP staging must create projects through the normal staged editor CLI.'
 Assert-True ($stagerSource -match "'--template', 'renderable-empty'") 'MVP staging fresh-project creation must use the renderable-empty template.'
 Assert-True ($stagerSource -match 'Staged created project') 'MVP staging must verify that the staged editor created the canonical project root.'
@@ -574,11 +695,13 @@ Assert-True ($stagerSource -match 'process-execution-journal\.jsonl') 'MVP stagi
 $defaultAuthoringAutomationPath = Join-Path $repoRoot 'tools\mvp\mvp-authoring-automation.json'
 Assert-True (Test-Path -LiteralPath $defaultAuthoringAutomationPath -PathType Leaf) 'The source-bound F5 authoring automation request is missing.'
 $defaultAuthoringAutomation = Get-Content -LiteralPath $defaultAuthoringAutomationPath -Raw -Encoding UTF8 | ConvertFrom-Json
-Assert-True ($defaultAuthoringAutomation.bindings.Count -eq 4) 'The F5 authoring automation request must contain selection, translation, scale, and save bindings.'
+Assert-True ($defaultAuthoringAutomation.bindings.Count -eq 6) 'The F5 authoring automation request must contain selection, translation, scale, undo, redo, and save bindings.'
 Assert-True ($defaultAuthoringAutomation.bindings[0].path.view_id -eq 'Hierarchy') 'The F5 authoring automation request must select the renderable template cube through Hierarchy.'
 Assert-True ($defaultAuthoringAutomation.bindings[1].path.control_id -eq 'TransformPositionXCommit') 'The F5 authoring automation request must commit the X transform through Inspector.'
 Assert-True ($defaultAuthoringAutomation.bindings[2].path.control_id -eq 'TransformScaleXCommit') 'The F5 authoring automation request must commit the X scale through Inspector.'
-Assert-True ($defaultAuthoringAutomation.bindings[3].payload.MenuAction.action_id -eq 'workbench.project.save') 'The F5 authoring automation request must persist through the normal project save action.'
+Assert-True ($defaultAuthoringAutomation.bindings[3].payload.MenuAction.action_id -eq 'workbench.history.undo') 'The F5 authoring automation request must undo through the normal history action.'
+Assert-True ($defaultAuthoringAutomation.bindings[4].payload.MenuAction.action_id -eq 'workbench.history.redo') 'The F5 authoring automation request must redo through the normal history action.'
+Assert-True ($defaultAuthoringAutomation.bindings[5].payload.MenuAction.action_id -eq 'workbench.project.save') 'The F5 authoring automation request must persist through the normal project save action.'
 $defaultReopenAutomationPath = Join-Path $repoRoot 'tools\mvp\mvp-reopen-automation.json'
 Assert-True (Test-Path -LiteralPath $defaultReopenAutomationPath -PathType Leaf) 'The source-bound F5 reopen automation request is missing.'
 $defaultReopenAutomation = Get-Content -LiteralPath $defaultReopenAutomationPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -587,9 +710,57 @@ Assert-True ($defaultReopenAutomation.bindings[0].payload.SelectionCommand.Selec
 
 $fixture = New-MvpStagingFixture
 try {
+    $inputManifest = Get-Content -LiteralPath $fixture.ProductInputManifest -Raw -Encoding UTF8 | ConvertFrom-Json
+    $inputManifest.source_fingerprint = '0000000000000000000000000000000000000000000000000000000000000000'
+    [IO.File]::WriteAllText($fixture.ProductInputManifest, ($inputManifest | ConvertTo-Json -Depth 5), [Text.UTF8Encoding]::new($false))
+    $sourceMismatchRejected = $false
+    try {
+        & $stager `
+            -ProductInputManifest $fixture.ProductInputManifest `
+            -TemplateRoot $fixture.TemplateRoot `
+            -EngineAssetRoot $fixture.EngineAssetRoot `
+            -StagingRoot $fixture.StagingRoot `
+            -RunId 'fixture-source-mismatch' `
+            -NoLaunch `
+            -AllowUnsafeStagingRoot | Out-Null
+    }
+    catch {
+        $sourceMismatchRejected = $_.Exception.Message -match 'differs from the current source fingerprint'
+    }
+    Assert-True $sourceMismatchRejected 'Staging accepted product inputs that were built from a different source fingerprint.'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixture.StagingRoot 'fixture-source-mismatch'))) 'Source mismatch rejection created a staging directory.'
+
+    $fixture.ProductInputManifest = New-MvpProductInputManifestFixture -Fixture $fixture
+    $inputManifest = Get-Content -LiteralPath $fixture.ProductInputManifest -Raw -Encoding UTF8 | ConvertFrom-Json
+    $inputManifest.artifacts[0].Sha256 = '0000000000000000000000000000000000000000000000000000000000000000'
+    [IO.File]::WriteAllText($fixture.ProductInputManifest, ($inputManifest | ConvertTo-Json -Depth 5), [Text.UTF8Encoding]::new($false))
+    $hashDriftRejected = $false
+    try {
+        & $stager `
+            -ProductInputManifest $fixture.ProductInputManifest `
+            -TemplateRoot $fixture.TemplateRoot `
+            -EngineAssetRoot $fixture.EngineAssetRoot `
+            -StagingRoot $fixture.StagingRoot `
+            -RunId 'fixture-hash-drift' `
+            -NoLaunch `
+            -AllowUnsafeStagingRoot | Out-Null
+    }
+    catch {
+        $hashDriftRejected = $_.Exception.Message -match 'SHA-256 differs from ProductInputManifest'
+    }
+    Assert-True $hashDriftRejected 'Staging accepted a product artifact whose bytes drifted from its manifest hash.'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixture.StagingRoot 'fixture-hash-drift'))) 'Hash-drift rejection created a staging directory.'
+    $fixture.ProductInputManifest = New-MvpProductInputManifestFixture -Fixture $fixture
+
     $result = Invoke-MvpStager -Fixture $fixture
     $manifestPath = Join-Path $result.staging_root 'staging-manifest.json'
     $manifest = Get-Content -Raw -Encoding UTF8 $manifestPath | ConvertFrom-Json
+
+    Assert-True (Test-Path -LiteralPath $result.tree_manifest -PathType Leaf) 'MVP staging did not publish its complete tree manifest.'
+    $stagingTreeEntries = @(Read-MvpAcceptanceStagingTreeManifest -StagingRoot $result.staging_root)
+    Assert-True ($stagingTreeEntries.relative_path -contains 'staging-manifest.json') 'MVP staging tree manifest omitted its staging manifest.'
+    Assert-True ($stagingTreeEntries.relative_path -contains 'runtime/zircon_runtime.exe') 'MVP staging tree manifest omitted the staged runtime executable.'
+    Assert-True ($stagingTreeEntries.relative_path -contains 'editor/zircon_editor.exe') 'MVP staging tree manifest omitted the staged editor executable.'
 
     Assert-True (Test-Path -LiteralPath (Join-Path $result.staging_root 'runtime\zircon_runtime.exe')) 'Runtime executable was not staged.'
     Assert-True (Test-Path -LiteralPath (Join-Path $result.staging_root 'editor\zircon_editor.exe')) 'Editor executable was not staged.'
@@ -611,10 +782,19 @@ try {
     Assert-True ($null -eq $manifest.preflight.interactive_desktop.monitor_count) 'NoLaunch staging must not probe a display that it will not use.'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $result.staging_root 'project\.zircon\cache\stale.zasset'))) 'Machine-local project cache must not be staged.'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $result.staging_root 'project\.zircon\registry\asset-registry.json'))) 'Machine-local project registry must not be staged.'
-    Assert-True ($manifest.source_fingerprint -eq 'fixture-source-fingerprint') 'Manifest lost the source fingerprint.'
+    $inputManifest = Get-Content -LiteralPath $fixture.ProductInputManifest -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-True ($manifest.source_fingerprint -eq $inputManifest.source_fingerprint) 'Manifest lost the source-bound input fingerprint.'
+    Assert-True ($manifest.product_input_manifest.source_fingerprint -eq $manifest.source_fingerprint) 'Manifest lost product-input source provenance.'
+    Assert-True ($manifest.product_input_manifest.sha256 -match '^[0-9A-F]{64}$') 'Manifest lost the product-input manifest hash.'
+    Assert-True (@($manifest.product_input_manifest.artifacts).Count -eq 4) 'Manifest lost product-input artifact provenance.'
     Assert-True ($manifest.toolchain -match '^rustc\s+') 'Manifest did not record the active Rust toolchain.'
     Assert-True ($manifest.target -match '^[A-Za-z0-9_][A-Za-z0-9_-]*$') 'Manifest did not record a valid Rust target triple.'
-    Assert-True ($manifest.entries.Count -eq 11) 'Manifest did not record every staged input.'
+    Assert-True ($manifest.entries.Count -eq 12) 'Manifest did not record every staged input.'
+    $stagedProductInputManifest = @($manifest.entries | Where-Object { $_.logical_id -eq 'product-input-manifest' })
+    Assert-True ($stagedProductInputManifest.Count -eq 1) 'Manifest did not record the original product-input manifest.'
+    Assert-True ($stagedProductInputManifest[0].target_relative_path -eq 'build/mvp-product-inputs.json') 'Manifest did not use the canonical staged product-input manifest path.'
+    Assert-True ($stagedProductInputManifest[0].sha256 -eq $manifest.product_input_manifest.sha256) 'Manifest summary is not bound to the staged product-input manifest digest.'
+    Assert-True ($stagedProductInputManifest[0].size_bytes -eq $manifest.product_input_manifest.size_bytes) 'Manifest summary is not bound to the staged product-input manifest byte count.'
     Assert-True (@($manifest.entries | Where-Object { $_.logical_id -eq 'runtime-library/runtime' }).Count -eq 1) 'Runtime product library entry is missing.'
     Assert-True (@($manifest.entries | Where-Object { $_.logical_id -eq 'runtime-library/editor' }).Count -eq 1) 'Editor product library entry is missing.'
     Assert-True (@($manifest.entries | Where-Object { $_.logical_id -eq 'project/zircon-project.toml' }).Count -eq 1) 'Project manifest entry is missing.'
@@ -625,20 +805,16 @@ try {
     Assert-True (@($manifest.entries | Where-Object { $_.logical_id -like 'project/.zircon/registry/*' }).Count -eq 0) 'Manifest must not record machine-local project registry files.'
     $runtimeLibrary = @($manifest.entries | Where-Object { $_.logical_id -eq 'runtime-library/runtime' })[0]
     $editorLibrary = @($manifest.entries | Where-Object { $_.logical_id -eq 'runtime-library/editor' })[0]
-    Assert-True ($runtimeLibrary.sha256 -ne $editorLibrary.sha256) 'Manifest did not preserve distinct runtime and editor library inputs.'
+    Assert-True ($null -ne $runtimeLibrary -and $null -ne $editorLibrary) 'Manifest must preserve separate runtime and editor library inputs.'
     Assert-True (@($manifest.entries | Where-Object { $_.sha256 -notmatch '^[0-9A-F]{64}$' }).Count -eq 0) 'Manifest entries must use SHA-256 hashes.'
     Assert-True ($result.output_hash -match '^[0-9A-F]{64}$') 'Stage output hash is not a SHA-256 value.'
 
     $json = (& $stager `
-        -RuntimeExecutable $fixture.RuntimeExecutable `
-        -EditorExecutable $fixture.EditorExecutable `
-        -RuntimeLibrary $fixture.RuntimeLibrary `
-        -EditorRuntimeLibrary $fixture.EditorRuntimeLibrary `
+        -ProductInputManifest $fixture.ProductInputManifest `
         -TemplateRoot $fixture.TemplateRoot `
         -EngineAssetRoot $fixture.EngineAssetRoot `
         -ProjectRoot $fixture.ProjectRoot `
         -StagingRoot $fixture.StagingRoot `
-        -SourceFingerprint 'fixture-source-fingerprint' `
         -RunId 'fixture-json' `
         -NoLaunch `
         -AllowUnsafeStagingRoot `
@@ -659,17 +835,13 @@ try {
 }
 '@, [Text.UTF8Encoding]::new($false))
     $authoringLaunched = (& $stager `
-        -RuntimeExecutable $fixture.RuntimeExecutable `
-        -EditorExecutable $fixture.EditorExecutable `
-        -RuntimeLibrary $fixture.RuntimeLibrary `
-        -EditorRuntimeLibrary $fixture.EditorRuntimeLibrary `
+        -ProductInputManifest $fixture.ProductInputManifest `
         -TemplateRoot $fixture.TemplateRoot `
         -EngineAssetRoot $fixture.EngineAssetRoot `
         -ProjectRoot $fixture.ProjectRoot `
         -AuthoringAutomationRequest $authoringAutomationRequest `
         -ReopenAutomationRequest $defaultReopenAutomationPath `
         -StagingRoot $fixture.StagingRoot `
-        -SourceFingerprint 'fixture-source-fingerprint' `
         -RunId 'fixture-authoring-automation' `
         -RepeatCount 2 `
         -TimeoutSeconds 10 `
@@ -724,17 +896,13 @@ try {
         $wrongAutomationProjectRejected = $false
         try {
             $null = & $stager `
-                -RuntimeExecutable $fixture.RuntimeExecutable `
-                -EditorExecutable $fixture.EditorExecutable `
-                -RuntimeLibrary $fixture.RuntimeLibrary `
-                -EditorRuntimeLibrary $fixture.EditorRuntimeLibrary `
+                -ProductInputManifest $fixture.ProductInputManifest `
                 -TemplateRoot $fixture.TemplateRoot `
                 -EngineAssetRoot $fixture.EngineAssetRoot `
                 -ProjectRoot $fixture.ProjectRoot `
                 -AuthoringAutomationRequest $authoringAutomationRequest `
                 -ReopenAutomationRequest $defaultReopenAutomationPath `
                 -StagingRoot $fixture.StagingRoot `
-                -SourceFingerprint 'fixture-source-fingerprint' `
                 -RunId 'fixture-wrong-authoring-project' `
                 -RepeatCount 2 `
                 -TimeoutSeconds 10 `
@@ -760,28 +928,27 @@ try {
     $env:ZIRCON_MVP_FIXTURE_FAIL_AUTOMATION_WITH_CHILD = '1'
     try {
         $authoringFailureCleaned = $false
+        $authoringFailureDiagnostics = ''
         try {
             $null = & $stager `
-                -RuntimeExecutable $fixture.RuntimeExecutable `
-                -EditorExecutable $fixture.EditorExecutable `
-                -RuntimeLibrary $fixture.RuntimeLibrary `
-                -EditorRuntimeLibrary $fixture.EditorRuntimeLibrary `
+                -ProductInputManifest $fixture.ProductInputManifest `
                 -TemplateRoot $fixture.TemplateRoot `
                 -EngineAssetRoot $fixture.EngineAssetRoot `
                 -ProjectRoot $fixture.ProjectRoot `
                 -AuthoringAutomationRequest $authoringAutomationRequest `
                 -ReopenAutomationRequest $defaultReopenAutomationPath `
                 -StagingRoot $fixture.StagingRoot `
-                -SourceFingerprint 'fixture-source-fingerprint' `
                 -RunId $authoringFailureRunId `
                 -RepeatCount 2 `
                 -TimeoutSeconds 10 `
                 -AllowUnsafeStagingRoot
         }
         catch {
+            $authoringFailureDiagnostics = $_.Exception.Message
             $authoringFailureCleaned = $_.Exception.Message -match 'exited with code 32|remain after product exit and were terminated'
         }
         Assert-True $authoringFailureCleaned 'A nonzero authoring automation exit with a staged child was not rejected after cleanup.'
+        Assert-True ($authoringFailureDiagnostics -match 'fixture automation failed after spawning child') 'A nonzero authoring automation exit did not retain the child stderr diagnostic.'
         $authoringFailureStderr = Join-Path $authoringFailureStage 'logs/editor-authoring.stderr.log'
         Assert-True (Test-Path -LiteralPath $authoringFailureStderr) 'A nonzero authoring automation exit did not preserve its stderr log.'
         Assert-True ((Get-Content -Raw -LiteralPath $authoringFailureStderr) -match 'fixture automation failed after spawning child') 'A nonzero authoring automation stderr log was not drained before failure.'
@@ -828,17 +995,13 @@ try {
         $missingReopenedEditorCaptureRejected = $false
         try {
             $null = & $stager `
-                -RuntimeExecutable $fixture.RuntimeExecutable `
-                -EditorExecutable $fixture.EditorExecutable `
-                -RuntimeLibrary $fixture.RuntimeLibrary `
-                -EditorRuntimeLibrary $fixture.EditorRuntimeLibrary `
+                -ProductInputManifest $fixture.ProductInputManifest `
                 -TemplateRoot $fixture.TemplateRoot `
                 -EngineAssetRoot $fixture.EngineAssetRoot `
                 -ProjectRoot $fixture.ProjectRoot `
                 -AuthoringAutomationRequest $authoringAutomationRequest `
                 -ReopenAutomationRequest $defaultReopenAutomationPath `
                 -StagingRoot $fixture.StagingRoot `
-                -SourceFingerprint 'fixture-source-fingerprint' `
                 -RunId 'fixture-missing-reopened-editor-capture' `
                 -RepeatCount 2 `
                 -TimeoutSeconds 10 `
@@ -864,17 +1027,13 @@ try {
         $missingReopenedEditorCaptureFileRejected = $false
         try {
             $null = & $stager `
-                -RuntimeExecutable $fixture.RuntimeExecutable `
-                -EditorExecutable $fixture.EditorExecutable `
-                -RuntimeLibrary $fixture.RuntimeLibrary `
-                -EditorRuntimeLibrary $fixture.EditorRuntimeLibrary `
+                -ProductInputManifest $fixture.ProductInputManifest `
                 -TemplateRoot $fixture.TemplateRoot `
                 -EngineAssetRoot $fixture.EngineAssetRoot `
                 -ProjectRoot $fixture.ProjectRoot `
                 -AuthoringAutomationRequest $authoringAutomationRequest `
                 -ReopenAutomationRequest $defaultReopenAutomationPath `
                 -StagingRoot $fixture.StagingRoot `
-                -SourceFingerprint 'fixture-source-fingerprint' `
                 -RunId 'fixture-missing-reopened-editor-capture-file' `
                 -RepeatCount 2 `
                 -TimeoutSeconds 10 `
@@ -898,15 +1057,11 @@ try {
     $env:ZIRCON_RUNTIME_MVP_INPUT_PROBE = '1'
     try {
         $launched = (& $stager `
-            -RuntimeExecutable $fixture.RuntimeExecutable `
-            -EditorExecutable $fixture.EditorExecutable `
-            -RuntimeLibrary $fixture.RuntimeLibrary `
-            -EditorRuntimeLibrary $fixture.EditorRuntimeLibrary `
+            -ProductInputManifest $fixture.ProductInputManifest `
             -TemplateRoot $fixture.TemplateRoot `
             -EngineAssetRoot $fixture.EngineAssetRoot `
             -ProjectRoot $fixture.ProjectRoot `
             -StagingRoot $fixture.StagingRoot `
-            -SourceFingerprint 'fixture-source-fingerprint' `
             -RunId 'fixture-launch' `
             -RepeatCount 1 `
             -TimeoutSeconds 10 `
@@ -927,6 +1082,12 @@ try {
         Assert-True (@($launched.product_runs | Where-Object { $_.first_frame_presented -and $_.teardown_complete }).Count -eq 2) 'MVP staging launch fixture did not verify first-frame teardown for both products.'
         $runtimeRun = @($launched.product_runs | Where-Object { $_.product -eq 'runtime' })[0]
         $editorRun = @($launched.product_runs | Where-Object { $_.product -eq 'editor' })[0]
+        foreach ($productRun in @($runtimeRun, $editorRun)) {
+            $assetRootDiagnostics = @($productRun.diagnostic_logs | ForEach-Object {
+                Get-Content -Raw -LiteralPath (Join-Path $launched.staging_root $_.path)
+            })
+            Assert-True ($assetRootDiagnostics -match '(?m)^fixture_asset_root=assets$') "MVP staging passed a non-relative asset root to the $($productRun.product) product."
+        }
         Assert-True ($runtimeRun.frame_capture.path -eq 'captures/runtime-1.png') 'MVP staging launch fixture did not archive the runtime PNG under the stage capture root.'
         Assert-True ($runtimeRun.frame_capture.sha256 -match '^[0-9A-F]{64}$') 'MVP staging launch fixture did not hash the runtime PNG evidence.'
         Assert-True ($runtimeRun.frame_capture.width -eq 16 -and $runtimeRun.frame_capture.height -eq 16) 'MVP staging launch fixture did not inspect runtime PNG dimensions.'
@@ -969,14 +1130,10 @@ try {
     $createWithoutLaunchRejected = $false
     try {
         $null = & $stager `
-            -RuntimeExecutable $fixture.RuntimeExecutable `
-            -EditorExecutable $fixture.EditorExecutable `
-            -RuntimeLibrary $fixture.RuntimeLibrary `
-            -EditorRuntimeLibrary $fixture.EditorRuntimeLibrary `
+            -ProductInputManifest $fixture.ProductInputManifest `
             -TemplateRoot $fixture.TemplateRoot `
             -EngineAssetRoot $fixture.EngineAssetRoot `
             -StagingRoot $fixture.StagingRoot `
-            -SourceFingerprint 'fixture-source-fingerprint' `
             -RunId 'fixture-created-without-launch' `
             -CreateProject `
             -NoLaunch `
@@ -988,14 +1145,10 @@ try {
     Assert-True $createWithoutLaunchRejected 'Created projects must not silently skip the staged editor launch.'
 
     $created = (& $stager `
-        -RuntimeExecutable $fixture.RuntimeExecutable `
-        -EditorExecutable $fixture.EditorExecutable `
-        -RuntimeLibrary $fixture.RuntimeLibrary `
-        -EditorRuntimeLibrary $fixture.EditorRuntimeLibrary `
+        -ProductInputManifest $fixture.ProductInputManifest `
         -TemplateRoot $fixture.TemplateRoot `
         -EngineAssetRoot $fixture.EngineAssetRoot `
         -StagingRoot $fixture.StagingRoot `
-        -SourceFingerprint 'fixture-source-fingerprint' `
         -RunId 'fixture-created-project' `
         -CreateProject `
         -ProjectName 'ZirconMvpFixture' `
@@ -1029,14 +1182,10 @@ try {
     $unicodeProjectName = (-join ([char[]]@(0x9879, 0x76EE))) + ' ' + (-join ([char[]]@(0x8DEF, 0x5F84)))
     $unicodeProjectRunId = 'fixture-created-project-unicode'
     $unicodeCreated = (& $stager `
-        -RuntimeExecutable $fixture.RuntimeExecutable `
-        -EditorExecutable $fixture.EditorExecutable `
-        -RuntimeLibrary $fixture.RuntimeLibrary `
-        -EditorRuntimeLibrary $fixture.EditorRuntimeLibrary `
+        -ProductInputManifest $fixture.ProductInputManifest `
         -TemplateRoot $fixture.TemplateRoot `
         -EngineAssetRoot $fixture.EngineAssetRoot `
         -StagingRoot $fixture.StagingRoot `
-        -SourceFingerprint 'fixture-source-fingerprint' `
         -RunId $unicodeProjectRunId `
         -CreateProject `
         -ProjectName $unicodeProjectName `
@@ -1060,14 +1209,10 @@ try {
         $missingProjectOpenDiagnosticRejected = $false
         try {
             & $stager `
-                -RuntimeExecutable $fixture.RuntimeExecutable `
-                -EditorExecutable $fixture.EditorExecutable `
-                -RuntimeLibrary $fixture.RuntimeLibrary `
-                -EditorRuntimeLibrary $fixture.EditorRuntimeLibrary `
+                -ProductInputManifest $fixture.ProductInputManifest `
                 -TemplateRoot $fixture.TemplateRoot `
                 -EngineAssetRoot $fixture.EngineAssetRoot `
                 -StagingRoot $fixture.StagingRoot `
-                -SourceFingerprint 'fixture-source-fingerprint' `
                 -RunId $missingProjectOpenDiagnosticRunId `
                 -CreateProject `
                 -ProjectName 'ZirconMvpFixtureMissingProjectOpenDiagnostic' `
@@ -1097,14 +1242,10 @@ try {
         $createFailureCleaned = $false
         try {
             & $stager `
-                -RuntimeExecutable $fixture.RuntimeExecutable `
-                -EditorExecutable $fixture.EditorExecutable `
-                -RuntimeLibrary $fixture.RuntimeLibrary `
-                -EditorRuntimeLibrary $fixture.EditorRuntimeLibrary `
+                -ProductInputManifest $fixture.ProductInputManifest `
                 -TemplateRoot $fixture.TemplateRoot `
                 -EngineAssetRoot $fixture.EngineAssetRoot `
                 -StagingRoot $fixture.StagingRoot `
-                -SourceFingerprint 'fixture-source-fingerprint' `
                 -RunId $createFailureRunId `
                 -CreateProject `
                 -ProjectName 'ZirconMvpFixtureFailure' `
@@ -1162,15 +1303,11 @@ try {
         $missingCaptureDetected = $false
         try {
             & $stager `
-                -RuntimeExecutable $fixture.RuntimeExecutable `
-                -EditorExecutable $fixture.EditorExecutable `
-                -RuntimeLibrary $fixture.RuntimeLibrary `
-                -EditorRuntimeLibrary $fixture.EditorRuntimeLibrary `
+                -ProductInputManifest $fixture.ProductInputManifest `
                 -TemplateRoot $fixture.TemplateRoot `
                 -EngineAssetRoot $fixture.EngineAssetRoot `
                 -ProjectRoot $fixture.ProjectRoot `
                 -StagingRoot $fixture.StagingRoot `
-                -SourceFingerprint 'fixture-source-fingerprint' `
                 -RunId $missingCaptureRunId `
                 -RepeatCount 1 `
                 -TimeoutSeconds 10 `
@@ -1197,15 +1334,11 @@ try {
         $missingDiagnosticsDetected = $false
         try {
             & $stager `
-                -RuntimeExecutable $fixture.RuntimeExecutable `
-                -EditorExecutable $fixture.EditorExecutable `
-                -RuntimeLibrary $fixture.RuntimeLibrary `
-                -EditorRuntimeLibrary $fixture.EditorRuntimeLibrary `
+                -ProductInputManifest $fixture.ProductInputManifest `
                 -TemplateRoot $fixture.TemplateRoot `
                 -EngineAssetRoot $fixture.EngineAssetRoot `
                 -ProjectRoot $fixture.ProjectRoot `
                 -StagingRoot $fixture.StagingRoot `
-                -SourceFingerprint 'fixture-source-fingerprint' `
                 -RunId $missingDiagnosticsRunId `
                 -RepeatCount 1 `
                 -TimeoutSeconds 10 `
@@ -1232,15 +1365,11 @@ try {
         $materialFallbackDetected = $false
         try {
             & $stager `
-                -RuntimeExecutable $fixture.RuntimeExecutable `
-                -EditorExecutable $fixture.EditorExecutable `
-                -RuntimeLibrary $fixture.RuntimeLibrary `
-                -EditorRuntimeLibrary $fixture.EditorRuntimeLibrary `
+                -ProductInputManifest $fixture.ProductInputManifest `
                 -TemplateRoot $fixture.TemplateRoot `
                 -EngineAssetRoot $fixture.EngineAssetRoot `
                 -ProjectRoot $fixture.ProjectRoot `
                 -StagingRoot $fixture.StagingRoot `
-                -SourceFingerprint 'fixture-source-fingerprint' `
                 -RunId $materialFallbackRunId `
                 -RepeatCount 1 `
                 -TimeoutSeconds 10 `
@@ -1268,15 +1397,11 @@ try {
         $timedOut = $false
         try {
             & $stager `
-                -RuntimeExecutable $fixture.RuntimeExecutable `
-                -EditorExecutable $fixture.EditorExecutable `
-                -RuntimeLibrary $fixture.RuntimeLibrary `
-                -EditorRuntimeLibrary $fixture.EditorRuntimeLibrary `
+                -ProductInputManifest $fixture.ProductInputManifest `
                 -TemplateRoot $fixture.TemplateRoot `
                 -EngineAssetRoot $fixture.EngineAssetRoot `
                 -ProjectRoot $fixture.ProjectRoot `
                 -StagingRoot $fixture.StagingRoot `
-                -SourceFingerprint 'fixture-source-fingerprint' `
                 -RunId $timeoutRunId `
                 -RepeatCount 1 `
                 -TimeoutSeconds 1 `
@@ -1336,15 +1461,11 @@ try {
         $nonzeroExitDetected = $false
         try {
             & $stager `
-                -RuntimeExecutable $fixture.RuntimeExecutable `
-                -EditorExecutable $fixture.EditorExecutable `
-                -RuntimeLibrary $fixture.RuntimeLibrary `
-                -EditorRuntimeLibrary $fixture.EditorRuntimeLibrary `
+                -ProductInputManifest $fixture.ProductInputManifest `
                 -TemplateRoot $fixture.TemplateRoot `
                 -EngineAssetRoot $fixture.EngineAssetRoot `
                 -ProjectRoot $fixture.ProjectRoot `
                 -StagingRoot $fixture.StagingRoot `
-                -SourceFingerprint 'fixture-source-fingerprint' `
                 -RunId $nonzeroRunId `
                 -RepeatCount 1 `
                 -TimeoutSeconds 10 `
@@ -1401,15 +1522,11 @@ try {
         $leakedProcessDetected = $false
         try {
             & $stager `
-                -RuntimeExecutable $fixture.RuntimeExecutable `
-                -EditorExecutable $fixture.EditorExecutable `
-                -RuntimeLibrary $fixture.RuntimeLibrary `
-                -EditorRuntimeLibrary $fixture.EditorRuntimeLibrary `
+                -ProductInputManifest $fixture.ProductInputManifest `
                 -TemplateRoot $fixture.TemplateRoot `
                 -EngineAssetRoot $fixture.EngineAssetRoot `
                 -ProjectRoot $fixture.ProjectRoot `
                 -StagingRoot $fixture.StagingRoot `
-                -SourceFingerprint 'fixture-source-fingerprint' `
                 -RunId $leakedRunId `
                 -RepeatCount 1 `
                 -TimeoutSeconds 10 `
@@ -1445,6 +1562,7 @@ try {
 
     $originalEditorRuntimeLibrary = $fixture.EditorRuntimeLibrary
     $fixture.EditorRuntimeLibrary = $fixture.RuntimeLibrary
+    $fixture.ProductInputManifest = New-MvpProductInputManifestFixture -Fixture $fixture
     $sameLibraryRejected = $false
     try {
         Invoke-MvpStager -Fixture $fixture -RunId 'fixture-shared-profile-library' | Out-Null
@@ -1454,9 +1572,45 @@ try {
     }
     finally {
         $fixture.EditorRuntimeLibrary = $originalEditorRuntimeLibrary
+        $fixture.ProductInputManifest = New-MvpProductInputManifestFixture -Fixture $fixture
     }
     Assert-True $sameLibraryRejected 'Staging accepted one physical runtime DLL for both product profiles.'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixture.StagingRoot 'fixture-shared-profile-library'))) 'Shared profile-library rejection left a partial product directory.'
+
+    $runtimeHardLink = Join-Path $fixture.Root 'runtime-library-hard-link.dll'
+    New-Item -ItemType HardLink -Path $runtimeHardLink -Target $fixture.RuntimeLibrary | Out-Null
+    $fixture.EditorRuntimeLibrary = $runtimeHardLink
+    $fixture.ProductInputManifest = New-MvpProductInputManifestFixture -Fixture $fixture
+    $hardLinkedLibraryRejected = $false
+    try {
+        Invoke-MvpStager -Fixture $fixture -RunId 'fixture-hard-linked-profile-library' | Out-Null
+    }
+    catch {
+        $hardLinkedLibraryRejected = $_.Exception.Message -match 'distinct physical profile artifacts'
+    }
+    finally {
+        $fixture.EditorRuntimeLibrary = $originalEditorRuntimeLibrary
+        Remove-Item -LiteralPath $runtimeHardLink -Force -ErrorAction SilentlyContinue
+        $fixture.ProductInputManifest = New-MvpProductInputManifestFixture -Fixture $fixture
+    }
+    Assert-True $hardLinkedLibraryRejected 'Staging accepted a hard-linked runtime DLL for both product profiles.'
+    Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixture.StagingRoot 'fixture-hard-linked-profile-library'))) 'Hard-linked profile-library rejection left a partial product directory.'
+
+    $equalContentEditorLibrary = Join-Path $fixture.Root 'editor-runtime-equal-content.dll'
+    Copy-Item -LiteralPath $fixture.RuntimeLibrary -Destination $equalContentEditorLibrary
+    $fixture.EditorRuntimeLibrary = $equalContentEditorLibrary
+    $fixture.ProductInputManifest = New-MvpProductInputManifestFixture -Fixture $fixture
+    $equalContentLibraryAccepted = $false
+    try {
+        Invoke-MvpStager -Fixture $fixture -RunId 'fixture-equal-content-profile-library' | Out-Null
+        $equalContentLibraryAccepted = $true
+    }
+    finally {
+        $fixture.EditorRuntimeLibrary = $originalEditorRuntimeLibrary
+        Remove-Item -LiteralPath $equalContentEditorLibrary -Force -ErrorAction SilentlyContinue
+        $fixture.ProductInputManifest = New-MvpProductInputManifestFixture -Fixture $fixture
+    }
+    Assert-True $equalContentLibraryAccepted 'Staging rejected distinct profile DLL files solely because their content matched.'
 
     Remove-Item -LiteralPath $fixture.RuntimeLibrary -Force
     $failed = $false
@@ -1464,7 +1618,7 @@ try {
         Invoke-MvpStager -Fixture $fixture -RunId 'fixture-failure' | Out-Null
     }
     catch {
-        $failed = $_.Exception.Message -match 'RuntimeLibrary'
+        $failed = $_.Exception.Message -match 'runtime-library/runtime.*does not exist'
     }
     Assert-True $failed 'A missing runtime library did not produce an actionable failure.'
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixture.StagingRoot 'fixture-failure'))) 'Failed staging left a partial product directory.'
@@ -1473,6 +1627,6 @@ try {
 }
 finally {
     if (Test-Path -LiteralPath $fixture.Root) {
-        Remove-Item -LiteralPath $fixture.Root -Recurse -Force
+        Remove-MvpTestFixtureRoot -Path $fixture.Root
     }
 }

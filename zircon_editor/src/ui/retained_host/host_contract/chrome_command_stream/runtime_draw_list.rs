@@ -18,6 +18,7 @@ pub(in crate::ui::retained_host::host_contract) fn ui_surface_draw_list_from_str
     stream: &ChromeCommandStream,
     mut is_resident: impl FnMut(&str, u64) -> bool,
 ) -> UiSurfaceDrawList {
+    let mut text_faces = None;
     UiSurfaceDrawList::with_compact_styles_and_image_resources(
         stream.surface_size(),
         stream.damage().map(ui_rect),
@@ -35,7 +36,11 @@ pub(in crate::ui::retained_host::host_contract) fn ui_surface_draw_list_from_str
                             )
                             .is_some()
                 );
-                ui_surface_command_from_chrome(command, image_pixels_are_in_resource_table)
+                ui_surface_command_from_chrome(
+                    command,
+                    image_pixels_are_in_resource_table,
+                    &mut text_faces,
+                )
             })
             .collect(),
         ui_surface_image_resources_from_borrowed_stream(stream.image_resources(), &mut is_resident),
@@ -46,6 +51,13 @@ pub(in crate::ui::retained_host::host_contract) fn ui_surface_draw_list_from_own
     stream: ChromeCommandStream,
 ) -> UiSurfaceDrawList {
     ui_surface_draw_list_from_owned_stream_with_optional_generation(stream, None, |_, _| false)
+}
+
+pub(in crate::ui::retained_host::host_contract) fn ui_surface_draw_list_from_owned_stream_with_residency(
+    stream: ChromeCommandStream,
+    is_resident: impl FnMut(&str, u64) -> bool,
+) -> UiSurfaceDrawList {
+    ui_surface_draw_list_from_owned_stream_with_optional_generation(stream, None, is_resident)
 }
 
 pub(in crate::ui::retained_host::host_contract) fn ui_surface_draw_list_from_owned_stream_with_generation(
@@ -80,9 +92,10 @@ fn ui_surface_draw_list_from_owned_stream_with_optional_generation(
     let surface_size = stream.surface_size();
     let damage = stream.damage().map(ui_rect);
     let (commands, image_resources) = stream.into_parts();
+    let mut text_faces = None;
     let commands = commands
         .into_iter()
-        .map(ui_surface_command_from_owned_chrome)
+        .map(|command| ui_surface_command_from_owned_chrome(command, &mut text_faces))
         .collect();
     let image_resources = ui_surface_image_resources_from_stream(image_resources);
     match generation {

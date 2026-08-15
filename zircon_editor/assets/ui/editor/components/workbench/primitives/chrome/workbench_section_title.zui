@@ -16,5 +16,5 @@ default_classes = ["workbench-section-title", "workbench-primitive"]
 component = "Label"
 control_id = "WorkbenchSectionTitleRoot"
 classes = ["workbench-section-title"]
-props = { text = "Section", component_variant = "section-title", font_size = "$editor.typography.body.size", font_weight = "$editor.typography.strong.weight", text_tone = "primary" }
+props = { text = "Section", text_overflow = "ellipsis", component_variant = "section-title", font_size = "$editor.typography.body.size", font_weight = "$editor.typography.strong.weight", line_height_ratio = "$editor.typography.line_height", text_tone = "primary" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.compact", stretch = "Fixed" } }

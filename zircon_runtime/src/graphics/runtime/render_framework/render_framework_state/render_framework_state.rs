@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::core::framework::render::{
     RenderPipelineHandle, RenderStats, RenderViewportHandle, RenderVirtualGeometryDebugSnapshot,
@@ -15,14 +15,21 @@ use super::super::budget::{BudgetDegradeLadder, RenderMemoryBudget};
 use super::super::frame_profiler::FrameProfiler;
 use super::super::graphics_debugger_capture::GraphicsDebuggerState;
 use super::super::viewport_record::ViewportRecord;
+use super::EnvironmentIblHydrationCache;
 
 pub(in crate::graphics::runtime::render_framework) struct RenderFrameworkState {
     pub(in crate::graphics::runtime::render_framework) renderer: SceneRenderer,
+    // The renderer retains one offscreen scene-color target. Track its source so
+    // HDR capture cannot return pixels produced for a different viewport.
+    pub(in crate::graphics::runtime::render_framework) last_retained_scene_color_viewport:
+        Option<RenderViewportHandle>,
     pub(in crate::graphics::runtime::render_framework) next_viewport_id: u64,
     pub(in crate::graphics::runtime::render_framework) next_history_id: u64,
     pub(in crate::graphics::runtime::render_framework) pipelines:
         HashMap<RenderPipelineHandle, RenderPipelineAsset>,
     pub(in crate::graphics::runtime::render_framework) compiled_graph_cache: CompiledGraphCache,
+    pub(in crate::graphics::runtime::render_framework) environment_ibl_hydration_cache:
+        Arc<Mutex<EnvironmentIblHydrationCache>>,
     pub(in crate::graphics::runtime::render_framework) hybrid_gi_runtime_provider:
         Option<HybridGiRuntimeProviderRegistration>,
     pub(in crate::graphics::runtime::render_framework) solari_runtime_provider:

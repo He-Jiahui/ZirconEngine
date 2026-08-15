@@ -1,4 +1,3 @@
-#[cfg(test)]
 use std::collections::BTreeMap;
 
 use crate::ui::layouts::common::model_rc;
@@ -49,10 +48,10 @@ use defaults::{
 use host_value_toml::{
     toml_values_from_host_properties, toml_values_from_host_properties_without_notifications,
 };
-use mount::project_node_into_mount;
+use mount::{project_node_into_physical_mount, scale_visual_metric};
 use node_index::ProjectionNodeIndex;
 use notification_cache::reusable_notification_rows;
-use previous_node_index::{PreviousWorkbenchNodeIndex, model_with_projection_identity};
+use previous_node_index::{model_with_projection_identity, PreviousWorkbenchNodeIndex};
 use properties::{
     bool_property, color_property, first_string_property, integer_property, normalized_percent,
     numeric_property, preferred_route_action_id, preferred_route_binding, shared_string_list,
@@ -68,6 +67,11 @@ use status_right::{
 use typed_canvas::projected_typed_canvas_data;
 
 const UI_HOST_WINDOW_ROOT_CONTROL_ID: &str = "UiHostWindowRoot";
+
+pub(crate) struct WorkbenchWindowNodePatch {
+    pub(crate) nodes: ModelRc<host_contract::TemplatePaneNodeData>,
+    pub(crate) changed_rows: Vec<usize>,
+}
 
 pub(crate) fn to_host_contract_workbench_window_nodes(
     projection: Option<&RetainedUiHostProjection>,
@@ -86,6 +90,20 @@ pub(crate) fn to_host_contract_workbench_window_nodes_with_previous_at_mount(
     projection: Option<&RetainedUiHostProjection>,
     previous_nodes: Option<&ModelRc<host_contract::TemplatePaneNodeData>>,
     mount_frame: Option<UiFrame>,
+) -> ModelRc<host_contract::TemplatePaneNodeData> {
+    to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale(
+        projection,
+        previous_nodes,
+        mount_frame,
+        1.0,
+    )
+}
+
+pub(crate) fn to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale(
+    projection: Option<&RetainedUiHostProjection>,
+    previous_nodes: Option<&ModelRc<host_contract::TemplatePaneNodeData>>,
+    mount_frame: Option<UiFrame>,
+    scale_factor: f32,
 ) -> ModelRc<host_contract::TemplatePaneNodeData> {
     let Some(projection) = projection else {
         return ModelRc::default();
@@ -106,13 +124,95 @@ pub(crate) fn to_host_contract_workbench_window_nodes_with_previous_at_mount(
                     .control_id
                     .as_deref()
                     .and_then(|control_id| previous_node_index.as_ref()?.get(control_id));
-                to_host_contract_workbench_window_node_with_previous(node, &node_index, previous)
+                to_host_contract_workbench_window_node_with_previous(
+                    node,
+                    &node_index,
+                    previous,
+                    scale_factor,
+                )
             })
             .map(|node| apply_table_layout_context_variant(node, layout_context_width))
-            .map(|node| project_node_into_mount(node, mount_frame))
+            .map(|node| project_node_into_physical_mount(node, mount_frame, scale_factor))
             .collect(),
         projection.document_id.clone(),
     )
+}
+
+pub(crate) fn patch_host_contract_workbench_window_nodes_at_mount(
+    document_id: &str,
+    projection_nodes: &[RetainedUiHostNodeModel],
+    previous_nodes: &ModelRc<host_contract::TemplatePaneNodeData>,
+    mount_frame: Option<UiFrame>,
+) -> Option<ModelRc<host_contract::TemplatePaneNodeData>> {
+    patch_host_contract_workbench_window_nodes_at_mount_and_scale(
+        document_id,
+        projection_nodes,
+        previous_nodes,
+        mount_frame,
+        1.0,
+    )
+}
+
+pub(crate) fn patch_host_contract_workbench_window_nodes_at_mount_and_scale(
+    document_id: &str,
+    projection_nodes: &[RetainedUiHostNodeModel],
+    previous_nodes: &ModelRc<host_contract::TemplatePaneNodeData>,
+    mount_frame: Option<UiFrame>,
+    scale_factor: f32,
+) -> Option<ModelRc<host_contract::TemplatePaneNodeData>> {
+    build_host_contract_workbench_window_node_patch_at_mount_and_scale(
+        document_id,
+        projection_nodes,
+        previous_nodes,
+        mount_frame,
+        scale_factor,
+    )
+    .map(|patch| patch.nodes)
+}
+
+pub(crate) fn build_host_contract_workbench_window_node_patch_at_mount_and_scale(
+    document_id: &str,
+    projection_nodes: &[RetainedUiHostNodeModel],
+    previous_nodes: &ModelRc<host_contract::TemplatePaneNodeData>,
+    mount_frame: Option<UiFrame>,
+    scale_factor: f32,
+) -> Option<WorkbenchWindowNodePatch> {
+    if projection_nodes.is_empty() {
+        return Some(WorkbenchWindowNodePatch {
+            nodes: previous_nodes.clone(),
+            changed_rows: Vec::new(),
+        });
+    }
+    let previous_node_index =
+        PreviousWorkbenchNodeIndex::for_projection(previous_nodes, document_id)?;
+    let node_index = ProjectionNodeIndex::new(projection_nodes);
+    let mut row_patches = BTreeMap::new();
+    for node in projection_nodes {
+        if !node_index.render_visible(node) {
+            return None;
+        }
+        let control_id = node.control_id.as_deref()?;
+        let row = previous_node_index.row(control_id)?;
+        let previous = previous_node_index.get(control_id)?;
+        let mut projected = to_host_contract_workbench_window_node_with_previous(
+            node,
+            &node_index,
+            Some(previous),
+            scale_factor,
+        )?;
+        // The sparse workset does not carry unchanged ancestors. Preserve the already validated
+        // host parent identity while replacing only the row's semantic and geometry payload.
+        projected.parent_node_id = previous.parent_node_id.clone();
+        row_patches.insert(
+            row,
+            project_node_into_physical_mount(projected, mount_frame, scale_factor),
+        );
+    }
+    let changed_rows = row_patches.keys().copied().collect();
+    Some(WorkbenchWindowNodePatch {
+        nodes: previous_nodes.with_row_patches(row_patches),
+        changed_rows,
+    })
 }
 
 fn projection_layout_context_width(projection: &RetainedUiHostProjection) -> f32 {
@@ -128,13 +228,14 @@ fn to_host_contract_workbench_window_node(
     node: &RetainedUiHostNodeModel,
     node_index: &ProjectionNodeIndex<'_>,
 ) -> Option<host_contract::TemplatePaneNodeData> {
-    to_host_contract_workbench_window_node_with_previous(node, node_index, None)
+    to_host_contract_workbench_window_node_with_previous(node, node_index, None, 1.0)
 }
 
 fn to_host_contract_workbench_window_node_with_previous(
     node: &RetainedUiHostNodeModel,
     node_index: &ProjectionNodeIndex<'_>,
     previous: Option<&host_contract::TemplatePaneNodeData>,
+    scale_factor: f32,
 ) -> Option<host_contract::TemplatePaneNodeData> {
     let control_id = node.control_id.clone()?;
     let mut component_role = node
@@ -285,14 +386,20 @@ fn to_host_contract_workbench_window_node_with_previous(
         numeric_property(&node.properties, "layout_first_cell_offset_x")
             .or_else(|| numeric_property(&node.properties, "track_width_delta"))
             .unwrap_or(0.0) as f32;
+    // These host fields carry either a physical offset or a slider semantic.
+    // Resolve the authored property before the generic mount transform loses that distinction.
     let layout_second_cell_offset_x =
         numeric_property(&node.properties, "layout_second_cell_offset_x")
-            .or_else(|| numeric_property(&node.properties, "range_min"))
-            .unwrap_or(0.0) as f32;
+            .map(|value| scale_visual_metric(value as f32, scale_factor))
+            .or_else(|| numeric_property(&node.properties, "range_min").map(|value| value as f32))
+            .unwrap_or(0.0);
     let layout_third_cell_offset_x =
         numeric_property(&node.properties, "layout_third_cell_offset_x")
-            .or_else(|| numeric_property(&node.properties, "step_tick_count"))
-            .unwrap_or(0.0) as f32;
+            .map(|value| scale_visual_metric(value as f32, scale_factor))
+            .or_else(|| {
+                numeric_property(&node.properties, "step_tick_count").map(|value| value as f32)
+            })
+            .unwrap_or(0.0);
     let layout_fourth_cell_offset_x =
         numeric_property(&node.properties, "layout_fourth_cell_offset_x").unwrap_or(0.0) as f32;
     let selected_segment_border_width =
@@ -336,12 +443,20 @@ fn to_host_contract_workbench_window_node_with_previous(
         weight_heatmap: typed_canvas.weight_heatmap,
         value_text: value_text.into(),
         value_number: numeric_property(&node.properties, "value")
-            .or_else(|| numeric_property(&node.properties, "dot_size"))
-            .or_else(|| numeric_property(&node.properties, "status_mark_size"))
-            .or_else(|| numeric_property(&node.properties, "arrow_size"))
-            .or_else(|| numeric_property(&node.properties, "track_width"))
-            .or_else(|| numeric_property(&node.properties, "icon_size"))
-            .unwrap_or(0.0) as f32,
+            .map(|value| value as f32)
+            .or_else(|| {
+                [
+                    "dot_size",
+                    "status_mark_size",
+                    "arrow_size",
+                    "track_width",
+                    "icon_size",
+                ]
+                .into_iter()
+                .find_map(|property| numeric_property(&node.properties, property))
+                .map(|value| scale_visual_metric(value as f32, scale_factor))
+            })
+            .unwrap_or(0.0),
         value_percent: normalized_percent(&node.properties),
         value_color: color_property(&node.properties, "value_color")
             .or_else(|| color_property(&node.properties, "action_color"))
@@ -398,6 +513,8 @@ fn to_host_contract_workbench_window_node_with_previous(
         checked: node.checked,
         expanded: node.expanded,
         focused: node.focused,
+        focus_visible: node.focus_visible,
+        focus_visible_known: node.focus_visible_known,
         hovered: node.hovered,
         pressed: node.pressed,
         dragging: node.dragging,

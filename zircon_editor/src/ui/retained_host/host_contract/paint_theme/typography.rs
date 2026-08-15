@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use zircon_runtime_interface::ui::design_tokens::{
     EditorDesignTokens, EditorFontSmoothing, EditorTypographyTokens, EditorUtilityTabTextRole,
 };
@@ -38,7 +40,7 @@ impl HostTextPreferences {
     }
 }
 
-pub(crate) fn current_host_text_preferences() -> HostTextPreferences {
+pub(crate) fn current_host_text_preferences() -> Arc<HostTextPreferences> {
     super::host_text_preferences_for_read()
 }
 

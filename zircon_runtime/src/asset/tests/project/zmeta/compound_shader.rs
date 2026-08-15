@@ -109,34 +109,24 @@ fn fs_main() -> @location(0) vec4f {
 
     assert_eq!(imported_meta.unit, AssetSourceUnit::Compound);
     assert_eq!(imported_meta.asset_kind, AssetKind::Shader);
-    assert!(
-        imported_meta
-            .included_files
-            .contains(&AssetUri::parse("res://shaders/unlit_shader/unlit.zshader").unwrap())
-    );
-    assert!(
-        imported_meta
-            .included_files
-            .contains(&AssetUri::parse("res://shaders/unlit_shader/unlit.wgsl").unwrap())
-    );
-    assert!(
-        imported_meta
-            .entries
-            .iter()
-            .any(|entry| entry.url == shader_uri)
-    );
-    assert!(
-        imported_meta
-            .entries
-            .iter()
-            .any(|entry| entry.url == zshader_subasset && entry.asset_kind == AssetKind::Data)
-    );
-    assert!(
-        imported_meta
-            .entries
-            .iter()
-            .any(|entry| entry.url == wgsl_subasset && entry.asset_kind == AssetKind::Data)
-    );
+    assert!(imported_meta
+        .included_files
+        .contains(&AssetUri::parse("res://shaders/unlit_shader/unlit.zshader").unwrap()));
+    assert!(imported_meta
+        .included_files
+        .contains(&AssetUri::parse("res://shaders/unlit_shader/unlit.wgsl").unwrap()));
+    assert!(imported_meta
+        .entries
+        .iter()
+        .any(|entry| entry.url == shader_uri));
+    assert!(imported_meta
+        .entries
+        .iter()
+        .any(|entry| entry.url == zshader_subasset && entry.asset_kind == AssetKind::Data));
+    assert!(imported_meta
+        .entries
+        .iter()
+        .any(|entry| entry.url == wgsl_subasset && entry.asset_kind == AssetKind::Data));
     assert_eq!(
         shader_record.id(),
         AssetId::from_asset_uuid(imported_meta.uuid)
@@ -194,12 +184,10 @@ fn fs_main() -> @location(0) vec4f {
             assert_eq!(readiness.imports[1].source, "naga_oil::math");
             assert!(!readiness.imports[1].contributes_dependency);
             assert_eq!(readiness.entry_points.len(), 2);
-            assert!(
-                readiness
-                    .entry_points
-                    .iter()
-                    .all(|entry| entry.diagnostic.is_none())
-            );
+            assert!(readiness
+                .entry_points
+                .iter()
+                .all(|entry| entry.diagnostic.is_none()));
             assert!(readiness.shader_defs.is_empty());
             assert!(readiness.validation_diagnostics.is_empty());
 
@@ -217,12 +205,10 @@ fn fs_main() -> @location(0) vec4f {
             material
                 .property_values
                 .insert("unknown".to_string(), toml::Value::Boolean(true));
-            assert!(
-                material
-                    .shader_property_diagnostics(&shader)
-                    .iter()
-                    .any(|diagnostic| diagnostic.contains("not declared"))
-            );
+            assert!(material
+                .shader_property_diagnostics(&shader)
+                .iter()
+                .any(|diagnostic| diagnostic.contains("not declared")));
         }
         other => panic!("unexpected compound shader artifact: {other:?}"),
     }
@@ -440,14 +426,12 @@ fn project_manager_reports_duplicate_shader_import_path_conflicts() {
     let mut manager = ProjectManager::open(&root).unwrap();
     manager.scan_and_import().unwrap();
 
-    assert!(
-        manager
-            .registry()
-            .get_by_locator(&first_uri)
-            .expect("first shader record")
-            .diagnostics
-            .is_empty()
-    );
+    assert!(manager
+        .registry()
+        .get_by_locator(&first_uri)
+        .expect("first shader record")
+        .diagnostics
+        .is_empty());
     let second_record = manager
         .registry()
         .get_by_locator(&second_uri)

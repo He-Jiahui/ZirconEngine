@@ -1,6 +1,14 @@
 use super::*;
 
 #[test]
+fn present_stats_default_to_a_submitted_frame() {
+    assert_eq!(
+        UiSurfacePresentStats::default().outcome,
+        UiSurfacePresentOutcome::Submitted
+    );
+}
+
+#[test]
 fn gpu_timing_is_explicit_for_ui_surface_descriptors() {
     let descriptor = UiSurfaceDescriptor::headless("ui-profile", 32, 16);
 
@@ -80,7 +88,7 @@ fn compact_draw_list_uses_external_image_resources_when_commands_are_handle_only
             width: 2,
             height: 2,
             upload_bytes: 16,
-            rgba: vec![9; 16],
+            rgba: vec![9; 16].into(),
         },
     );
     let draw_list = UiSurfaceDrawList::with_generation_and_compact_styles_and_image_resources(
@@ -110,8 +118,9 @@ fn compact_draw_list_uses_external_image_resources_when_commands_are_handle_only
         draw_list
             .image_resource("atlas://editor/icons", 7)
             .expect("external image resource")
-            .rgba,
-        vec![9; 16]
+            .rgba
+            .as_ref(),
+        &[9; 16]
     );
     assert_eq!(draw_list.stats().image_upload_bytes, 16);
 }
@@ -205,7 +214,7 @@ fn retargeted_surface_preserves_the_generation_projection_extent() {
     assert_eq!(draw_list.surface_size, (160, 100));
     assert_eq!(draw_list.projection_size(), (320, 200));
     assert_eq!(draw_list.generation(), Some(9));
-    assert!(draw_list.bypasses_retained_surface_cache());
+    assert!(draw_list.is_target_only_resize());
 }
 
 #[test]
@@ -399,8 +408,9 @@ fn compact_draw_list_keeps_one_owned_image_payload_for_shared_atlas_commands() {
         draw_list
             .image_resource("atlas://editor/icons", 23)
             .expect("shared atlas resource")
-            .rgba,
-        vec![4; 16]
+            .rgba
+            .as_ref(),
+        &[4; 16]
     );
     assert!(draw_list.commands.iter().all(|command| matches!(
         &command.kind,
@@ -438,15 +448,17 @@ fn compact_draw_list_keeps_distinct_generations_and_counts_both_uploads() {
         draw_list
             .image_resource("atlas://editor/icons", 4)
             .expect("older atlas generation")
-            .rgba,
-        vec![4; 16]
+            .rgba
+            .as_ref(),
+        &[4; 16]
     );
     assert_eq!(
         draw_list
             .image_resource("atlas://editor/icons", 5)
             .expect("newer atlas generation")
-            .rgba,
-        vec![5; 16]
+            .rgba
+            .as_ref(),
+        &[5; 16]
     );
     assert_eq!(draw_list.stats().image_upload_bytes, 32);
 }

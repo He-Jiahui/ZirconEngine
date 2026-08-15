@@ -169,7 +169,7 @@ fn full_update_expands_prefilter_into_one_dispatch_per_mip() {
             RenderGraphComputeDispatchExtent::Fixed([
                 div_ceil((128_u32 >> expected_mip).max(1), 8),
                 div_ceil((128_u32 >> expected_mip).max(1), 8),
-                6,
+                if expected_mip == 7 { 1 } else { 6 },
             ])
         );
         let pass = graph_pass_for_kind(&plan, slice.mip_level);
@@ -187,6 +187,65 @@ fn full_update_expands_prefilter_into_one_dispatch_per_mip() {
                 && access.access == RenderGraphResourceAccessKind::Write
         }));
     }
+}
+
+#[test]
+fn realtime_ibl_views_use_shared_allocation_dependencies_without_manual_pass_chaining() {
+    let batch = first_full_batch();
+    let mut builder = RenderGraphBuilder::new("realtime-ibl-allocation-provenance");
+    let plan = append_realtime_ibl_graph_plan(&mut builder, &request(), &batch)
+        .expect("realtime IBL graph plan");
+    let graph = builder.compile().expect("realtime graph compiles");
+    let capture_cloud = plan
+        .passes
+        .iter()
+        .find(|pass| matches!(pass.kind, RealtimeIblGraphPassKind::CaptureCloud(_)))
+        .expect("cloud capture pass");
+    let first_source_mip = plan
+        .passes
+        .iter()
+        .find(|pass| {
+            matches!(
+                pass.kind,
+                RealtimeIblGraphPassKind::GenerateSourceMip { mip_level: 1 }
+            )
+        })
+        .expect("first source mip pass");
+    let final_source_mip = plan
+        .passes
+        .iter()
+        .find(|pass| {
+            matches!(
+                pass.kind,
+                RealtimeIblGraphPassKind::GenerateSourceMip { mip_level: 7 }
+            )
+        })
+        .expect("final source mip pass");
+    let first_prefilter = graph_pass_for_kind(&plan, 0);
+
+    let compiled_first_source_mip = graph
+        .passes()
+        .iter()
+        .find(|pass| pass.id == first_source_mip.pass_id)
+        .expect("compiled first source mip pass");
+    let compiled_first_prefilter = graph
+        .passes()
+        .iter()
+        .find(|pass| pass.id == first_prefilter.pass_id)
+        .expect("compiled first prefilter pass");
+
+    assert!(compiled_first_source_mip
+        .dependencies
+        .contains(&capture_cloud.pass_id));
+    assert!(compiled_first_prefilter
+        .dependencies
+        .contains(&final_source_mip.pass_id));
+
+    let source = include_str!("../realtime_ibl_graph_plan.rs");
+    assert!(source.contains("with_usage_binding_and_alias_group"));
+    assert!(!source.contains("let mut previous = None;"));
+    assert!(!source.contains("previous = Some(pass);"));
+    assert!(!source.contains("builder.add_dependency(previous, pass)"));
 }
 
 #[test]
@@ -228,6 +287,48 @@ fn sliced_prefilter_preserves_face_range_and_orders_passes() {
         RenderGraphComputeDispatchExtent::Fixed([16, 16, 2])
     );
     assert_eq!(graph.passes().len(), 1);
+}
+
+#[test]
+fn terminal_pmrem_face_slice_keeps_its_requested_dispatch_depth() {
+    let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
+    let mut scheduler = RealtimeIblTimeSliceScheduler::new(
+        RealtimeIblTimeSliceConfig::try_new(1, 2).expect("valid single-mip realtime config"),
+    );
+    scheduler.request_rebake(key);
+    let initial = scheduler.begin_frame(1).expect("initial batch");
+    assert_eq!(
+        scheduler.complete_frame(initial.token(), true),
+        RealtimeIblCompletion::Published
+    );
+    let mut next = ProceduralSkyParams::default_gradient();
+    next.horizon_color.x += 0.1;
+    scheduler.request_rebake(next.ibl_bake_key());
+    for frame in 2..=8 {
+        let batch = scheduler.begin_frame(frame).expect("sliced batch");
+        scheduler.complete_frame(batch.token(), true);
+    }
+    let batch = scheduler.begin_frame(9).expect("terminal PMREM face pair");
+    assert_eq!(batch.logical_state(), 3);
+
+    let mut builder = RenderGraphBuilder::new("realtime-ibl-terminal-prefilter-slice");
+    let request = request().with_pmrem_layout(1, 1);
+    let plan = append_realtime_ibl_graph_plan(&mut builder, &request, &batch)
+        .expect("terminal sliced graph plan");
+
+    assert_eq!(plan.passes.len(), 1);
+    assert_eq!(
+        plan.passes[0].kind,
+        RealtimeIblGraphPassKind::Prefilter(RealtimeIblPrefilterDispatchSlice {
+            mip_level: 0,
+            first_face: 0,
+            face_count: 2,
+        })
+    );
+    assert_eq!(
+        plan.passes[0].workload.dispatch_extent,
+        RenderGraphComputeDispatchExtent::Fixed([1, 1, 2])
+    );
 }
 
 fn graph_pass_for_kind(plan: &RealtimeIblGraphPlan, mip_level: u8) -> &RealtimeIblGraphPass {

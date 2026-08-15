@@ -188,10 +188,8 @@ mod tests {
         ];
 
         assert_eq!(root.matches("ViewportProjectionContext::new").count(), 1);
-        assert!(
-            leaf_sources
-                .iter()
-                .all(|source| !source.contains("ViewportProjectionContext::new"))
-        );
+        assert!(leaf_sources
+            .iter()
+            .all(|source| !source.contains("ViewportProjectionContext::new")));
     }
 }

@@ -10,7 +10,6 @@ use zircon_runtime::plugin::{
 use zircon_runtime::scene::ecs::{
     Event, Resource, RuntimeSceneSystemContext, SystemOrderingConstraint, SystemRef, SystemStage,
 };
-use zircon_runtime::scene::SceneRuntimeHookRegistration;
 
 pub struct RuntimePluginRegistrationBuilder<'registry> {
     registry: &'registry mut RuntimeExtensionRegistry,
@@ -50,25 +49,22 @@ impl<'registry> RuntimePluginModuleRegistration<'registry> {
         self.owner
     }
 
+    /// Registers a factory that produces a fresh callback for every runtime scene-system instance.
     pub fn runtime_scene_system<S>(
         &mut self,
         id: impl Into<String>,
         stage: SystemStage,
-        system: S,
+        system_factory: impl Fn() -> S + Send + Sync + 'static,
     ) -> RuntimePluginRuntimeSceneSystemBuilder<'_, S>
     where
-        S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError>
-            + Send
-            + Sync
-            + Clone
-            + 'static,
+        S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError> + Send + 'static,
     {
         RuntimePluginRuntimeSceneSystemBuilder {
             registry: self.registry,
             owner: self.owner,
             id: id.into(),
             stage,
-            system,
+            system_factory: Arc::new(system_factory),
             sets: Vec::new(),
             constraints: Vec::new(),
             order: 0,
@@ -142,13 +138,6 @@ impl<'registry> RuntimePluginModuleRegistration<'registry> {
         self.registry
             .register_owner_revocation_listener(self.owner, callback);
     }
-
-    pub fn scene_hook(
-        &mut self,
-        registration: SceneRuntimeHookRegistration,
-    ) -> Result<(), RuntimeExtensionRegistryError> {
-        self.registry.register_scene_hook(registration)
-    }
 }
 
 pub struct RuntimePluginRuntimeSceneSystemBuilder<'registry, S> {
@@ -156,7 +145,7 @@ pub struct RuntimePluginRuntimeSceneSystemBuilder<'registry, S> {
     owner: PluginModuleId,
     id: String,
     stage: SystemStage,
-    system: S,
+    system_factory: Arc<dyn Fn() -> S + Send + Sync>,
     sets: Vec<String>,
     constraints: Vec<SystemOrderingConstraint>,
     order: i32,
@@ -164,11 +153,7 @@ pub struct RuntimePluginRuntimeSceneSystemBuilder<'registry, S> {
 
 impl<'registry, S> RuntimePluginRuntimeSceneSystemBuilder<'registry, S>
 where
-    S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError>
-        + Send
-        + Sync
-        + Clone
-        + 'static,
+    S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError> + Send + 'static,
 {
     pub fn in_set(mut self, set: impl Into<String>) -> Self {
         self.sets.push(set.into());
@@ -198,10 +183,13 @@ where
             .into_iter()
             .map(|set| self.registry.intern_system_set(set))
             .collect::<Result<Vec<_>, _>>()?;
+        let system_factory = self.system_factory;
 
         let mut builder = self
             .registry
-            .register_runtime_scene_system(self.owner, self.id, self.stage, self.system)
+            .register_runtime_scene_system(self.owner, self.id, self.stage, move || {
+                system_factory()
+            })
             .with_order(self.order);
 
         for set in set_ids {
@@ -278,8 +266,8 @@ mod tests {
             .resource(SdkRegistrationResource::default)
             .expect("runtime resource registered");
         module
-            .runtime_scene_system(SYSTEM_ID, SystemStage::PostUpdate, |_context| {
-                Ok::<_, CoreError>(())
+            .runtime_scene_system(SYSTEM_ID, SystemStage::PostUpdate, || {
+                |_context| Ok::<_, CoreError>(())
             })
             .in_set(SYSTEM_SET)
             .after(SystemRef::System(WORLD_TRANSFORM_SYSTEM.to_string()))

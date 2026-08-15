@@ -13,7 +13,7 @@ use self::asset_tree::route_browser_asset_tree_hit;
 use self::console::console_output_route_frame;
 use self::template::route_template_node_hit;
 use self::viewport_body::viewport_body_route;
-use super::super::super::{PanePointerRoute, PanePointerTarget, geometry::contains};
+use super::super::super::{geometry::contains, PanePointerRoute, PanePointerTarget};
 use super::super::mode::PaneRouteMode;
 use super::super::target::pane_pointer_target_for_kind;
 
@@ -24,6 +24,7 @@ pub(in super::super) fn pane_route_from_pane(
     y: f32,
     surface_key: Option<&str>,
     mode: PaneRouteMode,
+    console_scroll_px: f32,
 ) -> Option<PanePointerRoute> {
     if !contains(content, x, y) {
         return None;
@@ -41,7 +42,9 @@ pub(in super::super) fn pane_route_from_pane(
     if let Some(route) = route_asset_content_hit(pane, &body_route.body, x, y) {
         return Some(route);
     }
-    if let Some(route) = route_template_node_hit(pane, &body_route.body, x, y, mode) {
+    if let Some(route) =
+        route_template_node_hit(pane, &body_route.body, x, y, mode, console_scroll_px)
+    {
         return Some(route);
     }
     let target = pane_pointer_target_for_kind(pane, surface_key);

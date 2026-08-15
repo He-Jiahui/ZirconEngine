@@ -8,11 +8,9 @@ use crate::core::framework::scene::{ComponentPropertyPath, EntityPath};
 use image::{ImageBuffer, ImageFormat, Rgba};
 
 use crate::asset::{
-    AlphaMode, AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporter,
-    AssetImporterDescriptor, AssetKind, AssetReference, AssetUri, FunctionAssetImporter,
-    ImportedAsset, MaterialAsset, PhysicsMaterialAsset, ProjectManifest, ReferenceResolutionError,
-    SceneAsset, SceneCameraAsset, SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset,
-    SoundAsset, TransformAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset,
+    AlphaMode, AssetImporter, AssetKind, AssetReference, AssetUri, MaterialAsset,
+    PhysicsMaterialAsset, ProjectManifest, ReferenceResolutionError, SceneAsset, SceneCameraAsset,
+    SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset, SoundAsset, TransformAsset,
     ZMaterialDocument,
 };
 use crate::core::framework::animation::{
@@ -25,7 +23,6 @@ use crate::core::framework::animation::{
 };
 use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPath};
 use zircon_runtime_interface::resource::ResourceScheme;
-use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
 pub(crate) fn write_valid_wgsl(path: PathBuf) {
     if let Some(parent) = path.parent() {
@@ -70,46 +67,6 @@ pub(crate) fn importer_with_first_wave_plugin_fixtures() -> AssetImporter {
         .register_first_wave_plugin_fixture_importers_for_test()
         .unwrap();
     importer
-}
-
-#[cfg(feature = "ui")]
-pub(crate) fn ui_document_importer_fixture() -> FunctionAssetImporter {
-    FunctionAssetImporter::new(
-        AssetImporterDescriptor::new(
-            "ui_document_importer.zui_document",
-            "ui_document_importer",
-            AssetKind::UiWidget,
-            2,
-        )
-        .with_priority(120)
-        .with_full_suffixes([".zui"])
-        .with_additional_output_kinds([AssetKind::UiLayout, AssetKind::UiStyle])
-        .with_required_capabilities(["runtime.asset.importer.ui_document"]),
-        import_ui_zui_document_fixture,
-    )
-}
-
-#[cfg(feature = "ui")]
-fn import_ui_zui_document_fixture(
-    context: &AssetImportContext,
-) -> Result<AssetImportOutcome, AssetImportError> {
-    let document = context.source_text()?;
-    let parsed = crate::ui::v2::UiZuiAssetLoader::load_zui_str(&document).map_err(|source| {
-        AssetImportError::UiV2Document {
-            context: "parse .zui ui asset fixture",
-            source: source.into(),
-        }
-    })?;
-    let imported = match parsed.asset.kind {
-        UiV2AssetKind::View => ImportedAsset::UiV2View(UiV2ViewAsset { document: parsed }),
-        UiV2AssetKind::Style | UiV2AssetKind::ThemeTokens => {
-            ImportedAsset::UiV2Style(UiV2StyleAsset { document: parsed })
-        }
-        UiV2AssetKind::Component => {
-            ImportedAsset::UiV2Component(UiV2ComponentAsset { document: parsed })
-        }
-    };
-    Ok(AssetImportOutcome::new(context.uri.clone(), imported))
 }
 
 pub(crate) fn write_triangle_obj(path: PathBuf) {

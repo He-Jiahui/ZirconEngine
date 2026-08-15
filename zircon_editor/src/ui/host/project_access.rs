@@ -2,13 +2,11 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
-use zircon_runtime::asset::{asset_manager_handle, AssetManager};
-use zircon_runtime::asset::{AssetImportError, AssetUri};
+use zircon_runtime::asset::{AssetImportError, AssetManager, AssetUri};
 use zircon_runtime::core::framework::foundation::ConfigManager;
-use zircon_runtime::core::manager::{resolve_manager_service, ManagerResolver};
-use zircon_runtime::diagnostic_log::write_log;
-use zircon_runtime::scene::LevelMetadata;
 
+use crate::core::editing::authoring_world::AuthoringWorldSeed;
+use crate::core::logging::{EditorLogService, LogEntry, LogSeverity, LogSource};
 use crate::core::project::ProjectAuthority;
 use crate::ui::host::editor_asset_manager::{editor_asset_manager_handle, EditorAssetManager};
 use crate::ui::workbench::project::EditorProjectDocument;
@@ -17,14 +15,6 @@ use super::editor_error::EditorError;
 use super::editor_ui_host::EditorUiHost;
 
 impl EditorUiHost {
-    pub(super) fn open_project(
-        &self,
-        path: impl AsRef<Path>,
-    ) -> Result<EditorProjectDocument, EditorError> {
-        let opened = ProjectAuthority::default().open_project(&path)?;
-        self.open_prepared_project(opened.into_project())
-    }
-
     pub(super) fn open_prepared_project(
         &self,
         project: ProjectManager,
@@ -46,8 +36,9 @@ impl EditorUiHost {
             self.settings.as_ref(),
         )?;
         let catalog = editor_asset_manager.catalog_snapshot();
-        write_log(
-            "editor_project_open",
+        emit_project_log(
+            self.logs.as_ref(),
+            LogSeverity::Info,
             project_opened_diagnostic(
                 &document.root_path,
                 &document.project_info.name,
@@ -75,6 +66,7 @@ impl EditorUiHost {
         let closed_root = asset_manager.close_project()?;
 
         Ok(finish_committed_project_close(
+            self.logs.as_ref(),
             closed_root,
             || {
                 editor_asset_manager
@@ -109,59 +101,51 @@ impl EditorUiHost {
         // successful authoring save back into a dirty, apparently failed operation.
         let default_scene = project.manifest().default_scene.to_string();
         let Some(_) = post_persist_project_save_sync(
+            self.logs.as_ref(),
             "reimport_default_scene",
             asset_manager.import_asset(&default_scene),
         ) else {
             return Ok(project_root);
         };
-        let Some(editor_asset_manager) =
-            post_persist_project_save_sync("resolve_editor_assets", self.editor_asset_manager())
-        else {
+        let Some(editor_asset_manager) = post_persist_project_save_sync(
+            self.logs.as_ref(),
+            "resolve_editor_assets",
+            self.editor_asset_manager(),
+        ) else {
             return Ok(project_root);
         };
         let Some(_) = post_persist_project_save_sync(
+            self.logs.as_ref(),
             "refresh_editor_assets",
             editor_asset_manager.refresh_from_runtime_project(),
         ) else {
             return Ok(project_root);
         };
         let _ = post_persist_project_save_sync(
+            self.logs.as_ref(),
             "restart_ui_asset_workspace_watcher",
             self.restart_ui_asset_workspace_watcher(),
         );
         Ok(project_root)
     }
 
-    pub(super) fn create_runtime_level(
+    pub(super) fn prepare_authoring_world(
         &self,
         scene: zircon_runtime::scene::Scene,
-    ) -> Result<zircon_runtime::scene::LevelSystem, EditorError> {
-        Ok(zircon_runtime::scene::create_level(
-            &self.runtime_core()?,
-            scene,
-            LevelMetadata::default(),
-        )?)
+    ) -> Result<AuthoringWorldSeed, EditorError> {
+        self.runtime_services.prepare_authoring_world(scene)
     }
 
     pub(super) fn config_manager(&self) -> Result<Arc<dyn ConfigManager>, EditorError> {
-        let resolver = ManagerResolver::new(self.runtime_core()?);
-        Ok(resolver.resolve(resolver.config_handle()?)?)
+        self.runtime_services.config_manager()
     }
 
     pub(super) fn asset_manager(&self) -> Result<Arc<dyn AssetManager>, EditorError> {
-        let core = self.runtime_core()?;
-        Ok(resolve_manager_service(
-            &core,
-            asset_manager_handle(&core)?,
-        )?)
+        self.runtime_services.asset_manager()
     }
 
     pub(super) fn editor_asset_manager(&self) -> Result<Arc<dyn EditorAssetManager>, EditorError> {
-        let core = self.runtime_core()?;
-        Ok(resolve_manager_service(
-            &core,
-            editor_asset_manager_handle(&core)?,
-        )?)
+        self.runtime_services.editor_asset_manager()
     }
 
     pub(super) fn resolve_ui_asset_path(
@@ -254,6 +238,31 @@ fn project_opened_diagnostic(
     )
 }
 
+// Project synchronization can complete outside a retained-host frame, so its frame is unknown.
+const UNKNOWN_PROJECT_LOG_FRAME: u64 = 0;
+
+fn emit_project_log(logs: &EditorLogService, severity: LogSeverity, message: String) {
+    let entry = LogEntry::new(
+        LogSource::editor(),
+        severity,
+        message,
+        UNKNOWN_PROJECT_LOG_FRAME,
+        None,
+    )
+    .or_else(|_| {
+        LogEntry::new(
+            LogSource::editor(),
+            severity,
+            "editor_project_access diagnostic exceeds the log-entry limit.",
+            UNKNOWN_PROJECT_LOG_FRAME,
+            None,
+        )
+    });
+    if let Ok(entry) = entry {
+        let _ = logs.emit(entry);
+    }
+}
+
 pub(crate) fn percent_encode_diagnostic_token(value: &str) -> String {
     const HEX: &[u8; 16] = b"0123456789ABCDEF";
 
@@ -270,15 +279,20 @@ pub(crate) fn percent_encode_diagnostic_token(value: &str) -> String {
     encoded
 }
 
-fn post_persist_project_save_sync<T, E>(phase: &str, result: Result<T, E>) -> Option<T>
+fn post_persist_project_save_sync<T, E>(
+    logs: &EditorLogService,
+    phase: &str,
+    result: Result<T, E>,
+) -> Option<T>
 where
     E: std::fmt::Display,
 {
     match result {
         Ok(value) => Some(value),
         Err(error) => {
-            write_log(
-                "editor_project_save",
+            emit_project_log(
+                logs,
+                LogSeverity::Error,
                 project_save_post_persist_sync_diagnostic(phase, &error),
             );
             None
@@ -293,15 +307,20 @@ fn project_save_post_persist_sync_diagnostic(
     format!("editor_project_save result=post_persist_sync_failed phase={phase} error={error}")
 }
 
-fn post_committed_project_close_sync<T, E>(phase: &str, result: Result<T, E>) -> Option<T>
+fn post_committed_project_close_sync<T, E>(
+    logs: &EditorLogService,
+    phase: &str,
+    result: Result<T, E>,
+) -> Option<T>
 where
     E: std::fmt::Display,
 {
     match result {
         Ok(value) => Some(value),
         Err(error) => {
-            write_log(
-                "editor_project_close",
+            emit_project_log(
+                logs,
+                LogSeverity::Error,
                 project_close_post_commit_sync_diagnostic(phase, &error),
             );
             None
@@ -317,6 +336,7 @@ fn project_close_post_commit_sync_diagnostic(
 }
 
 fn finish_committed_project_close<Deactivate, DeactivateError, Watch, WatchError>(
+    logs: &EditorLogService,
     closed_root: Option<PathBuf>,
     deactivate_projection: Deactivate,
     transition_watcher: Watch,
@@ -329,11 +349,15 @@ where
 {
     let closed_root = closed_root?;
     let _ = post_committed_project_close_sync(
+        logs,
         "deactivate_editor_asset_projection",
         deactivate_projection(),
     );
-    let _ =
-        post_committed_project_close_sync("stop_ui_asset_workspace_watcher", transition_watcher());
+    let _ = post_committed_project_close_sync(
+        logs,
+        "stop_ui_asset_workspace_watcher",
+        transition_watcher(),
+    );
     Some(closed_root)
 }
 
@@ -368,8 +392,11 @@ mod tests {
     use std::cell::RefCell;
     use std::path::Path;
 
+    use crate::core::logging::{EditorLogService, LogFilter, LogSeverity, LogSource};
+
     use super::{
-        finish_committed_project_close, post_persist_project_save_sync, project_opened_diagnostic,
+        emit_project_log, finish_committed_project_close, post_committed_project_close_sync,
+        post_persist_project_save_sync, project_opened_diagnostic,
         project_save_post_persist_sync_diagnostic,
     };
 
@@ -494,12 +521,17 @@ mod tests {
 
     #[test]
     fn post_persist_save_sync_failure_is_diagnostic_only() {
+        let logs = EditorLogService::default();
         assert_eq!(
-            post_persist_project_save_sync("reimport_default_scene", Ok::<_, &str>(7)),
+            post_persist_project_save_sync(&logs, "reimport_default_scene", Ok::<_, &str>(7)),
             Some(7)
         );
         assert_eq!(
-            post_persist_project_save_sync("refresh_editor_assets", Err::<(), _>("catalog stale")),
+            post_persist_project_save_sync(
+                &logs,
+                "refresh_editor_assets",
+                Err::<(), _>("catalog stale"),
+            ),
             None
         );
 
@@ -511,10 +543,67 @@ mod tests {
     }
 
     #[test]
+    fn committed_project_sync_failures_enter_the_shared_editor_log() {
+        let logs = EditorLogService::default();
+
+        assert_eq!(
+            post_persist_project_save_sync(
+                &logs,
+                "refresh_editor_assets",
+                Err::<(), _>("catalog stale"),
+            ),
+            None
+        );
+        assert_eq!(
+            post_committed_project_close_sync(
+                &logs,
+                "stop_ui_asset_workspace_watcher",
+                Err::<(), _>("watcher unavailable"),
+            ),
+            None
+        );
+
+        let records = logs.snapshot(&LogFilter::default());
+        assert_eq!(records.len(), 2);
+        assert!(records.iter().all(|record| {
+            record.entry().source() == &LogSource::editor()
+                && record.entry().severity() == LogSeverity::Error
+                && record.entry().timestamp_frame() == 0
+        }));
+        assert!(records[0]
+            .entry()
+            .message()
+            .starts_with("editor_project_save result=post_persist_sync_failed"));
+        assert!(records[1]
+            .entry()
+            .message()
+            .starts_with("editor_project_close result=post_commit_sync_failed"));
+    }
+
+    #[test]
+    fn oversized_project_open_diagnostic_preserves_its_info_severity_in_the_fallback() {
+        let logs = EditorLogService::default();
+
+        emit_project_log(&logs, LogSeverity::Info, "x".repeat(9 * 1024));
+
+        let records = logs.snapshot(&LogFilter::default());
+        assert_eq!(records.len(), 1);
+        let entry = records[0].entry();
+        assert_eq!(entry.source(), &LogSource::editor());
+        assert_eq!(entry.severity(), LogSeverity::Info);
+        assert_eq!(
+            entry.message(),
+            "editor_project_access diagnostic exceeds the log-entry limit."
+        );
+    }
+
+    #[test]
     fn committed_project_close_deactivates_projection_before_stopping_the_watcher() {
+        let logs = EditorLogService::default();
         let calls = RefCell::new(Vec::new());
 
         let closed = finish_committed_project_close(
+            &logs,
             Some(Path::new("C:/projects/forest").to_path_buf()),
             || {
                 calls.borrow_mut().push("deactivate");
@@ -532,9 +621,11 @@ mod tests {
 
     #[test]
     fn project_close_no_op_does_not_mutate_editor_projection_or_watcher() {
+        let logs = EditorLogService::default();
         let calls = RefCell::new(Vec::new());
 
         let closed = finish_committed_project_close(
+            &logs,
             None,
             || {
                 calls.borrow_mut().push("deactivate");
@@ -552,9 +643,11 @@ mod tests {
 
     #[test]
     fn committed_project_close_continues_watcher_transition_after_deactivation_failure() {
+        let logs = EditorLogService::default();
         let calls = RefCell::new(Vec::new());
 
         let closed = finish_committed_project_close(
+            &logs,
             Some(Path::new("C:/projects/forest").to_path_buf()),
             || {
                 calls.borrow_mut().push("deactivate");

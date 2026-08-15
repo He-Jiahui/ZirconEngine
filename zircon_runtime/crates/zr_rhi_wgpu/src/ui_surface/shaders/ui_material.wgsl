@@ -1,9 +1,22 @@
 struct SolidVertexInput {
     @location(0) position: vec2<f32>,
     @location(1) color: vec4<f32>,
+    @location(2) local_position: vec2<f32>,
+    @location(3) half_extent: vec2<f32>,
+    @location(4) corner_radius: f32,
+    @location(5) border_width: f32,
 };
 
 struct SolidVertexOutput {
+    @builtin(position) position: vec4<f32>,
+    @location(0) color: vec4<f32>,
+    @location(1) local_position: vec2<f32>,
+    @location(2) @interpolate(flat) half_extent: vec2<f32>,
+    @location(3) @interpolate(flat) corner_radius: f32,
+    @location(4) @interpolate(flat) border_width: f32,
+};
+
+struct SolidFlatVertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) color: vec4<f32>,
 };
@@ -35,10 +48,13 @@ fn premultiply_alpha(color: vec4<f32>) -> vec4<f32> {
     return vec4<f32>(color.rgb * color.a, color.a);
 }
 
-fn rounded_box_alpha(local_position: vec2<f32>, half_extent: vec2<f32>, radius: f32, softness: f32) -> f32 {
+fn rounded_box_distance(local_position: vec2<f32>, half_extent: vec2<f32>, radius: f32) -> f32 {
     let q = abs(local_position) - half_extent + vec2<f32>(radius);
-    let outside_distance = length(max(q, vec2<f32>(0.0))) - radius;
-    return 1.0 - smoothstep(-softness, softness, outside_distance);
+    return length(max(q, vec2<f32>(0.0))) + min(max(q.x, q.y), 0.0) - radius;
+}
+
+fn rounded_box_alpha(signed_distance: f32, distance_width: f32) -> f32 {
+    return smoothstep(distance_width * 0.5, distance_width * -0.5, signed_distance);
 }
 
 fn material_solid_color(color: vec4<f32>) -> vec4<f32> {
@@ -46,7 +62,7 @@ fn material_solid_color(color: vec4<f32>) -> vec4<f32> {
 }
 
 fn material_image_color(color: vec4<f32>) -> vec4<f32> {
-    return premultiply_alpha(material_tint(color, vec4<f32>(1.0, 1.0, 1.0, 1.0)));
+    return material_tint(color, vec4<f32>(1.0, 1.0, 1.0, 1.0));
 }
 
 @vertex
@@ -54,6 +70,10 @@ fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
     var output: SolidVertexOutput;
     output.position = vec4<f32>(input.position, 0.0, 1.0);
     output.color = input.color;
+    output.local_position = input.local_position;
+    output.half_extent = input.half_extent;
+    output.corner_radius = input.corner_radius;
+    output.border_width = input.border_width;
     return output;
 }
 
@@ -61,7 +81,7 @@ fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
 fn solid_instance_vs_main(
     input: SolidInstanceInput,
     @builtin(vertex_index) vertex_index: u32,
-) -> SolidVertexOutput {
+) -> SolidFlatVertexOutput {
     let corners = array<vec2<f32>, 6>(
         vec2<f32>(0.0, 1.0),
         vec2<f32>(1.0, 1.0),
@@ -71,7 +91,7 @@ fn solid_instance_vs_main(
         vec2<f32>(1.0, 0.0),
     );
     let corner = corners[vertex_index];
-    var output: SolidVertexOutput;
+    var output: SolidFlatVertexOutput;
     output.position = vec4<f32>(mix(input.min_position, input.max_position, corner), 0.0, 1.0);
     output.color = input.color;
     return output;
@@ -79,6 +99,29 @@ fn solid_instance_vs_main(
 
 @fragment
 fn solid_fs_main(input: SolidVertexOutput) -> @location(0) vec4<f32> {
+    let outer_distance = rounded_box_distance(
+        input.local_position,
+        input.half_extent,
+        input.corner_radius,
+    );
+    let distance_width = max(fwidth(outer_distance), 0.0001);
+    let outer_coverage = rounded_box_alpha(outer_distance, distance_width);
+    var coverage = outer_coverage;
+    let inner_half_extent = input.half_extent - vec2<f32>(input.border_width);
+    if input.border_width > 0.0 && all(inner_half_extent > vec2<f32>(0.0)) {
+        let inner_distance = rounded_box_distance(
+            input.local_position,
+            inner_half_extent,
+            max(input.corner_radius - input.border_width, 0.0),
+        );
+        let inner_coverage = rounded_box_alpha(inner_distance, distance_width);
+        coverage = max(outer_coverage - inner_coverage, 0.0);
+    }
+    return material_solid_color(vec4<f32>(input.color.rgb, input.color.a * coverage));
+}
+
+@fragment
+fn solid_instance_fs_main(input: SolidFlatVertexOutput) -> @location(0) vec4<f32> {
     return material_solid_color(input.color);
 }
 

@@ -123,14 +123,20 @@ fn zr_vm_language_registration_reports_backend_capability() {
         .any(|interface| interface.id
             == zircon_runtime::core::framework::script::SCRIPT_BEHAVIOR_BRIDGE_INTERFACE_ID
             && interface.methods.is_empty()));
-    assert!(report.extensions.scene_hooks().iter().any(|hook| {
-        hook.descriptor().id == "zr_vm_language.script.scene.fixed_update"
-            && hook.descriptor().stage == zircon_runtime::scene::SystemStage::FixedUpdate
-    }));
-    assert!(report.extensions.scene_hooks().iter().any(|hook| {
-        hook.descriptor().id == "zr_vm_language.script.scene.update"
-            && hook.descriptor().stage == zircon_runtime::scene::SystemStage::Update
-    }));
+    assert!(report
+        .extensions
+        .plugin_runtime_systems()
+        .any(
+            |(_, system)| system.id == zircon_runtime::script::SCRIPT_SCENE_FIXED_UPDATE_SYSTEM
+                && system.stage == zircon_runtime::scene::SystemStage::FixedUpdate
+        ));
+    assert!(report
+        .extensions
+        .plugin_runtime_systems()
+        .any(
+            |(_, system)| system.id == zircon_runtime::script::SCRIPT_SCENE_UPDATE_SYSTEM
+                && system.stage == zircon_runtime::scene::SystemStage::Update
+        ));
     assert!(report
         .package_manifest
         .capabilities
@@ -339,6 +345,8 @@ fn vm_registered_system_enters_schedule_conservatively() {
             crate::vm_system_dispatcher_id(zircon_runtime::script::VmSystemStage::Update),
             crate::vm_system_dispatcher_id(zircon_runtime::script::VmSystemStage::Last),
             ZR_VM_GC_STEP_SYSTEM,
+            zircon_runtime::script::SCRIPT_SCENE_FIXED_UPDATE_SYSTEM,
+            zircon_runtime::script::SCRIPT_SCENE_UPDATE_SYSTEM,
         ]
         .map(str::to_string)
     );
@@ -378,7 +386,7 @@ fn zr_vm_runtime_systems_join_main_system_set() {
         })
         .map(|(_, system)| system)
         .collect::<Vec<_>>();
-    assert_eq!(runtime_systems.len(), 5);
+    assert_eq!(runtime_systems.len(), 7);
     for system in runtime_systems {
         assert_eq!(
             system.sets,
@@ -431,7 +439,7 @@ fn gc_step_resources_and_last_stage_system_are_registered() {
 }
 
 #[test]
-fn gc_step_respects_frame_budget() {
+fn gc_step_records_backend_telemetry_separately_from_the_host_deadline() {
     let calls = Arc::new(Mutex::new(Vec::new()));
     let manager = zircon_runtime::script::VmPluginManager::mock();
     manager.register_family(Arc::new(BudgetRecordingFamily {
@@ -449,17 +457,19 @@ fn gc_step_respects_frame_budget() {
 
     let report = manager
         .gc_step(zircon_runtime::script::VmGcBudget {
-            max_micros_per_frame: 10,
+            max_micros_per_frame: 5_000_000,
         })
         .unwrap();
 
-    assert_eq!(
-        calls.lock().unwrap().as_slice(),
-        &[(first, 10), (second, 6)]
-    );
-    assert_eq!(report.pause_micros, 12);
-    assert_eq!(report.overrun_micros, 2);
-    assert_eq!(report.slots.len(), 2);
+    let calls = calls.lock().unwrap();
+    assert_eq!(calls.len(), 3);
+    assert_eq!(calls[0].0, first);
+    assert_eq!(calls[1].0, second);
+    assert!(calls.windows(2).all(|pair| pair[1].1 <= pair[0].1));
+    assert_eq!(report.pause_micros, 13);
+    assert_eq!(report.overrun_micros, 0);
+    assert_eq!(report.host_overrun_micros, 0);
+    assert_eq!(report.slots.len(), 3);
 }
 
 fn budget_test_package(name: &str, pause_micros: u64) -> zircon_runtime::script::VmPluginPackage {

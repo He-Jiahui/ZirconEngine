@@ -1,8 +1,8 @@
+use crate::ui::EditorActivityReflection;
 use crate::ui::binding::{
-    inspector_field_control_id, DraftCommand, EditorUiBinding, EditorUiBindingPayload,
+    DraftCommand, EditorUiBinding, EditorUiBindingPayload, inspector_field_control_id,
 };
 use crate::ui::control::EditorUiControlService;
-use crate::ui::EditorActivityReflection;
 use zircon_runtime_interface::ui::{
     binding::{UiBindingValue, UiEventKind, UiEventPath},
     event_ui::UiRouteId,

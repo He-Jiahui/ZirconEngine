@@ -1,7 +1,7 @@
-use super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
+use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_field_palette()
--> HostMaterialPalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_field_palette(
+) -> HostMaterialPalette {
     current_host_palette()
 }
 

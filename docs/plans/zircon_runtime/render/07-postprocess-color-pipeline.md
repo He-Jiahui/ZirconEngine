@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/view_family.rs
   - zircon_runtime/src/core/framework/render/post_process/stack.rs
   - zircon_runtime/src/core/framework/render/post_process/graph_resource_names.rs
   - zircon_runtime/src/core/framework/render/post_process/stack/tests.rs
@@ -19,6 +20,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/post_process/volume_extract.rs
   - zircon_runtime/src/core/framework/render/post_process/volume_evaluator.rs
   - zircon_runtime/src/core/framework/render/post_process/pass_graph.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/scene/world/render_post_process.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/mod.rs
   - zircon_runtime/src/graphics/tests/render_product_post_process.rs
@@ -114,9 +116,9 @@ plan_sources:
 - `VolumeComponentDescriptor`:每个效果的参数 schema(字段、默认值、插值方式),由内建效果与插件效果共同注册;ECS 侧 volume 实体(全局/盒/球 + blend distance + priority + layer mask)经 extract 输出 `PostProcessVolumeExtract`。
 - `VolumeEvaluator`:每帧按相机位置求权重 → 插值出 `ResolvedPostProcessStack`(替代现有静态 stack 输入);per-camera 求值(多相机各自独立,接计划 09)。
 - 链顺序定稿(backbone 固定,效果可关):
-  `TAA(计划06) → DoF → motion blur → bloom(能量守恒 downsample 链) → exposure(histogram compute) → SSR/fog 合成类 → blur(高斯/局部模糊复用) → LUT 烘焙(grading+tonemap) → uber(LUT 采样+vignette+grain+dither+CA) → FXAA/SMAA → upscale(动态分辨率) → 输出转换(sRGB/HDR10)`
+  `TAA/TSR(计划06, primary→secondary) → DoF → motion blur → bloom(能量守恒 downsample 链) → exposure(histogram compute) → SSR/fog 合成类 → blur(高斯/局部模糊复用) → LUT 烘焙(grading+tonemap) → uber(LUT 采样+vignette+grain+dither+CA) → FXAA/SMAA → primary spatial upscale(primary→secondary,仅空间路径) → secondary spatial upscale(secondary→display) → 输出转换(sRGB/HDR10)`
 - 色彩空间:全链 linear,中间格式 R11G11B10F(质量档可升 RGBA16F);LUT 32^3 起步;输出 pass 统一做 transfer function;断言性测试覆盖"中间 pass 不做 gamma"。
-- 动态分辨率:render scale 进相机契约,scene 系 RT 按 scale 分配(计划 01 池按缩放尺寸键控),链尾 upscale(bilinear 起步,FSR 类留插件位)。
+- 动态分辨率:render scale 进相机契约,scene 系 RT 按 scale 分配(计划 01 池按缩放尺寸键控)。`RenderViewFamilyPipeline` 是唯一尺寸权威:primary/secondary logical `ViewRect` 与各自 padded allocation 同时发布；primary/secondary spatial upscale 是不同图节点，不以单一 upscale 节点作双义解释。
 - uber 合并:轻量像素效果合入单 pass;需要中间 RT 或链路复用的效果以独立 pass 表达(DoF/motion blur/bloom/SSR-fog composite/blur/LUT/upscale/output-transfer)。
 
 ## 里程碑
@@ -157,7 +159,8 @@ plan_sources:
 
 实施切片:
 1. FXAA/SMAA 终端 pass;与 TAA 的互斥/共存策略定稿。
-2. render scale + 链尾 upscale;RT 池按缩放尺寸协同(计划 01)。
+2. render scale + direct spatial upscale MVP;RT 池按缩放尺寸协同(计划 01)。
+3. UE primary/secondary spatial hard cut:将 direct `Upscale` 拆成两个不兼容的 graph node 与资源身份；TSR 仅负责 primary→secondary，secondary→display 始终由独立节点决定。
 
 测试阶段:
 - `cargo test -p zircon_runtime post_process --locked` 与 `render_graph` 回归
@@ -427,7 +430,7 @@ struct UberParams {                  // uniform,6 x vec4 = 96 B
 
 **HDR 与色彩空间**:全链 linear;scene color 与 DoF/motion blur/bloom 中间 RT 统一 `rg11b10ufloat`(`INTERMEDIATE_HDR_FORMAT_DEFAULT`),质量档高或精度问题时升 `rgba16float`(`INTERMEDIATE_HDR_FORMAT_HQ`);velocity 维持计划 06 的 RG16F。uber 输出 `TONEMAPPED`:SDR 档 `rgba8unorm`(uber 末尾做 sRGB 编码,FXAA 在感知空间取 luma 正确);HDR 输出档 `rgba16float` 线性。"中间 pass 不做 gamma" 断言覆盖 slot 1–7;`post.output-transfer` 是唯一 transfer function 归属点(SDR 直拷已编码内容,HDR10 做 PQ + Rec.2020,仅定接口)。
 
-**动态分辨率**:`render_scale` 来自计划 09 `CameraRenderDescriptor`;slot 1–9 的瞬态 RT 一律按 `ceil(viewport * render_scale)` 尺寸经计划 01 `TransientResourcePool` 键控分配(`RgTextureHandle` 描述符带缩放后尺寸,池天然按 (size, format, usage) 复用);`post.upscale` 是唯一尺寸跃迁点,之后 `UPSCALED`/`viewport-output` 为全尺寸。scale 变化触发 `CompiledGraphCache` 重编译(viewport 尺寸在缓存键内,计划 01 既有约定)。
+**动态分辨率**:`render_scale` 来自计划 09 `CameraRenderDescriptor`;当前 M4-S2 direct MVP 的 slot 1–9 瞬态 RT 按 `RenderViewFamilyPipeline` 的 primary logical rect 与 allocation extent 分配，`post.upscale` 做 primary→display。M4-S3 硬切后该单节点删除：`post.primary-upscale` 写 secondary target，`post.secondary-upscale` 写 display target；TSR 负责 primary→secondary 时不录制 primary node。`CompiledGraphCache` 键包含 logical rect、allocation extent、reconstruction kind 和两个 upscale phase mask，稳定尺寸/模式只复用已编译 artifact 与资源池，参数变化不触发 graph rebuild。任何 pass 都不得以 `ceil(viewport * render_scale)` 或 padding 自行重建 ViewRect。
 
 **AA 模式互斥矩阵**(`AntiAliasMode` 单选定稿,既有枚举扩展):
 
@@ -478,8 +481,9 @@ struct UberParams {                  // uniform,6 x vec4 = 96 B
 
 | 切片 | 触碰文件 | 改动要点 | 完成判据 |
 |---|---|---|---|
-| M4-S1 | `anti_alias.rs`(契约)、`feature_descriptors/anti_alias.rs` | 互斥矩阵进 `AntiAliasSettings` 校验;FXAA/SMAA terminal pass 读取 `postprocess.terminal-aa-input` 并写 `final-color` | 非法组合归一化 + 诊断;终端 AA 编译路由正确 |
-| M4-S2 | `dynamic_resolution.rs`(新)、`execute_upscale/`、`upscale.wgsl`、各 RT 描述符取缩放尺寸 | render_scale 贯通;bilinear upscale;FSR1 插件位 | scale 0.5→1.0 切换池统计无泄漏 |
+| M4-S1 | `anti_alias.rs`(契约)、`feature_descriptors/anti_alias.rs` | 互斥矩阵进 `AntiAliasSettings` 校验;FXAA/SMAA 读取 `Tonemapped` 并写 transient `FinalComposited`;只有 OutputTransfer 写 external `FinalColor` | 非法组合归一化 + 诊断;终端 AA 编译路由与输出单写者正确 |
+| M4-S2 | `dynamic_resolution.rs`(新)、`execute_upscale/`、`upscale.wgsl`、各 RT 描述符取缩放尺寸 | ViewFamily primary fraction 贯通;direct `SpatialUpscale` 仅覆盖 primary→display 的 MVP;为 FSR1 插件保留位 | scale 0.5→1.0 切换池统计无泄漏 |
+| M4-S3 | `view_family.rs`、`effect.rs`、`chain.rs`、`stack.rs`、`pass_graph.rs`、`graph_resource_names.rs`、`feature_descriptors/post_process.rs`、`execute_upscale/`、`upscale.wgsl`、frame submission/context | **Hard cut** `Upscale` 为 `PrimaryUpscale`/`SecondaryUpscale`，并分别引入 `PrimarySpatialUpscale`/`SecondarySpatialUpscale` phase、executor ID 与图资源。primary node 读 primary logical rect 写 secondary target；secondary node 读 secondary logical rect 写 display target；TSR 只取代 primary node。所有 allocation/scissor/history/cache key 消费同一 `RenderViewFamilyPipeline`，不得从 `render_scale` 重新推导。 | 静态 graph 能表达 spatial-only、TSR-only、TSR+secondary 和双 spatial 四种路径；同一 kind 不能再覆盖两节点；资源/presentation 均不把 alignment padding 当作 ViewRect；受管 product/RenderDoc 验收验证四路径。 |
 
 ### 测试与验收清单
 

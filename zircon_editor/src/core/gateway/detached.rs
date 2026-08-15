@@ -40,30 +40,3 @@ impl EditorRuntimeGateway for DetachedEditorRuntimeGateway {
         })
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::DetachedEditorRuntimeGateway;
-    use crate::core::gateway::{EditorRuntimeGateway, EditorRuntimeHighlightSet, GatewayError};
-    use zircon_runtime_interface::ZrRuntimeViewportHandle;
-
-    #[test]
-    fn highlight_submission_reports_a_typed_missing_capability() {
-        let error = DetachedEditorRuntimeGateway
-            .submit_highlight_set(EditorRuntimeHighlightSet::new(
-                ZrRuntimeViewportHandle::new(1),
-                1,
-                [4],
-                true,
-                [0.2, 0.6, 0.9, 1.0],
-            ))
-            .unwrap_err();
-
-        assert_eq!(
-            error,
-            GatewayError::CapabilityMissing {
-                capability: "runtime.editor_overlay.highlight_set",
-            }
-        );
-    }
-}

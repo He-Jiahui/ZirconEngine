@@ -7,8 +7,8 @@ use crate::core::framework::render::{
     ColorMaterialDescriptor, RenderMaterialAlphaMode, RenderMaterialDependencySet,
     RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
     RenderMaterialLightingModel, RenderMaterialReadinessReport, RenderMaterialTextureTransform,
-    RenderMaterialValidationError, RenderQueueValue, STANDARD_PBR_TRANSMISSION_RENDER_QUEUE,
-    ShaderQueueDescriptor, ShaderQueueSegment, StandardMaterialDescriptor,
+    RenderMaterialValidationError, RenderQueueValue, ShaderQueueDescriptor, ShaderQueueSegment,
+    StandardMaterialDescriptor, STANDARD_PBR_TRANSMISSION_RENDER_QUEUE,
 };
 use crate::core::resource::ResourceId;
 
@@ -28,9 +28,10 @@ use self::value_sync::{
     sync_texture_slot, sync_vec3_override, sync_vec4_override, texture_slot_reference,
 };
 use super::{
-    AlphaMode, MaterialTextureSlotValue, ZMaterialDocument, ZMaterialQueueOverride, dependency_set,
-    is_standard_texture_slot_alias, material_control, shader_property_values_for_shader,
-    validate_alpha_mode, validate_render_queue_alpha_mode, validate_shader_contract,
+    dependency_set, is_standard_texture_slot_alias, material_control,
+    shader_property_values_for_shader, validate_alpha_mode, validate_render_queue_alpha_mode,
+    validate_shader_contract, AlphaMode, MaterialTextureSlotValue, ZMaterialDocument,
+    ZMaterialQueueOverride,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -326,6 +327,7 @@ impl MaterialAsset {
                 .texture_slot_transform(&["occlusion", "occlusion_texture"]),
             occlusion_texture_uv_channel: self
                 .texture_slot_uv_channel(&["occlusion", "occlusion_texture"]),
+            occlusion_strength: self.occlusion_strength(),
             emissive: self.emissive,
             emissive_texture: self.emissive_texture.clone(),
             emissive_texture_transform: self
@@ -510,6 +512,10 @@ impl MaterialAsset {
             .unwrap_or_default()
     }
 
+    pub fn occlusion_strength(&self) -> f32 {
+        self.occlusion_strength_from_property().unwrap_or(1.0)
+    }
+
     pub fn separate_translucency(&self) -> bool {
         self.separate_translucency_from_property()
             .unwrap_or_default()
@@ -683,6 +689,10 @@ impl MaterialAsset {
 
     fn taa_reactive_mask_strength_from_property(&self) -> Option<f32> {
         material_control::taa_reactive_mask_strength(&self.property_values)
+    }
+
+    fn occlusion_strength_from_property(&self) -> Option<f32> {
+        material_control::occlusion_strength(&self.property_values)
     }
 
     fn separate_translucency_from_property(&self) -> Option<bool> {

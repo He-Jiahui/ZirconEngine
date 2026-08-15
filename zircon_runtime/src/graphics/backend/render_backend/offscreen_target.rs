@@ -1,4 +1,5 @@
 use crate::core::math::UVec2;
+use crate::graphics::resource_identity::SampledTextureIdentity;
 
 pub(crate) struct OffscreenTarget {
     pub(crate) size: UVec2,
@@ -9,6 +10,8 @@ pub(crate) struct OffscreenTarget {
     pub(crate) global_illumination_view: wgpu::TextureView,
     pub(crate) scene_color: wgpu::Texture,
     pub(crate) scene_color_view: wgpu::TextureView,
+    pub(crate) scene_color_identity: SampledTextureIdentity,
+    pub(crate) scene_velocity: Option<OffscreenTargetSceneVelocity>,
     pub(crate) bloom: wgpu::Texture,
     pub(crate) bloom_view: wgpu::TextureView,
     pub(crate) gbuffer_albedo: wgpu::Texture,
@@ -23,6 +26,7 @@ pub(crate) struct OffscreenTarget {
     pub(crate) ambient_occlusion_view: wgpu::TextureView,
     pub(crate) depth: wgpu::Texture,
     pub(crate) depth_view: wgpu::TextureView,
+    pub(crate) depth_identity: SampledTextureIdentity,
     pub(crate) cluster_dimensions: UVec2,
     pub(crate) cluster_buffer: wgpu::Buffer,
     pub(crate) cluster_buffer_bytes: usize,
@@ -44,6 +48,12 @@ impl OffscreenTarget {
             &self.ambient_occlusion,
             &self.depth,
         ];
-        retained_textures.len()
+        retained_textures.len() + usize::from(self.scene_velocity.is_some())
     }
+}
+
+pub(crate) struct OffscreenTargetSceneVelocity {
+    pub(crate) texture: wgpu::Texture,
+    pub(crate) view: wgpu::TextureView,
+    pub(crate) identity: SampledTextureIdentity,
 }

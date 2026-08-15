@@ -403,7 +403,7 @@ mod tests {
     }
 
     fn invocation() -> UiTemplateActionInvocation {
-        UiTemplateActionInvocation::new("plugin.operation", BTreeMap::new())
+        UiTemplateActionInvocation::route("plugin.operation", BTreeMap::new())
     }
 
     fn row(surface_entity: i64) -> Value {
@@ -565,7 +565,7 @@ mod tests {
         ));
         assert_eq!(
             registry.action_for_token(&token, |_| None),
-            Some(UiTemplateActionInvocation::new(
+            Some(UiTemplateActionInvocation::route(
                 "plugin.operation",
                 BTreeMap::from([(
                     "entity".to_string(),
@@ -580,7 +580,7 @@ mod tests {
         ));
         assert_eq!(
             registry.action_for_token(&token, |_| None),
-            Some(UiTemplateActionInvocation::new(
+            Some(UiTemplateActionInvocation::route(
                 "plugin.operation",
                 BTreeMap::from([(
                     "entity".to_string(),
@@ -672,7 +672,7 @@ mod tests {
         assert!(registry.select_table_row("plugin.rows", "RowList", 0, "integer", "41",));
         assert_eq!(
             registry.action_for_token(&token, |_| None),
-            Some(UiTemplateActionInvocation::new(
+            Some(UiTemplateActionInvocation::route(
                 "plugin.operation",
                 BTreeMap::from([(
                     "entity".to_string(),
@@ -683,7 +683,7 @@ mod tests {
         assert!(registry.select_table_row("plugin.rows", "RowList", 1, "integer", "73",));
         assert_eq!(
             registry.action_for_token(&token, |_| None),
-            Some(UiTemplateActionInvocation::new(
+            Some(UiTemplateActionInvocation::route(
                 "plugin.operation",
                 BTreeMap::from([(
                     "entity".to_string(),
@@ -774,7 +774,7 @@ mod tests {
         );
         assert_eq!(
             registry.action_for_token(&rebound_token, |_| None),
-            Some(UiTemplateActionInvocation::new(
+            Some(UiTemplateActionInvocation::route(
                 "plugin.operation",
                 BTreeMap::from([(
                     "entity".to_string(),

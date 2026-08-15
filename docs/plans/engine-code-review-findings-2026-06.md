@@ -7,9 +7,6 @@ related_code:
   - docs/plans/zircon_runtime/runtime/15/2026-07-10-engine-review-current-evidence-row-reconciliation.md
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/status_placeholder_guard.rs
   - tests/acceptance/runtime-priority-review-current-evidence-status.md
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/support/runtime_plan_archives.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/recent_static_guards/parent_routing.rs
-  - tools/tests/test_runtime_plan_status_archive_ownership.py
   - tests/acceptance/runtime-plan-status-archive-ownership-sync.md
   - tools/tests/test_zui_docs_suffix_convergence.py
   - zircon_runtime/src/core/framework/animation/error.rs
@@ -17,7 +14,7 @@ related_code:
   - zircon_runtime/src/animation/manager/mod.rs
   - zircon_runtime/src/animation/manager/pose.rs
   - zircon_runtime/src/animation/manager/sampling.rs
-  - zircon_runtime/src/animation/sequence/apply.rs
+  - zircon_runtime/src/animation/sequence/compiled.rs
   - zircon_runtime/src/animation/sequence/conversion.rs
   - zircon_runtime/src/core/framework/camera_controller/mod.rs
   - zircon_runtime/src/core/framework/camera_controller/controller_output.rs
@@ -353,7 +350,6 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/reads.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/budgets.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/delegation.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/code_review_findings/typed_error_owners/sources/status_mirrors.rs
   - zircon_plugins/plugin_sdk/src/runtime_exports.rs
   - zircon_plugins/plugin_sdk/src/manifest/importer_runtime.rs
   - zircon_plugins/plugin_sdk/src/manifest/feature_bundle_builder.rs
@@ -668,131 +664,20 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/module_doc_frontmatter.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/output_contract.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/debt_boundary.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/audit_status.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/split_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/direct_assertion_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/plugin_importer_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/review_guard_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/root_and_children.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/status_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/folder_backed_summary.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/typed_error.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/structure_guard_rows/row_data_owner.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/typed_error_structure_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/code_review_rows/row_data_owner.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/status_support_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/review_guard_splits/typed_error_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/review_guard_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/naming_guard_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/support_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions/runtime_15_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions/pre_runtime_15_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions/line_budgets.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions/status_and_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/sources.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/runtime_15_topics.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/runtime_15_expected_slice_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/review_guard_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/review/structure_support_expected_slice.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/code_paths.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/test_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/frontmatter_status.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/frontmatter_uniqueness.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/header_sections.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/plan_sources.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/child_layout.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/inventory_sync.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/status_sources.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/inventory_sync/source_ownership.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/listing.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/moved_paths.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/nested_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/delegation.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/source_ownership.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/status_mirrors.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/budgets.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/row_count.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs/integrity_guards.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs/owner_guards.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs/owner_guards/layout_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs/owner_guards/inventory_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs/status_followups.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs/row_data_owner.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/module_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/module_layout/guard_body.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/legacy_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/legacy_maps/guard_body.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/production_file_budget_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/evidence_anchor_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_row_data_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_inventory_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_inventory_rows/root_inventory_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_inventory_rows/owner_path_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_inventory_rows/root_path_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_inventory_rows/guard_inventory_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/review_guard.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/review_guard/base_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/review_guard/code_review_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/review_guard/direct_assertion_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/review_guard/moved_row_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/review_guard/row_data_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/review_guard/status_doc_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/status_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/status_docs/foundation_m2_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/status_docs/child_group_status_doc_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/status_docs/child_group_status_row_doc_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/status_docs/child_group_moved_row_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/module_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/module_layout/base_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/module_layout/status_doc_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/module_layout/child_summary_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/module_layout/child_summary_status_doc_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/exports.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/exports/runtime_15_m3_parent.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/exports/runtime_15_parent.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/exports/top_level.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/production_guard_support.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/production_guard_runtime_row_data.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/production_guard_runtime_row_data/child_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/production_guard_runtime_row_data/export_chain.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/production_guard_runtime_row_data/status_mirrors.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_child_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/owner_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/status_output_guard_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/status_row_base_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/production_guard_support_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/production_guard_core_and_evidence_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/production_guard_module_layout_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/production_guard_review_guard_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/production_guard_runtime_row_data_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/production_guard_status_docs_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/status_support_map_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/budgets.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_owner_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/owner_paths/m3_child_group_owner_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/owner_paths/production_guard_row_owner_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/owner_paths/production_guard_row_owner_paths/runtime_row_data_guard.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome/fill.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome/selection.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_chrome/separators.rs
@@ -833,88 +718,19 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/selection.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/workbench_popup_row/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests/style.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_inventory_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_inventory_rows/root_inventory_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_inventory_rows/owner_path_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_inventory_rows/root_path_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_inventory_rows/guard_inventory_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/owner_paths/production_guard_row_owner_paths/core_and_evidence.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/production_guard_runtime_row_data.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/production_guard_runtime_row_data/child_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/production_guard_runtime_row_data/export_chain.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/production_guard_runtime_row_data/status_mirrors.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/owner_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/status_output_guard_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/status_row_base_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/production_guard_support_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/production_guard_core_and_evidence_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/production_guard_module_layout_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/production_guard_review_guard_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/production_guard_runtime_row_data_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/production_guard_status_docs_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/status_support_map_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/owner_paths/m3_child_group_owner_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/owner_paths/production_guard_row_owner_paths/runtime_row_data_guard.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/expected_slice_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/support_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions/runtime_15_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions/pre_runtime_15_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions/line_budgets.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/top_level_maps/assertions/status_and_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/runtime_15_topics.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/runtime_15_expected_slice_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/review_guard_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/maps/rt15/review/structure_support_expected_slice.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/module_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/module_layout/guard_body.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/legacy_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/status_slices/legacy_maps/guard_body.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_review_guard_code_review_rows.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/code_paths.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/test_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/frontmatter_status.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/frontmatter_uniqueness.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/header_sections.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/plan_sources.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/child_layout.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/inventory_sync.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/status_sources.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/inventory_sync/source_ownership.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/listing.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/moved_paths.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/guard_tests/nested_layout.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_status_support_priority_plan_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/delegation.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/source_ownership.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/status_mirrors.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/module_layout_status/budgets.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/runtime_15_foundation_row_data_status/row_count.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/row_data_and_budget.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/module_convention_status.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs/integrity_guards.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs/owner_guards.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs/owner_guards/layout_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs/owner_guards/inventory_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs/status_followups.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/status_support/priority_plan_docs/row_data_owner.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m3_structure_support/status_support_maps.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m3_structure_support/status_support_maps.rs
 plan_sources:
   - user: 2026-06-22 三路并行代码审查（接口工程学/跨边界、插件 DX、代码质量热点）
   - docs/plans/engine-code-structure-convention.md
@@ -924,7 +740,6 @@ plan_sources:
 tests:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/code_paths.rs::runtime_15_priority_plan_docs_code_paths_stay_current
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/test_paths.rs::runtime_15_priority_plan_docs_test_paths_stay_current
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/frontmatter_status.rs::runtime_15_priority_plan_docs_frontmatter_status_stays_current
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/frontmatter_uniqueness.rs::runtime_15_priority_plan_docs_frontmatter_sections_have_unique_entries
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/header_sections.rs::runtime_15_priority_plan_docs_required_header_sections_stay_complete
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/priority_plan_docs/plan_sources.rs::runtime_15_priority_plan_docs_plan_sources_stay_cross_linked
@@ -952,6 +767,8 @@ status: in_progress
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
 具体补记、验证与修复记录已迁入 [`_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md`](_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md)。本文件仅保留审查发现、优先级与当前现状概述。
+
+当前 G7 前置元数据收敛（2026-08-09）：本文件 frontmatter 已删除 185 条不存在的历史 owner（`related_code` 115、`implementation_files` 69、已删除 `frontmatter_status.rs` guard 1），不恢复旧路径、兼容入口或状态镜像；正文及并发 Text04 状态更新保持原样。`check_conventions --only docs` 对本文件的悬空路径从 185 项降为 0；同批五份 G7 目标文档均为 0，但共享工作树仍为 RED，且全局计数随外来 owner 并发输入变化而不在本 exact scope 冻结，因此本文继续保持 `in_progress`，不把局部清理表述为全库验收。
 
 当前 plan-status 审查同步（2026-07-10）：已修复“父计划/总索引重复持有历史具体产出”的结构漂移，并恢复 index 的允许聚合表面。具体证据由编号归档拥有，父文档只保留当前概述；archive reader 与 parent-routing guard 均为 folder-backed child owner。Python audit `risks = []`，standalone Rust plan-status 48/48；未新增大文件职责、兼容层或生产行为旁路。
 
@@ -1085,7 +902,11 @@ Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors
 - The implementation is a child owner below `cosmic.rs`, uses a maximum of four entries, and does not introduce a facade, compatibility alias, or second shaping owner.
 - The public run annotation is now `UiResolvedStyle.language`; template resolution, layout/shaped keys, direct/parallel requests, native batches, and SDF atlas/bake fallback preserve it end to end. `zh-Hans` and `ja` therefore cannot share locale-sensitive cache or SDF identities accidentally.
 - Ownership stays narrow: the public interface owns the neutral tag, cache modules own normalized identity, `fallback_spans.rs`/`FontDatabase` own selection, and renderer roots only propagate it.
-- Review status remains intentionally partial for language-sensitive OpenType substitution: cosmic-text 0.18.2 has no public per-run language field on `Attrs`, so HarfRust `locl` is still listed as an open backend capability instead of being marked complete.
+- The cosmic-text 0.18.2 `Attrs` limitation remains documented, but it is no longer an open
+  language-sensitive OpenType capability: the canonical horizontal direct owner uses RustyBuzz
+  per itemized run, sets the normalized run language, and has exact Calibri Russian/Serbian
+  `locl` difference regressions. Cosmic remains whole-request fallback only. This is a
+  current-source implementation statement, not managed Cargo or WGPU acceptance.
 
 ## 2026-07-10 Runtime Text vertical owner review follow-up
 
@@ -1094,7 +915,7 @@ Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors
 - Structure remains folder-backed and bounded: orientation rules and their tests are children, the root shaping module only wires providers, and no old horizontal-only alias is retained as a success path.
 - NFC remains intentionally disabled in V1, but the old implicit assumption is removed: `normalize.rs::ShapingTextView` now owns the identity view/source projection and exact tests lock decomposed byte preservation. Any future NFC feature must extend that owner with bidirectional mapping instead of rewriting contract ranges in `cosmic.rs`.
 - LB-M4 now closes the review-plan's first vertical ownership cut: column capacity, right-to-left frame placement, and axis extents are no longer authored in `ui/text/layout_engine/vertical.rs`; they are exact-tested in `text/layout/vertical_layout.rs` and consumed by the UI projection adapter.
-- Product-level TDD first exposed the render defect: VerticalRl SDF batches reused horizontal resolved advances and never rotated sideways UVs, collapsing all glyphs into one strip. The SDF child consumes the shared orientation/advance owner, swaps destination axes, rotates sideways UVs clockwise, and owns vertical main-axis advances. A subsequent CJK product gate exposed a lower shared-font defect: `StoredFontSource::FontDb` faces had backend IDs but `face_bytes(...)` always rejected them. `FontDatabase` now materializes bytes through the authoritative backend database and existing standalone-face extractor; the temporary coverage→SDF strategy was deleted. Native `vmtx` remains a font child owner. The current follow-up adds rustybuzz TTB/BTT plus backend vertical-origin offsets, preserves actual glyph/face identity through `render/text_advances.rs` and `sdf_atlas/text_keys.rs`, and bakes indexed glyphs on the authoritative face. A historical WGPU frame showed two right-to-left CJK columns with vertical punctuation, but it is not current-source acceptance; fresh managed WGPU output remains required. Soft-wrap affinity and VerticalRl layout/hit-test/IME filters are covered by their focused owners; horizontal cosmic per-run `locl`, variable axes, mixed-BiDi product geometry and platform IME live QA remain explicit gaps.
+- Product-level TDD first exposed the render defect: VerticalRl SDF batches reused horizontal resolved advances and never rotated sideways UVs, collapsing all glyphs into one strip. The SDF child consumes the shared orientation/advance owner, swaps destination axes, rotates sideways UVs clockwise, and owns vertical main-axis advances. A subsequent CJK product gate exposed a lower shared-font defect: `StoredFontSource::FontDb` faces had backend IDs but `face_bytes(...)` always rejected them. `FontDatabase` now materializes bytes through the authoritative backend database and existing standalone-face extractor; the temporary coverage→SDF strategy was deleted. Native `vmtx` remains a font child owner. The current follow-up adds rustybuzz TTB/BTT plus backend vertical-origin offsets, preserves actual glyph/face identity through `render/text_advances.rs` and `sdf_atlas/text_keys.rs`, and bakes indexed glyphs on the authoritative face. A historical WGPU frame showed two right-to-left CJK columns with vertical punctuation, but it is not current-source acceptance; fresh managed WGPU output remains required. Soft-wrap affinity and VerticalRl layout/hit-test/IME filters are covered by their focused owners; horizontal per-run `locl` and variable axes now use the canonical RustyBuzz direct path, while mixed-BiDi product geometry and platform IME live QA remain explicit gaps.
 - LB-M3 hit testing now consumes per-visual-cluster source ranges and direction through a folder-backed leaf, returning logical offset plus affinity for RTL edges. The old descending-range merge was deleted rather than hidden behind a fallback alias.
 
 ## 2026-07-11 Runtime Text mixed-storage ordering review follow-up
@@ -1102,6 +923,8 @@ Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors
 - Native bitmap atlas handoff no longer treats repeated storage formats as an unsupported mixed frame. `text/native_bitmap_atlas/storage.rs` partitions contiguous source runs, preserving the renderer's original glyph draw order for `R8 -> RGBA -> R8` instead of globally merging both R8 groups.
 - The existing renderer pass sequence is the only execution owner; no compatibility sorter, second atlas route, or root-level special case was added. Current-source native atlas and renderer filters pass 44/44 and 13/13.
 - This closes the concrete ordering/fallback defect only. Persistent slot ownership and its native DPI key propagation contract are now `implemented / validation_pending` in Text04; real 2x WGPU framebuffer product evidence, complete glyphon `TextAtlas` removal, managed validation, and live editor typography QA remain explicitly open.
+- 2026-08-08 Text04 DPI input closure: the serialized `UiRenderExtract.raster_scale` now carries the retained window scale through full rebuild, geometry patch, render-cache reuse, plain/rich/inline batch planning, and native `TextArea.scale`; invalid or legacy values normalize to `1.0`. The logical layout/shaping cache and SDF/MSDF route remain logical, while the native glyphon cache receives physical glyph sizes. Secondary review repaired and covered the native-fallback overlay propagation, then reported no P0/P1/P2. To retain the structure budget, `surface/rebuild.rs` now only orchestrates rebuilds (715 lines); pipeline-report diagnostics live in `surface/rebuild/report.rs` (351 lines). Managed Cargo, real 2x WGPU framebuffer evidence, and the required product PNG remain pending and are not claimed here.
+- 2026-08-08 Text04 DPI product-gate forward repair: the first 2x WGPU gate scaled both viewport/frame, so bounds and coverage could pass after a stale 1x bitmap enlargement. It now retains one WGPU renderer and asset runtime, submits the same device-space frame and text at 1x then 2x, and requires the second phase to expose an exact native source-cache miss through `RenderStats` before comparing framebuffer geometry and coverage. The post-repair second source review found no P0/P1/P2. This is source-level verification only: the ignored WGPU gate, managed Cargo, and the required real PNG remain pending; no visual sharpness acceptance is claimed.
 
 ## 2026-07-31 Runtime Text rich layout performance/structure review follow-up
 

@@ -30,8 +30,13 @@ impl CoreHandle {
             self.resolve_registered_service(fourth_service, None)?;
             return Ok(());
         }
-        if let [first_service, second_service, third_service, fourth_service, fifth_service] =
-            startup_services
+        if let [
+            first_service,
+            second_service,
+            third_service,
+            fourth_service,
+            fifth_service,
+        ] = startup_services
         {
             self.resolve_registered_service(first_service, None)?;
             self.resolve_registered_service(second_service, None)?;

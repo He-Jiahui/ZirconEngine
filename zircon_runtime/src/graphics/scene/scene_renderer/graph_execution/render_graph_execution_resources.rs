@@ -20,9 +20,13 @@ pub(in crate::graphics::scene::scene_renderer) struct RenderGraphImportedFinalTa
 #[derive(Default, Debug)]
 pub struct RenderGraphExecutionResources {
     imported_texture_views: BTreeMap<String, wgpu::TextureView>,
+    pub(super) sampled_texture_identities:
+        BTreeMap<String, crate::graphics::resource_identity::SampledTextureIdentity>,
     imported_textures: BTreeMap<String, wgpu::Texture>,
     imported_texture_descs: BTreeMap<String, TextureDesc>,
     owned_textures: BTreeMap<String, wgpu::Texture>,
+    owned_texture_identities:
+        BTreeMap<String, crate::graphics::resource_identity::SampledTextureIdentity>,
     owned_texture_descs: BTreeMap<String, TextureDesc>,
     owned_texture_backings: BTreeMap<String, String>,
     buffers: BTreeMap<String, wgpu::Buffer>,
@@ -40,7 +44,9 @@ impl RenderGraphExecutionResources {
         name: impl Into<String>,
         view: wgpu::TextureView,
     ) -> Option<wgpu::TextureView> {
-        self.imported_texture_views.insert(name.into(), view)
+        let name = name.into();
+        self.sampled_texture_identities.remove(&name);
+        self.imported_texture_views.insert(name, view)
     }
 
     pub(in crate::graphics::scene::scene_renderer) fn import_borrowed_texture_view(
@@ -100,6 +106,7 @@ impl RenderGraphExecutionResources {
         pool: &mut TransientResourcePool,
     ) {
         self.imported_texture_views.clear();
+        self.sampled_texture_identities.clear();
         self.imported_textures.clear();
         self.imported_texture_descs.clear();
         self.owned_texture_backings.clear();
@@ -107,10 +114,15 @@ impl RenderGraphExecutionResources {
 
         for (backing_name, texture) in std::mem::take(&mut self.owned_textures) {
             if let Some(desc) = self.owned_texture_descs.remove(&backing_name) {
-                pool.release_texture(desc, texture);
+                let identity = self
+                    .owned_texture_identities
+                    .remove(&backing_name)
+                    .expect("owned texture backing must retain its sampled identity");
+                pool.release_texture(desc, texture, identity);
             }
         }
         self.owned_texture_descs.clear();
+        self.owned_texture_identities.clear();
 
         for (backing_name, buffer) in std::mem::take(&mut self.buffers) {
             if let Some(desc) = self.owned_buffer_descs.remove(&backing_name) {
@@ -442,6 +454,7 @@ impl RenderGraphExecutionResources {
         &mut self,
         name: impl Into<String>,
         texture: wgpu::Texture,
+        identity: crate::graphics::resource_identity::SampledTextureIdentity,
         desc: TextureDesc,
     ) -> Option<wgpu::Texture> {
         let name = name.into();
@@ -450,6 +463,8 @@ impl RenderGraphExecutionResources {
         self.owned_texture_backings
             .insert(name.clone(), name.clone());
         self.owned_texture_descs.insert(name.clone(), desc);
+        self.owned_texture_identities.insert(name.clone(), identity);
+        self.set_texture_identity(name.clone(), identity);
         self.owned_textures.insert(name, texture)
     }
 
@@ -457,10 +472,13 @@ impl RenderGraphExecutionResources {
         &mut self,
         backing_name: impl Into<String>,
         texture: wgpu::Texture,
+        identity: crate::graphics::resource_identity::SampledTextureIdentity,
         desc: TextureDesc,
     ) -> Option<wgpu::Texture> {
         let backing_name = backing_name.into();
         self.owned_texture_descs.insert(backing_name.clone(), desc);
+        self.owned_texture_identities
+            .insert(backing_name.clone(), identity);
         self.owned_textures.insert(backing_name, texture)
     }
 
@@ -479,7 +497,18 @@ impl RenderGraphExecutionResources {
             .create_view(&texture_mip_view_descriptor(0));
         self.owned_texture_backings
             .insert(logical_name.clone(), backing_name.to_string());
-        Ok(self.import_texture_view(logical_name, view))
+        let identity = self
+            .owned_texture_identities
+            .get(backing_name)
+            .copied()
+            .ok_or_else(|| {
+                format!(
+                    "render graph execution texture backing `{backing_name}` is missing identity"
+                )
+            })?;
+        let previous = self.import_texture_view(logical_name.clone(), view);
+        self.set_texture_identity(logical_name, identity);
+        Ok(previous)
     }
 
     fn owned_texture_backing(&self, name: &str) -> Option<&str> {

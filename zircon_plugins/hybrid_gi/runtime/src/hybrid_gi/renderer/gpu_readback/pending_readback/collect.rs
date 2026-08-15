@@ -1,8 +1,9 @@
+use zircon_runtime::core::framework::render::RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT;
 use zircon_runtime::graphics::{GraphicsError, RuntimeGpuReadback};
 
 use super::super::decode::{
     cache_entries, completed_probe_ids, completed_trace_region_ids, probe_irradiance_rgb,
-    probe_trace_lighting_rgb, read_buffer_u32s::read_buffer_u32s,
+    probe_trace_diagnostics, probe_trace_lighting_rgb, read_buffer_u32s::read_buffer_u32s,
 };
 use super::super::readback::HybridGiGpuReadback;
 use super::hybrid_gi_gpu_readback_future::HybridGiGpuReadbackFuture;
@@ -18,8 +19,12 @@ impl HybridGiGpuReadbackFuture {
     }
 
     fn collect_ready(self) -> Result<HybridGiGpuReadback, GraphicsError> {
+        let trace_diagnostic_word_count = self.trace_diagnostics.word_count;
+        let trace_diagnostics =
+            probe_trace_diagnostics(&self.trace_diagnostics.take()?, trace_diagnostic_word_count)?;
         let mut scene_prepare_resources = self.scene_prepare_resources;
         if let Some(snapshot) = scene_prepare_resources.as_mut() {
+            snapshot.store_probe_trace_diagnostics(trace_diagnostics);
             snapshot.store_texture_slot_rgba_samples(
                 take_slot_samples(self.atlas_slot_samples)?,
                 take_slot_samples(self.capture_slot_samples)?,
@@ -57,6 +62,19 @@ impl HybridGiGpuReadbackFuture {
         let completed_trace_word_count = self.completed_traces.word_count;
         let irradiance_word_count = self.irradiance.word_count;
         let trace_lighting_word_count = self.trace_lighting.word_count;
+        let radiance_cache_dispatch_word_count = self.radiance_cache_dispatch_counts.word_count;
+        let radiance_cache_gpu_stage_dispatch_counts = read_buffer_u32s(
+            &self.radiance_cache_dispatch_counts.take()?,
+            radiance_cache_dispatch_word_count,
+        )?
+        .try_into()
+        .map_err(|counts: Vec<u32>| {
+            GraphicsError::BufferMap(format!(
+                "hybrid GI radiance-cache dispatch readback returned {} words, expected {}",
+                counts.len(),
+                RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT,
+            ))
+        })?;
         Ok(HybridGiGpuReadback::new(
             cache_entries(&self.cache.take()?, cache_word_count)?,
             completed_probe_ids(&self.completed_probes.take()?, completed_probe_word_count)?,
@@ -64,7 +82,8 @@ impl HybridGiGpuReadbackFuture {
             probe_irradiance_rgb(&self.irradiance.take()?, irradiance_word_count)?,
             probe_trace_lighting_rgb(&self.trace_lighting.take()?, trace_lighting_word_count)?,
             scene_prepare_resources,
-        ))
+        )
+        .with_radiance_cache_gpu_stage_dispatch_counts(radiance_cache_gpu_stage_dispatch_counts))
     }
 }
 

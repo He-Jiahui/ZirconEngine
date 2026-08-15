@@ -9,7 +9,6 @@ pub(super) struct TypedErrorChildOwnershipSources {
     pub(super) convergence_mounts_child: String,
     pub(super) delegation_child: String,
     pub(super) child_ownership_structure_child: String,
-    pub(super) status_mirrors_child: String,
     pub(super) moved_guard_absence_child: String,
     pub(super) moved_guard_absence_child_tree: String,
     pub(super) native_plugin_loader_child: String,
@@ -41,18 +40,34 @@ pub(super) fn typed_error_child_ownership_sources() -> TypedErrorChildOwnershipS
         moved_guard_absence_root_sources_child.as_str(),
     ]
     .join("\n");
+
+    TypedErrorChildOwnershipSources {
+        parent: read_runtime_src(STRUCTURE_GUARD_PARENT),
+        child: read_runtime_src(TYPED_ERROR_STRUCTURE_CHILD),
+        child_ownership_child: read_runtime_src(TYPED_ERROR_TOP_LEVEL_CHILD_OWNERSHIP_CHILD),
+        structure_assertions_child: read_runtime_src(TYPED_ERROR_STRUCTURE_ASSERTIONS_CHILD),
+        convergence_mounts_child: read_runtime_src(TYPED_ERROR_STRUCTURE_CONVERGENCE_MOUNTS_CHILD),
+        delegation_child: read_runtime_src(TYPED_ERROR_STRUCTURE_DELEGATION_CHILD),
+        child_ownership_structure_child: read_runtime_src(
+            TYPED_ERROR_STRUCTURE_CHILD_OWNERSHIP_CHILD,
+        ),
+        moved_guard_absence_child,
+        moved_guard_absence_child_tree,
+        native_plugin_loader_child: read_runtime_src(TYPED_ERROR_NATIVE_STRUCTURE_CHILD),
+        structure_guard_typed_error_child: read_runtime_src(STRUCTURE_GUARD_TYPED_ERROR_CHILD),
+        typed_error_sources: super::super::typed_error_children_source(),
+    }
 }
 
 pub(super) fn typed_error_structure_assertions_child_tree(
     sources: &TypedErrorChildOwnershipSources,
 ) -> String {
     format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}",
         sources.structure_assertions_child,
         sources.convergence_mounts_child,
         sources.delegation_child,
         sources.child_ownership_structure_child,
-        sources.status_mirrors_child,
         sources.moved_guard_absence_child,
         sources.native_plugin_loader_child
     )

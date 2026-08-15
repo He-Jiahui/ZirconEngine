@@ -8,6 +8,16 @@ use crate::ui::workbench::document_tabs::{
 
 mod side;
 
+#[cfg(test)]
+pub(super) fn clear_side_dock_header_projection_cache_for_tests() {
+    side::clear_side_dock_header_projection_cache_for_tests();
+}
+
+#[cfg(test)]
+pub(super) fn side_dock_header_projection_builds_for_tests() -> usize {
+    side::side_dock_header_projection_builds_for_tests()
+}
+
 pub(super) fn side_dock_header_nodes(
     tabs: &ModelRc<TabData>,
     _panel_preset_id: &SharedString,
@@ -24,7 +34,7 @@ pub(super) fn document_dock_header_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    dock_header_nodes(tabs, subtitle, width, height)
+    dock_header_nodes("host.document.dock.header", tabs, subtitle, width, height)
 }
 
 pub(super) fn bottom_dock_header_nodes(
@@ -33,52 +43,42 @@ pub(super) fn bottom_dock_header_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    dock_header_nodes(tabs, &"".into(), width, height)
+    dock_header_nodes("host.bottom.dock.header", tabs, &"".into(), width, height)
 }
 
 pub(super) fn floating_window_header_nodes(
+    surface_id: &str,
     tabs: &ModelRc<TabData>,
     title: &SharedString,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    dock_header_nodes(tabs, title, width, height)
+    dock_header_nodes(surface_id, tabs, title, width, height)
 }
 
 fn dock_header_nodes(
+    surface_id: &str,
     tabs: &ModelRc<TabData>,
     subtitle: &SharedString,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    if FAST_PROCEDURAL_CHROME_NODES {
-        return fallback_dock_header_nodes(tabs, subtitle, width, height);
-    }
-
     let mut text_overrides = tab_text_overrides(DOCK_TAB_PREFIX, tabs);
     text_overrides.insert(DOCK_SUBTITLE_CONTROL_ID.to_string(), subtitle.to_string());
-    let nodes = template_nodes(
-        "host.dock.header",
+    let nodes = tab_template_nodes(
+        surface_id,
         DOCK_HEADER_ASSET,
         width,
         height,
         &text_overrides,
-        &[
-            SlotFilter::new(DOCK_TAB_PREFIX, tabs.row_count()),
-            SlotFilter::new(DOCK_TAB_CLOSE_PREFIX, tabs.row_count()),
-        ],
+        &BTreeMap::new(),
+        DOCK_TAB_PREFIX,
+        tabs,
     );
     if tab_chrome_needs_fallback(&nodes, DOCK_HEADER_BAR_CONTROL_ID, DOCK_TAB_PREFIX, tabs) {
         return fallback_dock_header_nodes(tabs, subtitle, width, height);
     }
-
-    model_rc(
-        (0..nodes.row_count())
-            .filter_map(|row| nodes.row_data(row))
-            .filter(|node| node_survives_tab_close_filter(node, tabs))
-            .map(|node| tab_node_with_state(node, DOCK_TAB_PREFIX, tabs))
-            .collect(),
-    )
+    nodes
 }
 
 pub(super) fn dock_header_frame(nodes: &ModelRc<ViewTemplateNodeData>) -> FrameRect {

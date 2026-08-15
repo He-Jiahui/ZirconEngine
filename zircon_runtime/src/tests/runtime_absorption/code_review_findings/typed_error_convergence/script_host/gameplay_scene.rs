@@ -63,9 +63,9 @@ fn review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary() {
 }
 
 #[test]
-fn review_f5_script_scene_hook_uses_typed_errors_before_core_boundary() {
-    let scene_hook = include_str!("../../../../../script/vm/scene_hook.rs");
-    let error_owner = include_str!("../../../../../script/vm/scene_hook/error.rs");
+fn review_f5_script_scene_system_uses_typed_errors_before_core_boundary() {
+    let scene_system = include_str!("../../../../../script/vm/scene_system.rs");
+    let error_owner = include_str!("../../../../../script/vm/scene_system/error.rs");
     let review_findings =
         include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md");
     let runtime_15_plan = include_str!(
@@ -81,20 +81,26 @@ fn review_f5_script_scene_hook_uses_typed_errors_before_core_boundary() {
         include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md");
 
     assert!(
-        scene_hook.contains("mod error;"),
-        "script scene hook root should mount the typed error owner"
+        scene_system.contains("mod error;"),
+        "script scene system root should mount the typed error owner"
     );
     assert!(
-        scene_hook.contains("ScriptSceneHookResult"),
-        "script scene hook should use ScriptSceneHookResult for internal fallible work"
+        scene_system.contains(
+            "pub(super) use self::error::{ScriptSceneSystemError, ScriptSceneSystemResult};"
+        ),
+        "script scene system should expose its VM-scoped typed errors through the sibling facade"
     );
     assert!(
-        scene_hook.contains("ScriptSceneHookError"),
-        "script scene hook should use ScriptSceneHookError before the CoreError boundary"
+        scene_system.contains("ScriptSceneSystemResult"),
+        "script scene system should use ScriptSceneSystemResult for internal fallible work"
+    );
+    assert!(
+        scene_system.contains("ScriptSceneSystemError"),
+        "script scene system should use ScriptSceneSystemError before the CoreError boundary"
     );
     for required in [
-        "pub(super) type ScriptSceneHookResult<T> = std::result::Result<T, ScriptSceneHookError>;",
-        "pub(super) enum ScriptSceneHookError",
+        "pub(in crate::script::vm) type ScriptSceneSystemResult<T> =",
+        "pub(in crate::script::vm) enum ScriptSceneSystemError",
         "Core(#[from] CoreError)",
         "InvalidBindingComponent",
         "ExportCall",
@@ -103,17 +109,17 @@ fn review_f5_script_scene_hook_uses_typed_errors_before_core_boundary() {
     ] {
         assert!(
             error_owner.contains(required),
-            "script scene hook typed-error owner should contain `{required}`"
+            "script scene system typed-error owner should contain `{required}`"
         );
     }
     for required in [
         "CoreError::Initialization",
-        "\"ScriptSceneRuntimeHook\".to_string()",
+        "self.id().to_string()",
         "error.to_string()",
     ] {
         assert!(
-            scene_hook.contains(required),
-            "script scene hook should stringify only at the CoreError boundary: `{required}`"
+            scene_system.contains(required),
+            "script scene system should stringify only at the CoreError boundary: `{required}`"
         );
     }
     for forbidden in [
@@ -125,8 +131,8 @@ fn review_f5_script_scene_hook_uses_typed_errors_before_core_boundary() {
         "format!(\"invalid {SCRIPT_BINDINGS_COMPONENT}",
     ] {
         assert!(
-            !scene_hook.contains(forbidden),
-            "script scene hook should not keep lossy String-error branch `{forbidden}`"
+            !scene_system.contains(forbidden),
+            "script scene system should not keep lossy String-error branch `{forbidden}`"
         );
     }
 }

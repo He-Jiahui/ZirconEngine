@@ -1,6 +1,6 @@
 use crate::ui::retained_host::host_contract::data::FrameRect;
 
-use super::metrics::{AVATAR_DEFAULT_EDGE, avatar_bounded_extent};
+use super::metrics::{avatar_bounded_extent, AVATAR_DEFAULT_EDGE};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn avatar_frame(
     rect: &FrameRect,

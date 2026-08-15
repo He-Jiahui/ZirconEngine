@@ -1,12 +1,12 @@
 use super::super::{
-    ChromeCommandKind, build_chrome_command_stream, paint_chrome_command_stream_to_frame,
-    repaint_chrome_command_stream_region,
+    build_chrome_command_stream, paint_chrome_command_stream_to_frame,
+    repaint_chrome_command_stream_region, ChromeCommandKind,
 };
 use super::support::{
-    ROOT_OVERLAY_COLOR, ROOT_OVERLAY_FRAME_SIZE, ROOT_OVERLAY_IMAGE_HEIGHT,
-    ROOT_OVERLAY_IMAGE_WIDTH, ROOT_OVERLAY_UPLOAD_BYTES, first_pixel_difference, pixel,
-    presentation_with_root_overlay_image, presentation_with_viewport_image,
-    root_overlay_image_command, solid_rgba,
+    first_pixel_difference, pixel, presentation_with_root_overlay_image,
+    presentation_with_viewport_image, root_overlay_image_command, solid_rgba, ROOT_OVERLAY_COLOR,
+    ROOT_OVERLAY_FRAME_SIZE, ROOT_OVERLAY_IMAGE_HEIGHT, ROOT_OVERLAY_IMAGE_WIDTH,
+    ROOT_OVERLAY_UPLOAD_BYTES,
 };
 use crate::ui::retained_host::host_contract::data::{FrameRect, HostClosePromptData};
 use crate::ui::retained_host::host_contract::paint_workbench::{
@@ -132,9 +132,12 @@ fn patch_command_stream_matches_legacy_region_repaint_pixels() {
         resource_key: "viewport:test-patch".into(),
         width: 2,
         height: 2,
-        rgba: vec![
-            255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 0, 255,
-        ],
+        rgba: Some(
+            vec![
+                255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 0, 255,
+            ]
+            .into(),
+        ),
     });
     let stream = build_chrome_command_stream(&presentation, (200, 200), Some(&damage), true);
 

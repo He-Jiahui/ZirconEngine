@@ -53,9 +53,12 @@ pub fn check_plugin_workspace_with_artifact_root(
     let mut diagnostics = Vec::new();
 
     for manifest_path in &manifest_paths {
-        let package_root = manifest_path
-            .parent()
-            .expect("plugin.toml path has a package root");
+        let Some(package_root) = manifest_path.parent() else {
+            return Err(PluginCheckError::new(format!(
+                "plugin manifest path `{}` has no package root",
+                manifest_path.display()
+            )));
+        };
         let display_path = relative_path(repo_root, manifest_path);
         let manifest_text = fs::read_to_string(manifest_path)?;
         for mut diagnostic in validate_plugin_manifest(&manifest_text, Some(package_root)) {

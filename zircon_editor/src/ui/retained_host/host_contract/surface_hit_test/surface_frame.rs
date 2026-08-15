@@ -16,7 +16,8 @@ pub(in crate::ui::retained_host::host_contract) fn hit_test_host_surface_frame(
     let local_point = UiPoint::new(x - origin.x, y - origin.y);
     let hit = hit_test_surface_frame(surface_frame, local_point);
     let node_id = hit.top_hit?;
-    let node = surface_frame.arranged_tree.get(node_id)?;
-    node.control_id.as_ref()?;
+    hit.top_entry(&surface_frame.hit_grid)?
+        .control_id
+        .as_ref()?;
     Some(SurfaceFramePointerHit { node_id })
 }

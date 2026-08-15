@@ -1,6 +1,8 @@
 use crate::core::framework::render::{
     AdvancedProviderAvailability, AdvancedRenderFeature, AntiAliasFallbackReason,
-    RenderCapabilitySummary, RenderFrameExtract, RenderProfileBundle, RenderWorldSnapshotHandle,
+    RenderCapabilitySummary, RenderFrameExtract, RenderPipelinePhase, RenderProfileBundle,
+    RenderResolutionPolicy, RenderUpscalerKind, RenderViewFamilyPipeline,
+    RenderWorldSnapshotHandle,
 };
 use crate::core::math::UVec2;
 use crate::graphics::{CompiledRenderPipeline, RenderPassStage};
@@ -8,6 +10,19 @@ use crate::render_graph::RenderGraphBuilder;
 use crate::scene::world::World;
 
 use super::*;
+
+#[test]
+fn disabled_temporal_history_does_not_clear_hybrid_gi_cache_every_frame() {
+    assert!(!hgi_history_invalidation_active(
+        false,
+        Some(FrameHistoryInvalidationReason::NoPreviousFrame),
+    ));
+    assert!(hgi_history_invalidation_active(
+        true,
+        Some(FrameHistoryInvalidationReason::RenderSizeChanged),
+    ));
+    assert!(!hgi_history_invalidation_active(true, None));
+}
 
 #[test]
 fn advanced_runtime_plan_gates_provider_missing_feature_payloads() {
@@ -66,6 +81,48 @@ fn frame_submission_context_exposes_view_visibility_by_key() {
             cascade: 0,
         })
         .is_none());
+}
+
+#[test]
+fn frame_submission_context_keeps_the_resolved_view_family_phase_contract() {
+    let view_family_pipeline = RenderViewFamilyPipeline::resolve(
+        UVec2::new(1920, 1080),
+        RenderResolutionPolicy::with_temporal_fractions(0.5, 0.75),
+        RenderUpscalerKind::Temporal,
+    );
+    let context = context_with_advanced_plan(AdvancedProfileRuntimePlan::from_profile_bundle(
+        &RenderProfileBundle::advanced_render(),
+        &advanced_capabilities(),
+        &AdvancedProviderAvailability::new(),
+    ))
+    .with_view_family_pipeline(view_family_pipeline);
+
+    let temporal_targets = context
+        .view_family_pipeline()
+        .phase_targets(RenderPipelinePhase::TemporalReconstruction)
+        .expect("temporal reconstruction is enabled for a temporal view family");
+    assert_eq!(
+        temporal_targets
+            .input()
+            .expect("temporal reconstruction reads the primary scene")
+            .viewport()
+            .physical_size,
+        UVec2::new(960, 540)
+    );
+    assert_eq!(
+        temporal_targets.output().viewport().physical_size,
+        UVec2::new(1440, 810)
+    );
+    assert_eq!(
+        context
+            .view_family_pipeline()
+            .phase_targets(RenderPipelinePhase::DisplayPostProcess)
+            .expect("display post process is enabled")
+            .output()
+            .viewport()
+            .physical_size,
+        UVec2::new(1440, 810)
+    );
 }
 
 #[test]
@@ -246,6 +303,7 @@ fn context_with_advanced_plan_and_payloads(
                 .expect("test extract has selected camera descriptor"),
         ),
         Default::default(),
+        false,
         None,
         ViewportRenderOutputTarget::PrimarySurface,
         Default::default(),

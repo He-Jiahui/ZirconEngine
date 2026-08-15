@@ -460,6 +460,7 @@ pub(super) fn register_sphere_model(
             vertices,
             indices,
             mesh: None,
+            mesh_sdf: None,
             virtual_geometry: None,
         }],
     };

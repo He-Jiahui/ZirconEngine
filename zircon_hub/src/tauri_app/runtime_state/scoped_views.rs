@@ -195,7 +195,7 @@ mod tests {
 
     fn session_with_source(temp: &Path, source: &Path) -> HubRuntimeSession {
         let config_path = temp.join("hub.toml");
-        let editor_config_path = temp.join("editor.json");
+        let shared_recent_projects_path = temp.join("recent_projects.json");
         let mut config = HubConfig::default();
         config.settings.default_project_dir = temp.join("projects");
         config.settings.default_source_dir = source.to_path_buf();
@@ -212,11 +212,11 @@ mod tests {
         config.runtime.new_project_engine_id = Some(source_engine_id(source));
         config.save(&config_path).unwrap();
         fs::write(
-            &editor_config_path,
-            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+            &shared_recent_projects_path,
+            r#"{"protocol_version":1,"projects":[]}"#,
         )
         .unwrap();
-        HubRuntimeSession::load_from_paths(config_path, editor_config_path).unwrap()
+        HubRuntimeSession::load_from_paths(config_path, shared_recent_projects_path).unwrap()
     }
 
     fn create_git_repo(git: &str, root: &Path, name: &str, email: &str) -> PathBuf {

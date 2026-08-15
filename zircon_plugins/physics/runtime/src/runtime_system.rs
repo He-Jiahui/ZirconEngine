@@ -42,18 +42,16 @@ pub fn register_runtime_systems(
     module.resource(SimulatedPoseFeed::default)?;
     module.resource(RagdollRuntime::default)?;
     module
-        .runtime_scene_system(
-            PHYSICS_STEP_SYSTEM,
-            SystemStage::FixedUpdate,
-            run_physics_runtime_system,
-        )
+        .runtime_scene_system(PHYSICS_STEP_SYSTEM, SystemStage::FixedUpdate, || {
+            run_physics_runtime_system
+        })
         .in_set(PHYSICS_SYSTEM_SET)
         .register()?;
     module
         .runtime_scene_system(
             PHYSICS_SYNC_TO_SCENE_SYSTEM,
             SystemStage::FixedPostUpdate,
-            run_physics_sync_to_scene_system,
+            || run_physics_sync_to_scene_system,
         )
         .in_set(PHYSICS_SYSTEM_SET)
         .register()
@@ -62,37 +60,61 @@ pub fn register_runtime_systems(
 fn run_physics_runtime_system(context: RuntimeSceneSystemContext<'_>) -> Result<(), CoreError> {
     let started_at = Instant::now();
     let frame_index = context.core.real_time().frame_index();
+    let replacement_epoch = context.level.capture_world_replacement_epoch();
     let Ok(physics) = context
         .core
         .resolve_manager::<DefaultPhysicsManager>(DEFAULT_PHYSICS_MANAGER_NAME)
     else {
-        context
-            .level
-            .record_physics_step(PhysicsWorldStepPlan::default(), Vec::new(), Vec::new());
+        context.level.record_physics_step_if_replacement_epoch(
+            replacement_epoch,
+            PhysicsWorldStepPlan::default(),
+            Vec::new(),
+            Vec::new(),
+        );
         record_physics_step_diagnostic(context.core, frame_index, started_at.elapsed());
         return Ok(());
     };
 
-    let result = context.level.with_world_mut(|world| {
-        if let Some(mut ragdolls) = world.get_resource::<RagdollRuntime>().cloned() {
-            drive_ragdoll_bodies_from_animation(world, &mut ragdolls, context.delta_seconds);
-            if let Some(runtime) = world.get_resource_mut::<RagdollRuntime>() {
-                *runtime = ragdolls;
-            }
-        }
-        physics.tick_scene_world(context.level.world_handle(), world, context.delta_seconds)
-    });
-    context.level.with_world_mut(|world| {
-        for contact in result.contacts.iter().cloned() {
-            world.send_event(contact);
-        }
-        for trigger in result.triggers.iter().cloned() {
-            world.send_event(trigger);
-        }
-    });
-    context
+    let Some(result) =
+        context
+            .level
+            .with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
+                if let Some(mut ragdolls) = world.get_resource::<RagdollRuntime>().cloned() {
+                    drive_ragdoll_bodies_from_animation(
+                        world,
+                        &mut ragdolls,
+                        context.delta_seconds,
+                    );
+                    if let Some(runtime) = world.get_resource_mut::<RagdollRuntime>() {
+                        *runtime = ragdolls;
+                    }
+                }
+                physics.tick_scene_world(context.level.world_handle(), world, context.delta_seconds)
+            })
+    else {
+        record_physics_step_diagnostic(context.core, frame_index, started_at.elapsed());
+        return Ok(());
+    };
+    let Some(()) = context
         .level
-        .record_physics_step(result.step_plan, result.contacts, result.triggers);
+        .with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
+            for contact in result.contacts.iter().cloned() {
+                world.send_event(contact);
+            }
+            for trigger in result.triggers.iter().cloned() {
+                world.send_event(trigger);
+            }
+        })
+    else {
+        record_physics_step_diagnostic(context.core, frame_index, started_at.elapsed());
+        return Ok(());
+    };
+    context.level.record_physics_step_if_replacement_epoch(
+        replacement_epoch,
+        result.step_plan,
+        result.contacts,
+        result.triggers,
+    );
     record_physics_step_diagnostic(context.core, frame_index, started_at.elapsed());
     Ok(())
 }
@@ -100,6 +122,7 @@ fn run_physics_runtime_system(context: RuntimeSceneSystemContext<'_>) -> Result<
 fn run_physics_sync_to_scene_system(
     context: RuntimeSceneSystemContext<'_>,
 ) -> Result<(), CoreError> {
+    let replacement_epoch = context.level.capture_world_replacement_epoch();
     let Ok(physics) = context
         .core
         .resolve_manager::<DefaultPhysicsManager>(DEFAULT_PHYSICS_MANAGER_NAME)
@@ -109,28 +132,30 @@ fn run_physics_sync_to_scene_system(
     let Some(sync) = physics.synchronized_world(context.level.world_handle()) else {
         return Ok(());
     };
-    context.level.with_world_mut(|world| {
-        apply_synchronized_bodies_to_scene(world, &sync);
-        let Some(ragdolls) = world.get_resource::<RagdollRuntime>().cloned() else {
-            return;
-        };
-        let interpolation_alpha = context
-            .level
-            .last_physics_step_plan()
-            .map(|plan| {
-                if plan.steps > 0 {
-                    1.0
-                } else {
-                    plan.interpolation_alpha
-                }
-            })
-            .unwrap_or(0.0);
-        let mut next_feed = SimulatedPoseFeed::default();
-        write_simulated_pose_feed(world, &sync, &ragdolls, interpolation_alpha, &mut next_feed);
-        if let Some(feed) = world.get_resource_mut::<SimulatedPoseFeed>() {
-            *feed = next_feed;
-        }
-    });
+    context
+        .level
+        .with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
+            apply_synchronized_bodies_to_scene(world, &sync);
+            let Some(ragdolls) = world.get_resource::<RagdollRuntime>().cloned() else {
+                return;
+            };
+            let interpolation_alpha = context
+                .level
+                .last_physics_step_plan()
+                .map(|plan| {
+                    if plan.steps > 0 {
+                        1.0
+                    } else {
+                        plan.interpolation_alpha
+                    }
+                })
+                .unwrap_or(0.0);
+            let mut next_feed = SimulatedPoseFeed::default();
+            write_simulated_pose_feed(world, &sync, &ragdolls, interpolation_alpha, &mut next_feed);
+            if let Some(feed) = world.get_resource_mut::<SimulatedPoseFeed>() {
+                *feed = next_feed;
+            }
+        });
     Ok(())
 }
 use std::time::Instant;

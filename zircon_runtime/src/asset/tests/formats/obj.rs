@@ -3,7 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::math::Vec3;
 
-use crate::asset::formats::obj::{ObjDecodeError, decode_obj_file};
+use crate::asset::formats::obj::{decode_obj_file, ObjDecodeError};
 use crate::asset::tests::project::unique_temp_project_root;
 
 #[test]
@@ -34,12 +34,10 @@ f 1/1 2/2 3/3 4/4
 
     assert_eq!(payload.indices.len(), 6);
     assert_eq!(payload.vertices.len(), 4);
-    assert!(
-        payload
-            .vertices
-            .iter()
-            .all(|vertex| Vec3::from_array(vertex.normal).length() > 0.0)
-    );
+    assert!(payload
+        .vertices
+        .iter()
+        .all(|vertex| Vec3::from_array(vertex.normal).length() > 0.0));
 }
 
 #[test]

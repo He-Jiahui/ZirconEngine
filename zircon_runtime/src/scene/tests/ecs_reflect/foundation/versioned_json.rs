@@ -1,10 +1,10 @@
 use zircon_runtime_interface::serialization::{LoadError, WriteError};
 
 use super::*;
-use crate::scene::ReflectedJsonError;
 use crate::scene::tests::authoring_boundary::{
-    SERIALIZED_AUTHORING_TOKENS, assert_text_excludes_authoring_tokens,
+    assert_text_excludes_authoring_tokens, SERIALIZED_AUTHORING_TOKENS,
 };
+use crate::scene::ReflectedJsonError;
 
 const V0_REFLECTED_JSON: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),

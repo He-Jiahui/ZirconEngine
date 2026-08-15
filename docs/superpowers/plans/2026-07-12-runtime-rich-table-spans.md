@@ -18,7 +18,7 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
   - zircon_runtime/src/text/rich/tests/table.rs
-  - zircon_runtime/src/ui/text/layout_engine/tests/rich_table.rs
+  - zircon_runtime/src/ui/text/layout_engine/tests/rich_table/mod.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer/proof_assertions.rs
 doc_type: milestone-detail

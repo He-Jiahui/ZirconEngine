@@ -20,6 +20,13 @@ pub(in crate::dynamic_api::session) fn not_found(message: &'static [u8]) -> ZrSt
     ZrStatus::new(ZrStatusCode::NotFound, ZrByteSlice::from_static(message))
 }
 
+pub(in crate::dynamic_api::session) fn teardown_incomplete() -> ZrStatus {
+    ZrStatus::new(
+        ZrStatusCode::Error,
+        ZrByteSlice::from_static(b"runtime session resources did not quiesce before unload"),
+    )
+}
+
 pub(in crate::dynamic_api::session) fn error_status(message: impl Display) -> ZrStatus {
     let message = message.to_string();
     if message.is_empty() {

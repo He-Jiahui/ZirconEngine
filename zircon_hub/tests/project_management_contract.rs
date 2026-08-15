@@ -1,13 +1,12 @@
-use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
 use serde_json::Value;
 use zircon_hub::projects::{
-    metadata_for_path, metadata_for_path_mut, project_metadata_key, project_paths_match,
-    project_template_catalog, prune_empty_metadata, save_editor_recent_projects,
-    CreateProjectRequest, CreateProjectRequestError, ProjectMetadata, ProjectMetadataMap,
-    ProjectTemplate, RecentProject, RecycleDeleteCommand,
+    load_shared_recent_projects, metadata_for_path, metadata_for_path_mut, project_metadata_key,
+    project_paths_match, project_template_catalog, prune_empty_metadata,
+    reconcile_shared_recent_projects, CreateProjectRequest, CreateProjectRequestError,
+    ProjectMetadata, ProjectMetadataMap, ProjectTemplate, RecentProject, RecycleDeleteCommand,
 };
 use zircon_hub::settings::{HubConfig, HubSettings};
 use zircon_hub::state::{
@@ -98,7 +97,7 @@ fn hub_config_repair_converges_foundation_registries() {
         "TaskStatus::warning(",
         "session.prune_stale_project_engine_bindings();",
         "session.config.repair_registries();",
-        "session.persist(None)?;",
+        "session.persist()?;",
     ] {
         assert!(
             runtime.contains(snippet),
@@ -108,7 +107,7 @@ fn hub_config_repair_converges_foundation_registries() {
 }
 
 #[test]
-fn runtime_persistence_keeps_editor_recent_writes_in_tauri_session_owner() {
+fn runtime_persistence_uses_shared_recent_registry_in_tauri_session_owner() {
     let runtime = fs::read_to_string(crate_dir().join("src/tauri_app/runtime_state.rs"))
         .expect("runtime_state.rs should be readable");
     let quick_actions =
@@ -116,20 +115,33 @@ fn runtime_persistence_keeps_editor_recent_writes_in_tauri_session_owner() {
             .expect("runtime_state/quick_actions.rs should be readable");
 
     assert!(
-        !quick_actions.contains("save_editor_recent_projects"),
-        "quick-action workflow code must not write Editor recent JSON directly; route through HubRuntimeSession persistence"
+        !quick_actions.contains("reconcile_shared_recent_projects"),
+        "quick-action workflow code must not write the shared recent registry directly; route through HubRuntimeSession persistence"
     );
 
     for snippet in [
-        "fn persist(&mut self, last_project_path: Option<&Path>) -> Result<(), HubError>",
-        "fn persist_unchecked(&self, last_project_path: Option<&Path>) -> Result<(), HubError>",
+        "fn persist(&mut self) -> Result<(), HubError>",
+        "fn persist_unchecked(&mut self) -> Result<(), HubError>",
+        "reconcile_shared_recent_projects(",
+        "shared_recent_projects_snapshot",
+        "fn refresh_shared_recent_projects_on_focus(&mut self) -> Result<bool, HubError>",
+        "load_shared_recent_projects(&self.shared_recent_projects_path)",
         "config.runtime = self.runtime_state_for_config();",
-        "save_editor_recent_projects_with_last_project(",
-        "save_editor_recent_projects(&self.editor_config_path, &self.config.recent_projects)",
     ] {
         assert!(
             runtime.contains(snippet),
-            "runtime_state.rs should own Hub TOML and Editor recent save boundaries; missing {snippet}"
+            "runtime_state.rs should own Hub TOML and shared recent-registry boundaries; missing {snippet}"
+        );
+    }
+    for legacy_snippet in [
+        "load_editor_recent_project_session",
+        "save_editor_recent_projects",
+        "editor_config_path",
+        "editor.startup.session",
+    ] {
+        assert!(
+            !runtime.contains(legacy_snippet),
+            "runtime_state.rs must not retain the legacy Editor recent bridge: {legacy_snippet}"
         );
     }
 }
@@ -225,22 +237,25 @@ fn hub_config_repair_normalizes_registries_before_projection() {
 }
 
 #[test]
-fn editor_recent_writer_keeps_hub_metadata_out_of_editor_json() {
+fn shared_recent_registry_keeps_hub_metadata_out_of_project_entries() {
     let root = temp_test_dir("zircon_hub_recent_metadata_contract");
-    let path = root.join("config.json");
+    let path = root.join("recent_projects.json");
+    let project = recent_project("Game", "E:/Projects/Game", 42);
 
-    save_editor_recent_projects(&path, &[recent_project("Game", "E:/Projects/Game", 42)]).unwrap();
+    reconcile_shared_recent_projects(&path, &[], std::slice::from_ref(&project)).unwrap();
 
     let text = fs::read_to_string(&path).unwrap();
     assert!(!text.contains("pinned"));
     assert!(!text.contains("engine_id"));
     assert!(!text.contains("last_selected_template"));
 
-    let values = serde_json::from_str::<HashMap<String, Value>>(&text).unwrap();
+    let values = serde_json::from_str::<Value>(&text).unwrap();
+    assert_eq!(values["protocol_version"], Value::from(1));
     assert_eq!(
-        values["editor.startup.session"]["recent_projects"][0]["path"],
+        values["projects"][0]["path"],
         Value::String("E:/Projects/Game".to_string())
     );
+    assert_eq!(load_shared_recent_projects(&path).unwrap(), vec![project]);
 
     let _ = fs::remove_dir_all(root);
 }
@@ -278,9 +293,7 @@ fn new_project_creation_only_accepts_enabled_templates() {
     assert_eq!(
         missing_name.validate_launch_fields(),
         Err(CreateProjectRequestError::ProjectName {
-            source: ProjectNameError::SurroundingWhitespace {
-                value: "   ".to_string()
-            }
+            source: ProjectNameError::Empty
         })
     );
 }

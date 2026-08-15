@@ -11,7 +11,9 @@ use super::{arrange_node, hide_subtree_layout};
 use crate::ui::layout::pass::{
     child_frame::free_child_frame,
     engine::UiLayoutPassEngineContext,
-    slot::{ordered_children_for_container, slot_for_container_child, slot_padding},
+    slot::{
+        ordered_children_for_container, slot_for_container_child, slot_padding, UiLayoutSlotIndex,
+    },
 };
 
 pub(super) fn arrange_grid_children(
@@ -21,14 +23,15 @@ pub(super) fn arrange_grid_children(
     frame: UiFrame,
     inherited_clip: Option<UiFrame>,
     config: UiGridBoxConfig,
+    slot_index: &UiLayoutSlotIndex,
     engine_context: &mut UiLayoutPassEngineContext,
 ) -> Result<(), UiTreeError> {
     let container = UiContainerKind::GridBox(config);
-    let children = ordered_children_for_container(tree, parent_id, children, container);
-    let (columns, rows) = grid_dimensions(tree, parent_id, &children, config);
+    let children = ordered_children_for_container(tree, slot_index, parent_id, children, container);
+    let (columns, rows) = grid_dimensions(tree, slot_index, parent_id, &children, config);
 
     for (index, child_id) in children.iter().copied().enumerate() {
-        let slot = slot_for_container_child(tree, parent_id, child_id, container);
+        let slot = slot_for_container_child(tree, slot_index, parent_id, child_id, container);
         let placement = grid_placement_for_child(slot, index, columns);
         let child_frame = free_child_frame(
             tree,
@@ -36,7 +39,14 @@ pub(super) fn arrange_grid_children(
             grid_cell_frame(frame, config, columns, rows, placement),
             slot,
         )?;
-        arrange_node(tree, child_id, child_frame, inherited_clip, engine_context)?;
+        arrange_node(
+            tree,
+            child_id,
+            child_frame,
+            inherited_clip,
+            slot_index,
+            engine_context,
+        )?;
     }
 
     Ok(())
@@ -49,10 +59,11 @@ pub(super) fn arrange_masonry_children(
     frame: UiFrame,
     inherited_clip: Option<UiFrame>,
     config: UiMasonryBoxConfig,
+    slot_index: &UiLayoutSlotIndex,
     engine_context: &mut UiLayoutPassEngineContext,
 ) -> Result<UiSize, UiTreeError> {
     let container = UiContainerKind::MasonryBox(config);
-    let children = ordered_children_for_container(tree, parent_id, children, container);
+    let children = ordered_children_for_container(tree, slot_index, parent_id, children, container);
     let columns = config.columns.max(1);
     let gap = config.gap.max(0.0);
     let column_width =
@@ -70,7 +81,7 @@ pub(super) fn arrange_masonry_children(
             continue;
         }
 
-        let slot = slot_for_container_child(tree, parent_id, child_id, container);
+        let slot = slot_for_container_child(tree, slot_index, parent_id, child_id, container);
         let outer_height = masonry_child_outer_height(tree, child_id, slot)?;
         let column = masonry_target_column(visible_index, config.sequential, &column_heights);
         if column_counts[column] > 0 {
@@ -83,7 +94,14 @@ pub(super) fn arrange_masonry_children(
             outer_height,
         );
         let child_frame = free_child_frame(tree, child_id, cell_frame, slot)?;
-        arrange_node(tree, child_id, child_frame, inherited_clip, engine_context)?;
+        arrange_node(
+            tree,
+            child_id,
+            child_frame,
+            inherited_clip,
+            slot_index,
+            engine_context,
+        )?;
 
         column_heights[column] += outer_height;
         column_counts[column] += 1;
@@ -123,6 +141,7 @@ fn masonry_target_column(index: usize, sequential: bool, column_heights: &[f32])
 
 fn grid_dimensions(
     tree: &UiTree,
+    slot_index: &UiLayoutSlotIndex,
     parent_id: UiNodeId,
     children: &[UiNodeId],
     config: UiGridBoxConfig,
@@ -130,8 +149,13 @@ fn grid_dimensions(
     let mut columns = config.columns.max(1);
     let mut rows = config.rows.max(1);
     for (index, child_id) in children.iter().copied().enumerate() {
-        let slot =
-            slot_for_container_child(tree, parent_id, child_id, UiContainerKind::GridBox(config));
+        let slot = slot_for_container_child(
+            tree,
+            slot_index,
+            parent_id,
+            child_id,
+            UiContainerKind::GridBox(config),
+        );
         let placement = grid_placement_for_child(slot, index, columns);
         columns = columns.max(placement.column + placement.column_span.max(1));
         rows = rows.max(placement.row + placement.row_span.max(1));

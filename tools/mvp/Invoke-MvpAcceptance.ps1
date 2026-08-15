@@ -43,13 +43,15 @@ Import-Module (Join-Path $PSScriptRoot 'MvpPersistenceComparison.psm1') -Force -
 Import-Module (Join-Path $PSScriptRoot 'MvpScenePersistenceEvidence.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpStagingPreflightEvidence.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpProcessTimingEvidence.psm1') -Force -DisableNameChecking -ErrorAction Stop
-Import-Module (Join-Path $PSScriptRoot '..\WindowsPathResolver.psm1') -Force -DisableNameChecking -ErrorAction Stop
 # Nested evidence modules import their dependencies in private scopes. Re-import the top-level
-# dependencies in a stable order so this script retains every direct publication command.
+# dependencies in a stable order, then load the resolver last because those forced reloads can
+# otherwise remove the command that this script invokes directly.
 Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingSnapshot.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpBuildSummaryEvidence.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingProjection.psm1') -Force -DisableNameChecking -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceNativeFileSystem.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingTreeManifest.psm1') -Force -DisableNameChecking -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot '..\WindowsPathResolver.psm1') -Force -DisableNameChecking -ErrorAction Stop
 
 function Get-MvpFileSha256 {
     param([Parameter(Mandatory)][string]$Path)
@@ -62,6 +64,18 @@ function Get-MvpFileSha256 {
     finally {
         $hasher.Dispose()
         $stream.Dispose()
+    }
+}
+
+function Assert-MvpAcceptanceArtifactRoot {
+    param(
+        [Parameter(Mandatory)]$Resolution,
+        [Parameter(Mandatory)][string]$Label
+    )
+
+    $displayPath = [string]$Resolution.DisplayPath
+    if ($displayPath -notmatch '^[D-F]:\\ZirconBuilds(?:\\|$)') {
+        throw "$Label '$displayPath' must resolve under an approved D:\ZirconBuilds, E:\ZirconBuilds, or F:\ZirconBuilds root."
     }
 }
 
@@ -208,7 +222,9 @@ public sealed class ZirconMvpAcceptancePngEvidence
 '@ -ReferencedAssemblies $drawingReferences -ErrorAction Stop
     }
 
-    return [ZirconMvpAcceptancePngEvidence]::Inspect($Path)
+    # System.Drawing does not accept the verbatim operation form (\\?\); decode via the resolver's display form only at this API boundary.
+    $decoderPath = (Resolve-ZirconWindowsPath -Path $Path).DisplayPath
+    return [ZirconMvpAcceptancePngEvidence]::Inspect($decoderPath)
 }
 
 function Get-MvpRequiredProperty {
@@ -622,6 +638,153 @@ function Assert-MvpStagingManifestIntegrity {
         -StagingRoot $StagingRoot
 
     return $entries.Count
+}
+
+function Assert-MvpProductInputManifestEvidence {
+    param(
+        [Parameter(Mandatory)]$Manifest,
+        [Parameter(Mandatory)][string]$SourceFingerprint
+    )
+
+    $inputManifest = Get-MvpRequiredProperty `
+        -Value $Manifest `
+        -Name 'product_input_manifest' `
+        -Label 'Staging manifest'
+    $schemaVersion = [int](Get-MvpRequiredProperty `
+        -Value $inputManifest `
+        -Name 'schema_version' `
+        -Label 'Product input manifest evidence')
+    if ($schemaVersion -ne 1) {
+        throw "Product input manifest evidence has unsupported schema_version '$schemaVersion'."
+    }
+    $inputSourceFingerprint = [string](Get-MvpRequiredProperty `
+        -Value $inputManifest `
+        -Name 'source_fingerprint' `
+        -Label 'Product input manifest evidence')
+    if ($inputSourceFingerprint -ne $SourceFingerprint) {
+        throw 'Product input manifest evidence source_fingerprint differs from the staging manifest.'
+    }
+    $inputManifestHash = [string](Get-MvpRequiredProperty `
+        -Value $inputManifest `
+        -Name 'sha256' `
+        -Label 'Product input manifest evidence')
+    if ($inputManifestHash -notmatch '^[0-9A-F]{64}$') {
+        throw "Product input manifest evidence has invalid sha256 '$inputManifestHash'."
+    }
+
+    $entriesByLogicalId = @{}
+    foreach ($entry in @(Get-MvpRequiredProperty -Value $Manifest -Name 'entries' -Label 'Staging manifest')) {
+        $entriesByLogicalId[[string](Get-MvpRequiredProperty -Value $entry -Name 'logical_id' -Label 'Staging manifest entry')] = $entry
+    }
+    $manifestEntryLogicalId = 'product-input-manifest'
+    if (-not $entriesByLogicalId.ContainsKey($manifestEntryLogicalId)) {
+        throw 'Staging manifest does not contain the original product-input manifest.'
+    }
+    $stagedManifestEntry = $entriesByLogicalId[$manifestEntryLogicalId]
+    $manifestTargetPath = [string](Get-MvpRequiredProperty `
+        -Value $inputManifest `
+        -Name 'target_relative_path' `
+        -Label 'Product input manifest evidence')
+    if (-not $manifestTargetPath.Equals('build/mvp-product-inputs.json', [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Product input manifest evidence has target_relative_path '$manifestTargetPath'."
+    }
+    $stagedManifestTargetPath = [string](Get-MvpRequiredProperty `
+        -Value $stagedManifestEntry `
+        -Name 'target_relative_path' `
+        -Label 'Staged product input manifest')
+    if (-not $stagedManifestTargetPath.Equals($manifestTargetPath, [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Product input manifest evidence target_relative_path differs from its staged manifest.'
+    }
+    [Int64]$manifestBytes = [Int64](Get-MvpRequiredProperty `
+        -Value $inputManifest `
+        -Name 'size_bytes' `
+        -Label 'Product input manifest evidence')
+    [Int64]$stagedManifestBytes = [Int64](Get-MvpRequiredProperty `
+        -Value $stagedManifestEntry `
+        -Name 'size_bytes' `
+        -Label 'Staged product input manifest')
+    if ($manifestBytes -ne $stagedManifestBytes) {
+        throw 'Product input manifest evidence byte count differs from its staged manifest.'
+    }
+    $stagedManifestHash = [string](Get-MvpRequiredProperty `
+        -Value $stagedManifestEntry `
+        -Name 'sha256' `
+        -Label 'Staged product input manifest')
+    if (-not $inputManifestHash.Equals($stagedManifestHash, [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Product input manifest evidence hash differs from its staged manifest.'
+    }
+    $expectedInputs = @(
+        [ordered]@{ logical_id = 'runtime-executable'; target_relative_path = 'runtime/zircon_runtime.exe' },
+        [ordered]@{ logical_id = 'runtime-library/runtime'; target_relative_path = 'runtime/zircon_runtime.dll' },
+        [ordered]@{ logical_id = 'editor-executable'; target_relative_path = 'editor/zircon_editor.exe' },
+        [ordered]@{ logical_id = 'runtime-library/editor'; target_relative_path = 'editor/zircon_runtime.dll' }
+    )
+    $inputArtifacts = @(Get-MvpRequiredProperty `
+        -Value $inputManifest `
+        -Name 'artifacts' `
+        -Label 'Product input manifest evidence')
+    if ($inputArtifacts.Count -ne $expectedInputs.Count) {
+        throw "Product input manifest evidence must contain exactly $($expectedInputs.Count) artifacts."
+    }
+
+    $verifiedArtifacts = [System.Collections.Generic.List[object]]::new()
+    foreach ($expectedInput in $expectedInputs) {
+        $matches = @($inputArtifacts | Where-Object {
+            [string](Get-MvpRequiredProperty -Value $_ -Name 'logical_id' -Label 'Product input manifest artifact') -eq $expectedInput.logical_id
+        })
+        if ($matches.Count -ne 1) {
+            throw "Product input manifest evidence must contain exactly one '$($expectedInput.logical_id)' artifact."
+        }
+        if (-not $entriesByLogicalId.ContainsKey($expectedInput.logical_id)) {
+            throw "Staging manifest does not contain product input '$($expectedInput.logical_id)'."
+        }
+        $stagedEntry = $entriesByLogicalId[$expectedInput.logical_id]
+        $stagedPath = [string](Get-MvpRequiredProperty `
+            -Value $stagedEntry `
+            -Name 'target_relative_path' `
+            -Label "Staging manifest product input '$($expectedInput.logical_id)'")
+        if (-not $stagedPath.Equals($expectedInput.target_relative_path, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Staging manifest product input '$($expectedInput.logical_id)' has target_relative_path '$stagedPath'."
+        }
+        $artifact = $matches[0]
+        [Int64]$artifactBytes = [Int64](Get-MvpRequiredProperty `
+            -Value $artifact `
+            -Name 'bytes' `
+            -Label "Product input manifest artifact '$($expectedInput.logical_id)'")
+        [Int64]$stagedBytes = [Int64](Get-MvpRequiredProperty `
+            -Value $stagedEntry `
+            -Name 'size_bytes' `
+            -Label "Staging manifest product input '$($expectedInput.logical_id)'")
+        if ($artifactBytes -ne $stagedBytes) {
+            throw "Product input manifest artifact '$($expectedInput.logical_id)' byte count differs from its staged file."
+        }
+        $artifactHash = [string](Get-MvpRequiredProperty `
+            -Value $artifact `
+            -Name 'sha256' `
+            -Label "Product input manifest artifact '$($expectedInput.logical_id)'")
+        $stagedHash = [string](Get-MvpRequiredProperty `
+            -Value $stagedEntry `
+            -Name 'sha256' `
+            -Label "Staging manifest product input '$($expectedInput.logical_id)'")
+        if ($artifactHash -notmatch '^[0-9A-F]{64}$' -or
+            -not $artifactHash.Equals($stagedHash, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Product input manifest artifact '$($expectedInput.logical_id)' hash differs from its staged file."
+        }
+        $verifiedArtifacts.Add([ordered]@{
+                logical_id = $expectedInput.logical_id
+                bytes = $stagedBytes
+                sha256 = $stagedHash.ToUpperInvariant()
+            }) | Out-Null
+    }
+
+    return [ordered]@{
+        schema_version = $schemaVersion
+        target_relative_path = $manifestTargetPath
+        size_bytes = $stagedManifestBytes
+        sha256 = $stagedManifestHash.ToUpperInvariant()
+        source_fingerprint = $SourceFingerprint
+        artifacts = $verifiedArtifacts.ToArray()
+    }
 }
 
 function ConvertTo-MvpUInt64 {
@@ -1543,12 +1706,20 @@ function Assert-MvpAuthoringAutomation {
         -Records $records `
         -BindingPath 'Inspector/TransformScaleXCommit:onSubmit' `
         -Label 'scale commit'
+    $undo = Get-MvpAuthoringAutomationRecord `
+        -Records $records `
+        -BindingPath 'WorkbenchMenuBar/Undo:onClick' `
+        -Label 'history undo'
+    $redo = Get-MvpAuthoringAutomationRecord `
+        -Records $records `
+        -BindingPath 'WorkbenchMenuBar/Redo:onClick' `
+        -Label 'history redo'
     $save = Get-MvpAuthoringAutomationRecord `
         -Records $records `
         -BindingPath 'WorkbenchMenuBar/SaveProject:onClick' `
         -Label 'project save'
 
-    foreach ($record in @($selection, $transform, $scale, $save)) {
+    foreach ($record in @($selection, $transform, $scale, $undo, $redo, $save)) {
         $source = [string](Get-MvpRequiredProperty -Value $record -Name 'source' -Label 'Authoring automation record')
         if ($source -ne 'Cli') {
             throw "Authoring automation record '$([string]$record.binding_path)' has source '$source' instead of 'Cli'."
@@ -1576,6 +1747,15 @@ function Assert-MvpAuthoringAutomation {
         -Label 'Authoring scale record'
     if ($scaleTransaction -eq 0) {
         throw 'Authoring scale record has a zero transaction_id.'
+    }
+
+    $undoOperation = [string](Get-MvpRequiredProperty -Value $undo -Name 'operation_id' -Label 'Authoring undo record')
+    if ($undoOperation -ne 'edit.history.undo') {
+        throw "Authoring undo record operation_id '$undoOperation' is not 'edit.history.undo'."
+    }
+    $redoOperation = [string](Get-MvpRequiredProperty -Value $redo -Name 'operation_id' -Label 'Authoring redo record')
+    if ($redoOperation -ne 'edit.history.redo') {
+        throw "Authoring redo record operation_id '$redoOperation' is not 'edit.history.redo'."
     }
 
     $saveOperation = [string](Get-MvpRequiredProperty -Value $save -Name 'operation_id' -Label 'Authoring save record')
@@ -1673,7 +1853,7 @@ function Assert-MvpReopenAutomation {
             else {
                 Join-Path $ResolvedStagingRoot $relativePath
             }
-            $canonicalPath = [IO.Path]::GetFullPath($candidatePath)
+            $canonicalPath = (Resolve-ZirconWindowsPath -Path $candidatePath).OperationalPath
             if (-not $reopenedProcessEvidencePaths.Add($canonicalPath)) {
                 throw "$label reopened-project process evidence contains duplicate path '$relativePath'."
             }
@@ -1944,12 +2124,17 @@ function Publish-MvpAcceptanceEvidencePackage {
         New-Item -ItemType Directory -Force -Path $partialRoot | Out-Null
         $partialWriteLease = Open-MvpAcceptanceStagingWriteLease -SnapshotRoot $partialRoot
         $partialIdentity = $partialWriteLease.root_identity
+        $sourceCopyExclusions = @($acceptanceStagingSnapshotLease.marker_paths) + @(
+            Get-MvpAcceptanceStagingTreeManifestPath -StagingRoot $StagingRoot)
         $stagingProjection = Copy-MvpAcceptanceStagingItems `
             -SourceRoot $StagingRoot `
             -DestinationRoot $partialRoot `
-            -ExcludedSourcePaths $acceptanceStagingSnapshotLease.marker_paths `
+            -SourceSnapshotLease $acceptanceStagingSnapshotLease `
+            -ExcludedSourcePaths $sourceCopyExclusions `
             -DestinationWriteLease $partialWriteLease `
             -PassThruProjection
+        Assert-MvpAcceptanceStagingSnapshotLeaseTreeManifestMembership `
+            -Lease $acceptanceStagingSnapshotLease
         foreach ($buildSummary in @($BuildSummaries)) {
             Copy-MvpBuildSummaryEvidence `
                 -Summary $buildSummary `
@@ -2009,6 +2194,18 @@ function Publish-MvpAcceptanceEvidencePackage {
             -RelativePath 'manifest.json' `
             -ContentBytes $manifestBytes
 
+        # Bind source copies and every evidence writer before producing this partial tree's
+        # own immutable inventory; a source tree manifest never describes added evidence.
+        Assert-MvpAcceptanceStagingProjection `
+            -Root $partialRoot `
+            -Projection $stagingProjection.projection
+        $partialTreeManifestPath = Write-MvpAcceptanceStagingTreeManifest -StagingRoot $partialRoot
+        Add-MvpEvidenceProjectionOwnedFile `
+            -Projection $stagingProjection.projection `
+            -EvidenceRoot $partialRoot `
+            -RelativePath 'staging-tree-manifest.json' `
+            -ContentBytes ([IO.File]::ReadAllBytes($partialTreeManifestPath))
+
         if (-not [string]::IsNullOrWhiteSpace($existingEvidenceIdentity)) {
             if (-not (Test-Path -LiteralPath $EvidenceRoot)) {
                 throw "Acceptance evidence root '$EvidenceRoot' disappeared after its identity was captured."
@@ -2023,7 +2220,8 @@ function Publish-MvpAcceptanceEvidencePackage {
         $partialSnapshotLease = Open-MvpAcceptanceStagingSnapshotLease `
             -SnapshotRoot $partialRoot `
             -ExpectedRootIdentity $partialIdentity `
-            -StagingWriteLease $partialWriteLease
+            -StagingWriteLease $partialWriteLease `
+            -AllowEvidencePackageEntries
         Assert-MvpAcceptanceStagingProjection `
             -Root $partialRoot `
             -Projection $stagingProjection.projection `
@@ -2090,7 +2288,10 @@ $acceptanceStagingSnapshotRoot = $null
 $acceptanceStagingSnapshotIdentity = $null
 $acceptanceStagingSnapshotLease = $null
 try {
+$stagingRootResolution = Resolve-ZirconWindowsPath -Path $StagingRoot
+Assert-MvpAcceptanceArtifactRoot -Resolution $stagingRootResolution -Label 'StagingRoot'
 $evidenceRootResolution = Resolve-ZirconWindowsPath -Path $EvidenceRoot
+Assert-MvpAcceptanceArtifactRoot -Resolution $evidenceRootResolution -Label 'EvidenceRoot'
 $resolvedEvidenceRoot = $evidenceRootResolution.DisplayPath
 $stagingSnapshot = New-MvpAcceptanceStagingSnapshot -StagingRoot $StagingRoot -PassThru
 $acceptanceStagingSnapshotRoot = [string]$stagingSnapshot.snapshot_root
@@ -2151,7 +2352,11 @@ if (-not [string]::IsNullOrWhiteSpace($ExpectedSourceFingerprint) -and $Expected
 
 $validatedBuildSummaries = @()
 $buildSummaryManifest = $null
+$productInputManifestEvidence = $null
 if ($RequireF5Evidence) {
+    $productInputManifestEvidence = Assert-MvpProductInputManifestEvidence `
+        -Manifest $stagingManifest `
+        -SourceFingerprint $sourceFingerprint
     $profileBuildSummary = Assert-MvpBuildSummaryEvidence `
         -Path $ProfileContractSummaryPath `
         -ExpectedKind 'profile-contract' `
@@ -2315,6 +2520,7 @@ $manifest = [ordered]@{
 }
 if ($RequireF5Evidence) {
     $manifest['build_summaries'] = $buildSummaryManifest
+    $manifest['product_input_manifest'] = $productInputManifestEvidence
 }
 $manifestPath = Publish-MvpAcceptanceEvidencePackage `
     -StagingRoot $resolvedStagingRoot `
@@ -2343,6 +2549,7 @@ $result = [ordered]@{
     authoring_automation = $authoringAutomation
     reopen_automation = $reopenAutomation
     build_summaries = $buildSummaryManifest
+    product_input_manifest = $productInputManifestEvidence
     manifest = $manifestPath
 }
 if ($Json) {

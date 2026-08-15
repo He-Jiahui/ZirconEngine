@@ -1,7 +1,7 @@
 use super::super::data::FrameRect;
 use super::super::paint_frame::HostRgbaFrame;
 use super::super::paint_primitives::{draw_border, draw_rect, draw_text_bars_clipped};
-use super::super::paint_theme::{HostControlMetrics, current_host_metrics};
+use super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 use super::colors::ClosePromptPalette;
 
 pub(in crate::ui::retained_host::host_contract) fn draw_prompt_button(

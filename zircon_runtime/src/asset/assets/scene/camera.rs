@@ -1,7 +1,7 @@
 use crate::asset::AssetReference;
 use crate::core::framework::render::{
-    CorePipelineKind, DEFAULT_CAMERA_EXPOSURE_EV100, DEFAULT_CAMERA_MSAA_SAMPLES, ProjectionMode,
-    RenderCameraClearColor,
+    CorePipelineKind, ProjectionMode, RenderCameraClearColor, DEFAULT_CAMERA_EXPOSURE_EV100,
+    DEFAULT_CAMERA_MSAA_SAMPLES,
 };
 use crate::core::math::Real;
 use serde::{Deserialize, Serialize};
@@ -78,6 +78,13 @@ impl SceneCameraAsset {
                 Vec::new()
             }
         }
+    }
+
+    pub fn direct_reference_count(&self) -> usize {
+        usize::from(matches!(
+            &self.target,
+            SceneCameraTargetAsset::Texture { .. }
+        ))
     }
 }
 

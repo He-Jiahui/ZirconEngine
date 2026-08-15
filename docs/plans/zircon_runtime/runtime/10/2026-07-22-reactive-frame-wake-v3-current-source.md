@@ -25,6 +25,7 @@ The milestone remains one atomic Runtime10/Runtime03 source and commit boundary.
 | Registry structure hard cut | snapshot 693 exact10; flat owner deleted, `registry/mod.rs` zero behavior, `session_store.rs` behavior owner; independent review Critical/Important/Minor 0/0/0 | `static_reviewed_pending_atomic_validation` |
 | Registry owner documentation and Runtime15 mirrors | snapshot 698 exact2 plus snapshot 699 exact9; bounded lifecycle guards and zero-behavior owner docs; independent review Critical/Important/Minor 0/0/0 | `static_reviewed_pending_atomic_validation` |
 | Active-animation producer | snapshot 702 established the managed RED; snapshot 732 exact10 adds existing-scan OR aggregation for clip, sequence, graph, and state-machine players, asset/manager early-return coverage, LevelSystem Idle/Immediate mapping, real registry-handle ABI coverage, and failed-tick state rollback; independent review Critical/Important/Minor 0/0/0 | `implementation_static_reviewed_waiting_managed_green` |
+| Scene-asset reload producer | Session wake callback is injected into the project asset-change subscription after session construction; committed project generation changes wake reactive idle, and pending reload staging holds `Immediate` demand until completion | `source_repaired_pending_managed_product_validation` |
 
 ## Managed Evidence
 
@@ -40,9 +41,9 @@ The milestone remains one atomic Runtime10/Runtime03 source and commit boundary.
 
 No Runtime10 managed Cargo gate has passed for the current atomic V3 candidate. No milestone commit SHA exists.
 
-### Scene-asset arrival exact20 current-source manifest
+### Scene-asset arrival exact20 historical manifest
 
-This manifest is read-only audit evidence, not a lease, implementation handoff, validation snapshot, or acceptance claim.
+This 2026-07-22 manifest is historical read-only audit evidence. Its hashes predate the 2026-08-10 forward repair and are not a current-source validation snapshot or acceptance claim.
 
 | Kind | Path | SHA256 |
 |---|---|---|
@@ -67,12 +68,18 @@ This manifest is read-only audit evidence, not a lease, implementation handoff, 
 | docs | `docs/zircon_runtime/scene/dynamic_scene.md` | `995c38bd99242898f68feb6307e940eb11788f7a200c8689a9ab38ababb78482` |
 | docs | `docs/zircon_runtime/dynamic_api/session.md` | `c33192246e57f7ce1e0ef79ac4f8cce5dd544191a8372470de62797716d51adf` |
 
+## 2026-08-10 Current-Source Forward Repair
+
+- `RuntimeWakeRegistration::channel_wake` adapts the session-scoped V3 wake sink without changing the ABI. Callback clones share one lifecycle, and a synchronous same-session destroy from the currently executing wake callback is rejected before close admission instead of waiting on its own in-flight guard.
+- `RuntimeDynamicSession::with_runtime_frame_wake` installs a capacity-one project-generation token on `DynamicSceneAssetReloadQueue`. Token publication belongs to every successfully committed project generation rather than a non-empty `AssetChange` batch, so overflow/dirty reconciliation with an empty change list still wakes after resource and typed-event commit. Open, watch, import, reimport, and close share the same fenced publication owner; no full `AssetChange` payload is copied for this wake-only consumer.
+- The queue drains at most one token per tick. `has_pending_work` covers typed receiver backlog, a carried event, reconciliation, pending preparations, and deferred/ready results, so budget exhaustion cannot incorrectly publish `Idle` before all queue-owned work converges.
+- Behavior/source contracts cover callback reentry rejection, bounded token coalescing, FFI injection ordering, receiver backlog, and pending-demand convergence. Scoped rustfmt, diff-check, and source-contract checks passed. No managed Cargo, product, shutdown-race, WPR, or acceptance result is claimed.
+
 ## Remaining Items
 
 - Retry the source-bound snapshot 732 focused green only after the four lower owner groups from job `04edf97fb8d74fa988ef7639137314b3` are current-source compilable; then include the producer in the final atomic Runtime10/Runtime03 gates. The failed attempt did not execute the target and is not green evidence.
 - Land the Runtime09 production UI-surface owner, then route its real timer deadlines into the same-tick earliest-delay demand. Current `UiInputManager` timer state is not constructed by production code, so a test-only timer must not be presented as the producer. Double-click candidate expiry is not frame-visible and must not manufacture a deadline.
-- Runtime11 terminal-observer work is an atomic prerequisite with its lower ResourceRegistryError and Frameworks01 typed-error owners because no independently compilable intermediate commit exists. Snapshot 738 is now historical rather than current-source: the Runtime11 plan path drifted after later performance handoffs, and the Plugins01-owned three mirror documents still have no SHA/fixed handoff. Original owners must reconcile and re-freeze exact60 before Cargo/review/commit. After that atomic prerequisite commit, attach the observer only to `DynamicSceneAssetReloadQueue` tasks whose results remain queue-owned and frame-visible; preserve destroy quiescence and suppress superseded/dropped-task wakes. Do not add a scheduler-wide or generic `DynamicSceneSpawnTask` wake.
-- Add a session-scoped asset-event arrival notifier as a separate real producer after all active sessions covering the seven declared-scope paths hand off their current diffs. The 2026-07-22 05:33Z exact20 manifest above has 20/20 live leases free but only 13/20 declared scopes free; `lease=0` is not authorization to absorb the other seven paths. Current production has neither stage: typed `SceneAsset` enqueue does not wake the idle session, and the queue does not register the existing `JobHandle::on_terminal` primitive. The required contract remains two-stage: enqueue wakes once to schedule work, then eligible queue-owned task terminal wakes once to collect/apply; terminal-only wake does not close the idle file-watch-to-schedule gap. First RED: `scene_asset_event_arrival_wakes_idle_session_before_reload_task_is_scheduled`; second RED: `queue_owned_scene_asset_reload_terminal_wakes_once_and_suppresses_superseded_task`.
+- Validate the 2026-08-10 scene-asset producer with managed runtime/app focused tests and a product regression that starts from reactive idle, publishes a real project resource change, observes the proxy wake, and reaches `pending_count == 0`. Include shutdown-race coverage proving the shared wake registration quiesces before unload. The older task-terminal observer proposal is superseded by the bounded pending-demand pump and must not be reintroduced without new evidence.
 - Obtain the ResourceRegistryError + Frameworks01 + Runtime11 current-source prerequisite managed commit before atomic Runtime10/Runtime03 acceptance; do not restore deleted error owners or add compatibility shims to manufacture an intermediate commit.
 - Reconcile all V3 runtime-absorption mirrors and authoritative docs that still describe V2.
 - Freeze the final atomic manifest only after zero-mod, producers, mirrors, docs, app, editor, interface, and lifecycle owners are current-hash attributed.

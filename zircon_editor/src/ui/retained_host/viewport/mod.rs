@@ -9,6 +9,7 @@ mod new_with_framework;
 mod poll_captured_frame;
 mod poll_viewport_product;
 mod presenter_factory;
+pub(in crate::ui::retained_host) mod render_framework_access;
 mod render_framework_resolve_job;
 mod retained_viewport_controller;
 mod submit_extract;

@@ -1,22 +1,19 @@
 use crate::core::math::{Mat4, Transform};
 
 use super::{SceneError, SceneResult, World};
-use crate::scene::EntityId;
-use crate::scene::components::{ActiveSelf, Mobility, RenderLayerMask, SceneNode};
-use crate::scene::ecs::{
-    ArchetypeId, Component, ComponentId, ComponentStorageLocation, ComponentTicks, InternalEntity,
-    QueryAccess, StableEntityLocation,
+use crate::scene::components::{
+    ActiveSelf, CameraComponent, Hierarchy, LocalTransform, Mobility, RenderLayerMask, SceneNode,
 };
+use std::any::TypeId;
+
+use crate::scene::ecs::{
+    ArchetypeId, ArchetypeIndexPerformanceStats, ChangeTick, Component, ComponentId,
+    ComponentStorageLocation, ComponentTicks, InternalEntity, QueryAccess, StableEntityLocation,
+    StorageType,
+};
+use crate::scene::EntityId;
 
 impl World {
-    pub(crate) fn query_cache_revision(&self) -> u64 {
-        self.query_cache_revision.get()
-    }
-
-    pub(super) fn bump_query_cache_revision(&mut self) {
-        self.query_cache_revision.advance();
-    }
-
     pub(crate) fn archetype_generation(&self) -> u64 {
         self.archetype_index.generation()
     }
@@ -24,6 +21,62 @@ impl World {
     pub(crate) fn matching_query_archetypes(&self, access: &QueryAccess) -> Vec<ArchetypeId> {
         self.archetype_index
             .matching_archetypes(access.with(), access.without())
+    }
+
+    pub(crate) fn matching_query_archetypes_from(
+        &self,
+        access: &QueryAccess,
+        first_archetype_index: usize,
+    ) -> Vec<ArchetypeId> {
+        self.archetype_index.matching_archetypes_from(
+            access.with(),
+            access.without(),
+            first_archetype_index,
+        )
+    }
+
+    pub(crate) fn query_archetype_index_performance_stats(&self) -> ArchetypeIndexPerformanceStats {
+        self.archetype_index.performance_stats()
+    }
+
+    pub(crate) fn query_archetype_membership_generation(
+        &self,
+        archetype: ArchetypeId,
+    ) -> Option<u64> {
+        self.archetype_index.membership_generation(archetype)
+    }
+
+    pub(crate) fn query_component_storage_type(
+        &self,
+        component_id: ComponentId,
+    ) -> Option<StorageType> {
+        self.component_registry
+            .descriptor(component_id)
+            .map(|descriptor| descriptor.storage_type)
+    }
+
+    pub(crate) fn query_component_rust_type_id(&self, component_id: ComponentId) -> Option<TypeId> {
+        self.component_registry
+            .rust_type_for_id(component_id)
+            .map(|(rust_type_id, _)| rust_type_id)
+    }
+
+    pub(crate) fn query_archetype_contains_component(
+        &self,
+        archetype: ArchetypeId,
+        component_id: ComponentId,
+    ) -> bool {
+        self.archetype_index
+            .signature(archetype)
+            .is_some_and(|signature| signature.contains(component_id))
+    }
+
+    pub(crate) fn query_archetype_column_slot(
+        &self,
+        archetype: ArchetypeId,
+        component_id: ComponentId,
+    ) -> Option<usize> {
+        self.archetype_index.column_slot(archetype, component_id)
     }
 
     pub(crate) fn matching_query_archetype_entity_count(
@@ -39,44 +92,34 @@ impl World {
         count
     }
 
-    pub(crate) fn visit_entity_locations_matching_archetypes(
-        &self,
-        archetypes: &[ArchetypeId],
-        mut visitor: impl FnMut(StableEntityLocation),
-    ) {
-        if archetypes.is_empty() {
-            return;
-        }
-        for entity in self.entities.iter().copied() {
-            let Some(location) = self.internal_entity_location(entity) else {
-                continue;
-            };
-            if archetypes
-                .binary_search(&location.location.archetype_id)
-                .is_ok()
-            {
-                visitor(location);
-            }
-        }
+    pub(crate) fn query_archetype_entity_count(&self, archetype: ArchetypeId) -> usize {
+        self.archetype_index
+            .entities(archetype)
+            .map_or(0, <[_]>::len)
     }
 
-    pub(crate) fn component_storage_locations_for_internal(
+    pub(crate) fn stable_query_location_iter(
         &self,
+        archetypes: impl IntoIterator<Item = ArchetypeId>,
+    ) -> super::StableQueryLocationIter<'_> {
+        self.stable_query_order.iter_matching(archetypes)
+    }
+
+    pub(crate) fn query_stable_location_at(
+        &self,
+        archetype: ArchetypeId,
+        row: usize,
+    ) -> Option<StableEntityLocation> {
+        let entity = *self.archetype_index.entities(archetype)?.get(row)?;
+        self.internal_entity_location(entity)
+    }
+
+    pub(crate) fn query_sparse_component_location(
+        &self,
+        component_id: ComponentId,
         internal: InternalEntity,
-        component_ids: &[ComponentId],
-        output: &mut Vec<ComponentStorageLocation>,
-    ) {
-        output.clear();
-        let component_count = component_ids.len();
-        if component_count == 0 {
-            return;
-        }
-        output.reserve(component_count);
-        for component_id in component_ids {
-            if let Some(location) = self.component_storage.location(*component_id, internal) {
-                output.push(location);
-            }
-        }
+    ) -> Option<ComponentStorageLocation> {
+        self.component_storage.location(component_id, internal)
     }
 
     pub(crate) fn component_ref_with_ticks_at_location<T>(
@@ -86,8 +129,67 @@ impl World {
     where
         T: Component,
     {
-        self.component_storage
-            .get_with_ticks_at_location::<T>(location)
+        match location.storage_type {
+            StorageType::Table => {
+                let row = location.table_row?;
+                let archetype = location.table_archetype?;
+                let column_slot = location.table_column_slot?;
+                let value = self
+                    .archetype_index
+                    .get_by_slot::<T>(archetype, row, column_slot)?;
+                let ticks =
+                    self.archetype_index
+                        .component_ticks_by_slot(archetype, row, column_slot)?;
+                Some((value, ticks))
+            }
+            StorageType::SparseSet => self
+                .component_storage
+                .get_with_ticks_at_location::<T>(location),
+        }
+    }
+
+    pub(crate) fn query_component_mut_at_location<T>(
+        &mut self,
+        location: ComponentStorageLocation,
+    ) -> Option<&mut T>
+    where
+        T: Component,
+    {
+        let tick = self.mutation_change_tick();
+        match location.storage_type {
+            StorageType::Table => self.archetype_index.get_mut_at_tick_by_slot::<T>(
+                location.table_archetype?,
+                location.table_row?,
+                location.table_column_slot?,
+                tick,
+            ),
+            StorageType::SparseSet => self.component_storage.get_mut_at_tick::<T>(
+                location.component_id,
+                location.entity,
+                tick,
+            ),
+        }
+    }
+
+    pub(crate) fn query_component_mut_with_ticks_at_location<T>(
+        &mut self,
+        location: ComponentStorageLocation,
+    ) -> Option<(&mut T, &mut ComponentTicks, ChangeTick)>
+    where
+        T: Component,
+    {
+        let tick = self.mutation_change_tick();
+        let (value, ticks) = match location.storage_type {
+            StorageType::Table => self.archetype_index.get_mut_with_ticks_by_slot::<T>(
+                location.table_archetype?,
+                location.table_row?,
+                location.table_column_slot?,
+            )?,
+            StorageType::SparseSet => self
+                .component_storage
+                .get_mut_with_ticks::<T>(location.component_id, location.entity)?,
+        };
+        Some((value, ticks, tick))
     }
 
     pub fn contains_entity(&self, entity: EntityId) -> bool {
@@ -95,11 +197,24 @@ impl World {
     }
 
     pub fn camera_count(&self) -> usize {
-        self.cameras.len()
+        self.registered_component_id::<CameraComponent>()
+            .map(|component_id| self.component_count_for_id(component_id))
+            .unwrap_or(0)
+    }
+
+    pub(super) fn first_stable_camera_entity(&self) -> Option<EntityId> {
+        let camera_component_id = self.registered_component_id::<CameraComponent>()?;
+        let archetypes = self
+            .archetype_index
+            .matching_archetypes(&[camera_component_id], &[]);
+        self.stable_query_order
+            .iter_matching(archetypes)
+            .next()
+            .map(|location| location.stable_id)
     }
 
     pub fn parent_of(&self, entity: EntityId) -> Option<EntityId> {
-        let Some(hierarchy) = self.hierarchy.get(&entity) else {
+        let Some(hierarchy) = self.get::<Hierarchy>(entity) else {
             return None;
         };
 
@@ -111,7 +226,7 @@ impl World {
     }
 
     pub fn set_active_camera(&mut self, entity: EntityId) {
-        if self.cameras.contains_key(&entity) && self.active_camera != entity {
+        if self.contains_component::<CameraComponent>(entity) && self.active_camera != entity {
             self.active_camera = entity;
             self.mark_node_cache_dirty();
         }
@@ -123,7 +238,7 @@ impl World {
 
     pub fn node_records(&self) -> Vec<SceneNode> {
         let mut nodes = Vec::with_capacity(self.entities.len());
-        for entity in self.entities.iter().copied() {
+        for entity in self.stable_entity_ids() {
             let Some(node) = self.project_node_for_read(entity) else {
                 continue;
             };
@@ -139,8 +254,7 @@ impl World {
 
     /// Reads only the entity's local transform without projecting an owned scene node.
     pub fn local_transform(&self, entity: EntityId) -> Option<Transform> {
-        self.local_transforms
-            .get(&entity)
+        self.get::<LocalTransform>(entity)
             .map(|local| local.transform)
     }
 
@@ -153,7 +267,7 @@ impl World {
     }
 
     pub fn active_self(&self, entity: EntityId) -> Option<bool> {
-        let Some(active) = self.active_self.get(&entity) else {
+        let Some(active) = self.get::<ActiveSelf>(entity) else {
             return None;
         };
 
@@ -161,7 +275,7 @@ impl World {
     }
 
     pub fn set_active_self(&mut self, entity: EntityId, active: bool) -> SceneResult<bool> {
-        let Some(current) = self.active_self.get(&entity) else {
+        let Some(current) = self.get::<ActiveSelf>(entity) else {
             if !self.contains_entity(entity) {
                 return Err(SceneError::missing_entity(
                     "update active state for",
@@ -186,7 +300,7 @@ impl World {
     }
 
     pub fn render_layer_mask(&self, entity: EntityId) -> Option<u32> {
-        let Some(mask) = self.render_layer_masks.get(&entity) else {
+        let Some(mask) = self.get::<RenderLayerMask>(entity) else {
             return None;
         };
 
@@ -194,7 +308,7 @@ impl World {
     }
 
     pub fn set_render_layer_mask(&mut self, entity: EntityId, mask: u32) -> SceneResult<bool> {
-        let Some(current) = self.render_layer_masks.get(&entity) else {
+        let Some(current) = self.get::<RenderLayerMask>(entity) else {
             if !self.contains_entity(entity) {
                 return Err(SceneError::missing_entity(
                     "update render layer mask for",
@@ -215,7 +329,7 @@ impl World {
     }
 
     pub fn mobility(&self, entity: EntityId) -> Option<Mobility> {
-        self.mobility.get(&entity).copied()
+        self.get::<Mobility>(entity).copied()
     }
 
     pub fn set_mobility(&mut self, entity: EntityId, mobility: Mobility) -> SceneResult<bool> {

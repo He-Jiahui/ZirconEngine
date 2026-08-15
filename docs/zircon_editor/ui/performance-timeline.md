@@ -234,7 +234,7 @@ The next capture pair focused on fixed startup work that was still happening bef
 Profiling builds can be captured without adding a permanent UI panel. Set `ZIRCON_PROFILE_CAPTURE=1` before launching a profiling build; `zircon_app` starts the recorder during editor/runtime startup and exports the report when the process exits normally. Optional environment variables are:
 
 - `ZIRCON_PROFILE_SESSION` for the report folder name.
-- `ZIRCON_PROFILE_OUTPUT_ROOT` for the output root, defaulting to `target/zircon-profiles`.
+- `ZIRCON_PROFILE_OUTPUT_ROOT` for the required absolute output root on a non-`C:` drive, such as `E:\zircon-profiles`.
 - `ZIRCON_PROFILE_MAX_FRAMES`, `ZIRCON_PROFILE_MAX_SPANS`, and `ZIRCON_PROFILE_MAX_COUNTERS` for ring-buffer size.
 - `ZIRCON_RUNTIME_LIBRARY` when the editor should load a staged profiling runtime DLL.
 

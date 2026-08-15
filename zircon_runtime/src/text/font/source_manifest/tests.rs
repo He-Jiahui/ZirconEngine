@@ -6,6 +6,8 @@ use super::*;
 use crate::asset::project::{ProjectManifest, ProjectPaths};
 use crate::asset::{AssetManager, AssetUri, ProjectAssetManager};
 
+const TEXT_FONT_MANIFEST_WORK_DIRECTORY: &str = ".runtime_text_font_manifest_work";
+
 #[test]
 fn runtime_font_manifests_under_assets_stay_inside_runtime_assets_root() {
     let assets_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets");
@@ -74,7 +76,32 @@ fn font_manifest_keeps_relative_source_paths_inside_allowed_root() {
 }
 
 #[test]
+fn built_in_font_manifest_path_uses_the_selected_runtime_asset_root() {
+    let product_asset_root = Path::new("E:/portable-product/assets");
+
+    let resolved = resolve_font_asset_path_with("res://fonts/default.font.toml", |relative| {
+        product_asset_root.join(relative)
+    });
+
+    assert_eq!(
+        resolved,
+        Some(product_asset_root.join("fonts/default.font.toml"))
+    );
+}
+
+#[test]
+fn production_res_font_manifest_path_uses_the_runtime_asset_resolver() {
+    let asset_ref = "res://fonts/default.font.toml";
+
+    assert_eq!(
+        resolve_font_asset_path(asset_ref),
+        Some(crate::asset::runtime_asset_path("fonts/default.font.toml"))
+    );
+}
+
+#[test]
 fn res_font_manifest_rejects_source_paths_that_escape_runtime_assets_root() {
+    let temp = TempDirGuard::new("zircon-font-manifest-escape");
     let unique = format!(
         "codex-escape-{}-{}",
         std::process::id(),
@@ -89,11 +116,19 @@ fn res_font_manifest_rejects_source_paths_that_escape_runtime_assets_root() {
         .join("assets")
         .join("fonts")
         .join(&manifest_name);
-    let outside_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(&outside_name);
+    let outside_path = temp.path.join(&outside_name);
+    let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("zircon_runtime manifest must have a workspace parent");
+    let outside_from_assets = Path::new("..").join("..").join("..").join(
+        outside_path
+            .strip_prefix(workspace_root)
+            .expect("workspace font sandbox should stay under the workspace"),
+    );
     let _manifest_guard = TempFileGuard::new(manifest_path.clone());
     let _outside_guard = TempFileGuard::new(outside_path.clone());
     fs::copy(default_font_path(), &outside_path).expect("escape target font should exist");
-    write_manifest(&manifest_path, &format!("../../{outside_name}"));
+    write_manifest(&manifest_path, &outside_from_assets.to_string_lossy());
 
     let loaded = load_text_font_source(&format!("res://fonts/{manifest_name}"), None);
 
@@ -192,8 +227,17 @@ impl TempDirGuard {
                 .expect("system time should be after unix epoch")
                 .as_nanos()
         );
-        let path = std::env::temp_dir().join(unique);
-        fs::create_dir_all(&path).expect("temp dir should be created");
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("zircon_runtime manifest must have a workspace parent")
+            .join("docs")
+            .join("tests")
+            .join("runtime")
+            .join("text")
+            .join(TEXT_FONT_MANIFEST_WORK_DIRECTORY);
+        fs::create_dir_all(&root).expect("workspace font manifest directory should exist");
+        let path = root.join(unique);
+        fs::create_dir_all(&path).expect("workspace font manifest sandbox should be created");
         Self { path }
     }
 }

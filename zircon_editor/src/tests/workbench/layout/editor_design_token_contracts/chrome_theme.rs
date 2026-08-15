@@ -1,4 +1,5 @@
 use super::support::assert_tokenized_assets;
+use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 
 macro_rules! workbench_asset {
     ($path:literal) => {
@@ -13,6 +14,7 @@ const ROOT_WORKBENCH_SHELL: &str =
     include_str!("../../../../../assets/ui/editor/host/workbench_shell.zui");
 const WORKBENCH_STRICT_THEME: &str =
     include_str!("../../../../../assets/ui/theme/editor_workbench_strict.zui");
+const EDITOR_TOKENS: &str = include_str!("../../../../../assets/ui/editor/theme/editor_tokens.zui");
 
 #[test]
 fn root_workbench_chrome_uses_shared_metrics_and_control_tokens() {
@@ -24,6 +26,7 @@ fn root_workbench_chrome_uses_shared_metrics_and_control_tokens() {
             "$editor.control.height.dense",
             "$editor.control.border_width",
             "$editor.control.radius.control",
+            "$editor.chrome.activity_rail.width",
             "$editor.density.toolbar_action_width",
             "$editor.density.toolbar_wide_action_width",
             "$editor.density.row_height",
@@ -73,6 +76,84 @@ fn root_workbench_chrome_uses_shared_metrics_and_control_tokens() {
         assert!(
             !WORKBENCH_STRICT_THEME.contains(legacy_radius),
             "strict workbench controls must not retain {legacy_radius}"
+        );
+    }
+}
+
+#[test]
+fn editor_density_asset_and_runtime_registry_have_identical_named_values() {
+    let document: toml::Value = toml::from_str(EDITOR_TOKENS).expect("editor tokens must parse");
+    let density = document
+        .get("density")
+        .and_then(toml::Value::as_table)
+        .expect("editor tokens must declare [density]");
+    let names = document
+        .get("names")
+        .and_then(|value| value.get("density"))
+        .and_then(toml::Value::as_table)
+        .expect("editor tokens must declare [names.density]");
+    assert_eq!(
+        density.len(),
+        names.len(),
+        "every editor density value must have one canonical token name"
+    );
+
+    let runtime_values = EditorDesignTokens::workbench_dark().cascade_token_values();
+    for (field_name, token_name) in names {
+        let token_name = token_name
+            .as_str()
+            .unwrap_or_else(|| panic!("density token name `{field_name}` must be a string"));
+        let asset_value = density
+            .get(field_name)
+            .and_then(toml::Value::as_float)
+            .unwrap_or_else(|| panic!("density value `{field_name}` must be a float"));
+        let runtime_value = runtime_values
+            .get(token_name)
+            .and_then(toml::Value::as_float)
+            .unwrap_or_else(|| panic!("Runtime must register `{token_name}`"));
+        assert!(
+            (asset_value - runtime_value).abs() < 0.0001,
+            "density token `{token_name}` drifted: asset={asset_value}, Runtime={runtime_value}"
+        );
+    }
+}
+
+#[test]
+fn strict_theme_raw_colors_are_confined_to_viewport_and_axis_visuals() {
+    let mut raw_color_count = 0;
+    for (line_index, line) in WORKBENCH_STRICT_THEME.lines().enumerate() {
+        if !line.contains("= \"#") {
+            continue;
+        }
+        raw_color_count += 1;
+        let token_name = line
+            .split_once('=')
+            .map(|(name, _)| name.trim())
+            .unwrap_or_default();
+        assert!(
+            token_name.starts_with("workbench_viewport_")
+                || token_name.starts_with("workbench_axis_"),
+            "strict theme line {} keeps a semantic raw color in `{token_name}`",
+            line_index + 1
+        );
+    }
+    assert!(
+        raw_color_count > 0,
+        "viewport and axis visuals must exercise the raw-color allowlist"
+    );
+
+    for semantic_assignment in [
+        "workbench_toast_surface = \"$editor.popup\"",
+        "workbench_status_no_errors_fill = \"$editor.semantic.success\"",
+        "workbench_field_component_focus_border = \"$editor.focus.ring\"",
+        "workbench_field_component_disabled = \"$editor.surface.disabled\"",
+        "workbench_toggle_checked_track = \"$editor.surface.selected\"",
+        "workbench_warning_surface = \"$editor.semantic.warning.container\"",
+        "workbench_error_surface = \"$editor.semantic.error.container\"",
+    ] {
+        assert!(
+            WORKBENCH_STRICT_THEME.contains(semantic_assignment),
+            "strict theme must retain semantic assignment `{semantic_assignment}`"
         );
     }
 }
@@ -156,6 +237,115 @@ fn strict_theme_uses_atomic_radius_tokens_for_compact_control_details() {
             "{selector} must use {radius_token}"
         );
     }
+}
+
+#[test]
+fn workbench_family_recipes_share_semantic_surface_and_shape_roles() {
+    for (selector, surface, radius, border_width) in [
+        (
+            ".workbench-toolbar-button",
+            "$workbench_panel",
+            "$editor.control.radius.control",
+            "$editor.control.border_width",
+        ),
+        (
+            ".workbench-panel-header",
+            "$workbench_panel_raised",
+            "0.0",
+            "$editor.control.border_width",
+        ),
+        (
+            ".workbench-list-row",
+            "$workbench_panel",
+            "$editor.control.radius.control",
+            "0.0",
+        ),
+        (
+            ".workbench-field",
+            "$workbench_field",
+            "$editor.control.radius.small",
+            "$editor.control.border_width",
+        ),
+        (
+            ".workbench-popup-menu",
+            "$editor.popup",
+            "$editor.control.radius.control",
+            "$editor.control.border_width",
+        ),
+    ] {
+        let rule = strict_theme_rule(selector);
+        assert!(
+            rule.contains(&format!("background_color = \"{surface}\"")),
+            "{selector} must use the canonical family surface {surface}"
+        );
+        assert!(
+            rule.contains(&format!("radius = {radius}"))
+                || rule.contains(&format!("radius = \"{radius}\"")),
+            "{selector} must use the canonical family radius {radius}"
+        );
+        assert!(
+            rule.contains(&format!("border_width = {border_width}"))
+                || rule.contains(&format!("border_width = \"{border_width}\"")),
+            "{selector} must use the canonical family border width {border_width}"
+        );
+    }
+
+    let panel_header = workbench_asset!("composites/chrome/workbench_panel_header.zui");
+    assert_eq!(
+        panel_header
+            .matches("$editor.chrome.panel_header.height")
+            .count(),
+        3,
+        "panel header min/preferred/max must share one stable chrome metric"
+    );
+    assert!(
+        !panel_header.contains("$editor.control.height.dense")
+            && !panel_header.contains("$editor.control.height.compact"),
+        "panel header height must not drift through generic control metrics"
+    );
+}
+
+#[test]
+fn focus_visible_rules_are_border_only_overlays_after_primary_state_rules() {
+    let last_primary_rule = WORKBENCH_STRICT_THEME
+        .find("selector = \".workbench-dropdown:popup_open\"")
+        .expect("strict theme must retain the dropdown open recipe");
+
+    for selector in [
+        ".workbench-component-property-row:focus-visible",
+        ".workbench-field:focus-visible",
+        ".workbench-component-field:focus-visible",
+        ".workbench-dropdown:focus-visible",
+    ] {
+        let selector_line = format!("selector = \"{selector}\"");
+        let selector_offset = WORKBENCH_STRICT_THEME
+            .find(&selector_line)
+            .unwrap_or_else(|| panic!("strict theme is missing {selector}"));
+        assert!(
+            selector_offset > last_primary_rule,
+            "{selector} must cascade after selected/open primary-state recipes"
+        );
+
+        let rule = strict_theme_rule(selector);
+        assert!(
+            rule.contains("border_width = \"$editor.control.border_width\""),
+            "{selector} must use the shared outline width"
+        );
+        assert!(
+            rule.contains("border_color = \"$editor.focus.ring\"")
+                || rule.contains("border_color = \"$workbench_field_component_focus_border\"",),
+            "{selector} must use the semantic focus-ring role"
+        );
+        assert!(
+            !rule.contains("background_color") && !rule.contains("foreground_color"),
+            "{selector} must not replace primary fill or foreground identity"
+        );
+    }
+
+    assert!(
+        !WORKBENCH_STRICT_THEME.contains(":focused\""),
+        "strict theme must not style pointer/programmatic focus as keyboard-visible focus"
+    );
 }
 
 fn strict_theme_rule(selector: &str) -> &str {

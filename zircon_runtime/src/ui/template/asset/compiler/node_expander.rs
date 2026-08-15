@@ -60,8 +60,8 @@ impl UiDocumentCompiler {
                         reference: reference.to_string(),
                     }
                 })?;
-                let component_name =
-                    parse_component_reference(reference).map(|(_, component)| component.to_string())?;
+                let component_name = parse_component_reference(reference)
+                    .map(|(_, component)| component.to_string())?;
                 self.expand_component_instance(
                     imported,
                     &component_name,

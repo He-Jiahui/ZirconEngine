@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use crate::core::framework::asset::{
-    ResourceCacheIdentity, ResourceManagementGeneration, ResourceManager as ResourceManagerContract,
+    ResourceCacheIdentity, ResourceManager as ResourceManagerContract,
 };
-use crate::core::resource::{ResourceEventReceiver, ResourceRecord};
+use crate::core::resource::{ResourceEventReceiver, ResourceManagementGeneration, ResourceRecord};
 
 use super::super::project_asset_manager::ProjectAssetManager;
 use crate::asset::AssetUri;

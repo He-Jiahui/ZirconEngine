@@ -1,3 +1,4 @@
+use super::super::noop_render_pass_executor;
 use super::*;
 use crate::graphics::scene::scene_renderer::environment::ibl_bake_graph_plan::{
     IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID,
@@ -6,7 +7,6 @@ use crate::graphics::scene::scene_renderer::environment::ibl_bake_graph_plan::{
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderPassExecutor, RenderPassRecordingPolicy,
 };
-
 #[test]
 fn registry_rejects_unregistered_executor_ids() {
     let registry = RenderPassExecutorRegistry::default();
@@ -66,7 +66,7 @@ fn execution_context_records_graph_queue_and_pass_flags() {
 
     let context = RenderPassExecutionContext::with_declared_graph_metadata(
         "fallback-ssao",
-        RenderPassExecutorId::new("ao.ssao-evaluate"),
+        RenderPassExecutorId::new("compute.generic"),
         QueueLane::Graphics,
         QueueLane::AsyncCompute,
         PassFlags::default(),
@@ -82,10 +82,19 @@ fn execution_context_records_graph_queue_and_pass_flags() {
             QueueLane::Graphics,
             QueueLane::Graphics,
             PassFlags::default(),
-            vec![RenderPassId(1), RenderPassId(3)],
+            vec![
+                RenderPassId::from_index(1, 0),
+                RenderPassId::from_index(3, 0),
+            ],
             Vec::new(),
         );
-    assert_eq!(context.dependencies, vec![RenderPassId(1), RenderPassId(3)]);
+    assert_eq!(
+        context.dependencies,
+        vec![
+            RenderPassId::from_index(1, 0),
+            RenderPassId::from_index(3, 0)
+        ]
+    );
 }
 
 #[test]
@@ -187,7 +196,6 @@ fn builtin_registry_covers_product_postprocess_executor_ids() {
         "post.bloom-extract",
         "temporal.velocity-camera",
         "temporal.velocity-object",
-        "temporal.taa-reactive-mask-clear",
         "temporal.taa-reactive-mask-mesh",
         "temporal.taa-resolve",
         "post.motion-vector-tile-max",
@@ -292,7 +300,6 @@ fn parallel_recording_requires_an_explicit_executor_policy() {
     }
     for executor_id in [
         "lighting.baked-composite",
-        "ao.ssao-evaluate",
         "lighting.light-grid",
         "post.bloom",
     ] {

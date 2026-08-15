@@ -9,9 +9,9 @@ use crate::capability::{
 use crate::manager::DefaultPhysicsManager;
 use crate::module::module_descriptor_with_manager;
 use crate::runtime_system::{
-    PHYSICS_STEP_SYSTEM, PHYSICS_SYNC_TO_SCENE_SYSTEM, PHYSICS_SYSTEM_SET, register_runtime_systems,
+    register_runtime_systems, PHYSICS_STEP_SYSTEM, PHYSICS_SYNC_TO_SCENE_SYSTEM, PHYSICS_SYSTEM_SET,
 };
-use zircon_runtime::core::framework::physics::{PHYSICS_QUERY_INTERFACE_ID, PhysicsQueryInterface};
+use zircon_runtime::core::framework::physics::{PhysicsQueryInterface, PHYSICS_QUERY_INTERFACE_ID};
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{

@@ -4,7 +4,9 @@ related_code:
   - zircon_runtime/src/core/resource/io/mod.rs
   - zircon_runtime/src/core/resource/io/resource_io.rs
   - zircon_runtime/src/core/resource/io/error.rs
-  - zircon_runtime/src/core/resource/io/atomic_file.rs
+  - zircon_runtime/src/core/resource/io/atomic_file
+  - zircon_runtime/src/core/resource/io/transaction
+  - zircon_runtime/src/asset/project/manager/durable_transaction.rs
   - zircon_runtime/src/core/resource/error.rs
   - zircon_runtime/src/core/resource/registry.rs
   - zircon_runtime/src/core/resource/manager/resource_manager.rs
@@ -12,7 +14,7 @@ related_code:
   - zircon_runtime/src/core/resource/manager/payload_ops.rs
   - zircon_runtime/src/core/resource/manager/registry_ops.rs
   - zircon_runtime/src/core/resource/manager/lease_ops.rs
-  - zircon_runtime/src/core/resource/manager/events.rs
+  - zircon_runtime/src/core/resource/event_stream.rs
   - zircon_runtime/src/core/resource/manager/runtime_slot.rs
   - zircon_runtime/src/core/resource/snapshot.rs
   - zircon_runtime/src/core/resource/runtime.rs
@@ -35,7 +37,9 @@ implementation_files:
   - zircon_runtime/src/core/resource/io/mod.rs
   - zircon_runtime/src/core/resource/io/resource_io.rs
   - zircon_runtime/src/core/resource/io/error.rs
-  - zircon_runtime/src/core/resource/io/atomic_file.rs
+  - zircon_runtime/src/core/resource/io/atomic_file
+  - zircon_runtime/src/core/resource/io/transaction
+  - zircon_runtime/src/asset/project/manager/durable_transaction.rs
   - zircon_runtime/src/core/resource/error.rs
   - zircon_runtime/src/core/resource/registry.rs
   - zircon_runtime/src/core/resource/manager/resource_manager.rs
@@ -43,7 +47,7 @@ implementation_files:
   - zircon_runtime/src/core/resource/manager/payload_ops.rs
   - zircon_runtime/src/core/resource/manager/registry_ops.rs
   - zircon_runtime/src/core/resource/manager/lease_ops.rs
-  - zircon_runtime/src/core/resource/manager/events.rs
+  - zircon_runtime/src/core/resource/event_stream.rs
   - zircon_runtime/src/core/resource/manager/runtime_slot.rs
   - zircon_runtime/src/core/resource/runtime.rs
   - zircon_runtime/src/bin/zircon_shader_prewarm/manifest/resource_registry.rs
@@ -80,6 +84,8 @@ tests:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_resource_manager_lock_poison_recovery_guard_covers_resource_manager
   - zircon_runtime/src/asset/facade/load_state.rs::tests::asset_load_state_projection_matches_resource_record_matrix
   - zircon_runtime/tests/resource_snapshot_contract.rs::resource_snapshot_never_pairs_a_new_revision_with_an_old_payload
+  - zircon_runtime/src/core/resource/io/transaction/engine/tests.rs
+  - zircon_runtime/src/asset/tests/project/manager/full_generation.rs
 doc_type: module-detail
 ---
 
@@ -91,9 +97,17 @@ Current Runtime 04 owner sync (2026-07-10): `expected_source_file_count = 25`, `
 
 ## Shared Atomic File I/O
 
-`core::resource::io::atomic_file` is the sole concrete crash-safe replacement owner. It owns sibling staging, write and file synchronization, replacement or rollback recovery, platform-specific durability, fault injection, and staging cleanup. Asset artifacts and registry persistence, Platform preference persistence, Scene project serialization, Foundation configuration, and pipeline/meta cache writers import this owner directly.
+`core::resource::io::atomic_file` is the sole private concrete crash-safe replacement owner. It owns sibling staging, write and file synchronization, replacement or rollback recovery, platform-specific durability, fault injection, and staging cleanup. Asset artifacts and registry persistence, Platform preference persistence, Scene project serialization, Foundation configuration, and pipeline/meta cache writers use the curated `core::resource::io` root facade; product consumers only receive `atomic_write`, while fault, recovery, and staging helpers remain crate-internal.
 
-`foundation::persistence` has no compatibility module or re-export. `foundation` remains a consumer for configuration persistence; it does not own generic filesystem commit behavior. The `ResourceIo` contract and `ResourceIoError` retain their existing `core::resource` projections while their declarations live in focused `io` children. Source status is `runtime04_atomic_file_owner_hardcut_static_passed_cargo_pending`: the old runtime source path is absent, while focused behavior gates and managed package validation remain pending.
+`foundation::persistence` has no compatibility module or re-export. `foundation` remains a consumer for configuration persistence; it does not own generic filesystem commit behavior. The `ResourceIo` contract and `ResourceIoError` retain their existing `core::resource` projections while their declarations live in focused `io` children. Source status is `frameworks01_r8_atomic_facade_hardcut_static_passed_cargo_pending`: the flat source and old public module path are absent, while focused behavior gates and managed package validation remain pending.
+
+The single-file facade still returns `io::Result<()>`; an error after replacement may therefore mean that the new bytes are already visible but their final durability barrier or backup cleanup failed. Consumers must not interpret every error as proof that the old target remains authoritative. A future hard cut must introduce a typed atomic disposition after auditing each consumer's publication policy; compatibility wrappers or silent error suppression are not part of that migration.
+
+## Shared Durable Generation Transaction
+
+`core::resource::io::transaction` is the single multi-file generation owner for Project generation and AssetMigration. It returns a typed `DurableCommitDisposition`: `Durable` means the commit point and cleanup completed, `CleanupDeferred` means the new generation is durable and only reserved artifacts remain for restart cleanup, and `CommitRecoveryDeferred` means a complete commit frame is visible but its durability barrier failed. The last state cannot be collapsed into ordinary success or rolled back in-process because live target bytes already belong to the new generation and the complete frame may become durable. Before a document can publish its `prepared` transition, both the staged file contents and the staging parent directory entry pass durability barriers; a restart therefore never observes durable prepared evidence for a staging name that was never made durable.
+
+Project publication propagates that disposition through file commit, Project/source-path installation, Resource batch apply, and generation publication. Only then does a synchronous caller receive the actionable durability error; the watch path publishes the installed generation before broadcasting the same pending-recovery diagnostic. AssetMigration has no long-lived in-memory authority, so it reports `CommitRecoveryDeferred` immediately after the shared engine preserves the new bytes and journal. Recovery rolls `active` journals back and treats `all_committed` or `cleanup` journals as forward cleanup. During `active` rollback, a failed transition append stops all later journal appends because the terminal frame may be torn; each committed document may then expose either its original or replacement bytes until recovery finishes idempotently. A durable `rollback_completed` phase permits consumed staging files to be absent while still requiring the restored live generation and backup evidence. Recovery validates the complete journal set first, truncates each torn terminal frame to its last complete frame, synchronizes that repair, and only then appends recovery transitions; read-only detection never mutates the journal. The 128 MiB total journal bound applies before every append and before recovery allocation, while each frame remains capped at 64 MiB. Abort or recovery before `active`, and fully restored rollback, remove the journal before staging or backup artifacts, so partial cleanup cannot leave an evidence-starved recoverable record; if journal removal fails, all evidence remains intact. Durable `cleanup` phases may remove artifacts first because the journal phase already permits missing cleanup evidence. Cleanup deferral remains a committed success and is observable through the existing resource transaction counters.
 
 ## State Ownership
 
@@ -162,3 +176,5 @@ The split manager owners consume those helpers directly: registry operations wri
 ## Validation
 
 The focused resource tests cover the transition boundary itself: failed reload keeps the last good payload, direct `Error -> Ready` registration is rejected, failed resources recover only through `Reloading`, and direct `Ready -> Error` failure is rejected. The asset load-state unit test covers the projection matrix, while facade tests verify that typed failed assets expose the same diagnostic reason through asset-facing APIs.
+
+Current Runtime 04 source-owner synchronization (2026-08-14): `asset_pipeline_boundary` reports `expected_source_file_count = 26`; `core/resource/manager/commit.rs` owns reload transaction-state mutation in the current tree. This replaces the previous public-facade-only inventory; broader Cargo gates remain pending.

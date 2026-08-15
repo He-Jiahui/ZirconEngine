@@ -43,6 +43,10 @@ pub(in crate::ui::retained_host::host_contract) fn present(
         repaint_backbuffer(presenter, &stream, size)
     };
     record_current_ui_perf_counter(UiPerfCounter::PaintedPixels, outcome.painted_pixels as f64);
+    record_current_ui_perf_counter(
+        UiPerfCounter::PresentedSurfacePixels,
+        u64::from(size.0).saturating_mul(u64::from(size.1)) as f64,
+    );
     if outcome.full_paint {
         record_current_ui_perf_counter(UiPerfCounter::FullPaintCount, 1.0);
     }

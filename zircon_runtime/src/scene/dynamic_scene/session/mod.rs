@@ -40,11 +40,11 @@ mod target_path;
 mod validation;
 
 pub use archive::{
-    RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION, RuntimeSessionArchive, RuntimeSessionArchivePayload,
+    RuntimeSessionArchive, RuntimeSessionArchivePayload, RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
 };
 pub use artifact::{
-    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES, RuntimeSessionArchiveArtifact,
-    RuntimeSessionArchiveArtifactDiagnostics,
+    RuntimeSessionArchiveArtifact, RuntimeSessionArchiveArtifactDiagnostics,
+    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES,
 };
 pub use error::RuntimeSessionArchiveError;
 pub use io::{
@@ -64,7 +64,10 @@ pub use reports::{
     RuntimeSessionSlotDiffReport, RuntimeSessionSlotExportPreviewReport,
     RuntimeSessionSlotImportPreviewReport, RuntimeSessionSlotMutationPreviewReport,
 };
-pub use retention::{RuntimeSessionArchivePruneReport, RuntimeSessionArchiveRetentionPolicy};
+pub use retention::{
+    RuntimeSessionArchivePrunePlan, RuntimeSessionArchivePruneReport,
+    RuntimeSessionArchiveRetentionPolicy,
+};
 pub use slot::RuntimeSessionSlot;
 pub use slot_selector::{
     RuntimeSessionSlotSelection, RuntimeSessionSlotSelectionReport, RuntimeSessionSlotSelector,

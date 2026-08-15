@@ -119,7 +119,7 @@ fn surface_frame_pipeline_report_keeps_render_only_rebuild_scoped() {
     let projection_mask = surface.ui_ecs_schedule_mask_from(&previous_projection);
 
     surface.rebuild_dirty(UiSize::new(120.0, 60.0)).unwrap();
-    let pipeline = surface.surface_frame().pipeline_report;
+    let pipeline = surface.surface_frame().pipeline_report.clone();
 
     assert!(projection_mask.requires_stage(UiPipelineStage::RenderExtract));
     assert!(projection_mask.requires_stage(UiPipelineStage::BatchPrepare));
@@ -188,7 +188,7 @@ wrap = "Word"
     });
 
     surface.compute_layout(UiSize::new(120.0, 60.0)).unwrap();
-    let first = surface.surface_frame().pipeline_report;
+    let first = surface.surface_frame().pipeline_report.clone();
     let first_text = first
         .stage_report(UiPipelineStage::TextMeasure)
         .expect("text stage should be reported");
@@ -199,7 +199,7 @@ wrap = "Word"
     assert!(first_text.counters.text_shape_cache_miss_count > 0);
 
     surface.rebuild();
-    let forced_rebuild = surface.surface_frame().pipeline_report;
+    let forced_rebuild = surface.surface_frame().pipeline_report.clone();
     let forced_rebuild_text = forced_rebuild
         .stage_report(UiPipelineStage::TextMeasure)
         .expect("forced-rebuild text stage should be reported");

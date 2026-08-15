@@ -86,6 +86,15 @@ fn multiple_project_roots_scan_distinct_res_uris_and_reject_collisions() {
         manager.source_path_for_uri(&shared_uri).unwrap(),
         root.join("shared-assets/data/shared.json")
     );
+    let resolved_shared_source = manager.resolve_source_path_for_uri(&shared_uri).unwrap();
+    assert_eq!(
+        resolved_shared_source.operation_path(),
+        manager.source_path_for_uri(&shared_uri).unwrap()
+    );
+    assert_eq!(
+        resolved_shared_source.display_path(),
+        ProjectPaths::display_path(manager.source_path_for_uri(&shared_uri).unwrap())
+    );
     let new_uri = AssetUri::parse("res://generated/new.json").unwrap();
     assert!(matches!(
         manager.source_path_for_uri(&new_uri),
@@ -181,9 +190,7 @@ fn package_root_registration_publishes_physical_asset_paths_for_an_alias_root() 
     let parent = unique_temp_project_root("package_root_alias_registry");
     let project_root = parent.join("project");
     let paths = ProjectPaths::from_root(&project_root).unwrap();
-    paths
-        .ensure_layout(&[RelPath::project_assets()])
-        .unwrap();
+    paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "PackageAliasSandbox",
         AssetUri::parse("res://data/project.json").unwrap(),
@@ -409,11 +416,10 @@ fn project_manager_imports_package_labeled_subassets_with_package_urls() {
         .expect("package texture entry");
 
     assert_eq!(meta.url, root_uri);
-    assert!(
-        meta.entries
-            .iter()
-            .any(|entry| entry.uuid == meta.uuid && entry.url == root_uri)
-    );
+    assert!(meta
+        .entries
+        .iter()
+        .any(|entry| entry.uuid == meta.uuid && entry.url == root_uri));
     assert_eq!(
         texture_record.id(),
         AssetId::from_asset_uuid(texture_entry.uuid)
@@ -496,11 +502,9 @@ fn package_asset_registry_rejects_invalid_manifest_roots() {
     let parent_error = manager
         .register_package_asset_roots("com.zircon.navigation", ["../outside"], &package_root)
         .expect_err("parent-relative package roots must be rejected");
-    assert!(
-        parent_error
-            .to_string()
-            .contains("must be relative and contained by the package root")
-    );
+    assert!(parent_error
+        .to_string()
+        .contains("must be relative and contained by the package root"));
 
     let multi_error = manager
         .register_package_asset_roots(
@@ -509,20 +513,16 @@ fn package_asset_registry_rejects_invalid_manifest_roots() {
             &package_root,
         )
         .expect_err("ambiguous package roots must be rejected");
-    assert!(
-        multi_error
-            .to_string()
-            .contains("requires exactly one root")
-    );
+    assert!(multi_error
+        .to_string()
+        .contains("requires exactly one root"));
 
     let empty_id_error = manager
         .register_package_asset_root("", package_root.join("assets"))
         .expect_err("empty package ids must be rejected");
-    assert!(
-        empty_id_error
-            .to_string()
-            .contains("package resource locator")
-    );
+    assert!(empty_id_error
+        .to_string()
+        .contains("package resource locator"));
 
     let _ = fs::remove_dir_all(root);
     let _ = fs::remove_dir_all(package_root);

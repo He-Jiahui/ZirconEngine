@@ -13,7 +13,8 @@ use zircon_runtime::asset::{AssetReference, AssetUri};
 use zircon_runtime::core::framework::render::{
     build_source_cubemap_from_equirect, build_source_cubemap_irradiance_cube,
     source_cubemap_face_mip_offset, source_cubemap_mip_size, CubemapFace, EnvironmentExtract,
-    PreviewEnvironmentExtract, ProjectionMode, RenderOverlayExtract, RenderSceneSnapshot,
+    PreviewEnvironmentExtract, ProjectionMode, RenderFramework, RenderOverlayExtract,
+    RenderSceneSnapshot, RenderViewportDescriptor, RenderViewportHandle,
     SceneViewportExtractRequest, SourceCubemapEnvironment, SourceCubemapMipChain,
     ViewportRenderSettings,
 };
@@ -21,7 +22,7 @@ use zircon_runtime::core::math::{UVec2, Vec4};
 use zircon_runtime::core::runtime::modules::{TasksModule, TASKS_MODULE_NAME};
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::engine_module::EngineModule;
-use zircon_runtime::graphics::{SceneRenderer, ViewportFrame};
+use zircon_runtime::graphics::{ViewportFrame, ViewportRenderFrame, WgpuRenderFramework};
 
 #[path = "runtime_shader_pbr_hdri_export/fixture_assets.rs"]
 mod fixture_assets;
@@ -86,6 +87,18 @@ const PMREM_MIP_DIAGNOSTIC_TILE_SIZE: u32 = 96;
 const SHADER_TEST_OUTPUT_DIR_OVERRIDE_ENV: &str = "ZIRCON_SHADER_TEST_OUTPUT_DIR";
 const PMREM_MIP_DIAGNOSTIC_OUTPUT_NAME_OVERRIDE_ENV: &str =
     "ZIRCON_PMREM_MIP_DIAGNOSTIC_OUTPUT_NAME";
+
+#[test]
+fn shader_hdri_export_submits_and_captures_through_the_framework() {
+    let source = include_str!("runtime_shader_pbr_hdri_export.rs");
+
+    assert!(source.contains(concat!("WgpuRenderFramework", "::new(asset_access)")));
+    assert!(source.contains(concat!("submit_runtime_frame_", "and_capture(")));
+    assert!(source.contains(concat!("submit_runtime_", "frame(")));
+    assert!(source.contains(concat!("capture_", "frame(viewport)")));
+    assert!(!source.contains(concat!("SceneRenderer", "::new")));
+    assert!(!source.contains(concat!("render_scene_color", "_hdr")));
+}
 
 #[test]
 fn runtime_shader_pbr_real_hdri_1k_pmrem_mip_diagnostic_png_matches_blur_metrics() {
@@ -255,7 +268,9 @@ fn render_project_frame_with_environment(
         output_size,
         environment,
         write_project_assets,
-        |renderer, snapshot| renderer.render(snapshot, output_size).unwrap(),
+        |framework, viewport, snapshot| {
+            submit_runtime_frame_and_capture(framework, viewport, snapshot, output_size)
+        },
     )
 }
 
@@ -266,7 +281,7 @@ fn render_project_with_environment<T>(
     output_size: UVec2,
     environment: EnvironmentExtract,
     write_project_assets: impl FnOnce(&ProjectPaths),
-    render: impl FnOnce(&mut SceneRenderer, RenderSceneSnapshot) -> T,
+    render: impl FnOnce(&WgpuRenderFramework, RenderViewportHandle, RenderSceneSnapshot) -> T,
 ) -> T {
     let root = unique_temp_project_root(temp_label);
     let paths = ProjectPaths::from_root(&root).unwrap();
@@ -320,9 +335,14 @@ fn render_project_with_environment<T>(
         PreviewEnvironmentExtract::from_environment(&snapshot.environment, true, Vec4::ZERO);
     snapshot.overlays = RenderOverlayExtract::default();
 
-    let mut renderer = SceneRenderer::new(asset_access).unwrap();
-    let output = render(&mut renderer, snapshot);
-    drop(renderer);
+    let framework = WgpuRenderFramework::new(asset_access).unwrap();
+    let viewport = framework
+        .create_viewport(
+            RenderViewportDescriptor::new(output_size).with_label("shader06.pbr-hdri-export"),
+        )
+        .unwrap();
+    let output = render(&framework, viewport, snapshot);
+    drop(framework);
     drop(world);
     drop(project);
     drop(asset_manager);
@@ -330,6 +350,32 @@ fn render_project_with_environment<T>(
     drop(asset_runtime);
     fs::remove_dir_all(&root).expect("remove Shader06 temporary product project");
     output
+}
+
+fn submit_runtime_frame_and_capture(
+    framework: &WgpuRenderFramework,
+    viewport: RenderViewportHandle,
+    snapshot: RenderSceneSnapshot,
+    output_size: UVec2,
+) -> ViewportFrame {
+    framework
+        .submit_runtime_frame(
+            viewport,
+            ViewportRenderFrame::from_snapshot(snapshot, output_size),
+        )
+        .expect("submit compiled Shader06 product frame");
+    let captured = framework
+        .capture_frame(viewport)
+        .expect("capture compiled Shader06 product frame")
+        .expect("compiled Shader06 product frame should be available");
+
+    ViewportFrame {
+        width: captured.width,
+        height: captured.height,
+        rgba: captured.rgba,
+        generation: captured.generation,
+        capture_report: captured.capture_report,
+    }
 }
 
 fn save_viewport_frame_png(

@@ -1,7 +1,6 @@
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::*;
 use crate::text::FontQuery;
@@ -141,6 +140,54 @@ fn text_font_database_shared_face_tracks_owner_mapping_without_render_input_chan
 }
 
 #[test]
+fn text_font_database_removing_final_owner_removes_private_family_alias() {
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf");
+    let owner = "res://fonts/aliased.font.toml";
+    let alias = FontFamilyName::from("Zircon Test Private Alias");
+    let mut database = FontDatabase::default();
+    let registered = database
+        .replace_font_source(owner, &source, Some("Aliased Source"), 0)
+        .expect("register aliased source");
+    let face = registered.faces[0];
+    assert_eq!(database.backend_database_snapshot().faces().count(), 1);
+
+    assert!(database.register_font_family_alias(face, alias.clone()));
+    assert_eq!(database.backend_database_snapshot().faces().count(), 2);
+    assert_eq!(
+        database
+            .match_face(&FontQuery::single_family(alias.as_str()))
+            .map(|matched| matched.face),
+        Some(face)
+    );
+    let backend = database.backend_database_snapshot();
+    let families = [fontdb::Family::Name(alias.as_str())];
+    let backend_alias = backend
+        .query(&fontdb::Query {
+            families: &families,
+            ..fontdb::Query::default()
+        })
+        .expect("private aliases must be visible to the glyphon font database");
+    assert_eq!(database.font_face_id(backend_alias), Some(face));
+
+    database.remove_font_asset(owner);
+
+    assert!(database
+        .match_face(&FontQuery::single_family(alias.as_str()))
+        .is_none());
+    assert!(
+        database
+            .backend_database_snapshot()
+            .query(&fontdb::Query {
+                families: &families,
+                ..fontdb::Query::default()
+            })
+            .is_none(),
+        "retiring the final logical owner must remove the glyphon alias entry too"
+    );
+    assert_eq!(database.backend_database_snapshot().faces().count(), 0);
+}
+
+#[test]
 fn text_font_database_removing_asset_fallback_invalidates_shared_face_render_inputs() {
     let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf");
     let shared_owner = "res://fonts/shared-owner.font.toml";
@@ -243,12 +290,5 @@ fn text_font_asset_ttc_registration_and_removal_leave_no_unowned_backend_faces()
 }
 
 fn revision_fixture_path() -> std::path::PathBuf {
-    let nonce = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("system clock after epoch")
-        .as_nanos();
-    std::env::temp_dir().join(format!(
-        "zircon-text-font-asset-revision-{}-{nonce}.ttf",
-        std::process::id()
-    ))
+    unique_font_fixture_path("font-asset-revision", "ttf")
 }

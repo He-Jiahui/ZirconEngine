@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
-use crate::ui::asset_editor::value_path::{
-    parse_value_path, set_value_at_path, UiAssetTomlPathSegment,
-};
 use crate::ui::asset_editor::UiDesignerSelectionModel;
+use crate::ui::asset_editor::value_path::{
+    UiAssetTomlPathSegment, parse_value_path, set_value_at_path,
+};
 use toml::Value;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiNodeDefinition};

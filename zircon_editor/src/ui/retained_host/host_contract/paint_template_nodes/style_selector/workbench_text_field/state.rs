@@ -5,11 +5,7 @@ use zircon_runtime_interface::ui::style::{UiPainterFamily, UiPainterResolvedStat
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn resolved_text_field_state(
     node: &TemplatePaneNodeData,
 ) -> UiPainterResolvedState {
-    let mut painter_state = resolved_state_for_node(node);
-    if node.control_id.as_str() == "WorkbenchInputFocused" {
-        painter_state.focused = true;
-    }
-    painter_state.resolved_state_for_family(UiPainterFamily::TextField)
+    resolved_state_for_node(node).resolved_state_for_family(UiPainterFamily::TextField)
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_unavailable_text_field_state(

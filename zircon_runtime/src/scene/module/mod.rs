@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
-use crate::asset::{ASSET_MODULE_NAME, AssetManager, AssetUri};
+use crate::asset::{AssetManager, AssetUri, ASSET_MODULE_NAME};
 use crate::core::framework::scene::{LevelManager, SCENE_MODULE_NAME};
 use crate::core::manager::RegisteredManagerService;
-use crate::core::runtime::ServiceObject;
 use crate::core::runtime::modules::TIME_MODULE_NAME;
+use crate::core::runtime::ServiceObject;
 use crate::core::{
     CoreError, CoreHandle, DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec,
     ModuleDescriptor, ServiceKind, StartupMode,
 };
-use crate::engine_module::{EngineModule, dependency_on, factory, qualified_name};
+use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 
 mod core_error;
 mod default_level_manager;
@@ -53,7 +53,10 @@ pub fn module_descriptor() -> ModuleDescriptor {
         ),
         StartupMode::Immediate,
         Vec::new(),
-        factory(|core| Ok(Arc::new(DefaultLevelManager::with_core(core)) as ServiceObject)),
+        factory(|core| {
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            Ok(Arc::new(DefaultLevelManager::with_core(&core)) as ServiceObject)
+        }),
     ))
     .with_manager(ManagerDescriptor::new(
         qualified_name(SCENE_MODULE_NAME, ServiceKind::Manager, "LevelManager"),
@@ -72,22 +75,6 @@ pub fn module_descriptor() -> ModuleDescriptor {
             )
         }),
     ))
-}
-
-pub fn install_scene_runtime_hooks(
-    core: &CoreHandle,
-    registrations: impl IntoIterator<Item = crate::scene::SceneRuntimeHookRegistration>,
-) -> Result<(), CoreError> {
-    let driver = core.resolve_driver::<WorldDriver>(WORLD_DRIVER_NAME)?;
-    driver.install_scene_runtime_hooks(core, registrations)
-}
-
-pub fn scene_runtime_hooks_for_stage(
-    core: &CoreHandle,
-    stage: crate::core::framework::scene::SystemStage,
-) -> Result<Vec<crate::scene::SceneRuntimeHookRegistration>, CoreError> {
-    let driver = core.resolve_driver::<WorldDriver>(WORLD_DRIVER_NAME)?;
-    Ok(driver.scene_runtime_hooks_for_stage(stage))
 }
 
 pub fn install_world_runtime_extension_plan(

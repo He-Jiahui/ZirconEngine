@@ -1,8 +1,8 @@
 use crate::asset::{
+    cook_virtual_geometry_from_mesh, encode_virtual_geometry_cook_binary_dump,
+    format_virtual_geometry_cook_bvh_graph_dump, format_virtual_geometry_cook_inspection_dump,
     AssetUri, MeshVertex, ModelAsset, ModelPrimitiveAsset, VirtualGeometryCookConfig,
-    VirtualGeometryCookRequest, VirtualGeometryCookSettings, cook_virtual_geometry_from_mesh,
-    encode_virtual_geometry_cook_binary_dump, format_virtual_geometry_cook_bvh_graph_dump,
-    format_virtual_geometry_cook_inspection_dump,
+    VirtualGeometryCookRequest, VirtualGeometryCookSettings,
 };
 use crate::core::math::{Vec2, Vec3};
 
@@ -25,19 +25,15 @@ fn virtual_geometry_cook_builds_stable_four_ary_bvh_pages_and_payload() {
     assert_eq!(cooked.cluster_headers.len(), 8);
     assert_eq!(cooked.root_cluster_ranges.len(), 1);
     assert_eq!(cooked.root_page_table.len(), 1);
-    assert!(
-        cooked
-            .hierarchy_buffer
-            .iter()
-            .all(|node| node.child_node_ids.len() <= 4)
-    );
-    assert!(
-        cooked
-            .cluster_page_headers
-            .iter()
-            .zip(cooked.cluster_page_data.iter())
-            .all(|(header, payload)| header.payload_size_bytes == payload.len() as u64)
-    );
+    assert!(cooked
+        .hierarchy_buffer
+        .iter()
+        .all(|node| node.child_node_ids.len() <= 4));
+    assert!(cooked
+        .cluster_page_headers
+        .iter()
+        .zip(cooked.cluster_page_data.iter())
+        .all(|(header, payload)| header.payload_size_bytes == payload.len() as u64));
     let mut expected_offset = 0_u64;
     for (header, payload) in cooked
         .cluster_page_headers
@@ -125,6 +121,7 @@ fn virtual_geometry_cook_attaches_to_model_primitive_without_dropping_base_mesh(
             vertices: vertices.clone(),
             indices: indices.clone(),
             mesh: None,
+            mesh_sdf: None,
             virtual_geometry: Some(cooked.clone()),
         }],
     };
@@ -143,14 +140,12 @@ fn virtual_geometry_cook_rejects_empty_or_invalid_triangle_input() {
     assert!(
         cook_virtual_geometry_from_mesh(&[], &[], VirtualGeometryCookConfig::default()).is_none()
     );
-    assert!(
-        cook_virtual_geometry_from_mesh(
-            &vertices,
-            &[0, 1, 99],
-            VirtualGeometryCookConfig::default()
-        )
-        .is_none()
-    );
+    assert!(cook_virtual_geometry_from_mesh(
+        &vertices,
+        &[0, 1, 99],
+        VirtualGeometryCookConfig::default()
+    )
+    .is_none());
 }
 
 #[test]

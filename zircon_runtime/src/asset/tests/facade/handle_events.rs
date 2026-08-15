@@ -26,10 +26,13 @@ fn assets_get_acquire_release_and_kind_filtering_use_resource_manager_storage() 
     let material_id = material_record.id;
     let texture_handle = manager
         .register_ready(texture_record, texture_asset("res://textures/checker.png"))
+        .unwrap()
         .typed::<TextureMarker>()
         .map(Handle::<TextureAsset>::from_resource_handle)
         .expect("texture handle");
-    manager.register_ready(material_record, material_asset("builtin://shader/pbr.wgsl"));
+    manager
+        .register_ready(material_record, material_asset("builtin://shader/pbr.wgsl"))
+        .unwrap();
 
     let textures = Assets::<TextureAsset>::new(manager.clone());
     let wrong_texture_handle = Handle::<TextureAsset>::new(material_id);
@@ -57,10 +60,14 @@ fn typed_asset_events_filter_by_asset_kind_including_removed_events() {
     let shader_locator = shader_record.primary_locator.clone();
     let texture_id = texture_record.id;
 
-    manager.register_ready(texture_record, texture_asset("res://textures/checker.png"));
-    manager.register_ready(shader_record, shader_asset("res://shaders/pbr.wgsl"));
-    manager.remove_by_locator(&shader_locator);
-    manager.remove_by_locator(&texture_locator);
+    manager
+        .register_ready(texture_record, texture_asset("res://textures/checker.png"))
+        .unwrap();
+    manager
+        .register_ready(shader_record, shader_asset("res://shaders/pbr.wgsl"))
+        .unwrap();
+    manager.remove_by_locator(&shader_locator).unwrap();
+    manager.remove_by_locator(&texture_locator).unwrap();
 
     let added = texture_events
         .recv_timeout(Duration::from_secs(1))
@@ -88,13 +95,17 @@ fn typed_asset_events_preserve_rename_reload_and_remove_order() {
     let texture_record = record("res://textures/order.png", ResourceKind::Texture);
     let texture_id = texture_record.id;
 
-    manager.register_ready(texture_record, texture_asset("res://textures/order.png"));
+    manager
+        .register_ready(texture_record, texture_asset("res://textures/order.png"))
+        .unwrap();
     manager
         .rename(&original_locator, renamed_locator.clone())
         .expect("rename texture");
-    manager.start_reload(texture_id, Vec::new());
-    manager.fail_reload(texture_id, vec![ResourceDiagnostic::error("reload failed")]);
-    manager.remove_by_locator(&renamed_locator);
+    manager.start_reload(texture_id, Vec::new()).unwrap();
+    manager
+        .fail_reload(texture_id, vec![ResourceDiagnostic::error("reload failed")])
+        .unwrap();
+    manager.remove_by_locator(&renamed_locator).unwrap();
 
     let added = texture_events
         .recv_timeout(Duration::from_secs(1))

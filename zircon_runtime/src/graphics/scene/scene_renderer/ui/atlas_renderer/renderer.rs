@@ -2,20 +2,20 @@ use wgpu::util::DeviceExt;
 
 use crate::core::math::UVec2;
 use crate::text::atlas::render_gpu_plan::{
-    GlyphAtlasGpuDrawPlan, GlyphAtlasGpuPipelineContract, GlyphAtlasGpuPipelineKey,
-    GlyphAtlasGpuViewportTransform, glyph_atlas_gpu_bind_group_layout,
+    glyph_atlas_gpu_bind_group_layout, GlyphAtlasGpuDrawPlan, GlyphAtlasGpuPipelineContract,
+    GlyphAtlasGpuPipelineKey, GlyphAtlasGpuViewportTransform,
 };
 use crate::text::atlas::{
-    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT, GlyphAtlasBitmapFaceValidity,
+    glyph_atlas_bitmap_page_shadow_commit, GlyphAtlasBitmapFaceValidity,
     GlyphAtlasBitmapPageShadowCommit, GlyphAtlasBitmapPreparedUploadPlan,
     GlyphAtlasBitmapRenderSubmissionPlan, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasFormat,
-    GlyphAtlasSet, GlyphAtlasStorageFormat, glyph_atlas_bitmap_page_shadow_commit,
+    GlyphAtlasSet, GlyphAtlasStorageFormat, GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
 };
 
 use super::super::atlas_texture_upload::{
-    GlyphAtlasBitmapTextureUploadFramePlan, GlyphAtlasBitmapTextureUploadFrameReport,
     glyph_atlas_bitmap_texture_upload_frame_plan_for_atlas_and_face_validity,
-    write_glyph_atlas_bitmap_texture_upload_frame_plan,
+    write_glyph_atlas_bitmap_texture_upload_frame_plan, GlyphAtlasBitmapTextureUploadFramePlan,
+    GlyphAtlasBitmapTextureUploadFrameReport,
 };
 use super::instance_buffer::glyph_atlas_bitmap_renderer_write_instance_buffer;
 use super::pipeline::{
@@ -188,6 +188,11 @@ impl GlyphAtlasBitmapRenderer {
     where
         I: IntoIterator<Item = GlyphAtlasBitmapUploadSourceBytes<'a>>,
     {
+        crate::profile_scope!(
+            "runtime",
+            "ui_text.atlas_upload",
+            "prepare_submission_with_face_validity"
+        );
         self.write_viewport_uniform(queue, submission.gpu_draw.viewport_transform);
         let mut report = self.prepare_storage_pass(
             device,
@@ -221,6 +226,11 @@ impl GlyphAtlasBitmapRenderer {
         submissions: &[GlyphAtlasBitmapRendererStorageSubmission<'a>],
         atlas_size: UVec2,
     ) -> GlyphAtlasBitmapPageShadowCommit {
+        crate::profile_scope!(
+            "runtime",
+            "ui_text.atlas_upload",
+            "prepare_storage_submissions"
+        );
         if submissions.is_empty() {
             self.prepare_idle();
             return GlyphAtlasBitmapPageShadowCommit::default();

@@ -2,8 +2,8 @@ use toml::Value;
 use zircon_runtime_interface::ui::template::UiNodeDefinition;
 
 use super::{
-    preview_mock_inline_literal, preview_mock_kind_for_nested_value, preview_mock_nested_entries,
-    UiAssetPreviewMockEntry, UiAssetPreviewMockNestedEntry,
+    UiAssetPreviewMockEntry, UiAssetPreviewMockNestedEntry, preview_mock_inline_literal,
+    preview_mock_kind_for_nested_value, preview_mock_nested_entries,
 };
 
 #[derive(Clone, Debug, PartialEq)]

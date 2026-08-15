@@ -51,9 +51,11 @@ Describe 'Editor build bundle script' {
         $fixtureAssets = Join-Path $fixtureRoot 'zircon_runtime\assets\fonts'
         $fixtureScript = Join-Path $fixtureTools 'build-editor.ps1'
         $fixturePathResolver = Join-Path $fixtureTools 'WindowsPathResolver.psm1'
+        $fixtureCoordinator = Join-Path $fixtureTools 'zircon-session.ps1'
         $fixtureValidator = Join-Path $fixtureValidatorDirectory 'validate-matrix.ps1'
         $callLog = Join-Path $fixtureRoot 'validator-calls.log'
         $artifactLog = Join-Path $fixtureRoot 'validator-artifacts.log'
+        $coordinatorLog = Join-Path $fixtureRoot 'coordinator-calls.log'
 
         [System.IO.Directory]::CreateDirectory($fixtureTools) | Out-Null
         [System.IO.Directory]::CreateDirectory($fixtureValidatorDirectory) | Out-Null
@@ -61,6 +63,55 @@ Describe 'Editor build bundle script' {
         Copy-Item -LiteralPath $sourceScript -Destination $fixtureScript
         Copy-Item -LiteralPath $sourcePathResolver -Destination $fixturePathResolver
         Set-Content -LiteralPath (Join-Path $fixtureAssets 'fixture.txt') -Value 'asset fixture'
+
+        @'
+$arguments = @($args)
+[System.IO.File]::AppendAllText(
+    $env:BUILD_EDITOR_TEST_COORDINATOR_LOG,
+    ($arguments -join '|') + [Environment]::NewLine)
+$command = $arguments | Where-Object { $_ -like 'staging-*' } | Select-Object -First 1
+$leaseId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+$ownerIndex = [Array]::IndexOf($arguments, '--owner-pid')
+$ownerPid = [int]$arguments[$ownerIndex + 1]
+$finalIndex = [Array]::IndexOf($arguments, '--final-path')
+$finalPath = if ($finalIndex -ge 0) {
+    $arguments[$finalIndex + 1]
+}
+else {
+    $acquireArguments = @(
+        (Get-Content -LiteralPath $env:BUILD_EDITOR_TEST_COORDINATOR_LOG | Select-Object -First 1) -split '\|'
+    )
+    $acquireFinalIndex = [Array]::IndexOf($acquireArguments, '--final-path')
+    $acquireArguments[$acquireFinalIndex + 1]
+}
+$path = [System.IO.Path]::GetFullPath($finalPath)
+$root = [System.IO.Directory]::GetParent($path)
+while ($null -ne $root -and $root.Name -ne 'ZirconBuilds') {
+    $root = $root.Parent
+}
+if ($null -eq $root) {
+    throw "Fixture final path is not below ZirconBuilds: $finalPath"
+}
+$status = switch ($command) {
+    'staging-acquire' { 'active' }
+    'staging-begin-publish' { 'publishing' }
+    'staging-complete-publish' { 'published' }
+    'staging-release' { 'released' }
+    default { throw "Unexpected artifact command: $($arguments -join ' ')" }
+}
+@{
+    requestId = 'fixture-request'
+    lease = @{
+        leaseId = $leaseId
+        purpose = 'build-editor'
+        stagingPath = [System.IO.Path]::Combine($root.FullName, "mvp-product-inputs-build-editor-$leaseId")
+        finalPath = $finalPath
+        ownerPid = $ownerPid
+        status = $status
+    }
+} | ConvertTo-Json -Compress
+exit 0
+'@ | Set-Content -LiteralPath $fixtureCoordinator -Encoding UTF8
 
         @'
 [CmdletBinding()]
@@ -81,6 +132,13 @@ $record = '{0}|{1}|{2}|{3}|{4}|{5}|{6}' -f `
 [System.IO.File]::AppendAllText($env:BUILD_EDITOR_TEST_LOG, $record + [Environment]::NewLine)
 [System.IO.File]::AppendAllText($env:BUILD_EDITOR_TEST_ARTIFACT_LOG, $ArtifactOutputDirectory + [Environment]::NewLine)
 
+if ($env:BUILD_EDITOR_TEST_REQUIRE_COORDINATOR -eq '1') {
+    $coordinatorCalls = @(Get-Content -LiteralPath $env:BUILD_EDITOR_TEST_COORDINATOR_LOG)
+    if ($coordinatorCalls.Count -eq 0 -or $coordinatorCalls[0] -notmatch 'staging-acquire') {
+        throw 'Product staging was not acquired before the managed validator ran.'
+    }
+}
+
 if ($env:BUILD_EDITOR_TEST_FAIL_PACKAGE -eq $Package) {
     exit 17
 }
@@ -97,18 +155,26 @@ exit 0
 
         $env:BUILD_EDITOR_TEST_LOG = $callLog
         $env:BUILD_EDITOR_TEST_ARTIFACT_LOG = $artifactLog
+        $env:BUILD_EDITOR_TEST_COORDINATOR_LOG = $coordinatorLog
+        $env:BUILD_EDITOR_TEST_FINAL_PATH = $null
+        $env:BUILD_EDITOR_TEST_REQUIRE_COORDINATOR = $null
         $env:BUILD_EDITOR_TEST_FAIL_PACKAGE = $null
     }
 
     AfterEach {
         $env:BUILD_EDITOR_TEST_LOG = $null
         $env:BUILD_EDITOR_TEST_ARTIFACT_LOG = $null
+        $env:BUILD_EDITOR_TEST_COORDINATOR_LOG = $null
+        $env:BUILD_EDITOR_TEST_FINAL_PATH = $null
+        $env:BUILD_EDITOR_TEST_REQUIRE_COORDINATOR = $null
         $env:BUILD_EDITOR_TEST_FAIL_PACKAGE = $null
         Remove-EditorBuildFixtureRoot -FixtureRoot $fixtureRoot
     }
 
     It 'publishes the editor, runtime DLL, and assets only after both builds succeed' {
         $bundle = Join-Path $fixtureRoot 'editor-bundle'
+        $env:BUILD_EDITOR_TEST_FINAL_PATH = $bundle
+        $env:BUILD_EDITOR_TEST_REQUIRE_COORDINATOR = '1'
 
         $result = Invoke-EditorBuildFixture -ScriptPath $fixtureScript -OutputDirectory $bundle
 
@@ -126,10 +192,17 @@ exit 0
         foreach ($artifactDirectory in $artifactDirectories) {
             $artifactDirectory | Should Match '^\\\\\?\\[D-F]:\\ZirconBuilds\\mvp-product-inputs-build-editor-[0-9a-f]{32}$'
         }
+        $coordinatorCalls = @(Get-Content -LiteralPath $coordinatorLog)
+        $coordinatorCalls.Count | Should Be 3
+        $coordinatorCalls[0] | Should Match 'staging-acquire'
+        $coordinatorCalls[1] | Should Match 'staging-begin-publish'
+        $coordinatorCalls[2] | Should Match 'staging-complete-publish'
     }
 
     It 'removes its staged artifact directory when the runtime build fails' {
         $bundle = Join-Path $fixtureRoot 'editor-bundle'
+        $env:BUILD_EDITOR_TEST_FINAL_PATH = $bundle
+        $env:BUILD_EDITOR_TEST_REQUIRE_COORDINATOR = '1'
         $env:BUILD_EDITOR_TEST_FAIL_PACKAGE = 'zircon_runtime'
 
         $result = Invoke-EditorBuildFixture -ScriptPath $fixtureScript -OutputDirectory $bundle
@@ -141,6 +214,10 @@ exit 0
         foreach ($artifactDirectory in $artifactDirectories) {
             [System.IO.Directory]::Exists($artifactDirectory) | Should Be $false
         }
+        $coordinatorCalls = @(Get-Content -LiteralPath $coordinatorLog)
+        $coordinatorCalls.Count | Should Be 2
+        $coordinatorCalls[0] | Should Match 'staging-acquire'
+        $coordinatorCalls[1] | Should Match 'staging-release'
     }
 
     It 'rejects reparse-point asset content without leaving staged artifacts' {

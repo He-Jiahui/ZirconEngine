@@ -22,6 +22,7 @@ fn screen_space_ui_plan_skips_a_command_with_a_clip_outside_the_viewport() {
                     opacity: 1.0,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(200, 100),
     );
@@ -57,6 +58,7 @@ fn screen_space_ui_plan_skips_a_command_when_its_clip_misses_the_command_frame()
                     opacity: 1.0,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(200, 100),
     );
@@ -106,6 +108,7 @@ fn screen_space_ui_plan_ignores_a_fully_clipped_quad_for_later_text_backgrounds(
                     },
                 ],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(200, 100),
     );

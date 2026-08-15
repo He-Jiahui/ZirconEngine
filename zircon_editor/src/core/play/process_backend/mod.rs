@@ -60,8 +60,12 @@ impl PlayBackend for ProcessPlayBackend {
         })?;
         let scene = self.snapshots.materialize(project_root, source)?;
         let report_pipe = format!("zircon-play-report-{}", scene.instance_id());
-        let command =
-            PlayProcessCommand::new(&self.executable, project_root, scene.path(), &report_pipe);
+        let command = PlayProcessCommand::new(
+            &self.executable,
+            project_root,
+            scene.relative_path().clone(),
+            &report_pipe,
+        );
         let arguments = command
             .arguments()
             .into_iter()

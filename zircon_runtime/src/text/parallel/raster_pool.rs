@@ -402,12 +402,12 @@ impl TextRasterWorkerPool {
                 result.disposition_for_face_epoch(live_face_epoch),
                 TextRasterWorkDisposition::Accepted
             );
-            let oversized_progress = accepted
-                && drain.accepted.is_empty()
-                && drain.face_invalidated_count == 0
-                && budget.max_bytes > 0
-                && result_bytes > budget.max_bytes;
-            if accepted && accepted_bytes > budget.max_bytes && !oversized_progress {
+            // A completion admitted by the pool may be larger than a single frame's drain
+            // allowance when several workers share the pool-wide byte budget. Admit one such
+            // item only at the start of a drain so it cannot remain at the queue head forever.
+            let accepts_oversized_completion =
+                accepted && drain.drained_bytes == 0 && result_bytes > budget.max_bytes;
+            if accepted && accepted_bytes > budget.max_bytes && !accepts_oversized_completion {
                 *deferred_completion = Some(result);
                 drain.byte_budget_deferred_count =
                     drain.byte_budget_deferred_count.saturating_add(1);
@@ -417,7 +417,7 @@ impl TextRasterWorkerPool {
             match result.disposition_for_face_epoch(live_face_epoch) {
                 TextRasterWorkDisposition::Accepted => {
                     drain.drained_bytes = accepted_bytes;
-                    if oversized_progress {
+                    if accepts_oversized_completion {
                         drain.oversized_accepted_count =
                             drain.oversized_accepted_count.saturating_add(1);
                     }
@@ -445,7 +445,7 @@ impl TextRasterWorkerPool {
     pub(crate) fn try_publish_completion_for_test(&self, result: TextRasterWorkResult) -> bool {
         let result_bytes = result.byte_count();
         if !self.completion_byte_budget.try_reserve(result_bytes) {
-            self.record_completion_backpressured();
+            self.record_completion_budget_rejected(result_bytes);
             return false;
         }
         match self.completion_tx.try_send(result) {
@@ -486,6 +486,10 @@ impl TextRasterWorkerPool {
 
     fn record_completion_backpressured(&self) {
         worker::record_completion_backpressured(&self.diagnostics);
+    }
+
+    fn record_completion_budget_rejected(&self, result_bytes: usize) {
+        worker::record_completion_budget_rejected(&self.diagnostics, result_bytes);
     }
 
     fn record_request_backpressured(&self) {

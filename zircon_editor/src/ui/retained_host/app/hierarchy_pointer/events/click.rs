@@ -1,4 +1,4 @@
-use super::super::super::{RetainedEditorHost, UiPoint, callback_dispatch};
+use super::super::super::{callback_dispatch, RetainedEditorHost, UiPoint};
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn hierarchy_pointer_clicked(
@@ -15,15 +15,23 @@ impl RetainedEditorHost {
             UiPoint::new(x, y),
         ) {
             Ok(dispatch) => {
-                let rename_entry = dispatch.pointer.route.as_ref().and_then(|route| match route {
-                    crate::ui::retained_host::hierarchy_pointer::HierarchyPointerRoute::Node {
-                        item_index,
-                        ..
-                    } => self.hierarchy_scene_entries.get(*item_index).cloned(),
-                    crate::ui::retained_host::hierarchy_pointer::HierarchyPointerRoute::ListSurface => {
-                        None
-                    }
-                });
+                let rename_entry = dispatch
+                    .pointer
+                    .route
+                    .as_ref()
+                    .and_then(|route| match route {
+                        crate::ui::retained_host::hierarchy_pointer::HierarchyPointerRoute::Node {
+                            item_index,
+                            ..
+                        } => self
+                            .hierarchy_scene_entries
+                            .get(*item_index)
+                            .map(|row| row.entity),
+                        crate::ui::retained_host::hierarchy_pointer::HierarchyPointerRoute::ListSurface => {
+                            None
+                        }
+                    })
+                    .and_then(|entity| self.runtime.scene_inspection_hierarchy_row(entity));
                 self.hierarchy_pointer_state = dispatch.pointer.state;
                 self.apply_hierarchy_pointer_state_to_ui();
                 if let Some(effects) = dispatch.effects {
@@ -33,5 +41,17 @@ impl RetainedEditorHost {
             }
             Err(error) => self.set_status_line(error),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn rename_reads_the_exact_runtime_row_after_sparse_name_patches() {
+        let source = include_str!("click.rs");
+        let production = source.split("#[cfg(test)]").next().unwrap_or(source);
+
+        assert!(production.contains("self.runtime.scene_inspection_hierarchy_row(entity)"));
+        assert!(!production.contains("get(*item_index).cloned()"));
     }
 }

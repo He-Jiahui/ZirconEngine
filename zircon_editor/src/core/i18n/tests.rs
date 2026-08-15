@@ -4,10 +4,10 @@ use std::thread;
 
 use super::{
     EditorI18nCatalog, EditorI18nError, EditorI18nEventSink, EditorI18nService, EditorLocale,
-    LocaleChangeDelivery, MAX_PENDING_LOCALE_EVENT_BYTES, MAX_PENDING_LOCALE_EVENTS,
+    LocaleChangeDelivery, MAX_PENDING_LOCALE_EVENTS, MAX_PENDING_LOCALE_EVENT_BYTES,
 };
 use crate::core::settings::{
-    EDITOR_LOCALE_KEY, SettingValue, SettingsAuthority, SettingsKey, SettingsScope,
+    SettingValue, SettingsAuthority, SettingsKey, SettingsScope, EDITOR_LOCALE_KEY,
     VIEWPORT_TRANSLATE_STEP_KEY,
 };
 
@@ -145,17 +145,13 @@ fn active_language_then_english_then_raw_key_is_the_translation_fallback_chain()
 fn language_switch_is_explicit_and_only_accepts_loaded_bundles() {
     let catalog = catalog();
 
-    assert!(
-        catalog
-            .set_active_locale(EditorLocale::parse("zh-cn").unwrap())
-            .unwrap()
-    );
+    assert!(catalog
+        .set_active_locale(EditorLocale::parse("zh-cn").unwrap())
+        .unwrap());
     assert_eq!(catalog.active_locale().as_str(), "zh-CN");
-    assert!(
-        !catalog
-            .set_active_locale(EditorLocale::parse("zh-CN").unwrap())
-            .unwrap()
-    );
+    assert!(!catalog
+        .set_active_locale(EditorLocale::parse("zh-CN").unwrap())
+        .unwrap());
     assert!(matches!(
         catalog.set_active_locale(EditorLocale::parse("fr").unwrap()),
         Err(EditorI18nError::UnavailableLocale(locale)) if locale == "fr"
@@ -213,15 +209,13 @@ fn user_locale_setting_hot_syncs_i18n_from_the_authority_snapshot() {
     assert_eq!(service.active_locale().as_str(), "zh-CN");
     assert!(!service.synchronize_user_locale(&settings).unwrap());
 
-    assert!(
-        settings
-            .set(
-                SettingsScope::User,
-                &locale_key,
-                SettingValue::Enum("fr".to_owned()),
-            )
-            .is_err()
-    );
+    assert!(settings
+        .set(
+            SettingsScope::User,
+            &locale_key,
+            SettingValue::Enum("fr".to_owned()),
+        )
+        .is_err());
     assert_eq!(settings.snapshot().locale(), "zh-CN");
 
     settings
@@ -305,11 +299,9 @@ fn locale_change_events_are_fifo_and_end_at_the_active_locale_under_concurrency(
     });
     gate.wait();
 
-    assert!(
-        service
-            .set_active_locale(EditorLocale::parse("en").unwrap())
-            .unwrap()
-    );
+    assert!(service
+        .set_active_locale(EditorLocale::parse("en").unwrap())
+        .unwrap());
     gate.wait();
     assert!(first.join().unwrap());
     assert_eq!(service.active_locale().as_str(), "en");
@@ -344,11 +336,9 @@ fn slow_locale_sink_bounds_pending_events_and_coalesces_the_latest_locale_as_a_r
 
     for index in 0..=MAX_PENDING_LOCALE_EVENTS {
         let locale = if index % 2 == 0 { "en" } else { "zh-CN" };
-        assert!(
-            service
-                .set_active_locale(EditorLocale::parse(locale).unwrap())
-                .unwrap()
-        );
+        assert!(service
+            .set_active_locale(EditorLocale::parse(locale).unwrap())
+            .unwrap());
     }
     assert!(service.event_diagnostics().queued_events < MAX_PENDING_LOCALE_EVENTS);
     assert!(service.event_diagnostics().queued_bytes <= MAX_PENDING_LOCALE_EVENT_BYTES);
@@ -377,19 +367,15 @@ fn rejected_locale_resync_is_retained_until_the_next_transition() {
         resync_attempts: AtomicBool::new(false),
     }));
 
-    assert!(
-        service
-            .set_active_locale(EditorLocale::parse("zh-CN").unwrap())
-            .unwrap()
-    );
+    assert!(service
+        .set_active_locale(EditorLocale::parse("zh-CN").unwrap())
+        .unwrap());
     assert_eq!(service.event_diagnostics().resyncs, 0);
     assert_eq!(service.event_diagnostics().failed_resyncs, 1);
 
-    assert!(
-        service
-            .set_active_locale(EditorLocale::parse("en").unwrap())
-            .unwrap()
-    );
+    assert!(service
+        .set_active_locale(EditorLocale::parse("en").unwrap())
+        .unwrap());
     assert_eq!(service.event_diagnostics().resyncs, 1);
     assert_eq!(service.event_diagnostics().failed_resyncs, 1);
 }
@@ -436,8 +422,9 @@ fn failed_delivery_resync_is_linearized_before_a_concurrent_locale_transition() 
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
         .clone();
+    let delivery_text = deliveries.iter().map(String::as_str).collect::<Vec<_>>();
     assert!(matches!(
-        deliveries.as_slice(),
+        delivery_text.as_slice(),
         ["change:zh-CN", "resync:zh-CN", "change:en"] | ["change:zh-CN", "resync:en"]
     ));
     assert_eq!(service.active_locale().as_str(), "en");

@@ -7,7 +7,7 @@ use crate::text::sdf::{
 use super::render::ScreenSpaceUiTextBatch;
 use super::sdf_advances::resolved_layout_advances_for_sdf_glyphs;
 use super::sdf_atlas::{SdfAtlasAllocationFailureReason, SdfAtlasCacheReport, SdfAtlasPlan};
-use super::sdf_upload::{SdfAtlasUploadMode, SdfAtlasUploadReport, sdf_atlas_upload_report};
+use super::sdf_upload::{sdf_atlas_upload_report, SdfAtlasUploadMode, SdfAtlasUploadReport};
 
 mod artifact_vertices;
 mod atlas_resources;
@@ -22,8 +22,8 @@ use self::atlas_resources::DistanceFieldAtlasResources;
 use self::compiled_frame::PreparedSdfFrameInputs;
 use self::decorations::build_text_decoration_vertices;
 use self::material::{SdfTextMaterialDrawPlan, SdfTextMaterialResources};
-use self::vertex_buffer::{SdfVertexBufferWriteReport, write_sdf_vertex_buffer};
-use self::vertices::{ScreenSpaceUiSdfVertex, build_sdf_vertex_plan};
+use self::vertex_buffer::{write_sdf_vertex_buffer, SdfVertexBufferWriteReport};
+use self::vertices::{build_sdf_vertex_plan, ScreenSpaceUiSdfVertex};
 
 const SDF_TEXT_SHADER: &str = include_str!("shaders/zr_text_sdf.wgsl");
 
@@ -287,6 +287,7 @@ impl ScreenSpaceUiSdfRenderer {
         atlas_cache: SdfAtlasCacheReport,
         cpu_plan_reused: bool,
     ) {
+        crate::profile_scope!("runtime", "ui_text.sdf_prepare", "sdf_renderer_prepare");
         let (atlas_page_count, msdf_atlas_page_count) =
             DistanceFieldAtlasResources::page_counts(atlas_plan);
         let atlas_resized = !self.atlas.matches(

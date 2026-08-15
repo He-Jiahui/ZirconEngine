@@ -12,13 +12,16 @@ pub use asset::{
     AssetTypeProjectionSnapshot, AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot,
 };
 pub(crate) use data::CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY;
-pub(crate) use data::SceneEntryProjectionCache;
 pub use data::{
     ConsoleOutputLevelCounts, ConsoleOutputSnapshot, EditorBridgeDiagnosticsSnapshot,
     EditorBridgeDiagnosticsSummarySnapshot, EditorBridgeInterfaceRowSnapshot, EditorChromeSnapshot,
     EditorConsoleMessageLevel, EditorDataSnapshot, InspectorPluginComponentPropertySnapshot,
     InspectorPluginComponentSnapshot, InspectorSnapshot, ProjectOverviewSnapshot, SceneEntries,
     SceneEntry, StatusTaskProgressSnapshot, StatusTaskProgressTone,
+};
+pub(crate) use data::{
+    SceneEntryProjectionCache, SceneInspectionHierarchyFragment,
+    SceneInspectionHierarchyFragmentError,
 };
 pub use workbench::{
     ActivityDrawerSnapshot, DocumentWorkspaceSnapshot, FloatingWindowSnapshot, MainPageSnapshot,

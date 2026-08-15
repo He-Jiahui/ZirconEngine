@@ -10,6 +10,7 @@ use std::path::PathBuf;
 
 use super::super::support::*;
 use super::support::{control_bool, control_float, control_string, control_visibility};
+use crate::ui::binding::AssetCommand;
 use crate::ui::retained_host::{
     paint_runtime_render_commands_for_test, to_host_contract_workbench_window_nodes,
     HostInvalidationMask, TemplatePaneMenuItemData, TemplatePaneNodeData,
@@ -33,6 +34,13 @@ const COMPACT_CORE_MODULE_TABS: &[&str] = &[
     "WorkbenchModuleTags",
     "WorkbenchModulePerception",
     "WorkbenchModuleMaterial",
+];
+
+const ULTRA_CORE_MODULE_TABS: &[&str] = &[
+    "WorkbenchModuleScene",
+    "WorkbenchModuleEffect",
+    "WorkbenchModuleAbility",
+    "WorkbenchModuleTags",
 ];
 
 #[test]
@@ -123,13 +131,198 @@ fn compact_workbench_toolbar_keeps_core_module_tabs_readable_and_collapses_overf
 }
 
 #[test]
-fn mvp_run_controls_remain_reachable_across_narrow_regular_and_wide_layouts() {
+fn ultra_workbench_toolbar_uses_icon_density_and_keeps_rows_inside_the_shell() {
+    let _guard = match env_lock().lock() {
+        Ok(guard) => guard,
+        Err(error) => panic!("test environment lock is poisoned: {error}"),
+    };
+
+    let bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(420.0, 360.0))
+        .unwrap_or_else(|error| panic!("ultra workbench bridge should build: {error:?}"));
+    let command_row = bridge
+        .control_frame("WorkbenchToolbarCommandRow")
+        .expect("ultra toolbar should expose its command row");
+    let module_tabs = bridge
+        .control_frame("WorkbenchModuleTabs")
+        .expect("ultra toolbar should expose its module row");
+
+    for control_id in [
+        "WorkbenchToolbarAssets",
+        "WorkbenchToolbarOpen",
+        "WorkbenchToolbarSave",
+        "WorkbenchModulePerception",
+        "WorkbenchModuleMaterial",
+    ] {
+        assert_eq!(
+            control_visibility(&bridge, control_id),
+            Some(UiVisibility::Collapsed),
+            "ultra toolbar should collapse {control_id} into an existing reachable menu"
+        );
+    }
+    for control_id in ULTRA_CORE_MODULE_TABS {
+        assert!(
+            bridge.control_frame(control_id).is_some(),
+            "ultra toolbar should keep {control_id} directly reachable"
+        );
+    }
+    for (control_id, label) in [
+        ("WorkbenchModuleSave", "Save"),
+        ("WorkbenchModuleBrowse", "Browse"),
+        ("WorkbenchModuleCompile", "Compile"),
+    ] {
+        let frame = bridge
+            .control_frame(control_id)
+            .unwrap_or_else(|| panic!("ultra toolbar should keep {control_id} reachable"));
+        assert_frame_value("ultra icon command width", frame.width, 34.0);
+        assert_eq!(
+            control_string(&bridge, control_id, "text").as_deref(),
+            Some("")
+        );
+        assert_eq!(
+            control_string(&bridge, control_id, "label").as_deref(),
+            Some(label)
+        );
+        assert_eq!(
+            control_string(&bridge, control_id, "icon_placement").as_deref(),
+            Some("icon_only")
+        );
+    }
+
+    assert!(
+        module_tabs.right() <= 420.0,
+        "ultra module row should remain inside the 420px shell"
+    );
+    for control_id in [
+        "WorkbenchToolbarMenu",
+        "WorkbenchModuleCompile",
+        "WorkbenchRunPlay",
+        "WorkbenchRunMode",
+        "WorkbenchLayoutGrid",
+        "WorkbenchThemeToggle",
+    ] {
+        let frame = bridge
+            .control_frame(control_id)
+            .unwrap_or_else(|| panic!("ultra toolbar should expose {control_id}"));
+        assert!(
+            frame.x >= command_row.x && frame.right() <= command_row.right(),
+            "{control_id} should remain inside the ultra command row"
+        );
+    }
+}
+
+#[test]
+fn ultra_toolbar_density_restores_after_resize() {
+    let _guard = match env_lock().lock() {
+        Ok(guard) => guard,
+        Err(error) => panic!("test environment lock is poisoned: {error}"),
+    };
+
+    let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(420.0, 360.0))
+        .unwrap_or_else(|error| panic!("ultra workbench bridge should build: {error:?}"));
+    let regular = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1260.0, 720.0))
+        .unwrap_or_else(|error| panic!("regular workbench bridge should build: {error:?}"));
+    bridge
+        .recompute_layout(UiSize::new(1260.0, 720.0))
+        .expect("resized workbench should recompute");
+
+    for (control_id, label, width) in [
+        ("WorkbenchModuleSave", "Save", 72.0),
+        ("WorkbenchModuleBrowse", "Browse", 92.0),
+        ("WorkbenchModuleCompile", "Compile", 104.0),
+    ] {
+        assert_eq!(
+            control_string(&bridge, control_id, "text").as_deref(),
+            Some(label)
+        );
+        assert_eq!(
+            control_string(&bridge, control_id, "icon_placement").as_deref(),
+            Some("leading")
+        );
+        assert_frame_value(
+            "restored module command width",
+            bridge
+                .control_frame(control_id)
+                .unwrap_or_else(|| panic!("resized toolbar should expose {control_id}"))
+                .width,
+            width,
+        );
+    }
+    for control_id in [
+        "WorkbenchToolbarAssets",
+        "WorkbenchToolbarOpen",
+        "WorkbenchToolbarSave",
+    ] {
+        assert!(
+            bridge.control_frame(control_id).is_some(),
+            "resized toolbar should restore {control_id}"
+        );
+    }
+    for control_id in [
+        "WorkbenchModuleDiff",
+        "WorkbenchModuleSimulate",
+        "WorkbenchToolbarToolGroup",
+        "WorkbenchModuleMore",
+    ] {
+        assert_eq!(
+            control_visibility(&bridge, control_id),
+            control_visibility(&regular, control_id),
+            "resizing out of Ultra should match a fresh regular projection for {control_id}"
+        );
+    }
+}
+
+#[test]
+fn ultra_toolbar_main_menu_keeps_hidden_file_commands_reachable() {
+    let _guard = match env_lock().lock() {
+        Ok(guard) => guard,
+        Err(error) => panic!("test environment lock is poisoned: {error}"),
+    };
+
+    let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(420.0, 360.0))
+        .unwrap_or_else(|error| panic!("ultra workbench bridge should build: {error:?}"));
+
+    bridge
+        .dispatch_control_state("WorkbenchToolbarMenu", UiEventKind::Click)
+        .expect("ultra toolbar main menu should dispatch")
+        .expect("ultra toolbar main menu should expose a binding");
+    assert!(control_bool(
+        &bridge,
+        "WorkbenchToolbarMainMenu",
+        "popup_open"
+    ));
+
+    let asset_browser = bridge
+        .main_menu_item_binding("WorkbenchToolbarMainMenu", "menu.item.asset_browser")
+        .expect("the main menu should retain the hidden Asset Browser command");
+    assert_eq!(
+        asset_browser.payload(),
+        &EditorUiBindingPayload::asset_command(AssetCommand::OpenAssetBrowser)
+    );
+
+    for (action_id, expected_command) in [
+        ("menu.item.open_project", "workbench.project.open"),
+        ("menu.item.save_project", "workbench.project.save"),
+    ] {
+        let binding = bridge
+            .main_menu_item_binding("WorkbenchToolbarMainMenu", action_id)
+            .unwrap_or_else(|| panic!("the main menu should retain {expected_command}"));
+        assert!(matches!(
+            binding.payload(),
+            EditorUiBindingPayload::MenuAction { action_id }
+                if action_id == expected_command
+        ));
+    }
+}
+
+#[test]
+fn mvp_run_and_layout_controls_remain_reachable_across_all_layout_tiers() {
     let _guard = match env_lock().lock() {
         Ok(guard) => guard,
         Err(error) => panic!("test environment lock is poisoned: {error}"),
     };
 
     for (width, height, tools_visible) in [
+        (420.0, 360.0, false),
         (640.0, 520.0, false),
         (900.0, 620.0, false),
         (1260.0, 780.0, true),
@@ -154,8 +347,12 @@ fn mvp_run_controls_remain_reachable_across_narrow_regular_and_wide_layouts() {
         let run_mode = bridge
             .control_frame("WorkbenchRunMode")
             .unwrap_or_else(|| panic!("{width}px toolbar should keep Run Mode reachable"));
+        let layout_group = bridge
+            .control_frame("WorkbenchToolbarLayoutGroup")
+            .unwrap_or_else(|| panic!("{width}px toolbar should keep Layout and Theme reachable"));
 
         assert_frame_value("compact MVP run group width", run_group.width, 70.0);
+        assert_frame_value("compact layout group width", layout_group.width, 68.0);
         assert_frame_value("Play to Run Mode gap", run_mode.x - play.right(), 4.0);
         assert!(
             run_group.x >= module_commands.right(),
@@ -165,15 +362,20 @@ fn mvp_run_controls_remain_reachable_across_narrow_regular_and_wide_layouts() {
             run_group.right() <= command_row.right(),
             "{width}px MVP run controls should remain inside the command row"
         );
-        assert_eq!(
-            control_visibility(&bridge, "WorkbenchLayoutGrid"),
-            Some(UiVisibility::Collapsed),
-            "{width}px toolbar should defer the secondary layout control"
+        for control_id in ["WorkbenchLayoutGrid", "WorkbenchThemeToggle"] {
+            assert_eq!(
+                control_visibility(&bridge, control_id),
+                Some(UiVisibility::Visible),
+                "{width}px toolbar should keep the iconized {control_id} command reachable"
+            );
+        }
+        assert!(
+            layout_group.x >= run_group.right(),
+            "{width}px layout commands should follow Run without overlap"
         );
-        assert_eq!(
-            control_visibility(&bridge, "WorkbenchThemeToggle"),
-            Some(UiVisibility::Collapsed),
-            "{width}px toolbar should defer the secondary theme control"
+        assert!(
+            layout_group.right() <= command_row.right(),
+            "{width}px layout commands should remain inside the command row"
         );
         assert_eq!(
             control_visibility(&bridge, "WorkbenchToolbarToolGroup"),
@@ -395,7 +597,11 @@ fn full_workbench_run_mode_uses_toolbar_dropdown_icon() {
     let run_group = bridge
         .control_frame("WorkbenchToolbarRunGroup")
         .expect("full toolbar should expose the complete run group");
-    assert_frame_value("full run group width", run_group.width, 142.0);
+    assert_frame_value("full run group width", run_group.width, 70.0);
+    let layout_group = bridge
+        .control_frame("WorkbenchToolbarLayoutGroup")
+        .expect("full toolbar should expose the low-priority layout group");
+    assert_frame_value("full layout group width", layout_group.width, 68.0);
     for control_id in ["WorkbenchLayoutGrid", "WorkbenchThemeToggle"] {
         assert_eq!(
             control_visibility(&bridge, control_id),
@@ -579,7 +785,7 @@ fn compact_workbench_module_more_opens_overflow_menu_and_selects_hidden_module()
 
     let opened_menu = workbench_window_node(&bridge, "WorkbenchModuleOverflowMenu");
     assert!(opened_menu.popup_open);
-    assert_eq!(opened_menu.structured_menu_items.row_count(), 5);
+    assert_eq!(opened_menu.structured_menu_items.row_count(), 7);
     assert_eq!(
         structured_menu_item(&opened_menu, 0).label.as_str(),
         "Behavior"
@@ -598,6 +804,8 @@ fn compact_workbench_module_more_opens_overflow_menu_and_selects_hidden_module()
     );
     assert_eq!(structured_menu_item(&opened_menu, 3).label.as_str(), "VFX");
     assert_eq!(structured_menu_item(&opened_menu, 4).label.as_str(), "HUD");
+    assert_eq!(structured_menu_item(&opened_menu, 5).label.as_str(), "Diff");
+    assert_eq!(structured_menu_item(&opened_menu, 6).label.as_str(), "Sim");
 
     let effects = dispatch_componentized_workbench_menu_item_selected(
         &harness.runtime,
@@ -708,6 +916,58 @@ fn workbench_window_node(
         .filter_map(|row| nodes.row_data(row))
         .find(|node| node.control_id.as_str() == control_id)
         .unwrap_or_else(|| panic!("{control_id} should project to native host nodes"))
+}
+
+#[test]
+fn ultra_module_overflow_exposes_every_hidden_module_and_secondary_command() {
+    let _guard = match env_lock().lock() {
+        Ok(guard) => guard,
+        Err(error) => panic!("test environment lock is poisoned: {error}"),
+    };
+
+    let harness = EventRuntimeHarness::new("zircon_workbench_ultra_module_overflow_menu");
+    let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(420.0, 360.0))
+        .unwrap_or_else(|error| panic!("ultra workbench bridge should build: {error:?}"));
+    bridge
+        .dispatch_control_state("WorkbenchModuleMore", UiEventKind::Click)
+        .expect("ultra module overflow should dispatch")
+        .expect("ultra module overflow should expose a binding");
+
+    let opened_menu = workbench_window_node(&bridge, "WorkbenchModuleOverflowMenu");
+    assert_eq!(opened_menu.structured_menu_items.row_count(), 9);
+    let labels = (0..9)
+        .map(|row| structured_menu_item(&opened_menu, row).label.to_string())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        labels.iter().map(String::as_str).collect::<Vec<_>>(),
+        vec![
+            "Perception",
+            "Material",
+            "Behavior",
+            "Render",
+            "Assets",
+            "VFX",
+            "HUD",
+            "Diff",
+            "Sim",
+        ]
+    );
+    assert!(
+        opened_menu.frame.bottom() <= 360.0,
+        "ultra overflow menu should remain inside the 360px shell"
+    );
+
+    let effects = dispatch_componentized_workbench_menu_item_selected(
+        &harness.runtime,
+        &mut bridge,
+        "WorkbenchModuleOverflowMenu",
+        "menu.item.diff",
+    )
+    .expect("hidden Diff menu item should be handled")
+    .expect("hidden Diff menu item should dispatch through the source binding");
+    assert!(effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
 }
 
 fn structured_menu_item(node: &TemplatePaneNodeData, row: usize) -> TemplatePaneMenuItemData {

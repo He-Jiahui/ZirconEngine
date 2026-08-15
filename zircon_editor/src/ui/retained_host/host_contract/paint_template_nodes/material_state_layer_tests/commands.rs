@@ -1,4 +1,4 @@
-use super::super::{TemplatePaneNodeData, push_state_layer_commands};
+use super::super::{push_state_layer_commands, TemplatePaneNodeData};
 use super::support::frame;
 
 #[test]

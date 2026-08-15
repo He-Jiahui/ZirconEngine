@@ -14,12 +14,16 @@ use crate::core::gateway::EditorRuntimeGatewayHandle;
 use crate::core::i18n::{
     EditorI18nEventSink, EditorI18nService, EditorLocale, LocaleChangeDelivery,
 };
-use crate::core::jobs::{EditorJobLimits, EditorJobSystem};
+use crate::core::jobs::{
+    register_editor_job_quota_settings, resolve_editor_job_limits, EditorJobSystem,
+};
 use crate::core::logging::{EditorLogEventSink, EditorLogService, LogEventDelivery, LogRecord};
 use crate::core::notifications::EditorNotificationService;
+use crate::core::recovery::{AutosavePolicy, EditorAutosaveService};
 use crate::core::settings::{
-    EDITOR_LOCALE_KEY, SettingChange, SettingsAuthority, SettingsChangeSubscriber,
-    SettingsPersistenceService, SettingsSnapshot,
+    settings_registry_with_defaults, SettingChange, SettingsChangeSubscriber,
+    SettingsPersistenceService, SettingsSnapshot, SettingsStartup, SettingsStore,
+    SettingsUserLayerLoad, EDITOR_LOCALE_KEY,
 };
 use zircon_runtime::core::runtime::tasks::JobScheduler;
 
@@ -245,6 +249,7 @@ pub struct EditorContextBuilder {
     bus: SharedEditorMessageBus,
     scheduler: JobScheduler,
     gateway: EditorRuntimeGatewayHandle,
+    settings_store: Option<SettingsStore>,
 }
 
 impl EditorContextBuilder {
@@ -253,6 +258,7 @@ impl EditorContextBuilder {
             bus: SharedEditorMessageBus::default(),
             scheduler,
             gateway: EditorRuntimeGatewayHandle::detached(),
+            settings_store: None,
         }
     }
 
@@ -266,18 +272,37 @@ impl EditorContextBuilder {
         self
     }
 
+    pub(crate) fn with_settings_store(mut self, store: SettingsStore) -> Self {
+        self.settings_store = Some(store);
+        self
+    }
+
     pub fn build(self) -> Arc<EditorContext> {
+        let mut settings_registry = settings_registry_with_defaults();
+        register_editor_job_quota_settings(&mut settings_registry)
+            .expect("built-in editor job quota definitions are unique and valid");
+        let settings_startup = match self.settings_store.as_ref() {
+            Some(store) => SettingsStartup::load_from_store(settings_registry, store),
+            None => SettingsStartup::load_from_environment(settings_registry),
+        };
+        report_user_layer_load(settings_startup.user_layer_load());
+        let job_limits =
+            resolve_editor_job_limits(settings_startup.registry(), self.scheduler.parallelism())
+                .expect("registered and validated startup quotas resolve to editor job limits");
+        let settings = Arc::new(settings_startup.into_authority());
         let events = Arc::new(EditorEventService::new(self.bus.clone()));
         let i18n = Arc::new(EditorI18nService::default());
         i18n.configure_event_sink(Arc::new(EditorMessageI18nEventSink::new(self.bus.clone())));
-        let jobs = EditorJobSystem::with_scheduler_and_bus(
+        let notifications = EditorNotificationService::default();
+        let jobs = EditorJobSystem::with_scheduler_and_bus_and_progress_observer(
             self.scheduler,
             self.bus.clone(),
-            EditorJobLimits::default(),
+            job_limits,
+            notifications.job_progress_observer(),
         );
-        let logs = EditorLogService::default();
+        let logs = Arc::new(EditorLogService::default());
         logs.configure_event_sink(Arc::new(EditorMessageLogEventSink::new(self.bus.clone())));
-        let notifications = EditorNotificationService::default();
+        let autosave = EditorAutosaveService::new(jobs.clone(), AutosavePolicy::default());
         let transactions = EditorTransactionEngine::with_event_sink(
             CoreEditContext::new(self.gateway.clone()),
             Arc::new(EditorMessageTransactionEventSink::new(self.bus.clone())),
@@ -285,7 +310,6 @@ impl EditorContextBuilder {
         let commands = EditorCommandRegistryHandle::default_workbench();
         let command_eval = CommandEvalSnapshotHandle::default();
         let tools = ToolSchedulerService::new(self.bus.clone());
-        let settings = Arc::new(SettingsAuthority::at_startup());
         if let Err(error) = i18n.synchronize_user_locale(settings.as_ref()) {
             tracing::error!(%error, "persisted editor locale could not be applied at startup");
         }
@@ -300,6 +324,7 @@ impl EditorContextBuilder {
             jobs,
             logs,
             notifications,
+            autosave,
             transactions,
             commands,
             command_eval,
@@ -311,25 +336,69 @@ impl EditorContextBuilder {
     }
 }
 
+fn report_user_layer_load(load: &SettingsUserLayerLoad) {
+    match load {
+        SettingsUserLayerLoad::Loaded {
+            path,
+            schema_version,
+        } => tracing::info!(
+            path = %path.display(),
+            schema_version,
+            "loaded editor User settings at startup"
+        ),
+        SettingsUserLayerLoad::Missing { path } => tracing::info!(
+            path = %path.display(),
+            "editor User settings are missing; using registered defaults"
+        ),
+        SettingsUserLayerLoad::Invalid { path, message } => tracing::warn!(
+            path = ?path.as_deref(),
+            error = %message,
+            "editor User settings are invalid; using registered defaults"
+        ),
+    }
+}
+
+#[cfg(test)]
+#[path = "builder/quota_startup_tests.rs"]
+mod quota_startup_tests;
+
 #[cfg(test)]
 mod tests {
+    use std::sync::mpsc;
+    use std::time::{Duration, Instant};
+
+    use super::{
+        EditorContextBuilder, EditorMessageTransactionEventSink, I18N_LOCALE_CHANGED_EVENT_SCHEMA,
+        I18N_LOCALE_RESYNC_EVENT_SCHEMA, LOG_RECORD_EVENT_SCHEMA, LOG_RESYNC_EVENT_SCHEMA,
+    };
     use crate::core::editing::engine::{
         HistoryContextId, TransactionEvent, TransactionEventKind, TransactionEventSink,
         TransactionId,
     };
     use crate::core::editor_message::{
         EditorMessage, EditorMessageInboxLimits, EditorMessagePayload, EditorTopic,
-        SharedEditorMessageBus, TOPIC_TRANSACTION, TransactionMessage,
+        SharedEditorMessageBus, TransactionMessage, TOPIC_TRANSACTION,
     };
     use crate::core::i18n::EditorLocale;
+    use crate::core::jobs::{EditorJob, EditorJobSpec, JobCategory, JobContext, JobError};
     use crate::core::logging::{
         EditorLogEventSink, LogEntry, LogEventDelivery, LogSeverity, LogSource,
     };
 
-    use super::{
-        EditorContextBuilder, EditorMessageTransactionEventSink, I18N_LOCALE_CHANGED_EVENT_SCHEMA,
-        I18N_LOCALE_RESYNC_EVENT_SCHEMA, LOG_RECORD_EVENT_SCHEMA, LOG_RESYNC_EVENT_SCHEMA,
-    };
+    struct NotificationGateJob {
+        started: mpsc::Sender<()>,
+        release: mpsc::Receiver<()>,
+    }
+
+    impl EditorJob for NotificationGateJob {
+        type Output = ();
+
+        fn run(self, _context: JobContext) -> Result<Self::Output, JobError> {
+            self.started.send(()).unwrap();
+            self.release.recv_timeout(Duration::from_secs(5)).unwrap();
+            Ok(())
+        }
+    }
 
     #[test]
     fn builder_exposes_one_immutable_settings_snapshot_from_its_context() {
@@ -343,16 +412,56 @@ mod tests {
             context.settings_persistence().diagnostics().queue_entries,
             0
         );
-        assert!(
-            context
-                .logs()
-                .snapshot(&crate::core::logging::LogFilter::default())
-                .is_empty()
-        );
+        assert!(context
+            .logs()
+            .snapshot(&crate::core::logging::LogFilter::default())
+            .is_empty());
         assert_eq!(
             context.i18n().translate("command.file.open").as_ref(),
             "Open"
         );
+    }
+
+    #[test]
+    fn builder_binds_accepted_jobs_to_bounded_progress_notifications() {
+        let context = EditorContextBuilder::new(crate::core::jobs::test_job_scheduler()).build();
+        let (started_sender, started_receiver) = mpsc::channel();
+        let (release_sender, release_receiver) = mpsc::channel();
+        let ticket = context
+            .jobs()
+            .submit(
+                EditorJobSpec::new("notification progress", JobCategory::Import),
+                NotificationGateJob {
+                    started: started_sender,
+                    release: release_receiver,
+                },
+            )
+            .unwrap();
+        started_receiver
+            .recv_timeout(Duration::from_secs(5))
+            .unwrap();
+
+        let snapshots = context
+            .notifications()
+            .progress()
+            .snapshot(&context.jobs().progress());
+        assert_eq!(snapshots.len(), 1);
+        assert_eq!(snapshots[0].job().id(), ticket.id());
+        assert_eq!(
+            snapshots[0].notification().title_key(),
+            "editor.notification.job_progress.title"
+        );
+
+        release_sender.send(()).unwrap();
+        assert!(ticket.wait().is_ok());
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while !context.notifications().progress().is_empty() {
+            assert!(
+                Instant::now() < deadline,
+                "finished job binding was not retired"
+            );
+            std::thread::yield_now();
+        }
     }
 
     #[test]
@@ -450,12 +559,10 @@ mod tests {
         let topic = EditorTopic::i18n();
         let subscriber = context.bus().register_subscriber([topic.clone()]).unwrap();
 
-        assert!(
-            context
-                .i18n()
-                .set_active_locale(EditorLocale::parse("zh-CN").unwrap())
-                .unwrap()
-        );
+        assert!(context
+            .i18n()
+            .set_active_locale(EditorLocale::parse("zh-CN").unwrap())
+            .unwrap());
 
         let deliveries = context.bus().drain_deliveries(subscriber);
         assert_eq!(deliveries.len(), 1);
@@ -514,18 +621,14 @@ mod tests {
             .register_subscriber([EditorTopic::i18n()])
             .unwrap();
 
-        assert!(
-            context
-                .i18n()
-                .set_active_locale(EditorLocale::parse("zh-CN").unwrap())
-                .unwrap()
-        );
-        assert!(
-            context
-                .i18n()
-                .set_active_locale(EditorLocale::parse("en").unwrap())
-                .unwrap()
-        );
+        assert!(context
+            .i18n()
+            .set_active_locale(EditorLocale::parse("zh-CN").unwrap())
+            .unwrap());
+        assert!(context
+            .i18n()
+            .set_active_locale(EditorLocale::parse("en").unwrap())
+            .unwrap());
 
         let deliveries = context.bus().drain_deliveries(subscriber);
         assert!(matches!(

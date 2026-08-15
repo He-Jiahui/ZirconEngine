@@ -240,6 +240,30 @@ fn secondary_button_dynamic_states_ignore_normal_declared_chrome() {
     let focused_style =
         select_workbench_button_style(&focused, WorkbenchButtonKind::Secondary, false);
 
+    let mut hidden_focus = TemplatePaneNodeData {
+        control_id: "WorkbenchSecondaryButton".into(),
+        focused: true,
+        focus_visible_known: true,
+        ..TemplatePaneNodeData::default()
+    };
+    hidden_focus.button_style.element.background_color =
+        Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(81, 88, 94, 255)));
+    hidden_focus.button_style.element.border_color =
+        Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(109, 116, 122, 255)));
+    hidden_focus.button_style.interaction_state = ButtonInteractionState::Focused;
+    let hidden_focus_style =
+        select_workbench_button_style(&hidden_focus, WorkbenchButtonKind::Secondary, false);
+
+    let visible_focus = TemplatePaneNodeData {
+        control_id: "WorkbenchSecondaryButton".into(),
+        focused: true,
+        focus_visible: true,
+        focus_visible_known: true,
+        ..TemplatePaneNodeData::default()
+    };
+    let visible_focus_style =
+        select_workbench_button_style(&visible_focus, WorkbenchButtonKind::Secondary, false);
+
     let focused_hovered = TemplatePaneNodeData {
         control_id: "WorkbenchSecondaryButton".into(),
         focused: true,
@@ -284,12 +308,16 @@ fn secondary_button_dynamic_states_ignore_normal_declared_chrome() {
     assert_eq!(pressed_style.border, button_palette.border);
     assert_eq!(focused_style.surface, button_palette.surface_base);
     assert_eq!(focused_style.border, button_palette.focus_border);
+    assert_eq!(hidden_focus_style.surface, [81, 88, 94, 255]);
+    assert_eq!(hidden_focus_style.border, [109, 116, 122, 255]);
+    assert_eq!(visible_focus_style.surface, button_palette.surface_base);
+    assert_eq!(visible_focus_style.border, button_palette.focus_border);
     assert_eq!(focused_hovered_style.surface, button_palette.surface_hover);
     assert_eq!(focused_hovered_style.border, button_palette.focus_border);
     assert_eq!(selected_style.surface, button_palette.surface_hover);
-    assert_eq!(selected_style.border, button_palette.focus_border);
+    assert_eq!(selected_style.border, button_palette.border);
     assert_eq!(checked_style.surface, button_palette.surface_hover);
-    assert_eq!(checked_style.border, button_palette.focus_border);
+    assert_eq!(checked_style.border, button_palette.border);
 }
 
 #[test]
@@ -307,6 +335,23 @@ fn tertiary_button_hover_promotes_muted_foreground() {
     assert_eq!(style.border, button_palette.transparent_surface);
     assert_eq!(style.text, button_palette.text);
     assert_eq!(style.glyph, button_palette.text);
+}
+
+#[test]
+fn secondary_button_honors_explicit_transparent_resting_chrome() {
+    let transparent = UiStyleColor::Rgba(UiRgbaColor::from_u8(0, 0, 0, 0));
+    let mut node = TemplatePaneNodeData {
+        control_id: "WorkbenchQuietSecondaryButton".into(),
+        ..TemplatePaneNodeData::default()
+    };
+    node.button_style.element.background_color = Some(transparent.clone());
+    node.button_style.element.border_color = Some(transparent);
+
+    let style = select_workbench_button_style(&node, WorkbenchButtonKind::Secondary, false);
+
+    assert_eq!(style.surface, expected_button_palette().transparent_surface);
+    assert_eq!(style.border, expected_button_palette().transparent_surface);
+    assert_eq!(style.border_width, 1.0);
 }
 
 #[test]
@@ -329,6 +374,32 @@ fn muted_prominent_command_focus_does_not_promote_hover_surface() {
 }
 
 #[test]
+fn prominent_command_selection_keeps_active_surface_without_a_focus_outline() {
+    let command_palette = expected_command_palette();
+
+    let muted = TemplatePaneNodeData {
+        control_id: "WorkbenchModuleCompile".into(),
+        action_id: "workbench.module.compile".into(),
+        selected: true,
+        ..TemplatePaneNodeData::default()
+    };
+    let muted_style = select_workbench_button_style(&muted, WorkbenchButtonKind::Secondary, false);
+    assert_eq!(muted_style.surface, command_palette.muted_hot_surface);
+    assert_eq!(muted_style.border, command_palette.muted_border);
+
+    let primary = TemplatePaneNodeData {
+        control_id: "ImportModel".into(),
+        action_id: "workbench.asset.import_model".into(),
+        selected: true,
+        ..TemplatePaneNodeData::default()
+    };
+    let primary_style =
+        select_workbench_button_style(&primary, WorkbenchButtonKind::Primary, false);
+    assert_eq!(primary_style.surface, command_palette.primary_hot_surface);
+    assert_eq!(primary_style.border, command_palette.primary_hot_surface);
+}
+
+#[test]
 fn primary_import_command_focus_does_not_promote_hover_surface() {
     let node = TemplatePaneNodeData {
         control_id: "ImportModel".into(),
@@ -348,7 +419,7 @@ fn primary_import_command_focus_does_not_promote_hover_surface() {
 }
 
 #[test]
-fn primary_import_command_selection_keeps_focus_ring_and_active_surface() {
+fn primary_import_command_selection_keeps_active_surface_without_focus_outline() {
     let node = TemplatePaneNodeData {
         control_id: "ImportModel".into(),
         action_id: "workbench.asset.import_model".into(),
@@ -360,14 +431,14 @@ fn primary_import_command_selection_keeps_focus_ring_and_active_surface() {
     let command_palette = expected_command_palette();
 
     assert_eq!(style.surface, command_palette.primary_hot_surface);
-    assert_eq!(style.border, expected_button_palette().focus_border);
+    assert_eq!(style.border, command_palette.primary_hot_surface);
     assert_eq!(style.border_width, 1.0);
     assert_eq!(style.text, command_palette.primary_text);
     assert_eq!(style.glyph, command_palette.primary_text);
 }
 
 #[test]
-fn muted_prominent_command_check_keeps_focus_ring_and_active_surface() {
+fn muted_prominent_command_check_keeps_active_surface_without_focus_outline() {
     let node = TemplatePaneNodeData {
         control_id: "WorkbenchModuleCompile".into(),
         action_id: "workbench.module.compile".into(),
@@ -379,7 +450,7 @@ fn muted_prominent_command_check_keeps_focus_ring_and_active_surface() {
     let command_palette = expected_command_palette();
 
     assert_eq!(style.surface, command_palette.muted_hot_surface);
-    assert_eq!(style.border, expected_button_palette().focus_border);
+    assert_eq!(style.border, command_palette.muted_border);
     assert_eq!(style.border_width, 1.0);
     assert_eq!(style.text, command_palette.muted_text);
     assert_eq!(style.glyph, command_palette.muted_text);

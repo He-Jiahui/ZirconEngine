@@ -5,12 +5,12 @@ use serde_json::{Map, Number, Value};
 
 use crate::core::framework::scene::ComponentTypeDescriptor;
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
-use crate::scene::{EntityId, reflect::RuntimeTypeRegistration};
+use crate::scene::{reflect::RuntimeTypeRegistration, EntityId};
 use zircon_runtime_interface::reflect::ReflectError;
 use zircon_runtime_interface::reflect::ReflectTypeRegistration;
 
-use super::World;
 use super::error::{SceneError, SceneResult};
+use super::World;
 use crate::scene::reflect::VmTypeBacking;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -93,6 +93,20 @@ impl World {
         Ok(())
     }
 
+    pub(in crate::scene) fn publish_prevalidated_dynamic_component_type(
+        &mut self,
+        descriptor: ComponentTypeDescriptor,
+        registration: RuntimeTypeRegistration,
+    ) {
+        let type_path = descriptor.type_id.clone();
+        debug_assert!(!self.component_types.contains(&type_path));
+        debug_assert!(!self.type_registry.contains_type_path(&type_path));
+        self.component_types.publish_prevalidated(descriptor);
+        self.type_registry
+            .register(registration)
+            .expect("preflight-validated dynamic type registration must publish");
+    }
+
     pub fn component_type_descriptor(&self, type_id: &str) -> Option<&ComponentTypeDescriptor> {
         self.component_types.descriptor(type_id)
     }
@@ -144,6 +158,7 @@ impl World {
         self.inspection_artifact_cache.mark_fields_dirty(entity);
         self.advance_dynamic_component_generation(&component_id);
         self.advance_world_generation();
+        self.invalidate_world_component_type(&component_id);
         Ok(true)
     }
 
@@ -227,6 +242,7 @@ impl World {
             self.inspection_artifact_cache.mark_fields_dirty(entity);
             self.advance_dynamic_component_generation(component_id);
             self.advance_world_generation();
+            self.invalidate_world_component_type(component_id);
         }
         Ok(removed)
     }
@@ -382,6 +398,7 @@ impl World {
             self.inspection_artifact_cache.mark_fields_dirty(entity);
             self.advance_dynamic_component_generation(component_id);
             self.advance_world_generation();
+            self.invalidate_world_component_type(component_id);
             return Ok(true);
         }
         let components = self.dynamic_components.entry(entity).or_default();
@@ -401,6 +418,7 @@ impl World {
         self.inspection_artifact_cache.mark_fields_dirty(entity);
         self.advance_dynamic_component_generation(component_id);
         self.advance_world_generation();
+        self.invalidate_world_component_type(component_id);
         Ok(true)
     }
 

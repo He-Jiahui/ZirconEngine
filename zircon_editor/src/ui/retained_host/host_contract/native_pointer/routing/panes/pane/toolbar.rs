@@ -40,7 +40,6 @@ fn viewport_toolbar_control_id(
 ) -> Option<SharedString> {
     let surface_frame = pane.viewport.toolbar_surface_frame.as_ref()?;
     let point = UiPoint::new(x - toolbar.x, y - toolbar.y);
-    let node_id = hit_test_surface_frame(surface_frame, point).top_hit?;
-    let node = surface_frame.arranged_tree.get(node_id)?;
-    node.control_id.clone()
+    let hit = hit_test_surface_frame(surface_frame, point);
+    hit.top_entry(&surface_frame.hit_grid)?.control_id.clone()
 }

@@ -18,9 +18,11 @@ related_code:
   - zircon_runtime/src/scene/ecs/schedule_runner.rs
   - zircon_runtime/src/scene/ecs/native_system_schedule_diagnostics.rs
 tests:
-  - disjoint native-system parallel schedule fixture
-  - conflicting native-system serialization fixture
-  - native main-thread-affinity and invalid-access rejection fixture
+  - disjoint_worker_safe_native_systems_overlap_in_the_production_stage_runner
+  - conflicting_worker_safe_native_systems_remain_serial
+  - main_thread_only_external_system_runs_on_the_schedule_caller
+  - panicking_worker_safe_system_is_restored_before_the_panic_resumes
+  - native_system_schedule_diagnostics_record_conflicts_latency_and_utilization
 ---
 
 # Plugins01：native systems 全部作为保守 World 写者串行化
@@ -72,7 +74,7 @@ thread-affinity/reentrancy 声明。当前 conservative writer 是正确安全 f
 
 ## 修复结果与回传
 
-Open state: `待 Plugins01 定义 native access/thread-affinity ABI，并由 Runtime08/11 验证 conflict graph 与 worker 调度`。
+Open state: `implementation_complete / current-source static review complete / managed focused-broad and Runtime08/11 performance acceptance pending`。
 
 ### 2026-07-22 Plugins01 实现状态
 
@@ -114,3 +116,52 @@ main-thread affinity、panic restore），native schedule diagnostics 为 `1/1`�
   `191a43af42de46b18f2d3529a48a875a` 占用；已 materialize 的 validation-copy
   `5945e3ef29d74bd69602adca02e243b5` 不是 Cargo run，未被重建、重试或清理。仍待 current-source
   focused/broad、真实 DLL/runner trace 与 Runtime08/11 性能预算证据，再决定 failure return。
+
+### 2026-08-11 conservative fallback worker-dispatch correction
+
+- 本轮从 `SceneScheduleStagePlan` 到 `SceneSystem::supports_worker_dispatch` 做了当前源码复审，
+  发现 `WorkerSafe + worldless + no ordering constraints` 之前不足以表达 worker eligibility：带
+  `SystemParamAccess::add_conservative_world_access()` 的 callback 仍可进入 `flush_worker_batch`，
+  在 `World` 锁外执行。这与未知/legacy access 必须保守主线程串行的 ABI 回退契约冲突。
+- `supports_worker_dispatch` 现在同时要求 `!access().has_conservative_world_access()`；stage plan
+  本来已经只经该单一策略形成 `worker_safe`，因此没有增加第二个判断 authority。新增
+  `conservative_world_writer_is_not_dispatched_to_a_worker` 回归用例，构造 `WorkerSafe` 但保守
+  world writer 的外部系统，并断言它在 schedule caller 执行、`worker_batch_count=0`，同时保留
+  conservative writer 诊断。
+- `rustfmt +1.94.1 --edition 2024 --check` 与 scoped `git diff --check` 均通过；静态路径守卫确认
+  stage plan 继续调用 `supports_worker_dispatch()`，且该策略明确拒绝 conservative access。
+- 该新 Rust 用例尚未运行：唯一已物化 validation-copy
+  `5945e3ef29d74bd69602adca02e243b5` 属于另一 Session，coordinator 拒绝跨 Session 消费；本轮没有
+  重建、重试、清理该副本或直接运行 Cargo。failure 继续保持 `open`，待合法 current-source managed
+  focused/broad、worker/main-thread trace 与 Runtime08/11 性能预算证据。
+
+### 2026-08-11 current-source materialization preflight
+
+- 为验证本轮 scheduler 修复，Plugins01 已在 live lease 下为三项 source 和三项 plan/test input
+  写入 current-byte attribution。随后以当前 workspace 请求 coordinator validation-copy materialization；
+  该请求在启动 Cargo 前被治理门拒绝，未产生 source copy 或 target output。
+- coordinator 的 artifact audit 精确报告一个未登记、空、无 owner 的目录
+  `E:\ZirconBuilds\mvp-perf`（创建于 2026-08-10 16:53 UTC）。项目工件策略禁止在存在该目录时创建
+  D/E/F validation output；Plugins01 不拥有该目录，未删除、清理或登记它。
+- 因此本项仍只有 static GREEN：格式、whitespace、scoped diff-check 与单一 policy-path guard 已通过；
+  `conservative_world_writer_is_not_dispatched_to_a_worker` 的 managed Rust RED/GREEN、focused/broad、
+  trace 和性能预算仍是 pending。旧 foreign validation-copy 也保持 untouched。
+
+### 2026-08-11 current-source static recheck
+
+- 当前源码重新确认 production eligibility 仍只有 `SceneSystem::supports_worker_dispatch()` 一处：
+  `WorkerSafe`、worldless、无 ordering constraint 之外，必须同时满足
+  `!access().has_conservative_world_access()`。`SceneScheduleStagePlan` 继续只消费这一策略，
+  所以 legacy/unknown 的 conservative writer 不会重新进入 worker batch。两个 production 文件的
+  Rust `1.94.1` rustfmt、scoped `git diff --check` 与 policy-path source guard 均为 PASS。
+- 新回归用例仍正确约束 conservative writer 在 schedule caller 执行，并报告
+  `worker_batch_count=0`、`callback_count=1` 与 `conservative_world_writer_count=1`。不过当前
+  `zircon_runtime/src/scene/tests/ecs_scheduled_native_systems.rs` 在无关的静态断言格式上不满足
+  Rust `1.94.1` rustfmt；Plugins01 未修改该范围外现有差异。因此不能把包含该文件的整组
+  current-source rustfmt gate 记为 GREEN。
+- coordinator artifact audit 现同时报告未登记的
+  `E:\ZirconBuilds\mvp-perf` 与
+  `E:\ZirconBuilds\mvp-product-inputs-profile-20260811-current-source`。Plugins01 不拥有、
+  不清理、不登记二者，且未启动 Cargo 或重建/重试/清理 foreign validation-copy
+  `5945e3ef29d74bd69602adca02e243b5`。failure 保持 `open`，等待工件治理后合法的 current-source
+  focused/broad、trace 与 Runtime08/11 性能预算证据。

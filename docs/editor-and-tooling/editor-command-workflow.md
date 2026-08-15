@@ -27,7 +27,7 @@ related_code:
   - zircon_runtime/src/scene/world/dynamic_components.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
   - zircon_editor/src/core/editor_extension.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access/
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/component_drawer.rs
   - zircon_editor/src/ui/host/editor_manager.rs
@@ -58,7 +58,7 @@ implementation_files:
   - zircon_runtime/src/scene/world/dynamic_components.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
   - zircon_editor/src/core/editor_extension.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access/
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
   - zircon_editor/src/core/commands/menu.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/component_drawer.rs

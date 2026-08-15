@@ -1,7 +1,9 @@
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
-use crate::scene::ecs::{ChangeTickWindow, SystemParam, SystemParamAccess, SystemParamError};
+use crate::scene::ecs::{
+    ChangeTickWindow, SystemParam, SystemParamAccess, SystemParamError, WorldlessSystemParam,
+};
 use crate::scene::World;
 
 pub struct LocalParam<T>(PhantomData<fn() -> T>);
@@ -43,6 +45,20 @@ where
         state: &'world mut Self::State,
         _ticks: ChangeTickWindow,
     ) -> Self::Item<'world> {
+        Local { value: state }
+    }
+}
+
+impl<T> super::system_param::worldless_private::Sealed for LocalParam<T> where
+    T: Default + Send + 'static
+{
+}
+
+impl<T> WorldlessSystemParam for LocalParam<T>
+where
+    T: Default + Send + 'static,
+{
+    fn get_param_without_world<'world>(state: &'world mut Self::State) -> Self::Item<'world> {
         Local { value: state }
     }
 }

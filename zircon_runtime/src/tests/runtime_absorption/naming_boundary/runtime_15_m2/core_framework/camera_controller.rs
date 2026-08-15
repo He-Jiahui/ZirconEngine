@@ -71,18 +71,4 @@ fn runtime_15_camera_controller_output_uses_owner_name() {
             "pub fn with_cursor_grab",
         ],
     );
-
-    let docs = [];
-    for (label, source) in docs {
-        assert_contains_all(
-            label,
-            &source,
-            &[
-                "Runtime 15 M2 camera controller output module naming hard cutover",
-                "runtime_15_camera_controller_output_naming_hard_cutover_static_passed_cargo_deferred",
-                "core/framework/camera_controller/controller_output.rs",
-                "runtime_15_camera_controller_output_uses_owner_name",
-            ],
-        );
-    }
 }

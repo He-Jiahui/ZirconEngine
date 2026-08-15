@@ -36,17 +36,21 @@ impl MeshPipelineCache {
         if !self.shader_modules.contains_key(&shader_key) {
             let source =
                 self.mesh_pipeline_shader_source_with_cache(shader_source, shader_variant_key)?;
+            let creation_started = std::time::Instant::now();
             let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("zircon-shadow-mesh-shader"),
                 source: wgpu::ShaderSource::Wgsl(source.into()),
             });
+            let creation_elapsed = creation_started.elapsed();
             self.shader_modules.insert(shader_key.clone(), module);
+            self.record_shader_module_creation(creation_elapsed);
         }
         if !self.shadow_mesh_pipelines.contains_key(&variant_id) {
             let shader = self
                 .shader_modules
                 .get(&shader_key)
                 .expect("shadow mesh shader module cached");
+            let creation_started = std::time::Instant::now();
             let pipeline = create_shadow_mesh_pipeline(
                 device,
                 &self.mesh_pipeline_layout,
@@ -54,7 +58,9 @@ impl MeshPipelineCache {
                 kind,
                 self.runtime_pipeline_cache.cache(),
             );
+            let creation_elapsed = creation_started.elapsed();
             self.shadow_mesh_pipelines.insert(variant_id, pipeline);
+            self.record_render_pipeline_creation(creation_elapsed);
         }
         self.track_pipeline_creation_error_scope(
             shader_variant_key,
@@ -107,7 +113,7 @@ mod tests {
     use crate::graphics::scene::resources::default_pipeline_key;
 
     use super::super::mesh_pipeline_shadow_template_source_for_geometry;
-    use super::{SHADOW_MESH_SHADER_KEY_PREFIX, shadow_mesh_shader_key};
+    use super::{shadow_mesh_shader_key, SHADOW_MESH_SHADER_KEY_PREFIX};
 
     #[test]
     fn shadow_mesh_shader_key_includes_shader_variant_identity_and_source_hash() {

@@ -353,6 +353,31 @@ impl RenderGraphExecutionProfileReport {
     }
 }
 
+/// Distinguishes graph stages that could use the parallel encoder path from those that did.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderGraphParallelRecordingReport {
+    pub eligible_stage_count: usize,
+    pub eligible_bucket_count: usize,
+    pub executed_stage_count: usize,
+    pub executed_bucket_count: usize,
+}
+
+impl RenderGraphParallelRecordingReport {
+    pub const fn new(
+        eligible_stage_count: usize,
+        eligible_bucket_count: usize,
+        executed_stage_count: usize,
+        executed_bucket_count: usize,
+    ) -> Self {
+        Self {
+            eligible_stage_count,
+            eligible_bucket_count,
+            executed_stage_count,
+            executed_bucket_count,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct RenderGraphExecutionCoverageReport {
     pub planned_live_pass_count: usize,

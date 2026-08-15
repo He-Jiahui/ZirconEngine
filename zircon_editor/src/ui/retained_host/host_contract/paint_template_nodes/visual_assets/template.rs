@@ -18,7 +18,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn templat
     let key = template_image_cache_key(media_source, icon_name);
     let source_pixels = || {
         load_pixels_from_candidates(
-            template_image_candidates(media_source, icon_name),
+            || template_image_candidates(media_source, icon_name),
             &key,
             target,
             tint,

@@ -17,6 +17,18 @@ fn solid_items(draw_list: &UiSurfaceDrawList) -> Vec<SolidItem> {
         .collect()
 }
 
+fn quad(z_index: i32, frame: UiSurfaceRect, color: [u8; 4]) -> UiSurfaceCommand {
+    UiSurfaceCommand {
+        z_index,
+        frame,
+        clip: None,
+        kind: UiSurfaceCommandKind::Quad {
+            color,
+            corner_radius: 0.0,
+        },
+    }
+}
+
 #[test]
 fn wgpu_ui_surface_generates_border_items_inside_damage() {
     let draw_list = UiSurfaceDrawList::new(
@@ -159,7 +171,7 @@ fn target_only_resize_keeps_projection_geometry_and_offscreen_items() {
 }
 
 #[test]
-fn wgpu_ui_surface_generates_rounded_solid_vertices_for_quad_and_border() {
+fn wgpu_ui_surface_generates_analytic_rounded_quads_for_fill_and_border() {
     let draw_list = UiSurfaceDrawList::new(
         (100, 100),
         None,
@@ -189,8 +201,20 @@ fn wgpu_ui_surface_generates_rounded_solid_vertices_for_quad_and_border() {
     let items = solid_items(&draw_list);
 
     assert_eq!(items.len(), 2);
-    assert!(items[0].vertices().len() > 6);
-    assert!(items[1].vertices().len() > 6);
+    assert_eq!(items[0].vertices().len(), 6);
+    assert_eq!(items[1].vertices().len(), 6);
+    assert!(items[0].vertices().iter().all(|vertex| {
+        vertex.half_extent == [10.0, 10.0]
+            && vertex.corner_radius == 8.0
+            && vertex.border_width == 0.0
+    }));
+    assert!(items[1].vertices().iter().all(|vertex| {
+        vertex.half_extent == [10.0, 10.0]
+            && vertex.corner_radius == 8.0
+            && vertex.border_width == 2.0
+    }));
+    assert_eq!(items[0].vertices()[0].local_position, [-10.0, -10.0]);
+    assert_eq!(items[0].vertices()[5].local_position, [10.0, 10.0]);
     assert!(items.iter().all(|item| {
         item.vertices()
             .iter()
@@ -241,6 +265,15 @@ fn wgpu_ui_surface_clip_does_not_rebuild_rounded_geometry_at_the_clip_edge() {
         .iter()
         .any(|vertex| (vertex.position[0] + 0.8).abs() < 0.000_001
             && (vertex.position[1] - 1.0).abs() < 0.000_001));
+    assert!(solid
+        .vertices()
+        .iter()
+        .any(|vertex| vertex.local_position == [0.0, -10.0]));
+    assert!(solid.vertices().iter().all(|vertex| {
+        vertex.half_extent == [10.0, 10.0]
+            && vertex.corner_radius == 8.0
+            && vertex.border_width == 0.0
+    }));
 
     let DrawItem::Solid(border) = &items[1] else {
         panic!("expected clipped rounded border item");
@@ -255,6 +288,15 @@ fn wgpu_ui_surface_clip_does_not_rebuild_rounded_geometry_at_the_clip_edge() {
         .iter()
         .any(|vertex| (vertex.position[0] + 0.2).abs() < 0.000_001
             && (vertex.position[1] - 1.0).abs() < 0.000_001));
+    assert!(border
+        .vertices()
+        .iter()
+        .any(|vertex| vertex.local_position == [0.0, -10.0]));
+    assert!(border.vertices().iter().all(|vertex| {
+        vertex.half_extent == [10.0, 10.0]
+            && vertex.corner_radius == 8.0
+            && vertex.border_width == 2.0
+    }));
 }
 
 #[test]
@@ -311,7 +353,7 @@ fn wgpu_ui_surface_fractional_rounded_rect_uses_the_unclipped_geometry_path() {
 }
 
 #[test]
-fn wgpu_ui_surface_clipped_rounded_triangles_remain_finite_non_degenerate_and_consistent() {
+fn wgpu_ui_surface_clipped_analytic_quads_remain_finite_non_degenerate_and_consistent() {
     let draw_list = UiSurfaceDrawList::new(
         (100, 100),
         Some(UiSurfaceRect::new(9.25, 2.5, 8.5, 13.75)),
@@ -339,10 +381,17 @@ fn wgpu_ui_surface_clipped_rounded_triangles_remain_finite_non_degenerate_and_co
         .collect::<Vec<_>>();
 
     assert!(!signed_areas.is_empty());
-    assert!(triangles.iter().flatten().all(|vertex| {
-        vertex.position.into_iter().all(f32::is_finite)
-            && vertex.color.into_iter().all(f32::is_finite)
-    }));
+    assert!(triangles
+        .iter()
+        .flat_map(|triangle| triangle.iter())
+        .all(|vertex| {
+            vertex.position.into_iter().all(f32::is_finite)
+                && vertex.color.into_iter().all(f32::is_finite)
+                && vertex.local_position.into_iter().all(f32::is_finite)
+                && vertex.half_extent.into_iter().all(f32::is_finite)
+                && vertex.corner_radius.is_finite()
+                && vertex.border_width.is_finite()
+        }));
     assert!(signed_areas.iter().all(|area| area.abs() > 1.0e-10));
     let winding = signed_areas[0].is_sign_positive();
     assert!(signed_areas

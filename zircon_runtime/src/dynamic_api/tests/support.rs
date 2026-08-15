@@ -13,10 +13,10 @@ pub(super) use zircon_runtime_interface::{
     ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1,
     ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1, ZrRuntimeImeCursorAreaV1,
     ZrRuntimeImeHostRequestKindV1, ZrRuntimeImeTextRangeV1, ZrRuntimeNativeSurfaceTargetV1,
-    ZrRuntimeSessionConfigV2, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZrRuntimeSessionConfigV3, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
     ZrRuntimeViewportSizeV1, ZrRuntimeWakeSinkV1, ZrStatus, ZrStatusCode,
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_API_VERSION_V4,
-    ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_ABI_VERSION_V3,
+    ZIRCON_RUNTIME_API_VERSION_V6, ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
 };
 
 pub(super) use crate::core::framework::input::{
@@ -32,11 +32,11 @@ pub(super) use super::super::{
     session::{
         runtime_cursor_host_request, runtime_gamepad_rumble_request, runtime_ime_host_request,
     },
-    zircon_runtime_get_api_v4,
+    zircon_runtime_get_api_v6,
 };
 
-pub(super) fn runtime_api() -> &'static zircon_runtime_interface::ZrRuntimeApiV4 {
-    unsafe { &*zircon_runtime_get_api_v4(core::ptr::null()) }
+pub(super) fn runtime_api() -> &'static zircon_runtime_interface::ZrRuntimeApiV6 {
+    unsafe { &*zircon_runtime_get_api_v6(core::ptr::null()) }
 }
 
 pub(super) fn accessibility_tree_request(
@@ -52,23 +52,25 @@ pub(super) fn accessibility_tree_request(
 }
 
 pub(super) fn create_test_session(
-    api: &zircon_runtime_interface::ZrRuntimeApiV4,
+    api: &zircon_runtime_interface::ZrRuntimeApiV6,
 ) -> ZrRuntimeSessionHandle {
     create_test_session_with_profile(api, b"headless")
 }
 
 pub(super) fn create_test_session_with_profile(
-    api: &zircon_runtime_interface::ZrRuntimeApiV4,
+    api: &zircon_runtime_interface::ZrRuntimeApiV6,
     profile: &'static [u8],
 ) -> ZrRuntimeSessionHandle {
     let create_session = api.create_session.expect("create_session");
     let mut session = ZrRuntimeSessionHandle::invalid();
     let status = unsafe {
         create_session(
-            ZrRuntimeSessionConfigV2 {
-                abi_version: ZIRCON_RUNTIME_ABI_VERSION_V2,
+            ZrRuntimeSessionConfigV3 {
+                abi_version: ZIRCON_RUNTIME_ABI_VERSION_V3,
                 profile: ZrByteSlice::from_static(profile),
-                project_manifest: ZrByteSlice::empty(),
+                project_root: ZrByteSlice::empty(),
+                play_scene: ZrByteSlice::empty(),
+                play_report_pipe: ZrByteSlice::empty(),
                 wake_sink: ZrRuntimeWakeSinkV1::disabled(),
             },
             &mut session,
@@ -79,7 +81,7 @@ pub(super) fn create_test_session_with_profile(
 }
 
 pub(super) fn destroy_test_session(
-    api: &zircon_runtime_interface::ZrRuntimeApiV4,
+    api: &zircon_runtime_interface::ZrRuntimeApiV6,
     session: ZrRuntimeSessionHandle,
 ) {
     let destroy_session = api.destroy_session.expect("destroy_session");

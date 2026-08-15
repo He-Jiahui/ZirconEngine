@@ -10,256 +10,7 @@ macro_rules! workbench_asset {
     };
 }
 
-#[test]
-fn feedback_selection_and_label_primitives_share_editor_tokens() {
-    assert_tokenized_assets(&[
-        (
-            "workbench_tooltip.zui",
-            workbench_asset!("primitives/feedback/workbench_tooltip.zui"),
-            &[
-                "$editor.popup",
-                "$editor.separator.soft",
-                "$editor.text.primary",
-                "$editor.text.secondary",
-                "$editor.accent",
-                "$editor.control.border_width",
-                "$editor.control.radius.small",
-            ],
-        ),
-        (
-            "workbench_alert.zui",
-            workbench_asset!("primitives/feedback/workbench_alert.zui"),
-            &[
-                "$editor.semantic.warning",
-                "$editor.semantic.warning.container",
-                "$editor.control.border_width",
-                "$editor.control.radius.small",
-                "$editor.control.height.compact",
-                "$editor.control.height.default",
-            ],
-        ),
-        (
-            "workbench_toast.zui",
-            workbench_asset!("primitives/feedback/workbench_toast.zui"),
-            &[
-                "$editor.semantic.info",
-                "$editor.semantic.info.container",
-                "$editor.control.border_width",
-                "$editor.control.radius.small",
-                "$editor.control.height.compact",
-                "$editor.control.height.default",
-            ],
-        ),
-        (
-            "workbench_progress_bar.zui",
-            workbench_asset!("primitives/feedback/workbench_progress_bar.zui"),
-            &[
-                "$editor.surface.recessed",
-                "$editor.surface.disabled",
-                "$editor.accent",
-                "$editor.separator.soft",
-                "$editor.border.disabled",
-                "$editor.text.primary",
-                "$editor.text.disabled",
-                "$editor.semantic.warning",
-                "$editor.semantic.error",
-                "$editor.control.border_width",
-                "$editor.control.radius.small",
-                "$editor.density.gap.small",
-                "$editor.density.gap.medium",
-                "$editor.control.height.dense",
-                "$editor.control.height.compact",
-                "$editor.control.height.default",
-                "$editor.typography.body.size",
-                "$editor.typography.line_height",
-            ],
-        ),
-        (
-            "workbench_drag_overlay.zui",
-            workbench_asset!("primitives/feedback/workbench_drag_overlay.zui"),
-            &[
-                "$editor.accent.soft",
-                "$editor.semantic.error",
-                "$editor.semantic.error.container",
-                "$editor.text.primary",
-                "$editor.control.border_width",
-                "$editor.control.radius.control",
-                "$editor.density.gap.large",
-                "$editor.typography.overlay.size",
-                "$editor.typography.line_height",
-            ],
-        ),
-        (
-            "workbench_notification_center.zui",
-            workbench_asset!("primitives/feedback/workbench_notification_center.zui"),
-            &[
-                "$editor.popup",
-                "$editor.border",
-                "$editor.surface.1",
-                "$editor.surface.selected",
-                "$editor.surface.disabled",
-                "$editor.separator.soft",
-                "$editor.text.primary",
-                "$editor.text.secondary",
-                "$editor.accent",
-                "$editor.semantic.success",
-                "$editor.semantic.warning",
-                "$editor.semantic.error",
-                "$editor.control.border_width",
-                "$editor.control.radius.small",
-                "$editor.control.radius.panel",
-                "$editor.typography.body.size",
-                "$editor.typography.overlay.size",
-                "$editor.typography.caption.size",
-            ],
-        ),
-        (
-            "workbench_dialog.zui",
-            workbench_asset!("primitives/feedback/workbench_dialog.zui"),
-            &[
-                "$editor.popup",
-                "$editor.border",
-                "$editor.accent",
-                "$editor.text.primary",
-                "$editor.text.secondary",
-                "$editor.text.disabled",
-                "$editor.semantic.info",
-                "$editor.semantic.info.container",
-                "$editor.semantic.warning",
-                "$editor.semantic.warning.container",
-                "$editor.semantic.error",
-                "$editor.semantic.error.container",
-                "$editor.control.border_width",
-                "$editor.control.radius.panel",
-                "$editor.typography.title.size",
-                "$editor.typography.caption.size",
-                "$editor.typography.body.size",
-                "$editor.typography.line_height",
-            ],
-        ),
-        (
-            "workbench_confirm_dialog.zui",
-            workbench_asset!("primitives/feedback/workbench_confirm_dialog.zui"),
-            &[
-                "$editor.popup",
-                "$editor.border",
-                "$editor.accent",
-                "$editor.text.primary",
-                "$editor.text.secondary",
-                "$editor.text.disabled",
-                "$editor.semantic.info",
-                "$editor.semantic.info.container",
-                "$editor.semantic.warning",
-                "$editor.semantic.warning.container",
-                "$editor.semantic.error",
-                "$editor.semantic.error.container",
-                "$editor.control.border_width",
-                "$editor.control.radius.panel",
-                "$editor.typography.title.size",
-                "$editor.typography.caption.size",
-                "$editor.typography.body.size",
-                "$editor.typography.line_height",
-            ],
-        ),
-        (
-            "workbench_command_palette.zui",
-            workbench_asset!("primitives/feedback/workbench_command_palette.zui"),
-            &[
-                "$editor.popup",
-                "$editor.surface.recessed",
-                "$editor.border",
-                "$editor.accent",
-                "$editor.text.primary",
-                "$editor.text.secondary",
-                "$editor.control.border_width",
-                "$editor.control.radius.small",
-                "$editor.control.radius.panel",
-                "$editor.control.height.compact",
-                "$editor.density.gap.medium",
-                "$editor.density.gap.large",
-                "$editor.density.row_height",
-                "$editor.typography.body.size",
-                "$editor.typography.line_height",
-            ],
-        ),
-        (
-            "workbench_skeleton.zui",
-            workbench_asset!("primitives/feedback/workbench_skeleton.zui"),
-            &[
-                "$editor.surface.3",
-                "$editor.surface.disabled",
-                "$editor.border",
-                "$editor.border.disabled",
-                "$editor.control.border_width",
-                "$editor.control.radius.small",
-                "$editor.typography.title.size",
-                "$editor.control.height.dense",
-            ],
-        ),
-        (
-            "workbench_radio.zui",
-            workbench_asset!("primitives/inputs/workbench_radio.zui"),
-            &[
-                "$editor.surface.recessed",
-                "$editor.surface.2",
-                "$editor.surface.selected",
-                "$editor.surface.disabled",
-                "$editor.separator.strong",
-                "$editor.border",
-                "$editor.border.disabled",
-                "$editor.text.secondary",
-                "$editor.text.disabled",
-                "$editor.accent",
-                "$editor.control.border_width",
-                "$editor.density.gap.medium",
-                "$editor.control.height.dense",
-                "$editor.control.height.compact",
-                "$editor.typography.body.size",
-                "$editor.typography.line_height",
-            ],
-        ),
-        (
-            "workbench_checkbox.zui",
-            workbench_asset!("primitives/inputs/workbench_checkbox.zui"),
-            &[
-                "$editor.surface.recessed",
-                "$editor.surface.selected",
-                "$editor.surface.disabled",
-                "$editor.separator.strong",
-                "$editor.border.disabled",
-                "$editor.text.secondary",
-                "$editor.text.disabled",
-                "$editor.accent",
-                "$editor.control.border_width",
-                "$editor.control.radius.small",
-                "$editor.density.gap.medium",
-                "$editor.control.height.dense",
-                "$editor.control.height.compact",
-                "$editor.typography.body.size",
-                "$editor.typography.line_height",
-            ],
-        ),
-        (
-            "workbench_icon.zui",
-            workbench_asset!("primitives/data/workbench_icon.zui"),
-            &[
-                "$editor.text.secondary",
-                "$editor.typography.title.size",
-                "$editor.control.height.dense",
-            ],
-        ),
-        (
-            "workbench_label.zui",
-            workbench_asset!("primitives/data/workbench_label.zui"),
-            &[
-                "$editor.typography.body.size",
-                "$editor.typography.medium.weight",
-                "$editor.text.primary",
-                "$editor.density.gap.xsmall",
-            ],
-        ),
-    ]);
-}
+mod foundational;
 
 #[test]
 fn component_drawer_list_and_table_samples_inherit_shared_row_geometry_and_states() {
@@ -396,6 +147,7 @@ fn text_and_property_primitives_share_typography_and_density_tokens() {
             &[
                 "$editor.typography.caption.size",
                 "$editor.typography.strong.weight",
+                "$editor.typography.line_height",
                 "$editor.density.gap.xsmall",
             ],
         ),
@@ -405,6 +157,7 @@ fn text_and_property_primitives_share_typography_and_density_tokens() {
             &[
                 "$editor.typography.body.size",
                 "$editor.typography.strong.weight",
+                "$editor.typography.line_height",
                 "$editor.control.height.dense",
                 "$editor.control.height.compact",
             ],
@@ -443,6 +196,51 @@ fn text_and_property_primitives_share_typography_and_density_tokens() {
             ],
         ),
     ]);
+}
+
+#[test]
+fn label_primitives_bind_runtime_text_line_height_on_their_roots() {
+    for (asset_name, asset_source, root_id) in [
+        (
+            "workbench_label.zui",
+            workbench_asset!("primitives/data/workbench_label.zui"),
+            "root",
+        ),
+        (
+            "workbench_caption.zui",
+            workbench_asset!("primitives/data/workbench_caption.zui"),
+            "root",
+        ),
+        (
+            "workbench_section_title.zui",
+            workbench_asset!("primitives/chrome/workbench_section_title.zui"),
+            "root",
+        ),
+        (
+            "workbench_chip.zui",
+            workbench_asset!("primitives/chrome/workbench_chip.zui"),
+            "root",
+        ),
+    ] {
+        let document = asset_source
+            .parse::<Value>()
+            .unwrap_or_else(|error| panic!("{asset_name} must remain valid ZUI TOML: {error}"));
+        let root = document
+            .get("nodes")
+            .and_then(Value::as_table)
+            .and_then(|nodes| nodes.get(root_id))
+            .and_then(Value::as_table)
+            .unwrap_or_else(|| panic!("{asset_name} must expose its `{root_id}` root node"));
+        assert_eq!(root.get("component").and_then(Value::as_str), Some("Label"));
+        assert_eq!(
+            root.get("props")
+                .and_then(Value::as_table)
+                .and_then(|props| props.get("line_height_ratio"))
+                .and_then(Value::as_str),
+            Some("$editor.typography.line_height"),
+            "{asset_name} must bind Runtime Text line height directly on its Label root"
+        );
+    }
 }
 
 #[test]
@@ -604,6 +402,7 @@ fn chip_slider_and_status_primitives_share_editor_tokens() {
             workbench_asset!("primitives/chrome/workbench_chip.zui"),
             &[
                 "$editor.typography.body.size",
+                "$editor.typography.line_height",
                 "$editor.density.gap.small",
                 "$editor.density.gap.medium",
                 "$editor.control.height.dense",

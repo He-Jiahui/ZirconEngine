@@ -1,3 +1,7 @@
+use std::cell::Ref;
+
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
+
 use super::{
     binding_inspector::{reconcile_selected_binding_index, reconcile_selected_binding_payload_key},
     hierarchy_projection::{hierarchy_node_ids, selection_for_node},
@@ -7,8 +11,8 @@ use super::{
     preview_mock::reconcile_preview_mock_state,
     preview_projection::preview_node_id_for_index,
     source_sync::{
-        build_source_outline, source_byte_offset_for_line, source_line_for_byte_offset,
-        source_outline_entry_for_node, source_outline_node_id_for_line,
+        build_source_outline_index, source_byte_offset_for_line, source_line_for_byte_offset,
+        UiAssetSourceOutlineIndex,
     },
     style_inspection::build_style_inspector,
     ui_asset_editor_session::{
@@ -18,6 +22,64 @@ use super::{
 };
 
 impl UiAssetEditorSession {
+    pub(super) fn source_outline_index(&self) -> Ref<'_, UiAssetSourceOutlineIndex> {
+        let source_revision = self.source_buffer.revision();
+        if !self
+            .source_outline_cache
+            .borrow()
+            .is_current(source_revision)
+        {
+            let outline =
+                build_source_outline_index(&self.last_valid_document, self.source_buffer.text());
+            record_current_ui_perf_counter(UiPerfCounter::AssetEditorPaneSourceBuildCount, 1.0);
+            self.source_outline_cache
+                .borrow_mut()
+                .replace(source_revision, outline);
+        }
+        Ref::map(self.source_outline_cache.borrow(), |cache| cache.index())
+    }
+
+    pub(super) fn roundtrip_source_outline_index(&self) -> Ref<'_, UiAssetSourceOutlineIndex> {
+        if self.diagnostics.is_empty() {
+            return self.source_outline_index();
+        }
+
+        let source_generation = self.last_valid_source_generation;
+        if !self
+            .last_valid_source_outline_cache
+            .borrow()
+            .is_current(source_generation)
+        {
+            let outline =
+                build_source_outline_index(&self.last_valid_document, &self.last_valid_source_text);
+            record_current_ui_perf_counter(UiPerfCounter::AssetEditorPaneSourceBuildCount, 1.0);
+            self.last_valid_source_outline_cache
+                .borrow_mut()
+                .replace(source_generation, outline);
+        }
+        Ref::map(self.last_valid_source_outline_cache.borrow(), |cache| {
+            cache.index()
+        })
+    }
+
+    #[cfg(test)]
+    pub(super) fn source_outline_build_count(&self) -> usize {
+        self.source_outline_cache.borrow().build_count()
+    }
+
+    #[cfg(test)]
+    pub(super) fn source_outline_total_build_count(&self) -> usize {
+        self.source_outline_cache.borrow().build_count()
+            + self.last_valid_source_outline_cache.borrow().build_count()
+    }
+
+    #[cfg(test)]
+    pub(super) fn source_outline_caches_share_index(&self) -> bool {
+        let source_outline_cache = self.source_outline_cache.borrow();
+        let last_valid_source_outline_cache = self.last_valid_source_outline_cache.borrow();
+        source_outline_cache.shares_index_with(&last_valid_source_outline_cache)
+    }
+
     pub fn select_hierarchy_index(
         &mut self,
         index: usize,
@@ -49,10 +111,11 @@ impl UiAssetEditorSession {
         &mut self,
         index: usize,
     ) -> Result<(), UiAssetEditorSessionError> {
-        let node_id = build_source_outline(&self.last_valid_document, self.source_buffer.text())
-            .into_iter()
-            .nth(index)
-            .map(|entry| entry.node_id)
+        let node_id = self
+            .source_outline_index()
+            .entries()
+            .get(index)
+            .map(|entry| entry.node_id.clone())
             .ok_or(UiAssetEditorSessionError::InvalidSelectionIndex { index })?;
         self.select_node_id(&node_id);
         self.set_source_cursor_to_selected_node_start();
@@ -60,20 +123,21 @@ impl UiAssetEditorSession {
     }
 
     pub fn select_source_line(&mut self, line: usize) -> Result<(), UiAssetEditorSessionError> {
-        let node_id = source_outline_node_id_for_line(
-            &self.last_valid_document,
-            self.source_buffer.text(),
-            line,
-        )
-        .ok_or(UiAssetEditorSessionError::InvalidSelectionIndex { index: line })?;
-        let line_offset = source_outline_entry_for_node(self.source_buffer.text(), &node_id)
-            .map(|entry| line.saturating_sub(entry.line as usize))
-            .unwrap_or_default();
+        let (node_id, line_offset) = {
+            let outline = self.source_outline_index();
+            let node_id = outline
+                .node_id_for_line(line)
+                .map(str::to_owned)
+                .ok_or(UiAssetEditorSessionError::InvalidSelectionIndex { index: line })?;
+            let line_offset = outline
+                .entry_for_node(&node_id)
+                .map(|entry| line.saturating_sub(entry.line as usize))
+                .unwrap_or_default();
+            (node_id, line_offset)
+        };
+        let byte_offset = source_byte_offset_for_line(self.source_buffer.text(), line);
         self.select_node_id(&node_id);
-        self.set_source_cursor_for_selected_node_line(
-            line_offset,
-            source_byte_offset_for_line(self.source_buffer.text(), line),
-        );
+        self.set_source_cursor_for_selected_node_line(line_offset, byte_offset);
         Ok(())
     }
 
@@ -83,14 +147,16 @@ impl UiAssetEditorSession {
     ) -> Result<bool, UiAssetEditorSessionError> {
         let clamped = byte_offset.min(self.source_buffer.text().len());
         let line = source_line_for_byte_offset(self.source_buffer.text(), clamped);
-        let Some(node_id) = source_outline_node_id_for_line(
-            &self.last_valid_document,
-            self.source_buffer.text(),
-            line,
-        ) else {
+        let Some(node_id) = self
+            .source_outline_index()
+            .node_id_for_line(line)
+            .map(str::to_owned)
+        else {
             return Ok(false);
         };
-        let line_offset = source_outline_entry_for_node(self.source_buffer.text(), &node_id)
+        let line_offset = self
+            .source_outline_index()
+            .entry_for_node(&node_id)
             .map(|entry| line.saturating_sub(entry.line as usize))
             .unwrap_or_default();
         let selection_changed = self.selection.primary_node_id.as_deref() != Some(node_id.as_str());
@@ -118,16 +184,21 @@ impl UiAssetEditorSession {
             self.source_cursor_byte_offset = 0;
             return;
         };
+        let source_line = self
+            .source_outline_index()
+            .entry_for_node(node_id)
+            .map(|entry| entry.line as usize);
         self.source_cursor_anchor = Some(UiAssetSourceCursorAnchor {
             node_id: node_id.to_string(),
             line_offset: 0,
         });
-        let source = self.source_buffer.text().to_string();
-        if let Some(entry) = source_outline_entry_for_node(&source, node_id) {
+        if let Some(source_line) = source_line {
             self.source_cursor_byte_offset =
-                source_byte_offset_for_line(&source, entry.line as usize);
+                source_byte_offset_for_line(self.source_buffer.text(), source_line);
         } else {
-            self.source_cursor_byte_offset = self.source_cursor_byte_offset.min(source.len());
+            self.source_cursor_byte_offset = self
+                .source_cursor_byte_offset
+                .min(self.source_buffer.text().len());
         }
     }
 
@@ -137,15 +208,23 @@ impl UiAssetEditorSession {
             self.source_cursor_byte_offset = 0;
             return;
         };
-        let source = self.source_buffer.text().to_string();
-        self.source_cursor_byte_offset = byte_offset.min(source.len());
-        if let Some(entry) = source_outline_entry_for_node(&source, node_id) {
-            let max_offset = (entry.end_line - entry.line).max(0) as usize;
+        let entry_range = self
+            .source_outline_index()
+            .entry_for_node(node_id)
+            .map(|entry| (entry.line as usize, entry.end_line as usize));
+        self.source_cursor_byte_offset = byte_offset.min(self.source_buffer.text().len());
+        if let Some((start_line, end_line)) = entry_range {
+            let max_offset = end_line.saturating_sub(start_line);
             let line_offset = line_offset.min(max_offset);
-            let current_line = source_line_for_byte_offset(&source, self.source_cursor_byte_offset);
-            if current_line < entry.line as usize || current_line > entry.end_line as usize {
-                self.source_cursor_byte_offset =
-                    source_byte_offset_for_line(&source, entry.line as usize + line_offset);
+            let current_line = source_line_for_byte_offset(
+                self.source_buffer.text(),
+                self.source_cursor_byte_offset,
+            );
+            if current_line < start_line || current_line > end_line {
+                self.source_cursor_byte_offset = source_byte_offset_for_line(
+                    self.source_buffer.text(),
+                    start_line + line_offset,
+                );
             }
             self.source_cursor_anchor = Some(UiAssetSourceCursorAnchor {
                 node_id: node_id.to_string(),
@@ -204,29 +283,34 @@ impl UiAssetEditorSession {
             self.source_cursor_byte_offset = 0;
             return;
         };
-        let source = self.source_buffer.text().to_string();
-        self.source_cursor_byte_offset = self.source_cursor_byte_offset.min(source.len());
-        let Some(entry) = source_outline_entry_for_node(&source, selected_node_id) else {
+        self.source_cursor_byte_offset = self
+            .source_cursor_byte_offset
+            .min(self.source_buffer.text().len());
+        let entry_range = self
+            .source_outline_index()
+            .entry_for_node(selected_node_id)
+            .map(|entry| (entry.line as usize, entry.end_line as usize));
+        let Some((start_line, end_line)) = entry_range else {
             return;
         };
-        let current_line = source_line_for_byte_offset(&source, self.source_cursor_byte_offset);
+        let current_line =
+            source_line_for_byte_offset(self.source_buffer.text(), self.source_cursor_byte_offset);
         let existing_line_offset = self
             .source_cursor_anchor
             .as_ref()
             .filter(|anchor| anchor.node_id.as_str() == selected_node_id)
             .map(|anchor| anchor.line_offset)
             .unwrap_or_default();
-        let max_offset = (entry.end_line - entry.line).max(0) as usize;
-        let inside_selected_block =
-            current_line >= entry.line as usize && current_line <= entry.end_line as usize;
+        let max_offset = end_line.saturating_sub(start_line);
+        let inside_selected_block = current_line >= start_line && current_line <= end_line;
         let line_offset = if inside_selected_block {
-            current_line.saturating_sub(entry.line as usize)
+            current_line.saturating_sub(start_line)
         } else {
             existing_line_offset.min(max_offset)
         };
         if !inside_selected_block {
             self.source_cursor_byte_offset =
-                source_byte_offset_for_line(&source, entry.line as usize + line_offset);
+                source_byte_offset_for_line(self.source_buffer.text(), start_line + line_offset);
         }
         self.source_cursor_anchor = Some(UiAssetSourceCursorAnchor {
             node_id: selected_node_id.to_string(),
@@ -270,5 +354,106 @@ impl UiAssetEditorSession {
             self.selected_layout_semantic_path.as_deref(),
         );
         self.selected_matched_style_rule_index = None;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::UiAssetEditorSession;
+    use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetEditorRoute};
+    use zircon_runtime_interface::ui::{layout::UiSize, template::UiAssetKind};
+
+    const OUTLINE_CACHE_LAYOUT: &str = r#"[asset]
+kind = "layout"
+id = "editor.test.outline_cache"
+version = 1
+display_name = "Outline Cache"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "VerticalBox"
+control_id = "Root"
+"#;
+
+    #[test]
+    fn source_generation_reuses_the_outline_across_presentation_and_navigation() {
+        let route = UiAssetEditorRoute::new(
+            "editor.test.outline_cache",
+            UiAssetKind::Layout,
+            UiAssetEditorMode::Split,
+        );
+        let mut session = UiAssetEditorSession::from_source(
+            route,
+            OUTLINE_CACHE_LAYOUT,
+            UiSize::new(640.0, 360.0),
+        )
+        .expect("session");
+
+        assert_eq!(session.source_outline_build_count(), 1);
+        assert_eq!(session.source_outline_total_build_count(), 1);
+        assert!(session.source_outline_caches_share_index());
+        let initial_presentation = session.pane_presentation();
+        assert_eq!(initial_presentation.source_outline_items.len(), 1);
+        let root_line = session
+            .source_outline_index()
+            .entry_for_node("root")
+            .expect("root outline entry")
+            .line as usize;
+        session.select_source_line(root_line).expect("source line");
+        let _ = session.pane_presentation();
+        assert_eq!(session.source_outline_build_count(), 1);
+        assert_eq!(session.source_outline_total_build_count(), 1);
+
+        session
+            .source_buffer
+            .replace(format!("{OUTLINE_CACHE_LAYOUT}\n# source generation one"));
+        session
+            .select_source_line(root_line)
+            .expect("revised source line");
+        assert_eq!(session.source_outline_build_count(), 2);
+        assert_eq!(session.source_outline_total_build_count(), 2);
+        assert!(!session.source_outline_caches_share_index());
+
+        let document = session.last_valid_document.clone();
+        session
+            .apply_valid_document(document)
+            .expect("document refresh");
+        session
+            .select_source_line(root_line)
+            .expect("refreshed source line");
+        assert_eq!(session.source_outline_build_count(), 3);
+        assert_eq!(session.source_outline_total_build_count(), 3);
+        assert!(session.source_outline_caches_share_index());
+
+        session
+            .source_buffer
+            .replace(format!("{OUTLINE_CACHE_LAYOUT}\n# invalid source draft"));
+        session.diagnostics.push("invalid source draft".to_string());
+        let _ = session.pane_presentation();
+        assert_eq!(session.source_outline_build_count(), 3);
+        assert_eq!(session.source_outline_total_build_count(), 3);
+    }
+
+    #[test]
+    fn pane_presentation_is_value_equivalent_without_a_session_mutation() {
+        let route = UiAssetEditorRoute::new(
+            "editor.test.presentation_equivalence",
+            UiAssetKind::Layout,
+            UiAssetEditorMode::Split,
+        );
+        let session = UiAssetEditorSession::from_source(
+            route,
+            OUTLINE_CACHE_LAYOUT,
+            UiSize::new(640.0, 360.0),
+        )
+        .expect("session");
+
+        let first = session.pane_presentation();
+        let repeated = session.pane_presentation();
+
+        assert_eq!(repeated, first);
     }
 }

@@ -8,11 +8,11 @@ use crate::graphics::scene::scene_renderer::advanced_lighting::transmission::tra
 use crate::graphics::scene::scene_renderer::environment::lightmap_bind_group_layout_entries;
 use crate::graphics::scene::scene_renderer::environment::reflection_probe_bind_group_layout_entries;
 use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::{
-    LIGHT_GRID_EMPTY_ZBIN_HEADER, LightGridParams,
+    LightGridParams, LIGHT_GRID_EMPTY_ZBIN_HEADER,
 };
 use crate::graphics::scene::scene_renderer::shadow::atlas::{
-    SHADOW_ATLAS_BINDING, SHADOW_ATLAS_SAMPLER_BINDING, SHADOW_ATLAS_SLOT_BUFFER_BINDING,
-    SHADOW_GLOBALS_BINDING, ShadowAtlasResources, shadow_atlas_bind_group_layout_entries,
+    shadow_atlas_bind_group_layout_entries, ShadowAtlasResources, SHADOW_ATLAS_BINDING,
+    SHADOW_ATLAS_SAMPLER_BINDING, SHADOW_ATLAS_SLOT_BUFFER_BINDING, SHADOW_GLOBALS_BINDING,
 };
 use crate::graphics::scene::scene_renderer::shadow::slot::{GpuShadowGlobals, GpuShadowSlot};
 use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};

@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::ui::layouts::common::model_rc;
-use crate::ui::layouts::views::view_projection::build_view_template_nodes;
+use crate::ui::layouts::views::view_projection::build_view_template_node_projection;
 use crate::ui::layouts::windows::workbench_host_window::{
     ProjectOverviewData, ProjectOverviewPaneViewData,
 };
@@ -70,29 +69,28 @@ pub(crate) fn project_overview_pane_data(
     );
 
     ProjectOverviewPaneViewData {
-        nodes: model_rc(
-            build_view_template_nodes(
-                "project_overview.template_projection",
-                PROJECT_OVERVIEW_LAYOUT_ASSET_PATH,
-                &[
-                    (
-                        PROJECT_OVERVIEW_STYLE_ASSET_ID,
-                        PROJECT_OVERVIEW_STYLE_ASSET_PATH,
-                    ),
-                    (
-                        PROJECT_OVERVIEW_MATERIAL_STYLE_ASSET_ID,
-                        PROJECT_OVERVIEW_MATERIAL_STYLE_ASSET_PATH,
-                    ),
-                    (
-                        PROJECT_OVERVIEW_TOKENS_STYLE_ASSET_ID,
-                        PROJECT_OVERVIEW_TOKENS_STYLE_ASSET_PATH,
-                    ),
-                ],
-                size,
-                &text_overrides,
-            )
-            .unwrap_or_default(),
-        ),
+        nodes: build_view_template_node_projection(
+            "project_overview.template_projection",
+            PROJECT_OVERVIEW_LAYOUT_ASSET_PATH,
+            &[
+                (
+                    PROJECT_OVERVIEW_STYLE_ASSET_ID,
+                    PROJECT_OVERVIEW_STYLE_ASSET_PATH,
+                ),
+                (
+                    PROJECT_OVERVIEW_MATERIAL_STYLE_ASSET_ID,
+                    PROJECT_OVERVIEW_MATERIAL_STYLE_ASSET_PATH,
+                ),
+                (
+                    PROJECT_OVERVIEW_TOKENS_STYLE_ASSET_ID,
+                    PROJECT_OVERVIEW_TOKENS_STYLE_ASSET_PATH,
+                ),
+            ],
+            size,
+            &text_overrides,
+        )
+        .map(|projection| projection.into_model())
+        .unwrap_or_default(),
     }
 }
 
@@ -129,9 +127,11 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert!(nodes.iter().any(|node| node.control_id == "OpenAssetsView"));
-        assert!(nodes
-            .iter()
-            .any(|node| node.control_id == "OpenAssetBrowser"));
+        assert!(
+            nodes
+                .iter()
+                .any(|node| node.control_id == "OpenAssetBrowser")
+        );
 
         let Some(open_assets) = node_by_control_id(&nodes, "OpenAssetsView") else {
             return;

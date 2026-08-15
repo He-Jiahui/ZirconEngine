@@ -1,12 +1,14 @@
 use std::fs;
 
-use crate::projects::{project_metadata_key, RecentProject};
+use crate::projects::{project_metadata_key, reconcile_shared_recent_projects, RecentProject};
 use crate::settings::{BuildProfile, HubConfig, HubLanguage};
 
 use super::*;
 
 fn temp_test_dir(prefix: &str) -> PathBuf {
-    let path = std::env::temp_dir().join(format!(
+    let target_directory = std::env::var_os("CARGO_TARGET_DIR")
+        .expect("Hub runtime filesystem tests require coordinator-managed CARGO_TARGET_DIR");
+    let path = PathBuf::from(target_directory).join(format!(
         "{prefix}-{}-{}",
         std::process::id(),
         crate::projects::now_unix_ms()
@@ -30,20 +32,142 @@ fn create_valid_source_checkout(source_path: &Path) {
 fn startup_selection_preserves_persisted_stale_project_path() {
     let recent_projects = vec![RecentProject::fixture("Recent", "E:/Projects/Recent", 30)];
 
-    let selected = startup_selected_project_path(
-        Some(Path::new("E:/Projects/Missing")),
-        Some(Path::new("E:/Projects/Recent")),
-        &recent_projects,
-    );
+    let selected =
+        startup_selected_project_path(Some(Path::new("E:/Projects/Missing")), &recent_projects);
 
     assert_eq!(selected, Some(PathBuf::from("E:/Projects/Missing")));
 }
 
 #[test]
-fn load_from_paths_merges_repairs_registers_source_and_persists_runtime_state() {
+fn focus_refresh_merges_editor_recents_without_rewriting_shared_registry() {
+    let temp = temp_test_dir("zircon-hub-tauri-focus-recents");
+    let config_path = temp.join("hub.toml");
+    let shared_recent_projects_path = temp.join("recent_projects.json");
+    let editor_project_path = temp.join("EditorGame");
+    fs::create_dir_all(&editor_project_path).unwrap();
+
+    let mut session = HubRuntimeSession::load_from_paths(
+        config_path.clone(),
+        shared_recent_projects_path.clone(),
+    )
+    .expect("Tauri runtime session should load");
+    let editor_project = RecentProject::fixture("Editor Game", &editor_project_path, 42);
+    reconcile_shared_recent_projects(
+        &shared_recent_projects_path,
+        &[],
+        std::slice::from_ref(&editor_project),
+    )
+    .expect("Editor fixture should write the shared recent-project registry");
+
+    let registry: serde_json::Value =
+        serde_json::from_slice(&fs::read(&shared_recent_projects_path).unwrap()).unwrap();
+    fs::write(
+        &shared_recent_projects_path,
+        serde_json::to_vec(&registry).unwrap(),
+    )
+    .unwrap();
+    let shared_registry_before_refresh = fs::read(&shared_recent_projects_path).unwrap();
+
+    assert!(session
+        .refresh_shared_recent_projects_on_focus()
+        .expect("focus refresh should merge the Editor update"));
+    assert_eq!(session.config.recent_projects, vec![editor_project.clone()]);
+    assert_eq!(
+        HubConfig::load(&config_path).unwrap().recent_projects,
+        vec![editor_project]
+    );
+    assert_eq!(
+        fs::read(&shared_recent_projects_path).unwrap(),
+        shared_registry_before_refresh
+    );
+
+    let config_after_refresh = fs::read(&config_path).unwrap();
+    assert!(!session
+        .refresh_shared_recent_projects_on_focus()
+        .expect("unchanged shared registry should not refresh again"));
+    assert_eq!(fs::read(&config_path).unwrap(), config_after_refresh);
+
+    fs::remove_dir_all(temp).unwrap();
+}
+
+#[test]
+fn focus_refresh_retries_hub_config_persistence_after_a_save_failure() {
+    let temp = temp_test_dir("zircon-hub-tauri-focus-recents-retry");
+    let config_path = temp.join("hub.toml");
+    let shared_recent_projects_path = temp.join("recent_projects.json");
+    let editor_project_path = temp.join("EditorGame");
+    fs::create_dir_all(&editor_project_path).unwrap();
+
+    let mut session = HubRuntimeSession::load_from_paths(
+        config_path.clone(),
+        shared_recent_projects_path.clone(),
+    )
+    .expect("Tauri runtime session should load");
+    let editor_project = RecentProject::fixture("Editor Game", &editor_project_path, 42);
+    reconcile_shared_recent_projects(
+        &shared_recent_projects_path,
+        &[],
+        std::slice::from_ref(&editor_project),
+    )
+    .expect("Editor fixture should write the shared recent-project registry");
+
+    let blocked_parent = temp.join("blocked-parent");
+    fs::write(&blocked_parent, "not a directory").unwrap();
+    session.config_path = blocked_parent.join("hub.toml");
+    assert!(session.refresh_shared_recent_projects_on_focus().is_err());
+
+    session.config_path = config_path.clone();
+    assert!(!session
+        .refresh_shared_recent_projects_on_focus()
+        .expect("focus refresh should retry the failed Hub config write"));
+    assert_eq!(
+        HubConfig::load(&config_path).unwrap().recent_projects,
+        vec![editor_project]
+    );
+
+    fs::remove_dir_all(temp).unwrap();
+}
+
+#[test]
+fn focus_refresh_reconciles_pending_hub_recents_with_editor_registry() {
+    let temp = temp_test_dir("zircon-hub-tauri-focus-recents-merge");
+    let config_path = temp.join("hub.toml");
+    let shared_recent_projects_path = temp.join("recent_projects.json");
+    let hub_project = RecentProject::fixture("Hub Game", temp.join("HubGame"), 24);
+    let editor_project = RecentProject::fixture("Editor Game", temp.join("EditorGame"), 42);
+
+    let mut session = HubRuntimeSession::load_from_paths(
+        config_path.clone(),
+        shared_recent_projects_path.clone(),
+    )
+    .expect("Tauri runtime session should load");
+    session.config.recent_projects = vec![hub_project.clone()];
+    reconcile_shared_recent_projects(
+        &shared_recent_projects_path,
+        &[],
+        std::slice::from_ref(&editor_project),
+    )
+    .expect("Editor fixture should write the shared recent-project registry");
+
+    assert!(session
+        .refresh_shared_recent_projects_on_focus()
+        .expect("focus refresh should reconcile the pending Hub update"));
+    for project in [&hub_project, &editor_project] {
+        assert!(session.config.recent_projects.contains(project));
+    }
+    let shared_projects = load_shared_recent_projects(&shared_recent_projects_path).unwrap();
+    for project in [&hub_project, &editor_project] {
+        assert!(shared_projects.contains(project));
+    }
+
+    fs::remove_dir_all(temp).unwrap();
+}
+
+#[test]
+fn load_from_paths_syncs_shared_recents_repairs_and_persists_runtime_state() {
     let temp = temp_test_dir("zircon-hub-tauri-runtime-load");
     let config_path = temp.join("hub.toml");
-    let editor_config_path = temp.join("editor.json");
+    let shared_recent_projects_path = temp.join("recent_projects.json");
     let project_path = temp.join("Game");
     let source_path = temp.join("ZirconEngine");
     fs::create_dir_all(&project_path).unwrap();
@@ -63,18 +187,11 @@ fn load_from_paths_merges_repairs_registers_source_and_persists_runtime_state() 
     config.settings.default_build_output_dir = temp.join("out");
     config.runtime.selected_project_path = Some(project_path.clone());
     config.save(&config_path).unwrap();
-    fs::write(
-        &editor_config_path,
-        format!(
-            r#"{{"editor.startup.session":{{"last_project_path":"{}","recent_projects":[]}}}}"#,
-            project_path.to_string_lossy().replace('\\', "/")
-        ),
+    let session = HubRuntimeSession::load_from_paths(
+        config_path.clone(),
+        shared_recent_projects_path.clone(),
     )
-    .unwrap();
-
-    let session =
-        HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path.clone())
-            .expect("Tauri runtime session should load and persist");
+    .expect("Tauri runtime session should load and persist");
 
     assert_eq!(session.selected_project_path, Some(project_path.clone()));
     assert_eq!(session.config.engines.len(), 1);
@@ -92,6 +209,12 @@ fn load_from_paths_merges_repairs_registers_source_and_persists_runtime_state() 
     );
     let saved = HubConfig::load(&config_path).unwrap();
     assert_eq!(saved.runtime.selected_project_path, Some(project_path));
+    assert_eq!(
+        crate::projects::load_shared_recent_projects(&shared_recent_projects_path)
+            .expect("read shared recent projects")
+            .len(),
+        1
+    );
 
     fs::remove_dir_all(temp).unwrap();
 }
@@ -100,18 +223,14 @@ fn load_from_paths_merges_repairs_registers_source_and_persists_runtime_state() 
 fn save_settings_action_applies_typed_payload_and_refreshes_source_engine() {
     let temp = temp_test_dir("zircon-hub-tauri-save-settings-payload");
     let config_path = temp.join("hub.toml");
-    let editor_config_path = temp.join("editor.json");
+    let shared_recent_projects_path = temp.join("recent_projects.json");
     let source_path = temp.join("ZirconEngine");
     let build_output = temp.join("build-output");
     let device_install = temp.join("device-install");
     create_valid_source_checkout(&source_path);
-    fs::write(
-        &editor_config_path,
-        r#"{"editor.startup.session":{"recent_projects":[]}}"#,
-    )
-    .unwrap();
-    let mut session = HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path)
-        .expect("Tauri runtime session should load");
+    let mut session =
+        HubRuntimeSession::load_from_paths(config_path.clone(), shared_recent_projects_path)
+            .expect("Tauri runtime session should load");
 
     let view_model = session
         .apply_action(HubActionRequest {
@@ -173,7 +292,7 @@ fn save_settings_action_applies_typed_payload_and_refreshes_source_engine() {
 fn save_settings_refreshes_source_scoped_catalogs_in_returned_view_model() {
     let temp = temp_test_dir("zircon-hub-tauri-save-settings-catalogs");
     let config_path = temp.join("hub.toml");
-    let editor_config_path = temp.join("editor.json");
+    let shared_recent_projects_path = temp.join("recent_projects.json");
     let source_path = temp.join("ZirconEngine");
     let build_output = temp.join("build-output");
     let device_install = temp.join("device-install");
@@ -215,13 +334,9 @@ kind = "editor"
         "# Source Settings Refresh\n\nSource Engine docs loaded after settings save.\n",
     )
     .unwrap();
-    fs::write(
-        &editor_config_path,
-        r#"{"editor.startup.session":{"recent_projects":[]}}"#,
-    )
-    .unwrap();
-    let mut session = HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path)
-        .expect("Tauri runtime session should load");
+    let mut session =
+        HubRuntimeSession::load_from_paths(config_path.clone(), shared_recent_projects_path)
+            .expect("Tauri runtime session should load");
 
     let view_model = session
         .apply_action(HubActionRequest {
@@ -292,17 +407,13 @@ kind = "editor"
 fn apply_action_records_payload_validation_failure_as_recoverable_status() {
     let temp = temp_test_dir("zircon-hub-tauri-payload-validation-status");
     let config_path = temp.join("hub.toml");
-    let editor_config_path = temp.join("editor.json");
+    let shared_recent_projects_path = temp.join("recent_projects.json");
     let mut config = HubConfig::default();
     config.settings.language = HubLanguage::Chinese;
     config.save(&config_path).unwrap();
-    fs::write(
-        &editor_config_path,
-        r#"{"editor.startup.session":{"recent_projects":[]}}"#,
-    )
-    .unwrap();
-    let mut session = HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path)
-        .expect("Tauri runtime session should load");
+    let mut session =
+        HubRuntimeSession::load_from_paths(config_path.clone(), shared_recent_projects_path)
+            .expect("Tauri runtime session should load");
 
     let model = session
         .apply_action(HubActionRequest {
@@ -334,15 +445,11 @@ fn apply_action_records_payload_validation_failure_as_recoverable_status() {
 fn persist_failure_sets_recoverable_status_and_recovers_after_retry() {
     let temp = temp_test_dir("zircon-hub-tauri-persist-failure");
     let config_path = temp.join("hub.toml");
-    let editor_config_path = temp.join("editor.json");
+    let shared_recent_projects_path = temp.join("recent_projects.json");
     HubConfig::default().save(&config_path).unwrap();
-    fs::write(
-        &editor_config_path,
-        r#"{"editor.startup.session":{"recent_projects":[]}}"#,
-    )
-    .unwrap();
-    let mut session = HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path)
-        .expect("Tauri runtime session should load");
+    let mut session =
+        HubRuntimeSession::load_from_paths(config_path.clone(), shared_recent_projects_path)
+            .expect("Tauri runtime session should load");
     let blocked_parent = temp.join("blocked-parent");
     fs::write(&blocked_parent, "not a directory").unwrap();
     session.config_path = blocked_parent.join("hub.toml");
@@ -389,17 +496,13 @@ fn persist_failure_sets_recoverable_status_and_recovers_after_retry() {
 fn project_view_action_status_localizes_in_chinese_view_model() {
     let temp = temp_test_dir("zircon-hub-tauri-project-view-localized");
     let config_path = temp.join("hub.toml");
-    let editor_config_path = temp.join("editor.json");
+    let shared_recent_projects_path = temp.join("recent_projects.json");
     let mut config = HubConfig::default();
     config.settings.language = HubLanguage::Chinese;
     config.save(&config_path).unwrap();
-    fs::write(
-        &editor_config_path,
-        r#"{"editor.startup.session":{"recent_projects":[]}}"#,
-    )
-    .unwrap();
-    let mut session = HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path)
-        .expect("Tauri runtime session should load");
+    let mut session =
+        HubRuntimeSession::load_from_paths(config_path.clone(), shared_recent_projects_path)
+            .expect("Tauri runtime session should load");
 
     let filter_model = session
         .apply_action(HubActionRequest {

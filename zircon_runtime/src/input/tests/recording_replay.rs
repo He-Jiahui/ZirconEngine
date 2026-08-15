@@ -1,7 +1,7 @@
 use crate::core::framework::input::InputManager;
 use crate::input::{
-    DefaultInputManager, InputButton, InputEvent, InputEventRecordingConfig, InputRecording,
-    InputRecordingFrame,
+    CursorGrabMode, CursorHostRequest, DefaultInputManager, GamepadAxis, GamepadId, ImeHostRequest,
+    InputButton, InputEvent, InputEventRecordingConfig, InputRecording, InputRecordingFrame,
 };
 
 #[test]
@@ -89,4 +89,58 @@ fn input_replay_restores_frame_snapshots_in_recorded_order() {
     assert!(released.snapshot.buttons.just_released(&key));
     assert!(cursor.is_finished());
     assert!(cursor.replay_next_frame(&input).is_none());
+}
+
+#[test]
+fn input_replay_applies_focus_loss_as_a_release_transaction() {
+    let key = InputButton::KeyCode(42);
+    let gamepad = GamepadId(7);
+    let axis = GamepadAxis::LeftStickX;
+    let recording = InputRecording::from_frames(vec![
+        InputRecordingFrame::from_events(
+            3,
+            [
+                InputEvent::ButtonPressed(key.clone()),
+                InputEvent::GamepadAxis {
+                    gamepad,
+                    axis,
+                    value: 1.0,
+                },
+                InputEvent::ImeHostRequest(ImeHostRequest::Enable),
+                InputEvent::CursorHostRequest(CursorHostRequest::set_grab_mode(
+                    CursorGrabMode::Locked,
+                )),
+            ],
+        ),
+        InputRecordingFrame::from_events(4, [InputEvent::FocusLost]),
+    ]);
+    let input = DefaultInputManager::default();
+    let mut cursor = recording.replay_cursor();
+
+    let held = cursor.replay_next_frame(&input).unwrap();
+    assert!(held.snapshot.buttons.pressed(&key));
+    assert_eq!(held.snapshot.gamepad_axes.len(), 1);
+
+    let released = cursor.replay_next_frame(&input).unwrap();
+    assert!(!released.snapshot.buttons.pressed(&key));
+    assert!(released.snapshot.buttons.just_released(&key));
+    assert!(released.snapshot.gamepad_axes.is_empty());
+    assert!(released
+        .snapshot
+        .gamepad_axis_transitions
+        .iter()
+        .any(|transition| {
+            transition.gamepad == gamepad
+                && transition.axis == axis
+                && transition.previous_value == 1.0
+                && transition.value == 0.0
+        }));
+    assert_eq!(
+        released.snapshot.ime_host_requests,
+        vec![ImeHostRequest::Disable]
+    );
+    assert_eq!(
+        released.snapshot.cursor_host_requests,
+        vec![CursorHostRequest::set_grab_mode(CursorGrabMode::None)]
+    );
 }

@@ -1,10 +1,9 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use zircon_runtime::ui::surface::{UiPropertyMutationRequest, UiSurface};
+use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime::ui::tree::UiRuntimeTreeRoutingExt;
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
-    component::UiValue,
     event_ui::UiNodeId,
     layout::{UiFrame, UiSize},
     surface::{UiPointerButton, UiPointerEventKind, UiPointerRoute},
@@ -20,15 +19,15 @@ use crate::ui::retained_host::callback_dispatch::template_bridge::projection_sup
     binding_for_control, build_bindings_by_id, project_builtin_document_with_runtime,
 };
 use crate::ui::template_runtime::{
-    EditorUiHostRuntime, RetainedUiHostProjection, WORKBENCH_WINDOW_DOCUMENT_ID,
+    EditorUiHostRuntime, RetainedUiHostNodeModel, RetainedUiHostProjection,
+    WORKBENCH_WINDOW_DOCUMENT_ID,
 };
 use crate::ui::workbench::reference::{
-    EditorWorkbenchReferenceMetrics, EditorWorkbenchTemplateControlIds,
-    EditorWorkbenchTemplateFrames, EditorWorkbenchTemplateSurface,
-    build_editor_workbench_template_surface,
+    build_editor_workbench_template_surface, EditorWorkbenchReferenceMetrics,
+    EditorWorkbenchTemplateControlIds, EditorWorkbenchTemplateFrames,
+    EditorWorkbenchTemplateSurface,
 };
 
-use super::super::popup_primitives::toml_value_string_list;
 #[cfg(test)]
 use super::super::projection_support::load_builtin_runtime;
 use super::asset_creation_menu::AssetCreationMenuState;
@@ -40,25 +39,33 @@ use super::drawer_layout::{
 };
 use super::error::BuiltinHostWindowTemplateBridgeError;
 use super::extension_module_navigation::{
-    EXTENSION_MODULE_WORKSPACE_CONTROLS, workbench_extension_workspace_control_id,
+    workbench_extension_workspace_control_id, EXTENSION_MODULE_WORKSPACE_CONTROLS,
 };
 use super::layout_frames::{
-    BuiltinWorkbenchWindowLayoutFrames, bottom_resize_splitter_frame_from_drawer_shell,
-    left_resize_splitter_frame_from_drawer_shell, right_resize_splitter_frame_from_drawer_shell,
-    union_visible_frames,
+    bottom_resize_splitter_frame_from_drawer_shell, left_resize_splitter_frame_from_drawer_shell,
+    right_resize_splitter_frame_from_drawer_shell, union_visible_frames,
+    BuiltinWorkbenchWindowLayoutFrames,
 };
 use super::module_navigation::{
-    MODULE_TAB_CONTROLS, MODULE_WORKSPACE_CONTROLS, workbench_module_workspace_control_id,
+    workbench_module_workspace_control_id, MODULE_TAB_CONTROLS, MODULE_WORKSPACE_CONTROLS,
 };
+use super::scene_hierarchy_projection::SceneHierarchyProjectionState;
 
+mod mounted_layout;
 mod refresh_layout;
+mod resolution_projection;
+
+pub(super) use resolution_projection::logical_axis_from_physical;
+use resolution_projection::{normalized_presentation_scale_factor, scale_frame};
 
 pub(crate) struct BuiltinWorkbenchWindowTemplateSurfaceBridge {
     pub(super) runtime: Arc<EditorUiHostRuntime>,
     bindings_by_id: BTreeMap<String, EditorUiBinding>,
     pub(super) template_surface: EditorWorkbenchTemplateSurface,
     pub(super) mount_frame: UiFrame,
+    pub(super) presentation_scale_factor: f32,
     pub(super) asset_creation_menu: AssetCreationMenuState,
+    pub(super) scene_hierarchy_projection: SceneHierarchyProjectionState,
 }
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
@@ -100,7 +107,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             bindings_by_id,
             template_surface,
             mount_frame,
+            presentation_scale_factor: 1.0,
             asset_creation_menu: AssetCreationMenuState::default(),
+            scene_hierarchy_projection: SceneHierarchyProjectionState::default(),
         };
         bridge.apply_responsive_toolbar_layout(shell_size)?;
         bridge
@@ -109,43 +118,88 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(bridge)
     }
 
-    pub(crate) fn recompute_layout(
-        &mut self,
-        shell_size: UiSize,
-    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        self.mount_frame =
-            normalized_mount_frame(UiFrame::new(0.0, 0.0, shell_size.width, shell_size.height));
-        refresh_layout::recompute(self, shell_size)
-    }
-
-    pub(crate) fn recompute_layout_at_mount(
-        &mut self,
-        mount_frame: UiFrame,
-    ) -> Result<UiSize, BuiltinHostWindowTemplateBridgeError> {
-        self.mount_frame = normalized_mount_frame(mount_frame);
-        let shell_size = UiSize::new(self.mount_frame.width, self.mount_frame.height);
-        refresh_layout::recompute(self, shell_size)?;
-        Ok(shell_size)
-    }
-
     pub(crate) fn surface(&self) -> &UiSurface {
         &self.template_surface.surface
     }
 
+    #[cfg(test)]
+    pub(crate) fn layout_pass_count(&self) -> u64 {
+        self.template_surface.layout_pass_count()
+    }
+
     pub(crate) fn frames(&self) -> EditorWorkbenchTemplateFrames {
-        self.template_surface.frames
+        let frames = self.template_surface.frames;
+        EditorWorkbenchTemplateFrames {
+            root: scale_frame(frames.root, self.presentation_scale_factor),
+            top_toolbar: scale_frame(frames.top_toolbar, self.presentation_scale_factor),
+            main_band: scale_frame(frames.main_band, self.presentation_scale_factor),
+            activity_rail: scale_frame(frames.activity_rail, self.presentation_scale_factor),
+            scene_tree: scale_frame(frames.scene_tree, self.presentation_scale_factor),
+            viewport: scale_frame(frames.viewport, self.presentation_scale_factor),
+            inspector: scale_frame(frames.inspector, self.presentation_scale_factor),
+            component_drawer: scale_frame(frames.component_drawer, self.presentation_scale_factor),
+            status_bar: scale_frame(frames.status_bar, self.presentation_scale_factor),
+        }
     }
 
     pub(crate) fn host_projection(&self) -> &RetainedUiHostProjection {
         &self.template_surface.host_projection
     }
 
+    pub(crate) fn pending_host_projection_patch_nodes(
+        &self,
+    ) -> Option<Vec<crate::ui::template_runtime::RetainedUiHostNodeModel>> {
+        self.template_surface.pending_host_projection_patch_nodes()
+    }
+
+    pub(crate) fn mark_host_projection_committed(&mut self) {
+        self.template_surface.mark_host_projection_committed();
+    }
+
+    pub(crate) fn refresh_prepared_state_change(
+        &mut self,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        self.template_surface
+            .refresh_after_state_change(self.runtime.as_ref())?;
+        Ok(())
+    }
+
+    pub(crate) fn presentation_scale_factor(&self) -> f32 {
+        self.presentation_scale_factor
+    }
+
+    pub(crate) fn host_projection_nodes_for_controls(
+        &self,
+        control_ids: &[String],
+    ) -> Option<Vec<RetainedUiHostNodeModel>> {
+        control_ids
+            .iter()
+            .map(|control_id| {
+                self.template_surface
+                    .host_projection_node_for_control(control_id)
+                    .cloned()
+            })
+            .collect()
+    }
+
     pub(crate) fn control_frame(&self, control_id: &str) -> Option<UiFrame> {
-        self.template_surface.visible_control_frame(control_id)
+        self.template_surface
+            .visible_control_frame(control_id)
+            .map(|frame| scale_frame(frame, self.presentation_scale_factor))
     }
 
     pub(super) fn control_node_id(&self, control_id: &str) -> Option<UiNodeId> {
         self.template_surface.control_node_id(control_id)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn has_control_index_entry(&self, control_id: &str) -> bool {
+        self.template_surface.has_control_index_entry(control_id)
+    }
+
+    pub(crate) fn scene_entity_for_control(&self, control_id: &str) -> Option<u64> {
+        self.scene_hierarchy_projection
+            .entity_for_control(control_id)
     }
 
     pub(crate) fn layout_frames(&self) -> BuiltinWorkbenchWindowLayoutFrames {
@@ -238,8 +292,16 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         mut event: zircon_runtime_interface::ui::dispatch::UiPointerEvent,
     ) -> Result<UiPointerRoute, BuiltinHostWindowTemplateBridgeError> {
-        event.point.x -= self.mount_frame.x;
-        event.point.y -= self.mount_frame.y;
+        event.point.x = logical_axis_from_physical(
+            event.point.x,
+            self.mount_frame.x,
+            self.presentation_scale_factor,
+        );
+        event.point.y = logical_axis_from_physical(
+            event.point.y,
+            self.mount_frame.y,
+            self.presentation_scale_factor,
+        );
         let route = match event.button {
             Some(button) => self
                 .template_surface
@@ -301,9 +363,22 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 } else {
                     "WorkbenchScenePropsItem".to_string()
                 };
-                for control_id in self.scene_tree_control_ids()? {
-                    self.set_selected(&control_id, control_id == selected_control_id)?;
+                let previously_selected = self
+                    .scene_hierarchy_projection
+                    .selected_entities()
+                    .iter()
+                    .filter_map(|entity| {
+                        self.scene_hierarchy_projection
+                            .control_for(*entity)
+                            .map(str::to_string)
+                    })
+                    .collect::<Vec<_>>();
+                for control_id in previously_selected {
+                    if control_id != selected_control_id {
+                        self.set_selected(&control_id, false)?;
+                    }
                 }
+                self.set_selected(&selected_control_id, true)?;
             }
             EditorUiBindingPayload::MenuAction { action_id } => {
                 self.apply_reference_menu_action(source_control_id, action_id)?;
@@ -408,220 +483,6 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 .is_empty()
     }
 
-    pub(super) fn set_control_active(
-        &mut self,
-        control_id: &str,
-        selected: bool,
-    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        let node_ids =
-            control_node_ids_with_descendants(&self.template_surface.surface, control_id);
-        if node_ids.is_empty() {
-            return Ok(());
-        }
-        let value = UiValue::Bool(selected);
-        for node_id in &node_ids {
-            self.mutate_node_bool(*node_id, "selected", selected)?;
-            self.mutate_node_bool(*node_id, "checked", selected)?;
-        }
-        let _ = self
-            .template_surface
-            .surface
-            .mutate_property(UiPropertyMutationRequest::new(node_ids[0], "value", value))?;
-        Ok(())
-    }
-
-    pub(super) fn set_selected(
-        &mut self,
-        control_id: &str,
-        selected: bool,
-    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        let node_ids =
-            control_node_ids_with_descendants(&self.template_surface.surface, control_id);
-        if node_ids.is_empty() {
-            return Ok(());
-        }
-        for node_id in node_ids {
-            self.mutate_node_bool(node_id, "selected", selected)?;
-        }
-        Ok(())
-    }
-
-    pub(super) fn toggle_checked(
-        &mut self,
-        control_id: &str,
-    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        let node_ids =
-            control_node_ids_with_descendants(&self.template_surface.surface, control_id);
-        if node_ids.is_empty() {
-            return Ok(());
-        }
-        let checked = !self.control_bool(control_id, "checked");
-        for node_id in &node_ids {
-            self.mutate_node_bool(*node_id, "checked", checked)?;
-            self.mutate_node_bool(*node_id, "selected", checked)?;
-        }
-        let _ = self
-            .template_surface
-            .surface
-            .mutate_property(UiPropertyMutationRequest::new(
-                node_ids[0],
-                "value",
-                UiValue::Bool(checked),
-            ))?;
-        Ok(())
-    }
-
-    pub(super) fn set_visible(
-        &mut self,
-        control_id: &str,
-        visible: bool,
-    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        let node_ids = control_node_ids(&self.template_surface.surface, control_id);
-        if node_ids.is_empty() {
-            return Ok(());
-        }
-        let visibility = if visible { "visible" } else { "collapsed" };
-        for node_id in node_ids {
-            let _ =
-                self.template_surface
-                    .surface
-                    .mutate_property(UiPropertyMutationRequest::new(
-                        node_id,
-                        "visibility",
-                        UiValue::String(visibility.to_string()),
-                    ))?;
-            if visible {
-                let _ = self.template_surface.surface.mutate_property(
-                    UiPropertyMutationRequest::new(node_id, "visible", UiValue::Bool(true)),
-                )?;
-            }
-        }
-        Ok(())
-    }
-
-    pub(super) fn cycle_string_property(
-        &mut self,
-        control_id: &str,
-        property: &str,
-        values: &[&str],
-    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        if values.is_empty() {
-            return Ok(());
-        }
-        let Some(node_id) = self.control_node_id(control_id) else {
-            return Ok(());
-        };
-        let current = self
-            .control_string(control_id, property)
-            .unwrap_or_else(|| values[0].to_string());
-        let current_index = values
-            .iter()
-            .position(|value| *value == current)
-            .unwrap_or(0);
-        let next = values[(current_index + 1) % values.len()];
-        let _ = self
-            .template_surface
-            .surface
-            .mutate_property(UiPropertyMutationRequest::new(
-                node_id,
-                property,
-                UiValue::String(next.to_string()),
-            ))?;
-        Ok(())
-    }
-
-    pub(super) fn mutate_control_property(
-        &mut self,
-        control_id: &str,
-        property: &str,
-        value: UiValue,
-    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        let Some(node_id) = self.control_node_id(control_id) else {
-            return Ok(());
-        };
-        let _ = self
-            .template_surface
-            .surface
-            .mutate_property(UiPropertyMutationRequest::new(node_id, property, value))?;
-        Ok(())
-    }
-
-    pub(super) fn mutate_node_bool(
-        &mut self,
-        node_id: UiNodeId,
-        property: &str,
-        value: bool,
-    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        let _ = self
-            .template_surface
-            .surface
-            .mutate_property(UiPropertyMutationRequest::new(
-                node_id,
-                property,
-                UiValue::Bool(value),
-            ))
-            .map_err(
-                |source| BuiltinHostWindowTemplateBridgeError::LayoutMutation {
-                    node_id,
-                    property: property.to_string(),
-                    source,
-                },
-            )?;
-        Ok(())
-    }
-
-    pub(super) fn control_bool(&self, control_id: &str, property: &str) -> bool {
-        let Some(node_id) = self.control_node_id(control_id) else {
-            return false;
-        };
-        self.template_surface
-            .surface
-            .tree
-            .nodes
-            .get(&node_id)
-            .and_then(|node| {
-                node.template_metadata
-                    .as_ref()
-                    .and_then(|metadata| metadata.attributes.get(property))
-                    .and_then(toml::Value::as_bool)
-            })
-            .unwrap_or(false)
-    }
-
-    pub(super) fn control_string(&self, control_id: &str, property: &str) -> Option<String> {
-        let node_id = self.control_node_id(control_id)?;
-        self.template_surface
-            .surface
-            .tree
-            .nodes
-            .get(&node_id)
-            .and_then(|node| {
-                node.template_metadata
-                    .as_ref()
-                    .and_then(|metadata| metadata.attributes.get(property))
-                    .and_then(toml::Value::as_str)
-                    .map(str::to_string)
-            })
-    }
-
-    pub(super) fn control_string_array(&self, control_id: &str, property: &str) -> Vec<String> {
-        let Some(node_id) = self.control_node_id(control_id) else {
-            return Vec::new();
-        };
-        self.template_surface
-            .surface
-            .tree
-            .nodes
-            .get(&node_id)
-            .and_then(|node| {
-                node.template_metadata
-                    .as_ref()
-                    .and_then(|metadata| metadata.attributes.get(property))
-                    .map(toml_value_string_list)
-            })
-            .unwrap_or_default()
-    }
-
     fn activation_route_for_node(&self, node_id: UiNodeId) -> Option<(String, UiEventKind)> {
         let bubble_route = self
             .template_surface
@@ -708,43 +569,6 @@ fn dock_command_control_id(command: &DockCommand) -> Option<&'static str> {
         }
         _ => None,
     }
-}
-
-fn control_node_id(surface: &UiSurface, control_id: &str) -> Option<UiNodeId> {
-    control_node_ids(surface, control_id).into_iter().next()
-}
-
-fn control_node_ids(surface: &UiSurface, control_id: &str) -> Vec<UiNodeId> {
-    surface
-        .tree
-        .nodes
-        .values()
-        .filter_map(|node| {
-            node.template_metadata
-                .as_ref()
-                .and_then(|metadata| metadata.control_id.as_deref())
-                .filter(|candidate| *candidate == control_id)
-                .map(|_| node.node_id)
-        })
-        .collect()
-}
-
-fn control_node_ids_with_descendants(surface: &UiSurface, control_id: &str) -> Vec<UiNodeId> {
-    let Some(root_id) = control_node_id(surface, control_id) else {
-        return Vec::new();
-    };
-
-    let mut node_ids = Vec::new();
-    let mut stack = vec![root_id];
-    while let Some(node_id) = stack.pop() {
-        node_ids.push(node_id);
-        if let Some(node) = surface.tree.nodes.get(&node_id) {
-            for child_id in node.children.iter().rev() {
-                stack.push(*child_id);
-            }
-        }
-    }
-    node_ids
 }
 
 fn authored_primary_activation_event(

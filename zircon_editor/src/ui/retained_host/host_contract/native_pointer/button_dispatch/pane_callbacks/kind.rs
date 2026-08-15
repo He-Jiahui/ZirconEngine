@@ -1,5 +1,5 @@
 use super::super::super::{
-    HOST_POINTER_DOWN, HOST_POINTER_UP, NativePointerButtonState, VIEWPORT_POINTER_DOWN,
+    NativePointerButtonState, HOST_POINTER_DOWN, HOST_POINTER_UP, VIEWPORT_POINTER_DOWN,
     VIEWPORT_POINTER_UP,
 };
 

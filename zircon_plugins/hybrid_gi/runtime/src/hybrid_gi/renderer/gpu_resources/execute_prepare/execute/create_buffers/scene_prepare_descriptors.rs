@@ -62,6 +62,20 @@ pub(super) struct GpuScenePrepareDescriptor {
     _padding2: u32,
 }
 
+impl GpuScenePrepareDescriptor {
+    pub(super) fn is_voxel_cell(self) -> bool {
+        self.descriptor_kind == SCENE_PREPARE_DESCRIPTOR_KIND_VOXEL_CELL
+    }
+
+    pub(super) fn clipmap_id(self) -> u32 {
+        self.primary_id
+    }
+
+    pub(super) fn voxel_cell_index(self) -> u32 {
+        self.secondary_id
+    }
+}
+
 fn gpu_scene_card_capture_requests(
     requests: &[crate::hybrid_gi::types::HybridGiPrepareCardCaptureRequest],
 ) -> Vec<GpuSceneCardCaptureRequest> {
@@ -328,6 +342,22 @@ pub(super) fn gpu_scene_prepare_descriptors(
     descriptors
 }
 
+pub(super) fn gpu_scene_prepare_voxel_cell_descriptor_range(
+    descriptors: &[GpuScenePrepareDescriptor],
+) -> (usize, usize) {
+    let Some(offset) = descriptors
+        .iter()
+        .position(|descriptor| descriptor.is_voxel_cell())
+    else {
+        return (descriptors.len(), 0);
+    };
+    let count = descriptors[offset..]
+        .iter()
+        .take_while(|descriptor| descriptor.is_voxel_cell())
+        .count();
+    (offset, count)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::hybrid_gi::types::{
@@ -405,6 +435,10 @@ mod tests {
 
         assert_eq!(descriptors.len(), 2);
         assert_eq!(
+            gpu_scene_prepare_voxel_cell_descriptor_range(&descriptors),
+            (1, 1)
+        );
+        assert_eq!(
             descriptors[1],
             GpuScenePrepareDescriptor {
                 descriptor_kind: SCENE_PREPARE_DESCRIPTOR_KIND_VOXEL_CELL,
@@ -420,6 +454,54 @@ mod tests {
                 _padding1: 1,
                 _padding2: 0,
             }
+        );
+    }
+
+    #[test]
+    fn descriptor_range_excludes_cards_clipmap_headers_and_empty_voxel_cells() {
+        let requests = vec![HybridGiPrepareCardCaptureRequest {
+            card_id: 7,
+            page_id: 8,
+            atlas_slot_id: 9,
+            capture_slot_id: 10,
+            bounds_center: Vec3::ZERO,
+            bounds_radius: 1.0,
+        }];
+        let clipmaps = vec![HybridGiPrepareVoxelClipmap {
+            clipmap_id: 7,
+            center: Vec3::ZERO,
+            half_extent: 4.0,
+        }];
+        let descriptors = gpu_scene_prepare_descriptors(
+            &requests,
+            &[],
+            &[Some(pack_rgb8([1, 2, 3]))],
+            &[],
+            &clipmaps,
+            &[
+                HybridGiPrepareVoxelCell {
+                    clipmap_id: 7,
+                    cell_index: 1,
+                    occupancy_count: 0,
+                    dominant_card_id: 0,
+                    radiance_present: false,
+                    radiance_rgb: [0; 3],
+                },
+                HybridGiPrepareVoxelCell {
+                    clipmap_id: 7,
+                    cell_index: 2,
+                    occupancy_count: 1,
+                    dominant_card_id: 7,
+                    radiance_present: true,
+                    radiance_rgb: [4, 5, 6],
+                },
+            ],
+        );
+
+        assert_eq!(descriptors.len(), 3);
+        assert_eq!(
+            gpu_scene_prepare_voxel_cell_descriptor_range(&descriptors),
+            (2, 1)
         );
     }
 

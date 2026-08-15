@@ -190,7 +190,12 @@ fn shared_menu_pointer_click_dispatches_editor_operation_payloads_from_extension
     assert!(effects.layout_dirty);
     assert!(effects.presentation_dirty);
     assert_eq!(
-        harness.runtime.journal().records().last().and_then(|record| record.operation_id.as_deref()),
+        harness
+            .runtime
+            .journal()
+            .records()
+            .last()
+            .and_then(|record| record.operation_id.as_deref()),
         Some("view.weather.open"),
         "menu dispatch should invoke the EditorOperation id instead of parsing it as a legacy MenuAction"
     );

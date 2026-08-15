@@ -20,10 +20,10 @@ use crate::core::plugin::{
     EditorPlugin, EditorPluginCatalog, EditorPluginDescriptor, EditorPluginManager,
     EditorPluginTransitionError,
 };
-use crate::ui::host::EditorManager;
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
+use crate::ui::host::EditorManager;
 
-use super::editor_event::support::{EventRuntimeHarness, env_lock};
+use super::editor_event::support::{env_lock, EventRuntimeHarness};
 
 #[test]
 fn editor_plugin_sdk_examples_publish_window_and_asset_contributions() {
@@ -62,29 +62,21 @@ fn editor_plugin_sdk_examples_publish_window_and_asset_contributions() {
         "sdk.example.asset_inspector"
     );
     let registry = &extension_report.registry;
-    assert!(
-        registry
-            .views()
-            .iter()
-            .any(|view| view.id() == "sdk.example.weather_window")
-    );
-    assert!(
-        registry
-            .asset_importers()
-            .iter()
-            .any(
-                |importer| importer.id() == "sdk.example.asset.model_importer"
-                    && importer.source_extensions() == ["glb".to_string(), "gltf".to_string()]
-            )
-    );
-    assert!(
-        registry
-            .inspector_customizations()
-            .iter()
-            .any(|customization| {
-                customization.target_type() == "sdk.example.ModelImportSettings"
-            })
-    );
+    assert!(registry
+        .views()
+        .iter()
+        .any(|view| view.id() == "sdk.example.weather_window"));
+    assert!(registry
+        .asset_importers()
+        .iter()
+        .any(
+            |importer| importer.id() == "sdk.example.asset.model_importer"
+                && importer.source_extensions() == ["glb".to_string(), "gltf".to_string()]
+        ));
+    assert!(registry
+        .inspector_customizations()
+        .iter()
+        .any(|customization| { customization.target_type() == "sdk.example.ModelImportSettings" }));
 
     let stages = ["sdk_example_window", "sdk_example_asset"]
         .into_iter()
@@ -213,10 +205,8 @@ fn catalog_asset_batch_preserves_diagnostics_between_other_extension_failures() 
     assert!(report.diagnostics[1].contains(
         "asset type `model` field `toolkit` is owned by both `sdk_batch_first` and `sdk_batch_second`"
     ));
-    assert!(
-        report.diagnostics[2]
-            .contains("editor scene mode sdk.batch.shared_tool already registered")
-    );
+    assert!(report.diagnostics[2]
+        .contains("editor scene mode sdk.batch.shared_tool already registered"));
     assert_eq!(
         report.asset_types.generation(),
         AssetTypeRegistry::with_builtins().unwrap().generation() + 1
@@ -297,18 +287,14 @@ fn editor_plugin_sdk_reports_lifecycle_failures_without_discarding_extensions() 
         .expect("the failed plugin registration should remain inspectable");
 
     assert!(!report.is_success());
-    assert!(
-        report
-            .diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.contains("simulated enable failure"))
-    );
-    assert!(
-        report
-            .extensions
-            .pending_command(&EditorOperationPath::parse("sdk.failure.open").unwrap())
-            .is_some()
-    );
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("simulated enable failure")));
+    assert!(report
+        .extensions
+        .pending_command(&EditorOperationPath::parse("sdk.failure.open").unwrap())
+        .is_some());
     assert_eq!(report.lifecycle.records().len(), 2);
 }
 
@@ -381,17 +367,15 @@ fn editor_plugin_sdk_dispatches_post_registration_lifecycle_events() {
             .len(),
         3
     );
-    assert!(
-        plugin
-            .events
-            .lock()
-            .expect("lifecycle event fixture lock should not be poisoned")
-            .iter()
-            .any(|(stage, subject)| {
-                stage == &EditorPluginLifecycleStage::HotReloaded
-                    && subject.as_deref() == Some("zircon_editor_sdk_lifecycle.dll")
-            })
-    );
+    assert!(plugin
+        .events
+        .lock()
+        .expect("lifecycle event fixture lock should not be poisoned")
+        .iter()
+        .any(|(stage, subject)| {
+            stage == &EditorPluginLifecycleStage::HotReloaded
+                && subject.as_deref() == Some("zircon_editor_sdk_lifecycle.dll")
+        }));
 }
 
 #[test]
@@ -632,21 +616,17 @@ fn editor_runtime_gates_asset_authoring_contributions_by_plugin_capability() {
             vec![capability.clone()],
         )
         .expect("register asset authoring extension");
-    assert!(
-        runtime
-            .runtime
-            .asset_importers_for_extension(".glb")
-            .is_empty()
-    );
+    assert!(runtime
+        .runtime
+        .asset_importers_for_extension(".glb")
+        .is_empty());
     let model_type = AssetTypeId::from_resource_kind(ResourceKind::Model);
-    assert!(
-        runtime
-            .runtime
-            .asset_type_definition(&model_type)
-            .unwrap()
-            .toolkit()
-            .is_none()
-    );
+    assert!(runtime
+        .runtime
+        .asset_type_definition(&model_type)
+        .unwrap()
+        .toolkit()
+        .is_none());
 
     let manager = runtime
         .core

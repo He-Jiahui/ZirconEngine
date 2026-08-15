@@ -1,8 +1,8 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use thiserror::Error;
+use zircon_runtime::asset::project::{ProjectManifestError, ProjectPaths};
 use zircon_runtime::asset::AssetImportError;
-use zircon_runtime::asset::project::ProjectManifestError;
 use zircon_runtime::core::CoreError;
 use zircon_runtime::scene::world::SceneProjectError;
 use zircon_runtime_interface::project::ProjectNameError;
@@ -25,15 +25,30 @@ pub enum ProjectAuthorityError {
         #[source]
         source: std::io::Error,
     },
-    #[error("target path already exists as a file: {path}")]
+    #[error(
+        "target path already exists as a file: {path}",
+        path = display_project_path(path)
+    )]
     TargetIsFile { path: PathBuf },
-    #[error("target directory must be empty: {path}")]
+    #[error(
+        "target directory must be empty: {path}",
+        path = display_project_path(path)
+    )]
     TargetNotEmpty { path: PathBuf },
-    #[error("project directory does not exist: {path}")]
+    #[error(
+        "project directory does not exist: {path}",
+        path = display_project_path(path)
+    )]
     ProjectMissing { path: PathBuf },
-    #[error("project path crosses a symbolic link or Windows reparse point: {path}")]
+    #[error(
+        "project path crosses a symbolic link or Windows reparse point: {path}",
+        path = display_project_path(path)
+    )]
     LinkedPath { path: PathBuf },
-    #[error("project manifest is missing: {path}")]
+    #[error(
+        "project manifest is missing: {path}",
+        path = display_project_path(path)
+    )]
     ManifestMissing { path: PathBuf },
     #[error("project manifest failed: {source}")]
     Manifest {
@@ -49,7 +64,10 @@ pub enum ProjectAuthorityError {
     },
     #[error("scene asset target is invalid: {uri}; {reason}")]
     SceneTarget { uri: String, reason: &'static str },
-    #[error("scene asset already exists: {path}")]
+    #[error(
+        "scene asset already exists: {path}",
+        path = display_project_path(path)
+    )]
     SceneAlreadyExists { path: PathBuf },
     #[error("scene document operation failed: {source}")]
     SceneDocument {
@@ -98,7 +116,10 @@ pub enum ProjectAuthorityError {
         #[source]
         source: ProjectTemplatePackError,
     },
-    #[error("project filesystem operation {operation} failed for {path}: {source}")]
+    #[error(
+        "project filesystem operation {operation} failed for {path}: {source}",
+        path = display_project_path(path)
+    )]
     Io {
         operation: &'static str,
         path: PathBuf,
@@ -106,7 +127,9 @@ pub enum ProjectAuthorityError {
         source: std::io::Error,
     },
     #[error(
-        "project commit failed for {target}, and restoring backup {backup} also failed: commit: {commit_source}; restore: {restore_source}"
+        "project commit failed for {target_path}, and restoring backup {backup_path} also failed: commit: {commit_source}; restore: {restore_source}",
+        target_path = display_project_path(target),
+        backup_path = display_project_path(backup)
     )]
     CommitRollbackFailed {
         target: PathBuf,
@@ -116,7 +139,10 @@ pub enum ProjectAuthorityError {
         restore_source: std::io::Error,
     },
     #[error(
-        "post-commit project rollback failed moving {from} to {to}; preserved empty-target backup: {backup:?}: {source}"
+        "post-commit project rollback failed moving {from_path} to {to_path}; preserved empty-target backup: {backup_path:?}: {source}",
+        from_path = display_project_path(from),
+        to_path = display_project_path(to),
+        backup_path = display_optional_project_path(backup)
     )]
     PostCommitRollbackFailed {
         from: PathBuf,
@@ -125,16 +151,14 @@ pub enum ProjectAuthorityError {
         #[source]
         source: std::io::Error,
     },
-    #[error("project session JSON decode failed: {source}")]
-    SessionDecode {
-        #[source]
-        source: serde_json::Error,
-    },
-    #[error("project session JSON encode failed: {source}")]
-    SessionEncode {
-        #[source]
-        source: serde_json::Error,
-    },
+}
+
+fn display_project_path(path: &Path) -> String {
+    ProjectPaths::display_path(path).display().to_string()
+}
+
+fn display_optional_project_path(path: &Option<PathBuf>) -> Option<String> {
+    path.as_deref().map(display_project_path)
 }
 
 impl ProjectAuthorityError {
@@ -148,5 +172,25 @@ impl ProjectAuthorityError {
             path: path.into(),
             source,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use super::ProjectAuthorityError;
+
+    #[cfg(windows)]
+    #[test]
+    fn project_authority_error_displays_windows_operation_paths_without_verbatim_prefixes() {
+        let error = ProjectAuthorityError::ManifestMissing {
+            path: PathBuf::from(r"\\?\C:\ZirconBuilds\stage\project\zircon-project.toml"),
+        };
+
+        assert_eq!(
+            error.to_string(),
+            r"project manifest is missing: C:\ZirconBuilds\stage\project\zircon-project.toml"
+        );
     }
 }

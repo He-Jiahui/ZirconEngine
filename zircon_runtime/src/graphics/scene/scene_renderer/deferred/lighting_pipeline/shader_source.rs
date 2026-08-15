@@ -2,8 +2,8 @@ use crate::core::framework::render::ShadingModelDescriptor;
 use crate::graphics::material::ShadingModelIncludeSourceSet;
 use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 use crate::graphics::shader::template::{
-    ShaderModuleRegistry, ShaderModuleResolutionError, ShaderTemplateInclude,
-    environment_standard_pbr_include,
+    environment_standard_pbr_include, ShaderModuleRegistry, ShaderModuleResolutionError,
+    ShaderTemplateInclude,
 };
 
 const GPU_SCENE_INCLUDE_TOKEN: &str = "zr_gpu_scene.wgsl";
@@ -422,8 +422,8 @@ fn deferred_shading_function_name(token: &str) -> String {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        GBufferChannelMask, SHADING_MODEL_ID_BLINN_PHONG, SHADING_MODEL_ID_STANDARD_PBR,
-        SHADING_MODEL_ID_UNLIT, ShadingModelDescriptor, ShadingModelId,
+        GBufferChannelMask, ShadingModelDescriptor, ShadingModelId, SHADING_MODEL_ID_BLINN_PHONG,
+        SHADING_MODEL_ID_STANDARD_PBR, SHADING_MODEL_ID_UNLIT,
     };
     use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
 

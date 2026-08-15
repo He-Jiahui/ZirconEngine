@@ -75,7 +75,10 @@ fn canonical_cascade_token_values(tokens: &EditorDesignTokens) -> BTreeMap<Strin
     tokens.palette.insert_cascade_tokens(&mut values);
     tokens.typography.insert_cascade_tokens(&mut values);
     tokens.controls.insert_cascade_tokens(&mut values);
-    tokens.density.insert_cascade_tokens(&mut values);
+    tokens.density.insert_density_cascade_tokens(&mut values);
+    for (name, value) in tokens.chrome.cascade_entries() {
+        insert_float_token(&mut values, name, value);
+    }
     tokens.state_roles.insert_cascade_tokens(&mut values);
     values
 }
@@ -178,4 +181,64 @@ fn legacy_density_token_aliases() -> [(&'static str, &'static str); 26] {
             "editor.density.ultra_minimum_window_height",
         ),
     ]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::canonical_cascade_token_values;
+    use crate::ui::design_tokens::EditorDesignTokens;
+
+    #[test]
+    fn workbench_chrome_metrics_are_registered_as_logical_float_tokens() {
+        let values = canonical_cascade_token_values(&EditorDesignTokens::workbench_dark());
+
+        for (name, expected) in [
+            ("editor.chrome.top_bar.height", 25.0),
+            ("editor.chrome.host_bar.height", 32.0),
+            ("editor.chrome.status_bar.height", 24.0),
+            ("editor.chrome.panel_header.height", 25.0),
+            ("editor.chrome.document_header.height", 31.0),
+            ("editor.chrome.viewport_toolbar.height", 28.0),
+            ("editor.chrome.activity_rail.width", 34.0),
+            ("editor.chrome.separator.thickness", 1.0),
+            ("editor.chrome.splitter.hit_size", 8.0),
+        ] {
+            assert_eq!(
+                values.get(name).and_then(toml::Value::as_float),
+                Some(expected),
+                "missing or invalid Workbench chrome token `{name}`"
+            );
+        }
+    }
+
+    #[test]
+    fn workbench_dark_palette_matches_component_prototype_baseline() {
+        let values = canonical_cascade_token_values(&EditorDesignTokens::workbench_dark());
+
+        for (name, expected) in [
+            ("editor.surface.0", "#090f12"),
+            ("editor.surface.1", "#0f171b"),
+            ("editor.surface.2", "#10181c"),
+            ("editor.surface.3", "#141d22"),
+            ("editor.surface.recessed", "#081014"),
+            ("editor.surface.hover", "#1a252b"),
+            ("editor.surface.selected", "#164349"),
+            ("editor.accent", "#35c7d0"),
+            ("editor.border", "#223037"),
+            ("editor.separator.strong", "#223037"),
+            ("editor.separator.soft", "#1b2428"),
+            ("editor.text.primary", "#d9e5e8"),
+            ("editor.text.secondary", "#9ca9ad"),
+            ("editor.text.disabled", "#69787e"),
+            ("editor.popup", "#141d22"),
+            ("editor.track", "#1a252b"),
+            ("editor.focus.ring", "#35c7d0"),
+        ] {
+            assert_eq!(
+                values.get(name).and_then(toml::Value::as_str),
+                Some(expected),
+                "palette token `{name}` diverged from the component prototype baseline"
+            );
+        }
+    }
 }

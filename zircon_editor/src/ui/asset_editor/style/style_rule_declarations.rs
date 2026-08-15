@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use toml::{map::Map, Value};
+use toml::{Value, map::Map};
 use zircon_runtime_interface::ui::template::UiStyleDeclarationBlock;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

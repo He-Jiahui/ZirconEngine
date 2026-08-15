@@ -10,11 +10,15 @@ use zircon_runtime::asset::pipeline::manager::{AssetManager, ProjectAssetManager
 use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use zircon_runtime::asset::{AssetReference, AssetUri};
 use zircon_runtime::core::framework::render::{
-    EnvironmentExtract, PreviewEnvironmentExtract, ProjectionMode, RenderOverlayExtract,
-    SceneViewportExtractRequest, ViewportRenderSettings,
+    CameraRenderDescriptor, EnvironmentExtract, PreviewEnvironmentExtract, ProjectionMode,
+    RenderFramework, RenderLayerSet, RenderOverlayExtract, RenderViewportDescriptor,
+    RenderViewportHandle, SceneViewportExtractRequest, ViewportCameraSnapshot,
+    ViewportRenderSettings, DEFAULT_RENDER_LAYER_MASK,
 };
-use zircon_runtime::core::math::{UVec2, Vec4};
-use zircon_runtime::graphics::{RealtimeIblGpuTimingReport, SceneRenderer, ViewportFrame};
+use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
+use zircon_runtime::graphics::{
+    RealtimeIblGpuTimingReport, ViewportFrame, ViewportRenderFrame, WgpuRenderFramework,
+};
 
 #[path = "runtime_shader_pbr_hdri_export/scene_fixtures.rs"]
 mod scene_fixtures;
@@ -44,6 +48,8 @@ const MULTI_VIEW_OUTPUT_SIZE: UVec2 = UVec2::new(800, 600);
 const MULTI_VIEW_COLUMNS: u32 = 5;
 const MULTI_VIEW_CONTACT_SHEET_NAME: &str =
     "runtime_shader_pbr_procedural_realtime_ibl_mirror_cardinal_120deg_contact_sheet_20260714.png";
+const MULTI_VIEW_TIMING_REPORT_NAME: &str =
+    "runtime_shader_pbr_procedural_realtime_ibl_mirror_cardinal_120deg_timing_20260815.txt";
 
 #[derive(Clone, Copy)]
 struct RealtimeMultiViewCase {
@@ -93,6 +99,102 @@ fn realtime_ibl_export_contract_uses_requested_matrix_and_unreal_slice_count() {
     assert_eq!(pbr_matrix_axis_value(PBR_MATRIX_DIMENSION - 1), 1.0);
     assert_eq!(REALTIME_UPDATE_SLICE_COUNT, 16);
     assert_eq!(realtime_multiview_cases().len(), 5);
+
+    let source = include_str!("runtime_shader_pbr_realtime_ibl_export.rs");
+    let multiview_export = source
+        .split("\nfn export_procedural_realtime_ibl_mirror_cardinal_120deg_png()")
+        .nth(1)
+        .and_then(|body| body.split("\nfn prepare_matrix_project").next())
+        .expect("multiview export body");
+    let (setup, view_loop) = multiview_export
+        .split_once("\n    for view_case in cases {")
+        .expect("multiview view loop");
+    for cold_initialization in [
+        "ProjectAssetManager::default",
+        ".open_project(",
+        "ProjectManager::open",
+        "project.scan_and_import()",
+        "World::load_scene_from_uri",
+        "ProjectAssetTestRuntime::new",
+        "WgpuRenderFramework::new",
+    ] {
+        assert_eq!(
+            multiview_export.matches(cold_initialization).count(),
+            1,
+            "multiview export must initialize {cold_initialization} exactly once"
+        );
+        assert!(
+            setup.contains(cold_initialization),
+            "multiview setup must retain {cold_initialization}"
+        );
+        assert!(
+            !view_loop.contains(cold_initialization),
+            "multiview view loop must not repeat {cold_initialization}"
+        );
+    }
+    assert!(view_loop.contains("realtime_mirror_camera_descriptor"));
+    assert!(!view_loop.contains("render_realtime_mirror_view"));
+    assert!(source.contains(concat!("request_graphics_debugger_", "capture(viewport)")));
+    assert!(source.contains(concat!("submit_compiled_realtime_ibl_", "frame(")));
+    assert!(!source.contains(concat!("SceneRenderer", "::new")));
+    assert!(!source.contains(concat!("start_graphics_debugger", "_capture")));
+    assert!(!source.contains(concat!("stop_graphics_debugger", "_capture")));
+}
+
+#[test]
+fn realtime_multiview_camera_descriptor_matches_fixture_camera() {
+    let expected_layers = RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK);
+    for camera_view in [
+        SinglePbrSphereCameraView::front(ProjectionMode::Perspective),
+        SinglePbrSphereCameraView::front(ProjectionMode::Orthographic),
+        SinglePbrSphereCameraView::perspective_orbit_degrees(120.0, -120.0),
+    ] {
+        let descriptor = realtime_mirror_camera_descriptor(camera_view, MULTI_VIEW_OUTPUT_SIZE);
+        let eye = Vec3::new(camera_view.eye[0], camera_view.eye[1], camera_view.eye[2]);
+        let target = Vec3::new(
+            camera_view.target[0],
+            camera_view.target[1],
+            camera_view.target[2],
+        );
+
+        assert_eq!(
+            descriptor.camera.transform,
+            Transform::looking_at(eye, target, Vec3::Y)
+        );
+        assert_eq!(
+            descriptor.camera.projection_mode,
+            camera_view.projection_mode
+        );
+        assert_eq!(descriptor.camera.fov_y_radians, 60.0_f32.to_radians());
+        assert_eq!(descriptor.camera.ortho_size, camera_view.ortho_size);
+        assert_eq!(descriptor.camera.z_near, 0.1);
+        assert_eq!(descriptor.camera.z_far, 100.0);
+        assert_eq!(
+            descriptor.camera.aspect_ratio,
+            MULTI_VIEW_OUTPUT_SIZE.x as f32 / MULTI_VIEW_OUTPUT_SIZE.y as f32
+        );
+        assert_eq!(descriptor.culling_mask, expected_layers);
+        assert_eq!(descriptor.volume_mask, expected_layers);
+    }
+}
+
+#[test]
+fn realtime_multiview_timing_report_separates_setup_and_reused_frames() {
+    let report = multiview_timing_report(12.5, &[7.0, 3.0, 4.0]);
+
+    assert!(report.contains("multiview_setup_cpu_ms=12.500"));
+    assert!(report.contains("first_view_render_cpu_ms=7.000"));
+    assert!(report.contains("reused_view_render_count=2"));
+    assert!(report.contains("reused_view_render_total_cpu_ms=7.000"));
+    assert!(report.contains("reused_view_render_average_cpu_ms=3.500"));
+    assert!(report.contains("view_02_render_cpu_ms=4.000"));
+}
+
+#[test]
+fn realtime_ibl_export_temporary_projects_stay_under_evidence_root() {
+    let root = unique_temp_project_root("shader_pbr_realtime_ibl_test");
+
+    assert!(root.starts_with(shader_test_output_dir().join(".work")));
 }
 
 #[test]
@@ -122,11 +224,20 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
     snapshot.overlays = RenderOverlayExtract::default();
 
     let asset_runtime = support::ProjectAssetTestRuntime::new(asset_manager);
-    let mut renderer = SceneRenderer::new(asset_runtime.access()).unwrap();
+    let framework = WgpuRenderFramework::new(asset_runtime.access()).unwrap();
+    let viewport = framework
+        .create_viewport(
+            RenderViewportDescriptor::new(PBR_MATRIX_OUTPUT_SIZE)
+                .with_label("shader06.realtime-ibl-matrix"),
+        )
+        .unwrap();
     let initial_started = Instant::now();
-    renderer
-        .render(snapshot.clone(), PBR_MATRIX_OUTPUT_SIZE)
-        .expect("render initial full realtime IBL publication");
+    submit_compiled_realtime_ibl_frame(
+        &framework,
+        viewport,
+        snapshot.clone(),
+        PBR_MATRIX_OUTPUT_SIZE,
+    );
     let initial_elapsed = initial_started.elapsed();
 
     let mut updated_snapshot = snapshot;
@@ -148,26 +259,33 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
         let capture_this_slice =
             capture_final_sh9_slice && slice_index + 1 == REALTIME_UPDATE_SLICE_COUNT;
         if capture_this_slice {
-            renderer.start_graphics_debugger_capture();
+            framework
+                .request_graphics_debugger_capture(viewport)
+                .expect("request RenderDoc capture for final SH9 update slice");
         }
         let started = Instant::now();
-        let render_result = renderer.render(updated_snapshot.clone(), PBR_MATRIX_OUTPUT_SIZE);
-        if capture_this_slice {
-            renderer
-                .stop_graphics_debugger_capture()
-                .expect("stop RenderDoc capture after the final SH9 update slice");
-        }
-        render_result.expect("render realtime IBL update slice");
+        submit_compiled_realtime_ibl_frame(
+            &framework,
+            viewport,
+            updated_snapshot.clone(),
+            PBR_MATRIX_OUTPUT_SIZE,
+        );
         slice_millis.push(started.elapsed().as_secs_f64() * 1000.0);
     }
-    let final_frame = renderer
-        .render(updated_snapshot, PBR_MATRIX_OUTPUT_SIZE)
-        .expect("render the newly published realtime IBL ready slot");
-    assert!(
-        renderer.realtime_ibl_gpu_timing_supported(),
-        "product adapter must expose encoder timestamp queries for EC-M4 acceptance"
+    submit_compiled_realtime_ibl_frame(
+        &framework,
+        viewport,
+        updated_snapshot,
+        PBR_MATRIX_OUTPUT_SIZE,
     );
-    let gpu_timings = renderer.take_realtime_ibl_gpu_timing_reports();
+    let final_frame = capture_compiled_viewport_frame(&framework, viewport);
+    assert!(
+        framework.realtime_ibl_gpu_timing_supported(),
+        "framework must expose compiled realtime IBL timestamp queries for EC-M4 acceptance"
+    );
+    let gpu_timings = framework
+        .take_realtime_ibl_gpu_timing_reports()
+        .expect("drain compiled realtime IBL GPU timing reports");
     assert_realtime_gpu_timings(&gpu_timings);
 
     let output = shader_test_output_dir().join(OUTPUT_NAME);
@@ -191,9 +309,50 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
 #[test]
 #[ignore = "manual WGPU product acceptance for Shader 06 procedural realtime IBL multiview"]
 fn export_procedural_realtime_ibl_mirror_cardinal_120deg_png() {
+    let setup_started = Instant::now();
+    let cases = realtime_multiview_cases();
+    let root = unique_temp_project_root("shader_pbr_realtime_ibl_multiview");
+    let paths = prepare_single_mirror_project(&root, cases[0].camera_view);
+    let scene_uri = AssetUri::parse("res://scenes/single_pbr_sphere.scene.toml").unwrap();
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .unwrap();
+    let mut project = ProjectManager::open(&root).unwrap();
+    project.scan_and_import().unwrap();
+    let world =
+        zircon_runtime::scene::world::World::load_scene_from_uri(&project, &scene_uri).unwrap();
+    let environment = directional_procedural_environment();
+    let asset_runtime = support::ProjectAssetTestRuntime::new(asset_manager);
+    let framework = WgpuRenderFramework::new(asset_runtime.access()).unwrap();
+    let viewport = framework
+        .create_viewport(
+            RenderViewportDescriptor::new(MULTI_VIEW_OUTPUT_SIZE)
+                .with_label("shader06.realtime-ibl-multiview"),
+        )
+        .unwrap();
+    let setup_elapsed = setup_started.elapsed();
     let mut frames = Vec::new();
-    for view_case in realtime_multiview_cases() {
-        let frame = render_realtime_mirror_view(view_case);
+    let mut render_millis = Vec::with_capacity(cases.len());
+    for view_case in cases {
+        let mut snapshot = world.build_viewport_render_packet(&SceneViewportExtractRequest {
+            settings: ViewportRenderSettings::default(),
+            active_camera_override: None,
+            camera: Some(realtime_mirror_camera_descriptor(
+                view_case.camera_view,
+                MULTI_VIEW_OUTPUT_SIZE,
+            )),
+            viewport_size: Some(MULTI_VIEW_OUTPUT_SIZE),
+            virtual_geometry_debug: None,
+        });
+        snapshot.environment = environment.clone();
+        snapshot.preview =
+            PreviewEnvironmentExtract::from_environment(&snapshot.environment, true, Vec4::ZERO);
+        snapshot.overlays = RenderOverlayExtract::default();
+        let render_started = Instant::now();
+        submit_compiled_realtime_ibl_frame(&framework, viewport, snapshot, MULTI_VIEW_OUTPUT_SIZE);
+        let frame = capture_compiled_viewport_frame(&framework, viewport);
+        render_millis.push(render_started.elapsed().as_secs_f64() * 1000.0);
         assert_realtime_mirror_view(&frame, view_case.label);
         let output = shader_test_output_dir().join(view_case.output_name);
         save_viewport_frame_png(&frame, &output);
@@ -260,45 +419,75 @@ fn export_procedural_realtime_ibl_mirror_cardinal_120deg_png() {
     let contact_sheet = shader_test_output_dir().join(MULTI_VIEW_CONTACT_SHEET_NAME);
     save_viewport_frame_contact_sheet_png(&frames, MULTI_VIEW_COLUMNS, &contact_sheet);
     assert!(contact_sheet.starts_with(shader_test_output_dir()));
-}
-
-fn render_realtime_mirror_view(view_case: RealtimeMultiViewCase) -> ViewportFrame {
-    let root = unique_temp_project_root("shader_pbr_realtime_ibl_multiview");
-    let paths = prepare_single_mirror_project(&root, view_case.camera_view);
-    let scene_uri = AssetUri::parse("res://scenes/single_pbr_sphere.scene.toml").unwrap();
-    let asset_manager = Arc::new(ProjectAssetManager::default());
-    asset_manager
-        .open_project(root.to_string_lossy().as_ref())
-        .unwrap();
-    let mut project = ProjectManager::open(&root).unwrap();
-    project.scan_and_import().unwrap();
-    let world =
-        zircon_runtime::scene::world::World::load_scene_from_uri(&project, &scene_uri).unwrap();
-    let mut snapshot = world.build_viewport_render_packet(&SceneViewportExtractRequest {
-        settings: ViewportRenderSettings::default(),
-        active_camera_override: None,
-        camera: None,
-        viewport_size: Some(MULTI_VIEW_OUTPUT_SIZE),
-        virtual_geometry_debug: None,
-    });
-    snapshot.environment = directional_procedural_environment();
-    snapshot.preview =
-        PreviewEnvironmentExtract::from_environment(&snapshot.environment, true, Vec4::ZERO);
-    snapshot.overlays = RenderOverlayExtract::default();
-
-    let asset_runtime = support::ProjectAssetTestRuntime::new(asset_manager);
-    let mut renderer = SceneRenderer::new(asset_runtime.access()).unwrap();
-    let frame = renderer
-        .render(snapshot, MULTI_VIEW_OUTPUT_SIZE)
-        .unwrap_or_else(|error| {
-            panic!(
-                "render {} realtime IBL mirror view: {error}",
-                view_case.label
-            )
-        });
+    let timing_output = shader_test_output_dir().join(MULTI_VIEW_TIMING_REPORT_NAME);
+    fs::write(
+        &timing_output,
+        multiview_timing_report(setup_elapsed.as_secs_f64() * 1000.0, &render_millis),
+    )
+    .expect("write realtime IBL multiview timing report");
+    assert!(timing_output.starts_with(shader_test_output_dir()));
     let _ = fs::remove_dir_all(root);
     drop(paths);
-    frame
+}
+
+fn submit_compiled_realtime_ibl_frame(
+    framework: &WgpuRenderFramework,
+    viewport: RenderViewportHandle,
+    snapshot: zircon_runtime::core::framework::render::RenderSceneSnapshot,
+    output_size: UVec2,
+) {
+    framework
+        .submit_runtime_frame(
+            viewport,
+            ViewportRenderFrame::from_snapshot(snapshot, output_size),
+        )
+        .expect("submit compiled realtime IBL frame");
+}
+
+fn capture_compiled_viewport_frame(
+    framework: &WgpuRenderFramework,
+    viewport: RenderViewportHandle,
+) -> ViewportFrame {
+    let captured = framework
+        .capture_frame(viewport)
+        .expect("capture compiled realtime IBL frame")
+        .expect("compiled realtime IBL frame should be available");
+    ViewportFrame {
+        width: captured.width,
+        height: captured.height,
+        rgba: captured.rgba,
+        generation: captured.generation,
+        capture_report: captured.capture_report,
+    }
+}
+
+fn realtime_mirror_camera_descriptor(
+    camera_view: SinglePbrSphereCameraView,
+    viewport_size: UVec2,
+) -> CameraRenderDescriptor {
+    let eye = Vec3::new(camera_view.eye[0], camera_view.eye[1], camera_view.eye[2]);
+    let target = Vec3::new(
+        camera_view.target[0],
+        camera_view.target[1],
+        camera_view.target[2],
+    );
+    let mut camera = ViewportCameraSnapshot {
+        transform: Transform::looking_at(eye, target, Vec3::Y),
+        projection_mode: camera_view.projection_mode,
+        fov_y_radians: 60.0_f32.to_radians(),
+        ortho_size: camera_view.ortho_size,
+        z_near: 0.1,
+        z_far: 100.0,
+        ..ViewportCameraSnapshot::default()
+    };
+    camera.apply_viewport_size(viewport_size);
+
+    let mut descriptor = CameraRenderDescriptor::from_camera_payload(None, camera);
+    let default_layers = RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK);
+    descriptor.culling_mask = default_layers.clone();
+    descriptor.volume_mask = default_layers;
+    descriptor.apply_target_size(viewport_size);
+    descriptor
 }
 
 fn prepare_single_mirror_project(
@@ -356,6 +545,23 @@ fn directional_procedural_environment() -> EnvironmentExtract {
     sky.sun_angular_radius_radians = 0.045;
     sky.source_revision = sky.source_revision.wrapping_add(2);
     environment
+}
+
+fn multiview_timing_report(setup_millis: f64, render_millis: &[f64]) -> String {
+    let first_render_millis = render_millis.first().copied().unwrap_or_default();
+    let reused_render_millis = &render_millis[render_millis.len().min(1)..];
+    let reused_total_millis = reused_render_millis.iter().sum::<f64>();
+    let reused_average_millis = reused_total_millis / reused_render_millis.len().max(1) as f64;
+    let samples = render_millis
+        .iter()
+        .enumerate()
+        .map(|(index, millis)| format!("view_{index:02}_render_cpu_ms={millis:.3}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!(
+        "multiview_setup_cpu_ms={setup_millis:.3}\nfirst_view_render_cpu_ms={first_render_millis:.3}\nreused_view_render_count={}\nreused_view_render_total_cpu_ms={reused_total_millis:.3}\nreused_view_render_average_cpu_ms={reused_average_millis:.3}\n{samples}\n",
+        reused_render_millis.len()
+    )
 }
 
 fn prepare_matrix_project(root: &Path) -> ProjectPaths {
@@ -674,7 +880,9 @@ fn unique_temp_project_root(label: &str) -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_nanos();
-    std::env::temp_dir().join(format!(
+    let scratch_root = shader_test_output_dir().join(".work");
+    fs::create_dir_all(&scratch_root).expect("create Shader 06 temporary project root");
+    scratch_root.join(format!(
         "zircon_{label}_{}_{}_{}",
         std::process::id(),
         NEXT_TEMP_PROJECT_ID.fetch_add(1, Ordering::Relaxed),

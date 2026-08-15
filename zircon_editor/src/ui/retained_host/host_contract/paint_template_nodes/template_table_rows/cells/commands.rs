@@ -4,9 +4,9 @@ use super::super::super::super::paint_text::measure_runtime_text_width;
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::actions::table_action_column_width;
 use super::super::style::table_row_style;
-use super::allocation::{TableColumnAlignment, table_column_alignment};
+use super::allocation::{table_column_alignment, TableColumnAlignment};
 use super::geometry::table_cell_rects;
-use super::metrics::{TABLE_COLUMN_COUNT, WorkbenchTableCellMetrics, table_cell_metrics};
+use super::metrics::{table_cell_metrics, WorkbenchTableCellMetrics, TABLE_COLUMN_COUNT};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_table_cells(
@@ -59,9 +59,19 @@ fn text_frame_for_cell(
     index: usize,
     metrics: WorkbenchTableCellMetrics,
 ) -> FrameRect {
+    let rect = table_cell_text_frame(rect, metrics);
     match table_column_alignment(index) {
         TableColumnAlignment::Left => rect,
         TableColumnAlignment::Right => right_aligned_text_frame(rect, text, metrics),
+    }
+}
+
+fn table_cell_text_frame(rect: FrameRect, metrics: WorkbenchTableCellMetrics) -> FrameRect {
+    let inset_x = metrics.inset_x.min(rect.width.max(0.0) * 0.5);
+    FrameRect {
+        x: rect.x + inset_x,
+        width: (rect.width - inset_x * 2.0).max(0.0),
+        ..rect
     }
 }
 
@@ -70,8 +80,7 @@ fn right_aligned_text_frame(
     text: &str,
     metrics: WorkbenchTableCellMetrics,
 ) -> FrameRect {
-    let measured_width =
-        measure_runtime_text_width(text, metrics.font_size) + metrics.text_clip_guard;
+    let measured_width = measure_runtime_text_width(text, metrics.font_size);
     let width = measured_width.min(rect.width).max(0.0);
     FrameRect {
         x: rect.x + (rect.width - width).max(0.0),
@@ -134,18 +143,68 @@ mod tests {
 
     #[test]
     fn table_cell_text_outside_the_inherited_clip_emits_no_command() {
-        assert!(
-            text_command(
-                frame(10.0, 40.0, 80.0, 18.0),
-                &frame(0.0, 10.0, 100.0, 20.0),
-                3,
-                "Asset.mesh",
-                [255, 255, 255, 255],
-                table_cell_metrics(),
-                1.0,
-            )
-            .is_none()
+        assert!(text_command(
+            frame(10.0, 40.0, 80.0, 18.0),
+            &frame(0.0, 10.0, 100.0, 20.0),
+            3,
+            "Asset.mesh",
+            [255, 255, 255, 255],
+            table_cell_metrics(),
+            1.0,
+        )
+        .is_none());
+    }
+
+    #[test]
+    fn fitting_numeric_cell_text_uses_its_measured_width_for_right_alignment() {
+        let rect = frame(10.0, 20.0, 100.0, 18.0);
+        let metrics = WorkbenchTableCellMetrics {
+            font_size: 12.0,
+            line_height: 14.4,
+            inset_x: 6.0,
+            inset_y: 3.0,
+            text_clip_guard: 4.0,
+        };
+        let measured_width = measure_runtime_text_width("12 KB", metrics.font_size);
+        let aligned = right_aligned_text_frame(rect.clone(), "12 KB", metrics);
+
+        assert!((aligned.width - measured_width).abs() < 0.0001);
+        assert!((aligned.x + aligned.width - (rect.x + rect.width)).abs() < 0.0001);
+    }
+
+    #[test]
+    fn overflowing_numeric_cell_text_keeps_the_full_cell_frame_for_ellipsis() {
+        let rect = frame(10.0, 20.0, 20.0, 18.0);
+        let metrics = WorkbenchTableCellMetrics {
+            font_size: 12.0,
+            line_height: 14.4,
+            inset_x: 6.0,
+            inset_y: 3.0,
+            text_clip_guard: 4.0,
+        };
+
+        assert_eq!(
+            text_frame_for_cell(rect, "12345 KB", 2, metrics),
+            frame(16.0, 20.0, 8.0, 18.0)
         );
+    }
+
+    #[test]
+    fn table_cell_text_insets_left_labels_and_right_values_inside_the_column() {
+        let rect = frame(10.0, 20.0, 100.0, 18.0);
+        let metrics = WorkbenchTableCellMetrics {
+            font_size: 12.0,
+            line_height: 14.4,
+            inset_x: 6.0,
+            inset_y: 3.0,
+            text_clip_guard: 4.0,
+        };
+        let left = text_frame_for_cell(rect.clone(), "Asset", 0, metrics);
+        let right = text_frame_for_cell(rect.clone(), "12 KB", 2, metrics);
+
+        assert_eq!(left.x, rect.x + metrics.inset_x);
+        assert_eq!(left.width, rect.width - metrics.inset_x * 2.0);
+        assert!((right.x + right.width - (rect.x + rect.width - metrics.inset_x)).abs() < 0.0001);
     }
 
     #[test]

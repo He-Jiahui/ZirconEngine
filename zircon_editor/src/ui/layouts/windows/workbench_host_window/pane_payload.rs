@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use crate::core::editor_event::ConsoleMessageFilter;
+use crate::core::editor_event::{ConsoleMessageFilter, ConsoleSourceFilter};
 use crate::ui::workbench::snapshot::{ConsoleOutputLevelCounts, EditorConsoleMessageLevel};
 use zircon_runtime_interface::ui::component::{UiComponentProjectionPatch, UiValue};
 use zircon_runtime_interface::ui::surface::UiDebugOverlayPrimitive;
@@ -34,6 +34,8 @@ pub struct ConsolePanePayload {
     pub levels: Arc<[EditorConsoleMessageLevel]>,
     pub counts: ConsoleOutputLevelCounts,
     pub filter: ConsoleMessageFilter,
+    pub source_filter: ConsoleSourceFilter,
+    pub jump_sequences: Arc<[Option<u64>]>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

@@ -22,6 +22,13 @@ impl HybridGiGpuReadback {
         &self.probe_trace_lighting_rgb
     }
 
+    pub(crate) fn radiance_cache_gpu_stage_dispatch_counts(
+        &self,
+    ) -> &[u32; zircon_runtime::core::framework::render::RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT]
+    {
+        &self.radiance_cache_gpu_stage_dispatch_counts
+    }
+
     pub(crate) fn scene_prepare_resources(&self) -> Option<HybridGiScenePrepareResourcesSnapshot> {
         self.scene_prepare_resources.clone()
     }

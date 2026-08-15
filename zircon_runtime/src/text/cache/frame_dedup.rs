@@ -107,12 +107,11 @@ where
     pub(crate) fn get_or_insert_with(
         &mut self,
         key: K,
-        text: impl Into<Arc<str>>,
+        text: &str,
         produce: impl FnOnce() -> V,
     ) -> (&V, bool) {
-        let text = text.into();
         let slot = self
-            .find_slot(&key, text.as_ref())
+            .find_slot(&key, text)
             .filter(|slot| self.index.entry(*slot).is_some());
         let (_, entry, inserted) = self.index.update_or_insert_with(
             slot,
@@ -121,7 +120,7 @@ where
             |_, ()| {},
             |()| TextFrameDedupEntry {
                 key,
-                text,
+                text: Arc::from(text),
                 value: produce(),
             },
         );

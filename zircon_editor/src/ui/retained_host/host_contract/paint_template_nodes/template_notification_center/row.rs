@@ -4,10 +4,10 @@ use super::super::render_commands::HostPaintCommand;
 #[cfg(test)]
 use super::instrumentation::{record_message_text_copy, record_title_text_copy};
 use super::layout::{
-    NotificationCenterMetrics, mark_rect, message_rect, row_text_width, title_rect,
+    mark_rect, message_rect, row_text_width, title_rect, NotificationCenterMetrics,
 };
 use super::style::{
-    NotificationCenterPalette, row_background, row_border, severity_color, title_color,
+    row_background, row_border, severity_color, title_color, NotificationCenterPalette,
 };
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 

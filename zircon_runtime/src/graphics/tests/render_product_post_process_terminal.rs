@@ -69,7 +69,7 @@ fn render_product_post_terminal_fxaa_changes_final_frame_after_output_transfer()
     assert_post_process_node_executed(&stats, "output-transfer");
     assert_graph_executor_executed(&stats, PARTICLE_TRANSPARENT_EXECUTOR_ID);
     assert_graph_executor_executed(&stats, POST_OUTPUT_TRANSFER_EXECUTOR_ID);
-    assert_graph_executor_order(&stats, POST_OUTPUT_TRANSFER_EXECUTOR_ID, FXAA_EXECUTOR_ID);
+    assert_graph_executor_order(&stats, FXAA_EXECUTOR_ID, POST_OUTPUT_TRANSFER_EXECUTOR_ID);
     assert_eq!(stats.last_frame_target_size, Some(viewport_size));
     assert_eq!(stats.last_frame_render_size, Some(viewport_size));
 
@@ -127,13 +127,13 @@ fn render_product_post_dynamic_resolution_upscale_feeds_smaa_terminal_frame() {
     assert_graph_executor_executed(&stats, POST_UBER_EXECUTOR_ID);
     assert_graph_executor_executed(&stats, POST_UPSCALE_EXECUTOR_ID);
     assert_graph_executor_executed(&stats, POST_OUTPUT_TRANSFER_EXECUTOR_ID);
-    assert_graph_executor_order(&stats, POST_UBER_EXECUTOR_ID, POST_UPSCALE_EXECUTOR_ID);
+    assert_graph_executor_order(&stats, POST_UBER_EXECUTOR_ID, SMAA_EXECUTOR_ID);
+    assert_graph_executor_order(&stats, SMAA_EXECUTOR_ID, POST_UPSCALE_EXECUTOR_ID);
     assert_graph_executor_order(
         &stats,
         POST_UPSCALE_EXECUTOR_ID,
         POST_OUTPUT_TRANSFER_EXECUTOR_ID,
     );
-    assert_graph_executor_order(&stats, POST_OUTPUT_TRANSFER_EXECUTOR_ID, SMAA_EXECUTOR_ID);
     assert_graph_executor_not_executed(&stats, FXAA_EXECUTOR_ID);
     assert_texture_backing_exists(&stats, PostProcessGraphResourceNames::UPSCALED);
     assert_texture_backing_exists(&stats, PostProcessGraphResourceNames::FINAL_COMPOSITED);

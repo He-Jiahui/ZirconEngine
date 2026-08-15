@@ -10,6 +10,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .cargo_jobs import target_identity, targets_overlap
+from .artifact_product_staging import (
+    ArtifactProductStagingLease,
+    ArtifactProductStagingService,
+)
 from .database import Database
 from .models import CoordinatorError, utc_text
 from .processes import process_creation_time, process_is_alive
@@ -79,6 +83,33 @@ class ArtifactGovernanceService:
             configured_roots.append(root)
         self.roots = tuple(dict.fromkeys(configured_roots))
         self._cleanup_lock = threading.Lock()
+        self.product_staging = ArtifactProductStagingService(
+            database,
+            roots=self.roots,
+            managed_overlap=self._managed_overlap_in_connection,
+        )
+
+    def acquire_product_staging(
+        self, purpose: str, *, final_path: str | Path, owner_pid: int
+    ) -> ArtifactProductStagingLease:
+        return self.product_staging.acquire(
+            purpose, final_path=final_path, owner_pid=owner_pid
+        )
+
+    def begin_product_staging_publish(
+        self, lease_id: str, *, owner_pid: int
+    ) -> ArtifactProductStagingLease:
+        return self.product_staging.begin_publish(lease_id, owner_pid=owner_pid)
+
+    def complete_product_staging_publish(
+        self, lease_id: str, *, owner_pid: int
+    ) -> ArtifactProductStagingLease:
+        return self.product_staging.complete_publish(lease_id, owner_pid=owner_pid)
+
+    def release_product_staging(
+        self, lease_id: str, *, owner_pid: int
+    ) -> ArtifactProductStagingLease:
+        return self.product_staging.release(lease_id, owner_pid=owner_pid)
 
     def acquire_fixture(self, prefix: str, *, owner_pid: int) -> ArtifactFixtureLease:
         if not isinstance(prefix, str) or not _FIXTURE_PREFIX.fullmatch(prefix):
@@ -251,6 +282,7 @@ class ArtifactGovernanceService:
         if max_candidates < 1:
             raise ValueError("max_candidates must be positive")
         with self._cleanup_lock:
+            self.product_staging.recover()
             self._recover_missing_fixture_leases()
             recovered = self._recover_reservations(max_candidates=max_candidates)
             processed = len(recovered.deleted) + len(recovered.failed)
@@ -284,6 +316,7 @@ class ArtifactGovernanceService:
 
     def recover_reservations(self) -> UnmanagedArtifactCleanup:
         with self._cleanup_lock:
+            self.product_staging.recover()
             self._recover_missing_fixture_leases()
             return self._recover_reservations()
 
@@ -491,6 +524,15 @@ class ArtifactGovernanceService:
         ):
             if self._fixture_owner_matches(row):
                 managed_values.append(str(row["target_dir"]))
+        for row in connection.execute(
+            """SELECT staging_dir, final_dir, status
+               FROM artifact_product_staging_leases
+               WHERE status IN ('active', 'publishing', 'published')"""
+        ):
+            if row["status"] in {"active", "publishing"}:
+                managed_values.append(str(row["staging_dir"]))
+            if row["status"] in {"publishing", "published"}:
+                managed_values.append(str(row["final_dir"]))
         return any(
             targets_overlap(target_key, target_identity(value)) for value in managed_values
         )
@@ -618,6 +660,8 @@ class ArtifactGovernanceService:
             ):
                 if self._fixture_owner_matches(row):
                     self._add_managed_path(paths, row["target_dir"])
+            for path in self.product_staging.managed_paths():
+                self._add_managed_path(paths, str(path))
         return tuple(paths)
 
     @staticmethod

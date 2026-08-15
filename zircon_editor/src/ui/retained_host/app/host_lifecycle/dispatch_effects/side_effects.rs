@@ -57,7 +57,6 @@ impl RetainedEditorHost {
                 self.set_status_line(error);
             }
         }
-        self.sync_pending_play_decisions();
-        self.sync_activity_toasts();
+        self.sync_activity_notifications();
     }
 }

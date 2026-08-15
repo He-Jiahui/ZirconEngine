@@ -1,12 +1,11 @@
 #[cfg(debug_assertions)]
 use std::collections::BTreeMap;
-use std::sync::Arc;
 #[cfg(debug_assertions)]
 use std::sync::Mutex;
 
-use zircon_runtime::plugin::native::NativePluginLiveHost;
 #[cfg(debug_assertions)]
-use zircon_runtime::plugin::native::NativePluginLoader;
+use zircon_runtime::plugin::native::discover_native_plugins;
+use zircon_runtime::plugin::native::NativePluginHostHandle;
 
 #[cfg(debug_assertions)]
 use super::development_watch::{DevelopmentPluginWatch, DevelopmentPluginWatchKey};
@@ -16,13 +15,13 @@ use super::types::{
 };
 
 pub(in crate::ui::retained_host::app) struct NativePluginDevelopmentLiveHostBackend {
-    live_host: Arc<NativePluginLiveHost>,
+    live_host: NativePluginHostHandle,
     #[cfg(debug_assertions)]
     development_watches: Mutex<BTreeMap<DevelopmentPluginWatchKey, DevelopmentPluginWatch>>,
 }
 
 impl NativePluginDevelopmentLiveHostBackend {
-    pub(in crate::ui::retained_host::app) fn new(live_host: Arc<NativePluginLiveHost>) -> Self {
+    pub(in crate::ui::retained_host::app) fn new(live_host: NativePluginHostHandle) -> Self {
         Self {
             live_host,
             #[cfg(debug_assertions)]
@@ -65,7 +64,7 @@ fn development_artifact_path(
     project_root: &std::path::Path,
     plugin_id: &str,
 ) -> Result<std::path::PathBuf, String> {
-    let report = NativePluginLoader.discover(project_root);
+    let report = discover_native_plugins(project_root);
     let candidates = report
         .discovered()
         .iter()

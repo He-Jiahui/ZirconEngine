@@ -1,4 +1,5 @@
 use super::*;
+use crate::core::framework::input::ImeHostRequest;
 use crate::ui::surface::UiPropertyMutationRequest;
 use zircon_runtime_interface::ui::component::UiValue;
 
@@ -247,18 +248,16 @@ fn detached_text_input_commits_preedit_before_recycling_and_disables_ime() {
         manager.drain_ime_host_requests(),
         vec![ImeHostRequest::Disable]
     );
-    assert!(
-        results
-            .iter()
-            .flat_map(|result| &result.component_events)
-            .any(|report| {
-                matches!(
-                    &report.event,
-                    UiComponentEvent::Commit { property, value }
-                        if property == "content" && value.display_text() == "aXc"
-                )
-            })
-    );
+    assert!(results
+        .iter()
+        .flat_map(|result| &result.component_events)
+        .any(|report| {
+            matches!(
+                &report.event,
+                UiComponentEvent::Commit { property, value }
+                    if property == "content" && value.display_text() == "aXc"
+            )
+        }));
 }
 
 #[test]
@@ -276,18 +275,16 @@ fn detached_unfocused_ime_owner_commits_preedit_and_disables_ime_on_the_same_tic
         manager.drain_ime_host_requests(),
         vec![ImeHostRequest::Disable]
     );
-    assert!(
-        results
-            .iter()
-            .flat_map(|result| &result.component_events)
-            .any(|report| {
-                matches!(
-                    &report.event,
-                    UiComponentEvent::Commit { property, value }
-                        if property == "content" && value.display_text() == "aXc"
-                )
-            })
-    );
+    assert!(results
+        .iter()
+        .flat_map(|result| &result.component_events)
+        .any(|report| {
+            matches!(
+                &report.event,
+                UiComponentEvent::Commit { property, value }
+                    if property == "content" && value.display_text() == "aXc"
+            )
+        }));
 }
 
 fn has_input_method_host_request(

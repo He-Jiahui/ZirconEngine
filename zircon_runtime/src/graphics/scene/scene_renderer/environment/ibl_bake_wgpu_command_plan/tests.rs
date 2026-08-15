@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
-    IblBakeArtifactContents, ProceduralSkyParams, source_cubemap_face_mip_offset,
-    source_cubemap_sample_count,
+    source_cubemap_face_mip_offset, source_cubemap_sample_count, IblBakeArtifactContents,
+    ProceduralSkyParams,
 };
 
 use super::*;
@@ -68,7 +68,22 @@ fn command_plan_uses_per_mip_d2_array_storage_views() {
     }
 
     assert_eq!(pmrem_commands[0].dispatch_groups, [16, 16, 6]);
-    assert_eq!(pmrem_commands[7].dispatch_groups, [1, 1, 6]);
+    assert_eq!(pmrem_commands[7].dispatch_groups, [1, 1, 1]);
+    assert_eq!(pmrem_commands[7].params.words()[7], 1.0_f32.to_bits());
+}
+
+#[test]
+fn one_texel_single_mip_pmrem_plan_writes_the_terminal_average_to_all_faces() {
+    let request = request(16, 5, IblBakeArtifactContents::PMREM).with_pmrem_layout(1, 1);
+    let plan = ibl_bake_wgpu_command_plan_for_request(&request);
+    let command = pmrem_command(&plan, 0);
+
+    assert_eq!(command.dispatch_groups, [1, 1, 1]);
+    assert_eq!(
+        command.params.words(),
+        &[1, 1, 0, 1, 32, 0, 0.0_f32.to_bits(), 1.0_f32.to_bits()]
+    );
+    assert_eq!(command.readback_copies.len(), 6);
 }
 
 #[test]
@@ -165,7 +180,7 @@ fn command_plan_serializes_wgsl_uniform_params_in_layout_order() {
     );
     assert_eq!(
         pmrem_mip7.params.words(),
-        &[128, 1, 7, 8, 128, 0, 1.0_f32.to_bits(), 0]
+        &[128, 1, 7, 8, 128, 0, 1.0_f32.to_bits(), 1.0_f32.to_bits()]
     );
 
     let sh9 = plan
@@ -182,7 +197,7 @@ fn command_plan_serializes_wgsl_uniform_params_in_layout_order() {
         .find(|command| command.kind == IblBakeComputeKernelKind::IrradianceCube)
         .expect("IEM command should be present");
     assert_eq!(irradiance.params.byte_len(), 16);
-    assert_eq!(irradiance.params.words(), &[128, 32, 64, 0]);
+    assert_eq!(irradiance.params.words(), &[128, 32, 64, 2]);
     assert_eq!(
         &pmrem_mip7.params.little_endian_bytes()[0..4],
         &128_u32.to_le_bytes()

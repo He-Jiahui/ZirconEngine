@@ -5,16 +5,17 @@ use crate::ui::retained_host::{
 };
 
 use super::chrome_template_projection::{
-    MENU_SLOT_COUNT, activity_rail_active_control_id, activity_rail_button_frames,
-    activity_rail_nodes, bottom_dock_header_nodes, dock_header_frame, dock_subtitle_frame,
-    dock_tab_frames, document_dock_header_nodes, floating_window_header_nodes, menu_chrome_nodes,
-    menu_control_frames, page_chrome_nodes, page_overflow_frame, page_overflow_hidden_tab_indices,
-    page_project_path_frame, page_tab_frames, page_tab_row_frame, side_dock_header_nodes,
-    status_bar_nodes, surface_metrics_from_chrome_assets,
+    dock_header_frame, dock_subtitle_frame, dock_tab_frames, document_dock_header_nodes,
+    floating_window_header_nodes, menu_chrome_nodes, menu_control_frames, page_chrome_nodes,
+    page_overflow_frame, page_overflow_hidden_tab_indices, page_project_path_frame,
+    page_tab_frames, page_tab_row_frame, status_bar_nodes, surface_metrics_from_chrome_assets,
+    MENU_SLOT_COUNT,
 };
 use super::*;
 use crate::core::commands::{MenuBarModel, MenuItemModel, MenuModel};
-use crate::ui::asset_editor::ui_asset_editor_node_projection;
+use crate::ui::asset_editor::{
+    apply_ui_asset_editor_designer_tool_mode, ui_asset_editor_node_projection,
+};
 use crate::ui::binding::EditorUiBindingPayload;
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::animation_editor_pane_nodes;
@@ -25,6 +26,13 @@ use crate::ui::layouts::views::inspector_pane_nodes;
 use crate::ui::layouts::views::project_overview_pane_data;
 use crate::ui::workbench::event::menu_item_binding;
 use zircon_runtime_interface::ui::layout::UiSize;
+
+mod dock_patch;
+
+use dock_patch::{build_bottom_dock, build_left_dock, build_right_dock};
+pub(crate) use dock_patch::{
+    build_host_dock_surface_patch, HostDockSurfaceId, HostDockSurfacePatch,
+};
 
 const DEFAULT_PRESET_NAME: &str = "rider";
 const MIN_DROP_TARGET_PX: f32 = 92.0;
@@ -40,6 +48,31 @@ pub(crate) fn build_host_scene_data(
     delete_enabled: bool,
     project_overview: &crate::ui::workbench::snapshot::ProjectOverviewSnapshot,
     chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
+) -> HostWindowSceneData {
+    let mut cache = HostChromeProjectionCache::default();
+    build_host_scene_data_with_cache(
+        menu_bar,
+        host_surface_data,
+        host_shell,
+        host_layout,
+        status_primary,
+        delete_enabled,
+        project_overview,
+        chrome,
+        &mut cache,
+    )
+}
+
+pub(crate) fn build_host_scene_data_with_cache(
+    menu_bar: &MenuBarModel,
+    host_surface_data: &HostWindowSurfaceData,
+    host_shell: &HostWindowShellData,
+    host_layout: &HostWindowLayoutData,
+    status_primary: &SharedString,
+    delete_enabled: bool,
+    project_overview: &crate::ui::workbench::snapshot::ProjectOverviewSnapshot,
+    chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
+    chrome_projection_cache: &mut HostChromeProjectionCache,
 ) -> HostWindowSceneData {
     let resolved_preset_name = if host_shell.active_preset_name.is_empty() {
         SharedString::from(DEFAULT_PRESET_NAME)
@@ -61,13 +94,23 @@ pub(crate) fn build_host_scene_data(
 
     let menu_chrome = {
         zircon_runtime::profile_scope!("editor", "retained_host", "scene_menu_chrome");
-        host_menu_chrome_data(
+        chrome_projection_cache.menu_chrome(
             menu_bar,
             host_shell,
             delete_enabled,
             &metrics,
-            resolved_preset_name,
+            &resolved_preset_name,
             shell_width,
+            || {
+                host_menu_chrome_data(
+                    menu_bar,
+                    host_shell,
+                    delete_enabled,
+                    &metrics,
+                    resolved_preset_name.clone(),
+                    shell_width,
+                )
+            },
         )
     };
     let page_template_nodes = {
@@ -137,15 +180,9 @@ pub(crate) fn build_host_scene_data(
             - orchestration.bottom_panel_height_px.max(MIN_DROP_TARGET_PX),
         drag_overlay_bottom_px: host_layout.status_bar_frame.y,
     };
-    let left_content_height =
-        (host_layout.left_region_frame.height - metrics.panel_header_height_px - 1.0).max(0.0);
     let document_content_height =
         (host_layout.document_region_frame.height - metrics.document_header_height_px - 1.0)
             .max(0.0);
-    let right_content_height =
-        (host_layout.right_region_frame.height - metrics.panel_header_height_px - 1.0).max(0.0);
-    let bottom_content_height =
-        (host_layout.bottom_region_frame.height - metrics.panel_header_height_px - 1.0).max(0.0);
     let floating_windows = {
         zircon_runtime::profile_scope!("editor", "retained_host", "scene_floating_windows");
         floating_windows_with_pane_shell_layouts(
@@ -155,58 +192,17 @@ pub(crate) fn build_host_scene_data(
             chrome,
         )
     };
-    let left_header_nodes = {
-        zircon_runtime::profile_scope!("editor", "retained_host", "scene_left_header_nodes");
-        side_dock_header_nodes(
-            &host_surface_data.left_tabs,
-            &host_shell.panel_preset_id,
-            orchestration.left_panel_width_px,
-            metrics.panel_header_height_px,
+    let left_dock = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "scene_left_dock");
+        build_left_dock(
+            host_surface_data,
+            host_shell,
+            host_layout,
+            &metrics,
+            &orchestration,
+            project_overview,
+            chrome,
         )
-    };
-    let left_rail_nodes = {
-        zircon_runtime::profile_scope!("editor", "retained_host", "scene_left_rail_nodes");
-        activity_rail_nodes(
-            &host_surface_data.left_tabs,
-            &host_shell.shell_preset_id,
-            orchestration.left_rail_width_px,
-            host_layout.left_region_frame.height,
-        )
-    };
-    let left_content_frame = FrameRect {
-        x: 0.0,
-        y: metrics.panel_header_height_px + 1.0,
-        width: orchestration.left_panel_width_px,
-        height: left_content_height,
-    };
-    let left_dock = HostSideDockSurfaceData {
-        region_frame: host_layout.left_region_frame.clone(),
-        surface_key: "left".into(),
-        rail_before_panel: true,
-        rail_button_frames: activity_rail_button_frames(
-            &left_rail_nodes,
-            &host_surface_data.left_tabs,
-        ),
-        rail_active_control_id: activity_rail_active_control_id(&host_surface_data.left_tabs),
-        rail_nodes: left_rail_nodes,
-        header_frame: dock_header_frame(&left_header_nodes),
-        content_frame: left_content_frame,
-        tab_frames: dock_tab_frames(&left_header_nodes, &host_surface_data.left_tabs),
-        header_nodes: left_header_nodes,
-        tabs: host_surface_data.left_tabs.clone(),
-        pane: {
-            zircon_runtime::profile_scope!("editor", "retained_host", "scene_left_pane");
-            pane_with_host_owned_shell_layouts(
-                host_surface_data.left_pane.clone(),
-                orchestration.left_panel_width_px,
-                left_content_height,
-                project_overview,
-                chrome,
-            )
-        },
-        rail_width_px: orchestration.left_rail_width_px,
-        panel_width_px: orchestration.left_panel_width_px,
-        panel_header_height_px: metrics.panel_header_height_px,
     };
     let document_header_nodes = {
         zircon_runtime::profile_scope!("editor", "retained_host", "scene_document_header_nodes");
@@ -245,94 +241,28 @@ pub(crate) fn build_host_scene_data(
         },
         header_height_px: metrics.document_header_height_px,
     };
-    let right_header_nodes = {
-        zircon_runtime::profile_scope!("editor", "retained_host", "scene_right_header_nodes");
-        side_dock_header_nodes(
-            &host_surface_data.right_tabs,
-            &host_shell.panel_preset_id,
-            orchestration.right_panel_width_px,
-            metrics.panel_header_height_px,
+    let right_dock = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "scene_right_dock");
+        build_right_dock(
+            host_surface_data,
+            host_shell,
+            host_layout,
+            &metrics,
+            &orchestration,
+            project_overview,
+            chrome,
         )
     };
-    let right_rail_nodes = {
-        zircon_runtime::profile_scope!("editor", "retained_host", "scene_right_rail_nodes");
-        activity_rail_nodes(
-            &host_surface_data.right_tabs,
-            &host_shell.shell_preset_id,
-            orchestration.right_rail_width_px,
-            host_layout.right_region_frame.height,
+    let bottom_dock = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "scene_bottom_dock");
+        build_bottom_dock(
+            host_surface_data,
+            host_shell,
+            host_layout,
+            &metrics,
+            project_overview,
+            chrome,
         )
-    };
-    let right_content_frame = FrameRect {
-        x: 0.0,
-        y: metrics.panel_header_height_px + 1.0,
-        width: orchestration.right_panel_width_px,
-        height: right_content_height,
-    };
-    let right_dock = HostSideDockSurfaceData {
-        region_frame: host_layout.right_region_frame.clone(),
-        surface_key: "right".into(),
-        rail_before_panel: false,
-        rail_button_frames: activity_rail_button_frames(
-            &right_rail_nodes,
-            &host_surface_data.right_tabs,
-        ),
-        rail_active_control_id: activity_rail_active_control_id(&host_surface_data.right_tabs),
-        rail_nodes: right_rail_nodes,
-        header_frame: dock_header_frame(&right_header_nodes),
-        content_frame: right_content_frame,
-        tab_frames: dock_tab_frames(&right_header_nodes, &host_surface_data.right_tabs),
-        header_nodes: right_header_nodes,
-        tabs: host_surface_data.right_tabs.clone(),
-        pane: {
-            zircon_runtime::profile_scope!("editor", "retained_host", "scene_right_pane");
-            pane_with_host_owned_shell_layouts(
-                host_surface_data.right_pane.clone(),
-                orchestration.right_panel_width_px,
-                right_content_height,
-                project_overview,
-                chrome,
-            )
-        },
-        rail_width_px: orchestration.right_rail_width_px,
-        panel_width_px: orchestration.right_panel_width_px,
-        panel_header_height_px: metrics.panel_header_height_px,
-    };
-    let bottom_header_nodes = {
-        zircon_runtime::profile_scope!("editor", "retained_host", "scene_bottom_header_nodes");
-        bottom_dock_header_nodes(
-            &host_surface_data.bottom_tabs,
-            &host_shell.panel_preset_id,
-            host_layout.bottom_region_frame.width,
-            metrics.panel_header_height_px,
-        )
-    };
-    let bottom_content_frame = FrameRect {
-        x: 0.0,
-        y: metrics.panel_header_height_px + 1.0,
-        width: host_layout.bottom_region_frame.width,
-        height: bottom_content_height,
-    };
-    let bottom_dock = HostBottomDockSurfaceData {
-        region_frame: host_layout.bottom_region_frame.clone(),
-        surface_key: "bottom".into(),
-        header_frame: dock_header_frame(&bottom_header_nodes),
-        content_frame: bottom_content_frame,
-        tab_frames: dock_tab_frames(&bottom_header_nodes, &host_surface_data.bottom_tabs),
-        header_nodes: bottom_header_nodes,
-        tabs: host_surface_data.bottom_tabs.clone(),
-        pane: {
-            zircon_runtime::profile_scope!("editor", "retained_host", "scene_bottom_pane");
-            pane_with_host_owned_shell_layouts(
-                host_surface_data.bottom_pane.clone(),
-                host_layout.bottom_region_frame.width,
-                bottom_content_height,
-                project_overview,
-                chrome,
-            )
-        },
-        expanded: host_shell.bottom_expanded,
-        header_height_px: metrics.panel_header_height_px,
     };
     let floating_layer = HostFloatingWindowLayerData {
         floating_windows,
@@ -598,7 +528,11 @@ fn pane_with_ui_asset_nodes(mut pane: PaneData, width: f32, height: f32) -> Pane
 
     zircon_runtime::profile_scope!("editor", "retained_host", "scene_pane_ui_asset");
     let size = UiSize::new(width.max(0.0), height.max(0.0));
-    let projection = ui_asset_editor_node_projection(size);
+    let mut projection = ui_asset_editor_node_projection(size);
+    apply_ui_asset_editor_designer_tool_mode(
+        &mut projection.nodes,
+        pane.native_body.ui_asset.designer_tool_mode.as_str(),
+    );
     pane.native_body.ui_asset.nodes = projection.nodes;
     pane.native_body.ui_asset.center_column_node = projection.center_column_node;
     pane.native_body.ui_asset.designer_panel_node = projection.designer_panel_node;
@@ -727,7 +661,10 @@ fn floating_windows_with_pane_shell_layouts(
         (0..floating_windows.row_count())
             .filter_map(|row| floating_windows.row_data(row))
             .map(|mut window| {
+                let header_surface_id =
+                    format!("host.floating.{}.dock.header", window.window_id.as_str());
                 let header_nodes = floating_window_header_nodes(
+                    &header_surface_id,
                     &window.tabs,
                     &window.title,
                     window.frame.width,

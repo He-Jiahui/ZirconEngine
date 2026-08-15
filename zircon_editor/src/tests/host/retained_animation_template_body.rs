@@ -6,8 +6,8 @@ use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::animation_editor::AnimationEditorPanePresentation;
 use crate::ui::layouts::views::blank_viewport_chrome;
 use crate::ui::layouts::windows::workbench_host_window::{
-    AnimationEditorPaneViewData, PaneContentSize, PanePayloadBuildContext, PanePresentation,
-    PaneShellPresentation, build_pane_body_presentation,
+    build_pane_body_presentation, AnimationEditorPaneViewData, PaneContentSize,
+    PanePayloadBuildContext, PanePresentation, PaneShellPresentation,
 };
 use crate::ui::retained_host::to_host_contract_animation_editor_pane_from_host_pane;
 use crate::ui::workbench::layout::MainPageId;
@@ -178,11 +178,9 @@ fn animation_sequence_template_body_projects_hybrid_timeline_slot_for_retained_c
         .filter_map(|row| projected.nodes.row_data(row))
         .collect::<Vec<_>>();
     assert!(nodes.iter().any(|node| node.control_id == "ScrubTimeline"));
-    assert!(
-        nodes
-            .iter()
-            .any(|node| node.control_id == "AnimationTimelineSlotAnchor")
-    );
+    assert!(nodes
+        .iter()
+        .any(|node| node.control_id == "AnimationTimelineSlotAnchor"));
 }
 
 #[test]
@@ -213,10 +211,8 @@ fn animation_graph_template_body_projects_hybrid_canvas_slot_for_retained_conver
     let nodes = (0..projected.nodes.row_count())
         .filter_map(|row| projected.nodes.row_data(row))
         .collect::<Vec<_>>();
-    assert!(
-        nodes
-            .iter()
-            .any(|node| node.control_id == "AnimationGraphCanvasSlotAnchor")
-    );
+    assert!(nodes
+        .iter()
+        .any(|node| node.control_id == "AnimationGraphCanvasSlotAnchor"));
     assert!(nodes.iter().any(|node| node.control_id == "AddNode"));
 }

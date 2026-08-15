@@ -6,16 +6,16 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::core::commands::EditorKeyChord;
 use crate::core::editor_operation::EditorOperationPath;
 use crate::core::settings::{
-    EDITOR_KEYMAP_OVERRIDES_KEY, EditorKeymapOverrides, SETTINGS_USER_ROOT_ENV, SettingValue,
-    SettingsKey, SettingsScope, SettingsStore, settings_registry_with_defaults,
+    settings_registry_with_defaults, EditorKeymapOverrides, SettingValue, SettingsKey,
+    SettingsScope, SettingsStore, EDITOR_KEYMAP_OVERRIDES_KEY, SETTINGS_USER_ROOT_ENV,
 };
-use crate::ui::host::{EditorKeymapService, module::EDITOR_KEYMAP_NAME};
+use crate::ui::host::{module::EDITOR_KEYMAP_NAME, EditorKeymapService};
 use zircon_runtime_interface::ui::dispatch::{
     UiInputEventMetadata, UiInputModifiers, UiInputSequence, UiInputTimestamp,
     UiKeyboardInputEvent, UiKeyboardInputState,
 };
 
-use super::super::support::{EventRuntimeHarness, env_lock};
+use super::super::support::{env_lock, EventRuntimeHarness};
 
 #[test]
 fn host_and_manager_service_share_the_user_settings_keymap() {

@@ -46,6 +46,14 @@ entry cap 不能约束无换行单行的临时 buffer bytes，手建 reader thre
 
 Open state: `64 lines/poll与terminal锁外finish已止损；等待byte/time/age预算和统一blocking-I/O owner`。
 
+2026-08-10 前向路由：共享 blocking-I/O 责任已登记到
+`docs/plans/zircon_runtime/runtime/11/failure-2026-08-10-blocking-io-process-output-budget.md`。
+Runtime11 必须先提供通用 bounded stream ticket；Editor14 仅在该 contract 落地后替换私有 reader lifecycle，
+不得在当前 process backend 复制第二套 owner。
+
 ## 产出记录与时间
 
-- 2026-07-22：状态`open`，由逐文件性能审查登记并链接PERF-MVP-552。
+| 时间 | 状态 | 完成项目 | 证据 |
+|---|---|---|---|
+| 2026-07-22 | `open / handoff-recorded` | 由逐文件性能审查登记 PERF-MVP-552。 | 原始 reader `read_until` 无换行行缓冲不受 byte cap 约束；queue entry cap 不足以证明内存有界。 |
+| 2026-08-10 | `open / Runtime11-forward-handoff-recorded` | 将跨调用的 stream decoder、reader admission、queue bytes、age/time drain 和 terminal cleanup 责任前向路由到 Runtime11；Editor14 保留 UI diagnostics 消费与后续接线责任。 | `docs/plans/zircon_runtime/runtime/11/failure-2026-08-10-blocking-io-process-output-budget.md`，其 `status: open`；未运行 Cargo、未生成 fixed return。 |

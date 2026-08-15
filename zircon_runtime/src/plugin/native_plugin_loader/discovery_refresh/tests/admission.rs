@@ -40,7 +40,7 @@ fn refresh_submit_returns_before_the_collector_finishes() {
 }
 
 #[test]
-fn newest_generation_supersedes_active_work_and_only_publishes_latest_snapshot() {
+fn pending_notifications_coalesce_to_one_successor_generation() {
     let (started_sender, started_receiver) = mpsc::sync_channel(2);
     let collector = Arc::new(BlockingCollector::new(started_sender));
     let service = NativePluginDiscoveryRefreshService::new(collector, test_budget());
@@ -53,28 +53,25 @@ fn newest_generation_supersedes_active_work_and_only_publishes_latest_snapshot()
             .expect("first collection start"),
         1
     );
-    let stale_pending = service.submit(root.clone());
+    let pending = service.submit(root.clone());
     let latest = service.submit(root.clone());
 
     assert!(matches!(
         first.terminal(),
         Some(NativePluginDiscoveryRefreshTerminal::Superseded { .. })
     ));
-    assert!(matches!(
-        stale_pending.terminal(),
-        Some(NativePluginDiscoveryRefreshTerminal::Superseded { .. })
-    ));
+    assert_eq!(pending.generation(), latest.generation());
     assert_eq!(
         started_receiver
             .recv_timeout(Duration::from_secs(1))
             .expect("newest coalesced generation start"),
-        3
+        2
     );
     wait_for_terminal(&latest);
 
     let snapshot = service.snapshot(&root).expect("latest snapshot");
-    assert_eq!(snapshot.generation(), 3);
-    assert_eq!(snapshot.diagnostics(), &["generation 3".to_owned()]);
+    assert_eq!(snapshot.generation(), 2);
+    assert_eq!(snapshot.diagnostics(), &["generation 2".to_owned()]);
 }
 
 #[test]

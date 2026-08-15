@@ -275,7 +275,8 @@ fn register_registry_shader(
     exported_record.state = ResourceState::Ready;
     asset_manager
         .resource_manager()
-        .register_record(exported_record);
+        .register_record(exported_record)
+        .unwrap();
 }
 
 fn register_registry_taa_reactive_material(

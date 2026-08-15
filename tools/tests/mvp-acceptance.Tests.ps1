@@ -1,7 +1,11 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$driver = Join-Path $PSScriptRoot '..\mvp\Invoke-MvpAcceptance.ps1'
+$acceptanceDriver = Join-Path $PSScriptRoot '..\mvp\Invoke-MvpAcceptance.ps1'
+$driver = Join-Path $PSScriptRoot 'Invoke-MvpAcceptanceTestDriver.ps1'
+$buildSummaryEvidenceModule = Join-Path $PSScriptRoot '..\mvp\MvpBuildSummaryEvidence.psm1'
+$fixturePathsModule = Join-Path $PSScriptRoot '..\mvp\MvpTestFixturePaths.psm1'
+Import-Module $fixturePathsModule -Force -ErrorAction Stop
 
 function Assert-True {
     param(
@@ -16,16 +20,39 @@ function Assert-True {
 
 $workflowPath = Join-Path $PSScriptRoot '..\..\.github\workflows\mvp-editor-windows.yml'
 $workflowSource = Get-Content -LiteralPath $workflowPath -Raw
-$acceptanceSource = Get-Content -LiteralPath $driver -Raw
+$acceptanceSource = Get-Content -LiteralPath $acceptanceDriver -Raw
+$buildSummaryEvidenceSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..\mvp\MvpBuildSummaryEvidence.psm1') -Raw
 Assert-True `
     ($workflowSource -match 'Copy-Item -LiteralPath \$evidenceRoot -Destination \$artifactRoot -Recurse -Force') `
     'Windows MVP workflow must upload the complete detached EvidenceRoot instead of a partial staging projection.'
 Assert-True ($acceptanceSource -match '\$candidateResolution = Resolve-ZirconWindowsPath -Path \$candidate') 'MVP acceptance evidence files must resolve through the shared Windows path resolver.'
+Assert-True ($acceptanceSource -match '\$canonicalPath = \(Resolve-ZirconWindowsPath -Path \$candidatePath\)\.OperationalPath') 'MVP acceptance must deduplicate reopened-project evidence through the resolver physical path.'
 Assert-True ($acceptanceSource -match '\$resolvedTargetPath = \(Resolve-ZirconWindowsPath -Path \$targetPath\)\.OperationalPath') 'MVP acceptance manifest entries must compare physical target identities.'
 Assert-True ($acceptanceSource -match '\$stagingResolution\.OperationalPath') 'MVP acceptance manifest containment must use the resolver operational staging path.'
 Assert-True ($acceptanceSource -match '\$evidenceRootResolution\.OperationalPath') 'MVP acceptance EvidenceRoot isolation must use physical identity.'
+Assert-True ($acceptanceSource -match 'function Assert-MvpAcceptanceArtifactRoot') 'MVP acceptance must define one approved artifact-root contract for staging and evidence.'
+Assert-True ($acceptanceSource -match 'Assert-MvpAcceptanceArtifactRoot -Resolution \$stagingRootResolution -Label ''StagingRoot''') 'MVP acceptance must reject an unapproved StagingRoot before snapshot publication.'
+Assert-True ($acceptanceSource -match 'Assert-MvpAcceptanceArtifactRoot -Resolution \$evidenceRootResolution -Label ''EvidenceRoot''') 'MVP acceptance must reject an unapproved EvidenceRoot before evidence publication.'
+Assert-True ($acceptanceSource -match "'\^\[D-F\]:\\\\ZirconBuilds") 'MVP acceptance artifact roots must remain restricted to approved non-C build volumes.'
+Assert-True ($acceptanceSource -match '\$decoderPath = \(Resolve-ZirconWindowsPath -Path \$Path\)\.DisplayPath') 'MVP acceptance PNG decoding must use the resolver display path at the System.Drawing API boundary.'
+Assert-True ($acceptanceSource -match 'ZirconMvpAcceptancePngEvidence\]::Inspect\(\$decoderPath\)') 'MVP acceptance PNG decoding must pass the display path to System.Drawing.'
 Assert-True ($acceptanceSource -notmatch '\(Resolve-Path -LiteralPath \$candidate\)\.Path') 'MVP acceptance evidence files must not fall back to PowerShell provider path resolution.'
 Assert-True ($acceptanceSource -notmatch '\(Resolve-Path -LiteralPath \$targetPath\)\.Path') 'MVP acceptance manifest entries must not fall back to PowerShell provider path resolution.'
+Assert-True ($buildSummaryEvidenceSource -match 'WindowsPathResolver\.psm1') 'MVP build-summary evidence must import the shared Windows path resolver.'
+Assert-True ($buildSummaryEvidenceSource -match '\$resolvedPath = \(Resolve-ZirconWindowsPath -Path \$Path\)\.OperationalPath') 'MVP build-summary evidence must use the resolver physical identity for source-bound summaries.'
+Assert-True ($buildSummaryEvidenceSource -match 'function Assert-MvpBuildSummaryOperationalChildPath') 'MVP build-summary evidence must define a physical containment boundary for gate logs.'
+Assert-True ($buildSummaryEvidenceSource -match '\$resolvedEvidencePath = \(Resolve-ZirconWindowsPath -Path \$sourceEvidencePath\)\.OperationalPath') 'MVP build-summary evidence must resolve each gate log through the shared resolver.'
+Assert-True ($buildSummaryEvidenceSource -match 'Assert-MvpBuildSummaryOperationalChildPath') 'MVP build-summary evidence must reject a gate log that resolves outside its summary directory.'
+Assert-True ($buildSummaryEvidenceSource -notmatch '\(Resolve-Path -LiteralPath \$Path\)\.Path') 'MVP build-summary evidence must not fall back to PowerShell provider path resolution.'
+Assert-True ($acceptanceSource -match 'function Assert-MvpProductInputManifestEvidence') 'F5 acceptance must validate the staged product-input manifest evidence.'
+Assert-True ($acceptanceSource -match 'Get-MvpAcceptanceStagingTreeManifestPath -StagingRoot \$StagingRoot') 'MVP acceptance evidence publication must replace the source tree inventory with a partial-tree inventory.'
+Assert-True ($acceptanceSource -match 'Assert-MvpAcceptanceStagingSnapshotLeaseTreeManifestMembership\s+`\s+-Lease \$acceptanceStagingSnapshotLease') 'MVP acceptance evidence publication must reject source-tree membership drift that occurs during recursive copy.'
+Assert-True ($acceptanceSource -match 'Write-MvpAcceptanceStagingTreeManifest -StagingRoot \$partialRoot') 'MVP acceptance evidence publication must write its own complete tree manifest before leasing the partial tree.'
+Assert-True ($acceptanceSource -match '\$manifest\[''product_input_manifest''\] = \$productInputManifestEvidence') 'F5 acceptance must retain validated product-input provenance in the final evidence manifest.'
+Assert-True ($acceptanceSource -match '\$manifestEntryLogicalId = ''product-input-manifest''') 'F5 acceptance must require the original product-input manifest as a staged entry.'
+Assert-True ($acceptanceSource -match "\.Equals\('build/mvp-product-inputs\.json'") 'F5 acceptance must require the canonical staged product-input manifest path.'
+Assert-True ($acceptanceSource -match 'byte count differs from its staged manifest') 'F5 acceptance must compare product-input manifest bytes with the staged entry.'
+Assert-True ($acceptanceSource -match 'hash differs from its staged manifest') 'F5 acceptance must compare the product-input manifest digest with the staged entry.'
 
 function Write-FixtureJson {
     param(
@@ -216,7 +243,14 @@ $scenePersistenceEvidenceModule = Join-Path $PSScriptRoot '..\mvp\MvpScenePersis
 Import-Module $preflightEvidenceModule -Force
 Import-Module $projectSaveEvidenceModule -Force
 Import-Module $scenePersistenceEvidenceModule -Force
-& (Join-Path $PSScriptRoot 'mvp-acceptance-staging-snapshot.Tests.ps1')
+$snapshotContractTest = Join-Path $PSScriptRoot 'mvp-acceptance-staging-snapshot.Tests.ps1'
+& pwsh -NoProfile -File $snapshotContractTest
+if ($LASTEXITCODE -ne 0) {
+    throw "MVP acceptance staging snapshot contract failed with exit code $LASTEXITCODE."
+}
+# The nested fixtures reload their private resolver dependencies. Keep the command that this
+# top-level fixture invokes directly in the caller scope, matching the production driver.
+Import-Module (Join-Path $PSScriptRoot '..\WindowsPathResolver.psm1') -Force -ErrorAction Stop
 
 function ConvertTo-FixtureDiagnosticToken {
     param([Parameter(Mandatory)][string]$Value)
@@ -600,16 +634,49 @@ function Write-FixtureBlankPng {
     }
 }
 
-$fixtureRoot = Join-Path ([IO.Path]::GetTempPath()) (
-    'zircon_mvp_acceptance_' + [guid]::NewGuid().ToString('N')
-)
+$fixtureRoot = New-MvpTestFixtureRoot -Prefix 'zircon_mvp_acceptance'
 
 try {
     $stagingRoot = Join-Path $fixtureRoot 'staging'
     $evidenceRoot = Join-Path $fixtureRoot 'evidence'
     New-Item -ItemType Directory -Force -Path (Join-Path $stagingRoot 'project') | Out-Null
+    $unapprovedArtifactRoot = 'C:\ZirconBuilds\mvp-acceptance-rejected-' + [guid]::NewGuid().ToString('N')
+    $unapprovedEvidenceOutput = @(& pwsh -NoProfile -File $acceptanceDriver `
+            -StagingRoot $stagingRoot `
+            -EvidenceRoot $unapprovedArtifactRoot `
+            -ExpectedSourceFingerprint 'fixture-source-fingerprint' 2>&1)
+    $unapprovedEvidenceRejected = $LASTEXITCODE -ne 0 -and
+        ((@($unapprovedEvidenceOutput | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine) -match 'EvidenceRoot.*approved D:\\ZirconBuilds')
+    Assert-True $unapprovedEvidenceRejected 'Acceptance evidence output outside approved non-C artifact roots was not rejected before publication.'
+
+    $unapprovedStagingOutput = @(& pwsh -NoProfile -File $acceptanceDriver `
+            -StagingRoot $unapprovedArtifactRoot `
+            -EvidenceRoot $evidenceRoot `
+            -ExpectedSourceFingerprint 'fixture-source-fingerprint' 2>&1)
+    $unapprovedStagingRejected = $LASTEXITCODE -ne 0 -and
+        ((@($unapprovedStagingOutput | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine) -match 'StagingRoot.*approved D:\\ZirconBuilds')
+    Assert-True $unapprovedStagingRejected 'Acceptance staging outside approved non-C artifact roots was not rejected before snapshot publication.'
+
     $projectManifestPath = Join-Path $stagingRoot 'project\zircon-project.toml'
     [IO.File]::WriteAllText($projectManifestPath, "name = 'Fixture'`n", [Text.UTF8Encoding]::new($false))
+
+    $fixtureProductInputs = @(
+        [ordered]@{ logical_id = 'runtime-executable'; relative_path = 'runtime/zircon_runtime.exe'; contents = 'fixture-runtime-executable' },
+        [ordered]@{ logical_id = 'runtime-library/runtime'; relative_path = 'runtime/zircon_runtime.dll'; contents = 'fixture-runtime-library' },
+        [ordered]@{ logical_id = 'editor-executable'; relative_path = 'editor/zircon_editor.exe'; contents = 'fixture-editor-executable' },
+        [ordered]@{ logical_id = 'runtime-library/editor'; relative_path = 'editor/zircon_runtime.dll'; contents = 'fixture-editor-runtime-library' }
+    )
+    $fixtureProductInputEntries = foreach ($fixtureProductInput in $fixtureProductInputs) {
+        $path = Join-Path $stagingRoot $fixtureProductInput.relative_path
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $path) | Out-Null
+        [IO.File]::WriteAllText($path, $fixtureProductInput.contents, [Text.UTF8Encoding]::new($false))
+        [ordered]@{
+            logical_id = $fixtureProductInput.logical_id
+            target_relative_path = $fixtureProductInput.relative_path
+            sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
+            size_bytes = (Get-Item -LiteralPath $path).Length
+        }
+    }
 
     $stagingManifestEntry = [ordered]@{
         logical_id = 'project/zircon-project.toml'
@@ -617,13 +684,51 @@ try {
         sha256 = (Get-FileHash -LiteralPath $projectManifestPath -Algorithm SHA256).Hash
         size_bytes = (Get-Item -LiteralPath $projectManifestPath).Length
     }
+    $stagedProductInputManifestPath = Join-Path $stagingRoot 'build\mvp-product-inputs.json'
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $stagedProductInputManifestPath) | Out-Null
+    $fixtureProductInputManifest = [ordered]@{
+        schema_version = 1
+        source_fingerprint = 'fixture-source-fingerprint'
+        artifacts = @(
+            $fixtureProductInputEntries | ForEach-Object {
+                [ordered]@{
+                    LogicalId = $_.logical_id
+                    Bytes = $_.size_bytes
+                    Sha256 = $_.sha256
+                }
+            }
+        )
+    }
+    Write-FixtureJson -Path $stagedProductInputManifestPath -Value $fixtureProductInputManifest
+    $stagedProductInputManifestEntry = [ordered]@{
+        logical_id = 'product-input-manifest'
+        target_relative_path = 'build/mvp-product-inputs.json'
+        sha256 = (Get-FileHash -LiteralPath $stagedProductInputManifestPath -Algorithm SHA256).Hash
+        size_bytes = (Get-Item -LiteralPath $stagedProductInputManifestPath).Length
+    }
     $stagingManifestFixture = [ordered]@{
         run_id = 'fixture-stage'
         source_fingerprint = 'fixture-source-fingerprint'
         toolchain = 'rustc 1.89.0 (fixture)'
         target = 'x86_64-pc-windows-msvc'
         staged_at_utc = '2026-07-29T00:00:00Z'
-        entries = @($stagingManifestEntry)
+        entries = @($stagingManifestEntry, $stagedProductInputManifestEntry) + @($fixtureProductInputEntries)
+        product_input_manifest = [ordered]@{
+            schema_version = 1
+            target_relative_path = $stagedProductInputManifestEntry.target_relative_path
+            size_bytes = $stagedProductInputManifestEntry.size_bytes
+            sha256 = $stagedProductInputManifestEntry.sha256
+            source_fingerprint = 'fixture-source-fingerprint'
+            artifacts = @(
+                $fixtureProductInputEntries | ForEach-Object {
+                    [ordered]@{
+                        logical_id = $_.logical_id
+                        bytes = $_.size_bytes
+                        sha256 = $_.sha256
+                    }
+                }
+            )
+        }
     }
     $authoringRequestPath = Join-Path $stagingRoot 'authoring\automation.json'
     $reopenRequestPath = Join-Path $stagingRoot 'reopen\automation.json'
@@ -858,6 +963,7 @@ try {
     Assert-True ($null -eq $f0Manifest.render_backend) 'F0 evidence manifest should preserve the absence of runtime diagnostics.'
     Assert-True ($null -eq $f0Manifest.render_adapter) 'F0 evidence manifest should preserve the absence of runtime adapter diagnostics.'
     Assert-True ($null -eq $f0Manifest.render_device_limits) 'F0 evidence manifest should preserve the absence of device-limit diagnostics.'
+    Assert-True (Test-Path -LiteralPath $stagingRoot -PathType Container) 'Successful F0 acceptance must retain the source staging root.'
     Write-FixtureJson -Path (Join-Path $stagingRoot 'startup-summary.json') -Value ([ordered]@{
         run_id = 'fixture-stage'
         source_fingerprint = 'fixture-source-fingerprint'
@@ -881,12 +987,17 @@ try {
         $renderBackendDriftRejected = $_.Exception.Message -match "'render_backend' differs between attempts|disagree on render_backend"
     }
     finally {
+        Assert-True (Test-Path -LiteralPath $stagingRoot -PathType Container) 'Rejected acceptance must retain the source staging root.'
         Write-FixtureJson -Path (Join-Path $stagingRoot 'startup-summary.json') -Value ([ordered]@{
             run_id = 'fixture-stage'
             source_fingerprint = 'fixture-source-fingerprint'
             staged_project_root = 'project'
             products = $manifest.product_runs
         })
+
+    $stagingTreeManifestModule = Join-Path $PSScriptRoot '..\mvp\MvpAcceptanceStagingTreeManifest.psm1'
+    Import-Module $stagingTreeManifestModule -Force -ErrorAction Stop
+    Write-MvpAcceptanceStagingTreeManifest -StagingRoot $stagingRoot | Out-Null
     }
     Assert-True $renderBackendDriftRejected 'Acceptance did not reject render-backend drift across runtime runs.'
 
@@ -894,24 +1005,30 @@ try {
     [void]$missingToolchainManifest.PSObject.Properties.Remove('toolchain')
     Write-FixtureJson -Path $stagingManifestPath -Value $missingToolchainManifest
     $missingToolchainRejected = $false
+    $missingToolchainReturned = $false
+    $missingToolchainFailure = $null
     try {
         & $driver `
             -StagingRoot $stagingRoot `
             -EvidenceRoot (Join-Path $fixtureRoot 'evidence-missing-toolchain') `
             -ExpectedSourceFingerprint 'fixture-source-fingerprint' | Out-Null
+        $missingToolchainReturned = $true
     }
     catch {
+        $missingToolchainFailure = $_.Exception.Message
         $missingToolchainRejected = $_.Exception.Message -match "Staging manifest is missing 'toolchain'"
     }
     finally {
+        Assert-True (Test-Path -LiteralPath $stagingRoot -PathType Container) 'Missing-toolchain rejection must retain the source staging root.'
         Write-FixtureJson -Path $stagingManifestPath -Value $stagingManifestFixture
     }
-    Assert-True $missingToolchainRejected 'Acceptance did not reject staging evidence without toolchain provenance.'
+    Assert-True $missingToolchainRejected ("Acceptance did not reject staging evidence without toolchain provenance. returned={0}; failure={1}" -f $missingToolchainReturned, $missingToolchainFailure)
 
     $missingPreflightManifest = $stagingManifestFixture | ConvertTo-Json -Depth 8 | ConvertFrom-Json
     [void]$missingPreflightManifest.PSObject.Properties.Remove('preflight')
     Write-FixtureJson -Path $stagingManifestPath -Value $missingPreflightManifest
     $missingPreflightRejected = $false
+    $missingPreflightFailure = $null
     try {
         & $driver `
             -StagingRoot $stagingRoot `
@@ -919,9 +1036,14 @@ try {
             -ExpectedSourceFingerprint 'fixture-source-fingerprint' | Out-Null
     }
     catch {
+        $missingPreflightFailure = $_.Exception.Message
         $missingPreflightRejected = $_.Exception.Message -match "Staging manifest is missing 'preflight'"
     }
-    Assert-True $missingPreflightRejected 'Acceptance did not reject staging evidence without preflight provenance.'
+    finally {
+        Assert-True (Test-Path -LiteralPath $stagingRoot -PathType Container) 'Missing-preflight rejection must retain the source staging root.'
+        Write-FixtureJson -Path $stagingManifestPath -Value $stagingManifestFixture
+    }
+    Assert-True $missingPreflightRejected "Acceptance did not reject staging evidence without preflight provenance; failure=$missingPreflightFailure"
 
     $driftedPreflightManifest = $stagingManifestFixture | ConvertTo-Json -Depth 8 | ConvertFrom-Json
     $driftedPreflightManifest.preflight.input_copy_bytes += 1
@@ -1009,6 +1131,14 @@ try {
             -Json
     ) | ConvertFrom-Json
     Assert-True ($productEvidence.product_runs.Count -eq 4) 'Acceptance output lost independently verified staged product evidence.'
+    Assert-True (Test-Path -LiteralPath $logsRoot -PathType Container) 'Acceptance package publication must retain the source staging logs directory.'
+    Assert-True (Test-Path -LiteralPath $processJournalPath -PathType Leaf) 'Acceptance package publication must retain the source process execution journal.'
+    foreach ($productRun in $productEvidenceRuns) {
+        foreach ($diagnosticLog in @($productRun.diagnostic_logs)) {
+            $diagnosticPath = Join-Path $stagingRoot ([string]$diagnosticLog.path)
+            Assert-True (Test-Path -LiteralPath $diagnosticPath -PathType Leaf) "Acceptance package publication must retain staged diagnostic log '$($diagnosticLog.path)'."
+        }
+    }
 
     Write-FixtureProcessJournal `
         -Runs $productEvidenceRuns `
@@ -1022,6 +1152,13 @@ try {
         $productEvidenceJournalExitRejected = $_.Exception.Message -match 'exit_code.*process journal|process journal.*outcome'
     }
     finally {
+        Assert-True (Test-Path -LiteralPath $logsRoot -PathType Container) 'Rejected product-evidence acceptance must retain the source staging logs directory.'
+        foreach ($productRun in $productEvidenceRuns) {
+            foreach ($diagnosticLog in @($productRun.diagnostic_logs)) {
+                $diagnosticPath = Join-Path $stagingRoot ([string]$diagnosticLog.path)
+                Assert-True (Test-Path -LiteralPath $diagnosticPath -PathType Leaf) "Rejected product-evidence acceptance must retain staged diagnostic log '$($diagnosticLog.path)'."
+            }
+        }
         Write-FixtureProcessJournal -Runs $productEvidenceRuns -Path $processJournalPath
     }
     Assert-True $productEvidenceJournalExitRejected 'Product evidence accepted a successful summary that disagreed with its process journal exit status.'
@@ -1107,6 +1244,7 @@ try {
         $productEvidenceForeignArtifactRejected = $_.Exception.Message -match "must be 'logs/runtime-2.stdout.log'"
     }
     finally {
+        Assert-True (Test-Path -LiteralPath (Join-Path $stagingRoot 'startup-summary.json') -PathType Leaf) 'Rejected foreign-artifact acceptance must retain the source staging startup summary.'
         Write-FixtureJson -Path (Join-Path $stagingRoot 'startup-summary.json') -Value ([ordered]@{
             run_id = 'fixture-stage'
             source_fingerprint = 'fixture-source-fingerprint'
@@ -1117,13 +1255,15 @@ try {
     Assert-True $productEvidenceForeignArtifactRejected 'Product evidence accepted a unique stdout file from another product attempt.'
 
     $missingProjectCreationRejected = $false
+    $missingProjectCreationReturned = $false
     try {
         & $driver -StagingRoot $stagingRoot -EvidenceRoot (Join-Path $fixtureRoot 'missing-project-creation') -ExpectedSourceFingerprint 'fixture-source-fingerprint' -RequireProjectCreationEvidence | Out-Null
+        $missingProjectCreationReturned = $true
     }
     catch {
         $missingProjectCreationRejected = $_.Exception.Message -match 'project_creation'
     }
-    Assert-True $missingProjectCreationRejected 'Acceptance did not reject a fixed F5 request without staged project-creation evidence.'
+    Assert-True $missingProjectCreationRejected "Acceptance did not reject a fixed F5 request without staged project-creation evidence; returned=$missingProjectCreationReturned."
     Assert-True (-not (Test-Path -LiteralPath (Join-Path $fixtureRoot 'missing-project-creation'))) 'Missing project-creation evidence left a partial evidence root.'
 
     $productEvidenceHashMismatch = Copy-FixtureProductRuns -Runs $productEvidenceRuns
@@ -1485,6 +1625,20 @@ try {
                 save_generation = $null
             },
             [ordered]@{
+                binding_path = 'WorkbenchMenuBar/Undo:onClick'
+                source = 'Cli'
+                operation_id = 'edit.history.undo'
+                transaction_id = $null
+                save_generation = $null
+            },
+            [ordered]@{
+                binding_path = 'WorkbenchMenuBar/Redo:onClick'
+                source = 'Cli'
+                operation_id = 'edit.history.redo'
+                transaction_id = $null
+                save_generation = $null
+            },
+            [ordered]@{
                 binding_path = 'WorkbenchMenuBar/SaveProject:onClick'
                 source = 'Cli'
                 operation_id = 'file.project.save'
@@ -1607,7 +1761,7 @@ try {
     $authoringStartupFixture = Get-Content -LiteralPath (Join-Path $stagingRoot 'startup-summary.json') -Raw | ConvertFrom-Json
     Assert-True ($null -ne $authoringStartupFixture.PSObject.Properties['reopen_automation']) 'Authoring acceptance fixture did not serialize its repeated reopen reports.'
     Assert-True ($null -ne $authoringStartupFixture.authoring_automation.PSObject.Properties['records']) 'Authoring acceptance fixture did not retain authoring records in its startup summary.'
-    Assert-True (@($authoringStartupFixture.authoring_automation.records).Count -eq 4) 'Authoring acceptance fixture did not retain all authoring records in its startup summary.'
+    Assert-True (@($authoringStartupFixture.authoring_automation.records).Count -eq 6) 'Authoring acceptance fixture did not retain all authoring records in its startup summary.'
     $authoringEvidenceRoot = Join-Path $fixtureRoot 'authoring-evidence'
     try {
         $authoringEvidence = @(
@@ -1624,7 +1778,7 @@ try {
         throw "Authoring automation positive fixture was rejected: $($_.Exception.Message)"
     }
     Assert-True ($null -ne $authoringEvidence.authoring_automation) 'Acceptance output lost required authoring automation evidence.'
-    Assert-True ($authoringEvidence.authoring_automation.records.Count -eq 4) 'Acceptance output lost the normal authoring binding sequence.'
+    Assert-True ($authoringEvidence.authoring_automation.records.Count -eq 6) 'Acceptance output lost the normal authoring binding sequence.'
     Assert-True ($authoringEvidence.reopen_automation.Count -eq 2) 'Acceptance output lost the independent reopened-project reports.'
     Assert-True ($authoringEvidence.authoring_automation.project_save_lifecycle.pre_save_dirty -eq $true) 'Acceptance output lost the pre-save dirty state.'
     Assert-True ($authoringEvidence.authoring_automation.project_save_lifecycle.pre_save_dirty_generation -eq 2) 'Acceptance output lost the pre-save dirty generation.'
@@ -1868,11 +2022,37 @@ try {
         authoring_automation = $authoringAutomationFixture
         reopen_automation = $reopenAutomationFixture
     })
+    Import-Module $buildSummaryEvidenceModule -Force -ErrorAction Stop
     $profileContractSummaryPath = Join-Path $fixtureRoot 'profile-contract-summary.json'
     $workspaceSummaryPath = Join-Path $fixtureRoot 'workspace-summary.json'
     Write-FixtureBuildSummary -Path $profileContractSummaryPath -SummaryKind 'profile-contract'
     Write-FixtureBuildSummary -Path $workspaceSummaryPath -SummaryKind 'workspace'
     $canonicalF5StartupSummaryJson = Get-Content -LiteralPath (Join-Path $stagingRoot 'startup-summary.json') -Raw -Encoding UTF8
+
+    $summaryLogReparseRoot = Join-Path $fixtureRoot 'summary-log-reparse'
+    $summaryLogReparsePath = Join-Path $summaryLogReparseRoot 'profile-contract-summary.json'
+    $summaryLogReparseOutside = Join-Path $fixtureRoot 'summary-log-reparse-outside'
+    New-Item -ItemType Directory -Force -Path $summaryLogReparseRoot, $summaryLogReparseOutside | Out-Null
+    Write-FixtureBuildSummary -Path $summaryLogReparsePath -SummaryKind 'profile-contract'
+    $summaryLogReparseDocument = ConvertFrom-FixtureJson -Json (Get-Content -LiteralPath $summaryLogReparsePath -Raw -Encoding UTF8)
+    $summaryLogDirectory = Join-Path $summaryLogReparseRoot 'logs'
+    foreach ($gate in @($summaryLogReparseDocument.gates)) {
+        $fileName = Split-Path -Leaf ([string]$gate.evidence.path)
+        Copy-Item -LiteralPath (Join-Path $summaryLogDirectory $fileName) -Destination (Join-Path $summaryLogReparseOutside $fileName)
+    }
+    Remove-Item -LiteralPath $summaryLogDirectory -Recurse -Force
+    New-Item -ItemType Junction -Path $summaryLogDirectory -Target $summaryLogReparseOutside -ErrorAction Stop | Out-Null
+    $summaryLogReparseRejected = $false
+    try {
+        Assert-MvpBuildSummaryEvidence `
+            -Path $summaryLogReparsePath `
+            -ExpectedKind 'profile-contract' `
+            -ExpectedSourceFingerprint 'fixture-source-fingerprint' | Out-Null
+    }
+    catch {
+        $summaryLogReparseRejected = $_.Exception.Message -match 'resolves outside build summary directory'
+    }
+    Assert-True $summaryLogReparseRejected 'F5 build summary evidence accepted gate logs redirected outside its summary directory.'
 
     $missingBuildSummaryEvidenceRoot = Join-Path $fixtureRoot 'f5-missing-build-summaries'
     $missingBuildSummariesRejected = $false
@@ -1969,6 +2149,7 @@ try {
     [IO.File]::WriteAllText($workspaceSummaryPath, '{not-json', [Text.UTF8Encoding]::new($false))
     try {
         $malformedBuildSummaryRejected = $false
+        $malformedBuildSummaryFailure = $null
         try {
             & $driver `
                 -StagingRoot $stagingRoot `
@@ -1979,9 +2160,10 @@ try {
                 -RequireF5Evidence | Out-Null
         }
         catch {
-            $malformedBuildSummaryRejected = $_.Exception.Message -match 'workspace build summary.*not valid .*JSON'
+            $malformedBuildSummaryFailure = $_.Exception.Message
+            $malformedBuildSummaryRejected = $_.Exception.Message -match 'workspace build summary[\s\S]*not valid .*JSON'
         }
-        Assert-True $malformedBuildSummaryRejected 'F5 acceptance did not reject a malformed workspace build summary.'
+        Assert-True $malformedBuildSummaryRejected "F5 acceptance did not reject a malformed workspace build summary; failure=$malformedBuildSummaryFailure"
         Assert-True (-not (Test-Path -LiteralPath $malformedBuildSummaryEvidenceRoot)) 'Malformed F5 build summary left a partial evidence root.'
     }
     finally {
@@ -2097,6 +2279,47 @@ try {
     Assert-True ($f5Evidence.project_identity.material_resource_id -eq 'fixture-default-material-resource') 'F5 evidence manifest lost the selected Cube material reference.'
     Assert-True ($f5Evidence.baseline_automation.snapshot.inspector_translation[0] -eq '0') 'F5 evidence manifest lost the pre-authoring Cube baseline.'
     Assert-True ($f5Evidence.baseline_automation.snapshot.inspector_scale[0] -eq '1.00') 'F5 evidence manifest lost the pre-authoring Cube scale.'
+    $canonicalF5StagingManifestJson = Get-Content -LiteralPath $stagingManifestPath -Raw -Encoding UTF8
+    $driftedProductInputManifest = ConvertFrom-FixtureJson -Json $canonicalF5StagingManifestJson
+    $driftedProductInputManifest.product_input_manifest.artifacts[0].sha256 = ('0' * 64)
+    Write-FixtureJson -Path $stagingManifestPath -Value $driftedProductInputManifest
+    $productInputDriftRejected = $false
+    try {
+        & $driver `
+            -StagingRoot $stagingRoot `
+            -EvidenceRoot (Join-Path $fixtureRoot 'f5-product-input-manifest-drift') `
+            -ExpectedSourceFingerprint 'fixture-source-fingerprint' `
+            -ProfileContractSummaryPath $profileContractSummaryPath `
+            -WorkspaceSummaryPath $workspaceSummaryPath `
+            -RequireF5Evidence | Out-Null
+    }
+    catch {
+        $productInputDriftRejected = $_.Exception.Message -match 'Product input manifest artifact.*hash differs'
+    }
+    finally {
+        [IO.File]::WriteAllText($stagingManifestPath, $canonicalF5StagingManifestJson, [Text.UTF8Encoding]::new($false))
+    }
+    Assert-True $productInputDriftRejected 'F5 acceptance accepted product inputs detached from their staged file hashes.'
+    $driftedProductInputManifestSummary = ConvertFrom-FixtureJson -Json $canonicalF5StagingManifestJson
+    $driftedProductInputManifestSummary.product_input_manifest.sha256 = ('0' * 64)
+    Write-FixtureJson -Path $stagingManifestPath -Value $driftedProductInputManifestSummary
+    $productInputManifestSummaryDriftRejected = $false
+    try {
+        & $driver `
+            -StagingRoot $stagingRoot `
+            -EvidenceRoot (Join-Path $fixtureRoot 'f5-product-input-manifest-summary-drift') `
+            -ExpectedSourceFingerprint 'fixture-source-fingerprint' `
+            -ProfileContractSummaryPath $profileContractSummaryPath `
+            -WorkspaceSummaryPath $workspaceSummaryPath `
+            -RequireF5Evidence | Out-Null
+    }
+    catch {
+        $productInputManifestSummaryDriftRejected = $_.Exception.Message -match 'Product input manifest evidence hash differs from its staged manifest'
+    }
+    finally {
+        [IO.File]::WriteAllText($stagingManifestPath, $canonicalF5StagingManifestJson, [Text.UTF8Encoding]::new($false))
+    }
+    Assert-True $productInputManifestSummaryDriftRejected 'F5 acceptance accepted an unbound product-input manifest digest.'
     $comparisonRoot = Join-Path $f5EvidenceRoot 'comparison'
     $persistedBefore = Get-Content -LiteralPath (Join-Path $comparisonRoot 'persisted-state-before.json') -Raw | ConvertFrom-Json
     $persistedAfter = Get-Content -LiteralPath (Join-Path $comparisonRoot 'persisted-state-after.json') -Raw | ConvertFrom-Json
@@ -2112,6 +2335,11 @@ try {
     $f5PackagedManifestJson = Get-Content -LiteralPath $f5Evidence.manifest -Raw
     $f5PackagedManifest = $f5PackagedManifestJson | ConvertFrom-Json
     Assert-True ($f5PackagedManifest.schema_version -eq 2) 'F5 evidence manifest did not declare the build-summary/timing schema.'
+    Assert-True ($f5PackagedManifest.product_input_manifest.source_fingerprint -eq 'fixture-source-fingerprint') 'F5 evidence manifest lost product-input source provenance.'
+    Assert-True ($f5PackagedManifest.product_input_manifest.target_relative_path -eq 'build/mvp-product-inputs.json') 'F5 evidence manifest lost the staged product-input manifest path.'
+    Assert-True ($f5PackagedManifest.product_input_manifest.sha256 -eq $stagedProductInputManifestEntry.sha256) 'F5 evidence manifest lost the staged product-input manifest digest.'
+    Assert-True ($f5PackagedManifest.product_input_manifest.size_bytes -eq $stagedProductInputManifestEntry.size_bytes) 'F5 evidence manifest lost the staged product-input manifest byte count.'
+    Assert-True (@($f5PackagedManifest.product_input_manifest.artifacts).Count -eq 4) 'F5 evidence manifest lost the four product-input artifact identities.'
     Assert-True ($f5PackagedManifest.process_execution_journal.path -eq 'logs/process-execution-journal.jsonl') 'F5 evidence manifest did not bind the consumed process execution journal.'
     Assert-True (Test-Path -LiteralPath (Join-Path $f5EvidenceRoot 'logs/process-execution-journal.jsonl') -PathType Leaf) 'F5 evidence package did not archive the consumed process execution journal.'
     Assert-True ($f5PackagedManifest.build_summaries.profile_contract.path -eq 'build/profile-contract-summary.json') 'F5 evidence manifest lost the canonical profile summary path.'
@@ -2924,7 +3152,8 @@ try {
     Write-Host 'MVP acceptance manifest contract passed'
 }
 finally {
-    if (Test-Path -LiteralPath $fixtureRoot) {
-        Remove-Item -LiteralPath $fixtureRoot -Recurse -Force
+    if ($env:ZIRCON_KEEP_MVP_ACCEPTANCE_FIXTURE -ne '1' -and
+        (Test-Path -LiteralPath $fixtureRoot)) {
+        Remove-MvpTestFixtureRoot -Path $fixtureRoot
     }
 }

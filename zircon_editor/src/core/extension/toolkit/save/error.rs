@@ -18,6 +18,12 @@ pub enum SaveError {
         #[source]
         source: ToolkitSaveFailure,
     },
+    #[error("document {document:?} autosave snapshot hook failed: {source}")]
+    AutosaveHookFailed {
+        document: DocumentId,
+        #[source]
+        source: ToolkitSaveFailure,
+    },
 }
 
 impl SaveError {
@@ -26,7 +32,8 @@ impl SaveError {
             Self::DocumentNotRegistered { document }
             | Self::SaveAlreadyInProgress { document }
             | Self::DocumentClosing { document }
-            | Self::HookFailed { document, .. } => *document,
+            | Self::HookFailed { document, .. }
+            | Self::AutosaveHookFailed { document, .. } => *document,
         }
     }
 }

@@ -9,8 +9,9 @@ use crate::core::editor_message::{
 };
 
 use super::super::{
-    test_job_system_with_bus, EditorJob, EditorJobLimits, EditorJobSpec, JobCategory, JobContext,
-    JobError, JobEventKind, JobId, JobPriority, DEFAULT_JOB_EVENT_PUMP_BUDGET,
+    DEFAULT_JOB_EVENT_PUMP_BUDGET, EditorJob, EditorJobAdmissionLimits, EditorJobLimits,
+    EditorJobSpec, JobCategory, JobContext, JobError, JobEventKind, JobId, JobPriority,
+    JobSubmitError, test_job_system_with_bus, test_job_system_with_limits,
 };
 
 const THUMBNAIL_JOB_COUNT: usize = 1_000;
@@ -202,6 +203,88 @@ fn thumbnail_storm_preserves_quota_and_records_main_thread_pump_baseline() {
         DEFAULT_JOB_EVENT_PUMP_BUDGET.max_events(),
         DEFAULT_JOB_EVENT_PUMP_BUDGET.max_elapsed().as_micros(),
     );
+}
+
+#[test]
+fn thumbnail_storm_reports_backpressure_before_retaining_an_unbounded_ticket_set() {
+    const MAX_PENDING_ENTRIES: usize = 8;
+    let limits = EditorJobLimits::default()
+        .with_limit(JobCategory::Thumbnail, THUMBNAIL_JOB_LIMIT)
+        .with_admission_limits(EditorJobAdmissionLimits::new(
+            MAX_PENDING_ENTRIES,
+            1_024,
+            Duration::from_secs(60),
+        ));
+    let jobs = test_job_system_with_limits(limits);
+    let gate = Arc::new(StormGate::default());
+    let active = Arc::new(AtomicUsize::new(0));
+    let maximum_active = Arc::new(AtomicUsize::new(0));
+    let completed = Arc::new(AtomicUsize::new(0));
+    let mut accepted = Vec::new();
+    let mut backpressured = 0;
+
+    for index in 0..THUMBNAIL_JOB_COUNT {
+        match jobs.submit(
+            EditorJobSpec::new(
+                format!("thumbnail-bounded-storm-{index}"),
+                JobCategory::Thumbnail,
+            )
+            .with_priority(JobPriority::Background)
+            .with_estimated_bytes(1),
+            StormThumbnailJob {
+                gate: Arc::clone(&gate),
+                active: Arc::clone(&active),
+                maximum_active: Arc::clone(&maximum_active),
+                completed: Arc::clone(&completed),
+            },
+        ) {
+            Ok(ticket) => accepted.push(ticket),
+            Err(JobSubmitError::AdmissionEntryLimitExceeded {
+                limit: MAX_PENDING_ENTRIES,
+            }) => backpressured += 1,
+            Err(error) => {
+                panic!("thumbnail storm must fail only through entry backpressure: {error}")
+            }
+        }
+    }
+
+    assert!(
+        backpressured > 0,
+        "the storm must exercise bounded admission"
+    );
+    assert_eq!(accepted.len() + backpressured, THUMBNAIL_JOB_COUNT);
+    assert!(accepted.len() <= THUMBNAIL_JOB_LIMIT + MAX_PENDING_ENTRIES);
+    assert!(jobs.pending_job_count() <= MAX_PENDING_ENTRIES);
+    assert!(jobs.scheduled_record_count() <= THUMBNAIL_JOB_LIMIT + MAX_PENDING_ENTRIES);
+    let admission = jobs.admission_snapshot();
+    assert!(admission.pending_entries() <= MAX_PENDING_ENTRIES);
+    assert!(admission.pending_estimated_bytes() <= 1_024);
+    assert!(
+        admission
+            .oldest_pending_age()
+            .is_none_or(|age| age <= Duration::from_secs(60))
+    );
+
+    let accepted_count = accepted.len();
+    gate.release();
+    let completion_deadline = Instant::now() + STORM_WATCHDOG;
+    for ticket in accepted {
+        let result = loop {
+            if let Some(result) = ticket.try_take() {
+                break result;
+            }
+            assert!(
+                Instant::now() < completion_deadline,
+                "bounded thumbnail storm did not settle before its liveness deadline"
+            );
+            thread::sleep(Duration::from_millis(1));
+        };
+        assert_eq!(result, Ok(()));
+    }
+    assert_eq!(completed.load(Ordering::SeqCst), accepted_count);
+    assert_eq!(jobs.pending_job_count(), 0);
+    assert_eq!(jobs.running_job_count(), 0);
+    assert_eq!(jobs.scheduled_record_count(), 0);
 }
 
 fn record_storm_deliveries(

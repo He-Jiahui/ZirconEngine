@@ -72,7 +72,7 @@ fn react_material_ui_packages_are_directly_composed_through_theme_and_tokens() {
         &material_ui_package,
         &[
             "\"name\": \"@mui/monorepo\"",
-            "\"version\": \"9.0.1\"",
+            "\"version\": \"9.2.0\"",
             "\"private\": true",
         ],
     );

@@ -2,9 +2,10 @@ use std::io::Cursor;
 
 use ply_rs_bw as ply;
 use zircon_runtime::asset::{
-    cook_virtual_geometry_from_mesh, AssetImportContext, AssetImportError, AssetImportOutcome,
-    AssetReference, ImportedAsset, ImportedAssetEntry, MeshAsset, MeshVertex, ModelAsset,
-    ModelPrimitiveAsset, VirtualGeometryCookConfig,
+    AssetImportContext, AssetImportError, AssetImportOutcome, AssetReference, ImportedAsset,
+    ImportedAssetEntry, MeshAsset, MeshSdfCookSettings, MeshVertex, ModelAsset,
+    ModelPrimitiveAsset, VirtualGeometryCookConfig, cook_mesh_sdf_or_fallback_single,
+    cook_virtual_geometry_from_mesh,
 };
 use zircon_runtime::core::math::{Vec2, Vec3};
 pub fn import_mesh_model(
@@ -70,6 +71,7 @@ fn import_stl(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetI
             .file_stem()
             .and_then(|stem| stem.to_str()),
         &source_hint,
+        context.mesh_sdf_cook_request()?.settings(),
     )?;
 
     model_outcome(context, vec![primitive])
@@ -151,6 +153,7 @@ fn import_ply(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetI
             .file_stem()
             .and_then(|stem| stem.to_str()),
         &source_hint,
+        context.mesh_sdf_cook_request()?.settings(),
     )?;
 
     model_outcome(context, vec![primitive])
@@ -186,15 +189,21 @@ fn model_outcome_with_mesh_subassets(
         primitive.mesh = Some(AssetReference::from_locator(mesh_uri.clone()));
     }
 
-    mesh_uris.into_iter().zip(model.primitives.iter()).fold(
-        AssetImportOutcome::new(root_uri.clone(), ImportedAsset::Model(model.clone())),
-        |outcome, (mesh_uri, primitive)| {
+    let mesh_entries = mesh_uris
+        .into_iter()
+        .zip(model.primitives.iter_mut())
+        .map(|(mesh_uri, primitive)| {
+            let mut mesh = MeshAsset::from_model_primitive(mesh_uri.clone(), primitive);
+            mesh.mesh_sdf = primitive.mesh_sdf.take();
+            ImportedAssetEntry::new(mesh_uri, ImportedAsset::Mesh(mesh))
+        })
+        .collect::<Vec<_>>();
+    mesh_entries.into_iter().fold(
+        AssetImportOutcome::new(root_uri, ImportedAsset::Model(model)),
+        |outcome, entry| {
             outcome
-                .with_dependency(mesh_uri.clone())
-                .with_entry(ImportedAssetEntry::new(
-                    mesh_uri.clone(),
-                    ImportedAsset::Mesh(MeshAsset::from_model_primitive(mesh_uri, primitive)),
-                ))
+                .with_dependency(entry.locator.clone())
+                .with_entry(entry)
         },
     )
 }
@@ -206,6 +215,7 @@ pub(crate) fn primitive_from_indexed_mesh(
     indices: &[u32],
     mesh_name: Option<&str>,
     source_hint: &str,
+    mesh_sdf_settings: Option<MeshSdfCookSettings>,
 ) -> Result<ModelPrimitiveAsset, AssetImportError> {
     if positions.len() % 3 != 0 {
         return Err(AssetImportError::Parse(
@@ -261,11 +271,17 @@ pub(crate) fn primitive_from_indexed_mesh(
             ..VirtualGeometryCookConfig::default()
         },
     );
+    let mesh_sdf = match mesh_sdf_settings {
+        Some(settings) => cook_mesh_sdf_or_fallback_single(&vertices, indices, settings)
+            .map_err(|error| AssetImportError::Parse(format!("cook mesh SDF: {error}")))?,
+        None => None,
+    };
 
     Ok(ModelPrimitiveAsset {
         vertices,
         indices: indices.to_vec(),
         mesh: None,
+        mesh_sdf,
         virtual_geometry,
     })
 }

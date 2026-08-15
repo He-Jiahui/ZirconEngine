@@ -19,6 +19,34 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         profile.cpu_submit_time_us,
         &["render", "profile", "cpu"],
     );
+    record_count(
+        store,
+        "render.profile.parallel_recording.eligible_stage_count",
+        frame_index,
+        profile.parallel_recording_eligible_stage_count as usize,
+        &["render", "profile", "parallel_recording"],
+    );
+    record_count(
+        store,
+        "render.profile.parallel_recording.eligible_bucket_count",
+        frame_index,
+        profile.parallel_recording_eligible_bucket_count as usize,
+        &["render", "profile", "parallel_recording"],
+    );
+    record_count(
+        store,
+        "render.profile.parallel_recording.executed_stage_count",
+        frame_index,
+        profile.parallel_recording_executed_stage_count as usize,
+        &["render", "profile", "parallel_recording"],
+    );
+    record_count(
+        store,
+        "render.profile.parallel_recording.executed_bucket_count",
+        frame_index,
+        profile.parallel_recording_executed_bucket_count as usize,
+        &["render", "profile", "parallel_recording"],
+    );
     if let Some(gpu_frame_time_us) = profile.gpu_frame_time_us {
         record_microseconds(
             store,
@@ -191,6 +219,10 @@ mod tests {
             last_frame_profile: Arc::new(RenderFrameProfile {
                 cpu_submit_time_us: 1_500,
                 gpu_frame_time_us: Some(4_000),
+                parallel_recording_eligible_stage_count: 1,
+                parallel_recording_eligible_bucket_count: 3,
+                parallel_recording_executed_stage_count: 1,
+                parallel_recording_executed_bucket_count: 2,
                 profile_latency_frames: 2,
                 budget_warning_count: 1,
                 subsystems: vec![RenderSubsystemProfileEntry {
@@ -217,6 +249,30 @@ mod tests {
             "render.profile.gpu_frame_time_us",
             4_000.0,
             "microseconds",
+        );
+        assert_series(
+            &store,
+            "render.profile.parallel_recording.eligible_stage_count",
+            1.0,
+            "count",
+        );
+        assert_series(
+            &store,
+            "render.profile.parallel_recording.eligible_bucket_count",
+            3.0,
+            "count",
+        );
+        assert_series(
+            &store,
+            "render.profile.parallel_recording.executed_stage_count",
+            1.0,
+            "count",
+        );
+        assert_series(
+            &store,
+            "render.profile.parallel_recording.executed_bucket_count",
+            2.0,
+            "count",
         );
         assert_series(
             &store,

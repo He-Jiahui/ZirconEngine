@@ -1,3 +1,5 @@
+#[path = "asset_pipeline/cargo_gate.rs"]
+mod cargo_gate;
 #[path = "asset_pipeline/inventory.rs"]
 mod inventory;
 #[path = "asset_pipeline/mirror_docs.rs"]

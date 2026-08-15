@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
+use super::super::{RenderPipelinePhase, RenderViewFamilyPipeline};
 use super::{
     PostProcessChainSlot, PostProcessEffectKind, PostProcessGraphValidationError,
     PostProcessPassNode, PostProcessStackDescriptor,
@@ -94,6 +95,18 @@ impl PostProcessPassGraph {
         ))
     }
 
+    /// Validates that every active post-process node belongs to a phase enabled by the resolved
+    /// view family. Callers should use this at graph compilation time, after choosing the
+    /// temporal or spatial reconstruction policy.
+    pub fn validate_stack_for_view_family(
+        stack: &PostProcessStackDescriptor,
+        pipeline: &RenderViewFamilyPipeline,
+    ) -> Result<Self, PostProcessGraphValidationError> {
+        let graph = Self::validate_stack(stack)?;
+        graph.validate_view_family_phases(pipeline)?;
+        Ok(graph)
+    }
+
     pub fn node_count(&self) -> usize {
         self.nodes.len()
     }
@@ -101,6 +114,46 @@ impl PostProcessPassGraph {
     pub fn skipped_node_count(&self) -> usize {
         self.skipped_nodes.len()
     }
+
+    fn validate_view_family_phases(
+        &self,
+        pipeline: &RenderViewFamilyPipeline,
+    ) -> Result<(), PostProcessGraphValidationError> {
+        for node in &self.nodes {
+            let phase = node.chain_slot.pipeline_phase();
+            if !pipeline.phases().contains(&phase) {
+                return Err(
+                    PostProcessGraphValidationError::UnavailableViewFamilyPhase {
+                        node: node.name.clone(),
+                        phase,
+                    },
+                );
+            }
+        }
+        for phase in required_post_process_phases(pipeline) {
+            if !self
+                .nodes
+                .iter()
+                .any(|node| node.chain_slot.pipeline_phase() == phase)
+            {
+                return Err(
+                    PostProcessGraphValidationError::MissingRequiredViewFamilyPhase { phase },
+                );
+            }
+        }
+        Ok(())
+    }
+}
+
+fn required_post_process_phases(
+    pipeline: &RenderViewFamilyPipeline,
+) -> impl Iterator<Item = RenderPipelinePhase> + '_ {
+    pipeline.phases().iter().copied().filter(|phase| {
+        matches!(
+            phase,
+            RenderPipelinePhase::TemporalReconstruction | RenderPipelinePhase::SpatialUpscale
+        )
+    })
 }
 
 fn ordered_node_indices(
@@ -127,6 +180,20 @@ fn ordered_node_indices(
         }
     }
 
+    // A phase edge is an ordering constraint in addition to resource/effect dependencies.
+    // This keeps display mapping and output work from becoming ready ahead of temporal or HDR
+    // scene-linear work merely because their legacy settings omitted an explicit `after` edge.
+    for (later_index, later_node) in nodes.iter().enumerate() {
+        let later_phase = later_node.chain_slot.pipeline_phase().order();
+        for (earlier_index, earlier_node) in nodes.iter().enumerate() {
+            if earlier_node.chain_slot.pipeline_phase().order() < later_phase
+                && dependencies[later_index].insert(earlier_index)
+            {
+                dependents[earlier_index].push(later_index);
+            }
+        }
+    }
+
     let mut ready = dependencies
         .iter()
         .enumerate()
@@ -149,4 +216,129 @@ fn ordered_node_indices(
     }
 
     Ok(ordered)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::core::framework::render::{
+        RenderPipelinePhase, RenderResolutionPolicy, RenderUpscalerKind, RenderViewFamilyPipeline,
+    };
+    use crate::core::math::UVec2;
+
+    use super::{
+        ordered_node_indices, PostProcessEffectKind, PostProcessEffectSettings,
+        PostProcessGraphValidationError, PostProcessPassGraph, PostProcessPassNode,
+        PostProcessStackDescriptor,
+    };
+
+    #[test]
+    fn graph_orders_independent_nodes_by_view_family_phase() {
+        let nodes = vec![
+            PostProcessPassNode::new("output", PostProcessEffectKind::OutputTransfer),
+            PostProcessPassNode::new("taa", PostProcessEffectKind::TaaResolve),
+            PostProcessPassNode::new("bloom", PostProcessEffectKind::Bloom),
+            PostProcessPassNode::new("fxaa", PostProcessEffectKind::Fxaa),
+            PostProcessPassNode::new("uber", PostProcessEffectKind::Uber),
+            PostProcessPassNode::new("upscale", PostProcessEffectKind::Upscale),
+        ];
+
+        assert_eq!(
+            ordered_node_indices(&nodes).expect("independent phases form a valid graph"),
+            vec![1, 2, 4, 3, 5, 0]
+        );
+    }
+
+    #[test]
+    fn graph_rejects_temporal_nodes_when_the_view_family_is_spatial() {
+        let stack = PostProcessStackDescriptor {
+            initial_resources: Vec::new(),
+            effects: vec![PostProcessEffectSettings::new(
+                PostProcessEffectKind::TaaResolve,
+            )],
+        };
+        let spatial_pipeline = RenderViewFamilyPipeline::resolve(
+            UVec2::new(1920, 1080),
+            RenderResolutionPolicy::default(),
+            RenderUpscalerKind::Spatial,
+        );
+
+        assert_eq!(
+            PostProcessPassGraph::validate_stack_for_view_family(&stack, &spatial_pipeline),
+            Err(
+                PostProcessGraphValidationError::UnavailableViewFamilyPhase {
+                    node: "taa-resolve".to_string(),
+                    phase: RenderPipelinePhase::TemporalReconstruction,
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn graph_rejects_display_upscale_when_temporal_reconstruction_owns_the_transition() {
+        let stack = PostProcessStackDescriptor {
+            initial_resources: Vec::new(),
+            effects: vec![PostProcessEffectSettings::new(
+                PostProcessEffectKind::Upscale,
+            )],
+        };
+        let temporal_pipeline = RenderViewFamilyPipeline::resolve(
+            UVec2::new(1920, 1080),
+            RenderResolutionPolicy::with_scales(0.5, 1.0),
+            RenderUpscalerKind::Temporal,
+        );
+
+        assert_eq!(
+            PostProcessPassGraph::validate_stack_for_view_family(&stack, &temporal_pipeline),
+            Err(
+                PostProcessGraphValidationError::UnavailableViewFamilyPhase {
+                    node: "upscale".to_string(),
+                    phase: RenderPipelinePhase::SpatialUpscale,
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn graph_requires_spatial_upscale_when_the_resolved_view_family_needs_it() {
+        let stack = PostProcessStackDescriptor {
+            initial_resources: Vec::new(),
+            effects: Vec::new(),
+        };
+        let spatial_pipeline = RenderViewFamilyPipeline::resolve(
+            UVec2::new(1920, 1080),
+            RenderResolutionPolicy::with_scales(0.5, 1.0),
+            RenderUpscalerKind::Spatial,
+        );
+
+        assert_eq!(
+            PostProcessPassGraph::validate_stack_for_view_family(&stack, &spatial_pipeline),
+            Err(
+                PostProcessGraphValidationError::MissingRequiredViewFamilyPhase {
+                    phase: RenderPipelinePhase::SpatialUpscale,
+                }
+            )
+        );
+    }
+
+    #[test]
+    fn graph_requires_temporal_reconstruction_when_the_resolved_view_family_needs_it() {
+        let stack = PostProcessStackDescriptor {
+            initial_resources: Vec::new(),
+            effects: Vec::new(),
+        };
+        let temporal_pipeline = RenderViewFamilyPipeline::resolve(
+            UVec2::new(1920, 1080),
+            RenderResolutionPolicy::with_scales(0.5, 1.0),
+            RenderUpscalerKind::Temporal,
+        );
+
+        assert_eq!(
+            PostProcessPassGraph::validate_stack_for_view_family(&stack, &temporal_pipeline),
+            Err(
+                PostProcessGraphValidationError::MissingRequiredViewFamilyPhase {
+                    phase: RenderPipelinePhase::TemporalReconstruction,
+                }
+            )
+        );
+    }
 }

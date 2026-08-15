@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use super::super::super::{RuntimeSessionArchive, RuntimeSessionArchivePathStatus, path_query};
+use super::super::super::{path_query, RuntimeSessionArchive, RuntimeSessionArchivePathStatus};
 
 impl RuntimeSessionArchive {
     pub fn inspect_path(path: impl AsRef<Path>) -> RuntimeSessionArchivePathStatus {

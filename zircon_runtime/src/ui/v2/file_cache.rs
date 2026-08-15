@@ -31,6 +31,7 @@ pub struct UiV2PrototypeStoreLoadOutcome {
 #[derive(Clone, Debug)]
 pub struct UiV2PrototypeStoreFileCache {
     entries: BTreeMap<UiV2FileStoreCacheKey, UiV2FileStoreCacheEntry>,
+    request_entries: BTreeMap<UiV2FileStoreRequestKey, UiV2FileStoreCacheKey>,
     persistent_store: Option<UiCompiledArtifactStore>,
 }
 
@@ -38,6 +39,7 @@ impl UiV2PrototypeStoreFileCache {
     pub fn new() -> Self {
         Self {
             entries: BTreeMap::new(),
+            request_entries: BTreeMap::new(),
             persistent_store: None,
         }
     }
@@ -45,6 +47,7 @@ impl UiV2PrototypeStoreFileCache {
     pub fn with_persistent_cache(root: impl Into<PathBuf>) -> Self {
         Self {
             entries: BTreeMap::new(),
+            request_entries: BTreeMap::new(),
             persistent_store: Some(UiCompiledArtifactStore::new(root)),
         }
     }
@@ -63,6 +66,32 @@ impl UiV2PrototypeStoreFileCache {
 
     pub fn clear(&mut self) {
         self.entries.clear();
+        self.request_entries.clear();
+    }
+
+    /// Returns an already compiled request without probing source metadata.
+    ///
+    /// Event-driven clients can use this on their interactive path after they
+    /// clear the cache in response to file-system notifications. A miss still
+    /// performs the same validated load as [`Self::load_store`].
+    pub fn load_store_cached<P, I>(
+        &mut self,
+        paths: I,
+    ) -> Result<UiV2PrototypeStoreLoadOutcome, UiV2AssetError>
+    where
+        P: AsRef<Path>,
+        I: IntoIterator<Item = P>,
+    {
+        let paths = collect_paths(paths)?;
+        let request_key = UiV2FileStoreRequestKey::from_paths(&paths);
+        if let Some(entry) = self
+            .request_entries
+            .get(&request_key)
+            .and_then(|entry_key| self.entries.get(entry_key))
+        {
+            return Ok(entry.to_outcome(true, false));
+        }
+        self.load_store_from_paths(paths)
     }
 
     pub fn load_store<P, I>(
@@ -74,18 +103,29 @@ impl UiV2PrototypeStoreFileCache {
         I: IntoIterator<Item = P>,
     {
         let paths = collect_paths(paths)?;
+        self.load_store_from_paths(paths)
+    }
+
+    fn load_store_from_paths(
+        &mut self,
+        paths: Vec<PathBuf>,
+    ) -> Result<UiV2PrototypeStoreLoadOutcome, UiV2AssetError> {
+        let request_key = UiV2FileStoreRequestKey::from_paths(&paths);
         let explicit_cache_key = UiV2FileStoreCacheKey::from_paths(&paths);
         if let Some(entry) = self.entries.get(&explicit_cache_key) {
             let current_source_key = UiV2FileStoreCacheKey::from_paths(&entry.source_paths);
             if entry.source_key == current_source_key {
-                return Ok(entry.to_outcome(true, false));
+                let outcome = entry.to_outcome(true, false);
+                self.request_entries.insert(request_key, explicit_cache_key);
+                return Ok(outcome);
             }
         }
 
         if let Some(store) = &self.persistent_store {
             if let Some(entry) = load_persistent_entry(store, &explicit_cache_key)? {
                 let outcome = entry.to_outcome(true, true);
-                let _ = self.entries.insert(explicit_cache_key, entry);
+                let _ = self.entries.insert(explicit_cache_key.clone(), entry);
+                self.request_entries.insert(request_key, explicit_cache_key);
                 return Ok(outcome);
             }
         }
@@ -96,7 +136,8 @@ impl UiV2PrototypeStoreFileCache {
             store_persistent_entry(store, &explicit_cache_key, &entry)?;
         }
         let outcome = entry.to_outcome(false, false);
-        let _ = self.entries.insert(explicit_cache_key, entry);
+        let _ = self.entries.insert(explicit_cache_key.clone(), entry);
+        self.request_entries.insert(request_key, explicit_cache_key);
         Ok(outcome)
     }
 }
@@ -137,6 +178,19 @@ impl UiV2FileStoreCacheEntry {
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 struct UiV2FileStoreCacheKey {
     sources: Vec<UiV2FileCacheSourceKey>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct UiV2FileStoreRequestKey {
+    paths: Vec<PathBuf>,
+}
+
+impl UiV2FileStoreRequestKey {
+    fn from_paths(paths: &[PathBuf]) -> Self {
+        Self {
+            paths: paths.to_vec(),
+        }
+    }
 }
 
 impl UiV2FileStoreCacheKey {

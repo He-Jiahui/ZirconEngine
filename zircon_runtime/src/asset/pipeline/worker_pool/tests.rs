@@ -1,7 +1,7 @@
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 #[cfg(windows)]
 use std::process::Command;
-use std::sync::{Arc, Barrier, mpsc};
+use std::sync::{mpsc, Arc, Barrier};
 
 use crate::asset::types::{CpuTexturePayload, TextureSource};
 use crate::core::runtime::tasks::TaskPoolDescriptor;

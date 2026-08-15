@@ -10,8 +10,8 @@ use crate::core::runtime::{
 };
 
 use super::super::{
-    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES, RuntimeSessionArchiveArtifact,
-    RuntimeSessionArchiveError,
+    RuntimeSessionArchiveArtifact, RuntimeSessionArchiveError,
+    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES,
 };
 use super::atomic::{
     archive_path_identity, canonical_archive_target, prepare_archive_path_write,

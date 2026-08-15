@@ -1,16 +1,16 @@
 use std::array;
 
 use crate::scene::ecs::{
-    ChangeTickWindow, QueryCombinationMutIter, QueryEntityError, QueryEntityItem, QueryFilter,
-    QueryManyMutIter, QueryManyUniqueMutIter, QueryMutData, QuerySingleError, UniqueEntityArray,
+    ChangeTickWindow, ComponentStorageLocation, QueryCombinationMutIter, QueryEntityError,
+    QueryEntityItem, QueryFilter, QueryManyMutIter, QueryManyUniqueMutIter, QueryMutData,
+    QuerySingleError, UniqueEntityArray,
 };
 use crate::scene::EntityId;
 use crate::scene::World;
 
-use super::super::cached_query_iter::cached_query_component_locations;
 use super::super::unique_entities::first_duplicate_entity;
 use super::many_item_array::collect_many_query_items;
-use super::QueryState;
+use super::{project_entity_from_plans, CachedArchetypePlan, QueryState};
 
 impl<D, F> QueryState<D, F>
 where
@@ -110,11 +110,10 @@ where
         ticks: ChangeTickWindow,
     ) -> Result<D::Item<'world>, QueryEntityError> {
         self.update_cache(world);
-        self.validate_mut_after_update_with_ticks(world, entity, ticks)?;
-        let Some(item) = D::fetch_mut_with_ticks(world, entity, ticks) else {
-            return Err(QueryEntityError::QueryDoesNotMatch(entity));
-        };
-        Ok(item)
+        let mut component_locations = Vec::with_capacity(self.access.reads().len());
+        self.validate_entity_with_locations(world, entity, ticks, &mut component_locations)?;
+        D::fetch_mut_with_component_locations(world, entity, &component_locations, ticks)
+            .ok_or(QueryEntityError::QueryDoesNotMatch(entity))
     }
 
     pub(crate) fn single_mut_with_ticks<'world>(
@@ -123,29 +122,34 @@ where
         ticks: ChangeTickWindow,
     ) -> Result<D::Item<'world>, QuerySingleError> {
         self.update_cache(world);
+        let candidates = world
+            .stable_query_location_iter(
+                self.cached_archetype_plans
+                    .iter()
+                    .map(CachedArchetypePlan::archetype_id),
+            )
+            .collect::<Vec<_>>();
+        let mut component_locations = Vec::with_capacity(self.access.reads().len());
         let mut matched = None;
-        for (index, entity) in self.cached_entities.iter().copied().enumerate() {
-            let Some(component_locations) = cached_query_component_locations(
-                &self.cached_component_locations,
-                &self.cached_component_location_offsets,
-                index,
-            ) else {
-                continue;
-            };
-            if F::matches_component_locations(world, entity, component_locations, ticks) {
-                if matched.replace(entity).is_some() {
-                    return Err(QuerySingleError::MultipleEntities);
-                }
+        for stable_location in candidates {
+            let entity = stable_location.stable_id;
+            if self
+                .validate_entity_with_locations(world, entity, ticks, &mut component_locations)
+                .is_ok()
+                && matched.replace(entity).is_some()
+            {
+                return Err(QuerySingleError::MultipleEntities);
             }
         }
 
         let Some(entity) = matched else {
             return Err(QuerySingleError::NoEntities);
         };
-        let Some(item) = D::fetch_mut_with_ticks(world, entity, ticks) else {
-            return Err(QuerySingleError::NoEntities);
-        };
-        Ok(item)
+        component_locations.clear();
+        self.validate_entity_with_locations(world, entity, ticks, &mut component_locations)
+            .map_err(|_| QuerySingleError::NoEntities)?;
+        D::fetch_mut_with_component_locations(world, entity, &component_locations, ticks)
+            .ok_or(QuerySingleError::NoEntities)
     }
 
     pub(crate) fn get_many_mut_with_ticks<'world, const N: usize>(
@@ -158,16 +162,17 @@ where
             return Err(QueryEntityError::AliasedMutability(entity));
         }
         self.update_cache(world);
+        let mut component_locations = Vec::with_capacity(self.access.reads().len());
         for entity in entities.iter().copied() {
-            self.validate_mut_after_update_with_ticks(world, entity, ticks)?;
+            self.validate_entity_with_locations(world, entity, ticks, &mut component_locations)?;
         }
 
         let world = world as *mut World;
+        let plans = &self.cached_archetype_plans;
         collect_many_query_items(entities, |entity| {
-            // Duplicate IDs were rejected above and the query access descriptor
-            // guarantees one mutable data shape, so each returned item is from a
-            // distinct entity.
-            unsafe { fetch_mut_after_validation_unchecked::<D>(world, entity, ticks) }
+            // Duplicate IDs were rejected above, so each returned mutable item
+            // belongs to a distinct entity.
+            unsafe { fetch_mut_from_plans_unchecked::<D>(world, plans, entity, ticks) }
         })
     }
 
@@ -191,14 +196,7 @@ where
         EntityList::Item: QueryEntityItem,
     {
         self.update_cache(world);
-        QueryManyMutIter::new(
-            world,
-            &self.cached_entity_indices,
-            &self.cached_component_locations,
-            &self.cached_component_location_offsets,
-            entities,
-            ticks,
-        )
+        QueryManyMutIter::new(world, &self.cached_archetype_plans, entities, ticks)
     }
 
     pub(crate) fn iter_many_unique_mut_with_ticks<'world, 'state, const N: usize>(
@@ -208,14 +206,7 @@ where
         ticks: ChangeTickWindow,
     ) -> QueryManyUniqueMutIter<'world, 'state, D, F, array::IntoIter<EntityId, N>> {
         self.update_cache(world);
-        QueryManyUniqueMutIter::new(
-            world,
-            &self.cached_entity_indices,
-            &self.cached_component_locations,
-            &self.cached_component_location_offsets,
-            entities,
-            ticks,
-        )
+        QueryManyUniqueMutIter::new(world, &self.cached_archetype_plans, entities, ticks)
     }
 
     pub(crate) fn iter_combinations_mut_with_ticks<'world, 'state, const K: usize>(
@@ -224,13 +215,7 @@ where
         ticks: ChangeTickWindow,
     ) -> QueryCombinationMutIter<'world, 'state, D, F, K> {
         self.update_cache(world);
-        QueryCombinationMutIter::new_from_cached_entities(
-            world,
-            &self.cached_entities,
-            &self.cached_component_locations,
-            &self.cached_component_location_offsets,
-            ticks,
-        )
+        QueryCombinationMutIter::new_from_cached_plans(world, &self.cached_archetype_plans, ticks)
     }
 
     pub(crate) fn for_each_mut_with_ticks(
@@ -240,51 +225,92 @@ where
         mut f: impl FnMut(D::Item<'_>),
     ) {
         self.update_cache(world);
-        for (index, entity) in self.cached_entities.iter().copied().enumerate() {
-            let Some(component_locations) = cached_query_component_locations(
-                &self.cached_component_locations,
-                &self.cached_component_location_offsets,
-                index,
-            ) else {
+        let candidates = world
+            .stable_query_location_iter(
+                self.cached_archetype_plans
+                    .iter()
+                    .map(CachedArchetypePlan::archetype_id),
+            )
+            .collect::<Vec<_>>();
+        let world = world as *mut World;
+        for stable_location in candidates {
+            let entity = stable_location.stable_id;
+            let mut component_locations = Vec::new();
+            let shared_world = unsafe { &*world };
+            if project_entity_from_plans(
+                &self.cached_archetype_plans,
+                shared_world,
+                entity,
+                &mut component_locations,
+            )
+            .is_none()
+                || !F::matches_component_locations(
+                    shared_world,
+                    entity,
+                    &component_locations,
+                    ticks,
+                )
+            {
                 continue;
+            }
+            let item = unsafe {
+                D::fetch_mut_with_component_locations(
+                    &mut *world,
+                    entity,
+                    &component_locations,
+                    ticks,
+                )
             };
-            if F::matches_component_locations(world, entity, component_locations, ticks) {
-                if let Some(item) = D::fetch_mut_with_ticks(world, entity, ticks) {
-                    f(item);
-                }
+            if let Some(item) = item {
+                f(item);
             }
         }
     }
 
-    fn validate_mut_after_update_with_ticks(
+    fn validate_entity_with_locations(
         &self,
         world: &World,
         entity: EntityId,
         ticks: ChangeTickWindow,
+        component_locations: &mut Vec<ComponentStorageLocation>,
     ) -> Result<(), QueryEntityError> {
         if !world.contains_entity(entity) {
             return Err(QueryEntityError::NotSpawned(entity));
         }
-        let Some((_, component_locations)) = self.cached_entity_location(entity) else {
-            return Err(QueryEntityError::QueryDoesNotMatch(entity));
-        };
-        if !F::matches_component_locations(world, entity, component_locations, ticks) {
+        if project_entity_from_plans(
+            &self.cached_archetype_plans,
+            world,
+            entity,
+            component_locations,
+        )
+        .is_none()
+            || !F::matches_component_locations(world, entity, component_locations, ticks)
+        {
             return Err(QueryEntityError::QueryDoesNotMatch(entity));
         }
         Ok(())
     }
 }
 
-unsafe fn fetch_mut_after_validation_unchecked<'world, D>(
+unsafe fn fetch_mut_from_plans_unchecked<'world, D>(
     world: *mut World,
+    plans: &[CachedArchetypePlan],
     entity: EntityId,
     ticks: ChangeTickWindow,
 ) -> Result<D::Item<'world>, QueryEntityError>
 where
     D: QueryMutData,
 {
-    let Some(item) = D::fetch_mut_with_ticks(unsafe { &mut *world }, entity, ticks) else {
+    let mut component_locations = Vec::new();
+    let shared_world = unsafe { &*world };
+    if project_entity_from_plans(plans, shared_world, entity, &mut component_locations).is_none() {
         return Err(QueryEntityError::QueryDoesNotMatch(entity));
-    };
-    Ok(item)
+    }
+    D::fetch_mut_with_component_locations(
+        unsafe { &mut *world },
+        entity,
+        &component_locations,
+        ticks,
+    )
+    .ok_or(QueryEntityError::QueryDoesNotMatch(entity))
 }

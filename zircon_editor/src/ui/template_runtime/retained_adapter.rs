@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use toml::Value;
+use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::{
     binding::UiEventKind, component::UiValue, event_ui::UiRouteId, layout::UiFrame,
 };
@@ -109,6 +110,10 @@ pub struct RetainedUiHostNodeModel {
     pub checked: bool,
     pub expanded: bool,
     pub focused: bool,
+    /// True when the surface supplied a runtime focus-visible cause for this node.
+    pub focus_visible: bool,
+    /// Distinguishes a runtime focus cause from legacy synthetic host projections.
+    pub focus_visible_known: bool,
     pub hovered: bool,
     pub pressed: bool,
     pub dragging: bool,
@@ -145,114 +150,117 @@ impl RetainedUiHostAdapter {
             nodes: host_model
                 .nodes
                 .iter()
-                .map(|node| {
-                    let component_descriptor = component_registry.descriptor(&node.component);
-                    let properties = retained_properties(node);
-                    let disabled = bool_attribute(&node.attributes, "disabled").unwrap_or(false)
-                        || bool_attribute(&node.attributes, "enabled") == Some(false);
-                    let popup_anchor_x = float_attribute(&node.attributes, "popup_anchor_x");
-                    let popup_anchor_y = float_attribute(&node.attributes, "popup_anchor_y");
-                    let has_popup_anchor = popup_anchor_x.is_some() && popup_anchor_y.is_some();
-                    let options = options_attribute(&node.attributes, "options");
-                    let options_text = if options.is_empty() {
-                        None
+                .map(|node| Self::build_node_with_registry(node, component_registry))
+                .collect(),
+        }
+    }
+
+    pub(crate) fn build_node(
+        node: &super::RetainedUiHostNodeProjection,
+    ) -> RetainedUiHostNodeModel {
+        Self::build_node_with_registry(node, retained_component_registry())
+    }
+
+    fn build_node_with_registry(
+        node: &super::RetainedUiHostNodeProjection,
+        component_registry: &UiComponentDescriptorRegistry,
+    ) -> RetainedUiHostNodeModel {
+        let component_descriptor = component_registry.descriptor(&node.component);
+        let properties = retained_properties(node);
+        let disabled = bool_attribute(&node.attributes, "disabled").unwrap_or(false)
+            || bool_attribute(&node.attributes, "enabled") == Some(false);
+        let popup_anchor_x = float_attribute(&node.attributes, "popup_anchor_x");
+        let popup_anchor_y = float_attribute(&node.attributes, "popup_anchor_y");
+        let has_popup_anchor = popup_anchor_x.is_some() && popup_anchor_y.is_some();
+        let options = options_attribute(&node.attributes, "options");
+        let options_text = if options.is_empty() {
+            None
+        } else {
+            Some(options.join(", "))
+        };
+        RetainedUiHostNodeModel {
+            node_id: node.node_id.clone(),
+            parent_id: node.parent_id.clone(),
+            kind: RetainedUiHostComponentKind::from_component(&node.component),
+            component: node.component.clone(),
+            control_id: node.control_id.clone(),
+            frame: node.frame,
+            clip_frame: node.clip_frame,
+            z_index: node.z_index,
+            text: projected_text(&properties),
+            icon: extract_string(&properties, "icon"),
+            properties,
+            style_tokens: node.style_tokens.clone(),
+            component_role: component_descriptor.map(|descriptor| descriptor.role.clone()),
+            value_text: string_attribute(&node.attributes, "value_text").or_else(|| {
+                node.attributes
+                    .get("value")
+                    .or_else(|| node.attributes.get("items"))
+                    .or_else(|| node.attributes.get("entries"))
+                    .map(UiValue::from_toml)
+                    .map(|value| value.display_text())
+            }),
+            validation_level: string_attribute(&node.attributes, "validation_level").or_else(
+                || {
+                    component_descriptor
+                        .map(|_| if disabled { "disabled" } else { "normal" }.to_string())
+                },
+            ),
+            validation_message: string_attribute(&node.attributes, "validation_message"),
+            popup_open: bool_attribute(&node.attributes, "popup_open").unwrap_or(false),
+            has_popup_anchor,
+            popup_anchor_x: popup_anchor_x.unwrap_or(0.0),
+            popup_anchor_y: popup_anchor_y.unwrap_or(0.0),
+            selection_state: string_attribute(&node.attributes, "selection_state").or_else(|| {
+                bool_attribute(&node.attributes, "multiple").map(|multiple| {
+                    if multiple {
+                        "multi".to_string()
                     } else {
-                        Some(options.join(", "))
-                    };
-                    RetainedUiHostNodeModel {
-                        node_id: node.node_id.clone(),
-                        parent_id: node.parent_id.clone(),
-                        kind: RetainedUiHostComponentKind::from_component(&node.component),
-                        component: node.component.clone(),
-                        control_id: node.control_id.clone(),
-                        frame: node.frame,
-                        clip_frame: node.clip_frame,
-                        z_index: node.z_index,
-                        text: projected_text(&properties),
-                        icon: extract_string(&properties, "icon"),
-                        properties,
-                        style_tokens: node.style_tokens.clone(),
-                        component_role: component_descriptor
-                            .map(|descriptor| descriptor.role.clone()),
-                        value_text: string_attribute(&node.attributes, "value_text").or_else(
-                            || {
-                                node.attributes
-                                    .get("value")
-                                    .or_else(|| node.attributes.get("items"))
-                                    .or_else(|| node.attributes.get("entries"))
-                                    .map(UiValue::from_toml)
-                                    .map(|value| value.display_text())
-                            },
-                        ),
-                        validation_level: string_attribute(&node.attributes, "validation_level")
-                            .or_else(|| {
-                                component_descriptor.map(|_| {
-                                    if disabled { "disabled" } else { "normal" }.to_string()
-                                })
-                            }),
-                        validation_message: string_attribute(
-                            &node.attributes,
-                            "validation_message",
-                        ),
-                        popup_open: bool_attribute(&node.attributes, "popup_open").unwrap_or(false),
-                        has_popup_anchor,
-                        popup_anchor_x: popup_anchor_x.unwrap_or(0.0),
-                        popup_anchor_y: popup_anchor_y.unwrap_or(0.0),
-                        selection_state: string_attribute(&node.attributes, "selection_state")
-                            .or_else(|| {
-                                bool_attribute(&node.attributes, "multiple").map(|multiple| {
-                                    if multiple {
-                                        "multi".to_string()
-                                    } else {
-                                        "single".to_string()
-                                    }
-                                })
-                            }),
-                        options_text,
-                        options,
-                        collection_items: string_array_attribute(
-                            &node.attributes,
-                            "collection_items",
-                        ),
-                        menu_items: string_array_attribute(&node.attributes, "menu_items"),
-                        accepted_drag_payloads: component_descriptor
-                            .map(|descriptor| {
-                                descriptor
-                                    .drop_policy
-                                    .accepts
-                                    .iter()
-                                    .map(|kind| kind.as_str().to_string())
-                                    .collect()
-                            })
-                            .unwrap_or_default(),
-                        drop_source_summary: string_attribute(
-                            &node.attributes,
-                            "drop_source_summary",
-                        ),
-                        checked: bool_attribute(&node.attributes, "checked")
-                            .or_else(|| bool_attribute(&node.attributes, "value"))
-                            .unwrap_or(false),
-                        expanded: bool_attribute(&node.attributes, "expanded").unwrap_or(false),
-                        focused: bool_attribute(&node.attributes, "focused").unwrap_or(false),
-                        hovered: bool_attribute(&node.attributes, "hovered").unwrap_or(false),
-                        pressed: bool_attribute(&node.attributes, "pressed").unwrap_or(false),
-                        dragging: bool_attribute(&node.attributes, "dragging").unwrap_or(false),
-                        drop_hovered: bool_attribute(&node.attributes, "drop_hovered")
-                            .unwrap_or(false),
-                        active_drag_target: bool_attribute(&node.attributes, "active_drag_target")
-                            .unwrap_or(false),
-                        disabled,
-                        routes: node
-                            .bindings
-                            .iter()
-                            .map(|binding| RetainedUiHostRouteProjection {
-                                binding_id: binding.binding_id.clone(),
-                                action_id: binding.action_id.clone(),
-                                event_kind: binding.event_kind,
-                                route_id: binding.route_id,
-                            })
-                            .collect(),
+                        "single".to_string()
                     }
+                })
+            }),
+            options_text,
+            options,
+            collection_items: string_array_attribute(&node.attributes, "collection_items"),
+            menu_items: string_array_attribute(&node.attributes, "menu_items"),
+            accepted_drag_payloads: component_descriptor
+                .map(|descriptor| {
+                    descriptor
+                        .drop_policy
+                        .accepts
+                        .iter()
+                        .map(|kind| kind.as_str().to_string())
+                        .collect()
+                })
+                .unwrap_or_default(),
+            drop_source_summary: string_attribute(&node.attributes, "drop_source_summary"),
+            checked: bool_attribute(&node.attributes, "checked")
+                .or_else(|| bool_attribute(&node.attributes, "value"))
+                .unwrap_or(false),
+            expanded: bool_attribute(&node.attributes, "expanded").unwrap_or(false),
+            focused: bool_attribute(&node.attributes, "focused").unwrap_or(false),
+            focus_visible: bool_attribute(&node.attributes, "focus_visible")
+                .or_else(|| bool_attribute(&node.attributes, "focus-visible"))
+                .or_else(|| bool_attribute(&node.attributes, "focusVisible"))
+                .unwrap_or(false),
+            focus_visible_known: bool_attribute(&node.attributes, "focus_visible_known")
+                .unwrap_or(false),
+            hovered: bool_attribute(&node.attributes, "hovered").unwrap_or(false),
+            pressed: bool_attribute(&node.attributes, "pressed").unwrap_or(false),
+            dragging: bool_attribute(&node.attributes, "dragging").unwrap_or(false),
+            drop_hovered: bool_attribute(&node.attributes, "drop_hovered").unwrap_or(false),
+            active_drag_target: bool_attribute(&node.attributes, "active_drag_target")
+                .unwrap_or(false),
+            disabled,
+            routes: node
+                .bindings
+                .iter()
+                .map(|binding| RetainedUiHostRouteProjection {
+                    binding_id: binding.binding_id.clone(),
+                    action_id: binding.action_id.clone(),
+                    event_kind: binding.event_kind,
+                    route_id: binding.route_id,
                 })
                 .collect(),
         }

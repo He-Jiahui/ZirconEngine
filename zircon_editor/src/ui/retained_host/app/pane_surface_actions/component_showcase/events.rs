@@ -1,6 +1,6 @@
 use super::super::*;
 use super::MATERIAL_LAB_BINDING_PREFIX;
-use crate::ui::template_runtime::{SHOWCASE_DOCUMENT_ID, UiComponentShowcaseDemoEventInput};
+use crate::ui::template_runtime::{UiComponentShowcaseDemoEventInput, SHOWCASE_DOCUMENT_ID};
 
 impl RetainedEditorHost {
     pub(super) fn dispatch_component_showcase_event(

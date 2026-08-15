@@ -2,30 +2,60 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use zircon_runtime_interface::ZrByteSlice;
+use zircon_runtime_interface::project::RelPath;
 
-use crate::asset::project::ProjectManifest;
-use crate::asset::project::{ProjectManager, ProjectScriptManifest};
-use crate::asset::{asset_manager_handle, project_asset_manager_handle, ProjectInfo};
+use crate::asset::project::{
+    ProjectManager, ProjectManifest, ProjectPaths, ProjectScriptManifest, ResolvedProjectPath,
+};
+use crate::asset::{ProjectInfo, asset_manager_handle, project_asset_manager_handle};
+use crate::core::CoreHandle;
 use crate::core::framework::navigation::NavMeshAsset;
 use crate::core::framework::project::ProjectPluginManifest;
 use crate::core::manager::{navigation_manager_handle, resolve_manager_service};
-use crate::core::CoreHandle;
 use crate::diagnostic_log::{write_log, write_log_lazy};
-use crate::scene::{DynamicSceneAssetReloadQueue, LevelSystem};
-use crate::script::{VmPluginManager, VM_PLUGIN_MANAGER_NAME};
+use crate::scene::{DynamicScene, DynamicSceneAssetReloadQueue, LevelMetadata, LevelSystem, World};
+use crate::script::{VM_PLUGIN_MANAGER_NAME, VmPluginManager};
 
 use super::error::{RuntimeProjectError, RuntimeProjectResult};
+use super::runtime_ui::RuntimeUiSurfaceSet;
 
 const DEFAULT_PROJECT_NAVMESH_PATH: &[&str] = &["assets", "navigation", "main.navmesh.toml"];
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct RuntimeProjectConfig {
-    root: PathBuf,
+    root: ResolvedProjectPath,
+    play_scene: Option<RelPath>,
 }
 
 impl RuntimeProjectConfig {
-    pub(super) fn from_root(root: impl Into<PathBuf>) -> Self {
-        Self { root: root.into() }
+    /// Resolves the caller-owned project path once at the dynamic-runtime boundary.
+    ///
+    /// The configuration retains both resolver views so project preparation can open the same
+    /// physical root without recreating a platform-specific path branch below the ABI.
+    pub(super) fn from_root(root: impl AsRef<Path>) -> RuntimeProjectResult<Self> {
+        let requested_root = root.as_ref();
+        let root = ProjectPaths::resolve_path(requested_root).map_err(|source| {
+            RuntimeProjectError::ResolveProjectRoot {
+                root: requested_root.to_path_buf(),
+                source,
+            }
+        })?;
+        let root = if ProjectPaths::is_project_manifest_file(root.operation_path()) {
+            root.parent()
+                .ok_or_else(|| RuntimeProjectError::ResolveProjectRoot {
+                    root: requested_root.to_path_buf(),
+                    source: std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        "project manifest has no parent directory",
+                    ),
+                })?
+        } else {
+            root
+        };
+        Ok(Self {
+            root,
+            play_scene: None,
+        })
     }
 
     pub(super) fn from_abi_slice(slice: ZrByteSlice) -> RuntimeProjectResult<Option<Self>> {
@@ -39,28 +69,54 @@ impl RuntimeProjectConfig {
         if value.is_empty() {
             return Err(RuntimeProjectError::EmptyProjectRoot);
         }
-        Ok(Some(Self {
-            root: PathBuf::from(value),
-        }))
+        Self::from_root(Path::new(value)).map(Some)
+    }
+
+    pub(super) fn from_abi_startup_config(
+        project_root: ZrByteSlice,
+        play_scene: ZrByteSlice,
+        play_report_pipe: ZrByteSlice,
+    ) -> RuntimeProjectResult<Option<Self>> {
+        let Some(mut project) = Self::from_abi_slice(project_root)? else {
+            if !play_scene.is_empty() {
+                return Err(RuntimeProjectError::PlaySceneRequiresProject);
+            }
+            if !play_report_pipe.is_empty() {
+                return Err(RuntimeProjectError::PlayReportPipeRequiresProject);
+            }
+            return Ok(None);
+        };
+
+        project.play_scene = parse_optional_play_scene(play_scene)?;
+        // The app process owns the child-output transport; the dynamic session only validates
+        // its typed startup input before bootstrap.
+        let _ = parse_optional_play_report_pipe(play_report_pipe)?;
+        Ok(Some(project))
     }
 
     pub(super) fn root_display(&self) -> String {
-        self.root.to_string_lossy().into_owned()
+        self.root.display_path().display().to_string()
     }
 
     pub(super) fn prepare(self) -> RuntimeProjectResult<RuntimePreparedProject> {
-        let project = ProjectManager::open(&self.root).map_err(|source| {
+        let root = self.root.operation_path().to_path_buf();
+        let project = ProjectManager::open_resolved(&self.root).map_err(|source| {
             RuntimeProjectError::OpenProject {
-                root: self.root.clone(),
+                root: root.clone(),
                 source,
             }
         })?;
-        let root = project.paths().root().to_path_buf();
+        let play_scene = self
+            .play_scene
+            .as_ref()
+            .map(|relative| prepare_play_scene(&project, &root, relative))
+            .transpose()?;
         let manifest = RuntimeLoadedProjectManifest::from(project.manifest());
         Ok(RuntimePreparedProject {
             root,
             manifest,
             project: Some(project),
+            play_scene,
         })
     }
 }
@@ -69,12 +125,24 @@ pub(super) struct RuntimePreparedProject {
     root: PathBuf,
     manifest: RuntimeLoadedProjectManifest,
     project: Option<ProjectManager>,
+    play_scene: Option<PreparedPlayScene>,
+}
+
+struct PreparedPlayScene {
+    relative: RelPath,
+    operation_path: ResolvedProjectPath,
+    kind: PreparedPlaySceneKind,
+}
+
+enum PreparedPlaySceneKind {
+    VersionedSnapshot,
+    SceneAsset { uri: String },
 }
 
 pub(super) fn project_opened_log(info: &ProjectInfo) -> String {
     format!(
         "runtime_project_opened root={} name={} default_scene={} library_version={} assets={} ready_assets={} failed_assets={} registry_diagnostics={}",
-        info.root_path,
+        ProjectPaths::display_path(Path::new(&info.root_path)).display(),
         info.name,
         info.default_scene_uri,
         info.library_version,
@@ -87,11 +155,21 @@ pub(super) fn project_opened_log(info: &ProjectInfo) -> String {
 
 impl RuntimePreparedProject {
     pub(super) fn root_display(&self) -> String {
-        self.root.to_string_lossy().into_owned()
+        ProjectPaths::display_path(&self.root).display().to_string()
     }
 
     pub(super) fn plugin_manifest(&self) -> &ProjectPluginManifest {
         &self.manifest.plugins
+    }
+
+    pub(super) fn has_play_scene_override(&self) -> bool {
+        self.play_scene.is_some()
+    }
+
+    pub(super) fn play_scene_identifier(&self) -> Option<String> {
+        self.play_scene
+            .as_ref()
+            .map(|play_scene| play_scene.relative.to_string())
     }
 
     pub(super) fn open_project_assets(
@@ -139,6 +217,68 @@ impl RuntimePreparedProject {
         })
     }
 
+    pub(super) fn load_play_scene_level(
+        &self,
+        core: &CoreHandle,
+    ) -> RuntimeProjectResult<LevelSystem> {
+        let play_scene = self
+            .play_scene
+            .as_ref()
+            .ok_or(RuntimeProjectError::MissingPlaySceneOverride)?;
+        match &play_scene.kind {
+            PreparedPlaySceneKind::VersionedSnapshot => {
+                let path = play_scene.operation_path.operation_path();
+                let document = std::fs::read_to_string(path).map_err(|source| {
+                    RuntimeProjectError::ReadPlayScene {
+                        path: path.to_path_buf(),
+                        source,
+                    }
+                })?;
+                let scene = DynamicScene::from_versioned_json(&document).map_err(|source| {
+                    RuntimeProjectError::ParsePlayScene {
+                        path: path.to_path_buf(),
+                        source,
+                    }
+                })?;
+                let level = crate::scene::create_level(
+                    core,
+                    World::new(),
+                    LevelMetadata {
+                        project_root: Some(self.root_display()),
+                        asset_uri: None,
+                        display_name: Some(format!("Play snapshot {}", play_scene.relative)),
+                    },
+                )
+                .map_err(|source| RuntimeProjectError::CreatePlaySceneLevel {
+                    scene: play_scene.relative.clone(),
+                    source,
+                })?;
+                level
+                    .with_world_mut(|world| scene.spawn_into(world))
+                    .map_err(|source| RuntimeProjectError::ApplyPlayScene {
+                        scene: play_scene.relative.clone(),
+                        source,
+                    })?;
+                Ok(level)
+            }
+            PreparedPlaySceneKind::SceneAsset { uri } => {
+                let asset_manager = asset_manager_handle(core)
+                    .and_then(|handle| resolve_manager_service(core, handle))
+                    .map_err(|source| RuntimeProjectError::ResolveAssetManager {
+                        root: self.root.clone(),
+                        source,
+                    })?;
+                crate::scene::load_level_asset(core, asset_manager.as_ref(), uri).map_err(
+                    |source| RuntimeProjectError::LoadPlaySceneAsset {
+                        root: self.root.clone(),
+                        scene: play_scene.relative.clone(),
+                        source,
+                    },
+                )
+            }
+        }
+    }
+
     pub(super) fn scene_asset_reload_queue(
         &self,
         core: &CoreHandle,
@@ -158,6 +298,24 @@ impl RuntimePreparedProject {
             project,
             asset_manager.as_ref(),
         ))
+    }
+
+    pub(super) fn load_runtime_ui_surfaces(
+        &self,
+        core: &CoreHandle,
+    ) -> RuntimeProjectResult<RuntimeUiSurfaceSet> {
+        let asset_manager = project_asset_manager_handle(core)
+            .and_then(|handle| resolve_manager_service(core, handle))
+            .map_err(|source| RuntimeProjectError::ResolveProjectAssetManager {
+                root: self.root.clone(),
+                source,
+            })?;
+        let project = asset_manager.current_project_manager().ok_or_else(|| {
+            RuntimeProjectError::MissingActiveProjectManager {
+                root: self.root.clone(),
+            }
+        })?;
+        RuntimeUiSurfaceSet::load(&project, &self.manifest.ui_roots)
     }
 
     pub(super) fn load_default_navigation(&self, core: &CoreHandle) -> RuntimeProjectResult<()> {
@@ -209,7 +367,7 @@ impl RuntimePreparedProject {
             write_log_lazy("runtime_session", || {
                 format!(
                     "runtime_project_script_discover_start root={}",
-                    root.display()
+                    ProjectPaths::display_path(&root).display()
                 )
             });
             packages.extend(manager.discover_packages(&root).map_err(|source| {
@@ -221,7 +379,7 @@ impl RuntimePreparedProject {
             write_log_lazy("runtime_session", || {
                 format!(
                     "runtime_project_script_discover_done root={} packages={}",
-                    root.display(),
+                    ProjectPaths::display_path(&root).display(),
                     packages.len()
                 )
             });
@@ -250,9 +408,76 @@ impl RuntimePreparedProject {
     }
 }
 
+fn prepare_play_scene(
+    project: &ProjectManager,
+    root: &Path,
+    relative: &RelPath,
+) -> RuntimeProjectResult<PreparedPlayScene> {
+    let operation_path =
+        ProjectPaths::resolve_existing(relative.join_to(root)).map_err(|source| {
+            RuntimeProjectError::ResolvePlayScene {
+                root: root.to_path_buf(),
+                scene: relative.clone(),
+                source,
+            }
+        })?;
+    let kind = if relative.as_str().ends_with(".zrscene.json") {
+        PreparedPlaySceneKind::VersionedSnapshot
+    } else if relative.as_str().ends_with(".scene.toml") {
+        let uri = project
+            .project_uri_for_source_path(operation_path.operation_path())
+            .map_err(|source| RuntimeProjectError::ResolvePlaySceneAssetUri {
+                scene: relative.clone(),
+                source,
+            })?;
+        PreparedPlaySceneKind::SceneAsset {
+            uri: uri.to_string(),
+        }
+    } else {
+        return Err(RuntimeProjectError::UnsupportedPlaySceneFormat {
+            scene: relative.clone(),
+        });
+    };
+    Ok(PreparedPlayScene {
+        relative: relative.clone(),
+        operation_path,
+        kind,
+    })
+}
+
+fn parse_optional_play_scene(slice: ZrByteSlice) -> RuntimeProjectResult<Option<RelPath>> {
+    if slice.is_empty() {
+        return Ok(None);
+    }
+    let value = std::str::from_utf8(unsafe { slice.as_slice() })
+        .map_err(|source| RuntimeProjectError::PlaySceneUtf8 { source })?;
+    if value.trim().is_empty() {
+        return Err(RuntimeProjectError::EmptyPlayScene);
+    }
+    RelPath::parse(value)
+        .map(Some)
+        .map_err(|source| RuntimeProjectError::InvalidPlayScene {
+            scene: value.to_owned(),
+            source,
+        })
+}
+
+fn parse_optional_play_report_pipe(slice: ZrByteSlice) -> RuntimeProjectResult<Option<String>> {
+    if slice.is_empty() {
+        return Ok(None);
+    }
+    let value = std::str::from_utf8(unsafe { slice.as_slice() })
+        .map_err(|source| RuntimeProjectError::PlayReportPipeUtf8 { source })?;
+    if value.trim().is_empty() {
+        return Err(RuntimeProjectError::EmptyPlayReportPipe);
+    }
+    Ok(Some(value.to_owned()))
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct RuntimeLoadedProjectManifest {
     default_scene: String,
+    ui_roots: Vec<crate::asset::AssetUri>,
     plugins: ProjectPluginManifest,
     scripts: ProjectScriptManifest,
 }
@@ -300,6 +525,7 @@ impl From<&ProjectManifest> for RuntimeLoadedProjectManifest {
     fn from(manifest: &ProjectManifest) -> Self {
         Self {
             default_scene: manifest.default_scene.to_string(),
+            ui_roots: manifest.ui_roots.clone(),
             plugins: manifest.plugins.clone(),
             scripts: manifest.scripts.clone(),
         }
@@ -312,8 +538,7 @@ mod tests {
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use crate::asset::project::ProjectManifest;
-    use crate::asset::project::ProjectScriptManifest;
+    use crate::asset::project::{ProjectManifest, ProjectPaths, ProjectScriptManifest};
     use crate::asset::{AssetUri, ProjectInfo};
     use crate::core::framework::project::ProjectPluginManifest;
     use crate::script::{
@@ -322,7 +547,9 @@ mod tests {
     };
     use zircon_runtime_interface::ZrByteSlice;
 
-    use super::{project_opened_log, RuntimeLoadedProjectManifest, RuntimeProjectConfig};
+    use super::{
+        RuntimeLoadedProjectManifest, RuntimeProjectConfig, RuntimeProjectError, project_opened_log,
+    };
 
     #[test]
     fn project_opened_log_reports_the_activated_project_snapshot() {
@@ -363,6 +590,89 @@ mod tests {
     }
 
     #[test]
+    fn project_startup_rejects_play_inputs_without_a_project_root() {
+        let scene = b".zircon/play/instance/play-scene.zrscene.json";
+        let error = RuntimeProjectConfig::from_abi_startup_config(
+            ZrByteSlice::empty(),
+            ZrByteSlice {
+                data: scene.as_ptr(),
+                len: scene.len(),
+            },
+            ZrByteSlice::empty(),
+        )
+        .unwrap_err();
+
+        assert!(matches!(
+            error,
+            RuntimeProjectError::PlaySceneRequiresProject
+        ));
+    }
+
+    #[test]
+    fn project_startup_keeps_the_existing_rel_path_contract_for_play_scene() {
+        let root = b"examples/vampire";
+        let scene = b".zircon/play/instance/play-scene.zrscene.json";
+        let parsed = RuntimeProjectConfig::from_abi_startup_config(
+            ZrByteSlice {
+                data: root.as_ptr(),
+                len: root.len(),
+            },
+            ZrByteSlice {
+                data: scene.as_ptr(),
+                len: scene.len(),
+            },
+            ZrByteSlice::empty(),
+        )
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(
+            parsed.play_scene.as_ref().map(|scene| scene.as_str()),
+            Some(".zircon/play/instance/play-scene.zrscene.json")
+        );
+    }
+
+    #[test]
+    fn project_startup_rejects_absolute_play_scene_and_blank_report_outlet() {
+        let root = b"examples/vampire";
+        let absolute_scene = b"C:/outside.scene.toml";
+        let scene_error = RuntimeProjectConfig::from_abi_startup_config(
+            ZrByteSlice {
+                data: root.as_ptr(),
+                len: root.len(),
+            },
+            ZrByteSlice {
+                data: absolute_scene.as_ptr(),
+                len: absolute_scene.len(),
+            },
+            ZrByteSlice::empty(),
+        )
+        .unwrap_err();
+        assert!(matches!(
+            scene_error,
+            RuntimeProjectError::InvalidPlayScene { .. }
+        ));
+
+        let blank_outlet = b"  ";
+        let outlet_error = RuntimeProjectConfig::from_abi_startup_config(
+            ZrByteSlice {
+                data: root.as_ptr(),
+                len: root.len(),
+            },
+            ZrByteSlice::empty(),
+            ZrByteSlice {
+                data: blank_outlet.as_ptr(),
+                len: blank_outlet.len(),
+            },
+        )
+        .unwrap_err();
+        assert!(matches!(
+            outlet_error,
+            RuntimeProjectError::EmptyPlayReportPipe
+        ));
+    }
+
+    #[test]
     fn project_config_parses_project_root_path() {
         let raw = b"examples/vampire";
         let parsed = RuntimeProjectConfig::from_abi_slice(ZrByteSlice {
@@ -372,7 +682,63 @@ mod tests {
         .unwrap()
         .unwrap();
 
-        assert_eq!(parsed.root_display(), "examples/vampire");
+        assert_eq!(
+            parsed.root_display(),
+            ProjectPaths::resolve_path("examples/vampire")
+                .unwrap()
+                .display_path()
+                .display()
+                .to_string()
+        );
+    }
+
+    #[test]
+    fn project_config_normalizes_a_manifest_input_to_its_project_root() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("templates")
+            .join("projects")
+            .join("renderable-empty");
+        let config = RuntimeProjectConfig::from_root(root.join("zircon-project.toml")).unwrap();
+
+        assert_eq!(
+            config.root_display(),
+            ProjectPaths::resolve_existing(&root)
+                .unwrap()
+                .display_path()
+                .display()
+                .to_string()
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn project_config_displays_operation_root_without_verbatim_prefix() {
+        let project =
+            RuntimeProjectConfig::from_root(r"\\?\C:\ZirconBuilds\stage\project").unwrap();
+
+        assert_eq!(project.root_display(), r"C:\ZirconBuilds\stage\project");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn project_config_rejects_drive_relative_abi_paths_at_the_resolver_boundary() {
+        let raw = br"C:runtime-project";
+        let error = RuntimeProjectConfig::from_abi_slice(ZrByteSlice {
+            data: raw.as_ptr(),
+            len: raw.len(),
+        })
+        .unwrap_err();
+
+        assert!(matches!(
+            error,
+            RuntimeProjectError::ResolveProjectRoot { .. }
+        ));
+        assert!(
+            error
+                .to_string()
+                .contains("Windows project paths must be drive-rooted, not drive-relative")
+        );
     }
 
     #[test]
@@ -396,7 +762,10 @@ mod tests {
         .save(&manifest_path)
         .unwrap();
 
-        let prepared = RuntimeProjectConfig::from_root(&root).prepare().unwrap();
+        let prepared = RuntimeProjectConfig::from_root(&root)
+            .unwrap()
+            .prepare()
+            .unwrap();
 
         ProjectManifest::new(
             "Prepared Snapshot Two",
@@ -436,9 +805,16 @@ mod tests {
         .save(relative_root.join("zircon-project.toml"))
         .unwrap();
 
-        let prepared = RuntimeProjectConfig::from_root(&relative_root)
-            .prepare()
-            .unwrap();
+        let config = RuntimeProjectConfig::from_root(&relative_root).unwrap();
+        assert_eq!(
+            config.root_display(),
+            std::env::current_dir()
+                .unwrap()
+                .join(&relative_root)
+                .to_string_lossy()
+                .into_owned()
+        );
+        let prepared = config.prepare().unwrap();
 
         assert_eq!(
             prepared.root_display(),
@@ -456,6 +832,7 @@ mod tests {
     fn project_manifest_filters_startup_script_packages() {
         let manifest = RuntimeLoadedProjectManifest {
             default_scene: "res://scenes/main.scene.toml".to_string(),
+            ui_roots: Vec::new(),
             plugins: ProjectPluginManifest::default(),
             scripts: ProjectScriptManifest {
                 package_roots: vec!["scripts".to_string()],
@@ -478,6 +855,7 @@ mod tests {
     fn project_manifest_rejects_missing_startup_script_package() {
         let manifest = RuntimeLoadedProjectManifest {
             default_scene: "res://scenes/main.scene.toml".to_string(),
+            ui_roots: Vec::new(),
             plugins: ProjectPluginManifest::default(),
             scripts: ProjectScriptManifest {
                 package_roots: vec!["scripts".to_string()],

@@ -199,7 +199,8 @@ impl EditorCommandDescriptor {
             EditorCommandAction::Emit(event) => Some(event),
             EditorCommandAction::Operation
             | EditorCommandAction::HeadlessAssetMigration
-            | EditorCommandAction::HeadlessPluginList => None,
+            | EditorCommandAction::HeadlessPluginList
+            | EditorCommandAction::HeadlessAuthoringAutomation => None,
         }
     }
 
@@ -345,6 +346,7 @@ pub enum EditorCommandAction {
     Operation,
     HeadlessAssetMigration,
     HeadlessPluginList,
+    HeadlessAuthoringAutomation,
 }
 
 #[cfg(test)]

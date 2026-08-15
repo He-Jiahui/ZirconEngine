@@ -1,4 +1,4 @@
-use super::types::{ActionControl, ExtensionNavigationSpec, action, spec};
+use super::types::{action, spec, ActionControl, ExtensionNavigationSpec};
 
 const SAVE_DATA_TAB_CONTROLS: &[&str] = &[
     "WorkbenchExtensionSaveDataSlotsTab",

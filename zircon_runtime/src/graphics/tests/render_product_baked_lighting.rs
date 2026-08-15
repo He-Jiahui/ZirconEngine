@@ -319,6 +319,7 @@ fn register_fixture_plane(asset_manager: &ProjectAssetManager) -> ResourceHandle
             vertices,
             indices: vec![0, 1, 2, 2, 1, 3],
             mesh: None,
+            mesh_sdf: None,
             virtual_geometry: None,
         }],
     };

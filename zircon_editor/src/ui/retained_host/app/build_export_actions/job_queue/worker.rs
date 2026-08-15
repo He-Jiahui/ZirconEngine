@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use std::sync::{Arc, mpsc::Sender};
+use std::sync::{mpsc::Sender, Arc};
 
 use super::super::DesktopExportExecutionSummary;
 use super::{DesktopExportProgressSnapshot, DesktopExportQueuedJob};
@@ -148,7 +148,7 @@ mod tests {
 
     use super::*;
     use crate::core::jobs::{
-        CancellationToken, EditorJobSpec, JobCategory, JobError, test_job_system,
+        test_job_system, CancellationToken, EditorJobSpec, JobCategory, JobError,
     };
     use zircon_runtime::asset::AssetUri;
 

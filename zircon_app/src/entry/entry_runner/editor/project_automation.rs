@@ -6,10 +6,13 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use zircon_editor::{
-    core::editor_event::{EditorEventRecord, EditorEventSource},
+    core::{
+        commandlet::{AuthoringAutomationCommandletRequest, CommandletHost},
+        editor_event::EditorEventRecord,
+    },
     ui::binding::EditorUiBinding,
 };
-use zircon_runtime::asset::project::ProjectPaths;
+use zircon_runtime::asset::project::{ProjectPaths, ResolvedProjectPath};
 
 use super::EditorApplicationComposition;
 
@@ -36,109 +39,73 @@ impl EditorProjectAutomationRequest {
     }
 }
 
-/// CLI input for one project-scoped, headless binding sequence.
-pub(crate) struct EditorProjectAutomationCliRequest {
-    pub project_root: PathBuf,
-    pub request: EditorProjectAutomationRequest,
-}
+/// Process host for the commandlet that drives normal retained-host bindings.
+pub(crate) struct EditorProjectAutomationCommandletHost;
 
-/// Parses the optional project automation CLI without changing the normal GUI or operation CLI.
-pub(crate) fn parse_project_automation_args<I>(
-    args: I,
-) -> Result<Option<EditorProjectAutomationCliRequest>, Box<dyn Error>>
-where
-    I: IntoIterator<Item = String>,
-{
-    let args = args.into_iter().collect::<Vec<_>>();
-    if !args.iter().any(|arg| arg == "--automation") {
-        return Ok(None);
-    }
+impl CommandletHost for EditorProjectAutomationCommandletHost {
+    type AuthoringAutomationReport = EditorProjectAutomationReport;
+    type Error = Box<dyn Error>;
 
-    let mut args = args.into_iter();
-    let mut project_root = None;
-    let mut automation_path = None;
-    let mut headless = false;
-    while let Some(arg) = args.next() {
-        match arg.as_str() {
-            "--project" => {
-                if project_root.is_some() {
-                    return Err("--project was provided more than once".into());
-                }
-                let Some(value) = args.next() else {
-                    return Err("--project requires a project path".into());
-                };
-                if value.trim().is_empty() {
-                    return Err("--project requires a non-empty project path".into());
-                }
-                project_root = Some(PathBuf::from(value));
-            }
-            "--automation" => {
-                if automation_path.is_some() {
-                    return Err("--automation was provided more than once".into());
-                }
-                let Some(value) = args.next() else {
-                    return Err("--automation requires a JSON file path".into());
-                };
-                if value.trim().is_empty() {
-                    return Err("--automation requires a non-empty JSON file path".into());
-                }
-                automation_path = Some(PathBuf::from(value));
-            }
-            "--headless" => {
-                if headless {
-                    return Err("--headless was provided more than once".into());
-                }
-                headless = true;
-            }
-            other => {
-                return Err(
-                    format!("unknown project-scoped editor automation argument `{other}`").into(),
-                );
-            }
-        }
-    }
-
-    let Some(project_root) = project_root else {
-        return Err("--automation requires --project <project-root>".into());
-    };
-    let Some(automation_path) = automation_path else {
-        return Ok(None);
-    };
-    if !headless {
-        return Err("--automation requires --headless".into());
-    }
-
-    let project_root = resolve_project_automation_input_path(project_root, "project root")?;
-    let automation_path = resolve_project_automation_input_path(automation_path, "file")?;
-    let contents = fs::read_to_string(&automation_path).map_err(|error| {
-        io::Error::other(format!(
-            "could not read project automation file '{}': {error}",
-            ProjectPaths::display_path(&automation_path).display()
-        ))
-    })?;
-    let request: EditorProjectAutomationRequest =
-        serde_json::from_str(&contents).map_err(|error| {
+    fn run_authoring_automation(
+        &self,
+        request: &AuthoringAutomationCommandletRequest,
+    ) -> Result<Self::AuthoringAutomationReport, Self::Error> {
+        let project_root =
+            normalize_resolved_project_automation_root(resolve_project_automation_input_path(
+                request.project_root().to_path_buf(),
+                "project root",
+            )?)?;
+        let automation_path =
+            resolve_project_automation_input_path(request.automation_path().to_path_buf(), "file")?;
+        let contents = fs::read_to_string(automation_path.operation_path()).map_err(|error| {
             io::Error::other(format!(
-                "could not parse project automation file '{}': {error}",
-                ProjectPaths::display_path(&automation_path).display()
+                "could not read project automation file '{}': {error}",
+                automation_path.display_path().display()
             ))
         })?;
-    request.validate()?;
+        let request: EditorProjectAutomationRequest =
+            serde_json::from_str(&contents).map_err(|error| {
+                io::Error::other(format!(
+                    "could not parse project automation file '{}': {error}",
+                    automation_path.display_path().display()
+                ))
+            })?;
+        request.validate()?;
 
-    Ok(Some(EditorProjectAutomationCliRequest {
-        project_root,
-        request,
-    }))
+        execute_project_automation(&project_root, &request)
+    }
 }
 
-fn resolve_project_automation_input_path(path: PathBuf, label: &str) -> Result<PathBuf, io::Error> {
+fn resolve_project_automation_input_path(
+    path: PathBuf,
+    label: &str,
+) -> Result<ResolvedProjectPath, io::Error> {
     let display_path = ProjectPaths::display_path(&path);
-    ProjectPaths::resolve_existing_path(&path).map_err(|error| {
+    ProjectPaths::resolve_existing(&path).map_err(|error| {
         io::Error::other(format!(
             "could not resolve project automation {label} '{}': {error}",
             display_path.display()
         ))
     })
+}
+
+/// Accepts the same directory-or-manifest project input shape as `ProjectAuthority` while
+/// retaining the resolved operation/display pair selected by the CLI boundary.
+fn normalize_resolved_project_automation_root(
+    path: ResolvedProjectPath,
+) -> Result<ResolvedProjectPath, io::Error> {
+    if ProjectPaths::is_project_manifest_file(path.operation_path()) {
+        return path.parent().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!(
+                    "project manifest '{}' has no parent project directory",
+                    path.display_path().display()
+                ),
+            )
+        });
+    }
+    Ok(path)
 }
 
 /// Structured evidence from applying a normal binding sequence to one opened project.
@@ -174,70 +141,52 @@ pub(crate) struct EditorProjectAutomationSnapshot {
 /// application composition. It does not interpret a binding as a filesystem mutation or reopen a
 /// second project authority.
 pub(crate) fn execute_project_automation(
-    project_root: impl AsRef<Path>,
+    project_root: &ResolvedProjectPath,
     request: &EditorProjectAutomationRequest,
 ) -> Result<EditorProjectAutomationReport, Box<dyn Error>> {
     request.validate()?;
 
-    let composition = EditorApplicationComposition::open_project(project_root)?;
+    let composition = EditorApplicationComposition::open_resolved_project(project_root.clone())
+        .map_err(|error| {
+            io::Error::other(format!(
+                "could not open project '{}': {}",
+                project_root.display_path().display(),
+                project_root.display_diagnostic(error)
+            ))
+        })?;
+    let (project_identity, manifest_identity, scene_uri) = {
+        let opened_project = composition.prepared_project();
+        let manifest = opened_project.manifest();
+        (
+            manifest.name.clone(),
+            format!("{}@v{}", manifest.name, manifest.format_version),
+            manifest.default_scene.to_string(),
+        )
+    };
+    let retained_result = composition
+        .run_retained_host_automation(&request.bindings)
+        .map_err(|error| {
+            io::Error::other(format!(
+                "retained-host automation failed: {}",
+                project_root.display_diagnostic(error)
+            ))
+        })?;
+    require_healthy_project_for_automation(
+        "Project opened: retained-host project",
+        retained_result.project_info.asset_count,
+        retained_result.project_info.ready_asset_count,
+        retained_result.project_info.failed_asset_count,
+    )?;
+    let opened_project_inspection_generation =
+        Some(retained_result.opened_project_inspection_generation);
     let automation_result: Result<_, Box<dyn Error>> = (|| {
-        let opened_project = composition
-            .startup_session()
-            .project
-            .as_ref()
-            .ok_or_else(|| {
-                io::Error::other("project automation composition has no opened project")
-            })?;
-        require_healthy_project_for_automation(
-            &composition.startup_session().status_message,
-            opened_project.project_info.asset_count,
-            opened_project.project_info.ready_asset_count,
-            opened_project.project_info.failed_asset_count,
-        )?;
-        let project_identity = opened_project.manifest.name.clone();
-        let manifest_identity = format!(
-            "{}@v{}",
-            opened_project.manifest.name, opened_project.manifest.format_version
-        );
-        let scene_uri = opened_project.manifest.default_scene.to_string();
-        let opened_project_inspection_generation =
-            composition.opened_project_inspection_generation();
-        let host = composition.editor_host();
-        let mut records = Vec::with_capacity(request.bindings.len());
-        for (index, binding) in request.bindings.iter().cloned().enumerate() {
-            let binding_path = binding.native_binding();
-            let record = host
-            .dispatch_binding(binding, EditorEventSource::Cli)
-            .map_err(|error| {
-                io::Error::other(format!(
-                    "project-scoped editor automation binding {index} ('{binding_path}') failed: {error}"
-                ))
-            })?;
-            records.push(record);
-        }
+        let editor_snapshot = retained_result.editor_snapshot;
+        let scene_nodes = retained_result.scene_nodes;
 
-        let editor_snapshot = host.editor_snapshot();
         let selected_scene_entry = editor_snapshot
             .scene_entries
             .iter()
             .find(|entry| editor_snapshot.scene_entries.is_selected(entry.entity));
-        let project_scene = host.project_scene_snapshot().ok_or_else(|| {
-            io::Error::other(
-                "project-scoped editor automation completed without an authoritative scene",
-            )
-        })?;
-        let scene_nodes = editor_snapshot
-            .scene_entries
-            .iter()
-            .map(|entry| {
-                project_scene.node_record(entry.entity).ok_or_else(|| {
-                    io::Error::other(format!(
-                        "project-scoped editor automation could not snapshot scene node {} ('{}')",
-                        entry.entity, entry.display_name
-                    ))
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
         let selected_node = selected_scene_entry
             .and_then(|entry| scene_nodes.iter().find(|node| node.id == entry.entity));
         let selected_model_resource_id = selected_node
@@ -277,16 +226,25 @@ pub(crate) fn execute_project_automation(
             selected_model_resource_id,
             selected_material_resource_id,
             opened_project_inspection_generation,
-            records,
+            records: retained_result.records,
             snapshot,
         };
         Ok(report)
     })();
-    let close_result = composition.close();
-    finish_project_automation(automation_result, close_result)
+    automation_result
 }
 
 fn project_automation_report_path(project_path: impl AsRef<Path>) -> String {
+    let project_path = project_path.as_ref();
+    if let (Ok(project_root), Ok(current_directory)) = (
+        ProjectPaths::resolve_existing(project_path),
+        std::env::current_dir().and_then(ProjectPaths::resolve_existing),
+    ) {
+        if project_root.operation_path() == current_directory.operation_path() {
+            return ".".to_owned();
+        }
+    }
+
     ProjectPaths::display_path(project_path)
         .to_string_lossy()
         .into_owned()
@@ -310,117 +268,178 @@ fn require_healthy_project_for_automation(
     )))
 }
 
-fn finish_project_automation<T>(
-    automation_result: Result<T, Box<dyn Error>>,
-    close_result: Result<(), Box<dyn Error>>,
-) -> Result<T, Box<dyn Error>> {
-    match (automation_result, close_result) {
-        (Ok(report), Ok(())) => Ok(report),
-        (Ok(_), Err(close_error)) => Err(close_error),
-        (Err(automation_error), Ok(())) => Err(automation_error),
-        (Err(automation_error), Err(close_error)) => Err(format!(
-            "project automation failed: {automation_error}; editor composition close also failed: {close_error}"
-        )
-        .into()),
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    #[cfg(windows)]
-    use std::path::{Path, PathBuf};
+    use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
-    use super::super::editor_automation_startup_error;
+    #[cfg(windows)]
+    use std::path::Path;
+
+    use zircon_runtime::asset::project::ProjectPaths;
+
     use super::{
-        finish_project_automation, parse_project_automation_args, project_automation_report_path,
+        normalize_resolved_project_automation_root, project_automation_report_path,
         require_healthy_project_for_automation, resolve_project_automation_input_path,
         EditorProjectAutomationReport, EditorProjectAutomationRequest,
         EditorProjectAutomationSnapshot,
     };
 
     #[test]
-    fn project_automation_closes_composition_before_finishing_any_result() {
+    fn project_automation_fixture_roots_follow_the_resolved_test_binary_directory() {
+        let root = automation_test_root("physical-root");
+        let executable =
+            std::env::current_exe().expect("locate the project-automation test executable");
+        let binary_directory = executable
+            .parent()
+            .expect("project-automation test executable must have a parent directory");
+        let resolved_binary_directory =
+            zircon_runtime::asset::project::ProjectPaths::resolve_existing(binary_directory)
+                .expect("resolve project-automation test binary directory");
+
+        assert!(
+            root.starts_with(resolved_binary_directory.operation_path()),
+            "project-automation fixture output must retain the test binary's physical output root"
+        );
+    }
+
+    fn automation_test_root(label: impl AsRef<str>) -> PathBuf {
+        let executable =
+            std::env::current_exe().expect("locate the project-automation test executable");
+        let binary_directory = executable
+            .parent()
+            .expect("project-automation test executable must have a parent directory");
+        let binary_directory =
+            zircon_runtime::asset::project::ProjectPaths::resolve_existing(binary_directory)
+                .expect("resolve the project-automation test binary directory");
+
+        binary_directory
+            .operation_path()
+            .join("zircon-mvp-fixtures")
+            .join(label.as_ref())
+    }
+
+    #[test]
+    fn project_automation_transfers_bindings_to_the_retained_host_before_report_serialization() {
         let source = include_str!("project_automation.rs");
         let mut offset = 0;
         for needle in [
-            "let composition = EditorApplicationComposition::open_project(project_root)?;",
-            "let automation_result: Result<_, Box<dyn Error>> = (|| {",
+            "EditorApplicationComposition::open_resolved_project(project_root.clone())",
+            ".map_err(|error| {",
+            "project_root.display_diagnostic(error)",
+            "composition.run_retained_host_automation(&request.bindings)",
             "let report = EditorProjectAutomationReport",
             "Ok(report)",
-            "let close_result = composition.close();",
-            "finish_project_automation(automation_result, close_result)",
         ] {
             let index = source[offset..]
                 .find(needle)
                 .unwrap_or_else(|| panic!("project automation lifecycle is missing `{needle}`"));
             offset += index + needle.len();
         }
+        assert!(
+            !source.contains(".dispatch_binding("),
+            "app automation must not bypass retained-host callbacks"
+        );
+        assert!(
+            !source.contains("open_project(project_root.operation_path())"),
+            "automation must carry its resolved project identity into composition"
+        );
     }
 
     #[test]
-    fn project_automation_preserves_operation_and_close_failures() {
-        let error = finish_project_automation::<()>(
-            Err("binding dispatch failed".into()),
-            Err("runtime session teardown failed".into()),
-        )
-        .unwrap_err();
+    fn project_automation_manifest_input_derives_its_resolved_parent_without_reresolving() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock should be after the Unix epoch")
+            .as_nanos();
+        let project_root =
+            automation_test_root(format!("manifest-input-{}-{nonce}", std::process::id()));
+        fs::create_dir_all(&project_root).expect("temporary project root should be created");
+        let manifest = project_root.join(zircon_runtime::asset::project::PROJECT_MANIFEST_FILE);
+        fs::write(&manifest, "name = 'automation-fixture'\n")
+            .expect("temporary project manifest should be written");
+
+        let resolved_manifest = resolve_project_automation_input_path(manifest, "project root")
+            .expect("existing manifest input should resolve");
+        let project_root = normalize_resolved_project_automation_root(resolved_manifest.clone())
+            .expect("resolved manifest input should derive its project directory");
 
         assert_eq!(
-            error.to_string(),
-            "project automation failed: binding dispatch failed; editor composition close also failed: runtime session teardown failed"
+            project_root.operation_path(),
+            resolved_manifest
+                .operation_path()
+                .parent()
+                .expect("manifest should have a parent directory")
         );
-    }
-
-    #[test]
-    fn project_automation_finish_preserves_success_and_each_single_failure() {
         assert_eq!(
-            finish_project_automation(
-                Ok::<_, Box<dyn std::error::Error>>(7_u8),
-                Ok::<_, Box<dyn std::error::Error>>(()),
-            )
-            .unwrap(),
-            7
+            project_root.display_path(),
+            resolved_manifest
+                .display_path()
+                .parent()
+                .expect("display manifest should have a parent directory")
         );
 
-        let close_error = finish_project_automation(
-            Ok(7_u8),
-            Err::<(), Box<dyn std::error::Error>>("runtime session teardown failed".into()),
-        )
-        .unwrap_err();
-        assert_eq!(close_error.to_string(), "runtime session teardown failed");
-
-        let automation_error =
-            finish_project_automation::<u8>(Err("binding dispatch failed".into()), Ok(()))
-                .unwrap_err();
-        assert_eq!(automation_error.to_string(), "binding dispatch failed");
+        fs::remove_dir_all(project_root.operation_path())
+            .expect("temporary project root should be removed");
     }
 
     #[test]
-    fn project_automation_product_failure_is_actionable() {
-        let error = editor_automation_startup_error(
-            "project_automation:project=C:/projects/basic",
-            "binding dispatch failed",
-        );
+    fn project_automation_keeps_a_manifest_named_directory_as_the_project_root() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock should be after the Unix epoch")
+            .as_nanos();
+        let location = automation_test_root(format!(
+            "manifest-named-root-{}-{nonce}",
+            std::process::id()
+        ));
+        let project_root = location.join(zircon_runtime::asset::project::PROJECT_MANIFEST_FILE);
+        fs::create_dir_all(&project_root).expect("temporary project root should be created");
+
+        let resolved = resolve_project_automation_input_path(project_root.clone(), "project root")
+            .expect("existing project root should resolve");
+        let normalized = normalize_resolved_project_automation_root(resolved)
+            .expect("directory input should remain the project root");
 
         assert_eq!(
-            error.to_string(),
-            "editor startup diagnostic: component=editor_automation requested=project_automation:project=C:/projects/basic cause=project automation failed: binding dispatch failed recovery=verify the project path, automation JSON, editor bindings, and staged runtime before retrying zircon_editor"
+            normalized,
+            ProjectPaths::resolve_existing(&project_root).unwrap()
         );
+        fs::remove_dir_all(location).expect("temporary project root should be removed");
     }
 
     #[test]
-    fn project_automation_entry_wraps_parse_and_execution_failures() {
+    fn project_automation_entry_delegates_the_typed_commandlet_to_the_process_host() {
         let source = include_str!("../editor.rs");
         let mut offset = 0;
         for needle in [
-            "project_automation::parse_project_automation_args(remaining_args.clone())",
-            "editor_startup_argument_error(&remaining_args, error)",
-            "let requested_automation = format!(",
-            "project_automation::execute_project_automation(",
-            "editor_automation_startup_error(&requested_automation, error)",
+            "EditorLaunchRoute::Commandlet(request) => {",
+            "let commandlet_host = project_automation::EditorProjectAutomationCommandletHost;",
+            "run_commandlet_with_host(request, &commandlet_host)",
+            "println!(\"{}\", serde_json::to_string(&report)?);",
+            "return Ok(report.exit_code().as_u8());",
         ] {
             let index = source[offset..].find(needle).unwrap_or_else(|| {
-                panic!("project automation product entry is missing `{needle}`")
+                panic!("project automation commandlet entry is missing `{needle}`")
+            });
+            offset += index + needle.len();
+        }
+    }
+
+    #[test]
+    fn project_automation_commandlet_host_resolves_typed_paths_before_opening_composition() {
+        let source = include_str!("project_automation.rs");
+        let mut offset = 0;
+        for needle in [
+            "impl CommandletHost for EditorProjectAutomationCommandletHost",
+            "request.project_root().to_path_buf()",
+            "request.automation_path().to_path_buf()",
+            "EditorApplicationComposition::open_resolved_project(project_root.clone())",
+            "composition.run_retained_host_automation(&request.bindings)",
+        ] {
+            let index = source[offset..].find(needle).unwrap_or_else(|| {
+                panic!("project automation commandlet host is missing `{needle}`")
             });
             offset += index + needle.len();
         }
@@ -436,6 +455,13 @@ mod tests {
         );
     }
 
+    #[test]
+    fn project_automation_report_path_uses_dot_for_the_current_project_root() {
+        let current_directory = std::env::current_dir().expect("test process must have a cwd");
+
+        assert_eq!(project_automation_report_path(&current_directory), ".");
+    }
+
     #[cfg(windows)]
     #[test]
     fn project_automation_report_path_hides_windows_verbatim_prefixes() {
@@ -446,6 +472,20 @@ mod tests {
         assert_eq!(
             project_automation_report_path(Path::new(r"\\?\UNC\server\share\project")),
             r"\\server\share\project"
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn project_automation_open_errors_use_the_resolved_project_display_view() {
+        let project = ProjectPaths::resolve_path(r"\\?\C:\ZirconBuilds\stage\project")
+            .expect("Windows project path should resolve");
+
+        assert_eq!(
+            project.display_diagnostic(
+                r"project manifest is missing: \\?\C:\ZirconBuilds\stage\project\zircon-project.toml"
+            ),
+            r"project manifest is missing: C:\ZirconBuilds\stage\project\zircon-project.toml"
         );
     }
 
@@ -475,64 +515,6 @@ mod tests {
                 .expect_err("degraded project must not accept automation bindings");
 
             assert!(error.to_string().contains("non-degraded project open"));
-        }
-    }
-
-    #[test]
-    fn project_automation_cli_requires_project_before_reading_automation_file() {
-        let error = parse_project_automation_args([
-            "--automation".to_string(),
-            "missing.json".to_string(),
-            "--headless".to_string(),
-        ])
-        .unwrap_err();
-
-        assert_eq!(
-            error.to_string(),
-            "--automation requires --project <project-root>"
-        );
-    }
-
-    #[test]
-    fn project_automation_cli_requires_headless_before_reading_automation_file() {
-        let error = parse_project_automation_args([
-            "--project".to_string(),
-            "project-root".to_string(),
-            "--automation".to_string(),
-            "missing.json".to_string(),
-        ])
-        .unwrap_err();
-
-        assert_eq!(error.to_string(), "--automation requires --headless");
-    }
-
-    #[test]
-    fn project_automation_cli_rejects_empty_required_paths_before_reading_files() {
-        for (args, expected_error) in [
-            (
-                [
-                    "--project",
-                    " ",
-                    "--automation",
-                    "missing.json",
-                    "--headless",
-                ],
-                "--project requires a non-empty project path",
-            ),
-            (
-                [
-                    "--project",
-                    "project-root",
-                    "--automation",
-                    " ",
-                    "--headless",
-                ],
-                "--automation requires a non-empty JSON file path",
-            ),
-        ] {
-            let error = parse_project_automation_args(args.map(str::to_string)).unwrap_err();
-
-            assert_eq!(error.to_string(), expected_error);
         }
     }
 
@@ -595,6 +577,8 @@ mod tests {
                 "Hierarchy/SelectCube:onClick",
                 "Inspector/TransformPositionXCommit:onSubmit",
                 "Inspector/TransformScaleXCommit:onSubmit",
+                "WorkbenchMenuBar/Undo:onClick",
+                "WorkbenchMenuBar/Redo:onClick",
                 "WorkbenchMenuBar/SaveProject:onClick",
             ]
         );

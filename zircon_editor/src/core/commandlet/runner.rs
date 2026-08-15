@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -7,20 +8,25 @@ use zircon_runtime::asset::migration::{
     migrate_project_assets,
 };
 
-use crate::core::commands::{CommandEvalCtx, EditorCommandAction, EditorCommandRegistry};
-use crate::core::plugin::sdk::EditorOperationPath;
+use crate::core::commands::{
+    CommandEvalCtx, EditorCommandAction, EditorCommandDescriptor, EditorCommandRegistry,
+};
 use crate::core::plugin::{EditorPluginCatalogProjection, EditorPluginManager};
 
 const ASSET_MIGRATION_CAPABILITY: &str = "asset.migration";
 const PLUGIN_CATALOG_READ_CAPABILITY: &str = "plugin.catalog.read";
 
 /// Fully parsed invocation of a headless editor commandlet.
-#[derive(Clone, Debug, PartialEq, Eq)]
+///
+/// The descriptor is the immutable registry token resolved during parsing. Execution consumes
+/// this same token so one invocation never rebuilds the registry or resolves its route again.
+#[derive(Clone, Debug, PartialEq)]
 pub struct CommandletRequest {
     command: String,
-    route: EditorOperationPath,
+    descriptor: EditorCommandDescriptor,
     project_root: Option<PathBuf>,
     mode: Option<AssetMigrationMode>,
+    automation_path: Option<PathBuf>,
 }
 
 impl CommandletRequest {
@@ -36,9 +42,41 @@ impl CommandletRequest {
         self.mode
     }
 
-    fn route(&self) -> &EditorOperationPath {
-        &self.route
+    pub fn automation_path(&self) -> Option<&std::path::Path> {
+        self.automation_path.as_deref()
     }
+
+    fn descriptor(&self) -> &EditorCommandDescriptor {
+        &self.descriptor
+    }
+}
+
+/// Typed input for the retained-host authoring commandlet.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AuthoringAutomationCommandletRequest {
+    project_root: PathBuf,
+    automation_path: PathBuf,
+}
+
+impl AuthoringAutomationCommandletRequest {
+    pub fn project_root(&self) -> &std::path::Path {
+        &self.project_root
+    }
+
+    pub fn automation_path(&self) -> &std::path::Path {
+        &self.automation_path
+    }
+}
+
+/// Process-owned work required by commandlets that intentionally use a retained editor host.
+pub trait CommandletHost {
+    type AuthoringAutomationReport: Serialize;
+    type Error: Display;
+
+    fn run_authoring_automation(
+        &self,
+        request: &AuthoringAutomationCommandletRequest,
+    ) -> Result<Self::AuthoringAutomationReport, Self::Error>;
 }
 
 /// Four stable process outcomes shared by every editor commandlet.
@@ -104,17 +142,18 @@ pub struct CommandletMigrationIssue {
 }
 
 /// Result envelope printed by the executable for both success and failure paths.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CommandletReport {
+#[derive(Clone, Debug, PartialEq)]
+pub struct CommandletReport<T = ()> {
     pub command: Option<String>,
     pub status: CommandletStatus,
     pub exit_code: CommandletExitCode,
     pub migration: Option<CommandletMigrationReport>,
     pub plugins: Option<Arc<EditorPluginCatalogProjection>>,
+    pub automation: Option<T>,
     pub error: Option<String>,
 }
 
-impl CommandletReport {
+impl<T> CommandletReport<T> {
     pub fn exit_code(&self) -> CommandletExitCode {
         self.exit_code
     }
@@ -135,6 +174,10 @@ impl CommandletReport {
         self.plugins.as_ref()
     }
 
+    pub fn automation(&self) -> Option<&T> {
+        self.automation.as_ref()
+    }
+
     pub fn error(&self) -> Option<&str> {
         self.error.as_deref()
     }
@@ -146,6 +189,7 @@ impl CommandletReport {
             exit_code: CommandletExitCode::InvalidArguments,
             migration: None,
             plugins: None,
+            automation: None,
             error: Some(error.into()),
         }
     }
@@ -161,6 +205,7 @@ impl CommandletReport {
             exit_code: CommandletExitCode::Failed,
             migration,
             plugins: None,
+            automation: None,
             error: Some(error.into()),
         }
     }
@@ -172,6 +217,7 @@ impl CommandletReport {
             exit_code: CommandletExitCode::MissingCapability,
             migration: None,
             plugins: None,
+            automation: None,
             error: Some(format!(
                 "commandlet requires unavailable capabilities: {}",
                 capabilities.join(", ")
@@ -189,6 +235,7 @@ impl CommandletReport {
             exit_code: CommandletExitCode::Success,
             migration: Some(migration),
             plugins: None,
+            automation: None,
             error: None,
         }
     }
@@ -203,23 +250,40 @@ impl CommandletReport {
             exit_code: CommandletExitCode::Success,
             migration: None,
             plugins: Some(plugins),
+            automation: None,
+            error: None,
+        }
+    }
+
+    fn succeeded_authoring_automation(command: impl Into<String>, automation: T) -> Self {
+        Self {
+            command: Some(command.into()),
+            status: CommandletStatus::Succeeded,
+            exit_code: CommandletExitCode::Success,
+            migration: None,
+            plugins: None,
+            automation: Some(automation),
             error: None,
         }
     }
 }
 
-impl Serialize for CommandletReport {
+impl<T> Serialize for CommandletReport<T>
+where
+    T: Serialize,
+{
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
         #[derive(Serialize)]
-        struct SerializableCommandletReport<'a> {
+        struct SerializableCommandletReport<'a, T> {
             command: &'a Option<String>,
             status: CommandletStatus,
             exit_code: CommandletExitCode,
             migration: &'a Option<CommandletMigrationReport>,
             plugins: Option<&'a EditorPluginCatalogProjection>,
+            automation: &'a Option<T>,
             error: &'a Option<String>,
         }
 
@@ -229,6 +293,7 @@ impl Serialize for CommandletReport {
             exit_code: self.exit_code,
             migration: &self.migration,
             plugins: self.plugins.as_deref(),
+            automation: &self.automation,
             error: &self.error,
         }
         .serialize(serializer)
@@ -249,6 +314,7 @@ where
 
     let mut command = None;
     let mut project_root = None;
+    let mut automation_path = None;
     let mut dry_run = false;
     let mut apply = false;
     let mut index = 0;
@@ -286,6 +352,22 @@ where
                     ));
                 };
                 project_root = Some(PathBuf::from(value));
+            }
+            "--automation" => {
+                if automation_path.is_some() {
+                    return Err(CommandletReport::invalid_arguments(
+                        command,
+                        "--automation was provided more than once",
+                    ));
+                }
+                index += 1;
+                let Some(value) = args.get(index) else {
+                    return Err(CommandletReport::invalid_arguments(
+                        command,
+                        "--automation requires a JSON file path",
+                    ));
+                };
+                automation_path = Some(PathBuf::from(value));
             }
             "--dry-run" => {
                 if dry_run {
@@ -328,10 +410,29 @@ where
             "unknown editor commandlet",
         ));
     };
-    let route = descriptor
-        .headless_commandlet_route()
-        .expect("registered headless commandlets always have a typed route")
-        .clone();
+    let is_authoring_automation = matches!(
+        descriptor.action(),
+        EditorCommandAction::HeadlessAuthoringAutomation
+    );
+    if is_authoring_automation {
+        if project_root.is_none() {
+            return Err(CommandletReport::invalid_arguments(
+                Some(command),
+                "authoring-automation requires --project",
+            ));
+        }
+        if automation_path.is_none() {
+            return Err(CommandletReport::invalid_arguments(
+                Some(command),
+                "authoring-automation requires --automation",
+            ));
+        }
+    } else if automation_path.is_some() {
+        return Err(CommandletReport::invalid_arguments(
+            Some(command),
+            "--automation is only accepted by authoring-automation",
+        ));
+    }
     let mode = match (dry_run, apply) {
         (true, false) => Some(AssetMigrationMode::DryRun),
         (false, true) => Some(AssetMigrationMode::Apply),
@@ -343,19 +444,42 @@ where
         }
         (false, false) => None,
     };
+    if is_authoring_automation && mode.is_some() {
+        return Err(CommandletReport::invalid_arguments(
+            Some(command),
+            "authoring-automation does not accept migration mode arguments",
+        ));
+    }
     Ok(Some(CommandletRequest {
         command,
-        route,
+        descriptor: descriptor.clone(),
         project_root,
         mode,
+        automation_path,
     }))
 }
 
 /// Run a commandlet with the capabilities provided by the headless editor profile.
 pub fn run_commandlet(request: CommandletRequest) -> CommandletReport {
-    run_commandlet_with_capabilities(
+    run_commandlet_with_capabilities_and_host(
         request,
         [ASSET_MIGRATION_CAPABILITY, PLUGIN_CATALOG_READ_CAPABILITY],
+        &NoopCommandletHost,
+    )
+}
+
+/// Run a commandlet that needs the editor executable's retained-host composition.
+pub fn run_commandlet_with_host<H>(
+    request: CommandletRequest,
+    host: &H,
+) -> CommandletReport<H::AuthoringAutomationReport>
+where
+    H: CommandletHost,
+{
+    run_commandlet_with_capabilities_and_host(
+        request,
+        [ASSET_MIGRATION_CAPABILITY, PLUGIN_CATALOG_READ_CAPABILITY],
+        host,
     )
 }
 
@@ -369,13 +493,20 @@ where
     I: IntoIterator<Item = S>,
     S: Into<String>,
 {
-    let registry = EditorCommandRegistry::default_workbench();
-    let Some(descriptor) = registry.command_for_headless_commandlet_route(request.route()) else {
-        return CommandletReport::invalid_arguments(
-            Some(request.command),
-            "unknown editor commandlet",
-        );
-    };
+    run_commandlet_with_capabilities_and_host(request, capabilities, &NoopCommandletHost)
+}
+
+fn run_commandlet_with_capabilities_and_host<I, S, H>(
+    request: CommandletRequest,
+    capabilities: I,
+    host: &H,
+) -> CommandletReport<H::AuthoringAutomationReport>
+where
+    I: IntoIterator<Item = S>,
+    S: Into<String>,
+    H: CommandletHost,
+{
+    let descriptor = request.descriptor();
     if !descriptor.callable_from_remote() {
         return CommandletReport::failed(
             request.command,
@@ -396,6 +527,9 @@ where
     match action {
         EditorCommandAction::HeadlessAssetMigration => run_asset_migration_commandlet(request),
         EditorCommandAction::HeadlessPluginList => run_plugin_list_commandlet(request),
+        EditorCommandAction::HeadlessAuthoringAutomation => {
+            run_authoring_automation_commandlet(request, host)
+        }
         _ => CommandletReport::failed(
             request.command,
             "canonical command descriptor has no headless commandlet action",
@@ -404,7 +538,7 @@ where
     }
 }
 
-fn run_asset_migration_commandlet(request: CommandletRequest) -> CommandletReport {
+fn run_asset_migration_commandlet<T>(request: CommandletRequest) -> CommandletReport<T> {
     let CommandletRequest {
         command,
         project_root,
@@ -436,14 +570,15 @@ fn run_asset_migration_commandlet(request: CommandletRequest) -> CommandletRepor
     }
 }
 
-fn run_plugin_list_commandlet(request: CommandletRequest) -> CommandletReport {
+fn run_plugin_list_commandlet<T>(request: CommandletRequest) -> CommandletReport<T> {
     let CommandletRequest {
         command,
         project_root,
         mode,
+        automation_path,
         ..
     } = request;
-    if project_root.is_some() || mode.is_some() {
+    if project_root.is_some() || mode.is_some() || automation_path.is_some() {
         return CommandletReport::invalid_arguments(
             Some(command),
             "plugin-list does not accept project or migration mode arguments",
@@ -460,6 +595,60 @@ fn run_plugin_list_commandlet(request: CommandletRequest) -> CommandletReport {
         }
     };
     CommandletReport::succeeded_plugin_list(command, Arc::clone(snapshot.projection()))
+}
+
+fn run_authoring_automation_commandlet<H>(
+    request: CommandletRequest,
+    host: &H,
+) -> CommandletReport<H::AuthoringAutomationReport>
+where
+    H: CommandletHost,
+{
+    let CommandletRequest {
+        command,
+        project_root,
+        mode,
+        automation_path,
+        ..
+    } = request;
+    let (Some(project_root), Some(automation_path)) = (project_root, automation_path) else {
+        return CommandletReport::invalid_arguments(
+            Some(command),
+            "authoring-automation requires --project and --automation",
+        );
+    };
+    if mode.is_some() {
+        return CommandletReport::invalid_arguments(
+            Some(command),
+            "authoring-automation does not accept migration mode arguments",
+        );
+    }
+    let request = AuthoringAutomationCommandletRequest {
+        project_root,
+        automation_path,
+    };
+    match host.run_authoring_automation(&request) {
+        Ok(report) => CommandletReport::succeeded_authoring_automation(command, report),
+        Err(error) => CommandletReport::failed(
+            command,
+            format!("authoring automation host failed: {error}"),
+            None,
+        ),
+    }
+}
+
+struct NoopCommandletHost;
+
+impl CommandletHost for NoopCommandletHost {
+    type AuthoringAutomationReport = ();
+    type Error = &'static str;
+
+    fn run_authoring_automation(
+        &self,
+        _: &AuthoringAutomationCommandletRequest,
+    ) -> Result<Self::AuthoringAutomationReport, Self::Error> {
+        Err("authoring-automation requires an editor process host")
+    }
 }
 
 fn migration_report(report: &AssetMigrationReport) -> CommandletMigrationReport {

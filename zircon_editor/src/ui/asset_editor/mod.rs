@@ -42,15 +42,22 @@ pub use command::{
     UiAssetEditorTreeEdit, UiAssetEditorTreeEditKind,
 };
 pub use contract::{
-    ui_asset_editor_window_descriptor, UiAssetEditorMode, UiAssetEditorReflectionModel,
-    UiAssetEditorRoute, UiAssetEditorShellState, UiAssetPreviewPreset,
-    UiDesignerPreviewInteractDispatch, UiDesignerSelectionModel, UiDesignerToolMode,
-    UiMatchedStyleRuleReflection, UiStyleInspectorReflectionModel,
     UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_ID, UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_DOCUMENT_ID,
-    UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID, UI_ASSET_EDITOR_WINDOW_ID,
+    UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID, UI_ASSET_EDITOR_WINDOW_ID, UiAssetEditorMode,
+    UiAssetEditorReflectionModel, UiAssetEditorRoute, UiAssetEditorShellState,
+    UiAssetPreviewPreset, UiDesignerPreviewInteractDispatch, UiDesignerSelectionModel,
+    UiDesignerToolMode, UiMatchedStyleRuleReflection, UiStyleInspectorReflectionModel,
+    ui_asset_editor_window_descriptor,
+};
+pub(crate) use contract::{
+    UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_PATH, UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_PATH,
 };
 pub use diagnostics::{UiAssetEditorDiagnostic, UiAssetEditorDiagnosticSeverity};
-pub(crate) use node_projection::ui_asset_editor_node_projection;
+#[cfg(test)]
+pub(crate) use node_projection::ui_asset_editor_surface_for_test;
+pub(crate) use node_projection::{
+    apply_ui_asset_editor_designer_tool_mode, ui_asset_editor_node_projection,
+};
 pub use presentation::{
     UiAssetEditorPanePresentation, UiAssetEditorPreviewCanvasNode,
     UiAssetEditorPreviewCanvasSlotTarget, UiAssetEditorWidgetPropStateItem,
@@ -58,21 +65,21 @@ pub use presentation::{
 pub use preview::UiAssetPreviewHost;
 pub use replay_workspace::{UiAssetEditorReplayWorkspace, UiAssetEditorReplayWorkspaceResult};
 pub use session::{
-    UiAssetEditorBugReportReplayArtifact, UiAssetEditorCommandJournal,
-    UiAssetEditorCommandJournalEntry, UiAssetEditorCommandJournalReplayError,
-    UiAssetEditorCommandJournalReplayReport, UiAssetEditorJournalCommand,
-    UiAssetEditorReplayArtifactRecord, UiAssetEditorReplayArtifactRoute,
-    UiAssetEditorReplayCommandSummary, UiAssetEditorReplayExternalEffectSummary,
-    UiAssetEditorReplayResult, UiAssetEditorReplaySelectionSummary,
-    UiAssetEditorReplaySourceSummary, UiAssetEditorSession, UiAssetEditorSessionError,
     UI_ASSET_EDITOR_BUG_REPORT_REPLAY_ARTIFACT_SCHEMA_VERSION,
-    UI_ASSET_EDITOR_COMMAND_JOURNAL_SCHEMA_VERSION,
+    UI_ASSET_EDITOR_COMMAND_JOURNAL_SCHEMA_VERSION, UiAssetEditorBugReportReplayArtifact,
+    UiAssetEditorCommandJournal, UiAssetEditorCommandJournalEntry,
+    UiAssetEditorCommandJournalReplayError, UiAssetEditorCommandJournalReplayReport,
+    UiAssetEditorJournalCommand, UiAssetEditorReplayArtifactRecord,
+    UiAssetEditorReplayArtifactRoute, UiAssetEditorReplayCommandSummary,
+    UiAssetEditorReplayExternalEffectSummary, UiAssetEditorReplayResult,
+    UiAssetEditorReplaySelectionSummary, UiAssetEditorReplaySourceSummary, UiAssetEditorSession,
+    UiAssetEditorSessionError,
 };
 pub use source::UiAssetSourceBuffer;
 pub use tree::UiAssetDragDropPolicy;
 pub use undo_stack::{
-    apply_external_effects_to_asset_sources, UiAssetEditorExternalEffect,
-    UiAssetEditorSourceCursorSnapshot, UiAssetEditorUndoExternalEffects,
-    UiAssetEditorUndoReplayRecord, UiAssetEditorUndoStack, UiAssetEditorUndoStackReplayRecord,
-    UiAssetEditorUndoTransition,
+    UiAssetEditorExternalEffect, UiAssetEditorSourceCursorSnapshot,
+    UiAssetEditorUndoExternalEffects, UiAssetEditorUndoReplayRecord, UiAssetEditorUndoStack,
+    UiAssetEditorUndoStackReplayRecord, UiAssetEditorUndoTransition,
+    apply_external_effects_to_asset_sources,
 };

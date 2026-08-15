@@ -1,39 +1,42 @@
-use std::collections::BTreeMap;
-
-use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     dispatch::UiPointerEvent,
-    event_ui::{UiNodeId, UiNodePath, UiTreeId},
-    layout::{
-        UiAxis, UiContainerKind, UiFrame, UiPoint, UiScrollState, UiScrollableBoxConfig,
-        UiScrollbarVisibility,
-    },
+    layout::{UiFrame, UiPoint},
     surface::UiPointerEventKind,
-    tree::{UiInputPolicy, UiTreeNode},
 };
 
 use super::dispatch::AssetContentListPointerDispatch;
 use super::layout::AssetContentListPointerLayout;
-use super::target::{AssetContentListPointerTarget, hovered_row_from_target, to_public_route};
+use super::target::{hovered_row_from_target, to_public_route, AssetContentListPointerTarget};
 use crate::ui::retained_host::asset_pointer::asset_list_pointer_state::AssetListPointerState;
 use crate::ui::retained_host::asset_pointer::common::{
-    ROOT_NODE_ID, VIEWPORT_NODE_ID, base_state, item_node_id, register_handled_pointer_node,
+    row_index_at_point, AssetPointerSurfaceAuthority,
 };
 use crate::ui::workbench::asset_content_layout::{
     AssetContentLayoutMetrics, AssetContentSurfaceProfile, AssetThumbnailGridMetrics,
 };
 use crate::ui::workbench::snapshot::AssetViewMode;
 
-const CONTENT_VIEWPORT_Z_INDEX: i32 = 10;
-const CONTENT_ROW_BASE_Z_INDEX: i32 = 20;
+#[derive(Clone, Copy)]
+enum AssetContentMoveHit {
+    Folder(usize),
+    Item(usize),
+    ContentSurface,
+}
 
-#[derive(Default)]
+impl AssetContentMoveHit {
+    fn hovered_row_index(self, folder_count: usize) -> Option<usize> {
+        match self {
+            Self::Folder(folder_index) => Some(folder_index),
+            Self::Item(item_index) => Some(folder_count + item_index),
+            Self::ContentSurface => None,
+        }
+    }
+}
+
 pub(crate) struct AssetContentListPointerBridge {
     layout: AssetContentListPointerLayout,
     state: AssetListPointerState,
-    surface: UiSurface,
-    dispatcher: UiPointerDispatcher,
-    targets: BTreeMap<UiNodeId, AssetContentListPointerTarget>,
+    authority: AssetPointerSurfaceAuthority,
 }
 
 impl AssetContentListPointerBridge {
@@ -41,11 +44,15 @@ impl AssetContentListPointerBridge {
         let mut bridge = Self {
             layout: AssetContentListPointerLayout::default(),
             state: AssetListPointerState::default(),
-            surface: UiSurface::new(UiTreeId::new("zircon.editor.asset_content.pointer")),
-            dispatcher: UiPointerDispatcher::default(),
-            targets: BTreeMap::new(),
+            authority: AssetPointerSurfaceAuthority::new(
+                "zircon.editor.asset_content.pointer",
+                "editor.asset_content.root",
+                "editor.asset_content.viewport",
+                UiFrame::default(),
+                UiFrame::default(),
+            ),
         };
-        bridge.rebuild_surface();
+        bridge.patch_surface_geometry();
         bridge
     }
 
@@ -61,7 +68,7 @@ impl AssetContentListPointerBridge {
         self.layout = layout;
         self.state = state;
         self.clamp_scroll_offset();
-        self.rebuild_surface();
+        self.patch_surface_geometry();
         true
     }
 
@@ -69,7 +76,7 @@ impl AssetContentListPointerBridge {
         &mut self,
         point: UiPoint,
     ) -> Result<AssetContentListPointerDispatch, String> {
-        let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?;
+        let route = self.dispatch_target(UiPointerEventKind::Down, point)?;
         self.state.hovered_row_index = hovered_row_from_target(route.as_ref());
         Ok(AssetContentListPointerDispatch {
             route: route.map(to_public_route),
@@ -81,7 +88,7 @@ impl AssetContentListPointerBridge {
         &mut self,
         point: UiPoint,
     ) -> Result<AssetContentListPointerDispatch, String> {
-        let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?;
+        let route = self.dispatch_target(UiPointerEventKind::Down, point)?;
         self.state.hovered_row_index = hovered_row_from_target(route.as_ref());
         Ok(AssetContentListPointerDispatch {
             route: route.map(to_public_route),
@@ -93,7 +100,7 @@ impl AssetContentListPointerBridge {
         &mut self,
         point: UiPoint,
     ) -> Result<AssetContentListPointerDispatch, String> {
-        let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Move, point))?;
+        let route = self.move_target(point);
         self.state.hovered_row_index = hovered_row_from_target(route.as_ref());
         Ok(AssetContentListPointerDispatch {
             route: route.map(to_public_route),
@@ -101,21 +108,30 @@ impl AssetContentListPointerBridge {
         })
     }
 
+    pub(crate) fn update_hovered_row(&mut self, point: UiPoint) -> Option<AssetListPointerState> {
+        let hovered_row_index = self
+            .move_hit(point)
+            .and_then(|hit| hit.hovered_row_index(self.layout.folder_ids.len()));
+        if self.state.hovered_row_index == hovered_row_index {
+            return None;
+        }
+        self.state.hovered_row_index = hovered_row_index;
+        Some(self.state.clone())
+    }
+
     pub(crate) fn handle_scroll(
         &mut self,
         point: UiPoint,
         delta: f32,
     ) -> Result<AssetContentListPointerDispatch, String> {
-        let route = self.dispatch_event(
+        let routed = self.authority.dispatch_event(
             UiPointerEvent::new(UiPointerEventKind::Scroll, point).with_scroll_delta(delta),
         )?;
-        if let Some(viewport) = self.surface.tree.node(VIEWPORT_NODE_ID) {
-            let offset = viewport.scroll_state.unwrap_or_default().offset;
-            if (self.state.scroll_offset - offset).abs() > f32::EPSILON {
-                self.state.scroll_offset = offset;
-                self.rebuild_surface();
-            }
+        if routed && delta.is_finite() {
+            self.state.scroll_offset += delta;
+            self.clamp_scroll_offset();
         }
+        let route = routed.then(|| self.move_target(point)).flatten();
         if let Some(row_index) = hovered_row_from_target(route.as_ref()) {
             self.state.hovered_row_index = Some(row_index);
         }
@@ -125,16 +141,86 @@ impl AssetContentListPointerBridge {
         })
     }
 
-    fn dispatch_event(
+    fn dispatch_target(
         &mut self,
-        event: UiPointerEvent,
+        kind: UiPointerEventKind,
+        point: UiPoint,
     ) -> Result<Option<AssetContentListPointerTarget>, String> {
-        let dispatch = self
-            .surface
-            .dispatch_pointer_event(&self.dispatcher, event)
-            .map_err(|error| error.to_string())?;
-        let target_node = dispatch.handled_by.or(dispatch.route.target);
-        Ok(target_node.and_then(|node_id| self.targets.get(&node_id).cloned()))
+        let routed = self
+            .authority
+            .dispatch_event(UiPointerEvent::new(kind, point))?;
+        Ok(routed.then(|| self.move_target(point)).flatten())
+    }
+
+    fn move_target(&self, point: UiPoint) -> Option<AssetContentListPointerTarget> {
+        match self.move_hit(point)? {
+            AssetContentMoveHit::Folder(folder_index) => {
+                Some(AssetContentListPointerTarget::Folder {
+                    row_index: folder_index,
+                    folder_index,
+                    folder_id: self.layout.folder_ids[folder_index].clone(),
+                })
+            }
+            AssetContentMoveHit::Item(item_index) => Some(AssetContentListPointerTarget::Item {
+                row_index: self.layout.folder_ids.len() + item_index,
+                item_index,
+                asset_uuid: self.layout.item_ids[item_index].clone(),
+            }),
+            AssetContentMoveHit::ContentSurface => {
+                Some(AssetContentListPointerTarget::ContentSurface)
+            }
+        }
+    }
+
+    fn move_hit(&self, point: UiPoint) -> Option<AssetContentMoveHit> {
+        let viewport = self.viewport_frame();
+        if !viewport.contains_point(point) {
+            return None;
+        }
+
+        if self.is_browser_thumbnail_grid() {
+            let grid = AssetThumbnailGridMetrics::new(
+                self.layout.pane_size.width,
+                self.layout.item_ids.len(),
+            );
+            let content_point = UiPoint::new(point.x, point.y + self.state.scroll_offset);
+            return grid
+                .item_index_at_point(content_point)
+                .map(AssetContentMoveHit::Item)
+                .or(Some(AssetContentMoveHit::ContentSurface));
+        }
+
+        let metrics = self.metrics();
+        let row_width = metrics.row_width(self.layout.pane_size.width);
+        let content_x = point.x;
+        let content_y = point.y + self.state.scroll_offset;
+        if content_x < metrics.row_x || content_x > metrics.row_x + row_width {
+            return Some(AssetContentMoveHit::ContentSurface);
+        }
+
+        if let Some(folder_index) = row_index_at_point(
+            content_y,
+            metrics.first_row_y(),
+            metrics.folder_height,
+            metrics.row_gap,
+            self.layout.folder_ids.len(),
+        ) {
+            return Some(AssetContentMoveHit::Folder(folder_index));
+        }
+
+        let item_start_y = metrics.first_row_y()
+            + self.layout.folder_ids.len() as f32 * (metrics.folder_height + metrics.row_gap);
+        if let Some(item_index) = row_index_at_point(
+            content_y,
+            item_start_y,
+            metrics.item_height,
+            metrics.row_gap,
+            self.layout.item_ids.len(),
+        ) {
+            return Some(AssetContentMoveHit::Item(item_index));
+        }
+
+        Some(AssetContentMoveHit::ContentSurface)
     }
 
     fn clamp_scroll_offset(&mut self) {
@@ -143,167 +229,26 @@ impl AssetContentListPointerBridge {
         self.state.scroll_offset = self.state.scroll_offset.clamp(0.0, max_offset);
     }
 
-    fn rebuild_surface(&mut self) {
-        let mut surface = UiSurface::new(UiTreeId::new("zircon.editor.asset_content.pointer"));
-        let mut dispatcher = UiPointerDispatcher::default();
-        let mut targets = BTreeMap::new();
-
-        surface.tree.insert_root(
-            UiTreeNode::new(ROOT_NODE_ID, UiNodePath::new("editor.asset_content.root"))
-                .with_frame(UiFrame::new(
-                    0.0,
-                    0.0,
-                    self.layout.pane_size.width.max(0.0),
-                    self.layout.pane_size.height.max(0.0),
-                ))
-                .with_state_flags(base_state(false)),
+    fn patch_surface_geometry(&mut self) {
+        self.authority.patch_geometry(
+            UiFrame::new(
+                0.0,
+                0.0,
+                self.layout.pane_size.width.max(0.0),
+                self.layout.pane_size.height.max(0.0),
+            ),
+            self.viewport_frame(),
         );
+    }
 
-        let metrics = self.metrics();
-        let viewport = self.viewport_frame();
-        surface
-            .tree
-            .insert_child(
-                ROOT_NODE_ID,
-                UiTreeNode::new(
-                    VIEWPORT_NODE_ID,
-                    UiNodePath::new("editor.asset_content.viewport"),
-                )
-                .with_frame(viewport)
-                .with_z_index(CONTENT_VIEWPORT_Z_INDEX)
-                .with_input_policy(UiInputPolicy::Receive)
-                .with_clip_to_bounds(true)
-                .with_container(UiContainerKind::ScrollableBox(UiScrollableBoxConfig {
-                    axis: UiAxis::Vertical,
-                    gap: 0.0,
-                    scrollbar_visibility: UiScrollbarVisibility::Auto,
-                    virtualization: None,
-                }))
-                .with_scroll_state(UiScrollState {
-                    offset: self.state.scroll_offset,
-                    viewport_extent: viewport.height.max(0.0),
-                    content_extent: self.content_extent(),
-                })
-                .with_state_flags(base_state(true)),
-            )
-            .expect("asset content root must exist");
-        register_handled_pointer_node(&mut dispatcher, VIEWPORT_NODE_ID);
-        targets.insert(
-            VIEWPORT_NODE_ID,
-            AssetContentListPointerTarget::ContentSurface,
-        );
+    #[cfg(test)]
+    pub(crate) fn surface_node_count_for_test(&self) -> usize {
+        self.authority.node_count()
+    }
 
-        if self.is_browser_thumbnail_grid() {
-            let grid = AssetThumbnailGridMetrics::new(
-                self.layout.pane_size.width,
-                self.layout.item_ids.len(),
-            );
-            for (item_index, asset_uuid) in self.layout.item_ids.iter().enumerate() {
-                let Some(mut frame) = grid.item_frame(item_index) else {
-                    continue;
-                };
-                frame.y -= self.state.scroll_offset;
-                let node_id = item_node_id(item_index);
-                surface
-                    .tree
-                    .insert_child(
-                        VIEWPORT_NODE_ID,
-                        UiTreeNode::new(
-                            node_id,
-                            UiNodePath::new(format!("editor.asset_content/item_{item_index}")),
-                        )
-                        .with_frame(frame)
-                        .with_z_index(CONTENT_ROW_BASE_Z_INDEX + item_index as i32)
-                        .with_input_policy(UiInputPolicy::Receive)
-                        .with_state_flags(base_state(true)),
-                    )
-                    .expect("asset content viewport must exist");
-                register_handled_pointer_node(&mut dispatcher, node_id);
-                targets.insert(
-                    node_id,
-                    AssetContentListPointerTarget::Item {
-                        row_index: item_index,
-                        item_index,
-                        asset_uuid: asset_uuid.clone(),
-                    },
-                );
-            }
-
-            surface.rebuild();
-            self.surface = surface;
-            self.dispatcher = dispatcher;
-            self.targets = targets;
-            return;
-        }
-
-        let row_width = metrics.row_width(self.layout.pane_size.width);
-        let mut row_y = metrics.first_row_y() - self.state.scroll_offset;
-        let mut row_index = 0usize;
-
-        for (folder_index, folder_id) in self.layout.folder_ids.iter().enumerate() {
-            let node_id = item_node_id(row_index);
-            let row_height = metrics.folder_height;
-            surface
-                .tree
-                .insert_child(
-                    VIEWPORT_NODE_ID,
-                    UiTreeNode::new(
-                        node_id,
-                        UiNodePath::new(format!("editor.asset_content/folder_{folder_index}")),
-                    )
-                    .with_frame(UiFrame::new(metrics.row_x, row_y, row_width, row_height))
-                    .with_z_index(CONTENT_ROW_BASE_Z_INDEX + row_index as i32)
-                    .with_input_policy(UiInputPolicy::Receive)
-                    .with_state_flags(base_state(true)),
-                )
-                .expect("asset content viewport must exist");
-            register_handled_pointer_node(&mut dispatcher, node_id);
-            targets.insert(
-                node_id,
-                AssetContentListPointerTarget::Folder {
-                    row_index,
-                    folder_index,
-                    folder_id: folder_id.clone(),
-                },
-            );
-            row_index += 1;
-            row_y += row_height + metrics.row_gap;
-        }
-
-        for (item_index, asset_uuid) in self.layout.item_ids.iter().enumerate() {
-            let node_id = item_node_id(row_index);
-            let row_height = metrics.item_height;
-            surface
-                .tree
-                .insert_child(
-                    VIEWPORT_NODE_ID,
-                    UiTreeNode::new(
-                        node_id,
-                        UiNodePath::new(format!("editor.asset_content/item_{item_index}")),
-                    )
-                    .with_frame(UiFrame::new(metrics.row_x, row_y, row_width, row_height))
-                    .with_z_index(CONTENT_ROW_BASE_Z_INDEX + row_index as i32)
-                    .with_input_policy(UiInputPolicy::Receive)
-                    .with_state_flags(base_state(true)),
-                )
-                .expect("asset content viewport must exist");
-            register_handled_pointer_node(&mut dispatcher, node_id);
-            targets.insert(
-                node_id,
-                AssetContentListPointerTarget::Item {
-                    row_index,
-                    item_index,
-                    asset_uuid: asset_uuid.clone(),
-                },
-            );
-            row_index += 1;
-            row_y += row_height + metrics.row_gap;
-        }
-
-        surface.rebuild();
-        self.surface = surface;
-        self.dispatcher = dispatcher;
-        self.targets = targets;
+    #[cfg(test)]
+    pub(crate) const fn surface_authority_generation_for_test(&self) -> u64 {
+        self.authority.generation()
     }
 
     fn metrics(&self) -> AssetContentLayoutMetrics {

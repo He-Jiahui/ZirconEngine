@@ -11,7 +11,7 @@ mod capture;
 mod spawn;
 mod validation;
 
-pub(crate) use spawn::CompiledSceneSpawn;
+pub(crate) use spawn::{CompiledSceneSpawn, PreflightedSceneMutation};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -62,36 +62,32 @@ impl DynamicScene {
     }
 
     pub(crate) fn apply_compiled_spawn_into(
-        &self,
         world: &mut World,
         plan: spawn::CompiledSceneSpawn,
     ) -> Result<EntityRemap, DynamicSceneError> {
-        spawn::apply_compiled_scene_spawn(self, world, plan)
+        spawn::apply_compiled_scene_spawn(world, plan)
     }
 
     pub(crate) fn capture_compiled_spawn_preflight(
-        &self,
         world: &World,
         plan: &spawn::CompiledSceneSpawn,
         limit_bytes: usize,
     ) -> Result<(World, usize), DynamicSceneError> {
-        spawn::capture_compiled_scene_spawn_preflight(self, world, plan, limit_bytes)
+        spawn::capture_compiled_scene_spawn_preflight(world, plan, limit_bytes)
     }
 
     pub(crate) fn validate_compiled_spawn_preflight(
-        &self,
         preflight: &mut World,
-        plan: &spawn::CompiledSceneSpawn,
-    ) -> Result<(), DynamicSceneError> {
-        spawn::validate_compiled_scene_spawn_preflight(self, preflight, plan)
+        plan: spawn::CompiledSceneSpawn,
+    ) -> Result<spawn::PreflightedSceneMutation, DynamicSceneError> {
+        spawn::validate_compiled_scene_spawn_preflight(preflight, plan)
     }
 
-    pub(crate) fn apply_preflighted_compiled_spawn_into(
-        &self,
+    pub(crate) fn commit_preflighted_spawn_into(
         world: &mut World,
-        plan: spawn::CompiledSceneSpawn,
+        mutation: spawn::PreflightedSceneMutation,
     ) -> Result<EntityRemap, DynamicSceneError> {
-        spawn::apply_preflighted_compiled_scene_spawn(self, world, plan)
+        spawn::commit_preflighted_compiled_scene_spawn(world, mutation)
     }
 
     pub(crate) fn stage_existing_resources_bounded(

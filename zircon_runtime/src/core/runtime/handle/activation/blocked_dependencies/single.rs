@@ -15,13 +15,24 @@ pub(in super::super) fn dependency_slice_contains_service(
                 || second_dependency == service_name
                 || third_dependency == service_name
         }
-        [first_dependency, second_dependency, third_dependency, fourth_dependency] => {
+        [
+            first_dependency,
+            second_dependency,
+            third_dependency,
+            fourth_dependency,
+        ] => {
             first_dependency == service_name
                 || second_dependency == service_name
                 || third_dependency == service_name
                 || fourth_dependency == service_name
         }
-        [first_dependency, second_dependency, third_dependency, fourth_dependency, fifth_dependency] => {
+        [
+            first_dependency,
+            second_dependency,
+            third_dependency,
+            fourth_dependency,
+            fifth_dependency,
+        ] => {
             first_dependency == service_name
                 || second_dependency == service_name
                 || third_dependency == service_name

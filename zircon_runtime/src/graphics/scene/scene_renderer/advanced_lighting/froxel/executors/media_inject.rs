@@ -9,11 +9,11 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
 use crate::render_graph::RenderGraphResourceAccessKind;
 
 use super::super::{
-    FroxelMediaInjectPipeline, FroxelMediaInjectRequest, FroxelViewReconstruction,
-    VOLUMETRIC_MEDIA_INJECT_PIPELINE_LABEL, VOLUMETRIC_MEDIA_INJECT_WORKGROUP_SIZE,
-    resolved_volumetric_fog_settings,
+    resolved_volumetric_fog_settings, FroxelMediaInjectPipeline, FroxelMediaInjectRequest,
+    FroxelViewReconstruction, VOLUMETRIC_MEDIA_INJECT_PIPELINE_LABEL,
+    VOLUMETRIC_MEDIA_INJECT_WORKGROUP_SIZE,
 };
-use super::{VOLUMETRIC_MEDIA_INJECT_EXECUTOR_ID, validate_compute_context};
+use super::{validate_compute_context, VOLUMETRIC_MEDIA_INJECT_EXECUTOR_ID};
 
 #[derive(Default)]
 pub(super) struct VolumetricMediaInjectExecutor {

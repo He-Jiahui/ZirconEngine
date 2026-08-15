@@ -1,24 +1,16 @@
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodePath, UiTreeId},
-    layout::{
-        UiAxis, UiContainerKind, UiFrame, UiScrollState, UiScrollableBoxConfig,
-        UiScrollbarVisibility,
-    },
+    layout::UiFrame,
     tree::{UiInputPolicy, UiTreeNode},
 };
 
 use crate::ui::retained_host::route_intent::{EditorRouteIntent, EditorRouteIntentMap};
-use crate::ui::retained_host::welcome_recent_geometry::welcome_recent_row_geometry_with_metrics;
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
 use super::constants::{ROOT_NODE_ID, VIEWPORT_NODE_ID};
-use super::helper::{
-    base_state, content_height, item_node_id, item_route_id, list_surface_route_id,
-    open_button_node_id, open_button_route_id, remove_button_node_id, remove_button_route_id,
-    viewport_frame,
-};
+use super::helper::{base_state, list_surface_route_id, viewport_frame};
 use super::register_handled_pointer_node::register_handled_pointer_node;
-use super::welcome_recent_pointer_action::WelcomeRecentPointerAction;
 use super::welcome_recent_pointer_bridge::WelcomeRecentPointerBridge;
 use super::welcome_recent_pointer_route_intent::WelcomeRecentPointerRouteIntent;
 
@@ -52,20 +44,6 @@ impl WelcomeRecentPointerBridge {
                 .with_z_index(10)
                 .with_input_policy(UiInputPolicy::Receive)
                 .with_clip_to_bounds(true)
-                .with_container(UiContainerKind::ScrollableBox(UiScrollableBoxConfig {
-                    axis: UiAxis::Vertical,
-                    gap: 0.0,
-                    scrollbar_visibility: UiScrollbarVisibility::Auto,
-                    virtualization: None,
-                }))
-                .with_scroll_state(UiScrollState {
-                    offset: self.state.scroll_offset,
-                    viewport_extent: viewport.height.max(0.0),
-                    content_extent: content_height(
-                        self.layout.recent_project_paths.len(),
-                        self.layout_metrics,
-                    ),
-                })
                 .with_state_flags(base_state(true)),
             )
             .expect("welcome recent pointer root must exist");
@@ -76,92 +54,60 @@ impl WelcomeRecentPointerBridge {
             EditorRouteIntent::WelcomeRecent(WelcomeRecentPointerRouteIntent::ListSurface),
         );
 
-        for (item_index, path) in self.layout.recent_project_paths.iter().enumerate() {
-            let item_node_id = item_node_id(item_index);
-            let geometry = welcome_recent_row_geometry_with_metrics(
-                viewport,
-                item_index,
-                self.state.scroll_offset,
-                self.layout_metrics,
-            );
-            let item_frame = geometry.row;
-            surface
-                .tree
-                .insert_child(
-                    VIEWPORT_NODE_ID,
-                    UiTreeNode::new(
-                        item_node_id,
-                        UiNodePath::new(format!("editor.welcome.recent/item_{item_index}")),
-                    )
-                    .with_frame(item_frame)
-                    .with_z_index(20 + item_index as i32)
-                    .with_input_policy(UiInputPolicy::Receive)
-                    .with_state_flags(base_state(true)),
-                )
-                .expect("welcome viewport must exist");
-            register_handled_pointer_node(&mut dispatcher, item_node_id);
-            route_intents.bind_node(
-                item_node_id,
-                item_route_id(item_index),
-                EditorRouteIntent::WelcomeRecent(WelcomeRecentPointerRouteIntent::Item(item_index)),
-            );
-
-            let open_node_id = open_button_node_id(item_index);
-            surface
-                .tree
-                .insert_child(
-                    item_node_id,
-                    UiTreeNode::new(
-                        open_node_id,
-                        UiNodePath::new(format!("editor.welcome.recent/item_{item_index}/open")),
-                    )
-                    .with_frame(geometry.open)
-                    .with_z_index(120 + item_index as i32)
-                    .with_input_policy(UiInputPolicy::Receive)
-                    .with_state_flags(base_state(true)),
-                )
-                .expect("welcome recent item must exist");
-            register_handled_pointer_node(&mut dispatcher, open_node_id);
-            route_intents.bind_node(
-                open_node_id,
-                open_button_route_id(item_index),
-                EditorRouteIntent::WelcomeRecent(WelcomeRecentPointerRouteIntent::Action {
-                    item_index,
-                    action: WelcomeRecentPointerAction::Open,
-                    path: path.clone(),
-                }),
-            );
-
-            let remove_node_id = remove_button_node_id(item_index);
-            surface
-                .tree
-                .insert_child(
-                    item_node_id,
-                    UiTreeNode::new(
-                        remove_node_id,
-                        UiNodePath::new(format!("editor.welcome.recent/item_{item_index}/remove")),
-                    )
-                    .with_frame(geometry.remove)
-                    .with_z_index(220 + item_index as i32)
-                    .with_input_policy(UiInputPolicy::Receive)
-                    .with_state_flags(base_state(true)),
-                )
-                .expect("welcome recent item must exist");
-            register_handled_pointer_node(&mut dispatcher, remove_node_id);
-            route_intents.bind_node(
-                remove_node_id,
-                remove_button_route_id(item_index),
-                EditorRouteIntent::WelcomeRecent(WelcomeRecentPointerRouteIntent::Action {
-                    item_index,
-                    action: WelcomeRecentPointerAction::Remove,
-                    path: path.clone(),
-                }),
-            );
-        }
-
         surface.rebuild();
         self.surface = surface;
         self.dispatcher = dispatcher;
         self.route_intents = route_intents;
+        #[cfg(test)]
+        {
+            self.surface_authority_generation = self.surface_authority_generation.saturating_add(1);
+        }
+        record_current_ui_perf_counter(UiPerfCounter::WelcomeRecentSurfaceRebuildCount, 1.0);
+        record_current_ui_perf_counter(UiPerfCounter::WelcomeRecentAuthorityRebuildCount, 1.0);
+        record_current_ui_perf_counter(UiPerfCounter::WelcomeRecentRowInsertCount, 0.0);
+        record_current_ui_perf_counter(UiPerfCounter::WelcomeRecentDispatcherRebuildCount, 1.0);
+        record_current_ui_perf_counter(UiPerfCounter::WelcomeRecentRouteMapRebuildCount, 1.0);
+    }
+
+    pub(in crate::ui::retained_host::welcome_recent_pointer) fn patch_surface_geometry(&mut self) {
+        let root_frame = UiFrame::new(
+            0.0,
+            0.0,
+            self.layout.pane_size.width.max(0.0),
+            self.layout.pane_size.height.max(0.0),
+        );
+        let viewport = viewport_frame(&self.layout, self.layout_metrics);
+        let Some(root) = self.surface.tree.node(ROOT_NODE_ID) else {
+            self.rebuild_surface();
+            return;
+        };
+        let Some(current_viewport) = self.surface.tree.node(VIEWPORT_NODE_ID) else {
+            self.rebuild_surface();
+            return;
+        };
+        let root_changed = root.layout_cache.frame != root_frame;
+        let viewport_changed = current_viewport.layout_cache.frame != viewport;
+        if !root_changed && !viewport_changed {
+            return;
+        }
+        if root_changed {
+            self.surface
+                .tree
+                .node_mut(ROOT_NODE_ID)
+                .expect("validated welcome recent root must exist")
+                .layout_cache
+                .frame = root_frame;
+        }
+        if viewport_changed {
+            self.surface
+                .tree
+                .node_mut(VIEWPORT_NODE_ID)
+                .expect("validated welcome recent viewport must exist")
+                .layout_cache
+                .frame = viewport;
+        }
+        self.surface.rebuild();
+        record_current_ui_perf_counter(UiPerfCounter::WelcomeRecentSurfaceRebuildCount, 1.0);
+        record_current_ui_perf_counter(UiPerfCounter::WelcomeRecentGeometryPatchCount, 1.0);
     }
 }

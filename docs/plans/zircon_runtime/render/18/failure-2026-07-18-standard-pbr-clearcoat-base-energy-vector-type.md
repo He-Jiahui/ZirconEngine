@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: open
+status: source_complete_dynamic_validation_pending
 created_at: 2026-07-18
 summary_slug: standard-pbr-clearcoat-base-energy-vector-type
 origin_plan: docs/plans/zircon_runtime/render/09-camera-render-ordering.md
@@ -39,7 +39,7 @@ Standard PBR direct-light accumulator 的默认 base-energy 表达式仍保留�
 
 ## 架构修复验收
 
-- Render18 AF-M1 owner 让 `direct_base_energy` 的默认值、clearcoat 返回值和下游乘法保持同一 `vec3<f32>` 合同，不改变 Blinn-Phong 跳过 clearcoat、Standard PBR diffuse/specular 能量分配或环境光路径。
+- Render18 AF-M1 owner 让前向阶段的共享 `clearcoat_base_energy` 默认值、clearcoat 返回值和传入 direct-light `direct_base_energy` 的参数保持同一 `vec3<f32>` 合同，不改变 Blinn-Phong 跳过 clearcoat、Standard PBR diffuse/specular 能量分配或环境光路径。
 - 增加聚焦合同，至少让包含 `zr_pbr_extras.wgsl` 的完整 Standard PBR composed shader 经过 Naga/WGPU 类型验证，并覆盖 clearcoat 关闭与开启路径；不能只做字符串包含断言。
 - 在 immutable current source 上通过 shader/template focused gate，并重新执行本记录 frontmatter 中的 Render09 exact product reproduction。
 - Render09 owner 获得 fixed return 后重新生成并目检 exact PNG，再以 DX12 RenderDoc 生成可重放 RDC；两个 exact artifact 同时存在才可关闭 CO-M2 visual evidence slice。
@@ -54,6 +54,6 @@ Standard PBR direct-light accumulator 的默认 base-energy 表达式仍保留�
 
 Open state: `current-source shader repair present; managed validation pending`.
 
-- Standard PBR initializes `direct_base_energy` as `vec3<f32>(1.0)`, matching the RGB clearcoat Fresnel scale and preserving the existing downstream energy multiplication.
+- Standard PBR initializes the forward-owned `clearcoat_base_energy` as `vec3<f32>(1.0)` and passes it as the direct-light `direct_base_energy` argument, matching the RGB clearcoat Fresnel scale and preserving the existing downstream energy multiplication.
 - The template suite assembles and Naga-validates the complete Standard PBR forward WGSL with clearcoat disabled, clearcoat enabled, and Blinn-Phong selected, so the vector contract is no longer protected only by a text assertion.
 - The Render09 managed product exporter, exact PNG inspection, and DX12 RenderDoc capture remain required before this handoff can close; it remains `open`.

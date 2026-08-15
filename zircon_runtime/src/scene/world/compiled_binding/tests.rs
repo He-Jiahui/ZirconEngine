@@ -95,7 +95,7 @@ fn compiled_descendant_name_index_stales_for_name_hierarchy_and_topology_changes
     assert!(!before_spawn.is_current_for(&world));
 
     let before_remove = world.compile_descendant_name_index(root).unwrap();
-    assert!(world.remove_entity(spawned));
+    world.remove_entity(spawned).unwrap();
     assert!(!before_remove.is_current_for(&world));
 }
 
@@ -108,7 +108,7 @@ fn compiled_descendant_name_index_stales_when_root_id_is_reused() {
     let root_record = world.node_record(root).unwrap();
     let binding = world.compile_descendant_name_index(root).unwrap();
 
-    assert!(world.remove_entity(root));
+    world.remove_entity(root).unwrap();
     world.insert_node_record(root_record).unwrap();
 
     assert!(!binding.is_current_for(&world));
@@ -522,8 +522,146 @@ fn compiled_scene_property_target_stales_when_root_id_is_reused() {
         .compile_scene_property_target(&entity_path, &property_path)
         .unwrap();
 
-    assert!(world.remove_entity(root));
+    world.remove_entity(root).unwrap();
     world.insert_node_record(root_record).unwrap();
 
     assert!(!target.is_current_for(&world));
+}
+
+#[test]
+fn compiled_scene_property_writer_stable_access_avoids_text_and_entry_work() {
+    let mut world = World::empty();
+    let root = world.spawn_node(NodeKind::Empty);
+    let hero = world.spawn_node(NodeKind::Mesh);
+    world.rename_node(root, "Root").unwrap();
+    world.rename_node(hero, "Hero").unwrap();
+    world.set_parent_checked(hero, Some(root)).unwrap();
+
+    world.reset_compiled_scene_property_access_stats();
+    let writer = world
+        .compile_scene_property_writer(
+            &EntityPath::parse("Root/Hero").unwrap(),
+            &ComponentPropertyPath::parse("Transform.translation.x").unwrap(),
+        )
+        .unwrap()
+        .unwrap();
+    let compile_stats = world.compiled_scene_property_access_stats();
+    assert_eq!(compile_stats.path_lookup_requests, 1);
+    assert!(compile_stats.path_entity_visits >= 1);
+    assert!(compile_stats.path_ancestor_visits >= 1);
+    assert!(compile_stats.path_sibling_visits >= 1);
+    assert_eq!(compile_stats.target_compilations, 1);
+    assert_eq!(compile_stats.field_dispatch_compilations, 1);
+    assert_eq!(
+        compile_stats.canonicalization_bytes,
+        "transform.translation.x".len() as u64
+    );
+    assert_eq!(compile_stats.property_entry_visits, 0);
+
+    let stable_baseline = world.compiled_scene_property_access_stats();
+    assert!(world
+        .write_compiled_scene_property(
+            &writer,
+            crate::core::framework::scene::ScenePropertyValue::Scalar(5.0),
+        )
+        .unwrap());
+    assert_eq!(
+        world.read_compiled_scene_property(&writer),
+        Some(crate::core::framework::scene::ScenePropertyValue::Scalar(
+            5.0
+        ))
+    );
+    let stable_stats = world
+        .compiled_scene_property_access_stats()
+        .saturating_delta_since(stable_baseline);
+
+    assert_eq!(stable_stats.compiled_writer_accesses, 1);
+    assert_eq!(stable_stats.compiled_reader_accesses, 1);
+    assert_eq!(stable_stats.path_lookup_requests, 0);
+    assert_eq!(stable_stats.path_entity_visits, 0);
+    assert_eq!(stable_stats.path_ancestor_visits, 0);
+    assert_eq!(stable_stats.path_sibling_visits, 0);
+    assert_eq!(stable_stats.canonicalization_bytes, 0);
+    assert_eq!(stable_stats.target_compilations, 0);
+    assert_eq!(stable_stats.field_dispatch_compilations, 0);
+    assert_eq!(stable_stats.property_entry_visits, 0);
+
+    let stale_baseline = world.compiled_scene_property_access_stats();
+    world.rename_node(hero, "Renamed Hero").unwrap();
+    assert_eq!(world.read_compiled_scene_property(&writer), None);
+    let stale_stats = world
+        .compiled_scene_property_access_stats()
+        .saturating_delta_since(stale_baseline);
+    assert_eq!(stale_stats.stale_target_rejections, 1);
+    assert_eq!(stale_stats.compiled_reader_accesses, 0);
+}
+
+#[test]
+fn compiled_scene_property_writer_scales_stable_access_without_text_work() {
+    let mut world = World::empty();
+    let root = world.spawn_node(NodeKind::Empty);
+    let hero = world.spawn_node(NodeKind::Mesh);
+    world.rename_node(root, "Root").unwrap();
+    world.rename_node(hero, "Hero").unwrap();
+    world.set_parent_checked(hero, Some(root)).unwrap();
+    let writer = world
+        .compile_scene_property_writer(
+            &EntityPath::parse("Root/Hero").unwrap(),
+            &ComponentPropertyPath::parse("Transform.translation.x").unwrap(),
+        )
+        .unwrap()
+        .unwrap();
+
+    let mut next_value = 1_u64;
+    for track_count in [1_u64, 100, 10_000] {
+        world.reset_compiled_scene_property_access_stats();
+        for _ in 0..track_count {
+            assert!(world
+                .write_compiled_scene_property(
+                    &writer,
+                    crate::core::framework::scene::ScenePropertyValue::Scalar(next_value as _),
+                )
+                .unwrap());
+            next_value = next_value.saturating_add(1);
+        }
+
+        let stats = world.compiled_scene_property_access_stats();
+        assert_eq!(stats.compiled_writer_accesses, track_count);
+        assert_eq!(stats.path_lookup_requests, 0);
+        assert_eq!(stats.path_entity_visits, 0);
+        assert_eq!(stats.path_ancestor_visits, 0);
+        assert_eq!(stats.path_sibling_visits, 0);
+        assert_eq!(stats.canonicalization_bytes, 0);
+        assert_eq!(stats.field_dispatch_compilations, 0);
+        assert_eq!(stats.property_entry_visits, 0);
+    }
+}
+
+#[test]
+fn compiled_scene_property_access_diagnostics_reset_for_clone_and_deserialize() {
+    let mut world = World::empty();
+    let root = world.spawn_node(NodeKind::Empty);
+    world.rename_node(root, "Root").unwrap();
+    let property_path = ComponentPropertyPath::parse("Transform.translation").unwrap();
+    let entity_path = EntityPath::parse("Root").unwrap();
+    world
+        .compile_scene_property_writer(&entity_path, &property_path)
+        .unwrap()
+        .unwrap();
+    assert_ne!(
+        world.compiled_scene_property_access_stats(),
+        crate::scene::world::CompiledScenePropertyAccessStats::default()
+    );
+
+    let cloned = world.clone();
+    assert_eq!(
+        cloned.compiled_scene_property_access_stats(),
+        crate::scene::world::CompiledScenePropertyAccessStats::default()
+    );
+
+    let decoded: World = serde_json::from_value(serde_json::to_value(&world).unwrap()).unwrap();
+    assert_eq!(
+        decoded.compiled_scene_property_access_stats(),
+        crate::scene::world::CompiledScenePropertyAccessStats::default()
+    );
 }

@@ -600,18 +600,14 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
     let skeleton = template_node(&nodes, "SkeletonDemo");
     assert_eq!(skeleton.component_role.as_str(), "skeleton");
     assert_eq!(skeleton.component_category.as_str(), "feedback");
-    assert!(
-        skeleton
-            .component_variant
-            .split_whitespace()
-            .any(|token| token == "rounded")
-    );
-    assert!(
-        skeleton
-            .component_variant
-            .split_whitespace()
-            .any(|token| token == "wave")
-    );
+    assert!(skeleton
+        .component_variant
+        .split_whitespace()
+        .any(|token| token == "rounded"));
+    assert!(skeleton
+        .component_variant
+        .split_whitespace()
+        .any(|token| token == "wave"));
     assert_eq!(skeleton.text.as_str(), "Skeleton");
 
     let dialog = nodes
@@ -639,12 +635,10 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
         "This removes the prefab reference from the scene."
     );
     assert_eq!(confirm_dialog.validation_level.as_str(), "error");
-    assert!(
-        confirm_dialog
-            .component_variant
-            .split_whitespace()
-            .any(|token| token == "confirmDisabled")
-    );
+    assert!(confirm_dialog
+        .component_variant
+        .split_whitespace()
+        .any(|token| token == "confirmDisabled"));
     assert_eq!(confirm_dialog.actions.row_count(), 2);
     assert_eq!(
         confirm_dialog.actions.row_data(0).unwrap().label.as_str(),

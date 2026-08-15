@@ -5,10 +5,10 @@ use crate::core::i18n::{EditorI18nService, EditorLocale};
 use crate::core::jobs::{EditorJobProgress, EditorJobProgressSnapshot, JobCategory, JobId};
 
 use super::{
-    DecisionCenterConfig, DecisionNotification, DecisionNotificationCenter, DecisionOption,
-    DecisionOptionId, NotificationId, NotificationSource, ProgressNotification,
-    ProgressNotificationCenter, ToastCenterConfig, ToastNotification, ToastNotificationCenter,
-    ToastSeverity, present_decision, present_progress, present_toast,
+    present_decision, present_progress, present_toast, DecisionCenterConfig, DecisionNotification,
+    DecisionNotificationCenter, DecisionOption, DecisionOptionId, NotificationId,
+    NotificationSource, ProgressNotification, ProgressNotificationCenter, ToastCenterConfig,
+    ToastNotification, ToastNotificationCenter, ToastSeverity,
 };
 
 #[test]
@@ -31,6 +31,12 @@ fn decision_projection_localizes_active_locale_without_losing_action_identity() 
                 ],
             )
             .unwrap()
+            .with_message_argument("pending_count", 2)
+            .unwrap()
+            .with_message_argument("payload_bytes", 256)
+            .unwrap()
+            .with_message_argument("oldest_age_secs", 4)
+            .unwrap()
             .with_default_option(apply.clone())
             .unwrap()
             .with_cancel_option(discard.clone())
@@ -44,7 +50,7 @@ fn decision_projection_localizes_active_locale_without_losing_action_identity() 
     assert_eq!(english.title(), "Unsaved changes");
     assert_eq!(
         english.message(),
-        "Apply or discard the pending edits before starting Play."
+        "Resolve 2 queued changes (256 bytes; oldest 4s) before starting Play."
     );
     assert_eq!(english.options()[0].id(), &apply);
     assert_eq!(english.options()[0].label(), "Apply changes");
@@ -59,7 +65,7 @@ fn decision_projection_localizes_active_locale_without_losing_action_identity() 
     assert_eq!(simplified_chinese.title(), "未保存的更改");
     assert_eq!(
         simplified_chinese.message(),
-        "开始运行前，请应用或丢弃待处理的更改。"
+        "开始运行前，请处理 2 项待处理的更改（256 字节；最久 4 秒）。"
     );
     assert_eq!(simplified_chinese.options()[0].id(), &apply);
     assert_eq!(simplified_chinese.options()[0].label(), "应用更改");
@@ -108,11 +114,11 @@ fn toast_projection_captures_one_locale_across_a_mid_projection_transition() {
     center
         .publish_at(
             ToastNotification::new(
-                NotificationId::parse("editor.play.pending_edits.notice").unwrap(),
+                NotificationId::parse("editor.notification.project_saved.notice").unwrap(),
                 NotificationSource::builtin("editor.play").unwrap(),
                 ToastSeverity::Info,
-                "editor.play.pending_edits.title",
-                "editor.play.pending_edits.message",
+                "editor.notification.project_saved.title",
+                "editor.notification.project_saved.message",
                 Duration::from_secs(3),
             )
             .unwrap(),
@@ -129,11 +135,8 @@ fn toast_projection_captures_one_locale_across_a_mid_projection_transition() {
 
     let presented = present_toast(&snapshot, &i18n);
     assert_eq!(presented.locale().as_str(), "en");
-    assert_eq!(presented.title(), "Unsaved changes");
-    assert_eq!(
-        presented.message(),
-        "Apply or discard the pending edits before starting Play."
-    );
+    assert_eq!(presented.title(), "Project saved");
+    assert_eq!(presented.message(), "Project state was written to disk.");
     assert_eq!(i18n.active_locale().as_str(), "zh-CN");
 }
 

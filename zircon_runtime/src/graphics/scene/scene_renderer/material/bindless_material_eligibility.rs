@@ -52,7 +52,7 @@ pub(crate) const fn bindless_material_eligibility(
 #[cfg(test)]
 mod tests {
     use super::{
-        BindlessMaterialEligibility, BindlessMaterialFallbackReason, bindless_material_eligibility,
+        bindless_material_eligibility, BindlessMaterialEligibility, BindlessMaterialFallbackReason,
     };
 
     #[test]

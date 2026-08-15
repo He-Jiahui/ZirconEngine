@@ -31,7 +31,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/viewport/submit_extract.rs
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access/
   - zircon_editor/src/ui/host/editor_event_execution
   - zircon_editor/src/ui/workbench/shell_state.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs

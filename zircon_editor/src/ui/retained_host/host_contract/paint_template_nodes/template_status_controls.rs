@@ -8,9 +8,9 @@ mod signals;
 use super::super::paint_theme::PALETTE;
 #[cfg(test)]
 use super::style_selector::{
+    select_workbench_status_chip_style, select_workbench_status_icon_button_style,
+    WorkbenchStatusSignalKind as StatusSignalKind,
     WORKBENCH_STATUS_NO_ERRORS_FILL as STATUS_NO_ERRORS_FILL,
-    WorkbenchStatusSignalKind as StatusSignalKind, select_workbench_status_chip_style,
-    select_workbench_status_icon_button_style,
 };
 #[cfg(test)]
 use super::template_status_control_geometry::status_chip_text_rect;
@@ -25,7 +25,7 @@ use super::template_status_glyphs::StatusIconKind;
 use chips::status_chip_text_colors;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use commands::push_status_control_commands;
 #[cfg(test)]
-use identity::{StatusControlKind, status_control_kind};
+use identity::{status_control_kind, StatusControlKind};
 #[cfg(test)]
 use signals::{status_signal_icon_fill, status_signal_text_color};
 

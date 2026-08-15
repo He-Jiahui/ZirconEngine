@@ -108,10 +108,8 @@ mod tests {
         let payload = plugin_component_property_payload(&property);
 
         assert_eq!(payload.field_editor_kind, "asset_reference");
-        assert!(
-            payload
-                .asset_reference_markers
-                .contains(&"texture".to_string())
-        );
+        assert!(payload
+            .asset_reference_markers
+            .contains(&"texture".to_string()));
     }
 }

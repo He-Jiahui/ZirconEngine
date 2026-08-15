@@ -31,12 +31,28 @@ def _sha256(value: object, *, code: str, label: str) -> str:
 def benchmark_child_environment(
     target_root: Path, *, benchmark_environment: Mapping[str, str] | None = None
 ) -> dict[str, str]:
+    target_root = target_root.resolve()
+    cargo_home = target_root / "cargo-home"
+    sccache = target_root / "sccache"
+    temporary = target_root / "temporary"
+    for directory in (target_root, cargo_home, sccache, temporary):
+        directory.mkdir(parents=True, exist_ok=True)
+
     environment = os.environ.copy()
     for key in BENCHMARK_ENVIRONMENT_KEYS:
         environment.pop(key, None)
     if benchmark_environment is not None:
         environment.update(benchmark_environment)
-    environment["CARGO_TARGET_DIR"] = str(target_root)
+    environment.update(
+        {
+            "CARGO_TARGET_DIR": str(target_root),
+            "CARGO_HOME": str(cargo_home),
+            "SCCACHE_DIR": str(sccache),
+            "TEMP": str(temporary),
+            "TMP": str(temporary),
+            "TMPDIR": str(temporary),
+        }
+    )
     return environment
 
 

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::data::FrameRect;
@@ -41,7 +43,7 @@ pub(in crate::ui::retained_host::host_contract) enum HostRecordedPaintKind {
         resource_key: String,
         width: u32,
         height: u32,
-        rgba: Option<Vec<u8>>,
+        rgba: Option<Arc<[u8]>>,
         atlas: Option<HostPaintAtlasImage>,
     },
 }

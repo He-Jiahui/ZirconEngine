@@ -7,10 +7,11 @@ pub(in crate::ui::retained_host::welcome_recent_pointer) fn register_handled_poi
     dispatcher: &mut UiPointerDispatcher,
     node_id: UiNodeId,
 ) {
-    dispatcher.register(node_id, UiPointerEventKind::Move, |_context| {
-        UiPointerDispatchEffect::handled()
-    });
-    dispatcher.register(node_id, UiPointerEventKind::Down, |_context| {
-        UiPointerDispatchEffect::handled()
-    });
+    for kind in [
+        UiPointerEventKind::Move,
+        UiPointerEventKind::Down,
+        UiPointerEventKind::Scroll,
+    ] {
+        dispatcher.register(node_id, kind, |_context| UiPointerDispatchEffect::handled());
+    }
 }

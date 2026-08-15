@@ -1,8 +1,8 @@
 use super::super::constraints::aggregate_row_constraints;
 use super::super::region_state::RegionState;
 use super::super::{
-    window_min_height_limit_for_height, window_min_width_limit_for_logical_width,
-    WorkbenchChromeMetrics,
+    WorkbenchChromeMetrics, window_min_height_limit_for_height,
+    window_min_width_limit_for_logical_width,
 };
 
 pub(super) fn compute_window_min_width(

@@ -12,18 +12,14 @@ fn delete_node_is_undoable() {
     let cube = cube_id(&state);
 
     assert!(state.apply_intent(EditorIntent::DeleteNode(cube)).unwrap());
-    assert!(
-        state
-            .world
-            .with_world(|scene| scene.find_node(cube).is_none())
-    );
+    assert!(state
+        .world
+        .with_world(|scene| scene.find_node(cube).is_none()));
 
     assert!(state.apply_intent(EditorIntent::Undo).unwrap());
-    assert!(
-        state
-            .world
-            .with_world(|scene| scene.find_node(cube).is_some())
-    );
+    assert!(state
+        .world
+        .with_world(|scene| scene.find_node(cube).is_some()));
 }
 
 #[test]
@@ -36,11 +32,9 @@ fn deleting_last_camera_is_rejected() {
         .unwrap_err();
 
     assert!(error.contains("last remaining camera"));
-    assert!(
-        state
-            .world
-            .with_world(|scene| scene.find_node(camera).is_some())
-    );
+    assert!(state
+        .world
+        .with_world(|scene| scene.find_node(camera).is_some()));
 }
 
 #[test]
@@ -48,16 +42,12 @@ fn rename_and_reparent_are_undoable() {
     let mut state = test_state();
     let (cube, camera) = cube_and_camera(&state);
 
-    assert!(
-        state
-            .apply_intent(EditorIntent::RenameNode(cube, "Hero Cube".to_string()))
-            .unwrap()
-    );
-    assert!(
-        state
-            .apply_intent(EditorIntent::SetParent(cube, Some(camera)))
-            .unwrap()
-    );
+    assert!(state
+        .apply_intent(EditorIntent::RenameNode(cube, "Hero Cube".to_string()))
+        .unwrap());
+    assert!(state
+        .apply_intent(EditorIntent::SetParent(cube, Some(camera)))
+        .unwrap());
 
     state.world.with_world(|scene| {
         let node = scene.find_node(cube).unwrap();
@@ -79,11 +69,9 @@ fn rename_and_reparent_are_undoable() {
 fn reparenting_multiple_nodes_commits_and_undoes_as_one_transaction() {
     let mut state = test_state();
     let (cube, camera) = cube_and_camera(&state);
-    assert!(
-        state
-            .apply_intent(EditorIntent::CreateNode(NodeKind::Cube))
-            .unwrap()
-    );
+    assert!(state
+        .apply_intent(EditorIntent::CreateNode(NodeKind::Cube))
+        .unwrap());
     let second_cube = state.world.with_world(|scene| {
         scene
             .nodes()
@@ -93,14 +81,12 @@ fn reparenting_multiple_nodes_commits_and_undoes_as_one_transaction() {
             .unwrap()
     });
 
-    assert!(
-        state
-            .apply_intent(EditorIntent::SetParents(
-                vec![cube, second_cube],
-                Some(camera),
-            ))
-            .unwrap()
-    );
+    assert!(state
+        .apply_intent(EditorIntent::SetParents(
+            vec![cube, second_cube],
+            Some(camera),
+        ))
+        .unwrap());
     state.world.with_world(|scene| {
         assert_eq!(scene.find_node(cube).unwrap().parent, Some(camera));
         assert_eq!(scene.find_node(second_cube).unwrap().parent, Some(camera));
@@ -117,11 +103,9 @@ fn reparenting_multiple_nodes_commits_and_undoes_as_one_transaction() {
 fn reparenting_selected_parent_and_child_preserves_the_subtree() {
     let mut state = test_state();
     let (parent, new_parent) = cube_and_camera(&state);
-    assert!(
-        state
-            .apply_intent(EditorIntent::CreateNode(NodeKind::Cube))
-            .unwrap()
-    );
+    assert!(state
+        .apply_intent(EditorIntent::CreateNode(NodeKind::Cube))
+        .unwrap());
     let child = state.world.with_world(|scene| {
         scene
             .nodes()
@@ -130,20 +114,16 @@ fn reparenting_selected_parent_and_child_preserves_the_subtree() {
             .map(|node| node.id)
             .unwrap()
     });
-    assert!(
-        state
-            .apply_intent(EditorIntent::SetParent(child, Some(parent)))
-            .unwrap()
-    );
+    assert!(state
+        .apply_intent(EditorIntent::SetParent(child, Some(parent)))
+        .unwrap());
 
-    assert!(
-        state
-            .apply_intent(EditorIntent::SetParents(
-                vec![parent, child],
-                Some(new_parent),
-            ))
-            .unwrap()
-    );
+    assert!(state
+        .apply_intent(EditorIntent::SetParents(
+            vec![parent, child],
+            Some(new_parent),
+        ))
+        .unwrap());
     state.world.with_world(|scene| {
         assert_eq!(scene.find_node(parent).unwrap().parent, Some(new_parent));
         assert_eq!(scene.find_node(child).unwrap().parent, Some(parent));
@@ -160,11 +140,9 @@ fn reparenting_selected_parent_and_child_preserves_the_subtree() {
 fn reparenting_multiple_nodes_cancels_the_whole_transaction_on_a_cycle() {
     let mut state = test_state();
     let (cube, camera) = cube_and_camera(&state);
-    assert!(
-        state
-            .apply_intent(EditorIntent::CreateNode(NodeKind::Cube))
-            .unwrap()
-    );
+    assert!(state
+        .apply_intent(EditorIntent::CreateNode(NodeKind::Cube))
+        .unwrap());
     let second_cube = state.world.with_world(|scene| {
         scene
             .nodes()
@@ -173,11 +151,9 @@ fn reparenting_multiple_nodes_cancels_the_whole_transaction_on_a_cycle() {
             .map(|node| node.id)
             .unwrap()
     });
-    assert!(
-        state
-            .apply_intent(EditorIntent::SetParent(cube, Some(camera)))
-            .unwrap()
-    );
+    assert!(state
+        .apply_intent(EditorIntent::SetParent(cube, Some(camera)))
+        .unwrap());
 
     let error = state
         .apply_intent(EditorIntent::SetParents(
@@ -198,11 +174,9 @@ fn reparenting_multiple_nodes_cancels_the_whole_transaction_on_a_cycle() {
 fn deleting_multiple_selected_nodes_commits_and_undoes_as_one_transaction() {
     let mut state = test_state();
     let (cube, _camera) = cube_and_camera(&state);
-    assert!(
-        state
-            .apply_intent(EditorIntent::CreateNode(NodeKind::Cube))
-            .unwrap()
-    );
+    assert!(state
+        .apply_intent(EditorIntent::CreateNode(NodeKind::Cube))
+        .unwrap());
     let second_cube = state.world.with_world(|scene| {
         scene
             .nodes()
@@ -234,11 +208,9 @@ fn deleting_multiple_selected_nodes_commits_and_undoes_as_one_transaction() {
 fn deleting_multiple_nodes_restores_the_selection_snapshot_on_undo() {
     let mut state = test_state();
     let (cube, camera) = cube_and_camera(&state);
-    assert!(
-        state
-            .apply_intent(EditorIntent::CreateNode(NodeKind::Cube))
-            .unwrap()
-    );
+    assert!(state
+        .apply_intent(EditorIntent::CreateNode(NodeKind::Cube))
+        .unwrap());
     let second_cube = state.world.with_world(|scene| {
         scene
             .nodes()
@@ -309,11 +281,9 @@ fn deleting_selection_with_the_last_camera_cancels_the_whole_transaction() {
 fn deleting_multiple_cameras_cancels_the_whole_transaction() {
     let mut state = test_state();
     let (cube, first_camera) = cube_and_camera(&state);
-    assert!(
-        state
-            .apply_intent(EditorIntent::CreateNode(NodeKind::Camera))
-            .unwrap()
-    );
+    assert!(state
+        .apply_intent(EditorIntent::CreateNode(NodeKind::Camera))
+        .unwrap());
     let second_camera = state.world.with_world(|scene| {
         scene
             .nodes()
@@ -342,11 +312,9 @@ fn deleting_multiple_cameras_cancels_the_whole_transaction() {
 fn deleting_selected_parent_and_child_collapses_to_one_subtree_command() {
     let mut state = test_state();
     let (cube, _camera) = cube_and_camera(&state);
-    assert!(
-        state
-            .apply_intent(EditorIntent::CreateNode(NodeKind::Cube))
-            .unwrap()
-    );
+    assert!(state
+        .apply_intent(EditorIntent::CreateNode(NodeKind::Cube))
+        .unwrap());
     let child = state.world.with_world(|scene| {
         scene
             .nodes()
@@ -355,11 +323,9 @@ fn deleting_selected_parent_and_child_collapses_to_one_subtree_command() {
             .map(|node| node.id)
             .unwrap()
     });
-    assert!(
-        state
-            .apply_intent(EditorIntent::SetParent(child, Some(cube)))
-            .unwrap()
-    );
+    assert!(state
+        .apply_intent(EditorIntent::SetParent(child, Some(cube)))
+        .unwrap());
     assert!(state.viewport_controller.selection_mut().replace(
         WorldDomain::Edit,
         [cube, child],

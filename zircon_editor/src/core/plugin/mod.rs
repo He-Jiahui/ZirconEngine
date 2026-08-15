@@ -26,7 +26,7 @@ pub(crate) use catalog::EditorPluginCatalog;
 pub use catalog::EditorPluginHandle;
 pub use catalog_snapshot::EditorPluginCatalogSnapshot;
 pub use extension_catalog_report::EditorExtensionCatalogReport;
-pub use isolation::{EditorPluginBoundaryFailure, run_editor_plugin_boundary};
+pub use isolation::{run_editor_plugin_boundary, EditorPluginBoundaryFailure};
 pub use lifecycle_message_bridge::{
     EditorPluginLifecycleMessageBridge, EditorPluginLifecycleMessagePumpReport,
 };
@@ -36,7 +36,7 @@ pub use manager::{
     EditorPluginTransitionError,
 };
 pub use materializer::{
-    SerializedContributionMaterializationError, materialize_serialized_contribution_batch,
+    materialize_serialized_contribution_batch, SerializedContributionMaterializationError,
 };
 pub use panel_source::{EditorPluginPanelRow, EditorPluginPanelSource};
 pub use phases::EditorPluginLoadingPhase;

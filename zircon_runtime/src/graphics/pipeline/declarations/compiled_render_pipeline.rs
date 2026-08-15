@@ -96,6 +96,11 @@ impl CompiledRenderPipeline {
         &self.graph
     }
 
+    /// Builds graph diagnostics at most once for this immutable compiled generation.
+    pub(in crate::graphics) fn graph_dump_text(&self) -> Arc<str> {
+        self.runtime_metadata.graph_dump_text(&self.graph)
+    }
+
     pub fn pass_stage(&self, pass_name: &str) -> Option<RenderPassStage> {
         self.pass_stages
             .iter()

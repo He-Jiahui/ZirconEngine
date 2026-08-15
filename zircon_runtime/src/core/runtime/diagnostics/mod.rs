@@ -15,8 +15,7 @@ pub use animation::RuntimeAnimationDiagnostics;
 pub(crate) use devtools::project_runtime_devtools_snapshot;
 pub use devtools::{
     RuntimeDevtoolsBackendStatus, RuntimeDevtoolsDiagnosticsSummary, RuntimeDevtoolsModuleSnapshot,
-    RuntimeDevtoolsPluginCatalogEntry, RuntimeDevtoolsSceneHookSnapshot,
-    RuntimeDevtoolsServiceSnapshot, RuntimeDevtoolsSnapshot,
+    RuntimeDevtoolsPluginCatalogEntry, RuntimeDevtoolsServiceSnapshot, RuntimeDevtoolsSnapshot,
 };
 pub use frame_diagnostics::{FrameDiagnostics, FrameDiagnosticsStatus};
 pub use physics::RuntimePhysicsDiagnostics;

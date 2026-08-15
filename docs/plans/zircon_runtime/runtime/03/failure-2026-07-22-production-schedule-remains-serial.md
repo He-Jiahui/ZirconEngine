@@ -54,4 +54,11 @@ compiled `SceneScheduleStagePlan`只有排序后的descriptor/step，没有可�
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+2026-08-10 current-source result:
+
+- 旧的“生产 schedule 仍串行”事实已经过时。当前 `SceneScheduleRunner` 根据 compiled native conflict graph / `SystemParamAccess` 选择互不冲突且 worker-safe 的 native systems，把这些 system 暂时从 `World` 中取出后通过 `JobScheduler::join` 执行；worker 不共享 `&mut World`。
+- worker-local command queues 按 stable system order 合并回 `World`。non-worker-safe、Internal、Runtime、Hook 与 deferred barrier 仍保持显式 main-thread lane；worker callback 与 command apply 共享统一 unwind 边界，taken systems 在重新抛出 panic 前恢复。
+- 当前行为回归覆盖 production overlap、conflict serialization、stable command merge、main-thread lane、worker callback panic 与 command apply panic restoration。`NativeSystemScheduleDiagnostics` 同时暴露 worker batch/conflict、ready delay、worker utilization、callback p95，以及 callback/conservative writer 和临时控制缓冲容量代理；overlap 目前是行为回归证据，不是发布的产品计数。
+- 本轮只完成源码、rustfmt、diff/source contract 核对；没有运行受管 Cargo，也没有把独立原子量夹具当作 F2 产品证据。
+
+Open state: `production_parallel_source_repaired_pending_managed_cargo_and_F2_product_overlap_world_lock_allocation_matrix`; no accepted pass is claimed.

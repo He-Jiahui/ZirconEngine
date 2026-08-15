@@ -1,7 +1,7 @@
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::style_selector::WorkbenchAlertTone as AlertTone;
 use super::super::super::template_alert_glyphs::push_alert_mark;
-use super::super::layout::{WorkbenchToastMetrics, toast_metrics};
+use super::super::layout::{toast_metrics, WorkbenchToastMetrics};
 use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
 
 pub(super) fn push_toast_status_mark(

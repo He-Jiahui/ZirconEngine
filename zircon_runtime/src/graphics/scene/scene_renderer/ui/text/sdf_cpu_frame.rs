@@ -3,9 +3,9 @@ use crate::graphics::scene::scene_renderer::ui::render::{
     ScreenSpaceUiGlyphArtifactCacheIdentity, ScreenSpaceUiGlyphArtifactLine,
     ScreenSpaceUiShapedGlyph, ScreenSpaceUiTextBatch,
 };
-use crate::text::TextRenderState;
 use crate::text::font::TextDecorationMetrics;
 use crate::text::sdf::SdfRunCpuPreparation;
+use crate::text::TextRenderState;
 
 #[derive(Default)]
 pub(super) struct SdfTextCpuFrame {
@@ -201,10 +201,12 @@ mod tests {
                 None,
             ),
             command_generation: 1,
+            raster_scale: 1.0,
             text: "fi".to_string(),
             frame,
             clip_frame: None,
             source_range: Some(UiTextRange { start: 0, end: 2 }),
+            is_source_isomorphic_layout_line: false,
             glyph_advances: vec![24.0],
             shaped_glyphs: Vec::new(),
             preserve_shaped_glyphs: true,

@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
 use crate::core::framework::render::{
-    CapturedFrame, GraphicsDebuggerStatus, RenderFrameExtract, RenderFramework,
+    CapturedFrame, CapturedHdrFrame, GraphicsDebuggerStatus, RenderFrameExtract, RenderFramework,
     RenderFrameworkError, RenderPipelineHandle, RenderQualityProfile, RenderStats,
-    RenderSubmissionConfig, RenderViewportDescriptor, RenderViewportHandle,
-    RenderViewportProduct, RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
+    RenderSubmissionConfig, RenderViewportDescriptor, RenderViewportHandle, RenderViewportProduct,
+    RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
     RenderVisibleSpatialQuerySnapshot,
 };
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 use zr_rhi::{UiSurfaceDescriptor, UiSurfacePresenter};
 
 use super::super::capture_frame::{
-    capture_frame, capture_frame_if_newer, poll_captured_frame_if_newer,
+    capture_frame, capture_frame_if_newer, capture_scene_color_hdr, poll_captured_frame_if_newer,
 };
 use super::super::create_viewport::create_viewport;
 use super::super::destroy_viewport::destroy_viewport;
@@ -21,8 +21,8 @@ use super::super::graphics_debugger_capture::{
 use super::super::query_stats::query_stats;
 use super::super::query_virtual_geometry_debug_snapshot::query_virtual_geometry_debug_snapshot;
 use super::super::query_visible_spatial_snapshot::query_visible_spatial_snapshot;
-use super::super::render_framework_state::WgpuViewportProductProvider;
 use super::super::reload_pipeline::reload_pipeline;
+use super::super::render_framework_state::WgpuViewportProductProvider;
 use super::super::set_pipeline_asset::set_pipeline_asset;
 use super::super::set_quality_profile::set_quality_profile;
 use super::super::submit_frame_extract::{present_frame_extract, present_frame_extract_with_ui};
@@ -149,6 +149,13 @@ impl RenderFramework for WgpuRenderFramework {
         viewport: RenderViewportHandle,
     ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
         capture_frame(self, viewport)
+    }
+
+    fn capture_scene_color_hdr(
+        &self,
+        viewport: RenderViewportHandle,
+    ) -> Result<Option<CapturedHdrFrame>, RenderFrameworkError> {
+        capture_scene_color_hdr(self, viewport)
     }
 
     fn capture_frame_if_newer(

@@ -10,7 +10,6 @@ fixing_child_dir: docs/plans/zircon_editor/editor_layout/09
 plan_link_mode: child_record_only
 related_code:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/notifications.rs
-  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/notifications/history.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes/node.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center/commands.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_notification_center/identity.rs
@@ -69,3 +68,16 @@ Open state: `实现已完成，运行验证与 failure return 待 coordinator te
 - 静态证据：目标 Rust 文件 `rustfmt --check` 通过，`git diff --check` 通过，`S09_NOTIFICATION_SOURCE_GUARDS_OK`；新增 burst/累计 overflow、same-generation no-op、metadata projection、parser early-stop、同文档同代 `Rc<Vec<_>>` 复用/notification payload 零复制、完整缓存键与跨文档失效、closed/open paint 工作计数、visible-range/non-finite clip 与无全表循环/clone access regressions。
 - 独立二次审查及最后 `Rc<String>` delta 追加审查均为 production finding 0；确认 previous-presentation 生命周期、跨文档失效、完整缓存键、同代 payload/options 摘要零复制、parser early-stop、closed/open paint 计数和模块 re-export 边界成立。残余验证风险仅为 cold/new-generation cache miss 会先对最多 64 条 bounded payload 做一次 TOML 转换，再由 parser 按 `visible_limit` 停止；不把这一点误报为已消除。
 - 未声明通过：本 Session 未直接执行 Cargo、未重投 coordinator validation、未生成或更新截图。failure 继续保持 `status: open`，待 terminal current-source evidence 后执行原复现、向上验收及 `failure return`。
+
+### 2026-08-11 格式化边界前向修复
+
+- `sync_notification_projection` 先计算三类输入的总数，再把 pending、progress、toast 的保序迭代器限制到 `MAX_NOTIFICATION_HISTORY`，最后才构造 history entry 和分配结果向量；不再先格式化全部候选再截断。
+- 对 1,000 条 burst 的静态操作边界由最多 1,000 次 entry/string 构造收敛为最多 64 次，保留行仍为 64，显式 `overflow_count` 仍为 936。这里是从控制流推导的上界，不是运行时耗时数据。
+- 新增 source guard 固定 `.take(MAX_NOTIFICATION_HISTORY)` 必须位于 `.collect::<Vec<_>>()` 之前，并禁止旧 `candidate_entries` 中间表回归。目标文件 Rust 解析与 `git diff --check` 已通过；受管压力测试、WPR trace 和 failure return 仍待 terminal evidence。
+- 独立二次静态审查结果为 P0/P1/P2=`0/0/0`；确认 pending→progress→toast 顺序、完整输入 overflow 计数、保留项 unread 计数和首项 selection 语义均未改变。
+
+## 产出记录与时间
+
+| 里程碑 | 状态 | 完成日期 | 完成项目与证据 |
+|---|---|---|---|
+| Layout09 notification bounded projection | `open / implemented_static_reviewed / validation_pending` | 2026-08-11 | 通知 retained owner 已在 entry 格式化和分配前按 64 条上限截断，保持 pending→progress→toast 顺序及显式 overflow 语义；source guard、Rust 解析与差异空白检查通过。无 managed terminal evidence，不声称 handoff fixed 或已回传。 |

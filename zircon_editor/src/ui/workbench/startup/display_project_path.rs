@@ -4,7 +4,7 @@ use zircon_runtime::asset::project::ProjectPaths;
 
 pub(crate) fn display_project_path(path: impl AsRef<str>) -> String {
     let display_path = ProjectPaths::display_path(Path::new(path.as_ref()));
-    display_project_text(&display_path.to_string_lossy())
+    display_path.to_string_lossy().into_owned()
 }
 
 pub(crate) fn display_project_title(path: impl AsRef<str>) -> String {
@@ -22,14 +22,11 @@ pub(crate) fn display_project_title(path: impl AsRef<str>) -> String {
     }
 }
 
-pub(crate) fn display_project_text(text: &str) -> String {
-    text.replace("\\\\?\\UNC\\", "\\\\").replace("\\\\?\\", "")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    #[cfg(windows)]
     #[test]
     fn display_project_path_removes_windows_verbatim_drive_prefix() {
         assert_eq!(
@@ -38,19 +35,12 @@ mod tests {
         );
     }
 
+    #[cfg(windows)]
     #[test]
     fn display_project_path_removes_windows_verbatim_unc_prefix() {
         assert_eq!(
             display_project_path("\\\\?\\UNC\\server\\share\\ZirconProject"),
             "\\\\server\\share\\ZirconProject"
-        );
-    }
-
-    #[test]
-    fn display_project_text_removes_embedded_verbatim_path_prefixes() {
-        assert_eq!(
-            display_project_text("Reopened \\\\?\\C:\\Users\\Me\\ZirconProject"),
-            "Reopened C:\\Users\\Me\\ZirconProject"
         );
     }
 

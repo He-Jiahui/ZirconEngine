@@ -72,9 +72,59 @@ struct StateMachineProjectionRevision {
     asset_revision: Option<u64>,
 }
 
+#[derive(Debug, Default)]
+pub(super) struct AnimationProjectionRevisionStage {
+    clip_revisions: Vec<(EntityId, ClipProjectionRevision)>,
+    clip_entities: BTreeSet<EntityId>,
+    sequence_revisions: Vec<(EntityId, SequenceProjectionRevision)>,
+    sequence_entities: BTreeSet<EntityId>,
+    graph_revisions: Vec<(EntityId, GraphProjectionRevision)>,
+    graph_entities: BTreeSet<EntityId>,
+    state_machine_revisions: Vec<(EntityId, StateMachineProjectionRevision)>,
+    state_machine_entities: BTreeSet<EntityId>,
+}
+
+pub(super) struct AnimationSceneTransaction {
+    pub(super) scan: AnimationSceneScan,
+    pub(super) clip_player_updates: Vec<(EntityId, AnimationPlayerComponent)>,
+    pub(super) sequence_player_updates: Vec<(EntityId, AnimationSequencePlayerComponent)>,
+    pub(super) revision_stage: AnimationProjectionRevisionStage,
+}
+
 impl AnimationEvaluationProjection {
     pub(super) fn stats(&self) -> AnimationEvaluationProjectionStats {
         self.stats
+    }
+
+    pub(super) fn commit_revision_stage(
+        &mut self,
+        stage: AnimationProjectionRevisionStage,
+        deferred_entities: &BTreeSet<EntityId>,
+    ) {
+        commit_revision_entries(
+            &mut self.clip_revisions,
+            stage.clip_revisions,
+            &stage.clip_entities,
+            deferred_entities,
+        );
+        commit_revision_entries(
+            &mut self.sequence_revisions,
+            stage.sequence_revisions,
+            &stage.sequence_entities,
+            deferred_entities,
+        );
+        commit_revision_entries(
+            &mut self.graph_revisions,
+            stage.graph_revisions,
+            &stage.graph_entities,
+            deferred_entities,
+        );
+        commit_revision_entries(
+            &mut self.state_machine_revisions,
+            stage.state_machine_revisions,
+            &stage.state_machine_entities,
+            deferred_entities,
+        );
     }
 
     fn scan(
@@ -89,12 +139,15 @@ impl AnimationEvaluationProjection {
             EntityId,
             zircon_runtime::scene::AnimationStateTransitionRuntime,
         >,
-    ) -> AnimationSceneScan {
+    ) -> AnimationSceneTransaction {
         let mut scan = AnimationSceneScan {
             next_graph_times: BTreeMap::new(),
             next_state_machine_times: BTreeMap::new(),
             ..AnimationSceneScan::default()
         };
+        let mut clip_player_updates = Vec::new();
+        let mut sequence_player_updates = Vec::new();
+        let mut revision_stage = AnimationProjectionRevisionStage::default();
         let mut skeleton_revisions = BTreeMap::new();
 
         if self.skeletons.is_none() {
@@ -128,8 +181,18 @@ impl AnimationEvaluationProjection {
             &scan.skeletons_by_entity,
             &skeleton_revisions,
             &mut scan,
+            &mut clip_player_updates,
+            &mut revision_stage,
         );
-        self.scan_sequence_players(world, playback_settings, assets, delta_seconds, &mut scan);
+        self.scan_sequence_players(
+            world,
+            playback_settings,
+            assets,
+            delta_seconds,
+            &mut scan,
+            &mut sequence_player_updates,
+            &mut revision_stage,
+        );
         self.scan_graph_players(
             world,
             playback_settings,
@@ -139,6 +202,7 @@ impl AnimationEvaluationProjection {
             &scan.skeletons_by_entity,
             &skeleton_revisions,
             &mut scan,
+            &mut revision_stage,
         );
         self.scan_state_machine_players(
             world,
@@ -150,8 +214,14 @@ impl AnimationEvaluationProjection {
             &scan.skeletons_by_entity,
             &skeleton_revisions,
             &mut scan,
+            &mut revision_stage,
         );
-        scan
+        AnimationSceneTransaction {
+            scan,
+            clip_player_updates,
+            sequence_player_updates,
+            revision_stage,
+        }
     }
 
     fn scan_clip_players(
@@ -163,6 +233,8 @@ impl AnimationEvaluationProjection {
         skeletons: &BTreeMap<EntityId, AssetId>,
         skeleton_revisions: &BTreeMap<EntityId, SkeletonProjectionRevision>,
         scan: &mut AnimationSceneScan,
+        updates: &mut Vec<(EntityId, AnimationPlayerComponent)>,
+        revision_stage: &mut AnimationProjectionRevisionStage,
     ) {
         if !playback_settings.skeletal_clips {
             self.clip_revisions.clear();
@@ -174,7 +246,6 @@ impl AnimationEvaluationProjection {
         }
 
         let mut seen = BTreeSet::new();
-        let mut updates = Vec::new();
         for (entity, player) in self
             .clip_players
             .as_mut()
@@ -196,7 +267,8 @@ impl AnimationEvaluationProjection {
             };
             let should_sample =
                 player.playing || self.clip_revisions.get(&entity) != Some(&revision);
-            self.clip_revisions.insert(entity, revision);
+            revision_stage.clip_entities.insert(entity);
+            revision_stage.clip_revisions.push((entity, revision));
             if !should_sample {
                 continue;
             }
@@ -235,11 +307,7 @@ impl AnimationEvaluationProjection {
                     self.stats.clip_pose_request_count.saturating_add(1);
             }
         }
-        self.clip_revisions
-            .retain(|entity, _| seen.contains(entity));
-        for (entity, player) in updates {
-            let _ = world.set_animation_player(entity, Some(player));
-        }
+        revision_stage.clip_entities = seen;
     }
 
     fn scan_sequence_players(
@@ -249,6 +317,8 @@ impl AnimationEvaluationProjection {
         assets: Option<&ProjectAssetManager>,
         delta_seconds: Real,
         scan: &mut AnimationSceneScan,
+        updates: &mut Vec<(EntityId, AnimationSequencePlayerComponent)>,
+        revision_stage: &mut AnimationProjectionRevisionStage,
     ) {
         if !playback_settings.property_tracks {
             self.sequence_revisions.clear();
@@ -260,7 +330,6 @@ impl AnimationEvaluationProjection {
         }
 
         let mut seen = BTreeSet::new();
-        let mut updates = Vec::new();
         for (entity, player) in self
             .sequence_players
             .as_mut()
@@ -277,7 +346,7 @@ impl AnimationEvaluationProjection {
             };
             let should_sample =
                 player.playing || self.sequence_revisions.get(&entity) != Some(&revision);
-            self.sequence_revisions.insert(entity, revision);
+            revision_stage.sequence_revisions.push((entity, revision));
             if !should_sample {
                 continue;
             }
@@ -293,6 +362,7 @@ impl AnimationEvaluationProjection {
                 updates.push((entity, updated));
             }
             scan.sequences.push(PendingSequenceSample {
+                entity,
                 sequence_id,
                 asset_revision: revision.asset_revision,
                 time_seconds,
@@ -300,11 +370,7 @@ impl AnimationEvaluationProjection {
             });
             self.stats.sequence_request_count = self.stats.sequence_request_count.saturating_add(1);
         }
-        self.sequence_revisions
-            .retain(|entity, _| seen.contains(entity));
-        for (entity, player) in updates {
-            let _ = world.set_animation_sequence_player(entity, Some(player));
-        }
+        revision_stage.sequence_entities = seen;
     }
 
     fn scan_graph_players(
@@ -317,6 +383,7 @@ impl AnimationEvaluationProjection {
         skeletons: &BTreeMap<EntityId, AssetId>,
         skeleton_revisions: &BTreeMap<EntityId, SkeletonProjectionRevision>,
         scan: &mut AnimationSceneScan,
+        revision_stage: &mut AnimationProjectionRevisionStage,
     ) {
         if !playback_settings.graphs {
             self.graph_revisions.clear();
@@ -352,7 +419,7 @@ impl AnimationEvaluationProjection {
             };
             let should_sample =
                 player.playing || self.graph_revisions.get(&entity) != Some(&revision);
-            self.graph_revisions.insert(entity, revision);
+            revision_stage.graph_revisions.push((entity, revision));
             if !should_sample {
                 continue;
             }
@@ -370,8 +437,7 @@ impl AnimationEvaluationProjection {
             self.stats.graph_pose_request_count =
                 self.stats.graph_pose_request_count.saturating_add(1);
         }
-        self.graph_revisions
-            .retain(|entity, _| seen.contains(entity));
+        revision_stage.graph_entities = seen;
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -389,6 +455,7 @@ impl AnimationEvaluationProjection {
         skeletons: &BTreeMap<EntityId, AssetId>,
         skeleton_revisions: &BTreeMap<EntityId, SkeletonProjectionRevision>,
         scan: &mut AnimationSceneScan,
+        revision_stage: &mut AnimationProjectionRevisionStage,
     ) {
         if !playback_settings.state_machines {
             self.state_machine_revisions.clear();
@@ -428,7 +495,9 @@ impl AnimationEvaluationProjection {
             };
             let should_sample =
                 player.playing || self.state_machine_revisions.get(&entity) != Some(&revision);
-            self.state_machine_revisions.insert(entity, revision);
+            revision_stage
+                .state_machine_revisions
+                .push((entity, revision));
             if !should_sample {
                 continue;
             }
@@ -452,21 +521,35 @@ impl AnimationEvaluationProjection {
                 .state_machine_pose_request_count
                 .saturating_add(1);
         }
-        self.state_machine_revisions
-            .retain(|entity, _| seen.contains(entity));
+        revision_stage.state_machine_entities = seen;
     }
+}
+
+fn commit_revision_entries<T>(
+    current: &mut BTreeMap<EntityId, T>,
+    staged: Vec<(EntityId, T)>,
+    seen_entities: &BTreeSet<EntityId>,
+    deferred_entities: &BTreeSet<EntityId>,
+) {
+    current.retain(|entity, _| seen_entities.contains(entity));
+    current.extend(
+        staged
+            .into_iter()
+            .filter(|(entity, _)| !deferred_entities.contains(entity)),
+    );
 }
 
 pub(super) fn scan_animation_scene(
     level: &LevelSystem,
+    replacement_epoch: u64,
     projection: &mut AnimationEvaluationProjection,
     playback_settings: &AnimationPlaybackSettings,
     assets: Option<&ProjectAssetManager>,
     delta_seconds: Real,
-) -> AnimationSceneScan {
+) -> Option<AnimationSceneTransaction> {
     let (previous_graph_times, previous_state_machine_times, previous_state_machine_transitions) =
-        level.animation_playback_times();
-    level.with_world_mut(|world| {
+        level.animation_playback_times(replacement_epoch)?;
+    level.with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
         projection.scan(
             world,
             playback_settings,
@@ -477,6 +560,34 @@ pub(super) fn scan_animation_scene(
             &previous_state_machine_transitions,
         )
     })
+}
+
+pub(super) fn apply_clip_player_updates(
+    level: &LevelSystem,
+    replacement_epoch: u64,
+    updates: Vec<(EntityId, AnimationPlayerComponent)>,
+) -> bool {
+    level
+        .with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
+            for (entity, player) in updates {
+                let _ = world.set_animation_player(entity, Some(player));
+            }
+        })
+        .is_some()
+}
+
+pub(super) fn apply_sequence_player_updates(
+    level: &LevelSystem,
+    replacement_epoch: u64,
+    updates: Vec<(EntityId, AnimationSequencePlayerComponent)>,
+) -> bool {
+    level
+        .with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
+            for (entity, player) in updates {
+                let _ = world.set_animation_sequence_player(entity, Some(player));
+            }
+        })
+        .is_some()
 }
 
 fn clip_asset_revision(assets: Option<&ProjectAssetManager>, id: AssetId) -> Option<u64> {
@@ -522,4 +633,185 @@ fn skeleton_asset_revision(assets: Option<&ProjectAssetManager>, id: AssetId) ->
             .snapshot(ResourceHandle::<AnimationSkeletonMarker>::new(id))
             .map(|snapshot| snapshot.revision())
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::{BTreeMap, BTreeSet};
+
+    use zircon_runtime::core::framework::animation::AnimationPlaybackSettings;
+    use zircon_runtime::core::resource::{
+        AnimationClipMarker, AnimationSequenceMarker, AnimationSkeletonMarker, ResourceHandle,
+        ResourceId,
+    };
+    use zircon_runtime::scene::components::{
+        AnimationPlayerComponent, AnimationSequencePlayerComponent, AnimationSkeletonComponent,
+    };
+    use zircon_runtime::scene::{NodeKind, World};
+
+    use super::AnimationEvaluationProjection;
+
+    #[test]
+    fn clip_player_time_is_deferred_until_event_batch_admission() {
+        let mut world = World::empty();
+        let entity = world.spawn_node(NodeKind::Cube);
+        world
+            .set_animation_player(
+                entity,
+                Some(AnimationPlayerComponent {
+                    clip: ResourceHandle::<AnimationClipMarker>::new(
+                        ResourceId::from_stable_label("animation.clip.deferred-time"),
+                    ),
+                    playback_speed: 1.0,
+                    time_seconds: 0.25,
+                    weight: 1.0,
+                    looping: false,
+                    playing: true,
+                }),
+            )
+            .expect("animation player is installed");
+        let mut projection = AnimationEvaluationProjection::default();
+
+        let transaction = projection.scan(
+            &mut world,
+            &AnimationPlaybackSettings::default(),
+            None,
+            0.5,
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
+
+        assert_eq!(world.animation_player(entity).unwrap().time_seconds, 0.25);
+        assert_eq!(transaction.clip_player_updates.len(), 1);
+        assert_eq!(transaction.clip_player_updates[0].1.time_seconds, 0.75);
+        assert_eq!(transaction.scan.clip_event_samples.len(), 1);
+        assert_eq!(
+            transaction.scan.clip_event_samples[0].from_time_seconds,
+            0.25
+        );
+        assert_eq!(transaction.scan.clip_event_samples[0].to_time_seconds, 0.75);
+    }
+
+    #[test]
+    fn deferred_entity_restores_projection_revision_for_retry() {
+        let mut world = World::empty();
+        let entity = world.spawn_node(NodeKind::Cube);
+        world
+            .set_animation_skeleton(
+                entity,
+                Some(AnimationSkeletonComponent {
+                    skeleton: ResourceHandle::<AnimationSkeletonMarker>::new(
+                        ResourceId::from_stable_label("animation.skeleton.deferred-revision"),
+                    ),
+                }),
+            )
+            .expect("animation skeleton is installed");
+        world
+            .set_animation_player(
+                entity,
+                Some(AnimationPlayerComponent {
+                    clip: ResourceHandle::<AnimationClipMarker>::new(
+                        ResourceId::from_stable_label("animation.clip.deferred-revision"),
+                    ),
+                    playback_speed: 1.0,
+                    time_seconds: 0.25,
+                    weight: 1.0,
+                    looping: false,
+                    playing: false,
+                }),
+            )
+            .expect("paused animation player is installed");
+        let mut projection = AnimationEvaluationProjection::default();
+        let first = projection.scan(
+            &mut world,
+            &AnimationPlaybackSettings::default(),
+            None,
+            0.5,
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
+        assert_eq!(first.scan.clip_samples.len(), 1);
+        projection.commit_revision_stage(first.revision_stage, &BTreeSet::from([entity]));
+
+        let retry = projection.scan(
+            &mut world,
+            &AnimationPlaybackSettings::default(),
+            None,
+            0.5,
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
+
+        assert_eq!(retry.scan.clip_samples.len(), 1);
+        projection.commit_revision_stage(retry.revision_stage, &BTreeSet::new());
+
+        let committed = projection.scan(
+            &mut world,
+            &AnimationPlaybackSettings::default(),
+            None,
+            0.5,
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
+        assert!(committed.scan.clip_samples.is_empty());
+    }
+
+    #[test]
+    fn sequence_time_and_revision_are_staged_until_owner_admission() {
+        let mut world = World::empty();
+        let entity = world.spawn_node(NodeKind::Cube);
+        world
+            .set_animation_sequence_player(
+                entity,
+                Some(AnimationSequencePlayerComponent {
+                    sequence: ResourceHandle::<AnimationSequenceMarker>::new(
+                        ResourceId::from_stable_label("animation.sequence.deferred"),
+                    ),
+                    playback_speed: 1.0,
+                    time_seconds: 0.25,
+                    looping: false,
+                    playing: true,
+                }),
+            )
+            .expect("animation sequence player is installed");
+        let mut projection = AnimationEvaluationProjection::default();
+
+        let first = projection.scan(
+            &mut world,
+            &AnimationPlaybackSettings::default(),
+            None,
+            0.5,
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
+
+        assert_eq!(
+            world
+                .animation_sequence_player(entity)
+                .expect("sequence player remains installed")
+                .time_seconds,
+            0.25
+        );
+        assert_eq!(first.sequence_player_updates.len(), 1);
+        assert_eq!(first.sequence_player_updates[0].1.time_seconds, 0.75);
+        assert_eq!(first.scan.sequences.len(), 1);
+        assert_eq!(first.scan.sequences[0].entity, entity);
+        projection.commit_revision_stage(first.revision_stage, &BTreeSet::from([entity]));
+
+        let retry = projection.scan(
+            &mut world,
+            &AnimationPlaybackSettings::default(),
+            None,
+            0.5,
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+            &BTreeMap::new(),
+        );
+        assert_eq!(retry.scan.sequences.len(), 1);
+    }
 }

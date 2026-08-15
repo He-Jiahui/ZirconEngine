@@ -1,6 +1,6 @@
 use super::super::*;
 use crate::ui::retained_host::menu_popup_contract::{
-    MENU_POPUP_ANCHOR_GAP, MENU_POPUP_EDGE_MARGIN, MENU_POPUP_MIN_HEIGHT, menu_popup_content_height,
+    menu_popup_content_height, MENU_POPUP_ANCHOR_GAP, MENU_POPUP_EDGE_MARGIN, MENU_POPUP_MIN_HEIGHT,
 };
 use crate::ui::workbench::autolayout::ShellFrame;
 

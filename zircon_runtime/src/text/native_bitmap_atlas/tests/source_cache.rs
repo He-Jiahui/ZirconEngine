@@ -2,13 +2,14 @@ use super::*;
 use std::sync::Arc;
 
 use crate::core::math::Vec2;
+use crate::text::font::FontDatabase;
 use crate::text::parallel::raster_pool::{
     TextRasterCompletionDrain, TextRasterCompletionDrainBudget, TextRasterWorkId,
     TextRasterWorkItem, TextRasterWorkResult, TextRasterWorkerPool, TextRasterWorkerPoolOptions,
 };
 use crate::text::raster::{GlyphBitmap, SwashRasterError, SwashRasterRequest};
+use glyphon::cosmic_text::{fontdb, CacheKey, CacheKeyFlags, SubpixelBin, Weight};
 use glyphon::FontSystem;
-use glyphon::cosmic_text::{CacheKey, CacheKeyFlags, SubpixelBin, Weight, fontdb};
 
 const TEST_FONT_BYTES: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -347,21 +348,20 @@ fn native_bitmap_atlas_source_cache_cancels_pending_worker_work_on_face_invalida
     cache.begin_frame();
     assert_eq!(cache.frame_report().worker_request_cancelled_count, 1);
     assert!(worker_pool.process_next_request_for_test());
-    assert!(
-        worker_pool
-            .drain_completed_for_face_epoch(
-                cache.face_epoch(),
-                TextRasterCompletionDrainBudget::new(1, usize::MAX),
-            )
-            .accepted
-            .is_empty()
-    );
+    assert!(worker_pool
+        .drain_completed_for_face_epoch(
+            cache.face_epoch(),
+            TextRasterCompletionDrainBudget::new(1, usize::MAX),
+        )
+        .accepted
+        .is_empty());
     assert_eq!(worker_pool.diagnostics().cancelled, 1);
 }
 
 #[test]
 fn native_bitmap_atlas_source_cache_inserts_registered_worker_completion() {
     let mut cache = NativeBitmapAtlasSourceCache::with_capacity(4);
+    let font_database = FontDatabase::default();
     let key = test_cache_key(31);
     let work_id = TextRasterWorkId::new(31);
     let bitmap =
@@ -371,13 +371,16 @@ fn native_bitmap_atlas_source_cache_inserts_registered_worker_completion() {
     cache.begin_frame();
     cache.register_worker_request(work_id, key);
 
-    let report = cache.apply_worker_completion_drain(TextRasterCompletionDrain {
-        accepted: vec![worker_result(work_id, Ok(bitmap))],
-        drained_bytes: 8,
-        byte_budget_deferred_count: 1,
-        oversized_accepted_count: 1,
-        ..TextRasterCompletionDrain::default()
-    });
+    let report = cache.apply_worker_completion_drain(
+        &font_database,
+        TextRasterCompletionDrain {
+            accepted: vec![worker_result(work_id, Ok(bitmap))],
+            drained_bytes: 8,
+            byte_budget_deferred_count: 1,
+            oversized_accepted_count: 1,
+            ..TextRasterCompletionDrain::default()
+        },
+    );
 
     assert_eq!(report.worker_completion_insert_count, 1);
     assert_eq!(report.worker_completion_applied_byte_count, 8);
@@ -396,6 +399,36 @@ fn native_bitmap_atlas_source_cache_inserts_registered_worker_completion() {
     assert_eq!(image.width, 2);
     assert_eq!(image.height, 1);
     assert_eq!(image.bytes.as_ref(), &[9; 8]);
+}
+
+#[test]
+fn native_bitmap_atlas_source_cache_does_not_count_rejected_completion_bytes_as_applied() {
+    let mut cache = NativeBitmapAtlasSourceCache::with_limits(4, 4);
+    let font_database = FontDatabase::default();
+    let key = test_cache_key(32);
+    let work_id = TextRasterWorkId::new(32);
+    let bitmap =
+        GlyphBitmap::subpixel_mask(UVec2::new(2, 1), Vec2::new(-1.0, 7.0), 16.0, vec![9; 8])
+            .expect("test subpixel bitmap should be valid");
+
+    cache.begin_frame();
+    cache.register_worker_request(work_id, key);
+
+    let report = cache.apply_worker_completion_drain(
+        &font_database,
+        TextRasterCompletionDrain {
+            accepted: vec![worker_result(work_id, Ok(bitmap))],
+            drained_bytes: 8,
+            ..TextRasterCompletionDrain::default()
+        },
+    );
+
+    assert_eq!(report.worker_completion_insert_count, 0);
+    assert_eq!(report.worker_completion_applied_byte_count, 0);
+    assert_eq!(report.worker_completion_drained_byte_count, 8);
+    assert_eq!(report.rejected_byte_budget_count, 1);
+    assert_eq!(report.pending_worker_count, 0);
+    assert!(cache.cached_test_image(key).is_none());
 }
 
 #[test]
@@ -474,11 +507,9 @@ fn native_bitmap_atlas_source_cache_bounds_approximate_probes_at_full_capacity()
         cache.insert_test_image(test_cache_key(glyph_id), test_cached_image(1));
     }
 
-    assert!(
-        cache
-            .approximate_cached_image(test_cache_key(RESIDENT_ENTRY_COUNT + 1))
-            .is_none()
-    );
+    assert!(cache
+        .approximate_cached_image(test_cache_key(RESIDENT_ENTRY_COUNT + 1))
+        .is_none());
     assert_eq!(cache.frame_report().approximate_probe_count, 3);
 }
 
@@ -562,6 +593,7 @@ fn native_bitmap_atlas_source_cache_bounds_new_raster_requests_per_frame() {
 #[test]
 fn native_bitmap_atlas_source_cache_rejects_worker_completion_edges_without_cache_pollution() {
     let mut cache = NativeBitmapAtlasSourceCache::with_capacity(4);
+    let font_database = FontDatabase::default();
     let failed_key = test_cache_key(41);
     let invalidated_key = test_cache_key(42);
     let failed_id = TextRasterWorkId::new(41);
@@ -575,15 +607,18 @@ fn native_bitmap_atlas_source_cache_rejects_worker_completion_edges_without_cach
     cache.register_worker_request(failed_id, failed_key);
     cache.register_worker_request(invalidated_id, invalidated_key);
 
-    let report = cache.apply_worker_completion_drain(TextRasterCompletionDrain {
-        accepted: vec![
-            worker_result(failed_id, Err(SwashRasterError::InvalidPxSize)),
-            worker_result(unknown_id, Ok(unknown_bitmap)),
-        ],
-        face_invalidated_ids: vec![invalidated_id],
-        face_invalidated_count: 1,
-        ..TextRasterCompletionDrain::default()
-    });
+    let report = cache.apply_worker_completion_drain(
+        &font_database,
+        TextRasterCompletionDrain {
+            accepted: vec![
+                worker_result(failed_id, Err(SwashRasterError::InvalidPxSize)),
+                worker_result(unknown_id, Ok(unknown_bitmap)),
+            ],
+            face_invalidated_ids: vec![invalidated_id],
+            face_invalidated_count: 1,
+            ..TextRasterCompletionDrain::default()
+        },
+    );
 
     assert_eq!(report.worker_completion_failed_count, 1);
     assert_eq!(report.worker_completion_unknown_count, 1);

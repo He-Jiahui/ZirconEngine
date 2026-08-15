@@ -22,7 +22,7 @@ pub(super) fn rebuild_builtin_viewport_toolbar_surface(
     surface_size: UiSize,
 ) -> Result<(), BuiltinViewportToolbarTemplateBridgeError> {
     for root_id in surface.tree.roots.clone() {
-        if let Some(root) = surface.tree.nodes.get_mut(&root_id) {
+        if let Some(root) = surface.tree.node_mut(root_id) {
             root.dirty.layout = true;
             root.dirty.hit_test = true;
             root.dirty.render = true;

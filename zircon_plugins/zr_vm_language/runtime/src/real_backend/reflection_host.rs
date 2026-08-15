@@ -1,9 +1,11 @@
-use zircon_runtime::core::framework::script::ScriptHostValue;
+use zircon_runtime::core::framework::script::{
+    ScriptHostArguments, ScriptHostError, ScriptHostHotPathMetrics, ScriptHostValueRef,
+};
 use zircon_runtime::script::VmError;
 use zr_vm_rust_binding as zrvm;
 
 use super::errors::{map_zr_error, zr_error};
-use super::values::read_host_arguments_for_function;
+use super::values::ZrVmScriptHostArgumentSource;
 use super::ZrVmRegistration;
 use crate::ReflectionHostModule;
 
@@ -22,12 +24,13 @@ pub(super) fn register_reflection_host_module(
         .documentation("Numeric VM-to-World reflection bridge compiled from public type schemas.")
         .add_function(
             zrvm::FunctionBuilder::new("resolve", 2, 2, move |context| {
-                let arguments =
-                    read_host_arguments_for_function(context, "zircon.reflection.resolve")?;
+                let source =
+                    ZrVmScriptHostArgumentSource::new(context, "zircon.reflection.resolve")?;
+                let arguments = ScriptHostArguments::new(&source);
                 let type_path = expect_string(&arguments, 0, "zircon.reflection.resolve")?;
                 let member_name = expect_string(&arguments, 1, "zircon.reflection.resolve")?;
                 let token = resolve_reflection
-                    .resolve(type_path, member_name)
+                    .resolve(&type_path, &member_name)
                     .map_err(reflection_error)?;
                 zrvm::Value::new_int(token as i64)
             })
@@ -44,8 +47,8 @@ pub(super) fn register_reflection_host_module(
         )
         .add_function(
             zrvm::FunctionBuilder::new("read", 2, 2, move |context| {
-                let arguments =
-                    read_host_arguments_for_function(context, "zircon.reflection.read")?;
+                let source = ZrVmScriptHostArgumentSource::new(context, "zircon.reflection.read")?;
+                let arguments = ScriptHostArguments::new(&source);
                 let token = expect_int(&arguments, 0, "zircon.reflection.read")? as u64;
                 let entity = expect_int(&arguments, 1, "zircon.reflection.read")? as u64;
                 let value = read_reflection
@@ -66,13 +69,13 @@ pub(super) fn register_reflection_host_module(
         )
         .add_function(
             zrvm::FunctionBuilder::new("write", 3, 3, move |context| {
-                let arguments =
-                    read_host_arguments_for_function(context, "zircon.reflection.write")?;
+                let source = ZrVmScriptHostArgumentSource::new(context, "zircon.reflection.write")?;
+                let arguments = ScriptHostArguments::new(&source);
                 let token = expect_int(&arguments, 0, "zircon.reflection.write")? as u64;
                 let entity = expect_int(&arguments, 1, "zircon.reflection.write")? as u64;
                 let value_json = expect_string(&arguments, 2, "zircon.reflection.write")?;
                 let changed = write_reflection
-                    .write_json(token, entity, value_json)
+                    .write_json(token, entity, &value_json)
                     .map_err(reflection_error)?;
                 zrvm::Value::new_bool(changed)
             })
@@ -91,38 +94,39 @@ pub(super) fn register_reflection_host_module(
     runtime.register_native_module(module).map_err(map_zr_error)
 }
 
-fn expect_string<'a>(
-    arguments: &'a [ScriptHostValue],
+fn expect_string(
+    arguments: &ScriptHostArguments<'_>,
     index: usize,
     function: &str,
-) -> Result<&'a str, zrvm::Error> {
-    match arguments.get(index) {
-        Some(ScriptHostValue::String(value)) => Ok(value),
-        Some(value) => Err(zr_error(format!(
-            "{function} argument {index} expected String, received {:?}",
-            value.kind()
-        ))),
-        None => Err(zr_error(format!(
-            "{function} argument {index} was not provided"
-        ))),
-    }
+) -> Result<String, zrvm::Error> {
+    arguments
+        .with_argument(index, |value| match value {
+            ScriptHostValueRef::String(value) => {
+                ScriptHostHotPathMetrics::record_guest_string_copy(value.len());
+                Ok(value.to_owned())
+            }
+            value => Err(ScriptHostError::new(format!(
+                "{function} argument {index} expected String, received {:?}",
+                value.kind()
+            ))),
+        })
+        .map_err(|error| zr_error(error.message))
 }
 
 fn expect_int(
-    arguments: &[ScriptHostValue],
+    arguments: &ScriptHostArguments<'_>,
     index: usize,
     function: &str,
 ) -> Result<i64, zrvm::Error> {
-    match arguments.get(index) {
-        Some(ScriptHostValue::Int(value)) => Ok(*value),
-        Some(value) => Err(zr_error(format!(
-            "{function} argument {index} expected Integer, received {:?}",
-            value.kind()
-        ))),
-        None => Err(zr_error(format!(
-            "{function} argument {index} was not provided"
-        ))),
-    }
+    arguments
+        .with_argument(index, |value| match value {
+            ScriptHostValueRef::Int(value) => Ok(value),
+            value => Err(ScriptHostError::new(format!(
+                "{function} argument {index} expected Integer, received {:?}",
+                value.kind()
+            ))),
+        })
+        .map_err(|error| zr_error(error.message))
 }
 
 fn reflection_error(error: crate::ReflectionHostError) -> zrvm::Error {

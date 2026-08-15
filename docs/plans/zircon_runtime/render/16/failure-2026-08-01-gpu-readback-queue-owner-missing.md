@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: open
+status: source_complete_dynamic_validation_pending
 created_at: 2026-08-01
 summary_slug: gpu-readback-queue-owner-missing
 origin_plan: docs/plans/zircon_runtime/render/17-performance-and-profiling.md
@@ -8,8 +8,8 @@ fixing_plan: docs/plans/zircon_runtime/render/16-compute-neural.md
 origin_child_dir: docs/plans/zircon_runtime/render/17
 fixing_child_dir: docs/plans/zircon_runtime/render/16
 related_code:
-  - zircon_runtime/src/rhi_wgpu/gpu_readback_queue/
-  - zircon_runtime/src/rhi_wgpu/gpu_pass_timer.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_readback_queue/
+  - zircon_runtime/crates/zr_rhi_wgpu/src/gpu_pass_timer.rs
   - zircon_runtime/src/graphics/backend/render_backend/gpu_readback_queue/mod.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/environment/realtime_ibl_gpu_timestamps.rs
@@ -73,6 +73,8 @@ Render16 CN-M1 切片 1.3 尚未实现。Render17 若只把 timer 的私有槽�
 ### 仍待接受的证据
 
 - 当前源码受管 Windows 编译 request：`4dca61081c8a4e2b88cc857eb66dd89e`，仅确认 `session.register` post-response accepted timeout；按跨 Session 协调规则不轮询，validator 未启动 Cargo，因此不计为编译通过。
-- `render_perf` 当前源码回归、真实 WGPU PNG 与 RenderDoc `.rdc` 尚未生成，因此本 failure 保持 `status: open`，不得返回 `fixed`，PF-M1 也不得 accepted closeout。
+- `render_perf` 当前源码回归、真实 WGPU PNG 与 RenderDoc `.rdc` 尚未生成，因此本 failure
+  保持 `source_complete_dynamic_validation_pending`，不得返回 `fixed`，PF-M1 也不得 accepted
+  closeout。
 
 Open state: `Render16 CN-M1 source implementation and second review are complete; managed current-source compile plus real WGPU PNG/RDC product evidence remain before fixed return.`

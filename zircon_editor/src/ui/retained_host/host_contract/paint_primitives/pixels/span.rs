@@ -57,3 +57,23 @@ pub(in crate::ui::retained_host::host_contract) fn write_pixel(
     let inverse = 255 - alpha;
     blend_pixel(&mut bytes[offset..offset + 4], color, alpha, inverse);
 }
+
+#[inline]
+pub(in crate::ui::retained_host::host_contract) fn write_pixel_with_coverage(
+    frame: &mut HostRgbaFrame,
+    x: u32,
+    y: u32,
+    color: [u8; 4],
+    coverage: f32,
+) {
+    if !coverage.is_finite() || coverage <= 0.0 || color[3] == 0 {
+        return;
+    }
+    if coverage >= 1.0 {
+        write_pixel(frame, x, y, color);
+        return;
+    }
+    let mut covered_color = color;
+    covered_color[3] = (color[3] as f32 * coverage.clamp(0.0, 1.0)).round() as u8;
+    write_pixel(frame, x, y, covered_color);
+}

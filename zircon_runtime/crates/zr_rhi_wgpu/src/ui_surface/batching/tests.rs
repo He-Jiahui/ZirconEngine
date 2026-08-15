@@ -79,8 +79,14 @@ fn batch_plan_batches_disjoint_rounded_quads_without_fallback() {
     let DrawOp::Solid(draw) = &plan.ops[0] else {
         panic!("expected a solid batch");
     };
-    assert!(plan.solid_vertices.len() > 12);
-    assert!(draw.vertex_end > draw.vertex_start);
+    assert_eq!(plan.stats.solid_vertex_count, 12);
+    assert_eq!(plan.solid_vertices.len(), 12);
+    assert!(plan.solid_instances.is_empty());
+    assert_eq!(draw.vertex_end - draw.vertex_start, 12);
+    assert!(plan
+        .solid_vertices
+        .iter()
+        .all(|vertex| vertex.corner_radius == 5.0 && vertex.border_width == 0.0));
 }
 
 #[test]

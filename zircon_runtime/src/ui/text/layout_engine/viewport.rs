@@ -6,7 +6,7 @@ use zircon_runtime_interface::ui::surface::{
 };
 
 use super::super::{resolved_layout::UiTextViewport, rich_text::UiParsedText};
-use super::candidate_line::{CandidateLine, append_segment};
+use super::candidate_line::{append_segment, CandidateLine};
 
 pub(super) struct VisibleTextLineWindow {
     pub(super) first_line: usize,

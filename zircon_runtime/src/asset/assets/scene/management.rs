@@ -4,9 +4,9 @@ use crate::asset::AssetReference;
 use crate::core::resource::ResourceId;
 use serde::{Deserialize, Serialize};
 
-use super::SceneMobilityAsset;
 use super::entity::SceneEntityAsset;
 use super::mesh::SceneMeshInstanceAsset;
+use super::SceneMobilityAsset;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SceneEntityOverview {
@@ -300,8 +300,34 @@ impl SceneEntityAsset {
         references
     }
 
+    pub fn direct_reference_count(&self) -> usize {
+        self.camera
+            .as_ref()
+            .map_or(0, |camera| camera.direct_reference_count())
+            + self
+                .mesh
+                .as_ref()
+                .map_or(0, SceneMeshInstanceAsset::direct_reference_count)
+            + usize::from(
+                self.collider
+                    .as_ref()
+                    .and_then(|collider| collider.material.as_ref())
+                    .is_some(),
+            )
+            + usize::from(self.animation_skeleton.is_some())
+            + usize::from(self.animation_player.is_some())
+            + usize::from(self.animation_sequence_player.is_some())
+            + usize::from(self.animation_graph_player.is_some())
+            + usize::from(self.animation_state_machine_player.is_some())
+            + usize::from(self.terrain.is_some())
+            + usize::from(self.tilemap.is_some())
+            + self
+                .prefab_instance
+                .as_ref()
+                .map_or(0, |prefab| prefab.direct_reference_count())
+    }
+
     pub fn overview(&self) -> SceneEntityOverview {
-        let direct_references = self.direct_references();
         let direct_mesh_reference_count = self
             .mesh
             .as_ref()
@@ -324,7 +350,7 @@ impl SceneEntityAsset {
             active: self.active,
             render_layer_mask: self.render_layer_mask,
             mobility: self.mobility,
-            direct_reference_count: direct_references.len(),
+            direct_reference_count: self.direct_reference_count(),
             has_camera: self.camera.is_some(),
             has_mesh: self.mesh.is_some(),
             has_direct_mesh_reference: direct_mesh_reference_count > 0,

@@ -1,8 +1,8 @@
 use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::MeshPipelineVariantResolver;
 
 use super::super::{
-    MeshBatchRef, MeshDrawCommandList, MeshPassBuildContext, MeshPassProcessor,
-    opaque_base_command_spec,
+    opaque_base_command_spec, MeshBatchRef, MeshDrawCommandList, MeshPassBuildContext,
+    MeshPassProcessor,
 };
 
 pub(crate) struct OpaqueBasePassProcessor;

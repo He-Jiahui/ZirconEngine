@@ -2,16 +2,16 @@ use std::path::Path;
 use std::sync::Arc;
 
 use crate::asset::project::ProjectManager;
-use crate::asset::{AssetManager, asset_manager_handle};
-use crate::core::CoreError;
+use crate::asset::{asset_manager_handle, AssetManager};
 use crate::core::framework::scene::{
     LevelManager as LevelManagerContract, LevelSummary, SceneArtifactTicket, WorldHandle,
 };
 use crate::core::manager::resolve_manager_service;
 use crate::core::resource::ResourceLocator;
+use crate::core::CoreError;
 
-use super::DefaultLevelManager;
 use super::core_error::scene_core_error;
+use super::DefaultLevelManager;
 
 impl LevelManagerContract for DefaultLevelManager {
     fn create_default_level_handle(&self) -> Result<WorldHandle, CoreError> {

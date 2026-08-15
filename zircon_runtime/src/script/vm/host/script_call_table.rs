@@ -3,7 +3,8 @@ use std::fmt;
 use std::sync::Arc;
 
 use crate::core::framework::script::{
-    ScriptHostCallFrame, ScriptHostFunctionDescriptor, ScriptHostValue,
+    ScriptHostArguments, ScriptHostCallFrame, ScriptHostFunctionDescriptor,
+    ScriptHostHotPathMetrics, ScriptHostValue,
 };
 
 use super::super::runtime_context::with_active_script_runtime_call_context;
@@ -61,19 +62,20 @@ impl ScriptCallSite {
         &self.descriptor
     }
 
-    pub fn call(
+    pub fn call<'call>(
         &self,
-        arguments: Vec<ScriptHostValue>,
+        arguments: ScriptHostArguments<'call>,
         granted_capabilities: &CapabilitySet,
     ) -> Result<ScriptHostValue, VmError> {
         validate_call_arity(self, arguments.len())?;
         validate_call_capabilities(self, granted_capabilities)?;
 
+        ScriptHostHotPathMetrics::record_host_call();
         let result = with_active_script_runtime_call_context(|runtime_context| {
             let frame = ScriptHostCallFrame::new(
                 self.module_name(),
                 self.function_name(),
-                &arguments,
+                arguments,
                 &granted_capabilities.capabilities,
                 runtime_context.map(|context| context as &dyn std::any::Any),
             );
@@ -146,10 +148,10 @@ impl ScriptCallTable {
         self.get(*id)
     }
 
-    pub fn call(
+    pub fn call<'call>(
         &self,
         id: ScriptCallSiteId,
-        arguments: Vec<ScriptHostValue>,
+        arguments: ScriptHostArguments<'call>,
         granted_capabilities: &CapabilitySet,
     ) -> Result<ScriptHostValue, VmError> {
         let Some(site) = self.get(id) else {

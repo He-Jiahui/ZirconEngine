@@ -239,6 +239,7 @@ pub enum EditorViewportEvent {
         selection_mutation: SelectionMutation,
     },
     LeftReleased,
+    CancelInteraction,
     RightPressed {
         x: f32,
         y: f32,
@@ -296,6 +297,27 @@ pub enum EditorViewportEvent {
         provider_id: String,
     },
     FrameSelection,
+}
+
+impl EditorViewportEvent {
+    pub(crate) fn changes_chrome_projection(&self) -> bool {
+        matches!(
+            self,
+            Self::ActivateSceneMode { .. }
+                | Self::SetTransformSpace { .. }
+                | Self::SetProjectionMode { .. }
+                | Self::AlignView { .. }
+                | Self::SetDisplayMode { .. }
+                | Self::SetGridMode { .. }
+                | Self::SetTranslateSnap { .. }
+                | Self::SetRotateSnapDegrees { .. }
+                | Self::SetScaleSnap { .. }
+                | Self::SetPreviewLighting { .. }
+                | Self::SetPreviewSkybox { .. }
+                | Self::SetGizmosEnabled { .. }
+                | Self::ToggleOverlayProvider { .. }
+        )
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

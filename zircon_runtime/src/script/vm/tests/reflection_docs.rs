@@ -73,7 +73,7 @@ fn reflect_registration_builds_script_field_projection_in_one_indexed_pass() {
         }
     }
 
-    let source = include_str!("../../../core/framework/script.rs");
+    let source = include_str!("../../../core/framework/script/descriptors.rs");
     assert!(source.contains("use std::collections::HashMap;"));
     assert!(source.contains("HashMap::with_capacity(projection.fields.len())"));
     assert!(source.contains("projection_fields.remove(field.name.as_str())"));

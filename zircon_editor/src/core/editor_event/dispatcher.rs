@@ -5,7 +5,7 @@ use zircon_runtime_interface::ui::binding::UiEventBinding;
 
 pub trait EditorEventDispatcher {
     fn dispatch_envelope(&self, envelope: EditorEventEnvelope)
-    -> Result<EditorEventRecord, String>;
+        -> Result<EditorEventRecord, String>;
 
     fn dispatch_binding(
         &self,

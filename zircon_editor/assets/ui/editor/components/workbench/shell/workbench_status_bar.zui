@@ -24,7 +24,7 @@ component = "HorizontalGroup"
 control_id = "WorkbenchWindowStatusBar"
 classes = ["workbench-status"]
 props = { status_right_offset_y = -0.5, status_right_label_color = "$editor.text.secondary", background_color = "$editor.surface.0", hover_background_color = "$editor.surface.hover", pressed_background_color = "$editor.surface.3", selected_background_color = "$editor.surface.selected", disabled_background_color = "$editor.surface.disabled", border_color = "$editor.border", focus_border_color = "$editor.accent", separator_edge = "top", separator_color = "$editor.separator.soft", separator_thickness = "$editor.control.border_width", foreground_color = "$editor.text.secondary", active_foreground_color = "$editor.text.primary", disabled_foreground_color = "$editor.text.disabled", icon_color = "$editor.text.secondary", active_icon_color = "$editor.accent", font_size = "$editor.typography.body.size", line_height_ratio = "$editor.typography.line_height", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_vertical = "$editor.density.gap.small", layout_spacing = "$editor.density.gap.small" }
-layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" } }
 children = [{ node = "status_ready" }, { node = "status_errors" }, { node = "status_warnings" }, { node = "status_messages" }, { node = "status_task" }, { node = "status_grid" }, { node = "status_snap" }, { node = "status_snap_icon" }, { node = "status_world_icon" }, { node = "status_target_icon" }, { node = "status_zoom" }]
 
 [nodes.status_ready]
@@ -60,15 +60,15 @@ component = "HorizontalGroup"
 control_id = "WorkbenchStatusTaskProgress"
 classes = ["workbench-status-task", "workbench-status-right-control"]
 props = { text = "", value_text = "", value = 0.0, min = 0.0, max = 100.0, variant = "linear", visibility = "collapsed", visible = false, text_tone = "info" }
-layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { min = 160.0, preferred = 224.0, max = 224.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.medium" }, width = { min = 160.0, preferred = 224.0, max = 224.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "status_task_label" }, { node = "status_task_bar" }]
 
 [nodes.status_task_label]
 component = "WorkbenchChip"
 control_id = "WorkbenchStatusTaskLabel"
 classes = ["workbench-chip", "workbench-status-task-label"]
-props = { text = "", value_text = "", text_tone = "info" }
-layout = { width = { min = 100.0, preferred = 132.0, max = 132.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+props = { text = "", value_text = "", text_tone = "info", layout_min_height = "$editor.chrome.status_bar.height" }
+layout = { width = { min = 100.0, preferred = 132.0, max = 132.0, stretch = "Fixed" }, height = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" } }
 
 [nodes.status_task_bar]
 component = "WorkbenchProgressBar"
@@ -81,40 +81,40 @@ layout = { width = { min = 52.0, preferred = 84.0, max = 84.0, stretch = "Fixed"
 component = "WorkbenchChip"
 control_id = "WorkbenchStatusGrid"
 classes = ["workbench-chip", "workbench-status-right-control"]
-props = { text = "Grid: 10 cm", responsive_min_tier = "wide" }
-layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+props = { text = "Grid: 10 cm", responsive_min_tier = "wide", layout_min_height = "$editor.chrome.status_bar.height" }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" } }
 
 [nodes.status_snap]
 component = "WorkbenchChip"
 control_id = "WorkbenchStatusSnap"
 classes = ["workbench-chip", "workbench-status-right-control"]
-props = { text = "Snap: On", responsive_min_tier = "wide" }
-layout = { width = { min = 74.0, preferred = 74.0, max = 74.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+props = { text = "Snap: On", responsive_min_tier = "wide", layout_min_height = "$editor.chrome.status_bar.height" }
+layout = { width = { min = 74.0, preferred = 74.0, max = 74.0, stretch = "Fixed" }, height = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" } }
 
 [nodes.status_snap_icon]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchStatusSnapToggle"
 classes = ["workbench-icon-button", "workbench-status-right-icon"]
-props = { icon = "zircon_editor_shell/viewport/magnet.svg", label = "Snap", responsive_min_tier = "wide" }
-layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+props = { icon = "zircon_editor_shell/viewport/magnet.svg", label = "Snap", responsive_min_tier = "wide", layout_min_width = "$editor.chrome.status_bar.height", layout_min_height = "$editor.chrome.status_bar.height" }
+layout = { width = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" }, height = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" } }
 
 [nodes.status_world_icon]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchStatusWorld"
 classes = ["workbench-icon-button", "workbench-status-right-icon"]
-props = { icon = "zircon_editor_shell/viewport/globe.svg", label = "World", responsive_min_tier = "wide" }
-layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+props = { icon = "zircon_editor_shell/viewport/globe.svg", label = "World", responsive_min_tier = "wide", layout_min_width = "$editor.chrome.status_bar.height", layout_min_height = "$editor.chrome.status_bar.height" }
+layout = { width = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" }, height = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" } }
 
 [nodes.status_target_icon]
 component = "WorkbenchIconButton"
 control_id = "WorkbenchStatusTarget"
 classes = ["workbench-icon-button", "workbench-status-right-icon"]
-props = { icon = "zircon_editor_shell/viewport/crosshair.svg", label = "Target", responsive_min_tier = "wide" }
-layout = { width = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+props = { icon = "zircon_editor_shell/viewport/crosshair.svg", label = "Target", responsive_min_tier = "wide", layout_min_width = "$editor.chrome.status_bar.height", layout_min_height = "$editor.chrome.status_bar.height" }
+layout = { width = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" }, height = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" } }
 
 [nodes.status_zoom]
 component = "WorkbenchChip"
 control_id = "WorkbenchStatusZoom"
 classes = ["workbench-chip", "workbench-status-right-control"]
-props = { text = "100%", responsive_min_tier = "wide" }
-layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+props = { text = "100%", responsive_min_tier = "wide", layout_min_height = "$editor.chrome.status_bar.height" }
+layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = "$editor.chrome.status_bar.height", preferred = "$editor.chrome.status_bar.height", max = "$editor.chrome.status_bar.height", stretch = "Fixed" } }

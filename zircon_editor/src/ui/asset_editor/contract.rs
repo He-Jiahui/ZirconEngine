@@ -13,7 +13,12 @@ pub const UI_ASSET_EDITOR_WINDOW_ID: &str = "editor.ui_asset";
 pub const UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_ID: &str = "res://ui/editor/ui_asset_editor.zui";
 pub const UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_DOCUMENT_ID: &str =
     "res://ui/editor/ui_asset_editor.zui";
-pub const UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID: &str = "res://ui/theme/editor_material.zui";
+pub const UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID: &str =
+    "res://ui/editor/theme/editor_tokens.zui";
+pub(crate) const UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_PATH: &str =
+    "/assets/ui/editor/ui_asset_editor.zui";
+pub(crate) const UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_PATH: &str =
+    "/assets/ui/editor/theme/editor_tokens.zui";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UiAssetEditorMode {

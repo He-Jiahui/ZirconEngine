@@ -685,11 +685,9 @@ fn assets_activity_content_rows_share_the_activity_pointer_geometry() {
         selected_name.frame.x + selected_name.frame.width
             <= selected.frame.x + selected.frame.width
     );
-    assert!(
-        !nodes
-            .iter()
-            .any(|node| node.control_id == "AssetsActivityContentEmptyText")
-    );
+    assert!(!nodes
+        .iter()
+        .any(|node| node.control_id == "AssetsActivityContentEmptyText"));
 }
 
 #[test]

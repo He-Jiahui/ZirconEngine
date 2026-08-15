@@ -22,7 +22,10 @@ mod structure_assertions;
 pub(super) use root_child_rows::*;
 pub(super) use root_paths::*;
 pub(super) use root_sources::*;
-pub(super) use root_statuses::*;
+
+pub(super) const GUARD: &str =
+    "runtime_15_code_review_findings_plugin_importer_dx_structure_guard_is_child_owner";
+pub(super) const PLUGIN_IMPORTER_DX_CHILD_OWNER_LINE_BUDGET: usize = 800;
 
 pub(super) fn assert_plugin_importer_dx_child_owners_are_folder_backed() {
     structure_assertions::assert_plugin_importer_dx_child_owners_are_folder_backed();
@@ -39,13 +42,4 @@ pub(super) fn plugin_importer_dx_review_guard_count() -> usize {
 pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::code_review_findings) fn plugin_importer_dx_source_inventory_child_source_blob(
 ) -> String {
     source_inventory::plugin_importer_dx_source_inventory_child_source_blob()
-}
-
-pub(in crate::tests::runtime_absorption::structure_convention::test_file_budget::code_review_findings) fn plugin_importer_dx_status_docs_structure_source_blob(
-) -> String {
-    status_docs::plugin_importer_dx_status_docs_structure_source_blob()
-}
-
-pub(super) fn assert_plugin_importer_dx_status_docs_are_synced() {
-    status_docs::assert_plugin_importer_dx_status_docs_are_synced();
 }

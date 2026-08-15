@@ -5,12 +5,12 @@ use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::paint_frame::HostRgbaFrame;
 use super::super::super::paint_geometry::PixelRect;
-use super::super::super::paint_theme::{HostTextSmoothing, current_host_text_preferences};
-use super::super::font::HostTextFontFace;
-use super::super::raster::rasterize_cached_glyph;
+use super::super::super::paint_theme::{current_host_text_preferences, HostTextSmoothing};
+use super::super::font::{HostTextFontFace, HostTextFontSnapshot};
+use super::super::raster::{rasterize_cached_glyph, rasterize_cached_runtime_artifact_glyph};
 use super::layout::RuntimeTextGlyph;
 use super::placement::retained_glyph_placement_for_smoothing;
-use metrics::{TEXT_RASTER_SUPERSAMPLE, logical_raster_extent};
+use metrics::{logical_raster_extent, TEXT_RASTER_SUPERSAMPLE};
 use row::draw_glyph_row;
 
 pub(super) fn draw_layout_glyphs(
@@ -18,12 +18,22 @@ pub(super) fn draw_layout_glyphs(
     clip: &PixelRect,
     font_face: HostTextFontFace,
     glyphs: &[RuntimeTextGlyph],
+    artifact_raster_fonts: &[HostTextFontSnapshot],
     color: [u8; 4],
     style: UiTextRunPaintStyle,
 ) {
     let smoothing = current_host_text_preferences().smoothing;
     for glyph in glyphs {
-        draw_layout_glyph(frame, clip, font_face, glyph, color, style, smoothing);
+        draw_layout_glyph(
+            frame,
+            clip,
+            font_face,
+            glyph,
+            artifact_raster_fonts,
+            color,
+            style,
+            smoothing,
+        );
     }
 }
 
@@ -32,6 +42,7 @@ fn draw_layout_glyph(
     clip: &PixelRect,
     font_face: HostTextFontFace,
     glyph: &RuntimeTextGlyph,
+    artifact_raster_fonts: &[HostTextFontSnapshot],
     color: [u8; 4],
     style: UiTextRunPaintStyle,
     smoothing: HostTextSmoothing,
@@ -42,13 +53,27 @@ fn draw_layout_glyph(
         glyph.x
     };
     let origin_placement = retained_glyph_placement_for_smoothing(phase_x, smoothing);
-    let raster = rasterize_cached_glyph(
-        font_face,
-        glyph.glyph_index,
-        glyph.px,
-        TEXT_RASTER_SUPERSAMPLE,
-        origin_placement.subpixel_offset,
-    );
+    let raster = glyph
+        .raster_font_index
+        .and_then(|index| artifact_raster_fonts.get(index))
+        .map(|font| {
+            rasterize_cached_runtime_artifact_glyph(
+                font,
+                glyph.glyph_index,
+                glyph.px,
+                TEXT_RASTER_SUPERSAMPLE,
+                origin_placement.subpixel_offset,
+            )
+        })
+        .unwrap_or_else(|| {
+            rasterize_cached_glyph(
+                font_face,
+                glyph.glyph_index,
+                glyph.px,
+                TEXT_RASTER_SUPERSAMPLE,
+                origin_placement.subpixel_offset,
+            )
+        });
     let metrics = &raster.metrics;
     let bitmap = raster.bitmap.as_ref();
     if metrics.width == 0 || metrics.height == 0 {

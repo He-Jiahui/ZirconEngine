@@ -1,6 +1,6 @@
 use crate::core::resource::{ResourceRecord, ResourceState};
 
-use super::{AssetStatusRecord, metadata_import_state::metadata_import_state};
+use super::{metadata_import_state::metadata_import_state, AssetStatusRecord};
 
 pub(in crate::asset::pipeline::manager) fn build_status_record(
     metadata: &ResourceRecord,

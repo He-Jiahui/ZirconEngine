@@ -140,6 +140,104 @@ fn text_measure_cache_separates_complete_and_viewport_layouts() {
 }
 
 #[test]
+fn vertical_plain_viewport_document_reuses_the_persistent_layout_cache() {
+    let style = UiResolvedStyle {
+        font_size: 10.0,
+        line_height: 12.0,
+        wrap: UiTextWrap::None,
+        text_overflow: UiTextOverflow::Clip,
+        text_writing_mode: UiTextWritingMode::VerticalRl,
+        ..UiResolvedStyle::default()
+    };
+    let request = UiTextLayoutRequest::new(
+        "vertical cache reuse",
+        &style,
+        UiFrame::new(0.0, 0.0, 120.0, 96.0),
+        Some(UiFrame::new(0.0, 12.0, 120.0, 48.0)),
+    )
+    .with_document_key(crate::text::TextDocumentKey::new(81, 1))
+    .with_viewport(UiTextViewport::new(12.0, 48.0, 2).expect("finite document viewport"));
+    let mut cache = UiTextMeasureCache::default();
+
+    cache.begin_frame();
+    let first = cache.resolve_or_shape(&request);
+    cache.finish_frame();
+
+    cache.begin_frame();
+    let second = cache.resolve_or_shape(&request);
+
+    assert_eq!(first.layout, second.layout);
+    assert_eq!(cache.frame_layout_report().miss_count, 0);
+    assert_eq!(cache.frame_layout_report().hit_count, 1);
+}
+
+#[test]
+fn complete_plain_viewport_document_reuses_the_persistent_layout_cache() {
+    let style = UiResolvedStyle {
+        font_size: 10.0,
+        line_height: 12.0,
+        wrap: UiTextWrap::None,
+        text_overflow: UiTextOverflow::Clip,
+        ..UiResolvedStyle::default()
+    };
+    let request = UiTextLayoutRequest::new(
+        "first\nsecond",
+        &style,
+        UiFrame::new(0.0, 0.0, 120.0, 48.0),
+        Some(UiFrame::new(0.0, 0.0, 120.0, 48.0)),
+    )
+    .with_document_key(crate::text::TextDocumentKey::new(82, 1))
+    .with_viewport(UiTextViewport::new(0.0, 48.0, 2).expect("finite document viewport"));
+    let mut cache = UiTextMeasureCache::default();
+
+    cache.begin_frame();
+    let first = cache.resolve_or_shape(&request);
+    cache.finish_frame();
+
+    cache.begin_frame();
+    let second = cache.resolve_or_shape(&request);
+
+    assert_eq!(first.layout, second.layout);
+    assert_eq!(cache.frame_layout_report().miss_count, 0);
+    assert_eq!(cache.frame_layout_report().hit_count, 1);
+}
+
+#[test]
+fn partial_plain_viewport_document_reuses_the_frame_layout_dedup() {
+    let style = UiResolvedStyle {
+        font_size: 10.0,
+        line_height: 12.0,
+        wrap: UiTextWrap::None,
+        text_overflow: UiTextOverflow::Clip,
+        ..UiResolvedStyle::default()
+    };
+    let text = (0..100)
+        .map(|index| format!("row-{index:03}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let request = UiTextLayoutRequest::new(
+        &text,
+        &style,
+        UiFrame::new(0.0, 0.0, 120.0, 1_200.0),
+        Some(UiFrame::new(0.0, 121.0, 120.0, 12.0)),
+    )
+    .with_document_key(crate::text::TextDocumentKey::new(83, 1))
+    .with_viewport(UiTextViewport::new(121.0, 12.0, 0).expect("finite document viewport"));
+    let mut cache = UiTextMeasureCache::default();
+
+    cache.begin_frame();
+    let first = cache.resolve_or_shape(&request);
+    let second = cache.resolve_or_shape(&request);
+
+    assert_eq!(first.layout, second.layout);
+    assert_eq!(cache.frame_layout_report().miss_count, 0);
+    assert_eq!(cache.frame_layout_report().hit_count, 0);
+    assert_eq!(cache.frame_layout_dedup_report().miss_count, 1);
+    assert_eq!(cache.frame_layout_dedup_report().hit_count, 1);
+    assert_eq!(cache.frame_uncached_document_resolve_count(), 1);
+}
+
+#[test]
 fn unwrapped_text_height_measure_shapes_only_line_metrics() {
     let style = UiResolvedStyle {
         font_size: 10.0,

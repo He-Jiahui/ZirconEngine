@@ -1,5 +1,5 @@
-use crate::scene::viewport::SceneEditModeProjection;
 use crate::scene::viewport::edit_mode_projection::build_scene_edit_mode_projection;
+use crate::scene::viewport::SceneEditModeProjection;
 use zircon_runtime::scene::Scene;
 
 use super::SceneViewportController;

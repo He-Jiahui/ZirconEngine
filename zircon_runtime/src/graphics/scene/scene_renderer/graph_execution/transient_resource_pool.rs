@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::core::framework::render::RenderGraphTransientPoolReport;
+use crate::graphics::resource_identity::SampledTextureIdentity;
 use crate::rhi::{BufferDesc, TextureDesc, TextureDimension, TextureFormat, TextureResidency};
 
 use super::materialization::{create_wgpu_buffer, create_wgpu_texture};
@@ -58,28 +59,41 @@ impl TransientResourcePool {
         };
     }
 
-    pub fn acquire_texture(&mut self, device: &wgpu::Device, desc: &TextureDesc) -> wgpu::Texture {
+    pub fn acquire_texture(
+        &mut self,
+        device: &wgpu::Device,
+        desc: &TextureDesc,
+    ) -> (wgpu::Texture, SampledTextureIdentity) {
         let key = TransientTextureKey::from(desc);
         if let Some(texture) = self
             .textures
             .get_mut(&key)
             .and_then(|entries| entries.pop())
-            .map(|entry| entry.texture)
+            .map(|entry| (entry.texture, entry.identity))
         {
             self.frame_report.texture_reused_count += 1;
             return texture;
         }
 
         self.frame_report.texture_created_count += 1;
-        create_wgpu_texture(device, desc)
+        (
+            create_wgpu_texture(device, desc),
+            SampledTextureIdentity::new(),
+        )
     }
 
-    pub fn release_texture(&mut self, desc: TextureDesc, texture: wgpu::Texture) {
+    pub fn release_texture(
+        &mut self,
+        desc: TextureDesc,
+        texture: wgpu::Texture,
+        identity: SampledTextureIdentity,
+    ) {
         self.textures
             .entry(TransientTextureKey::from(&desc))
             .or_default()
             .push(PooledTexture {
                 texture,
+                identity,
                 last_used_frame: self.frame_index,
                 byte_size: texture_desc_pool_size_bytes(&desc),
             });
@@ -190,6 +204,7 @@ impl From<&BufferDesc> for TransientBufferKey {
 
 struct PooledTexture {
     texture: wgpu::Texture,
+    identity: SampledTextureIdentity,
     last_used_frame: u64,
     byte_size: u64,
 }
@@ -488,8 +503,8 @@ mod tests {
         let mut pool = TransientResourcePool::default();
 
         pool.begin_frame();
-        let first = pool.acquire_texture(&backend.device, &desc);
-        pool.release_texture(desc.clone(), first);
+        let (first, first_identity) = pool.acquire_texture(&backend.device, &desc);
+        pool.release_texture(desc.clone(), first, first_identity);
         pool.end_frame();
         assert_eq!(pool.last_frame_report().texture_created_count, 1);
         assert_eq!(pool.last_frame_report().texture_reused_count, 0);
@@ -500,8 +515,9 @@ mod tests {
         );
 
         pool.begin_frame();
-        let second = pool.acquire_texture(&backend.device, &desc);
-        pool.release_texture(desc, second);
+        let (second, second_identity) = pool.acquire_texture(&backend.device, &desc);
+        assert_eq!(first_identity, second_identity);
+        pool.release_texture(desc, second, second_identity);
         pool.end_frame();
         assert_eq!(pool.last_frame_report().texture_created_count, 0);
         assert_eq!(pool.last_frame_report().texture_reused_count, 1);
@@ -526,10 +542,11 @@ mod tests {
         let mut pool = TransientResourcePool::with_budgets(4_096, 64);
 
         pool.begin_frame();
-        let first_texture = pool.acquire_texture(&backend.device, &texture_desc);
-        let second_texture = pool.acquire_texture(&backend.device, &texture_desc);
-        pool.release_texture(texture_desc.clone(), first_texture);
-        pool.release_texture(texture_desc, second_texture);
+        let (first_texture, first_identity) = pool.acquire_texture(&backend.device, &texture_desc);
+        let (second_texture, second_identity) =
+            pool.acquire_texture(&backend.device, &texture_desc);
+        pool.release_texture(texture_desc.clone(), first_texture, first_identity);
+        pool.release_texture(texture_desc, second_texture, second_identity);
         let first_buffer = pool.acquire_buffer(&backend.device, &buffer_desc);
         let second_buffer = pool.acquire_buffer(&backend.device, &buffer_desc);
         pool.release_buffer(buffer_desc.clone(), first_buffer);

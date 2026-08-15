@@ -15,6 +15,7 @@ use super::contract::{
     NativePluginDiscoveryRoot, NativePluginDiscoverySnapshot,
 };
 use super::ticket::{NativePluginDiscoveryRefreshTerminal, NativePluginDiscoveryRefreshTicket};
+use super::work::NativePluginDiscoveryRefreshWork;
 
 thread_local! {
     static NATIVE_PLUGIN_DISCOVERY_IO_LANE: Cell<bool> = const { Cell::new(false) };
@@ -106,12 +107,15 @@ struct ActiveRefresh {
     generation: u64,
     ticket: NativePluginDiscoveryRefreshTicket,
     input: NativePluginDiscoveryRefreshInput,
+    work: NativePluginDiscoveryRefreshWork,
 }
 
 struct PendingRefresh {
     generation: u64,
     ticket: NativePluginDiscoveryRefreshTicket,
     input: NativePluginDiscoveryRefreshInput,
+    work: NativePluginDiscoveryRefreshWork,
+    base_snapshot: Option<Arc<NativePluginDiscoverySnapshot>>,
 }
 
 impl fmt::Debug for NativePluginDiscoveryRefreshService {
@@ -180,6 +184,17 @@ impl NativePluginDiscoveryRefreshService {
         root: NativePluginDiscoveryRoot,
         input: NativePluginDiscoveryRefreshInput,
     ) -> NativePluginDiscoveryRefreshTicket {
+        self.submit_with_work(root, input, NativePluginDiscoveryRefreshWork::root_scan())
+    }
+
+    /// Admits one root/input generation while retaining watcher work on the ticket rather than
+    /// splitting `(root, input)` snapshot history by changed path.
+    pub(in crate::plugin::native_plugin_loader) fn submit_with_work(
+        &self,
+        root: NativePluginDiscoveryRoot,
+        input: NativePluginDiscoveryRefreshInput,
+        work: NativePluginDiscoveryRefreshWork,
+    ) -> NativePluginDiscoveryRefreshTicket {
         let key = NativePluginDiscoveryRefreshKey::new(root.clone(), input.clone());
         let now = Instant::now();
         let Some(deadline) = now.checked_add(self.shared.budget.deadline) else {
@@ -218,49 +233,71 @@ impl NativePluginDiscoveryRefreshService {
                 ticket
             } else {
                 let root_state = state.roots.entry(key).or_default();
-                root_state.newest_generation = root_state.newest_generation.saturating_add(1);
-                let generation = root_state.newest_generation;
-                let ticket = self.new_ticket(root.clone(), generation, deadline);
-                let replacement = PendingRefresh {
-                    generation,
-                    ticket: ticket.clone(),
-                    input: input.clone(),
-                };
-
-                if let Some(active) = &root_state.active {
-                    active.ticket.cancellation().cancel();
-                    terminals.push((
-                        active.ticket.clone(),
-                        NativePluginDiscoveryRefreshTerminal::Superseded {
-                            generation: active.generation,
-                        },
-                    ));
-                    if let Some(displaced) = root_state.pending.replace(replacement) {
-                        displaced.ticket.cancellation().cancel();
+                if root_state.active.is_some() {
+                    if let Some(pending) = root_state.pending.as_mut() {
+                        pending.work.merge(work);
+                        pending.ticket.clone()
+                    } else {
+                        let (active_ticket, active_generation, active_work) = {
+                            let active = root_state.active.as_ref().expect("active refresh");
+                            (
+                                active.ticket.clone(),
+                                active.generation,
+                                active.work.clone(),
+                            )
+                        };
+                        let mut pending_work = active_work;
+                        pending_work.merge(work);
+                        root_state.newest_generation =
+                            root_state.newest_generation.saturating_add(1);
+                        let generation = root_state.newest_generation;
+                        let ticket = self.new_ticket(root.clone(), generation, deadline);
+                        active_ticket.cancellation().cancel();
                         terminals.push((
-                            displaced.ticket,
+                            active_ticket,
                             NativePluginDiscoveryRefreshTerminal::Superseded {
-                                generation: displaced.generation,
+                                generation: active_generation,
                             },
                         ));
+                        root_state.pending = Some(PendingRefresh {
+                            generation,
+                            ticket: ticket.clone(),
+                            input: input.clone(),
+                            work: pending_work,
+                            base_snapshot: root_state.published.clone(),
+                        });
+                        ticket
                     }
                 } else {
+                    root_state.newest_generation = root_state.newest_generation.saturating_add(1);
+                    let generation = root_state.newest_generation;
+                    let ticket = self.new_ticket(root.clone(), generation, deadline);
+                    let base_snapshot = root_state.published.clone();
                     root_state.active = Some(ActiveRefresh {
                         generation,
                         ticket: ticket.clone(),
                         input: input.clone(),
+                        work: work.clone(),
                     });
-                    launch = Some((root, generation, ticket.clone(), input));
+                    launch = Some((root, generation, ticket.clone(), input, work, base_snapshot));
+                    ticket
                 }
-                ticket
             }
         };
 
         for (ticket, terminal) in terminals {
             ticket.finish(terminal);
         }
-        if let Some((root, generation, ticket, input)) = launch {
-            launch_generation(Arc::clone(&self.shared), root, input, generation, ticket);
+        if let Some((root, generation, ticket, input, work, base_snapshot)) = launch {
+            launch_generation(
+                Arc::clone(&self.shared),
+                root,
+                input,
+                work,
+                base_snapshot,
+                generation,
+                ticket,
+            );
         }
         ticket
     }
@@ -369,6 +406,8 @@ fn launch_generation(
     shared: Arc<RefreshShared>,
     root: NativePluginDiscoveryRoot,
     input: NativePluginDiscoveryRefreshInput,
+    work: NativePluginDiscoveryRefreshWork,
+    base_snapshot: Option<Arc<NativePluginDiscoverySnapshot>>,
     generation: u64,
     ticket: NativePluginDiscoveryRefreshTicket,
 ) {
@@ -376,6 +415,8 @@ fn launch_generation(
     let task_shared = Arc::clone(&shared);
     let task_root = root.clone();
     let task_input = input.clone();
+    let task_work = work.clone();
+    let task_base_snapshot = base_snapshot.clone();
     let completion_input = input.clone();
     let task_ticket = ticket.clone();
     let task_completed = Arc::clone(&completed);
@@ -387,6 +428,8 @@ fn launch_generation(
                     &task_shared,
                     task_root.clone(),
                     task_input,
+                    task_work,
+                    task_base_snapshot,
                     generation,
                     &task_ticket,
                 )
@@ -439,12 +482,16 @@ fn collect_generation(
     shared: &RefreshShared,
     root: NativePluginDiscoveryRoot,
     input: NativePluginDiscoveryRefreshInput,
+    work: NativePluginDiscoveryRefreshWork,
+    base_snapshot: Option<Arc<NativePluginDiscoverySnapshot>>,
     generation: u64,
     ticket: &NativePluginDiscoveryRefreshTicket,
 ) -> Result<Arc<NativePluginDiscoverySnapshot>, Arc<NativePluginDiscoveryRefreshError>> {
     let request = NativePluginDiscoveryRefreshRequest::new(
         root.clone(),
         input.clone(),
+        work.clone(),
+        base_snapshot.clone(),
         generation,
         shared.budget.clone(),
         ticket.cancellation(),
@@ -461,9 +508,24 @@ fn collect_generation(
     request.check_active().map_err(Arc::new)?;
     let payload = sink.into_payload(input_identity);
     request.check_active().map_err(Arc::new)?;
-    Ok(Arc::new(NativePluginDiscoverySnapshot::from_payload(
-        root, input, generation, payload,
-    )))
+    let snapshot = match (&input, &work, base_snapshot.as_deref()) {
+        (
+            NativePluginDiscoveryRefreshInput::RootScan,
+            NativePluginDiscoveryRefreshWork::ManifestBatch { .. },
+            Some(base_snapshot),
+        ) => NativePluginDiscoverySnapshot::from_incremental_payload(
+            root,
+            input,
+            generation,
+            base_snapshot,
+            &work,
+            payload,
+            shared.budget.max_candidates,
+        )
+        .map_err(Arc::new)?,
+        _ => NativePluginDiscoverySnapshot::from_payload(root, input, generation, payload),
+    };
+    Ok(Arc::new(snapshot))
 }
 
 fn complete_generation(
@@ -560,10 +622,13 @@ fn complete_generation(
                         generation: pending.generation,
                         ticket: pending.ticket.clone(),
                         input: pending.input.clone(),
+                        work: pending.work.clone(),
                     });
                     Some((
                         root.clone(),
                         pending.input,
+                        pending.work,
+                        pending.base_snapshot,
                         pending.generation,
                         pending.ticket,
                     ))
@@ -579,7 +644,15 @@ fn complete_generation(
     if let Some(terminal) = terminal {
         ticket.finish(terminal);
     }
-    if let Some((root, input, generation, ticket)) = launch {
-        launch_generation(Arc::clone(shared), root, input, generation, ticket);
+    if let Some((root, input, work, base_snapshot, generation, ticket)) = launch {
+        launch_generation(
+            Arc::clone(shared),
+            root,
+            input,
+            work,
+            base_snapshot,
+            generation,
+            ticket,
+        );
     }
 }

@@ -1,4 +1,5 @@
 use std::{
+    collections::VecDeque,
     fmt,
     process::{Child, Command, ExitStatus, Stdio},
     thread,
@@ -21,7 +22,7 @@ use super::{
 mod core_pipeline;
 mod output_capture;
 
-use super::output_tail::{push_bounded_output_line, retain_bounded_output_tail};
+use super::output_tail::{push_bounded_output_line, retain_bounded_output_lines};
 use core_pipeline::{run_core_compile_host, run_core_platform_bundle};
 use output_capture::ExportWizardOutputCapture;
 
@@ -252,15 +253,19 @@ impl ExportWizardCommandRunner for ProcessCommandRunner {
         let persisted_output = persisted_output
             .finish()
             .map_err(EditorExportBuildError::materialize)?;
-        let mut execution = ExportWizardCommandExecution {
-            exit_code: status.code(),
-            stdout_lines: persisted_output.stdout_lines,
-            stderr_lines: persisted_output.stderr_lines,
-        };
+        let mut stdout_lines = persisted_output
+            .stdout_lines
+            .into_iter()
+            .collect::<VecDeque<_>>();
         for artifact_line in persisted_output.artifact_lines {
-            push_bounded_output_line(&mut execution.stdout_lines, artifact_line.line.clone());
+            push_bounded_output_line(&mut stdout_lines, artifact_line.line.clone());
             emit_output(artifact_line);
         }
+        let mut execution = ExportWizardCommandExecution {
+            exit_code: status.code(),
+            stdout_lines: stdout_lines.into_iter().collect(),
+            stderr_lines: persisted_output.stderr_lines,
+        };
         if status.success() {
             project_core_stage_success(command, &mut execution, emit_output)?;
         }
@@ -357,8 +362,8 @@ pub fn execute_export_wizard_stage_with_output_and_cancel(
 
     match runner.run_with_output_and_cancel(command, &mut observe_output, &mut observe_cancel) {
         Ok(mut execution) => {
-            retain_bounded_output_tail(&mut execution.stdout_lines);
-            retain_bounded_output_tail(&mut execution.stderr_lines);
+            retain_bounded_output_lines(&mut execution.stdout_lines);
+            retain_bounded_output_lines(&mut execution.stderr_lines);
             let cancelled = cancel_observed_during_run;
             if cancelled {
                 diagnostics.push(format!(
@@ -511,16 +516,20 @@ fn project_core_stage_success(
     let bytes = serde_json::to_vec_pretty(&report)
         .map_err(|source| EditorExportBuildError::materialize(std::io::Error::other(source)))?;
     std::fs::write(report_path, bytes).map_err(EditorExportBuildError::materialize)?;
+    let mut stdout_lines = std::mem::take(&mut execution.stdout_lines)
+        .into_iter()
+        .collect::<VecDeque<_>>();
     for line in [
         format!("report={}", report_path.display()),
         format!("host={host_path}"),
     ] {
-        push_bounded_output_line(&mut execution.stdout_lines, line.clone());
+        push_bounded_output_line(&mut stdout_lines, line.clone());
         emit_output(ExportWizardCommandOutputLine {
             stream: ExportWizardCommandOutputStream::Stdout,
             line,
         });
     }
+    execution.stdout_lines = stdout_lines.into_iter().collect();
     Ok(())
 }
 

@@ -1,6 +1,6 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
-use super::identity::{WorkbenchAlertKind, workbench_alert_kind};
+use super::identity::{workbench_alert_kind, WorkbenchAlertKind};
 use super::inline::push_inline_alert;
 use super::layout::{frame_is_within, has_paintable_alert_extent, pixel_aligned_rect};
 use super::toast::push_toast;

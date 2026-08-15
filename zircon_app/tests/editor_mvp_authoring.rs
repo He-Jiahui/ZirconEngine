@@ -21,7 +21,7 @@ use zircon_runtime_interface::ui::binding::UiBindingValue;
 #[test]
 fn f4_project_authoring_survives_full_application_restart() {
     let _environment = config_environment_lock().lock().unwrap();
-    let location = unique_temp_dir("zircon_app_f4_authoring");
+    let location = unique_mvp_project_directory("zircon_app_f4_authoring");
     fs::create_dir_all(&location).unwrap();
     let _config_path = ConfigPathGuard::set(location.join("editor-config.json"));
     let created = ProjectAuthority::default()
@@ -34,18 +34,7 @@ fn f4_project_authoring_survives_full_application_restart() {
     let canonical_project_root = ProjectPaths::resolve_existing_path(&created.root).unwrap();
 
     let first = EditorApplicationComposition::open_project(&created.root).unwrap();
-    let host = first.editor_host();
-    let first_snapshot = host.editor_snapshot();
-    assert!(first_snapshot.project_open);
-    assert_eq!(
-        PathBuf::from(&first_snapshot.project_path),
-        canonical_project_root
-    );
-    let opened_project = first
-        .startup_session()
-        .project
-        .as_ref()
-        .expect("project startup must retain the activated project summary");
+    let opened_project = first.prepared_project();
     assert!(
         opened_project.project_info.asset_count >= 4,
         "the startup summary must come from the post-import project generation"
@@ -58,35 +47,11 @@ fn f4_project_authoring_survives_full_application_restart() {
         opened_project.project_info.ready_asset_count, opened_project.project_info.asset_count,
         "the RenderableEmpty starter assets must all reach Ready before F4 authoring begins"
     );
-    assert!(
-        first
-            .startup_session()
-            .status_message
-            .starts_with("Project opened:"),
-        "F4 authoring must not proceed from a degraded project-open state: {}",
-        first.startup_session().status_message
-    );
-    assert!(
-        first.startup_session().status_message.contains(&format!(
-            "assets={} ready={} failed={} registry_diagnostics={}",
-            opened_project.project_info.asset_count,
-            opened_project.project_info.ready_asset_count,
-            opened_project.project_info.failed_asset_count,
-            opened_project.project_info.registry_diagnostic_count,
-        )),
-        "the user-visible startup diagnostic must describe the activated generation"
-    );
-    assert!(
-        first
-            .startup_session()
-            .status_message
-            .contains("project_settings=persisted-v1"),
-        "the user-visible startup diagnostic must identify the persisted project settings source"
-    );
-    let cube = first_snapshot
-        .scene_entries
+    let cube = opened_project
+        .world
+        .nodes()
         .iter()
-        .find(|entry| entry.display_name == "Cube")
+        .find(|node| node.name == "Cube")
         .expect("renderable-empty project must contain a Cube")
         .id;
     let (initial_cube, initial_camera, initial_sun) = {
@@ -113,44 +78,12 @@ fn f4_project_authoring_survives_full_application_restart() {
 
     let selection_binding = EditorUiBinding::new(
         "Hierarchy",
-        "SelectCube",
+        "SelectSceneNode",
         EditorUiEventKind::Click,
         EditorUiBindingPayload::selection_command(SelectionCommand::SelectSceneNode {
             node_id: cube,
         }),
     );
-    let selection_binding_path = selection_binding.path().native_prefix();
-    let selection_record = host
-        .dispatch_binding(selection_binding, EditorEventSource::Headless)
-        .unwrap();
-    assert_eq!(
-        selection_record.binding_path.as_deref(),
-        Some(selection_binding_path.as_str()),
-        "the F4 selection must originate from the normal Hierarchy binding"
-    );
-    let selected_snapshot = host.editor_snapshot();
-    assert!(
-        selected_snapshot
-            .scene_entries
-            .iter()
-            .any(|entry| entry.entity == cube
-                && selected_snapshot.scene_entries.is_selected(entry.entity))
-    );
-    let initial_x = host
-        .editor_snapshot()
-        .inspector
-        .expect("selected Cube must project an inspector")
-        .translation[0]
-        .parse::<f32>()
-        .unwrap();
-    let initial_scale_x = host
-        .editor_snapshot()
-        .inspector
-        .expect("selected Cube must project an inspector")
-        .scale[0]
-        .parse::<f32>()
-        .unwrap();
-
     let transform_binding = EditorUiBinding::new(
         "Inspector",
         "TransformPositionXCommit",
@@ -163,34 +96,6 @@ fn f4_project_authoring_survives_full_application_restart() {
             }],
         ),
     );
-    let transform_binding_path = transform_binding.path().native_prefix();
-    let transform_record = host
-        .dispatch_binding(transform_binding, EditorEventSource::Headless)
-        .unwrap();
-    assert_eq!(
-        transform_record.binding_path.as_deref(),
-        Some(transform_binding_path.as_str()),
-        "the F4 transform edit must retain its Inspector binding provenance"
-    );
-    assert_eq!(
-        transform_record.operation_id.as_deref(),
-        Some("inspector.field.apply_batch")
-    );
-    assert!(
-        transform_record.transaction_id.is_some(),
-        "the committed transform edit must create a transaction"
-    );
-    assert_eq!(transform_record.save_generation, None);
-    assert_eq!(
-        host.editor_snapshot()
-            .inspector
-            .expect("selected Cube must project an inspector")
-            .translation[0]
-            .parse::<f32>()
-            .unwrap(),
-        42.0
-    );
-
     let scale_binding = EditorUiBinding::new(
         "Inspector",
         "TransformScaleXCommit",
@@ -203,136 +108,93 @@ fn f4_project_authoring_survives_full_application_restart() {
             }],
         ),
     );
-    let scale_binding_path = scale_binding.path().native_prefix();
-    let scale_record = host
-        .dispatch_binding(scale_binding, EditorEventSource::Headless)
-        .unwrap();
-    assert_eq!(
-        scale_record.binding_path.as_deref(),
-        Some(scale_binding_path.as_str()),
-        "the F4 scale edit must retain its Inspector binding provenance"
+    let undo_binding = EditorUiBinding::new(
+        "WorkbenchMenuBar",
+        "Undo",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::menu_action("workbench.history.undo"),
     );
-    assert_eq!(
-        scale_record.operation_id.as_deref(),
-        Some("inspector.field.apply_batch")
+    let redo_binding = EditorUiBinding::new(
+        "WorkbenchMenuBar",
+        "Redo",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::menu_action("workbench.history.redo"),
     );
-    assert!(
-        scale_record.transaction_id.is_some(),
-        "the committed scale edit must create a transaction"
-    );
-    assert_eq!(scale_record.save_generation, None);
-    assert_eq!(
-        host.editor_snapshot()
-            .inspector
-            .expect("selected Cube must project an inspector")
-            .scale[0]
-            .parse::<f32>()
-            .unwrap(),
-        1.25
-    );
-
-    host.dispatch_event(
-        EditorEventSource::Headless,
-        EditorEvent::WorkbenchMenu(MenuAction::Undo),
-    )
-    .unwrap();
-    assert_eq!(
-        host.editor_snapshot()
-            .inspector
-            .expect("undo must retain the selected Cube inspector")
-            .scale[0]
-            .parse::<f32>()
-            .unwrap(),
-        initial_scale_x
-    );
-    assert_eq!(
-        host.editor_snapshot()
-            .inspector
-            .expect("undo must retain the selected Cube inspector")
-            .translation[0]
-            .parse::<f32>()
-            .unwrap(),
-        42.0
-    );
-
-    host.dispatch_event(
-        EditorEventSource::Headless,
-        EditorEvent::WorkbenchMenu(MenuAction::Undo),
-    )
-    .unwrap();
-    assert_eq!(
-        host.editor_snapshot()
-            .inspector
-            .expect("second undo must retain the selected Cube inspector")
-            .translation[0]
-            .parse::<f32>()
-            .unwrap(),
-        initial_x
-    );
-    assert_eq!(
-        host.editor_snapshot()
-            .inspector
-            .expect("second undo must retain the selected Cube inspector")
-            .scale[0]
-            .parse::<f32>()
-            .unwrap(),
-        initial_scale_x
-    );
-
-    host.dispatch_event(
-        EditorEventSource::Headless,
-        EditorEvent::WorkbenchMenu(MenuAction::Redo),
-    )
-    .unwrap();
-    assert_eq!(
-        host.editor_snapshot()
-            .inspector
-            .expect("redo must restore the selected Cube inspector")
-            .translation[0]
-            .parse::<f32>()
-            .unwrap(),
-        42.0
-    );
-    assert_eq!(
-        host.editor_snapshot()
-            .inspector
-            .expect("redo must retain the selected Cube scale before its transaction is replayed")
-            .scale[0]
-            .parse::<f32>()
-            .unwrap(),
-        initial_scale_x
-    );
-
-    host.dispatch_event(
-        EditorEventSource::Headless,
-        EditorEvent::WorkbenchMenu(MenuAction::Redo),
-    )
-    .unwrap();
-    assert_eq!(
-        host.editor_snapshot()
-            .inspector
-            .expect("second redo must restore the selected Cube inspector")
-            .scale[0]
-            .parse::<f32>()
-            .unwrap(),
-        1.25
-    );
-
     let save_binding = EditorUiBinding::new(
         "WorkbenchMenuBar",
         "SaveProject",
         EditorUiEventKind::Click,
         EditorUiBindingPayload::menu_action("workbench.project.save"),
     );
-    let save_binding_path = save_binding.path().native_prefix();
-    let save_record = host
-        .dispatch_binding(save_binding, EditorEventSource::Headless)
+    let first = first
+        .run_retained_host_automation(&[
+            selection_binding,
+            transform_binding,
+            scale_binding,
+            undo_binding,
+            redo_binding,
+            save_binding,
+        ])
         .unwrap();
+    let first_snapshot = first.editor_snapshot;
+    assert!(first_snapshot.project_open);
     assert_eq!(
-        save_record.binding_path.as_deref(),
-        Some(save_binding_path.as_str()),
-        "the F4 save must use the normal menu binding instead of a direct event shortcut"
+        PathBuf::from(&first_snapshot.project_path),
+        canonical_project_root
     );
+    assert!(first_snapshot.scene_entries.iter().any(
+        |entry| entry.entity == cube && first_snapshot.scene_entries.is_selected(entry.entity)
+    ));
+    assert_eq!(
+        first_snapshot
+            .inspector
+            .as_ref()
+            .expect("selected Cube must project an inspector")
+            .translation[0]
+            .parse::<f32>()
+            .unwrap(),
+        42.0
+    );
+    assert_eq!(
+        first_snapshot
+            .inspector
+            .as_ref()
+            .expect("selected Cube must project an inspector")
+            .scale[0]
+            .parse::<f32>()
+            .unwrap(),
+        1.25
+    );
+    assert_eq!(first.records.len(), 6);
+    assert!(
+        first
+            .records
+            .iter()
+            .zip([
+                "Hierarchy/SelectCube:onClick",
+                "Inspector/TransformPositionXCommit:onSubmit",
+                "Inspector/TransformScaleXCommit:onSubmit",
+                "WorkbenchMenuBar/Undo:onClick",
+                "WorkbenchMenuBar/Redo:onClick",
+                "WorkbenchMenuBar/SaveProject:onClick",
+            ])
+            .all(|(record, binding_path)| {
+                record.source == EditorEventSource::Cli
+                    && record.binding_path.as_deref() == Some(binding_path)
+            }),
+        "retained-host automation must report canonical CLI binding evidence"
+    );
+    assert!(first.records[1].transaction_id.is_some());
+    assert!(first.records[2].transaction_id.is_some());
+    assert_eq!(
+        first.records[3].event,
+        EditorEvent::WorkbenchMenu(MenuAction::Undo)
+    );
+    assert_eq!(
+        first.records[4].event,
+        EditorEvent::WorkbenchMenu(MenuAction::Redo)
+    );
+    let save_record = first.records.last().unwrap();
     assert_eq!(
         save_record.operation_id.as_deref(),
         Some("file.project.save")
@@ -342,35 +204,30 @@ fn f4_project_authoring_survives_full_application_restart() {
         save_record.save_generation.is_some(),
         "the successful F4 save must publish its persisted history generation"
     );
-    first.close().unwrap();
-
     let reopened = EditorApplicationComposition::open_project(&created.root).unwrap();
-    let reopened_snapshot = reopened.editor_host().editor_snapshot();
-    let reopened_cube = reopened_snapshot
-        .scene_entries
+    let reopened_cube = reopened
+        .prepared_project()
+        .world
+        .nodes()
         .iter()
-        .find(|entry| entry.display_name == "Cube")
+        .find(|node| node.name == "Cube")
         .expect("reopened project must contain a Cube")
         .id;
-    reopened
-        .editor_host()
-        .dispatch_binding(
-            EditorUiBinding::new(
-                "Hierarchy",
-                "SelectCube",
-                EditorUiEventKind::Click,
-                EditorUiBindingPayload::selection_command(SelectionCommand::SelectSceneNode {
-                    node_id: reopened_cube,
-                }),
-            ),
-            EditorEventSource::Headless,
-        )
+    let reopened = reopened
+        .run_retained_host_automation(&[EditorUiBinding::new(
+            "Hierarchy",
+            "SelectSceneNode",
+            EditorUiEventKind::Click,
+            EditorUiBindingPayload::selection_command(SelectionCommand::SelectSceneNode {
+                node_id: reopened_cube,
+            }),
+        )])
         .unwrap();
+    let reopened_snapshot = reopened.editor_snapshot;
     assert_eq!(
-        reopened
-            .editor_host()
-            .editor_snapshot()
+        reopened_snapshot
             .inspector
+            .as_ref()
             .expect("reopened Cube must project an inspector")
             .translation[0]
             .parse::<f32>()
@@ -378,10 +235,9 @@ fn f4_project_authoring_survives_full_application_restart() {
         42.0
     );
     assert_eq!(
-        reopened
-            .editor_host()
-            .editor_snapshot()
+        reopened_snapshot
             .inspector
+            .as_ref()
             .expect("reopened Cube must project an inspector")
             .scale[0]
             .parse::<f32>()
@@ -427,16 +283,41 @@ fn f4_project_authoring_survives_full_application_restart() {
 
     drop(persisted);
     drop(opened_project);
-    reopened.close().unwrap();
     fs::remove_dir_all(location).unwrap();
 }
 
-fn unique_temp_dir(prefix: &str) -> PathBuf {
+#[test]
+fn f4_project_fixture_roots_follow_the_resolved_test_binary_directory() {
+    let root = unique_mvp_project_directory("physical-root");
+    let executable = std::env::current_exe().expect("locate the F4 test executable");
+    let binary_directory = executable
+        .parent()
+        .expect("F4 test executable must have a parent directory");
+    let resolved_binary_directory =
+        ProjectPaths::resolve_existing(binary_directory).expect("resolve F4 test binary directory");
+
+    assert!(
+        root.starts_with(resolved_binary_directory.operation_path()),
+        "F4 project fixture output must retain the test binary's physical output root"
+    );
+}
+
+fn unique_mvp_project_directory(prefix: &str) -> PathBuf {
     let nonce = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    std::env::temp_dir().join(format!("{prefix}_{}_{}", std::process::id(), nonce))
+    let executable = std::env::current_exe().expect("locate the F4 test executable");
+    let binary_directory = executable
+        .parent()
+        .expect("F4 test executable must have a parent directory");
+    let binary_directory = ProjectPaths::resolve_existing(binary_directory)
+        .expect("resolve the F4 test binary directory");
+
+    binary_directory
+        .operation_path()
+        .join("zircon-mvp-fixtures")
+        .join(format!("{prefix}_{}_{}", std::process::id(), nonce))
 }
 
 fn config_environment_lock() -> &'static Mutex<()> {

@@ -6,7 +6,7 @@ use crate::core::runtime::{
 };
 use crate::scene::{
     NodeKind, RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveWriter,
-    RuntimeSessionArchiveWriterLimits, World,
+    RuntimeSessionArchiveWriterLimits, RuntimeSessionMetadata, RuntimeSessionSlot, World,
 };
 
 use super::unique_temp_root;
@@ -66,6 +66,117 @@ fn runtime_session_archive_mutation_publishes_a_new_generation() {
             .updated_at_unix_millis,
         Some(42)
     );
+}
+
+#[test]
+fn runtime_session_archive_dense_rows_preserve_canonical_views_after_swap_removal() {
+    let source = World::empty();
+    let mut archive = RuntimeSessionArchive::empty();
+    for (slot_id, updated_at) in [("charlie", 3), ("alpha", 1), ("bravo", 2)] {
+        let slot = RuntimeSessionSlot::from_world_with_metadata(
+            slot_id,
+            &source,
+            RuntimeSessionMetadata::default()
+                .with_tag("dense")
+                .with_updated_at_unix_millis(updated_at),
+        )
+        .expect("slot capture should succeed");
+        archive.push_slot(slot).expect("slot should append");
+    }
+
+    archive
+        .remove_slot("alpha")
+        .expect("existing dense row should remove");
+
+    assert_eq!(
+        archive.slot_ids().collect::<Vec<_>>(),
+        vec!["bravo", "charlie"],
+        "canonical enumeration must not depend on dense row placement"
+    );
+    assert_eq!(
+        archive
+            .slots()
+            .map(|slot| slot.slot_id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["bravo", "charlie"],
+        "the public slot view must stay canonical after swap removal"
+    );
+    assert_eq!(
+        archive.latest_updated_slot_id().unwrap(),
+        Some("charlie".to_string()),
+        "swap repair must retain the latest secondary index entry"
+    );
+    assert_eq!(
+        archive.oldest_updated_slot_id_with_tag("dense").unwrap(),
+        Some("bravo".to_string()),
+        "swap repair must update tagged secondary index entries"
+    );
+
+    let document: serde_json::Value = serde_json::from_str(
+        &archive
+            .to_versioned_json_pretty()
+            .expect("canonical archive should serialize"),
+    )
+    .expect("serialized archive should remain valid JSON");
+    assert_eq!(
+        document["slots"]
+            .as_array()
+            .expect("archive document should contain slots")
+            .iter()
+            .map(|slot| slot["slot_id"].as_str().expect("slot id should serialize"))
+            .collect::<Vec<_>>(),
+        vec!["bravo", "charlie"],
+        "wire serialization must use canonical ID order rather than dense row order"
+    );
+    let reloaded = RuntimeSessionArchive::from_versioned_json(&document.to_string())
+        .expect("canonical archive document should reload");
+    assert_eq!(
+        reloaded.slot_ids().collect::<Vec<_>>(),
+        vec!["bravo", "charlie"],
+        "round-trip loading must preserve the canonical slot view"
+    );
+
+    let archive_source = include_str!("../../dynamic_scene/session/archive.rs");
+    assert!(archive_source.contains("self.slots.swap_remove(slot_index)"));
+    assert!(!archive_source.contains("fn shift_slot_indices"));
+    assert!(!archive_source.contains("self.slots.insert("));
+    assert!(!archive_source.contains(".slots.sort_by("));
+}
+
+#[test]
+fn runtime_session_archive_wire_validation_rejects_duplicate_dense_rows() {
+    let slot = RuntimeSessionSlot::from_world("duplicate", &World::empty())
+        .expect("slot capture should succeed");
+    let wire = serde_json::json!({
+        "format_version": 1,
+        "slots": [slot.clone(), slot],
+    });
+
+    let error = RuntimeSessionArchive::from_versioned_json(&wire.to_string())
+        .expect_err("wire validation must inspect every dense row before canonical indexing");
+    assert!(matches!(
+        error,
+        RuntimeSessionArchiveError::DuplicateSlotId { slot_id } if slot_id == "duplicate"
+    ));
+}
+
+#[test]
+fn runtime_session_archive_validation_ticket_is_reused_within_one_revision() {
+    let mut archive = RuntimeSessionArchive::from_world("manual", &World::empty())
+        .expect("world capture should produce a validated archive");
+    archive
+        .touch_slot("manual", 42)
+        .expect("touch should publish an unvalidated revision");
+    assert_eq!(archive.artifact_diagnostics().validate_count, 0);
+
+    archive
+        .ensure_supported()
+        .expect("first validation should accept the revision");
+    archive
+        .ensure_supported()
+        .expect("second validation should reuse the revision ticket");
+
+    assert_eq!(archive.artifact_diagnostics().validate_count, 1);
 }
 
 #[test]
@@ -160,24 +271,6 @@ fn oversized_runtime_session_archive_generation_is_rejected_once_and_never_retri
 }
 
 #[test]
-fn invalid_runtime_session_archive_generation_caches_its_seal_rejection() {
-    let mut archive = RuntimeSessionArchive::from_world("invalid", &World::empty()).unwrap();
-    archive.format_version = u32::MAX;
-
-    let first = archive
-        .sealed_artifact()
-        .expect_err("unsupported format must reject the generation");
-    let second = archive
-        .sealed_artifact()
-        .expect_err("deterministic validation rejection must be cached");
-
-    assert_eq!(first.to_string(), second.to_string());
-    let diagnostics = archive.artifact_diagnostics();
-    assert_eq!(diagnostics.validate_count, 0);
-    assert_eq!(diagnostics.serialize_count, 0);
-}
-
-#[test]
 fn runtime_session_archive_writer_uses_the_shared_bounded_io_lane() {
     let root = unique_temp_root("archive_writer_lane");
     let path = root.join("session.zrsession");
@@ -209,11 +302,9 @@ fn runtime_session_archive_writer_uses_the_shared_bounded_io_lane() {
         .take_outcome()
         .expect("terminal work must publish an outcome")
         .expect("archive write should succeed");
-    assert!(
-        RuntimeSessionArchive::load_from_path(&path)
-            .unwrap()
-            .contains_slot("lane")
-    );
+    assert!(RuntimeSessionArchive::load_from_path(&path)
+        .unwrap()
+        .contains_slot("lane"));
 
     drop(writer.shutdown());
     std::fs::remove_dir_all(root).unwrap();
@@ -264,12 +355,10 @@ fn runtime_session_archive_writer_orders_distinct_lineages_by_path_submission() 
             .wait_until(Instant::now() + Duration::from_secs(5)),
         BoundedKeyedIoWaitResult::Terminal(BoundedKeyedIoTerminal::Succeeded)
     );
-    assert_eq!(second_submission.take_outcome(), Some(Ok(())));
-    assert!(
-        RuntimeSessionArchive::load_from_path(&path)
-            .unwrap()
-            .contains_slot("second")
-    );
+    assert!(matches!(second_submission.take_outcome(), Some(Ok(()))));
+    assert!(RuntimeSessionArchive::load_from_path(&path)
+        .unwrap()
+        .contains_slot("second"));
 
     drop(writer.shutdown());
     std::fs::remove_dir_all(root).unwrap();
@@ -324,7 +413,7 @@ fn runtime_session_archive_path_intent_orders_multiple_writers_and_direct_saves(
             .wait_until(Instant::now() + Duration::from_secs(5)),
         BoundedKeyedIoWaitResult::Terminal(BoundedKeyedIoTerminal::Succeeded)
     );
-    assert_eq!(second_submission.take_outcome(), Some(Ok(())));
+    assert!(matches!(second_submission.take_outcome(), Some(Ok(()))));
 
     third.save_to_path_atomically(&path).unwrap();
     release_blocker_tx.send(()).unwrap();

@@ -1,4 +1,5 @@
 use crate::core::framework::scene::ScenePropertyValue;
+use crate::scene::components::{AmbientLight, DirectionalLight, PointLight, RectLight, SpotLight};
 use crate::scene::world::{SceneError, SceneResult, World};
 
 use super::compiled_scene_camera_light_fields::CompiledLightProperty;
@@ -14,7 +15,7 @@ impl World {
         let changed = match property {
             CompiledLightProperty::AmbientColor => {
                 let next = Self::compiled_property_expect_vec3(value, target.property_path())?;
-                let Some(light) = self.ambient_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<AmbientLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "AmbientLight");
                 };
                 if light.color == next {
@@ -25,7 +26,7 @@ impl World {
             }
             CompiledLightProperty::AmbientIntensity => {
                 let next = Self::compiled_property_expect_scalar(value, target.property_path())?;
-                let Some(light) = self.ambient_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<AmbientLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "AmbientLight");
                 };
                 if light.intensity == next {
@@ -36,7 +37,7 @@ impl World {
             }
             CompiledLightProperty::AmbientAffectsLightmappedMeshes => {
                 let next = Self::compiled_property_expect_bool(value, target.property_path())?;
-                let Some(light) = self.ambient_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<AmbientLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "AmbientLight");
                 };
                 if light.affects_lightmapped_meshes == next {
@@ -47,7 +48,7 @@ impl World {
             }
             CompiledLightProperty::DirectionalDirection => {
                 let next = Self::compiled_property_expect_vec3(value, target.property_path())?;
-                let Some(light) = self.directional_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<DirectionalLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "DirectionalLight");
                 };
                 if light.direction == next {
@@ -58,7 +59,7 @@ impl World {
             }
             CompiledLightProperty::DirectionalColor => {
                 let next = Self::compiled_property_expect_vec3(value, target.property_path())?;
-                let Some(light) = self.directional_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<DirectionalLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "DirectionalLight");
                 };
                 if light.color == next {
@@ -69,7 +70,7 @@ impl World {
             }
             CompiledLightProperty::DirectionalIntensity => {
                 let next = Self::compiled_property_expect_scalar(value, target.property_path())?;
-                let Some(light) = self.directional_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<DirectionalLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "DirectionalLight");
                 };
                 if light.intensity == next {
@@ -80,7 +81,7 @@ impl World {
             }
             CompiledLightProperty::PointColor => {
                 let next = Self::compiled_property_expect_vec3(value, target.property_path())?;
-                let Some(light) = self.point_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<PointLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "PointLight");
                 };
                 if light.color == next {
@@ -91,7 +92,7 @@ impl World {
             }
             CompiledLightProperty::PointIntensity => {
                 let next = Self::compiled_property_expect_scalar(value, target.property_path())?;
-                let Some(light) = self.point_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<PointLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "PointLight");
                 };
                 if light.intensity == next {
@@ -102,7 +103,7 @@ impl World {
             }
             CompiledLightProperty::PointRange => {
                 let next = Self::compiled_property_expect_scalar(value, target.property_path())?;
-                let Some(light) = self.point_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<PointLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "PointLight");
                 };
                 if light.range == next {
@@ -113,7 +114,7 @@ impl World {
             }
             CompiledLightProperty::RectColor => {
                 let next = Self::compiled_property_expect_vec3(value, target.property_path())?;
-                let Some(light) = self.rect_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<RectLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "RectLight");
                 };
                 if light.color == next {
@@ -124,7 +125,7 @@ impl World {
             }
             CompiledLightProperty::RectIntensity => {
                 let next = Self::compiled_property_expect_scalar(value, target.property_path())?;
-                let Some(light) = self.rect_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<RectLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "RectLight");
                 };
                 if light.intensity == next {
@@ -135,7 +136,7 @@ impl World {
             }
             CompiledLightProperty::RectRange => {
                 let next = Self::compiled_property_expect_scalar(value, target.property_path())?;
-                let Some(light) = self.rect_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<RectLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "RectLight");
                 };
                 if light.range == next {
@@ -146,7 +147,7 @@ impl World {
             }
             CompiledLightProperty::RectSize => {
                 let next = Self::compiled_property_expect_vec2(value, target.property_path())?;
-                let Some(light) = self.rect_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<RectLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "RectLight");
                 };
                 if light.size == next {
@@ -157,7 +158,7 @@ impl World {
             }
             CompiledLightProperty::SpotDirection => {
                 let next = Self::compiled_property_expect_vec3(value, target.property_path())?;
-                let Some(light) = self.spot_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<SpotLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "SpotLight");
                 };
                 if light.direction == next {
@@ -168,7 +169,7 @@ impl World {
             }
             CompiledLightProperty::SpotColor => {
                 let next = Self::compiled_property_expect_vec3(value, target.property_path())?;
-                let Some(light) = self.spot_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<SpotLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "SpotLight");
                 };
                 if light.color == next {
@@ -179,7 +180,7 @@ impl World {
             }
             CompiledLightProperty::SpotIntensity => {
                 let next = Self::compiled_property_expect_scalar(value, target.property_path())?;
-                let Some(light) = self.spot_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<SpotLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "SpotLight");
                 };
                 if light.intensity == next {
@@ -190,7 +191,7 @@ impl World {
             }
             CompiledLightProperty::SpotRange => {
                 let next = Self::compiled_property_expect_scalar(value, target.property_path())?;
-                let Some(light) = self.spot_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<SpotLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "SpotLight");
                 };
                 if light.range == next {
@@ -201,7 +202,7 @@ impl World {
             }
             CompiledLightProperty::SpotInnerAngleRadians => {
                 let next = Self::compiled_property_expect_scalar(value, target.property_path())?;
-                let Some(light) = self.spot_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<SpotLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "SpotLight");
                 };
                 if light.inner_angle_radians == next {
@@ -212,7 +213,7 @@ impl World {
             }
             CompiledLightProperty::SpotOuterAngleRadians => {
                 let next = Self::compiled_property_expect_scalar(value, target.property_path())?;
-                let Some(light) = self.spot_lights.get_mut(&target.entity()) else {
+                let Some(light) = self.get_mut::<SpotLight>(target.entity()) else {
                     return Self::missing_compiled_light(target, "SpotLight");
                 };
                 if light.outer_angle_radians == next {

@@ -152,32 +152,26 @@ fn render_product_sprite_world_frame_extract_filters_by_camera_layers() {
 
     let extract = world.to_render_frame_extract();
 
-    assert!(
-        extract
-            .sprites
-            .sprites
-            .iter()
-            .any(|sprite| sprite.entity == visible_sprite)
-    );
-    assert!(
-        extract
-            .sprites
-            .sprites
-            .iter()
-            .all(|sprite| sprite.entity != hidden_sprite)
-    );
+    assert!(extract
+        .sprites
+        .sprites
+        .iter()
+        .any(|sprite| sprite.entity == visible_sprite));
+    assert!(extract
+        .sprites
+        .sprites
+        .iter()
+        .all(|sprite| sprite.entity != hidden_sprite));
     assert!(extract.sprites.sprites.iter().all(|sprite| {
         sprite
             .common
             .layer_mask
             .intersects_scene_schema_v1_mask(0b0010)
     }));
-    assert!(
-        extract
-            .visibility
-            .dynamic_entities
-            .contains(&visible_sprite)
-    );
+    assert!(extract
+        .visibility
+        .dynamic_entities
+        .contains(&visible_sprite));
     assert!(!extract.visibility.dynamic_entities.contains(&hidden_sprite));
 }
 

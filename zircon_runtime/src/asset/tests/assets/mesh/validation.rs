@@ -10,6 +10,7 @@ fn mesh_asset_rejects_missing_position_attribute() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
 
@@ -34,6 +35,7 @@ fn mesh_asset_rejects_attribute_length_mismatch() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
 
@@ -98,6 +100,7 @@ fn mesh_asset_rejects_builtin_attribute_format_mismatch() {
             asset_usage: Default::default(),
             morph_targets: Vec::new(),
             skin: None,
+            mesh_sdf: None,
             virtual_geometry: None,
         };
 
@@ -126,6 +129,7 @@ fn mesh_asset_allows_custom_attribute_formats_when_lengths_match() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
 
@@ -142,6 +146,7 @@ fn mesh_asset_rejects_out_of_range_indices() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
 
@@ -200,6 +205,7 @@ fn mesh_asset_rejects_incomplete_list_topology_elements() {
             asset_usage: Default::default(),
             morph_targets: Vec::new(),
             skin: None,
+            mesh_sdf: None,
             virtual_geometry: None,
         };
 

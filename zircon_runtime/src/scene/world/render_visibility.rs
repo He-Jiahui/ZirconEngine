@@ -4,7 +4,7 @@ use crate::core::framework::render::{
     ParticleExtract, RenderLayerSet, RenderMeshSnapshot, RenderSpriteSnapshot, VisibilityInput,
     VisibilityRenderableInput,
 };
-use crate::scene::components::{Mobility, default_render_layer_mask};
+use crate::scene::components::{default_render_layer_mask, Mobility};
 
 pub(super) fn build_visibility_input(
     meshes: &[RenderMeshSnapshot],

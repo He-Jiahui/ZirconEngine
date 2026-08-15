@@ -19,6 +19,8 @@ use super::realtime_ibl_wgpu_recorder::{RealtimeIblWgpuRecordReport, RealtimeIbl
 
 mod compiled_graph_cache;
 
+pub(in crate::graphics) use compiled_graph_cache::RealtimeIblCompiledGraphCacheStats;
+
 use compiled_graph_cache::RealtimeIblCompiledGraphCache;
 
 const REALTIME_IBL_SOURCE_FACE_SIZE: u32 = SOURCE_CUBEMAP_PMREM_FACE_SIZE;
@@ -183,6 +185,7 @@ impl RealtimeIblRuntime {
             &prepared.request,
             &prepared.sky,
             artifact.plan(),
+            artifact.recording_passes(),
             resources,
             pipeline_cache,
         )?;
@@ -240,6 +243,12 @@ impl RealtimeIblRuntime {
         self.timestamp_collector
             .as_ref()
             .is_some_and(RealtimeIblGpuTimestampCollector::is_supported)
+    }
+
+    pub(in crate::graphics) fn compiled_graph_cache_stats(
+        &self,
+    ) -> RealtimeIblCompiledGraphCacheStats {
+        self.compiled_graph_cache.stats()
     }
 
     pub(in crate::graphics) fn take_gpu_timing_reports(

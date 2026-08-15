@@ -98,6 +98,8 @@ comparison/
 ### 实现切片
 
 - [ ] 复验既有 `Stage-MvpProducts.ps1` 执行器：开始前验证 source fingerprint、clean validation copy、磁盘/WGPU/display prerequisites，并为每个子进程设置独立 working directory、日志和 timeout。
+- [ ] 当 staged product 打开 canonical project 时，Stage 只在外层保留已解析的物理 project identity；子进程工作目录切到该 root 并传 `--project .`。项目、cache 与 scene 均以既有相对路径规则解析，staging/capture 的物理操作路径不得作为项目 CLI 参数传递。
+- [ ] Stage 的 staging root 与 Invoke 的 staging/evidence root 都经共享 Windows resolver 解析，并只允许实际物理路径落在 `D:\ZirconBuilds`、`E:\ZirconBuilds` 或 `F:\ZirconBuilds`；这项产物落盘约束不得新增项目虚拟路径前缀或改变产品 CLI 的相对路径规则。
 - [ ] Stage 只创建一次 `ZirconMvpFixture`；任一子进程非零或 timeout 立即终止执行波次，后续 runtime/editor run 只引用该 canonical root。
 - [ ] 复验既有 `Invoke-MvpAcceptance.ps1` 验证器：只消费 coordinator/build/profile/staging summaries，不启动产品或解析 Cargo target 目录猜产物。
 - [ ] Invoke 对每个阶段验证 project/scene/entity identity、transform、refs、相对路径、hash、exit code、绝对开始/结束时间、截图尺寸与非空像素。
@@ -226,5 +228,5 @@ CI 至少保护 editor/runtime profile build 和可自动化的 MVP integration 
 ## Code Review 收敛结果（2026-08-01）
 
 - 已把职责同步为 Stage 执行、Invoke 验证归档，并把 child/timeout 测试归回 staging contract；不再要求重复新建已有脚本、workflow 或 harness。
-- 静态审阅确认 `RequireF5Evidence` 当前归档不含 §2 要求的 profile/workspace build summaries，也未保存每个 process 的绝对开始/结束时间。linked failure 关闭前，该开关不得被解释为完整 F5 acceptance。
-- F5 的剩余工作是修复 evidence schema 并在 coordinator clean validation copy 真正执行/归档，不是继续扩写静态 harness；当前所有验收复选框保持未完成。
+- 初始静态审阅曾发现 `RequireF5Evidence` 未归档 §2 要求的 profile/workspace build summaries，也未保存每个 process 的绝对开始/结束时间。该 schema 缺口已在 current source 前向修复：Stage 记录 process timing，Invoke 在 `RequireF5Evidence` 下要求并校验两份 source-bound summary 后归档至 canonical `build/` 路径。详细的失败与修复边界见 [open failure](06/failure-2026-08-01-f5-evidence-package-incomplete.md)；在它完成 upward validation 前，该开关仍不得被解释为完整 F5 acceptance。
+- F5 的剩余工作是使用 coordinator clean validation copy 真正执行 corrected workflow，并检查真实上传的 bounded evidence artifact；不是继续扩写静态 harness。当前所有验收复选框保持未完成。

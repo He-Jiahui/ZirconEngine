@@ -7,33 +7,28 @@ fn section_between<'a>(source: &'a str, start: &str, end: &str) -> &'a str {
 }
 
 #[test]
-fn remove_entity_uses_direct_entity_and_active_camera_scans() {
-    let source = include_str!("../world/hierarchy.rs");
-    let remove_entity = section_between(
-        source,
-        "pub fn remove_entity",
-        "pub fn remove_entity_recursive",
-    );
+fn removal_uses_indexed_identity_hierarchy_and_camera_boundaries() {
+    let hierarchy = include_str!("../world/hierarchy.rs");
+    let identity = include_str!("../world/identity.rs");
+    let detached = include_str!("../world/transaction/detached_entity_batch.rs");
+    let remove_entity =
+        section_between(hierarchy, "pub fn remove_entity", "pub fn subtree_records");
 
     assert!(
-        remove_entity.contains("let mut index = 0_usize;")
-            && remove_entity.contains("while index < self.entities.len()")
-            && remove_entity.contains("if self.entities[index] == entity")
-            && remove_entity.contains("if index == self.entities.len()")
-            && remove_entity.contains("self.entities.remove(index);")
-            && !remove_entity.contains(".position(|current| *current == entity)"),
-        "entity removal must locate the stable entity with a direct index scan before removal"
+        remove_entity.contains("-> SceneResult<()>") && remove_entity.contains("entity_dense_rows")
     );
-    assert!(
-        remove_entity.contains("if self.active_camera == entity")
-            && remove_entity.contains("self.active_camera = 0;")
-            && remove_entity.contains("for camera in self.cameras.keys().copied()")
-            && remove_entity.contains("if camera != entity")
-            && remove_entity.contains("self.active_camera = camera;")
-            && !remove_entity.contains(".find(|camera| *camera != entity)")
-            && !remove_entity.contains(".unwrap_or(0)"),
-        "active-camera fallback after entity removal must use a direct camera scan"
-    );
+    assert!(remove_entity.contains("self.direct_child_entity_ids(entity)"));
+    assert!(remove_entity.contains("self.first_stable_camera_entity().unwrap_or(0)"));
+    assert!(remove_entity.contains("self.remove_entity_from_dense_storage(entity)"));
+    assert!(!remove_entity.contains("self.entities.remove"));
+    assert!(!remove_entity.contains("self.stable_entity_ids().find"));
+    assert!(identity.contains("self.entities.swap_remove(row)"));
+
+    assert!(detached.contains("pub fn remove_entity_subtrees"));
+    assert!(detached.contains("self.ensure_hierarchy_mutation_index_current()"));
+    assert!(detached.contains("self.subtree_entity_ids(root)"));
+    assert!(detached.contains("self.stable_query_order"));
+    assert!(!detached.contains("self.entities.iter()"));
 }
 
 #[test]

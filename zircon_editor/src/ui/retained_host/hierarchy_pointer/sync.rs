@@ -14,11 +14,15 @@ impl HierarchyPointerBridge {
             return false;
         }
 
+        let surface_geometry_changed = self.layout.pane_width != layout.pane_width
+            || self.layout.pane_height != layout.pane_height;
         self.layout = layout;
         self.state = state;
         self.row_metrics = row_metrics;
         self.clamp_scroll_offset();
-        self.rebuild_surface();
+        if surface_geometry_changed {
+            self.patch_surface_geometry();
+        }
         true
     }
 
@@ -30,6 +34,5 @@ impl HierarchyPointerBridge {
 
         self.row_metrics = row_metrics;
         self.clamp_scroll_offset();
-        self.rebuild_surface();
     }
 }

@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::framework::net::RpcPayloadSchema;
 
-use super::super::{PluginSlotId, VmPluginSlotRecord, VmPluginSlotState};
+use super::super::{CapabilitySet, PluginSlotId, VmPluginSlotRecord, VmPluginSlotState};
 use super::{
     VmBehaviorNodeRegistration, VmCallbackHandle, VmEditorOperationRegistration,
     VmHostInterfaceError, VmInterfaceCaller, VmRpcHandlerRegistration, VmSystemRegistration,
@@ -38,6 +38,10 @@ struct RegistryState {
     behavior_nodes: BTreeMap<RegistrationKey, VmBehaviorNodeRegistration>,
     rpc_handlers: BTreeMap<RegistrationKey, VmRpcHandlerRegistration>,
     editor_operations: BTreeMap<RegistrationKey, VmEditorOperationRegistration>,
+    active_generations: BTreeMap<PluginSlotId, u32>,
+    active_package_slots: BTreeMap<String, Arc<[PluginSlotId]>>,
+    active_capabilities: BTreeMap<PluginSlotId, CapabilitySet>,
+    active_snapshot: Arc<VmHostInterfaceActiveSnapshot>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -47,6 +51,37 @@ pub(crate) struct VmHostInterfaceGenerationSnapshot {
     behavior_nodes: BTreeMap<RegistrationKey, VmBehaviorNodeRegistration>,
     rpc_handlers: BTreeMap<RegistrationKey, VmRpcHandlerRegistration>,
     editor_operations: BTreeMap<RegistrationKey, VmEditorOperationRegistration>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct VmHostInterfaceActiveOwner {
+    pub(crate) slot: PluginSlotId,
+    pub(crate) generation: u32,
+    pub(crate) package_name: String,
+    pub(crate) capabilities: CapabilitySet,
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct VmHostInterfaceActiveSnapshot {
+    active_generations: BTreeMap<PluginSlotId, u32>,
+    package_slots: BTreeMap<String, Arc<[PluginSlotId]>>,
+    capabilities: BTreeMap<PluginSlotId, CapabilitySet>,
+    fixed_update_systems: Arc<[VmSystemRegistration]>,
+    update_systems: Arc<[VmSystemRegistration]>,
+    last_systems: Arc<[VmSystemRegistration]>,
+    behavior_nodes: Arc<[VmBehaviorNodeRegistration]>,
+    rpc_handlers: Arc<[VmRpcHandlerRegistration]>,
+    editor_operations: Arc<[VmEditorOperationRegistration]>,
+}
+
+impl VmHostInterfaceActiveSnapshot {
+    fn systems(&self, stage: VmSystemStage) -> Arc<[VmSystemRegistration]> {
+        match stage {
+            VmSystemStage::FixedUpdate => Arc::clone(&self.fixed_update_systems),
+            VmSystemStage::Update => Arc::clone(&self.update_systems),
+            VmSystemStage::Last => Arc::clone(&self.last_systems),
+        }
+    }
 }
 
 /// Shared registry for capability-gated VM extension descriptors and dense callback targets.
@@ -100,6 +135,7 @@ impl VmHostInterfaceRegistry {
             },
             "system",
         )?;
+        rebuild_if_active_generation(&mut state, caller);
         Ok(callback)
     }
 
@@ -128,6 +164,7 @@ impl VmHostInterfaceRegistry {
             },
             "behavior node",
         )?;
+        rebuild_if_active_generation(&mut state, caller);
         Ok(callback)
     }
 
@@ -156,6 +193,7 @@ impl VmHostInterfaceRegistry {
             },
             "RPC handler",
         )?;
+        rebuild_if_active_generation(&mut state, caller);
         Ok(callback)
     }
 
@@ -181,6 +219,7 @@ impl VmHostInterfaceRegistry {
             },
             "editor operation",
         )?;
+        rebuild_if_active_generation(&mut state, caller);
         Ok(callback)
     }
 
@@ -222,29 +261,34 @@ impl VmHostInterfaceRegistry {
         slots: &[VmPluginSlotRecord],
         stage: VmSystemStage,
     ) -> Vec<VmSystemRegistration> {
-        latest_active(
-            &self.lock_state().systems,
-            active_generations(slots),
-            |registration| registration.stage == stage,
-        )
+        let active = slot_active_generations(slots);
+        latest_active(&self.lock_state().systems, &active, |registration| {
+            registration.stage == stage
+        })
+    }
+
+    pub(crate) fn active_systems(&self, stage: VmSystemStage) -> Vec<VmSystemRegistration> {
+        self.systems_snapshot(stage).as_ref().to_vec()
     }
 
     /// Returns the latest active behavior-node contributions in deterministic order.
     pub fn behavior_nodes(&self, slots: &[VmPluginSlotRecord]) -> Vec<VmBehaviorNodeRegistration> {
-        latest_active(
-            &self.lock_state().behavior_nodes,
-            active_generations(slots),
-            |_| true,
-        )
+        let active = slot_active_generations(slots);
+        latest_active(&self.lock_state().behavior_nodes, &active, |_| true)
+    }
+
+    pub(crate) fn active_behavior_nodes(&self) -> Vec<VmBehaviorNodeRegistration> {
+        self.lock_state().active_snapshot.behavior_nodes.to_vec()
     }
 
     /// Returns the latest active RPC-handler contributions in deterministic order.
     pub fn rpc_handlers(&self, slots: &[VmPluginSlotRecord]) -> Vec<VmRpcHandlerRegistration> {
-        latest_active(
-            &self.lock_state().rpc_handlers,
-            active_generations(slots),
-            |_| true,
-        )
+        let active = slot_active_generations(slots);
+        latest_active(&self.lock_state().rpc_handlers, &active, |_| true)
+    }
+
+    pub(crate) fn active_rpc_handlers(&self) -> Vec<VmRpcHandlerRegistration> {
+        self.lock_state().active_snapshot.rpc_handlers.to_vec()
     }
 
     /// Returns the latest active editor-operation contributions in deterministic order.
@@ -252,11 +296,71 @@ impl VmHostInterfaceRegistry {
         &self,
         slots: &[VmPluginSlotRecord],
     ) -> Vec<VmEditorOperationRegistration> {
-        latest_active(
-            &self.lock_state().editor_operations,
-            active_generations(slots),
-            |_| true,
-        )
+        let active = slot_active_generations(slots);
+        latest_active(&self.lock_state().editor_operations, &active, |_| true)
+    }
+
+    pub(crate) fn active_editor_operations(&self) -> Vec<VmEditorOperationRegistration> {
+        self.lock_state().active_snapshot.editor_operations.to_vec()
+    }
+
+    pub(crate) fn systems_snapshot(&self, stage: VmSystemStage) -> Arc<[VmSystemRegistration]> {
+        self.lock_state().active_snapshot.systems(stage)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn active_snapshot(&self) -> Arc<VmHostInterfaceActiveSnapshot> {
+        Arc::clone(&self.lock_state().active_snapshot)
+    }
+
+    pub(crate) fn publish_active_slots(&self, active_slots: Vec<VmHostInterfaceActiveOwner>) {
+        let mut state = self.lock_state();
+        let mut active_generations = BTreeMap::new();
+        let mut package_slots = BTreeMap::<String, Vec<PluginSlotId>>::new();
+        let mut active_capabilities = BTreeMap::new();
+        for active in active_slots {
+            active_generations.insert(active.slot, active.generation);
+            package_slots
+                .entry(active.package_name)
+                .or_default()
+                .push(active.slot);
+            active_capabilities.insert(active.slot, active.capabilities);
+        }
+        state.active_generations = active_generations;
+        state.active_package_slots = package_slots
+            .into_iter()
+            .map(|(package, slots)| (package, slots.into()))
+            .collect();
+        state.active_capabilities = active_capabilities;
+        rebuild_active_snapshot(&mut state);
+    }
+
+    pub(crate) fn active_slots_for_package(
+        &self,
+        package_name: &str,
+    ) -> Option<Arc<[PluginSlotId]>> {
+        self.lock_state()
+            .active_snapshot
+            .package_slots
+            .get(package_name)
+            .cloned()
+    }
+
+    pub(crate) fn active_owner(&self, slot: PluginSlotId) -> Option<(u32, CapabilitySet)> {
+        let state = self.lock_state();
+        let snapshot = &state.active_snapshot;
+        Some((
+            *snapshot.active_generations.get(&slot)?,
+            snapshot.capabilities.get(&slot)?.clone(),
+        ))
+    }
+
+    pub(crate) fn active_generation(&self, slot: PluginSlotId) -> Option<u32> {
+        self.lock_state()
+            .active_snapshot
+            .active_generations
+            .get(&slot)
+            .copied()
     }
 
     /// Captures one owner generation so a failed reload can restore its exact registrations.
@@ -299,6 +403,7 @@ impl VmHostInterfaceRegistry {
                 state.callbacks.remove(&slot);
             }
         }
+        rebuild_active_snapshot(&mut state);
     }
 
     /// Removes all descriptors published by one failed package generation.
@@ -308,6 +413,7 @@ impl VmHostInterfaceRegistry {
         discard_generation_entries(&mut state.behavior_nodes, slot, generation);
         discard_generation_entries(&mut state.rpc_handlers, slot, generation);
         discard_generation_entries(&mut state.editor_operations, slot, generation);
+        rebuild_active_snapshot(&mut state);
     }
 
     /// Removes callback targets and descriptors owned by an unloaded package slot.
@@ -318,6 +424,45 @@ impl VmHostInterfaceRegistry {
         state.behavior_nodes.retain(|key, _| key.slot != slot);
         state.rpc_handlers.retain(|key, _| key.slot != slot);
         state.editor_operations.retain(|key, _| key.slot != slot);
+        rebuild_active_snapshot(&mut state);
+    }
+}
+
+fn rebuild_active_snapshot(state: &mut RegistryState) {
+    let systems = latest_active(&state.systems, &state.active_generations, |_| true);
+    let mut fixed_update_systems = Vec::new();
+    let mut update_systems = Vec::new();
+    let mut last_systems = Vec::new();
+    for system in systems {
+        match system.stage {
+            VmSystemStage::FixedUpdate => fixed_update_systems.push(system),
+            VmSystemStage::Update => update_systems.push(system),
+            VmSystemStage::Last => last_systems.push(system),
+        }
+    }
+    state.active_snapshot = Arc::new(VmHostInterfaceActiveSnapshot {
+        active_generations: state.active_generations.clone(),
+        package_slots: state.active_package_slots.clone(),
+        capabilities: state.active_capabilities.clone(),
+        fixed_update_systems: fixed_update_systems.into(),
+        update_systems: update_systems.into(),
+        last_systems: last_systems.into(),
+        behavior_nodes: latest_active(&state.behavior_nodes, &state.active_generations, |_| true)
+            .into(),
+        rpc_handlers: latest_active(&state.rpc_handlers, &state.active_generations, |_| true)
+            .into(),
+        editor_operations: latest_active(
+            &state.editor_operations,
+            &state.active_generations,
+            |_| true,
+        )
+        .into(),
+    });
+}
+
+fn rebuild_if_active_generation(state: &mut RegistryState, caller: &VmInterfaceCaller) {
+    if state.active_generations.get(&caller.slot) == Some(&caller.generation) {
+        rebuild_active_snapshot(state);
     }
 }
 
@@ -443,7 +588,7 @@ fn validate_editor_operation(value: String) -> Result<String, VmHostInterfaceErr
     Ok(value)
 }
 
-fn active_generations(slots: &[VmPluginSlotRecord]) -> BTreeMap<PluginSlotId, u32> {
+fn slot_active_generations(slots: &[VmPluginSlotRecord]) -> BTreeMap<PluginSlotId, u32> {
     slots
         .iter()
         .filter(|slot| slot.state == VmPluginSlotState::Active)
@@ -453,7 +598,7 @@ fn active_generations(slots: &[VmPluginSlotRecord]) -> BTreeMap<PluginSlotId, u3
 
 fn latest_active<T: Clone>(
     registrations: &BTreeMap<RegistrationKey, T>,
-    active: BTreeMap<PluginSlotId, u32>,
+    active: &BTreeMap<PluginSlotId, u32>,
     include: impl Fn(&T) -> bool,
 ) -> Vec<T> {
     let mut selected: HashMap<(PluginSlotId, String), (u32, T)> = HashMap::new();

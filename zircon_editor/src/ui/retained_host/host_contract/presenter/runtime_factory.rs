@@ -7,6 +7,8 @@ use super::error::{HostPresenterError, HostPresenterResult};
 /// The host owns only this trait object. WGPU handles and viewport product lifetime remain inside
 /// the runtime framework implementation, so a native host never stores raw graphics pointers.
 pub(crate) trait RuntimeUiSurfacePresenterFactory: Send + Sync {
+    fn poll_ready(&self) -> HostPresenterResult<bool>;
+
     fn create(
         &self,
         descriptor: UiSurfaceDescriptor,

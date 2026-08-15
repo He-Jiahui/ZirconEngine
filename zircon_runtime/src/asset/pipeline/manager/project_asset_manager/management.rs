@@ -10,22 +10,21 @@ use crate::asset::{
     ShaderReadinessReport,
 };
 use crate::core::framework::render::RenderMaterialManagementRecordSet;
-use crate::core::resource::{ResourceId, ResourceKind};
+use crate::core::resource::{ResourceId, ResourceKind, ResourceManagementQuery};
 
 use super::ProjectAssetManager;
 
 impl ProjectAssetManager {
     fn asset_ids_by_kind(&self, kind: ResourceKind) -> Vec<ResourceId> {
-        let mut ids = {
-            let resource_manager = self.resource_manager();
-            let registry = resource_manager.registry();
-            registry
-                .values()
-                .filter(|record| record.kind == kind)
-                .map(|record| record.id())
-                .collect::<Vec<_>>()
-        };
-        ids.sort();
+        let generation = self.resource_manager().management_generation();
+        let mut scan = generation.scan(ResourceManagementQuery {
+            kind: Some(kind),
+            state: None,
+        });
+        let mut ids = Vec::with_capacity(generation.summary().kind(kind).total_count);
+        while let Some(row) = scan.next_row() {
+            ids.push(row.id);
+        }
         ids
     }
 
@@ -165,11 +164,16 @@ impl ProjectAssetManager {
         &self,
         materials: RenderMaterialManagementRecordSet,
     ) -> AssetManagementRecordSets {
+        let scene_records = self.scene_asset_management_records();
+        let scene_entities = scene_records
+            .iter()
+            .flat_map(SceneAssetManagementRecord::entity_management_records)
+            .collect();
         AssetManagementRecordSets::from_record_sets(
             self.model_asset_management_record_set(),
             self.mesh_asset_management_record_set(),
-            self.scene_asset_management_record_set(),
-            self.scene_entity_management_record_set(),
+            SceneAssetManagementRecordSet::from_records(scene_records),
+            SceneEntityManagementRecordSet::from_records(scene_entities),
             self.material_asset_management_record_set(),
             materials,
             self.shader_asset_management_record_set(),
@@ -213,4 +217,50 @@ impl ProjectAssetManager {
         self.asset_management_record_sets()
             .family_issue_view(bucket)
     }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn asset_management_kind_lookup_reads_the_published_resource_generation() {
+        let source = include_str!("management.rs");
+        let kind_lookup = source
+            .split("fn asset_ids_by_kind")
+            .nth(1)
+            .and_then(|source| source.split("pub fn model_asset_management_record").next())
+            .expect("read asset management kind lookup");
+
+        assert!(kind_lookup.contains("management_generation()"));
+        assert!(kind_lookup.contains("ResourceManagementQuery"));
+        assert!(kind_lookup.contains("generation.scan(ResourceManagementQuery"));
+        assert!(kind_lookup.contains("scan.next_row()"));
+        assert!(kind_lookup.contains("ids.push(row.id)"));
+        assert!(!kind_lookup.contains(".registry()"));
+        assert!(!kind_lookup.contains("list_resources("));
+        assert!(!kind_lookup.contains("ids.sort()"));
+        assert!(!kind_lookup.contains("sort_by("));
+        assert!(!kind_lookup.contains("sort_by_key("));
+        assert!(!kind_lookup.contains("sort_unstable"));
+    }
+
+    #[test]
+    fn asset_management_aggregate_derives_scene_entities_from_one_scene_projection() {
+        let source = include_str!("management.rs");
+        let aggregate = source
+            .split("fn asset_management_record_sets_with_prepared_materials")
+            .nth(1)
+            .and_then(|source| source.split("pub fn asset_management_record_sets").next())
+            .expect("read asset management aggregate implementation");
+
+        assert_eq!(
+            aggregate
+                .matches("self.scene_asset_management_records()")
+                .count(),
+            1
+        );
+        assert!(aggregate.contains("SceneAssetManagementRecord::entity_management_records"));
+        assert!(aggregate.contains("SceneAssetManagementRecordSet::from_records(scene_records)"));
+        assert!(aggregate.contains("SceneEntityManagementRecordSet::from_records(scene_entities)"));
+    }
+
 }

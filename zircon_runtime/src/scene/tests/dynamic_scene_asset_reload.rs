@@ -8,9 +8,9 @@ use std::{
 use crate::{
     asset::{AssetEventKind, AssetUri, Assets, ImportedAsset, ProjectManager, SceneAsset},
     core::{
-        JobScheduler, TaskPool, TaskPoolDescriptor,
         framework::tasks::TaskCancellationPolicy,
         resource::{ResourceDiagnostic, ResourceId, ResourceKind, ResourceManager, ResourceRecord},
+        JobScheduler, TaskPool, TaskPoolDescriptor,
     },
     scene::{
         DefaultLevelManager, DynamicSceneAssetReloadDrainReport, DynamicSceneAssetReloadLimits,
@@ -182,7 +182,8 @@ fn dynamic_scene_asset_reload_asset_scale_matrix_honors_single_event_and_task_bu
                     "res://scenes/scale-{asset_count}-{index}.scene.toml"
                 ))
                 .expect("scale fixture URI should be valid"),
-            ));
+            ))
+            .unwrap();
         }
 
         let drain = queue.drain_events(&scheduler);
@@ -269,7 +270,8 @@ fn dynamic_scene_asset_reload_budgets_filtered_raw_events() {
         ResourceId::from_stable_label("unrelated shader event"),
         ResourceKind::Shader,
         AssetUri::parse("res://shaders/unrelated.wgsl").unwrap(),
-    ));
+    ))
+    .unwrap();
     fixture.register_ready_revision("scene-after-filtered-event");
 
     let first = queue.drain_events(&scheduler);
@@ -278,6 +280,10 @@ fn dynamic_scene_asset_reload_budgets_filtered_raw_events() {
     assert_eq!(first.events_drained, 0);
     assert_eq!(first.scheduled, 0);
     assert!(first.event_budget_exhausted);
+    assert!(
+        queue.has_pending_work(),
+        "receiver backlog must keep reactive frame demand immediate"
+    );
 
     let second = queue.drain_events(&scheduler);
     assert_eq!(second.raw_events_examined, 1);
@@ -306,7 +312,8 @@ fn dynamic_scene_asset_reload_reports_resource_event_generation_gaps() {
             ResourceId::from_stable_label(&format!("gap-shader-{index}")),
             ResourceKind::Shader,
             AssetUri::parse(&format!("res://shaders/gap-{index}.wgsl")).unwrap(),
-        ));
+        ))
+        .unwrap();
     }
 
     let drain = queue.drain_events(&scheduler);
@@ -332,7 +339,8 @@ fn dynamic_scene_asset_reload_reconciliation_is_incremental_and_skips_pending_ro
         ResourceId::from_stable_label("pending reconciliation scene"),
         ResourceKind::Scene,
         AssetUri::parse("res://scenes/pending.scene.toml").unwrap(),
-    ));
+    ))
+    .unwrap();
     let events = Assets::<SceneAsset>::new(fixture.resources.clone()).subscribe_events();
     let scheduler = JobScheduler::default();
     let limits = DynamicSceneAssetReloadLimits {
@@ -417,8 +425,9 @@ fn dynamic_scene_asset_reload_skips_removed_and_reload_failed_events() {
     fixture.resources.fail_reload(
         fixture.record.id(),
         vec![ResourceDiagnostic::error("scene reload failed")],
-    );
-    fixture.resources.remove_by_locator(&fixture.uri);
+    )
+    .unwrap();
+    fixture.resources.remove_by_locator(&fixture.uri).unwrap();
 
     let drain = drain_until_events(&mut queue, &scheduler, 2);
     assert_eq!(drain.events_drained, 2);
@@ -456,7 +465,7 @@ fn dynamic_scene_asset_reload_removed_asset_can_recreate_same_id_from_revision_o
         fixture.resources.clone(),
     );
 
-    fixture.resources.remove_by_locator(&fixture.uri);
+    fixture.resources.remove_by_locator(&fixture.uri).unwrap();
     let removed = drain_until_events(&mut queue, &scheduler, 1);
     assert_eq!(
         removed.skipped_count_for(DynamicSceneAssetReloadSkipReason::Removed),
@@ -704,7 +713,8 @@ fn publish_gap_fixture_events(resources: &ResourceManager) {
             ResourceId::from_stable_label(&format!("reconciliation-gap-shader-{index}")),
             ResourceKind::Shader,
             AssetUri::parse(&format!("res://shaders/reconciliation-gap-{index}.wgsl")).unwrap(),
-        ));
+        ))
+        .unwrap();
     }
 }
 
@@ -750,7 +760,8 @@ impl SceneReloadFixture {
         self.resources.register_ready(
             self.record.clone().with_source_hash(source_hash),
             self.scene.clone(),
-        );
+        )
+        .unwrap();
     }
 
     fn copy_main_scene_as(&self, file_name: &str) -> AssetUri {

@@ -1,10 +1,12 @@
 use crate::core::math::UVec2;
+use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::types::ViewportRenderRegion;
 use crate::render_graph::{
     CompiledRenderGraph, PassFlags, QueueLane, RenderGraphAttachmentLoadOp,
-    RenderGraphAttachmentOps, RenderGraphPassResourceAccess, RenderGraphResource,
-    RenderGraphResourceAccessKind, RenderGraphResourceDeclaration, RenderGraphResourceKind,
-    RenderGraphResourceLifetime, RenderPassId,
+    RenderGraphAttachmentOps, RenderGraphComputePassMetadata, RenderGraphComputeWorkload,
+    RenderGraphPassResourceAccess, RenderGraphResource, RenderGraphResourceAccessKind,
+    RenderGraphResourceDeclaration, RenderGraphResourceKind, RenderGraphResourceLifetime,
+    RenderPassId,
 };
 
 use super::RenderPassExecutorId;
@@ -26,6 +28,9 @@ pub struct RenderPassExecutionContext<'a> {
     pub flags: PassFlags,
     pub dependencies: Vec<RenderPassId>,
     pub resources: Vec<RenderGraphPassResourceAccess>,
+    compute_workload: Option<&'a RenderGraphComputeWorkload>,
+    compute_pass_metadata: Option<&'a RenderGraphComputePassMetadata>,
+    resource_streamer: Option<&'a ResourceStreamer>,
     resource_resolver: Option<RgResourceResolver<'a>>,
     gpu: Option<RenderPassGpuExecutionContext<'a>>,
 }
@@ -41,6 +46,12 @@ impl std::fmt::Debug for RenderPassExecutionContext<'_> {
             .field("flags", &self.flags)
             .field("dependencies", &self.dependencies)
             .field("resources", &self.resources)
+            .field("has_compute_workload", &self.compute_workload.is_some())
+            .field(
+                "has_compute_pass_metadata",
+                &self.compute_pass_metadata.is_some(),
+            )
+            .field("has_resource_streamer", &self.resource_streamer.is_some())
             .field("has_resource_resolver", &self.resource_resolver.is_some())
             .field("has_gpu", &self.gpu.is_some())
             .finish()
@@ -136,6 +147,9 @@ impl<'a> RenderPassExecutionContext<'a> {
             flags,
             dependencies,
             resources,
+            compute_workload: None,
+            compute_pass_metadata: None,
+            resource_streamer: None,
             resource_resolver: None,
             gpu: None,
         }
@@ -150,13 +164,54 @@ impl<'a> RenderPassExecutionContext<'a> {
         self
     }
 
+    pub fn with_compute_pass_metadata(
+        mut self,
+        compute_pass_metadata: Option<&'a RenderGraphComputePassMetadata>,
+    ) -> Self {
+        self.compute_pass_metadata = compute_pass_metadata;
+        self
+    }
+
+    pub fn with_compute_workload(
+        mut self,
+        compute_workload: Option<&'a RenderGraphComputeWorkload>,
+    ) -> Self {
+        self.compute_workload = compute_workload;
+        self
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn with_resource_streamer(
+        mut self,
+        resource_streamer: Option<&'a ResourceStreamer>,
+    ) -> Self {
+        self.resource_streamer = resource_streamer;
+        self
+    }
+
     pub fn with_gpu(mut self, gpu: RenderPassGpuExecutionContext<'a>) -> Self {
+        self.resource_resolver = self
+            .resource_resolver
+            .map(|resolver| resolver.with_physical_resources(gpu.resources));
         self.gpu = Some(gpu.with_resource_resolver(self.resource_resolver));
         self
     }
 
     pub fn resource_resolver(&self) -> Option<RgResourceResolver<'a>> {
         self.resource_resolver
+    }
+
+    pub fn compute_pass_metadata(&self) -> Option<&'a RenderGraphComputePassMetadata> {
+        self.compute_pass_metadata
+    }
+
+    pub fn compute_workload(&self) -> Option<&'a RenderGraphComputeWorkload> {
+        self.compute_workload
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn resource_streamer(
+        &self,
+    ) -> Option<&'a ResourceStreamer> {
+        self.resource_streamer
     }
 
     pub fn resource_declaration(
@@ -204,19 +259,15 @@ impl<'a> RenderPassExecutionContext<'a> {
         resource_name: &str,
         access: RenderGraphResourceAccessKind,
     ) -> Result<&wgpu::TextureView, String> {
-        let declaration = match self.resource_resolver {
-            Some(resolver) => {
-                Some(resolver.require_pass_resource_declaration_by_name(resource_name, access)?)
-            }
-            None => None,
-        };
-        let gpu = self.require_gpu()?;
-        if let Some(declaration) = declaration {
-            gpu.resources
-                .require_texture_view_for_declaration(declaration)
-        } else {
-            gpu.resources.require_texture_view(resource_name)
+        if let Some(resolver) = self
+            .resource_resolver
+            .filter(RgResourceResolver::has_physical_resources)
+        {
+            return resolver.texture_view_by_name(resource_name, access);
         }
+        self.require_gpu()?
+            .resources
+            .require_texture_view(resource_name)
     }
 
     pub(in crate::graphics::scene::scene_renderer) fn require_buffer_by_name(
@@ -224,18 +275,13 @@ impl<'a> RenderPassExecutionContext<'a> {
         resource_name: &str,
         access: RenderGraphResourceAccessKind,
     ) -> Result<&wgpu::Buffer, String> {
-        let declaration = match self.resource_resolver {
-            Some(resolver) => {
-                Some(resolver.require_pass_resource_declaration_by_name(resource_name, access)?)
-            }
-            None => None,
-        };
-        let gpu = self.require_gpu()?;
-        if let Some(declaration) = declaration {
-            gpu.resources.require_buffer_for_declaration(declaration)
-        } else {
-            gpu.resources.require_buffer(resource_name)
+        if let Some(resolver) = self
+            .resource_resolver
+            .filter(RgResourceResolver::has_physical_resources)
+        {
+            return resolver.buffer_by_name(resource_name, access);
         }
+        self.require_gpu()?.resources.require_buffer(resource_name)
     }
 
     pub fn gpu(&self) -> Option<&RenderPassGpuExecutionContext<'a>> {
@@ -374,16 +420,16 @@ fn render_region_covers_target(render_region: ViewportRenderRegion, target_size:
 #[cfg(test)]
 mod tests {
     use super::{
-        RenderPassExecutionContext,
         preserve_physical_output_attachment_ops_for_partitioned_viewport,
+        RenderPassExecutionContext,
     };
     use crate::core::framework::render::{
         CameraRenderDescriptor, PostProcessGraphResourceNames, RenderViewportRect,
         ViewportCameraSnapshot,
     };
     use crate::core::math::UVec2;
-    use crate::graphics::RenderPassExecutorId;
     use crate::graphics::types::ViewportRenderRegion;
+    use crate::graphics::RenderPassExecutorId;
     use crate::render_graph::{
         QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps,
         RenderGraphAttachmentStoreOp, RenderGraphBuilder, RenderGraphPassResourceAccess,
@@ -626,24 +672,18 @@ mod tests {
                 .resource,
             depth_resource
         );
-        assert!(
-            context
-                .resource_resolver()
-                .and_then(|resolver| resolver.pass_resource_declaration_by_name(
-                    "scene-depth",
-                    RenderGraphResourceAccessKind::Write
-                ))
-                .is_none()
-        );
+        assert!(context
+            .resource_resolver()
+            .and_then(|resolver| resolver.pass_resource_declaration_by_name(
+                "scene-depth",
+                RenderGraphResourceAccessKind::Write
+            ))
+            .is_none());
         assert!(
             context.declares_resource_access(color_resource, RenderGraphResourceAccessKind::Write)
         );
-        assert!(
-            !context.declares_resource_access(
-                backbuffer_resource,
-                RenderGraphResourceAccessKind::Write
-            )
-        );
+        assert!(!context
+            .declares_resource_access(backbuffer_resource, RenderGraphResourceAccessKind::Write));
         assert!(
             !context.reads_texture("backbuffer"),
             "resolver-backed name queries must follow the compiled pass contract instead of stale context resource rows"
@@ -691,15 +731,9 @@ mod tests {
             )
             .with_resource_resolver(&graph, pass.id);
 
-        assert!(
-            !context.declares_resource_name_access(
-                "viewport-output",
-                RenderGraphResourceAccessKind::Read
-            )
-        );
-        assert!(
-            context
-                .declares_resource_name_access("scene-color", RenderGraphResourceAccessKind::Write)
-        );
+        assert!(!context
+            .declares_resource_name_access("viewport-output", RenderGraphResourceAccessKind::Read));
+        assert!(context
+            .declares_resource_name_access("scene-color", RenderGraphResourceAccessKind::Write));
     }
 }

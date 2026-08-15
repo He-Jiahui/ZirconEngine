@@ -3,19 +3,19 @@ use std::path::{Path, PathBuf};
 use glyphon::{Attrs, Buffer, Color, Family, FontSystem, Metrics, Shaping, TextArea, TextBounds};
 
 use crate::core::math::UVec2;
-use crate::graphics::backend::{RenderBackend, read_texture_rgba};
+use crate::graphics::backend::{read_texture_rgba, RenderBackend};
 use crate::text::atlas::render_plan::GlyphAtlasScreenRect;
 use crate::text::atlas::{GlyphAtlasBitmapRetryFrameState, GlyphAtlasSet};
 use crate::text::font::FontDatabase;
 use crate::text::native_bitmap_atlas::{
-    NativeBitmapAtlasHandoff, NativeBitmapAtlasSourceCache, NativeBitmapAtlasTextArea,
     bitmap_atlas_page_size, native_bitmap_atlas_frame, native_bitmap_atlas_handoff_for_report,
+    NativeBitmapAtlasHandoff, NativeBitmapAtlasSourceCache, NativeBitmapAtlasTextArea,
 };
 use crate::text::parallel::raster_pool::{TextRasterWorkerPool, TextRasterWorkerPoolOptions};
 
 use super::{
-    GlyphAtlasBitmapRenderer, PROOF_HEIGHT, PROOF_WIDTH, assert_product_proof_is_outside_target,
-    changed_pixels, proof_path_for, workspace_root,
+    assert_product_proof_is_outside_target, changed_pixels, proof_path_for, workspace_root,
+    GlyphAtlasBitmapRenderer, PROOF_HEIGHT, PROOF_WIDTH,
 };
 
 const NATIVE_LAYOUT_PROOF_FILE_NAME: &str =
@@ -117,7 +117,7 @@ fn render_text_native_bitmap_layout_product_framebuffer() {
         default_color: Color::rgba(224, 244, 255, 255),
         custom_glyphs: &[],
     };
-    let bitmap_text_area = NativeBitmapAtlasTextArea::new(&text_area, None);
+    let bitmap_text_area = || NativeBitmapAtlasTextArea::new(&text_area, None);
     let worker_pool = TextRasterWorkerPool::new_without_workers_for_test(
         TextRasterWorkerPoolOptions::new(1).with_queue_depth(128),
     );
@@ -133,7 +133,7 @@ fn render_text_native_bitmap_layout_product_framebuffer() {
         GlyphAtlasSet::default(),
         viewport_size,
         1,
-        &[bitmap_text_area],
+        &[bitmap_text_area()],
     );
     let cold_report = cold_frame.prepare_report();
     assert!(cold_report.missing_raster_image_count > 0);
@@ -157,7 +157,7 @@ fn render_text_native_bitmap_layout_product_framebuffer() {
         GlyphAtlasSet::default(),
         viewport_size,
         2,
-        &[bitmap_text_area],
+        &[bitmap_text_area()],
     );
     let warm_report = warm_frame.prepare_report();
     assert!(warm_frame.replaces_glyphon());
@@ -225,7 +225,7 @@ fn render_text_native_bitmap_layout_product_framebuffer() {
         committed_warm_atlas,
         viewport_size,
         3,
-        &[bitmap_text_area],
+        &[bitmap_text_area()],
     );
     let stable_report = stable_frame.prepare_report();
     assert!(stable_frame.submission.run.slot_cache_hit_count > 0);

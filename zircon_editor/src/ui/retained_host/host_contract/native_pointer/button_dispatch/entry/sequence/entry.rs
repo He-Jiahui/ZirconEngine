@@ -1,7 +1,7 @@
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 use crate::ui::retained_host::host_contract::window::UiHostWindow;
 use crate::ui::retained_host::ui_perf::{
-    UiPerfScenario, enter_ui_perf_scenario, time_ui_perf_scenario,
+    enter_ui_perf_scenario, time_ui_perf_scenario, UiPerfScenario,
 };
 use zircon_runtime_interface::ui::dispatch::UiInputModifiers;
 use zircon_runtime_interface::ui::surface::UiPointerButton;

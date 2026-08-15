@@ -1,6 +1,6 @@
 use super::super::super::data::{FrameRect, HostWindowPresentationData};
 use super::super::super::paint_frame::HostRgbaFrame;
-use super::super::super::paint_geometry::is_visible_frame;
+use super::super::super::paint_geometry::{intersect, is_visible_frame};
 use super::super::super::paint_primitives::draw_rect;
 
 pub(super) fn draw_resize_layer(
@@ -14,7 +14,11 @@ pub(super) fn draw_resize_layer(
         &resize.right_splitter_frame,
         &resize.bottom_splitter_frame,
     ] {
-        if is_visible_frame(splitter) {
+        if is_visible_frame(splitter)
+            && frame
+                .paint_clip()
+                .is_none_or(|damage| intersect(splitter, damage).is_some())
+        {
             draw_rect(frame, splitter_visual_frame(splitter), [42, 50, 56, 255]);
         }
     }

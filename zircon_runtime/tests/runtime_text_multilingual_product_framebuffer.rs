@@ -12,6 +12,9 @@ use zircon_runtime_interface::ui::surface::{
     UiTextWritingMode,
 };
 
+#[cfg(target_os = "windows")]
+#[path = "runtime_text_multilingual_product_framebuffer/dpi_product.rs"]
+mod dpi_product;
 #[path = "runtime_text_multilingual_product_framebuffer/product_project_fixture.rs"]
 mod product_project_fixture;
 #[path = "runtime_text_multilingual_product_framebuffer/product_renderer.rs"]
@@ -20,11 +23,13 @@ mod product_renderer;
 mod proof_assertions;
 #[path = "runtime_text_multilingual_product_framebuffer/proof_commands.rs"]
 mod proof_commands;
+#[path = "runtime_text_multilingual_product_framebuffer/proof_output.rs"]
+mod proof_output;
 #[path = "runtime_text_multilingual_product_framebuffer/proof_path.rs"]
 mod proof_path;
 mod support;
 use product_project_fixture::product_fixture_asset_manager;
-use product_renderer::render_ui_extract_frame;
+use product_renderer::{render_ui_extract_frame, ProductUiFrameRenderer, UiTextRasterFrameTrace};
 use proof_commands::{
     proof_arabic_justify, proof_background, proof_bbcode_text, proof_horizontal_rich_table,
     proof_msdf_sharp_corner_sample, proof_native_sdf_parity, proof_rich_text,
@@ -32,6 +37,7 @@ use proof_commands::{
     proof_sdf_sharp_corner_sample, proof_text, proof_vertical_bbcode_paragraphs,
     proof_vertical_rich_table, proof_vertical_rich_text, proof_vertical_text,
 };
+use proof_output::write_product_framebuffer_png;
 use proof_path::{
     assert_product_proof_is_outside_target, configured_cargo_target_dir, proof_path, workspace_root,
 };
@@ -44,7 +50,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
     assert_arabic_mark_cluster_backend_face_contract();
 
     let viewport_size = UVec2::new(1080, 2000);
-    let (asset_manager, fixture_root) = product_fixture_asset_manager();
+    let (asset_manager, fixture_root) = product_fixture_asset_manager("multilingual-fixture");
     let background = proof_background(viewport_size);
     let mut samples = vec![
         proof_rich_text(
@@ -186,15 +192,16 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
         .text_layout
         .as_ref()
         .expect("Arabic justify product proof must consume a resolved layout");
-    assert_eq!(arabic_justify.style.text_render_mode, UiTextRenderMode::Native);
+    assert_eq!(
+        arabic_justify.style.text_render_mode,
+        UiTextRenderMode::Native
+    );
     let arabic_justify_line = &arabic_justify_layout.lines[0];
     assert!(arabic_justify_line.text.contains('\u{0640}'));
-    assert!(
-        arabic_justify_line
-            .runs
-            .iter()
-            .any(|run| { run.text == "ـ" && run.source_range.start == run.source_range.end })
-    );
+    assert!(arabic_justify_line
+        .runs
+        .iter()
+        .any(|run| { run.text == "ـ" && run.source_range.start == run.source_range.end }));
     assert!(
         (arabic_justify_line.glyph_advances.iter().sum::<f32>() - arabic_justify.frame.width).abs()
             < 0.1,
@@ -213,6 +220,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
         UiRenderExtract {
             tree_id: UiTreeId::new("runtime.ui.text.multilingual.product"),
             list: UiRenderList { commands },
+            raster_scale: 1.0,
         },
         viewport_size,
         asset_manager.clone(),
@@ -223,6 +231,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
             list: UiRenderList {
                 commands: vec![background],
             },
+            raster_scale: 1.0,
         },
         viewport_size,
         asset_manager,
@@ -234,8 +243,7 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
         "the product framebuffer must resolve every requested glyph through the configured font chain: {stats:#?}"
     );
     assert_eq!(
-        stats.last_ui_text_raster_worker_pending_count,
-        0,
+        stats.last_ui_text_raster_worker_pending_count, 0,
         "the settled product framebuffer must not capture transparent native-atlas placeholders: {stats:#?}"
     );
     assert_eq!(
@@ -257,6 +265,18 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
     assert_eq!(
         stats.last_ui_text_raster_renderer_upload_failure_count, 0,
         "the settled product framebuffer must not capture failed native-atlas uploads: {stats:#?}"
+    );
+    assert_eq!(
+        stats.last_ui_text_sdf_generation_pending_batch_count, 0,
+        "the settled product framebuffer must not capture while SDF/MSDF generation is pending: {stats:#?}"
+    );
+    assert_eq!(
+        stats.last_ui_text_sdf_generation_completion_backlog_count, 0,
+        "the settled product framebuffer must apply completed SDF/MSDF generation before capture: {stats:#?}"
+    );
+    assert_eq!(
+        stats.last_ui_text_sdf_generation_failure_count, 0,
+        "the settled product framebuffer must not accept SDF/MSDF generation fallback pixels: {stats:#?}"
     );
     for sample in &samples {
         let changed = count_changed_pixels_in_frame(
@@ -450,14 +470,8 @@ fn export_runtime_multilingual_text_product_framebuffer_png() {
     }
     std::fs::create_dir_all(output.parent().expect("proof output directory"))
         .expect("create runtime text proof directory");
-    image::save_buffer(
-        &output,
-        &capture.rgba,
-        capture.width,
-        capture.height,
-        image::ColorType::Rgba8,
-    )
-    .expect("save runtime multilingual text product framebuffer");
+    write_product_framebuffer_png(&output, &capture.rgba, capture.width, capture.height)
+        .expect("atomically save runtime multilingual text product framebuffer");
     assert!(output.is_file());
     eprintln!(
         "runtime multilingual product framebuffer={}",

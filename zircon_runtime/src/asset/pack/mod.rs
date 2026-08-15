@@ -6,18 +6,18 @@ mod reader;
 mod trim;
 mod writer;
 
-pub use dedup::{ZrPackDedupTable, zrpack_content_hash};
+pub use dedup::{zrpack_content_hash, ZrPackDedupTable};
 pub use delta::{
-    ZRPACK_DELTA_MAGIC, ZrPackDeltaDocumentManifest, ZrPackDeltaReader, ZrPackDeltaWriteReport,
-    ZrPackDeltaWriter,
+    ZrPackDeltaDocumentManifest, ZrPackDeltaReader, ZrPackDeltaWriteReport, ZrPackDeltaWriter,
+    ZRPACK_DELTA_MAGIC,
 };
 pub use install::{
-    ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION, ZrPackDeltaInstallError, ZrPackDeltaInstallReport,
-    ZrPackDeltaInstaller, ZrPackInstallReceipt, ZrPackPromotionMethod, ZrPackPromotionReport,
+    ZrPackDeltaInstallError, ZrPackDeltaInstallReport, ZrPackDeltaInstaller, ZrPackInstallReceipt,
+    ZrPackPromotionMethod, ZrPackPromotionReport, ZRPACK_INSTALL_RECEIPT_FORMAT_VERSION,
 };
 pub use manifest::{
-    ZRPACK_FORMAT_VERSION, ZRPACK_MAGIC, ZrChunkEntry, ZrPackAssetEntry, ZrPackDocumentManifest,
-    ZrPackError, ZrPackManifest,
+    ZrChunkEntry, ZrPackAssetEntry, ZrPackDocumentManifest, ZrPackError, ZrPackManifest,
+    ZRPACK_FORMAT_VERSION, ZRPACK_MAGIC,
 };
 pub use reader::ZrPackReader;
 pub use trim::{

@@ -1,4 +1,5 @@
 use super::super::super::super::super::super::*;
+use super::super::super::TYPED_ERROR_CHILD_OWNER_LINE_BUDGET;
 use super::super::*;
 use super::*;
 
@@ -25,8 +26,6 @@ fn runtime_15_typed_error_moved_guard_absence_parent_backflow_is_child_backed() 
             "mod parent_paths;",
             "#[path = \"parent_backflow/sources.rs\"]",
             "mod sources;",
-            "#[path = \"parent_backflow/status_current.rs\"]",
-            "mod status_current;",
             "pub(super) use child_inventory::*;",
             "pub(super) use guard_body::*;",
             "pub(super) use guard_names::*;",

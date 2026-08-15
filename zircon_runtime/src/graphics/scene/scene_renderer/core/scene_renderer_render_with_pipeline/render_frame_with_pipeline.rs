@@ -1,17 +1,18 @@
-use crate::core::TaskPool;
 use crate::core::framework::render::{
-    FrameHistoryHandle, PostProcessGraphResourceNames, RenderCameraTargetGraphImportStatus,
-    RenderCapabilitySummary, RenderCaptureReport, RenderCaptureSource, ShaderVariantMissReport,
+    decode_rgba16f_texels, CapturedHdrFrame, FrameHistoryHandle, PostProcessGraphResourceNames,
+    RenderCameraTargetGraphImportStatus, RenderCapabilitySummary, RenderCaptureReport,
+    RenderCaptureSource, RenderGpuTimingStatus, ShaderVariantMissReport,
 };
+use crate::core::TaskPool;
 #[cfg(test)]
 use crate::core::{math::UVec2, resource::ResourceId};
 
-use crate::graphics::CompiledRenderPipeline;
 #[cfg(test)]
 use crate::graphics::backend::read_texture_rgba;
 use crate::graphics::backend::{
-    DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES, DEFAULT_GPU_TIMER_MAX_PASSES, GpuPassTimer,
-    GpuPipelineStatisticsTimer, ViewportSurface,
+    read_texture_rgba16float_region, GpuPassTimer, GpuPipelineStatisticsTimer,
+    Rgba16FloatTextureRegionReadback, ViewportSurface, DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES,
+    DEFAULT_GPU_TIMER_MAX_PASSES,
 };
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphLightGridReport;
 use crate::graphics::scene::scene_renderer::mesh::PreparedMeshQueueStats;
@@ -22,6 +23,7 @@ use crate::graphics::types::{
     GraphicsError, ViewportFrame, ViewportFrameTextureHandle, ViewportRenderFrame,
 };
 use crate::graphics::visibility::HzbOcclusionCullReport;
+use crate::graphics::{CompiledRenderPipeline, EnvironmentIblBakeReservation};
 use crate::render_graph::{QueueLane, RenderGraphResourceAccessKind};
 
 use super::super::runtime_features::runtime_features_from_pipeline;
@@ -33,8 +35,12 @@ use super::super::scene_renderer_runtime_outputs::{
 use super::super::scene_renderer_target::{ensure_offscreen_target, finish_viewport_frame};
 use super::super::target_extent::viewport_size;
 use super::{
-    AsyncViewportCaptureRequest, ViewportAsyncCaptureSubmission, capture_request_was_admitted,
+    capture_request_was_admitted, AsyncViewportCaptureRequest, ViewportAsyncCaptureSubmission,
 };
+
+mod gpu_timing_status;
+
+pub(in crate::graphics::scene::scene_renderer::core) use gpu_timing_status::render_gpu_timing_status;
 
 impl SceneRenderer {
     #[cfg(test)]
@@ -65,6 +71,26 @@ impl SceneRenderer {
         Ok(Some((size, rgba)))
     }
 
+    #[cfg(test)]
+    pub(crate) fn reflection_probe_upload_diagnostics_for_tests(
+        &self,
+    ) -> (usize, usize, usize, usize, Option<String>) {
+        self.core
+            .mesh_pipelines
+            .reflection_probes
+            .last_report_diagnostics()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn reflection_probe_gpu_upload_diagnostics_for_tests(
+        &self,
+    ) -> Result<(u32, [[f32; 4]; 2], [[u16; 4]; 2]), GraphicsError> {
+        self.core
+            .mesh_pipelines
+            .reflection_probes
+            .gpu_upload_diagnostics(&self.backend.device, &self.backend.queue)
+    }
+
     pub(crate) fn render_frame_with_pipeline(
         &mut self,
         frame: &ViewportRenderFrame,
@@ -79,6 +105,7 @@ impl SceneRenderer {
             capabilities,
             history_handle,
             previous_history_available,
+            None,
             None,
             None,
         )
@@ -101,6 +128,7 @@ impl SceneRenderer {
             previous_history_available,
             Some(task_pool),
             None,
+            None,
         )
     }
 
@@ -114,6 +142,30 @@ impl SceneRenderer {
         task_pool: &TaskPool,
         capture: Option<AsyncViewportCaptureRequest>,
     ) -> Result<ViewportAsyncCaptureSubmission, GraphicsError> {
+        self.render_frame_with_pipeline_async_capture_task_pool_with_environment_ibl_bake_reservation(
+            frame,
+            pipeline,
+            capabilities,
+            history_handle,
+            previous_history_available,
+            task_pool,
+            capture,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn render_frame_with_pipeline_async_capture_task_pool_with_environment_ibl_bake_reservation(
+        &mut self,
+        frame: &ViewportRenderFrame,
+        pipeline: &CompiledRenderPipeline,
+        capabilities: &RenderCapabilitySummary,
+        history_handle: Option<FrameHistoryHandle>,
+        previous_history_available: bool,
+        task_pool: &TaskPool,
+        capture: Option<AsyncViewportCaptureRequest>,
+        environment_ibl_bake_reservation: Option<EnvironmentIblBakeReservation>,
+    ) -> Result<ViewportAsyncCaptureSubmission, GraphicsError> {
         let (generation, capture_admitted) = self.render_frame_with_pipeline_to_target(
             frame,
             pipeline,
@@ -122,6 +174,7 @@ impl SceneRenderer {
             previous_history_available,
             Some(task_pool),
             capture,
+            environment_ibl_bake_reservation,
         )?;
         let target = self.target.as_ref().expect("offscreen target");
         Ok(ViewportAsyncCaptureSubmission::new(
@@ -141,6 +194,7 @@ impl SceneRenderer {
         previous_history_available: bool,
         task_pool: Option<&TaskPool>,
         viewport_capture: Option<AsyncViewportCaptureRequest>,
+        environment_ibl_bake_reservation: Option<EnvironmentIblBakeReservation>,
     ) -> Result<ViewportFrame, GraphicsError> {
         let (generation, _) = self.render_frame_with_pipeline_to_target(
             frame,
@@ -150,6 +204,7 @@ impl SceneRenderer {
             previous_history_available,
             task_pool,
             viewport_capture,
+            environment_ibl_bake_reservation,
         )?;
         let target = self.target.as_ref().expect("offscreen target");
         if let Some((output_target, capture_report)) = output_target_capture_resource(
@@ -195,6 +250,7 @@ impl SceneRenderer {
             previous_history_available,
             surface,
             None,
+            None,
         )
     }
 
@@ -208,6 +264,30 @@ impl SceneRenderer {
         surface: &mut ViewportSurface,
         task_pool: &TaskPool,
     ) -> Result<u64, GraphicsError> {
+        self.present_frame_with_pipeline_task_pool_with_environment_ibl_bake_reservation(
+            frame,
+            pipeline,
+            capabilities,
+            history_handle,
+            previous_history_available,
+            surface,
+            task_pool,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn present_frame_with_pipeline_task_pool_with_environment_ibl_bake_reservation(
+        &mut self,
+        frame: &ViewportRenderFrame,
+        pipeline: &CompiledRenderPipeline,
+        capabilities: &RenderCapabilitySummary,
+        history_handle: Option<FrameHistoryHandle>,
+        previous_history_available: bool,
+        surface: &mut ViewportSurface,
+        task_pool: &TaskPool,
+        environment_ibl_bake_reservation: Option<EnvironmentIblBakeReservation>,
+    ) -> Result<u64, GraphicsError> {
         self.present_frame_with_pipeline_optional_task_pool(
             frame,
             pipeline,
@@ -216,6 +296,7 @@ impl SceneRenderer {
             previous_history_available,
             surface,
             Some(task_pool),
+            environment_ibl_bake_reservation,
         )
     }
 
@@ -229,6 +310,7 @@ impl SceneRenderer {
         previous_history_available: bool,
         surface: &mut ViewportSurface,
         task_pool: Option<&TaskPool>,
+        environment_ibl_bake_reservation: Option<EnvironmentIblBakeReservation>,
     ) -> Result<u64, GraphicsError> {
         let (generation, _) = self.render_frame_with_pipeline_to_target(
             frame,
@@ -238,6 +320,7 @@ impl SceneRenderer {
             previous_history_available,
             task_pool,
             None,
+            environment_ibl_bake_reservation,
         )?;
         let target = self.target.as_ref().expect("offscreen target");
         surface.present_texture(
@@ -257,6 +340,7 @@ impl SceneRenderer {
         previous_history_available: bool,
         task_pool: Option<&TaskPool>,
         viewport_capture: Option<AsyncViewportCaptureRequest>,
+        environment_ibl_bake_reservation: Option<EnvironmentIblBakeReservation>,
     ) -> Result<(u64, bool), GraphicsError> {
         reset_last_runtime_outputs(self);
         self.core.mesh_pipelines.reset_shader_variant_miss_report();
@@ -290,7 +374,11 @@ impl SceneRenderer {
 
         let size = viewport_size(frame);
         let render_size = frame.extract.view.effective_render_size();
-        ensure_offscreen_target(&self.backend.device, &mut self.target, size, render_size);
+        if ensure_offscreen_target(&self.backend.device, &mut self.target, size, render_size) {
+            self.core
+                .post_process
+                .invalidate_taa_resolve_bind_group_cache();
+        }
         let runtime_features = runtime_features_from_pipeline(pipeline);
         let screen_space_reflection_history_enabled = runtime_features.temporal_history_enabled
             && frame
@@ -320,7 +408,7 @@ impl SceneRenderer {
             .as_ref()
             .map(AsyncViewportCaptureRequest::admission_state);
         let runtime_outputs = {
-            let (history_textures, history_available) = prepare_history_textures(
+            let (history_textures, history_available, history_recreated) = prepare_history_textures(
                 &self.backend.device,
                 &self.backend.queue,
                 &mut self.history_targets,
@@ -334,9 +422,14 @@ impl SceneRenderer {
                 exposure_history_enabled,
                 volumetric_history_quality,
             );
+            if history_recreated {
+                self.core
+                    .post_process
+                    .invalidate_taa_resolve_bind_group_cache();
+            }
             let target = self.target.as_mut().expect("offscreen target");
             let parallel_record_min_passes_per_bucket = self.parallel_record_min_passes_per_bucket;
-            let hzb_indirect_args_readback_enabled = self.hzb_indirect_args_readback_enabled;
+            let hzb_diagnostics_readback_enabled = self.hzb_diagnostics_readback_enabled;
             let (core, gpu_pass_timer, gpu_pipeline_statistics_timer) = (
                 &mut self.core,
                 self.gpu_pass_timer.as_mut(),
@@ -359,10 +452,18 @@ impl SceneRenderer {
                 gpu_pipeline_statistics_timer,
                 task_pool,
                 parallel_record_min_passes_per_bucket,
-                hzb_indirect_args_readback_enabled,
+                hzb_diagnostics_readback_enabled,
                 viewport_capture,
+                environment_ibl_bake_reservation,
             )?
         };
+        self.last_gpu_timing_status = render_gpu_timing_status(
+            self.gpu_pass_timing_requested,
+            self.gpu_pass_timer.is_some(),
+            self.gpu_pass_timer
+                .as_ref()
+                .and_then(GpuPassTimer::last_frame_observation),
+        );
         let direct_imported = runtime_outputs
             .output_target_graph_import_report()
             .is_some_and(|report| {
@@ -437,6 +538,27 @@ fn pipeline_writes_screen_space_reflection_history(pipeline: &CompiledRenderPipe
     pipeline.writes_resource(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)
 }
 
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn hdr_capture_reads_the_retained_compiled_scene_color_without_a_second_scene_render() {
+        let source = include_str!("render_frame_with_pipeline.rs");
+        let capture_method = concat!("fn capture_latest_scene_color", "_hdr");
+        let capture_source = source
+            .split(capture_method)
+            .nth(1)
+            .expect("compiled HDR capture should exist")
+            .split("/// Returns the GPU-resident output")
+            .next()
+            .expect("HDR capture should end before viewport product export");
+
+        assert!(capture_source.contains("target.scene_color"));
+        assert!(capture_source.contains("read_texture_rgba16float_region"));
+        assert!(capture_source.contains("decode_rgba16f_texels"));
+        assert!(!capture_source.contains("render_scene("));
+    }
+}
+
 impl SceneRenderer {
     pub(crate) fn validate_compiled_pipeline_executors(
         &self,
@@ -454,6 +576,27 @@ impl SceneRenderer {
         &self,
     ) -> Option<&crate::graphics::backend::GpuTimerFrameResult> {
         self.last_gpu_timer_frame_result.as_ref()
+    }
+
+    /// Drains one completed timestamp frame without exposing the backend query type.
+    pub fn take_completed_gpu_timing_report(
+        &mut self,
+    ) -> Option<super::super::scene_renderer::SceneRendererGpuTimingReport> {
+        self.last_gpu_timer_frame_result.take().map(|frame| {
+            super::super::scene_renderer::SceneRendererGpuTimingReport::new(
+                frame.frame_generation,
+                frame.pass_timings.into_iter().map(|timing| {
+                    super::super::scene_renderer::SceneRendererGpuPassTiming::new(
+                        timing.pass_name,
+                        timing.gpu_time_us,
+                    )
+                }),
+            )
+        })
+    }
+
+    pub const fn last_gpu_timing_status(&self) -> RenderGpuTimingStatus {
+        self.last_gpu_timing_status
     }
 
     pub(crate) fn last_gpu_pipeline_statistics_frame_result(
@@ -503,6 +646,45 @@ impl SceneRenderer {
             ),
         )
         .map(Some)
+    }
+
+    /// Reads the retained HDR scene color that the compiled frame already produced.
+    pub(crate) fn capture_latest_scene_color_hdr(
+        &self,
+    ) -> Result<Option<CapturedHdrFrame>, GraphicsError> {
+        let Some(target) = self.target.as_ref() else {
+            return Ok(None);
+        };
+        let capture_target = self
+            .last_capture_target
+            .unwrap_or(SceneRendererCaptureTarget {
+                output_target: Default::default(),
+                owns_final_target_output: true,
+            });
+        let size = target.render_size;
+        let bytes = read_texture_rgba16float_region(
+            &self.backend.device,
+            &self.backend.queue,
+            &target.scene_color,
+            Rgba16FloatTextureRegionReadback {
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                size: wgpu::Extent3d {
+                    width: size.x,
+                    height: size.y,
+                    depth_or_array_layers: 1,
+                },
+                label: "zircon-compiled-scene-color-hdr-capture",
+            },
+        )?;
+
+        Ok(Some(CapturedHdrFrame::with_capture_report(
+            size.x,
+            size.y,
+            decode_rgba16f_texels(&bytes),
+            self.generation,
+            RenderCaptureReport::framework_offscreen(capture_target.output_target.kind(), size),
+        )))
     }
 
     /// Returns the GPU-resident output of the most recently submitted viewport frame.
@@ -575,6 +757,16 @@ impl SceneRenderer {
 
     pub(crate) fn last_light_grid_report(&self) -> Option<RenderGraphLightGridReport> {
         self.last_render_graph_execution.light_grid_report()
+    }
+
+    pub(crate) fn last_taa_reactive_mask_encoding(&self) -> (usize, u64) {
+        self.last_render_graph_execution
+            .taa_reactive_mask_encoding()
+    }
+
+    pub(crate) fn last_taa_resolve_bind_group_create_count(&self) -> usize {
+        self.last_render_graph_execution
+            .taa_resolve_bind_group_create_count()
     }
 
     pub(crate) fn last_render_graph_executed_resource_access_count(&self) -> usize {
@@ -682,6 +874,12 @@ impl SceneRenderer {
         self.last_render_graph_execution.profile_report()
     }
 
+    pub(crate) fn last_render_graph_parallel_recording_report(
+        &self,
+    ) -> crate::core::framework::render::RenderGraphParallelRecordingReport {
+        self.last_render_graph_execution.parallel_recording_report()
+    }
+
     pub(crate) fn last_render_graph_stage_execution_report(
         &self,
     ) -> crate::core::framework::render::RenderGraphStageExecutionReport {
@@ -741,7 +939,8 @@ impl SceneRenderer {
         self.last_prepared_mesh_queue_stats
     }
 
-    pub(crate) fn last_shader_variant_miss_report(&self) -> ShaderVariantMissReport {
+    /// Returns current-frame variant counters plus current residency and renderer-lifetime costs.
+    pub fn last_shader_variant_miss_report(&self) -> ShaderVariantMissReport {
         self.core.mesh_pipelines.shader_variant_miss_report()
     }
 
@@ -756,6 +955,7 @@ impl SceneRenderer {
     }
 
     pub(crate) fn set_gpu_pass_timing_enabled(&mut self, enabled: bool) {
+        self.gpu_pass_timing_requested = enabled;
         if enabled {
             if self.gpu_pass_timer.is_none() {
                 self.gpu_pass_timer = GpuPassTimer::try_new(
@@ -772,11 +972,17 @@ impl SceneRenderer {
                 );
                 self.last_gpu_pipeline_statistics_frame_result = None;
             }
+            self.last_gpu_timing_status = if self.gpu_pass_timer.is_some() {
+                RenderGpuTimingStatus::Pending
+            } else {
+                RenderGpuTimingStatus::Unavailable
+            };
         } else {
             self.gpu_pass_timer = None;
             self.gpu_pipeline_statistics_timer = None;
             self.last_gpu_timer_frame_result = None;
             self.last_gpu_pipeline_statistics_frame_result = None;
+            self.last_gpu_timing_status = RenderGpuTimingStatus::Disabled;
         }
     }
 

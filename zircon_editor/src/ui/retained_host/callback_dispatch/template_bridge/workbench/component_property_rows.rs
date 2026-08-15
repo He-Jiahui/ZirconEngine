@@ -36,13 +36,16 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         property_count: usize,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        component_property_virtual_rows(&self.template_surface.surface)?
+        let topology_changed = component_property_virtual_rows(&self.template_surface.surface)?
             .reconcile(
                 &mut self.template_surface.surface,
                 property_count,
                 virtual_metadata_from_prototype,
-            )
-            .map_err(BuiltinHostWindowTemplateBridgeError::from)
+            )?;
+        if topology_changed {
+            self.template_surface.refresh_control_node_index()?;
+        }
+        Ok(())
     }
 
     pub(super) fn component_property_row_control_ids(
@@ -57,15 +60,6 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 .virtual_control_ids(&self.template_surface.surface),
         );
         Ok(controls)
-    }
-
-    pub(crate) fn is_component_property_row(
-        &self,
-        control_id: &str,
-    ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
-        Ok(COMPONENT_PROPERTY_STATIC_CONTROLS.contains(&control_id)
-            || component_property_virtual_rows(&self.template_surface.surface)?
-                .contains_control(&self.template_surface.surface, control_id))
     }
 }
 

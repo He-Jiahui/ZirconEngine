@@ -424,7 +424,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         pass_name: &str,
         taa_reactive_mask_resource_name: &str,
         scene_depth_resource_name: &str,
-        attachment_ops: RenderGraphAttachmentOps,
     ) -> Result<(), String> {
         let mesh_draw_lists = self.mesh_draw_lists.ok_or_else(|| {
             format!(
@@ -438,6 +437,9 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         let render_region = self
             .render_region_for_write_resource(taa_reactive_mask_resource_name)
             .local_render_region();
+        if render_region.is_empty() {
+            return Ok(());
+        }
         let mesh_pipelines = self.mesh_pipelines.as_deref_mut().ok_or_else(|| {
             format!(
                 "TAA reactive mask mesh graph executor for pass `{pass_name}` requires mesh pipeline context"
@@ -477,7 +479,10 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 view: taa_reactive_mask_view,
                 resolve_target: None,
                 depth_slice: None,
-                ops: color_attachment_operations(attachment_ops, wgpu::Color::BLACK),
+                ops: color_attachment_operations(
+                    RenderGraphAttachmentOps::clear_store(),
+                    wgpu::Color::BLACK,
+                ),
             })],
             depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
                 view: scene_depth_view,
@@ -517,6 +522,8 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             true
         });
         mesh_draw_lists.replay_stats.record(replayer.stats());
+        drop(pass);
+        self.record_taa_reactive_mask_encoding(render_region.local_size());
         Ok(())
     }
 }

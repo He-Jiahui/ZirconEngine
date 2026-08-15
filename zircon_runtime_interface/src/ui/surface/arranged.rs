@@ -5,7 +5,7 @@ use crate::ui::layout::{
     UiAlignment2D, UiCanvasSlotPlacement, UiFrame, UiGridSlotPlacement, UiLinearSlotSizing,
     UiMargin, UiSlot, UiSlotKind,
 };
-use crate::ui::tree::{UiInputPolicy, UiVisibility};
+use crate::ui::tree::{UiInputPolicy, UiPointerEvents, UiVisibility};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiArrangedSlotSummary {
@@ -60,6 +60,8 @@ pub struct UiArrangedNode {
     pub paint_order: u64,
     pub visibility: UiVisibility,
     pub input_policy: UiInputPolicy,
+    #[serde(default)]
+    pub pointer_events: UiPointerEvents,
     pub enabled: bool,
     pub clickable: bool,
     pub hoverable: bool,
@@ -87,8 +89,18 @@ impl UiArrangedNode {
         self.effective_visibility().allows_child_hit_test()
     }
 
+    pub fn allows_self_pointer_hit_test(&self) -> bool {
+        self.is_self_hit_test_visible() && self.pointer_events.allows_self_hit_test()
+    }
+
+    pub fn allows_child_pointer_hit_test(&self) -> bool {
+        self.allows_child_hit_test() && self.pointer_events.allows_child_hit_test()
+    }
+
     pub fn supports_pointer(&self) -> bool {
-        self.enabled && (self.clickable || self.hoverable || self.focusable)
+        self.enabled
+            && self.allows_self_pointer_hit_test()
+            && (self.clickable || self.hoverable || self.focusable)
     }
 }
 

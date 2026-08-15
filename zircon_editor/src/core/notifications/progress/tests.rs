@@ -1,7 +1,10 @@
 use crate::core::jobs::{EditorJobProgress, EditorJobProgressSnapshot, JobCategory, JobId};
 use crate::core::notifications::{NotificationId, NotificationSource};
 
-use super::{ProgressNotification, ProgressNotificationCenter, ProgressNotificationError};
+use super::{
+    ProgressNotification, ProgressNotificationCenter, ProgressNotificationError,
+    AUTOMATIC_PROGRESS_SOURCE_ID, MAX_PROGRESS_NOTIFICATIONS,
+};
 
 fn notification(suffix: &str, job: JobId) -> ProgressNotification {
     ProgressNotification::new(
@@ -23,6 +26,16 @@ fn job(id: u64) -> EditorJobProgressSnapshot {
     )
 }
 
+fn automatic_notification(job: JobId) -> ProgressNotification {
+    ProgressNotification::new(
+        NotificationId::parse(format!("editor.job.progress.{}", job.value())).unwrap(),
+        NotificationSource::builtin(AUTOMATIC_PROGRESS_SOURCE_ID).unwrap(),
+        job,
+        "editor.notification.job_progress.title",
+    )
+    .unwrap()
+}
+
 #[test]
 fn projection_tracks_one_bound_job_and_removes_terminal_entries() {
     let center = ProgressNotificationCenter::default();
@@ -30,11 +43,9 @@ fn projection_tracks_one_bound_job_and_removes_terminal_entries() {
         .publish(notification("import", JobId::new(7)))
         .unwrap();
     assert_eq!(center.synchronize([job(7)]).len(), 1);
-    assert!(
-        center
-            .synchronize(std::iter::empty::<EditorJobProgressSnapshot>())
-            .is_empty()
-    );
+    assert!(center
+        .synchronize(std::iter::empty::<EditorJobProgressSnapshot>())
+        .is_empty());
     assert!(center.synchronize([job(7)]).is_empty());
 }
 
@@ -66,4 +77,61 @@ fn progress_content_key_distinguishes_empty_and_oversized_input() {
             actual: 257,
         })
     ));
+}
+
+#[test]
+fn progress_center_bounds_entries_and_releases_a_retired_job_slot() {
+    let center = ProgressNotificationCenter::default();
+    for index in 0..MAX_PROGRESS_NOTIFICATIONS {
+        center
+            .publish(notification(
+                &format!("capacity_{index}"),
+                JobId::new(index as u64),
+            ))
+            .unwrap();
+    }
+
+    assert!(matches!(
+        center.publish(notification(
+            "capacity_overflow",
+            JobId::new(MAX_PROGRESS_NOTIFICATIONS as u64),
+        )),
+        Err(ProgressNotificationError::CapacityExceeded { maximum })
+            if maximum == MAX_PROGRESS_NOTIFICATIONS
+    ));
+
+    center.retire_job(JobId::new(0));
+    assert!(center
+        .publish(notification(
+            "capacity_released",
+            JobId::new(MAX_PROGRESS_NOTIFICATIONS as u64),
+        ))
+        .is_ok());
+}
+
+#[test]
+fn manual_progress_producer_replaces_an_automatic_binding_for_its_job() {
+    let center = ProgressNotificationCenter::default();
+    let job_id = JobId::new(7);
+    center.publish(automatic_notification(job_id)).unwrap();
+
+    center
+        .publish(
+            ProgressNotification::new(
+                NotificationId::parse("editor.import.progress").unwrap(),
+                NotificationSource::builtin("editor.import").unwrap(),
+                job_id,
+                "editor.notification.import_model.title",
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+    let snapshots = center.synchronize([job(7)]);
+    assert_eq!(snapshots.len(), 1);
+    assert_eq!(snapshots[0].notification().source().id(), "editor.import");
+    assert_eq!(
+        snapshots[0].notification().title_key(),
+        "editor.notification.import_model.title"
+    );
 }

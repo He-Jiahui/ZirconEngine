@@ -1,3 +1,8 @@
+struct GlobalSdfTraceClipmap {
+    page_coordinate_origin_and_padding: vec4<i32>,
+    page_world_size_and_padding: vec4<f32>,
+};
+
 struct ProbeTraceTileDispatchParams {
     resident_probe_count: u32,
     completed_probe_count: u32,
@@ -7,8 +12,15 @@ struct ProbeTraceTileDispatchParams {
     surface_cache_atlas_height: u32,
     surface_cache_atlas_columns: u32,
     surface_cache_tile_extent: u32,
-    scene_prepare_descriptor_count: u32,
-    _pad0: u32,
+    voxel_cell_descriptor_offset: u32,
+    global_sdf_page_count: u32,
+    intersection_backend_mask: u32,
+    global_sdf_lighting_source: u32,
+    fallback_reason: u32,
+    voxel_cell_descriptor_count: u32,
+    voxel_cell_lookup_clipmap_count: u32,
+    _pad2: u32,
+    global_sdf_clipmaps: array<GlobalSdfTraceClipmap, 4>,
 };
 
 struct ResidentProbeInput {
@@ -80,6 +92,29 @@ struct ScenePrepareDescriptor {
 struct TraceRgbSample {
     rgb: vec3<u32>,
     valid: u32,
+    intersection_source: u32,
+    lighting_source: u32,
+    distance: f32,
+    confidence: f32,
+    texture_samples: u32,
+    page_tests: u32,
+    sdf_steps: u32,
+    voxel_candidates: u32,
+};
+
+struct ProbeTraceResult {
+    rgb: u32,
+    intersection_source: u32,
+    lighting_source: u32,
+    intersection_backend_mask: u32,
+    lighting_source_mask: u32,
+    distance: f32,
+    confidence: f32,
+    fallback_reason: u32,
+    texture_samples: u32,
+    page_tests: u32,
+    sdf_steps: u32,
+    voxel_candidates: u32,
 };
 
 struct SurfaceCacheTexelSample {
@@ -92,6 +127,13 @@ struct SurfaceCacheHzbDepthRange {
     min_depth_q: u32,
     max_depth_q: u32,
     valid: u32,
+};
+
+struct GlobalSdfTraceSample {
+    distance: f32,
+    cell_size: f32,
+    valid: u32,
+    page_tests: u32,
 };
 
 @group(0) @binding(0)
@@ -118,8 +160,46 @@ var surface_cache_depth: texture_2d<f32>;
 @group(0) @binding(7)
 var<storage, read> scene_prepare_descriptors: array<ScenePrepareDescriptor>;
 
+@group(0) @binding(8)
+var<storage, read> global_sdf_page_table: array<u32>;
+
+@group(0) @binding(9)
+var<storage, read> global_sdf_atlas: array<u32>;
+
+@group(0) @binding(10)
+var<storage, read_write> probe_trace_diagnostics: array<u32>;
+
+@group(0) @binding(11)
+var<storage, read> voxel_cell_lookup: array<u32>;
+
 const WORDS_PER_TILE: u32 = 4u;
 const SCENE_PREPARE_DESCRIPTOR_KIND_VOXEL_CELL: u32 = 3u;
+const VOXEL_CLIPMAP_CELL_RESOLUTION: u32 = 4u;
+const VOXEL_CLIPMAP_CELL_COUNT: u32 = 64u;
+const VOXEL_CELL_LOOKUP_MAX_CLIPMAPS: u32 = 8u;
+const VOXEL_CELL_LOOKUP_WORDS_PER_CLIPMAP: u32 = 65u;
+const VOXEL_CELL_LOOKUP_INVALID_DESCRIPTOR_INDEX: u32 = 0xffffffffu;
+const GLOBAL_SDF_PAGE_CELLS_PER_EDGE: u32 = 8u;
+const GLOBAL_SDF_PAGE_VOXEL_COUNT: u32 = 512u;
+const GLOBAL_SDF_CLIPMAP_COUNT: u32 = 4u;
+const GLOBAL_SDF_PAGES_PER_EDGE: u32 = 8u;
+const GLOBAL_SDF_PAGES_PER_CLIPMAP: u32 = 512u;
+const GLOBAL_SDF_PAGE_UNAVAILABLE_SLOT: u32 = 0xffffffffu;
+const GLOBAL_SDF_MAX_TRACE_STEPS: u32 = 16u;
+const TRACE_BACKEND_SURFACE_CACHE: u32 = 1u;
+const TRACE_BACKEND_GLOBAL_SDF: u32 = 2u;
+const TRACE_BACKEND_VOXEL_CLIPMAP: u32 = 4u;
+const TRACE_SOURCE_SURFACE_CACHE: u32 = 1u;
+const TRACE_SOURCE_GLOBAL_SDF: u32 = 2u;
+const TRACE_SOURCE_VOXEL_CLIPMAP: u32 = 3u;
+const TRACE_LIGHTING_SURFACE_CACHE: u32 = 1u;
+const TRACE_LIGHTING_PROBE_LINEAGE: u32 = 2u;
+const TRACE_LIGHTING_VOXEL_RADIANCE: u32 = 3u;
+const TRACE_FALLBACK_INTERSECTION_MISS: u32 = 4u;
+const TRACE_DIAGNOSTIC_WORDS_PER_ENTRY: u32 = 13u;
+const SCENE_PREPARE_POSITION_QUANTIZATION_SCALE: f32 = 64.0;
+const SCENE_PREPARE_SIGNED_POSITION_BIAS: f32 = 2048.0;
+const SCENE_VOXEL_CELL_HALF_EXTENT_QUANTIZATION_SCALE: f32 = 64.0;
 
 fn pack_rgb8(rgb: vec3<u32>) -> u32 {
     return min(rgb.x, 255u) | (min(rgb.y, 255u) << 8u) | (min(rgb.z, 255u) << 16u);
@@ -137,12 +217,95 @@ fn quantize_unorm8(value: f32) -> u32 {
     return u32(clamp(value, 0.0, 1.0) * 255.0 + 0.5);
 }
 
-fn valid_trace_sample(rgb: vec3<u32>) -> TraceRgbSample {
-    return TraceRgbSample(rgb, 1u);
+fn invalid_trace_sample() -> TraceRgbSample {
+    return TraceRgbSample(
+        vec3<u32>(0u),
+        0u,
+        0u,
+        0u,
+        3.402823466e+38,
+        0.0,
+        0u,
+        0u,
+        0u,
+        0u,
+    );
 }
 
-fn invalid_trace_sample() -> TraceRgbSample {
-    return TraceRgbSample(vec3<u32>(0u), 0u);
+fn surface_trace_sample(
+    rgb: vec3<u32>,
+    distance: f32,
+    confidence: f32,
+    texture_samples: u32,
+) -> TraceRgbSample {
+    return TraceRgbSample(
+        rgb,
+        1u,
+        TRACE_SOURCE_SURFACE_CACHE,
+        TRACE_LIGHTING_SURFACE_CACHE,
+        distance,
+        confidence,
+        texture_samples,
+        0u,
+        0u,
+        0u,
+    );
+}
+
+fn global_sdf_trace_sample(
+    rgb: vec3<u32>,
+    lighting_source: u32,
+    distance: f32,
+    confidence: f32,
+    page_tests: u32,
+    sdf_steps: u32,
+) -> TraceRgbSample {
+    return TraceRgbSample(
+        rgb,
+        1u,
+        TRACE_SOURCE_GLOBAL_SDF,
+        lighting_source,
+        distance,
+        confidence,
+        0u,
+        page_tests,
+        sdf_steps,
+        0u,
+    );
+}
+
+fn voxel_trace_sample(
+    rgb: vec3<u32>,
+    distance: f32,
+    confidence: f32,
+    voxel_candidates: u32,
+) -> TraceRgbSample {
+    return TraceRgbSample(
+        rgb,
+        1u,
+        TRACE_SOURCE_VOXEL_CLIPMAP,
+        TRACE_LIGHTING_VOXEL_RADIANCE,
+        distance,
+        confidence,
+        0u,
+        0u,
+        0u,
+        voxel_candidates,
+    );
+}
+
+fn invalid_trace_sample_with_cost(
+    texture_samples: u32,
+    page_tests: u32,
+    sdf_steps: u32,
+    voxel_candidates: u32,
+) -> TraceRgbSample {
+    var sample = invalid_trace_sample();
+    sample.texture_samples = texture_samples;
+    sample.page_tests = page_tests;
+    sample.sdf_steps = sdf_steps;
+    sample.voxel_candidates = voxel_candidates;
+    return sample;
 }
 
 fn valid_surface_cache_texel_sample(rgb: vec3<u32>, depth_q: u32) -> SurfaceCacheTexelSample {
@@ -368,6 +531,7 @@ fn surface_cache_directional_ray_sample(
     let max_ray_distance = max(1u, min(16u, ray_count / 4u));
     var weighted_rgb = first_sample.rgb;
     var total_weight = 1u;
+    var texture_samples = 0u;
 
     let hierarchy_mip_count = textureNumLevels(surface_cache_depth);
     var ray_distance = 1u;
@@ -386,6 +550,7 @@ fn surface_cache_directional_ray_sample(
         );
         loop {
             let depth_range = surface_cache_hzb_depth_range(step_coord, mip_level);
+            texture_samples = texture_samples + 1u;
             let thickness_q =
                 16u + min(ray_distance, 16u) * 4u + min(ray_count, 64u) / 8u;
             if (surface_cache_hzb_depth_range_overlaps(
@@ -399,6 +564,7 @@ fn surface_cache_directional_ray_sample(
                 }
 
                 let step_sample = surface_cache_texel_sample(step_coord);
+                texture_samples = texture_samples + 2u;
                 if (step_sample.valid != 0u) {
                     let step_weight = max_ray_distance + 1u - ray_distance;
                     weighted_rgb = vec3<u32>(
@@ -417,29 +583,37 @@ fn surface_cache_directional_ray_sample(
         }
     }
 
-    return valid_trace_sample(vec3<u32>(
-        (weighted_rgb.x + total_weight / 2u) / total_weight,
-        (weighted_rgb.y + total_weight / 2u) / total_weight,
-        (weighted_rgb.z + total_weight / 2u) / total_weight,
-    ));
+    let depth = f32(first_sample.depth_q) / 255.0;
+    return surface_trace_sample(
+        vec3<u32>(
+            (weighted_rgb.x + total_weight / 2u) / total_weight,
+            (weighted_rgb.y + total_weight / 2u) / total_weight,
+            (weighted_rgb.z + total_weight / 2u) / total_weight,
+        ),
+        depth,
+        1.0 - depth,
+        texture_samples,
+    );
 }
 
 fn surface_cache_tile_sample(
     tile_sample_id: u32,
     ray_count: u32,
 ) -> TraceRgbSample {
-    if (params.surface_cache_texture_available == 0u) {
+    if ((params.intersection_backend_mask & TRACE_BACKEND_SURFACE_CACHE) == 0u ||
+        params.surface_cache_texture_available == 0u) {
         return invalid_trace_sample();
     }
 
     let coord = surface_cache_sample_coord(tile_sample_id);
     let first_sample = surface_cache_texel_sample(coord);
     if (first_sample.valid == 0u) {
-        return invalid_trace_sample();
+        return invalid_trace_sample_with_cost(2u, 0u, 0u, 0u);
     }
 
     let directional_ray_count = max(1u, min(16u, ray_count));
     var accumulated_rgb = vec3<u32>(0u);
+    var texture_samples = 2u;
     for (var ray_index = 0u; ray_index < directional_ray_count; ray_index = ray_index + 1u) {
         let directional_sample = surface_cache_directional_ray_sample(
             coord,
@@ -448,192 +622,18 @@ fn surface_cache_tile_sample(
             ray_count,
         );
         accumulated_rgb = accumulated_rgb + directional_sample.rgb;
+        texture_samples = texture_samples + directional_sample.texture_samples;
     }
 
-    return valid_trace_sample(vec3<u32>(
-        (accumulated_rgb.x + directional_ray_count / 2u) / directional_ray_count,
-        (accumulated_rgb.y + directional_ray_count / 2u) / directional_ray_count,
-        (accumulated_rgb.z + directional_ray_count / 2u) / directional_ray_count,
-    ));
-}
-
-fn abs_diff_u32(a: u32, b: u32) -> u32 {
-    if (a >= b) {
-        return a - b;
-    }
-    return b - a;
-}
-
-fn voxel_cell_cone_weight(
-    descriptor: ScenePrepareDescriptor,
-    tile_probe_id: u32,
-    tile_sample_id: u32,
-) -> u32 {
-    if (descriptor.descriptor_kind != SCENE_PREPARE_DESCRIPTOR_KIND_VOXEL_CELL) {
-        return 0u;
-    }
-    if (descriptor.primary_id != tile_probe_id) {
-        return 0u;
-    }
-    if (descriptor.tertiary_id == 0u || descriptor.padding1 == 0u) {
-        return 0u;
-    }
-
-    let cell_distance = abs_diff_u32(descriptor.secondary_id, tile_sample_id);
-    let cone_radius = max(1u, min(8u, descriptor.scalar3 / 32u));
-    if (cell_distance > cone_radius) {
-        return 0u;
-    }
-
-    let occupancy_weight = min(descriptor.tertiary_id, 16u);
-    let distance_weight = cone_radius + 1u - cell_distance;
-    let exact_weight = select(0u, 32u, cell_distance == 0u);
-    return occupancy_weight * distance_weight + exact_weight;
-}
-
-fn voxel_fallback_tile_sample(tile_probe_id: u32, tile_sample_id: u32) -> TraceRgbSample {
-    var weighted_rgb = vec3<u32>(0u);
-    var total_weight = 0u;
-
-    for (var descriptor_index = 0u; descriptor_index < params.scene_prepare_descriptor_count; descriptor_index = descriptor_index + 1u) {
-        let descriptor = scene_prepare_descriptors[descriptor_index];
-        let contribution_weight = voxel_cell_cone_weight(
-            descriptor,
-            tile_probe_id,
-            tile_sample_id,
-        );
-        if (contribution_weight == 0u) {
-            continue;
-        }
-
-        let descriptor_rgb = unpack_rgb8(descriptor.quaternary_id);
-        weighted_rgb = vec3<u32>(
-            weighted_rgb.x + descriptor_rgb.x * contribution_weight,
-            weighted_rgb.y + descriptor_rgb.y * contribution_weight,
-            weighted_rgb.z + descriptor_rgb.z * contribution_weight,
-        );
-        total_weight = total_weight + contribution_weight;
-    }
-
-    if (total_weight > 0u) {
-        return valid_trace_sample(vec3<u32>(
-            (weighted_rgb.x + total_weight / 2u) / total_weight,
-            (weighted_rgb.y + total_weight / 2u) / total_weight,
-            (weighted_rgb.z + total_weight / 2u) / total_weight,
-        ));
-    }
-
-    return invalid_trace_sample();
-}
-
-fn tile_trace_rgb(
-    probe_id: u32,
-    ray_budget: u32,
-    position_x_q: u32,
-    position_y_q: u32,
-    position_z_q: u32,
-    lineage_trace_lighting_rgb: u32,
-) -> u32 {
-    var weighted_rgb = vec3<u32>(0u);
-    var total_weight = 0u;
-    let position_hash = position_x_q ^ (position_y_q << 3u) ^ (position_z_q << 6u);
-
-    for (var tile_index = 0u; tile_index < params.tile_count; tile_index = tile_index + 1u) {
-        let base = tile_index * WORDS_PER_TILE;
-        let tile_id = probe_trace_tiles[base];
-        let tile_probe_id = probe_trace_tiles[base + 1u];
-        let tile_sample_id = probe_trace_tiles[base + 2u];
-        let ray_count = max(probe_trace_tiles[base + 3u], 1u);
-        var tile_sample = surface_cache_tile_sample(tile_sample_id, ray_count);
-        if (tile_sample.valid == 0u) {
-            tile_sample = voxel_fallback_tile_sample(tile_probe_id, tile_sample_id);
-        }
-        var tile_rgb = tile_sample.rgb;
-        if (tile_sample.valid == 0u) {
-            tile_rgb = fallback_tile_rgb(
-                probe_id,
-                position_hash,
-                tile_id,
-                tile_probe_id,
-                tile_sample_id,
-                ray_count,
-            );
-        }
-        let weight = min(255u, 24u + min(ray_budget, 192u) / 2u + min(ray_count, 128u));
-        weighted_rgb = vec3<u32>(
-            weighted_rgb.x + tile_rgb.x * weight,
-            weighted_rgb.y + tile_rgb.y * weight,
-            weighted_rgb.z + tile_rgb.z * weight,
-        );
-        total_weight = total_weight + weight;
-    }
-
-    if (total_weight == 0u) {
-        return lineage_trace_lighting_rgb;
-    }
-
-    let traced = pack_rgb8(vec3<u32>(
-        (weighted_rgb.x + total_weight / 2u) / total_weight,
-        (weighted_rgb.y + total_weight / 2u) / total_weight,
-        (weighted_rgb.z + total_weight / 2u) / total_weight,
-    ));
-
-    if (lineage_trace_lighting_rgb == 0u) {
-        return traced;
-    }
-
-    let lineage = unpack_rgb8(lineage_trace_lighting_rgb);
-    let traced_rgb = unpack_rgb8(traced);
-    return pack_rgb8(vec3<u32>(
-        (traced_rgb.x * 3u + lineage.x + 2u) / 4u,
-        (traced_rgb.y * 3u + lineage.y + 2u) / 4u,
-        (traced_rgb.z * 3u + lineage.z + 2u) / 4u,
-    ));
-}
-
-@compute @workgroup_size(64, 1, 1)
-fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    let index = global_id.x;
-    let entry_count = params.resident_probe_count + params.completed_probe_count;
-    if (index == 0u) {
-        probe_trace_lighting_updates[0] = entry_count;
-    }
-    if (index >= entry_count || params.tile_count == 0u) {
-        return;
-    }
-
-    var probe_id = 0u;
-    var ray_budget = 0u;
-    var position_x_q = 0u;
-    var position_y_q = 0u;
-    var position_z_q = 0u;
-    var lineage_trace_lighting_rgb = 0u;
-    if (index < params.resident_probe_count) {
-        let probe = resident_probe_inputs[index];
-        probe_id = probe.probe_id;
-        ray_budget = probe.ray_budget;
-        position_x_q = probe.position_x_q;
-        position_y_q = probe.position_y_q;
-        position_z_q = probe.position_z_q;
-        lineage_trace_lighting_rgb = probe.lineage_trace_lighting_rgb;
-    } else {
-        let probe = pending_probe_updates[index - params.resident_probe_count];
-        probe_id = probe.probe_id;
-        ray_budget = probe.ray_budget;
-        position_x_q = probe.position_x_q;
-        position_y_q = probe.position_y_q;
-        position_z_q = probe.position_z_q;
-        lineage_trace_lighting_rgb = probe.lineage_trace_lighting_rgb;
-    }
-
-    let entry_offset = 1u + index * 2u;
-    probe_trace_lighting_updates[entry_offset] = probe_id;
-    probe_trace_lighting_updates[entry_offset + 1u] = tile_trace_rgb(
-        probe_id,
-        ray_budget,
-        position_x_q,
-        position_y_q,
-        position_z_q,
-        lineage_trace_lighting_rgb,
+    let depth = f32(first_sample.depth_q) / 255.0;
+    return surface_trace_sample(
+        vec3<u32>(
+            (accumulated_rgb.x + directional_ray_count / 2u) / directional_ray_count,
+            (accumulated_rgb.y + directional_ray_count / 2u) / directional_ray_count,
+            (accumulated_rgb.z + directional_ray_count / 2u) / directional_ray_count,
+        ),
+        depth,
+        1.0 - depth,
+        texture_samples,
     );
 }

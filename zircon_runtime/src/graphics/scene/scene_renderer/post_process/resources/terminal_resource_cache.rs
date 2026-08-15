@@ -247,8 +247,7 @@ mod tests {
 
     #[test]
     fn scene_post_process_resources_constructs_the_terminal_cache_at_the_resources_root() {
-        let resources =
-            include_str!("../scene_post_process_resources/scene_post_process_resources.rs");
+        let resources = include_str!("../scene_post_process_resources/mod.rs");
         let constructor = include_str!("construct/construct/construct.rs");
         let compact_resources = resources.split_whitespace().collect::<String>();
         let compact_constructor = constructor.split_whitespace().collect::<String>();

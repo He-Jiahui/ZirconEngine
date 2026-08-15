@@ -9,13 +9,13 @@ use crate::asset::{
     AssetImporterDescriptor, AssetKind, AssetLoadState, AssetLoadStates,
     AssetManagementFamilyIssueBucket, AssetManagementFamilyKind, AssetManagementFamilyStatus,
     AssetManagementRecordSets, AssetManager, AssetMetaDocument, AssetReference, AssetSourceUnit,
-    AssetUri, AssetUuid, DependencyLoadState, FunctionAssetImporter, ImportedAsset,
-    MESH_ATTRIBUTE_POSITION, MaterialAsset, MaterialAssetManagementRecordSet,
-    MaterialTextureSlotValue, MeshAsset, MeshAssetManagementRecordSet, MeshAttributeValues,
-    ModelAsset, ModelAssetManagementRecordSet, ProjectAssetManager, ProjectManager,
-    ProjectManifest, ProjectPaths, RecursiveDependencyLoadState, SceneAssetManagementRecordSet,
-    SceneEntityManagementRecordSet, ShaderAsset, ShaderAssetManagementRecordSet, TextureAsset,
-    TextureUploadSupport,
+    AssetUri, AssetUuid, DependencyLoadState, FunctionAssetImporter, ImportedAsset, MaterialAsset,
+    MaterialAssetManagementRecordSet, MaterialTextureSlotValue, MeshAsset,
+    MeshAssetManagementRecordSet, MeshAttributeValues, ModelAsset, ModelAssetManagementRecordSet,
+    ProjectAssetManager, ProjectManager, ProjectManifest, ProjectPaths,
+    RecursiveDependencyLoadState, SceneAssetManagementRecordSet, SceneEntityManagementRecordSet,
+    ShaderAsset, ShaderAssetManagementRecordSet, TextureAsset, TextureUploadSupport,
+    MESH_ATTRIBUTE_POSITION,
 };
 use crate::core::framework::render::RenderMaterialManagementRecordSet;
 use crate::core::resource::ResourceState;

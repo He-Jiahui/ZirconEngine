@@ -5,15 +5,15 @@ use crate::core::jobs::{
 };
 use crate::scene::viewport::{RenderFramework, RenderFrameworkError};
 use crate::ui::retained_host::host_contract::WorldSpaceUiSurfaceSubmission;
-use zircon_runtime::core::manager::{resolve_manager_service, ManagerServiceHandle};
-use zircon_runtime::core::CoreHandle;
+use zircon_runtime::core::manager::ManagerServiceHandle;
 
 use super::active_viewport::ActiveViewport;
+use super::render_framework_access::ViewportRenderFrameworkAccess;
 use super::render_framework_resolve_job::RenderFrameworkResolveJob;
 
 pub(super) struct ViewportState {
     pub(super) render_framework: Option<ManagerServiceHandle<dyn RenderFramework>>,
-    render_framework_core: Option<CoreHandle>,
+    render_framework_access: Option<ViewportRenderFrameworkAccess>,
     #[cfg(test)]
     test_render_framework: Option<Arc<dyn RenderFramework>>,
     pub(super) jobs: Option<EditorJobSystem>,
@@ -27,8 +27,8 @@ pub(super) struct ViewportState {
 }
 
 impl ViewportState {
-    pub(super) fn lazy(core: CoreHandle) -> Self {
-        Self::new(Some(core))
+    pub(super) fn lazy(render_framework_access: ViewportRenderFrameworkAccess) -> Self {
+        Self::new(Some(render_framework_access))
     }
 
     #[cfg(test)]
@@ -82,7 +82,7 @@ impl ViewportState {
             }
         }
 
-        let Some(core) = self.render_framework_core.clone() else {
+        let Some(render_framework_access) = self.render_framework_access.clone() else {
             return Err(RenderFrameworkError::Backend(
                 "render framework was not configured for the editor viewport".to_string(),
             ));
@@ -99,7 +99,7 @@ impl ViewportState {
             jobs.submit(
                 EditorJobSpec::new("Resolve editor render framework", JobCategory::Misc)
                     .with_cancel(cancel.clone()),
-                RenderFrameworkResolveJob::new(core),
+                RenderFrameworkResolveJob::new(render_framework_access),
             )
             .map_err(|error| {
                 RenderFrameworkError::Backend(format!(
@@ -122,20 +122,21 @@ impl ViewportState {
         let Some(handle) = &self.render_framework else {
             return Ok(None);
         };
-        let Some(core) = &self.render_framework_core else {
+        let Some(render_framework_access) = &self.render_framework_access else {
             return Err(RenderFrameworkError::Backend(
                 "render framework handle has no owning runtime core".to_string(),
             ));
         };
-        resolve_manager_service(core, handle.clone())
+        render_framework_access
+            .resolve_render_framework(handle.clone())
             .map(Some)
             .map_err(|error| RenderFrameworkError::Backend(error.to_string()))
     }
 
-    pub(super) fn new(render_framework_core: Option<CoreHandle>) -> Self {
+    pub(super) fn new(render_framework_access: Option<ViewportRenderFrameworkAccess>) -> Self {
         Self {
             render_framework: None,
-            render_framework_core,
+            render_framework_access,
             #[cfg(test)]
             test_render_framework: None,
             jobs: None,

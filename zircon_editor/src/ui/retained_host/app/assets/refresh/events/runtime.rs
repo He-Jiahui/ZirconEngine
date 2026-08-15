@@ -10,7 +10,7 @@ const ASSET_REFRESH_STREAM_TIME_BUDGET: Duration = Duration::from_micros(600);
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app::assets::refresh) fn drain_asset_refresh_events(
         &mut self,
-    ) -> AssetRefreshEvents {
+    ) -> (AssetRefreshEvents, bool) {
         let drain_started = Instant::now();
         debug_assert!(
             ASSET_REFRESH_STREAM_TIME_BUDGET.saturating_mul(3) <= ASSET_REFRESH_DRAIN_TIME_BUDGET
@@ -72,12 +72,15 @@ impl RetainedEditorHost {
             drain_started.elapsed(),
         );
 
-        AssetRefreshEvents {
-            asset_changes,
-            editor_asset_changes,
-            resource_changes,
-            resource_generation_lagged,
-        }
+        (
+            AssetRefreshEvents {
+                asset_changes,
+                editor_asset_changes,
+                resource_changes,
+                resource_generation_lagged,
+            },
+            asset_pending > 0 || editor_pending > 0 || resource_pending > 0,
+        )
     }
 }
 
@@ -146,7 +149,7 @@ fn duration_micros(duration: Duration) -> usize {
 mod tests {
     use std::time::{Duration, Instant};
 
-    use super::{MAX_ASSET_REFRESH_EVENTS_PER_STREAM, can_drain_more};
+    use super::{can_drain_more, MAX_ASSET_REFRESH_EVENTS_PER_STREAM};
 
     #[test]
     fn per_stream_count_budget_is_a_hard_upper_bound() {

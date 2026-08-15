@@ -108,6 +108,10 @@ impl IndirectDrawBatcher {
         &self.batches
     }
 
+    pub(crate) fn into_execution_parts(self) -> (Vec<IndexedIndirectArgs>, Vec<IndirectDrawBatch>) {
+        (self.args_cpu, self.batches)
+    }
+
     pub(crate) const fn fallback_draw_count(&self) -> usize {
         self.fallback_draw_count
     }

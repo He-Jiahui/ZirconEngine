@@ -38,6 +38,7 @@ impl ViewportInteractionExtractCache {
             return extract;
         }
 
+        zircon_runtime::profile_counter!("editor", "interaction_extract_cache_miss", 1);
         self.rebuild(
             key,
             scene,
@@ -65,7 +66,11 @@ impl ViewportInteractionExtractCache {
             return extract;
         }
 
-        let packet = build_render_packet(scene, settings, camera, selected, viewport);
+        zircon_runtime::profile_counter!("editor", "interaction_extract_cache_miss", 1);
+        let packet = {
+            zircon_runtime::profile_scope!("editor", "viewport", "pointer_fallback_packet_build");
+            build_render_packet(scene, settings, camera, selected, viewport)
+        };
         self.rebuild(
             key,
             scene,
@@ -86,11 +91,16 @@ impl ViewportInteractionExtractCache {
         &self,
         key: &ViewportInteractionExtractKey,
     ) -> Option<Arc<ViewportInteractionExtract>> {
-        self.cached
+        let extract = self
+            .cached
             .borrow()
             .as_ref()
             .filter(|cached| cached.key == *key)
-            .map(|cached| Arc::clone(&cached.extract))
+            .map(|cached| Arc::clone(&cached.extract));
+        if extract.is_some() {
+            zircon_runtime::profile_counter!("editor", "interaction_extract_cache_hit", 1);
+        }
+        extract
     }
 
     fn rebuild(
@@ -104,6 +114,14 @@ impl ViewportInteractionExtractCache {
         build_handles: impl FnOnce() -> Vec<HandleOverlayExtract>,
         build_additional_gizmos: impl FnOnce() -> Vec<SceneGizmoOverlayExtract>,
     ) -> Arc<ViewportInteractionExtract> {
+        zircon_runtime::profile_scope!("editor", "viewport", "interaction_extract_rebuild");
+        // This mirrors the owned payload copied by ViewportInteractionExtract::new. It is not an
+        // allocator or process-memory measurement.
+        zircon_runtime::profile_counter!(
+            "editor",
+            "interaction_mesh_copy_payload_bytes",
+            render_mesh_snapshot_copy_payload_bytes(render_meshes)
+        );
         let mut scene_gizmos = build_scene_gizmos(scene, selected, settings, camera);
         scene_gizmos.extend(build_additional_gizmos());
         let extract = Arc::new(ViewportInteractionExtract::new(
@@ -117,4 +135,13 @@ impl ViewportInteractionExtractCache {
         }));
         extract
     }
+}
+
+fn render_mesh_snapshot_copy_payload_bytes(render_meshes: &[RenderMeshSnapshot]) -> usize {
+    render_meshes.iter().fold(
+        render_meshes
+            .len()
+            .saturating_mul(std::mem::size_of::<RenderMeshSnapshot>()),
+        |bytes, mesh| bytes.saturating_add(std::mem::size_of_val(mesh.morph_weights.as_slice())),
+    )
 }

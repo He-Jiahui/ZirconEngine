@@ -8,10 +8,10 @@ use zircon_runtime::asset::assets::{
     SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset, TransformAsset,
 };
 use zircon_runtime::asset::{
-    AssetKind, AssetReference, AssetUri, AssetUuid, MeshVertex, ModelAsset, ModelPrimitiveAsset,
-    ReferenceResolutionError, project::AssetMetaDocument,
+    project::AssetMetaDocument, AssetKind, AssetReference, AssetUri, AssetUuid, MeshVertex,
+    ModelAsset, ModelPrimitiveAsset, ReferenceResolutionError,
 };
-use zircon_runtime::core::framework::render::{DEFAULT_RENDER_LAYER_MASK, ProjectionMode};
+use zircon_runtime::core::framework::render::{ProjectionMode, DEFAULT_RENDER_LAYER_MASK};
 use zircon_runtime::core::math::{Transform, Vec2, Vec3};
 use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPath};
 use zircon_runtime_interface::resource::ResourceScheme;
@@ -330,6 +330,7 @@ fn write_uv_sphere_model(
             vertices,
             indices,
             mesh: None,
+            mesh_sdf: None,
             virtual_geometry: None,
         }],
     };
@@ -603,12 +604,14 @@ fn invalid_data(error: String) -> std::io::Error {
 #[cfg(test)]
 mod tests {
     use super::{
-        AssetMetaDocument, AssetReference, MaterialAsset, ReferenceResolutionError, SPHERE_RINGS,
-        SPHERE_SEGMENTS, SceneAsset, VIEWER_PROJECT_ASSET_PATHS, VIEWER_PROJECT_ASSET_ROOT,
-        VIEWER_PROJECT_SOURCE_PATHS, viewer_project_assets_are_ready,
-        write_perfect_mirror_material, write_viewer_project_assets,
+        viewer_project_assets_are_ready, write_perfect_mirror_material,
+        write_viewer_project_assets, AssetMetaDocument, AssetReference, MaterialAsset,
+        ReferenceResolutionError, SceneAsset, SPHERE_RINGS, SPHERE_SEGMENTS,
+        VIEWER_PROJECT_ASSET_PATHS, VIEWER_PROJECT_ASSET_ROOT, VIEWER_PROJECT_SOURCE_PATHS,
     };
     use zircon_runtime::asset::assets::ZMaterialDocument;
+
+    use crate::work_paths::viewer_test_artifact_root;
 
     #[test]
     fn viewer_mirror_mesh_stays_within_its_startup_triangle_budget() {
@@ -617,11 +620,7 @@ mod tests {
 
     #[test]
     fn viewer_project_reuse_requires_a_completed_asset_tree() {
-        let root = std::env::temp_dir().join(format!(
-            "zircon_shader_pbr_viewer_asset_ready_test_{}",
-            std::process::id()
-        ));
-        let _ = std::fs::remove_dir_all(&root);
+        let root = viewer_test_artifact_root("asset-ready");
         let asset_root = root.join(VIEWER_PROJECT_ASSET_ROOT);
         std::fs::create_dir_all(&root).expect("test cache root should be created");
 
@@ -646,11 +645,7 @@ mod tests {
 
     #[test]
     fn viewer_project_publishes_stable_sidecars_and_scene_references_without_preopening() {
-        let root = std::env::temp_dir().join(format!(
-            "zircon_shader_pbr_viewer_project_assets_test_{}",
-            std::process::id()
-        ));
-        let _ = std::fs::remove_dir_all(&root);
+        let root = viewer_test_artifact_root("project-assets");
         let asset_root = root.join(VIEWER_PROJECT_ASSET_ROOT);
         std::fs::create_dir_all(&root).expect("test cache root should be created");
 
@@ -713,11 +708,7 @@ mod tests {
 
     #[test]
     fn viewer_project_replaces_an_incomplete_versioned_tree_without_deleting_a_ready_one() {
-        let root = std::env::temp_dir().join(format!(
-            "zircon_shader_pbr_viewer_incomplete_project_assets_test_{}",
-            std::process::id()
-        ));
-        let _ = std::fs::remove_dir_all(&root);
+        let root = viewer_test_artifact_root("incomplete-project-assets");
         let asset_root = root.join(VIEWER_PROJECT_ASSET_ROOT);
         std::fs::create_dir_all(&asset_root).expect("incomplete asset root should be created");
         std::fs::write(asset_root.join("stale.partial"), "incomplete\n")
@@ -775,11 +766,7 @@ mod tests {
 
     #[test]
     fn competing_viewer_project_publish_reuses_the_completed_immutable_asset_tree() {
-        let root = std::env::temp_dir().join(format!(
-            "zircon_shader_pbr_viewer_publish_contention_test_{}",
-            std::process::id()
-        ));
-        let _ = std::fs::remove_dir_all(&root);
+        let root = viewer_test_artifact_root("project-publish-contention");
         let asset_root = root.join(VIEWER_PROJECT_ASSET_ROOT);
         for relative_path in VIEWER_PROJECT_ASSET_PATHS {
             let path = asset_root.join(relative_path);
@@ -808,11 +795,7 @@ mod tests {
 
     #[test]
     fn losing_cold_publication_keeps_its_completed_generation_report() {
-        let root = std::env::temp_dir().join(format!(
-            "zircon_shader_pbr_viewer_generation_report_test_{}",
-            std::process::id()
-        ));
-        let _ = std::fs::remove_dir_all(&root);
+        let root = viewer_test_artifact_root("project-generation-report");
         let asset_root = root.join(VIEWER_PROJECT_ASSET_ROOT);
         for relative_path in VIEWER_PROJECT_ASSET_PATHS {
             let path = asset_root.join(relative_path);
@@ -841,11 +824,7 @@ mod tests {
 
     #[test]
     fn viewer_mirror_material_matches_environment_only_prewarm_variant() {
-        let root = std::env::temp_dir().join(format!(
-            "zircon_shader_pbr_viewer_mirror_material_test_{}",
-            std::process::id()
-        ));
-        let _ = std::fs::remove_dir_all(&root);
+        let root = viewer_test_artifact_root("mirror-material");
         let material_path = root.join("single_metal_sphere.zmaterial");
 
         write_perfect_mirror_material(material_path.clone())

@@ -1,6 +1,7 @@
+use crate::asset::assets::ProjectDocumentError;
 use crate::asset::{
-    AssetReference, AssetUri, AssetUuid, ProjectDocumentError, ReferenceResolutionError,
-    SceneAsset, SceneMobilityAsset, ZMaterialDocument,
+    AssetReference, AssetUri, AssetUuid, ReferenceResolutionError, SceneAsset, SceneMobilityAsset,
+    ZMaterialDocument,
 };
 use zircon_runtime_interface::project::{render_project_template, ProjectTemplateId};
 
@@ -53,6 +54,7 @@ fn renderable_empty_template_parses_through_runtime_scene_schema_with_project_re
         .expect("F2 Camera entity");
     assert_eq!(camera.entity, 1);
     assert_eq!(camera.parent, None);
+    assert_eq!(camera.render_layer_mask, 1);
     assert_eq!(camera.transform.translation, [21.0, 2.0, 14.5]);
     assert_eq!(camera.transform.rotation, [0.0, 0.0, 0.0, 1.0]);
     assert_eq!(camera.transform.scale, [1.0, 1.0, 1.0]);
@@ -68,6 +70,7 @@ fn renderable_empty_template_parses_through_runtime_scene_schema_with_project_re
         .expect("F2 Sun entity");
     assert_eq!(sun.entity, 2);
     assert_eq!(sun.parent, None);
+    assert_eq!(sun.render_layer_mask, 1);
     assert_eq!(sun.mobility, SceneMobilityAsset::Static);
     assert_eq!(sun.transform.translation, [0.0, 4.0, 0.0]);
     assert_eq!(sun.transform.rotation, [0.0, 0.0, 0.0, 1.0]);
@@ -86,6 +89,7 @@ fn renderable_empty_template_parses_through_runtime_scene_schema_with_project_re
         .expect("F2 Cube entity");
     assert_eq!(cube.entity, 3);
     assert_eq!(cube.parent, None);
+    assert_eq!(cube.render_layer_mask, 1);
     assert_eq!(cube.mobility, SceneMobilityAsset::Static);
     assert_eq!(cube.transform.translation, [0.0, 0.0, 0.0]);
     assert_eq!(cube.transform.rotation, [0.0, 0.0, 0.0, 1.0]);
@@ -276,8 +280,8 @@ fn resolve_template_project_reference(
     let relative_path = relative_path
         .strip_suffix(".zmeta")
         .unwrap_or(relative_path);
-    let locator =
-        AssetUri::parse(format!("res://{relative_path}")).expect("F2 project reference locator");
+    let locator = format!("res://{relative_path}");
+    let locator = AssetUri::parse(&locator).expect("F2 project reference locator");
     AssetReference::new(project.guid(), locator)
 }
 

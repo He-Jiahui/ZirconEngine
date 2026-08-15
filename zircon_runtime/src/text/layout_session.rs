@@ -5,19 +5,19 @@ use crate::core::framework::text::{TextDirection, TextLayoutError};
 use crate::core::runtime::tasks::TaskPool;
 
 use super::cache::{
-    DEFAULT_SHAPED_RUN_CACHE_CAPACITY, DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES, HardLineIndexCache,
-    HardLineIndexCacheReport, ShapedRunCache, ShapedRunCacheLookupKey, ShapedRunCacheReport,
-    TextDocumentKey,
+    HardLineIndexCache, HardLineIndexCacheReport, ShapedRunCache, ShapedRunCacheLookupKey,
+    ShapedRunCacheReport, TextDocumentKey, DEFAULT_SHAPED_RUN_CACHE_CAPACITY,
+    DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES,
 };
 use super::font::shared_font_database_generation;
 use super::parallel::shape_pool::{
-    TextParallelShapeBatchReport, TextShapeParagraph, shape_paragraphs_with_cache,
+    shape_paragraphs_with_cache, TextParallelShapeBatchReport, TextShapeParagraph,
 };
 use super::service::shape_backend_request_at_stable_generation;
 use super::shaping::TextShapeRunProvider;
 use super::{
-    BackendShapeRequest, HardLine, ShapedGlyphRun, TextRange, TextStyle, VerticalMode,
-    hard_line_count_and_window,
+    hard_line_count_and_window, BackendShapeRequest, HardLine, ShapedGlyphRun, TextRange,
+    TextStyle, VerticalMode,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -374,12 +374,11 @@ mod tests {
         assert_eq!(run.source_range.start, 11);
         assert!(run.measured_width > 0.0);
         assert!(run.lines.iter().any(|line| !line.glyphs.is_empty()));
-        assert!(
-            run.lines
-                .iter()
-                .flat_map(|line| &line.glyphs)
-                .all(|glyph| { glyph.source_range.start >= 11 && glyph.source_range.end <= 20 })
-        );
+        assert!(run
+            .lines
+            .iter()
+            .flat_map(|line| &line.glyphs)
+            .all(|glyph| { glyph.source_range.start >= 11 && glyph.source_range.end <= 20 }));
     }
 
     #[test]

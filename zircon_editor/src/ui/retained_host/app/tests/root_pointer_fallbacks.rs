@@ -1,4 +1,5 @@
 use super::support::*;
+use crate::core::logging::{LogEntry, LogSeverity, LogSource};
 use crate::ui::retained_host::console_output::console_content_extent;
 use crate::ui::retained_host::welcome_recent_geometry::{
     welcome_recent_row_geometry, welcome_recent_viewport,
@@ -39,13 +40,12 @@ fn root_welcome_recent_pointer_click_uses_projection_fallback_in_real_host() {
     let host = harness.host.borrow();
     assert!(host.welcome_recent_pointer_size.width > 0.0);
     assert!(host.welcome_recent_pointer_size.height > 0.0);
-    assert!(
-        host.runtime
-            .chrome_snapshot()
-            .welcome
-            .recent_projects
-            .is_empty()
-    );
+    assert!(host
+        .runtime
+        .chrome_snapshot()
+        .welcome
+        .recent_projects
+        .is_empty());
     assert_eq!(
         host.runtime.editor_snapshot().status_line,
         "Removed recent project E:/Missing/RecentProject"
@@ -112,8 +112,8 @@ fn root_hierarchy_pointer_move_uses_region_frame_fallback_in_real_host() {
 }
 
 #[test]
-fn root_hierarchy_pointer_move_prefers_shared_drawer_content_projection_over_stale_left_region_geometry()
- {
+fn root_hierarchy_pointer_move_prefers_shared_drawer_content_projection_over_stale_left_region_geometry(
+) {
     let _guard = lock_env();
 
     let harness =
@@ -192,7 +192,20 @@ fn root_console_recompute_initializes_viewport_and_follows_first_overflow_withou
     {
         let mut host = harness.host.borrow_mut();
         for line in 0..32 {
-            host.set_status_line(format!("console recompute line {line:02}"));
+            host.runtime
+                .context()
+                .logs()
+                .emit(
+                    LogEntry::new(
+                        LogSource::editor(),
+                        LogSeverity::Info,
+                        format!("console recompute line {line:02}"),
+                        line,
+                        None,
+                    )
+                    .unwrap(),
+                )
+                .unwrap();
         }
         host.refresh_ui();
     }
@@ -210,8 +223,8 @@ fn root_console_recompute_initializes_viewport_and_follows_first_overflow_withou
 }
 
 #[test]
-fn root_console_pointer_scroll_prefers_shared_drawer_content_projection_over_stale_bottom_region_geometry()
- {
+fn root_console_pointer_scroll_prefers_shared_drawer_content_projection_over_stale_bottom_region_geometry(
+) {
     let _guard = lock_env();
 
     let harness =
@@ -385,6 +398,113 @@ fn root_activity_asset_reference_move_uses_region_frame_fallback_in_real_host() 
     let host = harness.host.borrow();
     assert!(host.activity_asset_pointer.references.size.width > 0.0);
     assert!(host.activity_asset_pointer.references.size.height > 0.0);
+}
+
+#[test]
+fn moving_to_sibling_reference_list_blank_clears_previous_list_hover() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_retained_reference_sibling_hover_clear");
+    harness.activate_workbench_page();
+    harness.activate_drawer_tab(ActivityDrawerSlot::LeftTop, "editor.assets#1");
+
+    {
+        let mut host = harness.host.borrow_mut();
+        let snapshot = std::sync::Arc::make_mut(
+            host.activity_asset_pointer
+                .snapshot
+                .as_mut()
+                .expect("activity asset snapshot"),
+        );
+        snapshot.selection.references =
+            vec![crate::ui::workbench::snapshot::AssetReferenceSnapshot {
+                uuid: "reference-hover-target".to_string(),
+                display_name: "Reference hover target".to_string(),
+                known_project_asset: true,
+                ..Default::default()
+            }];
+        snapshot.selection.used_by.clear();
+
+        let references_size = host.activity_asset_pointer.references.size;
+        let references_layout =
+            RetainedEditorHost::asset_reference_layout(snapshot, "references", references_size)
+                .expect("references layout");
+        host.activity_asset_pointer.references.bridge.sync(
+            references_layout,
+            host.activity_asset_pointer.references.state.clone(),
+        );
+
+        let used_by_size = host.activity_asset_pointer.used_by.size;
+        let used_by_layout =
+            RetainedEditorHost::asset_reference_layout(snapshot, "used_by", used_by_size)
+                .expect("used-by layout");
+        host.activity_asset_pointer.used_by.bridge.sync(
+            used_by_layout,
+            host.activity_asset_pointer.used_by.state.clone(),
+        );
+    }
+
+    pane_surface_host(&harness.root_ui).invoke_asset_reference_pointer_moved(
+        "activity".into(),
+        "references".into(),
+        96.0,
+        37.0,
+        0.0,
+        0.0,
+    );
+    assert_eq!(
+        harness
+            .host
+            .borrow()
+            .activity_asset_pointer
+            .references
+            .state
+            .hovered_row_index,
+        Some(0)
+    );
+
+    pane_surface_host(&harness.root_ui).invoke_asset_reference_pointer_moved(
+        "activity".into(),
+        "used_by".into(),
+        96.0,
+        1.0,
+        0.0,
+        0.0,
+    );
+
+    {
+        let host = harness.host.borrow();
+        assert_eq!(
+            host.activity_asset_pointer
+                .references
+                .state
+                .hovered_row_index,
+            None
+        );
+        assert_eq!(
+            host.activity_asset_pointer.used_by.state.hovered_row_index,
+            None
+        );
+    }
+
+    pane_surface_host(&harness.root_ui).invoke_asset_reference_pointer_moved(
+        "activity".into(),
+        "references".into(),
+        96.0,
+        37.0,
+        0.0,
+        0.0,
+    );
+    assert_eq!(
+        harness
+            .host
+            .borrow()
+            .activity_asset_pointer
+            .references
+            .state
+            .hovered_row_index,
+        Some(0)
+    );
 }
 
 #[test]

@@ -38,7 +38,9 @@ fn forward_base_pbr_specializes_advanced_source_out_of_its_compilation_closure()
         let assembly = assemble_material_shader_template(standard_pbr_forward_request(
             ShaderFeatureBits::new(feature),
         ))
-        .unwrap_or_else(|error| panic!("{label} Standard-PBR Forward template assembly: {error}"));
+        .unwrap_or_else(|error| {
+            panic!("{label} Standard-PBR Forward template assembly: {error:?}")
+        });
         (label, assembly)
     });
 

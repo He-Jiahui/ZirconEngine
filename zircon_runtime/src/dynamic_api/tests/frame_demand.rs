@@ -27,10 +27,12 @@ fn create_session_rejects_bad_wake_sink_pairs_and_version_before_bootstrap() {
     ] {
         let status = unsafe {
             create_session(
-                ZrRuntimeSessionConfigV2 {
-                    abi_version: ZIRCON_RUNTIME_ABI_VERSION_V2,
+                ZrRuntimeSessionConfigV3 {
+                    abi_version: ZIRCON_RUNTIME_ABI_VERSION_V3,
                     profile: ZrByteSlice::from_static(b"headless"),
-                    project_manifest: ZrByteSlice::empty(),
+                    project_root: ZrByteSlice::empty(),
+                    play_scene: ZrByteSlice::empty(),
+                    play_report_pipe: ZrByteSlice::empty(),
                     wake_sink,
                 },
                 &mut session,

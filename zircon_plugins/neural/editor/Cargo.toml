@@ -1,0 +1,13 @@
+[package]
+name = "zircon_plugin_neural_editor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "ONNX-to-Zircon neural asset conversion plugin."
+
+[dependencies]
+serde_json = "1.0.149"
+zircon_editor.workspace = true
+zircon_plugin_neural_runtime = { path = "../runtime" }
+zircon_plugin_sdk = { workspace = true, features = ["editor"] }
+zircon_runtime.workspace = true

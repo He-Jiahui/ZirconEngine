@@ -1,5 +1,5 @@
 use super::*;
-use std::sync::{Arc, mpsc};
+use std::sync::{mpsc, Arc};
 
 use crate::core::framework::render::{RenderCapabilitySummary, RenderPhase};
 use crate::graphics::backend::RenderBackend;
@@ -8,16 +8,17 @@ use crate::graphics::resource_limits::{
     HZB_OCCLUSION_PASS_STORAGE_BUFFERS_PER_SHADER_STAGE,
 };
 use crate::graphics::scene::gpu_scene::{
-    GPU_PRIMITIVE_FLAG_VISIBLE, GPU_SCENE_INVALID_PAYLOAD_SLOT, GpuInstanceData, GpuPrimitiveData,
-    GpuScene, GpuSceneEntry,
+    GpuInstanceData, GpuPrimitiveData, GpuScene, GpuSceneEntry, GPU_PRIMITIVE_FLAG_VISIBLE,
+    GPU_SCENE_INVALID_PAYLOAD_SLOT,
 };
 use crate::graphics::scene::resources::default_pipeline_key;
-use crate::graphics::scene::scene_renderer::mesh::IndexedIndirectArgs;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
-    DrawInstanceSource, INDEXED_INDIRECT_ARGS_STRIDE_BYTES, INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES,
-    MeshDrawArgs, MeshDrawCommand, MeshGeometryHandle, MeshIndirectArgsSnapshot,
-    MeshIndirectDrawExecution, MeshPassPipelineKind, MeshPipelineVariantId,
+    DrawInstanceSource, MeshDrawArgs, MeshDrawCommand, MeshGeometryHandle,
+    MeshIndirectArgsSnapshot, MeshIndirectDrawPlan, MeshIndirectPhaseWorkspace,
+    MeshPassPipelineKind, MeshPipelineVariantId, INDEXED_INDIRECT_ARGS_STRIDE_BYTES,
+    INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES,
 };
+use crate::graphics::scene::scene_renderer::mesh::IndexedIndirectArgs;
 use crate::graphics::scene::scene_renderer::primitives::SceneUniform;
 
 const TEST_SKINNED_JOINT_MATRIX_COUNT: u64 = 256;
@@ -68,16 +69,20 @@ fn hzb_occlusion_culls_fully_hidden_indirect_args_on_wgpu() {
     let hzb = test_hzb_texture(device, queue, TEST_WALL_DEPTH);
     let culler =
         HzbOcclusionCuller::new(device, &scene_layout, gpu_scene.scene_bind_group_layout());
-    let execution = MeshIndirectDrawExecution::build(
+    let commands = [
+        test_mesh_command(hidden.first_instance_index),
+        test_mesh_command(visible.first_instance_index),
+    ];
+    let capabilities = gpu_driven_capabilities();
+    let (plan, _) = MeshIndirectDrawPlan::build(&commands, &capabilities);
+    let mut indirect_workspace = MeshIndirectPhaseWorkspace::default();
+    let (execution, _) = indirect_workspace.prepare(
         device,
+        queue,
         "zircon-test-hzb-occlusion-indirect-execution",
-        &[
-            test_mesh_command(hidden.first_instance_index),
-            test_mesh_command(visible.first_instance_index),
-        ],
-        &gpu_driven_capabilities(),
-    )
-    .expect("test indirect execution");
+        plan.expect("test indirect plan"),
+        &capabilities,
+    );
     let args_readback = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("zircon-test-hzb-occlusion-indirect-args-readback"),
         size: indirect_args_byte_size(execution.args_count()),
@@ -159,40 +164,24 @@ fn hzb_occlusion_culls_fully_hidden_indirect_args_on_wgpu() {
 fn hzb_occlusion_culler_shader_declares_expected_bindings() {
     assert!(HZB_OCCLUSION_CULL_SHADER.contains("@group(0) @binding(0) var<uniform> scene"));
     assert!(HZB_OCCLUSION_CULL_SHADER.contains("@group(1) @binding(0) var previous_hzb"));
-    assert!(
-        HZB_OCCLUSION_CULL_SHADER
-            .contains("@group(1) @binding(2) var<storage, read> source_indirect_args")
-    );
-    assert!(
-        HZB_OCCLUSION_CULL_SHADER
-            .contains("@group(1) @binding(3) var<storage, read> compaction_metadata")
-    );
-    assert!(
-        HZB_OCCLUSION_CULL_SHADER
-            .contains("@group(1) @binding(4) var<storage, read_write> visible_instance_indices")
-    );
-    assert!(
-        HZB_OCCLUSION_CULL_SHADER
-            .contains("@group(1) @binding(5) var<storage, read_write> draw_counts")
-    );
-    assert!(
-        HZB_OCCLUSION_CULL_SHADER
-            .contains("@group(1) @binding(6) var<storage, read_write> compacted_indirect_args")
-    );
-    assert!(
-        HZB_OCCLUSION_CULL_SHADER
-            .contains("@group(1) @binding(7) var<storage, read_write> occlusion_stats")
-    );
+    assert!(HZB_OCCLUSION_CULL_SHADER
+        .contains("@group(1) @binding(2) var<storage, read> source_indirect_args"));
+    assert!(HZB_OCCLUSION_CULL_SHADER
+        .contains("@group(1) @binding(3) var<storage, read> compaction_metadata"));
+    assert!(HZB_OCCLUSION_CULL_SHADER
+        .contains("@group(1) @binding(4) var<storage, read_write> visible_instance_indices"));
+    assert!(HZB_OCCLUSION_CULL_SHADER
+        .contains("@group(1) @binding(5) var<storage, read_write> draw_counts"));
+    assert!(HZB_OCCLUSION_CULL_SHADER
+        .contains("@group(1) @binding(6) var<storage, read_write> compacted_indirect_args"));
+    assert!(HZB_OCCLUSION_CULL_SHADER
+        .contains("@group(1) @binding(7) var<storage, read_write> occlusion_stats"));
     assert!(HZB_OCCLUSION_CULL_SHADER.contains("atomicAdd(&occlusion_stats.culled_arg_count"));
     assert!(HZB_OCCLUSION_CULL_SHADER.contains("atomicAdd(&draw_counts"));
-    assert!(
-        HZB_OCCLUSION_CULL_SHADER
-            .contains("@group(3) @binding(0) var<storage, read> zr_primitive_data")
-    );
-    assert!(
-        HZB_OCCLUSION_CULL_SHADER
-            .contains("@group(3) @binding(5) var<storage, read> zr_visible_instance_remap")
-    );
+    assert!(HZB_OCCLUSION_CULL_SHADER
+        .contains("@group(3) @binding(0) var<storage, read> zr_primitive_data"));
+    assert!(HZB_OCCLUSION_CULL_SHADER
+        .contains("@group(3) @binding(5) var<storage, read> zr_visible_instance_remap"));
     assert!(HZB_OCCLUSION_CULL_SHADER.contains("@compute @workgroup_size(64, 1, 1)"));
 }
 
@@ -237,27 +226,27 @@ fn hzb_stats_readback_queue_consumes_completed_slots_in_fifo_order() {
 #[test]
 fn hzb_stats_readback_queue_bounds_pending_requests_and_records_drops() {
     let mut readbacks = HzbStatsReadbackQueue::default();
-    for source_frame_index in 0..MAX_PENDING_HZB_STATS_READBACKS as u64 {
+    for source_frame_index in 0..MAX_PENDING_HZB_DIAGNOSTIC_FRAMES as u64 {
         assert!(readbacks.reserve(source_frame_index));
     }
 
-    assert!(!readbacks.reserve(MAX_PENDING_HZB_STATS_READBACKS as u64));
+    assert!(!readbacks.reserve(MAX_PENDING_HZB_DIAGNOSTIC_FRAMES as u64));
     assert_eq!(
-        readbacks.diagnostics(Some(MAX_PENDING_HZB_STATS_READBACKS as u64)),
+        readbacks.diagnostics(Some(MAX_PENDING_HZB_DIAGNOSTIC_FRAMES as u64)),
         (
-            MAX_PENDING_HZB_STATS_READBACKS as u32,
+            MAX_PENDING_HZB_DIAGNOSTIC_FRAMES as u32,
             1,
-            Some(MAX_PENDING_HZB_STATS_READBACKS as u64)
+            Some(MAX_PENDING_HZB_DIAGNOSTIC_FRAMES as u64)
         )
     );
 
     readbacks.fail(0);
     assert_eq!(
-        readbacks.diagnostics(Some(MAX_PENDING_HZB_STATS_READBACKS as u64)),
+        readbacks.diagnostics(Some(MAX_PENDING_HZB_DIAGNOSTIC_FRAMES as u64)),
         (
-            (MAX_PENDING_HZB_STATS_READBACKS - 1) as u32,
+            (MAX_PENDING_HZB_DIAGNOSTIC_FRAMES - 1) as u32,
             2,
-            Some((MAX_PENDING_HZB_STATS_READBACKS - 1) as u64)
+            Some((MAX_PENDING_HZB_DIAGNOSTIC_FRAMES - 1) as u64)
         )
     );
 }
@@ -272,19 +261,26 @@ fn hzb_stats_readback_queue_records_a_skipped_shared_readback_frame() {
 }
 
 #[test]
-fn hzb_indirect_args_readback_is_explicitly_gated_from_default_stats_readback() {
+fn hzb_cpu_diagnostics_request_stats_and_indirect_args_together() {
     let source = include_str!("../hzb_occlusion_culler.rs");
     let start = source
         .find("pub(crate) fn request_frame_readbacks")
         .expect("HZB async readback entrypoint");
     let request_readbacks = &source[start..];
 
-    assert!(request_readbacks.contains("capture_indirect_args: bool"));
     assert!(request_readbacks.contains("source_frame_index: u64"));
-    assert!(request_readbacks.contains("if capture_indirect_args"));
     assert!(request_readbacks.contains("hzb-occlusion.stats"));
+    assert!(request_readbacks.contains("request_hzb_occlusion_args_readbacks"));
     assert!(request_readbacks.contains("PendingHzbIndirectArgs"));
     assert!(request_readbacks.contains("source_frame_index,"));
+
+    let indirect_capacity_gate = request_readbacks
+        .find("< MAX_PENDING_HZB_DIAGNOSTIC_FRAMES")
+        .expect("whole-frame diagnostic capacity gate");
+    let stats_reservation = request_readbacks
+        .find(".reserve(source_frame_index)")
+        .expect("stats readback reservation");
+    assert!(indirect_capacity_gate < stats_reservation);
 }
 
 #[test]

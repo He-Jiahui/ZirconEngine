@@ -7,10 +7,10 @@ use super::manifest::{
     validate_zrpack_document_manifest,
 };
 use super::{
-    ZRPACK_FORMAT_VERSION, ZrChunkEntry, ZrPackAssetEntry, ZrPackDocumentManifest, ZrPackError,
-    ZrPackReader,
     reader::{read_header_u32, read_header_u64, validate_chunk_payload_extent},
-    writer::{ZrPackInputAsset, ZrPackWriteReport, ZrPackWriter, header_size},
+    writer::{header_size, ZrPackInputAsset, ZrPackWriteReport, ZrPackWriter},
+    ZrChunkEntry, ZrPackAssetEntry, ZrPackDocumentManifest, ZrPackError, ZrPackReader,
+    ZRPACK_FORMAT_VERSION,
 };
 
 pub const ZRPACK_DELTA_MAGIC: [u8; 4] = *b"ZRPD";

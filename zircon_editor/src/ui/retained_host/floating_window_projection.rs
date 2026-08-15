@@ -5,7 +5,7 @@ use zircon_runtime_interface::ui::{event_ui::UiTreeId, layout::UiFrame};
 use crate::ui::host::NativeWindowHostState;
 use crate::ui::retained_host::callback_dispatch::BuiltinFloatingWindowSourceFrames;
 use crate::ui::workbench::autolayout::{
-    clamp_floating_window_frame, default_floating_window_frame, ShellFrame, WorkbenchChromeMetrics,
+    ShellFrame, WorkbenchChromeMetrics, clamp_floating_window_frame, default_floating_window_frame,
 };
 use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::model::{FloatingWindowModel, WorkbenchViewModel};
@@ -292,9 +292,9 @@ mod tests {
     use zircon_runtime_interface::ui::event_ui::UiTreeId;
 
     use super::{
+        FloatingWindowProjectionFrames, FloatingWindowProjectionSharedSource,
         build_floating_window_projection_bundle, default_floating_window_frame,
-        resolve_floating_window_projection_content_frame, FloatingWindowProjectionFrames,
-        FloatingWindowProjectionSharedSource,
+        resolve_floating_window_projection_content_frame,
     };
 
     #[test]
@@ -503,8 +503,8 @@ mod tests {
     }
 
     #[test]
-    fn build_floating_window_projection_bundle_uses_shared_default_frame_when_requested_frame_is_missing(
-    ) {
+    fn build_floating_window_projection_bundle_uses_shared_default_frame_when_requested_frame_is_missing()
+     {
         let window_id = MainPageId::new("window:bundle-shared-default");
         let metrics = WorkbenchChromeMetrics::default();
         let shared_source = shared_source();

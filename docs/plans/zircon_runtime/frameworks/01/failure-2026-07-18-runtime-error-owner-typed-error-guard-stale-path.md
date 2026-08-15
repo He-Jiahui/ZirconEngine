@@ -61,3 +61,28 @@ Frameworks01 已把 `CoreError/CoreResult` 从 `core/framework/error.rs` 硬切�
 ## 修复结果与回传
 
 Resolving state：guard 硬切、下层静态验证与 exact25 独立复审已完成，尚未完成 fresh source-bound Cargo、受管提交和 canonical fixed return。当前没有恢复旧架构，也不声明 Editor10 或 Runtime04 验收通过。
+
+## r3 集成源码验证恢复（2026-08-08）
+
+- successor `frameworks01-runtime-error-owner-guard-validation-r3-20260808` 已无冲突领取 failure、
+  typed-error guard、kernel error owner、已删除 framework error 墓碑与两份 Python owner guards 的 exact6。
+- 当前集成源码仍由 `animation_resource.rs` 读取 `core/runtime/error.rs`；旧
+  `core/framework/error.rs` 不存在，`ResourceRegistryError` 与 `CoreError` 的双向负断言均保留，
+  未增加兼容文件、alias、re-export 或 shim。
+- 状态保持 `open` / `resolving_failure`：实现、静态证据与原 exact25 独立复审 C0/I0/M0 已完成；
+  r3 fresh managed Runtime lib receipt、terminal GREEN、fixed return 与 milestone commit 仍 pending。
+
+## r4 stale-snapshot 前向恢复（2026-08-13）
+
+- r3 ticket `802643d2e9724be59c087693681132dc` 的 source manifest 已相对当前集成源码漂移，
+  现已记录为 `snapshot_stale`；该 ticket 不得作为 GREEN/RED 或 closeout 证据复用。
+- fresh successor `frameworks01-runtime-error-owner-guard-validation-r4-20260813` 已接管当前 exact5
+  实体路径，另以 `zircon_runtime/src/core/framework/error.rs = null` 固定 hard-cut tombstone。
+- 当前 `HEAD` 已包含 F6 guard 对 `core/runtime/error.rs` 的正确读取；working tree 中同文件的
+  `animation/sequence/apply.rs` 到 `compiled.rs` 更新属于后续结构迁移的必要适配，未恢复任何旧
+  error owner、alias、re-export 或 shim。
+- fresh Python owner guards 2/2 GREEN，scoped `git diff --check` GREEN（仅工作区既有 CRLF
+  提示）。exact6 不可变二次审查 pre/post fingerprint 均为
+  `566ad849fe2ed68b0aa4b120a0f664185bc9cc51be184637c4f18d82d098870c`，drift 0，
+  Critical/Important/Minor = 0/0/0。当前状态仍为 `open` / `resolving_failure`：待 fresh
+  managed Runtime lib terminal、原子提交与 canonical fixed return 完成后才可关闭。

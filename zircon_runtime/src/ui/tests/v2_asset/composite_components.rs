@@ -1,4 +1,5 @@
 use super::*;
+use crate::ui::v2::UiV2PrototypeStoreBuilder;
 use zircon_runtime_interface::ui::layout::UiSlotKind;
 
 #[test]
@@ -523,6 +524,85 @@ component = "Label"
         error,
         UiV2AssetError::InvalidDocument { asset_id, detail }
             if asset_id == "asset://ui/components/material_button.v2.ui"
+                && detail.contains("declared UI v2 import is not loaded")
+    ));
+}
+
+#[test]
+fn ui_v2_prototype_store_builder_validates_only_the_declared_root_closure() {
+    let active = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "view"
+id = "product.active_runtime_root"
+version = 2
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Label"
+"#,
+    )
+    .expect("active runtime root fixture should parse");
+    let unused_invalid = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "view"
+id = "product.unused_invalid_ui"
+version = 2
+
+[imports]
+widgets = ["res://ui/missing_component.zui#MissingComponent"]
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Label"
+"#,
+    )
+    .expect("unreferenced document may parse before its imports are resolved");
+    let mut builder = UiV2PrototypeStoreBuilder::new();
+    let _ = builder.insert_with_aliases(active, ["res://ui/active_runtime_root.zui"]);
+    let _ = builder.insert_with_aliases(unused_invalid, ["res://ui/unused_invalid_ui.zui"]);
+
+    let store = builder
+        .build_for_roots(["res://ui/active_runtime_root.zui"])
+        .expect("unreferenced UI imports must not block a declared runtime UI root");
+    assert!(store.get("res://ui/active_runtime_root.zui").is_some());
+}
+
+#[test]
+fn ui_v2_prototype_store_builder_rejects_missing_imports_from_declared_roots() {
+    let root = UiV2AssetLoader::load_toml_str(
+        r#"
+[asset]
+kind = "view"
+id = "product.root_with_missing_import"
+version = 2
+
+[imports]
+styles = ["res://ui/missing_style.zui"]
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Label"
+"#,
+    )
+    .expect("runtime root fixture should parse before its import is resolved");
+    let mut builder = UiV2PrototypeStoreBuilder::new();
+    let _ = builder.insert_with_aliases(root, ["res://ui/runtime_root.zui"]);
+
+    let error = builder
+        .build_for_roots(["res://ui/runtime_root.zui"])
+        .expect_err("a declared root must not accept an unavailable dependency");
+    assert!(matches!(
+        error,
+        UiV2AssetError::InvalidDocument { asset_id, detail }
+            if asset_id == "res://ui/missing_style.zui"
                 && detail.contains("declared UI v2 import is not loaded")
     ));
 }

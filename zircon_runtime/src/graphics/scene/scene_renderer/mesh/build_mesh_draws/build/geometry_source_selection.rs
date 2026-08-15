@@ -223,6 +223,7 @@ mod tests {
             vertices: Vec::new(),
             indices: Vec::new(),
             mesh: None,
+            mesh_sdf: None,
             virtual_geometry: None,
         }
     }
@@ -243,6 +244,7 @@ mod tests {
                 ],
                 indices: vec![0, 1, 2],
                 mesh: None,
+                mesh_sdf: None,
                 virtual_geometry: None,
             },
         )))

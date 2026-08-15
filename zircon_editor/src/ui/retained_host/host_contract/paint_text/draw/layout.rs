@@ -1,39 +1,40 @@
 use fontdue::layout::{CoordinateSystem, GlyphPosition, Layout, LayoutSettings, TextStyle};
 use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
-use zircon_runtime::{
-    text::ShapedGlyph,
-    ui::surface::{layout_text, shape_text_line},
-};
-use zircon_runtime_interface::ui::surface::{UiTextOverflow, UiTextRunPaintStyle, UiTextWrap};
+use zircon_runtime::text::ShapedGlyph;
+use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::data::FrameRect;
 use super::super::super::paint_theme::{current_host_text_preferences, HostTextSmoothing};
 use super::super::font::{
-    font_face_for_paint_style, font_for_face, runtime_text_style_for_face, HostTextFontFace,
+    font_face_for_paint_style, host_font_snapshot_for_face, HostTextFontFace,
 };
 use super::super::layout_policy::HostTextLayoutPolicy;
-use super::metrics::runtime_text_layout_frame;
 use super::placement::{
     retained_glyph_left_offset_px, retained_glyph_placements_share_bin_for_smoothing,
     retained_text_origin_for_smoothing,
 };
 
+mod artifact;
 mod cache;
 mod metrics;
+mod runtime_lines;
 
+use self::artifact::positioned_artifact_glyphs;
 use self::cache::cached_paint_text_layout;
 use self::metrics::{
     advances_include_positive_width, centered_line_y, empty_grapheme_advance_px,
-    empty_runtime_line_frame_x, glyph_origin_matches_without_visible_drift,
-    glyph_origin_preserves_monotonic_order, grapheme_advances_match, missing_glyph_left_offset_px,
-    missing_host_advance, non_negative_advance, total_advances_match,
+    glyph_origin_matches_without_visible_drift, glyph_origin_preserves_monotonic_order,
+    grapheme_advances_match, missing_glyph_left_offset_px, missing_host_advance,
+    non_negative_advance, total_advances_match,
 };
+use self::runtime_lines::{runtime_single_line_text, runtime_word_wrapped_text};
 
 pub(super) struct PaintTextLayout {
     pub(super) display_text: String,
     pub(super) font_face: HostTextFontFace,
     pub(super) glyphs: Vec<RuntimeTextGlyph>,
+    pub(super) artifact_raster_fonts: Vec<super::super::font::HostTextFontSnapshot>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -45,6 +46,8 @@ pub(super) struct RuntimeTextGlyph {
     // Pen origin used for raster subpixel phase; glyph bearings must not choose the phase.
     pub(super) origin_x: f32,
     pub(super) y: f32,
+    // `None` uses the retained host face. An index selects an exact runtime-shaped face.
+    pub(super) raster_font_index: Option<usize>,
 }
 
 pub(super) fn layout_text_run(
@@ -167,32 +170,76 @@ fn layout_text_run_uncached(
         .map(|line| line.text.as_str())
         .collect::<Vec<_>>()
         .join("\n");
-    let glyphs = lines
-        .into_iter()
-        .flat_map(|line| {
-            let text_y = match layout_policy {
-                HostTextLayoutPolicy::SingleLineEllipsis => {
-                    centered_line_y(rect.y, rect.height, line_height)
-                }
-                HostTextLayoutPolicy::WordWrap => rect.y + line.frame_y,
-            };
-            let text_x = retained_text_origin_for_smoothing(rect.x + line.frame_x, smoothing);
-            runtime_positioned_glyphs(
-                line.text.as_str(),
-                &line.glyph_advances,
-                &line.shaped_glyphs,
-                font_face,
-                font_size,
-                text_x,
-                text_y,
-                smoothing,
-            )
-        })
-        .collect();
+    let artifact_glyphs = positioned_artifact_glyphs(
+        &lines,
+        rect,
+        font_size,
+        line_height,
+        smoothing,
+        layout_policy,
+    );
+    let (glyphs, artifact_raster_fonts) = if let Some(artifact) = artifact_glyphs {
+        zircon_runtime::profile_counter!(
+            "editor",
+            "retained_text_artifact_projection_layout_hit_count",
+            1
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "retained_text_artifact_projection_layout_miss_count",
+            0
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "retained_text_artifact_projected_glyph_count",
+            artifact.glyphs.len()
+        );
+        (artifact.glyphs, artifact.raster_fonts)
+    } else {
+        zircon_runtime::profile_counter!(
+            "editor",
+            "retained_text_artifact_projection_layout_hit_count",
+            0
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "retained_text_artifact_projection_layout_miss_count",
+            1
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "retained_text_artifact_projected_glyph_count",
+            0
+        );
+        let glyphs = lines
+            .iter()
+            .flat_map(|line| {
+                let text_y = match layout_policy {
+                    HostTextLayoutPolicy::SingleLineEllipsis => {
+                        centered_line_y(rect.y, rect.height, line_height)
+                    }
+                    HostTextLayoutPolicy::WordWrap => rect.y + line.frame_y,
+                };
+                let text_x = retained_text_origin_for_smoothing(rect.x + line.frame_x, smoothing);
+                runtime_positioned_glyphs(
+                    line.text.as_str(),
+                    &line.glyph_advances,
+                    &line.shaped_glyphs,
+                    font_face,
+                    font_size,
+                    text_x,
+                    text_y,
+                    smoothing,
+                )
+            })
+            .collect();
+        (glyphs, Vec::new())
+    };
     PaintTextLayout {
         display_text,
         font_face,
         glyphs,
+        artifact_raster_fonts,
     }
 }
 
@@ -203,7 +250,8 @@ fn fontdue_glyph_layout(
     x: f32,
     y: f32,
 ) -> Vec<GlyphPosition> {
-    let Some(font) = font_for_face(font_face) else {
+    let font = host_font_snapshot_for_face(font_face);
+    let Some(font) = font.font() else {
         return Vec::new();
     };
     let mut layout = Layout::new(CoordinateSystem::PositiveYDown);
@@ -278,6 +326,7 @@ fn runtime_positioned_glyphs(
                 x,
                 origin_x,
                 y: glyph.y,
+                raster_font_index: None,
             }
         })
         .collect()
@@ -333,6 +382,7 @@ fn runtime_positioned_glyphs_from_shaped_positions(
                 x: origin_x + glyph_left_offset(host, font_face),
                 origin_x,
                 y: host.y,
+                raster_font_index: None,
             })
         })
         .collect()
@@ -432,6 +482,7 @@ fn shaped_positions_match_host_advances(
         return false;
     };
 
+    let font = host_font_snapshot_for_face(font_face);
     shaped_glyphs
         .iter()
         .zip(glyphs)
@@ -442,7 +493,8 @@ fn shaped_positions_match_host_advances(
                 .copied()
                 .unwrap_or_else(|| shaped_origins[index] + non_negative_advance(shaped.advance));
             let host_next = host_origins.get(index + 1).copied().unwrap_or_else(|| {
-                let advance = font_for_face(font_face)
+                let advance = font
+                    .font()
                     .map(|font| font.metrics_indexed(host.key.glyph_index, host.key.px))
                     .map(|metrics| non_negative_advance(metrics.advance_width))
                     .unwrap_or_else(missing_host_advance);
@@ -467,6 +519,7 @@ fn runtime_text_glyph_from_host_glyph(
         x: glyph.x,
         origin_x,
         y: glyph.y,
+        raster_font_index: None,
     }
 }
 
@@ -507,7 +560,8 @@ fn host_glyph_run_bounds(
     font_face: HostTextFontFace,
 ) -> Option<(f32, f32)> {
     let first = glyphs.first()?;
-    let font = font_for_face(font_face)?;
+    let font = host_font_snapshot_for_face(font_face);
+    let font = font.font()?;
     let start = glyph_cursor_x(first, font_face);
     let end = glyphs
         .iter()
@@ -633,7 +687,8 @@ fn glyph_cursor_x(glyph: &GlyphPosition, font_face: HostTextFontFace) -> f32 {
 }
 
 fn glyph_left_offset(glyph: &GlyphPosition, font_face: HostTextFontFace) -> f32 {
-    font_for_face(font_face)
+    host_font_snapshot_for_face(font_face)
+        .font()
         .map(|font| font.metrics_indexed(glyph.key.glyph_index, glyph.key.px))
         .map(|metrics| retained_glyph_left_offset_px(metrics.bounds.xmin))
         .unwrap_or_else(missing_glyph_left_offset_px)
@@ -718,107 +773,6 @@ fn grapheme_ranges_overlap(
         return source_start >= grapheme_start && source_start < grapheme_end;
     }
     grapheme_start < source_end && source_start < grapheme_end
-}
-
-struct RuntimeTextLine {
-    text: String,
-    frame_x: f32,
-    frame_y: f32,
-    glyph_advances: Vec<f32>,
-    shaped_glyphs: Vec<ShapedGlyph>,
-}
-
-fn runtime_single_line_text(
-    rect: &FrameRect,
-    text: &str,
-    font_size: f32,
-    line_height: f32,
-    font_face: HostTextFontFace,
-) -> RuntimeTextLine {
-    runtime_text_lines(
-        rect,
-        text,
-        font_size,
-        line_height,
-        font_face,
-        UiTextWrap::None,
-        line_height,
-    )
-    .into_iter()
-    .next()
-    .unwrap_or_else(empty_runtime_text_line)
-}
-
-fn runtime_word_wrapped_text(
-    rect: &FrameRect,
-    text: &str,
-    font_size: f32,
-    line_height: f32,
-    font_face: HostTextFontFace,
-) -> Vec<RuntimeTextLine> {
-    runtime_text_lines(
-        rect,
-        text,
-        font_size,
-        line_height,
-        font_face,
-        UiTextWrap::Word,
-        rect.height,
-    )
-}
-
-fn runtime_text_lines(
-    rect: &FrameRect,
-    text: &str,
-    font_size: f32,
-    line_height: f32,
-    font_face: HostTextFontFace,
-    wrap: UiTextWrap,
-    layout_height: f32,
-) -> Vec<RuntimeTextLine> {
-    let style = runtime_text_style_for_face(
-        font_face,
-        font_size,
-        line_height,
-        wrap,
-        UiTextOverflow::Ellipsis,
-    );
-    let frame = runtime_text_layout_frame(rect, layout_height);
-    let layout = layout_text(text, &style, frame, None);
-    layout
-        .lines
-        .iter()
-        .map(|line| {
-            let shaped = shape_text_line(line.text.as_str(), &style);
-            let glyph_advances = runtime_shaped_glyph_advances_from_run(
-                line.text.as_str(),
-                &shaped,
-                &line.glyph_advances,
-            );
-            let shaped_glyphs = shaped
-                .lines
-                .first()
-                .map(|shaped_line| shaped_line.glyphs.clone())
-                .unwrap_or_default();
-            RuntimeTextLine {
-                text: line.text.clone(),
-                frame_x: line.frame.x,
-                frame_y: line.frame.y,
-                glyph_advances,
-                shaped_glyphs,
-            }
-        })
-        .collect()
-}
-
-fn empty_runtime_text_line() -> RuntimeTextLine {
-    RuntimeTextLine {
-        text: String::new(),
-        frame_x: empty_runtime_line_frame_x(),
-        frame_y: 0.0,
-        glyph_advances: Vec::new(),
-        shaped_glyphs: Vec::new(),
-    }
 }
 
 #[cfg(test)]

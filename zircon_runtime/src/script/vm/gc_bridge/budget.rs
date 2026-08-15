@@ -31,6 +31,7 @@ pub struct VmGcStepOutcome {
 pub struct VmGcSlotStepReport {
     pub slot: PluginSlotId,
     pub budget_micros: u64,
+    pub host_elapsed_micros: u64,
     pub outcome: VmGcStepOutcome,
 }
 
@@ -40,6 +41,8 @@ pub struct VmGcStepReport {
     pub budget_micros: u64,
     pub pause_micros: u64,
     pub overrun_micros: u64,
+    pub host_elapsed_micros: u64,
+    pub host_overrun_micros: u64,
     pub root_count: u64,
     pub cross_boundary_reference_count: u64,
     pub slots: Vec<VmGcSlotStepReport>,
@@ -49,6 +52,7 @@ impl VmGcStepReport {
     pub(crate) fn from_slots(
         frame_index: u64,
         budget: VmGcBudget,
+        host_elapsed_micros: u64,
         slots: Vec<VmGcSlotStepReport>,
     ) -> Self {
         let pause_micros = slots.iter().fold(0_u64, |total, slot| {
@@ -65,6 +69,8 @@ impl VmGcStepReport {
             budget_micros: budget.max_micros_per_frame,
             pause_micros,
             overrun_micros: pause_micros.saturating_sub(budget.max_micros_per_frame),
+            host_elapsed_micros,
+            host_overrun_micros: host_elapsed_micros.saturating_sub(budget.max_micros_per_frame),
             root_count,
             cross_boundary_reference_count,
             slots,
@@ -135,9 +141,11 @@ mod tests {
             VmGcBudget {
                 max_micros_per_frame: 10,
             },
+            frame_index,
             vec![VmGcSlotStepReport {
                 slot: PluginSlotId::new(frame_index),
                 budget_micros: 10,
+                host_elapsed_micros: frame_index,
                 outcome: VmGcStepOutcome {
                     pause_micros: frame_index,
                     root_count: frame_index + 1,
@@ -178,9 +186,11 @@ mod tests {
             VmGcBudget {
                 max_micros_per_frame: 5,
             },
+            9,
             vec![VmGcSlotStepReport {
                 slot: PluginSlotId::new(1),
                 budget_micros: 5,
+                host_elapsed_micros: 9,
                 outcome: VmGcStepOutcome {
                     pause_micros: 8,
                     root_count: 3,
@@ -191,6 +201,8 @@ mod tests {
 
         assert_eq!(report.pause_micros, 8);
         assert_eq!(report.overrun_micros, 3);
+        assert_eq!(report.host_elapsed_micros, 9);
+        assert_eq!(report.host_overrun_micros, 4);
         assert_eq!(report.root_count, 3);
         assert_eq!(report.cross_boundary_reference_count, 2);
     }

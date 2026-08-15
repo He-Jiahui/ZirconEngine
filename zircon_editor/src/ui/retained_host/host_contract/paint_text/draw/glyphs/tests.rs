@@ -1,5 +1,5 @@
 use super::super::placement::{
-    RETAINED_TEXT_SUBPIXEL_BINS, RetainedGlyphPlacement, retained_glyph_placement_for_smoothing,
+    retained_glyph_placement_for_smoothing, RetainedGlyphPlacement, RETAINED_TEXT_SUBPIXEL_BINS,
 };
 use super::*;
 use crate::ui::retained_host::host_contract::paint_theme::HostTextSmoothing;
@@ -76,6 +76,7 @@ fn retained_glyph_bitmap_pixel_x_uses_raster_bearing_from_layout_pen_origin() {
         x: 19.875,
         origin_x: 20.375,
         y: 4.0,
+        raster_font_index: None,
     };
     let layout_bitmap_left_pixel_x = RetainedGlyphPlacement::from_screen_x(glyph.x).pixel_x;
     let origin_pixel_x = RetainedGlyphPlacement::from_screen_x(glyph.origin_x).pixel_x;
@@ -95,6 +96,7 @@ fn retained_glyph_bitmap_pixel_x_ignores_stale_layout_left_when_origin_is_valid(
         x: 15.125,
         origin_x: 20.875,
         y: 4.0,
+        raster_font_index: None,
     };
     let layout_bitmap_left_pixel_x = RetainedGlyphPlacement::from_screen_x(glyph.x).pixel_x;
     let origin_pixel_x = RetainedGlyphPlacement::from_screen_x(glyph.origin_x).pixel_x;
@@ -114,6 +116,7 @@ fn retained_glyph_bitmap_pixel_x_falls_back_to_layout_bitmap_left_for_invalid_or
         x: 20.51,
         origin_x: f32::NAN,
         y: 4.0,
+        raster_font_index: None,
     };
     let grayscale_placement =
         retained_glyph_placement_for_smoothing(glyph.x, HostTextSmoothing::Grayscale);
@@ -150,6 +153,7 @@ fn retained_glyph_bitmap_pixel_x_falls_back_to_raster_bearing_for_invalid_layout
         x: f32::NAN,
         origin_x: 20.375,
         y: 4.0,
+        raster_font_index: None,
     };
     let origin_pixel_x = RetainedGlyphPlacement::from_screen_x(glyph.origin_x).pixel_x;
 

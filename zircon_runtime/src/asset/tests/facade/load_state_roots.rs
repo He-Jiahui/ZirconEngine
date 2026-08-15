@@ -9,12 +9,13 @@ fn asset_load_state_maps_resource_state_runtime_state_and_payload_residency() {
 
     let pending = record("res://textures/pending.png", ResourceKind::Texture);
     let pending_handle = Handle::<TextureAsset>::new(pending.id);
-    manager.register_record(pending);
+    manager.register_record(pending).unwrap();
     assert_eq!(textures.load_state(pending_handle), AssetLoadState::Loading);
 
     let ready = record("res://textures/ready.png", ResourceKind::Texture);
     let ready_handle = manager
         .register_ready(ready, texture_asset("res://textures/ready.png"))
+        .unwrap()
         .typed::<TextureMarker>()
         .map(Handle::<TextureAsset>::from_resource_handle)
         .expect("ready texture handle");
@@ -28,17 +29,22 @@ fn asset_load_state_maps_resource_state_runtime_state_and_payload_residency() {
     let reloading_id = reloading.id;
     let reloading_handle = manager
         .register_ready(reloading, texture_asset("res://textures/reloading.png"))
+        .unwrap()
         .typed::<TextureMarker>()
         .map(Handle::<TextureAsset>::from_resource_handle)
         .expect("reloading texture handle");
-    manager.start_reload(reloading_id, vec![ResourceDiagnostic::error("reload")]);
+    manager
+        .start_reload(reloading_id, vec![ResourceDiagnostic::error("reload")])
+        .unwrap();
     assert_eq!(
         textures.load_state(reloading_handle),
         AssetLoadState::Reloading
     );
     assert!(textures.load_state(reloading_handle).is_loading_class());
 
-    manager.fail_reload(reloading_id, vec![ResourceDiagnostic::error("failed")]);
+    manager
+        .fail_reload(reloading_id, vec![ResourceDiagnostic::error("failed")])
+        .unwrap();
     assert_eq!(
         textures.load_state(reloading_handle),
         AssetLoadState::Failed
@@ -55,14 +61,18 @@ fn asset_load_state_requires_typed_payload_not_just_matching_record_kind() {
             record("res://textures/wrong-payload.png", ResourceKind::Texture),
             texture_asset("res://textures/wrong-payload.png"),
         )
+        .unwrap()
         .typed::<TextureMarker>()
         .map(Handle::<TextureAsset>::from_resource_handle)
         .expect("texture handle");
 
-    assert!(manager.store_payload(
-        handle.id(),
-        shader_asset("res://shaders/wrong-payload.wgsl")
-    ));
+    manager
+        .store_payload(
+            handle.id(),
+            1,
+            shader_asset("res://shaders/wrong-payload.wgsl"),
+        )
+        .unwrap();
 
     assert!(textures.get(handle).is_none());
     assert_eq!(textures.load_state(handle), AssetLoadState::NotLoaded);
@@ -88,10 +98,12 @@ fn load_states_for_missing_wrong_kind_and_non_resident_roots_do_not_restore_payl
         ResourceKind::Material,
     );
     let wrong_kind = Handle::<TextureAsset>::new(material_record.id);
-    resource_manager.register_ready(
-        material_record,
-        material_asset("res://shaders/wrong-kind.wgsl"),
-    );
+    resource_manager
+        .register_ready(
+            material_record,
+            material_asset("res://shaders/wrong-kind.wgsl"),
+        )
+        .unwrap();
     assert_eq!(
         manager.load_states(wrong_kind),
         AssetLoadStates {
@@ -141,21 +153,21 @@ fn readiness_report_marks_missing_and_wrong_kind_roots_without_restoring_payload
     assert_eq!(missing_report.root.load_state, AssetLoadState::NotLoaded);
     assert_eq!(missing_report.load_states, manager.load_states(missing));
     assert!(missing_report.dependencies.is_empty());
-    assert!(
-        diagnostic_messages(&missing_report.root.diagnostics)
-            .iter()
-            .any(|message| message.contains("missing asset record"))
-    );
+    assert!(diagnostic_messages(&missing_report.root.diagnostics)
+        .iter()
+        .any(|message| message.contains("missing asset record")));
 
     let material_record = record(
         "res://materials/report-wrong-kind.zmaterial",
         ResourceKind::Material,
     );
     let wrong_kind = Handle::<TextureAsset>::new(material_record.id);
-    resource_manager.register_ready(
-        material_record,
-        material_asset("res://shaders/report-wrong-kind.wgsl"),
-    );
+    resource_manager
+        .register_ready(
+            material_record,
+            material_asset("res://shaders/report-wrong-kind.wgsl"),
+        )
+        .unwrap();
     let wrong_kind_report = manager.readiness_report(wrong_kind);
 
     assert_eq!(wrong_kind_report.root.kind, Some(ResourceKind::Material));
@@ -165,11 +177,9 @@ fn readiness_report_marks_missing_and_wrong_kind_roots_without_restoring_payload
         manager.load_states(wrong_kind)
     );
     assert!(wrong_kind_report.dependencies.is_empty());
-    assert!(
-        diagnostic_messages(&wrong_kind_report.root.diagnostics)
-            .iter()
-            .any(|message| message.contains("not Texture"))
-    );
+    assert!(diagnostic_messages(&wrong_kind_report.root.diagnostics)
+        .iter()
+        .any(|message| message.contains("not Texture")));
 
     let texture_record = record(
         "res://textures/report-non-resident.png",

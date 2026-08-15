@@ -1,4 +1,4 @@
-use super::super::paint_theme::{HostControlMetrics, current_host_metrics};
+use super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchDropdownMetrics
@@ -13,8 +13,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub chevron_reserve: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_dropdown_metrics()
--> WorkbenchDropdownMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_dropdown_metrics(
+) -> WorkbenchDropdownMetrics {
     workbench_dropdown_metrics_from_host(current_host_metrics())
 }
 

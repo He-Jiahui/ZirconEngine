@@ -111,10 +111,22 @@ pub fn resolve_ibl_bake_artifact_payload(
             .find(|candidate| {
                 candidate.source() == selection.source()
                     && candidate.descriptor() == descriptor
-                    && descriptor.is_current_for(request)
+                    && descriptor_is_current_for_source(request, selection.source(), descriptor)
             })
             .map(|candidate| candidate.blob().clone())
     });
 
     IblBakeArtifactResolvedPayload { selection, blob }
+}
+
+fn descriptor_is_current_for_source(
+    request: &IblBakeArtifactRequest,
+    source: IblBakeArtifactSource,
+    descriptor: IblBakeArtifactDescriptor,
+) -> bool {
+    match source {
+        IblBakeArtifactSource::AssetDerivedArtifact => descriptor.is_current_for(request),
+        IblBakeArtifactSource::RuntimeCache => descriptor.is_current_runtime_cache_for(request),
+        IblBakeArtifactSource::RuntimeCompute => false,
+    }
 }

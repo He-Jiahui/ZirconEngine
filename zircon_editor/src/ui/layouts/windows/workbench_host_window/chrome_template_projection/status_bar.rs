@@ -22,26 +22,23 @@ pub(super) fn status_bar_nodes(
         viewport_label.to_string(),
     );
 
-    let nodes = template_nodes(
+    let node_patches = if skin_id.as_str() == "material_dark" {
+        BTreeMap::from([(
+            STATUS_PRIMARY_CONTROL_ID.to_string(),
+            ViewTemplateNodePatch::default().text_tone("default"),
+        )])
+    } else {
+        BTreeMap::new()
+    };
+    let Ok(projection) = build_view_template_node_projection_with_patches(
         "host.status.bar",
         STATUS_BAR_ASSET,
-        width,
-        height,
-        &text_overrides,
         &[],
-    );
-    if skin_id.as_str() == "material_dark" {
-        return model_rc(
-            (0..nodes.row_count())
-                .filter_map(|row| nodes.row_data(row))
-                .map(|mut node| {
-                    if node.control_id == STATUS_PRIMARY_CONTROL_ID {
-                        node.text_tone = "default".into();
-                    }
-                    node
-                })
-                .collect(),
-        );
-    }
-    nodes
+        UiSize::new(width.max(0.0), height.max(0.0)),
+        &text_overrides,
+        &node_patches,
+    ) else {
+        return ModelRc::default();
+    };
+    projection.into_model()
 }

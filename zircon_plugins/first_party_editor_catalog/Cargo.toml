@@ -8,9 +8,10 @@ description = "Linked first-party editor provider catalog for Zircon."
 [features]
 default = []
 navigation-editor-plugin = ["dep:zircon_plugin_navigation_editor"]
+neural-editor-plugin = ["dep:zircon_plugin_neural_editor"]
 
 [dependencies]
 zircon_editor.workspace = true
 zircon_plugin_navigation_editor = { path = "../navigation/editor", optional = true }
+zircon_plugin_neural_editor = { path = "../neural/editor", optional = true }
 zircon_runtime.workspace = true
-

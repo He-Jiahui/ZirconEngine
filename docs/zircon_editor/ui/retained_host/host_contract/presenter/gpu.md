@@ -34,15 +34,15 @@ doc_type: module-detail
 
 ## Child Modules
 
-`gpu/lifecycle.rs` owns presenter construction, resize behavior, diagnostics snapshots, and last-upload/draw-call accessors. Resize clamps the surface size and invalidates the direct-surface cache so the next present rebuilds a full command stream.
+`gpu/lifecycle.rs` owns presenter construction, resize behavior, diagnostics snapshots, and last-upload/draw-call accessors. A changed extent is clamped, forwarded to the RHI, and invalidates the direct-surface cache so the next ordinary present rebuilds a full command stream. An unchanged extent is an early no-op: it does not reconfigure the surface or discard a valid damage baseline.
 
-`gpu/present.rs` owns present orchestration. It decides whether requested damage can be sent as a patch based on cache initialization, builds the neutral `ChromeCommandStream`, converts it to a runtime draw list, submits it to the RHI presenter, records painted-pixel diagnostics, and returns invalidation-merged refresh diagnostics.
+`gpu/present.rs` owns present orchestration. It decides whether requested damage can be sent as a patch based on cache initialization, builds the neutral `ChromeCommandStream`, converts it to a runtime draw list, submits it to the RHI presenter, records painted-pixel diagnostics, and returns invalidation-merged refresh diagnostics. A runtime `RetryableNoSubmit` outcome is converted to the typed `RetryableSurfacePresent` host result before cache or diagnostics commit. The event loop keeps that region/full present in a dedicated deferred slot with bounded exponential backoff instead of immediately requesting another native redraw; normal pointer, resize, and external redraws remain immediate and merge the slot, while a submitted frame resets the backoff. The native RHI acquires the swapchain texture before batch/text/image preparation, so the retry does not duplicate those stages after `Lost`, `Outdated`, `Timeout`, or `Occluded`. Fatal RHI failures still terminate through the existing host failure path.
 
 `gpu/stats.rs` owns runtime present-stat fanout into host fields and UI perf counters: upload bytes, draw calls, visible commands, visible draw items, batch layers, batch dependencies, and command-stream patch/full rebuild counters.
 
 `gpu/geometry.rs` owns size and pixel accounting helpers used by lifecycle and present diagnostics: clamp size, full-surface pixel count, and clipped damage pixel count.
 
-`gpu/tests.rs` owns GPU presenter regressions for runtime surface failure propagation, upload/draw-call diagnostics, first-present cache bootstrap, patch damage after cache warmup, and resize cache invalidation.
+`gpu/tests.rs` owns GPU presenter regressions for runtime surface failure propagation, retryable acquisition without damage-baseline publication, upload/draw-call diagnostics, first-present cache bootstrap, patch damage after cache warmup, changed-size cache invalidation, and same-size cache preservation.
 
 ## Validation Notes
 

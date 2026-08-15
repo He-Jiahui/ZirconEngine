@@ -285,6 +285,7 @@ pub struct UiShapedTextLine {
     pub source_range: UiTextRange,
     pub visual_range: UiTextRange,
     pub measured_width: f32,
+    /// Cross-axis offset relative to `frame`: y for horizontal text and x for `VerticalRl`.
     pub baseline: f32,
     pub direction: UiTextDirection,
     pub ellipsized: bool,

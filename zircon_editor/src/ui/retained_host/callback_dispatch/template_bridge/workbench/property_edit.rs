@@ -73,7 +73,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             && matches!(binding_id, PROPERTY_04_EDIT | PROPERTY_04_COMMIT)
             && (control_id == PROPERTY_SLOT_04_ROW
                 || control_id.starts_with(PROPERTY_VIRTUAL_ROW_PREFIX))
-            && self.is_component_property_row(control_id)?
+            && self.control_node_id(control_id).is_some()
         {
             Ok(control_id.to_string())
         } else {

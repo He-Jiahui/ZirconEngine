@@ -4,11 +4,12 @@ use crate::core::framework::render::{
     build_source_cubemap_from_equirect, build_source_cubemap_irradiance_cube,
     IblBakeArtifactContents,
 };
+use crate::core::framework::render::{RenderFramework, RenderViewportDescriptor};
 use crate::graphics::scene::{
     IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID,
     IBL_BAKE_PMREM_EXECUTOR_ID,
 };
-use crate::graphics::ViewportFrame;
+use crate::graphics::{ViewportFrame, ViewportRenderFrame, WgpuRenderFramework};
 
 mod pbr_matrix;
 mod reflection_probe_product;
@@ -21,6 +22,49 @@ use pbr_matrix::{
     render_test_output_dir, runtime_ibl_cache_source_cubemap_environment, shader_test_output_dir,
     visible_luma_range, write_pbr_matrix_project, PBR_MATRIX_OUTPUT_SIZE,
 };
+
+fn render_snapshot_through_framework(
+    asset_manager: Arc<ProjectAssetManager>,
+    snapshot: crate::core::framework::render::RenderSceneSnapshot,
+    output_size: UVec2,
+) -> ViewportFrame {
+    let framework =
+        WgpuRenderFramework::new_for_test(asset_manager).expect("project render framework");
+    let viewport = framework
+        .create_viewport(
+            RenderViewportDescriptor::new(output_size).with_label("graphics.project-render"),
+        )
+        .expect("project render viewport");
+    framework
+        .submit_runtime_frame(
+            viewport,
+            ViewportRenderFrame::from_snapshot(snapshot, output_size),
+        )
+        .expect("submit compiled project render frame");
+    let captured = framework
+        .capture_frame(viewport)
+        .expect("capture compiled project render frame")
+        .expect("compiled project render frame should be available");
+
+    ViewportFrame {
+        width: captured.width,
+        height: captured.height,
+        rgba: captured.rgba,
+        generation: captured.generation,
+        capture_report: captured.capture_report,
+    }
+}
+
+#[test]
+fn project_render_capture_submission_uses_the_compiled_framework_path() {
+    let source = include_str!("project_scenes.rs");
+
+    assert!(source.contains(concat!("WgpuRenderFramework", "::new_for_test")));
+    assert!(source.contains(concat!("submit_runtime_", "frame(")));
+    assert!(source.contains(concat!("capture_", "frame(viewport)")));
+    assert!(!source.contains(concat!("SceneRenderer", "::new")));
+    assert!(!source.contains(concat!(".render", "(snapshot")));
+}
 
 #[test]
 fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
@@ -86,8 +130,7 @@ fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
         virtual_geometry_debug: None,
     });
 
-    let mut renderer = SceneRenderer::new_for_test(asset_manager).unwrap();
-    let frame = renderer.render(snapshot, UVec2::new(320, 240)).unwrap();
+    let frame = render_snapshot_through_framework(asset_manager, snapshot, UVec2::new(320, 240));
 
     let background = [20_u8, 23_u8, 28_u8, 255_u8];
     assert!(frame.rgba.chunks_exact(4).any(|pixel| pixel != background));
@@ -123,8 +166,7 @@ fn example_vampire_scene_renders_visible_mesh_pixels() {
         ..RenderOverlayExtract::default()
     };
 
-    let mut renderer = SceneRenderer::new_for_test(asset_manager).unwrap();
-    let frame = renderer.render(snapshot, UVec2::new(320, 240)).unwrap();
+    let frame = render_snapshot_through_framework(asset_manager, snapshot, UVec2::new(320, 240));
     let background: [u8; 4] = frame.rgba[..4].try_into().unwrap();
     let visible_pixels = frame
         .rgba
@@ -169,8 +211,7 @@ fn export_example_vampire_scene_png() {
         ..RenderOverlayExtract::default()
     };
 
-    let mut renderer = SceneRenderer::new_for_test(asset_manager).unwrap();
-    let frame = renderer.render(snapshot, UVec2::new(1280, 720)).unwrap();
+    let frame = render_snapshot_through_framework(asset_manager, snapshot, UVec2::new(1280, 720));
     let output =
         shader_test_output_dir().join("runtime_shader_material_vampire_offscreen_20260703.png");
     ImageBuffer::<Rgba<u8>, _>::from_raw(frame.width, frame.height, frame.rgba)
@@ -267,8 +308,7 @@ fn export_runtime_shader_material_sphere_png() {
         ..RenderOverlayExtract::default()
     };
 
-    let mut renderer = SceneRenderer::new_for_test(asset_manager).unwrap();
-    let frame = renderer.render(snapshot, output_size).unwrap();
+    let frame = render_snapshot_through_framework(asset_manager, snapshot, output_size);
     let background: [u8; 4] = frame.rgba[..4].try_into().unwrap();
     let visible_pixels = frame
         .rgba
@@ -534,8 +574,7 @@ fn directory_project_material_shader_drives_pipeline_color_output() {
         ..RenderOverlayExtract::default()
     };
 
-    let mut renderer = SceneRenderer::new_for_test(asset_manager).unwrap();
-    let frame = renderer.render(snapshot, UVec2::new(320, 240)).unwrap();
+    let frame = render_snapshot_through_framework(asset_manager, snapshot, UVec2::new(320, 240));
 
     let green_pixels = frame
         .rgba
@@ -623,9 +662,10 @@ fn wire_only_mode_reduces_filled_surface_pixels() {
     let mut wire_only = shaded.clone();
     wire_only.overlays.display_mode = DisplayMode::WireOnly;
 
-    let mut renderer = SceneRenderer::new_for_test(asset_manager).unwrap();
-    let shaded_frame = renderer.render(shaded, UVec2::new(320, 240)).unwrap();
-    let wire_frame = renderer.render(wire_only, UVec2::new(320, 240)).unwrap();
+    let shaded_frame =
+        render_snapshot_through_framework(Arc::clone(&asset_manager), shaded, UVec2::new(320, 240));
+    let wire_frame =
+        render_snapshot_through_framework(asset_manager, wire_only, UVec2::new(320, 240));
 
     let background: [u8; 4] = wire_frame.rgba[..4].try_into().unwrap();
     let shaded_surface_pixels = shaded_frame

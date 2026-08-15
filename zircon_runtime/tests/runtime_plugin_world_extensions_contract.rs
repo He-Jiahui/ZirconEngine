@@ -45,7 +45,7 @@ fn installed_world_extensions_reach_new_levels() {
             owner,
             "weather.increment",
             SystemStage::Update,
-            |mut counter: ResMut<'_, InstalledCounter>| counter.0 += 1,
+            || |mut counter: ResMut<'_, InstalledCounter>| counter.0 += 1,
         )
         .register()
         .expect("valid native scene system");

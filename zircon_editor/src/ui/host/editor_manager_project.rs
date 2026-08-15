@@ -2,14 +2,15 @@ use std::fmt::Display;
 use std::path::Path;
 use std::sync::Arc;
 
-use zircon_runtime::asset::project::{ProjectManager, ProjectManifest};
+use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use zircon_runtime::asset::{AssetManager, AssetUri};
-use zircon_runtime::plugin::native::NativePluginLoader;
+use zircon_runtime::plugin::native::load_discovered_native_editor_plugins;
 
 use crate::core::document::{
     AuthoringSceneInstaller, SceneAssetCatalog, SceneDocumentRoute, SceneDocumentRouteError,
     SceneDocumentRouteResult, ScenePickerTicket,
 };
+use crate::core::editing::authoring_world::AuthoringWorldSeed;
 use crate::core::editor_message::{
     DocumentMessage, EditorMessage, EditorMessagePayload, EditorTopic, SharedEditorMessageBus,
 };
@@ -26,18 +27,12 @@ impl EditorManager {
         &self,
         path: impl AsRef<Path>,
     ) -> Result<EditorProjectDocument, EditorError> {
-        let document = self.host.open_project(path)?;
-        self.configure_project_diagnostics(&document.root_path)?;
-        self.apply_project_plugin_manifest_or_close(&document.root_path, &document.manifest)?;
-        let activation = self
-            .document_lifecycle
-            .begin_project_session(&document.root_path);
-        self.publish_document_messages(activation.messages);
-        Ok(document)
+        self.open_project_document(path)
     }
 
     pub fn close_project(&self) -> Result<Option<std::path::PathBuf>, EditorError> {
         let closed_root = self.host.close_project()?;
+        let session_release = self.release_project_session_guard();
         if closed_root.is_some() {
             self.context().logs().disable_rolling_file();
             self.context().settings().clear_project_layer();
@@ -61,6 +56,7 @@ impl EditorManager {
             closed_root.as_deref(),
         );
         registration_cleanup?;
+        session_release?;
         Ok(closed_root)
     }
 
@@ -68,12 +64,10 @@ impl EditorManager {
         &self,
         project: ProjectManager,
     ) -> Result<crate::ui::workbench::startup::EditorStartupSessionDocument, EditorError> {
-        let session = self.host.open_prepared_project_and_remember(project)?;
-        self.publish_document_startup_session(&session)?;
-        Ok(session)
+        self.open_prepared_project_and_remember_with_session(project)
     }
 
-    pub fn save_project(
+    pub(crate) fn save_project(
         &self,
         path: impl AsRef<Path>,
         world: &zircon_runtime::scene::Scene,
@@ -133,11 +127,11 @@ impl EditorManager {
             .map_err(|error| EditorError::Project(error.to_string()))
     }
 
-    pub fn create_runtime_level(
+    pub(crate) fn prepare_authoring_world(
         &self,
         scene: zircon_runtime::scene::Scene,
-    ) -> Result<zircon_runtime::scene::LevelSystem, EditorError> {
-        self.host.create_runtime_level(scene)
+    ) -> Result<AuthoringWorldSeed, EditorError> {
+        self.host.prepare_authoring_world(scene)
     }
 
     pub(crate) fn publish_document_startup_session(
@@ -183,25 +177,28 @@ impl EditorManager {
         Ok(())
     }
 
-    fn configure_project_diagnostics(&self, project_root: &Path) -> Result<(), EditorError> {
+    pub(super) fn configure_project_diagnostics(
+        &self,
+        project_root: &Path,
+    ) -> Result<(), EditorError> {
         self.context()
             .logs()
             .configure_workspace_diagnostics(project_root)
             .map_err(|error| {
-                EditorError::Project(format!(
-                    "editor diagnostics cannot be configured for `{}`: {error}",
-                    project_root.display()
+                EditorError::Project(project_diagnostics_configuration_message(
+                    project_root,
+                    error,
                 ))
             })
     }
 
-    fn apply_project_plugin_manifest(
+    pub(super) fn apply_project_plugin_manifest(
         &self,
         project_root: &Path,
         manifest: &ProjectManifest,
     ) -> Result<(), EditorError> {
         let native_report =
-            NativePluginLoader.load_discovered_editor(self.plugin_directory(project_root));
+            load_discovered_native_editor_plugins(self.plugin_directory(project_root));
         let completed =
             self.complete_project_plugin_manifest_with_native_report(manifest, &native_report);
         let native_reports = self
@@ -229,7 +226,10 @@ impl EditorManager {
         Ok(())
     }
 
-    fn publish_document_messages(&self, messages: impl IntoIterator<Item = DocumentMessage>) {
+    pub(super) fn publish_document_messages(
+        &self,
+        messages: impl IntoIterator<Item = DocumentMessage>,
+    ) {
         publish_document_messages(self.context().bus(), messages);
     }
 
@@ -269,6 +269,13 @@ impl EditorManager {
         }
         Ok(result)
     }
+}
+
+fn project_diagnostics_configuration_message(project_root: &Path, error: impl Display) -> String {
+    format!(
+        "editor diagnostics cannot be configured for `{}`: {error}",
+        ProjectPaths::display_path(project_root).display()
+    )
 }
 
 struct RuntimeSceneAssetCatalog {
@@ -390,7 +397,22 @@ mod tests {
         SharedEditorMessageBus, TOPIC_DOCUMENT,
     };
 
-    use super::{publish_committed_project_close, publish_document_messages};
+    use super::{
+        project_diagnostics_configuration_message, publish_committed_project_close,
+        publish_document_messages,
+    };
+
+    #[cfg(windows)]
+    #[test]
+    fn project_diagnostics_configuration_message_hides_windows_verbatim_operation_roots() {
+        assert_eq!(
+            project_diagnostics_configuration_message(
+                Path::new(r"\\?\C:\projects\forest"),
+                "access denied"
+            ),
+            r"editor diagnostics cannot be configured for `C:\projects\forest`: access denied"
+        );
+    }
 
     #[test]
     fn document_events_are_published_to_the_canonical_topic_in_lifecycle_order() {

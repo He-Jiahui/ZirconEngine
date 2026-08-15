@@ -4,7 +4,7 @@ use crate::capability::{
 };
 use crate::module_descriptor;
 use crate::runtime_system::{
-    ANIMATION_EVALUATE_SYSTEM, ANIMATION_SYSTEM_SET, register_runtime_system,
+    register_runtime_system, ANIMATION_EVALUATE_SYSTEM, ANIMATION_SYSTEM_SET,
 };
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;

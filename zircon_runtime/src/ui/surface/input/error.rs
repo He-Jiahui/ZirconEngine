@@ -17,6 +17,8 @@ pub enum UiSurfaceInputEffectError {
     UnexpectedEffect { expected: &'static str },
     #[error("focus rejected: {source}")]
     FocusRejected { source: UiTreeError },
+    #[error("popup state transition rejected: {source}")]
+    PopupStateRejected { source: UiTreeError },
     #[error("focus owner mismatch")]
     FocusOwnerMismatch,
     #[error("pointer capture belongs to a different or unknown pointer")]

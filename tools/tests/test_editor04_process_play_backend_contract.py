@@ -34,11 +34,22 @@ class ProcessPlayBackendContractTests(unittest.TestCase):
             self.assertIn(token, command)
         self.assertIn("Stdio::piped", self.source("process_backend/child.rs"))
 
+    def test_process_command_anchors_the_existing_relative_project_contract(self) -> None:
+        command = self.source("process_backend/command.rs")
+
+        self.assertIn('.arg("--project")\n            .arg(".")', command)
+        self.assertIn('.current_dir(&self.working_directory)', command)
+        self.assertIn(
+            '".zircon/play/{instance_id}/play-scene.zrscene.json"',
+            self.source("snapshot/store.rs"),
+        )
+
     def test_snapshot_store_owns_atomic_materialization_and_cleanup(self) -> None:
         store = self.source("snapshot/store.rs")
         source = self.source("snapshot/source.rs")
 
-        self.assertIn('join(".zircon").join("play")', store)
+        self.assertIn("ProjectPaths::from_root", store)
+        self.assertIn("paths.play_root()", store)
         self.assertIn("rename", store)
         self.assertIn("cleanup", store)
         self.assertIn("DynamicScene::from_world", source)

@@ -41,7 +41,8 @@ fn table_row_click_resolves_current_typed_identity_into_template_action() {
         .iter()
         .find_map(|event| event.template_action.as_ref())
         .expect("selected table row should emit its template action");
-    assert_eq!(action.route, "test.navigation.surface");
+    assert!(!action.is_action());
+    assert_eq!(action.target_id(), "test.navigation.surface");
     assert_eq!(
         action.payload.get("surface_entity"),
         Some(&UiValue::Int(73)),
@@ -72,7 +73,8 @@ fn selected_row_button_click_uses_current_typed_identity_without_stale_selection
         .iter()
         .find_map(|event| event.template_action.as_ref())
         .expect("updated row selection should emit an action");
-    assert_eq!(second_action.route, "test.navigation.bake.surface");
+    assert!(!second_action.is_action());
+    assert_eq!(second_action.target_id(), "test.navigation.bake.surface");
     assert_eq!(
         second_action.payload.get("surface_entity"),
         Some(&UiValue::Int(73))
@@ -81,6 +83,60 @@ fn selected_row_button_click_uses_current_typed_identity_without_stale_selection
         second_action.payload.get("force_full_rebuild"),
         Some(&UiValue::Bool(true))
     );
+}
+
+#[test]
+fn selected_row_button_preserves_authored_command_action_identity() {
+    let mut surface = table_pointer_route_surface(false, false);
+    let action = selected_row_button_action(&mut surface);
+    action.route = None;
+    action.action = Some("runtime.play_mode.enter".to_string());
+    action.payload.clear();
+
+    let result = click_table_pointer(&mut surface, UiPoint::new(20.0, 135.0));
+
+    let invocation = result
+        .component_events
+        .iter()
+        .find_map(|event| event.template_action.as_ref())
+        .expect("command action should emit a typed invocation");
+    assert!(invocation.is_action());
+    assert_eq!(invocation.target_id(), "runtime.play_mode.enter");
+    assert!(invocation.payload.is_empty());
+}
+
+#[test]
+fn selected_row_button_rejects_ambiguous_action_and_route_identity() {
+    let mut surface = table_pointer_route_surface(false, false);
+    let action = selected_row_button_action(&mut surface);
+    action.action = Some("runtime.play_mode.enter".to_string());
+    action.payload.clear();
+
+    let result = click_table_pointer(&mut surface, UiPoint::new(20.0, 135.0));
+
+    assert!(result
+        .component_events
+        .iter()
+        .all(|event| event.template_action.is_none()));
+}
+
+#[test]
+fn selected_row_button_rejects_command_action_with_route_payload() {
+    let mut surface = table_pointer_route_surface(false, false);
+    let action = selected_row_button_action(&mut surface);
+    action.route = None;
+    action.action = Some("runtime.play_mode.enter".to_string());
+    action.payload.insert(
+        "legacy_route_argument".to_string(),
+        toml::Value::Boolean(true),
+    );
+
+    let result = click_table_pointer(&mut surface, UiPoint::new(20.0, 135.0));
+
+    assert!(result
+        .component_events
+        .iter()
+        .all(|event| event.template_action.is_none()));
 }
 
 #[test]
@@ -114,6 +170,17 @@ fn disabled_selected_row_button_does_not_emit_a_template_action() {
         .component_events
         .iter()
         .all(|event| event.template_action.is_none()));
+}
+
+fn selected_row_button_action(surface: &mut UiSurface) -> &mut UiActionRef {
+    surface
+        .tree
+        .nodes
+        .get_mut(&UiNodeId::new(9))
+        .and_then(|node| node.template_metadata.as_mut())
+        .and_then(|metadata| metadata.bindings.first_mut())
+        .and_then(|binding| binding.action.as_mut())
+        .expect("bake-selected button action should exist")
 }
 
 #[test]

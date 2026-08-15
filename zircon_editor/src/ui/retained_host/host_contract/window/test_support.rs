@@ -184,6 +184,7 @@ fn native_keyboard_test_input(
     };
     let context = UiWindowInputContext {
         metadata: native_keyboard_test_metadata(),
+        ..UiWindowInputContext::default()
     }
     .with_modifiers(translate_winit_modifiers(modifiers));
     let Some(UiWindowInputPumpEvent::Input(UiInputEvent::Keyboard(keyboard))) =

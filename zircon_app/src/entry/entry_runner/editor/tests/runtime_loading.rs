@@ -56,28 +56,3 @@ fn product_editor_collects_runtime_session_teardown_before_returning_success() {
         offset += index + needle.len();
     }
 }
-
-#[test]
-fn product_editor_operation_collects_runtime_session_teardown_before_returning_response() {
-    let source = include_str!("../../editor.rs");
-    let operation = source
-        .split("fn run_editor_operation")
-        .nth(1)
-        .expect("editor CLI operation path should exist");
-    let mut offset = 0;
-    for needle in [
-        "let runtime_teardown_failure = runtime_session.teardown_failure_state();",
-        "let operation_result: Result<_, Box<dyn Error>> = (|| {",
-        "runtime.attach_play_gateway(runtime_gateway)?;",
-        "let response = runtime.handle_operation_control_request_from_source(",
-        "Ok(response)",
-        "drop(runtime);",
-        "drop(runtime_session);",
-        "finish_editor_operation(operation_result, runtime_teardown_failure.take())",
-    ] {
-        let index = operation[offset..]
-            .find(needle)
-            .unwrap_or_else(|| panic!("editor CLI runtime teardown path is missing `{needle}`"));
-        offset += index + needle.len();
-    }
-}

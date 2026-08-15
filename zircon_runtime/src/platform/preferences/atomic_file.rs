@@ -1,5 +1,5 @@
 use std::collections::{HashMap, VecDeque};
-use std::fs::{self, File, OpenOptions};
+use std::fs::{self, File};
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -9,7 +9,7 @@ use crate::core::framework::platform::{
     PreferenceKey, PreferenceStorageBackendKind, PreferenceStorageError,
     PreferenceStorageErrorKind, PreferenceStorageOperation,
 };
-use crate::core::resource::io::atomic_file::stage_atomic_write;
+use crate::core::resource::io::{stage_atomic_write, sync_parent_directory};
 
 use super::{
     PreferenceBackendWorkAuthority, PreferenceStorageBackend, PreferenceStorageBackendDiagnostics,
@@ -121,34 +121,23 @@ impl PreferenceStorageBackend for AtomicFilePreferenceStorageBackend {
 
         let staged_started = Instant::now();
         let staged = stage_atomic_write(&path, value);
+        let staged_wall = staged_started.elapsed();
         let mut state = lock(&self.state);
         state.diagnostics.staged_write_wall = state
             .diagnostics
             .staged_write_wall
-            .saturating_add(staged_started.elapsed());
+            .saturating_add(staged_wall);
         drop(state);
         let staged =
             staged.map_err(|error| map_io_error(PreferenceStorageOperation::Write, error))?;
 
         let commit_started = Instant::now();
         let committed = staged.commit();
+        let commit_wall = commit_started.elapsed();
         let mut state = lock(&self.state);
-        state.diagnostics.staged_write_wall = state
-            .diagnostics
-            .staged_write_wall
-            .saturating_add(commit_started.elapsed());
+        state.diagnostics.fsync_wall = state.diagnostics.fsync_wall.saturating_add(commit_wall);
         drop(state);
-        committed.map_err(|error| map_io_error(PreferenceStorageOperation::Write, error))?;
-
-        let sync_started = Instant::now();
-        let synced = sync_committed_value(&path);
-        let mut state = lock(&self.state);
-        state.diagnostics.fsync_wall = state
-            .diagnostics
-            .fsync_wall
-            .saturating_add(sync_started.elapsed());
-        drop(state);
-        synced.map_err(|error| map_io_error(PreferenceStorageOperation::Write, error))
+        committed.map_err(|error| map_io_error(PreferenceStorageOperation::Write, error))
     }
 
     fn remove(
@@ -202,27 +191,6 @@ fn storage_component(value: &str) -> String {
     blake3::hash(value.as_bytes()).to_hex().to_string()
 }
 
-fn sync_committed_value(path: &Path) -> io::Result<()> {
-    OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open(path)?
-        .sync_all()?;
-    sync_parent_directory(path)
-}
-
-#[cfg(unix)]
-fn sync_parent_directory(path: &Path) -> io::Result<()> {
-    let parent = path.parent().unwrap_or_else(|| Path::new("."));
-    fs::File::open(parent)?.sync_all()
-}
-
-#[cfg(not(unix))]
-fn sync_parent_directory(_path: &Path) -> io::Result<()> {
-    // Windows uses the shared ReplaceFileW commit path after the staged file is synced.
-    Ok(())
-}
-
 fn map_io_error(operation: PreferenceStorageOperation, error: io::Error) -> PreferenceStorageError {
     let kind = match error.kind() {
         io::ErrorKind::PermissionDenied | io::ErrorKind::ReadOnlyFilesystem => {
@@ -249,8 +217,11 @@ mod tests {
         PreferenceStorageErrorKind, PreferenceStorageOperation,
     };
 
-    use super::{map_io_error, AtomicFilePreferenceStorageBackend, PATH_CACHE_MAX_ENTRIES};
-    use crate::core::framework::platform::{PreferenceKey, PreferenceStorageBackend};
+    use super::{
+        map_io_error, AtomicFilePreferenceStorageBackend, PreferenceStorageBackend,
+        PATH_CACHE_MAX_ENTRIES,
+    };
+    use crate::core::framework::platform::PreferenceKey;
 
     #[test]
     fn platform_preference_storage_path_cache_is_stable_and_bounded() {

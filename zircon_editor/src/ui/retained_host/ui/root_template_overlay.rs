@@ -14,22 +14,31 @@ const ROOT_TEMPLATE_OVERLAY_PROPERTY: &str = "root_template_overlay";
 pub(crate) fn to_host_contract_root_template_overlay_nodes(
     projection: Option<&RetainedUiHostProjection>,
 ) -> ModelRc<host_contract::TemplatePaneNodeData> {
+    to_host_contract_root_template_overlay_nodes_at_scale(projection, 1.0)
+}
+
+pub(crate) fn to_host_contract_root_template_overlay_nodes_at_scale(
+    projection: Option<&RetainedUiHostProjection>,
+    scale_factor: f32,
+) -> ModelRc<host_contract::TemplatePaneNodeData> {
     let Some(projection) = projection else {
         return ModelRc::default();
     };
+    let scale_factor = normalized_scale_factor(scale_factor);
 
     model_rc(
         projection
             .nodes
             .iter()
             .filter(|node| bool_property(&node.properties, ROOT_TEMPLATE_OVERLAY_PROPERTY))
-            .map(to_host_contract_root_template_overlay_node)
+            .map(|node| to_host_contract_root_template_overlay_node(node, scale_factor))
             .collect(),
     )
 }
 
 fn to_host_contract_root_template_overlay_node(
     node: &RetainedUiHostNodeModel,
+    scale_factor: f32,
 ) -> host_contract::TemplatePaneNodeData {
     let media_source = first_string_property(&node.properties, &["image", "source", "media"])
         .or_else(|| {
@@ -59,7 +68,7 @@ fn to_host_contract_root_template_overlay_node(
         // across separate painter paths.
         has_clip_frame: false,
         clip_frame: host_contract::TemplateNodeFrameData::default(),
-        frame: to_host_contract_template_frame(node.frame),
+        frame: to_host_contract_template_frame(node.frame, scale_factor),
         ..host_contract::TemplatePaneNodeData::default()
     }
 }
@@ -89,12 +98,32 @@ fn resolve_root_overlay_component_role(component: &str) -> &'static str {
     }
 }
 
-fn to_host_contract_template_frame(frame: UiFrame) -> host_contract::TemplateNodeFrameData {
+fn to_host_contract_template_frame(
+    frame: UiFrame,
+    scale_factor: f32,
+) -> host_contract::TemplateNodeFrameData {
     host_contract::TemplateNodeFrameData {
-        x: frame.x,
-        y: frame.y,
-        width: frame.width,
-        height: frame.height,
+        x: scaled(frame.x, scale_factor),
+        y: scaled(frame.y, scale_factor),
+        width: scaled(frame.width, scale_factor),
+        height: scaled(frame.height, scale_factor),
+    }
+}
+
+fn normalized_scale_factor(scale_factor: f32) -> f32 {
+    if scale_factor.is_finite() && scale_factor > 0.0 {
+        scale_factor
+    } else {
+        1.0
+    }
+}
+
+fn scaled(value: f32, scale_factor: f32) -> f32 {
+    let scaled = value * scale_factor;
+    if scaled.is_finite() {
+        scaled
+    } else {
+        0.0
     }
 }
 
@@ -183,6 +212,8 @@ mod tests {
                 checked: false,
                 expanded: false,
                 focused: false,
+                focus_visible: false,
+                focus_visible_known: false,
                 hovered: false,
                 pressed: false,
                 dragging: false,
@@ -212,5 +243,65 @@ mod tests {
         assert_eq!(node.frame.y, 12.0);
         assert_eq!(node.frame.width, 24.0);
         assert_eq!(node.frame.height, 24.0);
+    }
+
+    #[test]
+    fn root_overlay_projection_scales_logical_geometry_once() {
+        let mut properties = BTreeMap::new();
+        properties.insert(
+            ROOT_TEMPLATE_OVERLAY_PROPERTY.to_owned(),
+            RetainedUiHostValue::Bool(true),
+        );
+        let projection = RetainedUiHostProjection {
+            document_id: "test.scaled_root_overlay".to_owned(),
+            nodes: vec![RetainedUiHostNodeModel {
+                node_id: "scaled_overlay".to_owned(),
+                parent_id: None,
+                kind: RetainedUiHostComponentKind::Unknown,
+                component: "Image".to_owned(),
+                control_id: Some("ScaledRootOverlay".to_owned()),
+                frame: UiFrame::new(8.0, 12.0, 24.0, 18.0),
+                clip_frame: None,
+                z_index: 0,
+                text: None,
+                icon: None,
+                component_role: None,
+                value_text: None,
+                validation_level: None,
+                validation_message: None,
+                popup_open: false,
+                has_popup_anchor: false,
+                popup_anchor_x: 0.0,
+                popup_anchor_y: 0.0,
+                selection_state: None,
+                options_text: None,
+                options: Vec::new(),
+                collection_items: Vec::new(),
+                menu_items: Vec::new(),
+                accepted_drag_payloads: Vec::new(),
+                drop_source_summary: None,
+                checked: false,
+                expanded: false,
+                focused: false,
+                focus_visible: false,
+                focus_visible_known: false,
+                hovered: false,
+                pressed: false,
+                dragging: false,
+                drop_hovered: false,
+                active_drag_target: false,
+                disabled: false,
+                properties,
+                style_tokens: BTreeMap::new(),
+                routes: Vec::new(),
+            }],
+        };
+
+        let nodes = to_host_contract_root_template_overlay_nodes_at_scale(Some(&projection), 2.0);
+        let node = nodes.get(0).expect("scaled overlay");
+        assert_eq!(node.frame.x, 16.0);
+        assert_eq!(node.frame.y, 24.0);
+        assert_eq!(node.frame.width, 48.0);
+        assert_eq!(node.frame.height, 36.0);
     }
 }

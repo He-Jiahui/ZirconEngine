@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ui::asset_editor::preview::preview_mock::{
-    format_preview_mock_inline_value, resolve_preview_mock_value_preview, UiAssetPreviewMockState,
+    UiAssetPreviewMockState, format_preview_mock_inline_value, resolve_preview_mock_value_preview,
 };
 use crate::ui::template::EditorTemplateRuntimeService;
 use toml::Value;

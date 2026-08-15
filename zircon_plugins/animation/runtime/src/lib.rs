@@ -60,9 +60,12 @@ pub use state_machine::{
     TransitionDesc, TransitionRequest, TransitionRuntime, TransitionState, TransitionWeights,
 };
 pub use zircon_runtime::animation::{
-    apply_sequence_to_world, AnimationClipEvent, ANIMATION_PLAYBACK_CONFIG_KEY,
+    apply_compiled_sequence_to_world, compile_sequence_for_world, CompiledAnimationSequence,
+    CompiledAnimationSequenceApplyStats, ANIMATION_PLAYBACK_CONFIG_KEY,
 };
-pub use zircon_runtime::core::framework::animation::AnimationSequenceApplyReport;
+pub use zircon_runtime::core::framework::animation::{
+    AnimationClipEvent, AnimationSequenceApplyReport,
+};
 pub use zircon_runtime::core::manager::ANIMATION_MANAGER_NAME;
 
 #[cfg(test)]

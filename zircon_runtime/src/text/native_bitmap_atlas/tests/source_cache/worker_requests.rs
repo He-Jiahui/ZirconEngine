@@ -1,12 +1,17 @@
 use super::*;
 use std::path::Path;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
+use crate::core::math::{UVec2, Vec2};
 use crate::text::font::FontDatabase;
-use crate::text::parallel::raster_pool::{TextRasterWorkerPool, TextRasterWorkerPoolOptions};
-use crate::text::raster::SwashRasterRequest;
+use crate::text::parallel::raster_pool::{
+    TextRasterCompletionDrain, TextRasterCompletionDrainBudget, TextRasterWorkId,
+    TextRasterWorkerPool, TextRasterWorkerPoolOptions,
+};
+use crate::text::raster::{GlyphBitmap, SwashRasterRequest};
+use glyphon::cosmic_text::{fontdb, CacheKey, CacheKeyFlags, SubpixelBin, Weight};
 use glyphon::FontSystem;
-use glyphon::cosmic_text::{CacheKey, CacheKeyFlags, SubpixelBin, Weight, fontdb};
 use swash::FontRef;
 
 #[test]
@@ -136,11 +141,60 @@ fn native_bitmap_atlas_source_cache_schedules_glyphon_cache_key_worker_request()
             worker_request_submitted_count: 2,
             worker_request_pending_count: 1,
             worker_request_font_copied_byte_count: TEST_FONT_BYTES.len(),
+            worker_raster_font_resident_byte_count: TEST_FONT_BYTES.len(),
+            worker_raster_font_entry_count: 1,
             entry_count: 0,
             pending_worker_count: 2,
             ..NativeBitmapAtlasSourceCacheFrameReport::default()
         }
     );
+}
+
+#[test]
+fn native_bitmap_atlas_worker_completion_binds_registered_persistent_raster_key() {
+    let source_path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf");
+    let mut font_database = FontDatabase::default();
+    let registered_face = font_database
+        .register_font_file(&source_path, Some("Fira Sans"), 0)
+        .expect("test font should register with the text font database");
+    let mut font_system = FontSystem::new();
+    font_database.sync_font_system(&mut font_system);
+    let font_id = font_database
+        .backend_face_id(registered_face)
+        .expect("registered text font should expose a glyphon backend face");
+    let face = font_system
+        .db()
+        .face(font_id)
+        .expect("registered face should be available to glyphon");
+    let parsed_font = FontRef::from_index(TEST_FONT_BYTES, face.index as usize)
+        .expect("test font face should parse");
+    let cache_key = CacheKey {
+        font_id,
+        glyph_id: parsed_font.charmap().map('A'),
+        font_size_bits: 18.0f32.to_bits(),
+        x_bin: SubpixelBin::Zero,
+        y_bin: SubpixelBin::Zero,
+        font_weight: Weight(400),
+        flags: CacheKeyFlags::empty(),
+    };
+    assert_ne!(cache_key.glyph_id, 0);
+    let bitmap = GlyphBitmap::alpha_mask(UVec2::new(2, 1), Vec2::new(0.0, 7.0), 18.0, vec![255; 2])
+        .expect("test alpha bitmap should be valid");
+    let mut cache = NativeBitmapAtlasSourceCache::with_capacity(4);
+
+    cache.begin_frame();
+    cache.register_worker_request(TextRasterWorkId::new(1), cache_key);
+    let report = cache.apply_worker_completion_drain(
+        &font_database,
+        TextRasterCompletionDrain {
+            accepted: vec![worker_result(TextRasterWorkId::new(1), Ok(bitmap))],
+            ..TextRasterCompletionDrain::default()
+        },
+    );
+
+    assert_eq!(report.worker_completion_insert_count, 1);
+    assert_eq!(report.persistent_raster_key_count, 1);
 }
 
 #[test]
@@ -225,9 +279,18 @@ fn native_bitmap_atlas_source_cache_reuses_font_bytes_until_face_invalidation() 
     let first_work = worker_pool
         .try_recv_request_for_test()
         .expect("first request should enter the worker queue");
+    let first_report = cache.frame_report();
+    assert_eq!(
+        first_report.worker_raster_font_resident_byte_count,
+        TEST_FONT_BYTES.len()
+    );
+    assert_eq!(first_report.worker_raster_font_entry_count, 1);
 
     cache.discard_all_for_face_invalidation_with_worker_pool(Some(&worker_pool));
     cache.begin_frame();
+    let invalidated_report = cache.frame_report();
+    assert_eq!(invalidated_report.worker_raster_font_resident_byte_count, 0);
+    assert_eq!(invalidated_report.worker_raster_font_entry_count, 0);
     let second_face_epoch = cache.face_epoch();
     assert!(matches!(
         cache.request_worker_image(
@@ -252,4 +315,157 @@ fn native_bitmap_atlas_source_cache_reuses_font_bytes_until_face_invalidation() 
         cache.frame_report().worker_request_font_copied_byte_count,
         TEST_FONT_BYTES.len()
     );
+    assert_eq!(
+        cache.frame_report().worker_raster_font_resident_byte_count,
+        TEST_FONT_BYTES.len()
+    );
+    assert_eq!(cache.frame_report().worker_raster_font_entry_count, 1);
+}
+
+#[test]
+fn native_bitmap_atlas_source_cache_counts_distinct_worker_font_snapshots() {
+    let secondary_font_bytes = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/assets/fonts/FiraMono-subset.ttf"
+    ));
+    let mut font_system = FontSystem::new_with_fonts([
+        fontdb::Source::Binary(Arc::new(TEST_FONT_BYTES.to_vec())),
+        fontdb::Source::Binary(Arc::new(secondary_font_bytes.to_vec())),
+    ]);
+    let font_ids = font_system
+        .db()
+        .faces()
+        .filter(|face| matches!(face.source, fontdb::Source::Binary(_)))
+        .map(|face| face.id)
+        .collect::<Vec<_>>();
+    assert_eq!(
+        font_ids.len(),
+        2,
+        "test font system should contain two faces"
+    );
+    let worker_pool = TextRasterWorkerPool::new_without_workers_for_test(
+        TextRasterWorkerPoolOptions::new(1).with_queue_depth(2),
+    );
+    let mut cache = NativeBitmapAtlasSourceCache::with_capacity(4);
+    let font_database = FontDatabase::default();
+    let face_epoch = cache.face_epoch();
+
+    cache.begin_frame();
+    for font_id in font_ids {
+        let cache_key = CacheKey {
+            font_id,
+            glyph_id: 1,
+            font_size_bits: 16.0f32.to_bits(),
+            x_bin: SubpixelBin::Zero,
+            y_bin: SubpixelBin::Zero,
+            font_weight: Weight(400),
+            flags: CacheKeyFlags::empty(),
+        };
+        assert!(matches!(
+            cache.request_worker_image(
+                &mut font_system,
+                &font_database,
+                Some(&worker_pool),
+                face_epoch,
+                cache_key,
+            ),
+            NativeBitmapAtlasWorkerRequestStatus::Submitted(_)
+        ));
+    }
+
+    let report = cache.frame_report();
+    assert_eq!(
+        report.worker_raster_font_resident_byte_count,
+        TEST_FONT_BYTES.len() + secondary_font_bytes.len()
+    );
+    assert_eq!(report.worker_raster_font_entry_count, 2);
+}
+
+#[test]
+fn completion_budget_failure_clears_pending_and_retries_next_frame() {
+    let source_path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("assets/fonts/FiraSans-Regular.ttf");
+    let mut font_database = FontDatabase::default();
+    let registered_face = font_database
+        .register_font_file(&source_path, Some("Fira Sans"), 0)
+        .expect("test font should register with the text font database");
+    let mut font_system = FontSystem::new();
+    font_database.sync_font_system(&mut font_system);
+    let font_id = font_database
+        .backend_face_id(registered_face)
+        .expect("registered font should expose a glyphon backend face");
+    let face = font_system
+        .db()
+        .face(font_id)
+        .expect("registered face should be available to glyphon");
+    let parsed_font = FontRef::from_index(TEST_FONT_BYTES, face.index as usize)
+        .expect("test font face should parse");
+    let glyph_id = parsed_font.charmap().map('P');
+    assert_ne!(glyph_id, 0);
+    let cache_key = CacheKey {
+        font_id,
+        glyph_id,
+        font_size_bits: 18.0f32.to_bits(),
+        x_bin: SubpixelBin::Zero,
+        y_bin: SubpixelBin::Zero,
+        font_weight: Weight(400),
+        flags: CacheKeyFlags::empty(),
+    };
+    let worker_pool = TextRasterWorkerPool::new(
+        TextRasterWorkerPoolOptions::new(1)
+            .with_queue_depth(1)
+            .with_completion_queue_depth(1)
+            .with_completion_byte_budget(1),
+    )
+    .expect("one raster worker should start");
+    let mut cache = NativeBitmapAtlasSourceCache::with_capacity(4);
+    let face_epoch = cache.face_epoch();
+
+    cache.begin_frame();
+    let first_work_id = match cache.request_worker_image(
+        &mut font_system,
+        &font_database,
+        Some(&worker_pool),
+        face_epoch,
+        cache_key,
+    ) {
+        NativeBitmapAtlasWorkerRequestStatus::Submitted(work_id) => work_id,
+        status => panic!("first request should be submitted, got {status:?}"),
+    };
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        let drain = worker_pool.drain_completed_for_face_epoch(
+            face_epoch,
+            TextRasterCompletionDrainBudget::new(1, usize::MAX),
+        );
+        if !drain.accepted.is_empty() {
+            cache.apply_worker_completion_drain(&font_database, drain);
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "completion budget rejection should publish a failure"
+        );
+        std::thread::yield_now();
+    }
+    let failed_frame = cache.frame_report();
+    assert_eq!(failed_frame.worker_completion_failed_count, 1);
+    assert_eq!(failed_frame.worker_completion_applied_byte_count, 0);
+    assert_eq!(failed_frame.pending_worker_count, 0);
+    assert!(cache.cached_image(cache_key).is_none());
+    assert_eq!(worker_pool.diagnostics().completion_budget_rejected, 1);
+
+    cache.begin_frame();
+    let second_work_id = match cache.request_worker_image(
+        &mut font_system,
+        &font_database,
+        Some(&worker_pool),
+        face_epoch,
+        cache_key,
+    ) {
+        NativeBitmapAtlasWorkerRequestStatus::Submitted(work_id) => work_id,
+        status => panic!("failed completion should be retried next frame, got {status:?}"),
+    };
+    assert_ne!(second_work_id, first_work_id);
+    assert_eq!(cache.frame_report().pending_worker_count, 1);
 }

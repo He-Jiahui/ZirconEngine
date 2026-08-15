@@ -3,13 +3,15 @@ pub(in crate::ui::retained_host::host_contract) use command::{
     ChromeCommand, ChromeCommandKind, ChromeCommandLayer, ChromeImagePayload, ChromeImageUvRect,
 };
 use extraction::extract_chrome_commands;
+pub(in crate::ui::retained_host) use icon_atlas::invalidate_editor_icon_atlas;
 pub(in crate::ui::retained_host::host_contract) use replay::{
     paint_chrome_command_stream_to_frame, repaint_chrome_command_stream_region,
 };
 pub(in crate::ui::retained_host::host_contract) use runtime_draw_list::{
     ui_surface_draw_list_from_owned_stream, ui_surface_draw_list_from_owned_stream_with_generation,
     ui_surface_draw_list_from_owned_stream_with_generation_and_residency,
-    ui_surface_draw_list_from_stream, ui_surface_draw_list_from_stream_with_residency,
+    ui_surface_draw_list_from_owned_stream_with_residency, ui_surface_draw_list_from_stream,
+    ui_surface_draw_list_from_stream_with_residency,
 };
 use stream::clamp_surface_size;
 pub(in crate::ui::retained_host::host_contract) use stream::{
@@ -22,6 +24,7 @@ use extraction::chrome_command_from_recorded_for_test;
 mod atlas;
 mod command;
 mod extraction;
+mod icon_atlas;
 mod replay;
 mod runtime_draw_list;
 mod stats;
@@ -50,8 +53,9 @@ pub(in crate::ui::retained_host::host_contract) fn build_chrome_command_stream_w
     is_resident: impl FnMut(&str, u64) -> bool,
 ) -> ChromeCommandStream {
     let surface_size = clamp_surface_size(surface_size);
-    let extraction =
+    let mut extraction =
         extract_chrome_commands(presentation, surface_size, damage, include_image_bytes);
+    icon_atlas::pack_editor_icons_into_atlas(&mut extraction.commands);
     let mut stream = if let Some(damage) = extraction.clipped_damage.clone() {
         ChromeCommandStream::patch(surface_size, damage.clone())
     } else {

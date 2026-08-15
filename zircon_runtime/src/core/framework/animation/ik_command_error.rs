@@ -23,4 +23,12 @@ pub enum AnimationIkCommandError {
     },
     #[error("IK command queue for {world:?} reached its {capacity}-command capacity")]
     QueueFull { world: WorldHandle, capacity: usize },
+    #[error(
+        "IK command for {world:?} belongs to retired replacement epoch {submitted_epoch}; current epoch is {current_epoch}"
+    )]
+    StaleReplacementEpoch {
+        world: WorldHandle,
+        submitted_epoch: u64,
+        current_epoch: u64,
+    },
 }

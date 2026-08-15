@@ -31,6 +31,10 @@ members = [
     "ai/runtime",
     "ai/dist",
     "ai/editor",
+    "neural/runtime",
+    "neural/dist",
+    "neural/editor",
+    "neural/features/post_process/runtime",
     "physics/runtime",
     "physics/dist",
     "physics/editor",
@@ -137,6 +141,11 @@ members = [
     "native_dynamic_fixture/native",
 ]
 resolver = "2"
+
+[profile.profiling]
+inherits = "release"
+debug = true
+strip = false
 
 [workspace.package]
 version = "0.1.0"

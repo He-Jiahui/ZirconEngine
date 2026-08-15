@@ -25,6 +25,7 @@ pub use self::bake::{
     NavMeshBakeTaskHandle, NavMeshBakeTaskState, NavMeshDirtyBakeReport, NavMeshDirtyBounds,
 };
 use self::state::NavigationRuntimeState;
+use crate::NavigationOverlayFrame;
 
 #[derive(Clone, Debug)]
 pub struct DefaultNavigationManager {
@@ -99,6 +100,20 @@ impl DefaultNavigationManager {
         loaded
     }
 
+    pub fn navigation_overlay_frame(
+        &self,
+        tick_report: NavAgentTickReport,
+    ) -> NavigationOverlayFrame {
+        let state = self.lock_state();
+        let mut loaded = state.loaded.iter().collect::<Vec<_>>();
+        loaded.sort_by_key(|(handle, _)| handle.0);
+        NavigationOverlayFrame::from_assets(
+            state.overlay_generation,
+            loaded.into_iter().map(|(_, asset)| asset),
+            tick_report,
+        )
+    }
+
     pub(in crate::manager) fn begin_bake_generation(&self, surface: Option<u64>) -> u64 {
         let mut state = self.lock_state();
         state.advance_bake_context(surface)
@@ -163,6 +178,7 @@ impl DefaultNavigationManager {
         state.next_handle += 1;
         state.loaded.insert(handle, asset);
         state.stats.loaded_nav_meshes = state.loaded.len();
+        state.advance_overlay_generation();
         Ok(handle)
     }
 

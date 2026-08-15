@@ -6,8 +6,8 @@ pub(in super::super) const EXPECTED_RUNTIME_10_FUNCTION_TABLES: &[(&str, &str, u
     ),
     (
         "zircon_runtime_interface/src/runtime_api/api_table.rs",
-        "ZrRuntimeApiV2",
-        19,
+        "ZrRuntimeApiV6",
+        24,
     ),
     (
         "zircon_runtime_interface/src/plugin_api.rs",
@@ -79,4 +79,8 @@ pub(in super::super) const EXPECTED_RUNTIME_10_SESSION_OPERATIONS: &[&str] = &[
     "submit_operation",
     "poll_operation",
     "harvest_operation",
+    "query_world",
+    "watch_world",
+    "unwatch_world",
+    "drain_world_invalidations",
 ];

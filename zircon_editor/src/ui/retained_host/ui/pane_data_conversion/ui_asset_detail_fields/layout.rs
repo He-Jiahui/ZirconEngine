@@ -1,6 +1,6 @@
 use crate::ui::asset_editor;
 
-use super::row_model::{UiAssetDetailFieldRow, push_detail_row, semantic_label};
+use super::row_model::{push_detail_row, semantic_label, UiAssetDetailFieldRow};
 
 pub(super) fn layout_detail_rows(
     data: &asset_editor::UiAssetEditorPanePresentation,

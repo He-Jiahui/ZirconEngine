@@ -35,6 +35,15 @@ impl WorkbenchShellGeometry {
             .unwrap_or_default()
     }
 
+    pub(crate) fn shares_mounted_layout_frames_with(&self, other: &Self) -> bool {
+        self.center_band_frame == other.center_band_frame
+            && self.status_bar_frame == other.status_bar_frame
+            && self.region_frames == other.region_frames
+            && self.splitter_frames == other.splitter_frames
+            && self.floating_window_frames == other.floating_window_frames
+            && self.viewport_content_frame == other.viewport_content_frame
+    }
+
     /// Converts the finished logical layout to the physical host coordinate space once.
     pub(crate) fn scaled_to_physical(mut self, resolution: ResolutionContext) -> Self {
         self.window_min_width = resolution.to_physical(self.window_min_width);
@@ -52,6 +61,24 @@ impl WorkbenchShellGeometry {
             *frame = scale_frame(*frame, resolution);
         }
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mounted_frame_reuse_ignores_window_constraints_but_not_visible_geometry() {
+        let previous = WorkbenchShellGeometry::default();
+        let mut next = previous.clone();
+        next.window_min_width = 720.0;
+        next.window_min_height = 480.0;
+
+        assert!(previous.shares_mounted_layout_frames_with(&next));
+
+        next.viewport_content_frame = ShellFrame::new(1.0, 0.0, 0.0, 0.0);
+        assert!(!previous.shares_mounted_layout_frames_with(&next));
     }
 }
 

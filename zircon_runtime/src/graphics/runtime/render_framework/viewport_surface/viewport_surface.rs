@@ -19,7 +19,7 @@ pub(in crate::graphics::runtime::render_framework) fn bind_viewport_surface(
     }
     let surface = state
         .renderer
-        .create_viewport_surface(descriptor)
+        .create_framework_viewport_surface(descriptor)
         .map_err(render_framework_backend_error)?;
     let record =
         state
@@ -28,7 +28,7 @@ pub(in crate::graphics::runtime::render_framework) fn bind_viewport_surface(
             .ok_or(RenderFrameworkError::UnknownViewport {
                 viewport: viewport.raw(),
             })?;
-    record.bind_surface(surface.into_backend_surface());
+    record.bind_surface(surface);
     Ok(())
 }
 

@@ -85,17 +85,27 @@ fn build_text_hud_extract(text: String, viewport_size: UVec2) -> UiRenderExtract
 }
 
 fn collect_hud_text(world: &World) -> Option<String> {
-    for node in world.node_records() {
-        for component_id in HUD_COMPONENT_IDS {
-            let Some(value) = world.dynamic_component(node.id, component_id) else {
-                continue;
-            };
-            if let Some(text) = hud_text_from_value(value) {
-                return Some(text);
+    let mut rows = Vec::new();
+    let mut selected = None;
+    for (component_priority, component_id) in HUD_COMPONENT_IDS.into_iter().enumerate() {
+        world.dynamic_component_rows(component_id, &mut rows);
+        let Some((entity, text)) = rows
+            .iter()
+            .find_map(|(entity, value)| hud_text_from_value(value).map(|text| (*entity, text)))
+        else {
+            continue;
+        };
+        let should_replace = match &selected {
+            Some((selected_entity, selected_priority, _)) => {
+                (entity, component_priority) < (*selected_entity, *selected_priority)
             }
+            None => true,
+        };
+        if should_replace {
+            selected = Some((entity, component_priority, text));
         }
     }
-    None
+    selected.map(|(_, _, text)| text)
 }
 
 fn hud_text_from_value(value: &serde_json::Value) -> Option<String> {
@@ -175,6 +185,41 @@ mod tests {
         assert!(panel.frame.width >= HUD_MIN_WIDTH);
         assert!(text.frame.x > panel.frame.x);
         assert!(text.frame.y > panel.frame.y);
+    }
+
+    #[test]
+    fn runtime_session_fallback_ui_hud_lookup_uses_the_dynamic_component_sparse_index() {
+        let source = include_str!("hud.rs");
+        let start = source
+            .find("fn collect_hud_text(")
+            .expect("HUD component lookup");
+        let end = source[start..]
+            .find("\nfn hud_text_from_value(")
+            .map(|offset| start + offset)
+            .expect("HUD component lookup end");
+        let lookup_source = &source[start..end];
+        assert!(lookup_source.contains("dynamic_component_rows"));
+        assert!(!lookup_source.contains("node_records()"));
+
+        let mut world = World::empty();
+        for _ in 0..4_096 {
+            world.spawn_node(NodeKind::Empty);
+        }
+        let entity = world.spawn_node(NodeKind::Empty);
+        world
+            .set_dynamic_component(
+                entity,
+                "gameplay.hud_text",
+                serde_json::json!("Indexed HUD"),
+            )
+            .unwrap();
+
+        let extract = runtime_session_hud_extract(&world, UVec2::new(800, 600)).unwrap();
+        assert!(extract
+            .list
+            .commands
+            .iter()
+            .any(|command| command.text.as_deref() == Some("Indexed HUD")));
     }
 
     #[test]

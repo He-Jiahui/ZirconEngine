@@ -1,6 +1,6 @@
 use crate::core::framework::scene::ComponentPropertyPath;
 use crate::core::framework::scene::{ComponentPropertyDescriptor, ComponentTypeDescriptor};
-use crate::scene::{EntityId, World, reflect::ReflectComponent};
+use crate::scene::{reflect::ReflectComponent, EntityId, World};
 use zircon_runtime_interface::reflect::{
     ReflectEditorHint, ReflectError, ReflectFieldInfo, ReflectFieldValue,
     ReflectSerializationStrategy, ReflectTypeInfo, ReflectTypePath, ReflectTypeRegistration,
@@ -48,6 +48,7 @@ pub fn reflect_component_for_dynamic_descriptor(
     )
     .with_dense_field_slots(read_dense_slot, write_dense_slot)
     .with_dense_field_batch_write(write_dense_slots)
+    .with_stage_clone(stage_clone)
 }
 
 fn field_from_property_descriptor(
@@ -88,6 +89,22 @@ fn short_type_path(type_path: &str) -> &str {
 
 fn contains(world: &World, entity: EntityId, type_path: &str) -> bool {
     world.contains_entity(entity) && world.dynamic_component(entity, type_path).is_some()
+}
+
+fn stage_clone(
+    source: &World,
+    entity: EntityId,
+    type_path: &str,
+    target: &mut World,
+) -> Result<(), ReflectError> {
+    let value = ensure_dynamic_component(source, entity, type_path)?.clone();
+    target
+        .set_dynamic_component(entity, type_path, value)
+        .map(|_| ())
+        .map_err(|error| ReflectError::UnsupportedConversion {
+            source: error.to_string(),
+            target: format!("dynamic component `{type_path}` staged clone"),
+        })
 }
 
 fn read_field(
@@ -366,7 +383,7 @@ mod tests {
     use crate::core::framework::scene::ComponentTypeDescriptor;
     use crate::scene::{NodeKind, World};
 
-    use super::reflect_component_for_dynamic_descriptor;
+    use super::{reflect_component_for_dynamic_descriptor, registration_from_component_descriptor};
 
     #[test]
     fn dense_batch_write_publishes_one_dynamic_component_mutation() {
@@ -406,6 +423,74 @@ mod tests {
         assert_eq!(
             world.dynamic_component(entity, &descriptor.type_id),
             Some(&json!({"first": 3.0, "second": 4.0}))
+        );
+    }
+
+    #[test]
+    fn dynamic_component_stage_clone_preserves_json_in_preflight_world() {
+        let descriptor = ComponentTypeDescriptor::new(
+            "runtime.tests.DynamicStagedComponent",
+            "runtime.tests",
+            "Dynamic Staged Component",
+        )
+        .with_property("value", "Scalar", true);
+        let unselected_descriptor = ComponentTypeDescriptor::new(
+            "runtime.tests.DynamicUnselectedComponent",
+            "runtime.tests",
+            "Dynamic Unselected Component",
+        )
+        .with_property("value", "Scalar", true);
+        let mut source = World::empty();
+        let selected_registration = registration_from_component_descriptor(&descriptor)
+            .expect("selected VM registration must derive from its descriptor");
+        source
+            .sync_vm_types(std::slice::from_ref(&selected_registration))
+            .expect("source VM catalog must register the selected descriptor");
+        source
+            .register_component_type(unselected_descriptor.clone())
+            .expect("unselected source dynamic component descriptor must register");
+        let entity = source.spawn_node(NodeKind::Empty);
+        source
+            .set_dynamic_component(entity, &descriptor.type_id, json!({"value": 5.0}))
+            .expect("source dynamic component must attach");
+        source
+            .set_dynamic_component(
+                entity,
+                &unselected_descriptor.type_id,
+                json!({"value": 9.0}),
+            )
+            .expect("unselected source dynamic component must attach");
+
+        let mut preflight = source.dynamic_scene_preflight_world([
+            selected_registration.type_path.short_type_path.as_str(),
+            descriptor.type_id.as_str(),
+        ]);
+        assert!(preflight
+            .component_type_descriptor(&descriptor.type_id)
+            .is_some());
+        assert!(preflight.type_registry().contains(&descriptor.type_id));
+        assert!(preflight
+            .component_type_descriptor(&unselected_descriptor.type_id)
+            .is_none());
+        assert!(!preflight
+            .type_registry()
+            .contains(&unselected_descriptor.type_id));
+        preflight
+            .insert_owned_node_records(vec![source
+                .node_record(entity)
+                .expect("source node record")])
+            .expect("preflight identity must be restored before component staging");
+
+        source
+            .stage_reflected_component_clone(entity, &descriptor.type_id, &mut preflight)
+            .expect("dynamic component staging must succeed");
+        assert_eq!(
+            preflight.dynamic_component(entity, &descriptor.type_id),
+            Some(&json!({"value": 5.0}))
+        );
+        assert_eq!(
+            preflight.dynamic_component(entity, &unselected_descriptor.type_id),
+            None
         );
     }
 }

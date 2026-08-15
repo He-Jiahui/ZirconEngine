@@ -1,6 +1,6 @@
 use super::{
-    IBL_BAKE_CUBE_FACE_COUNT, IblBakeComputeKernelKind, IblBakeWgpuCommandPlan,
-    ibl_bake_wgpu_command_plan_for_request,
+    ibl_bake_wgpu_command_plan_for_request, IblBakeComputeKernelKind, IblBakeWgpuCommandPlan,
+    IBL_BAKE_CUBE_FACE_COUNT,
 };
 use crate::core::framework::render::IblBakeArtifactRequest;
 use crate::graphics::scene::scene_renderer::environment::realtime_ibl_time_slice::RealtimeIblPrefilterDispatchSlice;
@@ -26,7 +26,13 @@ pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_wgpu_prefilter_comman
                 }
         })?;
     command.params.words[5] = u32::from(slice.first_face);
-    command.dispatch_groups[2] = u32::from(slice.face_count);
+    let writes_all_faces = command.params.words[7] == 1.0_f32.to_bits()
+        && slice.first_face == 0
+        && slice.face_count == IBL_BAKE_CUBE_FACE_COUNT as u8;
+    if !writes_all_faces {
+        command.params.words[7] = 0;
+        command.dispatch_groups[2] = u32::from(slice.face_count);
+    }
     command.readback_copies.clear();
     Some(command)
 }

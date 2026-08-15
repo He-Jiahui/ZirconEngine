@@ -14,17 +14,19 @@ pub use contract::{
     ImportedAssetEntry,
 };
 pub use environment_ibl::{
-    ENVIRONMENT_IBL_FACE_SIZE_IMPORT_SETTING, ENVIRONMENT_IBL_IMPORT_SETTING,
-    EnvironmentIblSourceStagingError, EnvironmentIblSourceStagingReport,
-    EnvironmentIblSourceStagingStatus, stage_environment_ibl_source,
-    stage_environment_ibl_source_with_parallel_executor,
+    environment_ibl_request_for_dimensions, restore_environment_ibl_source_if_current,
+    stage_environment_ibl_source, stage_environment_ibl_source_with_parallel_executor,
     stage_environment_ibl_source_with_parallel_executor_and_decoded_image,
-    stage_external_source_cubemap_texture,
+    stage_external_source_cubemap_texture, EnvironmentIblSourceStagingError,
+    EnvironmentIblSourceStagingOutput, EnvironmentIblSourceStagingReport,
+    EnvironmentIblSourceStagingRestore, EnvironmentIblSourceStagingStatus,
+    EnvironmentIblSourceStagingTiming, ENVIRONMENT_IBL_FACE_SIZE_IMPORT_SETTING,
+    ENVIRONMENT_IBL_IMPORT_SETTING,
 };
 pub use error::AssetImportError;
 pub use image_decode::{
-    DecodedTextureImage, DecodedTextureImageRgba32F, decode_texture_source_image,
-    decode_texture_source_image_rgba32f,
+    decode_texture_source_image, decode_texture_source_image_rgba32f, DecodedTextureImage,
+    DecodedTextureImageRgba32F,
 };
 pub use ingest::AssetImporter;
 pub use native::{

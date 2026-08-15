@@ -1,14 +1,14 @@
 use zircon_runtime::core::framework::script::{
-    ScriptHostFunctionDescriptor, ScriptHostPrototypeKind,
+    ScriptHostArguments, ScriptHostFunctionDescriptor, ScriptHostPrototypeKind,
 };
 use zircon_runtime::script::{CapabilitySet, ScriptCallSite, VmError, VmPluginHostContext};
 use zr_vm_rust_binding as zrvm;
 
-use super::ZrVmRegistration;
 use super::errors::{map_zr_error, zr_error};
 use super::extension_host::register_extension_host_module;
 use super::reflection_host::register_reflection_host_module;
-use super::values::{read_host_arguments_for_function, to_zr_value_for_function};
+use super::values::{to_zr_value_for_function, ZrVmScriptHostArgumentSource};
+use super::ZrVmRegistration;
 use crate::ReflectionHostModule;
 
 pub(super) struct RegisteredHostModules {
@@ -127,12 +127,14 @@ fn build_native_function(
     let (min, max) = validate_native_function_arity(module_name, function)?;
     let callback_label = label.clone();
     let mut builder = zrvm::FunctionBuilder::new(&function.name, min, max, move |context| {
-        let arguments = read_host_arguments_for_function(context, &callback_label)?;
-        let value = call_site.call(arguments, &capabilities).map_err(|error| {
-            zr_error(format!(
-                "zr_vm host callback {callback_label} failed: {error}"
-            ))
-        })?;
+        let argument_source = ZrVmScriptHostArgumentSource::new(context, &callback_label)?;
+        let value = call_site
+            .call(ScriptHostArguments::new(&argument_source), &capabilities)
+            .map_err(|error| {
+                zr_error(format!(
+                    "zr_vm host callback {callback_label} failed: {error}"
+                ))
+            })?;
         to_zr_value_for_function(value, &callback_label)
     })
     .return_type(&function.return_type.type_name);

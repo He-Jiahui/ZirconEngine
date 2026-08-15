@@ -81,13 +81,19 @@ mod template_viewport_scene_surfaces;
 mod template_weight_heatmap;
 mod visual_assets;
 
-pub(crate) use sprite_atlas::{copy_editor_sprite_atlas_rgba, invalidate_editor_sprite_atlas_cache};
-pub(in crate::ui::retained_host) use visual_assets::clear_visual_asset_pixels_cache;
+pub(crate) use sprite_atlas::{
+    copy_editor_sprite_atlas_rgba, invalidate_editor_sprite_atlas_cache,
+};
 pub(super) use template_node_pipeline::{
     draw_template_nodes, draw_template_nodes_with_transform, has_template_nodes,
     TemplateNodePaintTransform,
 };
 pub(super) use template_viewport_scene::is_viewport_fallback_scene_node;
+pub(in crate::ui::retained_host) use visual_assets::{
+    clear_svg_tree_cache, clear_visual_asset_pixels_cache, invalidate_svg_tree_paths,
+    invalidate_visual_asset_pixel_paths, reconcile_svg_tree_sources,
+    reconcile_visual_asset_pixel_sources,
+};
 
 #[cfg(test)]
 pub(crate) use render_commands::paint_runtime_render_commands_for_test;

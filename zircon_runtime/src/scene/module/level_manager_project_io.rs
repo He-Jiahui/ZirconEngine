@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::asset::project::ProjectManager;
 use crate::core::framework::scene::{SceneArtifactTicket, WorldHandle};
-use crate::core::resource::io::atomic_file::atomic_write;
+use crate::core::resource::io::atomic_write;
 use crate::core::resource::ResourceLocator;
 use crate::core::runtime::BoundedKeyedIoFailure;
 

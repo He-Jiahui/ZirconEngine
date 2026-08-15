@@ -1,6 +1,9 @@
 use std::collections::BTreeMap;
 
-use crate::ui::layouts::views::view_projection::build_view_template_nodes;
+use crate::ui::layouts::views::view_projection::{
+    AssetWorkspaceProjectionGeneration, build_view_template_node_projection,
+    compose_view_template_node_model,
+};
 use crate::ui::layouts::windows::workbench_host_window::AssetsActivityPaneViewData;
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::workbench::asset_content_layout::{
@@ -156,16 +159,9 @@ pub(crate) fn assets_activity_pane_data(
         "AssetsActivityReferencesTabButton".to_string(),
         "References".to_string(),
     );
-    text_overrides.insert(
-        "SearchEdited".to_string(),
-        if snapshot.search_query.is_empty() {
-            "Search".to_string()
-        } else {
-            snapshot.search_query.clone()
-        },
-    );
+    text_overrides.insert("SearchEdited".to_string(), snapshot.search_query.clone());
 
-    let mut nodes = build_view_template_nodes(
+    let Ok(projection) = build_view_template_node_projection(
         "assets_activity.template_projection",
         ASSETS_ACTIVITY_LAYOUT_ASSET_PATH,
         &[(
@@ -174,35 +170,57 @@ pub(crate) fn assets_activity_pane_data(
         )],
         size,
         &text_overrides,
-    )
-    .unwrap_or_default();
-    append_assets_activity_content_nodes(&mut nodes, snapshot);
-    if snapshot.utility_tab == AssetUtilityTab::References {
-        sync_assets_activity_reference_nodes(&mut nodes, snapshot);
-    }
-    apply_assets_activity_visual_state(&mut nodes, snapshot);
-    apply_assets_activity_responsive_layout(&mut nodes, snapshot, size);
-    if snapshot.utility_tab == AssetUtilityTab::References {
-        apply_assets_activity_reference_layout(&mut nodes);
-    }
-    apply_assets_activity_content_layout(&mut nodes, snapshot);
+    ) else {
+        return AssetsActivityPaneViewData {
+            nodes: ModelRc::default(),
+        };
+    };
+    let generation = AssetWorkspaceProjectionGeneration::from_snapshot(snapshot);
+    let nodes = compose_view_template_node_model(
+        "assets_activity.template_composition",
+        projection,
+        &generation,
+        |nodes| {
+            append_assets_activity_content_nodes(nodes, snapshot);
+            if snapshot.utility_tab == AssetUtilityTab::References {
+                sync_assets_activity_reference_nodes(nodes, snapshot);
+            }
+            apply_assets_activity_visual_state(nodes, snapshot);
+            apply_assets_activity_responsive_layout(nodes, snapshot, size);
+            if snapshot.utility_tab == AssetUtilityTab::References {
+                apply_assets_activity_reference_layout(nodes);
+            }
+            apply_assets_activity_content_layout(nodes, snapshot);
 
-    let metadata = asset_content_paint_metadata(
-        nodes.iter().map(|node| {
-            AssetContentPaintNodeInput::new(
-                node.control_id.as_str(),
-                node.frame.x,
-                node.frame.y,
-                node.frame.width,
-                node.frame.height,
-                node.value_number,
+            asset_content_paint_metadata(
+                nodes.iter().map(|node| {
+                    AssetContentPaintNodeInput::new(
+                        node.control_id.as_str(),
+                        node.frame.x,
+                        node.frame.y,
+                        node.frame.width,
+                        node.frame.height,
+                        node.value_number,
+                    )
+                }),
+                AssetContentSurface::Activity,
             )
-        }),
-        AssetContentSurface::Activity,
+        },
     );
-    AssetsActivityPaneViewData {
-        nodes: ModelRc::with_metadata(nodes, metadata),
-    }
+    AssetsActivityPaneViewData { nodes }
+}
+
+#[cfg(test)]
+#[test]
+fn stable_assets_activity_snapshot_reuses_the_composed_model() {
+    super::view_projection::clear_view_template_projection_caches_for_tests();
+    let snapshot = AssetWorkspaceSnapshot::default();
+    let size = UiSize::new(420.0, 360.0);
+
+    let first = assets_activity_pane_data(&snapshot, size);
+    let stable = assets_activity_pane_data(&snapshot, size);
+
+    assert!(first.nodes.shares_values_with(&stable.nodes));
 }
 
 fn apply_assets_activity_visual_state(

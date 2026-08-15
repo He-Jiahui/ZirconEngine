@@ -4,6 +4,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use super::super::super::behavior_calls::NativePluginBehavior;
+use super::super::super::benchmark_harness::{BenchmarkMeasurement, BenchmarkRunMetadata};
 use super::super::super::registration_manifest::{
     NativeSystemAccessAuthorityError, NATIVE_SYSTEM_WORKER_SAFE_CAPABILITY,
 };
@@ -674,46 +675,121 @@ fn replay_and_run_interleaved_registration(
 }
 
 #[test]
-#[ignore = "manual native registration replay scale evidence"]
-fn native_registration_replay_scale_benchmark_builds_one_context_per_plugin() {
-    for system_count in [1, 100, 1_000] {
-        for method_count in [1, 100] {
-            let host = NativePluginLiveHost::default();
-            let mut load_report = NativePluginLoadReport::default();
-            load_report.push_loaded(native_registration_replay_scale_plugin(
-                system_count,
-                method_count,
-            ));
-            host.load_reported_plugins(load_report, PluginModuleKind::Runtime)
-                .expect("scale fixture should load");
-            let started = Instant::now();
+#[ignore = "manual native registration replay benchmark: 1 system, 1 method"]
+fn native_registration_replay_1_systems_1_methods_benchmark() {
+    run_native_registration_replay_benchmark(1, 1);
+}
 
-            let replay = host
-                .replay_runtime_plugin_registration_manifest_via_bridge_result(
-                    &mut RuntimeExtensionRegistry::default(),
-                    &native_live_host_bridge_lifecycle_state(false),
-                    "physics",
-                )
-                .expect("scale fixture should replay");
-            let elapsed = started.elapsed();
-            let counts = host.registration_replay_context_build_counts();
+#[test]
+#[ignore = "manual native registration replay benchmark: 1 system, 100 methods"]
+fn native_registration_replay_1_systems_100_methods_benchmark() {
+    run_native_registration_replay_benchmark(1, 100);
+}
 
-            assert_eq!(replay.registered_systems.len(), system_count);
-            assert_eq!(counts.registration_manifest_parses, 1);
-            assert_eq!(counts.registration_system_preparations, system_count);
-            assert_eq!(counts.package_manifest_snapshots, 0);
-            assert_eq!(counts.binding_snapshots, 0);
-            assert_eq!(counts.method_lookup_builds, 1);
-            assert_eq!(counts.bridge_call_scope_builds, 1);
-            eprintln!(
-                "native registration replay: systems={system_count} methods={method_count} \
-                 elapsed_us={} registration_manifest_parses=1 prepared_systems={} manifest_snapshots=0 binding_snapshots=0 method_lookup_builds=1 \
-                 bridge_call_scope_builds=1",
-                elapsed.as_micros(),
-                system_count,
-            );
-        }
-    }
+#[test]
+#[ignore = "manual native registration replay benchmark: 100 systems, 1 method"]
+fn native_registration_replay_100_systems_1_methods_benchmark() {
+    run_native_registration_replay_benchmark(100, 1);
+}
+
+#[test]
+#[ignore = "manual native registration replay benchmark: 100 systems, 100 methods"]
+fn native_registration_replay_100_systems_100_methods_benchmark() {
+    run_native_registration_replay_benchmark(100, 100);
+}
+
+#[test]
+#[ignore = "manual native registration replay benchmark: 1000 systems, 1 method"]
+fn native_registration_replay_1000_systems_1_methods_benchmark() {
+    run_native_registration_replay_benchmark(1_000, 1);
+}
+
+#[test]
+#[ignore = "manual native registration replay benchmark: 1000 systems, 100 methods"]
+fn native_registration_replay_1000_systems_100_methods_benchmark() {
+    run_native_registration_replay_benchmark(1_000, 100);
+}
+
+fn run_native_registration_replay_benchmark(system_count: usize, method_count: usize) {
+    let metadata = BenchmarkRunMetadata::from_environment(
+        "native_registration_replay",
+        format!("systems={system_count},methods={method_count}"),
+    )
+    .expect("benchmark metadata must be bound to a managed optimized-profile run");
+
+    replay_native_registration_scale_fixture(system_count, method_count);
+    let host = native_registration_replay_scale_host(system_count, method_count);
+    let lifecycle = native_live_host_bridge_lifecycle_state(false);
+    let mut registry = RuntimeExtensionRegistry::default();
+    let started = Instant::now();
+    let replay = host
+        .replay_runtime_plugin_registration_manifest_via_bridge_result(
+            &mut registry,
+            &lifecycle,
+            "physics",
+        )
+        .expect("scale fixture should replay");
+    let elapsed = started.elapsed();
+    let counts = host.registration_replay_context_build_counts();
+
+    assert_eq!(replay.registered_systems.len(), system_count);
+    assert_eq!(counts.registration_manifest_parses, 1);
+    assert_eq!(counts.registration_system_preparations, system_count);
+    assert_eq!(counts.package_manifest_snapshots, 0);
+    assert_eq!(counts.binding_snapshots, 0);
+    assert_eq!(counts.method_lookup_builds, 1);
+    assert_eq!(counts.bridge_call_scope_builds, 1);
+    metadata.emit(BenchmarkMeasurement {
+        warmup_operations: 1,
+        measured_operations: 1,
+        elapsed,
+        counters: &[
+            (
+                "registration_manifest_parses",
+                counts.registration_manifest_parses as u64,
+            ),
+            (
+                "registration_system_preparations",
+                counts.registration_system_preparations as u64,
+            ),
+            (
+                "package_manifest_snapshots",
+                counts.package_manifest_snapshots as u64,
+            ),
+            ("binding_snapshots", counts.binding_snapshots as u64),
+            ("method_lookup_builds", counts.method_lookup_builds as u64),
+            (
+                "bridge_call_scope_builds",
+                counts.bridge_call_scope_builds as u64,
+            ),
+        ],
+        latency_sample: None,
+    });
+}
+
+fn replay_native_registration_scale_fixture(system_count: usize, method_count: usize) {
+    let host = native_registration_replay_scale_host(system_count, method_count);
+    host.replay_runtime_plugin_registration_manifest_via_bridge_result(
+        &mut RuntimeExtensionRegistry::default(),
+        &native_live_host_bridge_lifecycle_state(false),
+        "physics",
+    )
+    .expect("registration replay warm-up should succeed");
+}
+
+fn native_registration_replay_scale_host(
+    system_count: usize,
+    method_count: usize,
+) -> NativePluginLiveHost {
+    let host = NativePluginLiveHost::default();
+    let mut load_report = NativePluginLoadReport::default();
+    load_report.push_loaded(native_registration_replay_scale_plugin(
+        system_count,
+        method_count,
+    ));
+    host.load_reported_plugins(load_report, PluginModuleKind::Runtime)
+        .expect("scale fixture should load");
+    host
 }
 
 fn native_live_host_dist_system_plugin() -> LoadedNativePlugin {

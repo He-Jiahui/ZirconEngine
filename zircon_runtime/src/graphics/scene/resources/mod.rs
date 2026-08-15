@@ -13,7 +13,7 @@ mod ui_texture;
 
 pub(crate) use fallback::fallback_shader_uri;
 pub(crate) use gpu_material_uniform::{
-    GpuMaterialUniformResource, GPU_MATERIAL_UNIFORM_MIN_SIZE, standard_material_uniform_contents,
+    standard_material_uniform_contents, GpuMaterialUniformResource, GPU_MATERIAL_UNIFORM_MIN_SIZE,
 };
 pub(crate) use gpu_mesh::{GpuMeshResource, GpuMeshVertex};
 pub(crate) use gpu_model::GpuModelResource;

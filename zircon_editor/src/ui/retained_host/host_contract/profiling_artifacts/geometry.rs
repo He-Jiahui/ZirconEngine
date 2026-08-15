@@ -51,7 +51,7 @@ impl UiProfileGeometry {
         let hit_samples = collect_hit_samples(&clickable_frames, presentation);
 
         Self {
-            schema_version: 1,
+            schema_version: 2,
             presenter_backend: backend.label(),
             window_client_size: UiProfileSize {
                 width: size.width,
@@ -66,6 +66,7 @@ impl UiProfileGeometry {
             viewport_frame: visible_profile_frame(&presentation.host_layout.viewport_content_frame),
             viewport_toolbar_controls: pane_controls.viewport_toolbar_controls,
             template_controls: pane_controls.template_controls,
+            welcome_recent_frame: pane_controls.welcome_recent_frame,
             clickable_frames,
             hit_samples,
         }

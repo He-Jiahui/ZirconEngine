@@ -3,8 +3,8 @@ use std::time::{Duration, Instant};
 use crate::{
     asset::{AssetEvent, SceneAsset},
     scene::{
-        EntityRemap,
         dynamic_scene::{DynamicSceneError, PreparedDynamicSceneSpawn},
+        EntityRemap,
     },
 };
 

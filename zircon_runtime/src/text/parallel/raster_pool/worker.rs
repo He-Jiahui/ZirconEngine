@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
 use crate::core::framework::channel::ChannelSender;
-use crate::text::raster::SwashRasterizer;
+use crate::text::raster::{GlyphBitmapError, SwashRasterError, SwashRasterizer};
 use crossbeam_channel::SendTimeoutError;
 
 use super::super::completion_queue::CompletionByteBudget;
@@ -84,20 +84,27 @@ fn publish_completion(
     work_state: &Mutex<TextRasterWorkerWorkState>,
     diagnostics: &Mutex<TextRasterWorkerPoolDiagnostics>,
     completion_byte_budget: &CompletionByteBudget,
-    result: TextRasterWorkResult,
+    mut result: TextRasterWorkResult,
 ) {
-    let failed = result.result.is_err();
     let result_id = result.id;
-    let result_bytes = result.byte_count();
-    if !completion_byte_budget.reserve_while(result_bytes, || {
-        is_worker_work_cancelled(work_state, result_id)
-    }) {
-        let _ = finish_worker_work(work_state, diagnostics, result_id, failed);
-        return;
+    let mut result_bytes = result.byte_count();
+    if !completion_byte_budget.try_reserve(result_bytes) {
+        record_completion_budget_rejected(diagnostics, result_bytes);
+        result.result = Err(SwashRasterError::InvalidGlyphBitmap(
+            GlyphBitmapError::DataLengthMismatch {
+                expected: 0,
+                actual: result_bytes,
+            },
+        ));
+        result_bytes = 0;
+        if !completion_byte_budget.try_reserve(result_bytes) {
+            let _ = finish_worker_work(work_state, diagnostics, result_id, true);
+            return;
+        }
     }
+    let failed = result.result.is_err();
     record_completion_backlog(diagnostics, result_bytes);
 
-    let mut result = result;
     loop {
         if finish_cancelled_work(work_state, diagnostics, result_id) {
             completion_byte_budget.release(result_bytes);
@@ -182,6 +189,18 @@ pub(super) fn record_completion_backpressured(
 ) {
     let mut diagnostics = lock_worker_diagnostics(diagnostics);
     diagnostics.completion_backpressured = diagnostics.completion_backpressured.saturating_add(1);
+}
+
+pub(super) fn record_completion_budget_rejected(
+    diagnostics: &Mutex<TextRasterWorkerPoolDiagnostics>,
+    result_bytes: usize,
+) {
+    let mut diagnostics = lock_worker_diagnostics(diagnostics);
+    diagnostics.completion_budget_rejected =
+        diagnostics.completion_budget_rejected.saturating_add(1);
+    diagnostics.completion_rejected_bytes = diagnostics
+        .completion_rejected_bytes
+        .saturating_add(result_bytes as u64);
 }
 
 fn finish_cancelled_work(

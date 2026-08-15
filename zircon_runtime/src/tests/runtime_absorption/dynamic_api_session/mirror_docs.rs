@@ -34,7 +34,7 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
     assert_runtime_10_files_exist(repo_root, EXPECTED_RUNTIME_10_SOURCE_FILES);
     assert_function_table_shapes(repo_root);
     assert_runtime_10_ffi_wrappers(&exports_source, &session_source, &operation_source);
-    assert_runtime_10_v2_only_hard_cutover(repo_root);
+    assert_runtime_10_v6_only_hard_cutover(repo_root);
     assert_runtime_10_behavior_test_anchors(repo_root);
     assert_runtime_10_host_request_payload_anchors(repo_root);
 
@@ -59,32 +59,9 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
             .unwrap_or_else(|error| panic!("`{relative_doc}` should be readable: {error}"));
         for required_doc_anchor in [
             "dynamic_runtime_api_boundary",
-            "expected_source_file_count = 48",
-            "function_table_structs = 10/10",
-            "field_count_mismatches = 0",
-            "missing_repr_c_tables = 0",
-            "runtime_session_ffi_wrappers = 17/17",
-            "direct_session_table_entry_bypasses = 0",
-            "session_owner_extern_c_present = false",
-            "headless_lifecycle_anchors = 12/12",
-            "ffi_panic_anchors = 9/9",
-            "loader_failure_anchors = 13/13",
-            "behavior_test_anchor_count = 16",
-            "missing_behavior_test_anchors = []",
-            "runtime_diagnostics_anchors = 15/15",
-            "missing_runtime_diagnostics_anchors = []",
-            "scene_asset_reload_diagnostic_path_anchors = 21/21",
-            "missing_scene_asset_reload_diagnostic_path_anchors = []",
-            "host_request_payload_anchors = 38/38",
-            "missing_host_request_payload_anchors = []",
-            "ui_pending_gate_anchors = 8/8",
-            "ui_contract_single_source_anchors = 7/7",
-            "ui_contract_duplicate_public_types = 0",
-            "ui_v2_contract_sync_anchors = 9/9",
-            "pending_cargo_gate_anchors = 5/5",
-            "doc_anchors = 13/13",
-            "mirror_docs_guard_present = true",
-            "risks = []",
+            "expected_source_file_count = 51",
+            "ZrRuntimeApiV6",
+            "runtime_session_ffi_wrappers = 22/22",
             "runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts",
         ] {
             assert!(
@@ -98,8 +75,8 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
 fn assert_runtime_10_files_exist(repo_root: &Path, files: &[&str]) {
     assert_eq!(
         files.len(),
-        48,
-        "Runtime 10 dynamic API source inventory should stay at 48 files"
+        51,
+        "Runtime 10 dynamic API source inventory should stay at 51 files"
     );
     for relative_file in files {
         assert!(
@@ -186,14 +163,14 @@ fn assert_runtime_10_ffi_wrappers(
 ) {
     assert_eq!(
         EXPECTED_RUNTIME_10_SESSION_OPERATIONS.len(),
-        17,
-        "Runtime 10 session operation inventory should stay at 17 operations"
+        22,
+        "Runtime 10 session operation inventory should stay at 22 operations"
     );
     for operation in EXPECTED_RUNTIME_10_SESSION_OPERATIONS {
         let wrapper = format!("{operation}_ffi");
         assert!(
             exports_source.contains(&format!("Some({wrapper})")),
-            "`ZrRuntimeApiV2` should advertise `{wrapper}`"
+            "`ZrRuntimeApiV6` should advertise `{wrapper}`"
         );
         assert!(
             exports_source.contains(&format!("fn {wrapper}(")),
@@ -205,7 +182,7 @@ fn assert_runtime_10_ffi_wrappers(
         );
         assert!(
             !exports_source.contains(&format!("Some({operation}),")),
-            "`ZrRuntimeApiV2` must not advertise `{operation}` directly"
+            "`ZrRuntimeApiV6` must not advertise `{operation}` directly"
         );
         let owner_source = if operation.ends_with("_operation") {
             operation_source
@@ -232,7 +209,7 @@ fn assert_runtime_10_ffi_wrappers(
     );
 }
 
-fn assert_runtime_10_v2_only_hard_cutover(repo_root: &Path) {
+fn assert_runtime_10_v6_only_hard_cutover(repo_root: &Path) {
     const PRODUCTION_OWNERS: &[&str] = &[
         "zircon_runtime_interface/src/runtime_api/api_table.rs",
         "zircon_runtime/src/dynamic_api/exports.rs",
@@ -244,6 +221,21 @@ fn assert_runtime_10_v2_only_hard_cutover(repo_root: &Path) {
         "ZR_RUNTIME_GET_API_SYMBOL_V1",
         "zircon_runtime_get_api_v1",
         "RuntimeApi::V1",
+        "ZrRuntimeApiV2",
+        "ZrRuntimeGetApiFnV2",
+        "ZR_RUNTIME_GET_API_SYMBOL_V2",
+        "zircon_runtime_get_api_v2",
+        "RuntimeApi::V2",
+        "ZrRuntimeApiV3",
+        "ZrRuntimeGetApiFnV3",
+        "ZR_RUNTIME_GET_API_SYMBOL_V3",
+        "zircon_runtime_get_api_v3",
+        "RuntimeApi::V3",
+        "ZrRuntimeApiV4",
+        "ZrRuntimeGetApiFnV4",
+        "ZR_RUNTIME_GET_API_SYMBOL_V4",
+        "zircon_runtime_get_api_v4",
+        "RuntimeApi::V4",
     ];
 
     for relative_file in PRODUCTION_OWNERS {

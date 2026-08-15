@@ -15,6 +15,7 @@ mod component_json;
 mod components;
 mod manager;
 mod off_mesh_connections;
+mod overlay_frame;
 mod plugin;
 mod runtime_obstacles;
 mod settings_hash;
@@ -29,6 +30,10 @@ pub use components::navigation_component_descriptors;
 pub use manager::{
     count_navigation_components, default_agent_type, DefaultNavigationManager,
     NavMeshBakeTaskHandle, NavMeshBakeTaskState, NavMeshDirtyBakeReport, NavMeshDirtyBounds,
+};
+pub use overlay_frame::{
+    NavigationOverlayFrame, NAVIGATION_OVERLAY_FRAME_EVENT_ID,
+    NAVIGATION_OVERLAY_FRAME_PAYLOAD_SCHEMA,
 };
 pub use plugin::{
     package_manifest, plugin_registration, runtime_capabilities, runtime_plugin,
@@ -157,6 +162,11 @@ pub fn navigation_event_catalog() -> zircon_runtime::plugin::PluginEventCatalogM
                 id: "navigation.events.agent_tick_completed".to_string(),
                 display_name: "Agent Tick Completed".to_string(),
                 payload_schema: "navigation.events.nav_agent_tick_report.v1".to_string(),
+            },
+            zircon_runtime::plugin::PluginEventManifest {
+                id: NAVIGATION_OVERLAY_FRAME_EVENT_ID.to_string(),
+                display_name: "Navigation Overlay Frame".to_string(),
+                payload_schema: NAVIGATION_OVERLAY_FRAME_PAYLOAD_SCHEMA.to_string(),
             },
             zircon_runtime::plugin::PluginEventManifest {
                 id: "navigation.events.off_mesh_traverse".to_string(),

@@ -1,8 +1,8 @@
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::template_component_family::{
-    TemplateComponentFamily, is_component_family, uses_workbench_visual_language,
+    is_component_family, uses_workbench_visual_language, TemplateComponentFamily,
 };
-use super::super::style_selector::{WorkbenchButtonKind, is_tab_like_workbench_button};
+use super::super::style_selector::{is_tab_like_workbench_button, WorkbenchButtonKind};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_workbench_button(
     node: &TemplatePaneNodeData,

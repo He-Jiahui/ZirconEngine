@@ -77,7 +77,7 @@ fn assert_schedule_runner_contract() {
         "schedule_stage_profile_name(stage)",
         "ScheduledSceneStepRef::Internal",
         "ScheduledSceneStepRef::ApplyDeferred",
-        "ScheduledSceneStepRef::Hook",
+        "ScheduledSceneStepRef::Runtime",
         "world.apply_deferred()",
     ] {
         assert!(
@@ -105,6 +105,10 @@ fn assert_schedule_runner_contract() {
     assert!(
         !schedule_runner.contains("format!(\"runtime_frame_schedule_stage"),
         "schedule runner should not format static stage labels per frame"
+    );
+    assert!(
+        !schedule_runner.contains("ScheduledSceneStepRef::Hook"),
+        "runtime scene systems must remain scheduled Runtime steps, not retired hook steps"
     );
 }
 

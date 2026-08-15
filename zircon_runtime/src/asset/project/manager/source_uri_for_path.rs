@@ -48,13 +48,13 @@ impl ProjectManager {
             0 => Err(AssetImportError::SourceOutsideProjectAssetRoots {
                 path: requested_path,
             }),
-            _ => Err(AssetImportError::AmbiguousProjectSourcePath {
-                path: requested_path,
-                roots: roots
+            _ => Err(AssetImportError::ambiguous_project_source_path(
+                requested_path,
+                roots
                     .into_iter()
                     .map(|(root, _)| root.to_path_buf())
                     .collect(),
-            }),
+            )),
         }
     }
 

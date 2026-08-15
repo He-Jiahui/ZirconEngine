@@ -396,7 +396,7 @@ fn stage_stdout_lines(
         return execution.stdout_lines.clone();
     }
     output
-        .map(|output| output.stdout_lines.clone())
+        .map(|output| output.stdout_lines.iter().cloned().collect())
         .unwrap_or_default()
 }
 
@@ -408,6 +408,6 @@ fn stage_stderr_lines(
         return execution.stderr_lines.clone();
     }
     output
-        .map(|output| output.stderr_lines.clone())
+        .map(|output| output.stderr_lines.iter().cloned().collect())
         .unwrap_or_default()
 }

@@ -32,10 +32,10 @@ function Get-MvpStagingRequiredBytes {
         if ($copyCount -lt 1 -or $copyCount -gt 2) {
             throw "MVP staging disk budget input '$path' has invalid copy count '$copyCount'."
         }
-        $file = Get-Item -LiteralPath $path -ErrorAction Stop
-        if ($file.PSIsContainer) {
+        if (-not [IO.File]::Exists($path)) {
             throw "MVP staging disk budget input '$path' is not a file."
         }
+        $file = [IO.FileInfo]::new($path)
         $inputCopyBytes = Add-MvpStagingByteCount `
             -Total $inputCopyBytes `
             -FileBytes $file.Length `

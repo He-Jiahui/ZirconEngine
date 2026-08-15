@@ -6,6 +6,7 @@ use super::super::super::super::paint_theme::{
 };
 use super::super::super::visual_assets::HostPaintImagePixels;
 use super::{kind::HostPaintCommandKind, model::HostPaintCommand};
+use std::sync::Arc;
 
 fn fallback_image_border_from_host(palette: HostMaterialPalette) -> [u8; 4] {
     palette.border
@@ -54,7 +55,7 @@ impl HostPaintCommand {
         resource_key: String,
         image_width: u32,
         image_height: u32,
-        rgba: Vec<u8>,
+        rgba: impl Into<Arc<[u8]>>,
         atlas: Option<HostPaintAtlasImage>,
         opacity: f32,
     ) -> Self {
@@ -79,7 +80,7 @@ impl HostPaintCommand {
                 resource_key,
                 width: image_width,
                 height: image_height,
-                rgba,
+                rgba: rgba.into(),
                 atlas,
             }),
             opacity,

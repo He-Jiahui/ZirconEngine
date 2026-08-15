@@ -32,6 +32,7 @@ mod text_distance_field;
 pub(in crate::graphics::scene::scene_renderer::ui) mod text_effects;
 mod text_paint;
 pub(in crate::graphics::scene::scene_renderer::ui) mod text_projection;
+mod text_provenance;
 mod text_route_identity;
 
 use background::{text_batch_background_color, ScreenSpaceUiBackgroundTracker};
@@ -48,6 +49,7 @@ use text_decorations::{
 };
 use text_distance_field::resolved_text_distance_field_mode;
 use text_effects::{resolve_text_effects, ScreenSpaceUiTextEffects};
+use text_provenance::{is_source_isomorphic_resolved_text_line, source_isomorphic_text_paint_line};
 pub(in crate::graphics::scene::scene_renderer::ui) use text_route_identity::ScreenSpaceUiTextRouteIdentity;
 
 struct PreparedScreenSpaceUi {
@@ -69,10 +71,14 @@ struct ScreenSpaceUiDraw {
 pub(super) struct ScreenSpaceUiTextBatch {
     pub(super) route_identity: ScreenSpaceUiTextRouteIdentity,
     pub(super) command_generation: u64,
+    pub(super) raster_scale: f32,
     pub(super) text: String,
     pub(super) frame: UiFrame,
     pub(super) clip_frame: Option<UiFrame>,
     pub(super) source_range: Option<UiTextRange>,
+    // This is planner provenance, not a heuristic: only a source-isomorphic resolved visual
+    // line can safely host a native fallback span after an SDF atlas failure.
+    pub(super) is_source_isomorphic_layout_line: bool,
     pub(super) glyph_advances: Vec<f32>,
     pub(super) shaped_glyphs: Vec<ScreenSpaceUiShapedGlyph>,
     // Runtime layout artifacts own these glyph identities. They must survive a font reload
@@ -104,9 +110,9 @@ impl ScreenSpaceUiTextBatch {
     pub(super) fn requires_sdf_layout_fidelity(&self) -> bool {
         self.glyph_artifact_line.is_some()
             || (!self.glyph_advances.is_empty()
-                && self.source_range.is_some_and(|range| {
-                    range.end.saturating_sub(range.start) != self.text.len()
-                }))
+                && self
+                    .source_range
+                    .is_some_and(|range| range.end.saturating_sub(range.start) != self.text.len()))
     }
 }
 
@@ -201,6 +207,7 @@ fn plan_screen_space_ui_batches_with_framebuffer_background(
         framebuffer_background_color,
     );
     let route_tree_id = Arc::<str>::from(extract.tree_id.0.as_str());
+    let raster_scale = extract.normalized_raster_scale();
 
     for command in &extract.list.commands {
         let Some(scissor) =
@@ -216,6 +223,7 @@ fn plan_screen_space_ui_batches_with_framebuffer_background(
             &paint_elements,
             &route_tree_id,
             viewport,
+            raster_scale,
             &backgrounds,
             &mut plan,
         );
@@ -319,6 +327,7 @@ fn plan_command_batches(
     paint_elements: &[UiPaintElement],
     route_tree_id: &Arc<str>,
     viewport: UiFrame,
+    raster_scale: f32,
     backgrounds: &ScreenSpaceUiBackgroundTracker,
     plan: &mut PlannedScreenSpaceUi,
 ) {
@@ -404,6 +413,7 @@ fn plan_command_batches(
             frame,
             color,
             viewport,
+            raster_scale,
             backgrounds,
             plan,
         );
@@ -468,6 +478,7 @@ fn push_text_batches(
     fallback_frame: UiFrame,
     color: [f32; 4],
     viewport: UiFrame,
+    raster_scale: f32,
     backgrounds: &ScreenSpaceUiBackgroundTracker,
     plan: &mut PlannedScreenSpaceUi,
 ) {
@@ -488,12 +499,13 @@ fn push_text_batches(
             command.style.rich_text_format,
             zircon_runtime_interface::ui::surface::UiRichTextFormat::Plain
         ) {
-            push_resolved_text_layout_line_batches(
+            resolved_layout::push_resolved_text_layout_line_batches(
                 command,
                 &route_context,
                 layout,
                 color,
                 viewport,
+                raster_scale,
                 backgrounds,
                 plan,
             );
@@ -514,6 +526,7 @@ fn push_text_batches(
                     run,
                     rich_run,
                     viewport,
+                    raster_scale,
                     color,
                     backgrounds,
                     plan,
@@ -522,12 +535,38 @@ fn push_text_batches(
                 }
                 let presentation =
                     rich_text::prepare_text_run(command, run, rich_run, viewport, color, plan);
+                let materialized_line = source_isomorphic_text_paint_line(command, run);
+                let (
+                    is_source_isomorphic_layout_line,
+                    text_align,
+                    text_direction,
+                    writing_mode,
+                    wrap,
+                ) = materialized_line.map_or(
+                    (
+                        false,
+                        UiTextAlign::Left,
+                        command.style.text_direction,
+                        text_paint.writing_mode,
+                        UiTextWrap::None,
+                    ),
+                    |materialized_line| {
+                        (
+                            true,
+                            materialized_line.text_align,
+                            materialized_line.line.direction,
+                            materialized_line.writing_mode,
+                            materialized_line.wrap,
+                        )
+                    },
+                );
                 push_text_batch(
                     command,
                     &route_context,
                     run.text.clone(),
                     run.frame,
                     Some(run.source_range),
+                    is_source_isomorphic_layout_line,
                     Vec::new(),
                     None,
                     presentation.font,
@@ -536,13 +575,14 @@ fn push_text_batches(
                     presentation.font_size,
                     presentation.line_height,
                     presentation.color,
-                    UiTextAlign::Left,
-                    command.style.text_direction,
-                    text_paint.writing_mode,
-                    UiTextWrap::None,
+                    text_align,
+                    text_direction,
+                    writing_mode,
+                    wrap,
                     run.style,
                     presentation.text_decorations,
                     viewport,
+                    raster_scale,
                     backgrounds,
                     plan,
                 );
@@ -563,6 +603,7 @@ fn push_text_batches(
                 line.text.clone(),
                 line.frame,
                 Some(line.source_range),
+                is_source_isomorphic_resolved_text_line(command, line),
                 line.glyph_advances.clone(),
                 None,
                 command.style.font.clone(),
@@ -578,6 +619,7 @@ fn push_text_batches(
                 UiTextRunPaintStyle::default(),
                 command.style.text_decorations.clone(),
                 viewport,
+                raster_scale,
                 backgrounds,
                 plan,
             );
@@ -593,6 +635,7 @@ fn push_text_batches(
             text.clone(),
             fallback_frame,
             None,
+            false,
             Vec::new(),
             None,
             command.style.font.clone(),
@@ -608,46 +651,7 @@ fn push_text_batches(
             UiTextRunPaintStyle::default(),
             command.style.text_decorations.clone(),
             viewport,
-            backgrounds,
-            plan,
-        );
-    }
-}
-
-fn push_resolved_text_layout_line_batches(
-    command: &UiRenderCommand,
-    route_context: &ScreenSpaceUiTextRouteContext,
-    layout: &zircon_runtime_interface::ui::surface::UiResolvedTextLayout,
-    color: [f32; 4],
-    viewport: UiFrame,
-    backgrounds: &ScreenSpaceUiBackgroundTracker,
-    plan: &mut PlannedScreenSpaceUi,
-) {
-    let Some(batches) = resolved_layout::logical_text_batches(layout) else {
-        return;
-    };
-    for batch in batches {
-        push_text_batch(
-            command,
-            route_context,
-            batch.text,
-            batch.frame,
-            Some(batch.source_range),
-            batch.glyph_advances,
-            batch.glyph_artifact_line,
-            command.style.font.clone(),
-            command.style.font_family.clone(),
-            command.style.font_weight,
-            layout.font_size,
-            layout.line_height,
-            color,
-            UiTextAlign::Left,
-            batch.direction,
-            layout.writing_mode,
-            UiTextWrap::None,
-            UiTextRunPaintStyle::default(),
-            command.style.text_decorations.clone(),
-            viewport,
+            raster_scale,
             backgrounds,
             plan,
         );
@@ -660,6 +664,7 @@ fn push_text_batch(
     text: String,
     frame: UiFrame,
     source_range: Option<UiTextRange>,
+    is_source_isomorphic_layout_line: bool,
     glyph_advances: Vec<f32>,
     glyph_artifact_line: Option<ScreenSpaceUiGlyphArtifactLine>,
     font: Option<String>,
@@ -675,6 +680,7 @@ fn push_text_batch(
     style: UiTextRunPaintStyle,
     text_decorations: UiTextDecorations,
     viewport: UiFrame,
+    raster_scale: f32,
     backgrounds: &ScreenSpaceUiBackgroundTracker,
     plan: &mut PlannedScreenSpaceUi,
 ) {
@@ -731,10 +737,12 @@ fn push_text_batch(
             source_range,
         ),
         command_generation: route_context.command_generation,
+        raster_scale,
         text,
         frame,
         clip_frame: command.clip_frame,
         source_range,
+        is_source_isomorphic_layout_line,
         glyph_advances,
         shaped_glyphs,
         preserve_shaped_glyphs: has_glyph_artifact_line,

@@ -162,3 +162,69 @@ impl EditorRuntimeEventConsumerRegistry {
             .collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::convert::Infallible;
+    use std::sync::{Arc, Mutex};
+
+    use zircon_runtime::plugin::PluginEventConsumerManifest;
+
+    use super::{
+        EditorRuntimeEventConsumerError, EditorRuntimeEventConsumerRegistration,
+        EditorRuntimeEventConsumerRegistry, EditorRuntimeEventConsumerState,
+    };
+
+    struct NoopConsumer;
+
+    impl EditorRuntimeEventConsumerState for NoopConsumer {
+        type Payload = ();
+        type Error = Infallible;
+
+        fn begin_session(&mut self, _play_session_id: u64) {}
+
+        fn consume(
+            &mut self,
+            _play_session_id: u64,
+            _sequence: u64,
+            _payload: Self::Payload,
+        ) -> Result<(), Self::Error> {
+            Ok(())
+        }
+
+        fn end_session(&mut self, _play_session_id: u64) {}
+    }
+
+    fn registration(consumer_id: &str) -> EditorRuntimeEventConsumerRegistration {
+        EditorRuntimeEventConsumerRegistration::typed(
+            PluginEventConsumerManifest::new(
+                consumer_id,
+                format!("{consumer_id}.event"),
+                format!("{consumer_id}.event.v1"),
+            ),
+            Arc::new(Mutex::new(NoopConsumer)),
+        )
+    }
+
+    #[test]
+    fn duplicate_late_in_batch_leaves_active_registry_unchanged() {
+        let mut active = EditorRuntimeEventConsumerRegistry::default();
+        active.register(registration("z-duplicate")).unwrap();
+
+        let mut batch = EditorRuntimeEventConsumerRegistry::default();
+        batch.register(registration("a-new")).unwrap();
+        batch.register(registration("z-duplicate")).unwrap();
+
+        let error = active
+            .extend(batch)
+            .expect_err("a duplicate later in the batch must reject the whole batch");
+        assert!(matches!(
+            error,
+            EditorRuntimeEventConsumerError::DuplicateConsumer { consumer_id }
+                if consumer_id == "z-duplicate"
+        ));
+        assert!(active.registration("z-duplicate").is_some());
+        assert!(active.registration("a-new").is_none());
+        assert_eq!(active.manifests().len(), 1);
+    }
+}

@@ -1,5 +1,6 @@
 use crate::core::framework::render::FroxelGridQuality;
 use crate::core::math::UVec2;
+use crate::graphics::scene::scene_renderer::hzb::HzbSampledResourceIdentity;
 use crate::graphics::scene::scene_renderer::temporal::taa::{
     TemporalHistoryKey, TemporalHistoryStore,
 };
@@ -7,6 +8,7 @@ use crate::graphics::scene::scene_renderer::temporal::taa::{
 use super::VolumetricHistoryTexture;
 
 pub(crate) struct SceneFrameHistoryTextures {
+    pub(crate) hzb_resource_identity: HzbSampledResourceIdentity,
     pub(crate) size: UVec2,
     pub(crate) hzb_furthest_size: UVec2,
     pub(crate) hzb_furthest_mip_count: u32,
@@ -28,6 +30,10 @@ pub(crate) struct SceneFrameHistoryTextures {
 }
 
 impl SceneFrameHistoryTextures {
+    pub(crate) const fn hzb_resource_identity(&self) -> HzbSampledResourceIdentity {
+        self.hzb_resource_identity
+    }
+
     pub(crate) fn volumetric_history_quality(&self) -> Option<FroxelGridQuality> {
         self.volumetric_scattering
             .as_ref()
@@ -86,8 +92,20 @@ impl SceneFrameHistoryTextures {
         self.taa_scene_color.previous_view().clone()
     }
 
+    pub(crate) fn taa_scene_color_previous_identity(
+        &self,
+    ) -> crate::graphics::resource_identity::SampledTextureIdentity {
+        self.taa_scene_color.previous_identity()
+    }
+
     pub(crate) fn taa_scene_color_current_view(&self) -> wgpu::TextureView {
         self.taa_scene_color.current_view().clone()
+    }
+
+    pub(crate) fn taa_scene_color_current_identity(
+        &self,
+    ) -> crate::graphics::resource_identity::SampledTextureIdentity {
+        self.taa_scene_color.current_identity()
     }
 
     pub(crate) fn invalidate_exposure_history(&mut self, queue: &wgpu::Queue) {

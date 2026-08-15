@@ -1,5 +1,5 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
+use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 use super::super::template_node_labels::template_node_label;
 use super::identity::{is_icon_node, is_icon_only_node};
 

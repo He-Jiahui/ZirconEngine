@@ -5,8 +5,8 @@ use crate::ui::retained_host::host_contract::window::UiHostWindow;
 use zircon_runtime_interface::ui::dispatch::UiInputModifiers;
 use zircon_runtime_interface::ui::surface::UiPointerButton;
 
-use super::super::super::super::super::super::NativePointerButtonState;
 use super::super::super::super::super::super::routing::PanePointerRoute;
+use super::super::super::super::super::super::NativePointerButtonState;
 use super::input::ResultPaneTargetInput;
 use super::sequence::dispatch_result_pane_target_sequence;
 

@@ -198,6 +198,7 @@ def _create_verified_snapshot(
     descriptor, snapshot_name = tempfile.mkstemp(
         prefix="zircon_shader_pbr_renderdoc_replay_",
         suffix=".rdc",
+        dir=capture_path.parent,
     )
     snapshot_path = Path(snapshot_name)
     try:

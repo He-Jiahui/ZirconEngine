@@ -1,11 +1,11 @@
 use indexmap::IndexSet;
 use zircon_runtime_interface::math::Vec2;
 
-use crate::scene::viewport::OverlayPickShape;
 use crate::scene::viewport::pointer::constants::{
     GIZMO_PICK_THRESHOLD_PX, RENDERABLE_PICK_MIN_RADIUS_PX,
 };
 use crate::scene::viewport::projection::ViewportProjectionContext;
+use crate::scene::viewport::OverlayPickShape;
 
 use super::ViewportOverlayPointerRouter;
 

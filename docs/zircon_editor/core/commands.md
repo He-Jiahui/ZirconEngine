@@ -120,20 +120,28 @@ the lazy catalog once. Failed or idempotent mutations do neither. The deleted
 `command_palette_entries` and `command_palette_value` full-materialization APIs have no compatibility
 wrapper.
 
-`command_palette_query_window(context, query, offset, limit)` is the sole palette discovery query.
-It evaluates the canonical descriptor `when` predicate, fuzzy-matches the generation-owned search
-document, and returns lightweight catalog handles for only the requested window. Non-empty queries
-use fixed 256 score buckets: the first streaming pass counts ranks and the second materializes the
-requested page in stable descriptor order inside each score. Consequently every match remains
-addressable by `offset` without retaining a full result-id vector, while query metrics report
-visited entries, text comparisons, total matches, retained handles, and owned buffers.
+`EditorCommandPaletteCatalog::query_window[_with_mru]` is the sole palette discovery query. The
+registry only publishes the immutable catalog `Arc`; retained consumers take that handle under the
+registry mutex and release the mutex before matching, enablement evaluation, ranking, or UI-value
+projection. There is no registry query facade that can accidentally hold the command mutex across a
+catalog scan.
+
+Each catalog generation owns a 256-byte postings index over its normalized search documents and a
+descriptor-aligned enablement slot array. A non-empty query starts from the least-populated posting,
+then validates every candidate without truncation. One document byte pass simultaneously detects an
+exact substring and computes the existing greedy subsequence score; exact matches retain score 255,
+and MRU/index tie-breaking is unchanged. The bounded heap keeps only `offset + limit` handles while
+`total_match_count` still covers every match, so deep pages remain addressable without a full
+result-id vector. Query metrics report candidate visits, document-byte visits, comparisons,
+enablement evaluations, total matches, retained handles, and owned buffers.
 
 The retained host projects 8 visible rows plus 4 overscan rows. It no longer clones the complete
 enabled catalog on open or query edit; the temporary `commands`/`filtered_commands` UI values are
 bounded to that 12-row window. `CommandPalette/QueryChanged` is declared in the `.zui`, registered in
 the authoritative template binding table, intercepted before generic menu dispatch, and coherently
-updates query/window/generation/match-count while the registry lock is released. Keyboard-driven
-window advance beyond the first page and managed input-p95 evidence remain open.
+updates query/window/generation/match-count after the registry lock is released. Keyboard-driven
+window advance beyond the first page is implemented through the typed window request; managed
+input-p95 and pixel/product-equivalence evidence remain open acceptance gates.
 
 `EditorOperationInvocation`, `EditorOperationControlRequest`, `EditorOperationControlResponse`, source types, and control errors remain in `core::editor_operation` because they are transport DTOs, not a second registry.
 
@@ -156,7 +164,7 @@ against the typed id and do not repeat operation-path validation at individual w
 
 `CommandEvalCtx` has two explicit modes. Interactive snapshots carry project, undo/redo, focus, scene-mode, selection, play-state, and a deterministic capability set. Headless snapshots carry only capabilities; their stored play state is `Edit` for determinism, but `PlayMode(Edit)` remains inapplicable and false. `ViewDescriptor.document_kind` is now the typed domain owner for scene、Prefab、material、UI asset、animation sequence 与 animation graph；`EditorSessionState.focused_view` 是跨主文档区和浮动窗口的唯一焦点 owner。Chrome 构建只从 `focused_view -> ViewInstance -> ViewDescriptor.document_kind` 投影 `focused_document_kind`，不会从 tab title、显示名、路径后缀或 descriptor id 猜类型。默认布局或仅打开项目时，没有显式焦点就持续保留 `None`；只有原先为 `Some` 的焦点实例关闭或失效时，才回到当前主页面的 active document。`Building` is represented by the core DTO and tests but is not synthesized from the current two-state UI session surface. Remaining authority projections stay routed to their functional owners: [Editor 04 Play state](../../plans/zircon_editor/editor/04/failure-2026-07-12-command-eval-play-state-projection.md) and [Editor 05 scene mode and selection](../../plans/zircon_editor/editor/05/failure-2026-07-12-command-eval-scene-mode-selection-projection.md).
 
-`EditorContext` owns one `CommandEvalSnapshotHandle`. The host projects `EditorChromeSnapshot` plus the manager capability snapshot into that handle during reflection and retained-host recomputation. Menu, palette, and UI-binding invocation read cloned interactive snapshots; Remote and CLI operation control create headless snapshots from the same capability source. Snapshot locks are released before registry or shell mutation, avoiding a new shell/registry lock-order cycle.
+`EditorContext` owns one `CommandEvalSnapshotHandle`. The host projects `EditorChromeSnapshot` plus the manager capability snapshot into that handle during reflection and retained-host recomputation. The handle publishes an immutable `Arc<CommandEvalCtx>` per semantic generation; palette open/query/window requests clone that Arc instead of cloning the capability strings on every keystroke. Non-hot consumers can still request an explicit owned snapshot. Remote and CLI operation control create headless snapshots from the same capability source. Snapshot locks are released before registry or shell mutation, avoiding a new shell/registry lock-order cycle.
 
 `required_capabilities` remains sorted, duplicate-free discovery metadata. It is not a second permission gate: `effective_when()` derives a capability conjunction around the descriptor's stored `when`, and `is_enabled()` is the shared predicate entry used by menus, palette rows, list filtering, UI invocation, and remote invocation. Repeated builders and deserialization normalize only the metadata vector and never materialize capability clauses back into the serialized descriptor, so repeated evaluation cannot accumulate duplicate predicates.
 

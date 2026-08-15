@@ -1,6 +1,6 @@
 //! Runtime IO-pool orchestration for CPU-side asset decoding.
 
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
@@ -13,29 +13,29 @@ mod diagnostics;
 mod options;
 mod payload;
 
-pub use completion::{AssetWorkerCompletionError, AssetWorkerCompletionTicket};
 use completion::{
-    AssetWorkerExpiryTimer, AssetWorkerRejectionKind, CompletionEntry, CompletionRegistry,
-    CompletionTerminal, ExpiryReport, WaiterAdmission, deadline_after, expire_entries,
-    lock_completion_registry, lock_worker_diagnostics, maintain_completion_registry,
-    publish_completion, record_expiry_for_diagnostics, record_queue_age, schedule_entry_expiry,
+    deadline_after, expire_entries, lock_completion_registry, lock_worker_diagnostics,
+    maintain_completion_registry, publish_completion, record_expiry_for_diagnostics,
+    record_queue_age, schedule_entry_expiry, AssetWorkerExpiryTimer, AssetWorkerRejectionKind,
+    CompletionEntry, CompletionRegistry, CompletionTerminal, ExpiryReport, WaiterAdmission,
 };
+pub use completion::{AssetWorkerCompletionError, AssetWorkerCompletionTicket};
 use diagnostics::record_duration_measurement;
 pub use diagnostics::{
-    ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC, ASSET_WORKER_CANCEL_WALL_MAX_MS_DIAGNOSTIC,
+    AssetWorkerPoolDiagnostics, AssetWorkerPoolFrameDiagnostics, AssetWorkerPoolFrameSampler,
+    AssetWorkerThreadBudgetSource, ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC,
+    ASSET_WORKER_CANCELLED_DIAGNOSTIC, ASSET_WORKER_CANCEL_WALL_MAX_MS_DIAGNOSTIC,
     ASSET_WORKER_CANCEL_WALL_SAMPLES_DIAGNOSTIC, ASSET_WORKER_CANCEL_WALL_TOTAL_MS_DIAGNOSTIC,
-    ASSET_WORKER_CANCELLED_DIAGNOSTIC, ASSET_WORKER_COMPLETED_DIAGNOSTIC,
-    ASSET_WORKER_COMPLETION_BYTES_DIAGNOSTIC, ASSET_WORKER_COMPLETION_REJECTED_DIAGNOSTIC,
-    ASSET_WORKER_DROP_WALL_MAX_MS_DIAGNOSTIC, ASSET_WORKER_DROP_WALL_SAMPLES_DIAGNOSTIC,
-    ASSET_WORKER_DROP_WALL_TOTAL_MS_DIAGNOSTIC, ASSET_WORKER_EXPIRED_DIAGNOSTIC,
-    ASSET_WORKER_FAILED_DIAGNOSTIC, ASSET_WORKER_FRAME_COMPLETED_DIAGNOSTIC,
-    ASSET_WORKER_FRAME_FAILED_DIAGNOSTIC, ASSET_WORKER_IN_FLIGHT_DIAGNOSTIC,
-    ASSET_WORKER_MERGED_DIAGNOSTIC, ASSET_WORKER_PAYLOAD_CLONE_BYTES_DIAGNOSTIC,
-    ASSET_WORKER_QUEUE_AGE_MAX_MS_DIAGNOSTIC, ASSET_WORKER_QUEUE_AGE_SAMPLES_DIAGNOSTIC,
-    ASSET_WORKER_QUEUE_AGE_TOTAL_MS_DIAGNOSTIC, ASSET_WORKER_QUEUE_PEAK_DIAGNOSTIC,
-    ASSET_WORKER_QUEUE_REJECTED_DIAGNOSTIC, ASSET_WORKER_REJECTED_DIAGNOSTIC,
-    ASSET_WORKER_WAITER_REJECTED_DIAGNOSTIC, AssetWorkerPoolDiagnostics,
-    AssetWorkerPoolFrameDiagnostics, AssetWorkerPoolFrameSampler, AssetWorkerThreadBudgetSource,
+    ASSET_WORKER_COMPLETED_DIAGNOSTIC, ASSET_WORKER_COMPLETION_BYTES_DIAGNOSTIC,
+    ASSET_WORKER_COMPLETION_REJECTED_DIAGNOSTIC, ASSET_WORKER_DROP_WALL_MAX_MS_DIAGNOSTIC,
+    ASSET_WORKER_DROP_WALL_SAMPLES_DIAGNOSTIC, ASSET_WORKER_DROP_WALL_TOTAL_MS_DIAGNOSTIC,
+    ASSET_WORKER_EXPIRED_DIAGNOSTIC, ASSET_WORKER_FAILED_DIAGNOSTIC,
+    ASSET_WORKER_FRAME_COMPLETED_DIAGNOSTIC, ASSET_WORKER_FRAME_FAILED_DIAGNOSTIC,
+    ASSET_WORKER_IN_FLIGHT_DIAGNOSTIC, ASSET_WORKER_MERGED_DIAGNOSTIC,
+    ASSET_WORKER_PAYLOAD_CLONE_BYTES_DIAGNOSTIC, ASSET_WORKER_QUEUE_AGE_MAX_MS_DIAGNOSTIC,
+    ASSET_WORKER_QUEUE_AGE_SAMPLES_DIAGNOSTIC, ASSET_WORKER_QUEUE_AGE_TOTAL_MS_DIAGNOSTIC,
+    ASSET_WORKER_QUEUE_PEAK_DIAGNOSTIC, ASSET_WORKER_QUEUE_REJECTED_DIAGNOSTIC,
+    ASSET_WORKER_REJECTED_DIAGNOSTIC, ASSET_WORKER_WAITER_REJECTED_DIAGNOSTIC,
 };
 pub use options::AssetWorkerPoolOptions;
 use options::DEFAULT_ASSET_WORKER_QUEUE_DEPTH;

@@ -229,6 +229,10 @@ impl PrefabInstanceAsset {
     pub fn direct_references(&self) -> Vec<AssetReference> {
         vec![self.prefab.clone()]
     }
+
+    pub fn direct_reference_count(&self) -> usize {
+        1
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

@@ -1,11 +1,13 @@
-use super::super::super::data::{FrameRect, TemplatePaneWeightHeatmapSourceData};
+use crate::ui::weight_heatmap::WeightHeatmapSource;
+
+use super::super::super::data::FrameRect;
 use super::super::render_commands::HostPaintCommand;
 use super::geometry::WeightHeatmapGeometry;
 use super::palette::{SELECTED_SOURCE, SOURCE_MARKER};
 
 pub(super) fn push_heat_source_markers(
     commands: &mut Vec<HostPaintCommand>,
-    sources: &[TemplatePaneWeightHeatmapSourceData],
+    sources: &[WeightHeatmapSource],
     geometry: &WeightHeatmapGeometry,
     clip: &FrameRect,
     order: i32,
@@ -15,14 +17,14 @@ pub(super) fn push_heat_source_markers(
         return;
     }
     for source in sources {
-        let x = geometry.x_for_normalized(source.x);
-        let y = geometry.y_for_normalized(source.y);
+        let x = geometry.x_for_normalized(source.x());
+        let y = geometry.y_for_normalized(source.y());
         push_source_marker(
             commands,
             x,
             y,
-            if source.selected { 5.0 } else { 3.0 },
-            if source.selected {
+            if source.selected() { 5.0 } else { 3.0 },
+            if source.selected() {
                 SELECTED_SOURCE
             } else {
                 SOURCE_MARKER
@@ -92,12 +94,7 @@ mod tests {
             },
             20.0,
         );
-        let source = TemplatePaneWeightHeatmapSourceData {
-            x: 0.5,
-            y: 0.5,
-            weight: 1.0,
-            selected: false,
-        };
+        let source = WeightHeatmapSource::new(0.5, 0.5, 1.0, false);
         let clip = FrameRect {
             x: 0.0,
             y: 0.0,

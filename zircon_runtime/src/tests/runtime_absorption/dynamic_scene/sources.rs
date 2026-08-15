@@ -2,7 +2,12 @@ pub(super) const PATCH_SOURCE: &str = include_str!("../../../scene/dynamic_scene
 pub(super) const DYNAMIC_SCENE_MOD_SOURCE: &str =
     include_str!("../../../scene/dynamic_scene/mod.rs");
 pub(super) const SCENE_MOD_SOURCE: &str = include_str!("../../../scene/dynamic_scene/scene/mod.rs");
-pub(super) const SPAWN_SOURCE: &str = include_str!("../../../scene/dynamic_scene/scene/spawn.rs");
+pub(super) const SPAWN_SOURCE: &str = concat!(
+    include_str!("../../../scene/dynamic_scene/scene/spawn/mod.rs"),
+    include_str!("../../../scene/dynamic_scene/scene/spawn/preview.rs"),
+    include_str!("../../../scene/dynamic_scene/scene/spawn/resource.rs"),
+    include_str!("../../../scene/dynamic_scene/scene/spawn/transaction.rs")
+);
 pub(super) const BEHAVIOR_SOURCE: &str = concat!(
     include_str!("../../../scene/tests/dynamic_scene.rs"),
     include_str!("../../../scene/tests/dynamic_scene/scene_patch_document.rs")

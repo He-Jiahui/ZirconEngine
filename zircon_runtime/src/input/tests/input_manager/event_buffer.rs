@@ -107,6 +107,26 @@ fn pointer_coalescing_preserves_button_and_touch_edges_in_order() {
 }
 
 #[test]
+fn focus_loss_is_a_barrier_to_pointer_event_coalescing() {
+    let input = DefaultInputManager::default();
+    input.begin_frame();
+    input.submit_event(InputEvent::CursorMoved { x: 1.0, y: 2.0 });
+    input.submit_event(InputEvent::CursorMoved { x: 3.0, y: 4.0 });
+    input.submit_event(InputEvent::FocusLost);
+    input.submit_event(InputEvent::CursorMoved { x: 5.0, y: 6.0 });
+    input.submit_event(InputEvent::CursorMoved { x: 7.0, y: 8.0 });
+
+    assert_eq!(
+        input.drain_events(),
+        vec![
+            InputEvent::CursorMoved { x: 3.0, y: 4.0 },
+            InputEvent::FocusLost,
+            InputEvent::CursorMoved { x: 7.0, y: 8.0 },
+        ]
+    );
+}
+
+#[test]
 fn begin_frame_discards_undrained_transient_events() {
     let input = DefaultInputManager::default();
     input.submit_event(InputEvent::ButtonPressed(InputButton::MouseLeft));

@@ -36,10 +36,7 @@ pub(super) fn compile_submission_pipeline_with_options(
         let view_size = extract.view.effective_render_size();
         let plan = OitBufferPlan::for_view([view_size.x, view_size.y], settings);
         let max_binding_size = state.capabilities().max_storage_buffer_binding_size;
-        if max_binding_size == 0
-            || plan.layer_buffer_size_bytes > max_binding_size
-            || plan.count_buffer_size_bytes > max_binding_size
-        {
+        if !plan.fits_storage_binding_size_limit(max_binding_size) {
             options = options.with_plugin_feature_disabled("oit");
         }
     }

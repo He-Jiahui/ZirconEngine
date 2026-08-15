@@ -1,6 +1,6 @@
 use crate::core::math::UVec2;
-use crate::text::VariationCoords;
 use crate::text::atlas::{GlyphAtlasFormat, GlyphAtlasStorageFormat};
+use crate::text::VariationCoords;
 
 use super::*;
 
@@ -17,6 +17,19 @@ fn text_sdf_shared_params_use_plan_approved_48_8_defaults() {
     assert_eq!(params.bake_em_px, 48);
     assert_eq!(params.spread_px_milli, 8_000);
     assert!((params.screen_px_range(48.0) - 8.0).abs() < f32::EPSILON);
+}
+
+#[test]
+fn text_sdf_screen_range_rejects_non_finite_and_nonpositive_display_sizes() {
+    let params = SdfBakeParams {
+        mode: SdfMode::Mtsdf,
+        bake_em_px: 1,
+        spread_px_milli: 8_000,
+    };
+
+    for display_px in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY, 0.0, -12.0] {
+        assert_eq!(params.screen_px_range(display_px), 1.0);
+    }
 }
 
 #[test]

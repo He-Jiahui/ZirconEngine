@@ -1,4 +1,4 @@
-use crate::core::framework::render::{IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, IblBakeArtifactRequest};
+use crate::core::framework::render::{IblBakeArtifactRequest, IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES};
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
 
 use super::realtime_ibl_graph_plan::{

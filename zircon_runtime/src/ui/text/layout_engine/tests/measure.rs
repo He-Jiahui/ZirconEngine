@@ -3,7 +3,8 @@ use zircon_runtime_interface::ui::{
     surface::{UiRichTextFormat, UiTextOverflow, UiTextWrap, UiTextWritingMode},
 };
 
-use super::{layout_text, measure_text_size, measure_unwrapped_text_height, test_style};
+use super::super::measure_unwrapped_text_height;
+use super::{layout_text, measure_text_size, test_style};
 
 #[test]
 fn text_measurement_uses_backend_glyph_metrics() {

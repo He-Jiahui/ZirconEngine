@@ -25,6 +25,29 @@ impl World {
         }
     }
 
+    /// Bundle publication has already moved the erased storage value, so its
+    /// binding invalidation receives the preflighted hierarchy parent instead
+    /// of a borrowed previous component.
+    pub(super) fn mark_preflighted_bundle_component_scene_binding_replacement<T>(
+        &mut self,
+        entity: EntityId,
+        previous_hierarchy_parent: Option<EntityId>,
+        current_hierarchy_parent: Option<Option<EntityId>>,
+    ) where
+        T: Component,
+    {
+        let type_id = std::any::TypeId::of::<T>();
+        if type_id == std::any::TypeId::of::<crate::scene::components::Name>() {
+            self.advance_scene_binding_generation_for_name(entity);
+        } else if type_id == std::any::TypeId::of::<crate::scene::components::Hierarchy>() {
+            self.advance_scene_binding_generations_for_reparent(
+                entity,
+                previous_hierarchy_parent,
+                current_hierarchy_parent.unwrap_or(None),
+            );
+        }
+    }
+
     pub(super) fn mark_scene_binding_component_removal<T>(&mut self, entity: EntityId, previous: &T)
     where
         T: Component,
@@ -51,6 +74,7 @@ impl World {
         } else if type_id == std::any::TypeId::of::<crate::scene::components::Hierarchy>() {
             // The raw mutable reference does not reveal its eventual parent. Structured
             // reparenting stays incremental; this escape hatch must remain correct.
+            self.mark_hierarchy_mutation_index_dirty();
             self.invalidate_all_scene_binding_generations();
         }
     }

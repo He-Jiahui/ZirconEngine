@@ -113,12 +113,8 @@ impl UiSurface {
         child_id: UiNodeId,
         kind: UiSlotKind,
     ) -> Result<usize, UiTreeError> {
-        self.tree
-            .slots
-            .iter()
-            .position(|slot| {
-                slot.parent_id == parent_id && slot.child_id == child_id && slot.kind == kind
-            })
+        self.layout_slot_index
+            .index_for_kind(&self.tree, parent_id, child_id, kind)
             .ok_or(UiTreeError::MissingNode(child_id))
     }
 }

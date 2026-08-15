@@ -20,7 +20,6 @@ mod top_level;
 pub(super) use root_child_rows::*;
 pub(super) use root_paths::*;
 pub(super) use root_sources::*;
-pub(super) use root_statuses::*;
 
 pub(super) fn assert_typed_error_convergence_parents_are_folder_backed() {
     let sources = typed_error_convergence_mount_sources();

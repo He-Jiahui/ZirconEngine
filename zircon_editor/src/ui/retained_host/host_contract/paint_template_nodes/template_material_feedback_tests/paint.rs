@@ -10,7 +10,7 @@ use super::support::{pixel_at, positioned_backdrop_node, positioned_progress_nod
 use crate::ui::layouts::common::model_rc;
 
 #[test]
-fn workbench_progress_defaults_to_low_emphasis_bar_fill() {
+fn workbench_progress_defaults_to_shared_track_and_accent_fill() {
     let palette = material_feedback_palette_from_host(PALETTE);
     let bytes = paint_template_nodes_for_test(
         220,
@@ -25,9 +25,8 @@ fn workbench_progress_defaults_to_low_emphasis_bar_fill() {
         )]),
     );
 
-    assert_eq!(pixel_at(&bytes, 220, 48, 22), palette.workbench_fill);
-    assert_eq!(pixel_at(&bytes, 220, 150, 22), palette.workbench_track);
-    assert_ne!(pixel_at(&bytes, 220, 48, 22), PALETTE.accent);
+    assert_eq!(pixel_at(&bytes, 220, 48, 22), palette.accent);
+    assert_eq!(pixel_at(&bytes, 220, 150, 22), palette.track);
 }
 
 #[test]
@@ -53,7 +52,6 @@ fn generic_material_progress_keeps_accent_fallback() {
 fn material_feedback_palette_projects_from_host_palette() {
     let mut host = PALETTE;
     host.track = [9, 10, 11, 255];
-    host.separator_strong = [40, 50, 60, 255];
     host.surface_disabled = [12, 13, 14, 255];
     host.text_disabled = [80, 81, 82, 255];
     host.accent = [90, 91, 92, 255];
@@ -62,8 +60,6 @@ fn material_feedback_palette_projects_from_host_palette() {
     let palette = material_feedback_palette_from_host(host);
 
     assert_eq!(palette.track, [9, 10, 11, 255]);
-    assert_eq!(palette.workbench_track, [9, 10, 11, 255]);
-    assert_eq!(palette.workbench_fill, [40, 50, 60, 255]);
     assert_eq!(palette.disabled_track, [12, 13, 14, 255]);
     assert_eq!(palette.disabled_fill, [80, 81, 82, 255]);
     assert_eq!(palette.accent, [90, 91, 92, 255]);
@@ -161,10 +157,12 @@ fn partially_clipped_material_backdrop_keeps_only_clipped_paint_commands() {
     ));
 
     assert!(!commands.is_empty());
-    assert!(commands.iter().all(|command| command
-        .clip_frame
-        .as_ref()
-        .is_some_and(|clip_frame| frame_is_within(&clip, clip_frame))));
+    assert!(commands.iter().all(|command| {
+        command
+            .clip_frame
+            .as_ref()
+            .is_some_and(|clip_frame| frame_is_within(&clip, clip_frame))
+    }));
 }
 
 fn frame_is_within(outer: &FrameRect, inner: &FrameRect) -> bool {

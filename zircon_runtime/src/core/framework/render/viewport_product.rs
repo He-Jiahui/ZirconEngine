@@ -15,12 +15,7 @@ pub struct RenderViewportProduct {
 }
 
 impl RenderViewportProduct {
-    pub fn new(
-        viewport: RenderViewportHandle,
-        width: u32,
-        height: u32,
-        generation: u64,
-    ) -> Self {
+    pub fn new(viewport: RenderViewportHandle, width: u32, height: u32, generation: u64) -> Self {
         Self {
             resource_key: format!("viewport:{}:{generation}", viewport.raw()),
             width,
@@ -46,10 +41,7 @@ impl RenderViewportProduct {
     }
 
     pub const fn is_valid(&self) -> bool {
-        !self.resource_key.is_empty()
-            && self.width != 0
-            && self.height != 0
-            && self.generation != 0
+        !self.resource_key.is_empty() && self.width != 0 && self.height != 0 && self.generation != 0
     }
 }
 

@@ -4,15 +4,12 @@ use crate::core::framework::render::{
     resolve_subsurface_profile_table, PostProcessGraphResourceNames, RenderFrameExtract,
     RenderPhase,
 };
-use crate::render_graph::{
-    QueueLane, RenderGraphAttachmentOps, RenderGraphExternalResourceBinding,
-};
+use crate::render_graph::{QueueLane, RenderGraphAttachmentOps};
 
 use crate::graphics::extract::{FrameHistoryAccess, FrameHistoryBinding, FrameHistorySlot};
 use crate::graphics::feature::{
     BuiltinRenderFeature, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
-    RenderFeatureResourceAccess, RenderFeatureResourceDescriptor, RenderFeatureResourceKind,
-    RenderFeatureResourceWriteMode,
+    RenderFeatureResourceAccess, RenderFeatureResourceDescriptor, RenderFeatureResourceWriteMode,
 };
 use crate::graphics::pipeline::declarations::{
     transmission_mesh_pass_name, transmission_scene_copy_pass_name, CompiledRenderPipeline,
@@ -253,15 +250,10 @@ fn maybe_insert_transmission_passes(
         draw.pass_name = transmission_mesh_pass_name(step_index);
         draw.executor_id = TRANSMISSION_MESH_EXECUTOR_IDS[step_index].into();
         if step_index < copy_step_count {
-            draw.resources.push(RenderFeatureResourceDescriptor {
-                name: PostProcessGraphResourceNames::TRANSMISSION_SCENE_COLOR.to_string(),
-                kind: RenderFeatureResourceKind::Texture,
-                access: RenderFeatureResourceAccess::Read,
-                minimum_size_bytes: None,
-                attachment_ops: None,
-                write_mode: RenderFeatureResourceWriteMode::Attachment,
-                external_binding: RenderGraphExternalResourceBinding::report_only(),
-            });
+            draw = draw.read_texture_from(
+                PostProcessGraphResourceNames::TRANSMISSION_SCENE_COLOR,
+                transmission_scene_copy_pass_name(step_index),
+            );
         }
         transmission_passes.push(draw);
     }

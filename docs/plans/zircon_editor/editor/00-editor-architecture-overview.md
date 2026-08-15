@@ -24,7 +24,7 @@ status: planned
 1. **编辑器是 runtime 的客户端，不是宿主**。runtime 经 `zircon_runtime_get_api_v2` → `ZrRuntimeApiV2`（19 字段、17 个 session 入口）动态加载，每 session 独立 `CoreRuntime` + `LevelSystem`。编辑器一切世界访问走门面（01 `EditorRuntimeGateway`），不直接持有 world 引用穿透边界；长任务统一走 submit/poll/harvest，不保留 V1 表兼容入口。
 2. **单事实源，多订阅者**。当前 `EditorEventRuntimeState` 单 `Mutex` 聚合 14 字段是反例：状态归属不清导致所有面板抢一把锁。总体设计给每类状态指定唯一权威子系统（§6 事实源表），其余组件只经事件/查询消费。
 3. **注册制扩展，宣告式接入**。既有 `EditorExtensionRegistry` 13 张描述符表证明「表驱动」路线已成立；缺的是统一生命周期（ticket/revoke/changed_since）。新功能域一律以「注册一条贡献」的形态接入（06 `ContributionStore`），使插件（12）与第一方功能走同一扩展面。
-4. **headless 是一等形态**。`--headless --operation` 通道已存在；内核层（L1–L3）不得依赖窗口或工作台物化，commandlet（16）与 CI 直接驱动内核层。
+4. **headless 是一等形态**。产品无头入口只保留 `--run <commandlet>`；内核层（L1–L3）不得依赖窗口或工作台物化，commandlet（16）与 CI 直接驱动内核层。
 5. **编辑器状态不进 runtime 序列化**。既有 authoring token 守卫必须持续通过；选中/展开/布局等编辑器态只存在于编辑器层与编辑器落盘域（`.zircon/`、`~/.zircon/editor/`）。
 6. **硬切换**。每个分计划的「现物迁移映射表」是执行合同：新 owner 落地即迁调用方、删旧路径，无兼容层。
 

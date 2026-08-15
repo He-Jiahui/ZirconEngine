@@ -1,4 +1,5 @@
 use super::HybridGiScenePrepareResourcesSnapshot;
+use zircon_runtime::core::framework::render::RenderHybridGiProbeTraceDiagnosticRecord;
 
 impl HybridGiScenePrepareResourcesSnapshot {
     pub(crate) fn store_texture_slot_rgba_samples(
@@ -41,5 +42,12 @@ impl HybridGiScenePrepareResourcesSnapshot {
     ) {
         self.probe_trace_tiles = probe_trace_tiles;
         self.probe_trace_dispatch = probe_trace_dispatch;
+    }
+
+    pub(crate) fn store_probe_trace_diagnostics(
+        &mut self,
+        diagnostics: Vec<RenderHybridGiProbeTraceDiagnosticRecord>,
+    ) {
+        self.probe_trace_diagnostics = diagnostics;
     }
 }

@@ -40,16 +40,25 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             RenderGraphResourceAccessKind::Read,
         )?;
         let history_available = previous_hzb_view.is_some();
-        let previous_hzb_view = match previous_hzb_view {
-            Some(view) => view,
-            None => self
-                .post_process_stack
+        let post_process_stack = self.post_process_stack.ok_or_else(|| {
+            format!(
+                "HZB occlusion cull graph executor for pass `{pass_name}` requires post-process resources"
+            )
+        })?;
+        let sampled_resource_identity = if history_available {
+            post_process_stack
+                .hzb_history_resource_identity()
                 .ok_or_else(|| {
                     format!(
-                        "HZB occlusion cull graph executor for pass `{pass_name}` requires post-process fallback textures when previous HZB is unavailable"
+                        "HZB occlusion cull graph executor for pass `{pass_name}` resolved history without a history resource identity"
                     )
                 })?
-                .white_texture_view(),
+        } else {
+            post_process_stack.hzb_fallback_resource_identity()
+        };
+        let previous_hzb_view = match previous_hzb_view {
+            Some(view) => view,
+            None => post_process_stack.white_texture_view(),
         };
         let report = culler.execute(
             self.device,
@@ -58,6 +67,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             self.scene_bind_group,
             gpu_scene_bind_group,
             previous_hzb_view,
+            sampled_resource_identity,
             mesh_draw_lists,
             history_available,
         );

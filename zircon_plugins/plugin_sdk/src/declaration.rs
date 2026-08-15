@@ -3,11 +3,11 @@ use crate::runtime::RuntimePluginDeclaration;
 #[cfg(feature = "runtime")]
 use zircon_runtime::builtin::RuntimePluginId;
 #[cfg(feature = "runtime")]
-use zircon_runtime::core::ModuleDescriptor;
-#[cfg(feature = "runtime")]
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 #[cfg(feature = "runtime")]
 use zircon_runtime::core::framework::project::{ExportPackagingStrategy, ExportTargetPlatform};
+#[cfg(feature = "runtime")]
+use zircon_runtime::core::ModuleDescriptor;
 #[cfg(feature = "runtime")]
 use zircon_runtime::plugin::{PluginMaturity as RuntimePluginMaturity, RuntimePluginDescriptor};
 

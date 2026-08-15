@@ -6,7 +6,7 @@ use super::super::editor_ui_host::EditorUiHost;
 use crate::ui::workbench::view::ViewInstanceId;
 
 use super::super::project_access::normalize_ui_asset_asset_id;
-use crate::core::extension::{SaveCtx, SaveReason, ToolkitSaveFailure};
+use crate::core::extension::{DocumentAutosavePayload, SaveCtx, SaveReason, ToolkitSaveFailure};
 
 pub(super) fn save_ui_asset_document(
     host: &EditorUiHost,
@@ -16,6 +16,36 @@ pub(super) fn save_ui_asset_document(
     let written_bytes = host.save_ui_asset_editor_canonical(instance_id)?;
     context.record_written_bytes(written_bytes)?;
     Ok(())
+}
+
+pub(super) fn capture_ui_asset_document_autosave(
+    host: &EditorUiHost,
+    instance_id: &ViewInstanceId,
+) -> Result<DocumentAutosavePayload, ToolkitSaveFailure> {
+    let source_path = ui_asset_document_autosave_source_path(host, instance_id)?;
+    let sessions = host.lock_ui_asset_sessions();
+    let entry = sessions.get(instance_id).ok_or_else(|| {
+        EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+    })?;
+    let source = entry
+        .session
+        .canonical_source()
+        .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+    Ok(DocumentAutosavePayload::new(
+        source_path,
+        source.into_bytes(),
+    ))
+}
+
+pub(super) fn ui_asset_document_autosave_source_path(
+    host: &EditorUiHost,
+    instance_id: &ViewInstanceId,
+) -> Result<PathBuf, ToolkitSaveFailure> {
+    let sessions = host.lock_ui_asset_sessions();
+    let entry = sessions.get(instance_id).ok_or_else(|| {
+        EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+    })?;
+    Ok(entry.source_path.clone())
 }
 
 impl EditorUiHost {

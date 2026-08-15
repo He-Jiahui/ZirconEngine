@@ -13,12 +13,13 @@ from unittest.mock import patch
 
 from tools.check_conventions import (
     ConventionCommand,
-    audit_document_paths,
     audit_rule_guard_coverage,
+    audit_rust_exemptions,
     convention_commands,
     main,
     run_conventions,
 )
+from tools.tests.check_conventions.document_paths import DocumentPathAuditTests
 
 
 class CheckConventionsTests(unittest.TestCase):
@@ -183,86 +184,6 @@ class CheckConventionsTests(unittest.TestCase):
     def _normalized_yaml_commands(source: str) -> str:
         return re.sub(r"\s+", " ", source).strip()
 
-    def test_document_audit_reports_missing_related_code_and_implementation_files(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            repo_root = Path(temporary_directory)
-            docs_root = repo_root / "docs"
-            docs_root.mkdir()
-            (repo_root / "src").mkdir()
-            (repo_root / "src" / "present.rs").write_text("", encoding="utf-8")
-            (docs_root / "module.md").write_text(
-                "---\n"
-                "related_code:\n"
-                "  - src/present.rs\n"
-                "  - src/missing.rs\n"
-                "implementation_files:\n"
-                "  - src/missing_impl.rs\n"
-                "tests:\n"
-                "  - cargo test -p example\n"
-                "---\n\n"
-                "# Module\n",
-                encoding="utf-8",
-            )
-
-            report = audit_document_paths(repo_root)
-
-            self.assertEqual(report["document_count"], 1)
-            self.assertEqual(report["checked_path_count"], 3)
-            self.assertEqual(report["affected_document_count"], 1)
-            self.assertEqual(report["reason_counts"], {"missing path": 2})
-            self.assertEqual(report["path_root_counts"], {"src": 2})
-            self.assertEqual(
-                [(item["field"], item["path"]) for item in report["violations"]],
-                [
-                    ("implementation_files", "src/missing_impl.rs"),
-                    ("related_code", "src/missing.rs"),
-                ],
-            )
-
-    def test_document_audit_accepts_existing_files_and_directories(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            repo_root = Path(temporary_directory)
-            docs_root = repo_root / "docs"
-            docs_root.mkdir()
-            (repo_root / "src" / "feature").mkdir(parents=True)
-            (repo_root / "src" / "feature" / "mod.rs").write_text("", encoding="utf-8")
-            (docs_root / "module.md").write_text(
-                "---\n"
-                "related_code:\n"
-                "  - src/feature\n"
-                "  - src/feature/mod.rs\n"
-                "---\n\n"
-                "# Module\n",
-                encoding="utf-8",
-            )
-
-            report = audit_document_paths(repo_root)
-
-            self.assertEqual(report["checked_path_count"], 2)
-            self.assertEqual(report["violations"], [])
-
-    def test_document_audit_rejects_absolute_and_parent_escape_paths(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary_directory:
-            repo_root = Path(temporary_directory)
-            docs_root = repo_root / "docs"
-            docs_root.mkdir()
-            (docs_root / "module.md").write_text(
-                "---\n"
-                "related_code:\n"
-                "  - ../outside.rs\n"
-                "  - C:/outside.rs\n"
-                "---\n\n"
-                "# Module\n",
-                encoding="utf-8",
-            )
-
-            report = audit_document_paths(repo_root)
-
-            self.assertEqual(
-                [item["reason"] for item in report["violations"]],
-                ["repository escape", "absolute path"],
-            )
-
     def test_rule_guard_audit_accepts_current_development_conventions(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
 
@@ -325,6 +246,7 @@ class CheckConventionsTests(unittest.TestCase):
             )
 
             report = audit_rule_guard_coverage(repo_root)
+            exemption_report = audit_rust_exemptions(repo_root)
 
             self.assertEqual(report["rule_count"], 3)
             self.assertEqual(report["must_rule_count"], 2)
@@ -335,6 +257,13 @@ class CheckConventionsTests(unittest.TestCase):
                     ("GEN-S1", "missing guard"),
                     ("GEN-S1", "duplicate rule id"),
                 ],
+            )
+            self.assertTrue(
+                any(
+                    item["member"] == "<catalog>"
+                    and "invalid exemption rule catalog" in item["reason"]
+                    for item in exemption_report["violations"]
+                )
             )
 
     def test_rule_guard_audit_rejects_malformed_rows_and_unknown_guards(self) -> None:
@@ -522,6 +451,259 @@ class CheckConventionsTests(unittest.TestCase):
                 [("GEN-S1", "empty rule text")],
             )
 
+    def test_rust_exemption_audit_accepts_known_marker_and_reports_unscoped_debt(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repo_root = self._write_exemption_workspace(Path(temporary_directory))
+            (repo_root / "zircon_app/src/lib.rs").write_text(
+                "// EXEMPT(GEN-Q7): crate lint is owned by the generated binding\n"
+                "#\n!\n[allow /* split token comment */\n(dead_code)]\n"
+                "// EXEMPT(GEN-Q7): generated binding keeps this import available\n"
+                "#[allow(unused_imports)]\n"
+                "use std::fmt::Debug;\n",
+                encoding="utf-8",
+            )
+            (repo_root / "zircon_runtime/src/lib.rs").write_text(
+                "#[allow(dead_code)]\nfn retained_debt() {}\n"
+                "const FAKE_ATTRIBUTE: &str = r#\"#[allow(fake)]\"#;\n"
+                "// #[allow(fake_line_comment)]\n"
+                "/* #[allow(fake_block_comment)] */\n",
+                encoding="utf-8",
+            )
+
+            report = audit_rust_exemptions(repo_root)
+            runner_report = run_conventions(
+                repo_root, ["exemptions"], dry_run=True
+            )
+            with patch(
+                "tools.convention_exemptions.subprocess.run",
+                side_effect=FileNotFoundError(2, "missing executable", "git"),
+            ):
+                fallback_report = audit_rust_exemptions(repo_root)
+
+            self.assertEqual(report["allow_attribute_count"], 3)
+            self.assertEqual(report["valid_exemption_count"], 2)
+            self.assertEqual(report["unscoped_allow_attribute_count"], 1)
+            self.assertEqual(
+                report["allow_counts_by_member"],
+                {"zircon_app": 2, "zircon_runtime": 1},
+            )
+            self.assertEqual(report["valid_exemption_counts_by_rule"], {"GEN-Q7": 2})
+            self.assertEqual(report["violations"], [])
+            self.assertEqual(runner_report["exemptions"], report)
+            self.assertTrue(runner_report["passed"])
+            self.assertEqual(fallback_report["source_inventory"], "cargo-roots-fallback")
+            self.assertEqual(fallback_report["violations"], [])
+            (repo_root / "zircon_runtime_interface/src").rmdir()
+            (repo_root / "zircon_runtime_interface").rmdir()
+            missing_member_report = audit_rust_exemptions(repo_root)
+            self.assertTrue(
+                any(
+                    item["member"] == "zircon_runtime_interface"
+                    and item["reason"] == "missing enforced workspace member"
+                    for item in missing_member_report["violations"]
+                )
+            )
+
+    def test_rust_exemption_audit_rejects_missing_unknown_and_empty_markers(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repo_root = self._write_exemption_workspace(Path(temporary_directory))
+            (repo_root / "zircon_app/src/lib.rs").write_text(
+                "#[allow(dead_code)]\nfn missing() {}\n\n"
+                "// EXEMPT(GEN-Q9): rule is not in the catalog\n"
+                "#[allow(unused_variables)]\nfn unknown() { let value = 1; }\n\n"
+                "// EXEMPT(GEN-Q7):\n"
+                "#[allow(unused_imports)]\nuse std::fmt::Debug;\n\n"
+                "// EXEMPT(GEN-Q5): advisory rules do not authorize lint debt\n"
+                "#[allow(unused_mut)]\nfn advisory() { let mut value = 1; }\n\n"
+                "#[cfg(test)] #[allow(unreachable_code)]\nfn same_line() {}\n\n"
+                "/*\n// EXEMPT(GEN-Q7): fake block-comment marker */\n"
+                "#[allow(unreachable_patterns)]\nfn block_comment() {}\n",
+                encoding="utf-8",
+            )
+
+            report = audit_rust_exemptions(repo_root)
+
+            self.assertEqual(
+                [(item["line"], item["reason"]) for item in report["violations"]],
+                [
+                    (1, "missing exemption marker"),
+                    (5, "unknown exemption rule id"),
+                    (9, "empty exemption reason"),
+                    (13, "non-MUST exemption rule id"),
+                    (16, "missing exemption marker"),
+                    (21, "missing exemption marker"),
+                ],
+            )
+
+    def test_rust_exemption_audit_accepts_current_enforced_members(self) -> None:
+        repo_root = Path(__file__).resolve().parents[2]
+
+        report = audit_rust_exemptions(repo_root)
+
+        self.assertEqual(
+            report["enforced_members"],
+            ["zircon_app", "zircon_runtime_interface"],
+        )
+        self.assertEqual(report["violation_count"], 0)
+
+    def test_rust_exemption_git_inventory_covers_dirty_and_untracked_only(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repo_root = self._write_exemption_workspace(Path(temporary_directory))
+            app_source = repo_root / "zircon_app/src/lib.rs"
+            app_source.write_text("fn initial() {}\n", encoding="utf-8")
+            (repo_root / ".gitignore").write_text(
+                "/zircon_app/src/ignored.rs\n", encoding="utf-8"
+            )
+            (repo_root / "zircon_app/src/clean_tracked.rs").write_text(
+                "// EXEMPT(GEN-Q7): clean tracked lint is locally owned\n"
+                "#[allow\n(dead_code)]\nfn clean_tracked() {}\n",
+                encoding="utf-8",
+            )
+            subprocess.run(("git", "init", "--quiet"), cwd=repo_root, check=True)
+            subprocess.run(("git", "add", "."), cwd=repo_root, check=True)
+            app_source.write_text(
+                "// EXEMPT(GEN-Q7): tracked dirty lint is locally owned\n"
+                "#[allow(dead_code)]\nfn tracked_dirty() {}\n",
+                encoding="utf-8",
+            )
+            (repo_root / "zircon_runtime/src/untracked.rs").write_text(
+                "#[allow\n(dead_code)]\nfn untracked() {}\n", encoding="utf-8"
+            )
+            (repo_root / "zircon_app/src/ignored.rs").write_text(
+                "#[allow(dead_code)]\nfn ignored() {}\n", encoding="utf-8"
+            )
+
+            report = audit_rust_exemptions(repo_root)
+            with patch(
+                "tools.convention_exemptions.subprocess.run",
+                side_effect=FileNotFoundError(2, "missing executable", "git"),
+            ):
+                git_error_report = audit_rust_exemptions(repo_root)
+            with patch(
+                "tools.convention_exemptions.subprocess.run",
+                return_value=subprocess.CompletedProcess(
+                    args=("git", "grep"),
+                    returncode=2,
+                    stdout="",
+                    stderr="fatal: simulated inventory failure",
+                ),
+            ):
+                git_exit_error_report = audit_rust_exemptions(repo_root)
+
+            self.assertEqual(report["source_inventory"], "git-grep")
+            self.assertEqual(report["allow_candidate_file_count"], 3)
+            self.assertEqual(report["allow_attribute_count"], 3)
+            self.assertEqual(report["scoped_allow_attribute_count"], 2)
+            self.assertEqual(report["unscoped_allow_attribute_count"], 1)
+            self.assertEqual(report["valid_exemption_count"], 2)
+            self.assertEqual(
+                report["allow_counts_by_member"],
+                {"zircon_app": 2, "zircon_runtime": 1},
+            )
+            self.assertEqual(report["violation_count"], 0)
+            self.assertEqual(
+                git_error_report["source_inventory"],
+                "git-error:unable to inventory Rust exemptions: FileNotFoundError",
+            )
+            self.assertEqual(git_error_report["violation_count"], 1)
+            self.assertEqual(
+                git_exit_error_report["source_inventory"],
+                "git-error:git grep failed with exit 2",
+            )
+            self.assertEqual(git_exit_error_report["violation_count"], 1)
+
+    def test_rust_exemption_fallback_covers_manifest_roots_and_nested_owner(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repo_root = self._write_exemption_workspace(Path(temporary_directory))
+            (repo_root / "Cargo.toml").write_text(
+                "[workspace]\n"
+                'members = ["zircon_app", "zircon_runtime", '
+                '"zircon_runtime/tools/nested", "zircon_runtime_interface"]\n',
+                encoding="utf-8",
+            )
+            runtime_root = repo_root / "zircon_runtime"
+            (runtime_root / "Cargo.toml").write_text(
+                "[package]\n"
+                'name = "fixture_runtime"\n'
+                'version = "0.0.0"\n'
+                'build = "custom/build.rs"\n'
+                "[lib]\n"
+                'path = "custom/lib.rs"\n'
+                "[[bin]]\n"
+                'name = "fixture_bin"\n'
+                'path = "custom/bin.rs"\n'
+                "[[example]]\n"
+                'name = "fixture_example"\n'
+                'path = "custom/example.rs"\n'
+                "[[test]]\n"
+                'name = "fixture_test"\n'
+                'path = "custom/test.rs"\n'
+                "[[bench]]\n"
+                'name = "fixture_bench"\n'
+                'path = "custom/bench.rs"\n',
+                encoding="utf-8",
+            )
+            custom_root = runtime_root / "custom"
+            custom_root.mkdir()
+            for source_name in (
+                "build.rs",
+                "lib.rs",
+                "bin.rs",
+                "example.rs",
+                "test.rs",
+                "bench.rs",
+            ):
+                (custom_root / source_name).write_text(
+                    "#[allow(dead_code)]\nfn retained() {}\n", encoding="utf-8"
+                )
+            nested_source = runtime_root / "tools/nested/src/lib.rs"
+            nested_source.parent.mkdir(parents=True)
+            nested_source.write_text(
+                "#[allow(dead_code)]\nfn nested() {}\n", encoding="utf-8"
+            )
+
+            with patch(
+                "tools.convention_exemptions.subprocess.run",
+                side_effect=FileNotFoundError(2, "missing executable", "git"),
+            ):
+                report = audit_rust_exemptions(repo_root)
+
+            self.assertEqual(report["source_inventory"], "cargo-roots-fallback")
+            self.assertEqual(report["workspace_member_count"], 4)
+            self.assertEqual(report["allow_candidate_file_count"], 7)
+            self.assertEqual(report["allow_attribute_count"], 7)
+            self.assertEqual(report["scoped_allow_attribute_count"], 0)
+            self.assertEqual(
+                report["allow_counts_by_member"],
+                {"zircon_runtime": 6, "zircon_runtime/tools/nested": 1},
+            )
+            self.assertEqual(report["violations"], [])
+
+    @staticmethod
+    def _write_exemption_workspace(repo_root: Path) -> Path:
+        (repo_root / "Cargo.toml").write_text(
+            "[workspace]\n"
+            'members = ["crates/../zircon_app", "zircon_runtime", '
+            '"zircon_runtime_interface"]\n',
+            encoding="utf-8",
+        )
+        (repo_root / "crates").mkdir()
+        for member in ("zircon_app", "zircon_runtime", "zircon_runtime_interface"):
+            (repo_root / member / "src").mkdir(parents=True)
+        convention = (
+            repo_root
+            / "docs/plans/zircon_runtime/frameworks/development-conventions.md"
+        )
+        convention.parent.mkdir(parents=True)
+        convention.write_text(
+            "| ID | 级别 | 规则 | 守卫 |\n"
+            "|---|---|---|---|\n"
+            "| GEN-Q7 | MUST | lint debt converges | G3 |\n"
+            "| GEN-Q5 | SHOULD | comments carry intent | 评审 |\n",
+            encoding="utf-8",
+        )
+        return repo_root
+
     def test_powershell_wrapper_exposes_all_owned_gates(self) -> None:
         repo_root = Path(__file__).resolve().parents[2]
         wrapper = (repo_root / "tools" / "check-conventions.ps1").read_text(
@@ -529,7 +711,7 @@ class CheckConventionsTests(unittest.TestCase):
         )
 
         self.assertIn(
-            "[ValidateSet('docs', 'guards', 'layering', 'structure', 'fmt', 'clippy')]",
+            "[ValidateSet('docs', 'guards', 'exemptions', 'layering', 'structure', 'fmt', 'clippy')]",
             wrapper,
         )
         self.assertEqual(self._copied_owned_cargo_commands(wrapper), [])
@@ -634,8 +816,14 @@ class CheckConventionsTests(unittest.TestCase):
         )
 
     def test_convention_command_plan_is_stable_and_scoped(self) -> None:
+        repo_root = Path(__file__).resolve().parents[2]
+        runner_source = (repo_root / "tools/check_conventions.py").read_text(
+            encoding="utf-8-sig"
+        )
         commands = convention_commands()
 
+        self.assertIn("if __package__:", runner_source)
+        self.assertNotIn("except ImportError", runner_source)
         self.assertEqual(
             commands,
             [

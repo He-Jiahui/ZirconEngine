@@ -1,9 +1,21 @@
 fn completion_shader_source() -> String {
     format!(
-        "{}\n{}",
+        "{}\n{}\n{}",
         include_str!("../../../shaders/update_completion.wgsl"),
         include_str!("../../../shaders/update_completion_scene_radiance.wgsl"),
+        include_str!("../../../shaders/update_completion_output.wgsl"),
     )
+}
+
+#[test]
+fn completion_shader_keeps_the_compute_entrypoint_in_the_output_owner() {
+    let main = include_str!("../../../shaders/update_completion.wgsl");
+    let scene_radiance = include_str!("../../../shaders/update_completion_scene_radiance.wgsl");
+    let output = include_str!("../../../shaders/update_completion_output.wgsl");
+
+    assert!(!main.contains("fn cs_main("));
+    assert!(!scene_radiance.contains("fn cs_main("));
+    assert!(output.contains("fn cs_main("));
 }
 
 #[test]

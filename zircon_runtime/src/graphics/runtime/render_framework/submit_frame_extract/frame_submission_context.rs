@@ -1,21 +1,24 @@
 use std::sync::Arc;
 
 use crate::core::framework::render::{
-    AdvancedProfileRuntimePlan, AdvancedProviderReport, AntiAliasFallbackReport, AntiAliasMode,
-    FrameHistoryInvalidationReason, PostProcessPassGraph, RenderAmbientLightSnapshot,
-    RenderCameraOrderReport, RenderCameraTargetResolutionReport, RenderCapabilitySummary,
-    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderHybridGiExtract,
-    RenderHybridGiPayloadSource, RenderMeshSnapshot, RenderPipelineHandle,
+    normalize_texture_max_anisotropy, AdvancedProfileRuntimePlan, AdvancedProviderReport,
+    AntiAliasFallbackReport, AntiAliasMode, FrameHistoryInvalidationReason, PostProcessPassGraph,
+    RenderAmbientLightSnapshot, RenderCameraOrderReport, RenderCameraTargetResolutionReport,
+    RenderCapabilitySummary, RenderDirectionalLightSnapshot, RenderFrameExtract,
+    RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderMeshSnapshot, RenderPipelineHandle,
     RenderPointLightSnapshot, RenderPostProcessEffectStackSettings, RenderRectLightSnapshot,
-    RenderSpotLightSnapshot, RenderVirtualGeometryBvhVisualizationInstance,
-    RenderVirtualGeometryCpuReferenceInstance, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryPagePayload, RenderVirtualGeometryPayloadSource, ShaderQualityTier,
-    SolariRuntimeReport, TemporalJitterSample, TemporalJitterSequence, ViewportCameraSnapshot,
-    normalize_texture_max_anisotropy,
+    RenderSpotLightSnapshot, RenderViewFamilyPipeline,
+    RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryCpuReferenceInstance,
+    RenderVirtualGeometryExtract, RenderVirtualGeometryPagePayload,
+    RenderVirtualGeometryPayloadSource, ShaderQualityTier, SolariRuntimeReport,
+    TemporalJitterSample, TemporalJitterSequence, ViewportCameraSnapshot,
 };
-use crate::core::math::UVec2;
+use crate::core::math::{UVec2, Vec3};
 use crate::graphics::runtime::FrameHistoryValidationKey;
-use crate::graphics::{ViewVisibilityContext, ViewportRenderOutputTarget, VisibilityViewKey};
+use crate::graphics::{
+    EnvironmentIblBakeReservation, ViewVisibilityContext, ViewportRenderOutputTarget,
+    VisibilityViewKey,
+};
 
 use crate::graphics::{
     CompiledRenderPipeline, VisibilityContext, VisibilityHybridGiFeedback,
@@ -24,6 +27,13 @@ use crate::graphics::{
 };
 
 use super::super::viewport_record::ViewportCameraHistoryKey;
+
+const fn hgi_history_invalidation_active(
+    temporal_history_enabled: bool,
+    history_invalidation_reason: Option<FrameHistoryInvalidationReason>,
+) -> bool {
+    temporal_history_enabled && history_invalidation_reason.is_some()
+}
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(super) struct UiSubmissionStats {
@@ -50,9 +60,13 @@ pub(super) struct FrameSubmissionContext {
     previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
     camera_history_key: ViewportCameraHistoryKey,
     history_validation_key: Arc<FrameHistoryValidationKey>,
+    temporal_history_enabled: bool,
     history_invalidation_reason: Option<FrameHistoryInvalidationReason>,
     output_target: ViewportRenderOutputTarget,
     camera_target_resolution: RenderCameraTargetResolutionReport,
+    // Set once during frame-context construction. Consumers must use this shared contract instead
+    // of independently deriving phase resolution from `render_size`.
+    view_family_pipeline: Option<RenderViewFamilyPipeline>,
     scene_camera_order_report: Option<RenderCameraOrderReport>,
     ui_stats: UiSubmissionStats,
     post_process_effect_stack: RenderPostProcessEffectStackSettings,
@@ -80,6 +94,7 @@ pub(super) struct FrameSubmissionContext {
     virtual_geometry_resident_page_payloads: Vec<RenderVirtualGeometryPagePayload>,
     virtual_geometry_page_upload_plan: Option<VisibilityVirtualGeometryPageUploadPlan>,
     virtual_geometry_feedback: Option<VisibilityVirtualGeometryFeedback>,
+    environment_ibl_bake_reservation: Option<EnvironmentIblBakeReservation>,
     predicted_generation: u64,
 }
 
@@ -98,6 +113,7 @@ impl FrameSubmissionContext {
         previous_motion_vector_camera: Option<ViewportCameraSnapshot>,
         camera_history_key: ViewportCameraHistoryKey,
         history_validation_key: FrameHistoryValidationKey,
+        temporal_history_enabled: bool,
         history_invalidation_reason: Option<FrameHistoryInvalidationReason>,
         output_target: ViewportRenderOutputTarget,
         camera_target_resolution: RenderCameraTargetResolutionReport,
@@ -182,9 +198,11 @@ impl FrameSubmissionContext {
             previous_motion_vector_camera,
             camera_history_key,
             history_validation_key: Arc::new(history_validation_key),
+            temporal_history_enabled,
             history_invalidation_reason,
             output_target,
             camera_target_resolution,
+            view_family_pipeline: None,
             scene_camera_order_report,
             ui_stats,
             post_process_effect_stack,
@@ -209,6 +227,7 @@ impl FrameSubmissionContext {
             virtual_geometry_resident_page_payloads,
             virtual_geometry_page_upload_plan,
             virtual_geometry_feedback,
+            environment_ibl_bake_reservation: None,
             predicted_generation,
         }
     }
@@ -249,6 +268,33 @@ impl FrameSubmissionContext {
     pub(super) fn with_texture_max_anisotropy(mut self, max_anisotropy: u8) -> Self {
         self.texture_max_anisotropy = normalize_texture_max_anisotropy(max_anisotropy);
         self
+    }
+
+    pub(super) fn with_environment_ibl_bake_reservation(
+        mut self,
+        reservation: Option<EnvironmentIblBakeReservation>,
+    ) -> Self {
+        self.environment_ibl_bake_reservation = reservation;
+        self
+    }
+
+    /// Installs the single view-family resolution contract for this submitted frame.
+    ///
+    /// `build_frame_submission_context` resolves this before graph allocation. The explicit
+    /// builder keeps the existing constructor source-compatible while its active owner completes
+    /// the cross-module handoff; there is deliberately no scalar-size fallback for consumers.
+    pub(super) fn with_view_family_pipeline(
+        mut self,
+        view_family_pipeline: RenderViewFamilyPipeline,
+    ) -> Self {
+        self.view_family_pipeline = Some(view_family_pipeline);
+        self
+    }
+
+    pub(super) fn take_environment_ibl_bake_reservation(
+        &mut self,
+    ) -> Option<EnvironmentIblBakeReservation> {
+        self.environment_ibl_bake_reservation.take()
     }
 
     pub(super) fn texture_max_anisotropy(&self) -> u8 {
@@ -302,12 +348,28 @@ impl FrameSubmissionContext {
         self.history_invalidation_reason
     }
 
+    /// HGI owns an independent temporal cache. Only propagate invalidations from an active
+    /// renderer history contract; a disabled history feature reports no previous frame by design.
+    pub(super) fn hybrid_gi_history_invalidated(&self) -> bool {
+        hgi_history_invalidation_active(
+            self.temporal_history_enabled,
+            self.history_invalidation_reason,
+        )
+    }
+
     pub(super) fn output_target(&self) -> ViewportRenderOutputTarget {
         self.output_target
     }
 
     pub(super) fn camera_target_resolution(&self) -> RenderCameraTargetResolutionReport {
         self.camera_target_resolution
+    }
+
+    /// Returns the only per-frame resolution/phase contract valid for graph consumers.
+    pub(super) fn view_family_pipeline(&self) -> &RenderViewFamilyPipeline {
+        self.view_family_pipeline.as_ref().expect(
+            "frame-context consumers require the ViewFamily pipeline resolved during submission",
+        )
     }
 
     pub(super) fn scene_camera_order_report(&self) -> Option<&RenderCameraOrderReport> {
@@ -364,6 +426,10 @@ impl FrameSubmissionContext {
 
     pub(super) fn scene_meshes(&self) -> &[RenderMeshSnapshot] {
         &self.source_extract.geometry.meshes
+    }
+
+    pub(super) fn scene_camera_position(&self) -> Vec3 {
+        self.source_extract.view.camera.transform.translation
     }
 
     pub(super) fn scene_directional_lights(&self) -> &[RenderDirectionalLightSnapshot] {

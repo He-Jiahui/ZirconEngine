@@ -1,0 +1,133 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/composites/chrome/workbench_ui_asset_action_bar.zui"
+version = 2
+display_name = "Workbench UI Asset Action Bar"
+
+[imports]
+widgets = [
+  "res://ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption",
+  "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+]
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
+
+[components.WorkbenchUiAssetActionBar]
+root = "root"
+default_classes = ["workbench-ui-asset-action-bar", "workbench-composite"]
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "WorkbenchUiAssetActionBarRoot"
+classes = ["workbench-ui-asset-action-bar"]
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" } }
+children = [
+  { node = "insert_row" },
+  { node = "reparent_row" },
+  { node = "structure_row" },
+]
+
+[nodes.insert_row]
+component = "HorizontalGroup"
+control_id = "ActionInsertRow"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.regular" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [
+  { node = "insert_caption" },
+  { node = "insert_child_button" },
+  { node = "insert_after_button" },
+]
+
+[nodes.insert_caption]
+component = "WorkbenchCaption"
+control_id = "ActionInsertCaption"
+props = { text = "Insert", text_tone = "secondary", text_overflow = "ellipsis" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.insert_child_button]
+component = "WorkbenchButton"
+control_id = "ActionInsertChildButton"
+props = { text = "Child", button_variant = "text", button_color = "secondary", button_size = "small", action_id = "palette.insert.child", text_overflow = "ellipsis" }
+events = [{ id = "UiAssetEditor/InsertChild", event = "Click", route = "palette.insert.child" }]
+layout = { width = { min = "$editor.density.ui_asset_action.min_width", preferred = "$editor.density.ui_asset_action.preferred_width", max = "$editor.density.ui_asset_action.max_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.insert_after_button]
+component = "WorkbenchButton"
+control_id = "ActionInsertAfterButton"
+props = { text = "After", button_variant = "text", button_color = "secondary", button_size = "small", action_id = "palette.insert.after", text_overflow = "ellipsis" }
+events = [{ id = "UiAssetEditor/InsertAfter", event = "Click", route = "palette.insert.after" }]
+layout = { width = { min = "$editor.density.ui_asset_action.min_width", preferred = "$editor.density.ui_asset_action.preferred_width", max = "$editor.density.ui_asset_action.max_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.reparent_row]
+component = "HorizontalGroup"
+control_id = "ActionReparentRow"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.regular" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [
+  { node = "reparent_caption" },
+  { node = "reparent_previous_button" },
+  { node = "reparent_next_button" },
+  { node = "reparent_outdent_button" },
+]
+
+[nodes.reparent_caption]
+component = "WorkbenchCaption"
+control_id = "ActionReparentCaption"
+props = { text = "Reparent", text_tone = "secondary", text_overflow = "ellipsis" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.reparent_previous_button]
+component = "WorkbenchButton"
+control_id = "ActionReparentPreviousButton"
+props = { text = "Prev", button_variant = "text", button_color = "secondary", button_size = "small", action_id = "canvas.reparent.into_previous", text_overflow = "ellipsis" }
+events = [{ id = "UiAssetEditor/ReparentPrevious", event = "Click", route = "canvas.reparent.into_previous" }]
+layout = { width = { min = "$editor.density.ui_asset_action.min_width", preferred = "$editor.density.ui_asset_action.preferred_width", max = "$editor.density.ui_asset_action.max_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.reparent_next_button]
+component = "WorkbenchButton"
+control_id = "ActionReparentNextButton"
+props = { text = "Next", button_variant = "text", button_color = "secondary", button_size = "small", action_id = "canvas.reparent.into_next", text_overflow = "ellipsis" }
+events = [{ id = "UiAssetEditor/ReparentNext", event = "Click", route = "canvas.reparent.into_next" }]
+layout = { width = { min = "$editor.density.ui_asset_action.min_width", preferred = "$editor.density.ui_asset_action.preferred_width", max = "$editor.density.ui_asset_action.max_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.reparent_outdent_button]
+component = "WorkbenchButton"
+control_id = "ActionReparentOutdentButton"
+props = { text = "Out", button_variant = "text", button_color = "secondary", button_size = "small", action_id = "canvas.reparent.outdent", text_overflow = "ellipsis" }
+events = [{ id = "UiAssetEditor/ReparentOutdent", event = "Click", route = "canvas.reparent.outdent" }]
+layout = { width = { min = "$editor.density.ui_asset_action.min_width", preferred = "$editor.density.ui_asset_action.preferred_width", max = "$editor.density.ui_asset_action.max_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.structure_row]
+component = "HorizontalGroup"
+control_id = "ActionStructureRow"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.regular" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+children = [
+  { node = "structure_caption" },
+  { node = "structure_up_button" },
+  { node = "structure_down_button" },
+  { node = "structure_wrap_button" },
+]
+
+[nodes.structure_caption]
+component = "WorkbenchCaption"
+control_id = "ActionStructureCaption"
+props = { text = "Structure", text_tone = "secondary", text_overflow = "ellipsis" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.structure_up_button]
+component = "WorkbenchButton"
+control_id = "ActionStructureUpButton"
+props = { text = "Up", button_variant = "text", button_color = "secondary", button_size = "small", action_id = "canvas.move.up", text_overflow = "ellipsis" }
+events = [{ id = "UiAssetEditor/StructureUp", event = "Click", route = "canvas.move.up" }]
+layout = { width = { min = "$editor.density.ui_asset_action.min_width", preferred = "$editor.density.ui_asset_action.preferred_width", max = "$editor.density.ui_asset_action.max_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.structure_down_button]
+component = "WorkbenchButton"
+control_id = "ActionStructureDownButton"
+props = { text = "Down", button_variant = "text", button_color = "secondary", button_size = "small", action_id = "canvas.move.down", text_overflow = "ellipsis" }
+events = [{ id = "UiAssetEditor/StructureDown", event = "Click", route = "canvas.move.down" }]
+layout = { width = { min = "$editor.density.ui_asset_action.min_width", preferred = "$editor.density.ui_asset_action.preferred_width", max = "$editor.density.ui_asset_action.max_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.structure_wrap_button]
+component = "WorkbenchButton"
+control_id = "ActionStructureWrapButton"
+props = { text = "Wrap", button_variant = "text", button_color = "secondary", button_size = "small", action_id = "canvas.wrap.vertical_box", text_overflow = "ellipsis" }
+events = [{ id = "UiAssetEditor/StructureWrap", event = "Click", route = "canvas.wrap.vertical_box" }]
+layout = { width = { min = "$editor.density.ui_asset_action.min_width", preferred = "$editor.density.ui_asset_action.preferred_width", max = "$editor.density.ui_asset_action.max_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }

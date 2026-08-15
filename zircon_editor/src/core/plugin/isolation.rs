@@ -2,7 +2,7 @@
 
 use std::any::Any;
 use std::fmt;
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EditorPluginBoundaryFailure {

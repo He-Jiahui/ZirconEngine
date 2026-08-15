@@ -43,11 +43,9 @@ pub fn register_runtime_system(
     })?;
     module.resource(crate::AnimationEvaluationPipeline::default)?;
     module
-        .runtime_scene_system(
-            ANIMATION_EVALUATE_SYSTEM,
-            SystemStage::PostUpdate,
-            run_animation_runtime_system,
-        )
+        .runtime_scene_system(ANIMATION_EVALUATE_SYSTEM, SystemStage::PostUpdate, || {
+            run_animation_runtime_system
+        })
         .in_set(ANIMATION_SYSTEM_SET)
         .after(SystemRef::System(
             "zircon.scene.world_transform".to_string(),

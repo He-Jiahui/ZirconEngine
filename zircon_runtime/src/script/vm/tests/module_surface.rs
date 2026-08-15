@@ -17,6 +17,29 @@ fn builtin_host_modules_register_gameplay_capabilities() {
         .contains(&"gameplay.entity".to_string()));
     assert!(gameplay
         .descriptor
+        .capabilities
+        .contains(&"gameplay.scene_transition".to_string()));
+    assert!(super::super::builtin_host_capabilities().contains("gameplay.scene_transition"));
+    let scene_transition = gameplay
+        .descriptor
+        .functions
+        .iter()
+        .find(|function| function.name == "request_scene_transition")
+        .expect("gameplay scene transition host function");
+    assert_eq!(scene_transition.min_argument_count, 1);
+    assert_eq!(scene_transition.max_argument_count, 1);
+    assert_eq!(scene_transition.return_value_kind, ScriptHostValueKind::Int);
+    assert_eq!(scene_transition.parameters.len(), 1);
+    assert_eq!(scene_transition.parameters[0].name, "scene_uri");
+    assert_eq!(
+        scene_transition.parameters[0].value_kind,
+        ScriptHostValueKind::String
+    );
+    assert!(scene_transition
+        .required_capabilities
+        .contains(&"gameplay.scene_transition".to_string()));
+    assert!(gameplay
+        .descriptor
         .functions
         .iter()
         .any(|function| function.name == "key_pressed"));
@@ -146,6 +169,15 @@ fn runtime13_scalar_math_host_uses_libm_vectors_and_rejects_non_finite_values() 
             &capabilities,
         ),
         Err(VmError::Operation(message)) if message.contains("sin argument 0 must be finite")
+    ));
+    assert!(matches!(
+        exports.call_with_capabilities(
+            "zr.zircon.math",
+            "abs",
+            vec![ScriptHostValue::Int(1)],
+            &capabilities,
+        ),
+        Err(VmError::Operation(message)) if message.contains("abs argument 0 expected finite float")
     ));
     for (name, arguments) in [
         ("abs", vec![ScriptHostValue::Float(f64::INFINITY)]),
@@ -350,7 +382,7 @@ fn vm_subsystem_is_grouped_by_module_backend_host_plugin_and_runtime() {
         "runtime/vm_plugin_slot_state.rs",
         "runtime/vm_plugin_manager.rs",
         "runtime_context.rs",
-        "scene_hook.rs",
+        "scene_system.rs",
     ] {
         assert!(
             root.join(relative).exists(),
@@ -362,6 +394,8 @@ fn vm_subsystem_is_grouped_by_module_backend_host_plugin_and_runtime() {
     for forbidden in [
         "backend/zr_vm_project_fallback_backend.rs",
         "backend/zr_vm_project_fallback_backend",
+        "scene_hook.rs",
+        "scene_hook",
     ] {
         assert!(
             !root.join(forbidden).exists(),

@@ -1,4 +1,5 @@
 use super::*;
+use crate::text::{ShapedGlyph, ShapedTextLine};
 
 #[test]
 fn shaped_run_cache_reuses_single_paragraph_auto_result_for_resolved_ltr() {

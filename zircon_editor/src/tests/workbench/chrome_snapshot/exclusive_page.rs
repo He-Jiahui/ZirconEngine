@@ -39,17 +39,15 @@ fn chrome_builder_marks_exclusive_activity_window_pages() {
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),
     };
-    let descriptors = vec![
-        ViewDescriptor::new(
-            ViewDescriptorId::new("editor.asset_browser"),
-            ViewKind::ActivityWindow,
-            "Asset Browser",
-        )
-        .with_activity_window_template(ActivityWindowTemplateSpec::new(
-            "res://ui/editor/windows/asset_window.zui",
-        ))
-        .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage),
-    ];
+    let descriptors = vec![ViewDescriptor::new(
+        ViewDescriptorId::new("editor.asset_browser"),
+        ViewKind::ActivityWindow,
+        "Asset Browser",
+    )
+    .with_activity_window_template(ActivityWindowTemplateSpec::new(
+        "res://ui/editor/windows/asset_window.zui",
+    ))
+    .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage)];
 
     let chrome = EditorChromeSnapshot::build(
         EditorDataSnapshot {
@@ -119,14 +117,12 @@ fn chrome_builder_resolves_material_component_lab_as_showcase_content() {
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),
     };
-    let descriptors = vec![
-        ViewDescriptor::new(
-            ViewDescriptorId::new("editor.material_component_lab"),
-            ViewKind::ActivityWindow,
-            "Material Component Lab",
-        )
-        .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage),
-    ];
+    let descriptors = vec![ViewDescriptor::new(
+        ViewDescriptorId::new("editor.material_component_lab"),
+        ViewKind::ActivityWindow,
+        "Material Component Lab",
+    )
+    .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage)];
 
     let chrome = EditorChromeSnapshot::build(
         empty_editor_data(),

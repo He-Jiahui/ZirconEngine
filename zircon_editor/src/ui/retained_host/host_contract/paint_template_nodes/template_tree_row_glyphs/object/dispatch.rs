@@ -2,7 +2,7 @@ use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::super::template_icon_assets::push_icon_asset_pixels;
 use super::icons::{push_audio_icon, push_cube_icon, push_player_start_icon};
-use super::kind::{TreeIconKind, is_unavailable_tree_row_state, tree_icon_kind};
+use super::kind::{is_unavailable_tree_row_state, tree_icon_kind, TreeIconKind};
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
 const TREE_OBJECT_BLUE: [u8; 4] = [82, 148, 240, 255];

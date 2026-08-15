@@ -1,14 +1,21 @@
 use super::super::super::data::HostWindowPresentationData;
 use super::super::super::paint_frame::HostRgbaFrame;
+use super::super::super::paint_geometry::intersect;
 use super::super::super::paint_template_nodes::draw_template_nodes;
 use super::super::menus;
-use super::super::root_frames::{RootFrames, zero_origin};
+use super::super::root_frames::{zero_origin, RootFrames};
 
 pub(super) fn draw_top_chrome_layers(
     frame: &mut HostRgbaFrame,
     root: &RootFrames,
     presentation: &HostWindowPresentationData,
 ) {
+    if frame
+        .paint_clip()
+        .is_some_and(|damage| intersect(&root.top_bar, damage).is_none())
+    {
+        return;
+    }
     let scene = &presentation.host_scene_data;
     {
         zircon_runtime::profile_scope!("editor", "host_painter", "painter_menu_template_nodes");
@@ -41,6 +48,12 @@ pub(super) fn draw_status_bar_template_nodes(
     root: &RootFrames,
     presentation: &HostWindowPresentationData,
 ) {
+    if frame
+        .paint_clip()
+        .is_some_and(|damage| intersect(&root.status_bar, damage).is_none())
+    {
+        return;
+    }
     let scene = &presentation.host_scene_data;
     zircon_runtime::profile_scope!(
         "editor",

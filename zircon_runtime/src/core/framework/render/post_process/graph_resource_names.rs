@@ -19,6 +19,9 @@ impl PostProcessGraphResourceNames {
     pub const GBUFFER_MATERIAL: &'static str = "gbuffer-material";
     pub const GBUFFER_EMISSIVE: &'static str = "gbuffer-emissive";
     pub const AMBIENT_OCCLUSION: &'static str = "ambient-occlusion";
+    pub const HISTORY_PREVIOUS_AMBIENT_OCCLUSION: &'static str =
+        "history.previous.ambient-occlusion";
+    pub const SSAO_PARAMS: &'static str = "postprocess.ssao.params";
     pub const CONTACT_SHADOW_OCCLUSION: &'static str = "contact-shadow-occlusion";
     pub const GLOBAL_ILLUMINATION: &'static str = "global-illumination";
     pub const HYBRID_GI_SCENE: &'static str = "hybrid-gi-scene";

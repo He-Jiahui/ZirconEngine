@@ -31,22 +31,22 @@ control_id = "WorkbenchSceneWorkspace"
 classes = ["workbench-main-band", "workbench-scene-workspace"]
 layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
-  { node = "activity_rail" },
-  { node = "left_drawer_shell" },
-  { node = "viewport_panel" },
-  { node = "right_drawer_shell" },
+  { node = "activity_rail", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
+  { node = "left_drawer_shell", slot = { layout = { linear_size = { rule = "StretchContent", value = 1.0 } } } },
+  { node = "viewport_panel", slot = { layout = { linear_size = { rule = "Stretch", value = 4.0 } } } },
+  { node = "right_drawer_shell", slot = { layout = { linear_size = { rule = "StretchContent", value = 1.0 } } } },
 ]
 
 [nodes.activity_rail]
 component = "WorkbenchActivityRail"
 control_id = "WorkbenchMainBandActivityRail"
-layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = "$editor.chrome.activity_rail.width", preferred = "$editor.chrome.activity_rail.width", max = "$editor.chrome.activity_rail.width", priority = 80, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.left_drawer_shell]
 component = "Container"
 control_id = "LeftDrawerShellRoot"
 classes = ["workbench-left-drawer-shell"]
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { preferred = "$editor.density.left_drawer_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { min = "$editor.density.compact_side_min_width", preferred = "$editor.density.left_drawer_width", max = "$editor.density.compact_left_drawer_max_width", priority = 50, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "scene_tree_panel" }]
 
 [nodes.scene_tree_panel]
@@ -57,13 +57,13 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 [nodes.viewport_panel]
 component = "WorkbenchViewportPanel"
 control_id = "WorkbenchMainBandViewportPanel"
-layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { width = { priority = 100, weight = 4.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.right_drawer_shell]
 component = "Container"
 control_id = "RightDrawerShellRoot"
 classes = ["workbench-right-drawer-shell"]
-layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { preferred = "$editor.density.right_drawer_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { min = "$editor.density.compact_side_min_width", preferred = "$editor.density.right_drawer_width", max = "$editor.density.right_drawer_width", priority = 40, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 children = [{ node = "inspector_panel" }]
 
 [nodes.inspector_panel]

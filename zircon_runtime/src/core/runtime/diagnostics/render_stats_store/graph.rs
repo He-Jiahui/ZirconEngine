@@ -216,6 +216,27 @@ fn record_frame_graph(store: &mut DiagnosticStore, stats: &RenderStats) {
     );
     record_count(
         store,
+        "render.taa.reactive_mask_encoded_pass_count",
+        frame_index,
+        stats.last_taa_reactive_mask_encoded_pass_count,
+        &["render", "taa", "reactive_mask"],
+    );
+    record_count(
+        store,
+        "render.taa.reactive_mask_encoded_write_bytes",
+        frame_index,
+        stats.last_taa_reactive_mask_encoded_write_bytes as usize,
+        &["render", "taa", "reactive_mask"],
+    );
+    record_count(
+        store,
+        "render.taa.resolve_bind_group_create_count",
+        frame_index,
+        stats.last_taa_resolve_bind_group_create_count,
+        &["render", "taa", "bind_group"],
+    );
+    record_count(
+        store,
         "render.graph.executed_virtual_geometry_pass_count",
         frame_index,
         stats.last_virtual_geometry_graph_executed_pass_count,

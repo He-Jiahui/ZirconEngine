@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::asset::{
-    AssetUri, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MeshAsset, MeshAttributeValues,
-    MeshIndexFormat, MeshIndices, MeshValidationError,
+    AssetUri, MeshAsset, MeshAttributeValues, MeshIndexFormat, MeshIndices, MeshValidationError,
+    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
 };
 use crate::core::framework::render::RenderMeshTopology;
 
@@ -23,6 +23,7 @@ fn mesh_asset_generates_missing_flat_normals_for_unindexed_triangle_list() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
 
@@ -44,11 +45,10 @@ fn mesh_asset_generates_missing_flat_normals_for_unindexed_triangle_list() {
         .unwrap();
     assert_eq!(normals, expected.as_slice());
     assert_eq!(mesh.validate(), Ok(()));
-    assert!(
-        mesh.attribute_summaries()
-            .iter()
-            .any(|summary| summary.name == MESH_ATTRIBUTE_NORMAL && summary.len == 6)
-    );
+    assert!(mesh
+        .attribute_summaries()
+        .iter()
+        .any(|summary| summary.name == MESH_ATTRIBUTE_NORMAL && summary.len == 6));
 }
 
 #[test]
@@ -67,6 +67,7 @@ fn mesh_asset_does_not_overwrite_existing_normals() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
 
@@ -95,6 +96,7 @@ fn mesh_asset_rejects_flat_normal_generation_for_unsupported_mesh_shapes() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
     let mut lines = MeshAsset {
@@ -105,6 +107,7 @@ fn mesh_asset_rejects_flat_normal_generation_for_unsupported_mesh_shapes() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
 
@@ -152,6 +155,7 @@ fn mesh_asset_generate_missing_normals_defaults_by_indexing() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
     let mut indexed = indexed_smooth_normal_mesh("res://meshes/default-smooth-normals.zmesh");
@@ -193,6 +197,7 @@ fn mesh_asset_rejects_smooth_normal_generation_for_unsupported_mesh_shapes() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
     let mut lines = MeshAsset {
@@ -203,6 +208,7 @@ fn mesh_asset_rejects_smooth_normal_generation_for_unsupported_mesh_shapes() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
 
@@ -239,6 +245,7 @@ fn indexed_smooth_normal_mesh(uri: &str) -> MeshAsset {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     }
 }

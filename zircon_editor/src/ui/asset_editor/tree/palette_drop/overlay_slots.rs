@@ -3,9 +3,9 @@ use std::collections::BTreeMap;
 use toml::Value;
 
 use super::resolution::{
-    quantized_anchor, round_position, slot_table_numeric_value, table_value,
     UiAssetPaletteHoverContext, UiAssetPaletteNativeSlotTarget, UiAssetPaletteSlotTargetOverlay,
-    UiAssetPaletteTargetFrame,
+    UiAssetPaletteTargetFrame, quantized_anchor, round_position, slot_table_numeric_value,
+    table_value,
 };
 
 pub(super) fn overlay_slot_target_overlays(

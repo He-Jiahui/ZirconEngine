@@ -44,12 +44,11 @@ fn toolbar_commands_and_dividers_center_within_their_rows() {
         ),
         (
             "WorkbenchToolbarRunGroup",
-            &[
-                "WorkbenchRunPlay",
-                "WorkbenchRunMode",
-                "WorkbenchLayoutGrid",
-                "WorkbenchThemeToggle",
-            ][..],
+            &["WorkbenchRunPlay", "WorkbenchRunMode"][..],
+        ),
+        (
+            "WorkbenchToolbarLayoutGroup",
+            &["WorkbenchLayoutGrid", "WorkbenchThemeToggle"][..],
         ),
     ] {
         for control_id in children {
@@ -61,6 +60,7 @@ fn toolbar_commands_and_dividers_center_within_their_rows() {
         "WorkbenchToolbarFileGroupDivider",
         "WorkbenchToolbarToolGroupDivider",
         "WorkbenchToolbarRunGroupDivider",
+        "WorkbenchToolbarLayoutGroupDivider",
     ] {
         assert_vertically_centered(&bridge, "WorkbenchToolbarCommandRow", divider);
     }

@@ -56,7 +56,7 @@ related_code:
   - zircon_editor/src/ui/template_runtime/component_adapter/registry.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/inspector.rs
   - zircon_editor/src/ui/binding_dispatch/mod.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access/component_dispatch.rs
   - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
   - zircon_editor/src/ui/asset_editor/binding/binding_inspector.rs
   - zircon_editor/src/ui/asset_editor/binding/binding_inspector/payload_editing.rs
@@ -220,7 +220,7 @@ implementation_files:
   - zircon_editor/src/ui/template_runtime/component_adapter/registry.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/inspector.rs
   - zircon_editor/src/ui/binding_dispatch/mod.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access/component_dispatch.rs
   - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
   - zircon_editor/src/ui/asset_editor/binding/binding_inspector.rs
   - zircon_editor/src/ui/asset_editor/binding/binding_inspector/payload_editing.rs
@@ -1201,7 +1201,7 @@ Focused tests were added for reflection name mutation and aggregate translation 
 ## 2026-05-02 Runtime component data source access point
 
 Related code:
-- `zircon_editor/src/ui/host/editor_event_runtime_access.rs`
+- `zircon_editor/src/ui/host/editor_event_runtime_access/component_dispatch.rs`
 - `zircon_editor/src/ui/template_runtime/component_adapter/registry.rs`
 - `zircon_editor/src/tests/ui/component_adapter.rs`
 

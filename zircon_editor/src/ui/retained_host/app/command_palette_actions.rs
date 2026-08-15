@@ -1,7 +1,8 @@
 use zircon_runtime_interface::ui::component::UiValue;
 
 use crate::core::commands::{
-    CommandEvalCtx, EditorCommandPaletteMru, EditorCommandPaletteQueryWindow,
+    CommandEvalCtx, EditorCommandPaletteCatalog, EditorCommandPaletteMru,
+    EditorCommandPaletteQueryWindow,
 };
 use crate::ui::binding::EditorUiEventKind;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
@@ -18,19 +19,20 @@ const COMMAND_PALETTE_OVERSCAN_ROWS: usize = 4;
 
 impl RetainedEditorHost {
     pub(super) fn open_workbench_command_palette(&mut self) {
-        let context = self.runtime.context().command_eval().snapshot();
+        let context = self.runtime.context().command_eval().shared_snapshot();
         let mru = self.runtime.command_palette_mru();
-        let state = {
+        let catalog = {
             let commands = self.runtime.commands().lock();
-            workbench_command_palette_query_state(
-                &commands,
-                &context,
-                "",
-                0,
-                WindowRequestFocus::First,
-                &mru,
-            )
+            commands.command_palette_catalog()
         };
+        let state = workbench_command_palette_query_state(
+            &catalog,
+            context.as_ref(),
+            "",
+            0,
+            WindowRequestFocus::First,
+            &mru,
+        );
         match self.workbench_window_bridge.open_command_palette(state) {
             Ok(true) => {
                 self.scene_picker_session = None;
@@ -57,19 +59,20 @@ impl RetainedEditorHost {
             return None;
         }
 
-        let context = self.runtime.context().command_eval().snapshot();
+        let context = self.runtime.context().command_eval().shared_snapshot();
         let mru = self.runtime.command_palette_mru();
-        let state = {
+        let catalog = {
             let commands = self.runtime.commands().lock();
-            workbench_command_palette_query_state(
-                &commands,
-                &context,
-                query,
-                0,
-                WindowRequestFocus::First,
-                &mru,
-            )
+            commands.command_palette_catalog()
         };
+        let state = workbench_command_palette_query_state(
+            &catalog,
+            context.as_ref(),
+            query,
+            0,
+            WindowRequestFocus::First,
+            &mru,
+        );
         let updated = self
             .workbench_window_bridge
             .update_command_palette_query(state)
@@ -118,22 +121,23 @@ impl RetainedEditorHost {
         else {
             return Some(Ok(UiHostEventEffects::default()));
         };
-        let context = self.runtime.context().command_eval().snapshot();
+        let context = self.runtime.context().command_eval().shared_snapshot();
         let mru = self.runtime.command_palette_mru();
-        let state = {
+        let catalog = {
             let commands = self.runtime.commands().lock();
-            let window = commands.command_palette_query_window_with_mru(
-                &context,
-                &query,
-                target_offset,
-                COMMAND_PALETTE_VISIBLE_ROWS + COMMAND_PALETTE_OVERSCAN_ROWS,
-                &mru,
-            );
-            if window.catalog_generation() != catalog_generation {
-                return Some(Ok(UiHostEventEffects::default()));
-            }
-            workbench_command_palette_state_from_window(query, window, focus)
+            commands.command_palette_catalog()
         };
+        if catalog.generation() != catalog_generation {
+            return Some(Ok(UiHostEventEffects::default()));
+        }
+        let window = catalog.query_window_with_mru(
+            context.as_ref(),
+            &query,
+            target_offset,
+            COMMAND_PALETTE_VISIBLE_ROWS + COMMAND_PALETTE_OVERSCAN_ROWS,
+            &mru,
+        );
+        let state = workbench_command_palette_state_from_window(query, window, focus);
         let updated = self
             .workbench_window_bridge
             .update_command_palette_query(state)
@@ -169,14 +173,14 @@ fn parse_window_request(value: &str) -> Option<(usize, usize, WindowRequestFocus
 }
 
 fn workbench_command_palette_query_state(
-    registry: &crate::core::commands::EditorCommandRegistry,
+    catalog: &std::sync::Arc<EditorCommandPaletteCatalog>,
     context: &CommandEvalCtx,
     query_text: &str,
     offset: usize,
     focus: WindowRequestFocus,
     mru: &EditorCommandPaletteMru,
 ) -> WorkbenchCommandPaletteOpenState {
-    let window = registry.command_palette_query_window_with_mru(
+    let window = catalog.query_window_with_mru(
         context,
         query_text,
         offset,

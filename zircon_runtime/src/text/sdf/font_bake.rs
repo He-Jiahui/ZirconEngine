@@ -7,7 +7,9 @@ use crate::text::font::{
     FontDatabase, LoadedTextFontSource, TextDecorationMetrics, TextDecorationMetricsCache,
 };
 use crate::text::sdf::{SdfBakeParams, SdfGenerationScheduler, SdfGlyphGenerationError};
-use crate::text::{FontFaceId, FontFamilyName, FontQuery, FontStretch, FontStyle, FontWeight};
+use crate::text::{
+    FontFaceId, FontFamilyName, FontQuery, FontStretch, FontStyle, FontWeight, InstancedFaceId,
+};
 
 mod async_batch;
 mod atlas_build;
@@ -40,6 +42,12 @@ pub(crate) use model::{
 const DEFAULT_FONT_ASSET: &str = "res://fonts/default.font.toml";
 const FALLBACK_ADVANCE_RATIO: f32 = 0.6;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct SdfShapedFontResolution {
+    face: FontFaceId,
+    instance: Option<InstancedFaceId>,
+}
+
 pub(crate) struct SdfFontBakeCache {
     observed_font_generation: u64,
     fonts: HashMap<FontFaceId, fontsdf::Font>,
@@ -53,7 +61,7 @@ pub(crate) struct SdfFontBakeCache {
     reported_baked_glyph_eviction_count: usize,
     measured_glyphs: HashMap<SdfAtlasGlyphKey, SdfGlyphMetrics>,
     face_resolutions: HashMap<SdfAtlasGlyphKey, Vec<FontFaceId>>,
-    shaped_face_resolutions: HashMap<SdfAtlasGlyphKey, Option<FontFaceId>>,
+    shaped_face_resolutions: HashMap<SdfAtlasGlyphKey, Option<SdfShapedFontResolution>>,
     font_asset_faces: SdfFontAssetFaceCache,
     decoration_metrics: TextDecorationMetricsCache,
     offline_source: SdfOfflineSourceCache,
@@ -288,7 +296,12 @@ impl SdfFontBakeCache {
             let Some(font) = self.fonts.get(&face) else {
                 continue;
             };
-            let resolved_shaped_face = self.shaped_face_resolutions.get(key).copied().flatten();
+            let resolved_shaped_face = self
+                .shaped_face_resolutions
+                .get(key)
+                .copied()
+                .flatten()
+                .map(|resolution| resolution.face);
             let index = glyph_index(font, key, face, resolved_shaped_face);
             let metrics = font.metrics_indexed_sdf(index, px);
             return glyph_metrics(font, px, metrics);
@@ -350,7 +363,13 @@ impl SdfFontBakeCache {
         asset_manager: &ProjectAssetManager,
     ) -> Vec<FontFaceId> {
         self.prime_shaped_face_resolutions(std::slice::from_ref(key), font_database);
-        if let Some(face) = self.shaped_face_resolutions.get(key).copied().flatten() {
+        if let Some(face) = self
+            .shaped_face_resolutions
+            .get(key)
+            .copied()
+            .flatten()
+            .map(|resolution| resolution.face)
+        {
             return font_database
                 .standalone_face_bytes(face)
                 .is_ok()
@@ -422,11 +441,22 @@ impl SdfFontBakeCache {
                 let instance_face = instance_id
                     .and_then(|instance| font_database.font_instance(instance))
                     .map(|instance| instance.face);
-                let resolved = match (face, instance_face) {
-                    (Some(face), Some(instance_face)) if face != instance_face => None,
-                    (Some(face), _) => Some(face),
-                    (None, Some(instance_face)) => Some(instance_face),
-                    (None, None) => None,
+                let resolved = match (face, instance_id, instance_face) {
+                    (Some(face), None, None) => Some(SdfShapedFontResolution {
+                        face,
+                        instance: None,
+                    }),
+                    (Some(face), Some(instance), Some(instance_face)) if face == instance_face => {
+                        Some(SdfShapedFontResolution {
+                            face,
+                            instance: Some(instance),
+                        })
+                    }
+                    (None, Some(instance), Some(instance_face)) => Some(SdfShapedFontResolution {
+                        face: instance_face,
+                        instance: Some(instance),
+                    }),
+                    _ => None,
                 };
                 self.shaped_face_resolutions.insert(key.clone(), resolved);
                 self.touch_cached_glyph_key(key.clone());

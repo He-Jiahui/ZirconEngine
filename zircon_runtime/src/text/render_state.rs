@@ -38,6 +38,7 @@ pub(crate) struct TextRenderState {
     bitmap_atlas_frame_index: u64,
     sdf_font_bake: SdfFontBakeCache,
     sdf_generation_scheduler: Option<SdfGenerationScheduler>,
+    sdf_generation_frame_index: u64,
 }
 
 impl TextRenderState {
@@ -88,6 +89,7 @@ impl TextRenderState {
             bitmap_atlas_frame_index: 0,
             sdf_font_bake: SdfFontBakeCache::new(),
             sdf_generation_scheduler,
+            sdf_generation_frame_index: 0,
         }
     }
 
@@ -206,14 +208,28 @@ impl TextRenderState {
     pub(crate) fn prepare_idle_bitmap_atlas(&mut self) -> NativeBitmapAtlasPrepareReport {
         self.bitmap_retry_state
             .replace_blocked_glyphs(std::iter::empty());
-        native_bitmap_atlas_idle_prepare_report(
+        let mut report = native_bitmap_atlas_idle_prepare_report(
             &mut self.bitmap_source_cache,
             &mut self.bitmap_retry_state,
-        )
+        );
+        if let Some(pool) = self.bitmap_raster_worker_pool.as_ref() {
+            report
+                .source_cache
+                .record_worker_pool_diagnostics(pool.diagnostics());
+        }
+        report
     }
 
     fn advance_bitmap_atlas_frame_index(&mut self) {
         self.bitmap_atlas_frame_index = self.bitmap_atlas_frame_index.saturating_add(1).max(1);
+    }
+
+    /// Begins one UI-text prepare frame for SDF/MSDF generation scheduling.
+    ///
+    /// Native bitmap preparation may be absent on an SDF-only frame, so its atlas clock cannot
+    /// define SDF completion draining, retry, or age accounting.
+    pub(crate) fn begin_sdf_generation_frame(&mut self) {
+        self.sdf_generation_frame_index = self.sdf_generation_frame_index.saturating_add(1).max(1);
     }
 
     pub(crate) fn prepare_bitmap_atlas(
@@ -311,7 +327,7 @@ impl TextRenderState {
                 &mut self.font_database,
                 asset_manager,
                 scheduler,
-                self.bitmap_atlas_frame_index,
+                self.sdf_generation_frame_index,
             )
         } else {
             self.sdf_font_bake.build_atlas_from_slots(
@@ -382,6 +398,27 @@ mod tests {
         state.bitmap_atlas_frame_index = u64::MAX;
         state.advance_bitmap_atlas_frame_index();
         assert_eq!(state.bitmap_atlas_frame_index, u64::MAX);
+    }
+
+    #[test]
+    fn sdf_generation_frame_index_is_independent_of_native_bitmap_preparation() {
+        let mut state = TextRenderState::new(0);
+
+        state.begin_sdf_generation_frame();
+        assert_eq!(state.sdf_generation_frame_index, 1);
+        assert_eq!(state.bitmap_atlas_frame_index, 0);
+
+        state.advance_bitmap_atlas_frame_index();
+        assert_eq!(state.bitmap_atlas_frame_index, 1);
+        assert_eq!(state.sdf_generation_frame_index, 1);
+
+        state.begin_sdf_generation_frame();
+        assert_eq!(state.sdf_generation_frame_index, 2);
+        assert_eq!(state.bitmap_atlas_frame_index, 1);
+
+        state.sdf_generation_frame_index = u64::MAX;
+        state.begin_sdf_generation_frame();
+        assert_eq!(state.sdf_generation_frame_index, u64::MAX);
     }
 
     #[test]

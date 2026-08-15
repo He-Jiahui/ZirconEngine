@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: open
+status: source_complete_dynamic_validation_pending
 created_at: 2026-08-01
 summary_slug: virtual-geometry-stable-instance-key-collapse
 origin_plan: docs/plans/zircon_runtime/render/04-visibility-culling.md
@@ -69,6 +69,9 @@ grouping identity. Legacy authored extracts without the field use the existing `
 
 - 2026-08-01: 完成 P2 覆盖补齐后复审。原始 primitive ordinal 在 non-VG filter 后保持不变；生产 pending-draw expansion
   直接覆盖 same-entity sibling 与 legacy primitive-0 隔离。未发现可操作的 correctness、性能或模块边界问题。
+- 2026-08-13: 按 failure-first 规则再次核对五个 related-code owner：extract DTO、visibility segment、debug snapshot、
+  indirect expansion 与 plugin snapshot rebuild 均以 `stable_instance_key`/`stable_instance_key_or_legacy()` 传递和分组，
+  未发现 entity-keyed sibling collapse 残留；源码修复保持完成，动态 acceptance 仍由 coordinator 管理。
 
 Status remains `resolving_failure` until coordinator-managed Windows validation and the required
 render screenshot/RDC evidence are accepted; no pass is claimed here.

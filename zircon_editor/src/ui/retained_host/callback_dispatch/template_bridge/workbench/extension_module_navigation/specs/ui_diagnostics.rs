@@ -1,6 +1,6 @@
 mod observability;
 
-use super::types::{ActionControl, ExtensionNavigationSpec, action, spec};
+use super::types::{action, spec, ActionControl, ExtensionNavigationSpec};
 
 pub(super) use self::observability::{
     CONSOLE_DIAGNOSTICS_NAVIGATION_SPEC, PERFORMANCE_NAVIGATION_SPEC,

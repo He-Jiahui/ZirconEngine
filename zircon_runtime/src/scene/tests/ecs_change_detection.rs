@@ -186,17 +186,13 @@ fn mut_query_marks_table_components_only_after_mutable_access() {
         }),
         vec![entity]
     );
-    assert!(changed
-        .run(&mut world, |query| query.iter().next())
-        .is_none());
+    assert!(changed.run(&mut world, |query| query.iter().next().is_none()));
 
     mutable.run(&mut world, |mut query| {
         let health = query.get_mut(entity).unwrap();
         assert_eq!(health.0, 10);
     });
-    assert!(changed
-        .run(&mut world, |query| query.iter().next())
-        .is_none());
+    assert!(changed.run(&mut world, |query| query.iter().next().is_none()));
 
     mutable.run(&mut world, |mut query| {
         let mut health = query.get_mut(entity).unwrap();
@@ -289,9 +285,7 @@ fn cached_mut_query_fetch_does_not_mark_changed_until_the_wrapper_is_mutated() {
         assert_eq!(health.0, 10);
     }
     assert_eq!(cached_mutable.cache_rebuilds(), 1);
-    assert!(changed
-        .run(&mut world, |query| query.iter().next())
-        .is_none());
+    assert!(changed.run(&mut world, |query| query.iter().next().is_none()));
 
     {
         let mut health = cached_mutable.get_mut(&mut world, entity).unwrap();
@@ -414,7 +408,7 @@ fn removed_components_tracks_recursive_despawn() {
         .run(&mut world, |mut removed| removed.read().collect::<Vec<_>>())
         .is_empty());
 
-    world.remove_entity_recursive(parent);
+    let _batch = world.remove_entity_recursive(parent).unwrap();
 
     let removed = system.run(&mut world, |mut removed| removed.read().collect::<Vec<_>>());
     assert_eq!(removed, vec![child, parent]);

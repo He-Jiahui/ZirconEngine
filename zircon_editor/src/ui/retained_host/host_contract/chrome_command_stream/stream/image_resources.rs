@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, HashMap};
+use std::sync::Arc;
 
 use super::super::command::{ChromeCommand, ChromeCommandKind};
 use crate::ui::retained_host::host_contract::paint_template_nodes::copy_editor_sprite_atlas_rgba;
@@ -9,7 +10,7 @@ pub(in crate::ui::retained_host::host_contract) struct ChromeImageResource {
     pub(in crate::ui::retained_host::host_contract) width: u32,
     pub(in crate::ui::retained_host::host_contract) height: u32,
     pub(in crate::ui::retained_host::host_contract) upload_bytes: u64,
-    pub(in crate::ui::retained_host::host_contract) rgba: Vec<u8>,
+    pub(in crate::ui::retained_host::host_contract) rgba: Arc<[u8]>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -98,11 +99,25 @@ pub(super) fn compact_image_resources_with_residency(
     mut is_resident: impl FnMut(&str, u64) -> bool,
 ) -> ChromeImageResources {
     let mut resources = ChromeImageResources::default();
+    let mut resident_results = HashMap::<String, BTreeMap<u64, bool>>::new();
     for command in commands {
         let ChromeCommandKind::Image { payload } = &mut command.kind else {
             continue;
         };
-        if is_resident(payload.resource_key.as_str(), payload.resource_generation) {
+        let resident = resident_results
+            .get(payload.resource_key.as_str())
+            .and_then(|generations| generations.get(&payload.resource_generation))
+            .copied()
+            .unwrap_or_else(|| {
+                let resident =
+                    is_resident(payload.resource_key.as_str(), payload.resource_generation);
+                resident_results
+                    .entry(payload.resource_key.clone())
+                    .or_default()
+                    .insert(payload.resource_generation, resident);
+                resident
+            });
+        if resident {
             payload.rgba = None;
             continue;
         }
@@ -115,6 +130,7 @@ pub(super) fn compact_image_resources_with_residency(
                     payload.resource_key.as_str(),
                     payload.resource_generation,
                 )
+                .map(Arc::from)
             })?
         });
         let Some(rgba) = rgba else {
@@ -233,7 +249,7 @@ mod tests {
                     width: 2,
                     height: 2,
                     upload_bytes: 16,
-                    rgba: Some(vec![7; 16]),
+                    rgba: Some(vec![7; 16].into()),
                     atlas_uv: None,
                 },
             },
@@ -243,6 +259,37 @@ mod tests {
             key == "atlas://editor/icons" && generation == 7
         });
 
+        assert!(resources.is_empty());
+    }
+
+    #[test]
+    fn repeated_commands_probe_one_resource_generation_once() {
+        let command = || ChromeCommand {
+            layer: ChromeCommandLayer::Static,
+            z_index: 0,
+            frame: FrameRect::default(),
+            clip: None,
+            kind: ChromeCommandKind::Image {
+                payload: ChromeImagePayload {
+                    resource_key: "atlas://editor/icons".to_string(),
+                    resource_generation: 7,
+                    width: 2,
+                    height: 2,
+                    upload_bytes: 16,
+                    rgba: Some(vec![7; 16].into()),
+                    atlas_uv: None,
+                },
+            },
+        };
+        let mut commands = vec![command(), command(), command()];
+        let mut probe_count = 0;
+
+        let resources = compact_image_resources_with_residency(&mut commands, |_, _| {
+            probe_count += 1;
+            true
+        });
+
+        assert_eq!(probe_count, 1);
         assert!(resources.is_empty());
     }
 }

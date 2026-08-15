@@ -22,8 +22,11 @@ children = [
   { node = "workbench_page_bar" },
   { node = "workbench_page_project_path" },
   { node = "workbench_page_tab_0" },
+  { node = "workbench_page_tab_close_0" },
   { node = "workbench_page_tab_1" },
+  { node = "workbench_page_tab_close_1" },
   { node = "workbench_page_tab_2" },
+  { node = "workbench_page_tab_close_2" },
 ]
 
 [nodes.workbench_page_bar]
@@ -44,14 +47,32 @@ control_id = "PageTab0"
 props = { text = "Workbench", text_tone = "default", font_size = 13.333333, text_align = "center", overflow = "elide" }
 layout = { position = { x = 8.0, y = 27.0 }, width = { min = 108.0, preferred = 108.0, max = 108.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.workbench_page_tab_close_0]
+component = "IconButton"
+control_id = "PageTabClose0"
+props = { surface_variant = "", icon = "editor_pages/workbench/tabs/close-tab.svg", text_tone = "muted", radius = 4.0, border_width = 0.0 }
+layout = { position = { x = 90.0, y = 32.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+
 [nodes.workbench_page_tab_1]
 component = "Label"
 control_id = "PageTab1"
 props = { text = "Asset", text_tone = "subtle", font_size = 13.333333, text_align = "center", overflow = "elide" }
 layout = { position = { x = 120.0, y = 27.0 }, width = { min = 108.0, preferred = 108.0, max = 108.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 
+[nodes.workbench_page_tab_close_1]
+component = "IconButton"
+control_id = "PageTabClose1"
+props = { surface_variant = "", icon = "editor_pages/workbench/tabs/close-tab.svg", text_tone = "muted", radius = 4.0, border_width = 0.0 }
+layout = { position = { x = 202.0, y = 32.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+
 [nodes.workbench_page_tab_2]
 component = "Label"
 control_id = "PageTab2"
 props = { text = "UI", text_tone = "subtle", font_size = 13.333333, text_align = "center", overflow = "elide" }
 layout = { position = { x = 232.0, y = 27.0 }, width = { min = 108.0, preferred = 108.0, max = 108.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.workbench_page_tab_close_2]
+component = "IconButton"
+control_id = "PageTabClose2"
+props = { surface_variant = "", icon = "editor_pages/workbench/tabs/close-tab.svg", text_tone = "muted", radius = 4.0, border_width = 0.0 }
+layout = { position = { x = 314.0, y = 32.0 }, width = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }

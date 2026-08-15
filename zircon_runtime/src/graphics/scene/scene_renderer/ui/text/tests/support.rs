@@ -5,8 +5,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use super::super::*;
 use crate::asset::project::{ProjectManifest, ProjectPaths};
 use crate::asset::{AssetUri, FontAsset};
+use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiTextRouteIdentity;
 use zircon_runtime_interface::project::RelPath;
+use zircon_runtime_interface::ui::event_ui::UiNodeId;
 use zircon_runtime_interface::ui::surface::UiTextWritingMode;
+
+const TEXT_FONT_PROJECT_WORK_DIRECTORY: &str = ".runtime_text_font_project_work";
 
 pub(super) fn text_batch(text: &str, mode: UiTextRenderMode) -> ScreenSpaceUiTextBatch {
     ScreenSpaceUiTextBatch {
@@ -16,10 +20,12 @@ pub(super) fn text_batch(text: &str, mode: UiTextRenderMode) -> ScreenSpaceUiTex
             None,
         ),
         command_generation: 1,
+        raster_scale: 1.0,
         text: text.to_string(),
         frame: UiFrame::new(0.0, 0.0, 128.0, 24.0),
         clip_frame: None,
         source_range: None,
+        is_source_isomorphic_layout_line: false,
         glyph_advances: Vec::new(),
         shaped_glyphs: Vec::new(),
         preserve_shaped_glyphs: false,
@@ -71,7 +77,7 @@ impl TextFontProject {
                 .expect("system time should be after unix epoch")
                 .as_nanos()
         );
-        let root = std::env::temp_dir().join(unique);
+        let root = text_font_project_work_path(&unique);
         let paths = ProjectPaths::from_root(&root).expect("project paths should build");
         paths
             .ensure_layout(&[RelPath::project_assets()])
@@ -162,6 +168,18 @@ pub(super) fn default_font_path() -> PathBuf {
         .join("FiraSans-Regular.ttf")
 }
 
+fn text_font_project_work_path(unique: &str) -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("zircon_runtime manifest must have a workspace parent")
+        .join("docs")
+        .join("tests")
+        .join("runtime")
+        .join("text")
+        .join(TEXT_FONT_PROJECT_WORK_DIRECTORY)
+        .join(unique)
+}
+
 pub(super) struct RuntimeFontAssetGuard {
     pub(super) asset_ref: String,
     manifest_path: PathBuf,
@@ -205,5 +223,29 @@ impl Drop for RuntimeFontAssetGuard {
     fn drop(&mut self) {
         let _ = fs::remove_file(&self.manifest_path);
         let _ = fs::remove_file(&self.source_path);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::{TextFontProject, TEXT_FONT_PROJECT_WORK_DIRECTORY};
+
+    #[test]
+    fn text_font_project_uses_workspace_local_artifact_root() {
+        let project = TextFontProject::new("text-font-project-root");
+        let workspace_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("zircon_runtime manifest must have a workspace parent");
+
+        assert!(project.root.starts_with(
+            workspace_root
+                .join("docs")
+                .join("tests")
+                .join("runtime")
+                .join("text")
+                .join(TEXT_FONT_PROJECT_WORK_DIRECTORY)
+        ));
     }
 }

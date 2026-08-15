@@ -90,6 +90,30 @@ pub enum UiWidgetBehavior {
     MenuItem,
 }
 
+/// Declares where a popup obtains its runtime placement anchor.
+///
+/// Control anchors intentionally carry only a stable UI control identity. The runtime resolves
+/// that identity against the current arranged tree so authored templates never persist window
+/// coordinates or editor-owned geometry snapshots.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "kind")]
+pub enum UiPopupAnchor {
+    #[default]
+    None,
+    Control {
+        control_id: String,
+    },
+}
+
+impl UiPopupAnchor {
+    pub fn control_id(&self) -> Option<&str> {
+        match self {
+            Self::Control { control_id } => Some(control_id.as_str()),
+            Self::None => None,
+        }
+    }
+}
+
 impl UiWidgetBehavior {
     pub fn infer_from_component(component: &str) -> Self {
         match component {
@@ -116,6 +140,8 @@ impl UiWidgetBehavior {
 #[serde(default)]
 pub struct UiWidgetContract {
     pub behavior: UiWidgetBehavior,
+    #[serde(default)]
+    pub popup_anchor: UiPopupAnchor,
     pub disabled: bool,
     pub checked: Option<bool>,
     pub value: Option<UiValue>,

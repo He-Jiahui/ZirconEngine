@@ -1,5 +1,5 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
+use super::super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
 const DIVIDER_MIDDLE_HORIZONTAL_GAP_FACTOR: f32 = 2.0;
 const DIVIDER_INSET_HORIZONTAL_GAP_FACTOR: f32 = 9.0;
@@ -26,28 +26,28 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn divider
     divider_geometry_metrics().thickness
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn divider_middle_horizontal_inset()
--> f32 {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn divider_middle_horizontal_inset(
+) -> f32 {
     divider_geometry_metrics().middle_horizontal_inset
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn divider_inset_horizontal_inset()
--> f32 {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn divider_inset_horizontal_inset(
+) -> f32 {
     divider_geometry_metrics().inset_horizontal_inset
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn divider_middle_vertical_inset()
--> f32 {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn divider_middle_vertical_inset(
+) -> f32 {
     divider_geometry_metrics().middle_vertical_inset
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn divider_wrapper_horizontal_padding()
--> f32 {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn divider_wrapper_horizontal_padding(
+) -> f32 {
     divider_geometry_metrics().wrapper_horizontal_padding
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn divider_wrapper_vertical_padding()
--> f32 {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn divider_wrapper_vertical_padding(
+) -> f32 {
     divider_geometry_metrics().wrapper_vertical_padding
 }
 

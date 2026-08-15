@@ -42,6 +42,14 @@ pub(super) fn runtime_surface_present_source() -> String {
     .join("\n")
 }
 
+pub(super) fn runtime_surface_redraw_source() -> &'static str {
+    include_str!("../../runtime_entry_app/surface_present/redraw.rs")
+}
+
+pub(super) fn runtime_surface_resize_source() -> &'static str {
+    include_str!("../../runtime_entry_app/surface_present/resize.rs")
+}
+
 pub(super) fn runtime_window_surface_source() -> String {
     [
         include_str!("../../runtime_entry_app/window_surface/mod.rs"),

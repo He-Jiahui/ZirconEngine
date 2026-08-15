@@ -19,7 +19,7 @@ mod system;
 mod test_support;
 mod ticket;
 
-pub use admission::{EditorJobAdmission, EditorJobAdmissionKey};
+pub use admission::{EditorJobAdmission, EditorJobAdmissionKey, EditorJobAdmissionRequest};
 pub use cancellation_token::CancellationToken;
 pub use category::{JobCategory, JobPriority};
 pub use context::JobContext;
@@ -29,7 +29,10 @@ pub use id::JobId;
 pub use job::EditorJob;
 pub use limits::{EditorJobAdmissionLimits, EditorJobAdmissionSnapshot, EditorJobLimits};
 pub use mutex_group::MutexGroup;
-pub use progress::{EditorJobProgress, EditorJobProgressSnapshot, EditorJobProgressSource};
+pub use progress::{
+    EditorJobPrimaryProgressSnapshot, EditorJobProgress, EditorJobProgressObserver,
+    EditorJobProgressSnapshot, EditorJobProgressSource,
+};
 pub use pump::{DEFAULT_JOB_EVENT_PUMP_BUDGET, JobEventPumpBudget};
 pub use quota_settings::{
     EDITOR_JOB_EXPORT_QUOTA_KEY, EDITOR_JOB_INTERACTIVE_SAVE_QUOTA_KEY, EDITOR_JOB_PLAY_QUOTA_KEY,
@@ -38,7 +41,7 @@ pub use quota_settings::{
 };
 pub use shutdown::UnfinishedEditorJob;
 pub use spec::EditorJobSpec;
-pub use system::EditorJobSystem;
+pub use system::{EditorJobAdmissionWindow, EditorJobBatchAdmissionReservation, EditorJobSystem};
 pub use ticket::JobTicket;
 
 #[cfg(test)]

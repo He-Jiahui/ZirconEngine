@@ -48,6 +48,16 @@ class Frameworks03DomainFeatureMatrixTests(unittest.TestCase):
         self.assertIn("exit 1", self.script)
         self.assertNotIn("SkipMissing", self.script)
 
+    def test_matrix_isolates_all_cargo_derived_data_on_managed_storage(self) -> None:
+        self.assertIn("WindowsPathResolver.psm1", self.script)
+        self.assertIn("Resolve-ZirconWindowsPath", self.script)
+        self.assertIn("cargo-targets\\zircon-runtime-domain-matrix", self.script)
+        self.assertIn("CARGO_HOME", self.script)
+        self.assertIn("SCCACHE_DIR", self.script)
+        for name in ("TEMP", "TMP", "TMPDIR"):
+            self.assertIn(name, self.script)
+        self.assertIn("D:\\cargo-targets, E:\\cargo-targets, or F:\\cargo-targets", self.script)
+
 
 if __name__ == "__main__":
     unittest.main()

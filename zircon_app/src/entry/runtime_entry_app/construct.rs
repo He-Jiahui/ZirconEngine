@@ -13,19 +13,21 @@ impl RuntimeEntryApp {
         failure_state: RuntimeEntryAppFailureState,
     ) -> Self {
         let window_descriptor = config.window_descriptor;
+        let window_focused = window_descriptor.focused;
         let window_size = window_descriptor.resolution.physical_size();
         Self {
             window: None,
             window_descriptor,
-            frame_cadence: super::event_loop_policy::RuntimeFrameCadence::new(
+            frame_cadence: super::event_loop_policy::RuntimeFrameCadence::new_for_window(
                 config.event_loop_policy,
+                window_focused,
             ),
             window_lifecycle_policy: config.window_lifecycle_policy,
             presenter: None,
             surface_present_enabled: false,
-            surface_present_failed: false,
             surface_present_attempted: false,
-            exit_after_first_presented_frame: config.exit_after_first_presented_frame,
+            exit_after_presented_frames: config.exit_after_presented_frames,
+            presented_frame_count: 0,
             first_frame_capture_path: config.first_frame_capture_path,
             require_persisted_scene_diagnostics: config.require_persisted_scene_diagnostics,
             first_frame_capture_written: false,

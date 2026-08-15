@@ -119,7 +119,7 @@ mod tests {
             resource_key: resource_key.to_string(),
             width: 1,
             height: 1,
-            rgba: vec![255; 4],
+            rgba: vec![255; 4].into(),
             atlas: None,
         }
     }

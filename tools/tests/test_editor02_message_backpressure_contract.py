@@ -32,7 +32,13 @@ class EditorMessageBackpressureContractTests(unittest.TestCase):
 
         for lane in ("lossless_depth", "bounded_depth", "latest_depth"):
             self.assertIn(lane, source)
-        self.assertIn("self.lossless_depth >= self.limits.lossless_capacity", source)
+        self.assertIn("fn can_enqueue_lossless", source)
+        self.assertIn(
+            "self.lossless_depth < self.limits.lossless_capacity", source
+        )
+        self.assertIn(
+            "self.can_enqueue_lossless(delivery.retained_bytes())", source
+        )
         self.assertIn("bounded_depth < self.limits.bounded_capacity", source)
         self.assertIn("latest_depth < self.limits.latest_capacity", source)
         self.assertNotIn("fn latest_count(&self)", source)

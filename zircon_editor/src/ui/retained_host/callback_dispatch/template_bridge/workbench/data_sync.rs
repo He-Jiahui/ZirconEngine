@@ -1,4 +1,3 @@
-use zircon_runtime::scene::WorldInspectionHierarchyRow;
 use zircon_runtime_interface::ui::component::UiValue;
 
 use crate::ui::workbench::snapshot::{
@@ -12,7 +11,6 @@ use super::{
     error::BuiltinHostWindowTemplateBridgeError,
 };
 
-const TREE_ROW_INDENT_STEP: f64 = 20.0;
 const INSPECTOR_TITLE: &str = "WorkbenchInspectorTitle";
 const INSPECTOR_TAGS: &str = "WorkbenchInspectorTags";
 const INSPECTOR_TRANSFORM: &str = "WorkbenchInspectorTransform";
@@ -43,14 +41,23 @@ const CAST_SHADOWS_FIELD_ID: &str = "cast_shadows";
 const CAST_SHADOWS_SELECT_BACKGROUND: &str = "#282e32";
 const CAST_SHADOWS_SELECT_BORDER: &str = "#343d43";
 const CAST_SHADOWS_SELECT_VALUE: &str = "#b5c0c5";
-
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     pub(crate) fn sync_from_chrome(
         &mut self,
         chrome: &EditorChromeSnapshot,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        self.prepare_chrome_state_for_layout(chrome)?;
+        self.template_surface
+            .refresh_after_state_change(self.runtime.as_ref())?;
+        Ok(())
+    }
+
+    pub(crate) fn prepare_chrome_state_for_layout(
+        &mut self,
+        chrome: &EditorChromeSnapshot,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         self.sync_status_bar(chrome)?;
-        self.sync_scene_and_inspector(&chrome.scene_entries, chrome.inspector.as_ref())
+        self.prepare_scene_and_inspector_state(&chrome.scene_entries, chrome.inspector.as_ref())
     }
 
     pub(crate) fn sync_scene_and_inspector(
@@ -58,55 +65,19 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         scene_entries: &SceneEntries,
         inspector: Option<&InspectorSnapshot>,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        self.sync_scene_entries(scene_entries)?;
-        self.sync_inspector(inspector)?;
+        self.prepare_scene_and_inspector_state(scene_entries, inspector)?;
         self.template_surface
             .refresh_after_state_change(self.runtime.as_ref())?;
         Ok(())
     }
 
-    fn sync_scene_entries(
+    fn prepare_scene_and_inspector_state(
         &mut self,
         scene_entries: &SceneEntries,
+        inspector: Option<&InspectorSnapshot>,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        self.reconcile_scene_tree_row_capacity(scene_entries.len())?;
-        let controls = self.scene_tree_control_ids()?;
-        for (index, control_id) in controls.iter().enumerate() {
-            let Some(entry) = scene_entries.get(index) else {
-                self.set_selected(control_id, false)?;
-                self.set_visible(control_id, false)?;
-                continue;
-            };
-
-            self.set_visible(control_id, true)?;
-            self.mutate_control_property(
-                control_id,
-                "text",
-                UiValue::String(non_empty_label(&entry.display_name, "Entity")),
-            )?;
-            self.mutate_control_property(
-                control_id,
-                "tree_depth",
-                UiValue::Int(entry.depth as i64),
-            )?;
-            self.mutate_control_property(
-                control_id,
-                "tree_indent_px",
-                UiValue::Float(entry.depth as f64 * TREE_ROW_INDENT_STEP),
-            )?;
-            self.mutate_control_property(
-                control_id,
-                "scene_node_id",
-                UiValue::Int(entry.entity.min(i64::MAX as u64) as i64),
-            )?;
-            self.mutate_control_property(
-                control_id,
-                "expanded",
-                UiValue::Bool(row_has_visible_child(scene_entries, index)),
-            )?;
-            self.set_selected(control_id, scene_entries.is_selected(entry.entity))?;
-        }
-        Ok(())
+        self.sync_scene_entries(scene_entries, Some(0))?;
+        self.sync_inspector(inspector)
     }
 
     fn sync_inspector(
@@ -324,16 +295,6 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         }
         Ok(())
     }
-}
-
-fn row_has_visible_child(scene_entries: &[WorldInspectionHierarchyRow], index: usize) -> bool {
-    let Some(entry) = scene_entries.get(index) else {
-        return false;
-    };
-    scene_entries
-        .get(index + 1)
-        .map(|next| next.depth > entry.depth)
-        .unwrap_or(false)
 }
 
 fn format_transform_position(inspector: &InspectorSnapshot) -> String {

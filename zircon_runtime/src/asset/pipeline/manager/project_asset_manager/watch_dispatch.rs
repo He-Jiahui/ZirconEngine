@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
-use crate::asset::AssetUri;
 use crate::asset::watch::{
     AssetChange, AssetChangeKind, AssetWatchBatch, AssetWatchBatchDiagnostics, AssetWatchError,
 };
+use crate::asset::AssetUri;
 
-use super::ProjectAssetManager;
 use super::project_asset_manager::{
     ProjectWatcherActivation, ProjectWatcherActivationState, ProjectWatcherLifecycle,
 };
+use super::ProjectAssetManager;
 
 const WATCH_ACTIVATION_ENTRY_CAPACITY: usize = 4_096;
 const WATCH_ACTIVATION_BYTE_CAPACITY: usize = 4 * 1024 * 1024;

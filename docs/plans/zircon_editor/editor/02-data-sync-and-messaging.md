@@ -233,6 +233,8 @@ M1.1、M1.2 已完成实现；M1.3 的深层 hierarchy/cycle-edge/compile-sync �
 
 2026-07-18：Performance01 回传的 editor-event journal/listener 无界保留失败已完成源码硬切：统一 retention store、durable/frame-local/latest-state 独立预算、共享 Arc payload、per-listener inbox 和 sequence/journal/listener 分锁均已落地；1k/10k、字节预算、逆序 fanout 与 lag/coalesce 测试已加入。当前仅有静态 gate，受 Coordinator01 immutable full-input snapshot barrier 阻塞，尚未执行 source-bound Cargo、独立 review、failure return 或 managed commit，因此 Failure 保持 open，且不据此勾选 M2。
 
+2026-08-05：`world-sync-subscription-invalidation-scaling` 继续前向修复。M2.2 的 session-scoped `WorldSyncPump` 已接入 editor host tick（每帧一次 drain、facts→bus、token→ViewDirtySet）；M3.2 已将动态 Runtime API 硬切到 24-field `ZrRuntimeApiV5`，并在 interface/runtime/app/editor 四层实现 query/watch/unwatch/drain。M2 hierarchy 增量投影与 M3.1 dirty binding 仍未实现，故 M2/M3 checkbox 保持未勾选。子审计、Python compile、rustfmt check 与 scoped diff 为静态 green；全量结构审计 64 秒超时且不计作通过，Cargo、二次审查、failure return 与 managed commit 均 pending。
+
 - 迁入记录：[`02/2026-07-14-world-sync-m1-output-records.md`](02/2026-07-14-world-sync-m1-output-records.md)
 - 当前源状态收束：[`02/2026-07-17-m1-current-source-status-reconciliation.md`](02/2026-07-17-m1-current-source-status-reconciliation.md)
 - editor-event retention/lock split：[`02/2026-07-18-editor-event-retention-and-lock-split.md`](02/2026-07-18-editor-event-retention-and-lock-split.md)

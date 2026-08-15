@@ -257,11 +257,12 @@ fn frame_counter_adapter() -> ReflectResource {
     ReflectResource {
         estimate_stage_clone_bytes: None,
         stage_clone: None,
+        transfer_preflight: frame_counter_transfer_preflight,
         ensure: None,
         contains: frame_counter_contains,
         read_field: frame_counter_read_field,
         read_fields: frame_counter_read_fields,
-        write_field: frame_counter_write_field,
+        write_fields_by_slot: frame_counter_write_fields_by_slot,
     }
 }
 
@@ -272,6 +273,13 @@ fn frame_counter_address() -> ReflectObjectAddress {
 
 fn frame_counter_contains(world: &World) -> bool {
     world.get_resource::<FrameCounter>().is_some()
+}
+
+fn frame_counter_transfer_preflight(
+    source: &mut World,
+    artifact: &mut World,
+) -> Result<(), ReflectError> {
+    source.transfer_preflight_resource::<FrameCounter>(artifact)
 }
 
 fn frame_counter_read_field(
@@ -294,19 +302,22 @@ fn frame_counter_read_fields(world: &World) -> Result<Vec<ReflectFieldValue>, Re
     )])
 }
 
-fn frame_counter_write_field(
+fn frame_counter_write_fields_by_slot(
     world: &mut World,
-    field_name: &str,
-    value: ReflectedValue,
+    fields: Vec<(u32, ReflectedValue)>,
 ) -> Result<bool, ReflectError> {
     let current = world
         .get_resource::<FrameCounter>()
-        .ok_or_else(missing_frame_counter_resource)?;
-    if field_name != "value" {
-        return Err(unknown_frame_counter_field(field_name));
+        .ok_or_else(missing_frame_counter_resource)?
+        .value;
+    let mut next = current;
+    for (field_slot, value) in fields {
+        if field_slot != 0 {
+            return Err(unknown_frame_counter_field(&format!("#{field_slot}")));
+        }
+        next = expect_frame_counter_value("value", value)?;
     }
-    let next = expect_frame_counter_value(field_name, value)?;
-    if current.value == next {
+    if current == next {
         return Ok(false);
     }
 

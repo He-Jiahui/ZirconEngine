@@ -1,6 +1,4 @@
 mod bootstrap;
-#[cfg(feature = "diagnostic-log")]
-mod diagnostic_log_args;
 mod editor;
 mod headless;
 #[cfg(feature = "platform-winit")]

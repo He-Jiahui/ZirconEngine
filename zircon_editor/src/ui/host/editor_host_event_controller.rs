@@ -3,10 +3,12 @@ use std::sync::{Arc, Mutex};
 
 use crate::core::commands::{EditorCommandPaletteMru, EditorCommandRegistryHandle};
 use crate::core::context::EditorContext;
+use crate::core::editor_message::{EditorSubscriberId, EditorTopic, TOPIC_SCENE_INSPECTION};
 use crate::core::editor_operation::EditorOperationPath;
 use crate::core::gateway::{
     EditorRuntimeFrameDemand, EditorRuntimeGatewayHandle, SharedEditorRuntimeGateway,
 };
+use crate::core::logging::{EditorLogService, LogEntry, LogSeverity, LogSource};
 use crate::core::play::{
     PlayDomainLinkError, PlayInstanceId, PlayModeKind, PlaySessionController, PlayTransitionCause,
     SharedPlayBackend, SharedPluginBridgeActivation, WorldDomain,
@@ -15,14 +17,16 @@ use crate::core::runtime_event_consumer::{
     EditorRuntimeEventConsumerError, EditorRuntimeEventConsumerHost,
     EditorRuntimeEventConsumerRegistry,
 };
+use crate::core::sync::WorldSyncPump;
 use crate::ui::workbench::shell_state::WorkbenchShellState;
 use crate::ui::workbench::state::EditorState;
 
-use super::EditorManager;
 use super::play_pending_decision::PlayPendingEditDecisionAdapter;
 use super::scene_inspection_publication::SceneInspectionPublication;
+use super::EditorManager;
 
 const FIRST_PLAY_SESSION_GENERATION: u64 = 1;
+const UNKNOWN_PLAY_BACKEND_LOG_FRAME: u64 = 0;
 
 /// UI host coordinator over independently synchronized editor owners.
 pub struct EditorHostEventController {
@@ -32,6 +36,8 @@ pub struct EditorHostEventController {
     play_sessions: Arc<PlaySessionController>,
     play_pending_decisions: PlayPendingEditDecisionAdapter,
     pub(super) scene_inspection_publication: Mutex<SceneInspectionPublication>,
+    pub(super) retained_scene_inspection_subscriber: EditorSubscriberId,
+    pub(super) edit_world_sync: Mutex<WorldSyncPump>,
     pub(super) runtime_event_consumers: EditorRuntimeEventConsumerHost,
     pub(super) plugin_registration_gate: Mutex<()>,
     next_play_session_generation: AtomicU64,
@@ -44,6 +50,11 @@ impl EditorHostEventController {
         let play_sessions = Arc::new(PlaySessionController::with_message_bus(
             context.bus().clone(),
         ));
+        let retained_scene_inspection_subscriber = context
+            .bus()
+            .register_subscriber([EditorTopic::parse(TOPIC_SCENE_INSPECTION)
+                .expect("scene-inspection topic is a static editor protocol invariant")])
+            .expect("retained scene-inspection subscriber must register during host construction");
         let controller = Self {
             context: context.clone(),
             shell: Arc::new(WorkbenchShellState::new(state, Arc::clone(&manager))),
@@ -51,6 +62,8 @@ impl EditorHostEventController {
             play_sessions: play_sessions.clone(),
             play_pending_decisions: PlayPendingEditDecisionAdapter::default(),
             scene_inspection_publication: Mutex::new(SceneInspectionPublication::default()),
+            retained_scene_inspection_subscriber,
+            edit_world_sync: Mutex::new(WorldSyncPump::default()),
             runtime_event_consumers: EditorRuntimeEventConsumerHost::new(
                 play_sessions.play_gateway_handle(),
             ),
@@ -133,6 +146,11 @@ impl EditorHostEventController {
     pub fn pump_runtime_event_consumers(
         &self,
     ) -> Result<EditorRuntimeFrameDemand, EditorRuntimeEventConsumerError> {
+        self.pump_pending_play_decision_receipts()
+            .map_err(|message| EditorRuntimeEventConsumerError::Gateway {
+                consumer_id: "play.pending-edit-receipt".to_string(),
+                message,
+            })?;
         let backend_transition = self.play_sessions.poll_backend().map_err(|error| {
             EditorRuntimeEventConsumerError::Gateway {
                 consumer_id: "play.backend.poll".to_string(),
@@ -269,5 +287,92 @@ impl EditorHostEventController {
 
     pub(crate) fn play_sessions(&self) -> &PlaySessionController {
         &self.play_sessions
+    }
+
+    pub(in crate::ui::host) fn log_play_backend_diagnostics(&self, diagnostics: &[String]) {
+        let source = play_backend_log_source(&self.play_sessions);
+        emit_play_backend_diagnostics(self.context.logs(), &source, diagnostics);
+    }
+}
+
+impl Drop for EditorHostEventController {
+    fn drop(&mut self) {
+        self.context
+            .bus()
+            .unregister_subscriber(self.retained_scene_inspection_subscriber);
+    }
+}
+
+fn play_backend_log_source(play_sessions: &PlaySessionController) -> LogSource {
+    match play_sessions.attached_world_domain() {
+        Some(WorldDomain::Play(instance)) => LogSource::play(instance),
+        Some(WorldDomain::Edit) | None => LogSource::runtime(),
+    }
+}
+
+fn emit_play_backend_diagnostics(
+    logs: &EditorLogService,
+    source: &LogSource,
+    diagnostics: &[String],
+) {
+    for diagnostic in diagnostics {
+        if diagnostic.trim().is_empty() {
+            continue;
+        }
+        let severity = play_backend_diagnostic_severity(diagnostic);
+        let source_label = play_backend_diagnostic_source_label(diagnostic);
+        let entry = LogEntry::new(
+            source.clone(),
+            severity,
+            diagnostic.clone(),
+            UNKNOWN_PLAY_BACKEND_LOG_FRAME,
+            None,
+        )
+        .or_else(|_| {
+            LogEntry::new(
+                source.clone(),
+                severity,
+                format!(
+                    "play_backend_output source={source_label} diagnostic exceeds the log-entry limit."
+                ),
+                UNKNOWN_PLAY_BACKEND_LOG_FRAME,
+                None,
+            )
+        });
+        if let Ok(entry) = entry {
+            let _ = logs.emit(entry);
+        }
+    }
+}
+
+fn play_backend_diagnostic_severity(diagnostic: &str) -> LogSeverity {
+    if diagnostic.starts_with("process.stderr:") || diagnostic.starts_with("process.output") {
+        LogSeverity::Warning
+    } else {
+        LogSeverity::Info
+    }
+}
+
+fn play_backend_diagnostic_source_label(diagnostic: &str) -> &str {
+    diagnostic
+        .split_once(':')
+        .map_or("process.output", |(label, _)| label)
+}
+
+#[cfg(test)]
+mod lifecycle_contract_tests {
+    #[test]
+    fn retained_hierarchy_transport_resources_share_the_host_controller_lifetime() {
+        let source = include_str!("editor_host_event_controller.rs");
+        let production = source
+            .split_once("#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("controller lifecycle tests should remain separate from production code");
+
+        assert!(production.contains("retained_scene_inspection_subscriber: EditorSubscriberId"));
+        assert!(production.contains("edit_world_sync: Mutex<WorldSyncPump>"));
+        assert!(production.contains("register_subscriber"));
+        assert!(production.contains("impl Drop for EditorHostEventController"));
+        assert!(production.contains("unregister_subscriber"));
     }
 }

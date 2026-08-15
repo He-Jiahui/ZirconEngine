@@ -42,21 +42,29 @@ mod tests {
         let first_shader = record("res://shaders/live.wgsl", ResourceKind::Shader)
             .with_source_hash("shader-hash-a");
         let shader_id = first_shader.id;
-        manager.register_ready(first_shader, TestPayload);
-        manager.register_ready(
-            record("res://shaders/live.wgsl", ResourceKind::Shader)
-                .with_source_hash("shader-hash-b"),
-            TestPayload,
-        );
-        manager.register_ready(
-            record("res://models/mesh.glb", ResourceKind::Model).with_source_hash("model-hash"),
-            TestPayload,
-        );
-        manager.register_record(record("res://shaders/pending.wgsl", ResourceKind::Shader));
-        manager.register_record(
-            record("res://shaders/error.wgsl", ResourceKind::Shader)
-                .with_state(ResourceState::Error),
-        );
+        manager.register_ready(first_shader, TestPayload).unwrap();
+        manager
+            .register_ready(
+                record("res://shaders/live.wgsl", ResourceKind::Shader)
+                    .with_source_hash("shader-hash-b"),
+                TestPayload,
+            )
+            .unwrap();
+        manager
+            .register_ready(
+                record("res://models/mesh.glb", ResourceKind::Model).with_source_hash("model-hash"),
+                TestPayload,
+            )
+            .unwrap();
+        manager
+            .register_record(record("res://shaders/pending.wgsl", ResourceKind::Shader))
+            .unwrap();
+        manager
+            .register_record(
+                record("res://shaders/error.wgsl", ResourceKind::Shader)
+                    .with_state(ResourceState::Error),
+            )
+            .unwrap();
 
         let records = manager.ready_records_for_kind(ResourceKind::Shader);
 

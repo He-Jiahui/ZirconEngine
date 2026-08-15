@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
+use zircon_runtime_interface::hub_protocol::HubRecentProjectV1;
 use zircon_runtime_interface::project::ProjectManifestSummary;
 
-use super::{RecentProjectValidation, StoredRecentProjectEntry};
+use super::RecentProjectValidation;
 
 /// Recent-project identity projected from the authoritative project manifest summary.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -14,11 +15,15 @@ pub struct RecentProjectEntry {
 }
 
 impl RecentProjectEntry {
-    pub(crate) fn into_stored(self) -> StoredRecentProjectEntry {
-        StoredRecentProjectEntry {
-            summary: self.summary,
-            path: self.path,
-            last_opened_unix_ms: self.last_opened_unix_ms,
+    pub(crate) fn from_shared(
+        project: HubRecentProjectV1,
+        validation: RecentProjectValidation,
+    ) -> Self {
+        Self {
+            summary: project.summary,
+            path: project.path.to_string_lossy().into_owned(),
+            last_opened_unix_ms: project.last_opened_unix_ms,
+            validation,
         }
     }
 }

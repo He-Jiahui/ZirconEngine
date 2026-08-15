@@ -6,6 +6,7 @@ use super::super::geometry::{frame_is_within, has_paintable_field_extent};
 use super::super::metrics::workbench_field_metrics;
 
 const SEARCH_FIELD_ICON: &str = "search";
+const SEARCH_FIELD_CLEAR_ICON: &str = "close-outline";
 const SEARCH_RING_CENTER_FACTOR: f32 = 0.5;
 const SEARCH_HANDLE_SEGMENT_SCALE: f32 = 2.0;
 const SEARCH_HANDLE_SEGMENT_STEPS: [f32; 3] = [0.0, 1.0, 2.0];
@@ -81,6 +82,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_se
     let Some(action) = super::search_field_clear_action_rect(node, rect) else {
         return;
     };
+    if push_icon_asset_pixels(
+        commands,
+        SEARCH_FIELD_CLEAR_ICON,
+        &action,
+        clip,
+        order,
+        Some(color),
+        opacity,
+    ) {
+        return;
+    }
     push_close_icon(commands, &action, clip, order, color, opacity);
 }
 

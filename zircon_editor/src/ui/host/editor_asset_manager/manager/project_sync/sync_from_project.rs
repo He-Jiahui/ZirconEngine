@@ -3,23 +3,20 @@ use std::sync::atomic::Ordering;
 
 use zircon_runtime::asset::importer::AssetImportError;
 use zircon_runtime::asset::project::ProjectManager;
-use zircon_runtime::asset::project::{AssetMetaDocument, PreviewState};
 use zircon_runtime::core::framework::render::ShaderIdePreviewVariant;
-use zircon_runtime::core::resource::{ResourceKind, ResourceState};
+use zircon_runtime::core::resource::{ResourceKind, ResourceRecord, ResourceState};
 use zircon_runtime::graphics::write_shader_ide_env_for_project;
 
 use crate::ui::host::editor_asset_manager::{
-    AssetCatalogRecord, PreviewArtifactKey, PreviewCache, PreviewScheduler, ReferenceGraph,
+    AssetCatalogRecord, PreviewCache, PreviewScheduler, ReferenceGraph,
 };
 
 use super::super::super::{EditorAssetChangeKind, EditorAssetChangeRecord};
 use super::super::catalog_generation::build_catalog_generation;
 use super::super::default_editor_asset_manager::DefaultEditorAssetManager;
-use super::super::reference_analysis::direct_references;
 use super::{
-    display_name_for_path::display_name_for_path, meta_path_for_source::meta_path_for_source,
-    preview_source_mtime::preview_source_mtime,
-    source_generation::EditorAssetProjectSourceGeneration,
+    record_projection::project_catalog_record,
+    source_generation::{EditorAssetProjectSourceDelta, EditorAssetProjectSourceGeneration},
 };
 
 impl DefaultEditorAssetManager {
@@ -68,72 +65,63 @@ impl DefaultEditorAssetManager {
             "asset_catalog.resource_delta_renamed_count",
             resource_delta.renamed.len()
         );
-        let preview_cache = PreviewCache::new(project.paths().cache_root())?;
-        let mut catalog_by_uuid = HashMap::new();
-        let mut uuid_by_locator = HashMap::new();
-        let mut preview_scheduler = PreviewScheduler::default();
-
-        for metadata in project.registry().values() {
-            let locator = metadata.primary_locator().clone();
-            if locator.label().is_some() {
-                continue;
-            }
-            let source_path = project.source_path_for_uri(&locator)?;
-            let meta_path = meta_path_for_source(&source_path);
-            let meta = AssetMetaDocument::load(&meta_path)?;
-            let preview_state = meta.preview_state;
-            let direct_references = if metadata.state == ResourceState::Ready {
-                let imported = project.load_artifact_by_id(metadata.id())?;
-                direct_references(&imported)
-            } else {
-                Vec::new()
-            };
-            let preview_artifact_path = preview_cache.path_for(&PreviewArtifactKey::thumbnail(
-                meta.uuid,
-                &metadata.source_hash,
-            ));
-            let file_name = source_path
-                .file_name()
-                .and_then(|name| name.to_str())
-                .unwrap_or_default()
-                .to_string();
-            let extension = source_path
-                .extension()
-                .and_then(|name| name.to_str())
-                .unwrap_or_default()
-                .to_ascii_lowercase();
-            let diagnostics = metadata
-                .diagnostics
-                .iter()
-                .map(|diagnostic| diagnostic.message.clone())
-                .collect::<Vec<_>>();
-            let asset_uuid = meta.uuid;
-
-            let record = AssetCatalogRecord {
-                asset_uuid,
-                asset_id: metadata.id(),
-                locator: locator.clone(),
-                kind: metadata.kind,
-                display_name: display_name_for_path(&source_path, &locator),
-                file_name,
-                extension,
-                meta_path,
-                meta,
-                source_mtime_unix_ms: preview_source_mtime(&source_path),
-                source_hash: metadata.source_hash.clone(),
-                preview_state,
-                preview_artifact_path,
-                dirty: preview_state == PreviewState::Dirty,
-                diagnostics,
-                direct_references,
-            };
-            if record.dirty {
-                preview_scheduler.mark_dirty(record.asset_uuid);
-            }
-
-            uuid_by_locator.insert(locator, record.asset_uuid);
-            catalog_by_uuid.insert(record.asset_uuid, record);
+        if resource_delta.is_unchanged() {
+            zircon_runtime::profile_counter!(
+                "editor",
+                "asset_catalog.projection_unchanged_count",
+                1_u8
+            );
+            return Ok(());
         }
+
+        let preview_cache = PreviewCache::new(project.paths().cache_root())?;
+        let (mut catalog_by_uuid, mut uuid_by_locator, projection_kind) = {
+            let state = self.state.read().expect("editor asset state lock poisoned");
+            if resource_delta.project_metadata_changed || state.project.is_none() {
+                (HashMap::new(), HashMap::new(), ProjectionKind::Full)
+            } else {
+                (
+                    state.catalog_by_uuid.clone(),
+                    state.uuid_by_locator.clone(),
+                    ProjectionKind::Incremental,
+                )
+            }
+        };
+        match projection_kind {
+            ProjectionKind::Full => {
+                project_full_catalog(
+                    &project,
+                    &preview_cache,
+                    &mut catalog_by_uuid,
+                    &mut uuid_by_locator,
+                )?;
+                zircon_runtime::profile_counter!(
+                    "editor",
+                    "asset_catalog.projection_full_count",
+                    1_u8
+                );
+            }
+            ProjectionKind::Incremental => {
+                patch_catalog(
+                    &project,
+                    &preview_cache,
+                    &resource_delta,
+                    &mut catalog_by_uuid,
+                    &mut uuid_by_locator,
+                )?;
+                zircon_runtime::profile_counter!(
+                    "editor",
+                    "asset_catalog.projection_incremental_count",
+                    1_u8
+                );
+                zircon_runtime::profile_counter!(
+                    "editor",
+                    "asset_catalog.projection_incremental_touched_count",
+                    resource_delta.touched_record_count()
+                );
+            }
+        }
+        let mut preview_scheduler = preview_scheduler_for(&catalog_by_uuid);
 
         {
             let state = self.state.read().expect("editor asset state lock poisoned");
@@ -151,7 +139,9 @@ impl DefaultEditorAssetManager {
         if self.source_sync_epoch.load(Ordering::Acquire) != source_sync_epoch {
             return Ok(());
         }
-        refresh_shader_ide_env_after_import(&project)?;
+        if projection_kind == ProjectionKind::Full || resource_delta.affects_shader() {
+            refresh_shader_ide_env_after_import(&project)?;
+        }
         let primary_asset_root = project.primary_project_asset_root()?.to_path_buf();
         let change = loop {
             let catalog_revision = expected_generation.catalog_revision.saturating_add(1);
@@ -210,6 +200,100 @@ impl DefaultEditorAssetManager {
         self.broadcast(change);
         Ok(())
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum ProjectionKind {
+    Full,
+    Incremental,
+}
+
+fn project_full_catalog(
+    project: &ProjectManager,
+    preview_cache: &PreviewCache,
+    catalog_by_uuid: &mut HashMap<zircon_runtime::asset::AssetUuid, AssetCatalogRecord>,
+    uuid_by_locator: &mut HashMap<
+        zircon_runtime::asset::AssetUri,
+        zircon_runtime::asset::AssetUuid,
+    >,
+) -> Result<(), AssetImportError> {
+    for metadata in project.registry().values() {
+        insert_projected_record(
+            project,
+            preview_cache,
+            metadata,
+            catalog_by_uuid,
+            uuid_by_locator,
+        )?;
+    }
+    Ok(())
+}
+
+fn patch_catalog(
+    project: &ProjectManager,
+    preview_cache: &PreviewCache,
+    delta: &EditorAssetProjectSourceDelta,
+    catalog_by_uuid: &mut HashMap<zircon_runtime::asset::AssetUuid, AssetCatalogRecord>,
+    uuid_by_locator: &mut HashMap<
+        zircon_runtime::asset::AssetUri,
+        zircon_runtime::asset::AssetUuid,
+    >,
+) -> Result<(), AssetImportError> {
+    for metadata in &delta.removed {
+        remove_projected_record(metadata, catalog_by_uuid, uuid_by_locator);
+    }
+    for rename in &delta.renamed {
+        remove_projected_record(&rename.previous, catalog_by_uuid, uuid_by_locator);
+        insert_projected_record(
+            project,
+            preview_cache,
+            &rename.current,
+            catalog_by_uuid,
+            uuid_by_locator,
+        )?;
+    }
+    for metadata in delta.modified.iter().chain(&delta.added) {
+        remove_projected_record(metadata, catalog_by_uuid, uuid_by_locator);
+        insert_projected_record(
+            project,
+            preview_cache,
+            metadata,
+            catalog_by_uuid,
+            uuid_by_locator,
+        )?;
+    }
+    Ok(())
+}
+
+fn remove_projected_record(
+    metadata: &ResourceRecord,
+    catalog_by_uuid: &mut HashMap<zircon_runtime::asset::AssetUuid, AssetCatalogRecord>,
+    uuid_by_locator: &mut HashMap<
+        zircon_runtime::asset::AssetUri,
+        zircon_runtime::asset::AssetUuid,
+    >,
+) {
+    if let Some(asset_uuid) = uuid_by_locator.remove(metadata.primary_locator()) {
+        catalog_by_uuid.remove(&asset_uuid);
+    }
+}
+
+fn insert_projected_record(
+    project: &ProjectManager,
+    preview_cache: &PreviewCache,
+    metadata: &ResourceRecord,
+    catalog_by_uuid: &mut HashMap<zircon_runtime::asset::AssetUuid, AssetCatalogRecord>,
+    uuid_by_locator: &mut HashMap<
+        zircon_runtime::asset::AssetUri,
+        zircon_runtime::asset::AssetUuid,
+    >,
+) -> Result<(), AssetImportError> {
+    let Some(record) = project_catalog_record(project, preview_cache, metadata)? else {
+        return Ok(());
+    };
+    uuid_by_locator.insert(record.locator.clone(), record.asset_uuid);
+    catalog_by_uuid.insert(record.asset_uuid, record);
+    Ok(())
 }
 
 fn merge_current_preview_results(
@@ -272,6 +356,42 @@ mod tests {
     use zircon_runtime::plugin::PluginPackageManifest;
 
     use super::*;
+
+    #[test]
+    fn sync_from_project_does_not_republish_an_unchanged_generation() {
+        let root = unique_temp_project_root("sync_unchanged_generation");
+        let paths = ProjectPaths::from_root(&root).unwrap();
+        paths
+            .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+            .unwrap();
+        ProjectManifest::new(
+            "UnchangedProject",
+            AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+            1,
+        )
+        .save(paths.manifest_path())
+        .unwrap();
+        let material_path = paths
+            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+            .join("materials")
+            .join("unchanged.material.toml");
+        fs::create_dir_all(material_path.parent().unwrap()).unwrap();
+        fs::write(&material_path, "not valid toml = [").unwrap();
+
+        let mut project = ProjectManager::open(&root).unwrap();
+        project.scan_and_import().unwrap();
+        let manager = DefaultEditorAssetManager::new();
+        manager.sync_from_project(project.clone()).unwrap();
+        let first = manager.catalog_snapshot_record();
+
+        manager.sync_from_project(project).unwrap();
+        let second = manager.catalog_snapshot_record();
+
+        assert!(std::sync::Arc::ptr_eq(&first, &second));
+        assert_eq!(first.catalog_revision, second.catalog_revision);
+
+        let _ = fs::remove_dir_all(root);
+    }
 
     #[test]
     fn sync_from_project_keeps_error_assets_without_artifacts_in_catalog() {

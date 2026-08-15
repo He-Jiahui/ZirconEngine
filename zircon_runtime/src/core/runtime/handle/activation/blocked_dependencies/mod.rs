@@ -4,10 +4,10 @@ mod single;
 mod three_service;
 mod two_service;
 
-pub(super) use five_service::{first_blocked_five_service_dependency, FiveServiceDependencyMatch};
-pub(super) use four_service::{first_blocked_four_service_dependency, FourServiceDependencyMatch};
+pub(super) use five_service::{FiveServiceDependencyMatch, first_blocked_five_service_dependency};
+pub(super) use four_service::{FourServiceDependencyMatch, first_blocked_four_service_dependency};
 pub(super) use single::dependency_slice_contains_service;
 pub(super) use three_service::{
-    first_blocked_three_service_dependency, ThreeServiceDependencyMatch,
+    ThreeServiceDependencyMatch, first_blocked_three_service_dependency,
 };
-pub(super) use two_service::{first_blocked_two_service_dependency, TwoServiceDependencyMatch};
+pub(super) use two_service::{TwoServiceDependencyMatch, first_blocked_two_service_dependency};

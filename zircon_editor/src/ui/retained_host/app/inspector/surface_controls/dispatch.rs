@@ -1,4 +1,4 @@
-use super::super::super::{RetainedEditorHost, callback_dispatch};
+use super::super::super::{callback_dispatch, RetainedEditorHost};
 use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventKind};
 
 impl RetainedEditorHost {

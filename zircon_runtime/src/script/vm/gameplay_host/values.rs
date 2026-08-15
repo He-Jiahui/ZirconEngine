@@ -1,79 +1,67 @@
-use crate::core::framework::script::{ScriptHostCallFrame, ScriptHostError, ScriptHostValue};
+use crate::core::framework::script::{ScriptHostCallFrame, ScriptHostError, ScriptHostValueRef};
 use crate::core::math::Vec3;
 use crate::core::resource::{AssetUuid, ResourceHandle, ResourceId};
 
-pub(super) fn expect_string<'a>(
-    context: &'a ScriptHostCallFrame<'a>,
+pub(super) fn with_string<T>(
+    context: &ScriptHostCallFrame<'_>,
     index: usize,
-) -> Result<&'a str, ScriptHostError> {
-    match context.arguments.get(index) {
-        Some(ScriptHostValue::String(value)) => Ok(value),
-        Some(value) => Err(ScriptHostError::new(format!(
+    visitor: impl for<'value> FnOnce(&'value str) -> Result<T, ScriptHostError>,
+) -> Result<T, ScriptHostError> {
+    context.arguments.with_argument(index, |value| match value {
+        ScriptHostValueRef::String(value) => visitor(value),
+        value => Err(ScriptHostError::new(format!(
             "argument {index} expected string, received {:?}",
             value.kind()
         ))),
-        None => Err(ScriptHostError::new(format!(
-            "argument {index} was not provided"
-        ))),
-    }
+    })
 }
 
 pub(super) fn expect_entity(
     context: &ScriptHostCallFrame<'_>,
     index: usize,
 ) -> Result<u64, ScriptHostError> {
-    match context.arguments.get(index) {
-        Some(ScriptHostValue::Int(value)) if *value >= 0 => Ok(*value as u64),
-        Some(ScriptHostValue::HostHandle(value)) => Ok(*value),
-        Some(value) => Err(ScriptHostError::new(format!(
+    context.arguments.with_argument(index, |value| match value {
+        ScriptHostValueRef::Int(value) if value >= 0 => Ok(value as u64),
+        ScriptHostValueRef::HostHandle(value) => Ok(value),
+        value => Err(ScriptHostError::new(format!(
             "argument {index} expected entity id, received {:?}",
             value.kind()
         ))),
-        None => Err(ScriptHostError::new(format!(
-            "argument {index} was not provided"
-        ))),
-    }
+    })
 }
 
 pub(super) fn expect_float(
     context: &ScriptHostCallFrame<'_>,
     index: usize,
 ) -> Result<f32, ScriptHostError> {
-    match context.arguments.get(index) {
-        Some(ScriptHostValue::Float(value)) => Ok(*value as f32),
-        Some(ScriptHostValue::Int(value)) => Ok(*value as f32),
-        Some(value) => Err(ScriptHostError::new(format!(
+    context.arguments.with_argument(index, |value| match value {
+        ScriptHostValueRef::Float(value) => Ok(value as f32),
+        ScriptHostValueRef::Int(value) => Ok(value as f32),
+        value => Err(ScriptHostError::new(format!(
             "argument {index} expected float, received {:?}",
             value.kind()
         ))),
-        None => Err(ScriptHostError::new(format!(
-            "argument {index} was not provided"
-        ))),
-    }
+    })
 }
 
 pub(super) fn expect_bool(
     context: &ScriptHostCallFrame<'_>,
     index: usize,
 ) -> Result<bool, ScriptHostError> {
-    match context.arguments.get(index) {
-        Some(ScriptHostValue::Bool(value)) => Ok(*value),
-        Some(value) => Err(ScriptHostError::new(format!(
+    context.arguments.with_argument(index, |value| match value {
+        ScriptHostValueRef::Bool(value) => Ok(value),
+        value => Err(ScriptHostError::new(format!(
             "argument {index} expected bool, received {:?}",
             value.kind()
         ))),
-        None => Err(ScriptHostError::new(format!(
-            "argument {index} was not provided"
-        ))),
-    }
+    })
 }
 
 pub(super) fn expect_vec3_json(
     context: &ScriptHostCallFrame<'_>,
     index: usize,
 ) -> Result<Vec3, ScriptHostError> {
-    let value = expect_string(context, index)?;
-    vec3_from_json(value)
+    with_string(context, index, vec3_from_json)
 }
 
 pub(super) fn parse_key_code(key: &str) -> Option<u32> {
@@ -115,28 +103,61 @@ pub(super) fn script_core_error(error: crate::core::CoreError) -> ScriptHostErro
 
 #[cfg(test)]
 mod tests {
-    use crate::core::framework::script::{ScriptHostCallFrame, ScriptHostValue};
+    use crate::core::framework::script::{
+        ScriptHostArguments, ScriptHostCallFrame, ScriptHostOwnedArgumentSource, ScriptHostValue,
+    };
 
-    use super::expect_string;
+    use super::with_string;
 
     #[test]
     fn runtime13_string_extractor_borrows_the_argument_payload() {
         let arguments = vec![ScriptHostValue::String("player.hp".to_string())];
+        let argument_source = ScriptHostOwnedArgumentSource::new(&arguments);
         let capabilities = Vec::new();
         let context = ScriptHostCallFrame::new(
             "zr.gameplay.component",
             "component_json",
-            &arguments,
+            ScriptHostArguments::new(&argument_source),
             &capabilities,
             None,
         );
 
-        let value = expect_string(&context, 0).expect("string argument is accepted");
+        let value_length = with_string(&context, 0, |value: &str| {
+            assert_eq!(value, "player.hp");
+            Ok(value.len())
+        })
+        .expect("string argument is accepted");
         let ScriptHostValue::String(argument) = &arguments[0] else {
             panic!("fixture must contain a string argument");
         };
 
-        assert_eq!(value.as_ptr(), argument.as_ptr());
-        assert_eq!(value.len(), argument.len());
+        assert_eq!(value_length, argument.len());
+    }
+
+    #[test]
+    fn gameplay_host_consumers_keep_transient_strings_borrowed() {
+        let values = include_str!("values.rs");
+        let production_values = values
+            .split_once("#[cfg(test)]")
+            .map_or(values, |(head, _)| head);
+
+        assert!(
+            !production_values.contains("fn expect_string("),
+            "gameplay host must not retain an owned string extractor beside with_string"
+        );
+        for source in [
+            include_str!("combat.rs"),
+            include_str!("components.rs"),
+            include_str!("input.rs"),
+            include_str!("lifecycle.rs"),
+            include_str!("scene_transition.rs"),
+        ] {
+            let production_source = source
+                .split_once("#[cfg(test)]")
+                .map_or(source, |(head, _)| head);
+
+            assert!(production_source.contains("with_string("));
+            assert!(!production_source.contains("expect_string("));
+        }
     }
 }

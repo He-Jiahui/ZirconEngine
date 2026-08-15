@@ -1,6 +1,7 @@
 use super::super::*;
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
-use crate::ui::retained_host::ui_perf::{UiPerfCounter, record_current_ui_perf_counter};
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
+use crate::ui::workbench::model::StatusBarModel;
 
 impl RetainedEditorHost {
     pub(super) fn sync_recompute_viewport_and_pointer_layouts(
@@ -23,20 +24,36 @@ impl RetainedEditorHost {
                     "recompute_viewport_resize"
                 );
                 self.viewport_size = next_viewport_size;
-                self.apply_viewport_resize_effects_in_active_recompute(
-                    callback_dispatch::dispatch_viewport_event(
-                        &self.runtime,
-                        EditorViewportEvent::Resized {
-                            width: self.viewport_size.x,
-                            height: self.viewport_size.y,
-                        },
-                    ),
-                );
-                *chrome = self.build_chrome();
-                record_current_ui_perf_counter(UiPerfCounter::WorkbenchModelBuildCount, 1.0);
-                let context = self.runtime.project_command_eval_snapshot(chrome);
-                let commands = self.runtime.commands().lock();
-                *model = WorkbenchViewModel::build_with_context(&commands, chrome, &context);
+                let resize_projection_compatible = self
+                    .apply_viewport_resize_effects_in_active_recompute(
+                        callback_dispatch::dispatch_viewport_event(
+                            &self.runtime,
+                            EditorViewportEvent::Resized {
+                                width: self.viewport_size.x,
+                                height: self.viewport_size.y,
+                            },
+                        ),
+                    );
+                if resize_projection_compatible {
+                    chrome.viewport_size = self.viewport_size;
+                    model.status_bar = StatusBarModel::from_chrome(chrome);
+                    zircon_runtime::profile_counter!(
+                        "editor",
+                        "ui.viewport_resize.incremental_projection_count",
+                        1
+                    );
+                } else {
+                    record_current_ui_perf_counter(UiPerfCounter::WorkbenchModelBuildCount, 1.0);
+                    zircon_runtime::profile_counter!(
+                        "editor",
+                        "ui.viewport_resize.incremental_projection_fallback_count",
+                        1
+                    );
+                    *chrome = self.build_chrome();
+                    let context = self.runtime.project_command_eval_snapshot(chrome);
+                    let commands = self.runtime.commands().lock();
+                    *model = WorkbenchViewModel::build_with_context(&commands, chrome, &context);
+                }
             }
         }
 
@@ -67,5 +84,25 @@ impl RetainedEditorHost {
             model,
             componentized_workbench_layout_frames,
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn viewport_resize_patches_the_committed_projection_before_full_model_fallback() {
+        let source = include_str!("recompute_viewport.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("viewport recompute production source");
+        let incremental = production
+            .find("model.status_bar = StatusBarModel::from_chrome(chrome)")
+            .expect("incremental viewport projection");
+        let full = production
+            .find("WorkbenchViewModel::build_with_context")
+            .expect("conservative model fallback");
+
+        assert!(incremental < full);
     }
 }

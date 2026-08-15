@@ -74,7 +74,7 @@ pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_rendere
 
 #[cfg(test)]
 mod tests {
-    use super::{SKY_SHADER, sky_shader_source};
+    use super::{sky_shader_source, SKY_SHADER};
 
     #[test]
     fn skybox_shader_variant_removes_volumetric_bindings_when_disabled() {

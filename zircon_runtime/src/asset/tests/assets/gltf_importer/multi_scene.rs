@@ -59,16 +59,12 @@ fn importer_emits_gltf_multi_scene_labels() {
     );
 
     let mesh_entry = entry_for_locator(&outcome, &label_uri(&root_uri, "Mesh0"));
-    assert!(
-        mesh_entry
-            .dependencies
-            .contains(&label_uri(&root_uri, "Mesh0/Primitive0"))
-    );
-    assert!(
-        mesh_entry
-            .dependencies
-            .contains(&label_uri(&root_uri, "Material0"))
-    );
+    assert!(mesh_entry
+        .dependencies
+        .contains(&label_uri(&root_uri, "Mesh0/Primitive0")));
+    assert!(mesh_entry
+        .dependencies
+        .contains(&label_uri(&root_uri, "Material0")));
 
     let _ = fs::remove_dir_all(root);
 }

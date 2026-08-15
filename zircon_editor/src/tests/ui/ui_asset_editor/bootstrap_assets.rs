@@ -1,8 +1,8 @@
 use super::support::{UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_TOML, UI_ASSET_EDITOR_BOOTSTRAP_STYLE_TOML};
 use crate::ui::asset_editor::{
-    ui_asset_editor_node_projection, UiAssetEditorCommand, UiAssetEditorMode, UiAssetEditorRoute,
-    UiAssetEditorSession, UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_ID,
-    UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_DOCUMENT_ID, UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID,
+    UiAssetEditorCommand, UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession,
+    UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_ID, UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_DOCUMENT_ID,
+    UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID,
 };
 use zircon_runtime::ui::v2::{UiV2AssetLoader, UiV2DocumentCompiler};
 use zircon_runtime_interface::ui::{layout::UiSize, template::UiAssetKind};
@@ -11,6 +11,20 @@ const UI_ASSET_EDITOR_PROJECTION_V2_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/assets/ui/editor/ui_asset_editor.zui"
 ));
+const UI_ASSET_EDITOR_ACTION_BAR_V2_TOML: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/assets/ui/editor/components/workbench/composites/chrome/workbench_ui_asset_action_bar.zui"
+));
+const WORKBENCH_CAPTION_V2_TOML: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/assets/ui/editor/components/workbench/primitives/data/workbench_caption.zui"
+));
+const WORKBENCH_LABEL_V2_TOML: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/assets/ui/editor/components/workbench/primitives/data/workbench_label.zui"
+));
+
+mod component_contracts;
 
 const V2_IMPORTED_CARD_TOML: &str = r#"
 [asset]
@@ -130,19 +144,32 @@ fn ui_asset_editor_v2_bootstrap_asset_parses_and_compiles() {
     assert_eq!(root_node.component, "VerticalGroup");
     assert!(root_node.children.len() >= 2);
 }
-
 #[test]
 fn ui_asset_editor_v2_projection_asset_self_hosts_shell_regions() {
     let layout = UiV2AssetLoader::load_toml_str(UI_ASSET_EDITOR_PROJECTION_V2_TOML)
         .expect("ui asset editor v2 projection asset");
 
-    assert_eq!(layout.asset.id, "editor.ui_asset_editor.projection.v2");
+    assert_eq!(layout.asset.id, "res://ui/editor/ui_asset_editor.zui");
     assert_eq!(layout.root_node_id(), Some("ui_asset_editor_root"));
-    assert!(layout
-        .imports
-        .styles
-        .iter()
-        .any(|reference| reference == "res://ui/theme/editor_material.zui"));
+    assert_eq!(
+        layout.imports.styles,
+        vec!["res://ui/editor/theme/editor_tokens.zui"],
+        "the projected workbench must have one canonical style import"
+    );
+    assert_eq!(
+        layout.imports.widgets,
+        vec![
+            "res://ui/editor/components/workbench/primitives/inputs/workbench_button.zui#WorkbenchButton",
+            "res://ui/editor/components/workbench/primitives/inputs/workbench_icon_button.zui#WorkbenchIconButton",
+            "res://ui/editor/components/workbench/primitives/inputs/workbench_search_input.zui#WorkbenchSearchInput",
+            "res://ui/editor/components/workbench/primitives/data/workbench_tree_row.zui#WorkbenchTreeRow",
+            "res://ui/editor/components/workbench/primitives/data/workbench_caption.zui#WorkbenchCaption",
+            "res://ui/editor/components/workbench/primitives/data/workbench_label.zui#WorkbenchLabel",
+            "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
+            "res://ui/editor/components/workbench/composites/chrome/workbench_ui_asset_action_bar.zui#WorkbenchUiAssetActionBar",
+        ],
+        "the projected workbench must compose its controls from canonical Workbench primitives"
+    );
 
     for required_node in [
         "header_panel",
@@ -150,8 +177,22 @@ fn ui_asset_editor_v2_projection_asset_self_hosts_shell_regions() {
         "left_column",
         "center_column",
         "right_column",
+        "left_scroll_region",
+        "center_scroll_region",
+        "right_scroll_region",
+        "palette_search",
+        "palette_component_grid",
+        "hierarchy_search",
+        "hierarchy_root_row",
         "designer_panel",
+        "header_save_button",
+        "header_undo_button",
+        "header_redo_button",
+        "designer_select_button",
+        "designer_resize_slot_button",
+        "designer_preview_interact_button",
         "designer_canvas_panel",
+        "action_bar_panel",
         "source_panel",
         "inspector_panel",
         "stylesheet_panel",
@@ -159,6 +200,160 @@ fn ui_asset_editor_v2_projection_asset_self_hosts_shell_regions() {
         assert!(
             layout.nodes.contains_key(required_node),
             "v2 projection asset should include `{required_node}`"
+        );
+    }
+
+    for scroll_region in [
+        "left_scroll_region",
+        "center_scroll_region",
+        "right_scroll_region",
+    ] {
+        let node = layout
+            .nodes
+            .get(scroll_region)
+            .unwrap_or_else(|| panic!("missing scroll region `{scroll_region}`"));
+        assert_eq!(node.component, "ScrollableBox");
+    }
+
+    for button_node in [
+        "designer_select_button",
+        "designer_resize_slot_button",
+        "designer_preview_interact_button",
+    ] {
+        let node = layout
+            .nodes
+            .get(button_node)
+            .unwrap_or_else(|| panic!("missing designer button `{button_node}`"));
+        assert_eq!(node.component, "WorkbenchButton");
+    }
+
+    for button_node in [
+        "header_save_button",
+        "header_undo_button",
+        "header_redo_button",
+    ] {
+        let node = layout
+            .nodes
+            .get(button_node)
+            .unwrap_or_else(|| panic!("missing header action `{button_node}`"));
+        assert_eq!(node.component, "WorkbenchIconButton");
+    }
+
+    for search_node in ["palette_search", "hierarchy_search"] {
+        let node = layout
+            .nodes
+            .get(search_node)
+            .unwrap_or_else(|| panic!("missing search input `{search_node}`"));
+        assert_eq!(node.component, "WorkbenchSearchInput");
+    }
+
+    for tree_row in [
+        "hierarchy_root_row",
+        "hierarchy_safe_area_row",
+        "hierarchy_content_row",
+    ] {
+        let node = layout
+            .nodes
+            .get(tree_row)
+            .unwrap_or_else(|| panic!("missing hierarchy row `{tree_row}`"));
+        assert_eq!(node.component, "WorkbenchTreeRow");
+    }
+
+    let designer_canvas = layout
+        .nodes
+        .get("designer_canvas_panel")
+        .expect("designer canvas panel");
+    assert_eq!(designer_canvas.component, "CanvasBox");
+    assert!(designer_canvas.children.is_empty());
+    assert!(
+        !layout.nodes.contains_key("designer_sample_grid"),
+        "the UI asset canvas must receive the session's real preview projection, not a Blend Space sample grid"
+    );
+}
+
+#[test]
+fn ui_asset_editor_v2_projection_uses_renderable_text_primitives_for_content_regions() {
+    let layout = UiV2AssetLoader::load_toml_str(UI_ASSET_EDITOR_PROJECTION_V2_TOML)
+        .expect("ui asset editor v2 projection asset");
+
+    for (node_id, component) in [
+        ("designer_diagnostic_caption", "WorkbenchCaption"),
+        ("emergency_shell_caption", "WorkbenchCaption"),
+        ("render_stack_label", "WorkbenchLabel"),
+        ("source_info_caption", "WorkbenchCaption"),
+        ("source_outline_caption", "WorkbenchCaption"),
+        ("mock_workspace_caption", "WorkbenchCaption"),
+        ("mock_subjects_caption", "WorkbenchCaption"),
+        ("mock_editor_caption", "WorkbenchCaption"),
+        ("mock_state_graph_caption", "WorkbenchCaption"),
+        ("source_text_caption", "WorkbenchCaption"),
+        ("inspector_content_label", "WorkbenchLabel"),
+        ("inspector_widget_caption", "WorkbenchCaption"),
+        ("inspector_promote_caption", "WorkbenchCaption"),
+        ("inspector_slot_caption", "WorkbenchCaption"),
+        ("inspector_layout_caption", "WorkbenchCaption"),
+        ("inspector_binding_caption", "WorkbenchCaption"),
+        ("stylesheet_action_caption", "WorkbenchCaption"),
+        ("stylesheet_state_primary_caption", "WorkbenchCaption"),
+        ("stylesheet_state_secondary_caption", "WorkbenchCaption"),
+        ("stylesheet_content_label", "WorkbenchLabel"),
+        ("stylesheet_theme_caption", "WorkbenchCaption"),
+        ("stylesheet_authoring_caption", "WorkbenchCaption"),
+        ("stylesheet_matched_rule_caption", "WorkbenchCaption"),
+    ] {
+        let node = layout
+            .nodes
+            .get(node_id)
+            .unwrap_or_else(|| panic!("missing renderable content node `{node_id}`"));
+        assert_eq!(node.component, component);
+        assert!(
+            node.props
+                .get("text")
+                .and_then(toml::Value::as_str)
+                .is_some_and(|text| !text.is_empty()),
+            "{node_id} must own visible text"
+        );
+        assert_eq!(
+            node.props
+                .get("text_overflow")
+                .and_then(toml::Value::as_str),
+            Some("ellipsis"),
+            "{node_id} must ellipsize rather than overflow a narrow pane"
+        );
+    }
+
+    for container_id in [
+        "designer_diagnostic_overlay_panel",
+        "emergency_shell_panel",
+        "render_stack_panel",
+        "source_info_panel",
+        "source_outline_panel",
+        "mock_workspace_panel",
+        "mock_subjects_panel",
+        "mock_editor_panel",
+        "mock_state_graph_panel",
+        "source_text_panel",
+        "inspector_content_panel",
+        "inspector_widget_section",
+        "inspector_promote_section",
+        "inspector_slot_section",
+        "inspector_layout_section",
+        "inspector_binding_section",
+        "stylesheet_action_row",
+        "stylesheet_state_primary_row",
+        "stylesheet_state_secondary_row",
+        "stylesheet_content_panel",
+        "stylesheet_theme_section",
+        "stylesheet_authoring_section",
+        "stylesheet_matched_rule_section",
+    ] {
+        let node = layout
+            .nodes
+            .get(container_id)
+            .unwrap_or_else(|| panic!("missing content container `{container_id}`"));
+        assert!(
+            !node.props.contains_key("text"),
+            "{container_id} must compose a text primitive instead of storing non-renderable text"
         );
     }
 }
@@ -201,7 +396,7 @@ fn ui_asset_editor_v2_authoring_keeps_v2_source_on_edit_and_canonical_save() {
     )
     .expect("bootstrap v2 session");
     let edited = UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_TOML
-        .replace("Valid prototype cache", "V2 authoring cache");
+        .replace("Prototype cache valid", "V2 authoring cache");
 
     session
         .apply_command(UiAssetEditorCommand::edit_source(edited))
@@ -476,8 +671,24 @@ fn ui_asset_editor_bootstrap_style_asset_opens_as_v2_style_session() {
     assert!(session.diagnostics().is_empty());
     let pane = session.pane_presentation();
     assert!(!pane.preview_available);
-    assert!(pane.style_token_items.len() >= 20);
-    assert!(pane.style_rule_items.len() >= 10);
+    for token in [
+        "accent = \"$editor.accent\"",
+        "muted = \"$editor.text.secondary\"",
+        "outline = \"$editor.border\"",
+        "panel = \"$editor.surface.1\"",
+        "panel_inset = \"$editor.surface.recessed\"",
+        "surface = \"$editor.surface.0\"",
+        "text = \"$editor.text.primary\"",
+    ] {
+        assert!(
+            pane.style_token_items.contains(&token.to_string()),
+            "the bootstrap style session must expose its Workbench token alias `{token}`"
+        );
+    }
+    assert!(
+        pane.style_rule_items.is_empty(),
+        "the Workbench token asset must not retain Material-specific local rules"
+    );
     assert_eq!(pane.asset_id, UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID);
 }
 
@@ -564,111 +775,4 @@ fn ui_asset_editor_bootstrap_layout_self_hosts_header_shell_rows() {
             "bootstrap layout should include header shell node `{required_node}`"
         );
     }
-}
-
-#[test]
-fn ui_asset_editor_bootstrap_template_projection_exposes_pane_shell_regions() {
-    let nodes = ui_asset_editor_node_projection(UiSize::new(1280.0, 720.0)).nodes;
-    let node = |control_id: &str| {
-        nodes
-            .iter()
-            .find(|node| node.control_id.as_str() == control_id)
-            .unwrap_or_else(|| panic!("missing projected node `{control_id}`"))
-    };
-
-    for control_id in [
-        "HeaderPanel",
-        "HeaderAssetRow",
-        "HeaderStatusRow",
-        "HeaderActionRow",
-        "LeftColumn",
-        "CenterColumn",
-        "RightColumn",
-        "PalettePanel",
-        "HierarchyPanel",
-        "DesignerPanel",
-        "DesignerToolModeRow",
-        "DesignerCanvasPanel",
-        "DesignerDiagnosticOverlayPanel",
-        "EmergencyShellPanel",
-        "RenderStackPanel",
-        "ActionBarPanel",
-        "ActionInsertRow",
-        "ActionReparentRow",
-        "ActionStructureRow",
-        "SourcePanel",
-        "SourceInfoPanel",
-        "SourceOutlinePanel",
-        "MockWorkspacePanel",
-        "MockSubjectsPanel",
-        "MockEditorPanel",
-        "MockStateGraphPanel",
-        "SourceTextPanel",
-        "InspectorPanel",
-        "InspectorContentPanel",
-        "InspectorWidgetSection",
-        "InspectorPromoteSection",
-        "InspectorSlotSection",
-        "InspectorLayoutSection",
-        "InspectorBindingSection",
-        "StylesheetPanel",
-        "StylesheetActionRow",
-        "StylesheetStatePrimaryRow",
-        "StylesheetStateSecondaryRow",
-        "StylesheetContentPanel",
-        "StylesheetThemeSection",
-        "StylesheetAuthoringSection",
-        "StylesheetMatchedRuleSection",
-    ] {
-        let node = node(control_id);
-        assert!(
-            node.frame.width > 0.0 && node.frame.height > 0.0,
-            "expected `{control_id}` node to be laid out by the bootstrap asset, got {:?}",
-            node.frame
-        );
-    }
-
-    assert!(node("HeaderPanel").frame.y <= node("PalettePanel").frame.y);
-    assert!(node("HeaderAssetRow").frame.y >= node("HeaderPanel").frame.y);
-    assert!(node("HeaderStatusRow").frame.y >= node("HeaderAssetRow").frame.y);
-    assert!(node("HeaderActionRow").frame.y >= node("HeaderStatusRow").frame.y);
-    assert!(node("LeftColumn").frame.x < node("CenterColumn").frame.x);
-    assert!(node("CenterColumn").frame.x < node("RightColumn").frame.x);
-    assert!(node("PalettePanel").frame.x < node("DesignerPanel").frame.x);
-    assert!(node("DesignerPanel").frame.x < node("InspectorPanel").frame.x);
-    assert!(node("DesignerToolModeRow").frame.y >= node("DesignerPanel").frame.y);
-    assert!(node("DesignerCanvasPanel").frame.y >= node("DesignerToolModeRow").frame.y);
-    assert!(node("DesignerDiagnosticOverlayPanel").frame.y >= node("DesignerCanvasPanel").frame.y);
-    assert!(node("EmergencyShellPanel").frame.y >= node("DesignerDiagnosticOverlayPanel").frame.y);
-    assert!(node("RenderStackPanel").frame.y >= node("EmergencyShellPanel").frame.y);
-    assert!(node("ActionBarPanel").frame.y >= node("DesignerPanel").frame.y);
-    assert!(node("ActionInsertRow").frame.y >= node("ActionBarPanel").frame.y);
-    assert!(node("ActionReparentRow").frame.y >= node("ActionInsertRow").frame.y);
-    assert!(node("ActionStructureRow").frame.y >= node("ActionReparentRow").frame.y);
-    assert!(node("SourcePanel").frame.y >= node("ActionBarPanel").frame.y);
-    assert!(node("SourceInfoPanel").frame.y >= node("SourcePanel").frame.y);
-    assert!(node("SourceOutlinePanel").frame.y >= node("SourceInfoPanel").frame.y);
-    assert!(node("MockWorkspacePanel").frame.y >= node("SourceOutlinePanel").frame.y);
-    assert!(node("MockSubjectsPanel").frame.y >= node("MockWorkspacePanel").frame.y);
-    assert!(node("MockEditorPanel").frame.y >= node("MockSubjectsPanel").frame.y);
-    assert!(node("MockStateGraphPanel").frame.y >= node("MockEditorPanel").frame.y);
-    assert!(node("SourceTextPanel").frame.y >= node("MockStateGraphPanel").frame.y);
-    assert!(node("InspectorContentPanel").frame.y >= node("InspectorPanel").frame.y);
-    assert!(node("InspectorWidgetSection").frame.y >= node("InspectorContentPanel").frame.y);
-    assert!(node("InspectorPromoteSection").frame.y >= node("InspectorWidgetSection").frame.y);
-    assert!(node("InspectorSlotSection").frame.y >= node("InspectorPromoteSection").frame.y);
-    assert!(node("InspectorLayoutSection").frame.y >= node("InspectorSlotSection").frame.y);
-    assert!(node("InspectorBindingSection").frame.y >= node("InspectorLayoutSection").frame.y);
-    assert!(node("StylesheetPanel").frame.y >= node("InspectorPanel").frame.y);
-    assert!(node("StylesheetActionRow").frame.y >= node("StylesheetPanel").frame.y);
-    assert!(node("StylesheetStatePrimaryRow").frame.y >= node("StylesheetActionRow").frame.y);
-    assert!(
-        node("StylesheetStateSecondaryRow").frame.y >= node("StylesheetStatePrimaryRow").frame.y
-    );
-    assert!(node("StylesheetContentPanel").frame.y >= node("StylesheetStateSecondaryRow").frame.y);
-    assert!(node("StylesheetThemeSection").frame.y >= node("StylesheetContentPanel").frame.y);
-    assert!(node("StylesheetAuthoringSection").frame.y >= node("StylesheetThemeSection").frame.y);
-    assert!(
-        node("StylesheetMatchedRuleSection").frame.y >= node("StylesheetAuthoringSection").frame.y
-    );
 }

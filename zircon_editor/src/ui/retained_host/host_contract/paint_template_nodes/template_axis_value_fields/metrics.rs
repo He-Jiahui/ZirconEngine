@@ -1,4 +1,4 @@
-use super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
+use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct AxisValueFieldMetrics {
@@ -9,8 +9,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Axi
     pub text_inset_x: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_value_field_metrics()
--> AxisValueFieldMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_value_field_metrics(
+) -> AxisValueFieldMetrics {
     axis_value_field_metrics_from_host(current_host_metrics())
 }
 

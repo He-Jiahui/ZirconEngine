@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::scene::{LevelSystem, World};
 
 use super::super::super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionSlotDiffReport, path_restore,
+    path_restore, RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionSlotDiffReport,
 };
 
 impl RuntimeSessionArchive {

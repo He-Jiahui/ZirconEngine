@@ -36,12 +36,54 @@ impl HostControlMetrics {
     pub(in crate::ui::retained_host) fn line_height(&self, font_size: f32) -> f32 {
         font_size * self.line_height_ratio
     }
+
+    pub(super) fn at_scale(self, scale_factor: f32) -> Self {
+        let scale_factor = if scale_factor.is_finite() && scale_factor > 0.0 {
+            scale_factor
+        } else {
+            1.0
+        };
+        let scaled = |value: f32| {
+            let value = value * scale_factor;
+            if value.is_finite() {
+                value
+            } else {
+                0.0
+            }
+        };
+        Self {
+            control_default_height: scaled(self.control_default_height),
+            control_large_height: scaled(self.control_large_height),
+            radius_control: scaled(self.radius_control),
+            border_width: scaled(self.border_width),
+            font_small: scaled(self.font_small),
+            font_body: scaled(self.font_body),
+            font_large: scaled(self.font_large),
+            line_height_ratio: self.line_height_ratio,
+            button_pad_x: scaled(self.button_pad_x),
+            button_icon_gap: scaled(self.button_icon_gap),
+            button_chevron_reserve: scaled(self.button_chevron_reserve),
+            text_clip_guard: scaled(self.text_clip_guard),
+            button_pressed_offset_y: scaled(self.button_pressed_offset_y),
+            input_pad: self.input_pad.map(scaled),
+            segment_text_inset_y: scaled(self.segment_text_inset_y),
+            segment_selected_inset: scaled(self.segment_selected_inset),
+            tab_underline_height: scaled(self.tab_underline_height),
+            selection_indicator_width: scaled(self.selection_indicator_width),
+            scrollbar_thickness: scaled(self.scrollbar_thickness),
+            scrollbar_min_thumb_length: scaled(self.scrollbar_min_thumb_length),
+            gap_s: scaled(self.gap_s),
+            gap_m: scaled(self.gap_m),
+            gap_l: scaled(self.gap_l),
+            row_height: scaled(self.row_height),
+        }
+    }
 }
 
 pub(crate) const METRICS: HostControlMetrics = HostControlMetrics {
     control_default_height: 32.0,
     control_large_height: 48.0,
-    radius_control: 4.0,
+    radius_control: 6.0,
     border_width: 1.0,
     font_small: EditorTypographyTokens::WORKBENCH_CAPTION_SIZE,
     font_body: EditorTypographyTokens::WORKBENCH_BODY_SIZE,
@@ -149,7 +191,7 @@ mod tests {
     #[test]
     fn host_control_metrics_match_unreal_slate_baseline() {
         let slate_points_to_logical_pixels = 96.0 / 72.0;
-        assert_eq!(METRICS.radius_control, 4.0);
+        assert_eq!(METRICS.radius_control, 6.0);
         assert_eq!(METRICS.border_width, 1.0);
         assert_eq!(METRICS.control_default_height, 32.0);
         assert_eq!(METRICS.control_large_height, 48.0);
@@ -192,6 +234,19 @@ mod tests {
         assert_eq!(metrics.row_height, 26.0);
         assert_eq!(metrics.scrollbar_thickness, 7.0);
         assert_eq!(metrics.scrollbar_min_thumb_length, 26.0);
+    }
+
+    #[test]
+    fn host_control_metrics_scale_dimensions_but_keep_ratios_dimensionless() {
+        let scaled = METRICS.at_scale(2.0);
+
+        assert_eq!(scaled.control_default_height, 64.0);
+        assert_eq!(scaled.radius_control, 12.0);
+        assert_eq!(scaled.border_width, 2.0);
+        assert_eq!(scaled.font_body, METRICS.font_body * 2.0);
+        assert_eq!(scaled.input_pad, [16.0, 16.0, 6.0, 8.0]);
+        assert_eq!(scaled.row_height, METRICS.row_height * 2.0);
+        assert_eq!(scaled.line_height_ratio, METRICS.line_height_ratio);
     }
 
     #[test]

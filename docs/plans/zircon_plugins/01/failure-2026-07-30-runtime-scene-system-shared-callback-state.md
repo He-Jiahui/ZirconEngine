@@ -16,6 +16,7 @@ tests:
   - per-World typed scene-system callback state fixture
   - per-World runtime scene-system callback state fixture
   - concurrent independent-World callback overlap fixture
+  - per-instance callback factory invocation counts
 ---
 
 # Plugins01: runtime scene system shared callback state
@@ -84,4 +85,43 @@ per-instance factory contract rather than retaining the pre-cutover unconstraine
 
 ## 修复结果与回传
 
-Open state: `Runtime callback GREEN is recorded; SDK forwarding validation awaits the Frameworks01 optional-feature compile-boundary return`; no SDK target pass is claimed.
+## 2026-08-11 factory-bound correction
+
+The earlier `Clone` cutover removes the old registry-owned `Arc<Mutex<S>>`, but it does not
+make a general Rust `Clone` implementation a callback factory. A callback that captures
+`Arc<Mutex<T>>` still clones the same mutable handle, so the previous by-value counter fixtures
+were insufficient evidence for the stated per-World ownership contract.
+
+The current source hard-cuts all three registry builders and the public SDK forwarding builder to
+accept `Fn() -> S + Send + Sync` factories. `S` remains the World-owned `FnMut + Send` callback;
+it no longer needs `Clone` or `Sync`. Each `SystemRegistration::build` and
+`RuntimeSceneSystemRegistration::build` invokes the retained factory before constructing its
+World-owned system. First-party runtime, native ABI, replay, scheduler, test, and plugin
+registrations now provide an explicit factory; stateful examples create their mutable state inside
+that factory, while shared service handles use explicit `Arc::clone`.
+
+The typed, external, and runtime fixtures now assert both callback observations `[1, 1]` and an
+exact factory-build count of `2`. `rustfmt +1.94.1 --check`, `git diff --check`, and a
+source-contract scan for removed `system_template.clone()` / `FnMut + Send + Sync + Clone`
+constraints are GREEN. Managed Rust focused and SDK validation remain pending because Plugins01
+does not own the currently unmanaged build-output directories; no Cargo result is claimed here.
+
+### 2026-08-11 read-only implementation review
+
+- The typed, external, and runtime builders retain only `Arc<dyn Fn() -> S + Send + Sync>` at
+  registration time and invoke it at the World or runtime-instance build boundary. The produced
+  callback remains the local `FnMut + Send` system value, so the registry no longer requires or
+  relies on `S: Clone + Sync`.
+- The three regression fixtures each create `calls = 0` inside the factory, run two separately
+  built systems, and assert both `[1, 1]` observations and exactly two factory invocations. The
+  external overlap fixture still exercises distinct World callbacks concurrently.
+- A full Rust source scan found no remaining legacy callback-template clone or
+  `FnMut + Send + Sync + Clone` bound. The scoped `git diff --check` is clean apart from existing
+  line-ending notices. Independent review has no remaining correctness, integrity, or
+  maintainability finding at source level.
+- This is static review evidence only. It does not supersede the required coordinator-managed
+  runtime focused, SDK, and broader validation, and it does not authorize use of the foreign
+  materialized validation copy.
+
+Open state: source repair and static evidence are current; managed focused, SDK, and broader
+validation remain required before this handoff can return as fixed.

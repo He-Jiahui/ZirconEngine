@@ -49,6 +49,15 @@ status: static_complete_dynamic_pending
 - asset/resource事件没有真实enqueue timestamp；其queue age从“某tick drain后仍pending”才开始计时，完全在一批内排空的老事件会记录0。Editor mailbox有真实delivery age。端到端验收必须为三流统一记录oldest enqueue-to-commit age，避免预算指标假绿。
 - 正向边界：空tick的三个`Vec::new()`不分配heap；planner最多扫描本tick有界batch，default scene locator每batch只parse一次；asset surface bridge保持lazy；catalog/details使用共享Arc generation。
 
+### 2026-08-14 Runtime04 generation addendum
+
+- `ProjectAssetManager::asset_ids_by_kind` 已不再扫描 mutable registry、调用 `list_resources()` 或在调用方排序；它读取 `ResourceManagementGeneration` 的 kind query。这一已完成止损不得被后续工作回退。
+- 该 generation 目前按 `64` 个 locator-sorted shard 发布。每次 `ResourceManagementScan::next_row()` 都在全部 shard 的当前候选中选择最小 locator；完整 kind list 仍执行约 `64 * N` 次候选检查。`ProjectAssetManager` 随后逐 id 加载资产并重建 model/mesh/scene/material/shader rich records，scene entity 也从新建的 scene records 再投影。因此 stable list/summary 仍不是 generation-owned O(1) 读取，不能从“已无调用方 sort”推导为 warm work 为零。
+- Unreal `FAssetRegistryState` 把 class/path/package 等 lookup index 与 registry state 一起维护，并直接枚举对应索引；其 tag index 还明确记录 memory-for-query-latency trade-off。Zircon 的正确演进方向是由 Runtime04 在同一 immutable generation 发布紧凑的 query-specific ordered rows/summary 与 selected-detail handle，Editor 只消费 `(generation, query, page)`，而不是在 Editor 建立第二套缓存或为每页重新扫描 shard。
+- 在任何索引结构改动前，基线必须记录 `scan` 调用、每页/全量输出的 shard-candidate 检查数、匹配 row 数、rich record/scene-entity projection 数、row/detail clone bytes、query wall time 与 generation sequence。矩阵保持 assets/scenes/entities `1/1K/100K`、visible page `0/50/1K`、idle/60Hz stable/1% change；只有稳定 generation 的这些数据确认热路径后，才实施并复测前后 p50/p95/RSS。GPU timing 与系统功耗不由该 CPU-side counter 推导，仍需独立校准来源。
+- 当前源码已在 `ResourceManagementScan` 的 profiling feature 路径按 scan 生命周期汇总并一次批量发射 `resource_management.scan.instances`、`matching_rows`、`rows_emitted`、`shard_candidate_checks` 和 `filtered_rows_skipped`：五项归属同一帧与时间戳，不会作为五次 recorder 锁争用。基线报告仅在同一场景完整保留五项时标记 asset-management 为 `measured`，缺项必须为 `partial`。它不在默认构建求值，也不按每行写入 timeline；后续基线必须把这些 counter 与同一 capture 的 `project_asset_manager` span、generation sequence 和产品场景关联。rich record/scene entity 的输出行数、clone bytes 与 page 指标仍待管理 projection owner 补齐，不能由现有 scan counter 推断。
+- `ResourceManagementGeneration::page()` 是独立的 64-shard merge，不复用 scan cursor；profiling feature 路径现在在该页返回前一次批量发射 `resource_management.page.instances`、`matching_rows`、`candidate_rows`（含 offset 所消耗的有序候选）、`rows_returned`、`shard_candidate_checks` 与 `filtered_rows_skipped`。报告以独立 `asset_management_page` 覆盖率呈现：没有产品 page 场景时为 `not_emitted`，同一场景只保留部分 page counters 才为 `partial`，不借 scan 指标推断 page 成本。该切片仅建立测量基线，不改变合并算法、默认构建或 runtime/editor 缓存所有权。
+
 ## 参考与目标
 
 - Bevy `dev/bevy/crates/bevy_asset/src/server/mod.rs:324-325,573-603`对同path复用已存在handle，不重复创建load task，并把阻塞load交给`IoTaskPool`。Zircon产品模型导入应提交一个generation-keyed batch ticket，observer、derived outputs与资源发布共享结果。

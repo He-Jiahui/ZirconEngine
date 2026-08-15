@@ -14,7 +14,7 @@ reference_sources:
 tests:
   - zircon_runtime/src/animation/sequence/tests.rs
   - zircon_runtime/src/animation/manager/graph.rs::performance_contract_tests
-  - zircon_runtime/src/animation/scene_hook/graph.rs::performance_contract_tests
+  - zircon_plugins/animation/runtime/src/manager/graph.rs
   - current-source Windows Cargo and animation-scale product traces pending
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending

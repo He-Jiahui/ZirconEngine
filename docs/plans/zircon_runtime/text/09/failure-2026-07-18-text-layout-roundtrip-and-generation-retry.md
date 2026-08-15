@@ -60,3 +60,10 @@ neutral contract DTO同时被当作跨模块接口和runtime内部canonical stor
 - `SharedTextLayoutService` projects a neutral `TextShapeResult` only at the framework contract boundary and reports canonical shapes, neutral projection count/glyphs/bytes, generation restarts, and typed deferrals.
 - Stable-generation shaping is explicitly bounded to two attempts. A continuing generation change returns `TextLayoutError::FontGenerationChanged`, which the session converts to the existing explicit empty fallback and records as `generation_deferred_count` rather than spinning on the caller thread.
 - Regression coverage asserts the internal no-handle/DTO round trip, external projection counters, bounded retry count, restart count, and deferred result. Managed current-source Cargo and product workbench/Console traces remain pending coordinator receipt, so this handoff stays open.
+
+2026-08-10 forward-review state:
+`open / resolving_failure / implementation_complete / second_review_complete / managed_validation_pending`.
+
+- Canonical glyph-artifact rebuilding now borrows the session-owned run, completes visual ordering and line metrics before its final generation comparison, and returns the line together with the verified generation. The UI caller performs a second current-generation check at the install boundary, preventing a stale rebuilt line from being published after a concurrent font update.
+- Artifact projection performs one face/instance registration batch and no neutral `TextShapeResult` round trip. The external DTO remains confined to the framework service boundary, while the existing two-attempt stable-generation policy retains typed defer instead of an unbounded caller loop.
+- Independent read-only second review found no P0/P1/P2 across the canonical Arc path, complete-rebuild generation checks, install boundary, batch registration, and bounded service retry. Managed Cargo plus workbench/Console and framebuffer evidence remain pending, so this handoff remains open.

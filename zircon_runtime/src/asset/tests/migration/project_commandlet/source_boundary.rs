@@ -181,7 +181,9 @@ fn migration_inventory_rejects_reparse_asset_roots_without_visiting_their_target
         return;
     }
 
-    let error = scan_migration_inventory_for_test(&[linked_assets.clone()]).unwrap_err();
+    let error = scan_migration_inventory_for_test(&[linked_assets.clone()])
+        .err()
+        .expect("reparse asset roots must be rejected");
 
     assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
     assert_eq!(

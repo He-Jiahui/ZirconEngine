@@ -5,18 +5,22 @@ use crate::ui::retained_host::host_contract::chrome_command_stream::{
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::presenter::error::HostPresenterError;
 use zircon_runtime::rhi::{
-    RhiError, UiSurfaceDrawList, UiSurfacePresentStats, UiSurfacePresenter, UiSurfaceRect,
+    RhiError, UiSurfaceDrawList, UiSurfacePresentOutcome, UiSurfacePresentStats,
+    UiSurfacePresenter, UiSurfaceRect,
 };
 
 #[derive(Default)]
 struct RecordingSurfacePresenter {
     fail_present: bool,
+    next_outcome: Option<UiSurfacePresentOutcome>,
     last: UiSurfacePresentStats,
     last_draw_list: Option<UiSurfaceDrawList>,
+    resize_count: u64,
 }
 
 impl UiSurfacePresenter for RecordingSurfacePresenter {
     fn resize(&mut self, width: u32, height: u32) -> Result<(), RhiError> {
+        self.resize_count = self.resize_count.saturating_add(1);
         self.last.surface_size = (width.max(1), height.max(1));
         Ok(())
     }
@@ -29,6 +33,7 @@ impl UiSurfacePresenter for RecordingSurfacePresenter {
             return Err(RhiError::SurfaceUnavailable("test".to_string()));
         }
         let mut stats = draw_list.stats();
+        stats.outcome = self.next_outcome.take().unwrap_or_default();
         stats.presented_frame_count = 1;
         self.last = stats.clone();
         self.last_draw_list = Some(draw_list.clone());
@@ -56,6 +61,53 @@ fn gpu_presenter_propagates_runtime_surface_failure() {
         .expect_err("runtime surface failure must not be hidden");
 
     assert!(matches!(error, HostPresenterError::Rhi(_)));
+}
+
+#[test]
+fn gpu_presenter_retries_an_unsubmitted_frame_without_publishing_a_damage_baseline() {
+    let mut presenter = GpuChromePresenter::new(
+        RecordingSurfacePresenter {
+            next_outcome: Some(UiSurfacePresentOutcome::RetryableNoSubmit),
+            ..RecordingSurfacePresenter::default()
+        },
+        (64, 64),
+    );
+    let damage = FrameRect {
+        x: 4.0,
+        y: 6.0,
+        width: 8.0,
+        height: 5.0,
+    };
+
+    let error = presenter
+        .present(
+            &HostWindowPresentationData::default(),
+            Some(damage.clone()),
+            HostInvalidationDiagnostics::default(),
+        )
+        .expect_err("an unsubmitted swapchain frame must remain retryable");
+
+    assert!(matches!(error, HostPresenterError::RetryableSurfacePresent));
+    assert!(!presenter.surface_cache_initialized);
+    assert_eq!(presenter.diagnostics.present_count, 0);
+
+    let diagnostics = presenter
+        .present(
+            &HostWindowPresentationData::default(),
+            Some(damage),
+            HostInvalidationDiagnostics::default(),
+        )
+        .expect("the next surface acquisition should submit the full bootstrap frame");
+    assert_eq!(diagnostics.present_count, 1);
+    assert_eq!(
+        presenter
+            .surface
+            .last_draw_list
+            .as_ref()
+            .expect("retry should reach the surface presenter")
+            .damage,
+        None
+    );
 }
 
 #[test]
@@ -175,7 +227,7 @@ fn gpu_presenter_damage_present_uses_patch_after_surface_cache_is_ready() {
 }
 
 #[test]
-fn gpu_presenter_versions_full_draw_lists_with_the_retained_rebuild_counter() {
+fn gpu_presenter_keeps_live_full_and_damage_streams_unversioned() {
     let mut presenter = GpuChromePresenter::new(RecordingSurfacePresenter::default(), (64, 64));
 
     presenter
@@ -187,14 +239,40 @@ fn gpu_presenter_versions_full_draw_lists_with_the_retained_rebuild_counter() {
                 ..HostInvalidationDiagnostics::default()
             },
         )
-        .expect("GPU presenter should submit the versioned full draw list");
+        .expect("GPU presenter should submit the live full draw list");
+
+    assert_eq!(
+        presenter
+            .surface
+            .last_draw_list
+            .as_ref()
+            .expect("surface presenter should receive the submitted full draw list")
+            .generation(),
+        None
+    );
+
+    presenter
+        .present(
+            &HostWindowPresentationData::default(),
+            Some(FrameRect {
+                x: 1.0,
+                y: 2.0,
+                width: 8.0,
+                height: 9.0,
+            }),
+            HostInvalidationDiagnostics {
+                slow_path_rebuild_count: 17,
+                ..HostInvalidationDiagnostics::default()
+            },
+        )
+        .expect("GPU presenter should submit the live damage draw list");
 
     let draw_list = presenter
         .surface
         .last_draw_list
         .as_ref()
         .expect("surface presenter should receive the submitted draw list");
-    assert_eq!(draw_list.generation(), Some(17));
+    assert_eq!(draw_list.generation(), None);
 }
 
 #[test]
@@ -233,8 +311,32 @@ fn gpu_presenter_resize_invalidates_damage_cache() {
 }
 
 #[test]
+fn gpu_presenter_same_size_resize_preserves_the_damage_cache() {
+    let mut presenter = GpuChromePresenter::new(RecordingSurfacePresenter::default(), (64, 64));
+    presenter
+        .present(
+            &HostWindowPresentationData::default(),
+            None,
+            HostInvalidationDiagnostics::default(),
+        )
+        .unwrap();
+    assert!(presenter.surface_cache_initialized);
+
+    presenter.resize((64, 64)).unwrap();
+
+    assert_eq!(presenter.surface.resize_count, 0);
+    assert!(presenter.surface_cache_initialized);
+}
+
+#[test]
 fn gpu_presenter_builds_one_command_snapshot_per_native_resize_transaction() {
     let mut presenter = GpuChromePresenter::new(RecordingSurfacePresenter::default(), (320, 200));
+    let damage = FrameRect {
+        x: 4.0,
+        y: 6.0,
+        width: 8.0,
+        height: 5.0,
+    };
 
     presenter.resize((300, 180)).unwrap();
     presenter
@@ -243,6 +345,12 @@ fn gpu_presenter_builds_one_command_snapshot_per_native_resize_transaction() {
             HostInvalidationDiagnostics::default(),
         )
         .unwrap();
+    let first_generation = presenter
+        .surface
+        .last_draw_list
+        .as_ref()
+        .and_then(UiSurfaceDrawList::generation)
+        .expect("resize snapshot should be versioned");
     presenter.resize((280, 160)).unwrap();
     presenter
         .present_during_native_resize(
@@ -253,6 +361,14 @@ fn gpu_presenter_builds_one_command_snapshot_per_native_resize_transaction() {
 
     assert_eq!(presenter.native_resize_snapshot_build_count, 1);
     assert_eq!(presenter.native_resize_snapshot_reuse_count, 1);
+    assert_eq!(
+        presenter
+            .surface
+            .last_draw_list
+            .as_ref()
+            .and_then(UiSurfaceDrawList::generation),
+        Some(first_generation)
+    );
     assert_eq!(
         presenter
             .surface
@@ -271,14 +387,40 @@ fn gpu_presenter_builds_one_command_snapshot_per_native_resize_transaction() {
             .projection_size(),
         (320, 200)
     );
+    assert!(!presenter.surface_cache_initialized);
 
     presenter
         .present(
             &HostWindowPresentationData::default(),
-            None,
+            Some(damage),
             HostInvalidationDiagnostics::default(),
         )
         .unwrap();
 
     assert!(presenter.native_resize_draw_list.is_none());
+    assert_eq!(
+        presenter
+            .surface
+            .last_draw_list
+            .as_ref()
+            .expect("first ordinary present after resize must submit a draw list")
+            .damage,
+        None
+    );
+
+    presenter.resize((260, 140)).unwrap();
+    presenter
+        .present_during_native_resize(
+            &HostWindowPresentationData::default(),
+            HostInvalidationDiagnostics::default(),
+        )
+        .unwrap();
+    assert_ne!(
+        presenter
+            .surface
+            .last_draw_list
+            .as_ref()
+            .and_then(UiSurfaceDrawList::generation),
+        Some(first_generation)
+    );
 }

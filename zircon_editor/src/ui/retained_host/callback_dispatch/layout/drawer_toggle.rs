@@ -1,15 +1,12 @@
 use crate::ui::binding::{DockCommand, EditorUiBindingPayload};
 
 use crate::ui::host::EditorHostEventController;
-use crate::ui::retained_host::event_bridge::UiHostEventEffects;
+use crate::ui::retained_host::event_bridge::{HostShellContentScope, UiHostEventEffects};
 use crate::ui::workbench::layout::ActivityDrawerMode;
 use crate::ui::workbench::layout::LayoutCommand;
 use crate::ui::workbench::view::ViewInstanceId;
 
-use super::super::{
-    BuiltinHostWindowTemplateBridge,
-    common::{merge_effects, parse_activity_drawer_slot},
-};
+use super::super::{common::parse_activity_drawer_slot, BuiltinHostWindowTemplateBridge};
 use super::dispatch_layout_command;
 
 pub(crate) fn dispatch_builtin_host_drawer_toggle(
@@ -48,6 +45,12 @@ pub(crate) fn dispatch_builtin_host_drawer_toggle(
     let Some(drawer) = active_drawers.get(&slot).cloned() else {
         return Some(Err(format!("missing drawer {:?}", slot)));
     };
+    let region_was_expanded = active_drawers.iter().any(|(candidate_slot, candidate)| {
+        candidate_slot.shares_region(slot)
+            && candidate.visible
+            && !candidate.tab_stack.tabs.is_empty()
+            && candidate.mode != ActivityDrawerMode::Collapsed
+    });
 
     let is_active = drawer
         .tab_stack
@@ -75,20 +78,64 @@ pub(crate) fn dispatch_builtin_host_drawer_toggle(
                 Ok(effects) => effects,
                 Err(error) => return Some(Err(error)),
             };
-            if drawer.mode == ActivityDrawerMode::Collapsed {
-                let reopen = match dispatch_layout_command(
-                    runtime,
-                    LayoutCommand::SetDrawerMode {
-                        slot,
-                        mode: ActivityDrawerMode::Pinned,
-                    },
-                ) {
-                    Ok(effects) => effects,
-                    Err(error) => return Some(Err(error)),
-                };
-                merge_effects(&mut effects, reopen);
+            if drawer_tab_switch_reuses_layout(drawer.mode, is_active, region_was_expanded) {
+                effects.reuse_layout_for_shell_content(HostShellContentScope::new(
+                    slot,
+                    target_instance,
+                ));
             }
             Ok(effects)
         },
     )
+}
+
+fn drawer_tab_switch_reuses_layout(
+    mode: ActivityDrawerMode,
+    is_active: bool,
+    region_was_expanded: bool,
+) -> bool {
+    !is_active && (mode != ActivityDrawerMode::Collapsed || region_was_expanded)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::drawer_tab_switch_reuses_layout;
+    use crate::ui::workbench::layout::ActivityDrawerMode;
+
+    #[test]
+    fn switching_tabs_in_an_open_drawer_reuses_layout() {
+        assert!(drawer_tab_switch_reuses_layout(
+            ActivityDrawerMode::Pinned,
+            false,
+            true,
+        ));
+        assert!(drawer_tab_switch_reuses_layout(
+            ActivityDrawerMode::AutoHide,
+            false,
+            true,
+        ));
+    }
+
+    #[test]
+    fn switching_between_drawers_in_an_expanded_region_reuses_layout() {
+        assert!(drawer_tab_switch_reuses_layout(
+            ActivityDrawerMode::Collapsed,
+            false,
+            true,
+        ));
+    }
+
+    #[test]
+    fn collapse_and_reopen_keep_the_full_layout_path() {
+        assert!(!drawer_tab_switch_reuses_layout(
+            ActivityDrawerMode::Pinned,
+            true,
+            true,
+        ));
+        assert!(!drawer_tab_switch_reuses_layout(
+            ActivityDrawerMode::Collapsed,
+            false,
+            false,
+        ));
+    }
 }

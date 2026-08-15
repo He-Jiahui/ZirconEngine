@@ -2,6 +2,7 @@
 related_code:
   - zircon_runtime/src/graphics/extract/history.rs
   - zircon_runtime/src/core/framework/render/camera.rs
+  - zircon_runtime/src/core/framework/render/view_family.rs
   - zircon_runtime/src/core/framework/render/temporal_jitter.rs
   - zircon_runtime/src/core/framework/render/view_matrix_pair.rs
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs
@@ -128,6 +129,130 @@ plan_sources:
 2. 相机投影 jitter(Halton 序列)接入,所有上游 pass 感知 jitter,后处理前去 jitter。
 3. TAA resolve:history 重投影 + neighborhood clamp + disocclusion 检测,history 资源语义定稿。
 4. motion blur / DoF 等消费 velocity 的效果与 TAA 顺序定稿。
+
+## 2026-08-15 ViewFamily Cutover Boundary
+
+`RenderViewFamilyPipeline` is the sole per-camera resolution authority. It resolves the
+presentation extent and camera `ViewRect`, primary and secondary logical resolutions, padded
+allocation extents, reconstruction category, and temporal-history identity before resource
+allocation. This follows Unreal's distinction between `ViewRect`, primary/secondary screen
+percentage, and TSR history rather than deriving behavior independently from a scalar
+`render_size` in each pass.
+
+The target implementation order is fixed: frame submission resolves one plan from the selected
+camera descriptor; graph compilation validates its required Temporal or Spatial reconstruction
+phase; frame-context allocation, temporal-history ownership, fullscreen viewport/scissor setup,
+and presentation consume that same plan. Alignment may pad an allocation but must never move the
+logical viewport origin. A temporal path owns its output-space reconstruction and must not add a
+second spatial transition unless the resolved secondary extent still differs from the display
+viewport.
+
+`RenderViewFamilyTarget` makes that contract consumable by every phase: it pairs the phase's
+logical `RenderViewportRect` with its backing allocation extent. Scene rendering and scene-linear
+pre-reconstruction post processing target primary resolution; temporal reconstruction reads that
+primary output and writes secondary resolution; display mapping and display post processing target
+secondary resolution. Secondary spatial upscale, output transform, and present target the display
+viewport. Padded allocation is never reused as a viewport. An independent second review closed the
+duplicated ViewRect-type risk and confirms clamp/scale preserve each camera's depth range.
+
+### 2026-08-15 ViewFamily Foundation Status
+
+- Implemented: `RenderViewFamilyPipeline::phase_targets(...)` now exposes the exact input and
+  output geometry for every enabled compatibility phase. Temporal reconstruction transitions from
+  primary to secondary, and the optional spatial transition scales post-process output to display.
+  This keeps logical viewports separate from padded allocations and keeps primary-resolution
+  changes history-stable.
+- Required Render07 hard cut: the graph must distinguish a primary-resolution
+  `PreReconstructionScenePostProcess` slot from a `PostReconstructionScenePostProcess` slot. In
+  Unreal desktop `PostProcessing.cpp`, `BL_SceneColorBeforeDOF` and Diaphragm DOF run before the
+  temporal upscaler, which consumes primary `ViewRect` color/depth/velocity; motion blur consumes
+  the temporal output afterwards. The second slot consequently targets secondary resolution for a
+  temporal path and primary resolution for a direct spatial path. Zircon's current legacy chain is
+  `TaaResolve -> DepthOfField -> MotionBlur`, so DOF is presently on the wrong side of temporal
+  reconstruction even though motion blur is not. Render07 must atomically replace the ambiguous
+  `SceneLinearPostProcess` phase and corresponding stack/chain-slot/resource/dependency model;
+  changing only enum order would make graph dependencies disagree with resource geometry.
+- Spatial-path re-review: this does **not** move Zircon's direct spatial transition ahead of
+  display mapping. Unreal's desktop sequence tone maps and runs post-tone-map AA before
+  `PrimaryUpscale`; its primary upscaler explicitly chooses `PrimaryToSecondary` when a second
+  upscale is active and otherwise `PrimaryToOutput`. Therefore the compatibility path's
+  `DisplayMapping -> DisplayPostProcess -> SpatialUpscale` geometry is directionally correct.
+  Render07 must preserve that distinction while replacing the ambiguous scene-linear slot.
+- Foundation only: `FrameSubmissionContext` has the resolved ViewFamily value and a focused
+  1920x1080 temporal-path test (960x540 primary, 1440x810 secondary), but its optional field and
+  builder exist solely to land the cross-owner work without a scalar `render_size` fallback.
+- Required constructor hard cut: Render01 must make `FrameSubmissionContext::new` take a
+  `RenderViewFamilyPipeline`, update every constructor/test caller, and delete the optional field,
+  builder, and delayed `expect`. Its owned
+  `submit_frame_extract/build_frame_submission_context/build.rs` already resolves the value but
+  must pass it at construction. This is one atomic construction change, not a permanent
+  source-compatible adapter; consumers may only read the required contract after it lands.
+  `post_process/pass_graph.rs` remains the independent Render07 phase-node hard cut.
+- Static evidence: the owned implementation files pass `rustfmt --check` and scoped
+  `git diff --check`; the test file parses through `rustfmt --emit stdout`. A spatial-only phase
+  regression locks `DisplayMapping -> DisplayPostProcess -> SpatialUpscale`, matching the reviewed
+  Unreal primary-upscale ordering. Its full format check still reports pre-existing formatting
+  outside this slice, and no Cargo lane was started.
+- Required module hard cut: `view_family.rs` now exceeds 1,300 lines and combines resolution
+  geometry, dynamic-resolution packets, pipeline topology, and tests. Before adding Render17
+  state integration or Render07 phase variants, an audited scope transfer must split it into
+  `view_family/{resolution,dynamic_resolution,pipeline,tests}.rs`; the root becomes declarations
+  and re-exports only. This is a source-ownership boundary, not a cosmetic reformat.
+
+### 2026-08-15 Device-Resolution And Performance Re-audit
+
+`RenderDynamicResolutionController` remains a deliberately pure bounded scale function.
+The ViewFamily foundation owns `RenderDynamicResolutionScope`,
+`RenderDynamicResolutionGpuSample`, and immutable `RenderDynamicResolutionDecision`; these
+are cross-layer packets, not a runtime controller. Concrete
+`RenderDynamicResolutionState` must live in Render17's graphics render framework, where it can
+consume submission-owned GPU timestamps without making the neutral framework layer depend on
+the renderer. Render01 must consume the immutable decision before submission resolves resources;
+until both land this is infrastructure, not a device-adaptive-resolution feature. It must
+therefore not be driven from CPU wall time, the historical 82-second viewer/export total, or one
+pass's timestamp.
+
+Current-source profiler audit: `FrameProfiler` already retains a bounded pending profile ring and
+merges delayed timestamp results by submitted `frame_generation`; the resolved frame time is the
+saturating sum of the graph pass timings. That profile has no `RenderDynamicResolutionScope`, so a
+ViewportRecord must not consume the global latest resolved profile. Render17 must bind each
+resolved generation back to its submitting viewport/upscaler scope before delivering a sample to
+the state machine; a late result for another viewport, a disabled timer, and an evicted profile
+are respectively cross-scope, unavailable, and timed-out inputs rather than usable measurements.
+
+Unreal's `PostProcessing.cpp` keeps this separation explicit: `View.ViewRect` is the
+primary scene/depth/velocity rectangle, temporal reconstruction writes
+`GetSecondaryViewRectSize()`, and post-TAA work uses that secondary rectangle. Its
+post-process sequence separately enables primary and secondary spatial upscale. Zircon's
+minimum viable hard cut is consequently ordered as follows:
+
+1. Render17's shared frame profiler publishes a completed GPU sample keyed by submitted
+   frame generation and `RenderDynamicResolutionScope`, including `unavailable` and
+   `timed_out` states. Each `ViewportRecord` owns its concrete state, accepts only a matching
+   prior completed sample, and records the source generation for diagnostics.
+2. Render17 emits one immutable decision before Render01 resolves the next
+   `RenderResolutionPlan`. The state applies the bounded/hysteretic primary fraction, records
+   its upper bound and reason, and makes resize, device recreation, upscaler changes, and
+   enabled-state changes explicit temporal-history reset decisions.
+   `RenderViewFamilyPipeline::resolve_for_viewport_with_dynamic_resolution_decision(...)`
+   is the neutral handoff: it replaces only the primary fraction and preserves the selected
+   secondary transition and allocation alignment. Render17 validates the scope before this call;
+   the framework does not gain renderer state or a hidden fallback controller. The packet
+   constructor normalizes its primary fraction and upper bound and enforces primary <= upper, so
+   a delayed/error-path producer cannot publish an invalid geometry request.
+3. Resource allocation, viewport/scissor, temporal history, and presentation consume that
+   one immutable plan. A primary-only change preserves history only when the secondary
+   viewport, padded history allocation, display extent, and upscaler identity are unchanged;
+   any other change invalidates it.
+4. Render07 atomically splits pre-temporal and post-temporal graph slots, resources, and
+   dependencies. Only then may DOF, motion blur, bloom, display mapping, and spatial
+   upscale be assigned their validated primary, secondary, or display target.
+
+The required performance record is five cold and five warm same-adapter runs with GPU
+frame/pass timestamps, CPU submission attribution, scale decision history, image sidecars,
+and RenderDoc replay. It must report median and range rather than a single elapsed number.
+Until that record exists, changing PMREM resolution, tiling its face work, or changing the
+dynamic-resolution controller is a hypothesis rather than an authorized optimization.
 
 ## 现状与差距
 

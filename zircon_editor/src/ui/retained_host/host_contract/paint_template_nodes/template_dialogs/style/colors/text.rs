@@ -1,6 +1,6 @@
 use super::super::super::identity::DialogKind;
 use super::super::palette::dialog_palette;
-use super::super::severity::{DialogSeverity, severity, severity_mark_color};
+use super::super::severity::{severity, severity_mark_color, DialogSeverity};
 use super::super::variants::variant_contains_any;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 

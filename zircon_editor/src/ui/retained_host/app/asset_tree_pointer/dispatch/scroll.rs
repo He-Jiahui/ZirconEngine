@@ -11,6 +11,7 @@ impl RetainedEditorHost {
         width: f32,
         height: f32,
     ) {
+        self.focus_callback_source_window();
         if !self.prepare_asset_tree_pointer_target(surface_mode, width, height) {
             return;
         }

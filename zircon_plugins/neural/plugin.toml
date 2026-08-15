@@ -1,0 +1,76 @@
+# @generated from Rust PluginDeclaration; do not edit by hand.
+id = "neural"
+version = "0.1.0"
+sdk_api_version = "0.2.0"
+display_name = "Neural"
+category = "rendering"
+description = "Optional neural model asset, inference, and post-process package."
+maturity = "experimental"
+supported_targets = ["client_runtime", "editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
+capabilities = ["runtime.plugin.neural", "runtime.asset.neural_model"]
+default_packaging = ["source_template", "library_embed", "native_dynamic"]
+
+[distribution]
+forms = ["dist"]
+default_packaging = ["native_dynamic"]
+abi_version = 3
+engine_compat = ">=0.1, <0.2"
+dist_crate = "zircon_plugin_neural_dist"
+descriptor_symbol = "zircon_native_plugin_descriptor_v3"
+runtime_entry = "zircon_plugin_neural_runtime_entry_v3"
+
+[[capability_statuses]]
+capability = "runtime.plugin.neural"
+status = "partial"
+
+[[capability_statuses]]
+capability = "runtime.asset.neural_model"
+status = "partial"
+
+[[modules]]
+name = "neural.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_neural_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.neural", "runtime.asset.neural_model"]
+
+[[modules]]
+name = "neural.dist"
+kind = "native"
+crate_name = "zircon_plugin_neural_dist"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.neural", "runtime.asset.neural_model"]
+
+[[modules]]
+name = "neural.editor"
+kind = "editor"
+crate_name = "zircon_plugin_neural_editor"
+target_modes = ["editor_host"]
+capabilities = ["editor.extension.neural_authoring"]
+
+[[optional_features]]
+id = "neural.post_process"
+display_name = "Neural Post Process"
+owner_plugin_id = "neural"
+capabilities = ["runtime.feature.neural.post_process"]
+default_packaging = ["source_template", "library_embed"]
+enabled_by_default = false
+
+[[optional_features.dependencies]]
+plugin_id = "neural"
+capability = "runtime.plugin.neural"
+primary = true
+
+[[optional_features.dependencies]]
+plugin_id = "rendering"
+capability = "runtime.feature.rendering.post_process"
+primary = false
+
+[[optional_features.modules]]
+name = "neural.post_process.runtime"
+description = "Runtime plugin module neural.post_process.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_neural_post_process_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.feature.neural.post_process"]

@@ -13,6 +13,7 @@ mod error;
 mod input;
 mod lifecycle;
 mod navigation;
+mod scene_transition;
 mod script_bindings;
 mod transform;
 mod values;
@@ -28,6 +29,7 @@ use lifecycle::{
     despawn, set_hud_text, set_particle_sprites, set_world_hud_bar, spawn_empty, spawn_model,
 };
 use navigation::{nav_move_towards_entity, nav_next_point_json};
+use scene_transition::request_scene_transition;
 use transform::{
     camera_follow, face_direction, follow_position, move_towards_entity, position_axis,
     position_json, set_position, set_position_json, set_scale, translate, translate_json,
@@ -47,6 +49,7 @@ pub fn register_gameplay_host_module(
         .with_capability("gameplay.input")
         .with_capability("gameplay.entity")
         .with_capability("gameplay.navigation")
+        .with_capability("gameplay.scene_transition")
         .with_function(function("delta_seconds", 0, 0, ScriptHostValueKind::Float))
         .with_function(
             function("entity", 0, 0, ScriptHostValueKind::Int)
@@ -56,6 +59,11 @@ pub fn register_gameplay_host_module(
             function("key_pressed", 1, 1, ScriptHostValueKind::Bool)
                 .with_parameter(string_parameter("key"))
                 .with_required_capability("gameplay.input"),
+        )
+        .with_function(
+            function("request_scene_transition", 1, 1, ScriptHostValueKind::Int)
+                .with_parameter(string_parameter("scene_uri"))
+                .with_required_capability("gameplay.scene_transition"),
         )
         .with_function(
             function("position_json", 1, 1, ScriptHostValueKind::String)
@@ -317,6 +325,7 @@ pub fn register_gameplay_host_module(
                 Ok(ScriptHostValue::Int(context.entity as i64))
             }),
             HostExportFunction::new("key_pressed", key_pressed),
+            HostExportFunction::new("request_scene_transition", request_scene_transition),
             HostExportFunction::new("position_json", position_json),
             HostExportFunction::new("position_x", |context| position_axis(context, 0)),
             HostExportFunction::new("position_y", |context| position_axis(context, 1)),

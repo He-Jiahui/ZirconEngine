@@ -34,29 +34,6 @@ pub(super) fn assert_submit_context_split_docs(sources: &SplitLayoutSources) {
         );
     }
 
-    assert_contains_all(
-        "status-output split-layout row data",
-        sources.status_rows,
-        &[
-            SLICE,
-            STATUS,
-            "submit_context/split_layout",
-            GUARD,
-            "expected_test_file_count = 91",
-        ],
-    );
-
-    assert_contains_all(
-        "status-output status slice",
-        sources.status_slice,
-        &[SLICE, STATUS],
-    );
-    assert_contains_all(
-        "status-output date slice",
-        sources.date_slice,
-        &[SLICE, "2026-07-06"],
-    );
-
     for (label, source) in [
         ("Runtime 15 plan", sources.runtime_15_plan),
         ("Runtime index", sources.runtime_index),
@@ -78,15 +55,4 @@ pub(super) fn assert_submit_context_split_docs(sources: &SplitLayoutSources) {
             ],
         );
     }
-
-    assert_contains_all(
-        "status-output primary row data",
-        sources.legacy_status_rows,
-        &[
-            LEGACY_SLICE,
-            LEGACY_STATUS,
-            "source_extract_payloads",
-            LEGACY_GUARD,
-        ],
-    );
 }

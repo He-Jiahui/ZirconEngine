@@ -84,8 +84,11 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
     let action_id = read_crate_file("src/tauri_app/action_id.rs");
     let action_request = read_crate_file("src/tauri_app/action_request.rs");
     let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
+    let runtime_state_tests = read_crate_file("src/tauri_app/runtime_state/tests.rs");
     let action_tasks = read_crate_file("src/tauri_app/runtime_state/action_tasks.rs");
     let project_actions = read_crate_file("src/tauri_app/runtime_state/project_actions.rs");
+    let project_action_tests =
+        read_crate_file("src/tauri_app/runtime_state/project_actions/tests.rs");
     let build_actions = read_crate_file("src/tauri_app/runtime_state/build_actions.rs");
     let editor_launch_actions =
         read_crate_file("src/tauri_app/runtime_state/editor_launch_actions.rs");
@@ -134,7 +137,6 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "pub history_id: Option<String>",
             "pub settings: Option<HubSettingsPayload>",
             "pub(crate) fn action(&self) -> Result<HubActionId, HubError>",
-            "pub(crate) fn parse(&self) -> Result<HubAction, HubError>",
             "pub(in crate::tauri_app) fn parse_as(",
             "pub(crate) trait ValidatePayload",
             "fn parse_payload<T>(action: HubActionId, payload: Option<&Value>) -> Result<T, HubError>",
@@ -211,19 +213,27 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "HubActionId::OpenEditor,",
             "self.open_selected_project_or_editor()?",
             "Ok(self.view_model())",
-            "fn persist(&mut self, last_project_path: Option<&Path>) -> Result<(), HubError>",
+            "fn persist(&mut self) -> Result<(), HubError>",
             "config.runtime = self.runtime_state_for_config();",
-            "fn persist_unchecked(&self, last_project_path: Option<&Path>) -> Result<(), HubError>",
-            "save_editor_recent_projects_with_last_project(",
+            "fn persist_unchecked(&mut self) -> Result<(), HubError>",
+            "reconcile_shared_recent_projects(",
+            "shared_recent_projects_snapshot",
+            "fn refresh_shared_recent_projects_on_focus(&mut self) -> Result<bool, HubError>",
             "fn runtime_state_for_config(&self) -> HubRuntimeState",
             "self.register_source_engine_from_settings()",
             "validate_settings_for_save(&settings)",
             "self.refresh_source_scoped_views()?;",
-            "save_settings_refreshes_source_scoped_catalogs_in_returned_view_model",
-            "apply_action_records_payload_validation_failure_as_recoverable_status",
             "const VISUAL_TASK_STATE_ENV: &str = \"ZIRCON_HUB_VISUAL_TASK_STATE\";",
             "fn apply_visual_task_state_override_from_env(&mut self)",
             "TaskStatus::warning(",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state/tests.rs",
+        &runtime_state_tests,
+        &[
+            "save_settings_refreshes_source_scoped_catalogs_in_returned_view_model",
+            "apply_action_records_payload_validation_failure_as_recoverable_status",
         ],
     );
     assert_contains_all(
@@ -340,8 +350,12 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "import_project_picker_title(text)",
             "fn import_project_picker_title(text: HubTextBundle) -> &'static str",
             "text.pair(\"Import Zircon Project\", \"导入 Zircon 项目\")",
-            "import_project_folder_picker_title_uses_current_language",
         ],
+    );
+    assert_contains_all(
+        "runtime_state/project_actions/tests.rs",
+        &project_action_tests,
+        &["import_project_folder_picker_title_uses_current_language"],
     );
     assert_not_contains_any(
         "runtime_state/project_actions.rs",
@@ -363,7 +377,7 @@ fn tauri_runtime_routes_project_workflow_actions_and_persists_state() {
             "TaskStatus::error(\"Open Output failed\"",
             "record.action.id()",
             "open_output_folder_resolves_record_id_before_path_fallback",
-            "open_output_folder_prefers_typed_output_dir_over_legacy_path_payload",
+            "open_output_folder_prefers_typed_output_dir_over_archived_path_payload",
             "open_output_folder_missing_directory_is_recoverable_status",
         ],
     );
@@ -986,19 +1000,28 @@ fn project_workflow_documentation_records_tauri_react_cutover() {
 
 #[test]
 fn hub_build_target_routes_through_tauri_nsis_bundler() {
-    let build_tool = read_repo_file("tools/zircon_build.py");
+    let build_entry = read_repo_file("tools/zircon_build.py");
+    let build_tool = read_repo_file("tools/zircon_build_hub.py");
     let tauri_config = read_crate_file("tauri.conf.json");
     let actionable_doc = read_repo_file("docs/zircon_hub/pages/actionable-pages.md");
 
     assert_contains_all(
         "tools/zircon_build.py",
+        &build_entry,
+        &[
+            "from .zircon_build_hub import build_hub",
+            "build_hub(config)",
+        ],
+    );
+    assert_contains_all(
+        "tools/zircon_build_hub.py",
         &build_tool,
         &[
             "HUB_TAURI_BUNDLE_TARGET = \"nsis\"",
             "HUB_INSTALLERS_DIR_NAME = \"installers\"",
             "run_tauri_build(config, target_dir)",
             "stage_hub_tauri_outputs(config, target_dir)",
-            "def run_tauri_build(config: BuildConfig, target_dir: Path) -> None:",
+            "def run_tauri_build(config: object, target_dir: Path) -> None:",
             "str(tauri_cli_path(config))",
             "\"build\",",
             "\"--runner\",",

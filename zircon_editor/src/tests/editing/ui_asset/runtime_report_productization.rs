@@ -77,12 +77,11 @@ fn ui_asset_editor_projects_runtime_report_policy_locale_and_resource_rows() {
             && item.contains("FetchButton/onClick")
             && item.contains("Network")
             && item.contains("blocked")));
-    assert!(pane
-        .unsafe_action_guidance_items
-        .iter()
-        .any(|item| item.contains("FetchButton/saveAsset")
+    assert!(pane.unsafe_action_guidance_items.iter().any(|item| {
+        item.contains("FetchButton/saveAsset")
             && item.contains("editor-only")
-            && item.contains("runtime-default")));
+            && item.contains("runtime-default")
+    }));
     assert!(pane
         .unsafe_action_guidance_items
         .iter()

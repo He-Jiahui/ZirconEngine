@@ -15,7 +15,7 @@ impl NativePluginLoader {
         discovery_authority().discover(root.as_ref())
     }
 
-    /// Schedules a bounded full-root refresh after a watcher/editor manifest notification.
+    /// Schedules a coalesced, path-scoped manifest refresh after a watcher/editor notification.
     pub fn refresh_discovery_manifest(
         &self,
         root: impl AsRef<Path>,
@@ -24,7 +24,7 @@ impl NativePluginLoader {
         discovery_authority().refresh_manifest(root.as_ref(), manifest_path.as_ref())
     }
 
-    /// Schedules a bounded full-root refresh after the caller has applied a filesystem removal.
+    /// Removes a watcher-reported path from the immutable discovery index without rescanning.
     pub fn remove_discovered_path(
         &self,
         root: impl AsRef<Path>,

@@ -3,7 +3,7 @@ use super::palette::workbench_segmented_control_palette_from_host;
 use super::selection::select_workbench_segmented_control_style;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    HostControlMetrics, METRICS, PALETTE, current_host_palette,
+    current_host_palette, HostControlMetrics, METRICS, PALETTE,
 };
 use crate::ui::retained_host::primitives::Color;
 use zircon_runtime_interface::ui::style::{UiPainterResolvedState, UiRgbaColor, UiStyleColor};

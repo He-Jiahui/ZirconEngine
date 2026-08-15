@@ -5,7 +5,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::plugin::native::NativePluginLoader;
+use crate::plugin::NativePluginLoader;
 
 #[path = "native_plugin_loader/real_fixture.rs"]
 mod real_fixture;

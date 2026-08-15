@@ -5,8 +5,8 @@ mod scene_system;
 mod scene_system_metadata;
 mod scheduled_scene_step;
 
-pub use function_scene_system::FunctionSceneSystem;
-pub use into_scene_system::IntoSceneSystem;
+pub use function_scene_system::{FunctionSceneSystem, WorldlessFunctionSceneSystem};
+pub use into_scene_system::{IntoSceneSystem, IntoWorldlessSceneSystem};
 pub use runtime_scene_system::{
     BoxedRuntimeSceneSystem, FunctionRuntimeSceneSystem, RuntimeSceneSystem,
     RuntimeSceneSystemContext,

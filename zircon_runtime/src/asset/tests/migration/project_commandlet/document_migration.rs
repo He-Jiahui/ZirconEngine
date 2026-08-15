@@ -103,11 +103,9 @@ fn resolvable_unsupported_material_version_uses_canonical_validator_without_writ
         "zmaterial v2 document version `1` is unsupported; migrate material files to version = 2"
     ));
     assert_eq!(fs::read_to_string(&material).unwrap(), source);
-    assert!(
-        !material
-            .with_file_name("unsupported.zmaterial.zmeta")
-            .exists()
-    );
+    assert!(!material
+        .with_file_name("unsupported.zmaterial.zmeta")
+        .exists());
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -139,17 +137,13 @@ fn formal_schema_failure_after_reference_rewrite_does_not_write_staged_bytes() {
         report.issues()[0].kind(),
         AssetMigrationIssueKind::InvalidDocument
     );
-    assert!(
-        report.issues()[0]
-            .message()
-            .contains("formal authoring reader rejected document")
-    );
+    assert!(report.issues()[0]
+        .message()
+        .contains("formal authoring reader rejected document"));
     assert_eq!(fs::read_to_string(&model).unwrap(), source);
-    assert!(
-        !model
-            .with_file_name("formal-invalid.model.toml.zmeta")
-            .exists()
-    );
+    assert!(!model
+        .with_file_name("formal-invalid.model.toml.zmeta")
+        .exists());
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -211,17 +205,13 @@ fn missing_material_version_fails_formal_decode_without_writing_staged_reference
         report.issues()[0].kind(),
         AssetMigrationIssueKind::InvalidDocument
     );
-    assert!(
-        report.issues()[0]
-            .message()
-            .contains("formal authoring reader rejected document")
-    );
+    assert!(report.issues()[0]
+        .message()
+        .contains("formal authoring reader rejected document"));
     assert_eq!(fs::read_to_string(&material).unwrap(), source);
-    assert!(
-        !material
-            .with_file_name("missing-version.zmaterial.zmeta")
-            .exists()
-    );
+    assert!(!material
+        .with_file_name("missing-version.zmaterial.zmeta")
+        .exists());
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -558,11 +548,9 @@ fn retired_meta_toml_and_source_hash_migrate_with_authoring_references_in_one_tr
     assert!(current_text.contains("format_version = 7"));
     assert!(current_text.contains("source_digest = \"legacy-digest\""));
     assert!(!current_text.contains("source_hash"));
-    assert!(
-        fs::read_to_string(&material)
-            .unwrap()
-            .contains("kind = \"project\"")
-    );
+    assert!(fs::read_to_string(&material)
+        .unwrap()
+        .contains("kind = \"project\""));
 
     let second =
         migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
@@ -718,12 +706,10 @@ fn guid_path_repair_is_not_applied_when_another_document_is_fully_dangling() {
             .unwrap();
 
     assert!(!report.succeeded());
-    assert!(
-        report
-            .issues()
-            .iter()
-            .any(|issue| issue.kind() == AssetMigrationIssueKind::DanglingReference)
-    );
+    assert!(report
+        .issues()
+        .iter()
+        .any(|issue| issue.kind() == AssetMigrationIssueKind::DanglingReference));
     assert_eq!(
         fs::read_to_string(scenes.join("repair.model.toml")).unwrap(),
         missing_path

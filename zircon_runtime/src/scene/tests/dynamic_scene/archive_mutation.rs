@@ -269,6 +269,46 @@ fn runtime_session_archive_prunes_old_slots_with_retention_policy() {
 }
 
 #[test]
+fn runtime_session_archive_prune_plan_rejects_a_changed_archive_without_mutation() {
+    let source = World::empty();
+    let mut archive = RuntimeSessionArchive::from_slots(vec![
+        RuntimeSessionSlot::from_world_with_metadata(
+            "older",
+            &source,
+            RuntimeSessionMetadata::default().with_updated_at_unix_millis(10),
+        )
+        .expect("older slot should capture"),
+        RuntimeSessionSlot::from_world_with_metadata(
+            "newer",
+            &source,
+            RuntimeSessionMetadata::default().with_updated_at_unix_millis(20),
+        )
+        .expect("newer slot should capture"),
+    ])
+    .expect("archive should validate");
+
+    let plan = archive
+        .prepare_prune_slots(RuntimeSessionArchiveRetentionPolicy::keep_latest(1))
+        .expect("prune plan should validate the unchanged archive");
+    assert_eq!(plan.report().removed_slot_ids, vec!["older"]);
+
+    archive
+        .touch_slot("newer", 30)
+        .expect("intervening mutation should succeed");
+    let error = plan
+        .commit(&mut archive)
+        .expect_err("stale prune plan must not publish removals");
+    assert!(matches!(
+        error,
+        RuntimeSessionArchiveError::StalePrunePlan { .. }
+    ));
+    assert_eq!(
+        archive.slot_ids().collect::<Vec<_>>(),
+        vec!["newer", "older"]
+    );
+}
+
+#[test]
 fn runtime_session_archive_touches_slot_update_time_without_replacing_metadata() {
     let source = World::empty();
     let mut archive = RuntimeSessionArchive::from_slots(vec![
@@ -316,6 +356,72 @@ fn runtime_session_archive_touches_slot_update_time_without_replacing_metadata()
         missing,
         RuntimeSessionArchiveError::MissingSlot { slot_id } if slot_id == "missing"
     ));
+}
+
+#[test]
+fn runtime_session_archive_updates_tag_indexes_across_single_slot_commits() {
+    let source = World::empty();
+    let mut archive = RuntimeSessionArchive::from_slots(vec![
+        RuntimeSessionSlot::from_world_with_metadata(
+            "alpha",
+            &source,
+            RuntimeSessionMetadata::default()
+                .with_tag("shared")
+                .with_updated_at_unix_millis(10),
+        )
+        .expect("alpha slot should capture"),
+        RuntimeSessionSlot::from_world_with_metadata(
+            "beta",
+            &source,
+            RuntimeSessionMetadata::default()
+                .with_tag("shared")
+                .with_updated_at_unix_millis(20),
+        )
+        .expect("beta slot should capture"),
+    ])
+    .expect("archive should validate");
+
+    archive
+        .update_slot_metadata(
+            "alpha",
+            RuntimeSessionMetadata::default()
+                .with_tag("featured")
+                .with_updated_at_unix_millis(30),
+        )
+        .expect("metadata update should retain canonical indexes");
+    assert_eq!(
+        archive
+            .latest_updated_slot_id_with_tag("shared")
+            .expect("shared lookup should validate"),
+        Some("beta".to_string())
+    );
+    assert_eq!(
+        archive
+            .latest_updated_slot_id_with_tag("featured")
+            .expect("featured lookup should validate"),
+        Some("alpha".to_string())
+    );
+
+    archive
+        .rename_slot("alpha", "gamma")
+        .expect("renaming should preserve tag indexes");
+    assert_eq!(
+        archive
+            .latest_updated_slot_id_with_tag("featured")
+            .expect("renamed tag lookup should validate"),
+        Some("gamma".to_string())
+    );
+
+    let removed = archive
+        .remove_slot("beta")
+        .expect("beta should remove through its indexed row");
+    assert_eq!(removed.slot_id, "beta");
+    assert_eq!(
+        archive
+            .latest_updated_slot_id_with_tag("shared")
+            .expect("removed tag lookup should validate"),
+        None
+    );
 }
 
 #[test]
@@ -372,5 +478,98 @@ fn runtime_session_archive_keeps_slot_mutation_surface_guarded() {
         !source.contains("pub fn slot_mut("),
         "direct mutable slot access would bypass archive sorting and metadata normalization"
     );
-    assert!(source.contains("fn slot_mut("));
+    assert!(
+        !source.contains("slot_mut("),
+        "single-slot mutation must stay behind the archive's indexed commit boundary"
+    );
+
+    let archive_source = include_str!("../../dynamic_scene/session/archive.rs");
+    assert!(
+        !archive_source.contains("impl DerefMut for RuntimeSessionArchive"),
+        "DerefMut would expose the authoritative slot Vec and let callers bypass its indexes"
+    );
+    assert!(
+        archive_source.contains("fn payload_mut(&mut self) -> &mut RuntimeSessionArchivePayload"),
+        "archive writes must advance their revision through one private payload owner"
+    );
+}
+
+#[test]
+fn runtime_session_archive_single_slot_commits_do_not_rebuild_every_index() {
+    let source = concat!(
+        include_str!("../../dynamic_scene/session/slot_mutation/metadata/commit.rs"),
+        include_str!("../../dynamic_scene/session/slot_mutation/touch/commit.rs"),
+        include_str!("../../dynamic_scene/session/slot_mutation/remove/commit.rs"),
+    );
+
+    assert!(
+        !source.contains("rebuild_slot_indexes"),
+        "single-slot commits must update the archive's canonical indexes in place"
+    );
+    assert!(
+        !source.contains("slot_mut("),
+        "single-slot commits must not expose a mutable slot before its indexes update"
+    );
+    assert!(source.contains("replace_slot_metadata"));
+    assert!(source.contains("remove_indexed_slot"));
+
+    let archive_source = include_str!("../../dynamic_scene/session/archive.rs");
+    let upsert_start = archive_source
+        .find("fn commit_slot_upsert")
+        .expect("archive should keep the single-slot upsert owner");
+    let upsert_end = archive_source[upsert_start..]
+        .find("fn commit_slot_rename")
+        .expect("archive should keep the single-slot rename owner");
+    let upsert_source = &archive_source[upsert_start..upsert_start + upsert_end];
+    assert!(
+        !upsert_source.contains("rebuild_slot_indexes"),
+        "single-slot upsert must preserve indexes incrementally"
+    );
+}
+
+#[test]
+fn runtime_session_archive_retention_consumes_its_update_index() {
+    let source = include_str!("../../dynamic_scene/session/retention/prune/planning.rs");
+    let commit_source = concat!(
+        include_str!("../../dynamic_scene/session/retention/prune/global/commit.rs"),
+        include_str!("../../dynamic_scene/session/retention/prune/tag/commit.rs"),
+    );
+
+    assert!(source.contains("indexed_slots_by_update().rev()"));
+    assert!(source.contains("pub struct RuntimeSessionArchivePrunePlan"));
+    assert!(source.contains("RuntimeSessionArchiveError::StalePrunePlan"));
+    assert!(commit_source.contains("prepare_prune_slots"));
+    assert!(
+        !commit_source.contains("preview_matching"),
+        "prune commits must consume a prepared plan rather than replay preview work"
+    );
+    assert!(
+        !source.contains("candidates.sort_by"),
+        "retention preview must not rebuild an update-ordered candidate list"
+    );
+    assert!(
+        !source.contains("slot_ids.sort()"),
+        "retention preview must consume the archive's canonical slot-id order"
+    );
+
+    let archive_source = include_str!("../../dynamic_scene/session/archive.rs");
+    let batch_start = archive_source
+        .find("fn commit_staged_slot_rows")
+        .expect("archive should keep the staged batch owner");
+    let batch_end = archive_source[batch_start..]
+        .find("fn commit_slot_upsert")
+        .expect("archive should keep the single-slot upsert owner");
+    let batch_source = &archive_source[batch_start..batch_start + batch_end];
+    assert!(
+        batch_source.contains("payload.remove_slot(slot_index)"),
+        "batch removal must repair only the affected dense row"
+    );
+    assert!(
+        !batch_source.contains("rebuild_slot_indexes"),
+        "batch publication must preserve the primary and secondary indexes incrementally"
+    );
+    assert!(
+        !batch_source.contains("sort_by"),
+        "batch publication must not restore physical row sorting"
+    );
 }

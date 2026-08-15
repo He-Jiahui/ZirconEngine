@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use zircon_runtime_interface::export::ExportStage;
 
 use super::output_tail::push_bounded_output_line;
@@ -34,8 +36,8 @@ pub struct ExportWizardJobSnapshot {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExportWizardStageOutputBuffer {
     pub stage: ExportStage,
-    pub stdout_lines: Vec<String>,
-    pub stderr_lines: Vec<String>,
+    pub stdout_lines: VecDeque<String>,
+    pub stderr_lines: VecDeque<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -208,8 +210,8 @@ impl ExportWizardJobSnapshot {
         }
         self.live_stage_outputs.push(ExportWizardStageOutputBuffer {
             stage,
-            stdout_lines: Vec::new(),
-            stderr_lines: Vec::new(),
+            stdout_lines: VecDeque::new(),
+            stderr_lines: VecDeque::new(),
         });
         self.live_stage_outputs
             .last_mut()

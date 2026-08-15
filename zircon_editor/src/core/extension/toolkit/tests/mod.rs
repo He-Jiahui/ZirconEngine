@@ -7,8 +7,8 @@ use crate::core::editing::engine::HistoryContextId;
 use crate::core::editor_message::DocumentId;
 
 use super::{
-    DocumentToolkit, DocumentToolkitDescriptor, SaveCtx, ToolkitInstanceId, ToolkitLayout,
-    ToolkitSaveFailure,
+    DocumentAutosavePayload, DocumentToolkit, DocumentToolkitDescriptor, SaveCtx,
+    ToolkitInstanceId, ToolkitLayout, ToolkitSaveFailure,
 };
 
 struct FixtureToolkit {
@@ -46,6 +46,14 @@ impl DocumentToolkit<()> for FixtureToolkit {
 
     fn save(&self, _host: &(), context: &mut SaveCtx) -> Result<(), ToolkitSaveFailure> {
         (self.save)(context)
+    }
+
+    fn autosave_source_path(&self, _host: &()) -> Result<std::path::PathBuf, ToolkitSaveFailure> {
+        Ok("fixture.zdoc".into())
+    }
+
+    fn capture_autosave(&self, _host: &()) -> Result<DocumentAutosavePayload, ToolkitSaveFailure> {
+        Ok(DocumentAutosavePayload::new("fixture.zdoc", Vec::new()))
     }
 }
 

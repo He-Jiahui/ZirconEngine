@@ -2,9 +2,9 @@ use std::collections::BTreeMap;
 
 use zircon_runtime::core::framework::{
     picking::{
-        HitData, HitRecord, PickingDebugFeed, PickingHoverMap, PickingPipelineReport,
-        PointerAction, PointerButton, PointerHits, PointerId, PointerInput, PointerLocation,
-        PointerScrollUnit, hovered_hits_for_pointer, resolve_picking_outputs,
+        hovered_hits_for_pointer, resolve_picking_outputs, HitData, HitRecord, PickingDebugFeed,
+        PickingHoverMap, PickingPipelineReport, PointerAction, PointerButton, PointerHits,
+        PointerId, PointerInput, PointerLocation, PointerScrollUnit,
     },
     render::RenderViewportHandle,
 };

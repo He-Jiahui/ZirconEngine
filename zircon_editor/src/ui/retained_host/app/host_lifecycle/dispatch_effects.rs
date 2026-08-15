@@ -19,19 +19,28 @@ impl RetainedEditorHost {
         if effects.reset_active_layout_preset {
             self.active_layout_preset = None;
         }
-        self.invalidate_host(effects.dirty_domains());
+        let dirty_domains = effects.dirty_domains();
+        if let Some(scope) = effects.shell_content_scope() {
+            self.invalidate_host_for_shell_content(scope, dirty_domains);
+        } else {
+            self.invalidate_host(dirty_domains);
+        }
         self.apply_dispatch_side_effects(&effects);
     }
 
     pub(super) fn apply_viewport_resize_effects_in_active_recompute(
         &mut self,
         result: Result<UiHostEventEffects, String>,
-    ) {
+    ) -> bool {
         match result {
             Ok(effects) => {
-                // The active recompute immediately rebuilds chrome/model after
-                // viewport resize, so only the render-domain part should carry
-                // into the next tick.
+                if !effects.is_viewport_resize_recompute_compatible() {
+                    self.apply_dispatch_effects(effects);
+                    return false;
+                }
+                // The active recompute directly patches the two viewport-size
+                // projections, so only render work remains for the submission
+                // phase later in the current tick.
                 if let Some(name) = effects.active_layout_preset_name.clone() {
                     self.active_layout_preset = Some(name);
                 }
@@ -42,8 +51,12 @@ impl RetainedEditorHost {
                 dirty_domains.remove(HostInvalidationMask::PRESENTATION_DATA);
                 self.invalidate_host(dirty_domains);
                 self.apply_dispatch_side_effects(&effects);
+                true
             }
-            Err(error) => self.set_status_line(error),
+            Err(error) => {
+                self.set_status_line(error);
+                false
+            }
         }
     }
 
@@ -66,7 +79,8 @@ impl RetainedEditorHost {
 fn dispatch_error_toast(error: &str) -> Option<ToastNotification> {
     let id = NotificationId::parse("editor.dispatch.failed").ok()?;
     let source = NotificationSource::builtin("editor.retained_host").ok()?;
-    let message = ToastNotification::bounded_message(error, "The editor command could not complete.");
+    let message =
+        ToastNotification::bounded_message(error, "The editor command could not complete.");
     ToastNotification::new(
         id,
         source,

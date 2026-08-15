@@ -51,6 +51,8 @@ pub enum EditorError {
     },
     #[error("{0}")]
     Project(String),
+    #[error("Hub focus was forwarded to active editor process {process_id}")]
+    HubFocusForwarded { process_id: u32 },
     #[error("project authority failed: {source}")]
     ProjectAuthority {
         #[from]
@@ -91,6 +93,15 @@ pub enum EditorError {
     },
 }
 
+impl EditorError {
+    pub(crate) const fn hub_focus_forwarded_process_id(&self) -> Option<u32> {
+        match self {
+            Self::HubFocusForwarded { process_id } => Some(*process_id),
+            _ => None,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::error::Error;
@@ -111,5 +122,16 @@ mod tests {
         assert!(uri_error
             .source()
             .is_some_and(|source| source.downcast_ref::<ResourceLocatorError>().is_some()));
+    }
+
+    #[test]
+    fn hub_focus_forwarding_exposes_the_existing_editor_process_id() {
+        let error = EditorError::HubFocusForwarded { process_id: 913 };
+
+        assert_eq!(error.hub_focus_forwarded_process_id(), Some(913));
+        assert_eq!(
+            EditorError::Project("other".to_string()).hub_focus_forwarded_process_id(),
+            None
+        );
     }
 }

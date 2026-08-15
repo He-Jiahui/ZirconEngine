@@ -3,11 +3,11 @@ use super::support::*;
 #[test]
 fn dynamic_api_export_returns_versioned_function_table() {
     let host = ZrHostApiV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
-    let api = unsafe { zircon_runtime_get_api_v4(&host) };
+    let api = unsafe { zircon_runtime_get_api_v6(&host) };
 
     assert!(!api.is_null());
     let api = unsafe { &*api };
-    assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V4);
+    assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V6);
     assert!(api.create_session.is_some());
     assert!(api.destroy_session.is_some());
     assert!(api.handle_event.is_some());
@@ -25,23 +25,30 @@ fn dynamic_api_export_returns_versioned_function_table() {
     assert!(api.submit_operation.is_some());
     assert!(api.poll_operation.is_some());
     assert!(api.harvest_operation.is_some());
+    assert!(api.query_world.is_some());
+    assert!(api.watch_world.is_some());
+    assert!(api.unwatch_world.is_some());
+    assert!(api.drain_world_invalidations.is_some());
 }
 
 #[test]
-fn dynamic_api_exports_only_the_v3_runtime_table() {
+fn dynamic_api_exports_only_the_v6_runtime_table() {
     let source = include_str!("../exports.rs");
 
     assert!(!source.contains("ZrRuntimeApiV1"));
     assert!(!source.contains("zircon_runtime_get_api_v1"));
     assert!(!source.contains("ZrRuntimeApiV2"));
     assert!(!source.contains("zircon_runtime_get_api_v2"));
-    assert!(source.contains("zircon_runtime_get_api_v4"));
+    assert!(!source.contains("ZrRuntimeApiV4"));
+    assert!(!source.contains("zircon_runtime_get_api_v4"));
+    assert!(source.contains("ZrRuntimeApiV6"));
+    assert!(source.contains("zircon_runtime_get_api_v6"));
 }
 
 #[test]
 fn dynamic_api_rejects_unsupported_host_version() {
     let host = ZrHostApiV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1 + 1);
-    let api = unsafe { zircon_runtime_get_api_v4(&host) };
+    let api = unsafe { zircon_runtime_get_api_v6(&host) };
 
     assert!(api.is_null());
 }
@@ -56,7 +63,7 @@ fn runtime_api_table_entries_are_panic_wrapped_at_ffi_boundary() {
     assert!(source.contains("catch_unwind(AssertUnwindSafe"));
     assert!(source.contains("ZrStatusCode::Panic"));
     assert!(source.contains("runtime dynamic API panic caught at FFI boundary"));
-    assert!(source.contains("zircon_runtime_get_api_v4_inner"));
+    assert!(source.contains("zircon_runtime_get_api_v6_inner"));
     assert!(source.contains("Err(_) => core::ptr::null()"));
     assert!(!session_source.contains("pub(super) unsafe extern \"C\" fn"));
     assert!(!operation_source.contains("pub(crate) unsafe extern \"C\" fn"));
@@ -82,6 +89,10 @@ fn runtime_api_table_entries_are_panic_wrapped_at_ffi_boundary() {
         ("submit_operation", "submit_operation_ffi"),
         ("poll_operation", "poll_operation_ffi"),
         ("harvest_operation", "harvest_operation_ffi"),
+        ("query_world", "query_world_ffi"),
+        ("watch_world", "watch_world_ffi"),
+        ("unwatch_world", "unwatch_world_ffi"),
+        ("drain_world_invalidations", "drain_world_invalidations_ffi"),
     ] {
         assert!(source.contains(&format!("Some({wrapper})")));
         assert!(source.contains(&format!("fn {wrapper}(")));

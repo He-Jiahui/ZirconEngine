@@ -28,6 +28,7 @@ pub(crate) use report::{
 };
 pub(crate) use retry::{
     glyph_atlas_bitmap_retry_frame_submission_plan,
+    glyph_atlas_bitmap_retry_frame_submission_plan_with_atlas_backpressure_and_padding,
     glyph_atlas_bitmap_retry_frame_submission_plan_with_backpressure,
     glyph_atlas_bitmap_retry_frame_submission_plan_with_backpressure_and_padding,
     glyph_atlas_bitmap_retry_frame_submission_plan_with_padding,

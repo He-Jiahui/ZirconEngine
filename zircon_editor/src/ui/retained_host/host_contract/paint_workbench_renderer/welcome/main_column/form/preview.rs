@@ -5,7 +5,7 @@ use super::super::super::super::super::paint_primitives::{
 };
 use super::super::super::super::super::paint_text::draw_text_with_size_and_style;
 use super::super::super::super::super::paint_theme::current_host_metrics;
-use super::super::super::super::{SEPARATOR, first_non_empty};
+use super::super::super::super::{first_non_empty, SEPARATOR};
 use super::super::super::style::{WELCOME_MUTED_TEXT, WELCOME_SURFACE, WELCOME_TEXT};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 

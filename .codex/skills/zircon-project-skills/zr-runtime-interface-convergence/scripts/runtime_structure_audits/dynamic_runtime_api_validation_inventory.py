@@ -52,7 +52,7 @@ BEHAVIOR_TEST_ANCHORS = (
     ),
     (
         "zircon_app/src/entry/runtime_library/tests.rs",
-        "runtime_api_pointer_rejects_missing_required_functions_before_session_creation",
+        "runtime_api_pointer_names_every_missing_required_function",
     ),
     (
         "zircon_app/src/entry/runtime_library/tests.rs",

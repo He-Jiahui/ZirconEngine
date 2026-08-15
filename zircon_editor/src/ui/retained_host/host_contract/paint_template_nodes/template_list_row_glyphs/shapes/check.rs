@@ -1,6 +1,6 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::segments::{GlyphSegmentSpec, push_segments};
+use super::super::segments::{push_segments, GlyphSegmentSpec};
 
 const CHECK_MARK_SEGMENTS: [GlyphSegmentSpec; 3] = [
     GlyphSegmentSpec::new(2, 7, 3, 2),

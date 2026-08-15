@@ -20,7 +20,7 @@ impl HubRuntimeSession {
         );
         self.project_subpage = ProjectSubpage::NewProject;
         self.pending_delete_project_path = None;
-        self.persist(None)
+        self.persist()
     }
 
     pub(super) fn remember_create_project_payload(&mut self, payload: &CreateProjectActionPayload) {

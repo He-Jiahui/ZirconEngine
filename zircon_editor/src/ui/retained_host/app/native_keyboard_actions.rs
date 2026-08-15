@@ -1,7 +1,7 @@
 use super::*;
-use crate::core::editor_event::EditorEventSource;
+use crate::core::editor_event::{EditorEventSource, EditorViewportEvent};
 use crate::ui::retained_host::event_bridge::apply_record_effects;
-use zircon_runtime_interface::ui::dispatch::UiKeyboardInputEvent;
+use zircon_runtime_interface::ui::dispatch::{UiKeyboardInputEvent, UiKeyboardInputState};
 
 impl RetainedEditorHost {
     pub(super) fn dispatch_unhandled_native_keyboard_input(
@@ -9,6 +9,16 @@ impl RetainedEditorHost {
         keyboard: UiKeyboardInputEvent,
     ) {
         if self.try_begin_hierarchy_rename_from_keyboard(&keyboard) {
+            return;
+        }
+        if is_escape_pressed(&keyboard) {
+            match callback_dispatch::dispatch_viewport_event(
+                &self.runtime,
+                EditorViewportEvent::CancelInteraction,
+            ) {
+                Ok(effects) => self.apply_dispatch_effects(effects),
+                Err(error) => self.set_status_line(error),
+            }
             return;
         }
         match self
@@ -24,4 +34,11 @@ impl RetainedEditorHost {
             Err(error) => self.set_status_line(error),
         }
     }
+}
+
+fn is_escape_pressed(keyboard: &UiKeyboardInputEvent) -> bool {
+    keyboard.state == UiKeyboardInputState::Pressed
+        && (keyboard.logical_key.eq_ignore_ascii_case("escape")
+            || keyboard.logical_key.eq_ignore_ascii_case("esc")
+            || keyboard.key_code == 27)
 }

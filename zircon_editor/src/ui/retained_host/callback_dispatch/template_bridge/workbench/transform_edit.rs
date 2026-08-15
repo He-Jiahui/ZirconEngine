@@ -78,7 +78,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 "entity://selected",
                 [InspectorFieldChange::new(
                     field_id,
-                    UiBindingValue::Float(scalar),
+                    UiBindingValue::Float(f64::from(scalar)),
                 )],
             ),
         )))

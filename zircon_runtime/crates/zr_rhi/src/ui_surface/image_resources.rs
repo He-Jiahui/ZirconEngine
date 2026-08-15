@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, HashMap};
+use std::sync::Arc;
 
 use super::{UiSurfaceCommand, UiSurfaceCommandKind};
 
@@ -9,7 +10,8 @@ pub struct UiSurfaceImageResource {
     pub width: u32,
     pub height: u32,
     pub upload_bytes: u64,
-    pub rgba: Vec<u8>,
+    /// Canonical producer payload in straight-alpha RGBA8 byte order.
+    pub rgba: Arc<[u8]>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -101,7 +103,7 @@ pub(super) fn compact_image_resources(
                 width: payload.width,
                 height: payload.height,
                 upload_bytes: payload.upload_bytes,
-                rgba,
+                rgba: rgba.into(),
             },
         );
     }
@@ -127,7 +129,7 @@ mod tests {
                     width: 2,
                     height: 2,
                     upload_bytes: 16,
-                    rgba: vec![generation as u8; 16],
+                    rgba: vec![generation as u8; 16].into(),
                 },
             );
         }
@@ -164,7 +166,7 @@ mod tests {
             .get("atlas://editor/icons", 23)
             .expect("shared atlas generation is canonical");
         assert_eq!(resource.generation, 23);
-        assert_eq!(resource.rgba, vec![0; 16]);
+        assert_eq!(resource.rgba.as_ref(), &[0; 16]);
         assert!(commands.iter().all(|command| matches!(
             &command.kind,
             UiSurfaceCommandKind::Image { payload } if payload.rgba.is_none()
@@ -198,15 +200,17 @@ mod tests {
             resources
                 .get("atlas://editor/icons", 4)
                 .expect("older generation remains addressable")
-                .rgba,
-            vec![4; 16]
+                .rgba
+                .as_ref(),
+            &[4; 16]
         );
         assert_eq!(
             resources
                 .get("atlas://editor/icons", 5)
                 .expect("newer generation remains addressable")
-                .rgba,
-            vec![5; 16]
+                .rgba
+                .as_ref(),
+            &[5; 16]
         );
         assert!(commands.iter().all(|command| matches!(
             &command.kind,

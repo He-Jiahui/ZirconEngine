@@ -8,13 +8,15 @@ impl HostMenuPointerBridge {
         layout: HostMenuPointerLayout,
         state: HostMenuPointerState,
     ) -> bool {
-        if self.layout == layout && self.state == state {
+        let layout_changed = self.layout != layout;
+        if !layout_changed && self.state == state {
             return false;
         }
 
         self.layout = layout;
         self.state = state;
         self.clamp_menu_bar_scroll_offset();
+        self.refresh_popup_items(layout_changed);
         self.clamp_popup_scroll_offset();
         self.rebuild_surface();
         true

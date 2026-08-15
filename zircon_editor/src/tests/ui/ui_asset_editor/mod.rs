@@ -9,3 +9,5 @@ mod resource_dependency_view;
 mod runtime_previews;
 mod runtime_reports;
 mod support;
+mod visual_artifacts;
+mod workbench_projection_layout;

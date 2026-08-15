@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveArtifact, RuntimeSessionArchiveError,
-    RuntimeSessionArchiveSavePreviewReport, target_path,
+    target_path, RuntimeSessionArchive, RuntimeSessionArchiveArtifact, RuntimeSessionArchiveError,
+    RuntimeSessionArchiveSavePreviewReport,
 };
 
 pub(super) fn preview_save_to_path(

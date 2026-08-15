@@ -13,11 +13,34 @@ impl ScriptBuildRequestId {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct ScriptBuildGeneration(u64);
+
+impl ScriptBuildGeneration {
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+
+    const fn new(value: u64) -> Self {
+        Self(value)
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ScriptBuildTrigger {
     Watch,
     Command,
     Play,
+}
+
+impl ScriptBuildTrigger {
+    const fn precedence(self) -> u8 {
+        match self {
+            Self::Watch => 0,
+            Self::Command => 1,
+            Self::Play => 2,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -30,6 +53,7 @@ pub enum ScriptBuildStep {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ScriptBuildRequest {
     id: ScriptBuildRequestId,
+    generation: ScriptBuildGeneration,
     trigger: ScriptBuildTrigger,
     steps: Vec<ScriptBuildStep>,
     play_after_build: bool,
@@ -42,6 +66,10 @@ impl ScriptBuildRequest {
 
     pub fn trigger(&self) -> ScriptBuildTrigger {
         self.trigger
+    }
+
+    pub fn generation(&self) -> ScriptBuildGeneration {
+        self.generation
     }
 
     pub fn changed_paths(&self) -> &[PathBuf] {
@@ -64,6 +92,7 @@ impl ScriptBuildRequest {
     ) -> Self {
         Self {
             id,
+            generation: ScriptBuildGeneration::new(id.get()),
             trigger,
             steps: vec![
                 ScriptBuildStep::CompileModules(changed_paths),
@@ -81,11 +110,23 @@ impl ScriptBuildRequest {
     pub(super) fn step_count(&self) -> usize {
         self.steps.len()
     }
+
+    pub(super) fn promote_trigger(&mut self, trigger: ScriptBuildTrigger) {
+        if trigger.precedence() > self.trigger.precedence() {
+            self.trigger = trigger;
+        }
+        self.play_after_build |= trigger == ScriptBuildTrigger::Play;
+    }
+
+    pub(super) fn replace_changed_paths(&mut self, changed_paths: Vec<PathBuf>) {
+        self.steps[0] = ScriptBuildStep::CompileModules(changed_paths);
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct ScriptBuildStepDispatch {
     request_id: ScriptBuildRequestId,
+    generation: ScriptBuildGeneration,
     trigger: ScriptBuildTrigger,
     step_index: usize,
     step: ScriptBuildStep,
@@ -99,6 +140,10 @@ impl ScriptBuildStepDispatch {
 
     pub fn trigger(&self) -> ScriptBuildTrigger {
         self.trigger
+    }
+
+    pub fn generation(&self) -> ScriptBuildGeneration {
+        self.generation
     }
 
     pub fn step_index(&self) -> usize {
@@ -116,6 +161,7 @@ impl ScriptBuildStepDispatch {
     pub(super) fn new(request: &ScriptBuildRequest, step_index: usize) -> Self {
         Self {
             request_id: request.id(),
+            generation: request.generation(),
             trigger: request.trigger(),
             step_index,
             step: request
@@ -131,6 +177,7 @@ impl ScriptBuildStepDispatch {
 pub enum ScriptBuildOutcome {
     Succeeded,
     Failed { summary: String },
+    Cancelled { reason: String },
 }
 
 impl ScriptBuildOutcome {
@@ -142,6 +189,7 @@ impl ScriptBuildOutcome {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ScriptBuildCompletion {
     request_id: ScriptBuildRequestId,
+    generation: ScriptBuildGeneration,
     completed_step_index: usize,
     outcome: ScriptBuildOutcome,
     request_completed: bool,
@@ -157,6 +205,10 @@ impl ScriptBuildCompletion {
 
     pub fn outcome(&self) -> &ScriptBuildOutcome {
         &self.outcome
+    }
+
+    pub fn generation(&self) -> ScriptBuildGeneration {
+        self.generation
     }
 
     pub fn completed_step_index(&self) -> usize {
@@ -181,6 +233,7 @@ impl ScriptBuildCompletion {
 
     pub(super) fn new(
         request_id: ScriptBuildRequestId,
+        generation: ScriptBuildGeneration,
         completed_step_index: usize,
         outcome: ScriptBuildOutcome,
         request_completed: bool,
@@ -190,6 +243,7 @@ impl ScriptBuildCompletion {
     ) -> Self {
         Self {
             request_id,
+            generation,
             completed_step_index,
             outcome,
             request_completed,

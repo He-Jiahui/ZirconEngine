@@ -74,7 +74,7 @@ where
             sync_channel::<PipelineCompileRequest<K, R>>(max_in_flight);
         let (completion_sender, completion_receiver) = channel::<PipelineCompileCompletion<K, R>>();
         #[cfg(test)]
-        let completion_observer = Arc::new(Mutex::new(None));
+        let completion_observer = Arc::new(Mutex::new(None::<Sender<()>>));
         #[cfg(test)]
         let worker_completion_observer = Arc::clone(&completion_observer);
         let worker = std::thread::Builder::new()

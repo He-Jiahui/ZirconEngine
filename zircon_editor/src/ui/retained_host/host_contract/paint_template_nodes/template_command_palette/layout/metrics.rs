@@ -1,4 +1,4 @@
-use super::super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
+use super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
 const ROW_DETAIL_LEFT_RATIO: f32 = 0.72;
 const ROW_DETAIL_WIDTH_RATIO: f32 = 0.24;
@@ -33,8 +33,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub empty_text_y: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn command_palette_metrics()
--> WorkbenchCommandPaletteMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn command_palette_metrics(
+) -> WorkbenchCommandPaletteMetrics {
     command_palette_metrics_from_host(current_host_metrics())
 }
 

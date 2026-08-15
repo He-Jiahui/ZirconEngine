@@ -5,6 +5,53 @@ impl HostRedrawRequest {
     pub(crate) fn merge(self, next: Self) -> Self {
         match (self, next) {
             (
+                Self::FrameUpdate { .. },
+                Self::FrameUpdate {
+                    scenario: next_scenario,
+                },
+            ) => Self::FrameUpdate {
+                scenario: next_scenario,
+            },
+            (
+                Self::FrameUpdate { scenario },
+                Self::Full {
+                    frame_update,
+                    scenario: next_scenario,
+                },
+            ) => Self::Full {
+                frame_update: true,
+                scenario: if frame_update {
+                    next_scenario
+                } else {
+                    scenario
+                },
+            },
+            (
+                Self::FrameUpdate { scenario },
+                Self::Region {
+                    frame,
+                    frame_update,
+                    scenario: next_scenario,
+                },
+            ) => Self::Region {
+                frame,
+                frame_update: true,
+                scenario: if frame_update {
+                    next_scenario
+                } else {
+                    scenario
+                },
+            },
+            (Self::Full { .. }, Self::FrameUpdate { scenario }) => Self::Full {
+                frame_update: true,
+                scenario,
+            },
+            (Self::Region { frame, .. }, Self::FrameUpdate { scenario }) => Self::Region {
+                frame,
+                frame_update: true,
+                scenario,
+            },
+            (
                 Self::Full {
                     frame_update,
                     scenario,
@@ -59,6 +106,7 @@ impl HostRedrawRequest {
             },
             (Self::None, next @ Self::Full { .. }) => next,
             (Self::None, next @ Self::Region { .. }) => next,
+            (Self::None, next @ Self::FrameUpdate { .. }) => next,
             (current, Self::None) => current,
         }
     }

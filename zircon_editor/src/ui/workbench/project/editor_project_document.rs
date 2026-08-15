@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use zircon_runtime::asset::{project::ProjectManifest, ProjectInfo};
+use zircon_runtime::asset::{ProjectInfo, project::ProjectManifest};
 use zircon_runtime::scene::Scene;
 
 use crate::core::settings::SettingsProjectLayerLoad;

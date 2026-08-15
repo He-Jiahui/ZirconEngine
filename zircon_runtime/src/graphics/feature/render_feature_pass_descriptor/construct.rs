@@ -10,9 +10,11 @@ use crate::render_graph::{
 
 use crate::graphics::pipeline::RenderPassStage;
 
+use super::super::compute_pass_descriptor::ComputePassDescriptor;
+
 use super::render_feature_pass_descriptor::{
     RenderFeaturePassDescriptor, RenderFeatureResourceAccess, RenderFeatureResourceDescriptor,
-    RenderFeatureResourceKind, RenderFeatureResourceWriteMode,
+    RenderFeatureResourceKind, RenderFeatureResourceVersion, RenderFeatureResourceWriteMode,
 };
 
 impl RenderFeaturePassDescriptor {
@@ -25,6 +27,7 @@ impl RenderFeaturePassDescriptor {
             queue,
             flags: Default::default(),
             compute_workload: None,
+            compute_pass: None,
             resources: Vec::new(),
         }
     }
@@ -41,11 +44,17 @@ impl RenderFeaturePassDescriptor {
 
     pub fn with_compute_workload(mut self, workload: RenderGraphComputeWorkload) -> Self {
         self.compute_workload = Some(workload);
+        self.compute_pass = None;
         self
+    }
+
+    pub fn with_compute_pass(self, compute_pass: ComputePassDescriptor) -> Self {
+        compute_pass.lower_into(self)
     }
 
     pub fn with_compute_dispatch_plan(mut self, plan: &ComputeDispatchPlan) -> Self {
         self.compute_workload = Some(RenderGraphComputeWorkload::from_shader_dispatch(plan));
+        self.compute_pass = None;
         self.push_shader_resource_bindings(&plan.resources);
         self
     }
@@ -63,6 +72,22 @@ impl RenderFeaturePassDescriptor {
             None,
             RenderFeatureResourceWriteMode::Attachment,
             RenderGraphExternalResourceBinding::report_only(),
+        )
+    }
+
+    pub fn read_texture_from(
+        self,
+        name: impl Into<String>,
+        producer_pass_name: impl Into<String>,
+    ) -> Self {
+        self.with_resource_from_producer(
+            name,
+            RenderFeatureResourceKind::Texture,
+            RenderFeatureResourceAccess::Read,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
+            producer_pass_name,
         )
     }
 
@@ -114,6 +139,22 @@ impl RenderFeaturePassDescriptor {
         )
     }
 
+    pub fn read_buffer_from(
+        self,
+        name: impl Into<String>,
+        producer_pass_name: impl Into<String>,
+    ) -> Self {
+        self.with_resource_from_producer(
+            name,
+            RenderFeatureResourceKind::Buffer,
+            RenderFeatureResourceAccess::Read,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
+            producer_pass_name,
+        )
+    }
+
     pub fn write_buffer(self, name: impl Into<String>) -> Self {
         self.with_resource(
             name,
@@ -147,6 +188,22 @@ impl RenderFeaturePassDescriptor {
             None,
             RenderFeatureResourceWriteMode::Attachment,
             RenderGraphExternalResourceBinding::report_only(),
+        )
+    }
+
+    pub fn read_external_from(
+        self,
+        name: impl Into<String>,
+        producer_pass_name: impl Into<String>,
+    ) -> Self {
+        self.with_resource_from_producer(
+            name,
+            RenderFeatureResourceKind::External,
+            RenderFeatureResourceAccess::Read,
+            None,
+            RenderFeatureResourceWriteMode::Attachment,
+            RenderGraphExternalResourceBinding::report_only(),
+            producer_pass_name,
         )
     }
 
@@ -347,10 +404,58 @@ impl RenderFeaturePassDescriptor {
         write_mode: RenderFeatureResourceWriteMode,
         external_binding: RenderGraphExternalResourceBinding,
     ) -> Self {
+        self.with_resource_with_input_version(
+            name,
+            kind,
+            access,
+            attachment_ops,
+            write_mode,
+            external_binding,
+            None,
+        )
+    }
+
+    fn with_resource_from_producer(
+        self,
+        name: impl Into<String>,
+        kind: RenderFeatureResourceKind,
+        access: RenderFeatureResourceAccess,
+        attachment_ops: Option<RenderGraphAttachmentOps>,
+        write_mode: RenderFeatureResourceWriteMode,
+        external_binding: RenderGraphExternalResourceBinding,
+        producer_pass_name: impl Into<String>,
+    ) -> Self {
+        let name = name.into();
+        self.with_resource_with_input_version(
+            name.clone(),
+            kind,
+            access,
+            attachment_ops,
+            write_mode,
+            external_binding,
+            Some(RenderFeatureResourceVersion::new(
+                name,
+                kind,
+                producer_pass_name,
+            )),
+        )
+    }
+
+    fn with_resource_with_input_version(
+        mut self,
+        name: impl Into<String>,
+        kind: RenderFeatureResourceKind,
+        access: RenderFeatureResourceAccess,
+        attachment_ops: Option<RenderGraphAttachmentOps>,
+        write_mode: RenderFeatureResourceWriteMode,
+        external_binding: RenderGraphExternalResourceBinding,
+        input_version: Option<RenderFeatureResourceVersion>,
+    ) -> Self {
         self.resources.push(RenderFeatureResourceDescriptor {
             name: name.into(),
             kind,
             access,
+            input_version,
             minimum_size_bytes: None,
             attachment_ops,
             write_mode,
@@ -371,6 +476,7 @@ impl RenderFeaturePassDescriptor {
             name: name.into(),
             kind,
             access,
+            input_version: None,
             minimum_size_bytes: Some(minimum_size_bytes),
             attachment_ops: None,
             write_mode,
@@ -420,6 +526,7 @@ fn render_feature_resource_for_shader_binding(
         name: binding.name.clone(),
         kind,
         access,
+        input_version: None,
         minimum_size_bytes: None,
         attachment_ops: None,
         write_mode,

@@ -1,11 +1,13 @@
 use crate::core::framework::render::{
-    ComputeDispatchBuilder, ComputeDispatchPlan, ComputeKernelRef, IblBakeArtifactContents,
-    IblBakeArtifactRequest, RenderShaderEntryPointDescriptor, RenderShaderStage,
-    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE, ShaderAssetKind, ShaderResourceAccess,
-    ShaderResourceDescriptor, ShaderResourceKind, source_cubemap_roughness_from_pmrem_mip,
+    source_cubemap_roughness_from_pmrem_mip, ComputeDispatchBuilder, ComputeDispatchPlan,
+    ComputeKernelRef, IblBakeArtifactContents, IblBakeArtifactRequest,
+    RenderShaderEntryPointDescriptor, RenderShaderStage, ShaderAssetKind, ShaderResourceAccess,
+    ShaderResourceDescriptor, ShaderResourceKind, CANONICAL_IBL_BAKE_RECIPE,
+    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
 };
 
 use super::ibl_bake_graph_plan::{
+    ibl_bake_pmrem_dispatch_groups, ibl_bake_terminal_pmrem_average_mip,
     IBL_BAKE_IRRADIANCE_CUBE_PIPELINE_LABEL, IBL_BAKE_IRRADIANCE_CUBE_RESOURCE,
     IBL_BAKE_IRRADIANCE_SH9_PIPELINE_LABEL, IBL_BAKE_IRRADIANCE_SH9_RESOURCE,
     IBL_BAKE_PMREM_PIPELINE_LABEL, IBL_BAKE_PMREM_RESOURCE, IBL_BAKE_SOURCE_CUBEMAP_RESOURCE,
@@ -30,13 +32,11 @@ pub(in crate::graphics::scene::scene_renderer) const IBL_BAKE_IRRADIANCE_CUBE_WG
 
 const IBL_BAKE_WORKGROUP_SIZE: [u32; 3] = [8, 8, 1];
 const IBL_BAKE_CUBE_FACE_COUNT: u32 = 6;
-const IBL_BAKE_SHADER_CONTENT_HASH_V2: u64 = 0x1b1_ba6e_0007;
-const IBL_BAKE_PMREM_NORMAL_SAMPLE_COUNT: u32 = 64;
-const IBL_BAKE_PMREM_FAST_SAMPLE_COUNT: u32 = 32;
-const IBL_BAKE_PMREM_ROUGH_SAMPLE_COUNT: u32 = 128;
-const IBL_BAKE_IRRADIANCE_SAMPLE_COUNT: u32 = 64;
-const IBL_BAKE_PMREM_LOW_ROUGHNESS_THRESHOLD: f32 = 0.1;
-const IBL_BAKE_PMREM_HIGH_ROUGHNESS_THRESHOLD: f32 = 0.75;
+const IBL_BAKE_PMREM_SHADER_CONTENT_HASH: u64 = shader_source_content_hash(IBL_BAKE_PMREM_WGSL);
+const IBL_BAKE_IRRADIANCE_SH9_SHADER_CONTENT_HASH: u64 =
+    shader_source_content_hash(IBL_BAKE_IRRADIANCE_SH9_WGSL);
+const IBL_BAKE_IRRADIANCE_CUBE_SHADER_CONTENT_HASH: u64 =
+    shader_source_content_hash(IBL_BAKE_IRRADIANCE_CUBE_WGSL);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::graphics::scene::scene_renderer) enum IblBakeComputeKernelKind {
@@ -80,20 +80,37 @@ pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_pmrem_kernel_plan(
     let roughness = pmrem_roughness_for_mip(request.pmrem_mip_count(), mip_level);
     let sample_count = pmrem_sample_count(roughness, mip_level);
     let mip_size = pmrem_mip_size(request.pmrem_face_size(), mip_level);
+    let write_terminal_average_to_all_faces = ibl_bake_terminal_pmrem_average_mip(
+        request.pmrem_face_size(),
+        request.pmrem_mip_count(),
+        mip_level,
+    );
     let builder = ComputeDispatchBuilder::new(kernel_ref(IBL_BAKE_PMREM_SHADER))
         .with_pipeline_label(IBL_BAKE_PMREM_PIPELINE_LABEL)
         .with_workgroup_size(IBL_BAKE_WORKGROUP_SIZE)
-        .with_content_hash(IBL_BAKE_SHADER_CONTENT_HASH_V2)
+        .with_content_hash(IBL_BAKE_PMREM_SHADER_CONTENT_HASH)
         .set_u32("face_size", request.pmrem_face_size())
         .set_u32("mip_face_size", mip_size)
         .set_u32("mip_level", mip_level)
         .set_u32("mip_count", request.pmrem_mip_count())
         .set_u32("sample_count", sample_count)
         .set_f32("roughness", roughness)
+        .set_f32(
+            "write_terminal_average_to_all_faces",
+            if write_terminal_average_to_all_faces {
+                1.0
+            } else {
+                0.0
+            },
+        )
         .bind_texture(IBL_BAKE_SOURCE_CUBEMAP_RESOURCE)
         .bind_sampler(IBL_BAKE_SOURCE_SAMPLER_RESOURCE)
         .bind_storage_texture_write(IBL_BAKE_PMREM_RESOURCE)
-        .dispatch_groups(pmrem_dispatch_groups(request.pmrem_face_size(), mip_level));
+        .dispatch_groups(ibl_bake_pmrem_dispatch_groups(
+            request.pmrem_face_size(),
+            request.pmrem_mip_count(),
+            mip_level,
+        ));
 
     IblBakeComputeKernelPlan {
         kind: IblBakeComputeKernelKind::Pmrem { mip_level },
@@ -115,15 +132,12 @@ pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_irradiance_sh9_kernel
     let builder = ComputeDispatchBuilder::new(kernel_ref(IBL_BAKE_IRRADIANCE_SH9_SHADER))
         .with_pipeline_label(IBL_BAKE_IRRADIANCE_SH9_PIPELINE_LABEL)
         .with_workgroup_size(IBL_BAKE_WORKGROUP_SIZE)
-        .with_content_hash(IBL_BAKE_SHADER_CONTENT_HASH_V2)
+        .with_content_hash(IBL_BAKE_IRRADIANCE_SH9_SHADER_CONTENT_HASH)
         .set_u32("source_face_size", request.source_face_size())
         .set_u32("sample_face_size", SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE)
         .set_f32(
             "source_lod",
-            source_lod_for_sample_face_size(
-                request.source_face_size(),
-                SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
-            ),
+            canonical_diffuse_source_mip_level(request) as f32,
         )
         .bind_texture(IBL_BAKE_SOURCE_CUBEMAP_RESOURCE)
         .bind_sampler(IBL_BAKE_SOURCE_SAMPLER_RESOURCE)
@@ -150,13 +164,20 @@ pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_irradiance_cube_kerne
     let builder = ComputeDispatchBuilder::new(kernel_ref(IBL_BAKE_IRRADIANCE_CUBE_SHADER))
         .with_pipeline_label(IBL_BAKE_IRRADIANCE_CUBE_PIPELINE_LABEL)
         .with_workgroup_size(IBL_BAKE_WORKGROUP_SIZE)
-        .with_content_hash(IBL_BAKE_SHADER_CONTENT_HASH_V2)
+        .with_content_hash(IBL_BAKE_IRRADIANCE_CUBE_SHADER_CONTENT_HASH)
         .set_u32("source_face_size", request.source_face_size())
         .set_u32(
             "irradiance_face_size",
             SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
         )
-        .set_u32("sample_count", IBL_BAKE_IRRADIANCE_SAMPLE_COUNT)
+        .set_u32(
+            "sample_count",
+            CANONICAL_IBL_BAKE_RECIPE.runtime_diffuse_sample_count(),
+        )
+        .set_u32(
+            "source_mip_level",
+            canonical_diffuse_source_mip_level(request),
+        )
         .bind_texture(IBL_BAKE_SOURCE_CUBEMAP_RESOURCE)
         .bind_sampler(IBL_BAKE_SOURCE_SAMPLER_RESOURCE)
         .bind_storage_texture_write(IBL_BAKE_IRRADIANCE_CUBE_RESOURCE)
@@ -244,15 +265,6 @@ fn storage_texture_write_resource(name: &str) -> ShaderResourceDescriptor {
     }
 }
 
-fn pmrem_dispatch_groups(face_size: u32, mip_level: u32) -> [u32; 3] {
-    let mip_size = pmrem_mip_size(face_size, mip_level);
-    [
-        div_ceil(mip_size, IBL_BAKE_WORKGROUP_SIZE[0]),
-        div_ceil(mip_size, IBL_BAKE_WORKGROUP_SIZE[1]),
-        IBL_BAKE_CUBE_FACE_COUNT,
-    ]
-}
-
 fn irradiance_dispatch_groups() -> [u32; 3] {
     [
         div_ceil(
@@ -272,41 +284,48 @@ const fn irradiance_sh9_dispatch_groups() -> [u32; 3] {
 }
 
 fn pmrem_sample_count(roughness: f32, mip_level: u32) -> u32 {
-    if mip_level == 0 || roughness < IBL_BAKE_PMREM_LOW_ROUGHNESS_THRESHOLD {
-        IBL_BAKE_PMREM_FAST_SAMPLE_COUNT
-    } else if roughness >= IBL_BAKE_PMREM_HIGH_ROUGHNESS_THRESHOLD {
-        IBL_BAKE_PMREM_ROUGH_SAMPLE_COUNT
-    } else {
-        IBL_BAKE_PMREM_NORMAL_SAMPLE_COUNT
-    }
+    CANONICAL_IBL_BAKE_RECIPE.pmrem_sample_count(roughness, mip_level)
 }
 
 fn pmrem_roughness_for_mip(mip_count: u32, mip_level: u32) -> f32 {
     source_cubemap_roughness_from_pmrem_mip(mip_level, mip_count)
 }
 
-fn source_lod_for_sample_face_size(source_face_size: u32, sample_face_size: u32) -> f32 {
-    if source_face_size <= sample_face_size || sample_face_size == 0 {
-        0.0
-    } else {
-        ((source_face_size as f32) / (sample_face_size as f32)).log2()
-    }
+fn canonical_diffuse_source_mip_level(request: &IblBakeArtifactRequest) -> u32 {
+    CANONICAL_IBL_BAKE_RECIPE
+        .diffuse_source_mip_level(request.source_face_size(), request.source_mip_count())
 }
 
 const fn pmrem_mip_size(face_size: u32, mip_level: u32) -> u32 {
     let shifted = face_size >> mip_level;
-    if shifted == 0 { 1 } else { shifted }
+    if shifted == 0 {
+        1
+    } else {
+        shifted
+    }
 }
 
 const fn div_ceil(value: u32, divisor: u32) -> u32 {
     value.saturating_add(divisor.saturating_sub(1)) / divisor
 }
 
+const fn shader_source_content_hash(source: &str) -> u64 {
+    let bytes = source.as_bytes();
+    let mut hash = 0xcbf2_9ce4_8422_2325_u64;
+    let mut index = 0;
+    while index < bytes.len() {
+        hash ^= bytes[index] as u64;
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+        index += 1;
+    }
+    hash
+}
+
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        COMPUTE_SHADER_FIRST_RESOURCE_BINDING, ProceduralSkyParams, ShaderDispatchExtent,
-        ShaderParameterValue,
+        ProceduralSkyParams, ShaderDispatchExtent, ShaderParameterValue,
+        COMPUTE_SHADER_FIRST_RESOURCE_BINDING,
     };
 
     use super::*;
@@ -324,6 +343,30 @@ mod tests {
             naga::front::wgsl::parse_str(source)
                 .unwrap_or_else(|error| panic!("{label} WGSL should parse: {error}"));
         }
+    }
+
+    #[test]
+    fn ibl_bake_pipeline_content_hashes_are_derived_from_the_wgsl_bytes() {
+        assert_eq!(
+            IBL_BAKE_PMREM_SHADER_CONTENT_HASH,
+            shader_source_content_hash(IBL_BAKE_PMREM_WGSL)
+        );
+        assert_eq!(
+            IBL_BAKE_IRRADIANCE_SH9_SHADER_CONTENT_HASH,
+            shader_source_content_hash(IBL_BAKE_IRRADIANCE_SH9_WGSL)
+        );
+        assert_eq!(
+            IBL_BAKE_IRRADIANCE_CUBE_SHADER_CONTENT_HASH,
+            shader_source_content_hash(IBL_BAKE_IRRADIANCE_CUBE_WGSL)
+        );
+        assert_ne!(
+            IBL_BAKE_PMREM_SHADER_CONTENT_HASH,
+            IBL_BAKE_IRRADIANCE_SH9_SHADER_CONTENT_HASH
+        );
+        assert_ne!(
+            IBL_BAKE_IRRADIANCE_SH9_SHADER_CONTENT_HASH,
+            IBL_BAKE_IRRADIANCE_CUBE_SHADER_CONTENT_HASH
+        );
     }
 
     #[test]
@@ -370,7 +413,11 @@ mod tests {
         );
         assert_eq!(
             mip7.dispatch.dispatch_extent,
-            ShaderDispatchExtent::Fixed([1, 1, 6])
+            ShaderDispatchExtent::Fixed([1, 1, 1])
+        );
+        assert!(
+            IBL_BAKE_PMREM_WGSL.contains("write_terminal_average_to_all_faces: f32"),
+            "the terminal PMREM command requires the reserved uniform word that writes its six-face average"
         );
         assert_eq!(
             mip7.dispatch.parameters.get("mip_level"),
@@ -379,6 +426,18 @@ mod tests {
         assert_eq!(
             mip7.dispatch.parameters.get("sample_count"),
             Some(&ShaderParameterValue::U32 { value: 128 })
+        );
+        assert_eq!(
+            mip0.dispatch
+                .parameters
+                .get("write_terminal_average_to_all_faces"),
+            Some(&ShaderParameterValue::F32 { value: 0.0 })
+        );
+        assert_eq!(
+            mip7.dispatch
+                .parameters
+                .get("write_terminal_average_to_all_faces"),
+            Some(&ShaderParameterValue::F32 { value: 1.0 })
         );
         assert_eq!(
             mip0.dispatch.resources[0].name,
@@ -419,7 +478,7 @@ mod tests {
             512,
             10,
         )
-        .with_required_contents(IblBakeArtifactContents::PMREM_SH9);
+        .with_required_contents(IblBakeArtifactContents::PMREM_SH9_IEM);
 
         let pmrem = ibl_bake_pmrem_kernel_plan(&request, 0);
         assert_eq!(
@@ -443,6 +502,12 @@ mod tests {
         assert_eq!(
             irradiance.dispatch.parameters.get("source_lod"),
             Some(&ShaderParameterValue::F32 { value: 4.0 })
+        );
+        let irradiance_cube = ibl_bake_irradiance_cube_kernel_plan(&request);
+        assert_eq!(
+            irradiance_cube.dispatch.parameters.get("source_mip_level"),
+            Some(&ShaderParameterValue::U32 { value: 4 }),
+            "GPU IEM must consume the framework's canonical diffuse source mip"
         );
         assert_eq!(pmrem_roughness_for_mip(8, 6), 1.0);
     }
@@ -488,10 +553,7 @@ mod tests {
             "source LOD must use the actual source texture layout, not the fixed PMREM layout"
         );
         assert!(
-            IBL_BAKE_PMREM_WGSL
-                .matches("source_footprint_lod(")
-                .count()
-                == 2,
+            IBL_BAKE_PMREM_WGSL.matches("source_footprint_lod(").count() == 2,
             "destination-footprint source LOD should be defined and used only by mip0 downsampling"
         );
         assert!(
@@ -524,8 +586,9 @@ mod tests {
         assert!(
             IBL_BAKE_PMREM_WGSL.contains(
                 "let source_face_size = f32(max(textureDimensions(source_cubemap).x, 1u));"
-            ) && IBL_BAKE_PMREM_WGSL
-                .contains("let source_max_mip = f32(max(textureNumLevels(source_cubemap), 1u) - 1u);"),
+            ) && IBL_BAKE_PMREM_WGSL.contains(
+                "let source_max_mip = f32(max(textureNumLevels(source_cubemap), 1u) - 1u);"
+            ),
             "PMREM must prepare the actual source layout before sampling"
         );
         assert!(

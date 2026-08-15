@@ -1,4 +1,6 @@
-use crate::core::editor_event::{ConsoleMessageFilter, MenuAction, ViewDescriptorId};
+use crate::core::editor_event::{
+    ConsoleMessageFilter, ConsoleSourceFilter, MenuAction, ViewDescriptorId,
+};
 use crate::core::play::PlayKind;
 
 use super::node_kind_from_id::{node_kind_from_control_id, node_kind_from_id};
@@ -29,6 +31,27 @@ pub(super) fn menu_action_from_id(action_id: &str) -> Option<MenuAction> {
         ),
         "workbench.console.filter.error" | "SetConsoleMessageFilter.Error" => Some(
             MenuAction::SetConsoleMessageFilter(ConsoleMessageFilter::Error),
+        ),
+        "workbench.console.source.all" | "SetConsoleSourceFilter.All" => {
+            Some(MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::All))
+        }
+        "workbench.console.source.editor" | "SetConsoleSourceFilter.Editor" => Some(
+            MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::Editor),
+        ),
+        "workbench.console.source.runtime" | "SetConsoleSourceFilter.Runtime" => Some(
+            MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::Runtime),
+        ),
+        "workbench.console.source.play" | "SetConsoleSourceFilter.Play" => Some(
+            MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::Play),
+        ),
+        "workbench.console.source.plugin" | "SetConsoleSourceFilter.Plugin" => Some(
+            MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::Plugin),
+        ),
+        "workbench.console.source.import" | "SetConsoleSourceFilter.Import" => Some(
+            MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::Import),
+        ),
+        "workbench.console.source.script_build" | "SetConsoleSourceFilter.ScriptBuild" => Some(
+            MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::ScriptBuild),
         ),
         "workbench.play_mode.select.play" => Some(MenuAction::SelectPlayMode(PlayKind::Play)),
         "workbench.play_mode.select.simulate" => {

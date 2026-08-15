@@ -13,4 +13,13 @@ pub(crate) struct HostDrawerHeaderPointerBridge {
     pub(super) surface: UiSurface,
     pub(super) dispatcher: UiPointerDispatcher,
     pub(super) route_intents: EditorRouteIntentMap,
+    #[cfg(test)]
+    pub(super) surface_authority_generation: u64,
+}
+
+impl HostDrawerHeaderPointerBridge {
+    #[cfg(test)]
+    pub(crate) const fn debug_surface_authority_generation(&self) -> u64 {
+        self.surface_authority_generation
+    }
 }

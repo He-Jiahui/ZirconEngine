@@ -237,6 +237,74 @@ props = { text = "Persistent" }
 }
 
 #[test]
+fn ui_v2_file_cache_cached_load_defers_validation_until_explicit_reload() {
+    let temp_dir = v2_cache_temp_dir("cached_load_defers_validation");
+    let assets_root = temp_dir.join("assets");
+    let layout_path = assets_root.join("ui/editor/layout.zui");
+    let style_path = assets_root.join("ui/theme/cached.zui");
+    std::fs::create_dir_all(layout_path.parent().unwrap()).unwrap();
+    std::fs::create_dir_all(style_path.parent().unwrap()).unwrap();
+    std::fs::write(
+        &layout_path,
+        r##"
+[asset]
+kind = "view"
+id = "ui.editor.cached_layout"
+version = 2
+
+[imports]
+styles = ["res://ui/theme/cached.zui"]
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Label"
+control_id = "CachedRoot"
+classes = ["cached-root"]
+props = { text = "Cached" }
+"##,
+    )
+    .unwrap();
+    std::fs::write(&style_path, persistent_cache_style("#123456")).unwrap();
+    let mut cache = UiV2PrototypeStoreFileCache::new();
+
+    let first = cache.load_store([layout_path.clone()]).unwrap();
+    std::fs::write(
+        &style_path,
+        format!(
+            "{}\n# force a different source length\n",
+            persistent_cache_style("#654321")
+        ),
+    )
+    .unwrap();
+
+    let cached = cache.load_store_cached([layout_path.clone()]).unwrap();
+    assert!(cached.cache_hit);
+    assert!(Arc::ptr_eq(&first.compiled, &cached.compiled));
+
+    let reloaded = cache.load_store([layout_path]).unwrap();
+    assert!(!reloaded.cache_hit);
+    assert!(!Arc::ptr_eq(&first.compiled, &reloaded.compiled));
+    let surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+        UiTreeId::new("runtime.ui.v2.cached_load_explicit_reload"),
+        reloaded.root_document.as_ref(),
+        reloaded.compiled.as_ref(),
+    )
+    .unwrap();
+    let root = surface.tree.nodes.values().next().unwrap();
+    assert_eq!(
+        root.template_metadata
+            .as_ref()
+            .and_then(|metadata| metadata.attributes.get("foreground_color"))
+            .and_then(Value::as_str),
+        Some("#654321")
+    );
+
+    let _ = std::fs::remove_dir_all(temp_dir);
+}
+
+#[test]
 fn ui_v2_file_cache_resolves_builtin_asset_id_widget_imports() {
     let temp_dir = v2_cache_temp_dir("asset_id_widget_imports");
     let assets_root = temp_dir.join("assets");

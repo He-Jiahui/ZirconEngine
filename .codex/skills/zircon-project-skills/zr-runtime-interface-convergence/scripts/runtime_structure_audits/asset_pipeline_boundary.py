@@ -76,6 +76,7 @@ def asset_pipeline_boundary_audit(root: Path) -> dict[str, object]:
     facade_manager = root / "zircon_runtime/src/asset/facade/manager.rs"
     resource_record = root / "zircon_runtime_interface/src/resource/resource_record.rs"
     registry_ops = root / "zircon_runtime/src/core/resource/manager/registry_ops.rs"
+    resource_commit = root / "zircon_runtime/src/core/resource/manager/commit.rs"
     resource_sync = (
         root
         / "zircon_runtime/src/asset/pipeline/manager/resource_sync/register_project_resource.rs"
@@ -136,7 +137,7 @@ def asset_pipeline_boundary_audit(root: Path) -> dict[str, object]:
     )
     resource_reload_sources = tuple(
         _read_text(path)
-        for path in (registry_ops, resource_sync)
+        for path in (registry_ops, resource_commit, resource_sync)
         if path.exists()
     )
     worker_sources = tuple(

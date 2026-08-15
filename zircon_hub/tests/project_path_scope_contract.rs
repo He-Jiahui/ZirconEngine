@@ -102,11 +102,11 @@ fn project_modules_expose_one_shared_path_key_and_validation_surface() {
         &create_request,
         &[
             "pub location: PathBuf",
-            "pub fn validate_launch_fields(&self) -> Result<(), &'static str>",
-            "Project location is required",
+            "pub fn validate_launch_fields(&self) -> Result<(), CreateProjectRequestError>",
+            "project location is required",
             "pub fn target_root(&self) -> PathBuf",
             "self.location.join(&self.project_name)",
-            "create_request_trims_name_and_validates_launch_fields",
+            "create_request_preserves_name_and_validates_launch_fields",
         ],
     );
     assert_contains_all(

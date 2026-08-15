@@ -1,13 +1,16 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use super::inbox::{EditorMessageInbox, EditorMessageInboxEnqueue};
-use super::retention::{EditorMessageRetention, editor_message_retention};
+use super::retention::EditorMessageRetention;
 use super::{
     EditorMessage, EditorMessageDelivery, EditorMessageInboxLimits, EditorMessageInboxStats,
     EditorMessageProtocol, EditorMessageRequest, EditorMessageResponse, EditorSubscriberId,
-    EditorTopic, ViewDirtySet,
+    EditorTopic, EditorUiDeltaBarrierKind, EditorUiDeltaBatch, EditorUiDeltaQueue, ViewDirtySet,
 };
+use crate::core::editor_event::{EditorEventSequence, ViewInstanceId};
+use zircon_runtime_interface::ui::event_ui::UiReflectionNodePatch;
 
 #[derive(Clone, Debug)]
 pub(crate) struct EditorMessageBus {
@@ -16,8 +19,9 @@ pub(crate) struct EditorMessageBus {
     inbox_limits: EditorMessageInboxLimits,
     subscribers: BTreeMap<EditorSubscriberId, BTreeSet<EditorTopic>>,
     subscriptions: BTreeMap<EditorTopic, BTreeSet<EditorSubscriberId>>,
-    inboxes: BTreeMap<EditorSubscriberId, EditorMessageInbox>,
+    inboxes: BTreeMap<EditorSubscriberId, Arc<Mutex<EditorMessageInbox>>>,
     dirty: ViewDirtySet,
+    ui_deltas: EditorUiDeltaQueue,
 }
 
 impl Default for EditorMessageBus {
@@ -36,6 +40,7 @@ impl EditorMessageBus {
             subscriptions: BTreeMap::new(),
             inboxes: BTreeMap::new(),
             dirty: ViewDirtySet::default(),
+            ui_deltas: EditorUiDeltaQueue::default(),
         }
     }
 
@@ -52,8 +57,10 @@ impl EditorMessageBus {
                 .insert(subscriber);
         }
         self.subscribers.insert(subscriber, topics);
-        self.inboxes
-            .insert(subscriber, EditorMessageInbox::new(self.inbox_limits));
+        self.inboxes.insert(
+            subscriber,
+            Arc::new(Mutex::new(EditorMessageInbox::new(self.inbox_limits))),
+        );
         Ok(subscriber)
     }
 
@@ -81,37 +88,10 @@ impl EditorMessageBus {
         topic: EditorTopic,
         message: EditorMessage,
     ) -> EditorMessageDispatchReport {
-        let targets = self.targets_for_topic(&topic);
-        if let Some(enqueue) = self.preflight_lossless_delivery(
-            EditorMessageProtocol::Publish,
-            &topic,
-            &message,
-            &targets,
-        ) {
-            return EditorMessageDispatchReport::from_enqueue(
-                EditorMessageProtocol::Publish,
-                topic,
-                enqueue,
-            );
+        match self.prepare_publish(topic, message) {
+            Ok(plan) => self.finish_dispatch(plan),
+            Err(report) => report,
         }
-        let sequence = match self.allocate_delivery_sequence() {
-            Some(sequence) => sequence,
-            None => {
-                return EditorMessageDispatchReport::failed(
-                    EditorMessageProtocol::Publish,
-                    topic,
-                    EditorMessageDispatchError::DeliverySequenceExhausted,
-                );
-            }
-        };
-        let enqueue = self.enqueue_deliveries(
-            sequence,
-            EditorMessageProtocol::Publish,
-            &topic,
-            message,
-            targets,
-        );
-        EditorMessageDispatchReport::from_enqueue(EditorMessageProtocol::Publish, topic, enqueue)
     }
 
     pub fn broadcast(
@@ -119,37 +99,10 @@ impl EditorMessageBus {
         topic: EditorTopic,
         message: EditorMessage,
     ) -> EditorMessageDispatchReport {
-        let targets = self.subscribers.keys().copied().collect::<Vec<_>>();
-        if let Some(enqueue) = self.preflight_lossless_delivery(
-            EditorMessageProtocol::Broadcast,
-            &topic,
-            &message,
-            &targets,
-        ) {
-            return EditorMessageDispatchReport::from_enqueue(
-                EditorMessageProtocol::Broadcast,
-                topic,
-                enqueue,
-            );
+        match self.prepare_broadcast(topic, message) {
+            Ok(plan) => self.finish_dispatch(plan),
+            Err(report) => report,
         }
-        let sequence = match self.allocate_delivery_sequence() {
-            Some(sequence) => sequence,
-            None => {
-                return EditorMessageDispatchReport::failed(
-                    EditorMessageProtocol::Broadcast,
-                    topic,
-                    EditorMessageDispatchError::DeliverySequenceExhausted,
-                );
-            }
-        };
-        let enqueue = self.enqueue_deliveries(
-            sequence,
-            EditorMessageProtocol::Broadcast,
-            &topic,
-            message,
-            targets,
-        );
-        EditorMessageDispatchReport::from_enqueue(EditorMessageProtocol::Broadcast, topic, enqueue)
     }
 
     pub fn request(
@@ -159,34 +112,53 @@ impl EditorMessageBus {
         message: EditorMessage,
         handler: &mut impl EditorRequestHandler,
     ) -> Result<EditorMessageResponse, EditorMessageBusError> {
-        let request = self.begin_request(target, topic, message)?;
+        let (request, plan) = self.prepare_request(target, topic, message)?;
+        let report = self.finish_dispatch(plan);
+        if report.backpressured().contains(&target) {
+            return Err(EditorMessageBusError::Backpressured { subscriber: target });
+        }
         let response = handler.handle_editor_request(&request);
         self.complete_request(target, &response)?;
         Ok(response)
     }
 
-    pub(super) fn begin_request(
+    pub(super) fn prepare_publish(
+        &mut self,
+        topic: EditorTopic,
+        message: EditorMessage,
+    ) -> Result<EditorMessageDispatchPlan, EditorMessageDispatchReport> {
+        let targets = self.targets_for_topic(&topic);
+        self.prepare_dispatch(EditorMessageProtocol::Publish, topic, message, targets)
+    }
+
+    pub(super) fn prepare_broadcast(
+        &mut self,
+        topic: EditorTopic,
+        message: EditorMessage,
+    ) -> Result<EditorMessageDispatchPlan, EditorMessageDispatchReport> {
+        let targets = self.subscribers.keys().copied().collect::<Vec<_>>();
+        self.prepare_dispatch(EditorMessageProtocol::Broadcast, topic, message, targets)
+    }
+
+    pub(super) fn prepare_request(
         &mut self,
         target: EditorSubscriberId,
         topic: EditorTopic,
         message: EditorMessage,
-    ) -> Result<EditorMessageRequest, EditorMessageBusError> {
+    ) -> Result<(EditorMessageRequest, EditorMessageDispatchPlan), EditorMessageBusError> {
         self.ensure_subscriber(target)?;
         let sequence = self
             .allocate_delivery_sequence()
             .ok_or(EditorMessageBusError::DeliverySequenceExhausted)?;
-        let request = EditorMessageRequest::new(target, topic.clone(), message.clone());
-        let enqueue = self.enqueue_deliveries(
-            sequence,
+        let delivery = EditorMessageDelivery::with_sequence(
             EditorMessageProtocol::Request,
-            &topic,
+            topic,
             message,
-            std::iter::once(target),
+            sequence,
         );
-        if enqueue.backpressured.contains(&target) {
-            return Err(EditorMessageBusError::Backpressured { subscriber: target });
-        }
-        Ok(request)
+        let request = EditorMessageRequest::from_delivery(target, delivery.clone());
+        let plan = self.dispatch_plan(delivery, [target]);
+        Ok((request, plan))
     }
 
     pub(super) fn complete_request(
@@ -203,7 +175,7 @@ impl EditorMessageBus {
     pub fn deliveries_for(&self, subscriber: EditorSubscriberId) -> Vec<EditorMessageDelivery> {
         self.inboxes
             .get(&subscriber)
-            .map(EditorMessageInbox::deliveries)
+            .map(|inbox| lock_inbox(inbox).deliveries())
             .unwrap_or_default()
     }
 
@@ -212,15 +184,30 @@ impl EditorMessageBus {
         subscriber: EditorSubscriberId,
     ) -> Vec<EditorMessageDelivery> {
         self.inboxes
-            .get_mut(&subscriber)
-            .map(EditorMessageInbox::drain)
+            .get(&subscriber)
+            .map(|inbox| lock_inbox(inbox).drain())
             .unwrap_or_default()
     }
 
     pub fn inbox_stats(&self, subscriber: EditorSubscriberId) -> Option<EditorMessageInboxStats> {
         self.inboxes
             .get(&subscriber)
-            .map(|inbox| inbox.stats(self.next_delivery_sequence))
+            .map(|inbox| lock_inbox(inbox).stats(self.next_delivery_sequence))
+    }
+
+    pub(super) fn inbox_handle(
+        &self,
+        subscriber: EditorSubscriberId,
+    ) -> Option<Arc<Mutex<EditorMessageInbox>>> {
+        self.inboxes.get(&subscriber).cloned()
+    }
+
+    pub(super) fn inbox_stats_snapshot(
+        &self,
+        subscriber: EditorSubscriberId,
+    ) -> Option<(Arc<Mutex<EditorMessageInbox>>, u64)> {
+        self.inbox_handle(subscriber)
+            .map(|inbox| (inbox, self.next_delivery_sequence))
     }
 
     pub fn mark_message_dirty(&mut self, message: &EditorMessage) {
@@ -237,12 +224,44 @@ impl EditorMessageBus {
         self.dirty.mark(view, mask);
     }
 
+    /// Marks an existing view without cloning its identifier when it is already dirty.
+    pub fn mark_view_dirty_ref(
+        &mut self,
+        view: &crate::core::editor_event::ViewInstanceId,
+        mask: super::EditorViewInvalidationMask,
+    ) {
+        self.dirty.mark_ref(view, mask);
+    }
+
+    /// Merges one projected dirty set while the bus mutex is held only once.
+    pub fn mark_view_dirty_set(&mut self, dirty: &ViewDirtySet) {
+        for (view, mask) in dirty.iter() {
+            self.dirty.mark_ref(view, mask);
+        }
+    }
+
     pub fn dirty_set(&self) -> &ViewDirtySet {
         &self.dirty
     }
 
     pub fn drain_dirty(&mut self) -> ViewDirtySet {
         std::mem::take(&mut self.dirty)
+    }
+
+    pub fn push_editor_ui_patch(&mut self, view: ViewInstanceId, patch: UiReflectionNodePatch) {
+        self.ui_deltas.push_patch(view, patch);
+    }
+
+    pub fn push_editor_ui_barrier(
+        &mut self,
+        kind: EditorUiDeltaBarrierKind,
+        sequence: EditorEventSequence,
+    ) {
+        self.ui_deltas.push_barrier(kind, sequence);
+    }
+
+    pub fn drain_view_updates(&mut self) -> (ViewDirtySet, EditorUiDeltaBatch) {
+        (std::mem::take(&mut self.dirty), self.ui_deltas.drain())
     }
 
     fn allocate_subscriber_id(&mut self) -> Result<EditorSubscriberId, EditorMessageBusError> {
@@ -264,47 +283,45 @@ impl EditorMessageBus {
             .ok_or(EditorMessageBusError::UnknownSubscriber { subscriber })
     }
 
-    fn enqueue_deliveries(
+    fn prepare_dispatch(
         &mut self,
-        sequence: u64,
         protocol: EditorMessageProtocol,
-        topic: &EditorTopic,
+        topic: EditorTopic,
         message: EditorMessage,
+        targets: Vec<EditorSubscriberId>,
+    ) -> Result<EditorMessageDispatchPlan, EditorMessageDispatchReport> {
+        let sequence = self.allocate_delivery_sequence().ok_or_else(|| {
+            EditorMessageDispatchReport::failed(
+                protocol,
+                topic.clone(),
+                EditorMessageDispatchError::DeliverySequenceExhausted,
+            )
+        })?;
+        let delivery = EditorMessageDelivery::with_sequence(protocol, topic, message, sequence);
+        Ok(self.dispatch_plan(delivery, targets))
+    }
+
+    fn dispatch_plan(
+        &self,
+        delivery: EditorMessageDelivery,
         targets: impl IntoIterator<Item = EditorSubscriberId>,
-    ) -> EditorMessageEnqueueReport {
-        let delivery =
-            EditorMessageDelivery::with_sequence(protocol, topic.clone(), message, sequence);
-        let limits = self.inbox_limits;
-        let mut report = EditorMessageEnqueueReport::default();
-        for subscriber in targets {
-            let outcome = self
-                .inboxes
-                .entry(subscriber)
-                .or_insert_with(|| EditorMessageInbox::new(limits))
-                .enqueue(delivery.clone());
-            match outcome {
-                EditorMessageInboxEnqueue::Enqueued => report.delivered.push(subscriber),
-                EditorMessageInboxEnqueue::Coalesced => {
-                    report.delivered.push(subscriber);
-                    report.coalesced.push(subscriber);
-                }
-                EditorMessageInboxEnqueue::CoalescedAfterDrop => {
-                    report.delivered.push(subscriber);
-                    report.coalesced.push(subscriber);
-                    report.dropped.push(subscriber);
-                }
-                EditorMessageInboxEnqueue::EnqueuedAfterDrop => {
-                    report.delivered.push(subscriber);
-                    report.dropped.push(subscriber);
-                }
-                EditorMessageInboxEnqueue::Dropped => report.dropped.push(subscriber),
-                EditorMessageInboxEnqueue::Backpressured => report.backpressured.push(subscriber),
-            }
+    ) -> EditorMessageDispatchPlan {
+        let targets = targets
+            .into_iter()
+            .filter_map(|subscriber| {
+                self.inbox_handle(subscriber)
+                    .map(|inbox| EditorMessageDispatchTarget { subscriber, inbox })
+            })
+            .collect();
+        EditorMessageDispatchPlan { delivery, targets }
+    }
+
+    fn finish_dispatch(&mut self, plan: EditorMessageDispatchPlan) -> EditorMessageDispatchReport {
+        let enqueue = plan.dispatch();
+        if !enqueue.delivered.is_empty() {
+            self.mark_message_dirty(plan.delivery.message());
         }
-        if !report.delivered.is_empty() {
-            self.mark_message_dirty(delivery.message());
-        }
-        report
+        plan.into_report(enqueue)
     }
 
     fn targets_for_topic(&self, topic: &EditorTopic) -> Vec<EditorSubscriberId> {
@@ -312,42 +329,6 @@ impl EditorMessageBus {
             .get(topic)
             .map(|subscribers| subscribers.iter().copied().collect())
             .unwrap_or_default()
-    }
-
-    fn preflight_lossless_delivery(
-        &mut self,
-        protocol: EditorMessageProtocol,
-        topic: &EditorTopic,
-        message: &EditorMessage,
-        targets: &[EditorSubscriberId],
-    ) -> Option<EditorMessageEnqueueReport> {
-        if editor_message_retention(protocol, message) != EditorMessageRetention::Lossless {
-            return None;
-        }
-
-        let retained_bytes =
-            EditorMessageDelivery::new(protocol, topic.clone(), message.clone()).retained_bytes();
-        let backpressured = targets
-            .iter()
-            .copied()
-            .filter(|subscriber| {
-                self.inboxes
-                    .get(subscriber)
-                    .is_some_and(|inbox| !inbox.can_enqueue_lossless(retained_bytes))
-            })
-            .collect::<Vec<_>>();
-        if backpressured.is_empty() {
-            return None;
-        }
-        for subscriber in &backpressured {
-            if let Some(inbox) = self.inboxes.get_mut(subscriber) {
-                inbox.note_lossless_backpressure();
-            }
-        }
-        Some(EditorMessageEnqueueReport {
-            backpressured,
-            ..EditorMessageEnqueueReport::default()
-        })
     }
 
     fn allocate_delivery_sequence(&mut self) -> Option<u64> {
@@ -367,8 +348,111 @@ impl EditorMessageBus {
     }
 }
 
+pub(super) struct EditorMessageDispatchPlan {
+    delivery: EditorMessageDelivery,
+    targets: Vec<EditorMessageDispatchTarget>,
+}
+
+struct EditorMessageDispatchTarget {
+    subscriber: EditorSubscriberId,
+    inbox: Arc<Mutex<EditorMessageInbox>>,
+}
+
+impl EditorMessageDispatchPlan {
+    pub(super) fn dispatch(&self) -> EditorMessageEnqueueReport {
+        match self.delivery.retention() {
+            EditorMessageRetention::Lossless => self.dispatch_lossless(),
+            EditorMessageRetention::Latest(_) | EditorMessageRetention::Bounded => {
+                self.dispatch_best_effort()
+            }
+        }
+    }
+
+    pub(super) fn message(&self) -> &EditorMessage {
+        self.delivery.message()
+    }
+
+    pub(super) fn into_report(
+        &self,
+        enqueue: EditorMessageEnqueueReport,
+    ) -> EditorMessageDispatchReport {
+        EditorMessageDispatchReport::from_enqueue(
+            self.delivery.protocol(),
+            self.delivery.topic().clone(),
+            enqueue,
+        )
+    }
+
+    fn dispatch_lossless(&self) -> EditorMessageEnqueueReport {
+        // Targets originate from BTree indexes, so every fanout acquires inboxes by subscriber ID.
+        // This keeps all-or-nothing lossless admission free from cross-fanout lock inversions.
+        let mut inboxes = self
+            .targets
+            .iter()
+            .map(|target| lock_inbox(target.inbox.as_ref()))
+            .collect::<Vec<_>>();
+        let retained_bytes = self.delivery.retained_bytes();
+        let mut report = EditorMessageEnqueueReport::default();
+        for (target, inbox) in self.targets.iter().zip(inboxes.iter_mut()) {
+            if !inbox.can_enqueue_lossless(retained_bytes) {
+                inbox.note_lossless_backpressure();
+                report.backpressured.push(target.subscriber);
+            }
+        }
+        if !report.backpressured.is_empty() {
+            return report;
+        }
+        for (target, inbox) in self.targets.iter().zip(inboxes.iter_mut()) {
+            let outcome = inbox.enqueue(self.delivery.clone());
+            debug_assert!(matches!(outcome, EditorMessageInboxEnqueue::Enqueued));
+            record_enqueue_outcome(&mut report, target.subscriber, outcome);
+        }
+        report
+    }
+
+    fn dispatch_best_effort(&self) -> EditorMessageEnqueueReport {
+        let mut report = EditorMessageEnqueueReport::default();
+        for target in &self.targets {
+            let outcome = lock_inbox(target.inbox.as_ref()).enqueue(self.delivery.clone());
+            record_enqueue_outcome(&mut report, target.subscriber, outcome);
+        }
+        report
+    }
+}
+
+fn record_enqueue_outcome(
+    report: &mut EditorMessageEnqueueReport,
+    subscriber: EditorSubscriberId,
+    outcome: EditorMessageInboxEnqueue,
+) {
+    match outcome {
+        EditorMessageInboxEnqueue::Enqueued => report.delivered.push(subscriber),
+        EditorMessageInboxEnqueue::Coalesced => {
+            report.delivered.push(subscriber);
+            report.coalesced.push(subscriber);
+        }
+        EditorMessageInboxEnqueue::CoalescedAfterDrop => {
+            report.delivered.push(subscriber);
+            report.coalesced.push(subscriber);
+            report.dropped.push(subscriber);
+        }
+        EditorMessageInboxEnqueue::EnqueuedAfterDrop => {
+            report.delivered.push(subscriber);
+            report.dropped.push(subscriber);
+        }
+        EditorMessageInboxEnqueue::Dropped => report.dropped.push(subscriber),
+        EditorMessageInboxEnqueue::Backpressured => report.backpressured.push(subscriber),
+    }
+}
+
+fn lock_inbox(inbox: &Mutex<EditorMessageInbox>) -> MutexGuard<'_, EditorMessageInbox> {
+    inbox
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 #[derive(Default)]
-struct EditorMessageEnqueueReport {
+pub(super) struct EditorMessageEnqueueReport {
     delivered: Vec<EditorSubscriberId>,
     coalesced: Vec<EditorSubscriberId>,
     dropped: Vec<EditorSubscriberId>,

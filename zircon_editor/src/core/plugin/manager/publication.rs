@@ -5,11 +5,11 @@ use std::sync::Arc;
 
 use super::super::admission::validate_catalog_admission;
 use super::{
-    EditorPluginCatalog, EditorPluginCatalogSnapshot, EditorPluginDiscovery,
-    EditorPluginDiscoveryError, EditorPluginManager, activate_eligible_entries,
-    active_package_retracted, discovery_index, dispatch_hot_reloaded_replacements,
-    entries_for_catalog, replaced_live_package_ids, reset_replaced_active_entries,
-    retire_replaced_active_entries,
+    activate_eligible_entries, active_package_retracted, discovery_index,
+    dispatch_hot_reloaded_replacements, entries_for_catalog, replaced_live_package_ids,
+    reset_replaced_active_entries, retire_replaced_active_entries, EditorPluginCatalog,
+    EditorPluginCatalogSnapshot, EditorPluginDiscovery, EditorPluginDiscoveryError,
+    EditorPluginManager,
 };
 
 impl EditorPluginManager {

@@ -313,10 +313,12 @@ impl WgpuRenderFramework {
                 planar_reflection_updates: Mutex::new(Default::default()),
                 state: Mutex::new(RenderFrameworkState {
                     renderer,
+                    last_retained_scene_color_viewport: None,
                     next_viewport_id: 1,
                     next_history_id: 1,
                     pipelines: create_default_pipelines(&render_features),
                     compiled_graph_cache: CompiledGraphCache::default(),
+                    environment_ibl_hydration_cache: Default::default(),
                     hybrid_gi_runtime_provider: selected_hybrid_gi_runtime_provider,
                     solari_runtime_provider: selected_solari_runtime_provider,
                     virtual_geometry_runtime_provider: selected_virtual_geometry_runtime_provider,

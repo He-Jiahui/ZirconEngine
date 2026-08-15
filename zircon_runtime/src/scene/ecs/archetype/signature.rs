@@ -59,6 +59,17 @@ impl ArchetypeSignature {
         &self.sparse_set_components
     }
 
+    pub(crate) fn estimated_heap_bytes(&self) -> usize {
+        self.table_components
+            .capacity()
+            .saturating_mul(std::mem::size_of::<ComponentId>())
+            .saturating_add(
+                self.sparse_set_components
+                    .capacity()
+                    .saturating_mul(std::mem::size_of::<ComponentId>()),
+            )
+    }
+
     pub(crate) fn ordered_component_ids(&self) -> Vec<ComponentId> {
         let mut component_ids = Vec::with_capacity(
             self.table_components

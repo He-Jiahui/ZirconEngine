@@ -1,7 +1,7 @@
 use super::super::super::super::super::data::FrameRect;
 use super::super::super::super::render_commands::HostPaintCommand;
 use super::super::super::segments::{
-    GlyphSegmentSpec, TREE_OBJECT_GLYPH_GRID_UNITS, push_segments,
+    push_segments, GlyphSegmentSpec, TREE_OBJECT_GLYPH_GRID_UNITS,
 };
 
 const AUDIO_SEGMENTS: [GlyphSegmentSpec; 6] = [

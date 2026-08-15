@@ -1,6 +1,6 @@
 use super::super::super::style_selector::WORKBENCH_POPUP_ROW_DANGER_TEXT as POPUP_ROW_DANGER_TEXT;
 use super::super::super::template_popup_row_adornments::{
-    PopupRowAdornmentKind, menu_item_flag_value,
+    menu_item_flag_value, PopupRowAdornmentKind,
 };
 use super::super::{
     menu_item_has_flag, menu_row_adornment_kind, popup_menu_row_style, popup_row_content_style,

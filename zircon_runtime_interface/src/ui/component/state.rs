@@ -8,6 +8,7 @@ use super::{UiDragSourceMetadata, UiValidationState, UiValue};
 #[serde(default)]
 pub struct UiComponentFlags {
     pub focused: bool,
+    pub focus_visible: bool,
     pub hovered: bool,
     pub pressed: bool,
     pub dragging: bool,

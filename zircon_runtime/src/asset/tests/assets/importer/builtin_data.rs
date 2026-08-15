@@ -72,13 +72,12 @@ fn importer_capability_report_marks_diagnostic_only_backends() {
         }
         other => panic!("expected diagnostic-only capability, got {other:?}"),
     }
-    assert!(
-        importer
-            .capability_reports()
-            .iter()
-            .any(|report| report.descriptor.id == "zircon.builtin.zmesh"
-                && report.status.is_available())
-    );
+    assert!(importer
+        .capability_reports()
+        .iter()
+        .any(
+            |report| report.descriptor.id == "zircon.builtin.zmesh" && report.status.is_available()
+        ));
     let cube_lut_report = importer
         .capability_report_for_source(Path::new("grade.cube"))
         .expect("cube LUT importer report");

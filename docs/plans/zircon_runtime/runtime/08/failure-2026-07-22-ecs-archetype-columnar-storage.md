@@ -58,4 +58,27 @@ archetype membership、component rows和query columns没有统一row authority�
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `前向修复中`; no pass is claimed.
+
+### 2026-08-10 current-source progress
+
+- 已将 dense row 真值下沉到 `ArchetypeRecord -> ArchetypeTable`：实体向量、连续 erased columns 与 ticks 同 row swap-remove，`EntityLocation { archetype_id, table_row }` 负责唯一定位。
+- 结构变化改为显式完整 row delta。目标签名、列集合与新增值具体类型在 source row take 前验证；take 后只执行 source swapped-row 修复、delta 应用、target append 与新 location 发布。
+- typed add/remove、bundle、change detection、fixed snapshot、dynamic-scene affected-row transfer、light/post-process extraction 已开始改走 archetype table；bundle 与 dynamic-scene target commit 均按实体聚合为一次 dense row transition。
+- `ArchetypeTable` 列目录已改为按 `ComponentId` 排序的连续向量，并提供一次编译的 `column_slot`；`QueryState` 已引入 per-archetype plan/binding 结构作为移除 per-entity cache projection 的前置边界。
+- Windows managed compile 已形成 source-bound durable receipt：ticket `fc66d7eb3e7f4a58a160e073ac46e99c`，manifest `a7766283f3c6438307b09f18fb0a644ef6244daa254020fe557ffb4b4dcc17f0`，状态仅为 `queued`，不作为 green evidence。
+
+### Remaining before fixed
+
+- 2026-08-11 current-source reconciliation: `ComponentStorage.table_components` / `TableComponentStorage` / `ArchetypeMove` are already removed. Runtime08 owner-tree and runtime-absorption guards now inventory `ArchetypeTable` under the archetype owner and assert that component storage has no table owner; `ComponentStorage` is sparse-only. This static hard cut is not a managed validation result.
+- 2026-08-13 current-source reconciliation: `render.rs` 的 mesh、sprite 与 camera dense extraction 已全部经 `ArchetypeIndex::for_each_table_component` 读取 archetype-owned columns；生产路径不再通过 `ComponentStorage` 的退役 table facade。此前 Runtime09 owner 依赖已由其前向集成解除，不再是本 failure 的剩余源码项。
+- 2026-08-11 current-source reconciliation: `QueryState` now retains only `CachedArchetypePlan` bindings with table column slots and local membership generations; it no longer stores `cached_entities`, `cached_locations`, or N*K component-location projections. `cached_name_query_keeps_stable_world_order_across_moves_clone_and_serde` performs a real cross-archetype move whose source table swap-removes another entity, then verifies the same cached order after clone and serde. This is static/behavioral source coverage only, not a Cargo result.
+- sparse-only transition、clone/serde final-row 聚合重建和 whole-operation despawn 的源码边界已完成：物理 entity owner 使用 `entity_dense_rows + Vec::swap_remove`，确定性枚举由 `StableQueryOrderIndex` 独立维护；层级与 active-camera 边界从索引取得，不再扫描或移动全量稳定顺序 Vec。`DetachedEntityBatch` 的 1/1k/100k fixture 与 columnar scale counters 已存在。剩余仅为 focused/parity managed validation、真实 counter/p95 终态证据和完成后二次审查；在 terminal receipt 前不得生成 fixed return。
+
+### 2026-08-13 final-row projection rebuild repair
+
+- `EntityRegistry`/stable-order rebuild no longer publishes temporary empty-archetype rows. It resets archetype membership only; `projection_rebuild` owns the subsequent publication of exactly one complete dense/sparse row per entity into its final archetype.
+- Added a dedicated prevalidated projection commit path. It validates the final table schema before publication, restores sparse values into sparse storage, then appends the complete dense row once without a source-row take or intermediate membership generation.
+- Removed the destructive second registry rebuild from project normalization. The former order cleared archetype-owned component rows before `rebuild_typed_component_presence` could snapshot them after the table hard cut.
+- Source regressions now require the direct final-row owner, and clone/serde coverage asserts two entities produce exactly two row appends while persistent names and dynamic presence survive. Exact `rustfmt +1.94.1` and scoped `git diff --check` pass; no Cargo result is claimed in this update.
+- `SparseComponentStorage` no longer hashes `InternalEntity` on every access. Its dense entity/value arrays are indexed by a generation-aware sparse slot vector keyed by `InternalEntity::index`; stale generations cannot alias a reused entity slot, and swap-remove repairs exactly one sparse locator. Structural guards reject the retired `HashMap<InternalEntity, usize>` owner.

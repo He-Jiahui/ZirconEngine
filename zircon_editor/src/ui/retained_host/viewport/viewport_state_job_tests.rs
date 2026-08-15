@@ -3,6 +3,7 @@ use std::sync::mpsc::{channel, sync_channel, Receiver, Sender};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use super::render_framework_access::ViewportRenderFrameworkAccess;
 use super::test_render_framework::TestRenderFramework;
 use super::viewport_state::ViewportState;
 use crate::core::jobs::{
@@ -33,7 +34,7 @@ fn viewport_consumes_successful_framework_ticket_once() {
             },
         )
         .expect("viewport success fixture should submit");
-    let mut state = ViewportState::new(Some(core));
+    let mut state = ViewportState::lazy(ViewportRenderFrameworkAccess::new(&core));
     state.jobs = Some(jobs);
     state.render_framework_task = Some(ticket);
 
@@ -67,6 +68,25 @@ fn viewport_maps_failed_framework_ticket_and_clears_it() {
     assert!(error
         .to_string()
         .contains("planned viewport resolve failure"));
+    assert!(state.render_framework_task.is_none());
+}
+
+#[test]
+fn viewport_fails_closed_after_its_typed_runtime_access_loses_the_core() {
+    let runtime = CoreRuntime::new();
+    let core = runtime.handle();
+    let access = ViewportRenderFrameworkAccess::new(&core);
+    drop(core);
+    drop(runtime);
+
+    let mut state = ViewportState::lazy(access);
+    state.jobs = Some(test_job_system());
+    let error = match poll_framework_until_terminal(&mut state) {
+        Ok(_) => panic!("released runtime must not resolve a render framework"),
+        Err(error) => error,
+    };
+
+    assert!(error.to_string().contains("CoreRuntime"));
     assert!(state.render_framework_task.is_none());
 }
 

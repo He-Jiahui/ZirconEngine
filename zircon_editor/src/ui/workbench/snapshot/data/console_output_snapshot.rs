@@ -2,7 +2,7 @@ use std::fmt;
 use std::ops::Deref;
 use std::sync::Arc;
 
-use crate::core::editor_event::ConsoleMessageFilter;
+use crate::core::editor_event::{ConsoleMessageFilter, ConsoleSourceFilter};
 
 pub(crate) const CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY: usize = 256;
 
@@ -45,6 +45,8 @@ pub struct ConsoleOutputSnapshot {
     levels: Arc<[EditorConsoleMessageLevel]>,
     counts: ConsoleOutputLevelCounts,
     filter: ConsoleMessageFilter,
+    source_filter: ConsoleSourceFilter,
+    jump_sequences: Arc<[Option<u64>]>,
 }
 
 impl ConsoleOutputSnapshot {
@@ -52,11 +54,14 @@ impl ConsoleOutputSnapshot {
         debug_assert!(text_and_levels_align(text.as_ref(), levels.as_ref()));
         let (text, levels) = bounded_output(text, levels);
         let counts = ConsoleOutputLevelCounts::from_levels(levels.as_ref());
+        let jump_sequences = Arc::from(vec![None; levels.len()]);
         Self {
             text,
             levels,
             counts,
             filter: ConsoleMessageFilter::All,
+            source_filter: ConsoleSourceFilter::All,
+            jump_sequences,
         }
     }
 
@@ -68,11 +73,35 @@ impl ConsoleOutputSnapshot {
     ) -> Self {
         debug_assert!(text_and_levels_align(text.as_ref(), levels.as_ref()));
         let (text, levels) = bounded_output(text, levels);
+        let jump_sequences = Arc::from(vec![None; levels.len()]);
         Self {
             text,
             levels,
             counts,
             filter,
+            source_filter: ConsoleSourceFilter::All,
+            jump_sequences,
+        }
+    }
+
+    pub(crate) fn activity(
+        text: Arc<str>,
+        levels: Arc<[EditorConsoleMessageLevel]>,
+        filter: ConsoleMessageFilter,
+        source_filter: ConsoleSourceFilter,
+        jump_sequences: Arc<[Option<u64>]>,
+    ) -> Self {
+        debug_assert!(text_and_levels_align(text.as_ref(), levels.as_ref()));
+        debug_assert_eq!(levels.len(), jump_sequences.len());
+        let (text, levels, jump_sequences) = bounded_activity_output(text, levels, jump_sequences);
+        let counts = ConsoleOutputLevelCounts::from_levels(levels.as_ref());
+        Self {
+            text,
+            levels,
+            counts,
+            filter,
+            source_filter,
+            jump_sequences,
         }
     }
 
@@ -92,12 +121,24 @@ impl ConsoleOutputSnapshot {
         self.filter
     }
 
+    pub const fn source_filter(&self) -> ConsoleSourceFilter {
+        self.source_filter
+    }
+
+    pub fn jump_sequences(&self) -> &[Option<u64>] {
+        self.jump_sequences.as_ref()
+    }
+
     pub(crate) fn levels_arc(&self) -> Arc<[EditorConsoleMessageLevel]> {
         Arc::clone(&self.levels)
     }
 
     pub(crate) fn text_arc(&self) -> Arc<str> {
         Arc::clone(&self.text)
+    }
+
+    pub(crate) fn jump_sequences_arc(&self) -> Arc<[Option<u64>]> {
+        Arc::clone(&self.jump_sequences)
     }
 }
 
@@ -183,6 +224,33 @@ fn bounded_output(
     (
         Arc::from(&text[retained_text_start..]),
         Arc::from(&levels[retained_levels_start..]),
+    )
+}
+
+fn bounded_activity_output(
+    text: Arc<str>,
+    levels: Arc<[EditorConsoleMessageLevel]>,
+    jump_sequences: Arc<[Option<u64>]>,
+) -> (
+    Arc<str>,
+    Arc<[EditorConsoleMessageLevel]>,
+    Arc<[Option<u64>]>,
+) {
+    let line_count = if text.is_empty() {
+        levels.len()
+    } else {
+        logical_line_count(text.as_ref())
+    };
+    if line_count <= CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY {
+        return (text, levels, jump_sequences);
+    }
+
+    let lines_to_drop = line_count - CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY;
+    let retained_text_start = byte_offset_after_logical_lines(text.as_ref(), lines_to_drop);
+    (
+        Arc::from(&text[retained_text_start..]),
+        Arc::from(&levels[lines_to_drop..]),
+        Arc::from(&jump_sequences[lines_to_drop..]),
     )
 }
 

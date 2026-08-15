@@ -6,6 +6,24 @@ use crate::core::framework::tasks::TaskPoolDescriptor;
 use crate::core::runtime::tasks::TaskPool;
 
 #[test]
+fn task_pool_in_place_scope_keeps_the_scope_body_on_the_caller() {
+    let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(1));
+    let caller = std::thread::current().id();
+    let (worker_tx, worker_rx) = std::sync::mpsc::channel();
+
+    pool.in_place_scope(|scope| {
+        assert_eq!(std::thread::current().id(), caller);
+        scope.spawn(move |_| {
+            worker_tx
+                .send(std::thread::current().id())
+                .expect("worker identity should reach the caller");
+        });
+    });
+
+    assert_ne!(worker_rx.recv().expect("scoped worker should run"), caller);
+}
+
+#[test]
 fn source_cubemap_explicit_executor_entry_preserves_output_contract() {
     let serial = build_source_cubemap_from_equirect(4, |u, v| [u, v, u + v, 1.0]);
     let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(2));

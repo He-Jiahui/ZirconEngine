@@ -48,12 +48,11 @@ fn closed_workbench_dropdown_chevron_prefers_shell_asset_pixels() {
     let icon = icon_commands[0];
     assert_eq!(icon.frame.width, 16.0);
     assert_eq!(icon.frame.height, 16.0);
-    assert!(
-        icon.image_pixels
-            .as_ref()
-            .map(|image| !image.resource_key.starts_with("missing-icon:"))
-            .unwrap_or(false)
-    );
+    assert!(icon
+        .image_pixels
+        .as_ref()
+        .map(|image| !image.resource_key.starts_with("missing-icon:"))
+        .unwrap_or(false));
 }
 
 #[test]
@@ -118,11 +117,9 @@ fn workbench_dropdown_keeps_first_option_label_fallback() {
         0,
         1.0,
     ));
-    assert!(
-        commands
-            .iter()
-            .any(|command| command.text.as_deref() == Some("Fallback"))
-    );
+    assert!(commands
+        .iter()
+        .any(|command| command.text.as_deref() == Some("Fallback")));
 }
 
 #[test]

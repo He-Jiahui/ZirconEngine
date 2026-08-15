@@ -6,7 +6,7 @@ fn review_f5_animation_manager_uses_animation_error() {
     let runtime_manager = include_str!("../../../../animation/manager/mod.rs");
     let pose = include_str!("../../../../animation/manager/pose.rs");
     let sampling = include_str!("../../../../animation/manager/sampling.rs");
-    let sequence_apply = include_str!("../../../../animation/sequence/apply.rs");
+    let sequence_compiled = include_str!("../../../../animation/sequence/compiled.rs");
     let sequence_conversion = include_str!("../../../../animation/sequence/conversion.rs");
     let review_findings = include_str!(
         "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
@@ -49,7 +49,7 @@ fn review_f5_animation_manager_uses_animation_error() {
         ("runtime animation manager", runtime_manager),
         ("animation pose sampler", pose),
         ("animation channel sampler", sampling),
-        ("animation sequence apply", sequence_apply),
+        ("animation compiled sequence", sequence_compiled),
         ("animation sequence conversion", sequence_conversion),
     ] {
         for forbidden in [
@@ -78,7 +78,7 @@ fn review_f5_animation_manager_uses_animation_error() {
                 || runtime_manager.contains(required)
                 || pose.contains(required)
                 || sampling.contains(required)
-                || sequence_apply.contains(required)
+                || sequence_compiled.contains(required)
                 || sequence_conversion.contains(required),
             "animation typed-error owners should contain `{required}`"
         );

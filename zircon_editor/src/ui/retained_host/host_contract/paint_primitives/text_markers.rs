@@ -2,7 +2,7 @@ use super::super::data::FrameRect;
 use super::super::paint_frame::HostRgbaFrame;
 use super::super::paint_geometry::is_visible_frame;
 use super::super::paint_text::{draw_text_with_size_and_style, measure_runtime_text_width};
-use super::super::paint_theme::{HostControlMetrics, current_host_metrics};
+use super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 pub(in crate::ui::retained_host::host_contract) fn draw_text_bars(

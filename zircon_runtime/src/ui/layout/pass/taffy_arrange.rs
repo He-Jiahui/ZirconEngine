@@ -12,7 +12,7 @@ use zircon_runtime_interface::ui::{
 
 use super::arrange::{arrange_node, hide_subtree_layout};
 use super::engine::UiLayoutPassEngineContext;
-use super::slot::{ordered_children_for_container, slot_for_container_child};
+use super::slot::{ordered_children_for_container, slot_for_container_child, UiLayoutSlotIndex};
 
 pub(super) fn try_arrange_taffy_owned_children(
     tree: &mut UiTree,
@@ -20,6 +20,7 @@ pub(super) fn try_arrange_taffy_owned_children(
     children: &[UiNodeId],
     frame: UiFrame,
     inherited_clip: Option<UiFrame>,
+    slot_index: &UiLayoutSlotIndex,
     engine_context: &mut UiLayoutPassEngineContext,
 ) -> Result<bool, UiTreeError> {
     let container = tree
@@ -40,10 +41,15 @@ pub(super) fn try_arrange_taffy_owned_children(
     }
 
     let (layout_children, hidden_children) =
-        taffy_layout_children(tree, parent_id, children, container)?;
-    if let Some(reason) =
-        taffy_child_contracts_unsupported(tree, parent_id, &layout_children, container, axis)?
-    {
+        taffy_layout_children(tree, slot_index, parent_id, children, container)?;
+    if let Some(reason) = taffy_child_contracts_unsupported(
+        tree,
+        slot_index,
+        parent_id,
+        &layout_children,
+        container,
+        axis,
+    )? {
         engine_context.record_taffy_fallback(parent_id, container, reason, None);
         return Ok(false);
     }
@@ -54,7 +60,7 @@ pub(super) fn try_arrange_taffy_owned_children(
             let child = tree
                 .node(*child_id)
                 .ok_or(UiTreeError::MissingNode(*child_id))?;
-            let slot = slot_for_container_child(tree, parent_id, *child_id, container);
+            let slot = slot_for_container_child(tree, slot_index, parent_id, *child_id, container);
             child_inputs.push(TaffyChildLayoutInput {
                 node_id: *child_id,
                 node: child,
@@ -86,6 +92,7 @@ pub(super) fn try_arrange_taffy_owned_children(
             child_frame.node_id,
             child_frame.frame,
             inherited_clip,
+            slot_index,
             engine_context,
         )?;
     }
@@ -95,11 +102,13 @@ pub(super) fn try_arrange_taffy_owned_children(
 
 fn taffy_layout_children(
     tree: &mut UiTree,
+    slot_index: &UiLayoutSlotIndex,
     parent_id: UiNodeId,
     children: &[UiNodeId],
     container: UiContainerKind,
 ) -> Result<(Vec<UiNodeId>, Vec<UiNodeId>), UiTreeError> {
-    let ordered_children = ordered_children_for_container(tree, parent_id, children, container);
+    let ordered_children =
+        ordered_children_for_container(tree, slot_index, parent_id, children, container);
     let mut layout_children = Vec::with_capacity(ordered_children.len());
     let mut hidden_children = Vec::new();
     for child_id in ordered_children {
@@ -119,6 +128,7 @@ fn taffy_layout_children(
 
 fn taffy_child_contracts_unsupported(
     tree: &UiTree,
+    slot_index: &UiLayoutSlotIndex,
     parent_id: UiNodeId,
     children: &[UiNodeId],
     container: UiContainerKind,
@@ -148,7 +158,7 @@ fn taffy_child_contracts_unsupported(
             return Ok(Some(UiLayoutEngineFallbackReason::InvalidLayoutValue));
         }
 
-        let slot = slot_for_container_child(tree, parent_id, *child_id, container);
+        let slot = slot_for_container_child(tree, slot_index, parent_id, *child_id, container);
         if let Some(slot) = slot {
             if slot.canvas_placement.is_some() {
                 return Ok(Some(UiLayoutEngineFallbackReason::SlotCanvasPlacement));

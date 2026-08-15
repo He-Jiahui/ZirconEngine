@@ -1,6 +1,6 @@
 use crate::scene::{
-    World,
     reflect::{ReflectComponent, ReflectResource, TypeRegistry},
+    World,
 };
 use zircon_runtime_interface::reflect::{
     ReflectError, ReflectFieldValue, ReflectFieldsRequest, ReflectFieldsResponse,
@@ -87,7 +87,10 @@ impl WorldReflection {
             }
             ReflectObjectAddress::Resource { type_path } => {
                 let adapter = resource_adapter_for_write(world, type_path)?;
-                let changed = adapter.write_field(world, &request.field_name, request.value)?;
+                let field_slot =
+                    resource_field_slot_for_write(world, type_path, &request.field_name)?;
+                let changed =
+                    adapter.write_fields_by_slot(world, vec![(field_slot, request.value)])?;
                 let value = adapter.read_field(world, &request.field_name)?;
                 (changed, value)
             }
@@ -235,6 +238,37 @@ fn resource_adapter_for_write(
     type_path: &str,
 ) -> Result<ReflectResource, ReflectError> {
     resource_adapter_ref(world, type_path).copied()
+}
+
+fn resource_field_slot_for_write(
+    world: &World,
+    type_path: &str,
+    field_name: &str,
+) -> Result<u32, ReflectError> {
+    let registration = world.type_registry().runtime_registration(type_path)?;
+    let Some((field_slot, field)) = registration
+        .registration
+        .type_info
+        .fields
+        .iter()
+        .enumerate()
+        .find(|(_, field)| field.name == field_name)
+    else {
+        return Err(ReflectError::UnknownField {
+            type_path: registration.registration.type_path.type_path.clone(),
+            field_name: field_name.to_string(),
+        });
+    };
+    if !field.editable {
+        return Err(ReflectError::NonEditableField {
+            type_path: registration.registration.type_path.type_path.clone(),
+            field_name: field.name.clone(),
+        });
+    }
+    u32::try_from(field_slot).map_err(|_| ReflectError::InvalidRegistration {
+        type_path: registration.registration.type_path.type_path.clone(),
+        reason: "resource reflection has more than u32::MAX fields".to_string(),
+    })
 }
 
 fn read_reflected_field(

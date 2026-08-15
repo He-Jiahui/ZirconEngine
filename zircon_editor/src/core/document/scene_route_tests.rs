@@ -173,12 +173,10 @@ fn cancelled_or_conflicting_scene_creation_keeps_the_active_document_unchanged()
     let catalog = RecordingCatalog::accepting();
 
     // Cancelling a picker means the caller submits no request at all.
-    assert!(
-        lifecycle
-            .active_scene_document(session, &root, &scene_uri.to_string())
-            .unwrap()
-            .is_none()
-    );
+    assert!(lifecycle
+        .active_scene_document(session, &root, &scene_uri.to_string())
+        .unwrap()
+        .is_none());
     assert!(!root.join("assets/scenes/new.scene.toml").exists());
 
     let created = route
@@ -238,12 +236,10 @@ fn failed_scene_installation_compensates_the_created_scene_asset() {
     assert_eq!(catalog.import_count.get(), 1);
     assert_eq!(catalog.remove_count.get(), 1);
     assert!(!root.join("assets/scenes/rejected.scene.toml").exists());
-    assert!(
-        lifecycle
-            .active_scene_document(session, &root, &scene_uri.to_string())
-            .unwrap()
-            .is_none()
-    );
+    assert!(lifecycle
+        .active_scene_document(session, &root, &scene_uri.to_string())
+        .unwrap()
+        .is_none());
     let staging_names = fs::read_dir(root.join("assets/scenes"))
         .unwrap()
         .map(|entry| entry.unwrap().file_name())
@@ -289,17 +285,13 @@ fn rejected_catalog_import_removes_the_source_before_any_authoring_installation(
     assert_eq!(catalog.import_count.get(), 1);
     assert_eq!(catalog.remove_count.get(), 1);
     assert_eq!(installer.installed_scene_count, 0);
-    assert!(
-        !root
-            .join("assets/scenes/catalog-rejected.scene.toml")
-            .exists()
-    );
-    assert!(
-        lifecycle
-            .active_scene_document(session, &root, &scene_uri.to_string())
-            .unwrap()
-            .is_none()
-    );
+    assert!(!root
+        .join("assets/scenes/catalog-rejected.scene.toml")
+        .exists());
+    assert!(lifecycle
+        .active_scene_document(session, &root, &scene_uri.to_string())
+        .unwrap()
+        .is_none());
 
     drop(project);
     fs::remove_dir_all(location).unwrap();

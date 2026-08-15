@@ -17,6 +17,8 @@ impl HierarchyPointerBridge {
             surface: UiSurface::new(UiTreeId::new("zircon.editor.hierarchy.pointer")),
             dispatcher: UiPointerDispatcher::default(),
             route_intents: EditorRouteIntentMap::default(),
+            #[cfg(test)]
+            surface_authority_generation: 0,
         };
         bridge.rebuild_surface();
         bridge

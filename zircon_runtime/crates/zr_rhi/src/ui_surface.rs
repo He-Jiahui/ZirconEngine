@@ -69,6 +69,8 @@ pub struct UiSurfaceImagePayload {
     pub width: u32,
     pub height: u32,
     pub upload_bytes: u64,
+    /// Straight-alpha RGBA8 bytes. Backends must convert once before filtered premultiplied-alpha
+    /// composition; producers must not pre-premultiply this payload.
     pub rgba: Option<Vec<u8>>,
     pub atlas_uv: Option<UiSurfaceImageUvRect>,
 }
@@ -220,7 +222,7 @@ impl UiSurfaceDescriptor {
 pub struct UiSurfaceDrawList {
     pub surface_size: (u32, u32),
     projection_size: (u32, u32),
-    bypass_retained_surface_cache: bool,
+    target_only_resize: bool,
     pub damage: Option<UiSurfaceRect>,
     pub commands: Vec<UiSurfaceCommand>,
     generation: Option<u64>,
@@ -238,7 +240,7 @@ impl UiSurfaceDrawList {
         Self {
             surface_size,
             projection_size: surface_size,
-            bypass_retained_surface_cache: false,
+            target_only_resize: false,
             damage,
             commands,
             generation: None,
@@ -262,7 +264,7 @@ impl UiSurfaceDrawList {
         Self {
             surface_size,
             projection_size: surface_size,
-            bypass_retained_surface_cache: false,
+            target_only_resize: false,
             damage,
             commands,
             generation: Some(generation),
@@ -342,7 +344,7 @@ impl UiSurfaceDrawList {
         Self {
             surface_size,
             projection_size: surface_size,
-            bypass_retained_surface_cache: false,
+            target_only_resize: false,
             damage,
             commands,
             generation,
@@ -389,12 +391,12 @@ impl UiSurfaceDrawList {
     #[doc(hidden)]
     pub fn retarget_surface_size_preserving_projection(&mut self, surface_size: (u32, u32)) {
         self.surface_size = (surface_size.0.max(1), surface_size.1.max(1));
-        self.bypass_retained_surface_cache = true;
+        self.target_only_resize = true;
     }
 
     #[doc(hidden)]
-    pub const fn bypasses_retained_surface_cache(&self) -> bool {
-        self.bypass_retained_surface_cache
+    pub const fn is_target_only_resize(&self) -> bool {
+        self.target_only_resize
     }
 
     pub fn stats(&self) -> UiSurfacePresentStats {
@@ -577,7 +579,22 @@ fn command_dynamic_payload_bytes(kind: &UiSurfaceCommandKind) -> u64 {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 #[non_exhaustive]
+pub enum UiSurfacePresentOutcome {
+    #[default]
+    Submitted,
+    RetryableNoSubmit,
+}
+
+impl UiSurfacePresentOutcome {
+    pub const fn is_submitted(self) -> bool {
+        matches!(self, Self::Submitted)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct UiSurfacePresentStats {
+    pub outcome: UiSurfacePresentOutcome,
     pub surface_size: (u32, u32),
     pub draw_calls: u64,
     /// Draw ops in the full compiled plan before native damage-scissor culling.
@@ -646,6 +663,14 @@ pub struct UiSurfacePresentStats {
     pub image_upload_bytes: u64,
     /// Native image texture writes performed for the current present.
     pub image_upload_write_count: u64,
+    /// Device-shared image products resolved instead of uploading a presenter-local texture.
+    pub image_shared_resolve_count: u64,
+    /// Device-shared image texture writes performed for the current present.
+    pub image_shared_upload_write_count: u64,
+    /// Bytes written while publishing new device-shared image products.
+    pub image_shared_upload_bytes: u64,
+    /// Texture bytes retained by the device-shared image registry after this present.
+    pub image_shared_resident_bytes: u64,
     /// Owned image-cache keys allocated for insertion or admission-time eviction planning.
     pub image_cache_key_allocation_count: u64,
     /// Image-cache entries visited by bounded admission-time LRU planning.

@@ -16,5 +16,5 @@ default_classes = ["workbench-chip", "workbench-primitive"]
 component = "Label"
 control_id = "WorkbenchChipRoot"
 classes = ["workbench-chip"]
-props = { text = "Chip", component_variant = "chip", font_size = "$editor.typography.body.size", text_tone = "primary", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_top = "$editor.density.gap.small", layout_padding_bottom = "$editor.density.gap.small" }
-layout = { width = { min = 40.0, preferred = 80.0, max = 160.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.compact", max = "$editor.control.height.default", stretch = "Fixed" } }
+props = { text = "Chip", text_overflow = "ellipsis", component_variant = "chip", font_size = "$editor.typography.body.size", line_height_ratio = "$editor.typography.line_height", text_tone = "primary", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium", layout_padding_top = "$editor.density.gap.small", layout_padding_bottom = "$editor.density.gap.small" }
+layout = { width = { min = "$editor.density.chip.min_width", preferred = "$editor.density.chip.preferred_width", max = "$editor.density.chip.max_width", stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.compact", max = "$editor.control.height.default", stretch = "Fixed" } }

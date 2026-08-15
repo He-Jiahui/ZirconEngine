@@ -233,7 +233,7 @@ impl UiSurface {
         {
             return Ok(None);
         }
-        let Some(frame) = self.arranged_tree.get(node_id).map(|node| node.frame) else {
+        let Some(frame) = self.arranged_node(node_id).map(|node| node.frame) else {
             return Ok(None);
         };
         if frame.width <= f32::EPSILON {

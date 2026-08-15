@@ -27,6 +27,7 @@ pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiTextSdfFa
     pub(super) mixed_overlay_unsupported_justify_text_batch_count: usize,
     pub(super) mixed_overlay_glyph_advance_mismatch_text_batch_count: usize,
     pub(super) mixed_overlay_invalid_span_text_batch_count: usize,
+    pub(super) mixed_overlay_shaped_glyph_geometry_text_batch_count: usize,
     pub(super) fallback_glyph_count: usize,
     pub(super) fallback_span_count: usize,
     pub(super) fallback_source_byte_count: usize,
@@ -44,7 +45,7 @@ impl ScreenSpaceUiTextSdfFallbackReport {
     }
 
     pub(super) fn needs_sdf_cpu_rebuild(&self) -> bool {
-        self.fallback_text_batch_count > 0
+        self.has_whole_batch_fallbacks()
     }
 }
 
@@ -73,6 +74,7 @@ enum MixedNativeOverlayUnsupportedReason {
     UnsupportedJustify,
     GlyphAdvanceCountMismatch,
     InvalidFallbackSpan,
+    ShapedGlyphGeometry,
 }
 
 pub(super) fn apply_sdf_atlas_fallbacks(
@@ -97,6 +99,9 @@ pub(super) fn apply_sdf_atlas_fallbacks_with_cpu_runs(
     cpu_runs: &mut Vec<SdfRunCpuPreparation>,
     native_decoration_metrics: &mut Vec<TextDecorationMetrics>,
 ) -> ScreenSpaceUiTextSdfFallbackReport {
+    // Local overlays are rebuilt from the explicit frame inputs, so their decoration metrics
+    // must not survive into the next frame's cached SDF CPU state.
+    native_decoration_metrics.truncate(native_texts.len());
     if !sdf_runs_need_fallback(sdf_texts, atlas_runs) {
         return ScreenSpaceUiTextSdfFallbackReport::default();
     }
@@ -161,8 +166,30 @@ fn apply_sdf_atlas_fallbacks_internal<'a>(
         };
 
         if run.has_failures() {
-            let fallback_spans = fallback_spans_for_text_run(text.text.as_str(), run);
+            // A local native overlay is positioned with the CPU preparation advances. Shaped SDF
+            // vertices instead use the shaping advances and offsets, so a partial overlay would
+            // misplace kerning and mark glyphs even when the source ranges look one-to-one.
+            let has_shaped_glyph_geometry = has_shaped_glyph_geometry(&text);
+            let fallback_spans = if has_shaped_glyph_geometry {
+                Vec::new()
+            } else {
+                fallback_spans_for_text_run(text.text.as_str(), run)
+            };
             report.record_run_failure(run, &fallback_spans);
+
+            if has_shaped_glyph_geometry {
+                report.fallback_text_batch_count =
+                    report.fallback_text_batch_count.saturating_add(1);
+                report.record_mixed_overlay_unsupported(
+                    MixedNativeOverlayUnsupportedReason::ShapedGlyphGeometry,
+                );
+                report.whole_batch_fallback_text_batch_count = report
+                    .whole_batch_fallback_text_batch_count
+                    .saturating_add(1);
+                native_texts.push(text);
+                native_fallback_run_indices.push(index);
+                continue;
+            }
 
             // Native text shaping cannot consume the resolved glyph advances that forced this
             // batch onto SDF. Keep the surviving SDF glyphs positioned exactly rather than
@@ -305,6 +332,11 @@ impl ScreenSpaceUiTextSdfFallbackReport {
                     .mixed_overlay_invalid_span_text_batch_count
                     .saturating_add(1);
             }
+            MixedNativeOverlayUnsupportedReason::ShapedGlyphGeometry => {
+                self.mixed_overlay_shaped_glyph_geometry_text_batch_count = self
+                    .mixed_overlay_shaped_glyph_geometry_text_batch_count
+                    .saturating_add(1);
+            }
         }
     }
 }
@@ -314,6 +346,9 @@ fn native_overlay_batches_for_failed_spans(
     fallback_spans: &[SdfAtlasGlyphFallbackSpan],
     glyph_advances: Option<&[f32]>,
 ) -> Result<Vec<ScreenSpaceUiTextBatch>, MixedNativeOverlayUnsupportedReason> {
+    if has_shaped_glyph_geometry(text) {
+        return Err(MixedNativeOverlayUnsupportedReason::ShapedGlyphGeometry);
+    }
     if fallback_spans.is_empty() {
         return Err(MixedNativeOverlayUnsupportedReason::EmptyFallbackSpans);
     }
@@ -336,6 +371,10 @@ fn native_overlay_batches_for_failed_spans(
         .ok_or(MixedNativeOverlayUnsupportedReason::InvalidFallbackSpan)
 }
 
+fn has_shaped_glyph_geometry(text: &ScreenSpaceUiTextBatch) -> bool {
+    !text.shaped_glyphs.is_empty() || text.glyph_artifact_line.is_some()
+}
+
 fn validate_mixed_native_overlay_layout_support(
     text: &ScreenSpaceUiTextBatch,
 ) -> Result<UiTextDirection, MixedNativeOverlayUnsupportedReason> {
@@ -351,13 +390,22 @@ fn validate_mixed_native_overlay_layout_support(
             return Err(MixedNativeOverlayUnsupportedReason::UnsupportedTextDirection);
         }
     };
-    if !matches!(text.wrap, UiTextWrap::None) {
+    if !matches!(text.wrap, UiTextWrap::None) && !is_materialized_text_line(text) {
         return Err(MixedNativeOverlayUnsupportedReason::UnsupportedWrap);
     }
     if matches!(text.text_align, UiTextAlign::Justify) {
         return Err(MixedNativeOverlayUnsupportedReason::UnsupportedJustify);
     }
     Ok(text_direction)
+}
+
+fn is_materialized_text_line(text: &ScreenSpaceUiTextBatch) -> bool {
+    // Resolved layout emits one source-isomorphic batch per visual line. A raw wrapped command
+    // lacks that boundary, so a span overlay could otherwise be positioned on the wrong line.
+    text.is_source_isomorphic_layout_line
+        && text
+            .source_range
+            .is_some_and(|range| range.end.saturating_sub(range.start) == text.text.len())
 }
 
 fn native_overlay_batch_for_span(
@@ -387,18 +435,16 @@ fn native_overlay_batch_for_span(
         .copied()
         .sum::<f32>();
 
-    let mut overlay = text.clone();
-    overlay.text = span_text;
-    overlay.frame = UiFrame::new(
-        aligned_text_start_x(text, full_width, text_direction) + prefix_width,
-        text.frame.y,
-        span_width.max(MIN_NATIVE_OVERLAY_WIDTH),
-        text.frame.height,
-    );
-    overlay.text_align = UiTextAlign::Left;
-    overlay.text_direction = text_direction;
-    overlay.wrap = UiTextWrap::None;
-    Some(overlay)
+    Some(text.native_fallback_overlay(
+        span_text,
+        UiFrame::new(
+            aligned_text_start_x(text, full_width, text_direction) + prefix_width,
+            text.frame.y,
+            span_width.max(MIN_NATIVE_OVERLAY_WIDTH),
+            text.frame.height,
+        ),
+        text_direction,
+    ))
 }
 
 fn aligned_text_start_x(

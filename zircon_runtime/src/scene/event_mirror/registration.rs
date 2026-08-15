@@ -1,14 +1,18 @@
 use std::collections::BTreeMap;
 use std::fmt;
 use std::marker::PhantomData;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
 
 use crate::scene::ecs::Event;
 use crate::scene::{SceneResult, World};
 
-use super::{RuntimeEventMirrorError, RuntimeEventMirrorSubscription};
+use super::subscription::{
+    lock_runtime_event_mirror_reclaim_queue, RuntimeEventMirrorReclaimQueue,
+    RuntimeEventMirrorSubscriptionHandle, RuntimeEventMirrorSubscriptionRecord,
+};
+use super::{RuntimeEventMirrorDrainPage, RuntimeEventMirrorError, RuntimeEventMirrorSubscription};
 
 type ReaderCountCallback = dyn Fn(&mut World, u32) -> SceneResult<()> + Send + Sync;
 const RUNTIME_EVENT_MIRROR_DESCRIPTOR_MAX_BYTES: usize = 128;
@@ -30,7 +34,7 @@ impl RuntimeEventMirrorDescriptor {
 
 trait RuntimeEventMirrorFactory: Send + Sync {
     fn register_event(&self, world: &mut World);
-    fn create_subscription(&self, world: &mut World) -> RuntimeEventMirrorSubscription;
+    fn create_subscription_record(&self, event_id: String) -> RuntimeEventMirrorSubscriptionRecord;
 }
 
 struct TypedRuntimeEventMirrorFactory<E>(PhantomData<fn() -> E>);
@@ -49,8 +53,8 @@ where
         world.register_event::<E>();
     }
 
-    fn create_subscription(&self, _world: &mut World) -> RuntimeEventMirrorSubscription {
-        RuntimeEventMirrorSubscription::typed::<E>()
+    fn create_subscription_record(&self, event_id: String) -> RuntimeEventMirrorSubscriptionRecord {
+        RuntimeEventMirrorSubscriptionRecord::typed::<E>(event_id)
     }
 }
 
@@ -89,10 +93,9 @@ impl RuntimeEventMirrorRegistration {
         self.factory.register_event(world);
     }
 
-    pub(crate) fn create_subscription(&self, world: &mut World) -> RuntimeEventMirrorSubscription {
-        let mut subscription = self.factory.create_subscription(world);
-        subscription.attach_registration(self.clone());
-        subscription
+    pub(crate) fn create_subscription_record(&self) -> RuntimeEventMirrorSubscriptionRecord {
+        self.factory
+            .create_subscription_record(self.descriptor.event_id.clone())
     }
 
     pub(crate) fn notify_reader_count(
@@ -125,10 +128,59 @@ impl fmt::Debug for RuntimeEventMirrorRegistration {
     }
 }
 
-#[derive(Clone, Default)]
+struct RuntimeEventMirrorSubscriptionSlot {
+    generation: u64,
+    record: Option<RuntimeEventMirrorSubscriptionRecord>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct RuntimeEventMirrorLifecycleDiagnostics {
+    pub live_subscriptions: usize,
+    pub pending_reclaims: usize,
+    pub reclaim_budget: usize,
+    pub reader_count: u32,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct RuntimeEventMirrorReclaimReport {
+    pub attempted: usize,
+    pub reclaimed: usize,
+    pub retry_pending: usize,
+    pub callback_failures: usize,
+}
+
 pub(crate) struct RuntimeEventMirrorRegistry {
     registrations: BTreeMap<String, RuntimeEventMirrorRegistration>,
     reader_counts: BTreeMap<String, u32>,
+    subscription_slots: Vec<RuntimeEventMirrorSubscriptionSlot>,
+    free_subscription_slots: Vec<usize>,
+    reclaim_queue: Arc<Mutex<RuntimeEventMirrorReclaimQueue>>,
+}
+
+impl Default for RuntimeEventMirrorRegistry {
+    fn default() -> Self {
+        Self {
+            registrations: BTreeMap::new(),
+            reader_counts: BTreeMap::new(),
+            subscription_slots: Vec::new(),
+            free_subscription_slots: Vec::new(),
+            reclaim_queue: Arc::new(Mutex::new(RuntimeEventMirrorReclaimQueue::default())),
+        }
+    }
+}
+
+impl Clone for RuntimeEventMirrorRegistry {
+    fn clone(&self) -> Self {
+        Self {
+            registrations: self.registrations.clone(),
+            reader_counts: self
+                .reader_counts
+                .keys()
+                .map(|event_id| (event_id.clone(), 0))
+                .collect(),
+            ..Self::default()
+        }
+    }
 }
 
 impl RuntimeEventMirrorRegistry {
@@ -208,6 +260,156 @@ impl RuntimeEventMirrorRegistry {
                 })?;
         Ok(*count)
     }
+
+    pub(crate) fn allocate_subscription(
+        &mut self,
+        record: RuntimeEventMirrorSubscriptionRecord,
+    ) -> RuntimeEventMirrorSubscription {
+        let mut record = Some(record);
+        let handle = loop {
+            let Some(slot_index) = self.free_subscription_slots.pop() else {
+                let slot_index = self.subscription_slots.len();
+                self.subscription_slots
+                    .push(RuntimeEventMirrorSubscriptionSlot {
+                        generation: 1,
+                        record: record.take(),
+                    });
+                break RuntimeEventMirrorSubscriptionHandle::new(slot_index, 1);
+            };
+            let slot = &mut self.subscription_slots[slot_index];
+            let Some(generation) = slot.generation.checked_add(1) else {
+                continue;
+            };
+            slot.generation = generation;
+            slot.record = record.take();
+            break RuntimeEventMirrorSubscriptionHandle::new(slot_index, generation);
+        };
+        lock_runtime_event_mirror_reclaim_queue(&self.reclaim_queue).register_live_record(handle);
+        let event_id = self
+            .subscription_record(handle)
+            .expect("allocated runtime event mirror record")
+            .event_id()
+            .to_string();
+        let descriptor = self
+            .registrations
+            .get(&event_id)
+            .expect("subscription event registration remains available")
+            .descriptor()
+            .clone();
+        RuntimeEventMirrorSubscription::new(descriptor, handle, Arc::clone(&self.reclaim_queue))
+    }
+
+    pub(crate) fn owns_subscription(&self, subscription: &RuntimeEventMirrorSubscription) -> bool {
+        subscription.belongs_to(&self.reclaim_queue)
+    }
+
+    pub(crate) fn take_subscription(
+        &mut self,
+        handle: RuntimeEventMirrorSubscriptionHandle,
+    ) -> Option<RuntimeEventMirrorSubscriptionRecord> {
+        let slot = self.subscription_slots.get_mut(handle.slot())?;
+        (slot.generation == handle.generation())
+            .then(|| slot.record.take())
+            .flatten()
+    }
+
+    pub(crate) fn restore_subscription(
+        &mut self,
+        handle: RuntimeEventMirrorSubscriptionHandle,
+        record: RuntimeEventMirrorSubscriptionRecord,
+    ) {
+        let slot = self
+            .subscription_slots
+            .get_mut(handle.slot())
+            .expect("runtime event mirror subscription slot remains allocated");
+        assert_eq!(slot.generation, handle.generation());
+        assert!(slot.record.replace(record).is_none());
+    }
+
+    pub(crate) fn retire_subscription(&mut self, handle: RuntimeEventMirrorSubscriptionHandle) {
+        let slot = self
+            .subscription_slots
+            .get_mut(handle.slot())
+            .expect("runtime event mirror subscription slot remains allocated");
+        assert_eq!(slot.generation, handle.generation());
+        assert!(slot.record.is_none());
+        self.free_subscription_slots.push(handle.slot());
+        lock_runtime_event_mirror_reclaim_queue(&self.reclaim_queue).retire_live_record(handle);
+    }
+
+    pub(crate) fn drain_subscription(
+        &self,
+        handle: RuntimeEventMirrorSubscriptionHandle,
+    ) -> Option<Result<Vec<serde_json::Value>, RuntimeEventMirrorError>> {
+        self.subscription_record(handle)
+            .map(RuntimeEventMirrorSubscriptionRecord::drain)
+    }
+
+    pub(crate) fn drain_subscription_payloads(
+        &self,
+        handle: RuntimeEventMirrorSubscriptionHandle,
+        max_deliveries: usize,
+    ) -> Option<Result<RuntimeEventMirrorDrainPage, RuntimeEventMirrorError>> {
+        self.subscription_record(handle)
+            .map(|record| record.drain_payloads_up_to(max_deliveries))
+    }
+
+    pub(crate) fn drain_reclaim_intents(&self) -> Vec<RuntimeEventMirrorSubscriptionHandle> {
+        lock_runtime_event_mirror_reclaim_queue(&self.reclaim_queue).drain()
+    }
+
+    pub(crate) fn requeue_reclaim(&self, handle: RuntimeEventMirrorSubscriptionHandle) {
+        lock_runtime_event_mirror_reclaim_queue(&self.reclaim_queue).enqueue(handle);
+    }
+
+    pub(crate) fn live_subscription_handles(&self) -> Vec<RuntimeEventMirrorSubscriptionHandle> {
+        self.subscription_slots
+            .iter()
+            .enumerate()
+            .filter_map(|(slot, record)| {
+                record
+                    .record
+                    .as_ref()
+                    .map(|_| RuntimeEventMirrorSubscriptionHandle::new(slot, record.generation))
+            })
+            .collect()
+    }
+
+    pub(crate) fn lifecycle_diagnostics(
+        &self,
+        event_id: &str,
+    ) -> Option<RuntimeEventMirrorLifecycleDiagnostics> {
+        let reader_count = self.reader_counts.get(event_id).copied()?;
+        let reclaim = lock_runtime_event_mirror_reclaim_queue(&self.reclaim_queue);
+        let pending_reclaims = reclaim
+            .pending_handles()
+            .filter(|handle| {
+                self.subscription_record(**handle)
+                    .is_some_and(|record| record.event_id() == event_id)
+            })
+            .count();
+        Some(RuntimeEventMirrorLifecycleDiagnostics {
+            live_subscriptions: self
+                .subscription_slots
+                .iter()
+                .filter_map(|slot| slot.record.as_ref())
+                .filter(|record| record.event_id() == event_id)
+                .count(),
+            pending_reclaims,
+            reclaim_budget: reclaim.live_record_budget(),
+            reader_count,
+        })
+    }
+
+    fn subscription_record(
+        &self,
+        handle: RuntimeEventMirrorSubscriptionHandle,
+    ) -> Option<&RuntimeEventMirrorSubscriptionRecord> {
+        let slot = self.subscription_slots.get(handle.slot())?;
+        (slot.generation == handle.generation())
+            .then_some(slot.record.as_ref())
+            .flatten()
+    }
 }
 
 impl fmt::Debug for RuntimeEventMirrorRegistry {
@@ -216,6 +418,10 @@ impl fmt::Debug for RuntimeEventMirrorRegistry {
             .debug_struct("RuntimeEventMirrorRegistry")
             .field("event_ids", &self.registrations.keys().collect::<Vec<_>>())
             .field("reader_counts", &self.reader_counts)
+            .field(
+                "live_subscription_count",
+                &lock_runtime_event_mirror_reclaim_queue(&self.reclaim_queue).live_record_budget(),
+            )
             .finish()
     }
 }

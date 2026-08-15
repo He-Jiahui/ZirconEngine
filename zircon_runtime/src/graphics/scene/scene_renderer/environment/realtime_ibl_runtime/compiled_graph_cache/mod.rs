@@ -1,4 +1,6 @@
 mod cache;
 mod variant;
 
-pub(in crate::graphics) use cache::RealtimeIblCompiledGraphCache;
+pub(in crate::graphics) use cache::{
+    RealtimeIblCompiledGraphCache, RealtimeIblCompiledGraphCacheStats,
+};

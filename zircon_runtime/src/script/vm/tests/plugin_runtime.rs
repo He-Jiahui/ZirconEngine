@@ -86,6 +86,10 @@ fn vm_plugin_manager_discovers_packages_selects_backends_and_loads_slots() {
         Some(fixture.bytecode_path.as_path())
     );
     assert!(discovered.source.zr_vm_project_path.is_none());
+    assert!(
+        discovered.package.bytecode.is_empty(),
+        "discovery must not read unselected bytecode"
+    );
 
     let slot = manager.load_discovered_package(discovered).unwrap();
     let loaded = manager.slot(slot).unwrap();
@@ -103,6 +107,19 @@ fn vm_plugin_manager_discovers_packages_selects_backends_and_loads_slots() {
 
     manager.unload_slot(slot).unwrap();
     assert!(manager.list_slots().is_empty());
+}
+
+#[test]
+fn vm_plugin_manager_exposes_nonblocking_bounded_discovery_request() {
+    let fixture = PluginFixture::new("async_sample", "0.1.0", "mock", &[1, 2, 3]);
+    let manager = VmPluginManager::with_builtin_backends(HostRegistry::default());
+
+    let request = manager.submit_package_discovery(&fixture.root).unwrap();
+    let packages = request.wait().unwrap();
+
+    assert_eq!(packages.len(), 1);
+    assert_eq!(packages[0].package.manifest.name, "async_sample");
+    assert!(packages[0].package.bytecode.is_empty());
 }
 
 #[test]

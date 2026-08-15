@@ -52,5 +52,11 @@ stage plan 缓存了拓扑与 batch，但没有缓存可复用的 batch executio
 
 ## 修复结果与回传
 
-Open state: `registry COW 已实现待验证；其余逐 batch 分配待 Runtime03/08/11 测量后处理`。
+2026-08-10 current-source observability repair:
 
+- `ScheduleParallelExecutor` 的 registry COW snapshot 仍保留；当前没有把通用 executor 的 per-run abort、result slot、ID vector 或 dependency handle 宣称为已优化。
+- 产品 `SceneScheduleRunner` 已通过 `NativeSystemScheduleDiagnostics` 发布 `scene.ecs.native_system.temporary_control_buffer_count` 与 `scene.ecs.native_system.temporary_control_buffer_bytes`。它们统计 worker batch 的 systems/timings 容器，以及存在 worker command queue 时的引用容器；bytes 是容器 capacity 的字节代理，不是真实全局 allocator 调用数。
+- 指标沿用现有 World performance diagnostics 到 `DiagnosticStore`/`CoreHandle` 的发布链路，不新增逐 system World 锁或第二套 profiler。
+- 本轮只补测量面，没有实施执行状态复用，也没有运行 Cargo、allocator benchmark 或产品负载矩阵。
+
+Open state: `生产调度临时控制缓冲遥测源码已完成，待受管 Cargo 与 1/10/100 空任务、100/1000 system 产品测量；只有数据证明控制面成本显著后才优化`。

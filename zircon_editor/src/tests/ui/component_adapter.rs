@@ -1,9 +1,9 @@
 use crate::core::editor_event::{
     EditorEvent, EditorEventEffect, EditorEventSource, EditorEventTransient, MenuAction,
 };
-use crate::tests::editor_event::support::{EventRuntimeHarness, env_lock};
-use crate::ui::host::EditorManager;
+use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
+use crate::ui::host::EditorManager;
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -465,11 +465,9 @@ fn command_component_adapter_dispatches_palette_open_command() {
         record.event,
         EditorEvent::Transient(EditorEventTransient::OpenCommandPalette)
     );
-    assert!(
-        record
-            .effects
-            .contains(&EditorEventEffect::CommandPaletteOpenRequested)
-    );
+    assert!(record
+        .effects
+        .contains(&EditorEventEffect::CommandPaletteOpenRequested));
 }
 
 #[test]
@@ -692,12 +690,10 @@ fn editor_component_adapter_registry_advertises_reflection_and_asset_editor_sour
         .iter()
         .find(|source| source.domain == "reflection" && source.source_name == "component")
         .expect("component reflection source should be advertised");
-    assert!(
-        component_reflection
-            .fields
-            .iter()
-            .any(|field| field.path == "transform.translation" && field.writable)
-    );
+    assert!(component_reflection
+        .fields
+        .iter()
+        .any(|field| field.path == "transform.translation" && field.writable));
     assert!(component_reflection.fields.iter().any(|field| {
         field.path == "transform.translation.x"
             && field.writable
@@ -725,18 +721,14 @@ fn editor_component_adapter_registry_advertises_reflection_and_asset_editor_sour
         .iter()
         .find(|source| source.domain == "asset_editor" && source.source_name == "widget")
         .expect("widget asset editor source should be advertised");
-    assert!(
-        widget_source
-            .fields
-            .iter()
-            .any(|field| field.path == "widget.text" && field.writable)
-    );
-    assert!(
-        widget_source
-            .fields
-            .iter()
-            .any(|field| { field.path == "component.root_class_policy" && field.writable })
-    );
+    assert!(widget_source
+        .fields
+        .iter()
+        .any(|field| field.path == "widget.text" && field.writable));
+    assert!(widget_source
+        .fields
+        .iter()
+        .any(|field| { field.path == "component.root_class_policy" && field.writable }));
 }
 
 #[test]
@@ -745,16 +737,12 @@ fn editor_event_runtime_exposes_component_data_sources() {
     let harness = EventRuntimeHarness::new("zircon_ui_component_adapter_data_sources");
     let sources = harness.runtime.ui_component_data_sources();
 
-    assert!(
-        sources
-            .iter()
-            .any(|source| source.domain == "reflection" && source.source_name == "component")
-    );
-    assert!(
-        sources
-            .iter()
-            .any(|source| source.domain == "asset_editor" && source.source_name == "binding")
-    );
+    assert!(sources
+        .iter()
+        .any(|source| source.domain == "reflection" && source.source_name == "component"));
+    assert!(sources
+        .iter()
+        .any(|source| source.domain == "asset_editor" && source.source_name == "binding"));
 }
 
 #[test]
@@ -904,11 +892,9 @@ fn asset_editor_component_adapter_updates_selected_component_root_class_policy()
     manager
         .select_ui_asset_editor_hierarchy_index(&instance_id, 1)
         .expect("child widget should be selected");
-    assert!(
-        manager
-            .extract_ui_asset_editor_selected_node_to_component(&instance_id)
-            .expect("extract selected node to component")
-    );
+    assert!(manager
+        .extract_ui_asset_editor_selected_node_to_component(&instance_id)
+        .expect("extract selected node to component"));
 
     let envelope = UiComponentEventEnvelope::new(
         "ui_asset.component_root_class_policy",

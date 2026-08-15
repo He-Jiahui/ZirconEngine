@@ -1,7 +1,14 @@
 use std::any::Any;
+use std::collections::BTreeMap;
 use std::fmt;
 use std::path::Path;
 use std::rc::Rc;
+use std::sync::Arc;
+
+#[path = "persistent_row_patch_map.rs"]
+mod persistent_row_patch_map;
+
+use persistent_row_patch_map::PersistentRowPatchMap;
 
 pub(crate) type SharedString = String;
 
@@ -104,7 +111,7 @@ impl<P> SharedPixelBuffer<P> {
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct Image {
-    rgba: Vec<u8>,
+    rgba: Arc<[u8]>,
     width: u32,
     height: u32,
 }
@@ -112,7 +119,7 @@ pub(crate) struct Image {
 impl Image {
     pub(crate) fn from_rgba8(buffer: SharedPixelBuffer<Rgba8Pixel>) -> Self {
         Self {
-            rgba: buffer.rgba,
+            rgba: buffer.rgba.into(),
             width: buffer.width,
             height: buffer.height,
         }
@@ -122,7 +129,7 @@ impl Image {
         let image = image::open(path)?.to_rgba8();
         let (width, height) = image.dimensions();
         Ok(Self {
-            rgba: image.into_raw(),
+            rgba: image.into_raw().into(),
             width,
             height,
         })
@@ -142,6 +149,11 @@ impl Image {
             && self.height > 0
             && self.rgba.len() == self.width as usize * self.height as usize * 4
     }
+
+    #[cfg(test)]
+    pub(crate) fn shares_pixels_with(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.rgba, &other.rgba)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -157,54 +169,374 @@ impl<T> From<Vec<T>> for VecModel<T> {
 
 #[derive(Clone)]
 pub(crate) struct ModelRc<T> {
-    values: Rc<Vec<T>>,
+    values: ModelValues<T>,
     metadata: Option<Rc<dyn Any>>,
 }
+
+#[derive(Clone)]
+enum ModelValues<T> {
+    Contiguous(Rc<Vec<T>>),
+    ContiguousOverlay {
+        base: Rc<Vec<T>>,
+        patches: PersistentRowPatchMap<T>,
+    },
+    SharedRows(Rc<Vec<Rc<T>>>),
+    SharedRowsOverlay {
+        base: Rc<Vec<Rc<T>>>,
+        patches: PersistentRowPatchMap<T>,
+    },
+}
+
+pub(crate) enum ModelIter<'a, T> {
+    Contiguous(std::slice::Iter<'a, T>),
+    ContiguousOverlay {
+        base: &'a [T],
+        patches: &'a PersistentRowPatchMap<T>,
+        front: usize,
+        back: usize,
+    },
+    SharedRows(std::slice::Iter<'a, Rc<T>>),
+    SharedRowsOverlay {
+        base: &'a [Rc<T>],
+        patches: &'a PersistentRowPatchMap<T>,
+        front: usize,
+        back: usize,
+    },
+}
+
+impl<'a, T> Iterator for ModelIter<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Contiguous(values) => values.next(),
+            Self::ContiguousOverlay {
+                base,
+                patches,
+                front,
+                back,
+            } => {
+                if *front >= *back {
+                    return None;
+                }
+                let row = *front;
+                *front += 1;
+                Some(patches.get(row).map(Rc::as_ref).unwrap_or(&base[row]))
+            }
+            Self::SharedRows(values) => values.next().map(Rc::as_ref),
+            Self::SharedRowsOverlay {
+                base,
+                patches,
+                front,
+                back,
+            } => {
+                if *front >= *back {
+                    return None;
+                }
+                let row = *front;
+                *front += 1;
+                Some(
+                    patches
+                        .get(row)
+                        .or_else(|| base.get(row))
+                        .expect("overlay row must resolve")
+                        .as_ref(),
+                )
+            }
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match self {
+            Self::Contiguous(values) => values.size_hint(),
+            Self::ContiguousOverlay { front, back, .. }
+            | Self::SharedRowsOverlay { front, back, .. } => {
+                let remaining = back.saturating_sub(*front);
+                (remaining, Some(remaining))
+            }
+            Self::SharedRows(values) => values.size_hint(),
+        }
+    }
+}
+
+impl<T> DoubleEndedIterator for ModelIter<'_, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Contiguous(values) => values.next_back(),
+            Self::ContiguousOverlay {
+                base,
+                patches,
+                front,
+                back,
+            } => {
+                if *front >= *back {
+                    return None;
+                }
+                *back -= 1;
+                Some(patches.get(*back).map(Rc::as_ref).unwrap_or(&base[*back]))
+            }
+            Self::SharedRows(values) => values.next_back().map(Rc::as_ref),
+            Self::SharedRowsOverlay {
+                base,
+                patches,
+                front,
+                back,
+            } => {
+                if *front >= *back {
+                    return None;
+                }
+                *back -= 1;
+                Some(
+                    patches
+                        .get(*back)
+                        .or_else(|| base.get(*back))
+                        .expect("overlay row must resolve")
+                        .as_ref(),
+                )
+            }
+        }
+    }
+}
+
+impl<T> ExactSizeIterator for ModelIter<'_, T> {}
 
 impl<T> Default for ModelRc<T> {
     fn default() -> Self {
         Self {
-            values: Rc::new(Vec::new()),
+            values: ModelValues::Contiguous(Rc::new(Vec::new())),
             metadata: None,
         }
     }
 }
 
-impl<T: Clone> ModelRc<T> {
+impl<T> ModelRc<T> {
     pub(crate) fn with_metadata<M: Any>(values: Vec<T>, metadata: M) -> Self {
         Self {
-            values: Rc::new(values),
+            values: ModelValues::Contiguous(Rc::new(values)),
             metadata: Some(Rc::new(metadata)),
         }
     }
 
-    pub(crate) fn row_count(&self) -> usize {
-        self.values.len()
+    pub(crate) fn from_shared_rows(values: Rc<Vec<Rc<T>>>) -> Self {
+        Self {
+            values: ModelValues::SharedRows(values),
+            metadata: None,
+        }
     }
 
-    pub(crate) fn row_data(&self, row: usize) -> Option<T> {
-        self.values.get(row).cloned()
+    pub(crate) fn from_shared_rows_overlay_with_metadata(
+        base: Rc<Vec<Rc<T>>>,
+        patches: Rc<BTreeMap<usize, Rc<T>>>,
+        metadata: Rc<dyn Any>,
+    ) -> Self {
+        let patches = PersistentRowPatchMap::from_shared_rows(base.len(), patches.as_ref());
+        Self {
+            values: ModelValues::SharedRowsOverlay { base, patches },
+            metadata: Some(metadata),
+        }
+    }
+
+    pub(crate) fn from_shared_rows_overlay(
+        base: Rc<Vec<Rc<T>>>,
+        patches: Rc<BTreeMap<usize, Rc<T>>>,
+    ) -> Self {
+        let patches = PersistentRowPatchMap::from_shared_rows(base.len(), patches.as_ref());
+        Self {
+            values: ModelValues::SharedRowsOverlay { base, patches },
+            metadata: None,
+        }
+    }
+
+    pub(crate) fn row_count(&self) -> usize {
+        match &self.values {
+            ModelValues::Contiguous(values) => values.len(),
+            ModelValues::ContiguousOverlay { base, .. } => base.len(),
+            ModelValues::SharedRows(values) => values.len(),
+            ModelValues::SharedRowsOverlay { base, .. } => base.len(),
+        }
+    }
+
+    pub(crate) fn row_data(&self, row: usize) -> Option<T>
+    where
+        T: Clone,
+    {
+        self.get(row).cloned()
     }
 
     pub(crate) fn get(&self, row: usize) -> Option<&T> {
-        self.values.get(row)
+        match &self.values {
+            ModelValues::Contiguous(values) => values.get(row),
+            ModelValues::ContiguousOverlay { base, patches } => {
+                patches.get(row).map(Rc::as_ref).or_else(|| base.get(row))
+            }
+            ModelValues::SharedRows(values) => values.get(row).map(Rc::as_ref),
+            ModelValues::SharedRowsOverlay { base, patches } => {
+                patches.get(row).or_else(|| base.get(row)).map(Rc::as_ref)
+            }
+        }
     }
 
-    pub(crate) fn iter(&self) -> std::slice::Iter<'_, T> {
-        self.values.iter()
+    pub(crate) fn iter(&self) -> ModelIter<'_, T> {
+        match &self.values {
+            ModelValues::Contiguous(values) => ModelIter::Contiguous(values.iter()),
+            ModelValues::ContiguousOverlay { base, patches } => ModelIter::ContiguousOverlay {
+                base,
+                patches,
+                front: 0,
+                back: base.len(),
+            },
+            ModelValues::SharedRows(values) => ModelIter::SharedRows(values.iter()),
+            ModelValues::SharedRowsOverlay { base, patches } => ModelIter::SharedRowsOverlay {
+                base,
+                patches,
+                front: 0,
+                back: base.len(),
+            },
+        }
+    }
+
+    pub(crate) fn shares_values_with(&self, other: &Self) -> bool {
+        match (&self.values, &other.values) {
+            (ModelValues::Contiguous(left), ModelValues::Contiguous(right)) => {
+                Rc::ptr_eq(left, right)
+            }
+            (ModelValues::SharedRows(left), ModelValues::SharedRows(right)) => {
+                Rc::ptr_eq(left, right)
+            }
+            (
+                ModelValues::ContiguousOverlay {
+                    base: left_base,
+                    patches: left_patches,
+                },
+                ModelValues::ContiguousOverlay {
+                    base: right_base,
+                    patches: right_patches,
+                },
+            ) => {
+                Rc::ptr_eq(left_base, right_base) && left_patches.shares_storage_with(right_patches)
+            }
+            (
+                ModelValues::SharedRowsOverlay {
+                    base: left_base,
+                    patches: left_patches,
+                },
+                ModelValues::SharedRowsOverlay {
+                    base: right_base,
+                    patches: right_patches,
+                },
+            ) => {
+                Rc::ptr_eq(left_base, right_base) && left_patches.shares_storage_with(right_patches)
+            }
+            _ => false,
+        }
     }
 
     #[cfg(test)]
-    pub(crate) fn shares_values_with(&self, other: &Self) -> bool {
-        Rc::ptr_eq(&self.values, &other.values)
+    pub(crate) fn shares_row_with(&self, other: &Self, row: usize) -> bool {
+        match (&self.values, &other.values) {
+            (ModelValues::Contiguous(left), ModelValues::Contiguous(right)) => {
+                row < left.len() && row < right.len() && Rc::ptr_eq(left, right)
+            }
+            (
+                ModelValues::Contiguous(left),
+                ModelValues::ContiguousOverlay {
+                    base: right,
+                    patches,
+                },
+            )
+            | (
+                ModelValues::ContiguousOverlay {
+                    base: right,
+                    patches,
+                },
+                ModelValues::Contiguous(left),
+            ) => row < left.len() && Rc::ptr_eq(left, right) && patches.get(row).is_none(),
+            (
+                ModelValues::ContiguousOverlay {
+                    base: left_base,
+                    patches: left_patches,
+                },
+                ModelValues::ContiguousOverlay {
+                    base: right_base,
+                    patches: right_patches,
+                },
+            ) if Rc::ptr_eq(left_base, right_base) => {
+                match (left_patches.get(row), right_patches.get(row)) {
+                    (None, None) => row < left_base.len(),
+                    (Some(left), Some(right)) => Rc::ptr_eq(left, right),
+                    _ => false,
+                }
+            }
+            (ModelValues::SharedRows(left), ModelValues::SharedRows(right)) => left
+                .get(row)
+                .zip(right.get(row))
+                .is_some_and(|(left, right)| Rc::ptr_eq(left, right)),
+            _ => self
+                .row_rc(row)
+                .zip(other.row_rc(row))
+                .is_some_and(|(left, right)| Rc::ptr_eq(left, right)),
+        }
     }
 
-    pub(crate) fn map_preserving_metadata<U, F>(&self, map: F) -> ModelRc<U>
+    #[cfg(test)]
+    fn row_rc(&self, row: usize) -> Option<&Rc<T>> {
+        match &self.values {
+            ModelValues::Contiguous(_) => None,
+            ModelValues::ContiguousOverlay { patches, .. } => patches.get(row),
+            ModelValues::SharedRows(values) => values.get(row),
+            ModelValues::SharedRowsOverlay { base, patches } => {
+                patches.get(row).or_else(|| base.get(row))
+            }
+        }
+    }
+
+    pub(crate) fn map_preserving_metadata<U, F>(&self, mut map: F) -> ModelRc<U>
     where
         F: FnMut(&T) -> U,
     {
         ModelRc {
-            values: Rc::new(self.values.iter().map(map).collect()),
+            values: ModelValues::Contiguous(Rc::new(self.iter().map(&mut map).collect())),
+            metadata: self.metadata.clone(),
+        }
+    }
+
+    pub(crate) fn with_row_patches(&self, row_patches: BTreeMap<usize, T>) -> Self
+    where
+        T: Clone,
+    {
+        if row_patches.is_empty() {
+            return self.clone();
+        }
+        let row_count = self.row_count();
+        let row_patches = row_patches
+            .into_iter()
+            .filter(|(row, _)| *row < row_count)
+            .map(|(row, value)| (row, Rc::new(value)))
+            .collect::<BTreeMap<_, _>>();
+        if row_patches.is_empty() {
+            return self.clone();
+        }
+
+        let values = match &self.values {
+            ModelValues::Contiguous(base) => ModelValues::ContiguousOverlay {
+                base: Rc::clone(base),
+                patches: PersistentRowPatchMap::empty(row_count).with_updates(row_patches),
+            },
+            ModelValues::ContiguousOverlay { base, patches } => ModelValues::ContiguousOverlay {
+                base: Rc::clone(base),
+                patches: patches.with_updates(row_patches),
+            },
+            ModelValues::SharedRows(base) => ModelValues::SharedRowsOverlay {
+                base: Rc::clone(base),
+                patches: PersistentRowPatchMap::empty(row_count).with_updates(row_patches),
+            },
+            ModelValues::SharedRowsOverlay { base, patches } => ModelValues::SharedRowsOverlay {
+                base: Rc::clone(base),
+                patches: patches.with_updates(row_patches),
+            },
+        };
+        Self {
+            values,
             metadata: self.metadata.clone(),
         }
     }
@@ -220,9 +552,18 @@ impl<T: Clone> ModelRc<T> {
 
 impl<T: fmt::Debug> fmt::Debug for ModelRc<T> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter
-            .debug_struct("ModelRc")
-            .field("values", &self.values)
+        let mut debug = formatter.debug_struct("ModelRc");
+        match &self.values {
+            ModelValues::Contiguous(values) => debug.field("values", values),
+            ModelValues::ContiguousOverlay { base, patches } => debug
+                .field("base_rows", &base.len())
+                .field("overlay_rows", &patches.len()),
+            ModelValues::SharedRows(values) => debug.field("values", values),
+            ModelValues::SharedRowsOverlay { base, patches } => debug
+                .field("base_rows", &base.len())
+                .field("overlay_rows", &patches.len()),
+        };
+        debug
             .field("has_metadata", &self.metadata.is_some())
             .finish()
     }
@@ -230,7 +571,7 @@ impl<T: fmt::Debug> fmt::Debug for ModelRc<T> {
 
 impl<T: PartialEq> PartialEq for ModelRc<T> {
     fn eq(&self, other: &Self) -> bool {
-        self.values == other.values
+        self.row_count() == other.row_count() && self.iter().eq(other.iter())
     }
 }
 
@@ -241,7 +582,7 @@ impl<T: Clone> From<Rc<VecModel<T>>> for ModelRc<T> {
             Err(model) => model.values.clone(),
         };
         Self {
-            values: Rc::new(values),
+            values: ModelValues::Contiguous(Rc::new(values)),
             metadata: None,
         }
     }
@@ -250,8 +591,8 @@ impl<T: Clone> From<Rc<VecModel<T>>> for ModelRc<T> {
 #[cfg(test)]
 mod performance_tests {
     use std::sync::{
-        Arc,
         atomic::{AtomicUsize, Ordering},
+        Arc,
     };
 
     use super::*;
@@ -328,11 +669,57 @@ mod performance_tests {
     fn model_rc_borrowed_row_access_does_not_clone() {
         let clone_count = Arc::new(AtomicUsize::new(0));
         let model = ModelRc {
-            values: Rc::new(vec![CloneProbe(Arc::clone(&clone_count))]),
+            values: ModelValues::Contiguous(Rc::new(vec![CloneProbe(Arc::clone(&clone_count))])),
             metadata: None,
         };
 
         assert!(model.get(0).is_some());
         assert_eq!(clone_count.load(Ordering::Relaxed), 0);
+    }
+
+    #[test]
+    fn model_rc_publishes_shared_rows_without_cloning_values() {
+        let clone_count = Arc::new(AtomicUsize::new(0));
+        let rows = Rc::new(vec![Rc::new(CloneProbe(Arc::clone(&clone_count)))]);
+
+        let first = ModelRc::from_shared_rows(Rc::clone(&rows));
+        let second = ModelRc::from_shared_rows(rows);
+
+        assert!(first.shares_row_with(&second, 0));
+        assert_eq!(clone_count.load(Ordering::Relaxed), 0);
+    }
+
+    #[test]
+    fn model_rc_row_patch_reuses_unmodified_contiguous_storage() {
+        let original = ModelRc::with_metadata(vec!["left", "middle", "right"], "fixture");
+        let patched = original.with_row_patches(BTreeMap::from([(1, "changed")]));
+
+        assert_eq!(
+            patched.iter().copied().collect::<Vec<_>>(),
+            vec!["left", "changed", "right"]
+        );
+        assert_eq!(patched.metadata::<&str>(), Some(&"fixture"));
+        match &patched.values {
+            ModelValues::ContiguousOverlay { base, patches } => {
+                assert!(
+                    matches!(&original.values, ModelValues::Contiguous(original_base) if Rc::ptr_eq(base, original_base))
+                );
+                assert_eq!(patches.len(), 1);
+            }
+            _ => panic!("contiguous model should publish a sparse overlay"),
+        }
+    }
+
+    #[test]
+    fn image_clone_shares_the_pixel_allocation() {
+        let image = Image::from_rgba8(SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
+            &[1, 2, 3, 255],
+            1,
+            1,
+        ));
+        let cloned = image.clone();
+
+        assert!(image.shares_pixels_with(&cloned));
+        assert_eq!(image, cloned);
     }
 }

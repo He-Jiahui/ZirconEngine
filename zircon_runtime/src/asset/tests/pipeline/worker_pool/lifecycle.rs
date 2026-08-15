@@ -116,12 +116,10 @@ fn completion_deadline_replaces_the_pending_request_deadline() {
 
     wait_for_completed(&pool);
     std::thread::sleep(Duration::from_millis(25));
-    assert!(
-        ticket
-            .try_result()
-            .expect("a ready completion must outlive its superseded request deadline")
-            .is_some()
-    );
+    assert!(ticket
+        .try_result()
+        .expect("a ready completion must outlive its superseded request deadline")
+        .is_some());
 }
 
 #[test]

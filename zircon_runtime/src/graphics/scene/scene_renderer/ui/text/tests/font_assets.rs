@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::super::font_assets::{UiFontAssetCacheStatus, ensure_font_asset_record};
+use super::super::font_assets::{ensure_font_asset_record, UiFontAssetCacheStatus};
 use super::super::*;
 use super::support::{RuntimeFontAssetGuard, TextFontProject};
 use crate::asset::{AssetManager, AssetUri, ProjectAssetManager};
@@ -85,7 +85,7 @@ fn text_font_asset_error_record_recovers_when_resource_state_changes_at_same_rev
     let ready_record =
         ResourceRecord::new(asset_id, ResourceKind::Font, locator).with_state(ResourceState::Error);
     let ready_revision = ready_record.revision;
-    resources.register_record(ready_record.clone());
+    resources.register_record(ready_record.clone()).unwrap();
 
     let first =
         ensure_font_asset_record(&mut text_state, &mut font_assets, &asset_manager, asset_ref);
@@ -104,7 +104,7 @@ fn text_font_asset_error_record_recovers_when_resource_state_changes_at_same_rev
     resources
         .start_reload(asset_id, Vec::new())
         .expect("failed font resource should start recovery");
-    resources.register_ready(ready_record, ready_asset);
+    resources.register_ready(ready_record, ready_asset).unwrap();
     assert_eq!(
         resources
             .registry()

@@ -25,7 +25,8 @@ fn runtime_session_archive_restores_slot_into_level_and_resets_runtime_state() {
             .expect("stale entity should be named");
         entity
     });
-    level.record_physics_step(
+    assert!(level.record_physics_step_if_replacement_epoch(
+        level.capture_world_replacement_epoch(),
         PhysicsWorldStepPlan {
             steps: 1,
             step_seconds: 0.016,
@@ -34,7 +35,7 @@ fn runtime_session_archive_restores_slot_into_level_and_resets_runtime_state() {
         },
         Vec::new(),
         Vec::new(),
-    );
+    ));
 
     let report = archive
         .restore_slot_into_level("level-slot", &level)

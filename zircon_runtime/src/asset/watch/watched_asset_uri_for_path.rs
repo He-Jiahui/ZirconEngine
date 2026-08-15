@@ -10,9 +10,7 @@ pub(crate) fn watched_asset_uri_for_path(
     assets_root: &Path,
     path: &Path,
 ) -> Result<AssetUri, ResourceLocatorError> {
-    if is_meta_sidecar(path)
-        || crate::core::resource::io::atomic_file::is_atomic_write_transaction_path(path)
-    {
+    if is_meta_sidecar(path) || crate::core::resource::io::is_atomic_write_transaction_path(path) {
         return Err(ResourceLocatorError::UnsupportedScheme(
             path.display().to_string(),
         ));

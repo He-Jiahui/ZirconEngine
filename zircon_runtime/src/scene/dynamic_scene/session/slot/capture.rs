@@ -2,7 +2,7 @@ use crate::scene::{LevelSystem, World};
 
 use super::super::super::DynamicScene;
 use super::super::{
-    RuntimeSessionArchiveError, RuntimeSessionMetadata, slot_id::normalize_slot_id,
+    slot_id::normalize_slot_id, RuntimeSessionArchiveError, RuntimeSessionMetadata,
 };
 use super::RuntimeSessionSlot;
 

@@ -1,6 +1,6 @@
 use super::super::*;
 use crate::ui::retained_host::ui_perf::{
-    UiPerfScenario, enter_ui_perf_scenario, time_ui_perf_scenario,
+    enter_ui_perf_scenario, time_ui_perf_scenario, UiPerfScenario,
 };
 use std::time::Instant;
 
@@ -17,6 +17,11 @@ impl RetainedEditorHost {
             self.set_status_line(error);
         }
         self.runtime.update_scene_modes();
+        if let Err(error) = self.ensure_hierarchy_world_watch() {
+            self.set_status_line(error);
+        }
+        self.pump_edit_world_invalidations();
+        self.consume_scene_hierarchy_fragment();
         match self.runtime.pump_runtime_event_consumers() {
             Ok(frame_demand) => self
                 .ui
@@ -26,8 +31,7 @@ impl RetainedEditorHost {
         if let Err(error) = self.sync_plugin_template_documents_if_changed() {
             self.set_status_line(error.to_string());
         }
-        self.sync_pending_play_decisions();
-        self.sync_activity_toasts();
+        self.sync_activity_notifications();
         self.sync_settings_projections();
 
         {
@@ -111,7 +115,7 @@ mod tests {
     }
 
     #[test]
-    fn retained_tick_syncs_pending_play_decisions_after_backend_polling() {
+    fn retained_tick_projects_the_unified_notification_snapshot_after_backend_polling() {
         let source = include_str!("tick.rs");
         let production = source
             .split("#[cfg(test)]")
@@ -126,12 +130,9 @@ mod tests {
         let template_sync = production
             .find("self.sync_plugin_template_documents_if_changed()")
             .expect("retained tick should synchronize plugin templates after backend polling");
-        let decision_sync = production
-            .find("self.sync_pending_play_decisions();")
-            .expect("retained tick should project pending play decisions");
         let toast_sync = production
-            .find("self.sync_activity_toasts();")
-            .expect("retained tick should project activity toasts from the notification authority");
+            .find("self.sync_activity_notifications();")
+            .expect("retained tick should project the unified notification authority");
         let settings_sync = production
             .find("self.sync_settings_projections();")
             .expect("retained tick should synchronize authority-owned settings projections");
@@ -140,9 +141,53 @@ mod tests {
             .expect("retained tick should recompute invalidated presentation");
         assert!(lifecycle_pump < backend_poll);
         assert!(backend_poll < template_sync);
-        assert!(template_sync < decision_sync);
-        assert!(decision_sync < toast_sync);
+        assert!(template_sync < toast_sync);
         assert!(toast_sync < settings_sync);
         assert!(settings_sync < recompute);
+    }
+
+    #[test]
+    fn retained_tick_consumes_edit_world_hierarchy_invalidations_before_other_runtime_consumers() {
+        let source = include_str!("tick.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("tick source should contain its production section");
+        let scene_modes = production
+            .find("self.runtime.update_scene_modes();")
+            .expect("retained tick should publish edit-world scene changes");
+        let watch = production
+            .find("self.ensure_hierarchy_world_watch()")
+            .expect("retained tick should restore a generation-safe hierarchy watch");
+        let invalidation_pump = production
+            .find("self.pump_edit_world_invalidations();")
+            .expect("retained tick should pump edit-world invalidations");
+        let fragment = production
+            .find("self.consume_scene_hierarchy_fragment();")
+            .expect("retained tick should consume the newest retained hierarchy fragment");
+        let runtime_consumers = production
+            .find("self.runtime.pump_runtime_event_consumers()")
+            .expect("retained tick should pump other runtime event consumers");
+        assert!(scene_modes < watch);
+        assert!(watch < invalidation_pump);
+        assert!(invalidation_pump < fragment);
+        assert!(fragment < runtime_consumers);
+    }
+
+    #[test]
+    fn retained_tick_consumes_resize_render_work_after_the_active_recompute() {
+        let source = include_str!("tick.rs");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("tick source should contain its production section");
+        let recompute = production
+            .find("self.recompute_if_dirty();")
+            .expect("window metrics and viewport projection recompute");
+        let render = production
+            .find("self.submit_render_frame_if_dirty();")
+            .expect("render reason consumer");
+
+        assert!(recompute < render);
     }
 }

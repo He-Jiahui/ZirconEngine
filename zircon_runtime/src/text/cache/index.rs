@@ -8,6 +8,12 @@ pub(super) struct TextCacheLookup {
     pub(super) candidate_count: usize,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(super) struct TextCacheEvictionWork {
+    pub(super) scan_count: usize,
+    pub(super) entry_move_count: usize,
+}
+
 pub(crate) trait IndexedTextCacheEntry<K> {
     fn cache_key(&self) -> &K;
 }
@@ -111,6 +117,11 @@ where
         slot
     }
 
+    pub(super) fn insert_untracked(&mut self, entry: E) -> TextCacheSlot {
+        let (slot, _) = self.insert_inner(entry, false);
+        slot
+    }
+
     pub(super) fn update_or_insert_with<T>(
         &mut self,
         update_slot: Option<TextCacheSlot>,
@@ -191,12 +202,35 @@ where
     }
 
     pub(super) fn pop_oldest(&mut self) -> Option<E> {
-        self.pop_oldest_with_slot().map(|(_, entry)| entry)
+        self.pop_oldest_with_work().map(|(entry, _)| entry)
     }
 
     pub(super) fn pop_oldest_with_slot(&mut self) -> Option<(TextCacheSlot, E)> {
+        self.pop_oldest_with_slot_and_work()
+            .map(|(slot, entry, _)| (slot, entry))
+    }
+
+    pub(super) fn pop_oldest_with_work(&mut self) -> Option<(E, TextCacheEvictionWork)> {
+        self.pop_oldest_with_slot_and_work()
+            .map(|(_, entry, work)| (entry, work))
+    }
+
+    pub(super) fn pop_oldest_with_slot_and_work(
+        &mut self,
+    ) -> Option<(TextCacheSlot, E, TextCacheEvictionWork)> {
         let slot = self.lru_head?;
-        self.remove(slot).map(|entry| (slot, entry))
+        self.remove(slot).map(|entry| {
+            (
+                slot,
+                entry,
+                TextCacheEvictionWork {
+                    // The linked LRU head identifies the victim directly. No resident-entry
+                    // search or stable-entry relocation is hidden behind the cache report.
+                    scan_count: 1,
+                    entry_move_count: 0,
+                },
+            )
+        })
     }
 
     pub(super) fn remove(&mut self, slot: TextCacheSlot) -> Option<E> {
@@ -337,6 +371,17 @@ mod tests {
     }
 
     #[test]
+    fn untracked_insert_stays_out_of_the_eviction_chain_until_touched() {
+        let mut cache = IndexedTextCache::new();
+        let slot = cache.insert_untracked(Entry { key: 7, value: 70 });
+
+        assert!(cache.pop_oldest().is_none());
+
+        cache.touch(slot);
+        assert_eq!(cache.pop_oldest().map(|entry| entry.value), Some(70));
+    }
+
+    #[test]
     fn text_cache_indexes_keep_hot_lookup_and_eviction_work_constant_when_upserting() {
         let mut cache = IndexedTextCache::new();
         let slot = cache.insert(Entry { key: 7, value: 70 });
@@ -414,5 +459,22 @@ mod tests {
         assert_eq!(cache.remove(last).map(|entry| entry.value), Some(30));
         assert_eq!(cache.pop_oldest().map(|entry| entry.value), Some(10));
         assert!(cache.is_empty());
+    }
+
+    #[test]
+    fn oldest_eviction_reports_one_direct_candidate_and_zero_entry_moves() {
+        let mut cache = IndexedTextCache::new();
+        let oldest = cache.insert(Entry { key: 1, value: 10 });
+        let retained = cache.insert(Entry { key: 2, value: 20 });
+
+        let (slot, entry, work) = cache
+            .pop_oldest_with_slot_and_work()
+            .expect("tracked LRU entry");
+
+        assert_eq!(slot, oldest);
+        assert_eq!(entry.value, 10);
+        assert_eq!(work.scan_count, 1);
+        assert_eq!(work.entry_move_count, 0);
+        assert_eq!(cache.entry(retained).map(|entry| entry.value), Some(20));
     }
 }

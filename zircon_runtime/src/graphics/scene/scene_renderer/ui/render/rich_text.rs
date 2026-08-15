@@ -1,7 +1,7 @@
 use crate::core::math::Vec4;
 use crate::text::{
-    CompiledRichText, InlineBaseline, InlineObjectRef, StyledRun,
-    resolve_compiled_rich_text_artifact,
+    resolve_compiled_rich_text_artifact, CompiledRichText, InlineBaseline, InlineObjectRef,
+    StyledRun,
 };
 use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
@@ -13,7 +13,7 @@ use zircon_runtime_interface::ui::surface::{
 
 use super::super::image::ScreenSpaceUiImageBatch;
 use super::background::ScreenSpaceUiBackgroundTracker;
-use super::{PlannedScreenSpaceUi, parse_color, push_rect};
+use super::{parse_color, push_rect, PlannedScreenSpaceUi};
 
 pub(super) struct RichTextRunPresentation {
     pub font: Option<String>,
@@ -119,6 +119,7 @@ pub(super) fn plan_inline_run(
     run: &UiTextPaintRun,
     rich_run: Option<&StyledRun>,
     viewport: UiFrame,
+    raster_scale: f32,
     fallback_color: [f32; 4],
     backgrounds: &ScreenSpaceUiBackgroundTracker,
     plan: &mut PlannedScreenSpaceUi,
@@ -167,6 +168,7 @@ pub(super) fn plan_inline_run(
                 glyph.to_string(),
                 inline_frame,
                 Some(run.source_range),
+                false,
                 Vec::new(),
                 None,
                 None,
@@ -182,6 +184,7 @@ pub(super) fn plan_inline_run(
                 run.style.clone(),
                 decorations_for_rich_run(command, rich_run),
                 viewport,
+                raster_scale,
                 backgrounds,
                 plan,
             );

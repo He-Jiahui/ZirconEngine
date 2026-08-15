@@ -3,8 +3,9 @@ use super::*;
 use crate::ui::{
     layout::UiFrame,
     surface::{
-        UiResolvedTextRun, UiTextByteRange, UiTextDirection, UiTextPaintDecorationKind,
-        UiTextPreeditClause, UiTextPreeditClauseKind, UiTextRunKind,
+        UiResolvedTextRun, UiTextByteRange, UiTextComposition, UiTextDirection,
+        UiTextPaintDecorationKind, UiTextPreeditClause, UiTextPreeditClauseKind, UiTextRunKind,
+        UiTextSelection,
     },
 };
 

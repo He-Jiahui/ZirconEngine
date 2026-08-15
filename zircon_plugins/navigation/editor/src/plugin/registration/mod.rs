@@ -3,6 +3,8 @@ mod components;
 mod operations;
 mod templates;
 
+use std::sync::{Arc, Mutex};
+
 use zircon_editor::core::editor_extension::{
     EditorExtensionRegistry, EditorExtensionRegistryError,
 };
@@ -14,9 +16,12 @@ use crate::extension_ids::{
     NAVIGATION_AGENTS_VIEW_ID, NAVIGATION_AUTHORING_VIEW_ID, NAVIGATION_BAKE_VIEW_ID,
     NAVIGATION_DEBUG_VIEW_ID, NAVIGATION_DRAWER_ID, NAVIGATION_TEMPLATE_ID,
 };
+use crate::runtime_mirror::NavigationPieMirror;
+use crate::viewport_overlay_provider::register_navigation_viewport_overlay_provider;
 
 pub(crate) fn register_navigation_extensions(
     registry: &mut EditorExtensionRegistry,
+    pie_mirror: Arc<Mutex<NavigationPieMirror>>,
 ) -> Result<(), EditorExtensionRegistryError> {
     register_authoring_extensions(
         registry,
@@ -56,5 +61,6 @@ pub(crate) fn register_navigation_extensions(
     templates::register(registry)?;
     components::register(registry)?;
     operations::register(registry)?;
-    assets::register(registry)
+    assets::register(registry)?;
+    register_navigation_viewport_overlay_provider(registry, pie_mirror)
 }

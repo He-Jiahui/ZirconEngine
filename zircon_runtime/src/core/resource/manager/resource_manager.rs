@@ -1,12 +1,11 @@
 use std::collections::HashMap;
-use std::ops::{Deref, DerefMut};
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::ops::Deref;
+use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::core::framework::asset::ResourceManagementGeneration;
 use crate::core::resource::{
     event_stream::ResourceEventPublisher, ResourceData, ResourceEventReceiver,
-    ResourceEventStreamDiagnostics, ResourceId, ResourceReadinessGeneration, ResourceRegistry,
-    RuntimeResourceState,
+    ResourceEventStreamDiagnostics, ResourceId, ResourceManagementGeneration,
+    ResourceReadinessGeneration, ResourceRegistry, RuntimeResourceState,
 };
 
 use super::management_projection::ResourceManagementProjection;
@@ -16,10 +15,62 @@ use super::runtime_slot::ResourceRuntimeSlot;
 pub(super) type ResourcePayloadMap = HashMap<ResourceId, Arc<dyn ResourceData>>;
 pub(super) type ResourceRuntimeMap = HashMap<ResourceId, ResourceRuntimeSlot>;
 
-#[derive(Debug, Default)]
-struct ResourceAuthority {
-    registry: ResourceRegistry,
-    management: ResourceManagementProjection,
+#[derive(Debug)]
+pub(super) struct ResourceAuthority {
+    pub(super) registry: ResourceRegistry,
+    pub(super) management: ResourceManagementProjection,
+    pub(super) payloads: ResourcePayloadMap,
+    pub(super) runtime: ResourceRuntimeMap,
+    pub(super) readiness: ResourceReadinessProjection,
+    next_residency_token: u64,
+}
+
+impl Default for ResourceAuthority {
+    fn default() -> Self {
+        Self {
+            registry: ResourceRegistry::default(),
+            management: ResourceManagementProjection::default(),
+            payloads: ResourcePayloadMap::default(),
+            runtime: ResourceRuntimeMap::default(),
+            readiness: ResourceReadinessProjection::default(),
+            next_residency_token: 1,
+        }
+    }
+}
+
+impl ResourceAuthority {
+    pub(super) fn allocate_residency_token(&mut self) -> u64 {
+        let token = self.next_residency_token.max(1);
+        self.next_residency_token = token.wrapping_add(1).max(1);
+        token
+    }
+
+    pub(super) fn refresh_readiness_many(&mut self, ids: impl IntoIterator<Item = ResourceId>) {
+        let mut ids = ids.into_iter().collect::<Vec<_>>();
+        ids.sort_unstable();
+        ids.dedup();
+        if ids.is_empty() {
+            return;
+        }
+
+        let updates = ids
+            .into_iter()
+            .map(|id| ResourceReadinessSourceUpdate {
+                id,
+                record: self.registry.get(id).cloned(),
+                runtime_state: self
+                    .runtime
+                    .get(&id)
+                    .map(|slot| slot.state)
+                    .unwrap_or(RuntimeResourceState::Unloaded),
+                payload_type_id: self
+                    .payloads
+                    .get(&id)
+                    .map(|payload| payload.as_any().type_id()),
+            })
+            .collect::<Vec<_>>();
+        self.readiness.apply_updates(updates);
+    }
 }
 
 #[derive(Debug)]
@@ -35,79 +86,11 @@ impl Deref for ResourceRegistryReadGuard<'_> {
     }
 }
 
-pub(super) struct ResourceAuthorityWriteGuard<'a> {
-    guard: RwLockWriteGuard<'a, ResourceAuthority>,
-}
-
-impl Deref for ResourceAuthorityWriteGuard<'_> {
-    type Target = ResourceRegistry;
-
-    fn deref(&self) -> &Self::Target {
-        &self.guard.registry
-    }
-}
-
-impl DerefMut for ResourceAuthorityWriteGuard<'_> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.guard.registry
-    }
-}
-
-impl ResourceAuthorityWriteGuard<'_> {
-    pub(super) fn upsert(
-        &mut self,
-        record: crate::core::resource::ResourceRecord,
-    ) -> Option<crate::core::resource::ResourceRecord> {
-        let previous = self.guard.registry.upsert(record.clone());
-        self.guard.management.upsert(&record);
-        previous
-    }
-
-    pub(super) fn upsert_registry_only(
-        &mut self,
-        record: crate::core::resource::ResourceRecord,
-    ) -> Option<crate::core::resource::ResourceRecord> {
-        self.guard.registry.upsert(record)
-    }
-
-    pub(super) fn publish_records<'a>(
-        &mut self,
-        records: impl IntoIterator<Item = &'a crate::core::resource::ResourceRecord>,
-    ) {
-        self.guard.management.upsert_many(records);
-    }
-
-    pub(super) fn publish_record(&mut self, record: &crate::core::resource::ResourceRecord) {
-        self.guard.management.upsert(record);
-    }
-
-    pub(super) fn remove_by_locator(
-        &mut self,
-        locator: &crate::core::resource::ResourceLocator,
-    ) -> Option<crate::core::resource::ResourceRecord> {
-        let removed = self.guard.registry.remove_by_locator(locator)?;
-        self.guard.management.remove(removed.id);
-        Some(removed)
-    }
-
-    pub(super) fn rename(
-        &mut self,
-        from: &crate::core::resource::ResourceLocator,
-        to: crate::core::resource::ResourceLocator,
-    ) -> crate::core::resource::ResourceResult<crate::core::resource::ResourceRecord> {
-        let renamed = self.guard.registry.rename(from, to)?;
-        self.guard.management.upsert(&renamed);
-        Ok(renamed)
-    }
-}
-
 #[derive(Clone, Debug, Default)]
 pub struct ResourceManager {
-    authority: Arc<RwLock<ResourceAuthority>>,
-    pub(super) payloads: Arc<RwLock<ResourcePayloadMap>>,
-    pub(super) runtime: Arc<RwLock<ResourceRuntimeMap>>,
+    pub(super) authority: Arc<RwLock<ResourceAuthority>>,
+    commit_serial: Arc<Mutex<()>>,
     events: ResourceEventPublisher,
-    readiness: Arc<RwLock<ResourceReadinessProjection>>,
 }
 
 impl ResourceManager {
@@ -132,9 +115,10 @@ impl ResourceManager {
     }
 
     pub fn readiness_generation(&self) -> Arc<ResourceReadinessGeneration> {
-        self.readiness
+        self.authority
             .read()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .readiness
             .generation()
     }
 
@@ -147,82 +131,35 @@ impl ResourceManager {
         }
     }
 
-    pub(super) fn lock_registry_write(&self) -> ResourceAuthorityWriteGuard<'_> {
-        ResourceAuthorityWriteGuard {
-            guard: self
-                .authority
-                .write()
-                .unwrap_or_else(|poisoned| poisoned.into_inner()),
-        }
+    pub(super) fn lock_authority_read(&self) -> RwLockReadGuard<'_, ResourceAuthority> {
+        self.authority
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub(super) fn lock_authority_write(&self) -> RwLockWriteGuard<'_, ResourceAuthority> {
+        self.authority
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub(super) fn lock_commit_serial(&self) -> MutexGuard<'_, ()> {
+        self.commit_serial
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    #[cfg(test)]
+    pub(super) fn commit_gate_is_locked_for_test(&self) -> bool {
+        self.commit_serial.try_lock().is_err()
     }
 
     pub fn registry(&self) -> ResourceRegistryReadGuard<'_> {
         self.lock_registry_read()
     }
 
-    pub(super) fn lock_payloads_read(&self) -> RwLockReadGuard<'_, ResourcePayloadMap> {
-        self.payloads
-            .read()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-    }
-
-    pub(super) fn lock_payloads_write(&self) -> RwLockWriteGuard<'_, ResourcePayloadMap> {
-        self.payloads
-            .write()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-    }
-
-    pub(super) fn lock_runtime_read(&self) -> RwLockReadGuard<'_, ResourceRuntimeMap> {
-        self.runtime
-            .read()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-    }
-
-    pub(super) fn lock_runtime_write(&self) -> RwLockWriteGuard<'_, ResourceRuntimeMap> {
-        self.runtime
-            .write()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-    }
-
     pub(super) fn publish_event(&self, event: crate::core::resource::ResourceEvent) {
         self.events.publish(event);
-    }
-
-    pub(super) fn refresh_readiness(&self, id: ResourceId) {
-        self.refresh_readiness_many(std::iter::once(id));
-    }
-
-    pub(super) fn refresh_readiness_many(&self, ids: impl IntoIterator<Item = ResourceId>) {
-        let mut ids = ids.into_iter().collect::<Vec<_>>();
-        ids.sort_unstable();
-        ids.dedup();
-        if ids.is_empty() {
-            return;
-        }
-
-        let registry = self.lock_registry_read();
-        let runtime = self.lock_runtime_read();
-        let payloads = self.lock_payloads_read();
-        let updates = ids
-            .into_iter()
-            .map(|id| ResourceReadinessSourceUpdate {
-                id,
-                record: registry.get(id).cloned(),
-                runtime_state: runtime
-                    .get(&id)
-                    .map(|slot| slot.state)
-                    .unwrap_or(RuntimeResourceState::Unloaded),
-                payload_type_id: payloads.get(&id).map(|payload| payload.as_any().type_id()),
-            })
-            .collect::<Vec<_>>();
-        drop(payloads);
-        drop(runtime);
-        drop(registry);
-
-        self.readiness
-            .write()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .apply_updates(updates);
     }
 
     #[cfg(test)]
@@ -265,16 +202,8 @@ mod tests {
             manager.poison_event_stream_for_test();
         }));
         let _ = panic::catch_unwind(AssertUnwindSafe(|| {
-            let _guard = manager.lock_registry_write();
-            panic!("poison resource registry");
-        }));
-        let _ = panic::catch_unwind(AssertUnwindSafe(|| {
-            let _guard = manager.lock_payloads_write();
-            panic!("poison resource payloads");
-        }));
-        let _ = panic::catch_unwind(AssertUnwindSafe(|| {
-            let _guard = manager.lock_runtime_write();
-            panic!("poison resource runtime slots");
+            let _guard = manager.lock_authority_write();
+            panic!("poison resource authority");
         }));
 
         let events = manager.subscribe();
@@ -287,6 +216,7 @@ mod tests {
                     name: "poisoned-ready",
                 },
             )
+            .expect("register ready payload")
             .typed::<ModelMarker>()
             .expect("typed model handle");
 

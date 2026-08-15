@@ -9,6 +9,7 @@ INPUT_STACK_GUARD_FILES = (
     "zircon_runtime/src/tests/runtime_absorption/input_stack/contracts.rs",
     "zircon_runtime/src/tests/runtime_absorption/input_stack/action_mapping.rs",
     "zircon_runtime/src/tests/runtime_absorption/input_stack/gamepad_bridge.rs",
+    "zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/behavior_anchors.rs",
     "zircon_runtime/src/tests/runtime_absorption/input_stack/inventory/mirror_docs.rs",
 )
 INPUT_RUNTIME_MODULES = (
@@ -19,7 +20,9 @@ INPUT_RUNTIME_MODULES = (
     "zircon_runtime/src/input/module/mod.rs",
     "zircon_runtime/src/input/module/module_type.rs",
     "zircon_runtime/src/input/runtime/action_evaluator.rs",
-    "zircon_runtime/src/input/runtime/action_evaluator/binding_index.rs",
+    "zircon_runtime/src/input/runtime/action_evaluator/consumed_input_index.rs",
+    "zircon_runtime/src/input/runtime/action_evaluator/generation.rs",
+    "zircon_runtime/src/input/runtime/action_evaluator/workspace.rs",
     "zircon_runtime/src/input/runtime/action_evaluator/frame_axis_index.rs",
     "zircon_runtime/src/input/runtime/default_input_action_manager.rs",
     "zircon_runtime/src/input/runtime/default_input_manager.rs",

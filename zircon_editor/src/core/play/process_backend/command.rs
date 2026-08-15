@@ -2,6 +2,9 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use zircon_runtime::asset::project::ProjectPaths;
+use zircon_runtime_interface::project::RelPath;
+
 use crate::core::process::{
     configure_process_tree_cancellation, configure_process_tree_suspended_spawn,
 };
@@ -9,22 +12,22 @@ use crate::core::process::{
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct PlayProcessCommand {
     executable: PathBuf,
-    project_root: PathBuf,
-    scene_path: PathBuf,
+    working_directory: PathBuf,
+    scene: RelPath,
     report_pipe: String,
 }
 
 impl PlayProcessCommand {
     pub(super) fn new(
         executable: impl Into<PathBuf>,
-        project_root: impl Into<PathBuf>,
-        scene_path: impl Into<PathBuf>,
+        working_directory: impl Into<PathBuf>,
+        scene: RelPath,
         report_pipe: impl Into<String>,
     ) -> Self {
         Self {
             executable: executable.into(),
-            project_root: project_root.into(),
-            scene_path: scene_path.into(),
+            working_directory: working_directory.into(),
+            scene,
             report_pipe: report_pipe.into(),
         }
     }
@@ -33,14 +36,14 @@ impl PlayProcessCommand {
         let mut command = Command::new(&self.executable);
         command
             .arg("--project")
-            .arg(&self.project_root)
+            .arg(".")
             .arg("--runtime-session-profile")
             .arg("runtime")
             .arg("--play-scene")
-            .arg(&self.scene_path)
+            .arg(self.scene.as_str())
             .arg("--play-report-pipe")
             .arg(&self.report_pipe)
-            .current_dir(&self.project_root);
+            .current_dir(&self.working_directory);
         configure_process_tree_cancellation(&mut command);
         configure_process_tree_suspended_spawn(&mut command);
         command
@@ -49,11 +52,11 @@ impl PlayProcessCommand {
     pub(super) fn arguments(&self) -> Vec<OsString> {
         vec![
             "--project".into(),
-            self.project_root.as_os_str().to_owned(),
+            ".".into(),
             "--runtime-session-profile".into(),
             "runtime".into(),
             "--play-scene".into(),
-            self.scene_path.as_os_str().to_owned(),
+            self.scene.as_str().into(),
             "--play-report-pipe".into(),
             self.report_pipe.clone().into(),
         ]
@@ -71,6 +74,85 @@ impl PlayProcessCommand {
 pub(super) fn runtime_executable_next_to_current_process() -> Result<PathBuf, String> {
     let current = std::env::current_exe()
         .map_err(|error| format!("failed to resolve current editor executable: {error}"))?;
-    let file_name = format!("zircon_runtime{}", std::env::consts::EXE_SUFFIX);
-    Ok(current.with_file_name(file_name))
+    runtime_executable_next_to_path(&current)
+}
+
+fn runtime_executable_next_to_path(current: &Path) -> Result<PathBuf, String> {
+    let directory = current
+        .parent()
+        .ok_or_else(|| "current editor executable has no parent directory".to_owned())?;
+    let product_directory = ProjectPaths::resolve_path(directory).map_err(|error| {
+        format!("failed to resolve current editor installation directory: {error}")
+    })?;
+    let runtime_name = format!("zircon_runtime{}", std::env::consts::EXE_SUFFIX);
+    ProjectPaths::resolve_path_from(&product_directory, runtime_name)
+        .map(|path| path.into_operation_path())
+        .map_err(|error| format!("failed to resolve sibling runtime executable: {error}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::{Path, PathBuf};
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use zircon_runtime::asset::project::ProjectPaths;
+
+    use super::runtime_executable_next_to_path;
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn play_runtime_executable_uses_the_physical_editor_install_identity() {
+        let parent = unique_play_install_root("alias");
+        let physical_install = parent.join("physical-install");
+        fs::create_dir_all(&physical_install).unwrap();
+        let install_alias = parent.join("install-alias");
+        create_directory_link(&physical_install, &install_alias);
+
+        let actual = runtime_executable_next_to_path(
+            &install_alias.join(format!("zircon_editor{}", std::env::consts::EXE_SUFFIX)),
+        )
+        .expect("runtime executable should resolve from the editor installation");
+        let expected = ProjectPaths::resolve_existing_path(&physical_install)
+            .unwrap()
+            .join(format!("zircon_runtime{}", std::env::consts::EXE_SUFFIX));
+
+        fs::remove_dir_all(&parent).unwrap();
+        assert_eq!(actual, expected);
+    }
+
+    fn unique_play_install_root(case_name: &str) -> PathBuf {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "zircon-editor-play-install-{case_name}-{}-{timestamp}",
+            std::process::id()
+        ));
+        if path.exists() {
+            fs::remove_dir_all(&path).unwrap();
+        }
+        path
+    }
+
+    #[cfg(unix)]
+    fn create_directory_link(target: &Path, link: &Path) {
+        std::os::unix::fs::symlink(target, link).expect("create editor-install alias fixture");
+    }
+
+    #[cfg(windows)]
+    fn create_directory_link(target: &Path, link: &Path) {
+        let command = format!(r#"mklink /J "{}" "{}""#, link.display(), target.display());
+        let output = std::process::Command::new("cmd")
+            .args(["/D", "/S", "/C"])
+            .arg(command)
+            .output()
+            .expect("start mklink for editor-install alias fixture");
+        assert!(
+            output.status.success(),
+            "create editor-install junction fixture failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
 }

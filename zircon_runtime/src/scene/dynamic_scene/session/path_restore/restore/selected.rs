@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::scene::{LevelSystem, World};
 
 use super::super::super::{
-    RuntimeSessionArchiveError, RuntimeSessionLevelRestoreReport, RuntimeSessionSlotSelector, io,
+    io, RuntimeSessionArchiveError, RuntimeSessionLevelRestoreReport, RuntimeSessionSlotSelector,
 };
 
 pub(in crate::scene::dynamic_scene::session) fn restore_selected_slot_from_path_to_empty_world(

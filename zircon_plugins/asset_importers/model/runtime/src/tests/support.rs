@@ -45,6 +45,14 @@ pub(super) fn root_imported(outcome: &AssetImportOutcome) -> ImportedAsset {
 }
 
 pub(super) fn import_fixture_outcome(path: &str, source: &str) -> AssetImportOutcome {
+    import_fixture_outcome_with_settings(path, source, Default::default())
+}
+
+pub(super) fn import_fixture_outcome_with_settings(
+    path: &str,
+    source: &str,
+    import_settings: toml::Table,
+) -> AssetImportOutcome {
     let report = plugin_registration();
     let importer = report
         .extensions
@@ -56,7 +64,7 @@ pub(super) fn import_fixture_outcome(path: &str, source: &str) -> AssetImportOut
         path.into(),
         zircon_runtime::asset::AssetUri::parse(&uri).unwrap(),
         source.as_bytes().to_vec(),
-        Default::default(),
+        import_settings,
     );
     importer.import(&context).unwrap()
 }

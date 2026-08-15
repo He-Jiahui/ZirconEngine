@@ -57,7 +57,7 @@ fn action_map_resolves_chords_and_reports_just_activated() {
 }
 
 #[test]
-fn rebinding_action_does_not_require_recompilation() {
+fn replacing_action_map_rebuilds_bindings_automatically() {
     let mut map = InputActionMap::new();
     map.add_action(InputAction::new("gameplay.jump").with_context("gameplay"));
     map.bind(InputBinding::button(
@@ -403,8 +403,8 @@ fn input_action_manager_resolves_from_runtime_module_descriptor() {
 }
 
 #[test]
-fn action_evaluator_indexes_10_100_and_1000_bindings_once() {
-    for binding_count in [10, 100, 1_000] {
+fn action_evaluator_indexes_10_100_1000_and_10000_bindings_once() {
+    for binding_count in [10, 100, 1_000, 10_000] {
         let evaluator = InputActionEvaluator::new(action_map_with_unique_bindings(binding_count));
 
         assert_eq!(
@@ -417,12 +417,13 @@ fn action_evaluator_indexes_10_100_and_1000_bindings_once() {
             .pressed_actions()
             .is_empty());
         assert_eq!(evaluator.evaluation_binding_visit_count(), binding_count);
+        assert_eq!(evaluator.evaluation_output_action_count(), 0);
     }
 }
 
 #[test]
-fn action_evaluator_indexes_axis_frame_sources_once_for_10_100_and_1000_bindings() {
-    for binding_count in [10, 100, 1_000] {
+fn action_evaluator_indexes_axis_frame_sources_once_for_10_100_1000_and_10000_bindings() {
+    for binding_count in [10, 100, 1_000, 10_000] {
         let (action_map, frame) = action_map_with_unique_axis_bindings(binding_count);
         let evaluator = InputActionEvaluator::new(action_map);
 
@@ -430,6 +431,7 @@ fn action_evaluator_indexes_axis_frame_sources_once_for_10_100_and_1000_bindings
 
         assert_eq!(state.pressed_actions().len(), binding_count);
         assert_eq!(evaluator.evaluation_binding_visit_count(), binding_count);
+        assert_eq!(evaluator.evaluation_output_action_count(), binding_count);
         assert_eq!(
             evaluator.evaluation_axis_source_visit_count(),
             binding_count * 2,
@@ -439,13 +441,168 @@ fn action_evaluator_indexes_axis_frame_sources_once_for_10_100_and_1000_bindings
 }
 
 #[test]
-fn replacing_an_action_map_rebuilds_the_binding_index() {
+fn action_evaluator_records_generation_builds_and_distinct_projected_actions() {
+    let (initial_map, active_frame) = action_map_with_unique_axis_bindings(2);
+    let mut evaluator = InputActionEvaluator::new(initial_map);
+
+    assert_eq!(evaluator.evaluation_generation_build_count(), 1);
+    let initial_state = evaluator.evaluate(&active_frame);
+    assert_eq!(initial_state.pressed_actions().len(), 2);
+    assert_eq!(evaluator.evaluation_output_action_count(), 2);
+
+    evaluator.set_action_map(InputActionMap::default());
+
+    assert_eq!(evaluator.evaluation_generation_build_count(), 2);
+    let replaced_state = evaluator.evaluate(&active_frame);
+    assert!(replaced_state.pressed_actions().is_empty());
+    assert_eq!(evaluator.evaluation_output_action_count(), 0);
+}
+
+#[test]
+fn action_evaluator_reuses_workspace_after_axis_warmup() {
+    let (action_map, frame) = action_map_with_unique_axis_bindings(1_000);
+    let evaluator = InputActionEvaluator::new(action_map);
+
+    let consumed_button = InputButton::KeyCode(1);
+    let consumed_axis = GamepadAxisInput::new(GamepadId(1), GamepadAxis::LeftStickX);
+    let first = evaluator.evaluate_with_consumed_input(
+        &frame,
+        &[consumed_button.clone()],
+        &[consumed_axis],
+    );
+    let growth_after_warmup = evaluator.workspace_storage_growth_count();
+    let second =
+        evaluator.evaluate_with_consumed_input(&frame, &[consumed_button], &[consumed_axis]);
+
+    assert_eq!(second, first);
+    assert_eq!(
+        evaluator.workspace_storage_growth_count(),
+        growth_after_warmup,
+        "steady action evaluation must reuse its axis and action workspace after warm-up, including filtered-input calls"
+    );
+    assert_eq!(evaluator.evaluation_binding_visit_count(), 1_000);
+    assert_eq!(evaluator.evaluation_axis_source_visit_count(), 2_000);
+}
+
+#[test]
+fn action_evaluator_reuses_consumed_button_index_at_10000_bindings() {
+    const BINDING_COUNT: usize = 10_000;
+
+    let evaluator = InputActionEvaluator::new(action_map_with_unique_bindings(BINDING_COUNT));
+    let mut frame = InputFrameSnapshot::default();
+    frame
+        .buttons
+        .press(InputButton::KeyCode((BINDING_COUNT - 1) as u32));
+    let consumed_buttons = (0..BINDING_COUNT)
+        .map(|index| InputButton::KeyCode(index as u32))
+        .collect::<Vec<_>>();
+
+    let first = evaluator.evaluate_with_consumed_buttons(&frame, &consumed_buttons);
+    let growth_after_warmup = evaluator.workspace_storage_growth_count();
+    let second = evaluator.evaluate_with_consumed_buttons(&frame, &consumed_buttons);
+
+    assert!(first.pressed_actions().is_empty());
+    assert_eq!(second, first);
+    assert_eq!(
+        evaluator.evaluation_consumed_input_source_visit_count(),
+        BINDING_COUNT
+    );
+    assert_eq!(
+        evaluator.workspace_storage_growth_count(),
+        growth_after_warmup,
+        "a repeated large UI-consumed button set must reuse the evaluator workspace"
+    );
+}
+
+#[test]
+fn action_evaluator_reuses_consumed_axis_index_at_10000_bindings() {
+    const BINDING_COUNT: usize = 10_000;
+
+    let (action_map, frame) = action_map_with_unique_axis_bindings(BINDING_COUNT);
+    let evaluator = InputActionEvaluator::new(action_map);
+    let consumed_axes = (0..BINDING_COUNT)
+        .map(|index| GamepadAxisInput::new(GamepadId(index as u64), GamepadAxis::LeftStickX))
+        .collect::<Vec<_>>();
+
+    let first = evaluator.evaluate_with_consumed_input(&frame, &[], &consumed_axes);
+    let growth_after_warmup = evaluator.workspace_storage_growth_count();
+    let second = evaluator.evaluate_with_consumed_input(&frame, &[], &consumed_axes);
+
+    assert!(first.pressed_actions().is_empty());
+    assert_eq!(second, first);
+    assert_eq!(
+        evaluator.evaluation_consumed_input_source_visit_count(),
+        BINDING_COUNT
+    );
+    assert_eq!(
+        evaluator.workspace_storage_growth_count(),
+        growth_after_warmup,
+        "a repeated large UI-consumed axis set must reuse the evaluator workspace"
+    );
+}
+
+#[test]
+fn input_action_evaluator_preserves_send_and_sync_public_boundary() {
+    fn assert_send_and_sync<T: Send + Sync>() {}
+
+    assert_send_and_sync::<InputActionEvaluator>();
+}
+
+#[test]
+fn replacing_an_action_map_rebuilds_the_compiled_generation() {
     let mut evaluator = InputActionEvaluator::new(action_map_with_unique_bindings(10));
     assert_eq!(evaluator.indexed_binding_candidate_count(), 10);
 
     evaluator.set_action_map(action_map_with_unique_bindings(3));
 
     assert_eq!(evaluator.indexed_binding_candidate_count(), 3);
+}
+
+#[test]
+fn duplicate_gamepad_axis_samples_keep_the_last_source_sample() {
+    let gamepad = GamepadId(91);
+    let axis = GamepadAxis::LeftStickX;
+    let mut map = InputActionMap::new();
+    map.add_action(InputAction::new("gameplay.move_x"));
+    map.bind(InputBinding::axis(
+        "gameplay.move_x",
+        InputAxisBinding::new(gamepad, axis),
+    ));
+    let evaluator = InputActionEvaluator::new(map);
+    let mut frame = InputFrameSnapshot::default();
+    frame.gamepad_axes.extend([
+        GamepadAxisState {
+            gamepad,
+            axis,
+            value: -0.25,
+        },
+        GamepadAxisState {
+            gamepad,
+            axis,
+            value: 0.75,
+        },
+    ]);
+    frame.gamepad_axis_transitions.extend([
+        GamepadAxisTransition {
+            gamepad,
+            axis,
+            previous_value: -0.5,
+            value: -0.25,
+        },
+        GamepadAxisTransition {
+            gamepad,
+            axis,
+            previous_value: -0.25,
+            value: 0.75,
+        },
+    ]);
+
+    let state = evaluator.evaluate(&frame);
+
+    assert!(state.pressed("gameplay.move_x"));
+    assert_close(state.value("gameplay.move_x"), 0.75);
+    assert!(!state.just_activated("gameplay.move_x"));
+    assert!(!state.just_deactivated("gameplay.move_x"));
 }
 
 #[test]
@@ -463,6 +620,48 @@ fn action_evaluator_hot_path_uses_compiled_contexts_and_one_axis_pass() {
         !evaluator_source.contains("binding_axis_value(&frame_axes"),
         "axis value must not trigger a second binding-axis traversal"
     );
+    assert!(
+        evaluator_source.contains("workspace.consumed_inputs()"),
+        "consumed inputs must use the reusable workspace index"
+    );
+    assert!(
+        !evaluator_source.contains("consumed_buttons.contains(button)"),
+        "large consumed button sets must not be linearly scanned for every binding"
+    );
+    assert!(
+        !evaluator_source.contains("consumed_axes.contains(&axis_input)"),
+        "large consumed axis sets must not be linearly scanned for every binding axis"
+    );
+
+    let consumed_index_source = include_str!("../runtime/action_evaluator/consumed_input_index.rs");
+    assert!(
+        consumed_index_source.contains("sort_unstable_by"),
+        "consumed input membership must use an in-place sorted index"
+    );
+    assert!(
+        consumed_index_source.contains("binary_search_by"),
+        "consumed input membership must remain logarithmic after index preparation"
+    );
+
+    let axis_index_source = include_str!("../runtime/action_evaluator/frame_axis_index.rs");
+    assert!(
+        axis_index_source
+            .contains("sort_unstable_by_key(|value| (value.input, value.source_index))"),
+        "axis lookup sorting must remain in-place while retaining source order as a tie-breaker"
+    );
+    assert!(
+        !axis_index_source.contains(".sort_by_key("),
+        "stable axis sorting may allocate outside the reusable evaluator workspace"
+    );
+
+    let action_manager_source = include_str!("../runtime/default_input_action_manager.rs");
+    assert_eq!(
+        action_manager_source
+            .matches("evaluate_while_manager_locked")
+            .count(),
+        6,
+        "the default manager must reuse its evaluator lock for every action-evaluation entry point"
+    );
 
     let descriptor_source = include_str!("../module/descriptor.rs");
     assert!(
@@ -472,28 +671,34 @@ fn action_evaluator_hot_path_uses_compiled_contexts_and_one_axis_pass() {
 }
 
 fn action_map_with_unique_bindings(binding_count: usize) -> InputActionMap {
-    let mut map = InputActionMap::new();
+    let mut actions = Vec::with_capacity(binding_count);
+    let mut bindings = Vec::with_capacity(binding_count);
     for index in 0..binding_count {
         let action = format!("gameplay.action_{index}");
-        map.add_action(InputAction::new(action.clone()));
-        map.bind(InputBinding::button(
+        actions.push(InputAction::new(action.clone()));
+        bindings.push(InputBinding::button(
             action,
             InputButton::KeyCode(index as u32),
         ));
     }
-    map
+    InputActionMap {
+        contexts: Vec::new(),
+        actions,
+        bindings,
+    }
 }
 
 fn action_map_with_unique_axis_bindings(
     binding_count: usize,
 ) -> (InputActionMap, InputFrameSnapshot) {
-    let mut map = InputActionMap::new();
+    let mut actions = Vec::with_capacity(binding_count);
+    let mut bindings = Vec::with_capacity(binding_count);
     let mut frame = InputFrameSnapshot::default();
     for index in 0..binding_count {
         let action = format!("gameplay.axis_action_{index}");
         let gamepad = GamepadId(index as u64);
-        map.add_action(InputAction::new(action.clone()));
-        map.bind(InputBinding::axis(
+        actions.push(InputAction::new(action.clone()));
+        bindings.push(InputBinding::axis(
             action,
             InputAxisBinding::new(gamepad, GamepadAxis::LeftStickX),
         ));
@@ -509,7 +714,14 @@ fn action_map_with_unique_axis_bindings(
             value: 0.5,
         });
     }
-    (map, frame)
+    (
+        InputActionMap {
+            contexts: Vec::new(),
+            actions,
+            bindings,
+        },
+        frame,
+    )
 }
 
 fn assert_close(left: f32, right: f32) {

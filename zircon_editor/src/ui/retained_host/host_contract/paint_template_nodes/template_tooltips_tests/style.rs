@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 use super::super::super::super::paint_theme::METRICS;
 use super::super::super::super::paint_theme::PALETTE;
 use super::super::super::style_selector::{
-    WORKBENCH_TOOLTIP_BORDER, WORKBENCH_TOOLTIP_SURFACE, select_workbench_tooltip_style,
+    select_workbench_tooltip_style, WORKBENCH_TOOLTIP_BORDER, WORKBENCH_TOOLTIP_SURFACE,
 };
 use super::super::metrics::tooltip_metrics_from_host;
 use super::support::tooltip_node;

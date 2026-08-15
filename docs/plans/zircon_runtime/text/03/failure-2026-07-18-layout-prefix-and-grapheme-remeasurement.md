@@ -12,6 +12,7 @@ related_code:
   - zircon_runtime/src/text/hard_line.rs
   - zircon_runtime/src/text/layout
   - zircon_runtime/src/text/layout/advance_index.rs
+  - zircon_runtime/src/text/layout/measure.rs
   - zircon_runtime/src/text/layout/line_break/boundary_correction.rs
   - zircon_runtime/src/text/layout/line_break/boundary_correction/tests.rs
   - zircon_runtime/src/text/layout/rich.rs
@@ -88,9 +89,36 @@ Open state: 本失败仍未关闭；非验收算法实现与二次静态审查�
 - 2026-08-01 已完成 bounded boundary owner：plain/rich/UI horizontal/VerticalRl Glyph 与 Word/WordSmart 都复用 prefix advance，只物化首尾各 16 个 context units 的 bounded indexed query；单次 shape window 为 16 graphemes（soft-hyphen suffix 另计），不再收集增长中的完整候选行。plain/rich 重复 planner 已合并。
 - 2026-08-01 soft-hyphen 已形成测量到绘制闭环：合法 chunk 断点以 suffix 修正宽度，普通 UI 使用 pending suffix，rich-inline horizontal/VerticalRl 追加 synthetic `-` run、隐藏 U+00AD source range 和真实 advance。1/100/1k/10k grapheme backend-call/window、1/100/1k alternating rich-run single-shape 和 UI token cache-miss 线性回归已写入源码。
 - ignored `boundary_scale_evidence_reports_p50_p95` 已就绪，按 31 samples 输出各 grapheme 规模的 line count/backend calls/max window/p50/p95 ns，不用机器时延阈值伪造正确性 pass。
+- 2026-08-15 新增 ignored `measure.rs::grapheme_projection_scale_evidence_reports_p50_p95`：经实际 `DirectTextShapeRunProvider` 运行时入口，对 `latin_combining` 与 `rtl_arabic_mark` 输入分别采样 1/100/1k/10k graphemes，输出 glyph count 与 31-sample p50/p95 ns；p95 复用既有 nearest-rank 下标。该测试只为判定 glyph-to-grapheme projection 是否为实测瓶颈，尚未运行，不改变生产布局算法或本 failure 的 open 状态。
 - 2026-08-01 二次静态审查已修复重复 planner、O(G^2) edge-unit materialization 和 rich suffix 漏投影三项缺陷；owner 均低于 800 行，格式/whitespace/旧增长候选/production panic-unwrap-expect-dead-code allow 扫描通过，未留下 actionable P0/P1/P2。
 - 2026-08-01 Text02实现完成后的定向二次审查发现Text03 hard-line消费仍有偏差；现已由公共`text/hard_line.rs`统一CR/CRLF/LF/VT/FF/NEL/LS/PS，measure/rich/UI与shaping共用同一content/separator range。line-break chunk改用absolute source range并保留mandatory标记，kinsoku/word-smart禁止跨强制边界合并；BIDI line order只计算一次reordered levels。对应回归已写入，managed Cargo仍待coordinator，failure不提前标记fixed。
 - 当前 failure 保持 `open` 的原因已从“算法实现未完成”收窄为 managed focused/upward Cargo/规模回归执行与 p50/p95、Text09 cache 回归和新鲜 WGPU 产品 framebuffer 尚未验收。状态为 `implementation_complete / resolving_failure / managed_validation_pending`，不是 blocked，也不允许用旧 PNG 或策略图关闭。
 - Coordinator handoff：validation submit 因 Session numbered-Plan registration 尚未物化而被拒绝/health-preflight timeout，未产生 queued/running ticket；完整 registration 已收到 durable accepted receipt `a6d7f08e10c24387be4c8b73611319e6`。按规则不轮询 receipt，coordinator wakeup 后前向提交 `boundary`、`rich_span_index`、`soft_hyphen`、ignored p50/p95 exporter 与 ignored exact WGPU product 命令。
 - 2026-08-03 SDF source-map 前向修复已完成 visual-order fast path 回归：layout 物化 `"A בא"` 时与 advances 同序重排，数量未改变的 glyph run 直接使用 resolved layout advances；只有 ligature、mark 或 virtual-text 改变 source-range topology 才进入 range projection。`rustfmt --edition 2024 --check`、scoped whitespace 及 production 禁用模式扫描通过。failure 继续保持 `open / implementation_complete / resolving_failure / managed_validation_pending`；权威 WGPU PNG 尚不存在。
 - 2026-08-03 定向二次审查确认 horizontal shaped-SDF 的 layout advance 投影覆盖 tatweel、visual Bidi、ligature、combining-mark 和 rebased virtual source range；VerticalRl shaped glyph 已在 render extract 阶段消费同一 resolved main-axis advance，不能机械套用 horizontal projection。新增回归保留在独立 `sdf_render/tests/shaped_advances.rs` owner，生产 leaf 为 164 行；未发现本切片 actionable P0/P1/P2，受管 Cargo/真实 WGPU PNG 仍是唯一未验收项。
+
+## 2026-08-15 grapheme projection performance research gate
+
+本轮不据静态印象替换现有布局结构。`measure.rs::measured_grapheme_widths_from_shaped` 已先完成整段
+`DirectTextShapeRunProvider` shaping；采样只测 source grapheme ranges 到 glyph advance 的投影，刻意不把
+font lookup、shaper 或 GPU raster 成本混进这一项。当前实现对每个 glyph 以两个 `partition_point` 定位
+重叠的 grapheme 区间，再仅遍历该 glyph `source_range` 实际覆盖的区间。因此其复杂度应为
+`O(G + N log G + I)`：`G` 为 grapheme 数，`N` 为 shaped glyph 数，`I` 为真实 glyph-to-grapheme
+overlap 数；不能把含 ligature、mark 或跨 cluster source range 的 `I` 误报为纯 `O(G + N)`。
+
+已准备的 ignored 31-sample test 必须在 coordinator 释放的 Cargo lane 上，分别记录
+`latin_combining` 和 `rtl_arabic_mark` 在 `G=1/100/1k/10k` 的 `G`、glyph count、p50 和 nearest-rank
+p95。`measured_grapheme_widths_from_shaped` 已以 feature-gated `text.measure/grapheme_projection`
+scope 包住整个投影调用；同一 ignored test 在 `profiling` build 中显式开启有界 capture，断言全部 248 次
+投影各生成一个同名 span，并单独输出 profiler p50/p95 microseconds。默认 build 的 `Instant` p50/p95 保持
+不带采集开销，不能与 profiling build 的时间直接比较。故若 p95 或增长比显示它是热点，受管 profiling
+build 可直接记录运行配置、提交版本、样本数和 allocation/CPU 时间。不得在 glyph 内循环增加 profile event，
+避免 10k-label、300-frame UI workload 把诊断本身变成瓶颈。
+
+Unreal `SlateTextShaper.cpp` 会在 shaping 时写入每 glyph 的 character/grapheme-cluster counts
+（约 804--878 行）。若实测证实本 owner 为瓶颈，后续候选仅限把等价、不可变的 cluster/grapheme
+cardinality 随 shaped output 一起建立，或建立同一 shaped paragraph owner-local 的 cluster prefix index，
+以消除重复 range-to-grapheme 扫描；两种方案都必须保留 ligature、combining mark、Bidi visual order 和
+zero-length virtual run 的 source mapping。没有受管数据前，不引入 UI cache、每字符固定 advance、无界
+prefix memoization 或新的 renderer-side layout 分支。该研究 gate 不改变本 failure 的 open 状态，也不构成
+性能达标或功耗达标声明。

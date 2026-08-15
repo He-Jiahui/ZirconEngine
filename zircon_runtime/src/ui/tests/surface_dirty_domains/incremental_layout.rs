@@ -10,6 +10,35 @@ fn incremental_layout_snapshots_only_visited_geometry() {
 }
 
 #[test]
+fn deserialized_surface_rebuilds_geometry_for_the_first_new_root_size() {
+    let mut surface = UiSurface::new(UiTreeId::new(
+        "runtime.ui.incremental_layout.deserialize_resize",
+    ));
+    surface.tree.insert_root(
+        UiTreeNode::new(root_id(), UiNodePath::new("root")).with_container(UiContainerKind::Free),
+    );
+    surface.compute_layout(root_size()).unwrap();
+    surface.clear_dirty_flags();
+
+    let encoded = serde_json::to_string(&surface).expect("surface should serialize");
+    let mut restored = serde_json::from_str::<UiSurface>(&encoded).expect("surface should restore");
+    let resized_root = UiSize::new(240.0, 90.0);
+
+    let report = restored.rebuild_dirty(resized_root).unwrap();
+
+    assert!(report.layout_recomputed);
+    assert!(report.arranged_rebuilt);
+    assert_eq!(
+        restored
+            .arranged_tree
+            .get(root_id())
+            .expect("restored root should be arranged")
+            .frame,
+        zircon_runtime_interface::ui::layout::UiFrame::new(0.0, 0.0, 240.0, 90.0)
+    );
+}
+
+#[test]
 #[ignore = "explicit M0 scale matrix; run at milestone performance gates"]
 fn stable_and_single_node_dirty_scale_matrix_exposes_post_layout_outer_traversals() {
     for child_count in [1_usize, 100, 10_000] {

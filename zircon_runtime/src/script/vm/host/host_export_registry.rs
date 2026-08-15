@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::framework::script::{
     ScriptHostCallFrame, ScriptHostFunctionDescriptor, ScriptHostModuleDescriptor,
-    ScriptHostResult, ScriptHostTypeRef, ScriptHostValue,
+    ScriptHostOwnedArgumentSource, ScriptHostResult, ScriptHostTypeRef, ScriptHostValue,
 };
 
 use super::super::{CapabilitySet, HostHandle, VmError};
@@ -192,7 +192,11 @@ impl HostExportRegistry {
                     "host export function not registered: {module_name}.{function_name}"
                 ))
             })?;
-        call_site.call(arguments, granted_capabilities)
+        let source = ScriptHostOwnedArgumentSource::new(&arguments);
+        call_site.call(
+            crate::core::framework::script::ScriptHostArguments::new(&source),
+            granted_capabilities,
+        )
     }
 }
 

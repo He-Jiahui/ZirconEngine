@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::ui::asset_editor::{UiAssetEditorWidgetPropStateItem, UiDesignerSelectionModel};
-use toml::{map::Map, Value};
+use toml::{Value, map::Map};
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiChildMount, UiNodeDefinition, UiNodeDefinitionKind,

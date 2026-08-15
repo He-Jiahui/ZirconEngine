@@ -40,8 +40,8 @@ pub fn texture_asset_from_lightmap_bake_output(
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        LIGHTMAP_CONSUME_CONTRACT_VERSION, LightmapAtlasDescriptor, LightmapAtlasFormat,
-        LightmapAtlasPage, LightmapBakeOutput,
+        LightmapAtlasDescriptor, LightmapAtlasFormat, LightmapAtlasPage, LightmapBakeOutput,
+        LIGHTMAP_CONSUME_CONTRACT_VERSION,
     };
 
     use super::*;

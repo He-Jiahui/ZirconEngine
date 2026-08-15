@@ -2391,7 +2391,7 @@ plan_sources:
 tests:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer/state.rs inline Material state-layer mixed-priority table (2026-07-17 Layout15 current-source `state_layer` group: 11 passed, 0 failed, 1 ignored)
   - zircon_editor/src/tests/host/retained_window/native_material_painter.rs::native_real_button_painter_composes_material_state_layer_priority (included in the same 11/0/1 current-source group)
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/paint.rs::pressed_selected_tab_orders_state_ripple_indicator_before_content (2026-07-17 current-source: 1 passed)
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/paint/surface_state.rs::pressed_selected_tab_orders_state_ripple_indicator_before_content (2026-07-17 current-source: 1 passed)
   - zircon_editor/src/tests/host/retained_menu_pointer/material_state_layer_visual_screenshot.rs::material_state_layer_visual_separates_hover_focus_press_and_drag_priority (included in the same 11/0/1 current-source group)
   - zircon_editor/src/tests/host/retained_menu_pointer/material_state_layer_visual_screenshot.rs::capture_material_state_layer_visual_artifact (2026-07-17 current-source ignored capture: 1 passed; 29106-byte PNG SHA-256 `3A4FDB2BE4DE90F7E096DCC428812967A15718AEDF80E7239B1E3D813387E468`; target matches 0)
   - cargo fmt -p zircon_editor --check (2026-07-05 Asset Browser preview-artifact routing: passed)

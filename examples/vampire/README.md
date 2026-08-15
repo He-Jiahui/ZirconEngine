@@ -20,14 +20,14 @@ This is a playable Zircon Runtime game slice set in a jungle-ruin clearing. It c
 Run from the repository root after building with the first-party runtime plugin features:
 
 ```powershell
-cargo run -p zircon_app --features "target-client,first-party-runtime-plugins,first-party-navigation-runtime-plugin,first-party-zr-vm-language-runtime-plugin,backend-zr-vm" --bin zircon_runtime -- --project E:\Git\ZirconEngine\examples\vampire
+cargo run -p zircon_app --features "target-client,first-party-runtime-plugins,first-party-navigation-runtime-plugin,first-party-zr-vm-language-runtime-plugin,backend-zr-vm" --bin zircon_runtime -- --project examples/vampire
 ```
 
 The scene uses generated project-local jungle assets plus the checked-in CC0 Kenney Graveyard Kit subset under `assets/models/kenney_graveyard`. GLB import is handled by the runtime built-in glTF importer, and the project still selects the first-party `gltf_importer` plugin when the host exposes that catalog path.
 
 Current runtime acceptance:
 
-- The project loads as a `zr_vm:project` script package and the real VM offscreen runtime path renders from `--project E:\Git\ZirconEngine\examples\vampire`.
+- The project loads as a `zr_vm:project` script package and the real VM offscreen runtime path renders from the repository-relative `--project examples/vampire`.
 - The run starts paused behind the Start Game overlay, then enters play through the dynamic menu button path.
 - Fatal contact opens the Game Over overlay, and Retry resets the player to the clearing with full HP.
 - The scene imports real GLB characters/props and generated jungle terrain/foliage assets.

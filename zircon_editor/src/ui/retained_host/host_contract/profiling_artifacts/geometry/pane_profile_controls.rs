@@ -9,6 +9,8 @@ pub(in crate::ui::retained_host::host_contract) struct PaneProfileControls {
     pub(in crate::ui::retained_host::host_contract) viewport_toolbar_controls:
         Vec<UiProfileNamedFrame>,
     pub(in crate::ui::retained_host::host_contract) template_controls: Vec<UiProfileNamedFrame>,
+    pub(in crate::ui::retained_host::host_contract) welcome_recent_frame:
+        Option<UiProfileNamedFrame>,
 }
 
 pub(in crate::ui::retained_host::host_contract) fn collect_pane_profile_controls(
@@ -16,6 +18,7 @@ pub(in crate::ui::retained_host::host_contract) fn collect_pane_profile_controls
 ) -> PaneProfileControls {
     let mut viewport_toolbar_controls = Vec::new();
     let mut template_controls = Vec::new();
+    let mut welcome_recent_frames = Vec::new();
     collect_pane_profile_frames(
         "document",
         &scene.document_dock.pane,
@@ -26,6 +29,7 @@ pub(in crate::ui::retained_host::host_contract) fn collect_pane_profile_controls
         ),
         &mut viewport_toolbar_controls,
         &mut template_controls,
+        &mut welcome_recent_frames,
     );
     collect_pane_profile_frames(
         "left",
@@ -33,6 +37,7 @@ pub(in crate::ui::retained_host::host_contract) fn collect_pane_profile_controls
         &side_dock_content_frame(&scene.left_dock),
         &mut viewport_toolbar_controls,
         &mut template_controls,
+        &mut welcome_recent_frames,
     );
     collect_pane_profile_frames(
         "right",
@@ -40,6 +45,7 @@ pub(in crate::ui::retained_host::host_contract) fn collect_pane_profile_controls
         &side_dock_content_frame(&scene.right_dock),
         &mut viewport_toolbar_controls,
         &mut template_controls,
+        &mut welcome_recent_frames,
     );
     collect_pane_profile_frames(
         "bottom",
@@ -51,6 +57,7 @@ pub(in crate::ui::retained_host::host_contract) fn collect_pane_profile_controls
         ),
         &mut viewport_toolbar_controls,
         &mut template_controls,
+        &mut welcome_recent_frames,
     );
     for row in 0..scene.floating_layer.floating_windows.row_count() {
         if let Some(window) = scene.floating_layer.floating_windows.row_data(row) {
@@ -60,11 +67,13 @@ pub(in crate::ui::retained_host::host_contract) fn collect_pane_profile_controls
                 &floating_window_content_frame(&window.frame, &window.header_frame),
                 &mut viewport_toolbar_controls,
                 &mut template_controls,
+                &mut welcome_recent_frames,
             );
         }
     }
     PaneProfileControls {
         viewport_toolbar_controls,
         template_controls,
+        welcome_recent_frame: welcome_recent_frames.into_iter().next(),
     }
 }

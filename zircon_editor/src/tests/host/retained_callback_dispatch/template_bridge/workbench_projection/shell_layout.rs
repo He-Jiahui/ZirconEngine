@@ -170,3 +170,34 @@ fn componentized_workbench_layout_frames_own_drawer_content_frames() {
         bridge.control_frame("BottomDrawerContentRoot")
     );
 }
+
+#[test]
+fn componentized_narrow_workbench_keeps_a_token_sized_bottom_drawer_reopen_strip() {
+    let _guard = env_lock().lock().unwrap();
+
+    let fixture = default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
+    let metrics = WorkbenchChromeMetrics::default();
+    let shell_size = UiSize::new(640.0, 420.0);
+    let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(shell_size).unwrap();
+
+    bridge
+        .recompute_layout_with_workbench_model(shell_size, &model, &metrics)
+        .unwrap();
+
+    let layout_frames = bridge.layout_frames();
+    let bottom_shell = layout_frames
+        .bottom_drawer_shell_frame
+        .expect("narrow workbench should retain the bottom drawer reopen strip");
+    let bottom_header = layout_frames
+        .bottom_drawer_header_frame
+        .expect("narrow workbench should retain the bottom drawer header");
+
+    assert_eq!(bottom_shell.height, metrics.panel_header_height);
+    assert_eq!(bottom_header.height, metrics.panel_header_height);
+    assert_eq!(layout_frames.bottom_drawer_content_frame, None);
+}

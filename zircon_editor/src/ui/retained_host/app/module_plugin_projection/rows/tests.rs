@@ -60,10 +60,8 @@ fn module_plugin_optional_feature_summary_lists_dependency_state() {
 
     assert!(summary.contains("Sound Timeline Animation Track [blocked]"));
     assert!(summary.contains("primary sound:runtime.plugin.sound (ok)"));
-    assert!(
-        summary
-            .contains("animation:runtime.feature.animation.timeline_event_track (missing plugin)")
-    );
+    assert!(summary
+        .contains("animation:runtime.feature.animation.timeline_event_track (missing plugin)"));
 }
 
 #[test]

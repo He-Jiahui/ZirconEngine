@@ -2,8 +2,8 @@ use super::pane_data_conversion;
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views as view_data;
 use crate::ui::layouts::windows::workbench_host_window::{
-    self as host_window, ShellPresentation, build_host_scene_data,
-    build_native_floating_surface_data, frame_rect,
+    self as host_window, build_host_scene_data_with_cache, build_native_floating_surface_data,
+    frame_rect, HostChromeProjectionCache, ShellPresentation,
 };
 use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowLayoutFrames;
 use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
@@ -15,9 +15,11 @@ use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 
-use super::root_template_overlay::to_host_contract_root_template_overlay_nodes;
+use super::floating_pane_geometry::floating_pane_content_size;
+use super::root_template_overlay::to_host_contract_root_template_overlay_nodes_at_scale;
+use super::shell_content_presentation::patch_shell_content_presentation;
 use super::template_node_conversion::to_host_contract_template_nodes;
-use super::workbench_window_projection::to_host_contract_workbench_window_nodes_with_previous_at_mount;
+use super::workbench_window_projection::to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale;
 
 #[path = "apply_presentation/pane_conversion.rs"]
 mod pane_conversion;
@@ -27,9 +29,12 @@ mod scene_conversion;
 use pane_conversion::to_host_contract_pane;
 #[cfg(test)]
 pub(in crate::ui::retained_host::ui) use scene_conversion::to_host_contract_host_scene_data;
+pub(super) use scene_conversion::{
+    to_host_contract_bottom_dock, to_host_contract_host_shell, to_host_contract_host_window_layout,
+    to_host_contract_side_dock,
+};
 use scene_conversion::{
     to_host_contract_chrome_tab, to_host_contract_host_scene_data_with_runtime,
-    to_host_contract_host_shell, to_host_contract_host_window_layout,
     to_host_contract_native_floating_surface_data_with_runtime,
 };
 
@@ -58,6 +63,7 @@ pub(crate) fn apply_presentation(
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
 ) {
     let template_v2_data = std::collections::BTreeMap::new();
+    let mut chrome_projection_cache = HostChromeProjectionCache::default();
     apply_presentation_with_template_v2_data(
         ui,
         model,
@@ -76,7 +82,10 @@ pub(crate) fn apply_presentation(
         componentized_workbench_layout_frames,
         floating_window_projection_bundle,
         component_showcase_runtime,
+        1.0,
         "",
+        &mut chrome_projection_cache,
+        false,
     );
 }
 
@@ -107,7 +116,10 @@ pub(crate) fn apply_presentation_with_template_v2_data(
     componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    template_scale_factor: f32,
     hierarchy_filter_query: &str,
+    chrome_projection_cache: &mut HostChromeProjectionCache,
+    shell_content_only: bool,
 ) {
     let presentation = {
         zircon_runtime::profile_scope!(
@@ -115,7 +127,7 @@ pub(crate) fn apply_presentation_with_template_v2_data(
             "retained_host",
             "apply_shell_presentation_from_state"
         );
-        ShellPresentation::from_state_with_template_v2_data(
+        ShellPresentation::from_state_with_template_v2_data_and_cache(
             model,
             chrome,
             geometry,
@@ -128,6 +140,7 @@ pub(crate) fn apply_presentation_with_template_v2_data(
             build_export,
             template_v2_data,
             floating_window_projection_bundle,
+            chrome_projection_cache,
         )
     };
     let pane_surface_host = ui.global::<host_contract::PaneSurfaceHostContext>();
@@ -136,9 +149,21 @@ pub(crate) fn apply_presentation_with_template_v2_data(
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_host_window_layout");
         host_window_layout(componentized_workbench_layout_frames)
     };
+    if shell_content_only
+        && patch_shell_content_presentation(
+            ui,
+            &presentation,
+            &host_layout,
+            chrome,
+            component_showcase_runtime,
+            hierarchy_filter_query,
+        )
+    {
+        return;
+    }
     let host_scene_data = {
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_build_host_scene_data");
-        build_host_scene_data(
+        build_host_scene_data_with_cache(
             &model.menu_bar,
             &presentation.host_surface_data,
             &presentation.host_shell,
@@ -147,6 +172,7 @@ pub(crate) fn apply_presentation_with_template_v2_data(
             chrome.inspector.is_some(),
             &chrome.project_overview,
             chrome,
+            chrome_projection_cache,
         )
     };
     let host_welcome_pane = {
@@ -167,10 +193,8 @@ pub(crate) fn apply_presentation_with_template_v2_data(
             chrome,
         )
     };
-    let current_host_presentation = {
-        zircon_runtime::profile_scope!("editor", "retained_host", "apply_get_current_presentation");
-        ui.get_host_presentation()
-    };
+    let current_generation = ui.get_host_presentation_generation();
+    let current_structure = current_generation.structure();
     let host_scene_data = {
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_convert_host_scene_data");
         to_host_contract_host_scene_data_with_runtime(
@@ -201,25 +225,27 @@ pub(crate) fn apply_presentation_with_template_v2_data(
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_convert_host_layout");
         to_host_contract_host_window_layout(&host_layout)
     };
-    let workbench_window_nodes = to_host_contract_workbench_window_nodes_with_previous_at_mount(
-        workbench_window_projection,
-        Some(&current_host_presentation.workbench_window_nodes),
-        componentized_workbench_layout_frames.mount_frame,
-    );
+    let workbench_window_nodes =
+        to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale(
+            workbench_window_projection,
+            Some(&current_structure.workbench_window_nodes),
+            componentized_workbench_layout_frames.mount_frame,
+            template_scale_factor,
+        );
     let host_presentation = HostWindowPresentationData {
         host_scene_data,
         native_floating_surface_data,
         host_shell,
         host_layout,
-        menu_state: current_host_presentation.menu_state,
-        host_page_overflow_menu_state: current_host_presentation.host_page_overflow_menu_state,
-        close_prompt: current_host_presentation.close_prompt,
-        pane_interaction_state: current_host_presentation.pane_interaction_state,
-        text_input_focus: current_host_presentation.text_input_focus,
-        viewport_image: current_host_presentation.viewport_image,
-        root_template_nodes: to_host_contract_root_template_overlay_nodes(root_template_projection),
+        close_prompt: current_structure.close_prompt.clone(),
+        root_template_nodes: to_host_contract_root_template_overlay_nodes_at_scale(
+            root_template_projection,
+            template_scale_factor,
+        ),
         workbench_window_nodes,
+        ..HostWindowPresentationData::default()
     };
+    drop(current_generation);
     {
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_set_host_presentation");
         ui.set_host_presentation(host_presentation);
@@ -230,7 +256,7 @@ pub(crate) fn apply_presentation_with_template_v2_data(
     }
 }
 
-fn host_window_layout(
+pub(super) fn host_window_layout(
     componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
 ) -> host_window::HostWindowLayoutData {
     let center_band_frame = componentized_workbench_layout_frames
@@ -337,15 +363,13 @@ fn to_host_contract_floating_window_data(
     welcome: Option<&view_data::WelcomePresentation>,
     hierarchy_filter_query: &str,
 ) -> host_contract::FloatingWindowData {
-    let resolved_header_height_px = if window.header_frame.height > 0.0 {
-        window.header_frame.height
-    } else {
-        header_height_px
-    };
-    let pane_size = host_window::PaneContentSize::new(
+    let content_size = floating_pane_content_size(
         window.frame.width,
-        (window.frame.height - resolved_header_height_px - 1.0).max(0.0),
+        window.frame.height,
+        window.header_frame.height,
+        header_height_px,
     );
+    let pane_size = host_window::PaneContentSize::new(content_size.width, content_size.height);
     host_contract::FloatingWindowData {
         window_id: window.window_id,
         title: window.title,
@@ -566,7 +590,7 @@ fn to_host_contract_recent_projects(
     map_model_rc(data, to_host_contract_recent_project)
 }
 
-fn to_host_contract_scene_viewport_chrome(
+pub(crate) fn to_host_contract_scene_viewport_chrome(
     data: &view_data::SceneViewportChromeData,
 ) -> host_contract::SceneViewportChromeData {
     host_contract::SceneViewportChromeData {

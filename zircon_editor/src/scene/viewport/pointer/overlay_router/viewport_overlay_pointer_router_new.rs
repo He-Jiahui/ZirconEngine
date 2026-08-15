@@ -7,7 +7,7 @@ use crate::scene::viewport::pointer::{
     precision::SharedResolutionState, viewport_pointer_layout::ViewportPointerLayout,
 };
 
-use super::{ViewportOverlayPointerRouter, build_dispatcher::build_dispatcher};
+use super::{build_dispatcher::build_dispatcher, ViewportOverlayPointerRouter};
 
 impl ViewportOverlayPointerRouter {
     pub(crate) fn new() -> Self {

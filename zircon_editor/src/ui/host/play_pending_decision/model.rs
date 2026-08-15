@@ -61,6 +61,10 @@ pub(crate) struct PlayPendingDecisionSelection {
 }
 
 impl PlayPendingDecisionSelection {
+    pub(super) fn new(ticket: DecisionTicket, option_id: DecisionOptionId) -> Self {
+        Self { ticket, option_id }
+    }
+
     pub(super) fn ticket(&self) -> &DecisionTicket {
         &self.ticket
     }

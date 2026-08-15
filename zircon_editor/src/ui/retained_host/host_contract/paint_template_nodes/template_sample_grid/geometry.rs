@@ -31,10 +31,10 @@ impl SampleGridGeometry {
         let right = (width * 0.035)
             .clamp(MIN_RIGHT_GUTTER, MAX_RIGHT_GUTTER)
             .min((width - left).max(0.0));
-        let top = (height * 0.09)
+        let top = (height * 0.14)
             .clamp(MIN_TOP_GUTTER, MAX_TOP_GUTTER)
             .min(height);
-        let bottom = (height * 0.15)
+        let bottom = (height * 0.04)
             .clamp(MIN_BOTTOM_GUTTER, MAX_BOTTOM_GUTTER)
             .min((height - top).max(0.0));
         let plot = FrameRect {
@@ -58,16 +58,15 @@ impl SampleGridGeometry {
     }
 
     pub(super) fn point_x_for_value(&self, value: f32, min: f32, max: f32) -> f32 {
-        self.plot.x
-            + POINT_EDGE_INSET
-            + normalized(value, min, max) * (self.plot.width - POINT_EDGE_INSET * 2.0).max(0.0)
+        let inset = POINT_EDGE_INSET.min(self.plot.width * 0.5);
+        self.plot.x + inset + normalized(value, min, max) * (self.plot.width - inset * 2.0).max(0.0)
     }
 
     pub(super) fn point_y_for_value(&self, value: f32, min: f32, max: f32) -> f32 {
+        let inset = POINT_EDGE_INSET.min(self.plot.height * 0.5);
         self.plot.y
-            + POINT_EDGE_INSET
-            + (1.0 - normalized(value, min, max))
-                * (self.plot.height - POINT_EDGE_INSET * 2.0).max(0.0)
+            + inset
+            + (1.0 - normalized(value, min, max)) * (self.plot.height - inset * 2.0).max(0.0)
     }
 }
 
@@ -102,5 +101,23 @@ mod tests {
 
         assert_eq!(geometry.plot.width, 0.0);
         assert_eq!(geometry.plot.height, 0.0);
+    }
+
+    #[test]
+    fn compact_plot_centers_points_instead_of_applying_an_oversized_inset() {
+        let geometry = SampleGridGeometry {
+            outer: FrameRect::default(),
+            plot: FrameRect {
+                x: 10.0,
+                y: 20.0,
+                width: 8.0,
+                height: 10.0,
+            },
+        };
+
+        for value in [0.0, 0.5, 1.0] {
+            assert_eq!(geometry.point_x_for_value(value, 0.0, 1.0), 14.0);
+            assert_eq!(geometry.point_y_for_value(value, 0.0, 1.0), 25.0);
+        }
     }
 }

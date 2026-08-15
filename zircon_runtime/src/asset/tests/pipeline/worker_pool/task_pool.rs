@@ -65,11 +65,9 @@ fn project_asset_manager_uses_the_injected_runtime_io_pool() {
     let manager = ProjectAssetManager::new(io_pool.clone());
     let (pool, mut sampler) = manager.spawn_worker_pool_with_frame_sampler();
 
-    assert!(
-        manager
-            .worker_task_pool()
-            .shares_execution_owner_with(&io_pool)
-    );
+    assert!(manager
+        .worker_task_pool()
+        .shares_execution_owner_with(&io_pool));
     assert!(pool.task_pool().shares_execution_owner_with(&io_pool));
     assert_eq!(pool.options().queue_depth, Some(2));
     assert_eq!(manager.default_worker_count(), io_pool.parallelism());
@@ -94,11 +92,9 @@ fn project_asset_manager_defaults_share_the_process_io_pool() {
     let first = ProjectAssetManager::default();
     let second = ProjectAssetManager::default();
 
-    assert!(
-        first
-            .worker_task_pool()
-            .shares_execution_owner_with(second.worker_task_pool())
-    );
+    assert!(first
+        .worker_task_pool()
+        .shares_execution_owner_with(second.worker_task_pool()));
     assert_eq!(
         first.default_worker_budget_source(),
         AssetWorkerThreadBudgetSource::TaskPoolIo

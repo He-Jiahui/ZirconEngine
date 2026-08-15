@@ -2,8 +2,8 @@ mod lifecycle;
 mod scene_route;
 
 pub use lifecycle::{
-    DocumentLifecycleAuthority, ProjectSessionActivation, ProjectSessionId,
-    SceneDocumentActivation, SceneDocumentLifecycleError, ScenePickerTicket,
+    DocumentLifecycleAuthority, DocumentLifecycleRetentionSnapshot, ProjectSessionActivation,
+    ProjectSessionId, SceneDocumentActivation, SceneDocumentLifecycleError, ScenePickerTicket,
 };
 pub use scene_route::{
     AuthoringSceneInstaller, SceneAssetCatalog, SceneDocumentRoute, SceneDocumentRouteActivation,

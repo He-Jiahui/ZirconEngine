@@ -280,7 +280,7 @@ children = [{ node = "blend_space_preview_toolbar" }, { node = "blend_space_prev
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionBlendSpacePreviewToolbar"
 classes = ["workbench-panel-toolbar"]
-props = { background_color = "$editor.surface.3", border_color = "$editor.separator.soft", border_width = "$editor.control.border_width", corner_radius = "$editor.control.radius.control", layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium" }
+props = { layout_padding_left = "$editor.density.gap.medium", layout_padding_right = "$editor.density.gap.medium" }
 layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 children = [{ node = "blend_space_preview_camera" }, { node = "blend_space_preview_toolbar_fill" }, { node = "blend_space_preview_lighting" }]
 

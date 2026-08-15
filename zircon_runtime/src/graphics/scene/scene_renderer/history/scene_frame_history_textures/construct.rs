@@ -2,14 +2,14 @@ use crate::core::framework::render::FroxelGridQuality;
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::post_process::params::exposure_params::default_exposure_buffer_words;
 use crate::graphics::scene::scene_renderer::temporal::taa::{
-    TAA_SCENE_COLOR_HISTORY_FORMAT, TemporalHistoryKey, TemporalHistoryStore,
+    TemporalHistoryKey, TemporalHistoryStore, TAA_SCENE_COLOR_HISTORY_FORMAT,
 };
 use crate::graphics::visibility::HzbBuilder;
 use wgpu::util::DeviceExt;
 
 use super::super::texture_extent::texture_extent;
-use super::VolumetricHistoryTexture;
 use super::scene_frame_history_textures::SceneFrameHistoryTextures;
+use super::VolumetricHistoryTexture;
 
 impl SceneFrameHistoryTextures {
     pub(crate) fn new(
@@ -136,6 +136,8 @@ impl SceneFrameHistoryTextures {
         );
 
         Self {
+            hzb_resource_identity:
+                crate::graphics::scene::scene_renderer::hzb::HzbSampledResourceIdentity::new(),
             size,
             hzb_furthest_size: hzb_plan.hzb_size,
             hzb_furthest_mip_count: hzb_plan.mip_count,

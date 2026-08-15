@@ -58,14 +58,12 @@ fn chrome_builder_keeps_placeholder_tabs_for_missing_view_instances() {
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),
     };
-    let descriptors = vec![
-        ViewDescriptor::new(
-            ViewDescriptorId::new("editor.hierarchy"),
-            ViewKind::ActivityView,
-            "Hierarchy",
-        )
-        .with_workbench_slot(WorkbenchSlot::LeftTopDrawer),
-    ];
+    let descriptors = vec![ViewDescriptor::new(
+        ViewDescriptorId::new("editor.hierarchy"),
+        ViewKind::ActivityView,
+        "Hierarchy",
+    )
+    .with_workbench_slot(WorkbenchSlot::LeftTopDrawer)];
 
     let chrome = EditorChromeSnapshot::build(
         EditorDataSnapshot {

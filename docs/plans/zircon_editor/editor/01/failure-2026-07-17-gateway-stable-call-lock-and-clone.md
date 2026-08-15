@@ -64,6 +64,24 @@ Open state: `generation-bound ArcSwap gateway/capability snapshot、V3 frame-dem
 
 2026-07-22 current-source补充：ArcSwap generation快路仍成立；本轮删除Session owned-output decode的重复validate。failure继续open的当前P0不是恢复锁缓存，而是`tick_frame`丢弃frame-demand kind/delay以及`capture_frame`整帧foreign RGBA→Vec copy；分别回链PERF-MVP-424/023，须以idle wake与1080p/4K copied-bytes产品证据关闭。
 
+## 2026-08-14 Gateway folder hard cut source consistency audit
+
+### 结论边界
+
+本节是拆分 `gateway/session.rs` 为 folder-backed owner 后的 current-source 一致性审计与纠正计划，不是新的 `## 产出记录与时间` 条目，也不改变本 failure 的 `open` 状态。审计发现当前 `contract.rs` 把 `EditorRuntimeFrame` 降回直接拥有 `Vec<u8>`，而 `session/frame.rs::capture_frame` 在 ABI shape 校验后调用 `rgba.to_vec()` 并立即释放 provider buffer。`src/tests/gateway/session/output_ownership.rs` 也错误地把“返回前复制并释放”写成测试期望。该状态与本记录 2026-07-29 的 zero-copy 回传、PERF-MVP-023 及已验证的旧 owner 合同相矛盾，不能将 folder 拆分本身视为语义保持。
+
+### 已复核的所有权模型
+
+- ABI producer 以 `ZrOwnedByteBuffer { data, len, capacity, free }` 转移帧像素；成功 shape 校验后该 buffer 的唯一释放权必须随 `EditorRuntimeFrame` 一起存在，而不能在 gateway 返回前复制/释放。
+- frame 还必须持有运行时 provider `Arc`。因此先 drop `SessionGateway` 不得卸载 callback 所在 provider；只有显式 `frame.release()` 或 frame drop 才可恰好调用一次 `free`，并释放该 provider 引用。
+- 这是 fallback/capture 边界的一次 ABI owner 转移，不宣称解决 retained viewport 的 GPU readback、CPU re-upload 或产品功耗；这些仍归 PERF-MVP-023 的受管 WPR/RenderDoc 矩阵。
+
+### 纠正与验证顺序
+
+1. 先把 fixture 的三个回归断言固定为“capture 后 free=0、gateway drop 后 frame 仍可读、explicit release 或 Drop 后 free=1”，并保留 malformed frame 的即时释放路径。
+2. 恢复 `EditorRuntimeFrame` 的 private pixel owner、`SessionRuntimeFramePixels` 与 provider `Arc`；`capture_frame` 将验证后的 `GatewayOwnedOutput` 直接移交，禁止 `to_vec/into_vec` 和返回前 `release`。
+3. 在共享验证窗口开放后运行 current-source managed gateway Cargo gate，并以 1080p/4K capture 的 copied-bytes、live owner、RSS 与 release callback 计数确认。本机当前仍为 Tooling atomic closeout 与 UI12 M3 保留窗口，禁止启动新的 Cargo/WPR/product job。
+
 ## 产出记录与时间
 
 | 时间 | 范围 | 状态 | 完成项与后续门禁 |

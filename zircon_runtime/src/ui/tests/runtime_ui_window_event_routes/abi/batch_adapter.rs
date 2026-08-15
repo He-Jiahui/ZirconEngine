@@ -192,7 +192,7 @@ fn runtime_ui_manager_runtime_event_batch_reports_dispatch_error_index_after_ada
         .top_hit
         .expect("runtime fixture should expose a pointer hit target");
     manager.register_pointer_handler(target_node, UiPointerEventKind::Down, |_| {
-        UiPointerDispatchEffect::set_focus(true)
+        UiPointerDispatchEffect::set_focus()
     });
     manager.register_navigation_handler(target_node, UiNavigationEventKind::Right, |_| {
         UiNavigationDispatchEffect::focus(UiNodeId::new(u64::MAX))

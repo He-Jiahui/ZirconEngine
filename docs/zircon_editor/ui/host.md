@@ -5,7 +5,7 @@ related_code:
   - zircon_editor/src/ui/workbench/
 implementation_files:
   - zircon_editor/src/ui/host/editor_host_event_controller.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access/
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
   - zircon_editor/src/ui/host/editor_capabilities.rs
@@ -42,7 +42,7 @@ reference_sources:
   - dev/godot/editor/export/editor_export_platform.cpp
 tests:
   - zircon_editor/src/ui/host/editor_capabilities.rs::tests::enabled_capability_lookup_uses_the_sorted_snapshot
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs::tests::keyboard_dispatch_reuses_the_controller_keymap
+  - zircon_editor/src/ui/host/editor_event_runtime_access/tests.rs::keyboard_dispatch_resolves_the_current_authority_keymap
   - zircon_editor/src/ui/host/asset_editor_sessions/mod.rs::tests::zui_suffix_check_does_not_lowercase_the_whole_asset_id
   - zircon_editor/src/ui/host/asset_editor_sessions/sync.rs::tests::syncing_instance_builds_one_reflection_model
   - zircon_editor/src/ui/host/asset_editor_sessions/refresh/pipeline/tests.rs

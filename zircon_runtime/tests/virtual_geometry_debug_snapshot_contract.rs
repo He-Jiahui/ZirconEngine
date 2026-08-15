@@ -1768,6 +1768,7 @@ fn sample_virtual_geometry_model_asset_with_root_page_table(
             ],
             indices: vec![0, 1, 2],
             mesh: None,
+            mesh_sdf: None,
             virtual_geometry: Some(virtual_geometry),
         }],
     }

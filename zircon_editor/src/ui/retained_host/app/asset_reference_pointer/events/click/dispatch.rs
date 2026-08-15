@@ -1,4 +1,4 @@
-use super::super::super::super::{RetainedEditorHost, UiPoint, callback_dispatch};
+use super::super::super::super::{callback_dispatch, RetainedEditorHost, UiPoint};
 
 impl RetainedEditorHost {
     pub(super) fn dispatch_asset_reference_pointer_click_to_bridge(

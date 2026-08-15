@@ -9,12 +9,10 @@ pub(in crate::scene::dynamic_scene::session) fn update_slot_metadata(
     metadata: RuntimeSessionMetadata,
 ) -> Result<(), RuntimeSessionArchiveError> {
     let report = preview_update_slot_metadata(archive, slot_id, metadata)?;
-    let slot = archive.slot_mut(&report.source_slot_id).ok_or_else(|| {
-        RuntimeSessionArchiveError::MissingSlot {
-            slot_id: report.source_slot_id.clone(),
-        }
-    })?;
-    slot.metadata = report.metadata;
-    archive.rebuild_slot_indexes();
+    if !archive.replace_slot_metadata(&report.source_slot_id, report.metadata) {
+        return Err(RuntimeSessionArchiveError::MissingSlot {
+            slot_id: report.source_slot_id,
+        });
+    }
     Ok(())
 }

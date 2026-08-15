@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::asset::{
-    AssetUri, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT,
-    MESH_ATTRIBUTE_UV0, MeshAsset, MeshAttributeValues, MeshIndices, MeshValidationError,
+    AssetUri, MeshAsset, MeshAttributeValues, MeshIndices, MeshValidationError,
+    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0,
 };
 use crate::core::framework::render::RenderMeshTopology;
 
@@ -16,6 +16,7 @@ fn mesh_asset_generates_missing_tangents_for_unindexed_triangle_list() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
 
@@ -42,6 +43,7 @@ fn mesh_asset_generates_missing_tangents_for_indexed_triangle_list() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
 
@@ -73,6 +75,7 @@ fn mesh_asset_does_not_overwrite_existing_tangents() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
 
@@ -110,6 +113,7 @@ fn mesh_asset_rejects_tangent_generation_for_missing_inputs_or_topology() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
     let mut missing_uv = MeshAsset {
@@ -133,6 +137,7 @@ fn mesh_asset_rejects_tangent_generation_for_missing_inputs_or_topology() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
     let mut lines = MeshAsset {
@@ -156,6 +161,7 @@ fn mesh_asset_rejects_tangent_generation_for_missing_inputs_or_topology() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
 

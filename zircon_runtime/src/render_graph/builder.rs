@@ -1,13 +1,18 @@
+use std::sync::atomic::{AtomicU64, Ordering};
+
 use crate::rhi::{BufferDesc, TextureDesc};
 
 use super::error::RenderGraphError;
 use super::types::{
-    ExternalResource, PassFlags, QueueLane, RenderGraphAttachmentOps, RenderGraphComputeWorkload,
-    RenderGraphExternalResourceBinding, RenderGraphResource, RenderGraphResourceDesc,
+    ExternalResource, PassFlags, QueueLane, RenderGraphAttachmentOps,
+    RenderGraphComputePassMetadata, RenderGraphComputeWorkload, RenderGraphExternalResourceBinding,
+    RenderGraphResource, RenderGraphResourceDesc, RenderGraphResourceKind,
     RenderGraphResourceUsageFlags, RenderPassId, RgBufferHandle, RgTextureHandle,
 };
 
 mod compile;
+
+static NEXT_RENDER_GRAPH_BUILDER_GENERATION: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ResourceAccessKind {
@@ -31,6 +36,7 @@ struct RenderPassNode {
     flags: PassFlags,
     executor_id: Option<String>,
     compute_workload: Option<RenderGraphComputeWorkload>,
+    compute_pass_metadata: Option<RenderGraphComputePassMetadata>,
     dependencies: Vec<RenderPassId>,
     resources: Vec<ResourceAccess>,
 }
@@ -41,12 +47,14 @@ struct ResourceNode {
     name: String,
     desc: RenderGraphResourceDesc,
     external_binding: RenderGraphExternalResourceBinding,
+    external_alias_group: Option<String>,
     usage: RenderGraphResourceUsageFlags,
 }
 
 #[derive(Clone, Debug)]
 pub struct RenderGraphBuilder {
     name: String,
+    generation: u64,
     passes: Vec<RenderPassNode>,
     resources: Vec<ResourceNode>,
     next_texture: usize,
@@ -58,6 +66,7 @@ impl RenderGraphBuilder {
     pub fn new(name: impl Into<String>) -> Self {
         Self {
             name: name.into(),
+            generation: next_render_graph_builder_generation(),
             passes: Vec::new(),
             resources: Vec::new(),
             next_texture: 0,
@@ -86,7 +95,7 @@ impl RenderGraphBuilder {
         declared_queue: QueueLane,
         executor_id: Option<impl Into<String>>,
     ) -> RenderPassId {
-        let id = RenderPassId(self.passes.len());
+        let id = RenderPassId::from_index(self.passes.len(), self.generation);
         self.passes.push(RenderPassNode {
             id,
             name: name.into(),
@@ -95,6 +104,7 @@ impl RenderGraphBuilder {
             flags: PassFlags::default(),
             executor_id: executor_id.map(Into::into),
             compute_workload: None,
+            compute_pass_metadata: None,
             dependencies: Vec::new(),
             resources: Vec::new(),
         });
@@ -108,6 +118,16 @@ impl RenderGraphBuilder {
     ) -> Result<(), RenderGraphError> {
         self.ensure_pass(pass)?;
         self.passes[pass.0].compute_workload = Some(workload);
+        Ok(())
+    }
+
+    pub fn set_compute_pass_metadata(
+        &mut self,
+        pass: RenderPassId,
+        metadata: RenderGraphComputePassMetadata,
+    ) -> Result<(), RenderGraphError> {
+        self.ensure_pass(pass)?;
+        self.passes[pass.0].compute_pass_metadata = Some(metadata);
         Ok(())
     }
 
@@ -138,7 +158,7 @@ impl RenderGraphBuilder {
     pub fn create_texture(&mut self, desc: TextureDesc) -> RgTextureHandle {
         let id = self.next_texture;
         self.next_texture += 1;
-        let handle = RgTextureHandle::from_index(id);
+        let handle = RgTextureHandle::from_index(id, self.generation);
         let name = desc
             .label
             .clone()
@@ -148,6 +168,7 @@ impl RenderGraphBuilder {
             name,
             desc: RenderGraphResourceDesc::Texture(desc),
             external_binding: RenderGraphExternalResourceBinding::report_only(),
+            external_alias_group: None,
             usage: RenderGraphResourceUsageFlags::default(),
         });
         handle
@@ -156,7 +177,7 @@ impl RenderGraphBuilder {
     pub fn create_buffer(&mut self, desc: BufferDesc) -> RgBufferHandle {
         let id = self.next_buffer;
         self.next_buffer += 1;
-        let handle = RgBufferHandle::from_index(id);
+        let handle = RgBufferHandle::from_index(id, self.generation);
         let name = desc
             .label
             .clone()
@@ -166,6 +187,7 @@ impl RenderGraphBuilder {
             name,
             desc: RenderGraphResourceDesc::Buffer(desc),
             external_binding: RenderGraphExternalResourceBinding::report_only(),
+            external_alias_group: None,
             usage: RenderGraphResourceUsageFlags::default(),
         });
         handle
@@ -205,14 +227,47 @@ impl RenderGraphBuilder {
         usage: RenderGraphResourceUsageFlags,
         external_binding: RenderGraphExternalResourceBinding,
     ) -> ExternalResource {
+        self.import_external_resource_with_usage_binding_and_optional_alias_group(
+            name,
+            usage,
+            external_binding,
+            None,
+        )
+    }
+
+    /// Imports a view of an external physical allocation. Views sharing an
+    /// alias group have one conservative dependency history during compilation.
+    pub fn import_external_resource_with_usage_binding_and_alias_group(
+        &mut self,
+        name: impl Into<String>,
+        usage: RenderGraphResourceUsageFlags,
+        external_binding: RenderGraphExternalResourceBinding,
+        alias_group: impl Into<String>,
+    ) -> ExternalResource {
+        self.import_external_resource_with_usage_binding_and_optional_alias_group(
+            name,
+            usage,
+            external_binding,
+            Some(alias_group.into()),
+        )
+    }
+
+    fn import_external_resource_with_usage_binding_and_optional_alias_group(
+        &mut self,
+        name: impl Into<String>,
+        usage: RenderGraphResourceUsageFlags,
+        external_binding: RenderGraphExternalResourceBinding,
+        external_alias_group: Option<String>,
+    ) -> ExternalResource {
         let id = self.next_external_resource;
         self.next_external_resource += 1;
-        let handle = ExternalResource::from_index(id);
+        let handle = ExternalResource::from_index(id, self.generation);
         self.resources.push(ResourceNode {
             resource: RenderGraphResource::External(handle),
             name: name.into(),
             desc: RenderGraphResourceDesc::External,
             external_binding,
+            external_alias_group,
             usage,
         });
         handle
@@ -375,6 +430,13 @@ impl RenderGraphBuilder {
     }
 
     fn ensure_pass(&self, id: RenderPassId) -> Result<(), RenderGraphError> {
+        if id.generation() != self.generation {
+            return Err(RenderGraphError::ForeignPass {
+                pass: id.index(),
+                handle_generation: id.generation(),
+                builder_generation: self.generation,
+            });
+        }
         if id.0 >= self.passes.len() {
             return Err(RenderGraphError::UnknownPass { pass: id.0 });
         }
@@ -382,11 +444,34 @@ impl RenderGraphBuilder {
     }
 
     fn ensure_resource(&self, resource: RenderGraphResource) -> Result<(), RenderGraphError> {
-        let known = match resource {
-            RenderGraphResource::TransientTexture(handle) => handle.index() < self.next_texture,
-            RenderGraphResource::TransientBuffer(handle) => handle.index() < self.next_buffer,
-            RenderGraphResource::External(handle) => handle.index() < self.next_external_resource,
+        let (kind, index, handle_generation, known) = match resource {
+            RenderGraphResource::TransientTexture(handle) => (
+                RenderGraphResourceKind::TransientTexture,
+                handle.index(),
+                handle.generation(),
+                handle.index() < self.next_texture,
+            ),
+            RenderGraphResource::TransientBuffer(handle) => (
+                RenderGraphResourceKind::TransientBuffer,
+                handle.index(),
+                handle.generation(),
+                handle.index() < self.next_buffer,
+            ),
+            RenderGraphResource::External(handle) => (
+                RenderGraphResourceKind::External,
+                handle.index(),
+                handle.generation(),
+                handle.index() < self.next_external_resource,
+            ),
         };
+        if handle_generation != self.generation {
+            return Err(RenderGraphError::ForeignResource {
+                kind,
+                index,
+                handle_generation,
+                builder_generation: self.generation,
+            });
+        }
         if known {
             return Ok(());
         }
@@ -401,6 +486,7 @@ impl RenderGraphBuilder {
         resource: RenderGraphResource,
         update: impl FnOnce(&mut RenderGraphResourceUsageFlags),
     ) -> Result<(), RenderGraphError> {
+        self.ensure_resource(resource)?;
         let Some(node) = self
             .resources
             .iter_mut()
@@ -413,5 +499,14 @@ impl RenderGraphBuilder {
 
         update(&mut node.usage);
         Ok(())
+    }
+}
+
+fn next_render_graph_builder_generation() -> u64 {
+    let generation = NEXT_RENDER_GRAPH_BUILDER_GENERATION.fetch_add(1, Ordering::Relaxed);
+    if generation == 0 {
+        NEXT_RENDER_GRAPH_BUILDER_GENERATION.fetch_add(1, Ordering::Relaxed)
+    } else {
+        generation
     }
 }

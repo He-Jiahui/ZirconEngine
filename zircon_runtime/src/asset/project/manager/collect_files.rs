@@ -9,7 +9,7 @@ use super::is_meta_sidecar::is_meta_sidecar;
 pub(super) fn collect_files(root: &Path, files: &mut Vec<PathBuf>) -> Result<(), AssetImportError> {
     collect_matching_files(root, files, |path| {
         !is_meta_sidecar(path)
-            && !crate::core::resource::io::atomic_file::is_atomic_write_transaction_path(path)
+            && !crate::core::resource::io::is_atomic_write_transaction_path(path)
             && !is_auxiliary_source_file(path)
     })
 }

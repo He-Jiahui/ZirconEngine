@@ -16,6 +16,7 @@ pub use manager_descriptor::ManagerDescriptor;
 pub use module_dependency_spec::ModuleDependencySpec;
 pub use module_descriptor::ModuleDescriptor;
 pub use module_order::sort_module_activation_order;
+pub(crate) use module_order::FrozenModuleGraph;
 pub use plugin_descriptor::PluginDescriptor;
 pub use plugin_factory::PluginFactory;
 pub use registry_name::RegistryName;

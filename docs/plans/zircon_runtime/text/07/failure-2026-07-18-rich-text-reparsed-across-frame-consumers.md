@@ -10,6 +10,7 @@ fixing_child_dir: docs/plans/zircon_runtime/text/07
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/text/rich
+  - zircon_runtime/src/text/rich/parser_registry.rs
   - zircon_runtime/src/ui/text/rich_text.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/text/measure_cache.rs
@@ -66,3 +67,6 @@ neutral `UiRenderCommand`只携markup、paint/layout DTO与byte ranges，没有�
 - `UiResolvedTextLayout.rich_text_artifact` 直接持有 type-erased `Arc`。extract 仅在 layout 没有可解析 artifact 时编译；renderer、texture preparation 与 link hit 全部从该 layout handle 解析，不再按 markup lookup/reparse。registry 已硬删除，因此空闲 frame 不会保留离开布局生命周期的强引用。
 - cache-eviction regression 先布局 A1、驱逐 parser cache、再执行 extract preparation，并锁定 A1 指针 identity 与 link hit；rich projection regression 同时锁定 local run range 有序、不重叠以及 stable parent run index。
 - post-fix review reports P0=0/P1=0. failure 保持 `open`，因为 Text09 的 run-scale cache/parse counters、managed Cargo、真实 WGPU/RenderDoc 和新的产品 PNG 仍未形成验收证据；本轮未生成策略文字截图。
+- 2026-08-11 structural follow-up: parser-local registry, built-in singleton, parser identity, decorator/emoji generation and compiled-cache handoff now live in `text/rich/parser_registry.rs`. `text/rich/mod.rs` is again a declaration/re-export boundary, and all crate-internal parser/cache-test callers use the leaf module directly. This closes the root-owner structure item without adding a compatibility parser or a second cache; the failure remains `open` pending Text09 bounded-cache telemetry and managed runtime evidence.
+- 2026-08-11 second review followed the public parser through generation-keyed single-flight admission and the UI compiled-artifact consumers. The root remains a 32-line declaration/curated-export boundary, every touched production owner remains below the 800-line warning, and no root helper re-export, compatibility path, duplicate parser, or actionable P0/P1/P2 remains. Repository-edition leaf rustfmt and scoped whitespace checks pass; the failure remains `open / non_validation_implementation_complete / second_review_complete / managed_validation_pending` until coordinator-owned Cargo/WGPU/product-frame evidence exists.
+- 2026-08-11 M0 observability forward repair: the existing `CompiledRichTextCacheFrameSampler` is now owned by `UiTextMeasureCache` only under `profiling`, and caller-thread extract publishes one fixed delta/residency counter set after rich artifact preparation. No cache policy, parser path, worker, or layout algorithm changed. The rich/vertical prewarm regression uses a unique Markdown key and requires one frame-owned counter sample with a real parse; the profiling-owner regression independently locks every hit/miss/parse/evict/admission/probe/residency counter name and value. Exact-file Rustfmt and scoped whitespace checks pass; Cargo, WGPU profiling, power, and product PNG remain coordinator-managed pending evidence.

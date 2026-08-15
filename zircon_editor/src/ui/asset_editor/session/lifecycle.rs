@@ -38,7 +38,6 @@ use super::{
         default_selection, ensure_asset_kind, reconcile_selection, UiAssetCompilerImports,
     },
     source_buffer::UiAssetSourceBuffer,
-    source_sync::{source_byte_offset_for_line, source_outline_entry_for_node},
     style_inspection::{
         build_style_inspector, matched_style_rule_entries_for_selection,
         reconcile_selected_matched_style_rule_index,
@@ -53,10 +52,13 @@ use super::{
     undo_stack::UiAssetEditorExternalEffect,
     v2_authoring::{build_v2_preview_host, ensure_v2_asset_kind},
 };
-use crate::ui::asset_editor::palette::build_palette_entries;
 
 mod external_source;
+mod palette_catalog;
+mod source_outline_cache;
 pub(crate) mod v2_projection;
+
+use source_outline_cache::{initial_source_outline_state, refresh_valid_source_outline_caches};
 
 pub(super) use v2_projection::*;
 
@@ -90,13 +92,8 @@ impl UiAssetEditorSession {
                     node_id: node_id.clone(),
                     line_offset: 0,
                 });
-        let source_cursor_byte_offset = source_cursor_anchor
-            .as_ref()
-            .and_then(|anchor| {
-                source_outline_entry_for_node(&source, &anchor.node_id)
-                    .map(|entry| source_byte_offset_for_line(&source, entry.line as usize))
-            })
-            .unwrap_or(0);
+        let source_outline_state =
+            initial_source_outline_state(&document, &source, source_cursor_anchor.as_ref());
         let promote_draft =
             super::promote_widget::default_external_widget_draft(&document, &selection);
         let theme_draft =
@@ -140,10 +137,14 @@ impl UiAssetEditorSession {
                 )
             }
         };
+        let palette_catalog = palette_catalog::build_layout(&document, &compiler_imports.widgets);
         Ok(Self {
             route,
             source_schema: UiAssetSourceSchema::LayoutDocument,
             source_buffer: UiAssetSourceBuffer::new(source.clone()),
+            source_outline_cache: source_outline_state.source_outline_cache,
+            last_valid_source_outline_cache: source_outline_state.last_valid_source_outline_cache,
+            last_valid_source_generation: 0,
             last_valid_source_text: source,
             last_valid_document: document,
             last_valid_v2_document: None,
@@ -154,10 +155,13 @@ impl UiAssetEditorSession {
             resource_resolver: Default::default(),
             localization_catalog: Default::default(),
             preview_host,
+            preview_hit_index: None,
+            #[cfg(test)]
+            preview_hit_index_build_count: 0,
             undo_stack: super::undo_stack::UiAssetEditorUndoStack::default(),
             diagnostics,
             structured_diagnostics,
-            source_cursor_byte_offset,
+            source_cursor_byte_offset: source_outline_state.cursor_byte_offset,
             source_cursor_anchor,
             selection,
             designer_tool_mode: Default::default(),
@@ -174,6 +178,9 @@ impl UiAssetEditorSession {
             selected_slot_semantic_path: None,
             selected_layout_semantic_path: None,
             selected_locale_preview: DEFAULT_LOCALE_PREVIEW.to_string(),
+            palette_catalog,
+            #[cfg(test)]
+            palette_catalog_build_count: 1,
             selected_palette_index: None,
             selected_palette_entry: None,
             palette_target_chooser: None,
@@ -214,6 +221,7 @@ impl UiAssetEditorSession {
         ensure_asset_kind(route.asset_kind, document.asset.kind)?;
         let selection = default_selection(&document);
         let compiler_imports = UiAssetCompilerImports::default();
+        let v2_compiler_imports = UiAssetV2CompilerImports::default();
         let style_inspector =
             build_style_inspector(&document, &selection, &compiler_imports, &Vec::new());
         let selected_binding_index = reconcile_selected_binding_index(&document, &selection, None);
@@ -233,13 +241,8 @@ impl UiAssetEditorSession {
                     node_id: node_id.clone(),
                     line_offset: 0,
                 });
-        let source_cursor_byte_offset = source_cursor_anchor
-            .as_ref()
-            .and_then(|anchor| {
-                source_outline_entry_for_node(&source, &anchor.node_id)
-                    .map(|entry| source_byte_offset_for_line(&source, entry.line as usize))
-            })
-            .unwrap_or(0);
+        let source_outline_state =
+            initial_source_outline_state(&document, &source, source_cursor_anchor.as_ref());
         let promote_draft =
             super::promote_widget::default_external_widget_draft(&document, &selection);
         let theme_draft =
@@ -250,17 +253,20 @@ impl UiAssetEditorSession {
                         &document.asset.display_name,
                     )
                 });
-        let v2_compiler_imports = UiAssetV2CompilerImports::default();
         let (preview_host, diagnostics) =
             match build_v2_preview_host(&v2_document, preview_size, &v2_compiler_imports) {
                 Ok(preview_host) => (preview_host, Vec::new()),
                 Err(error) => (None, vec![error.to_string()]),
             };
+        let palette_catalog = palette_catalog::build_v2(&document, &v2_compiler_imports.widgets)?;
 
         Ok(Self {
             route,
             source_schema: UiAssetSourceSchema::V2,
             source_buffer: UiAssetSourceBuffer::new(source.clone()),
+            source_outline_cache: source_outline_state.source_outline_cache,
+            last_valid_source_outline_cache: source_outline_state.last_valid_source_outline_cache,
+            last_valid_source_generation: 0,
             last_valid_source_text: source,
             last_valid_document: document,
             last_valid_v2_document: Some(v2_document),
@@ -271,10 +277,13 @@ impl UiAssetEditorSession {
             resource_resolver: Default::default(),
             localization_catalog: Default::default(),
             preview_host,
+            preview_hit_index: None,
+            #[cfg(test)]
+            preview_hit_index_build_count: 0,
             undo_stack: super::undo_stack::UiAssetEditorUndoStack::default(),
             diagnostics,
             structured_diagnostics: Vec::new(),
-            source_cursor_byte_offset,
+            source_cursor_byte_offset: source_outline_state.cursor_byte_offset,
             source_cursor_anchor,
             selection,
             designer_tool_mode: Default::default(),
@@ -291,6 +300,9 @@ impl UiAssetEditorSession {
             selected_slot_semantic_path: None,
             selected_layout_semantic_path: None,
             selected_locale_preview: DEFAULT_LOCALE_PREVIEW.to_string(),
+            palette_catalog,
+            #[cfg(test)]
+            palette_catalog_build_count: 1,
             selected_palette_index: None,
             selected_palette_entry: None,
             palette_target_chooser: None,
@@ -441,6 +453,7 @@ impl UiAssetEditorSession {
     }
 
     pub(super) fn rebuild_preview_snapshot(&mut self) -> Result<(), UiAssetEditorSessionError> {
+        self.invalidate_preview_hit_index();
         if self.source_schema == UiAssetSourceSchema::V2 {
             if let Some(document) = self.last_valid_v2_document.as_ref() {
                 self.preview_host = build_v2_preview_host(
@@ -470,6 +483,7 @@ impl UiAssetEditorSession {
     pub(super) fn refresh_preview_for_current_preset(
         &mut self,
     ) -> Result<(), UiAssetEditorSessionError> {
+        self.invalidate_preview_hit_index();
         let preview_size = preview_size_for_preset(self.route.preview_preset);
         if self.source_schema == UiAssetSourceSchema::V2 {
             if let Some(document) = self.last_valid_v2_document.as_ref() {
@@ -528,7 +542,7 @@ impl UiAssetEditorSession {
             .compiler_imports
             .styles
             .insert(reference.into(), document);
-        self.revalidate()?;
+        self.revalidate_without_palette_catalog()?;
         Ok(())
     }
 
@@ -559,7 +573,7 @@ impl UiAssetEditorSession {
             .styles
             .insert(reference.into(), document);
         if self.source_schema == UiAssetSourceSchema::V2 {
-            self.revalidate()?;
+            self.revalidate_without_palette_catalog()?;
         }
         Ok(())
     }
@@ -571,18 +585,36 @@ impl UiAssetEditorSession {
         v2_widgets: BTreeMap<String, UiV2AssetDocument>,
         v2_styles: BTreeMap<String, UiV2AssetDocument>,
     ) -> Result<(), UiAssetEditorSessionError> {
+        let palette_catalog_changed = match self.source_schema {
+            UiAssetSourceSchema::LayoutDocument => self.compiler_imports.widgets != widgets,
+            UiAssetSourceSchema::V2 => self.v2_compiler_imports.widgets != v2_widgets,
+        };
         self.compiler_imports.widgets = widgets;
         self.compiler_imports.styles = styles;
         self.v2_compiler_imports.widgets = v2_widgets;
         self.v2_compiler_imports.styles = v2_styles;
-        self.revalidate()
+        self.revalidate_with_palette_catalog(palette_catalog_changed)
     }
 
     pub(super) fn revalidate(&mut self) -> Result<(), UiAssetEditorSessionError> {
+        self.revalidate_with_palette_catalog(true)
+    }
+
+    fn revalidate_without_palette_catalog(&mut self) -> Result<(), UiAssetEditorSessionError> {
+        self.revalidate_with_palette_catalog(false)
+    }
+
+    fn revalidate_with_palette_catalog(
+        &mut self,
+        refresh_palette_catalog: bool,
+    ) -> Result<(), UiAssetEditorSessionError> {
         match self.source_schema {
             UiAssetSourceSchema::LayoutDocument => {
                 match parse_ui_asset_source(self.source_buffer.text()) {
-                    Ok(document) => self.apply_valid_document(document),
+                    Ok(document) => self.apply_valid_document_with_palette_catalog(
+                        document,
+                        refresh_palette_catalog,
+                    ),
                     Err(error) => {
                         self.mark_current_source_invalid(error.to_string());
                         Ok(())
@@ -591,7 +623,10 @@ impl UiAssetEditorSession {
             }
             UiAssetSourceSchema::V2 => {
                 match UiV2AssetLoader::load_toml_str(self.source_buffer.text()) {
-                    Ok(document) => self.apply_valid_v2_document(document),
+                    Ok(document) => self.apply_valid_v2_document_with_palette_catalog(
+                        document,
+                        refresh_palette_catalog,
+                    ),
                     Err(error) => {
                         self.mark_current_source_invalid(error.to_string());
                         Ok(())
@@ -605,8 +640,16 @@ impl UiAssetEditorSession {
         &mut self,
         document: UiAssetDocument,
     ) -> Result<(), UiAssetEditorSessionError> {
+        self.apply_valid_document_with_palette_catalog(document, true)
+    }
+
+    fn apply_valid_document_with_palette_catalog(
+        &mut self,
+        document: UiAssetDocument,
+        refresh_palette_catalog: bool,
+    ) -> Result<(), UiAssetEditorSessionError> {
         self.last_valid_v2_document = None;
-        self.apply_valid_projection_document(document)?;
+        self.apply_valid_projection_document(document, refresh_palette_catalog)?;
         let preview_document =
             apply_preview_mock_overrides(&self.last_valid_document, &self.preview_mock_state);
         match compile_preview(
@@ -635,9 +678,17 @@ impl UiAssetEditorSession {
         &mut self,
         document: UiV2AssetDocument,
     ) -> Result<(), UiAssetEditorSessionError> {
+        self.apply_valid_v2_document_with_palette_catalog(document, true)
+    }
+
+    fn apply_valid_v2_document_with_palette_catalog(
+        &mut self,
+        document: UiV2AssetDocument,
+        refresh_palette_catalog: bool,
+    ) -> Result<(), UiAssetEditorSessionError> {
         let projection_document = v2_document_to_legacy_projection_document(&document)?;
         self.last_valid_v2_document = Some(document.clone());
-        self.apply_valid_projection_document(projection_document)?;
+        self.apply_valid_projection_document(projection_document, refresh_palette_catalog)?;
         match build_v2_preview_host(
             &document,
             current_preview_size(&self.preview_host, self.route.preview_preset),
@@ -665,10 +716,16 @@ impl UiAssetEditorSession {
     fn apply_valid_projection_document(
         &mut self,
         document: UiAssetDocument,
+        refresh_palette_catalog: bool,
     ) -> Result<(), UiAssetEditorSessionError> {
         ensure_asset_kind(self.route.asset_kind, document.asset.kind)?;
+        self.invalidate_preview_hit_index();
         self.last_valid_document = document;
         self.last_valid_source_text = self.source_buffer.text().to_string();
+        refresh_valid_source_outline_caches(self);
+        if refresh_palette_catalog {
+            palette_catalog::refresh_palette_catalog(self)?;
+        }
         self.selection = reconcile_selection(&self.last_valid_document, &self.selection);
         self.reconcile_promote_widget_draft();
         self.reconcile_promote_theme_draft();
@@ -713,14 +770,7 @@ impl UiAssetEditorSession {
             &build_layout_semantic_group(&self.last_valid_document, &self.selection).entries,
             self.selected_layout_semantic_path.as_deref(),
         );
-        let palette_entries =
-            build_palette_entries(&self.last_valid_document, &self.compiler_imports.widgets);
-        self.selected_palette_index =
-            reconcile_selected_palette_index(&palette_entries, self.selected_palette_index);
-        self.selected_palette_entry = self
-            .selected_palette_index
-            .and_then(|index| palette_entries.get(index).cloned());
-        self.clear_palette_drag_state();
+        palette_catalog::reconcile_palette_catalog_selection(self);
         self.reconcile_source_cursor_state();
         reconcile_preview_mock_state(
             &self.last_valid_document,

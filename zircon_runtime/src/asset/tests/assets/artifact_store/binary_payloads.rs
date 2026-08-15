@@ -76,6 +76,7 @@ fn artifact_store_roundtrips_mesh_assets_with_binary_attribute_payloads() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
     let metadata = ResourceRecord::new(

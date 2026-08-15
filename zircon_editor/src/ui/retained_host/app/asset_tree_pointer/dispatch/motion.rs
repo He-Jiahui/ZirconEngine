@@ -14,22 +14,19 @@ impl RetainedEditorHost {
             return;
         }
 
-        let dispatch = {
+        let state = {
             let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) else {
                 self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
                 return;
             };
-            surface.tree_bridge.handle_move(UiPoint::new(x, y))
+            surface.tree_bridge.update_hovered_row(UiPoint::new(x, y))
         };
 
-        match dispatch {
-            Ok(dispatch) => {
-                if let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) {
-                    surface.tree_state = dispatch.state;
-                }
-                self.apply_asset_pointer_state_to_ui(surface_mode);
+        if let Some(state) = state {
+            if let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) {
+                surface.tree_state = state;
             }
-            Err(error) => self.set_status_line(error),
+            self.apply_asset_pointer_state_to_ui(surface_mode);
         }
     }
 }

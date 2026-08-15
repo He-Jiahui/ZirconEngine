@@ -1,5 +1,5 @@
 use crate::ui::retained_host::host_contract::paint_theme::{
-    HostMaterialPalette, current_host_palette,
+    current_host_palette, HostMaterialPalette,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

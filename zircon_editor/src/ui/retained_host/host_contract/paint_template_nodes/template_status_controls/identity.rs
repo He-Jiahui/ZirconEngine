@@ -1,6 +1,6 @@
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::style_selector::{
-    WORKBENCH_DIAGNOSTIC_SIGNAL_VARIANT, WorkbenchStatusSignalKind as StatusSignalKind,
+    WorkbenchStatusSignalKind as StatusSignalKind, WORKBENCH_DIAGNOSTIC_SIGNAL_VARIANT,
 };
 use super::super::template_status_glyphs::StatusIconKind;
 

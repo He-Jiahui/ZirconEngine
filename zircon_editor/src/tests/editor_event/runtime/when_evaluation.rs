@@ -11,12 +11,12 @@ use crate::core::editor_operation::{
 use crate::scene::modes::SceneModeActivation;
 use crate::scene::viewport::TransformHandleKind;
 use crate::ui::binding::ViewportCommand;
+use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::host::EditorManager;
-use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::retained_host::callback_dispatch::{
-    BuiltinWorkbenchWindowTemplateSurfaceBridge,
     dispatch_componentized_workbench_transform_axis_commit,
+    BuiltinWorkbenchWindowTemplateSurfaceBridge,
 };
 use crate::ui::workbench::view::ViewDescriptorId;
 use zircon_runtime_interface::ui::layout::UiSize;
@@ -239,8 +239,8 @@ fn workbench_position_commit_publishes_only_inspection_generation_and_property_d
     assert_eq!(message.previous_generation(), Some(previous_generation));
     assert!(message.generation() > previous_generation);
     assert_eq!(message.focused_entity(), Some(selected));
-    assert!(message.added_entities().is_empty());
-    assert!(message.changed_entities().is_empty());
+    assert!(message.added_anchors().is_empty());
+    assert!(message.changed_anchors().is_empty());
     assert!(message.removed_entities().is_empty());
     assert_eq!(message.focused_fields().entity(), Some(selected));
     assert!(!message.focused_fields().requires_resync());
@@ -310,13 +310,11 @@ fn remote_list_and_invoke_use_headless_when_even_if_project_is_open() {
     let listed = runtime
         .runtime
         .handle_operation_control_request(EditorOperationControlRequest::ListOperations);
-    assert!(
-        !listed.value.as_ref().unwrap()["operations"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|operation| operation["operation_id"] == operation_path.as_str())
-    );
+    assert!(!listed.value.as_ref().unwrap()["operations"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|operation| operation["operation_id"] == operation_path.as_str()));
 
     let invoked = runtime.runtime.handle_operation_control_request(
         EditorOperationControlRequest::InvokeOperation(EditorOperationInvocation::new(
@@ -403,13 +401,11 @@ fn remote_and_cli_lists_exclude_commands_the_same_sources_cannot_invoke() {
                 source.clone(),
                 EditorOperationControlRequest::ListOperations,
             );
-        assert!(
-            !listed.value.as_ref().unwrap()["operations"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|operation| operation["operation_id"] == operation_path.as_str())
-        );
+        assert!(!listed.value.as_ref().unwrap()["operations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|operation| operation["operation_id"] == operation_path.as_str()));
 
         let invoked = runtime
             .runtime

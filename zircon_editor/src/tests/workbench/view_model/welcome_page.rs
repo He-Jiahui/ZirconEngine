@@ -19,15 +19,13 @@ use zircon_runtime_interface::math::UVec2;
 
 #[test]
 fn welcome_startup_projects_into_exclusive_page_model() {
-    let descriptors = vec![
-        ViewDescriptor::new(
-            ViewDescriptorId::new("editor.welcome"),
-            ViewKind::ActivityWindow,
-            "Welcome",
-        )
-        .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage)
-        .with_icon_key("welcome"),
-    ];
+    let descriptors = vec![ViewDescriptor::new(
+        ViewDescriptorId::new("editor.welcome"),
+        ViewKind::ActivityWindow,
+        "Welcome",
+    )
+    .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage)
+    .with_icon_key("welcome")];
     let welcome_instance = ViewInstance {
         instance_id: ViewInstanceId::new("editor.welcome#1"),
         descriptor_id: ViewDescriptorId::new("editor.welcome"),

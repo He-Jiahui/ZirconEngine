@@ -1,8 +1,11 @@
+use zircon_runtime::core::framework::render::PostProcessGraphResourceNames;
 use zircon_runtime::graphics::{
-    FrameHistoryBinding, FrameHistorySlot, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
-    RenderPassExecutionContext, RenderPassExecutorRegistration, RenderPassStage,
+    ComputePassDescriptor, ComputeShaderSource, FrameHistoryBinding, FrameHistorySlot,
+    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassStage,
 };
-use zircon_runtime::render_graph::{QueueLane, RenderGraphComputeWorkload};
+use zircon_runtime::render_graph::{
+    BindingSchemaEntry, ComputeBindingKind, PassFlags, QueueLane, RenderGraphComputeDispatchExtent,
+};
 
 mod capability;
 mod plugin;
@@ -15,11 +18,64 @@ pub use plugin::{
 
 pub const FEATURE_ID: &str = "rendering.ssao";
 pub const FEATURE_NAME: &str = "screen_space_ambient_occlusion";
-pub const EXECUTOR_ID: &str = "ao.ssao-evaluate";
-const SSAO_EVALUATE_PIPELINE_LABEL: &str = "zircon-ssao-evaluate";
+pub const EXECUTOR_ID: &str = "compute.generic";
+const SSAO_EVALUATE_PIPELINE_LABEL: &str = "zircon-ssao-pipeline";
 const SSAO_EVALUATE_WORKGROUP_SIZE: [u32; 3] = [8, 8, 1];
+const SSAO_WGSL: &str = include_str!(
+    "../../../../../../zircon_runtime/src/graphics/scene/scene_renderer/post_process/shaders/ssao.wgsl"
+);
 
 pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
+    let compute_pass = ComputePassDescriptor::new(
+        "ssao-evaluate",
+        RenderPassStage::AmbientOcclusion,
+        QueueLane::AsyncCompute,
+        ComputeShaderSource::builtin_wgsl(SSAO_EVALUATE_PIPELINE_LABEL, SSAO_WGSL),
+        "cs_main",
+        SSAO_EVALUATE_WORKGROUP_SIZE,
+        vec![
+            BindingSchemaEntry::new(
+                0,
+                PostProcessGraphResourceNames::SCENE_DEPTH,
+                ComputeBindingKind::SampledTexture,
+            ),
+            BindingSchemaEntry::new(
+                1,
+                PostProcessGraphResourceNames::GBUFFER_NORMAL,
+                ComputeBindingKind::SampledTexture,
+            ),
+            BindingSchemaEntry::new(
+                2,
+                PostProcessGraphResourceNames::HISTORY_PREVIOUS_AMBIENT_OCCLUSION,
+                ComputeBindingKind::SampledTexture,
+            ),
+            BindingSchemaEntry::new(
+                3,
+                PostProcessGraphResourceNames::SSAO_PARAMS,
+                ComputeBindingKind::UniformBuffer,
+            ),
+            BindingSchemaEntry::new(
+                4,
+                PostProcessGraphResourceNames::AMBIENT_OCCLUSION,
+                ComputeBindingKind::StorageTextureWrite,
+            ),
+            BindingSchemaEntry::new(
+                5,
+                PostProcessGraphResourceNames::HZB_FURTHEST,
+                ComputeBindingKind::SampledTexture,
+            )
+            .with_texture_full_mip_chain(),
+        ],
+        RenderGraphComputeDispatchExtent::PerPixel {
+            target: PostProcessGraphResourceNames::AMBIENT_OCCLUSION.to_string(),
+            local_size: [
+                SSAO_EVALUATE_WORKGROUP_SIZE[0],
+                SSAO_EVALUATE_WORKGROUP_SIZE[1],
+            ],
+        },
+        PassFlags::default(),
+    );
+
     RenderFeatureDescriptor::new(
         FEATURE_NAME,
         vec![
@@ -35,22 +91,14 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
             "ssao-evaluate",
             QueueLane::AsyncCompute,
         )
-        .with_executor_id(EXECUTOR_ID)
-        .with_compute_workload(RenderGraphComputeWorkload::viewport(
-            SSAO_EVALUATE_PIPELINE_LABEL,
-            SSAO_EVALUATE_WORKGROUP_SIZE,
-        ))
-        .read_texture("scene-depth")
-        .write_texture("ambient-occlusion")],
+        .read_texture(PostProcessGraphResourceNames::SCENE_DEPTH)
+        .read_texture(PostProcessGraphResourceNames::GBUFFER_NORMAL)
+        .read_texture(PostProcessGraphResourceNames::HZB_FURTHEST)
+        .read_external_texture(PostProcessGraphResourceNames::HISTORY_PREVIOUS_AMBIENT_OCCLUSION)
+        .read_external_buffer(PostProcessGraphResourceNames::SSAO_PARAMS)
+        .write_storage_external_texture(PostProcessGraphResourceNames::AMBIENT_OCCLUSION)
+        .with_compute_pass(compute_pass)],
     )
-}
-
-pub fn render_pass_executor_registration() -> RenderPassExecutorRegistration {
-    RenderPassExecutorRegistration::new(EXECUTOR_ID, noop_render_executor)
-}
-
-fn noop_render_executor(_context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
-    Ok(())
 }
 
 #[cfg(test)]
@@ -81,7 +129,13 @@ mod tests {
         assert_eq!(workload.workgroup_size, SSAO_EVALUATE_WORKGROUP_SIZE);
         assert_eq!(
             workload.dispatch_extent,
-            RenderGraphComputeDispatchExtent::Viewport
+            RenderGraphComputeDispatchExtent::PerPixel {
+                target: "ambient-occlusion".to_string(),
+                local_size: [
+                    SSAO_EVALUATE_WORKGROUP_SIZE[0],
+                    SSAO_EVALUATE_WORKGROUP_SIZE[1],
+                ],
+            }
         );
     }
 }

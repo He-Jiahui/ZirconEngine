@@ -271,12 +271,26 @@ fn summary_markdown(
     if !ui_hotspots.scenarios.is_empty() {
         summary.push_str("\n## UI Hotspots\n");
         for scenario in &ui_hotspots.scenarios {
+            let damage_coverage_percent = if scenario.presented_surface_pixels > 0 {
+                scenario.painted_pixels as f64 * 100.0 / scenario.presented_surface_pixels as f64
+            } else {
+                0.0
+            };
             summary.push_str(&format!(
-                "- `{}` frames={} p95={:.2} ms max={:.2} ms slow_path={} presentation={} render={} chrome_snapshot={} model_build={} command_full={} command_patch={} softbuffer_present={} gpu_upload_bytes={} gpu_draw_calls={} gpu_visible_commands={} gpu_visible_draw_items={} gpu_batch_layers={} gpu_batch_dependencies={} redraw_full={} redraw_region={} full_paint={} region_paint={} painted_pixels={}\n",
+                "- `{}` frames={} p95={:.2} ms max={:.2} ms host_transactions={} host_scopes={} legacy_dirty_transactions={} host_targets={{full:{},shell:{},workbench:{},view:{},window:{},paint:{}}} slow_path={} presentation={} render={} chrome_snapshot={} model_build={} command_full={} command_patch={} softbuffer_present={} gpu_upload_bytes={} gpu_draw_calls={} gpu_timestamp_supported_presents={} gpu_time_samples={} gpu_time_p50={:.3} ms gpu_time_p95={:.3} ms gpu_time_max={:.3} ms gpu_profile_latency_max_frames={} gpu_visible_commands={} gpu_visible_draw_items={} gpu_batch_layers={} gpu_batch_dependencies={} redraw_full={} redraw_region={} full_paint={} region_paint={} painted_pixels={} presented_surface_pixels={} damage_coverage={:.2}%\n",
                 scenario.scenario,
                 scenario.frame_count,
                 scenario.frame_p95_us as f64 / 1_000.0,
                 scenario.frame_max_us as f64 / 1_000.0,
+                scenario.host_invalidation_transaction_count,
+                scenario.host_invalidation_scope_count,
+                scenario.host_invalidation_legacy_dirty_transaction_count,
+                scenario.host_invalidation_full_target_count,
+                scenario.host_invalidation_shell_content_target_count,
+                scenario.host_invalidation_workbench_projection_target_count,
+                scenario.host_invalidation_view_presentation_target_count,
+                scenario.host_invalidation_window_metrics_target_count,
+                scenario.host_invalidation_paint_only_target_count,
                 scenario.slow_path_rebuild_count,
                 scenario.presentation_rebuild_count,
                 scenario.render_path_count,
@@ -287,6 +301,12 @@ fn summary_markdown(
                 scenario.software_fallback_present_count,
                 scenario.gpu_upload_bytes,
                 scenario.gpu_draw_calls,
+                scenario.gpu_timestamp_supported_present_count,
+                scenario.gpu_time_sample_count,
+                scenario.gpu_time_p50_us as f64 / 1_000.0,
+                scenario.gpu_time_p95_us as f64 / 1_000.0,
+                scenario.gpu_time_max_us as f64 / 1_000.0,
+                scenario.gpu_profile_latency_max_frames,
                 scenario.gpu_visible_commands,
                 scenario.gpu_visible_draw_items,
                 scenario.gpu_batch_layers,
@@ -295,7 +315,9 @@ fn summary_markdown(
                 scenario.redraw_region_count,
                 scenario.full_paint_count,
                 scenario.region_paint_count,
-                scenario.painted_pixels
+                scenario.painted_pixels,
+                scenario.presented_surface_pixels,
+                damage_coverage_percent
             ));
         }
     }

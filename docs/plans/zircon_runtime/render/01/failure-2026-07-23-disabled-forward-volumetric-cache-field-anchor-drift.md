@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: open
+status: source_complete_dynamic_validation_pending
 created_at: 2026-07-23
 summary_slug: disabled-forward-volumetric-cache-field-anchor-drift
 origin_plan: docs/plans/zircon_runtime/text/01-font-resource-faces-and-database.md
@@ -61,5 +61,5 @@ Open state: `生产合同原已存在，structure guard 的 false RED 修复已�
   binding 保留其动态参数路径，未在 disabled per-pass 路径分配 GPU buffer。
 - `disabled_forward_volumetric_params_buffer_is_cache_owned` 已同时约束字段、构造期创建和
   disabled binding 引用，防止上述漂移回归。
-- 本记录仍保持 `open`，因为精确 Render01 test 与原 Text01 向上门禁尚未取得受管终态；不得将
-  源码审阅替代为 managed GREEN。
+- 本记录保持 `source_complete_dynamic_validation_pending`，因为精确 Render01 test 与原 Text01
+  向上门禁尚未取得受管终态；不得将源码审阅替代为 managed GREEN。

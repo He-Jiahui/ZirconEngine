@@ -32,7 +32,11 @@ fn muted_prominent_workbench_command_style(
     mut style: WorkbenchButtonStyle,
 ) -> WorkbenchButtonStyle {
     let active = node.selected || node.checked || node.popup_open;
-    let focus_visible = node.focused || node.selected || node.checked;
+    let focus_visible = if node.focus_visible_known {
+        node.focus_visible
+    } else {
+        node.focused
+    };
     let command_palette = workbench_button_command_palette();
     style.surface = if node.pressed {
         command_palette.muted_pressed_surface
@@ -57,7 +61,11 @@ fn primary_import_workbench_command_style(
     mut style: WorkbenchButtonStyle,
 ) -> WorkbenchButtonStyle {
     let active = node.selected || node.checked || node.popup_open;
-    let focus_visible = node.focused || node.selected || node.checked;
+    let focus_visible = if node.focus_visible_known {
+        node.focus_visible
+    } else {
+        node.focused
+    };
     let command_palette = workbench_button_command_palette();
     let surface = if node.pressed {
         command_palette.primary_pressed_surface

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use zircon_runtime::core::framework::channel::ChannelWakeCallback;
 use zircon_runtime::core::CoreError;
 
 use super::super::super::{
@@ -28,6 +29,13 @@ impl EditorAssetManager for DefaultEditorAssetManager {
 
     fn subscribe_editor_asset_changes(&self) -> EditorAssetChangeSubscription {
         self.subscribe_editor_asset_changes_impl()
+    }
+
+    fn subscribe_editor_asset_changes_with_wake(
+        &self,
+        wake: ChannelWakeCallback,
+    ) -> EditorAssetChangeSubscription {
+        self.subscribe_editor_asset_changes_with_wake_impl(wake)
     }
 
     fn request_preview_refresh(

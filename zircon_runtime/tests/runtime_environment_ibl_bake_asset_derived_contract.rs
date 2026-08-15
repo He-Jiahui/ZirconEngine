@@ -2,9 +2,9 @@ use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::asset::artifact::{
-    resolve_ibl_bake_artifact_runtime_dispatch, IblBakeArtifactAssetDerivedRead,
-    IblBakeArtifactAssetDerivedStore, IblBakeArtifactCacheStore, IBL_BAKE_ASSET_DERIVED_DIRECTORY,
-    IBL_BAKE_ASSET_DERIVED_EXTENSION,
+    resolve_ibl_bake_artifact_runtime_dispatch, IblBakeArtifactAssetDerivedError,
+    IblBakeArtifactAssetDerivedRead, IblBakeArtifactAssetDerivedStore, IblBakeArtifactCacheStore,
+    IBL_BAKE_ASSET_DERIVED_DIRECTORY, IBL_BAKE_ASSET_DERIVED_EXTENSION,
 };
 use zircon_runtime::core::framework::render::{
     build_source_cubemap_from_equirect, cubemap_direction_from_scaled_uv,
@@ -12,8 +12,8 @@ use zircon_runtime::core::framework::render::{
     source_cubemap_mip_chain_with_bake_artifact, source_cubemap_mip_size,
     source_cubemap_pmrem_mip_from_roughness, CubemapFace, IblBakeArtifactBlob,
     IblBakeArtifactBlobError, IblBakeArtifactContents, IblBakeArtifactDescriptor,
-    IblBakeArtifactPayload, IblBakeArtifactRequest, IblBakeArtifactSource, ProceduralSkyParams,
-    SourceCubemapMipChain, IBL_BAKE_ALGORITHM_VERSION,
+    IblBakeArtifactPayload, IblBakeArtifactProducer, IblBakeArtifactRequest, IblBakeArtifactSource,
+    ProceduralSkyParams, SourceCubemapMipChain, IBL_BAKE_ALGORITHM_VERSION,
 };
 
 #[test]
@@ -48,7 +48,7 @@ fn runtime_environment_ibl_bake_asset_derived_store_prebake_beats_runtime_cache(
     let runtime_cache = IblBakeArtifactCacheStore::new(&root);
     let runtime_source =
         build_source_cubemap_from_equirect(16, synthetic_runtime_cache_environment);
-    let runtime_blob = blob_for_request(&request, &runtime_source);
+    let runtime_blob = runtime_cache_blob_for_request(&request, &runtime_source);
     runtime_cache
         .write_runtime_cache(&runtime_blob)
         .expect("runtime cache blob should write");
@@ -104,6 +104,24 @@ fn runtime_environment_ibl_bake_asset_derived_store_rejects_stale_blob() {
 }
 
 #[test]
+fn runtime_environment_ibl_bake_asset_derived_store_rejects_gpu_runtime_blob() {
+    let root = unique_temp_root("asset_derived_gpu_producer");
+    let source = build_source_cubemap_from_equirect(8, synthetic_runtime_cache_environment);
+    let request = request_for_source(&source);
+    let runtime_blob = runtime_cache_blob_for_request(&request, &source);
+    let asset_store = IblBakeArtifactAssetDerivedStore::new(&root);
+
+    assert!(matches!(
+        asset_store.write_asset_derived_blob(&runtime_blob),
+        Err(IblBakeArtifactAssetDerivedError::InvalidProducer {
+            producer: IblBakeArtifactProducer::RendererGpuRuntime
+        })
+    ));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn runtime_environment_ibl_bake_asset_derived_store_preserves_pmrem_seams() {
     let root = unique_temp_root("asset_derived_seam");
     let source = build_source_cubemap_from_equirect(64, synthetic_seam_stress_environment);
@@ -153,11 +171,11 @@ fn request_for_source(source: &SourceCubemapMipChain) -> IblBakeArtifactRequest 
     .with_required_contents(IblBakeArtifactContents::PMREM_SH9)
 }
 
-fn blob_for_request(
+fn runtime_cache_blob_for_request(
     request: &IblBakeArtifactRequest,
     source: &SourceCubemapMipChain,
 ) -> IblBakeArtifactBlob {
-    let descriptor = IblBakeArtifactDescriptor::current_for_request(request);
+    let descriptor = IblBakeArtifactDescriptor::current_for_runtime_cache_request(request);
     let payload = IblBakeArtifactPayload::from_source_cubemap(descriptor, source, None)
         .expect("fixture payload should encode");
     IblBakeArtifactBlob::from_payload(payload)

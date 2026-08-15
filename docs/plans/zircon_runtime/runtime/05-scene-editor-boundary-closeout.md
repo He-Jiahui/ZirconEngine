@@ -1,11 +1,13 @@
 ---
 related_code:
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/support/runtime_plan_archives.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/recent_static_guards/parent_routing.rs
-  - tools/tests/test_runtime_plan_status_archive_ownership.py
   - tests/acceptance/runtime-plan-status-archive-ownership-sync.md
   - zircon_runtime/src/scene/inspection/mod.rs
-  - zircon_runtime/src/scene/inspection/artifact.rs
+  - zircon_runtime/src/scene/inspection/artifact/mod.rs
+  - zircon_runtime/src/scene/inspection/artifact/cache.rs
+  - zircon_runtime/src/scene/inspection/artifact/data.rs
+  - zircon_runtime/src/scene/inspection/artifact/fields.rs
+  - zircon_runtime/src/scene/inspection/artifact/metrics.rs
+  - zircon_runtime/src/scene/inspection/artifact/overrides.rs
   - zircon_runtime/src/scene/inspection/snapshot.rs
   - zircon_runtime/src/scene/inspection/subscription.rs
   - zircon_runtime/src/scene/tests/authoring_boundary.rs
@@ -46,32 +48,6 @@ related_code:
   - zircon_runtime/src/scene/tests/dynamic_scene_session/mutation.rs
   - zircon_runtime/src/scene/tests/dynamic_scene_session/selection.rs
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/architecture_review.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/closeout.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/index_tables.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/recent_static_guards.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_slices.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/subplan_status.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/support.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_01.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_02.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_03.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_04.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_06.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_07.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_08.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/late.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/late/runtime_10.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/late/runtime_11.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/late/runtime_12.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/late/runtime_13.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/late/runtime_14.rs
   - zircon_runtime/src/scene/dynamic_scene/session/mod.rs
   - zircon_runtime/src/scene/dynamic_scene/session/archive.rs
   - zircon_runtime/src/scene/dynamic_scene/session/facade/mod.rs
@@ -402,12 +378,6 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_naming_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_scene_editor_surface.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_scene_editor_surface_markdown.py
-  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_plan_status_anchor_inventory.py
-  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_plan_status_boundary.py
-  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_plan_status_markdown.py
-  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_plan_status_sources.py
-  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_plan_status_output_anchors.py
-  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_plan_status_support_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/non_network_server_naming_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/hard_cutover_migration_smells.py
@@ -422,6 +392,8 @@ last_refined: 2026-08-01
 # 05 scene/editor 边界收尾
 
 ## 现状与证据（2026-06-12 重核）
+
+2026-08-09 G7 元数据维护：frontmatter 已删除 35 条不存在的旧 plan-status / 审计脚本 owner，`check_conventions --only docs` 对本文件的悬空路径从 35 项降为 0；没有恢复旧路径、状态镜像、兼容入口或修改 scene/editor 运行时合同。本次维护不重开已验收的 Runtime05，`status: completed` 与既有 1642/1304/298/PMREM 完成证据保持不变。
 
 旧文两项核心"残留"已被解决，本计划工作面相应缩小并转向白名单机器化：
 

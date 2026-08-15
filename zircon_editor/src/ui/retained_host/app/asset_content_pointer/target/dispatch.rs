@@ -1,7 +1,7 @@
 use super::super::super::RetainedEditorHost;
 use super::PreparedAssetContentPointerTarget;
 use crate::ui::retained_host::asset_pointer::{
-    AssetContentListPointerBridge, AssetContentListPointerDispatch, AssetContentListPointerLayout,
+    AssetContentListPointerBridge, AssetContentListPointerLayout,
 };
 use crate::ui::workbench::asset_content_layout::AssetContentSurfaceProfile;
 
@@ -37,15 +37,13 @@ impl RetainedEditorHost {
         true
     }
 
-    pub(in crate::ui::retained_host::app) fn dispatch_prepared_asset_content_pointer(
+    pub(in crate::ui::retained_host::app) fn dispatch_prepared_asset_content_pointer<T>(
         &mut self,
         surface_mode: &str,
         target: &PreparedAssetContentPointerTarget,
         clear_drag_on_error: bool,
-        dispatch: impl FnOnce(
-            &mut AssetContentListPointerBridge,
-        ) -> Result<AssetContentListPointerDispatch, String>,
-    ) -> Option<Result<AssetContentListPointerDispatch, String>> {
+        dispatch: impl FnOnce(&mut AssetContentListPointerBridge) -> T,
+    ) -> Option<T> {
         let Some(surface_profile) = AssetContentSurfaceProfile::from_surface_mode(surface_mode)
         else {
             self.clear_asset_content_drag_on_error(clear_drag_on_error);

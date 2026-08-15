@@ -66,6 +66,25 @@ zr-sccache-status
 
 可通过 `-SharedTargetRoot` 自定义根目录。
 
+脚本会通过 Windows 物理路径解析确认根目录位于 D:\cargo-targets、E:\cargo-targets 或
+F:\cargo-targets 之一。每次调用还会将下列可写目录收敛到该共享根目录，并在结束时恢复原调用
+进程的环境变量：
+
+- CARGO_HOME=shared-root\cargo-home
+- SCCACHE_DIR=shared-root\sccache
+- TEMP、TMP、TMPDIR=shared-root\profile\temporary
+
+使用 -InstallSccache 时，二进制安装在 shared-root\cargo-home\bin。
+使用非默认 shared-root 时，可用 `zr-sccache-status -SharedTargetRoot <shared-root>`
+读取同一受管缓存的统计信息。
+
+`check-runtime-domain-features.ps1` 和 `check-runtime-profile-features.ps1` 也使用相同的物理路径
+解析和环境隔离。未指定 `-TargetDir` 时，它们分别使用仓库盘符下的
+`cargo-targets\zircon-runtime-domain-matrix` 与
+`cargo-targets\zircon-runtime-profile-matrix`；显式目标同样必须在 D:、E: 或 F: 的
+`cargo-targets` 下。两个脚本会把 Cargo home、sccache 和临时文件放在该目标中，并在完成后恢复
+调用方环境。
+
 ## 6) 常用别名
 
 - `zr-client-check/build/test/run`

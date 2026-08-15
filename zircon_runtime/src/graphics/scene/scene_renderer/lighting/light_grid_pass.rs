@@ -2,7 +2,7 @@ use crate::core::framework::render::RenderFrameExtract;
 use crate::core::math::UVec2;
 
 use super::light_buffer::pack_lighting_extract_with_cookies;
-use super::light_grid_builder::{LightGridCpuOutput, LightGridViewInfo, build_light_grid};
+use super::light_grid_builder::{build_light_grid, LightGridCpuOutput, LightGridViewInfo};
 
 pub(crate) fn build_light_grid_for_frame(
     extract: &RenderFrameExtract,

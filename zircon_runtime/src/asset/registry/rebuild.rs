@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -68,6 +68,21 @@ impl AssetRegistryIndex {
         normalize_duplicate_guids(&mut metas, &mut diagnostics, &owners)?;
         Ok(diagnostics)
     }
+
+    pub(crate) fn prepare_duplicate_guids_from_loaded(
+        &self,
+        documents_by_path: &mut BTreeMap<PathBuf, AssetMetaDocument>,
+        changes: Option<&[AssetChange]>,
+    ) -> Vec<AssetRegistryDiagnostic> {
+        let mut diagnostics = Vec::new();
+        let mut owners = changes
+            .map(|changes| identity_owners_for_changes(self, changes))
+            .unwrap_or_else(|| identity_owners(self));
+        for document in documents_by_path.values_mut() {
+            normalize_duplicate_guid_document(document, &mut diagnostics, &mut owners);
+        }
+        diagnostics
+    }
 }
 
 pub(super) fn scan_project_metas(
@@ -112,47 +127,11 @@ pub(super) fn normalize_duplicate_guids(
     let mut first_path_by_uuid = preferred_owners.clone();
     let mut reminted_paths = Vec::new();
     for scanned in metas {
-        let mut changed = false;
-        let original_root = scanned.document.uuid;
-        if let Some(first_path) =
-            duplicate_owner(&first_path_by_uuid, original_root, &scanned.document.url)
-        {
-            let replacement = unique_uuid(&first_path_by_uuid);
-            diagnostics.push(AssetRegistryDiagnostic::DuplicateGuidReminted {
-                original: original_root,
-                first_path,
-                path: scanned.document.url.clone(),
-                replacement,
-            });
-            scanned.document.uuid = replacement;
-            for entry in &mut scanned.document.entries {
-                if entry.url.label().is_none() && entry.uuid == original_root {
-                    entry.uuid = replacement;
-                }
-            }
-            changed = true;
-        }
-        first_path_by_uuid.insert(scanned.document.uuid, scanned.document.url.clone());
-
-        for entry in &mut scanned.document.entries {
-            if entry.url.label().is_none() {
-                entry.uuid = scanned.document.uuid;
-                continue;
-            }
-            if let Some(first_path) = duplicate_owner(&first_path_by_uuid, entry.uuid, &entry.url) {
-                let original = entry.uuid;
-                let replacement = unique_uuid(&first_path_by_uuid);
-                diagnostics.push(AssetRegistryDiagnostic::DuplicateGuidReminted {
-                    original,
-                    first_path,
-                    path: entry.url.clone(),
-                    replacement,
-                });
-                entry.uuid = replacement;
-                changed = true;
-            }
-            first_path_by_uuid.insert(entry.uuid, entry.url.clone());
-        }
+        let changed = normalize_duplicate_guid_document(
+            &mut scanned.document,
+            diagnostics,
+            &mut first_path_by_uuid,
+        );
         if changed {
             reminted_paths.push(scanned.document.url.clone());
             scanned
@@ -162,6 +141,53 @@ pub(super) fn normalize_duplicate_guids(
         }
     }
     Ok(reminted_paths)
+}
+
+fn normalize_duplicate_guid_document(
+    document: &mut AssetMetaDocument,
+    diagnostics: &mut Vec<AssetRegistryDiagnostic>,
+    owners: &mut HashMap<AssetUuid, AssetUri>,
+) -> bool {
+    let mut changed = false;
+    let original_root = document.uuid;
+    if let Some(first_path) = duplicate_owner(owners, original_root, &document.url) {
+        let replacement = unique_uuid(owners);
+        diagnostics.push(AssetRegistryDiagnostic::DuplicateGuidReminted {
+            original: original_root,
+            first_path,
+            path: document.url.clone(),
+            replacement,
+        });
+        document.uuid = replacement;
+        for entry in &mut document.entries {
+            if entry.url.label().is_none() && entry.uuid == original_root {
+                entry.uuid = replacement;
+            }
+        }
+        changed = true;
+    }
+    owners.insert(document.uuid, document.url.clone());
+
+    for entry in &mut document.entries {
+        if entry.url.label().is_none() {
+            entry.uuid = document.uuid;
+            continue;
+        }
+        if let Some(first_path) = duplicate_owner(owners, entry.uuid, &entry.url) {
+            let original = entry.uuid;
+            let replacement = unique_uuid(owners);
+            diagnostics.push(AssetRegistryDiagnostic::DuplicateGuidReminted {
+                original,
+                first_path,
+                path: entry.url.clone(),
+                replacement,
+            });
+            entry.uuid = replacement;
+            changed = true;
+        }
+        owners.insert(entry.uuid, entry.url.clone());
+    }
+    changed
 }
 
 pub(super) fn identity_owners(index: &AssetRegistryIndex) -> HashMap<AssetUuid, AssetUri> {

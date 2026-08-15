@@ -1,6 +1,6 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::identity::chip_is_small;
-use super::metrics::{CHIP_DELETE_MEDIUM_EDGE, CHIP_DELETE_SMALL_EDGE, chip_bounded_extent};
+use super::metrics::{chip_bounded_extent, CHIP_DELETE_MEDIUM_EDGE, CHIP_DELETE_SMALL_EDGE};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_delete_icon_frame(
     node: &TemplatePaneNodeData,

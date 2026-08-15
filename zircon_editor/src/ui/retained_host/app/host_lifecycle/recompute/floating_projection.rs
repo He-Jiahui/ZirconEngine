@@ -1,8 +1,8 @@
 use super::*;
 use crate::ui::retained_host::floating_window_projection::{
-    FloatingWindowProjectionBundle, build_floating_window_projection_bundle_with_shared_source,
+    build_floating_window_projection_bundle_with_shared_source,
     resolve_floating_window_projection_base_outer_frame,
-    resolve_floating_window_projection_shared_source,
+    resolve_floating_window_projection_shared_source, FloatingWindowProjectionBundle,
 };
 
 impl RetainedEditorHost {

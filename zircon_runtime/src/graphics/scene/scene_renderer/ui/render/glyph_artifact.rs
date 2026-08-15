@@ -34,6 +34,21 @@ impl ScreenSpaceUiGlyphArtifactLine {
             })
     }
 
+    pub(in crate::graphics::scene::scene_renderer::ui) fn layout_baseline(&self) -> Option<f32> {
+        self.refreshed_line
+            .as_deref()
+            .map(|line| line.layout_line.baseline)
+            .filter(|baseline| baseline.is_finite())
+            .or_else(|| {
+                self.artifact
+                    .lines
+                    .get(self.line_index)
+                    .and_then(Option::as_ref)
+                    .map(|line| line.layout_line.baseline)
+                    .filter(|baseline| baseline.is_finite())
+            })
+    }
+
     pub(in crate::graphics::scene::scene_renderer::ui) fn source_scalar(
         &self,
         glyph: &TextGlyph,

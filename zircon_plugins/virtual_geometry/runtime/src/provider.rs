@@ -244,6 +244,7 @@ mod tests {
                 vertices: Vec::new(),
                 indices: Vec::new(),
                 mesh: None,
+                mesh_sdf: None,
                 virtual_geometry: Some(VirtualGeometryAsset {
                     hierarchy_buffer: vec![VirtualGeometryHierarchyNodeAsset {
                         node_id: 0,

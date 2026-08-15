@@ -89,3 +89,41 @@ Editor01修复producer验收时必须同时保持单一canonical path owner：ac
 2026-07-30 union-input recheck: R3 snapshot `1330` 仅覆盖 `lifecycle.rs` 与本记录，但 `HEAD` 不含 `zircon_editor/src/core/document/mod.rs`，该 lifecycle mount 和上层 producer/host 仍是历史未提交工作树状态。单文件 overlay 不能物化可编译的 `zircon_editor` source tree，故不得对 R3 单独预约或解释 Cargo 结果；后续必须先以完整 union source manifest 重新归属 document mount、core/host producer、Editor09 deactivation 与 Frameworks05 close contract，再执行受管联合验证。此为已有 validation-copy attribution/input failure 的补充证据，不是 Cargo 结果或 fixed return。
 
 2026-07-30 Gateway union-validation dependency: Gateway R3 immutable copy `89f7c98785a444a5b92a48053f547fbb` pinned input manifest `7d8727f92cb11ea9ca60c00ff7ca4efc863078c4c2abf028cb028b918777fe55`; run `34e2ab62170a4c8999d0f1550873dbf5` ended `exit 101`. Coordinator persistence recorded empty `stdout_text` and `stderr_text` before the copy was removed, so this cannot honestly be attributed to Rust compilation, a test assertion, or child-process termination. The copy also attributed only Gateway overlay and excludes current uncommitted document lifecycle/producer/startup overlays, so it cannot represent full Editor01 current source. Snapshot `1346` then froze lifecycle hash `1c5a57a21169692f736fb6202a98bb6e24dd91ef1c7abb94fb203e4765cb3659` after accepted lifecycle `lease claim` request `df1a79b9f6224576a6999fc2865a5751`, but `baseline attribute` still returned `baseline_lease_missing`; this independently reproduces the attribution side of the same union gate. Rebuild only after Coordinator01's open [terminal-output-loss](../../../zircon_tooling/session_coordinator/01/failure-2026-07-30-validation-copy-run-terminal-output-loss-regression.md) and [live-lease-attribution-union](../../../zircon_tooling/session_coordinator/01/failure-2026-07-26-live-lease-attribution-validation-copy-divergence.md) repairs provide an auditable union manifest. This is not Cargo GREEN, code attribution, or a fixed return.
+
+## 2026-08-14 PERF-MVP-593 调研与采样计划
+
+### 结论边界
+
+本节是开始优化前的调研与测量协议，不是完成记录，也不改变本 failure 的 `OPEN` 状态。2026-08-14 对 `DocumentLifecycleAuthority`、其 scene route、计划结构约束及参考引擎源码的复审确认：问题在 identity/retention 的数据模型，而不是 UI callback 的局部实现。动态基线尚未产生；当前共享验证窗口为 Tooling atomic closeout 与 UI12 M3 保留，禁止启动新的 Cargo 或产品进程，因此不得把静态审计误报为性能数据。
+
+### 已确认的当前源码瓶颈
+
+- `DocumentLifecycleState` 同时以 `ids_by_root: BTreeMap<PathBuf, DocumentId>`、`ActiveProjectSession::root: PathBuf` 与 `SceneDocumentKey::project_root: PathBuf` 保存 project root；scene key 还每次构造 `String` URI。已知 root 的查询虽可借用 `&Path`，首次/场景激活仍会形成多份路径正文 owner。
+- root 与 scene identity 在 1,024 条预算达到后分别由 `trim_closed_roots`、`trim_closed_scene_documents` 在有序映射中查找一个非活动项、clone key 再删除。该淘汰是每次进入上限后的 O(N) 扫描与额外路径/键分配，不能作为 100k churn 的稳态算法。
+- `document_id_is_occupied` 遍历两个 identity map；特意制造哈希碰撞时 `document_id_for` 和 `scene_document_id_for` 会退化为 O(N) probe。当前测试只证明 ID 语义，没有暴露实际 root/scene 的重复 body owner 或 lock hold 时间。
+- `activate`、`begin_project_session`、scene route 验证和 close/save 都经过 `scene_route_gate` 加 state `Mutex`。计划要求保持 authority lock 外发布；重构不得把 path hash、淘汰或 bus publish 扩展到锁外的错误时序，也不得在生产路径引入 `.lock().unwrap()`。
+
+### 参考约束与目标结构
+
+- Unreal `UAssetEditorSubsystem` 将 asset editor 打开/关闭归入一个 subsystem，并在 `CullRecentAssetEditorsMap` 检测其 recent map 超过 MRU 预算的两倍后收敛，而不是让历史 identity 无界增长。Zircon 采用其“单 owner + 明确 budget/eviction”的原则，不复制其 UObject/toolkit 多实例模型。
+- Fyrox `GameScene::from_native_scene` 在构造时借用 `Option<&Path>`，而场景运行时 state 以 engine handle/resource owner 组织；Zircon 保持 `DocumentLifecycleAuthority` 为唯一 document/scene identity owner，不让 host、picker 或 scene installer 建立第二份路径状态。
+- `engine-code-structure-convention.md` 的 E9 要求生产共享锁通过集中 helper 处理 poison；`engine-code-review-findings-2026-06.md` 的 cache 复核要求 source identity 单一 owner、显式预算、O(1) 反向索引和可观测的 reuse/eviction 计数。该重构必须拆出 owner/test child，不能把 map、淘汰、指标和 UI route 混入一个大文件。
+
+候选设计将在动态基线确认后落实为：每个 root/scene identity 的正文只由 lifecycle-owned slot 保存一次；active project/session/scene 状态只保留 typed slot 或 `DocumentId`；lookup 通过带随机化 hash 的 bucket 加精确 path/URI 比较完成；关闭 identity 以 epoch ticket FIFO 回收，使陈旧 ticket 可 O(1) 跳过，活跃 identity 不扫描；live `DocumentId` 使用专用 occupancy index 完成碰撞 probe。scene identity 必须引用 project identity slot，不能再次持有 project root。所有预算将命名为 policy/预算类型并附带指标，不能散落为新的裸常量。
+
+### 受管测量协议
+
+在 coordinator 允许新的 Windows validation/product job 后，先执行 WPR CPU+heap/allocation+context-switch capture（`wpr.exe` 10.0.26100.8972，2026-08-14 状态为 `not recording`）并将 ETL 与汇总仅写入受管的 `E:`/`D:`/`F:` 目标目录。采样按同一机器、release product path、预热后 31 次重复记录以下矩阵：roots `1/1k/100k`，path bytes `16B/4KiB`，operations `1/1M`，threads `1/16`；分别覆盖首次 activate、known-root no-op activate、save、close、closed-root reopen、project session 切换和 scene route switch。
+
+每个样本必须同时记录 path allocation/clone bytes、root/scene body owner 数、live/history map 条目与 logical bytes、hash/collision probe 数、eviction/ticket stale-skip 数、`scene_route_gate` 和 state mutex 的 wait/hold、CPU p50/p95、RSS/private bytes、context switch 与功耗。验收下限是 known-root no-op/save/close path allocation 为零、每个 live identity 正文 owner 至多一个、历史状态有界、正常命中不扫描 closed history、event 顺序仍为 `Closed -> Opened` 且 publish 仍发生在 authority lock 外。ETL 火焰图必须验证热点不再落在 map 全扫描、key clone 或重复路径正文上；功耗只与同机空闲/基线对比，不伪造跨引擎绝对结论。
+
+### 当前 source 状态（未验收）
+
+2026-08-15 current source 已将原 test-only `retention_metrics` 硬切为 `DocumentLifecycleRetentionSnapshot`：它在既有 state lock 内按需读取 root/scene/session 的 identity 数、逻辑路径字节、活动 owner 与累计 probe/eviction 数据，不 clone path，也不重置计数。`DocumentLifecycleState` 对现有 document-id occupancy 查询、root eviction scan 和 scene eviction scan 记录饱和累计值；Rust source regression 覆盖 scene/session 路径观测、collision 两次 probe 与 root eviction scan。此处没有替换双 `BTreeMap<PathBuf, ...>` 算法、没有开始 Cargo/WPR/product capture，未产生动态基线或性能结论；在共享 validation window 解除、同矩阵 ETL 完成及受管复审前，本 failure 继续保持 `OPEN`，本节不是 `产出记录`。
+
+### 实施与验证顺序
+
+1. 先增加只读的 lifecycle retention/probe instrumentation 与 focused source regressions，锁定现状中重复 owner、淘汰扫描及 ID 语义；不改变 producer message contract。
+2. 用上述 capture 建立重构前基线，复核数据是否支持 static hotspot 假设；若实际热点属于 project I/O 或 scene installation，则停止本次索引重构并按最低 owner 重新交接。
+3. 仅在数据确认后硬切旧的双 `BTreeMap<PathBuf, ...>` retention 模型，实施 single-owner slots、O(1) ticket eviction 和 occupancy index；不保留旧 map/fallback/兼容层。
+4. 重跑同一矩阵并作 p50/p95、allocation、RSS、lock 和功耗差分；随后才进入现有 document、editor_message、Editor12 bridge 的受管 Cargo/上行验证与独立复审。

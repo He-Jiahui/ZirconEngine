@@ -12,6 +12,7 @@ use crate::runtime_mirror::{NavigationPieFrame, NavigationPieMirror, NavigationP
 use std::sync::{Arc, Mutex};
 use zircon_editor::core::runtime_event_consumer::EditorRuntimeEventConsumerHost;
 use zircon_editor::{EditorRuntimeGateway, GatewayError};
+use zircon_plugin_navigation_runtime::NavigationOverlayFrame;
 use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavMeshBakeReport, NavPathStatus, NavigationAgentDebugState,
     NavigationGizmoSnapshot, NavigationGizmoTriangle, AREA_JUMP, AREA_WALKABLE,
@@ -29,6 +30,7 @@ use zircon_runtime_interface::{
 
 mod bake_panel_retained;
 mod operation_command;
+mod viewport_overlay_provider;
 
 #[derive(Default)]
 struct RecordingBakeBackend {
@@ -88,8 +90,8 @@ impl EditorRuntimeGateway for NavigationMirrorRuntimeGateway {
         event_id: &str,
         payload_schema: &str,
     ) -> Result<Option<ZrRuntimePluginEventSubscriptionHandle>, GatewayError> {
-        assert_eq!(event_id, NAVIGATION_TICK_EVENT_ID);
-        assert_eq!(payload_schema, NAVIGATION_TICK_PAYLOAD_SCHEMA);
+        assert_eq!(event_id, NAVIGATION_OVERLAY_FRAME_EVENT_ID);
+        assert_eq!(payload_schema, NAVIGATION_OVERLAY_FRAME_PAYLOAD_SCHEMA);
         Ok(Some(ZrRuntimePluginEventSubscriptionHandle::new(9)))
     }
 
@@ -278,20 +280,27 @@ fn navigation_editor_consumer_is_manifest_projected_and_receives_pie_delivery() 
         .find(|module| module.name == "navigation.editor")
         .and_then(|module| module.event_consumers.first())
         .expect("navigation editor consumer manifest");
-    assert_eq!(manifest.consumer_id, NAVIGATION_TICK_CONSUMER_ID);
-    assert_eq!(manifest.event_id, NAVIGATION_TICK_EVENT_ID);
-    assert_eq!(manifest.payload_schema, NAVIGATION_TICK_PAYLOAD_SCHEMA);
+    assert_eq!(manifest.consumer_id, NAVIGATION_OVERLAY_CONSUMER_ID);
+    assert_eq!(manifest.event_id, NAVIGATION_OVERLAY_FRAME_EVENT_ID);
+    assert_eq!(
+        manifest.payload_schema,
+        NAVIGATION_OVERLAY_FRAME_PAYLOAD_SCHEMA
+    );
 
-    let payload = NavAgentTickReport {
-        scanned_agents: 5,
-        moved_agents: 4,
-        ..NavAgentTickReport::default()
+    let payload = NavigationOverlayFrame {
+        owner_generation: 3,
+        nav_mesh: NavigationGizmoSnapshot::default(),
+        tick_report: NavAgentTickReport {
+            scanned_agents: 5,
+            moved_agents: 4,
+            ..NavAgentTickReport::default()
+        },
     };
     let delivery = ZrRuntimePluginEventDeliveryV1::new(
         42,
         ZrRuntimePluginEventSubscriptionHandle::new(9),
-        NAVIGATION_TICK_EVENT_ID,
-        NAVIGATION_TICK_PAYLOAD_SCHEMA,
+        NAVIGATION_OVERLAY_FRAME_EVENT_ID,
+        NAVIGATION_OVERLAY_FRAME_PAYLOAD_SCHEMA,
         1,
         serde_json::to_value(payload).unwrap(),
     );
@@ -580,17 +589,21 @@ fn navigation_overlay_contains_area_mesh_agent_path_and_avoidance_vectors() {
     let frame = NavigationPieFrame::new(
         7,
         1,
-        NavAgentTickReport {
-            debug_agents: vec![NavigationAgentDebugState {
-                entity: 9,
-                position: [0.2, 0.0, 0.2],
-                destination: Some([1.8, 0.0, 1.8]),
-                desired_velocity: [1.0, 0.0, 0.0],
-                avoidance_velocity: [0.0, 0.0, 0.5],
-                path_status: Some(NavPathStatus::Complete),
-                path: vec![[0.2, 0.0, 0.2], [1.0, 0.0, 1.0], [1.8, 0.0, 1.8]],
-            }],
-            ..NavAgentTickReport::default()
+        NavigationOverlayFrame {
+            owner_generation: 1,
+            nav_mesh: nav_mesh.clone(),
+            tick_report: NavAgentTickReport {
+                debug_agents: vec![NavigationAgentDebugState {
+                    entity: 9,
+                    position: [0.2, 0.0, 0.2],
+                    destination: Some([1.8, 0.0, 1.8]),
+                    desired_velocity: [1.0, 0.0, 0.0],
+                    avoidance_velocity: [0.0, 0.0, 0.5],
+                    path_status: Some(NavPathStatus::Complete),
+                    path: vec![[0.2, 0.0, 0.2], [1.0, 0.0, 1.0], [1.8, 0.0, 1.8]],
+                }],
+                ..NavAgentTickReport::default()
+            },
         },
     );
     let overlay = build_navigation_overlay(
@@ -620,23 +633,38 @@ fn navigation_pie_mirror_rejects_cross_session_and_out_of_order_frames() {
         path: vec![[1.0, 0.0, 2.0], [3.0, 0.0, 4.0]],
     };
     assert_eq!(
-        mirror.apply_tick_report(
+        mirror.apply_overlay_frame(
             12,
             2,
-            NavAgentTickReport {
-                debug_agents: vec![agent.clone()],
-                ..NavAgentTickReport::default()
+            NavigationOverlayFrame {
+                owner_generation: 4,
+                nav_mesh: NavigationGizmoSnapshot::default(),
+                tick_report: NavAgentTickReport {
+                    debug_agents: vec![agent.clone()],
+                    ..NavAgentTickReport::default()
+                },
             },
         ),
         NavigationPieMirrorApply::Applied
     );
     assert_eq!(
-        mirror.apply_tick_report(12, 1, NavAgentTickReport::default()),
+        mirror.apply_overlay_frame(12, 1, NavigationOverlayFrame::default()),
         NavigationPieMirrorApply::Stale
     );
     assert_eq!(
-        mirror.apply_tick_report(99, 3, NavAgentTickReport::default()),
+        mirror.apply_overlay_frame(99, 3, NavigationOverlayFrame::default()),
         NavigationPieMirrorApply::WrongSession
+    );
+    assert_eq!(
+        mirror.apply_overlay_frame(
+            12,
+            3,
+            NavigationOverlayFrame {
+                owner_generation: 3,
+                ..NavigationOverlayFrame::default()
+            },
+        ),
+        NavigationPieMirrorApply::StaleOwnerGeneration
     );
     assert_eq!(mirror.agent(44), Some(&agent));
     assert_eq!(mirror.sequence(), Some(2));

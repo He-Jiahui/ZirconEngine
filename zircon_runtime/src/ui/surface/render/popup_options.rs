@@ -15,6 +15,7 @@ pub(super) fn popup_option_render_commands(
     node_id: UiNodeId,
     metadata: Option<&UiTemplateNodeMetadata>,
     frame: UiFrame,
+    anchor_frame: Option<UiFrame>,
     clip_frame: Option<UiFrame>,
     z_index: i32,
     opacity: f32,
@@ -25,13 +26,17 @@ pub(super) fn popup_option_render_commands(
     if !is_open_option_component(metadata) {
         return Vec::new();
     }
+    let Some(anchor_frame) = anchor_frame else {
+        return Vec::new();
+    };
     let options = option_rows(metadata);
     if options.is_empty() {
         return Vec::new();
     }
 
     let layout_bounds = option_popup_layout_bounds(frame, clip_frame);
-    let popup_frame = option_popup_frame_within(metadata, frame, options.len(), layout_bounds);
+    let popup_frame =
+        option_popup_frame_within(metadata, frame, anchor_frame, options.len(), layout_bounds);
     let Some(popup_frame) = popup_frame else {
         return Vec::new();
     };
@@ -80,6 +85,18 @@ pub(super) fn popup_option_render_commands(
     }
 
     commands
+}
+
+pub(super) fn popup_option_may_emit_text(metadata: Option<&UiTemplateNodeMetadata>) -> bool {
+    let Some(metadata) = metadata else {
+        return false;
+    };
+    is_open_option_component(metadata)
+        && metadata
+            .attributes
+            .get("options")
+            .and_then(Value::as_array)
+            .is_some_and(|options| !options.is_empty())
 }
 
 fn is_open_option_component(metadata: &UiTemplateNodeMetadata) -> bool {

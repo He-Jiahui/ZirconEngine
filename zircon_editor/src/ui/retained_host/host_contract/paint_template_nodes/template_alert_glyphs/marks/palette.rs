@@ -1,4 +1,4 @@
-use super::super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
+use super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 
 pub(super) fn alert_glyph_dark() -> [u8; 4] {
     alert_glyph_dark_from_host(current_host_palette())

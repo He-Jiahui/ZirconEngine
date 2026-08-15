@@ -585,6 +585,7 @@ fn register_plane(assets: &ProjectAssetManager) -> ResourceHandle<ModelMarker> {
                     vertices,
                     indices: vec![0, 1, 2, 2, 1, 3],
                     mesh: None,
+                    mesh_sdf: None,
                     virtual_geometry: None,
                 }],
             },

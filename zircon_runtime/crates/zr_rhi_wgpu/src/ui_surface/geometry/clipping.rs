@@ -126,6 +126,15 @@ fn solid_edge_intersection(
         color: std::array::from_fn(|index| {
             start.color[index] + (end.color[index] - start.color[index]) * t
         }),
+        local_position: std::array::from_fn(|index| {
+            start.local_position[index]
+                + (end.local_position[index] - start.local_position[index]) * t
+        }),
+        half_extent: std::array::from_fn(|index| {
+            start.half_extent[index] + (end.half_extent[index] - start.half_extent[index]) * t
+        }),
+        corner_radius: start.corner_radius + (end.corner_radius - start.corner_radius) * t,
+        border_width: start.border_width + (end.border_width - start.border_width) * t,
     };
     solid_vertex_is_finite(vertex).then_some(vertex)
 }
@@ -145,7 +154,12 @@ fn solid_vertex_positions_nearly_equal(left: SolidVertex, right: SolidVertex) ->
 }
 
 fn solid_vertex_is_finite(vertex: SolidVertex) -> bool {
-    vertex.position.into_iter().all(f32::is_finite) && vertex.color.into_iter().all(f32::is_finite)
+    vertex.position.into_iter().all(f32::is_finite)
+        && vertex.color.into_iter().all(f32::is_finite)
+        && vertex.local_position.into_iter().all(f32::is_finite)
+        && vertex.half_extent.into_iter().all(f32::is_finite)
+        && vertex.corner_radius.is_finite()
+        && vertex.border_width.is_finite()
 }
 
 fn solid_triangle_double_area(triangle: [SolidVertex; 3]) -> f32 {

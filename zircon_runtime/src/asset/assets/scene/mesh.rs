@@ -1,7 +1,7 @@
 use crate::asset::AssetReference;
 use crate::core::math::Real;
-use serde::Serializer;
 use serde::ser::SerializeStruct;
+use serde::Serializer;
 use serde::{Deserialize, Serialize};
 
 use super::defaults::{is_zero_i32, is_zero_real};
@@ -76,6 +76,10 @@ impl SceneMeshLodLevelAsset {
 
     pub fn direct_mesh_reference_count(&self) -> usize {
         usize::from(self.mesh.is_some()) + self.primitives.len()
+    }
+
+    pub fn direct_reference_count(&self) -> usize {
+        2 + usize::from(self.mesh.is_some()) + (self.primitives.len() * 2)
     }
 
     pub fn primitive_binding_count(&self) -> usize {
@@ -212,6 +216,16 @@ impl SceneMeshInstanceAsset {
                 .lods
                 .iter()
                 .map(SceneMeshLodLevelAsset::direct_mesh_reference_count)
+                .sum::<usize>()
+    }
+
+    pub fn direct_reference_count(&self) -> usize {
+        2 + usize::from(self.mesh.is_some())
+            + (self.primitives.len() * 2)
+            + self
+                .lods
+                .iter()
+                .map(SceneMeshLodLevelAsset::direct_reference_count)
                 .sum::<usize>()
     }
 

@@ -6,7 +6,7 @@ use super::super::paint_geometry::{intersect, is_visible_frame, translated};
 use super::super::paint_primitives::{
     draw_border_clipped, draw_rect_clipped, draw_text_bars_clipped,
 };
-use super::colors::{LABEL_TEXT, overlay_color, solid_border_color};
+use super::colors::{overlay_color, solid_border_color, LABEL_TEXT};
 use zircon_runtime_interface::ui::surface::UiDebugOverlayPrimitiveKind;
 
 pub(in crate::ui::retained_host::host_contract) fn draw_debug_reflector_overlay(

@@ -52,9 +52,52 @@ impl RetainedEditorHost {
                 if action_id == "save" || action_id == "workspace.keep_local_and_save" {
                     self.sync_asset_workspace();
                 }
-                self.mark_presentation_dirty();
+                if ui_asset_action_requires_global_presentation(action_id) {
+                    self.mark_presentation_dirty();
+                } else {
+                    self.mark_presentation_dirty_for_view(&instance_id);
+                }
             }
             Err(error) => self.set_status_line(error.to_string()),
         }
+    }
+}
+
+fn ui_asset_action_requires_global_presentation(action_id: &str) -> bool {
+    matches!(
+        action_id,
+        "save"
+            | "workspace.keep_local_and_save"
+            | "canvas.promote.widget"
+            | "theme.local.promote"
+            | "theme.source.open"
+            | "reference.open"
+            | "emergency.open_asset_browser"
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ui_asset_action_requires_global_presentation;
+
+    #[test]
+    fn ui_asset_global_presentation_actions_cover_workspace_and_cross_view_routes() {
+        for action_id in [
+            "save",
+            "workspace.keep_local_and_save",
+            "canvas.promote.widget",
+            "theme.local.promote",
+            "theme.source.open",
+            "reference.open",
+            "emergency.open_asset_browser",
+        ] {
+            assert!(ui_asset_action_requires_global_presentation(action_id));
+        }
+        assert!(!ui_asset_action_requires_global_presentation(
+            "mode.preview"
+        ));
+        assert!(!ui_asset_action_requires_global_presentation(
+            "canvas.move.up"
+        ));
     }
 }

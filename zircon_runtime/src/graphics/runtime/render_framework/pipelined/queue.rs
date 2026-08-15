@@ -73,20 +73,43 @@ impl<T: Send + 'static, R: Send + 'static> PipelinedSubmissionQueue<T, R> {
     // A producer observes N-1 before it queues N, so the queue stays bounded
     // while simulation can overlap the render worker between submissions.
     fn submit(&mut self, payload: T) -> Result<Option<R>, PipelinedSubmissionQueueError> {
-        let previous = self.take_completed()?;
+        let previous = {
+            crate::profile_scope!(
+                "runtime",
+                "render_framework.scheduler",
+                "wait_previous_submission"
+            );
+            self.take_completed()?
+        };
+        // This transition is emitted only after the prior submission has
+        // completed, so a 0/1 trace describes scheduler-worker occupancy.
+        crate::profile_counter!(
+            "runtime",
+            "render_framework.scheduler.worker_utilization",
+            0
+        );
         self.sender
             .as_ref()
             .ok_or(PipelinedSubmissionQueueError::WorkerUnavailable)?
             .send(payload)
             .map_err(|_| PipelinedSubmissionQueueError::WorkerUnavailable)?;
-        self.started
-            .recv()
-            .map_err(|_| PipelinedSubmissionQueueError::WorkerUnavailable)?;
+        {
+            crate::profile_scope!("runtime", "render_framework.scheduler", "wait_worker_start");
+            self.started
+                .recv()
+                .map_err(|_| PipelinedSubmissionQueueError::WorkerUnavailable)?;
+        }
         self.pending = true;
+        self.record_pending_depth();
         Ok(previous)
     }
 
     fn finish(&mut self) -> Result<Option<R>, PipelinedSubmissionQueueError> {
+        crate::profile_scope!(
+            "runtime",
+            "render_framework.scheduler",
+            "wait_pending_submission"
+        );
         self.take_completed()
     }
 
@@ -98,9 +121,18 @@ impl<T: Send + 'static, R: Send + 'static> PipelinedSubmissionQueue<T, R> {
             .recv()
             .map(|result| {
                 self.pending = false;
+                self.record_pending_depth();
                 Some(result)
             })
             .map_err(|_| PipelinedSubmissionQueueError::WorkerUnavailable)
+    }
+
+    fn record_pending_depth(&self) {
+        crate::profile_counter!(
+            "runtime",
+            "render_framework.scheduler.pending_depth",
+            usize::from(self.pending)
+        );
     }
 }
 
@@ -287,7 +319,20 @@ impl RenderSubmissionScheduler {
                 move |submission, started| {
                     let _operation_guard = core.lock_operation();
                     let _ = started.send(());
-                    submission.execute(core.as_ref())
+                    // Do not include operation-lock wait in worker occupancy:
+                    // the producer's start signal remains its own wait scope.
+                    crate::profile_counter!(
+                        "runtime",
+                        "render_framework.scheduler.worker_utilization",
+                        1
+                    );
+                    let result = submission.execute(core.as_ref());
+                    crate::profile_counter!(
+                        "runtime",
+                        "render_framework.scheduler.worker_utilization",
+                        0
+                    );
+                    result
                 },
             )
             .map_err(queue_error)?,
@@ -347,5 +392,46 @@ mod tests {
 
         assert_eq!(queue.submit(()).unwrap(), None);
         assert_eq!(queue.finish().unwrap(), Some(Err("submission failed")));
+    }
+
+    #[test]
+    fn scheduler_profile_scopes_keep_submission_waits_distinct() {
+        let source = include_str!("queue.rs");
+
+        for name in [
+            "wait_previous_submission",
+            "wait_worker_start",
+            "wait_pending_submission",
+            "pending_depth",
+            "worker_utilization",
+        ] {
+            assert!(
+                source.contains(name),
+                "scheduler profiling must retain the `{name}` observation point"
+            );
+        }
+
+        let worker_execution = source
+            .split("move |submission, started| {")
+            .nth(1)
+            .expect("scheduler must retain a worker execution closure");
+        let operation_lock = worker_execution
+            .find("let _operation_guard = core.lock_operation();")
+            .expect("worker must retain the RHI operation owner");
+        let started = worker_execution
+            .find("let _ = started.send(());")
+            .expect("worker must retain its producer start signal");
+        let busy = worker_execution
+            .find("worker_utilization")
+            .expect("worker occupancy must begin after the operation lock");
+        let execute = worker_execution
+            .find("let result = submission.execute(core.as_ref());")
+            .expect("worker must execute its sealed submission");
+        let idle = worker_execution[execute..]
+            .find("worker_utilization")
+            .map(|relative_index| execute + relative_index)
+            .expect("worker occupancy must finish after submission execution");
+
+        assert!(operation_lock < started && started < busy && busy < execute && execute < idle);
     }
 }

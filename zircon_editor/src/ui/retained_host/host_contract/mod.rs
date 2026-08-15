@@ -17,7 +17,9 @@ mod paint_primitives;
 mod paint_recording;
 mod paint_template_nodes;
 pub(in crate::ui::retained_host) use paint_template_nodes::{
-    clear_visual_asset_pixels_cache, invalidate_editor_sprite_atlas_cache,
+    clear_svg_tree_cache, clear_visual_asset_pixels_cache, invalidate_editor_sprite_atlas_cache,
+    invalidate_svg_tree_paths, invalidate_visual_asset_pixel_paths, reconcile_svg_tree_sources,
+    reconcile_visual_asset_pixel_sources,
 };
 mod paint_text;
 pub(crate) mod paint_theme;
@@ -47,7 +49,8 @@ pub(crate) use menu_popup_metrics::menu_popup_text_width;
 pub(crate) use paint_text::{measure_runtime_text_width, runtime_text_metrics_generation};
 pub(crate) use paint_theme::{
     apply_host_appearance_from_tokens, apply_host_metrics_from_tokens,
-    apply_host_palette_from_tokens, apply_host_text_preferences, project_host_text_preferences,
+    apply_host_paint_scale_factor, apply_host_palette_from_tokens, apply_host_text_preferences,
+    project_host_text_preferences,
 };
 pub(in crate::ui::retained_host) use paint_theme::{
     current_host_metrics, HostControlMetrics, METRICS,
@@ -75,5 +78,7 @@ pub(crate) use paint_template_nodes::{
 pub(crate) use paint_workbench_renderer::paint_componentized_extension_workspace_for_test;
 #[cfg(test)]
 pub(crate) use paint_workbench_renderer::paint_scrollbar_component_for_test;
-pub(crate) use surface_hit_test::build_pane_template_surface_frame;
+pub(crate) use surface_hit_test::{
+    build_pane_template_surface_frame, rebuild_pane_template_hit_artifacts,
+};
 pub(crate) use window::UiHostWindow;

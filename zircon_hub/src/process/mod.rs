@@ -1,3 +1,5 @@
+pub(crate) mod editor_focus;
+pub(crate) mod editor_handshake;
 mod editor_launch;
 mod folder_picker;
 mod open_folder;

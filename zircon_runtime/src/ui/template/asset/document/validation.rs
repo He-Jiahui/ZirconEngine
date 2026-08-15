@@ -29,8 +29,55 @@ pub(super) fn validate_node_tree<'a>(
         });
     }
     let _ = seen.insert(node.node_id.as_str(), node);
+    validate_action_refs(asset_id, node)?;
     for child in &node.children {
         validate_node_tree(asset_id, scope, &child.node, seen)?;
+    }
+    Ok(())
+}
+
+fn validate_action_refs(asset_id: &str, node: &UiNodeDefinition) -> Result<(), UiAssetError> {
+    for binding in &node.bindings {
+        let Some(action_ref) = binding.action.as_ref() else {
+            continue;
+        };
+        let route = action_ref
+            .route
+            .as_deref()
+            .map(str::trim)
+            .filter(|route| !route.is_empty());
+        let action = action_ref
+            .action
+            .as_deref()
+            .map(str::trim)
+            .filter(|action| !action.is_empty());
+        if route.is_none() && action.is_none() {
+            return Err(UiAssetError::InvalidDocument {
+                asset_id: asset_id.to_string(),
+                detail: format!(
+                    "binding {} on node {} action ref must declare exactly one non-empty target",
+                    binding.id, node.node_id
+                ),
+            });
+        }
+        if route.is_some() && action.is_some() {
+            return Err(UiAssetError::InvalidDocument {
+                asset_id: asset_id.to_string(),
+                detail: format!(
+                    "binding {} on node {} must declare exactly one action target: route or action",
+                    binding.id, node.node_id
+                ),
+            });
+        }
+        if action.is_some() && !action_ref.payload.is_empty() {
+            return Err(UiAssetError::InvalidDocument {
+                asset_id: asset_id.to_string(),
+                detail: format!(
+                    "binding {} on node {} command action must not carry payload",
+                    binding.id, node.node_id
+                ),
+            });
+        }
     }
     Ok(())
 }

@@ -1,5 +1,5 @@
 use zircon_runtime::asset::watch::AssetChange;
-use zircon_runtime_interface::resource::{ResourceEvent, ResourceLocator};
+use zircon_runtime_interface::resource::{ResourceEvent, ResourceKind, ResourceLocator};
 
 use crate::ui::host::editor_asset_manager::{EditorAssetChange, EditorAssetChangeKind};
 
@@ -60,7 +60,15 @@ pub(crate) fn plan_asset_backend_refresh(
     if !resource_changes.is_empty() {
         plan.sync_resources = true;
         plan.mark_render_dirty = true;
-        plan.mark_presentation_dirty = true;
+        plan.mark_presentation_dirty |= resource_changes.iter().any(|change| {
+            matches!(
+                change.resource_kind,
+                ResourceKind::UiLayout | ResourceKind::UiWidget | ResourceKind::UiStyle
+            )
+        });
+        plan.mark_paint_only_dirty |= resource_changes
+            .iter()
+            .any(|change| change.resource_kind == ResourceKind::Texture);
     }
 
     if let Some(default_scene_uri) = default_scene_uri {
@@ -91,6 +99,9 @@ pub(crate) fn plan_asset_backend_refresh(
 #[cfg(test)]
 mod performance_tests {
     use crate::ui::host::editor_asset_manager::{EditorAssetChangeKind, EditorAssetChangeRecord};
+    use zircon_runtime_interface::resource::{
+        ResourceEvent, ResourceEventKind, ResourceId, ResourceKind, ResourceLocator,
+    };
 
     use super::plan_asset_backend_refresh;
 
@@ -149,5 +160,67 @@ mod performance_tests {
         assert!(!plan.sync_catalog);
         assert!(!plan.mark_paint_only_dirty);
         assert!(!plan.mark_presentation_dirty);
+    }
+
+    #[test]
+    fn non_ui_resource_churn_does_not_rebuild_editor_presentation() {
+        let plan = plan_asset_backend_refresh(
+            None,
+            None,
+            &[],
+            &[],
+            &[resource_event(ResourceKind::Mesh, "res://models/cube.mesh")],
+        );
+
+        assert!(plan.sync_resources);
+        assert!(plan.mark_render_dirty);
+        assert!(!plan.mark_presentation_dirty);
+        assert!(!plan.mark_paint_only_dirty);
+    }
+
+    #[test]
+    fn texture_resource_change_repaints_without_rebuilding_presentation() {
+        let plan = plan_asset_backend_refresh(
+            None,
+            None,
+            &[],
+            &[],
+            &[resource_event(
+                ResourceKind::Texture,
+                "res://icons/save.png",
+            )],
+        );
+
+        assert!(plan.mark_render_dirty);
+        assert!(plan.mark_paint_only_dirty);
+        assert!(!plan.mark_presentation_dirty);
+    }
+
+    #[test]
+    fn ui_resource_change_keeps_the_structural_rebuild_fallback() {
+        let plan = plan_asset_backend_refresh(
+            None,
+            None,
+            &[],
+            &[],
+            &[resource_event(
+                ResourceKind::UiLayout,
+                "res://ui/workbench.ui",
+            )],
+        );
+
+        assert!(plan.mark_presentation_dirty);
+    }
+
+    fn resource_event(resource_kind: ResourceKind, locator: &str) -> ResourceEvent {
+        let locator = ResourceLocator::parse(locator).expect("resource locator");
+        ResourceEvent {
+            kind: ResourceEventKind::Updated,
+            resource_kind,
+            id: ResourceId::from_locator(&locator),
+            locator: Some(locator),
+            previous_locator: None,
+            revision: 1,
+        }
     }
 }

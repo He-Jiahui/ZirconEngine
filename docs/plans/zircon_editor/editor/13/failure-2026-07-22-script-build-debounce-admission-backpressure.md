@@ -45,4 +45,4 @@ Editor13定义first-event max latency、source generation与Command/Play reason 
 
 ## 修复结果与回传
 
-Open：路径常驻和snapshot clone已止损，standalone Rust tests 10/10、Editor13静态合同5/5；max latency、single-flight/backpressure、current-source Cargo与F4 edit/build/Play trace待完成，回链PERF-MVP-557。
+Open：2026-08-11 已完成 Editor13 owner 的 first-event 1000ms max latency、20 路径/64KiB 双预算、单 pending generation、Command/Play typed-id single-flight、`Watch < Command < Play` precedence、full-rebuild expiry 后下一 generation 与显式 `Cancelled` outcome。独立 Rust 行为夹具 6/6（含 1M explicit storm）、Editor13 静态合同 8/8、scoped rustfmt/diff check GREEN。仍待 Editor14 共享 job ticket 的 entry/bytes/oldest-age 与取消接线、产品 caller F4 edit/build/Play trace，以及仓库级未登记 D/E/F artifact gate 解禁后的 current-source managed Cargo；failure 保持 open，回链 PERF-MVP-557。

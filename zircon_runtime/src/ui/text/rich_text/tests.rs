@@ -129,7 +129,11 @@ fn rich_layout_artifact_retains_semantics_after_compiled_cache_eviction() {
     }
 
     assert!(
-        crate::text::rich::lookup_compiled_rich_text(markup, RichTextFormat::Html).is_none(),
+        crate::text::rich::parser_registry::lookup_compiled_rich_text(
+            markup,
+            RichTextFormat::Html,
+        )
+        .is_none(),
         "the bounded parser cache should evict the original entry under pressure"
     );
     let after_eviction = crate::text::resolve_compiled_rich_text_artifact(handle)
@@ -192,7 +196,13 @@ fn render_prepare_preserves_the_layout_rich_artifact_after_cache_eviction() {
             RichTextFormat::Html,
         );
     }
-    assert!(crate::text::rich::lookup_compiled_rich_text(markup, RichTextFormat::Html).is_none());
+    assert!(
+        crate::text::rich::parser_registry::lookup_compiled_rich_text(
+            markup,
+            RichTextFormat::Html,
+        )
+        .is_none()
+    );
 
     super::prepare_render_command_text_artifacts(&mut commands);
 

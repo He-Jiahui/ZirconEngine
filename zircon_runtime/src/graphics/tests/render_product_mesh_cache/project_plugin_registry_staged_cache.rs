@@ -165,7 +165,8 @@ fn register_registry_shader(
     exported_record.state = ResourceState::Ready;
     asset_manager
         .resource_manager()
-        .register_record(exported_record);
+        .register_record(exported_record)
+        .unwrap();
 }
 
 fn register_registry_material(asset_manager: &ProjectAssetManager, case: RegistryShaderCase) {
@@ -319,9 +320,7 @@ fn assert_registry_request_key(
     assert_eq!(source.source_label, case.locator);
     let request_source_hash = raw_wgsl_hash(&source.wgsl_source);
     assert!(
-        source
-            .include_content_hashes
-            .contains(&request_source_hash),
+        source.include_content_hashes.contains(&request_source_hash),
         "registry product prewarm request should preserve the assembled source hash for {}; hashes={:?}",
         case.locator,
         source.include_content_hashes

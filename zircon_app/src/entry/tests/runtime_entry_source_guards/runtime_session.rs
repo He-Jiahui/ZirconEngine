@@ -16,6 +16,13 @@ fn runtime_runner_forwards_session_profile_to_dynamic_runtime() {
         "runtime runner should expose a project-root argument for standalone game projects"
     );
     assert!(
+        runtime_session_args_source.contains("--play-scene")
+            && runtime_session_args_source.contains("play_scene: Option<RelPath>")
+            && runtime_session_args_source.contains("--play-report-pipe")
+            && runtime_session_args_source.contains("play_report_pipe: Option<String>"),
+        "runtime runner should type Play scene/report startup values instead of leaving them as unknown arguments"
+    );
+    assert!(
         runtime_session_args_source.contains("\"dev\"")
             && runtime_session_args_source.contains("\"minimal\"")
             && runtime_session_args_source.contains("\"headless\""),
@@ -44,7 +51,7 @@ fn runtime_runner_forwards_session_profile_to_dynamic_runtime() {
             "event_loop.create_proxy()",
             "RuntimeSession::create_with_profile_and_project",
             "runtime_session_args.profile.as_bytes()",
-            "project_root.as_deref()",
+            "project_root.as_ref().map(ResolvedProjectPath::operation_path)",
             "let session_teardown_failure = session.teardown_failure_state();",
         ],
         "runtime runner should parse logging first, resolve the selected project once before dynamic loading, create the event loop wake proxy, then pass the selected session profile and physical project root to the dynamic runtime",
@@ -68,7 +75,7 @@ fn runtime_runner_forwards_session_profile_to_dynamic_runtime() {
                 == [
                     "runtime_library_startup_error(",
                     "runtime_session_args.profile,",
-                    "project_root.as_deref(),",
+                    "project_root.as_ref(),",
                     "error,",
                     ")",
                 ]
@@ -79,7 +86,7 @@ fn runtime_runner_forwards_session_profile_to_dynamic_runtime() {
         runtime_runner_source.contains("fn runtime_library_startup_error(")
             && runtime_runner_source.contains("fn resolve_runtime_project_root(")
             && runtime_runner_source
-                .contains("ProjectPaths::resolve_existing_path(requested_root)")
+                .contains("ProjectPaths::resolve_existing(requested_root)")
             && runtime_runner_source.contains("\"runtime_library\"")
             && runtime_runner_source
                 .contains("runtime_session_startup_request(profile, project_root)"),
@@ -87,12 +94,20 @@ fn runtime_runner_forwards_session_profile_to_dynamic_runtime() {
     );
     assert!(
         runtime_session_source.contains("profile: ZrByteSlice::from_static(profile)"),
-        "runtime session creation should pass the selected profile bytes through ZrRuntimeSessionConfigV2"
+        "runtime session creation should pass the selected profile bytes through ZrRuntimeSessionConfigV3"
     );
     assert!(
-        runtime_session_source.contains("project_manifest"),
-        "runtime session creation should pass the project-root bytes through ZrRuntimeSessionConfigV2"
+        runtime_session_source.contains("project_root,")
+            && runtime_session_source.contains("play_scene,")
+            && runtime_session_source.contains("play_report_pipe,"),
+        "runtime session creation should pass the root and relative Play startup values through ZrRuntimeSessionConfigV3"
     );
+    for phase in ["Starting", "Ready", "StartFailed", "Terminal"] {
+        assert!(
+            runtime_runner_source.contains(&format!("PlayStartupReportPhase::{phase}")),
+            "runtime Play report outlet should emit the typed {phase} phase"
+        );
+    }
     assert!(
         runtime_session_source.contains("wake_sink:")
             && runtime_runner_source.contains("RuntimeWakeRegistration::register")
@@ -112,7 +127,8 @@ fn runtime_runner_forwards_session_profile_to_dynamic_runtime() {
             "event_loop_failure,",
             "runtime_app_failure,",
             "runtime_session_failure,",
-            ")?;",
+            "PlayStartupReportPhase::Terminal",
+            "terminal_result?;",
             "runtime_process_teardown_complete_diagnostic()",
         ],
         "runtime runner must collect event-loop, callback, and session teardown failures before reporting successful product teardown",

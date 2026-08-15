@@ -1,8 +1,9 @@
 use crate::core::framework::render::{
     CameraRenderType, CookieProjection, CorePipelineKind, IrradianceVolumeData, LightCookieData,
-    RenderCameraTarget, RenderCapabilitySummary, RenderDynamicResolutionSettings,
-    RenderFrameExtract, RenderLayerSet, RenderParticleSpriteSnapshot, RenderPipelineHandle,
-    RenderViewportRect, RenderWorldSnapshotHandle,
+    OitSettings, PlanarReflectionProbeData, RenderCameraTarget, RenderCapabilitySummary,
+    RenderDynamicResolutionSettings, RenderFrameExtract, RenderLayerSet,
+    RenderParticleSpriteSnapshot, RenderPipelineHandle, RenderViewportRect,
+    RenderWorldSnapshotHandle, SubsurfaceProfileData,
 };
 use crate::core::math::{Mat4, UVec2, Vec2, Vec3, Vec4};
 use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
@@ -159,6 +160,59 @@ fn render_graph_compile_frame_fingerprint_tracks_advanced_lighting_pass_presence
             layer_mask: RenderLayerSet::default(),
         });
     assert_ne!(baseline_fingerprint, fingerprint_for(&volume));
+}
+
+#[test]
+fn render_graph_compile_frame_fingerprint_tracks_advanced_descriptor_filter_inputs() {
+    let baseline = test_extract();
+    let baseline_fingerprint = fingerprint_for(&baseline);
+
+    let mut oit = baseline.clone();
+    oit.lighting.advanced_lighting.oit = Some(OitSettings::default());
+    assert_ne!(baseline_fingerprint, fingerprint_for(&oit));
+
+    let planar_target = texture_handle("res://cache-test/planar-capture.png");
+    let planar_without_probe = baseline.clone().with_selected_camera_descriptor(
+        selected_descriptor(&baseline).with_target(RenderCameraTarget::Texture(planar_target)),
+    );
+    let mut planar = planar_without_probe.clone();
+    planar
+        .lighting
+        .advanced_lighting
+        .planar_probes
+        .push(PlanarReflectionProbeData {
+            probe_id: 13,
+            plane_transform: Mat4::IDENTITY,
+            local_reference_position: Vec3::ZERO,
+            bounds_min: Vec3::splat(-1.0),
+            bounds_max: Vec3::splat(1.0),
+            resolution: 128,
+            update: Default::default(),
+            capture_target: Some(planar_target),
+            layer_mask: RenderLayerSet::default(),
+        });
+    assert_ne!(
+        fingerprint_for(&planar_without_probe),
+        fingerprint_for(&planar)
+    );
+
+    let mut subsurface = baseline;
+    subsurface
+        .lighting
+        .advanced_lighting
+        .subsurface_profiles
+        .push(SubsurfaceProfileData::new(
+            3,
+            Vec3::new(0.8, 1.2, 1.8),
+            Vec3::new(1.0, 0.45, 0.3),
+            1.0,
+        ));
+    subsurface
+        .lighting
+        .advanced_lighting
+        .subsurface_material_profile_indices
+        .push(3);
+    assert_ne!(baseline_fingerprint, fingerprint_for(&subsurface));
 }
 
 #[test]

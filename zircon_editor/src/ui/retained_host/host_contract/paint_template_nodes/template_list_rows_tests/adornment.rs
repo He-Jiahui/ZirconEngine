@@ -1,6 +1,6 @@
 use super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::template_list_row_glyphs::{
-    ListRowAdornmentKind, list_row_adornment_kind,
+    list_row_adornment_kind, ListRowAdornmentKind,
 };
 
 #[test]

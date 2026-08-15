@@ -101,7 +101,7 @@ fn viewport_image_patch_can_carry_upload_bytes_for_gpu() {
     assert_eq!(
         stream
             .image_resource("viewport:test-initial", 0)
-            .map(|resource| resource.rgba.as_slice()),
+            .map(|resource| resource.rgba.as_ref()),
         Some(&[255; 16][..])
     );
     assert_eq!(image.atlas_uv, None);

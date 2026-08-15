@@ -27,7 +27,6 @@ fn taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective() {
         .collect::<Vec<_>>();
 
     assert!(live_pass_names.contains(&"taa-resolve"));
-    assert!(live_pass_names.contains(&"taa-reactive-mask-clear"));
     assert!(live_pass_names.contains(&"taa-reactive-mask-mesh"));
     assert!(live_pass_names.contains(&"velocity-object"));
     assert!(live_pass_names.contains(&"velocity-camera"));
@@ -61,30 +60,6 @@ fn taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective() {
         taa_pass.executor_id.as_deref(),
         Some("temporal.taa-resolve")
     );
-    let reactive_mask_clear_pass = compiled
-        .graph()
-        .passes()
-        .iter()
-        .find(|pass| pass.name == "taa-reactive-mask-clear")
-        .expect("TAA reactive mask clear pass should be compiled when TAA is effective");
-    assert_eq!(
-        reactive_mask_clear_pass.executor_id.as_deref(),
-        Some("temporal.taa-reactive-mask-clear")
-    );
-    let reactive_mask_clear_write = pass_resource_access(
-        &compiled,
-        "taa-reactive-mask-clear",
-        PostProcessGraphResourceNames::TAA_REACTIVE_MASK,
-        RenderGraphResourceAccessKind::Write,
-    );
-    assert_eq!(
-        reactive_mask_clear_write.kind,
-        RenderGraphResourceKind::TransientTexture
-    );
-    assert_eq!(
-        reactive_mask_clear_write.attachment_ops,
-        Some(RenderGraphAttachmentOps::clear_store())
-    );
     let reactive_mask_mesh_pass = compiled
         .graph()
         .passes()
@@ -113,7 +88,7 @@ fn taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective() {
     );
     assert_eq!(
         reactive_mask_mesh_write.attachment_ops,
-        Some(RenderGraphAttachmentOps::load_store())
+        Some(RenderGraphAttachmentOps::clear_store())
     );
     pass_resource_access(
         &compiled,

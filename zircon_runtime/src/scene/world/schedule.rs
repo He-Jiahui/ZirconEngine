@@ -2,10 +2,11 @@ use super::World;
 #[cfg(test)]
 use crate::scene::ecs::ScheduledSceneStep;
 use crate::scene::ecs::{
-    BoxedRuntimeSceneSystem, BoxedSceneSystem, IntoSceneSystem, Schedule, ScheduleError,
-    SystemParam, SystemStage,
+    BoxedRuntimeSceneSystem, BoxedSceneSystem, DeferredSystemKey, IntoSceneSystem,
+    IntoWorldlessSceneSystem, Schedule, ScheduleError, SystemParam, SystemStage,
+    WorldlessSystemParam,
 };
-use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
+use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 
 impl World {
     pub fn schedule(&self) -> &Schedule {
@@ -44,6 +45,25 @@ impl World {
         result
     }
 
+    pub fn register_worldless_native_system<P, S>(
+        &mut self,
+        id: impl Into<String>,
+        stage: SystemStage,
+        order: i32,
+        system: S,
+    ) -> Result<(), ScheduleError>
+    where
+        P: WorldlessSystemParam + 'static,
+        P::State: Send,
+        S: IntoWorldlessSceneSystem<P>,
+    {
+        let mut schedule = std::mem::take(&mut self.schedule);
+        let result =
+            schedule.register_worldless_native_system::<P, S>(id, stage, order, self, system);
+        self.schedule = schedule;
+        result
+    }
+
     pub(crate) fn register_boxed_native_system(
         &mut self,
         system: BoxedSceneSystem,
@@ -68,8 +88,12 @@ impl World {
             self.schedule = schedule;
             return false;
         };
+        let key = schedule
+            .native_system_deferred_key(id)
+            .expect("registered native system must have a compiled schedule key");
         self.schedule = schedule;
 
+        system.bind_deferred_system_key(key);
         let result = catch_unwind(AssertUnwindSafe(|| system.run(self)));
 
         let mut schedule = std::mem::take(&mut self.schedule);
@@ -129,17 +153,88 @@ impl World {
             .into_iter()
             .collect::<Vec<_>>();
 
+        let mut worker_batch = Vec::new();
         for step in steps {
             match step {
-                ScheduledSceneStep::Native { id, .. } => {
-                    self.run_native_scene_system(&id);
+                ScheduledSceneStep::Native {
+                    id,
+                    stage,
+                    order,
+                    worker_safe,
+                    ..
+                } => {
+                    if worker_safe {
+                        worker_batch
+                            .push((id, DeferredSystemKey::compiled(stage.rank(), order, &id)));
+                    } else {
+                        self.flush_test_worldless_native_batch(&mut worker_batch);
+                        self.run_native_scene_system(&id);
+                    }
                 }
                 ScheduledSceneStep::Runtime { .. } => {}
                 ScheduledSceneStep::ApplyDeferred { .. } => {
+                    self.flush_test_worldless_native_batch(&mut worker_batch);
                     self.apply_deferred();
                 }
             }
         }
+        self.flush_test_worldless_native_batch(&mut worker_batch);
         self.apply_deferred();
+    }
+
+    #[cfg(test)]
+    fn flush_test_worldless_native_batch(
+        &mut self,
+        dispatches: &mut Vec<(String, DeferredSystemKey)>,
+    ) {
+        if dispatches.is_empty() {
+            return;
+        }
+        let ids = dispatches
+            .iter()
+            .map(|(id, _)| id.as_str())
+            .collect::<Vec<_>>();
+        let mut systems = self
+            .take_worldless_native_scene_systems(&ids)
+            .expect("scheduled worldless systems must remain registered");
+        for (system, (_, key)) in systems.iter_mut().zip(dispatches.iter()) {
+            if let Some(buffer) = system.worker_command_buffer_mut() {
+                buffer.bind_compiled_key(key.clone());
+            }
+        }
+
+        let run_result = catch_unwind(AssertUnwindSafe(|| {
+            for system in &mut systems {
+                system.run_without_world();
+            }
+        }));
+        if let Err(payload) = run_result {
+            for system in &mut systems {
+                if let Some(buffer) = system.worker_command_buffer_mut() {
+                    buffer.discard_pending();
+                }
+            }
+            self.restore_worldless_native_scene_systems(systems);
+            dispatches.clear();
+            resume_unwind(payload);
+        }
+
+        let mut buffers = systems
+            .iter_mut()
+            .filter_map(|system| system.worker_command_buffer_mut())
+            .collect::<Vec<_>>();
+        if !buffers.is_empty() {
+            self.merge_worker_command_buffers(&mut buffers)
+                .expect("compiled worldless keys must remain unique");
+            let apply_result = catch_unwind(AssertUnwindSafe(|| self.apply_deferred()));
+            self.reclaim_worker_command_buffers(&mut buffers);
+            if let Err(payload) = apply_result {
+                self.restore_worldless_native_scene_systems(systems);
+                dispatches.clear();
+                resume_unwind(payload);
+            }
+        }
+        self.restore_worldless_native_scene_systems(systems);
+        dispatches.clear();
     }
 }

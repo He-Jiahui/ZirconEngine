@@ -13,6 +13,7 @@ impl ViewportToolbarPointerBridge {
         let mut bridge = Self {
             layout: ViewportToolbarPointerLayout::default(),
             controls_by_surface: BTreeMap::new(),
+            applied_surface_frames: BTreeMap::new(),
             surface: UiSurface::new(UiTreeId::new("zircon.editor.viewport_toolbar.pointer")),
             dispatcher: UiPointerDispatcher::default(),
             route_intents: EditorRouteIntentMap::default(),

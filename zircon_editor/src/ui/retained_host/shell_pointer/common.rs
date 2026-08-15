@@ -23,22 +23,25 @@ pub(super) fn update_target_node(
     node_id: UiNodeId,
     frame: Option<UiFrame>,
 ) -> bool {
+    let interactive = frame.is_some();
+    let next_frame = frame.unwrap_or_default();
+    let next_input_policy = if interactive {
+        UiInputPolicy::Receive
+    } else {
+        UiInputPolicy::Ignore
+    };
+    let next_state = base_target_state(interactive);
+    let changed = surface.tree.node(node_id).is_some_and(|node| {
+        node.layout_cache.frame != next_frame
+            || node.layout_cache.clip_frame.is_some()
+            || node.input_policy != next_input_policy
+            || node.state_flags != next_state
+    });
+    if !changed {
+        return false;
+    }
+
     if let Some(node) = surface.tree.node_mut(node_id) {
-        let interactive = frame.is_some();
-        let next_frame = frame.unwrap_or_default();
-        let next_input_policy = if interactive {
-            UiInputPolicy::Receive
-        } else {
-            UiInputPolicy::Ignore
-        };
-        let next_state = base_target_state(interactive);
-        if node.layout_cache.frame == next_frame
-            && node.layout_cache.clip_frame.is_none()
-            && node.input_policy == next_input_policy
-            && node.state_flags == next_state
-        {
-            return false;
-        }
         node.layout_cache.frame = next_frame;
         node.layout_cache.clip_frame = None;
         node.input_policy = next_input_policy;

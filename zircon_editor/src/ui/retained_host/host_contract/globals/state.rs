@@ -9,14 +9,15 @@ use crate::ui::retained_host::host_contract::paint_theme::{
 };
 use crate::ui::retained_host::host_contract::surface_hit_test::HostWorkbenchHitIndex;
 use crate::ui::retained_host::primitives::{
-    CloseRequestResponse, PhysicalPosition, PhysicalSize, SharedString,
+    CloseRequestResponse, ModelRc, PhysicalPosition, PhysicalSize, SharedString,
 };
 use crate::ui::retained_host::ui_perf::UiPerfScenario;
 
 use super::super::data::{
-    HostDragStateData, HostMenuStateData, HostPageOverflowMenuStateData,
+    HostDockPresentationPatch, HostDragStateData, HostMenuStateData, HostPageOverflowMenuStateData,
     HostPaneInteractionStateData, HostPresentationGeneration, HostResizeStateData,
-    HostTextInputFocusData, HostViewportImageData, HostWindowPresentationData, WelcomePaneData,
+    HostTextInputFocusData, HostViewportImageData, HostWindowLayoutData,
+    HostWindowPresentationData, HostWindowShellData, TemplatePaneNodeData, WelcomePaneData,
 };
 use super::super::diagnostics::{HostInvalidationDiagnostics, HostWindowDiagnosticQueue};
 use super::super::redraw::HostRedrawRequest;
@@ -187,6 +188,78 @@ impl HostContractState {
         self.presentation_structure_generation =
             self.presentation_structure_generation.saturating_add(1);
         result
+    }
+
+    pub(crate) fn patch_workbench_window_nodes(
+        &mut self,
+        next_nodes: ModelRc<TemplatePaneNodeData>,
+        changed_rows: &[usize],
+    ) -> bool {
+        let previous_nodes = self.host_presentation.workbench_window_nodes.clone();
+        let Some(next_hit_index) = self.workbench_hit_index.rebind_workbench_nodes(
+            &previous_nodes,
+            &next_nodes,
+            changed_rows,
+        ) else {
+            return false;
+        };
+        Arc::make_mut(&mut self.host_presentation).workbench_window_nodes = next_nodes;
+        self.workbench_hit_index = Arc::new(next_hit_index);
+        self.presentation_structure_generation =
+            self.presentation_structure_generation.saturating_add(1);
+        true
+    }
+
+    pub(crate) fn patch_host_presentation_dock(
+        &mut self,
+        expected_structure_generation: u64,
+        next_shell: HostWindowShellData,
+        next_layout: HostWindowLayoutData,
+        patch: HostDockPresentationPatch,
+        replacements: &[(ModelRc<TemplatePaneNodeData>, ModelRc<TemplatePaneNodeData>)],
+    ) -> bool {
+        if self.presentation_structure_generation != expected_structure_generation {
+            return false;
+        }
+        let Some(next_hit_index) = self.workbench_hit_index.rebind_presentation_dock_patch(
+            &self.host_presentation,
+            &patch,
+            replacements,
+        ) else {
+            return false;
+        };
+
+        if Arc::strong_count(&self.host_presentation) > 1 {
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.shell_content.structure_copy_count",
+                1_u8
+            );
+        } else {
+            zircon_runtime::profile_counter!(
+                "editor",
+                "ui.shell_content.structure_in_place_count",
+                1_u8
+            );
+        }
+        let presentation = Arc::make_mut(&mut self.host_presentation);
+        presentation.host_shell = next_shell;
+        presentation.host_layout = next_layout;
+        match patch {
+            HostDockPresentationPatch::Left(next) => presentation.host_scene_data.left_dock = next,
+            HostDockPresentationPatch::Right(next) => {
+                presentation.host_scene_data.right_dock = next;
+            }
+            HostDockPresentationPatch::Bottom(next) => {
+                presentation.host_scene_data.bottom_dock = next;
+            }
+        }
+        self.workbench_hit_index = Arc::new(next_hit_index);
+        self.presentation_structure_generation =
+            self.presentation_structure_generation.saturating_add(1);
+        self.presentation_hit_test_generation =
+            self.presentation_hit_test_generation.saturating_add(1);
+        true
     }
 
     pub(crate) fn replace_menu_state(&mut self, value: HostMenuStateData) -> bool {

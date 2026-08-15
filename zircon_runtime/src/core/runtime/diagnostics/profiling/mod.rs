@@ -19,6 +19,7 @@ pub use counter_hotspot::analyze_counter_hotspots;
 pub use export::{ProfileExportError, ProfileExportReport, ProfileExportResult};
 pub use hotspot::analyze_hotspots;
 pub use recorder::{ProfileRecorder, ProfileRecorderStatus};
+pub(crate) use scope::ProfileFrameContext;
 pub use scope::{ProfileFrameScope, ProfileScope};
 #[cfg(feature = "profiling-tracy")]
 pub use tracy::{initialize_tracy_sink, TracyFrameScope, TracySinkStatus};
@@ -258,6 +259,24 @@ pub fn record_counter(stream: &'static str, name: &'static str, value: f64) {
     scope::record_counter(stream, name, value);
 }
 
+/// Records counters under one recorder lock and one shared timestamp.
+#[doc(hidden)]
+pub fn record_counter_batch(stream: &'static str, counters: &[(&'static str, f64)]) {
+    #[cfg(feature = "profiling-tracy")]
+    for &(name, value) in counters {
+        tracing::info!(
+            target: "zircon.profile.counter",
+            stream = stream,
+            name = name,
+            value = value,
+        );
+    }
+    if !capture_active() || counters.is_empty() {
+        return;
+    }
+    scope::record_counter_batch(stream, counters);
+}
+
 pub(crate) fn with_recorder<R>(action: impl FnOnce(&mut ProfileRecorder) -> R) -> R {
     let mut recorder = lock_recorder();
     action(&mut recorder)
@@ -284,7 +303,7 @@ pub(crate) fn test_capture_lock() -> MutexGuard<'static, ()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{snapshot, test_capture_lock, with_recorder};
+    use super::{record_counter_batch, snapshot, test_capture_lock, with_recorder};
 
     #[cfg(feature = "profiling")]
     use super::{reset_capture, start_capture, ProfileCaptureConfig};
@@ -344,6 +363,86 @@ mod tests {
         assert_eq!(inner.parent_id, Some(outer.id));
         assert_eq!(inner.depth, 1);
         assert_eq!(inner.frame_index, Some(0));
+    }
+
+    #[cfg(feature = "profiling")]
+    #[test]
+    fn counter_batch_records_each_counter_under_the_active_frame() {
+        let _guard = test_capture_lock();
+        let mut config = ProfileCaptureConfig::default();
+        config.session_id = "counter-batch-test".to_string();
+        config.max_frames = 2;
+        config.max_counters = 4;
+        start_capture(config);
+
+        {
+            crate::profile_frame!("runtime", "test_frame");
+            record_counter_batch(
+                "runtime",
+                &[("test.batch_first", 1.0), ("test.batch_second", 2.0)],
+            );
+        }
+
+        let snapshot = snapshot();
+        reset_capture();
+        assert_eq!(snapshot.counters.len(), 2);
+        assert_eq!(snapshot.counters[0].name, "test.batch_first");
+        assert_eq!(snapshot.counters[0].value, 1.0);
+        assert_eq!(snapshot.counters[0].frame_index, Some(0));
+        assert_eq!(snapshot.counters[1].name, "test.batch_second");
+        assert_eq!(snapshot.counters[1].value, 2.0);
+        assert_eq!(snapshot.counters[1].frame_index, Some(0));
+        assert_eq!(
+            snapshot.counters[0].timestamp_us,
+            snapshot.counters[1].timestamp_us
+        );
+    }
+
+    #[cfg(feature = "profiling")]
+    #[test]
+    fn captured_frame_context_attaches_scoped_worker_samples_to_the_frame() {
+        let _guard = test_capture_lock();
+        let mut config = ProfileCaptureConfig::default();
+        config.session_id = "scoped-worker-frame-context".to_string();
+        config.max_frames = 2;
+        config.max_spans = 4;
+        config.max_counters = 4;
+        start_capture(config);
+
+        {
+            crate::profile_frame!("runtime", "test_frame");
+            let frame_context = super::ProfileFrameContext::capture();
+            std::thread::scope(|scope| {
+                scope
+                    .spawn(move || {
+                        let _frame_context = frame_context.attach();
+                        crate::profile_scope!("runtime", "test", "scoped_worker");
+                        crate::profile_counter!("runtime", "test.scoped_worker", 1);
+                    })
+                    .join()
+                    .expect("scoped profiling worker should finish");
+            });
+        }
+
+        let snapshot = snapshot();
+        reset_capture();
+        assert_eq!(snapshot.frames.len(), 1);
+        assert_eq!(
+            snapshot
+                .spans
+                .iter()
+                .find(|span| span.name == "scoped_worker")
+                .and_then(|span| span.frame_index),
+            Some(0)
+        );
+        assert_eq!(
+            snapshot
+                .counters
+                .iter()
+                .find(|counter| counter.name == "test.scoped_worker")
+                .and_then(|counter| counter.frame_index),
+            Some(0)
+        );
     }
 
     #[cfg(feature = "profiling")]

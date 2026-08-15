@@ -1,7 +1,7 @@
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
-    layout::UiFrame,
+    layout::{LayoutBoundary, UiFrame, UiSize},
     tree::{UiInputPolicy, UiTreeNode},
 };
 
@@ -40,6 +40,7 @@ impl HostDocumentTabPointerBridge {
                         UiNodePath::new(format!("editor.document_tab/{}", surface_layout.key)),
                     )
                     .with_frame(surface_layout.strip_frame)
+                    .with_layout_boundary(LayoutBoundary::ParentDirected)
                     .with_z_index(10 + surface_index as i32)
                     .with_input_policy(UiInputPolicy::Receive)
                     .with_state_flags(base_state(true)),
@@ -129,9 +130,14 @@ impl HostDocumentTabPointerBridge {
             }
         }
 
-        surface.rebuild();
+        let root = root_frame(&self.layout);
+        surface.rebuild_authored_frames(UiSize::new(root.width, root.height));
         self.surface = surface;
         self.dispatcher = dispatcher;
         self.route_intents = route_intents;
+        #[cfg(test)]
+        {
+            self.surface_authority_generation = self.surface_authority_generation.saturating_add(1);
+        }
     }
 }

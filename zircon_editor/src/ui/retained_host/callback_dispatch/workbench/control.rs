@@ -4,15 +4,17 @@ use crate::core::editor_operation::EditorOperationSource;
 use crate::core::notifications::{
     NotificationId, NotificationSource, ToastNotification, ToastSeverity,
 };
-use crate::ui::host::EditorHostEventController;
+use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, SelectionCommand};
 use crate::ui::host::play_pending_decision::PlayPendingEditDecisionOutcome;
-use crate::ui::retained_host::event_bridge::{UiHostEventEffects, apply_record_effects};
+use crate::ui::host::EditorHostEventController;
+use crate::ui::retained_host::event_bridge::{apply_record_effects, UiHostEventEffects};
 use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_ACTION_ID;
 use zircon_runtime_interface::ui::binding::UiEventKind;
 
 use super::super::{
-    BuiltinHostWindowTemplateBridge, BuiltinWorkbenchWindowTemplateSurfaceBridge,
     common::{dispatch_editor_binding, merge_effects},
+    dispatch_hierarchy_selection, BuiltinHostWindowTemplateBridge,
+    BuiltinWorkbenchWindowTemplateSurfaceBridge,
 };
 
 pub(crate) fn dispatch_builtin_host_control(
@@ -51,7 +53,9 @@ pub(crate) fn dispatch_componentized_workbench_control(
         Ok(None) => return None,
         Err(error) => return Some(Err(error.to_string())),
     };
-    Some(dispatch_editor_binding(runtime, binding))
+    Some(dispatch_componentized_workbench_binding_for_control(
+        runtime, bridge, control_id, binding,
+    ))
 }
 
 pub(crate) fn dispatch_componentized_workbench_binding(
@@ -65,7 +69,29 @@ pub(crate) fn dispatch_componentized_workbench_binding(
         Ok(None) => return None,
         Err(error) => return Some(Err(error.to_string())),
     };
-    Some(dispatch_editor_binding(runtime, binding))
+    Some(dispatch_componentized_workbench_binding_for_control(
+        runtime, bridge, control_id, binding,
+    ))
+}
+
+fn dispatch_componentized_workbench_binding_for_control(
+    runtime: &EditorHostEventController,
+    bridge: &BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    source_control_id: &str,
+    binding: EditorUiBinding,
+) -> Result<UiHostEventEffects, String> {
+    if matches!(
+        binding.payload(),
+        EditorUiBindingPayload::SelectionCommand(SelectionCommand::SelectSceneNode { .. })
+    ) {
+        let control_id = (!source_control_id.is_empty())
+            .then_some(source_control_id)
+            .unwrap_or_else(|| binding.path().control_id.as_str());
+        if let Some(entity) = bridge.scene_entity_for_control(control_id) {
+            return dispatch_hierarchy_selection(runtime, entity);
+        }
+    }
+    dispatch_editor_binding(runtime, binding)
 }
 
 pub(crate) fn dispatch_componentized_workbench_transform_axis_commit(
@@ -91,10 +117,6 @@ pub(crate) fn dispatch_componentized_workbench_option_selected(
 ) -> Result<UiHostEventEffects, String> {
     if bridge.is_pending_play_decision_option(control_id, option_id) {
         let outcome = runtime.resolve_pending_play_decision(option_id)?;
-        let pending_options = runtime.pending_play_decision_options()?;
-        bridge
-            .sync_pending_play_decision_options(&pending_options)
-            .map_err(|error| error.to_string())?;
         let mut effects = UiHostEventEffects::default();
         if let Some(notification) = toast_for_pending_play_decision(&outcome) {
             effects.toast_notifications.push(notification);

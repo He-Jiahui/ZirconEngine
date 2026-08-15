@@ -1,5 +1,13 @@
+use zircon_runtime_interface::ui::dispatch::{
+    UiAnalogInputEvent, UiImeDeleteSurrounding, UiImeInputEvent, UiImeInputEventKind, UiInputEvent,
+    UiKeyboardInputEvent, UiKeyboardInputState, UiMouseMotionInputEvent, UiNavigationInputEvent,
+    UiPointerSource, UiTextByteRange, UiTextInputEvent,
+};
+use zircon_runtime_interface::ui::layout::UiPoint;
+use zircon_runtime_interface::ui::surface::{
+    UiNavigationEventKind, UiPointerButton, UiPointerEventKind,
+};
 use zircon_runtime_interface::{
-    ui::accessibility::UiAccessibilityActionRequest, ZrRuntimeEventV1, ZrStatus,
     ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, ZR_RUNTIME_BUTTON_STATE_RELEASED_V1,
     ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1, ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1,
     ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1, ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1,
@@ -11,6 +19,10 @@ use zircon_runtime_interface::{
     ZR_RUNTIME_EVENT_KIND_TOUCH_V1, ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1,
     ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1, ZR_RUNTIME_FILE_DRAG_CANCELLED_V1,
     ZR_RUNTIME_FILE_DRAG_DROPPED_V1, ZR_RUNTIME_FILE_DRAG_HOVERED_V1,
+    ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_Y_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_LEFT_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_RIGHT_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_UP_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_EAST_V1, ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1,
     ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1, ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1,
     ZR_RUNTIME_IME_STATE_COMMIT_V1, ZR_RUNTIME_IME_STATE_CURSOR_AREA_V1,
     ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1, ZR_RUNTIME_IME_STATE_DISABLED_V1,
@@ -18,8 +30,8 @@ use zircon_runtime_interface::{
     ZR_RUNTIME_IME_STATE_REQUEST_DISABLE_V1, ZR_RUNTIME_IME_STATE_REQUEST_ENABLE_V1,
     ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1, ZR_RUNTIME_KEY_ACTION_PRESSED_V1,
     ZR_RUNTIME_KEY_ACTION_RELEASED_V1, ZR_RUNTIME_KEY_ACTION_TEXT_V1,
-    ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1, ZR_RUNTIME_LIFECYCLE_STATE_LOW_MEMORY_V1,
-    ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
+    ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1, ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1,
+    ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
     ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1, ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1,
     ZR_RUNTIME_MOUSE_WHEEL_COORDS_PRESENT_V1, ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1,
     ZR_RUNTIME_TOUCH_PHASE_ENDED_V1, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
@@ -27,6 +39,7 @@ use zircon_runtime_interface::{
     ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1, ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1,
     ZR_RUNTIME_WINDOW_STATUS_MOVED_V1, ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1,
     ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1, ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1,
+    ZrRuntimeEventV1, ZrStatus, ui::accessibility::UiAccessibilityActionRequest,
 };
 
 use crate::core::framework::input::{
@@ -41,8 +54,8 @@ use super::input_events::{
     window_scale_factor, window_theme,
 };
 use super::menu::{runtime_session_menu_action_at, write_runtime_menu_action};
-use super::status::{invalid_argument, not_found};
-use super::{RuntimeDynamicSession, DEFAULT_VIEWPORT};
+use super::status::{error_status, invalid_argument, not_found};
+use super::{DEFAULT_VIEWPORT, RuntimeDynamicSession};
 
 impl RuntimeDynamicSession {
     pub(super) fn handle_event(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
@@ -60,6 +73,18 @@ impl RuntimeDynamicSession {
             }
             ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1 => {
                 let cursor = Vec2::new(event.x, event.y);
+                self.cursor = cursor;
+                match self.dispatch_runtime_ui_pointer(
+                    UiPointerEventKind::Move,
+                    None,
+                    None,
+                    UiPointerSource::Mouse,
+                    0.0,
+                ) {
+                    Ok(true) => return ZrStatus::ok(),
+                    Ok(false) => {}
+                    Err(status) => return status,
+                }
                 if self.submit_input_event(InputEvent::CursorMoved {
                     x: cursor.x,
                     y: cursor.y,
@@ -80,6 +105,18 @@ impl RuntimeDynamicSession {
             ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1 => self.handle_mouse_button(event),
             ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1 => self.handle_mouse_wheel(event),
             ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1 => {
+                let metadata = self.runtime_ui_input_metadata();
+                match self.dispatch_runtime_ui_event(UiInputEvent::MouseMotion(
+                    UiMouseMotionInputEvent {
+                        metadata,
+                        delta_x: event.x,
+                        delta_y: event.y,
+                    },
+                )) {
+                    Ok(true) => return ZrStatus::ok(),
+                    Ok(false) => {}
+                    Err(status) => return status,
+                }
                 self.submit_input_event(InputEvent::MouseMotion {
                     delta_x: event.x,
                     delta_y: event.y,
@@ -104,12 +141,22 @@ impl RuntimeDynamicSession {
 
     fn handle_accessibility_action(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
         let payload = unsafe { event.payload.as_slice() };
-        if serde_json::from_slice::<UiAccessibilityActionRequest>(payload).is_err() {
-            return invalid_argument(b"invalid accessibility action payload");
+        let request = match serde_json::from_slice::<UiAccessibilityActionRequest>(payload) {
+            Ok(request) => request,
+            Err(_) => return invalid_argument(b"invalid accessibility action payload"),
+        };
+        if self.runtime_ui.is_empty() {
+            return not_found(
+                b"runtime UI surface accessibility action dispatch unavailable in dynamic preview",
+            );
         }
-        not_found(
-            b"runtime UI surface accessibility action dispatch unavailable in dynamic preview",
-        )
+        match self.runtime_ui.dispatch_accessibility_action(request) {
+            Ok(true) => ZrStatus::ok(),
+            Ok(false) => not_found(b"runtime UI accessibility action target not found"),
+            Err(error) => error_status(format!(
+                "dispatch declared runtime UI accessibility action: {error}"
+            )),
+        }
     }
 
     fn handle_cursor_moved(&mut self, position: Vec2) {
@@ -125,12 +172,34 @@ impl RuntimeDynamicSession {
         };
         match event.state {
             ZR_RUNTIME_BUTTON_STATE_PRESSED_V1 => {
+                match self.dispatch_runtime_ui_pointer(
+                    UiPointerEventKind::Down,
+                    ui_pointer_button(event.button),
+                    None,
+                    UiPointerSource::Mouse,
+                    0.0,
+                ) {
+                    Ok(true) => return ZrStatus::ok(),
+                    Ok(false) => {}
+                    Err(status) => return status,
+                }
                 if self.submit_input_event(InputEvent::ButtonPressed(button)) {
                     self.record_submitted_mouse_button_press();
                 }
                 self.handle_pressed(event.button);
             }
             ZR_RUNTIME_BUTTON_STATE_RELEASED_V1 => {
+                match self.dispatch_runtime_ui_pointer(
+                    UiPointerEventKind::Up,
+                    ui_pointer_button(event.button),
+                    None,
+                    UiPointerSource::Mouse,
+                    0.0,
+                ) {
+                    Ok(true) => return ZrStatus::ok(),
+                    Ok(false) => {}
+                    Err(status) => return status,
+                }
                 if self.submit_input_event(InputEvent::ButtonReleased(button)) {
                     self.record_submitted_mouse_button_release();
                 }
@@ -147,6 +216,17 @@ impl RuntimeDynamicSession {
             Err(status) => return status,
         };
         let Some(unit) = unit else {
+            match self.dispatch_runtime_ui_pointer(
+                UiPointerEventKind::Scroll,
+                None,
+                None,
+                UiPointerSource::Mouse,
+                event.delta,
+            ) {
+                Ok(true) => return ZrStatus::ok(),
+                Ok(false) => {}
+                Err(status) => return status,
+            }
             self.submit_input_event(InputEvent::WheelScrolled { delta: event.delta });
             self.handle_scroll(event.delta);
             return ZrStatus::ok();
@@ -162,6 +242,17 @@ impl RuntimeDynamicSession {
         if !delta_x.is_finite() || !delta_y.is_finite() {
             return invalid_argument(b"invalid runtime mouse wheel delta");
         }
+        match self.dispatch_runtime_ui_pointer(
+            UiPointerEventKind::Scroll,
+            None,
+            None,
+            UiPointerSource::Mouse,
+            delta_y,
+        ) {
+            Ok(true) => return ZrStatus::ok(),
+            Ok(false) => {}
+            Err(status) => return status,
+        }
         let wheel = MouseWheelEvent::new(unit, delta_x, delta_y);
         self.submit_input_event(InputEvent::MouseWheel(wheel));
         self.handle_scroll(wheel.vertical_line_delta());
@@ -170,10 +261,8 @@ impl RuntimeDynamicSession {
 
     fn handle_lifecycle(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
         match event.state {
-            ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1
-            | ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1
-            | ZR_RUNTIME_LIFECYCLE_STATE_LOW_MEMORY_V1 => {
-                self.submit_input_event(InputEvent::KeyboardFocusLost);
+            ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1 | ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1 => {
+                self.submit_input_event(InputEvent::FocusLost);
             }
             _ => {}
         }
@@ -185,6 +274,33 @@ impl RuntimeDynamicSession {
         let Some(phase) = touch_phase(event.state) else {
             return invalid_argument(b"unknown runtime touch phase");
         };
+        let (kind, button) = match event.state {
+            ZR_RUNTIME_TOUCH_PHASE_STARTED_V1 => {
+                (UiPointerEventKind::Down, Some(UiPointerButton::Primary))
+            }
+            ZR_RUNTIME_TOUCH_PHASE_MOVED_V1 => (UiPointerEventKind::Move, None),
+            ZR_RUNTIME_TOUCH_PHASE_ENDED_V1 | ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1 => {
+                let kind = if event.state == ZR_RUNTIME_TOUCH_PHASE_ENDED_V1 {
+                    UiPointerEventKind::Up
+                } else {
+                    UiPointerEventKind::Cancel
+                };
+                (kind, Some(UiPointerButton::Primary))
+            }
+            _ => unreachable!("touch phase was validated before dispatch"),
+        };
+        self.cursor = cursor;
+        match self.dispatch_runtime_ui_pointer(
+            kind,
+            button,
+            Some(event.pointer_id),
+            UiPointerSource::Touch,
+            0.0,
+        ) {
+            Ok(true) => return ZrStatus::ok(),
+            Ok(false) => {}
+            Err(status) => return status,
+        }
         self.submit_input_event(InputEvent::CursorMoved {
             x: cursor.x,
             y: cursor.y,
@@ -202,7 +318,6 @@ impl RuntimeDynamicSession {
             }
             ZR_RUNTIME_TOUCH_PHASE_MOVED_V1 => self.handle_cursor_moved(cursor),
             ZR_RUNTIME_TOUCH_PHASE_ENDED_V1 | ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1 => {
-                self.cursor = cursor;
                 self.handle_released(ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1);
             }
             _ => unreachable!("touch phase was validated before dispatch"),
@@ -219,6 +334,15 @@ impl RuntimeDynamicSession {
         };
         if event.button == ZR_RUNTIME_KEY_ACTION_TEXT_V1 {
             if let Some(text) = text {
+                let metadata = self.runtime_ui_input_metadata();
+                match self.dispatch_runtime_ui_event(UiInputEvent::Text(UiTextInputEvent {
+                    metadata,
+                    text: text.clone(),
+                })) {
+                    Ok(true) => return ZrStatus::ok(),
+                    Ok(false) => {}
+                    Err(status) => return status,
+                }
                 self.submit_input_event(InputEvent::KeyboardInput {
                     key_code: event.key_code,
                     logical_key: None,
@@ -235,9 +359,30 @@ impl RuntimeDynamicSession {
             ZR_RUNTIME_KEY_ACTION_RELEASED_V1 => false,
             _ => return ZrStatus::ok(),
         };
+        let logical_key = keyboard_logical_key(event.key_code, text.as_deref());
+        let metadata = self.runtime_ui_input_metadata();
+        match self.dispatch_runtime_ui_event(UiInputEvent::Keyboard(UiKeyboardInputEvent {
+            metadata,
+            state: if pressed {
+                UiKeyboardInputState::Pressed
+            } else {
+                UiKeyboardInputState::Released
+            },
+            key_code: event.key_code,
+            scan_code: Some(event.scan_code),
+            physical_key: format!("Key{}", event.key_code),
+            logical_key: logical_key
+                .clone()
+                .unwrap_or_else(|| format!("Key{}", event.key_code)),
+            text: text.clone(),
+        })) {
+            Ok(true) => return ZrStatus::ok(),
+            Ok(false) => {}
+            Err(status) => return status,
+        }
         if self.submit_input_event(InputEvent::KeyboardInput {
             key_code: event.key_code,
-            logical_key: keyboard_logical_key(event.key_code, text.as_deref()),
+            logical_key,
             text,
             pressed,
             repeat: false,
@@ -297,6 +442,68 @@ impl RuntimeDynamicSession {
             }
             _ => return invalid_argument(b"unknown runtime ime state"),
         };
+        let ui_event = match &input_event {
+            InputEvent::Ime(ImeEvent::Preedit(preedit)) => {
+                let metadata = self.runtime_ui_input_metadata();
+                Some(UiInputEvent::Ime(UiImeInputEvent {
+                    metadata,
+                    kind: UiImeInputEventKind::Preedit,
+                    text: preedit.value.clone(),
+                    cursor_range: preedit.cursor.and_then(|cursor| {
+                        Some(UiTextByteRange::new(
+                            u32::try_from(cursor.start).ok()?,
+                            u32::try_from(cursor.end).ok()?,
+                        ))
+                    }),
+                    preedit_clauses: Vec::new(),
+                    delete_surrounding: None,
+                }))
+            }
+            InputEvent::Ime(ImeEvent::Commit(text)) => {
+                let metadata = self.runtime_ui_input_metadata();
+                Some(UiInputEvent::Ime(UiImeInputEvent {
+                    metadata,
+                    kind: UiImeInputEventKind::Commit,
+                    text: text.clone(),
+                    cursor_range: None,
+                    preedit_clauses: Vec::new(),
+                    delete_surrounding: None,
+                }))
+            }
+            InputEvent::Ime(ImeEvent::DeleteSurrounding(delete)) => {
+                let metadata = self.runtime_ui_input_metadata();
+                Some(UiInputEvent::Ime(UiImeInputEvent {
+                    metadata,
+                    kind: UiImeInputEventKind::DeleteSurrounding,
+                    text: String::new(),
+                    cursor_range: None,
+                    preedit_clauses: Vec::new(),
+                    delete_surrounding: Some(UiImeDeleteSurrounding::new(
+                        u32::try_from(delete.before_bytes).unwrap_or(u32::MAX),
+                        u32::try_from(delete.after_bytes).unwrap_or(u32::MAX),
+                    )),
+                }))
+            }
+            InputEvent::Ime(ImeEvent::Disabled) => {
+                let metadata = self.runtime_ui_input_metadata();
+                Some(UiInputEvent::Ime(UiImeInputEvent {
+                    metadata,
+                    kind: UiImeInputEventKind::Cancel,
+                    text: String::new(),
+                    cursor_range: None,
+                    preedit_clauses: Vec::new(),
+                    delete_surrounding: None,
+                }))
+            }
+            _ => None,
+        };
+        if let Some(ui_event) = ui_event {
+            match self.dispatch_runtime_ui_event(ui_event) {
+                Ok(true) => return ZrStatus::ok(),
+                Ok(false) => {}
+                Err(status) => return status,
+            }
+        }
         self.submit_input_event(input_event);
         ZrStatus::ok()
     }
@@ -388,6 +595,18 @@ impl RuntimeDynamicSession {
             ZR_RUNTIME_BUTTON_STATE_RELEASED_V1 => false,
             _ => return invalid_argument(b"unknown runtime gamepad button state"),
         };
+        if pressed {
+            if let Some(kind) = ui_gamepad_navigation(event.button) {
+                let metadata = self.runtime_ui_input_metadata();
+                match self.dispatch_runtime_ui_event(UiInputEvent::Navigation(
+                    UiNavigationInputEvent { metadata, kind },
+                )) {
+                    Ok(true) => return ZrStatus::ok(),
+                    Ok(false) => {}
+                    Err(status) => return status,
+                }
+            }
+        }
         self.submit_input_event(InputEvent::GamepadButton {
             gamepad: GamepadId(event.pointer_id),
             button: gamepad_button(event.button),
@@ -398,6 +617,18 @@ impl RuntimeDynamicSession {
     }
 
     fn handle_gamepad_axis(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
+        if let Some(control) = ui_gamepad_analog_control(event.button) {
+            let metadata = self.runtime_ui_input_metadata();
+            match self.dispatch_runtime_ui_event(UiInputEvent::Analog(UiAnalogInputEvent {
+                metadata,
+                control: control.to_string(),
+                value: event.delta,
+            })) {
+                Ok(true) => return ZrStatus::ok(),
+                Ok(false) => {}
+                Err(status) => return status,
+            }
+        }
         self.submit_input_event(InputEvent::GamepadAxis {
             gamepad: GamepadId(event.pointer_id),
             axis: gamepad_axis(event.button),
@@ -444,5 +675,125 @@ impl RuntimeDynamicSession {
     fn handle_scroll(&mut self, delta: f32) {
         self.level
             .with_world_mut(|world| self.camera_controller.scrolled(world, delta));
+    }
+
+    fn dispatch_runtime_ui_pointer(
+        &mut self,
+        kind: UiPointerEventKind,
+        button: Option<UiPointerButton>,
+        pointer_id: Option<u64>,
+        pointer_source: UiPointerSource,
+        scroll_delta: f32,
+    ) -> Result<bool, ZrStatus> {
+        self.runtime_ui
+            .dispatch_pointer(
+                self.camera_controller.viewport_size(),
+                kind,
+                UiPoint::new(self.cursor.x, self.cursor.y),
+                button,
+                pointer_id,
+                pointer_source,
+                scroll_delta,
+            )
+            .map_err(|error| {
+                error_status(format!(
+                    "dispatch declared runtime UI pointer input: {error}"
+                ))
+            })
+    }
+
+    fn dispatch_runtime_ui_event(&mut self, event: UiInputEvent) -> Result<bool, ZrStatus> {
+        self.runtime_ui
+            .dispatch_input(self.camera_controller.viewport_size(), event)
+            .map_err(|error| error_status(format!("dispatch declared runtime UI input: {error}")))
+    }
+
+    fn runtime_ui_input_metadata(
+        &mut self,
+    ) -> zircon_runtime_interface::ui::dispatch::UiInputEventMetadata {
+        self.runtime_ui.next_input_metadata()
+    }
+}
+
+fn ui_pointer_button(button: u32) -> Option<UiPointerButton> {
+    match button {
+        ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1 => Some(UiPointerButton::Primary),
+        ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1 => Some(UiPointerButton::Secondary),
+        ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1 => Some(UiPointerButton::Middle),
+        _ => None,
+    }
+}
+
+fn ui_gamepad_navigation(button: u32) -> Option<UiNavigationEventKind> {
+    match button {
+        ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1 => Some(UiNavigationEventKind::Activate),
+        ZR_RUNTIME_GAMEPAD_BUTTON_EAST_V1 => Some(UiNavigationEventKind::Cancel),
+        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_UP_V1 => Some(UiNavigationEventKind::Up),
+        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1 => Some(UiNavigationEventKind::Down),
+        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_LEFT_V1 => Some(UiNavigationEventKind::Left),
+        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_RIGHT_V1 => Some(UiNavigationEventKind::Right),
+        _ => None,
+    }
+}
+
+fn ui_gamepad_analog_control(axis: u32) -> Option<&'static str> {
+    match axis {
+        ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1 => Some("gamepad_left_stick_x"),
+        ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_Y_V1 => Some("gamepad_left_stick_y"),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ui_gamepad_analog_control, ui_gamepad_navigation};
+    use zircon_runtime_interface::ui::surface::UiNavigationEventKind;
+    use zircon_runtime_interface::{
+        ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_Y_V1,
+        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_LEFT_V1,
+        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_RIGHT_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_UP_V1,
+        ZR_RUNTIME_GAMEPAD_BUTTON_EAST_V1, ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1,
+    };
+
+    #[test]
+    fn gamepad_buttons_map_to_shared_ui_navigation_semantics() {
+        assert_eq!(
+            ui_gamepad_navigation(ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1),
+            Some(UiNavigationEventKind::Activate)
+        );
+        assert_eq!(
+            ui_gamepad_navigation(ZR_RUNTIME_GAMEPAD_BUTTON_EAST_V1),
+            Some(UiNavigationEventKind::Cancel)
+        );
+        assert_eq!(
+            ui_gamepad_navigation(ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_UP_V1),
+            Some(UiNavigationEventKind::Up)
+        );
+        assert_eq!(
+            ui_gamepad_navigation(ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1),
+            Some(UiNavigationEventKind::Down)
+        );
+        assert_eq!(
+            ui_gamepad_navigation(ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_LEFT_V1),
+            Some(UiNavigationEventKind::Left)
+        );
+        assert_eq!(
+            ui_gamepad_navigation(ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_RIGHT_V1),
+            Some(UiNavigationEventKind::Right)
+        );
+        assert_eq!(ui_gamepad_navigation(u32::MAX), None);
+    }
+
+    #[test]
+    fn gamepad_left_stick_axes_use_the_shared_ui_analog_navigation_controls() {
+        assert_eq!(
+            ui_gamepad_analog_control(ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1),
+            Some("gamepad_left_stick_x")
+        );
+        assert_eq!(
+            ui_gamepad_analog_control(ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_Y_V1),
+            Some("gamepad_left_stick_y")
+        );
+        assert_eq!(ui_gamepad_analog_control(u32::MAX), None);
     }
 }

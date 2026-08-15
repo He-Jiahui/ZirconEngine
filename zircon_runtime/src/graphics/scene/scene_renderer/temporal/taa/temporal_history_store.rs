@@ -1,4 +1,5 @@
 use crate::core::math::UVec2;
+use crate::graphics::resource_identity::SampledTextureIdentity;
 
 pub(crate) const TAA_SCENE_COLOR_HISTORY_FORMAT: wgpu::TextureFormat =
     wgpu::TextureFormat::Rgba16Float;
@@ -59,14 +60,23 @@ impl TemporalHistoryStore {
         &self.textures[self.state.read_index].view
     }
 
+    pub(crate) fn previous_identity(&self) -> SampledTextureIdentity {
+        self.textures[self.state.read_index].identity
+    }
+
     pub(crate) fn current_view(&self) -> &wgpu::TextureView {
         &self.textures[self.state.write_index()].view
+    }
+
+    pub(crate) fn current_identity(&self) -> SampledTextureIdentity {
+        self.textures[self.state.write_index()].identity
     }
 }
 
 struct TemporalHistoryTexture {
     _texture: wgpu::Texture,
     view: wgpu::TextureView,
+    identity: SampledTextureIdentity,
 }
 
 impl TemporalHistoryTexture {
@@ -74,6 +84,7 @@ impl TemporalHistoryTexture {
         Self {
             _texture: texture,
             view,
+            identity: SampledTextureIdentity::new(),
         }
     }
 }

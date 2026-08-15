@@ -7,7 +7,7 @@ use crate::operation::{
     RuntimeOperationPrepared,
 };
 use crate::scene::{
-    SCENE_NAVIGATION_RUNTIME_DRIVER_NAME, SceneNavigationRuntime, SceneNavigationRuntimeHandle,
+    SceneNavigationRuntime, SceneNavigationRuntimeHandle, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
 };
 
 #[derive(Clone, Copy)]

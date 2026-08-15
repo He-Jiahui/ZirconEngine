@@ -48,13 +48,13 @@ pub use froxel::{
 };
 
 pub use planar_filter::{
-    PLANAR_FILTER_EXECUTOR_ID, PLANAR_REFLECTION_TEXTURE_RESOURCE,
-    planar_reflection_filter_compute_workload,
+    planar_reflection_filter_compute_workload, PLANAR_FILTER_EXECUTOR_ID,
+    PLANAR_REFLECTION_TEXTURE_RESOURCE,
 };
 
 pub use subsurface_pass::{
-    SSS_RECOMBINE_EXECUTOR_ID, SSS_SCATTER_EXECUTOR_ID, SSS_SETUP_EXECUTOR_ID,
     render_feature_descriptor as subsurface_render_feature_descriptor,
     scatter_compute_workload as subsurface_scatter_compute_workload,
-    setup_compute_workload as subsurface_setup_compute_workload,
+    setup_compute_workload as subsurface_setup_compute_workload, SSS_RECOMBINE_EXECUTOR_ID,
+    SSS_SCATTER_EXECUTOR_ID, SSS_SETUP_EXECUTOR_ID,
 };

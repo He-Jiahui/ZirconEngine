@@ -1,6 +1,6 @@
 use super::super::data::FrameRect;
 use super::bounds::valid_bounds;
-use super::metrics::{TEMPLATE_POPUP_ANCHOR_GAP, dropdown_option_row_height};
+use super::metrics::{dropdown_option_row_height, TEMPLATE_POPUP_ANCHOR_GAP};
 use crate::ui::retained_host::popup_anchor_metrics::clamp_popup_x_to_bounds;
 
 pub(crate) fn dropdown_option_popup_frame(

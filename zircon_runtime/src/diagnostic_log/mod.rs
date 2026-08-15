@@ -22,6 +22,7 @@ pub use settings::{
     DEFAULT_DIAGNOSTIC_LOG_CRASH_FLUSH_TIMEOUT, DEFAULT_DIAGNOSTIC_LOG_FLUSH_INTERVAL,
     DEFAULT_DIAGNOSTIC_LOG_QUEUE_CAPACITY, DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT,
 };
+pub(crate) use sink::{acquire_dynamic_unity_process_log, DynamicProcessLogLease};
 pub use sink::{
     diagnostic_log_allows, diagnostic_log_allows_for_scope, diagnostic_log_sink_snapshot,
     flush_process_log, initialize_process_log, initialize_process_log_with_config,

@@ -1,4 +1,4 @@
-use super::palette::{WorkbenchListRowPalette, workbench_list_row_palette};
+use super::palette::{workbench_list_row_palette, WorkbenchListRowPalette};
 use super::state::is_unavailable_list_row_state;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::primitives::Color;

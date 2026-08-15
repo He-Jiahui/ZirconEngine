@@ -4,7 +4,13 @@ use crate::core::asset::AssetToolkitOpenRoute;
 use crate::ui::animation_editor::{AnimationEditorPanePresentation, AnimationEditorSession};
 use crate::ui::workbench::view::{ViewInstance, ViewInstanceId};
 
-use super::{save::save_animation_document, AnimationEditorWorkspaceEntry};
+use super::{
+    save::{
+        animation_document_autosave_source_path, capture_animation_document_autosave,
+        save_animation_document,
+    },
+    AnimationEditorWorkspaceEntry,
+};
 
 const ANIMATION_TOOLKIT_LAYOUT_ID: &str = "editor.animation.layout";
 const ANIMATION_TOOLKIT_TAB_ID: &str = "editor.animation.document";
@@ -79,6 +85,8 @@ impl EditorUiHost {
             ANIMATION_TOOLKIT_LAYOUT_ID,
             ANIMATION_TOOLKIT_TAB_ID,
             save_animation_document,
+            animation_document_autosave_source_path,
+            capture_animation_document_autosave,
         )?;
         Ok(())
     }

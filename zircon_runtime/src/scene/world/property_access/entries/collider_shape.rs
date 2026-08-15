@@ -1,18 +1,157 @@
 use crate::core::framework::scene::ScenePropertyValue;
 use crate::scene::components::ColliderShape;
 
+use super::super::super::value_conversion::normalized_identifier_matches;
+
+pub(super) fn collider_shape_property_value(
+    shape: &ColliderShape,
+    segments: &[String],
+) -> Option<ScenePropertyValue> {
+    match shape {
+        ColliderShape::Box { half_extents } => match segments {
+            [field] if normalized_identifier_matches(field, "kind") => {
+                Some(ScenePropertyValue::Enum("box".to_string()))
+            }
+            [field] if normalized_identifier_matches(field, "half_extents") => {
+                Some(ScenePropertyValue::Vec3(half_extents.to_array()))
+            }
+            _ => None,
+        },
+        ColliderShape::Sphere { radius } => match segments {
+            [field] if normalized_identifier_matches(field, "kind") => {
+                Some(ScenePropertyValue::Enum("sphere".to_string()))
+            }
+            [field] if normalized_identifier_matches(field, "radius") => {
+                Some(ScenePropertyValue::Scalar(*radius))
+            }
+            _ => None,
+        },
+        ColliderShape::Capsule {
+            radius,
+            half_height,
+        } => match segments {
+            [field] if normalized_identifier_matches(field, "kind") => {
+                Some(ScenePropertyValue::Enum("capsule".to_string()))
+            }
+            [field] if normalized_identifier_matches(field, "radius") => {
+                Some(ScenePropertyValue::Scalar(*radius))
+            }
+            [field] if normalized_identifier_matches(field, "half_height") => {
+                Some(ScenePropertyValue::Scalar(*half_height))
+            }
+            _ => None,
+        },
+        ColliderShape::Cylinder {
+            radius,
+            half_height,
+        } => match segments {
+            [field] if normalized_identifier_matches(field, "kind") => {
+                Some(ScenePropertyValue::Enum("cylinder".to_string()))
+            }
+            [field] if normalized_identifier_matches(field, "radius") => {
+                Some(ScenePropertyValue::Scalar(*radius))
+            }
+            [field] if normalized_identifier_matches(field, "half_height") => {
+                Some(ScenePropertyValue::Scalar(*half_height))
+            }
+            _ => None,
+        },
+        ColliderShape::ConvexHull { points } => match segments {
+            [field] if normalized_identifier_matches(field, "kind") => {
+                Some(ScenePropertyValue::Enum("convex_hull".to_string()))
+            }
+            [field] if normalized_identifier_matches(field, "point_count") => {
+                Some(ScenePropertyValue::Unsigned(points.len() as u64))
+            }
+            [group, index] if normalized_identifier_matches(group, "points") => points
+                .get(index.parse::<usize>().ok()?)
+                .map(|point| ScenePropertyValue::Vec3(point.to_array())),
+            _ => None,
+        },
+        ColliderShape::TriangleMesh { mesh } => match segments {
+            [field] if normalized_identifier_matches(field, "kind") => {
+                Some(ScenePropertyValue::Enum("triangle_mesh".to_string()))
+            }
+            [field] if normalized_identifier_matches(field, "mesh") => {
+                Some(ScenePropertyValue::Resource(mesh.uuid.to_string()))
+            }
+            _ => None,
+        },
+        ColliderShape::HeightField {
+            resolution,
+            heights,
+        } => match segments {
+            [field] if normalized_identifier_matches(field, "kind") => {
+                Some(ScenePropertyValue::Enum("height_field".to_string()))
+            }
+            [group, axis]
+                if normalized_identifier_matches(group, "resolution")
+                    && normalized_identifier_matches(axis, "x") =>
+            {
+                Some(ScenePropertyValue::Unsigned(u64::from(resolution[0])))
+            }
+            [group, axis]
+                if normalized_identifier_matches(group, "resolution")
+                    && normalized_identifier_matches(axis, "y") =>
+            {
+                Some(ScenePropertyValue::Unsigned(u64::from(resolution[1])))
+            }
+            [field] if normalized_identifier_matches(field, "heights") => {
+                Some(ScenePropertyValue::Resource(heights.uuid.to_string()))
+            }
+            _ => None,
+        },
+        ColliderShape::Compound { children } => match segments {
+            [field] if normalized_identifier_matches(field, "kind") => {
+                Some(ScenePropertyValue::Enum("compound".to_string()))
+            }
+            [field] if normalized_identifier_matches(field, "child_count") => {
+                Some(ScenePropertyValue::Unsigned(children.len() as u64))
+            }
+            [group, index, transform, field]
+                if normalized_identifier_matches(group, "children")
+                    && normalized_identifier_matches(transform, "transform") =>
+            {
+                let (child_transform, _) = children.get(index.parse::<usize>().ok()?)?;
+                if normalized_identifier_matches(field, "translation") {
+                    Some(ScenePropertyValue::Vec3(
+                        child_transform.translation.to_array(),
+                    ))
+                } else if normalized_identifier_matches(field, "rotation") {
+                    Some(ScenePropertyValue::Quaternion(
+                        child_transform.rotation.to_array(),
+                    ))
+                } else if normalized_identifier_matches(field, "scale") {
+                    Some(ScenePropertyValue::Vec3(child_transform.scale.to_array()))
+                } else {
+                    None
+                }
+            }
+            [group, index, shape, remaining @ ..]
+                if normalized_identifier_matches(group, "children")
+                    && normalized_identifier_matches(shape, "shape") =>
+            {
+                let (_, child_shape) = children.get(index.parse::<usize>().ok()?)?;
+                collider_shape_property_value(child_shape.as_ref(), remaining)
+            }
+            _ => None,
+        },
+    }
+}
+
 pub(super) fn visit_collider_shape_property_entries<F>(
     shape: &ColliderShape,
     prefix: &str,
     visitor: &mut F,
 ) -> bool
 where
-    F: FnMut(&str, ScenePropertyValue, bool) -> bool,
+    F: FnMut(&str, &mut dyn FnMut() -> ScenePropertyValue, bool) -> bool,
 {
     macro_rules! push_shape_entry {
         ($suffix:expr, $value:expr, $animatable:expr $(,)?) => {{
             let path = format!("{prefix}.{}", $suffix);
-            if !visitor(&path, $value, $animatable) {
+            let mut build_value = || $value;
+            if !visitor(&path, &mut build_value, $animatable) {
                 return false;
             }
         }};
@@ -136,24 +275,22 @@ where
             );
             for (index, (transform, child_shape)) in children.iter().enumerate() {
                 let child_prefix = format!("{prefix}.children.{index}");
-                for (suffix, value) in [
-                    (
-                        "translation",
-                        ScenePropertyValue::Vec3(transform.translation.to_array()),
-                    ),
-                    (
-                        "rotation",
-                        ScenePropertyValue::Quaternion(transform.rotation.to_array()),
-                    ),
-                    (
-                        "scale",
-                        ScenePropertyValue::Vec3(transform.scale.to_array()),
-                    ),
-                ] {
-                    let path = format!("{child_prefix}.transform.{suffix}");
-                    if !visitor(&path, value, false) {
-                        return false;
-                    }
+                let translation_path = format!("{child_prefix}.transform.translation");
+                let mut build_translation =
+                    || ScenePropertyValue::Vec3(transform.translation.to_array());
+                if !visitor(&translation_path, &mut build_translation, false) {
+                    return false;
+                }
+                let rotation_path = format!("{child_prefix}.transform.rotation");
+                let mut build_rotation =
+                    || ScenePropertyValue::Quaternion(transform.rotation.to_array());
+                if !visitor(&rotation_path, &mut build_rotation, false) {
+                    return false;
+                }
+                let scale_path = format!("{child_prefix}.transform.scale");
+                let mut build_scale = || ScenePropertyValue::Vec3(transform.scale.to_array());
+                if !visitor(&scale_path, &mut build_scale, false) {
+                    return false;
                 }
                 let shape_prefix = format!("{child_prefix}.shape");
                 if !visit_collider_shape_property_entries(
@@ -228,7 +365,7 @@ mod tests {
                 &shape,
                 "Collider.shape",
                 &mut |path, value, animatable| {
-                    entries.push((path.to_string(), value, animatable));
+                    entries.push((path.to_string(), value(), animatable));
                     true
                 },
             ));
@@ -236,11 +373,9 @@ mod tests {
                 entries.len(),
                 collider_shape_property_entry_capacity(&shape)
             );
-            assert!(
-                entries
-                    .iter()
-                    .any(|(path, _, _)| path == "Collider.shape.kind")
-            );
+            assert!(entries
+                .iter()
+                .any(|(path, _, _)| path == "Collider.shape.kind"));
         }
     }
 
@@ -257,7 +392,7 @@ mod tests {
             &compound,
             "Collider.shape",
             &mut |path, value, _| {
-                entries.push((path.to_string(), value));
+                entries.push((path.to_string(), value()));
                 true
             },
         ));

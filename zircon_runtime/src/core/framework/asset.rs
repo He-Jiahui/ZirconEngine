@@ -1,15 +1,8 @@
 use std::sync::Arc;
 
-use crate::core::resource::{ResourceEventReceiver, ResourceRecord, ResourceState};
-
-mod management_generation;
-
-pub use management_generation::{
-    ResourceManagementGeneration, ResourceManagementKindSummary, ResourceManagementPage,
-    ResourceManagementQuery, ResourceManagementRow, ResourceManagementScan,
-    ResourceManagementSummary,
+use crate::core::resource::{
+    ResourceEventReceiver, ResourceManagementGeneration, ResourceRecord, ResourceState,
 };
-pub(crate) use management_generation::{ResourceManagementShard, resource_management_shard_index};
 
 /// Minimal invalidation stamp for caches that do not need a cloned resource record.
 ///

@@ -70,6 +70,11 @@ impl SdfFontBakeCache {
                 return bake;
             }
         }
+        let slot_keys = slots
+            .iter()
+            .map(|slot| slot.key.clone())
+            .collect::<Vec<_>>();
+        self.prime_shaped_face_resolutions(&slot_keys, font_database);
         let previous_slots = self.prepared_atlas.cached_slots().to_vec();
         // A prepared-atlas hit bypasses glyph-cache lookups. Refresh the last visible
         // key set only when rebuilding so steady frames keep their zero-maintenance path.

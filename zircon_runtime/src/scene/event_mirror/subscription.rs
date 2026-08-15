@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{BTreeSet, VecDeque};
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Instant;
@@ -11,7 +11,7 @@ use serde::Serialize;
 use crate::scene::ecs::{Event, EventObserverHandle};
 use crate::scene::World;
 
-use super::{RuntimeEventMirrorError, RuntimeEventMirrorRegistration};
+use super::{RuntimeEventMirrorDescriptor, RuntimeEventMirrorError};
 
 pub(crate) const RUNTIME_EVENT_MIRROR_PAGE_MAX_EVENTS: usize = 64;
 pub(crate) const RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES: usize = 128 * 1024;
@@ -21,11 +21,10 @@ pub(crate) const RUNTIME_EVENT_MIRROR_QUEUE_MAX_PAYLOAD_BYTES: usize = 64 * 1024
 trait ErasedRuntimeEventMirrorSubscription: Send + Sync {
     fn connect(&mut self, world: &mut World) -> bool;
     fn disconnect(&mut self, world: &mut World) -> bool;
-    fn drain_payloads(
-        &mut self,
-    ) -> Result<RuntimeEventMirrorDrainPage, RuntimeEventMirrorQueueFailure>;
+    fn drain_payloads(&self)
+        -> Result<RuntimeEventMirrorDrainPage, RuntimeEventMirrorQueueFailure>;
     fn drain_payloads_up_to(
-        &mut self,
+        &self,
         max_deliveries: usize,
     ) -> Result<RuntimeEventMirrorDrainPage, RuntimeEventMirrorQueueFailure>;
 }
@@ -76,13 +75,13 @@ where
     }
 
     fn drain_payloads(
-        &mut self,
+        &self,
     ) -> Result<RuntimeEventMirrorDrainPage, RuntimeEventMirrorQueueFailure> {
         self.drain_payloads_up_to(RUNTIME_EVENT_MIRROR_PAGE_MAX_EVENTS)
     }
 
     fn drain_payloads_up_to(
-        &mut self,
+        &self,
         max_deliveries: usize,
     ) -> Result<RuntimeEventMirrorDrainPage, RuntimeEventMirrorQueueFailure> {
         lock_runtime_event_mirror_queue(&self.queue).drain_page(max_deliveries)
@@ -240,88 +239,135 @@ enum RuntimeEventMirrorQueueFailure {
     },
 }
 
-pub struct RuntimeEventMirrorSubscription {
-    registration: Option<RuntimeEventMirrorRegistration>,
-    erased: Box<dyn ErasedRuntimeEventMirrorSubscription>,
-    connected: bool,
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct RuntimeEventMirrorSubscriptionHandle {
+    slot: usize,
+    generation: u64,
 }
 
-impl RuntimeEventMirrorSubscription {
-    pub fn descriptor(&self) -> &super::RuntimeEventMirrorDescriptor {
-        self.registration().descriptor()
+impl RuntimeEventMirrorSubscriptionHandle {
+    pub(crate) const fn new(slot: usize, generation: u64) -> Self {
+        Self { slot, generation }
     }
 
-    pub(crate) fn typed<E>() -> Self
+    pub(crate) const fn slot(self) -> usize {
+        self.slot
+    }
+
+    pub(crate) const fn generation(self) -> u64 {
+        self.generation
+    }
+}
+
+#[derive(Default)]
+pub(crate) struct RuntimeEventMirrorReclaimQueue {
+    pending: VecDeque<RuntimeEventMirrorSubscriptionHandle>,
+    pending_handles: BTreeSet<RuntimeEventMirrorSubscriptionHandle>,
+    live_handles: BTreeSet<RuntimeEventMirrorSubscriptionHandle>,
+}
+
+impl RuntimeEventMirrorReclaimQueue {
+    pub(crate) fn register_live_record(&mut self, handle: RuntimeEventMirrorSubscriptionHandle) {
+        assert!(
+            self.live_handles.insert(handle),
+            "runtime event mirror handle must be unique while live"
+        );
+    }
+
+    pub(crate) fn retire_live_record(&mut self, handle: RuntimeEventMirrorSubscriptionHandle) {
+        assert!(
+            self.live_handles.remove(&handle),
+            "runtime event mirror handle must remain live until retirement"
+        );
+        if self.pending_handles.remove(&handle) {
+            self.pending.retain(|pending| *pending != handle);
+        }
+        debug_assert!(self.pending.len() <= self.live_handles.len());
+    }
+
+    pub(crate) fn enqueue(&mut self, handle: RuntimeEventMirrorSubscriptionHandle) {
+        if !self.live_handles.contains(&handle) || self.pending_handles.contains(&handle) {
+            return;
+        }
+        assert!(
+            self.pending.len() < self.live_handles.len(),
+            "runtime event mirror reclaim queue exceeded its live record hard budget"
+        );
+        let inserted = self.pending_handles.insert(handle);
+        debug_assert!(inserted);
+        self.pending.push_back(handle);
+    }
+
+    pub(crate) fn drain(&mut self) -> Vec<RuntimeEventMirrorSubscriptionHandle> {
+        let handles = self.pending.drain(..).collect::<Vec<_>>();
+        self.pending_handles.clear();
+        handles
+    }
+
+    pub(crate) fn pending_handles(
+        &self,
+    ) -> impl Iterator<Item = &RuntimeEventMirrorSubscriptionHandle> {
+        self.pending_handles.iter()
+    }
+
+    pub(crate) fn live_record_budget(&self) -> usize {
+        self.live_handles.len()
+    }
+}
+
+pub(crate) struct RuntimeEventMirrorSubscriptionRecord {
+    event_id: String,
+    erased: Box<dyn ErasedRuntimeEventMirrorSubscription>,
+}
+
+impl RuntimeEventMirrorSubscriptionRecord {
+    pub(crate) fn typed<E>(event_id: String) -> Self
     where
         E: Event + Serialize,
     {
         Self {
-            registration: None,
+            event_id,
             erased: Box::<TypedRuntimeEventMirrorSubscription<E>>::default(),
-            connected: false,
         }
     }
 
-    pub(crate) fn attach_registration(&mut self, registration: RuntimeEventMirrorRegistration) {
-        self.registration = Some(registration);
+    pub(crate) fn event_id(&self) -> &str {
+        &self.event_id
     }
 
     pub(crate) fn connect(&mut self, world: &mut World) -> bool {
-        let connected = self.erased.connect(world);
-        self.connected |= connected;
-        connected
+        self.erased.connect(world)
     }
 
     pub(crate) fn disconnect(&mut self, world: &mut World) -> bool {
-        let disconnected = self.erased.disconnect(world);
-        if disconnected {
-            self.connected = false;
-        }
-        disconnected
-    }
-
-    pub(crate) fn registration(&self) -> &RuntimeEventMirrorRegistration {
-        self.registration
-            .as_ref()
-            .expect("runtime event mirror subscription has registration")
+        self.erased.disconnect(world)
     }
 
     pub(crate) fn drain_payloads(
-        &mut self,
+        &self,
     ) -> Result<RuntimeEventMirrorDrainPage, RuntimeEventMirrorError> {
-        if !self.connected {
-            let event_id = self.registration().descriptor().event_id.clone();
-            return Err(RuntimeEventMirrorError::Disconnected { event_id });
-        }
-        match self.erased.drain_payloads() {
-            Ok(page) => Ok(page),
-            Err(failure) => Err(self.runtime_error_from_queue_failure(failure)),
-        }
+        self.erased
+            .drain_payloads()
+            .map_err(|failure| self.runtime_error_from_queue_failure(failure))
     }
 
     pub(crate) fn drain_payloads_up_to(
-        &mut self,
+        &self,
         max_deliveries: usize,
     ) -> Result<RuntimeEventMirrorDrainPage, RuntimeEventMirrorError> {
-        if !self.connected {
-            let event_id = self.registration().descriptor().event_id.clone();
-            return Err(RuntimeEventMirrorError::Disconnected { event_id });
-        }
-        match self.erased.drain_payloads_up_to(max_deliveries) {
-            Ok(page) => Ok(page),
-            Err(failure) => Err(self.runtime_error_from_queue_failure(failure)),
-        }
+        self.erased
+            .drain_payloads_up_to(max_deliveries)
+            .map_err(|failure| self.runtime_error_from_queue_failure(failure))
     }
 
-    pub(crate) fn drain(&mut self) -> Result<Vec<serde_json::Value>, RuntimeEventMirrorError> {
-        let event_id = self.registration().descriptor().event_id.clone();
+    pub(crate) fn drain(&self) -> Result<Vec<serde_json::Value>, RuntimeEventMirrorError> {
         self.drain_payloads()?
             .payloads
             .into_iter()
             .map(|payload| {
                 serde_json::from_slice(payload.json_bytes()).map_err(|error| {
                     RuntimeEventMirrorError::Serialize {
-                        event_id: event_id.clone(),
+                        event_id: self.event_id.clone(),
                         message: error.to_string(),
                     }
                 })
@@ -336,7 +382,7 @@ impl RuntimeEventMirrorSubscription {
         match failure {
             RuntimeEventMirrorQueueFailure::Serialize(message) => {
                 RuntimeEventMirrorError::Serialize {
-                    event_id: self.registration().descriptor().event_id.clone(),
+                    event_id: self.event_id.clone(),
                     message,
                 }
             }
@@ -344,7 +390,7 @@ impl RuntimeEventMirrorSubscription {
                 payload_bytes,
                 max_payload_bytes,
             } => RuntimeEventMirrorError::PayloadTooLarge {
-                event_id: self.registration().descriptor().event_id.clone(),
+                event_id: self.event_id.clone(),
                 payload_bytes,
                 max_payload_bytes,
             },
@@ -354,7 +400,7 @@ impl RuntimeEventMirrorSubscription {
                 max_events,
                 max_payload_bytes,
             } => RuntimeEventMirrorError::QueueOverflow {
-                event_id: self.registration().descriptor().event_id.clone(),
+                event_id: self.event_id.clone(),
                 pending_events,
                 pending_payload_bytes,
                 max_events,
@@ -364,9 +410,65 @@ impl RuntimeEventMirrorSubscription {
     }
 }
 
+pub struct RuntimeEventMirrorSubscription {
+    descriptor: RuntimeEventMirrorDescriptor,
+    handle: Option<RuntimeEventMirrorSubscriptionHandle>,
+    reclaim_queue: Arc<Mutex<RuntimeEventMirrorReclaimQueue>>,
+}
+
+impl RuntimeEventMirrorSubscription {
+    pub fn descriptor(&self) -> &RuntimeEventMirrorDescriptor {
+        &self.descriptor
+    }
+
+    pub(crate) fn new(
+        descriptor: RuntimeEventMirrorDescriptor,
+        handle: RuntimeEventMirrorSubscriptionHandle,
+        reclaim_queue: Arc<Mutex<RuntimeEventMirrorReclaimQueue>>,
+    ) -> Self {
+        Self {
+            descriptor,
+            handle: Some(handle),
+            reclaim_queue,
+        }
+    }
+
+    pub(crate) fn handle(&self) -> Option<RuntimeEventMirrorSubscriptionHandle> {
+        self.handle
+    }
+
+    pub(crate) fn belongs_to(
+        &self,
+        reclaim_queue: &Arc<Mutex<RuntimeEventMirrorReclaimQueue>>,
+    ) -> bool {
+        Arc::ptr_eq(&self.reclaim_queue, reclaim_queue)
+    }
+
+    pub(crate) fn mark_disconnected(&mut self) {
+        self.handle = None;
+    }
+}
+
+impl Drop for RuntimeEventMirrorSubscription {
+    fn drop(&mut self) {
+        let Some(handle) = self.handle.take() else {
+            return;
+        };
+        lock_runtime_event_mirror_reclaim_queue(&self.reclaim_queue).enqueue(handle);
+    }
+}
+
 fn lock_runtime_event_mirror_queue(
     queue: &Arc<Mutex<RuntimeEventMirrorQueue>>,
 ) -> MutexGuard<'_, RuntimeEventMirrorQueue> {
+    queue
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+pub(crate) fn lock_runtime_event_mirror_reclaim_queue(
+    queue: &Arc<Mutex<RuntimeEventMirrorReclaimQueue>>,
+) -> MutexGuard<'_, RuntimeEventMirrorReclaimQueue> {
     queue
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())

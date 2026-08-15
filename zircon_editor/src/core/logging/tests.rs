@@ -307,34 +307,26 @@ fn rolling_sink_starts_a_new_segment_when_daily_file_is_full() {
 
     assert_ne!(first, second);
     assert_ne!(second, third);
-    assert!(
-        first
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .contains("-0.log")
-    );
-    assert!(
-        second
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .contains("-1.log")
-    );
-    assert!(
-        third
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .contains("-2.log")
-    );
-    assert!(
-        next_day
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .contains("editor-20001-0.log")
-    );
+    assert!(first
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .contains("-0.log"));
+    assert!(second
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .contains("-1.log"));
+    assert!(third
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .contains("-2.log"));
+    assert!(next_day
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .contains("editor-20001-0.log"));
     std::fs::remove_dir_all(directory).unwrap();
 }
 
@@ -433,6 +425,35 @@ fn event_sink_can_reenter_logging_without_deadlocking_the_emission_lock() {
 
     assert_eq!(report.event_delivery(), LogEventDelivery::Delivered);
     assert_eq!(service.snapshot(&LogFilter::default()).len(), 2);
+}
+
+#[test]
+fn service_clear_replaces_the_current_snapshot_without_reusing_sequences() {
+    let service = EditorLogService::new(EditorLogConfig::new(8, 4096).unwrap());
+    let first = service
+        .emit(entry("first", LogSeverity::Info, LogSource::editor()))
+        .unwrap()
+        .record()
+        .sequence();
+    let second = service
+        .emit(entry("second", LogSeverity::Warning, LogSource::runtime()))
+        .unwrap()
+        .record()
+        .sequence();
+
+    assert_eq!(service.clear(), 2);
+    assert!(service.snapshot(&LogFilter::default()).is_empty());
+    assert_eq!(service.diagnostics().retained_records, 0);
+    assert_eq!(service.diagnostics().retained_bytes, 0);
+
+    let third = service
+        .emit(entry("third", LogSeverity::Info, LogSource::editor()))
+        .unwrap()
+        .record()
+        .sequence();
+    assert_eq!(first, 1);
+    assert_eq!(second, 2);
+    assert_eq!(third, 3);
 }
 
 #[test]

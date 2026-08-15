@@ -1,13 +1,13 @@
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
 use crate::asset::{AssetUri, AssetUuid};
-use crate::core::resource::io::atomic_file::atomic_write;
+use crate::core::resource::io::atomic_write;
 
-use super::{AssetMetaDocument, PreviewState};
+use super::{AssetMetaDocument, PreviewState, ProjectPaths};
 
 const META_WRITE_STRIPE_COUNT: usize = 64;
 static META_WRITE_STRIPES: OnceLock<[Mutex<()>; META_WRITE_STRIPE_COUNT]> = OnceLock::new();
@@ -109,10 +109,33 @@ pub(crate) struct AssetMetaWriteGuard {
     _guard: MutexGuard<'static, ()>,
 }
 
+pub(crate) struct AssetMetaWriteGuards {
+    _guards: Vec<MutexGuard<'static, ()>>,
+}
+
 pub(crate) fn lock_meta_document_path(path: &Path) -> AssetMetaWriteGuard {
     AssetMetaWriteGuard {
         _guard: lock_meta_path(path),
     }
+}
+
+pub(crate) fn lock_meta_document_paths(paths: &[PathBuf]) -> AssetMetaWriteGuards {
+    let mut stripe_indices = paths
+        .iter()
+        .map(|path| path_stripe(path))
+        .collect::<Vec<_>>();
+    stripe_indices.sort_unstable();
+    stripe_indices.dedup();
+    let stripes = META_WRITE_STRIPES.get_or_init(|| std::array::from_fn(|_| Mutex::new(())));
+    let guards = stripe_indices
+        .into_iter()
+        .map(|stripe| {
+            stripes[stripe]
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+        })
+        .collect();
+    AssetMetaWriteGuards { _guards: guards }
 }
 
 fn write_document_locked(document: &AssetMetaDocument, path: &Path) -> io::Result<()> {
@@ -129,21 +152,7 @@ fn lock_meta_path(path: &Path) -> MutexGuard<'static, ()> {
 }
 
 fn path_stripe(path: &Path) -> usize {
-    let absolute = if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        std::env::current_dir()
-            .map(|current| current.join(path))
-            .unwrap_or_else(|_| path.to_path_buf())
-    };
     let mut hasher = DefaultHasher::new();
-    #[cfg(windows)]
-    absolute
-        .to_string_lossy()
-        .replace('/', "\\")
-        .to_lowercase()
-        .hash(&mut hasher);
-    #[cfg(not(windows))]
-    absolute.hash(&mut hasher);
+    ProjectPaths::filesystem_identity_key(path).hash(&mut hasher);
     hasher.finish() as usize % META_WRITE_STRIPE_COUNT
 }

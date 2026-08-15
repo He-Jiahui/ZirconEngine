@@ -83,6 +83,15 @@ impl EditorLogStore {
             .cloned()
     }
 
+    pub(super) fn clear(&self) -> (usize, Option<u64>) {
+        let mut state = self.lock_state();
+        let cleared = state.records.len();
+        let through_sequence = state.records.back().map(LogRecord::sequence);
+        state.records.clear();
+        state.retained_bytes = 0;
+        (cleared, through_sequence)
+    }
+
     pub fn diagnostics(&self) -> EditorLogDiagnostics {
         let state = self.lock_state();
         EditorLogDiagnostics {

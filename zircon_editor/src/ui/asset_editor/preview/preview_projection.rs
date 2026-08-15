@@ -30,6 +30,24 @@ pub struct UiAssetPreviewProjection {
     pub surface_height: f32,
 }
 
+/// Compact preview data needed by palette drag hit testing. Presentation-only
+/// labels and selection state deliberately stay out of this cache.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct UiAssetPreviewHitIndex {
+    pub(crate) canvas_nodes: Vec<UiAssetPreviewHitNode>,
+    pub(crate) surface_width: f32,
+    pub(crate) surface_height: f32,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct UiAssetPreviewHitNode {
+    pub(crate) node_id: String,
+    pub(crate) x: f32,
+    pub(crate) y: f32,
+    pub(crate) width: f32,
+    pub(crate) height: f32,
+}
+
 impl Default for UiAssetPreviewProjection {
     fn default() -> Self {
         Self {
@@ -107,6 +125,42 @@ pub fn build_preview_projection(
     }
 
     projection
+}
+
+pub(crate) fn build_preview_hit_index(
+    document: &UiAssetDocument,
+    preview_host: Option<&UiAssetPreviewHost>,
+) -> Option<UiAssetPreviewHitIndex> {
+    let preview_host = preview_host?;
+    let mut hit_index = UiAssetPreviewHitIndex {
+        surface_width: preview_host.preview_size().width.max(0.0),
+        surface_height: preview_host.preview_size().height.max(0.0),
+        ..UiAssetPreviewHitIndex::default()
+    };
+    let control_id_index = control_id_index(document);
+    for command in &preview_host.surface().render_extract.list.commands {
+        let Some(tree_node) = preview_host.surface().tree.node(command.node_id) else {
+            continue;
+        };
+        let control_id = tree_node
+            .template_metadata
+            .as_ref()
+            .and_then(|metadata| metadata.control_id.as_deref());
+        let document_node_id = control_id
+            .and_then(|control_id| control_id_index.get(control_id).copied())
+            .map(|node| node.node_id.as_str());
+        hit_index.canvas_nodes.push(UiAssetPreviewHitNode {
+            node_id: document_node_id
+                .or(control_id)
+                .map(str::to_string)
+                .unwrap_or_else(|| format!("#{}", command.node_id.0)),
+            x: command.frame.x,
+            y: command.frame.y,
+            width: command.frame.width,
+            height: command.frame.height,
+        });
+    }
+    Some(hit_index)
 }
 
 pub fn preview_node_id_for_index(

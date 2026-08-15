@@ -1,8 +1,8 @@
 use super::super::super::super::super::super::data::{FrameRect, PaneData};
 
 use super::super::fallback::{
-    WelcomeMainColumnFrameMetrics, location_fallback, name_fallback, preview_fallback,
-    validation_fallback,
+    location_fallback, name_fallback, preview_fallback, validation_fallback,
+    WelcomeMainColumnFrameMetrics,
 };
 use super::super::resolve::resolve_welcome_frame;
 

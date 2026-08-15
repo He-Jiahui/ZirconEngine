@@ -1,6 +1,5 @@
 use winit::dpi::PhysicalSize;
 use winit::event_loop::ActiveEventLoop;
-use zircon_runtime::diagnostic_log::write_warn;
 use zircon_runtime_interface::ZrRuntimeViewportSizeV1;
 
 use super::super::RuntimeEntryApp;
@@ -12,6 +11,9 @@ impl RuntimeEntryApp {
         size: PhysicalSize<u32>,
     ) {
         let viewport_size = ZrRuntimeViewportSizeV1::new(size.width.max(1), size.height.max(1));
+        if viewport_size == self.viewport_size {
+            return;
+        }
         if let Err(error) = self.resize_viewport(viewport_size) {
             self.report_fatal_failure(
                 "runtime_surface_present",
@@ -25,22 +27,34 @@ impl RuntimeEntryApp {
             event_loop.exit();
             return;
         }
-        if self.surface_present_enabled && !self.surface_present_failed {
+        if self.surface_present_enabled {
             match self.bind_current_window_surface() {
                 Ok(true) => self.enable_surface_present(),
                 Ok(false) => {
-                    write_warn(
+                    self.report_fatal_failure(
                         "runtime_surface_present",
-                        "runtime_rebind_surface_returned_false",
+                        format!(
+                            "viewport={:?} size={}x{}",
+                            self.viewport, viewport_size.width, viewport_size.height
+                        ),
+                        "native surface rebind returned unavailable after a successful bind",
+                        "verify the runtime surface contract and restart zircon_runtime",
                     );
-                    self.fail_surface_present();
+                    event_loop.exit();
+                    return;
                 }
                 Err(error) => {
-                    write_warn(
+                    self.report_fatal_failure(
                         "runtime_surface_present",
-                        format!("runtime_rebind_surface_failed error={error}"),
+                        format!(
+                            "viewport={:?} size={}x{}",
+                            self.viewport, viewport_size.width, viewport_size.height
+                        ),
+                        format!("native surface rebind failed: {error}"),
+                        "verify the graphics adapter and window surface, then restart zircon_runtime",
                     );
-                    self.fail_surface_present();
+                    event_loop.exit();
+                    return;
                 }
             }
         }
@@ -58,5 +72,34 @@ impl RuntimeEntryApp {
                 event_loop.exit();
             }
         }
+    }
+}
+
+pub(in crate::entry::runtime_entry_app) fn surface_resize_changes_viewport(
+    viewport_size: ZrRuntimeViewportSizeV1,
+    size: PhysicalSize<u32>,
+) -> bool {
+    viewport_size != ZrRuntimeViewportSizeV1::new(size.width.max(1), size.height.max(1))
+}
+
+#[cfg(test)]
+mod tests {
+    use winit::dpi::PhysicalSize;
+    use zircon_runtime_interface::ZrRuntimeViewportSizeV1;
+
+    use super::surface_resize_changes_viewport;
+
+    #[test]
+    fn duplicate_surface_resize_is_a_no_op_after_minimum_size_normalization() {
+        let current = ZrRuntimeViewportSizeV1::new(1, 720);
+
+        assert!(!surface_resize_changes_viewport(
+            current,
+            PhysicalSize::new(0, 720),
+        ));
+        assert!(surface_resize_changes_viewport(
+            current,
+            PhysicalSize::new(2, 720),
+        ));
     }
 }

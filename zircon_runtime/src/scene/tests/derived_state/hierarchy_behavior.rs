@@ -1,4 +1,5 @@
 use super::*;
+use crate::scene::components::{ActiveInHierarchy, WorldMatrix};
 
 #[test]
 fn imported_records_validate_missing_parents_and_preserve_out_of_order_links() {
@@ -10,6 +11,18 @@ fn imported_records_validate_missing_parents_and_preserve_out_of_order_links() {
 
     world.run_internal_scene_systems_for_stage(SystemStage::PostUpdate);
     assert_eq!(world.node_record(10).unwrap().parent, None);
+    assert_eq!(
+        world
+            .get::<WorldMatrix>(10)
+            .map(|matrix| matrix.0.to_scale_rotation_translation().2),
+        Some(Vec3::ZERO),
+        "validity repair must also publish the orphan as a hierarchy root"
+    );
+    assert_eq!(
+        world.get::<ActiveInHierarchy>(10).map(|active| active.0),
+        Some(true),
+        "validity repair must propagate active state through the repaired root index"
+    );
 
     let mut parent_record = detached_node_record(42, NodeKind::Cube);
     parent_record.transform = Transform::from_translation(Vec3::new(3.0, 0.0, 0.0));
@@ -26,6 +39,26 @@ fn imported_records_validate_missing_parents_and_preserve_out_of_order_links() {
     assert_eq!(
         world.world_transform(43).unwrap().translation,
         Vec3::new(7.0, 0.0, 0.0)
+    );
+}
+
+#[test]
+fn componentless_root_updates_the_hierarchy_index_before_derived_propagation() {
+    let mut world = World::empty();
+    assert!(world.spawn_empty_at(70).unwrap());
+
+    world.run_internal_scene_systems_for_stage(SystemStage::PostUpdate);
+
+    assert_eq!(world.subtree_entity_ids(70), vec![70]);
+    assert_eq!(
+        world
+            .get::<WorldMatrix>(70)
+            .map(|matrix| matrix.0.to_scale_rotation_translation().2),
+        Some(Vec3::ZERO)
+    );
+    assert_eq!(
+        world.get::<ActiveInHierarchy>(70).map(|active| active.0),
+        Some(true)
     );
 }
 
@@ -60,17 +93,15 @@ fn active_hierarchy_propagates_inactive_and_reactivated_ancestors() {
     world.run_internal_scene_systems_for_stage(SystemStage::PostUpdate);
     assert_eq!(world.active_in_hierarchy(middle), Some(false));
     assert_eq!(world.active_in_hierarchy(leaf), Some(false));
-    assert!(
-        world
-            .build_prepared_render_frame_extract(&RenderExtractContext::new(
-                RenderWorldSnapshotHandle::new(201),
-                SceneViewportExtractRequest::default(),
-            ))
-            .geometry
-            .meshes
-            .iter()
-            .all(|mesh| mesh.node_id != leaf)
-    );
+    assert!(world
+        .build_prepared_render_frame_extract(&RenderExtractContext::new(
+            RenderWorldSnapshotHandle::new(201),
+            SceneViewportExtractRequest::default(),
+        ))
+        .geometry
+        .meshes
+        .iter()
+        .all(|mesh| mesh.node_id != leaf));
 
     world.set_active_self(root, true).unwrap();
     world.set_active_self(middle, false).unwrap();
@@ -82,17 +113,15 @@ fn active_hierarchy_propagates_inactive_and_reactivated_ancestors() {
     world.set_active_self(middle, true).unwrap();
     world.run_internal_scene_systems_for_stage(SystemStage::PostUpdate);
     assert_eq!(world.active_in_hierarchy(leaf), Some(true));
-    assert!(
-        world
-            .build_prepared_render_frame_extract(&RenderExtractContext::new(
-                RenderWorldSnapshotHandle::new(202),
-                SceneViewportExtractRequest::default(),
-            ))
-            .geometry
-            .meshes
-            .iter()
-            .any(|mesh| mesh.node_id == leaf)
-    );
+    assert!(world
+        .build_prepared_render_frame_extract(&RenderExtractContext::new(
+            RenderWorldSnapshotHandle::new(202),
+            SceneViewportExtractRequest::default(),
+        ))
+        .geometry
+        .meshes
+        .iter()
+        .any(|mesh| mesh.node_id == leaf));
 }
 
 #[test]
@@ -127,13 +156,11 @@ fn post_update_propagates_large_hierarchy_transform_and_active_state() {
         Vec3::new(LARGE_HIERARCHY_NODE_COUNT as f32, 0.0, 0.0)
     );
     assert_eq!(world.active_in_hierarchy(deepest), Some(false));
-    assert!(
-        world
-            .nodes()
-            .iter()
-            .find(|node| node.id == deepest)
-            .is_some_and(|node| node.parent == Some(entities[LARGE_HIERARCHY_NODE_COUNT - 2]))
-    );
+    assert!(world
+        .nodes()
+        .iter()
+        .find(|node| node.id == deepest)
+        .is_some_and(|node| node.parent == Some(entities[LARGE_HIERARCHY_NODE_COUNT - 2])));
 }
 
 #[test]

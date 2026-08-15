@@ -185,7 +185,11 @@ const fn mip_extent(value: u32, level: u32) -> u32 {
         1
     } else {
         let shifted = value >> level;
-        if shifted == 0 { 1 } else { shifted }
+        if shifted == 0 {
+            1
+        } else {
+            shifted
+        }
     }
 }
 

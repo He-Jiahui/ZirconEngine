@@ -22,7 +22,7 @@ plan_sources:
 tests:
   - zircon_runtime/src/ui/tests/text_hit_testing.rs
   - zircon_runtime/src/ui/tests/widget_text_input_pointer.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/tests.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map_tests.rs
   - zircon_runtime/src/ui/text/geometry/tests/mixed_bidi.rs
   - rustfmt --edition 2021 --check zircon_runtime/src/ui/text/hit_test.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/mod.rs zircon_runtime/src/ui/tests/text_hit_testing.rs zircon_runtime/src/ui/tests/mod.rs
   - git diff --check -- zircon_runtime/src/ui/text/hit_test.rs zircon_runtime/src/ui/text/layout_engine.rs zircon_runtime/src/ui/text/mod.rs zircon_runtime/src/ui/tests/text_hit_testing.rs zircon_runtime/src/ui/tests/mod.rs
@@ -47,4 +47,4 @@ The map is only as precise as the resolved run contract. Source-isomorphic graph
 
 ## Tests
 
-`text_hit_testing.rs` covers grapheme midpoint selection, tabs, multiline routing, aligned frames, VerticalRl columns and both visual edges of an RTL cluster inside a mixed line. `text_geometry/source_map/tests.rs` covers the inverse caret mapping and discontiguous mixed-BiDi selection spans. `widget_text_input_pointer.rs` covers press/Shift+press/drag selection. Exact execution and product framebuffer evidence are recorded by the owning Text03 child-plan output after its testing stage.
+`text_hit_testing.rs` covers grapheme midpoint selection, tabs, multiline routing, aligned frames, VerticalRl columns and both visual edges of an RTL cluster inside a mixed line. `text_geometry/source_map_tests.rs` covers the inverse caret mapping and discontiguous mixed-BiDi selection spans. `widget_text_input_pointer.rs` covers press/Shift+press/drag selection. Exact execution and product framebuffer evidence are recorded by the owning Text03 child-plan output after its testing stage.

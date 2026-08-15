@@ -477,6 +477,7 @@ fn runtime_ui_extract_with_image_and_clip() -> UiRenderExtract {
                 },
             ],
         },
+        raster_scale: 1.0,
     }
 }
 
@@ -500,6 +501,7 @@ fn runtime_ui_extract_with_center_quad() -> UiRenderExtract {
                 opacity: 1.0,
             }],
         },
+        raster_scale: 1.0,
     }
 }
 

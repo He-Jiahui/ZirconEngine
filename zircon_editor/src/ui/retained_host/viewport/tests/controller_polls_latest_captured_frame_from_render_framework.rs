@@ -1,5 +1,5 @@
-use std::sync::mpsc::channel;
 use std::sync::Arc;
+use std::sync::mpsc::channel;
 use std::thread;
 use std::time::Duration;
 
@@ -66,9 +66,11 @@ fn controller_does_not_republish_cached_image_when_capture_fails() {
     framework.state.lock().unwrap().capture_error = Some("planned capture failure".to_string());
 
     assert!(controller.poll_captured_frame().is_none());
-    assert!(controller
-        .take_error()
-        .is_some_and(|error| error.contains("planned capture failure")));
+    assert!(
+        controller
+            .take_error()
+            .is_some_and(|error| error.contains("planned capture failure"))
+    );
     assert_eq!(framework.state.lock().unwrap().capture_requests, 2);
 }
 
@@ -99,17 +101,21 @@ fn capture_poll_does_not_wait_for_a_viewport_submit_operation() {
             .expect("capture poll result should be observable");
     });
 
-    assert!(capture_receiver
-        .recv_timeout(Duration::from_millis(100))
-        .expect("capture poll must not wait for a viewport submit operation")
-        .is_some());
+    assert!(
+        capture_receiver
+            .recv_timeout(Duration::from_millis(100))
+            .expect("capture poll must not wait for a viewport submit operation")
+            .is_some()
+    );
 
     submit_release
         .send(())
         .expect("fixture submit should accept release");
     polled.join().expect("capture poll thread should not panic");
-    assert!(submitted
-        .join()
-        .expect("submit thread should not panic")
-        .is_ok());
+    assert!(
+        submitted
+            .join()
+            .expect("submit thread should not panic")
+            .is_ok()
+    );
 }

@@ -103,13 +103,11 @@ fn world_render_frame_extract_populates_direct_renderer_sections() {
             && input.mesh_index == static_index
             && input.material_alpha_mode == RenderMaterialAlphaMode::Blend
     }));
-    assert!(
-        extract
-            .geometry
-            .phase_queue
-            .items_for_phase(RenderPhase::Transparent3d)
-            .any(|item| item.mesh_source == RenderPhaseMeshSource::MeshIndex(static_index))
-    );
+    assert!(extract
+        .geometry
+        .phase_queue
+        .items_for_phase(RenderPhase::Transparent3d)
+        .any(|item| item.mesh_source == RenderPhaseMeshSource::MeshIndex(static_index)));
 
     assert_eq!(extract.sprites.sprites.len(), 1);
     assert_eq!(extract.sprites.sprites[0].entity, sprite);
@@ -120,58 +118,44 @@ fn world_render_frame_extract_populates_direct_renderer_sections() {
             .to_scene_schema_v1_mask_lossy(),
         0b0010
     );
-    assert!(
-        extract
-            .sprites
-            .phase_queue
-            .items_for_phase(RenderPhase::Transparent3d)
-            .any(|item| item.mesh_source == RenderPhaseMeshSource::SpriteIndex(0))
-    );
+    assert!(extract
+        .sprites
+        .phase_queue
+        .items_for_phase(RenderPhase::Transparent3d)
+        .any(|item| item.mesh_source == RenderPhaseMeshSource::SpriteIndex(0)));
 
     assert_eq!(extract.lighting.ambient_lights.len(), 1);
     assert_eq!(extract.lighting.directional_lights.len(), 1);
-    assert!(
-        extract
-            .lighting
-            .point_lights
-            .iter()
-            .any(|light| light.node_id == point && light.position == Vec3::new(1.0, 2.0, 3.0))
-    );
-    assert!(
-        extract
-            .lighting
-            .rect_lights
-            .iter()
-            .any(|light| light.node_id == rect)
-    );
-    assert!(
-        extract
-            .lighting
-            .spot_lights
-            .iter()
-            .any(|light| light.node_id == spot)
-    );
-    assert!(
-        extract
-            .lighting
-            .directional_lights
-            .iter()
-            .any(|light| light.node_id == directional)
-    );
-    assert!(
-        extract
-            .lighting
-            .ambient_lights
-            .iter()
-            .any(|light| light.color == AmbientLight::default().color)
-    );
-    assert!(
-        extract
-            .lighting
-            .hybrid_global_illumination
-            .as_ref()
-            .is_some_and(|gi| !gi.enabled)
-    );
+    assert!(extract
+        .lighting
+        .point_lights
+        .iter()
+        .any(|light| light.node_id == point && light.position == Vec3::new(1.0, 2.0, 3.0)));
+    assert!(extract
+        .lighting
+        .rect_lights
+        .iter()
+        .any(|light| light.node_id == rect));
+    assert!(extract
+        .lighting
+        .spot_lights
+        .iter()
+        .any(|light| light.node_id == spot));
+    assert!(extract
+        .lighting
+        .directional_lights
+        .iter()
+        .any(|light| light.node_id == directional));
+    assert!(extract
+        .lighting
+        .ambient_lights
+        .iter()
+        .any(|light| light.color == AmbientLight::default().color));
+    assert!(extract
+        .lighting
+        .hybrid_global_illumination
+        .as_ref()
+        .is_some_and(|gi| !gi.enabled));
 
     assert_eq!(extract.post_process.display_mode, DisplayMode::WireOverlay);
     assert!(!extract.post_process.preview.lighting_enabled);
@@ -179,14 +163,12 @@ fn world_render_frame_extract_populates_direct_renderer_sections() {
     assert_eq!(extract.post_process.bloom.intensity, 0.0);
     assert_eq!(extract.post_process.color_grading.exposure, 1.0);
     assert!(!extract.post_process.stack.initial_resources.is_empty());
-    assert!(
-        extract
-            .post_process
-            .graph
-            .output_transfer_node
-            .as_deref()
-            .is_some_and(|node| node == "output-transfer")
-    );
+    assert!(extract
+        .post_process
+        .graph
+        .output_transfer_node
+        .as_deref()
+        .is_some_and(|node| node == "output-transfer"));
     assert_eq!(extract.geometry.virtual_geometry_debug, Some(debug));
     let virtual_geometry = extract
         .geometry
@@ -197,18 +179,14 @@ fn world_render_frame_extract_populates_direct_renderer_sections() {
     assert!(virtual_geometry.clusters.is_empty());
     assert_eq!(virtual_geometry.cluster_budget, 0);
 
-    assert!(
-        extract
-            .visibility
-            .renderable_entities
-            .contains(&dynamic_mesh)
-    );
-    assert!(
-        extract
-            .visibility
-            .renderable_entities
-            .contains(&static_mesh)
-    );
+    assert!(extract
+        .visibility
+        .renderable_entities
+        .contains(&dynamic_mesh));
+    assert!(extract
+        .visibility
+        .renderable_entities
+        .contains(&static_mesh));
     assert!(extract.visibility.renderable_entities.contains(&sprite));
     assert!(extract.visibility.dynamic_entities.contains(&dynamic_mesh));
     assert!(extract.visibility.dynamic_entities.contains(&sprite));
@@ -331,20 +309,16 @@ fn inactive_camera_render_frame_extract_keeps_view_but_removes_scene_payload() {
     assert!(extract.visibility.renderables.is_empty());
     assert_eq!(extract.post_process.display_mode, DisplayMode::WireOnly);
     assert_eq!(extract.geometry.virtual_geometry_debug, Some(debug));
-    assert!(
-        extract
-            .geometry
-            .virtual_geometry
-            .as_ref()
-            .is_some_and(|vg| vg.debug == debug)
-    );
-    assert!(
-        extract
-            .lighting
-            .hybrid_global_illumination
-            .as_ref()
-            .is_some_and(|gi| !gi.enabled)
-    );
+    assert!(extract
+        .geometry
+        .virtual_geometry
+        .as_ref()
+        .is_some_and(|vg| vg.debug == debug));
+    assert!(extract
+        .lighting
+        .hybrid_global_illumination
+        .as_ref()
+        .is_some_and(|gi| !gi.enabled));
     assert!(extract.particles.emitters.is_empty());
 }
 
@@ -388,56 +362,42 @@ fn render_frame_extract_filters_meshes_sprites_and_visibility_by_camera_layers()
         SceneViewportExtractRequest::default(),
     ));
 
-    assert!(
-        extract
-            .geometry
-            .meshes
-            .iter()
-            .any(|mesh| mesh.node_id == visible_mesh)
-    );
-    assert!(
-        extract
-            .geometry
-            .meshes
-            .iter()
-            .all(|mesh| mesh.node_id != hidden_mesh)
-    );
-    assert!(
-        extract
-            .sprites
-            .sprites
-            .iter()
-            .any(|sprite| sprite.entity == visible_sprite)
-    );
-    assert!(
-        extract
-            .sprites
-            .sprites
-            .iter()
-            .all(|sprite| sprite.entity != hidden_sprite)
-    );
+    assert!(extract
+        .geometry
+        .meshes
+        .iter()
+        .any(|mesh| mesh.node_id == visible_mesh));
+    assert!(extract
+        .geometry
+        .meshes
+        .iter()
+        .all(|mesh| mesh.node_id != hidden_mesh));
+    assert!(extract
+        .sprites
+        .sprites
+        .iter()
+        .any(|sprite| sprite.entity == visible_sprite));
+    assert!(extract
+        .sprites
+        .sprites
+        .iter()
+        .all(|sprite| sprite.entity != hidden_sprite));
     assert!(extract.visibility.renderables.iter().all(|renderable| {
         renderable
             .render_layer_mask
             .intersects(&RenderLayerSet::from_scene_schema_v1_mask(0b0010))
     }));
     assert!(extract.visibility.static_entities.contains(&visible_mesh));
-    assert!(
-        extract
-            .visibility
-            .dynamic_entities
-            .contains(&visible_sprite)
-    );
-    assert!(
-        !extract
-            .visibility
-            .renderable_entities
-            .contains(&hidden_mesh)
-    );
-    assert!(
-        !extract
-            .visibility
-            .renderable_entities
-            .contains(&hidden_sprite)
-    );
+    assert!(extract
+        .visibility
+        .dynamic_entities
+        .contains(&visible_sprite));
+    assert!(!extract
+        .visibility
+        .renderable_entities
+        .contains(&hidden_mesh));
+    assert!(!extract
+        .visibility
+        .renderable_entities
+        .contains(&hidden_sprite));
 }

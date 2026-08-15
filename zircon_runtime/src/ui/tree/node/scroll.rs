@@ -42,8 +42,7 @@ impl UiRuntimeTreeScrollExt for UiTree {
         }
 
         let node = self
-            .nodes
-            .get_mut(&node_id)
+            .node_mut(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
         node.scroll_state = Some(plan.scroll_state);
         node.dirty.layout = true;

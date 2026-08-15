@@ -3,7 +3,10 @@ use std::path::Path;
 use crate::core::jobs::CancellationToken;
 use zircon_runtime::asset::project::ProjectManifest;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
-use zircon_runtime::plugin::native::{NativePluginLoadReport, NativePluginLoader};
+use zircon_runtime::plugin::native::{
+    discover_native_plugins, load_native_editor_from_load_manifest,
+    load_native_runtime_from_load_manifest, NativePluginLoadReport,
+};
 use zircon_runtime::plugin::ExportBuildPlan;
 
 use super::super::super::editor_manager::EditorManager;
@@ -97,8 +100,7 @@ impl EditorManager {
             5,
             "Discovering native dynamic plugin packages",
         );
-        let native_report =
-            NativePluginLoader.discover(self.plugin_directory(project_root.as_ref()));
+        let native_report = discover_native_plugins(self.plugin_directory(project_root.as_ref()));
         let native_projection = native_report.projection();
         emit_export_progress(
             &mut progress,
@@ -304,11 +306,9 @@ fn exported_native_load_report_for_profile(
 ) -> NativePluginLoadReport {
     match target_mode {
         RuntimeTargetMode::ClientRuntime | RuntimeTargetMode::ServerRuntime => {
-            NativePluginLoader.load_runtime_from_load_manifest(output_root)
+            load_native_runtime_from_load_manifest(output_root)
         }
-        RuntimeTargetMode::EditorHost => {
-            NativePluginLoader.load_editor_from_load_manifest(output_root)
-        }
+        RuntimeTargetMode::EditorHost => load_native_editor_from_load_manifest(output_root),
     }
 }
 

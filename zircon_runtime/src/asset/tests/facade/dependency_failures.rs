@@ -56,11 +56,9 @@ fn readiness_report_marks_missing_dependency_records_as_failed_rows() {
     assert_eq!(row.depth, 1);
     assert!(row.direct);
     assert_eq!(row.load_state, AssetLoadState::Failed);
-    assert!(
-        diagnostic_messages(&row.diagnostics)
-            .iter()
-            .any(|message| message.contains("missing asset dependency record"))
-    );
+    assert!(diagnostic_messages(&row.diagnostics)
+        .iter()
+        .any(|message| message.contains("missing asset dependency record")));
 }
 
 #[test]
@@ -96,7 +94,7 @@ fn dependency_load_state_applies_direct_precedence_and_missing_records() {
     let pending = record("res://textures/direct-pending.png", ResourceKind::Texture)
         .with_state(ResourceState::Pending);
     let pending_id = pending.id;
-    resource_manager.register_record(pending);
+    resource_manager.register_record(pending).unwrap();
     let reloading = record("res://textures/direct-reloading.png", ResourceKind::Texture);
     let reloading_id = reloading.id;
     manager
@@ -106,7 +104,9 @@ fn dependency_load_state_applies_direct_precedence_and_missing_records() {
             texture_asset("res://textures/direct-reloading.png"),
         )
         .expect("reloading texture handle");
-    resource_manager.start_reload(reloading_id, Vec::new());
+    resource_manager
+        .start_reload(reloading_id, Vec::new())
+        .unwrap();
     let missing_id = ResourceId::from_stable_label("direct missing dependency");
     let mut material = record("res://materials/direct.zmaterial", ResourceKind::Material);
     material.dependency_ids = vec![loaded_id, pending_id, reloading_id, missing_id];

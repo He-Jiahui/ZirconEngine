@@ -3,8 +3,10 @@ use crate::capability::{
     RUNTIME_CAPABILITIES, RUNTIME_CRATE_NAME,
 };
 use crate::{
-    NAVIGATION_MODULE_NAME, PLUGIN_ID, module_descriptor, navigation_component_descriptors,
-    navigation_event_catalog, navigation_plugin_options,
+    module_descriptor, navigation_component_descriptors, navigation_event_catalog,
+    navigation_plugin_options, DefaultNavigationManager, NavigationOverlayFrame,
+    DEFAULT_NAVIGATION_RUNTIME_DRIVER_NAME, NAVIGATION_MODULE_NAME,
+    NAVIGATION_OVERLAY_FRAME_EVENT_ID, PLUGIN_ID,
 };
 use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavMeshBakeReport, NavPathResult, NavigationDebugCapture, NavigationError,
@@ -17,9 +19,6 @@ use zircon_runtime::plugin::{
     CapabilityStatus, CapabilityStatusManifest, PluginDistributionManifest, PluginModuleManifest,
     PluginPackageManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError, RuntimePlugin,
     RuntimePluginDescriptor,
-};
-use zircon_runtime::scene::{
-    SCENE_NAVIGATION_RUNTIME_DRIVER_NAME, SceneNavigationRuntime, SceneNavigationRuntimeHandle,
 };
 
 pub const NAVIGATION_DIST_CRATE_NAME: &str = "zircon_plugin_navigation_dist";
@@ -114,9 +113,13 @@ impl RuntimePlugin for NavigationRuntimePlugin {
             owner,
             event("navigation.events.path_query_failed"),
         )?;
-        registry.register_mirrored_event::<NavAgentTickReport>(
+        registry.register_event::<NavAgentTickReport>(
             owner,
             event("navigation.events.agent_tick_completed"),
+        )?;
+        registry.register_mirrored_event::<NavigationOverlayFrame>(
+            owner,
+            event(NAVIGATION_OVERLAY_FRAME_EVENT_ID),
             |world, reader_count| {
                 let capture = world
                     .get_resource_mut::<NavigationDebugCapture>()
@@ -141,26 +144,32 @@ impl RuntimePlugin for NavigationRuntimePlugin {
                 owner,
                 NAVIGATION_AGENT_TICK_SYSTEM,
                 zircon_runtime::scene::SystemStage::Update,
-                |context| {
-                    let manager = context
-                        .core
-                        .resolve_driver::<SceneNavigationRuntimeHandle>(
-                            SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
+                || {
+                    |context| {
+                        let manager = context.core.resolve_driver::<DefaultNavigationManager>(
+                            DEFAULT_NAVIGATION_RUNTIME_DRIVER_NAME,
                         )?;
-                    context
-                        .level
-                        .with_world_mut(|world| -> Result<NavAgentTickReport, NavigationError> {
-                            let report = manager.tick_world_agents(world, context.delta_seconds)?;
-                            world.send_event(report.clone());
-                            Ok(report)
-                        })
-                        .map(|_| ())
-                        .map_err(|error| {
-                            zircon_runtime::core::CoreError::Initialization(
-                                "navigation.agent_tick".to_string(),
-                                error.to_string(),
+                        context
+                            .level
+                            .with_world_mut(
+                                |world| -> Result<NavAgentTickReport, NavigationError> {
+                                    let report =
+                                        manager.tick_world_agents(world, context.delta_seconds)?;
+                                    let overlay_frame =
+                                        manager.navigation_overlay_frame(report.clone());
+                                    world.send_event(report.clone());
+                                    world.send_event(overlay_frame);
+                                    Ok(report)
+                                },
                             )
-                        })
+                            .map(|_| ())
+                            .map_err(|error| {
+                                zircon_runtime::core::CoreError::Initialization(
+                                    "navigation.agent_tick".to_string(),
+                                    error.to_string(),
+                                )
+                            })
+                    }
                 },
             )
             .in_set(navigation_main_system_set)

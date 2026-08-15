@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use super::{Asset, Handle};
 use crate::core::resource::{
-    ResourceEvent, ResourceEventKind, ResourceEventReceiver, ResourceEventRecvError,
-    ResourceEventRecvTimeoutError, ResourceEventTryRecvError, ResourceKind, ResourceLocator,
-    ResourceMarker, approximate_event_bytes,
+    approximate_event_bytes, ResourceEvent, ResourceEventKind, ResourceEventReceiver,
+    ResourceEventRecvError, ResourceEventRecvTimeoutError, ResourceEventTryRecvError, ResourceKind,
+    ResourceLocator, ResourceMarker,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -89,6 +89,10 @@ impl<TAsset: Asset> AssetEventReceiver<TAsset> {
             },
             None => AssetEventPoll::Filtered { approximate_bytes },
         })
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.receiver.is_empty()
     }
 }
 
@@ -204,16 +208,20 @@ mod tests {
         let typed = typed_event_receiver::<TextureAsset>(resources.subscribe());
         let shader_id = ResourceId::from_stable_label("typed event unrelated shader");
         let texture_id = ResourceId::from_stable_label("typed event target texture");
-        resources.register_record(crate::core::resource::ResourceRecord::new(
-            shader_id,
-            ResourceKind::Shader,
-            locator("res://shaders/unrelated.wgsl"),
-        ));
-        resources.register_record(crate::core::resource::ResourceRecord::new(
-            texture_id,
-            ResourceKind::Texture,
-            locator("res://textures/target.png"),
-        ));
+        resources
+            .register_record(crate::core::resource::ResourceRecord::new(
+                shader_id,
+                ResourceKind::Shader,
+                locator("res://shaders/unrelated.wgsl"),
+            ))
+            .unwrap();
+        resources
+            .register_record(crate::core::resource::ResourceRecord::new(
+                texture_id,
+                ResourceKind::Texture,
+                locator("res://textures/target.png"),
+            ))
+            .unwrap();
 
         let event = typed.try_recv().expect("typed texture event");
 

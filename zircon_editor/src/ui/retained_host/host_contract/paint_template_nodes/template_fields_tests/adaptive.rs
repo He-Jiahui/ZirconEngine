@@ -47,16 +47,12 @@ fn collapsed_field_content_omits_text_and_search_glyph() {
 
     assert_eq!(commands.len(), 1, "only the field surface should remain");
     assert!(commands.iter().all(|command| command.text.is_none()));
-    assert!(
-        commands
-            .iter()
-            .all(|command| command.image_pixels.is_none())
-    );
-    assert!(
-        commands
-            .iter()
-            .all(|command| frame_is_within(&rect, &command.frame))
-    );
+    assert!(commands
+        .iter()
+        .all(|command| command.image_pixels.is_none()));
+    assert!(commands
+        .iter()
+        .all(|command| frame_is_within(&rect, &command.frame)));
 }
 
 #[test]
@@ -80,11 +76,9 @@ fn narrow_fields_keep_every_command_inside_the_field_frame() {
         1.0
     ));
 
-    assert!(
-        commands
-            .iter()
-            .all(|command| frame_is_within(&rect, &command.frame))
-    );
+    assert!(commands
+        .iter()
+        .all(|command| frame_is_within(&rect, &command.frame)));
 }
 
 #[test]
@@ -107,11 +101,9 @@ fn fractional_field_alignment_does_not_expand_its_logical_frame() {
     ));
 
     assert!(!commands.is_empty());
-    assert!(
-        commands
-            .iter()
-            .all(|command| frame_is_within(&rect, &command.frame))
-    );
+    assert!(commands
+        .iter()
+        .all(|command| frame_is_within(&rect, &command.frame)));
 }
 
 #[test]
@@ -159,11 +151,9 @@ fn short_stepper_field_omits_text_and_stepper_glyphs() {
 
     assert_eq!(commands.len(), 1, "only the field surface should remain");
     assert!(commands.iter().all(|command| command.text.is_none()));
-    assert!(
-        commands
-            .iter()
-            .all(|command| frame_is_within(&rect, &command.frame))
-    );
+    assert!(commands
+        .iter()
+        .all(|command| frame_is_within(&rect, &command.frame)));
 }
 
 fn frame_is_within(outer: &FrameRect, inner: &FrameRect) -> bool {

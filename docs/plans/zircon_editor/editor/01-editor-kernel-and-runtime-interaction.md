@@ -302,7 +302,7 @@ pub trait EditorRuntimeGateway: Send + Sync {
 }
 ```
 
-`SessionGateway` 收到的 `ZrOwnedByteBuffer` 必须在 gateway 调用栈内完成结构校验并恰好释放一次。frame 的 RGBA 在返回前复制到 `EditorRuntimeFrame` 的宿主 `Vec<u8>`；禁止把带 runtime provider `free` 函数指针的 `ZrRuntimeFrameV1` 直接暴露给编辑器消费者。
+`SessionGateway` 收到的 `ZrOwnedByteBuffer` 必须在 gateway 调用栈内完成结构校验；拒绝或 malformed 路径在返回前恰好释放一次。成功的 frame 将已验证 buffer 和 runtime provider owner 移交给 `EditorRuntimeFrame` 的私有 pixel owner，不做 `Vec<u8>` 全帧复制；显式 `release()` 或 Drop 才恰好调用 provider `free`。禁止把带 runtime provider `free` 函数指针的 `ZrRuntimeFrameV1` 直接暴露给编辑器消费者。
 
 行为矩阵（契约测试逐格断言）：
 
@@ -321,7 +321,7 @@ pub trait EditorRuntimeGateway: Send + Sync {
 1. **消息批**：`message_bus` → `SharedEditorMessageBus`（消费点主要在 `editor_event_dispatch.rs`）；
 2. **事件批**：`journal/event_listeners/next_*/revision` → `EditorEventService` 内锁（`editor_event_runtime.rs`、`editor_event_listener_control.rs`、`replay` 路径）；
 3. **领域批**：`operation_registry/operation_stack` 进入 `core/editing/`，`runtime_play_mode_backend` 进入 `core/play/plugin_activation/`，`dragging_gizmo` 并入 viewport 拖拽状态；
-4. **UI 批**：`state/transient/control_service/manager/editor_extensions` → `ui/workbench/shell_state.rs`（`editor_event_runtime_access.rs`、`editor_event_runtime_reflection.rs`、`editor_extension_registration.rs`、`editor_operation_dispatch.rs`、`editor_event_control_requests.rs` 六文件消费点改持 shell state）。
+4. **UI 批**：`state/transient/control_service/manager/editor_extensions` → `ui/workbench/shell_state.rs`（`editor_event_runtime_access/`、`editor_event_runtime_reflection.rs`、`editor_extension_registration.rs`、`editor_operation_dispatch.rs`、`editor_event_control_requests.rs` 六个 owner 改持 shell state）。
 
 四批完成后 `EditorEventRuntimeState`/`lock_inner` 物理删除，`grep lock_inner` 归零是切片完成判据。
 
@@ -357,6 +357,8 @@ pub trait EditorRuntimeGateway: Send + Sync {
 - 切片 2.2：`SessionGateway` 包装已验证的 V2 session 函数表与 handle；create/destroy 继续由 `RuntimeSession` 单一生命周期 owner 负责，gateway 持有 provider `Arc` 防止函数指针或 frame buffer 越过库生命周期，不复制 destroy 权限。当前基础面覆盖 tick/frame/event/profile/plugin-event/operation；可选 `profile_control` 缺失返回 `Ok(None)`，必需入口缺失才返回 `CapabilityMissing`；`RuntimeCapabilities` 物化为 generation-bound `Arc` 快照，stable handle 通过 `ArcSwap` 发布完整 generation，数据面不再进入共享 `RwLock`。
 - 切片 2.3：runtime 侧删 `RuntimeDynamicSession.selected_node`。当前源证明该字段只保存 construction 阶段默认 cube orbit anchor，没有编辑器更新入口或高亮消费；Runtime10 删除字段与高频 pointer/scroll selection-sync helper，保留中性初始 orbit target。正式 `push_editor_overlay`/HighlightSet 输入仍由 05 接管，不得为等待 05 而保留第二份选择真相。
 - 切片 2.4（部分完成）：`editor_event_cutover.rs` 已全量守卫 `core/` 不依赖 `crate::ui`，并守卫 legacy event owner/符号与 `core/play/bridge.rs` 不得恢复；`workbench_state_cutover.rs` 仅守卫 workbench construction/project transition 两个文件不出现 `LevelSystem`。`src/ui/**` 的全局 `LevelSystem/CoreHandle` 深路径守卫尚未存在，且 UI host、asset manager 与 retained viewport 当前仍有 `CoreHandle` 消费点；该部分继续 `in_progress`，不能记为守卫闭环。
+
+  2026-08-14 owner routing 重审：不得把上述库存机械地全部改写为 `EditorRuntimeGateway`。gateway 的定型职责是 authoring/play world、session ABI、frame/viewport/overlay 数据面；它不具备也不应获得 `ProjectAssetManager`、render-framework service graph、module bootstrap 或 native host capability 注册权限。UE `UAssetEditorSubsystem::Initialize/Deinitialize` 也在 editor subsystem composition boundary 订阅 engine/asset services，而非让每个 asset toolkit自行取得 engine 全局入口。后续 hard cut 必须拆为两类并分别守卫：(a) UI 业务/工作台/scene presentation 不得持有 `LevelSystem`、`World` 或通过 `CoreHandle` 旁路 runtime scene，统一走 gateway；(b) `EditorModule`、`EditorUiHost` 的 composition root、`DefaultEditorAssetManager` 的 project asset access 与 retained viewport 的 render-framework resolver 仅可消费一个 UI-owned、typed runtime-service access，并在构造期注入具体 manager handle/weak provider，禁止任何 pane、workspace state、callback 或 picker 取得/传播裸 `CoreHandle`、`ManagerResolver`。在先建立该 typed access 和 source inventory 分类前，不增加“全 UI 禁止 CoreHandle”的错误守卫，也不把 asset/project 服务塞入 core gateway。
 - 测试阶段：`.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -SkipBuild -LibTests` + `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests`（session 字段删除牵连）+ `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime_interface -SkipBuild -LibTests`；双实现契约测试矩阵全绿；守卫红→绿记录。更新 `docs/zircon_editor/core/gateway.md`。
 
 ## 风险与开放问题

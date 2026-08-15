@@ -18,14 +18,12 @@ fn asset_manager_service_reports_importer_capabilities_before_and_after_project_
     let manager = project_asset_manager_with_first_wave_plugin_fixtures();
     let service: &dyn AssetManager = &manager;
 
-    assert!(
-        service
-            .asset_importer_capability_reports()
-            .iter()
-            .any(|report| {
-                report.descriptor.id == "texture_importer.image" && report.status.is_available()
-            })
-    );
+    assert!(service
+        .asset_importer_capability_reports()
+        .iter()
+        .any(|report| {
+            report.descriptor.id == "texture_importer.image" && report.status.is_available()
+        }));
     let before_open = service
         .asset_importer_capability_report_for_source("checker.png")
         .expect("png importer capability before project open");

@@ -48,3 +48,14 @@ pub struct InvalidationBatch {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub facts: Vec<WorldFact>,
 }
+
+impl InvalidationBatch {
+    /// Returns true when runtime dirty tokens are strictly increasing and therefore unique.
+    ///
+    /// Runtime subscription tables emit this canonical form directly from their ordered dirty
+    /// index. Consumers may use it as a no-allocation projection fast path; malformed transport
+    /// input remains valid wire data and must stay observable through the diagnostic slow path.
+    pub fn has_canonical_dirty_tokens(&self) -> bool {
+        self.dirty.windows(2).all(|tokens| tokens[0] < tokens[1])
+    }
+}

@@ -3,7 +3,7 @@ use std::f32::consts::{PI, TAU};
 use super::math::{clamp_pixel_range, normalized_angle};
 use super::model::ChartRaster;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    HostMaterialPalette, current_host_palette,
+    current_host_palette, HostMaterialPalette,
 };
 
 type PieSliceColors = [[u8; 4]; 3];

@@ -52,7 +52,7 @@ fn spawn_node_kind_ordinals_survive_removal_and_world_deserialization() {
     let mut world = World::empty();
     let first = world.spawn_node(NodeKind::Mesh);
     let removed = world.spawn_node(NodeKind::Mesh);
-    assert!(world.remove_entity(removed));
+    world.remove_entity(removed).unwrap();
     let replacement = world.spawn_node(NodeKind::Mesh);
     assert_eq!(world.get::<Name>(replacement).unwrap().0, "Mesh 2");
 
@@ -131,10 +131,17 @@ fn update_transform_rejects_values_that_cannot_be_persisted() {
 #[test]
 fn project_load_rejects_invalid_orphan_local_transform() {
     let world = World::new();
-    let mut document = serde_json::to_value(world).unwrap();
-    let transforms = document["local_transforms"]
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let path = std::env::temp_dir().join(format!("zircon_invalid_scene_{unique}.json"));
+    world.save_project_to_path(&path).unwrap();
+    let mut document: serde_json::Value =
+        serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    let transforms = document["world"]["local_transforms"]
         .as_object_mut()
-        .expect("serialized world must contain local transforms");
+        .expect("serialized project world must contain local transforms");
     let mut orphan = transforms
         .values()
         .next()
@@ -142,13 +149,7 @@ fn project_load_rejects_invalid_orphan_local_transform() {
         .clone();
     orphan["transform"]["scale"] = serde_json::json!([0.0, 1.0, 1.0]);
     transforms.insert("999999".to_string(), orphan);
-
-    let unique = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let path = std::env::temp_dir().join(format!("zircon_invalid_scene_{unique}.json"));
-    fs::write(&path, serde_json::to_vec(&document).unwrap()).unwrap();
+    fs::write(&path, serde_json::to_vec_pretty(&document).unwrap()).unwrap();
 
     assert!(matches!(
         World::load_project_from_path(&path),
@@ -158,6 +159,39 @@ fn project_load_rejects_invalid_orphan_local_transform() {
                 axis: "x"
             }
         ))
+    ));
+
+    fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn project_load_rejects_an_unsupported_project_format_version() {
+    let world = World::new();
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let path = std::env::temp_dir().join(format!("zircon_future_scene_{unique}.json"));
+    world.save_project_to_path(&path).unwrap();
+
+    let mut document: serde_json::Value =
+        serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    document["format_version"] = serde_json::json!(3);
+    document["world"] = serde_json::json!({
+        "future_world_shape": {
+            "entity_storage": "incompatible-with-v2"
+        }
+    });
+    fs::write(&path, serde_json::to_vec_pretty(&document).unwrap()).unwrap();
+
+    assert!(matches!(
+        World::load_project_from_path(&path),
+        Err(
+            crate::scene::world::SceneProjectError::UnsupportedProjectFormatVersion {
+                expected: 2,
+                actual: 3,
+            }
+        )
     ));
 
     fs::remove_file(path).unwrap();
@@ -200,7 +234,7 @@ fn node_record_roundtrip_restores_same_entity() {
     let cube = world.spawn_node(NodeKind::Cube);
     let record = world.node_record(cube).unwrap();
 
-    assert!(world.remove_entity(cube));
+    world.remove_entity(cube).unwrap();
     assert!(!world.contains_entity(cube));
 
     world.insert_node_record(record.clone()).unwrap();
@@ -216,7 +250,7 @@ fn recursive_remove_returns_parent_and_children_records() {
     let child = world.spawn_node(NodeKind::Mesh);
     world.set_parent_checked(child, Some(parent)).unwrap();
 
-    let removed = world.remove_entity_recursive(parent);
+    let removed = world.remove_entity_recursive(parent).unwrap();
     assert_eq!(removed.len(), 2);
     assert!(!world.contains_entity(parent));
     assert!(!world.contains_entity(child));

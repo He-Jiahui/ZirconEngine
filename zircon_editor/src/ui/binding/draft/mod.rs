@@ -1,4 +1,4 @@
 mod codec;
 mod command;
 
-pub use command::{inspector_field_control_id, DraftCommand};
+pub use command::{DraftCommand, inspector_field_control_id};

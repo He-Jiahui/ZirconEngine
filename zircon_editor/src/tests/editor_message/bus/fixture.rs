@@ -2,9 +2,9 @@ use crate::core::editing::engine::{HistoryContextId, TransactionId};
 use crate::core::editor_event::ViewInstanceId;
 use crate::core::editor_message::{
     DocumentId, DocumentMessage, EditorMessage, EditorMessagePayload, EditorTopic, FocusMessage,
-    ModeMessage, PlayStateKind, SceneInspectionFieldsDelta, SceneInspectionMessage,
-    SceneInspectionPropertyPath, SceneModeId, SelectionDomain, TransactionMessage,
-    TOPIC_SCENE_INSPECTION,
+    ModeMessage, PlayStateKind, SceneInspectionFieldsDelta, SceneInspectionHierarchyAnchor,
+    SceneInspectionMessage, SceneInspectionPropertyPath, SceneModeId, SelectionDomain,
+    TransactionMessage, TOPIC_SCENE_INSPECTION,
 };
 
 pub(super) fn topic(value: &str) -> EditorTopic {
@@ -57,9 +57,10 @@ pub(super) fn typed_messages() -> Vec<(&'static str, EditorMessage)> {
                     12,
                     13,
                     Some(42),
-                    vec![40],
-                    vec![42],
+                    vec![SceneInspectionHierarchyAnchor::new(40, None, 0, 40)],
+                    vec![SceneInspectionHierarchyAnchor::new(42, Some(40), 1, 42)],
                     vec![7],
+                    false,
                     SceneInspectionFieldsDelta::delta(
                         42,
                         vec![SceneInspectionPropertyPath::new(
@@ -71,6 +72,7 @@ pub(super) fn typed_messages() -> Vec<(&'static str, EditorMessage)> {
                             "value",
                         )],
                     ),
+                    crate::core::editor_message::SceneInspectionSelectionDelta::unchanged(),
                 ),
             )),
         ),

@@ -10,7 +10,9 @@ use crate::ui::retained_host::{
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::{
-    build_view_template_nodes, load_preview_image, ViewTemplateFrameData, ViewTemplateNodeData,
+    build_view_template_node_projection, build_view_template_node_projection_with_patches,
+    compose_view_template_node_model, load_preview_image, ViewTemplateFrameData,
+    ViewTemplateNodeData, ViewTemplateNodePatch,
 };
 use crate::ui::workbench::page_tabs::{
     main_page_project_path_width, main_page_tab_preferred_width_from_title_width_with_close,
@@ -30,7 +32,7 @@ mod menu_chrome;
 mod page_tabs;
 mod status_bar;
 
-const MENU_CHROME_ASSET: &str = "/assets/ui/editor/workbench_menu_chrome.zui";
+pub(super) const MENU_CHROME_ASSET: &str = "/assets/ui/editor/workbench_menu_chrome.zui";
 #[cfg(test)]
 const MENU_POPUP_ASSET: &str = "/assets/ui/editor/workbench_menu_popup.zui";
 const PAGE_CHROME_ASSET: &str = "/assets/ui/editor/workbench_page_chrome.zui";
@@ -74,7 +76,17 @@ const MENU_TOP_BAR_HEIGHT_PX: f32 = 24.0;
 const PAGE_BAR_HEIGHT_PX: f32 = 32.0;
 const DOCK_HEADER_HEIGHT_PX: f32 = 31.0;
 const CHROME_TAB_HEIGHT_INSET_PX: f32 = 4.0;
-const FAST_PROCEDURAL_CHROME_NODES: bool = true;
+
+#[derive(Clone)]
+struct ChromeTabCompositionGeneration {
+    tabs: ModelRc<TabData>,
+}
+
+impl PartialEq for ChromeTabCompositionGeneration {
+    fn eq(&self, other: &Self) -> bool {
+        self.tabs.shares_values_with(&other.tabs)
+    }
+}
 
 pub(super) fn surface_metrics_from_chrome_assets(
     _shell_width: f32,
@@ -152,10 +164,6 @@ pub(super) fn page_chrome_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    if FAST_PROCEDURAL_CHROME_NODES {
-        return fallback_page_chrome_nodes(tabs, project_path, width, height);
-    }
-
     let mut text_overrides = tab_text_overrides(PAGE_TAB_PREFIX, tabs);
     text_overrides.insert(
         "PageProjectPath".to_string(),
@@ -166,31 +174,26 @@ pub(super) fn page_chrome_nodes(
         },
     );
 
+    let node_patches = if shell_preset_id.as_str() == "jetbrains_shell" {
+        BTreeMap::from([(
+            PAGE_PROJECT_PATH_CONTROL_ID.to_string(),
+            ViewTemplateNodePatch::default().text_tone("muted"),
+        )])
+    } else {
+        BTreeMap::new()
+    };
     let nodes = tab_template_nodes(
         "host.page.chrome",
         PAGE_CHROME_ASSET,
         width,
         height,
         &text_overrides,
+        &node_patches,
         PAGE_TAB_PREFIX,
         tabs,
     );
     if tab_chrome_needs_fallback(&nodes, PAGE_BAR_CONTROL_ID, PAGE_TAB_PREFIX, tabs) {
         return fallback_page_chrome_nodes(tabs, project_path, width, height);
-    }
-    let nodes = page_tabs::append_missing_close_nodes(nodes, tabs);
-    if shell_preset_id.as_str() == "jetbrains_shell" {
-        return model_rc(
-            (0..nodes.row_count())
-                .filter_map(|row| nodes.row_data(row))
-                .map(|mut node| {
-                    if node.control_id == PAGE_PROJECT_PATH_CONTROL_ID {
-                        node.text_tone = "muted".into();
-                    }
-                    node
-                })
-                .collect(),
-        );
     }
     nodes
 }
@@ -229,7 +232,17 @@ pub(super) fn activity_rail_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    activity_rail::activity_rail_nodes(tabs, shell_preset_id, width, height)
+    activity_rail_nodes_for_surface("host.activity.rail", tabs, shell_preset_id, width, height)
+}
+
+pub(super) fn activity_rail_nodes_for_surface(
+    surface_id: &str,
+    tabs: &ModelRc<TabData>,
+    shell_preset_id: &SharedString,
+    width: f32,
+    height: f32,
+) -> ModelRc<ViewTemplateNodeData> {
+    activity_rail::activity_rail_nodes(surface_id, tabs, shell_preset_id, width, height)
 }
 
 pub(super) fn activity_rail_button_frames(
@@ -314,12 +327,13 @@ pub(super) fn bottom_dock_header_nodes(
 }
 
 pub(super) fn floating_window_header_nodes(
+    surface_id: &str,
     tabs: &ModelRc<TabData>,
     title: &SharedString,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    dock_header::floating_window_header_nodes(tabs, title, width, height)
+    dock_header::floating_window_header_nodes(surface_id, tabs, title, width, height)
 }
 
 pub(super) fn dock_header_frame(nodes: &ModelRc<ViewTemplateNodeData>) -> FrameRect {
@@ -361,18 +375,34 @@ fn tab_template_nodes(
     width: f32,
     height: f32,
     text_overrides: &BTreeMap<String, String>,
+    node_patches: &BTreeMap<String, ViewTemplateNodePatch>,
     slot_prefix: &'static str,
     tabs: &ModelRc<TabData>,
 ) -> ModelRc<ViewTemplateNodeData> {
     let filters = [SlotFilter::new(slot_prefix, tabs.row_count())];
-    let nodes = raw_template_nodes(document_tree_id, asset_path, width, height, text_overrides);
-    model_rc(
-        nodes
-            .into_iter()
-            .filter(|node| node_survives_filters(node, &filters))
-            .filter(|node| node_survives_tab_close_filter(node, tabs))
-            .map(|node| tab_node_with_state(node, slot_prefix, tabs))
-            .collect(),
+    let Ok(projection) = build_view_template_node_projection_with_patches(
+        document_tree_id,
+        asset_path,
+        &[],
+        UiSize::new(width.max(0.0), height.max(0.0)),
+        text_overrides,
+        node_patches,
+    ) else {
+        return ModelRc::default();
+    };
+    let generation = ChromeTabCompositionGeneration { tabs: tabs.clone() };
+    compose_view_template_node_model(
+        &format!("{document_tree_id}.tabs"),
+        projection,
+        &generation,
+        |nodes| {
+            nodes.retain(|node| {
+                node_survives_filters(node, &filters) && node_survives_tab_close_filter(node, tabs)
+            });
+            for node in nodes {
+                *node = tab_node_with_state(node.clone(), slot_prefix, tabs);
+            }
+        },
     )
 }
 
@@ -583,36 +613,22 @@ fn tab_chrome_needs_fallback(
         || (tabs.row_count() > 0 && control_frame(nodes, &format!("{tab_prefix}0")).width <= 0.0)
 }
 
-fn template_nodes(
-    document_tree_id: &str,
-    asset_path: &str,
-    width: f32,
-    height: f32,
-    text_overrides: &BTreeMap<String, String>,
-    filters: &[SlotFilter],
-) -> ModelRc<ViewTemplateNodeData> {
-    model_rc(
-        raw_template_nodes(document_tree_id, asset_path, width, height, text_overrides)
-            .into_iter()
-            .filter(|node| node_survives_filters(node, filters))
-            .collect(),
-    )
-}
-
+#[cfg(test)]
 fn raw_template_nodes(
     document_tree_id: &str,
     asset_path: &str,
     width: f32,
     height: f32,
     text_overrides: &BTreeMap<String, String>,
-) -> Vec<ViewTemplateNodeData> {
-    build_view_template_nodes(
+) -> ModelRc<ViewTemplateNodeData> {
+    build_view_template_node_projection(
         document_tree_id,
         asset_path,
         &[],
         UiSize::new(width.max(0.0), height.max(0.0)),
         text_overrides,
     )
+    .map(|projection| projection.into_model())
     .unwrap_or_default()
 }
 
@@ -624,6 +640,13 @@ fn tab_text_overrides(prefix: &str, tabs: &ModelRc<TabData>) -> BTreeMap<String,
         }
     }
     overrides
+}
+
+#[cfg(test)]
+fn model_nodes(nodes: &ModelRc<ViewTemplateNodeData>) -> Vec<ViewTemplateNodeData> {
+    (0..nodes.row_count())
+        .filter_map(|row| nodes.row_data(row))
+        .collect()
 }
 
 fn tab_node_with_state(
@@ -692,6 +715,32 @@ fn slot_index(control_id: &str, prefix: &str) -> Option<usize> {
     control_id.strip_prefix(prefix)?.parse().ok()
 }
 
+fn retain_dominant_control_template(
+    templates: &mut BTreeMap<usize, ViewTemplateNodeData>,
+    row: usize,
+    candidate: ViewTemplateNodeData,
+) {
+    let candidate_area = template_frame_area(&candidate);
+    let replace = templates
+        .get(&row)
+        .is_none_or(|current| candidate_area > template_frame_area(current));
+    if replace {
+        templates.insert(row, candidate);
+    }
+}
+
+fn template_frame_area(node: &ViewTemplateNodeData) -> f32 {
+    let frame = &node.frame;
+    if !frame.width.is_finite()
+        || !frame.height.is_finite()
+        || frame.width <= 0.0
+        || frame.height <= 0.0
+    {
+        return 0.0;
+    }
+    frame.width * frame.height
+}
+
 fn control_frames(
     nodes: &ModelRc<ViewTemplateNodeData>,
     prefix: &str,
@@ -738,8 +787,28 @@ fn tab_frames(
 fn control_frame(nodes: &ModelRc<ViewTemplateNodeData>, control_id: &str) -> FrameRect {
     (0..nodes.row_count())
         .filter_map(|row| nodes.row_data(row))
-        .find(|node| node.control_id.as_str() == control_id)
+        .filter(|node| node.control_id.as_str() == control_id)
         .map(|node| frame_rect(&node))
+        .filter(|frame| {
+            frame.x.is_finite()
+                && frame.y.is_finite()
+                && frame.width.is_finite()
+                && frame.height.is_finite()
+                && frame.width > 0.0
+                && frame.height > 0.0
+        })
+        .reduce(|merged, frame| {
+            let left = merged.x.min(frame.x);
+            let top = merged.y.min(frame.y);
+            let right = (merged.x + merged.width).max(frame.x + frame.width);
+            let bottom = (merged.y + merged.height).max(frame.y + frame.height);
+            FrameRect {
+                x: left,
+                y: top,
+                width: right - left,
+                height: bottom - top,
+            }
+        })
         .unwrap_or_default()
 }
 

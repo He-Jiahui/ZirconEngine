@@ -50,7 +50,27 @@ impl UiPointerDispatcher {
         tree: &UiTree,
         route: UiPointerRoute,
     ) -> Result<UiPointerDispatchResult, UiTreeError> {
+        self.dispatch_route(tree, &route, false)
+    }
+
+    pub(crate) fn dispatch_surface_route(
+        &self,
+        tree: &UiTree,
+        route: &UiPointerRoute,
+    ) -> Result<UiPointerDispatchResult, UiTreeError> {
+        self.dispatch_route(tree, route, true)
+    }
+
+    fn dispatch_route(
+        &self,
+        tree: &UiTree,
+        route: &UiPointerRoute,
+        trust_cached_target_route: bool,
+    ) -> Result<UiPointerDispatchResult, UiTreeError> {
         let mut result = UiPointerDispatchResult::new(route.clone());
+        if self.handlers.is_empty() && self.phase_handlers.is_empty() {
+            return Ok(result);
+        }
 
         if route_uses_preview_tunnel(&route) {
             for node_id in route.bubbled.iter().rev().copied() {
@@ -79,8 +99,17 @@ impl UiPointerDispatcher {
         };
 
         'candidate: for candidate in candidates {
-            let bubble = tree.bubble_route(candidate)?;
-            for node_id in bubble {
+            let bubble_storage;
+            let bubble = if trust_cached_target_route
+                && route.captured.is_none()
+                && route.target == Some(candidate)
+            {
+                route.bubbled.as_slice()
+            } else {
+                bubble_storage = tree.bubble_route(candidate)?;
+                bubble_storage.as_slice()
+            };
+            for node_id in bubble.iter().copied() {
                 if !visited.insert(node_id) {
                     continue;
                 }
@@ -110,20 +139,26 @@ impl UiPointerDispatcher {
     ) -> Result<bool, UiTreeError> {
         let phase_handlers = self
             .phase_handlers
-            .get(&(node_id, result.route.kind, phase))
-            .into_iter()
-            .flat_map(|handlers| handlers.iter());
+            .get(&(node_id, result.route.kind, phase));
         let unqualified_handlers = include_unqualified_handlers
             .then(|| self.handlers.get(&(node_id, result.route.kind)))
-            .flatten()
-            .into_iter()
-            .flat_map(|handlers| handlers.iter());
+            .flatten();
+
+        if phase_handlers.is_none() && unqualified_handlers.is_none() {
+            return Ok(false);
+        }
 
         let context = UiPointerDispatchContext {
             node_id,
             phase,
             route: result.route.clone(),
         };
+        let phase_handlers = phase_handlers
+            .into_iter()
+            .flat_map(|handlers| handlers.iter());
+        let unqualified_handlers = unqualified_handlers
+            .into_iter()
+            .flat_map(|handlers| handlers.iter());
         for handler in phase_handlers.chain(unqualified_handlers) {
             let effect = handler(&context);
             if effect == UiPointerDispatchEffect::Unhandled {
@@ -184,7 +219,7 @@ fn apply_pointer_effect(
             result.handled_by = Some(node_id);
             true
         }
-        UiPointerDispatchEffect::SetFocus { .. } => {
+        UiPointerDispatchEffect::SetFocus => {
             result.focus_changed_to = Some(node_id);
             result.handled_by = Some(node_id);
             true

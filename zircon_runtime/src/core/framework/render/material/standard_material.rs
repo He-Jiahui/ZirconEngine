@@ -38,6 +38,8 @@ pub struct StandardMaterialDescriptor {
     pub occlusion_texture_transform: RenderMaterialTextureTransform,
     #[serde(default)]
     pub occlusion_texture_uv_channel: u32,
+    #[serde(default = "default_occlusion_strength")]
+    pub occlusion_strength: f32,
     pub emissive: [f32; 3],
     pub emissive_texture: Option<AssetReference>,
     #[serde(default)]
@@ -89,4 +91,8 @@ fn default_cast_shadows() -> bool {
 
 fn default_receive_shadows() -> bool {
     true
+}
+
+fn default_occlusion_strength() -> f32 {
+    1.0
 }

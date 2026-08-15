@@ -301,7 +301,14 @@ impl<'descriptor, 'provider> RuntimePluginAvailabilityProjection<'descriptor, 'p
         profile: &RuntimeProfileDescriptor,
         require_external_provider: bool,
     ) -> RuntimePluginAvailabilityGeneration<'descriptor> {
-        let plugins = profile
+        let mut plugins = Vec::with_capacity(
+            profile
+                .default_plugins
+                .len()
+                .saturating_add(profile.optional_plugins.len()),
+        );
+        let mut positions = HashMap::with_capacity(plugins.capacity());
+        for (plugin_id, required) in profile
             .default_plugins
             .iter()
             .map(|plugin| (plugin.id.clone(), plugin.required))
@@ -311,7 +318,10 @@ impl<'descriptor, 'provider> RuntimePluginAvailabilityProjection<'descriptor, 'p
                     .iter()
                     .cloned()
                     .map(|plugin_id| (plugin_id, false)),
-            );
+            )
+        {
+            merge_runtime_plugin_selection(&mut plugins, &mut positions, plugin_id, required);
+        }
         self.generation_for_runtime_plugins(profile, plugins, require_external_provider)
     }
 
@@ -571,25 +581,46 @@ fn project_manifest_plugin_selections(
         {
             metrics.indexed_lookup_rows += 1;
         }
-        if let Some(index) = positions.get(&runtime_id).copied() {
+        if merge_runtime_plugin_selection(
+            &mut plugins,
+            &mut positions,
+            runtime_id,
+            selection.required,
+        ) {
             #[cfg(test)]
             {
                 metrics.duplicate_merge_rows += 1;
             }
-            plugins[index].1 = plugins[index].1 || selection.required;
         } else {
             #[cfg(test)]
             {
                 metrics.unique_plugin_rows += 1;
             }
-            positions.insert(runtime_id.clone(), plugins.len());
-            plugins.push((runtime_id, selection.required));
         }
     }
     RuntimePluginManifestSelectionProjection {
         plugins,
         #[cfg(test)]
         metrics,
+    }
+}
+
+/// Preserves the first selection position while merging required state across every occurrence.
+/// Both profile-default and manifest entry points use this one operation so their availability
+/// generation and indexed lookup semantics cannot drift.
+fn merge_runtime_plugin_selection(
+    plugins: &mut Vec<(RuntimePluginId, bool)>,
+    positions: &mut HashMap<RuntimePluginId, usize>,
+    runtime_id: RuntimePluginId,
+    required: bool,
+) -> bool {
+    if let Some(index) = positions.get(&runtime_id).copied() {
+        plugins[index].1 = plugins[index].1 || required;
+        true
+    } else {
+        positions.insert(runtime_id.clone(), plugins.len());
+        plugins.push((runtime_id, required));
+        false
     }
 }
 

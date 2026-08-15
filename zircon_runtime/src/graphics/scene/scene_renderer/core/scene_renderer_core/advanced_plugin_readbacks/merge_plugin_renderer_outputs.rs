@@ -84,6 +84,8 @@ fn merge_hybrid_gi_outputs(
         completed_trace_region_ids,
         probe_irradiance_rgb,
         probe_rt_lighting_rgb,
+        radiance_cache_gpu_stage_dispatch_counts,
+        global_sdf_stats,
         scene_prepare,
     } = incoming;
 
@@ -93,6 +95,16 @@ fn merge_hybrid_gi_outputs(
         .extend(completed_trace_region_ids);
     base.probe_irradiance_rgb.extend(probe_irradiance_rgb);
     base.probe_rt_lighting_rgb.extend(probe_rt_lighting_rgb);
+    for (base_count, incoming_count) in base
+        .radiance_cache_gpu_stage_dispatch_counts
+        .iter_mut()
+        .zip(radiance_cache_gpu_stage_dispatch_counts)
+    {
+        *base_count = base_count.saturating_add(incoming_count);
+    }
+    if global_sdf_stats.is_some() {
+        base.global_sdf_stats = global_sdf_stats;
+    }
     append_hybrid_gi_scene_prepare(&mut base.scene_prepare, scene_prepare);
 }
 
@@ -117,6 +129,7 @@ fn append_hybrid_gi_scene_prepare(
         voxel_cell_dominant_nodes,
         voxel_cell_dominant_samples,
         probe_trace_tiles,
+        probe_trace_diagnostics,
         probe_trace_dispatch,
         texture_width,
         texture_height,
@@ -142,6 +155,7 @@ fn append_hybrid_gi_scene_prepare(
     base.voxel_cell_dominant_samples
         .extend(voxel_cell_dominant_samples);
     base.probe_trace_tiles.extend(probe_trace_tiles);
+    base.probe_trace_diagnostics.extend(probe_trace_diagnostics);
     base.probe_trace_dispatch = [
         base.probe_trace_dispatch[0].max(probe_trace_dispatch[0]),
         base.probe_trace_dispatch[1].max(probe_trace_dispatch[1]),
@@ -156,10 +170,10 @@ fn append_hybrid_gi_scene_prepare(
 mod tests {
     use super::merge_plugin_renderer_outputs;
     use crate::core::framework::render::{
-        RenderHybridGiCacheEntryRecord, RenderHybridGiReadbackOutputs,
-        RenderHybridGiScenePrepareReadbackOutputs, RenderHybridGiScenePrepareSample,
-        RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs,
-        RenderVirtualGeometryNodeClusterCullReadbackOutputs,
+        RenderHybridGiCacheEntryRecord, RenderHybridGiGlobalSdfStats,
+        RenderHybridGiReadbackOutputs, RenderHybridGiScenePrepareReadbackOutputs,
+        RenderHybridGiScenePrepareSample, RenderParticleGpuReadbackOutputs,
+        RenderPluginRendererOutputs, RenderVirtualGeometryNodeClusterCullReadbackOutputs,
         RenderVirtualGeometryPageAssignmentRecord, RenderVirtualGeometryReadbackOutputs,
     };
 
@@ -168,6 +182,7 @@ mod tests {
         let mut base = RenderPluginRendererOutputs {
             hybrid_gi: RenderHybridGiReadbackOutputs {
                 cache_entries: vec![RenderHybridGiCacheEntryRecord { key: 5, value: 7 }],
+                radiance_cache_gpu_stage_dispatch_counts: [1, 2, 3, 4, 5, 6],
                 scene_prepare: RenderHybridGiScenePrepareReadbackOutputs {
                     surface_cache_depth_samples: vec![RenderHybridGiScenePrepareSample {
                         index: 1,
@@ -187,6 +202,7 @@ mod tests {
             RenderPluginRendererOutputs {
                 hybrid_gi: RenderHybridGiReadbackOutputs {
                     completed_probe_ids: vec![11],
+                    radiance_cache_gpu_stage_dispatch_counts: [6, 5, 4, 3, 2, 1],
                     scene_prepare: RenderHybridGiScenePrepareReadbackOutputs {
                         atlas_samples: vec![RenderHybridGiScenePrepareSample {
                             index: 2,
@@ -207,6 +223,10 @@ mod tests {
             vec![RenderHybridGiCacheEntryRecord { key: 5, value: 7 }]
         );
         assert_eq!(base.hybrid_gi.completed_probe_ids, vec![11]);
+        assert_eq!(
+            base.hybrid_gi.radiance_cache_gpu_stage_dispatch_counts,
+            [7; 6]
+        );
         assert_eq!(base.hybrid_gi.scene_prepare.atlas_samples.len(), 1);
         assert_eq!(
             base.hybrid_gi
@@ -217,6 +237,39 @@ mod tests {
         );
         assert_eq!(base.hybrid_gi.scene_prepare.probe_trace_dispatch, [1, 1, 3]);
         assert_eq!(base.hybrid_gi.scene_prepare.texture_width, 128);
+    }
+
+    #[test]
+    fn merge_replaces_global_sdf_stats_with_the_latest_renderer_output() {
+        let mut base = RenderPluginRendererOutputs {
+            hybrid_gi: RenderHybridGiReadbackOutputs {
+                global_sdf_stats: Some(RenderHybridGiGlobalSdfStats {
+                    resident_page_count: 2,
+                    ..RenderHybridGiGlobalSdfStats::default()
+                }),
+                ..RenderHybridGiReadbackOutputs::default()
+            },
+            ..RenderPluginRendererOutputs::default()
+        };
+
+        merge_plugin_renderer_outputs(
+            &mut base,
+            RenderPluginRendererOutputs {
+                hybrid_gi: RenderHybridGiReadbackOutputs {
+                    global_sdf_stats: Some(RenderHybridGiGlobalSdfStats {
+                        resident_page_count: 5,
+                        dirty_page_count: 1,
+                        ..RenderHybridGiGlobalSdfStats::default()
+                    }),
+                    ..RenderHybridGiReadbackOutputs::default()
+                },
+                ..RenderPluginRendererOutputs::default()
+            },
+        );
+
+        let stats = base.hybrid_gi.global_sdf_stats.unwrap();
+        assert_eq!(stats.resident_page_count, 5);
+        assert_eq!(stats.dirty_page_count, 1);
     }
 
     #[test]

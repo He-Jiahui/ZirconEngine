@@ -171,6 +171,108 @@ fn popup_focus_surface() -> UiSurface {
     surface
 }
 
+fn generic_modal_group_surface() -> UiSurface {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.generic.modal.focus"));
+    surface.tree.insert_root(root_node());
+    surface
+        .tree
+        .insert_child(id(1), focus_node(2, "outside", 0.0, 0.0))
+        .unwrap();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(3), UiNodePath::new("root/drawer"))
+                .with_frame(UiFrame::new(0.0, 40.0, 120.0, 72.0))
+                .with_input_policy(UiInputPolicy::Receive)
+                .with_state_flags(UiStateFlags {
+                    visible: true,
+                    enabled: true,
+                    ..Default::default()
+                })
+                .with_navigation_contract(UiNavigationContract {
+                    group: Some(UiNavigationGroup {
+                        group_id: UiNavigationGroupId::new("drawer"),
+                        root: Some(id(3)),
+                        modal: true,
+                        wrap: true,
+                        ..Default::default()
+                    }),
+                    boundary: UiNavigationBoundary::Trap,
+                    ..Default::default()
+                })
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Drawer".to_string(),
+                    attributes: [("open".to_string(), toml::Value::Boolean(false))]
+                        .into_iter()
+                        .collect(),
+                    widget: UiWidgetContract {
+                        open_property: Some("open".to_string()),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                }),
+        )
+        .unwrap();
+    surface
+        .tree
+        .insert_child(id(3), focus_node(4, "drawer/first", 0.0, 48.0))
+        .unwrap();
+    surface
+        .tree
+        .insert_child(id(3), focus_node(5, "drawer/second", 56.0, 48.0))
+        .unwrap();
+    surface.rebuild();
+    surface
+}
+
+fn stacked_generic_modal_group_surface() -> UiSurface {
+    let mut surface = generic_modal_group_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(8), UiNodePath::new("root/top_drawer"))
+                .with_frame(UiFrame::new(120.0, 40.0, 56.0, 72.0))
+                .with_z_index(10)
+                .with_input_policy(UiInputPolicy::Receive)
+                .with_state_flags(UiStateFlags {
+                    visible: true,
+                    enabled: true,
+                    ..Default::default()
+                })
+                .with_navigation_contract(UiNavigationContract {
+                    group: Some(UiNavigationGroup {
+                        group_id: UiNavigationGroupId::new("top_drawer"),
+                        root: Some(id(8)),
+                        modal: true,
+                        wrap: true,
+                        ..Default::default()
+                    }),
+                    boundary: UiNavigationBoundary::Trap,
+                    ..Default::default()
+                })
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Drawer".to_string(),
+                    attributes: [("open".to_string(), toml::Value::Boolean(false))]
+                        .into_iter()
+                        .collect(),
+                    widget: UiWidgetContract {
+                        open_property: Some("open".to_string()),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                }),
+        )
+        .unwrap();
+    surface
+        .tree
+        .insert_child(id(8), focus_node(9, "top_drawer/first", 128.0, 48.0))
+        .unwrap();
+    surface.rebuild();
+    surface
+}
+
 fn navigation_surface() -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.navigation.m3"));
     surface.tree.insert_root(root_node());

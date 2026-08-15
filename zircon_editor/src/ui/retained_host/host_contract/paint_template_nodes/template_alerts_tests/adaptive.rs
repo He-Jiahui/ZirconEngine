@@ -46,11 +46,9 @@ fn collapsed_inline_alert_omits_mark_and_text() {
 
     assert_eq!(commands.len(), 1, "only the inline surface should remain");
     assert!(commands.iter().all(|command| command.text.is_none()));
-    assert!(
-        commands
-            .iter()
-            .all(|command| frame_is_within(&rect, &command.frame))
-    );
+    assert!(commands
+        .iter()
+        .all(|command| frame_is_within(&rect, &command.frame)));
 }
 
 #[test]
@@ -140,11 +138,9 @@ fn narrow_toast_keeps_every_command_inside_its_frame() {
         1.0,
     ));
 
-    assert!(
-        commands
-            .iter()
-            .all(|command| frame_is_within(&rect, &command.frame))
-    );
+    assert!(commands
+        .iter()
+        .all(|command| frame_is_within(&rect, &command.frame)));
 }
 
 #[test]
@@ -176,11 +172,9 @@ fn short_toast_omits_text_action_and_marks() {
 
     assert_eq!(commands.len(), 1, "only the toast surface should remain");
     assert!(commands.iter().all(|command| command.text.is_none()));
-    assert!(
-        commands
-            .iter()
-            .all(|command| frame_is_within(&rect, &command.frame))
-    );
+    assert!(commands
+        .iter()
+        .all(|command| frame_is_within(&rect, &command.frame)));
 }
 
 #[test]

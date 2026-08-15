@@ -42,11 +42,25 @@ impl RetainedEditorHost {
         if !size_changed && !scale_changed {
             return;
         }
+        let previous_effective_scale = ResolutionContext::from_physical_size_with_scale_mode(
+            self.shell_size,
+            self.shell_scale_factor,
+            self.shell_scale_mode,
+        )
+        .effective_scale_factor();
+        let next_effective_scale = ResolutionContext::from_physical_size_with_scale_mode(
+            next,
+            next_scale_factor,
+            self.shell_scale_mode,
+        )
+        .effective_scale_factor();
         self.shell_size = next;
         self.shell_scale_factor = next_scale_factor;
-        self.invalidate_host(
-            HostInvalidationMask::WINDOW_METRICS.union(HostInvalidationMask::PRESENTATION_DATA),
-        );
+        if (next_effective_scale - previous_effective_scale).abs() > SHELL_SCALE_FACTOR_EPSILON {
+            apply_host_paint_scale_factor(next_effective_scale);
+            self.ui.sync_host_paint_theme();
+        }
+        self.invalidate_host(HostInvalidationMask::WINDOW_METRICS);
     }
 
     pub(in crate::ui::retained_host::app) fn publish_refresh_invalidation_diagnostics(&self) {
@@ -79,5 +93,39 @@ mod tests {
             gate < bootstrap,
             "the resize gate must run before metrics are read"
         );
+    }
+
+    #[test]
+    fn shell_metric_sync_projects_the_effective_root_scale_into_the_paint_snapshot() {
+        let source = include_str!("shell_metrics.rs");
+        let function = source
+            .split("pub(in crate::ui::retained_host::app) fn sync_shell_size")
+            .nth(1)
+            .and_then(|body| {
+                body.split("pub(in crate::ui::retained_host::app) fn publish")
+                    .next()
+            })
+            .expect("sync_shell_size implementation");
+
+        assert!(function.contains("ResolutionContext::from_physical_size_with_scale_mode"));
+        assert!(function.contains("next_effective_scale"));
+        assert!(function.contains("apply_host_paint_scale_factor(next_effective_scale)"));
+        assert!(!function.contains("apply_host_paint_scale_factor(next_scale_factor)"));
+    }
+
+    #[test]
+    fn shell_metric_sync_keeps_the_transaction_resize_specific() {
+        let source = include_str!("shell_metrics.rs");
+        let function = source
+            .split("pub(in crate::ui::retained_host::app) fn sync_shell_size")
+            .nth(1)
+            .and_then(|body| {
+                body.split("pub(in crate::ui::retained_host::app) fn publish")
+                    .next()
+            })
+            .expect("sync_shell_size implementation");
+
+        assert!(function.contains("invalidate_host(HostInvalidationMask::WINDOW_METRICS)"));
+        assert!(!function.contains("union(HostInvalidationMask::PRESENTATION_DATA)"));
     }
 }

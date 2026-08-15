@@ -424,11 +424,12 @@ fn sampled_material(input: VertexOutput) -> SampledMaterial {
         roughness = 1.0;
     }
     roughness = clamp(roughness * metallic_roughness.g, ZR_STANDARD_MATERIAL_MIN_ROUGHNESS, 1.0);
-    var occlusion = material_properties.data0.z;
-    if (occlusion <= 0.0) {
-        occlusion = 1.0;
-    }
-    occlusion = clamp(occlusion * textureSampleBias(occlusion_tex, occlusion_sampler, occlusion_uv, scene.camera_world_position.w).r, 0.0, 1.0);
+    let occlusion_sample = textureSampleBias(occlusion_tex, occlusion_sampler, occlusion_uv, scene.camera_world_position.w).r;
+    let occlusion = clamp(
+        mix(1.0, occlusion_sample, clamp(material_properties.data0.z, 0.0, 1.0)),
+        0.0,
+        1.0,
+    );
     let emissive = max(material_properties.data1.rgb, vec3<f32>(0.0, 0.0, 0.0)) * textureSampleBias(emissive_tex, emissive_sampler, emissive_uv, scene.camera_world_position.w).rgb;
     let shading_model_id = select(
         decode_shading_model_id(material_properties.data8.y),

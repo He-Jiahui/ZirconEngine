@@ -1,0 +1,13 @@
+[package]
+name = "zircon_plugin_neural_runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Neural model asset and compute runtime plugin for Zircon."
+
+[dependencies]
+zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
+zircon_runtime = { workspace = true, features = ["graphics"] }
+
+[dev-dependencies]
+zircon_plugin_neural_post_process_runtime = { path = "../features/post_process/runtime" }

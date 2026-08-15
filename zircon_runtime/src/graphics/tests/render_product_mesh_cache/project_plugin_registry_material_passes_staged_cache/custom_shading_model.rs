@@ -341,34 +341,37 @@ fn register_shader(asset_manager: &ProjectAssetManager, locator_text: &str, sour
     let id = ResourceId::from_locator(&locator);
     let record = ResourceRecord::new(id, ResourceKind::Shader, locator.clone())
         .with_source_hash(format!("{locator_text}-hash"));
-    asset_manager.resource_manager().register_ready(
-        record,
-        ShaderAsset {
-            uri: locator,
-            kind: ShaderAssetKind::Include,
-            source_language: ShaderSourceLanguage::Wgsl,
-            source: source.to_string(),
-            wgsl_source: String::new(),
-            import_path: None,
-            entry_points: Vec::new(),
-            dependencies: Vec::new(),
-            source_files: Vec::new(),
-            imports: Vec::new(),
-            shader_defs: Vec::new(),
-            property_schema: Vec::new(),
-            options: Vec::new(),
-            texture_slots: Vec::new(),
-            shading_model: None,
-            render_state: Default::default(),
-            queue: None,
-            disabled_passes: Vec::new(),
-            resources: Vec::new(),
-            material_property_layout: Default::default(),
-            material_option_table: Default::default(),
-            generated_material_wgsl: String::new(),
-            editor: Default::default(),
-            pipeline_layout: Default::default(),
-            validation_diagnostics: Vec::new(),
-        },
-    );
+    asset_manager
+        .resource_manager()
+        .register_ready(
+            record,
+            ShaderAsset {
+                uri: locator,
+                kind: ShaderAssetKind::Include,
+                source_language: ShaderSourceLanguage::Wgsl,
+                source: source.to_string(),
+                wgsl_source: String::new(),
+                import_path: None,
+                entry_points: Vec::new(),
+                dependencies: Vec::new(),
+                source_files: Vec::new(),
+                imports: Vec::new(),
+                shader_defs: Vec::new(),
+                property_schema: Vec::new(),
+                options: Vec::new(),
+                texture_slots: Vec::new(),
+                shading_model: None,
+                render_state: Default::default(),
+                queue: None,
+                disabled_passes: Vec::new(),
+                resources: Vec::new(),
+                material_property_layout: Default::default(),
+                material_option_table: Default::default(),
+                generated_material_wgsl: String::new(),
+                editor: Default::default(),
+                pipeline_layout: Default::default(),
+                validation_diagnostics: Vec::new(),
+            },
+        )
+        .expect("register shader resource");
 }

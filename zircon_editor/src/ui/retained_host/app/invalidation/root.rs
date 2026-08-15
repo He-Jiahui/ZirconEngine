@@ -1,12 +1,16 @@
 mod diagnostics;
 mod reasons;
 mod requests;
+mod transaction;
 
 use super::HostInvalidationMask;
+pub(in crate::ui::retained_host::app) use transaction::{
+    HostInvalidationScope, HostInvalidationTransaction,
+};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(in crate::ui::retained_host::app) struct HostInvalidationRoot {
-    pending_recompute: HostInvalidationMask,
+    pending_recompute: HostInvalidationTransaction,
     total_requests: u64,
     layout_requests: u64,
     presentation_requests: u64,

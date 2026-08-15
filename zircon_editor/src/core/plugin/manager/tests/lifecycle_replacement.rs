@@ -256,13 +256,11 @@ fn replacement_retries_failed_unload_before_activating_candidate() {
             EditorPluginLifecycleStage::Unloaded,
         ]
     );
-    assert!(
-        replacement_plugin
-            .events
-            .lock()
-            .expect("replacement lifecycle event lock should not be poisoned")
-            .is_empty()
-    );
+    assert!(replacement_plugin
+        .events
+        .lock()
+        .expect("replacement lifecycle event lock should not be poisoned")
+        .is_empty());
 
     let recovered_plugin = Arc::new(LifecyclePhasePlugin {
         descriptor: EditorPluginDescriptor::new(package_id, "Recovered", "plugin_recovered"),

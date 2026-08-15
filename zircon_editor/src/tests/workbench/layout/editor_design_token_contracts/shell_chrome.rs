@@ -144,7 +144,7 @@ fn activity_rail_uses_shared_component_spacing() {
         asset,
         &[
             "$editor.density.gap.medium",
-            "$editor.density.activity_rail_width",
+            "$editor.chrome.activity_rail.width",
             "$editor.control.height.large",
         ],
     )]);

@@ -1,4 +1,4 @@
-use super::{resolve_vertical_flex_bands, VerticalFlexBandRequest};
+use super::{VerticalFlexBandRequest, resolve_vertical_flex_bands};
 use crate::ui::workbench::autolayout::{
     AxisConstraint, ShellSizePx, StretchMode, WorkbenchChromeMetrics,
 };

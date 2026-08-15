@@ -1,9 +1,17 @@
+use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 #[cfg(test)]
 use std::sync::{Mutex, MutexGuard, RwLockReadGuard};
 use std::sync::{OnceLock, RwLock};
 
 use super::{FontDatabase, SystemFontPolicy};
+use crate::asset::FontAsset;
+use crate::text::FontFamilyName;
+
+const PACKAGED_DEFAULT_FONT_OWNER: &str = "zircon.runtime.packaged-default-font";
+const PACKAGED_DEFAULT_FONT_FAMILY: &str = "Fira Mono";
+const PACKAGED_RUNTIME_FALLBACK_FAMILY: &str = "Zircon Runtime Fallback Mono";
+const PACKAGED_DEFAULT_FONT_MANIFEST: &str = "assets/fonts/default.font.toml";
 
 struct SharedFontDatabase {
     generation: AtomicU64,
@@ -12,9 +20,7 @@ struct SharedFontDatabase {
 
 impl SharedFontDatabase {
     fn new() -> Self {
-        let mut database = FontDatabase::with_default_fallbacks();
-        database.apply_system_font_policy(SystemFontPolicy::Discover);
-        Self::from_database(database)
+        Self::from_database(runtime_default_font_database())
     }
 
     fn from_database(database: FontDatabase) -> Self {
@@ -61,6 +67,37 @@ impl SharedFontDatabase {
         *current = database.clone();
         self.generation.fetch_add(1, Ordering::AcqRel) + 1
     }
+}
+
+fn runtime_default_font_database() -> FontDatabase {
+    let mut database = FontDatabase::with_default_fallbacks();
+    database.apply_system_font_policy(SystemFontPolicy::Discover);
+    let manifest_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(PACKAGED_DEFAULT_FONT_MANIFEST);
+    // Headless measurement can run before the GPU UI renderer loads the manifest. Register the
+    // complete checked-in manifest under a permanent owner so the later UI owner shares its exact
+    // face/source keys. Face 0 also has a private alias, keeping retained fallback distinct from a
+    // same-named system Fira Mono face while user-selected typography keeps the normal family.
+    if let Some(asset) = std::fs::read_to_string(&manifest_path)
+        .ok()
+        .and_then(|contents| FontAsset::from_toml_str(&contents).ok())
+    {
+        let source_path = manifest_path
+            .parent()
+            .map(|parent| parent.join(&asset.source));
+        if let Some(source_path) = source_path {
+            if let Ok(registration) =
+                database.replace_font_asset(PACKAGED_DEFAULT_FONT_OWNER, &asset, source_path)
+            {
+                if let Some(face) = registration.faces.first().copied() {
+                    database.register_font_family_alias(
+                        face,
+                        FontFamilyName::from(PACKAGED_RUNTIME_FALLBACK_FAMILY),
+                    );
+                }
+            }
+        }
+    }
+    database
 }
 
 fn shared_database() -> &'static SharedFontDatabase {

@@ -16,5 +16,5 @@ default_classes = ["workbench-caption", "workbench-primitive"]
 component = "Label"
 control_id = "WorkbenchCaptionRoot"
 classes = ["workbench-caption"]
-props = { text = "Caption", font_size = "$editor.typography.caption.size", font_weight = "$editor.typography.strong.weight", text_tone = "secondary", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall" }
-layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 20.0, max = 22.0, stretch = "Fixed" } }
+props = { text = "Caption", text_overflow = "ellipsis", font_size = "$editor.typography.caption.size", font_weight = "$editor.typography.strong.weight", line_height_ratio = "$editor.typography.line_height", text_tone = "secondary", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.caption.min_height", preferred = "$editor.density.caption.preferred_height", max = "$editor.density.caption.max_height", stretch = "Fixed" } }

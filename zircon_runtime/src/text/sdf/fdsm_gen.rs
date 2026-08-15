@@ -1,6 +1,6 @@
 use fdsm::{
     bezier::scanline::FillRule,
-    correct_error::{ErrorCorrectionConfig, correct_error_msdf, correct_error_mtsdf},
+    correct_error::{correct_error_msdf, correct_error_mtsdf, ErrorCorrectionConfig},
     generate::{generate_msdf, generate_mtsdf, generate_sdf},
     render::{correct_sign_msdf, correct_sign_mtsdf, correct_sign_sdf},
     shape::Shape,

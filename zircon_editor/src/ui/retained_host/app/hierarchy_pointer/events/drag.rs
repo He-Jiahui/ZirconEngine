@@ -1,4 +1,4 @@
-use super::super::super::{RetainedEditorHost, UiDragPayload, UiPoint, callback_dispatch};
+use super::super::super::{callback_dispatch, RetainedEditorHost, UiDragPayload, UiPoint};
 use super::super::drag_source::{
     hierarchy_drag_source_from_route, hierarchy_reparent_target_from_route,
 };

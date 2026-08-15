@@ -240,15 +240,15 @@ pub(super) fn to_host_contract_pane(
         animation,
         ..host_contract::PaneData::default()
     };
-    pane.body_surface_frame = host_contract::build_pane_template_surface_frame(
-        &pane,
+    host_contract::rebuild_pane_template_hit_artifacts(
+        &mut pane,
         UiSize::new(pane_size.width.max(1.0), pane_size.height.max(1.0)),
     );
     if pane_data_conversion::refresh_runtime_diagnostics_debug_reflector_from_body_surface(
         &mut pane, pane_size,
     ) {
-        pane.body_surface_frame = host_contract::build_pane_template_surface_frame(
-            &pane,
+        host_contract::rebuild_pane_template_hit_artifacts(
+            &mut pane,
             UiSize::new(pane_size.width.max(1.0), pane_size.height.max(1.0)),
         );
     }

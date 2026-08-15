@@ -75,19 +75,19 @@ enum Section {
 #[test]
 fn catalog_without_provider_features_returns_no_registrations() {
     let manifest = ProjectPluginManifest {
-        selections: vec![
-            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Sound, true, true)
-                .with_target_modes([RuntimeTargetMode::ClientRuntime]),
-        ],
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Sound,
+            true,
+            true,
+        )
+        .with_target_modes([RuntimeTargetMode::ClientRuntime])],
     };
 
-    assert!(
-        first_party_runtime_plugin_registrations_for_manifest(
-            RuntimeTargetMode::ClientRuntime,
-            &manifest
-        )
-        .is_empty()
-    );
+    assert!(first_party_runtime_plugin_registrations_for_manifest(
+        RuntimeTargetMode::ClientRuntime,
+        &manifest
+    )
+    .is_empty());
 }
 
 #[cfg(any(
@@ -146,9 +146,9 @@ fn plugins_12_manifest_schema_uniform_audit_report_is_clean() {
     let stdout = String::from_utf8(output.stdout).expect("audit JSON must be UTF-8");
     for expected_anchor in [
         "\"m1_gate_status\": \"classified-and-clear\"",
-        "\"expected_manifest_count\": 38",
-        "\"manifest_count\": 38",
-        "\"generated_manifest_count\": 38",
+        "\"expected_manifest_count\": 39",
+        "\"manifest_count\": 39",
+        "\"generated_manifest_count\": 39",
         "\"missing_plugin_toml\": 0",
         "\"manifest_schema_violations\": 0",
         "\"generated_manifest_header_violations\": 0",
@@ -185,8 +185,8 @@ fn plugins_12_capability_single_source_conformance() {
     let stdout = String::from_utf8(output.stdout).expect("audit JSON must be UTF-8");
     for expected_anchor in [
         "\"m4_runtime_capability_gate_status\": \"runtime-capability-single-source-clean\"",
-        "\"audited_runtime_root_count\": 15",
-        "\"capability_audited_runtime_root_count\": 15",
+        "\"audited_runtime_root_count\": 16",
+        "\"capability_audited_runtime_root_count\": 16",
         "\"capability_source_mismatches\": 0",
         "\"missing_capability_owner_files\": 0",
         "\"missing_runtime_capability_exports\": 0",
@@ -195,7 +195,7 @@ fn plugins_12_capability_single_source_conformance() {
         "\"lib_capability_literal_sites\": 0",
         "\"sdk_builder_mirror_violations\": 0",
         "\"m4_t2_builder_mirror_gate_status\": \"sdk-builder-mirror-clean\"",
-        "\"editor_runtime_mirror_root_count\": 4",
+        "\"editor_runtime_mirror_root_count\": 5",
         "\"editor_runtime_mirror_violations\": 0",
         "\"d9_editor_runtime_mirror_gate_status\": \"editor-runtime-mirror-clean\"",
     ] {
@@ -224,8 +224,8 @@ fn plugins_13_dist_dependency_boundary_clean() {
     );
     let stdout = String::from_utf8(output.stdout).expect("audit JSON must be UTF-8");
     for expected_anchor in [
-        "\"dist_build_matrix_count\": 40",
-        "\"dist_capable_plugin_count\": 40",
+        "\"dist_build_matrix_count\": 41",
+        "\"dist_capable_plugin_count\": 41",
         "\"dist_capable_plugins\": [",
         "\"ai\"",
         "\"native_dynamic_fixture\"",
@@ -265,7 +265,7 @@ fn plugins_12_crate_skeleton_conformance() {
         "\"sample_violation_count\": 0",
         "\"sample_workspace_dependency_status\": \"sample-workspace-deps-clean\"",
         "\"core_workspace_dependency_status\": \"core-workspace-deps-clean\"",
-        "\"core_workspace_dependency_count\": 150",
+        "\"core_workspace_dependency_count\": 154",
         "\"core_workspace_dependency_violation_count\": 0",
         "\"plugin_sdk_examples\"",
         "\"m2_gate_status\": \"sample-clean-migration-debt-clear\"",
@@ -358,6 +358,11 @@ fn assert_runtime_descriptor_manifests_match_generated_static_manifests() {
             "hybrid_gi",
             include_str!("../../hybrid_gi/plugin.toml"),
             zircon_plugin_hybrid_gi_runtime::package_manifest(),
+        );
+        assert_runtime_manifest_matches_descriptor(
+            "neural",
+            include_str!("../../neural/plugin.toml"),
+            zircon_plugin_neural_runtime::package_manifest(),
         );
         assert_runtime_manifest_matches_descriptor(
             "solari",

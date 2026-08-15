@@ -222,11 +222,9 @@ fn editor_extension_registry_collects_plugin_windows_menus_drawers_and_operation
     assert_eq!(registry.pending_command(&operation_path), Some(&operation));
 
     let duplicate = registry.register_command(operation).unwrap_err();
-    assert!(
-        duplicate
-            .to_string()
-            .contains("editor command weather.cloud_layer.refresh already registered")
-    );
+    assert!(duplicate
+        .to_string()
+        .contains("editor command weather.cloud_layer.refresh already registered"));
 }
 
 #[test]
@@ -453,7 +451,11 @@ fn failed_operation_control_request_preserves_operation_group_for_audit_delivery
     );
 
     let deliveries = runtime.runtime.handle_event_listener_control_request(
-        EditorEventListenerControlRequest::QueryDeliveries { listener_id },
+        EditorEventListenerControlRequest::QueryDeliveriesPage {
+            listener_id,
+            after_delivery_cursor: 0,
+            max_deliveries: 256,
+        },
     );
     assert_eq!(
         deliveries.value["deliveries"][0]["operation_group"],

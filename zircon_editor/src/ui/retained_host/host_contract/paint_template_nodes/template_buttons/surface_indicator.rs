@@ -1,7 +1,7 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::style_selector::is_asset_browser_tab_like_button;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    HostControlMetrics, HostMaterialPalette, current_host_metrics, current_host_palette,
+    current_host_metrics, current_host_palette, HostControlMetrics, HostMaterialPalette,
 };
 
 const ASSET_BROWSER_TAB_INDICATOR_MAX_INSET_RATIO: f32 = 0.24;
@@ -19,13 +19,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub underline: [u8; 4],
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_surface_indicator_metrics()
--> WorkbenchButtonSurfaceIndicatorMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_surface_indicator_metrics(
+) -> WorkbenchButtonSurfaceIndicatorMetrics {
     button_surface_indicator_metrics_from_host(current_host_metrics())
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_surface_indicator_palette()
--> WorkbenchButtonSurfaceIndicatorPalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn button_surface_indicator_palette(
+) -> WorkbenchButtonSurfaceIndicatorPalette {
     button_surface_indicator_palette_from_host(current_host_palette())
 }
 

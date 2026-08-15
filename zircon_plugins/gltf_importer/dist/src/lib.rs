@@ -5,9 +5,9 @@ use zircon_plugin_gltf_importer_runtime::{
     NATIVE_RUNTIME_REGISTRATION_MANIFEST,
 };
 use zircon_plugin_sdk::native::{
-    self, bytes_from_slice, callback_status as status, owned_bytes, NativePluginByteSliceV2,
-    NativePluginCallbackStatusV2, NativePluginOwnedByteBufferV2, ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
-    ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    self, NativePluginByteSliceV2, NativePluginCallbackStatusV2, NativePluginOwnedByteBufferV2,
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+    ZIRCON_NATIVE_PLUGIN_STATUS_OK, bytes_from_slice, callback_status as status, owned_bytes,
 };
 
 const PLUGIN_MANIFEST: &str = concat!(include_str!("../../plugin.toml"), "\0");
@@ -24,6 +24,7 @@ const STATE_SAVE_DIAGNOSTICS: &[u8] = b"gltf importer state saved\0";
 const STATE_RESTORE_DIAGNOSTICS: &[u8] = b"gltf importer state restored\0";
 const STATE_RESTORE_INVALID_DIAGNOSTICS: &[u8] = b"gltf importer state schema invalid\0";
 const STATE_OUTPUT_INVALID_DIAGNOSTICS: &[u8] = b"gltf importer state output was null\0";
+const STATE_CALLBACK_PANIC_DIAGNOSTICS: &[u8] = b"gltf importer state callback panicked\0";
 const UNLOAD_DIAGNOSTICS: &[u8] = b"gltf importer unload completed\0";
 static IMPORTER_STATE_EPOCH: AtomicU64 = AtomicU64::new(1);
 
@@ -60,6 +61,14 @@ zircon_plugin_sdk::native_dist_runtime_plugin_v3! {
 unsafe extern "C" fn gltf_importer_save_state(
     output: *mut NativePluginOwnedByteBufferV2,
 ) -> NativePluginCallbackStatusV2 {
+    native::catch_native_callback_panic(STATE_CALLBACK_PANIC_DIAGNOSTICS, || unsafe {
+        gltf_importer_save_state_inner(output)
+    })
+}
+
+unsafe fn gltf_importer_save_state_inner(
+    output: *mut NativePluginOwnedByteBufferV2,
+) -> NativePluginCallbackStatusV2 {
     if output.is_null() {
         return status(
             ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
@@ -76,9 +85,17 @@ unsafe extern "C" fn gltf_importer_save_state(
 unsafe extern "C" fn gltf_importer_restore_state(
     state: NativePluginByteSliceV2,
 ) -> NativePluginCallbackStatusV2 {
+    native::catch_native_callback_panic(STATE_CALLBACK_PANIC_DIAGNOSTICS, || unsafe {
+        gltf_importer_restore_state_inner(state)
+    })
+}
+
+unsafe fn gltf_importer_restore_state_inner(
+    state: NativePluginByteSliceV2,
+) -> NativePluginCallbackStatusV2 {
     let bytes = unsafe { bytes_from_slice(state) };
     let epoch_offset = STATE_MAGIC.len();
-    let Some(epoch_bytes) = bytes
+    let Some(encoded_epoch) = bytes
         .get(epoch_offset..)
         .filter(|bytes| bytes.len() == std::mem::size_of::<u64>())
     else {
@@ -93,16 +110,21 @@ unsafe extern "C" fn gltf_importer_restore_state(
             STATE_RESTORE_INVALID_DIAGNOSTICS,
         );
     }
-    let epoch = u64::from_le_bytes(
-        epoch_bytes
-            .try_into()
-            .expect("state epoch length was checked above"),
-    );
+    let mut epoch_bytes = [0_u8; std::mem::size_of::<u64>()];
+    epoch_bytes.copy_from_slice(encoded_epoch);
+    let epoch = u64::from_le_bytes(epoch_bytes);
     IMPORTER_STATE_EPOCH.store(epoch, Ordering::Release);
     status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, STATE_RESTORE_DIAGNOSTICS)
 }
 
 unsafe extern "C" fn gltf_importer_unload() -> NativePluginCallbackStatusV2 {
+    native::catch_native_callback_panic(
+        STATE_CALLBACK_PANIC_DIAGNOSTICS,
+        gltf_importer_unload_inner,
+    )
+}
+
+fn gltf_importer_unload_inner() -> NativePluginCallbackStatusV2 {
     status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, UNLOAD_DIAGNOSTICS)
 }
 
@@ -206,6 +228,21 @@ mod tests {
         };
         assert_eq!(rejected.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
         assert_eq!(IMPORTER_STATE_EPOCH.load(Ordering::Acquire), 37);
+
+        for invalid_length in [state[..state.len() - 1].to_vec(), {
+            let mut bytes = state.clone();
+            bytes.push(0);
+            bytes
+        }] {
+            let rejected = unsafe {
+                gltf_importer_restore_state(NativePluginByteSliceV2 {
+                    data: invalid_length.as_ptr(),
+                    len: invalid_length.len(),
+                })
+            };
+            assert_eq!(rejected.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+            assert_eq!(IMPORTER_STATE_EPOCH.load(Ordering::Acquire), 37);
+        }
 
         let missing_output = unsafe { gltf_importer_save_state(std::ptr::null_mut()) };
         assert_eq!(missing_output.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);

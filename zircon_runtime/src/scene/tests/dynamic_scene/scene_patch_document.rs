@@ -31,11 +31,9 @@ fn dynamic_scene_roundtrips_reflected_components_with_entity_remap() {
         .to_versioned_json_pretty()
         .expect("dynamic scene should serialize");
     let document: serde_json::Value = serde_json::from_str(&encoded).unwrap();
-    assert!(
-        document["$zircon"]["payload"]
-            .get("format_version")
-            .is_none()
-    );
+    assert!(document["$zircon"]["payload"]
+        .get("format_version")
+        .is_none());
     assert!(encoded.contains("\"schema_id\": \"zircon.scene.dynamic-scene\""));
     assert!(encoded.contains(CLOUD_LAYER_TYPE_PATH));
     assert_text_excludes_authoring_tokens(
@@ -218,9 +216,10 @@ fn dynamic_scene_asset_reload_resource_staging_is_charged_to_the_target_snapshot
         .checked_sub(1)
         .expect("preflight projection must consume bytes");
 
-    let error = prepared
-        .stage_into_with_limit(&mut target, target_snapshot_limit_bytes)
-        .expect_err("affected resource clone bytes must not escape the preflight limit");
+    let error = match prepared.stage_into_with_limit(&mut target, target_snapshot_limit_bytes) {
+        Err(error) => error,
+        Ok(_) => panic!("affected resource clone bytes must not escape the preflight limit"),
+    };
 
     assert!(matches!(
         error,
@@ -404,11 +403,9 @@ fn dynamic_scene_migrates_v1_envelope_to_versionless_v2_payload() {
     let current: serde_json::Value =
         serde_json::from_str(&migrated.to_versioned_json_pretty().unwrap()).unwrap();
     assert_eq!(current["$zircon"]["header"]["schema_version"], 2);
-    assert!(
-        current["$zircon"]["payload"]
-            .get("format_version")
-            .is_none()
-    );
+    assert!(current["$zircon"]["payload"]
+        .get("format_version")
+        .is_none());
 }
 
 #[test]
@@ -439,11 +436,9 @@ fn versioned_json_migrates_legacy_world_project_documents() {
         .to_versioned_json_pretty()
         .expect("dynamic scene should write versioned JSON");
     let current: serde_json::Value = serde_json::from_str(&encoded).unwrap();
-    assert!(
-        current["$zircon"]["payload"]
-            .get("format_version")
-            .is_none()
-    );
+    assert!(current["$zircon"]["payload"]
+        .get("format_version")
+        .is_none());
     assert_text_excludes_authoring_tokens(
         "versioned dynamic scene JSON",
         &encoded,

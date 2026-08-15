@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::graphics::RenderFeatureCapabilityRequirement;
 use crate::render_graph::{QueueLane, RenderGraphBuilder};
 
@@ -66,4 +68,24 @@ fn render01_compiled_pipeline_runtime_metadata_builds_resource_write_index_once_
         assert_eq!(metadata.build_stats(), build_stats);
         assert_eq!(metadata.resource_write_storage_snapshot(), storage_before);
     }
+}
+
+#[test]
+fn render01_compiled_pipeline_runtime_metadata_lazily_shares_graph_dump_per_generation() {
+    let mut builder = RenderGraphBuilder::new("runtime-metadata-graph-dump");
+    let pass = builder.add_pass_with_executor(
+        "runtime-metadata-graph-dump-pass",
+        QueueLane::Graphics,
+        Some("runtime-metadata.executor"),
+    );
+    let output = builder.import_external_resource("runtime-metadata-graph-dump-output");
+    builder.write_external(pass, output).unwrap();
+    let graph = builder.compile().unwrap();
+    let metadata = CompiledRenderPipelineRuntimeMetadata::from_compiled_inputs(&[], &[], &graph);
+
+    let first = metadata.graph_dump_text(&graph);
+    let second = metadata.graph_dump_text(&graph);
+
+    assert!(Arc::ptr_eq(&first, &second));
+    assert!(first.contains("runtime-metadata-graph-dump-pass"));
 }

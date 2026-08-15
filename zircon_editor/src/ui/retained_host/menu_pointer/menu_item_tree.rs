@@ -1,11 +1,15 @@
+use std::collections::HashMap;
+
 use super::menu_item_spec::MenuItemSpec;
 
-pub(in crate::ui::retained_host::menu_pointer) fn menu_item_route_index(
+pub(in crate::ui::retained_host::menu_pointer) fn menu_item_route_indices(
     items: &[MenuItemSpec],
-    path: &[usize],
-) -> Option<usize> {
-    let mut current = 0usize;
-    find_route_index(items, path, &mut current)
+) -> HashMap<Vec<usize>, usize> {
+    let mut indices = HashMap::new();
+    let mut path = Vec::new();
+    let mut current = 0;
+    index_item_paths(items, &mut path, &mut current, &mut indices);
+    indices
 }
 
 pub(in crate::ui::retained_host::menu_pointer) fn parent_path(path: &[usize]) -> Vec<usize> {
@@ -15,43 +19,17 @@ pub(in crate::ui::retained_host::menu_pointer) fn parent_path(path: &[usize]) ->
         .collect()
 }
 
-pub(in crate::ui::retained_host::menu_pointer) fn menu_item_subtree_len(
-    item: &MenuItemSpec,
-) -> usize {
-    item.children.iter().fold(1usize, |count, child| {
-        count.saturating_add(menu_item_subtree_len(child))
-    })
-}
-
-fn find_route_index(
+fn index_item_paths(
     items: &[MenuItemSpec],
-    target_path: &[usize],
+    path: &mut Vec<usize>,
     current: &mut usize,
-) -> Option<usize> {
+    indices: &mut HashMap<Vec<usize>, usize>,
+) {
     for (index, item) in items.iter().enumerate() {
-        let item_route_index = *current;
-        *current += 1;
-        if target_path.len() == 1 && target_path[0] == index {
-            return Some(item_route_index);
-        }
-        if let Some((first, rest)) = target_path.split_first() {
-            if *first == index {
-                if let Some(found) = find_route_index(&item.children, rest, current) {
-                    return Some(found);
-                }
-            } else {
-                skip_subtree(&item.children, current);
-            }
-        } else {
-            skip_subtree(&item.children, current);
-        }
-    }
-    None
-}
-
-fn skip_subtree(items: &[MenuItemSpec], current: &mut usize) {
-    for item in items {
-        *current += 1;
-        skip_subtree(&item.children, current);
+        path.push(index);
+        indices.insert(path.clone(), *current);
+        *current = current.saturating_add(1);
+        index_item_paths(&item.children, path, current, indices);
+        path.pop();
     }
 }

@@ -1,7 +1,7 @@
 use super::*;
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::{
-    SceneViewportChromeData, blank_viewport_chrome, scene_viewport_chrome,
+    blank_viewport_chrome, scene_viewport_chrome, SceneViewportChromeData,
 };
 use crate::ui::widgets::common::drawer_slot_key;
 use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
@@ -56,38 +56,11 @@ pub(crate) fn side_pane_with_template_v2_data(
         crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot,
     >,
 ) -> PaneData {
-    let stack = slots
-        .iter()
-        .filter_map(|slot| model.tool_windows.get(slot))
-        .find(|stack| {
-            stack.mode != crate::ui::workbench::layout::ActivityDrawerMode::Collapsed
-                && stack.active_tab.is_some()
-                && !stack.tabs.is_empty()
-        })
-        .or_else(|| {
-            slots
-                .iter()
-                .filter_map(|slot| model.tool_windows.get(slot))
-                .find(|stack| stack.active_tab.is_some() && !stack.tabs.is_empty())
-        })
-        .or_else(|| {
-            slots
-                .iter()
-                .filter_map(|slot| model.tool_windows.get(slot))
-                .find(|stack| !stack.tabs.is_empty())
-        });
-
-    let Some(stack) = stack else {
+    let Some(selection) = side_pane_selection(model, slots) else {
         return blank_pane();
     };
-    let tab = stack
-        .tabs
-        .iter()
-        .find(|tab| tab.active)
-        .or_else(|| stack.tabs.first());
-    let Some(tab) = tab else {
-        return blank_pane();
-    };
+    let stack = selection.stack;
+    let tab = selection.tab;
     pane_from_tab_with_template_v2_data(
         &tab.instance_id.0,
         drawer_slot_key(stack.slot),
@@ -153,12 +126,7 @@ pub(crate) fn document_pane_with_template_v2_data(
         crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot,
     >,
 ) -> PaneData {
-    let tab = model
-        .document_tabs
-        .iter()
-        .find(|tab| tab.active)
-        .or_else(|| model.document_tabs.first());
-    let Some(tab) = tab else {
+    let Some(tab) = document_pane_selection(model) else {
         return blank_pane();
     };
     pane_from_tab_with_template_v2_data(
@@ -339,7 +307,7 @@ pub(super) fn pane_from_tab_with_template_v2_data(
     }
 }
 
-pub(super) fn find_tab_snapshot<'a>(
+pub(crate) fn find_tab_snapshot<'a>(
     chrome: &'a EditorChromeSnapshot,
     instance_id: &str,
 ) -> Option<&'a ViewTabSnapshot> {
@@ -404,7 +372,7 @@ fn animation_pane_data(
     }
 }
 
-pub(super) fn blank_pane() -> PaneData {
+pub(crate) fn blank_pane() -> PaneData {
     PaneData {
         id: SharedString::default(),
         slot: SharedString::default(),

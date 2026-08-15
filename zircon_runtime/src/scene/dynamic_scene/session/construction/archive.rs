@@ -1,6 +1,6 @@
 use super::super::{
-    RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION, RuntimeSessionArchive, RuntimeSessionArchiveError,
-    RuntimeSessionSlot,
+    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionSlot,
+    RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
 };
 
 pub(in crate::scene::dynamic_scene::session) fn empty() -> RuntimeSessionArchive {
@@ -16,7 +16,6 @@ pub(in crate::scene::dynamic_scene::session) fn from_slots(
     let mut archive =
         RuntimeSessionArchive::from_payload(RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION, slots);
     archive.normalize_slot_metadata();
-    archive.sort_slots();
     archive.record_normalized();
     archive.ensure_supported()?;
     archive.record_validated();

@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::{
-    TemplateNodeFrameData, TemplatePaneNodeData, paint_template_nodes_for_test_with_background,
+    paint_template_nodes_for_test_with_background, TemplateNodeFrameData, TemplatePaneNodeData,
 };
 
 const ASSET_BROWSER_CONTROLS_SCREENSHOT: &str =

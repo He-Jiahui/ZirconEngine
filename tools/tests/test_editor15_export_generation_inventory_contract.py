@@ -59,6 +59,12 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
         capture = source(
             "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/execution/output_capture.rs"
         )
+        job_state = source(
+            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/job.rs"
+        )
+        view_model = source(
+            "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/view_model.rs"
+        )
         tail = source(
             "zircon_editor/src/ui/host/editor_manager_plugins_export/export_build/wizard/output_tail.rs"
         )
@@ -84,8 +90,21 @@ class Editor15ExportGenerationInventoryContractTests(unittest.TestCase):
             "push_bounded_output_line",
             "tail_never_exceeds_limit",
             "truncation_marker_is_retained",
+            "terminal_vec_results_are_bounded_at_the_output_boundary",
+            "VecDeque",
+            "pop_front()",
+            "push_front",
         ]:
             self.assertIn(required, tail)
+        self.assertNotIn("lines.remove(", tail)
+        self.assertNotIn("lines.drain(", tail)
+        self.assertNotIn("lines.insert(", tail)
+        self.assertIn("tail_lines: VecDeque<String>", capture)
+        self.assertIn("self.tail_lines.into_iter().collect()", capture)
+        self.assertIn("stdout_lines: VecDeque<String>", job_state)
+        self.assertIn("stderr_lines: VecDeque<String>", job_state)
+        self.assertIn("output.stdout_lines.iter().cloned().collect()", view_model)
+        self.assertIn("output.stderr_lines.iter().cloned().collect()", view_model)
         self.assertIn("ExportWizardOutputCapture::open", execution)
         self.assertNotIn("let mut stdout_lines = Vec::new();", execution)
         self.assertIn("push_bounded_output_line", job)

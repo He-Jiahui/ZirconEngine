@@ -259,17 +259,17 @@ impl PostProcessStackDescriptor {
         }
         let output_transfer_input = if upscale_required {
             vec![PostProcessGraphResourceNames::UPSCALED.to_string()]
+        } else if terminal_anti_alias_enabled {
+            vec![PostProcessGraphResourceNames::FINAL_COMPOSITED.to_string()]
         } else {
             final_inputs.clone()
         };
-        let mut output_transfer_after = final_after.clone();
-        if upscale_required {
-            output_transfer_after.push(PostProcessEffectKind::Upscale);
-        }
-        let output_transfer_output = if terminal_anti_alias_enabled {
-            PostProcessGraphResourceNames::FINAL_COMPOSITED
+        let output_transfer_after = if upscale_required {
+            vec![PostProcessEffectKind::Upscale]
+        } else if let Some(terminal_anti_alias_effect) = terminal_anti_alias_effect {
+            vec![terminal_anti_alias_effect]
         } else {
-            PostProcessGraphResourceNames::FINAL_COLOR
+            final_after.clone()
         };
         let color_grading_after = if bloom_enabled {
             vec![PostProcessEffectKind::Bloom]
@@ -352,7 +352,7 @@ impl PostProcessStackDescriptor {
                     .with_produced_outputs(effect_stack_outputs(effect_stack, upscale_required))
                     .with_after(effect_stack_after.clone()),
             );
-        } else if upscale_required {
+        } else if upscale_required || terminal_anti_alias_enabled {
             effects.push(
                 PostProcessEffectSettings::new(PostProcessEffectKind::Uber)
                     .with_required_inputs(final_inputs.clone())
@@ -435,28 +435,39 @@ impl PostProcessStackDescriptor {
                     .with_after(post_composite_after),
             );
         }
+        if let Some(terminal_anti_alias_effect) = terminal_anti_alias_effect {
+            effects.push(
+                PostProcessEffectSettings::new(terminal_anti_alias_effect)
+                    .with_required_inputs([PostProcessGraphResourceNames::TONEMAPPED])
+                    .with_produced_outputs([PostProcessGraphResourceNames::FINAL_COMPOSITED])
+                    .with_after([PostProcessEffectKind::Uber]),
+            );
+        }
         if upscale_required {
+            let upscale_input = if terminal_anti_alias_enabled {
+                PostProcessGraphResourceNames::FINAL_COMPOSITED
+            } else {
+                PostProcessGraphResourceNames::TONEMAPPED
+            };
+            let upscale_after = if let Some(terminal_anti_alias_effect) = terminal_anti_alias_effect
+            {
+                vec![terminal_anti_alias_effect]
+            } else {
+                vec![PostProcessEffectKind::Uber]
+            };
             effects.push(
                 PostProcessEffectSettings::new(PostProcessEffectKind::Upscale)
-                    .with_required_inputs([PostProcessGraphResourceNames::TONEMAPPED])
+                    .with_required_inputs([upscale_input])
                     .with_produced_outputs([PostProcessGraphResourceNames::UPSCALED])
-                    .with_after([PostProcessEffectKind::Uber]),
+                    .with_after(upscale_after),
             );
         }
         effects.push(
             PostProcessEffectSettings::new(PostProcessEffectKind::OutputTransfer)
                 .with_required_inputs(output_transfer_input)
-                .with_produced_outputs([output_transfer_output])
+                .with_produced_outputs([PostProcessGraphResourceNames::FINAL_COLOR])
                 .with_after(output_transfer_after),
         );
-        if let Some(terminal_anti_alias_effect) = terminal_anti_alias_effect {
-            effects.push(
-                PostProcessEffectSettings::new(terminal_anti_alias_effect)
-                    .with_required_inputs([PostProcessGraphResourceNames::FINAL_COMPOSITED])
-                    .with_produced_outputs([PostProcessGraphResourceNames::FINAL_COLOR])
-                    .with_after([PostProcessEffectKind::OutputTransfer]),
-            );
-        }
 
         Self {
             initial_resources,

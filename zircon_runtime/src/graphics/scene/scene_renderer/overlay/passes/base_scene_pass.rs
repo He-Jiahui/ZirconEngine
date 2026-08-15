@@ -9,17 +9,17 @@ use crate::graphics::scene::resources::{GpuTextureResource, ResourceStreamer};
 use crate::graphics::scene::scene_renderer::attachment_ops::{
     color_attachment_operations, depth_attachment_operations,
 };
-use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawCommand, MeshDrawCommandReplayer, MeshDrawCommandStream, MeshDrawReplayStats,
     MeshSceneDataBindHandle,
 };
+use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::shadow::atlas::ShadowAtlasResources;
 use crate::graphics::scene::scene_renderer::sprite::{
-    SpriteRenderer, SpriteVertex, build_sprite_vertices,
+    build_sprite_vertices, SpriteRenderer, SpriteVertex,
 };
 use crate::graphics::scene::scene_renderer::transparent::{
-    TransparentSubmissionSource, build_transparent_submission_order,
+    build_transparent_submission_order, TransparentSubmissionSource,
 };
 use crate::graphics::types::{ViewportRenderFrame, ViewportRenderRegion};
 use crate::render_graph::RenderGraphAttachmentOps;
@@ -52,6 +52,7 @@ impl BaseScenePass {
     ) -> MeshDrawReplayStats
     where
         I: IntoIterator<Item = MeshDrawCommandStream<'a>>,
+        I::IntoIter: Clone,
     {
         if wire_only_load_store_can_skip(
             frame.overlays().display_mode,
@@ -60,17 +61,29 @@ impl BaseScenePass {
         ) {
             return MeshDrawReplayStats::default();
         }
-        let forward_shadow_receiver_bind_group = mesh_pipelines.create_forward_shading_bind_group(
-            device,
-            frame,
-            render_region,
-            shadow_atlas_resources,
-            light_grid_params_buffer,
-            light_zbins_buffer,
-            light_tile_masks_buffer,
-            integrated_volumetric_view,
-            transmission_scene_color_view,
-        );
+        let mesh_draw_commands = mesh_draw_commands.into_iter();
+        let needs_forward_receiver = !mesh_pipelines.environment_only_pbr_base_profile_enabled()
+            || mesh_draw_commands.clone().any(|stream| {
+                stream.commands().iter().any(|command| {
+                    mesh_pipelines
+                        .base_pipeline_requires_forward_receiver(command.pipeline_variant_id)
+                })
+            });
+        // This stays alive through the render pass while avoiding the generic
+        // forward-receiver allocation for the EnvironmentOnly-only path.
+        let forward_shadow_receiver_bind_group = needs_forward_receiver.then(|| {
+            mesh_pipelines.create_forward_shading_bind_group(
+                device,
+                frame,
+                render_region,
+                shadow_atlas_resources,
+                light_grid_params_buffer,
+                light_zbins_buffer,
+                light_tile_masks_buffer,
+                integrated_volumetric_view,
+                transmission_scene_color_view,
+            )
+        });
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("BaseScenePass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -92,7 +105,6 @@ impl BaseScenePass {
             return MeshDrawReplayStats::default();
         }
         pass.set_bind_group(0, scene_bind_group, &[]);
-        pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[]);
         if frame.overlays().display_mode == DisplayMode::WireOnly {
             return MeshDrawReplayStats::default();
         }
@@ -112,6 +124,16 @@ impl BaseScenePass {
                         return false;
                     };
                     pass.set_pipeline(pipeline);
+                }
+                if mesh_pipelines
+                    .base_pipeline_requires_forward_receiver(command.pipeline_variant_id)
+                {
+                    replayer.bind_forward_shadow_receiver_if_needed(
+                        pass,
+                        forward_shadow_receiver_bind_group
+                            .as_ref()
+                            .expect("generic Base commands require a forward receiver bind group"),
+                    );
                 }
                 replayer.bind_gpu_scene_if_needed(pass, command, gpu_scene_bind_group);
                 if uses_builtin_fallback_shader {
@@ -212,7 +234,10 @@ impl BaseScenePass {
                     let stream = MeshDrawCommandStream::new(std::slice::from_ref(command), None);
                     replayer.replay_command_stream(&mut pass, stream, |replayer, pass, command| {
                         let uses_builtin_fallback_shader = mesh_pipelines
-                            .pipeline_uses_builtin_fallback_shader(streamer, command.pipeline_key());
+                            .pipeline_uses_builtin_fallback_shader(
+                                streamer,
+                                command.pipeline_key(),
+                            );
                         if replayer
                             .should_set_pipeline(command.pipeline_kind, command.pipeline_variant_id)
                         {
@@ -226,11 +251,7 @@ impl BaseScenePass {
                             };
                             pass.set_pipeline(pipeline);
                         }
-                        replayer.bind_gpu_scene_if_needed(
-                            pass,
-                            command,
-                            gpu_scene_bind_group,
-                        );
+                        replayer.bind_gpu_scene_if_needed(pass, command, gpu_scene_bind_group);
                         if uses_builtin_fallback_shader {
                             replayer.bind_standard_material_if_needed(pass, command);
                         } else {
@@ -387,9 +408,7 @@ mod tests {
             "opaque and transparent Base passes should explicitly consume a pending pipeline"
         );
         assert_eq!(
-            implementation
-                .matches("return false;")
-                .count(),
+            implementation.matches("return false;").count(),
             2,
             "a pending Base pipeline must skip both opaque and transparent draws"
         );
@@ -401,8 +420,42 @@ mod tests {
             "both pending-pipeline branches must invalidate replay state before the next command"
         );
         assert!(
-            !implementation.contains("base mesh command must resolve a cache-backed pipeline variant"),
+            !implementation
+                .contains("base mesh command must resolve a cache-backed pipeline variant"),
             "a pending async Base pipeline must not panic the frame path"
+        );
+    }
+
+    #[test]
+    fn opaque_environment_only_draws_do_not_eagerly_create_or_bind_forward_receivers() {
+        let source = include_str!("base_scene_pass.rs");
+        let implementation = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("base scene implementation");
+        let opaque = implementation
+            .split("pub(crate) fn record_commands_with_attachment_ops")
+            .nth(1)
+            .expect("opaque base scene function")
+            .split("pub(crate) fn record_transparent_mixed_with_attachment_ops")
+            .next()
+            .expect("opaque base scene body");
+
+        assert!(
+            opaque.contains("base_pipeline_requires_forward_receiver"),
+            "the opaque pass must distinguish the EnvironmentOnly layout before binding group 1"
+        );
+        assert!(
+            opaque.contains("mesh_draw_commands.clone().any"),
+            "the opaque pass must determine generic ABI use before beginning the render pass"
+        );
+        assert!(
+            opaque.contains("let forward_shadow_receiver_bind_group = needs_forward_receiver.then"),
+            "the forward receiver bind group must be allocated only for a generic Base command"
+        );
+        assert!(
+            !opaque.contains("pass.set_bind_group(1, &forward_shadow_receiver_bind_group, &[]);"),
+            "the opaque pass must not bind group 1 before it knows which Base layout is active"
         );
     }
 

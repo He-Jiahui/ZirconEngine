@@ -7,7 +7,7 @@ use crate::asset::assets::{
     SceneRigidBodyTypeAsset, SceneSpotLightAsset, TransformAsset,
 };
 use crate::asset::project::ProjectManager;
-use crate::core::resource::io::atomic_file::atomic_write;
+use crate::core::resource::io::atomic_write;
 use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, PhysicsMaterialMarker, ResourceLocator,

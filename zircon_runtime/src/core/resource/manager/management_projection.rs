@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::core::framework::asset::{
-    resource_management_shard_index, ResourceManagementGeneration, ResourceManagementRow,
-    ResourceManagementShard,
+use crate::core::resource::{
+    resource_management_shard_index, ResourceId, ResourceManagementGeneration,
+    ResourceManagementRow, ResourceManagementShard, ResourceRecord,
 };
-use crate::core::resource::{ResourceId, ResourceRecord};
 
 #[derive(Debug, Default)]
 pub(super) struct ResourceManagementProjection {
@@ -17,22 +16,7 @@ impl ResourceManagementProjection {
         self.generation.clone()
     }
 
-    pub(super) fn upsert(&mut self, record: &ResourceRecord) {
-        self.apply_delta(std::iter::empty(), std::iter::once(record));
-    }
-
-    pub(super) fn remove(&mut self, id: ResourceId) {
-        self.apply_delta(std::iter::once(id), std::iter::empty());
-    }
-
-    pub(super) fn upsert_many<'a>(
-        &mut self,
-        records: impl IntoIterator<Item = &'a ResourceRecord>,
-    ) {
-        self.apply_delta(std::iter::empty(), records);
-    }
-
-    fn apply_delta<'a>(
+    pub(super) fn apply_delta<'a>(
         &mut self,
         removed_ids: impl IntoIterator<Item = ResourceId>,
         records: impl IntoIterator<Item = &'a ResourceRecord>,
@@ -102,9 +86,9 @@ impl ResourceManagementProjection {
 mod tests {
     use std::sync::Arc;
 
-    use crate::core::framework::asset::ResourceManagementQuery;
     use crate::core::resource::{
-        ResourceId, ResourceKind, ResourceLocator, ResourceManager, ResourceRecord, ResourceState,
+        ResourceId, ResourceKind, ResourceLocator, ResourceManagementQuery, ResourceManager,
+        ResourceRecord, ResourceState,
     };
 
     fn record(locator: &str, kind: ResourceKind, state: ResourceState) -> ResourceRecord {
@@ -121,9 +105,9 @@ mod tests {
             ResourceState::Ready,
         );
 
-        manager.register_record(first.clone());
+        manager.register_record(first.clone()).unwrap();
         let published = manager.management_generation();
-        manager.register_record(first);
+        manager.register_record(first).unwrap();
         let stable = manager.management_generation();
 
         assert!(Arc::ptr_eq(&published, &stable));
@@ -133,21 +117,27 @@ mod tests {
     #[test]
     fn resource_management_generation_pages_in_locator_order_and_filters_without_full_records() {
         let manager = ResourceManager::new();
-        manager.register_record(record(
-            "res://textures/z.png",
-            ResourceKind::Texture,
-            ResourceState::Ready,
-        ));
-        manager.register_record(record(
-            "res://models/b.glb",
-            ResourceKind::Model,
-            ResourceState::Error,
-        ));
-        manager.register_record(record(
-            "res://models/a.glb",
-            ResourceKind::Model,
-            ResourceState::Ready,
-        ));
+        manager
+            .register_record(record(
+                "res://textures/z.png",
+                ResourceKind::Texture,
+                ResourceState::Ready,
+            ))
+            .unwrap();
+        manager
+            .register_record(record(
+                "res://models/b.glb",
+                ResourceKind::Model,
+                ResourceState::Error,
+            ))
+            .unwrap();
+        manager
+            .register_record(record(
+                "res://models/a.glb",
+                ResourceKind::Model,
+                ResourceState::Ready,
+            ))
+            .unwrap();
 
         let generation = manager.management_generation();
         let page = generation.page(
@@ -179,11 +169,13 @@ mod tests {
         let manager = ResourceManager::new();
         let original = ResourceLocator::parse("res://models/a.glb").unwrap();
         let id = ResourceId::from_locator(&original);
-        manager.register_record(ResourceRecord::new(
-            id,
-            ResourceKind::Model,
-            original.clone(),
-        ));
+        manager
+            .register_record(ResourceRecord::new(
+                id,
+                ResourceKind::Model,
+                original.clone(),
+            ))
+            .unwrap();
         let first_sequence = manager.management_generation().sequence();
 
         manager
@@ -200,7 +192,9 @@ mod tests {
             "res://models/renamed.glb"
         );
 
-        manager.remove_by_locator(&ResourceLocator::parse("res://models/renamed.glb").unwrap());
+        manager
+            .remove_by_locator(&ResourceLocator::parse("res://models/renamed.glb").unwrap())
+            .unwrap();
         let removed = manager.management_generation();
         assert!(removed.row_by_id(id).is_none());
         assert_eq!(removed.summary().total_count(), 0);
@@ -209,23 +203,25 @@ mod tests {
     #[test]
     fn lazy_registration_batch_publishes_one_generation_for_many_records() {
         let manager = ResourceManager::new();
-        manager.register_lazy_records([
-            record(
-                "res://models/a.glb",
-                ResourceKind::Model,
-                ResourceState::Ready,
-            ),
-            record(
-                "res://models/b.glb",
-                ResourceKind::Model,
-                ResourceState::Ready,
-            ),
-            record(
-                "res://textures/a.png",
-                ResourceKind::Texture,
-                ResourceState::Ready,
-            ),
-        ]);
+        manager
+            .register_lazy_records([
+                record(
+                    "res://models/a.glb",
+                    ResourceKind::Model,
+                    ResourceState::Ready,
+                ),
+                record(
+                    "res://models/b.glb",
+                    ResourceKind::Model,
+                    ResourceState::Ready,
+                ),
+                record(
+                    "res://textures/a.png",
+                    ResourceKind::Texture,
+                    ResourceState::Ready,
+                ),
+            ])
+            .unwrap();
 
         let generation = manager.management_generation();
         assert_eq!(generation.sequence(), 1);

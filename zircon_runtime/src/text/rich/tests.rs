@@ -2,7 +2,9 @@ use crate::text::TextAlign;
 use crate::text::{FontFamilyName, InlineBaseline, InlineObjectRef, RichTextFormat, StyleOverride};
 
 use super::{
-    compile_rich_text, lookup_compiled_rich_text, parse_rich_text, shared_builtin_parser,
+    parser_registry::{
+        compile_rich_text, lookup_compiled_rich_text, parse_rich_text, shared_builtin_parser,
+    },
     RichTextDecoration, RichTextDecorator, RichTextDecoratorRegistrationError, RichTextParser,
 };
 

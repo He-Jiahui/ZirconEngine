@@ -1,7 +1,7 @@
 use super::super::super::super::data::TemplatePaneNodeData;
 use super::super::super::style_selector::{
-    WorkbenchSelectionControlKind, WorkbenchSelectionControlStyle,
-    select_workbench_selection_control_style,
+    select_workbench_selection_control_style, WorkbenchSelectionControlKind,
+    WorkbenchSelectionControlStyle,
 };
 
 pub(super) fn selection_style(

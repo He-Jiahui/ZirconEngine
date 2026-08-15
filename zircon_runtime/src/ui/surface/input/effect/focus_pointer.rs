@@ -118,7 +118,7 @@ fn focus_effect_reasons(reason: UiFocusEffectReason) -> (UiFocusChangeReason, Ui
         ),
         UiFocusEffectReason::Programmatic | UiFocusEffectReason::Dismissal => (
             UiFocusChangeReason::Programmatic,
-            UiFocusVisible::visible(UiFocusVisibleReason::Programmatic),
+            UiFocusVisible::hidden(UiFocusVisibleReason::Programmatic),
         ),
     }
 }

@@ -19,7 +19,13 @@ pub fn create_linked_runtime_session(
             profile: String::from_utf8_lossy(profile).into_owned(),
         }
     })?;
-    let project_config = project_root.map(RuntimeProjectConfig::from_root);
+    let project_config = project_root
+        .map(RuntimeProjectConfig::from_root)
+        .transpose()
+        .map_err(|source| RuntimeDynamicSessionError::ProjectStep {
+            step: "resolve linked runtime project root",
+            source,
+        })?;
     RuntimeDynamicSession::new_with_linked_plugins(profile, project_config, registrations)
         .map(insert_session)
 }

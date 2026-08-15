@@ -69,13 +69,13 @@ F3 使用唯一、可精确比较的 authoring delta：
 
 ### 实现切片
 
-- [ ] 在 `document_roundtrip.rs` 使用 product template 创建项目并通过 ProjectManager 完成 scan/import。
-- [ ] 从 default scene 找到 persisted cube identity，使用 Editor transaction engine 应用固定 transform delta。
-- [ ] 捕获 save token，调用 `EditorProjectDocument::save_to_project`，成功后才把对应 history baseline 标记 clean。
-- [ ] Drop 当前 document/world/manager，重新 `ProjectManager::open`、scan/restore registry 并 `load_from_project`。
-- [ ] 精确断言 entity identity/name、完整 transform、parent、mesh/material refs、default scene 和 workspace；asset refs 必须重新解析到重开 generation。
-- [ ] 保存前后比较不应变化的 camera/light/cube ref，防止 writer 丢字段但 node count 仍相同。
-- [ ] 增加失败断言：save 失败或 token 失效时 dirty baseline 不移动，磁盘保持上次有效 document。
+- [x] 在 `document_roundtrip.rs` 使用 product template 创建项目并通过 ProjectManager 完成 scan/import。
+- [x] 从 default scene 找到 persisted cube identity，使用 Editor transaction engine 应用固定 transform delta。
+- [x] 捕获 save token，调用 `EditorProjectDocument::save_to_project`，成功后才把对应 history baseline 标记 clean。
+- [x] Drop 当前 document/world/manager，重新 `ProjectManager::open`、scan/restore registry 并 `load_from_project`。
+- [x] 精确断言 entity identity/name、完整 transform、parent、mesh/material refs、default scene 和 workspace；asset refs 必须重新解析到重开 generation。
+- [x] 保存前后比较不应变化的 camera/light/cube ref，防止 writer 丢字段但 node count 仍相同。
+- [x] 增加失败断言：save 失败或 token 失效时 dirty baseline 不移动，磁盘保持上次有效 document。
 
 ### 测试阶段：F3 Document Roundtrip Gate
 
@@ -98,12 +98,12 @@ F3 使用唯一、可精确比较的 authoring delta：
 
 ### 实现切片
 
-- [ ] 确认 scene/project writer 只输出当前 schema/version envelope，不双写 retired version 字段。
-- [ ] current document 保存两次后 canonical scene bytes 相同，第二次没有 dirty transition。
-- [ ] v0/v1 migration 只在读取历史 fixture 时执行；当前 F3 project 的 `migrated_from` 必须为空。
-- [ ] future schema/version、invalid transform shape、invalid AssetRef 和 interrupted atomic write 保留上次有效文件并返回 typed error。
-- [ ] 不为 F3 引入 serializer payload clone 或第二套 Value DOM；若现有 Editor 11 performance failure直接阻断大文件，本门只修相同 owner 根因。
-- [ ] 文档 owner 若描述旧 schema/双写行为，按 `code-module-docs-maintenance` 做最小同步；无公共合同变化不新增说明文档。
+- [x] 确认 scene/project writer 只输出当前 schema/version envelope，不双写 retired version 字段。
+- [x] current document 保存两次后 canonical scene bytes 相同，第二次没有 dirty transition。
+- [x] v0/v1 migration 只在读取历史 fixture 时执行；当前 F3 project 的 `migrated_from` 必须为空。
+- [x] future schema/version、invalid transform shape、invalid AssetRef 和 interrupted atomic write 保留上次有效文件并返回 typed error。
+- [x] 不为 F3 引入 serializer payload clone 或第二套 Value DOM；若现有 Editor 11 performance failure直接阻断大文件，本门只修相同 owner 根因。
+- [x] 文档 owner 若描述旧 schema/双写行为，按 `code-module-docs-maintenance` 做最小同步；无公共合同变化不新增说明文档。
 
 ### 测试阶段：F3 Serialization Boundary Gate
 
@@ -177,3 +177,9 @@ F3 使用唯一、可精确比较的 authoring delta：
 - The production `SaveProject` event records dirty/save-token/persisted-generation diagnostics and
   does not mark history clean until persistence completes. These are current-source contracts only;
   the declared staged editor/runtime process evidence remains required before F3 can be accepted.
+- The project-document reader now rejects any non-current `format_version` with a typed
+  `UnsupportedProjectFormatVersion` before validating or normalizing `World`. The negative transform
+  fixture is also built through the real project writer, so it reaches transform validation rather
+  than failing early on a missing envelope. The reader borrows its raw `world` payload until the
+  version gate passes and does not add another `Value` DOM; the pre-existing typed TOML codec remains
+  under its existing owner. Managed Rust validation remains pending.

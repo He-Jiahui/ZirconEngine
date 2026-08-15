@@ -1,17 +1,17 @@
 use std::collections::{BTreeMap, HashMap};
 use std::io::{self, Write};
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::mpsc::{self, Receiver, SyncSender};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
 use zircon_runtime_interface::{
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle,
-    ZrRuntimeOperationPhase, ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2,
+    ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle, ZrRuntimeOperationPhase,
+    ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2, ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
-use crate::core::CoreHandle;
 use crate::core::runtime::tasks::TaskTimerSubscription;
+use crate::core::CoreHandle;
 use crate::scene::World;
 
 use super::maintenance::{

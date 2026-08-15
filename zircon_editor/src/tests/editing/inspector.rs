@@ -18,11 +18,9 @@ fn inspector_batch_commit_groups_name_parent_and_transform() {
     state.update_scale_field(1, "3.0".to_string());
     state.update_scale_field(2, "4.0".to_string());
 
-    assert!(
-        state
-            .apply_intent(EditorIntent::ApplyInspectorChanges)
-            .unwrap()
-    );
+    assert!(state
+        .apply_intent(EditorIntent::ApplyInspectorChanges)
+        .unwrap());
     state.world.with_world(|scene| {
         let node = scene.find_node(cube).unwrap();
         assert_eq!(node.name, "Batch Cube");

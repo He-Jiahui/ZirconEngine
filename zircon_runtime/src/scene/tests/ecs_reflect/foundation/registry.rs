@@ -127,9 +127,7 @@ fn world_serialization_skips_reflection_registry_and_rebuilds_it_on_load() {
     let loaded: World = serde_json::from_str(&json).expect("world should deserialize");
 
     assert_eq!(loaded.type_registry().iter().count(), builtin_count);
-    assert!(
-        loaded
-            .type_registry()
-            .contains_type_path("zircon_runtime::scene::components::Name")
-    );
+    assert!(loaded
+        .type_registry()
+        .contains_type_path("zircon_runtime::scene::components::Name"));
 }

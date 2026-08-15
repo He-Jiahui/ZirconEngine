@@ -4,7 +4,7 @@ use super::super::state::{icon_button_node_is_hot, is_unavailable_icon_button_st
 use super::declared::declared_icon_button_border;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    HostControlMetrics, current_host_metrics,
+    current_host_metrics, HostControlMetrics,
 };
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 

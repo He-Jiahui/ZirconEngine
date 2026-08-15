@@ -34,6 +34,9 @@ impl RuntimeEntryApp {
         event_loop: &dyn ActiveEventLoop,
         occluded: bool,
     ) {
+        if self.frame_cadence.set_window_occluded(occluded) {
+            self.request_runtime_frame();
+        }
         let event = ZrRuntimeEventV1::window_occluded(
             ZIRCON_RUNTIME_ABI_VERSION_V1,
             self.viewport,

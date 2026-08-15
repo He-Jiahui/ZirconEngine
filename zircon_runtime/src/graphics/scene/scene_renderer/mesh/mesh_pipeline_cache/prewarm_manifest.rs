@@ -1,7 +1,7 @@
 use crate::core::framework::render::{
     ShaderFeatureBits, ShaderPassType, ShaderVariantPrewarmManifest, ShaderVariantPrewarmRequest,
 };
-use crate::graphics::scene::resources::{PipelineKey, default_pipeline_key};
+use crate::graphics::scene::resources::{default_pipeline_key, PipelineKey};
 
 use super::super::mesh_pass::{MeshPassPipelineKind, MeshPipelineVariantId};
 use super::super::mesh_pipeline::{
@@ -180,26 +180,48 @@ impl MeshPipelineCache {
             };
 
             let error_scope = device.push_error_scope(wgpu::ErrorFilter::Validation);
-            let shader = (!primary_hit || !companion_hit).then(|| {
-                device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            let shader = if !primary_hit || !companion_hit {
+                let creation_started = std::time::Instant::now();
+                let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                     label: Some("zircon-runtime-shader-pipeline-prewarm-module"),
                     source: wgpu::ShaderSource::Wgsl(source.wgsl_source.as_str().into()),
-                })
-            });
+                });
+                let creation_elapsed = creation_started.elapsed();
+                self.record_shader_module_creation(creation_elapsed);
+                Some(shader)
+            } else {
+                None
+            };
             let (primary_pipeline, companion_pipeline) = match shader.as_ref() {
                 Some(shader) => {
-                    let primary_pipeline = (!primary_hit).then(|| {
-                        self.create_prewarmed_pipeline(device, shader, pipeline_kind, &pipeline_key)
-                    });
-                    let companion_pipeline = companion.and_then(|(kind, variant_id)| {
-                        (!companion_hit).then(|| {
-                            (
-                                kind,
-                                variant_id,
-                                self.create_prewarmed_pipeline(device, shader, kind, &pipeline_key),
-                            )
-                        })
-                    });
+                    let primary_pipeline = if !primary_hit {
+                        let creation_started = std::time::Instant::now();
+                        let pipeline = self.create_prewarmed_pipeline(
+                            device,
+                            shader,
+                            pipeline_kind,
+                            &pipeline_key,
+                        );
+                        let creation_elapsed = creation_started.elapsed();
+                        self.record_render_pipeline_creation(creation_elapsed);
+                        Some(pipeline)
+                    } else {
+                        None
+                    };
+                    let companion_pipeline = if let Some((kind, variant_id)) = companion {
+                        if !companion_hit {
+                            let creation_started = std::time::Instant::now();
+                            let pipeline =
+                                self.create_prewarmed_pipeline(device, shader, kind, &pipeline_key);
+                            let creation_elapsed = creation_started.elapsed();
+                            self.record_render_pipeline_creation(creation_elapsed);
+                            Some((kind, variant_id, pipeline))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    };
                     (primary_pipeline, companion_pipeline)
                 }
                 None if primary_hit && companion_hit => (None, None),
@@ -211,19 +233,28 @@ impl MeshPipelineCache {
                     continue;
                 }
             };
-            let oit_pipeline = oit_source.map(|source| {
+            let oit_pipeline = if let Some(source) = oit_source {
+                let shader_creation_started = std::time::Instant::now();
                 let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
                     label: Some("zircon-runtime-oit-shader-pipeline-prewarm-module"),
                     source: wgpu::ShaderSource::Wgsl(source.wgsl_source.as_str().into()),
                 });
-                create_oit_mesh_pipeline(
+                let shader_creation_elapsed = shader_creation_started.elapsed();
+                self.record_shader_module_creation(shader_creation_elapsed);
+                let pipeline_creation_started = std::time::Instant::now();
+                let pipeline = create_oit_mesh_pipeline(
                     device,
                     &self.oit_mesh_pipeline_layout,
                     &shader,
                     &pipeline_key,
                     self.runtime_pipeline_cache.cache(),
-                )
-            });
+                );
+                let pipeline_creation_elapsed = pipeline_creation_started.elapsed();
+                self.record_render_pipeline_creation(pipeline_creation_elapsed);
+                Some(pipeline)
+            } else {
+                None
+            };
             if let Some(error) = pollster::block_on(error_scope.pop()) {
                 report.record_failure(variant_index, error.to_string());
                 continue;
@@ -480,12 +511,8 @@ mod tests {
                 has_occlusion_texture: expected.has_occlusion_texture,
                 has_emissive_texture: expected.has_emissive_texture,
             }),
-            source_label: String::new(),
-            wgsl_source: String::new(),
-            include_content_hashes: Vec::new(),
-            template_revision: String::new(),
-            naga_version: String::new(),
-            wgpu_version: String::new(),
+            // Source-table resolution is outside this key-projection unit test.
+            source_id: Default::default(),
         };
 
         assert_eq!(pipeline_key_from_prewarm_request(&request), Ok(expected));
@@ -497,12 +524,8 @@ mod tests {
         let request = ShaderVariantPrewarmRequest {
             key: key.shader_variant_key(ShaderPassType::Forward, "wgpu-runtime"),
             pipeline_state: None,
-            source_label: String::new(),
-            wgsl_source: String::new(),
-            include_content_hashes: Vec::new(),
-            template_revision: String::new(),
-            naga_version: String::new(),
-            wgpu_version: String::new(),
+            // Source-table resolution is outside this key-projection unit test.
+            source_id: Default::default(),
         };
 
         assert_eq!(

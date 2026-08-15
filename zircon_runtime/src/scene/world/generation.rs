@@ -26,10 +26,36 @@ impl PartialEq for WorldGeneration {
     }
 }
 
+/// Runtime-only revision published with component lifecycle visibility.
+#[derive(Clone, Copy, Debug, Default)]
+pub(super) struct LifecycleVisibilityRevision(u64);
+
+impl LifecycleVisibilityRevision {
+    pub(super) const fn get(self) -> u64 {
+        self.0
+    }
+
+    pub(super) fn advance(&mut self) {
+        self.0 = self.0.saturating_add(1);
+    }
+}
+
+// Runtime revisions do not participate in persistent world equality.
+impl PartialEq for LifecycleVisibilityRevision {
+    fn eq(&self, _other: &Self) -> bool {
+        true
+    }
+}
+
 impl World {
     /// Returns the current runtime synchronization revision.
     pub fn world_generation(&self) -> u64 {
         self.world_generation.get()
+    }
+
+    /// Returns the revision observed by component lifecycle callbacks.
+    pub(crate) fn lifecycle_visibility_revision(&self) -> u64 {
+        self.lifecycle_visibility_revision.get()
     }
 
     /// Returns the revision for one dynamic component type only.
@@ -45,6 +71,10 @@ impl World {
 
     pub(super) fn advance_world_generation(&mut self) {
         self.world_generation.advance();
+    }
+
+    pub(super) fn bump_lifecycle_visibility_revision(&mut self) {
+        self.lifecycle_visibility_revision.advance();
     }
 
     pub(super) fn advance_dynamic_component_generation(&mut self, component_id: &str) {

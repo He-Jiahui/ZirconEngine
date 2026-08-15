@@ -1,6 +1,6 @@
+use crate::text::layout::{layout_vertical_rl_columns, TextLineMetrics};
 use crate::text::SharedTextLayoutSession;
 use crate::text::VerticalMode;
-use crate::text::layout::{TextLineMetrics, layout_vertical_rl_columns};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextOverflow, UiTextRange,
@@ -13,8 +13,8 @@ use super::ellipsis::{
     merge_clipped_lines_for_tail_preserving_ellipsis,
 };
 use super::line_box::{
-    MIN_TEXT_FONT_SIZE, available_wrap_extent, materialize_arabic_tatweels_for_justified_line,
-    resolve_line_widths_with_provider,
+    available_wrap_extent, materialize_arabic_tatweels_for_justified_line,
+    resolve_line_widths_with_provider, MIN_TEXT_FONT_SIZE,
 };
 use super::paragraph_layout;
 use super::visual_order;
@@ -203,7 +203,7 @@ pub(super) fn layout_vertical_text_with_provider(
                 },
                 measured_width: measured_height,
                 glyph_advances,
-                baseline: metrics.baseline,
+                baseline: column_width * 0.5,
                 direction,
                 runs: column.runs.clone(),
                 ellipsized: column.ellipsized,

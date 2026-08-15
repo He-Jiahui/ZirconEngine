@@ -76,10 +76,12 @@ mod tests {
         ));
 
         assert!(!commands.is_empty());
-        assert!(commands.iter().all(|command| command
-            .clip_frame
-            .as_ref()
-            .is_some_and(|clip_frame| frame_is_within(&clip, clip_frame))));
+        assert!(commands.iter().all(|command| {
+            command
+                .clip_frame
+                .as_ref()
+                .is_some_and(|clip_frame| frame_is_within(&clip, clip_frame))
+        }));
     }
 
     fn frame(x: f32, y: f32, width: f32, height: f32) -> FrameRect {

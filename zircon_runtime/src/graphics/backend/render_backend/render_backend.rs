@@ -1,5 +1,6 @@
 use super::config::RenderBackendConfig;
 use crate::rhi::{RenderAdapterInfo, RenderBackendCaps, RenderDeviceLimits};
+use std::sync::Arc;
 use zr_rhi_wgpu::wgpu_backend_caps;
 
 pub(crate) struct RenderBackend {
@@ -7,28 +8,35 @@ pub(crate) struct RenderBackend {
     pub(crate) adapter: wgpu::Adapter,
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,
+    pub(crate) ui_image_registry: Arc<zr_rhi_wgpu::WgpuUiSharedImageRegistry>,
     pub(crate) backend_name: String,
     pub(crate) config: RenderBackendConfig,
 }
 
 impl RenderBackend {
-    pub(crate) const RETAINED_STATE_OWNER_COUNT: usize = 3;
+    pub(crate) const RETAINED_STATE_OWNER_COUNT: usize = 4;
 
     /// Clones the negotiated WGPU state for a native UI surface on this backend's device.
     ///
     /// The clone keeps typed WGPU ownership rather than exposing native pointers. Callers can
     /// therefore compose a renderer product and retained UI image through the same queue.
     pub(crate) fn ui_surface_context(&self) -> zr_rhi_wgpu::WgpuUiSurfaceContext {
-        zr_rhi_wgpu::WgpuUiSurfaceContext::new(
+        zr_rhi_wgpu::WgpuUiSurfaceContext::new_with_shared_image_registry(
             self.instance.clone(),
             self.adapter.clone(),
             self.device.clone(),
             self.queue.clone(),
+            Arc::clone(&self.ui_image_registry),
         )
     }
 
     pub(crate) fn retained_state_owner_count(&self) -> usize {
-        let _retained_state_owners = (&self.instance, &self.adapter, &self.config);
+        let _retained_state_owners = (
+            &self.instance,
+            &self.adapter,
+            &self.config,
+            &self.ui_image_registry,
+        );
         Self::RETAINED_STATE_OWNER_COUNT
     }
 
@@ -36,7 +44,7 @@ impl RenderBackend {
         debug_assert_eq!(
             self.retained_state_owner_count(),
             Self::RETAINED_STATE_OWNER_COUNT,
-            "RenderBackend must retain instance, adapter, and config owners while reporting caps",
+            "RenderBackend must retain instance, adapter, config, and UI image owners while reporting caps",
         );
         let adapter_info = self.adapter.get_info();
         let device_limits = self.device.limits();
@@ -132,6 +140,7 @@ mod tests {
             "self.adapter.clone()",
             "self.device.clone()",
             "self.queue.clone()",
+            "Arc::clone(&self.ui_image_registry)",
         ] {
             assert!(context_source.contains(owner));
         }

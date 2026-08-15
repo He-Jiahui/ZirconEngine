@@ -1,12 +1,12 @@
 use super::*;
 use crate::core::framework::text::{TextGlyph, TextGlyphFlags, TextGlyphRotation};
 use crate::text::{
-    ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine, register_resolved_text_glyph_artifact,
+    register_resolved_text_glyph_artifact, ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine,
 };
 use std::sync::Arc;
 
 #[test]
-fn screen_space_ui_plan_requires_glyph_artifact_for_plain_resolved_layout() {
+fn screen_space_ui_plan_renders_source_isomorphic_plain_layout_without_glyph_artifact() {
     let plan = plan_screen_space_ui_batches(
         &UiRenderExtract {
             tree_id: UiTreeId::new("runtime.ui"),
@@ -45,16 +45,10 @@ fn screen_space_ui_plan_requires_glyph_artifact_for_plain_resolved_layout() {
                                 source_range: UiTextRange { start: 0, end: 10 },
                                 visual_range: UiTextRange { start: 0, end: 10 },
                                 measured_width: 50.0,
-                                glyph_advances: vec![],
+                                glyph_advances: vec![5.0; 10],
                                 baseline: 8.0,
                                 direction: UiTextDirection::LeftToRight,
-                                runs: vec![UiResolvedTextRun {
-                                    kind: UiTextRunKind::Plain,
-                                    text: "Alpha Beta".to_string(),
-                                    source_range: UiTextRange { start: 0, end: 10 },
-                                    visual_range: UiTextRange { start: 0, end: 10 },
-                                    direction: UiTextDirection::LeftToRight,
-                                }],
+                                runs: Vec::new(),
                                 ellipsized: false,
                             },
                             UiResolvedTextLine {
@@ -63,7 +57,7 @@ fn screen_space_ui_plan_requires_glyph_artifact_for_plain_resolved_layout() {
                                 source_range: UiTextRange { start: 11, end: 16 },
                                 visual_range: UiTextRange { start: 0, end: 5 },
                                 measured_width: 25.0,
-                                glyph_advances: vec![],
+                                glyph_advances: vec![5.0; 5],
                                 baseline: 8.0,
                                 direction: UiTextDirection::LeftToRight,
                                 runs: vec![UiResolvedTextRun {
@@ -86,12 +80,29 @@ fn screen_space_ui_plan_requires_glyph_artifact_for_plain_resolved_layout() {
                     opacity: 1.0,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(160, 120),
     );
 
-    assert!(plan.native_texts.is_empty());
+    assert_eq!(plan.native_texts.len(), 2);
     assert!(plan.sdf_texts.is_empty());
+    assert_eq!(plan.native_texts[0].text, "Alpha Beta");
+    assert_eq!(plan.native_texts[0].glyph_advances, vec![5.0; 10]);
+    assert_eq!(
+        plan.native_texts[0].frame,
+        UiFrame::new(20.0, 20.0, 50.0, 12.0)
+    );
+    assert_eq!(plan.native_texts[1].text, "Gamma");
+    assert_eq!(plan.native_texts[1].glyph_advances, vec![5.0; 5]);
+    assert_eq!(
+        plan.native_texts[1].frame,
+        UiFrame::new(35.0, 32.0, 25.0, 12.0)
+    );
+    assert!(plan
+        .native_texts
+        .iter()
+        .all(|text| text.is_source_isomorphic_layout_line));
 }
 
 #[test]
@@ -176,6 +187,7 @@ fn screen_space_ui_plan_does_not_shape_visual_bidi_runs_without_an_artifact() {
                     opacity: 1.0,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(160, 120),
     );
@@ -282,6 +294,7 @@ fn screen_space_ui_plan_preserves_plain_glyph_artifact_through_sdf_routing() {
                     opacity: 1.0,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(120, 80),
     );
@@ -330,19 +343,15 @@ fn screen_space_ui_plan_preserves_plain_glyph_artifact_through_sdf_routing() {
         .as_ref()
         .expect("font generation rebuild must retain a text-owned line");
     assert!(batch.shaped_glyphs.is_empty());
-    assert!(
-        refreshed_line
-            .glyphs
-            .windows(2)
-            .all(|pair| pair[0].source_range.start >= pair[1].source_range.start)
-    );
-    assert!(
-        refreshed_line
-            .glyphs
-            .iter()
-            .all(|glyph| glyph.source_range.start < glyph.source_range.end
-                && glyph.source_range.end <= 8)
-    );
+    assert!(refreshed_line
+        .glyphs
+        .windows(2)
+        .all(|pair| pair[0].source_range.start >= pair[1].source_range.start));
+    assert!(refreshed_line
+        .glyphs
+        .iter()
+        .all(|glyph| glyph.source_range.start < glyph.source_range.end
+            && glyph.source_range.end <= 8));
     assert_eq!(
         refreshed_line
             .glyphs

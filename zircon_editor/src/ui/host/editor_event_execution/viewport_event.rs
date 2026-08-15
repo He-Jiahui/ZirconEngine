@@ -25,6 +25,7 @@ pub(super) fn execute_viewport_event(
             selection_mutation: *selection_mutation,
         },
         EditorViewportEvent::LeftReleased => ViewportCommand::LeftReleased,
+        EditorViewportEvent::CancelInteraction => ViewportCommand::CancelInteraction,
         EditorViewportEvent::RightPressed { x, y } => {
             ViewportCommand::RightPressed { x: *x, y: *y }
         }
@@ -73,13 +74,19 @@ pub(super) fn execute_viewport_event(
     };
     let feedback = shell.state.apply_viewport_command(&command)?;
     let structural_viewport_change = structural_viewport_event(event);
+    let chrome_projection_change = event.changes_chrome_projection();
     let changed = structural_viewport_change
         || feedback.camera_updated
         || feedback.transformed_node.is_some()
         || feedback.hovered_axis.is_some();
     Ok(ExecutionOutcome {
         changed,
-        effects: viewport_effects(event, &feedback, structural_viewport_change),
+        effects: viewport_effects(
+            event,
+            &feedback,
+            structural_viewport_change,
+            chrome_projection_change,
+        ),
     })
 }
 
@@ -109,6 +116,7 @@ fn viewport_effects(
     _event: &EditorViewportEvent,
     feedback: &ViewportFeedback,
     structural_viewport_change: bool,
+    chrome_projection_change: bool,
 ) -> Vec<EditorEventEffect> {
     let mut effects = Vec::new();
 
@@ -120,7 +128,7 @@ fn viewport_effects(
         effects.push(EditorEventEffect::RenderChanged);
     }
 
-    if structural_viewport_change
+    if (structural_viewport_change && !chrome_projection_change)
         || feedback.transformed_node.is_some()
         || feedback.hovered_axis.is_some()
     {
@@ -132,4 +140,59 @@ fn viewport_effects(
     }
 
     effects
+}
+
+#[cfg(test)]
+mod tests {
+    use super::viewport_effects;
+    use crate::core::editor_event::{EditorEventEffect, EditorViewportEvent};
+    use crate::scene::viewport::{GridMode, ViewportFeedback};
+
+    #[test]
+    fn viewport_chrome_state_change_keeps_render_but_skips_full_presentation() {
+        let event = EditorViewportEvent::SetGridMode {
+            mode: GridMode::VisibleAndSnap,
+        };
+
+        let effects = viewport_effects(&event, &ViewportFeedback::default(), true, true);
+
+        assert!(effects.contains(&EditorEventEffect::RenderChanged));
+        assert!(effects.contains(&EditorEventEffect::ReflectionChanged));
+        assert!(!effects.contains(&EditorEventEffect::PresentationChanged));
+    }
+
+    #[test]
+    fn non_chrome_structural_change_still_requests_presentation() {
+        let event = EditorViewportEvent::Resized {
+            width: 1280,
+            height: 720,
+        };
+
+        let effects = viewport_effects(&event, &ViewportFeedback::default(), true, false);
+
+        assert!(effects.contains(&EditorEventEffect::PresentationChanged));
+    }
+
+    #[test]
+    fn empty_cancel_interaction_has_no_effects() {
+        let event = EditorViewportEvent::CancelInteraction;
+
+        assert!(!super::structural_viewport_event(&event));
+        assert!(viewport_effects(&event, &ViewportFeedback::default(), false, false).is_empty());
+    }
+
+    #[test]
+    fn active_cancel_interaction_refreshes_viewport_projections() {
+        let event = EditorViewportEvent::CancelInteraction;
+        let feedback = ViewportFeedback {
+            transformed_node: Some(42),
+            ..ViewportFeedback::default()
+        };
+
+        let effects = viewport_effects(&event, &feedback, false, false);
+
+        assert!(effects.contains(&EditorEventEffect::RenderChanged));
+        assert!(effects.contains(&EditorEventEffect::PresentationChanged));
+        assert!(effects.contains(&EditorEventEffect::ReflectionChanged));
+    }
 }

@@ -1,10 +1,11 @@
 use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
-    layout::UiFrame,
+    layout::{UiFrame, UiSize},
     style::{UiPainterFamily, UiPainterResolvedState},
     surface::UiRenderCommandKind,
-    tree::{UiTemplateNodeMetadata, UiTreeNode},
+    tree::{UiDirtyFlags, UiTemplateNodeMetadata, UiTreeNode, UiVisibility},
+    widget::{UiPopupAnchor, UiWidgetContract},
 };
 
 #[test]
@@ -144,6 +145,188 @@ menu_items = ["Rename", "Delete|danger"]
             && command.frame == UiFrame::new(58.0, 24.0, 120.0, 72.0)
             && command.clip_frame == Some(UiFrame::new(0.0, 0.0, 200.0, 140.0))
     }));
+}
+
+#[test]
+fn popup_trigger_identity_resolves_open_popup_from_live_control_anchor_frame() {
+    let mut surface = control_anchored_popup_surface(&["window-menu-trigger"]);
+
+    assert_eq!(
+        popup_background_frame(&surface),
+        UiFrame::new(20.0, 20.0, 120.0, 72.0)
+    );
+    assert_eq!(
+        surface.input.popup_owner("root/popup"),
+        Some(UiNodeId::new(2))
+    );
+
+    surface
+        .tree
+        .node_mut(UiNodeId::new(2))
+        .expect("trigger node should exist")
+        .layout_cache
+        .frame = UiFrame::new(72.0, 8.0, 40.0, 20.0);
+    surface.rebuild();
+
+    assert_eq!(
+        popup_background_frame(&surface),
+        UiFrame::new(72.0, 32.0, 120.0, 72.0)
+    );
+}
+
+#[test]
+fn render_extract_rejects_missing_duplicate_and_disabled_control_anchors() {
+    let missing = control_anchored_popup_surface(&[]);
+    assert_no_control_anchored_popup(&missing);
+
+    let duplicate = control_anchored_popup_surface(&["window-menu-trigger", "window-menu-trigger"]);
+    assert_no_control_anchored_popup(&duplicate);
+
+    let mut disabled = control_anchored_popup_surface(&["window-menu-trigger"]);
+    disabled
+        .tree
+        .node_mut(UiNodeId::new(2))
+        .expect("trigger node should exist")
+        .state_flags
+        .enabled = false;
+    disabled.rebuild();
+    assert_no_control_anchored_popup(&disabled);
+
+    let mut collapsed = control_anchored_popup_surface(&["window-menu-trigger"]);
+    collapsed
+        .tree
+        .node_mut(UiNodeId::new(2))
+        .expect("trigger node should exist")
+        .visibility = UiVisibility::Collapsed;
+    collapsed.rebuild();
+    assert_no_control_anchored_popup(&collapsed);
+
+    let mut invisible = control_anchored_popup_surface(&["window-menu-trigger"]);
+    invisible
+        .tree
+        .node_mut(UiNodeId::new(2))
+        .expect("trigger node should exist")
+        .state_flags
+        .visible = false;
+    invisible.rebuild();
+    assert_no_control_anchored_popup(&invisible);
+}
+
+#[test]
+fn opened_control_anchored_popup_forces_full_render_extract_after_trigger_dirty() {
+    let mut surface = control_anchored_popup_surface(&["window-menu-trigger"]);
+    let root_size = UiSize::new(200.0, 140.0);
+    surface.rebuild_dirty(root_size).unwrap();
+    surface
+        .mark_node_dirty(
+            UiNodeId::new(2),
+            UiDirtyFlags {
+                render: true,
+                ..UiDirtyFlags::default()
+            },
+        )
+        .unwrap();
+
+    let report = surface.rebuild_dirty(root_size).unwrap();
+
+    assert_eq!(
+        report.render_outer_node_visit_count,
+        surface.arranged_tree.draw_order.len(),
+        "a trigger change must not leave a popup command patched from a partial arranged tree"
+    );
+}
+
+#[test]
+fn opened_control_anchored_popup_forces_full_render_extract_after_popup_ancestor_dirty() {
+    let mut surface = control_anchored_popup_surface(&["window-menu-trigger"]);
+    let root_size = UiSize::new(200.0, 140.0);
+    surface.rebuild_dirty(root_size).unwrap();
+    surface
+        .mark_node_dirty(
+            UiNodeId::new(1),
+            UiDirtyFlags {
+                render: true,
+                ..UiDirtyFlags::default()
+            },
+        )
+        .unwrap();
+
+    let report = surface.rebuild_dirty(root_size).unwrap();
+
+    assert_eq!(
+        report.render_outer_node_visit_count,
+        surface.arranged_tree.draw_order.len(),
+        "a popup ancestor change must not leave cached popup geometry or visibility stale"
+    );
+}
+
+#[test]
+fn opened_control_anchored_popup_keeps_unrelated_render_dirty_nodes_local() {
+    let mut surface = control_anchored_popup_surface(&["window-menu-trigger"]);
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(11), UiNodePath::new("root/status"))
+                .with_frame(UiFrame::new(8.0, 8.0, 80.0, 20.0))
+                .with_state_flags(visible_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Label".to_string(),
+                    attributes: toml::from_str("text = \"Ready\"").unwrap(),
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+
+    let root_size = UiSize::new(200.0, 140.0);
+    surface.rebuild_dirty(root_size).unwrap();
+    surface
+        .mark_node_dirty(
+            UiNodeId::new(11),
+            UiDirtyFlags {
+                render: true,
+                ..UiDirtyFlags::default()
+            },
+        )
+        .unwrap();
+
+    let report = surface.rebuild_dirty(root_size).unwrap();
+
+    assert_eq!(
+        report.render_outer_node_visit_count, 1,
+        "an unrelated render change must not rebuild an open popup whose trigger did not change"
+    );
+}
+
+#[test]
+fn opened_control_anchored_popup_rejects_a_runtime_duplicate_trigger() {
+    let mut surface = control_anchored_popup_surface(&["window-menu-trigger"]);
+    let root_size = UiSize::new(200.0, 140.0);
+    surface.rebuild_dirty(root_size).unwrap();
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(11), UiNodePath::new("root/duplicate-trigger"))
+                .with_frame(UiFrame::new(120.0, 96.0, 40.0, 20.0))
+                .with_state_flags(visible_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Button".to_string(),
+                    control_id: Some("window-menu-trigger".to_string()),
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+
+    let report = surface.rebuild_dirty(root_size).unwrap();
+
+    assert_eq!(
+        report.render_outer_node_visit_count,
+        surface.arranged_tree.draw_order.len(),
+        "a new competing control id must invalidate the popup's trigger placement"
+    );
+    assert_no_control_anchored_popup(&surface);
 }
 
 #[test]
@@ -365,4 +548,102 @@ fn visible_state() -> UiStateFlags {
         enabled: true,
         ..UiStateFlags::default()
     }
+}
+
+fn control_anchored_popup_surface(trigger_control_ids: &[&str]) -> UiSurface {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.render.popup_menu.control_anchor"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 200.0, 140.0))
+            .with_state_flags(visible_state()),
+    );
+    for (index, control_id) in trigger_control_ids.iter().enumerate() {
+        let node_id = UiNodeId::new(2 + index as u64);
+        surface
+            .tree
+            .insert_child(
+                UiNodeId::new(1),
+                UiTreeNode::new(node_id, UiNodePath::new(format!("root/trigger/{index}")))
+                    .with_frame(UiFrame::new(20.0 + index as f32 * 48.0, 96.0, 40.0, 20.0))
+                    .with_state_flags(visible_state())
+                    .with_template_metadata(UiTemplateNodeMetadata {
+                        component: "Button".to_string(),
+                        control_id: Some((*control_id).to_string()),
+                        ..UiTemplateNodeMetadata::default()
+                    }),
+            )
+            .unwrap();
+    }
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(10), UiNodePath::new("root/popup"))
+                .with_frame(UiFrame::new(0.0, 0.0, 120.0, 72.0))
+                .with_state_flags(visible_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "ContextActionMenu".to_string(),
+                    attributes: toml::from_str(
+                        r##"
+popup_open = true
+menu_items = ["Rename", "Delete|danger"]
+"##,
+                    )
+                    .unwrap(),
+                    widget: UiWidgetContract {
+                        popup_anchor: UiPopupAnchor::Control {
+                            control_id: "window-menu-trigger".to_string(),
+                        },
+                        ..UiWidgetContract::default()
+                    },
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface
+        .tree
+        .node_mut(UiNodeId::new(10))
+        .expect("popup node should exist")
+        .layout_cache
+        .clip_frame = Some(UiFrame::new(0.0, 0.0, 200.0, 140.0));
+    surface.rebuild();
+    surface
+}
+
+fn popup_background_frame(surface: &UiSurface) -> UiFrame {
+    surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| {
+            command.node_id == UiNodeId::new(10)
+                && command.kind == UiRenderCommandKind::Quad
+                && command.z_index > 0
+        })
+        .expect("open popup should emit a positioned background")
+        .frame
+}
+
+fn assert_no_control_anchored_popup(surface: &UiSurface) {
+    assert!(
+        surface
+            .render_extract
+            .list
+            .commands
+            .iter()
+            .all(|command| command.node_id != UiNodeId::new(10)),
+        "a rejected control anchor must not fall back to popup-owned geometry"
+    );
+    assert!(surface.input.popup_stack.is_empty());
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(10))
+            .and_then(|node| node.template_metadata.as_ref())
+            .and_then(|metadata| metadata.attributes.get("popup_open"))
+            .and_then(toml::Value::as_bool),
+        Some(false),
+        "an invalid trigger must close the runtime popup state"
+    );
 }

@@ -1,4 +1,4 @@
-use crate::ui::retained_host::{HostWindowPresentationData, PaneData, callback_dispatch};
+use crate::ui::retained_host::{callback_dispatch, HostWindowPresentationData, PaneData};
 
 use super::pane_frame::{
     attach_viewport_toolbar_surface_frame_to_pane, viewport_toolbar_size_for_width,

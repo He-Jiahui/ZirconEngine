@@ -10,8 +10,7 @@ use zircon_runtime::core::framework::navigation::{
     NAVIGATION_CLEAR_SURFACE_OPERATION, NAVIGATION_RESTORE_BAKE_OPERATION,
 };
 use zircon_runtime_interface::{
-    ZrRuntimeOperationSubmitRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZIRCON_RUNTIME_ABI_VERSION_V2,
+    ZrRuntimeOperationSubmitRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2,
 };
 
 use super::error::NavigationOperationCommandError;
@@ -161,9 +160,7 @@ impl EditCommand for NavigationOperationCommand {
         MergeOutcome::Reject
     }
 
-    fn journal_payload(
-        &self,
-    ) -> Result<CommandJournalPayload, CommandJournalUnavailable> {
+    fn journal_payload(&self) -> Result<CommandJournalPayload, CommandJournalUnavailable> {
         Ok(CommandJournalPayload::new(
             "navigation.operation",
             1,

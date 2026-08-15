@@ -81,6 +81,8 @@ pub struct ProfileSnapshot {
     pub frames: Vec<ProfileFrameSnapshot>,
     pub spans: Vec<ProfileSpanSnapshot>,
     pub counters: Vec<ProfileCounterSnapshot>,
+    #[serde(default)]
+    pub recorder_retention: Vec<ProfileRecorderRetentionSnapshot>,
 }
 
 impl Default for ProfileSnapshot {
@@ -94,8 +96,28 @@ impl Default for ProfileSnapshot {
             frames: Vec::new(),
             spans: Vec::new(),
             counters: Vec::new(),
+            recorder_retention: Vec::new(),
         }
     }
+}
+
+/// Bounded-history evidence for one sample stream owned by one recorder.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ProfileSampleRetentionSnapshot {
+    pub capacity: u64,
+    pub written: u64,
+    pub overwritten: u64,
+    pub retained: u64,
+    pub oldest_sequence: Option<u64>,
+    pub newest_sequence: Option<u64>,
+}
+
+/// Per-recorder retention evidence kept separate when snapshots are merged.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ProfileRecorderRetentionSnapshot {
+    pub frames: ProfileSampleRetentionSnapshot,
+    pub spans: ProfileSampleRetentionSnapshot,
+    pub counters: ProfileSampleRetentionSnapshot,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -233,12 +255,48 @@ pub struct UiScenarioHotspot {
     pub frame_count: u64,
     pub frame_p95_us: u64,
     pub frame_max_us: u64,
+    #[serde(default)]
+    pub host_invalidation_transaction_count: u64,
+    #[serde(default)]
+    pub host_invalidation_scope_count: u64,
+    #[serde(default)]
+    pub host_invalidation_legacy_dirty_transaction_count: u64,
+    #[serde(default)]
+    pub host_invalidation_full_target_count: u64,
+    #[serde(default)]
+    pub host_invalidation_shell_content_target_count: u64,
+    #[serde(default)]
+    pub host_invalidation_workbench_projection_target_count: u64,
+    #[serde(default)]
+    pub host_invalidation_view_presentation_target_count: u64,
+    #[serde(default)]
+    pub host_invalidation_window_metrics_target_count: u64,
+    #[serde(default)]
+    pub host_invalidation_paint_only_target_count: u64,
     pub slow_path_rebuild_count: u64,
     pub render_path_count: u64,
     pub presentation_rebuild_count: u64,
+    #[serde(default)]
+    pub asset_editor_pane_presentation_build_count: u64,
+    #[serde(default)]
+    pub asset_editor_pane_reflection_build_count: u64,
+    #[serde(default)]
+    pub asset_editor_pane_preview_build_count: u64,
+    #[serde(default)]
+    pub asset_editor_pane_source_build_count: u64,
+    #[serde(default)]
+    pub asset_editor_pane_inspector_build_count: u64,
+    #[serde(default)]
+    pub asset_editor_pane_style_build_count: u64,
+    #[serde(default)]
+    pub asset_editor_pane_theme_build_count: u64,
+    #[serde(default)]
+    pub asset_editor_pane_command_availability_build_count: u64,
     pub full_paint_count: u64,
     pub region_paint_count: u64,
     pub painted_pixels: u64,
+    #[serde(default)]
+    pub presented_surface_pixels: u64,
     pub redraw_full_frame_count: u64,
     pub redraw_region_count: u64,
     pub dirty_layout_count: u64,
@@ -247,15 +305,95 @@ pub struct UiScenarioHotspot {
     pub dirty_paint_only_count: u64,
     pub chrome_snapshot_count: u64,
     pub workbench_model_build_count: u64,
+    #[serde(default)]
+    pub workbench_hit_index_build_count: u64,
+    #[serde(default)]
+    pub workbench_hit_index_query_count: u64,
+    #[serde(default)]
+    pub pane_popup_index_query_count: u64,
+    #[serde(default)]
+    pub pane_popup_index_candidate_count: u64,
+    #[serde(default)]
+    pub visual_asset_targeted_invalidation_count: u64,
+    #[serde(default)]
+    pub svg_tree_targeted_invalidation_count: u64,
+    #[serde(default)]
+    pub visual_asset_reconcile_source_visit_count: u64,
+    #[serde(default)]
+    pub visual_asset_reconciled_invalidation_count: u64,
+    #[serde(default)]
+    pub svg_tree_reconcile_source_visit_count: u64,
+    #[serde(default)]
+    pub svg_tree_reconciled_invalidation_count: u64,
+    #[serde(default)]
+    pub visual_asset_full_invalidation_count: u64,
+    #[serde(default)]
+    pub visual_asset_cache_hit_count: u64,
+    #[serde(default)]
+    pub visual_asset_cache_miss_count: u64,
+    #[serde(default)]
+    pub visual_asset_cache_candidate_build_count: u64,
+    #[serde(default)]
+    pub svg_tree_cache_memory_hit_count: u64,
+    #[serde(default)]
+    pub svg_tree_cache_miss_count: u64,
     pub chrome_command_full_rebuild_count: u64,
     pub chrome_command_patch_count: u64,
     pub software_fallback_present_count: u64,
     pub gpu_upload_bytes: u64,
+    #[serde(default)]
+    pub gpu_image_upload_write_count: u64,
+    #[serde(default)]
+    pub gpu_image_shared_resolve_count: u64,
+    #[serde(default)]
+    pub gpu_image_shared_upload_write_count: u64,
+    #[serde(default)]
+    pub gpu_image_shared_upload_bytes: u64,
+    #[serde(default)]
+    pub gpu_image_shared_resident_bytes: u64,
+    #[serde(default)]
+    pub gpu_image_cache_key_allocation_count: u64,
+    #[serde(default)]
+    pub gpu_image_cache_prune_visit_count: u64,
+    #[serde(default)]
+    pub gpu_image_cache_admission_reject_count: u64,
+    #[serde(default)]
+    pub gpu_image_invalid_payload_count: u64,
+    #[serde(default)]
+    pub gpu_image_cache_resident_bytes: u64,
+    #[serde(default)]
+    pub gpu_image_prepare_command_visit_count: u64,
+    #[serde(default)]
+    pub gpu_image_prepare_cache_hit_count: u64,
     pub gpu_draw_calls: u64,
+    #[serde(default)]
+    pub gpu_timestamp_supported_present_count: u64,
+    #[serde(default)]
+    pub gpu_time_sample_count: u64,
+    #[serde(default)]
+    pub gpu_time_p50_us: u64,
+    #[serde(default)]
+    pub gpu_time_p95_us: u64,
+    #[serde(default)]
+    pub gpu_time_max_us: u64,
+    #[serde(default)]
+    pub gpu_profile_latency_max_frames: u64,
     pub gpu_visible_commands: u64,
     pub gpu_visible_draw_items: u64,
+    #[serde(default)]
+    pub gpu_compiled_draw_items: u64,
     pub gpu_batch_layers: u64,
     pub gpu_batch_dependencies: u64,
+    #[serde(default)]
+    pub gpu_batch_plan_build_count: u64,
+    #[serde(default)]
+    pub gpu_batch_plan_cache_hit_count: u64,
+    #[serde(default)]
+    pub gpu_vertex_buffer_create_count: u64,
+    #[serde(default)]
+    pub gpu_vertex_upload_bytes: u64,
+    #[serde(default)]
+    pub gpu_retained_cache_copy_bytes: u64,
 }
 
 impl UiScenarioHotspot {
@@ -265,12 +403,30 @@ impl UiScenarioHotspot {
             frame_count: 0,
             frame_p95_us: 0,
             frame_max_us: 0,
+            host_invalidation_transaction_count: 0,
+            host_invalidation_scope_count: 0,
+            host_invalidation_legacy_dirty_transaction_count: 0,
+            host_invalidation_full_target_count: 0,
+            host_invalidation_shell_content_target_count: 0,
+            host_invalidation_workbench_projection_target_count: 0,
+            host_invalidation_view_presentation_target_count: 0,
+            host_invalidation_window_metrics_target_count: 0,
+            host_invalidation_paint_only_target_count: 0,
             slow_path_rebuild_count: 0,
             render_path_count: 0,
             presentation_rebuild_count: 0,
+            asset_editor_pane_presentation_build_count: 0,
+            asset_editor_pane_reflection_build_count: 0,
+            asset_editor_pane_preview_build_count: 0,
+            asset_editor_pane_source_build_count: 0,
+            asset_editor_pane_inspector_build_count: 0,
+            asset_editor_pane_style_build_count: 0,
+            asset_editor_pane_theme_build_count: 0,
+            asset_editor_pane_command_availability_build_count: 0,
             full_paint_count: 0,
             region_paint_count: 0,
             painted_pixels: 0,
+            presented_surface_pixels: 0,
             redraw_full_frame_count: 0,
             redraw_region_count: 0,
             dirty_layout_count: 0,
@@ -279,15 +435,55 @@ impl UiScenarioHotspot {
             dirty_paint_only_count: 0,
             chrome_snapshot_count: 0,
             workbench_model_build_count: 0,
+            workbench_hit_index_build_count: 0,
+            workbench_hit_index_query_count: 0,
+            pane_popup_index_query_count: 0,
+            pane_popup_index_candidate_count: 0,
+            visual_asset_targeted_invalidation_count: 0,
+            svg_tree_targeted_invalidation_count: 0,
+            visual_asset_reconcile_source_visit_count: 0,
+            visual_asset_reconciled_invalidation_count: 0,
+            svg_tree_reconcile_source_visit_count: 0,
+            svg_tree_reconciled_invalidation_count: 0,
+            visual_asset_full_invalidation_count: 0,
+            visual_asset_cache_hit_count: 0,
+            visual_asset_cache_miss_count: 0,
+            visual_asset_cache_candidate_build_count: 0,
+            svg_tree_cache_memory_hit_count: 0,
+            svg_tree_cache_miss_count: 0,
             chrome_command_full_rebuild_count: 0,
             chrome_command_patch_count: 0,
             software_fallback_present_count: 0,
             gpu_upload_bytes: 0,
+            gpu_image_upload_write_count: 0,
+            gpu_image_shared_resolve_count: 0,
+            gpu_image_shared_upload_write_count: 0,
+            gpu_image_shared_upload_bytes: 0,
+            gpu_image_shared_resident_bytes: 0,
+            gpu_image_cache_key_allocation_count: 0,
+            gpu_image_cache_prune_visit_count: 0,
+            gpu_image_cache_admission_reject_count: 0,
+            gpu_image_invalid_payload_count: 0,
+            gpu_image_cache_resident_bytes: 0,
+            gpu_image_prepare_command_visit_count: 0,
+            gpu_image_prepare_cache_hit_count: 0,
             gpu_draw_calls: 0,
+            gpu_timestamp_supported_present_count: 0,
+            gpu_time_sample_count: 0,
+            gpu_time_p50_us: 0,
+            gpu_time_p95_us: 0,
+            gpu_time_max_us: 0,
+            gpu_profile_latency_max_frames: 0,
             gpu_visible_commands: 0,
             gpu_visible_draw_items: 0,
+            gpu_compiled_draw_items: 0,
             gpu_batch_layers: 0,
             gpu_batch_dependencies: 0,
+            gpu_batch_plan_build_count: 0,
+            gpu_batch_plan_cache_hit_count: 0,
+            gpu_vertex_buffer_create_count: 0,
+            gpu_vertex_upload_bytes: 0,
+            gpu_retained_cache_copy_bytes: 0,
         }
     }
 }
@@ -393,6 +589,10 @@ pub struct RuntimeRenderDeviceDiagnosticsSnapshot {
     pub max_texture_dimension_2d: u32,
     pub max_texture_array_layers: u32,
     pub max_sampled_textures_per_shader_stage: u32,
+    #[serde(default)]
+    pub max_binding_array_elements_per_shader_stage: u32,
+    #[serde(default)]
+    pub max_binding_array_sampler_elements_per_shader_stage: u32,
     pub max_storage_buffers_per_shader_stage: u32,
     pub max_storage_buffer_binding_size: u64,
 }
@@ -479,9 +679,161 @@ pub struct RuntimeSceneAssetReloadDiagnostics {
 #[cfg(test)]
 mod tests {
     use super::{
-        RuntimeDiagnosticsSnapshot, RuntimeInputDiagnosticsSnapshot,
-        RuntimeRenderDeviceDiagnosticsSnapshot,
+        ProfileSnapshot, RuntimeDiagnosticsSnapshot, RuntimeInputDiagnosticsSnapshot,
+        RuntimeRenderDeviceDiagnosticsSnapshot, UiScenarioHotspot,
     };
+
+    #[test]
+    fn profile_snapshot_deserializes_pre_retention_payload() {
+        let mut json =
+            serde_json::to_value(ProfileSnapshot::default()).expect("serialize profile snapshot");
+        json.as_object_mut()
+            .expect("profile snapshot object")
+            .remove("recorder_retention");
+
+        let decoded: ProfileSnapshot =
+            serde_json::from_value(json).expect("deserialize pre-retention snapshot");
+
+        assert!(decoded.recorder_retention.is_empty());
+    }
+
+    #[test]
+    fn ui_scenario_hotspot_deserializes_pre_domain_counter_payload() {
+        let mut json = serde_json::to_value(UiScenarioHotspot::empty("idle_hover"))
+            .expect("serialize hotspot");
+        let hotspot = json.as_object_mut().expect("hotspot object");
+        for field in [
+            "host_invalidation_transaction_count",
+            "host_invalidation_scope_count",
+            "host_invalidation_legacy_dirty_transaction_count",
+            "host_invalidation_full_target_count",
+            "host_invalidation_shell_content_target_count",
+            "host_invalidation_workbench_projection_target_count",
+            "host_invalidation_view_presentation_target_count",
+            "host_invalidation_window_metrics_target_count",
+            "host_invalidation_paint_only_target_count",
+            "presented_surface_pixels",
+            "asset_editor_pane_presentation_build_count",
+            "asset_editor_pane_reflection_build_count",
+            "asset_editor_pane_preview_build_count",
+            "asset_editor_pane_source_build_count",
+            "asset_editor_pane_inspector_build_count",
+            "asset_editor_pane_style_build_count",
+            "asset_editor_pane_theme_build_count",
+            "asset_editor_pane_command_availability_build_count",
+            "workbench_hit_index_build_count",
+            "workbench_hit_index_query_count",
+            "pane_popup_index_query_count",
+            "pane_popup_index_candidate_count",
+            "visual_asset_targeted_invalidation_count",
+            "svg_tree_targeted_invalidation_count",
+            "visual_asset_reconcile_source_visit_count",
+            "visual_asset_reconciled_invalidation_count",
+            "svg_tree_reconcile_source_visit_count",
+            "svg_tree_reconciled_invalidation_count",
+            "visual_asset_full_invalidation_count",
+            "visual_asset_cache_hit_count",
+            "visual_asset_cache_miss_count",
+            "visual_asset_cache_candidate_build_count",
+            "svg_tree_cache_memory_hit_count",
+            "svg_tree_cache_miss_count",
+            "gpu_image_upload_write_count",
+            "gpu_image_shared_resolve_count",
+            "gpu_image_shared_upload_write_count",
+            "gpu_image_shared_upload_bytes",
+            "gpu_image_shared_resident_bytes",
+            "gpu_image_cache_key_allocation_count",
+            "gpu_image_cache_prune_visit_count",
+            "gpu_image_cache_admission_reject_count",
+            "gpu_image_invalid_payload_count",
+            "gpu_image_cache_resident_bytes",
+            "gpu_image_prepare_command_visit_count",
+            "gpu_image_prepare_cache_hit_count",
+            "gpu_timestamp_supported_present_count",
+            "gpu_time_sample_count",
+            "gpu_time_p50_us",
+            "gpu_time_p95_us",
+            "gpu_time_max_us",
+            "gpu_profile_latency_max_frames",
+            "gpu_compiled_draw_items",
+            "gpu_batch_plan_build_count",
+            "gpu_batch_plan_cache_hit_count",
+            "gpu_vertex_buffer_create_count",
+            "gpu_vertex_upload_bytes",
+            "gpu_retained_cache_copy_bytes",
+        ] {
+            hotspot.remove(field);
+        }
+
+        let decoded: UiScenarioHotspot =
+            serde_json::from_value(json).expect("deserialize pre-domain-counter hotspot");
+
+        assert_eq!(decoded.scenario, "idle_hover");
+        assert_eq!(decoded.host_invalidation_transaction_count, 0);
+        assert_eq!(decoded.host_invalidation_scope_count, 0);
+        assert_eq!(decoded.host_invalidation_legacy_dirty_transaction_count, 0);
+        assert_eq!(decoded.host_invalidation_full_target_count, 0);
+        assert_eq!(decoded.host_invalidation_shell_content_target_count, 0);
+        assert_eq!(
+            decoded.host_invalidation_workbench_projection_target_count,
+            0
+        );
+        assert_eq!(decoded.host_invalidation_view_presentation_target_count, 0);
+        assert_eq!(decoded.host_invalidation_window_metrics_target_count, 0);
+        assert_eq!(decoded.host_invalidation_paint_only_target_count, 0);
+        assert_eq!(decoded.presented_surface_pixels, 0);
+        assert_eq!(decoded.asset_editor_pane_presentation_build_count, 0);
+        assert_eq!(decoded.asset_editor_pane_reflection_build_count, 0);
+        assert_eq!(decoded.asset_editor_pane_preview_build_count, 0);
+        assert_eq!(decoded.asset_editor_pane_source_build_count, 0);
+        assert_eq!(decoded.asset_editor_pane_inspector_build_count, 0);
+        assert_eq!(decoded.asset_editor_pane_style_build_count, 0);
+        assert_eq!(decoded.asset_editor_pane_theme_build_count, 0);
+        assert_eq!(
+            decoded.asset_editor_pane_command_availability_build_count,
+            0
+        );
+        assert_eq!(decoded.workbench_hit_index_build_count, 0);
+        assert_eq!(decoded.workbench_hit_index_query_count, 0);
+        assert_eq!(decoded.pane_popup_index_query_count, 0);
+        assert_eq!(decoded.pane_popup_index_candidate_count, 0);
+        assert_eq!(decoded.visual_asset_targeted_invalidation_count, 0);
+        assert_eq!(decoded.svg_tree_targeted_invalidation_count, 0);
+        assert_eq!(decoded.visual_asset_reconcile_source_visit_count, 0);
+        assert_eq!(decoded.visual_asset_reconciled_invalidation_count, 0);
+        assert_eq!(decoded.svg_tree_reconcile_source_visit_count, 0);
+        assert_eq!(decoded.svg_tree_reconciled_invalidation_count, 0);
+        assert_eq!(decoded.visual_asset_full_invalidation_count, 0);
+        assert_eq!(decoded.visual_asset_cache_hit_count, 0);
+        assert_eq!(decoded.visual_asset_cache_miss_count, 0);
+        assert_eq!(decoded.visual_asset_cache_candidate_build_count, 0);
+        assert_eq!(decoded.svg_tree_cache_memory_hit_count, 0);
+        assert_eq!(decoded.svg_tree_cache_miss_count, 0);
+        assert_eq!(decoded.gpu_image_upload_write_count, 0);
+        assert_eq!(decoded.gpu_image_shared_resolve_count, 0);
+        assert_eq!(decoded.gpu_image_shared_upload_write_count, 0);
+        assert_eq!(decoded.gpu_image_shared_upload_bytes, 0);
+        assert_eq!(decoded.gpu_image_shared_resident_bytes, 0);
+        assert_eq!(decoded.gpu_image_cache_key_allocation_count, 0);
+        assert_eq!(decoded.gpu_image_cache_prune_visit_count, 0);
+        assert_eq!(decoded.gpu_image_cache_admission_reject_count, 0);
+        assert_eq!(decoded.gpu_image_invalid_payload_count, 0);
+        assert_eq!(decoded.gpu_image_cache_resident_bytes, 0);
+        assert_eq!(decoded.gpu_image_prepare_command_visit_count, 0);
+        assert_eq!(decoded.gpu_image_prepare_cache_hit_count, 0);
+        assert_eq!(decoded.gpu_timestamp_supported_present_count, 0);
+        assert_eq!(decoded.gpu_time_sample_count, 0);
+        assert_eq!(decoded.gpu_time_p50_us, 0);
+        assert_eq!(decoded.gpu_time_p95_us, 0);
+        assert_eq!(decoded.gpu_time_max_us, 0);
+        assert_eq!(decoded.gpu_profile_latency_max_frames, 0);
+        assert_eq!(decoded.gpu_compiled_draw_items, 0);
+        assert_eq!(decoded.gpu_batch_plan_build_count, 0);
+        assert_eq!(decoded.gpu_batch_plan_cache_hit_count, 0);
+        assert_eq!(decoded.gpu_vertex_buffer_create_count, 0);
+        assert_eq!(decoded.gpu_vertex_upload_bytes, 0);
+        assert_eq!(decoded.gpu_retained_cache_copy_bytes, 0);
+    }
 
     #[test]
     fn runtime_diagnostics_snapshot_roundtrips_optional_product_identifiers() {
@@ -526,6 +878,8 @@ mod tests {
                 max_texture_dimension_2d: 16_384,
                 max_texture_array_layers: 256,
                 max_sampled_textures_per_shader_stage: 16,
+                max_binding_array_elements_per_shader_stage: 256,
+                max_binding_array_sampler_elements_per_shader_stage: 128,
                 max_storage_buffers_per_shader_stage: 8,
                 max_storage_buffer_binding_size: 134_217_728,
             }),
@@ -543,6 +897,14 @@ mod tests {
         assert_eq!(render_device.max_texture_dimension_2d, 16_384);
         assert_eq!(render_device.max_texture_array_layers, 256);
         assert_eq!(render_device.max_sampled_textures_per_shader_stage, 16);
+        assert_eq!(
+            render_device.max_binding_array_elements_per_shader_stage,
+            256
+        );
+        assert_eq!(
+            render_device.max_binding_array_sampler_elements_per_shader_stage,
+            128
+        );
         assert_eq!(render_device.max_storage_buffers_per_shader_stage, 8);
         assert_eq!(render_device.max_storage_buffer_binding_size, 134_217_728);
     }
@@ -557,6 +919,8 @@ mod tests {
                 max_texture_dimension_2d: 16_384,
                 max_texture_array_layers: 256,
                 max_sampled_textures_per_shader_stage: 16,
+                max_binding_array_elements_per_shader_stage: 256,
+                max_binding_array_sampler_elements_per_shader_stage: 128,
                 max_storage_buffers_per_shader_stage: 8,
                 max_storage_buffer_binding_size: 134_217_728,
             }),

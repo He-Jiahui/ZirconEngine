@@ -20,7 +20,6 @@ mod extension_registry_managers;
 mod extension_registry_metadata;
 mod extension_registry_modules;
 mod extension_registry_options;
-mod extension_registry_scene_hooks;
 mod extension_registry_systems;
 #[cfg(feature = "graphics")]
 mod extension_registry_typed_points;

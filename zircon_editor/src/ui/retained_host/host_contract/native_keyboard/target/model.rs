@@ -202,11 +202,9 @@ mod tests {
     fn command_palette_window_navigation_does_not_wrap_terminal_rows() {
         for total_count in [1, 12] {
             let target = target(total_count, 0, total_count - 1);
-            assert!(
-                target
-                    .next_move(WorkbenchPopupKeyboardCommand::Next)
-                    .is_none()
-            );
+            assert!(target
+                .next_move(WorkbenchPopupKeyboardCommand::Next)
+                .is_none());
         }
     }
 

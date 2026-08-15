@@ -61,7 +61,6 @@ pub enum ShaderParameterValue {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ShaderDispatchExtent {
-    Viewport,
     ClusterGrid,
     HzbFurthest,
     IndirectArgs,

@@ -3,7 +3,7 @@ use std::io::Read;
 use std::mem::size_of;
 use std::path::{Path, PathBuf};
 
-use crate::core::resource::io::atomic_file::atomic_write;
+use crate::core::resource::io::atomic_write;
 use crate::graphics::shader::ShaderVariantCacheDisk;
 
 const PIPELINE_CACHE_MAGIC: &[u8; 8] = b"ZRPSOC01";

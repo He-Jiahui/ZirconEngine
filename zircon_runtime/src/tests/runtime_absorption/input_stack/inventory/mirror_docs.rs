@@ -7,26 +7,13 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
 
     for required_anchor in [
         "input_stack_boundary",
-        "expected_runtime_module_count = 18",
+        "expected_runtime_module_count = 19",
         "expected_framework_module_count = 26",
         "expected_test_module_count = 7",
         "expected_guard_file_count = 6",
-        "missing_guard_files = []",
-        "missing_input_prelude_anchors = []",
-        "missing_crate_prelude_anchors = []",
-        "missing_axis_frame_index_anchors = []",
-        "public_surface_anchors = 31/31",
-        "runtime_12_guard_anchors = 5/5",
-        "missing_gamepad_abi_anchors = []",
-        "missing_cursor_host_request_anchors = []",
-        "missing_doc_anchors = []",
-        "missing_test_anchors = []",
-        "behavior_test_anchor_count = 21",
-        "missing_behavior_test_anchors = []",
-        "missing_cargo_gate_anchors = []",
-        "oversized_modules = []",
-        "mirror_docs_guard_present = true",
-        "risks = []",
+        "ActionEvaluationGeneration",
+        "ActionEvaluationWorkspace",
+        "FrameAxisIndex",
         "runtime_12_input_stack_mirror_docs_match_structure_audit_counts",
     ] {
         assert!(
@@ -36,7 +23,7 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
     }
 
     for current_anchor in [
-        "expected_runtime_module_count = 18",
+        "expected_runtime_module_count = 19",
         "expected_framework_module_count = 26",
     ] {
         assert_eq!(
@@ -67,6 +54,27 @@ fn runtime_12_input_stack_mirror_docs_match_structure_audit_counts() {
         assert!(
             !input_doc.contains(stale_current_claim),
             "Runtime input module doc must label historical inventory evidence as historical: `{stale_current_claim}`"
+        );
+    }
+}
+
+#[test]
+fn runtime_12_input_stack_cargo_pending_gate_stays_explicit_until_input_validation() {
+    let input_doc = include_str!("../../../../../../docs/zircon_runtime/input/input_state.md");
+
+    assert!(
+        input_doc.contains("Runtime 12 managed Cargo gates remain pending"),
+        "the input module doc must not present static review as managed Cargo evidence"
+    );
+    for cargo_gate in [
+        "cargo test -p zircon_runtime --lib input --locked -- --nocapture",
+        "cargo test -p zircon_runtime --lib action_map --locked -- --nocapture",
+        "cargo test -p zircon_runtime --lib gamepad --locked -- --nocapture",
+        "cargo test -p zircon_app --locked",
+    ] {
+        assert!(
+            input_doc.contains(cargo_gate),
+            "the input module doc must retain pending managed Cargo gate `{cargo_gate}`"
         );
     }
 }

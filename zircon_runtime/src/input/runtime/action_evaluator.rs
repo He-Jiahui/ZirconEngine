@@ -1,38 +1,106 @@
-#[cfg(test)]
-use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet};
+#[cfg(test)]
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Mutex, MutexGuard};
 
 use crate::input::{
     GamepadAxisInput, InputActionMap, InputActionState, InputBinding, InputButton,
     InputFrameSnapshot,
 };
 
-mod binding_index;
+mod consumed_input_index;
 mod frame_axis_index;
+mod generation;
+mod workspace;
 
-use binding_index::ActionBindingIndex;
+use consumed_input_index::ConsumedInputIndex;
 use frame_axis_index::FrameAxisIndex;
+use generation::ActionEvaluationGeneration;
+use workspace::{ActionEvaluationWorkspace, EvaluatedAction};
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug)]
 pub struct InputActionEvaluator {
     action_map: InputActionMap,
-    binding_index: ActionBindingIndex,
+    generation: ActionEvaluationGeneration,
+    // Direct evaluators synchronize this private scratch; the default manager reuses its outer lock.
+    workspace: Mutex<ActionEvaluationWorkspace>,
     #[cfg(test)]
-    evaluation_binding_visits: Cell<usize>,
-    #[cfg(test)]
-    evaluation_axis_source_visits: Cell<usize>,
+    metrics: EvaluationMetrics,
+}
+
+#[cfg(test)]
+#[derive(Debug, Default)]
+struct EvaluationMetrics {
+    binding_visits: AtomicUsize,
+    axis_source_visits: AtomicUsize,
+    consumed_input_source_visits: AtomicUsize,
+    generation_builds: AtomicUsize,
+    output_actions: AtomicUsize,
+}
+
+#[cfg(test)]
+impl EvaluationMetrics {
+    fn reset_for_evaluation(&self) {
+        self.binding_visits.store(0, Ordering::Relaxed);
+        self.axis_source_visits.store(0, Ordering::Relaxed);
+        self.consumed_input_source_visits
+            .store(0, Ordering::Relaxed);
+        self.output_actions.store(0, Ordering::Relaxed);
+    }
+
+    fn record_binding_visit(&self) {
+        saturating_increment(&self.binding_visits);
+    }
+
+    fn record_generation_build(&self) {
+        saturating_increment(&self.generation_builds);
+    }
+
+    fn record_axis_source_visits(&self, count: usize) {
+        self.axis_source_visits.store(count, Ordering::Relaxed);
+    }
+
+    fn record_consumed_input_source_visits(&self, count: usize) {
+        self.consumed_input_source_visits
+            .store(count, Ordering::Relaxed);
+    }
+
+    fn record_output_actions(&self, count: usize) {
+        self.output_actions.store(count, Ordering::Relaxed);
+    }
+}
+
+#[cfg(test)]
+fn saturating_increment(counter: &AtomicUsize) {
+    let _ = counter.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
+        Some(value.saturating_add(1))
+    });
+}
+
+impl Clone for InputActionEvaluator {
+    fn clone(&self) -> Self {
+        Self::new(self.action_map.clone())
+    }
+}
+
+impl Default for InputActionEvaluator {
+    fn default() -> Self {
+        Self::new(InputActionMap::default())
+    }
 }
 
 impl InputActionEvaluator {
     pub fn new(action_map: InputActionMap) -> Self {
-        let binding_index = ActionBindingIndex::from_action_map(&action_map);
+        let generation = ActionEvaluationGeneration::from_action_map(&action_map);
         Self {
             action_map,
-            binding_index,
+            generation,
+            workspace: Mutex::default(),
             #[cfg(test)]
-            evaluation_binding_visits: Cell::new(0),
-            #[cfg(test)]
-            evaluation_axis_source_visits: Cell::new(0),
+            metrics: EvaluationMetrics {
+                generation_builds: AtomicUsize::new(1),
+                ..EvaluationMetrics::default()
+            },
         }
     }
 
@@ -41,23 +109,52 @@ impl InputActionEvaluator {
     }
 
     pub fn set_action_map(&mut self, action_map: InputActionMap) {
-        self.binding_index = ActionBindingIndex::from_action_map(&action_map);
+        let generation = ActionEvaluationGeneration::from_action_map(&action_map);
         self.action_map = action_map;
+        self.generation = generation;
+        self.workspace
+            .get_mut()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .reset();
+        #[cfg(test)]
+        self.metrics.record_generation_build();
     }
 
     #[cfg(test)]
     pub(crate) fn indexed_binding_candidate_count(&self) -> usize {
-        self.binding_index.candidate_count()
+        self.generation.candidate_count()
     }
 
     #[cfg(test)]
     pub(crate) fn evaluation_binding_visit_count(&self) -> usize {
-        self.evaluation_binding_visits.get()
+        self.metrics.binding_visits.load(Ordering::Relaxed)
     }
 
     #[cfg(test)]
     pub(crate) fn evaluation_axis_source_visit_count(&self) -> usize {
-        self.evaluation_axis_source_visits.get()
+        self.metrics.axis_source_visits.load(Ordering::Relaxed)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn evaluation_consumed_input_source_visit_count(&self) -> usize {
+        self.metrics
+            .consumed_input_source_visits
+            .load(Ordering::Relaxed)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn evaluation_generation_build_count(&self) -> usize {
+        self.metrics.generation_builds.load(Ordering::Relaxed)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn evaluation_output_action_count(&self) -> usize {
+        self.metrics.output_actions.load(Ordering::Relaxed)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn workspace_storage_growth_count(&self) -> usize {
+        self.lock_workspace().storage_growth_count()
     }
 
     pub fn evaluate(&self, frame: &InputFrameSnapshot) -> InputActionState {
@@ -115,136 +212,222 @@ impl InputActionEvaluator {
         consumed_buttons: &[InputButton],
         consumed_axes: &[GamepadAxisInput],
     ) -> InputActionState {
-        #[cfg(test)]
-        self.evaluation_binding_visits.set(0);
-        #[cfg(test)]
-        self.evaluation_axis_source_visits.set(0);
-        let frame_axes = if self.binding_index.has_axis_bindings() {
-            FrameAxisIndex::from_frame(frame)
-        } else {
-            FrameAxisIndex::default()
-        };
-        #[cfg(test)]
-        self.evaluation_axis_source_visits
-            .set(frame_axes.source_visit_count());
-        let consumed_buttons = consumed_buttons.iter().cloned().collect::<BTreeSet<_>>();
-        let consumed_axes = consumed_axes.iter().cloned().collect::<BTreeSet<_>>();
-        let active_contexts = active_contexts
-            .iter()
-            .map(|context| context.as_ref())
-            .collect::<BTreeSet<_>>();
-        let mut pressed = BTreeSet::new();
-        let mut just_activated = BTreeSet::new();
-        let mut just_deactivated = BTreeSet::new();
-        let mut values = BTreeMap::new();
-
-        for action in &self.action_map.actions {
-            if !self.action_context_is_active(action.context.as_deref(), &active_contexts) {
-                continue;
-            }
-
-            let mut action_pressed = false;
-            let mut action_just_activated = false;
-            let mut action_just_deactivated = false;
-            let mut action_value = 0.0;
-
-            for &binding_index in self.binding_index.indices_for_action(&action.id) {
-                #[cfg(test)]
-                self.evaluation_binding_visits
-                    .set(self.evaluation_binding_visits.get().saturating_add(1));
-                let binding = &self.action_map.bindings[binding_index];
-                if binding
-                    .buttons
-                    .iter()
-                    .any(|button| consumed_buttons.contains(button))
-                {
-                    continue;
-                }
-
-                let has_buttons = !binding.buttons.is_empty();
-                let has_axes = !binding.axes.is_empty();
-                let all_pressed = binding
-                    .buttons
-                    .iter()
-                    .all(|button| frame.buttons.pressed(button));
-                let any_just_pressed = binding
-                    .buttons
-                    .iter()
-                    .any(|button| frame.buttons.just_pressed(button));
-                let any_just_released = binding
-                    .buttons
-                    .iter()
-                    .any(|button| frame.buttons.just_released(button));
-
-                if has_axes {
-                    if !all_pressed {
-                        action_just_deactivated |= has_buttons && any_just_released;
-                        continue;
-                    }
-
-                    let axis = evaluate_binding_axes(&frame_axes, binding, &consumed_axes);
-                    if axis.value != 0.0 {
-                        action_pressed = true;
-                        action_value = dominant_action_value(action_value, axis.value);
-                        action_just_activated |=
-                            (has_buttons && any_just_pressed) || axis.activated;
-                    } else {
-                        action_just_deactivated |= axis.deactivated;
-                    }
-                    continue;
-                }
-
-                if all_pressed {
-                    action_pressed = true;
-                    action_value = dominant_action_value(action_value, 1.0);
-                    action_just_activated |= any_just_pressed;
-                } else {
-                    action_just_deactivated |= any_just_released;
-                }
-            }
-
-            if action_pressed {
-                pressed.insert(action.id.clone());
-                values.insert(action.id.clone(), action_value);
-                if action_just_activated {
-                    just_activated.insert(action.id.clone());
-                }
-            } else if action_just_deactivated {
-                just_deactivated.insert(action.id.clone());
-            }
-        }
-
-        InputActionState::from_sets_and_values(pressed, just_activated, just_deactivated, values)
+        let mut workspace = self.lock_workspace();
+        evaluate_with_workspace(
+            &self.action_map,
+            &self.generation,
+            frame,
+            active_contexts,
+            consumed_buttons,
+            consumed_axes,
+            #[cfg(test)]
+            &self.metrics,
+            &mut workspace,
+        )
     }
 
-    fn action_context_is_active(
-        &self,
-        action_context: Option<&str>,
-        active_contexts: &BTreeSet<&str>,
-    ) -> bool {
-        let Some(context) = action_context else {
-            return true;
-        };
+    pub(super) fn evaluate_while_manager_locked(
+        &mut self,
+        frame: &InputFrameSnapshot,
+        active_contexts: &[&str],
+        consumed_buttons: &[InputButton],
+        consumed_axes: &[GamepadAxisInput],
+    ) -> InputActionState {
+        let action_map = &self.action_map;
+        let generation = &self.generation;
+        #[cfg(test)]
+        let metrics = &self.metrics;
+        let workspace = self
+            .workspace
+            .get_mut()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        evaluate_with_workspace(
+            action_map,
+            generation,
+            frame,
+            active_contexts,
+            consumed_buttons,
+            consumed_axes,
+            #[cfg(test)]
+            metrics,
+            workspace,
+        )
+    }
 
-        if !self.binding_index.context_enabled(context) {
-            return false;
-        }
-
-        active_contexts.is_empty() || active_contexts.contains(context)
+    fn lock_workspace(&self) -> MutexGuard<'_, ActionEvaluationWorkspace> {
+        self.workspace
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 }
 
-fn binding_axis_consumed(
-    gamepad_axis: GamepadAxisInput,
-    consumed_axes: &BTreeSet<GamepadAxisInput>,
+fn evaluate_with_workspace(
+    action_map: &InputActionMap,
+    generation: &ActionEvaluationGeneration,
+    frame: &InputFrameSnapshot,
+    active_contexts: &[impl AsRef<str>],
+    consumed_buttons: &[InputButton],
+    consumed_axes: &[GamepadAxisInput],
+    #[cfg(test)] metrics: &EvaluationMetrics,
+    workspace: &mut ActionEvaluationWorkspace,
+) -> InputActionState {
+    #[cfg(test)]
+    metrics.reset_for_evaluation();
+
+    let all_contexts_active = active_contexts.is_empty();
+    workspace.prepare(
+        generation,
+        frame,
+        active_contexts,
+        consumed_buttons,
+        consumed_axes,
+    );
+    #[cfg(test)]
+    metrics.record_axis_source_visits(workspace.frame_axes().source_visit_count());
+    #[cfg(test)]
+    metrics.record_consumed_input_source_visits(workspace.consumed_input_source_visit_count());
+
+    for (slot, compiled) in generation.actions().iter().enumerate() {
+        if !action_context_is_active(
+            generation,
+            compiled.context_slot,
+            all_contexts_active,
+            workspace,
+        ) {
+            continue;
+        }
+
+        let mut action_pressed = false;
+        let mut action_just_activated = false;
+        let mut action_just_deactivated = false;
+        let mut action_value = 0.0;
+
+        for &binding_index in compiled.binding_indices(generation) {
+            #[cfg(test)]
+            metrics.record_binding_visit();
+            let binding = &action_map.bindings[binding_index];
+            if binding.buttons.iter().any(|button| {
+                workspace
+                    .consumed_inputs()
+                    .button_is_consumed(consumed_buttons, button)
+            }) {
+                continue;
+            }
+
+            let has_buttons = !binding.buttons.is_empty();
+            let has_axes = !binding.axes.is_empty();
+            let all_pressed = binding
+                .buttons
+                .iter()
+                .all(|button| frame.buttons.pressed(button));
+            let any_just_pressed = binding
+                .buttons
+                .iter()
+                .any(|button| frame.buttons.just_pressed(button));
+            let any_just_released = binding
+                .buttons
+                .iter()
+                .any(|button| frame.buttons.just_released(button));
+
+            if has_axes {
+                if !all_pressed {
+                    action_just_deactivated |= has_buttons && any_just_released;
+                    continue;
+                }
+
+                let axis = evaluate_binding_axes(
+                    workspace.frame_axes(),
+                    workspace.consumed_inputs(),
+                    binding,
+                    consumed_axes,
+                );
+                if axis.value != 0.0 {
+                    action_pressed = true;
+                    action_value = dominant_action_value(action_value, axis.value);
+                    action_just_activated |= (has_buttons && any_just_pressed) || axis.activated;
+                } else {
+                    action_just_deactivated |= axis.deactivated;
+                }
+                continue;
+            }
+
+            if all_pressed {
+                action_pressed = true;
+                action_value = dominant_action_value(action_value, 1.0);
+                action_just_activated |= any_just_pressed;
+            } else {
+                action_just_deactivated |= any_just_released;
+            }
+        }
+
+        workspace.set_action(
+            slot,
+            EvaluatedAction {
+                pressed: action_pressed,
+                just_activated: action_just_activated,
+                just_deactivated: action_just_deactivated,
+                value: action_value,
+            },
+        );
+    }
+
+    project_action_state(
+        action_map,
+        generation,
+        #[cfg(test)]
+        metrics,
+        workspace,
+    )
+}
+
+fn action_context_is_active(
+    generation: &ActionEvaluationGeneration,
+    context_slot: Option<usize>,
+    all_contexts_active: bool,
+    workspace: &ActionEvaluationWorkspace,
 ) -> bool {
-    consumed_axes.contains(&gamepad_axis)
+    let Some(context_slot) = context_slot else {
+        return true;
+    };
+    generation.context_enabled(context_slot)
+        && (all_contexts_active || workspace.context_is_active(context_slot))
+}
+
+fn project_action_state(
+    action_map: &InputActionMap,
+    generation: &ActionEvaluationGeneration,
+    #[cfg(test)] metrics: &EvaluationMetrics,
+    workspace: &ActionEvaluationWorkspace,
+) -> InputActionState {
+    let mut pressed = BTreeSet::new();
+    let mut just_activated = BTreeSet::new();
+    let mut just_deactivated = BTreeSet::new();
+    let mut values = BTreeMap::new();
+
+    for (slot, compiled) in generation.actions().iter().enumerate() {
+        let action = &action_map.actions[compiled.action_index];
+        let evaluated = workspace.action(slot);
+        if evaluated.pressed {
+            pressed.insert(action.id.clone());
+            values.insert(action.id.clone(), evaluated.value);
+            if evaluated.just_activated {
+                just_activated.insert(action.id.clone());
+            }
+        } else if evaluated.just_deactivated {
+            just_deactivated.insert(action.id.clone());
+        }
+    }
+
+    #[cfg(test)]
+    metrics.record_output_actions(pressed.len().saturating_add(just_deactivated.len()));
+    InputActionState::from_sets_and_values(pressed, just_activated, just_deactivated, values)
 }
 
 fn evaluate_binding_axes(
     frame_axes: &FrameAxisIndex,
+    consumed_inputs: &ConsumedInputIndex,
     binding: &InputBinding,
-    consumed_axes: &BTreeSet<GamepadAxisInput>,
+    consumed_axes: &[GamepadAxisInput],
 ) -> BindingAxisEvaluation {
     let mut any_transition = false;
     let mut previous_value = 0.0;
@@ -252,14 +435,11 @@ fn evaluate_binding_axes(
     let mut action_value = 0.0;
 
     for binding_axis in &binding.axes {
-        if binding_axis_consumed(
-            GamepadAxisInput::new(binding_axis.gamepad, binding_axis.axis),
-            consumed_axes,
-        ) {
+        let axis_input = GamepadAxisInput::new(binding_axis.gamepad, binding_axis.axis);
+        if consumed_inputs.axis_is_consumed(consumed_axes, axis_input) {
             continue;
         }
 
-        let axis_input = GamepadAxisInput::new(binding_axis.gamepad, binding_axis.axis);
         let current_state = frame_axes.value(axis_input);
         if let Some(current_state) = current_state {
             action_value = dominant_action_value(action_value, binding_axis.value(current_state));

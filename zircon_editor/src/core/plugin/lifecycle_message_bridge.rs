@@ -486,11 +486,9 @@ mod tests {
             .filter(|event| event.stage() == &EditorPluginLifecycleStage::SceneChanged)
             .collect::<Vec<_>>();
         assert_eq!(scene_events.len(), 3);
-        assert!(
-            scene_events
-                .iter()
-                .all(|event| event.subject() == Some("42"))
-        );
+        assert!(scene_events
+            .iter()
+            .all(|event| event.subject() == Some("42")));
     }
 
     #[test]

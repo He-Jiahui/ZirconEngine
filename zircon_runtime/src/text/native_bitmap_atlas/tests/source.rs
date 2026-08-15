@@ -1,8 +1,9 @@
 use super::*;
-use crate::text::InstancedFaceId;
 use crate::text::atlas::{
     GlyphHintingMode, GlyphRasterKey, GlyphRasterRequest, GlyphSmoothingMode, SyntheticGlyphStyle,
 };
+use crate::text::InstancedFaceId;
+use glyphon::TextBounds;
 use std::sync::Arc;
 
 #[test]

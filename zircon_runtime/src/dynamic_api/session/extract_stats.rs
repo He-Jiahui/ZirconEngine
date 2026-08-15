@@ -5,20 +5,40 @@ use super::extract_cache::RuntimeFrameExtractCacheStatus;
 
 pub(super) const EXTRACT_REBUILD_CLONES_DIAGNOSTIC: &str = "extract.rebuild_clones";
 pub(super) const EXTRACT_OUTPUT_BYTES_DIAGNOSTIC: &str = "extract.output_bytes";
+pub(super) const EXTRACT_FULL_CLONES_DIAGNOSTIC: &str = "extract.full_clones";
+pub(super) const EXTRACT_FULL_CLONE_BYTES_DIAGNOSTIC: &str = "extract.full_clone_bytes";
 pub(super) const EXTRACT_CACHE_HITS_DIAGNOSTIC: &str = "extract.cache_hits";
 pub(super) const EXTRACT_CACHE_MISSES_DIAGNOSTIC: &str = "extract.cache_misses";
+pub(super) const EXTRACT_STATS_PAYLOAD_SCANS_DIAGNOSTIC: &str = "extract.stats_payload_scans";
+
+/// Immutable statistics computed once alongside a cached extract generation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) struct RuntimeFrameExtractDiagnosticsSummary {
+    output_bytes: usize,
+}
+
+impl RuntimeFrameExtractDiagnosticsSummary {
+    pub(super) fn from_extract(extract: &RenderFrameExtract) -> Self {
+        Self {
+            output_bytes: estimate_extract_output_bytes(extract),
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct RuntimeFrameExtractStats {
     pub rebuild_clones: u64,
     pub output_bytes: usize,
+    pub full_clones: u64,
+    pub full_clone_bytes: usize,
     pub cache_hits: u64,
     pub cache_misses: u64,
+    pub payload_stats_scans: u64,
 }
 
 impl RuntimeFrameExtractStats {
-    pub fn from_extract(
-        extract: &RenderFrameExtract,
+    pub(super) fn from_summary(
+        summary: RuntimeFrameExtractDiagnosticsSummary,
         status: RuntimeFrameExtractCacheStatus,
     ) -> Self {
         Self {
@@ -26,12 +46,19 @@ impl RuntimeFrameExtractStats {
                 RuntimeFrameExtractCacheStatus::Rebuilt => 1,
                 RuntimeFrameExtractCacheStatus::Reused => 0,
             },
-            output_bytes: estimate_extract_output_bytes(extract),
+            output_bytes: summary.output_bytes,
+            // Cache population and cache reuse each perform one deep RenderFrameExtract clone.
+            full_clones: 1,
+            full_clone_bytes: summary.output_bytes,
             cache_hits: match status {
                 RuntimeFrameExtractCacheStatus::Rebuilt => 0,
                 RuntimeFrameExtractCacheStatus::Reused => 1,
             },
             cache_misses: match status {
+                RuntimeFrameExtractCacheStatus::Rebuilt => 1,
+                RuntimeFrameExtractCacheStatus::Reused => 0,
+            },
+            payload_stats_scans: match status {
                 RuntimeFrameExtractCacheStatus::Rebuilt => 1,
                 RuntimeFrameExtractCacheStatus::Reused => 0,
             },
@@ -55,6 +82,20 @@ impl RuntimeFrameExtractStats {
             ["runtime", "extract"],
         );
         runtime.record_diagnostic(
+            EXTRACT_FULL_CLONES_DIAGNOSTIC,
+            frame_index,
+            self.full_clones as f64,
+            Some("count"),
+            ["runtime", "extract"],
+        );
+        runtime.record_diagnostic(
+            EXTRACT_FULL_CLONE_BYTES_DIAGNOSTIC,
+            frame_index,
+            self.full_clone_bytes as f64,
+            Some("byte"),
+            ["runtime", "extract"],
+        );
+        runtime.record_diagnostic(
             EXTRACT_CACHE_HITS_DIAGNOSTIC,
             frame_index,
             self.cache_hits as f64,
@@ -68,15 +109,22 @@ impl RuntimeFrameExtractStats {
             Some("count"),
             ["runtime", "extract"],
         );
+        runtime.record_diagnostic(
+            EXTRACT_STATS_PAYLOAD_SCANS_DIAGNOSTIC,
+            frame_index,
+            self.payload_stats_scans as f64,
+            Some("count"),
+            ["runtime", "extract"],
+        );
     }
 }
 
 pub(super) fn record_frame_extract_stats(
     runtime: &CoreRuntime,
-    extract: &RenderFrameExtract,
+    summary: RuntimeFrameExtractDiagnosticsSummary,
     status: RuntimeFrameExtractCacheStatus,
 ) {
-    RuntimeFrameExtractStats::from_extract(extract, status).record_diagnostics(runtime);
+    RuntimeFrameExtractStats::from_summary(summary, status).record_diagnostics(runtime);
 }
 
 fn estimate_extract_output_bytes(extract: &RenderFrameExtract) -> usize {

@@ -1,10 +1,13 @@
 use crate::core::framework::render::{
-    AntiAliasSettings, FrameHistoryInvalidationReason, PostProcessStackDescriptor,
-    RenderBloomSettings, RenderCameraTargetResolutionReport, RenderColorGradingSettings,
-    RenderDynamicResolutionSettings, RenderFrameExtract, RenderFrameworkError,
-    RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderPostProcessEffectStackSettings,
-    RenderViewportHandle, RenderVirtualGeometryExtract, RenderVirtualGeometryPayloadSource,
+    AntiAliasSettings, FrameHistoryInvalidationReason, PostProcessPassGraph,
+    PostProcessStackDescriptor, RenderBloomSettings, RenderCameraTargetResolutionReport,
+    RenderColorGradingSettings, RenderDynamicResolutionSettings, RenderFrameExtract,
+    RenderFrameworkError, RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderPipelinePhase,
+    RenderPostProcessEffectStackSettings, RenderResolutionPolicy, RenderUpscalerKind,
+    RenderViewExtract, RenderViewFamilyPipeline, RenderViewportHandle, RenderViewportRect,
+    RenderVirtualGeometryExtract, RenderVirtualGeometryPayloadSource,
 };
+use crate::core::math::UVec2;
 use crate::graphics::runtime::FrameHistoryValidationKey;
 use crate::graphics::{
     BuiltinRenderFeature, RenderPipelineCompileOptions, ViewportRenderOutputTarget,
@@ -18,11 +21,14 @@ use super::super::super::budget::BudgetDegradeSettings;
 use super::super::super::compiled_feature_names::compiled_feature_names;
 use super::super::super::wgpu_render_framework::WgpuRenderFrameworkAccess;
 use super::super::frame_submission_context::{
-    FrameSubmissionContext, UiSubmissionStats, temporal_jitter_for_submission,
+    temporal_jitter_for_submission, FrameSubmissionContext, UiSubmissionStats,
 };
 use super::camera_history_key::camera_history_key_for_extract;
 use super::compile_pipeline::compile_submission_pipeline_with_options;
-use super::environment_ibl_compile_options::compile_options_with_environment_ibl_bake_request;
+use super::environment_ibl_compile_options::{
+    compile_options_with_environment_ibl_bake_request, resolve_and_rehydrate_environment_ibl_cache,
+    EnvironmentIblCacheResolution,
+};
 use super::material_feature_extract::resolve_advanced_pbr_material_usage;
 use super::resolve_enabled_features::resolve_enabled_features;
 use super::resolve_viewport_record_state::resolve_viewport_record_state;
@@ -81,13 +87,22 @@ fn build_frame_submission_context_from_source(
     let mut viewport_state =
         resolve_viewport_record_state(framework, viewport, extract_source.as_ref())?;
     let primary_target_size = viewport_state.size();
-    let asset_manager = {
+    let (asset_manager, environment_ibl_hydration_cache) = {
         let state = framework.lock_state();
-        state.renderer.asset_manager_for_runtime_extract()
-    }
-    .map_err(|error| RenderFrameworkError::Backend(error.to_string()))?;
+        (
+            state.renderer.asset_manager_for_runtime_extract(),
+            Arc::clone(&state.environment_ibl_hydration_cache),
+        )
+    };
+    let asset_manager =
+        asset_manager.map_err(|error| RenderFrameworkError::Backend(error.to_string()))?;
     resolve_subsurface_material_profiles(asset_manager.as_ref(), Arc::make_mut(extract_source));
     resolve_advanced_pbr_material_usage(asset_manager.as_ref(), Arc::make_mut(extract_source));
+    let environment_ibl_cache_resolution = resolve_and_rehydrate_environment_ibl_cache(
+        asset_manager.as_ref(),
+        &environment_ibl_hydration_cache,
+        Arc::make_mut(extract_source),
+    )?;
     let resolved_camera_target = resolve_camera_target_descriptor(
         primary_target_size,
         extract_source.as_ref().view.selected_camera_target(),
@@ -267,7 +282,18 @@ fn build_frame_submission_context_from_source(
     let post_process_history_available = history_available
         || (anti_alias_report.effective_mode == crate::core::framework::render::AntiAliasMode::Taa
             && taa_history_store_available);
-    let upscale_required = render_size != effective_view_size;
+    let view_family_pipeline = resolve_view_family_pipeline_for_submission(
+        &effective_extract.view,
+        submission_size,
+        if anti_alias_report.effective_mode == crate::core::framework::render::AntiAliasMode::Taa {
+            RenderUpscalerKind::Temporal
+        } else {
+            RenderUpscalerKind::Spatial
+        },
+    );
+    let upscale_required = view_family_pipeline
+        .phases()
+        .contains(&RenderPipelinePhase::SpatialUpscale);
     let mut post_process_stack =
         PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale(
             &effective_bloom,
@@ -282,13 +308,22 @@ fn build_frame_submission_context_from_source(
     if hybrid_gi_enabled && effective_hybrid_gi_extract.is_some() {
         post_process_stack = post_process_stack.with_hybrid_gi_lighting_input();
     }
+    let post_process_graph = PostProcessPassGraph::validate_stack_for_view_family(
+        &post_process_stack,
+        &view_family_pipeline,
+    )
+    .map_err(|error| {
+        RenderFrameworkError::Backend(format!(
+            "view-family post-process graph validation failed: {error}"
+        ))
+    })?;
     let compile_options = compile_options_with_environment_ibl_bake_request(
-        asset_manager.as_ref(),
         effective_extract,
         budget_compile_options
             .clone()
             .with_graph_msaa_sample_count(anti_alias_report.effective_graph_sample_count())
             .with_post_process_stack(post_process_stack.clone()),
+        environment_ibl_cache_resolution.as_ref(),
     )?;
     let compiled_pipeline = compile_submission_pipeline_with_options(
         framework,
@@ -297,7 +332,6 @@ fn build_frame_submission_context_from_source(
         compile_camera_target,
         &compile_options,
     )?;
-    let post_process_graph = post_process_stack.validated_graph();
     let temporal_jitter =
         temporal_jitter_for_submission(anti_alias_report, viewport_state.temporal_frame_index());
     {
@@ -340,6 +374,9 @@ fn build_frame_submission_context_from_source(
     let capabilities = viewport_state.take_capabilities();
     let previous_motion_vector_camera = viewport_state.take_previous_motion_vector_camera();
 
+    let environment_ibl_bake_reservation = environment_ibl_cache_resolution
+        .and_then(EnvironmentIblCacheResolution::take_runtime_bake_reservation);
+
     Ok(FrameSubmissionContext::new(
         submission_size,
         render_size,
@@ -353,6 +390,7 @@ fn build_frame_submission_context_from_source(
         previous_motion_vector_camera,
         camera_history_key,
         history_validation_key,
+        temporal_history_enabled,
         history_invalidation_reason,
         output_target,
         camera_target_resolution,
@@ -388,7 +426,8 @@ fn build_frame_submission_context_from_source(
         f32::from(quality_profile_texture_mip_bias)
             + budget_degrade_settings.global_mip_bias as f32,
     )
-    .with_texture_max_anisotropy(quality_profile_texture_max_anisotropy))
+    .with_texture_max_anisotropy(quality_profile_texture_max_anisotropy)
+    .with_environment_ibl_bake_reservation(environment_ibl_bake_reservation))
 }
 
 fn apply_budget_render_scale(extract: &mut RenderFrameExtract, settings: BudgetDegradeSettings) {
@@ -428,6 +467,27 @@ fn effect_stack_for_budget_degrade(
         effect_stack.screen_space_reflection.intensity = 0.0;
     }
     effect_stack
+}
+
+fn resolve_view_family_pipeline_for_submission(
+    view: &RenderViewExtract,
+    submission_size: UVec2,
+    upscaler: RenderUpscalerKind,
+) -> RenderViewFamilyPipeline {
+    let view_camera = view.selected_effective_camera();
+    let display_viewport = view
+        .selected_camera_descriptor()
+        .and_then(|descriptor| descriptor.viewport_rect)
+        .map(|viewport| viewport.clamped_to_size(submission_size))
+        .unwrap_or_else(|| RenderViewportRect::new(UVec2::ZERO, submission_size));
+    RenderViewFamilyPipeline::resolve_for_viewport(
+        submission_size,
+        display_viewport,
+        RenderResolutionPolicy::with_spatial_primary_fraction(
+            view_camera.dynamic_resolution.clamped_scale(),
+        ),
+        upscaler,
+    )
 }
 
 fn apply_renderer_owned_particle_previous_state(
@@ -558,6 +618,7 @@ fn apply_effective_view_and_graph_settings(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::framework::render::{CameraRenderDescriptor, ViewportCameraSnapshot};
 
     #[test]
     fn virtual_geometry_payload_source_prefers_authored_extract() {
@@ -612,6 +673,53 @@ mod tests {
         assert!(source.contains("VirtualGeometryRuntimeExtractOutput::into_parts"));
         assert!(!source.contains(concat!("previous_particle_sprites()", ".to_vec()")));
         assert!(!source.contains(concat!("virtual_geometry_runtime_provider", ".clone()")));
+    }
+
+    #[test]
+    fn post_process_mutation_reborrows_before_building_the_view_family() {
+        let source = include_str!("build.rs");
+        let mutation_start = source
+            .find("let effective_extract = Arc::make_mut(extract_source);")
+            .expect("post-process settings must mutate the frame extract once");
+        let view_family_start = source[mutation_start..]
+            .find("let view_family_pipeline =")
+            .map(|offset| mutation_start + offset)
+            .expect("view-family resolution must follow post-process mutation");
+        let view_family_end = source[view_family_start..]
+            .find("\n    );")
+            .map(|offset| view_family_start + offset)
+            .expect("view-family resolution must be a bounded call");
+        let view_family = &source[view_family_start..view_family_end];
+
+        assert!(view_family.contains("&effective_extract.view,"));
+        assert!(!view_family.contains("sized_extract"));
+    }
+
+    #[test]
+    fn submission_view_family_preserves_the_selected_camera_viewport_rect() {
+        let camera = ViewportCameraSnapshot::default();
+        let mut descriptor = CameraRenderDescriptor::from_camera_payload(None, camera.clone());
+        descriptor.viewport_rect = Some(RenderViewportRect::new(
+            UVec2::new(960, 0),
+            UVec2::new(960, 1080),
+        ));
+        let view =
+            RenderViewExtract::from_camera(camera).with_selected_camera_descriptor(descriptor);
+
+        let pipeline = resolve_view_family_pipeline_for_submission(
+            &view,
+            UVec2::new(1920, 1080),
+            RenderUpscalerKind::Spatial,
+        );
+
+        assert_eq!(
+            pipeline.resolution().display_viewport(),
+            RenderViewportRect::new(UVec2::new(960, 0), UVec2::new(960, 1080))
+        );
+        assert_eq!(
+            pipeline.resolution().primary_viewport(),
+            RenderViewportRect::new(UVec2::new(960, 0), UVec2::new(960, 1080))
+        );
     }
 }
 

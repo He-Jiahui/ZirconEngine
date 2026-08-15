@@ -45,6 +45,25 @@ fn pointer_dispatch_does_not_clone_an_unused_hover_path() {
 }
 
 #[test]
+fn pointer_hot_path_reuses_hit_routes_and_skips_empty_handler_contexts() {
+    let routing_source = include_str!("../surface/surface/event_routing.rs");
+    let dispatcher_source = include_str!("../dispatch/pointer/dispatcher.rs");
+
+    assert!(
+        routing_source.contains("hit.path.bubble_route.clone()"),
+        "top-hit pointer routing should reuse the bubble route cached by hit testing"
+    );
+    assert!(
+        dispatcher_source.contains("if self.handlers.is_empty() && self.phase_handlers.is_empty()"),
+        "the default pointer dispatcher should bypass route traversal entirely"
+    );
+    assert!(
+        dispatcher_source.contains("if phase_handlers.is_none() && unqualified_handlers.is_none()"),
+        "nodes without pointer handlers must not allocate a dispatch context"
+    );
+}
+
+#[test]
 fn default_table_sort_borrows_common_scalar_text() {
     let source = include_str!("../surface/surface/default_interactions/table/columns.rs");
 

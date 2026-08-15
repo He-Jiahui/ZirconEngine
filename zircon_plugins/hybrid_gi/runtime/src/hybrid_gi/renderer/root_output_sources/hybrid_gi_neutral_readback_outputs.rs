@@ -29,6 +29,9 @@ impl From<HybridGiGpuReadback> for RenderHybridGiReadbackOutputs {
             completed_trace_region_ids: readback.completed_trace_region_ids().to_vec(),
             probe_irradiance_rgb: rgb8_triplets_as_rgb16(readback.probe_irradiance_rgb()),
             probe_rt_lighting_rgb: rgb8_triplets_as_rgb16(readback.probe_trace_lighting_rgb()),
+            radiance_cache_gpu_stage_dispatch_counts: *readback
+                .radiance_cache_gpu_stage_dispatch_counts(),
+            global_sdf_stats: None,
             scene_prepare,
         }
     }
@@ -65,6 +68,7 @@ impl From<HybridGiScenePrepareResourcesSnapshot> for RenderHybridGiScenePrepareR
         let surface_cache_depth_samples =
             scene_prepare_samples(snapshot.surface_cache_depth_rgba_samples().to_vec());
         let probe_trace_tiles = neutral_probe_trace_tiles(snapshot.probe_trace_tiles());
+        let probe_trace_diagnostics = snapshot.probe_trace_diagnostics().to_vec();
         let probe_trace_dispatch = snapshot.probe_trace_dispatch();
         let occupied_atlas_slots = snapshot.occupied_atlas_slots().to_vec();
         let occupied_capture_slots = snapshot.occupied_capture_slots().to_vec();
@@ -87,6 +91,7 @@ impl From<HybridGiScenePrepareResourcesSnapshot> for RenderHybridGiScenePrepareR
             voxel_cell_dominant_nodes,
             voxel_cell_dominant_samples,
             probe_trace_tiles,
+            probe_trace_diagnostics,
             probe_trace_dispatch,
             texture_width: atlas_extent.0,
             texture_height: atlas_extent.1,
@@ -207,6 +212,11 @@ fn neutral_probe_trace_tiles(tiles: &[(u32, u32, u32, u32)]) -> Vec<RenderHybrid
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zircon_runtime::core::framework::render::{
+        RenderHybridGiProbeTraceDiagnosticRecord, RenderHybridGiTraceCostCounters,
+        RenderHybridGiTraceFallbackReason, RenderHybridGiTraceIntersectionSource,
+        RenderHybridGiTraceLightingSource,
+    };
 
     #[test]
     fn neutral_outputs_project_hybrid_gi_gpu_readback() {
@@ -235,6 +245,23 @@ mod tests {
         );
         scene_prepare.store_surface_cache_depth_samples(vec![(1, [96, 96, 96, 255])]);
         scene_prepare.store_probe_trace_tiles(vec![(0, 9, 2, 32)], [1, 1, 1]);
+        scene_prepare.store_probe_trace_diagnostics(vec![
+            RenderHybridGiProbeTraceDiagnosticRecord {
+                probe_id: 9,
+                intersection_source: RenderHybridGiTraceIntersectionSource::GlobalSdf,
+                lighting_source: RenderHybridGiTraceLightingSource::ProbeLineage,
+                intersection_backend_mask: 1 << 1,
+                lighting_source_mask: 1 << 2,
+                distance_bits: 3.5_f32.to_bits(),
+                confidence_bits: 0.75_f32.to_bits(),
+                fallback_reason: RenderHybridGiTraceFallbackReason::ScreenDataUnavailable,
+                cost: RenderHybridGiTraceCostCounters {
+                    page_tests: 8,
+                    sdf_steps: 6,
+                    ..RenderHybridGiTraceCostCounters::default()
+                },
+            },
+        ]);
 
         let readback = HybridGiGpuReadback::new(
             vec![(5, 7)],
@@ -243,7 +270,8 @@ mod tests {
             vec![(11, [1, 2, 3]), (12, [4, 5, 6])],
             vec![(11, [7, 8, 9])],
             Some(scene_prepare),
-        );
+        )
+        .with_radiance_cache_gpu_stage_dispatch_counts([1, 1, 1, 1, 1, 2]);
 
         let outputs = RenderHybridGiReadbackOutputs::from(readback);
 
@@ -255,6 +283,10 @@ mod tests {
         assert_eq!(outputs.completed_trace_region_ids, vec![21]);
         assert_eq!(outputs.probe_irradiance_rgb, vec![[1, 2, 3], [4, 5, 6]]);
         assert_eq!(outputs.probe_rt_lighting_rgb, vec![[7, 8, 9]]);
+        assert_eq!(
+            outputs.radiance_cache_gpu_stage_dispatch_counts,
+            [1, 1, 1, 1, 1, 2]
+        );
         assert_eq!(outputs.scene_prepare.occupied_atlas_slots, vec![1, 2]);
         assert_eq!(outputs.scene_prepare.occupied_capture_slots, vec![3]);
         assert_eq!(
@@ -336,6 +368,17 @@ mod tests {
             }]
         );
         assert_eq!(outputs.scene_prepare.probe_trace_dispatch, [1, 1, 1]);
+        assert_eq!(outputs.scene_prepare.probe_trace_diagnostics.len(), 1);
+        assert_eq!(
+            outputs.scene_prepare.probe_trace_diagnostics[0].intersection_source,
+            RenderHybridGiTraceIntersectionSource::GlobalSdf
+        );
+        assert_eq!(
+            outputs.scene_prepare.probe_trace_diagnostics[0]
+                .cost
+                .sdf_steps,
+            6
+        );
         assert_eq!(outputs.scene_prepare.texture_width, 64);
         assert_eq!(outputs.scene_prepare.texture_height, 32);
         assert_eq!(outputs.scene_prepare.texture_layers, 6);

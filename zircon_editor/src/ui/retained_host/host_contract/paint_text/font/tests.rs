@@ -6,8 +6,10 @@ use crate::ui::retained_host::host_contract::paint_theme::{
 #[test]
 fn ui_face_keeps_proportional_widths_while_code_face_stays_mono() {
     let px = 13.0;
-    let ui_font = font_for_face(HostTextFontFace::Ui).expect("ui retained-host font");
-    let mono_font = font_for_face(HostTextFontFace::Mono).expect("mono retained-host font");
+    let ui_font = host_font_snapshot_for_face(HostTextFontFace::Ui);
+    let ui_font = ui_font.font().expect("ui retained-host font");
+    let mono_font = host_font_snapshot_for_face(HostTextFontFace::Mono);
+    let mono_font = mono_font.font().expect("mono retained-host font");
     let ui_i = ui_font.metrics('i', px).advance_width;
     let ui_w = ui_font.metrics('W', px).advance_width;
     let mono_i = mono_font.metrics('i', px).advance_width;
@@ -89,7 +91,7 @@ fn explicit_fontdb_generic_families_remain_generic() {
 }
 
 #[test]
-fn embedded_fallback_keeps_the_requested_runtime_family() {
+fn embedded_fallback_uses_the_packaged_runtime_face_identity() {
     let request = HostTextFontRequest {
         face: HostTextFontFace::Ui,
         family: "requested-ui-family".to_string(),
@@ -98,13 +100,14 @@ fn embedded_fallback_keeps_the_requested_runtime_family() {
 
     let font = embedded_font_for_request(&request);
 
-    assert_eq!(font.runtime_family, "requested-ui-family");
+    assert_eq!(font.runtime_family.as_ref(), RUNTIME_FALLBACK_FONT_FAMILY);
     assert_eq!(font.collection_index, 0);
+    assert_eq!(font.bytes.as_ref(), RUNTIME_FALLBACK_FONT_BYTES);
     assert!(font.font.is_some());
 }
 
 #[test]
-fn unavailable_host_font_preserves_runtime_family_without_embedded_panic() {
+fn unavailable_host_font_uses_packaged_runtime_identity_without_panicking() {
     let request = HostTextFontRequest {
         face: HostTextFontFace::Ui,
         family: "requested-ui-family".to_string(),
@@ -115,7 +118,7 @@ fn unavailable_host_font_preserves_runtime_family_without_embedded_panic() {
 
     assert!(font.font.is_none());
     assert!(font.bytes.is_empty());
-    assert_eq!(font.runtime_family, "requested-ui-family");
+    assert_eq!(font.runtime_family.as_ref(), RUNTIME_FALLBACK_FONT_FAMILY);
     assert_eq!(font.collection_index, 0);
 }
 
@@ -173,11 +176,9 @@ fn runtime_text_style_for_face_projects_resolved_font_family() {
         UiTextOverflow::Ellipsis,
     );
     let request = font_request_for_face(HostTextFontFace::UiStrong);
+    let runtime_family = runtime_font_family_for_face(HostTextFontFace::UiStrong);
 
-    assert_eq!(
-        style.font_family.as_deref(),
-        Some(runtime_font_family_for_face(HostTextFontFace::UiStrong))
-    );
+    assert_eq!(style.font_family.as_deref(), Some(runtime_family.as_ref()));
     assert_eq!(style.font_weight, request.weight);
     assert_eq!(style.font_size, 11.0);
     assert_eq!(style.line_height, 14.0);

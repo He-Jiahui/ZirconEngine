@@ -5,8 +5,8 @@ use zircon_runtime_interface::ui::{
     widget::UiWidgetBehavior,
 };
 
-use super::nodes::{fixed_height_box, fixed_size_box, fixed_width_box, spacer_node, stretch_box};
 use super::ReferenceSurfaceBuilder;
+use super::nodes::{fixed_height_box, fixed_size_box, fixed_width_box, spacer_node, stretch_box};
 
 impl ReferenceSurfaceBuilder {
     pub(super) fn build_activity_rail(&mut self, parent: UiNodeId) -> Result<(), UiTreeError> {

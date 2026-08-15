@@ -27,6 +27,8 @@ mod import_sound;
 mod import_texture;
 mod import_ui_icon_asset;
 mod import_ui_theme_asset;
+#[cfg(feature = "ui")]
+mod import_ui_v2_asset;
 mod model_mesh_subassets;
 mod primitive_from_indexed_mesh;
 #[cfg(any(feature = "graphics", feature = "target-server"))]

@@ -23,6 +23,31 @@ fn editor_ui_10_module_convention_audit_report_has_expected_shape() {
         gate["oversized_production_files"].is_array(),
         "editor module convention gate should expose oversized production file entries: {gate:#?}"
     );
+    assert!(
+        gate["oversized_test_file_count"].is_u64(),
+        "editor module convention gate should expose a numeric oversized test file count: {gate:#?}"
+    );
+    assert!(
+        gate["oversized_test_files"].is_array(),
+        "editor module convention gate should expose oversized test file entries: {gate:#?}"
+    );
+    assert!(
+        gate["oversized_test_file_exemptions"].is_array(),
+        "editor module convention gate should expose explicit oversized test file exemptions: {gate:#?}"
+    );
+}
+
+#[test]
+fn editor_ui_10_no_oversized_test_files() {
+    let gate = editor_structure_audit();
+    let oversized = gate["module_convention_gate"]["oversized_test_files"]
+        .as_array()
+        .expect("EditorUI10 audit must return an oversized test-file array");
+
+    assert!(
+        oversized.is_empty(),
+        "EditorUI10 test-file budget is a zero-tolerance gate; split these functional-test owners: {oversized:#?}"
+    );
 }
 
 #[test]

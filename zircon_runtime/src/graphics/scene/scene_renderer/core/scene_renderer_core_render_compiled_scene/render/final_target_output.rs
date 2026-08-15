@@ -78,7 +78,7 @@ mod tests {
     use crate::core::framework::render::RenderCameraTargetGraphImportStatus;
     use crate::core::math::UVec2;
     use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
-    use crate::graphics::types::{FRAMEWORK_OUTPUT_FORMAT_LABEL, ViewportRenderOutputTarget};
+    use crate::graphics::types::{ViewportRenderOutputTarget, FRAMEWORK_OUTPUT_FORMAT_LABEL};
 
     use super::suppressed_graph_import_report;
 

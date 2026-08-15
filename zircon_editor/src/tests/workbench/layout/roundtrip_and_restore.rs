@@ -44,17 +44,21 @@ fn layout_manager_moves_views_and_roundtrips_layouts() {
     let json = serde_json::to_string(&layout).unwrap();
     let restored: WorkbenchLayout = serde_json::from_str(&json).unwrap();
 
-    assert!(restored
-        .drawers
-        .get(&ActivityDrawerSlot::RightTop)
-        .unwrap()
-        .tab_stack
-        .tabs
-        .contains(&inspector_view));
-    assert!(restored
-        .floating_windows
-        .iter()
-        .any(|window| window.window_id == floating_window));
+    assert!(
+        restored
+            .drawers
+            .get(&ActivityDrawerSlot::RightTop)
+            .unwrap()
+            .tab_stack
+            .tabs
+            .contains(&inspector_view)
+    );
+    assert!(
+        restored
+            .floating_windows
+            .iter()
+            .any(|window| window.window_id == floating_window)
+    );
 }
 
 #[test]

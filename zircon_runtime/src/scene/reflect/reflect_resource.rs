@@ -1,3 +1,15 @@
+pub type ReflectResourceWriteFieldsBySlot =
+    fn(
+        &mut crate::scene::World,
+        Vec<(u32, zircon_runtime_interface::reflect::ReflectedValue)>,
+    ) -> Result<bool, zircon_runtime_interface::reflect::ReflectError>;
+
+pub type ReflectResourcePreflightTransfer =
+    fn(
+        &mut crate::scene::World,
+        &mut crate::scene::World,
+    ) -> Result<(), zircon_runtime_interface::reflect::ReflectError>;
+
 #[derive(Clone, Copy)]
 pub struct ReflectResource {
     pub estimate_stage_clone_bytes: Option<
@@ -9,6 +21,9 @@ pub struct ReflectResource {
             &mut crate::scene::World,
         ) -> Result<(), zircon_runtime_interface::reflect::ReflectError>,
     >,
+    /// Moves the already validated preflight value into a dedicated artifact
+    /// World before the live target begins publication.
+    pub transfer_preflight: ReflectResourcePreflightTransfer,
     pub ensure: Option<
         fn(
             &mut crate::scene::World,
@@ -28,11 +43,7 @@ pub struct ReflectResource {
         Vec<zircon_runtime_interface::reflect::ReflectFieldValue>,
         zircon_runtime_interface::reflect::ReflectError,
     >,
-    pub write_field: fn(
-        &mut crate::scene::World,
-        &str,
-        zircon_runtime_interface::reflect::ReflectedValue,
-    ) -> Result<bool, zircon_runtime_interface::reflect::ReflectError>,
+    pub write_fields_by_slot: ReflectResourceWriteFieldsBySlot,
 }
 
 impl ReflectResource {
@@ -55,6 +66,14 @@ impl ReflectResource {
         };
         stage_clone(source, target)?;
         Ok(true)
+    }
+
+    pub fn transfer_preflight(
+        &self,
+        source: &mut crate::scene::World,
+        artifact: &mut crate::scene::World,
+    ) -> Result<(), zircon_runtime_interface::reflect::ReflectError> {
+        (self.transfer_preflight)(source, artifact)
     }
 
     pub fn ensure(
@@ -92,12 +111,11 @@ impl ReflectResource {
         (self.read_fields)(world)
     }
 
-    pub fn write_field(
+    pub fn write_fields_by_slot(
         &self,
         world: &mut crate::scene::World,
-        field_name: &str,
-        value: zircon_runtime_interface::reflect::ReflectedValue,
+        fields: Vec<(u32, zircon_runtime_interface::reflect::ReflectedValue)>,
     ) -> Result<bool, zircon_runtime_interface::reflect::ReflectError> {
-        (self.write_field)(world, field_name, value)
+        (self.write_fields_by_slot)(world, fields)
     }
 }

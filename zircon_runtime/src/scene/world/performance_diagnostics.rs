@@ -1,6 +1,6 @@
 use crate::scene::ecs::{
-    ChangeDetectionScanStats, EcsFramePerformanceDiagnostics, NativeSystemCallbackTiming,
-    QueryStateCacheStats,
+    ArchetypeIndexPerformanceStats, ChangeDetectionScanStats, DetachedEntityBatchOperationStats,
+    EcsFramePerformanceDiagnostics, NativeSystemCallbackTiming, QueryStateCacheStats,
 };
 use std::time::Duration;
 
@@ -20,9 +20,51 @@ impl World {
             .add_query_stats(stats);
     }
 
+    pub(crate) fn record_ecs_archetype_index_stats(
+        &mut self,
+        stats: ArchetypeIndexPerformanceStats,
+    ) {
+        self.ecs_frame_performance_diagnostics
+            .add_archetype_index_stats(stats);
+    }
+
     pub(crate) fn record_ecs_change_detection_stats(&mut self, stats: ChangeDetectionScanStats) {
         self.ecs_frame_performance_diagnostics
             .add_change_detection_stats(stats);
+    }
+
+    pub(crate) fn record_bundle_transaction_diagnostics(
+        &mut self,
+        final_archetype_transition: bool,
+        archetype_assignments: u64,
+        component_storage_moves: usize,
+        lifecycle_events: usize,
+        staged_value_allocations: usize,
+    ) {
+        self.ecs_frame_performance_diagnostics
+            .bundle_transactions_mut()
+            .record_commit(
+                final_archetype_transition,
+                archetype_assignments,
+                component_storage_moves,
+                lifecycle_events,
+                staged_value_allocations,
+            );
+    }
+
+    pub(crate) fn record_detached_entity_batch_commit(
+        &mut self,
+        stats: DetachedEntityBatchOperationStats,
+    ) {
+        self.ecs_frame_performance_diagnostics
+            .detached_entity_batches_mut()
+            .record_commit(stats);
+    }
+
+    pub(crate) fn record_detached_entity_batch_rejected_preflight(&mut self) {
+        self.ecs_frame_performance_diagnostics
+            .detached_entity_batches_mut()
+            .record_rejected_preflight();
     }
 
     pub(crate) fn record_native_system_conflicts(&mut self, count: usize) {
@@ -46,9 +88,17 @@ impl World {
         timings: &[NativeSystemCallbackTiming],
         elapsed: Duration,
         scheduler_parallelism: usize,
+        temporary_control_buffer_count: usize,
+        temporary_control_buffer_bytes: usize,
     ) {
         self.ecs_frame_performance_diagnostics
             .native_system_schedule_mut()
-            .record_worker_batch(timings, elapsed, scheduler_parallelism);
+            .record_worker_batch(
+                timings,
+                elapsed,
+                scheduler_parallelism,
+                temporary_control_buffer_count,
+                temporary_control_buffer_bytes,
+            );
     }
 }

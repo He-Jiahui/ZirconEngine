@@ -30,6 +30,16 @@ impl ArchetypeColumn {
         self.layout.type_name()
     }
 
+    pub(super) fn estimated_heap_bytes(&self) -> usize {
+        self.capacity
+            .saturating_mul(self.layout.layout().size())
+            .saturating_add(
+                self.ticks
+                    .capacity()
+                    .saturating_mul(std::mem::size_of::<ComponentTicks>()),
+            )
+    }
+
     pub(super) fn push(&mut self, value: StoredComponent, ticks: ComponentTicks) {
         debug_assert!(self.accepts(&value));
         let row = self.ticks.len();
@@ -69,6 +79,20 @@ impl ArchetypeColumn {
         // SAFETY: `typed_slot_ptr` validates the registered TypeId and row;
         // the tick update is disjoint from the component body allocation.
         Some(unsafe { &mut *value })
+    }
+
+    pub(super) fn get_mut_with_ticks<T>(
+        &mut self,
+        row: usize,
+    ) -> Option<(&mut T, &mut ComponentTicks)>
+    where
+        T: Send + Sync + 'static,
+    {
+        let value = self.typed_slot_ptr::<T>(row)?;
+        let ticks = self.ticks.get_mut(row)?;
+        // SAFETY: `typed_slot_ptr` validates the registered TypeId and row.
+        // The component allocation and tick vector are disjoint allocations.
+        Some((unsafe { &mut *value }, ticks))
     }
 
     pub(super) fn ticks(&self, row: usize) -> Option<ComponentTicks> {

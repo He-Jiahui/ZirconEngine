@@ -20,7 +20,10 @@ use crate::graphics::types::GraphicsError;
 pub(crate) use self::texture_format::texture_upload_support_from_device;
 use self::texture_format::{compressed_wgpu_format, rgba8_wgpu_format, wgpu_texture_usages};
 #[cfg(test)]
-use super::sampler_cache::{sampler_descriptor, sampler_descriptor_for_image};
+use super::sampler_cache::{
+    sampler_descriptor, sampler_descriptor_for_image,
+    sampler_descriptor_for_image_with_anisotropy_cap,
+};
 use super::sampler_cache::{sanitized_anisotropy_clamp, sanitized_anisotropy_clamp_with_cap};
 use super::{GpuTextureResource, TextureSamplerCache};
 use compressed_mip_upload::upload_compressed_texture_bytes;

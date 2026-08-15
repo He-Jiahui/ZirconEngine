@@ -5,9 +5,7 @@ use crate::core::framework::render::{
     RenderGraphPassProfileMetrics, RenderPluginRendererOutputs,
 };
 use crate::core::TaskPool;
-use crate::graphics::backend::{
-    GpuPassTimer, GpuPassTimestampScope, GpuPipelineStatisticsTimer,
-};
+use crate::graphics::backend::{GpuPassTimer, GpuPassTimestampScope, GpuPipelineStatisticsTimer};
 use crate::graphics::debug_markers::{
     insert_marker, marker_for_render_graph_pass, marker_for_render_pass_stage,
 };
@@ -84,6 +82,8 @@ struct RecordedGraphPass {
     motion_vector_camera_status: MotionVectorCameraStatus,
     hzb_occlusion_cull_report: Option<HzbOcclusionCullReport>,
     light_grid_report: Option<RenderGraphLightGridReport>,
+    taa_reactive_mask_encoding: (usize, u64),
+    taa_resolve_bind_group_create_count: usize,
     plugin_outputs: RenderPluginRendererOutputs,
 }
 
@@ -159,6 +159,12 @@ impl<'a> RenderGraphStageExecution<'a> {
         if let Some(report) = recorded.light_grid_report {
             self.record.set_light_grid_report(report);
         }
+        self.record.add_taa_reactive_mask_encoding(
+            recorded.taa_reactive_mask_encoding.0,
+            recorded.taa_reactive_mask_encoding.1,
+        );
+        self.record
+            .add_taa_resolve_bind_group_create_count(recorded.taa_resolve_bind_group_create_count);
         self.record
             .push_executed_pass_with_stage_declared_queue_dependencies_resources_and_debug_marker(
                 Some(recorded.stage),
@@ -251,7 +257,6 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             )
         )
     });
-    let gpu_timestamps_enabled = execution.gpu_pass_timer.is_some();
     let gpu_pipeline_statistics_enabled = execution.gpu_pipeline_statistics_timer.is_some();
     let mutable_recording_owner_present = screen_space_ui_renderer.is_some()
         || overlay_renderer.is_some()
@@ -267,8 +272,7 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     });
     let execution_resources = execution.resources;
     if let Some((task_pool, min_passes_per_bucket)) = parallel_recording {
-        if !gpu_timestamps_enabled
-            && !gpu_pipeline_statistics_enabled
+        if !gpu_pipeline_statistics_enabled
             && !mutable_recording_owner_present
             && all_executors_parallel_safe
         {
@@ -279,11 +283,12 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
                         prepared.graph_pass_index,
                         prepared.stage_entry,
                         prepared.pass,
+                        prepared.gpu_timestamp_scope.clone(),
                     )
                 })
                 .collect::<Vec<_>>();
             let mut prepared_index_by_graph_pass = vec![None; pipeline.graph().passes().len()];
-            for (prepared_index, (graph_pass_index, _, _)) in
+            for (prepared_index, (graph_pass_index, _, _, _)) in
                 parallel_prepared_passes.iter().enumerate()
             {
                 prepared_index_by_graph_pass[*graph_pass_index] = Some(prepared_index);
@@ -294,6 +299,10 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
                 |pass_index, _| prepared_index_by_graph_pass[pass_index].is_some(),
             );
             if parallel_encoders.should_record_parallel(true, task_pool) {
+                let eligible_bucket_count = parallel_encoders.buckets().len();
+                execution
+                    .record
+                    .record_parallel_recording_eligibility(eligible_bucket_count);
                 command_encoders.flush_serial_prefix();
                 let recorded_buckets = parallel_encoders.record_parallel_with_outputs(
                     device,
@@ -304,7 +313,8 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
                             let prepared_index = prepared_index_by_graph_pass[*pass_index].expect(
                                 "parallel encoder bucket must reference a prepared stage pass",
                             );
-                            let (_, stage_entry, pass) = parallel_prepared_passes[prepared_index];
+                            let (_, stage_entry, pass, gpu_timestamp_scope) =
+                                &parallel_prepared_passes[prepared_index];
                             recorded.push(execute_graph_pass(
                                 pipeline,
                                 registry,
@@ -335,12 +345,13 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
                                 shadow_frame_plan,
                                 execution_resources,
                                 None,
-                                None,
+                                gpu_timestamp_scope.clone(),
                             )?);
                         }
                         Ok::<_, GraphicsError>(recorded)
                     },
                 )?;
+                let executed_bucket_count = recorded_buckets.len();
                 for recorded_bucket in recorded_buckets {
                     let (command_buffer, recorded_passes) = recorded_bucket.into_parts();
                     command_encoders.append_parallel_buffers([command_buffer]);
@@ -351,6 +362,9 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
                         );
                     }
                 }
+                execution
+                    .record
+                    .record_parallel_recording_execution(executed_bucket_count);
                 return Ok(());
             }
         }
@@ -457,14 +471,13 @@ mod tests {
         let mut resources = RenderGraphExecutionResources::new();
         let mut record = RenderGraphExecutionRecord::default();
         let mut plugin_outputs = RenderPluginRendererOutputs::default();
-        let mut execution =
-            RenderGraphStageExecution::new(
-                &mut resources,
-                &mut record,
-                &mut plugin_outputs,
-                None,
-                None,
-            );
+        let mut execution = RenderGraphStageExecution::new(
+            &mut resources,
+            &mut record,
+            &mut plugin_outputs,
+            None,
+            None,
+        );
 
         execution.record_post_process_graph(&graph);
 
@@ -481,14 +494,13 @@ mod tests {
         let resources = RenderGraphExecutionResources::new();
         let mut record = RenderGraphExecutionRecord::default();
         let mut plugin_outputs = RenderPluginRendererOutputs::default();
-        let mut execution =
-            RenderGraphStageExecution::new(
-                &resources,
-                &mut record,
-                &mut plugin_outputs,
-                None,
-                None,
-            );
+        let mut execution = RenderGraphStageExecution::new(
+            &resources,
+            &mut record,
+            &mut plugin_outputs,
+            None,
+            None,
+        );
 
         for (pass_name, alive_count) in [("first", 3), ("second", 7)] {
             execution.commit_recorded_pass(
@@ -509,13 +521,14 @@ mod tests {
                     dispatch_context: RenderGraphComputeWorkloadDispatchContext::new(
                         [1, 1],
                         [1, 1],
-                        [1, 1],
                         0,
                     ),
                     compute_dispatches: Vec::new(),
                     motion_vector_camera_status: Default::default(),
                     hzb_occlusion_cull_report: None,
                     light_grid_report: None,
+                    taa_reactive_mask_encoding: (0, 0),
+                    taa_resolve_bind_group_create_count: 0,
                     plugin_outputs: RenderPluginRendererOutputs {
                         particles: RenderParticleGpuReadbackOutputs {
                             alive_count,
@@ -568,6 +581,17 @@ mod tests {
         assert!(stage_source.contains("record_parallel_with_outputs"));
         assert!(stage_source.contains("registry.supports_parallel_recording(executor_id)"));
         assert!(stage_source.contains("|| mesh_draw_lists.is_some()"));
+        let prepared_scope_clone = concat!("prepared.gpu_timestamp_scope", ".clone()");
+        let task_scope_clone = concat!("gpu_timestamp_scope", ".clone(),");
+        assert!(stage_source.contains(prepared_scope_clone));
+        assert!(stage_source.contains(task_scope_clone));
+        let timestamp_serialization_guard = concat!("!gpu_", "timestamps_enabled");
+        assert!(
+            !stage_source.contains(timestamp_serialization_guard),
+            "timestamp scopes must not select a different graph-recording policy"
+        );
+        assert!(stage_source.contains("record_parallel_recording_eligibility"));
+        assert!(stage_source.contains("record_parallel_recording_execution"));
         assert!(stage_source.contains("command_encoders.flush_serial_prefix()"));
         assert!(render_source.contains("command_buffers: command_encoders.finish()"));
         assert!(submit_source.contains("queue.submit(command_buffers)"));
@@ -701,6 +725,9 @@ fn execute_graph_pass(
             pass.resources.clone(),
         )
         .with_resource_resolver(pipeline.graph(), pass.id)
+        .with_compute_workload(pass.compute_workload.as_ref())
+        .with_compute_pass_metadata(pass.compute_pass_metadata.as_ref())
+        .with_resource_streamer(streamer)
         .with_gpu(gpu);
 
     let profile_started = Instant::now();
@@ -716,6 +743,8 @@ fn execute_graph_pass(
         motion_vector_camera_status,
         hzb_occlusion_cull_report,
         light_grid_report,
+        taa_reactive_mask_encoding,
+        taa_resolve_bind_group_create_count,
     ) = context
         .gpu_mut()
         .map(|gpu| {
@@ -724,6 +753,8 @@ fn execute_graph_pass(
                 gpu.motion_vector_camera_status(),
                 gpu.take_hzb_occlusion_cull_report(),
                 gpu.take_light_grid_report(),
+                gpu.taa_reactive_mask_encoding(),
+                gpu.taa_resolve_bind_group_create_count(),
             )
         })
         .unwrap_or_default();
@@ -738,7 +769,6 @@ fn execute_graph_pass(
         .map(|lists| lists.occlusion_cull_candidate_arg_count())
         .unwrap_or(0);
     let mut dispatch_context = RenderGraphComputeWorkloadDispatchContext::new(
-        [frame.viewport_size.x, frame.viewport_size.y],
         [cluster_grid_size.x, cluster_grid_size.y],
         [hzb_plan.hzb_size.x, hzb_plan.hzb_size.y],
         hzb_occlusion_indirect_arg_count,
@@ -772,6 +802,8 @@ fn execute_graph_pass(
         motion_vector_camera_status,
         hzb_occlusion_cull_report,
         light_grid_report,
+        taa_reactive_mask_encoding,
+        taa_resolve_bind_group_create_count,
         plugin_outputs: pass_plugin_outputs,
     })
 }

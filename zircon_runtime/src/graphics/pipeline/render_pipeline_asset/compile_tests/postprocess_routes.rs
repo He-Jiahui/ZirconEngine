@@ -106,7 +106,7 @@ fn compile_routes_bloom_extract_after_split_scene_color_passes() {
 }
 
 #[test]
-fn compile_orders_bloom_extract_after_motion_blur_before_exposure() {
+fn compile_bloom_uses_the_motion_blur_version_without_an_exposure_ordering_rule() {
     let extract = test_extract();
     let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_exposure_anti_alias_and_upscale(
         &RenderBloomSettings {
@@ -134,12 +134,27 @@ fn compile_orders_bloom_extract_after_motion_blur_before_exposure() {
         )
         .unwrap();
 
-    let motion_blur = graph_pass_index(&compiled, "motion-blur");
-    let bloom = graph_pass_index(&compiled, "bloom-extract");
-    let exposure_histogram = graph_pass_index(&compiled, "exposure-histogram");
+    let motion_blur = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "motion-blur")
+        .expect("motion blur pass");
+    let bloom = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "bloom-extract")
+        .expect("bloom extract pass");
+    let exposure_histogram = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "exposure-histogram")
+        .expect("exposure histogram pass");
 
-    assert!(motion_blur < bloom);
-    assert!(bloom < exposure_histogram);
+    assert!(bloom.dependencies.contains(&motion_blur.id));
+    assert!(!bloom.dependencies.contains(&exposure_histogram.id));
 }
 
 #[test]
@@ -513,9 +528,9 @@ fn compile_routes_output_transfer_through_fxaa_terminal_input() {
     assert!(output_transfer.resources.iter().any(|resource| {
         resource.name == PostProcessGraphResourceNames::FINAL_COMPOSITED
             && resource.kind == RenderGraphResourceKind::TransientTexture
-            && resource.access == RenderGraphResourceAccessKind::Write
+            && resource.access == RenderGraphResourceAccessKind::Read
     }));
-    assert!(!output_transfer.resources.iter().any(|resource| {
+    assert!(output_transfer.resources.iter().any(|resource| {
         resource.name == PostProcessGraphResourceNames::FINAL_COLOR
             && resource.access == RenderGraphResourceAccessKind::Write
     }));
@@ -526,13 +541,14 @@ fn compile_routes_output_transfer_through_fxaa_terminal_input() {
         .iter()
         .find(|pass| pass.name == "fxaa")
         .expect("enabled terminal FXAA should compile the anti-alias pass");
+    assert!(graph_pass_index(&compiled, "fxaa") < graph_pass_index(&compiled, "output-transfer"));
     assert!(fxaa.resources.iter().any(|resource| {
-        resource.name == PostProcessGraphResourceNames::FINAL_COMPOSITED
+        resource.name == PostProcessGraphResourceNames::TONEMAPPED
             && resource.kind == RenderGraphResourceKind::TransientTexture
             && resource.access == RenderGraphResourceAccessKind::Read
     }));
     assert!(fxaa.resources.iter().any(|resource| {
-        resource.name == PostProcessGraphResourceNames::FINAL_COLOR
+        resource.name == PostProcessGraphResourceNames::FINAL_COMPOSITED
             && resource.access == RenderGraphResourceAccessKind::Write
     }));
 
@@ -577,9 +593,9 @@ fn compile_routes_output_transfer_through_smaa_terminal_input() {
     assert!(output_transfer.resources.iter().any(|resource| {
         resource.name == PostProcessGraphResourceNames::FINAL_COMPOSITED
             && resource.kind == RenderGraphResourceKind::TransientTexture
-            && resource.access == RenderGraphResourceAccessKind::Write
+            && resource.access == RenderGraphResourceAccessKind::Read
     }));
-    assert!(!output_transfer.resources.iter().any(|resource| {
+    assert!(output_transfer.resources.iter().any(|resource| {
         resource.name == PostProcessGraphResourceNames::FINAL_COLOR
             && resource.access == RenderGraphResourceAccessKind::Write
     }));
@@ -590,13 +606,14 @@ fn compile_routes_output_transfer_through_smaa_terminal_input() {
         .iter()
         .find(|pass| pass.name == "smaa")
         .expect("enabled terminal SMAA should compile the anti-alias pass");
+    assert!(graph_pass_index(&compiled, "smaa") < graph_pass_index(&compiled, "output-transfer"));
     assert!(smaa.resources.iter().any(|resource| {
-        resource.name == PostProcessGraphResourceNames::FINAL_COMPOSITED
+        resource.name == PostProcessGraphResourceNames::TONEMAPPED
             && resource.kind == RenderGraphResourceKind::TransientTexture
             && resource.access == RenderGraphResourceAccessKind::Read
     }));
     assert!(smaa.resources.iter().any(|resource| {
-        resource.name == PostProcessGraphResourceNames::FINAL_COLOR
+        resource.name == PostProcessGraphResourceNames::FINAL_COMPOSITED
             && resource.access == RenderGraphResourceAccessKind::Write
     }));
     assert!(!compiled

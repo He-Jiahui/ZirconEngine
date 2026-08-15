@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
-use zircon_runtime::core::framework::render::{GEOMETRY_SOURCE_ID_STATIC_MESH, ShaderQualityTier};
+use zircon_runtime::core::framework::render::{ShaderQualityTier, GEOMETRY_SOURCE_ID_STATIC_MESH};
 
 use super::super::{
     asset_root_manifest_from_inventory_with_resource_registry_revisions,

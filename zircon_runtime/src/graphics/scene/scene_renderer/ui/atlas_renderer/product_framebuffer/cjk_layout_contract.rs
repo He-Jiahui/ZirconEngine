@@ -22,7 +22,10 @@ fn native_bitmap_layout_product_text_uses_checked_in_cjk_face() {
         .register_font_file(&font_source, Some(NATIVE_LAYOUT_CJK_FAMILY), 1)
         .expect("register checked-in CJK product proof face");
     assert_eq!(
-        font_database.face_family_name(face_id).as_deref(),
+        font_database
+            .face_family_name(face_id)
+            .as_ref()
+            .map(|family| family.as_str()),
         Some(NATIVE_LAYOUT_CJK_FAMILY)
     );
     let face_bytes = font_database

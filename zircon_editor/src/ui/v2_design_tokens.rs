@@ -29,12 +29,16 @@ impl EditorV2DesignTokenProjection {
 }
 
 pub(crate) fn prepare_editor_v2_document(source: &UiV2AssetDocument) -> UiV2AssetDocument {
+    let tokens = active_editor_v2_design_tokens_snapshot();
+    prepare_editor_v2_document_with_tokens(source, tokens.as_ref())
+}
+
+pub(crate) fn prepare_editor_v2_document_with_tokens(
+    source: &UiV2AssetDocument,
+    tokens: &EditorDesignTokens,
+) -> UiV2AssetDocument {
     let mut document = source.clone();
-    let tokens = match active_editor_v2_design_tokens().read() {
-        Ok(projection) => projection,
-        Err(poisoned) => poisoned.into_inner(),
-    };
-    UiV2StyleResolver::register_editor_design_tokens(&mut document, &tokens.tokens);
+    UiV2StyleResolver::register_editor_design_tokens(&mut document, tokens);
     document
 }
 

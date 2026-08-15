@@ -115,6 +115,11 @@ fn document_toolkit_close_rejects_an_in_flight_save_without_holding_the_io_lock(
             if document == DocumentId::new(7)
     ));
     assert!(matches!(
+        registry.capture_autosave(DocumentId::new(7), &()),
+        Err(SaveError::SaveAlreadyInProgress { document })
+            if document == DocumentId::new(7)
+    ));
+    assert!(matches!(
         registry.clear(),
         Err(ToolkitRegistryError::DocumentsBusy { documents })
             if documents == vec![DocumentId::new(7)]

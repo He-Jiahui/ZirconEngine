@@ -53,14 +53,12 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
             "Help"
         ]
     );
-    assert!(
-        model
-            .menu_bar
-            .menus
-            .iter()
-            .flat_map(|menu| menu.items.iter())
-            .any(|item| item.action.as_ref() == Some(&MenuAction::Undo) && item.enabled)
-    );
+    assert!(model
+        .menu_bar
+        .menus
+        .iter()
+        .flat_map(|menu| menu.items.iter())
+        .any(|item| item.action.as_ref() == Some(&MenuAction::Undo) && item.enabled));
     let undo_operation = model
         .menu_bar
         .menus
@@ -82,12 +80,10 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
         vec!["Workbench", "Scene"]
     );
     assert!(model.drawer_ring.visible);
-    assert!(
-        model
-            .drawer_ring
-            .drawers
-            .contains_key(&ActivityDrawerSlot::LeftTop)
-    );
+    assert!(model
+        .drawer_ring
+        .drawers
+        .contains_key(&ActivityDrawerSlot::LeftTop));
     assert_eq!(model.status_bar.primary_text, "Editor booted");
     assert_eq!(model.status_bar.viewport_label, "1280 x 720");
     assert_eq!(model.status_bar.error_text, "No Errors");

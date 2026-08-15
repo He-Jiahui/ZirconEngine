@@ -1,4 +1,5 @@
-use crate::core::editor_event::ConsoleMessageFilter;
+use crate::core::editor_event::{ConsoleMessageFilter, ConsoleSourceFilter};
+use crate::ui::host::editor_activity_log::activity_log_jump_action_id;
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::console_pane_nodes;
 use crate::ui::layouts::windows::workbench_host_window::{
@@ -6,10 +7,11 @@ use crate::ui::layouts::windows::workbench_host_window::{
 };
 use crate::ui::retained_host as host_contract;
 use crate::ui::retained_host::console_output::{
-    CONSOLE_OUTPUT_BODY_CONTROL_ID, CONSOLE_OUTPUT_LINE_HEIGHT, CONSOLE_OUTPUT_LINE_PREFIX,
-    CONSOLE_OUTPUT_MIN_MESSAGE_SLOT_WIDTH, CONSOLE_OUTPUT_PROTOTYPE_CONTROL_ID,
-    CONSOLE_OUTPUT_SEVERITY_PREFIX, CONSOLE_OUTPUT_SEVERITY_SLOT_WIDTH, ConsoleOutputPaintMetadata,
-    ConsoleOutputViewport, console_output_line_count, console_output_lines_with_presence,
+    console_output_line_count, console_output_lines_with_presence, ConsoleOutputPaintMetadata,
+    ConsoleOutputViewport, CONSOLE_OUTPUT_BODY_CONTROL_ID, CONSOLE_OUTPUT_LINE_HEIGHT,
+    CONSOLE_OUTPUT_LINE_PREFIX, CONSOLE_OUTPUT_MIN_MESSAGE_SLOT_WIDTH,
+    CONSOLE_OUTPUT_PROTOTYPE_CONTROL_ID, CONSOLE_OUTPUT_SEVERITY_PREFIX,
+    CONSOLE_OUTPUT_SEVERITY_SLOT_WIDTH,
 };
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::template_runtime::EditorUiHostRuntime;
@@ -89,8 +91,13 @@ fn console_template_projection(
         .collect::<Vec<_>>();
     project_console_level_counts(&mut nodes, console_payload.counts);
     project_console_level_filter(&mut nodes, console_payload.filter);
-    let output_metadata =
-        project_console_output_lines(&mut nodes, status_text, console_payload.levels.as_ref());
+    project_console_source_filter(&mut nodes, console_payload.source_filter);
+    let output_metadata = project_console_output_lines(
+        &mut nodes,
+        status_text,
+        console_payload.levels.as_ref(),
+        console_payload.jump_sequences.as_ref(),
+    );
 
     let nodes = match output_metadata {
         Some(metadata) => ModelRc::with_metadata(nodes, metadata),
@@ -100,6 +107,27 @@ fn console_template_projection(
         nodes,
         status_text: std::sync::Arc::clone(&console_payload.status_text),
     })
+}
+
+fn project_console_source_filter(
+    nodes: &mut [host_contract::TemplatePaneNodeData],
+    filter: ConsoleSourceFilter,
+) {
+    for (control_id, node_filter) in [
+        ("ConsoleSourceAll", ConsoleSourceFilter::All),
+        ("ConsoleSourceEditor", ConsoleSourceFilter::Editor),
+        ("ConsoleSourceRuntime", ConsoleSourceFilter::Runtime),
+        ("ConsoleSourcePlay", ConsoleSourceFilter::Play),
+        ("ConsoleSourcePlugin", ConsoleSourceFilter::Plugin),
+        ("ConsoleSourceImport", ConsoleSourceFilter::Import),
+        ("ConsoleSourceScriptBuild", ConsoleSourceFilter::ScriptBuild),
+    ] {
+        let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) else {
+            continue;
+        };
+        node.selected = filter == node_filter;
+        node.checked = node.selected;
+    }
 }
 
 fn project_console_level_filter(
@@ -141,6 +169,7 @@ fn project_console_output_lines(
     nodes: &mut Vec<host_contract::TemplatePaneNodeData>,
     status_text: &str,
     levels: &[EditorConsoleMessageLevel],
+    jump_sequences: &[Option<u64>],
 ) -> Option<ConsoleOutputPaintMetadata> {
     let viewport = nodes
         .iter()
@@ -178,6 +207,11 @@ fn project_console_output_lines(
             .into();
             line.frame.y = line_origin_y + line_index as f32 * CONSOLE_OUTPUT_LINE_HEIGHT;
             line.frame.height = CONSOLE_OUTPUT_LINE_HEIGHT;
+            if let Some(sequence) = jump_sequences.get(line_index).copied().flatten() {
+                line.dispatch_kind = "activity_log_jump".into();
+                line.action_id = activity_log_jump_action_id(sequence).into();
+                line.text_tone = "accent".into();
+            }
             let severity = projects_severity.then(|| {
                 let level = levels.get(line_index).copied().unwrap_or_default();
                 let mut severity = prototype.clone();

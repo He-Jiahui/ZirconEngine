@@ -1,5 +1,4 @@
 mod create_or_open;
-mod persistence;
 mod recent_projects;
 mod resolve_session;
 mod welcome_page;

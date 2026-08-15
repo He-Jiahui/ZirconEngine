@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use zircon_runtime::core::framework::channel::ChannelWakeCallback;
 use zircon_runtime::core::CoreError;
 
 use super::{
@@ -16,6 +17,12 @@ pub trait EditorAssetManager: Send + Sync {
     fn catalog_snapshot(&self) -> Arc<EditorAssetCatalogGeneration>;
     fn asset_details(&self, uuid: &str) -> Option<Arc<EditorAssetDetailsGeneration>>;
     fn subscribe_editor_asset_changes(&self) -> EditorAssetChangeSubscription;
+    fn subscribe_editor_asset_changes_with_wake(
+        &self,
+        _wake: ChannelWakeCallback,
+    ) -> EditorAssetChangeSubscription {
+        self.subscribe_editor_asset_changes()
+    }
     fn request_preview_refresh(
         &self,
         uuid: &str,

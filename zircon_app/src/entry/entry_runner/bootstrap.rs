@@ -2,7 +2,7 @@ use std::path::Path;
 
 use zircon_runtime::core::{CoreError, CoreHandle};
 use zircon_runtime::plugin::native::{
-    NativePluginBehaviorCallReport, NativePluginLiveHost, NativePluginRuntimeBehaviorDescriptor,
+    NativePluginBehaviorCallReport, NativePluginHostHandle, NativePluginRuntimeBehaviorDescriptor,
     NativePluginRuntimeCommandDispatchReport, NativePluginRuntimePlayModeExitReport,
     NativePluginRuntimePlayModeSnapshot, NativePluginRuntimeStateRestoreReport,
     NativePluginRuntimeStateSnapshot,
@@ -48,7 +48,7 @@ pub struct NativePluginRuntimeBootstrap {
     // Native dynamic library handles must outlive the runtime graph that was
     // registered from their package manifests.
     core: CoreHandle,
-    native_plugin_host: NativePluginLiveHost,
+    native_plugin_host: NativePluginHostHandle,
     module_selection_report: EntryModuleSelectionReport,
     diagnostics: Vec<String>,
 }
@@ -66,7 +66,7 @@ impl NativePluginRuntimeBootstrap {
         self.core
     }
 
-    pub fn into_parts(self) -> (CoreHandle, NativePluginLiveHost, Vec<String>) {
+    pub fn into_parts(self) -> (CoreHandle, NativePluginHostHandle, Vec<String>) {
         (self.core, self.native_plugin_host, self.diagnostics)
     }
 
@@ -74,7 +74,7 @@ impl NativePluginRuntimeBootstrap {
         self,
     ) -> (
         CoreHandle,
-        NativePluginLiveHost,
+        NativePluginHostHandle,
         EntryModuleSelectionReport,
         Vec<String>,
     ) {
@@ -86,7 +86,7 @@ impl NativePluginRuntimeBootstrap {
         )
     }
 
-    pub fn native_plugin_host(&self) -> &NativePluginLiveHost {
+    pub fn native_plugin_host(&self) -> &NativePluginHostHandle {
         &self.native_plugin_host
     }
 
@@ -347,11 +347,11 @@ impl EntryRunner {
         feature_registrations: impl IntoIterator<Item = RuntimePluginFeatureRegistrationReport>,
         export_root: impl AsRef<Path>,
     ) -> Result<NativePluginRuntimeBootstrap, CoreError> {
-        let native_plugin_host = NativePluginLiveHost::default();
+        let native_plugin_host = NativePluginHostHandle::default();
         let native_report = native_plugin_host
             .load_runtime_plugins_from_export_root(export_root)
             .map_err(|error| {
-                CoreError::Initialization("NativePluginLiveHost".to_string(), error)
+                CoreError::Initialization("NativePluginHostHandle".to_string(), error)
             })?;
         for diagnostic in &native_report.diagnostics {
             eprintln!("[zircon_app] native plugin warning: {diagnostic}");

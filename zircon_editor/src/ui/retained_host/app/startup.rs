@@ -25,9 +25,9 @@ pub(crate) fn build_startup_state(
     match (session.mode, session.project.clone()) {
         (EditorSessionMode::Project | EditorSessionMode::Playing, Some(document)) => {
             editor_manager.apply_project_workspace(document.editor_workspace.clone())?;
-            let level = editor_manager.create_runtime_level(document.world)?;
+            let authoring_world = editor_manager.prepare_authoring_world(document.world)?;
             let mut state = EditorState::project_with_context(
-                level,
+                authoring_world,
                 viewport_size,
                 document.root_path.to_string_lossy().into_owned(),
                 editor_manager.context().clone(),

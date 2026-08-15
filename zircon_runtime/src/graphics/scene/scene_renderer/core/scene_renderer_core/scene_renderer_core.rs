@@ -2,21 +2,26 @@ use crate::graphics::backend::GpuReadbackQueue;
 use crate::graphics::scene::gpu_scene::GpuScene;
 
 use super::super::super::deferred::DeferredSceneResources;
+use super::super::super::environment::ibl_bake_runtime_writeback::IblBakeRuntimeGraphWritebackQueue;
 use super::super::super::environment::realtime_ibl_time_slice::IblRealtimeBufferSlot;
 use super::super::super::environment::{IblBakeWgpuPipelineCache, RealtimeIblRuntime};
 use super::super::super::graph_execution::TransientResourcePool;
 use super::super::super::hzb::HzbOcclusionCuller;
-use super::super::super::mesh::{CachedMeshDrawCommands, MeshPipelineCache};
+use super::super::super::mesh::{
+    CachedMeshDrawCommands, MeshIndirectDrawWorkspace, MeshPipelineCache,
+};
 use super::super::super::overlay::ViewportOverlayRenderer;
 use super::super::super::particle::ParticleRenderer;
 use super::super::super::post_process::ScenePostProcessResources;
 use super::super::super::scene_clear::SceneRegionClearResources;
-use super::super::super::shadow::ShadowMapRenderer;
 use super::super::super::shadow::atlas::{ShadowAtlasAllocator, ShadowAtlasResources};
+use super::super::super::shadow::ShadowMapRenderer;
 use super::super::super::sprite::SpriteRenderer;
 use super::super::super::ui::ScreenSpaceUiRenderer;
+use super::super::SceneRendererDeferredLightingProfile;
 use super::{
     SceneEnvironmentBrdfLut, SceneEnvironmentCubemap, SceneRendererAdvancedPluginResources,
+    SceneRendererNeutralGraphBuffers,
 };
 
 pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererCore {
@@ -46,12 +51,19 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererCore {
         Option<IblRealtimeBufferSlot>,
     pub(in crate::graphics::scene::scene_renderer::core) cached_mesh_draw_commands:
         CachedMeshDrawCommands,
+    pub(in crate::graphics::scene::scene_renderer::core) mesh_indirect_draw_workspace:
+        MeshIndirectDrawWorkspace,
+    pub(in crate::graphics::scene::scene_renderer::core) neutral_graph_buffers:
+        SceneRendererNeutralGraphBuffers,
     pub(in crate::graphics::scene::scene_renderer::core) gpu_scene: GpuScene,
     pub(in crate::graphics::scene::scene_renderer::core) hzb_occlusion_culler:
         Option<HzbOcclusionCuller>,
     pub(in crate::graphics::scene::scene_renderer::core) scene_clear:
         Option<SceneRegionClearResources>,
-    pub(in crate::graphics::scene::scene_renderer::core) shadow_map_renderer: ShadowMapRenderer,
+    pub(in crate::graphics::scene::scene_renderer::core) deferred_lighting_profile:
+        SceneRendererDeferredLightingProfile,
+    pub(in crate::graphics::scene::scene_renderer::core) shadow_map_renderer:
+        Option<ShadowMapRenderer>,
     pub(in crate::graphics::scene::scene_renderer::core) shadow_atlas_allocator:
         ShadowAtlasAllocator,
     pub(in crate::graphics::scene::scene_renderer::core) shadow_atlas_resources:
@@ -68,6 +80,21 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererCore {
         TransientResourcePool,
     pub(in crate::graphics::scene::scene_renderer::core) readback_queue: GpuReadbackQueue,
     pub(in crate::graphics::scene::scene_renderer::core) readback_frame_index: u64,
+    pub(in crate::graphics::scene::scene_renderer::core) ibl_bake_runtime_writebacks:
+        IblBakeRuntimeGraphWritebackQueue,
     pub(in crate::graphics::scene::scene_renderer::core) advanced_plugin_resources:
         SceneRendererAdvancedPluginResources,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SceneRendererDeferredLightingProfile;
+
+    #[test]
+    fn renderer_core_imports_the_default_deferred_lighting_profile() {
+        assert_eq!(
+            SceneRendererDeferredLightingProfile::default(),
+            SceneRendererDeferredLightingProfile::FullScene
+        );
+    }
 }

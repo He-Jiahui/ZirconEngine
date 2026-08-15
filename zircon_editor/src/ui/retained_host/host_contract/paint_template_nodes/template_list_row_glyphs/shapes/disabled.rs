@@ -1,6 +1,6 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::render_commands::HostPaintCommand;
-use super::super::segments::{GlyphSegmentSpec, push_segments};
+use super::super::segments::{push_segments, GlyphSegmentSpec};
 
 const DISABLED_DIAMOND_SEGMENTS: [GlyphSegmentSpec; 4] = [
     GlyphSegmentSpec::new(7, 3, 2, 2),
@@ -46,10 +46,8 @@ mod tests {
         push_disabled_diamond(&mut commands, &rect, &rect, 0, tint, 1.0);
 
         assert!(!commands.is_empty());
-        assert!(
-            commands
-                .iter()
-                .all(|command| command.background_color == Some(tint))
-        );
+        assert!(commands
+            .iter()
+            .all(|command| command.background_color == Some(tint)));
     }
 }

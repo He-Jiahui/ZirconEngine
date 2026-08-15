@@ -75,3 +75,107 @@ Open state: `待修复`; no pass is claimed.
   evidence; no terminal Cargo pass is inferred from its queued state.
 
 Open state: `实现完成，受管验证待回执`; accepted closeout remains deferred.
+
+### 2026-08-14 current-source continuation
+
+- `ProjectAssetManager::asset_ids_by_kind` now reads the published
+  `ResourceManagementGeneration` through a typed kind query. It no longer scans
+  the mutable registry or performs a caller-side ID sort for each management
+  query.
+- `SceneEntityAsset::overview` now obtains its direct-reference count from
+  allocation-free owner methods on camera, mesh/LOD, and prefab payloads. The
+  existing `direct_references()` API remains the authoritative materialized
+  view; collider-shape references remain outside its established count scope.
+- The typed asset record-set generation itself is still open: project manager
+  state and its fenced publication owner are concurrently changing and must
+  publish one immutable scene/entity projection before stable polling can claim
+  zero record-set rebuilds. No managed Cargo terminal receipt or performance
+  matrix has been obtained, so this handoff remains `open`.
+
+### 2026-08-14 immutable asset projection boundary
+
+- The missing owner is `zircon_runtime::asset::pipeline::manager::ProjectAssetManager`, not
+  `core::resource` and not an Editor cache. `ResourceManagementGeneration` remains the lower
+  typed resource input; the asset manager publishes an `Arc`-backed immutable asset-management
+  generation containing only asset-derived compact rows, record-set summaries, and stable
+  kind/source/issue lookup indexes. It must not add asset DTOs, diagnostics sinks, or renderer
+  state to `core::resource`.
+- Every project transition publishes the asset generation under the existing
+  `project_generation_write` fence: resource sync and the active-project replacement complete
+  first; the new asset projection is installed next; only then may
+  `publish_project_generation` broadcast changes and wake consumers. Close installs the empty
+  projection under that same fence. Watch commits follow the same order after either their
+  reconciliation or incremental resource commit. Readers take the matching project-generation
+  read boundary and retain the immutable snapshot; stable polling therefore has no registry scan,
+  asset load, record-set rebuild, sort, or clone work.
+- `RenderMaterialManagementRecordSet` is a renderer-owned, independently refreshed detail
+  product. It must be composed by the graphics consumer with the immutable asset snapshot rather
+  than captured in the project asset generation. Selected/visible detail remains a narrow lazy
+  `ResourceId` lookup that verifies the snapshot generation before loading an asset payload; it
+  cannot materialize all scene entities or all renderer-prepared materials to answer a page query.
+- Reference basis: Unreal `AssetRegistryState::AddAssetData` / `UpdateAssetData` maintain the
+  canonical entry and query indexes as one mutation, and
+  `AssetRegistryStateTest.cpp::FEnumerateAssetsPerformance` exercises a million-entry filtered
+  query. Bevy `bevy_asset::Assets` keeps generational storage and emits lifecycle events at
+  insert/remove rather than rebuilding read models. Zircon adopts their publish-time indexing and
+  event boundary, while retaining the project-generation fence already owned by
+  `ProjectAssetManager`.
+- This is an architecture decision and implementation contract, not a fixed return. The future
+  source slice must add a generation identity, snapshot read API, open/close/watch publication
+  coverage, and the declared stable/one-percent/page/detail performance matrix before this
+  handoff can move out of `open`.
+
+### 2026-08-14 implementation gap audit
+
+- The current `ProjectAssetManager` state has project-generation fencing, project/source-path
+  state, watchers, and subscribers, but no asset-management generation or immutable snapshot
+  field. This is the correct lower owner for the missing projection; no Editor-side cache can
+  substitute for it.
+- `management.rs::asset_ids_by_kind` correctly starts from
+  `ResourceManager::management_generation()`, but every public record-set method still repeats
+  a kind scan and then eagerly loads each asset to reconstruct management records. Stable polling
+  therefore still rebuilds asset rows and record sets instead of retaining a published `Arc`
+  snapshot.
+- The same file currently imports `RenderMaterialManagementRecordSet` and accepts it in
+  `asset_management_record_sets_with_prepared_materials`. That keeps renderer-prepared material
+  detail in the asset-manager aggregation path, contrary to the required graphics-consumer
+  composition boundary.
+- No source change was made in these concurrently modified asset-owner files. This audit narrows
+  the next source slice to one ProjectAssetManager-owned immutable projection and confirms that
+  the failure remains `open`; it is not validation or performance acceptance evidence.
+
+### 2026-08-14 publication cut points
+
+- `project_asset_manager/open_project.rs::open_prepared_project` is the open installer: it already
+  holds `project_generation_write`, commits resource sync, replaces `*active_project`, and only
+  then activates watchers and calls `publish_project_generation`. Install the new immutable asset
+  snapshot after the project replacement and before watcher activation/publication.
+- `project_asset_manager/close_project.rs::close_project` is the empty installer: it removes the
+  project resources, clears source paths, assigns `*project = None`, and then publishes `Removed`
+  changes under the same generation guard. Replace the asset snapshot with the empty generation
+  between the project assignment and that publication.
+- `project_asset_manager/runtime.rs::process_watch_batch_in_generation` is the sole watch
+  installer: after either incremental or reconciliation resource sync succeeds, it assigns the
+  candidate project and returns to `publish_project_generation`. Build/install the next asset
+  snapshot in that successful branch before `commit_result` is observed as published. Do not add a
+  second watcher-side cache or a post-publication rebuild path.
+
+### 2026-08-14 reload transition audit hard cut
+
+- The Runtime04 structural audit had retained a stale public-facade-only reload source view after
+  `ResourceManager::start_reload` and `fail_reload` became thin transaction delegates. The state
+  transition, runtime-slot update, failure event, and error-recovery rejection now live in
+  `core/resource/manager/commit.rs`; that file is therefore a source owner, not a compatibility
+  fallback.
+- The source inventory, Rust absorption inventory, and boundary reader now count 26 current
+  Runtime04 source files and read `registry_ops.rs`, `commit.rs`, and asset resource sync together.
+  The anchors pin the delegate boundary, `Ready|Reloading|Error` entry rule, transition/runtime
+  update, `ReloadFailed` event, error recovery rule, and imported-resource commit without
+  reintroducing old facade mutations.
+- Static evidence: `python -B tools/tests/test_runtime_asset_pipeline_audit.py` passed 2/2 on
+  2026-08-14; `rustfmt +1.94.1 --check
+  zircon_runtime/src/tests/runtime_absorption/asset_pipeline/inventory.rs` passed; and Python
+  compilation of the updated audit scripts and test passed. No Cargo command was started while the
+  shared validation lane is reserved. This keeps the handoff `open`: it repairs the current-source
+  audit root only and does not implement or validate the required ProjectAssetManager immutable
+  generation.

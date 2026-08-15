@@ -97,6 +97,7 @@ fn decoration_plan(
                     opacity,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(240, 100),
     )

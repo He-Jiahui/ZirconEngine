@@ -10,7 +10,7 @@ use super::{measured_grapheme_widths_with_provider, resolve_rich_run_style, Rich
 #[derive(Clone, Debug, Default)]
 pub(crate) struct RichAdvanceIndex {
     index: GraphemeAdvanceIndex,
-    text_spans: Vec<RichTextSpan>,
+    text_spans: Vec<ResolvedRichTextSpan>,
 }
 
 impl RichAdvanceIndex {
@@ -46,7 +46,7 @@ impl RichAdvanceIndex {
                     &span.style,
                     provider,
                 );
-                text_spans.push(RichTextSpan {
+                text_spans.push(ResolvedRichTextSpan {
                     start: span.start,
                     end: span.end,
                     style: span.style,
@@ -181,7 +181,7 @@ impl RichAdvanceIndex {
     fn corrected_span_advance<P>(
         &self,
         source: &str,
-        span: &RichTextSpan,
+        span: &ResolvedRichTextSpan,
         start: usize,
         end: usize,
         break_suffix: Option<&str>,
@@ -209,10 +209,10 @@ impl RichAdvanceIndex {
 }
 
 #[derive(Clone, Debug)]
-struct RichTextSpan {
-    start: usize,
-    end: usize,
-    style: TextStyle,
+pub(crate) struct ResolvedRichTextSpan {
+    pub(crate) start: usize,
+    pub(crate) end: usize,
+    pub(crate) style: TextStyle,
 }
 
 struct SourceSpan<'a> {
@@ -262,6 +262,29 @@ where
     spans
 }
 
+/// Projects the exact contiguous non-inline spans that rich layout sends to the shaper.
+///
+/// Adjacent parser runs that resolve to the same text style intentionally coalesce here, so
+/// prewarm clients share the canonical source/key boundary with layout.
+pub(crate) fn resolved_text_spans<S>(
+    source: &S,
+    base_style: &TextStyle,
+) -> Vec<ResolvedRichTextSpan>
+where
+    S: RichTextLayoutSource + ?Sized,
+{
+    source_spans(source, base_style)
+        .into_iter()
+        .filter_map(|span| {
+            span.inline.is_none().then_some(ResolvedRichTextSpan {
+                start: span.start,
+                end: span.end,
+                style: span.style,
+            })
+        })
+        .collect()
+}
+
 fn push_text_span<'a>(spans: &mut Vec<SourceSpan<'a>>, start: usize, end: usize, style: TextStyle) {
     if start >= end {
         return;
@@ -294,37 +317,26 @@ fn append_text_metrics<P>(
         return;
     };
     let cross_extent = finite_non_negative(style.font_size.max(1.0));
-    let mut segment_start = 0;
-    for (newline_start, newline) in text.match_indices('\n') {
+    for line in crate::text::hard_lines(text) {
         append_shaped_segment(
             metrics,
             text,
             start,
-            segment_start,
-            newline_start,
+            line.content.start,
+            line.content.end,
             cross_extent,
             style,
             provider,
         );
-        let source_start = start + newline_start;
-        metrics.push(GraphemeAdvanceMetric {
-            source_start,
-            source_end: source_start + newline.len(),
-            advance: 0.0,
-            cross_extent,
-        });
-        segment_start = newline_start + newline.len();
+        if !line.separator.is_empty() {
+            metrics.push(GraphemeAdvanceMetric {
+                source_start: start + line.separator.start,
+                source_end: start + line.separator.end,
+                advance: 0.0,
+                cross_extent,
+            });
+        }
     }
-    append_shaped_segment(
-        metrics,
-        text,
-        start,
-        segment_start,
-        text.len(),
-        cross_extent,
-        style,
-        provider,
-    );
 }
 
 #[allow(clippy::too_many_arguments)]

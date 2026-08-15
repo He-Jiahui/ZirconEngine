@@ -5,6 +5,7 @@ mod operation_command;
 mod overlay;
 mod plugin;
 mod runtime_mirror;
+mod viewport_overlay_provider;
 
 #[cfg(test)]
 mod tests;
@@ -37,9 +38,9 @@ pub use plugin::{
     package_manifest, plugin_registration, NavigationEditorPlugin,
 };
 pub use runtime_mirror::{
-    navigation_runtime_event_consumers, NavigationPieFrame, NavigationPieMirror,
-    NavigationPieMirrorApply, NAVIGATION_TICK_CONSUMER_ID, NAVIGATION_TICK_EVENT_ID,
-    NAVIGATION_TICK_PAYLOAD_SCHEMA,
+    NavigationPieFrame, NavigationPieMirror, NavigationPieMirrorApply,
+    NAVIGATION_OVERLAY_CONSUMER_ID, NAVIGATION_OVERLAY_FRAME_EVENT_ID,
+    NAVIGATION_OVERLAY_FRAME_PAYLOAD_SCHEMA,
 };
 pub use zircon_runtime::core::framework::navigation::NavigationAgentDebugState;
 pub use zircon_runtime::core::framework::navigation::{

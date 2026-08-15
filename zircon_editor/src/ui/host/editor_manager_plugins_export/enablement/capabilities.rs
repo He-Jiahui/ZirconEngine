@@ -1,7 +1,6 @@
 use super::super::super::editor_capabilities::EditorCapabilitySnapshot;
 use super::super::super::editor_manager::EditorManager;
-use super::super::super::editor_subsystems::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY;
-use zircon_runtime::core::CoreHandle;
+use super::super::super::runtime_services::EditorCapabilityConfiguration;
 
 impl EditorManager {
     pub fn set_editor_subsystem_enabled(
@@ -26,14 +25,20 @@ impl EditorManager {
         &self,
         target_capabilities: &[String],
         enabled: bool,
-    ) -> Result<(CoreHandle, EditorCapabilitySnapshot, Vec<String>), String> {
-        let core = self
+    ) -> Result<
+        (
+            EditorCapabilityConfiguration,
+            EditorCapabilitySnapshot,
+            Vec<String>,
+        ),
+        String,
+    > {
+        let configuration = self
             .host
-            .runtime_core()
+            .runtime_services
+            .capability_configuration()
             .map_err(|error| error.to_string())?;
-        let previous_capabilities = core
-            .load_config::<Vec<String>>(EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY)
-            .unwrap_or_default();
+        let previous_capabilities = configuration.enabled_subsystems();
         let mut capabilities = previous_capabilities.clone();
         capabilities.retain(|existing| {
             !target_capabilities
@@ -45,18 +50,18 @@ impl EditorManager {
             capabilities.sort();
             capabilities.dedup();
         }
-        core.store_config_value(
-            EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
-            serde_json::json!(capabilities),
-        );
-        match self.host.refresh_capabilities_from_core(&core) {
-            Ok(snapshot) => Ok((core, snapshot, previous_capabilities)),
+        configuration.store_enabled_subsystems(&capabilities);
+        match self
+            .host
+            .apply_capability_report(configuration.subsystem_report())
+        {
+            Ok(snapshot) => Ok((configuration, snapshot, previous_capabilities)),
             Err(error) => {
-                core.store_config_value(
-                    EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
-                    serde_json::json!(&previous_capabilities),
-                );
-                match self.host.refresh_capabilities_from_core(&core) {
+                configuration.store_enabled_subsystems(&previous_capabilities);
+                match self
+                    .host
+                    .apply_capability_report(configuration.subsystem_report())
+                {
                     Ok(_) => Err(error.to_string()),
                     Err(rollback_error) => Err(format!(
                         "{error}; restoring editor capabilities failed: {rollback_error}"
@@ -68,15 +73,12 @@ impl EditorManager {
 
     fn restore_editor_capabilities(
         &self,
-        core: &CoreHandle,
+        configuration: &EditorCapabilityConfiguration,
         previous_capabilities: &[String],
     ) -> Result<(), String> {
-        core.store_config_value(
-            EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
-            serde_json::json!(previous_capabilities),
-        );
+        configuration.store_enabled_subsystems(previous_capabilities);
         self.host
-            .refresh_capabilities_from_core(core)
+            .apply_capability_report(configuration.subsystem_report())
             .map(|_| ())
             .map_err(|error| error.to_string())
     }
@@ -103,10 +105,10 @@ impl EditorManager {
             return Err(format!("plugin {plugin_id} has no editor capabilities"));
         }
         self.validate_editor_plugin_state(plugin_id, enabled)?;
-        let (core, snapshot, previous_capabilities) =
+        let (configuration, snapshot, previous_capabilities) =
             self.set_editor_capabilities_with_previous(capabilities, enabled)?;
         if let Err(error) = self.update_editor_plugin_state_unpublished(plugin_id, enabled) {
-            return match self.restore_editor_capabilities(&core, &previous_capabilities) {
+            return match self.restore_editor_capabilities(&configuration, &previous_capabilities) {
                 Ok(()) => Err(error),
                 Err(rollback_error) => Err(format!(
                     "{error}; restoring editor capabilities after state publication failed: {rollback_error}"

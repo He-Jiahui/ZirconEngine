@@ -54,3 +54,20 @@ Open state: `待 Runtime07 联动Runtime10/Render17收敛extract owner与观察�
 - 当前 shared boundary 仍按值接收 `RenderFrameExtract`：cache 即使改为 `Arc`，runtime bridge 仍需在 submit/present 边界重建 owned payload。更重要的是 renderer camera loop 和 context builder 对 `Arc<RenderFrameExtract>` 使用 `Arc::make_mut` 写入 selected camera、viewport、material/PBR、particle、post-process 与 AA derived state；当 cache 同时持有 Arc 时，这会退化为整帧 copy-on-write clone。
 - 因此本 lifecycle 的最低修复是 immutable generation source handle 加独立的 per-submission derived/selection state，并让 RenderFramework/Runtime bridge/renderer 在该 handle 上达成单一 ownership contract。不得把 cache Arc、renderer mutable working extract 或 diagnostics payload scan 混为同一对象，更不得以 default clone fallback 宣称 shared extract。
 - 该 cross-boundary hard cut 需要对现有未归属的 framework/runtime-loop/renderer dirty source 先做 source attribution；当前 Runtime07 scope 只记录事实，不将这些工作区改动吸收为本 failure 的修复，也没有 Cargo green claim。
+
+## 2026-08-13 forward continuation
+
+- `RuntimeFrameExtractCacheEntry` now owns an immutable diagnostics summary created once when a
+  generation is rebuilt. A stable cache hit reuses that summary, so recording
+  `extract.output_bytes` no longer traverses meshes, lights, virtual-geometry payloads,
+  post-process data, overlays, sprites, particles, or visibility payloads again.
+- The real two-capture headless session regression requires payload-stat scan samples `[1, 0]`
+  for rebuild then stable reuse. Existing `full_clones` and `full_clone_bytes` diagnostics remain
+  explicit at `[1, 1]`: this slice does not misrepresent the still-owned submit boundary clone as
+  eliminated.
+- The broad immutable-source versus submission-derived-state hard cut remains separate work: the
+  current RenderFramework trait, pipelined queue, and camera loop still accept an owned extract
+  and perform legitimate per-submission mutations. No `Arc::make_mut` COW path was relabeled as a
+  cache optimization. Rustfmt and scoped diff checks passed; no Cargo or performance command was
+  run in this continuation. The canonical failure remains `open` pending its managed behavior and
+  quantified performance gates.

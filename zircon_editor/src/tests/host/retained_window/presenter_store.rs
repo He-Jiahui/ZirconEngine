@@ -1,6 +1,7 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
+use crate::ui::retained_host::host_contract::data::HostPresentationGenerationCursor;
 use crate::ui::retained_host::primitives::PhysicalSize;
 use crate::ui::retained_host::{
     configure_native_floating_window_presentation, NativeFloatingWindowTarget,
@@ -138,4 +139,45 @@ fn native_window_presenter_store_runs_child_window_creation_hook_for_callback_wi
         .invoke_menu_pointer_clicked(18.0, 24.0);
 
     assert_eq!(callback_hits.get(), 1);
+}
+
+#[test]
+fn native_window_presenter_store_skips_an_already_applied_generation() {
+    let window_id = MainPageId::new("window:native-preview");
+    let mut presenters = NativeWindowPresenterStore::default();
+    let initial = native_target(&window_id, "Native Preview", [120.0, 80.0, 640.0, 480.0]);
+    let generation = HostPresentationGenerationCursor::new(7, 11, 13, 17, 19, 23);
+    let apply_count = Rc::new(Cell::new(0));
+
+    let sync = |presenters: &mut NativeWindowPresenterStore,
+                target: NativeFloatingWindowTarget,
+                generation: HostPresentationGenerationCursor| {
+        let apply_count = Rc::clone(&apply_count);
+        presenters
+            .sync_targets_with_generation(
+                &[target],
+                generation,
+                |_ui, _target| {},
+                move |_ui, _target| apply_count.set(apply_count.get() + 1),
+            )
+            .expect("generation-aware native window sync should succeed");
+    };
+
+    sync(&mut presenters, initial.clone(), generation);
+    sync(&mut presenters, initial.clone(), generation);
+    assert_eq!(apply_count.get(), 1);
+
+    let next_generation = HostPresentationGenerationCursor::new(8, 11, 13, 17, 19, 23);
+    sync(&mut presenters, initial.clone(), next_generation);
+    assert_eq!(apply_count.get(), 2);
+
+    let moved = native_target(&window_id, "Native Preview", [160.0, 80.0, 640.0, 480.0]);
+    sync(&mut presenters, moved, next_generation);
+    assert_eq!(apply_count.get(), 3);
+
+    presenters
+        .sync_targets(&[], |_ui, _target| {}, |_ui, _target| {})
+        .expect("removing native windows should succeed");
+    sync(&mut presenters, initial, next_generation);
+    assert_eq!(apply_count.get(), 4);
 }

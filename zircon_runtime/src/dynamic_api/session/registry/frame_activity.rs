@@ -41,6 +41,10 @@ impl RuntimeFrameActivity {
         self.wake.wait_for_callbacks();
     }
 
+    pub(in crate::dynamic_api::session) fn wake_callback_active_on_current_thread(&self) -> bool {
+        self.wake.callback_active_on_current_thread()
+    }
+
     fn lock_demand(&self) -> MutexGuard<'_, FrameDemandAccumulator> {
         self.demand
             .lock()

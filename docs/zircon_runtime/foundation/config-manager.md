@@ -1,27 +1,25 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/foundation/mod.rs
+  - zircon_runtime/src/core/resource/io/atomic_file
   - zircon_runtime/src/core/runtime/handle/events.rs
   - zircon_runtime/src/foundation/module.rs
-  - zircon_runtime/src/foundation/persistence.rs
   - zircon_runtime/src/foundation/runtime/config_manager.rs
   - zircon_runtime/src/foundation/runtime/config_manager/commit_fence.rs
   - zircon_runtime/src/foundation/runtime/config_manager/state.rs
   - zircon_runtime/src/foundation/runtime/config_manager/worker.rs
   - zircon_runtime/src/foundation/runtime/config_manager/writer.rs
-  - zircon_runtime/src/foundation/persistence/atomic_file.rs
   - zircon_runtime/src/foundation/runtime/config_manager_tests.rs
 implementation_files:
   - zircon_runtime/src/core/framework/foundation/mod.rs
+  - zircon_runtime/src/core/resource/io/atomic_file
   - zircon_runtime/src/core/runtime/handle/events.rs
   - zircon_runtime/src/foundation/module.rs
-  - zircon_runtime/src/foundation/persistence.rs
   - zircon_runtime/src/foundation/runtime/config_manager.rs
   - zircon_runtime/src/foundation/runtime/config_manager/commit_fence.rs
   - zircon_runtime/src/foundation/runtime/config_manager/state.rs
   - zircon_runtime/src/foundation/runtime/config_manager/worker.rs
   - zircon_runtime/src/foundation/runtime/config_manager/writer.rs
-  - zircon_runtime/src/foundation/persistence/atomic_file.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
@@ -40,7 +38,7 @@ status: current
 - `set_value`只比较并更新内存事实源，然后推进dirty generation并唤醒worker；调用线程不snapshot、不序列化且不执行文件系统写入。
 - 同值且没有dirty时不创建工作；持久化失败后dirty独立保留，同值调用会重新请求提交，不能因value equality吞掉失败。
 - 所有clone共享一个`zr-config-persist` owner。worker使用25 ms trailing debounce合并burst，snapshot最新完整配置并只确认本次attempt对应的generation；attempt期间出现的新变化继续保持pending。
-- `ConfigFileWriter`只在worker线程执行。生产writer先通过foundation共享原子文件owner生成已flush/sync的pending transaction，再进入配置路径的commit fence做平台atomic replace；失败时旧完整JSON保持可读。
+- `ConfigFileWriter`只在worker线程执行。生产writer先通过`core::resource::io::atomic_file`共享owner生成已flush/sync的pending transaction，再进入配置路径的commit fence做平台atomic replace；失败时旧完整JSON保持可读。
 
 ## Flush与关闭
 

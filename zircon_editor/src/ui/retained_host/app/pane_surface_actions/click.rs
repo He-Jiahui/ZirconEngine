@@ -76,6 +76,9 @@ impl RetainedEditorHost {
         {
             return;
         }
+        if self.dispatch_activity_log_jump_action(action_id) {
+            return;
+        }
         if let Some(result) =
             self.dispatch_componentized_workbench_surface_control(control_id, action_id)
         {

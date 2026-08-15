@@ -3,8 +3,8 @@ use std::collections::{BTreeSet, VecDeque};
 use crate::ui::asset_editor::UiDesignerSelectionModel;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::template::{
-    UiAssetDocument, UiAssetHeader, UiAssetKind, UiNodeDefinition, UiNodeDefinitionKind,
-    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
+    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION, UiAssetDocument, UiAssetHeader, UiAssetKind,
+    UiNodeDefinition, UiNodeDefinitionKind,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -4,6 +4,7 @@ use crate::scene::ecs::{QueryAccessError, ResourceId};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SystemParamError {
+    MultipleDeferredCommandParams,
     Query(QueryAccessError),
     ConflictingResourceAccess { resource_id: ResourceId },
     ConflictingEventAccess { type_name: &'static str },
@@ -14,6 +15,9 @@ pub enum SystemParamError {
 impl fmt::Display for SystemParamError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::MultipleDeferredCommandParams => {
+                write!(f, "a system may own at most one deferred command lane")
+            }
             Self::Query(error) => write!(f, "{error}"),
             Self::ConflictingResourceAccess { resource_id } => write!(
                 f,

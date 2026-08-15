@@ -9,7 +9,7 @@ origin_child_dir: docs/plans/zircon_editor/editor/01
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/08
 related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
-  - zircon_editor/src/tests/host/pane_presentation.rs
+  - zircon_editor/src/tests/host/pane_presentation/
   - zircon_runtime/src/core/runtime/diagnostics/physics_backend.rs
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
@@ -17,7 +17,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - cargo test -p zircon_editor --lib --locked tests::host::pane_presentation::pane_payload_builders_emit_stable_body_metadata_for_first_wave_views -- --exact --test-threads=1
+  - cargo test -p zircon_editor --lib --locked tests::host::pane_presentation::first_wave_payloads::pane_payload_builders_emit_stable_body_metadata_for_first_wave_views -- --exact --test-threads=1
 ---
 
 # Editor UI 08：Runtime diagnostics physics state 格式失败交接
@@ -65,6 +65,8 @@ state 文案，而不是把 Runtime DTO 或 Editor kernel 改回旧 enum。
 | Editor UI 08 / Editor M1 | 当前源码完整门禁复核 | `未通过-显示投影故障未变化` | 2026-07-11 | 08:31 当前源码 binary 完整执行 2930 项为 2763/133/34（2258.13s），133 个失败名相对 06:17 门禁 added=0、removed=0；本 exact 仍为 0/1（0.04s），实际 `Physics: jolt ("ready", 120 Hz)`、期望 `Physics: jolt (Ready, 120 Hz)`。 |
 | Editor UI 08 / Editor03+08 M1 | 当前全量门 pane metadata 复现 | `未通过-继续由功能owner处理` | 2026-07-12 | 受管 job `520d85713df249afae31661a7697ad07` 的 `pane_payload_builders_emit_stable_body_metadata_for_first_wave_views` 再次失败；Physics03 的 `sleep_policy` 消费者已越过编译，因此当前信号仍位于 Workbench pane metadata 投影而非刚体字段兼容。原始日志 `D:/cargo-targets/editor08-m1-rerun4-20260712.log`；修复后须先跑本 exact 与 `pane_presentation` 组，再向上复验全量门。 |
 | Editor UI 08 / Editor09 M1 | 当前源码完整门停滞前复现 | `未通过-继续由功能owner处理` | 2026-07-13 | 当前源码 job `e81ed19d256f40c28ddb2437e9a18460` 完成编译并在第 1755 项外部停滞前再次记录 `pane_payload_builders_emit_stable_body_metadata_for_first_wave_views` 失败；日志 `.codex/tmp/editor09-m1-full-lib-test-r2-20260713.log`。本 failure 保持 open，不另建重复记录。 |
+| Editor UI 08 | physics state display formatter forward repair | `resolving_failure` | 2026-08-13 | 已在唯一 `runtime_diagnostics.rs` formatter 移除动态 `String` 的 Debug 格式化；新增 UI-only 文案标准化与模块内产品回归，覆盖 ready、disabled、unavailable、unknown、空白和 unavailable physics 分支。`rustfmt --edition 2024 --check`、scoped `git diff --check` 与反向源码合同均通过。 |
+| Editor UI 08 | pane presentation test-owner hard cut | `resolving_failure` | 2026-08-14 | physics 产品断言随 `tests/host/pane_presentation.rs` 的完整 hard cut 迁入 `first_wave_payloads.rs`；HEAD/current 的 5 项测试均保留，fixture 收敛到 `support.rs`，旧 flat 文件不存在。精确选择器已更新为新叶模块路径，不保留 alias、wrapper 或 `#[path]` mount。`rustfmt --check`、`git diff --check` 与边界扫描通过。 |
 
 ## 修复结果与回传
 

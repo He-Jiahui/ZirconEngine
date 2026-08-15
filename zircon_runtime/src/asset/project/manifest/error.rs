@@ -31,6 +31,14 @@ pub enum ProjectManifestError {
         ancestor: String,
         descendant: String,
     },
+    #[error("project manifest UI root must use the res scheme: {root}")]
+    InvalidUiRootScheme { root: String },
+    #[error("project manifest UI root cannot be empty")]
+    EmptyUiRoot,
+    #[error("project manifest UI root must not select an asset label: {root}")]
+    LabelledUiRoot { root: String },
+    #[error("project manifest declares duplicate UI root {root}")]
+    DuplicateUiRoot { root: String },
     #[error("encode project manifest TOML failed: {source}")]
     Encode {
         #[source]

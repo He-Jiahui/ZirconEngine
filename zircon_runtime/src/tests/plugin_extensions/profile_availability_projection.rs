@@ -420,6 +420,27 @@ fn availability_generation_shares_required_rows_and_materializes_report_bytes() 
     );
 }
 
+#[test]
+fn availability_profile_defaults_merge_duplicate_runtime_ids_with_required_or() {
+    let descriptors = [descriptor(0)];
+    let runtime_id = RuntimePluginId::new("profile_perf_0");
+    let profile = RuntimeProfileDescriptor::new(
+        RuntimeProfileId::Dev,
+        "duplicate profile defaults",
+        RuntimeTargetMode::ClientRuntime,
+    )
+    .with_minimum_maturity(PluginMaturity::Beta)
+    .with_default_plugin(runtime_id.clone(), false)
+    .with_optional_plugin(runtime_id.clone())
+    .with_default_plugin(runtime_id, true);
+
+    let report = profile.availability_report(descriptors.iter(), std::iter::empty::<&str>());
+
+    assert_eq!(report.available.len(), 1);
+    assert_eq!(report.available[0].id, "profile_perf_0");
+    assert!(report.available[0].required);
+}
+
 fn descriptor(index: usize) -> RuntimePluginDescriptor {
     let id = format!("profile_perf_{index}");
     RuntimePluginDescriptor::builder(

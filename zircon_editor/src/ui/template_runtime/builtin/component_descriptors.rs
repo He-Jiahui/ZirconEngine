@@ -1,6 +1,6 @@
 use crate::ui::template::{
-    parse_editor_component_catalog_manifest, EditorComponentCatalogManifestError,
-    EditorComponentDescriptor,
+    EditorComponentCatalogManifestError, EditorComponentDescriptor,
+    parse_editor_component_catalog_manifest,
 };
 
 pub(crate) const BUILTIN_COMPONENT_CATALOG_MANIFEST_ID: &str =
@@ -10,8 +10,8 @@ const BUILTIN_COMPONENT_CATALOG_MANIFEST: &str = include_str!(concat!(
     "/assets/ui/editor/components/catalog.toml"
 ));
 
-pub(crate) fn builtin_component_descriptors(
-) -> Result<Vec<EditorComponentDescriptor>, EditorComponentCatalogManifestError> {
+pub(crate) fn builtin_component_descriptors()
+-> Result<Vec<EditorComponentDescriptor>, EditorComponentCatalogManifestError> {
     parse_editor_component_catalog_manifest(BUILTIN_COMPONENT_CATALOG_MANIFEST)
 }
 
@@ -94,8 +94,8 @@ mod tooltip_contract_tests;
 #[cfg(test)]
 mod tests {
     use super::{
-        builtin_component_descriptors_for_tests, primitive_root_prop_default,
-        BUILTIN_COMPONENT_CATALOG_MANIFEST_ID,
+        BUILTIN_COMPONENT_CATALOG_MANIFEST_ID, builtin_component_descriptors_for_tests,
+        primitive_root_prop_default,
     };
     use crate::ui::template::{EditorComponentTier, EditorPropDefault, EditorPropLiteral};
     use std::{

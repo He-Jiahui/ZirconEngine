@@ -12,6 +12,7 @@ pub enum ProcessMessageId {
     EditorExecutableUnavailable,
     StartedProcess,
     OpeningTargetProcess,
+    FocusedExistingEditor,
     ProcessId,
 }
 
@@ -27,6 +28,7 @@ impl ProcessMessageId {
         Self::EditorExecutableUnavailable,
         Self::StartedProcess,
         Self::OpeningTargetProcess,
+        Self::FocusedExistingEditor,
         Self::ProcessId,
     ];
 
@@ -44,13 +46,17 @@ impl ProcessMessageId {
             Self::EditorExecutableUnavailable => "process.editor-executable-unavailable",
             Self::StartedProcess => "process.started-process",
             Self::OpeningTargetProcess => "process.opening-target-process",
+            Self::FocusedExistingEditor => "process.focused-existing-editor",
             Self::ProcessId => "process.process-id",
         }
     }
 
     pub(super) fn param_count(self) -> usize {
         match self {
-            Self::EditorExecutableUnavailable | Self::StartedProcess | Self::ProcessId => 1,
+            Self::EditorExecutableUnavailable
+            | Self::StartedProcess
+            | Self::FocusedExistingEditor
+            | Self::ProcessId => 1,
             Self::OpeningTargetProcess => 2,
             _ => 0,
         }
@@ -78,6 +84,12 @@ impl ProcessMessageId {
             (HubLanguage::Chinese, Self::StartedProcess) => "已启动进程 {0}",
             (HubLanguage::English, Self::OpeningTargetProcess) => "Opening {0} (process {1})",
             (HubLanguage::Chinese, Self::OpeningTargetProcess) => "正在打开 {0}（进程 {1}）",
+            (HubLanguage::English, Self::FocusedExistingEditor) => {
+                "Focused existing editor process {0}"
+            }
+            (HubLanguage::Chinese, Self::FocusedExistingEditor) => {
+                "已聚焦现有编辑器进程 {0}"
+            }
             (HubLanguage::English, Self::ProcessId) => "Process {0}",
             (HubLanguage::Chinese, Self::ProcessId) => "进程 {0}",
         }

@@ -2,7 +2,7 @@
 fn review_f17_entity_path_option_lookup_uses_get_verb() {
     let path_resolution =
         include_str!("../../../../scene/world/property_access/path_resolution.rs");
-    let runtime_apply = include_str!("../../../../animation/sequence/apply.rs");
+    let runtime_compiled = include_str!("../../../../animation/sequence/compiled.rs");
     let runtime_target = include_str!("../../../../animation/sequence/target.rs");
     let plugin_runtime =
         include_str!("../../../../../../zircon_plugins/animation/runtime/src/lib.rs");
@@ -55,7 +55,7 @@ fn review_f17_entity_path_option_lookup_uses_get_verb() {
     );
 
     for (name, source) in [
-        ("runtime animation apply", runtime_apply),
+        ("runtime animation compiled projection", runtime_compiled),
         ("runtime animation target", runtime_target),
         (
             "property path runtime mutation tests",
@@ -75,8 +75,10 @@ fn review_f17_entity_path_option_lookup_uses_get_verb() {
 
     assert!(
         plugin_runtime.contains("pub use zircon_runtime::animation::{")
-            && plugin_runtime.contains("apply_sequence_to_world"),
-        "the animation plugin must consume the canonical runtime sequence API instead of reviving its retired sequence module"
+            && plugin_runtime.contains("apply_compiled_sequence_to_world")
+            && plugin_runtime.contains("compile_sequence_for_world")
+            && !plugin_runtime.contains("apply_sequence_to_world"),
+        "the animation plugin must expose the canonical compiled runtime sequence API without reviving per-frame text dispatch"
     );
 
     for doc_anchor in [

@@ -1,37 +1,265 @@
-use crate::core::framework::scene::ScenePropertyValue;
 use crate::core::framework::scene::physics::{
     PhysicsCcdMode, PhysicsMassProperties, PhysicsSleepPolicy,
 };
+use crate::core::framework::scene::ScenePropertyValue;
+use crate::scene::components::{
+    ColliderComponent, JointComponent, JointKind, RigidBodyComponent, RigidBodyType,
+};
 use crate::scene::EntityId;
-use crate::scene::components::{JointKind, RigidBodyType};
 
 #[path = "collider_shape.rs"]
 mod collider_shape;
 
 use super::super::super::World;
-use super::super::value_conversion::combine_rule_label;
+use super::super::value_conversion::{combine_rule_label, normalized_identifier_matches};
 use collider_shape::{
-    collider_shape_property_entry_capacity, visit_collider_shape_property_entries,
+    collider_shape_property_entry_capacity, collider_shape_property_value,
+    visit_collider_shape_property_entries,
 };
 
 impl World {
+    pub(in super::super) fn physics_property_value(
+        &self,
+        entity: EntityId,
+        component: &str,
+        segments: &[String],
+    ) -> Option<ScenePropertyValue> {
+        if normalized_identifier_matches(component, "RigidBody") {
+            let rigid_body = self.get::<RigidBodyComponent>(entity)?;
+            return match segments {
+                [field] if normalized_identifier_matches(field, "kind") => {
+                    Some(ScenePropertyValue::Enum(match rigid_body.body_type {
+                        RigidBodyType::Static => "static".to_string(),
+                        RigidBodyType::Dynamic => "dynamic".to_string(),
+                        RigidBodyType::Kinematic => "kinematic".to_string(),
+                    }))
+                }
+                [field] if normalized_identifier_matches(field, "mass") => {
+                    Some(ScenePropertyValue::Scalar(rigid_body.mass))
+                }
+                [group, field]
+                    if normalized_identifier_matches(group, "mass_properties")
+                        && normalized_identifier_matches(field, "mode") =>
+                {
+                    Some(ScenePropertyValue::Enum(match rigid_body.mass_properties {
+                        PhysicsMassProperties::Explicit { .. } => "explicit".to_string(),
+                        PhysicsMassProperties::AutoFromShape { .. } => {
+                            "auto_from_shape".to_string()
+                        }
+                    }))
+                }
+                [group, field]
+                    if normalized_identifier_matches(group, "mass_properties")
+                        && normalized_identifier_matches(field, "density") =>
+                {
+                    Some(ScenePropertyValue::Scalar(
+                        match rigid_body.mass_properties {
+                            PhysicsMassProperties::AutoFromShape { density } => density,
+                            PhysicsMassProperties::Explicit { .. } => 1.0,
+                        },
+                    ))
+                }
+                [field] if normalized_identifier_matches(field, "linear_velocity") => Some(
+                    ScenePropertyValue::Vec3(rigid_body.linear_velocity.to_array()),
+                ),
+                [field] if normalized_identifier_matches(field, "angular_velocity") => Some(
+                    ScenePropertyValue::Vec3(rigid_body.angular_velocity.to_array()),
+                ),
+                [field] if normalized_identifier_matches(field, "linear_damping") => {
+                    Some(ScenePropertyValue::Scalar(rigid_body.linear_damping))
+                }
+                [field] if normalized_identifier_matches(field, "angular_damping") => {
+                    Some(ScenePropertyValue::Scalar(rigid_body.angular_damping))
+                }
+                [field] if normalized_identifier_matches(field, "gravity_scale") => {
+                    Some(ScenePropertyValue::Scalar(rigid_body.gravity_scale))
+                }
+                [field] if normalized_identifier_matches(field, "ccd_mode") => {
+                    Some(ScenePropertyValue::Enum(match rigid_body.ccd_mode {
+                        PhysicsCcdMode::Disabled => "disabled".to_string(),
+                        PhysicsCcdMode::LinearCast => "linear_cast".to_string(),
+                    }))
+                }
+                [field] if normalized_identifier_matches(field, "sleep_policy") => {
+                    Some(ScenePropertyValue::Enum(match rigid_body.sleep_policy {
+                        PhysicsSleepPolicy::Allow => "allow".to_string(),
+                        PhysicsSleepPolicy::Never => "never".to_string(),
+                    }))
+                }
+                [group, axis] if normalized_identifier_matches(group, "lock_translation") => {
+                    property_axis_index(axis)
+                        .map(|axis| ScenePropertyValue::Bool(rigid_body.lock_translation[axis]))
+                }
+                [group, axis] if normalized_identifier_matches(group, "lock_rotation") => {
+                    property_axis_index(axis)
+                        .map(|axis| ScenePropertyValue::Bool(rigid_body.lock_rotation[axis]))
+                }
+                _ => None,
+            };
+        }
+
+        if normalized_identifier_matches(component, "Collider") {
+            let collider = self.get::<ColliderComponent>(entity)?;
+            return match segments {
+                [field] if normalized_identifier_matches(field, "sensor") => {
+                    Some(ScenePropertyValue::Bool(collider.sensor))
+                }
+                [field] if normalized_identifier_matches(field, "layer") => {
+                    Some(ScenePropertyValue::Unsigned(collider.layer as u64))
+                }
+                [field] if normalized_identifier_matches(field, "collision_group") => Some(
+                    ScenePropertyValue::Unsigned(collider.collision_group as u64),
+                ),
+                [field] if normalized_identifier_matches(field, "collision_mask") => {
+                    Some(ScenePropertyValue::Unsigned(collider.collision_mask as u64))
+                }
+                [field] if normalized_identifier_matches(field, "material") => collider
+                    .material
+                    .map(|material| ScenePropertyValue::Resource(material.id().to_string())),
+                [group, field]
+                    if normalized_identifier_matches(group, "local_transform")
+                        && normalized_identifier_matches(field, "translation") =>
+                {
+                    Some(ScenePropertyValue::Vec3(
+                        collider.local_transform.translation.to_array(),
+                    ))
+                }
+                [group, field]
+                    if normalized_identifier_matches(group, "local_transform")
+                        && normalized_identifier_matches(field, "rotation") =>
+                {
+                    Some(ScenePropertyValue::Quaternion(
+                        collider.local_transform.rotation.to_array(),
+                    ))
+                }
+                [group, field]
+                    if normalized_identifier_matches(group, "local_transform")
+                        && normalized_identifier_matches(field, "scale") =>
+                {
+                    Some(ScenePropertyValue::Vec3(
+                        collider.local_transform.scale.to_array(),
+                    ))
+                }
+                [group, field]
+                    if normalized_identifier_matches(group, "material_override")
+                        && normalized_identifier_matches(field, "static_friction") =>
+                {
+                    collider
+                        .material_override
+                        .as_ref()
+                        .map(|material| ScenePropertyValue::Scalar(material.static_friction))
+                }
+                [group, field]
+                    if normalized_identifier_matches(group, "material_override")
+                        && normalized_identifier_matches(field, "dynamic_friction") =>
+                {
+                    collider
+                        .material_override
+                        .as_ref()
+                        .map(|material| ScenePropertyValue::Scalar(material.dynamic_friction))
+                }
+                [group, field]
+                    if normalized_identifier_matches(group, "material_override")
+                        && normalized_identifier_matches(field, "restitution") =>
+                {
+                    collider
+                        .material_override
+                        .as_ref()
+                        .map(|material| ScenePropertyValue::Scalar(material.restitution))
+                }
+                [group, field]
+                    if normalized_identifier_matches(group, "material_override")
+                        && normalized_identifier_matches(field, "friction_combine") =>
+                {
+                    collider.material_override.as_ref().map(|material| {
+                        ScenePropertyValue::Enum(
+                            combine_rule_label(material.friction_combine).to_string(),
+                        )
+                    })
+                }
+                [group, field]
+                    if normalized_identifier_matches(group, "material_override")
+                        && normalized_identifier_matches(field, "restitution_combine") =>
+                {
+                    collider.material_override.as_ref().map(|material| {
+                        ScenePropertyValue::Enum(
+                            combine_rule_label(material.restitution_combine).to_string(),
+                        )
+                    })
+                }
+                [group, remaining @ ..] if normalized_identifier_matches(group, "shape") => {
+                    collider_shape_property_value(&collider.shape, remaining)
+                }
+                _ => None,
+            };
+        }
+
+        if normalized_identifier_matches(component, "Joint") {
+            let joint = self.get::<JointComponent>(entity)?;
+            return match segments {
+                [field] if normalized_identifier_matches(field, "kind") => {
+                    Some(ScenePropertyValue::Enum(match joint.joint_type {
+                        JointKind::Fixed => "fixed".to_string(),
+                        JointKind::Distance => "distance".to_string(),
+                        JointKind::Hinge => "hinge".to_string(),
+                        JointKind::Slider => "slider".to_string(),
+                        JointKind::ConeTwist => "cone_twist".to_string(),
+                        JointKind::Generic6Dof => "generic_6dof".to_string(),
+                    }))
+                }
+                [field] if normalized_identifier_matches(field, "connected_entity") => {
+                    Some(ScenePropertyValue::Entity(joint.connected_entity))
+                }
+                [field] if normalized_identifier_matches(field, "anchor") => {
+                    Some(ScenePropertyValue::Vec3(joint.anchor.to_array()))
+                }
+                [field] if normalized_identifier_matches(field, "axis") => {
+                    Some(ScenePropertyValue::Vec3(joint.axis.to_array()))
+                }
+                [group, field]
+                    if normalized_identifier_matches(group, "limits")
+                        && normalized_identifier_matches(field, "min") =>
+                {
+                    joint
+                        .limits
+                        .map(|limits| ScenePropertyValue::Scalar(limits[0]))
+                }
+                [group, field]
+                    if normalized_identifier_matches(group, "limits")
+                        && normalized_identifier_matches(field, "max") =>
+                {
+                    joint
+                        .limits
+                        .map(|limits| ScenePropertyValue::Scalar(limits[1]))
+                }
+                [field] if normalized_identifier_matches(field, "collide_connected") => {
+                    Some(ScenePropertyValue::Bool(joint.collide_connected))
+                }
+                _ => None,
+            };
+        }
+
+        None
+    }
+
     pub(super) fn visit_physics_property_entries<F>(
         &self,
         entity: EntityId,
         visitor: &mut F,
     ) -> bool
     where
-        F: FnMut(&str, ScenePropertyValue, bool) -> bool,
+        F: FnMut(&str, &mut dyn FnMut() -> ScenePropertyValue, bool) -> bool,
     {
         macro_rules! push_entry {
             ($path:expr, $value:expr, $animatable:expr $(,)?) => {
-                if !visitor($path, $value, $animatable) {
+                let mut build_value = || $value;
+                if !visitor($path, &mut build_value, $animatable) {
                     return false;
                 }
             };
         }
 
-        if let Some(rigid_body) = self.rigid_bodies.get(&entity) {
+        if let Some(rigid_body) = self.get::<RigidBodyComponent>(entity) {
             push_entry!(
                 "RigidBody.kind",
                 ScenePropertyValue::Enum(match rigid_body.body_type {
@@ -118,7 +346,7 @@ impl World {
                 );
             }
         }
-        if let Some(collider) = self.colliders.get(&entity) {
+        if let Some(collider) = self.get::<ColliderComponent>(entity) {
             push_entry!(
                 "Collider.sensor",
                 ScenePropertyValue::Bool(collider.sensor),
@@ -196,7 +424,7 @@ impl World {
                 return false;
             }
         }
-        if let Some(joint) = self.joints.get(&entity) {
+        if let Some(joint) = self.get::<JointComponent>(entity) {
             push_entry!(
                 "Joint.kind",
                 ScenePropertyValue::Enum(match joint.joint_type {
@@ -248,10 +476,10 @@ impl World {
 
     pub(super) fn physics_property_entry_capacity_hint(&self, entity: EntityId) -> usize {
         let mut capacity = 0;
-        if self.rigid_bodies.contains_key(&entity) {
+        if self.contains_component::<RigidBodyComponent>(entity) {
             capacity += 17;
         }
-        if let Some(collider) = self.colliders.get(&entity) {
+        if let Some(collider) = self.get::<ColliderComponent>(entity) {
             capacity += 7;
             if collider.material.is_some() {
                 capacity += 1;
@@ -261,7 +489,7 @@ impl World {
             }
             capacity += collider_shape_property_entry_capacity(&collider.shape);
         }
-        if let Some(joint) = self.joints.get(&entity) {
+        if let Some(joint) = self.get::<JointComponent>(entity) {
             capacity += 5;
             if joint.limits.is_some() {
                 capacity += 2;
@@ -269,5 +497,17 @@ impl World {
         }
 
         capacity
+    }
+}
+
+fn property_axis_index(axis: &str) -> Option<usize> {
+    if normalized_identifier_matches(axis, "x") {
+        Some(0)
+    } else if normalized_identifier_matches(axis, "y") {
+        Some(1)
+    } else if normalized_identifier_matches(axis, "z") {
+        Some(2)
+    } else {
+        None
     }
 }

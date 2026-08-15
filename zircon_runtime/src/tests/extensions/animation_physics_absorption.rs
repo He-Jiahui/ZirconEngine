@@ -134,7 +134,8 @@ fn animation_domain_keeps_framework_contract_and_plugin_wrapper_boundary() {
     );
     assert!(
         runtime_animation_mod.contains("pub use module::")
-            && runtime_animation_mod.contains("pub use sequence::apply_sequence_to_world"),
+            && runtime_animation_mod.contains("apply_compiled_sequence_to_world")
+            && !runtime_animation_mod.contains("apply_sequence_to_world"),
         "zircon_runtime::animation should keep the runtime-owned module and sequence boundary"
     );
     assert!(

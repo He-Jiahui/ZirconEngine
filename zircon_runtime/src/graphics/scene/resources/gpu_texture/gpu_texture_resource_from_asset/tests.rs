@@ -1,6 +1,7 @@
 use super::*;
+use crate::asset::{RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT};
 use crate::core::framework::render::{
-    RenderImageAssetUsage, RenderImageFallbackKind, RenderSamplerAddressMode,
+    RenderImageAssetUsage, RenderImageFallbackKind, RenderImageUsage, RenderSamplerAddressMode,
     RenderSamplerDescriptor, RenderSamplerFilter, TextureMetadata, TextureMipPolicy,
 };
 

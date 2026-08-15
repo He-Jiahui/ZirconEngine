@@ -5,7 +5,7 @@ mod shapes;
 mod style;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use identity::{
-    SectionTitleIcon, section_title_icon,
+    section_title_icon, SectionTitleIcon,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::{
     section_title_glyph_metrics, section_title_glyph_metrics_from_host,

@@ -6,7 +6,7 @@ use super::{EditorJobProgressSource, JobCategory, JobEvent, JobEventKind, JobId}
 #[derive(Clone, Debug)]
 pub(super) struct JobEventSink {
     id: JobId,
-    label: String,
+    label: Arc<str>,
     category: JobCategory,
     queue: JobEventQueue,
     progress: EditorJobProgressSource,
@@ -24,7 +24,7 @@ enum JobEventLifecycle {
 impl JobEventSink {
     pub(super) fn new(
         id: JobId,
-        label: String,
+        label: Arc<str>,
         category: JobCategory,
         queue: JobEventQueue,
         progress: EditorJobProgressSource,
@@ -55,7 +55,7 @@ impl JobEventSink {
         self.progress.apply_event(self.id, &kind);
         self.queue.push(JobEvent::new(
             self.id,
-            self.label.clone(),
+            Arc::clone(&self.label),
             self.category,
             kind,
         ));
@@ -66,5 +66,26 @@ impl JobEventSink {
         self.lifecycle
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use super::*;
+
+    #[test]
+    fn sink_reuses_the_spec_stable_label_allocation() {
+        let spec = super::super::EditorJobSpec::new("stable-job-label", JobCategory::Index);
+        let sink = JobEventSink::new(
+            JobId::new(1),
+            Arc::clone(&spec.label),
+            JobCategory::Index,
+            JobEventQueue::default(),
+            EditorJobProgressSource::default(),
+        );
+
+        assert!(Arc::ptr_eq(&spec.label, &sink.label));
     }
 }

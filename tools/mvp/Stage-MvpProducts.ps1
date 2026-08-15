@@ -1,14 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [string]$RuntimeExecutable,
-    [Parameter(Mandatory)]
-    [string]$EditorExecutable,
-    [Parameter(Mandatory)]
-    [string]$RuntimeLibrary,
-    [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
-    [string]$EditorRuntimeLibrary,
+    [string]$ProductInputManifest,
     [Parameter(Mandatory)]
     [string]$TemplateRoot,
     [Parameter(Mandatory)]
@@ -19,7 +12,6 @@ param(
     [switch]$CreateProject,
     [string]$ProjectName = 'ZirconMvpFixture',
     [string]$StagingRoot = 'E:\ZirconBuilds',
-    [string]$SourceFingerprint,
     [string]$RunId = ('mvp-f0-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0, 8)),
     [ValidateRange(1, 4)]
     [int]$RepeatCount = 2,
@@ -38,21 +30,10 @@ $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'MvpProjectOpenEvidence.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpStagingPreflight.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'MvpStagingRelease.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpProductInputManifest.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $PSScriptRoot 'MvpAcceptanceStagingTreeManifest.psm1') -Force -ErrorAction Stop
 $pathResolverRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 Import-Module (Join-Path $pathResolverRepoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
-
-function Get-TextSha256 {
-    param([Parameter(Mandatory)][string]$Text)
-
-    $hasher = [Security.Cryptography.SHA256]::Create()
-    try {
-        $bytes = [Text.Encoding]::UTF8.GetBytes($Text)
-        return -join ($hasher.ComputeHash($bytes) | ForEach-Object { $_.ToString('X2') })
-    }
-    finally {
-        $hasher.Dispose()
-    }
-}
 
 function Get-FileSha256 {
     param([Parameter(Mandatory)][string]$Path)
@@ -66,35 +47,6 @@ function Get-FileSha256 {
         $hasher.Dispose()
         $stream.Dispose()
     }
-}
-
-function Get-MvpSourceFingerprint {
-    $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-    $git = Get-Command git -ErrorAction SilentlyContinue
-    if ($null -eq $git) {
-        throw 'Could not resolve git for the MVP source fingerprint. Supply -SourceFingerprint explicitly.'
-    }
-
-    $commit = (& $git.Source -C $repoRoot rev-parse HEAD).Trim()
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($commit)) {
-        throw 'Could not resolve the current source commit. Supply -SourceFingerprint explicitly.'
-    }
-    $trackedDiff = (& $git.Source -C $repoRoot diff --no-ext-diff --binary HEAD) -join "`n"
-    if ($LASTEXITCODE -ne 0) {
-        throw 'Could not resolve tracked working-tree content for the MVP source fingerprint. Supply -SourceFingerprint explicitly.'
-    }
-    $untrackedPaths = @(& $git.Source -C $repoRoot ls-files --others --exclude-standard)
-    if ($LASTEXITCODE -ne 0) {
-        throw 'Could not enumerate untracked working-tree inputs for the MVP source fingerprint. Supply -SourceFingerprint explicitly.'
-    }
-    $untrackedInputs = foreach ($relativePath in ($untrackedPaths | Sort-Object)) {
-        $path = Join-Path $repoRoot $relativePath
-        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
-            throw "Untracked source input '$relativePath' does not exist or is not a file."
-        }
-        "$relativePath`0$(Get-FileSha256 -Path $path)"
-    }
-    return Get-TextSha256 "commit=$commit`ntracked_diff:`n$trackedDiff`nuntracked_inputs:`n$($untrackedInputs -join "`n")"
 }
 
 function Resolve-MvpValidationMetadata {
@@ -127,10 +79,11 @@ function Resolve-MvpInputFile {
         [Parameter(Mandatory)][string]$Label
     )
 
-    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+    $resolvedPath = (Resolve-ZirconWindowsPath -Path $Path).OperationalPath
+    if (-not [IO.File]::Exists($resolvedPath)) {
         throw "$Label '$Path' does not exist or is not a file."
     }
-    return (Resolve-ZirconWindowsPath -Path $Path).OperationalPath
+    return $resolvedPath
 }
 
 function Resolve-MvpInputDirectory {
@@ -139,10 +92,11 @@ function Resolve-MvpInputDirectory {
         [Parameter(Mandatory)][string]$Label
     )
 
-    if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
+    $resolvedPath = (Resolve-ZirconWindowsPath -Path $Path).OperationalPath
+    if (-not [IO.Directory]::Exists($resolvedPath)) {
         throw "$Label '$Path' does not exist or is not a directory."
     }
-    return (Resolve-ZirconWindowsPath -Path $Path).OperationalPath
+    return $resolvedPath
 }
 
 function Assert-MvpDistinctProfileRuntimeLibraries {
@@ -161,15 +115,14 @@ function Assert-MvpDistinctProfileRuntimeLibraries {
 function Resolve-MvpStagingRoot {
     param([Parameter(Mandatory)][string]$Path)
 
-    # The approved staging root has a bounded normal form. Compare and return that display path
-    # so later PowerShell provider calls never receive a verbatim path, while arbitrary product
-    # inputs still retain their resolver physical paths.
+    # Authorize against the stable display form, then retain the physical operation path for the
+    # complete staging transaction. Result presentation converts it back at the outer boundary.
     $resolution = Resolve-ZirconWindowsPath -Path $Path
     $displayPath = $resolution.DisplayPath.TrimEnd('\')
     if (-not $AllowUnsafeStagingRoot -and $displayPath -notmatch '^[D-F]:\\ZirconBuilds(?:\\|$)') {
         throw "StagingRoot '$displayPath' is not under an approved D:\ZirconBuilds, E:\ZirconBuilds, or F:\ZirconBuilds root."
     }
-    return $displayPath
+    return $resolution.OperationalPath
 }
 
 function Assert-MvpRunId {
@@ -223,6 +176,45 @@ function Get-MvpRelativePath {
     return $resolvedPath.Substring($rootPrefix.Length).Replace('\', '/')
 }
 
+function Get-MvpOperationalFileList {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$Label,
+        [string]$Extension
+    )
+
+    try {
+        # Windows PowerShell 5.1 lacks the EnumerationOptions overload. Traverse the
+        # operational tree explicitly so reparse points cannot redirect input staging.
+        $pendingDirectories = [System.Collections.Generic.Stack[string]]::new()
+        $files = [System.Collections.Generic.List[string]]::new()
+        $pendingDirectories.Push($Path)
+        while ($pendingDirectories.Count -gt 0) {
+            $directory = $pendingDirectories.Pop()
+            foreach ($file in [IO.Directory]::GetFiles($directory)) {
+                $attributes = [IO.File]::GetAttributes($file)
+                if (([int]$attributes -band [int][IO.FileAttributes]::ReparsePoint) -eq 0) {
+                    if (-not [string]::IsNullOrWhiteSpace($Extension) -and
+                        -not [IO.Path]::GetExtension($file).Equals($Extension, [StringComparison]::OrdinalIgnoreCase)) {
+                        continue
+                    }
+                    $files.Add($file) | Out-Null
+                }
+            }
+            foreach ($childDirectory in [IO.Directory]::GetDirectories($directory)) {
+                $attributes = [IO.File]::GetAttributes($childDirectory)
+                if (([int]$attributes -band [int][IO.FileAttributes]::ReparsePoint) -eq 0) {
+                    $pendingDirectories.Push($childDirectory)
+                }
+            }
+        }
+        return @($files.ToArray() | Sort-Object)
+    }
+    catch {
+        throw "$Label '$Path' could not be enumerated through its resolver operational path: $($_.Exception.Message)"
+    }
+}
+
 function Test-MvpProjectSourceRelativePath {
     param([Parameter(Mandatory)][string]$RelativePath)
 
@@ -248,27 +240,40 @@ function Copy-MvpStageFile {
         [Parameter(Mandatory)][string]$LogicalId,
         [Parameter(Mandatory)][string]$SourcePath,
         [Parameter(Mandatory)][string]$StageRoot,
-        [Parameter(Mandatory)][string]$TargetRelativePath
+        [Parameter(Mandatory)][string]$TargetRelativePath,
+        [Int64]$ExpectedBytes = -1,
+        [string]$ExpectedSha256
     )
 
     if ([IO.Path]::IsPathRooted($TargetRelativePath) -or $TargetRelativePath -match '(^|[\\/])\.\.([\\/]|$)') {
         throw "Staging target '$TargetRelativePath' for $LogicalId escapes the staging root."
     }
-    $targetPath = Join-Path $StageRoot $TargetRelativePath
-    $targetDirectory = Split-Path -Parent $targetPath
-    New-Item -ItemType Directory -Force -Path $targetDirectory | Out-Null
+    $targetPath = Join-ZirconWindowsPath -Path $StageRoot -ChildPath $TargetRelativePath
+    $targetDirectory = [IO.Path]::GetDirectoryName($targetPath)
+    [IO.Directory]::CreateDirectory($targetDirectory) | Out-Null
     [IO.File]::Copy($SourcePath, $targetPath, $false)
-    $sourceHash = Get-FileSha256 -Path $SourcePath
+    $targetBytes = [IO.FileInfo]::new($targetPath).Length
     $targetHash = Get-FileSha256 -Path $targetPath
-    if ($sourceHash -ne $targetHash) {
-        throw "Content hash mismatch while staging $LogicalId from '$SourcePath'."
+    if ($ExpectedBytes -ge 0 -and $targetBytes -ne $ExpectedBytes) {
+        throw "Target '$TargetRelativePath' byte length differs from the expected product input '$LogicalId'."
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedSha256)) {
+        if (-not $targetHash.Equals($ExpectedSha256, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Target '$TargetRelativePath' SHA-256 differs from the expected product input '$LogicalId'."
+        }
+    }
+    else {
+        $sourceHash = Get-FileSha256 -Path $SourcePath
+        if ($sourceHash -ne $targetHash) {
+            throw "Content hash mismatch while staging $LogicalId from '$SourcePath'."
+        }
     }
 
     return [ordered]@{
         logical_id = $LogicalId
         target_relative_path = $TargetRelativePath.Replace('\', '/')
         sha256 = $targetHash
-        size_bytes = (Get-Item -LiteralPath $targetPath).Length
+        size_bytes = $targetBytes
     }
 }
 
@@ -292,14 +297,14 @@ function Get-MvpStagedFileEvidence {
         [Parameter(Mandatory)][string]$Label
     )
 
-    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+    $resolvedPath = (Resolve-ZirconWindowsPath -Path $Path).OperationalPath
+    if (-not [IO.File]::Exists($resolvedPath)) {
         throw "$Label '$Path' does not exist."
     }
-    $item = Get-Item -LiteralPath $Path -ErrorAction Stop
     return [ordered]@{
-        path = Get-MvpRelativePath -Root $StageRoot -Path $Path -Label $Label
-        sha256 = Get-FileSha256 -Path $Path
-        size_bytes = $item.Length
+        path = Get-MvpRelativePath -Root $StageRoot -Path $resolvedPath -Label $Label
+        sha256 = Get-FileSha256 -Path $resolvedPath
+        size_bytes = [IO.FileInfo]::new($resolvedPath).Length
     }
 }
 
@@ -310,10 +315,11 @@ function Get-MvpPngCaptureEvidence {
         [Parameter(Mandatory)][string]$Label
     )
 
-    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+    $resolvedPath = (Resolve-ZirconWindowsPath -Path $Path).OperationalPath
+    if (-not [IO.File]::Exists($resolvedPath)) {
         throw "$Label '$Path' was not written."
     }
-    $capture = Get-Item -LiteralPath $Path -ErrorAction Stop
+    $capture = [IO.FileInfo]::new($resolvedPath)
     if ($capture.Length -le 0) {
         throw "$Label '$Path' is empty."
     }
@@ -341,7 +347,12 @@ public sealed class ZirconMvpPngEvidence
 
     public static ZirconMvpPngEvidence Inspect(string path)
     {
-        using (var source = new Bitmap(path))
+        using (var stream = new System.IO.FileStream(
+            path,
+            System.IO.FileMode.Open,
+            System.IO.FileAccess.Read,
+            System.IO.FileShare.Read))
+        using (var source = new Bitmap(stream))
         {
             if (source.Width <= 0 || source.Height <= 0)
             {
@@ -410,7 +421,7 @@ public sealed class ZirconMvpPngEvidence
 '@ -ReferencedAssemblies $pngEvidenceReferences -ErrorAction Stop
     }
 
-    $summary = [ZirconMvpPngEvidence]::Inspect($Path)
+    $summary = [ZirconMvpPngEvidence]::Inspect($resolvedPath)
     if ($summary.NonTransparentPixels -le 0) {
         throw "$Label '$Path' has no visible pixels."
     }
@@ -418,8 +429,8 @@ public sealed class ZirconMvpPngEvidence
         throw "$Label '$Path' has only $($summary.NonBackgroundPixels) non-background pixels; expected at least 100."
     }
     return [ordered]@{
-        path = Get-MvpRelativePath -Root $StageRoot -Path $Path -Label $Label
-        sha256 = Get-FileSha256 -Path $Path
+        path = Get-MvpRelativePath -Root $StageRoot -Path $resolvedPath -Label $Label
+        sha256 = Get-FileSha256 -Path $resolvedPath
         size_bytes = $capture.Length
         pixel_sha256 = $summary.PixelSha256
         width = $summary.Width
@@ -474,9 +485,9 @@ function Write-MvpProcessJournalEntry {
         [Parameter(Mandatory)][ValidateSet('exited', 'timed_out', 'cleanup_failed')][string]$Outcome
     )
 
-    $logRoot = Join-Path $StageRoot 'logs'
-    New-Item -ItemType Directory -Force -Path $logRoot | Out-Null
-    $journalPath = Join-Path $logRoot 'process-execution-journal.jsonl'
+    $logRoot = Join-ZirconWindowsPath -Path $StageRoot -ChildPath 'logs'
+    [IO.Directory]::CreateDirectory($logRoot) | Out-Null
+    $journalPath = Join-ZirconWindowsPath -Path $logRoot -ChildPath 'process-execution-journal.jsonl'
     $entry = [ordered]@{
         phase = $Phase
         started_at_utc = $StartedAtUtc
@@ -504,17 +515,57 @@ function Start-MvpStagedProcess {
 
     # ProcessStartInfo keeps F0 launch behavior available to Windows PowerShell 5.1, whose
     # Start-Process command lacks the Environment parameter used by newer PowerShell hosts.
+    # Timeout cleanup, release checks, and the process journal must retain the physical staging
+    # identity. Resolve it before starting a child so an invalid root cannot leave an untracked
+    # product process behind.
+    $stagedProductRoot = (Resolve-ZirconWindowsPath -Path $StageRoot).OperationalPath
+    $executableResolution = Resolve-ZirconWindowsPath -Path $ExecutablePath
+    $workingDirectoryResolution = Resolve-ZirconWindowsPath -Path $WorkingDirectory
+    $projectRootResolution = if ([string]::IsNullOrWhiteSpace($ProjectRoot)) {
+        $null
+    }
+    else {
+        $resolution = Resolve-ZirconWindowsPath -Path $ProjectRoot
+        if (-not [IO.Directory]::Exists($resolution.OperationalPath)) {
+            throw "ProjectRoot '$ProjectRoot' does not exist or is not a directory."
+        }
+        $resolution
+    }
     $startInfo = [Diagnostics.ProcessStartInfo]::new()
-    $startInfo.FileName = $ExecutablePath
-    $startInfo.WorkingDirectory = $WorkingDirectory
+    $startInfo.FileName = $executableResolution.OperationalPath
+    # Project-local paths cross the product boundary through the existing `.` RelPath contract.
+    # The staging driver keeps physical identities for process cleanup and evidence only.
+    $startInfo.WorkingDirectory = if ($null -eq $projectRootResolution) {
+        $workingDirectoryResolution.OperationalPath
+    }
+    else {
+        $projectRootResolution.OperationalPath
+    }
     $startInfo.UseShellExecute = $false
     $startInfo.RedirectStandardOutput = $true
     $startInfo.RedirectStandardError = $true
+    # These staging-owned paths address project-external capture and log outlets. Keep their
+    # resolver operation paths in the driver and pass ordinary display paths to the child.
+    # The asset root is deliberately absent: `assets` is a product-relative request resolved by
+    # the executable, while project input itself is carried through `--project .` above.
+    $productPathEnvironmentVariables = @(
+        'ZIRCON_LOG_ROOT',
+        'ZIRCON_RUNTIME_CAPTURE_FRAME_PNG',
+        'ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG'
+    )
     foreach ($name in $Environment.Keys) {
-        $startInfo.EnvironmentVariables[[string]$name] = [string]$Environment[$name]
+        $environmentValue = [string]$Environment[$name]
+        if ($productPathEnvironmentVariables -contains [string]$name -and
+            -not [string]::IsNullOrWhiteSpace($environmentValue)) {
+            $environmentValue = (Resolve-ZirconWindowsPath -Path $environmentValue).DisplayPath
+        }
+        $startInfo.EnvironmentVariables[[string]$name] = $environmentValue
     }
     if (-not $Environment.ContainsKey('ZIRCON_RUNTIME_CAPTURE_FRAME_PNG')) {
         $startInfo.EnvironmentVariables.Remove('ZIRCON_RUNTIME_CAPTURE_FRAME_PNG')
+    }
+    if (-not $Environment.ContainsKey('ZIRCON_RUNTIME_EXIT_AFTER_PRESENTED_FRAMES')) {
+        $startInfo.EnvironmentVariables.Remove('ZIRCON_RUNTIME_EXIT_AFTER_PRESENTED_FRAMES')
     }
     if (-not $Environment.ContainsKey('ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG')) {
         $startInfo.EnvironmentVariables.Remove('ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG')
@@ -522,16 +573,14 @@ function Start-MvpStagedProcess {
     if (-not $Environment.ContainsKey('ZIRCON_RUNTIME_MVP_INPUT_PROBE')) {
         $startInfo.EnvironmentVariables.Remove('ZIRCON_RUNTIME_MVP_INPUT_PROBE')
     }
-    if (-not [string]::IsNullOrWhiteSpace($ProjectRoot) -and $Arguments.Count -gt 0) {
-        throw 'ProjectRoot cannot be combined with explicit staged process arguments.'
+    $childArguments = if ($null -eq $projectRootResolution) {
+        @($Arguments)
     }
-    if (-not [string]::IsNullOrWhiteSpace($ProjectRoot)) {
-        # The product CLI accepts a normal Windows path and resolves its physical identity at the
-        # project boundary. Keep physical resolver paths for staging filesystem operations only.
-        $projectRootArgument = (Resolve-ZirconWindowsPath -Path $ProjectRoot).DisplayPath
-        $startInfo.Arguments = '--project ' + (ConvertTo-MvpProcessArgument -Value $projectRootArgument)
-    } elseif ($Arguments.Count -gt 0) {
-        $startInfo.Arguments = ($Arguments | ForEach-Object {
+    else {
+        @('--project', '.') + @($Arguments)
+    }
+    if ($childArguments.Count -gt 0) {
+        $startInfo.Arguments = ($childArguments | ForEach-Object {
             ConvertTo-MvpProcessArgument -Value $_
         }) -join ' '
     }
@@ -547,7 +596,7 @@ function Start-MvpStagedProcess {
         process = $process
         stdout_task = $process.StandardOutput.ReadToEndAsync()
         stderr_task = $process.StandardError.ReadToEndAsync()
-        staged_product_root = [IO.Path]::GetFullPath($StageRoot)
+        staged_product_root = $stagedProductRoot
         phase = $Phase
         started_at_utc = $startedAtUtc
         ended_at_utc = $null
@@ -557,7 +606,9 @@ function Start-MvpStagedProcess {
 function Get-MvpStagedProcesses {
     param([Parameter(Mandatory)][string]$StageDirectory)
 
-    $resolvedDirectory = [IO.Path]::GetFullPath($StageDirectory).TrimEnd('\\')
+    # Win32_Process exposes executable paths in normal display form, while staging retains
+    # resolver operational paths. Normalize only at this WMI observation boundary.
+    $resolvedDirectory = (Resolve-ZirconWindowsPath -Path $StageDirectory).DisplayPath.TrimEnd('\\')
     $directoryPrefix = $resolvedDirectory + [IO.Path]::DirectorySeparatorChar
     return @(
         Get-CimInstance Win32_Process -ErrorAction Stop |
@@ -922,30 +973,30 @@ function Invoke-MvpStagedProduct {
         default { throw "Unsupported staged MVP product '$Product'." }
     }
     $results = [System.Collections.Generic.List[object]]::new()
-    $logDirectory = Join-Path $StageRoot 'logs'
-    $captureDirectory = Join-Path $StageRoot 'captures'
-    New-Item -ItemType Directory -Force -Path $logDirectory | Out-Null
+    $logDirectory = Join-ZirconWindowsPath -Path $StageRoot -ChildPath 'logs'
+    $captureDirectory = Join-ZirconWindowsPath -Path $StageRoot -ChildPath 'captures'
+    [IO.Directory]::CreateDirectory($logDirectory) | Out-Null
     for ($runIndex = 1; $runIndex -le $RunCount; $runIndex++) {
         $attempt = $AttemptOffset + $runIndex
-        $stdout = Join-Path $logDirectory "$Product-$attempt.stdout.log"
-        $stderr = Join-Path $logDirectory "$Product-$attempt.stderr.log"
-        $diagnosticRoot = Join-Path $logDirectory "$Product-$attempt.diagnostics"
+        $stdout = Join-ZirconWindowsPath -Path $logDirectory -ChildPath "$Product-$attempt.stdout.log"
+        $stderr = Join-ZirconWindowsPath -Path $logDirectory -ChildPath "$Product-$attempt.stderr.log"
+        $diagnosticRoot = Join-ZirconWindowsPath -Path $logDirectory -ChildPath "$Product-$attempt.diagnostics"
         $frameCapturePath = if ($Product -eq 'runtime' -and -not [string]::IsNullOrWhiteSpace($ProjectRoot)) {
-            New-Item -ItemType Directory -Force -Path $captureDirectory | Out-Null
-            Join-Path $captureDirectory "$Product-$attempt.png"
+            [IO.Directory]::CreateDirectory($captureDirectory) | Out-Null
+            Join-ZirconWindowsPath -Path $captureDirectory -ChildPath "$Product-$attempt.png"
         } else {
             $null
         }
         $editorWindowCapturePath = if ($Product -eq 'editor' -and -not [string]::IsNullOrWhiteSpace($EditorWindowCaptureName)) {
-            New-Item -ItemType Directory -Force -Path $captureDirectory | Out-Null
-            Join-Path $captureDirectory $EditorWindowCaptureName
+            [IO.Directory]::CreateDirectory($captureDirectory) | Out-Null
+            Join-ZirconWindowsPath -Path $captureDirectory -ChildPath $EditorWindowCaptureName
         } else {
             $null
         }
         $environment = @{
             $exitFlag = '1'
             ZIRCON_RUNTIME_LIBRARY = ''
-            ZIRCON_ASSET_ROOT = (Join-Path $WorkingDirectory 'assets')
+            ZIRCON_ASSET_ROOT = 'assets'
             ZIRCON_LOG_ROOT = $diagnosticRoot
             # This wins over a host RUST_LOG override so first-frame evidence is durable.
             ZIRCON_LOG_FILTER = 'log'
@@ -1017,8 +1068,11 @@ function Invoke-MvpStagedProduct {
         if ($null -ne $failureMessage) {
             throw $failureMessage
         }
-        $diagnosticFiles = @(Get-ChildItem -LiteralPath $diagnosticRoot -Recurse -File -Filter '*.log' -ErrorAction SilentlyContinue | Sort-Object FullName)
-        $diagnosticText = ($diagnosticFiles | ForEach-Object { [IO.File]::ReadAllText($_.FullName) }) -join "`n"
+        $diagnosticFiles = @(Get-MvpOperationalFileList `
+                -Path $diagnosticRoot `
+                -Label "Staged $Product diagnostic root" `
+                -Extension '.log')
+        $diagnosticText = ($diagnosticFiles | ForEach-Object { [IO.File]::ReadAllText($_) }) -join "`n"
         if ($diagnosticText.IndexOf($firstFrameDiagnostic, [StringComparison]::Ordinal) -lt 0) {
             throw "Staged $Product attempt $attempt exited without the $firstFrameDiagnostic diagnostic under '$diagnosticRoot'. See $stdout and $stderr."
         }
@@ -1058,7 +1112,7 @@ function Invoke-MvpStagedProduct {
             elapsed_milliseconds = [int][Math]::Round($started.Elapsed.TotalMilliseconds)
             stdout = Get-MvpStagedFileEvidence -Path $stdout -StageRoot $StageRoot -Label 'Product stdout log'
             stderr = Get-MvpStagedFileEvidence -Path $stderr -StageRoot $StageRoot -Label 'Product stderr log'
-            diagnostic_logs = @($diagnosticFiles | ForEach-Object { Get-MvpStagedFileEvidence -Path $_.FullName -StageRoot $StageRoot -Label 'Product diagnostic log' })
+            diagnostic_logs = @($diagnosticFiles | ForEach-Object { Get-MvpStagedFileEvidence -Path $_ -StageRoot $StageRoot -Label 'Product diagnostic log' })
             frame_capture = $frameCapture
             editor_window_capture = $editorWindowCapture
             editor_product_diagnostics = $editorProductDiagnostics
@@ -1079,7 +1133,7 @@ function Get-MvpAuthoringAutomationEvidence {
         [Parameter(Mandatory)][string]$ProjectRoot
     )
 
-    $stdout = Get-Content -LiteralPath $StdoutPath -Raw -ErrorAction Stop
+    $stdout = [IO.File]::ReadAllText($StdoutPath)
     if ([string]::IsNullOrWhiteSpace($stdout)) {
         throw "Staged editor authoring automation did not emit a structured report. See $StdoutPath and $StderrPath."
     }
@@ -1093,7 +1147,16 @@ function Get-MvpAuthoringAutomationEvidence {
         throw "Staged editor authoring automation must emit exactly one report; found $($reports.Count). See $StdoutPath and $StderrPath."
     }
 
-    $report = $reports[0]
+    $commandlet = $reports[0]
+    if ([string]$commandlet.command -ne 'authoring-automation' -or
+        [string]$commandlet.status -ne 'succeeded' -or
+        [int]$commandlet.exit_code -ne 0) {
+        throw "Staged editor authoring automation commandlet did not report success. See $StdoutPath and $StderrPath."
+    }
+    $report = $commandlet.automation
+    if ($null -eq $report) {
+        throw "Staged editor authoring automation commandlet omitted its typed automation report. See $StdoutPath and $StderrPath."
+    }
     foreach ($propertyName in @(
         'project_path',
         'project_identity',
@@ -1117,11 +1180,20 @@ function Get-MvpAuthoringAutomationEvidence {
         throw "Staged editor authoring automation report has an empty project_path. See $StdoutPath and $StderrPath."
     }
     $expectedProjectPath = (Resolve-ZirconWindowsPath -Path $ProjectRoot).OperationalPath
-    try {
-        $resolvedReportedProjectPath = (Resolve-ZirconWindowsPath -Path $reportedProjectPath).OperationalPath
+    if ($reportedProjectPath -eq '.') {
+        # Project-relative product startup uses the staged project as its child cwd.
+        $resolvedReportedProjectPath = $expectedProjectPath
     }
-    catch {
-        throw "Staged editor authoring automation report has an invalid project_path '$reportedProjectPath'. See $StdoutPath and $StderrPath."
+    else {
+        if (-not (Test-MvpFullyQualifiedWindowsPath -Path $reportedProjectPath)) {
+            throw "Staged editor authoring automation report has an invalid project_path '$reportedProjectPath'. Expected '.' or an absolute path; rooted-but-relative Windows paths are not accepted. See $StdoutPath and $StderrPath."
+        }
+        try {
+            $resolvedReportedProjectPath = (Resolve-ZirconWindowsPath -Path $reportedProjectPath).OperationalPath
+        }
+        catch {
+            throw "Staged editor authoring automation report has an invalid project_path '$reportedProjectPath'. See $StdoutPath and $StderrPath."
+        }
     }
     if (-not $resolvedReportedProjectPath.Equals($expectedProjectPath, [StringComparison]::OrdinalIgnoreCase)) {
         throw "Staged editor authoring automation report project_path '$reportedProjectPath' differs from staged project '$expectedProjectPath'. See $StdoutPath and $StderrPath."
@@ -1131,18 +1203,26 @@ function Get-MvpAuthoringAutomationEvidence {
     # into a portable CI artifact. The parsed report still records the normal binding sequence.
     Write-MvpJson -Path $StdoutPath -Value $report
 
-    $diagnosticFiles = @(
-        Get-ChildItem -LiteralPath $DiagnosticRoot -Recurse -File -ErrorAction SilentlyContinue |
-            Sort-Object FullName
-    )
+    $diagnosticFiles = @(Get-MvpOperationalFileList `
+            -Path $DiagnosticRoot `
+            -Label 'Staged editor authoring automation diagnostic root')
     if ($diagnosticFiles.Count -eq 0) {
         throw "Staged editor authoring automation did not emit diagnostic log evidence under '$DiagnosticRoot'."
     }
     $report | Add-Member -NotePropertyName 'automation_request' -NotePropertyValue (Get-MvpStagedFileEvidence -Path $AutomationRequestPath -StageRoot $StageRoot -Label 'Authoring automation request')
     $report | Add-Member -NotePropertyName 'stdout' -NotePropertyValue (Get-MvpStagedFileEvidence -Path $StdoutPath -StageRoot $StageRoot -Label 'Authoring automation stdout log')
     $report | Add-Member -NotePropertyName 'stderr' -NotePropertyValue (Get-MvpStagedFileEvidence -Path $StderrPath -StageRoot $StageRoot -Label 'Authoring automation stderr log')
-    $report | Add-Member -NotePropertyName 'diagnostic_logs' -NotePropertyValue @($diagnosticFiles | ForEach-Object { Get-MvpStagedFileEvidence -Path $_.FullName -StageRoot $StageRoot -Label 'Authoring automation diagnostic log' })
+    $report | Add-Member -NotePropertyName 'diagnostic_logs' -NotePropertyValue @($diagnosticFiles | ForEach-Object { Get-MvpStagedFileEvidence -Path $_ -StageRoot $StageRoot -Label 'Authoring automation diagnostic log' })
     return $report
+}
+
+function Test-MvpFullyQualifiedWindowsPath {
+    param([Parameter(Mandatory)][string]$Path)
+
+    return $Path -match '^[A-Za-z]:[\\/]' -or
+        $Path -match '^\\\\\?\\[A-Za-z]:[\\/]' -or
+        $Path -match '^\\\\(?![?.][\\/])[^\\/]+[\\/][^\\/]+(?:[\\/]|$)' -or
+        $Path -match '^\\\\\?\\UNC[\\/][^\\/]+[\\/][^\\/]+(?:[\\/]|$)'
 }
 
 function Invoke-MvpStagedAuthoringAutomation {
@@ -1155,19 +1235,19 @@ function Invoke-MvpStagedAuthoringAutomation {
         [Parameter(Mandatory)][string]$EvidenceLabel
     )
 
-    $logDirectory = Join-Path $StageRoot 'logs'
-    New-Item -ItemType Directory -Force -Path $logDirectory | Out-Null
-    $stdout = Join-Path $logDirectory "$EvidenceLabel.stdout.log"
-    $stderr = Join-Path $logDirectory "$EvidenceLabel.stderr.log"
+    $logDirectory = Join-ZirconWindowsPath -Path $StageRoot -ChildPath 'logs'
+    [IO.Directory]::CreateDirectory($logDirectory) | Out-Null
+    $stdout = Join-ZirconWindowsPath -Path $logDirectory -ChildPath "$EvidenceLabel.stdout.log"
+    $stderr = Join-ZirconWindowsPath -Path $logDirectory -ChildPath "$EvidenceLabel.stderr.log"
     $environment = @{
         ZIRCON_RUNTIME_LIBRARY = ''
-        ZIRCON_ASSET_ROOT = (Join-Path $WorkingDirectory 'assets')
-        ZIRCON_LOG_ROOT = (Join-Path $logDirectory "$EvidenceLabel.diagnostics")
+        ZIRCON_ASSET_ROOT = 'assets'
+        ZIRCON_LOG_ROOT = (Join-ZirconWindowsPath -Path $logDirectory -ChildPath "$EvidenceLabel.diagnostics")
         ZIRCON_LOG_FILTER = 'log'
     }
     $started = [Diagnostics.Stopwatch]::StartNew()
     $processState = $null
-    $projectRootArgument = (Resolve-ZirconWindowsPath -Path $ProjectRoot).DisplayPath
+    $automationRequestArgument = (Resolve-ZirconWindowsPath -Path $AutomationRequestPath).DisplayPath
     try {
         $processState = Start-MvpStagedProcess `
             -ExecutablePath $ExecutablePath `
@@ -1175,7 +1255,8 @@ function Invoke-MvpStagedAuthoringAutomation {
             -Environment $environment `
             -StageRoot $StageRoot `
             -Phase $EvidenceLabel `
-            -Arguments @('--project', $projectRootArgument, '--automation', $AutomationRequestPath, '--headless')
+            -ProjectRoot $ProjectRoot `
+            -Arguments @('--run', 'authoring-automation', '--automation', $automationRequestArgument)
         $exitCode = Complete-MvpStagedProcess `
             -ProcessState $processState `
             -StdoutPath $stdout `
@@ -1199,7 +1280,19 @@ function Invoke-MvpStagedAuthoringAutomation {
         -StageDirectory $StageRoot `
         -ProjectDirectory $ProjectRoot
     if ($exitCode -ne 0) {
-        throw "Staged editor $EvidenceLabel automation exited with code $exitCode. See $stdout and $stderr."
+        $stderrSummary = if ([IO.File]::Exists($stderr)) {
+            $content = [IO.File]::ReadAllText($stderr).Trim()
+            if ($content.Length -gt 2048) {
+                $content.Substring($content.Length - 2048)
+            }
+            else {
+                $content
+            }
+        }
+        else {
+            '<unavailable>'
+        }
+        throw "Staged editor $EvidenceLabel automation exited with code $exitCode. stderr: $stderrSummary See $stdout and $stderr."
     }
     $report = Get-MvpAuthoringAutomationEvidence `
         -StdoutPath $stdout `
@@ -1243,18 +1336,24 @@ function Test-MvpStagingDirectoryReleased {
     Assert-MvpStagingProcessesReleased -StageDirectory $StageDirectory
 
     $probe = "$StageDirectory.release-probe"
-    if (Test-Path -LiteralPath $probe) {
+    if ([IO.Directory]::Exists($probe) -or [IO.File]::Exists($probe)) {
         throw "Staging release probe '$probe' already exists."
     }
-    Move-Item -LiteralPath $StageDirectory -Destination $probe -ErrorAction Stop
-    Move-Item -LiteralPath $probe -Destination $StageDirectory -ErrorAction Stop
+    Move-ZirconWindowsPath -Source $StageDirectory -Destination $probe
+    Move-ZirconWindowsPath -Source $probe -Destination $StageDirectory
 }
 
 function Invoke-MvpProductStaging {
-    $runtimeExecutablePath = Resolve-MvpInputFile -Path $RuntimeExecutable -Label 'RuntimeExecutable'
-    $editorExecutablePath = Resolve-MvpInputFile -Path $EditorExecutable -Label 'EditorExecutable'
-    $runtimeLibraryPath = Resolve-MvpInputFile -Path $RuntimeLibrary -Label 'RuntimeLibrary'
-    $editorRuntimeLibraryPath = Resolve-MvpInputFile -Path $EditorRuntimeLibrary -Label 'EditorRuntimeLibrary'
+    $productInputs = Resolve-MvpProductInputManifest -Path $ProductInputManifest
+    $currentSourceFingerprint = Get-MvpSourceFingerprint
+    if ($productInputs.source_fingerprint -ne $currentSourceFingerprint) {
+        throw "ProductInputManifest source_fingerprint '$($productInputs.source_fingerprint)' differs from the current source fingerprint '$currentSourceFingerprint'. Rebuild product inputs before staging."
+    }
+    $SourceFingerprint = $productInputs.source_fingerprint
+    $runtimeExecutablePath = $productInputs.artifacts['runtime-executable'].operation_path
+    $editorExecutablePath = $productInputs.artifacts['editor-executable'].operation_path
+    $runtimeLibraryPath = $productInputs.artifacts['runtime-library/runtime'].operation_path
+    $editorRuntimeLibraryPath = $productInputs.artifacts['runtime-library/editor'].operation_path
     Assert-MvpDistinctProfileRuntimeLibraries `
         -RuntimeLibraryPath $runtimeLibraryPath `
         -EditorRuntimeLibraryPath $editorRuntimeLibraryPath
@@ -1299,16 +1398,14 @@ function Invoke-MvpProductStaging {
         throw 'ReopenAutomationRequest requires RepeatCount and ReopenRepeatCount to both equal 2 for the fixed F5 evidence sequence.'
     }
     $stagingRootPath = Resolve-MvpStagingRoot -Path $StagingRoot
+    $stagingRootDisplayPath = (Resolve-ZirconWindowsPath -Path $stagingRootPath).DisplayPath
     Assert-MvpRunId -Value $RunId
-    if ([string]::IsNullOrWhiteSpace($SourceFingerprint)) {
-        $SourceFingerprint = Get-MvpSourceFingerprint
-    }
     $validationMetadata = Resolve-MvpValidationMetadata
-    $engineAssetFiles = @(Get-ChildItem -LiteralPath $engineAssetRootPath -Recurse -File | Sort-Object FullName)
+    $engineAssetFiles = @(Get-MvpOperationalFileList -Path $engineAssetRootPath -Label 'EngineAssetRoot')
     if ($engineAssetFiles.Count -eq 0) {
         throw "EngineAssetRoot '$engineAssetRootPath' has no files to stage."
     }
-    $templateFiles = @(Get-ChildItem -LiteralPath $templateRootPath -Recurse -File | Sort-Object FullName)
+    $templateFiles = @(Get-MvpOperationalFileList -Path $templateRootPath -Label 'TemplateRoot')
     if ($templateFiles.Count -eq 0) {
         throw "TemplateRoot '$templateRootPath' has no files to stage."
     }
@@ -1316,8 +1413,8 @@ function Invoke-MvpProductStaging {
         @()
     }
     else {
-        @(Get-ChildItem -LiteralPath $projectRootPath -Recurse -File | Sort-Object FullName | Where-Object {
-            $relative = Get-MvpRelativePath -Root $projectRootPath -Path $_.FullName -Label 'Project file'
+        @(Get-MvpOperationalFileList -Path $projectRootPath -Label 'ProjectRoot' | Where-Object {
+            $relative = Get-MvpRelativePath -Root $projectRootPath -Path $_ -Label 'Project file'
             Test-MvpProjectSourceRelativePath -RelativePath $relative
         })
     }
@@ -1325,6 +1422,7 @@ function Invoke-MvpProductStaging {
         throw "ProjectRoot '$projectRootPath' has no source files to stage."
     }
     $inputCopies = [System.Collections.Generic.List[object]]::new()
+    $inputCopies.Add([ordered]@{ path = $productInputs.operation_path; copy_count = 1 }) | Out-Null
     foreach ($path in @(
         $runtimeExecutablePath,
         $editorExecutablePath,
@@ -1334,10 +1432,10 @@ function Invoke-MvpProductStaging {
         $inputCopies.Add([ordered]@{ path = $path; copy_count = 1 }) | Out-Null
     }
     foreach ($file in $engineAssetFiles) {
-        $inputCopies.Add([ordered]@{ path = $file.FullName; copy_count = 2 }) | Out-Null
+        $inputCopies.Add([ordered]@{ path = $file; copy_count = 2 }) | Out-Null
     }
     foreach ($file in @($templateFiles) + @($projectFiles)) {
-        $inputCopies.Add([ordered]@{ path = $file.FullName; copy_count = 1 }) | Out-Null
+        $inputCopies.Add([ordered]@{ path = $file; copy_count = 1 }) | Out-Null
     }
     foreach ($path in @($authoringAutomationRequestPath, $reopenAutomationRequestPath)) {
         if ($null -ne $path) {
@@ -1345,46 +1443,54 @@ function Invoke-MvpProductStaging {
         }
     }
     $preflight = Get-MvpStagingPreflight `
-        -StagingRootPath $stagingRootPath `
+        -StagingRootPath $stagingRootDisplayPath `
         -InputCopies ($inputCopies.ToArray()) `
         -InteractiveDesktopRequired (-not $NoLaunch)
 
-    $stageDirectory = Join-Path $stagingRootPath $RunId
+    $stageDirectory = Join-ZirconWindowsPath -Path $stagingRootPath -ChildPath $RunId
     $partialDirectory = "$stageDirectory.partial-$([guid]::NewGuid().ToString('N'))"
-    if (Test-Path -LiteralPath $stageDirectory) {
+    if ([IO.Directory]::Exists($stageDirectory) -or [IO.File]::Exists($stageDirectory)) {
         throw "MVP staging run '$RunId' already exists at '$stageDirectory'; choose a new RunId rather than overwriting a validation run."
     }
-    if (Test-Path -LiteralPath $partialDirectory) {
+    if ([IO.Directory]::Exists($partialDirectory) -or [IO.File]::Exists($partialDirectory)) {
         throw "MVP staging temporary directory '$partialDirectory' already exists."
     }
-    $stagedProjectRoot = if ($null -eq $projectRootPath) { $null } else { Join-Path $stageDirectory 'project' }
-    $stagedAuthoringAutomationPath = if ($null -eq $authoringAutomationRequestPath) { $null } else { Join-Path $stageDirectory 'authoring\automation.json' }
-    $stagedReopenAutomationPath = if ($null -eq $reopenAutomationRequestPath) { $null } else { Join-Path $stageDirectory 'reopen\automation.json' }
+    $stagedProjectRoot = if ($null -eq $projectRootPath) { $null } else { Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'project' }
+    $stagedAuthoringAutomationPath = if ($null -eq $authoringAutomationRequestPath) { $null } else { Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'authoring\automation.json' }
+    $stagedReopenAutomationPath = if ($null -eq $reopenAutomationRequestPath) { $null } else { Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'reopen\automation.json' }
 
     try {
-        New-Item -ItemType Directory -Force -Path $partialDirectory | Out-Null
+        [IO.Directory]::CreateDirectory($partialDirectory) | Out-Null
         $entries = [System.Collections.Generic.List[object]]::new()
-        $entries.Add((Copy-MvpStageFile -LogicalId 'runtime-executable' -SourcePath $runtimeExecutablePath -StageRoot $partialDirectory -TargetRelativePath 'runtime\zircon_runtime.exe')) | Out-Null
-        $entries.Add((Copy-MvpStageFile -LogicalId 'runtime-library/runtime' -SourcePath $runtimeLibraryPath -StageRoot $partialDirectory -TargetRelativePath 'runtime\zircon_runtime.dll')) | Out-Null
-        $entries.Add((Copy-MvpStageFile -LogicalId 'editor-executable' -SourcePath $editorExecutablePath -StageRoot $partialDirectory -TargetRelativePath 'editor\zircon_editor.exe')) | Out-Null
-        $entries.Add((Copy-MvpStageFile -LogicalId 'runtime-library/editor' -SourcePath $editorRuntimeLibraryPath -StageRoot $partialDirectory -TargetRelativePath 'editor\zircon_runtime.dll')) | Out-Null
+        $productInputManifestEntry = Copy-MvpStageFile `
+            -LogicalId 'product-input-manifest' `
+            -SourcePath $productInputs.operation_path `
+            -StageRoot $partialDirectory `
+            -TargetRelativePath 'build\mvp-product-inputs.json' `
+            -ExpectedBytes ([Int64]$productInputs.bytes) `
+            -ExpectedSha256 $productInputs.sha256
+        $entries.Add($productInputManifestEntry) | Out-Null
+        $entries.Add((Copy-MvpStageFile -LogicalId 'runtime-executable' -SourcePath $runtimeExecutablePath -StageRoot $partialDirectory -TargetRelativePath 'runtime\zircon_runtime.exe' -ExpectedBytes ([Int64]$productInputs.artifacts['runtime-executable'].bytes) -ExpectedSha256 $productInputs.artifacts['runtime-executable'].sha256)) | Out-Null
+        $entries.Add((Copy-MvpStageFile -LogicalId 'runtime-library/runtime' -SourcePath $runtimeLibraryPath -StageRoot $partialDirectory -TargetRelativePath 'runtime\zircon_runtime.dll' -ExpectedBytes ([Int64]$productInputs.artifacts['runtime-library/runtime'].bytes) -ExpectedSha256 $productInputs.artifacts['runtime-library/runtime'].sha256)) | Out-Null
+        $entries.Add((Copy-MvpStageFile -LogicalId 'editor-executable' -SourcePath $editorExecutablePath -StageRoot $partialDirectory -TargetRelativePath 'editor\zircon_editor.exe' -ExpectedBytes ([Int64]$productInputs.artifacts['editor-executable'].bytes) -ExpectedSha256 $productInputs.artifacts['editor-executable'].sha256)) | Out-Null
+        $entries.Add((Copy-MvpStageFile -LogicalId 'runtime-library/editor' -SourcePath $editorRuntimeLibraryPath -StageRoot $partialDirectory -TargetRelativePath 'editor\zircon_runtime.dll' -ExpectedBytes ([Int64]$productInputs.artifacts['runtime-library/editor'].bytes) -ExpectedSha256 $productInputs.artifacts['runtime-library/editor'].sha256)) | Out-Null
 
         foreach ($engineAssetFile in $engineAssetFiles) {
-            $relative = Get-MvpRelativePath -Root $engineAssetRootPath -Path $engineAssetFile.FullName -Label 'Engine asset'
+            $relative = Get-MvpRelativePath -Root $engineAssetRootPath -Path $engineAssetFile -Label 'Engine asset'
             foreach ($product in @('runtime', 'editor')) {
                 $entries.Add((Copy-MvpStageFile `
                     -LogicalId ('engine-asset/' + $product + '/' + $relative) `
-                    -SourcePath $engineAssetFile.FullName `
+                    -SourcePath $engineAssetFile `
                     -StageRoot $partialDirectory `
                     -TargetRelativePath ($product + '\assets\' + $relative.Replace('/', '\')))) | Out-Null
             }
         }
 
         foreach ($templateFile in $templateFiles) {
-            $relative = Get-MvpRelativePath -Root $templateRootPath -Path $templateFile.FullName
+            $relative = Get-MvpRelativePath -Root $templateRootPath -Path $templateFile
             $entries.Add((Copy-MvpStageFile `
                 -LogicalId ('template/' + $relative) `
-                -SourcePath $templateFile.FullName `
+                -SourcePath $templateFile `
                 -StageRoot $partialDirectory `
                 -TargetRelativePath ('templates\' + $relative.Replace('/', '\')))) | Out-Null
         }
@@ -1404,10 +1510,10 @@ function Invoke-MvpProductStaging {
         }
         if ($null -ne $projectRootPath) {
             foreach ($projectFile in $projectFiles) {
-                $relative = Get-MvpRelativePath -Root $projectRootPath -Path $projectFile.FullName -Label 'Project file'
+                $relative = Get-MvpRelativePath -Root $projectRootPath -Path $projectFile -Label 'Project file'
                 $entries.Add((Copy-MvpStageFile `
                     -LogicalId ('project/' + $relative) `
-                    -SourcePath $projectFile.FullName `
+                    -SourcePath $projectFile `
                     -StageRoot $partialDirectory `
                     -TargetRelativePath ('project\' + $relative.Replace('/', '\')))) | Out-Null
             }
@@ -1417,24 +1523,53 @@ function Invoke-MvpProductStaging {
             -Entries ($entries.ToArray()) `
             -ExpectedInputCopyBytes ([Int64]$preflight.input_copy_bytes)
 
+        $productInputManifestEvidence = [ordered]@{
+            schema_version = 1
+            target_relative_path = $productInputManifestEntry.target_relative_path
+            size_bytes = $productInputManifestEntry.size_bytes
+            sha256 = $productInputManifestEntry.sha256
+            source_fingerprint = $SourceFingerprint
+            artifacts = @(
+                @(
+                    'runtime-executable',
+                    'runtime-library/runtime',
+                    'editor-executable',
+                    'runtime-library/editor'
+                ) | ForEach-Object {
+                        [ordered]@{
+                            logical_id = $_
+                            bytes = $productInputs.artifacts[$_].bytes
+                            sha256 = $productInputs.artifacts[$_].sha256
+                        }
+                }
+            )
+        }
+
         $manifest = [ordered]@{
             schema_version = 1
             run_id = $RunId
             source_fingerprint = $SourceFingerprint
+            product_input_manifest = $productInputManifestEvidence
             toolchain = $validationMetadata.toolchain
             target = $validationMetadata.target
             staged_at_utc = [DateTimeOffset]::UtcNow.ToString('o')
             preflight = $preflight
             entries = $entries.ToArray()
         }
-        Write-MvpJson -Path (Join-Path $partialDirectory 'staging-manifest.json') -Value $manifest
-        Move-Item -LiteralPath $partialDirectory -Destination $stageDirectory -ErrorAction Stop
+        Write-MvpJson -Path (Join-ZirconWindowsPath -Path $partialDirectory -ChildPath 'staging-manifest.json') -Value $manifest
+        Move-ZirconWindowsPath -Source $partialDirectory -Destination $stageDirectory
     }
     catch {
-        if (Test-Path -LiteralPath $partialDirectory) {
-            Remove-Item -LiteralPath $partialDirectory -Recurse -Force -ErrorAction SilentlyContinue
+        $stagingFailure = $_
+        try {
+            if ([IO.Directory]::Exists($partialDirectory)) {
+                [IO.Directory]::Delete($partialDirectory, $true)
+            }
         }
-        throw
+        catch {
+            Write-Verbose "Could not remove failed MVP staging temporary directory '$partialDirectory': $($_.Exception.Message)"
+        }
+        throw $stagingFailure
     }
 
     $productRuns = @()
@@ -1444,19 +1579,21 @@ function Invoke-MvpProductStaging {
     $reopenAutomation = @()
     try {
         if (-not $NoLaunch) {
-            $stagedProjectRoot = if ($null -eq $projectRootPath) { $null } else { Join-Path $stageDirectory 'project' }
+            $stagedProjectRoot = if ($null -eq $projectRootPath) { $null } else { Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'project' }
             if ($CreateProject) {
-                $createLogDirectory = Join-Path $stageDirectory 'logs'
-                $createDiagnosticRoot = Join-Path $createLogDirectory 'editor-create.diagnostics'
-                $createStdout = Join-Path $createLogDirectory 'editor-create.stdout.log'
-                $createStderr = Join-Path $createLogDirectory 'editor-create.stderr.log'
-                $createEditorWindowCapturePath = Join-Path $stageDirectory 'captures\editor-before-edit.png'
-                New-Item -ItemType Directory -Force -Path $createLogDirectory | Out-Null
+                $createLogDirectory = Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'logs'
+                $createDiagnosticRoot = Join-ZirconWindowsPath -Path $createLogDirectory -ChildPath 'editor-create.diagnostics'
+                $createStdout = Join-ZirconWindowsPath -Path $createLogDirectory -ChildPath 'editor-create.stdout.log'
+                $createStderr = Join-ZirconWindowsPath -Path $createLogDirectory -ChildPath 'editor-create.stderr.log'
+                $createEditorWindowCapturePath = Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'captures\editor-before-edit.png'
+                $createProjectLocation = Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'project'
+                [IO.Directory]::CreateDirectory($createLogDirectory) | Out-Null
+                [IO.Directory]::CreateDirectory($createProjectLocation) | Out-Null
                 $createEnvironment = @{
                     ZIRCON_EDITOR_EXIT_AFTER_FIRST_FRAME = '1'
                     ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG = $createEditorWindowCapturePath
                     ZIRCON_RUNTIME_LIBRARY = ''
-                    ZIRCON_ASSET_ROOT = (Join-Path $stageDirectory 'editor\assets')
+                    ZIRCON_ASSET_ROOT = 'assets'
                     ZIRCON_LOG_ROOT = $createDiagnosticRoot
                     ZIRCON_LOG_FILTER = 'log'
                 }
@@ -1465,12 +1602,12 @@ function Invoke-MvpProductStaging {
                 $createExitCode = $null
                 try {
                     $createProcess = Start-MvpStagedProcess `
-                        -ExecutablePath (Join-Path $stageDirectory 'editor\zircon_editor.exe') `
-                        -WorkingDirectory (Join-Path $stageDirectory 'editor') `
+                        -ExecutablePath (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor\zircon_editor.exe') `
+                        -WorkingDirectory $createProjectLocation `
                         -Environment $createEnvironment `
                         -StageRoot $stageDirectory `
                         -Phase 'editor-create' `
-                        -Arguments @('--create-project', '--project-name', $ProjectName, '--location', (Join-Path $stageDirectory 'project'), '--template', 'renderable-empty')
+                        -Arguments @('--create-project', '--project-name', $ProjectName, '--location', '.', '--template', 'renderable-empty')
                     $createExitCode = Complete-MvpStagedProcess `
                         -ProcessState $createProcess `
                         -StdoutPath $createStdout `
@@ -1487,15 +1624,14 @@ function Invoke-MvpProductStaging {
                 if ($createExitCode -ne 0) {
                     throw "Staged editor project creation failed with exit code $createExitCode."
                 }
-                $createDiagnosticFiles = @(
-                    Get-ChildItem -LiteralPath $createDiagnosticRoot -Recurse -File -ErrorAction SilentlyContinue |
-                        Sort-Object FullName
-                )
+                $createDiagnosticFiles = @(Get-MvpOperationalFileList `
+                        -Path $createDiagnosticRoot `
+                        -Label 'Staged editor project creation diagnostic root')
                 if ($createDiagnosticFiles.Count -eq 0) {
                     throw "Staged editor project creation emitted no diagnostic log evidence under '$createDiagnosticRoot'."
                 }
                 $createDiagnosticText = ($createDiagnosticFiles | ForEach-Object {
-                    Get-Content -LiteralPath $_.FullName -Raw -ErrorAction Stop
+                    [IO.File]::ReadAllText($_)
                 }) -join [Environment]::NewLine
                 foreach ($diagnostic in @(
                     'editor_first_frame_presented',
@@ -1506,7 +1642,7 @@ function Invoke-MvpProductStaging {
                         throw "Staged editor project creation exited without the $diagnostic diagnostic under '$createDiagnosticRoot'. See $createStdout and $createStderr."
                     }
                 }
-                $createdProjectParentResolution = Resolve-ZirconWindowsPath -Path (Join-Path $stageDirectory 'project')
+                $createdProjectParentResolution = Resolve-ZirconWindowsPath -Path (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'project')
                 $createdProjectExpectedResolution = Resolve-ZirconWindowsPath -Path (Join-ZirconWindowsPath `
                     -Path $createdProjectParentResolution.OperationalPath `
                     -ChildPath $ProjectName)
@@ -1543,7 +1679,7 @@ function Invoke-MvpProductStaging {
                     elapsed_milliseconds = [int][Math]::Round($createStarted.Elapsed.TotalMilliseconds)
                     stdout = Get-MvpStagedFileEvidence -Path $createStdout -StageRoot $stageDirectory -Label 'Project creation stdout log'
                     stderr = Get-MvpStagedFileEvidence -Path $createStderr -StageRoot $stageDirectory -Label 'Project creation stderr log'
-                    diagnostic_logs = @($createDiagnosticFiles | ForEach-Object { Get-MvpStagedFileEvidence -Path $_.FullName -StageRoot $stageDirectory -Label 'Project creation diagnostic log' })
+                    diagnostic_logs = @($createDiagnosticFiles | ForEach-Object { Get-MvpStagedFileEvidence -Path $_ -StageRoot $stageDirectory -Label 'Project creation diagnostic log' })
                     editor_window_capture = $createEditorWindowCapture
                     editor_product_diagnostics = $createEditorProductDiagnostics
                     project_open = $projectOpenEvidence
@@ -1552,8 +1688,8 @@ function Invoke-MvpProductStaging {
             }
             if ($null -ne $stagedReopenAutomationPath) {
                 $baselineAutomation = Invoke-MvpStagedAuthoringAutomation `
-                    -ExecutablePath (Join-Path $stageDirectory 'editor\zircon_editor.exe') `
-                    -WorkingDirectory (Join-Path $stageDirectory 'editor') `
+                    -ExecutablePath (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor\zircon_editor.exe') `
+                    -WorkingDirectory (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor') `
                     -StageRoot $stageDirectory `
                     -ProjectRoot $stagedProjectRoot `
                     -AutomationRequestPath $stagedReopenAutomationPath `
@@ -1562,15 +1698,15 @@ function Invoke-MvpProductStaging {
             }
             $productRuns += Invoke-MvpStagedProduct `
                 -Product 'runtime' `
-                -ExecutablePath (Join-Path $stageDirectory 'runtime\zircon_runtime.exe') `
-                -WorkingDirectory (Join-Path $stageDirectory 'runtime') `
+                -ExecutablePath (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'runtime\zircon_runtime.exe') `
+                -WorkingDirectory (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'runtime') `
                 -StageRoot $stageDirectory `
                 -ProjectRoot $stagedProjectRoot
             Assert-MvpStagingProcessesReleased -StageDirectory $stageDirectory
             if ($null -ne $stagedAuthoringAutomationPath) {
                 $authoringAutomation = Invoke-MvpStagedAuthoringAutomation `
-                    -ExecutablePath (Join-Path $stageDirectory 'editor\zircon_editor.exe') `
-                    -WorkingDirectory (Join-Path $stageDirectory 'editor') `
+                    -ExecutablePath (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor\zircon_editor.exe') `
+                    -WorkingDirectory (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor') `
                     -StageRoot $stageDirectory `
                     -ProjectRoot $stagedProjectRoot `
                     -AutomationRequestPath $stagedAuthoringAutomationPath `
@@ -1580,16 +1716,16 @@ function Invoke-MvpProductStaging {
             if ($null -eq $stagedReopenAutomationPath) {
                 $productRuns += Invoke-MvpStagedProduct `
                     -Product 'editor' `
-                    -ExecutablePath (Join-Path $stageDirectory 'editor\zircon_editor.exe') `
-                    -WorkingDirectory (Join-Path $stageDirectory 'editor') `
+                    -ExecutablePath (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor\zircon_editor.exe') `
+                    -WorkingDirectory (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor') `
                     -StageRoot $stageDirectory `
                     -ProjectRoot $stagedProjectRoot
             }
             else {
                 for ($reopenAttempt = 1; $reopenAttempt -le $ReopenRepeatCount; $reopenAttempt++) {
                     $reopenAutomation += Invoke-MvpStagedAuthoringAutomation `
-                        -ExecutablePath (Join-Path $stageDirectory 'editor\zircon_editor.exe') `
-                        -WorkingDirectory (Join-Path $stageDirectory 'editor') `
+                        -ExecutablePath (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor\zircon_editor.exe') `
+                        -WorkingDirectory (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor') `
                         -StageRoot $stageDirectory `
                         -ProjectRoot $stagedProjectRoot `
                         -AutomationRequestPath $stagedReopenAutomationPath `
@@ -1597,8 +1733,8 @@ function Invoke-MvpProductStaging {
                     Assert-MvpStagingProcessesReleased -StageDirectory $stageDirectory
                     $editorRunParameters = @{
                         Product = 'editor'
-                        ExecutablePath = (Join-Path $stageDirectory 'editor\zircon_editor.exe')
-                        WorkingDirectory = (Join-Path $stageDirectory 'editor')
+                        ExecutablePath = (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor\zircon_editor.exe')
+                        WorkingDirectory = (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'editor')
                         StageRoot = $stageDirectory
                         ProjectRoot = $stagedProjectRoot
                         AttemptOffset = $reopenAttempt - 1
@@ -1612,8 +1748,8 @@ function Invoke-MvpProductStaging {
                 }
                 $productRuns += Invoke-MvpStagedProduct `
                     -Product 'runtime' `
-                    -ExecutablePath (Join-Path $stageDirectory 'runtime\zircon_runtime.exe') `
-                    -WorkingDirectory (Join-Path $stageDirectory 'runtime') `
+                    -ExecutablePath (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'runtime\zircon_runtime.exe') `
+                    -WorkingDirectory (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'runtime') `
                     -StageRoot $stageDirectory `
                     -ProjectRoot $stagedProjectRoot `
                     -AttemptOffset $RepeatCount `
@@ -1621,7 +1757,7 @@ function Invoke-MvpProductStaging {
                 Assert-MvpStagingProcessesReleased -StageDirectory $stageDirectory
             }
             Test-MvpStagingDirectoryReleased -StageDirectory $stageDirectory
-            Write-MvpJson -Path (Join-Path $stageDirectory 'startup-summary.json') -Value ([ordered]@{
+            Write-MvpJson -Path (Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'startup-summary.json') -Value ([ordered]@{
                 run_id = $RunId
                 source_fingerprint = $SourceFingerprint
                 staged_project_root = if ($null -eq $stagedProjectRoot) { $null } else { Get-MvpRelativePath -Root $stageDirectory -Path $stagedProjectRoot -Label 'Staged project' }
@@ -1632,15 +1768,17 @@ function Invoke-MvpProductStaging {
                 reopen_automation = $reopenAutomation
             })
         }
+        $treeManifestPath = Write-MvpAcceptanceStagingTreeManifest -StagingRoot $stageDirectory
     }
     catch {
         throw "MVP product startup failed for staging run $($RunId): $($_.Exception.Message)"
     }
 
-    $manifestPath = Join-Path $stageDirectory 'staging-manifest.json'
+    $manifestPath = Join-ZirconWindowsPath -Path $stageDirectory -ChildPath 'staging-manifest.json'
     return [ordered]@{
-        staging_root = $stageDirectory
-        manifest = $manifestPath
+        staging_root = (Resolve-ZirconWindowsPath -Path $stageDirectory).DisplayPath
+        manifest = (Resolve-ZirconWindowsPath -Path $manifestPath).DisplayPath
+        tree_manifest = (Resolve-ZirconWindowsPath -Path $treeManifestPath).DisplayPath
         output_hash = Get-FileSha256 -Path $manifestPath
         launched = -not $NoLaunch
         staged_project_root = if ($null -eq $stagedProjectRoot) {

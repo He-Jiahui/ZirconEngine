@@ -1,14 +1,13 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::paint_geometry::intersect;
 use super::super::super::paint_text::measure_runtime_text_width;
 use super::super::render_commands::HostPaintCommand;
 use super::geometry::SampleGridGeometry;
 use super::metrics::{
-    POINT_RADIUS, SAMPLE_LABEL_HEIGHT, SAMPLE_LABEL_MIN_WIDTH, SAMPLE_LABEL_OFFSET_X,
-    SAMPLE_LABEL_OFFSET_Y, SELECTED_POINT_RADIUS, TICK_FONT_SIZE, TICK_LINE_HEIGHT,
+    SampleGridMetrics, POINT_EDGE_INSET, POINT_INTERIOR_RADIUS, POINT_RADIUS, SAMPLE_LABEL_HEIGHT,
+    SAMPLE_LABEL_MIN_WIDTH, SAMPLE_LABEL_POINT_GAP, TICK_FONT_SIZE, TICK_LINE_HEIGHT,
 };
-use super::palette::{
-    POINT, POINT_CENTER, SELECTED_HALO, SELECTED_LABEL_SURFACE, SELECTED_LABEL_TEXT, SELECTED_POINT,
-};
+use super::palette::SampleGridPalette;
 use super::text::push_text;
 
 pub(super) fn push_sample_points(
@@ -18,50 +17,50 @@ pub(super) fn push_sample_points(
     clip: &FrameRect,
     order: i32,
     opacity: f32,
+    metrics: SampleGridMetrics,
+    palette: SampleGridPalette,
 ) {
+    let Some(point_clip) = intersect(clip, &geometry.plot) else {
+        return;
+    };
     let grid = &node.sample_grid.generation;
     for point in grid.points() {
         let x = geometry.point_x_for_value(point.x(), grid.x_min(), grid.x_max());
         let y = geometry.point_y_for_value(point.y(), grid.y_min(), grid.y_max());
-        if point.selected() {
-            push_diamond(
-                commands,
-                x,
-                y,
-                SELECTED_POINT_RADIUS,
-                SELECTED_HALO,
-                clip,
-                order + 6,
-                opacity,
-            );
-        }
         push_diamond(
             commands,
             x,
             y,
             POINT_RADIUS,
             if point.selected() {
-                SELECTED_POINT
+                palette.selected_point
             } else {
-                POINT
+                palette.point
             },
-            clip,
+            &point_clip,
             order + 7,
             opacity,
         );
-        push_diamond(commands, x, y, 1, POINT_CENTER, clip, order + 8, opacity);
+        push_diamond(
+            commands,
+            x,
+            y,
+            POINT_INTERIOR_RADIUS,
+            palette.plot_surface,
+            &point_clip,
+            order + 8,
+            opacity,
+        );
 
         if point.selected() && !point.label().trim().is_empty() {
             let label_width = selected_sample_label_width(point.label(), geometry.plot.width);
             if label_width <= f32::EPSILON || geometry.plot.height < SAMPLE_LABEL_HEIGHT + 4.0 {
                 continue;
             }
-            let label_x = (x + SAMPLE_LABEL_OFFSET_X)
-                .min(geometry.plot.x + geometry.plot.width - label_width - 2.0)
-                .max(geometry.plot.x + 2.0);
-            let label_y = (y + SAMPLE_LABEL_OFFSET_Y)
-                .max(geometry.plot.y + 2.0)
-                .min(geometry.plot.y + geometry.plot.height - SAMPLE_LABEL_HEIGHT - 2.0);
+            let label_x = selected_sample_label_x(x, label_width, &geometry.plot);
+            let Some(label_y) = selected_sample_label_y(y, &geometry.plot) else {
+                continue;
+            };
             let label_frame = FrameRect {
                 x: label_x,
                 y: label_y,
@@ -70,12 +69,12 @@ pub(super) fn push_sample_points(
             };
             commands.push(HostPaintCommand::quad(
                 label_frame.clone(),
-                Some(clip.clone()),
+                Some(point_clip.clone()),
                 order + 9,
-                Some(SELECTED_LABEL_SURFACE),
-                Some(SELECTED_POINT),
-                1.0,
-                2.0,
+                Some(palette.selected_label_surface),
+                Some(palette.selected_point),
+                metrics.selected_label_border_width,
+                metrics.selected_label_radius,
                 opacity,
             ));
             push_text(
@@ -86,10 +85,10 @@ pub(super) fn push_sample_points(
                     width: (label_frame.width - 10.0).max(0.0),
                     height: TICK_LINE_HEIGHT,
                 },
-                clip,
+                &point_clip,
                 order + 10,
                 point.label().to_string(),
-                SELECTED_LABEL_TEXT,
+                palette.selected_label_text,
                 TICK_FONT_SIZE,
                 TICK_LINE_HEIGHT,
                 opacity,
@@ -110,6 +109,29 @@ fn selected_sample_label_width(label: &str, plot_width: f32) -> f32 {
     (measure_runtime_text_width(label, TICK_FONT_SIZE) + 12.0)
         .max(SAMPLE_LABEL_MIN_WIDTH)
         .min(available_width)
+}
+
+fn selected_sample_label_x(point_x: f32, label_width: f32, plot: &FrameRect) -> f32 {
+    const EDGE_INSET: f32 = 2.0;
+
+    let min_x = plot.x + EDGE_INSET;
+    let max_x = (plot.x + plot.width - label_width - EDGE_INSET).max(min_x);
+    (point_x - label_width * 0.5).clamp(min_x, max_x)
+}
+
+fn selected_sample_label_y(point_y: f32, plot: &FrameRect) -> Option<f32> {
+    const EDGE_INSET: f32 = 2.0;
+
+    let min_y = plot.y + EDGE_INSET;
+    let max_y = plot.y + plot.height - SAMPLE_LABEL_HEIGHT - EDGE_INSET;
+    let preferred_below = point_y + POINT_RADIUS as f32 + SAMPLE_LABEL_POINT_GAP;
+    if preferred_below >= min_y && preferred_below <= max_y {
+        return Some(preferred_below);
+    }
+
+    let preferred_above =
+        point_y - POINT_RADIUS as f32 - SAMPLE_LABEL_POINT_GAP - SAMPLE_LABEL_HEIGHT;
+    (preferred_above >= min_y && preferred_above <= max_y).then_some(preferred_above)
 }
 
 fn push_diamond(
@@ -179,5 +201,72 @@ mod tests {
             0.0
         );
         assert_eq!(selected_sample_label_width("Blend source", f32::NAN), 0.0);
+    }
+
+    #[test]
+    fn selected_sample_label_uses_the_unreal_below_key_placement_near_the_plot_top() {
+        let plot = FrameRect {
+            x: 20.0,
+            y: 30.0,
+            width: 240.0,
+            height: 180.0,
+        };
+
+        let point_y = plot.y + POINT_EDGE_INSET;
+        let label_y = selected_sample_label_y(point_y, &plot).unwrap();
+
+        assert!(label_y > point_y);
+        assert_eq!(label_y - (point_y + POINT_RADIUS as f32), 4.0);
+        assert!(label_y + SAMPLE_LABEL_HEIGHT <= plot.y + plot.height);
+    }
+
+    #[test]
+    fn selected_sample_label_prefers_below_and_flips_above_near_the_plot_bottom() {
+        let plot = FrameRect {
+            x: 20.0,
+            y: 30.0,
+            width: 240.0,
+            height: 180.0,
+        };
+
+        let middle_label_y = selected_sample_label_y(plot.y + 90.0, &plot).unwrap();
+        let bottom_point_y = plot.y + plot.height - POINT_EDGE_INSET;
+        let bottom_label_y = selected_sample_label_y(bottom_point_y, &plot).unwrap();
+
+        assert!(middle_label_y > plot.y + 90.0);
+        assert!(bottom_label_y + SAMPLE_LABEL_HEIGHT < bottom_point_y);
+        assert_eq!(middle_label_y - (plot.y + 90.0 + POINT_RADIUS as f32), 4.0);
+        assert!(middle_label_y >= plot.y);
+        assert!(bottom_label_y >= plot.y);
+    }
+
+    #[test]
+    fn selected_sample_label_is_omitted_when_neither_side_can_fit() {
+        let plot = FrameRect {
+            x: 20.0,
+            y: 30.0,
+            width: 240.0,
+            height: 32.0,
+        };
+
+        assert_eq!(
+            selected_sample_label_y(plot.y + plot.height * 0.5, &plot),
+            None
+        );
+    }
+
+    #[test]
+    fn selected_sample_label_centers_on_the_point_and_clamps_to_plot_edges() {
+        let plot = FrameRect {
+            x: 20.0,
+            y: 30.0,
+            width: 240.0,
+            height: 180.0,
+        };
+        let label_width = 54.0;
+
+        assert_eq!(selected_sample_label_x(140.0, label_width, &plot), 113.0);
+        assert_eq!(selected_sample_label_x(21.0, label_width, &plot), 22.0);
+        assert_eq!(selected_sample_label_x(259.0, label_width, &plot), 204.0);
     }
 }

@@ -8,6 +8,55 @@ use crate::scene::{
 use super::{tagged_slot, temporary_archive_leftovers, unique_temp_root};
 
 #[test]
+fn runtime_session_archive_updated_slot_queries_use_secondary_indexes_without_sealing() {
+    let archive = RuntimeSessionArchive::from_slots(vec![
+        tagged_slot(&World::empty(), "manual-old", "manual", 10),
+        tagged_slot(&World::empty(), "manual-new", "manual", 50),
+        tagged_slot(&World::empty(), "autosave", "autosave", 30),
+    ])
+    .expect("archive should validate");
+    let before = archive.artifact_diagnostics();
+
+    assert_eq!(
+        archive
+            .latest_updated_slot_id()
+            .expect("latest selection should validate archive"),
+        Some("manual-new".to_string())
+    );
+    assert_eq!(
+        archive
+            .oldest_updated_slot_id()
+            .expect("oldest selection should validate archive"),
+        Some("manual-old".to_string())
+    );
+    assert_eq!(
+        archive
+            .latest_updated_slot_id_with_tag(" manual ")
+            .expect("tagged latest selection should validate archive"),
+        Some("manual-new".to_string())
+    );
+    assert_eq!(
+        archive
+            .oldest_updated_slot_id_with_tag("manual")
+            .expect("tagged oldest selection should validate archive"),
+        Some("manual-old".to_string())
+    );
+    assert_eq!(
+        archive
+            .latest_updated_slot_id_with_tag("  ")
+            .expect("empty tag selection should validate archive"),
+        None
+    );
+
+    let after = archive.artifact_diagnostics();
+    assert_eq!(after.serialize_count, before.serialize_count);
+    assert_eq!(
+        after.internal_json_roundtrip_count,
+        before.internal_json_roundtrip_count
+    );
+}
+
+#[test]
 fn runtime_session_archive_loads_statistics_from_path() {
     let mut source = World::empty();
     source.spawn_node(crate::scene::NodeKind::Mesh);
@@ -105,10 +154,11 @@ fn runtime_session_archive_diffs_slot_from_path_without_mutating_target() {
     source
         .rename_node(saved_entity, "Saved Mesh")
         .expect("source entity should be named");
-    let archive = RuntimeSessionArchive::from_slots(vec![
-        RuntimeSessionSlot::from_world("manual", &source).expect("manual slot should capture"),
-    ])
-    .expect("archive should validate");
+    let archive =
+        RuntimeSessionArchive::from_slots(vec![
+            RuntimeSessionSlot::from_world("manual", &source).expect("manual slot should capture")
+        ])
+        .expect("archive should validate");
     let root = unique_temp_root("runtime_session_path_diff");
     let path = root.join("sessions").join("archive.zrsession.json");
     archive

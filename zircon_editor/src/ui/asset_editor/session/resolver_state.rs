@@ -1,6 +1,6 @@
 use zircon_runtime::ui::template::{
-    collect_document_localization_report, validate_localization_report_against_catalog,
-    validate_resource_dependency_files, UiResourcePathResolver,
+    UiResourcePathResolver, collect_document_localization_report,
+    validate_localization_report_against_catalog, validate_resource_dependency_files,
 };
 use zircon_runtime_interface::ui::template::{UiLocalizationDiagnostic, UiResourceDiagnostic};
 

@@ -1,8 +1,9 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::framework::script::{
-    ScriptHostCallFrame, ScriptHostError, ScriptHostFunctionDescriptor, ScriptHostModuleDescriptor,
-    ScriptHostParameterDescriptor, ScriptHostValue, ScriptHostValueKind,
+    ScriptHostCallFrame, ScriptHostError, ScriptHostFunctionDescriptor, ScriptHostHotPathMetrics,
+    ScriptHostModuleDescriptor, ScriptHostParameterDescriptor, ScriptHostValue,
+    ScriptHostValueKind, ScriptHostValueRef,
 };
 
 use super::super::{CapabilitySet, HostHandle, VmError};
@@ -93,12 +94,12 @@ fn register_foundation_module(exports: &HostExportRegistry) -> Result<HostHandle
                 ))
             }),
             HostExportFunction::new("log_info", |context| {
-                let _message = expect_string(context, 0)?;
+                with_string(context, 0, |_| Ok(()))?;
                 Ok(ScriptHostValue::Null)
             }),
             HostExportFunction::new("event_publish", |context| {
-                let _topic = expect_string(context, 0)?;
-                let _payload = expect_string(context, 1)?;
+                with_string(context, 0, |_| Ok(()))?;
+                with_string(context, 1, |_| Ok(()))?;
                 Ok(ScriptHostValue::Bool(false))
             }),
         ],
@@ -146,16 +147,16 @@ fn register_asset_module(exports: &HostExportRegistry) -> Result<HostHandle, VmE
         descriptor,
         [
             HostExportFunction::new("locator_identity", |context| {
-                Ok(ScriptHostValue::String(
-                    expect_string(context, 0)?.to_owned(),
-                ))
+                Ok(ScriptHostValue::String(copy_string_for_host_return(
+                    context, 0,
+                )?))
             }),
             HostExportFunction::new("status", |context| {
-                let _locator = expect_string(context, 0)?;
+                with_string(context, 0, |_| Ok(()))?;
                 Ok(ScriptHostValue::String("unknown".to_string()))
             }),
             HostExportFunction::new("revision", |context| {
-                let _locator = expect_string(context, 0)?;
+                with_string(context, 0, |_| Ok(()))?;
                 Ok(ScriptHostValue::Int(0))
             }),
         ],
@@ -470,21 +471,15 @@ mod math {
         function: &str,
         index: usize,
     ) -> Result<f64, ScriptHostError> {
-        let value = match context.arguments.get(index) {
-            Some(ScriptHostValue::Float(value)) => *value,
-            Some(ScriptHostValue::Int(value)) => *value as f64,
-            Some(value) => {
-                return Err(ScriptHostError::new(format!(
+        let value = context
+            .arguments
+            .with_argument(index, |value| match value {
+                ScriptHostValueRef::Float(value) => Ok(value),
+                value => Err(ScriptHostError::new(format!(
                     "{function} argument {index} expected finite float, received {:?}",
                     value.kind()
-                )));
-            }
-            None => {
-                return Err(ScriptHostError::new(format!(
-                    "{function} argument {index} was not provided"
-                )));
-            }
-        };
+                ))),
+            })?;
         if value.is_finite() {
             Ok(value)
         } else {
@@ -505,35 +500,43 @@ mod math {
     }
 }
 
-fn expect_string<'a>(
-    context: &'a ScriptHostCallFrame<'a>,
+fn with_string<T>(
+    context: &ScriptHostCallFrame<'_>,
     index: usize,
-) -> Result<&'a str, ScriptHostError> {
-    match context.arguments.get(index) {
-        Some(ScriptHostValue::String(value)) => Ok(value),
-        Some(value) => Err(ScriptHostError::new(format!(
+    visitor: impl for<'value> FnOnce(&'value str) -> Result<T, ScriptHostError>,
+) -> Result<T, ScriptHostError>
+where
+    T: Sized,
+{
+    context.arguments.with_argument(index, |value| match value {
+        ScriptHostValueRef::String(value) => visitor(value),
+        value => Err(ScriptHostError::new(format!(
             "argument {index} expected string, received {:?}",
             value.kind()
         ))),
-        None => Err(ScriptHostError::new(format!(
-            "argument {index} was not provided"
-        ))),
-    }
+    })
+}
+
+fn copy_string_for_host_return(
+    context: &ScriptHostCallFrame<'_>,
+    index: usize,
+) -> Result<String, ScriptHostError> {
+    with_string(context, index, |value| {
+        ScriptHostHotPathMetrics::record_guest_string_copy(value.len());
+        Ok(value.to_owned())
+    })
 }
 
 fn expect_handle(context: &ScriptHostCallFrame<'_>, index: usize) -> Result<u64, ScriptHostError> {
-    match context.arguments.get(index) {
-        Some(ScriptHostValue::HostHandle(value)) => Ok(*value),
+    context.arguments.with_argument(index, |value| match value {
+        ScriptHostValueRef::HostHandle(value) => Ok(value),
         // ZrVM carries the neutral u64 payload through i64 while preserving its bits.
-        Some(ScriptHostValue::Int(value)) => Ok(*value as u64),
-        Some(value) => Err(ScriptHostError::new(format!(
+        ScriptHostValueRef::Int(value) => Ok(value as u64),
+        value => Err(ScriptHostError::new(format!(
             "argument {index} expected host handle, received {:?}",
             value.kind()
         ))),
-        None => Err(ScriptHostError::new(format!(
-            "argument {index} was not provided"
-        ))),
-    }
+    })
 }
 
 pub fn builtin_host_capabilities() -> CapabilitySet {
@@ -549,4 +552,5 @@ pub fn builtin_host_capabilities() -> CapabilitySet {
         .with("gameplay.input")
         .with("gameplay.entity")
         .with("gameplay.navigation")
+        .with("gameplay.scene_transition")
 }

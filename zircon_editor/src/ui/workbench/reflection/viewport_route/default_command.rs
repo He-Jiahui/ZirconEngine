@@ -14,6 +14,7 @@ pub(super) fn default_viewport_command(action_id: &str) -> Option<ViewportComman
             selection_mutation: SelectionMutation::Replace,
         }),
         "workbench.viewport.pointer.left.release" => Some(ViewportCommand::LeftReleased),
+        "workbench.viewport.interaction.cancel" => Some(ViewportCommand::CancelInteraction),
         "workbench.viewport.pointer.right.press" => {
             Some(ViewportCommand::RightPressed { x: 0.0, y: 0.0 })
         }

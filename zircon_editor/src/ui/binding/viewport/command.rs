@@ -7,19 +7,34 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ViewportCommand {
-    PointerMoved { x: f32, y: f32 },
+    PointerMoved {
+        x: f32,
+        y: f32,
+    },
     LeftPressed {
         x: f32,
         y: f32,
         selection_mutation: SelectionMutation,
     },
     LeftReleased,
-    RightPressed { x: f32, y: f32 },
+    CancelInteraction,
+    RightPressed {
+        x: f32,
+        y: f32,
+    },
     RightReleased,
-    MiddlePressed { x: f32, y: f32 },
+    MiddlePressed {
+        x: f32,
+        y: f32,
+    },
     MiddleReleased,
-    Scrolled { delta: f32 },
-    Resized { width: u32, height: u32 },
+    Scrolled {
+        delta: f32,
+    },
+    Resized {
+        width: u32,
+        height: u32,
+    },
     ActivateSceneMode(SceneModeActivation),
     SetTransformSpace(TransformSpace),
     SetProjectionMode(ProjectionMode),
@@ -32,6 +47,8 @@ pub enum ViewportCommand {
     SetPreviewLighting(bool),
     SetPreviewSkybox(bool),
     SetGizmosEnabled(bool),
-    ToggleOverlayProvider { provider_id: String },
+    ToggleOverlayProvider {
+        provider_id: String,
+    },
     FrameSelection,
 }

@@ -19,6 +19,31 @@ pub(super) const EXPECTED_RUNTIME_08_BEHAVIOR_TEST_ANCHORS: &[&str] = &[
     "tick_window_clamps_stale_ticks",
 ];
 
+#[test]
+fn runtime_08_ecs_kernel_cargo_pending_gate_stays_explicit_until_ecs_validation() {
+    let plan = include_str!(
+        "../../../../../docs/plans/zircon_runtime/runtime/08-ecs-kernel-data-alignment.md"
+    );
+
+    assert!(
+        plan.contains("status: in_progress"),
+        "Runtime 08 must remain in progress until its managed ECS Cargo gates have evidence"
+    );
+    for command in [
+        r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -LibTests -TestFilter entity",
+        r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter observer",
+        r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter command",
+        r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter messages",
+        r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter change_tick",
+        r".\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -SkipBuild -LibTests -TestFilter ecs",
+    ] {
+        assert!(
+            plan.contains(command),
+            "Runtime 08 plan must keep its pending managed gate `{command}` visible"
+        );
+    }
+}
+
 pub(super) fn assert_runtime_08_guard_and_behavior_anchors() {
     assert_source_anchors(
         "Runtime 08 guard/test",
@@ -57,6 +82,7 @@ pub(super) fn assert_runtime_08_guard_and_behavior_anchors() {
             "runtime_08_ecs_data_owner_trees_stay_folder_backed_after_cutover",
             "runtime_08_ecs_change_detection_owner_tree_stays_folder_backed_after_cutover",
             "runtime_08_ecs_root_leaf_owners_stay_explicit_after_data_cutover",
+            "runtime_08_ecs_kernel_cargo_pending_gate_stays_explicit_until_ecs_validation",
             "runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts",
         ],
     );

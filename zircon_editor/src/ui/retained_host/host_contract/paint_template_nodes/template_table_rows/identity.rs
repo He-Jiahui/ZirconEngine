@@ -1,6 +1,6 @@
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::template_component_family::{
-    TemplateComponentFamily, is_any_component_family, uses_workbench_visual_language,
+    is_any_component_family, uses_workbench_visual_language, TemplateComponentFamily,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_table_row(

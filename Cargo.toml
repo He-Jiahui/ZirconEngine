@@ -50,8 +50,8 @@ zircon_plugin_sdk = { path = "zircon_plugins/plugin_sdk", default-features = fal
 zircon_reflect_derive = { path = "zircon_reflect_derive" }
 zircon_runtime = { path = "zircon_runtime", default-features = false }
 zircon_runtime_interface = { path = "zircon_runtime_interface" }
-zr_rhi = { path = "zircon_runtime/crates/zr_rhi" }
-zr_rhi_wgpu = { path = "zircon_runtime/crates/zr_rhi_wgpu" }
+zr_rhi = { path = "zircon_runtime/crates/zr_rhi", default-features = false }
+zr_rhi_wgpu = { path = "zircon_runtime/crates/zr_rhi_wgpu", default-features = false }
 
 [profile.profiling]
 inherits = "release"

@@ -1,6 +1,8 @@
 mod abi_declarations;
 mod behavior_calls;
 mod behavior_validation;
+#[cfg(test)]
+pub(super) mod benchmark_harness;
 mod bridge_method_abi;
 mod bridge_method_bindings;
 mod candidate_from_manifest;
@@ -17,6 +19,7 @@ mod load_discovered;
 mod loaded_native_plugin;
 mod native_plugin_abi;
 mod native_plugin_candidate;
+mod native_plugin_host_handle;
 mod native_plugin_live_host;
 mod native_plugin_load_manifest;
 mod native_plugin_load_report;
@@ -51,6 +54,14 @@ pub use host_api_adapter::{
 pub use loaded_native_plugin::{LoadedNativePlugin, NativePluginCallbackDiagnostics};
 pub use native_plugin_abi::{NativePluginDescriptor, NativePluginEntryReport};
 pub use native_plugin_candidate::NativePluginCandidate;
+pub use native_plugin_host_handle::{
+    discover_native_plugins, discover_native_plugins_from_load_manifest,
+    load_discovered_native_editor_plugins, load_discovered_native_plugins,
+    load_discovered_native_runtime_plugins, load_native_editor_from_load_manifest,
+    load_native_plugins_from_load_manifest, load_native_runtime_from_load_manifest,
+    native_plugin_discovery_generation, refresh_native_plugin_discovery_manifest,
+    remove_discovered_native_plugin_path, NativePluginHostHandle, NativePluginHostWeakHandle,
+};
 pub use native_plugin_live_host::{
     NativePluginLiveHost, NativePluginLiveHostBridgeLifecycleReport,
     NativePluginLiveHostBridgeReloadReport, NativePluginLiveHostCommand,

@@ -9,6 +9,28 @@ use zircon_runtime::core::framework::animation::{
 const SEQUENCE_LOCATOR: &str = "res://animation/hero.sequence.zranim";
 const GRAPH_LOCATOR: &str = "res://animation/hero.graph.zranim";
 const STATE_MACHINE_LOCATOR: &str = "res://animation/hero.state_machine.zranim";
+const UI_ASSET_LOCATOR: &str = "res://ui/menu.zui";
+
+fn write_ui_asset_open_route_asset(project: &TestProjectAssets) {
+    fs::write(
+        project.source_path(UI_ASSET_LOCATOR),
+        r#"
+[asset]
+kind = "view"
+id = "editor.tests.menu_ui_asset"
+version = 2
+display_name = "Menu UI Asset"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Label"
+props = { text = "Menu" }
+"#,
+    )
+    .unwrap();
+}
 
 fn write_animation_open_route_assets(project: &TestProjectAssets) {
     fs::write(
@@ -144,33 +166,24 @@ fn animation_graph_and_state_machine_bindings_without_open_editor_report_ignored
 fn workbench_menu_open_ui_asset_opens_ui_asset_editor_for_shared_asset() {
     let _guard = env_lock().lock().unwrap();
 
-    let runtime = EventRuntimeHarness::new("zircon_editor_event_menu_open_ui_asset");
-    let ui_asset_path = std::env::temp_dir().join("zircon_editor_event_menu_open_ui_asset.zui");
-    fs::write(
-        &ui_asset_path,
-        r#"
-[asset]
-kind = "view"
-id = "editor.tests.menu_ui_asset"
-version = 2
-display_name = "Menu UI Asset"
-
-[root]
-node = "root"
-
-[nodes.root]
-component = "Label"
-props = { text = "Menu" }
-"#,
-    )
-    .unwrap();
+    let mut runtime = EventRuntimeHarness::new("zircon_editor_event_menu_open_ui_asset");
+    let catalog = runtime.open_project_with_assets(
+        "zircon_editor_event_menu_open_ui_asset_project",
+        write_ui_asset_open_route_asset,
+    );
+    assert!(
+        catalog
+            .assets
+            .iter()
+            .any(|asset| asset.locator == UI_ASSET_LOCATOR)
+    );
 
     let record = runtime
         .runtime
         .dispatch_event(
             EditorEventSource::Headless,
             EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-                asset_locator: ui_asset_path.to_string_lossy().into_owned(),
+                asset_locator: UI_ASSET_LOCATOR.to_string(),
             }),
         )
         .expect("menu open ui asset");
@@ -178,19 +191,67 @@ props = { text = "Menu" }
     assert_eq!(
         record.event,
         EditorEvent::Asset(EditorAssetEvent::OpenAsset {
-            asset_locator: ui_asset_path.to_string_lossy().into_owned(),
+            asset_locator: UI_ASSET_LOCATOR.to_string(),
         })
     );
     assert!(record.effects.contains(&EditorEventEffect::LayoutChanged));
+    let ui_asset_view = runtime
+        .runtime
+        .current_view_instances()
+        .into_iter()
+        .find(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.ui_asset"))
+        .expect("indexed UI asset should open its toolkit view");
+    let route: AssetToolkitOpenRoute =
+        serde_json::from_value(ui_asset_view.serializable_payload).expect("typed UI asset route");
+    assert_eq!(route.asset_locator().to_string(), UI_ASSET_LOCATOR);
+    assert_eq!(route.open_operation().as_str(), "view.editor.ui_asset.open");
+}
+
+#[test]
+fn asset_open_event_rejects_canonical_unindexed_ui_asset_locator() {
+    let _guard = env_lock().lock().unwrap();
+
+    let mut runtime = EventRuntimeHarness::new("zircon_editor_event_unindexed_ui_asset_open");
+    let catalog = runtime.open_project_with_assets(
+        "zircon_editor_event_unindexed_ui_asset_open_project",
+        |_| {},
+    );
+    let asset_locator = "res://ui/unindexed.zui";
     assert!(
-        runtime
+        catalog
+            .assets
+            .iter()
+            .all(|asset| asset.locator != asset_locator)
+    );
+
+    let record = runtime
+        .runtime
+        .dispatch_event(
+            EditorEventSource::Headless,
+            EditorEvent::Asset(EditorAssetEvent::OpenAsset {
+                asset_locator: asset_locator.to_string(),
+            }),
+        )
+        .expect("unindexed canonical locator should be rejected by the asset index");
+
+    assert_eq!(
+        record.event,
+        EditorEvent::Asset(EditorAssetEvent::OpenAsset {
+            asset_locator: asset_locator.to_string(),
+        })
+    );
+    assert!(!record.effects.contains(&EditorEventEffect::LayoutChanged));
+    assert!(
+        !runtime
             .runtime
             .current_view_instances()
             .into_iter()
             .any(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.ui_asset"))
     );
-
-    let _ = fs::remove_file(ui_asset_path);
+    assert_eq!(
+        runtime.runtime.editor_snapshot().status_line,
+        format!("Asset type is not indexed for {asset_locator}")
+    );
 }
 
 #[test]

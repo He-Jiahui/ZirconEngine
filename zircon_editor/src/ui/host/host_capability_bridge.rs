@@ -1,11 +1,11 @@
-use zircon_runtime::core::CoreHandle;
 use zircon_runtime::script::{
-    HostHandle, PluginHostDriver, PluginSlotId, VmError, VmPluginManager, VmPluginPackage,
-    PLUGIN_HOST_DRIVER_NAME, VM_PLUGIN_MANAGER_NAME,
+    HostHandle, PluginSlotId, VmError, VmPluginPackage, PLUGIN_HOST_DRIVER_NAME,
+    VM_PLUGIN_MANAGER_NAME,
 };
 
 use super::editor_ui_host::EditorUiHost;
 use super::minimal_host_contract::editor_host_minimal_contract;
+use super::runtime_services::EditorHostRuntimeServices;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct EditorHostCapabilityHandle {
@@ -27,7 +27,7 @@ pub struct EditorVmExtensionLoadReport {
 }
 
 pub(super) fn register_vm_host_capabilities(
-    core: &CoreHandle,
+    runtime_services: &EditorHostRuntimeServices,
     sandbox_enabled: bool,
 ) -> EditorHostVmBridgeReport {
     let mut report = EditorHostVmBridgeReport::new(sandbox_enabled);
@@ -37,19 +37,17 @@ pub(super) fn register_vm_host_capabilities(
             .push("runtime sandbox disabled by EntryConfig".to_string());
         return report;
     }
-    let driver = match core.resolve_driver::<PluginHostDriver>(PLUGIN_HOST_DRIVER_NAME) {
-        Ok(driver) => driver,
+    let capability_access = match runtime_services.vm_host_capabilities() {
+        Ok(capability_access) => capability_access,
         Err(error) => {
             report.diagnostics.push(format!(
-                "failed to register editor VM host capabilities through {PLUGIN_HOST_DRIVER_NAME}: {error:?}"
+                "failed to register editor VM host capabilities through {PLUGIN_HOST_DRIVER_NAME}: {error}"
             ));
             return report;
         }
     };
-
-    let registry = driver.registry();
     for capability in editor_host_minimal_contract().minimal_capability_ids() {
-        match registry.register_capability(capability.clone()) {
+        match capability_access.register_capability(capability.clone()) {
             Ok(handle) => report
                 .loaded_capabilities
                 .push(EditorHostCapabilityHandle { capability, handle }),
@@ -124,16 +122,7 @@ impl EditorUiHost {
             };
         }
 
-        let core = match self.runtime_core() {
-            Ok(core) => core,
-            Err(error) => {
-                return EditorVmExtensionLoadReport {
-                    loaded_slot: None,
-                    diagnostics: vec![error.to_string()],
-                };
-            }
-        };
-        let manager = match core.resolve_manager::<VmPluginManager>(VM_PLUGIN_MANAGER_NAME) {
+        let manager = match self.runtime_services.vm_plugin_manager() {
             Ok(manager) => manager,
             Err(error) => {
                 return EditorVmExtensionLoadReport {

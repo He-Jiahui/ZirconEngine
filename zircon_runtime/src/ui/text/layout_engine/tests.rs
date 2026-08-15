@@ -11,6 +11,8 @@ mod justify;
 mod kinsoku;
 mod measure;
 mod overflow;
+mod performance;
+mod profiling;
 mod rich_blocks;
 mod rich_inline;
 mod rich_table;

@@ -102,10 +102,10 @@ pub(super) fn combined_sample_offset_x(sample_offset: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::{
-        MAX_COMBINED_SAMPLE_OFFSET_X, MIN_GLYPH_RASTER_SCALE, averaged_channel_coverage,
-        combined_sample_offset_x, glyph_draw_pass_count, glyph_raster_scale, italic_pixel_offset,
-        logical_raster_extent, raster_sample_x_range, raster_sample_y_range,
-        thin_stroke_preserved_coverage, uses_native_pixel_sampling,
+        averaged_channel_coverage, combined_sample_offset_x, glyph_draw_pass_count,
+        glyph_raster_scale, italic_pixel_offset, logical_raster_extent, raster_sample_x_range,
+        raster_sample_y_range, thin_stroke_preserved_coverage, uses_native_pixel_sampling,
+        MAX_COMBINED_SAMPLE_OFFSET_X, MIN_GLYPH_RASTER_SCALE,
     };
     use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 

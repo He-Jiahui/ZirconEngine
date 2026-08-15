@@ -13,6 +13,7 @@ trait ErasedEventQueue: Any + Send + Sync {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn update_erased(&mut self);
+    fn clear_erased(&mut self);
     fn requires_maintenance_erased(&self) -> bool;
     fn capacity_metrics_erased(&self) -> EventCapacityMetrics;
 }
@@ -31,6 +32,10 @@ where
 
     fn update_erased(&mut self) {
         self.update();
+    }
+
+    fn clear_erased(&mut self) {
+        self.clear();
     }
 
     fn requires_maintenance_erased(&self) -> bool {
@@ -291,6 +296,16 @@ impl EventStore {
             });
             if keep_active {
                 self.active_channels.insert(event_type_id);
+            }
+        }
+    }
+
+    pub(crate) fn clear_all(&mut self) {
+        self.active_channels.clear();
+        for (index, channel) in self.channels.iter_mut().enumerate() {
+            channel.events.clear_erased();
+            if channel.events.requires_maintenance_erased() {
+                self.active_channels.insert(EventTypeId::new(index as u32));
             }
         }
     }

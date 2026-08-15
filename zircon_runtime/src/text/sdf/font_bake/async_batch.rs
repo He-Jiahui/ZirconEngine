@@ -162,11 +162,12 @@ impl SdfFontBakeCache {
             }
 
             let faces = self.resolve_faces_for_key_cached(&slot.key, font_database, asset_manager);
-            let resolved_shaped_face = self
+            let shaped_resolution = self
                 .shaped_face_resolutions
                 .get(&slot.key)
                 .copied()
                 .flatten();
+            let resolved_shaped_face = shaped_resolution.map(|resolution| resolution.face);
             let mut last_error = None;
             let mut resolved = false;
             for face in faces {
@@ -184,7 +185,15 @@ impl SdfFontBakeCache {
                     continue;
                 }
                 let _ = self.ensure_sdf_font(face, font_database);
-                let source = match self.source_contexts.resolve(&slot.key, face, font_database) {
+                let resolved_instance = shaped_resolution
+                    .filter(|resolution| resolution.face == face)
+                    .and_then(|resolution| resolution.instance);
+                let source = match self.source_contexts.resolve(
+                    &slot.key,
+                    face,
+                    resolved_instance,
+                    font_database,
+                ) {
                     Ok(source) => source,
                     Err(error) => {
                         self.async_generation

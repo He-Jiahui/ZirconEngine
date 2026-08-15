@@ -19,8 +19,9 @@ pub use store::{
     ContributionSource, ContributionStore, ContributionTicket, PluginContributionId, RevokeReport,
 };
 pub use toolkit::{
-    DocumentCloseLease, DocumentSaveReport, DocumentToolkit, DocumentToolkitDescriptor,
-    DocumentToolkitRegistry, DocumentToolkitSnapshot, SaveContextError, SaveCtx, SaveError,
-    SaveReason, ToolkitArea, ToolkitAreaSlot, ToolkitInstanceId, ToolkitInstanceIdError,
-    ToolkitLayout, ToolkitLayoutError, ToolkitRegistryError, ToolkitSaveFailure,
+    DocumentAutosavePayload, DocumentCloseLease, DocumentSaveReport, DocumentToolkit,
+    DocumentToolkitDescriptor, DocumentToolkitRegistry, DocumentToolkitSnapshot, SaveContextError,
+    SaveCtx, SaveError, SaveReason, ToolkitArea, ToolkitAreaSlot, ToolkitInstanceId,
+    ToolkitInstanceIdError, ToolkitLayout, ToolkitLayoutError, ToolkitRegistryError,
+    ToolkitSaveFailure,
 };

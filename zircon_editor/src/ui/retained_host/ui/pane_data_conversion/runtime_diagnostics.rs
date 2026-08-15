@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::windows::workbench_host_window::{
@@ -61,7 +62,7 @@ pub(crate) fn refresh_runtime_diagnostics_debug_reflector_from_body_surface(
 fn runtime_diagnostics_debug_surface_frame(
     data: &host_contract::RuntimeDiagnosticsPaneData,
     content_size: PaneContentSize,
-) -> UiSurfaceFrame {
+) -> Arc<UiSurfaceFrame> {
     let mut surface = UiSurface::new(UiTreeId::new("zircon.editor.runtime_diagnostics.reflector"));
     let root_frame = UiFrame::new(
         0.0,

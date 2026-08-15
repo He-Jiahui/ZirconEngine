@@ -1,3 +1,5 @@
+use std::any::TypeId;
+
 use crate::scene::ecs::{
     Component, ComponentStorageLocation, Mut, QueryAccess, QueryAccessError, Ref,
     StableEntityLocation,
@@ -11,10 +13,7 @@ pub trait QueryDataAccess {
         world: &World,
         entity: EntityId,
         component_locations: &[ComponentStorageLocation],
-    ) -> bool {
-        let _ = component_locations;
-        Self::matches_data(world, entity)
-    }
+    ) -> bool;
 }
 
 pub trait QueryData: QueryDataAccess {
@@ -35,9 +34,7 @@ pub trait QueryData: QueryDataAccess {
         _stable_location: StableEntityLocation,
         _component_locations: &[ComponentStorageLocation],
         ticks: crate::scene::ecs::ChangeTickWindow,
-    ) -> Option<Self::Item<'world>> {
-        Self::fetch_with_ticks(world, entity, ticks)
-    }
+    ) -> Option<Self::Item<'world>>;
 }
 
 pub trait QueryMutData: QueryDataAccess {
@@ -51,6 +48,13 @@ pub trait QueryMutData: QueryDataAccess {
     ) -> Option<Self::Item<'world>> {
         Self::fetch_mut(world, entity)
     }
+
+    fn fetch_mut_with_component_locations<'world>(
+        world: &'world mut World,
+        entity: EntityId,
+        _component_locations: &[ComponentStorageLocation],
+        ticks: crate::scene::ecs::ChangeTickWindow,
+    ) -> Option<Self::Item<'world>>;
 }
 
 impl<'query, T> QueryDataAccess for &'query T
@@ -69,11 +73,11 @@ where
     }
 
     fn matches_component_locations(
-        world: &World,
+        _world: &World,
         _entity: EntityId,
         component_locations: &[ComponentStorageLocation],
     ) -> bool {
-        component_location::<T>(world, component_locations).is_some()
+        component_location::<T>(component_locations).is_some()
     }
 }
 
@@ -94,7 +98,7 @@ where
         component_locations: &[ComponentStorageLocation],
         _ticks: crate::scene::ecs::ChangeTickWindow,
     ) -> Option<Self::Item<'world>> {
-        let location = component_location::<T>(world, component_locations)?;
+        let location = component_location::<T>(component_locations)?;
         let (value, _) = world.component_ref_with_ticks_at_location::<T>(*location)?;
         Some(value)
     }
@@ -116,11 +120,11 @@ where
     }
 
     fn matches_component_locations(
-        world: &World,
+        _world: &World,
         _entity: EntityId,
         component_locations: &[ComponentStorageLocation],
     ) -> bool {
-        component_location::<T>(world, component_locations).is_some()
+        component_location::<T>(component_locations).is_some()
     }
 }
 
@@ -141,7 +145,7 @@ where
         component_locations: &[ComponentStorageLocation],
         _ticks: crate::scene::ecs::ChangeTickWindow,
     ) -> Option<Self::Item<'world>> {
-        let location = component_location::<T>(world, component_locations)?;
+        let location = component_location::<T>(component_locations)?;
         let (value, _) = world.component_ref_with_ticks_at_location::<T>(*location)?;
         Some(value)
     }
@@ -163,11 +167,11 @@ where
     }
 
     fn matches_component_locations(
-        world: &World,
+        _world: &World,
         _entity: EntityId,
         component_locations: &[ComponentStorageLocation],
     ) -> bool {
-        component_location::<T>(world, component_locations).is_some()
+        component_location::<T>(component_locations).is_some()
     }
 }
 
@@ -202,7 +206,7 @@ where
         component_locations: &[ComponentStorageLocation],
         ticks: crate::scene::ecs::ChangeTickWindow,
     ) -> Option<Self::Item<'world>> {
-        let location = component_location::<T>(world, component_locations)?;
+        let location = component_location::<T>(component_locations)?;
         let (value, component_ticks) =
             world.component_ref_with_ticks_at_location::<T>(*location)?;
         Some(Ref::new(value, component_ticks, ticks))
@@ -225,11 +229,11 @@ where
     }
 
     fn matches_component_locations(
-        world: &World,
+        _world: &World,
         _entity: EntityId,
         component_locations: &[ComponentStorageLocation],
     ) -> bool {
-        component_location::<T>(world, component_locations).is_some()
+        component_location::<T>(component_locations).is_some()
     }
 }
 
@@ -264,7 +268,7 @@ where
         component_locations: &[ComponentStorageLocation],
         ticks: crate::scene::ecs::ChangeTickWindow,
     ) -> Option<Self::Item<'world>> {
-        let location = component_location::<T>(world, component_locations)?;
+        let location = component_location::<T>(component_locations)?;
         let (value, component_ticks) =
             world.component_ref_with_ticks_at_location::<T>(*location)?;
         Some(Ref::new(value, component_ticks, ticks))
@@ -290,13 +294,19 @@ where
         entity: EntityId,
         ticks: crate::scene::ecs::ChangeTickWindow,
     ) -> Option<Self::Item<'world>> {
-        if world.has_fixed_component_owner::<T>() {
-            let component_ticks = world.component_change_ticks::<T>(entity)?;
-            let value = world.get_mut::<T>(entity)?;
-            return Some(Mut::new_eager(value, component_ticks, ticks));
-        }
-
         let (value, component_ticks, this_run) = world.component_mut_with_ticks::<T>(entity)?;
+        Some(Mut::new(value, component_ticks, this_run, ticks))
+    }
+
+    fn fetch_mut_with_component_locations<'world>(
+        world: &'world mut World,
+        _entity: EntityId,
+        component_locations: &[ComponentStorageLocation],
+        ticks: crate::scene::ecs::ChangeTickWindow,
+    ) -> Option<Self::Item<'world>> {
+        let location = component_location::<T>(component_locations)?;
+        let (value, component_ticks, this_run) =
+            world.query_component_mut_with_ticks_at_location::<T>(*location)?;
         Some(Mut::new(value, component_ticks, this_run, ticks))
     }
 }
@@ -310,6 +320,16 @@ where
     fn fetch_mut<'world>(world: &'world mut World, entity: EntityId) -> Option<Self::Item<'world>> {
         world.get_mut::<T>(entity)
     }
+
+    fn fetch_mut_with_component_locations<'world>(
+        world: &'world mut World,
+        _entity: EntityId,
+        component_locations: &[ComponentStorageLocation],
+        _ticks: crate::scene::ecs::ChangeTickWindow,
+    ) -> Option<Self::Item<'world>> {
+        let location = component_location::<T>(component_locations)?;
+        world.query_component_mut_at_location::<T>(*location)
+    }
 }
 
 impl<'query, T> QueryDataAccess for Option<&'query T>
@@ -322,6 +342,14 @@ where
     }
 
     fn matches_data(_world: &World, _entity: EntityId) -> bool {
+        true
+    }
+
+    fn matches_component_locations(
+        _world: &World,
+        _entity: EntityId,
+        _component_locations: &[ComponentStorageLocation],
+    ) -> bool {
         true
     }
 }
@@ -343,7 +371,7 @@ where
         component_locations: &[ComponentStorageLocation],
         _ticks: crate::scene::ecs::ChangeTickWindow,
     ) -> Option<Self::Item<'world>> {
-        let Some(location) = component_location::<T>(world, component_locations) else {
+        let Some(location) = component_location::<T>(component_locations) else {
             return Some(None);
         };
         let Some((value, _)) = world.component_ref_with_ticks_at_location::<T>(*location) else {
@@ -362,6 +390,14 @@ impl QueryDataAccess for EntityId {
     }
 
     fn matches_data(_world: &World, _entity: EntityId) -> bool {
+        true
+    }
+
+    fn matches_component_locations(
+        _world: &World,
+        _entity: EntityId,
+        _component_locations: &[ComponentStorageLocation],
+    ) -> bool {
         true
     }
 }
@@ -395,6 +431,14 @@ impl QueryDataAccess for StableEntityLocation {
     fn matches_data(_world: &World, _entity: EntityId) -> bool {
         true
     }
+
+    fn matches_component_locations(
+        _world: &World,
+        _entity: EntityId,
+        _component_locations: &[ComponentStorageLocation],
+    ) -> bool {
+        true
+    }
 }
 
 impl QueryData for StableEntityLocation {
@@ -424,6 +468,14 @@ impl QueryDataAccess for () {
     }
 
     fn matches_data(_world: &World, _entity: EntityId) -> bool {
+        true
+    }
+
+    fn matches_component_locations(
+        _world: &World,
+        _entity: EntityId,
+        _component_locations: &[ComponentStorageLocation],
+    ) -> bool {
         true
     }
 }
@@ -524,15 +576,13 @@ tuple_query_data!(A, B, C, D, E, F, G);
 tuple_query_data!(A, B, C, D, E, F, G, H);
 
 fn component_location<'locations, T>(
-    world: &World,
     component_locations: &'locations [ComponentStorageLocation],
 ) -> Option<&'locations ComponentStorageLocation>
 where
     T: Component,
 {
-    let component_id = world.registered_component_id::<T>()?;
-    let index = component_locations
-        .binary_search_by_key(&component_id, |location| location.component_id)
-        .ok()?;
-    component_locations.get(index)
+    let rust_type_id = TypeId::of::<T>();
+    component_locations
+        .iter()
+        .find(|location| location.rust_type_id == Some(rust_type_id))
 }

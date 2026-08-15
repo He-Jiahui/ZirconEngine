@@ -1,11 +1,13 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 
 use super::{
-    DataAsset, FontAsset, MaterialAsset, MaterialGraphAsset, MeshAsset, ModelAsset,
-    PhysicsMaterialAsset, PrefabAsset, SceneAsset, ShaderAsset, SoundAsset, TerrainAsset,
-    TerrainLayerStackAsset, TextureAsset, TileMapAsset, TileSetAsset, UiIconAsset, UiLayoutAsset,
-    UiStyleAsset, UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
-    ui_v2_asset_references,
+    ui_v2_asset_references, DataAsset, FontAsset, MaterialAsset, MaterialGraphAsset, MeshAsset,
+    ModelAsset, PhysicsMaterialAsset, PrefabAsset, SceneAsset, ShaderAsset, SoundAsset,
+    TerrainAsset, TerrainLayerStackAsset, TextureAsset, TileMapAsset, TileSetAsset, UiIconAsset,
+    UiLayoutAsset, UiStyleAsset, UiThemeAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset,
+    UiWidgetAsset,
 };
 use crate::asset::AssetReference;
 use crate::core::framework::animation::{
@@ -13,6 +15,7 @@ use crate::core::framework::animation::{
     AnimationStateMachineAsset,
 };
 use crate::core::framework::navigation::{NavMeshAsset, NavigationSettingsAsset};
+use crate::core::resource::ResourceData;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ImportedAsset {
@@ -50,6 +53,42 @@ pub enum ImportedAsset {
 }
 
 impl ImportedAsset {
+    pub(crate) fn into_resource_data(self) -> Arc<dyn ResourceData> {
+        match self {
+            Self::Data(asset) => Arc::new(asset),
+            Self::Texture(asset) => Arc::new(asset),
+            Self::Shader(asset) => Arc::new(asset),
+            Self::Material(asset) => Arc::new(asset),
+            Self::MaterialGraph(asset) => Arc::new(asset),
+            Self::Sound(asset) => Arc::new(asset),
+            Self::Font(asset) => Arc::new(asset),
+            Self::PhysicsMaterial(asset) => Arc::new(asset),
+            Self::NavMesh(asset) => Arc::new(asset),
+            Self::NavigationSettings(asset) => Arc::new(asset),
+            Self::Terrain(asset) => Arc::new(asset),
+            Self::TerrainLayerStack(asset) => Arc::new(asset),
+            Self::TileSet(asset) => Arc::new(asset),
+            Self::TileMap(asset) => Arc::new(asset),
+            Self::Prefab(asset) => Arc::new(asset),
+            Self::Scene(asset) => Arc::new(asset),
+            Self::Model(asset) => Arc::new(asset),
+            Self::Mesh(asset) => Arc::new(asset),
+            Self::AnimationSkeleton(asset) => Arc::new(asset),
+            Self::AnimationClip(asset) => Arc::new(asset),
+            Self::AnimationSequence(asset) => Arc::new(asset),
+            Self::AnimationGraph(asset) => Arc::new(asset),
+            Self::AnimationStateMachine(asset) => Arc::new(asset),
+            Self::UiLayout(asset) => Arc::new(asset),
+            Self::UiWidget(asset) => Arc::new(asset),
+            Self::UiStyle(asset) => Arc::new(asset),
+            Self::UiTheme(asset) => Arc::new(asset),
+            Self::UiIcon(asset) => Arc::new(asset),
+            Self::UiV2View(asset) => Arc::new(asset),
+            Self::UiV2Component(asset) => Arc::new(asset),
+            Self::UiV2Style(asset) => Arc::new(asset),
+        }
+    }
+
     pub fn direct_references(&self) -> Vec<AssetReference> {
         match self {
             Self::AnimationClip(asset) => asset.direct_references(),

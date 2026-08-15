@@ -12,7 +12,11 @@ use crate::ui::workbench::view::{ViewInstance, ViewInstanceId};
 use super::open::UI_ASSET_EDITOR_OPEN_OPERATION;
 use super::{
     build_ui_asset_editor_session_from_source, preview_size_for_preset,
-    save::save_ui_asset_document, ui_asset_editor_route_from_source, UiAssetWorkspaceEntry,
+    save::{
+        capture_ui_asset_document_autosave, save_ui_asset_document,
+        ui_asset_document_autosave_source_path,
+    },
+    ui_asset_editor_route_from_source, UiAssetWorkspaceEntry,
 };
 
 const UI_ASSET_TOOLKIT_LAYOUT_ID: &str = "editor.ui_asset.layout";
@@ -173,6 +177,8 @@ impl EditorUiHost {
             UI_ASSET_TOOLKIT_LAYOUT_ID,
             UI_ASSET_TOOLKIT_TAB_ID,
             save_ui_asset_document,
+            ui_asset_document_autosave_source_path,
+            capture_ui_asset_document_autosave,
         )?;
         Ok(())
     }

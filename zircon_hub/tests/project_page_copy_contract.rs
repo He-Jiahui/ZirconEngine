@@ -63,8 +63,10 @@ fn rust_localization_and_view_model_own_page_subtitles_status_and_quick_action_l
     let shell_messages = read_crate_file("src/state/hub_message/shell.rs");
     let action_history = read_crate_file("src/tauri_app/view_model/action_history.rs");
     let project_templates = read_crate_file("src/tauri_app/view_model/project_templates.rs");
+    let quick_actions = read_crate_file("src/tauri_app/view_model/quick_actions.rs");
     let ui_text = read_crate_file("src/tauri_app/view_model/ui_text.rs");
     let view_model = read_crate_file("src/tauri_app/view_model.rs");
+    let view_model_tests = read_crate_file("src/tauri_app/view_model/tests.rs");
     let task_status = read_crate_file("src/state/task_status.rs");
 
     assert_contains_all(
@@ -274,11 +276,18 @@ fn rust_localization_and_view_model_own_page_subtitles_status_and_quick_action_l
             "page_subtitle: text.page_subtitle(snapshot.selected_page).to_string()",
             "project_templates: project_template_rows(snapshot.settings.language)",
             "format!(\"{scope}: {}\", text.operation_target(target))",
-            "fn task_summary_localizes_backend_operation_targets()",
             "relative_time(now_unix_ms(), project.last_opened_unix_ms, language)",
             "HubLanguage::Chinese => format!(\"修改于 {modified_relative}\")",
             ".pair(\"Available\", \"可用\")",
             ".pair(\"Missing\", \"缺失\")",
+            "repository_available: !team.repository_path.as_os_str().is_empty()",
+            "commits_label: commit_count_label(member.commits, language)",
+        ],
+    );
+    assert_contains_all(
+        "view_model/quick_actions.rs",
+        &quick_actions,
+        &[
             "quick_action_detail(",
             "build_detail_for_project(",
             "Build selected project",
@@ -294,9 +303,12 @@ fn rust_localization_and_view_model_own_page_subtitles_status_and_quick_action_l
             "\"Open in Editor\"",
             "format!(\"Open {name} in Editor\")",
             "\"Open Editor without a project\"",
-            "repository_available: !team.repository_path.as_os_str().is_empty()",
-            "commits_label: commit_count_label(member.commits, language)",
         ],
+    );
+    assert_contains_all(
+        "view_model/tests.rs",
+        &view_model_tests,
+        &["fn task_summary_localizes_backend_operation_targets()"],
     );
     assert_contains_all(
         "task_status.rs",

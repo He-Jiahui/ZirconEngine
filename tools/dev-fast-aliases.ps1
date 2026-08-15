@@ -19,7 +19,18 @@ function zr-editor-test { & $runner -Profile editor -Action test @args }
 function zr-editor-run { & $runner -Profile editor -Action run @args }
 
 function zr-sccache-status {
-    if (Get-Command sccache -ErrorAction SilentlyContinue) {
+    param([string]$SharedTargetRoot = "")
+
+    if ([string]::IsNullOrWhiteSpace($SharedTargetRoot)) {
+        $repoRoot = Split-Path -Parent $scriptDir
+        $drive = [System.IO.Path]::GetPathRoot($repoRoot).TrimEnd('\')
+        $SharedTargetRoot = Join-Path $drive "cargo-targets\zircon-shared"
+    }
+
+    $managedSccache = Join-Path $SharedTargetRoot "cargo-home\bin\sccache.exe"
+    if (Test-Path -LiteralPath $managedSccache -PathType Leaf) {
+        & $managedSccache --show-stats
+    } elseif (Get-Command sccache -ErrorAction SilentlyContinue) {
         sccache --show-stats
     } else {
         Write-Host "sccache is not installed. Run: .\tools\dev-fast-build.ps1 -InstallSccache" -ForegroundColor Yellow

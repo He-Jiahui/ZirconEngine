@@ -148,7 +148,11 @@ impl SceneRendererCore {
                 Some(&mut self.ibl_bake_pipeline_cache),
                 uses_mesh_pipeline_context.then_some(mesh_draw_lists),
                 self.hzb_occlusion_culler.as_ref(),
-                is_shadow.then_some(&self.shadow_map_renderer),
+                if is_shadow {
+                    self.shadow_map_renderer.as_ref()
+                } else {
+                    None
+                },
                 Some(&self.shadow_atlas_resources),
                 is_shadow.then_some(shadow_frame_plan),
                 parallel_recording,

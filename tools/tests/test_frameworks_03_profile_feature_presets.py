@@ -378,6 +378,17 @@ class Frameworks03ProfileFeaturePresetTests(unittest.TestCase):
         self.assertIn("runtime-profile-feature-presets.py matrix", workflow)
         self.assertIn("fromJSON(needs.runtime-profile-feature-matrix-plan.outputs.matrix)", workflow)
 
+    def test_profile_matrix_isolates_all_cargo_derived_data_on_managed_storage(self) -> None:
+        source = PROFILE_MATRIX_RUNNER.read_text(encoding="utf-8")
+
+        self.assertIn("WindowsPathResolver.psm1", source)
+        self.assertIn("Resolve-ZirconWindowsPath", source)
+        self.assertIn("CARGO_HOME", source)
+        self.assertIn("SCCACHE_DIR", source)
+        for name in ("TEMP", "TMP", "TMPDIR"):
+            self.assertIn(name, source)
+        self.assertIn("D:\\cargo-targets, E:\\cargo-targets, or F:\\cargo-targets", source)
+
 
 if __name__ == "__main__":
     unittest.main()

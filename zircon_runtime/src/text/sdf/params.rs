@@ -48,8 +48,10 @@ impl SdfBakeParams {
     }
 
     pub(crate) fn screen_px_range(self, display_px: f32) -> f32 {
+        if !display_px.is_finite() || display_px <= 0.0 {
+            return MIN_SCREEN_PX_RANGE;
+        }
         let params = self.normalized();
-        let display_px = display_px.max(1.0);
         ((display_px / params.bake_em_px_f32()) * params.spread_px_f32()).max(MIN_SCREEN_PX_RANGE)
     }
 }

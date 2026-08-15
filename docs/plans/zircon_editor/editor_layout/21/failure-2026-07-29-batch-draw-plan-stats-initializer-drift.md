@@ -10,7 +10,8 @@ origin_child_dir: docs/plans/zircon_editor/editor/01
 fixing_child_dir: docs/plans/zircon_editor/editor_layout/21
 plan_link_mode: child_record_only
 related_code:
-  - zircon_runtime/src/rhi_wgpu/ui_surface/batching.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching.rs
+  - zircon_runtime/crates/zr_rhi_wgpu/src/ui_surface/batching/tests/scale_and_cache.rs
 tests:
   - cargo test -p zircon_editor --lib gateway:: --locked --jobs 1 --color never -- --test-threads=1
 ---
@@ -73,9 +74,23 @@ Runtime 输入指纹从启动前 `3126939cdea97bea6c293a2dc1e70247f22a6c159bc5b7
 在两个下层 lifecycle fixed return 且 Runtime 输入重新冻结前，不创建或复用 Layout21
 验收作业。
 
+### 2026-08-13 current-source 前向修复状态
+
+- `implemented_static / validation_pending`：`BatchDrawPlanStats` 的 direct builder
+  初始化器已完整声明 `batch_plan_build_count=0`、`batch_plan_cache_hit_count=0`；构建/命中
+  归属集中在 `CompiledUiBatchPlanCache::resolve`，cache miss 与无 generation bypass 返回
+  `1/0`，稳定 generation 命中返回 `0/1`，调用方只投影该次 resolve 的统计，不重复累计。
+- `scale_and_cache.rs` 当前覆盖稳定 generation 命中、projection size 变化仍复用、generation
+  变化重建、versioned damage 复用完整 projection，以及 unversioned damage 强制重建；direct
+  builder 测试固定内部 build/hit 统计为零。全仓静态检索确认所有该字段构造点均完整。
+- 本轮没有执行 Cargo，也没有新的 source-bound managed terminal evidence；因此旧 source-raced
+  运行仍只作历史诊断，本 failure 保持 `status: open`，不声称来源 Editor01 gateway、向上验收
+  或 `fixed-*` return 已通过。
+
 ## 产出记录与时间
 
 | 时间 | 范围 | 状态 | 完成项与后续门禁 |
 | --- | --- | --- | --- |
 | 2026-07-29 11:05 CST | Layout21 batch-plan cache statistics | failure open | 已从 Editor01 受管 job `640dc354cc38475daa1bd25e7217baf6` 的终态日志提取 E0063，并确认根因位于 `BatchDrawPlanStats` 构造/缓存统计契约。等待 Layout21 在 owned scope 完成语义修复、受管验证、独立复审和 fixed return。 |
 | 2026-07-29 12:50 CST | Layout21 current-source focused lib diagnostic | diagnostic RED / source-raced | failure-priority job `daf0b16f577d49d0aa8dc747d972f702` / run `d8da72004daf439085e99efac3999c9a` 自然释放 `exit 101`、无存活 PID；本 owner E0063 已消失，但 pre/post 全输入指纹不一致，八项终态错误均已路由至既有 Render17 surface 与 Runtime11 operation lifecycle。本运行不得验收、不得复用。 |
+| 2026-08-13 | Layout21 current-source statistics audit | `open / implemented_static / validation_pending` | direct builder 初始化器完整声明 build/hit 为 0；cache resolve 独占每次 miss/hit/bypass 计数，focused source tests 覆盖稳定 generation、尺寸/代际变化和 damage 路径。仅有静态源码证据，无 managed terminal evidence，不声称 fixed return。 |

@@ -15,23 +15,30 @@ impl LayoutManager {
         }
         let mut focused_activity_window = None;
         for (activity_window_id, activity_window) in layout.activity_windows.iter_mut() {
-            for drawer in activity_window.activity_drawers.values_mut() {
-                if drawer.tab_stack.tabs.contains(instance_id) {
-                    let changed = drawer.tab_stack.active_tab.as_ref() != Some(instance_id)
-                        || drawer.active_view.as_ref() != Some(instance_id)
-                        || drawer.mode == ActivityDrawerMode::Collapsed;
-                    drawer.tab_stack.active_tab = Some(instance_id.clone());
-                    drawer.active_view = Some(instance_id.clone());
-                    if drawer.mode == ActivityDrawerMode::Collapsed {
-                        drawer.mode = ActivityDrawerMode::Pinned;
-                    }
-                    focused_activity_window = Some((activity_window_id.clone(), changed));
-                    break;
-                }
+            let target_slot = activity_window
+                .activity_drawers
+                .iter()
+                .find_map(|(slot, drawer)| {
+                    drawer.tab_stack.tabs.contains(instance_id).then_some(*slot)
+                });
+            let Some(target_slot) = target_slot else {
+                continue;
+            };
+            let mut changed = activity_window.collapse_drawer_region_siblings(target_slot);
+            let drawer = activity_window
+                .activity_drawers
+                .get_mut(&target_slot)
+                .expect("located drawer must remain present");
+            changed |= drawer.tab_stack.active_tab.as_ref() != Some(instance_id)
+                || drawer.active_view.as_ref() != Some(instance_id)
+                || drawer.mode == ActivityDrawerMode::Collapsed;
+            drawer.tab_stack.active_tab = Some(instance_id.clone());
+            drawer.active_view = Some(instance_id.clone());
+            if drawer.mode == ActivityDrawerMode::Collapsed {
+                drawer.mode = ActivityDrawerMode::Pinned;
             }
-            if focused_activity_window.is_some() {
-                break;
-            }
+            focused_activity_window = Some((activity_window_id.clone(), changed));
+            break;
         }
         if let Some((activity_window_id, mut changed)) = focused_activity_window {
             if let Some(page_id) = layout.page_id_for_activity_window(&activity_window_id) {

@@ -45,7 +45,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ax
 
 fn axis_label_text<'a>(node: &'a TemplatePaneNodeData, axis: &'a str) -> &'a str {
     let text = node.text.trim();
-    if text.is_empty() { axis } else { text }
+    if text.is_empty() {
+        axis
+    } else {
+        text
+    }
 }
 
 #[cfg(test)]

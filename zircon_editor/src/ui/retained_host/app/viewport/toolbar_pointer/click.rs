@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::super::super::RetainedEditorHost;
 use crate::ui::retained_host::{
     callback_dispatch, viewport_toolbar_pointer::build_viewport_toolbar_pointer_layout_with_size,
@@ -21,7 +23,6 @@ impl RetainedEditorHost {
         } else {
             self.viewport_toolbar_surface_size(surface_key)
         };
-        let _ = self.viewport_toolbar_bridge.recompute_layout(surface_size);
         self.viewport_toolbar_pointer_bridge
             .sync(build_viewport_toolbar_pointer_layout_with_size(
                 [surface_key],
@@ -59,9 +60,9 @@ impl RetainedEditorHost {
 fn viewport_toolbar_surface_frame_for_surface(
     presentation: &HostWindowPresentationData,
     surface_key: &str,
-) -> Option<UiSurfaceFrame> {
+) -> Option<Arc<UiSurfaceFrame>> {
     let scene = &presentation.host_scene_data;
-    let dock_toolbar_frames: [(&str, Option<&UiSurfaceFrame>); 4] = [
+    let dock_toolbar_frames: [(&str, Option<&Arc<UiSurfaceFrame>>); 4] = [
         (
             scene.document_dock.surface_key.as_str(),
             scene

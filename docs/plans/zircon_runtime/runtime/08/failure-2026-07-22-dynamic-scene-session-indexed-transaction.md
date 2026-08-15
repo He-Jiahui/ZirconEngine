@@ -55,4 +55,26 @@ archive只有公开Vec排序约定，没有canonical slot-id index、generation 
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `实现收敛中`; no Cargo pass is claimed.
+
+2026-08-10 current-source progress:
+
+- `RuntimeSessionArchivePayload` 已成为 slot-id、更新时间与 tag secondary index 的单一 owner；单 slot push/upsert/rename/metadata/touch/remove 增量维护这些索引，merge/prune 通过一次 batch publication 更新稳定 slot 顺序。
+- selection 已提供借用 archive row 的 generation/revision-bound handle；merge 与 prune 使用 generation/revision-bound plan，commit 前拒绝 stale target，preview 仅复制报告所需的小字段。
+- Runtime08 本轮进一步硬切 `RuntimeSessionArchive: DerefMut`。Archive payload 的可变访问现在只经私有 `payload_mut` 推进 revision 并执行 copy-on-write，crate 内调用方不能再直接取得 `slots: Vec<_>` 的可变入口绕过 canonical indexes；source guard 同步禁止该旁路。
+- 已执行精确路径 `rustfmt +1.94.1 --check`、`git diff --check` 与仓内 slot mutation source scan，结果通过；本记录仍保持 open，直到 `dynamic_scene_session` 受管行为测试和 1/1k/100k lookup/validation/sort/payload-clone 指标取得终态证据。
+
+### 2026-08-11：dense slot relocation 未关闭
+
+当前 `RuntimeSessionArchivePayload` 的 key lookup 已由 `slot_indices` 接管，但 `insert_slot` 仍调用 `Vec::insert`，`remove_slot` 仍调用 `Vec::remove`，两者随后以 `shift_slot_indices` 遍历 primary index、updated index 与所有 tag index 修正每个受影响 slot offset。它避免了每次完整 sort，却仍对一次 slot mutation 执行 `O(N + tag-membership)` relocation，不能满足 1k/100k affected-row 成本目标，也不能把既有“incremental index”描述为尺度闭包。
+
+下一原子 hard cut 必须把 dense payload slot storage 与 canonical slot-id iteration 分离：slot id index 直接定位 dense row，remove 只 repair swapped row；updated/tag secondary order 使用 stable keys 而非 mutable vector offsets；wire/artifact/manifest/query consumers 在同一提交中通过 canonical slot-id view 序列化和枚举。不得在 archive owner 旁再保留一个可变 sorted `Vec` 或在 preview/commit 各建 cache。`artifact.rs`、`manifest/*`、`query/*`、merge plan 与 capture/retention consumers 需要在取得同一 source scope 后一并迁移。本 handoff 继续为 `open`，没有 Cargo 或 1/1k/100k managed metrics acceptance。
+
+### 2026-08-12：dense row hard cut implementation pending managed evidence
+
+- `RuntimeSessionArchivePayload` now keeps slot rows in append-only dense storage for insert/upsert and uses `swap_remove` for removal. Only the swapped row's primary, updated-at, and tag secondary entries are repaired; the old `Vec::insert`/`Vec::remove` relocation and `shift_slot_indices` sweep are absent.
+- Canonical ID order comes solely from the `BTreeMap<String, usize>` primary index. The public slot view, JSON serialization, artifact manifest, merge planning, capture-retention preview, prune planning, and validation consumers enumerate that view rather than relying on physical row order. Updated-at and tag ordering use `(updated_at, slot_id)` stable keys.
+- Archive input validation deliberately iterates dense rows, not the canonical index, so duplicate incoming slot IDs cannot be hidden by index replacement before validation rejects them. The public mutable-Vec and physical-sort entry points were removed rather than retained as no-op compatibility APIs.
+- Local evidence so far is source-guard coverage for swap removal/canonical views plus `rustfmt` and `git diff --check`. No managed Cargo test, 1/1k/100k metric run, fixed handoff, or acceptance is claimed; this failure remains `open` until those terminal receipts exist.
+- Post-implementation second review found no P0/P1. Its two P2 coverage gaps were added as source tests: swap-removal now proves canonical JSON serialization and reload order, and an externally mutated archive rejects a prepared stale prune plan without deleting either row. The reviewer then rechecked those exact tests with P0/P1/P2 all zero. This is review evidence only, not managed test acceptance.
+- Coordinator evidence: historical source snapshots `1643` and `1644` were accepted before the two post-review regression additions, so neither may be used as current validation evidence. The managed CPU reservation request for `cargo +1.94.1 test -p zircon_runtime --lib dynamic_scene_session --locked --jobs 1 -- --nocapture --test-threads=1`, and the later current-source snapshot request, were both rejected before admission with `database is locked`; neither created a reservation, job, run, or Cargo process. This is coordination infrastructure evidence, not a test result or code RED, and must not be converted into a fixed/accepted claim.

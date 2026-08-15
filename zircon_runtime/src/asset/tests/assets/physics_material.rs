@@ -1,7 +1,7 @@
 use crate::core::framework::scene::physics::PhysicsCombineRule;
 
-use crate::asset::PhysicsMaterialAsset;
 use crate::asset::tests::support::sample_physics_material_asset;
+use crate::asset::PhysicsMaterialAsset;
 
 #[test]
 fn physics_material_asset_toml_roundtrip_preserves_combine_rules() {

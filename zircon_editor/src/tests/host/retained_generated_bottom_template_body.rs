@@ -3,8 +3,8 @@ use std::collections::BTreeMap;
 use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::layouts::views::blank_viewport_chrome;
 use crate::ui::layouts::windows::workbench_host_window::{
-    GeneratedBottomPaneViewData, PaneNativeBodyData, PanePayload, PanePayloadBuildContext,
-    PanePresentation, PaneShellPresentation, build_pane_body_presentation,
+    build_pane_body_presentation, GeneratedBottomPaneViewData, PaneNativeBodyData, PanePayload,
+    PanePayloadBuildContext, PanePresentation, PaneShellPresentation,
 };
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::retained_host::to_host_contract_generated_bottom_pane_from_host_pane;

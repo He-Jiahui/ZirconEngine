@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn derived_state_rebuilds_use_single_hierarchy_traversal_index() {
+fn derived_state_rebuilds_reuse_the_mutation_hierarchy_index() {
     let source = read_source(
         &manifest_dir()
             .join("src")
@@ -29,57 +29,60 @@ fn derived_state_rebuilds_use_single_hierarchy_traversal_index() {
         .nth(1)
         .and_then(|text| text.split("fn hierarchy_traversal_index").next())
         .expect("read world matrix propagation body");
-    let traversal_index = source
-        .split("fn hierarchy_traversal_index")
+    let mutation_index = source
+        .split("impl HierarchyMutationIndex")
         .nth(1)
-        .and_then(|text| text.split("fn children_of").next())
-        .expect("read hierarchy traversal index builder");
+        .and_then(|text| text.split("const fn node_kind_ordinal_index").next())
+        .expect("read hierarchy mutation index implementation");
 
     assert!(
-        active_rebuild.contains("let traversal = self.hierarchy_traversal_index();")
+        active_rebuild.contains("self.ensure_hierarchy_mutation_index_current();")
+            && active_rebuild.contains("let traversal = std::mem::take(&mut self.hierarchy_mutation_index);")
             && active_rebuild.contains("for root in traversal.roots()")
+            && active_rebuild.contains("self.hierarchy_mutation_index = traversal;")
             && !active_rebuild.contains("self.active_in_hierarchy.clear();")
             && !active_rebuild.contains("self.root_entities()"),
-        "active hierarchy rebuild must build one traversal index instead of collecting roots separately"
+        "active hierarchy rebuild must reuse the mutation hierarchy index instead of constructing a temporary world traversal"
     );
     assert!(
-        world_rebuild.contains("let traversal = self.hierarchy_traversal_index();")
+        world_rebuild.contains("self.ensure_hierarchy_mutation_index_current();")
+            && world_rebuild.contains("let traversal = std::mem::take(&mut self.hierarchy_mutation_index);")
             && world_rebuild.contains("for root in traversal.roots()")
+            && world_rebuild.contains("self.hierarchy_mutation_index = traversal;")
             && !world_rebuild.contains("self.world_matrices.clear();")
             && !world_rebuild.contains("self.root_entities()"),
-        "world matrix rebuild must build one traversal index instead of collecting roots separately"
+        "world matrix rebuild must reuse the mutation hierarchy index instead of constructing a temporary world traversal"
     );
     assert!(
-        active_propagate.contains("traversal: &HierarchyTraversalIndex")
-            && active_propagate.contains("traversal.children_of(entity)")
+        active_propagate.contains("traversal: &HierarchyMutationIndex")
+            && active_propagate.contains("let mut stack = vec![(entity, parent_active)];")
+            && active_propagate.contains("while let Some((current, inherited_active)) = stack.pop()")
+            && active_propagate.contains("traversal.children_of(current)")
+            && active_propagate.contains(".rev()")
+            && !active_propagate.contains("self.propagate_active_state(")
             && !active_propagate.contains("self.children_of(entity)"),
-        "active hierarchy propagation must reuse the traversal index instead of scanning children at each node"
+        "active hierarchy propagation must use an explicit DFS stack over the traversal index instead of recursion or per-node child scans"
     );
     assert!(
-        world_propagate.contains("traversal: &HierarchyTraversalIndex")
-            && world_propagate.contains("traversal.children_of(entity)")
+        world_propagate.contains("traversal: &HierarchyMutationIndex")
+            && world_propagate.contains("let mut stack = vec![(entity, parent_world)];")
+            && world_propagate.contains("while let Some((current, inherited_world)) = stack.pop()")
+            && world_propagate.contains("traversal.children_of(current)")
+            && world_propagate.contains(".rev()")
+            && !world_propagate.contains("self.propagate_world_matrix(")
             && !world_propagate.contains("self.children_of(entity)"),
-        "world matrix propagation must reuse the traversal index instead of scanning children at each node"
+        "world matrix propagation must use an explicit DFS stack over the traversal index instead of recursion or per-node child scans"
     );
     assert!(
-        traversal_index
-            .contains("HierarchyTraversalIndex::with_entity_capacity(self.entities.len())")
-            && traversal_index.contains("for entity in self.entities.iter().copied()")
-            && traversal_index.contains("if let Some(parent) = self.parent_of(entity)")
-            && traversal_index.contains("index.push_child(parent, entity);")
-            && traversal_index.contains("index.push_root(entity);"),
-        "hierarchy traversal index must preserve world entity order while building roots and child lists once"
-    );
-    assert!(
-        source.contains("struct HierarchyTraversalIndex")
-            && source.contains("roots: Vec<EntityId>")
-            && source.contains("children_by_parent: HashMap<EntityId, Vec<EntityId>>")
-            && source.contains("fn with_entity_capacity(entity_count: usize) -> Self")
-            && source.contains("roots: Vec::with_capacity(entity_count)")
-            && source.contains("children_by_parent: HashMap::with_capacity(entity_count)")
-            && source.contains("fn roots(&self) -> &[EntityId]")
-            && source.contains("fn children_of(&self, parent: EntityId) -> &[EntityId]"),
-        "hierarchy traversal index must own pre-sized root and child storage with slice accessors"
+        mutation_index.contains("roots: BTreeMap<usize, EntityId>")
+            && mutation_index.contains("children_by_parent: HashMap<EntityId, BTreeMap<usize, EntityId>>")
+            && mutation_index.contains("fn is_current_for_entity_count(&self, entity_count: usize) -> bool")
+            && mutation_index.contains("self.indexed_entities.len() == entity_count")
+            && mutation_index.contains("fn roots(&self) -> impl DoubleEndedIterator<Item = EntityId> + '_")
+            && mutation_index.contains("self.roots.values().copied()")
+            && mutation_index.contains("self.roots.remove(&stable_order);")
+            && mutation_index.contains("self.roots.insert(stable_order, entity);"),
+        "hierarchy mutation index must own stable root and child order for every derived-state traversal"
     );
 }
 
@@ -111,14 +114,16 @@ fn hierarchy_validity_rebuild_uses_pre_sized_parent_snapshot() {
     assert!(
         rebuild.contains("let parents = self.hierarchy_parent_snapshot();")
             && rebuild.contains("let mut seen = HashSet::new();")
-            && rebuild.contains("for entity_index in 0..self.entities.len()")
-            && rebuild.contains("let entity = self.entities[entity_index];")
+            && rebuild.contains("let mut hierarchy_updates = Vec::new();")
+            && rebuild.contains(".is_current_for_entity_count(self.entities.len());")
+            && rebuild.contains("let entities = self.stable_entity_ids().collect::<Vec<_>>();")
+            && rebuild.contains("for entity in entities {")
             && rebuild.contains("parents.contains_key(parent)")
             && rebuild.contains("parent_chain_is_invalid(*parent, entity, &parents, &mut seen)")
+            && rebuild.contains("self.update_hierarchy_mutation_index(entity, previous_parent, current_parent);")
             && !rebuild.contains("HashSet<_> = self.entities.iter().copied().collect()")
-            && !rebuild.contains(".collect::<Vec<_>>()")
             && !rebuild.contains(".map(|entity|"),
-        "hierarchy validity rebuild must use one pre-sized parent snapshot and an index walk instead of collect-built temporary snapshots"
+        "hierarchy validity rebuild must use one parent snapshot, stable entity walk, and update the authoritative hierarchy index after invalid edges are removed"
     );
     assert!(
         parent_chain.contains("seen.clear();")
@@ -128,14 +133,38 @@ fn hierarchy_validity_rebuild_uses_pre_sized_parent_snapshot() {
     );
     assert!(
         snapshot.contains("let mut parents = HashMap::with_capacity(self.entities.len());")
-            && snapshot.contains("for entity in self.entities.iter().copied()")
-            && snapshot.contains("let parent = match self.hierarchy.get(&entity)")
+            && snapshot.contains("for entity in self.stable_entity_ids()")
+            && snapshot.contains("let parent = match self.get::<Hierarchy>(entity)")
             && snapshot.contains("Some(hierarchy) => hierarchy.parent")
             && snapshot.contains("None => None")
             && snapshot.contains("parents.insert(entity, parent);")
             && !snapshot.contains(".and_then(|hierarchy| hierarchy.parent)")
             && !snapshot.contains(".collect()"),
         "hierarchy parent snapshot must pre-size and push parent entries through direct lookup branches"
+    );
+}
+
+#[test]
+fn empty_entity_spawn_registers_a_root_in_the_mutation_index() {
+    let source = read_source(
+        &manifest_dir()
+            .join("src")
+            .join("scene")
+            .join("world")
+            .join("typed_api")
+            .join("bundle_entry.rs"),
+    );
+    let spawn_empty = source
+        .split("pub(crate) fn spawn_empty_at")
+        .nth(1)
+        .and_then(|text| text.split("pub(crate) fn spawn_at").next())
+        .expect("read empty entity spawn body");
+
+    assert!(
+        spawn_empty.contains("self.update_hierarchy_mutation_index(entity, None, None);")
+            && spawn_empty.contains("self.append_entity_to_dense_storage(entity);")
+            && spawn_empty.contains("self.record_node_kind_added(NodeKind::Empty);"),
+        "an empty entity must enter the mutation hierarchy index as a root during spawn"
     );
 }
 
@@ -156,7 +185,7 @@ fn subtree_record_collection_reuses_hierarchy_traversal_index() {
                 .next()
         })
         .expect("read public subtree record collection body");
-    let recursive_collection = source
+    let indexed_collection = source
         .split("fn collect_subtree_records_with_traversal")
         .nth(1)
         .and_then(|text| text.split("pub(super) fn is_descendant").next())
@@ -165,16 +194,16 @@ fn subtree_record_collection_reuses_hierarchy_traversal_index() {
     assert!(
         public_collection.contains("let traversal = self.hierarchy_traversal_index();")
             && public_collection.contains("self.collect_subtree_records_with_traversal(")
-            && recursive_collection.contains("traversal: &HierarchyTraversalIndex")
-            && recursive_collection.contains("traversal.children_of(entity)")
-            && recursive_collection.contains(
-                "self.collect_subtree_records_with_traversal(*child, records, traversal)"
-            )
-            && !recursive_collection.contains("self.children_of(entity)")
+            && indexed_collection.contains("traversal: &HierarchyTraversalIndex")
+            && indexed_collection.contains("let mut stack = vec![entity];")
+            && indexed_collection.contains("while let Some(current) = stack.pop()")
+            && indexed_collection.contains("traversal.children_of(current).iter().rev().copied()")
+            && !indexed_collection.contains("self.children_of(entity)")
+            && !indexed_collection.contains("self.collect_subtree_records_with_traversal(")
             && !source.contains("fn children_of(&self, entity: EntityId) -> Vec<EntityId>")
             && !source.contains(".filter(|child| self.parent_of(*child) == Some(entity))")
-            && !source.contains(".collect()"),
-        "subtree record collection must build one hierarchy traversal index and recurse through indexed child slices instead of scanning all entities per node"
+            && !indexed_collection.contains(".collect()"),
+        "subtree record collection must build one hierarchy traversal index and use an explicit DFS stack through indexed child slices instead of scanning all entities per node"
     );
 }
 

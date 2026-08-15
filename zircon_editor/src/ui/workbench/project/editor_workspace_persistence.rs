@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use zircon_runtime::core::resource::io::atomic_file::atomic_write;
+use zircon_runtime::core::resource::io::atomic_write;
 use zircon_runtime::scene::world::SceneProjectError;
 
 use super::constants::EDITOR_PROJECT_FORMAT_VERSION;

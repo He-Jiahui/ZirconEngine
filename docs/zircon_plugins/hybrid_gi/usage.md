@@ -122,7 +122,7 @@ doc_type: workflow-detail
 | `voxel_budget` | 16 | 软件 voxel clipmap 的驻留/更新预算 |
 | `quality` | `Medium` | 每 trace tile 的实际方向数，Low/Medium/High 为 4/8/16 |
 
-显式非零预算、质量档和 debug view 不会被编辑器默认值覆盖。
+显式非零预算、质量档和 debug-view 请求不会被编辑器默认值覆盖。当前执行器把 `debug_view` 编码进 HGI resolve uniform，并在最终 HGI lighting 合成前选择当前帧诊断输出；非 `None` 模式禁用时域复用，避免旧历史污染调试颜色。
 
 ### 编辑器快速切换 Profile
 
@@ -225,15 +225,17 @@ profile 给出默认预算；调用方提供的非零预算覆盖对应默认值
 
 ## Debug View
 
-| 枚举 | 用途 |
+`RenderHybridGiDebugView` 是稳定的序列化请求合同。HGI executor 从当前 `RenderFrameExtract` 读取它，通过 resolve uniform 的稳定数值 ABI 传给 WGSL，并在空间/时域滤波前选择当前 GPU trace authority 的诊断颜色。各枚举的当前含义如下：
+
+| 枚举 | 当前输出 |
 |---|---|
 | `None` | 最终 GI 合成 |
-| `Cards` | card 派生与覆盖检查 |
-| `SurfaceCache` | page 驻留、atlas 内容与 screen trace 命中检查 |
-| `VoxelClipmap` | Surface Cache miss 后的软件 voxel fallback 检查 |
-| `InputSet` | Deferred/Forward+ 共享输入是否齐全 |
+| `Cards` | 对 Surface Cache 命中的 support/card signature 生成稳定伪彩色，未命中像素写黑 |
+| `SurfaceCache` | 只显示 Surface Cache 命中的当前 radiance，其他 source 写黑 |
+| `VoxelClipmap` | 只显示 Surface Cache miss 后由软件 voxel fallback 提供的当前 radiance，其他 source 写黑 |
+| `InputSet` | 按 Surface Cache、Voxel、screen hit、depth fallback 使用固定颜色显示当前 source 分类 |
 
-建议排错顺序是 `InputSet -> Cards -> SurfaceCache -> VoxelClipmap -> None`。先确认输入与场景表示，再判断 trace 和最终时序，避免把缺失 provider、无预算或空 cache 误判为着色错误。
+这些模式写入 `hybrid-gi-lighting` 后仍经过正常 post-uber 产品路径，不另建调试 pipeline；因此关闭调试时没有额外 pipeline/cache 分裂。当前源码包含直接 resolve WGPU 像素合同和五视图产品矩阵导出器；`docs/tests/runtime/render/plan18_hybrid_gi_debug_views_wgpu_20260810.png` 只有在真实 WGPU 运行、五个 panel 非空且四个调试模式都与 `None` 产生像素差异后才会生成。该文件和对应 report 在实际生成前仍是待验证证据，不能用旧 PNG 或枚举标签替代。
 
 ## 降级与诊断
 
@@ -242,8 +244,11 @@ profile 给出默认预算；调用方提供的非零预算覆盖对应默认值
 - provider 未链接：请求值保留在配置层，但执行层不得生成 HGI Pass。
 - history 不兼容、motion/depth/source/support/normal 不匹配：拒绝该像素历史并使用当前帧结果。
 - Surface Cache miss：按当前 V1 合同进入 voxel clipmap fallback；全层无有效 source 时保持确定性黑色/关闭结果，不读取未初始化 radiance。
+- Mesh/Global SDF 不可用、形变中或超过对象/页面/上传预算：Global SDF 页面保持不可采样，继续进入 voxel clipmap fallback；不得把对象 AABB 当作有效 signed-distance payload。终端回退会清除该 generation 的 dirty request，直到对象或资源 revision 再次使页变脏；页面失效投影与 Global SDF 候选使用相同的扩张 influence band，因此邻页的有效贡献者也会重新标脏。纯页面/上传预算延后则保留 dirty request 并轮转到后续有界批次。
 
-运行时应读取 resolved provider report 和 render stats，而不是仅检查用户请求值。至少核对 executed pass count、probe trace tile count、Surface Cache resident page count、voxel resident clipmap count与 capability fallback reason。
+运行时应读取 resolved provider report 和 render stats，而不是仅检查用户请求值。至少核对 executed pass count、probe trace tile count、Surface Cache resident page count、voxel resident clipmap count与 capability fallback reason。Radiance Cache 的真实 GPU 工作使用 `last_hybrid_gi_radiance_cache_gpu_stage_dispatch_counts`，固定顺序为 `mark / allocate / trace / filter / border-mip / consume`；该数组来自异步 GPU readback，表示最近完成的样本而非当前 CPU 提交帧。稳定复用应为前五项零、`consume` 非零。
+
+软件追踪 provenance 位于 `RenderHybridGiScenePrepareReadbackOutputs::probe_trace_diagnostics`。每条记录对应一个实际 dispatch 的 probe，包含按 tile 贡献加权的 dominant intersection/lighting source、实际使用的 intersection backend 与 lighting source bitmask、distance/confidence、typed fallback reason，以及 texture/page/SDF/voxel/hardware-ray cost counters。Voxel route 的 distance 是按贡献权重汇总的 probe-to-cell-AABB 世界距离，不会以占位零值伪装命中；其中心坐标以 producer 相同的有符号 `64x` 量化与 `+2048` 偏置解码。记录数受本帧 admitted probe 数限制；它是异步 GPU readback，不应被当作当前 CPU 提交帧的同步完成信号。
 
 `Runtime Diagnostics` 面板从 provider 的 neutral prepared frame 读取同一份实际生效设置，不在 Editor 侧重新推算。启用 HGI 时会显示：
 
@@ -266,9 +271,9 @@ qrenderdoc 已重放首尾捕获。首个捕获可检索 `HybridGiSceneDepthHand
 
 | 场景 | 当前推荐 | 尚未成立的能力 |
 |---|---|---|
-| 可破坏场景、动态昼夜 | DynamicOnly，按 GPU 预算选择 Medium/High | Mesh/Global SDF 分层追踪仍属 HGI-M5 |
+| 可破坏场景、动态昼夜 | DynamicOnly，按 GPU 预算选择 Medium/High | Mesh/Global SDF 分层源码已接入；当前源码 WGPU/RenderDoc 与性能证据仍待协调器验收 |
 | 室内固定结构 | 有有效 Plan 11 baked contract 时使用 IndoorStatic；缺失时观察确定性 DynamicOnly 回退 | 固定场景、mobility/Emissive 往返、RenderDoc、124 项 crate behavior 和 actual/fallback 产品图已通过；broad/full 仍开放 |
-| 开放世界 | 有有效 baked contract 时使用 OpenWorld；重点观察 generation/streaming 失效 | 固定场景 WGPU 已通过；跨区滚动与 Mesh/Global SDF 分层仍开放 |
+| 开放世界 | 有有效 baked contract 时使用 OpenWorld；重点观察 generation/streaming 失效 | Global SDF 分页与 generation compare-and-commit 已实现；跨区动态产品与性能验收仍开放 |
 | 电影预览 | 使用 Cinematic + 固定 warmup 帧；无 baked contract 时按诊断降级 | 高预算固定场景、跨帧残影和 `.rdc` 已验收；更长时间稳定性与 broad/full 验证仍开放 |
 
 公众号合集提供了混合工作流、Lumen Pass 和 SDF/clipmap 的工程线索，但不作为算法正确性或性能数字的依据。实际实现以本仓库代码、`dev/LumenInUE5.5.4WithComputeShader`、Unreal 源码结构和 WGPU capability 验证为准。

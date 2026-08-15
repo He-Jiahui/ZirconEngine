@@ -539,12 +539,7 @@ fn material_component_prototype_meta_strips_cover_variants_and_layout_modes() {
         );
         assert_eq!(
             child_nodes(&document, "meta"),
-            vec![
-                "meta_group",
-                "meta_response",
-                "meta_variant",
-                "meta_layout"
-            ],
+            vec!["meta_group", "meta_response", "meta_variant", "meta_layout"],
             "{} meta strip should expose component group, response mechanism, appearance variant, and layout mode chips",
             path.display()
         );

@@ -8,7 +8,7 @@ description = "Zircon plugin scaffolding, manifest synchronization, and validati
 [dependencies]
 libloading = "0.9.0"
 proc-macro2 = "1.0.106"
-syn = { version = "2.0.110", features = ["full"] }
+syn = { version = "2.0.110", features = ["full", "visit"] }
 toml.workspace = true
 toml_edit = "0.25.12"
 

@@ -3,11 +3,8 @@ use super::super::{
     WireframePass,
 };
 
-pub(crate) struct ViewportOverlayRenderer {
-    pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) preview_sky:
-        PreviewSkyPass,
-    pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) base_scene:
-        BaseScenePass,
+pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) struct ViewportInteractionOverlays
+{
     pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) selection_outline:
         SelectionOutlinePass,
     pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) wireframe:
@@ -20,14 +17,23 @@ pub(crate) struct ViewportOverlayRenderer {
         HandlePass,
     pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) line_pipeline:
         wgpu::RenderPipeline,
+    pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) grid_vertex_buffer:
+        wgpu::Buffer,
+    pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) grid_vertex_count:
+        u32,
+}
+
+pub(crate) struct ViewportOverlayRenderer {
+    pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) preview_sky:
+        PreviewSkyPass,
+    pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) base_scene:
+        BaseScenePass,
+    pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) interaction_overlays:
+        Option<ViewportInteractionOverlays>,
     pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) sky_pipeline:
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) sky_volumetric_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) sky_volumetric_apply:
         crate::graphics::scene::scene_renderer::advanced_lighting::froxel::VolumetricApplyFallbackResources,
-    pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) grid_vertex_buffer:
-        wgpu::Buffer,
-    pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) grid_vertex_count:
-        u32,
 }

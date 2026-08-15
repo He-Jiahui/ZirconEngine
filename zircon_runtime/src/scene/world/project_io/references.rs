@@ -1,5 +1,5 @@
-use crate::asset::AssetReference;
 use crate::asset::project::ProjectManager;
+use crate::asset::AssetReference;
 use crate::core::resource::{
     MaterialMarker, MeshMarker, ModelMarker, ResourceHandle, ResourceId, ResourceLocator,
     ResourceMarker, ResourceScheme,
@@ -7,8 +7,8 @@ use crate::core::resource::{
 use std::sync::OnceLock;
 
 use super::{
-    BUILTIN_CUBE, BUILTIN_DEFAULT_MATERIAL, BUILTIN_MISSING_MATERIAL, BUILTIN_MISSING_MODEL,
-    SceneProjectError,
+    SceneProjectError, BUILTIN_CUBE, BUILTIN_DEFAULT_MATERIAL, BUILTIN_MISSING_MATERIAL,
+    BUILTIN_MISSING_MODEL,
 };
 pub(super) fn model_handle_for_reference(
     project: &ProjectManager,

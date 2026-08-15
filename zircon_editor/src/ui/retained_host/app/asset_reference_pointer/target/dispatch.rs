@@ -1,8 +1,6 @@
 use super::super::super::RetainedEditorHost;
 use super::PreparedAssetReferencePointerTarget;
-use crate::ui::retained_host::asset_pointer::{
-    AssetReferenceListPointerBridge, AssetReferenceListPointerDispatch,
-};
+use crate::ui::retained_host::asset_pointer::AssetReferenceListPointerBridge;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn sync_prepared_asset_reference_pointer_list(
@@ -36,16 +34,14 @@ impl RetainedEditorHost {
         true
     }
 
-    pub(in crate::ui::retained_host::app) fn dispatch_prepared_asset_reference_pointer(
+    pub(in crate::ui::retained_host::app) fn dispatch_prepared_asset_reference_pointer<T>(
         &mut self,
         surface_mode: &str,
         list_kind: &str,
         target: &PreparedAssetReferencePointerTarget,
         clear_drag_on_error: bool,
-        dispatch: impl FnOnce(
-            &mut AssetReferenceListPointerBridge,
-        ) -> Result<AssetReferenceListPointerDispatch, String>,
-    ) -> Option<Result<AssetReferenceListPointerDispatch, String>> {
+        dispatch: impl FnOnce(&mut AssetReferenceListPointerBridge) -> T,
+    ) -> Option<T> {
         let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) else {
             self.clear_asset_reference_drag_on_error(clear_drag_on_error);
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));

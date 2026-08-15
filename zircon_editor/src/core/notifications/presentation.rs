@@ -171,7 +171,7 @@ pub fn present_decision(
         id: notification.id().clone(),
         source: notification.source().clone(),
         title: i18n.translate_for_locale(&locale, notification.title_key()),
-        message: i18n.translate_for_locale(&locale, notification.message_key()),
+        message: format_decision_message(i18n, &locale, notification),
         options: notification
             .options()
             .iter()
@@ -184,6 +184,20 @@ pub fn present_decision(
         cancel_option: notification.cancel_option().cloned(),
         resolved: snapshot.resolved().cloned(),
     }
+}
+
+fn format_decision_message(
+    i18n: &EditorI18nService,
+    locale: &EditorLocale,
+    notification: &super::DecisionNotification,
+) -> Arc<str> {
+    let mut message = i18n
+        .translate_for_locale(locale, notification.message_key())
+        .to_string();
+    for (name, value) in notification.message_arguments() {
+        message = message.replace(&format!("{{{name}}}"), &value.to_string());
+    }
+    Arc::from(message)
 }
 
 /// Resolves toast text without changing expiry, severity, or notification identity.

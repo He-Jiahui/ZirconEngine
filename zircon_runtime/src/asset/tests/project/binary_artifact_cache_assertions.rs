@@ -15,7 +15,7 @@ pub(crate) fn assert_binary_artifact_cache(artifact_cache_root: &Path, artifact_
     );
     let payload = fs::read(artifact_cache_root.join(artifact_uri.path())).unwrap();
     assert!(
-        payload.starts_with(b"ZRARTM03"),
+        payload.starts_with(b"ZRARTM04"),
         "artifact cache entry should start with the versioned artifact manifest magic: {artifact}"
     );
     assert!(

@@ -1,15 +1,30 @@
-use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
+use std::collections::{BTreeMap, BTreeSet};
+use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 
-use crate::scene::World;
 use crate::scene::ecs::{
-    CommandQueue, Commands, DeferredCommandError, DeferredCommandReport, WorkerCommandBuffer,
-    WorkerCommandBufferMergeError,
+    CommandQueue, CommandQueueMetrics, Commands, DeferredCommandError, DeferredCommandReport,
+    DeferredCommandTarget, DeferredEntityRef, DeferredSpawnToken, DeferredSystemKey,
+    WorkerCommandBuffer, WorkerCommandBufferMergeError,
 };
+use crate::scene::World;
 
 impl World {
+    pub(crate) fn allocate_direct_system_deferred_key(&mut self) -> DeferredSystemKey {
+        let ordinal = self.deferred_direct_system_ordinal;
+        self.deferred_direct_system_ordinal = self
+            .deferred_direct_system_ordinal
+            .checked_add(1)
+            .expect("direct deferred system lane ordinal exhausted");
+        DeferredSystemKey::direct_system(ordinal)
+    }
+
     pub fn commands(&mut self) -> Commands<'_> {
-        let (queue, next_entity) = self.command_state_mut();
-        Commands::new(queue, next_entity)
+        Commands::new(
+            &mut self.command_queue,
+            DeferredSystemKey::direct_world(),
+            0,
+            &mut self.deferred_direct_spawn_ordinal,
+        )
     }
 
     pub fn apply_deferred(&mut self) -> DeferredCommandReport {
@@ -34,8 +49,20 @@ impl World {
         !self.command_queue.is_empty()
     }
 
+    /// Returns current counters for the World-owned deferred command queue.
+    ///
+    /// Wall-clock boundary timing is available here. Operating-system lock
+    /// counts remain profiler-owned evidence from the managed Windows ETW pass.
+    pub fn deferred_command_metrics(&self) -> CommandQueueMetrics {
+        self.command_queue.metrics()
+    }
+
     pub(crate) fn merge_worker_command_buffer(&mut self, buffer: &mut WorkerCommandBuffer) {
         buffer.merge_into(&mut self.command_queue);
+    }
+
+    pub(crate) fn reclaim_worker_command_buffer(&mut self, buffer: &mut WorkerCommandBuffer) {
+        buffer.reclaim_after_apply(&mut self.command_queue);
     }
 
     pub(crate) fn merge_worker_command_buffers(
@@ -45,8 +72,13 @@ impl World {
         self.command_queue.merge_worker_buffer_refs(buffers)
     }
 
-    pub(crate) fn command_state_mut(&mut self) -> (&mut CommandQueue, &mut crate::scene::EntityId) {
-        (&mut self.command_queue, &mut self.next_id)
+    pub(crate) fn reclaim_worker_command_buffers(
+        &mut self,
+        buffers: &mut [&mut WorkerCommandBuffer],
+    ) {
+        for buffer in buffers {
+            self.reclaim_worker_command_buffer(buffer);
+        }
     }
 
     pub(crate) fn record_deferred_command_error(&mut self, error: DeferredCommandError) {
@@ -59,5 +91,96 @@ impl World {
 
     pub(crate) fn take_deferred_command_errors(&mut self) -> Vec<DeferredCommandError> {
         std::mem::take(&mut self.deferred_command_errors)
+    }
+
+    pub(crate) fn reserve_deferred_spawn_tokens(
+        &mut self,
+        tokens: BTreeSet<DeferredSpawnToken>,
+    ) -> Result<BTreeMap<DeferredSpawnToken, crate::scene::EntityId>, crate::scene::SceneError>
+    {
+        let mut next_id = self.next_id;
+        let mut resolved = BTreeMap::new();
+        for token in tokens {
+            let entity = next_id;
+            next_id = next_id
+                .checked_add(1)
+                .ok_or(crate::scene::SceneError::EntityIdExhausted { entity })?;
+            resolved.insert(token, entity);
+        }
+        self.next_id = next_id;
+        Ok(resolved)
+    }
+
+    pub(crate) fn install_deferred_spawn_resolutions(
+        &mut self,
+        resolutions: &BTreeMap<DeferredSpawnToken, crate::scene::EntityId>,
+    ) {
+        self.deferred_spawn_resolutions.clone_from(resolutions);
+        self.published_deferred_spawns.clear();
+    }
+
+    pub(crate) fn clear_deferred_spawn_resolutions(&mut self) {
+        self.deferred_spawn_resolutions.clear();
+        self.published_deferred_spawns.clear();
+    }
+
+    pub(crate) fn resolve_deferred_entity_ref(
+        &self,
+        target: &DeferredEntityRef,
+    ) -> Option<crate::scene::EntityId> {
+        match target {
+            DeferredEntityRef::Existing(entity) => Some(*entity),
+            DeferredEntityRef::Spawn(token) => self.deferred_spawn_resolutions.get(token).copied(),
+        }
+    }
+
+    pub(crate) fn deferred_command_target(
+        &self,
+        target: &DeferredEntityRef,
+    ) -> DeferredCommandTarget {
+        match target {
+            DeferredEntityRef::Existing(entity) => DeferredCommandTarget::resolved(*entity),
+            DeferredEntityRef::Spawn(token) => self
+                .deferred_spawn_resolutions
+                .get(token)
+                .copied()
+                .map(DeferredCommandTarget::resolved)
+                .unwrap_or_else(|| DeferredCommandTarget::pending(token.clone())),
+        }
+    }
+
+    pub(crate) fn mark_deferred_spawn_published(&mut self, token: DeferredSpawnToken) {
+        self.published_deferred_spawns.insert(token);
+    }
+
+    pub(crate) fn take_published_deferred_spawn_resolutions(
+        &self,
+    ) -> BTreeMap<DeferredSpawnToken, crate::scene::EntityId> {
+        self.published_deferred_spawns
+            .iter()
+            .filter_map(|token| {
+                self.deferred_spawn_resolutions
+                    .get(token)
+                    .copied()
+                    .map(|entity| (token.clone(), entity))
+            })
+            .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::scene::World;
+
+    #[test]
+    fn ecs_commands_deferred_metrics_observe_only_entered_apply_boundaries() {
+        let mut world = World::empty();
+
+        assert_eq!(world.apply_deferred().applied_count(), 0);
+        assert_eq!(world.deferred_command_metrics().world_apply_count(), 0);
+
+        world.commands().queue_fn(|_: &mut World| {});
+        assert_eq!(world.apply_deferred().applied_count(), 1);
+        assert_eq!(world.deferred_command_metrics().world_apply_count(), 1);
     }
 }

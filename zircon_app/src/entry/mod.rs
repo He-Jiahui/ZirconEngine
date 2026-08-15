@@ -1,5 +1,5 @@
 mod builtin_modules;
-#[cfg(feature = "target-editor-host")]
+#[cfg(feature = "diagnostic-log")]
 pub(crate) mod cli;
 mod engine_entry;
 mod entry_config;

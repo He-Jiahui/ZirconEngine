@@ -32,6 +32,7 @@ impl ResourceStreamer {
                             emissive: Vec3::from_array(descriptor.emissive),
                             metallic: descriptor.metallic,
                             roughness: descriptor.roughness,
+                            occlusion_strength: descriptor.occlusion_strength,
                             double_sided: descriptor.double_sided,
                             alpha_blend: matches!(
                                 descriptor.alpha_mode,

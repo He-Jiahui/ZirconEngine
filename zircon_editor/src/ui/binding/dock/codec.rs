@@ -2,7 +2,7 @@ use zircon_runtime_interface::ui::{binding::UiBindingCall, binding::UiBindingVal
 
 use super::DockCommand;
 use crate::ui::binding::core::{
-    required_f32_argument, required_string_argument, EditorUiBindingError,
+    EditorUiBindingError, required_f32_argument, required_string_argument,
 };
 
 impl DockCommand {

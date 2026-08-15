@@ -3,9 +3,9 @@ use std::path::Path;
 
 use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime::ui::template::{
-    collect_asset_binding_report, collect_document_localization_report, UiAssetLoader,
-    UiCompiledDocument, UiDocumentCompiler, UiTemplateBuildError, UiTemplateInstance,
-    UiTemplateSurfaceBuilder,
+    UiAssetLoader, UiCompiledDocument, UiDocumentCompiler, UiTemplateBuildError,
+    UiTemplateInstance, UiTemplateSurfaceBuilder, collect_asset_binding_report,
+    collect_document_localization_report,
 };
 use zircon_runtime_interface::ui::event_ui::UiTreeId;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError};

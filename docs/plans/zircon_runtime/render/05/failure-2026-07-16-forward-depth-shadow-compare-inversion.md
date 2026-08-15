@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: open
+status: source_complete_dynamic_validation_pending
 created_at: 2026-07-16
 summary_slug: forward-depth-shadow-compare-inversion
 origin_plan: docs/plans/zircon_runtime/render/18-advanced-lighting-features.md
@@ -53,4 +53,4 @@ Open state: `source repair and static fixture review complete; managed validatio
 
 - The shared forward-depth contract is `SHADOW_ATLAS_COMPARE_FUNCTION = LessEqual` with a clear value of `1.0`; the volumetric consumer imports that single constant instead of restating sampler polarity.
 - The Render18 froxel fixture now writes an occluder depth and exercises a receiver exactly at that depth, proving the equality case remains visible under `LessEqual` while preserving the unshadowed comparison region.
-- The scoped Rustfmt check passes and the focused diff check reports only repository CRLF warnings. The required managed Plan05 and Render18 gates, plus real product evidence, remain outstanding, so this handoff remains `open`.
+- The scoped Rustfmt check passes and the focused diff check reports only repository CRLF warnings. The required managed Plan05 and Render18 gates, plus real product evidence, remain outstanding, so this handoff remains `source_complete_dynamic_validation_pending`.

@@ -88,6 +88,23 @@ class CargoJobRunner:
         self._running: dict[str, subprocess.Popen] = {}
         self._collecting: set[str] = set()
 
+    @staticmethod
+    def _managed_cargo_environment(target_directory: str | Path) -> dict[str, str]:
+        target_root = Path(target_directory).resolve()
+        temporary = target_root / "temporary"
+        cargo_home = target_root / "cargo-home"
+        sccache = target_root / "sccache"
+        for directory in (target_root, temporary, cargo_home, sccache):
+            directory.mkdir(parents=True, exist_ok=True)
+        return {
+            "CARGO_TARGET_DIR": str(target_root),
+            "CARGO_HOME": str(cargo_home),
+            "SCCACHE_DIR": str(sccache),
+            "TEMP": str(temporary),
+            "TMP": str(temporary),
+            "TMPDIR": str(temporary),
+        }
+
     def start(
         self,
         *,
@@ -142,8 +159,8 @@ class CargoJobRunner:
                 )
                 authorized = True
                 child_environment = os.environ.copy()
-                child_environment["CARGO_TARGET_DIR"] = job.target_dir
                 child_environment.update(environment_values)
+                child_environment.update(self._managed_cargo_environment(job.target_dir))
                 use_atomic_launch = self.popen is None and (
                     os.name == "nt" or self._atomic_popen_injected
                 )

@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use super::super::{
-    RuntimeSessionArchiveError, RuntimeSessionArchiveManifest, RuntimeSessionSlotSummary,
-    io as archive_io,
+    io as archive_io, RuntimeSessionArchiveError, RuntimeSessionArchiveManifest,
+    RuntimeSessionSlotSummary,
 };
 
 pub(in crate::scene::dynamic_scene::session) fn load_manifest_from_path(

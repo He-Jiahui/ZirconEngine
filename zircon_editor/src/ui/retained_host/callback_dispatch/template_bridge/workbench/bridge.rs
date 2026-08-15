@@ -38,6 +38,7 @@ pub(crate) struct BuiltinHostWindowTemplateBridge {
     bindings_by_id: BTreeMap<String, EditorUiBinding>,
     host_surface: UiSurface,
     host_projection: RetainedUiHostProjection,
+    presentation_scale_factor: f32,
 }
 
 impl BuiltinHostWindowTemplateBridge {
@@ -64,6 +65,7 @@ impl BuiltinHostWindowTemplateBridge {
             bindings_by_id,
             host_surface,
             host_projection,
+            presentation_scale_factor: 1.0,
         })
     }
 
@@ -72,6 +74,7 @@ impl BuiltinHostWindowTemplateBridge {
         &mut self,
         shell_size: UiSize,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        self.presentation_scale_factor = 1.0;
         rebuild_builtin_host_window_surface(&mut self.host_surface, shell_size)?;
         self.host_projection = project_builtin_host_window_projection(
             self.runtime.as_ref(),
@@ -87,7 +90,22 @@ impl BuiltinHostWindowTemplateBridge {
         _model: &WorkbenchViewModel,
         _metrics: &WorkbenchChromeMetrics,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        rebuild_builtin_host_window_surface(&mut self.host_surface, shell_size)?;
+        self.recompute_layout_with_workbench_model_at_scale(shell_size, 1.0, _model, _metrics)
+    }
+
+    pub(crate) fn recompute_layout_with_workbench_model_at_scale(
+        &mut self,
+        physical_shell_size: UiSize,
+        scale_factor: f32,
+        _model: &WorkbenchViewModel,
+        _metrics: &WorkbenchChromeMetrics,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        self.presentation_scale_factor = normalized_scale_factor(scale_factor);
+        let logical_shell_size = UiSize::new(
+            physical_shell_size.width / self.presentation_scale_factor,
+            physical_shell_size.height / self.presentation_scale_factor,
+        );
+        rebuild_builtin_host_window_surface(&mut self.host_surface, logical_shell_size)?;
         self.host_projection = project_builtin_host_window_projection(
             self.runtime.as_ref(),
             &self.projection,
@@ -98,6 +116,10 @@ impl BuiltinHostWindowTemplateBridge {
 
     pub(crate) fn host_projection(&self) -> &RetainedUiHostProjection {
         &self.host_projection
+    }
+
+    pub(crate) fn presentation_scale_factor(&self) -> f32 {
+        self.presentation_scale_factor
     }
 
     pub(crate) fn binding_for_control(
@@ -119,7 +141,7 @@ impl BuiltinHostWindowTemplateBridge {
         }
         self.host_projection
             .node_by_control_id(control_id)
-            .map(|node| node.frame)
+            .map(|node| scale_frame(node.frame, self.presentation_scale_factor))
     }
 
     pub(crate) fn outer_shell_frames(&self) -> BuiltinHostOuterShellFrames {
@@ -198,6 +220,23 @@ impl BuiltinHostWindowTemplateBridge {
             vec![UiBindingValue::string(page_id)],
         )
     }
+}
+
+fn normalized_scale_factor(scale_factor: f32) -> f32 {
+    if scale_factor.is_finite() && scale_factor > 0.0 {
+        scale_factor
+    } else {
+        1.0
+    }
+}
+
+fn scale_frame(frame: UiFrame, scale_factor: f32) -> UiFrame {
+    UiFrame::new(
+        frame.x * scale_factor,
+        frame.y * scale_factor,
+        frame.width * scale_factor,
+        frame.height * scale_factor,
+    )
 }
 
 fn is_componentized_drawer_frame(control_id: &str) -> bool {

@@ -9,11 +9,11 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
 use crate::render_graph::RenderGraphResourceAccessKind;
 
 use super::super::{
-    FroxelIntegratePipeline, FroxelIntegrateRequest, FroxelViewReconstruction,
-    VOLUMETRIC_INTEGRATE_PIPELINE_LABEL, VOLUMETRIC_INTEGRATE_WORKGROUP_SIZE,
-    resolved_volumetric_fog_settings,
+    resolved_volumetric_fog_settings, FroxelIntegratePipeline, FroxelIntegrateRequest,
+    FroxelViewReconstruction, VOLUMETRIC_INTEGRATE_PIPELINE_LABEL,
+    VOLUMETRIC_INTEGRATE_WORKGROUP_SIZE,
 };
-use super::{VOLUMETRIC_INTEGRATE_EXECUTOR_ID, validate_compute_context};
+use super::{validate_compute_context, VOLUMETRIC_INTEGRATE_EXECUTOR_ID};
 
 #[derive(Default)]
 pub(super) struct VolumetricIntegrateExecutor {

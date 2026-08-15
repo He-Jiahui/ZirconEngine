@@ -1,8 +1,9 @@
 use std::fs;
 
 use crate::scene::{
-    NodeKind, RuntimeSessionArchive, RuntimeSessionArchiveRetentionPolicy, RuntimeSessionMetadata,
-    RuntimeSessionSlotSelector, World,
+    NodeKind, RuntimeSessionArchive, RuntimeSessionArchiveError,
+    RuntimeSessionArchiveRetentionPolicy, RuntimeSessionMetadata, RuntimeSessionSlotSelector,
+    World,
 };
 
 use super::{tagged_slot, temporary_archive_leftovers, unique_temp_root};
@@ -103,6 +104,37 @@ fn runtime_session_archive_previews_global_retention_without_mutation() {
     assert_eq!(report, preview);
     assert_eq!(archive.slot_ids().collect::<Vec<_>>(), vec!["slot-new"]);
     assert_eq!(archive.revision(), revision_before_prune + 1);
+}
+
+#[test]
+fn runtime_session_archive_prune_plan_rejects_stale_commit_without_removing_rows() {
+    let source = World::empty();
+    let mut archive = RuntimeSessionArchive::from_slots(vec![
+        tagged_slot(&source, "slot-new", "manual", 30),
+        tagged_slot(&source, "slot-old", "manual", 10),
+    ])
+    .expect("archive should accept slots");
+    let plan = archive
+        .prepare_prune_slots(RuntimeSessionArchiveRetentionPolicy::keep_latest(1))
+        .expect("prune plan should validate archive");
+
+    archive
+        .touch_slot("slot-old", 40)
+        .expect("intervening mutation should publish a new revision");
+    let error = plan
+        .commit(&mut archive)
+        .expect_err("stale prune plan must not publish its prior deletions");
+
+    assert!(matches!(
+        error,
+        RuntimeSessionArchiveError::StalePrunePlan { .. }
+    ));
+    assert_eq!(archive.slot_count(), 2);
+    assert_eq!(
+        archive.slot_ids().collect::<Vec<_>>(),
+        vec!["slot-new", "slot-old"],
+        "stale pruning must leave every dense row intact"
+    );
 }
 
 #[test]

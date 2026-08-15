@@ -1,4 +1,4 @@
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::{Arc, Barrier};
 use std::thread;
 use std::time::Duration;
@@ -130,6 +130,31 @@ fn lossless_retention_preserves_fifo_order_and_retry_authority() {
     let second_turn =
         queue.apply_with_budget(PendingEditApplyBudget::unlimited(), |_| Ok::<(), ()>(()));
     assert_eq!(second_turn.applied, vec![failed]);
+    assert_eq!(second_turn.remaining.pending_count, 0);
+}
+
+#[test]
+fn budgeted_apply_leaves_unattempted_intents_for_the_next_resolution_turn() {
+    let queue = PendingEditQueue::default();
+    let first = queue
+        .enqueue(PlayEditTarget::EditWorkspace, lossless("first"))
+        .unwrap()
+        .id;
+    let second = queue
+        .enqueue(PlayEditTarget::EditWorkspace, lossless("second"))
+        .unwrap()
+        .id;
+
+    let first_turn = queue.apply_with_budget(PendingEditApplyBudget::new(1, Duration::MAX), |_| {
+        Ok::<(), ()>(())
+    });
+    assert_eq!(first_turn.applied, vec![first]);
+    assert!(first_turn.budget_exhausted);
+    assert_eq!(first_turn.remaining.pending_count, 1);
+
+    let second_turn =
+        queue.apply_with_budget(PendingEditApplyBudget::unlimited(), |_| Ok::<(), ()>(()));
+    assert_eq!(second_turn.applied, vec![second]);
     assert_eq!(second_turn.remaining.pending_count, 0);
 }
 
@@ -273,6 +298,45 @@ fn queued_route_uses_the_operation_registration_retention_contract() {
             coalesced: false,
             ..
         }
+    ));
+}
+
+#[test]
+fn queued_route_surfaces_declared_bounded_evictions_to_its_caller() {
+    let controller = PlaySessionController::new();
+    controller
+        .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
+        .unwrap();
+    let policy = || PendingEditRetention::bounded(1, 1_024, Duration::from_secs(5)).unwrap();
+    let operation = invocation("drag");
+
+    let first = controller
+        .route_edit(
+            PlayEditTarget::EditWorkspace,
+            deferred(operation.clone(), policy()),
+        )
+        .unwrap();
+    let first_id = match first {
+        PlayEditRoute::Queued {
+            id,
+            ref evicted_ids,
+            ..
+        } => {
+            assert!(evicted_ids.is_empty());
+            id
+        }
+        route => panic!("expected queued route, got {route:?}"),
+    };
+
+    let replacement = controller
+        .route_edit(PlayEditTarget::EditWorkspace, deferred(operation, policy()))
+        .unwrap();
+    assert!(matches!(
+        replacement,
+        PlayEditRoute::Queued {
+            evicted_ids,
+            ..
+        } if evicted_ids == vec![first_id]
     ));
 }
 
@@ -576,9 +640,7 @@ fn panicking_decision_publication_releases_the_fence_for_a_retry() {
         controller.apply_pending_edits(PendingEditApplyBudget::unlimited(), |_| Ok::<(), ()>(())),
         Ok(report) if report.applied.len() == 1
     ));
-    assert!(
-        controller
-            .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
-            .is_ok()
-    );
+    assert!(controller
+        .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
+        .is_ok());
 }

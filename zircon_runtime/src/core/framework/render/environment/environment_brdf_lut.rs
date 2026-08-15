@@ -1,18 +1,28 @@
 use crate::core::math::Real;
 
-pub const ENVIRONMENT_BRDF_LUT_SIZE: u32 = 128;
-pub const ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT: u32 = 1024;
+pub const ENVIRONMENT_BRDF_LUT_WIDTH: u32 = 128;
+pub const ENVIRONMENT_BRDF_LUT_HEIGHT: u32 = 32;
+pub const ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT: u32 = 128;
 
 pub type EnvironmentBrdfLutTexel = [Real; 2];
 
 pub fn build_environment_brdf_lut(size: u32, sample_count: u32) -> Vec<EnvironmentBrdfLutTexel> {
-    let size = size.max(1);
+    build_environment_brdf_lut_with_extent(size, size, sample_count)
+}
+
+pub fn build_environment_brdf_lut_with_extent(
+    width: u32,
+    height: u32,
+    sample_count: u32,
+) -> Vec<EnvironmentBrdfLutTexel> {
+    let width = width.max(1);
+    let height = height.max(1);
     let sample_count = sample_count.max(1);
-    let mut texels = Vec::with_capacity(size as usize * size as usize);
-    for y in 0..size {
-        let roughness = (y as Real + 0.5) / size as Real;
-        for x in 0..size {
-            let no_v = (x as Real + 0.5) / size as Real;
+    let mut texels = Vec::with_capacity(width as usize * height as usize);
+    for y in 0..height {
+        let roughness = (y as Real + 0.5) / height as Real;
+        for x in 0..width {
+            let no_v = (x as Real + 0.5) / width as Real;
             texels.push(environment_brdf_lut_integrate(
                 no_v,
                 roughness,
@@ -141,6 +151,53 @@ mod tests {
             assert!(texel[0] >= 0.0, "{texel:?}");
             assert!(texel[1] >= 0.0, "{texel:?}");
         }
+    }
+
+    #[test]
+    fn runtime_lut_matches_the_unreal_preintegrated_gf_work_scale() {
+        let texels = build_environment_brdf_lut_with_extent(
+            ENVIRONMENT_BRDF_LUT_WIDTH,
+            ENVIRONMENT_BRDF_LUT_HEIGHT,
+            ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT,
+        );
+
+        assert_eq!(texels.len(), 128 * 32);
+        assert_eq!(
+            texels.len() as u32 * ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT,
+            524_288
+        );
+    }
+
+    #[test]
+    fn runtime_sample_count_stays_close_to_a_high_sample_reference() {
+        let mut total_error = 0.0;
+        let mut maximum_error = 0.0_f32;
+        let mut channel_count = 0;
+        for y in 0..16 {
+            let roughness = (y as Real + 0.5) / 16.0;
+            for x in 0..16 {
+                let no_v = (x as Real + 0.5) / 16.0;
+                let runtime = environment_brdf_lut_integrate(
+                    no_v,
+                    roughness,
+                    ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT,
+                );
+                let reference = environment_brdf_lut_integrate(no_v, roughness, 4_096);
+                for channel in 0..2 {
+                    let error = (runtime[channel] - reference[channel]).abs();
+                    total_error += error;
+                    maximum_error = maximum_error.max(error);
+                    channel_count += 1;
+                }
+            }
+        }
+
+        let mean_error = total_error / channel_count as Real;
+        assert!(mean_error <= 0.003, "mean absolute error={mean_error}");
+        assert!(
+            maximum_error <= 0.02,
+            "maximum absolute error={maximum_error}"
+        );
     }
 
     #[test]

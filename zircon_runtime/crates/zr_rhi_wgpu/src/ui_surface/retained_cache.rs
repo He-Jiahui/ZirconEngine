@@ -5,7 +5,28 @@ pub(super) struct WgpuRetainedSurfaceCache {
     view: wgpu::TextureView,
     size: (u32, u32),
     format: wgpu::TextureFormat,
-    initialized: bool,
+    state: RetainedSurfaceState,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum RetainedSurfaceState {
+    #[default]
+    Uninitialized,
+    OrdinaryBaseline,
+    ResizeProjection(u64),
+}
+
+impl RetainedSurfaceState {
+    const fn ordinary_baseline_ready(self) -> bool {
+        matches!(self, Self::OrdinaryBaseline)
+    }
+
+    const fn is_projection_ready(self, generation: Option<u64>) -> bool {
+        matches!(
+            (self, generation),
+            (Self::ResizeProjection(cached), Some(requested)) if cached == requested
+        )
+    }
 }
 
 impl WgpuRetainedSurfaceCache {
@@ -35,7 +56,7 @@ impl WgpuRetainedSurfaceCache {
             view,
             size,
             format,
-            initialized: false,
+            state: RetainedSurfaceState::Uninitialized,
         }
     }
 
@@ -52,38 +73,76 @@ impl WgpuRetainedSurfaceCache {
         &self.view
     }
 
-    pub(super) fn initialized(&self) -> bool {
-        self.initialized
+    pub(super) const fn size(&self) -> (u32, u32) {
+        self.size
     }
 
-    pub(super) fn invalidate(&mut self) {
-        self.initialized = false;
+    pub(super) fn ordinary_baseline_ready(&self) -> bool {
+        self.state.ordinary_baseline_ready()
     }
 
     pub(super) fn matches(&self, format: wgpu::TextureFormat, size: (u32, u32)) -> bool {
         self.format == format && self.size == (size.0.max(1), size.1.max(1))
     }
 
-    pub(super) fn mark_initialized(&mut self) {
-        self.initialized = true;
+    pub(super) fn is_projection_ready(&self, generation: Option<u64>) -> bool {
+        self.state.is_projection_ready(generation)
+    }
+
+    pub(super) fn mark_ordinary_baseline_ready(&mut self) {
+        self.state = RetainedSurfaceState::OrdinaryBaseline;
+    }
+
+    pub(super) fn mark_projection_ready(&mut self, generation: Option<u64>) {
+        self.state = generation.map_or(
+            RetainedSurfaceState::Uninitialized,
+            RetainedSurfaceState::ResizeProjection,
+        );
+    }
+
+    pub(super) const fn copy_requires_target_clear(&self, surface_size: (u32, u32)) -> bool {
+        surface_size.0 > self.size.0 || surface_size.1 > self.size.1
     }
 
     pub(super) fn record_copy_to_surface(
         &self,
         encoder: &mut wgpu::CommandEncoder,
         surface_texture: &wgpu::Texture,
+        surface_view: &wgpu::TextureView,
         surface_size: (u32, u32),
     ) -> u64 {
+        if self.copy_requires_target_clear(surface_size) {
+            let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("zircon-ui-retained-cache-target-clear"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: surface_view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        store: wgpu::StoreOp::Store,
+                    },
+                    depth_slice: None,
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+                multiview_mask: None,
+            });
+        }
+        let copy_size = (
+            self.size.0.min(surface_size.0),
+            self.size.1.min(surface_size.1),
+        );
         encoder.copy_texture_to_texture(
             self.texture.as_image_copy(),
             surface_texture.as_image_copy(),
             wgpu::Extent3d {
-                width: surface_size.0.max(1),
-                height: surface_size.1.max(1),
+                width: copy_size.0.max(1),
+                height: copy_size.1.max(1),
                 depth_or_array_layers: 1,
             },
         );
-        retained_copy_byte_count(self.format, surface_size)
+        retained_copy_byte_count(self.format, copy_size)
     }
 }
 
@@ -101,23 +160,34 @@ fn retained_copy_byte_count(format: wgpu::TextureFormat, surface_size: (u32, u32
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use std::sync::mpsc;
 
     use zr_rhi::{UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceRect};
 
     use super::super::batching::{batch_draw_plan, CompiledUiBatchPlanCache};
+    use super::super::image_cache::WgpuUiImageCache;
     use super::super::pipeline::{
         create_image_bind_group_layout, create_image_pipeline, create_solid_instance_pipeline,
         create_solid_pipeline,
     };
     use super::super::render_pass::{record_draw_ops_to_view, TargetLoad, WgpuUiDrawBufferCache};
     use super::super::text::WgpuUiTextRenderer;
-    use super::super::WgpuUiImageResource;
-    use super::{retained_copy_byte_count, WgpuRetainedSurfaceCache};
+    use super::{retained_copy_byte_count, RetainedSurfaceState, WgpuRetainedSurfaceCache};
 
     const TEST_SIZE: (u32, u32) = (4, 4);
     const TEST_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
+
+    #[test]
+    fn resize_projection_is_not_an_ordinary_damage_baseline() {
+        let resize = RetainedSurfaceState::ResizeProjection(41);
+
+        assert!(!RetainedSurfaceState::Uninitialized.ordinary_baseline_ready());
+        assert!(RetainedSurfaceState::OrdinaryBaseline.ordinary_baseline_ready());
+        assert!(!resize.ordinary_baseline_ready());
+        assert!(resize.is_projection_ready(Some(41)));
+        assert!(!resize.is_projection_ready(Some(42)));
+        assert!(!resize.is_projection_ready(None));
+    }
 
     #[test]
     fn retained_copy_bytes_match_the_supported_byte_surface_formats() {
@@ -141,11 +211,12 @@ mod tests {
         };
         let image_layout = create_image_bind_group_layout(&device);
         let cache = WgpuRetainedSurfaceCache::new(&device, TEST_FORMAT, TEST_SIZE);
+        let copied_size = (6, TEST_SIZE.1);
         let copied_surface = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("zircon-ui-retained-cache-copy-test-surface"),
             size: wgpu::Extent3d {
-                width: TEST_SIZE.0,
-                height: TEST_SIZE.1,
+                width: copied_size.0,
+                height: copied_size.1,
                 depth_or_array_layers: 1,
             },
             mip_level_count: 1,
@@ -157,6 +228,8 @@ mod tests {
                 | wgpu::TextureUsages::COPY_SRC,
             view_formats: &[],
         });
+        let copied_surface_view =
+            copied_surface.create_view(&wgpu::TextureViewDescriptor::default());
         let seed_draw_list = UiSurfaceDrawList::new(
             TEST_SIZE,
             None,
@@ -178,7 +251,7 @@ mod tests {
         let solid_pipeline = create_solid_pipeline(&device, TEST_FORMAT);
         let solid_instance_pipeline = create_solid_instance_pipeline(&device, TEST_FORMAT);
         let image_pipeline = create_image_pipeline(&device, TEST_FORMAT, &image_layout);
-        let image_cache = HashMap::<String, WgpuUiImageResource>::new();
+        let image_cache = WgpuUiImageCache::default();
         let mut text = WgpuUiTextRenderer::new(&device, &queue, TEST_FORMAT);
         let mut seed_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("zircon-ui-retained-cache-copy-test-seed-encoder"),
@@ -238,8 +311,12 @@ mod tests {
             &image_cache,
             &mut text,
         );
-        let copied_bytes =
-            cache.record_copy_to_surface(&mut patch_encoder, &copied_surface, TEST_SIZE);
+        let copied_bytes = cache.record_copy_to_surface(
+            &mut patch_encoder,
+            &copied_surface,
+            &copied_surface_view,
+            copied_size,
+        );
         queue.submit([patch_encoder.finish()]);
 
         assert_eq!(encoded_seed.draw_calls, 1);
@@ -247,9 +324,9 @@ mod tests {
         assert_eq!(encoded_patch.draw_calls, 1);
         assert_eq!(encoded_patch.render_pass_count, 1);
         assert_eq!(copied_bytes, 4 * 4 * 4);
-        let pixels = read_texture_rgba(&device, &queue, &copied_surface, TEST_SIZE)
+        let pixels = read_texture_rgba(&device, &queue, &copied_surface, copied_size)
             .expect("retained cache copy texture must support readback");
-        assert_damage_patch_pixels(&pixels);
+        assert_damage_patch_pixels(&pixels, copied_size);
     }
 
     #[test]
@@ -307,7 +384,7 @@ mod tests {
         let solid_pipeline = create_solid_pipeline(&device, TEST_FORMAT);
         let solid_instance_pipeline = create_solid_instance_pipeline(&device, TEST_FORMAT);
         let image_pipeline = create_image_pipeline(&device, TEST_FORMAT, &image_layout);
-        let image_cache = HashMap::<String, WgpuUiImageResource>::new();
+        let image_cache = WgpuUiImageCache::default();
         let mut text = WgpuUiTextRenderer::new(&device, &queue, TEST_FORMAT);
         let target_view = target.create_view(&wgpu::TextureViewDescriptor::default());
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -331,7 +408,7 @@ mod tests {
         queue.submit([encoder.finish()]);
 
         assert_eq!(full_redraw.plan.stats.visible_draw_item_count, 2);
-        assert_eq!(encoded.draw_calls, 2);
+        assert_eq!(encoded.draw_calls, 1);
         let pixels = read_texture_rgba(&device, &queue, &target, TEST_SIZE)
             .expect("full-redraw target must support readback");
         for y in 0..TEST_SIZE.1 as usize {
@@ -351,17 +428,19 @@ mod tests {
         }
     }
 
-    fn assert_damage_patch_pixels(pixels: &[u8]) {
-        for y in 0..TEST_SIZE.1 as usize {
-            for x in 0..TEST_SIZE.0 as usize {
-                let offset = (y * TEST_SIZE.0 as usize + x) * 4;
+    fn assert_damage_patch_pixels(pixels: &[u8], size: (u32, u32)) {
+        for y in 0..size.1 as usize {
+            for x in 0..size.0 as usize {
+                let offset = (y * size.0 as usize + x) * 4;
                 let pixel = [
                     pixels[offset],
                     pixels[offset + 1],
                     pixels[offset + 2],
                     pixels[offset + 3],
                 ];
-                let expected = if x < 2 {
+                let expected = if x >= TEST_SIZE.0 as usize {
+                    [0, 0, 0, 255]
+                } else if x < 2 {
                     [0, 0, 255, 255]
                 } else {
                     [255, 0, 0, 255]

@@ -1,8 +1,8 @@
 use crate::core::resource::{
     AssetReference, AssetUuid, MaterialMarker, ModelMarker, ResourceDiagnostic, ResourceEventKind,
     ResourceHandle, ResourceId, ResourceKind, ResourceLocator, ResourceLocatorError,
-    ResourceManager, ResourceRecord, ResourceRegistryError, ResourceScheme, ResourceState,
-    RuntimeResourceState, UntypedResourceHandle,
+    ResourceManager, ResourceRecord, ResourceRegistry, ResourceRegistryError, ResourceScheme,
+    ResourceState, RuntimeResourceState, UntypedResourceHandle,
 };
 
 #[derive(Debug, PartialEq, Eq)]
@@ -114,12 +114,14 @@ fn typed_and_untyped_handles_roundtrip() {
 
 #[test]
 fn registry_rename_preserves_id_and_remove_clears_lookup() {
-    let mut registry = crate::core::resource::ResourceRegistry::default();
+    let manager = ResourceManager::new();
     let original = record("res://materials/default.zmaterial", ResourceKind::Material);
     let id = original.id;
-    registry.upsert(original.clone());
+    manager
+        .register_record(original.clone())
+        .expect("register original record");
 
-    let renamed = registry
+    let renamed = manager
         .rename(
             &original.primary_locator,
             locator("res://materials/default-renamed.zmaterial"),
@@ -127,31 +129,34 @@ fn registry_rename_preserves_id_and_remove_clears_lookup() {
         .expect("rename should succeed");
 
     assert_eq!(renamed.id, id);
-    assert!(registry
+    assert!(manager
+        .registry()
         .get_by_locator(&locator("res://materials/default.zmaterial"))
         .is_none());
     assert_eq!(
-        registry
+        manager
+            .registry()
             .get_by_locator(&locator("res://materials/default-renamed.zmaterial"))
             .expect("renamed locator should exist")
             .id,
         id
     );
 
-    let removed = registry
+    let removed = manager
         .remove_by_locator(&locator("res://materials/default-renamed.zmaterial"))
-        .expect("remove should succeed");
+        .expect("remove transaction should succeed")
+        .expect("record should exist");
     assert_eq!(removed.id, id);
-    assert!(registry.get(id).is_none());
+    assert!(manager.registry().get(id).is_none());
 }
 
 #[test]
 fn registry_rename_reports_missing_locator_with_resource_error() {
-    let mut registry = crate::core::resource::ResourceRegistry::default();
+    let manager = ResourceManager::new();
     let missing = locator("res://materials/missing.zmaterial");
     let target = locator("res://materials/target.zmaterial");
 
-    let error = registry
+    let error = manager
         .rename(&missing, target)
         .expect_err("missing locator should return ResourceRegistryError");
 
@@ -172,18 +177,24 @@ fn manager_failed_reload_keeps_last_good_payload_and_emits_events() {
     let mut record = ResourceRecord::new(id, ResourceKind::Model, locator.clone());
     record.state = ResourceState::Pending;
 
-    let handle = manager.register_ready(record, TestPayload { name: "cube-ready" });
+    let handle = manager
+        .register_ready(record, TestPayload { name: "cube-ready" })
+        .expect("register ready model");
     let typed = handle.typed::<ModelMarker>().expect("model handle");
 
     let added = events.recv().expect("added event");
     assert_eq!(added.kind, ResourceEventKind::Added);
     assert_eq!(added.id, id);
 
-    manager.start_reload(id, vec![ResourceDiagnostic::error("reload started")]);
+    manager
+        .start_reload(id, vec![ResourceDiagnostic::error("reload started")])
+        .expect("start reload");
     let reloading = events.recv().expect("reload event");
     assert_eq!(reloading.kind, ResourceEventKind::Updated);
 
-    manager.fail_reload(id, vec![ResourceDiagnostic::error("shader compile failed")]);
+    manager
+        .fail_reload(id, vec![ResourceDiagnostic::error("shader compile failed")])
+        .expect("fail reload");
     let failed = events.recv().expect("reload failed event");
     assert_eq!(failed.kind, ResourceEventKind::ReloadFailed);
 
@@ -206,21 +217,28 @@ fn resource_state_rejects_error_to_ready_without_reloading() {
     let manager = ResourceManager::new();
     let locator = locator("res://models/broken.obj");
     let id = ResourceId::from_locator(&locator);
-    manager.register_record(
-        ResourceRecord::new(id, ResourceKind::Model, locator.clone())
-            .with_state(ResourceState::Error)
-            .with_diagnostics(vec![ResourceDiagnostic::error("initial import failed")]),
-    );
+    manager
+        .register_record(
+            ResourceRecord::new(id, ResourceKind::Model, locator.clone())
+                .with_state(ResourceState::Error)
+                .with_diagnostics(vec![ResourceDiagnostic::error("initial import failed")]),
+        )
+        .expect("register failed record");
     let events = manager.subscribe();
 
-    let handle = manager.register_ready(
-        ResourceRecord::new(id, ResourceKind::Model, locator),
-        TestPayload {
-            name: "should-not-load",
-        },
-    );
+    let error = manager
+        .register_ready(
+            ResourceRecord::new(id, ResourceKind::Model, locator),
+            TestPayload {
+                name: "should-not-load",
+            },
+        )
+        .expect_err("error to ready requires an explicit recovery operation");
 
-    assert_eq!(handle.id(), id);
+    assert!(matches!(
+        error,
+        ResourceRegistryError::InvalidStateTransition { .. }
+    ));
     assert!(events.try_recv().is_err());
     assert!(manager
         .get::<ModelMarker, TestPayload>(ResourceHandle::new(id))
@@ -240,11 +258,13 @@ fn resource_state_recovers_from_error_only_through_reloading() {
     let locator = locator("res://models/retry.obj");
     let id = ResourceId::from_locator(&locator);
 
-    manager.register_record(
-        ResourceRecord::new(id, ResourceKind::Model, locator.clone())
-            .with_state(ResourceState::Error)
-            .with_diagnostics(vec![ResourceDiagnostic::error("decode failed")]),
-    );
+    manager
+        .register_record(
+            ResourceRecord::new(id, ResourceKind::Model, locator.clone())
+                .with_state(ResourceState::Error)
+                .with_diagnostics(vec![ResourceDiagnostic::error("decode failed")]),
+        )
+        .expect("register failed record");
     let reloading = manager
         .start_reload(id, vec![ResourceDiagnostic::error("retry started")])
         .expect("error records can enter retry reload");
@@ -257,6 +277,7 @@ fn resource_state_recovers_from_error_only_through_reloading() {
                 name: "retry-ready",
             },
         )
+        .expect("finish reload")
         .typed::<ModelMarker>()
         .expect("model handle");
 
@@ -278,14 +299,16 @@ fn resource_state_rejects_reload_failure_without_reload_boundary() {
     let manager = ResourceManager::new();
     let locator = locator("res://models/ready.obj");
     let id = ResourceId::from_locator(&locator);
-    manager.register_ready(
-        ResourceRecord::new(id, ResourceKind::Model, locator),
-        TestPayload { name: "ready" },
-    );
+    manager
+        .register_ready(
+            ResourceRecord::new(id, ResourceKind::Model, locator),
+            TestPayload { name: "ready" },
+        )
+        .expect("register ready record");
 
     assert!(manager
         .fail_reload(id, vec![ResourceDiagnostic::error("unexpected failure")])
-        .is_none());
+        .is_err());
     let record = manager.registry().get(id).cloned().expect("record exists");
     assert_eq!(record.state, ResourceState::Ready);
     assert_eq!(record.failure_reason(), None);
@@ -307,6 +330,7 @@ fn resource_leases_increment_refcount_and_drop_unloads_payload() {
                 name: "leased-model",
             },
         )
+        .expect("register leased model")
         .typed::<ModelMarker>()
         .expect("typed model handle");
 
@@ -346,12 +370,15 @@ fn register_ready_is_idempotent_for_unchanged_records() {
 
     let handle = manager
         .register_ready(record.clone(), TestPayload { name: "cube-ready" })
+        .expect("register initial ready record")
         .typed::<ModelMarker>()
         .expect("typed model handle");
     let added = events.recv().expect("added event");
     assert_eq!(added.kind, ResourceEventKind::Added);
 
-    manager.register_ready(record, TestPayload { name: "cube-ready" });
+    manager
+        .register_ready(record, TestPayload { name: "cube-ready" })
+        .expect("register unchanged ready record");
 
     assert!(
         events.try_recv().is_err(),
@@ -380,7 +407,9 @@ fn register_ready_preserves_current_diagnostics_and_replaces_stale_diagnostics()
     let record = ResourceRecord::new(id, ResourceKind::Material, locator.clone())
         .with_diagnostics(vec![diagnostic.clone()]);
 
-    manager.register_ready(record, TestPayload { name: "material" });
+    manager
+        .register_ready(record, TestPayload { name: "material" })
+        .expect("register diagnostic material");
 
     assert_eq!(
         manager
@@ -391,10 +420,12 @@ fn register_ready_preserves_current_diagnostics_and_replaces_stale_diagnostics()
         vec![diagnostic]
     );
 
-    manager.register_ready(
-        ResourceRecord::new(id, ResourceKind::Material, locator),
-        TestPayload { name: "material" },
-    );
+    manager
+        .register_ready(
+            ResourceRecord::new(id, ResourceKind::Material, locator),
+            TestPayload { name: "material" },
+        )
+        .expect("register clean material");
 
     assert!(
         manager
@@ -416,13 +447,17 @@ fn register_ready_bumps_revision_when_dependency_ids_change() {
     let dependency = ResourceId::from_stable_label("res://textures/checker.png");
     let record = ResourceRecord::new(id, ResourceKind::Material, locator);
 
-    manager.register_ready(record.clone(), TestPayload { name: "material" });
+    manager
+        .register_ready(record.clone(), TestPayload { name: "material" })
+        .expect("register material");
     let added = events.recv().expect("added event");
     assert_eq!(added.kind, ResourceEventKind::Added);
 
     let mut changed = record;
     changed.dependency_ids = vec![dependency];
-    manager.register_ready(changed, TestPayload { name: "material" });
+    manager
+        .register_ready(changed, TestPayload { name: "material" })
+        .expect("register changed material");
 
     let updated = events.recv().expect("dependency update event");
     assert_eq!(updated.kind, ResourceEventKind::Updated);
@@ -438,13 +473,93 @@ fn resource_manager_hot_paths_avoid_redundant_record_projection() {
     let registry = include_str!("registry.rs");
     let payload_ops = include_str!("manager/payload_ops.rs");
     let lease_ops = include_str!("manager/lease_ops.rs");
+    let commit = include_str!("manager/commit.rs");
     let registry_ops = include_str!("manager/registry_ops.rs");
     let registry_export = include_str!("manager/registry_export.rs");
 
     assert!(!registry.contains("self.by_id.get(&record.id).cloned()"));
+    assert!(!registry.contains("pub fn upsert("));
+    assert!(!registry.contains("pub fn remove_by_locator("));
+    assert!(registry.contains("pub(crate) struct ResourceRegistryStaging"));
     assert!(!payload_ops.contains("registry.upsert(record.clone())"));
     assert!(!payload_ops.contains("self.snapshot::<TMarker, TData>(handle)"));
-    assert!(lease_ops.contains("let payload = self.get::<TMarker, TData>(handle)?;"));
+    assert!(lease_ops.contains("let mut authority = self.lock_authority_write();"));
+    assert!(lease_ops.contains("slot.residency_token != residency_token"));
+    assert!(!lease_ops.contains("lock_payloads_write"));
+    assert!(commit.contains("Ok(self.prepare_commit(batch)?.commit())"));
+    assert!(commit.contains("let commit_serial = self.lock_commit_serial();"));
+    assert!(commit.contains("apply_staged(&mut authority, self.staged)"));
+    assert!(commit.find("lock_commit_serial").unwrap() < commit.find("publish_event").unwrap());
     assert!(!registry_ops.contains("registry.upsert(record.clone())"));
     assert!(!registry_export.contains("left.id.to_string().cmp(&right.id.to_string())"));
+}
+
+#[test]
+fn registry_staging_rejects_locator_collisions_without_partial_mutation() {
+    let shared_locator = locator("res://materials/shared.zmat");
+    let first_id = ResourceId::from_stable_label("registry-staging-first");
+    let conflicting_id = ResourceId::from_stable_label("registry-staging-conflicting");
+    let first = ResourceRecord::new(first_id, ResourceKind::Material, shared_locator.clone());
+    let conflicting = ResourceRecord::new(
+        conflicting_id,
+        ResourceKind::Material,
+        shared_locator.clone(),
+    );
+    let mut staging = ResourceRegistry::default().begin_staging();
+
+    staging
+        .stage_record(first.clone())
+        .expect("first staged record should be accepted");
+    let error = staging
+        .stage_record(conflicting)
+        .expect_err("occupied locator must reject a different resource id");
+
+    assert!(matches!(
+        error,
+        ResourceRegistryError::LocatorOccupied { .. }
+    ));
+    let registry = staging.finish();
+    assert_eq!(registry.get(first.id), Some(&first));
+    assert!(registry.get(conflicting_id).is_none());
+}
+
+#[test]
+fn registry_staging_preserves_resource_identity_after_staged_removal() {
+    let original = ResourceRecord::new(
+        ResourceId::from_stable_label("registry-staging-stable-identity"),
+        ResourceKind::Model,
+        locator("res://models/stable-identity.glb"),
+    );
+    let mut initial = ResourceRegistry::default().begin_staging();
+    initial
+        .stage_record(original.clone())
+        .expect("initial staged record should be accepted");
+    let registry = initial.finish();
+
+    let mut kind_candidate = registry.begin_staging();
+    kind_candidate.stage_remove_locator(&original.primary_locator);
+    let kind_error = kind_candidate
+        .stage_record(ResourceRecord::new(
+            original.id,
+            ResourceKind::Material,
+            original.primary_locator.clone(),
+        ))
+        .expect_err("staged removal must not erase the resource kind identity");
+    assert!(matches!(
+        kind_error,
+        ResourceRegistryError::KindConflict { .. }
+    ));
+
+    let mut locator_candidate = registry.begin_staging();
+    locator_candidate.stage_remove_locator(&original.primary_locator);
+    let relocated = locator("res://models/relocated-identity.glb");
+    let locator_error = locator_candidate
+        .stage_record(ResourceRecord::new(original.id, original.kind, relocated))
+        .expect_err("staged removal must not bypass explicit rename semantics");
+    assert!(matches!(
+        locator_error,
+        ResourceRegistryError::ExplicitRenameRequired { .. }
+    ));
+
+    assert_eq!(registry.get(original.id), Some(&original));
 }

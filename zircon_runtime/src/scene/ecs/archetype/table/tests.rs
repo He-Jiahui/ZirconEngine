@@ -118,6 +118,28 @@ fn archetype_table_rejects_type_mismatches_before_writing_any_column() {
 }
 
 #[test]
+fn archetype_table_publishes_only_preflighted_rows() {
+    let health = ComponentId::new(1);
+    let label = ComponentId::new(2);
+    let mut table = health_label_table(health, label);
+
+    let row = table
+        .preflight_row(vec![
+            (health, stored(10_i32), ticks(2)),
+            (label, stored("hero"), ticks(3)),
+        ])
+        .expect("complete, typed row should preflight");
+
+    assert!(table.is_empty());
+
+    let row = table.append_preflighted_row(7, row);
+    assert_eq!(row, 0);
+    assert_eq!(table.entities(), &[7]);
+    assert_eq!(table.get::<i32>(health, row), Some(&10));
+    assert_eq!(table.get::<&'static str>(label, row), Some(&"hero"));
+}
+
+#[test]
 fn archetype_table_swap_remove_moves_all_columns_and_preserves_ticks() {
     let health = ComponentId::new(1);
     let label = ComponentId::new(2);

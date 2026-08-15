@@ -2,16 +2,16 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
-use crate::asset::{AssetUri, SceneAsset, project::ProjectManager};
-use crate::core::JobScheduler;
+use crate::asset::{project::ProjectManager, AssetUri, SceneAsset};
 use crate::core::framework::tasks::{
     AsyncTaskDescriptor, AsyncTaskHandle, AsyncTaskStatus, TaskCancellationPolicy, TaskPoolKind,
 };
+use crate::core::JobScheduler;
 
 use super::super::{DynamicScene, DynamicSceneError};
-use super::SpawnTaskResult;
 use super::prepared::PreparedDynamicSceneSpawn;
-use super::task::{DynamicSceneSpawnTask, lock_spawn_result, lock_spawn_status};
+use super::task::{lock_spawn_result, lock_spawn_status, DynamicSceneSpawnTask};
+use super::SpawnTaskResult;
 
 static NEXT_DYNAMIC_SCENE_SPAWN_TASK_ID: AtomicU64 = AtomicU64::new(1);
 

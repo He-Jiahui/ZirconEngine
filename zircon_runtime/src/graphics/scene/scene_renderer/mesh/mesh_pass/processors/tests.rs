@@ -1,9 +1,10 @@
 use crate::core::framework::render::{
-    CorePipelineKind, GEOMETRY_SOURCE_ID_SKINNED_MESH, PrimitiveRelevance, RenderLayerSet,
-    RenderMaterialAlphaMode, RenderPhase, RenderPhaseSortComponents, packed_sort_key_u64,
+    packed_sort_key_u64, CorePipelineKind, PrimitiveRelevance, RenderLayerSet,
+    RenderMaterialAlphaMode, RenderPhase, RenderPhaseSortComponents,
+    GEOMETRY_SOURCE_ID_SKINNED_MESH,
 };
 use crate::core::framework::scene::Mobility;
-use crate::graphics::scene::resources::{PipelineKey, default_pipeline_key};
+use crate::graphics::scene::resources::{default_pipeline_key, PipelineKey};
 use crate::graphics::scene::scene_renderer::mesh::mesh_draw::{
     MeshDrawGeometrySource, MeshDrawQueuePhase, MeshDrawQueueProfile,
 };
@@ -190,11 +191,10 @@ fn render_mesh_draw_processor_shadow_excludes_non_casters_and_picks_alpha_mask_v
             ),
         ]
     );
-    assert!(
-        list.commands()
-            .iter()
-            .all(|command| command.pipeline_variant_id.value() > 0)
-    );
+    assert!(list
+        .commands()
+        .iter()
+        .all(|command| command.pipeline_variant_id.value() > 0));
     assert_eq!(variants.len(), 2);
     assert!(list.commands().iter().all(|command| {
         variants

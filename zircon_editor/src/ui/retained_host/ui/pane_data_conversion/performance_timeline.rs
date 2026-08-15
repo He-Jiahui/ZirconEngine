@@ -443,12 +443,10 @@ mod tests {
         let label = find_node(&nodes, "PerformanceTimelineFrameLabel.0");
         assert_eq!(label.role.as_str(), "Label");
         assert_eq!(label.text_tone.as_str(), "warning");
-        assert!(
-            label
-                .text
-                .as_str()
-                .contains("120% budget / 16.67 ms budget")
-        );
+        assert!(label
+            .text
+            .as_str()
+            .contains("120% budget / 16.67 ms budget"));
     }
 
     #[test]

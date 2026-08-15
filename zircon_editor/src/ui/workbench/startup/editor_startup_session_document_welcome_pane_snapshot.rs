@@ -1,4 +1,4 @@
-use super::display_project_path::{display_project_path, display_project_text};
+use super::display_project_path::display_project_path;
 use super::editor_startup_session_document::EditorStartupSessionDocument;
 use super::format_recent_project_time::format_recent_project_time;
 use super::new_project_form_snapshot::NewProjectFormSnapshot;
@@ -19,7 +19,7 @@ impl EditorStartupSessionDocument {
             title: "Open or Create".to_string(),
             subtitle: "Continue from a recent project or scaffold a renderable empty project."
                 .to_string(),
-            status_message: display_project_text(&self.status_message),
+            status_message: self.status_message.clone(),
             browse_supported,
             recent_projects: self
                 .recent_projects

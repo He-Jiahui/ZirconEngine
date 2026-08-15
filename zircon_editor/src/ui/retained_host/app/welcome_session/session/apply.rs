@@ -35,12 +35,14 @@ impl RetainedEditorHost {
                 self.editor_manager
                     .apply_project_workspace(document.editor_workspace.clone())
                     .map_err(|error| error.to_string())?;
-                let level = self
+                let authoring_world = self
                     .editor_manager
-                    .create_runtime_level(document.world)
+                    .prepare_authoring_world(document.world)
                     .map_err(|error| error.to_string())?;
-                self.runtime
-                    .replace_world(level, document.root_path.to_string_lossy().into_owned())?;
+                self.runtime.replace_world(
+                    authoring_world,
+                    document.root_path.to_string_lossy().into_owned(),
+                )?;
                 self.runtime.set_session_mode(EditorSessionMode::Project);
                 self.runtime.set_welcome_snapshot(welcome_snapshot);
                 self.editor_manager

@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_theme::HostTextSmoothing;
-use super::super::super::font::{font_cache_key_for_face, HostTextFontFace};
+use super::super::super::font::{host_font_snapshot_for_face, HostTextFontFace};
 use super::super::super::layout_policy::HostTextLayoutPolicy;
 use super::super::super::sync::lock_recovering_poison;
 use super::PaintTextLayout;
@@ -21,6 +21,7 @@ struct PaintTextLayoutCacheKey {
     line_height_bits: u32,
     font_face: HostTextFontFace,
     font_cache_key: u64,
+    runtime_font_generation: u64,
     smoothing: HostTextSmoothing,
     word_wrap: bool,
 }
@@ -47,7 +48,9 @@ pub(super) fn cached_paint_text_layout(
         font_size_bits: font_size.to_bits(),
         line_height_bits: line_height.to_bits(),
         font_face,
-        font_cache_key: font_cache_key_for_face(font_face),
+        font_cache_key: host_font_snapshot_for_face(font_face).cache_key(),
+        runtime_font_generation: zircon_runtime::ui::surface::current_resolved_text_font_generation(
+        ),
         smoothing,
         word_wrap: layout_policy == HostTextLayoutPolicy::WordWrap,
     };

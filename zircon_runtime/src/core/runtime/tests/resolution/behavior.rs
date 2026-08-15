@@ -11,6 +11,142 @@ use crate::core::{LifecycleState, ServiceKind, StartupMode};
 
 mod dependency_cycles;
 
+#[derive(Debug)]
+struct HeldService {
+    calls: Arc<AtomicUsize>,
+}
+
+impl HeldService {
+    fn enter_call(&self) {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+    }
+}
+
+#[test]
+fn held_service_reference_cannot_enter_after_module_deactivation() {
+    let runtime = CoreRuntime::new();
+    let service_name =
+        RegistryName::from_parts("HeldServiceModule", ServiceKind::Manager, "HeldManager");
+    let calls = Arc::new(AtomicUsize::new(0));
+    let service_calls = Arc::clone(&calls);
+
+    runtime
+        .register_module(
+            ModuleDescriptor::new("HeldServiceModule", "M0 held service reference").with_manager(
+                ManagerDescriptor::new(
+                    service_name.clone(),
+                    StartupMode::Immediate,
+                    Vec::new(),
+                    Arc::new(move |_| {
+                        Ok(Arc::new(HeldService {
+                            calls: Arc::clone(&service_calls),
+                        }) as ServiceObject)
+                    }),
+                ),
+            ),
+        )
+        .unwrap();
+    runtime.activate_module("HeldServiceModule").unwrap();
+
+    let held_service = runtime
+        .resolve_manager_handle::<HeldService>(service_name.as_str())
+        .unwrap();
+    let in_flight_call = held_service.enter().unwrap();
+    let deactivating_runtime = runtime.clone();
+    let deactivation_start = Arc::new(Barrier::new(2));
+    let deactivation_start_for_thread = Arc::clone(&deactivation_start);
+    let (deactivation_complete, deactivation_result) = mpsc::channel();
+    let deactivation = thread::spawn(move || {
+        deactivation_start_for_thread.wait();
+        deactivation_complete.send(deactivating_runtime.deactivate_module("HeldServiceModule"))
+    });
+    deactivation_start.wait();
+
+    let mut admission_closed = false;
+    for _ in 0..1_000 {
+        admission_closed = !runtime
+            .handle()
+            .inner
+            .services
+            .lock()
+            .unwrap()
+            .get(service_name.as_str())
+            .unwrap()
+            .admission_open;
+        if admission_closed {
+            break;
+        }
+        thread::yield_now();
+    }
+    assert!(
+        admission_closed,
+        "deactivation should close service admission first"
+    );
+    assert!(matches!(
+        deactivation_result.try_recv(),
+        Err(mpsc::TryRecvError::Empty)
+    ));
+
+    drop(in_flight_call);
+    deactivation_result
+        .recv_timeout(Duration::from_secs(1))
+        .unwrap()
+        .unwrap();
+    deactivation.join().unwrap();
+
+    assert!(matches!(
+        held_service.enter(),
+        Err(CoreError::StaleServiceHandle { .. })
+    ));
+
+    assert_eq!(
+        calls.load(Ordering::SeqCst),
+        0,
+        "an unloaded service must reject a new call through an already-held reference"
+    );
+}
+
+#[test]
+fn service_call_guard_keeps_its_runtime_slot_alive_until_release() {
+    let runtime = CoreRuntime::new();
+    let service_name = RegistryName::from_parts(
+        "GuardRuntimeRetentionModule",
+        ServiceKind::Manager,
+        "GuardedManager",
+    );
+    runtime
+        .register_module(
+            ModuleDescriptor::new("GuardRuntimeRetentionModule", "M3 guard ownership")
+                .with_manager(ManagerDescriptor::new(
+                    service_name.clone(),
+                    StartupMode::Immediate,
+                    Vec::new(),
+                    Arc::new(|_| Ok(Arc::new(TestManager) as ServiceObject)),
+                )),
+        )
+        .unwrap();
+    runtime
+        .activate_module("GuardRuntimeRetentionModule")
+        .unwrap();
+
+    let held_service = runtime
+        .resolve_manager_handle::<TestManager>(service_name.as_str())
+        .unwrap();
+    let first_call = held_service.enter().unwrap();
+    drop(runtime);
+
+    let second_call = held_service
+        .enter()
+        .expect("an in-flight guard must retain the runtime slot for its release");
+    drop(second_call);
+    drop(first_call);
+
+    assert!(matches!(
+        held_service.enter(),
+        Err(CoreError::RuntimeUnavailable)
+    ));
+}
+
 #[test]
 fn lazy_manager_is_created_on_first_resolve() {
     let runtime = CoreRuntime::new();

@@ -1,14 +1,14 @@
 use thiserror::Error;
 
 use crate::core::framework::render::{
-    RenderImageDimension, SOURCE_CUBEMAP_FACE_COUNT, source_cubemap_mip_count,
+    source_cubemap_mip_count, RenderImageDimension, SOURCE_CUBEMAP_FACE_COUNT,
 };
 
 use super::{TextureAsset, TexturePayload};
 
 mod decode;
 
-pub use decode::{ExternalSourceCubemapDecodeError, decode_external_source_cubemap};
+pub use decode::{decode_external_source_cubemap, ExternalSourceCubemapDecodeError};
 
 const DDS_HEADER_SIZE: usize = 128;
 const DDS_DX10_HEADER_SIZE: usize = 148;

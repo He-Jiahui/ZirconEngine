@@ -10,6 +10,7 @@ use crate::core::i18n::EditorI18nService;
 use crate::core::jobs::EditorJobSystem;
 use crate::core::logging::EditorLogService;
 use crate::core::notifications::EditorNotificationService;
+use crate::core::recovery::EditorAutosaveService;
 use crate::core::settings::{SettingsAuthority, SettingsPersistenceService};
 
 use super::ToolSchedulerService;
@@ -20,8 +21,9 @@ pub struct EditorContext {
     events: Arc<EditorEventService>,
     i18n: Arc<EditorI18nService>,
     jobs: EditorJobSystem,
-    logs: EditorLogService,
+    logs: Arc<EditorLogService>,
     notifications: EditorNotificationService,
+    autosave: EditorAutosaveService,
     transactions: Arc<EditorTransactionEngine>,
     dirty_documents: DirtyRegistry,
     commands: EditorCommandRegistryHandle,
@@ -38,8 +40,9 @@ impl EditorContext {
         events: Arc<EditorEventService>,
         i18n: Arc<EditorI18nService>,
         jobs: EditorJobSystem,
-        logs: EditorLogService,
+        logs: Arc<EditorLogService>,
         notifications: EditorNotificationService,
+        autosave: EditorAutosaveService,
         transactions: EditorTransactionEngine,
         commands: EditorCommandRegistryHandle,
         command_eval: CommandEvalSnapshotHandle,
@@ -57,6 +60,7 @@ impl EditorContext {
             jobs,
             logs,
             notifications,
+            autosave,
             transactions,
             dirty_documents,
             commands,
@@ -85,11 +89,19 @@ impl EditorContext {
     }
 
     pub fn logs(&self) -> &EditorLogService {
-        &self.logs
+        self.logs.as_ref()
+    }
+
+    pub(crate) fn logs_handle(&self) -> Arc<EditorLogService> {
+        Arc::clone(&self.logs)
     }
 
     pub fn notifications(&self) -> &EditorNotificationService {
         &self.notifications
+    }
+
+    pub(crate) fn autosave(&self) -> &EditorAutosaveService {
+        &self.autosave
     }
 
     pub fn transactions(&self) -> &EditorTransactionEngine {
@@ -133,7 +145,7 @@ impl EditorContext {
 mod tests {
     use crate::core::context::ToolSchedulerService;
     use crate::core::editor_message::{
-        EditorMessagePayload, EditorTopic, SharedEditorMessageBus, TOPIC_TOOL, ToolMessage,
+        EditorMessagePayload, EditorTopic, SharedEditorMessageBus, ToolMessage, TOPIC_TOOL,
     };
     use crate::core::tools::{
         AcquireOutcome, ExclusiveResource, ToolId, ToolLifecycleEvent, ToolResourceSet,

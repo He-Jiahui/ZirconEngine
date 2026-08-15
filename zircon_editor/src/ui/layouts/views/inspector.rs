@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
-use crate::ui::layouts::common::model_rc;
-use crate::ui::layouts::views::view_projection::build_view_template_nodes;
+use crate::ui::layouts::views::view_projection::{
+    ViewTemplateNodePatch, build_view_template_node_projection_with_patches,
+};
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::workbench::snapshot::InspectorSnapshot;
 use zircon_runtime_interface::ui::layout::UiSize;
@@ -61,69 +62,69 @@ pub(crate) fn inspector_pane_nodes(
             .unwrap_or_else(|| "No object selected".to_string()),
     );
 
-    let mut nodes = build_view_template_nodes(
+    let node_patches = inspector_visual_state_patches(inspector.is_some());
+    let Ok(projection) = build_view_template_node_projection_with_patches(
         "inspector.template_projection",
         INSPECTOR_LAYOUT_ASSET_PATH,
         &[(INSPECTOR_STYLE_ASSET_ID, INSPECTOR_STYLE_ASSET_PATH)],
         size,
         &text_overrides,
-    )
-    .unwrap_or_default();
-    apply_inspector_visual_state(&mut nodes, inspector.is_some());
-    model_rc(nodes)
+        &node_patches,
+    ) else {
+        return ModelRc::default();
+    };
+    projection.into_model()
 }
 
-fn apply_inspector_visual_state(nodes: &mut [ViewTemplateNodeData], has_selection: bool) {
-    mark_panel(nodes, "InspectorHeaderPanel", has_selection);
-    mark_panel(nodes, "InspectorActionsRow", has_selection);
-    mark_row(nodes, "InspectorNameRow", has_selection);
-    mark_row(nodes, "InspectorParentRow", has_selection);
-    mark_row(nodes, "InspectorPositionRow", has_selection);
-    mark_row(nodes, "InspectorSeparatorRow", has_selection);
-    mark_empty_state(nodes, has_selection);
+fn inspector_visual_state_patches(has_selection: bool) -> BTreeMap<String, ViewTemplateNodePatch> {
+    let mut patches = BTreeMap::new();
+    mark_panel(&mut patches, "InspectorHeaderPanel", has_selection);
+    mark_panel(&mut patches, "InspectorActionsRow", has_selection);
+    mark_row(&mut patches, "InspectorNameRow", has_selection);
+    mark_row(&mut patches, "InspectorParentRow", has_selection);
+    mark_row(&mut patches, "InspectorPositionRow", has_selection);
+    mark_row(&mut patches, "InspectorSeparatorRow", has_selection);
+    mark_empty_state(&mut patches, has_selection);
+    patches
 }
 
-fn mark_panel(nodes: &mut [ViewTemplateNodeData], control_id: &str, active: bool) {
-    if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
-        node.selected = active;
-        node.focused = false;
-        node.surface_variant = if active {
-            "panel".into()
-        } else {
-            "inset".into()
-        };
-        node.text_tone = if active {
-            "default".into()
-        } else {
-            "muted".into()
-        };
-    }
+fn mark_panel(
+    patches: &mut BTreeMap<String, ViewTemplateNodePatch>,
+    control_id: &str,
+    active: bool,
+) {
+    patches.insert(
+        control_id.to_string(),
+        ViewTemplateNodePatch::visual_state(
+            active,
+            false,
+            if active { "panel" } else { "inset" },
+            if active { "default" } else { "muted" },
+        ),
+    );
 }
 
-fn mark_empty_state(nodes: &mut [ViewTemplateNodeData], has_selection: bool) {
-    if let Some(node) = nodes
-        .iter_mut()
-        .find(|node| node.control_id == INSPECTOR_EMPTY_STATE_CONTROL_ID)
-    {
-        node.selected = false;
-        node.focused = false;
-        node.surface_variant = if has_selection {
-            "frame_only".into()
-        } else {
-            "inset".into()
-        };
-    }
+fn mark_empty_state(patches: &mut BTreeMap<String, ViewTemplateNodePatch>, has_selection: bool) {
+    patches.insert(
+        INSPECTOR_EMPTY_STATE_CONTROL_ID.to_string(),
+        ViewTemplateNodePatch {
+            selected: Some(false),
+            focused: Some(false),
+            surface_variant: Some(if has_selection { "frame_only" } else { "inset" }.to_string()),
+            ..ViewTemplateNodePatch::default()
+        },
+    );
 }
 
-fn mark_row(nodes: &mut [ViewTemplateNodeData], control_id: &str, active: bool) {
-    if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
-        node.selected = active;
-        node.text_tone = if active {
-            "default".into()
-        } else {
-            "muted".into()
-        };
-    }
+fn mark_row(patches: &mut BTreeMap<String, ViewTemplateNodePatch>, control_id: &str, active: bool) {
+    patches.insert(
+        control_id.to_string(),
+        ViewTemplateNodePatch {
+            selected: Some(active),
+            text_tone: Some(if active { "default" } else { "muted" }.to_string()),
+            ..ViewTemplateNodePatch::default()
+        },
+    );
 }
 
 #[cfg(test)]
@@ -149,12 +150,16 @@ mod tests {
     fn no_selection_projects_a_muted_centered_empty_state() {
         let nodes = projected_nodes(None);
 
-        assert!(nodes
-            .iter()
-            .any(|node| node.control_id == "InspectorEmptyState"));
-        assert!(nodes
-            .iter()
-            .any(|node| node.control_id == "InspectorEmptyStateMessage"));
+        assert!(
+            nodes
+                .iter()
+                .any(|node| node.control_id == "InspectorEmptyState")
+        );
+        assert!(
+            nodes
+                .iter()
+                .any(|node| node.control_id == "InspectorEmptyStateMessage")
+        );
 
         let Some(header) = node_by_control_id(&nodes, "InspectorHeaderPanel") else {
             return;

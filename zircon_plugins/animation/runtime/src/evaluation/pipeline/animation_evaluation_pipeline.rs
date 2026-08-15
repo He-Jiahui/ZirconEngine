@@ -30,6 +30,14 @@ pub(super) struct CachedGraphEvaluation {
     pub(super) evaluation: std::sync::Arc<crate::CompiledAnimationGraphEvaluation>,
 }
 
+#[derive(Clone, Debug)]
+pub(super) struct StateMachineRuntimeCheckpoint {
+    checkpointed_entities: BTreeSet<EntityId>,
+    interrupted_transition_sources: BTreeMap<MachineInstanceKey, InterruptedTransitionSource>,
+    nested_machine_states: BTreeMap<MachineInstanceKey, String>,
+    nested_machine_transitions: BTreeMap<MachineInstanceKey, AnimationStateTransitionRuntime>,
+}
+
 /// Cumulative work accepted by the typed animation projection.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct AnimationEvaluationProjectionStats {
@@ -47,6 +55,8 @@ pub struct AnimationEvaluationProjectionStats {
 /// Persistent state shared by every phase of `animation.evaluate`.
 #[derive(Debug, Default)]
 pub struct AnimationEvaluationPipeline {
+    prepared_replacement_epoch: Option<u64>,
+    evaluation_state_active: bool,
     clip_evaluator: AnimationClipEvaluator,
     direct_clip_worker_evaluators: Vec<AnimationClipEvaluator>,
     direct_clip_worker_stats: DirectClipWorkerStats,
@@ -80,6 +90,7 @@ pub struct AnimationEvaluationPipeline {
     pub(super) nested_machine_states: BTreeMap<MachineInstanceKey, String>,
     pub(super) nested_machine_transitions:
         BTreeMap<MachineInstanceKey, AnimationStateTransitionRuntime>,
+    clip_event_admission_cursor: Option<EntityId>,
 }
 
 impl AnimationEvaluationPipeline {
@@ -115,6 +126,90 @@ impl AnimationEvaluationPipeline {
         self.graph_evaluation_count
     }
 
+    pub(super) fn clip_event_admission_cursor(&self) -> Option<EntityId> {
+        self.clip_event_admission_cursor
+    }
+
+    pub(super) fn state_machine_runtime_checkpoint(
+        &self,
+        active_entities: &BTreeSet<EntityId>,
+    ) -> StateMachineRuntimeCheckpoint {
+        StateMachineRuntimeCheckpoint {
+            checkpointed_entities: active_entities.clone(),
+            interrupted_transition_sources: self
+                .interrupted_transition_sources
+                .iter()
+                .filter(|(instance, _)| active_entities.contains(&instance.entity()))
+                .map(|(instance, source)| (instance.clone(), source.clone()))
+                .collect(),
+            nested_machine_states: self
+                .nested_machine_states
+                .iter()
+                .filter(|(instance, _)| active_entities.contains(&instance.entity()))
+                .map(|(instance, state)| (instance.clone(), state.clone()))
+                .collect(),
+            nested_machine_transitions: self
+                .nested_machine_transitions
+                .iter()
+                .filter(|(instance, _)| active_entities.contains(&instance.entity()))
+                .map(|(instance, transition)| (instance.clone(), transition.clone()))
+                .collect(),
+        }
+    }
+
+    pub(super) fn set_clip_event_admission_cursor(&mut self, next_cursor: Option<EntityId>) {
+        self.clip_event_admission_cursor = next_cursor;
+    }
+
+    pub(super) fn finish_clip_event_admission(
+        &mut self,
+        checkpoint: StateMachineRuntimeCheckpoint,
+        deferred_entities: &BTreeSet<EntityId>,
+        next_cursor: Option<EntityId>,
+    ) {
+        self.clip_event_admission_cursor = next_cursor;
+        self.restore_deferred_state_machine_entities(checkpoint, deferred_entities);
+    }
+
+    fn restore_deferred_state_machine_entities(
+        &mut self,
+        checkpoint: StateMachineRuntimeCheckpoint,
+        deferred_entities: &BTreeSet<EntityId>,
+    ) {
+        if deferred_entities.is_empty() {
+            return;
+        }
+        let restore_entities = checkpoint
+            .checkpointed_entities
+            .intersection(deferred_entities)
+            .copied()
+            .collect::<BTreeSet<_>>();
+        self.interrupted_transition_sources
+            .retain(|instance, _| !restore_entities.contains(&instance.entity()));
+        self.interrupted_transition_sources.extend(
+            checkpoint
+                .interrupted_transition_sources
+                .into_iter()
+                .filter(|(instance, _)| restore_entities.contains(&instance.entity())),
+        );
+        self.nested_machine_states
+            .retain(|instance, _| !restore_entities.contains(&instance.entity()));
+        self.nested_machine_states.extend(
+            checkpoint
+                .nested_machine_states
+                .into_iter()
+                .filter(|(instance, _)| restore_entities.contains(&instance.entity())),
+        );
+        self.nested_machine_transitions
+            .retain(|instance, _| !restore_entities.contains(&instance.entity()));
+        self.nested_machine_transitions.extend(
+            checkpoint
+                .nested_machine_transitions
+                .into_iter()
+                .filter(|(instance, _)| restore_entities.contains(&instance.entity())),
+        );
+    }
+
     pub(super) fn take_sequence_cache(
         &mut self,
     ) -> BTreeMap<zircon_runtime::asset::AssetId, CachedCompiledSequence> {
@@ -128,8 +223,26 @@ impl AnimationEvaluationPipeline {
         self.sequence_cache = sequence_cache;
     }
 
-    pub(super) fn begin_evaluation_frame(&mut self) {
+    pub(super) fn begin_evaluation_frame(&mut self, replacement_epoch: u64) -> bool {
+        let reset = self.prepared_replacement_epoch != Some(replacement_epoch);
+        if reset {
+            self.reset_evaluation_state(true);
+            self.prepared_replacement_epoch = Some(replacement_epoch);
+        }
+        self.evaluation_state_active = true;
         self.graph_evaluation_cache.clear();
+        reset
+    }
+
+    pub(super) fn ensure_empty_evaluation_state(&mut self, replacement_epoch: u64) -> bool {
+        let replacement_changed = self.prepared_replacement_epoch != Some(replacement_epoch);
+        let reset = replacement_changed || self.evaluation_state_active;
+        if reset {
+            self.reset_evaluation_state(replacement_changed);
+        }
+        self.prepared_replacement_epoch = Some(replacement_epoch);
+        self.evaluation_state_active = false;
+        reset
     }
 
     pub(super) fn cache_graph_evaluation(
@@ -175,17 +288,23 @@ impl AnimationEvaluationPipeline {
         Some(next)
     }
 
-    pub(super) fn reset_evaluation_state(&mut self) {
+    fn reset_evaluation_state(&mut self, retire_world_bound_caches: bool) {
+        self.clip_evaluator.reset_diagnostics();
+        for evaluator in &mut self.direct_clip_worker_evaluators {
+            evaluator.reset_diagnostics();
+        }
         self.projection = AnimationEvaluationProjection::default();
         self.pose_target_bindings.clear();
         self.presentation_poses = Arc::default();
-        self.direct_clip_worker_evaluators.clear();
         self.direct_clip_worker_stats = DirectClipWorkerStats::default();
-        self.sequence_cache.clear();
+        if retire_world_bound_caches {
+            self.sequence_cache.clear();
+        }
         self.graph_evaluation_cache.clear();
         self.interrupted_transition_sources.clear();
         self.nested_machine_states.clear();
         self.nested_machine_transitions.clear();
+        self.clip_event_admission_cursor = None;
     }
 
     pub(super) fn presentation_poses(&self) -> Arc<BTreeMap<EntityId, AnimationPoseOutput>> {
@@ -273,12 +392,15 @@ impl AnimationEvaluationPipeline {
         self.direct_clip_worker_stats.last_max_shard_len = max_shard_len;
     }
 
-    pub(super) fn drain_clip_evaluation_diagnostics(
+    pub(super) fn drain_clip_evaluation_diagnostics_excluding(
         &mut self,
+        deferred_entities: &BTreeSet<EntityId>,
     ) -> Vec<AnimationEvaluationDiagnostic> {
-        let mut diagnostics = self.clip_evaluator.drain_diagnostics();
+        let mut diagnostics = self
+            .clip_evaluator
+            .drain_diagnostics_excluding(deferred_entities);
         for evaluator in &mut self.direct_clip_worker_evaluators {
-            diagnostics.extend(evaluator.drain_diagnostics());
+            diagnostics.extend(evaluator.drain_diagnostics_excluding(deferred_entities));
         }
         diagnostics
     }
@@ -309,4 +431,169 @@ fn accumulate_clip_evaluator_stats(
     target.clip_eviction_count += source.clip_eviction_count;
     target.cached_skeleton_count += source.cached_skeleton_count;
     target.cached_clip_count += source.cached_clip_count;
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeSet;
+
+    use zircon_runtime::core::framework::animation::{AnimationPoseOutput, AnimationPoseSource};
+    use zircon_runtime::core::resource::ResourceId;
+    use zircon_runtime::scene::AnimationStateTransitionRuntime;
+
+    use crate::{AnimationAssetRevision, AnimationEvaluationError};
+
+    use super::{AnimationEvaluationPipeline, MachineInstanceKey};
+
+    fn pose() -> AnimationPoseOutput {
+        AnimationPoseOutput {
+            source: AnimationPoseSource::Clip,
+            active_state: None,
+            bones: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn replacement_epoch_and_empty_mode_prepare_without_duplicate_resets() {
+        let mut pipeline = AnimationEvaluationPipeline::default();
+        pipeline.presentation_poses.make_mut().insert(17, pose());
+
+        assert!(pipeline.begin_evaluation_frame(1));
+        assert!(pipeline.presentation_poses.is_empty());
+
+        pipeline.presentation_poses.make_mut().insert(18, pose());
+        assert!(!pipeline.begin_evaluation_frame(1));
+        assert!(pipeline.presentation_poses.contains_key(&18));
+
+        assert!(pipeline.ensure_empty_evaluation_state(1));
+        assert!(pipeline.presentation_poses.is_empty());
+        assert!(!pipeline.ensure_empty_evaluation_state(1));
+        assert!(!pipeline.begin_evaluation_frame(1));
+
+        assert!(pipeline.begin_evaluation_frame(2));
+        assert!(pipeline.presentation_poses.is_empty());
+    }
+
+    #[test]
+    fn replacement_epoch_retires_pending_diagnostics_from_all_evaluators() {
+        let skeleton = AnimationAssetRevision::new(
+            ResourceId::from_stable_label("animation.skeleton.replacement-diagnostic"),
+            1,
+        );
+        let clip = AnimationAssetRevision::new(
+            ResourceId::from_stable_label("animation.clip.replacement-diagnostic"),
+            1,
+        );
+        let mut pipeline = AnimationEvaluationPipeline::default();
+        assert!(pipeline.begin_evaluation_frame(1));
+        pipeline.clip_evaluator_mut().record_diagnostic(
+            17,
+            skeleton,
+            clip,
+            AnimationEvaluationError::MissingPreparedClip {
+                skeleton: skeleton.id(),
+                clip: clip.id(),
+            },
+        );
+        let mut worker = pipeline.take_direct_clip_worker_evaluator(1);
+        worker.record_diagnostic(
+            18,
+            skeleton,
+            clip,
+            AnimationEvaluationError::MissingPreparedClip {
+                skeleton: skeleton.id(),
+                clip: clip.id(),
+            },
+        );
+        pipeline.restore_direct_clip_worker_evaluator(1, worker);
+
+        assert!(pipeline.begin_evaluation_frame(2));
+        assert_eq!(pipeline.direct_clip_worker_evaluators.len(), 1);
+        assert!(pipeline
+            .drain_clip_evaluation_diagnostics_excluding(&BTreeSet::new())
+            .is_empty());
+
+        pipeline.clip_evaluator_mut().record_diagnostic(
+            19,
+            skeleton,
+            clip,
+            AnimationEvaluationError::MissingPreparedClip {
+                skeleton: skeleton.id(),
+                clip: clip.id(),
+            },
+        );
+        let current = pipeline.drain_clip_evaluation_diagnostics_excluding(&BTreeSet::new());
+        assert_eq!(current.len(), 1);
+        assert_eq!(current[0].entity, 19);
+    }
+
+    #[test]
+    fn deferred_event_entities_restore_state_machine_runtime_checkpoint() {
+        let machine = ResourceId::from_stable_label("animation.machine.checkpoint");
+        let admitted = MachineInstanceKey::root(17, machine);
+        let deferred = MachineInstanceKey::root(18, machine);
+        let uncheckpointed_deferred = MachineInstanceKey::root(19, machine);
+        let mut pipeline = AnimationEvaluationPipeline::default();
+        pipeline
+            .nested_machine_states
+            .insert(admitted.clone(), "OldA".into());
+        pipeline
+            .nested_machine_states
+            .insert(deferred.clone(), "OldB".into());
+        pipeline
+            .nested_machine_states
+            .insert(uncheckpointed_deferred.clone(), "Paused".into());
+        pipeline.nested_machine_transitions.insert(
+            deferred.clone(),
+            AnimationStateTransitionRuntime {
+                from_state: "OldB".into(),
+                to_state: "OldC".into(),
+                duration_seconds: 1.0,
+                elapsed_seconds: 0.25,
+                from_time_seconds: 0.25,
+                to_time_seconds: 0.0,
+            },
+        );
+        pipeline.record_interrupted_transition_source(deferred.clone(), "OldB", "OldC", pose());
+        let checkpoint = pipeline.state_machine_runtime_checkpoint(&BTreeSet::from([17, 18]));
+
+        pipeline
+            .nested_machine_states
+            .insert(admitted.clone(), "NewA".into());
+        pipeline
+            .nested_machine_states
+            .insert(deferred.clone(), "NewB".into());
+        pipeline.nested_machine_transitions.remove(&deferred);
+        pipeline.clear_interrupted_transition_source(&deferred);
+        pipeline.restore_deferred_state_machine_entities(
+            checkpoint,
+            &BTreeSet::from([deferred.entity(), uncheckpointed_deferred.entity()]),
+        );
+
+        assert_eq!(
+            pipeline
+                .nested_machine_states
+                .get(&admitted)
+                .map(String::as_str),
+            Some("NewA")
+        );
+        assert_eq!(
+            pipeline
+                .nested_machine_states
+                .get(&deferred)
+                .map(String::as_str),
+            Some("OldB")
+        );
+        assert!(pipeline.nested_machine_transitions.contains_key(&deferred));
+        assert!(pipeline
+            .interrupted_transition_source(&deferred, "OldB", "OldC")
+            .is_some());
+        assert_eq!(
+            pipeline
+                .nested_machine_states
+                .get(&uncheckpointed_deferred)
+                .map(String::as_str),
+            Some("Paused")
+        );
+    }
 }

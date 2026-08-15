@@ -1,7 +1,7 @@
 # Shader06 M5 Deferred-Lighting DX12 Startup Evidence
 
 Date: 2026-07-28
-Status: historical DX12 baseline for environment-only PBR performance, Ready-frame visual, and Debug RenderDoc replay. It remains useful for the phase breakdown and v4 evidence-gate contract, but does not accept the current worktree; a fresh managed Release/Debug run, v4 Ready-frame PNG, and RenderDoc replay remain required.
+Status: historical DX12 baseline for environment-only PBR performance, Ready-frame visual, and Debug RenderDoc replay. It remains useful for the phase breakdown and historical v4 evidence-gate contract, but does not accept the current worktree; a fresh managed Release/Debug run, v9 Ready-frame PNG, and RenderDoc replay remain required.
 
 ## Build
 
@@ -116,7 +116,7 @@ The final incremental independent review reports `Critical 0 / Important 0 / Min
 ## Ready-Frame Evidence Gate
 
 The next current-source DX12 screenshot must be emitted with its matching
-`.png.txt` v4 sidecar and checked before it is copied into this directory:
+`.png.txt` v9 sidecar and checked before it is copied into this directory:
 
 ```powershell
 python tools/zircon_validate_shader_pbr_viewer_evidence.py <ready.png> --expected-backend Dx12 --require-direct-present
@@ -127,7 +127,7 @@ non-blankness and the sidecar's complete active-cubemap face-size/mip layout,
 phase-duration hierarchy, environment-only PBR profile, and process-local
 `MeshPipelineCache` interpretation of the Base-prewarm cache hit. It does not
 start the viewer or measure GPU time. The historical PNGs in this record predate
-the v4 sidecar and must remain historical baselines rather than being backfilled
+the v9 sidecar and must remain historical baselines rather than being backfilled
 or accepted by this new current-source gate.
 
 ## RenderDoc Replay Evidence Gate
@@ -143,4 +143,4 @@ The command invokes `D:\Tools\renderdoc\renderdoccmd.exe replay --loops 1` again
 verified temporary snapshot, rejects missing, empty, non-regular, and
 non-lowercase-`.rdc` inputs, and prints the capture size plus SHA-256 alongside the
 replay result. This establishes capture identity and replayability only; it does not
-substitute for the matching v4 Ready-frame PNG gate or a fresh managed DX12 run.
+substitute for the matching v9 Ready-frame PNG gate or a fresh managed DX12 run.

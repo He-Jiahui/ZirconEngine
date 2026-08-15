@@ -10,13 +10,13 @@ use crate::core::editor_event::{
 use crate::core::editor_operation::{
     EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
 };
+use crate::core::logging::{EditorLogService, LogEntry, LogSeverity, LogSource};
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 use crate::ui::binding_dispatch::editor_event_normalization::normalize_editor_event_binding;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::workbench_preview_actions::is_workbench_preview_action;
 use crate::ui::workbench::snapshot::EditorConsoleMessageLevel;
 use serde_json::{Number, Value};
-use zircon_runtime::diagnostic_log::write_log;
 use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventBinding};
 
 use super::editor_event_execution::{event_result_value, execute_event, undo_policy_for_event};
@@ -113,8 +113,9 @@ impl EditorHostEventController {
                     after_revision: stamp.after_revision,
                     result: EditorEventResult::failure(error.clone()),
                 };
-                self.refresh_workbench_for_effects(&effects);
-                emit_mvp_authoring_product_trace(&record, "failed");
+                self.refresh_workbench_for_event_record(&record);
+                emit_mvp_authoring_product_trace(self.context().logs(), &record, "failed");
+                emit_failed_event_log(self.context().logs(), &record);
                 self.context().events().record(record);
                 return Err(error);
             }
@@ -145,8 +146,8 @@ impl EditorHostEventController {
         if execution.changed() {
             self.publish_scene_inspection_publication();
         }
-        self.refresh_workbench_for_effects(execution.effects());
-        emit_mvp_authoring_product_trace(&record, "completed");
+        self.refresh_workbench_for_event_record(&record);
+        emit_mvp_authoring_product_trace(self.context().logs(), &record, "completed");
         self.context().events().record(record.clone());
         Ok(record)
     }
@@ -176,12 +177,54 @@ impl EditorHostEventController {
     }
 }
 
-fn emit_mvp_authoring_product_trace(record: &EditorEventRecord, result: &str) {
+// Editor-event dispatch is not tied to a retained-host render frame. The log record sequence
+// remains its ordering source, so use zero instead of misrepresenting an event sequence as a frame.
+const UNKNOWN_EDITOR_EVENT_LOG_FRAME: u64 = 0;
+
+fn emit_failed_event_log(logs: &EditorLogService, record: &EditorEventRecord) {
+    let Some(error) = record.result.error.as_deref().map(str::trim) else {
+        return;
+    };
+    let subject = record
+        .operation_id
+        .as_deref()
+        .or(record.binding_path.as_deref())
+        .unwrap_or("unattributed");
+    let entry = LogEntry::new(
+        LogSource::editor(),
+        LogSeverity::Error,
+        format!("Editor event `{subject}` failed: {error}"),
+        UNKNOWN_EDITOR_EVENT_LOG_FRAME,
+        None,
+    )
+    .or_else(|_| {
+        LogEntry::new(
+            LogSource::editor(),
+            LogSeverity::Error,
+            format!(
+                "Editor event {} failed; diagnostic exceeds the log-entry limit.",
+                record.sequence.0
+            ),
+            UNKNOWN_EDITOR_EVENT_LOG_FRAME,
+            None,
+        )
+    });
+    if let Ok(entry) = entry {
+        let _ = logs.emit(entry);
+    }
+}
+
+fn emit_mvp_authoring_product_trace(
+    logs: &EditorLogService,
+    record: &EditorEventRecord,
+    result: &str,
+) {
     let Some(event_kind) = mvp_authoring_trace_event_kind(&record.event) else {
         return;
     };
-    write_log(
-        "editor_authoring_trace",
+    let entry = LogEntry::new(
+        LogSource::editor(),
+        LogSeverity::Info,
         mvp_authoring_product_trace_diagnostic(
             result,
             event_kind,
@@ -190,7 +233,24 @@ fn emit_mvp_authoring_product_trace(record: &EditorEventRecord, result: &str) {
             record.transaction_id,
             record.save_generation,
         ),
-    );
+        UNKNOWN_EDITOR_EVENT_LOG_FRAME,
+        None,
+    )
+    .or_else(|_| {
+        LogEntry::new(
+            LogSource::editor(),
+            LogSeverity::Info,
+            format!(
+                "editor_authoring_trace result={result} event={event_kind} sequence={} diagnostic exceeds the log-entry limit.",
+                record.sequence.0
+            ),
+            UNKNOWN_EDITOR_EVENT_LOG_FRAME,
+            None,
+        )
+    });
+    if let Ok(entry) = entry {
+        let _ = logs.emit(entry);
+    }
 }
 
 fn mvp_authoring_trace_event_kind(event: &EditorEvent) -> Option<&'static str> {
@@ -269,6 +329,108 @@ mod failure_effect_tests {
         assert_eq!(
             mvp_authoring_trace_event_kind(&EditorEvent::WorkbenchMenu(MenuAction::SaveProject)),
             Some("save_project")
+        );
+    }
+}
+
+#[cfg(test)]
+mod failure_log_tests {
+    use super::emit_failed_event_log;
+    use crate::core::editor_event::{
+        EditorEvent, EditorEventEffect, EditorEventId, EditorEventRecord, EditorEventResult,
+        EditorEventSequence, EditorEventSource, EditorEventUndoPolicy, MenuAction,
+    };
+    use crate::core::logging::{EditorLogService, LogFilter, LogSeverity, LogSource};
+
+    fn failed_record(error: impl Into<String>) -> EditorEventRecord {
+        EditorEventRecord {
+            event_id: EditorEventId::new(7),
+            sequence: EditorEventSequence::new(11),
+            source: EditorEventSource::RetainedHost,
+            event: EditorEvent::WorkbenchMenu(MenuAction::SaveProject),
+            binding_path: Some("WorkbenchMenu/SaveProject".to_string()),
+            operation_id: Some("project.save".to_string()),
+            operation_display_name: Some("Save Project".to_string()),
+            operation_arguments: None,
+            operation_group: None,
+            transaction_id: None,
+            save_generation: None,
+            effects: vec![EditorEventEffect::PresentationChanged],
+            undo_policy: EditorEventUndoPolicy::NonUndoable,
+            before_revision: 4,
+            after_revision: 4,
+            result: EditorEventResult::failure(error),
+        }
+    }
+
+    #[test]
+    fn failed_editor_event_emits_a_structured_error_log() {
+        let logs = EditorLogService::default();
+
+        emit_failed_event_log(&logs, &failed_record("disk is read-only"));
+
+        let records = logs.snapshot(&LogFilter::default());
+        assert_eq!(records.len(), 1);
+        let entry = records[0].entry();
+        assert_eq!(entry.source(), &LogSource::editor());
+        assert_eq!(entry.severity(), LogSeverity::Error);
+        assert_eq!(entry.timestamp_frame(), 0);
+        assert_eq!(
+            entry.message(),
+            "Editor event `project.save` failed: disk is read-only"
+        );
+    }
+
+    #[test]
+    fn oversized_editor_event_diagnostic_uses_a_bounded_fallback_log() {
+        let logs = EditorLogService::default();
+        let oversized_error = "x".repeat(9 * 1024);
+
+        emit_failed_event_log(&logs, &failed_record(oversized_error));
+
+        let records = logs.snapshot(&LogFilter::default());
+        assert_eq!(records.len(), 1);
+        assert_eq!(
+            records[0].entry().message(),
+            "Editor event 11 failed; diagnostic exceeds the log-entry limit."
+        );
+    }
+
+    #[test]
+    fn authoring_trace_uses_the_editor_log_service() {
+        let logs = EditorLogService::default();
+        let record = failed_record("disk is read-only");
+
+        super::emit_mvp_authoring_product_trace(&logs, &record, "failed");
+
+        let records = logs.snapshot(&LogFilter::default());
+        assert_eq!(records.len(), 1);
+        let entry = records[0].entry();
+        assert_eq!(entry.source(), &LogSource::editor());
+        assert_eq!(entry.severity(), LogSeverity::Info);
+        assert_eq!(entry.timestamp_frame(), 0);
+        assert_eq!(
+            entry.message(),
+            "editor_authoring_trace result=failed event=save_project binding=WorkbenchMenu/SaveProject operation=project.save transaction_id=none save_generation=none"
+        );
+    }
+
+    #[test]
+    fn oversized_authoring_trace_uses_a_bounded_fallback_log() {
+        let logs = EditorLogService::default();
+        let mut record = failed_record("disk is read-only");
+        record.binding_path = Some("x".repeat(9 * 1024));
+
+        super::emit_mvp_authoring_product_trace(&logs, &record, "failed");
+
+        let records = logs.snapshot(&LogFilter::default());
+        assert_eq!(records.len(), 1);
+        let entry = records[0].entry();
+        assert_eq!(entry.source(), &LogSource::editor());
+        assert_eq!(entry.severity(), LogSeverity::Info);
+        assert_eq!(
+            entry.message(),
+            "editor_authoring_trace result=failed event=save_project sequence=11 diagnostic exceeds the log-entry limit."
         );
     }
 }

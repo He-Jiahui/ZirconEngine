@@ -42,6 +42,7 @@ pub(crate) fn viewport_event_from_command(command: ViewportCommand) -> EditorVie
             selection_mutation,
         },
         ViewportCommand::LeftReleased => EditorViewportEvent::LeftReleased,
+        ViewportCommand::CancelInteraction => EditorViewportEvent::CancelInteraction,
         ViewportCommand::RightPressed { x, y } => EditorViewportEvent::RightPressed { x, y },
         ViewportCommand::RightReleased => EditorViewportEvent::RightReleased,
         ViewportCommand::MiddlePressed { x, y } => EditorViewportEvent::MiddlePressed { x, y },

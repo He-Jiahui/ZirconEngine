@@ -1,37 +1,20 @@
-use std::collections::BTreeMap;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use zircon_runtime_interface::project::session_lock::{
+    decode_project_session_lock_record, encode_project_session_lock_record,
+    project_session_lock_path, ProjectSessionLockRecordV1, PROJECT_SESSION_LOCK_FILE_NAME,
+};
+
 use super::SessionGuardError;
 
-pub const SESSION_LOCK_FILE_NAME: &str = "session.lock";
+pub use zircon_runtime_interface::project::session_lock::ProjectSessionLockRecordV1 as SessionLockRecord;
+
+pub const SESSION_LOCK_FILE_NAME: &str = PROJECT_SESSION_LOCK_FILE_NAME;
 pub(super) const SESSION_LOCK_DIRECTORY: &str = ".zircon";
-const SESSION_LOCK_VERSION: u32 = 1;
-
-/// Persistent process identity and heartbeat retained after an unclean editor exit.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct SessionLockRecord {
-    process_id: u32,
-    instance_id: String,
-    heartbeat_unix_millis: u64,
-}
-
-impl SessionLockRecord {
-    pub const fn process_id(&self) -> u32 {
-        self.process_id
-    }
-
-    pub fn instance_id(&self) -> &str {
-        &self.instance_id
-    }
-
-    pub const fn heartbeat_unix_millis(&self) -> u64 {
-        self.heartbeat_unix_millis
-    }
-}
 
 /// The recovery layer never treats a residual lock as permission to remove it implicitly.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -41,7 +24,7 @@ pub enum SessionLockInspection {
 }
 
 pub(super) fn session_lock_path(project_root: &Path) -> PathBuf {
-    session_lock_directory(project_root).join(SESSION_LOCK_FILE_NAME)
+    project_session_lock_path(project_root)
 }
 
 pub(super) fn session_lock_directory(project_root: &Path) -> PathBuf {
@@ -54,11 +37,13 @@ pub(super) fn new_record(now: SystemTime) -> Result<SessionLockRecord, SessionGu
     let process_id = std::process::id();
     let heartbeat_unix_millis = unix_millis(now)?;
     let sequence = NEXT_INSTANCE_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-    Ok(SessionLockRecord {
+    let record = ProjectSessionLockRecordV1::new(
         process_id,
-        instance_id: format!("{process_id}-{heartbeat_unix_millis}-{sequence}"),
+        format!("{process_id}-{heartbeat_unix_millis}-{sequence}"),
         heartbeat_unix_millis,
-    })
+    )
+    .expect("generated editor session instance identity must be valid");
+    Ok(record)
 }
 
 pub(super) fn unix_millis(now: SystemTime) -> Result<u64, SessionGuardError> {
@@ -88,86 +73,14 @@ pub(super) fn read_lock(path: &Path) -> Result<Option<SessionLockRecord>, Sessio
             });
         }
     };
-    parse_record(path, &source).map(Some)
+    decode_project_session_lock_record(&source)
+        .map(Some)
+        .map_err(|source| SessionGuardError::InvalidRecord {
+            path: path.to_path_buf(),
+            message: source.to_string(),
+        })
 }
 
 pub(super) fn encode_record(record: &SessionLockRecord) -> String {
-    format!(
-        "version={SESSION_LOCK_VERSION}\nprocess_id={}\ninstance_id={}\nheartbeat_unix_millis={}\n",
-        record.process_id, record.instance_id, record.heartbeat_unix_millis
-    )
-}
-
-fn parse_record(path: &Path, source: &str) -> Result<SessionLockRecord, SessionGuardError> {
-    let mut values = BTreeMap::new();
-    for line in source.lines() {
-        let (key, value) =
-            line.split_once('=')
-                .ok_or_else(|| SessionGuardError::InvalidRecord {
-                    path: path.to_path_buf(),
-                    message: "every line must be key=value".to_string(),
-                })?;
-        if values.insert(key, value).is_some() {
-            return Err(SessionGuardError::InvalidRecord {
-                path: path.to_path_buf(),
-                message: format!("duplicate field `{key}`"),
-            });
-        }
-    }
-    let version = values
-        .remove("version")
-        .ok_or_else(|| invalid_field(path, "version"))?;
-    if version != SESSION_LOCK_VERSION.to_string() {
-        return Err(SessionGuardError::InvalidRecord {
-            path: path.to_path_buf(),
-            message: "unsupported version".to_string(),
-        });
-    }
-    let process_id = parse_number(path, values.remove("process_id"), "process_id")?;
-    let instance_id = values
-        .remove("instance_id")
-        .filter(|value| {
-            !value.is_empty()
-                && value
-                    .bytes()
-                    .all(|byte| byte.is_ascii_digit() || byte == b'-')
-        })
-        .ok_or_else(|| invalid_field(path, "instance_id"))?
-        .to_string();
-    let heartbeat_unix_millis = parse_number(
-        path,
-        values.remove("heartbeat_unix_millis"),
-        "heartbeat_unix_millis",
-    )?;
-    if !values.is_empty() {
-        return Err(SessionGuardError::InvalidRecord {
-            path: path.to_path_buf(),
-            message: "unknown field".to_string(),
-        });
-    }
-    Ok(SessionLockRecord {
-        process_id,
-        instance_id,
-        heartbeat_unix_millis,
-    })
-}
-
-fn parse_number<T>(
-    path: &Path,
-    value: Option<&str>,
-    field: &'static str,
-) -> Result<T, SessionGuardError>
-where
-    T: std::str::FromStr,
-{
-    value
-        .and_then(|value| value.parse().ok())
-        .ok_or_else(|| invalid_field(path, field))
-}
-
-fn invalid_field(path: &Path, field: &'static str) -> SessionGuardError {
-    SessionGuardError::InvalidRecord {
-        path: path.to_path_buf(),
-        message: format!("invalid or missing {field}"),
-    }
+    encode_project_session_lock_record(record)
 }

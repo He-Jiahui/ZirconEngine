@@ -66,6 +66,36 @@ session mutation API 只返回 bool，不返回 dirty domains/changed nodes；re
 - document/binding generation单次发布filtered diagnostics、payload tree与schema/preview artifact；stable inspector presentation不重跑full binding report或递归flatten/format，binding delta只更新受影响node/binding/path rows。
 - document/mock generation编译subject/property index、typed expressions/dependency graph与shared mock/schema/state rows；stable presentation不重扫全document或复制nested Value，override delta只求值并patch依赖闭包。
 
+## 性能结构调研（2026-08-09，待实施）
+
+> 本节是优化前的架构与测量设计，不是实现完成、性能通过或 failure 关闭记录。尚未取得 current-source profile、p50/p95、RSS、GPU/CPU 功耗或跨引擎可比数据。
+
+### 已确认的调用链与根因假设
+
+- `EditorUiHost::ui_asset_editor_pane_presentation` 在持有 UI asset session 锁时调用 `UiAssetEditorSession::pane_presentation()`；后者在一个 pull 请求内重新构造 reflection、preview projection、palette drag overlay/candidates、source selection、mock/binding、slot/layout semantics、style、theme 与 command availability。
+- `UiAssetEditorPanePresentation` 是包含大量 `String`/`Vec<String>` 的一次性 DTO。当前 source outline、palette catalog 与 preview hit index 已各自拥有局部 generation artifact，但稳定 pane 请求仍会跨越这些域重新物化输出。
+- 静态盘点（不是 runtime profile）：当前 `pane_presentation` 为 757 行，含 23 个 `build_*` 调用、36 次 `.clone()`、4 次 `.position()`、39 次 `last_valid_document` 引用和 7 次 `format!`。这只证明单一 pull path 的算法/所有权密度，不能推出 CPU 时间、RSS、GPU 或功耗。
+- 因此本 failure 的优先假设是“缺少 document/import/source/selection/preview/mock/style 等 typed dirty-domain 和 pane generation”，而不是任一 lookup 的常数项。必须用下列 profile 证伪或量化该假设后，才能继续优化实现。
+
+### 参考架构与目标边界
+
+- 主参考为 `dev/UnrealEngine`：`UAssetEditorSubsystem` 负责打开、聚焦、关闭与 editor-instance 生命周期；`FAssetEditorToolkit` 负责 toolkit、tab、command 与 extensibility 生命周期。它们不把每次 host 查询定义为重建全部 asset-editor 数据的边界。
+- Rust 侧对照为 `dev/Fyrox/editor` 的 `asset`、`command`、`scene`、`ui_scene` 分层。Zircon 的落点仍是 `zircon_editor`：session 持有 authoring state，host 只负责 instance 生命周期与路由；runtime world、资产权威和渲染 extract 不迁入 editor DTO。
+- 实施前必须先设计 `UiAssetEditorPresentationGeneration` 与按域不可变 artifact：document/import/source、selection/command availability、preview/drag、mock/binding、style/theme。mutation 产生 typed dirty domain/affected identity，host 消费 domain patch；不得以 host 侧全量 DTO cache、全局可变单例或旧路径兼容 shim 代替该边界。
+
+### Windows 受管 profile 设计
+
+1. 先在 coordinator 管理的 Windows validation copy 运行 `tools/ui-profile-capture.ps1`，输出与 Cargo target 必须位于批准的 `D:`、`E:` 或 `F:` 根目录，绝不写入 `C:` 或仓库 `target/`。本机已发现 `wpr`、`wpaexporter`、`xperf` 和 `dev/tracy/tracy-profiler.exe`，但尚未启动 profile；工具存在不是性能证据。
+2. 对同一固定 UI asset 分别采集 `startup`、`idle_hover`、`click`、`drag`、`asset_refresh`；开启 `-RequireScenarioEvidence`，必要时分别使用 `-UseTracy` 与 `-UseWpr`，保留原始 trace、`ui_hotspots.json`、frame/draw/upload counters 和机器/adapter 元数据。
+3. 先补齐可归因 instrumentation：每个 pane domain 的 build/patch/reuse、分配字节或可替代的 owned row/string count、clone count、session-lock hold time、source/import read/parse、visible-row/command count。现有 frame、redraw、draw、upload 数字不足以证明 pane CPU 根因。
+4. 以 31 次采样报告 p50/p95 与最大值，按 1/100/1,000/10,000 document nodes、bindings、theme rules 和 source lines 分层；仅同机同驱动同 profile 可比较。功耗须有同一 Windows ETW/WPR 机器的基线与空闲扣除，取得前不得声称接近 Unreal 或其它引擎的能耗经验值。
+
+### 进入实现的门槛
+
+- 先冻结一个 source manifest 和产品交互脚本，得到上述原始 profile；若热点不在 pane assembly，不实现该 cache，而是将证据路由到实际最低 owner。
+- 若假设成立，先以单个 domain 的 failing build/reuse/ordering test 验证 typed generation/patch contract，再从 framework boundary 向 leaf consumer 实现；不得一次性缓存完整 pane 或用延迟 paint 掩盖工作量。
+- 改造后对同一脚本复测，并报告变化前后 p50/p95、分配/clone、lock hold、read/parse、GPU upload/draw 和 profile evidence。任何没有当前源指纹的历史截图或队列回执均不得作为结果。
+
 ## 禁止临时方案
 
 - 不得只延迟 UI paint却继续每输入读盘/parse全图。
@@ -89,3 +119,10 @@ Partial implementation（2026-07-18）：Editor07 已落地 generation-scoped `U
 生产preview增量证据（2026-07-22）：`zircon_editor/src/ui/asset_editor/preview` 8/8逐文件复核。presentation/palette move仍全量构建preview projection；mock pane每次重建subjects/properties/nested suggestions/schema/state graph并扫描props/bindings、parse expressions、clone nested Values。本轮以单次borrowed control-id index替代逐command两次全树匹配，删除mock subject iter_nodes内二次DFS、override per-key DFS、reference/function二次parse、单项suggestion宽clone、table/root/sort/bool临时分配；源码合同8/8、组合42/42、rustfmt/diff通过。generation projection/mock/dependency artifact、规模counter、current-source Cargo、F4 trace与像素仍open。
 
 Open state: `physical import generation cache 已实现；仍待 typed dirty-domain/delta projection、typing debounce 与后台 revision 安全、1k stress build/read/parse/clone/p95、save/undo/redo/conflict/preview/route 等价证据后再关闭`。
+
+## 产出记录与时间
+
+| 日期 | 里程碑/切片 | 状态 | 完成项目与验证证据 |
+| --- | --- | --- | --- |
+| 2026-08-08 | Preview generation：palette drag compact hit index | 代码完成 / 二次审查 0/0/0 / failure 保持 open | `UiAssetPreviewHitIndex` 以 document/preview-host generation 缓存 canvas node id 与 frame，不携带标签、类型、选择态或展示字符串；`update_palette_drag_target` 只惰性读取该索引，已不再构建完整 `UiAssetPreviewProjection`，无 palette 选择时不建索引且 hover 不 clone entry。文档替换、预览快照重编译和预设尺寸切换均统一失效缓存；slot overlay 继续使用完整展示投影，因此绘制行为未改。新增 Rust 行为测试覆盖连续 hover 复用、快照重建、预设 resize 与文档替换后的失效重建；静态合同已由 red 转 green（2/2），`py_compile`、精确 `rustfmt --check` 与 scoped `git diff --check` 通过。两份独立复审均为 Critical/Important/Minor `0/0/0`。managed current-source Rust 验证及 1/100/10000 节点性能、typed drag target artifact 等其余验收尚未运行，不能关闭本 failure。 |
+| 2026-08-10 | Source generation：immutable outline index | 代码完成 / 独立复审与 managed validation pending / failure 保持 open | source generation 现在一次扫描建立 node entry、node-id index 与 line-segment interval index；presentation 与 navigation 均借用 session-owned cache，稳定查询不重建 outline。direct block 的 malformed `[` 边界、tree wrapper 冻结、首 occurrence、空 range、完整 `node` path segment 及 parent wrapper byte boundary均有 Rust 回归命名覆盖；source build counter 只保留在 lifecycle/navigation 的实际构建分支。import/pane/preview/source 静态合同 13/13、专属 `rustfmt --check` 与 scoped `git diff --check` 通过；未运行 Cargo、无 current-source 规模/profile 数据，因而不得关闭本 failure。 |

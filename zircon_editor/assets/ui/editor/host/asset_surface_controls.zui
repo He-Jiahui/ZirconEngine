@@ -112,7 +112,7 @@ component = "IconButton"
 control_id = "OpenAssetBrowser"
 props = { label = "Browser", icon = "editor_pages/asset_browser/navigation/folder.svg", icon_placement = "leading" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-events = [{ id = "AssetSurface/OpenAssetBrowser", event = "Click", route = "workbench.asset.open_asset_browser" }]
+events = [{ id = "AssetSurface/OpenAssetBrowser", event = "Click", action = { action = "view.asset_browser.open" } }]
 
 [nodes.locate_asset]
 component = "IconButton"

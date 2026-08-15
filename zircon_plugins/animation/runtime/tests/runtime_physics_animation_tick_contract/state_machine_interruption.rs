@@ -160,12 +160,20 @@ fn exit_time_gate_waits_for_normalized_state_progress_without_skipping_crossfade
 
     runtime.tick_level_seconds(&level, 0.5).unwrap();
     assert_hand_translation(&level, entity, 0.0);
-    assert!(level.animation_playback_times().2.is_empty());
+    assert!(level
+        .animation_playback_times(level.capture_world_replacement_epoch())
+        .expect("current World exposes playback state")
+        .2
+        .is_empty());
 
     runtime.tick_level_seconds(&level, 0.25).unwrap();
     assert_hand_translation(&level, entity, 0.0);
     assert_eq!(
-        level.animation_playback_times().2[&entity].elapsed_seconds,
+        level
+            .animation_playback_times(level.capture_world_replacement_epoch())
+            .expect("current World exposes playback state")
+            .2[&entity]
+            .elapsed_seconds,
         0.0
     );
 
@@ -240,7 +248,9 @@ fn next_state_interruption_preserves_crossfade_pose_continuity() {
             .unwrap();
         entity
     });
-    level.record_animation_playback_times(
+    let replacement_epoch = level.capture_world_replacement_epoch();
+    assert!(level.record_animation_playback_times(
+        replacement_epoch,
         BTreeMap::new(),
         BTreeMap::from([(entity, 0.5)]),
         BTreeMap::from([(
@@ -254,13 +264,14 @@ fn next_state_interruption_preserves_crossfade_pose_continuity() {
                 to_time_seconds: 0.5,
             },
         )]),
-    );
+    ));
 
     runtime.tick_level_seconds(&level, 0.0).unwrap();
 
     assert_hand_translation(&level, entity, 5.0);
     let interrupted = level
-        .animation_playback_times()
+        .animation_playback_times(level.capture_world_replacement_epoch())
+        .expect("current World exposes playback state")
         .2
         .get(&entity)
         .cloned()

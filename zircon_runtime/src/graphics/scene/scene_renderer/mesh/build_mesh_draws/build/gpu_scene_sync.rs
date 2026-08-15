@@ -4,9 +4,9 @@ use crate::core::framework::render::{LightmapConsumeContract, RendererCommon};
 use crate::core::framework::scene::Mobility;
 use crate::core::math::RenderVec4;
 use crate::graphics::scene::gpu_scene::{
+    GpuInstanceData, GpuPrimitiveData, GpuScene, GpuSceneEntry, GpuSceneUploadReport,
     GPU_PRIMITIVE_FLAG_CAST_SHADOWS, GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM,
-    GPU_PRIMITIVE_FLAG_VISIBLE, GPU_SCENE_INVALID_PAYLOAD_SLOT, GpuInstanceData, GpuPrimitiveData,
-    GpuScene, GpuSceneEntry, GpuSceneUploadReport,
+    GPU_PRIMITIVE_FLAG_VISIBLE, GPU_SCENE_INVALID_PAYLOAD_SLOT,
 };
 use crate::graphics::scene::resources::GpuMeshResource;
 

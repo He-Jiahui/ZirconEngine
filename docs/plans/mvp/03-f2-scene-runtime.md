@@ -74,10 +74,10 @@ last_refined: 2026-07-24
 ### 实现切片
 
 - [x] `templates/projects/renderable-empty/assets/scenes/main.scene.toml` 已包含唯一 Cube entity，以及 canonical project-kind mesh/material persisted refs；后续 gate 继续验证解析与可见性。
-- [ ] 根据实际 camera convention 调整 camera/cube transform，保证 primitive 位于 view frustum，避免靠测试 shader 绕过 camera。
-- [ ] 让 template contract 测试解析场景并断言实体数量、kind、active state、transform 和 refs；禁止用文本 substring 代替 schema parser。
-- [ ] 把 `write_static_lit_default_scene` 与 product template 的共享语义收敛到一个 fixture builder/parsed contract；测试 helper 不复制另一套 entity constants。
-- [ ] 保持 template 内已有 cube/material/shader 文件和 scene refs 一致；缺失、错误 kind 或 unresolved ref 必须让创建/open test 失败。
+- [x] 根据实际 camera convention 调整 camera/cube transform，保证 primitive 位于 view frustum，避免靠测试 shader 绕过 camera。
+- [x] 让 template contract 测试解析场景并断言实体数量、kind、active state、transform 和 refs；禁止用文本 substring 代替 schema parser。
+- [x] 把 `write_static_lit_default_scene` 与 product template 的共享语义收敛到一个 fixture builder/parsed contract；测试 helper 不复制另一套 entity constants。
+- [x] 保持 template 内已有 cube/material/shader 文件和 scene refs 一致；缺失、错误 kind 或 unresolved ref 必须让创建/open test 失败。
 
 ### 测试阶段：F2 Template Scene Gate
 
@@ -101,12 +101,12 @@ last_refined: 2026-07-24
 ### 实现切片
 
 - [x] `foundation_render.rs` 已通过 `render_project_template(ProjectTemplateId::RenderableEmpty, ...)` 创建 canonical template 项目，不再手写独立 triangle/project manifest/scene。
-- [ ] 保留真实 `capture_frame`、RGBA ownership/free callback 和 render diagnostics 断言。
-- [ ] 使像素断言基于可见 primitive 与背景差异，不绑定只存在于测试 shader 的绿色常量；同时保留 draw/light/material error 等结构诊断。
-- [ ] 输入测试在 session event ingress 注入 resize、pointer、mouse、keyboard press/release，并验证 InputManager 实际消费。
-- [ ] 第二帧断言 compiled graph cache hit 增长、miss 不增长、static GPU scene dirty/upload 为 0。
-- [ ] Drop 第一 session 后重新打开同一 persisted project，比较 mesh draw、light count、frame dimensions 和非背景像素。
-- [ ] 保留可选 `ZR_F2_BASIC_SCENE_CAPTURE_PNG` 输出，用于 F5 保存真实 PNG evidence。
+- [x] 保留真实 `capture_frame`、RGBA ownership/free callback 和 render diagnostics 断言。
+- [x] 使像素断言基于可见 primitive 与背景差异，不绑定只存在于测试 shader 的绿色常量；同时保留 draw/light/material error 等结构诊断。
+- [x] 输入测试在 session event ingress 注入 resize、pointer、mouse、keyboard press/release，并验证 InputManager 实际消费。
+- [x] 第二帧断言 compiled graph cache hit 增长、miss 不增长、static GPU scene dirty/upload 为 0。
+- [x] Drop 第一 session 后重新打开同一 persisted project，比较 mesh draw、light count、frame dimensions 和非背景像素。
+- [x] 保留可选 `ZR_F2_BASIC_SCENE_CAPTURE_PNG` 输出，用于 F5 保存真实 PNG evidence。
 
 ### 测试阶段：F2 Runtime Session Gate
 
@@ -130,13 +130,13 @@ staged `zircon_runtime` 通过正常 App entry 打开 F1 项目，进入窗口�
 
 ### 实现切片
 
-- [ ] 确认 runtime startup args 把 canonical project root 投影到 `RuntimeProjectConfig`，不在 App 层重新创建 fixture。
-- [ ] `ZIRCON_RUNTIME_CAPTURE_FRAME_PNG` 必须是绝对路径，并在 runtime startup 通过
-  `ProjectPaths` 只解析一次：文件写入保留物理操作路径，产品诊断只发布显示路径。
-- [ ] 首帧退出只在 scene load、input manager、render graph 和 presented surface 成功后生效。
-- [ ] 产品诊断输出 project identity、scene URI、adapter/backend、frame dimensions、draw/light/pass counts 和 teardown result。
-- [ ] 对 missing scene、unresolved mesh/material、device/surface failure 返回非零退出和 typed diagnostic。
-- [ ] process harness 支持把运行时截图/帧 capture 与 stdout/stderr 归档到同一 validation run。
+- [x] 确认 runtime startup args 把 canonical project root 投影到 `RuntimeProjectConfig`，不在 App 层重新创建 fixture。
+- [x] `ZIRCON_RUNTIME_CAPTURE_FRAME_PNG` 在项目已打开时接受相对项目根的路径，或接受绝对路径；无项目运行时才按进程工作目录解析。runtime startup 通过
+  `ProjectPaths` 保留唯一物理操作路径，产品诊断只发布显示路径。
+- [x] 首帧退出只在 scene load、input manager、render graph 和 presented surface 成功后生效。
+- [x] 产品诊断输出 project identity、scene URI、adapter/backend、frame dimensions、draw/light/pass counts 和 teardown result。
+- [x] 对 missing scene、unresolved mesh/material、device/surface failure 返回非零退出和 typed diagnostic。
+- [x] process harness 支持把运行时截图/帧 capture 与 stdout/stderr 归档到同一 validation run。
 
 ### 测试阶段：F2 Product Runtime Gate
 
@@ -173,6 +173,8 @@ staged `zircon_runtime` 通过正常 App entry 打开 F1 项目，进入窗口�
 
 - M3.1 的 canonical Cube/project refs 与 M3.2 的 template-driven `foundation_render` 创建路径已在实现 checklist 中标记为当前源码已落地。
 - 固定场景合同已区分持久 `kind = "project"` + guid/path_hint 与 registry 解析后的 `res://` 逻辑 URI。
+- 2026-08-10 静态复核同步了已存在但未勾选的实现项：schema parser 场景合同、camera frustum 断言、真实 RGBA/输入/steady-frame/session-restart 测试，以及 App/Stage 的 `ProjectPaths` + `--project .` 产品路径。测试阶段和退出证据仍保持未完成，不能由静态复核替代。
+- 2026-08-10 产品错误路径复核确认 missing scene 与 unresolved mesh/material 由 Runtime typed scene/project error 进入 App session-create failure，binary 统一返回非零；显式 native surface bind/rebind/present 错误已改为 fail-closed，不再降级为 softbuffer 成功。首次能力探测的 unavailable 结果仍可使用既有 fallback。对应 source guard 已更新，受管 Rust 与真实产品负向验证仍留在 F2 测试阶段。
 
 ### 实现风险 / 技术债
 

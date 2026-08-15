@@ -1,9 +1,9 @@
+use crate::text::layout::{
+    layout_vertical_rl_columns, measured_grapheme_widths_with_provider,
+    rich_vertical_columns_with_provider, ELLIPSIS,
+};
 use crate::text::SharedTextLayoutSession;
 use crate::text::VerticalMode;
-use crate::text::layout::{
-    ELLIPSIS, layout_vertical_rl_columns, measured_grapheme_widths_with_provider,
-    rich_vertical_columns_with_provider,
-};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextDirection, UiTextRange,

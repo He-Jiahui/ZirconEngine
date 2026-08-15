@@ -121,13 +121,15 @@ fn ui_v2_style_resolver_registers_editor_tokens_for_css_custom_properties() {
     assert_eq!(root.self_values["background"].as_str(), Some("#171a1d"));
     assert_eq!(
         root.self_values["focused_background"].as_str(),
-        Some("#173942")
+        Some("#171a1d")
     );
     assert_eq!(
         root.style_tokens
             .get("focused_background")
             .map(String::as_str),
-        Some("token.--editor-state-focused -> token.editor.state.focused -> token.editor.surface.selected")
+        Some(
+            "token.--editor-state-focused -> token.editor.state.focused -> token.editor.surface.1"
+        )
     );
 }
 

@@ -3,6 +3,8 @@
 mod render_backend;
 
 #[cfg(test)]
+pub(crate) use render_backend::configure_renderdoc_capture_file_path_template;
+#[cfg(test)]
 pub(crate) use render_backend::read_buffer_f32x4;
 #[cfg(test)]
 pub(crate) use render_backend::read_texture_rgba16float_3d;
@@ -10,9 +12,10 @@ pub(crate) use render_backend::read_texture_rgba16float_3d;
 pub(crate) use render_backend::RenderBackendConfig;
 #[allow(unused_imports)]
 pub(crate) use render_backend::{
-    read_buffer_bytes, read_buffer_f32x4_array_bytes, read_buffer_sh9_f32x4_bytes,
-    read_ibl_bake_artifact_wgpu_sections, read_texture_rgba16float_cube_mip_chain,
-    read_texture_rgba16float_region, BufferByteReadback, IblBakeArtifactWgpuReadbackResources,
+    prepare_ibl_bake_artifact_wgpu_readback, read_buffer_bytes, read_buffer_f32x4_array_bytes,
+    read_buffer_sh9_f32x4_bytes, read_ibl_bake_artifact_wgpu_sections,
+    read_texture_rgba16float_cube_mip_chain, read_texture_rgba16float_region, BufferByteReadback,
+    IblBakeArtifactWgpuPendingReadback, IblBakeArtifactWgpuReadbackResources,
     Rgba16FloatTextureRegionReadback,
 };
 pub(crate) use render_backend::{
@@ -21,8 +24,8 @@ pub(crate) use render_backend::{
 pub(crate) use render_backend::{
     GpuPassPipelineStatistics, GpuPassTimer, GpuPassTimestampScope, GpuPassTiming,
     GpuPipelineStatistics, GpuPipelineStatisticsFrameResult, GpuPipelineStatisticsScope,
-    GpuPipelineStatisticsTimer, GpuTimerFrameResult, DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES,
-    DEFAULT_GPU_TIMER_MAX_PASSES,
+    GpuPipelineStatisticsTimer, GpuTimerFrameObservation, GpuTimerFrameResult, GpuTimerFrameStatus,
+    DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES, DEFAULT_GPU_TIMER_MAX_PASSES,
 };
 pub(crate) use render_backend::{GpuReadbackQueue, ReadbackPollStats};
 
@@ -31,8 +34,9 @@ mod tests {
     use super::{
         GpuPassPipelineStatistics, GpuPassTimer, GpuPassTimestampScope, GpuPassTiming,
         GpuPipelineStatistics, GpuPipelineStatisticsFrameResult, GpuPipelineStatisticsScope,
-        GpuPipelineStatisticsTimer, GpuTimerFrameResult,
-        DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES, DEFAULT_GPU_TIMER_MAX_PASSES,
+        GpuPipelineStatisticsTimer, GpuTimerFrameObservation, GpuTimerFrameResult,
+        GpuTimerFrameStatus, DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES,
+        DEFAULT_GPU_TIMER_MAX_PASSES,
     };
 
     #[test]
@@ -41,6 +45,7 @@ mod tests {
             std::mem::size_of::<GpuPassTimer>(),
             std::mem::size_of::<GpuPassTimestampScope>(),
             std::mem::size_of::<GpuPassTiming>(),
+            std::mem::size_of::<GpuTimerFrameObservation>(),
             std::mem::size_of::<GpuTimerFrameResult>(),
             std::mem::size_of::<GpuPipelineStatisticsTimer>(),
             std::mem::size_of::<GpuPipelineStatisticsScope>(),
@@ -52,5 +57,6 @@ mod tests {
         assert!(projected_type_sizes.iter().all(|size| *size > 0));
         assert!(DEFAULT_GPU_TIMER_MAX_PASSES > 0);
         assert!(DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES > 0);
+        assert_eq!(GpuTimerFrameStatus::Pending, GpuTimerFrameStatus::Pending);
     }
 }

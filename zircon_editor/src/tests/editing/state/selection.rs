@@ -17,13 +17,11 @@ fn editor_state_new_starts_in_welcome_mode_without_default_selection() {
     assert!(!snapshot.project_open);
     assert_eq!(snapshot.session_mode, EditorSessionMode::Welcome);
     assert!(snapshot.inspector.is_none());
-    assert!(
-        state
-            .viewport_controller
-            .selection()
-            .active_primary()
-            .is_none()
-    );
+    assert!(state
+        .viewport_controller
+        .selection()
+        .active_primary()
+        .is_none());
 }
 
 #[test]
@@ -35,13 +33,11 @@ fn editor_state_with_default_selection_preserves_editor_authored_selection() {
     let snapshot = state.snapshot();
 
     assert!(snapshot.inspector.is_some());
-    assert!(
-        state
-            .viewport_controller
-            .selection()
-            .active_primary()
-            .is_some()
-    );
+    assert!(state
+        .viewport_controller
+        .selection()
+        .active_primary()
+        .is_some());
 }
 
 #[test]
@@ -82,11 +78,9 @@ fn non_selection_edit_preserves_active_multi_selection() {
         Some(cube)
     ));
 
-    assert!(
-        state
-            .apply_intent(EditorIntent::RenameNode(cube, "Edited Cube".to_string()))
-            .unwrap()
-    );
+    assert!(state
+        .apply_intent(EditorIntent::RenameNode(cube, "Edited Cube".to_string()))
+        .unwrap());
 
     assert_eq!(
         state
@@ -207,12 +201,10 @@ fn editor_state_snapshot_ignores_stale_editor_selection() {
     let snapshot = state.snapshot();
 
     assert!(snapshot.inspector.is_none());
-    assert!(
-        snapshot
-            .scene_entries
-            .iter()
-            .all(|entry| !snapshot.scene_entries.is_selected(entry.entity))
-    );
+    assert!(snapshot
+        .scene_entries
+        .iter()
+        .all(|entry| !snapshot.scene_entries.is_selected(entry.entity)));
     assert_eq!(
         state.viewport_controller.selection().active_primary(),
         Some(999_999)

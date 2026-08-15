@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::ui::retained_host::primitives::ModelRc;
 use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
@@ -21,7 +23,7 @@ thread_local! {
 pub(in crate::ui::retained_host::host_contract) fn build_template_surface_frame(
     nodes: &ModelRc<TemplatePaneNodeData>,
     surface_size: UiSize,
-) -> Option<UiSurfaceFrame> {
+) -> Option<Arc<UiSurfaceFrame>> {
     let has_dispatchable = nodes.iter().any(is_dispatchable);
     has_dispatchable.then(|| template_nodes_surface_frame(nodes, surface_size))
 }
@@ -29,7 +31,7 @@ pub(in crate::ui::retained_host::host_contract) fn build_template_surface_frame(
 pub(in crate::ui::retained_host::host_contract) fn template_nodes_surface_frame(
     nodes: &ModelRc<TemplatePaneNodeData>,
     surface_size: UiSize,
-) -> UiSurfaceFrame {
+) -> Arc<UiSurfaceFrame> {
     #[cfg(test)]
     TEMPLATE_SURFACE_FRAME_BUILD_COUNT.with(|count| count.set(count.get().saturating_add(1)));
 

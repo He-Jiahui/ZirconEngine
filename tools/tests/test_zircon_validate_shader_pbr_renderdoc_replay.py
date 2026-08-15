@@ -18,7 +18,9 @@ from tools.zircon_validate_shader_pbr_renderdoc_replay import (
 class ZirconValidateShaderPbrRenderdocReplayTests(unittest.TestCase):
     def test_replays_regular_rdc_and_reports_immutable_capture_identity(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            capture_path = Path(temp_dir) / "pbr-ready.rdc"
+            capture_directory = Path(temp_dir) / "captures"
+            capture_directory.mkdir()
+            capture_path = capture_directory / "pbr-ready.rdc"
             capture_contents = b"RenderDoc capture fixture"
             capture_path.write_bytes(capture_contents)
             executable = Path("D:/Tools/renderdoc/renderdoccmd.exe")
@@ -45,6 +47,7 @@ class ZirconValidateShaderPbrRenderdocReplayTests(unittest.TestCase):
                 [str(executable), "replay", "--loops", "1"], command[:-1]
             )
             self.assertNotEqual(str(capture_path.resolve()), command[-1])
+            self.assertEqual(capture_path.parent.resolve(), Path(command[-1]).parent)
             self.assertFalse(Path(command[-1]).exists())
             run.assert_called_once()
             self.assertEqual(

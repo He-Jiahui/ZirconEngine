@@ -1,7 +1,7 @@
 use crate::ui::retained_host::host_contract::data::FrameRect;
 
 use super::metrics::{
-    ALERT_ICON_EDGE, ALERT_ICON_MARK_EDGE, ALERT_PADDING_X, alert_bounded_extent,
+    alert_bounded_extent, ALERT_ICON_EDGE, ALERT_ICON_MARK_EDGE, ALERT_PADDING_X,
 };
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn alert_icon_frame(

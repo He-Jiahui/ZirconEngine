@@ -237,8 +237,9 @@ fn input_manager_frame_snapshot_tracks_transitions_and_motion() {
 }
 
 #[test]
-fn keyboard_focus_lost_releases_keyboard_buttons_only() {
+fn focus_loss_releases_active_input_without_disconnect() {
     let input = DefaultInputManager::default();
+    let gamepad = GamepadId(7);
     input.submit_event(InputEvent::KeyboardInput {
         key_code: 16,
         logical_key: Some("Shift".to_string()),
@@ -247,9 +248,43 @@ fn keyboard_focus_lost_releases_keyboard_buttons_only() {
         repeat: false,
     });
     input.submit_event(InputEvent::ButtonPressed(InputButton::MouseLeft));
+    input.submit_event(InputEvent::GamepadConnection(GamepadConnectionInfo {
+        gamepad,
+        connected: true,
+        name: None,
+        vendor_id: None,
+        product_id: None,
+    }));
+    input.submit_event(InputEvent::GamepadButton {
+        gamepad,
+        button: GamepadButton::South,
+        value: 1.0,
+        pressed: true,
+    });
+    input.submit_event(InputEvent::GamepadAxis {
+        gamepad,
+        axis: GamepadAxis::LeftStickX,
+        value: 1.0,
+    });
+    input.submit_event(InputEvent::Touch {
+        id: 42,
+        phase: TouchPhase::Started,
+        x: 12.0,
+        y: 24.0,
+    });
+    input.submit_event(InputEvent::Ime(ImeEvent::Enabled));
+    input.submit_event(InputEvent::Ime(ImeEvent::Preedit(ImePreedit::new(
+        "composing",
+        Some(ImeCursorRange::new(0, 9)),
+    ))));
 
     input.begin_frame();
-    input.submit_event(InputEvent::KeyboardFocusLost);
+    input.submit_event(InputEvent::MouseMotion {
+        delta_x: 4.0,
+        delta_y: -2.0,
+    });
+    input.submit_event(InputEvent::WheelScrolled { delta: 1.5 });
+    input.submit_event(InputEvent::FocusLost);
     let frame = input.frame_snapshot();
 
     assert!(!frame.buttons.pressed(&InputButton::KeyCode(16)));
@@ -260,7 +295,138 @@ fn keyboard_focus_lost_releases_keyboard_buttons_only() {
     assert!(frame
         .buttons
         .just_released(&InputButton::Key("Shift".to_string())));
-    assert!(frame.buttons.pressed(&InputButton::MouseLeft));
+    assert!(!frame.buttons.pressed(&InputButton::MouseLeft));
+    assert!(frame.buttons.just_released(&InputButton::MouseLeft));
+    assert!(!frame.buttons.pressed(&InputButton::Gamepad {
+        gamepad,
+        button: GamepadButton::South,
+    }));
+    assert!(frame.buttons.just_released(&InputButton::Gamepad {
+        gamepad,
+        button: GamepadButton::South,
+    }));
+    assert!(frame.active_touches.is_empty());
+    assert_eq!(frame.connected_gamepads, vec![gamepad]);
+    assert!(frame.gamepad_axes.is_empty());
+    assert!(frame.gamepad_button_values.is_empty());
+    assert!(frame.gamepad_axis_transitions.iter().any(|transition| {
+        transition.gamepad == gamepad
+            && transition.axis == GamepadAxis::LeftStickX
+            && transition.previous_value == 1.0
+            && transition.value == 0.0
+    }));
+    assert_eq!(frame.mouse_motion_accumulator, [0.0, 0.0]);
+    assert_eq!(frame.wheel_accumulator, 0.0);
+    assert!(frame.mouse_wheel_events.is_empty());
+    assert!(!frame.ime_enabled);
+    assert_eq!(frame.ime_preedit, None);
+}
+
+#[test]
+fn focus_loss_deactivates_held_button_and_axis_actions() {
+    use crate::input::{
+        InputAction, InputActionEvaluator, InputActionMap, InputAxisBinding, InputBinding,
+    };
+
+    let gamepad = GamepadId(7);
+    let mut actions = InputActionMap::new();
+    actions.add_action(InputAction::new("gameplay.jump"));
+    actions.add_action(InputAction::new("gameplay.move_x"));
+    actions.bind(InputBinding::button(
+        "gameplay.jump",
+        InputButton::KeyCode(32),
+    ));
+    actions.bind(InputBinding::axis(
+        "gameplay.move_x",
+        InputAxisBinding::new(gamepad, GamepadAxis::LeftStickX),
+    ));
+    let evaluator = InputActionEvaluator::new(actions);
+    let input = DefaultInputManager::default();
+
+    input.submit_event(InputEvent::KeyboardInput {
+        key_code: 32,
+        logical_key: Some("Space".to_string()),
+        text: None,
+        pressed: true,
+        repeat: false,
+    });
+    input.submit_event(InputEvent::GamepadAxis {
+        gamepad,
+        axis: GamepadAxis::LeftStickX,
+        value: 1.0,
+    });
+    input.begin_frame();
+
+    let held = evaluator.evaluate(&input.frame_snapshot());
+    assert!(held.pressed("gameplay.jump"));
+    assert!(held.pressed("gameplay.move_x"));
+
+    input.submit_event(InputEvent::FocusLost);
+
+    let released = evaluator.evaluate(&input.frame_snapshot());
+    assert!(!released.pressed("gameplay.jump"));
+    assert!(released.just_deactivated("gameplay.jump"));
+    assert!(!released.pressed("gameplay.move_x"));
+    assert!(released.just_deactivated("gameplay.move_x"));
+}
+
+#[test]
+fn focus_loss_after_same_frame_press_does_not_activate_an_action() {
+    use crate::input::{InputAction, InputActionEvaluator, InputActionMap, InputBinding};
+
+    let mut actions = InputActionMap::new();
+    actions.add_action(InputAction::new("gameplay.interact"));
+    actions.bind(InputBinding::button(
+        "gameplay.interact",
+        InputButton::KeyCode(69),
+    ));
+    let evaluator = InputActionEvaluator::new(actions);
+    let input = DefaultInputManager::default();
+
+    input.submit_event(InputEvent::KeyboardInput {
+        key_code: 69,
+        logical_key: Some("E".to_string()),
+        text: None,
+        pressed: true,
+        repeat: false,
+    });
+    input.submit_event(InputEvent::FocusLost);
+
+    let frame = input.frame_snapshot();
+    assert!(frame.buttons.just_pressed(&InputButton::KeyCode(69)));
+    assert!(frame.buttons.just_released(&InputButton::KeyCode(69)));
+
+    let actions = evaluator.evaluate(&frame);
+    assert!(!actions.pressed("gameplay.interact"));
+    assert!(!actions.just_activated("gameplay.interact"));
+    assert!(actions.just_deactivated("gameplay.interact"));
+}
+
+#[test]
+fn focus_loss_cancels_pending_ime_and_cursor_capture_requests() {
+    let input = DefaultInputManager::default();
+    input.submit_event(InputEvent::ImeHostRequest(ImeHostRequest::Enable));
+    input.submit_event(InputEvent::CursorHostRequest(
+        CursorHostRequest::set_grab_mode(CursorGrabMode::Locked),
+    ));
+
+    input.submit_event(InputEvent::FocusLost);
+    input.submit_event(InputEvent::FocusLost);
+
+    let frame = input.frame_snapshot();
+    assert_eq!(frame.ime_host_requests, vec![ImeHostRequest::Disable]);
+    assert_eq!(
+        frame.cursor_host_requests,
+        vec![CursorHostRequest::set_grab_mode(CursorGrabMode::None)]
+    );
+    assert_eq!(
+        input.drain_ime_host_requests(),
+        vec![ImeHostRequest::Disable]
+    );
+    assert_eq!(
+        input.drain_cursor_host_requests(),
+        vec![CursorHostRequest::set_grab_mode(CursorGrabMode::None)]
+    );
 }
 
 #[test]

@@ -388,7 +388,7 @@ fn tool_artifact(identity: &PersistedToolIdentity) -> ExportArtifactRef {
 pub(crate) fn file_metadata_identity(path: &Path) -> std::io::Result<FileMetadataIdentity> {
     use std::os::windows::io::AsRawHandle;
     use windows_sys::Win32::Storage::FileSystem::{
-        FILE_BASIC_INFO, FILE_ID_INFO, FileBasicInfo, FileIdInfo, GetFileInformationByHandleEx,
+        FileBasicInfo, FileIdInfo, GetFileInformationByHandleEx, FILE_BASIC_INFO, FILE_ID_INFO,
     };
 
     let file = File::open(path)?;
@@ -477,7 +477,7 @@ fn hex_bytes(bytes: &[u8]) -> String {
 fn replace_cache_file(staging: &Path, destination: &Path) -> std::io::Result<()> {
     use std::os::windows::ffi::OsStrExt;
     use windows_sys::Win32::Storage::FileSystem::{
-        MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH, MoveFileExW,
+        MoveFileExW, MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH,
     };
 
     let staging = staging
@@ -703,11 +703,9 @@ mod tests {
         }
         let inventory = ExportGenerationInventory::with_persistent_cache(cache);
 
-        assert!(
-            !inventory
-                .persistent_file_digests
-                .contains_key(&canonical_deleted)
-        );
+        assert!(!inventory
+            .persistent_file_digests
+            .contains_key(&canonical_deleted));
         assert_eq!(inventory.persistent_file_digests.len(), 1);
     }
 

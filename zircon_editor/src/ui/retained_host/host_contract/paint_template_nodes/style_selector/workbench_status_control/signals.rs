@@ -1,10 +1,10 @@
 use super::super::resolved_state_for_node;
 use super::helpers::{declared_color, is_unavailable_status_state};
 use super::model::{
-    WORKBENCH_DIAGNOSTIC_SIGNAL_VARIANT, WORKBENCH_SEMANTIC_STATUS_SIGNAL_VARIANT,
-    WorkbenchStatusSignalKind, WorkbenchStatusSignalStyle,
+    WorkbenchStatusSignalKind, WorkbenchStatusSignalStyle, WORKBENCH_DIAGNOSTIC_SIGNAL_VARIANT,
+    WORKBENCH_SEMANTIC_STATUS_SIGNAL_VARIANT,
 };
-use super::palette::{WorkbenchStatusControlPalette, workbench_status_control_palette};
+use super::palette::{workbench_status_control_palette, WorkbenchStatusControlPalette};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::{UiPainterFamily, UiPainterResolvedState};
 

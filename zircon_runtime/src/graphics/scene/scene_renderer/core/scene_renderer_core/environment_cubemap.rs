@@ -298,9 +298,7 @@ impl SceneEnvironmentCubemap {
             pmrem_mips.map(|mips| (&self.specular_texture, mips)),
             irradiance_mip.map(|mip| (&self.irradiance_texture, std::slice::from_ref(mip))),
         ];
-        let staged_prepared_uploads =
-            self.upload_staging
-                .upload(device, queue, &prepared_uploads);
+        let staged_prepared_uploads = self.upload_staging.upload(device, queue, &prepared_uploads);
 
         if changes.source && (source_mips.is_none() || !staged_prepared_uploads) {
             upload_cubemap_texels(

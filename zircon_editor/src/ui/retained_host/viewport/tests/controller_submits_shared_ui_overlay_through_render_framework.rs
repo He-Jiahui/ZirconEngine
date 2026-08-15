@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use crate::ui::retained_host::host_contract::WorldSpaceUiSurfaceSubmission;
+use crate::ui::retained_host::viewport::RetainedViewportController;
 use crate::ui::retained_host::viewport::tests::fake_render_framework::FakeRenderFramework;
 use crate::ui::retained_host::viewport::tests::test_extract::test_extract;
-use crate::ui::retained_host::viewport::RetainedViewportController;
 use zircon_runtime_interface::math::UVec2;
 use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
 use zircon_runtime_interface::ui::layout::UiFrame;
@@ -115,9 +115,11 @@ fn controller_routes_world_space_ui_pointer_hit_with_capture() {
         .expect("up should release the captured world-space UI target");
     assert_eq!(released.control_id, "WorldPanel");
 
-    assert!(controller
-        .route_world_space_ui_pointer_event(UiPointerEventKind::Move, 400.0, 400.0)
-        .is_none());
+    assert!(
+        controller
+            .route_world_space_ui_pointer_event(UiPointerEventKind::Move, 400.0, 400.0)
+            .is_none()
+    );
 }
 
 #[test]
@@ -155,9 +157,11 @@ fn controller_routes_world_space_ui_pointer_cancel_to_capture_and_releases_it() 
         .expect("cancel should route to captured world-space UI");
     assert_eq!(canceled.control_id, "WorldPanel");
 
-    assert!(controller
-        .route_world_space_ui_pointer_event(UiPointerEventKind::Move, 400.0, 400.0)
-        .is_none());
+    assert!(
+        controller
+            .route_world_space_ui_pointer_event(UiPointerEventKind::Move, 400.0, 400.0)
+            .is_none()
+    );
 }
 
 fn test_ui_extract(text: &str) -> UiRenderExtract {

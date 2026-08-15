@@ -9,7 +9,7 @@ impl ResourceStreamer {
         load_model_asset_with_cache(
             self.models
                 .get(&id)
-                .map(|prepared| (prepared.asset.as_ref(), prepared.revision)),
+                .map(|prepared| (prepared.asset.as_ref(), prepared.source_revision)),
             self.resource_revision(id).ok(),
             || asset_manager.load_model_asset(id).ok(),
         )
@@ -50,6 +50,22 @@ mod tests {
     }
 
     #[test]
+    fn composite_geometry_revision_does_not_invalidate_source_asset_cache() {
+        let cached = cooked_model_asset("res://models/external-mesh.model.toml");
+        let composite_geometry_revision = 0xfeed_beef_u64;
+        let source_revision = 7;
+        assert_ne!(composite_geometry_revision, source_revision);
+
+        let loaded = load_model_asset_with_cache(
+            Some((&cached, source_revision)),
+            Some(source_revision),
+            || panic!("composite geometry revision must not force source asset reload"),
+        );
+
+        assert_eq!(loaded, Some(cached));
+    }
+
+    #[test]
     fn stale_prepared_model_asset_falls_back_to_latest_asset_load() {
         let cached = cooked_model_asset("res://models/cached.model.toml");
         let fresh = plain_model_asset("res://models/fresh.model.toml");
@@ -67,6 +83,7 @@ mod tests {
                 vertices: Vec::new(),
                 indices: Vec::new(),
                 mesh: None,
+                mesh_sdf: None,
                 virtual_geometry: Some(VirtualGeometryAsset {
                     root_page_table: vec![1],
                     ..VirtualGeometryAsset::default()
@@ -82,6 +99,7 @@ mod tests {
                 vertices: Vec::new(),
                 indices: Vec::new(),
                 mesh: None,
+                mesh_sdf: None,
                 virtual_geometry: None,
             }],
         }

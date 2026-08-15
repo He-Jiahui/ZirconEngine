@@ -20,7 +20,6 @@ mod structure_subtree;
 pub(super) use root_child_rows::*;
 pub(super) use root_paths::*;
 pub(super) use root_sources::*;
-pub(super) use root_statuses::*;
 
 #[test]
 fn runtime_15_code_review_findings_typed_error_structure_guard_is_child_owner() {
@@ -30,5 +29,4 @@ fn runtime_15_code_review_findings_typed_error_structure_guard_is_child_owner() 
     structure_subtree::assert_typed_error_structure_subtree_is_child_owned(&sources);
     review_guards::assert_typed_error_review_guards_are_preserved(&sources);
     budgets::assert_typed_error_child_ownership_budgets_are_focused(&sources);
-    assert_typed_error_status_docs_are_synced();
 }

@@ -1,4 +1,4 @@
-use super::super::super::{RetainedEditorHost, callback_dispatch};
+use super::super::super::{callback_dispatch, RetainedEditorHost};
 use zircon_runtime_interface::ui::layout::UiPoint;
 
 impl RetainedEditorHost {
@@ -10,6 +10,7 @@ impl RetainedEditorHost {
         width: f32,
         height: f32,
     ) {
+        self.focus_callback_source_window();
         if !self.prepare_asset_tree_pointer_target(surface_mode, width, height) {
             return;
         }

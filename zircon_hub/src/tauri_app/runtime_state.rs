@@ -27,19 +27,17 @@ use crate::error::HubError;
 use crate::learn::LearnCatalogEntry;
 use crate::plugins::PluginCatalogEntry;
 use crate::projects::{
-    load_editor_recent_project_session, merge_recent_projects, metadata_for_path,
-    project_filesystem_path_key, project_metadata_key, project_paths_match,
-    save_editor_recent_projects, save_editor_recent_projects_with_last_project, RecentProject,
+    load_shared_recent_projects, metadata_for_path, project_filesystem_path_key,
+    project_metadata_key, project_paths_match, reconcile_shared_recent_projects, RecentProject,
 };
-use crate::settings::{
-    default_hub_config_path, editor_config_path, HubConfig, HubRuntimeState, HubSettings,
-};
+use crate::settings::{default_hub_config_path, HubConfig, HubRuntimeState, HubSettings};
 use crate::state::{
     EngineMessageId, HubMessage, HubMessageId, HubPage, HubSnapshot, ProjectFilterMode,
     ProjectMessageId, ProjectSortMode, ProjectSubpage, ProjectViewMode, SettingsMessageId,
     ShellMessageId, TaskOperationKind, TaskStatus,
 };
 use crate::team::TeamOverview;
+use zircon_runtime_interface::hub_protocol::hub_recent_projects_path;
 
 use super::action_id::HubActionId;
 use super::action_request::{HubAction, HubActionRequest};
@@ -49,7 +47,8 @@ const VISUAL_TASK_STATE_ENV: &str = "ZIRCON_HUB_VISUAL_TASK_STATE";
 
 pub(super) struct HubRuntimeSession {
     config_path: PathBuf,
-    editor_config_path: PathBuf,
+    shared_recent_projects_path: PathBuf,
+    shared_recent_projects_snapshot: Vec<RecentProject>,
     config: HubConfig,
     settings_draft: HubSettings,
     selected_page: HubPage,
@@ -78,31 +77,33 @@ pub(super) struct HubRuntimeSession {
 
 impl HubRuntimeSession {
     pub(super) fn load() -> Result<Self, HubError> {
-        Self::load_from_paths(default_hub_config_path(), editor_config_path())
+        Self::load_from_paths(default_hub_config_path(), hub_recent_projects_path())
     }
 
     pub(super) fn load_from_paths(
         config_path: PathBuf,
-        editor_config_path: PathBuf,
+        shared_recent_projects_path: PathBuf,
     ) -> Result<Self, HubError> {
         let mut config = HubConfig::load(&config_path)?;
-        let editor_recent = load_editor_recent_project_session(&editor_config_path)?;
-        let last_project_path = editor_recent.last_project_path;
-        config.recent_projects =
-            merge_recent_projects(config.recent_projects, editor_recent.recent_projects);
+        config.recent_projects = reconcile_shared_recent_projects(
+            &shared_recent_projects_path,
+            &[],
+            &config.recent_projects,
+        )
+        .map_err(shared_recent_projects_error)?;
         config.repair_registries();
 
         let runtime_state = config.runtime.clone();
         let selected_project_path = startup_selected_project_path(
             runtime_state.selected_project_path.as_deref(),
-            last_project_path.as_deref(),
             &config.recent_projects,
         );
 
         let settings_draft = config.settings.clone();
         let mut session = Self {
             config_path,
-            editor_config_path,
+            shared_recent_projects_path,
+            shared_recent_projects_snapshot: config.recent_projects.clone(),
             config,
             settings_draft,
             selected_page: runtime_state.selected_page,
@@ -144,12 +145,31 @@ impl HubRuntimeSession {
         session.ensure_new_project_engine_selection();
         session.refresh_source_scoped_views()?;
         session.apply_visual_task_state_override_from_env();
-        session.persist(None)?;
+        session.persist()?;
         Ok(session)
     }
 
     pub(super) fn view_model(&self) -> HubViewModel {
         HubViewModel::from_snapshot(&self.snapshot())
+    }
+
+    /// Refreshes Editor-written recents after the Hub window regains focus.
+    ///
+    /// The usual path has no pending Hub-side recent-project mutation, so it only reads the
+    /// shared registry. A pending Hub mutation takes the existing locked three-way merge path.
+    pub(super) fn refresh_shared_recent_projects_on_focus(&mut self) -> Result<bool, HubError> {
+        match self.refresh_shared_recent_projects_on_focus_unchecked() {
+            Ok(changed) => Ok(changed),
+            Err(error) => {
+                self.task_status = TaskStatus::error(
+                    "Refresh recent projects failed",
+                    HubMessage::raw_text(error.to_string()),
+                    HubMessage::new(HubMessageId::Shell(ShellMessageId::CheckConfigPath)),
+                )
+                .with_operation(TaskOperationKind::Hub, "Recent project sync");
+                Err(error)
+            }
+        }
     }
 
     pub(super) fn apply_action(
@@ -276,7 +296,7 @@ impl HubRuntimeSession {
             }),
         )
         .with_operation(TaskOperationKind::Hub, action.as_str());
-        self.persist(None)
+        self.persist()
     }
 
     fn snapshot(&self) -> HubSnapshot {
@@ -314,7 +334,7 @@ impl HubRuntimeSession {
             return Err(HubError::message(format!("Unknown Hub page: {page_id}")));
         };
         self.selected_page = page;
-        self.persist(None)
+        self.persist()
     }
 
     fn show_project_subpage_by_id(&mut self, subpage_id: &str) -> Result<(), HubError> {
@@ -331,12 +351,12 @@ impl HubRuntimeSession {
             self.ensure_new_project_engine_selection();
         }
         self.pending_delete_project_path = None;
-        self.persist(None)
+        self.persist()
     }
 
     fn search_projects(&mut self, query: &str) {
         self.search_query = query.to_string();
-        let _ = self.persist(None);
+        let _ = self.persist();
     }
 
     fn set_project_filter_by_id(&mut self, filter_id: &str) -> Result<(), HubError> {
@@ -357,7 +377,7 @@ impl HubRuntimeSession {
             ),
         )
         .with_operation(TaskOperationKind::Hub, "Projects");
-        self.persist(None)
+        self.persist()
     }
 
     fn set_project_sort_by_id(&mut self, sort_id: &str) -> Result<(), HubError> {
@@ -378,7 +398,7 @@ impl HubRuntimeSession {
             ),
         )
         .with_operation(TaskOperationKind::Hub, "Projects");
-        self.persist(None)
+        self.persist()
     }
 
     fn set_project_view_mode_by_id(&mut self, mode_id: &str) -> Result<(), HubError> {
@@ -393,7 +413,7 @@ impl HubRuntimeSession {
         } else {
             ProjectSubpage::Dashboard
         };
-        self.persist(None)
+        self.persist()
     }
 
     fn select_project_target(&mut self, target: &str) -> Result<(), HubError> {
@@ -415,7 +435,7 @@ impl HubRuntimeSession {
             HubMessage::raw_text(display_name.clone()),
         )
         .with_operation(TaskOperationKind::Project, display_name);
-        self.persist(Some(&project.path))
+        self.persist()
     }
 
     fn open_project_detail(&mut self, target: &str) -> Result<(), HubError> {
@@ -423,7 +443,7 @@ impl HubRuntimeSession {
         self.project_subpage = ProjectSubpage::ProjectDetail;
         self.project_view_mode = ProjectViewMode::List;
         self.pending_delete_project_path = None;
-        self.persist(None)
+        self.persist()
     }
 
     fn view_all_projects(&mut self) {
@@ -438,7 +458,7 @@ impl HubRuntimeSession {
             )),
         )
         .with_operation(TaskOperationKind::Hub, "Projects");
-        let _ = self.persist(None);
+        let _ = self.persist();
     }
 
     fn select_engine_by_id(&mut self, engine_id: &str) -> Result<(), HubError> {
@@ -460,7 +480,7 @@ impl HubRuntimeSession {
         self.settings_draft = self.config.settings.clone();
         self.sync_new_project_engine_after_active_engine_change(active_engine_before.as_deref());
         self.refresh_source_scoped_views()?;
-        self.persist(None)?;
+        self.persist()?;
         self.task_status = TaskStatus::success(
             "Engine selected",
             HubMessage::raw_text(engine.display_name.clone()),
@@ -497,7 +517,7 @@ impl HubRuntimeSession {
             return Ok(());
         }
         self.refresh_source_scoped_views()?;
-        self.persist(None)?;
+        self.persist()?;
         self.settings_draft = self.config.settings.clone();
         self.task_status = TaskStatus::success(
             "Settings saved",
@@ -510,8 +530,8 @@ impl HubRuntimeSession {
         Ok(())
     }
 
-    fn persist(&mut self, last_project_path: Option<&Path>) -> Result<(), HubError> {
-        match self.persist_unchecked(last_project_path) {
+    fn persist(&mut self) -> Result<(), HubError> {
+        match self.persist_unchecked() {
             Ok(()) => Ok(()),
             Err(error) => {
                 self.task_status = TaskStatus::error(
@@ -525,20 +545,46 @@ impl HubRuntimeSession {
         }
     }
 
-    fn persist_unchecked(&self, last_project_path: Option<&Path>) -> Result<(), HubError> {
+    fn persist_unchecked(&mut self) -> Result<(), HubError> {
+        let reconciled_recent_projects = reconcile_shared_recent_projects(
+            &self.shared_recent_projects_path,
+            &self.shared_recent_projects_snapshot,
+            &self.config.recent_projects,
+        )
+        .map_err(shared_recent_projects_error)?;
+        self.config.recent_projects = reconciled_recent_projects;
+        self.persist_config()?;
+        self.shared_recent_projects_snapshot = self.config.recent_projects.clone();
+        Ok(())
+    }
+
+    fn refresh_shared_recent_projects_on_focus_unchecked(&mut self) -> Result<bool, HubError> {
+        let hub_has_pending_recent_projects =
+            self.shared_recent_projects_snapshot != self.config.recent_projects;
+        let refreshed_recent_projects = if !hub_has_pending_recent_projects {
+            load_shared_recent_projects(&self.shared_recent_projects_path)
+                .map_err(shared_recent_projects_error)?
+        } else {
+            reconcile_shared_recent_projects(
+                &self.shared_recent_projects_path,
+                &self.shared_recent_projects_snapshot,
+                &self.config.recent_projects,
+            )
+            .map_err(shared_recent_projects_error)?
+        };
+        let changed = self.config.recent_projects != refreshed_recent_projects;
+        self.config.recent_projects = refreshed_recent_projects;
+        if changed || hub_has_pending_recent_projects {
+            self.persist_config()?;
+        }
+        self.shared_recent_projects_snapshot = self.config.recent_projects.clone();
+        Ok(changed)
+    }
+
+    fn persist_config(&self) -> Result<(), HubError> {
         let mut config = self.config.clone();
         config.runtime = self.runtime_state_for_config();
         config.save(&self.config_path)?;
-        match last_project_path {
-            Some(path) => save_editor_recent_projects_with_last_project(
-                &self.editor_config_path,
-                &self.config.recent_projects,
-                Some(path),
-            )?,
-            None => {
-                save_editor_recent_projects(&self.editor_config_path, &self.config.recent_projects)?
-            }
-        }
         Ok(())
     }
 
@@ -805,7 +851,6 @@ impl HubRuntimeSession {
 
 fn startup_selected_project_path(
     persisted_selected_project_path: Option<&Path>,
-    last_project_path: Option<&Path>,
     recent_projects: &[RecentProject],
 ) -> Option<PathBuf> {
     if let Some(path) = persisted_selected_project_path {
@@ -818,11 +863,11 @@ fn startup_selected_project_path(
         );
     }
 
-    let last_project_path = last_project_path?;
-    recent_projects
-        .iter()
-        .find(|project| project_paths_match(&project.path, last_project_path))
-        .map(|project| project.path.clone())
+    recent_projects.first().map(|project| project.path.clone())
+}
+
+fn shared_recent_projects_error(error: crate::projects::SharedRecentProjectsError) -> HubError {
+    HubError::message(format!("shared recent-project registry failed: {error}"))
 }
 
 fn validate_settings_source_engine(settings: &HubSettings) -> Result<(), SourceEngineValidation> {

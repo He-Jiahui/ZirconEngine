@@ -2,10 +2,12 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $modulePath = Join-Path $PSScriptRoot '..\mvp\MvpStagingRelease.psm1'
+$fixturePathsModule = Join-Path $PSScriptRoot '..\mvp\MvpTestFixturePaths.psm1'
 if (-not (Test-Path -LiteralPath $modulePath -PathType Leaf)) {
     throw "MVP staging release module is missing: $modulePath"
 }
 Import-Module $modulePath -Force -ErrorAction Stop
+Import-Module $fixturePathsModule -Force -ErrorAction Stop
 $resolverModule = Join-Path $PSScriptRoot '..\..\tools\WindowsPathResolver.psm1'
 Import-Module $resolverModule -Force -ErrorAction Stop
 
@@ -27,8 +29,11 @@ Assert-True (
     ([regex]::Matches($stagerSource, 'Test-MvpStagedProjectDirectoryReleased')).Count -eq 3
 ) 'MVP stager must probe project release after product, automation, and project-creation processes.'
 Assert-True (
-    $stagerSource -match '\$projectRootArgument = \(Resolve-ZirconWindowsPath -Path \$ProjectRoot\)\.DisplayPath'
-) 'MVP stager must pass a display path to the product CLI, which resolves the physical project identity.'
+    $stagerSource -match '\$startInfo\.WorkingDirectory = if \(\$null -eq \$projectRootResolution\)' -and
+    $stagerSource -match '\$projectRootResolution\.OperationalPath' -and
+    $stagerSource -match '@\(''--project'', ''\.''\) \+ @\(\$Arguments\)' -and
+    $stagerSource -notmatch '\$projectRootArgument'
+) 'MVP stager must set the project root as cwd and pass --project . without reviving an absolute project CLI argument.'
 
 $releaseSource = Get-Content -LiteralPath $modulePath -Raw
 Assert-True (
@@ -38,9 +43,7 @@ Assert-True (
     $releaseSource -match 'Move-ZirconWindowsPath -Source \$resolvedProject -Destination \$probe'
 ) 'Project release probe must use the resolver-native move operation for physical paths.'
 
-$fixtureRoot = Join-Path ([IO.Path]::GetTempPath()) (
-    'zircon_mvp_staging_release_' + [guid]::NewGuid().ToString('N')
-)
+$fixtureRoot = New-MvpTestFixtureRoot -Prefix 'zircon_mvp_staging_release'
 
 try {
     $stageRoot = Join-Path $fixtureRoot 'stage'
@@ -109,10 +112,10 @@ try {
 finally {
     if (Test-Path -LiteralPath $fixtureRoot) {
         $resolvedFixtureRoot = [IO.Path]::GetFullPath($fixtureRoot)
-        $resolvedTempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([char[]]@('\', '/')) + [IO.Path]::DirectorySeparatorChar
-        if (-not $resolvedFixtureRoot.StartsWith($resolvedTempRoot, [StringComparison]::OrdinalIgnoreCase)) {
-            throw "Refusing to remove staging release fixture outside the temp root: $resolvedFixtureRoot"
+        $fixtureDisplayPattern = '^[D-F]:\\ZirconBuilds\\mvp-test-fixtures-' + [regex]::Escape([string]$PID) + '\\zircon_mvp_staging_release-[0-9a-f]{32}$'
+        if ($resolvedFixtureRoot -notmatch $fixtureDisplayPattern) {
+            throw "Refusing to remove staging release fixture outside the approved fixture root: $resolvedFixtureRoot"
         }
-        [IO.Directory]::Delete((Resolve-ZirconWindowsPath -Path $resolvedFixtureRoot).OperationalPath, $true)
+        Remove-MvpTestFixtureRoot -Path (Resolve-ZirconWindowsPath -Path $resolvedFixtureRoot).OperationalPath
     }
 }

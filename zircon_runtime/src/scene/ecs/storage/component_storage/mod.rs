@@ -3,9 +3,10 @@ mod entry;
 mod location;
 mod sparse;
 mod store;
-mod table;
 
-pub(crate) use entry::StoredComponent;
+pub(crate) use entry::{
+    PreflightedTransferredComponentRow, StoredComponent, TransferredComponentRow,
+};
 pub use location::ComponentStorageLocation;
-pub(crate) use store::PreflightedComponentInsert;
 pub use store::ComponentStorage;
+pub(crate) use store::PreflightedComponentInsert;

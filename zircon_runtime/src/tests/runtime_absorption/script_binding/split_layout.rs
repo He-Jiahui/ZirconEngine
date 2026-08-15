@@ -106,7 +106,7 @@ fn assert_line_budget() {
     for (label, source, max_lines) in [
         ("parent route owner", PARENT_SOURCE, 18),
         ("inventory child", INVENTORY_SOURCE, 130),
-        ("mirror docs child", MIRROR_DOCS_SOURCE, 130),
+        ("mirror docs child", MIRROR_DOCS_SOURCE, 140),
         ("gameplay host child", GAMEPLAY_HOST_SOURCE, 80),
         ("support child", SUPPORT_SOURCE, 50),
         ("split layout guard", SPLIT_LAYOUT_SOURCE, 230),

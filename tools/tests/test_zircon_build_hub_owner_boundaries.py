@@ -2,6 +2,8 @@ import os
 import tempfile
 import types
 import unittest
+from unittest import mock
+from uuid import uuid4
 from pathlib import Path
 
 
@@ -44,6 +46,10 @@ class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
             )
             self.assertIn(f"{constant_name} =", hub_text)
 
+        self.assertIn("def hub_cargo_environment(", hub_text)
+        self.assertIn("zircon_build_cargo_environment", hub_text)
+        self.assertIn("managed_cargo_environment", hub_text)
+
         self.assertLessEqual(
             len(hub_text.splitlines()),
             180,
@@ -53,10 +59,12 @@ class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
     def test_hub_owner_preserves_staging_semantics(self):
         from tools.zircon_build_hub import (
             build_hub,
+            hub_cargo_environment,
             stage_hub_tauri_outputs,
         )
 
-        with tempfile.TemporaryDirectory() as tmp:
+        managed_temp_root = r"D:\ZirconBuilds" if os.name == "nt" else None
+        with tempfile.TemporaryDirectory(dir=managed_temp_root) as tmp:
             root = Path(tmp)
             repo_root = root / "repo"
             target_dir = root / "targets" / "hub"
@@ -90,12 +98,81 @@ class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
                 ),
             )
 
+            cargo_environment = hub_cargo_environment(target_dir)
+            self.assertEqual(str(target_dir.resolve()), cargo_environment["CARGO_TARGET_DIR"])
+            self.assertEqual(
+                str(target_dir.resolve() / "cargo-home"),
+                cargo_environment["CARGO_HOME"],
+            )
+            self.assertEqual(
+                str(target_dir.resolve() / "sccache"),
+                cargo_environment["SCCACHE_DIR"],
+            )
+            for name in ("TEMP", "TMP", "TMPDIR"):
+                self.assertEqual(
+                    str(target_dir.resolve() / "temporary"), cargo_environment[name]
+                )
+
             config.mode = "profiling"
             with self.assertRaisesRegex(
                 SystemExit,
                 "--mode profiling is not supported for the hub/Tauri target",
             ):
                 build_hub(config)
+
+    def test_hub_dry_run_does_not_create_managed_cargo_directories(self):
+        from tools.zircon_build_hub import run_tauri_build
+
+        root = Path(r"D:\ZirconBuilds") / f"hub-dry-run-{uuid4().hex}"
+        target_dir = root / "targets" / "hub"
+        config = types.SimpleNamespace(
+            repo_root=root,
+            cargo="cargo",
+            locked=False,
+            jobs="",
+            mode="debug",
+            dry_run=True,
+        )
+        with (
+            mock.patch(
+                "tools.zircon_build_hub.tauri_cli_path",
+                return_value=root / "tauri.js",
+            ),
+            mock.patch("tools.zircon_build_hub.hub_cargo_environment") as environment,
+        ):
+            run_tauri_build(config, target_dir)
+
+        environment.assert_not_called()
+        self.assertFalse(target_dir.exists())
+
+    @unittest.skipUnless(os.name == "nt", "Windows staging roots are Windows-only")
+    def test_hub_tauri_build_rejects_unmanaged_target_before_process_start(self):
+        from tools.zircon_build_hub import run_tauri_build
+
+        root = Path(r"C:\ZirconBuilds") / f"hub-must-not-be-created-{uuid4().hex}"
+        target_dir = root / "targets" / "hub"
+        config = types.SimpleNamespace(
+            repo_root=root,
+            cargo="cargo",
+            locked=False,
+            jobs="",
+            mode="debug",
+            dry_run=False,
+        )
+
+        self.assertFalse(root.exists())
+        with (
+            mock.patch(
+                "tools.zircon_build_hub.tauri_cli_path",
+                return_value=root / "tauri.js",
+            ),
+            mock.patch("tools.zircon_build_hub.subprocess.run") as run,
+            self.assertRaisesRegex(ValueError, "approved build root"),
+        ):
+            run_tauri_build(config, target_dir)
+
+        run.assert_not_called()
+        self.assertFalse(root.exists())
 
 
 if __name__ == "__main__":

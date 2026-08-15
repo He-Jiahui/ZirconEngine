@@ -2,6 +2,7 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, Instant};
+use zircon_runtime::core::framework::channel::ChannelWakeCallback;
 
 use super::{EditorAssetChangeKind, EditorAssetChangeRecord};
 
@@ -43,29 +44,37 @@ struct PendingEditorAssetChange {
 struct EditorAssetChangeMailbox {
     order: VecDeque<EditorAssetChangeKey>,
     pending: HashMap<EditorAssetChangeKey, PendingEditorAssetChange>,
+    wake: Option<ChannelWakeCallback>,
 }
 
 impl EditorAssetChangeMailbox {
-    fn push(&mut self, change: Arc<EditorAssetChangeRecord>, publish_sequence: u64) {
+    fn with_wake(wake: ChannelWakeCallback) -> Self {
+        Self {
+            wake: Some(wake),
+            ..Default::default()
+        }
+    }
+
+    fn push(&mut self, change: Arc<EditorAssetChangeRecord>, publish_sequence: u64) -> bool {
         let key = EditorAssetChangeKey::from_change(&change);
         if let Some(current) = self.pending.get_mut(&key) {
             if change.catalog_revision < current.change.catalog_revision
                 || (change.catalog_revision == current.change.catalog_revision
                     && publish_sequence <= current.publish_sequence)
             {
-                return;
+                return false;
             }
             current.change = change;
             current.publish_sequence = publish_sequence;
             current.queued_at = Instant::now();
             self.order.retain(|pending_key| pending_key != &key);
             self.order.push_back(key);
-            return;
+            return true;
         }
 
         if self.pending.len() >= MAX_PENDING_EDITOR_ASSET_CHANGES {
             self.collapse_to_latest_catalog_generation(change, publish_sequence);
-            return;
+            return true;
         }
 
         self.order.push_back(key.clone());
@@ -77,6 +86,7 @@ impl EditorAssetChangeMailbox {
                 queued_at: Instant::now(),
             },
         );
+        true
     }
 
     fn collapse_to_latest_catalog_generation(
@@ -182,7 +192,21 @@ impl Default for EditorAssetChangeHub {
 
 impl EditorAssetChangeHub {
     pub(crate) fn subscribe(&self) -> EditorAssetChangeSubscription {
-        let mailbox = Arc::new(Mutex::new(EditorAssetChangeMailbox::default()));
+        self.subscribe_internal(EditorAssetChangeMailbox::default())
+    }
+
+    pub(crate) fn subscribe_with_wake(
+        &self,
+        wake: ChannelWakeCallback,
+    ) -> EditorAssetChangeSubscription {
+        self.subscribe_internal(EditorAssetChangeMailbox::with_wake(wake))
+    }
+
+    fn subscribe_internal(
+        &self,
+        mailbox: EditorAssetChangeMailbox,
+    ) -> EditorAssetChangeSubscription {
+        let mailbox = Arc::new(Mutex::new(mailbox));
         let mut subscribers = self.lock_subscribers();
         subscribers.retain(|subscriber| subscriber.strong_count() > 0);
         subscribers.push(Arc::downgrade(&mailbox));
@@ -213,10 +237,18 @@ impl EditorAssetChangeHub {
         };
 
         for mailbox in targets {
-            mailbox
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner())
-                .push(Arc::clone(&change), publish_sequence);
+            let wake = {
+                let mut mailbox = mailbox
+                    .lock()
+                    .unwrap_or_else(|poisoned| poisoned.into_inner());
+                mailbox
+                    .push(Arc::clone(&change), publish_sequence)
+                    .then(|| mailbox.wake.clone())
+                    .flatten()
+            };
+            if let Some(wake) = wake {
+                wake();
+            }
         }
     }
 
@@ -231,6 +263,7 @@ impl EditorAssetChangeHub {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
 
     use super::{
@@ -291,6 +324,25 @@ mod tests {
         let left = left.try_recv().expect("left delivery");
         let right = right.try_recv().expect("right delivery");
         assert!(Arc::ptr_eq(&left.change, &right.change));
+    }
+
+    #[test]
+    fn wake_subscription_notifies_after_a_change_enters_its_mailbox() {
+        let hub = EditorAssetChangeHub::default();
+        let wake_count = Arc::new(AtomicUsize::new(0));
+        let wake_count_for_callback = Arc::clone(&wake_count);
+        let subscription = hub.subscribe_with_wake(Arc::new(move || {
+            wake_count_for_callback.fetch_add(1, Ordering::Relaxed);
+        }));
+
+        hub.publish(change(
+            EditorAssetChangeKind::PreviewChanged,
+            7,
+            Some("asset-a"),
+        ));
+
+        assert_eq!(wake_count.load(Ordering::Relaxed), 1);
+        assert_eq!(subscription.pending_len(), 1);
     }
 
     #[test]

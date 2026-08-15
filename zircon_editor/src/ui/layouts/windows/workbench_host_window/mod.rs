@@ -16,7 +16,9 @@ mod pane_payload;
 mod pane_payload_builders;
 mod pane_presentation;
 mod pane_projection;
+mod projection_cache;
 mod scene_projection;
+mod shell_content_selection;
 mod shell_presentation;
 
 pub(crate) use floating_windows::{
@@ -48,7 +50,14 @@ pub(crate) use pane_presentation::{
     PaneEmptyStatePresentation, PanePayloadBuildContext, PanePresentation, PaneShellPresentation,
 };
 pub(crate) use pane_projection::{
-    document_pane, document_pane_with_template_v2_data, side_pane_with_template_v2_data,
+    blank_pane, document_pane, document_pane_with_template_v2_data, find_tab_snapshot,
+    side_pane_with_template_v2_data,
+};
+pub(crate) use projection_cache::HostChromeProjectionCache;
+pub(crate) use scene_projection::{
+    build_host_dock_surface_patch, build_host_scene_data_with_cache, HostDockSurfaceId,
+    HostDockSurfacePatch,
 };
 pub(crate) use scene_projection::{build_host_scene_data, build_native_floating_surface_data};
-pub(crate) use shell_presentation::ShellPresentation;
+pub(crate) use shell_content_selection::{document_pane_selection, side_pane_selection};
+pub(crate) use shell_presentation::{build_host_window_shell_data, ShellPresentation};

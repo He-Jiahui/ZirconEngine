@@ -1,5 +1,5 @@
 use super::super::super::data::TemplatePaneNodeData;
-use super::super::style_selector::{WorkbenchTextFieldStyle, select_workbench_text_field_style};
+use super::super::style_selector::{select_workbench_text_field_style, WorkbenchTextFieldStyle};
 use super::text::field_label_is_placeholder;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn field_opacity(

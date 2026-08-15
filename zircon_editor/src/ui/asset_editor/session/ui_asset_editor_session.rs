@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{cell::RefCell, collections::BTreeMap};
 
 use crate::ui::asset_editor::{
     UiAssetEditorDiagnostic, UiAssetEditorRoute, UiDesignerPreviewInteractDispatch,
@@ -17,12 +17,14 @@ use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetError, UiV2As
 use super::{
     command::UiAssetEditorTreeEdit,
     hierarchy_projection::selection_for_node,
-    palette::{PaletteInsertMode, UiAssetPaletteEntry},
+    palette::{PaletteInsertMode, UiAssetPaletteCatalog, UiAssetPaletteEntry},
     palette_target_chooser::UiAssetPaletteTargetChooser,
     preview_host::UiAssetPreviewHost,
     preview_mock::UiAssetPreviewMockState,
+    preview_projection::UiAssetPreviewHitIndex,
     session_state::UiAssetCompilerImports,
     source_buffer::UiAssetSourceBuffer,
+    source_sync::UiAssetSourceOutlineCache,
     tree_editing::{
         unwrap_selected_node, wrap_selected_node, UiTreeMoveDirection, UiTreeReparentDirection,
     },
@@ -92,6 +94,10 @@ pub struct UiAssetEditorSession {
     pub(super) route: UiAssetEditorRoute,
     pub(super) source_schema: UiAssetSourceSchema,
     pub(super) source_buffer: UiAssetSourceBuffer,
+    // Invalid source continues to project the last valid snapshot without evicting the edit buffer index.
+    pub(super) source_outline_cache: RefCell<UiAssetSourceOutlineCache>,
+    pub(super) last_valid_source_outline_cache: RefCell<UiAssetSourceOutlineCache>,
+    pub(super) last_valid_source_generation: u64,
     pub(super) last_valid_source_text: String,
     pub(super) last_valid_document: UiAssetDocument,
     pub(super) last_valid_v2_document: Option<UiV2AssetDocument>,
@@ -102,6 +108,9 @@ pub struct UiAssetEditorSession {
     pub(super) resource_resolver: UiResourcePathResolver,
     pub(super) localization_catalog: UiLocalizationTableCatalog,
     pub(super) preview_host: Option<UiAssetPreviewHost>,
+    pub(super) preview_hit_index: Option<UiAssetPreviewHitIndex>,
+    #[cfg(test)]
+    pub(super) preview_hit_index_build_count: usize,
     pub(super) undo_stack: UiAssetEditorUndoStack,
     pub(super) diagnostics: Vec<String>,
     pub(super) structured_diagnostics: Vec<UiAssetEditorDiagnostic>,
@@ -122,6 +131,9 @@ pub struct UiAssetEditorSession {
     pub(super) selected_slot_semantic_path: Option<String>,
     pub(super) selected_layout_semantic_path: Option<String>,
     pub(super) selected_locale_preview: String,
+    pub(super) palette_catalog: UiAssetPaletteCatalog,
+    #[cfg(test)]
+    pub(super) palette_catalog_build_count: usize,
     pub(super) selected_palette_index: Option<usize>,
     pub(super) selected_palette_entry: Option<UiAssetPaletteEntry>,
     pub(super) palette_target_chooser: Option<UiAssetPaletteTargetChooser>,

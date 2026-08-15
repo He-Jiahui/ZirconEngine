@@ -1,8 +1,7 @@
-use crate::scene::components::Name;
-use crate::scene::ecs::{
-    ArchetypeId, ChangeTick, Component, ComponentId, ComponentStorage, ComponentStorageLocation,
-    ComponentTicks, EntityLocation, EntityRegistry, InternalEntity, StorageType,
-};
+use std::sync::{Arc, Mutex};
+
+use crate::scene::components::{CameraComponent, Name};
+use crate::scene::ecs::{ArchetypeId, Component, EntityLocation, EntityRegistry, StorageType};
 use crate::scene::{NodeKind, World};
 
 #[derive(Debug, PartialEq, Eq)]
@@ -12,6 +11,36 @@ struct TestComponent(&'static str);
 struct StoredHealth(u32);
 
 impl Component for StoredHealth {}
+
+#[derive(Debug, PartialEq, Eq)]
+struct SparseMana(u32);
+
+impl Component for SparseMana {
+    const STORAGE_TYPE: StorageType = StorageType::SparseSet;
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct DetachedProbe(u32);
+
+mod component_storage;
+mod despawn_contract;
+
+#[test]
+fn archetype_record_is_the_only_dense_table_row_authority() {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let record_source =
+        std::fs::read_to_string(manifest_root.join("src/scene/ecs/archetype/record.rs")).unwrap();
+    let storage_source = std::fs::read_to_string(
+        manifest_root.join("src/scene/ecs/storage/component_storage/store.rs"),
+    )
+    .unwrap();
+
+    assert!(record_source.contains("table: ArchetypeTable"));
+    assert!(record_source.contains("self.table.entities()"));
+    assert!(!record_source.contains("entities: Vec<EntityId>"));
+    assert!(!storage_source.contains("table_components:"));
+    assert!(!storage_source.contains("TableComponentStorage"));
+}
 
 #[test]
 fn entity_registry_reuses_slots_without_accepting_stale_generations() {
@@ -75,7 +104,7 @@ fn world_maps_stable_scene_ids_to_internal_generational_entities() {
         cube
     );
 
-    assert!(world.remove_entity(cube));
+    world.remove_entity(cube).unwrap();
     assert!(!world.contains_entity(cube));
     assert!(!world.contains_internal_entity(internal));
 
@@ -96,7 +125,7 @@ fn despawned_entity_handle_is_rejected_by_world_access() {
     let stale_internal = world.internal_entity(entity).unwrap();
 
     assert_eq!(world.get::<StoredHealth>(entity), Some(&StoredHealth(10)));
-    assert!(world.remove_entity(entity));
+    world.remove_entity(entity).unwrap();
     assert!(!world.contains_entity(entity));
     assert_eq!(world.internal_entity(entity), None);
     assert_eq!(world.get::<StoredHealth>(entity), None);
@@ -144,7 +173,7 @@ fn stable_entity_location_survives_archetype_move_and_invalidates_on_despawn() {
     assert_eq!(after_remove.internal, before.internal);
     assert_eq!(world.get::<StoredHealth>(entity), None);
 
-    assert!(world.remove_entity(entity));
+    world.remove_entity(entity).unwrap();
     assert_eq!(world.internal_entity_location(entity), None);
     assert!(!world.contains_internal_entity(before.internal));
 }
@@ -165,7 +194,7 @@ fn despawn_updates_only_the_swapped_archetype_location() {
     let swapped_before = world.internal_entity_location(swapped).unwrap().location;
 
     assert_eq!(removed_location.archetype_id, swapped_before.archetype_id);
-    assert!(world.remove_entity(removed));
+    world.remove_entity(removed).unwrap();
 
     let swapped_after = world.internal_entity_location(swapped).unwrap().location;
     assert_eq!(swapped_after.archetype_id, removed_location.archetype_id);
@@ -175,37 +204,324 @@ fn despawn_updates_only_the_swapped_archetype_location() {
 }
 
 #[test]
-fn world_despawn_uses_known_archetype_location_without_full_rebuild() {
-    let hierarchy = include_str!("../world/hierarchy.rs");
-    let remove_entity = hierarchy
-        .split("pub fn remove_entity(&mut self, entity: EntityId) -> bool")
-        .nth(1)
-        .and_then(|text| text.split("pub fn remove_entity_recursive").next())
-        .expect("read World::remove_entity body");
+fn swap_removed_dense_entity_storage_preserves_stable_world_order_across_query_clone_and_serde() {
+    let mut world = World::empty();
+    let first = world.spawn((Name("First".to_string()),)).unwrap();
+    let middle = world.spawn((Name("Middle".to_string()),)).unwrap();
+    let last = world.spawn((Name("Last".to_string()),)).unwrap();
 
-    assert!(
-        remove_entity.contains("self.remove_entity_from_archetype(entity);")
-            && !remove_entity.contains("self.refresh_stable_entity_locations();"),
-        "despawn must remove from the known archetype row and repair only the swapped entity instead of rebuilding every archetype"
+    world.remove_entity(first).unwrap();
+
+    let query = world.query::<&Name>();
+    assert_eq!(
+        query
+            .iter(&world)
+            .map(|name| name.0.clone())
+            .collect::<Vec<_>>(),
+        vec!["Middle", "Last"]
+    );
+
+    let cloned = world.clone();
+    let clone_query = cloned.query::<&Name>();
+    assert_eq!(
+        clone_query
+            .iter(&cloned)
+            .map(|name| name.0.clone())
+            .collect::<Vec<_>>(),
+        vec!["Middle", "Last"]
+    );
+
+    let restored: World = serde_json::from_str(&serde_json::to_string(&world).unwrap()).unwrap();
+    let restored_query = restored.query::<&Name>();
+    assert_eq!(
+        restored_query
+            .iter(&restored)
+            .map(|name| name.0.clone())
+            .collect::<Vec<_>>(),
+        vec!["Middle", "Last"]
+    );
+    assert!(!restored.contains_entity(first));
+    assert!(restored.contains_entity(middle));
+    assert!(restored.contains_entity(last));
+}
+
+#[test]
+fn clone_and_serde_projection_rebuild_append_one_final_archetype_row_per_entity() {
+    let mut world = World::empty();
+    let first = world.spawn((Name("First".to_string()),)).unwrap();
+    let second = world.spawn((Name("Second".to_string()),)).unwrap();
+    world
+        .set_dynamic_component(
+            first,
+            "test.persisted_presence",
+            serde_json::json!({ "x": 1 }),
+        )
+        .unwrap();
+    world.reset_ecs_frame_performance_diagnostics();
+
+    let cloned = world.clone();
+    assert_eq!(
+        cloned
+            .ecs_frame_performance_diagnostics()
+            .archetype_index
+            .row_appends,
+        2
+    );
+    assert_eq!(cloned.get::<Name>(first).unwrap().0, "First");
+    assert_eq!(cloned.get::<Name>(second).unwrap().0, "Second");
+    assert_eq!(
+        cloned.dynamic_component(first, "test.persisted_presence"),
+        Some(&serde_json::json!({ "x": 1 }))
+    );
+
+    let restored: World = serde_json::from_str(&serde_json::to_string(&world).unwrap()).unwrap();
+    assert_eq!(
+        restored
+            .ecs_frame_performance_diagnostics()
+            .archetype_index
+            .row_appends,
+        2
+    );
+    assert_eq!(restored.get::<Name>(first).unwrap().0, "First");
+    assert_eq!(restored.get::<Name>(second).unwrap().0, "Second");
+    assert_eq!(
+        restored.dynamic_component(first, "test.persisted_presence"),
+        Some(&serde_json::json!({ "x": 1 }))
     );
 }
 
 #[test]
-fn world_despawn_removes_only_components_in_the_current_archetype_signature() {
-    let hierarchy = include_str!("../world/hierarchy.rs");
-    let remove_entity = hierarchy
-        .split("pub fn remove_entity(&mut self, entity: EntityId) -> bool")
-        .nth(1)
-        .and_then(|text| text.split("pub fn remove_entity_recursive").next())
-        .expect("read World::remove_entity body");
+fn detached_subtree_restores_table_sparse_hierarchy_and_stable_order_without_world_clone() {
+    let mut world = World::empty();
+    let before = world.spawn((Name("Before".to_string()),)).unwrap();
+    let parent = world
+        .spawn((Name("Parent".to_string()), StoredHealth(10), SparseMana(20)))
+        .unwrap();
+    let child = world
+        .spawn((Name("Child".to_string()), StoredHealth(30), SparseMana(40)))
+        .unwrap();
+    let after = world.spawn((Name("After".to_string()),)).unwrap();
+    world.set_parent_checked(child, Some(parent)).unwrap();
+    world
+        .set_dynamic_component(
+            parent,
+            "test.detached_payload",
+            serde_json::json!({ "value": 9 }),
+        )
+        .unwrap();
+    let observer_values = Arc::new(Mutex::new(Vec::new()));
+    let observer_values_for_callback = Arc::clone(&observer_values);
+    world.observe_entity_event::<DetachedProbe>(child, move |_world, entity, event| {
+        observer_values_for_callback
+            .lock()
+            .unwrap()
+            .push((entity, event.0));
+    });
+    let parent_health_ticks = world
+        .component_change_ticks::<StoredHealth>(parent)
+        .unwrap();
+    let child_sparse_ticks = world.component_change_ticks::<SparseMana>(child).unwrap();
+    world.reset_ecs_frame_performance_diagnostics();
 
-    assert!(
-        remove_entity.contains("let component_ids = self.entity_archetype_component_ids(entity);")
-            && remove_entity.contains(".remove_entity_components(internal, &component_ids);")
-            && !remove_entity.contains("component_ids_for_entity(internal)")
-            && !remove_entity.contains("component_storage.remove_entity(internal)"),
-        "despawn must use the current archetype signature instead of scanning every registered component storage"
+    let batch = world.remove_entity_recursive(parent).unwrap();
+
+    let detach_diagnostics = world
+        .ecs_frame_performance_diagnostics()
+        .detached_entity_batches;
+    assert_eq!(detach_diagnostics.commit_count, 1);
+    assert_eq!(detach_diagnostics.rejected_preflights, 0);
+    assert_eq!(detach_diagnostics.full_world_clone_bytes, 0);
+    assert_eq!(detach_diagnostics.node_record_clone_bytes, 0);
+    assert_eq!(detach_diagnostics.rollback_bytes, 0);
+    assert_eq!(detach_diagnostics.moved_rows, 2);
+    assert_eq!(detach_diagnostics.moved_dynamic_components, 1);
+    assert_eq!(detach_diagnostics.archetype_publications, 2);
+    assert_eq!(detach_diagnostics.generation_advances, 1);
+    assert_eq!(detach_diagnostics.ordered_removals, 2);
+    assert_eq!(detach_diagnostics.hierarchy_index_lookups, 2);
+    assert!(detach_diagnostics.moved_table_components >= 2);
+    assert!(detach_diagnostics.moved_sparse_components >= 2);
+    assert!(detach_diagnostics.lifecycle_events >= 4);
+
+    assert!(!world.contains_entity(parent));
+    assert!(!world.contains_entity(child));
+    assert_eq!(
+        world
+            .query::<&Name>()
+            .iter(&world)
+            .map(|name| name.0.as_str())
+            .collect::<Vec<_>>(),
+        vec!["Before", "After"]
     );
+
+    world.restore_detached_entity_batch(batch).unwrap();
+
+    let restored_diagnostics = world
+        .ecs_frame_performance_diagnostics()
+        .detached_entity_batches;
+    assert_eq!(restored_diagnostics.commit_count, 2);
+    assert_eq!(restored_diagnostics.moved_rows, 4);
+    assert_eq!(restored_diagnostics.moved_dynamic_components, 2);
+    assert_eq!(restored_diagnostics.archetype_publications, 4);
+    assert_eq!(restored_diagnostics.generation_advances, 2);
+    assert_eq!(restored_diagnostics.ordered_removals, 2);
+
+    assert_eq!(world.get::<StoredHealth>(parent), Some(&StoredHealth(10)));
+    assert_eq!(world.get::<SparseMana>(parent), Some(&SparseMana(20)));
+    assert_eq!(world.get::<StoredHealth>(child), Some(&StoredHealth(30)));
+    assert_eq!(world.get::<SparseMana>(child), Some(&SparseMana(40)));
+    assert_eq!(
+        world.dynamic_component(parent, "test.detached_payload"),
+        Some(&serde_json::json!({ "value": 9 }))
+    );
+    assert_eq!(
+        world.component_change_ticks::<StoredHealth>(parent),
+        Some(parent_health_ticks)
+    );
+    assert_eq!(
+        world.component_change_ticks::<SparseMana>(child),
+        Some(child_sparse_ticks)
+    );
+    assert_eq!(world.parent_of(child), Some(parent));
+    world.trigger_entity_event(child, DetachedProbe(17));
+    assert_eq!(*observer_values.lock().unwrap(), vec![(child, 17)]);
+    assert_eq!(
+        world
+            .query::<&Name>()
+            .iter(&world)
+            .map(|name| name.0.as_str())
+            .collect::<Vec<_>>(),
+        vec!["Before", "Parent", "Child", "After"]
+    );
+    assert!(world.contains_entity(before));
+    assert!(world.contains_entity(after));
+}
+
+#[test]
+fn detached_active_camera_uses_indexed_fallback_and_restores_original_owner() {
+    let mut world = World::empty();
+    let first_camera = world
+        .spawn((Name("First Camera".to_string()), CameraComponent::default()))
+        .unwrap();
+    let active_camera = world
+        .spawn((
+            Name("Active Camera".to_string()),
+            CameraComponent::default(),
+        ))
+        .unwrap();
+    world.set_active_camera(active_camera);
+
+    let batch = world.remove_entity_recursive(active_camera).unwrap();
+
+    assert_eq!(world.active_camera(), first_camera);
+    world.restore_detached_entity_batch(batch).unwrap();
+    assert_eq!(world.active_camera(), active_camera);
+}
+
+#[test]
+fn restoring_non_camera_batch_does_not_overwrite_new_active_camera_selection() {
+    let mut world = World::empty();
+    let first_camera = world
+        .spawn((Name("First Camera".to_string()), CameraComponent::default()))
+        .unwrap();
+    let second_camera = world
+        .spawn((
+            Name("Second Camera".to_string()),
+            CameraComponent::default(),
+        ))
+        .unwrap();
+    let detached = world.spawn((Name("Detached".to_string()),)).unwrap();
+    world.set_active_camera(first_camera);
+
+    let batch = world.remove_entity_recursive(detached).unwrap();
+    world.set_active_camera(second_camera);
+    world.restore_detached_entity_batch(batch).unwrap();
+
+    assert_eq!(world.active_camera(), second_camera);
+}
+
+#[test]
+fn detached_subtree_roots_are_deduplicated_and_ancestor_covered_once() {
+    let mut world = World::empty();
+    let root = world.spawn((Name("Root".to_string()),)).unwrap();
+    let child = world.spawn((Name("Child".to_string()),)).unwrap();
+    let grandchild = world.spawn((Name("Grandchild".to_string()),)).unwrap();
+    world.set_parent_checked(child, Some(root)).unwrap();
+    world.set_parent_checked(grandchild, Some(child)).unwrap();
+    world.reset_ecs_frame_performance_diagnostics();
+
+    let batch = world
+        .remove_entity_subtrees([child, root, child, grandchild])
+        .unwrap();
+
+    assert_eq!(
+        batch.entity_ids().collect::<Vec<_>>(),
+        vec![root, child, grandchild]
+    );
+    let diagnostics = world
+        .ecs_frame_performance_diagnostics()
+        .detached_entity_batches;
+    assert_eq!(diagnostics.moved_rows, 3);
+    assert_eq!(diagnostics.ordered_removals, 3);
+    assert_eq!(diagnostics.archetype_publications, 3);
+    assert_eq!(diagnostics.generation_advances, 1);
+
+    world.restore_detached_entity_batch(batch).unwrap();
+    assert_eq!(world.parent_of(child), Some(root));
+    assert_eq!(world.parent_of(grandchild), Some(child));
+}
+
+#[test]
+fn detached_subtree_uses_hierarchy_postorder_when_child_is_older_than_parent() {
+    let mut world = World::empty();
+    let older_child = world.spawn((Name("Older Child".to_string()),)).unwrap();
+    let newer_parent = world.spawn((Name("Newer Parent".to_string()),)).unwrap();
+    world
+        .set_parent_checked(older_child, Some(newer_parent))
+        .unwrap();
+
+    let batch = world.remove_entity_recursive(newer_parent).unwrap();
+
+    assert_eq!(
+        batch.entity_ids().collect::<Vec<_>>(),
+        vec![older_child, newer_parent]
+    );
+    assert!(world.is_empty());
+    world.restore_detached_entity_batch(batch).unwrap();
+    assert_eq!(world.parent_of(older_child), Some(newer_parent));
+}
+
+#[test]
+fn rejected_detached_batch_returns_ownership_without_mutating_existing_entity() {
+    let mut world = World::empty();
+    let entity = world
+        .spawn((Name("Detached".to_string()), StoredHealth(7)))
+        .unwrap();
+    let batch = world.remove_entity_recursive(entity).unwrap();
+    world
+        .spawn_at(entity, (Name("Conflict".to_string()), StoredHealth(9)))
+        .unwrap();
+    world.reset_ecs_frame_performance_diagnostics();
+
+    let error = world.restore_detached_entity_batch(batch).unwrap_err();
+    assert!(matches!(
+        error.error(),
+        crate::scene::SceneError::DuplicateEntity { entity: duplicate } if *duplicate == entity
+    ));
+    let (_, batch) = error.into_parts();
+    assert_eq!(world.get::<StoredHealth>(entity), Some(&StoredHealth(9)));
+    let rejected = world
+        .ecs_frame_performance_diagnostics()
+        .detached_entity_batches;
+    assert_eq!(rejected.rejected_preflights, 1);
+    assert_eq!(rejected.commit_count, 0);
+    assert_eq!(rejected.rollback_bytes, 0);
+    assert_eq!(rejected.full_world_clone_bytes, 0);
+    assert_eq!(rejected.node_record_clone_bytes, 0);
+
+    world.remove_entity(entity).unwrap();
+    world.restore_detached_entity_batch(batch).unwrap();
+    assert_eq!(world.get::<StoredHealth>(entity), Some(&StoredHealth(7)));
 }
 
 #[test]
@@ -242,7 +558,7 @@ fn empty_entity_archetype_placement_rejects_a_preallocated_but_unowned_locator()
 
 #[test]
 fn explicit_empty_spawn_does_not_rebuild_all_archetypes() {
-    let source = include_str!("../world/typed_api.rs");
+    let source = include_str!("../world/typed_api/bundle_entry.rs");
     let spawn_empty = source
         .split("pub(crate) fn spawn_empty_at(")
         .nth(1)
@@ -250,9 +566,10 @@ fn explicit_empty_spawn_does_not_rebuild_all_archetypes() {
         .expect("read World::spawn_empty_at body");
 
     assert!(
-        spawn_empty.contains("self.place_empty_entity_in_archetype(entity);")
+        spawn_empty.contains("self.register_stable_entity(entity)?;")
+            && !spawn_empty.contains("place_empty_entity_in_archetype")
             && !spawn_empty.contains("self.refresh_stable_entity_locations();"),
-        "explicit empty spawn must add only the new entity to the empty archetype instead of rebuilding the world index"
+        "stable entity registration must publish the only empty-archetype row without a second assignment facade"
     );
 }
 
@@ -280,7 +597,7 @@ fn world_contains_entity_uses_entity_registry_membership() {
 }
 
 #[test]
-fn stable_entity_registration_uses_append_row_without_entity_scan() {
+fn stable_entity_registration_appends_the_empty_archetype_row_before_publishing_location() {
     let source = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("src")
@@ -297,16 +614,23 @@ fn stable_entity_registration_uses_append_row_without_entity_scan() {
     let registration_compact = registration.split_whitespace().collect::<String>();
 
     assert!(
-        registration.contains("let row = self.entities.len();")
+        registration_compact.contains(
+            "letinternal=self.entity_registry.spawn(entity,EntityLocation::new(ArchetypeId::EMPTY,usize::MAX))?;"
+        )
+            && registration.contains("let row = self.append_empty_archetype_row(entity);")
             && registration_compact.contains(
-                "letinternal=self.entity_registry.spawn(entity,EntityLocation::new(ArchetypeId::EMPTY,row))?;"
+                "self.entity_registry.set_location(entity,EntityLocation::new(ArchetypeId::EMPTY,row))"
+            )
+            && registration.contains("self.stable_query_order.register(entity, internal);")
+            && registration_compact.contains(
+                "self.stable_query_order.move_to(entity,EntityLocation::new(ArchetypeId::EMPTY,row));"
             )
             && registration_compact.contains("Ok(internal)")
             && !registration.contains(".iter()")
             && !registration.contains(".position(|candidate| *candidate == entity)")
             && !registration.contains("unwrap_or(self.entities.len())")
             && !registration.contains(".map_err("),
-        "stable entity registration must use the append row and typed registry-spawn propagation"
+        "stable entity registration must materialize the empty table row before publishing the only dense locator"
     );
     assert!(
         !source.contains("fn entity_registry_error_to_string"),
@@ -315,30 +639,40 @@ fn stable_entity_registration_uses_append_row_without_entity_scan() {
 }
 
 #[test]
-fn normal_component_archetype_updates_use_the_current_signature_without_storage_scans() {
+fn dynamic_component_membership_uses_explicit_row_transitions_without_facades() {
     let source = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("src")
             .join("scene")
             .join("world")
-            .join("identity.rs"),
+            .join("typed_api.rs"),
     )
     .unwrap();
-    let component_update = source
-        .split("fn update_entity_archetype_component_membership")
+    let insert = source
+        .split("pub(super) fn insert_dynamic_component_presence")
         .nth(1)
         .and_then(|text| {
-            text.split("fn assign_entity_archetype_from_component_storage")
+            text.split("pub(super) fn remove_dynamic_component_presence")
                 .next()
         })
-        .expect("read normal component archetype update body");
+        .expect("read dynamic component presence insert body");
+    let remove = source
+        .split("pub(super) fn remove_dynamic_component_presence")
+        .nth(1)
+        .and_then(|text| {
+            text.split("pub(super) fn rebuild_typed_component_presence")
+                .next()
+        })
+        .expect("read dynamic component presence removal body");
 
     assert!(
-        component_update.contains("let Some(previous) = self.archetype_location_for_entity(entity)")
-            && component_update.contains("self.archetype_index.signature(previous.0).cloned()")
-            && component_update.contains("self.assign_entity_archetype_with_signature(")
-            && !component_update.contains("component_ids_for_entity_by_storage"),
-        "normal component membership updates must relocate from the known signature instead of scanning every component storage"
+        insert.contains("self.begin_component_row(entity)")
+            && insert.contains("self.commit_component_row(entity, row, false)")
+            && remove.contains(".with_component_removed(component_id, StorageType::SparseSet)")
+            && remove.contains("self.transition_entity_archetype_row(")
+            && !source.contains("add_component_to_entity_archetype")
+            && !source.contains("remove_component_from_entity_archetype"),
+        "dynamic sparse membership must publish explicit complete-row transitions without signature-assignment facades"
     );
 }
 
@@ -445,212 +779,5 @@ fn internal_identity_map_is_rebuilt_after_scene_roundtrip_without_serializing_ru
     assert_eq!(
         loaded.internal_entity_location(imported).unwrap().stable_id,
         imported
-    );
-}
-
-#[test]
-fn component_storage_supports_table_swap_remove_and_sparse_remove() {
-    let table_component = ComponentId::new(1);
-    let sparse_component = ComponentId::new(2);
-    let first = InternalEntity::new(0, 1);
-    let second = InternalEntity::new(1, 1);
-    let third = InternalEntity::new(2, 1);
-    let mut storage = ComponentStorage::default();
-
-    storage
-        .insert(
-            table_component,
-            StorageType::Table,
-            first,
-            TestComponent("first"),
-        )
-        .unwrap();
-    storage
-        .insert(
-            table_component,
-            StorageType::Table,
-            second,
-            TestComponent("second"),
-        )
-        .unwrap();
-    storage
-        .insert(
-            table_component,
-            StorageType::Table,
-            third,
-            TestComponent("third"),
-        )
-        .unwrap();
-    storage
-        .insert(
-            sparse_component,
-            StorageType::SparseSet,
-            first,
-            TestComponent("sparse"),
-        )
-        .unwrap();
-
-    let second_location = ComponentStorageLocation {
-        component_id: table_component,
-        storage_type: StorageType::Table,
-        entity: second,
-        table_row: Some(1),
-    };
-    let sparse_location = ComponentStorageLocation {
-        component_id: sparse_component,
-        storage_type: StorageType::SparseSet,
-        entity: first,
-        table_row: None,
-    };
-
-    assert_eq!(
-        storage.location(table_component, second),
-        Some(second_location)
-    );
-    assert_eq!(
-        storage.get_table_row::<TestComponent>(table_component, 2),
-        Some((
-            third,
-            &TestComponent("third"),
-            ComponentTicks::new(ChangeTick::INITIAL)
-        ))
-    );
-    assert_eq!(
-        storage.location(sparse_component, first),
-        Some(sparse_location)
-    );
-    assert_eq!(
-        storage.get_with_ticks_at_location::<TestComponent>(second_location),
-        Some((
-            &TestComponent("second"),
-            ComponentTicks::new(ChangeTick::INITIAL)
-        ))
-    );
-    assert_eq!(
-        storage.get_with_ticks_at_location::<TestComponent>(sparse_location),
-        Some((
-            &TestComponent("sparse"),
-            ComponentTicks::new(ChangeTick::INITIAL)
-        ))
-    );
-
-    let removed = storage
-        .remove::<TestComponent>(table_component, second)
-        .unwrap()
-        .unwrap();
-
-    assert_eq!(removed.value, TestComponent("second"));
-    assert_eq!(removed.swapped_entity, Some(third));
-    assert!(!storage.contains(table_component, second));
-    assert_eq!(
-        storage.get::<TestComponent>(table_component, third),
-        Some(&TestComponent("third"))
-    );
-    assert_eq!(
-        storage.location(table_component, third),
-        Some(ComponentStorageLocation {
-            component_id: table_component,
-            storage_type: StorageType::Table,
-            entity: third,
-            table_row: Some(1),
-        })
-    );
-    assert_eq!(
-        storage.get_with_ticks_at_location::<TestComponent>(second_location),
-        None
-    );
-
-    let sparse_removed = storage
-        .remove::<TestComponent>(sparse_component, first)
-        .unwrap()
-        .unwrap();
-
-    assert_eq!(sparse_removed.value, TestComponent("sparse"));
-    assert_eq!(sparse_removed.swapped_entity, None);
-    assert!(!storage.contains(sparse_component, first));
-    assert_eq!(
-        storage.get_with_ticks_at_location::<TestComponent>(sparse_location),
-        None
-    );
-}
-
-#[test]
-fn sparse_component_storage_removal_keeps_the_swapped_entity_addressable() {
-    let component = ComponentId::new(8);
-    let first = InternalEntity::new(0, 1);
-    let second = InternalEntity::new(1, 1);
-    let second_added = ChangeTick::new(41);
-    let second_changed = ChangeTick::new(73);
-    let mut storage = ComponentStorage::default();
-
-    storage
-        .insert(
-            component,
-            StorageType::SparseSet,
-            first,
-            TestComponent("first"),
-        )
-        .unwrap();
-    storage
-        .insert_at_tick(
-            component,
-            StorageType::SparseSet,
-            second,
-            TestComponent("second"),
-            second_added,
-        )
-        .unwrap();
-    storage.mark_changed(component, second, second_changed);
-
-    let removed = storage
-        .remove::<TestComponent>(component, first)
-        .unwrap()
-        .unwrap();
-
-    assert_eq!(removed.value, TestComponent("first"));
-    assert_eq!(removed.swapped_entity, None);
-    assert!(!storage.contains(component, first));
-    assert_eq!(
-        storage.get::<TestComponent>(component, second),
-        Some(&TestComponent("second"))
-    );
-    let mut expected_ticks = ComponentTicks::new(second_added);
-    expected_ticks.set_changed(second_changed);
-    assert_eq!(storage.ticks(component, second), Some(expected_ticks));
-}
-
-#[test]
-fn component_storage_rejects_storage_and_type_mismatches_without_mutating_value() {
-    let component = ComponentId::new(7);
-    let entity = InternalEntity::new(0, 1);
-    let mut storage = ComponentStorage::default();
-
-    storage
-        .insert(
-            component,
-            StorageType::Table,
-            entity,
-            TestComponent("typed"),
-        )
-        .unwrap();
-
-    assert!(storage
-        .insert(
-            component,
-            StorageType::SparseSet,
-            entity,
-            TestComponent("moved")
-        )
-        .unwrap_err()
-        .to_string()
-        .contains("already registered as Table"));
-    assert!(storage
-        .insert(component, StorageType::Table, entity, "wrong-type")
-        .unwrap_err()
-        .to_string()
-        .contains("different Rust type"));
-    assert_eq!(
-        storage.get::<TestComponent>(component, entity),
-        Some(&TestComponent("typed"))
     );
 }

@@ -1,5 +1,4 @@
-use crate::core::resource::ResourceManager;
-use crate::core::resource::ResourceRecord;
+use crate::core::resource::{ResourceManager, ResourceMutationBatch, ResourceRecord};
 
 use crate::asset::{AssetId, AssetKind};
 
@@ -8,6 +7,7 @@ use super::builtin_resources;
 
 pub(in crate::asset::pipeline::manager) fn resource_manager_with_builtins() -> ResourceManager {
     let manager = ResourceManager::new();
+    let mut batch = ResourceMutationBatch::new();
 
     for (locator_text, asset) in builtin_resources() {
         let locator = crate::asset::AssetUri::parse(locator_text).expect("builtin locator");
@@ -47,8 +47,11 @@ pub(in crate::asset::pipeline::manager) fn resource_manager_with_builtins() -> R
             }
         };
         let record = ResourceRecord::new(AssetId::from_locator(&locator), kind, locator);
-        register_project_resource(&manager, record, asset);
+        batch = register_project_resource(batch, record, asset);
     }
+    manager
+        .commit(batch)
+        .expect("builtin resource transaction must be valid");
 
     manager
 }

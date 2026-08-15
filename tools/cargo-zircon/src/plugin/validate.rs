@@ -536,6 +536,81 @@ fn validate_string_array(
     }
 }
 
+fn validate_capabilities(
+    root: &toml::map::Map<String, Value>,
+    diagnostics: &mut Vec<PluginDiagnostic>,
+) {
+    match root.get("capabilities").and_then(Value::as_array) {
+        Some(values) if !values.is_empty() => {
+            for (index, capability) in values.iter().enumerate() {
+                match capability.as_str() {
+                    Some(capability) if capability.trim().is_empty() => {
+                        diagnostics.push(PluginDiagnostic::new(
+                            "plugin.capability.empty",
+                            format!("capabilities entry #{index} is empty"),
+                            "Declare a non-empty capability identifier in declare_plugin!.",
+                        ));
+                    }
+                    Some(_) => {}
+                    None => diagnostics.push(PluginDiagnostic::new(
+                        "plugin.capability.invalid_type",
+                        format!("capabilities entry #{index} is not a string"),
+                        "Project capabilities as strings from declare_plugin!.",
+                    )),
+                }
+            }
+        }
+        Some(_) => diagnostics.push(PluginDiagnostic::new(
+            "plugin.capabilities.empty",
+            "`capabilities` must not be empty",
+            "Declare at least one capability value in declare_plugin!.",
+        )),
+        None => diagnostics.push(PluginDiagnostic::new(
+            "plugin.capabilities.missing",
+            "missing `capabilities` array",
+            "Project `capabilities` from declare_plugin!.",
+        )),
+    }
+}
+
+fn valid_plugin_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.as_bytes()[0].is_ascii_lowercase()
+        && id
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_')
+        && !id.ends_with('_')
+        && !id.contains("__")
+}
+
+fn valid_module_name(name: &str) -> bool {
+    let segments = name.split('.').collect::<Vec<_>>();
+    segments.len() >= 2
+        && segments.iter().all(|segment| !segment.is_empty())
+        && name.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_' || byte == b'.'
+        })
+}
+
+fn valid_plugin_crate_name(crate_name: &str) -> bool {
+    crate_name.starts_with("zircon_plugin_")
+        && crate_name
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_')
+        && !crate_name.ends_with('_')
+        && !crate_name.contains("__")
+}
+
+fn valid_semver(value: &str) -> bool {
+    let parts = value.split('.').collect::<Vec<_>>();
+    parts.len() == 3
+        && parts.iter().all(|part| {
+            !part.is_empty()
+                && part.bytes().all(|byte| byte.is_ascii_digit())
+                && (part == &"0" || !part.starts_with('0'))
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use std::ffi::CString;
@@ -620,79 +695,4 @@ mod tests {
             Some("expected_runtime_entry".to_string())
         );
     }
-}
-
-fn validate_capabilities(
-    root: &toml::map::Map<String, Value>,
-    diagnostics: &mut Vec<PluginDiagnostic>,
-) {
-    match root.get("capabilities").and_then(Value::as_array) {
-        Some(values) if !values.is_empty() => {
-            for (index, capability) in values.iter().enumerate() {
-                match capability.as_str() {
-                    Some(capability) if capability.trim().is_empty() => {
-                        diagnostics.push(PluginDiagnostic::new(
-                            "plugin.capability.empty",
-                            format!("capabilities entry #{index} is empty"),
-                            "Declare a non-empty capability identifier in declare_plugin!.",
-                        ));
-                    }
-                    Some(_) => {}
-                    None => diagnostics.push(PluginDiagnostic::new(
-                        "plugin.capability.invalid_type",
-                        format!("capabilities entry #{index} is not a string"),
-                        "Project capabilities as strings from declare_plugin!.",
-                    )),
-                }
-            }
-        }
-        Some(_) => diagnostics.push(PluginDiagnostic::new(
-            "plugin.capabilities.empty",
-            "`capabilities` must not be empty",
-            "Declare at least one capability value in declare_plugin!.",
-        )),
-        None => diagnostics.push(PluginDiagnostic::new(
-            "plugin.capabilities.missing",
-            "missing `capabilities` array",
-            "Project `capabilities` from declare_plugin!.",
-        )),
-    }
-}
-
-fn valid_plugin_id(id: &str) -> bool {
-    !id.is_empty()
-        && id.as_bytes()[0].is_ascii_lowercase()
-        && id
-            .bytes()
-            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_')
-        && !id.ends_with('_')
-        && !id.contains("__")
-}
-
-fn valid_module_name(name: &str) -> bool {
-    let segments = name.split('.').collect::<Vec<_>>();
-    segments.len() >= 2
-        && segments.iter().all(|segment| !segment.is_empty())
-        && name.bytes().all(|byte| {
-            byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_' || byte == b'.'
-        })
-}
-
-fn valid_plugin_crate_name(crate_name: &str) -> bool {
-    crate_name.starts_with("zircon_plugin_")
-        && crate_name
-            .bytes()
-            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_')
-        && !crate_name.ends_with('_')
-        && !crate_name.contains("__")
-}
-
-fn valid_semver(value: &str) -> bool {
-    let parts = value.split('.').collect::<Vec<_>>();
-    parts.len() == 3
-        && parts.iter().all(|part| {
-            !part.is_empty()
-                && part.bytes().all(|byte| byte.is_ascii_digit())
-                && (part == &"0" || !part.starts_with('0'))
-        })
 }

@@ -173,10 +173,26 @@ fn non_culled_pass_names_from_graph_dump(graph_dump: &str) -> Vec<String> {
         .filter_map(|line| {
             let pass_row = line.strip_prefix("  pass[")?;
             let (_, pass_row) = pass_row.split_once(" name=")?;
-            let (name, pass_row) = pass_row.split_once(" queue=")?;
+            let (name, pass_row) = pass_row.split_once(" layer=")?;
+            let (_, pass_row) = pass_row.split_once(" queue=")?;
             pass_row.contains(" culled=false ").then(|| name.to_owned())
         })
         .collect()
+}
+
+#[test]
+fn render_framework_graph_dump_parser_preserves_names_after_topology_layers() {
+    let graph_dump = concat!(
+        "render_graph name=unit passes=2 executable=1 culled=1 resources=0 topology_layers=1 topology_peak_width=1\n",
+        "passes:\n",
+        "  pass[0] id=3 name=draw-ui layer=0 queue=Graphics declared_queue=Graphics fallback=false culled=false executor=- deps=- resources=0\n",
+        "  pass[1] id=4 name=culled-bloom layer=- queue=Graphics declared_queue=Graphics fallback=false culled=true executor=- deps=- resources=0\n",
+    );
+
+    assert_eq!(
+        non_culled_pass_names_from_graph_dump(graph_dump),
+        vec!["draw-ui".to_owned()]
+    );
 }
 
 fn submit_frame_with_capture(

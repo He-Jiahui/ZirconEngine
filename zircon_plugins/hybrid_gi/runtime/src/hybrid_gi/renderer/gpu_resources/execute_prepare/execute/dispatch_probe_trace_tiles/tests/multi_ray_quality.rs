@@ -13,6 +13,26 @@ const MULTI_DIRECTION_TRACE_QUALITY_WGPU_REPORT: &str =
     "plan18_hybrid_gi_multi_direction_trace_quality_wgpu_20260711.txt";
 
 #[test]
+fn probe_trace_shader_bounds_scene_seed_work_per_probe() {
+    let aggregate_source = include_str!("../../../../../shaders/trace_probe_tiles_aggregate.wgsl");
+    let output_source = include_str!("../../../../../shaders/trace_probe_tiles_output.wgsl");
+
+    assert!(aggregate_source.contains("const TRACE_MAX_TILES_PER_PROBE: u32 = 16u;"));
+    assert!(aggregate_source
+        .contains("let trace_tile_count = min(params.tile_count, TRACE_MAX_TILES_PER_PROBE);"));
+    assert!(aggregate_source
+        .contains("let trace_tile_start = (probe_id ^ position_hash) % params.tile_count;"));
+    assert!(aggregate_source
+        .contains("let trace_tile_stride = max(1u, params.tile_count / trace_tile_count);"));
+    assert!(aggregate_source.contains(
+        "let tile_index = (trace_tile_start + local_tile_index * trace_tile_stride) % params.tile_count;"
+    ));
+    assert!(aggregate_source.contains("local_tile_index < trace_tile_count"));
+    assert!(!aggregate_source.contains("tile_index < params.tile_count"));
+    assert!(output_source.contains("if (index >= entry_count || params.tile_count == 0u) {"));
+}
+
+#[test]
 fn high_quality_trace_tiles_sample_directions_outside_the_low_quality_quartet() {
     let Some((low, high)) = trace_multi_ray_quality_samples() else {
         eprintln!("skipping multi-ray quality Wgpu test because no adapter is available");

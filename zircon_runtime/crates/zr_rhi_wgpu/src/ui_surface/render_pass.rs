@@ -3,7 +3,7 @@ use std::sync::Arc;
 use zr_rhi::{UiSurfaceDrawList, UiSurfaceRect};
 
 use super::batching::{BatchDrawPlan, DrawOp};
-use super::geometry::{ImageVertex, SolidVertex, UI_QUAD_VERTEX_COUNT};
+use super::geometry::UI_QUAD_VERTEX_COUNT;
 use super::image_cache::WgpuUiImageCache;
 use super::text::WgpuUiTextRenderer;
 

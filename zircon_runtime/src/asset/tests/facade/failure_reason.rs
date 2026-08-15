@@ -13,7 +13,7 @@ fn failed_asset_exposes_failure_reason_through_facade() {
         .with_state(ResourceState::Error)
         .with_diagnostics(vec![ResourceDiagnostic::error("texture decode failed")]);
 
-    manager.resource_manager().register_record(record);
+    manager.resource_manager().register_record(record).unwrap();
     let handle = Handle::<TextureAsset>::new(id);
 
     assert_eq!(manager.load_state(handle), AssetLoadState::Failed);

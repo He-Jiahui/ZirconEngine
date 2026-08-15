@@ -103,6 +103,293 @@ fn sdf_draw_plan_snaps_text_origin_but_preserves_glyph_subpixel_phase() {
 }
 
 #[test]
+fn sdf_draw_plan_uses_resolved_baseline_for_horizontal_glyph_artifact() {
+    let frame = UiFrame::new(8.375, 30.51, 64.0, 48.0);
+    let mut text = text_batch("A", frame);
+    text.glyph_advances = vec![16.0];
+    text.glyph_artifact_line = Some(ScreenSpaceUiGlyphArtifactLine {
+        artifact: std::sync::Arc::new(ResolvedTextGlyphArtifact {
+            source_text: std::sync::Arc::from("A"),
+            source_text_origin: 0,
+            font_generation: 7,
+            style: UiResolvedStyle::default(),
+            writing_mode: UiTextWritingMode::HorizontalTb,
+            lines: vec![Some(ResolvedTextGlyphArtifactLine {
+                glyphs: vec![TextGlyph {
+                    glyph_id: 'A' as u32,
+                    source_range: 0..1,
+                    visual_range: 0..1,
+                    advance: 16.0,
+                    position: [0.0, 0.0],
+                    offset: [0.0, 0.0],
+                    font_face: None,
+                    font_instance: None,
+                    rotation: TextGlyphRotation::None,
+                    bidi_level: 0,
+                    flags: TextGlyphFlags::default(),
+                    requires_rasterization: true,
+                }],
+                layout_line: UiResolvedTextLine {
+                    text: "A".to_string(),
+                    frame,
+                    source_range: UiTextRange { start: 0, end: 1 },
+                    visual_range: UiTextRange { start: 0, end: 1 },
+                    measured_width: 16.0,
+                    glyph_advances: vec![16.0],
+                    baseline: 22.0,
+                    direction: UiTextDirection::LeftToRight,
+                    runs: Vec::new(),
+                    ellipsized: false,
+                },
+            })],
+        }),
+        line_index: 0,
+        refreshed_line: None,
+        font_generation: 7,
+    });
+    text.text_decoration_baseline = Some(frame.y + 26.0);
+
+    let plan = synthetic_layered_plan(0);
+    let atlas_bake = synthetic_layered_bake(&plan);
+    let asset_manager = ProjectAssetManager::default();
+    let vertices = build_sdf_vertices(
+        std::slice::from_ref(&text),
+        &plan,
+        &atlas_bake,
+        &asset_manager,
+        UVec2::new(128, 128),
+    );
+    let display_metrics = scale_sdf_metrics_for_display(
+        atlas_bake.glyphs[0].metrics,
+        text.font_size,
+        plan.slots[0].key.bake_params,
+    );
+    let expected_top = text_frame_device_origin(frame).y + 22.0
+        - (display_metrics.bitmap_bottom + display_metrics.bitmap_height as f32);
+
+    assert_eq!(vertices.len(), 6);
+    assert!((vertices[0].position[1] - pixel_to_ndc_y(expected_top, 128.0)).abs() < 0.0001);
+
+    let mut refreshed_line = text
+        .glyph_artifact_line
+        .as_ref()
+        .and_then(|artifact_line| artifact_line.artifact.lines[0].as_ref())
+        .expect("synthetic glyph artifact line")
+        .clone();
+    refreshed_line.layout_line.baseline = 30.0;
+    text.glyph_artifact_line
+        .as_mut()
+        .expect("synthetic glyph artifact handle")
+        .refreshed_line = Some(std::sync::Arc::new(refreshed_line));
+    let refreshed_vertices = build_sdf_vertices(
+        std::slice::from_ref(&text),
+        &plan,
+        &atlas_bake,
+        &asset_manager,
+        UVec2::new(128, 128),
+    );
+    let expected_refreshed_top = text_frame_device_origin(frame).y + 30.0
+        - (display_metrics.bitmap_bottom + display_metrics.bitmap_height as f32);
+    assert_eq!(refreshed_vertices.len(), 6);
+    assert!(
+        (refreshed_vertices[0].position[1] - pixel_to_ndc_y(expected_refreshed_top, 128.0)).abs()
+            < 0.0001
+    );
+
+    let refreshed_line = text
+        .glyph_artifact_line
+        .as_mut()
+        .and_then(|artifact_line| artifact_line.refreshed_line.as_mut())
+        .expect("refreshed glyph artifact line");
+    std::sync::Arc::make_mut(refreshed_line)
+        .layout_line
+        .baseline = f32::NAN;
+    let fallback_vertices = build_sdf_vertices(
+        std::slice::from_ref(&text),
+        &plan,
+        &atlas_bake,
+        &asset_manager,
+        UVec2::new(128, 128),
+    );
+    let expected_fallback_top = text_frame_device_origin(frame).y + 22.0
+        - (display_metrics.bitmap_bottom + display_metrics.bitmap_height as f32);
+    assert_eq!(fallback_vertices.len(), 6);
+    assert!(fallback_vertices.iter().all(|vertex| {
+        vertex
+            .position
+            .iter()
+            .all(|coordinate| coordinate.is_finite())
+    }));
+    assert!(
+        (fallback_vertices[0].position[1] - pixel_to_ndc_y(expected_fallback_top, 128.0)).abs()
+            < 0.0001
+    );
+
+    let artifact = &mut text
+        .glyph_artifact_line
+        .as_mut()
+        .expect("synthetic glyph artifact handle")
+        .artifact;
+    std::sync::Arc::get_mut(artifact)
+        .expect("synthetic glyph artifact should remain uniquely owned")
+        .lines[0]
+        .as_mut()
+        .expect("synthetic glyph artifact line")
+        .layout_line
+        .baseline = f32::NAN;
+    let decoration_fallback_vertices = build_sdf_vertices(
+        std::slice::from_ref(&text),
+        &plan,
+        &atlas_bake,
+        &asset_manager,
+        UVec2::new(128, 128),
+    );
+    let expected_decoration_fallback_top = text_frame_device_origin(frame).y + 26.0
+        - (display_metrics.bitmap_bottom + display_metrics.bitmap_height as f32);
+    assert_eq!(decoration_fallback_vertices.len(), 6);
+    assert!(
+        (decoration_fallback_vertices[0].position[1]
+            - pixel_to_ndc_y(expected_decoration_fallback_top, 128.0))
+        .abs()
+            < 0.0001
+    );
+
+    text.text_decoration_baseline = Some(f32::NAN);
+    let raster_fallback_vertices = build_sdf_vertices(
+        std::slice::from_ref(&text),
+        &plan,
+        &atlas_bake,
+        &asset_manager,
+        UVec2::new(128, 128),
+    );
+    let raster_fallback_baseline = text_frame_device_origin(frame).y
+        + (text.line_height.max(text.font_size) - text.font_size.max(1.0)).max(0.0) * 0.5
+        + display_metrics.ascent.max(text.font_size.max(1.0));
+    let expected_raster_fallback_top = raster_fallback_baseline
+        - (display_metrics.bitmap_bottom + display_metrics.bitmap_height as f32);
+    assert_eq!(raster_fallback_vertices.len(), 6);
+    assert!(raster_fallback_vertices.iter().all(|vertex| {
+        vertex
+            .position
+            .iter()
+            .all(|coordinate| coordinate.is_finite())
+    }));
+    assert!(
+        (raster_fallback_vertices[0].position[1]
+            - pixel_to_ndc_y(expected_raster_fallback_top, 128.0))
+        .abs()
+            < 0.0001
+    );
+}
+
+#[test]
+fn sdf_draw_plan_uses_resolved_baseline_for_horizontal_shaped_glyphs() {
+    let frame = UiFrame::new(8.375, 30.51, 64.0, 48.0);
+    let mut text = text_batch("A", frame);
+    text.glyph_advances = vec![16.0];
+    text.shaped_glyphs = vec![
+        crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiShapedGlyph {
+            glyph_id: 'A' as u32,
+            font_id: None,
+            font_instance_id: None,
+            source_scalar: 'A',
+            source_range: UiTextRange { start: 0, end: 1 },
+            advance: 16.0,
+            offset_x: 0.0,
+            offset_y: 0.0,
+            rotation: ShapedGlyphRotation::None,
+            requires_atlas_slot: true,
+        },
+    ];
+    text.text_decoration_baseline = Some(frame.y + 22.0);
+
+    let plan = synthetic_layered_plan(0);
+    let atlas_bake = synthetic_layered_bake(&plan);
+    let asset_manager = ProjectAssetManager::default();
+    let vertices = build_sdf_vertices(
+        std::slice::from_ref(&text),
+        &plan,
+        &atlas_bake,
+        &asset_manager,
+        UVec2::new(128, 128),
+    );
+    let display_metrics = scale_sdf_metrics_for_display(
+        atlas_bake.glyphs[0].metrics,
+        text.font_size,
+        plan.slots[0].key.bake_params,
+    );
+    let expected_top = text_frame_device_origin(frame).y + 22.0
+        - (display_metrics.bitmap_bottom + display_metrics.bitmap_height as f32);
+
+    assert_eq!(vertices.len(), 6);
+    assert!((vertices[0].position[1] - pixel_to_ndc_y(expected_top, 128.0)).abs() < 0.0001);
+
+    let mut scalar_text = text.clone();
+    scalar_text.shaped_glyphs.clear();
+    scalar_text.text_decoration_baseline = Some(frame.y + 27.0);
+    let scalar_vertices = build_sdf_vertices(
+        std::slice::from_ref(&scalar_text),
+        &plan,
+        &atlas_bake,
+        &asset_manager,
+        UVec2::new(128, 128),
+    );
+    let expected_scalar_top = text_frame_device_origin(frame).y + 27.0
+        - (display_metrics.bitmap_bottom + display_metrics.bitmap_height as f32);
+
+    assert_eq!(scalar_vertices.len(), 6);
+    assert!(
+        (scalar_vertices[0].position[1] - pixel_to_ndc_y(expected_scalar_top, 128.0)).abs()
+            < 0.0001
+    );
+
+    let inline_frame = UiFrame::new(8.375, 54.51, 20.0, 20.0);
+    text.frame = inline_frame;
+    text.text_decoration_baseline = Some(inline_frame.bottom());
+    let inline_vertices = build_sdf_vertices(
+        std::slice::from_ref(&text),
+        &plan,
+        &atlas_bake,
+        &asset_manager,
+        UVec2::new(128, 128),
+    );
+    let expected_inline_top = text_frame_device_origin(inline_frame).y + inline_frame.height
+        - (display_metrics.bitmap_bottom + display_metrics.bitmap_height as f32);
+
+    assert_eq!(inline_vertices.len(), 6);
+    assert!(
+        (inline_vertices[0].position[1] - pixel_to_ndc_y(expected_inline_top, 128.0)).abs()
+            < 0.0001
+    );
+
+    text.text_decoration_baseline = Some(f32::NAN);
+    let fallback_vertices = build_sdf_vertices(
+        std::slice::from_ref(&text),
+        &plan,
+        &atlas_bake,
+        &asset_manager,
+        UVec2::new(128, 128),
+    );
+    let raster_baseline = text_frame_device_origin(inline_frame).y
+        + (text.line_height.max(text.font_size) - text.font_size.max(1.0)).max(0.0) * 0.5
+        + display_metrics.ascent.max(text.font_size.max(1.0));
+    let expected_fallback_top =
+        raster_baseline - (display_metrics.bitmap_bottom + display_metrics.bitmap_height as f32);
+
+    assert_eq!(fallback_vertices.len(), 6);
+    assert!(fallback_vertices.iter().all(|vertex| {
+        vertex
+            .position
+            .iter()
+            .all(|coordinate| coordinate.is_finite())
+    }));
+    assert!(
+        (fallback_vertices[0].position[1] - pixel_to_ndc_y(expected_fallback_top, 128.0)).abs()
+            < 0.0001
+    );
+}
+
+#[test]
 fn sdf_glyph_frames_preserve_fractional_bitmap_origins_without_changing_size() {
     let glyph = RunGlyph {
         slot_index: Some(0),

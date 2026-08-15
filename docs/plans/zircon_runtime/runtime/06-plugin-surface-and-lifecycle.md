@@ -237,6 +237,7 @@ last_refined: 2026-07-31
 
 ### 已补执行锚、仍待验证
 
+- 当前未关闭门禁锚：`runtime_06_plugin_surface_lifecycle_gate_stays_visible_until_plugin_validation`；在 Rust mirror、native plugin、App 与 plugin workspace 的 managed current-source 验证全部通过前保持可见。
 - [x] M2 测试阶段已加入 world-runtime-extension callback 重入与跨 World 并发 focused gate。
 - [x] M3 测试阶段已加入 plugin SDK/native host panic guard、process-global hook sentinel 与并发 callback focused gate。
 - [ ] 以上新增执行锚以及 Rust mirror 74/8 更新仍需 managed current-source 证据；在此之前 Runtime 06 保持 `in_progress`。

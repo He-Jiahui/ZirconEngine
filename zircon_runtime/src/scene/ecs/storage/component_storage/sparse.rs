@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::scene::ecs::{ChangeTick, ComponentTicks, InternalEntity};
 
 use super::entry::{RawRemoveResult, StoredComponent};
@@ -8,7 +6,13 @@ use super::entry::{RawRemoveResult, StoredComponent};
 pub(in crate::scene::ecs::storage) struct SparseComponentStorage {
     entities: Vec<InternalEntity>,
     entries: Vec<SparseEntry>,
-    indices: HashMap<InternalEntity, usize>,
+    sparse_rows: Vec<Option<SparseRowLocation>>,
+}
+
+#[derive(Clone, Copy)]
+struct SparseRowLocation {
+    generation: u32,
+    dense_row: usize,
 }
 
 struct SparseEntry {
@@ -23,7 +27,7 @@ impl SparseComponentStorage {
         value: StoredComponent,
         tick: ChangeTick,
     ) -> Option<StoredComponent> {
-        if let Some(row) = self.indices.get(&entity).copied() {
+        if let Some(row) = self.dense_row(entity) {
             let entry = &mut self.entries[row];
             entry.ticks.set_changed(tick);
             return Some(std::mem::replace(&mut entry.value, value));
@@ -34,7 +38,25 @@ impl SparseComponentStorage {
             value,
             ticks: ComponentTicks::new(tick),
         });
-        self.indices.insert(entity, row);
+        self.set_sparse_row(entity, row);
+        None
+    }
+
+    pub(super) fn insert_with_ticks(
+        &mut self,
+        entity: InternalEntity,
+        value: StoredComponent,
+        ticks: ComponentTicks,
+    ) -> Option<StoredComponent> {
+        if let Some(row) = self.dense_row(entity) {
+            let entry = &mut self.entries[row];
+            entry.ticks = ticks;
+            return Some(std::mem::replace(&mut entry.value, value));
+        }
+        let row = self.entries.len();
+        self.entities.push(entity);
+        self.entries.push(SparseEntry { value, ticks });
+        self.set_sparse_row(entity, row);
         None
     }
 
@@ -89,23 +111,23 @@ impl SparseComponentStorage {
     }
 
     pub(super) fn remove(&mut self, entity: InternalEntity) -> Option<RawRemoveResult> {
-        let row = self.indices.remove(&entity)?;
+        let row = self.remove_sparse_row(entity)?;
         let last_row = self.entries.len() - 1;
         let entry = self.entries.swap_remove(row);
         let removed_entity = self.entities.swap_remove(row);
         debug_assert_eq!(removed_entity, entity);
         if row != last_row {
             let swapped_entity = self.entities[row];
-            self.indices.insert(swapped_entity, row);
+            self.set_sparse_row(swapped_entity, row);
         }
         Some(RawRemoveResult {
             value: entry.value,
-            swapped_entity: None,
+            ticks: entry.ticks,
         })
     }
 
     pub(super) fn contains(&self, entity: InternalEntity) -> bool {
-        self.indices.contains_key(&entity)
+        self.dense_row(entity).is_some()
     }
 
     pub(super) fn ticks(&self, entity: InternalEntity) -> Option<ComponentTicks> {
@@ -130,12 +152,39 @@ impl SparseComponentStorage {
     }
 
     fn entry(&self, entity: InternalEntity) -> Option<&SparseEntry> {
-        let row = *self.indices.get(&entity)?;
+        let row = self.dense_row(entity)?;
         self.entries.get(row)
     }
 
     fn entry_mut(&mut self, entity: InternalEntity) -> Option<&mut SparseEntry> {
-        let row = *self.indices.get(&entity)?;
+        let row = self.dense_row(entity)?;
         self.entries.get_mut(row)
+    }
+
+    fn dense_row(&self, entity: InternalEntity) -> Option<usize> {
+        let location = self.sparse_rows.get(entity.index() as usize)?.as_ref()?;
+        (location.generation == entity.generation()).then_some(location.dense_row)
+    }
+
+    fn set_sparse_row(&mut self, entity: InternalEntity, dense_row: usize) {
+        let index = entity.index() as usize;
+        if self.sparse_rows.len() <= index {
+            self.sparse_rows.resize(index + 1, None);
+        }
+        self.sparse_rows[index] = Some(SparseRowLocation {
+            generation: entity.generation(),
+            dense_row,
+        });
+    }
+
+    fn remove_sparse_row(&mut self, entity: InternalEntity) -> Option<usize> {
+        let index = entity.index() as usize;
+        let location = self.sparse_rows.get(index)?.as_ref()?;
+        if location.generation != entity.generation() {
+            return None;
+        }
+        self.sparse_rows[index]
+            .take()
+            .map(|location| location.dense_row)
     }
 }

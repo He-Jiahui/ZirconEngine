@@ -1,68 +1,68 @@
 use super::{SceneError, SceneResult, World};
-use crate::scene::EntityId;
 use crate::scene::components::{
     AmbientLight, AnimationGraphPlayerComponent, AnimationPlayerComponent,
     AnimationSequencePlayerComponent, AnimationSkeletonComponent,
     AnimationStateMachinePlayerComponent, ColliderComponent, JointComponent, PointLight, RectLight,
     RigidBodyComponent, SpotLight,
 };
+use crate::scene::EntityId;
 
 impl World {
     pub fn rigid_body(&self, entity: EntityId) -> Option<&RigidBodyComponent> {
-        self.rigid_bodies.get(&entity)
+        self.get::<RigidBodyComponent>(entity)
     }
 
     pub fn collider(&self, entity: EntityId) -> Option<&ColliderComponent> {
-        self.colliders.get(&entity)
+        self.get::<ColliderComponent>(entity)
     }
 
     pub fn joint(&self, entity: EntityId) -> Option<&JointComponent> {
-        self.joints.get(&entity)
+        self.get::<JointComponent>(entity)
     }
 
     pub fn ambient_light(&self, entity: EntityId) -> Option<&AmbientLight> {
-        self.ambient_lights.get(&entity)
+        self.get::<AmbientLight>(entity)
     }
 
     pub fn point_light(&self, entity: EntityId) -> Option<&PointLight> {
-        self.point_lights.get(&entity)
+        self.get::<PointLight>(entity)
     }
 
     pub fn rect_light(&self, entity: EntityId) -> Option<&RectLight> {
-        self.rect_lights.get(&entity)
+        self.get::<RectLight>(entity)
     }
 
     pub fn spot_light(&self, entity: EntityId) -> Option<&SpotLight> {
-        self.spot_lights.get(&entity)
+        self.get::<SpotLight>(entity)
     }
 
     pub fn animation_skeleton(&self, entity: EntityId) -> Option<&AnimationSkeletonComponent> {
-        self.animation_skeletons.get(&entity)
+        self.get::<AnimationSkeletonComponent>(entity)
     }
 
     pub fn animation_player(&self, entity: EntityId) -> Option<&AnimationPlayerComponent> {
-        self.animation_players.get(&entity)
+        self.get::<AnimationPlayerComponent>(entity)
     }
 
     pub fn animation_sequence_player(
         &self,
         entity: EntityId,
     ) -> Option<&AnimationSequencePlayerComponent> {
-        self.animation_sequence_players.get(&entity)
+        self.get::<AnimationSequencePlayerComponent>(entity)
     }
 
     pub fn animation_graph_player(
         &self,
         entity: EntityId,
     ) -> Option<&AnimationGraphPlayerComponent> {
-        self.animation_graph_players.get(&entity)
+        self.get::<AnimationGraphPlayerComponent>(entity)
     }
 
     pub fn animation_state_machine_player(
         &self,
         entity: EntityId,
     ) -> Option<&AnimationStateMachinePlayerComponent> {
-        self.animation_state_machine_players.get(&entity)
+        self.get::<AnimationStateMachinePlayerComponent>(entity)
     }
 
     pub fn set_rigid_body(
@@ -75,7 +75,7 @@ impl World {
         }
         let changed = match rigid_body {
             Some(rigid_body) => {
-                if self.rigid_bodies.get(&entity) == Some(&rigid_body) {
+                if self.get::<RigidBodyComponent>(entity) == Some(&rigid_body) {
                     false
                 } else {
                     self.insert(entity, rigid_body)?;
@@ -97,7 +97,7 @@ impl World {
         }
         let changed = match collider {
             Some(collider) => {
-                if self.colliders.get(&entity) == Some(&collider) {
+                if self.get::<ColliderComponent>(entity) == Some(&collider) {
                     false
                 } else {
                     self.insert(entity, collider)?;
@@ -126,7 +126,7 @@ impl World {
         }
         let changed = match joint {
             Some(joint) => {
-                if self.joints.get(&entity) == Some(&joint) {
+                if self.get::<JointComponent>(entity) == Some(&joint) {
                     false
                 } else {
                     self.insert(entity, joint)?;
@@ -148,7 +148,7 @@ impl World {
         }
         let changed = match point_light {
             Some(point_light) => {
-                if self.point_lights.get(&entity) == Some(&point_light) {
+                if self.get::<PointLight>(entity) == Some(&point_light) {
                     false
                 } else {
                     self.insert(entity, point_light)?;
@@ -173,7 +173,7 @@ impl World {
         }
         let changed = match ambient_light {
             Some(ambient_light) => {
-                if self.ambient_lights.get(&entity) == Some(&ambient_light) {
+                if self.get::<AmbientLight>(entity) == Some(&ambient_light) {
                     false
                 } else {
                     self.insert(entity, ambient_light)?;
@@ -195,7 +195,7 @@ impl World {
         }
         let changed = match rect_light {
             Some(rect_light) => {
-                if self.rect_lights.get(&entity) == Some(&rect_light) {
+                if self.get::<RectLight>(entity) == Some(&rect_light) {
                     false
                 } else {
                     self.insert(entity, rect_light)?;
@@ -217,7 +217,7 @@ impl World {
         }
         let changed = match spot_light {
             Some(spot_light) => {
-                if self.spot_lights.get(&entity) == Some(&spot_light) {
+                if self.get::<SpotLight>(entity) == Some(&spot_light) {
                     false
                 } else {
                     self.insert(entity, spot_light)?;
@@ -242,7 +242,7 @@ impl World {
         }
         let changed = match animation_skeleton {
             Some(animation_skeleton) => {
-                if self.animation_skeletons.get(&entity) == Some(&animation_skeleton) {
+                if self.get::<AnimationSkeletonComponent>(entity) == Some(&animation_skeleton) {
                     false
                 } else {
                     self.insert(entity, animation_skeleton)?;
@@ -267,7 +267,7 @@ impl World {
         }
         let changed = match animation_player {
             Some(animation_player) => {
-                if self.animation_players.get(&entity) == Some(&animation_player) {
+                if self.get::<AnimationPlayerComponent>(entity) == Some(&animation_player) {
                     false
                 } else {
                     self.insert(entity, animation_player)?;
@@ -292,7 +292,8 @@ impl World {
         }
         let changed = match animation_sequence_player {
             Some(animation_sequence_player) => {
-                if self.animation_sequence_players.get(&entity) == Some(&animation_sequence_player)
+                if self.get::<AnimationSequencePlayerComponent>(entity)
+                    == Some(&animation_sequence_player)
                 {
                     false
                 } else {
@@ -320,7 +321,9 @@ impl World {
         }
         let changed = match animation_graph_player {
             Some(animation_graph_player) => {
-                if self.animation_graph_players.get(&entity) == Some(&animation_graph_player) {
+                if self.get::<AnimationGraphPlayerComponent>(entity)
+                    == Some(&animation_graph_player)
+                {
                     false
                 } else {
                     self.insert(entity, animation_graph_player)?;
@@ -347,7 +350,7 @@ impl World {
         }
         let changed = match animation_state_machine_player {
             Some(animation_state_machine_player) => {
-                if self.animation_state_machine_players.get(&entity)
+                if self.get::<AnimationStateMachinePlayerComponent>(entity)
                     == Some(&animation_state_machine_player)
                 {
                     false

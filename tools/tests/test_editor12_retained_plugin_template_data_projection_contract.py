@@ -14,14 +14,16 @@ def source(relative_path: str) -> str:
 class EditorPluginV2PaneDataProjectionTests(unittest.TestCase):
     def test_enabled_extension_data_sources_are_snapshotted_outside_the_shell_lock(self) -> None:
         runtime_access = source(
-            "zircon_editor/src/ui/host/editor_event_runtime_access.rs"
+            "zircon_editor/src/ui/host/editor_event_runtime_access/extension_access.rs"
         )
         registry = source("zircon_editor/src/core/editor_extension.rs")
 
         self.assertIn("ui_template_pane_data_sources", registry)
         self.assertIn("ui_template_pane_data_snapshots", runtime_access)
         self.assertIn("source.snapshot()", runtime_access)
-        self.assertIn("is_enabled_by(&enabled_capabilities)", runtime_access)
+        self.assertIn(
+            "ui_template_pane_data_sources(&enabled_capabilities)", runtime_access
+        )
 
     def test_template_v2_snapshots_flow_to_all_pane_locations(self) -> None:
         payloads = source(

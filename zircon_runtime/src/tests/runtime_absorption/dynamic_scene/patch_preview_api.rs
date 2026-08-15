@@ -47,54 +47,37 @@ fn runtime_05_dynamic_scene_patch_preview_api_stays_read_only() {
     let preview_body = SPAWN_SOURCE
         .split("pub(super) fn preview_scene_spawn_into")
         .nth(1)
-        .expect("preview_scene_spawn_into should stay in scene/spawn.rs")
+        .expect("preview_scene_spawn_into should stay in the spawn transaction module")
         .split("fn install_component_type_descriptors")
         .next()
         .expect("install_component_type_descriptors should stay after preview helper");
     for forbidden_call in [
         "install_component_type_descriptors(",
         "insert_entity_records(",
-        "apply_components(",
-        "apply_resources(",
+        "apply_component_writes(",
+        "apply_resource_writes(",
     ] {
         assert!(
             !preview_body.contains(forbidden_call),
             "preview_scene_spawn_into must not call mutating apply helper `{forbidden_call}`"
         );
     }
-    for required_anchor in [
-        "scene.ensure_supported()?",
-        "ensure_component_type_descriptors_are_compatible(scene, world)?",
-        "build_entity_remap(scene, world)?",
-        "validate_remapped_parents(scene, world, &remap)?",
-        "validate_components_are_previewable(scene, world, &remap)?",
-        "preview_resources(scene, world, &remap)?",
-        "ScenePatchPreviewReport",
-        "ScenePatchPreviewEntityRemap",
-        "component_type_count",
-        "existing_component_type_count",
-        "new_component_type_count",
-        "ScenePatchPreviewComponentType",
-        "already_registered",
-        "component_types",
-        "component_instance_count",
-        "resources",
-        "preserved_entity_count",
-        "remapped_entity_count",
-        "entity_remaps",
-        "source_entity",
-        "target_entity",
-    ] {
+    for required_anchor in ["Ok(compile_scene_spawn(scene, world)?.into_preview())"] {
         assert!(
             preview_body.contains(required_anchor),
             "preview_scene_spawn_into should keep required read-only planning anchor `{required_anchor}`"
         );
     }
     for preflight_anchor in [
-        "fn validate_components_are_previewable(",
-        "fn validate_component_is_previewable(",
-        "fn preview_resources(",
-        "fn preview_resource(",
+        "pub(crate) fn compile_scene_spawn(",
+        "scene.ensure_supported()?",
+        "ensure_component_type_descriptors_are_compatible(scene, world)?",
+        "build_entity_remap(scene, world)?",
+        "compile_entity_records(scene, world, &remap)?",
+        "world.validate_owned_node_records(&records)?",
+        "compile_component_writes(scene, world, &remap)?",
+        "compile_resource_writes(scene, world, &remap)?",
+        "build_preview_report(scene, world, &remap, resources)",
         "runtime_registration(&component.type_path)?",
         "runtime_registration(&resource.type_path)?",
         "ReflectError::NoComponentAdapter",
@@ -109,6 +92,7 @@ fn runtime_05_dynamic_scene_patch_preview_api_stays_read_only() {
         "let already_present = adapter.contains(world)",
         "let can_create_on_apply = adapter.ensure.is_some()",
         "field_count: resource.fields.len()",
+        "write.adapter.write_fields_by_slot(world, write.writes)?",
     ] {
         assert!(
             SPAWN_SOURCE.contains(preflight_anchor),

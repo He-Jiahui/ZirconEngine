@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
-use zircon_runtime::asset::project::ProjectManager;
+use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
 use zircon_runtime::asset::{AssetUri, AssetUuid};
 
 use super::details::build_details_generation;
@@ -47,9 +47,15 @@ pub(in crate::ui::host::editor_asset_manager::manager) fn build_catalog_generati
 
     Arc::new(EditorAssetCatalogGeneration::from_parts(
         project.manifest().name.clone(),
-        project.paths().root().to_string_lossy().into_owned(),
-        assets_root.to_string_lossy().into_owned(),
-        project.paths().cache_root().to_string_lossy().into_owned(),
+        ProjectPaths::display_path(project.paths().root())
+            .to_string_lossy()
+            .into_owned(),
+        ProjectPaths::display_path(assets_root)
+            .to_string_lossy()
+            .into_owned(),
+        ProjectPaths::display_path(project.paths().cache_root())
+            .to_string_lossy()
+            .into_owned(),
         project.manifest().default_scene.to_string(),
         catalog_revision,
         publish_epoch,

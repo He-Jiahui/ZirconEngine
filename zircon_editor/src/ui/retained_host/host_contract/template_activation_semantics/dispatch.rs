@@ -2,7 +2,7 @@ use super::super::globals::PaneSurfaceHostContext;
 use super::super::surface_hit_test::TemplateNodePointerHit;
 use super::asset::dispatch_asset_template_node_primary_press;
 use super::helpers::action_or_control_id;
-use super::route::{TemplatePrimaryActivationRoute, primary_activation_route};
+use super::route::{primary_activation_route, TemplatePrimaryActivationRoute};
 use crate::ui::retained_host::callback_dispatch::WORKBENCH_COMMAND_PALETTE_COMMIT_BINDING_ID;
 
 pub(in crate::ui::retained_host::host_contract) fn dispatch_template_node_primary_press(

@@ -1,3 +1,4 @@
+pub(in crate::graphics::scene::resources) mod model_geometry_resolution;
 mod resource_streamer;
 mod resource_streamer_accessors;
 mod resource_streamer_advanced_lighting;

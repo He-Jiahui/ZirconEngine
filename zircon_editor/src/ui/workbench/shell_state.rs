@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::asset::AssetTypeRegistry;
+use crate::core::editor_event::{ConsoleMessageFilter, ConsoleSourceFilter};
 use crate::core::extension::{ContributionStore, ContributionTicket};
 use crate::ui::control::EditorUiControlService;
 use crate::ui::host::EditorManager;
@@ -20,11 +21,25 @@ pub(crate) struct WorkbenchShellStateData {
     pub(crate) contributions: ContributionStore,
     pub(crate) contribution_owners: Vec<OwnedContribution>,
     pub(crate) asset_type_registry_cache: AssetTypeRegistryGenerationCache,
+    pub(crate) console_message_filter: ConsoleMessageFilter,
+    pub(crate) console_source_filter: ConsoleSourceFilter,
 }
 
 impl WorkbenchShellStateData {
     pub(crate) fn contributions_changed(&mut self) {
         self.asset_type_registry_cache.contributions_changed();
+    }
+
+    pub(crate) fn set_console_source_filter(&mut self, filter: ConsoleSourceFilter) -> bool {
+        let changed = self.console_source_filter != filter;
+        self.console_source_filter = filter;
+        changed
+    }
+
+    pub(crate) fn set_console_message_filter(&mut self, filter: ConsoleMessageFilter) -> bool {
+        let changed = self.console_message_filter != filter;
+        self.console_message_filter = filter;
+        changed
     }
 }
 
@@ -113,6 +128,8 @@ impl WorkbenchShellState {
                 contributions: ContributionStore::default(),
                 contribution_owners: Vec::new(),
                 asset_type_registry_cache: AssetTypeRegistryGenerationCache::default(),
+                console_message_filter: ConsoleMessageFilter::default(),
+                console_source_filter: ConsoleSourceFilter::default(),
             }),
         }
     }

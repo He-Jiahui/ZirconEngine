@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use crate::asset::migration::AssetMigrationError;
 use crate::asset::project::ProjectPaths;
 use crate::asset::safe_project_path::is_link_or_reparse;
+use crate::core::resource::io::ensure_parent_directories;
 
 use super::JOURNAL_DIRECTORY;
 
@@ -12,14 +13,12 @@ pub(super) fn ensure_journal_directory(
 ) -> Result<PathBuf, AssetMigrationError> {
     validate_directory(project_root, project_root, "project root")?;
     let owner = project_root.join(".zircon");
-    if !owner.exists() {
-        fs::create_dir(&owner).map_err(|error| invalid(&owner, error.to_string()))?;
-    }
-    validate_directory(project_root, &owner, "journal owner")?;
     let directory = owner.join(JOURNAL_DIRECTORY);
     if !directory.exists() {
-        fs::create_dir(&directory).map_err(|error| invalid(&directory, error.to_string()))?;
+        ensure_parent_directories(&directory.join(".journal-owner"))
+            .map_err(|error| invalid(&directory, error.to_string()))?;
     }
+    validate_directory(project_root, &owner, "journal owner")?;
     validate_directory(project_root, &directory, "journal directory")?;
     Ok(directory)
 }

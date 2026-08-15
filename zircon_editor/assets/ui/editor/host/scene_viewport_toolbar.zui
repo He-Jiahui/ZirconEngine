@@ -131,14 +131,14 @@ component = "IconButton"
 control_id = "EnterPlayMode"
 props = { label = "Play", icon = "editor_pages/scene_viewport/play/play.svg", icon_placement = "icon_only" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "ViewportToolbar/EnterPlayMode", event = "Click", route = "workbench.play_mode.enter" }]
+events = [{ id = "ViewportToolbar/EnterPlayMode", event = "Click", action = { action = "runtime.play_mode.enter" } }]
 
 [nodes.exit_play]
 component = "IconButton"
 control_id = "ExitPlayMode"
 props = { label = "Stop", icon = "editor_pages/scene_viewport/play/stop.svg", icon_placement = "icon_only" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
-events = [{ id = "ViewportToolbar/ExitPlayMode", event = "Click", route = "workbench.play_mode.exit" }]
+events = [{ id = "ViewportToolbar/ExitPlayMode", event = "Click", action = { action = "runtime.play_mode.exit" } }]
 
 [nodes.set_projection_mode]
 component = "IconButton"

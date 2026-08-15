@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
 
-use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::core::diagnostics::{
     ProfileFrameSnapshot, ProfileSnapshot, ProfileSpanSnapshot, RuntimeAnimationDiagnostics,
     RuntimeDiagnosticsSnapshot, RuntimePhysicsBackendDiagnostics, RuntimePhysicsDiagnostics,
@@ -9,8 +8,9 @@ use zircon_runtime::core::diagnostics::{
 };
 use zircon_runtime::core::framework::animation::AnimationPlaybackSettings;
 use zircon_runtime::core::framework::render::{RenderCapabilitySummary, RenderStats};
+use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
-    FOUNDATION_MODULE_NAME, module_descriptor as foundation_module_descriptor,
+    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_runtime_interface::math::UVec2;
 use zircon_runtime_interface::ui::{
@@ -28,18 +28,18 @@ use zircon_runtime_interface::ui::{
 
 use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::animation_editor::AnimationEditorPanePresentation;
+use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
-use crate::ui::host::module::{self, EDITOR_MANAGER_NAME, module_descriptor};
 use crate::ui::layouts::windows::workbench_host_window::{
-    BuildExportPaneViewData, ModulePluginsPaneViewData, PanePayloadBuildContext,
-    build_pane_body_presentation,
+    build_pane_body_presentation, BuildExportPaneViewData, ModulePluginsPaneViewData,
+    PanePayloadBuildContext,
 };
 use crate::ui::template_runtime::{
-    EditorUiHostRuntime,
     builtin::{
         PANE_CONSOLE_BODY_DOCUMENT_ID, PANE_INSPECTOR_BODY_DOCUMENT_ID,
         PANE_PERFORMANCE_TIMELINE_BODY_DOCUMENT_ID, PANE_RUNTIME_DIAGNOSTICS_BODY_DOCUMENT_ID,
     },
+    EditorUiHostRuntime,
 };
 use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::snapshot::{
@@ -458,73 +458,61 @@ fn editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attribut
             "UI Debug Reflector: 2 nodes, 2 commands, schema v1".to_string()
         ))
     );
-    assert!(
-        diagnostics_projection
-            .root
-            .attributes
-            .get("payload_ui_debug_reflector_export_status")
-            .and_then(Value::as_str)
-            .is_some_and(|text| text.contains("JSON export ready"))
-    );
-    assert!(
-        diagnostics_projection
-            .root
-            .attributes
-            .get("payload_ui_debug_reflector_details")
-            .and_then(Value::as_array)
-            .is_some_and(|details| details.iter().any(|detail| {
-                detail
-                    .as_str()
-                    .is_some_and(|text| text.contains("Selected: runtime/projection/live_label"))
-            }))
-    );
-    assert!(
-        diagnostics_projection
-            .root
-            .attributes
-            .get("payload_ui_debug_reflector_sections")
-            .and_then(Value::as_array)
-            .is_some_and(|sections| sections.iter().any(|line| {
-                line.as_str()
-                    .is_some_and(|text| text == "  selected: taffy=1 zircon=1")
-            }))
-    );
-    assert!(
-        diagnostics_projection
-            .root
-            .attributes
-            .get("payload_ui_debug_reflector_sections")
-            .and_then(Value::as_array)
-            .is_some_and(|sections| sections
-                .iter()
-                .any(|line| { line.as_str().is_some_and(|text| text == "Canvas Layers:") }))
-    );
-    assert!(
-        diagnostics_projection
-            .root
-            .attributes
-            .get("payload_ui_debug_reflector_sections")
-            .and_then(Value::as_array)
-            .is_some_and(|sections| sections.iter().any(|line| {
-                line.as_str()
-                    .is_some_and(|text| text == "  parent=1 layer=0 z=1 children=[2]")
-            }))
-    );
-    assert!(
-        diagnostics_projection
-            .root
-            .attributes
-            .get("payload_ui_debug_reflector_sections")
-            .and_then(Value::as_array)
-            .is_some_and(|sections| sections.iter().any(|line| {
-                line.as_str().is_some_and(|text| {
-                    text.contains("node=2")
-                        && text.contains("family=Overlay")
-                        && text.contains("selected=Zircon")
-                        && text.contains("reason=ZirconOwnedSemantics")
-                })
-            }))
-    );
+    assert!(diagnostics_projection
+        .root
+        .attributes
+        .get("payload_ui_debug_reflector_export_status")
+        .and_then(Value::as_str)
+        .is_some_and(|text| text.contains("JSON export ready")));
+    assert!(diagnostics_projection
+        .root
+        .attributes
+        .get("payload_ui_debug_reflector_details")
+        .and_then(Value::as_array)
+        .is_some_and(|details| details.iter().any(|detail| {
+            detail
+                .as_str()
+                .is_some_and(|text| text.contains("Selected: runtime/projection/live_label"))
+        })));
+    assert!(diagnostics_projection
+        .root
+        .attributes
+        .get("payload_ui_debug_reflector_sections")
+        .and_then(Value::as_array)
+        .is_some_and(|sections| sections.iter().any(|line| {
+            line.as_str()
+                .is_some_and(|text| text == "  selected: taffy=1 zircon=1")
+        })));
+    assert!(diagnostics_projection
+        .root
+        .attributes
+        .get("payload_ui_debug_reflector_sections")
+        .and_then(Value::as_array)
+        .is_some_and(|sections| sections
+            .iter()
+            .any(|line| { line.as_str().is_some_and(|text| text == "Canvas Layers:") })));
+    assert!(diagnostics_projection
+        .root
+        .attributes
+        .get("payload_ui_debug_reflector_sections")
+        .and_then(Value::as_array)
+        .is_some_and(|sections| sections.iter().any(|line| {
+            line.as_str()
+                .is_some_and(|text| text == "  parent=1 layer=0 z=1 children=[2]")
+        })));
+    assert!(diagnostics_projection
+        .root
+        .attributes
+        .get("payload_ui_debug_reflector_sections")
+        .and_then(Value::as_array)
+        .is_some_and(|sections| sections.iter().any(|line| {
+            line.as_str().is_some_and(|text| {
+                text.contains("node=2")
+                    && text.contains("family=Overlay")
+                    && text.contains("selected=Zircon")
+                    && text.contains("reason=ZirconOwnedSemantics")
+            })
+        })));
 
     let timeline =
         build_pane_body_presentation(&pane_body_spec("editor.performance_timeline"), &context);
@@ -539,30 +527,26 @@ fn editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attribut
             "Profiling active: 1 frame, 1 span, 0 counters".to_string()
         ))
     );
-    assert!(
-        timeline_projection
-            .root
-            .attributes
-            .get("payload_frame_rows")
-            .and_then(Value::as_array)
-            .is_some_and(|rows| rows.iter().any(|row| {
-                row.get("name")
-                    .and_then(Value::as_str)
-                    .is_some_and(|name| name == "retained_host_tick")
-            }))
-    );
-    assert!(
-        timeline_projection
-            .root
-            .attributes
-            .get("payload_hotspot_rows")
-            .and_then(Value::as_array)
-            .is_some_and(|rows| rows.iter().any(|row| {
-                row.get("name")
-                    .and_then(Value::as_str)
-                    .is_some_and(|name| name == "present_frame")
-            }))
-    );
+    assert!(timeline_projection
+        .root
+        .attributes
+        .get("payload_frame_rows")
+        .and_then(Value::as_array)
+        .is_some_and(|rows| rows.iter().any(|row| {
+            row.get("name")
+                .and_then(Value::as_str)
+                .is_some_and(|name| name == "retained_host_tick")
+        })));
+    assert!(timeline_projection
+        .root
+        .attributes
+        .get("payload_hotspot_rows")
+        .and_then(Value::as_array)
+        .is_some_and(|rows| rows.iter().any(|row| {
+            row.get("name")
+                .and_then(Value::as_str)
+                .is_some_and(|name| name == "present_frame")
+        })));
 }
 
 #[test]

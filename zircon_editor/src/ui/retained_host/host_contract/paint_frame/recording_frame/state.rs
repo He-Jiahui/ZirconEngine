@@ -1,5 +1,5 @@
-use super::super::HostRgbaFrame;
 use super::super::recording::{HostPaintRecording, HostRecordedPaintCommand};
+use super::super::HostRgbaFrame;
 
 impl HostRgbaFrame {
     pub(in crate::ui::retained_host::host_contract) fn is_recording(&self) -> bool {

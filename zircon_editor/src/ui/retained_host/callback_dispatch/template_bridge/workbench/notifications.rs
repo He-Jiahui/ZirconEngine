@@ -1,16 +1,11 @@
 use zircon_runtime_interface::ui::component::UiValue;
 
 use crate::core::notifications::ToastSeverity;
-use crate::ui::activity::ActivityToastView;
+use crate::ui::activity::{ActivityProgressView, ActivityToastView};
 use crate::ui::host::play_pending_decision::PlayPendingDecisionOption;
 
 use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 use super::error::BuiltinHostWindowTemplateBridgeError;
-
-#[path = "notifications/history.rs"]
-mod history;
-
-use history::RetainedNotificationHistory;
 
 pub(crate) const WORKBENCH_TOAST_CONTROL_ID: &str = "WorkbenchToast";
 pub(crate) const WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID: &str = "WorkbenchNotificationCenter";
@@ -55,110 +50,36 @@ struct NotificationCounters {
 }
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
-    pub(crate) fn sync_pending_play_decision_options(
+    /// Projects one current core snapshot. The retained bridge never uses the previous control
+    /// contents as notification authority, so expired Toasts and Progress rows disappear as soon
+    /// as their core snapshots do.
+    pub(crate) fn sync_notification_snapshot(
         &mut self,
-        options: &[PlayPendingDecisionOption],
+        pending_decisions: &[PlayPendingDecisionOption],
+        toasts: &[ActivityToastView],
+        progress: &[ActivityProgressView],
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
-        if !self.has_control(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID) {
-            return Ok(false);
+        let changed = self.prepare_notification_snapshot(pending_decisions, toasts, progress)?;
+        if changed {
+            self.refresh_prepared_state_change()?;
         }
+        Ok(changed)
+    }
 
-        let existing =
-            self.control_string_array(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, NOTIFICATIONS);
-        let counters = self.notification_counters();
-        let retained = RetainedNotificationHistory::merge(
-            options.iter().map(pending_play_decision_history_entry),
-            existing
-                .iter()
-                .filter(|entry| !is_pending_play_decision_entry(entry))
-                .cloned(),
-            MAX_NOTIFICATION_HISTORY,
-            counters.overflow_count,
-        );
-
-        let decision_open = !options.is_empty();
-        let selected_id = options
-            .first()
-            .map(|option| option.selection_id().to_string())
-            .unwrap_or_default();
-        let history_changed = existing != retained.entries;
-        let notification_generation =
-            next_notification_generation(counters.generation, history_changed);
-        let changed = history_changed
-            || self.control_bool(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, OPEN) != decision_open
-            || self.control_bool(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, POPUP_OPEN)
-                != decision_open
-            || self.control_bool(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, INPUT_INTERACTIVE)
-                != decision_open
-            || self
-                .control_string(
-                    WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
-                    SELECTED_NOTIFICATION_ID,
-                )
-                .as_deref()
-                != Some(selected_id.as_str());
-        if !changed {
-            return Ok(false);
+    pub(crate) fn prepare_notification_snapshot(
+        &mut self,
+        pending_decisions: &[PlayPendingDecisionOption],
+        toasts: &[ActivityToastView],
+        progress: &[ActivityProgressView],
+    ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
+        let mut changed = false;
+        if self.has_control(WORKBENCH_TOAST_CONTROL_ID) {
+            changed |= self.sync_toast_queue(toasts)?;
         }
-
-        self.set_visible(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, true)?;
-        for property in [
-            OPEN,
-            POPUP_OPEN,
-            INPUT_INTERACTIVE,
-            INPUT_CLICKABLE,
-            INPUT_HOVERABLE,
-            INPUT_FOCUSABLE,
-        ] {
-            self.mutate_control_property(
-                WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
-                property,
-                UiValue::Bool(decision_open),
-            )?;
+        if self.has_control(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID) {
+            changed |= self.sync_notification_projection(pending_decisions, toasts, progress)?;
         }
-        self.mutate_control_property(
-            WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
-            CLOSE_ON_BACKDROP_CLICK,
-            UiValue::Bool(!decision_open),
-        )?;
-        self.mutate_control_property(
-            WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
-            DISABLE_ESCAPE_KEY_DOWN,
-            UiValue::Bool(decision_open),
-        )?;
-        self.mutate_control_property(
-            WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
-            NOTIFICATIONS,
-            string_array_value(retained.entries),
-        )?;
-        self.mutate_control_property(
-            WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
-            UNREAD_COUNT,
-            UiValue::Int(retained.unread_count),
-        )?;
-        self.mutate_control_property(
-            WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
-            OVERFLOW_COUNT,
-            UiValue::Int(retained.overflow_count),
-        )?;
-        self.mutate_control_property(
-            WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
-            NOTIFICATION_GENERATION,
-            UiValue::Int(notification_generation),
-        )?;
-        self.mutate_control_property(
-            WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
-            SELECTED_NOTIFICATION_ID,
-            UiValue::String(selected_id),
-        )?;
-        self.mutate_control_property(
-            WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
-            FOCUSED_INDEX,
-            UiValue::Int(if decision_open { 0 } else { -1 }),
-        )?;
-        self.template_surface
-            .refresh_after_state_change(self.runtime.as_ref())?;
-        Ok(true)
+        Ok(changed)
     }
 
     pub(crate) fn is_pending_play_decision_option(
@@ -171,25 +92,6 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 .control_string_array(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, NOTIFICATIONS)
                 .iter()
                 .any(|entry| entry_id(entry) == option_id && is_pending_play_decision_entry(entry))
-    }
-
-    pub(crate) fn sync_activity_toasts(
-        &mut self,
-        notifications: &[ActivityToastView],
-    ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
-        let mut changed = false;
-        if self.has_control(WORKBENCH_TOAST_CONTROL_ID) {
-            changed |= self.sync_toast_queue(notifications)?;
-        }
-        if self.has_control(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID) {
-            changed |= self.sync_notification_history(notifications)?;
-        }
-
-        if changed {
-            self.template_surface
-                .refresh_after_state_change(self.runtime.as_ref())?;
-        }
-        Ok(changed)
     }
 
     fn sync_toast_queue(
@@ -221,6 +123,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 .unwrap_or_default()
         };
         let expected_visibility = if visible { "visible" } else { "collapsed" };
+        let existing_queue = self.control_string_array(WORKBENCH_TOAST_CONTROL_ID, TOAST_QUEUE);
         let changed = self
             .control_string(WORKBENCH_TOAST_CONTROL_ID, "visibility")
             .as_deref()
@@ -235,7 +138,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 .control_string(WORKBENCH_TOAST_CONTROL_ID, CURRENT_TOAST_ID)
                 .as_deref()
                 != Some(id.as_str())
-            || self.control_string_array(WORKBENCH_TOAST_CONTROL_ID, TOAST_QUEUE) != queue;
+            || !toast_queue_semantically_equal(&existing_queue, &queue);
         if !changed {
             return Ok(false);
         }
@@ -278,9 +181,10 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.mutate_control_property(
             WORKBENCH_TOAST_CONTROL_ID,
             ICON,
-            UiValue::String(toast_severity_icon(
-                notifications.first().map(ActivityToastView::severity),
-            )),
+            UiValue::String(
+                toast_severity_icon(notifications.first().map(ActivityToastView::severity))
+                    .to_string(),
+            ),
         )?;
         self.mutate_control_property(
             WORKBENCH_TOAST_CONTROL_ID,
@@ -323,44 +227,58 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(true)
     }
 
-    fn sync_notification_history(
+    fn sync_notification_projection(
         &mut self,
-        notifications: &[ActivityToastView],
+        pending_decisions: &[PlayPendingDecisionOption],
+        toasts: &[ActivityToastView],
+        progress: &[ActivityProgressView],
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
         let counters = self.notification_counters();
         let existing =
             self.control_string_array(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, NOTIFICATIONS);
-        let pending_decisions = existing
+        let notification_count = pending_decisions
+            .len()
+            .saturating_add(progress.len())
+            .saturating_add(toasts.len());
+        let entries = pending_decisions
             .iter()
-            .filter(|entry| is_pending_play_decision_entry(entry))
-            .cloned()
+            .map(pending_play_decision_history_entry)
+            .chain(progress.iter().map(activity_progress_history_entry))
+            .chain(toasts.iter().map(activity_toast_history_entry))
+            .take(MAX_NOTIFICATION_HISTORY)
             .collect::<Vec<_>>();
-        let retained = RetainedNotificationHistory::merge(
-            pending_decisions
-                .iter()
-                .cloned()
-                .chain(notifications.iter().map(activity_toast_history_entry)),
-            MAX_NOTIFICATION_HISTORY,
-            0,
-        );
+        let overflow_count = notification_count.saturating_sub(MAX_NOTIFICATION_HISTORY) as i64;
+        let unread_count = entries.iter().filter(|entry| entry_unread(entry)).count() as i64;
         let selected_id = pending_decisions
             .first()
-            .map(|entry| entry_id(entry).to_string())
+            .map(|option| option.selection_id().to_string())
             .or_else(|| {
-                notifications
+                progress
+                    .first()
+                    .map(|notification| notification.id().to_string())
+            })
+            .or_else(|| {
+                toasts
                     .first()
                     .map(|notification| notification.id().to_string())
             })
             .unwrap_or_default();
-        let history_changed = existing != retained.entries;
+        let history_changed = existing != entries;
         let notification_generation =
             next_notification_generation(counters.generation, history_changed);
-        let visible = !retained.entries.is_empty();
+        let visible = !entries.is_empty();
+        let decision_open = !pending_decisions.is_empty();
         let changed = history_changed
+            || counters.overflow_count != overflow_count
             || self
                 .control_string(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, "visibility")
                 .as_deref()
                 != Some(if visible { "visible" } else { "collapsed" })
+            || self.control_bool(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, OPEN) != decision_open
+            || self.control_bool(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, POPUP_OPEN)
+                != decision_open
+            || self.control_bool(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, INPUT_INTERACTIVE)
+                != decision_open
             || self
                 .control_string(
                     WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
@@ -368,48 +286,58 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 )
                 .as_deref()
                 != Some(selected_id.as_str())
-            || self.control_bool(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, FOCUSED) == Some(true)
-            || self.control_bool(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, SELECTED) == Some(true);
+            || self.control_bool(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, FOCUSED)
+            || self.control_bool(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, SELECTED);
         if !changed {
             return Ok(false);
         }
 
         self.set_visible(WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID, visible)?;
-        if pending_decisions.is_empty() {
-            for property in [OPEN, POPUP_OPEN, FOCUSED, SELECTED] {
-                self.mutate_control_property(
-                    WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
-                    property,
-                    UiValue::Bool(false),
-                )?;
-            }
-            for property in [
-                INPUT_INTERACTIVE,
-                INPUT_CLICKABLE,
-                INPUT_HOVERABLE,
-                INPUT_FOCUSABLE,
-            ] {
-                self.mutate_control_property(
-                    WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
-                    property,
-                    UiValue::Bool(false),
-                )?;
-            }
+        for property in [
+            OPEN,
+            POPUP_OPEN,
+            INPUT_INTERACTIVE,
+            INPUT_CLICKABLE,
+            INPUT_HOVERABLE,
+            INPUT_FOCUSABLE,
+        ] {
+            self.mutate_control_property(
+                WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
+                property,
+                UiValue::Bool(decision_open),
+            )?;
+        }
+        self.mutate_control_property(
+            WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
+            CLOSE_ON_BACKDROP_CLICK,
+            UiValue::Bool(!decision_open),
+        )?;
+        self.mutate_control_property(
+            WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
+            DISABLE_ESCAPE_KEY_DOWN,
+            UiValue::Bool(decision_open),
+        )?;
+        for property in [FOCUSED, SELECTED] {
+            self.mutate_control_property(
+                WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
+                property,
+                UiValue::Bool(false),
+            )?;
         }
         self.mutate_control_property(
             WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
             NOTIFICATIONS,
-            string_array_value(retained.entries),
+            string_array_value(entries),
         )?;
         self.mutate_control_property(
             WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
             UNREAD_COUNT,
-            UiValue::Int(retained.unread_count),
+            UiValue::Int(unread_count),
         )?;
         self.mutate_control_property(
             WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
             OVERFLOW_COUNT,
-            UiValue::Int(retained.overflow_count),
+            UiValue::Int(overflow_count),
         )?;
         self.mutate_control_property(
             WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
@@ -481,16 +409,20 @@ fn pending_play_decision_history_entry(option: &PlayPendingDecisionOption) -> St
 }
 
 fn is_pending_play_decision_entry(entry: &str) -> bool {
+    entry_kind(entry) == Some(PLAY_PENDING_DECISION_KIND)
+}
+
+fn entry_kind(entry: &str) -> Option<&str> {
     entry
         .split('|')
-        .any(|part| part.trim().strip_prefix("kind=") == Some(PLAY_PENDING_DECISION_KIND))
+        .find_map(|part| part.trim().strip_prefix("kind="))
 }
 
 fn entry_id(entry: &str) -> &str {
     entry.split('|').next().unwrap_or_default().trim()
 }
 
-pub(super) fn entry_unread(entry: &str) -> bool {
+fn entry_unread(entry: &str) -> bool {
     entry.split('|').any(|part| {
         let Some((key, value)) = part.split_once('=') else {
             return false;
@@ -514,6 +446,39 @@ fn activity_toast_queue_entry(notification: &ActivityToastView) -> String {
     )
 }
 
+fn toast_queue_semantically_equal(previous: &[String], next: &[String]) -> bool {
+    previous.len() == next.len()
+        && previous
+            .iter()
+            .zip(next)
+            .all(|(previous, next)| toast_queue_entry_semantically_equal(previous, next))
+}
+
+fn toast_queue_entry_semantically_equal(previous: &str, next: &str) -> bool {
+    let mut previous = previous
+        .split('|')
+        .filter(|field| !volatile_toast_queue_field(field));
+    let mut next = next
+        .split('|')
+        .filter(|field| !volatile_toast_queue_field(field));
+    loop {
+        match (previous.next(), next.next()) {
+            (Some(previous), Some(next)) if previous == next => {}
+            (None, None) => return true,
+            _ => return false,
+        }
+    }
+}
+
+fn volatile_toast_queue_field(field: &str) -> bool {
+    field.split_once('=').is_some_and(|(key, _)| {
+        matches!(
+            key.trim(),
+            "duration" | "duration_ms" | "auto_hide_duration_ms" | "autoHideDuration"
+        )
+    })
+}
+
 fn activity_toast_history_entry(notification: &ActivityToastView) -> String {
     format!(
         "{}|title={}|message={}|severity={}|unread=true|kind=toast",
@@ -521,6 +486,20 @@ fn activity_toast_history_entry(notification: &ActivityToastView) -> String {
         pipe_value(notification.title()),
         pipe_value(notification.message()),
         toast_severity_name(notification.severity()),
+    )
+}
+
+fn activity_progress_history_entry(notification: &ActivityProgressView) -> String {
+    let percent = notification
+        .percent()
+        .map(|percent| percent.to_string())
+        .unwrap_or_else(|| "indeterminate".to_string());
+    format!(
+        "{}|title={}|message={}|severity=info|unread=false|kind=progress|job_id={}|percent={percent}",
+        pipe_value(notification.id()),
+        pipe_value(notification.title()),
+        pipe_value(notification.detail()),
+        notification.job_id().value(),
     )
 }
 
@@ -565,5 +544,30 @@ fn toast_severity_color(severity: Option<ToastSeverity>) -> &'static str {
         Some(ToastSeverity::Success) => "#2d9368",
         Some(ToastSeverity::Warning) => "#b87918",
         Some(ToastSeverity::Error) => "#bf5148",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn notification_history_bounds_entry_formatting_before_allocation() {
+        let source = include_str!("notifications.rs");
+        let projection = source
+            .split("fn sync_notification_projection")
+            .nth(1)
+            .and_then(|source| source.split("fn notification_counters").next())
+            .expect("notification projection source must remain isolated");
+        let capped_iteration = projection
+            .find(".take(MAX_NOTIFICATION_HISTORY)")
+            .expect("history input must be capped before entry formatting");
+        let formatted_entries = projection
+            .find(".collect::<Vec<_>>()")
+            .expect("history entries must be materialized once after the cap");
+
+        assert!(capped_iteration < formatted_entries);
+        assert!(!projection.contains("candidate_entries"));
+        assert!(projection.contains("pending_decisions.len()"));
+        assert!(projection.contains("progress.len()"));
+        assert!(projection.contains("toasts.len()"));
     }
 }

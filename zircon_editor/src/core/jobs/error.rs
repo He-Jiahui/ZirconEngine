@@ -121,6 +121,8 @@ pub enum JobSubmitError {
         "editor job pending admission is stalled beyond its oldest wait age budget of {max_age_ms} ms"
     )]
     OldestPendingAgeExceeded { max_age_ms: u64 },
+    #[error("editor job batch admission reservation did not match its materialized jobs")]
+    AdmissionReservationMismatch,
     #[error("editor job dependency {dependency:?} has expired from retained history")]
     ExpiredDependency { dependency: JobId },
     #[error("editor job dependency {dependency:?} is not registered")]

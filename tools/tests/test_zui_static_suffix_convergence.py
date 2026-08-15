@@ -81,7 +81,8 @@ EDITOR_RETAINED_HOST_PROJECTION_TEST_FILES = [
 
 EDITOR_EXTENSION_CONTRACT_TEST_FILES = [
     "zircon_editor/src/tests/editor_authoring_extension_descriptors.rs",
-    "zircon_editor/src/tests/editor_event/runtime.rs",
+    "zircon_editor/src/tests/editor_event/runtime/extensions_validation.rs",
+    "zircon_editor/src/tests/editor_event/runtime/registry.rs",
 ]
 
 EDITOR_VIEW_PROJECTION_TEST_FILES = [

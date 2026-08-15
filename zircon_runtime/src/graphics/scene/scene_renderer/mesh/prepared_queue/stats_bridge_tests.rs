@@ -1,12 +1,29 @@
 use super::super::build_mesh_draws::{
     PendingMeshCommandCacheExtractionStats, PendingMeshCommandCachePlanStats,
 };
-use super::super::mesh_pass::{MeshDrawReplayStats, MeshPassCommandBufferStats};
+use super::super::mesh_pass::{
+    MeshDrawReplayStats, MeshIndirectWorkspaceFrameStats, MeshPassCommandBufferStats,
+};
 use super::*;
 use crate::core::framework::render::RenderGpuSceneUploadPath;
 use crate::graphics::scene::gpu_scene::{GpuSceneStats, GpuSceneUploadPath, GpuSceneUploadReport};
 
 mod virtual_geometry;
+
+#[test]
+fn prepared_queue_stats_carry_indirect_workspace_churn() {
+    let stats = PreparedMeshQueueStats::default().with_indirect_workspace_stats(
+        MeshIndirectWorkspaceFrameStats {
+            created_buffer_count: 4,
+            uploaded_byte_count: 320,
+            upload_range_count: 3,
+        },
+    );
+
+    assert_eq!(stats.indirect_workspace_created_buffer_count, 4);
+    assert_eq!(stats.indirect_workspace_uploaded_byte_count, 320);
+    assert_eq!(stats.indirect_workspace_upload_range_count, 3);
+}
 
 #[test]
 fn prepared_queue_stats_carry_mesh_pass_command_buffer_counts() {
@@ -141,6 +158,8 @@ fn prepared_queue_stats_carry_mesh_draw_replay_counts() {
             direct_draw_call_count: 6,
             state_change_count: 4,
             bind_skip_count: 7,
+            material_bind_group_set_count: 5,
+            material_bind_group_skip_count: 6,
         });
 
     assert_eq!(stats.indirect_count_draw_call_count, 1);
@@ -149,6 +168,8 @@ fn prepared_queue_stats_carry_mesh_draw_replay_counts() {
     assert_eq!(stats.direct_draw_call_count, 6);
     assert_eq!(stats.state_change_count, 4);
     assert_eq!(stats.bind_skip_count, 7);
+    assert_eq!(stats.material_bind_group_set_count, 5);
+    assert_eq!(stats.material_bind_group_skip_count, 6);
 }
 
 #[test]

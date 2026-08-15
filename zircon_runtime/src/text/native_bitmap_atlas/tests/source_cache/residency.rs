@@ -1,7 +1,9 @@
 use super::*;
 
+use crate::text::atlas::{
+    GlyphHintingMode, GlyphRasterKey, GlyphSmoothingMode, SyntheticGlyphStyle,
+};
 use crate::text::InstancedFaceId;
-use crate::text::atlas::{GlyphHintingMode, GlyphSmoothingMode, SyntheticGlyphStyle};
 
 #[test]
 fn native_bitmap_atlas_idle_frame_keeps_cached_source_images_resident() {
@@ -93,16 +95,12 @@ fn native_bitmap_atlas_budget_pressure_invalidates_linked_source_slot_and_page()
     assert!(cache.cached_test_image(first_cache_key).is_none());
     assert!(cache.cached_test_image(second_cache_key).is_none());
     assert!(cache.cached_test_image(third_cache_key).is_some());
-    assert!(
-        atlas
-            .persistent_bitmap_slot(first_raster_key, UVec2::new(8, 8), page_size, 2)
-            .is_none()
-    );
-    assert!(
-        atlas
-            .persistent_bitmap_slot(second_raster_key, UVec2::new(8, 8), page_size, 2)
-            .is_none()
-    );
+    assert!(atlas
+        .persistent_bitmap_slot(first_raster_key, UVec2::new(8, 8), page_size, 2)
+        .is_none());
+    assert!(atlas
+        .persistent_bitmap_slot(second_raster_key, UVec2::new(8, 8), page_size, 2)
+        .is_none());
     assert_eq!(
         atlas
             .page(first_slot.page_key.format, first_slot.page_key.page_index)
@@ -144,13 +142,11 @@ fn native_bitmap_atlas_source_cache_scale_probes_are_bounded_at_full_capacity() 
 
         cache.begin_frame();
         for glyph_offset in 1..=new_glyph_count {
-            assert!(
-                cache
-                    .approximate_cached_image(test_cache_key(
-                        RESIDENT_ENTRY_COUNT.saturating_add(glyph_offset),
-                    ))
-                    .is_none()
-            );
+            assert!(cache
+                .approximate_cached_image(test_cache_key(
+                    RESIDENT_ENTRY_COUNT.saturating_add(glyph_offset),
+                ))
+                .is_none());
         }
 
         let report = cache.frame_report();

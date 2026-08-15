@@ -8,7 +8,7 @@ use crate::core::framework::render::RenderMeshTopology;
 use super::super::model::VirtualGeometryAsset;
 use super::{
     MeshAsset, MeshAssetUsage, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset,
-    MeshSkinAsset, MeshValidationError,
+    MeshSdfAsset, MeshSkinAsset, MeshValidationError,
 };
 
 pub const ZMESH_DOCUMENT_VERSION: u32 = 1;
@@ -32,6 +32,8 @@ pub struct ZMeshDocument {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub skin: Option<MeshSkinAsset>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mesh_sdf: Option<MeshSdfAsset>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub virtual_geometry: Option<VirtualGeometryAsset>,
 }
 
@@ -53,6 +55,7 @@ impl ZMeshDocument {
             asset_usage: self.asset_usage,
             morph_targets: self.morph_targets,
             skin: self.skin,
+            mesh_sdf: self.mesh_sdf,
             virtual_geometry: self.virtual_geometry,
         };
         asset.validate()?;
@@ -71,6 +74,7 @@ impl From<&MeshAsset> for ZMeshDocument {
             asset_usage: asset.asset_usage,
             morph_targets: asset.morph_targets.clone(),
             skin: asset.skin.clone(),
+            mesh_sdf: asset.mesh_sdf.clone(),
             virtual_geometry: asset.virtual_geometry.clone(),
         }
     }

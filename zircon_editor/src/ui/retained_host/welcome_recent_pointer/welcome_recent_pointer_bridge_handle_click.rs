@@ -13,7 +13,9 @@ impl WelcomeRecentPointerBridge {
         point: UiPoint,
     ) -> Result<WelcomeRecentPointerDispatch, String> {
         self.refresh_layout_metrics();
-        let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?;
+        let dispatched_route =
+            self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?;
+        let route = self.project_route_at_point(dispatched_route, point);
         match route.as_ref() {
             Some(WelcomeRecentPointerRouteIntent::Action {
                 item_index, action, ..

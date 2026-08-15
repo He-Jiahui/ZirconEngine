@@ -1,7 +1,7 @@
 use crate::scene::dynamic_scene::{DynamicScene, DynamicSceneError};
 use serde_json::value::RawValue;
 use zircon_runtime_interface::serialization::{
-    Format, LoadError, PayloadHeader, VersionedSchema, load_versioned,
+    load_versioned, Format, LoadError, PayloadHeader, VersionedSchema,
 };
 
 impl DynamicScene {

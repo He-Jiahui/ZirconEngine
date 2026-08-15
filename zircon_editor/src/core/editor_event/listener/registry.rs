@@ -1,19 +1,18 @@
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use super::super::{
     EditorEventRetentionBudgets, EditorEventRetentionPolicy, EditorEventRetentionStore,
-    SharedEditorEventRecord,
 };
 use super::{
-    EditorEventListenerDelivery, EditorEventListenerDescriptor, EditorEventListenerFilter,
-    EditorEventListenerStatus,
+    EditorEventListenerDescriptor, EditorEventListenerFilter, EditorEventListenerHandle,
+    EditorEventListenerRoute,
 };
 
 #[derive(Debug)]
 struct EditorEventListenerState {
     descriptor: EditorEventListenerDescriptor,
-    inbox: EditorEventRetentionStore,
+    inbox: Arc<Mutex<EditorEventRetentionStore>>,
 }
 
 #[derive(Debug)]
@@ -21,6 +20,7 @@ pub struct EditorEventListenerRegistry {
     listener_order: Vec<String>,
     listeners: HashMap<String, EditorEventListenerState>,
     retention_budgets: EditorEventRetentionBudgets,
+    delivery_routes: Arc<[EditorEventListenerRoute]>,
 }
 
 impl Default for EditorEventListenerRegistry {
@@ -35,6 +35,7 @@ impl EditorEventListenerRegistry {
             listener_order: Vec::new(),
             listeners: HashMap::new(),
             retention_budgets,
+            delivery_routes: Arc::from([]),
         }
     }
 
@@ -59,9 +60,12 @@ impl EditorEventListenerRegistry {
                     enabled: true,
                     filter: None,
                 },
-                inbox: EditorEventRetentionStore::new(self.retention_budgets.clone()),
+                inbox: Arc::new(Mutex::new(EditorEventRetentionStore::new(
+                    self.retention_budgets.clone(),
+                ))),
             },
         );
+        self.rebuild_delivery_routes();
         Ok(())
     }
 
@@ -70,11 +74,13 @@ impl EditorEventListenerRegistry {
             return Err(not_registered(listener_id));
         }
         self.listener_order.retain(|id| id != listener_id);
+        self.rebuild_delivery_routes();
         Ok(())
     }
 
     pub fn set_enabled(&mut self, listener_id: &str, enabled: bool) -> Result<(), String> {
         self.listener_mut(listener_id)?.descriptor.enabled = enabled;
+        self.rebuild_delivery_routes();
         Ok(())
     }
 
@@ -84,11 +90,13 @@ impl EditorEventListenerRegistry {
         filter: EditorEventListenerFilter,
     ) -> Result<(), String> {
         self.listener_mut(listener_id)?.descriptor.filter = Some(filter.normalized());
+        self.rebuild_delivery_routes();
         Ok(())
     }
 
     pub fn clear_filter(&mut self, listener_id: &str) -> Result<(), String> {
         self.listener_mut(listener_id)?.descriptor.filter = None;
+        self.rebuild_delivery_routes();
         Ok(())
     }
 
@@ -100,93 +108,44 @@ impl EditorEventListenerRegistry {
             .collect()
     }
 
-    pub fn status_for(&mut self, listener_id: &str) -> Result<EditorEventListenerStatus, String> {
-        let listener = self.listener_mut(listener_id)?;
-        let retention = listener.inbox.diagnostics();
-        let first_pending_sequence = retention.first_retained_sequence();
-        let last_pending_sequence = retention.last_retained_sequence();
-        let retention_budgets = listener.inbox.budgets();
-        Ok(EditorEventListenerStatus {
-            listener_id: listener.descriptor.listener_id.clone(),
-            descriptor: listener.descriptor.clone(),
-            pending_delivery_count: retention.retained_records(),
-            pending_delivery_bytes: retention.retained_bytes(),
-            first_pending_sequence,
-            last_pending_sequence,
-            dropped_delivery_count: retention.dropped_records(),
-            coalesced_delivery_count: retention.coalesced_records(),
-            lagged_since_sequence: retention.first_dropped_sequence(),
-            last_dropped_sequence: retention.last_dropped_sequence(),
-            retention_budgets,
-            retention,
-        })
-    }
-
-    pub fn deliveries_for(
-        &mut self,
+    pub(crate) fn listener_handle(
+        &self,
         listener_id: &str,
-    ) -> Result<Vec<EditorEventListenerDelivery>, String> {
-        self.deliveries_after(listener_id, None)
+    ) -> Result<EditorEventListenerHandle, String> {
+        let listener = self
+            .listeners
+            .get(listener_id)
+            .ok_or_else(|| not_registered(listener_id))?;
+        Ok(EditorEventListenerHandle::new(
+            listener.descriptor.clone(),
+            Arc::clone(&listener.inbox),
+        ))
     }
 
-    pub fn deliveries_after_sequence(
-        &mut self,
-        listener_id: &str,
-        after_sequence: u64,
-    ) -> Result<Vec<EditorEventListenerDelivery>, String> {
-        self.deliveries_after(listener_id, Some(after_sequence))
-    }
-
-    pub fn acknowledge_through(
-        &mut self,
-        listener_id: &str,
-        sequence: u64,
-    ) -> Result<usize, String> {
-        Ok(self
-            .listener_mut(listener_id)?
-            .inbox
-            .acknowledge_through(sequence))
-    }
-
-    pub(crate) fn notify(&mut self, record: Arc<SharedEditorEventRecord>) {
-        for listener_id in &self.listener_order {
-            let Some(listener) = self.listeners.get_mut(listener_id) else {
-                continue;
-            };
-            if !listener.descriptor.enabled
-                || listener
-                    .descriptor
-                    .filter
-                    .as_ref()
-                    .is_some_and(|filter| !filter.accepts(record.record()))
-            {
-                continue;
-            }
-            listener.inbox.push(Arc::clone(&record));
-        }
-    }
-
-    fn deliveries_after(
-        &mut self,
-        listener_id: &str,
-        after_sequence: Option<u64>,
-    ) -> Result<Vec<EditorEventListenerDelivery>, String> {
-        let listener = self.listener_mut(listener_id)?;
-        Ok(listener
-            .inbox
-            .records()
-            .into_iter()
-            .filter(|payload| {
-                after_sequence.is_none_or(|sequence| payload.record().sequence.0 > sequence)
-            })
-            .map(|payload| EditorEventListenerDelivery::from_shared(listener_id, payload.as_ref()))
-            .collect())
+    pub(crate) fn delivery_routes(&self) -> Arc<[EditorEventListenerRoute]> {
+        Arc::clone(&self.delivery_routes)
     }
 
     fn listener_mut(&mut self, listener_id: &str) -> Result<&mut EditorEventListenerState, String> {
         self.listeners
             .get_mut(listener_id)
             .ok_or_else(|| not_registered(listener_id))
+    }
+
+    fn rebuild_delivery_routes(&mut self) {
+        self.delivery_routes = self
+            .listener_order
+            .iter()
+            .filter_map(|listener_id| self.listeners.get(listener_id))
+            .filter(|listener| listener.descriptor.enabled)
+            .map(|listener| {
+                EditorEventListenerRoute::new(
+                    listener.descriptor.filter.clone(),
+                    Arc::clone(&listener.inbox),
+                )
+            })
+            .collect::<Vec<_>>()
+            .into();
     }
 }
 
@@ -207,29 +166,103 @@ mod tests {
     };
     use super::EditorEventListenerRegistry;
 
-    #[test]
-    fn matching_listener_inboxes_share_one_immutable_payload() {
-        let mut listeners = EditorEventListenerRegistry::default();
-        listeners.register("a", "A").unwrap();
-        listeners.register("b", "B").unwrap();
-        let payload = Arc::new(SharedEditorEventRecord::new(EditorEventRecord {
-            event_id: EditorEventId::new(1),
-            sequence: EditorEventSequence::new(1),
+    fn payload(sequence: u64) -> Arc<SharedEditorEventRecord> {
+        Arc::new(SharedEditorEventRecord::new(EditorEventRecord {
+            event_id: EditorEventId::new(sequence),
+            sequence: EditorEventSequence::new(sequence),
             source: EditorEventSource::Headless,
             event: EditorEvent::Transient(EditorEventTransient::OpenCommandPalette),
+            binding_path: None,
             operation_id: None,
             operation_display_name: None,
             operation_arguments: None,
             operation_group: None,
+            transaction_id: None,
+            save_generation: None,
             effects: Vec::<EditorEventEffect>::new(),
             undo_policy: EditorEventUndoPolicy::NonUndoable,
             before_revision: 0,
             after_revision: 1,
             result: EditorEventResult::success(json!(null)),
-        }));
+        }))
+    }
 
-        listeners.notify(Arc::clone(&payload));
+    #[test]
+    fn matching_listener_inboxes_share_one_immutable_payload() {
+        let mut listeners = EditorEventListenerRegistry::default();
+        listeners.register("a", "A").unwrap();
+        listeners.register("b", "B").unwrap();
+        let payload = payload(1);
+
+        for route in listeners.delivery_routes().iter() {
+            if route.accepts(payload.record()) {
+                route.enqueue(Arc::clone(&payload));
+            }
+        }
 
         assert_eq!(Arc::strong_count(&payload), 3);
+    }
+
+    #[test]
+    fn delivery_routes_are_rebuilt_when_listener_configuration_changes() {
+        let mut listeners = EditorEventListenerRegistry::default();
+        listeners.register("a", "A").unwrap();
+        assert_eq!(listeners.delivery_routes().len(), 1);
+
+        listeners.set_enabled("a", false).unwrap();
+        assert!(listeners.delivery_routes().is_empty());
+
+        listeners.set_enabled("a", true).unwrap();
+        listeners
+            .set_filter(
+                "a",
+                super::super::EditorEventListenerFilter::failures_only(),
+            )
+            .unwrap();
+        assert_eq!(listeners.delivery_routes().len(), 1);
+    }
+
+    #[test]
+    fn in_flight_route_snapshot_uses_its_captured_filter_and_new_snapshots_use_reconfiguration() {
+        let mut listeners = EditorEventListenerRegistry::default();
+        listeners.register("a", "A").unwrap();
+        let in_flight_routes = listeners.delivery_routes();
+        let event = payload(2);
+
+        listeners
+            .set_filter(
+                "a",
+                super::super::EditorEventListenerFilter::failures_only(),
+            )
+            .unwrap();
+        let filtered_routes = listeners.delivery_routes();
+        assert!(in_flight_routes[0].accepts(event.record()));
+        assert!(!filtered_routes[0].accepts(event.record()));
+
+        in_flight_routes[0].enqueue(Arc::clone(&event));
+        for route in filtered_routes.iter() {
+            if route.accepts(event.record()) {
+                route.enqueue(Arc::clone(&event));
+            }
+        }
+        assert_eq!(
+            listeners
+                .listener_handle("a")
+                .unwrap()
+                .status()
+                .pending_delivery_count,
+            1
+        );
+
+        listeners.set_enabled("a", false).unwrap();
+        assert!(listeners.delivery_routes().is_empty());
+        let detached_handle = listeners.listener_handle("a").unwrap();
+        listeners.unregister("a").unwrap();
+        assert!(listeners.delivery_routes().is_empty());
+        assert!(listeners.listener_handle("a").is_err());
+
+        // The snapshot acquired before unregister remains a valid in-flight owner.
+        in_flight_routes[0].enqueue(event);
+        assert_eq!(detached_handle.status().pending_delivery_count, 2);
     }
 }

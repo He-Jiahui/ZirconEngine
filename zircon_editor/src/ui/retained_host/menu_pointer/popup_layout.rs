@@ -5,7 +5,6 @@ use super::constants::{
     POPUP_ROW_HEIGHT, POPUP_WIDTHS, WINDOW_MENU_INDEX,
 };
 use super::host_menu_pointer_layout::HostMenuPointerLayout;
-use super::menu_items_for_layout::menu_items_for_layout;
 use crate::ui::retained_host::menu_popup_contract::menu_popup_content_height;
 use crate::ui::workbench::window_registry::MenuOverflowMode;
 
@@ -40,8 +39,9 @@ pub(in crate::ui::retained_host::menu_pointer) fn popup_content_height(item_coun
 pub(in crate::ui::retained_host::menu_pointer) fn popup_scroll_metrics(
     layout: &HostMenuPointerLayout,
     menu_index: usize,
+    item_count: usize,
 ) -> (f32, f32) {
-    let metrics = popup_grid_layout(layout, menu_index, 0.0, 0.0);
+    let metrics = popup_grid_layout(layout, menu_index, item_count, 0.0, 0.0);
     (metrics.viewport_extent, metrics.content_extent)
 }
 
@@ -174,10 +174,10 @@ pub(in crate::ui::retained_host::menu_pointer) fn submenu_popup_grid_layout(
 pub(in crate::ui::retained_host::menu_pointer) fn popup_grid_layout(
     layout: &HostMenuPointerLayout,
     menu_index: usize,
+    item_count: usize,
     scroll_offset: f32,
     menu_bar_scroll_offset: f32,
 ) -> PopupGridLayout {
-    let item_count = menu_items_for_layout(layout, menu_index).len();
     let button_frame = menu_button_frame(layout, menu_index, menu_bar_scroll_offset);
     let shell_width = layout.shell_frame.width.max(0.0);
     let shell_height = layout.shell_frame.height.max(0.0);
@@ -235,6 +235,59 @@ pub(in crate::ui::retained_host::menu_pointer) fn popup_grid_layout(
         viewport_extent,
         content_extent,
     }
+}
+
+pub(in crate::ui::retained_host::menu_pointer) fn popup_item_frame(
+    grid: PopupGridLayout,
+    item_index: usize,
+) -> UiFrame {
+    let column = if grid.rows_per_column == 0 {
+        0
+    } else {
+        item_index / grid.rows_per_column
+    };
+    let row = if grid.rows_per_column == 0 {
+        0
+    } else {
+        item_index % grid.rows_per_column
+    };
+    UiFrame::new(
+        grid.content_frame.x + column as f32 * grid.column_width,
+        grid.content_frame.y + row as f32 * grid.row_step - grid.scroll_offset,
+        grid.column_width,
+        POPUP_ROW_HEIGHT,
+    )
+}
+
+pub(in crate::ui::retained_host::menu_pointer) fn popup_item_index_at_point(
+    grid: PopupGridLayout,
+    item_count: usize,
+    point: UiPoint,
+) -> Option<usize> {
+    if item_count == 0
+        || grid.rows_per_column == 0
+        || grid.column_width <= 0.0
+        || grid.row_step <= 0.0
+        || !point.x.is_finite()
+        || !point.y.is_finite()
+        || !grid.content_frame.contains_point(point)
+    {
+        return None;
+    }
+    let column = ((point.x - grid.content_frame.x) / grid.column_width).floor() as usize;
+    let content_y = point.y - grid.content_frame.y + grid.scroll_offset;
+    if !content_y.is_finite() || content_y < 0.0 {
+        return None;
+    }
+    let row = (content_y / grid.row_step).floor() as usize;
+    let offset_in_row = content_y - row as f32 * grid.row_step;
+    if offset_in_row > POPUP_ROW_HEIGHT {
+        return None;
+    }
+    let item_index = column
+        .saturating_mul(grid.rows_per_column)
+        .saturating_add(row);
+    (item_index < item_count).then_some(item_index)
 }
 
 fn popup_column_count(

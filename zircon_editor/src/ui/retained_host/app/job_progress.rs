@@ -6,7 +6,20 @@ use super::RetainedEditorHost;
 impl RetainedEditorHost {
     pub(super) fn sync_editor_job_progress(&mut self) {
         let primary = self.runtime.primary_job_progress_snapshot();
-        self.set_status_task_progress(status_task_progress_from_jobs(primary.as_slice()));
+        let progress = status_task_progress_from_jobs(primary.as_slice());
+        if !self
+            .runtime
+            .set_retained_status_task_progress(progress.clone())
+        {
+            return;
+        }
+        match self
+            .workbench_window_bridge
+            .prepare_status_task_progress(progress.as_ref())
+        {
+            Ok(()) => self.pending_activity_projection_refresh = true,
+            Err(error) => self.set_status_line(error.to_string()),
+        }
     }
 }
 
@@ -120,11 +133,9 @@ mod tests {
 
     #[test]
     fn controller_exposes_the_full_read_only_job_progress_snapshot() {
-        let source = include_str!("../../host/editor_event_runtime_access.rs");
-        assert!(
-            source
-                .contains("pub fn job_progress_snapshot(&self) -> Vec<EditorJobProgressSnapshot>")
-        );
+        let source = include_str!("../../host/editor_event_runtime_access/status.rs");
+        assert!(source
+            .contains("pub fn job_progress_snapshot(&self) -> Vec<EditorJobProgressSnapshot>"));
         assert!(source.contains("self.context().jobs().progress().snapshot()"));
         assert!(source.contains("self.context().jobs().progress().primary_snapshot()"));
         let production_source = include_str!("job_progress.rs");

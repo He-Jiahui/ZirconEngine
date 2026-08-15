@@ -1,6 +1,6 @@
 use super::model::WorkbenchToastStyle;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    HostMaterialPalette, current_host_palette,
+    current_host_palette, HostMaterialPalette,
 };
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 

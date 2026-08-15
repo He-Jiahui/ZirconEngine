@@ -553,7 +553,7 @@ impl RuntimePlugin for WeatherAnchorPlugin {
         };
         let set = registry.intern_system_set("weather.main")?;
         registry
-            .register_native_system::<(), _>(owner, "weather.tick", SystemStage::Update, |()| {})
+            .register_native_system::<(), _>(owner, "weather.tick", SystemStage::Update, || |()| {})
             .in_set(set)
             .register()
     }

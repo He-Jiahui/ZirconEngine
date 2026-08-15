@@ -148,7 +148,7 @@ mod tests {
                     width: 2,
                     height: 2,
                     upload_bytes: 16,
-                    rgba: Some(vec![9; 16]),
+                    rgba: Some(vec![9; 16].into()),
                     atlas_uv: None,
                 },
             },
@@ -183,7 +183,7 @@ mod tests {
                 width: 2,
                 height: 2,
                 upload_bytes: 16,
-                rgba: vec![7; 16],
+                rgba: vec![7; 16].into(),
             },
         );
         stream.image_resources.insert(
@@ -193,7 +193,7 @@ mod tests {
                 width: 2,
                 height: 2,
                 upload_bytes: 16,
-                rgba: vec![8; 16],
+                rgba: vec![8; 16].into(),
             },
         );
 
@@ -209,7 +209,7 @@ mod tests {
             stream
                 .image_resources()
                 .get("atlas://editor/changed", 8)
-                .map(|resource| resource.rgba.as_slice()),
+                .map(|resource| resource.rgba.as_ref()),
             Some(&[8; 16][..])
         );
     }

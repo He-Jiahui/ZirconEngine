@@ -8,9 +8,9 @@ use crate::package::{
     attach_particles_manifest_contributions, particle_event_catalogs, particle_options,
 };
 use crate::render::{
-    ParticleGpuRuntimeOwnerHandle, particle_render_pass_executor_registrations_with_gpu_owner,
+    particle_render_pass_executor_registrations_with_gpu_owner,
     particle_runtime_prepare_collector_registration_with_manager_and_owner,
-    render_feature_descriptor,
+    render_feature_descriptor, ParticleGpuRuntimeOwnerHandle,
 };
 use crate::service::ParticlesManager;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;

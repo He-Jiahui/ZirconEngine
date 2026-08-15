@@ -1,12 +1,12 @@
 use super::super::support::*;
 use crate::{
-    core::i18n::EditorI18nService,
     core::notifications::{
         DecisionCenterConfig, DecisionNotification, DecisionNotificationCenter, DecisionOption,
         DecisionOptionId, EditorNotificationService, NotificationId, NotificationSource,
         ToastNotification, ToastSeverity,
     },
-    ui::activity::{ActivityToastView, activity_toast_views},
+    core::{i18n::EditorI18nService, jobs::JobId},
+    ui::activity::{activity_toast_views, ActivityProgressView, ActivityToastView},
     ui::host::play_pending_decision::PlayPendingDecisionOption,
 };
 use std::time::Duration;
@@ -55,11 +55,9 @@ fn workbench_toast_queue_and_notification_history_project_core_activity_toasts()
     let (now, snapshots) = notifications.live_toast_snapshot();
     let activity_toasts = activity_toast_views(&snapshots, &i18n, now);
 
-    assert!(
-        bridge
-            .sync_activity_toasts(&activity_toasts)
-            .expect("activity toasts should project to workbench overlays")
-    );
+    assert!(bridge
+        .sync_notification_snapshot(&[], &activity_toasts, &[])
+        .expect("activity toasts should project to workbench overlays"));
 
     assert_eq!(
         control_string_attribute(&bridge, WORKBENCH_TOAST_CONTROL_ID, "visibility").as_deref(),
@@ -152,11 +150,9 @@ fn workbench_toast_queue_and_notification_history_project_core_activity_toasts()
         "Project saved"
     );
 
-    assert!(
-        bridge
-            .sync_activity_toasts(&[])
-            .expect("an empty authority snapshot should clear expired activity toasts")
-    );
+    assert!(bridge
+        .sync_notification_snapshot(&[], &[], &[])
+        .expect("an empty authority snapshot should clear expired activity toasts"));
     assert_eq!(
         control_string_attribute(&bridge, WORKBENCH_TOAST_CONTROL_ID, "visibility").as_deref(),
         Some("collapsed")
@@ -164,6 +160,15 @@ fn workbench_toast_queue_and_notification_history_project_core_activity_toasts()
     assert!(
         control_string_list_attribute(&bridge, WORKBENCH_TOAST_CONTROL_ID, "toast_queue")
             .is_empty()
+    );
+    assert!(
+        control_string_list_attribute(
+            &bridge,
+            WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
+            "notifications",
+        )
+        .is_empty(),
+        "the retained bridge must not preserve a second toast history after the core snapshot clears"
     );
 }
 
@@ -203,21 +208,17 @@ fn pending_play_decision_rows_are_modal_until_a_choice_is_resolved() {
         "Apply one queued edit before the next Play session.".to_string(),
     );
 
-    assert!(
-        bridge
-            .sync_pending_play_decision_options(std::slice::from_ref(&option))
-            .expect("pending decision rows should project")
-    );
+    assert!(bridge
+        .sync_notification_snapshot(std::slice::from_ref(&option), &[], &[])
+        .expect("pending decision rows should project"));
     let notification_generation = control_int_attribute(
         &bridge,
         WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
         "notification_generation",
     );
-    assert!(
-        !bridge
-            .sync_pending_play_decision_options(std::slice::from_ref(&option))
-            .expect("same pending decision generation should be a no-op")
-    );
+    assert!(!bridge
+        .sync_notification_snapshot(std::slice::from_ref(&option), &[], &[])
+        .expect("same pending decision generation should be a no-op"));
     assert_eq!(
         control_int_attribute(
             &bridge,
@@ -251,11 +252,9 @@ fn pending_play_decision_rows_are_modal_until_a_choice_is_resolved() {
         "play_pending_decision_test_apply"
     ));
 
-    assert!(
-        bridge
-            .sync_pending_play_decision_options(&[])
-            .expect("resolved decisions should clear their retained rows")
-    );
+    assert!(bridge
+        .sync_notification_snapshot(&[], &[], &[])
+        .expect("resolved decisions should clear their retained rows"));
     assert!(!bridge.is_pending_play_decision_option(
         WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
         "play_pending_decision_test_apply"
@@ -275,6 +274,67 @@ fn pending_play_decision_rows_are_modal_until_a_choice_is_resolved() {
 }
 
 #[test]
+fn empty_current_snapshot_preserves_current_activity_toast_selection() {
+    let _guard = env_lock().lock().unwrap();
+    let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0))
+        .expect("componentized workbench template should project");
+    let toast = ActivityToastView::new(
+        "editor.activity.pending-sync",
+        "Project saved",
+        "Project state was written to disk.",
+        ToastSeverity::Success,
+        Duration::from_secs(3),
+    );
+
+    assert!(bridge
+        .sync_notification_snapshot(&[], std::slice::from_ref(&toast), &[])
+        .expect("activity toast should project"));
+    assert!(!bridge
+        .sync_notification_snapshot(&[], std::slice::from_ref(&toast), &[])
+        .expect("the same current core snapshot should be a no-op"));
+    assert_eq!(
+        control_string_attribute(
+            &bridge,
+            WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
+            "selected_notification_id"
+        )
+        .as_deref(),
+        Some("editor.activity.pending-sync")
+    );
+}
+
+#[test]
+fn toast_countdown_does_not_rebuild_the_workbench_projection() {
+    let _guard = env_lock().lock().unwrap();
+    let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0))
+        .expect("componentized workbench template should project");
+    let initial = ActivityToastView::new(
+        "editor.activity.stable-countdown",
+        "Project saved",
+        "Project state was written to disk.",
+        ToastSeverity::Success,
+        Duration::from_secs(3),
+    );
+    let countdown = ActivityToastView::new(
+        "editor.activity.stable-countdown",
+        "Project saved",
+        "Project state was written to disk.",
+        ToastSeverity::Success,
+        Duration::from_secs(2),
+    );
+
+    assert!(bridge
+        .sync_notification_snapshot(&[], std::slice::from_ref(&initial), &[])
+        .expect("initial toast should project"));
+    let projection_after_initial = bridge.host_projection().clone();
+
+    assert!(!bridge
+        .sync_notification_snapshot(&[], std::slice::from_ref(&countdown), &[])
+        .expect("a countdown-only update should be a no-op"));
+    assert_eq!(bridge.host_projection(), &projection_after_initial);
+}
+
+#[test]
 fn notification_burst_has_bounded_retention_and_explicit_generation_metadata() {
     let _guard = env_lock().lock().unwrap();
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0))
@@ -291,11 +351,9 @@ fn notification_burst_has_bounded_retention_and_explicit_generation_metadata() {
         })
         .collect::<Vec<_>>();
 
-    assert!(
-        bridge
-            .sync_activity_toasts(&burst)
-            .expect("activity toast burst should project")
-    );
+    assert!(bridge
+        .sync_notification_snapshot(&[], &burst, &[])
+        .expect("activity toast burst should project"));
 
     let history = control_string_list_attribute(
         &bridge,
@@ -343,6 +401,60 @@ fn notification_burst_has_bounded_retention_and_explicit_generation_metadata() {
     assert_eq!(notification_center.notification_generation, 1);
     assert_eq!(notification_center.notification_unread_count, 64);
     assert_eq!(notification_center.notification_overflow_count, 936);
+
+    let retained = burst.iter().take(64).cloned().collect::<Vec<_>>();
+    assert!(bridge
+        .sync_notification_snapshot(&[], &retained, &[])
+        .expect("overflow metadata should refresh when retained history is unchanged"));
+    assert_eq!(
+        control_int_attribute(
+            &bridge,
+            WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
+            "overflow_count"
+        ),
+        Some(0)
+    );
+}
+
+#[test]
+fn active_progress_rows_are_projected_and_removed_when_the_core_snapshot_is_empty() {
+    let _guard = env_lock().lock().unwrap();
+    let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0))
+        .expect("componentized workbench template should project");
+    let progress = ActivityProgressView::new(
+        "editor.activity.import-progress",
+        JobId::new(17),
+        "Import complete",
+        "Converting terrain materials",
+        Some(75),
+    );
+
+    assert!(bridge
+        .sync_notification_snapshot(&[], &[], std::slice::from_ref(&progress))
+        .expect("active core progress should project into notification history"));
+    let history = control_string_list_attribute(
+        &bridge,
+        WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
+        "notifications",
+    );
+    assert_eq!(history.len(), 1);
+    assert!(history[0].contains("kind=progress"));
+    assert!(history[0].contains("job_id=17"));
+    assert!(history[0].contains("percent=75"));
+    assert!(history[0].contains("message=Converting terrain materials"));
+    assert!(!bridge
+        .sync_notification_snapshot(&[], &[], std::slice::from_ref(&progress))
+        .expect("the same active progress snapshot should not trigger a refresh"));
+
+    assert!(bridge
+        .sync_notification_snapshot(&[], &[], &[])
+        .expect("stale progress rows should be removed when the core snapshot clears"));
+    assert!(control_string_list_attribute(
+        &bridge,
+        WORKBENCH_NOTIFICATION_CENTER_CONTROL_ID,
+        "notifications",
+    )
+    .is_empty());
 }
 
 fn control_string_attribute(

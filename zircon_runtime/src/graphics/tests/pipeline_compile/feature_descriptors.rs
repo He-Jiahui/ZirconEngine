@@ -359,13 +359,17 @@ fn compiled_pipeline_resources_use_extract_viewport_hdr_and_msaa_descriptors() {
         ),
     ] {
         let lifetime = graph_resource_lifetime(&compiled, resource_name);
-        assert!(matches!(
-            &lifetime.desc,
-            RenderGraphResourceDesc::Texture(desc)
-                if desc.width == expected_width
-                    && desc.height == expected_height
-                    && desc.format == expected_format
-                    && desc.sample_count == 1
-        ), "post-process resource {resource_name} descriptor drifted: expected {expected_width}x{expected_height} {expected_format:?} with one sample, got {:?}", lifetime.desc);
+        assert!(
+            matches!(
+                &lifetime.desc,
+                RenderGraphResourceDesc::Texture(desc)
+                    if desc.width == expected_width
+                        && desc.height == expected_height
+                        && desc.format == expected_format
+                        && desc.sample_count == 1
+            ),
+            "post-process resource {resource_name} descriptor drifted: expected {expected_width}x{expected_height} {expected_format:?} with one sample, got {:?}",
+            lifetime.desc
+        );
     }
 }

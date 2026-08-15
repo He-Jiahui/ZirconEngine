@@ -1,11 +1,15 @@
 use crate::core::framework::render::RenderPluginRendererOutputs;
-use crate::graphics::{RuntimePrepareExternalBufferBinding, RuntimePrepareGpuReadbackRequest};
+use crate::graphics::{
+    RuntimePrepareExternalBufferBinding, RuntimePrepareGpuPassProfile,
+    RuntimePrepareGpuReadbackRequest,
+};
 use zr_rhi_wgpu::GpuReadbackQueue;
 
 pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererAdvancedPluginReadbacks {
     pub(super) outputs: RenderPluginRendererOutputs,
     external_buffer_bindings: Vec<RuntimePrepareExternalBufferBinding>,
     gpu_readbacks: Vec<RuntimePrepareGpuReadbackRequest>,
+    gpu_pass_profiles: Vec<RuntimePrepareGpuPassProfile>,
 }
 
 impl SceneRendererAdvancedPluginReadbacks {
@@ -14,6 +18,7 @@ impl SceneRendererAdvancedPluginReadbacks {
             outputs: RenderPluginRendererOutputs::default(),
             external_buffer_bindings: Vec::new(),
             gpu_readbacks: Vec::new(),
+            gpu_pass_profiles: Vec::new(),
         }
     }
 
@@ -24,6 +29,7 @@ impl SceneRendererAdvancedPluginReadbacks {
             outputs,
             external_buffer_bindings: Vec::new(),
             gpu_readbacks: Vec::new(),
+            gpu_pass_profiles: Vec::new(),
         }
     }
 
@@ -35,6 +41,7 @@ impl SceneRendererAdvancedPluginReadbacks {
             outputs,
             external_buffer_bindings,
             gpu_readbacks: Vec::new(),
+            gpu_pass_profiles: Vec::new(),
         }
     }
 
@@ -47,6 +54,7 @@ impl SceneRendererAdvancedPluginReadbacks {
             outputs,
             external_buffer_bindings,
             gpu_readbacks,
+            gpu_pass_profiles: Vec::new(),
         }
     }
 
@@ -88,11 +96,26 @@ impl SceneRendererAdvancedPluginReadbacks {
         &self.external_buffer_bindings
     }
 
+    pub(in crate::graphics::scene::scene_renderer::core) fn take_gpu_pass_profiles(
+        &mut self,
+    ) -> Vec<RuntimePrepareGpuPassProfile> {
+        std::mem::take(&mut self.gpu_pass_profiles)
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) fn with_gpu_pass_profiles(
+        mut self,
+        gpu_pass_profiles: Vec<RuntimePrepareGpuPassProfile>,
+    ) -> Self {
+        self.gpu_pass_profiles = gpu_pass_profiles;
+        self
+    }
+
     #[cfg(test)]
     pub(in crate::graphics::scene::scene_renderer::core) fn is_empty(&self) -> bool {
         self.outputs.is_empty()
             && self.external_buffer_bindings.is_empty()
             && self.gpu_readbacks.is_empty()
+            && self.gpu_pass_profiles.is_empty()
     }
 
     #[cfg(test)]

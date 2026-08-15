@@ -1,6 +1,6 @@
 use crate::text::{RichTable, RichTextFormat};
 
-use super::parse_rich_text;
+use super::parser_registry::parse_rich_text;
 
 #[test]
 fn text_rich_bbcode_table_emits_row_major_cell_ranges() {

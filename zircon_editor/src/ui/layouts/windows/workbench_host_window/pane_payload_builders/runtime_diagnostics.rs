@@ -102,12 +102,24 @@ fn physics_status(diagnostics: &RuntimeDiagnosticsSnapshot) -> String {
         .physics
         .backend_status
         .as_ref()
-        .map(|status| format!("{:?}", status.state))
-        .unwrap_or_else(|| "Unknown".to_string());
+        .map(|status| physics_state_display(Some(&status.state)))
+        .unwrap_or_else(|| physics_state_display(None));
     match diagnostics.physics.fixed_hz {
         Some(fixed_hz) => format!("Physics: {backend} ({state}, {fixed_hz} Hz)"),
         None => format!("Physics: {backend} ({state})"),
     }
+}
+
+fn physics_state_display(state: Option<&str>) -> String {
+    let state = state.map(str::trim).filter(|state| !state.is_empty());
+    let Some(state) = state else {
+        return "Unknown".to_string();
+    };
+    let mut characters = state.chars();
+    let first = characters
+        .next()
+        .expect("a non-empty trimmed physics state has a first character");
+    format!("{}{}", first.to_uppercase(), characters.as_str())
 }
 
 fn animation_status(diagnostics: &RuntimeDiagnosticsSnapshot) -> String {
@@ -218,13 +230,66 @@ fn detail_items(diagnostics: &RuntimeDiagnosticsSnapshot) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use zircon_runtime::core::diagnostics::{RuntimeDiagnosticsSnapshot, RuntimeRenderDiagnostics};
+    use zircon_runtime::core::diagnostics::{
+        RuntimeDiagnosticsSnapshot, RuntimePhysicsBackendDiagnostics, RuntimePhysicsDiagnostics,
+        RuntimeRenderDiagnostics,
+    };
     use zircon_runtime::core::framework::render::{
         RenderHybridGiFallbackReason, RenderHybridGiMode, RenderHybridGiProfile,
         RenderHybridGiQuality, RenderHybridGiResolvedSettings, RenderStats,
     };
 
-    use super::detail_items;
+    use super::{detail_items, physics_state_display, physics_status};
+
+    #[test]
+    fn physics_state_display_normalizes_dynamic_backend_text_without_debug_quotes() {
+        for (state, expected) in [
+            (Some("ready"), "Ready"),
+            (Some("disabled"), "Disabled"),
+            (Some("unavailable"), "Unavailable"),
+            (Some("custom backend state"), "Custom backend state"),
+            (Some("   "), "Unknown"),
+            (None, "Unknown"),
+        ] {
+            assert_eq!(physics_state_display(state), expected);
+        }
+    }
+
+    #[test]
+    fn physics_status_projects_human_readable_dynamic_backend_state() {
+        for (state, expected) in [
+            (Some("ready"), "Physics: jolt (Ready, 120 Hz)"),
+            (Some("disabled"), "Physics: jolt (Disabled, 120 Hz)"),
+            (Some("unavailable"), "Physics: jolt (Unavailable, 120 Hz)"),
+            (None, "Physics: jolt (Unknown, 120 Hz)"),
+        ] {
+            let diagnostics = RuntimeDiagnosticsSnapshot {
+                physics: RuntimePhysicsDiagnostics {
+                    available: true,
+                    backend_name: Some("jolt".to_string()),
+                    backend_status: state.map(|state| RuntimePhysicsBackendDiagnostics {
+                        active_backend: Some("jolt".to_string()),
+                        state: state.to_string(),
+                        ..RuntimePhysicsBackendDiagnostics::default()
+                    }),
+                    fixed_hz: Some(120),
+                    error: None,
+                },
+                ..RuntimeDiagnosticsSnapshot::default()
+            };
+
+            assert_eq!(physics_status(&diagnostics), expected);
+        }
+
+        let unavailable = RuntimeDiagnosticsSnapshot {
+            physics: RuntimePhysicsDiagnostics::unavailable("backend feature gate disabled"),
+            ..RuntimeDiagnosticsSnapshot::default()
+        };
+        assert_eq!(
+            physics_status(&unavailable),
+            "Physics: unavailable (backend feature gate disabled)"
+        );
+    }
 
     #[test]
     fn hybrid_gi_details_show_effective_profile_budgets_and_structured_fallback() {
@@ -252,10 +317,12 @@ mod tests {
         };
 
         let items = detail_items(&diagnostics);
-        assert!(items.contains(
-            &"Hybrid GI effective: profile=indoor-static, mode=dynamic-only, quality=high"
-                .to_string()
-        ));
+        assert!(
+            items.contains(
+                &"Hybrid GI effective: profile=indoor-static, mode=dynamic-only, quality=high"
+                    .to_string()
+            )
+        );
         assert!(items.contains(&"Hybrid GI budgets: trace=64, cards=256, voxels=64".to_string()));
         assert!(items.contains(&"Hybrid GI fallback: baked-lighting-unavailable".to_string()));
     }

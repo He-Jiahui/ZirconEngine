@@ -1,14 +1,14 @@
 use std::time::Duration;
 
-use zircon_runtime::asset::importer::EnvironmentIblSourceStagingStatus;
+use zircon_runtime::asset::importer::{
+    EnvironmentIblSourceStagingOutput, EnvironmentIblSourceStagingStatus,
+    EnvironmentIblSourceStagingTiming,
+};
 
 use super::{
-    base_pipeline_recheck_deadline, base_pipeline_recheck_interval, base_pipeline_recheck_is_due,
     consume_ready_title_update, load_status_refresh_deadline, load_status_refresh_is_due,
-    loading_window_title, one_shot_base_pipeline_wait_deadline,
-    one_shot_base_pipeline_wait_is_expired, ready_window_title, request_redraw_transition,
-    OrbitCamera, PbrMirrorSceneIblLoadReport, BASE_PIPELINE_RECHECK_INTERVAL,
-    ONE_SHOT_BASE_PIPELINE_WAIT_TIMEOUT,
+    loading_window_title, ready_window_title, request_redraw_transition, OrbitCamera,
+    PbrMirrorSceneIblLoadReport,
 };
 
 const APP_SOURCE: &str = include_str!("app.rs");
@@ -98,6 +98,8 @@ fn ready_title_reports_current_orbit_angles() {
             Some(PbrMirrorSceneIblLoadReport::new(
                 EnvironmentIblSourceStagingStatus::Reused,
                 Duration::from_millis(125),
+                EnvironmentIblSourceStagingTiming::default(),
+                EnvironmentIblSourceStagingOutput::default(),
                 Duration::from_millis(250),
                 512,
                 10,
@@ -185,56 +187,6 @@ fn loading_title_refresh_is_rate_limited_without_deadline_drift() {
         load_status_refresh_deadline(Some(started_at), started_at + Duration::from_millis(250)),
         started_at + Duration::from_secs(1)
     );
-}
-
-#[test]
-fn pending_base_pipeline_rechecks_on_a_bounded_deadline() {
-    let started = std::time::Instant::now();
-    let deadline = base_pipeline_recheck_deadline(started, 0);
-
-    assert_eq!(deadline, started + BASE_PIPELINE_RECHECK_INTERVAL);
-    assert!(!base_pipeline_recheck_is_due(deadline, started));
-    assert!(!base_pipeline_recheck_is_due(
-        deadline,
-        deadline - Duration::from_nanos(1)
-    ));
-    assert!(base_pipeline_recheck_is_due(deadline, deadline));
-}
-
-#[test]
-fn pending_base_pipeline_rechecks_back_off_before_the_bounded_ceiling() {
-    assert_eq!(
-        base_pipeline_recheck_interval(0),
-        BASE_PIPELINE_RECHECK_INTERVAL
-    );
-    assert_eq!(base_pipeline_recheck_interval(1), Duration::from_millis(32));
-    assert_eq!(base_pipeline_recheck_interval(2), Duration::from_millis(64));
-    assert_eq!(
-        base_pipeline_recheck_interval(3),
-        Duration::from_millis(128)
-    );
-    assert_eq!(
-        base_pipeline_recheck_interval(4),
-        Duration::from_millis(250)
-    );
-    assert_eq!(
-        base_pipeline_recheck_interval(u32::MAX),
-        Duration::from_millis(250)
-    );
-}
-
-#[test]
-fn one_shot_base_pipeline_wait_has_a_shared_bounded_deadline() {
-    let started = std::time::Instant::now();
-    let deadline = one_shot_base_pipeline_wait_deadline(started);
-
-    assert_eq!(ONE_SHOT_BASE_PIPELINE_WAIT_TIMEOUT, Duration::from_secs(45));
-    assert_eq!(deadline, started + ONE_SHOT_BASE_PIPELINE_WAIT_TIMEOUT);
-    assert!(!one_shot_base_pipeline_wait_is_expired(
-        started,
-        deadline - Duration::from_nanos(1)
-    ));
-    assert!(one_shot_base_pipeline_wait_is_expired(started, deadline));
 }
 
 #[test]
@@ -485,6 +437,7 @@ fn screenshot_export_writes_versioned_ibl_provenance() {
         "ibl_report.pmrem_mip_count()",
         "PBR_VIEWER_RENDER_PROFILE",
         "scene.base_prewarm_report()",
+        "scene.shader_variant_miss_report()",
         "scene.startup_timing()",
         "base_prewarm_report.pipeline_ready()",
         "environment_only_base_pipeline_ready_at_capture:",
@@ -495,10 +448,16 @@ fn screenshot_export_writes_versioned_ibl_provenance() {
         "base_prewarm_report.elapsed()",
         "scene_startup_renderer_deferred_standard_pipeline: startup_timing",
         "scene_startup_total: startup_timing.total()",
+        "ibl_staging_equirect_projection_parallel_work_items: ibl_staging_output",
+        "ibl_staging_source_mip_build_parallel_work_items: ibl_staging_output",
+        "ibl_staging_pmrem_build_parallel_work_items: ibl_staging_output",
+        "ibl_staging_irradiance_cube_build_parallel_work_items: ibl_staging_output",
+        "ibl_staging_irradiance_cube_source_sample_visits: ibl_staging_output",
         "one_shot_base_pipeline_wait_elapsed",
         "viewer_scene_load_elapsed",
         "viewer_ready_started_at",
         "viewer_ready_elapsed",
+        "shader_variant_miss_report,",
         "ReadyFrameEvidenceMetadata {",
         "write_ready_frame_evidence(path, frame.width, frame.height, &frame.rgba, metadata)",
     ] {
@@ -618,7 +577,8 @@ fn one_shot_evidence_waits_for_the_async_base_pipeline_without_blocking_the_even
         "self.reset_base_pipeline_recheck();",
         "event_loop.exit();",
         "return;",
-        "self.schedule_base_pipeline_recheck(event_loop);",
+        ".expect(\"the one-shot timeout check must initialize its deadline\");",
+        "self.schedule_base_pipeline_recheck(event_loop, Some(deadline));",
         "return;",
         "let screenshot_input = write_screenshot.then(|| {",
         "let capture_this_frame = capture_requested && environment_only_base_pipeline_ready;",
@@ -660,7 +620,7 @@ fn interactive_presentation_rechecks_a_pending_base_pipeline_after_presenting() 
     assert_source_order(&[
         "let recheck_base_pipeline_after_present =",
         "if defer_one_shot_until_base_pipeline_ready {",
-        "self.schedule_base_pipeline_recheck(event_loop);",
+        "self.schedule_base_pipeline_recheck(event_loop, Some(deadline));",
     ]);
     for branch in [direct, cpu] {
         assert_source_order_in(
@@ -668,7 +628,7 @@ fn interactive_presentation_rechecks_a_pending_base_pipeline_after_presenting() 
             &[
                 "self.flush_ready_window_title();",
                 "if recheck_base_pipeline_after_present {",
-                "self.schedule_base_pipeline_recheck(event_loop);",
+                "self.schedule_base_pipeline_recheck(event_loop, None);",
             ],
         );
     }
@@ -723,6 +683,47 @@ fn direct_presentation_releases_cpu_staging_and_rebuilds_it_for_a_fallback() {
                 .expect("rendering scene borrow"),
         "CPU fallback setup must complete before the rendering scene borrow"
     );
+}
+
+#[test]
+fn screenshot_scoped_gpu_timing_is_opt_in_and_preserves_the_matching_frame_identity() {
+    let load = start_scene_load_source();
+    let render = render_source();
+
+    assert_source_order_in(
+        load,
+        &[
+            "let gpu_timing_enabled = self.gpu_timing_report_path.is_some();",
+            "PbrMirrorScene::new(",
+            "gpu_timing_enabled,",
+        ],
+    );
+    assert_source_order(&[
+        "self.write_ready_frame_screenshot(&frame, screenshot_metadata.as_ref())",
+        "self.begin_gpu_timing_evidence(frame.generation);",
+        "let gpu_timing_report = scene.take_completed_gpu_timing_report();",
+        "let gpu_timing_status = scene.last_gpu_timing_status();",
+        "self.resolve_gpu_timing_evidence(gpu_timing_report, gpu_timing_status)",
+    ]);
+    assert!(APP_SOURCE.contains("GpuTimingEvidenceRequest::new(frame_generation)"));
+    assert!(include_str!("gpu_timing_evidence.rs")
+        .contains("report.frame_generation() == self.target_generation"));
+}
+
+#[test]
+fn screenshot_exit_waits_for_the_nonblocking_gpu_timing_result() {
+    let render = render_source();
+
+    assert_source_order_in(
+        APP_SOURCE,
+        &[
+            "self.request_redraw();",
+            "return Ok(false);",
+            "self.gpu_timing_request = None;",
+        ],
+    );
+    assert!(render.contains("&& !self.gpu_timing_evidence_pending()"));
+    assert!(render.contains("if self.exit_after_screenshot()"));
 }
 
 #[test]

@@ -1,5 +1,5 @@
-use std::sync::mpsc::{channel, RecvTimeoutError};
 use std::sync::Arc;
+use std::sync::mpsc::{RecvTimeoutError, channel};
 use std::thread;
 use std::time::Duration;
 
@@ -37,10 +37,12 @@ fn controller_operation_gate_keeps_viewport_alive_without_holding_shared_state()
     submit_release
         .send(())
         .expect("fixture submit should accept release");
-    assert!(submitted
-        .join()
-        .expect("fixture submit thread should not panic")
-        .is_ok());
+    assert!(
+        submitted
+            .join()
+            .expect("fixture submit thread should not panic")
+            .is_ok()
+    );
     assert!(
         controller.viewport_lifecycle.try_lock().is_ok(),
         "viewport operation gate must release after framework submission returns"

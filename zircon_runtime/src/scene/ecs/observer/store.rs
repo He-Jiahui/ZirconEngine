@@ -1,12 +1,12 @@
 use std::any::TypeId;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt;
 use std::sync::Arc;
 
 use crate::scene::ecs::{ComponentId, ComponentLifecycleEvent, LifecycleEventKind};
-use crate::scene::{EntityId, World};
+use crate::scene::{EntityId, SceneError, SceneResult, World};
 
-use super::callback_registry::{append_observer_to_bucket, remove_observer_from_bucket};
+use super::callback_registry::{insert_observer_into_bucket, remove_observer_from_indexed_bucket};
 use super::entry::{
     EntityEventCallbackBucket, EntityEventObserver, EntityEventObserverKey, EventCallbackBucket,
     EventObserver, LifecycleCallbackBucket, LifecycleObserver, LifecycleObserverKey,
@@ -17,11 +17,21 @@ use super::ObserverId;
 #[derive(Default)]
 pub struct ObserverStore {
     next_id: u64,
-    lifecycle_buckets: HashMap<LifecycleObserverKey, Arc<[LifecycleObserver]>>,
-    event_buckets: HashMap<TypeId, Arc<[EventObserver]>>,
-    entity_event_buckets: HashMap<EntityEventObserverKey, Arc<[EntityEventObserver]>>,
+    lifecycle_buckets: HashMap<LifecycleObserverKey, Arc<BTreeMap<ObserverId, LifecycleObserver>>>,
+    event_buckets: HashMap<TypeId, Arc<BTreeMap<ObserverId, EventObserver>>>,
+    entity_event_buckets:
+        HashMap<EntityEventObserverKey, Arc<BTreeMap<ObserverId, EntityEventObserver>>>,
     entity_event_types_by_entity: HashMap<EntityId, HashSet<TypeId>>,
     observer_locations: HashMap<ObserverId, ObserverBucket>,
+}
+
+pub(crate) struct DetachedEntityObservers {
+    entity: EntityId,
+    event_types: HashSet<TypeId>,
+    buckets: Vec<(
+        EntityEventObserverKey,
+        Arc<BTreeMap<ObserverId, EntityEventObserver>>,
+    )>,
 }
 
 impl ObserverStore {
@@ -29,7 +39,7 @@ impl ObserverStore {
         &mut self,
         kind: LifecycleEventKind,
         component_id: ComponentId,
-        callback: impl Fn(&mut World, ComponentLifecycleEvent) + Send + Sync + 'static,
+        callback: impl Fn(&mut World, &ComponentLifecycleEvent) + Send + Sync + 'static,
     ) -> ObserverId {
         let id = self.allocate_id();
         let key = (kind, component_id);
@@ -37,8 +47,7 @@ impl ObserverStore {
             id,
             callback: Arc::new(callback),
         };
-        let bucket = append_observer_to_bucket(self.lifecycle_buckets.get(&key), observer);
-        self.lifecycle_buckets.insert(key, bucket);
+        insert_observer_into_bucket(self.lifecycle_buckets.entry(key).or_default(), id, observer);
         self.observer_locations
             .insert(id, ObserverBucket::Lifecycle(key));
         id
@@ -61,8 +70,11 @@ impl ObserverStore {
                 }
             }),
         };
-        let bucket = append_observer_to_bucket(self.event_buckets.get(&event_type), observer);
-        self.event_buckets.insert(event_type, bucket);
+        insert_observer_into_bucket(
+            self.event_buckets.entry(event_type).or_default(),
+            id,
+            observer,
+        );
         self.observer_locations
             .insert(id, ObserverBucket::Event(event_type));
         id
@@ -86,8 +98,11 @@ impl ObserverStore {
                 }
             }),
         };
-        let bucket = append_observer_to_bucket(self.entity_event_buckets.get(&key), observer);
-        self.entity_event_buckets.insert(key, bucket);
+        insert_observer_into_bucket(
+            self.entity_event_buckets.entry(key).or_default(),
+            id,
+            observer,
+        );
         self.entity_event_types_by_entity
             .entry(entity)
             .or_default()
@@ -97,19 +112,20 @@ impl ObserverStore {
         id
     }
 
-    pub fn remove(&mut self, id: ObserverId) -> bool {
+    pub fn remove(&mut self, id: ObserverId) -> SceneResult<()> {
         let Some(location) = self.observer_locations.get(&id).copied() else {
-            return false;
+            return Err(SceneError::MissingObserver { observer: id });
         };
         let removed = match location {
             ObserverBucket::Lifecycle(key) => self.remove_lifecycle_observer(key, id),
             ObserverBucket::Event(event_type) => self.remove_event_observer(event_type, id),
             ObserverBucket::EntityEvent(key) => self.remove_entity_event_observer(key, id),
         };
-        if removed {
-            self.observer_locations.remove(&id);
+        if !removed {
+            return Err(SceneError::MissingObserver { observer: id });
         }
-        removed
+        self.observer_locations.remove(&id);
+        Ok(())
     }
 
     pub(crate) fn lifecycle_callbacks(
@@ -151,38 +167,80 @@ impl ObserverStore {
             let Some(bucket) = self.entity_event_buckets.remove(&key) else {
                 continue;
             };
-            for observer in bucket.iter() {
+            for observer in bucket.values() {
                 self.observer_locations.remove(&observer.id);
             }
         }
     }
 
+    pub(crate) fn detach_entity_observers(&mut self, entity: EntityId) -> DetachedEntityObservers {
+        let event_types = self
+            .entity_event_types_by_entity
+            .remove(&entity)
+            .unwrap_or_default();
+        let mut buckets = Vec::with_capacity(event_types.len());
+        for event_type in &event_types {
+            let key = (*event_type, entity);
+            if let Some(bucket) = self.entity_event_buckets.remove(&key) {
+                for observer in bucket.values() {
+                    self.observer_locations.remove(&observer.id);
+                }
+                buckets.push((key, bucket));
+            }
+        }
+        DetachedEntityObservers {
+            entity,
+            event_types,
+            buckets,
+        }
+    }
+
+    pub(crate) fn restore_detached_entity_observers(&mut self, detached: DetachedEntityObservers) {
+        debug_assert!(detached
+            .buckets
+            .iter()
+            .all(|(key, _)| key.1 == detached.entity));
+        if detached.event_types.is_empty() {
+            return;
+        }
+        let previous = self
+            .entity_event_types_by_entity
+            .insert(detached.entity, detached.event_types);
+        debug_assert!(previous.is_none());
+        for (key, bucket) in detached.buckets {
+            for observer in bucket.values() {
+                let previous = self
+                    .observer_locations
+                    .insert(observer.id, ObserverBucket::EntityEvent(key));
+                debug_assert!(previous.is_none());
+            }
+            let previous = self.entity_event_buckets.insert(key, bucket);
+            debug_assert!(previous.is_none());
+        }
+    }
+
     fn remove_lifecycle_observer(&mut self, key: LifecycleObserverKey, id: ObserverId) -> bool {
-        let Some(bucket) = self.lifecycle_buckets.get(&key) else {
+        let Some(bucket) = self.lifecycle_buckets.get_mut(&key) else {
             return false;
         };
-        let Some(next) = remove_observer_from_bucket(bucket, id, |observer| observer.id) else {
+        if !remove_observer_from_indexed_bucket(bucket, id) {
             return false;
-        };
-        if next.is_empty() {
+        }
+        if bucket.is_empty() {
             self.lifecycle_buckets.remove(&key);
-        } else {
-            self.lifecycle_buckets.insert(key, next);
         }
         true
     }
 
     fn remove_event_observer(&mut self, event_type: TypeId, id: ObserverId) -> bool {
-        let Some(bucket) = self.event_buckets.get(&event_type) else {
+        let Some(bucket) = self.event_buckets.get_mut(&event_type) else {
             return false;
         };
-        let Some(next) = remove_observer_from_bucket(bucket, id, |observer| observer.id) else {
+        if !remove_observer_from_indexed_bucket(bucket, id) {
             return false;
-        };
-        if next.is_empty() {
+        }
+        if bucket.is_empty() {
             self.event_buckets.remove(&event_type);
-        } else {
-            self.event_buckets.insert(event_type, next);
         }
         true
     }
@@ -192,17 +250,15 @@ impl ObserverStore {
         key: EntityEventObserverKey,
         id: ObserverId,
     ) -> bool {
-        let Some(bucket) = self.entity_event_buckets.get(&key) else {
+        let Some(bucket) = self.entity_event_buckets.get_mut(&key) else {
             return false;
         };
-        let Some(next) = remove_observer_from_bucket(bucket, id, |observer| observer.id) else {
+        if !remove_observer_from_indexed_bucket(bucket, id) {
             return false;
-        };
-        if next.is_empty() {
+        }
+        if bucket.is_empty() {
             self.entity_event_buckets.remove(&key);
             self.remove_entity_event_type(key);
-        } else {
-            self.entity_event_buckets.insert(key, next);
         }
         true
     }

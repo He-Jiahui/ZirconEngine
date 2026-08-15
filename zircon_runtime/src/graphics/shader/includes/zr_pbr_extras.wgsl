@@ -140,6 +140,10 @@ fn zr_pbr_advanced_environment_normalized(
         return vec3<f32>(0.0);
     }
     let clamped_roughness = clamp(surface.clearcoat_roughness, 0.0, 1.0);
+    let clamped_occlusion = clamp(surface.occlusion, 0.0, 1.0);
+    if (clamped_occlusion <= 0.0) {
+        return vec3<f32>(0.0);
+    }
     let planar = zr_environment_planar_reflection(world_position, clamped_roughness);
     var reflected = vec3<f32>(0.0);
     if (planar.a > 0.0) {
@@ -159,10 +163,12 @@ fn zr_pbr_advanced_environment_normalized(
         return vec3<f32>(0.0);
     }
     let no_v = max(dot(coat_normal, normalized_view_dir), 0.0);
+    let specular_occlusion =
+        zr_environment_specular_occlusion(no_v, clamped_roughness, clamped_occlusion);
     return reflected
-        * zr_environment_env_brdf_lut(vec3<f32>(0.04), surface.clearcoat_roughness, no_v)
+        * zr_environment_env_brdf_lut(vec3<f32>(0.04), clamped_roughness, no_v)
         * clamp(surface.clearcoat, 0.0, 1.0)
-        * clamp(surface.occlusion, 0.0, 1.0);
+        * specular_occlusion;
 }
 
 fn zr_pbr_viewport_uv(world_position: vec3<f32>) -> vec2<f32> {

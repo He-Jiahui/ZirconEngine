@@ -9,8 +9,10 @@ related_code:
   - zircon_runtime/src/text/raster/mod.rs
   - zircon_runtime/src/text/atlas/mod.rs
   - zircon_runtime/src/text/cache/mod.rs
+  - zircon_runtime/src/text/cache/rich_cache.rs
   - zircon_runtime/src/text/parallel/mod.rs
   - zircon_runtime/src/text/rich/mod.rs
+  - zircon_runtime/src/text/rich/parser_registry.rs
   - zircon_runtime/src/text/sdf/mod.rs
   - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/text/sdf/font_bake/offline_source.rs
@@ -28,8 +30,10 @@ implementation_files:
   - zircon_runtime/src/text/raster/mod.rs
   - zircon_runtime/src/text/atlas/mod.rs
   - zircon_runtime/src/text/cache/mod.rs
+  - zircon_runtime/src/text/cache/rich_cache.rs
   - zircon_runtime/src/text/parallel/mod.rs
   - zircon_runtime/src/text/rich/mod.rs
+  - zircon_runtime/src/text/rich/parser_registry.rs
   - zircon_runtime/src/text/sdf/mod.rs
   - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/text/sdf/font_bake/offline_source.rs
@@ -47,7 +51,7 @@ tests:
   - tools/tests/test_frameworks_05_text_boundary.py
   - zircon_runtime/src/text/cache/tests.rs
   - zircon_runtime/src/text/shaping/tests.rs
-  - zircon_runtime/src/text/layout/tests.rs
+  - zircon_runtime/src/text/layout/measure.rs
   - zircon_runtime/src/text/raster/swash/tests.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs
   - zircon_runtime/tests/runtime_ui_text_render_contract.rs
@@ -101,6 +105,17 @@ The smaller `core/framework/text` package is a separate neutral service-contract
 Text work starts with source text plus style, language, writing direction, font request, and render intent. The implementation resolves a font face and generation, segments text into script/BiDi spans, shapes glyph clusters, performs horizontal or vertical layout, and returns source-mapped glyph runs and metrics. Consumers may then use the same result for UI measurement/hit testing or for native/SDF/MSDF atlas preparation.
 
 Font identities include generation-bearing records. Cached shaped runs and glyph data must therefore be invalidated when the database generation changes. Graphics preserves `TextFontFaceHandle { index, generation }` in its shaped-glyph projection; only Text resolves that handle through the generation-checked registry. Atlas/SDF keys never extract or reconstruct raw backend IDs. Atlas and raster code consume resolved identities; they do not rediscover fonts per glyph or retain a neighboring UI/graphics manager as an implicit owner.
+
+Font resource identity follows the same project/product boundary as the asset subsystem. With an active `ProjectAssetManager`, a `res://` font manifest resolves through that project's declared asset roots. Without one, `res://` denotes a built-in font and `font/source_manifest.rs` delegates the relative path to `runtime_asset_path`, so staged products read the executable-local engine asset root instead of `CARGO_MANIFEST_DIR`. A manifest source must remain relative and canonicalize inside the root that owns its manifest; explicit physical manifest paths remain available to offline tooling without becoming persisted project references.
+
+Compiled rich text is keyed by source markup, format, parser generation, decorator generation,
+and emoji generation. A new unique request reserves its entry and initial source bytes before it
+is inserted into the shared single-flight index. Completion reserves the final estimated artifact
+bytes before publishing the `Arc<CompiledRichText>` through its `OnceLock`; only a completed,
+fully accounted entry joins the linked LRU. If either reservation cannot fit, the active caller
+keeps a nonresident result and `CompiledRichTextCacheReport::admission_bypass_count` records the
+bypass. Pending entries are never evicted, and a failed reservation leaves healthy completed LRU
+entries unchanged.
 
 ## Design and Rationale
 

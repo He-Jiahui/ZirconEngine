@@ -16,7 +16,7 @@ pub(super) fn projected_visual_style(
 ) -> ProjectedVisualStyle {
     let component_style =
         component::projected_component_style(component, component_role, attributes);
-    let button_style = button::projected_button_style(attributes);
+    let button_style = button::projected_button_style(attributes, component_role);
     let surface_style = surface::projected_surface_style(
         attributes,
         component_role,

@@ -1,12 +1,15 @@
 use std::sync::Arc;
 
-use crate::asset::{AssetReference, MeshAsset, ModelAsset};
+use crate::asset::ModelAsset;
 use crate::core::resource::{ModelMarker, ResourceHandle};
 
 use crate::graphics::types::GraphicsError;
 
-use super::super::prepared::PreparedModel;
+use super::super::prepared::{mesh_sdf_seed_from_primitives, PreparedModel};
 use super::super::GpuModelResource;
+use super::model_geometry_resolution::{
+    model_dependencies_are_current, model_geometry_revision, resolve_model_geometry,
+};
 use super::ResourceStreamer;
 
 impl ResourceStreamer {
@@ -16,45 +19,43 @@ impl ResourceStreamer {
         handle: ResourceHandle<ModelMarker>,
     ) -> Result<(), GraphicsError> {
         let id = handle.id();
-        let revision = self.resource_revision(id)?;
-        if self
-            .models
-            .get(&id)
-            .is_some_and(|prepared| prepared.revision == revision)
-        {
+        let source_revision = self.resource_revision(id)?;
+        let asset_manager = self.asset_manager()?;
+        if self.models.get(&id).is_some_and(|prepared| {
+            prepared.source_revision == source_revision
+                && model_dependencies_are_current(
+                    asset_manager.as_ref(),
+                    &prepared.mesh_dependency_states,
+                )
+        }) {
             return Ok(());
         }
-        let asset_manager = self.asset_manager()?;
         let model = asset_manager
             .load_model_asset(id)
             .map_err(|error| GraphicsError::Asset(error.to_string()))?;
+        let resolved = resolve_model_geometry(asset_manager.as_ref(), &model);
+        let revision = model_geometry_revision(id, source_revision, &resolved.dependency_states);
+        let local_bounds = resolved.local_bounds;
+        let mesh_sdf = mesh_sdf_seed_from_primitives(&resolved.primitives);
         let asset = Arc::<ModelAsset>::new(model);
-        let resource = Arc::new(GpuModelResource::from_asset_with_mesh_assets(
+        let resource = Arc::new(GpuModelResource::from_primitives(
             device,
             id,
-            asset.as_ref(),
-            |reference| load_referenced_mesh_asset(asset_manager.as_ref(), reference),
+            resolved.primitives,
         ));
         self.models.insert(
             id,
             PreparedModel {
                 revision,
+                source_revision,
+                mesh_dependency_states: resolved.dependency_states,
+                local_bounds,
+                deformation: resolved.deformation,
+                mesh_sdf,
                 asset,
                 resource,
             },
         );
         Ok(())
     }
-}
-
-fn load_referenced_mesh_asset(
-    asset_manager: &crate::asset::pipeline::manager::ProjectAssetManager,
-    reference: &AssetReference,
-) -> Option<MeshAsset> {
-    let id = asset_manager
-        .resource_manager()
-        .registry()
-        .get_by_locator(&reference.locator)
-        .map(|record| record.id())?;
-    asset_manager.load_mesh_asset(id).ok()
 }

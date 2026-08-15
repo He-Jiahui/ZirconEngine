@@ -1,5 +1,7 @@
 use crate::core::math::UVec2;
-use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiTextBatch;
+use crate::graphics::scene::scene_renderer::ui::render::{
+    ScreenSpaceUiGlyphArtifactCacheIdentity, ScreenSpaceUiGlyphArtifactLine, ScreenSpaceUiTextBatch,
+};
 use crate::text::font::TextDecorationMetrics;
 use crate::text::sdf::SdfRunCpuPreparation;
 
@@ -68,8 +70,10 @@ fn text_batch_matches(prepared: &ScreenSpaceUiTextBatch, current: &ScreenSpaceUi
     prepared.text == current.text
         && prepared.frame == current.frame
         && prepared.clip_frame == current.clip_frame
+        && prepared.source_range == current.source_range
         && prepared.glyph_advances == current.glyph_advances
         && prepared.shaped_glyphs == current.shaped_glyphs
+        && glyph_artifact_cache_identity(prepared) == glyph_artifact_cache_identity(current)
         && prepared.color == current.color
         && prepared.font == current.font
         && prepared.font_family == current.font_family
@@ -87,4 +91,12 @@ fn text_batch_matches(prepared: &ScreenSpaceUiTextBatch, current: &ScreenSpaceUi
         && prepared.text_decorations == current.text_decorations
         && prepared.text_decoration_baseline == current.text_decoration_baseline
         && prepared.clip_transform == current.clip_transform
+}
+
+fn glyph_artifact_cache_identity(
+    text: &ScreenSpaceUiTextBatch,
+) -> Option<ScreenSpaceUiGlyphArtifactCacheIdentity> {
+    text.glyph_artifact_line
+        .as_ref()
+        .map(ScreenSpaceUiGlyphArtifactLine::cache_identity)
 }

@@ -67,6 +67,8 @@ fn importer_preserves_gltf_texture_transform_on_standard_material_slots() {
             assert_vec2_near(descriptor.occlusion_texture_transform.scale, [0.6, 0.7]);
             assert_vec2_near(descriptor.occlusion_texture_transform.offset, [0.4, 0.5]);
             assert_eq!(descriptor.occlusion_texture_uv_channel, 1);
+            assert_eq!(material.occlusion_strength(), 0.25);
+            assert_eq!(descriptor.occlusion_strength, 0.25);
             assert_vec2_near(descriptor.emissive_texture_transform.scale, [0.7, 0.8]);
             assert_vec2_near(descriptor.emissive_texture_transform.offset, [0.5, 0.6]);
             assert_eq!(descriptor.emissive_texture_uv_channel, 1);

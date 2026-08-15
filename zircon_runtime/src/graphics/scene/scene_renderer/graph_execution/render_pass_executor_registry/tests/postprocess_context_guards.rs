@@ -1,27 +1,6 @@
 use super::*;
 
 #[test]
-fn taa_reactive_mask_clear_executor_requires_graph_resources_instead_of_nooping() {
-    let mut extract = test_extract();
-    extract.view.anti_alias = AntiAliasSettings::taa();
-    extract
-        .post_process
-        .rebuild_graph_with_anti_alias(true, true, &AntiAliasSettings::taa());
-
-    let error = execute_gpu_executor_without_specialized_context_for_extract(
-        "taa-reactive-mask-clear",
-        "temporal.taa-reactive-mask-clear",
-        extract,
-    )
-    .unwrap_err();
-
-    assert_eq!(
-        error,
-        "TAA reactive mask clear graph executor for pass `taa-reactive-mask-clear` requires post-process stack context"
-    );
-}
-
-#[test]
 fn taa_reactive_mask_mesh_executor_requires_graph_resources_instead_of_nooping() {
     let mut extract = test_extract();
     extract.view.anti_alias = AntiAliasSettings::taa();
@@ -70,17 +49,6 @@ fn uber_executor_requires_post_process_context_instead_of_nooping() {
     assert_eq!(
         error,
         "post-process stack graph executor for pass `uber` requires post-process stack context"
-    );
-}
-
-#[test]
-fn ssao_executor_requires_post_process_context_instead_of_nooping() {
-    let error =
-        execute_gpu_executor_without_specialized_context("ssao-evaluate", "ao.ssao-evaluate");
-
-    assert_eq!(
-        error,
-        "SSAO graph executor for pass `ssao-evaluate` requires post-process stack context"
     );
 }
 
@@ -205,8 +173,8 @@ fn screen_space_reflection_resolve_executor_requires_post_process_context_instea
 }
 
 #[test]
-fn screen_space_reflection_reflection_pyramid_executor_requires_post_process_context_instead_of_nooping()
- {
+fn screen_space_reflection_reflection_pyramid_executor_requires_post_process_context_instead_of_nooping(
+) {
     let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
         "screen-space-reflection-reflection-pyramid",
         "post.screen-space-reflection-reflection-pyramid",
@@ -220,8 +188,8 @@ fn screen_space_reflection_reflection_pyramid_executor_requires_post_process_con
 }
 
 #[test]
-fn screen_space_reflection_reflection_pyramid_coarse_executor_requires_post_process_context_instead_of_nooping()
- {
+fn screen_space_reflection_reflection_pyramid_coarse_executor_requires_post_process_context_instead_of_nooping(
+) {
     let error = execute_gpu_executor_without_specialized_context_with_effect_stack(
         "screen-space-reflection-reflection-pyramid-coarse",
         "post.screen-space-reflection-reflection-pyramid-coarse",
@@ -239,10 +207,6 @@ fn optional_postprocess_executors_skip_resource_work_when_effects_are_disabled()
     for (pass_name, executor_id) in [
         ("velocity-object", "temporal.velocity-object"),
         ("velocity-camera", "temporal.velocity-camera"),
-        (
-            "taa-reactive-mask-clear",
-            "temporal.taa-reactive-mask-clear",
-        ),
         ("taa-reactive-mask-mesh", "temporal.taa-reactive-mask-mesh"),
         ("taa-resolve", "temporal.taa-resolve"),
         ("motion-vector-tile-max", "post.motion-vector-tile-max"),

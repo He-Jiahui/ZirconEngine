@@ -13,6 +13,13 @@ fn console_body_owns_the_tokens_used_by_its_runtime_text_and_filter_controls() {
         "ConsolePaneBody/FilterError",
         "ConsolePaneBody/FilterWarning",
         "ConsolePaneBody/FilterInfo",
+        "ConsolePaneBody/SourceAll",
+        "ConsolePaneBody/SourceEditor",
+        "ConsolePaneBody/SourceRuntime",
+        "ConsolePaneBody/SourcePlay",
+        "ConsolePaneBody/SourcePlugin",
+        "ConsolePaneBody/SourceImport",
+        "ConsolePaneBody/SourceScriptBuild",
         "ConsolePaneBody/ClearConsole",
     ] {
         assert!(

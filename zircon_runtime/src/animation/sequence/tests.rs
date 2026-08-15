@@ -5,15 +5,13 @@ use crate::core::framework::animation::{
 };
 use crate::core::framework::scene::{ComponentPropertyPath, EntityPath};
 use crate::core::resource::{AnimationClipMarker, ResourceHandle, ResourceId};
-use crate::scene::World;
 use crate::scene::components::{AnimationPlayerComponent, MeshRenderer, NodeKind};
+use crate::scene::World;
 
-use super::{
-    apply_compiled_sequence_to_world, apply_sequence_to_world, compile_sequence_for_world,
-};
+use super::{apply_compiled_sequence_to_world, compile_sequence_for_world};
 
 #[test]
-fn sequence_applies_mesh_renderer_morph_weight_track() {
+fn compiled_sequence_applies_mesh_renderer_morph_weight_track() {
     let mut world = World::new();
     let hero = world.spawn_node(NodeKind::Mesh);
     world.rename_node(hero, "Hero").unwrap();
@@ -40,10 +38,12 @@ fn sequence_applies_mesh_renderer_morph_weight_track() {
         }],
     };
 
-    let report = apply_sequence_to_world(&mut world, &sequence, 0.0, false).unwrap();
+    let compiled = compile_sequence_for_world(&mut world, &sequence).unwrap();
+    let report =
+        apply_compiled_sequence_to_world(&mut world, &sequence, &compiled, 0.0, false).unwrap();
 
-    assert_eq!(report.applied_tracks.len(), 1);
-    assert!(report.missing_tracks.is_empty());
+    assert_eq!(report.applied_tracks, 1);
+    assert_eq!(report.missing_tracks, 0);
     assert_eq!(
         world
             .get::<MeshRenderer>(hero)

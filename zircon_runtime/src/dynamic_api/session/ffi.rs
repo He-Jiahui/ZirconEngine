@@ -1,42 +1,42 @@
 use std::ptr;
 
+use zircon_runtime_interface::world_sync::{WatchRegistration, WatchToken, WorldQuery};
 use zircon_runtime_interface::{
-    ProfileControlCommand, ProfileControlRequest, ZrByteSlice, ZrOwnedByteBuffer,
+    ProfileControlCommand, ProfileControlRequest, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V3, ZrByteSlice, ZrOwnedByteBuffer,
     ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1,
-    ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1,
-    ZrRuntimeHighlightSetV1,
+    ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeHighlightSetV1,
     ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventSubscribeRequestV1,
-    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionConfigV2, ZrRuntimeSessionHandle,
-    ZrRuntimeViewportHandle, ZrStatus, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZIRCON_RUNTIME_ABI_VERSION_V2,
+    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionConfigV3, ZrRuntimeSessionHandle,
+    ZrRuntimeViewportHandle, ZrStatus,
 };
 
 use super::super::frame::{
     encode_accessibility_tree, encode_host_request_batch, encode_profile_response,
-    write_accessibility_tree, write_frame, write_host_requests, write_profile_response,
+    encode_world_sync_payload, write_accessibility_tree, write_frame, write_host_requests,
+    write_profile_response, write_world_sync_payload,
 };
 use super::super::surface::render_surface_descriptor;
+use super::RuntimeProjectError;
 use super::diagnostics::runtime_diagnostics_response;
 use super::profile::RuntimeDynamicSessionProfile;
 use super::project::RuntimeProjectConfig;
 use super::registry::{
-    destroy_session_slot, insert_session_with_wake, with_session, with_session_activity,
-    RuntimeWakeRegistration,
+    RuntimeWakeRegistration, destroy_session_slot, insert_session_with_wake, with_session,
+    with_session_activity,
 };
 use super::status::{error_status, invalid_argument, not_found, unsupported_version};
-use super::{event_mirror, RuntimeDynamicSession, RuntimeDynamicSessionError, DEFAULT_VIEWPORT};
+use super::{DEFAULT_VIEWPORT, RuntimeDynamicSession, RuntimeDynamicSessionError, event_mirror};
 
 pub(in crate::dynamic_api) unsafe fn create_session(
-    config: ZrRuntimeSessionConfigV2,
+    config: ZrRuntimeSessionConfigV3,
     out_session: *mut ZrRuntimeSessionHandle,
 ) -> ZrStatus {
     crate::profile_scope!("runtime", "dynamic_api", "create_session");
-    crate::diagnostic_log::initialize_unity_process_log("runtime-dynamic");
-    crate::diagnostic_log::write_log("runtime_session", "dynamic_api_create_session_entered");
     if out_session.is_null() {
         return invalid_argument(b"missing runtime session output");
     }
-    if config.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V2 {
+    if config.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V3 {
         return unsupported_version();
     }
     let wake = match RuntimeWakeRegistration::from_abi(config.wake_sink) {
@@ -49,18 +49,65 @@ pub(in crate::dynamic_api) unsafe fn create_session(
             Some(profile) => profile,
             None => return invalid_argument(b"unknown runtime session profile"),
         };
-    let project_config = match RuntimeProjectConfig::from_abi_slice(config.project_manifest) {
+    let project_config = match RuntimeProjectConfig::from_abi_startup_config(
+        config.project_root,
+        config.play_scene,
+        config.play_report_pipe,
+    ) {
         Ok(project_config) => project_config,
-        Err(_) => return invalid_argument(b"invalid runtime project root"),
+        Err(error) => return invalid_runtime_startup_config(error),
     };
+
+    let mut dynamic_process_log =
+        crate::diagnostic_log::acquire_dynamic_unity_process_log("runtime-dynamic");
+    crate::diagnostic_log::write_log("runtime_session", "dynamic_api_create_session_entered");
 
     match RuntimeDynamicSession::new(profile, project_config) {
         Ok(session) => {
-            let handle = insert_session_with_wake(session, wake);
+            let session = session.with_runtime_frame_wake(wake.channel_wake());
+            let handle = insert_session_with_wake(
+                session.with_dynamic_process_log_lease(dynamic_process_log),
+                wake,
+            );
             unsafe { ptr::write(out_session, handle) };
             ZrStatus::ok()
         }
-        Err(error) => error_status(error),
+        Err(error) => {
+            if !dynamic_process_log.shutdown() {
+                eprintln!(
+                    "fatal dynamic runtime session bootstrap teardown failure; aborting before dynamic library unload"
+                );
+                std::process::abort();
+            }
+            error_status(error)
+        }
+    }
+}
+
+fn invalid_runtime_startup_config(error: RuntimeProjectError) -> ZrStatus {
+    match error {
+        RuntimeProjectError::PlaySceneRequiresProject => {
+            invalid_argument(b"runtime Play scene requires a project root")
+        }
+        RuntimeProjectError::PlayReportPipeRequiresProject => {
+            invalid_argument(b"runtime Play report outlet requires a project root")
+        }
+        RuntimeProjectError::PlaySceneUtf8 { .. }
+        | RuntimeProjectError::EmptyPlayScene
+        | RuntimeProjectError::InvalidPlayScene { .. } => {
+            invalid_argument(b"invalid runtime Play scene path")
+        }
+        RuntimeProjectError::PlayReportPipeUtf8 { .. }
+        | RuntimeProjectError::EmptyPlayReportPipe => {
+            invalid_argument(b"invalid runtime Play report outlet")
+        }
+        RuntimeProjectError::EmptyProjectRoot | RuntimeProjectError::ProjectRootUtf8 { .. } => {
+            invalid_argument(b"invalid runtime project root")
+        }
+        RuntimeProjectError::ResolveProjectRoot { .. } => {
+            invalid_argument(b"could not resolve runtime project root")
+        }
+        _ => invalid_argument(b"invalid runtime project startup configuration"),
     }
 }
 
@@ -302,7 +349,7 @@ pub(in crate::dynamic_api) unsafe fn subscribe_plugin_event(
             }) {
                 Ok(request) => request,
                 Err(_) => {
-                    return invalid_argument(b"invalid runtime plugin event subscription request")
+                    return invalid_argument(b"invalid runtime plugin event subscription request");
                 }
             };
         if request.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
@@ -347,6 +394,80 @@ pub(in crate::dynamic_api) unsafe fn drain_plugin_events(
         }
         match session.drain_plugin_events(handle.raw(), subscription) {
             Ok(buffer) => unsafe { event_mirror::write_plugin_event_batch(out_deliveries, buffer) },
+            Err(error) => error_status(error),
+        }
+    })
+}
+
+pub(in crate::dynamic_api) unsafe fn query_world(
+    handle: ZrRuntimeSessionHandle,
+    request_json: ZrByteSlice,
+    out_result: *mut ZrOwnedByteBuffer,
+) -> ZrStatus {
+    with_session(handle, |session| {
+        if out_result.is_null() || request_json.is_empty() {
+            return invalid_argument(b"missing runtime world query request or output");
+        }
+        let query = match serde_json::from_slice::<WorldQuery>(unsafe { request_json.as_slice() }) {
+            Ok(query) => query,
+            Err(_) => return invalid_argument(b"invalid runtime world query request"),
+        };
+        match encode_world_sync_payload(&session.query_world(query)) {
+            Ok(payload) => write_world_sync_payload(out_result, payload),
+            Err(error) => error_status(error),
+        }
+    })
+}
+
+pub(in crate::dynamic_api) unsafe fn watch_world(
+    handle: ZrRuntimeSessionHandle,
+    registration_json: ZrByteSlice,
+    out_token: *mut WatchToken,
+) -> ZrStatus {
+    with_session(handle, |session| {
+        if out_token.is_null() || registration_json.is_empty() {
+            return invalid_argument(b"missing runtime world watch request or output");
+        }
+        let registration = match serde_json::from_slice::<WatchRegistration>(unsafe {
+            registration_json.as_slice()
+        }) {
+            Ok(registration) => registration,
+            Err(_) => return invalid_argument(b"invalid runtime world watch request"),
+        };
+        unsafe {
+            ptr::write(out_token, session.watch_world(registration));
+        }
+        ZrStatus::ok()
+    })
+}
+
+pub(in crate::dynamic_api) unsafe fn unwatch_world(
+    handle: ZrRuntimeSessionHandle,
+    token: WatchToken,
+    out_removed: *mut u8,
+) -> ZrStatus {
+    with_session(handle, |session| {
+        if out_removed.is_null() || !token.is_valid() {
+            return invalid_argument(b"invalid runtime world watch token or output");
+        }
+        unsafe {
+            ptr::write(out_removed, u8::from(session.unwatch_world(token)));
+        }
+        ZrStatus::ok()
+    })
+}
+
+pub(in crate::dynamic_api) unsafe fn drain_world_invalidations(
+    handle: ZrRuntimeSessionHandle,
+    out_batches: *mut ZrOwnedByteBuffer,
+) -> ZrStatus {
+    with_session(handle, |session| {
+        if out_batches.is_null() {
+            return invalid_argument(b"missing runtime world invalidation output");
+        }
+        let batches = session.drain_world_invalidations();
+        match encode_world_sync_payload(&batches) {
+            Ok(payload) => write_world_sync_payload(out_batches, payload),
             Err(error) => error_status(error),
         }
     })

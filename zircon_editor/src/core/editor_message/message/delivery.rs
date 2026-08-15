@@ -10,7 +10,7 @@ use crate::core::tools::ToolLifecycleEvent;
 
 use super::{EditorMessage, EditorMessageProtocol};
 use crate::core::editor_message::retention::{
-    EditorMessageCoalescingKey, EditorMessageRetention, editor_message_retention,
+    editor_message_retention, EditorMessageCoalescingKey, EditorMessageRetention,
 };
 
 #[derive(Clone, Debug)]
@@ -90,6 +90,29 @@ impl EditorMessageDelivery {
             EditorMessageRetention::Lossless | EditorMessageRetention::Bounded => None,
         }
     }
+
+    pub(in crate::core::editor_message) fn coalesce_latest_from(self, previous: &Self) -> Self {
+        let composes_scene_inspection = matches!(
+            (self.message().payload(), previous.message().payload()),
+            (
+                EditorMessagePayload::SceneInspection(_),
+                EditorMessagePayload::SceneInspection(_)
+            )
+        );
+        if !composes_scene_inspection {
+            return self;
+        }
+        let message = self
+            .message()
+            .clone()
+            .coalesce_latest_from(previous.message());
+        Self::with_sequence(
+            self.protocol(),
+            self.topic().clone(),
+            message,
+            self.sequence(),
+        )
+    }
 }
 
 impl PartialEq for EditorMessageDelivery {
@@ -136,15 +159,9 @@ fn estimate_retained_bytes(topic: &EditorTopic, message: &EditorMessage) -> usiz
         ) => label.len(),
         EditorMessagePayload::Transaction(TransactionMessage::HistoryTrimmed { .. }) => 0,
         EditorMessagePayload::SceneInspection(message) => {
-            let entity_bytes = [
-                message.added_entities(),
-                message.changed_entities(),
-                message.removed_entities(),
-            ]
-            .into_iter()
-            .fold(0usize, |bytes, entities| {
-                bytes.saturating_add(std::mem::size_of_val(entities))
-            });
+            let hierarchy_bytes = std::mem::size_of_val(message.added_anchors())
+                .saturating_add(std::mem::size_of_val(message.changed_anchors()))
+                .saturating_add(std::mem::size_of_val(message.removed_entities()));
             let property_bytes = message
                 .focused_fields()
                 .changed_properties()
@@ -155,7 +172,13 @@ fn estimate_retained_bytes(topic: &EditorTopic, message: &EditorMessage) -> usiz
                         .saturating_add(path.component_type_path().len())
                         .saturating_add(path.field_name().len())
                 });
-            entity_bytes.saturating_add(property_bytes)
+            let selection_bytes = std::mem::size_of_val(message.selection().added_entities())
+                .saturating_add(std::mem::size_of_val(
+                    message.selection().removed_entities(),
+                ));
+            hierarchy_bytes
+                .saturating_add(property_bytes)
+                .saturating_add(selection_bytes)
         }
         EditorMessagePayload::Tool(ToolMessage::Lifecycle(event)) => match event {
             ToolLifecycleEvent::Activated { tool, .. }

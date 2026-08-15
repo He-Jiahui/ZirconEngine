@@ -53,10 +53,6 @@ pub enum RuntimeExtensionRegistryError {
     InvalidPluginEventCatalog(String),
     #[error("asset importer registration failed: {0}")]
     AssetImporter(String),
-    #[error("scene hook {0} already registered")]
-    DuplicateSceneHook(String),
-    #[error("invalid scene hook: {0}")]
-    InvalidSceneHook(String),
     #[error("invalid plugin module: {0}")]
     InvalidPluginModule(String),
     #[error("runtime plugin module descriptor ordering failed: {0}")]

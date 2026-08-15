@@ -1,4 +1,4 @@
-use crate::ui::binding_dispatch::{apply_inspector_draft_field, EditorBindingDispatchError};
+use crate::ui::binding_dispatch::{EditorBindingDispatchError, apply_inspector_draft_field};
 use crate::ui::workbench::state::EditorState;
 use zircon_runtime_interface::ui::component::{
     UiComponentAdapterError, UiComponentAdapterResult, UiComponentEvent, UiComponentEventEnvelope,

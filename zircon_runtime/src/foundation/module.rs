@@ -4,7 +4,8 @@ use crate::core::framework::foundation::{ConfigManager, EventManager, FOUNDATION
 use crate::core::manager::RegisteredManagerService;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
-    DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
+    CoreError, DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDescriptor, ServiceKind,
+    StartupMode,
 };
 use crate::engine_module::{factory, qualified_name, EngineModule};
 
@@ -40,7 +41,8 @@ pub fn module_descriptor() -> ModuleDescriptor {
         StartupMode::Immediate,
         Vec::new(),
         factory(|core| {
-            let manager = Arc::new(DefaultConfigManager::new(core)?);
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            let manager = Arc::new(DefaultConfigManager::new(&core)?);
             Ok(
                 Arc::new(RegisteredManagerService::<dyn ConfigManager>::new(manager))
                     as ServiceObject,
@@ -52,7 +54,8 @@ pub fn module_descriptor() -> ModuleDescriptor {
         StartupMode::Immediate,
         Vec::new(),
         factory(|core| {
-            let manager = Arc::new(DefaultEventManager::new(core));
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            let manager = Arc::new(DefaultEventManager::new(&core));
             Ok(
                 Arc::new(RegisteredManagerService::<dyn EventManager>::new(manager))
                     as ServiceObject,

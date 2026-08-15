@@ -3,7 +3,9 @@ use zircon_runtime_interface::ui::{component::UiValue, event_ui::UiNodeId};
 
 use crate::ui::retained_host::WorkbenchContextMenuRequestData;
 
-use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
+use super::componentized_window::{
+    logical_axis_from_physical, BuiltinWorkbenchWindowTemplateSurfaceBridge,
+};
 use super::error::BuiltinHostWindowTemplateBridgeError;
 
 pub(crate) const WORKBENCH_CONTEXT_MENU_CONTROL_ID: &str = "WorkbenchContextMenu";
@@ -83,8 +85,16 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             CONTEXT_TARGET_PATH,
             UiValue::String(request.target_path.to_string()),
         )?;
-        let local_anchor_x = request.popup_anchor_x - self.mount_frame.x;
-        let local_anchor_y = request.popup_anchor_y - self.mount_frame.y;
+        let local_anchor_x = logical_axis_from_physical(
+            request.popup_anchor_x,
+            self.mount_frame.x,
+            self.presentation_scale_factor,
+        );
+        let local_anchor_y = logical_axis_from_physical(
+            request.popup_anchor_y,
+            self.mount_frame.y,
+            self.presentation_scale_factor,
+        );
         self.mutate_control_property(
             WORKBENCH_CONTEXT_MENU_CONTROL_ID,
             POPUP_ANCHOR_X,

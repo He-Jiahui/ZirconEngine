@@ -1,7 +1,5 @@
 use std::collections::BTreeSet;
 
-use zircon_runtime::core::CoreHandle;
-
 pub const EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY: &str = "zircon.editor.enabled_subsystems";
 pub const EDITOR_RUNTIME_SANDBOX_ENABLED_CONFIG_KEY: &str = "zircon.editor.runtime_sandbox_enabled";
 
@@ -24,10 +22,9 @@ pub struct EditorSubsystemReport {
     diagnostics: Vec<String>,
 }
 
-pub(crate) fn editor_subsystem_report_from_core(core: &CoreHandle) -> EditorSubsystemReport {
-    let requested = core
-        .load_config::<Vec<String>>(EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY)
-        .ok();
+pub(super) fn editor_subsystem_report_from_config(
+    requested: Option<Vec<String>>,
+) -> EditorSubsystemReport {
     let known = OPTIONAL_EDITOR_SUBSYSTEMS
         .iter()
         .copied()
@@ -64,9 +61,8 @@ pub(crate) fn editor_subsystem_report_from_core(core: &CoreHandle) -> EditorSubs
     }
 }
 
-pub(crate) fn editor_runtime_sandbox_enabled(core: &CoreHandle) -> bool {
-    core.load_config::<bool>(EDITOR_RUNTIME_SANDBOX_ENABLED_CONFIG_KEY)
-        .unwrap_or(true)
+pub(super) fn editor_runtime_sandbox_enabled_from_config(configured: Option<bool>) -> bool {
+    configured.unwrap_or(true)
 }
 
 impl EditorSubsystemReport {
@@ -97,5 +93,43 @@ impl EditorSubsystemReport {
         self.enabled_subsystems
             .iter()
             .any(|enabled| enabled == subsystem)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        editor_runtime_sandbox_enabled_from_config, editor_subsystem_report_from_config,
+        EditorSubsystemReport, EDITOR_SUBSYSTEM_ANIMATION_AUTHORING,
+        EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING,
+    };
+
+    #[test]
+    fn subsystem_report_projects_known_and_custom_configured_capabilities() {
+        let report = editor_subsystem_report_from_config(Some(vec![
+            EDITOR_SUBSYSTEM_ANIMATION_AUTHORING.to_string(),
+            "editor.extension.custom_fixture".to_string(),
+        ]));
+
+        assert!(report.is_enabled(EDITOR_SUBSYSTEM_ANIMATION_AUTHORING));
+        assert!(report.is_enabled("editor.extension.custom_fixture"));
+        assert!(!report.is_enabled(EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING));
+        assert_eq!(
+            report.diagnostics(),
+            ["custom editor capability enabled: editor.extension.custom_fixture"]
+        );
+    }
+
+    #[test]
+    fn absent_subsystem_configuration_keeps_the_default_enabled_set() {
+        let report = editor_subsystem_report_from_config(None);
+
+        assert_eq!(report, EditorSubsystemReport::default_enabled());
+    }
+
+    #[test]
+    fn absent_runtime_sandbox_configuration_keeps_the_safe_default() {
+        assert!(editor_runtime_sandbox_enabled_from_config(None));
+        assert!(!editor_runtime_sandbox_enabled_from_config(Some(false)));
     }
 }

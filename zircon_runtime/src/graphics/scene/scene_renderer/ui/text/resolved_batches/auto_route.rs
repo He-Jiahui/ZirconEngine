@@ -3,9 +3,9 @@ use std::collections::{HashMap, VecDeque};
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 use super::super::super::render::{ScreenSpaceUiTextBatch, ScreenSpaceUiTextRouteIdentity};
-use super::super::font_assets::{LoadedUiFontAsset, effective_text_render_mode};
+use super::super::font_assets::{effective_text_render_mode, LoadedUiFontAsset};
 use super::auto_text_policy_request;
-use crate::text::raster::{GlyphRasterPath, auto_raster_path_for_request};
+use crate::text::raster::{auto_raster_path_for_request, GlyphRasterPath};
 
 const AUTO_TEXT_ROUTE_CAPACITY: usize = 2_048;
 const AUTO_TEXT_ROUTE_MAX_IDLE_FRAMES: u64 = 300;

@@ -16,8 +16,20 @@ impl HybridGiGpuReadback {
             completed_trace_region_ids,
             probe_irradiance_rgb,
             probe_trace_lighting_rgb,
+            radiance_cache_gpu_stage_dispatch_counts: Default::default(),
             scene_prepare_resources,
         }
+    }
+
+    pub(in crate::hybrid_gi::renderer) fn with_radiance_cache_gpu_stage_dispatch_counts(
+        mut self,
+        counts: [
+            u32;
+            zircon_runtime::core::framework::render::RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT
+        ],
+    ) -> Self {
+        self.radiance_cache_gpu_stage_dispatch_counts = counts;
+        self
     }
 
     pub(in crate::hybrid_gi::renderer) fn into_completion_parts(

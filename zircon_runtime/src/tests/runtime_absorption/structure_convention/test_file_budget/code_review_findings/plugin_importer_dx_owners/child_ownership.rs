@@ -38,12 +38,9 @@ fn runtime_15_code_review_findings_plugin_importer_dx_structure_guard_is_child_o
             "mod structure_assertions;",
             "#[path = \"plugin_importer_dx_owners/source_inventory.rs\"]",
             "mod source_inventory;",
-            "#[path = \"plugin_importer_dx_owners/status_docs.rs\"]",
-            "mod status_docs;",
             "structure_assertions::assert_plugin_importer_dx_child_owners_are_folder_backed",
             "source_inventory::assert_plugin_importer_dx_line_budgets",
             "source_inventory::plugin_importer_dx_review_guard_count",
-            "status_docs::assert_plugin_importer_dx_status_docs_are_synced",
         ],
     );
     assert_contains_all(
@@ -56,8 +53,6 @@ fn runtime_15_code_review_findings_plugin_importer_dx_structure_guard_is_child_o
             "mod delegation;",
             "#[path = \"structure/child_ownership.rs\"]",
             "mod child_ownership;",
-            "#[path = \"structure/status_mirrors.rs\"]",
-            "mod status_mirrors;",
             "#[path = \"structure/d13_sdk.rs\"]",
             "mod d13_sdk;",
             "review_mounts::assert_plugin_importer_dx_review_mounts_are_folder_backed",
@@ -72,5 +67,4 @@ fn runtime_15_code_review_findings_plugin_importer_dx_structure_guard_is_child_o
         11,
         "plugin-importer DX child owners should preserve all current D1/D5/D6/D8/D9/D10/D11/D12/D13 review guards"
     );
-    assert_plugin_importer_dx_status_docs_are_synced();
 }

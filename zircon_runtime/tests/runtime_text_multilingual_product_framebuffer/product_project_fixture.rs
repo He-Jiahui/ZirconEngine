@@ -7,20 +7,17 @@ use zircon_runtime::asset::{
 };
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
+use super::proof_path::product_proof_work_path;
+
 pub(super) const VARIABLE_FONT_ASSET_URI: &str = "res://fonts/bahnschrift-variable.font.toml";
 pub(super) const VARIABLE_FONT_NARROW_FAMILY: &str = "Zircon Bahnschrift Narrow";
 pub(super) const VARIABLE_FONT_WIDE_FAMILY: &str = "Zircon Bahnschrift Wide";
 
-pub(super) fn product_fixture_asset_manager() -> (Arc<ProjectAssetManager>, PathBuf) {
+pub(super) fn product_fixture_asset_manager(
+    fixture_label: &str,
+) -> (Arc<ProjectAssetManager>, PathBuf) {
     assert_checked_in_default_composite_package();
-    let root = std::env::temp_dir().join(format!(
-        "zircon-runtime-text-product-{}-{}",
-        std::process::id(),
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("system clock after unix epoch")
-            .as_nanos()
-    ));
+    let root = product_proof_work_path(fixture_label);
     let paths = ProjectPaths::from_root(&root).expect("text product fixture project paths");
     paths
         .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])

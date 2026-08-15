@@ -6,7 +6,7 @@ use zircon_runtime_interface::reflect::{
 };
 
 use crate::core::framework::scene::ComponentTypeDescriptor;
-use crate::scene::{NodeKind, World, components::ActiveSelf, components::Name};
+use crate::scene::{components::ActiveSelf, components::Name, NodeKind, World};
 
 #[test]
 fn inspector_style_field_list_uses_world_reflection_facade() {

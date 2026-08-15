@@ -38,10 +38,10 @@ pub use editor::EditorPluginDeclaration;
 pub use editor_contribution::EditorContributionBuilder;
 #[cfg(feature = "runtime")]
 pub use manifest::{
-    ImporterRuntimeManifestBuilder, NATIVE_ABI_VERSION_V3, NATIVE_DESCRIPTOR_SYMBOL_V3,
-    PluginFeatureBundleBuilder, PluginManifestBuilder, PluginModuleBuilder, SDK_API_VERSION,
     default_export_packaging, default_supported_platforms, importer_runtime_supported_platforms,
-    importer_runtime_supported_targets,
+    importer_runtime_supported_targets, ImporterRuntimeManifestBuilder, PluginFeatureBundleBuilder,
+    PluginManifestBuilder, PluginModuleBuilder, NATIVE_ABI_VERSION_V3, NATIVE_DESCRIPTOR_SYMBOL_V3,
+    SDK_API_VERSION,
 };
 #[cfg(feature = "runtime")]
 pub use registration::{

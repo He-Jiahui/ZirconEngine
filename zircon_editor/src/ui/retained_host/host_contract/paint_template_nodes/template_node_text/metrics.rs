@@ -1,5 +1,5 @@
 use super::super::super::data::TemplatePaneNodeData;
-use super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
+use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) struct TemplateNodeTextGeometryMetrics {

@@ -11,6 +11,7 @@ plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/plugin/native_plugin_loader/collect_manifests.rs
   - zircon_runtime/src/plugin/native_plugin_loader/discover.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs
   - zircon_runtime/src/plugin/native_plugin_loader/discover_load_manifest.rs
   - zircon_runtime/src/plugin/native_plugin_loader/load_discovered.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/loading.rs
@@ -62,7 +63,7 @@ Editor export registration/status 与 live-host loading/refresh 均能调用 dis
 
 ## 修复结果与回传
 
-当前状态：`implementation_updated / module_group_regression_fix_pending_managed_validation`。
+当前状态：`open / current_source_incremental_refresh_implemented / managed_validation_pending`。
 
 ### 2026-07-22 current-source 实现
 
@@ -86,6 +87,41 @@ re-export `0`、native namespace `68`、classification groups `5`、unclassified
 `classified-and-clear`、risks `[]`。typed-error source guard 已同步到 generation authority 的 report boundary。
 lexical-alias explicit refresh/remove 回归已写入，source contract 已完成 RED/GREEN；其 managed test 随下述
 current-source focused batch 编译为同一受管 test binary。
+
+### 2026-08-10 current-source re-audit
+
+- `discover/authority.rs` 的 `refresh_manifest(root, _manifest_path)` 与
+  `remove_path(root, _removed_path)` 均丢弃已通知路径并调用
+  `project_root(root, true)`，后者提交 `RootScan`。因此当前 watcher mutation 仍是有界的整 root
+  refresh，而不是本 handoff 所要求的单 manifest read/parse delta。
+- `discover/tests.rs::manifest_notifications_refresh_the_same_authority_generation` 只断言报告内容和
+  generation 递增；它没有 filesystem enumerate/read/parse 计数或通知路径断言，不能证明 O(1)
+  mutation 合同。历史 managed jobs 仅可作为当时快照证据，不能覆盖本次 current-source re-audit。
+- 本 failure 保持 `open`。后续修复必须以 authority 内唯一的 immutable manifest index 和合并通知批次为
+  最低共享层，先补 one-path、burst、remove、failed-parse/last-good 和 overflow full-rescan 的 RED
+  回归，再由受管 current-source gate 验证；不得以 editor 本地缓存或第二 watcher index 绕过。
+
+### 2026-08-11 current-source batch-order correction
+
+- authority、refresh work、immutable manifest index 和 source metrics 已在当前源码中构成单一的增量
+  路径；单 manifest change/remove、failed parse last-good 和 root-external notification 的回归均保留在
+  discovery owner 测试中。
+- 对合并批次复审发现 `Refresh(child/plugin.toml)` 后接 `Remove(parent)` 时，旧归并会保留子刷新并使
+  collector 尝试读取最终已删除的文件。`discovery_refresh/work.rs` 现在由后到的删除移除其目录内的全部
+  先前动作；相反的 `Remove(parent)` 后 `Refresh(child)` 仍保留顺序，以支持同一批次中的目录重建。
+  `later_parent_removal_discards_an_earlier_descendant_refresh` 固化该最低共享层回归。
+- 受管归属转移 `ec1cc5b20b158cccb3deec51ba937fdcfe17a1363daec359b9f07959f3723b08` 将新增 work
+  owner 纳入 Plugins01 r4；`rustfmt +1.94.1 --check` 和 scoped diff-check 通过。未运行直接 Cargo，且
+  没有 current-source managed focused/broad 结果，因此本 failure 继续保持 `open`。
+- 本轮复审另发现一条未归属于 `work.rs` 的正确性边界：全量扫描已将某 manifest 的解析失败写入
+  published snapshot 后，同一路径修复并成功执行增量 refresh 时，`from_incremental_payload` 会无条件保留
+  `base.collector_diagnostics` 并 append 新诊断，使已解决的解析错误永久出现在后续 report。现有
+  `failed_incremental_parse_keeps_the_last_good_snapshot` 仅覆盖失败不发布的分支，不覆盖“失败初始扫描 -> 修复增量 refresh”。
+  此最低层修复需要为 collector diagnostic 保留通知路径归属，以便从 immutable snapshot 中合法移除被修复路径的
+  旧诊断，而不影响其他 package 的诊断。2026-08-11 coordinator transfer preview
+  `d9767a4c50b75ba1c5058b4fc0ca1983c224ba490c4b5ee8ab261fefd5e2833f` 确认 `contract.rs` 与
+  `discover/tests.rs` 仍由可执行的 Frameworks04 会话拥有，因此 Plugins01 未跨会话编辑该两个路径。此项不是当前
+  `work.rs` 修复的完成证据，仍需 Frameworks04 的 TDD 修复和受管 current-source 验证。
 
 Windows managed job `93f88e221e244b93b176afa90a07cdff` 在 coordinator-retained
 `D:\cargo-targets` compatibility pool 完成 current-source core-min lib-test 编译并执行

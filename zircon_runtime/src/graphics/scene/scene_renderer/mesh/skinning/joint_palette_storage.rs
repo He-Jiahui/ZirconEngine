@@ -89,8 +89,8 @@ impl SkinnedMeshJointPaletteStorage {
     }
 }
 
-pub(in crate::graphics::scene::scene_renderer) fn skinned_joint_palette_storage_min_binding_size()
--> wgpu::BufferSize {
+pub(in crate::graphics::scene::scene_renderer) fn skinned_joint_palette_storage_min_binding_size(
+) -> wgpu::BufferSize {
     wgpu::BufferSize::new(std::mem::size_of::<SkinnedMeshJointPaletteStorage>() as u64)
         .unwrap_or(std::num::NonZeroU64::MIN)
 }

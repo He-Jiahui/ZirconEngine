@@ -2,9 +2,11 @@
 fn runtime_07_project_io_folder_split_keeps_entry_and_converter_owners() {
     let project_io_root = include_str!("../../../../scene/world/project_io.rs");
     let camera = include_str!("../../../../scene/world/project_io/camera.rs");
+    let document = include_str!("../../../../scene/world/project_io/document.rs");
     let physics = include_str!("../../../../scene/world/project_io/physics.rs");
     let post_process = include_str!("../../../../scene/world/project_io/post_process.rs");
     let references = include_str!("../../../../scene/world/project_io/references.rs");
+    let scene_asset = include_str!("../../../../scene/world/project_io/scene_asset.rs");
     let script = include_str!("../../../../scene/world/project_io/script.rs");
     let transform = include_str!("../../../../scene/world/project_io/transform.rs");
     let project_io_doc =
@@ -24,13 +26,14 @@ fn runtime_07_project_io_folder_split_keeps_entry_and_converter_owners() {
 
     for root_anchor in [
         "mod camera;",
+        "mod document;",
         "mod physics;",
         "mod post_process;",
         "mod references;",
+        "mod scene_asset;",
         "mod script;",
         "mod transform;",
-        "pub fn from_scene_asset",
-        "pub fn to_scene_asset",
+        "pub use document::SceneProjectError;",
     ] {
         assert!(
             project_io_root.contains(root_anchor),
@@ -39,6 +42,10 @@ fn runtime_07_project_io_folder_split_keeps_entry_and_converter_owners() {
     }
 
     for moved_helper in [
+        "pub fn from_scene_asset",
+        "pub fn to_scene_asset",
+        "pub fn save_project_to_path",
+        "fn normalize_loaded_state",
         "fn camera_target_from_asset",
         "fn collider_shape_from_asset",
         "fn post_process_settings_from_asset",
@@ -54,6 +61,7 @@ fn runtime_07_project_io_folder_split_keeps_entry_and_converter_owners() {
 
     for (module_name, module_source, expected_anchor) in [
         ("camera", camera, "pub(super) fn camera_to_asset"),
+        ("document", document, "pub fn save_project_to_path"),
         ("physics", physics, "pub(super) fn collider_shape_to_asset"),
         (
             "post_process",
@@ -65,6 +73,7 @@ fn runtime_07_project_io_folder_split_keeps_entry_and_converter_owners() {
             references,
             "pub(super) fn reference_for_model_handle",
         ),
+        ("scene_asset", scene_asset, "pub fn from_scene_asset"),
         ("script", script, "pub(super) fn script_bindings_for_record"),
         ("transform", transform, "pub(super) fn transform_to_asset"),
     ] {
@@ -76,11 +85,11 @@ fn runtime_07_project_io_folder_split_keeps_entry_and_converter_owners() {
 
     for doc_anchor in [
         "Project I/O Folder Split",
-        "project_io/{camera,physics,post_process,references,script,transform}.rs",
+        "project_io/{camera,document,physics,post_process,references,scene_asset,script,transform}.rs",
         "large_file_hotspot_count = 41",
         "runtime-other = 16",
-        "project_io.rs 772 行",
-        "project_io folder split",
+        "project_io root wiring",
+        "scene-asset conversion owner",
     ] {
         assert!(
             project_io_doc.contains(doc_anchor)

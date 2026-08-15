@@ -1,5 +1,5 @@
 use crate::ui::retained_host::host_contract::paint_theme::{
-    HostMaterialPalette, current_host_palette,
+    current_host_palette, HostMaterialPalette,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -22,8 +22,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub disabled_text: [u8; 4],
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dialog_palette()
--> WorkbenchDialogPalette {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dialog_palette(
+) -> WorkbenchDialogPalette {
     dialog_palette_from_host(current_host_palette())
 }
 

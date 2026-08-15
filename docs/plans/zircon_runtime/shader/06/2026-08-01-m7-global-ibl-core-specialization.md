@@ -82,20 +82,20 @@ the managed product evidence is accepted.
 The screenshot handoff now has a standalone evidence gate:
 `python tools/zircon_validate_shader_pbr_viewer_evidence.py <ready.png> --expected-backend Dx12 --require-direct-present`.
 It validates the bounded actual RGBA PNG structure, checksum, dimensions,
-visible-pixel non-blankness, and matching v4 ready-frame sidecar, including the
+visible-pixel non-blankness, and matching v12 ready-frame sidecar, including the
 environment-only PBR profile, complete active-cubemap face-size/mip layout,
 phase-duration hierarchy, and the explicit process-local `MeshPipelineCache`
 scope for the Base-prewarm cache hit plus capture-time Base-pipeline readiness.
-The library retains v2/v3 read compatibility for historical inspection, while
-the CLI acceptance command requires v4 and the current decimal IBL bake version
-`202608020005` by default; `--allow-legacy-schema` is an explicit
+The library retains v2-v11 read compatibility for historical inspection, while
+the CLI acceptance command requires v12 and the current decimal IBL bake version
+`202608090006` by default; `--allow-legacy-schema` is an explicit
 historical-baseline inspection opt-in for legacy schemas or bake versions. A
 static contract keeps that decimal value aligned with Rust's canonical
 `IBL_BAKE_ALGORITHM_VERSION`. It is standard-library-only and never starts the
 engine. Its fixture suite accepts a valid evidence unit and
 rejects viewport/cache-scope drift, incomplete cubemap mip layouts,
 blank/fully transparent images, an oversized encoded input, or a phase total
-shorter than its recorded component intervals. Historical screenshots without the current v4
+shorter than its recorded component intervals. Historical screenshots without the current v12
 sidecar remain baselines only;
 this gate is preparation for, not a substitute for, the required fresh managed
 DX12 screenshot and RenderDoc evidence.
@@ -129,8 +129,8 @@ They confirmed that both PBR providers return before reflection or BRDF sampling
 for zero normal/view input, that SSR applies its configured intensity once, and
 that replay errors preserve their primary timeout or command-failure cause even
 when temporary-snapshot cleanup also fails. The standalone evidence-tool suite
-currently passes 13 tests, including CLI error reporting, bounded process output,
-snapshot integrity, cleanup, and current v4 viewer-sidecar contracts. This is static and
+includes CLI error reporting, bounded process output,
+snapshot integrity, cleanup, and current v12 viewer-sidecar contracts. This is static and
 tooling evidence only; it does not promote the milestone beyond `in_progress`.
 
 The deferred PBR GBuffer boundary now also decodes its normal through the

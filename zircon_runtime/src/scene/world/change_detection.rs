@@ -1,4 +1,6 @@
-use crate::scene::ecs::{ChangeTick, Component, ComponentTicks, RemovedComponentEvents, Resource};
+use crate::scene::ecs::{
+    ChangeTick, Component, ComponentTicks, RemovedComponentEvents, Resource, StorageType,
+};
 use crate::scene::{EntityId, World};
 
 impl World {
@@ -40,7 +42,21 @@ impl World {
     {
         let component_id = self.registered_component_id::<T>()?;
         let internal = self.internal_entity(entity)?;
-        self.component_storage.ticks(component_id, internal)
+        match T::STORAGE_TYPE {
+            StorageType::Table => {
+                let location = self
+                    .entity_registry
+                    .location_for_internal(internal)
+                    .ok()?
+                    .location;
+                self.archetype_index.component_ticks(
+                    location.archetype_id,
+                    location.table_row,
+                    component_id,
+                )
+            }
+            StorageType::SparseSet => self.component_storage.ticks(component_id, internal),
+        }
     }
 
     pub(crate) fn mark_component_changed_at_tick<T>(&mut self, entity: EntityId, tick: ChangeTick)
@@ -53,8 +69,25 @@ impl World {
         let Some(internal) = self.internal_entity(entity) else {
             return;
         };
-        self.component_storage
-            .mark_changed(component_id, internal, tick);
+        match T::STORAGE_TYPE {
+            StorageType::Table => {
+                let Ok(stable_location) = self.entity_registry.location_for_internal(internal)
+                else {
+                    return;
+                };
+                let location = stable_location.location;
+                let _ = self.archetype_index.get_mut_at_tick::<T>(
+                    location.archetype_id,
+                    location.table_row,
+                    component_id,
+                    tick,
+                );
+            }
+            StorageType::SparseSet => {
+                self.component_storage
+                    .mark_changed(component_id, internal, tick);
+            }
+        }
     }
 
     pub fn resource_change_ticks<T>(&self) -> Option<ComponentTicks>
@@ -74,9 +107,23 @@ impl World {
         let component_id = self.registered_component_id::<T>()?;
         let internal = self.internal_entity(entity)?;
         let tick = self.mutation_change_tick();
-        let (value, ticks) = self
-            .component_storage
-            .get_mut_with_ticks(component_id, internal)?;
+        let (value, ticks) = match T::STORAGE_TYPE {
+            StorageType::Table => {
+                let location = self
+                    .entity_registry
+                    .location_for_internal(internal)
+                    .ok()?
+                    .location;
+                self.archetype_index.get_mut_with_ticks(
+                    location.archetype_id,
+                    location.table_row,
+                    component_id,
+                )?
+            }
+            StorageType::SparseSet => self
+                .component_storage
+                .get_mut_with_ticks(component_id, internal)?,
+        };
         Some((value, ticks, tick))
     }
 

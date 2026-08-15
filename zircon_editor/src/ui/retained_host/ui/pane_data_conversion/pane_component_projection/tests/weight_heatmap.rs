@@ -35,19 +35,26 @@ fn weight_heatmap_projection_preserves_typed_resolution_labels_and_sources() {
     .expect("weight heatmap should project");
 
     assert_eq!(
-        (node.weight_heatmap.columns, node.weight_heatmap.rows),
+        (
+            node.weight_heatmap.generation.columns(),
+            node.weight_heatmap.generation.rows(),
+        ),
         (16, 10)
     );
-    assert_eq!(node.weight_heatmap.low_label.as_str(), "Cold");
-    assert_eq!(node.weight_heatmap.high_label.as_str(), "Hot");
-    assert_eq!(node.weight_heatmap.sources.row_count(), 2);
+    assert_eq!(node.weight_heatmap.generation.low_label(), "Cold");
+    assert_eq!(node.weight_heatmap.generation.high_label(), "Hot");
+    assert_eq!(node.weight_heatmap.generation.sources().len(), 2);
     let selected = node
         .weight_heatmap
-        .sources
-        .row_data(0)
+        .generation
+        .sources()
+        .first()
         .expect("selected source");
-    assert_eq!((selected.x, selected.y, selected.weight), (0.5, 0.6, 1.0));
-    assert!(selected.selected);
+    assert_eq!(
+        (selected.x(), selected.y(), selected.weight()),
+        (0.5, 0.6, 1.0)
+    );
+    assert!(selected.selected());
 }
 
 #[test]
@@ -77,14 +84,18 @@ fn weight_heatmap_projection_clamps_resolution_and_normalized_source_values() {
     .expect("weight heatmap should project");
 
     assert_eq!(
-        (node.weight_heatmap.columns, node.weight_heatmap.rows),
+        (
+            node.weight_heatmap.generation.columns(),
+            node.weight_heatmap.generation.rows(),
+        ),
         (32, 3)
     );
-    assert_eq!(node.weight_heatmap.sources.row_count(), 1);
+    assert_eq!(node.weight_heatmap.generation.sources().len(), 1);
     let source = node
         .weight_heatmap
-        .sources
-        .row_data(0)
+        .generation
+        .sources()
+        .first()
         .expect("valid source");
-    assert_eq!((source.x, source.y, source.weight), (0.0, 1.0, 1.0));
+    assert_eq!((source.x(), source.y(), source.weight()), (0.0, 1.0, 1.0));
 }

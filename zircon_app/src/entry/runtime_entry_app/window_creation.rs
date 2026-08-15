@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use winit::event_loop::ActiveEventLoop;
 use winit::window::Window;
-use zircon_runtime::diagnostic_log::{write_log, write_warn};
+use zircon_runtime::diagnostic_log::write_log;
 use zircon_runtime_interface::ZrRuntimeViewportSizeV1;
 
 use super::{window_attributes::runtime_window_attributes, RuntimeEntryApp};
@@ -71,11 +71,17 @@ impl RuntimeEntryApp {
                 self.fallback_surface_present();
             }
             Err(error) => {
-                write_warn(
+                self.report_fatal_failure(
                     "runtime_surface_present",
-                    format!("runtime_bind_window_surface_failed error={error}"),
+                    format!(
+                        "viewport={:?} size={}x{}",
+                        self.viewport, viewport_size.width, viewport_size.height
+                    ),
+                    format!("runtime window surface bind failed: {error}"),
+                    "verify the graphics adapter and window surface, then restart zircon_runtime",
                 );
-                self.fail_surface_present();
+                event_loop.exit();
+                return false;
             }
         }
         if self.surface_present_enabled {

@@ -26,17 +26,19 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     };
 
     if flags.taa_scene_color {
-        bind_live_texture_view(
+        bind_live_taa_texture_view(
             graph,
             resources,
             PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS,
             history_textures.taa_scene_color_previous_view(),
+            history_textures.taa_scene_color_previous_identity(),
         );
-        bind_live_texture_view(
+        bind_live_taa_texture_view(
             graph,
             resources,
             PostProcessGraphResourceNames::TAA_HISTORY_CURRENT,
             history_textures.taa_scene_color_current_view(),
+            history_textures.taa_scene_color_current_identity(),
         );
     }
 
@@ -99,6 +101,18 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
                 view,
             );
         }
+    }
+}
+
+fn bind_live_taa_texture_view(
+    graph: &CompiledRenderGraph,
+    resources: &mut RenderGraphExecutionResources,
+    logical_name: &'static str,
+    view: wgpu::TextureView,
+    identity: crate::graphics::resource_identity::SampledTextureIdentity,
+) {
+    if graph.resource_lifetime_by_name(logical_name).is_some() {
+        resources.import_texture_view_with_identity(logical_name, view, identity);
     }
 }
 
@@ -173,10 +187,8 @@ mod tests {
         assert!(resources.has_texture_view(
             PostProcessGraphResourceNames::HISTORY_PREVIOUS_SCREEN_SPACE_REFLECTION
         ));
-        assert!(
-            resources
-                .has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST)
-        );
+        assert!(resources
+            .has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST));
         assert!(
             resources.has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI)
         );
@@ -236,10 +248,8 @@ mod tests {
         );
 
         assert!(!resources.has_texture_view(PostProcessGraphResourceNames::TAA_HISTORY_PREVIOUS));
-        assert!(
-            !resources
-                .has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST)
-        );
+        assert!(!resources
+            .has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HZB_FURTHEST));
         assert!(
             !resources.has_texture_view(PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI)
         );

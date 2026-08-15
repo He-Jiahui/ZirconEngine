@@ -14,19 +14,45 @@ pub fn apply_inspector_binding(
 ) -> Result<bool, EditorBindingDispatchError> {
     let batch = dispatch_inspector_binding(binding)?;
     let node_id = resolve_subject_path(state, &batch.subject_path)?;
-    if state.viewport_controller.selection().active_primary() != Some(node_id) {
-        state
-            .apply_intent(EditorIntent::SelectNode(node_id))
-            .map_err(EditorBindingDispatchError::StateMutation)?;
-    }
-
-    for change in &batch.changes {
-        apply_inspector_draft_field_value(state, &change.field_id, &change.value)?;
-    }
-
     state
-        .apply_intent(EditorIntent::ApplyInspectorChanges)
-        .map_err(EditorBindingDispatchError::StateMutation)
+        .ensure_inspector_binding_can_begin()
+        .map_err(EditorBindingDispatchError::StateMutation)?;
+    let checkpoint = state
+        .inspector_binding_ui_checkpoint()
+        .map_err(EditorBindingDispatchError::StateMutation)?;
+    let result = (|| {
+        state
+            .ensure_transaction_context_selection_is_current()
+            .map_err(EditorBindingDispatchError::StateMutation)?;
+
+        if state.viewport_controller.selection().active_primary() != Some(node_id) {
+            state
+                .apply_intent(EditorIntent::SelectNode(node_id))
+                .map_err(EditorBindingDispatchError::StateMutation)?;
+        }
+
+        for change in &batch.changes {
+            apply_inspector_draft_field_value(state, &change.field_id, &change.value)?;
+        }
+
+        state
+            .apply_intent(EditorIntent::ApplyInspectorChanges)
+            .map_err(EditorBindingDispatchError::StateMutation)
+    })();
+
+    match result {
+        Ok(changed) => Ok(changed),
+        Err(error) => {
+            state
+                .restore_inspector_binding_ui_checkpoint(checkpoint)
+                .map_err(|rollback| {
+                    EditorBindingDispatchError::StateMutation(format!(
+                        "{error}; inspector binding rollback failed: {rollback}"
+                    ))
+                })?;
+            Err(error)
+        }
+    }
 }
 
 pub(crate) fn apply_inspector_draft_field(

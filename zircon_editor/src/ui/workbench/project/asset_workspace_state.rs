@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -6,7 +7,7 @@ use crate::ui::host::editor_asset_manager::{
     EditorAssetCatalogGeneration, EditorAssetCatalogRecord, EditorAssetDetailsGeneration,
     EditorAssetFolderRecord,
 };
-use zircon_runtime::core::framework::asset::{ResourceManagementGeneration, ResourceManagementRow};
+use zircon_runtime::core::resource::{ResourceManagementGeneration, ResourceManagementRow};
 use zircon_runtime_interface::resource::{ResourceKind, ResourceState};
 
 use crate::ui::workbench::snapshot::{
@@ -17,6 +18,13 @@ use crate::ui::workbench::snapshot::{
 use zircon_runtime::asset::project::AssetSourceUnit;
 use zircon_runtime::asset::AssetUri;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct AssetWorkspaceProjectionInput {
+    catalog_revision: u64,
+    catalog_publish_epoch: u64,
+    resource_sequence: u64,
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct AssetWorkspaceState {
     catalog: Option<Arc<EditorAssetCatalogGeneration>>,
@@ -24,6 +32,8 @@ pub(crate) struct AssetWorkspaceState {
     selected_asset_uuid: Option<String>,
     selected_details: Option<Arc<EditorAssetDetailsGeneration>>,
     resources: Arc<ResourceManagementGeneration>,
+    projection_input: Cell<Option<AssetWorkspaceProjectionInput>>,
+    projection_generation: Cell<u64>,
     search_query: String,
     kind_filter: Option<ResourceKind>,
     activity_view_mode: AssetViewMode,
@@ -40,6 +50,8 @@ impl Default for AssetWorkspaceState {
             selected_asset_uuid: None,
             selected_details: None,
             resources: Arc::new(ResourceManagementGeneration::default()),
+            projection_input: Cell::new(None),
+            projection_generation: Cell::new(0),
             search_query: String::new(),
             kind_filter: None,
             activity_view_mode: AssetViewMode::List,
@@ -200,7 +212,9 @@ impl AssetWorkspaceState {
             assets_root: catalog.assets_root.to_string(),
             cache_root: catalog.cache_root.to_string(),
             default_scene_uri: catalog.default_scene_uri.to_string(),
-            catalog_revision: catalog.catalog_revision,
+            // Asset surfaces need every published catalog/preview/resource generation,
+            // while ProjectOverview below continues to expose the source catalog revision.
+            catalog_revision: self.asset_workspace_projection_generation(catalog),
             surface_mode,
             view_mode: self.view_mode(surface_mode),
             utility_tab: self.utility_tab(surface_mode),
@@ -242,6 +256,23 @@ impl AssetWorkspaceState {
             folder_count: catalog.folders.len(),
             asset_count: catalog.assets.len(),
         }
+    }
+
+    fn asset_workspace_projection_generation(&self, catalog: &EditorAssetCatalogGeneration) -> u64 {
+        let input = AssetWorkspaceProjectionInput {
+            catalog_revision: catalog.catalog_revision,
+            catalog_publish_epoch: catalog.publish_epoch,
+            resource_sequence: self.resources.sequence(),
+        };
+        if self.projection_input.get() == Some(input) {
+            return self.projection_generation.get();
+        }
+
+        // The output is an adjacent-frame invalidation stamp, not a hash of external generations.
+        let next = self.projection_generation.get().wrapping_add(1);
+        self.projection_input.set(Some(input));
+        self.projection_generation.set(next);
+        next
     }
 
     fn view_mode(&self, surface_mode: AssetSurfaceMode) -> AssetViewMode {
@@ -508,7 +539,11 @@ fn reference_snapshot(
 mod performance_tests {
     use std::sync::Arc;
 
-    use zircon_runtime::core::framework::asset::ResourceManagementGeneration;
+    use crate::ui::host::editor_asset_manager::{
+        EditorAssetCatalogGeneration, EditorAssetCatalogSnapshotRecord,
+    };
+    use crate::ui::workbench::snapshot::AssetSurfaceMode;
+    use zircon_runtime::core::resource::ResourceManagementGeneration;
 
     use super::{parent_folder_id_for_locator, AssetWorkspaceState};
 
@@ -519,6 +554,40 @@ mod performance_tests {
 
         assert!(workspace.sync_resources(generation.clone()));
         assert!(!workspace.sync_resources(generation));
+    }
+
+    #[test]
+    fn workspace_projection_generation_advances_once_for_each_exact_input_change() {
+        let mut workspace = AssetWorkspaceState::default();
+        workspace.sync_catalog(Arc::new(
+            EditorAssetCatalogGeneration::from_snapshot_record(
+                EditorAssetCatalogSnapshotRecord::default(),
+                4,
+            ),
+        ));
+
+        let initial = workspace
+            .build_snapshot(AssetSurfaceMode::Activity)
+            .catalog_revision;
+        let stable = workspace
+            .build_snapshot(AssetSurfaceMode::Activity)
+            .catalog_revision;
+
+        workspace.sync_catalog(Arc::new(
+            EditorAssetCatalogGeneration::from_snapshot_record(
+                EditorAssetCatalogSnapshotRecord::default(),
+                5,
+            ),
+        ));
+        let advanced = workspace
+            .build_snapshot(AssetSurfaceMode::Activity)
+            .catalog_revision;
+
+        assert_eq!(stable, initial);
+        assert_eq!(advanced, initial.wrapping_add(1));
+        assert_ne!(advanced, initial);
+        let legacy_hasher = ["Default", "Hasher"].concat();
+        assert!(!include_str!("asset_workspace_state.rs").contains(&legacy_hasher));
     }
 
     #[test]

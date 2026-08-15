@@ -1,65 +1,41 @@
-use crate::core::framework::animation::{AnimationClipAsset, AnimationEventTrackAsset};
+use crate::asset::ProjectAssetManager;
+use crate::core::framework::animation::{
+    AnimationClipAsset, AnimationClipEvent, AnimationClipEventSampler,
+    AnimationClipEventSamplingBatch, AnimationClipEventSamplingCursor,
+    AnimationClipEventSamplingLimits, AnimationClipEventSamplingRequest, AnimationEventTrackAsset,
+};
 use crate::core::math::Real;
 use crate::scene::EntityId;
 
-/// Runtime event emitted when an animation clip playback range crosses an event track.
-#[derive(Clone, Debug, PartialEq)]
-pub struct AnimationClipEvent {
-    pub entity: EntityId,
-    pub target_id: Option<String>,
-    pub event: String,
-    pub payload: Option<String>,
-    pub clip_time_seconds: Real,
-    pub playback_time_seconds: Real,
+pub struct ProjectAnimationClipEventSampler<'a> {
+    asset_manager: &'a ProjectAssetManager,
 }
 
-/// A bounded portion of playback time considered by one event drain.
-///
-/// The cursor is retained by the Level-owned pending-event queue so a large seek never expands
-/// all looping occurrences in one frame.
-#[derive(Clone, Debug, PartialEq)]
-pub(crate) struct AnimationClipEventSamplingCursor {
-    playback_time_seconds: Real,
-    last_event: Option<Box<str>>,
-    last_track_index: usize,
-}
-
-impl AnimationClipEventSamplingCursor {
-    pub(crate) fn at_range_start(playback_time_seconds: Real) -> Self {
-        Self {
-            playback_time_seconds,
-            last_event: None,
-            last_track_index: 0,
-        }
+impl<'a> ProjectAnimationClipEventSampler<'a> {
+    pub fn new(asset_manager: &'a ProjectAssetManager) -> Self {
+        Self { asset_manager }
     }
 }
 
-/// Per-frame bounds for draining clip events.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct AnimationClipEventSamplingLimits {
-    pub(crate) max_events: usize,
-    pub(crate) max_event_bytes: usize,
-    pub(crate) max_playback_span_seconds: Real,
-}
-
-impl Default for AnimationClipEventSamplingLimits {
-    fn default() -> Self {
-        Self {
-            max_events: 64,
-            max_event_bytes: 64 * 1024,
-            max_playback_span_seconds: 1.0,
-        }
+impl AnimationClipEventSampler for ProjectAnimationClipEventSampler<'_> {
+    fn sample_clip_events(
+        &self,
+        request: AnimationClipEventSamplingRequest,
+    ) -> Option<AnimationClipEventSamplingBatch> {
+        let clip = self
+            .asset_manager
+            .load_animation_clip_asset(request.clip_id)
+            .ok()?;
+        Some(sample_clip_events_budgeted(
+            &clip,
+            request.entity,
+            request.from_time_seconds,
+            request.to_time_seconds,
+            request.looping,
+            Some(request.cursor),
+            request.limits,
+        ))
     }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub(crate) struct AnimationClipEventSamplingBatch {
-    pub(crate) events: Vec<AnimationClipEvent>,
-    pub(crate) next_cursor: Option<AnimationClipEventSamplingCursor>,
-    pub(crate) emitted_event_bytes: usize,
-    pub(crate) playback_span_seconds: Real,
-    pub(crate) budget_exhausted: bool,
-    pub(crate) oversized_event_count: usize,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -72,7 +48,7 @@ struct EventCandidate {
 ///
 /// A batch never drops an event because of its budget. If a single event exceeds the byte
 /// limit, it is emitted by itself and reported as oversized so the cursor can keep moving.
-pub(crate) fn sample_clip_events_budgeted(
+fn sample_clip_events_budgeted(
     clip: &AnimationClipAsset,
     entity: EntityId,
     from_time_seconds: Real,

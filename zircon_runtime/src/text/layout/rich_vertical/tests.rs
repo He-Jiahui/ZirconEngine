@@ -3,7 +3,7 @@ use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::core::framework::text::TextDirection;
-use crate::text::rich::parse_rich_text;
+use crate::text::rich::parser_registry::parse_rich_text;
 use crate::text::shaping::{DirectTextShapeRunProvider, TextShapeRunProvider};
 use crate::text::{RichTextFormat, ShapedGlyphRun, TextRange, TextStyle, TextWrap};
 

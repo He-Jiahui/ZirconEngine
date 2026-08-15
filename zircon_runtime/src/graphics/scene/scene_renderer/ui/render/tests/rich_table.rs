@@ -31,6 +31,7 @@ fn screen_space_ui_plan_paints_table_cell_background_before_text_and_border_afte
                     opacity: 1.0,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(220, 120),
     );

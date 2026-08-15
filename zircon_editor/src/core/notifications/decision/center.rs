@@ -1,12 +1,13 @@
 use std::collections::{BTreeMap, VecDeque};
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Mutex;
+
+use crate::core::notifications::NotificationId;
 
 use super::{
     DecisionCenterInstanceId, DecisionNotification, DecisionNotificationError,
     DecisionNotificationSnapshot, DecisionOptionId, DecisionReceipt, DecisionReceiptBatch,
     DecisionReceiptCursor, DecisionReceiptSequence, DecisionResolveReport, DecisionTicket,
-    NotificationId,
 };
 
 const DEFAULT_PENDING_CAPACITY: usize = 128;

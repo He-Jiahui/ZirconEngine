@@ -6,7 +6,9 @@ use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiChildMount, UiComponentDefinition, UiNodeDefinition,
 };
 
-use crate::ui::asset_editor::preview::preview_projection::UiAssetPreviewProjection;
+use crate::ui::asset_editor::preview::preview_projection::{
+    UiAssetPreviewHitIndex, UiAssetPreviewProjection,
+};
 
 use super::{
     flow_slots::{flow_slot_for_hover, flow_slot_target_overlays, flow_slot_targets},
@@ -14,8 +16,8 @@ use super::{
     overlay_slots::{overlay_slot_for_hover, overlay_slot_target_overlays, overlay_slot_targets},
 };
 use crate::ui::asset_editor::palette::{
-    insert_palette_item_with_placement, PaletteInsertMode, UiAssetPaletteEntry,
-    UiAssetPaletteInsertionPlacement,
+    PaletteInsertMode, UiAssetPaletteEntry, UiAssetPaletteInsertionPlacement,
+    insert_palette_item_with_placement,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -142,11 +144,11 @@ pub(crate) fn resolve_palette_drag_target(
     document: &UiAssetDocument,
     palette_entry: &UiAssetPaletteEntry,
     widget_imports: &BTreeMap<String, UiAssetDocument>,
-    projection: &UiAssetPreviewProjection,
+    hit_index: &UiAssetPreviewHitIndex,
     surface_x: f32,
     surface_y: f32,
 ) -> Option<UiAssetPaletteDragResolution> {
-    for (preview_index, item) in projection.canvas_nodes.iter().enumerate().rev() {
+    for (preview_index, item) in hit_index.canvas_nodes.iter().enumerate().rev() {
         let item_width = item.width.max(2.0);
         let item_height = item.height.max(2.0);
         let within_x = surface_x >= item.x && surface_x <= item.x + item_width;
@@ -195,8 +197,8 @@ pub(crate) fn resolve_palette_drag_target(
     let surface_hover = UiAssetPaletteHoverContext::new(
         0.0,
         0.0,
-        projection.surface_width.max(0.0),
-        projection.surface_height.max(0.0),
+        hit_index.surface_width.max(0.0),
+        hit_index.surface_height.max(0.0),
         surface_x,
         surface_y,
     );

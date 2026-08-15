@@ -2,8 +2,8 @@ use zircon_runtime_interface::reflect::{ReflectError, ReflectFieldValue, Reflect
 
 use crate::scene::components::ActiveInHierarchy;
 use crate::scene::{
-    EntityId, ReflectComponent, RuntimeTypeRegistration, World,
-    derived_component_registration_with_adapter,
+    derived_component_registration_with_adapter, EntityId, ReflectComponent,
+    RuntimeTypeRegistration, World,
 };
 
 use super::component_support;

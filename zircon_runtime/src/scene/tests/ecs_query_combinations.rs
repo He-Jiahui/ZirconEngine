@@ -210,55 +210,45 @@ fn read_only_combination_candidates_use_single_scan() {
 
     assert!(constructor.contains("let mut matched_entities = Vec::new();"));
     assert!(constructor.contains("for entity in entities.iter().copied()"));
-    assert!(
-        constructor
-            .contains("read_only_combination_candidate_matches::<D, F>(world, entity, ticks)")
-    );
+    assert!(constructor
+        .contains("read_only_combination_candidate_matches::<D, F>(world, entity, ticks)"));
     assert!(constructor.contains("matched_entities.push(entity);"));
     assert!(constructor.contains("if matched_entities.len() < K"));
     assert!(!source.contains("fn read_only_combination_candidate_count"));
 }
 
 #[test]
-fn cached_combination_candidate_indices_use_direct_index_scans() {
+fn cached_combination_candidates_use_compiled_archetype_plans() {
     let read_only_source = include_str!("../ecs/query/query_combinations_iter.rs");
     let mutable_source = include_str!("../ecs/query/query_combinations_mut_iter.rs");
     let read_only_cached_body = read_only_source
-        .split("pub(crate) fn new_from_cached_entities")
+        .split("pub(crate) fn new_from_cached_plans")
         .nth(1)
         .and_then(|text| text.split("fn fetch_current").next())
         .expect("read cached read-only combination constructor");
     let mutable_cached_body = mutable_source
-        .split("pub(crate) fn new_from_cached_entities")
+        .split("pub(crate) fn new_from_cached_plans")
         .nth(1)
         .and_then(|text| text.split("fn empty").next())
         .expect("read cached mutable combination constructor");
 
-    assert!(read_only_cached_body.contains("let mut index = 0_usize;"));
-    assert!(read_only_cached_body.contains("while index < entities.len()"));
-    assert!(read_only_cached_body.contains("let entity = entities[index];"));
-    assert!(read_only_cached_body.contains("stable_locations.get(index).is_some()"));
-    assert!(read_only_cached_body.contains("cached_query_component_locations("));
+    assert!(read_only_cached_body.contains("world.stable_query_location_iter("));
+    assert!(read_only_cached_body.contains("find_cached_archetype_plan(plans"));
+    assert!(read_only_cached_body.contains("plan.write_component_locations("));
     let read_only_cached_compact = compact_source(read_only_cached_body);
-    assert!(
-        read_only_cached_compact.contains(
-            "F::matches_component_locations(world,entity,entity_component_locations,ticks"
-        )
-    );
-    assert!(read_only_cached_body.contains("cache_indices.push(index);"));
-    assert!(read_only_cached_body.contains("index += 1;"));
-    assert!(!read_only_cached_body.contains("entities.iter().copied().enumerate()"));
+    assert!(read_only_cached_compact.contains(
+        "F::matches_component_locations(world,stable_location.stable_id,&component_locations,ticks"
+    ));
+    assert!(read_only_cached_body.contains("stable_locations.push(stable_location);"));
+    assert!(!read_only_cached_body.contains("cached_component_locations"));
 
-    assert!(mutable_cached_body.contains("let mut index = 0_usize;"));
-    assert!(mutable_cached_body.contains("while index < entities.len()"));
-    assert!(mutable_cached_body.contains("let entity = entities[index];"));
-    assert!(mutable_cached_body.contains("cached_query_component_locations("));
+    assert!(mutable_cached_body.contains("world.stable_query_location_iter("));
+    assert!(mutable_cached_body.contains("find_cached_archetype_plan(plans"));
+    assert!(mutable_cached_body.contains("plan.write_component_locations("));
     let mutable_cached_compact = compact_source(mutable_cached_body);
-    assert!(
-        mutable_cached_compact
-            .contains("F::matches_component_locations(world,entity,component_locations,ticks")
-    );
-    assert!(mutable_cached_body.contains("cache_indices.push(index);"));
-    assert!(mutable_cached_body.contains("index += 1;"));
-    assert!(!mutable_cached_body.contains("entities.iter().copied().enumerate()"));
+    assert!(mutable_cached_compact.contains(
+        "F::matches_component_locations(world,stable_location.stable_id,&component_locations,ticks"
+    ));
+    assert!(mutable_cached_body.contains("candidates.push(stable_location);"));
+    assert!(!mutable_cached_body.contains("cached_component_locations"));
 }

@@ -24,8 +24,8 @@ related_code:
   - zircon_runtime/src/script/vm/gameplay_host.rs
   - zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs
   - zircon_runtime/src/script/vm/runtime_context.rs
-  - zircon_runtime/src/script/vm/scene_hook.rs
-  - zircon_runtime/src/script/vm/scene_hook/error.rs
+  - zircon_runtime/src/script/vm/scene_system.rs
+  - zircon_runtime/src/script/vm/scene_system/error.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/error.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/garbage_collection.rs
   - zircon_runtime/src/script/vm/plugin/management_policy/memory.rs
@@ -105,8 +105,8 @@ implementation_files:
   - zircon_runtime/src/script/vm/gameplay_host.rs
   - zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs
   - zircon_runtime/src/script/vm/runtime_context.rs
-  - zircon_runtime/src/script/vm/scene_hook.rs
-  - zircon_runtime/src/script/vm/scene_hook/error.rs
+  - zircon_runtime/src/script/vm/scene_system.rs
+  - zircon_runtime/src/script/vm/scene_system/error.rs
   - zircon_runtime/src/script/vm/host/reflection_docs/mod.rs
   - zircon_runtime/src/script/vm/host/reflection_docs/options.rs
   - zircon_runtime/src/script/vm/host/reflection_docs/markdown.rs
@@ -287,9 +287,9 @@ The implemented capabilities are:
 - `gameplay.entity`: entity id, world position, translate/set-position, face-direction yaw, scale updates, position following, camera follow, dynamic component JSON helpers, simple entity find/spawn/despawn helpers, nearest script-property targeting, script-HP damage resolution, current script HP lookup, and dynamic particle-sprite authoring.
 - `gameplay.navigation`: next-point query and `nav_move_towards_entity`, which asks the navigation manager for a path and falls back to direct steering if no loaded navmesh is available.
 
-`scene_hook.rs` contributes fixed-update and update hooks under plugin-prefixed ids `zr_vm_language.script.scene.fixed_update` and `zr_vm_language.script.scene.update`. It reads the `script.bindings` dynamic component imported from `SceneAsset.script_bindings`, calls `onStart(entity, dt)` once per binding on the first update, then calls `onFixedUpdate(entity, dt)` or `onUpdate(entity, dt)` as the scene tick runs. Bindings can opt out of a phase with `fixed_update = false` or `update = false`; when no binding is active for a phase, the hook returns before resolving the VM manager. Export calls go through `VmPluginManager::call_package_export`, so script-bound scene entities can target packages by manifest name rather than a transient slot index.
+`scene_system.rs` contributes fixed-update and update systems under plugin-prefixed ids `zr_vm_language.script.scene.fixed_update` and `zr_vm_language.script.scene.update`. It reads the `script.bindings` dynamic component imported from `SceneAsset.script_bindings`, resolves callbacks by package and module, then retains those handles on the active binding. Bindings can opt out of a phase with `fixed_update = false` or `update = false`; when no binding is active for a phase, the system returns before resolving the VM manager. The current dispatcher invokes `onStart(entity, dt)` before the first update callback and invokes the selected `onFixedUpdate(entity, dt)` or `onUpdate(entity, dt)` through `VmPluginManager::invoke_callback`. Stable activation identity, first-fixed-update ordering, and per-binding error fan-out remain the open Runtime13 hotpath/lifecycle atom rather than an implicit policy of this document.
 
-Runtime 15 F5 script scene hook typed errors (`runtime_15_script_scene_hook_typed_errors_static_passed_cargo_deferred`) keeps those hook ids, phase filters, lifecycle export names, and `script.bindings` schema unchanged while moving hook-local failures into `script/vm/scene_hook/error.rs`. `ScriptSceneHookError` / `ScriptSceneHookResult` preserve manager resolve, `script.bindings` JSON parse, and VM export-call sources until `SceneRuntimeHook::run(...)` converts the final diagnostic into `CoreError::Initialization`; `review_f5_script_scene_hook_uses_typed_errors_before_core_boundary` locks that boundary and rejects `Result<_, String>` rollback inside `scene_hook.rs`.
+The scene-system typed-error contract keeps those system ids, phase filters, lifecycle export names, and `script.bindings` schema unchanged while moving system-local failures into `script/vm/scene_system/error.rs`. `ScriptSceneSystemError` / `ScriptSceneSystemResult` preserve manager resolution, `script.bindings` JSON parse, and VM export-call sources until `ScriptSceneRuntimeSystem::run(...)` converts the final diagnostic into `CoreError::Initialization`; `review_f5_script_scene_system_uses_typed_errors_before_core_boundary` locks that boundary and rejects `Result<_, String>` rollback inside `scene_system.rs`.
 
 The `examples/vampire/scripts/vampire_game` package demonstrates this surface. `main.zr` moves the player with WASD through `gameplay.key_pressed` and `gameplay.translate`, updates a third-person camera with `gameplay.camera_follow`, lets enemies chase the player with `gameplay.nav_move_towards_entity`, and runs Blood Bolt auto-targeting through `gameplay.nearest_by_script_property` plus `gameplay.damage_entity`. The example also uses `gameplay.face_direction`, `gameplay.set_scale`, `gameplay.follow_position`, `gameplay.current_hp`, and `gameplay.set_particle_sprites` for visible action-state feedback: moving and attacking actors face their target direction, pose scale changes distinguish idle/run/attack states, the HUD displays real player HP from script bindings, attacks emit buff-colored particle sprites, and the player blood-aura point light follows the player entity.
 
@@ -352,7 +352,7 @@ Private VM types are intentionally absent from this catalog even when they parti
 
 Each registered module receives a `HostHandle` through the shared `HostRegistry`, using a `host.module.<module>` capability label. This keeps script-visible handles stable and lets existing handle validation continue to work.
 
-Direct `HostExportRegistry` callers go through `call_with_capabilities`: the registry checks arity and required capabilities before building a borrowed `ScriptHostCallFrame` and dispatching the callback, so module/function names, arguments, and package capabilities remain owned by the call site. Frame borrows end when the synchronous callback returns; a callback that must retain a value beyond that return must copy it at its explicit persistence boundary. `ScriptBridgeCall` follows the same rule, so bridge adapters receive an argument slice instead of a cloned payload. The production ZrVM reflection backend follows a different hot path: `real_backend/host_modules.rs` installs a prepared `ScriptCallTable`, resolves names once while loading, and dispatches reflected scene fields only through opaque tokens and dense callbacks guarded by the committed catalog epoch.
+Direct `HostExportRegistry` callers go through `call_with_capabilities`: the registry checks arity and required capabilities before building a borrowed `ScriptHostCallFrame` and dispatching the callback, so module/function names, arguments, and package capabilities remain owned by the call site. Frame borrows end when the synchronous callback returns; a callback that must retain a value beyond that return must copy it at its explicit persistence boundary. `ScriptBridgeCall` follows the same rule and receives `ScriptHostArguments` through a synchronous borrow rather than a cloned payload. The production ZrVM reflection backend follows a different hot path: `real_backend/host_modules.rs` installs a prepared `ScriptCallTable`, resolves names once while loading, and dispatches reflected scene fields only through opaque tokens and dense callbacks guarded by the committed catalog epoch.
 
 Runtime 15 M3 script VM registry lock poison recovery status: `runtime_15_script_vm_registry_lock_poison_recovery_static_passed_cargo_deferred`.
 
@@ -422,7 +422,7 @@ The built-in math module is the proof that handwritten and macro-generated descr
 
 The real `zr_vm` backend treats `HostExportRegistry` records as already validated neutral descriptors, then applies only target-backend lowering checks. Function arity must fit the `zr_vm` native function ABI (`u16` min/max bounds), `min_argument_count` must not exceed `max_argument_count`, and reflected parameter count must fit the maximum arity. These are backend constraints, not shared descriptor constraints for every future VM backend.
 
-Native callbacks convert ZrVM null, bool, int, float, and string arguments into `ScriptHostValue`, then invoke the pre-resolved `ScriptCallSite::call(arguments, capabilities)` captured while the host module is installed. Runtime callbacks therefore do not repeat module/function name lookup. Host return values lower null, bool, int, float, string, bytes as lossy UTF-8 strings, and `HostHandle` as integers. Unsupported ZrVM argument kinds remain errors with module/function context rather than lossy conversions.
+Native callbacks construct `ZrVmScriptHostArgumentSource` and pass its borrowed `ScriptHostArguments` to the pre-resolved `ScriptCallSite` captured while the host module is installed. Scalars are read by value, strings are lent through the native argument visitor, and byte arrays remain checked indexed views for the synchronous callback. Runtime callbacks therefore do not repeat module/function name lookup or materialize a generic owned argument vector. Host return values lower null, bool, int, float, and string directly; bytes lower as the VM byte-array contract, while `HostHandle` lowers as an integer. Unsupported ZrVM argument kinds remain errors with module/function context rather than lossy conversions.
 
 ## VM Plugin Management Policy
 

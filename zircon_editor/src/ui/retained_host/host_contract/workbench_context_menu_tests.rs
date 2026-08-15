@@ -20,18 +20,14 @@ fn scene_tree_hit_projects_scene_node_context_menu() {
     assert_eq!(request.target_path.as_str(), "workbench://scene/props");
     assert_eq!(request.popup_anchor_x, 144.0);
     assert_eq!(request.popup_anchor_y, 256.0);
-    assert!(
-        request
-            .menu_items
-            .iter()
-            .any(|item| item.as_str() == "Rename|icon=edit")
-    );
-    assert!(
-        request
-            .menu_items
-            .iter()
-            .any(|item| item.as_str() == "Delete|danger,icon=trash")
-    );
+    assert!(request
+        .menu_items
+        .iter()
+        .any(|item| item.as_str() == "Rename|icon=edit"));
+    assert!(request
+        .menu_items
+        .iter()
+        .any(|item| item.as_str() == "Delete|danger,icon=trash"));
 }
 
 #[test]

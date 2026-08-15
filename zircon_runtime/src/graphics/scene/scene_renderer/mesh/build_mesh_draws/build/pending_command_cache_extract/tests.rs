@@ -14,7 +14,7 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
 
 use super::super::pending_command_cache_plan::PendingMeshCommandCacheVisibility;
 use super::{
-    PendingMeshCommandCacheExtractItem, cached_commands_for_extract_item, commands_for_extract_item,
+    cached_commands_for_extract_item, commands_for_extract_item, PendingMeshCommandCacheExtractItem,
 };
 
 #[test]
@@ -44,11 +44,9 @@ fn pending_command_cache_extracts_full_hit_without_rebuild_input() {
 
     assert_eq!(commands.len(), 3);
     assert!(commands.iter().all(|command| command.source_entity == 7));
-    assert!(
-        commands
-            .iter()
-            .all(|command| command.source_draw_index == 9)
-    );
+    assert!(commands
+        .iter()
+        .all(|command| command.source_draw_index == 9));
     cache.retain_generation(2);
     assert_eq!(cache.len(), 3);
 }

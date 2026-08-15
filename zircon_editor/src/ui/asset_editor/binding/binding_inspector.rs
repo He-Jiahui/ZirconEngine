@@ -1,11 +1,11 @@
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
+use crate::ui::asset_editor::UiDesignerSelectionModel;
 use crate::ui::asset_editor::preview::preview_mock::UiAssetPreviewMockState;
 use crate::ui::asset_editor::value_path::{
-    get_value_at_path, parse_value_path, set_value_at_path, UiAssetTomlPathSegment,
+    UiAssetTomlPathSegment, get_value_at_path, parse_value_path, set_value_at_path,
 };
-use crate::ui::asset_editor::UiDesignerSelectionModel;
 use toml::Value;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::{

@@ -102,14 +102,12 @@ fn editor_runtime_rejects_serde_retained_command_ids_as_menu_capability_owners_a
             .collect::<Vec<_>>(),
         command_ids_before
     );
-    assert!(
-        runtime
-            .runtime
-            .commands()
-            .lock()
-            .command(operation_path.as_str())
-            .is_none()
-    );
+    assert!(runtime
+        .runtime
+        .commands()
+        .lock()
+        .command(operation_path.as_str())
+        .is_none());
     assert_eq!(
         runtime.runtime.shell().lock().contributions.len(),
         extension_count_before
@@ -243,19 +241,17 @@ fn editor_runtime_rejects_duplicate_extension_view_without_registering_operation
     let operations = runtime
         .runtime
         .handle_operation_control_request(EditorOperationControlRequest::ListOperations);
-    assert!(
-        !operations
-            .value
-            .as_ref()
-            .and_then(|value| value.get("operations"))
-            .and_then(serde_json::Value::as_array)
-            .expect("operations array")
-            .iter()
-            .any(|operation| operation
-                .get("operation_id")
-                .and_then(serde_json::Value::as_str)
-                == Some(operation_path.as_str()))
-    );
+    assert!(!operations
+        .value
+        .as_ref()
+        .and_then(|value| value.get("operations"))
+        .and_then(serde_json::Value::as_array)
+        .expect("operations array")
+        .iter()
+        .any(|operation| operation
+            .get("operation_id")
+            .and_then(serde_json::Value::as_str)
+            == Some(operation_path.as_str())));
 }
 
 #[test]
@@ -293,13 +289,11 @@ fn editor_runtime_rejects_generated_view_command_collision_atomically() {
         )))
     );
     assert!(runtime.runtime.shell().lock().contributions.is_empty());
-    assert!(
-        runtime
-            .runtime
-            .descriptors()
-            .iter()
-            .all(|descriptor| descriptor.descriptor_id.0 != "project")
-    );
+    assert!(runtime
+        .runtime
+        .descriptors()
+        .iter()
+        .all(|descriptor| descriptor.descriptor_id.0 != "project"));
 }
 
 #[test]
@@ -335,22 +329,18 @@ fn editor_runtime_rejects_explicit_view_command_with_the_wrong_target_atomically
         error.to_string(),
         "editor command view.weather.cloud_layers.open does not open extension view weather.cloud_layers"
     );
-    assert!(
-        runtime
-            .runtime
-            .commands()
-            .lock()
-            .command(operation_path.as_str())
-            .is_none()
-    );
+    assert!(runtime
+        .runtime
+        .commands()
+        .lock()
+        .command(operation_path.as_str())
+        .is_none());
     assert!(runtime.runtime.shell().lock().contributions.is_empty());
-    assert!(
-        runtime
-            .runtime
-            .descriptors()
-            .iter()
-            .all(|descriptor| descriptor.descriptor_id.0 != "weather.cloud_layers")
-    );
+    assert!(runtime
+        .runtime
+        .descriptors()
+        .iter()
+        .all(|descriptor| descriptor.descriptor_id.0 != "weather.cloud_layers"));
 }
 
 #[test]
@@ -391,11 +381,9 @@ fn editor_runtime_accepts_explicit_view_command_only_for_the_matching_target() {
     assert_eq!(registered_event, Some(expected_event));
     let shell = runtime.runtime.shell().lock();
     let stored = shell.contributions.snapshot();
-    assert!(
-        stored
-            .commands(&crate::core::extension::CapabilitySet::default())
-            .any(|command| command.id() == &operation_path)
-    );
+    assert!(stored
+        .commands(&crate::core::extension::CapabilitySet::default())
+        .any(|command| command.id() == &operation_path));
 }
 
 #[test]
@@ -452,19 +440,17 @@ fn editor_runtime_rejects_duplicate_extension_menu_paths_without_registering_ope
     let operations = runtime
         .runtime
         .handle_operation_control_request(EditorOperationControlRequest::ListOperations);
-    assert!(
-        !operations
-            .value
-            .as_ref()
-            .and_then(|value| value.get("operations"))
-            .and_then(serde_json::Value::as_array)
-            .expect("operations array")
-            .iter()
-            .any(|operation| operation
-                .get("operation_id")
-                .and_then(serde_json::Value::as_str)
-                == Some(second_operation.as_str()))
-    );
+    assert!(!operations
+        .value
+        .as_ref()
+        .and_then(|value| value.get("operations"))
+        .and_then(serde_json::Value::as_array)
+        .expect("operations array")
+        .iter()
+        .any(|operation| operation
+            .get("operation_id")
+            .and_then(serde_json::Value::as_str)
+            == Some(second_operation.as_str())));
 }
 
 #[test]

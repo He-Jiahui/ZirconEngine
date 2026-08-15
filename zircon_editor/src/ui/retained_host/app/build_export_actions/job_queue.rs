@@ -10,8 +10,8 @@ mod worker;
 
 pub(in crate::ui::retained_host::app) use cancellation::DesktopExportCancellation;
 pub(in crate::ui::retained_host::app) use snapshot::{
-    DesktopExportJobPhase, DesktopExportJobSnapshot, DesktopExportProgressSnapshot,
-    apply_job_snapshot_to_target,
+    apply_job_snapshot_to_target, DesktopExportJobPhase, DesktopExportJobSnapshot,
+    DesktopExportProgressSnapshot,
 };
 pub(in crate::ui::retained_host::app) use state::DesktopExportJobQueue;
 use state::{DesktopExportActiveJob, DesktopExportQueuedJob};

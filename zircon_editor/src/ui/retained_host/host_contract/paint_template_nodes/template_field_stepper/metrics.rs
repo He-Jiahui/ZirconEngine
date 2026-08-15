@@ -11,8 +11,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub glyph_height: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_field_stepper_metrics()
--> WorkbenchFieldStepperMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_field_stepper_metrics(
+) -> WorkbenchFieldStepperMetrics {
     let metrics = workbench_field_metrics();
     WorkbenchFieldStepperMetrics {
         width: metrics.stepper_width,

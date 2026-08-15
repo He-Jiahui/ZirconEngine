@@ -76,11 +76,9 @@ fn sdf_shader_decodes_explicit_sdf_msdf_and_mtsdf_modes() {
     assert!(SDF_TEXT_SHADER.contains("input.decode_mode == MTSDF_MODE"));
     assert!(SDF_TEXT_SHADER.contains("sample.a"));
     assert!(!SDF_TEXT_SHADER.contains("let distance = textureSample(sdf_atlas"));
-    assert!(
-        !std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl")
-            .exists()
-    );
+    assert!(!std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl")
+        .exists());
 }
 
 #[test]

@@ -1,9 +1,9 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use super::{
-    INDEXED_INDIRECT_ARGS_STRIDE_BYTES, INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES, IndirectDrawBatch,
-    MeshBindHandle, MeshDrawCommand, MeshDrawCommandStream, MeshIndirectDrawExecution,
-    MeshPassPipelineKind, MeshPipelineVariantId,
+    IndirectDrawBatch, MeshBindHandle, MeshDrawCommand, MeshDrawCommandStream,
+    MeshIndirectDrawExecution, MeshPassPipelineKind, MeshPipelineVariantId,
+    INDEXED_INDIRECT_ARGS_STRIDE_BYTES, INDIRECT_DRAW_COUNT_BUFFER_SIZE_BYTES,
 };
 
 pub(crate) const FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT: u32 = 1;
@@ -43,6 +43,8 @@ pub(crate) struct MeshDrawReplayStats {
     pub(crate) direct_draw_call_count: u32,
     pub(crate) state_change_count: u32,
     pub(crate) bind_skip_count: u32,
+    pub(crate) material_bind_group_set_count: u32,
+    pub(crate) material_bind_group_skip_count: u32,
 }
 
 #[derive(Debug, Default)]
@@ -54,6 +56,8 @@ pub(crate) struct MeshDrawReplayStatsAccumulator {
     direct_draw_call_count: AtomicU32,
     state_change_count: AtomicU32,
     bind_skip_count: AtomicU32,
+    material_bind_group_set_count: AtomicU32,
+    material_bind_group_skip_count: AtomicU32,
 }
 
 impl MeshDrawReplayStatsAccumulator {
@@ -74,6 +78,14 @@ impl MeshDrawReplayStatsAccumulator {
         saturating_add(&self.direct_draw_call_count, stats.direct_draw_call_count);
         saturating_add(&self.state_change_count, stats.state_change_count);
         saturating_add(&self.bind_skip_count, stats.bind_skip_count);
+        saturating_add(
+            &self.material_bind_group_set_count,
+            stats.material_bind_group_set_count,
+        );
+        saturating_add(
+            &self.material_bind_group_skip_count,
+            stats.material_bind_group_skip_count,
+        );
     }
 
     pub(crate) fn stats(&self) -> MeshDrawReplayStats {
@@ -89,6 +101,12 @@ impl MeshDrawReplayStatsAccumulator {
             direct_draw_call_count: self.direct_draw_call_count.load(Ordering::Relaxed),
             state_change_count: self.state_change_count.load(Ordering::Relaxed),
             bind_skip_count: self.bind_skip_count.load(Ordering::Relaxed),
+            material_bind_group_set_count: self
+                .material_bind_group_set_count
+                .load(Ordering::Relaxed),
+            material_bind_group_skip_count: self
+                .material_bind_group_skip_count
+                .load(Ordering::Relaxed),
         }
     }
 }
@@ -392,11 +410,17 @@ impl MeshDrawCommandReplayer {
         let slot_index = slot as usize;
         if slot_index < self.last_bind_ids.len() && self.last_bind_ids[slot_index] == Some(id) {
             self.stats.bind_skip_count += 1;
+            if slot == MATERIAL_BIND_GROUP_SLOT {
+                self.stats.material_bind_group_skip_count += 1;
+            }
             return false;
         }
 
         if slot_index < self.last_bind_ids.len() {
             self.last_bind_ids[slot_index] = Some(id);
+        }
+        if slot == MATERIAL_BIND_GROUP_SLOT {
+            self.stats.material_bind_group_set_count += 1;
         }
         true
     }
@@ -417,8 +441,8 @@ mod tests {
     };
 
     use super::{
-        FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT, MeshDrawCommandReplayer, MeshDrawReplayStats,
-        MeshDrawReplayStatsAccumulator,
+        MeshDrawCommandReplayer, MeshDrawReplayStats, MeshDrawReplayStatsAccumulator,
+        FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT, MATERIAL_BIND_GROUP_SLOT,
     };
 
     #[test]
@@ -435,6 +459,8 @@ mod tests {
             direct_draw_call_count: u32::MAX,
             state_change_count: 2,
             bind_skip_count: 3,
+            material_bind_group_set_count: 4,
+            material_bind_group_skip_count: 5,
         });
         stats.record(MeshDrawReplayStats {
             draw_call_count: 1,
@@ -444,6 +470,8 @@ mod tests {
             direct_draw_call_count: 1,
             state_change_count: u32::MAX,
             bind_skip_count: u32::MAX,
+            material_bind_group_set_count: u32::MAX,
+            material_bind_group_skip_count: u32::MAX,
         });
 
         assert_eq!(
@@ -456,6 +484,8 @@ mod tests {
                 direct_draw_call_count: u32::MAX,
                 state_change_count: u32::MAX,
                 bind_skip_count: u32::MAX,
+                material_bind_group_set_count: u32::MAX,
+                material_bind_group_skip_count: u32::MAX,
             }
         );
     }
@@ -503,6 +533,21 @@ mod tests {
         assert!(replayer.should_bind_raw_group(6, 10));
 
         assert_eq!(replayer.stats().bind_skip_count, 1);
+    }
+
+    #[test]
+    fn mesh_draw_command_replayer_separates_material_bind_group_sets_and_skips() {
+        let mut replayer = MeshDrawCommandReplayer::default();
+
+        assert!(replayer.should_bind_raw_group(MATERIAL_BIND_GROUP_SLOT, 10));
+        assert!(!replayer.should_bind_raw_group(MATERIAL_BIND_GROUP_SLOT, 10));
+        assert!(replayer.should_bind_raw_group(MATERIAL_BIND_GROUP_SLOT, 11));
+        assert!(replayer.should_bind_raw_group(FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT, 10));
+        assert!(!replayer.should_bind_raw_group(FORWARD_SHADOW_RECEIVER_BIND_GROUP_SLOT, 10));
+
+        assert_eq!(replayer.stats().material_bind_group_set_count, 2);
+        assert_eq!(replayer.stats().material_bind_group_skip_count, 1);
+        assert_eq!(replayer.stats().bind_skip_count, 2);
     }
 
     #[test]

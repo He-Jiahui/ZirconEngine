@@ -40,8 +40,8 @@ fn allocation_heavy_process_log_producers_use_lazy_entry_points() {
             include_str!("../../../dynamic_api/session/state.rs"),
         ),
         (
-            "script scene hook",
-            include_str!("../../../script/vm/scene_hook.rs"),
+            "script scene system",
+            include_str!("../../../script/vm/scene_system.rs"),
         ),
     ] {
         assert!(

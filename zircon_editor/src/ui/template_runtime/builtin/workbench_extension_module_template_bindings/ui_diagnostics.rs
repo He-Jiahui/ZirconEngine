@@ -1,6 +1,6 @@
 mod observability;
 
-use super::types::{change, click, submit, ExtensionBindingSpec};
+use super::types::{ExtensionBindingSpec, change, click, submit};
 
 pub(super) use self::observability::DIAGNOSTICS_OBSERVABILITY_BINDINGS;
 

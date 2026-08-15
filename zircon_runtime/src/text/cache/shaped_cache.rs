@@ -458,6 +458,7 @@ impl ShapedRunCache {
         let lookup = self
             .index
             .find_slot(&key, |entry| entry.run.source_text == run.source_text);
+        self.record_lookup(lookup.candidate_count);
         if let Some(slot) = lookup.slot {
             let updated = if let Some(entry) = self.index.entry_mut(slot) {
                 self.estimated_bytes = self
@@ -519,9 +520,17 @@ impl ShapedRunCache {
     fn trim_to_limits(&mut self) {
         let mut evicted = 0_u64;
         while self.over_limits() {
-            let Some((slot, removed)) = self.index.pop_oldest_with_slot() else {
+            let Some((slot, removed, work)) = self.index.pop_oldest_with_slot_and_work() else {
                 break;
             };
+            self.frame_report.eviction_scan_count = self
+                .frame_report
+                .eviction_scan_count
+                .saturating_add(work.scan_count as u64);
+            self.frame_report.entry_move_count = self
+                .frame_report
+                .entry_move_count
+                .saturating_add(work.entry_move_count as u64);
             let lookup = removed.key.lookup();
             self.remove_lookup_slot(lookup.full_fingerprint(), slot);
             self.remove_direction_alias_slot(lookup.direction_alias_fingerprint(), slot);

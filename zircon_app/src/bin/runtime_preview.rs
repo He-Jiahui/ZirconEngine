@@ -12,8 +12,8 @@ fn runtime_process_exit_code(
 
 fn main() -> std::process::ExitCode {
     use zircon_runtime::diagnostic_log::{
-        DEFAULT_DIAGNOSTIC_LOG_CRASH_FLUSH_TIMEOUT, DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT,
         install_process_log_panic_flush, shutdown_process_log,
+        DEFAULT_DIAGNOSTIC_LOG_CRASH_FLUSH_TIMEOUT, DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT,
     };
 
     install_process_log_panic_flush(DEFAULT_DIAGNOSTIC_LOG_CRASH_FLUSH_TIMEOUT);

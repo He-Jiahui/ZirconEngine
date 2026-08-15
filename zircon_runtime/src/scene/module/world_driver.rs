@@ -1,59 +1,16 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use crate::core::diagnostics::RuntimeDevtoolsSceneHookSnapshot;
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle, RuntimeTimeAdvance};
 use crate::scene::ecs::{SceneScheduleRunner, SystemStage};
-use crate::scene::runtime_hook::{SceneRuntimeHookSet, SceneRuntimeHookStagePlan};
-use crate::scene::{LevelSystem, SceneRuntimeHookRegistration, World, WorldRuntimeExtensionPlan};
+use crate::scene::{LevelSystem, World, WorldRuntimeExtensionPlan};
 
 #[derive(Debug, Default)]
 pub struct WorldDriver {
-    hooks: Mutex<SceneRuntimeHookSet>,
     runtime_extensions: Mutex<Arc<WorldRuntimeExtensionPlan>>,
 }
 
 impl WorldDriver {
-    pub fn install_scene_runtime_hooks(
-        &self,
-        core: &CoreHandle,
-        registrations: impl IntoIterator<Item = SceneRuntimeHookRegistration>,
-    ) -> Result<(), CoreError> {
-        let mut hooks = lock_poison_recovered(&self.hooks);
-        let candidate = hooks.try_merge(registrations).map_err(|id| {
-            CoreError::Initialization(
-                "WorldDriver".to_string(),
-                format!("duplicate scene runtime hook `{id}`"),
-            )
-        })?;
-        core.replace_devtools_scene_hook_snapshots(
-            candidate
-                .ordered()
-                .iter()
-                .map(|hook| {
-                    let descriptor = hook.descriptor();
-                    RuntimeDevtoolsSceneHookSnapshot {
-                        id: descriptor.id.clone(),
-                        plugin_id: descriptor.plugin_id.clone(),
-                        stage: format!("{:?}", descriptor.stage),
-                        order: descriptor.order,
-                    }
-                })
-                .collect(),
-        );
-        *hooks = candidate;
-        Ok(())
-    }
-
-    pub fn scene_runtime_hooks_for_stage(
-        &self,
-        stage: SystemStage,
-    ) -> Vec<SceneRuntimeHookRegistration> {
-        lock_poison_recovered(&self.hooks)
-            .hooks_for_stage(stage)
-            .to_vec()
-    }
-
     pub fn install_world_runtime_extension_plan(
         &self,
         contribution: WorldRuntimeExtensionPlan,
@@ -77,10 +34,6 @@ impl WorldDriver {
         Arc::clone(&lock_poison_recovered(&self.runtime_extensions))
     }
 
-    fn scene_runtime_hook_stage_plan_snapshot(&self) -> Arc<SceneRuntimeHookStagePlan> {
-        lock_poison_recovered(&self.hooks).stage_plan()
-    }
-
     pub fn tick_level(
         &self,
         core: &CoreHandle,
@@ -91,20 +44,15 @@ impl WorldDriver {
         let fixed_step_plan = advance.fixed_step_plan();
         let fixed_delta_seconds = duration_to_real_seconds(fixed_step_plan.timestep);
         let schedule = level.with_world(|world| world.schedule().stage_plan());
-        let hooks = self.scene_runtime_hook_stage_plan_snapshot();
-        level.with_world_mut(|world| world.reset_ecs_frame_performance_diagnostics());
+        level.with_world_mut(|world| {
+            world.reclaim_dropped_runtime_event_mirrors();
+            world.reset_ecs_frame_performance_diagnostics();
+        });
         for stage in schedule.stages() {
             if *stage == SystemStage::FixedFirst {
                 for _ in 0..fixed_step_plan.step_count {
                     for fixed_stage in SystemStage::FIXED_LOOP {
-                        run_stage(
-                            core,
-                            level,
-                            fixed_stage,
-                            fixed_delta_seconds,
-                            &schedule,
-                            hooks.hooks_for_stage(fixed_stage),
-                        )?;
+                        run_stage(core, level, fixed_stage, fixed_delta_seconds, &schedule)?;
                     }
                 }
                 continue;
@@ -114,14 +62,7 @@ impl WorldDriver {
                 continue;
             }
 
-            run_stage(
-                core,
-                level,
-                *stage,
-                delta_seconds,
-                &schedule,
-                hooks.hooks_for_stage(*stage),
-            )?;
+            run_stage(core, level, *stage, delta_seconds, &schedule)?;
         }
 
         level.with_world(|world| {
@@ -144,7 +85,6 @@ fn run_stage(
     stage: SystemStage,
     delta_seconds: Real,
     schedule: &crate::scene::ecs::SceneScheduleStagePlan,
-    hooks: &[SceneRuntimeHookRegistration],
 ) -> Result<(), CoreError> {
     SceneScheduleRunner::run_stage(
         core,
@@ -154,7 +94,6 @@ fn run_stage(
         schedule.internal_systems_for_stage(stage),
         schedule.native_steps_for_stage(stage),
         schedule.native_conflict_graph_for_stage(stage),
-        hooks,
     )
 }
 
@@ -221,13 +160,15 @@ mod tests {
             .install_world_runtime_extension_plan(
                 WorldRuntimeExtensionPlan::from_registrations([
                     WorldRuntimeExtensionRegistration::new("reentrant", move |_| {
-                        let guard = reentrant_driver.runtime_extensions.try_lock().map_err(
-                            |_| {
-                                WorldRuntimeExtensionError::new(
+                        let guard =
+                            reentrant_driver
+                                .runtime_extensions
+                                .try_lock()
+                                .map_err(|_| {
+                                    WorldRuntimeExtensionError::new(
                                     "world extension callback ran while the driver lock was held",
                                 )
-                            },
-                        )?;
+                                })?;
                         drop(guard);
                         reentrant_driver
                             .install_world_runtime_extension_plan(extension_plan("during.apply"))

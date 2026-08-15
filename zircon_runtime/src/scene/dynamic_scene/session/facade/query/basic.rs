@@ -18,7 +18,7 @@ impl RuntimeSessionArchive {
         session_query::slot(self, slot_id)
     }
 
-    pub fn slots(&self) -> &[RuntimeSessionSlot] {
+    pub fn slots(&self) -> impl Iterator<Item = &RuntimeSessionSlot> {
         session_query::slots(self)
     }
 

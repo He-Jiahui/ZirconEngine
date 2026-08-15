@@ -1,7 +1,7 @@
-use crate::text::ShapedGlyphRotation;
-use crate::text::VerticalMode;
 use crate::text::atlas::{GlyphAtlasFormat, GlyphRasterPlacement, GlyphSmoothingMode};
 use crate::text::shaping::{vertical_glyph_advance, vertical_glyph_rotation};
+use crate::text::ShapedGlyphRotation;
+use crate::text::VerticalMode;
 use zircon_runtime_interface::ui::layout::UiFrame;
 
 use super::super::super::render::{ScreenSpaceUiShapedGlyph, ScreenSpaceUiTextBatch};
@@ -12,8 +12,9 @@ use super::super::artifact_vertices::{
 };
 use super::super::shaped_advances::resolved_horizontal_shaped_glyph_advances;
 use super::{
-    RunGlyph, ScreenSpaceUiSdfVertex, aligned_text_start_x, atlas_uv_rect, push_clipped_glyph_quad,
-    resolve_sdf_glyph_advances, resolve_vertical_sdf_glyph_advances,
+    aligned_text_start_x, atlas_uv_rect, horizontal_sdf_text_baseline, push_clipped_glyph_quad,
+    resolve_sdf_glyph_advances, resolve_vertical_sdf_glyph_advances, RunGlyph,
+    ScreenSpaceUiSdfVertex,
 };
 
 pub(super) fn push_horizontal_sdf_text_vertices(
@@ -41,13 +42,7 @@ pub(super) fn push_horizontal_sdf_text_vertices(
     let glyph_advances = resolve_sdf_glyph_advances(text, natural_advances, natural_text_width);
     let text_width = glyph_advances.iter().sum();
     let positioned_frame = text_frame_device_origin(text.frame);
-    let line_ascent = glyphs
-        .iter()
-        .map(|glyph| glyph.metrics.ascent)
-        .fold(text.font_size.max(1.0), f32::max);
-    let baseline = positioned_frame.y
-        + (text.line_height.max(text.font_size) - text.font_size.max(1.0)).max(0.0) * 0.5
-        + line_ascent;
+    let baseline = horizontal_sdf_text_baseline(text, positioned_frame, &glyphs);
     let mut cursor_x = aligned_text_start_x(text, text_width);
 
     for (glyph, advance) in glyphs.into_iter().zip(glyph_advances) {
@@ -90,13 +85,7 @@ fn push_horizontal_shaped_sdf_text_vertices(
     viewport: UiFrame,
 ) {
     let positioned_frame = text_frame_device_origin(text.frame);
-    let line_ascent = glyphs
-        .iter()
-        .map(|glyph| glyph.metrics.ascent)
-        .fold(text.font_size.max(1.0), f32::max);
-    let baseline = positioned_frame.y
-        + (text.line_height.max(text.font_size) - text.font_size.max(1.0)).max(0.0) * 0.5
-        + line_ascent;
+    let baseline = horizontal_sdf_text_baseline(text, positioned_frame, &glyphs);
     let glyph_advances = resolved_horizontal_shaped_glyph_advances(text);
     let text_width = glyph_advances.iter().sum();
     let mut cursor_x = aligned_text_start_x(text, text_width);

@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::core::framework::bridge::{BridgeInterfaceStatus, BridgeInvocationTable, InterfaceSlot};
 use crate::core::framework::script::{
-    ScriptHostError, ScriptHostFunctionDescriptor, ScriptHostParameterDescriptor, ScriptHostResult,
-    ScriptHostValue, ScriptHostValueKind,
+    ScriptHostArguments, ScriptHostError, ScriptHostFunctionDescriptor,
+    ScriptHostParameterDescriptor, ScriptHostResult, ScriptHostValueKind,
 };
 
 use super::super::VmError;
@@ -19,7 +19,7 @@ pub type ScriptBridgeMethodFn =
 pub struct ScriptBridgeCall<'call> {
     pub interface_slot: InterfaceSlot,
     pub method_slot: u32,
-    pub arguments: &'call [ScriptHostValue],
+    pub arguments: &'call ScriptHostArguments<'call>,
 }
 
 #[derive(Clone)]
@@ -157,7 +157,7 @@ where
         (method.method)(ScriptBridgeCall {
             interface_slot: slot,
             method_slot: method.method_slot,
-            arguments: context.arguments,
+            arguments: &context.arguments,
         })
         .map_err(|error| {
             ScriptHostError::new(format!(

@@ -565,4 +565,17 @@ impl<'a> RenderPassPostProcessStackContext<'a> {
     ) -> &'a wgpu::TextureView {
         self.post_process.white_texture_view()
     }
+
+    pub(in crate::graphics::scene::scene_renderer) fn hzb_history_resource_identity(
+        &self,
+    ) -> Option<crate::graphics::scene::scene_renderer::hzb::HzbSampledResourceIdentity> {
+        self.history_textures
+            .map(SceneFrameHistoryTextures::hzb_resource_identity)
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn hzb_fallback_resource_identity(
+        &self,
+    ) -> crate::graphics::scene::scene_renderer::hzb::HzbSampledResourceIdentity {
+        self.post_process.hzb_fallback_resource_identity()
+    }
 }

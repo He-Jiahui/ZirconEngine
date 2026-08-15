@@ -24,7 +24,8 @@ where
             remove::<T>,
         )
         .with_dense_field_slots(read_field_by_slot::<T>, write_field_by_slot::<T>)
-        .with_dense_field_batch_write(write_fields_by_slot::<T>),
+        .with_dense_field_batch_write(write_fields_by_slot::<T>)
+        .with_stage_clone(stage_clone::<T>),
     )
 }
 
@@ -67,6 +68,25 @@ where
     T: Component + ZrReflect + Clone,
 {
     world.get::<T>(entity).is_some()
+}
+
+fn stage_clone<T>(
+    source: &World,
+    entity: EntityId,
+    type_path: &str,
+    target: &mut World,
+) -> Result<(), ReflectError>
+where
+    T: Component + ZrReflect + Clone,
+{
+    let value = component::<T>(source, entity, type_path)?.clone();
+    target
+        .insert(entity, value)
+        .map(|_| ())
+        .map_err(|error| ReflectError::UnsupportedConversion {
+            source: error.to_string(),
+            target: format!("{type_path} staged component clone"),
+        })
 }
 
 fn read_field<T>(

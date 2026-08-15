@@ -1,11 +1,11 @@
 use std::sync::{Arc, Mutex};
 
-use crate::scene::World;
 use crate::scene::components::Name;
 use crate::scene::ecs::{
     Component, LifecycleEventKind, Message, MessageId, MessageReaderParam, MessageWriterParam,
-    ObserverId, SystemState,
+    ObserverId, ObserverStore, SystemState,
 };
+use crate::scene::{SceneError, World};
 
 #[derive(Debug, PartialEq, Eq)]
 struct Health(u32);
@@ -103,7 +103,7 @@ fn lifecycle_observers_report_insert_replace_remove_and_despawn_order() {
     world.insert(entity, Health(2)).unwrap();
     world.remove::<Health>(entity).unwrap();
     world.insert(entity, Health(3)).unwrap();
-    assert!(world.remove_entity(entity));
+    world.remove_entity(entity).unwrap();
 
     assert_eq!(
         *events.lock().unwrap(),
@@ -136,7 +136,7 @@ fn observer_handles_can_be_removed_before_later_triggers() {
     };
 
     let first = world.spawn((Name("First".to_string()), Health(1))).unwrap();
-    assert!(world.remove_observer(observer));
+    assert!(world.remove_observer(observer).is_ok());
     let _second = world
         .spawn((Name("Second".to_string()), Health(2)))
         .unwrap();
@@ -166,12 +166,41 @@ fn event_observer_handles_can_be_removed_before_later_triggers() {
         })
     };
 
-    assert!(world.remove_observer(global_observer));
-    assert!(world.remove_observer(target_observer));
-    assert!(!world.remove_observer(global_observer));
+    assert!(world.remove_observer(global_observer).is_ok());
+    assert!(world.remove_observer(target_observer).is_ok());
+    assert_eq!(
+        world.remove_observer(global_observer),
+        Err(SceneError::MissingObserver {
+            observer: global_observer,
+        })
+    );
     world.trigger_entity_event(target, DamageEvent(9));
 
     assert!(events.lock().unwrap().is_empty());
+}
+
+#[test]
+fn removing_an_already_removed_observer_returns_a_typed_scene_error() {
+    let mut world = World::empty();
+    let observer = world.observe_event::<DamageEvent>(|_world, _event| {});
+
+    world.remove_observer(observer).unwrap();
+
+    assert_eq!(
+        world.remove_observer(observer),
+        Err(SceneError::MissingObserver { observer })
+    );
+}
+
+#[test]
+fn observer_store_removal_reports_a_missing_handle_with_scene_error() {
+    let mut observers = ObserverStore::default();
+    let observer = ObserverId::new(7);
+
+    assert_eq!(
+        observers.remove(observer),
+        Err(SceneError::MissingObserver { observer })
+    );
 }
 
 #[test]
@@ -236,7 +265,7 @@ fn entity_event_observers_are_removed_with_their_target_entity() {
         });
     }
 
-    assert!(world.remove_entity(target));
+    world.remove_entity(target).unwrap();
     world.trigger_entity_event(target, DamageEvent(1));
 
     assert!(events.lock().unwrap().is_empty());
@@ -253,7 +282,7 @@ fn observer_remove_during_dispatch_does_not_skip_or_double_fire() {
         let target_observer = target_observer.clone();
         world.observe_event::<DamageEvent>(move |world, event| {
             if let Some(observer) = *target_observer.lock().unwrap() {
-                let removed = world.remove_observer(observer);
+                let removed = world.remove_observer(observer).is_ok();
                 events
                     .lock()
                     .unwrap()
@@ -361,29 +390,37 @@ fn immediate_entity_event_observers_run_global_then_targeted_callbacks() {
 fn observer_dispatch_uses_keyed_immutable_buckets() {
     let observer_source = observer_source();
 
-    assert!(observer_source.contains("HashMap<LifecycleObserverKey, Arc<[LifecycleObserver]>>"));
-    assert!(observer_source.contains("HashMap<TypeId, Arc<[EventObserver]>>"));
-    assert!(
-        observer_source.contains("HashMap<EntityEventObserverKey, Arc<[EntityEventObserver]>>")
-    );
+    assert!(observer_source
+        .contains("HashMap<LifecycleObserverKey, Arc<BTreeMap<ObserverId, LifecycleObserver>>>"));
+    assert!(observer_source.contains("HashMap<TypeId, Arc<BTreeMap<ObserverId, EventObserver>>>"));
+    assert!(observer_source.contains(
+        "HashMap<EntityEventObserverKey, Arc<BTreeMap<ObserverId, EntityEventObserver>>>"
+    ));
     assert!(observer_source.contains("observer_locations: HashMap<ObserverId, ObserverBucket>"));
-    assert!(
-        observer_source
-            .contains("entity_event_types_by_entity: HashMap<EntityId, HashSet<TypeId>>")
-    );
+    assert!(observer_source
+        .contains("entity_event_types_by_entity: HashMap<EntityId, HashSet<TypeId>>"));
     assert!(observer_source.contains("pub(crate) struct LifecycleCallbackBucket"));
     assert!(observer_source.contains("pub(crate) struct EventCallbackBucket"));
     assert!(observer_source.contains("pub(crate) struct EntityEventCallbackBucket"));
-    assert!(observer_source.contains("fn append_observer_to_bucket<T>"));
-    assert!(observer_source.contains("fn remove_observer_from_bucket<T>"));
+    assert!(observer_source.contains("pub fn remove(&mut self, id: ObserverId) -> SceneResult<()>"));
+    assert!(observer_source.contains("fn insert_observer_into_bucket<T>"));
+    assert!(observer_source.contains("Arc::make_mut(bucket).insert(id, observer)"));
+    assert!(observer_source.contains("Arc::make_mut(bucket).remove(&id).is_some()"));
     assert!(observer_source.contains("pub(crate) fn remove_entity_observers"));
-    assert!(observer_source.contains("Arc::from(next)"));
     assert!(!observer_source.contains("lifecycle_observers: Vec<"));
     assert!(!observer_source.contains("event_observers: Vec<"));
     assert!(!observer_source.contains("entity_event_observers: Vec<"));
     assert!(!observer_source.contains("callback_count"));
     assert!(!observer_source.contains("callbacks.push(observer.callback.clone())"));
     assert!(!observer_source.contains("fn remove_observer_by_id<T>("));
+    assert!(!observer_source.contains("pub fn remove(&mut self, id: ObserverId) -> bool"));
+    assert!(!observer_source.contains("fn remove_observer_from_bucket<T>("));
+    assert!(!observer_source.contains("while index < bucket.len()"));
+    assert!(observer_source.contains("Fn(&mut World, &ComponentLifecycleEvent) + Send + Sync"));
+    assert!(
+        !observer_source.contains("event.clone()"),
+        "lifecycle fanout must borrow one shared event payload"
+    );
 }
 
 #[test]
@@ -435,10 +472,8 @@ fn message_id_debug_uses_cached_type_name_tail_branch() {
         "message<DamageMessage>#7"
     );
     assert!(messages_source.contains("let message_type_name = type_name::<T>();"));
-    assert!(
-        messages_source
-            .contains("let message_type_label = match message_type_name.rsplit(\"::\").next()")
-    );
+    assert!(messages_source
+        .contains("let message_type_label = match message_type_name.rsplit(\"::\").next()"));
     assert!(messages_source.contains("Some(label) => label,"));
     assert!(messages_source.contains("None => message_type_name,"));
     assert!(!messages_source.contains(".unwrap_or(type_name::<T>())"));
@@ -511,10 +546,8 @@ fn event_and_message_cursors_use_direct_lookup_branches() {
         message_store_lookup_source.contains("let store = self.stores.get(&TypeId::of::<T>())?;")
     );
     assert!(message_store_lookup_source.contains("store.downcast_ref::<Messages<T>>()"));
-    assert!(
-        !message_store_lookup_source
-            .contains(".and_then(|store| store.downcast_ref::<Messages<T>>())")
-    );
+    assert!(!message_store_lookup_source
+        .contains(".and_then(|store| store.downcast_ref::<Messages<T>>())"));
 }
 
 #[test]

@@ -86,8 +86,10 @@ pub(super) fn metered_candidate_from_manifest_path(
     manifest_path: PathBuf,
 ) -> Result<MeteredNativePluginCandidate, NativePluginDiscoveryRefreshError> {
     let candidate_reservation = sink.reserve_candidate(request)?;
+    sink.record_manifest_read();
     let source = read_bounded_utf8_file(request, sink, &manifest_path, "native plugin manifest")?;
     let _parse_admission = sink.reserve_additional_scratch_bytes(request, source.len() as u64)?;
+    sink.record_manifest_parse();
     let candidate = candidate_from_manifest_source(manifest_path, &source)
         .map_err(|error| NativePluginDiscoveryRefreshError::collector(error.to_string()))?;
     Ok(MeteredNativePluginCandidate {

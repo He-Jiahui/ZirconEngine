@@ -9,7 +9,6 @@ impl RetainedEditorHost {
         height: f32,
     ) -> bool {
         self.use_committed_pointer_layout();
-        self.focus_callback_source_window();
         let Some(snapshot) = self.asset_workspace_snapshot_for_pointer(surface_mode) else {
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
             return false;

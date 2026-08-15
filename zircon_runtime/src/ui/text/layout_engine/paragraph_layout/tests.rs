@@ -1,8 +1,8 @@
 use super::{
+    physical_paragraph_ranges, physical_paragraph_start, resolve_physical_paragraph_override_spans,
     CandidateLine, ColumnConstraints, LineConstraints, ParagraphOverrideSpan,
     ResolvedParagraphColumnConstraints, ResolvedParagraphLineConstraints,
-    ResolvedPhysicalParagraphColumns, ResolvedPhysicalParagraphLines, physical_paragraph_ranges,
-    physical_paragraph_start, resolve_physical_paragraph_override_spans,
+    ResolvedPhysicalParagraphColumns, ResolvedPhysicalParagraphLines,
 };
 use crate::text::ParagraphOverride;
 use zircon_runtime_interface::ui::surface::UiTextAlign;

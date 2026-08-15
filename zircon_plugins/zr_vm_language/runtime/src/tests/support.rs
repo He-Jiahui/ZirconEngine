@@ -5,7 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::ZR_VM_PROJECT_BACKEND_SELECTOR;
 use zircon_runtime::script::{
-    VM_STATE_SCHEMA_VERSION_V2, VmStateBlob, VmStateSchema, VmStateTypeSchema,
+    VmStateBlob, VmStateSchema, VmStateTypeSchema, VM_STATE_SCHEMA_VERSION_V2,
 };
 use zircon_runtime_interface::reflect::{
     ReflectEditorHint, ReflectFieldInfo, ReflectSerializationStrategy, ReflectTypeInfo,

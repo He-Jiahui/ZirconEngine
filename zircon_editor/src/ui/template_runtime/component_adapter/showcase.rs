@@ -1,7 +1,7 @@
 use crate::ui::binding::EditorUiBinding;
 use crate::ui::template_runtime::showcase_demo_state::{
-    resolve_showcase_component_event, UiComponentShowcaseDemoError,
-    UiComponentShowcaseDemoEventInput, UiComponentShowcaseDemoState,
+    UiComponentShowcaseDemoError, UiComponentShowcaseDemoEventInput, UiComponentShowcaseDemoState,
+    resolve_showcase_component_event,
 };
 use zircon_runtime_interface::ui::component::{
     UiComponentAdapterResult, UiComponentProjectionPatch, UiValue,

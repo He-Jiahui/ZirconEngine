@@ -274,11 +274,9 @@ fn renderable_candidates_consume_runtime_meshes_and_collapse_primitives_by_owner
             .count(),
         1
     );
-    assert!(
-        candidates
-            .iter()
-            .any(|candidate| candidate.owner == first.node_id)
-    );
+    assert!(candidates
+        .iter()
+        .any(|candidate| candidate.owner == first.node_id));
 }
 
 #[test]

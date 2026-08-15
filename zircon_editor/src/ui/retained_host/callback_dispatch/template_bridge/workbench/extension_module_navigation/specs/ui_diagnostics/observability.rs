@@ -1,4 +1,4 @@
-use super::super::types::{ActionControl, ExtensionNavigationSpec, action, spec};
+use super::super::types::{action, spec, ActionControl, ExtensionNavigationSpec};
 
 const CONSOLE_DIAGNOSTICS_TAB_CONTROLS: &[&str] = &[
     "WorkbenchExtensionConsoleDiagnosticsLiveLogTab",

@@ -22,9 +22,9 @@ fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
 
     for audit_anchor in [
         "EXPECTED_SOURCE_FILE_COUNT = 52",
-        "EXPECTED_UI_ENTRY_COUNT = 19",
-        "EXPECTED_SURFACE_ENTRY_COUNT = 23",
-        "EXPECTED_LEGACY_FULL_HITS = 54",
+        "EXPECTED_UI_ENTRY_COUNT = 20",
+        "EXPECTED_SURFACE_ENTRY_COUNT = 26",
+        "EXPECTED_LEGACY_FULL_HITS = 70",
         "EXPECTED_LEGACY_PRODUCTION_HITS = 0",
         "EXPECTED_LEGACY_PRODUCTION_FILE_COUNT = 0",
         "EXPECTED_TAFFY_PRODUCTION_HITS = 175",
@@ -40,8 +40,8 @@ fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
     }
 
     assert!(
-        architecture_doc.contains("expected_surface_entry_count = 23"),
-        "current UI architecture doc should mirror the 23-entry surface map"
+        architecture_doc.contains("expected_surface_entry_count = 26"),
+        "current UI architecture doc should mirror the 26-entry surface map"
     );
     let numbered_status = concat!(
         include_str!("../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"),
@@ -58,9 +58,9 @@ fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
         for expected_anchor in [
             "ui_architecture_boundary",
             "expected_source_file_count = 52",
-            "expected_ui_entry_count = 19",
-            "legacy_full_hits = 54",
-            "expected_legacy_full_hits = 54",
+            "expected_ui_entry_count = 20",
+            "legacy_full_hits = 70",
+            "expected_legacy_full_hits = 70",
             "legacy_production_hits = 0",
             "expected_legacy_production_hits = 0",
             "legacy_production_file_count = 0",

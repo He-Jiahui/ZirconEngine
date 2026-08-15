@@ -1,3 +1,5 @@
+use zircon_runtime::core::framework::render::RenderHybridGiProbeTraceDiagnosticRecord;
+
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct HybridGiScenePrepareResourcesSnapshot {
     pub(super) card_capture_request_count: u32,
@@ -14,6 +16,7 @@ pub(crate) struct HybridGiScenePrepareResourcesSnapshot {
     pub(super) voxel_clipmap_cell_dominant_node_ids: Vec<(u32, u32, u64)>,
     pub(super) voxel_clipmap_cell_dominant_rgba_samples: Vec<(u32, u32, [u8; 4])>,
     pub(super) probe_trace_tiles: Vec<(u32, u32, u32, u32)>,
+    pub(super) probe_trace_diagnostics: Vec<RenderHybridGiProbeTraceDiagnosticRecord>,
     pub(super) probe_trace_dispatch: [u32; 3],
     pub(super) atlas_slot_count: u32,
     pub(super) capture_slot_count: u32,
@@ -49,6 +52,7 @@ impl HybridGiScenePrepareResourcesSnapshot {
             voxel_clipmap_cell_dominant_node_ids: Vec::new(),
             voxel_clipmap_cell_dominant_rgba_samples: Vec::new(),
             probe_trace_tiles: Vec::new(),
+            probe_trace_diagnostics: Vec::new(),
             probe_trace_dispatch: [0; 3],
             atlas_slot_count,
             capture_slot_count,

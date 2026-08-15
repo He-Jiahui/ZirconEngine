@@ -2,14 +2,34 @@ use std::path::{Component, Path, PathBuf};
 
 use crate::core::resource::ResourceScheme;
 
+use crate::asset::project::{ProjectPaths, ResolvedProjectPath};
 use crate::asset::{AssetImportError, AssetUri};
 
 use super::ProjectManager;
 
 impl ProjectManager {
+    /// Resolves a logical asset URI through the project/package root registry once.
+    ///
+    /// The returned operation path is the sole filesystem input. Its display path is retained
+    /// for diagnostics and external platform APIs, so consumers do not strip Windows verbatim
+    /// prefixes or re-canonicalize aliases independently.
+    pub fn resolve_source_path_for_uri(
+        &self,
+        uri: &AssetUri,
+    ) -> Result<ResolvedProjectPath, AssetImportError> {
+        Ok(ProjectPaths::resolve_path(
+            self.source_operation_path_for_uri(uri)?,
+        )?)
+    }
+
     pub fn source_path_for_uri(&self, uri: &AssetUri) -> Result<PathBuf, AssetImportError> {
+        self.resolve_source_path_for_uri(uri)
+            .map(ResolvedProjectPath::into_operation_path)
+    }
+
+    fn source_operation_path_for_uri(&self, uri: &AssetUri) -> Result<PathBuf, AssetImportError> {
         match uri.scheme() {
-            ResourceScheme::Res => self.source_path_for_project_uri(uri),
+            ResourceScheme::Res => self.source_operation_path_for_project_uri(uri),
             ResourceScheme::Library => Err(AssetImportError::UnsupportedFormat(format!(
                 "source path requested for library uri {uri}"
             ))),
@@ -44,7 +64,25 @@ impl ProjectManager {
     }
 
     /// Resolves a not-yet-existing `res://` destination into the first manifest root.
+    pub fn resolve_primary_project_source_path_for_uri(
+        &self,
+        uri: &AssetUri,
+    ) -> Result<ResolvedProjectPath, AssetImportError> {
+        Ok(ProjectPaths::resolve_path(
+            self.primary_project_source_operation_path_for_uri(uri)?,
+        )?)
+    }
+
+    /// Resolves a not-yet-existing `res://` destination into the first manifest root.
     pub fn primary_project_source_path_for_uri(
+        &self,
+        uri: &AssetUri,
+    ) -> Result<PathBuf, AssetImportError> {
+        self.resolve_primary_project_source_path_for_uri(uri)
+            .map(ResolvedProjectPath::into_operation_path)
+    }
+
+    fn primary_project_source_operation_path_for_uri(
         &self,
         uri: &AssetUri,
     ) -> Result<PathBuf, AssetImportError> {
@@ -58,20 +96,32 @@ impl ProjectManager {
     }
 
     /// Resolves an existing unique source, or explicitly chooses the primary root for a new one.
-    pub fn existing_or_primary_project_source_path_for_uri(
+    pub fn resolve_existing_or_primary_project_source_path_for_uri(
         &self,
         uri: &AssetUri,
-    ) -> Result<PathBuf, AssetImportError> {
-        match self.source_path_for_uri(uri) {
+    ) -> Result<ResolvedProjectPath, AssetImportError> {
+        match self.resolve_source_path_for_uri(uri) {
             Ok(path) => Ok(path),
             Err(AssetImportError::MissingProjectAssetUri { .. }) => {
-                self.primary_project_source_path_for_uri(uri)
+                self.resolve_primary_project_source_path_for_uri(uri)
             }
             Err(error) => Err(error),
         }
     }
 
-    fn source_path_for_project_uri(&self, uri: &AssetUri) -> Result<PathBuf, AssetImportError> {
+    /// Resolves an existing unique source, or explicitly chooses the primary root for a new one.
+    pub fn existing_or_primary_project_source_path_for_uri(
+        &self,
+        uri: &AssetUri,
+    ) -> Result<PathBuf, AssetImportError> {
+        self.resolve_existing_or_primary_project_source_path_for_uri(uri)
+            .map(ResolvedProjectPath::into_operation_path)
+    }
+
+    fn source_operation_path_for_project_uri(
+        &self,
+        uri: &AssetUri,
+    ) -> Result<PathBuf, AssetImportError> {
         validate_relative_package_path(uri.path())?;
         let existing = self
             .package_assets
@@ -83,10 +133,10 @@ impl ProjectManager {
         match existing.as_slice() {
             [path] => Ok(path.clone()),
             [] => Err(AssetImportError::MissingProjectAssetUri { uri: uri.clone() }),
-            _ => Err(AssetImportError::AmbiguousProjectAssetUri {
-                uri: uri.clone(),
-                paths: existing,
-            }),
+            _ => Err(AssetImportError::ambiguous_project_asset_uri(
+                uri.clone(),
+                existing,
+            )),
         }
     }
 }

@@ -1,8 +1,11 @@
 use super::*;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
-    UiTextAlign, UiTextDirection, UiTextWrap, UiTextWritingMode,
+    UiTextAlign, UiTextDirection, UiTextRange, UiTextWrap, UiTextWritingMode,
 };
+
+mod overlay;
+mod wrapped_layout;
 
 #[test]
 fn sdf_fallback_keeps_stable_frame_vectors_in_place_when_all_runs_are_renderable() {
@@ -125,6 +128,7 @@ fn sdf_atlas_fallback_moves_failed_sdf_batches_to_native_backend() {
             mixed_overlay_unsupported_justify_text_batch_count: 0,
             mixed_overlay_glyph_advance_mismatch_text_batch_count: 0,
             mixed_overlay_invalid_span_text_batch_count: 0,
+            mixed_overlay_shaped_glyph_geometry_text_batch_count: 0,
             fallback_glyph_count: 2,
             fallback_span_count: 2,
             fallback_source_byte_count: 2,
@@ -200,6 +204,7 @@ fn sdf_atlas_fallback_overlays_failed_spans_for_horizontal_ltr_text() {
             mixed_overlay_unsupported_justify_text_batch_count: 0,
             mixed_overlay_glyph_advance_mismatch_text_batch_count: 0,
             mixed_overlay_invalid_span_text_batch_count: 0,
+            mixed_overlay_shaped_glyph_geometry_text_batch_count: 0,
             fallback_glyph_count: 2,
             fallback_span_count: 1,
             fallback_source_byte_count: 2,
@@ -361,6 +366,9 @@ fn sdf_atlas_fallback_overlays_whole_grapheme_from_resolved_advances() {
 fn sdf_atlas_fallback_reports_unsupported_mixed_overlay_layout_reason() {
     let mut vertical_sdf = text_batch("abcd");
     vertical_sdf.writing_mode = UiTextWritingMode::VerticalRl;
+    vertical_sdf.source_range = Some(UiTextRange { start: 0, end: 4 });
+    vertical_sdf.is_source_isomorphic_layout_line = true;
+    vertical_sdf.wrap = UiTextWrap::Word;
     let mut native_texts = Vec::new();
     let mut sdf_texts = vec![vertical_sdf];
 
@@ -399,6 +407,7 @@ fn sdf_atlas_fallback_reports_unsupported_mixed_overlay_layout_reason() {
         report.mixed_overlay_unsupported_writing_mode_text_batch_count,
         1
     );
+    assert!(report.needs_sdf_cpu_rebuild());
     assert_eq!(report.page_limit_span_count, 1);
     assert_eq!(report.page_limit_source_byte_count, 2);
 }
@@ -667,10 +676,12 @@ fn text_batch(text: &str) -> ScreenSpaceUiTextBatch {
                 None,
             ),
         command_generation: 1,
+        raster_scale: 1.0,
         text: text.to_string(),
         frame: UiFrame::new(0.0, 0.0, 128.0, 24.0),
         clip_frame: None,
         source_range: None,
+        is_source_isomorphic_layout_line: false,
         glyph_advances: Vec::new(),
         shaped_glyphs: Vec::new(),
         preserve_shaped_glyphs: false,

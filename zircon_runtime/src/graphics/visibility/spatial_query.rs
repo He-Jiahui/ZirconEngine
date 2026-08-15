@@ -198,6 +198,7 @@ fn is_finite_vec3(value: Vec3) -> bool {
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{RenderLayerSet, RenderSpatialBounds, RenderSpatialRay};
+    use crate::core::framework::scene::Mobility;
     use crate::core::resource::ResourceId;
     use crate::graphics::{
         ViewVisibilityContext, VisibilityBatchKey, VisibilityBvhInstance, VisibilityContext,

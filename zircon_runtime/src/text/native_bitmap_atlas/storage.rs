@@ -5,15 +5,13 @@ use crate::text::atlas::render_batch::glyph_atlas_draw_batch_plan;
 use crate::text::atlas::render_gpu_plan::glyph_atlas_gpu_draw_plan;
 use crate::text::atlas::render_plan::GlyphAtlasScreenRect;
 use crate::text::atlas::{
-    GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapRenderSubmissionPlan, GlyphAtlasBitmapRunPlan,
-    GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasDirtyPage, GlyphAtlasFormat,
-    GlyphAtlasStorageFormat, GlyphAtlasUploadMode, glyph_atlas_upload_command,
+    glyph_atlas_upload_command, GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapRenderSubmissionPlan,
+    GlyphAtlasBitmapRunPlan, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasDirtyPage,
+    GlyphAtlasFormat, GlyphAtlasStorageFormat, GlyphAtlasUploadMode,
 };
 
-use super::{
-    NativeBitmapAtlasSourceImage, bitmap_atlas_page_size,
-    glyph_atlas_bitmap_face_validity_for_epoch,
-};
+use super::frame::{bitmap_atlas_page_size, NativeBitmapAtlasSourceImage};
+use super::source_image::glyph_atlas_bitmap_face_validity_for_epoch;
 
 pub(crate) fn native_bitmap_atlas_storage_submissions(
     frame_submission: &GlyphAtlasBitmapRenderSubmissionPlan,
@@ -190,7 +188,9 @@ fn native_bitmap_atlas_storage_submission_plan(
         .glyphs
         .iter()
         .zip(&frame_submission.run.draw_glyphs)
-        .filter_map(|(glyph, draw_glyph)| contains_source(glyph.source_index).then_some(*draw_glyph))
+        .filter_map(|(glyph, draw_glyph)| {
+            contains_source(glyph.source_index).then_some(*draw_glyph)
+        })
         .collect();
     run.upload_copies = frame_submission
         .run

@@ -166,7 +166,7 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
     assert_eq!(scene_overview.mesh_primitive_binding_count, 1);
     assert_eq!(scene_overview.morph_weight_count, 1);
     let scene_management = SceneAssetManagementRecordSet::from_records(vec![
-        scene.management_record(scene_record.id()),
+        scene.management_record(scene_record.id())
     ]);
     assert_eq!(scene_management.summary.scene_count, 1);
     assert_eq!(scene_management.summary.entity_count, 1);
@@ -208,7 +208,7 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
     let mesh_model = load_model(&manager, "res://models/hero.gltf#Mesh0");
     let mesh_model_record = resource_record(&manager, "res://models/hero.gltf#Mesh0");
     let model_management = ModelAssetManagementRecordSet::from_records(vec![
-        mesh_model.management_record(mesh_model_record.id()),
+        mesh_model.management_record(mesh_model_record.id())
     ]);
     assert_eq!(model_management.summary.model_count, 1);
     assert_eq!(model_management.summary.mesh_reference_count, 1);
@@ -289,17 +289,17 @@ fn project_manager_imports_minimal_gltf_material_shader_mesh_sample() {
         sample_material_readiness.is_ready(),
         "{sample_material_readiness:#?}"
     );
-    let material_management =
-        MaterialAssetManagementRecordSet::from_records(vec![sample_material.management_record(
+    let material_management = MaterialAssetManagementRecordSet::from_records(vec![sample_material
+        .management_record(
             resource_record(&manager, "res://materials/hero_surface.zmaterial").id(),
         )]);
     assert_eq!(material_management.summary.material_count, 1);
     assert_eq!(material_management.summary.texture_reference_count, 2);
     assert_eq!(material_management.summary.fallback_texture_slot_count, 1);
 
-    let shader_management = ShaderAssetManagementRecordSet::from_records(vec![
-        sample_shader.management_record(resource_record(&manager, "res://shaders/lit_sample").id()),
-    ]);
+    let shader_management =
+        ShaderAssetManagementRecordSet::from_records(vec![sample_shader
+            .management_record(resource_record(&manager, "res://shaders/lit_sample").id())]);
     let aggregate_management = AssetManagementRecordSets::from_record_sets(
         model_management,
         mesh_management,

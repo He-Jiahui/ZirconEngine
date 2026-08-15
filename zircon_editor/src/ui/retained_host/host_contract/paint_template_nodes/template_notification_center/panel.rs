@@ -1,7 +1,7 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::identity::{empty_text, header_text};
-use super::layout::{NotificationCenterMetrics, empty_text_rect, header_rect};
+use super::layout::{empty_text_rect, header_rect, NotificationCenterMetrics};
 use super::style::NotificationCenterPalette;
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 

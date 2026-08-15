@@ -1,0 +1,152 @@
+use super::*;
+
+fn block_imports_name(block: &str, name: &str) -> bool {
+    [
+        format!("{{{name},"),
+        format!(",{name},"),
+        format!(",{name}}}"),
+        format!("{{{name}}}"),
+    ]
+    .into_iter()
+    .any(|pattern| block.contains(&pattern))
+}
+
+#[test]
+fn workbench_host_window_keeps_host_contract_shell_dtos_at_ui_boundary_only() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src")
+        .join("ui")
+        .join("layouts")
+        .join("windows")
+        .join("workbench_host_window");
+    let mod_source = std::fs::read_to_string(root.join("mod.rs")).expect("workbench host mod");
+    let apply_presentation = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .join("ui")
+            .join("retained_host")
+            .join("ui")
+            .join("apply_presentation.rs"),
+    )
+    .expect("apply presentation");
+
+    assert!(
+        mod_source.contains("mod host_data;"),
+        "expected workbench_host_window mod wiring to own Rust host DTOs under host_data.rs"
+    );
+    assert!(
+        root.join("host_data.rs").exists(),
+        "expected Rust-owned host DTO declaration file under {:?}",
+        root
+    );
+
+    for path in collect_rust_files(&root) {
+        let source = std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("{path:?}"));
+        let import_blocks = retained_host_import_blocks(&source);
+        if import_blocks.is_empty() && !source.contains("crate::ui::retained_host::") {
+            continue;
+        }
+
+        for forbidden in [
+            "FrameRect",
+            "PaneData",
+            "TabData",
+            "FloatingWindowData",
+            "AssetsActivityShellFrameData",
+            "AssetsActivityShellLayoutData",
+            "AssetsActivityPaneData",
+            "HierarchyShellFrameData",
+            "HierarchyShellLayoutData",
+            "HierarchyPaneData",
+            "InspectorShellFrameData",
+            "InspectorShellLayoutData",
+            "InspectorPaneData",
+            "ConsoleShellFrameData",
+            "ConsoleShellLayoutData",
+            "ConsolePaneData",
+            "ProjectOverviewShellFrameData",
+            "ProjectOverviewShellLayoutData",
+            "ProjectOverviewPaneData",
+            "AnimationEditorShellFrameData",
+            "AnimationEditorShellLayoutData",
+            "AnimationEditorPaneData",
+            "UiAssetActionStateData",
+            "UiAssetCanvasNodeData",
+            "UiAssetCanvasSlotTargetData",
+            "UiAssetCollectionPanelData",
+            "UiAssetEditorPaneData",
+            "UiAssetInspectorBindingData",
+            "UiAssetInspectorLayoutData",
+            "UiAssetInspectorPanelData",
+            "UiAssetInspectorSemanticData",
+            "UiAssetInspectorSlotData",
+            "UiAssetInspectorWidgetData",
+            "UiAssetMatchedStyleRuleData",
+            "UiAssetPaletteDragData",
+            "UiAssetPaneHeaderData",
+            "UiAssetPreviewCanvasData",
+            "UiAssetPreviewMockData",
+            "UiAssetPreviewPanelData",
+            "UiAssetSourceDetailData",
+            "UiAssetSourcePanelData",
+            "UiAssetStringSelectionData",
+            "UiAssetStylePanelData",
+            "UiAssetStyleRuleData",
+            "UiAssetStyleRuleDeclarationData",
+            "UiAssetStyleStateData",
+            "UiAssetStyleTokenData",
+            "UiAssetThemeSourceData",
+            "HostWindowShellData",
+            "HostWindowSurfaceData",
+            "HostWindowLayoutData",
+            "HostWindowSurfaceMetricsData",
+            "HostWindowSurfaceOrchestrationData",
+            "HostWindowSceneData",
+            "HostNativeFloatingWindowSurfaceData",
+            "ProjectOverviewData",
+            "SceneNodeData",
+        ] {
+            for block in &import_blocks {
+                assert!(
+                    !block_imports_name(block, forbidden),
+                    "expected {:?} to stop importing host-contract DTO `{forbidden}` into workbench_host_window internals",
+                    path.file_name().expect("file name")
+                );
+            }
+            assert!(
+                !source.contains(&format!("crate::ui::retained_host::{forbidden}")),
+                "expected {:?} to stop importing host-contract DTO `{forbidden}` into workbench_host_window internals",
+                path.file_name().expect("file name")
+            );
+        }
+    }
+
+    assert!(
+        apply_presentation.contains("fn to_host_contract_hierarchy_pane("),
+        "expected apply_presentation.rs to own hierarchy pane conversion at the host-contract boundary"
+    );
+    assert!(
+        apply_presentation.contains("fn to_host_contract_inspector_pane("),
+        "expected apply_presentation.rs to own inspector pane conversion at the host-contract boundary"
+    );
+    assert!(
+        apply_presentation.contains("fn to_host_contract_console_pane("),
+        "expected apply_presentation.rs to own console pane conversion at the host-contract boundary"
+    );
+    assert!(
+        apply_presentation.contains("fn to_host_contract_assets_activity_pane("),
+        "expected apply_presentation.rs to own assets-activity pane conversion at the host-contract boundary"
+    );
+    assert!(
+        apply_presentation.contains("fn to_host_contract_project_overview_pane("),
+        "expected apply_presentation.rs to own project overview pane conversion at the host-contract boundary"
+    );
+    assert!(
+        apply_presentation.contains("fn to_host_contract_animation_editor_pane("),
+        "expected apply_presentation.rs to own animation pane conversion at the host-contract boundary"
+    );
+    assert!(
+        apply_presentation.contains("fn to_host_contract_ui_asset_pane("),
+        "expected apply_presentation.rs to own ui asset pane conversion at the host-contract boundary"
+    );
+}

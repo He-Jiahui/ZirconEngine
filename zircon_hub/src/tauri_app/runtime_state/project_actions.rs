@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use crate::error::HubError;
 use crate::process::FolderPickerRequest;
 use crate::projects::{
-    create_project, merge_recent_projects, metadata_for_path_mut, normalize_project_root,
+    create_project, merge_recent_project_entries, metadata_for_path_mut, normalize_project_root,
     project_metadata_key, project_paths_match, prune_empty_metadata, validate_project_root,
     CreateProjectError, CreateProjectRequest, ProjectTemplate, ProjectValidation, RecentProject,
 };
@@ -118,7 +118,7 @@ impl HubRuntimeSession {
         )
         .with_operation(TaskOperationKind::Project, payload.name);
         self.new_project_name.clear();
-        if let Err(error) = self.persist(Some(&project_root)) {
+        if let Err(error) = self.persist() {
             self.config.action_history.retain(|record| {
                 record.status != HubActionStatus::Success
                     || record.action != HubActionKind::CreateProject
@@ -231,7 +231,7 @@ impl HubRuntimeSession {
             HubMessage::raw_text(project_root.to_string_lossy().into_owned()),
         )
         .with_operation(TaskOperationKind::Project, display_name);
-        self.persist(Some(&project_root))
+        self.persist()
     }
 
     pub(super) fn set_project_pinned(
@@ -256,7 +256,7 @@ impl HubRuntimeSession {
             TaskOperationKind::Project,
             recent_project_display_name(&project),
         );
-        self.persist(None)
+        self.persist()
     }
 
     pub(super) fn remove_project_from_hub(
@@ -280,7 +280,7 @@ impl HubRuntimeSession {
             HubMessage::new(HubMessageId::Project(ProjectMessageId::FilesLeftOnDisk)),
         )
         .with_operation(TaskOperationKind::Project, display_name);
-        self.persist(None)
+        self.persist()
     }
 
     pub(super) fn request_project_delete(
@@ -303,7 +303,7 @@ impl HubRuntimeSession {
             TaskOperationKind::Project,
             recent_project_display_name(&project),
         );
-        self.persist(None)
+        self.persist()
     }
 
     pub(super) fn cancel_project_delete(
@@ -328,7 +328,7 @@ impl HubRuntimeSession {
             HubMessage::new(HubMessageId::Project(ProjectMessageId::ProjectUnchanged)),
         )
         .with_operation(TaskOperationKind::Project, operation_target);
-        self.persist(None)
+        self.persist()
     }
 
     pub(super) fn confirm_project_delete(
@@ -354,7 +354,7 @@ impl HubRuntimeSession {
                     HubMessage::new(HubMessageId::Project(ProjectMessageId::MovedToRecycleBin)),
                 )
                 .with_operation(TaskOperationKind::Project, display_name);
-                self.persist(None)
+                self.persist()
             }
             Err(error) => {
                 self.pending_delete_project_path = Some(project.path.clone());
@@ -388,10 +388,13 @@ impl HubRuntimeSession {
         self.project_view_mode = ProjectViewMode::List;
         self.selected_project_path = Some(project_root.clone());
         self.pending_delete_project_path = None;
-        self.config.recent_projects = merge_recent_projects(
+        self.config.recent_projects = merge_recent_project_entries(
             std::iter::once(RecentProject::with_now(project_root.clone())?),
             self.config.recent_projects.clone(),
-        );
+        )
+        .map_err(|error| {
+            HubError::message(format!("merge shared recent-project entries: {error}"))
+        })?;
         let metadata = metadata_for_path_mut(&mut self.config.project_metadata, &project_root);
         if engine_id.is_some() {
             metadata.engine_id = engine_id;
@@ -549,7 +552,7 @@ impl HubRuntimeSession {
         self.task_status =
             TaskStatus::error(format!("{} failed", action.label()), detail, recovery)
                 .with_operation(TaskOperationKind::Project, target);
-        self.persist(None)
+        self.persist()
     }
 
     fn record_create_project_kept_folder_failure(

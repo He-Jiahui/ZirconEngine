@@ -1,6 +1,6 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::template_inspector_row_geometry::{
-    INSPECTOR_COUNT_WIDTH, INSPECTOR_LABEL_WIDTH, chevron_rect, field_rect,
+    chevron_rect, field_rect, INSPECTOR_COUNT_WIDTH, INSPECTOR_LABEL_WIDTH,
 };
 use super::super::super::template_nodes::paint_template_nodes_for_test;
 use super::super::push_inspector_row_commands;

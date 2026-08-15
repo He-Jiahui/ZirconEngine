@@ -20,6 +20,9 @@ pub(in crate::ui::retained_host::host_contract) struct UiProfileGeometry {
     pub(in crate::ui::retained_host::host_contract) viewport_toolbar_controls:
         Vec<UiProfileNamedFrame>,
     pub(in crate::ui::retained_host::host_contract) template_controls: Vec<UiProfileNamedFrame>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(in crate::ui::retained_host::host_contract) welcome_recent_frame:
+        Option<UiProfileNamedFrame>,
     pub(in crate::ui::retained_host::host_contract) clickable_frames: Vec<UiProfileNamedFrame>,
     pub(in crate::ui::retained_host::host_contract) hit_samples: Vec<UiProfileHitSample>,
 }

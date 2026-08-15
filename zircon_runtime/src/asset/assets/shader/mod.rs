@@ -9,7 +9,7 @@ mod zshader;
 pub use dependency::ShaderDependencyAsset;
 pub use entry_point::ShaderEntryPointAsset;
 pub use language::ShaderSourceLanguage;
-pub use property_layout::{ShaderGeneratedMaterialArtifact, generate_material_artifact};
+pub use property_layout::{generate_material_artifact, ShaderGeneratedMaterialArtifact};
 pub use readiness::{
     ShaderAssetManagementRecord, ShaderAssetManagementRecordSet,
     ShaderAssetManagementRecordSetSummary, ShaderAssetReadinessSummary,

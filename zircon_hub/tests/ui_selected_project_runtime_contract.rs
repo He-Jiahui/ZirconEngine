@@ -100,6 +100,7 @@ fn scope_model_remains_canonical_project_and_source_engine_resolver() {
 #[test]
 fn tauri_runtime_persists_selected_project_and_refreshes_context() {
     let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
+    let runtime_state_tests = read_crate_file("src/tauri_app/runtime_state/tests.rs");
 
     assert_contains_all(
         "runtime_state.rs",
@@ -129,6 +130,12 @@ fn tauri_runtime_persists_selected_project_and_refreshes_context() {
             "persisted_selected_project_path: Option<&Path>",
             "last_project_path: Option<&Path>",
             "unwrap_or_else(|| path.to_path_buf())",
+        ],
+    );
+    assert_contains_all(
+        "runtime_state/tests.rs",
+        &runtime_state_tests,
+        &[
             "startup_selection_preserves_persisted_stale_project_path",
             "load_from_paths_merges_repairs_registers_source_and_persists_runtime_state",
         ],
@@ -138,6 +145,7 @@ fn tauri_runtime_persists_selected_project_and_refreshes_context() {
 #[test]
 fn tauri_view_model_projects_selected_state_into_react_dtos() {
     let view_model = read_crate_file("src/tauri_app/view_model.rs");
+    let view_model_tests = read_crate_file("src/tauri_app/view_model/tests.rs");
     let types = read_crate_file("web/src/types/hub.ts");
 
     assert_contains_all(
@@ -169,8 +177,12 @@ fn tauri_view_model_projects_selected_state_into_react_dtos() {
             "text.pair(\"Missing\", \"缺失\")",
             "fn source_engine_rows(snapshot: &HubSnapshot) -> Vec<HubSourceEngineSummary>",
             "let active = Some(engine.id.as_str()) == snapshot.active_engine_id.as_deref()",
-            "view_model_projects_come_from_snapshot_filtering_and_state_ids",
         ],
+    );
+    assert_contains_all(
+        "view_model/tests.rs",
+        &view_model_tests,
+        &["view_model_projects_come_from_snapshot_filtering_and_state_ids"],
     );
     assert_contains_all(
         "types/hub.ts",

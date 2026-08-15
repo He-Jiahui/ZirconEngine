@@ -16,7 +16,7 @@ related_code:
   - docs/assets-and-rendering/runtime-physics-animation-assets.md
   - docs/zircon_editor/ui/preferences.md
   - docs/engine-architecture/core-runtime-service-registry.md
-  - docs/plans/zircon_plugins/13/failure-2026-08-02-current-status-receipt-test-sprawl.md
+  - docs/plans/zircon_plugins/13/2026-08-10-current-status-receipt-test-sprawl-return.md
   - zircon_runtime/src/core/resource/io/atomic_file.rs
   - zircon_runtime/src/platform/preferences/atomic_file.rs
   - zircon_editor/src/ui/workbench/project/editor_workspace_persistence.rs
@@ -89,3 +89,19 @@ tests:
 ## 修复结果与回传
 
 Open state: `15 条 / 10 文档的跨 owner structured-path 漂移仍待对应硬切 owner 收敛`。本轮已完成 Performance01 owner-clean 修复、Session 路由和证据降噪；Runtime02 等 foreign-dirty owner 未被跨写，Render01 metadata 已修正但其 managed gate 仍待新的 primary。全仓 docs gate 尚未通过，shared atomic durability 合同也尚未闭合，不得声称该 failure fixed。
+
+## 2026-08-11 current-source continuation
+
+当前共享源码继续发生大量 owner hard cut，fresh
+`python tools/check_conventions.py --repo-root . --only docs --json` 快照已变为 176 篇受影响文档、
+539 条 violation；上面的 `15 条 / 10 文档` 仅保留为 2026-08-02 历史快照，不能再作为当前
+验收数据。本轮只修正了直接相关且 owner 唯一的 config-manager metadata：删除已退役的
+`foundation/persistence{,/atomic_file}.rs`，改指
+`zircon_runtime/src/core/resource/io/atomic_file.rs`，没有对其余 foreign-dirty 文档做批量猜测替换。
+
+同一 continuation 已在 Runtime04 shared owner 内补齐目录创建、new-target、Unix replacement/
+backup cleanup 与 Windows committed-target 的 durability 责任，并删除 Platform Preferences 的
+重复 committed-target sync。源码静态门与独立二次审查均无发现，但 managed Rust 测试在 Cargo
+启动前被 unmanaged-artifact preflight 拒绝。因此 atomic durability 的源码合同已前向收敛，
+运行验收仍由 Runtime04 canonical handoff 保持 open；本全仓 structured-path failure 也继续
+保持 `status: open`，不得用该局部修复声称 docs gate fixed。

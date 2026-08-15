@@ -5,8 +5,8 @@ use zircon_runtime_interface::math::UVec2;
 use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::layouts::views::blank_viewport_chrome;
 use crate::ui::layouts::windows::workbench_host_window::{
-    InspectorPaneViewData, PaneContentSize, PanePayloadBuildContext, PanePresentation,
-    PaneShellPresentation, build_pane_body_presentation,
+    build_pane_body_presentation, InspectorPaneViewData, PaneContentSize, PanePayloadBuildContext,
+    PanePresentation, PaneShellPresentation,
 };
 use crate::ui::retained_host::to_host_contract_inspector_pane_from_host_pane;
 use crate::ui::workbench::layout::MainPageId;
@@ -170,9 +170,7 @@ fn inspector_template_body_projection_replaces_legacy_inspector_view_data_for_re
         (106.0, 27.2),
         "projected ApplyDraft frame should include text intrinsic size plus runtime button padding"
     );
-    assert!(
-        !nodes
-            .iter()
-            .any(|node| node.control_id == "InspectorContentPanel")
-    );
+    assert!(!nodes
+        .iter()
+        .any(|node| node.control_id == "InspectorContentPanel"));
 }

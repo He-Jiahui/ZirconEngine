@@ -2,7 +2,7 @@ use zircon_runtime_interface::ui::surface::{UiTextDistanceFieldEffects, UiTextRe
 
 use crate::text::atlas::GlyphAtlasFormat;
 use crate::text::raster::{
-    GlyphRasterEffects, GlyphRasterPolicyRequest, distance_field_mode_for_request,
+    distance_field_mode_for_request, GlyphRasterEffects, GlyphRasterPolicyRequest,
 };
 use crate::text::sdf::SdfMode;
 

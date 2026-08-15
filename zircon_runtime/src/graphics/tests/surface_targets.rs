@@ -30,19 +30,30 @@ const SURFACE_PRESENT_CAPABILITY: &str = "viewport surface present";
 mod texture_target;
 
 #[test]
-fn graphics_scene_projects_viewport_surface_contract_through_the_public_facade() {
-    let surface_contract = std::any::TypeId::of::<crate::graphics::SceneViewportSurface>();
+fn graphics_scene_keeps_viewport_surface_owned_by_the_render_framework() {
+    let scene_facade = include_str!("../scene/mod.rs");
+    let renderer_facade = include_str!("../scene/scene_renderer/mod.rs");
+    let factory_source =
+        include_str!("../scene/scene_renderer/core/scene_renderer_viewport_surface.rs");
+    let binding_source =
+        include_str!("../runtime/render_framework/viewport_surface/viewport_surface.rs");
+    let record_source = include_str!("../runtime/render_framework/viewport_record/surface.rs");
 
-    assert_ne!(surface_contract, std::any::TypeId::of::<()>());
+    assert!(!scene_facade.contains("SceneViewportSurface"));
+    assert!(!renderer_facade.contains("SceneViewportSurface"));
+    assert!(factory_source.contains("self.backend.create_viewport_surface(descriptor)"));
+    assert!(binding_source.contains("create_framework_viewport_surface(descriptor)"));
+    assert!(binding_source.contains("record.bind_surface(surface);"));
+    assert!(record_source.contains("surface: ViewportSurface"));
 }
 
 #[test]
-fn graphics_viewport_binding_consumes_the_scene_surface_without_parallel_record_state() {
+fn graphics_viewport_binding_moves_the_native_surface_into_the_viewport_record() {
     let bind_source =
         include_str!("../runtime/render_framework/viewport_surface/viewport_surface.rs");
     let record_source = include_str!("../runtime/render_framework/viewport_record/surface.rs");
 
-    assert!(bind_source.contains("record.bind_surface(surface.into_backend_surface());"));
+    assert!(bind_source.contains("record.bind_surface(surface);"));
     assert!(record_source.contains("surface: ViewportSurface"));
     assert!(!record_source.contains("SceneViewportSurface"));
 }
@@ -261,6 +272,83 @@ fn graphics_surface_pipelined_direct_runtime_frame_matches_synchronous_pixels() 
     assert_eq!(pipelined_frame.width, synchronous_frame.width);
     assert_eq!(pipelined_frame.height, synchronous_frame.height);
     assert_eq!(pipelined_frame.rgba, synchronous_frame.rgba);
+}
+
+#[test]
+fn graphics_surface_runtime_frame_exposes_retained_linear_hdr_scene_color() {
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
+    let size = UVec2::new(64, 48);
+    let viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(size))
+        .unwrap();
+
+    framework
+        .submit_runtime_frame(
+            viewport,
+            ViewportRenderFrame::from_extract(empty_extract(), size),
+        )
+        .unwrap();
+    let hdr = framework
+        .capture_scene_color_hdr(viewport)
+        .unwrap()
+        .expect("compiled runtime frame should retain HDR scene color");
+
+    assert_eq!((hdr.width, hdr.height), (size.x, size.y));
+    assert_eq!(hdr.rgba16f.len(), (size.x * size.y) as usize);
+    assert!(hdr
+        .rgba16f
+        .iter()
+        .all(|texel| texel.iter().all(|channel| channel.is_finite())));
+    assert_eq!(
+        hdr.generation,
+        framework.query_stats().unwrap().last_generation.unwrap()
+    );
+    assert_eq!(
+        hdr.capture_report.source,
+        RenderCaptureSource::FrameworkOffscreen
+    );
+    assert_eq!(hdr.capture_report.output_size, size);
+}
+
+#[test]
+fn graphics_surface_hdr_capture_never_returns_another_viewports_retained_scene_color() {
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
+    let first_size = UVec2::new(64, 48);
+    let first_viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(first_size))
+        .unwrap();
+    let second_size = UVec2::new(40, 24);
+    let second_viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(second_size))
+        .unwrap();
+
+    framework
+        .submit_runtime_frame(
+            first_viewport,
+            ViewportRenderFrame::from_extract(empty_extract(), first_size),
+        )
+        .unwrap();
+    framework
+        .submit_runtime_frame(
+            second_viewport,
+            ViewportRenderFrame::from_extract(empty_extract(), second_size),
+        )
+        .unwrap();
+
+    assert!(framework
+        .capture_scene_color_hdr(first_viewport)
+        .unwrap()
+        .is_none());
+    let second_hdr = framework
+        .capture_scene_color_hdr(second_viewport)
+        .unwrap()
+        .expect("the latest viewport should retain its own HDR scene color");
+    assert_eq!(
+        (second_hdr.width, second_hdr.height),
+        (second_size.x, second_size.y)
+    );
 }
 
 #[test]

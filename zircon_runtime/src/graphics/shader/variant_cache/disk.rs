@@ -5,6 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
+use crate::asset::project::ProjectPaths;
 use crate::core::framework::render::ShaderVariantKey;
 
 const SHADER_VARIANT_CACHE_SCHEMA_VERSION: u32 = 1;
@@ -90,18 +91,20 @@ impl ShaderVariantCacheDisk {
     }
 
     pub(crate) fn default_project_root(project_root: &Path) -> PathBuf {
-        std::env::var_os("ZR_SHADER_CACHE_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| {
-                project_root
-                    .join(".zircon")
-                    .join("cache")
-                    .join(SHADER_VARIANT_CACHE_DIR)
-            })
+        shader_cache_root_for_project(
+            project_root,
+            std::env::var_os("ZR_SHADER_CACHE_DIR")
+                .filter(|path| !path.is_empty())
+                .as_deref()
+                .map(Path::new),
+        )
     }
 
     pub(crate) fn default_staged_project_root(project_root: &Path) -> PathBuf {
-        project_root.join("cache").join(SHADER_VARIANT_CACHE_DIR)
+        project_relative_shader_cache_root(
+            project_root,
+            Path::new("cache").join(SHADER_VARIANT_CACHE_DIR),
+        )
     }
 
     pub(crate) fn lookup(&self, key: &ShaderVariantCacheDiskKey) -> ShaderVariantCacheDiskLookup {
@@ -214,6 +217,29 @@ impl ShaderVariantCacheDisk {
     }
 }
 
+fn shader_cache_root_for_project(project_root: &Path, configured_root: Option<&Path>) -> PathBuf {
+    match configured_root {
+        Some(root) if root.is_absolute() => ProjectPaths::resolve_path(root)
+            .map(|root| root.into_operation_path())
+            .unwrap_or_else(|_| root.to_path_buf()),
+        Some(root) => project_relative_shader_cache_root(project_root, root),
+        None => project_relative_shader_cache_root(
+            project_root,
+            Path::new(".zircon")
+                .join("cache")
+                .join(SHADER_VARIANT_CACHE_DIR),
+        ),
+    }
+}
+
+fn project_relative_shader_cache_root(project_root: &Path, relative: impl AsRef<Path>) -> PathBuf {
+    let relative = relative.as_ref();
+    ProjectPaths::resolve_path(project_root)
+        .and_then(|root| ProjectPaths::resolve_path_from(&root, relative))
+        .map(|root| root.into_operation_path())
+        .unwrap_or_else(|_| project_root.join(relative))
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct ShaderVariantCacheDiskMeta {
     pub(crate) schema_version: u32,
@@ -275,14 +301,77 @@ fn unix_seconds_now() -> u64 {
 #[cfg(test)]
 mod tests {
     use std::fs;
+    use std::path::{Path, PathBuf};
+    use std::time::{SystemTime, UNIX_EPOCH};
 
+    use crate::asset::project::ProjectPaths;
     use crate::core::framework::render::{
         GeometrySourceId, ShaderFeatureBits, ShaderPassType, ShaderQualityTier, ShaderVariantKey,
         SHADING_MODEL_ID_STANDARD_PBR,
     };
     use crate::core::resource::ResourceId;
 
-    use super::{ShaderVariantCacheDisk, ShaderVariantCacheDiskKey, ShaderVariantCacheDiskLookup};
+    use super::{
+        shader_cache_root_for_project, ShaderVariantCacheDisk, ShaderVariantCacheDiskKey,
+        ShaderVariantCacheDiskLookup,
+    };
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn shader_cache_roots_keep_the_physical_project_identity_for_relative_layouts() {
+        let parent = unique_shader_cache_project_root("physical-identity");
+        let physical_project = parent.join("physical-project");
+        fs::create_dir_all(&physical_project).unwrap();
+        let project_alias = parent.join("project-alias");
+        create_directory_link(&physical_project, &project_alias);
+
+        let default_root = shader_cache_root_for_project(&project_alias, None);
+        let configured_root =
+            shader_cache_root_for_project(&project_alias, Some(Path::new("derived/shaders")));
+        let expected_project = ProjectPaths::resolve_existing_path(&physical_project).unwrap();
+
+        fs::remove_dir_all(&parent).unwrap();
+        assert_eq!(
+            default_root,
+            expected_project.join(".zircon/cache/shader_variants")
+        );
+        assert_eq!(configured_root, expected_project.join("derived/shaders"));
+    }
+
+    fn unique_shader_cache_project_root(case_name: &str) -> PathBuf {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "zircon-shader-cache-{case_name}-{}-{timestamp}",
+            std::process::id()
+        ));
+        if path.exists() {
+            fs::remove_dir_all(&path).unwrap();
+        }
+        path
+    }
+
+    #[cfg(unix)]
+    fn create_directory_link(target: &Path, link: &Path) {
+        std::os::unix::fs::symlink(target, link).expect("create shader-cache project alias");
+    }
+
+    #[cfg(windows)]
+    fn create_directory_link(target: &Path, link: &Path) {
+        let command = format!(r#"mklink /J "{}" "{}""#, link.display(), target.display());
+        let output = std::process::Command::new("cmd")
+            .args(["/D", "/S", "/C"])
+            .arg(command)
+            .output()
+            .expect("start mklink for shader-cache project alias");
+        assert!(
+            output.status.success(),
+            "create shader-cache project junction failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
 
     #[test]
     fn render_shader_variant_cache_hits_disk_after_restart() {

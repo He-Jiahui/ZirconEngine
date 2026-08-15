@@ -9,12 +9,11 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
 use crate::render_graph::RenderGraphResourceAccessKind;
 
 use super::super::{
-    FroxelLightScatterPipeline, FroxelLightScatterRequest, FroxelViewReconstruction,
-    GpuFroxelTemporalReprojection, VOLUMETRIC_LIGHT_SCATTER_PIPELINE_LABEL,
-    VOLUMETRIC_LIGHT_SCATTER_WORKGROUP_SIZE, resolved_volumetric_fog_settings,
-    volumetric_ambient_radiance,
+    resolved_volumetric_fog_settings, volumetric_ambient_radiance, FroxelLightScatterPipeline,
+    FroxelLightScatterRequest, FroxelViewReconstruction, GpuFroxelTemporalReprojection,
+    VOLUMETRIC_LIGHT_SCATTER_PIPELINE_LABEL, VOLUMETRIC_LIGHT_SCATTER_WORKGROUP_SIZE,
 };
-use super::{VOLUMETRIC_LIGHT_SCATTER_EXECUTOR_ID, validate_compute_context};
+use super::{validate_compute_context, VOLUMETRIC_LIGHT_SCATTER_EXECUTOR_ID};
 
 #[derive(Default)]
 pub(super) struct VolumetricLightScatterExecutor {

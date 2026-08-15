@@ -115,7 +115,7 @@ fn runtime_15_core_handle_registry_lock_poison_recovery_guard_covers_registry_ac
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
             "pub(crate) fn lock_modules(&self)",
             "pub(crate) fn lock_services(&self)",
-            "pub(crate) fn replace_devtools_scene_hook_snapshots(",
+            "pub fn replace_devtools_plugin_catalog_entries(",
             "pub(crate) fn lock_runtime_module_lifecycle_observer(",
             "core_handle_registry_accessors_recover_poisoned_runtime_locks",
         ],

@@ -43,20 +43,84 @@ fn render_text_decorations_emit_solid_quads_from_face_metrics() {
     assert!(vertices
         .iter()
         .all(|vertex| vertex.primitive_kind == super::super::vertices::SDF_TEXT_PRIMITIVE_SOLID));
-    assert!(
-        vertices[..6]
-            .iter()
-            .all(|vertex| vertex.color == [0.8, 0.1, 0.2, 0.7])
-    );
-    assert!(
-        vertices[6..]
-            .iter()
-            .all(|vertex| vertex.color == [0.1, 0.8, 0.2, 0.6])
-    );
+    assert!(vertices[..6]
+        .iter()
+        .all(|vertex| vertex.color == [0.8, 0.1, 0.2, 0.7]));
+    assert!(vertices[6..]
+        .iter()
+        .all(|vertex| vertex.color == [0.1, 0.8, 0.2, 0.6]));
     let underline_top_px = (1.0 - vertices[0].position[1]) * 50.0;
     let strikeout_top_px = (1.0 - vertices[6].position[1]) * 50.0;
     assert!((underline_top_px - 37.5).abs() < 0.0001);
     assert!((strikeout_top_px - 29.5).abs() < 0.0001);
+}
+
+#[test]
+fn render_text_decorations_reject_non_finite_resolved_baselines() {
+    let metrics = TextDecorationMetrics::from_font_units(
+        FontAssetFaceMetrics {
+            units_per_em: 1_000,
+            ascender: 800,
+            underline: Some(FontAssetLineMetrics {
+                position: -100,
+                thickness: 50,
+            }),
+            strikeout: Some(FontAssetLineMetrics {
+                position: 300,
+                thickness: 40,
+            }),
+            ..FontAssetFaceMetrics::default()
+        },
+        20.0,
+    );
+    let viewport = UiFrame::new(0.0, 0.0, 100.0, 100.0);
+
+    let mut horizontal = text_batch("Underline", UiFrame::new(10.0, 20.0, 30.0, 20.0));
+    horizontal.font_size = 20.0;
+    horizontal.line_height = 20.0;
+    horizontal.text_decorations.underline = true;
+    horizontal.text_decoration_baseline = Some(f32::NAN);
+    let mut horizontal_vertices = Vec::new();
+    super::super::decorations::push_text_decorations_for_metrics(
+        &mut horizontal_vertices,
+        &horizontal,
+        metrics,
+        viewport,
+    );
+
+    assert_eq!(horizontal_vertices.len(), 6);
+    assert!(horizontal_vertices.iter().all(|vertex| {
+        vertex
+            .position
+            .iter()
+            .all(|coordinate| coordinate.is_finite())
+    }));
+    let underline_top_px = (1.0 - horizontal_vertices[0].position[1]) * 50.0;
+    assert!((underline_top_px - 37.5).abs() < 0.0001);
+
+    let mut vertical = text_batch("Strike", UiFrame::new(10.0, 20.0, 30.0, 60.0));
+    vertical.font_size = 20.0;
+    vertical.line_height = 20.0;
+    vertical.writing_mode = UiTextWritingMode::VerticalRl;
+    vertical.text_decorations.strikethrough = true;
+    vertical.text_decoration_baseline = Some(f32::INFINITY);
+    let mut vertical_vertices = Vec::new();
+    super::super::decorations::push_text_decorations_for_metrics(
+        &mut vertical_vertices,
+        &vertical,
+        metrics,
+        viewport,
+    );
+
+    assert_eq!(vertical_vertices.len(), 6);
+    assert!(vertical_vertices.iter().all(|vertex| {
+        vertex
+            .position
+            .iter()
+            .all(|coordinate| coordinate.is_finite())
+    }));
+    let strikeout_left_px = (vertical_vertices[0].position[0] + 1.0) * 50.0;
+    assert!((strikeout_left_px - 18.5).abs() < 0.0001);
 }
 
 #[test]

@@ -10,6 +10,7 @@ use super::{
 pub struct SceneModeStack {
     base: Box<dyn EditorSceneMode>,
     overlays: Vec<Box<dyn EditorSceneMode>>,
+    revision: u64,
 }
 
 impl SceneModeStack {
@@ -21,6 +22,7 @@ impl SceneModeStack {
         Ok(Self {
             base,
             overlays: Vec::new(),
+            revision: 0,
         })
     }
 
@@ -39,9 +41,13 @@ impl SceneModeStack {
         context: CommandEvalCtx,
         selection: &SelectionModel,
     ) -> CommandEvalCtx {
+        let active_domain = selection.active_domain();
         context
             .with_scene_mode(self.active_mode_id().clone())
             .with_selection_count(selection.active_items().len())
+            .with_selection_domain(active_domain)
+            .with_selection_revision(selection.generation(active_domain))
+            .with_scene_mode_revision(self.revision)
     }
 
     pub fn push(
@@ -56,6 +62,7 @@ impl SceneModeStack {
         }
         enter_mode(mode.as_mut(), ctx)?;
         self.overlays.push(mode);
+        self.revision = self.revision.wrapping_add(1);
         Ok(())
     }
 
@@ -77,6 +84,7 @@ impl SceneModeStack {
         enter_mode(mode.as_mut(), ctx)?;
         self.base.exit(ctx);
         self.base = mode;
+        self.revision = self.revision.wrapping_add(1);
         Ok(())
     }
 
@@ -84,6 +92,7 @@ impl SceneModeStack {
         let mut mode = self.overlays.pop()?;
         let id = mode.id().clone();
         mode.exit(ctx);
+        self.revision = self.revision.wrapping_add(1);
         Some(id)
     }
 

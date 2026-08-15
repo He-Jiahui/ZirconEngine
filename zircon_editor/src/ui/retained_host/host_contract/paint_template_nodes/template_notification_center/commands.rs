@@ -146,7 +146,7 @@ mod tests {
     use crate::ui::layouts::common::model_rc;
     use crate::ui::retained_host::host_contract::TemplatePaneOptionData;
 
-    use super::super::instrumentation::{NotificationPaintCounters, reset, snapshot};
+    use super::super::instrumentation::{reset, snapshot, NotificationPaintCounters};
 
     #[test]
     fn visible_rows_include_one_overscan_row_on_each_side() {

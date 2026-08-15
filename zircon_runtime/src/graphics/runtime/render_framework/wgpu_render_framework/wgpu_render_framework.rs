@@ -1,11 +1,11 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use crate::core::TaskPool;
 use crate::core::framework::render::{
     PlanarReflectionUpdateState, RenderSubmissionConfig, ShaderVariantPrewarmManifest,
 };
 #[cfg(test)]
 use crate::core::framework::render::{RenderCapabilitySummary, RenderFrameworkError};
+use crate::core::TaskPool;
 #[cfg(test)]
 use crate::core::{math::UVec2, resource::ResourceId};
 #[cfg(test)]
@@ -168,7 +168,7 @@ impl WgpuRenderFramework {
             .set_parallel_recording(config.parallel_record, config.min_passes_per_bucket);
         state
             .renderer
-            .set_hzb_indirect_args_readback_enabled(config.hzb_indirect_args_readback);
+            .set_hzb_diagnostics_readback_enabled(config.hzb_diagnostics_readback);
         Ok(())
     }
 
@@ -216,6 +216,28 @@ impl WgpuRenderFramework {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .finish_pending()
+    }
+
+    /// Reports whether the active WGPU device exposes the timestamp path used
+    /// by the compiled realtime IBL graph.
+    pub fn realtime_ibl_gpu_timing_supported(&self) -> bool {
+        let _operation_guard = self.lock_operation();
+        let state = self.lock_state();
+        state.renderer.realtime_ibl_gpu_timing_supported()
+    }
+
+    /// Drains completed realtime IBL timestamp reports from compiled-frame
+    /// submission. The framework owns the renderer lock and device lifetime.
+    pub fn take_realtime_ibl_gpu_timing_reports(
+        &self,
+    ) -> Result<
+        Vec<crate::graphics::RealtimeIblGpuTimingReport>,
+        crate::core::framework::render::RenderFrameworkError,
+    > {
+        self.finish_submission()?;
+        let _operation_guard = self.lock_operation();
+        let mut state = self.lock_state();
+        Ok(state.renderer.take_realtime_ibl_gpu_timing_reports())
     }
 
     /// Invalidates one on-demand planar probe so the next camera loop submits
@@ -293,13 +315,35 @@ impl WgpuRenderFramework {
 
 #[cfg(test)]
 mod tests {
-    use std::panic::{AssertUnwindSafe, catch_unwind};
+    use std::panic::{catch_unwind, AssertUnwindSafe};
     use std::sync::Arc;
 
     use crate::asset::pipeline::manager::ProjectAssetManager;
     use crate::core::framework::render::RenderSubmissionConfig;
 
     use super::*;
+
+    #[test]
+    fn realtime_ibl_timing_drain_finishes_pipelined_submission_before_state_access() {
+        let source = include_str!("wgpu_render_framework.rs");
+        let drain = source
+            .split("pub fn take_realtime_ibl_gpu_timing_reports")
+            .nth(1)
+            .and_then(|source| {
+                source
+                    .split("/// Invalidates one on-demand planar probe")
+                    .next()
+            })
+            .expect("realtime IBL timing drain");
+        let finish_submission = drain
+            .find("self.finish_submission()?;")
+            .expect("timing drain must finish pending submission");
+        let operation_lock = drain
+            .find("let _operation_guard = self.lock_operation();")
+            .expect("timing drain must serialize renderer access");
+
+        assert!(finish_submission < operation_lock);
+    }
 
     #[test]
     fn wgpu_render_framework_accessors_recover_poisoned_locks() {
@@ -329,12 +373,10 @@ mod tests {
             RenderSubmissionConfig::synchronous()
         );
         assert!(!framework.lock_state().renderer.gpu_pass_timing_enabled());
-        assert!(
-            !framework
-                .lock_state()
-                .renderer
-                .hzb_indirect_args_readback_enabled()
-        );
+        assert!(!framework
+            .lock_state()
+            .renderer
+            .hzb_diagnostics_readback_enabled());
         assert_eq!(
             framework
                 .lock_state()
@@ -384,22 +426,18 @@ mod tests {
         framework
             .set_submission_config(async_config)
             .expect("async pipeline configuration should be accepted");
-        assert!(
-            framework
-                .lock_state()
-                .renderer
-                .async_pipeline_compile_enabled()
-        );
+        assert!(framework
+            .lock_state()
+            .renderer
+            .async_pipeline_compile_enabled());
         let hzb_readback_config =
-            RenderSubmissionConfig::synchronous().with_hzb_indirect_args_readback();
+            RenderSubmissionConfig::synchronous().with_hzb_diagnostics_readback();
         framework
             .set_submission_config(hzb_readback_config)
             .expect("HZB indirect readback configuration should be accepted");
-        assert!(
-            framework
-                .lock_state()
-                .renderer
-                .hzb_indirect_args_readback_enabled()
-        );
+        assert!(framework
+            .lock_state()
+            .renderer
+            .hzb_diagnostics_readback_enabled());
     }
 }

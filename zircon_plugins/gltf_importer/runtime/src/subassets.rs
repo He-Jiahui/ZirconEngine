@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use gltf::image::{Data as GltfImageData, Format as GltfImageFormat};
+use zircon_runtime::asset::assets::STANDARD_MATERIAL_OCCLUSION_STRENGTH_PROPERTY;
 use zircon_runtime::asset::{
     AlphaMode, AssetImportError, AssetImportOutcome, AssetReference, AssetUri, DataAsset,
     DataAssetFormat, ImportedAsset, ImportedAssetEntry, MaterialAsset, MaterialTextureSlotValue,
@@ -366,6 +367,16 @@ fn material_asset_from_gltf_material(
         texture_info_metadata(metallic_roughness_texture_info.as_ref());
     let occlusion_metadata = occlusion_texture_metadata(occlusion_texture_info.as_ref());
     let emissive_metadata = texture_info_metadata(emissive_texture_info.as_ref());
+    let mut property_values = BTreeMap::new();
+    if let Some(occlusion_texture_info) = occlusion_texture_info.as_ref() {
+        let strength = occlusion_texture_info.strength();
+        if (strength - 1.0).abs() > f32::EPSILON {
+            property_values.insert(
+                STANDARD_MATERIAL_OCCLUSION_STRENGTH_PROPERTY.to_string(),
+                toml::Value::Float(f64::from(strength)),
+            );
+        }
+    }
 
     let mut texture_slots = BTreeMap::new();
     insert_texture_slot(
@@ -416,7 +427,7 @@ fn material_asset_from_gltf_material(
         emissive_texture,
         alpha_mode: gltf_alpha_mode(material),
         double_sided: material.double_sided(),
-        property_values: BTreeMap::new(),
+        property_values,
         texture_slots,
         validation_diagnostics: vec![format!(
             "{} imported from glTF Material{}",

@@ -7,7 +7,7 @@ use self::actions::{
 use super::super::redraw::NativePointerDispatchResult;
 use super::super::window::UiHostWindow;
 use super::commands::WorkbenchPopupKeyboardCommand;
-use super::target::{PopupKeyboardMove, active_popup_keyboard_target_for_ui};
+use super::target::{active_popup_keyboard_target_for_ui, PopupKeyboardMove};
 
 pub(in crate::ui::retained_host::host_contract) fn dispatch_workbench_popup_keyboard_command(
     ui: &UiHostWindow,

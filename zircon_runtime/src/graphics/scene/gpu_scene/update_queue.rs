@@ -314,9 +314,9 @@ mod tests {
 
         assert_eq!(prepared.len(), 1);
         assert_eq!(prepared[0].byte_len, 9 * 16);
+        let expected = prepared.to_vec();
         assert!(!queue.is_empty());
         assert!(queue.instance_upload_ranges_are_prepared());
-        let expected = prepared.to_vec();
 
         let drained = queue.drain_instance_upload_ranges(16);
         assert_eq!(drained, expected);

@@ -5,13 +5,18 @@ use zircon_runtime_interface::ui::{
     component::UiValue,
     event_ui::{UiNodeId, UiPropertyInvalidationReason, UiReflectedPropertySource},
     focus::UiFocusChangeEvent,
-    tree::{UiDirtyFlags, UiInputPolicy, UiTree, UiTreeError, UiTreeNode, UiVisibility},
+    tree::{
+        UiDirtyFlags, UiInputPolicy, UiTemplateNodeMetadata, UiTree, UiTreeError, UiTreeNode,
+        UiVisibility,
+    },
 };
 
 use crate::ui::binding::{
     component_state_value_update, reflected_property_update,
     reflected_property_update_with_source_kind,
 };
+
+use super::popup_stack::is_popup_stack_metadata;
 
 mod metadata_dirty;
 
@@ -289,10 +294,19 @@ pub fn mutate_tree_property(
             };
             let next = request.value.to_toml();
             let previous = metadata.attributes.get(property).map(UiValue::from_toml);
-            if metadata.attributes.get(property) == Some(&next) {
+            let alias = popup_open_alias(metadata, property, &request.value);
+            let property_changed = metadata.attributes.get(property) != Some(&next);
+            let alias_changed =
+                alias.is_some_and(|alias| metadata.attributes.get(alias) != Some(&next));
+            if !property_changed && !alias_changed {
                 UiPropertyMutationReport::unchanged(&request, previous)
             } else {
-                metadata.attributes.insert(property.to_string(), next);
+                metadata
+                    .attributes
+                    .insert(property.to_string(), next.clone());
+                if let Some(alias) = alias {
+                    metadata.attributes.insert(alias.to_string(), next);
+                }
                 let dirty = metadata_attribute_dirty(
                     metadata.component.as_str(),
                     property,
@@ -304,6 +318,21 @@ pub fn mutate_tree_property(
         }
     };
     Ok(report)
+}
+
+fn popup_open_alias(
+    metadata: &UiTemplateNodeMetadata,
+    property: &str,
+    value: &UiValue,
+) -> Option<&'static str> {
+    if !matches!(value, UiValue::Bool(_)) || !is_popup_stack_metadata(metadata) {
+        return None;
+    }
+    match property {
+        "open" if metadata.attributes.contains_key("popup_open") => Some("popup_open"),
+        "popup_open" if metadata.attributes.contains_key("open") => Some("open"),
+        _ => None,
+    }
 }
 
 fn mutate_state_bool(

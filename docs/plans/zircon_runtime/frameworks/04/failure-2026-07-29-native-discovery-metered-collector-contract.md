@@ -309,3 +309,14 @@ reuse or claim. Per receipt-driven execution policy, no recovery polling or resu
 started. The locally recomputed ordinal, LF/no-final-LF nine-Rust-path source fingerprint is
 `d3f1dc5efb84b2533cfc3171ab98c0ae6f6b2d50aed2ce0643f9632987773408`; it records Source Ready
 identity only and is not a substitute for a coordinator snapshot.
+
+## r6 集成源码验证恢复（2026-08-08）
+
+- r5 已复审通过的 authority、ticket、bounded-read 与 focused test 源码已进入共享 main；当前
+  `discover`/`discovery_refresh` canonical owner 范围相对 HEAD 无额外实现 diff，未回滚或重建旧
+  aggregate collector、公开 factory、spin wait、unbounded read 或第二缓存。
+- successor `frameworks04-native-discovery-authority-validation-r6-20260808` 已无冲突领取 failure
+  与 canonical authority/test exact14，准备基于当前不可变源码提交 Rust 1.94.1 lib-only focused
+  gate。r5 的旧 timeout 仍是 `submission: not_submitted`，不可复用为 receipt 或验证结果。
+- 状态保持 `open` / `resolving_failure`：实现与独立二次审查 C0/I0/M0 已完成；新的受管 receipt、
+  terminal GREEN、Runtime11 upward gate、fixed return 与 milestone commit 仍 pending。

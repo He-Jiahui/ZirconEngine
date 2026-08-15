@@ -7,8 +7,8 @@ use crate::text::{
 
 use super::super::fallback_cache::family_candidate_cache_key;
 use super::super::matching::{
-    dedupe_families, font_family_identity, stretch_distance, style_distance, weight_distance,
-    FontFamilyIdentity,
+    FontFamilyIdentity, dedupe_families, font_family_identity, stretch_distance, style_distance,
+    weight_distance,
 };
 use super::FontDatabase;
 
@@ -159,6 +159,14 @@ impl FontDatabase {
             .get(&family_identity)
             .cloned()
             .unwrap_or_default();
+        if let Some(aliases) = self.family_alias_index.get(&family_identity) {
+            let aliases = aliases
+                .iter()
+                .copied()
+                .filter(|candidate| !candidates.contains(candidate))
+                .collect::<Vec<_>>();
+            candidates.extend(aliases);
+        }
         candidates.sort_by_key(|id| self.match_score(*id, query));
         let candidates = Arc::from(candidates.into_boxed_slice());
         self.fallback_caches

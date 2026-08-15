@@ -1,4 +1,6 @@
 use super::*;
+use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiShapedGlyph;
+use crate::text::ShapedGlyphRotation;
 
 #[test]
 fn sdf_draw_plan_clips_to_text_frame_without_explicit_clip() {

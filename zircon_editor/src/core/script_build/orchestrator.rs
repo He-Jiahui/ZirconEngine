@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, VecDeque};
+use std::collections::BTreeSet;
 use std::fmt;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -9,7 +9,9 @@ use super::request::{
 };
 
 pub const DEFAULT_SCRIPT_WATCH_DEBOUNCE_MS: u64 = 300;
+pub const DEFAULT_SCRIPT_WATCH_MAX_LATENCY_MS: u64 = 1_000;
 pub const MAX_INCREMENTAL_SCRIPT_WATCH_PATHS: usize = 20;
+pub const MAX_INCREMENTAL_SCRIPT_WATCH_PATH_BYTES: usize = 64 * 1024;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ScriptBuildPhase {
@@ -19,6 +21,7 @@ pub enum ScriptBuildPhase {
     Building,
     Succeeded,
     Failed,
+    Cancelled,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -27,6 +30,7 @@ pub struct ScriptBuildSnapshot {
     active_request_id: Option<ScriptBuildRequestId>,
     queued_request_count: usize,
     pending_watch_path_count: usize,
+    watch_first_observed_at_ms: Option<u64>,
     watch_deadline_ms: Option<u64>,
     last_outcome: Option<Arc<ScriptBuildOutcome>>,
 }
@@ -50,6 +54,10 @@ impl ScriptBuildSnapshot {
 
     pub fn watch_deadline_ms(&self) -> Option<u64> {
         self.watch_deadline_ms
+    }
+
+    pub fn watch_first_observed_at_ms(&self) -> Option<u64> {
+        self.watch_first_observed_at_ms
     }
 
     pub fn last_outcome(&self) -> Option<&ScriptBuildOutcome> {
@@ -137,11 +145,13 @@ struct ActiveScriptBuild {
 
 pub struct ScriptBuildOrchestrator {
     debounce_ms: u64,
+    max_latency_ms: u64,
     next_request_id: u64,
     pending_watch_paths: BTreeSet<PathBuf>,
     pending_watch_requires_full_rebuild: bool,
+    watch_first_observed_at_ms: Option<u64>,
     watch_deadline_ms: Option<u64>,
-    queued_requests: VecDeque<ScriptBuildRequest>,
+    queued_request: Option<ScriptBuildRequest>,
     active_request: Option<ActiveScriptBuild>,
     last_outcome: Option<Arc<ScriptBuildOutcome>>,
 }
@@ -154,13 +164,22 @@ impl Default for ScriptBuildOrchestrator {
 
 impl ScriptBuildOrchestrator {
     pub fn new(debounce_ms: u64) -> Self {
+        Self::with_debounce_limits(
+            debounce_ms,
+            DEFAULT_SCRIPT_WATCH_MAX_LATENCY_MS.max(debounce_ms),
+        )
+    }
+
+    pub fn with_debounce_limits(debounce_ms: u64, max_latency_ms: u64) -> Self {
         Self {
             debounce_ms,
+            max_latency_ms: max_latency_ms.max(debounce_ms),
             next_request_id: 1,
             pending_watch_paths: BTreeSet::new(),
             pending_watch_requires_full_rebuild: false,
+            watch_first_observed_at_ms: None,
             watch_deadline_ms: None,
-            queued_requests: VecDeque::new(),
+            queued_request: None,
             active_request: None,
             last_outcome: None,
         }
@@ -169,12 +188,21 @@ impl ScriptBuildOrchestrator {
     pub fn notify_watch_change(&mut self, path: impl Into<PathBuf>, observed_at_ms: u64) {
         if !self.pending_watch_requires_full_rebuild {
             self.pending_watch_paths.insert(path.into());
-            if self.pending_watch_paths.len() > MAX_INCREMENTAL_SCRIPT_WATCH_PATHS {
+            if !incremental_paths_fit_budget(&self.pending_watch_paths) {
                 self.pending_watch_paths.clear();
                 self.pending_watch_requires_full_rebuild = true;
             }
         }
-        self.watch_deadline_ms = Some(observed_at_ms.saturating_add(self.debounce_ms));
+        let first_observed_at_ms = self
+            .watch_first_observed_at_ms
+            .map_or(observed_at_ms, |first| first.min(observed_at_ms));
+        self.watch_first_observed_at_ms = Some(first_observed_at_ms);
+        let hard_deadline_ms = first_observed_at_ms.saturating_add(self.max_latency_ms);
+        self.watch_deadline_ms = Some(
+            observed_at_ms
+                .saturating_add(self.debounce_ms)
+                .min(hard_deadline_ms),
+        );
     }
 
     pub fn enqueue_command(&mut self) -> Result<ScriptBuildRequestId, ScriptBuildEnqueueError> {
@@ -191,7 +219,7 @@ impl ScriptBuildOrchestrator {
     ) -> Result<Option<ScriptBuildStepDispatch>, ScriptBuildEnqueueError> {
         self.flush_watch_if_due(now_ms)?;
         if self.active_request.is_none() {
-            let Some(request) = self.queued_requests.pop_front() else {
+            let Some(request) = self.queued_request.take() else {
                 return Ok(None);
             };
             self.active_request = Some(ActiveScriptBuild {
@@ -240,16 +268,17 @@ impl ScriptBuildOrchestrator {
         }
 
         let completed_step_index = active.step_index;
+        let generation = active.request.generation();
         let request_completed =
             outcome.is_succeeded() && completed_step_index + 1 == active.request.step_count();
         let resume_play = request_completed && active.request.play_after_build();
         let (dropped_queued_request_count, dropped_watch_path_count) = if !outcome.is_succeeded() {
             self.active_request.take();
-            let dropped_queued_request_count = self.queued_requests.len();
+            let dropped_queued_request_count = usize::from(self.queued_request.take().is_some());
             let dropped_watch_path_count = self.pending_watch_path_count();
-            self.queued_requests.clear();
             self.pending_watch_paths.clear();
             self.pending_watch_requires_full_rebuild = false;
+            self.watch_first_observed_at_ms = None;
             self.watch_deadline_ms = None;
             self.last_outcome = Some(Arc::new(outcome.clone()));
             (dropped_queued_request_count, dropped_watch_path_count)
@@ -268,6 +297,7 @@ impl ScriptBuildOrchestrator {
 
         Ok(ScriptBuildCompletion::new(
             request_id,
+            generation,
             completed_step_index,
             outcome,
             request_completed,
@@ -284,8 +314,9 @@ impl ScriptBuildOrchestrator {
                 .active_request
                 .as_ref()
                 .map(|active| active.request.id()),
-            queued_request_count: self.queued_requests.len(),
+            queued_request_count: usize::from(self.queued_request.is_some()),
             pending_watch_path_count: self.pending_watch_path_count(),
+            watch_first_observed_at_ms: self.watch_first_observed_at_ms,
             watch_deadline_ms: self.watch_deadline_ms,
             last_outcome: self.last_outcome.clone(),
         }
@@ -294,7 +325,7 @@ impl ScriptBuildOrchestrator {
     fn phase(&self) -> ScriptBuildPhase {
         if self.active_request.is_some() {
             ScriptBuildPhase::Building
-        } else if !self.queued_requests.is_empty() {
+        } else if self.queued_request.is_some() {
             ScriptBuildPhase::Queued
         } else if self.has_pending_watch_changes() {
             ScriptBuildPhase::Debouncing
@@ -302,6 +333,7 @@ impl ScriptBuildOrchestrator {
             match self.last_outcome.as_deref() {
                 Some(ScriptBuildOutcome::Succeeded) => ScriptBuildPhase::Succeeded,
                 Some(ScriptBuildOutcome::Failed { .. }) => ScriptBuildPhase::Failed,
+                Some(ScriptBuildOutcome::Cancelled { .. }) => ScriptBuildPhase::Cancelled,
                 None => ScriptBuildPhase::Idle,
             }
         }
@@ -311,9 +343,26 @@ impl ScriptBuildOrchestrator {
         &mut self,
         trigger: ScriptBuildTrigger,
     ) -> Result<ScriptBuildRequestId, ScriptBuildEnqueueError> {
+        if self.has_pending_watch_changes() {
+            if self.queued_request.is_some() {
+                let changed_paths = self.take_pending_watch_paths();
+                return Ok(self.merge_queued_request(trigger, changed_paths));
+            }
+            let request_id = self.reserve_request_id()?;
+            let changed_paths = self.take_pending_watch_paths();
+            self.queued_request = Some(ScriptBuildRequest::new(request_id, trigger, changed_paths));
+            return Ok(request_id);
+        }
+        if let Some(queued_request) = self.queued_request.as_mut() {
+            queued_request.promote_trigger(trigger);
+            return Ok(queued_request.id());
+        }
+        if let Some(active_request) = self.active_request.as_mut() {
+            active_request.request.promote_trigger(trigger);
+            return Ok(active_request.request.id());
+        }
         let request_id = self.reserve_request_id()?;
-        let changed_paths = self.take_pending_watch_paths();
-        self.enqueue_request(request_id, trigger, changed_paths);
+        self.queued_request = Some(ScriptBuildRequest::new(request_id, trigger, Vec::new()));
         Ok(request_id)
     }
 
@@ -324,13 +373,23 @@ impl ScriptBuildOrchestrator {
         {
             return Ok(());
         }
+        if self.queued_request.is_some() {
+            let changed_paths = self.take_pending_watch_paths();
+            self.merge_queued_request(ScriptBuildTrigger::Watch, changed_paths);
+            return Ok(());
+        }
         let request_id = self.reserve_request_id()?;
         let changed_paths = self.take_pending_watch_paths();
-        self.enqueue_request(request_id, ScriptBuildTrigger::Watch, changed_paths);
+        self.queued_request = Some(ScriptBuildRequest::new(
+            request_id,
+            ScriptBuildTrigger::Watch,
+            changed_paths,
+        ));
         Ok(())
     }
 
     fn take_pending_watch_paths(&mut self) -> Vec<PathBuf> {
+        self.watch_first_observed_at_ms = None;
         self.watch_deadline_ms = None;
         if self.pending_watch_requires_full_rebuild {
             self.pending_watch_requires_full_rebuild = false;
@@ -363,18 +422,54 @@ impl ScriptBuildOrchestrator {
         Ok(request_id)
     }
 
-    fn enqueue_request(
+    fn merge_queued_request(
         &mut self,
-        request_id: ScriptBuildRequestId,
         trigger: ScriptBuildTrigger,
         changed_paths: Vec<PathBuf>,
-    ) {
-        self.queued_requests
-            .push_back(ScriptBuildRequest::new(request_id, trigger, changed_paths));
+    ) -> ScriptBuildRequestId {
+        let merged_paths = {
+            let queued_request = self
+                .queued_request
+                .as_ref()
+                .expect("a queued request exists before it is merged");
+            merge_incremental_paths(queued_request.changed_paths(), changed_paths)
+        };
+        let queued_request = self
+            .queued_request
+            .as_mut()
+            .expect("a queued request exists before it is merged");
+        queued_request.promote_trigger(trigger);
+        queued_request.replace_changed_paths(merged_paths);
+        queued_request.id()
     }
 
     #[cfg(test)]
     pub(super) fn exhaust_request_ids(&mut self) {
         self.next_request_id = u64::MAX;
     }
+}
+
+fn incremental_paths_fit_budget(paths: &BTreeSet<PathBuf>) -> bool {
+    paths.len() <= MAX_INCREMENTAL_SCRIPT_WATCH_PATHS
+        && paths
+            .iter()
+            .try_fold(0usize, |total, path| {
+                total.checked_add(path.as_os_str().len())
+            })
+            .is_some_and(|total| total <= MAX_INCREMENTAL_SCRIPT_WATCH_PATH_BYTES)
+}
+
+fn merge_incremental_paths(
+    current_paths: &[PathBuf],
+    incoming_paths: Vec<PathBuf>,
+) -> Vec<PathBuf> {
+    if current_paths.is_empty() || incoming_paths.is_empty() {
+        return Vec::new();
+    }
+    let mut merged_paths = current_paths.iter().cloned().collect::<BTreeSet<_>>();
+    merged_paths.extend(incoming_paths);
+    if !incremental_paths_fit_budget(&merged_paths) {
+        return Vec::new();
+    }
+    merged_paths.into_iter().collect()
 }

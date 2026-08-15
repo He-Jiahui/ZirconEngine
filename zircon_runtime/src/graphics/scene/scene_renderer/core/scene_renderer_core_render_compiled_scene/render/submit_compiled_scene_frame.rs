@@ -13,8 +13,10 @@ use crate::core::framework::render::{
 #[cfg(test)]
 use crate::graphics::backend::{read_buffer_f32x4, read_texture_rgba, read_texture_rgba16float_3d};
 use crate::graphics::scene::resources::ResourceStreamer;
+use crate::graphics::scene::scene_renderer::environment::ibl_bake_runtime_writeback::{
+    IblBakeRuntimeGraphWritebackQueue, PreparedIblBakeRuntimeGraphWriteback,
+};
 use crate::graphics::scene::scene_renderer::environment::RealtimeIblPendingSubmission;
-use crate::graphics::scene::scene_renderer::environment::ibl_bake_runtime_writeback::write_ibl_bake_runtime_cache_from_graph_resources;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionRecord, RenderGraphExecutionResources,
 };
@@ -24,6 +26,7 @@ use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::visibility::{
     HzbOcclusionCullReadbackStats, HzbOcclusionIndirectArgsReadbackSummary,
 };
+use crate::graphics::EnvironmentIblBakeReservation;
 #[cfg(test)]
 use crate::rhi::TextureFormat;
 
@@ -38,6 +41,7 @@ pub(super) struct CompiledSceneFrameSubmissionContext<'a> {
     pub(super) graph_resources: &'a mut RenderGraphExecutionResources,
     pub(super) graph_execution_record: &'a mut RenderGraphExecutionRecord,
     pub(super) environment_ibl_bake_request: Option<IblBakeArtifactRequest>,
+    pub(super) environment_ibl_bake_reservation: Option<EnvironmentIblBakeReservation>,
     pub(super) realtime_ibl_submission: Option<RealtimeIblPendingSubmission>,
     pub(super) readback_frame_index: Option<u64>,
 }
@@ -50,18 +54,41 @@ impl SceneRendererCore {
         let CompiledSceneFrameSubmissionContext {
             device,
             queue,
-            command_buffers,
+            mut command_buffers,
             streamer,
             frame,
             graph_resources,
             graph_execution_record,
             environment_ibl_bake_request,
+            environment_ibl_bake_reservation,
             realtime_ibl_submission,
             readback_frame_index,
         } = ctx;
 
+        let prepared_ibl_writeback = prepare_environment_ibl_runtime_cache_writeback(
+            &self.ibl_bake_runtime_writebacks,
+            device,
+            streamer,
+            environment_ibl_bake_request,
+            environment_ibl_bake_reservation,
+            graph_resources,
+        );
+        let (mut prepared_ibl_writeback, environment_ibl_prepare_error) =
+            match prepared_ibl_writeback {
+                Ok(prepared) => (prepared, None),
+                Err(error) => (None, Some(error)),
+            };
+        if let Some(command_buffer) = prepared_ibl_writeback
+            .as_mut()
+            .and_then(PreparedIblBakeRuntimeGraphWriteback::take_command_buffer)
+        {
+            command_buffers.push(command_buffer);
+        }
         debug_assert!(!command_buffers.is_empty());
         queue.submit(command_buffers);
+        if let Some(prepared) = prepared_ibl_writeback {
+            self.ibl_bake_runtime_writebacks.commit_submitted(prepared);
+        }
         if let Some(submission) = realtime_ibl_submission {
             self.realtime_ibl.complete_submission(submission, true);
         }
@@ -107,12 +134,13 @@ impl SceneRendererCore {
                 graph_execution_record,
             );
         }
-        let environment_ibl_writeback_result = attach_environment_ibl_runtime_cache_writeback(
-            device,
-            queue,
-            streamer,
-            environment_ibl_bake_request,
-            graph_resources,
+        let environment_ibl_writeback_result = environment_ibl_prepare_error.map_or_else(
+            || {
+                self.ibl_bake_runtime_writebacks
+                    .poll_completed(device)
+                    .map_err(|error| GraphicsError::Asset(error.to_string()))
+            },
+            Err,
         );
         graph_resources.release_transient_backings_into_pool(&mut self.transient_resource_pool);
         self.transient_resource_pool.end_frame();
@@ -127,32 +155,26 @@ impl SceneRendererCore {
     }
 }
 
-fn attach_environment_ibl_runtime_cache_writeback(
+fn prepare_environment_ibl_runtime_cache_writeback(
+    writebacks: &IblBakeRuntimeGraphWritebackQueue,
     device: &wgpu::Device,
-    queue: &wgpu::Queue,
     streamer: &ResourceStreamer,
     request: Option<IblBakeArtifactRequest>,
+    reservation: Option<EnvironmentIblBakeReservation>,
     graph_resources: &RenderGraphExecutionResources,
-) -> Result<(), GraphicsError> {
+) -> Result<Option<PreparedIblBakeRuntimeGraphWriteback>, GraphicsError> {
+    let Some(reservation) = reservation else {
+        return Ok(None);
+    };
     let Some(request) = request else {
-        return Ok(());
+        return Ok(None);
     };
     let Some(store) = streamer.asset_manager()?.ibl_bake_artifact_cache_store() else {
-        return Ok(());
+        return Ok(None);
     };
-    let dispatch =
-        crate::asset::artifact::resolve_ibl_bake_artifact_runtime_dispatch(&store, &request, &[])
-            .map_err(|error| GraphicsError::Asset(error.to_string()))?;
-    let _report = write_ibl_bake_runtime_cache_from_graph_resources(
-        device,
-        queue,
-        &store,
-        &request,
-        &dispatch,
-        graph_resources,
-    )
-    .map_err(|error| GraphicsError::Asset(error.to_string()))?;
-    Ok(())
+    writebacks
+        .prepare(device, store, request, reservation, graph_resources)
+        .map_err(|error| GraphicsError::Asset(error.to_string()))
 }
 
 #[cfg(test)]
@@ -163,10 +185,10 @@ fn attach_scene_velocity_readback_stats(
     graph_execution_record: &mut RenderGraphExecutionRecord,
 ) {
     let resource_name = PostProcessGraphResourceNames::SCENE_VELOCITY;
-    let Some(texture) = graph_resources.owned_texture(resource_name) else {
+    let Some(texture) = graph_resources.physical_texture(resource_name) else {
         return;
     };
-    let Some(desc) = graph_resources.owned_texture_desc(resource_name) else {
+    let Some(desc) = graph_resources.physical_texture_desc(resource_name) else {
         return;
     };
     if desc.format != TextureFormat::Rg16Float || desc.sample_count != 1 || desc.depth != 1 {
@@ -633,6 +655,25 @@ mod submission_order_tests {
         assert!(writeback_result < release);
         assert!(release < map_propagation);
         assert!(map_propagation < writeback_propagation);
+    }
+
+    #[test]
+    fn ibl_runtime_writeback_joins_the_frame_submit_without_waiting_for_gpu_idle() {
+        let source = include_str!("submit_compiled_scene_frame.rs");
+        let prepare = source
+            .find("prepare_environment_ibl_runtime_cache_writeback")
+            .unwrap_or_default();
+        let submit = source
+            .find("queue.submit(command_buffers)")
+            .unwrap_or_default();
+        let begin_map = source
+            .find(".commit_submitted(prepared)")
+            .unwrap_or_default();
+
+        assert!(prepare < submit);
+        assert!(submit < begin_map);
+        assert!(!source.contains("wait_indefinitely"));
+        assert!(!source.contains("queue.submit(["));
     }
 
     #[test]

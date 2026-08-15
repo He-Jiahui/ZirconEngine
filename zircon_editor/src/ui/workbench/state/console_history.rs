@@ -7,6 +7,7 @@ use crate::ui::workbench::snapshot::{
     EditorConsoleMessageLevel,
 };
 
+#[derive(Clone)]
 pub(in crate::ui::workbench) struct EditorConsoleHistory {
     lines: VecDeque<EditorConsoleHistoryLine>,
     logical_line_count: usize,
@@ -14,6 +15,7 @@ pub(in crate::ui::workbench) struct EditorConsoleHistory {
     filter: ConsoleMessageFilter,
 }
 
+#[derive(Clone)]
 struct EditorConsoleHistoryLine {
     message: String,
     level: EditorConsoleMessageLevel,

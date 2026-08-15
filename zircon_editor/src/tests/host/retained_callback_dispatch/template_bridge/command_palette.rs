@@ -121,11 +121,9 @@ fn workbench_command_palette_open_state_populates_visible_overlay() {
         control_string_list_attribute(&bridge, "filtered_commands"),
         vec!["file.project.save"]
     );
-    assert!(
-        bridge
-            .close_command_palette()
-            .expect("command palette should close")
-    );
+    assert!(bridge
+        .close_command_palette()
+        .expect("command palette should close"));
     assert!(!bridge.command_palette_open());
     assert_eq!(
         control_string_attribute(&bridge, "visibility").as_deref(),

@@ -204,6 +204,24 @@ fn blend_space_bottom_diagnostics_compose_shared_relative_components() {
             "missing shared sample-weights contract: {required}"
         );
     }
+    let progress_source = std::fs::read_to_string(manifest.join(
+        "assets/ui/editor/components/workbench/primitives/feedback/\
+             workbench_progress_bar.zui",
+    ))
+    .expect("shared workbench progress primitive should be readable");
+    for required in [
+        "track_color = \"$editor.surface.recessed\"",
+        "fill_color = \"$editor.accent\"",
+        "disabled_track_color = \"$editor.surface.disabled\"",
+        "disabled_fill_color = \"$editor.text.disabled\"",
+        "warning_color = \"$editor.semantic.warning\"",
+        "error_color = \"$editor.semantic.error\"",
+    ] {
+        assert!(
+            progress_source.contains(required),
+            "Workbench Progress must consume its shared visual token: {required}"
+        );
+    }
     for required in [
         "[components.WorkbenchValidationLog]",
         "component = \"WorkbenchDiagnosticRow\"",

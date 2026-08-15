@@ -1,4 +1,4 @@
-use super::types::{change, click, submit, ExtensionBindingSpec};
+use super::types::{ExtensionBindingSpec, change, click, submit};
 
 pub(super) const ONLINE_SESSIONS_BINDINGS: &[ExtensionBindingSpec] = &[
     click("LobbyEditorOpen", "workbench.extension.lobby_editor.open"),

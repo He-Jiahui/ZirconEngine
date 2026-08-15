@@ -135,7 +135,7 @@ mod tests {
 
     use crate::core::plugin::{EditorPluginCatalog, EditorPluginDescriptor};
 
-    use super::{EditorPluginCatalogAdmissionError, validate_catalog_admission};
+    use super::{validate_catalog_admission, EditorPluginCatalogAdmissionError};
 
     #[test]
     fn rejects_a_cycle_between_declared_catalog_packages() {
@@ -206,12 +206,14 @@ mod tests {
     fn catalog_with_dependencies(dependencies: &[(&str, &str)]) -> EditorPluginCatalog {
         let descriptors = dependencies
             .iter()
-            .map(|(package_id, _)| EditorPluginDescriptor::new(*package_id, package_id, package_id))
+            .map(|(package_id, _)| {
+                EditorPluginDescriptor::new(*package_id, *package_id, *package_id)
+            })
             .collect::<Vec<_>>();
         let manifests = dependencies
             .iter()
             .map(|(package_id, dependency_id)| {
-                let mut manifest = PluginPackageManifest::new(*package_id, package_id);
+                let mut manifest = PluginPackageManifest::new(*package_id, *package_id);
                 manifest
                     .dependencies
                     .push(PluginDependencyManifest::new(*dependency_id, true));

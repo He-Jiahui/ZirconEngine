@@ -12,9 +12,9 @@ pub(super) use crate::core::editor_event::{
 };
 pub(super) use crate::core::project::{RecentProjectEntry, RecentProjectValidation};
 pub(super) use crate::scene::viewport::{DisplayMode, ViewOrientation};
+pub(super) use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorHostEventController;
 pub(super) use crate::ui::host::EditorManager;
-pub(super) use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
 pub(super) use crate::ui::retained_host::primitives::PhysicalSize;
 pub(super) use crate::ui::retained_host::{PaneSurfaceHostContext, UiHostContext};
 pub(super) use crate::ui::workbench::autolayout::ShellFrame;
@@ -30,7 +30,7 @@ pub(super) use winit::keyboard::{
 };
 pub(super) use zircon_runtime::core::CoreRuntime;
 pub(super) use zircon_runtime::foundation::{
-    FOUNDATION_MODULE_NAME, module_descriptor as foundation_module_descriptor,
+    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 pub(super) use zircon_runtime::scene::DefaultLevelManager;
 pub(super) use zircon_runtime_interface::math::UVec2;
@@ -50,6 +50,27 @@ pub(super) fn pane_surface_host(ui: &UiHostWindow) -> PaneSurfaceHostContext<'_>
 
 pub(super) fn host_context(ui: &UiHostWindow) -> UiHostContext<'_> {
     ui.global::<UiHostContext>()
+}
+
+#[test]
+fn child_window_harness_reuses_the_manager_context_for_the_authoring_world() {
+    let source = include_str!("support.rs");
+    let constructor_start = concat!("pub(super) fn ", "new(prefix: &str)");
+    let constructor_end = concat!("pub(super) fn ", "detach_view_to_child_window");
+    let constructor = source
+        .split(constructor_start)
+        .nth(1)
+        .and_then(|source| source.split(constructor_end).next())
+        .expect("child-window harness constructor must remain present");
+
+    assert!(
+        constructor.contains("EditorState::with_default_selection_with_context("),
+        "child-window state must share the controller's stable gateway context"
+    );
+    assert!(
+        constructor.contains("manager.context().clone()"),
+        "child-window state must reuse the manager context instead of creating a detached session"
+    );
 }
 
 impl ChildWindowHostHarness {
@@ -73,14 +94,16 @@ impl ChildWindowHostHarness {
             .show()
             .expect("root workbench shell should show in the test backend");
 
-        let mut state = EditorState::with_default_selection(
-            DefaultLevelManager::default().create_default_level(),
-            UVec2::new(1280, 720),
-        );
-        state.mark_project_open();
         let manager = core
             .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
             .unwrap();
+        // Mirror production startup: the shell and controller share one stable edit gateway.
+        let mut state = EditorState::with_default_selection_with_context(
+            DefaultLevelManager::default().create_default_level(),
+            UVec2::new(1280, 720),
+            manager.context().clone(),
+        );
+        state.mark_project_open();
         let host = Rc::new(RefCell::new(
             RetainedEditorHost::new_for_test(core.handle(), root_ui.clone_strong())
                 .map(|mut host| {

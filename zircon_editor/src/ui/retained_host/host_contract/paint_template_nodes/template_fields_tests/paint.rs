@@ -158,12 +158,11 @@ fn search_workbench_field_prefers_shell_search_asset_pixels() {
     let metrics = workbench_field_metrics();
     assert_eq!(icon.frame.width, metrics.search_icon_size);
     assert_eq!(icon.frame.height, metrics.search_icon_size);
-    assert!(
-        icon.image_pixels
-            .as_ref()
-            .map(|image| !image.resource_key.starts_with("missing-icon:"))
-            .unwrap_or(false)
-    );
+    assert!(icon
+        .image_pixels
+        .as_ref()
+        .map(|image| !image.resource_key.starts_with("missing-icon:"))
+        .unwrap_or(false));
 }
 
 #[test]
@@ -171,6 +170,29 @@ fn search_workbench_field_paints_a_clear_action_only_for_a_nonempty_query() {
     let mut search = positioned_field_node("SearchEdited", "material", 12.0, 10.0, 184.0, 28.0);
     search.component_role = "search-field".into();
     search.has_clear_action = true;
+    let rect = FrameRect {
+        x: 12.0,
+        y: 10.0,
+        width: 184.0,
+        height: 28.0,
+    };
+    let mut commands = Vec::new();
+    assert!(push_field_commands(
+        &mut commands,
+        &search,
+        &rect,
+        &rect,
+        0,
+        1.0,
+    ));
+    assert_eq!(
+        commands
+            .iter()
+            .filter(|command| command.image_pixels.is_some())
+            .count(),
+        2,
+        "a nonempty search must paint both search and clear SVG assets"
+    );
     let bytes = paint_template_nodes_for_test(220, 48, model_rc(vec![search]));
 
     let mut empty_search = positioned_field_node("SearchEdited", "", 12.0, 10.0, 184.0, 28.0);

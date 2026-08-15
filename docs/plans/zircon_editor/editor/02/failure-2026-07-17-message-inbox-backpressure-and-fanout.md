@@ -55,7 +55,7 @@ tests:
 
 ## 修复结果与回传
 
-Open state: `源码修复完成，等待受管 Cargo、独立复审与 upward failure return`。
+Open state: `2026-08-05 forward repair source static green / independent second review 0/0/0 / managed Cargo pending`。
 
 - 已将每次 publication 的 delivery payload 收敛为单一 `Arc`，subscriber fanout 只复制共享句柄。
 - 已按 payload/protocol 建立 `Lossless / Latest / Bounded` retention；transaction/document terminal 不丢弃，latest 按语义 key 合并，custom bounded 淘汰可观测。
@@ -70,5 +70,7 @@ Open state: `源码修复完成，等待受管 Cargo、独立复审与 upward fa
 | 时间 | 状态 | 完成项目 | 证据与待办 |
 |---|---|---|---|
 | 2026-07-22 | `source_complete_static_green_validation_pending` | shared immutable delivery、sequence-keyed bounded inbox、lane indexes、2 MiB/16 MiB logical byte budgets、checked identity、pressure metrics、行为回归及 1/5/100 mixed-backlog 性能门源码完成；Editor02 exact16 业务清单内 4 个 consumer 已硬切 Result registration，另 3 个依赖归属 Editor09/14。 | 独立首审 0/3/2、第二轮 0/3/1、第三轮 0/0/1，最终独立复核 0/0/0；第二轮 RED/GREEN 修复涵盖 same-key atomic replacement、dirty-view bytes、allocator metadata slope 与过时债务措辞，第三轮唯一 Minor 已关闭。snapshot687/copy750454 的旧 12/12 输入及 job4edbb 只作 external-sibling 0-test failure 证据；Coordinator01 failure 保持 open。需 fresh exact16 snapshot/copy、Rust/性能数字后才能回传。 |
+| 2026-08-05 CST | `source_forward_repair_static_green / independent_second_review_green / managed_validation_pending` | Shared bus 将订阅/sequence 元数据与每 subscriber inbox 拆分：fanout plan 在 metadata lock 内冻结，enqueue 在 inbox-local lock 外执行；lossless targets 按 subscriber ID 取得全部锁后再 all-or-nothing admission。latest/bounded lane order 改为 sequence-keyed BTree index，out-of-order completion 保留最高 sequence，不再发生 VecDeque 中段移位。request 直接复用 enqueue delivery 的 Arc payload。 | 新回归覆盖 out-of-order latest/bounded sequence 和 shared request payload identity；supporting Python capacity guard 已从废弃的 `>= capacity` 失败分支前向硬切为 `can_enqueue_lossless` 的 `< capacity` 准入与 enqueue 委托，先前 1/7 RED 后当前 `7/7 GREEN`。`rustfmt`、scoped diff 与 failure graph 通过，独立二审 `0/0/0`。受管 Cargo、paused 1/5/100 fanout 与 upward failure return 仍待完成，failure 保持 open。 |
+| 2026-08-05 CST | `source_forward_repair_static_green / independent_second_review_green / managed_validation_queued` | 当前 source manifest 已封存 `bus/inbox/retention/shared/delivery` 与 fanout benchmark fixture，1/5/100 paused-subscriber performance gate 由 coordinator 执行。 | Ticket `57ec83d505164a79a43fca34603a2fc8` 已收到 queued receipt；不轮询、不以排队状态推断性能数字或通过结论，failure 保持 open。 |
 
 2026-07-22逐文件复核确认O(1) lane-depth、`latest_by_key` 与 sequence map 止损成立，但failure仍open：global bus mutex仍包全部inbox和fanout，bounded-lane order 的中段 removal 仍有线性移位，request仍先 clone Custom JSON；PERF-MVP-019 的锁粒度与 request ownership 后续优化尚未完成。

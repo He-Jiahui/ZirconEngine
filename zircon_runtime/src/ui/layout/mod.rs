@@ -9,6 +9,7 @@ pub use constraints::solve_axis_constraints;
 pub(crate) use pass::{
     compute_incremental_layout_tree_with_text_measure_cache,
     compute_layout_tree_with_text_measure_cache,
+    compute_layout_tree_with_text_measure_cache_and_slot_index, UiLayoutSlotIndex,
 };
 pub use pass::{
     compute_layout_tree, ui_layout_pass_stage_names, UiLayoutPassStage, UI_LAYOUT_PASS_ORDER,

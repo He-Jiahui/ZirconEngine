@@ -1,9 +1,9 @@
 use std::rc::Rc;
 
 use crate::ui::retained_host::{
-    TemplatePaneNodeData, TemplatePaneOptionData,
     primitives::{ModelRc, SharedString},
     ui::pane_data_conversion::NotificationCenterMetadata,
+    TemplatePaneNodeData, TemplatePaneOptionData,
 };
 
 pub(super) struct ReusedNotificationRows {

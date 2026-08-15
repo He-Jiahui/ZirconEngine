@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
 
 use super::super::support::*;
-use crate::ui::template_runtime::EditorUiHostRuntime;
 use crate::ui::template_runtime::builtin::{
     SCENE_VIEWPORT_TOOLBAR_DOCUMENT_ID, UI_HOST_WINDOW_DOCUMENT_ID,
 };
+use crate::ui::template_runtime::EditorUiHostRuntime;
 use zircon_runtime::ui::{
     dispatch::UiPointerDispatcher,
-    surface::{UiSurface, hit_test_surface_frame},
+    surface::{hit_test_surface_frame, UiSurface},
 };
 use zircon_runtime_interface::ui::{
     dispatch::UiPointerDispatchEffect,

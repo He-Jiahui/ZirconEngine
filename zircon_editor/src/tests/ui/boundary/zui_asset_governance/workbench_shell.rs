@@ -1,4 +1,6 @@
 use super::support::{collect_zui_files, editor_asset_root, resource_locator_for_path};
+use toml::Value;
+use zircon_runtime_interface::ui::v2::UiV2AssetDocument;
 
 const L4_SHELL_STRUCTURAL_COMPONENTS: &[&str] = &[
     "Container",
@@ -150,7 +152,7 @@ const L4_SHELL_TOPOLOGY_SNAPSHOTS: &[L4ShellTopologySnapshot] = &[
         root_node: "top_toolbar",
         root_component: "VerticalGroup",
         root_control_id: "WorkbenchWindowTopToolbar",
-        node_count: 39,
+        node_count: 45,
         root_children: &["toolbar_command_row", "toolbar_module_tabs"],
     },
     L4ShellTopologySnapshot {
@@ -295,4 +297,308 @@ fn l4_surfaces_keep_runtime_region_topology_snapshot() {
         offenders.is_empty(),
         "L4 Workbench shell topology must stay stable across primitive-composition refactors: {offenders:#?}"
     );
+}
+
+#[test]
+fn workbench_shell_uses_tokenized_viewport_first_region_constraints() {
+    let editor_root = editor_asset_root();
+    let window = super::support::load_zui_document(
+        &editor_root.join("ui/editor/windows/workbench_window.zui"),
+    );
+    let main_band = super::support::load_zui_document(
+        &editor_root.join("ui/editor/components/workbench/shell/workbench_main_band.zui"),
+    );
+    let component_drawer = super::support::load_zui_document(
+        &editor_root.join("ui/editor/components/workbench/shell/workbench_component_drawer.zui"),
+    );
+    let status_bar = super::support::load_zui_document(
+        &editor_root.join("ui/editor/components/workbench/shell/workbench_status_bar.zui"),
+    );
+    let scene_tree = super::support::load_zui_document(
+        &editor_root.join("ui/editor/components/workbench/shell/workbench_scene_tree_panel.zui"),
+    );
+    let viewport = super::support::load_zui_document(
+        &editor_root.join("ui/editor/components/workbench/shell/workbench_viewport_panel.zui"),
+    );
+
+    assert_fixed_token_axis(
+        node_axis(window, "status_bar", "height"),
+        "$editor.chrome.status_bar.height",
+    );
+    assert_stretch_axis(node_axis(window, "main_band", "height"), 100, 4.0);
+    assert_auto_slot(child_linear_slot(window, "window_content", "top_toolbar"));
+    assert_linear_slot(
+        child_linear_slot(window, "window_content", "main_band"),
+        "Stretch",
+        4.0,
+    );
+    assert_auto_slot(child_linear_slot(window, "window_content", "status_bar"));
+    let bottom_drawer = node_axis(window, "component_drawer_shell", "height");
+    assert_eq!(
+        token_axis_value(bottom_drawer, "min"),
+        "$editor.chrome.panel_header.height"
+    );
+    assert_eq!(
+        token_axis_value(bottom_drawer, "preferred"),
+        "$editor.density.bottom_output_height"
+    );
+    assert_eq!(
+        token_axis_value(bottom_drawer, "max"),
+        "$editor.density.bottom_output_height"
+    );
+    assert_eq!(axis_string(bottom_drawer, "stretch"), "Fixed");
+    assert_eq!(axis_i64(bottom_drawer, "priority"), 20);
+    assert_linear_slot(
+        child_linear_slot(window, "window_content", "component_drawer_shell"),
+        "StretchContent",
+        1.0,
+    );
+
+    assert_eq!(
+        axis_string(
+            node_axis(component_drawer, "component_drawer", "height"),
+            "stretch"
+        ),
+        "Stretch"
+    );
+    assert_fixed_token_axis(
+        node_axis(component_drawer, "drawer_tabs", "height"),
+        "$editor.chrome.panel_header.height",
+    );
+    for tab in ["drawer_tab_components", "drawer_tab_console"] {
+        assert_fixed_token_axis(
+            node_axis(component_drawer, tab, "height"),
+            "$editor.chrome.panel_header.height",
+        );
+    }
+    assert_fixed_token_axis(
+        node_axis(status_bar, "status_bar", "height"),
+        "$editor.chrome.status_bar.height",
+    );
+    for control in [
+        "status_task_label",
+        "status_grid",
+        "status_snap",
+        "status_snap_icon",
+        "status_world_icon",
+        "status_target_icon",
+        "status_zoom",
+    ] {
+        assert_fixed_token_axis(
+            node_axis(status_bar, control, "height"),
+            "$editor.chrome.status_bar.height",
+        );
+    }
+    assert_eq!(
+        axis_string(
+            node_axis(scene_tree, "scene_tree_panel", "width"),
+            "stretch"
+        ),
+        "Stretch"
+    );
+    for control in ["scene_tabs", "scene_tab_scene", "scene_tab_layers"] {
+        assert_fixed_token_axis(
+            node_axis(scene_tree, control, "height"),
+            "$editor.chrome.panel_header.height",
+        );
+    }
+    assert_fixed_token_axis(
+        node_axis(viewport, "document_tabs", "height"),
+        "$editor.chrome.document_header.height",
+    );
+    for control in [
+        "viewport_toolbar",
+        "viewport_mode",
+        "viewport_lit",
+        "viewport_angle",
+        "viewport_speed",
+    ] {
+        assert_fixed_token_axis(
+            node_axis(viewport, control, "height"),
+            "$editor.chrome.viewport_toolbar.height",
+        );
+    }
+
+    let left_drawer = node_axis(main_band, "left_drawer_shell", "width");
+    assert_fixed_token_axis(
+        node_axis(main_band, "activity_rail", "width"),
+        "$editor.chrome.activity_rail.width",
+    );
+    assert_eq!(
+        axis_i64(node_axis(main_band, "activity_rail", "width"), "priority"),
+        80
+    );
+    assert_auto_slot(child_linear_slot(
+        main_band,
+        "scene_workspace",
+        "activity_rail",
+    ));
+    assert_eq!(
+        token_axis_value(left_drawer, "min"),
+        "$editor.density.compact_side_min_width"
+    );
+    assert_eq!(
+        token_axis_value(left_drawer, "preferred"),
+        "$editor.density.left_drawer_width"
+    );
+    assert_eq!(
+        token_axis_value(left_drawer, "max"),
+        "$editor.density.compact_left_drawer_max_width"
+    );
+    assert_eq!(axis_string(left_drawer, "stretch"), "Fixed");
+    assert_eq!(axis_i64(left_drawer, "priority"), 50);
+    assert_linear_slot(
+        child_linear_slot(main_band, "scene_workspace", "left_drawer_shell"),
+        "StretchContent",
+        1.0,
+    );
+
+    let viewport = node_axis(main_band, "viewport_panel", "width");
+    assert_stretch_axis(viewport, 100, 4.0);
+    assert_linear_slot(
+        child_linear_slot(main_band, "scene_workspace", "viewport_panel"),
+        "Stretch",
+        4.0,
+    );
+
+    let right_drawer = node_axis(main_band, "right_drawer_shell", "width");
+    assert_eq!(
+        token_axis_value(right_drawer, "min"),
+        "$editor.density.compact_side_min_width"
+    );
+    assert_eq!(
+        token_axis_value(right_drawer, "preferred"),
+        "$editor.density.right_drawer_width"
+    );
+    assert_eq!(
+        token_axis_value(right_drawer, "max"),
+        "$editor.density.right_drawer_width"
+    );
+    assert_eq!(axis_string(right_drawer, "stretch"), "Fixed");
+    assert_eq!(axis_i64(right_drawer, "priority"), 40);
+    assert_linear_slot(
+        child_linear_slot(main_band, "scene_workspace", "right_drawer_shell"),
+        "StretchContent",
+        1.0,
+    );
+
+    assert!(
+        axis_i64(viewport, "priority") > axis_i64(left_drawer, "priority")
+            && axis_i64(left_drawer, "priority") > axis_i64(right_drawer, "priority"),
+        "viewport must retain layout budget before primary and auxiliary drawers"
+    );
+}
+
+#[test]
+fn workbench_toolbar_groups_use_content_sized_priority_constraints() {
+    let editor_root = editor_asset_root();
+    let toolbar = super::support::load_zui_document(
+        &editor_root.join("ui/editor/components/workbench/shell/workbench_top_toolbar.zui"),
+    );
+
+    for (node_id, priority) in [
+        ("toolbar_file_group", 90),
+        ("toolbar_module_commands", 60),
+        ("toolbar_tool_group", 40),
+        ("toolbar_run_group", 100),
+        ("toolbar_layout_group", 20),
+    ] {
+        let width = node_axis(toolbar, node_id, "width");
+        let min = axis_f64(width, "min");
+        let preferred = axis_f64(width, "preferred");
+        let max = axis_f64(width, "max");
+        assert_eq!(axis_string(width, "stretch"), "Stretch");
+        assert_eq!(axis_i64(width, "priority"), priority);
+        assert!(
+            min <= preferred && preferred <= max,
+            "toolbar group `{node_id}` should declare ordered min/preferred/max constraints"
+        );
+        assert!(
+            min < preferred || preferred < max,
+            "toolbar group `{node_id}` must not pin its complete content width"
+        );
+
+        let slot = child_linear_slot(toolbar, "toolbar_command_row", node_id);
+        assert_eq!(axis_string(slot, "rule"), "StretchContent");
+        assert_eq!(axis_f64(slot, "value"), 1.0);
+        assert_eq!(axis_f64(slot, "shrink_value"), 1.0);
+    }
+}
+
+fn node_axis<'a>(document: &'a UiV2AssetDocument, node_id: &str, axis: &str) -> &'a toml::Table {
+    document.nodes[node_id]
+        .layout
+        .as_ref()
+        .and_then(|layout| layout.get(axis))
+        .and_then(Value::as_table)
+        .unwrap_or_else(|| panic!("node `{node_id}` should declare layout.{axis}"))
+}
+
+fn child_linear_slot<'a>(
+    document: &'a UiV2AssetDocument,
+    parent_id: &str,
+    child_id: &str,
+) -> &'a toml::Table {
+    document.nodes[parent_id]
+        .children
+        .iter()
+        .find(|child| child.node == child_id)
+        .unwrap_or_else(|| panic!("node `{parent_id}` should mount child `{child_id}`"))
+        .slot
+        .get("layout")
+        .and_then(Value::as_table)
+        .and_then(|layout| layout.get("linear_size"))
+        .and_then(Value::as_table)
+        .unwrap_or_else(|| {
+            panic!("node `{parent_id}` child `{child_id}` should declare slot.layout.linear_size")
+        })
+}
+
+fn assert_linear_slot(linear_size: &toml::Table, rule: &str, value: f64) {
+    assert_eq!(axis_string(linear_size, "rule"), rule);
+    assert_eq!(axis_f64(linear_size, "value"), value);
+    assert!(!linear_size.contains_key("min") && !linear_size.contains_key("max"));
+}
+
+fn assert_auto_slot(linear_size: &toml::Table) {
+    assert_eq!(axis_string(linear_size, "rule"), "Auto");
+    assert_eq!(axis_f64(linear_size, "shrink_value"), 0.0);
+    assert!(!linear_size.contains_key("min") && !linear_size.contains_key("max"));
+}
+
+fn assert_fixed_token_axis(axis: &toml::Table, token: &str) {
+    for key in ["min", "preferred", "max"] {
+        assert_eq!(token_axis_value(axis, key), token);
+    }
+    assert_eq!(axis_string(axis, "stretch"), "Fixed");
+}
+
+fn assert_stretch_axis(axis: &toml::Table, priority: i64, weight: f64) {
+    assert_eq!(axis_string(axis, "stretch"), "Stretch");
+    assert_eq!(axis_i64(axis, "priority"), priority);
+    assert_eq!(axis_f64(axis, "weight"), weight);
+}
+
+fn token_axis_value<'a>(axis: &'a toml::Table, key: &str) -> &'a str {
+    axis.get(key)
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| panic!("axis should declare token-valued `{key}`"))
+}
+
+fn axis_string<'a>(axis: &'a toml::Table, key: &str) -> &'a str {
+    axis.get(key)
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| panic!("axis should declare string `{key}`"))
+}
+
+fn axis_i64(axis: &toml::Table, key: &str) -> i64 {
+    axis.get(key)
+        .and_then(Value::as_integer)
+        .unwrap_or_else(|| panic!("axis should declare integer `{key}`"))
+}
+
+fn axis_f64(axis: &toml::Table, key: &str) -> f64 {
+    axis.get(key)
+        .and_then(Value::as_float)
+        .unwrap_or_else(|| panic!("axis should declare float `{key}`"))
 }

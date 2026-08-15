@@ -62,6 +62,28 @@ class EditorWorldSyncWatchMapContractTests(unittest.TestCase):
         ):
             self.assertIn(phrase, source)
 
+    def test_live_runtime_token_collision_preserves_existing_editor_binding(self) -> None:
+        pump = self.read("zircon_editor/src/core/sync/pump.rs")
+        regressions = self.read("zircon_editor/src/core/sync/pump/tests.rs")
+        watch_view = pump.split("pub fn watch_view", 1)[1].split(
+            "if let Err(error) = self.watches.bind", 1
+        )[0]
+        returned_token_path = watch_view.split(
+            "let token = gateway.watch_world(registration.clone())?;", 1
+        )[1]
+
+        self.assertIn("reject_live_watch_token", pump)
+        self.assertIn("self.reject_live_watch_token(token)?;", watch_view)
+        self.assertLess(
+            returned_token_path.index("self.synchronize_gateway_generation(gateway);"),
+            returned_token_path.index("self.reject_live_watch_token(token)?;"),
+        )
+        self.assertNotIn("unwatch_world", watch_view)
+        self.assertNotIn("TokenCollisionCleanup", pump)
+        self.assertIn(
+            "live_token_collision_preserves_the_existing_editor_binding", regressions
+        )
+
     def test_public_integration_gate_avoids_unrelated_lib_test_modules(self) -> None:
         source = self.read("zircon_editor/tests/editor_world_sync_watch_map.rs")
         self.assertIn(

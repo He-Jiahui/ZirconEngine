@@ -76,8 +76,11 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
         manager_source = (
             REPO_ROOT / "zircon_runtime/src/core/framework/animation/manager.rs"
         ).read_text(encoding="utf-8")
-        runtime_sequence_owner_source = (
+        runtime_sequence_apply_owner_source = (
             REPO_ROOT / "zircon_runtime/src/animation/sequence/apply.rs"
+        ).read_text(encoding="utf-8")
+        runtime_sequence_compiled_owner_source = (
+            REPO_ROOT / "zircon_runtime/src/animation/sequence/compiled.rs"
         ).read_text(encoding="utf-8")
         plugin_sequence_source = (
             REPO_ROOT
@@ -86,9 +89,17 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
 
         self.assertNotIn("crate::scene", manager_source)
         self.assertNotIn("apply_sequence_to_world", manager_source)
-        self.assertIn("pub fn apply_sequence_to_world", runtime_sequence_owner_source)
-        self.assertIn("crate::apply_sequence_to_world", plugin_sequence_source)
-        self.assertNotIn("crate::sequence::apply_sequence_to_world", plugin_sequence_source)
+        self.assertIn(
+            "pub fn apply_sequence_to_world", runtime_sequence_apply_owner_source
+        )
+        for compiled_api in (
+            "pub fn compile_sequence_for_world",
+            "pub fn apply_compiled_sequence_to_world",
+        ):
+            self.assertIn(compiled_api, runtime_sequence_compiled_owner_source)
+        self.assertIn("compile_sequence_for_world", plugin_sequence_source)
+        self.assertIn("apply_compiled_sequence_to_world", plugin_sequence_source)
+        self.assertNotIn("crate::sequence::", plugin_sequence_source)
 
     def test_navigation_gizmo_contract_does_not_project_nav_mesh_assets(self) -> None:
         gizmo_source = (
@@ -399,15 +410,36 @@ class Frameworks05LayerDirectionTests(Frameworks05ModuleIdentityChecks, unittest
         self.assertIn("register_package_asset_roots", manager_source)
         self.assertIn("register_package_roots", registry_source)
 
-    def test_scene_runtime_hooks_are_owned_and_stored_by_scene(self) -> None:
-        scene_owner = REPO_ROOT / "zircon_runtime/src/scene/runtime_hook/mod.rs"
-        retired_owner = REPO_ROOT / "zircon_runtime/src/plugin/scene_hook/mod.rs"
+    def test_scene_runtime_hooks_are_replaced_by_scheduled_runtime_systems(self) -> None:
+        retired_paths = (
+            REPO_ROOT / "zircon_runtime/src/scene/runtime_hook",
+            REPO_ROOT / "zircon_runtime/src/plugin/scene_hook",
+            REPO_ROOT / "zircon_runtime/src/script/vm/scene_hook.rs",
+        )
+        script_system = (
+            REPO_ROOT / "zircon_runtime/src/script/vm/scene_system.rs"
+        ).read_text(encoding="utf-8")
+        vm_plugin = (
+            REPO_ROOT / "zircon_plugins/zr_vm_language/runtime/src/plugin.rs"
+        ).read_text(encoding="utf-8")
         world_driver = (
             REPO_ROOT / "zircon_runtime/src/scene/module/world_driver.rs"
         ).read_text(encoding="utf-8")
-        self.assertTrue(scene_owner.is_file())
-        self.assertFalse(retired_owner.exists())
-        self.assertIn("SceneRuntimeHookSet", world_driver)
+        sdk_registration = (
+            REPO_ROOT / "zircon_plugins/plugin_sdk/src/registration.rs"
+        ).read_text(encoding="utf-8")
+        for retired_path in retired_paths:
+            self.assertFalse(retired_path.exists())
+        self.assertIn("pub struct ScriptSceneRuntimeSystem", script_system)
+        self.assertIn("pub fn run(&self, context: RuntimeSceneSystemContext", script_system)
+        self.assertNotIn("crate::plugin", script_system)
+        self.assertNotIn("register_script_scene_runtime_system", script_system)
+        self.assertIn("ScriptSceneRuntimeSystem::fixed_update()", vm_plugin)
+        self.assertIn("ScriptSceneRuntimeSystem::update()", vm_plugin)
+        self.assertIn(".runtime_scene_system(id, stage", vm_plugin)
+        self.assertNotIn("SceneRuntimeHook", world_driver)
+        self.assertNotIn("scene_hook", world_driver)
+        self.assertNotIn("scene_hook", sdk_registration)
 
         for path in (REPO_ROOT / "zircon_runtime/src/core/runtime").rglob("*.rs"):
             source = path.read_text(encoding="utf-8")

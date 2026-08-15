@@ -1,6 +1,7 @@
 use super::{
-    HostClosePromptData, HostMenuStateData, HostNativeFloatingWindowSurfaceData,
-    HostPageOverflowMenuStateData, HostPaneInteractionStateData, HostTextInputFocusData,
+    HostBottomDockSurfaceData, HostClosePromptData, HostMenuStateData,
+    HostNativeFloatingWindowSurfaceData, HostPageOverflowMenuStateData,
+    HostPaneInteractionStateData, HostSideDockSurfaceData, HostTextInputFocusData,
     HostViewportImageData, HostWindowLayoutData, HostWindowSceneData, HostWindowShellData,
     TemplatePaneNodeData,
 };
@@ -22,4 +23,10 @@ pub(crate) struct HostWindowPresentationData {
     /// from root template overlays so the shell cannot regress into a PNG-like overlay.
     pub workbench_window_nodes: ModelRc<TemplatePaneNodeData>,
     pub native_floating_surface_data: HostNativeFloatingWindowSurfaceData,
+}
+
+pub(crate) enum HostDockPresentationPatch {
+    Left(HostSideDockSurfaceData),
+    Right(HostSideDockSurfaceData),
+    Bottom(HostBottomDockSurfaceData),
 }

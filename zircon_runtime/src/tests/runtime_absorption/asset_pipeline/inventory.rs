@@ -23,6 +23,7 @@ pub(super) const EXPECTED_RUNTIME_04_SOURCE_FILES: &[&str] = &[
     "src/asset/artifact/store.rs",
     "src/asset/module.rs",
     "src/core/resource/manager/registry_ops.rs",
+    "src/core/resource/manager/commit.rs",
     "../zircon_runtime_interface/src/resource/resource_record.rs",
 ];
 
@@ -46,7 +47,9 @@ pub(super) const EXPECTED_RUNTIME_04_GUARD_FILES: &[&str] = &[
     "src/tests/runtime_absorption/asset_worker_policy.rs",
     "src/tests/runtime_absorption/asset_worker_policy/worker_pool.rs",
     "src/tests/runtime_absorption/asset_pipeline.rs",
+    "src/tests/runtime_absorption/asset_pipeline/cargo_gate.rs",
     "src/tests/runtime_absorption/asset_pipeline/mirror_docs.rs",
+    "src/tests/runtime_absorption/asset_pipeline/split_layout.rs",
 ];
 
 pub(super) const EXPECTED_RUNTIME_04_GUARD_ANCHORS: &[&str] = &[
@@ -114,7 +117,7 @@ pub(super) const RUNTIME_11_SHARED_COMPLETION_TEST_ANCHORS: &[&str] =
 
 pub(super) const ASSET_PIPELINE_MIRROR_DOC_ANCHORS: &[&str] = &[
     "asset_pipeline_boundary",
-    "expected_source_file_count = 25",
+    "expected_source_file_count = 26",
     "expected_guard_file_count = 22",
     "worker_diagnostic_count = 7",
     "expected_worker_diagnostic_count = 7",

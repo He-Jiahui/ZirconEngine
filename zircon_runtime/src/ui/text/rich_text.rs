@@ -1,11 +1,11 @@
 use crate::text::font::shared_font_database_generation;
 use crate::text::layout::{RichTextLayoutRun, RichTextLayoutSource};
 use crate::text::{
+    build_resolved_text_glyph_artifact, register_compiled_rich_text_artifact,
+    register_resolved_text_glyph_artifact, resolve_compiled_rich_text_artifact,
+    resolve_resolved_text_glyph_artifact, rich::parser_registry::compile_rich_text,
     CompiledRichText, InlineObjectRef, LinkRef, ParagraphOverride, RichTable, RichTextFormat,
-    SharedTextLayoutSession, StyleOverride, StyledRun, build_resolved_text_glyph_artifact,
-    register_compiled_rich_text_artifact, register_resolved_text_glyph_artifact,
-    resolve_compiled_rich_text_artifact, resolve_resolved_text_glyph_artifact,
-    rich::compile_rich_text,
+    SharedTextLayoutSession, StyleOverride, StyledRun,
 };
 use std::{mem::size_of, sync::Arc};
 use zircon_runtime_interface::ui::surface::{

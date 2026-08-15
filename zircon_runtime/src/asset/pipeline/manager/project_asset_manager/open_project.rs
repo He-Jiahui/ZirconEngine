@@ -1,6 +1,7 @@
-use crate::asset::ProjectInfo;
 use crate::asset::project::ProjectManager;
 use crate::asset::watch::{AssetChange, AssetChangeKind};
+use crate::asset::ProjectInfo;
+use crate::core::resource::ResourceMutationBatch;
 use crate::core::CoreError;
 
 use super::super::errors::{asset_error, asset_error_message};
@@ -26,10 +27,11 @@ impl ProjectAssetManager {
             .map_err(asset_error)?;
         project.set_environment_ibl_parallel_executor(self.worker_task_pool.clone());
         let prepared_watchers = self.prepare_project_watchers(&project)?;
-        let imported = project.scan_and_import().map_err(asset_error)?;
+        let (imported, prepared_files) =
+            project.prepare_full_generation(None).map_err(asset_error)?;
         let prepared_resources = self.prepare_project_resource_sync(&project)?;
         let info = build_project_info(&project);
-        let _generation = self.project_generation_write();
+        let generation = self.project_generation_write();
         if !self.is_latest_project_preparation(preparation_epoch) {
             return Err(asset_error_message(
                 "project activation was superseded by a newer preparation",
@@ -40,14 +42,29 @@ impl ProjectAssetManager {
             .as_ref()
             .map(project_locators)
             .unwrap_or_default();
-        let (retired_watchers, watcher_activation) = {
+        let mut watcher_transition = None;
+        let commit_outcome = {
             let mut active_project = self.project_write();
-            clear_removed_project_resources(&self.resource_manager(), &previous_locators, &project);
-            self.commit_project_resource_sync(prepared_resources);
-            *active_project = Some(project);
-            self.activate_project_watchers(prepared_watchers)
+            let batch = clear_removed_project_resources(
+                ResourceMutationBatch::new(),
+                &previous_locators,
+                &project,
+            );
+            self.commit_project_resource_sync(
+                prepared_resources,
+                batch,
+                || prepared_files.commit().map_err(asset_error),
+                || {
+                    *active_project = Some(project);
+                    watcher_transition = Some(self.activate_project_watchers(prepared_watchers));
+                    drop(active_project);
+                },
+            )?
         };
-        self.broadcast(
+        let (retired_watchers, watcher_activation) = watcher_transition
+            .expect("successful project publication installs its prepared watchers");
+        self.publish_project_generation(
+            generation,
             imported
                 .into_iter()
                 .map(|metadata| {
@@ -59,9 +76,9 @@ impl ProjectAssetManager {
                 })
                 .collect(),
         );
-        drop(_generation);
         drop(retired_watchers);
         self.drain_project_watcher_events(watcher_activation);
+        commit_outcome.ensure_durable().map_err(asset_error)?;
         Ok(info)
     }
 }
@@ -191,20 +208,16 @@ mod tests {
 
         assert!(AssetManager::open_prepared_project(&manager, project).is_err());
         assert!(manager.project_read().is_none());
-        assert!(
-            manager
-                .watcher_activation
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner())
-                .is_none()
-        );
-        assert!(
-            manager
-                .watchers
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner())
-                .is_empty()
-        );
+        assert!(manager
+            .watcher_activation
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .is_none());
+        assert!(manager
+            .watchers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .is_empty());
 
         drop(manager);
         let _ = fs::remove_dir_all(root);

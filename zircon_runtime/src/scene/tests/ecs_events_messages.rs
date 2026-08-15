@@ -1,8 +1,8 @@
-use crate::scene::World;
 use crate::scene::ecs::{
     EventReaderParam, EventWriterParam, Message, MessageReaderParam, MessageRetention,
     MessageWriterParam, SystemStage, SystemState,
 };
+use crate::scene::World;
 
 #[derive(Debug, PartialEq, Eq)]
 struct FrameEvent(u32);

@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use crate::core::notifications::{NotificationId, NotificationSource};
@@ -7,6 +7,8 @@ use super::{DecisionNotificationError, DecisionOptionId, DecisionReceipt, Decisi
 
 pub const MAX_DECISION_OPTIONS: usize = 16;
 pub const MAX_LOCALIZATION_KEY_BYTES: usize = 256;
+const MAX_DECISION_MESSAGE_ARGUMENTS: usize = 8;
+const MAX_DECISION_MESSAGE_ARGUMENT_NAME_BYTES: usize = 64;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DecisionOption {
     id: DecisionOptionId,
@@ -46,6 +48,7 @@ struct DecisionNotificationData {
     source: NotificationSource,
     title_key: Arc<str>,
     message_key: Arc<str>,
+    message_arguments: BTreeMap<&'static str, u64>,
     options: Vec<DecisionOption>,
     default_option: Option<DecisionOptionId>,
     cancel_option: Option<DecisionOptionId>,
@@ -81,6 +84,7 @@ impl DecisionNotification {
             source,
             title_key: bounded_non_empty("title key", title_key, MAX_LOCALIZATION_KEY_BYTES)?,
             message_key: bounded_non_empty("message key", message_key, MAX_LOCALIZATION_KEY_BYTES)?,
+            message_arguments: BTreeMap::new(),
             options,
             default_option: None,
             cancel_option: None,
@@ -102,6 +106,29 @@ impl DecisionNotification {
     ) -> Result<Self, DecisionNotificationError> {
         self.require_option(&option)?;
         Arc::make_mut(&mut self.0).cancel_option = Some(option);
+        Ok(self)
+    }
+
+    /// Adds one bounded, immutable fact for message-key placeholder formatting.
+    pub fn with_message_argument(
+        mut self,
+        name: &'static str,
+        value: u64,
+    ) -> Result<Self, DecisionNotificationError> {
+        if !valid_message_argument_name(name) {
+            return Err(DecisionNotificationError::InvalidMessageArgumentName { name });
+        }
+        let data = Arc::make_mut(&mut self.0);
+        if data.message_arguments.contains_key(name) {
+            return Err(DecisionNotificationError::DuplicateMessageArgument { name });
+        }
+        if data.message_arguments.len() >= MAX_DECISION_MESSAGE_ARGUMENTS {
+            return Err(DecisionNotificationError::TooManyMessageArguments {
+                maximum: MAX_DECISION_MESSAGE_ARGUMENTS,
+                actual: data.message_arguments.len() + 1,
+            });
+        }
+        data.message_arguments.insert(name, value);
         Ok(self)
     }
 
@@ -128,6 +155,13 @@ impl DecisionNotification {
         &self.0.message_key
     }
 
+    pub fn message_arguments(&self) -> impl Iterator<Item = (&'static str, u64)> + '_ {
+        self.0
+            .message_arguments
+            .iter()
+            .map(|(&name, &value)| (name, value))
+    }
+
     pub fn options(&self) -> &[DecisionOption] {
         &self.0.options
     }
@@ -150,6 +184,15 @@ impl DecisionNotification {
             })
         }
     }
+}
+
+fn valid_message_argument_name(name: &str) -> bool {
+    !name.is_empty()
+        && name.len() <= MAX_DECISION_MESSAGE_ARGUMENT_NAME_BYTES
+        && name.as_bytes()[0].is_ascii_lowercase()
+        && name
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte == b'_')
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -201,5 +244,60 @@ fn bounded_non_empty(
         })
     } else {
         Ok(Arc::from(value))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn notification() -> DecisionNotification {
+        DecisionNotification::new(
+            NotificationId::parse("editor.test.decision").unwrap(),
+            NotificationSource::builtin("editor.test").unwrap(),
+            "editor.test.title",
+            "editor.test.message",
+            vec![
+                DecisionOption::new(DecisionOptionId::parse("apply").unwrap(), "editor.apply")
+                    .unwrap(),
+                DecisionOption::new(
+                    DecisionOptionId::parse("discard").unwrap(),
+                    "editor.discard",
+                )
+                .unwrap(),
+            ],
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn message_arguments_are_bounded_named_facts() {
+        assert!(matches!(
+            notification().with_message_argument("invalid-name", 1),
+            Err(DecisionNotificationError::InvalidMessageArgumentName { .. })
+        ));
+
+        let duplicate = notification()
+            .with_message_argument("pending_count", 1)
+            .unwrap()
+            .with_message_argument("pending_count", 2);
+        assert!(matches!(
+            duplicate,
+            Err(DecisionNotificationError::DuplicateMessageArgument { .. })
+        ));
+
+        let mut bounded = notification();
+        for name in [
+            "one", "two", "three", "four", "five", "six", "seven", "eight",
+        ] {
+            bounded = bounded.with_message_argument(name, 1).unwrap();
+        }
+        assert!(matches!(
+            bounded.with_message_argument("nine", 1),
+            Err(DecisionNotificationError::TooManyMessageArguments {
+                maximum: 8,
+                actual: 9
+            })
+        ));
     }
 }

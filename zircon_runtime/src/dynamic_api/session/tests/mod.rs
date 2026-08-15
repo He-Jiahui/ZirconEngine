@@ -4,6 +4,7 @@ mod frame_diagnostics;
 mod highlight_set;
 mod lock_poison;
 mod runtime_errors;
+mod runtime_ui_surface;
 mod vampire_gameplay;
 mod vampire_hud;
 mod vampire_menu;

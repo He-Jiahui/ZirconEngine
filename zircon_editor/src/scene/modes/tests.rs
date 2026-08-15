@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 
 use zircon_runtime_interface::math::Vec2;
 
-use crate::core::commands::{CommandEvalCtx, WhenClause};
+use crate::core::commands::{CommandEvalCtx, CommandEvalSnapshotHandle, WhenClause};
 use crate::core::editor_authoring_extension::SceneModeDescriptor;
 use crate::core::editor_message::SceneModeId;
 use crate::core::editor_operation::EditorOperationPath;
@@ -11,9 +11,9 @@ use crate::scene::selection::{SelectionModel, SelectionMutation, WorldDomain};
 use crate::scene::viewport::{SceneViewportSettings, TransformHandleKind, ViewportInput};
 
 use super::{
-    EditorSceneMode, InputOutcome, SceneModeCtx, SceneModeInputEffect, SceneModeRegistration,
-    SceneModeRegistry, SceneModeRegistryError, SceneModeStack, SceneModeStackError,
-    ViewportOverlayBuilder, builtin_scene_mode_registry,
+    builtin_scene_mode_registry, EditorSceneMode, InputOutcome, SceneModeCtx, SceneModeInputEffect,
+    SceneModeRegistration, SceneModeRegistry, SceneModeRegistryError, SceneModeStack,
+    SceneModeStackError, ViewportOverlayBuilder,
 };
 
 mod isolation;
@@ -613,6 +613,80 @@ fn command_eval_projection_uses_active_mode_and_world_selection() {
     let selected_play_projection =
         stack.project_command_eval_ctx(CommandEvalCtx::interactive(), ctx.selection());
     assert!(WhenClause::SelectionNonEmpty.eval(&selected_play_projection));
+}
+
+#[test]
+fn command_eval_generation_tracks_selection_identity_and_mode_topology() {
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let mut selection = SelectionModel::default();
+    selection.select_only(WorldDomain::Edit, 11);
+    selection.select_only(WorldDomain::Play, 29);
+    let settings = SceneViewportSettings::default();
+    let mut ctx = SceneModeCtx::new(&mut selection, &settings);
+    let base = Box::new(RecordingMode::new(
+        "scene.select",
+        InputOutcome::PassThrough,
+        events.clone(),
+    ));
+    let mut stack = SceneModeStack::new(base, &mut ctx).unwrap();
+    let snapshot = CommandEvalSnapshotHandle::default();
+
+    let initial = stack.project_command_eval_ctx(CommandEvalCtx::interactive(), ctx.selection());
+    assert!(snapshot.replace(initial));
+    assert_eq!(snapshot.generation(), 1);
+
+    // Edit and Play have the same count and per-domain generation, so the domain itself must
+    // remain part of the command snapshot identity.
+    assert!(ctx.selection_mut().set_active_domain(WorldDomain::Play));
+    let same_count_play =
+        stack.project_command_eval_ctx(CommandEvalCtx::interactive(), ctx.selection());
+    assert!(snapshot.replace(same_count_play));
+    assert_eq!(snapshot.generation(), 2);
+
+    assert!(ctx.selection_mut().set_active_domain(WorldDomain::Edit));
+    let same_count_edit =
+        stack.project_command_eval_ctx(CommandEvalCtx::interactive(), ctx.selection());
+    assert!(snapshot.replace(same_count_edit));
+    assert_eq!(snapshot.generation(), 3);
+
+    // A Play mutation must not invalidate the active Edit command snapshot.
+    ctx.selection_mut().select_only(WorldDomain::Play, 30);
+    let inactive_play_mutation =
+        stack.project_command_eval_ctx(CommandEvalCtx::interactive(), ctx.selection());
+    assert!(!snapshot.replace(inactive_play_mutation));
+    assert_eq!(snapshot.generation(), 3);
+
+    assert!(ctx.selection_mut().set_active_domain(WorldDomain::Play));
+    let changed_play_domain =
+        stack.project_command_eval_ctx(CommandEvalCtx::interactive(), ctx.selection());
+    assert!(snapshot.replace(changed_play_domain));
+    assert_eq!(snapshot.generation(), 4);
+
+    let equivalent = stack.project_command_eval_ctx(CommandEvalCtx::interactive(), ctx.selection());
+    assert!(!snapshot.replace(equivalent));
+    assert_eq!(snapshot.generation(), 4);
+
+    stack
+        .push(
+            Box::new(RecordingMode::new(
+                "scene.transform",
+                InputOutcome::Consumed,
+                events,
+            )),
+            &mut ctx,
+        )
+        .unwrap();
+    let pushed = stack.project_command_eval_ctx(CommandEvalCtx::interactive(), ctx.selection());
+    assert!(snapshot.replace(pushed));
+    assert_eq!(snapshot.generation(), 5);
+
+    assert_eq!(
+        stack.pop(&mut ctx),
+        Some(SceneModeId::new("scene.transform"))
+    );
+    let popped = stack.project_command_eval_ctx(CommandEvalCtx::interactive(), ctx.selection());
+    assert!(snapshot.replace(popped));
+    assert_eq!(snapshot.generation(), 6);
 }
 
 fn scene_mode_descriptor(id: &str) -> SceneModeDescriptor {

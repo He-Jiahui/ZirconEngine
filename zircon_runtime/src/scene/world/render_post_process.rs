@@ -1,10 +1,10 @@
 use crate::core::framework::render::{
     FogVolumeData, PostProcessVolumeExtract, RenderLayerSet, RenderViewExtract,
-    VOLUMETRIC_FOG_COMPONENT_ID, VolumeComponentOverride, VolumeShapeExtract,
+    VolumeComponentOverride, VolumeShapeExtract, VOLUMETRIC_FOG_COMPONENT_ID,
 };
 use crate::core::math::{Real, Transform, Vec3};
 use crate::scene::components::{
-    ColliderComponent, ColliderShape, PostProcessVolumeComponent, default_render_layer_mask,
+    default_render_layer_mask, ColliderComponent, ColliderShape, PostProcessVolumeComponent,
 };
 
 use super::World;
@@ -34,44 +34,48 @@ impl World {
     ) -> CollectedPostProcessVolumes {
         let mut extracts = Vec::new();
         let mut fog_volumes = Vec::new();
-        for (entity, volume) in self
-            .post_process_volumes
-            .iter()
-            .filter(|(entity, _)| self.active_in_hierarchy(**entity) == Some(true))
-            .filter(|(_, volume)| volume.active)
-        {
-            let volume_mask = RenderLayerSet::from_scene_schema_v1_mask(
-                self.render_layer_mask(*entity)
-                    .unwrap_or(default_render_layer_mask()),
-            );
-            let affects_post_process = volume_mask.intersects(camera_volume_layers);
-            let affects_local_fog = !volume.is_global
-                && volume.profile.volumetric_fog.is_some()
-                && volume_mask.intersects(camera_render_layers);
-            if !affects_post_process && !affects_local_fog {
-                continue;
-            }
-            if let Some(extract) =
-                self.post_process_volume_extract(*entity, volume, volume_mask.clone())
-            {
-                if affects_local_fog {
-                    let settings = volume
-                        .profile
-                        .volumetric_fog
-                        .expect("local fog participation requires authored settings");
-                    if let Some(fog_volume) = fog_volume_from_extract(
-                        *entity,
-                        &extract,
-                        settings.density * extract.clamped_weight(),
-                        settings.albedo,
-                    ) {
-                        fog_volumes.push((*entity, fog_volume));
-                    }
-                }
-                if affects_post_process {
-                    extracts.push((*entity, extract));
-                }
-            }
+        if let Some(component_id) = self.registered_component_id::<PostProcessVolumeComponent>() {
+            self.archetype_index
+                .for_each_table_component::<PostProcessVolumeComponent>(
+                    component_id,
+                    |entity, volume| {
+                        if self.active_in_hierarchy(entity) != Some(true) || !volume.active {
+                            return;
+                        }
+                        let volume_mask = RenderLayerSet::from_scene_schema_v1_mask(
+                            self.render_layer_mask(entity)
+                                .unwrap_or(default_render_layer_mask()),
+                        );
+                        let affects_post_process = volume_mask.intersects(camera_volume_layers);
+                        let affects_local_fog = !volume.is_global
+                            && volume.profile.volumetric_fog.is_some()
+                            && volume_mask.intersects(camera_render_layers);
+                        if !affects_post_process && !affects_local_fog {
+                            return;
+                        }
+                        if let Some(extract) =
+                            self.post_process_volume_extract(entity, volume, volume_mask.clone())
+                        {
+                            if affects_local_fog {
+                                let settings = volume
+                                    .profile
+                                    .volumetric_fog
+                                    .expect("local fog participation requires authored settings");
+                                if let Some(fog_volume) = fog_volume_from_extract(
+                                    entity,
+                                    &extract,
+                                    settings.density * extract.clamped_weight(),
+                                    settings.albedo,
+                                ) {
+                                    fog_volumes.push((entity, fog_volume));
+                                }
+                            }
+                            if affects_post_process {
+                                extracts.push((entity, extract));
+                            }
+                        }
+                    },
+                );
         }
         // Filtering a priority-ordered source preserves priority order for every camera mask, so
         // per-camera volume evaluation only needs a linear influence scan in the common path.
@@ -117,7 +121,7 @@ impl World {
         if volume.is_global {
             return Some(VolumeShapeExtract::global());
         }
-        let collider = self.colliders.get(&entity)?;
+        let collider = self.get::<ColliderComponent>(entity)?;
         let world_transform = self.world_transform(entity).unwrap_or_default();
         volume_shape_extract_from_collider(world_transform, collider, volume.blend_distance)
     }

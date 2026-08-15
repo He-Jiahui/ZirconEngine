@@ -876,6 +876,12 @@ class Editor12PluginManagerContractTests(unittest.TestCase):
             / "editor_extension"
             / "contribution_descriptors.rs"
         ).read_text(encoding="utf-8")
+        inspector = (
+            EDITOR_EXTENSION.parent / "extension" / "inspector.rs"
+        ).read_text(encoding="utf-8")
+        materialization = (
+            PLUGIN_ROOT / "extension_materialization.rs"
+        ).read_text(encoding="utf-8")
 
         self.assertIn("mod contribution_descriptors;", extension)
         self.assertIn("pub use contribution_descriptors::{", extension)
@@ -883,9 +889,11 @@ class Editor12PluginManagerContractTests(unittest.TestCase):
         self.assertNotIn("pub struct AssetImporterDescriptor", extension)
         self.assertIn("pub struct DrawerDescriptor", descriptors)
         self.assertIn("pub struct EditorMenuItemDescriptor", descriptors)
-        self.assertIn("pub struct ComponentDrawerDescriptor", descriptors)
+        self.assertNotIn("ComponentDrawerDescriptor", descriptors)
         self.assertIn("pub struct AssetImporterDescriptor", descriptors)
         self.assertIn("fn validate_asset_importer", descriptors)
+        self.assertIn("pub struct InspectorCustomizationDescriptor", inspector)
+        self.assertIn("registry.register_inspector_customization", materialization)
 
     def test_dynamic_control_updates_clear_stale_table_selection(self) -> None:
         action_registry = (

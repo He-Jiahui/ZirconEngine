@@ -22,12 +22,14 @@ pub use store_lint::{
     RenderGraphStoreLintKind, RenderGraphStoreLintReport, RenderGraphStoreLintRow,
 };
 pub use types::{
-    ExternalResource, PassFlags, QueueLane, RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps,
-    RenderGraphAttachmentStoreOp, RenderGraphComputeDispatchExtent, RenderGraphComputeWorkload,
-    RenderGraphExternalResourceBinding, RenderGraphExternalResourceRequirement,
-    RenderGraphExternalResourceType, RenderGraphPassResourceAccess, RenderGraphResource,
-    RenderGraphResourceAccessKind, RenderGraphResourceDeclaration, RenderGraphResourceDesc,
-    RenderGraphResourceKind, RenderGraphResourceLifetime, RenderGraphResourceUsageFlags,
+    BindingSchemaEntry, ComputeBindingKind, ExternalResource, PassFlags, QueueLane,
+    RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps, RenderGraphAttachmentStoreOp,
+    RenderGraphComputeDispatchExtent, RenderGraphComputePassMetadata,
+    RenderGraphComputeShaderSource, RenderGraphComputeWorkload, RenderGraphExternalResourceBinding,
+    RenderGraphExternalResourceRequirement, RenderGraphExternalResourceType,
+    RenderGraphPassResourceAccess, RenderGraphResource, RenderGraphResourceAccessKind,
+    RenderGraphResourceDeclaration, RenderGraphResourceDesc, RenderGraphResourceKind,
+    RenderGraphResourceLifetime, RenderGraphResourceUsageFlags, RenderGraphResourceVersion,
     RenderPassId, RgBufferHandle, RgTextureHandle,
 };
 

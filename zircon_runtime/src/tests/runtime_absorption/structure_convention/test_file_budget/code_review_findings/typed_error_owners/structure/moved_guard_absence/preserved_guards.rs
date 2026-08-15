@@ -40,7 +40,7 @@ const PRESERVED_TYPED_ERROR_REVIEW_GUARDS: &[&str] = &[
     "fn review_f5_dynamic_component_errors_preserve_scene_error_sources",
     "fn review_f5_scene_property_access_uses_scene_error",
     "fn review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary",
-    "fn review_f5_script_scene_hook_uses_typed_errors_before_core_boundary",
+    "fn review_f5_script_scene_system_uses_typed_errors_before_core_boundary",
     "fn review_f5_vm_plugin_management_policy_uses_typed_validation_errors",
     "fn review_f5_host_reflection_docs_cli_uses_typed_errors_before_cli_boundary",
     "fn review_f5_shader_prewarm_args_use_typed_usage_errors_before_cli_boundary",

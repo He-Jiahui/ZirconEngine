@@ -8,6 +8,11 @@ description = "Runtime absorption layer for high-level engine subsystems."
 [lib]
 crate-type = ["rlib", "cdylib"]
 
+[[test]]
+name = "runtime_text_multilingual_product_framebuffer"
+path = "tests/runtime_text_multilingual_product_framebuffer.rs"
+required-features = ["ui"]
+
 [[bin]]
 name = "zircon_host_reflection_docs"
 path = "src/bin/zircon_host_reflection_docs.rs"

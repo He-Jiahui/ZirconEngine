@@ -244,6 +244,7 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
         control_string(&bridge, "WorkbenchComponentPropertyVirtualRow05", "text").as_deref(),
         Some("Lightmap")
     );
+    assert!(bridge.has_control_index_entry("WorkbenchComponentPropertyVirtualRow05"));
     assert_eq!(
         control_string(
             &bridge,
@@ -353,6 +354,11 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
     bridge
         .sync_scene_and_inspector(&SceneEntries::default(), None)
         .unwrap();
+    assert!(!bridge.has_control_index_entry("WorkbenchComponentPropertyVirtualRow05"));
+    assert!(bridge
+        .host_projection()
+        .node_by_control_id("WorkbenchComponentPropertyVirtualRow05")
+        .is_none());
     assert_eq!(
         control_visibility(&bridge, "WorkbenchSceneRootItem"),
         Some(UiVisibility::Collapsed)
@@ -393,6 +399,19 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
         cleared_material_row.value_color,
         crate::ui::retained_host::primitives::Color::from_rgb_u8(216, 227, 231)
     );
+
+    bridge
+        .sync_scene_and_inspector(&scene_entries, Some(&inspector))
+        .unwrap();
+    assert!(bridge.has_control_index_entry("WorkbenchComponentPropertyVirtualRow05"));
+    assert_eq!(
+        control_string(&bridge, "WorkbenchComponentPropertyVirtualRow05", "text").as_deref(),
+        Some("Lightmap")
+    );
+    assert!(bridge
+        .host_projection()
+        .node_by_control_id("WorkbenchComponentPropertyVirtualRow05")
+        .is_some());
 }
 
 #[test]

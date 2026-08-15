@@ -12,8 +12,8 @@ use crate::core::manager::{resolve_manager_service, RegisteredManagerService};
 use crate::core::runtime::modules::TASKS_MODULE_NAME;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
-    DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
-    ServiceKind, StartupMode,
+    CoreError, DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec,
+    ModuleDescriptor, ServiceKind, StartupMode,
 };
 use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 
@@ -83,7 +83,8 @@ fn module_descriptor_with_asset_importers(
             "ProjectAssetManager",
         )],
         factory(|core| {
-            let manager = resolve_manager_service(core, project_asset_manager_handle(core)?)?;
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            let manager = resolve_manager_service(&core, project_asset_manager_handle(&core)?)?;
             Ok(
                 Arc::new(RegisteredManagerService::<dyn AssetManager>::new(manager))
                     as ServiceObject,
@@ -99,7 +100,8 @@ fn module_descriptor_with_asset_importers(
             "ProjectAssetManager",
         )],
         factory(|core| {
-            let manager = resolve_manager_service(core, project_asset_manager_handle(core)?)?;
+            let core = core.upgrade().ok_or(CoreError::RuntimeUnavailable)?;
+            let manager = resolve_manager_service(&core, project_asset_manager_handle(&core)?)?;
             Ok(
                 Arc::new(RegisteredManagerService::<dyn ResourceManager>::new(
                     manager,

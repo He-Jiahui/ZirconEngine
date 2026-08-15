@@ -2,7 +2,7 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde::de::DeserializeOwned;
 use serde_json::Value;
@@ -19,14 +19,14 @@ use crate::core::framework::state::{
 use crate::core::framework::time::{Fixed, Real, Time, Virtual};
 use crate::core::{CoreError, RuntimeModuleLifecycleObserver};
 
+use super::ModuleDescriptor;
 use super::config_store::ConfigStore;
 use super::events::EventBus;
-use super::handle::CoreHandle;
+use super::handle::{CoreHandle, ServiceHandle};
 use super::state::CoreRuntimeInner;
 use super::tasks::{JobScheduler, TaskPool, TaskPoolKind, TaskPoolReport, TaskPools};
 use super::time::{RuntimeTimeAdvance, RuntimeTimeClocks};
 use super::weak::CoreWeak;
-use super::ModuleDescriptor;
 
 #[derive(Clone)]
 pub struct CoreRuntime {
@@ -39,7 +39,11 @@ impl CoreRuntime {
         let inner = Arc::new(CoreRuntimeInner {
             modules: Default::default(),
             services: Default::default(),
+            frozen_module_graph: Default::default(),
+            lifecycle_coordinator: Default::default(),
+            lifecycle_transition_changed: Default::default(),
             service_resolution_changed: Default::default(),
+            service_call_changed: Default::default(),
             service_resolution_waits: Default::default(),
             service_activation_reentries: Default::default(),
             #[cfg(test)]
@@ -52,7 +56,6 @@ impl CoreRuntime {
             time: Default::default(),
             diagnostics: Default::default(),
             states: Default::default(),
-            scene_hook_snapshots: Default::default(),
             devtools_plugin_catalog_entries: Default::default(),
             runtime_module_lifecycle_observer: Default::default(),
         });
@@ -196,12 +199,60 @@ impl CoreRuntime {
         self.handle.deactivate_module(module_name)
     }
 
+    pub fn deactivate_module_with_drain_timeout(
+        &self,
+        module_name: &str,
+        drain_timeout: Duration,
+    ) -> Result<(), CoreError> {
+        self.handle
+            .deactivate_module_with_drain_timeout(module_name, drain_timeout)
+    }
+
+    pub fn shutdown_registered_modules_with_drain_timeout(
+        &self,
+        drain_timeout: Duration,
+    ) -> Result<(), CoreError> {
+        let module_activation_order = self
+            .handle
+            .frozen_module_graph()?
+            .module_activation_order()
+            .to_vec();
+        let started_at = Instant::now();
+        for module_name in module_activation_order.iter().rev() {
+            let remaining_drain_timeout = drain_timeout.saturating_sub(started_at.elapsed());
+            self.handle
+                .deactivate_module_with_drain_timeout(module_name, remaining_drain_timeout)?;
+        }
+        Ok(())
+    }
+
     pub fn resolve_driver<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
         self.handle.resolve_driver(name)
     }
 
     pub fn resolve_manager<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
         self.handle.resolve_manager(name)
+    }
+
+    pub fn resolve_driver_handle<T: Any + Send + Sync>(
+        &self,
+        name: &str,
+    ) -> Result<ServiceHandle<T>, CoreError> {
+        self.handle.resolve_driver_handle(name)
+    }
+
+    pub fn resolve_manager_handle<T: Any + Send + Sync>(
+        &self,
+        name: &str,
+    ) -> Result<ServiceHandle<T>, CoreError> {
+        self.handle.resolve_manager_handle(name)
+    }
+
+    pub fn resolve_plugin_handle<T: Any + Send + Sync>(
+        &self,
+        name: &str,
+    ) -> Result<ServiceHandle<T>, CoreError> {
+        self.handle.resolve_plugin_handle(name)
     }
 
     pub fn publish_event(&self, topic: impl Into<String>, payload: Value) {

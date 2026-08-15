@@ -7,7 +7,7 @@ use super::declarations::{
 use crate::asset::{RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT};
 use crate::core::framework::render::{
     CameraRenderType, RenderCapabilitySummary, RenderFrameExtract, RenderPipelineHandle,
-    ShaderQualityTier,
+    ShaderQualityTier, ZR_SSS_MAX_PROFILES,
 };
 use crate::core::resource::ResourceId;
 
@@ -58,8 +58,11 @@ pub struct RenderGraphCompileFrameFingerprint {
     pub camera_hdr: bool,
     pub camera_msaa_samples: u32,
     pub has_particle_sprites: bool,
+    pub has_oit: bool,
     pub has_light_cookies: bool,
     pub has_irradiance_volumes: bool,
+    pub is_planar_capture: bool,
+    pub view_uses_active_subsurface_profile: bool,
     pub transmission_draw_step_count: u8,
     pub requires_transmission_scene_copy: bool,
     pub requires_late_forward_opaque_pass: bool,
@@ -87,12 +90,15 @@ pub fn extract_compile_fingerprint(
         camera_hdr: camera.camera.hdr,
         camera_msaa_samples: camera.camera.msaa_samples,
         has_particle_sprites: !extract.particles.sprites.is_empty(),
+        has_oit: extract.lighting.advanced_lighting.oit.is_some(),
         has_light_cookies: !extract.lighting.advanced_lighting.cookies.is_empty(),
         has_irradiance_volumes: !extract
             .lighting
             .advanced_lighting
             .irradiance_volumes
             .is_empty(),
+        is_planar_capture: selected_camera_is_planar_capture(extract),
+        view_uses_active_subsurface_profile: view_uses_active_subsurface_profile(extract),
         transmission_draw_step_count: extract
             .lighting
             .advanced_lighting
@@ -107,6 +113,38 @@ pub fn extract_compile_fingerprint(
             .material_features
             .requires_late_forward_opaque_pass(),
     }
+}
+
+fn selected_camera_is_planar_capture(extract: &RenderFrameExtract) -> bool {
+    let crate::core::framework::render::RenderCameraTarget::Texture(selected_target) =
+        extract.view.selected_camera_target()
+    else {
+        return false;
+    };
+    extract
+        .lighting
+        .advanced_lighting
+        .planar_probes
+        .iter()
+        .any(|probe| probe.capture_target() == Some(*selected_target))
+}
+
+fn view_uses_active_subsurface_profile(extract: &RenderFrameExtract) -> bool {
+    let mut active_profile_mask = 0_u32;
+    for profile in &extract.lighting.advanced_lighting.subsurface_profiles {
+        if profile.profile_id < ZR_SSS_MAX_PROFILES as u32 {
+            active_profile_mask |= 1_u32 << profile.profile_id;
+        }
+    }
+    extract
+        .lighting
+        .advanced_lighting
+        .subsurface_material_profile_indices
+        .iter()
+        .any(|profile_id| {
+            *profile_id < ZR_SSS_MAX_PROFILES as u32
+                && (active_profile_mask & (1_u32 << profile_id)) != 0
+        })
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]

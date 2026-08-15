@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use crate::ui::asset_editor::palette::node_accepts_palette_children;
 use crate::ui::asset_editor::UiDesignerSelectionModel;
+use crate::ui::asset_editor::palette::node_accepts_palette_children;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::{
     component::UiDefaultNodeTemplate,

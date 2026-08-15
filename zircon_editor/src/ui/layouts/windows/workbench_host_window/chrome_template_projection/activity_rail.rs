@@ -1,26 +1,46 @@
 use super::*;
 
+#[derive(Clone)]
+struct ActivityRailCompositionGeneration {
+    tabs: ModelRc<TabData>,
+    shell_preset_id: SharedString,
+}
+
+impl PartialEq for ActivityRailCompositionGeneration {
+    fn eq(&self, other: &Self) -> bool {
+        self.tabs.shares_values_with(&other.tabs) && self.shell_preset_id == other.shell_preset_id
+    }
+}
+
 pub(super) fn activity_rail_nodes(
+    surface_id: &str,
     tabs: &ModelRc<TabData>,
     shell_preset_id: &SharedString,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    if FAST_PROCEDURAL_CHROME_NODES {
-        return fallback_activity_rail_nodes(tabs, shell_preset_id, width, height);
-    }
-
-    model_rc(expand_activity_rail_button_nodes(
-        raw_template_nodes(
-            "host.activity.rail",
-            ACTIVITY_RAIL_ASSET,
-            width,
-            height,
-            &BTreeMap::new(),
-        ),
-        tabs,
-        shell_preset_id,
-    ))
+    let Ok(projection) = build_view_template_node_projection(
+        surface_id,
+        ACTIVITY_RAIL_ASSET,
+        &[],
+        UiSize::new(width.max(0.0), height.max(0.0)),
+        &BTreeMap::new(),
+    ) else {
+        return ModelRc::default();
+    };
+    let generation = ActivityRailCompositionGeneration {
+        tabs: tabs.clone(),
+        shell_preset_id: shell_preset_id.clone(),
+    };
+    compose_view_template_node_model(
+        &format!("{surface_id}.composition"),
+        projection,
+        &generation,
+        |nodes| {
+            *nodes =
+                expand_activity_rail_button_nodes(std::mem::take(nodes), tabs, shell_preset_id);
+        },
+    )
 }
 
 pub(super) fn activity_rail_button_frames(
@@ -48,10 +68,10 @@ fn expand_activity_rail_button_nodes(
 
     for node in raw_nodes {
         if let Some(row) = slot_index(node.control_id.as_str(), ACTIVITY_RAIL_BUTTON_ICON_PREFIX) {
-            icon_templates.insert(row, node);
+            retain_dominant_control_template(&mut icon_templates, row, node);
         } else if let Some(row) = slot_index(node.control_id.as_str(), ACTIVITY_RAIL_BUTTON_PREFIX)
         {
-            button_templates.insert(row, node);
+            retain_dominant_control_template(&mut button_templates, row, node);
         } else {
             output_nodes.push(node);
         }

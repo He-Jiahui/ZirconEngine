@@ -34,6 +34,7 @@ fn screen_space_ui_plan_keeps_transparent_text_background_unknown() {
                     opacity: 1.0,
                 }],
             },
+            raster_scale: 1.0,
         },
         UVec2::new(200, 100),
     );

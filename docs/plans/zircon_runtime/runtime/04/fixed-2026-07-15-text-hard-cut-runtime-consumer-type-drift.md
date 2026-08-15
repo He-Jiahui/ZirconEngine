@@ -9,7 +9,7 @@ origin_child_dir: docs/plans/zircon_runtime/runtime/04
 fixing_child_dir: docs/plans/zircon_runtime/frameworks/05
 related_code:
   - zircon_runtime/src/text/model/shaped_run.rs
-  - zircon_runtime/src/ui/text/adapter.rs
+  - zircon_runtime/src/graphics/text_transport/mod.rs
   - zircon_runtime/src/ui/surface/text_shape.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_advances.rs

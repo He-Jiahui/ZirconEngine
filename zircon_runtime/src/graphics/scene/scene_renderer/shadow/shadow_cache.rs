@@ -282,13 +282,14 @@ mod tests {
     use std::collections::HashMap;
 
     use super::{
-        ShadowCache, ShadowCacheDecision, ShadowCacheInput, ShadowCacheInvalidationReason,
-        ShadowStaticCasterRevisionInput, shadow_light_params_hash, static_shadow_caster_revision,
+        shadow_light_params_hash, static_shadow_caster_revision,
         static_shadow_caster_revision_from_meshes,
-        static_shadow_caster_revision_from_meshes_with_resource_revisions,
+        static_shadow_caster_revision_from_meshes_with_resource_revisions, ShadowCache,
+        ShadowCacheDecision, ShadowCacheInput, ShadowCacheInvalidationReason,
+        ShadowStaticCasterRevisionInput,
     };
     use crate::core::framework::render::{
-        RenderMeshSnapshot, RenderMeshStaticState, RendererCommon, render_mesh_stable_instance_key,
+        render_mesh_stable_instance_key, RenderMeshSnapshot, RenderMeshStaticState, RendererCommon,
     };
     use crate::core::framework::scene::Mobility;
     use crate::core::math::{Transform, Vec4};

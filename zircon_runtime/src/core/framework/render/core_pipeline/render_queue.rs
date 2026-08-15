@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use super::{CorePipelineKind, RenderPhase};
 use crate::core::framework::render::RenderMaterialAlphaMode;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct RenderQueueValue(pub u16);
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+pub struct RenderQueueValue(u16);
 
 impl RenderQueueValue {
     pub const BACKGROUND: Self = Self(1_000);
@@ -16,7 +16,7 @@ impl RenderQueueValue {
     pub const MAX: Self = Self(5_000);
 
     pub const fn new(raw: u16) -> Self {
-        Self(raw)
+        Self(if raw > Self::MAX.0 { Self::MAX.0 } else { raw })
     }
 
     pub const fn raw(self) -> u16 {
@@ -41,7 +41,7 @@ impl RenderQueueValue {
             return Self(clamp_queue_i32(authored_queue));
         }
 
-        default_queue.with_material_offset(authored_queue as i16)
+        default_queue.with_material_offset_i32(authored_queue)
     }
 
     pub fn with_material_offset(self, offset: i16) -> Self {
@@ -84,6 +84,15 @@ impl RenderQueueValue {
         } else {
             RenderPhase::Opaque3d
         }
+    }
+}
+
+impl<'de> Deserialize<'de> for RenderQueueValue {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(Self::new(u16::deserialize(deserializer)?))
     }
 }
 
@@ -187,5 +196,29 @@ mod tests {
             RenderQueueValue::from_authored_queue(&RenderMaterialAlphaMode::Opaque, 0),
             RenderQueueValue::GEOMETRY
         );
+    }
+
+    #[test]
+    fn authored_queue_maximum_offset_clamps_without_narrowing() {
+        assert_eq!(
+            RenderQueueValue::from_authored_queue(&RenderMaterialAlphaMode::Opaque, i32::MAX),
+            RenderQueueValue::new(2_100)
+        );
+    }
+
+    #[test]
+    fn authored_queue_minimum_offset_clamps_without_narrowing() {
+        assert_eq!(
+            RenderQueueValue::from_authored_queue(&RenderMaterialAlphaMode::Opaque, i32::MIN),
+            RenderQueueValue::new(1_900)
+        );
+    }
+
+    #[test]
+    fn deserialized_queue_value_clamps_to_the_sort_key_domain() {
+        let queue: RenderQueueValue = serde_json::from_value(serde_json::json!(u16::MAX))
+            .expect("queue value should deserialize");
+
+        assert_eq!(queue, RenderQueueValue::MAX);
     }
 }

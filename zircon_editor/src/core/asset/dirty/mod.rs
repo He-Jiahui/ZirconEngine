@@ -4,6 +4,7 @@ mod error;
 mod external_effect_id;
 mod registry;
 mod save_batch;
+mod save_job_adapter;
 
 pub use error::DirtyRegistryError;
 pub use external_effect_id::{DirtyExternalEffectId, DirtyExternalEffectIdError};
@@ -17,6 +18,11 @@ pub use save_batch::{
     SaveDirtyViewOutcomeStatus, SaveDirtyViewsApplyError, SaveDirtyViewsPreflightError,
     SaveDirtyViewsPreflightErrorKind, SaveDirtyViewsPreflightReport, SaveDirtyViewsRequest,
     SaveDirtyViewsResult,
+};
+pub use save_job_adapter::{
+    DEFAULT_SAVE_DIRTY_VIEWS_COMPLETION_BUDGET, SaveDirtyViewExecutor,
+    SaveDirtyViewsAdmissionError, SaveDirtyViewsCompletionBatch, SaveDirtyViewsCompletionPoll,
+    SaveDirtyViewsJobAdapter,
 };
 
 #[cfg(test)]

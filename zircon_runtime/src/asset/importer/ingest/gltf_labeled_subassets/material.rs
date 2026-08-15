@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, HashSet};
 
 use crate::asset::{
     AlphaMode, AssetImportOutcome, AssetReference, AssetUri, ImportedAsset, ImportedAssetEntry,
-    MaterialAsset, MaterialTextureSlotValue,
+    MaterialAsset, MaterialTextureSlotValue, STANDARD_MATERIAL_OCCLUSION_STRENGTH_PROPERTY,
 };
 use crate::core::framework::render::RenderMaterialTextureTransform;
 
@@ -79,6 +79,15 @@ fn material_asset_from_gltf_material(
     let emissive_metadata = texture_info_metadata(emissive_texture_info.as_ref());
     let mut emissive = material.emissive_factor();
     let mut property_values = BTreeMap::new();
+    if let Some(occlusion_texture_info) = occlusion_texture_info.as_ref() {
+        let strength = occlusion_texture_info.strength();
+        if (strength - 1.0).abs() > f32::EPSILON {
+            property_values.insert(
+                STANDARD_MATERIAL_OCCLUSION_STRENGTH_PROPERTY.to_string(),
+                toml::Value::Float(f64::from(strength)),
+            );
+        }
+    }
     let mut validation_diagnostics = vec![format!(
         "{} imported from glTF Material{}",
         uri,

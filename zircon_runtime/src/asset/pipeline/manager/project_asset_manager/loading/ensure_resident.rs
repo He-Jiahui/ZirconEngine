@@ -1,5 +1,5 @@
-use crate::core::CoreError;
 use crate::core::resource::{ResourceScheme, ResourceState};
+use crate::core::CoreError;
 
 use super::super::super::builtins::builtin_resources;
 use super::super::super::errors::{asset_error, asset_error_message};
@@ -93,10 +93,12 @@ impl ProjectAssetManager {
                     "asset {id} residency preparation was superseded by a newer project generation"
                 )));
             }
-            store_runtime_payload(&self.resource_manager, id, imported);
+            store_runtime_payload(&self.resource_manager, id, metadata.revision, imported)
+                .map_err(asset_error)?;
             return Ok(());
         }
-        store_runtime_payload(&self.resource_manager, id, imported);
+        store_runtime_payload(&self.resource_manager, id, metadata.revision, imported)
+            .map_err(asset_error)?;
         Ok(())
     }
 }

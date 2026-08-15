@@ -1,6 +1,6 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::identity::chip_is_small;
-use super::metrics::{CHIP_MEDIUM_HEIGHT, CHIP_SMALL_HEIGHT, chip_bounded_extent};
+use super::metrics::{chip_bounded_extent, CHIP_MEDIUM_HEIGHT, CHIP_SMALL_HEIGHT};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_frame(
     node: &TemplatePaneNodeData,

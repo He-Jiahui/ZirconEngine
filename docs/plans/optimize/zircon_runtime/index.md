@@ -1,0 +1,35 @@
+# `zircon_runtime` 差距审查
+
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
+当前已完成 lifecycle/registry、event/task execution、diagnostics/profiling/config、resource/asset/serialization、scene/ECS/world lifecycle、platform/input/process host、script/plugin runtime，Physics、Audio、Animation、Navigation、Network，RHI/Render Graph/GPU lifetime，renderer/visibility/GPU Scene，material/shader/pipeline/PSO，render asset streaming/residency，direct lighting/clustered light grid/shadow，environment/sky/IBL/reflection probe，baked lighting/lightmap/irradiance volume/offline bake、Hybrid GI、Volumetric Fog/Froxel、advanced surface lighting、temporal AA/velocity/history/upscaling，以及exposure/color/bloom/DOF/motion blur/SSR/terminal composition的首轮 E3 审查；runtime UI/text/accessibility尚未完成。
+
+| 编号 | 审查单元 | 当前概述 |
+|---|---|---|
+| [01](01-core-runtime-lifecycle-registry-review.md) | Core runtime lifecycle 与 registry | 已发现产品停机、失败原子性、并发转换、卸载寿命和依赖图的 P0/P1 差距 |
+| [02](02-core-runtime-events-tasks-review.md) | Core event 与 task execution | 已确认动态库 worker teardown P0，以及 task scope、背压、类型边界和性能验收的 P1/P2 差距 |
+| [03](03-core-runtime-diagnostics-profiling-config-review.md) | Core diagnostics/profiling/config | 已确认全局 recorder、capture generation、metric schema/cardinality、聚合历史、配置旁路/分层和 artifact 完整性的 P1/P2 差距 |
+| [04](04-core-resource-asset-serialization-review.md) | Resource/asset/serialization | 已确认精确类型身份、clone/lease、同步 residency、依赖环、artifact/cook identity、语义 streaming、last-good reload、subasset repair、迁移与 pack/update 的 P1/P2 差距 |
+| [05](05-scene-ecs-world-lifecycle-review.md) | Scene/ECS/world lifecycle | 已确认live entity identity、World clone/serde、per-type schema、真实ECS并行、dirty frontier、render extract、Play capture、world query、partition、event budget、session facade与transfer policy的P1/P2差距 |
+| [06](06-platform-input-process-review.md) | Platform/input/process host | 已确认platform owner与静态能力表、window/device identity、application lifecycle、空InputDriver、逐事件ABI、state/action/replay/host command和process supervision/output budget的P1/P2差距 |
+| [07](07-script-plugin-runtime-review.md) | Script/plugin runtime | 已确认多authority/非原子发布、依赖求解、native trust/isolation、ABI epoch、执行预算、ZrVM全局串行、脚本生命周期/typed ABI/debugger与产品证据的P1/P2差距 |
+| [08A](08a-physics-runtime-review.md) | Physics runtime/editor/dist | 已确认默认发行未交付Jolt、双fixed clock、全量world snapshot、查询绕过broad phase、近似event/constraint、collision/cook/authoring/ragdoll与false-green验收的P1/P2差距 |
+| [08B](08b-audio-runtime-review.md) | Audio runtime/editor/assets | 已确认无产品bootstrap/scene system、全局跨world状态、配置未接入、Kira M1 surface、离线DSP孤岛、全量PCM、无streaming/voice virtualization/device supervisor/真实telemetry及Editor脚手架的P1/P2差距 |
+| [08C](08c-animation-runtime-review.md) | Animation runtime/editor/assets | 已确认重复manager authority、reactive frame demand漏接、glTF高优先级placeholder与target path失配、无prepared/compressed artifact、String/AoS pose热路径、graph mask/trigger语义、逐骨scene写回、GPU skinning假表面及Editor descriptor脚手架的P1/P2差距 |
+| [08D](08d-navigation-runtime-review.md) | Navigation runtime/editor/native | 已确认core/plugin/legacy三authority、builtin无agent product loop、非world-scoped状态、reactive demand漏接、每query重建Detour、silent fallback、假geometry/未生效settings、伪tile runtime、Crowd退化、movement/AI/Editor/overlay与config false surface的P1/P2差距 |
+| [08E](08e-network-runtime-review.md) | Network runtime/features/editor/dist | 已确认optional feature私有manager导致能力未组合、同步串行IO与双runtime、跨world状态、失效ingress预算、transport/TLS/HTTP/WS、可靠UDP、session/RPC、replication/prediction、content download及Editor false surface的P1/P2差距 |
+| [09A](09a-rhi-render-graph-gpu-lifetime-review.md) | RHI / Render Graph / GPU lifetime | 已确认产品RHI缺失且合同非对象安全、direct WGPU多authority、device generation/retirement缺失、无version graph/culling错误、总序pass、碎片submission/同步readback、compile锁域、双alias authority与surface/UI/诊断差距 |
+| [09B](09b-renderer-visibility-gpu-scene-review.md) | Renderer / Visibility / GPU Scene | 已确认无persistent render scene、默认静态预筛选失效、GPU bounds双重变换、instancing/GPU-driven plan未消费、HZB truth断层、晚可见性和Virtual Geometry CPU物化假权威 |
+| [09C](09c-material-shader-pipeline-pso-review.md) | Material / Shader / Pipeline / PSO | 已确认无统一artifact/PSO authority、弱cache identity、三套编译调度、无原子hot reload、readiness false-ready、双Graph假表面、SkipDraw静默失败及全renderer direct WGPU创建 |
+| [09D](09d-render-asset-streaming-residency-review.md) | Render asset streaming / residency / upload / eviction | 已确认render提交内同步完整I/O/解压/clone/GPU创建、chunk无subresource语义、首帧full-resident后重建、无全资源预算/驱逐、lease与asset usage失效、无generation/fence终态及import/cook重复authority |
+| [09E](09e-direct-lighting-clustered-shadow-review.md) | Direct lighting / clustered light grid / shadow | 已确认scene asset无法author shadow、默认cluster compute无消费者且graph access虚报、near/ortho grid漏光、layer/strength/normal bias失效、RectLight非面积光、shadow plan/visibility分裂、cache未接产品及Contact Shadow全局压暗 |
+| [09F1](09f1-environment-sky-ibl-reflection-probe-review.md) | Environment / sky / IBL / reflection probe | 已确认scene/editor/cook authoring断链、gradient伪物理天空、重复CaptureCloud、submission同步cache I/O、probe同步residency/逐像素64扫描/layer失效、同步六面capture和约75 MiB固定资源 |
+| [09F2](09f2-baked-lighting-lightmap-irradiance-volume-review.md) | Baked lighting / lightmap / irradiance volume / offline bake | 已确认公开offline bake只制造无cubemap probe metadata、无scene/editor/baker/build-data/cook/UV生产闭环、插件noop或旁路真实采样、generation未贯穿GPU、Deferred借emissive传递baked diffuse，以及single-view volume与全量resident错误 |
+| [09F3](09f3-hybrid-global-illumination-review.md) | Hybrid global illumination | 已确认最终产品仅固定8x8 tile proxy、Surface Cache为CPU中心UV单色tile与bounds depth、one-mesh/one-card/one-probe、visibility桥为空、plugin/core双GI与双history、逐帧全回读/重上传、RC只缓存32个RGBA8常量tile、Global SDF hit可制造颜色、Hardware RT仅枚举、Editor template缺失与GPU测试静默跳过 |
+| [09G1](09g1-volumetric-fog-froxel-review.md) | Volumetric Fog / Froxel | 已确认旧窗光束产品gate明确失败、Local Fog shape/rotation/blend/priority退化为AABB、固定160x90网格、绝对Y=0密度、全froxel全volume扫描、pixel/froxel jitter单位错误、弱history拒绝、OIT重复介质组合、光照/cookie/environment断链、Editor演示面与GPU测试静默跳过 |
+| [09G2](09g2-advanced-surface-lighting-review.md) | Light cookie / OIT / planar reflection / SSS / transmission | 已确认普通World不产出Cookie/OIT/Planar、Editor plugin仅登记能力，OIT将HDR压为UNORM且固定per-pixel overflow直接丢片元，Planar共享纹理与最小ID参数在多probe时错配，SSS固定192 candidate/像素且无profile/thickness/quality预算，Transmission为normal.xy屏幕偏移并会二次应用Volumetric Fog |
+| [09H1](09h1-temporal-aa-velocity-history-upscaling-review.md) | Temporal AA / velocity / history / upscaling | 已确认full-frame equality使正常camera/mesh/animation/particle变化逐帧失效history，ViewFamily只校验不进入提交/资源链，动态分辨率TAA会混绑render-size输出与display-size history，camera velocity混用尺寸域，particle velocity仅test fixture可达，MSAA只有descriptor无pipeline/resolve，FXAA/SMAA/upscale算法身份与provider/DRS/产品证据均不完整 |
+| [09H2](09h2-exposure-color-bloom-dof-motion-blur-ssr-terminal-review.md) | Exposure / color / bloom / DOF / motion blur / SSR / terminal composition | 已确认HDR在baked LUT前被clamp、默认None tonemap写固定LDR、HDR output enum未接生产链、曝光复用全局history且固定1/60秒、15类Volume registry仅四类可持久化、Overlay复用base settings、Motion Blur单位/neighbor-max与SSR BRDF/fallback合同错误，以及Bloom/DOF/SSR性能算法和当前artifact不足 |
+| 11 | Runtime UI/text/accessibility | queued |
+
+既有 `docs/plans/zircon_runtime/` 计划仍是实现 owner；本目录负责以 current source 重新核对其工程化完成度。发现状态与既有计划冲突时，由编号审查计划列出需要重开的条目，不在索引复制证据。

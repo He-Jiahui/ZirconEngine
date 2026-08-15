@@ -3,8 +3,8 @@ use std::str::FromStr;
 use zircon_runtime::scene::components::NodeKind;
 
 use crate::core::editor_event::{
-    ConsoleMessageFilter, EditorEvent, EditorEventTransient, LayoutCommand, MenuAction,
-    ViewDescriptorId,
+    ConsoleMessageFilter, ConsoleSourceFilter, EditorEvent, EditorEventTransient, LayoutCommand,
+    MenuAction, ViewDescriptorId,
 };
 use crate::core::editor_operation::EditorOperationPath;
 
@@ -23,6 +23,7 @@ pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
     commands.extend(window_commands());
     commands.push(migrate_assets_commandlet());
     commands.push(plugin_list_commandlet());
+    commands.push(authoring_automation_commandlet());
     commands.push(
         EditorCommandDescriptor::operation(
             path("view.editor.ui_asset.open"),
@@ -87,6 +88,21 @@ fn plugin_list_commandlet() -> EditorCommandDescriptor {
     .with_headless_commandlet_name("plugin-list")
     .with_callable_from_remote(true)
     .with_required_capabilities(["plugin.catalog.read"])
+}
+
+fn authoring_automation_commandlet() -> EditorCommandDescriptor {
+    EditorCommandDescriptor::new(
+        path("authoring.automation.run"),
+        "Run Authoring Automation",
+        EditorCommandCategory::Command,
+        EditorCommandAction::HeadlessAuthoringAutomation,
+    )
+    .with_description("Run retained-host authoring bindings through the headless commandlet")
+    .with_keywords(["authoring", "automation", "headless", "retained-host"])
+    .with_payload_schema_id("editor.commandlet.authoring-automation")
+    .with_headless_commandlet_route(path("commandlet.route.authoring_automation"))
+    .with_headless_commandlet_name("authoring-automation")
+    .with_callable_from_remote(true)
 }
 
 fn command_palette_command() -> EditorCommandDescriptor {
@@ -376,6 +392,54 @@ fn view_commands() -> Vec<EditorCommandDescriptor> {
             None,
             WhenClause::Always,
             ["console", "filter", filter.as_str()],
+        ));
+    }
+    for (id, label, filter) in [
+        (
+            "view.console.source.all",
+            "Show All Log Sources",
+            ConsoleSourceFilter::All,
+        ),
+        (
+            "view.console.source.editor",
+            "Show Editor Logs",
+            ConsoleSourceFilter::Editor,
+        ),
+        (
+            "view.console.source.runtime",
+            "Show Runtime Logs",
+            ConsoleSourceFilter::Runtime,
+        ),
+        (
+            "view.console.source.play",
+            "Show Play Logs",
+            ConsoleSourceFilter::Play,
+        ),
+        (
+            "view.console.source.plugin",
+            "Show Plugin Logs",
+            ConsoleSourceFilter::Plugin,
+        ),
+        (
+            "view.console.source.import",
+            "Show Import Logs",
+            ConsoleSourceFilter::Import,
+        ),
+        (
+            "view.console.source.script_build",
+            "Show Script Build Logs",
+            ConsoleSourceFilter::ScriptBuild,
+        ),
+    ] {
+        commands.push(command(
+            id,
+            label,
+            EditorCommandCategory::View,
+            format!("View/Activity Log/{label}"),
+            EditorEvent::WorkbenchMenu(MenuAction::SetConsoleSourceFilter(filter)),
+            None,
+            WhenClause::Always,
+            ["activity", "log", "source", filter.as_str()],
         ));
     }
     commands

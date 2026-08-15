@@ -1,17 +1,38 @@
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
 
-use wgpu::util::DeviceExt;
-
 use crate::core::framework::render::RenderCapabilitySummary;
 use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::scene_renderer::mesh::build_mesh_draws::IndexedIndirectArgs;
 use zr_rhi_wgpu::{GpuReadbackQueue, ReadbackError};
 
 use super::{
-    IndirectCompactionBatchRange, IndirectCompactionPlan, IndirectDrawBatch, IndirectDrawBatcher,
-    MeshDrawCommand, MeshIndirectCompactionResources, MeshPassCommandBuffers,
+    IndirectCompactionPlan, IndirectDrawBatch, MeshDrawCommand, MeshIndirectCompactionResources,
+    MeshIndirectDrawPlan,
 };
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub(crate) struct MeshIndirectResourceIdentity {
+    workspace_id: u64,
+    resource_revision: u64,
+}
+
+impl MeshIndirectResourceIdentity {
+    pub(crate) const fn new(workspace_id: u64, resource_revision: u64) -> Self {
+        Self {
+            workspace_id,
+            resource_revision,
+        }
+    }
+
+    pub(crate) const fn workspace_id(self) -> u64 {
+        self.workspace_id
+    }
+
+    pub(crate) const fn resource_revision(self) -> u64 {
+        self.resource_revision
+    }
+}
 
 pub(crate) const INDEXED_INDIRECT_ARGS_STRIDE_BYTES: wgpu::BufferAddress =
     std::mem::size_of::<IndexedIndirectArgs>() as wgpu::BufferAddress;
@@ -53,7 +74,8 @@ impl<'a> MeshDrawCommandStream<'a> {
 }
 
 pub(crate) struct MeshIndirectDrawExecution {
-    args_buffer: wgpu::Buffer,
+    resource_identity: MeshIndirectResourceIdentity,
+    args_buffer: Arc<wgpu::Buffer>,
     batches: Vec<IndirectDrawBatch>,
     compaction_plan: IndirectCompactionPlan,
     compaction_resources: MeshIndirectCompactionResources,
@@ -84,48 +106,22 @@ struct SharedReadbackBytes {
 }
 
 impl MeshIndirectDrawExecution {
-    pub(crate) fn build(
-        device: &wgpu::Device,
-        label: &'static str,
-        commands: &[MeshDrawCommand],
+    pub(crate) fn from_prepared_plan(
+        resource_identity: MeshIndirectResourceIdentity,
+        args_buffer: Arc<wgpu::Buffer>,
+        plan: MeshIndirectDrawPlan,
+        compaction_resources: MeshIndirectCompactionResources,
         capabilities: &RenderCapabilitySummary,
-    ) -> Option<Self> {
-        let batcher = IndirectDrawBatcher::build(commands, capabilities);
-        if batcher.args_cpu().is_empty() || batcher.batches().is_empty() {
-            return None;
-        }
+    ) -> Self {
+        let compaction_plan = plan.compaction_plan;
+        let (args_cpu, batches) = plan.batcher.into_execution_parts();
+        let args_count = args_cpu.len() as u32;
+        let total_instances = batches.iter().map(|batch| batch.total_instances).sum();
 
-        let batch_ranges = batcher.batches().iter().map(|batch| {
-            IndirectCompactionBatchRange::new(
-                batch.first_args,
-                batch.args_count,
-                batch.draw_count_index,
-            )
-        });
-        let compaction_plan = IndirectCompactionPlan::try_from_ordered_batch_ranges(
-            batcher.args_cpu(),
-            batch_ranges,
-        )?;
-        let compaction_resources =
-            MeshIndirectCompactionResources::new(device, label, &compaction_plan);
-        let args_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some(label),
-            contents: bytemuck::cast_slice(batcher.args_cpu()),
-            usage: wgpu::BufferUsages::INDIRECT
-                | wgpu::BufferUsages::STORAGE
-                | wgpu::BufferUsages::COPY_DST
-                | wgpu::BufferUsages::COPY_SRC,
-        });
-        let args_count = batcher.args_cpu().len() as u32;
-        let total_instances = batcher
-            .batches()
-            .iter()
-            .map(|batch| batch.total_instances)
-            .sum();
-
-        Some(Self {
+        Self {
+            resource_identity,
             args_buffer,
-            batches: batcher.batches().to_vec(),
+            batches,
             compaction_plan,
             compaction_resources,
             multi_draw_indirect_supported: capabilities.supports_multi_draw_indirect,
@@ -134,11 +130,15 @@ impl MeshIndirectDrawExecution {
             compaction_ready_for_replay: Cell::new(false),
             args_count,
             total_instances,
-        })
+        }
     }
 
     pub(crate) fn args_buffer(&self) -> &wgpu::Buffer {
         &self.args_buffer
+    }
+
+    pub(crate) const fn resource_identity(&self) -> MeshIndirectResourceIdentity {
+        self.resource_identity
     }
 
     pub(crate) fn replay_args_buffer(&self) -> &wgpu::Buffer {
@@ -393,66 +393,28 @@ pub(crate) struct MeshPassIndirectDrawExecutions {
 }
 
 impl MeshPassIndirectDrawExecutions {
-    pub(crate) fn build(
-        device: &wgpu::Device,
-        capabilities: &RenderCapabilitySummary,
-        command_buffers: &MeshPassCommandBuffers,
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn from_phases(
+        depth_prepass: Option<MeshIndirectDrawExecution>,
+        shadow: Option<MeshIndirectDrawExecution>,
+        opaque: Option<MeshIndirectDrawExecution>,
+        alpha_mask: Option<MeshIndirectDrawExecution>,
+        advanced_pbr_opaque: Option<MeshIndirectDrawExecution>,
+        transparent: Option<MeshIndirectDrawExecution>,
+        half_resolution_transparent: Option<MeshIndirectDrawExecution>,
+        velocity: Option<MeshIndirectDrawExecution>,
+        taa_reactive_mask: Option<MeshIndirectDrawExecution>,
     ) -> Self {
         Self {
-            depth_prepass: MeshIndirectDrawExecution::build(
-                device,
-                "zircon-depth-prepass-indirect-args",
-                command_buffers.depth_prepass().commands(),
-                capabilities,
-            ),
-            shadow: MeshIndirectDrawExecution::build(
-                device,
-                "zircon-shadow-indirect-args",
-                command_buffers.shadow().commands(),
-                capabilities,
-            ),
-            opaque: MeshIndirectDrawExecution::build(
-                device,
-                "zircon-opaque-indirect-args",
-                command_buffers.opaque().commands(),
-                capabilities,
-            ),
-            alpha_mask: MeshIndirectDrawExecution::build(
-                device,
-                "zircon-alpha-mask-indirect-args",
-                command_buffers.alpha_mask().commands(),
-                capabilities,
-            ),
-            advanced_pbr_opaque: MeshIndirectDrawExecution::build(
-                device,
-                "zircon-advanced-pbr-opaque-indirect-args",
-                command_buffers.advanced_pbr_opaque().commands(),
-                capabilities,
-            ),
-            transparent: MeshIndirectDrawExecution::build(
-                device,
-                "zircon-transparent-indirect-args",
-                command_buffers.transparent().commands(),
-                capabilities,
-            ),
-            half_resolution_transparent: MeshIndirectDrawExecution::build(
-                device,
-                "zircon-halfres-transparent-indirect-args",
-                command_buffers.half_resolution_transparent().commands(),
-                capabilities,
-            ),
-            velocity: MeshIndirectDrawExecution::build(
-                device,
-                "zircon-velocity-indirect-args",
-                command_buffers.velocity().commands(),
-                capabilities,
-            ),
-            taa_reactive_mask: MeshIndirectDrawExecution::build(
-                device,
-                "zircon-taa-reactive-mask-indirect-args",
-                command_buffers.taa_reactive_mask().commands(),
-                capabilities,
-            ),
+            depth_prepass,
+            shadow,
+            opaque,
+            alpha_mask,
+            advanced_pbr_opaque,
+            transparent,
+            half_resolution_transparent,
+            velocity,
+            taa_reactive_mask,
         }
     }
 
@@ -562,7 +524,7 @@ impl MeshPassIndirectDrawExecutions {
 
 #[cfg(test)]
 mod tests {
-    use super::{INDEXED_INDIRECT_ARGS_STRIDE_BYTES, MeshIndirectArgsSnapshot};
+    use super::{MeshIndirectArgsSnapshot, INDEXED_INDIRECT_ARGS_STRIDE_BYTES};
     use crate::core::framework::render::{RenderCapabilitySummary, RenderPhase};
     use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::scene::scene_renderer::mesh::build_mesh_draws::IndexedIndirectArgs;
@@ -576,10 +538,9 @@ mod tests {
         let source = include_str!("indirect_draw_execution.rs");
 
         assert_eq!(INDEXED_INDIRECT_ARGS_STRIDE_BYTES, 20);
-        assert!(source.contains("create_buffer_init"));
-        assert!(source.contains("wgpu::BufferUsages::INDIRECT"));
-        assert!(source.contains("wgpu::BufferUsages::STORAGE"));
-        assert!(source.contains("bytemuck::cast_slice(batcher.args_cpu())"));
+        assert!(source.contains("from_prepared_plan"));
+        assert!(source.contains("args_buffer: Arc<wgpu::Buffer>"));
+        assert!(!source.contains("create_buffer_init"));
     }
 
     #[test]
@@ -619,13 +580,16 @@ mod tests {
         };
         let commands = vec![command(10, 1, 2, 3), command(20, 4, 8, 2)];
 
-        let execution = super::MeshIndirectDrawExecution::build(
+        let (plan, _) =
+            super::super::MeshIndirectDrawPlan::build(&commands, &gpu_driven_capabilities());
+        let mut workspace = super::super::MeshIndirectPhaseWorkspace::default();
+        let (execution, _) = workspace.prepare(
             &backend.device,
+            &backend.queue,
             "zircon-test-indirect-compaction-execution",
-            &commands,
+            plan.expect("indirect plan"),
             &gpu_driven_capabilities(),
-        )
-        .expect("indirect execution");
+        );
 
         let plan = execution.compaction_plan();
         assert_eq!(plan.metadata_count(), 2);

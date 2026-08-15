@@ -38,6 +38,9 @@ pub(crate) struct PreparedMeshQueueStats {
     pub(crate) indirect_batched_draw_count: usize,
     pub(crate) indirect_fallback_draw_count: usize,
     pub(crate) indirect_args_count: usize,
+    pub(crate) indirect_workspace_created_buffer_count: usize,
+    pub(crate) indirect_workspace_uploaded_byte_count: u64,
+    pub(crate) indirect_workspace_upload_range_count: usize,
     pub(crate) virtual_geometry_indirect_draw_count: usize,
     pub(crate) virtual_geometry_indirect_buffer_count: usize,
     pub(crate) virtual_geometry_indirect_args_count: usize,
@@ -94,6 +97,8 @@ pub(crate) struct PreparedMeshQueueStats {
     pub(crate) direct_draw_call_count: usize,
     pub(crate) state_change_count: usize,
     pub(crate) bind_skip_count: usize,
+    pub(crate) material_bind_group_set_count: usize,
+    pub(crate) material_bind_group_skip_count: usize,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

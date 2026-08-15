@@ -8,14 +8,14 @@ mod job_queue;
 mod output_folder;
 mod profiles;
 
-pub(super) use action_ids::{BuildExportAction, parse_build_export_action};
+pub(super) use action_ids::{parse_build_export_action, BuildExportAction};
 use error::DesktopExportActionError;
 #[cfg(test)]
 pub(super) use execution_summary::DesktopExportExecutionState;
-pub(super) use execution_summary::{DesktopExportExecutionSummary, apply_summary_to_target};
+pub(super) use execution_summary::{apply_summary_to_target, DesktopExportExecutionSummary};
 pub(super) use job_queue::{
-    DesktopExportCancellation, DesktopExportJobQueue, DesktopExportJobSnapshot,
-    apply_job_snapshot_to_target,
+    apply_job_snapshot_to_target, DesktopExportCancellation, DesktopExportJobQueue,
+    DesktopExportJobSnapshot,
 };
 #[cfg(test)]
 pub(super) use job_queue::{DesktopExportJobPhase, DesktopExportProgressSnapshot};

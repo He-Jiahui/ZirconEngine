@@ -7,6 +7,7 @@ use super::{
 pub const HYBRID_GI_SOURCE_FULL_DYNAMIC: u32 = 1 << 0;
 pub const HYBRID_GI_SOURCE_BAKED_BASELINE: u32 = 1 << 1;
 pub const HYBRID_GI_SOURCE_DYNAMIC_DELTA: u32 = 1 << 2;
+pub const RENDER_HYBRID_GI_RADIANCE_CACHE_INTERPOLATION_CORNER_COUNT: usize = 8;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RenderHybridGiCompositePolicy {
@@ -77,10 +78,16 @@ impl Default for RenderHybridGiCompositePolicy {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RenderHybridGiPreparedFrame {
     pub composite_policy: RenderHybridGiCompositePolicy,
     pub resolved_settings: Option<RenderHybridGiResolvedSettings>,
+    pub radiance_cache_instance_id: u64,
+    /// Renderer-neutral scene descriptors produced by the Hybrid GI runtime provider.
+    pub scene_prepare: Option<RenderHybridGiPreparedSceneFrame>,
+    pub radiance_cache_bootstrap_updates: Vec<RenderHybridGiPreparedRadianceCacheUpdate>,
+    pub radiance_cache_updates: Vec<RenderHybridGiPreparedRadianceCacheUpdate>,
+    pub radiance_cache_consumes: Vec<RenderHybridGiPreparedRadianceCacheConsume>,
     pub resident_probes: Vec<RenderHybridGiPreparedProbe>,
     pub pending_updates: Vec<RenderHybridGiPreparedUpdateRequest>,
     pub scheduled_trace_region_ids: Vec<u32>,
@@ -94,6 +101,14 @@ impl RenderHybridGiPreparedFrame {
     pub fn is_empty(&self) -> bool {
         self.composite_policy == RenderHybridGiCompositePolicy::default()
             && self.resolved_settings.is_none()
+            && self
+                .scene_prepare
+                .as_ref()
+                .map(RenderHybridGiPreparedSceneFrame::is_empty)
+                .unwrap_or(true)
+            && self.radiance_cache_bootstrap_updates.is_empty()
+            && self.radiance_cache_updates.is_empty()
+            && self.radiance_cache_consumes.is_empty()
             && self.resident_probes.is_empty()
             && self.pending_updates.is_empty()
             && self.scheduled_trace_region_ids.is_empty()
@@ -102,6 +117,90 @@ impl RenderHybridGiPreparedFrame {
             && self.probe_rt_lighting_rgb.is_empty()
             && self.trace_region_scene_data.is_empty()
     }
+}
+
+/// Scene-preparation data that crosses the provider-to-renderer boundary without exposing
+/// plugin-private HGI types to the core renderer.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RenderHybridGiPreparedSceneFrame {
+    pub card_capture_requests: Vec<RenderHybridGiPreparedCardCaptureRequest>,
+    pub surface_cache_page_contents: Vec<RenderHybridGiPreparedSurfaceCachePageContent>,
+    pub voxel_clipmaps: Vec<RenderHybridGiPreparedVoxelClipmap>,
+    pub voxel_cells: Vec<RenderHybridGiPreparedVoxelCell>,
+    /// Resolves presentation-local card IDs back to prepared geometry instances.
+    pub card_owners: Vec<RenderHybridGiPreparedCardOwner>,
+}
+
+impl RenderHybridGiPreparedSceneFrame {
+    pub fn is_empty(&self) -> bool {
+        self.card_capture_requests.is_empty()
+            && self.surface_cache_page_contents.is_empty()
+            && self.voxel_clipmaps.is_empty()
+            && self.voxel_cells.is_empty()
+            && self.card_owners.is_empty()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderHybridGiPreparedCardOwner {
+    pub card_id: u32,
+    pub stable_instance_key: u64,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct RenderHybridGiPreparedCardCaptureRequest {
+    pub card_id: u32,
+    pub page_id: u32,
+    pub atlas_slot_id: u32,
+    pub capture_slot_id: u32,
+    pub bounds_center: [f32; 3],
+    pub bounds_radius: f32,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct RenderHybridGiPreparedSurfaceCachePageContent {
+    pub page_id: u32,
+    pub owner_card_id: u32,
+    pub atlas_slot_id: u32,
+    pub capture_slot_id: u32,
+    pub bounds_center: [f32; 3],
+    pub bounds_radius: f32,
+    pub atlas_sample_rgba: [u8; 4],
+    pub capture_sample_rgba: [u8; 4],
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct RenderHybridGiPreparedVoxelClipmap {
+    pub clipmap_id: u32,
+    pub center: [f32; 3],
+    pub half_extent: f32,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderHybridGiPreparedVoxelCell {
+    pub clipmap_id: u32,
+    pub cell_index: u32,
+    pub occupancy_count: u32,
+    pub dominant_card_id: u32,
+    pub radiance_present: bool,
+    pub radiance_rgb: [u8; 3],
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RenderHybridGiPreparedRadianceCacheUpdate {
+    pub slot: u32,
+    pub generation: u64,
+    pub radiance_rgb: [u8; 3],
+    pub confidence_q8: u8,
+    pub reuse_committed_radiance: bool,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct RenderHybridGiPreparedRadianceCacheConsume {
+    pub probe_id: u32,
+    pub generation: u64,
+    pub slots: [u32; RENDER_HYBRID_GI_RADIANCE_CACHE_INTERPOLATION_CORNER_COUNT],
+    pub weights_q16: [u16; RENDER_HYBRID_GI_RADIANCE_CACHE_INTERPOLATION_CORNER_COUNT],
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -249,6 +348,30 @@ mod tests {
             probe_rt_lighting_rgb: vec![RenderHybridGiPreparedProbeRtLighting {
                 probe_id: 3,
                 rt_lighting_rgb: [8, 16, 24],
+            }],
+            ..RenderHybridGiPreparedFrame::default()
+        }
+        .is_empty());
+        assert!(!RenderHybridGiPreparedFrame {
+            radiance_cache_instance_id: 9,
+            radiance_cache_updates: vec![RenderHybridGiPreparedRadianceCacheUpdate {
+                slot: 3,
+                generation: 7,
+                radiance_rgb: [8, 16, 24],
+                confidence_q8: 200,
+                reuse_committed_radiance: false,
+            }],
+            ..RenderHybridGiPreparedFrame::default()
+        }
+        .is_empty());
+        assert!(!RenderHybridGiPreparedFrame {
+            radiance_cache_instance_id: 9,
+            radiance_cache_bootstrap_updates: vec![RenderHybridGiPreparedRadianceCacheUpdate {
+                slot: 3,
+                generation: 7,
+                radiance_rgb: [8, 16, 24],
+                confidence_q8: 200,
+                reuse_committed_radiance: false,
             }],
             ..RenderHybridGiPreparedFrame::default()
         }

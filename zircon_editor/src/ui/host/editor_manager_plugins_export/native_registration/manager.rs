@@ -3,7 +3,9 @@ use std::path::Path;
 
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ProjectPluginManifest;
-use zircon_runtime::plugin::native::{NativePluginLoadReport, NativePluginLoader};
+use zircon_runtime::plugin::native::{
+    load_discovered_native_editor_plugins, NativePluginLoadReport,
+};
 
 use crate::core::plugin::EditorPluginRegistrationReport;
 
@@ -19,7 +21,7 @@ impl EditorManager {
         project_root: impl AsRef<Path>,
     ) -> Vec<EditorPluginRegistrationReport> {
         let native_report =
-            NativePluginLoader.load_discovered_editor(self.plugin_directory(project_root));
+            load_discovered_native_editor_plugins(self.plugin_directory(project_root));
         native_editor_registration_reports_from_load_report(&native_report, |_| true, false)
     }
 
@@ -33,7 +35,7 @@ impl EditorManager {
         selections: &ProjectPluginManifest,
     ) -> Vec<EditorPluginRegistrationReport> {
         let native_report =
-            NativePluginLoader.load_discovered_editor(self.plugin_directory(project_root));
+            load_discovered_native_editor_plugins(self.plugin_directory(project_root));
         native_editor_registration_reports_from_load_report(
             &native_report,
             |package_id| native_editor_plugin_is_selected(selections, package_id),

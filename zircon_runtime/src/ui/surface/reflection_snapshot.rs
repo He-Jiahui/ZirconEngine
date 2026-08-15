@@ -23,7 +23,7 @@ pub fn reflector_snapshot(
     let hit = query.map(|query| (query.clone(), surface.hit_test_with_query(query)));
     let mut nodes = Vec::new();
     for node in surface.tree.nodes.values() {
-        let arranged = surface.arranged_tree.get(node.node_id);
+        let arranged = surface.arranged_node(node.node_id);
         let effective_visibility = arranged
             .map(|arranged| arranged.visibility)
             .unwrap_or_else(|| node.effective_visibility());

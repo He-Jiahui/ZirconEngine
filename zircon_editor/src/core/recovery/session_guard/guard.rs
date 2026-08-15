@@ -1,10 +1,12 @@
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
+use zircon_runtime::asset::project::ProjectPaths;
+
 use super::{
-    SessionGuardError, SessionLockDurability, SessionLockInspection, SessionLockRecord,
-    SessionOwnershipLease, create_lock, inspect_lock, new_record, read_lock, remove_lock,
-    replace_lock, session_lock_path, unix_millis,
+    create_lock, inspect_lock, new_record, read_lock, remove_lock, replace_lock, session_lock_path,
+    unix_millis, SessionGuardError, SessionLockDurability, SessionLockInspection,
+    SessionLockRecord, SessionOwnershipLease,
 };
 
 /// Owns one project session lock until normal shutdown explicitly releases it.
@@ -26,9 +28,24 @@ impl SessionGuard {
         project_root: impl AsRef<Path>,
         now: SystemTime,
     ) -> Result<Self, SessionGuardError> {
-        let root = project_root.as_ref();
-        let path = session_lock_path(root);
-        let ownership = SessionOwnershipLease::acquire(root, &path)?;
+        let root = resolve_project_root(project_root.as_ref())?;
+        let path = session_lock_path(&root);
+        let ownership = SessionOwnershipLease::acquire(&root, &path)?;
+        Self::create_with_owned_lease(path, ownership, now)
+    }
+
+    /// Claims the project admission boundary without implicitly replacing a residual lock.
+    pub fn claim(
+        project_root: impl AsRef<Path>,
+    ) -> Result<super::SessionGuardAdmission, SessionGuardError> {
+        super::liveness::claim(project_root)
+    }
+
+    pub(super) fn create_with_owned_lease(
+        path: PathBuf,
+        ownership: SessionOwnershipLease,
+        now: SystemTime,
+    ) -> Result<Self, SessionGuardError> {
         let record = new_record(now)?;
         let durability = create_lock(&path, &record)?;
         Ok(Self {
@@ -43,7 +60,8 @@ impl SessionGuard {
     pub fn inspect(
         project_root: impl AsRef<Path>,
     ) -> Result<SessionLockInspection, SessionGuardError> {
-        inspect_lock(&session_lock_path(project_root.as_ref()))
+        let root = resolve_project_root(project_root.as_ref())?;
+        inspect_lock(&session_lock_path(&root))
     }
 
     /// Replaces exactly the residual record selected by recovery policy.
@@ -57,12 +75,21 @@ impl SessionGuard {
         expected: &SessionLockRecord,
         now: SystemTime,
     ) -> Result<Self, SessionGuardError> {
-        let root = project_root.as_ref();
-        let path = session_lock_path(root);
-        let ownership = SessionOwnershipLease::acquire(root, &path)?;
+        let root = resolve_project_root(project_root.as_ref())?;
+        let path = session_lock_path(&root);
+        let ownership = SessionOwnershipLease::acquire(&root, &path)?;
+        Self::replace_with_owned_lease(path, expected.clone(), ownership, now)
+    }
+
+    pub(super) fn replace_with_owned_lease(
+        path: PathBuf,
+        expected: SessionLockRecord,
+        ownership: SessionOwnershipLease,
+        now: SystemTime,
+    ) -> Result<Self, SessionGuardError> {
         let record = new_record(now)?;
         let current = read_lock(&path)?;
-        if current.as_ref() != Some(expected) {
+        if current.as_ref() != Some(&expected) {
             return Err(SessionGuardError::OwnershipLost { path });
         }
         let durability = replace_lock(&path, &record)?;
@@ -83,6 +110,14 @@ impl SessionGuard {
         &self.path
     }
 
+    /// Returns the canonical root whose `.zircon/session.lock` this guard exclusively owns.
+    pub fn project_root(&self) -> &Path {
+        self.path
+            .parent()
+            .and_then(Path::parent)
+            .expect("SessionGuard lock path always resides below <project>/.zircon")
+    }
+
     pub const fn is_released(&self) -> bool {
         self.released
     }
@@ -100,8 +135,7 @@ impl SessionGuard {
         now: SystemTime,
     ) -> Result<SessionLockDurability, SessionGuardError> {
         self.ensure_owned()?;
-        let mut record = self.record.clone();
-        record.heartbeat_unix_millis = unix_millis(now)?;
+        let record = self.record.with_heartbeat_unix_millis(unix_millis(now)?);
         let durability = replace_lock(&self.path, &record)?;
         self.record = record;
         self.durability = durability;
@@ -132,4 +166,14 @@ impl SessionGuard {
         }
         Ok(())
     }
+}
+
+fn resolve_project_root(project_root: &Path) -> Result<PathBuf, SessionGuardError> {
+    ProjectPaths::resolve_path(project_root)
+        .map(|root| root.into_operation_path())
+        .map_err(|source| SessionGuardError::Io {
+            operation: "resolve project session path",
+            path: project_root.to_path_buf(),
+            source,
+        })
 }

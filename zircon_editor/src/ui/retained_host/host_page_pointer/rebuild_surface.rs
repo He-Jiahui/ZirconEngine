@@ -1,6 +1,7 @@
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodePath, UiTreeId},
+    layout::{LayoutBoundary, UiSize},
     tree::{UiInputPolicy, UiTreeNode},
 };
 
@@ -33,14 +34,21 @@ impl HostPagePointerBridge {
                 ROOT_NODE_ID,
                 UiTreeNode::new(STRIP_NODE_ID, UiNodePath::new("editor.host_page.strip"))
                     .with_frame(self.layout.strip_frame)
+                    .with_layout_boundary(LayoutBoundary::ParentDirected)
                     .with_z_index(10)
                     .with_input_policy(UiInputPolicy::Receive)
                     .with_state_flags(base_state(true)),
             )
             .expect("host page root must exist");
 
-        for tab in &self.layout.tabs {
+        for (tab_position, tab) in self.layout.tabs.iter().enumerate() {
             let item_index = tab.page_index;
+            let (tab_frame, close_frame) = self
+                .measured_frames
+                .get(tab_position)
+                .copied()
+                .flatten()
+                .unwrap_or((tab.frame, tab.close_frame));
             let node_id = tab_node_id(item_index);
             surface
                 .tree
@@ -50,7 +58,7 @@ impl HostPagePointerBridge {
                         node_id,
                         UiNodePath::new(format!("editor.host_page/tab_{item_index}")),
                     )
-                    .with_frame(tab.frame)
+                    .with_frame(tab_frame)
                     .with_z_index(20 + item_index as i32)
                     .with_input_policy(UiInputPolicy::Receive)
                     .with_state_flags(base_state(true)),
@@ -71,7 +79,7 @@ impl HostPagePointerBridge {
                 .items
                 .get(item_index)
                 .and_then(|item| item.close_instance_id.as_ref());
-            if let (Some(close_frame), Some(instance_id)) = (tab.close_frame, close_target) {
+            if let (Some(close_frame), Some(instance_id)) = (close_frame, close_target) {
                 let close_node_id = close_node_id(item_index);
                 surface
                     .tree
@@ -124,9 +132,14 @@ impl HostPagePointerBridge {
             );
         }
 
-        surface.rebuild();
+        let root = root_frame(&self.layout);
+        surface.rebuild_authored_frames(UiSize::new(root.width, root.height));
         self.surface = surface;
         self.dispatcher = dispatcher;
         self.route_intents = route_intents;
+        #[cfg(test)]
+        {
+            self.surface_authority_generation = self.surface_authority_generation.saturating_add(1);
+        }
     }
 }

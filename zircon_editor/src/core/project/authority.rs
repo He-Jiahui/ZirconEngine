@@ -2,45 +2,27 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
-use zircon_runtime_interface::project::{
-    render_project_template, ProjectManifestSummary, RenderedProjectTemplate,
+use zircon_runtime::asset::project::{
+    ProjectManager, ProjectManifest, ProjectPaths, ResolvedProjectPath,
 };
+use zircon_runtime_interface::project::{render_project_template, RenderedProjectTemplate};
 
 use super::filesystem::{
-    canonical_project_root, resolve_project_path, validate_canonical_existing_project_root,
-    validate_creation_target,
+    canonical_resolved_project_root, resolve_project_path, resolve_project_root_identity,
+    validate_canonical_existing_project_root, validate_creation_target,
 };
 use super::{
     CreatedProject, NewProjectDraft, OpenedProject, ProjectAuthorityError, ProjectProbe,
-    RecentProjectEntry, RecentProjectValidation, StoredRecentProjectEntry, StoredStartupSession,
+    RecentProjectValidation,
 };
 
-const RECENT_PROJECT_LIMIT: usize = 8;
 static NEXT_TRANSACTION: AtomicU64 = AtomicU64::new(1);
 
-/// Headless-safe owner for Editor project identity, creation, opening, and recents.
+/// Headless-safe owner for Editor project identity, creation, and opening.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ProjectAuthority;
 
 impl ProjectAuthority {
-    pub(crate) fn decode_startup_session(
-        &self,
-        mut value: serde_json::Value,
-    ) -> Result<StoredStartupSession, ProjectAuthorityError> {
-        self.migrate_legacy_recent_project_summaries(&mut value)?;
-        serde_json::from_value(value)
-            .map_err(|source| ProjectAuthorityError::SessionDecode { source })
-    }
-
-    pub(crate) fn encode_startup_session(
-        &self,
-        session: &StoredStartupSession,
-    ) -> Result<serde_json::Value, ProjectAuthorityError> {
-        serde_json::to_value(session)
-            .map_err(|source| ProjectAuthorityError::SessionEncode { source })
-    }
-
     pub fn create_project(
         &self,
         draft: &NewProjectDraft,
@@ -113,7 +95,7 @@ impl ProjectAuthority {
                 replaced_empty_target,
                 |from, to| fs::rename(from, to),
             )?;
-            let root = match canonical_project_root(&target) {
+            let root = match canonical_resolved_project_root(&target) {
                 Ok(root) => root,
                 Err(error) => {
                     rollback_committed_project(
@@ -126,7 +108,7 @@ impl ProjectAuthority {
                     return Err(error);
                 }
             };
-            let project = match ProjectManager::open(&root) {
+            let project = match ProjectManager::open_resolved(&root) {
                 Ok(project) => project,
                 Err(source) => {
                     rollback_committed_project(
@@ -153,7 +135,11 @@ impl ProjectAuthority {
                 return Err(error);
             }
             let summary = project.manifest().summary();
-            Ok(CreatedProject::new(root, summary, project))
+            Ok(CreatedProject::new(
+                root.into_operation_path(),
+                summary,
+                project,
+            ))
         })();
 
         let preserve_rollback_artifacts = matches!(
@@ -174,19 +160,33 @@ impl ProjectAuthority {
         &self,
         path: impl AsRef<Path>,
     ) -> Result<OpenedProject, ProjectAuthorityError> {
-        let root = self.resolve_existing_project_root(path)?;
-        Ok(OpenedProject::new(ProjectManager::open(root)?))
+        let root = self.resolve_existing_project_root_with_identity(path)?;
+        self.open_resolved_project(&root)
+    }
+
+    /// Opens a project from a physical root resolved by an upstream boundary.
+    ///
+    /// The validation intentionally does not resolve the path again; `ResolvedProjectPath`
+    /// already owns the operation identity selected by the caller.
+    pub fn open_resolved_project(
+        &self,
+        root: &ResolvedProjectPath,
+    ) -> Result<OpenedProject, ProjectAuthorityError> {
+        validate_canonical_existing_project_root(root.operation_path())?;
+        Ok(OpenedProject::new(ProjectManager::open_resolved(root)?))
     }
 
     pub fn probe_project(
         &self,
         path: impl AsRef<Path>,
     ) -> Result<ProjectProbe, ProjectAuthorityError> {
-        let root = self.resolve_existing_project_root(path)?;
-        let paths = ProjectPaths::from_root(&root)
-            .map_err(|source| ProjectAuthorityError::io("resolve project paths", &root, source))?;
+        let root = self.resolve_existing_project_root_with_identity(path)?;
+        let paths = ProjectPaths::from_resolved_root(&root);
         let manifest = ProjectManifest::load(paths.manifest_path())?;
-        Ok(ProjectProbe::new(root, manifest.summary()))
+        Ok(ProjectProbe::new(
+            root.into_operation_path(),
+            manifest.summary(),
+        ))
     }
 
     pub fn probe_draft(
@@ -200,134 +200,36 @@ impl ProjectAuthority {
         &self,
         path: impl AsRef<Path>,
     ) -> Result<PathBuf, ProjectAuthorityError> {
-        let root = canonical_project_root(path.as_ref())?;
-        validate_canonical_existing_project_root(&root)?;
-        Ok(root)
+        self.resolve_existing_project_root_with_identity(path)
+            .map(ResolvedProjectPath::into_operation_path)
+    }
+
+    /// Resolves an existing project input once for callers that subsequently open it.
+    ///
+    /// The resolved identity retains the physical operation path and the Windows-safe display
+    /// view so the next owner does not need a platform-specific path compatibility branch.
+    pub(crate) fn resolve_existing_project_root_with_identity(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> Result<ResolvedProjectPath, ProjectAuthorityError> {
+        canonical_resolved_project_root(path.as_ref())
     }
 
     pub fn validate_recent_project(&self, path: &str) -> RecentProjectValidation {
-        let Ok(root) = canonical_project_root(Path::new(path)) else {
+        let Ok(root) = resolve_project_root_identity(Path::new(path)) else {
             return RecentProjectValidation::InvalidProject;
         };
-        if !root.exists() {
+        if !root.operation_path().exists() {
             return RecentProjectValidation::Missing;
         }
-        if validate_canonical_existing_project_root(&root).is_err() {
+        if validate_canonical_existing_project_root(root.operation_path()).is_err() {
             return RecentProjectValidation::Missing;
         }
-        let Ok(paths) = ProjectPaths::from_root(&root) else {
-            return RecentProjectValidation::InvalidProject;
-        };
+        let paths = ProjectPaths::from_resolved_root(&root);
         match ProjectManifest::load(paths.manifest_path()) {
             Ok(_) => RecentProjectValidation::Valid,
             Err(_) => RecentProjectValidation::InvalidManifest,
         }
-    }
-
-    pub fn remember_recent_project(
-        &self,
-        session: &mut StoredStartupSession,
-        path: &str,
-        summary: ProjectManifestSummary,
-        now_unix_ms: u64,
-    ) {
-        let canonical_path = canonical_project_root(Path::new(path)).ok();
-        let recent_path = persisted_recent_project_path(canonical_path.as_deref(), path);
-        session.last_project_path = Some(recent_path.clone());
-        session.recent_projects.retain(|entry| {
-            !recent_project_path_matches(&entry.path, &recent_path, canonical_path.as_deref())
-        });
-        session.recent_projects.push(StoredRecentProjectEntry {
-            summary,
-            path: recent_path,
-            last_opened_unix_ms: now_unix_ms,
-        });
-        session.recent_projects.sort_by(|left, right| {
-            right
-                .last_opened_unix_ms
-                .cmp(&left.last_opened_unix_ms)
-                .then_with(|| left.path.cmp(&right.path))
-        });
-        session.recent_projects.truncate(RECENT_PROJECT_LIMIT);
-    }
-
-    pub fn forget_recent_project(&self, session: &mut StoredStartupSession, path: &str) {
-        let canonical_path = canonical_project_root(Path::new(path)).ok();
-        session.recent_projects.retain(|entry| {
-            !recent_project_path_matches(&entry.path, path, canonical_path.as_deref())
-        });
-        if session
-            .last_project_path
-            .as_deref()
-            .is_some_and(|stored_path| {
-                recent_project_path_matches(stored_path, path, canonical_path.as_deref())
-            })
-        {
-            session.last_project_path = session
-                .recent_projects
-                .first()
-                .map(|entry| entry.path.clone());
-        }
-    }
-
-    pub fn recent_projects_with_validation<F>(
-        &self,
-        session: &StoredStartupSession,
-        mut validate: F,
-    ) -> Vec<RecentProjectEntry>
-    where
-        F: FnMut(&str) -> RecentProjectValidation,
-    {
-        session
-            .recent_projects
-            .iter()
-            .map(|entry| RecentProjectEntry {
-                summary: entry.summary.clone(),
-                path: entry.path.clone(),
-                last_opened_unix_ms: entry.last_opened_unix_ms,
-                validation: validate(&entry.path),
-            })
-            .collect()
-    }
-
-    fn migrate_legacy_recent_project_summaries(
-        &self,
-        session: &mut serde_json::Value,
-    ) -> Result<(), ProjectAuthorityError> {
-        let Some(recent_projects) = session
-            .get_mut("recent_projects")
-            .and_then(serde_json::Value::as_array_mut)
-        else {
-            return Ok(());
-        };
-
-        let mut migrated = Vec::with_capacity(recent_projects.len());
-        for mut entry in std::mem::take(recent_projects) {
-            let Some(record) = entry.as_object_mut() else {
-                migrated.push(entry);
-                continue;
-            };
-            if record.contains_key("summary") {
-                migrated.push(entry);
-                continue;
-            }
-            let Some(path) = record
-                .get("path")
-                .and_then(serde_json::Value::as_str)
-                .map(str::to_owned)
-            else {
-                continue;
-            };
-            let Ok(project) = self.probe_project(&path) else {
-                continue;
-            };
-            let summary = serde_json::to_value(project.summary())
-                .map_err(|source| ProjectAuthorityError::SessionEncode { source })?;
-            record.insert("summary".to_string(), summary);
-            migrated.push(entry);
-        }
-        *recent_projects = migrated;
-        Ok(())
     }
 }
 
@@ -401,50 +303,6 @@ where
     }
 
     Ok(())
-}
-
-fn recent_project_path_matches(
-    stored_path: &str,
-    requested_path: &str,
-    requested_root: Option<&Path>,
-) -> bool {
-    stored_path == requested_path
-        || requested_root.is_some_and(|root| {
-            canonical_project_root(Path::new(stored_path))
-                .ok()
-                .as_deref()
-                == Some(root)
-        })
-}
-
-/// Keeps session/UI path text readable while project services retain their resolved identity.
-fn persisted_recent_project_path(canonical_path: Option<&Path>, requested_path: &str) -> String {
-    canonical_path
-        .map(ProjectPaths::display_path)
-        .map(|path| path.to_string_lossy().into_owned())
-        .unwrap_or_else(|| requested_path.to_owned())
-}
-
-#[cfg(all(test, windows))]
-mod persisted_recent_project_path_tests {
-    use std::path::Path;
-
-    use super::persisted_recent_project_path;
-
-    #[test]
-    fn converts_verbatim_dos_and_unc_paths_only_for_persisted_display_text() {
-        assert_eq!(
-            persisted_recent_project_path(Some(Path::new(r"\\?\C:\projects\mvp")), "ignored"),
-            r"C:\projects\mvp"
-        );
-        assert_eq!(
-            persisted_recent_project_path(
-                Some(Path::new(r"\\?\UNC\server\share\projects\mvp")),
-                "ignored"
-            ),
-            r"\\server\share\projects\mvp"
-        );
-    }
 }
 
 fn directory_is_empty(path: &Path) -> std::io::Result<bool> {

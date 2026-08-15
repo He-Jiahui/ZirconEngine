@@ -87,15 +87,16 @@ fn scene_asset_load_uses_asset_preserving_normalizer_source_guard() {
         "fn normalize_loaded_state",
         "self.flush_scene_systems_now();",
     );
-    assert!(normalize_loaded_state.contains("if ensure_default_nodes && self.cameras.is_empty()"));
+    assert!(normalize_loaded_state.contains("if ensure_default_nodes && self.camera_count() == 0"));
     assert!(normalize_loaded_state.contains("self.spawn_node(NodeKind::Camera);"));
+    assert!(normalize_loaded_state.contains("if ensure_default_nodes"));
     assert!(
-        normalize_loaded_state
-            .contains("if ensure_default_nodes && self.directional_lights.is_empty()")
+        normalize_loaded_state.contains("registered_component_id::<DirectionalLight>()")
+            && normalize_loaded_state.contains("component_count_for_id(component_id) == 0")
     );
     assert!(normalize_loaded_state.contains("self.spawn_node(NodeKind::DirectionalLight);"));
-    assert!(!normalize_loaded_state.contains("if self.cameras.is_empty()"));
-    assert!(!normalize_loaded_state.contains("if self.directional_lights.is_empty()"));
+    assert!(!normalize_loaded_state.contains("if self.camera_count() == 0"));
+    assert!(!normalize_loaded_state.contains("self.directional_lights.is_empty()"));
 }
 
 #[test]
@@ -228,18 +229,14 @@ fn scene_assets_keep_transform_only_hierarchy_nodes() {
     assert!(matches!(root_node.kind, NodeKind::Empty));
     assert_eq!(world.parent_of(11), Some(10));
     let saved = world.to_scene_asset(&project).unwrap();
-    assert!(
-        saved
-            .entities
-            .iter()
-            .any(|entity| entity.entity == 10 && entity.mesh.is_none())
-    );
-    assert!(
-        saved
-            .entities
-            .iter()
-            .any(|entity| entity.entity == 11 && entity.parent == Some(10))
-    );
+    assert!(saved
+        .entities
+        .iter()
+        .any(|entity| entity.entity == 10 && entity.mesh.is_none()));
+    assert!(saved
+        .entities
+        .iter()
+        .any(|entity| entity.entity == 11 && entity.parent == Some(10)));
 
     let _ = fs::remove_dir_all(root);
 }

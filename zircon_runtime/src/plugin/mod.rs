@@ -58,3 +58,6 @@ pub use runtime_profile::{
     RuntimeProfileFeaturePreset, RuntimeProfilePluginSelection, RUNTIME_PROFILE_FEATURE_PRESETS,
 };
 pub use ui_component_descriptor::UiComponentDescriptor;
+
+#[cfg(test)]
+pub(crate) use native_plugin_loader::NativePluginLoader;

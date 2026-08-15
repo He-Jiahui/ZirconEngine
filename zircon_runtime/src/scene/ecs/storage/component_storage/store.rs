@@ -7,21 +7,21 @@ use std::marker::PhantomData;
 use crate::scene::ecs::{ChangeTick, ComponentId, ComponentTicks, InternalEntity, StorageType};
 
 use super::super::{ComponentRemoveResult, StorageError};
-use super::component_results::{downcast_component, sort_component_ids_if_needed};
+use super::component_results::downcast_component;
+use super::entry::{PreflightedTransferredComponentRow, StoredComponent, TransferredComponentRow};
 use super::location::ComponentStorageLocation;
 use super::sparse::SparseComponentStorage;
-use super::table::TableComponentStorage;
 
+/// Owns sparse-set values only. Dense table values live in `ArchetypeTable`.
 #[derive(Default)]
 pub struct ComponentStorage {
     storage_types: HashMap<ComponentId, StorageType>,
     component_types: HashMap<ComponentId, TypeId>,
-    table_components: HashMap<ComponentId, TableComponentStorage>,
     sparse_components: HashMap<ComponentId, SparseComponentStorage>,
 }
 
-/// Proves that a component insert's id and storage representation were
-/// validated before a structural transaction publishes its entity row.
+/// Proves that a component insert's id and representation were validated
+/// before a structural transaction publishes its entity row.
 pub(crate) struct PreflightedComponentInsert<T> {
     component_id: ComponentId,
     storage_type: StorageType,
@@ -35,6 +35,33 @@ impl<T> PreflightedComponentInsert<T> {
 }
 
 impl ComponentStorage {
+    pub(crate) fn transferred_table_row(
+        component_id: ComponentId,
+        source_ticks: ComponentTicks,
+        value: StoredComponent,
+    ) -> TransferredComponentRow {
+        let type_id = value.as_ref().type_id();
+        TransferredComponentRow {
+            component_id,
+            storage_type: StorageType::Table,
+            type_id,
+            source_ticks,
+            value,
+        }
+    }
+
+    pub(crate) fn preflighted_transferred_storage_type(
+        row: &PreflightedTransferredComponentRow,
+    ) -> StorageType {
+        row.row.storage_type
+    }
+
+    pub(crate) fn take_preflighted_transferred_value(
+        row: PreflightedTransferredComponentRow,
+    ) -> StoredComponent {
+        row.row.value
+    }
+
     pub fn insert<T>(
         &mut self,
         component_id: ComponentId,
@@ -65,28 +92,19 @@ impl ComponentStorage {
     where
         T: 'static + Send + Sync,
     {
-        self.ensure_storage_type(component_id, storage_type)?;
+        self.ensure_sparse_storage_type(component_id, storage_type)?;
         self.ensure_component_type::<T>(component_id)?;
-        let old = match storage_type {
-            StorageType::Table => self
-                .table_components
-                .entry(component_id)
-                .or_default()
-                .insert(entity, Box::new(value), tick),
-            StorageType::SparseSet => self
-                .sparse_components
-                .entry(component_id)
-                .or_default()
-                .insert(entity, Box::new(value), tick),
-        };
+        let old = self
+            .sparse_components
+            .entry(component_id)
+            .or_default()
+            .insert(entity, Box::new(value), tick);
         let Some(old) = old else {
             return Ok(None);
         };
         Ok(Some(downcast_component(component_id, old)?))
     }
 
-    /// Publishes a value whose storage identity was already validated by
-    /// [`ComponentStorage::preflight_insert`].
     pub(crate) fn insert_preflighted_at_tick<T>(
         &mut self,
         preflight: PreflightedComponentInsert<T>,
@@ -102,31 +120,24 @@ impl ComponentStorage {
             storage_type,
             marker: _,
         } = preflight;
+        assert_eq!(
+            storage_type,
+            StorageType::SparseSet,
+            "dense bundle values must publish through ArchetypeTable"
+        );
         self.storage_types
             .entry(component_id)
-            .or_insert(storage_type);
+            .or_insert(StorageType::SparseSet);
         self.component_types
             .entry(component_id)
             .or_insert(TypeId::of::<T>());
-        match storage_type {
-            StorageType::Table => self
-                .table_components
-                .entry(component_id)
-                .or_default()
-                .insert(entity, Box::new(value), tick)
-                .is_some(),
-            StorageType::SparseSet => self
-                .sparse_components
-                .entry(component_id)
-                .or_default()
-                .insert(entity, Box::new(value), tick)
-                .is_some(),
-        }
+        self.sparse_components
+            .entry(component_id)
+            .or_default()
+            .insert(entity, Box::new(value), tick)
+            .is_some()
     }
 
-    /// Checks whether an insert can be committed without changing storage
-    /// ownership. Batch mutation planning uses this before it publishes any
-    /// component row.
     pub(crate) fn validate_insert<T>(
         &self,
         component_id: ComponentId,
@@ -135,18 +146,20 @@ impl ComponentStorage {
     where
         T: 'static + Send + Sync,
     {
-        if let Some(existing) = self.storage_types.get(&component_id).copied() {
-            if existing != storage_type {
-                return Err(StorageError::StorageTypeMismatch {
-                    component_id,
-                    existing,
-                    requested: storage_type,
-                });
+        if storage_type == StorageType::SparseSet {
+            if let Some(existing) = self.storage_types.get(&component_id).copied() {
+                if existing != storage_type {
+                    return Err(StorageError::StorageTypeMismatch {
+                        component_id,
+                        existing,
+                        requested: storage_type,
+                    });
+                }
             }
-        }
-        if let Some(existing) = self.component_types.get(&component_id) {
-            if *existing != TypeId::of::<T>() {
-                return Err(StorageError::ComponentTypeMismatch { component_id });
+            if let Some(existing) = self.component_types.get(&component_id) {
+                if *existing != TypeId::of::<T>() {
+                    return Err(StorageError::ComponentTypeMismatch { component_id });
+                }
             }
         }
         Ok(())
@@ -172,16 +185,7 @@ impl ComponentStorage {
     where
         T: 'static + Send + Sync,
     {
-        match self.storage_types.get(&component_id).copied()? {
-            StorageType::Table => {
-                let storage = self.table_components.get(&component_id)?;
-                storage.get(entity)
-            }
-            StorageType::SparseSet => {
-                let storage = self.sparse_components.get(&component_id)?;
-                storage.get(entity)
-            }
-        }
+        self.sparse_components.get(&component_id)?.get(entity)
     }
 
     pub fn get_mut<T>(
@@ -192,16 +196,9 @@ impl ComponentStorage {
     where
         T: 'static + Send + Sync,
     {
-        match self.storage_types.get(&component_id).copied()? {
-            StorageType::Table => {
-                let storage = self.table_components.get_mut(&component_id)?;
-                storage.get_mut(entity)
-            }
-            StorageType::SparseSet => {
-                let storage = self.sparse_components.get_mut(&component_id)?;
-                storage.get_mut(entity)
-            }
-        }
+        self.sparse_components
+            .get_mut(&component_id)?
+            .get_mut(entity)
     }
 
     pub fn get_mut_at_tick<T>(
@@ -213,16 +210,9 @@ impl ComponentStorage {
     where
         T: 'static + Send + Sync,
     {
-        match self.storage_types.get(&component_id).copied()? {
-            StorageType::Table => {
-                let storage = self.table_components.get_mut(&component_id)?;
-                storage.get_mut_at_tick(entity, tick)
-            }
-            StorageType::SparseSet => {
-                let storage = self.sparse_components.get_mut(&component_id)?;
-                storage.get_mut_at_tick(entity, tick)
-            }
-        }
+        self.sparse_components
+            .get_mut(&component_id)?
+            .get_mut_at_tick(entity, tick)
     }
 
     pub fn get_mut_with_ticks<T>(
@@ -233,16 +223,9 @@ impl ComponentStorage {
     where
         T: 'static + Send + Sync,
     {
-        match self.storage_types.get(&component_id).copied()? {
-            StorageType::Table => {
-                let storage = self.table_components.get_mut(&component_id)?;
-                storage.get_mut_with_ticks(entity)
-            }
-            StorageType::SparseSet => {
-                let storage = self.sparse_components.get_mut(&component_id)?;
-                storage.get_mut_with_ticks(entity)
-            }
-        }
+        self.sparse_components
+            .get_mut(&component_id)?
+            .get_mut_with_ticks(entity)
     }
 
     pub fn remove<T>(
@@ -253,49 +236,148 @@ impl ComponentStorage {
     where
         T: 'static + Send + Sync,
     {
-        let Some(storage_type) = self.storage_types.get(&component_id).copied() else {
-            return Ok(None);
-        };
         self.ensure_component_type::<T>(component_id)?;
-        let removed = match storage_type {
-            StorageType::Table => {
-                let Some(storage) = self.table_components.get_mut(&component_id) else {
-                    return Ok(None);
-                };
-                storage.remove(entity)
-            }
-            StorageType::SparseSet => {
-                let Some(storage) = self.sparse_components.get_mut(&component_id) else {
-                    return Ok(None);
-                };
-                storage.remove(entity)
-            }
-        };
-        let Some(removed) = removed else {
+        let Some(removed) = self
+            .sparse_components
+            .get_mut(&component_id)
+            .and_then(|storage| storage.remove(entity))
+        else {
             return Ok(None);
         };
         Ok(Some(ComponentRemoveResult {
             value: downcast_component(component_id, removed.value)?,
-            swapped_entity: removed.swapped_entity,
         }))
     }
 
-    pub fn contains(&self, component_id: ComponentId, entity: InternalEntity) -> bool {
-        match self.storage_types.get(&component_id).copied() {
-            Some(StorageType::Table) => {
-                let Some(storage) = self.table_components.get(&component_id) else {
-                    return false;
-                };
-                storage.contains(entity)
-            }
-            Some(StorageType::SparseSet) => {
-                let Some(storage) = self.sparse_components.get(&component_id) else {
-                    return false;
-                };
-                storage.contains(entity)
-            }
-            None => false,
+    pub(crate) fn extract_entity_rows(
+        &mut self,
+        entity: InternalEntity,
+        component_ids: &[ComponentId],
+    ) -> Vec<TransferredComponentRow> {
+        let mut rows = Vec::with_capacity(component_ids.len());
+        for component_id in component_ids {
+            let Some(type_id) = self.component_types.get(component_id).copied() else {
+                continue;
+            };
+            let Some(removed) = self
+                .sparse_components
+                .get_mut(component_id)
+                .and_then(|storage| storage.remove(entity))
+            else {
+                continue;
+            };
+            rows.push(TransferredComponentRow {
+                component_id: *component_id,
+                storage_type: StorageType::SparseSet,
+                type_id,
+                source_ticks: removed.ticks,
+                value: removed.value,
+            });
         }
+        rows
+    }
+
+    pub(crate) fn insert_transferred_row(
+        &mut self,
+        component_id: ComponentId,
+        entity: InternalEntity,
+        row: TransferredComponentRow,
+        tick: ChangeTick,
+    ) -> Result<bool, StorageError> {
+        let preflight = self.preflight_transferred_row(component_id, row)?;
+        Ok(self.insert_preflighted_transferred_row(entity, preflight, tick))
+    }
+
+    pub(crate) fn preflight_transferred_row(
+        &self,
+        component_id: ComponentId,
+        mut row: TransferredComponentRow,
+    ) -> Result<PreflightedTransferredComponentRow, StorageError> {
+        self.validate_transferred_row(component_id, &row)?;
+        row.component_id = component_id;
+        Ok(PreflightedTransferredComponentRow { component_id, row })
+    }
+
+    pub(crate) fn validate_transferred_row(
+        &self,
+        component_id: ComponentId,
+        row: &TransferredComponentRow,
+    ) -> Result<(), StorageError> {
+        if row.value.as_ref().type_id() != row.type_id {
+            return Err(StorageError::ComponentTypeMismatch { component_id });
+        }
+        if row.storage_type == StorageType::SparseSet {
+            if let Some(existing) = self.storage_types.get(&component_id).copied() {
+                if existing != row.storage_type {
+                    return Err(StorageError::StorageTypeMismatch {
+                        component_id,
+                        existing,
+                        requested: row.storage_type,
+                    });
+                }
+            }
+            if let Some(existing) = self.component_types.get(&component_id) {
+                if *existing != row.type_id {
+                    return Err(StorageError::ComponentTypeMismatch { component_id });
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub(crate) fn insert_preflighted_transferred_row(
+        &mut self,
+        entity: InternalEntity,
+        preflight: PreflightedTransferredComponentRow,
+        tick: ChangeTick,
+    ) -> bool {
+        let PreflightedTransferredComponentRow { component_id, row } = preflight;
+        assert_eq!(
+            row.storage_type,
+            StorageType::SparseSet,
+            "dense transferred values must publish through ArchetypeTable"
+        );
+        self.storage_types
+            .entry(component_id)
+            .or_insert(StorageType::SparseSet);
+        self.component_types
+            .entry(component_id)
+            .or_insert(row.type_id);
+        self.sparse_components
+            .entry(component_id)
+            .or_default()
+            .insert(entity, row.value, tick)
+            .is_some()
+    }
+
+    pub(crate) fn restore_preflighted_transferred_row(
+        &mut self,
+        entity: InternalEntity,
+        preflight: PreflightedTransferredComponentRow,
+    ) -> bool {
+        let PreflightedTransferredComponentRow { component_id, row } = preflight;
+        assert_eq!(
+            row.storage_type,
+            StorageType::SparseSet,
+            "dense transferred values must publish through ArchetypeTable"
+        );
+        self.storage_types
+            .entry(component_id)
+            .or_insert(StorageType::SparseSet);
+        self.component_types
+            .entry(component_id)
+            .or_insert(row.type_id);
+        self.sparse_components
+            .entry(component_id)
+            .or_default()
+            .insert_with_ticks(entity, row.value, row.source_ticks)
+            .is_some()
+    }
+
+    pub fn contains(&self, component_id: ComponentId, entity: InternalEntity) -> bool {
+        self.sparse_components
+            .get(&component_id)
+            .is_some_and(|storage| storage.contains(entity))
     }
 
     pub fn ticks(
@@ -303,16 +385,7 @@ impl ComponentStorage {
         component_id: ComponentId,
         entity: InternalEntity,
     ) -> Option<ComponentTicks> {
-        match self.storage_types.get(&component_id).copied()? {
-            StorageType::Table => {
-                let storage = self.table_components.get(&component_id)?;
-                storage.ticks(entity)
-            }
-            StorageType::SparseSet => {
-                let storage = self.sparse_components.get(&component_id)?;
-                storage.ticks(entity)
-            }
-        }
+        self.sparse_components.get(&component_id)?.ticks(entity)
     }
 
     pub fn location(
@@ -320,44 +393,10 @@ impl ComponentStorage {
         component_id: ComponentId,
         entity: InternalEntity,
     ) -> Option<ComponentStorageLocation> {
-        match self.storage_types.get(&component_id).copied()? {
-            StorageType::Table => {
-                let row = self.table_components.get(&component_id)?.row(entity)?;
-                Some(ComponentStorageLocation {
-                    component_id,
-                    storage_type: StorageType::Table,
-                    entity,
-                    table_row: Some(row),
-                })
-            }
-            StorageType::SparseSet => {
-                let storage = self.sparse_components.get(&component_id)?;
-                if !storage.contains(entity) {
-                    return None;
-                }
-                Some(ComponentStorageLocation {
-                    component_id,
-                    storage_type: StorageType::SparseSet,
-                    entity,
-                    table_row: None,
-                })
-            }
-        }
-    }
-
-    pub fn get_table_row<T>(
-        &self,
-        component_id: ComponentId,
-        row: usize,
-    ) -> Option<(InternalEntity, &T, ComponentTicks)>
-    where
-        T: 'static + Send + Sync,
-    {
-        if self.storage_types.get(&component_id).copied()? != StorageType::Table {
-            return None;
-        }
-        let storage = self.table_components.get(&component_id)?;
-        storage.get_row(row)
+        self.sparse_components
+            .get(&component_id)?
+            .contains(entity)
+            .then_some(ComponentStorageLocation::sparse(component_id, entity))
     }
 
     pub fn get_with_ticks_at_location<T>(
@@ -367,24 +406,16 @@ impl ComponentStorage {
     where
         T: 'static + Send + Sync,
     {
-        match location.storage_type {
-            StorageType::Table => {
-                let row = location.table_row?;
-                let (entity, value, ticks) = self.get_table_row::<T>(location.component_id, row)?;
-                if entity != location.entity {
-                    return None;
-                }
-                Some((value, ticks))
-            }
-            StorageType::SparseSet => {
-                if location.table_row.is_some() {
-                    return None;
-                }
-                self.sparse_components
-                    .get(&location.component_id)?
-                    .get_with_ticks(location.entity)
-            }
+        if location.storage_type != StorageType::SparseSet
+            || location.table_row.is_some()
+            || location.table_archetype.is_some()
+            || location.table_column_slot.is_some()
+        {
+            return None;
         }
+        self.sparse_components
+            .get(&location.component_id)?
+            .get_with_ticks(location.entity)
     }
 
     pub fn mark_changed(
@@ -393,18 +424,8 @@ impl ComponentStorage {
         entity: InternalEntity,
         tick: ChangeTick,
     ) {
-        match self.storage_types.get(&component_id).copied() {
-            Some(StorageType::Table) => {
-                if let Some(storage) = self.table_components.get_mut(&component_id) {
-                    storage.mark_changed(entity, tick);
-                }
-            }
-            Some(StorageType::SparseSet) => {
-                if let Some(storage) = self.sparse_components.get_mut(&component_id) {
-                    storage.mark_changed(entity, tick);
-                }
-            }
-            None => {}
+        if let Some(storage) = self.sparse_components.get_mut(&component_id) {
+            storage.mark_changed(entity, tick);
         }
     }
 
@@ -415,85 +436,16 @@ impl ComponentStorage {
     ) -> Vec<ComponentId> {
         let mut removed = Vec::with_capacity(component_ids.len());
         for component_id in component_ids {
-            let removed_component = match self.storage_types.get(component_id).copied() {
-                Some(StorageType::Table) => {
-                    let Some(storage) = self.table_components.get_mut(component_id) else {
-                        continue;
-                    };
-                    storage.remove(entity)
-                }
-                Some(StorageType::SparseSet) => {
-                    let Some(storage) = self.sparse_components.get_mut(component_id) else {
-                        continue;
-                    };
-                    storage.remove(entity)
-                }
-                None => None,
-            };
-            if removed_component.is_some() {
+            if self
+                .sparse_components
+                .get_mut(component_id)
+                .and_then(|storage| storage.remove(entity))
+                .is_some()
+            {
                 removed.push(*component_id);
             }
         }
         removed
-    }
-
-    pub fn remove_entity(&mut self, entity: InternalEntity) -> Vec<ComponentId> {
-        let mut removed = Vec::with_capacity(self.component_storage_count());
-        for (component_id, storage) in self.table_components.iter_mut() {
-            if storage.remove(entity).is_some() {
-                removed.push(*component_id);
-            }
-        }
-        for (component_id, storage) in self.sparse_components.iter_mut() {
-            if storage.remove(entity).is_some() {
-                removed.push(*component_id);
-            }
-        }
-        sort_component_ids_if_needed(&mut removed);
-        removed
-    }
-
-    pub(crate) fn component_ids_for_entity(&self, entity: InternalEntity) -> Vec<ComponentId> {
-        let mut component_ids = Vec::with_capacity(self.component_storage_count());
-        for (component_id, storage) in &self.table_components {
-            if storage.contains(entity) {
-                component_ids.push(*component_id);
-            }
-        }
-        for (component_id, storage) in &self.sparse_components {
-            if storage.contains(entity) {
-                component_ids.push(*component_id);
-            }
-        }
-        sort_component_ids_if_needed(&mut component_ids);
-        component_ids
-    }
-
-    pub(crate) fn component_ids_for_entity_by_storage(
-        &self,
-        entity: InternalEntity,
-        table_components: &mut Vec<ComponentId>,
-        sparse_set_components: &mut Vec<ComponentId>,
-    ) {
-        table_components.clear();
-        table_components.reserve(self.table_components.len());
-        for (component_id, storage) in &self.table_components {
-            if storage.contains(entity) {
-                table_components.push(*component_id);
-            }
-        }
-
-        sparse_set_components.clear();
-        sparse_set_components.reserve(self.sparse_components.len());
-        for (component_id, storage) in &self.sparse_components {
-            if storage.contains(entity) {
-                sparse_set_components.push(*component_id);
-            }
-        }
-    }
-
-    fn component_storage_count(&self) -> usize {
-        self.table_components.len() + self.sparse_components.len()
     }
 
     pub fn storage_type(&self, component_id: ComponentId) -> Option<StorageType> {
@@ -501,17 +453,9 @@ impl ComponentStorage {
     }
 
     pub fn len_for_component(&self, component_id: ComponentId) -> usize {
-        match self.storage_types.get(&component_id).copied() {
-            Some(StorageType::Table) => self
-                .table_components
-                .get(&component_id)
-                .map_or(0, TableComponentStorage::len),
-            Some(StorageType::SparseSet) => self
-                .sparse_components
-                .get(&component_id)
-                .map_or(0, SparseComponentStorage::len),
-            None => 0,
-        }
+        self.sparse_components
+            .get(&component_id)
+            .map_or(0, SparseComponentStorage::len)
     }
 
     pub(crate) fn for_each_sparse_entity(
@@ -519,19 +463,19 @@ impl ComponentStorage {
         component_id: ComponentId,
         visit: impl FnMut(InternalEntity),
     ) {
-        if self.storage_types.get(&component_id) != Some(&StorageType::SparseSet) {
-            return;
-        }
         if let Some(storage) = self.sparse_components.get(&component_id) {
             storage.for_each_entity(visit);
         }
     }
 
-    fn ensure_storage_type(
+    fn ensure_sparse_storage_type(
         &mut self,
         component_id: ComponentId,
         requested: StorageType,
     ) -> Result<(), StorageError> {
+        if requested == StorageType::Table {
+            return Err(StorageError::TableOwnedByArchetype { component_id });
+        }
         match self.storage_types.entry(component_id) {
             Entry::Occupied(entry) => {
                 let existing = *entry.get();
@@ -571,10 +515,7 @@ impl ComponentStorage {
 
 impl fmt::Debug for ComponentStorage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut storage_types = Vec::with_capacity(self.storage_types.len());
-        for entry in &self.storage_types {
-            storage_types.push(entry);
-        }
+        let mut storage_types = self.storage_types.iter().collect::<Vec<_>>();
         storage_types.sort_by_key(|(component_id, _)| **component_id);
         f.debug_struct("ComponentStorage")
             .field("storage_types", &storage_types)
@@ -591,5 +532,64 @@ impl Clone for ComponentStorage {
 impl PartialEq for ComponentStorage {
     fn eq(&self, _other: &Self) -> bool {
         true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct SparseValue(u32);
+
+    #[test]
+    fn sparse_rows_rekey_at_the_target_tick() {
+        let component_id = ComponentId::new(1);
+        let source_entity = InternalEntity::new(7, 1);
+        let target_entity = InternalEntity::new(29, 3);
+        let source_tick = ChangeTick::new(11);
+        let target_tick = ChangeTick::new(37);
+        let mut source = ComponentStorage::default();
+        source
+            .insert_at_tick(
+                component_id,
+                StorageType::SparseSet,
+                source_entity,
+                SparseValue(9),
+                source_tick,
+            )
+            .expect("sparse source row should insert");
+
+        let mut rows = source.extract_entity_rows(source_entity, &[component_id]);
+        assert!(!source.contains(component_id, source_entity));
+        let row = rows.pop().expect("sparse row should transfer");
+        assert_eq!(row.source_ticks(), ComponentTicks::new(source_tick));
+
+        let mut target = ComponentStorage::default();
+        target
+            .insert_transferred_row(component_id, target_entity, row, target_tick)
+            .expect("validated sparse row transfer should succeed");
+        assert_eq!(
+            target.get::<SparseValue>(component_id, target_entity),
+            Some(&SparseValue(9))
+        );
+        assert_eq!(
+            target.ticks(component_id, target_entity),
+            Some(ComponentTicks::new(target_tick))
+        );
+    }
+
+    #[test]
+    fn dense_value_insertion_is_rejected_by_the_sparse_owner() {
+        let component_id = ComponentId::new(3);
+        let error = ComponentStorage::default()
+            .insert(
+                component_id,
+                StorageType::Table,
+                InternalEntity::new(1, 0),
+                7_u32,
+            )
+            .expect_err("dense values must be owned by ArchetypeTable");
+        assert_eq!(error, StorageError::TableOwnedByArchetype { component_id });
     }
 }

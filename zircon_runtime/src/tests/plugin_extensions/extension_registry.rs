@@ -24,10 +24,6 @@ use crate::plugin::{
     RuntimePluginDescriptor,
 };
 use crate::scene::ecs::{Res, ResMut, ResMutParam, ResParam, Resource, RuntimeSceneSystemContext};
-use crate::scene::{
-    SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
-    SceneRuntimeHookRegistration,
-};
 use crate::scene::{SystemStage, World};
 use crate::{asset, core::manager::ManagerResolver, render_graph::QueueLane};
 use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
@@ -296,11 +292,6 @@ fn runtime_plugin_catalog_merges_module_and_render_feature_contributions() {
         report.registry.hybrid_gi_runtime_providers()[0].provider_id(),
         "weather.hybrid_gi"
     );
-    assert_eq!(report.registry.scene_hooks().len(), 1);
-    assert_eq!(
-        report.registry.scene_hooks()[0].descriptor().id.as_str(),
-        "weather.scene.update"
-    );
     assert_eq!(report.registry.plugin_resources().count(), 2);
     assert_eq!(report.registry.plugin_events().count(), 1);
     assert_eq!(report.registry.plugin_systems().count(), 1);
@@ -413,11 +404,6 @@ impl RuntimePlugin for WeatherRuntimePlugin {
             "weather.hybrid_gi",
             std::sync::Arc::new(NoopHybridGiRuntimeProvider),
         ))?;
-        registry.register_scene_hook(scene_hook_registration(
-            "weather.scene.update",
-            SystemStage::Update,
-            0,
-        ))?;
         let owner = registry.intern_plugin_module("weather.runtime")?;
         let set = registry.intern_system_set("weather.main")?;
         registry.register_resource::<WeatherConfig>(owner, || WeatherConfig(7))?;
@@ -435,8 +421,13 @@ impl RuntimePlugin for WeatherRuntimePlugin {
                 owner,
                 "weather.apply",
                 SystemStage::Update,
-                |(config, mut observed): (Res<'_, WeatherConfig>, ResMut<'_, WeatherObserved>)| {
-                    observed.0.push(config.0);
+                || {
+                    |(config, mut observed): (
+                        Res<'_, WeatherConfig>,
+                        ResMut<'_, WeatherObserved>,
+                    )| {
+                        observed.0.push(config.0);
+                    }
                 },
             )
             .in_set(set)
@@ -446,7 +437,7 @@ impl RuntimePlugin for WeatherRuntimePlugin {
                 owner,
                 "weather.runtime-context",
                 SystemStage::Update,
-                |_context: RuntimeSceneSystemContext<'_>| Ok(()),
+                || |_context: RuntimeSceneSystemContext<'_>| Ok(()),
             )
             .in_set(set)
             .register()?;
@@ -466,26 +457,6 @@ impl Resource for WeatherObserved {}
 
 #[derive(Debug, PartialEq, Eq)]
 struct WeatherChanged;
-
-#[derive(Debug)]
-struct NoopSceneHook;
-
-impl SceneRuntimeHook for NoopSceneHook {
-    fn run(&self, _context: SceneRuntimeHookContext<'_>) -> Result<(), crate::core::CoreError> {
-        Ok(())
-    }
-}
-
-fn scene_hook_registration(
-    id: &str,
-    stage: SystemStage,
-    order: i32,
-) -> SceneRuntimeHookRegistration {
-    SceneRuntimeHookRegistration::new(
-        SceneRuntimeHookDescriptor::new(id, "weather", stage).with_order(order),
-        NoopSceneHook,
-    )
-}
 
 fn weather_render_executor(_context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
     Err("weather executor reached graph execution".to_string())

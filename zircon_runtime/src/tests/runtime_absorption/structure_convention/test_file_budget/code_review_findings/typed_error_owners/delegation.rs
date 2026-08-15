@@ -4,7 +4,6 @@ use super::*;
 fn runtime_15_typed_error_structure_guard_is_folder_backed() {
     let parent = read_runtime_src(TYPED_ERROR_STRUCTURE_CHILD);
     let child_inventory = read_runtime_src(TYPED_ERROR_ROOT_CHILD_ROWS_CHILD);
-    let status_inventory = read_runtime_src(TYPED_ERROR_ROOT_STATUSES_CHILD);
     let child_blob = folder_backed_child_source_blob();
 
     assert_contains_all(
@@ -19,16 +18,10 @@ fn runtime_15_typed_error_structure_guard_is_folder_backed() {
             "mod delegation;",
             "#[path = \"typed_error_owners/source_inventory.rs\"]",
             "mod source_inventory;",
-            "#[path = \"typed_error_owners/status_docs.rs\"]",
-            "mod status_docs;",
-            "#[path = \"typed_error_owners/status_mirrors.rs\"]",
-            "mod status_mirrors;",
             "#[path = \"typed_error_owners/structure_assertions.rs\"]",
             "mod structure_assertions;",
             "#[path = \"typed_error_owners/root_paths.rs\"]",
             "mod root_paths;",
-            "#[path = \"typed_error_owners/root_statuses.rs\"]",
-            "mod root_statuses;",
             "#[path = \"typed_error_owners/root_child_rows.rs\"]",
             "mod root_child_rows;",
             "#[path = \"typed_error_owners/root_sources.rs\"]",
@@ -36,11 +29,6 @@ fn runtime_15_typed_error_structure_guard_is_folder_backed() {
             "#[path = \"typed_error_owners/root_inventory.rs\"]",
             "mod root_inventory;",
         ],
-    );
-    assert_contains_all(
-        "typed-error root status child preserves folder-backed status anchors",
-        &status_inventory,
-        &[],
     );
     for (_, child_path, child_guard) in FOLDER_BACKED_CHILDREN {
         assert!(
@@ -53,7 +41,9 @@ fn runtime_15_typed_error_structure_guard_is_folder_backed() {
         );
     }
     assert!(
-        !parent.contains(&format!("fn {GUARD}")),
+        !parent.contains(
+            "fn runtime_15_code_review_findings_typed_error_structure_guard_is_child_owner"
+        ),
         "historical typed-error structure guard should live in child_ownership child"
     );
 }

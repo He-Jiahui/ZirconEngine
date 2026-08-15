@@ -12,7 +12,9 @@ use zircon_runtime_interface::{
 use super::super::{
     extract_stats::{
         EXTRACT_CACHE_HITS_DIAGNOSTIC, EXTRACT_CACHE_MISSES_DIAGNOSTIC,
+        EXTRACT_FULL_CLONES_DIAGNOSTIC, EXTRACT_FULL_CLONE_BYTES_DIAGNOSTIC,
         EXTRACT_OUTPUT_BYTES_DIAGNOSTIC, EXTRACT_REBUILD_CLONES_DIAGNOSTIC,
+        EXTRACT_STATS_PAYLOAD_SCANS_DIAGNOSTIC,
     },
     RuntimeDynamicSession, RuntimeDynamicSessionProfile,
 };
@@ -31,11 +33,7 @@ fn headless_session_tick_publishes_ecs_frame_diagnostics() {
         "a completed runtime frame must publish the ECS query-cache sample even when the count is zero"
     );
     assert!(
-        diagnostic_current(
-            &diagnostics,
-            ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC,
-        )
-        .is_some(),
+        diagnostic_current(&diagnostics, ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC,).is_some(),
         "a completed runtime frame must publish the ECS change-detection sample even when the count is zero"
     );
 }
@@ -54,6 +52,10 @@ fn headless_session_capture_records_frame_extract_diagnostics() {
         diagnostic_current(&diagnostics, EXTRACT_REBUILD_CLONES_DIAGNOSTIC).unwrap_or_default();
     let output_bytes =
         diagnostic_current(&diagnostics, EXTRACT_OUTPUT_BYTES_DIAGNOSTIC).unwrap_or_default();
+    let full_clones =
+        diagnostic_current(&diagnostics, EXTRACT_FULL_CLONES_DIAGNOSTIC).unwrap_or_default();
+    let full_clone_bytes =
+        diagnostic_current(&diagnostics, EXTRACT_FULL_CLONE_BYTES_DIAGNOSTIC).unwrap_or_default();
     let cache_hits =
         diagnostic_current(&diagnostics, EXTRACT_CACHE_HITS_DIAGNOSTIC).unwrap_or_default();
     let cache_misses =
@@ -75,6 +77,14 @@ fn headless_session_capture_records_frame_extract_diagnostics() {
         output_bytes > 0.0,
         "headless capture should record a non-empty extract output byte estimate"
     );
+    assert_eq!(
+        full_clones, 1.0,
+        "building the extract cache should retain exactly one deep frame clone"
+    );
+    assert_eq!(
+        full_clone_bytes, output_bytes,
+        "the initial deep clone should account for the full extract output bytes"
+    );
 }
 
 #[test]
@@ -94,10 +104,17 @@ fn frame_extract_rebuild_skips_unchanged_entities() {
         .expect("extract rebuild diagnostics");
     let output_bytes = diagnostic_series(&diagnostics, EXTRACT_OUTPUT_BYTES_DIAGNOSTIC)
         .expect("extract output byte diagnostics");
+    let full_clones = diagnostic_series(&diagnostics, EXTRACT_FULL_CLONES_DIAGNOSTIC)
+        .expect("extract full-clone diagnostics");
+    let full_clone_bytes = diagnostic_series(&diagnostics, EXTRACT_FULL_CLONE_BYTES_DIAGNOSTIC)
+        .expect("extract full-clone byte diagnostics");
     let cache_hits = diagnostic_series(&diagnostics, EXTRACT_CACHE_HITS_DIAGNOSTIC)
         .expect("extract cache-hit diagnostics");
     let cache_misses = diagnostic_series(&diagnostics, EXTRACT_CACHE_MISSES_DIAGNOSTIC)
         .expect("extract cache-miss diagnostics");
+    let stats_payload_scans =
+        diagnostic_series(&diagnostics, EXTRACT_STATS_PAYLOAD_SCANS_DIAGNOSTIC)
+            .expect("extract payload-stat scan diagnostics");
 
     assert_eq!(
         rebuilds.history.len(),
@@ -118,6 +135,29 @@ fn frame_extract_rebuild_skips_unchanged_entities() {
         output_bytes.history[0].value, output_bytes.history[1].value,
         "unchanged headless captures should keep the extract output byte baseline stable"
     );
+    assert_eq!(
+        full_clones
+            .history
+            .iter()
+            .map(|sample| sample.value)
+            .collect::<Vec<_>>(),
+        vec![1.0, 1.0],
+        "both cache population and a cache hit must account for their deep frame clone"
+    );
+    assert_eq!(full_clone_bytes.history.len(), 2);
+    assert_eq!(
+        full_clone_bytes
+            .history
+            .iter()
+            .map(|sample| sample.value)
+            .collect::<Vec<_>>(),
+        output_bytes
+            .history
+            .iter()
+            .map(|sample| sample.value)
+            .collect::<Vec<_>>(),
+        "each frame's full clone should report exactly the deep-copy byte estimate"
+    );
     assert_eq!(cache_hits.history.len(), 2);
     assert_eq!(cache_misses.history.len(), 2);
     assert_eq!(
@@ -135,6 +175,15 @@ fn frame_extract_rebuild_skips_unchanged_entities() {
     assert_eq!(
         cache_misses.history[1].value, 0.0,
         "unchanged follow-up capture should not rebuild the dynamic-session extract cache"
+    );
+    assert_eq!(
+        stats_payload_scans
+            .history
+            .iter()
+            .map(|sample| sample.value)
+            .collect::<Vec<_>>(),
+        vec![1.0, 0.0],
+        "a stable cache hit must reuse its immutable extract summary instead of rescanning the payload"
     );
 }
 

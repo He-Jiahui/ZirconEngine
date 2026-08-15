@@ -87,6 +87,12 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn upda
         stats.scene_card_count(),
         stats.scene_screen_probe_count(),
         stats.scene_radiance_cache_entry_count(),
+        stats.radiance_cache_resident_probe_count(),
+        stats.radiance_cache_update_probe_count(),
+        stats.radiance_cache_truncated_demand_count(),
+        stats.radiance_cache_generation(),
+        stats.radiance_cache_scroll_count(),
+        stats.radiance_cache_history_clear_count(),
         stats.surface_cache_resident_page_count(),
         stats.surface_cache_dirty_page_count(),
         stats.surface_cache_feedback_card_count(),
@@ -99,6 +105,8 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn upda
         stats.voxel_dirty_clipmap_count(),
         stats.voxel_invalidated_clipmap_count(),
     )
+    .with_radiance_cache_gpu_stage_dispatch_counts(stats.radiance_cache_gpu_stage_dispatch_counts())
+    .with_global_sdf_stats(stats.global_sdf_stats())
     .with_resolved_settings(stats.resolved_settings())
 }
 

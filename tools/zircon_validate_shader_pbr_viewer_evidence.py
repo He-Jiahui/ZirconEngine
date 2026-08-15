@@ -15,14 +15,18 @@ from typing import Mapping
 
 
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
-_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v8"
+_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v12"
 _V3_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v3"
 _V4_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v4"
 _V5_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v5"
 _V6_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v6"
 _V7_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v7"
+_V8_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v8"
+_V9_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v9"
+_V10_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v10"
+_V11_READY_FRAME_EVIDENCE_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v11"
 # Decimal serialization of the canonical Rust IBL_BAKE_ALGORITHM_VERSION.
-_CURRENT_IBL_BAKE_ALGORITHM_VERSION = "202608020005"
+_CURRENT_IBL_BAKE_ALGORITHM_VERSION = "202608090006"
 _SUPPORTED_READY_FRAME_EVIDENCE_SCHEMAS = frozenset(
     {
         "zircon_shader_pbr_viewer_ready_frame_evidence_v2",
@@ -31,6 +35,10 @@ _SUPPORTED_READY_FRAME_EVIDENCE_SCHEMAS = frozenset(
         _V5_READY_FRAME_EVIDENCE_SCHEMA,
         _V6_READY_FRAME_EVIDENCE_SCHEMA,
         _V7_READY_FRAME_EVIDENCE_SCHEMA,
+        _V8_READY_FRAME_EVIDENCE_SCHEMA,
+        _V9_READY_FRAME_EVIDENCE_SCHEMA,
+        _V10_READY_FRAME_EVIDENCE_SCHEMA,
+        _V11_READY_FRAME_EVIDENCE_SCHEMA,
         _READY_FRAME_EVIDENCE_SCHEMA,
     }
 )
@@ -43,6 +51,7 @@ _MAX_REPORTED_DISTINCT_COLORS = 4_096
 _VIEWPORT_PATTERN = re.compile(r"([1-9][0-9]*)x([1-9][0-9]*)\Z")
 _POSITIVE_INTEGER_PATTERN = re.compile(r"[1-9][0-9]*\Z")
 _NON_NEGATIVE_INTEGER_PATTERN = re.compile(r"[0-9]+\Z")
+_MAX_U64 = (1 << 64) - 1
 _REQUIRED_METADATA_FIELDS = (
     "schema",
     "screenshot",
@@ -106,6 +115,42 @@ _V8_REQUIRED_METADATA_FIELDS = (
     *_V7_REQUIRED_METADATA_FIELDS,
     "viewer_ready_elapsed_ns",
 )
+_V9_REQUIRED_METADATA_FIELDS = (
+    *_V8_REQUIRED_METADATA_FIELDS,
+    "ibl_staging_source_decode_ns",
+    "ibl_staging_cubemap_build_ns",
+    "ibl_staging_equirect_projection_ns",
+    "ibl_staging_source_mip_build_ns",
+    "ibl_staging_pmrem_build_ns",
+    "ibl_staging_sh9_build_ns",
+    "ibl_staging_irradiance_cube_build_ns",
+    "ibl_staging_bundle_write_ns",
+)
+_V10_REQUIRED_METADATA_FIELDS = (
+    *_V9_REQUIRED_METADATA_FIELDS,
+    "ibl_staging_source_zcube_bytes",
+    "ibl_staging_asset_derived_bytes",
+    "ibl_staging_parallel_executor_work_items",
+)
+_V11_REQUIRED_METADATA_FIELDS = (
+    *_V10_REQUIRED_METADATA_FIELDS,
+    "ibl_staging_irradiance_cube_source_sample_visits",
+)
+_V12_REQUIRED_METADATA_FIELDS = (
+    *_V11_REQUIRED_METADATA_FIELDS,
+    "registered_pipeline_variant_count",
+    "registered_shader_variant_count",
+    "texture_presence_normalized_pipeline_variant_count",
+    "texture_presence_equivalent_pipeline_variant_count",
+    "cached_render_pipeline_count",
+    "cached_shader_module_count",
+    "render_pipeline_creation_count",
+    "shader_module_creation_count",
+    "render_pipeline_creation_cpu_microseconds",
+    "shader_module_creation_cpu_microseconds",
+    "async_base_pipeline_queue_wait_count",
+    "async_base_pipeline_queue_wait_microseconds",
+)
 
 
 @dataclass(frozen=True)
@@ -167,6 +212,61 @@ def validate_ready_frame_evidence(
         non_black_pixel_count=non_black_pixels,
         metadata=metadata,
     )
+
+
+def validate_current_ready_frame_evidence(
+    png_path: str | Path,
+    *,
+    expected_backend: str | None = None,
+    require_direct_present: bool = False,
+    min_distinct_rgba_colors: int = 2,
+    min_non_black_pixels: int = 1,
+) -> ReadyFrameEvidence:
+    """Validate the current ready-frame schema and canonical IBL recipe."""
+
+    return validate_ready_frame_evidence(
+        png_path,
+        expected_backend=expected_backend,
+        require_direct_present=require_direct_present,
+        required_schema=_READY_FRAME_EVIDENCE_SCHEMA,
+        expected_ibl_bake_algorithm_version=_CURRENT_IBL_BAKE_ALGORITHM_VERSION,
+        min_distinct_rgba_colors=min_distinct_rgba_colors,
+        min_non_black_pixels=min_non_black_pixels,
+    )
+
+
+def ready_frame_evidence_summary(evidence: ReadyFrameEvidence) -> dict[str, object]:
+    """Return the stable JSON payload emitted by the evidence CLI."""
+
+    summary: dict[str, object] = {
+        "schema": evidence.metadata["schema"],
+        "png": str(evidence.screenshot_path),
+        "sidecar": str(evidence.sidecar_path),
+        "viewport": list(evidence.viewport),
+        "backend": evidence.backend,
+        "render_profile": evidence.render_profile,
+        "distinct_rgba_colors": evidence.distinct_rgba_colors,
+        "non_black_pixel_count": evidence.non_black_pixel_count,
+    }
+    if evidence.metadata["schema"] == _READY_FRAME_EVIDENCE_SCHEMA:
+        summary["shader_pipeline_metrics"] = {
+            field: int(evidence.metadata[field])
+            for field in _V12_REQUIRED_METADATA_FIELDS
+            if field not in _V11_REQUIRED_METADATA_FIELDS
+        }
+        summary["startup_timing_ns"] = {
+            field: int(evidence.metadata[field])
+            for field in (
+                "scene_startup_renderer_initialization_ns",
+                "scene_startup_renderer_deferred_standard_pipeline_ns",
+                "scene_startup_ibl_restore_ns",
+                "scene_startup_total_ns",
+                "one_shot_base_pipeline_wait_elapsed_ns",
+                "viewer_ready_elapsed_ns",
+                "ready_frame_render_elapsed_ns",
+            )
+        }
+    return summary
 
 
 def _read_metadata(sidecar_path: Path) -> dict[str, str]:
@@ -242,6 +342,10 @@ def _validate_metadata(
         _V5_READY_FRAME_EVIDENCE_SCHEMA,
         _V6_READY_FRAME_EVIDENCE_SCHEMA,
         _V7_READY_FRAME_EVIDENCE_SCHEMA,
+        _V8_READY_FRAME_EVIDENCE_SCHEMA,
+        _V9_READY_FRAME_EVIDENCE_SCHEMA,
+        _V10_READY_FRAME_EVIDENCE_SCHEMA,
+        _V11_READY_FRAME_EVIDENCE_SCHEMA,
         _READY_FRAME_EVIDENCE_SCHEMA,
     ):
         missing_v5 = [
@@ -255,6 +359,11 @@ def _validate_metadata(
     if metadata["schema"] in (
         _V6_READY_FRAME_EVIDENCE_SCHEMA,
         _V7_READY_FRAME_EVIDENCE_SCHEMA,
+        _V8_READY_FRAME_EVIDENCE_SCHEMA,
+        _V9_READY_FRAME_EVIDENCE_SCHEMA,
+        _V10_READY_FRAME_EVIDENCE_SCHEMA,
+        _V11_READY_FRAME_EVIDENCE_SCHEMA,
+        _READY_FRAME_EVIDENCE_SCHEMA,
     ):
         missing_v6 = [
             field for field in _V6_REQUIRED_METADATA_FIELDS if field not in metadata
@@ -273,7 +382,7 @@ def _validate_metadata(
                 "ready-frame v7 provenance sidecar is missing required fields: "
                 f"{', '.join(missing_v7)} path={screenshot_path}"
             )
-    if metadata["schema"] == _READY_FRAME_EVIDENCE_SCHEMA:
+    if metadata["schema"] == _V8_READY_FRAME_EVIDENCE_SCHEMA:
         missing_v8 = [
             field for field in _V8_REQUIRED_METADATA_FIELDS if field not in metadata
         ]
@@ -281,6 +390,42 @@ def _validate_metadata(
             raise RuntimeError(
                 "ready-frame v8 provenance sidecar is missing required fields: "
                 f"{', '.join(missing_v8)} path={screenshot_path}"
+            )
+    if metadata["schema"] == _V9_READY_FRAME_EVIDENCE_SCHEMA:
+        missing_v9 = [
+            field for field in _V9_REQUIRED_METADATA_FIELDS if field not in metadata
+        ]
+        if missing_v9:
+            raise RuntimeError(
+                "ready-frame v9 provenance sidecar is missing required fields: "
+                f"{', '.join(missing_v9)} path={screenshot_path}"
+            )
+    if metadata["schema"] == _V10_READY_FRAME_EVIDENCE_SCHEMA:
+        missing_v10 = [
+            field for field in _V10_REQUIRED_METADATA_FIELDS if field not in metadata
+        ]
+        if missing_v10:
+            raise RuntimeError(
+                "ready-frame v10 provenance sidecar is missing required fields: "
+                f"{', '.join(missing_v10)} path={screenshot_path}"
+            )
+    if metadata["schema"] == _V11_READY_FRAME_EVIDENCE_SCHEMA:
+        missing_v11 = [
+            field for field in _V11_REQUIRED_METADATA_FIELDS if field not in metadata
+        ]
+        if missing_v11:
+            raise RuntimeError(
+                "ready-frame v11 provenance sidecar is missing required fields: "
+                f"{', '.join(missing_v11)} path={screenshot_path}"
+            )
+    if metadata["schema"] == _READY_FRAME_EVIDENCE_SCHEMA:
+        missing_v12 = [
+            field for field in _V12_REQUIRED_METADATA_FIELDS if field not in metadata
+        ]
+        if missing_v12:
+            raise RuntimeError(
+                "ready-frame v12 provenance sidecar is missing required fields: "
+                f"{', '.join(missing_v12)} path={screenshot_path}"
             )
     if metadata["screenshot"] != screenshot_path.name:
         raise RuntimeError(
@@ -300,6 +445,10 @@ def _validate_metadata(
         _V5_READY_FRAME_EVIDENCE_SCHEMA,
         _V6_READY_FRAME_EVIDENCE_SCHEMA,
         _V7_READY_FRAME_EVIDENCE_SCHEMA,
+        _V8_READY_FRAME_EVIDENCE_SCHEMA,
+        _V9_READY_FRAME_EVIDENCE_SCHEMA,
+        _V10_READY_FRAME_EVIDENCE_SCHEMA,
+        _V11_READY_FRAME_EVIDENCE_SCHEMA,
         _READY_FRAME_EVIDENCE_SCHEMA,
     ):
         _require_boolean(
@@ -312,6 +461,10 @@ def _validate_metadata(
         _V5_READY_FRAME_EVIDENCE_SCHEMA,
         _V6_READY_FRAME_EVIDENCE_SCHEMA,
         _V7_READY_FRAME_EVIDENCE_SCHEMA,
+        _V8_READY_FRAME_EVIDENCE_SCHEMA,
+        _V9_READY_FRAME_EVIDENCE_SCHEMA,
+        _V10_READY_FRAME_EVIDENCE_SCHEMA,
+        _V11_READY_FRAME_EVIDENCE_SCHEMA,
         _READY_FRAME_EVIDENCE_SCHEMA,
     ):
         _require_boolean(
@@ -408,6 +561,10 @@ def _validate_metadata(
         _V5_READY_FRAME_EVIDENCE_SCHEMA,
         _V6_READY_FRAME_EVIDENCE_SCHEMA,
         _V7_READY_FRAME_EVIDENCE_SCHEMA,
+        _V8_READY_FRAME_EVIDENCE_SCHEMA,
+        _V9_READY_FRAME_EVIDENCE_SCHEMA,
+        _V10_READY_FRAME_EVIDENCE_SCHEMA,
+        _V11_READY_FRAME_EVIDENCE_SCHEMA,
         _READY_FRAME_EVIDENCE_SCHEMA,
     ):
         startup_phase_fields = (
@@ -459,6 +616,10 @@ def _validate_metadata(
     if metadata["schema"] in (
         _V6_READY_FRAME_EVIDENCE_SCHEMA,
         _V7_READY_FRAME_EVIDENCE_SCHEMA,
+        _V8_READY_FRAME_EVIDENCE_SCHEMA,
+        _V9_READY_FRAME_EVIDENCE_SCHEMA,
+        _V10_READY_FRAME_EVIDENCE_SCHEMA,
+        _V11_READY_FRAME_EVIDENCE_SCHEMA,
         _READY_FRAME_EVIDENCE_SCHEMA,
     ):
         _require_non_negative_integer(
@@ -466,7 +627,14 @@ def _validate_metadata(
             "one_shot_base_pipeline_wait_elapsed_ns",
             screenshot_path,
         )
-    if metadata["schema"] in (_V7_READY_FRAME_EVIDENCE_SCHEMA, _READY_FRAME_EVIDENCE_SCHEMA):
+    if metadata["schema"] in (
+        _V7_READY_FRAME_EVIDENCE_SCHEMA,
+        _V8_READY_FRAME_EVIDENCE_SCHEMA,
+        _V9_READY_FRAME_EVIDENCE_SCHEMA,
+        _V10_READY_FRAME_EVIDENCE_SCHEMA,
+        _V11_READY_FRAME_EVIDENCE_SCHEMA,
+        _READY_FRAME_EVIDENCE_SCHEMA,
+    ):
         _require_non_negative_integer(
             metadata,
             "viewer_scene_load_elapsed_ns",
@@ -478,7 +646,13 @@ def _validate_metadata(
             component_fields=("scene_startup_total_ns",),
             screenshot_path=screenshot_path,
         )
-    if metadata["schema"] == _READY_FRAME_EVIDENCE_SCHEMA:
+    if metadata["schema"] in (
+        _V8_READY_FRAME_EVIDENCE_SCHEMA,
+        _V9_READY_FRAME_EVIDENCE_SCHEMA,
+        _V10_READY_FRAME_EVIDENCE_SCHEMA,
+        _V11_READY_FRAME_EVIDENCE_SCHEMA,
+        _READY_FRAME_EVIDENCE_SCHEMA,
+    ):
         _require_non_negative_integer(
             metadata,
             "viewer_ready_elapsed_ns",
@@ -494,6 +668,69 @@ def _validate_metadata(
             ),
             screenshot_path=screenshot_path,
         )
+    if metadata["schema"] in (
+        _V9_READY_FRAME_EVIDENCE_SCHEMA,
+        _V10_READY_FRAME_EVIDENCE_SCHEMA,
+        _V11_READY_FRAME_EVIDENCE_SCHEMA,
+        _READY_FRAME_EVIDENCE_SCHEMA,
+    ):
+        for field in (
+            "ibl_staging_source_decode_ns",
+            "ibl_staging_cubemap_build_ns",
+            "ibl_staging_equirect_projection_ns",
+            "ibl_staging_source_mip_build_ns",
+            "ibl_staging_pmrem_build_ns",
+            "ibl_staging_sh9_build_ns",
+            "ibl_staging_irradiance_cube_build_ns",
+            "ibl_staging_bundle_write_ns",
+        ):
+            _require_non_negative_integer(metadata, field, screenshot_path)
+        _require_duration_hierarchy(
+            metadata,
+            total_field="ibl_staging_cubemap_build_ns",
+            component_fields=(
+                "ibl_staging_equirect_projection_ns",
+                "ibl_staging_source_mip_build_ns",
+                "ibl_staging_pmrem_build_ns",
+                "ibl_staging_sh9_build_ns",
+            ),
+            screenshot_path=screenshot_path,
+        )
+        _require_duration_hierarchy(
+            metadata,
+            total_field="ibl_staging_elapsed_ns",
+            component_fields=(
+                "ibl_staging_source_decode_ns",
+                "ibl_staging_cubemap_build_ns",
+                "ibl_staging_irradiance_cube_build_ns",
+                "ibl_staging_bundle_write_ns",
+            ),
+            screenshot_path=screenshot_path,
+        )
+    if metadata["schema"] in (
+        _V10_READY_FRAME_EVIDENCE_SCHEMA,
+        _V11_READY_FRAME_EVIDENCE_SCHEMA,
+        _READY_FRAME_EVIDENCE_SCHEMA,
+    ):
+        _require_staging_output_metrics(
+            metadata,
+            screenshot_path,
+            schema_label=(
+                "v12"
+                if metadata["schema"] == _READY_FRAME_EVIDENCE_SCHEMA
+                else (
+                    "v11"
+                    if metadata["schema"] == _V11_READY_FRAME_EVIDENCE_SCHEMA
+                    else "v10"
+                )
+            ),
+            require_irradiance_cube_source_sample_visits=(
+                metadata["schema"]
+                in (_V11_READY_FRAME_EVIDENCE_SCHEMA, _READY_FRAME_EVIDENCE_SCHEMA)
+            ),
+        )
+    if metadata["schema"] == _READY_FRAME_EVIDENCE_SCHEMA:
+        _require_shader_pipeline_metrics(metadata, screenshot_path)
     _require_duration_hierarchy(
         metadata,
         total_field="ibl_total_elapsed_ns",
@@ -576,14 +813,159 @@ def _require_positive_integer(
         )
 
 
+def _require_staging_output_metrics(
+    metadata: Mapping[str, str],
+    screenshot_path: Path,
+    *,
+    schema_label: str,
+    require_irradiance_cube_source_sample_visits: bool,
+) -> None:
+    source_bytes = _require_non_negative_integer(
+        metadata, "ibl_staging_source_zcube_bytes", screenshot_path
+    )
+    artifact_bytes = _require_non_negative_integer(
+        metadata, "ibl_staging_asset_derived_bytes", screenshot_path
+    )
+    work_items = _require_non_negative_integer(
+        metadata, "ibl_staging_parallel_executor_work_items", screenshot_path
+    )
+    irradiance_cube_source_sample_visits = None
+    if require_irradiance_cube_source_sample_visits:
+        irradiance_cube_source_sample_visits = _require_non_negative_u64_count(
+            metadata,
+            "ibl_staging_irradiance_cube_source_sample_visits",
+            screenshot_path,
+        )
+    status = metadata["ibl_staging_status"]
+    if status not in ("Written", "Reused"):
+        raise RuntimeError(
+            f"ready-frame {schema_label} provenance has an unsupported IBL staging status: "
+            f"status={status} path={screenshot_path}"
+        )
+    if source_bytes == 0 or artifact_bytes == 0:
+        raise RuntimeError(
+            f"ready-frame {schema_label} provenance requires non-empty staged IBL outputs: "
+            f"path={screenshot_path}"
+        )
+    if status == "Reused" and work_items != 0:
+        raise RuntimeError(
+            f"ready-frame {schema_label} provenance cache reuse must not submit IBL executor work: "
+            f"work_items={work_items} path={screenshot_path}"
+        )
+    if status == "Reused" and irradiance_cube_source_sample_visits not in (None, 0):
+        raise RuntimeError(
+            f"ready-frame {schema_label} provenance cache reuse must not report IEM candidate iterations: "
+            f"sample_visits={irradiance_cube_source_sample_visits} path={screenshot_path}"
+        )
+    if status == "Written" and work_items == 0:
+        raise RuntimeError(
+            f"ready-frame {schema_label} provenance written HDRI must report IBL executor work: "
+            f"path={screenshot_path}"
+        )
+
+
+def _require_shader_pipeline_metrics(
+    metadata: Mapping[str, str], screenshot_path: Path
+) -> None:
+    fields = (
+        "registered_pipeline_variant_count",
+        "registered_shader_variant_count",
+        "texture_presence_normalized_pipeline_variant_count",
+        "texture_presence_equivalent_pipeline_variant_count",
+        "cached_render_pipeline_count",
+        "cached_shader_module_count",
+        "render_pipeline_creation_count",
+        "shader_module_creation_count",
+        "render_pipeline_creation_cpu_microseconds",
+        "shader_module_creation_cpu_microseconds",
+        "async_base_pipeline_queue_wait_count",
+        "async_base_pipeline_queue_wait_microseconds",
+    )
+    values = {
+        field: _require_non_negative_u64_count(metadata, field, screenshot_path)
+        for field in fields
+    }
+    registered_pipeline_count = values["registered_pipeline_variant_count"]
+    registered_shader_count = values["registered_shader_variant_count"]
+    normalized_pipeline_count = values[
+        "texture_presence_normalized_pipeline_variant_count"
+    ]
+    equivalent_pipeline_count = values[
+        "texture_presence_equivalent_pipeline_variant_count"
+    ]
+    if registered_pipeline_count == 0 or registered_shader_count == 0:
+        raise RuntimeError(
+            "ready-frame v12 provenance requires registered shader and pipeline variants: "
+            f"path={screenshot_path}"
+        )
+    if registered_shader_count > registered_pipeline_count:
+        raise RuntimeError(
+            "ready-frame v12 provenance shader variant count exceeds pipeline variants: "
+            f"path={screenshot_path}"
+        )
+    if (
+        values["cached_render_pipeline_count"] == 0
+        or values["cached_shader_module_count"] == 0
+    ):
+        raise RuntimeError(
+            "ready-frame v12 provenance requires resident Base pipeline GPU objects: "
+            f"path={screenshot_path}"
+        )
+    if (
+        normalized_pipeline_count > registered_pipeline_count
+        or equivalent_pipeline_count
+        != registered_pipeline_count - normalized_pipeline_count
+    ):
+        raise RuntimeError(
+            "ready-frame v12 provenance texture-presence normalization is inconsistent: "
+            f"path={screenshot_path}"
+        )
+    if values["cached_render_pipeline_count"] > values["render_pipeline_creation_count"]:
+        raise RuntimeError(
+            "ready-frame v12 provenance cached render pipelines exceed creation events: "
+            f"path={screenshot_path}"
+        )
+    if values["cached_shader_module_count"] > values["shader_module_creation_count"]:
+        raise RuntimeError(
+            "ready-frame v12 provenance cached shader modules exceed creation events: "
+            f"path={screenshot_path}"
+        )
+    if (
+        values["async_base_pipeline_queue_wait_count"] == 0
+        and values["async_base_pipeline_queue_wait_microseconds"] != 0
+    ):
+        raise RuntimeError(
+            "ready-frame v12 provenance queue wait time has no admitted async job: "
+            f"path={screenshot_path}"
+        )
+
+
 def _require_non_negative_integer(
     metadata: Mapping[str, str], field: str, screenshot_path: Path
-) -> None:
+) -> int:
     if _NON_NEGATIVE_INTEGER_PATTERN.fullmatch(metadata[field]) is None:
         raise RuntimeError(
             "ready-frame provenance duration is malformed: "
             f"field={field} path={screenshot_path}"
         )
+    return int(metadata[field])
+
+
+def _require_non_negative_u64_count(
+    metadata: Mapping[str, str], field: str, screenshot_path: Path
+) -> int:
+    if _NON_NEGATIVE_INTEGER_PATTERN.fullmatch(metadata[field]) is None:
+        raise RuntimeError(
+            "ready-frame provenance non-negative count is malformed: "
+            f"field={field} path={screenshot_path}"
+        )
+    value = int(metadata[field])
+    if value > _MAX_U64:
+        raise RuntimeError(
+            "ready-frame provenance count exceeds u64: "
+            f"field={field} value={value} path={screenshot_path}"
+        )
+    return value
 
 
 def _require_duration_hierarchy(
@@ -792,7 +1174,7 @@ def _paeth_predictor(left: int, up: int, up_left: int) -> int:
 
 def _parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Validate a Zircon PBR viewer ready-frame PNG and v8 provenance sidecar."
+        description="Validate a Zircon PBR viewer ready-frame PNG and v12 provenance sidecar."
     )
     parser.add_argument("png", type=Path, help="Ready-frame PNG written by zircon_shader_pbr_viewer")
     parser.add_argument("--expected-backend", help="Require the recorded backend, for example Dx12")
@@ -805,7 +1187,7 @@ def _parse_arguments() -> argparse.Namespace:
         "--allow-legacy-schema",
         action="store_true",
         help=(
-            "Allow v2-v7 or stale IBL bake provenance only when inspecting "
+            "Allow v2-v11 or stale IBL bake provenance only when inspecting "
             "historical baseline evidence"
         ),
     )
@@ -815,37 +1197,22 @@ def _parse_arguments() -> argparse.Namespace:
 def main() -> int:
     arguments = _parse_arguments()
     try:
-        evidence = validate_ready_frame_evidence(
-            arguments.png,
-            expected_backend=arguments.expected_backend,
-            require_direct_present=arguments.require_direct_present,
-            required_schema=(
-                None if arguments.allow_legacy_schema else _READY_FRAME_EVIDENCE_SCHEMA
-            ),
-            expected_ibl_bake_algorithm_version=(
-                None
-                if arguments.allow_legacy_schema
-                else _CURRENT_IBL_BAKE_ALGORITHM_VERSION
-            ),
-        )
+        if arguments.allow_legacy_schema:
+            evidence = validate_ready_frame_evidence(
+                arguments.png,
+                expected_backend=arguments.expected_backend,
+                require_direct_present=arguments.require_direct_present,
+            )
+        else:
+            evidence = validate_current_ready_frame_evidence(
+                arguments.png,
+                expected_backend=arguments.expected_backend,
+                require_direct_present=arguments.require_direct_present,
+            )
     except (OSError, RuntimeError, ValueError) as error:
         print(f"PBR viewer evidence validation failed: {error}", file=sys.stderr)
         return 1
-    print(
-        json.dumps(
-            {
-                "schema": evidence.metadata["schema"],
-                "png": str(evidence.screenshot_path),
-                "sidecar": str(evidence.sidecar_path),
-                "viewport": list(evidence.viewport),
-                "backend": evidence.backend,
-                "render_profile": evidence.render_profile,
-                "distinct_rgba_colors": evidence.distinct_rgba_colors,
-                "non_black_pixel_count": evidence.non_black_pixel_count,
-            },
-            sort_keys=True,
-        )
-    )
+    print(json.dumps(ready_frame_evidence_summary(evidence), sort_keys=True))
     return 0
 
 

@@ -121,11 +121,10 @@ fn text_justify_materializes_arabic_tatweel_without_source_range_drift() {
     let line = &layout.lines[0];
     assert!(line.text.contains('\u{0640}'));
     assert_eq!(line.source_range.end, source.len());
-    assert!(
-        line.runs
-            .iter()
-            .any(|run| run.text == "ـ" && run.source_range.start == run.source_range.end)
-    );
+    assert!(line
+        .runs
+        .iter()
+        .any(|run| run.text == "ـ" && run.source_range.start == run.source_range.end));
     assert!(line.glyph_advances.len() > source.chars().count());
     assert!((line.glyph_advances.iter().sum::<f32>() - target_width).abs() < 0.1);
 }

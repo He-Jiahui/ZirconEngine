@@ -13,8 +13,9 @@ pub(super) struct ProjectedButtonStyle {
 
 pub(super) fn projected_button_style(
     attributes: &BTreeMap<String, toml::Value>,
+    component_role: &str,
 ) -> ProjectedButtonStyle {
-    let button_style_values = button_style_values_with_aliases(attributes);
+    let button_style_values = button_style_values_with_aliases(attributes, component_role);
 
     ProjectedButtonStyle {
         variant: attributes

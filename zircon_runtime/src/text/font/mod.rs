@@ -27,10 +27,13 @@ pub(crate) use decoration_metrics::{
 #[cfg(test)]
 pub(crate) use default_families::default_runtime_font_families;
 pub(crate) use fallback::MissingGlyphDiagnosticsReport;
+#[cfg(test)]
+pub(crate) use handle_registry::current_thread_font_handle_registration_batch_count;
 pub(crate) use handle_registry::{
     font_handle_registry_report, register_font_face_handle, register_font_handle_batch,
-    register_font_handles, register_font_instance_handle, resolve_font_face_handle,
-    resolve_font_handle_batch, resolve_font_handles, resolve_font_instance_handle,
+    register_font_handle_batch_with_report, register_font_handles, register_font_instance_handle,
+    resolve_font_face_handle, resolve_font_handle_batch, resolve_font_handles,
+    resolve_font_instance_handle, FontHandleRegistrationBatchReport, FontHandleRegistryReport,
 };
 #[cfg(test)]
 pub(crate) use shared::{

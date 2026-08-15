@@ -12,6 +12,7 @@ mod actions;
 mod collection;
 mod mui_surface_defaults;
 mod mui_variants;
+mod progress;
 mod sample_grid;
 mod timeline_strip;
 mod visual_metadata;

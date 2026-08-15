@@ -1,5 +1,7 @@
 use toml::Value;
-use zircon_runtime_interface::ui::{layout::UiFrame, tree::UiTemplateNodeMetadata};
+use zircon_runtime_interface::ui::{
+    layout::UiFrame, tree::UiTemplateNodeMetadata, widget::UiPopupAnchor,
+};
 
 #[derive(Clone, Copy, Debug)]
 pub(super) enum PopupPlacement {
@@ -141,6 +143,9 @@ enum VerticalOrigin {
 }
 
 pub(super) fn has_popup_position_metadata(metadata: &UiTemplateNodeMetadata) -> bool {
+    if !matches!(&metadata.widget.popup_anchor, UiPopupAnchor::None) {
+        return true;
+    }
     [
         "placement",
         "popup_anchor_x",
@@ -173,6 +178,9 @@ pub(super) fn popup_anchor_frame(
     metadata: &UiTemplateNodeMetadata,
     fallback_frame: UiFrame,
 ) -> UiFrame {
+    if matches!(&metadata.widget.popup_anchor, UiPopupAnchor::Control { .. }) {
+        return fallback_frame;
+    }
     let Some(x) = number_attribute(metadata, "popup_anchor_x") else {
         return fallback_frame;
     };
@@ -214,7 +222,10 @@ pub(super) fn anchored_popup_frame(
         .map(|bounds| popup_width.min(bounds.width.max(1.0)))
         .unwrap_or(popup_width)
         .max(1.0);
-    let height = popup_height.max(1.0);
+    let height = bounds
+        .map(|bounds| popup_height.min(bounds.height.max(1.0)))
+        .unwrap_or(popup_height)
+        .max(1.0);
     let mut frame = placement_candidate(
         metadata,
         anchor_frame,
@@ -438,4 +449,44 @@ fn valid_bounds(frame: &UiFrame) -> bool {
         && frame.height.is_finite()
         && frame.width > 0.0
         && frame.height > 0.0
+}
+
+#[cfg(test)]
+mod tests {
+    use zircon_runtime_interface::ui::{layout::UiFrame, tree::UiTemplateNodeMetadata};
+
+    use super::{anchored_popup_frame, PopupPlacement};
+
+    #[test]
+    fn popup_flips_from_trigger_frame_before_clamping() {
+        let frame = anchored_popup_frame(
+            &UiTemplateNodeMetadata::default(),
+            UiFrame::new(10.0, 90.0, 20.0, 10.0),
+            80.0,
+            40.0,
+            Some(UiFrame::new(0.0, 0.0, 120.0, 100.0)),
+            PopupPlacement::BottomStart,
+            4.0,
+        )
+        .expect("valid popup geometry");
+
+        assert_eq!(frame, UiFrame::new(10.0, 46.0, 80.0, 40.0));
+    }
+
+    #[test]
+    fn oversized_popup_is_constrained_to_layout_bounds() {
+        let bounds = UiFrame::new(0.0, 0.0, 100.0, 80.0);
+        let frame = anchored_popup_frame(
+            &UiTemplateNodeMetadata::default(),
+            UiFrame::new(40.0, 30.0, 20.0, 20.0),
+            240.0,
+            200.0,
+            Some(bounds),
+            PopupPlacement::BottomStart,
+            4.0,
+        )
+        .expect("valid popup geometry");
+
+        assert_eq!(frame, bounds);
+    }
 }

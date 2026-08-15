@@ -2,22 +2,21 @@ use crate::core::math::UVec2;
 use crate::text::atlas::render_batch::GlyphAtlasDrawBatchKey;
 use crate::text::atlas::render_contract::{GlyphAtlasBlendMode, GlyphAtlasRenderContract};
 use crate::text::atlas::render_gpu_plan::{
-    GlyphAtlasGpuBatch, GlyphAtlasGpuDrawPlan, GlyphAtlasGpuInstance, GlyphAtlasGpuPipelineKey,
-    GlyphAtlasGpuPrimitiveTopology, GlyphAtlasGpuViewportTransform,
     glyph_atlas_gpu_bind_group_layout, glyph_atlas_gpu_draw_command,
-    glyph_atlas_gpu_instance_buffer_layout, glyph_atlas_gpu_pipeline_contract,
+    glyph_atlas_gpu_instance_buffer_layout, glyph_atlas_gpu_pipeline_contract, GlyphAtlasGpuBatch,
+    GlyphAtlasGpuDrawPlan, GlyphAtlasGpuInstance, GlyphAtlasGpuPipelineKey,
+    GlyphAtlasGpuPrimitiveTopology, GlyphAtlasGpuViewportTransform,
 };
 use crate::text::atlas::{
-    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT, GlyphAtlasBitmapFaceValidity,
-    GlyphAtlasBitmapPageUploadStaging, GlyphAtlasBitmapPreparedUploadPlan,
-    GlyphAtlasBitmapStagedUpload, GlyphAtlasBitmapStagedUploadPlan,
-    GlyphAtlasBitmapUploadStagingPlan, GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec,
-    GlyphAtlasRect, GlyphAtlasSamplingSemantics, GlyphAtlasSet, GlyphAtlasStorageFormat,
-    GlyphAtlasUploadMode, glyph_atlas_upload_command,
+    glyph_atlas_upload_command, GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPageUploadStaging,
+    GlyphAtlasBitmapPreparedUploadPlan, GlyphAtlasBitmapStagedUpload,
+    GlyphAtlasBitmapStagedUploadPlan, GlyphAtlasBitmapUploadStagingPlan, GlyphAtlasFormat,
+    GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasRect, GlyphAtlasSamplingSemantics,
+    GlyphAtlasSet, GlyphAtlasStorageFormat, GlyphAtlasUploadMode,
+    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
 };
 
 use super::super::atlas_texture_upload::GlyphAtlasBitmapTextureUploadFrameReport;
-use super::GlyphAtlasBitmapRendererPrepareReport;
 use super::instance::glyph_atlas_wgpu_instance_buffer_layout;
 use super::instance_buffer::{
     glyph_atlas_bitmap_renderer_instance_buffer_capacity,
@@ -40,6 +39,7 @@ use super::resources::{
     glyph_atlas_bitmap_sampler_descriptor, glyph_atlas_wgpu_bind_group_layout_entries,
 };
 use super::state::GlyphAtlasBitmapRendererDrawPass;
+use super::GlyphAtlasBitmapRendererPrepareReport;
 
 #[test]
 fn glyph_atlas_bitmap_instance_layout_matches_gpu_plan_contract() {

@@ -4,7 +4,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use super::super::NativePluginCandidate;
+use super::manifest_index::NativePluginDiscoveryManifestIndex;
+use super::metrics::NativePluginDiscoveryRefreshMetrics;
 use super::ticket::NativePluginDiscoveryRefreshCancellation;
+use super::work::NativePluginDiscoveryRefreshWork;
 
 /// A stable discovery key supplied by the discovery authority after it has canonicalized a root.
 /// Constructing this identity performs no filesystem work, so UI and watcher callbacks can submit
@@ -108,6 +111,8 @@ impl NativePluginDiscoveryRefreshBudget {
 pub(crate) struct NativePluginDiscoveryRefreshRequest {
     root: NativePluginDiscoveryRoot,
     input: NativePluginDiscoveryRefreshInput,
+    work: NativePluginDiscoveryRefreshWork,
+    base_snapshot: Option<Arc<NativePluginDiscoverySnapshot>>,
     generation: u64,
     budget: NativePluginDiscoveryRefreshBudget,
     cancellation: NativePluginDiscoveryRefreshCancellation,
@@ -117,6 +122,8 @@ impl NativePluginDiscoveryRefreshRequest {
     pub(super) fn new(
         root: NativePluginDiscoveryRoot,
         input: NativePluginDiscoveryRefreshInput,
+        work: NativePluginDiscoveryRefreshWork,
+        base_snapshot: Option<Arc<NativePluginDiscoverySnapshot>>,
         generation: u64,
         budget: NativePluginDiscoveryRefreshBudget,
         cancellation: NativePluginDiscoveryRefreshCancellation,
@@ -124,6 +131,8 @@ impl NativePluginDiscoveryRefreshRequest {
         Self {
             root,
             input,
+            work,
+            base_snapshot,
             generation,
             budget,
             cancellation,
@@ -136,6 +145,18 @@ impl NativePluginDiscoveryRefreshRequest {
 
     pub(crate) fn input(&self) -> &NativePluginDiscoveryRefreshInput {
         &self.input
+    }
+
+    /// Work belongs to the active ticket, keeping `(root, input)` as the stable selection key.
+    pub(in crate::plugin::native_plugin_loader) fn work(
+        &self,
+    ) -> &NativePluginDiscoveryRefreshWork {
+        &self.work
+    }
+
+    /// Incremental collection reads from an immutable last-good snapshot and never mutates it.
+    pub(crate) fn base_snapshot(&self) -> Option<&Arc<NativePluginDiscoverySnapshot>> {
+        self.base_snapshot.as_ref()
     }
 
     pub(crate) fn generation(&self) -> u64 {
@@ -165,6 +186,7 @@ pub(super) struct NativePluginDiscoveryRefreshPayload {
     input_identity: NativePluginDiscoveryInputIdentity,
     read_bytes: u64,
     peak_scratch_bytes: u64,
+    metrics: NativePluginDiscoveryRefreshMetrics,
 }
 
 /// Runtime-owned bounded collector output. A Frameworks04 collector must reserve through this
@@ -177,6 +199,7 @@ pub(crate) struct NativePluginDiscoveryRefreshSink {
     diagnostic_admissions: usize,
     read_bytes: u64,
     peak_scratch_bytes: u64,
+    metrics: NativePluginDiscoveryRefreshMetrics,
 }
 
 impl NativePluginDiscoveryRefreshSink {
@@ -189,6 +212,7 @@ impl NativePluginDiscoveryRefreshSink {
             diagnostic_admissions: 0,
             read_bytes: 0,
             peak_scratch_bytes: 0,
+            metrics: NativePluginDiscoveryRefreshMetrics::default(),
         }
     }
 
@@ -300,6 +324,23 @@ impl NativePluginDiscoveryRefreshSink {
         self.peak_scratch_bytes
     }
 
+    pub(in crate::plugin::native_plugin_loader) fn record_traversal(
+        &mut self,
+        enumerated_directories: u64,
+        inspected_entries: u64,
+    ) {
+        self.metrics
+            .record_traversal(enumerated_directories, inspected_entries);
+    }
+
+    pub(in crate::plugin::native_plugin_loader) fn record_manifest_read(&mut self) {
+        self.metrics.record_manifest_read();
+    }
+
+    pub(in crate::plugin::native_plugin_loader) fn record_manifest_parse(&mut self) {
+        self.metrics.record_manifest_parse();
+    }
+
     /// Selection collectors keep the first accepted package without creating an unmetered
     /// duplicate-id side index beside the published candidate set.
     pub(crate) fn contains_candidate_id(&self, plugin_id: &str) -> bool {
@@ -318,6 +359,7 @@ impl NativePluginDiscoveryRefreshSink {
             input_identity,
             read_bytes: self.read_bytes,
             peak_scratch_bytes: self.peak_scratch_bytes,
+            metrics: self.metrics,
         }
     }
 }
@@ -379,11 +421,14 @@ pub struct NativePluginDiscoverySnapshot {
     root: NativePluginDiscoveryRoot,
     input: NativePluginDiscoveryRefreshInput,
     generation: u64,
+    manifest_index: NativePluginDiscoveryManifestIndex,
     candidates: Arc<[NativePluginCandidate]>,
     diagnostics: Arc<[String]>,
+    collector_diagnostics: Arc<[String]>,
     input_identity: NativePluginDiscoveryInputIdentity,
     read_bytes: u64,
     peak_scratch_bytes: u64,
+    metrics: NativePluginDiscoveryRefreshMetrics,
 }
 
 impl NativePluginDiscoverySnapshot {
@@ -393,15 +438,88 @@ impl NativePluginDiscoverySnapshot {
         generation: u64,
         payload: NativePluginDiscoveryRefreshPayload,
     ) -> Self {
+        let NativePluginDiscoveryRefreshPayload {
+            candidates,
+            diagnostics,
+            input_identity,
+            read_bytes,
+            peak_scratch_bytes,
+            metrics,
+        } = payload;
+        let index = NativePluginDiscoveryManifestIndex::from_candidates(candidates);
+        Self::from_index(
+            root,
+            input,
+            generation,
+            index,
+            diagnostics,
+            input_identity,
+            read_bytes,
+            peak_scratch_bytes,
+            metrics,
+        )
+    }
+
+    pub(super) fn from_incremental_payload(
+        root: NativePluginDiscoveryRoot,
+        input: NativePluginDiscoveryRefreshInput,
+        generation: u64,
+        base: &NativePluginDiscoverySnapshot,
+        work: &NativePluginDiscoveryRefreshWork,
+        payload: NativePluginDiscoveryRefreshPayload,
+        max_candidates: usize,
+    ) -> Result<Self, NativePluginDiscoveryRefreshError> {
+        let NativePluginDiscoveryRefreshPayload {
+            candidates,
+            diagnostics,
+            input_identity,
+            read_bytes,
+            peak_scratch_bytes,
+            metrics,
+        } = payload;
+        let mut index = base.manifest_index.clone();
+        index.apply_incremental(work, &candidates, max_candidates)?;
+        let mut collector_diagnostics = base.collector_diagnostics.to_vec();
+        collector_diagnostics.extend(diagnostics);
+        Ok(Self::from_index(
+            root,
+            input,
+            generation,
+            index,
+            collector_diagnostics,
+            input_identity,
+            read_bytes,
+            peak_scratch_bytes,
+            metrics,
+        ))
+    }
+
+    fn from_index(
+        root: NativePluginDiscoveryRoot,
+        input: NativePluginDiscoveryRefreshInput,
+        generation: u64,
+        manifest_index: NativePluginDiscoveryManifestIndex,
+        collector_diagnostics: Vec<String>,
+        input_identity: NativePluginDiscoveryInputIdentity,
+        read_bytes: u64,
+        peak_scratch_bytes: u64,
+        metrics: NativePluginDiscoveryRefreshMetrics,
+    ) -> Self {
+        let (candidates, duplicate_diagnostics) = manifest_index.project();
+        let mut diagnostics = collector_diagnostics.clone();
+        diagnostics.extend(duplicate_diagnostics);
         Self {
             root,
             input,
             generation,
-            candidates: Arc::from(payload.candidates),
-            diagnostics: Arc::from(payload.diagnostics),
-            input_identity: payload.input_identity,
-            read_bytes: payload.read_bytes,
-            peak_scratch_bytes: payload.peak_scratch_bytes,
+            manifest_index,
+            candidates: Arc::from(candidates),
+            diagnostics: Arc::from(diagnostics),
+            collector_diagnostics: Arc::from(collector_diagnostics),
+            input_identity,
+            read_bytes,
+            peak_scratch_bytes,
+            metrics,
         }
     }
 
@@ -435,6 +553,11 @@ impl NativePluginDiscoverySnapshot {
 
     pub fn peak_scratch_bytes(&self) -> u64 {
         self.peak_scratch_bytes
+    }
+
+    #[cfg(test)]
+    pub(crate) fn metrics(&self) -> NativePluginDiscoveryRefreshMetrics {
+        self.metrics
     }
 }
 

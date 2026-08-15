@@ -38,6 +38,10 @@ impl World {
         self.events.events_mut::<T>().clear();
     }
 
+    pub(crate) fn clear_all_events(&mut self) {
+        self.events.clear_all();
+    }
+
     pub fn events<T>(&self) -> Option<&Events<T>>
     where
         T: Event,

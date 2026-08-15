@@ -12,7 +12,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use indica
     match_indicator_radius, match_indicator_rect,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::{
-    WorkbenchCommandPaletteMetrics, command_palette_metrics, command_palette_metrics_from_host,
+    command_palette_metrics, command_palette_metrics_from_host, WorkbenchCommandPaletteMetrics,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use panel::empty_text_rect;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use rows::{

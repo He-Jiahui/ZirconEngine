@@ -15,11 +15,4 @@ pub(super) fn merge_asset_scene_descriptor_contributions(
             fatal_diagnostics,
         );
     }
-    for hook in extensions.scene_hooks() {
-        push_runtime_extension_result(
-            registry.register_scene_hook(hook.clone()),
-            diagnostics,
-            fatal_diagnostics,
-        );
-    }
 }

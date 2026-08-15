@@ -18,6 +18,12 @@ pub(in crate::graphics) use scene_renderer::environment::ibl_bake_graph_plan::{
     IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_SH9_PASS, IBL_BAKE_PMREM_EXECUTOR_ID,
     IBL_BAKE_SOURCE_CUBEMAP_RESOURCE,
 };
+pub(in crate::graphics) use scene_renderer::transparency::{
+    half_resolution_transparency_supported, HALF_RES_TRANSPARENCY_COMPOSITE_EXECUTOR_ID,
+    HALF_RES_TRANSPARENCY_COMPOSITE_PASS_NAME, HALF_RES_TRANSPARENCY_DEPTH_DOWNSAMPLE_EXECUTOR_ID,
+    HALF_RES_TRANSPARENCY_DEPTH_DOWNSAMPLE_PASS_NAME, HALF_RES_TRANSPARENCY_MESH_EXECUTOR_ID,
+    HALF_RES_TRANSPARENCY_MESH_PASS_NAME, HALF_RES_TRANSPARENCY_PARTICLE_EXECUTOR_ID,
+};
 #[cfg(test)]
 pub(crate) use scene_renderer::ViewportOverlayRenderer;
 pub(crate) use scene_renderer::{
@@ -35,15 +41,6 @@ pub(crate) use scene_renderer::{
     GBUFFER_ALBEDO_FORMAT, GBUFFER_EMISSIVE_FORMAT, GBUFFER_MATERIAL_FORMAT, NORMAL_FORMAT,
     SCENE_COLOR_HDR_FORMAT,
 };
-pub(in crate::graphics) use scene_renderer::{
-    AsyncViewportCaptureRequest, ViewportAsyncCaptureSubmission,
-};
-pub(in crate::graphics) use scene_renderer::transparency::{
-    half_resolution_transparency_supported, HALF_RES_TRANSPARENCY_COMPOSITE_EXECUTOR_ID,
-    HALF_RES_TRANSPARENCY_COMPOSITE_PASS_NAME, HALF_RES_TRANSPARENCY_DEPTH_DOWNSAMPLE_EXECUTOR_ID,
-    HALF_RES_TRANSPARENCY_DEPTH_DOWNSAMPLE_PASS_NAME, HALF_RES_TRANSPARENCY_MESH_EXECUTOR_ID,
-    HALF_RES_TRANSPARENCY_MESH_PASS_NAME, HALF_RES_TRANSPARENCY_PARTICLE_EXECUTOR_ID,
-};
 pub use scene_renderer::{
     irradiance_volume_render_pass_executor_registrations,
     light_cookie_render_pass_executor_registrations, oit_render_pass_executor_registrations,
@@ -58,14 +55,18 @@ pub use scene_renderer::{
     SSS_SCATTER_EXECUTOR_ID, SSS_SETUP_EXECUTOR_ID, VOLUMETRIC_INTEGRATE_EXECUTOR_ID,
     VOLUMETRIC_LIGHT_SCATTER_EXECUTOR_ID, VOLUMETRIC_MEDIA_INJECT_EXECUTOR_ID,
 };
+pub(in crate::graphics) use scene_renderer::{
+    AsyncViewportCaptureRequest, ViewportAsyncCaptureSubmission,
+};
 pub use scene_renderer::{
     ParticleGpuTransparentDrawContext, RenderGraphExecutionResources, RenderPassExecutionContext,
     RenderPassExecutor, RenderPassExecutorFn, RenderPassExecutorId, RenderPassExecutorRegistration,
     RenderPassGpuExecutionContext, RenderPassRecordingPolicy,
 };
 pub use scene_renderer::{
-    RealtimeIblGpuTimingReport, SceneRenderer, SceneRendererCoreStartupReport,
+    RealtimeIblGpuTimingReport, RuntimeShaderPipelinePrewarmFailure,
+    RuntimeShaderPipelinePrewarmReport, SceneRenderer, SceneRendererCoreStartupReport,
     SceneRendererDeferredLightingProfile, SceneRendererFrameTimingReport,
-    SceneRendererStartupOptions, SceneRendererStartupReport, SceneViewportSurface,
-    RuntimeShaderPipelinePrewarmFailure, RuntimeShaderPipelinePrewarmReport,
+    SceneRendererGpuPassTiming, SceneRendererGpuTimingReport, SceneRendererStartupOptions,
+    SceneRendererStartupReport,
 };

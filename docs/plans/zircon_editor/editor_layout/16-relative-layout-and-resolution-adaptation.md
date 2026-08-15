@@ -11,6 +11,12 @@ related_code:
   - zircon_editor/src/ui/workbench/autolayout/layout_tier.rs
   - zircon_runtime/src/core/framework/window/resolution.rs
   - zircon_runtime/src/ui/surface/input/window_pump.rs
+  - zircon_editor/src/ui/workbench/autolayout/resolution_context.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/bridge.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/componentized_window.rs
+  - zircon_editor/src/ui/retained_host/ui/workbench_window_projection/mount.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/metrics.rs
 design_references:
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Widgets/Layout/Anchors.h
   - dev/UnrealEngine/Engine/Source/Runtime/UMG/Public/Components/CanvasPanelSlot.h
@@ -172,6 +178,12 @@ Zircon 规范(对标上述):
 4. **输入命中逆缩放**:指针命中、splitter 拖拽把物理坐标 `÷ scale_factor` 回到逻辑空间再比较(对标 `GetMousePositionScaledByDPI`)。`18` 已同步此条款:hit_test 输入为逻辑坐标,物理→逻辑换算在输入边界一次完成。(2026-07-02 评审收口)
 5. **closes R4**:`scale_factor` 从"仅 `window_pump.rs` 存着"升级为 autolayout 的一等输入。
 
+2026-08-10 retained-host 落地说明：当前 CPU retained painter 没有独立 GPU 顶点装配阶段，
+因此 `UiSurface` 与 template projection 内部保持逻辑单位，在进入最终 host presentation / paint-theme
+快照时统一转换为物理 frame 与物理控件度量；该边界同时是当前 CPU painter 的最终绘制合同。
+workbench 直接路由到 `UiSurface` 的指针与 popup anchor 在同一 bridge 入口执行一次物理到逻辑逆变换。
+这不允许组件/painter 自行读取窗口 DPI，也不改变未来 Plan 21 GPU vertex assembly 接管该转换的目标。
+
 > **文本延伸(见 `17`)**:本节的根缩放对**字体光栅化**同样适用——字形须按物理像素 `font_size_logical × scale_factor` 重栅格,而非固定字号拉伸。当前 `sdf_font_bake.rs` 的 atlas key 不含 scale,是 R4 在文本上的同源缺陷,详见 `17` §3.2。
 
 ### 3.4a 分辨率成熟度:scale 模式 / 多显示器 / 分数缩放 / 安全区(深化)
@@ -186,7 +198,7 @@ Zircon 规范(对标上述):
 
 Zircon 规范(在 §3.4 根缩放之上):
 
-1. **scale 模式是 panel/根属性**:每个渲染根(主窗口、浮动窗口、视口)声明 scale 模式 + 参考分辨率,`effective_scale` = 模式 × 系统 DPI;chrome 默认 `constant-physical`,与 §3.4 一致。**(2026-07-02 评审收口)现状登记:本条为"后续扩展"——`ResolutionContext`(§4)暂无 scale mode 字段,当前仅 root `scale_factor` 一档(等价 `constant-physical`);落地时补切片并扩 `ResolutionContext`,在此之前 `constant-pixel`/`scale-with-resolution` 两档不可声明。**
+1. **scale 模式是 panel/根属性**:每个渲染根(主窗口、浮动窗口、视口)声明 scale 模式 + 参考分辨率,`effective_scale` = 模式 × 系统 DPI;chrome 默认 `constant-physical`,与 §3.4 一致。**2026-08-10 现状登记:`ResolutionContext` 已显式支持 `ConstantPhysical`、`ConstantPixel` 与带 reference size 的 `ScaleWithResolution`;retained host 主根保存并使用所选模式。每个 native 浮窗独立 per-monitor scale 与安全区仍未关闭。**
 2. **每显示器 DPI**:窗口跨显示器迁移时 `scale_factor` 随目标显示器更新(对标 Win32 per-monitor-V2 DPI、UE `SetDPIScaleFactor`),触发受影响子树重算(接 09/10),不重载资产。
 3. **分数缩放吸附**:1.25×/1.5× 等分数 scale 下,逻辑→物理换算产生分数像素;**像素吸附归渲染/合成层**(顶点装配,见 `21` §3.5),Taffy 侧 `disable_rounding` 保留分数(见 `13`),由 21 在装配顶点时对文本/1px 边框整像素吸附,自由内容不吸附——避免 Taffy 取整与渲染取整双重误差。
 4. **安全区 / 工作区**:布局根扣除系统保留区(任务栏、刘海、窗口装饰)得可用工作区,chrome 在工作区内布局(对标 Unity `safe-area`、移动端 safe area inset)。
@@ -302,7 +314,7 @@ pub fn workbench_layout_tier_for_logical_width(logical_w: f32) -> WorkbenchLayou
 
 ## 10. 边界约束
 
-不改 Taffy 求解算法(已存在,§2.1);不重做 docking 运行时(`03/07`);约束 token 值归 `01`、区域声明归 `02`、断点折叠实现归 `15e`;运行时能力(如 scale 注入管线)若属运行时构建则回流 `editor_ui/`。本文只立规范 + 指引落点,不产出代码。
+不改 Taffy 求解算法(已存在,§2.1);不重做 docking 运行时(`03/07`);约束 token 值归 `01`、区域声明归 `02`、断点折叠实现归 `15e`;运行时能力(如 scale 注入管线)若属运行时构建则回流 `editor_ui/`。本文最初只建立规范与落点；后续实现进度、验证边界和残余风险以 §12 的日期记录为准。
 
 ## 11. 参考实现对照(dev/ 源码锚点)
 
@@ -324,7 +336,8 @@ pub fn workbench_layout_tier_for_logical_width(logical_w: f32) -> WorkbenchLayou
 
 | 日期 | 切片 | 状态 | 产出/证据 | 后续项 |
 | --- | --- | --- | --- | --- |
+| 2026-08-10 | 16.S2/S3 retained template logical solve + physical presentation boundary | implemented-static / second-review-clean / managed-validation-pending | Root 与 componentized Workbench bridge 使用 `ResolutionContext.effective_scale_factor()` 将物理 mount 转为逻辑 `UiSurface` 尺寸；断点/抽屉继续按逻辑宽度求解。root/workbench host projection 在最终 presentation 边界统一转换 frame、clip、popup anchor、字体、圆角、边框、间距与固定按钮尺寸；full projection 和 sparse hierarchy row patch 共享同一 helper。`HostPaintThemeSnapshot` 持有 root scale，统一缩放 fallback 控件/文本/图标/滚动条度量且保持 ratio 无量纲。workbench pointer route 与 context-menu anchor 在进入逻辑 surface 前只逆缩放一次。二次审查发现复用 DTO 把 `range_min`/`step_tick_count` 语义与 `layout_second/third_cell_offset_x` 长度混在同一字段，且 `dot/status/arrow/track/icon_size` 显式视觉尺寸未缩放；已按原始属性来源在 host 转换阶段拆分，语义值保持不变、长度只缩放一次，并补 full/sparse 2x 回归。修复后独立复审 P0/P1/P2=`0/0/0`；scoped `rustfmt --check`、`git diff --check` 通过。 | 受管 Cargo、真实窗口 1.0/1.25/1.5/2.0 截图与命中验证待 coordinator 调度；新截图只能写 `docs/tests/editor`。多 native window 独立 per-monitor scale、像素吸附与 Plan 21 GPU 顶点接管仍保持 open。 |
 | 2026-07-26 | 16.S4 壳纵向 flex-band leaf owner | implemented-pending-managed-validation | `region_frames.rs` 已改为只将纵向约束委托给 `geometry/vertical_bands.rs`; 新 leaf 将 top/host/center/bottom/status 作为单一 flex-column 约束序列求解，以逻辑 token gap 堆叠 frame，并保留 compact-bottom 限制。新增含/不含 Bottom 的 leaf 回归契约，并将既有架构守卫改为验证“薄父模块 + flex leaf”边界。所有测试均以 `workbench_shell_geometry` 为前缀，因此计划的聚焦过滤会实际执行它们。`rustfmt --check`、`git diff --check`、行数和 owner-boundary 静态检查通过。 | 受管聚焦测试已预留（`c58e259064b446e490d2bfd662fc1ef5`），待 runtime04/editor-layout21 CPU 队列排空后执行；通过后再生成全新窗口截图至 `docs/tests/editor`。 |
-| 2026-07-11 | 16.local Asset Browser Thumbnail 局部相对网格证据 | implemented-focused-passed-screenshot-passed | 新增共享 `AssetThumbnailGridMetrics`,以内容 viewport 宽度、最小/最大 card 宽度、gap/padding 约束推导 1-6 列与完整纵向 extent;每张 card 的相对 frame 同时供 layout、二维 pointer、paint clip 与 scrollbar 使用,不依赖逐卡绝对坐标或固定项目数。420px pointer fixture 验证收窄后多列命中/跨行滚动,900x620 真实窗口验证六列网格、滚动 damage 仅落在 grid、固定工具区/Preview 不移动。验收图 `docs/tests/editor/editor-window-m3-asset-browser-thumbnail-scrolled-hover-900x620.png`,106508 bytes,SHA256 `7BAF3A64A6AA1BB109511E85F2775C35F97A7A63853B79EFE37248D08603D7FD`;repo/external target 同名 PNG 0 hits。 | 本记录只关闭 Thumbnail 内容区局部响应式切片;根 `ResolutionContext`、DPI 统一缩放和 Workbench shell flex 化仍按 S2-S4 保持 open。 |
+| 2026-07-11 | 16.local Asset Browser Thumbnail 局部相对网格证据 | implemented-focused-passed-screenshot-passed | 新增共享 `AssetThumbnailGridMetrics`,以内容 viewport 宽度、最小/最大 card 宽度、gap/padding 约束推导 1-6 列与完整纵向 extent;每张 card 的相对 frame 同时供 layout、二维 pointer、paint clip 与 scrollbar 使用,不依赖逐卡绝对坐标或固定项目数。420px pointer fixture 验证收窄后多列命中/跨行滚动,900x620 真实窗口验证六列网格、滚动 damage 仅落在 grid、固定工具区/Preview 不移动。验收图 `docs/tests/editor/editor-window-m3-asset-browser-thumbnail-scrolled-hover-900x620.png`,106508 bytes,SHA256 `7BAF3A64A6AA1BB109511E85F2775C35F97A7A63853B79EFE37248D08603D7FD`;repo/external target 同名 PNG 0 hits。 | 本记录只关闭 Thumbnail 内容区局部响应式切片；当时根 `ResolutionContext`、DPI 统一缩放和 Workbench shell flex 化仍 open，当前进度分别见 2026-08-10 S2/S3 与 2026-07-26 S4。 |
 | 2026-06-26 | 16.S1 相对布局/多分辨率/DPI 规范立项 | planned | 代码核实:runtime taffy 桥相对布局正确(`compute.rs::disable_rounding`、`child_frame.rs` anchor×父尺寸),但壳层四反模式 R1–R4(`workbench_chrome_metrics.rs` 裸像素、`region_frames.rs` 像素累加、`design_tokens.rs` 断点物理像素、`scale_factor` 未参与布局)。给出三层自适应模型、相对优先单位、anchor/stretch→flex 映射(带虚幻 `Anchors.h`/`SConstraintCanvas.cpp`/`SScaleBox.h`/`SWindow.h`/`WidgetLayoutLibrary.h` 源码证据)、DPI 核心节、autolayout flex 容器修正、flex 充分利用清单、5 条切片 + 6 条测试矩阵。 | 按 §6 推进 S2–S5;`13`/`15e`/`02`/`index` 已同步对齐本文。 |
 | 2026-07-05 | 16.S5 断点判定逻辑宽度 cutover | implemented-focused-passed-screenshot-passed | 按 R3/R4 先关闭 tier 输入的物理像素误判:`layout_tier.rs` 现在显式区分 logical/physical helper,physical helper 统一 `physical_width / scale_factor`;`compute_workbench_shell_geometry`、`window_minimums.rs`、componentized Workbench bridge 与 retained host `shell_scale_factor` 接线到 retained host window scale contract,真实 winit window 同步写入 `Window::scale_factor()`。新增三条 logical_width 回归覆盖 3840@2.0 与 1920@1.0 同档、1280@2.0 右抽屉折叠、1800@2.0 保持 regular 右抽屉,并新增窗口 scale 默认/非法值过滤回归。验证:`cargo fmt -p zircon_editor` 通过;旧 `*_for_width` API 扫描 0 命中;focused `cargo test -p zircon_editor --lib window_scale_factor_defaults_to_one_and_filters_invalid_values ...` 1/1 通过;focused `cargo test -p zircon_editor --lib logical_width ...` 3/3 通过;M3 screenshot harness `capture_m3_gui_acceptance_visual_artifacts` 1/1 通过并刷新 `docs/tests/editor` 的 640/900/1260 PNG,target 同名截图扫描无匹配。 | S2/S3/S4 的完整 `ResolutionContext`、chrome 逻辑单位上屏乘 scale、竖向 flex 化仍未关闭;继续按切片推进。 |

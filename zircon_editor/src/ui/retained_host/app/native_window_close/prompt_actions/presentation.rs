@@ -1,8 +1,8 @@
 use crate::ui::workbench::view::ViewInstanceId;
 
 use super::super::super::{
-    RetainedEditorHost, UiHostWindow,
     close_prompt::{self, ClosePromptTarget, PendingClosePrompt},
+    RetainedEditorHost, UiHostWindow,
 };
 
 impl RetainedEditorHost {

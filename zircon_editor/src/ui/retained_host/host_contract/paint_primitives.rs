@@ -9,7 +9,8 @@ mod text_markers;
 mod tests;
 
 pub(in crate::ui::retained_host::host_contract) use image::{
-    draw_rgba_image_clipped_with_atlas, draw_rgba_image_clipped_with_resource_key,
+    draw_gpu_image_clipped_with_resource_key, draw_rgba_image_clipped_with_atlas,
+    draw_rgba_image_clipped_with_resource_key, draw_shared_rgba_image_clipped_with_resource_key,
 };
 pub(in crate::ui::retained_host::host_contract) use lines::draw_separator_line;
 pub(in crate::ui::retained_host::host_contract) use shapes::{

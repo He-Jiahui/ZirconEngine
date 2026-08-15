@@ -1,4 +1,5 @@
 use super::super::super::*;
+use zircon_runtime::asset::project::ProjectPaths;
 
 fn welcome_session_after_project_close(
     mut session: EditorStartupSessionDocument,
@@ -9,7 +10,12 @@ fn welcome_session_after_project_close(
     session.open_builtin_view = None;
     session.status_message = closed_root.map_or_else(
         || "Project was already closed; restored the welcome workspace.".to_string(),
-        |root| format!("Closed project {}", root.display()),
+        |root| {
+            format!(
+                "Closed project {}",
+                ProjectPaths::display_path(root).display()
+            )
+        },
     );
     session
 }
@@ -93,6 +99,17 @@ mod tests {
         assert!(welcome.project.is_none());
         assert!(welcome.open_builtin_view.is_none());
         assert_eq!(welcome.status_message, "Closed project C:/projects/forest");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn successful_close_projects_operation_roots_to_a_display_path() {
+        let welcome = welcome_session_after_project_close(
+            EditorStartupSessionDocument::default(),
+            Some(Path::new(r"\\?\C:\projects\forest")),
+        );
+
+        assert_eq!(welcome.status_message, r"Closed project C:\projects\forest");
     }
 
     #[test]

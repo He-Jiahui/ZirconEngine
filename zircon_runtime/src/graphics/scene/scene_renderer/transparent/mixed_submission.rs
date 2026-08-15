@@ -91,8 +91,8 @@ mod tests {
     };
 
     use super::{
-        TransparentSubmissionSource, build_transparent_submission_order,
-        has_transparent_sprite_submissions,
+        build_transparent_submission_order, has_transparent_sprite_submissions,
+        TransparentSubmissionSource,
     };
 
     #[test]

@@ -14,6 +14,10 @@ use super::{
 };
 
 impl UiAssetEditorSession {
+    pub(super) fn invalidate_preview_hit_index(&mut self) {
+        self.preview_hit_index = None;
+    }
+
     pub fn select_preview_mock_property(
         &mut self,
         index: usize,

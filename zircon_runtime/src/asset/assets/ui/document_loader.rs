@@ -1,8 +1,8 @@
 use zircon_runtime_interface::ui::template::{
-    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION, UiAssetDocument, UiAssetError,
+    UiAssetDocument, UiAssetError, UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
 };
 use zircon_runtime_interface::ui::v2::{
-    UI_V2_ASSET_SCHEMA_VERSION, UiV2AssetDocument, UiV2AssetError, UiV2AssetKind,
+    UiV2AssetDocument, UiV2AssetError, UiV2AssetKind, UI_V2_ASSET_SCHEMA_VERSION,
 };
 
 pub(super) fn load_current_ui_document(input: &str) -> Result<UiAssetDocument, UiAssetError> {

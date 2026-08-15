@@ -14,6 +14,7 @@ fn model_primitive_converts_to_mesh_asset_with_builtin_attributes() {
         ],
         indices: vec![0, 1, 2],
         mesh: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
 
@@ -53,6 +54,7 @@ fn static_virtual_geometry_primitive_converts_to_mesh_asset_with_ordinal_channel
         ],
         indices: vec![0, 1, 2],
         mesh: None,
+        mesh_sdf: None,
         virtual_geometry: Some(sample_virtual_geometry()),
     };
 
@@ -103,6 +105,7 @@ fn mesh_asset_bounds_can_be_read_without_render_descriptor() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
 
@@ -130,6 +133,7 @@ fn mesh_asset_try_render_descriptor_reports_validation_errors() {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
 

@@ -123,7 +123,13 @@ pub fn scaffold_plugin(options: &NewPluginOptions<'_>) -> Result<ScaffoldReport,
         let mut created_paths = Vec::new();
         for (relative_path, contents) in package_files {
             let path = package_root.join(relative_path);
-            fs::create_dir_all(path.parent().expect("template file has a parent"))?;
+            let parent = path.parent().ok_or_else(|| {
+                ScaffoldError::new(format!(
+                    "generated template path `{}` has no parent directory",
+                    path.display()
+                ))
+            })?;
+            fs::create_dir_all(parent)?;
             fs::write(&path, contents)?;
             created_paths.push(path);
         }
@@ -179,7 +185,7 @@ fn synchronize_scaffold_manifest(
     let (_, manifest) = files
         .iter_mut()
         .find(|(path, _)| path == Path::new("plugin.toml"))
-        .expect("manifest presence checked above");
+        .ok_or_else(|| ScaffoldError::new("scaffold is missing plugin.toml"))?;
     *manifest = synchronized;
     Ok(())
 }

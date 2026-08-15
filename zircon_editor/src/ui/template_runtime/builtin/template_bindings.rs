@@ -581,6 +581,69 @@ fn build_builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
             ),
         ),
         (
+            "ConsolePaneBody/SourceAll".to_string(),
+            EditorUiBinding::new(
+                "ConsolePaneBody",
+                "SourceAll",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::editor_operation("view.console.source.all"),
+            ),
+        ),
+        (
+            "ConsolePaneBody/SourceEditor".to_string(),
+            EditorUiBinding::new(
+                "ConsolePaneBody",
+                "SourceEditor",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::editor_operation("view.console.source.editor"),
+            ),
+        ),
+        (
+            "ConsolePaneBody/SourceRuntime".to_string(),
+            EditorUiBinding::new(
+                "ConsolePaneBody",
+                "SourceRuntime",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::editor_operation("view.console.source.runtime"),
+            ),
+        ),
+        (
+            "ConsolePaneBody/SourcePlay".to_string(),
+            EditorUiBinding::new(
+                "ConsolePaneBody",
+                "SourcePlay",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::editor_operation("view.console.source.play"),
+            ),
+        ),
+        (
+            "ConsolePaneBody/SourcePlugin".to_string(),
+            EditorUiBinding::new(
+                "ConsolePaneBody",
+                "SourcePlugin",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::editor_operation("view.console.source.plugin"),
+            ),
+        ),
+        (
+            "ConsolePaneBody/SourceImport".to_string(),
+            EditorUiBinding::new(
+                "ConsolePaneBody",
+                "SourceImport",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::editor_operation("view.console.source.import"),
+            ),
+        ),
+        (
+            "ConsolePaneBody/SourceScriptBuild".to_string(),
+            EditorUiBinding::new(
+                "ConsolePaneBody",
+                "SourceScriptBuild",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::editor_operation("view.console.source.script_build"),
+            ),
+        ),
+        (
             "InspectorPaneBody/ApplyDraft".to_string(),
             EditorUiBinding::new(
                 "InspectorPaneBody",

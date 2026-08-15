@@ -103,6 +103,27 @@ pub struct EditorJobLimits {
 }
 
 impl EditorJobLimits {
+    pub(crate) fn resolved(
+        worker_parallelism: usize,
+        configured_limits: impl IntoIterator<Item = (JobCategory, usize)>,
+    ) -> Self {
+        let worker_limit = worker_parallelism.max(1);
+        let mut limits = BTreeMap::new();
+        for category in JobCategory::ALL {
+            limits.insert(
+                category,
+                user_configurable_default_limit(category).unwrap_or(worker_limit),
+            );
+        }
+        for (category, limit) in configured_limits {
+            limits.insert(category, limit.max(1));
+        }
+        Self {
+            limits,
+            admission: EditorJobAdmissionLimits::default(),
+        }
+    }
+
     pub fn with_limit(mut self, category: JobCategory, limit: usize) -> Self {
         self.limits.insert(category, limit.max(1));
         self
@@ -117,17 +138,7 @@ impl EditorJobLimits {
         self.limits
             .get(&category)
             .copied()
-            .unwrap_or_else(|| static_default_limit(category))
-    }
-
-    pub(crate) fn with_runtime_defaults(mut self, worker_parallelism: usize) -> Self {
-        let worker_limit = worker_parallelism.max(1);
-        for category in JobCategory::ALL {
-            self.limits
-                .entry(category)
-                .or_insert_with(|| runtime_default_limit(category, worker_limit));
-        }
-        self
+            .expect("resolved editor job limits contain every category")
     }
 
     pub(super) const fn admission_limits(&self) -> EditorJobAdmissionLimits {
@@ -137,35 +148,17 @@ impl EditorJobLimits {
 
 impl Default for EditorJobLimits {
     fn default() -> Self {
-        Self {
-            limits: BTreeMap::from([
-                (JobCategory::Thumbnail, DEFAULT_THUMBNAIL_LIMIT),
-                (JobCategory::Export, DEFAULT_EXPORT_LIMIT),
-                (JobCategory::InteractiveSave, DEFAULT_INTERACTIVE_SAVE_LIMIT),
-            ]),
-            admission: EditorJobAdmissionLimits::default(),
-        }
+        Self::resolved(1, [])
     }
 }
 
-const fn static_default_limit(category: JobCategory) -> usize {
+pub(crate) const fn user_configurable_default_limit(category: JobCategory) -> Option<usize> {
     match category {
-        JobCategory::Thumbnail => DEFAULT_THUMBNAIL_LIMIT,
-        JobCategory::Export | JobCategory::Play => DEFAULT_EXPORT_LIMIT,
-        JobCategory::InteractiveSave => DEFAULT_INTERACTIVE_SAVE_LIMIT,
-        JobCategory::Import | JobCategory::Compile | JobCategory::Index | JobCategory::Misc => 1,
-    }
-}
-
-const fn runtime_default_limit(category: JobCategory, worker_limit: usize) -> usize {
-    match category {
-        JobCategory::Thumbnail => DEFAULT_THUMBNAIL_LIMIT,
-        JobCategory::Export => DEFAULT_EXPORT_LIMIT,
-        JobCategory::InteractiveSave => DEFAULT_INTERACTIVE_SAVE_LIMIT,
-        JobCategory::Play => DEFAULT_PLAY_LIMIT,
-        JobCategory::Import | JobCategory::Compile | JobCategory::Index | JobCategory::Misc => {
-            worker_limit
-        }
+        JobCategory::Thumbnail => Some(DEFAULT_THUMBNAIL_LIMIT),
+        JobCategory::Export => Some(DEFAULT_EXPORT_LIMIT),
+        JobCategory::InteractiveSave => Some(DEFAULT_INTERACTIVE_SAVE_LIMIT),
+        JobCategory::Play => Some(DEFAULT_PLAY_LIMIT),
+        JobCategory::Import | JobCategory::Compile | JobCategory::Index | JobCategory::Misc => None,
     }
 }
 
@@ -175,7 +168,7 @@ mod tests {
 
     #[test]
     fn runtime_defaults_bound_every_job_category() {
-        let limits = EditorJobLimits::default().with_runtime_defaults(4);
+        let limits = EditorJobLimits::resolved(4, []);
 
         for category in JobCategory::ALL {
             assert!(
@@ -187,11 +180,23 @@ mod tests {
 
     #[test]
     fn interactive_save_has_an_explicit_finite_default() {
-        let limits = EditorJobLimits::default().with_runtime_defaults(4);
+        let limits = EditorJobLimits::resolved(4, []);
 
         assert_eq!(
             limits.limit(JobCategory::InteractiveSave),
             DEFAULT_INTERACTIVE_SAVE_LIMIT
+        );
+    }
+
+    #[test]
+    fn play_default_does_not_alias_the_export_default_path() {
+        assert_eq!(
+            user_configurable_default_limit(JobCategory::Play),
+            Some(DEFAULT_PLAY_LIMIT)
+        );
+        assert_eq!(
+            user_configurable_default_limit(JobCategory::Export),
+            Some(DEFAULT_EXPORT_LIMIT)
         );
     }
 }

@@ -1,8 +1,8 @@
 use winit::dpi::PhysicalPosition;
 use winit::event::MouseScrollDelta;
 use zircon_runtime_interface::ui::surface::UiPointerEventKind;
-use zircon_runtime_interface::ui::window::UiWindowInputPumpEvent;
 
+use super::super::platform_input::PlatformInputTranslation;
 use super::super::platform_input::{platform_pointer_input, platform_pointer_move_point};
 use super::super::UiHostWindowEventLoop;
 use crate::ui::retained_host::host_contract::native_pointer::{
@@ -13,11 +13,11 @@ use crate::ui::retained_host::host_contract::native_pointer::{
 impl UiHostWindowEventLoop {
     pub(super) fn handle_pointer_moved(
         &mut self,
-        platform_event: Option<UiWindowInputPumpEvent>,
+        platform_event: PlatformInputTranslation,
         fallback_position: PhysicalPosition<f64>,
     ) {
-        self.begin_input_latency_sample();
-        let point = platform_pointer_move_point(platform_event).unwrap_or_else(|| {
+        self.begin_input_outcome(platform_event.sequence);
+        let point = platform_pointer_move_point(platform_event.event).unwrap_or_else(|| {
             zircon_runtime_interface::ui::layout::UiPoint::new(
                 fallback_position.x as f32,
                 fallback_position.y as f32,
@@ -29,20 +29,20 @@ impl UiHostWindowEventLoop {
 
     pub(super) fn handle_pointer_button(
         &mut self,
-        platform_event: Option<UiWindowInputPumpEvent>,
+        platform_event: PlatformInputTranslation,
         fallback_position: PhysicalPosition<f64>,
     ) {
-        self.begin_input_latency_sample();
-        let Some(pointer) = platform_pointer_input(platform_event) else {
-            self.cancel_input_latency_sample();
+        self.begin_input_outcome(platform_event.sequence);
+        let Some(pointer) = platform_pointer_input(platform_event.event) else {
+            self.reject_input_outcome();
             return;
         };
         if pointer.metadata.pointer_source.is_touch_like() {
-            self.cancel_input_latency_sample();
+            self.reject_input_outcome();
             return;
         }
         let Some(state) = pointer_button_state(pointer.event.kind) else {
-            self.cancel_input_latency_sample();
+            self.reject_input_outcome();
             return;
         };
         let point = pointer.event.point;
@@ -71,13 +71,13 @@ impl UiHostWindowEventLoop {
 
     pub(super) fn handle_mouse_wheel(
         &mut self,
-        platform_event: Option<UiWindowInputPumpEvent>,
+        platform_event: PlatformInputTranslation,
         _fallback_delta: MouseScrollDelta,
     ) {
-        self.begin_input_latency_sample();
-        if let Some(pointer) = platform_pointer_input(platform_event) {
+        self.begin_input_outcome(platform_event.sequence);
+        if let Some(pointer) = platform_pointer_input(platform_event.event) {
             if !matches!(pointer.event.kind, UiPointerEventKind::Scroll) {
-                self.cancel_input_latency_sample();
+                self.reject_input_outcome();
                 return;
             }
             let (x, y) = self.last_pointer_position.unwrap_or((0.0, 0.0));
@@ -88,7 +88,7 @@ impl UiHostWindowEventLoop {
                 pointer.event.scroll_delta,
             ));
         } else {
-            self.cancel_input_latency_sample();
+            self.reject_input_outcome();
         }
     }
 }

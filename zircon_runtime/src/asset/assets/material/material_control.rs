@@ -11,6 +11,8 @@ const RENDER_QUEUE_PROPERTY: &str = "render_queue";
 const MATERIAL_QUEUE_PROPERTY: &str = "material_queue";
 const DEPTH_BIAS_PROPERTY: &str = "depth_bias";
 const TAA_REACTIVE_MASK_STRENGTH_PROPERTY: &str = "taa_reactive_mask_strength";
+/// Canonical material property used for glTF occlusion texture strength.
+pub const STANDARD_MATERIAL_OCCLUSION_STRENGTH_PROPERTY: &str = "occlusion_strength";
 const SEPARATE_TRANSLUCENCY_PROPERTY: &str = "separate_translucency";
 const SUBSURFACE_PROFILE_PROPERTY: &str = "subsurface_profile";
 const SUBSURFACE_SCATTER_RADIUS_PROPERTY: &str = "subsurface_scatter_radius";
@@ -51,6 +53,11 @@ pub(super) fn taa_reactive_mask_strength(values: &BTreeMap<String, toml::Value>)
         .filter(|value| value.is_finite() && (0.0..=1.0).contains(value))
 }
 
+pub(super) fn occlusion_strength(values: &BTreeMap<String, toml::Value>) -> Option<f32> {
+    override_f32(values, STANDARD_MATERIAL_OCCLUSION_STRENGTH_PROPERTY)
+        .filter(|value| value.is_finite() && (0.0..=1.0).contains(value))
+}
+
 pub(super) fn separate_translucency(values: &BTreeMap<String, toml::Value>) -> Option<bool> {
     override_bool(values, SEPARATE_TRANSLUCENCY_PROPERTY)
 }
@@ -88,6 +95,10 @@ pub(super) fn validation_errors(
     errors.extend(normalized_f32_override_validation_errors(
         values,
         TAA_REACTIVE_MASK_STRENGTH_PROPERTY,
+    ));
+    errors.extend(normalized_f32_override_validation_errors(
+        values,
+        STANDARD_MATERIAL_OCCLUSION_STRENGTH_PROPERTY,
     ));
     errors.extend(bool_override_validation_errors(
         values,
@@ -153,6 +164,13 @@ pub(super) fn sync_material_control_overrides(
         taa_reactive_mask_strength(source_values),
         0.0,
     );
+    sync_f32_override(
+        overrides,
+        source_values,
+        STANDARD_MATERIAL_OCCLUSION_STRENGTH_PROPERTY,
+        occlusion_strength(source_values),
+        1.0,
+    );
     sync_default_false_bool_override(
         overrides,
         source_values,
@@ -171,6 +189,7 @@ pub(super) fn is_material_owned_property(name: &str) -> bool {
             | MATERIAL_QUEUE_PROPERTY
             | DEPTH_BIAS_PROPERTY
             | TAA_REACTIVE_MASK_STRENGTH_PROPERTY
+            | STANDARD_MATERIAL_OCCLUSION_STRENGTH_PROPERTY
             | SEPARATE_TRANSLUCENCY_PROPERTY
             | SUBSURFACE_PROFILE_PROPERTY
             | SUBSURFACE_SCATTER_RADIUS_PROPERTY

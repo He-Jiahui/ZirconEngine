@@ -4,15 +4,22 @@ use crate::ui::workbench::menu_bar::{
     workbench_menu_slot_width_from_label_width, WORKBENCH_MENU_SLOT_FONT_SIZE,
 };
 
+#[derive(Clone)]
+struct MenuChromeCompositionGeneration {
+    menus: ModelRc<super::super::HostMenuChromeMenuData>,
+}
+
+impl PartialEq for MenuChromeCompositionGeneration {
+    fn eq(&self, other: &Self) -> bool {
+        self.menus.shares_values_with(&other.menus)
+    }
+}
+
 pub(super) fn menu_chrome_nodes(
     menus: &ModelRc<super::super::HostMenuChromeMenuData>,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    if FAST_PROCEDURAL_CHROME_NODES {
-        return fallback_menu_chrome_nodes(menus, width, height);
-    }
-
     let mut text_overrides = BTreeMap::new();
     for row in 0..menus.row_count() {
         if let Some(menu) = menus.row_data(row) {
@@ -20,18 +27,30 @@ pub(super) fn menu_chrome_nodes(
         }
     }
 
-    let nodes = template_nodes(
+    let Ok(projection) = build_view_template_node_projection(
         "host.menu.chrome",
         MENU_CHROME_ASSET,
-        width,
-        height,
+        &[],
+        UiSize::new(width.max(0.0), height.max(0.0)),
         &text_overrides,
-        &[SlotFilter::new(MENU_SLOT_PREFIX, MENU_SLOT_COUNT)],
+    ) else {
+        return fallback_menu_chrome_nodes(menus, width, height);
+    };
+    let generation = MenuChromeCompositionGeneration {
+        menus: menus.clone(),
+    };
+    let nodes = compose_view_template_node_model(
+        "host.menu.chrome.composition",
+        projection,
+        &generation,
+        |nodes| {
+            *nodes = expand_menu_chrome_slot_nodes(std::mem::take(nodes), menus);
+        },
     );
     if nodes.row_count() == 0 || control_frame(&nodes, "MenuSlot0").width <= 0.0 {
         return fallback_menu_chrome_nodes(menus, width, height);
     }
-    model_rc(expand_menu_chrome_slot_nodes(model_nodes(&nodes), menus))
+    nodes
 }
 
 pub(super) fn menu_control_frames(
@@ -102,7 +121,7 @@ fn expand_menu_chrome_slot_nodes(
 
     for node in raw_nodes {
         if let Some(row) = slot_index(node.control_id.as_str(), MENU_SLOT_PREFIX) {
-            slot_templates.insert(row, node);
+            retain_dominant_control_template(&mut slot_templates, row, node);
         } else {
             output_nodes.push(node);
         }
@@ -138,12 +157,6 @@ fn expand_menu_chrome_slot_nodes(
     output_nodes
 }
 
-fn model_nodes(nodes: &ModelRc<ViewTemplateNodeData>) -> Vec<ViewTemplateNodeData> {
-    (0..nodes.row_count())
-        .filter_map(|row| nodes.row_data(row))
-        .collect()
-}
-
 fn menu_slot_width(label: &str) -> f32 {
     let label_width = measure_runtime_text_width(label, WORKBENCH_MENU_SLOT_FONT_SIZE);
     workbench_menu_slot_width_from_label_width(label_width)
@@ -177,16 +190,14 @@ pub(super) fn menu_popup_nodes(
         }
     }
 
-    model_rc(expand_menu_popup_item_nodes(
-        raw_template_nodes(
-            "host.menu.popup",
-            MENU_POPUP_ASSET,
-            width,
-            height,
-            &text_overrides,
-        ),
-        items,
-    ))
+    let raw_nodes = raw_template_nodes(
+        "host.menu.popup",
+        MENU_POPUP_ASSET,
+        width,
+        height,
+        &text_overrides,
+    );
+    model_rc(expand_menu_popup_item_nodes(model_nodes(&raw_nodes), items))
 }
 
 #[cfg(test)]
@@ -201,14 +212,14 @@ fn expand_menu_popup_item_nodes(
 
     for node in raw_nodes {
         if let Some(row) = slot_index(node.control_id.as_str(), MENU_POPUP_ITEM_ROW_PREFIX) {
-            row_templates.insert(row, node);
+            retain_dominant_control_template(&mut row_templates, row, node);
         } else if let Some(row) = slot_index(node.control_id.as_str(), MENU_POPUP_ITEM_LABEL_PREFIX)
         {
-            label_templates.insert(row, node);
+            retain_dominant_control_template(&mut label_templates, row, node);
         } else if let Some(row) =
             slot_index(node.control_id.as_str(), MENU_POPUP_ITEM_SHORTCUT_PREFIX)
         {
-            shortcut_templates.insert(row, node);
+            retain_dominant_control_template(&mut shortcut_templates, row, node);
         } else {
             output_nodes.push(node);
         }

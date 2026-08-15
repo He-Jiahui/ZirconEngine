@@ -8,7 +8,7 @@ use crate::render_graph::{
 use crate::rhi::{BufferDesc, TextureDesc};
 
 use super::{
-    TransientResourcePool, render_graph_execution_resources::RenderGraphExecutionResources,
+    render_graph_execution_resources::RenderGraphExecutionResources, TransientResourcePool,
 };
 
 pub(super) fn materialize_transient_texture_slots(
@@ -42,11 +42,8 @@ pub(super) fn materialize_transient_texture_slots(
     for (slot_key, lifetimes) in slot_lifetimes {
         if let Some(desc) = compatible_texture_slot_desc(slot_key, &lifetimes)? {
             let backing_name = transient_texture_backing_name(slot_key);
-            resources.insert_owned_texture_backing(
-                backing_name.clone(),
-                pool.acquire_texture(device, &desc),
-                desc,
-            );
+            let (texture, identity) = pool.acquire_texture(device, &desc);
+            resources.insert_owned_texture_backing(backing_name.clone(), texture, identity, desc);
             for lifetime in lifetimes {
                 resources.bind_owned_texture_view(lifetime.name.clone(), &backing_name)?;
             }
@@ -58,9 +55,11 @@ pub(super) fn materialize_transient_texture_slots(
                         lifetime.name
                     ));
                 };
+                let (texture, identity) = pool.acquire_texture(device, desc);
                 resources.insert_owned_texture(
                     lifetime.name.clone(),
-                    pool.acquire_texture(device, desc),
+                    texture,
+                    identity,
                     desc.clone(),
                 );
             }

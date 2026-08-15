@@ -3,7 +3,7 @@ use std::sync::Arc;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::core::framework::text::TextDirection;
-use crate::text::rich::parse_rich_text;
+use crate::text::rich::parser_registry::parse_rich_text;
 use crate::text::shaping::{DirectTextShapeRunProvider, TextShapeRunProvider};
 use crate::text::{InlineBaseline, LayoutItem, RichTextFormat};
 use crate::text::{ShapedGlyphRun, TextRange, TextStyle};
@@ -13,9 +13,9 @@ use super::*;
 #[test]
 fn text_rich_inline_image_reserves_metric_in_layout() {
     let parsed = parse_rich_text(
-            "before<img src=\"res://icons/star.png\" width=\"16\" height=\"24\" baseline=\"baseline\">after",
-            RichTextFormat::Html,
-        );
+        "before<img src=\"res://icons/star.png\" width=\"16\" height=\"24\" baseline=\"baseline\">after",
+        RichTextFormat::Html,
+    );
     let style = TextStyle {
         font_size: 10.0,
         line_height: 12.0,

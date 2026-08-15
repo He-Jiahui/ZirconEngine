@@ -5,7 +5,26 @@ use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::super::collect_manifests::MAX_DISCOVERY_DEPTH;
+use super::super::discovery_refresh::{
+    NativePluginDiscoveryManifestAction, NativePluginDiscoveryRefreshWork,
+};
 use super::super::NativePluginLoader;
+
+#[test]
+fn loader_scoped_refresh_work_contract_is_visible_to_discovery_authority_sibling() {
+    let root_scan = NativePluginDiscoveryRefreshWork::root_scan();
+
+    assert!(matches!(
+        root_scan,
+        NativePluginDiscoveryRefreshWork::FullRootScan
+    ));
+    assert!(root_scan.manifest_actions().is_none());
+    let action = NativePluginDiscoveryManifestAction::Refresh;
+    assert!(matches!(
+        action,
+        NativePluginDiscoveryManifestAction::Refresh
+    ));
+}
 
 #[test]
 fn cold_discovery_publishes_the_authority_snapshot() {
@@ -176,6 +195,135 @@ fn manifest_notifications_refresh_the_same_authority_generation() {
         NativePluginLoader.discovery_generation(root.path()),
         Some(first_generation + 2)
     );
+}
+
+#[test]
+fn manifest_refresh_reads_only_the_changed_manifest_in_a_large_tree() {
+    const PACKAGE_COUNT: usize = 1_024;
+
+    let root = TempDiscoveryRoot::new("single-manifest-refresh");
+    let mut changed_manifest = None;
+    for index in 0..PACKAGE_COUNT {
+        let manifest =
+            root.write_manifest(&format!("package-{index:04}"), &format!("plugin{index:04}"));
+        if index == PACKAGE_COUNT - 1 {
+            changed_manifest = Some(manifest);
+        }
+    }
+    let changed_manifest = changed_manifest.expect("changed manifest");
+
+    let first = NativePluginLoader.discover(root.path());
+    assert_eq!(first.discovered().len(), PACKAGE_COUNT);
+    let first_generation = NativePluginLoader
+        .discovery_generation(root.path())
+        .expect("first generation");
+
+    fs::write(&changed_manifest, plugin_manifest("storm")).expect("replace one manifest");
+    let refreshed = NativePluginLoader.refresh_discovery_manifest(root.path(), &changed_manifest);
+    let metrics = super::authority::discovery_authority()
+        .metrics(root.path())
+        .expect("incremental refresh metrics");
+
+    assert_eq!(plugin_ids(&refreshed).len(), PACKAGE_COUNT);
+    assert!(plugin_ids(&refreshed).contains(&"storm"));
+    assert_eq!(
+        NativePluginLoader.discovery_generation(root.path()),
+        Some(first_generation + 1)
+    );
+    assert_eq!(metrics.enumerated_directories, 0);
+    assert_eq!(metrics.inspected_entries, 0);
+    assert_eq!(metrics.manifests_read, 1);
+    assert_eq!(metrics.manifests_parsed, 1);
+}
+
+#[test]
+fn removal_notification_updates_only_the_immutable_manifest_index() {
+    let root = TempDiscoveryRoot::new("incremental-removal");
+    let weather = root.write_manifest("weather", "weather");
+    root.write_manifest("climate", "climate");
+    let first = NativePluginLoader.discover(root.path());
+    assert_eq!(plugin_ids(&first), vec!["climate", "weather"]);
+
+    let removed_package = weather.parent().expect("weather package root");
+    fs::remove_dir_all(removed_package).expect("remove weather package");
+    let refreshed = NativePluginLoader.remove_discovered_path(root.path(), removed_package);
+    let metrics = super::authority::discovery_authority()
+        .metrics(root.path())
+        .expect("incremental removal metrics");
+
+    assert_eq!(plugin_ids(&refreshed), vec!["climate"]);
+    assert_eq!(metrics.enumerated_directories, 0);
+    assert_eq!(metrics.inspected_entries, 0);
+    assert_eq!(metrics.manifests_read, 0);
+    assert_eq!(metrics.manifests_parsed, 0);
+}
+
+#[test]
+fn lexical_root_alias_maps_notification_paths_to_the_canonical_manifest_index() {
+    let root = TempDiscoveryRoot::new("incremental-alias-notification");
+    let weather = root.write_manifest("weather", "weather");
+    let root_name = root.path().file_name().expect("temporary root name");
+    let alias = root.path().join("..").join(root_name);
+    let first = NativePluginLoader.discover(&alias);
+    assert_eq!(plugin_ids(&first), vec!["weather"]);
+
+    fs::write(&weather, plugin_manifest("storm")).expect("replace weather manifest");
+    let alias_notification = alias.join("weather").join("plugin.toml");
+    let refreshed = NativePluginLoader.refresh_discovery_manifest(&alias, &alias_notification);
+    let metrics = super::authority::discovery_authority()
+        .metrics(&alias)
+        .expect("lexical alias incremental metrics");
+
+    assert_eq!(plugin_ids(&refreshed), vec!["storm"]);
+    assert_eq!(metrics.enumerated_directories, 0);
+    assert_eq!(metrics.inspected_entries, 0);
+    assert_eq!(metrics.manifests_read, 1);
+    assert_eq!(metrics.manifests_parsed, 1);
+}
+
+#[test]
+fn failed_incremental_parse_keeps_the_last_good_snapshot() {
+    let root = TempDiscoveryRoot::new("incremental-parse-failure");
+    let weather = root.write_manifest("weather", "weather");
+    let first = NativePluginLoader.discover(root.path());
+    let first_generation = NativePluginLoader
+        .discovery_generation(root.path())
+        .expect("first generation");
+    assert_eq!(plugin_ids(&first), vec!["weather"]);
+
+    fs::write(&weather, "id = [").expect("write invalid manifest");
+    let refreshed = NativePluginLoader.refresh_discovery_manifest(root.path(), &weather);
+
+    assert_eq!(plugin_ids(&refreshed), vec!["weather"]);
+    assert_eq!(
+        NativePluginLoader.discovery_generation(root.path()),
+        Some(first_generation),
+        "a failed path delta must retain the last published generation"
+    );
+    assert!(refreshed.diagnostics().iter().any(|diagnostic| {
+        diagnostic.contains("failed after the published snapshot")
+            && diagnostic.contains("failed to parse native plugin manifest")
+    }));
+}
+
+#[test]
+fn notification_outside_the_root_falls_back_to_a_bounded_full_scan() {
+    let root = TempDiscoveryRoot::new("outside-notification");
+    root.write_manifest("weather", "weather");
+    let first = NativePluginLoader.discover(root.path());
+    assert_eq!(plugin_ids(&first), vec!["weather"]);
+    let outside = TempDiscoveryRoot::new("outside-notification-path");
+
+    let refreshed = NativePluginLoader.refresh_discovery_manifest(root.path(), outside.path());
+    let metrics = super::authority::discovery_authority()
+        .metrics(root.path())
+        .expect("fallback scan metrics");
+
+    assert_eq!(plugin_ids(&refreshed), vec!["weather"]);
+    assert!(metrics.enumerated_directories > 0);
+    assert!(metrics.inspected_entries > 0);
+    assert_eq!(metrics.manifests_read, 1);
+    assert_eq!(metrics.manifests_parsed, 1);
 }
 
 #[test]

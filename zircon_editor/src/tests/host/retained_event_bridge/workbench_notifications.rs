@@ -1,7 +1,7 @@
 use crate::core::editor_event::{EditorAssetEvent, EditorEvent, EditorEventEffect, MenuAction};
 use crate::core::notifications::ToastSeverity;
+use crate::ui::retained_host::event_bridge::{apply_record_effects, UiHostEventEffects};
 use crate::ui::retained_host::HostInvalidationMask;
-use crate::ui::retained_host::event_bridge::{UiHostEventEffects, apply_record_effects};
 
 use super::support::record_with_event_and_effects;
 
@@ -17,11 +17,9 @@ fn save_and_import_records_queue_typed_toasts_for_retained_host() {
     );
 
     assert!(effects.presentation_dirty);
-    assert!(
-        effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PRESENTATION_DATA)
-    );
+    assert!(effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PRESENTATION_DATA));
     assert_eq!(effects.toast_notifications.len(), 1);
     let save_notification = &effects.toast_notifications[0];
     assert_eq!(

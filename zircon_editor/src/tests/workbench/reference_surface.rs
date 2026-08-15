@@ -7,13 +7,149 @@ use crate::ui::workbench::reference::{
     EditorWorkbenchTemplateControlIds,
 };
 use zircon_runtime::ui::dispatch::UiPointerDispatcher;
+use zircon_runtime::ui::surface::UiPropertyMutationRequest;
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
+    component::UiValue,
     dispatch::UiPointerEvent,
     event_ui::UiNodeId,
     layout::{UiFrame, UiSize},
     surface::{UiPointerButton, UiPointerEventKind, UiRenderCommandKind},
 };
+
+#[test]
+fn workbench_template_surface_patches_single_interaction_node_and_matches_full_projection() {
+    let mut runtime = EditorUiHostRuntime::default();
+    runtime.load_builtin_host_templates().unwrap();
+    let mut template = build_editor_workbench_template_surface(
+        &runtime,
+        EditorWorkbenchReferenceMetrics::default(),
+    )
+    .expect("template surface");
+    let primary_id = template
+        .control_node_id(EditorWorkbenchTemplateControlIds::PRIMARY_BUTTON)
+        .expect("primary button node");
+
+    template
+        .surface
+        .mutate_property(UiPropertyMutationRequest::new(
+            primary_id,
+            "hovered",
+            UiValue::Bool(true),
+        ))
+        .expect("hover mutation");
+    template
+        .refresh_after_state_change(&runtime)
+        .expect("incremental projection refresh");
+
+    assert_eq!(template.last_host_projection_patch_count(), 1);
+    assert_eq!(template.host_projection_full_rebuild_count(), 1);
+    assert_eq!(
+        template.host_projection,
+        template
+            .full_host_projection_for_test(&runtime)
+            .expect("full projection baseline")
+    );
+}
+
+#[test]
+fn workbench_template_surface_patches_runtime_focus_visibility_and_matches_full_projection() {
+    let mut runtime = EditorUiHostRuntime::default();
+    runtime.load_builtin_host_templates().unwrap();
+    let mut template = build_editor_workbench_template_surface(
+        &runtime,
+        EditorWorkbenchReferenceMetrics::default(),
+    )
+    .expect("template surface");
+    let primary_id = template
+        .control_node_id(EditorWorkbenchTemplateControlIds::PRIMARY_BUTTON)
+        .expect("primary button node");
+
+    template
+        .surface
+        .focus_node(primary_id)
+        .expect("focus mutation");
+    template
+        .refresh_after_state_change(&runtime)
+        .expect("incremental focus projection refresh");
+
+    let primary = template
+        .host_projection_node_for_control(EditorWorkbenchTemplateControlIds::PRIMARY_BUTTON)
+        .expect("primary button host node");
+    assert!(primary.focused);
+    assert!(!primary.focus_visible);
+    assert!(primary.focus_visible_known);
+    assert_eq!(template.last_host_projection_patch_count(), 1);
+    assert_eq!(template.host_projection_full_rebuild_count(), 1);
+    assert_eq!(
+        template.host_projection,
+        template
+            .full_host_projection_for_test(&runtime)
+            .expect("full projection baseline")
+    );
+}
+
+#[test]
+fn workbench_template_surface_patches_resize_geometry_without_rebuilding_node_semantics() {
+    let mut runtime = EditorUiHostRuntime::default();
+    runtime.load_builtin_host_templates().unwrap();
+    let metrics = EditorWorkbenchReferenceMetrics::default();
+    let mut template =
+        build_editor_workbench_template_surface(&runtime, metrics).expect("template surface");
+
+    template
+        .recompute_layout(
+            &runtime,
+            UiSize::new(metrics.target_width - 80.0, metrics.target_height - 40.0),
+        )
+        .expect("resize projection refresh");
+
+    assert_eq!(template.last_host_projection_semantic_patch_count(), 0);
+    assert!(template.last_host_projection_geometry_patch_count() > 1_000);
+    assert_eq!(template.host_projection_full_rebuild_count(), 1);
+    assert_eq!(
+        template.host_projection,
+        template
+            .full_host_projection_for_test(&runtime)
+            .expect("full projection baseline")
+    );
+}
+
+#[test]
+fn workbench_template_surface_falls_back_when_projection_index_is_invalid() {
+    let mut runtime = EditorUiHostRuntime::default();
+    runtime.load_builtin_host_templates().unwrap();
+    let mut template = build_editor_workbench_template_surface(
+        &runtime,
+        EditorWorkbenchReferenceMetrics::default(),
+    )
+    .expect("template surface");
+    let primary_id = template
+        .control_node_id(EditorWorkbenchTemplateControlIds::PRIMARY_BUTTON)
+        .expect("primary button node");
+    template.clear_host_projection_index_for_test();
+    template
+        .surface
+        .mutate_property(UiPropertyMutationRequest::new(
+            primary_id,
+            "hovered",
+            UiValue::Bool(true),
+        ))
+        .expect("hover mutation");
+
+    template
+        .refresh_after_state_change(&runtime)
+        .expect("fallback projection refresh");
+
+    assert_eq!(template.last_host_projection_patch_count(), 0);
+    assert_eq!(template.host_projection_full_rebuild_count(), 2);
+    assert_eq!(
+        template.host_projection,
+        template
+            .full_host_projection_for_test(&runtime)
+            .expect("full projection baseline")
+    );
+}
 
 #[test]
 fn reference_workbench_surface_lays_out_target_editor_chrome() {

@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use zircon_runtime_interface::ui::design_tokens::{EditorControlTokens, EditorDensityTokens};
 
 use super::*;
@@ -9,43 +11,149 @@ struct SideDockTabSlot {
     shows_label: bool,
 }
 
+const SIDE_DOCK_HEADER_CACHE_CAPACITY: usize = 12;
+
+struct SideDockHeaderProjectionCacheEntry {
+    tabs: ModelRc<TabData>,
+    width_bits: u32,
+    height_bits: u32,
+    nodes: ModelRc<ViewTemplateNodeData>,
+}
+
+#[derive(Default)]
+struct SideDockHeaderProjectionCache {
+    entries: Vec<SideDockHeaderProjectionCacheEntry>,
+    #[cfg(test)]
+    builds: usize,
+}
+
+thread_local! {
+    static SIDE_DOCK_HEADER_PROJECTION_CACHE: RefCell<SideDockHeaderProjectionCache> =
+        RefCell::new(SideDockHeaderProjectionCache::default());
+}
+
 pub(super) fn side_dock_header_nodes(
     tabs: &ModelRc<TabData>,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    let nodes = fallback_dock_header_nodes(tabs, &"".into(), width, height);
-    let slots = side_dock_tab_slots(tabs, width);
+    let width_bits = width.to_bits();
+    let height_bits = height.to_bits();
+    SIDE_DOCK_HEADER_PROJECTION_CACHE.with(|cache| {
+        let mut cache = cache.borrow_mut();
+        if let Some(entry) = cache.entries.iter().find(|entry| {
+            entry.width_bits == width_bits
+                && entry.height_bits == height_bits
+                && entry.tabs.shares_values_with(tabs)
+        }) {
+            return entry.nodes.clone();
+        }
 
-    model_rc(
-        (0..nodes.row_count())
-            .filter_map(|row| nodes.row_data(row))
-            .filter_map(|mut node| {
-                if let Some(index) = control_slot_index(node.control_id.as_str(), DOCK_TAB_PREFIX) {
-                    let slot = slots.get(index).copied().unwrap_or_default();
-                    if slot.width <= f32::EPSILON {
-                        return None;
-                    }
-                    node.frame.x = slot.x;
-                    node.frame.width = slot.width;
-                    if !slot.shows_label {
-                        node.text = SharedString::default();
-                    }
-                    return Some(node);
-                }
-                if let Some(index) =
-                    control_slot_index(node.control_id.as_str(), DOCK_TAB_CLOSE_PREFIX)
-                {
-                    let slot = slots.get(index).copied().unwrap_or_default();
-                    if slot.width <= f32::EPSILON || !slot.shows_label {
-                        return None;
-                    }
-                    node.frame.x = document_tab_close_x(slot.x, slot.width);
-                }
-                Some(node)
+        let nodes = build_side_dock_header_nodes(tabs, width, height);
+        if cache.entries.len() == SIDE_DOCK_HEADER_CACHE_CAPACITY {
+            cache.entries.remove(0);
+        }
+        cache.entries.push(SideDockHeaderProjectionCacheEntry {
+            tabs: tabs.clone(),
+            width_bits,
+            height_bits,
+            nodes: nodes.clone(),
+        });
+        #[cfg(test)]
+        {
+            cache.builds += 1;
+        }
+        nodes
+    })
+}
+
+fn build_side_dock_header_nodes(
+    tabs: &ModelRc<TabData>,
+    width: f32,
+    height: f32,
+) -> ModelRc<ViewTemplateNodeData> {
+    let header_height = height.max(DOCK_HEADER_HEIGHT_PX);
+    let slots = side_dock_tab_slots(tabs, width);
+    let close_count = (0..tabs.row_count())
+        .filter(|row| {
+            tabs.row_data(*row).is_some_and(|tab| {
+                tab.closeable && slots.get(*row).is_some_and(|slot| slot.shows_label)
             })
-            .collect(),
-    )
+        })
+        .count();
+    let mut nodes = Vec::with_capacity(tabs.row_count() + close_count + 1);
+    nodes.push(ViewTemplateNodeData {
+        node_id: "FallbackSideDockHeaderBar".into(),
+        control_id: DOCK_HEADER_BAR_CONTROL_ID.into(),
+        role: "Panel".into(),
+        surface_variant: "panel".into(),
+        frame: ViewTemplateFrameData {
+            x: 0.0,
+            y: 0.0,
+            width: width.max(1.0),
+            height: header_height,
+        },
+        ..ViewTemplateNodeData::default()
+    });
+
+    for row in 0..tabs.row_count() {
+        let Some(tab) = tabs.row_data(row) else {
+            continue;
+        };
+        let slot = slots.get(row).copied().unwrap_or_default();
+        if slot.width <= f32::EPSILON {
+            continue;
+        }
+        let text_tone = if tab.active { "default" } else { "subtle" };
+        let font_weight = if tab.active { 600 } else { 400 };
+        let mut tab_node = ViewTemplateNodeData {
+            node_id: format!("FallbackSideDockTab{row}").into(),
+            control_id: format!("{DOCK_TAB_PREFIX}{row}").into(),
+            role: "Button".into(),
+            text: if slot.shows_label {
+                tab.title.clone()
+            } else {
+                SharedString::default()
+            },
+            text_tone: text_tone.into(),
+            font_size: DOCUMENT_TAB_TITLE_FONT_SIZE,
+            font_weight,
+            surface_variant: if tab.active { "inset" } else { "" }.into(),
+            button_variant: "ghost".into(),
+            selected: tab.active,
+            focused: false,
+            frame: ViewTemplateFrameData {
+                x: slot.x,
+                y: DOCUMENT_TAB_STRIP_Y,
+                width: slot.width,
+                height: DOCUMENT_TAB_HEIGHT.min(header_height.max(DOCUMENT_TAB_HEIGHT)),
+            },
+            ..ViewTemplateNodeData::default()
+        };
+        apply_template_icon(&mut tab_node, &chrome_tab_icon_name(&tab));
+        nodes.push(tab_node);
+        if tab.closeable && slot.shows_label {
+            let mut close_node = ViewTemplateNodeData {
+                node_id: format!("FallbackSideDockTabClose{row}").into(),
+                control_id: format!("{DOCK_TAB_CLOSE_PREFIX}{row}").into(),
+                role: "IconButton".into(),
+                text_tone: "muted".into(),
+                font_size: EditorTypographyTokens::WORKBENCH_BODY_SIZE,
+                button_variant: "ghost".into(),
+                value_number: 14.0,
+                frame: ViewTemplateFrameData {
+                    x: document_tab_close_x(slot.x, slot.width),
+                    y: DOCUMENT_TAB_CLOSE_TOP_INSET,
+                    width: DOCUMENT_TAB_CLOSE_EXTENT,
+                    height: DOCUMENT_TAB_CLOSE_EXTENT,
+                },
+                ..ViewTemplateNodeData::default()
+            };
+            apply_template_icon(&mut close_node, DOCK_TAB_CLOSE_ICON);
+            nodes.push(close_node);
+        }
+    }
+    model_rc(nodes)
 }
 
 fn side_dock_tab_slots(tabs: &ModelRc<TabData>, width: f32) -> Vec<SideDockTabSlot> {
@@ -141,6 +249,12 @@ fn expand_slot(index: usize, widths: &mut [f32], preferred_widths: &[f32], remai
     }
 }
 
-fn control_slot_index(control_id: &str, prefix: &str) -> Option<usize> {
-    control_id.strip_prefix(prefix)?.parse().ok()
+#[cfg(test)]
+pub(super) fn clear_side_dock_header_projection_cache_for_tests() {
+    SIDE_DOCK_HEADER_PROJECTION_CACHE.with(|cache| *cache.borrow_mut() = Default::default());
+}
+
+#[cfg(test)]
+pub(super) fn side_dock_header_projection_builds_for_tests() -> usize {
+    SIDE_DOCK_HEADER_PROJECTION_CACHE.with(|cache| cache.borrow().builds)
 }

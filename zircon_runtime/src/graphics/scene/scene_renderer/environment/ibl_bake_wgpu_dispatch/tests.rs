@@ -1,28 +1,29 @@
-use std::sync::{Arc, mpsc};
+use std::sync::{mpsc, Arc};
 
 use crate::asset::ProjectAssetManager;
 use crate::core::framework::render::{
-    IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, IblBakeArtifactContents, IblBakeArtifactRequest,
-    ProceduralSkyParams, RenderFrameExtract, RenderPluginRendererOutputs,
-    RenderWorldSnapshotHandle, SOURCE_CUBEMAP_PMREM_FACE_SIZE, SOURCE_CUBEMAP_PMREM_MIP_COUNT,
+    IblBakeArtifactContents, IblBakeArtifactRequest, ProceduralSkyParams, RenderFrameExtract,
+    RenderPluginRendererOutputs, RenderWorldSnapshotHandle, IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES,
+    SOURCE_CUBEMAP_PMREM_FACE_SIZE, SOURCE_CUBEMAP_PMREM_MIP_COUNT,
 };
 use crate::core::math::UVec2;
-use crate::graphics::ViewportRenderFrame;
 use crate::graphics::backend::RenderBackend;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionResources, RenderPassExecutorId, TransientResourcePool,
 };
 use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
+use crate::graphics::ViewportRenderFrame;
 use crate::render_graph::{QueueLane, RenderGraphBuilder};
 use crate::scene::world::World;
 
 use super::super::ibl_bake_shader_plan::IblBakeComputeKernelKind;
 use super::super::ibl_bake_wgpu_binding::{
-    IblBakeWgpuBindGroupLayouts, IblBakeWgpuOutputBindingResource, create_ibl_bake_wgpu_bind_group,
-    create_ibl_bake_wgpu_params_buffer, create_ibl_bake_wgpu_source_sampler,
+    create_ibl_bake_wgpu_bind_group, create_ibl_bake_wgpu_params_buffer,
+    create_ibl_bake_wgpu_source_sampler, IblBakeWgpuBindGroupLayouts,
+    IblBakeWgpuOutputBindingResource,
 };
 use super::super::ibl_bake_wgpu_command_plan::{
-    IblBakeWgpuCommandPlan, IblBakeWgpuOutputPlan, ibl_bake_wgpu_command_plan_for_request,
+    ibl_bake_wgpu_command_plan_for_request, IblBakeWgpuCommandPlan, IblBakeWgpuOutputPlan,
 };
 use super::super::ibl_bake_wgpu_pipeline_cache::IblBakeWgpuPipelineCache;
 use super::*;
@@ -168,7 +169,7 @@ fn final_pmrem_mip_writes_common_six_face_average() {
     let record =
         encode_ibl_bake_wgpu_compute_dispatch(&mut encoder, final_mip, &pipeline, &bind_group)
             .expect("final PMREM dispatch should encode");
-    assert_eq!(record.dispatch_groups, [1, 1, 6]);
+    assert_eq!(record.dispatch_groups, [1, 1, 1]);
     queue.submit(std::iter::once(encoder.finish()));
     device
         .poll(wgpu::PollType::wait_indefinitely())
@@ -192,6 +193,77 @@ fn final_pmrem_mip_writes_common_six_face_average() {
 }
 
 #[test]
+fn one_texel_single_mip_pmrem_writes_common_six_face_average() {
+    let Ok(backend) = RenderBackend::new_offscreen() else {
+        return;
+    };
+    let device = &backend.device;
+    let queue = &backend.queue;
+    let layouts = IblBakeWgpuBindGroupLayouts::new(device);
+    let sampler = create_ibl_bake_wgpu_source_sampler(device);
+    let request = request(16, 5, IblBakeArtifactContents::PMREM).with_pmrem_layout(1, 1);
+    let plan = ibl_bake_wgpu_command_plan_for_request(&request);
+    let terminal = command_for_kind(
+        &plan.commands,
+        IblBakeComputeKernelKind::Pmrem { mip_level: 0 },
+    );
+    let source_texture = create_asymmetric_source_cubemap_texture(device, queue, 16, 5);
+    let source_view = source_texture.create_view(&source_cubemap_mip_view_descriptor(5));
+    let pmrem_output = create_storage_output_texture(device, 1, 1);
+    let pmrem_output_view = pmrem_output.create_view(&storage_texture_descriptor(terminal));
+    let params = create_ibl_bake_wgpu_params_buffer(device, terminal);
+    let bind_group = create_ibl_bake_wgpu_bind_group(
+        device,
+        &layouts,
+        terminal,
+        &params,
+        &source_view,
+        &sampler,
+        IblBakeWgpuOutputBindingResource::StorageTexture2DArray(&pmrem_output_view),
+    )
+    .expect("single-mip PMREM bind group should be valid");
+    let pipeline = create_ibl_bake_wgpu_compute_pipeline(
+        device,
+        terminal,
+        layouts.layout(terminal.bind_group_layout_kind),
+    );
+    let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("ibl-bake-single-mip-final-average-test-encoder"),
+    });
+
+    let record =
+        encode_ibl_bake_wgpu_compute_dispatch(&mut encoder, terminal, &pipeline, &bind_group)
+            .expect("single-mip PMREM dispatch should encode");
+    assert_eq!(record.dispatch_groups, [1, 1, 1]);
+    queue.submit(std::iter::once(encoder.finish()));
+    device
+        .poll(wgpu::PollType::wait_indefinitely())
+        .expect("single-mip PMREM dispatch should finish");
+
+    let bytes = read_rgba16float_mip_faces(device, queue, &pmrem_output, 0, 1, 6);
+    let first = rgba16float_face_color(&bytes, 0);
+    assert_vec4_near(
+        first,
+        asymmetric_source_face_average(),
+        0.001,
+        "single-mip PMREM should average the six source faces",
+    );
+    assert!(
+        first[0] + first[1] + first[2] > 0.05,
+        "single-mip PMREM average should contain source radiance, got {first:?}"
+    );
+    for face in 1..6 {
+        let actual = rgba16float_face_color(&bytes, face);
+        assert_vec4_near(
+            actual,
+            first,
+            0.001,
+            &format!("single-mip PMREM face {face} should match face 0"),
+        );
+    }
+}
+
+#[test]
 fn dispatch_encoder_rejects_zero_dispatch_groups_before_wgpu_pass() {
     let request = request(16, 5, IblBakeArtifactContents::SH9);
     let plan = ibl_bake_wgpu_command_plan_for_request(&request);
@@ -201,12 +273,10 @@ fn dispatch_encoder_rejects_zero_dispatch_groups_before_wgpu_pass() {
     let result = validate_dispatch_groups(&command);
 
     assert!(result.is_err());
-    assert!(
-        result
-            .err()
-            .unwrap()
-            .contains("invalid zero dispatch groups")
-    );
+    assert!(result
+        .err()
+        .unwrap()
+        .contains("invalid zero dispatch groups"));
 }
 
 #[test]
@@ -472,14 +542,7 @@ fn create_asymmetric_source_cubemap_texture(
         usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
         view_formats: &[],
     });
-    let face_colors = [
-        [255_u8, 16, 16, 255],
-        [32, 255, 32, 255],
-        [32, 32, 255, 255],
-        [255, 255, 32, 255],
-        [255, 32, 255, 255],
-        [32, 255, 255, 255],
-    ];
+    let face_colors = asymmetric_source_face_colors();
 
     for mip_level in 0..mip_count {
         let mip_size = (face_size >> mip_level).max(1);
@@ -512,6 +575,30 @@ fn create_asymmetric_source_cubemap_texture(
     }
 
     texture
+}
+
+fn asymmetric_source_face_colors() -> [[u8; 4]; 6] {
+    [
+        [255_u8, 16, 16, 255],
+        [32, 255, 32, 255],
+        [32, 32, 255, 255],
+        [255, 255, 32, 255],
+        [255, 32, 255, 255],
+        [32, 255, 255, 255],
+    ]
+}
+
+fn asymmetric_source_face_average() -> [f32; 4] {
+    let mut average = [0.0; 4];
+    for color in asymmetric_source_face_colors() {
+        for channel in 0..4 {
+            average[channel] += f32::from(color[channel]) / 255.0;
+        }
+    }
+    for channel in &mut average {
+        *channel /= 6.0;
+    }
+    average
 }
 
 fn repeated_rgba(color: [u8; 4], size: u32) -> Vec<u8> {

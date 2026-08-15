@@ -6,9 +6,10 @@ pub(in crate::hybrid_gi::renderer::gpu_resources::new) fn pipeline(
         label: Some("zircon-hybrid-gi-completion-shader"),
         source: wgpu::ShaderSource::Wgsl(
             format!(
-                "{}\n{}",
+                "{}\n{}\n{}",
                 include_str!("../../../shaders/update_completion.wgsl"),
                 include_str!("../../../shaders/update_completion_scene_radiance.wgsl"),
+                include_str!("../../../shaders/update_completion_output.wgsl"),
             )
             .into(),
         ),

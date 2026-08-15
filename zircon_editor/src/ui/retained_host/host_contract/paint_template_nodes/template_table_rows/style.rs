@@ -1,5 +1,5 @@
 use super::super::super::data::TemplatePaneNodeData;
-use super::super::style_selector::{WorkbenchTableRowStyle, select_workbench_table_row_style};
+use super::super::style_selector::{select_workbench_table_row_style, WorkbenchTableRowStyle};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn table_cell_color(
     node: &TemplatePaneNodeData,

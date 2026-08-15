@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::core::math::UVec2;
 
 use super::{
@@ -108,8 +110,39 @@ pub struct CapturedFrame {
     pub rgba: Vec<u8>,
     pub generation: u64,
     pub capture_report: RenderCaptureReport,
-    pub graph_dump: Option<String>,
+    pub graph_dump: Option<Arc<str>>,
     pub frame_profile_json: Option<String>,
+}
+
+/// A linear, pre-output-transfer scene-color capture from a completed frame.
+///
+/// This is intentionally a distinct product from [`CapturedFrame`]: its texels
+/// remain RGBA16F-derived linear values instead of display-encoded RGBA8 bytes.
+#[derive(Clone, Debug, PartialEq)]
+pub struct CapturedHdrFrame {
+    pub width: u32,
+    pub height: u32,
+    pub rgba16f: Vec<[f32; 4]>,
+    pub generation: u64,
+    pub capture_report: RenderCaptureReport,
+}
+
+impl CapturedHdrFrame {
+    pub fn with_capture_report(
+        width: u32,
+        height: u32,
+        rgba16f: Vec<[f32; 4]>,
+        generation: u64,
+        capture_report: RenderCaptureReport,
+    ) -> Self {
+        Self {
+            width,
+            height,
+            rgba16f,
+            generation,
+            capture_report,
+        }
+    }
 }
 
 impl CapturedFrame {
@@ -178,7 +211,7 @@ impl CapturedFrame {
             rgba,
             generation,
             capture_report,
-            graph_dump,
+            graph_dump: graph_dump.map(Arc::from),
             frame_profile_json,
         }
     }
@@ -255,5 +288,37 @@ mod tests {
             frame.frame_profile_json.as_deref(),
             Some("{\"frame_generation\":7}")
         );
+    }
+
+    #[test]
+    fn captured_frame_clone_shares_graph_dump_text() {
+        let graph_dump: Arc<str> = Arc::from("MainScene");
+        let mut frame = CapturedFrame::new(16, 8, vec![0; 16 * 8 * 4], 7);
+        frame.graph_dump = Some(Arc::clone(&graph_dump));
+
+        let cloned = frame.clone();
+        assert!(Arc::ptr_eq(
+            frame.graph_dump.as_ref().expect("frame has graph dump"),
+            cloned.graph_dump.as_ref().expect("clone has graph dump"),
+        ));
+    }
+
+    #[test]
+    fn hdr_capture_preserves_linear_texels_and_capture_provenance() {
+        let report = RenderCaptureReport::framework_offscreen(
+            RenderCameraTargetKind::PrimarySurface,
+            UVec2::new(2, 1),
+        );
+        let frame = CapturedHdrFrame::with_capture_report(
+            2,
+            1,
+            vec![[1.5, 0.5, 0.25, 1.0], [0.0, 0.0, 0.0, 1.0]],
+            7,
+            report,
+        );
+
+        assert_eq!(frame.rgba16f.len(), 2);
+        assert_eq!(frame.generation, 7);
+        assert_eq!(frame.capture_report, report);
     }
 }

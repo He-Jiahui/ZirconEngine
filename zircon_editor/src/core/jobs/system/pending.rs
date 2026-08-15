@@ -1,96 +1,26 @@
-use std::any::Any;
 use std::collections::{BTreeMap, BTreeSet};
-use std::panic::{AssertUnwindSafe, catch_unwind};
-use std::sync::mpsc::SyncSender;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use super::super::{
-    EditorJob, EditorJobAdmissionKey, EditorJobAdmissionLimits, EditorJobAdmissionSnapshot,
-    EditorJobLimits, EditorJobSpec, JobCategory, JobContext, JobError, JobEventKind, JobId,
-    JobPriority, JobSubmitError,
+    EditorJobAdmissionKey, EditorJobAdmissionLimits, EditorJobAdmissionRequest,
+    EditorJobAdmissionSnapshot, EditorJobLimits, EditorJobSpec, JobCategory, JobId, JobPriority,
+    JobSubmitError,
 };
+use super::EditorJobAdmissionWindow;
+use super::admission_ledger::{PendingAdmissionLedger, PendingAdmissionReservation};
+use super::pending_task::{PendingCancelTask, PendingTask};
 
-pub(super) type PendingCancelTask = Box<dyn FnOnce(JobContext) + Send + 'static>;
-
-pub(super) trait PendingTask: Any + Send {
-    fn run(self: Box<Self>, context: JobContext);
-    fn replace_with(&mut self, latest: Box<dyn PendingTask>) -> bool;
-    fn into_any(self: Box<Self>) -> Box<dyn Any + Send>;
-}
-
-impl<F> PendingTask for F
-where
-    F: FnOnce(JobContext) + Send + 'static,
-{
-    fn run(self: Box<Self>, context: JobContext) {
-        (*self)(context);
-    }
-
-    fn replace_with(&mut self, _latest: Box<dyn PendingTask>) -> bool {
-        false
-    }
-
-    fn into_any(self: Box<Self>) -> Box<dyn Any + Send> {
-        self
-    }
-}
-
-pub(super) struct LatestPendingTask<J>
-where
-    J: EditorJob,
-{
-    job: J,
-    sender: SyncSender<Result<J::Output, JobError>>,
-}
-
-impl<J> LatestPendingTask<J>
-where
-    J: EditorJob,
-{
-    pub(super) fn new(job: J, sender: SyncSender<Result<J::Output, JobError>>) -> Self {
-        Self { job, sender }
-    }
-}
-
-impl<J> PendingTask for LatestPendingTask<J>
-where
-    J: EditorJob,
-{
-    fn run(self: Box<Self>, context: JobContext) {
-        let Self { job, sender } = *self;
-        let event_context = context.clone();
-        let result = if context.is_cancelled() {
-            Err(JobError::Cancelled)
-        } else {
-            catch_unwind(AssertUnwindSafe(|| job.run(context)))
-                .unwrap_or_else(|payload| Err(JobError::Panicked(super::panic_message(payload))))
-        };
-        let kind = match &result {
-            Ok(_) => JobEventKind::Completed,
-            Err(JobError::Cancelled) => JobEventKind::Cancelled,
-            Err(error) => JobEventKind::Failed {
-                message: error.to_string(),
-            },
-        };
-        event_context.emit(kind);
-        let _ = sender.send(result);
-    }
-
-    fn replace_with(&mut self, latest: Box<dyn PendingTask>) -> bool {
-        let Ok(latest) = latest.into_any().downcast::<Self>() else {
-            return false;
-        };
-        self.job = latest.job;
-        true
-    }
-
-    fn into_any(self: Box<Self>) -> Box<dyn Any + Send> {
-        self
-    }
-}
+const FAIR_ADMISSION_SLOTS: [JobPriority; 6] = [
+    JobPriority::Interactive,
+    JobPriority::Interactive,
+    JobPriority::Normal,
+    JobPriority::Interactive,
+    JobPriority::Normal,
+    JobPriority::Background,
+];
 
 pub(super) const MAX_ADMISSION_BUCKET_PROBES_PER_PASS: usize =
-    JobPriority::ALL.len() * JobCategory::ALL.len();
+    FAIR_ADMISSION_SLOTS.len() * JobCategory::ALL.len();
 
 pub(super) struct PendingJob {
     pub(super) id: JobId,
@@ -131,6 +61,7 @@ impl PendingJob {
         if !self.task.replace_with(task) {
             return false;
         }
+        self.spec.cancel = latest.cancel.clone();
         self.spec.estimated_pending_bytes = latest.estimated_pending_bytes;
         self.spec.max_pending_age = latest.max_pending_age;
         self.estimated_bytes = latest.estimated_pending_bytes;
@@ -141,21 +72,27 @@ impl PendingJob {
 #[derive(Default)]
 pub(super) struct PendingJobQueue {
     jobs: BTreeMap<JobId, PendingJob>,
+    // This is the sole admission accounting index for executable jobs and
+    // pre-materialization claims. Only `jobs` participates in promotion.
+    admission: PendingAdmissionLedger,
     ready: BTreeMap<(u8, JobCategory), BTreeSet<JobId>>,
     waiting_counts: BTreeMap<JobId, usize>,
     dependents_by_dependency: BTreeMap<JobId, BTreeSet<JobId>>,
     referenced_dependencies: BTreeMap<JobId, usize>,
     admission_keys: BTreeMap<EditorJobAdmissionKey, JobId>,
-    estimated_bytes: usize,
+    fairness_slot: usize,
     admission_probes: usize,
-    merged_submissions: u64,
-    cancelled_pending: u64,
-    started_pending: u64,
 }
 
 impl PendingJobQueue {
     pub(super) fn insert(&mut self, pending: PendingJob, unscheduled: &[JobId]) {
         let id = pending.id;
+        self.admission.insert(
+            id,
+            pending.spec.category,
+            pending.estimated_bytes,
+            pending.admitted_at,
+        );
         for dependency in &pending.spec.after {
             *self.referenced_dependencies.entry(*dependency).or_default() += 1;
         }
@@ -173,7 +110,6 @@ impl PendingJobQueue {
                     .insert(id);
             }
         }
-        self.estimated_bytes = self.estimated_bytes.saturating_add(pending.estimated_bytes);
         if let Some(key) = pending.spec.admission_key.as_ref() {
             let replaced = self.admission_keys.insert(key.clone(), id);
             debug_assert!(
@@ -187,7 +123,12 @@ impl PendingJobQueue {
 
     pub(super) fn remove(&mut self, id: JobId) -> Option<PendingJob> {
         let pending = self.jobs.remove(&id)?;
-        self.estimated_bytes = self.estimated_bytes.saturating_sub(pending.estimated_bytes);
+        let admission = self
+            .admission
+            .remove(id)
+            .expect("pending jobs must retain one admission entry");
+        debug_assert_eq!(admission.0, pending.spec.category);
+        debug_assert_eq!(admission.1, pending.estimated_bytes);
         if let Some(key) = pending.spec.admission_key.as_ref() {
             if self.admission_keys.get(key) == Some(&id) {
                 self.admission_keys.remove(key);
@@ -208,35 +149,49 @@ impl PendingJobQueue {
         limits: &EditorJobLimits,
         running_by_category: &BTreeMap<JobCategory, usize>,
     ) -> Option<PendingJob> {
-        for priority in JobPriority::ALL {
-            let mut selected = None;
-            for category in JobCategory::ALL {
-                self.admission_probes = self.admission_probes.saturating_add(1);
-                if running_by_category
-                    .get(&category)
-                    .copied()
-                    .unwrap_or_default()
-                    >= limits.limit(category)
-                {
-                    continue;
-                }
-                let key = (priority.admission_rank(), category);
-                let Some(id) = self.ready.get(&key).and_then(|ids| ids.first().copied()) else {
-                    continue;
-                };
-                if selected.is_none_or(|selected_id| id < selected_id) {
-                    selected = Some(id);
-                }
+        for offset in 0..FAIR_ADMISSION_SLOTS.len() {
+            let slot = (self.fairness_slot + offset) % FAIR_ADMISSION_SLOTS.len();
+            let priority = FAIR_ADMISSION_SLOTS[slot];
+            let Some(id) = self.first_ready_admissible_id(priority, limits, running_by_category)
+            else {
+                continue;
+            };
+            self.fairness_slot = (slot + 1) % FAIR_ADMISSION_SLOTS.len();
+            let pending = self.remove(id);
+            if let Some(pending) = pending.as_ref() {
+                self.admission.record_started(pending.spec.category);
             }
-            if let Some(id) = selected {
-                let pending = self.remove(id);
-                if pending.is_some() {
-                    self.started_pending = self.started_pending.saturating_add(1);
-                }
-                return pending;
-            }
+            return pending;
         }
         None
+    }
+
+    fn first_ready_admissible_id(
+        &mut self,
+        priority: JobPriority,
+        limits: &EditorJobLimits,
+        running_by_category: &BTreeMap<JobCategory, usize>,
+    ) -> Option<JobId> {
+        let mut selected = None;
+        for category in JobCategory::ALL {
+            self.admission_probes = self.admission_probes.saturating_add(1);
+            if running_by_category
+                .get(&category)
+                .copied()
+                .unwrap_or_default()
+                >= limits.limit(category)
+            {
+                continue;
+            }
+            let key = (priority.admission_rank(), category);
+            let Some(id) = self.ready.get(&key).and_then(|ids| ids.first().copied()) else {
+                continue;
+            };
+            if selected.is_none_or(|selected_id| id < selected_id) {
+                selected = Some(id);
+            }
+        }
+        selected
     }
 
     pub(super) fn mark_dependency_schedulable(&mut self, dependency: JobId) {
@@ -270,7 +225,9 @@ impl PendingJobQueue {
             .into_iter()
             .filter_map(|id| self.remove(id))
             .collect::<Vec<_>>();
-        self.cancelled_pending = self.cancelled_pending.saturating_add(drained.len() as u64);
+        for pending in &drained {
+            self.admission.record_cancelled(pending.spec.category);
+        }
         drained
     }
 
@@ -282,30 +239,50 @@ impl PendingJobQueue {
         self.jobs.len()
     }
 
+    pub(super) fn reserve_batch(
+        &mut self,
+        reservation_id: u64,
+        reservations: Vec<PendingAdmissionReservation>,
+        limits: EditorJobAdmissionLimits,
+        now: Instant,
+    ) -> Result<(), JobSubmitError> {
+        self.admission
+            .reserve_batch(reservation_id, reservations, limits, now)
+    }
+
+    pub(super) fn ensure_reservation_batch_admissible(
+        &self,
+        requests: &[&EditorJobAdmissionRequest],
+        limits: EditorJobAdmissionLimits,
+        now: Instant,
+    ) -> Result<(), JobSubmitError> {
+        self.admission
+            .ensure_reservation_batch_admissible(requests, limits, now)
+    }
+
+    pub(super) fn commit_reservation(
+        &mut self,
+        reservation_id: u64,
+        specs: &[&EditorJobSpec],
+    ) -> Result<Vec<(JobId, Instant)>, JobSubmitError> {
+        self.admission.commit_reservation(reservation_id, specs)
+    }
+
+    pub(super) fn release_reservation(&mut self, reservation_id: u64) -> bool {
+        self.admission.release_reservation(reservation_id)
+    }
+
+    pub(super) fn release_all_reservations(&mut self) {
+        self.admission.release_all_reservations();
+    }
+
     pub(super) fn ensure_admissible(
         &self,
         spec: &EditorJobSpec,
         limits: EditorJobAdmissionLimits,
         now: Instant,
     ) -> Result<(), JobSubmitError> {
-        self.ensure_oldest_age(spec, limits, now)?;
-        if self.jobs.len() >= limits.max_pending_entries {
-            return Err(JobSubmitError::AdmissionEntryLimitExceeded {
-                limit: limits.max_pending_entries,
-            });
-        }
-        if self
-            .estimated_bytes
-            .saturating_add(spec.estimated_pending_bytes)
-            > limits.max_pending_estimated_bytes
-        {
-            return Err(JobSubmitError::AdmissionByteLimitExceeded {
-                limit: limits.max_pending_estimated_bytes,
-                current: self.estimated_bytes,
-                requested: spec.estimated_pending_bytes,
-            });
-        }
-        Ok(())
+        self.admission.ensure_admissible(spec, limits, now)
     }
 
     pub(super) fn ensure_batch_admissible(
@@ -314,39 +291,27 @@ impl PendingJobQueue {
         limits: EditorJobAdmissionLimits,
         now: Instant,
     ) -> Result<(), JobSubmitError> {
-        for spec in specs {
-            self.ensure_oldest_age(spec, limits, now)?;
-        }
-        if self.jobs.len().saturating_add(specs.len()) > limits.max_pending_entries {
-            return Err(JobSubmitError::AdmissionEntryLimitExceeded {
-                limit: limits.max_pending_entries,
-            });
-        }
-        let requested = specs.iter().fold(0_usize, |total, spec| {
-            total.saturating_add(spec.estimated_pending_bytes)
-        });
-        if self.estimated_bytes.saturating_add(requested) > limits.max_pending_estimated_bytes {
-            return Err(JobSubmitError::AdmissionByteLimitExceeded {
-                limit: limits.max_pending_estimated_bytes,
-                current: self.estimated_bytes,
-                requested,
-            });
-        }
-        Ok(())
+        self.admission.ensure_batch_admissible(specs, limits, now)
+    }
+
+    pub(super) fn pending_admission_window(
+        &self,
+        limits: &EditorJobLimits,
+        now: Instant,
+    ) -> Result<EditorJobAdmissionWindow, JobSubmitError> {
+        self.admission.pending_admission_window(limits, now)
     }
 
     pub(super) fn admission_snapshot(&self, now: Instant) -> EditorJobAdmissionSnapshot {
-        EditorJobAdmissionSnapshot::new(
-            self.jobs.len(),
-            self.estimated_bytes,
-            self.jobs
-                .values()
-                .next()
-                .map(|pending| now.saturating_duration_since(pending.admitted_at)),
-            self.merged_submissions,
-            self.cancelled_pending,
-            self.started_pending,
-        )
+        self.admission.admission_snapshot(now)
+    }
+
+    pub(super) fn category_admission_snapshot(
+        &self,
+        category: JobCategory,
+        now: Instant,
+    ) -> EditorJobAdmissionSnapshot {
+        self.admission.category_admission_snapshot(category, now)
     }
 
     pub(super) fn pending_admission_id(&self, spec: &EditorJobSpec) -> Option<JobId> {
@@ -372,7 +337,12 @@ impl PendingJobQueue {
                 existing_job: existing_id,
             });
         }
-        self.ensure_replacement_admissible(existing, latest_spec, limits, now)?;
+        self.admission.ensure_replacement_admissible(
+            existing.estimated_bytes,
+            latest_spec,
+            limits,
+            now,
+        )?;
         let previous_bytes = existing.estimated_bytes;
         let Some(existing) = self.jobs.get_mut(&existing_id) else {
             return Err(JobSubmitError::AdmissionKeyConflict {
@@ -384,72 +354,24 @@ impl PendingJobQueue {
                 existing_job: existing_id,
             });
         }
-        self.estimated_bytes = self
-            .estimated_bytes
-            .saturating_sub(previous_bytes)
-            .saturating_add(latest_spec.estimated_pending_bytes);
-        self.merged_submissions = self.merged_submissions.saturating_add(1);
+        self.admission.replace_bytes(
+            existing_id,
+            latest_spec.category,
+            previous_bytes,
+            latest_spec.estimated_pending_bytes,
+        );
+        self.admission.record_merged(latest_spec.category);
         Ok(existing_id)
     }
 
-    pub(super) fn record_cancelled_pending(&mut self) {
-        self.cancelled_pending = self.cancelled_pending.saturating_add(1);
-    }
-
-    fn ensure_replacement_admissible(
-        &self,
-        existing: &PendingJob,
-        latest: &EditorJobSpec,
-        limits: EditorJobAdmissionLimits,
-        now: Instant,
-    ) -> Result<(), JobSubmitError> {
-        self.ensure_oldest_age(latest, limits, now)?;
-        let projected_bytes = self
-            .estimated_bytes
-            .saturating_sub(existing.estimated_bytes)
-            .saturating_add(latest.estimated_pending_bytes);
-        if projected_bytes > limits.max_pending_estimated_bytes {
-            return Err(JobSubmitError::AdmissionByteLimitExceeded {
-                limit: limits.max_pending_estimated_bytes,
-                current: self
-                    .estimated_bytes
-                    .saturating_sub(existing.estimated_bytes),
-                requested: latest.estimated_pending_bytes,
-            });
-        }
-        Ok(())
-    }
-
-    fn ensure_oldest_age(
-        &self,
-        spec: &EditorJobSpec,
-        limits: EditorJobAdmissionLimits,
-        now: Instant,
-    ) -> Result<(), JobSubmitError> {
-        if self.jobs.values().next().is_some_and(|pending| {
-            now.saturating_duration_since(pending.admitted_at)
-                >= spec
-                    .max_pending_age
-                    .unwrap_or(limits.max_oldest_pending_age)
-        }) {
-            return Err(JobSubmitError::OldestPendingAgeExceeded {
-                max_age_ms: duration_millis(
-                    spec.max_pending_age
-                        .unwrap_or(limits.max_oldest_pending_age),
-                ),
-            });
-        }
-        Ok(())
+    pub(super) fn record_cancelled_pending(&mut self, category: JobCategory) {
+        self.admission.record_cancelled(category);
     }
 
     #[cfg(test)]
     pub(super) fn admission_probe_count(&self) -> usize {
         self.admission_probes
     }
-}
-
-fn duration_millis(duration: Duration) -> u64 {
-    u64::try_from(duration.as_millis()).unwrap_or(u64::MAX)
 }
 
 fn queue_key(spec: &EditorJobSpec) -> (u8, JobCategory) {
@@ -475,3 +397,6 @@ fn decrement_count<K: Ord + Clone>(map: &mut BTreeMap<K, usize>, key: &K) {
         map.remove(key);
     }
 }
+
+#[cfg(test)]
+mod tests;

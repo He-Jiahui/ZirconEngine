@@ -1,6 +1,6 @@
 use super::support::*;
 use crate::ui::workbench::document_tabs::{
-    DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH, DOCUMENT_TAB_CLOSE_EXTENT, document_tab_close_x,
+    document_tab_close_x, DOCUMENT_CLOSEABLE_TAB_MIN_WIDTH, DOCUMENT_TAB_CLOSE_EXTENT,
 };
 
 #[test]

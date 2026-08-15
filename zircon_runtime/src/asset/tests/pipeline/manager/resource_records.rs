@@ -57,12 +57,10 @@ fn resource_server_reports_resource_records_for_project_assets() {
     assert_eq!(status.kind, ResourceKind::Model);
     assert_eq!(status.state, ResourceState::Ready);
     assert_eq!(status.revision, 1);
-    assert!(
-        status
-            .artifact_locator
-            .as_ref()
-            .is_some_and(|uri| uri.to_string().starts_with("lib://"))
-    );
+    assert!(status
+        .artifact_locator
+        .as_ref()
+        .is_some_and(|uri| uri.to_string().starts_with("lib://")));
     assert!(status.diagnostics.is_empty());
 
     let mesh_status = manager
@@ -75,12 +73,10 @@ fn resource_server_reports_resource_records_for_project_assets() {
         mesh_status.primary_locator.to_string(),
         "res://models/triangle.obj#Mesh0/Primitive0"
     );
-    assert!(
-        mesh_status
-            .artifact_locator
-            .as_ref()
-            .is_some_and(|uri| uri.to_string().starts_with("lib://"))
-    );
+    assert!(mesh_status
+        .artifact_locator
+        .as_ref()
+        .is_some_and(|uri| uri.to_string().starts_with("lib://")));
     assert!(mesh_status.dependency_ids.is_empty());
     assert!(mesh_status.diagnostics.is_empty());
     assert_eq!(
@@ -93,7 +89,7 @@ fn resource_server_reports_resource_records_for_project_assets() {
     );
 
     let resources = manager.resource_management_generation().page(
-        crate::core::framework::asset::ResourceManagementQuery::default(),
+        crate::core::resource::ResourceManagementQuery::default(),
         0,
         usize::MAX,
     );

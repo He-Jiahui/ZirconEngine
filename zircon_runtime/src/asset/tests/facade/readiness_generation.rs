@@ -50,11 +50,9 @@ fn readiness_generation_reuses_stable_snapshot_and_updates_only_reverse_closure(
 
     let published = resources.readiness_generation();
     let dependency_revision = published.dependency_revision(material_id).unwrap();
-    assert!(
-        manager
-            .load_states(material_handle)
-            .is_loaded_with_dependencies()
-    );
+    assert!(manager
+        .load_states(material_handle)
+        .is_loaded_with_dependencies());
     assert!(Arc::ptr_eq(&published, &resources.readiness_generation()));
 
     resources.start_reload(texture_id, Vec::new()).unwrap();

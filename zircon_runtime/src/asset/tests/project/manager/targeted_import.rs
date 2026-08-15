@@ -303,28 +303,24 @@ fn targeted_shader_import_refreshes_import_path_consumers_without_a_full_scan() 
         .get_by_locator(&consumer_uri)
         .unwrap()
         .id();
-    assert!(
-        manager
-            .registry()
-            .get(consumer_id)
-            .unwrap()
-            .dependency_ids
-            .contains(&provider_id)
-    );
+    assert!(manager
+        .registry()
+        .get(consumer_id)
+        .unwrap()
+        .dependency_ids
+        .contains(&provider_id));
 
     write_targeted_include_shader(&paths, "provider", "targeted::renamed_provider", &[]);
     manager
         .import_targeted_source(&provider_uri, &provider_path)
         .unwrap();
 
-    assert!(
-        !manager
-            .registry()
-            .get(consumer_id)
-            .unwrap()
-            .dependency_ids
-            .contains(&provider_id)
-    );
+    assert!(!manager
+        .registry()
+        .get(consumer_id)
+        .unwrap()
+        .dependency_ids
+        .contains(&provider_id));
 
     write_targeted_include_shader(
         &paths,
@@ -336,14 +332,12 @@ fn targeted_shader_import_refreshes_import_path_consumers_without_a_full_scan() 
         .import_targeted_source(&consumer_uri, &consumer_path)
         .unwrap();
 
-    assert!(
-        manager
-            .registry()
-            .get(consumer_id)
-            .unwrap()
-            .dependency_ids
-            .contains(&provider_id)
-    );
+    assert!(manager
+        .registry()
+        .get(consumer_id)
+        .unwrap()
+        .dependency_ids
+        .contains(&provider_id));
     let _ = fs::remove_dir_all(root);
 }
 
@@ -405,14 +399,12 @@ fn targeted_shader_provider_resolves_a_consumer_indexed_as_unresolved() {
         .get_by_locator(&consumer_uri)
         .unwrap()
         .id();
-    assert!(
-        manager
-            .registry()
-            .get(consumer_id)
-            .unwrap()
-            .dependency_ids
-            .is_empty()
-    );
+    assert!(manager
+        .registry()
+        .get(consumer_id)
+        .unwrap()
+        .dependency_ids
+        .is_empty());
     write_targeted_include_shader(&paths, "provider", "targeted::missing_provider", &[]);
 
     manager
@@ -424,14 +416,12 @@ fn targeted_shader_provider_resolves_a_consumer_indexed_as_unresolved() {
         .get_by_locator(&provider_uri)
         .unwrap()
         .id();
-    assert!(
-        manager
-            .registry()
-            .get(consumer_id)
-            .unwrap()
-            .dependency_ids
-            .contains(&provider_id)
-    );
+    assert!(manager
+        .registry()
+        .get(consumer_id)
+        .unwrap()
+        .dependency_ids
+        .contains(&provider_id));
     let _ = fs::remove_dir_all(root);
 }
 

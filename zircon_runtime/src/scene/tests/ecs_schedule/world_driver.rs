@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn world_driver_defers_hook_mutations_until_builtin_post_update_systems_run() {
+fn world_driver_defers_runtime_system_mutations_until_builtin_post_update_systems_run() {
     let runtime = CoreRuntime::new();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
@@ -17,25 +17,44 @@ fn world_driver_defers_hook_mutations_until_builtin_post_update_systems_run() {
     let events = Arc::new(Mutex::new(Vec::new()));
 
     let mut registry = RuntimeExtensionRegistry::default();
+    let owner = registry.intern_plugin_module("weather.runtime").unwrap();
+    let events_for_system = Arc::clone(&events);
     registry
-        .register_scene_hook(SceneRuntimeHookRegistration::new(
-            SceneRuntimeHookDescriptor::new(
-                "weather.scene.post-update",
-                "weather",
-                SystemStage::PostUpdate,
-            )
-            .with_order(0),
-            RecordingPostUpdateHook {
-                cube,
-                events: events.clone(),
+        .register_runtime_scene_system(
+            owner,
+            "weather.scene.post-update",
+            SystemStage::PostUpdate,
+            move || {
+                let events = Arc::clone(&events_for_system);
+                move |context| {
+                    context.level.with_world_mut(|world| {
+                        let before = world
+                            .world_transform(cube)
+                            .map(|transform| transform.translation.x as i32)
+                            .unwrap_or_default();
+                        events
+                            .lock()
+                            .unwrap()
+                            .push(format!("runtime-before-transform={before}"));
+                        world
+                            .update_transform(
+                                cube,
+                                Transform::from_translation(Vec3::new(9.0, 0.0, 0.0)),
+                            )
+                            .expect("runtime system may update local transform before PostUpdate");
+                        events.lock().unwrap().push(format!(
+                            "runtime-after-local-update-pending={}",
+                            world.has_pending_scene_systems()
+                        ));
+                    });
+                    Ok(())
+                }
             },
-        ))
+        )
+        .with_order(0)
+        .register()
         .unwrap();
-    crate::scene::install_scene_runtime_hooks(
-        &runtime.handle(),
-        registry.scene_hooks().iter().cloned(),
-    )
-    .unwrap();
+    apply_runtime_scene_systems(&level, &registry);
 
     let advance = runtime.advance_time_by(Duration::from_secs_f32(1.0 / 60.0), 8);
     level.tick(&runtime.handle(), advance).unwrap();
@@ -43,8 +62,8 @@ fn world_driver_defers_hook_mutations_until_builtin_post_update_systems_run() {
     assert_eq!(
         *events.lock().unwrap(),
         vec![
-            "hook-before-transform=0".to_string(),
-            "hook-after-local-update-pending=true".to_string(),
+            "runtime-before-transform=0".to_string(),
+            "runtime-after-local-update-pending=true".to_string(),
         ]
     );
     assert_eq!(
@@ -73,7 +92,7 @@ fn world_driver_consumes_runtime_time_advance_without_advancing_clocks_again() {
 }
 
 #[test]
-fn world_driver_runs_native_render_extract_system_before_render_extract_hooks() {
+fn world_driver_runs_native_render_extract_system_before_runtime_scene_systems() {
     let runtime = CoreRuntime::new();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
@@ -93,37 +112,43 @@ fn world_driver_runs_native_render_extract_system_before_render_extract_hooks() 
     let events = Arc::new(Mutex::new(Vec::new()));
 
     let mut registry = RuntimeExtensionRegistry::default();
+    let owner = registry.intern_plugin_module("weather.runtime").unwrap();
+    let events_for_system = Arc::clone(&events);
     registry
-        .register_scene_hook(SceneRuntimeHookRegistration::new(
-            SceneRuntimeHookDescriptor::new(
-                "weather.scene.render-extract",
-                "weather",
-                SystemStage::RenderExtract,
-            )
-            .with_order(0),
-            RecordingRenderExtractHook {
-                events: events.clone(),
+        .register_runtime_scene_system(
+            owner,
+            "weather.scene.render-extract",
+            SystemStage::RenderExtract,
+            move || {
+                let events = Arc::clone(&events_for_system);
+                move |context| {
+                    context.level.with_world(|world| {
+                        events.lock().unwrap().push(format!(
+                            "render-extract-runtime-pending={}",
+                            world.has_pending_scene_systems()
+                        ));
+                    });
+                    Ok(())
+                }
             },
-        ))
+        )
+        .with_order(0)
+        .register()
         .unwrap();
-    crate::scene::install_scene_runtime_hooks(
-        &runtime.handle(),
-        registry.scene_hooks().iter().cloned(),
-    )
-    .unwrap();
+    apply_runtime_scene_systems(&level, &registry);
 
     let advance = runtime.advance_time_by(Duration::from_secs_f32(1.0 / 60.0), 8);
     level.tick(&runtime.handle(), advance).unwrap();
 
     assert_eq!(
         *events.lock().unwrap(),
-        vec!["render-extract-hook-pending=false".to_string()]
+        vec!["render-extract-runtime-pending=false".to_string()]
     );
     assert!(!level.with_world(|world| world.has_pending_scene_systems()));
 }
 
 #[test]
-fn world_driver_orders_native_systems_with_plugin_hooks() {
+fn world_driver_orders_native_systems_with_plugin_runtime_systems() {
     let runtime = CoreRuntime::new();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
@@ -135,14 +160,14 @@ fn world_driver_orders_native_systems_with_plugin_hooks() {
         level
             .with_world_mut(|world| {
                 world.register_native_system::<(), _>(
-                    "gameplay.native.before-hook",
+                    "gameplay.native.before-runtime",
                     SystemStage::Update,
                     -1,
                     move |()| {
                         events
                             .lock()
                             .unwrap()
-                            .push("native-before-hook".to_string())
+                            .push("native-before-runtime".to_string())
                     },
                 )
             })
@@ -153,30 +178,42 @@ fn world_driver_orders_native_systems_with_plugin_hooks() {
         level
             .with_world_mut(|world| {
                 world.register_native_system::<(), _>(
-                    "gameplay.native.after-hook",
+                    "gameplay.native.after-runtime",
                     SystemStage::Update,
                     1,
-                    move |()| events.lock().unwrap().push("native-after-hook".to_string()),
+                    move |()| {
+                        events
+                            .lock()
+                            .unwrap()
+                            .push("native-after-runtime".to_string())
+                    },
                 )
             })
             .unwrap();
     }
 
     let mut registry = RuntimeExtensionRegistry::default();
+    let owner = registry.intern_plugin_module("weather.runtime").unwrap();
+    let events_for_system = Arc::clone(&events);
     registry
-        .register_scene_hook(SceneRuntimeHookRegistration::new(
-            SceneRuntimeHookDescriptor::new("weather.scene.update", "weather", SystemStage::Update)
-                .with_order(0),
-            RecordingUpdateHook {
-                events: events.clone(),
+        .register_runtime_scene_system(
+            owner,
+            "weather.scene.update",
+            SystemStage::Update,
+            move || {
+                let events = Arc::clone(&events_for_system);
+                move |context| {
+                    context.level.with_world_mut(|_| {
+                        events.lock().unwrap().push("runtime".to_string());
+                    });
+                    Ok(())
+                }
             },
-        ))
+        )
+        .with_order(0)
+        .register()
         .unwrap();
-    crate::scene::install_scene_runtime_hooks(
-        &runtime.handle(),
-        registry.scene_hooks().iter().cloned(),
-    )
-    .unwrap();
+    apply_runtime_scene_systems(&level, &registry);
 
     let advance = runtime.advance_time_by(Duration::from_secs_f32(1.0 / 60.0), 8);
     level.tick(&runtime.handle(), advance).unwrap();
@@ -184,9 +221,9 @@ fn world_driver_orders_native_systems_with_plugin_hooks() {
     assert_eq!(
         *events.lock().unwrap(),
         vec![
-            "native-before-hook".to_string(),
-            "hook".to_string(),
-            "native-after-hook".to_string(),
+            "native-before-runtime".to_string(),
+            "runtime".to_string(),
+            "native-after-runtime".to_string(),
         ]
     );
 }
@@ -228,14 +265,10 @@ fn world_driver_runs_runtime_scene_systems_in_schedule_order() {
                         .unwrap()
                         .push(format!("runtime-delta={:.3}", context.delta_seconds));
                 });
-                assert!(
-                    context
-                        .core
-                        .resolve_driver::<crate::scene::WorldDriver>(
-                            crate::scene::WORLD_DRIVER_NAME
-                        )
-                        .is_ok()
-                );
+                assert!(context
+                    .core
+                    .resolve_driver::<crate::scene::WorldDriver>(crate::scene::WORLD_DRIVER_NAME)
+                    .is_ok());
                 Ok(())
             },
         );
@@ -325,65 +358,12 @@ fn world_driver_rotates_event_generations_once_per_tick() {
     assert_eq!(second_generation, vec![1]);
 }
 
-#[derive(Debug)]
-struct RecordingPostUpdateHook {
-    cube: u64,
-    events: Arc<Mutex<Vec<String>>>,
-}
-
-#[derive(Debug)]
-struct RecordingRenderExtractHook {
-    events: Arc<Mutex<Vec<String>>>,
-}
-
-#[derive(Debug)]
-struct RecordingUpdateHook {
-    events: Arc<Mutex<Vec<String>>>,
-}
-
-impl SceneRuntimeHook for RecordingUpdateHook {
-    fn run(&self, context: SceneRuntimeHookContext<'_>) -> Result<(), crate::core::CoreError> {
-        context.level.with_world_mut(|_| {
-            self.events.lock().unwrap().push("hook".to_string());
-        });
-        Ok(())
-    }
-}
-
-impl SceneRuntimeHook for RecordingRenderExtractHook {
-    fn run(&self, context: SceneRuntimeHookContext<'_>) -> Result<(), crate::core::CoreError> {
-        context.level.with_world(|world| {
-            self.events.lock().unwrap().push(format!(
-                "render-extract-hook-pending={}",
-                world.has_pending_scene_systems()
-            ));
-        });
-        Ok(())
-    }
-}
-
-impl SceneRuntimeHook for RecordingPostUpdateHook {
-    fn run(&self, context: SceneRuntimeHookContext<'_>) -> Result<(), crate::core::CoreError> {
-        context.level.with_world_mut(|world| {
-            let before = world
-                .world_transform(self.cube)
-                .map(|transform| transform.translation.x as i32)
-                .unwrap_or_default();
-            self.events
-                .lock()
-                .unwrap()
-                .push(format!("hook-before-transform={before}"));
-            world
-                .update_transform(
-                    self.cube,
-                    Transform::from_translation(Vec3::new(9.0, 0.0, 0.0)),
-                )
-                .expect("hook may update local transform before built-in PostUpdate systems");
-            self.events.lock().unwrap().push(format!(
-                "hook-after-local-update-pending={}",
-                world.has_pending_scene_systems()
-            ));
-        });
-        Ok(())
-    }
+fn apply_runtime_scene_systems(
+    level: &crate::scene::LevelSystem,
+    registry: &RuntimeExtensionRegistry,
+) {
+    let plan = registry.world_runtime_extension_plan().unwrap();
+    level
+        .with_world_mut(|world| plan.apply_to_world(world))
+        .unwrap();
 }

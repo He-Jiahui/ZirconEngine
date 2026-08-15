@@ -1,6 +1,6 @@
 use bytemuck::{Pod, Zeroable};
 
-use crate::graphics::scene::resources::{MaterialRuntime, standard_material_uniform_contents};
+use crate::graphics::scene::resources::{standard_material_uniform_contents, MaterialRuntime};
 
 pub(crate) const BINDLESS_STANDARD_MATERIAL_TEXTURE_SLOT_COUNT: usize = 6;
 pub(crate) const GPU_BINDLESS_MATERIAL_PAYLOAD_STRIDE: usize = 224;
@@ -26,15 +26,18 @@ impl GpuBindlessMaterialPayload {
         material: &MaterialRuntime,
         texture_slots: [u32; BINDLESS_STANDARD_MATERIAL_TEXTURE_SLOT_COUNT],
     ) -> Self {
-        Self::from_standard_uniform_bytes(standard_material_uniform_contents(material), texture_slots)
+        Self::from_standard_uniform_bytes(
+            standard_material_uniform_contents(material),
+            texture_slots,
+        )
     }
 
     pub(crate) fn from_standard_uniform_bytes(
         uniform_bytes: [u8; STANDARD_MATERIAL_UNIFORM_BYTE_LEN],
         texture_slots: [u32; BINDLESS_STANDARD_MATERIAL_TEXTURE_SLOT_COUNT],
     ) -> Self {
-        let mut slots = [0;
-            BINDLESS_STANDARD_MATERIAL_TEXTURE_SLOT_COUNT + RESERVED_BINDLESS_MATERIAL_SLOT_COUNT];
+        let mut slots = [0; BINDLESS_STANDARD_MATERIAL_TEXTURE_SLOT_COUNT
+            + RESERVED_BINDLESS_MATERIAL_SLOT_COUNT];
         for (target, source) in slots.iter_mut().zip(texture_slots) {
             *target = source;
         }
@@ -61,8 +64,8 @@ const _: () = assert!(
 #[cfg(test)]
 mod tests {
     use super::{
-        BINDLESS_STANDARD_MATERIAL_TEXTURE_SLOT_COUNT, GPU_BINDLESS_MATERIAL_PAYLOAD_STRIDE,
-        GpuBindlessMaterialPayload,
+        GpuBindlessMaterialPayload, BINDLESS_STANDARD_MATERIAL_TEXTURE_SLOT_COUNT,
+        GPU_BINDLESS_MATERIAL_PAYLOAD_STRIDE,
     };
 
     #[test]

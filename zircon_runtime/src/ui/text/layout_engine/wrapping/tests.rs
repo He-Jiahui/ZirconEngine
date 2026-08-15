@@ -2,7 +2,7 @@ use crate::text::RichTextFormat;
 use crate::text::SharedTextLayoutSession;
 use crate::ui::text::rich_text::parse_source_text;
 use unicode_segmentation::UnicodeSegmentation;
-use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextWrap};
+use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextRange, UiTextWrap};
 
 use super::*;
 
@@ -68,7 +68,7 @@ fn source_segmentation_preserves_all_mandatory_unicode_breaks() {
     let mut segments = Vec::new();
     visit_source_segments_preserving_hard_lines("a\r\nb\u{2028}c", 10, |segment| {
         segments.push((
-            segment.text,
+            segment.text.to_owned(),
             segment.range.start,
             segment.range.end,
             segment.hard_break,
@@ -78,11 +78,11 @@ fn source_segmentation_preserves_all_mandatory_unicode_breaks() {
     assert_eq!(
         segments,
         vec![
-            ("a", 10, 11, false),
-            ("\r\n", 11, 13, true),
-            ("b", 13, 14, false),
-            ("\u{2028}", 14, 17, true),
-            ("c", 17, 18, false),
+            ("a".to_owned(), 10, 11, false),
+            ("\r\n".to_owned(), 11, 13, true),
+            ("b".to_owned(), 13, 14, false),
+            ("\u{2028}".to_owned(), 14, 17, true),
+            ("c".to_owned(), 17, 18, false),
         ]
     );
 }
@@ -92,14 +92,14 @@ fn source_segment_visitor_emits_an_empty_segment_for_empty_source() {
     let mut segments = Vec::new();
     visit_source_segments_preserving_hard_lines("", 24, |segment| {
         segments.push((
-            segment.text,
+            segment.text.to_owned(),
             segment.range.start,
             segment.range.end,
             segment.hard_break,
         ));
     });
 
-    assert_eq!(segments, vec![("", 24, 24, false)]);
+    assert_eq!(segments, vec![("".to_owned(), 24, 24, false)]);
 }
 
 #[test]
@@ -117,6 +117,42 @@ fn source_segment_visitor_preserves_the_shaping_run_cap_break() {
             (0, true),
             (1, false),
         ]
+    );
+}
+
+#[test]
+fn rich_runs_joined_without_wrap_still_observe_the_shaping_cap() {
+    let first = "x".repeat(crate::text::TEXT_SHAPING_RUN_MAX_BYTES / 2);
+    let second = "x".repeat(crate::text::TEXT_SHAPING_RUN_MAX_BYTES / 2 + 1);
+    let source = format!("{first}<b>{second}</b>");
+    let parsed = parse_source_text(&source, RichTextFormat::Html);
+    let style = UiResolvedStyle::default();
+    let mut provider = SharedTextLayoutSession::new();
+
+    let lines = wrap_source_runs_with_provider(
+        &parsed.runs,
+        UiTextWrap::None,
+        f32::MAX,
+        &style,
+        &mut provider,
+    );
+
+    assert_eq!(lines.len(), 2);
+    assert_eq!(lines[0].text.len(), crate::text::TEXT_SHAPING_RUN_MAX_BYTES);
+    assert_eq!(
+        lines[0].source_range,
+        UiTextRange {
+            start: 0,
+            end: crate::text::TEXT_SHAPING_RUN_MAX_BYTES,
+        }
+    );
+    assert_eq!(lines[1].text, "x");
+    assert_eq!(
+        lines[1].source_range,
+        UiTextRange {
+            start: crate::text::TEXT_SHAPING_RUN_MAX_BYTES,
+            end: crate::text::TEXT_SHAPING_RUN_MAX_BYTES + 1,
+        }
     );
 }
 

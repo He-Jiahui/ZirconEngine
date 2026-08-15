@@ -1,10 +1,14 @@
 use zircon_runtime::core::framework::net::RpcPayloadSchema;
+use zircon_runtime::core::framework::script::{
+    ScriptHostArguments, ScriptHostError, ScriptHostHotPathMetrics, ScriptHostValueRef,
+};
 use zircon_runtime::script::{
     VmError, VmPluginHostContext, VmSystemStage, VM_HOST_INTERFACE_MODULE,
 };
 use zr_vm_rust_binding as zrvm;
 
 use super::errors::{map_zr_error, zr_error};
+use super::values::ZrVmScriptHostArgumentSource;
 use super::ZrVmRegistration;
 
 const HOST_MODULE_VERSION: &str = "0.1.0";
@@ -97,7 +101,11 @@ fn string_function(
 ) -> zrvm::FunctionBuilder {
     let label = format!("{VM_HOST_INTERFACE_MODULE}.{name}");
     let mut builder = zrvm::FunctionBuilder::new(name, arity, arity, move |context| {
-        let arguments = read_string_arguments(context, &label, arity as usize)?;
+        let arguments = read_extension_registration_strings_at_business_boundary(
+            context,
+            &label,
+            arity as usize,
+        )?;
         callback(arguments)
     })
     .return_type("void");
@@ -107,21 +115,28 @@ fn string_function(
     builder
 }
 
-fn read_string_arguments(
-    context: &zrvm::NativeCallContext,
+fn read_extension_registration_strings_at_business_boundary(
+    context: &zrvm::NativeCallContext<'_>,
     label: &str,
     count: usize,
 ) -> Result<Vec<String>, zrvm::Error> {
-    let mut arguments = Vec::with_capacity(count);
+    let source = ZrVmScriptHostArgumentSource::new(context, label)?;
+    let host_arguments = ScriptHostArguments::new(&source);
+    let mut registered_arguments = Vec::with_capacity(count);
     for index in 0..count {
-        let value = context.argument(index).map_err(|error| {
-            zr_error(format!("failed to read {label} argument {index}: {error}"))
-        })?;
-        arguments.push(value.as_string().map_err(|error| {
-            zr_error(format!(
-                "{label} argument {index} must be a string: {error}"
-            ))
-        })?);
+        let value = host_arguments
+            .with_argument(index, |value| match value {
+                ScriptHostValueRef::String(value) => {
+                    ScriptHostHotPathMetrics::record_guest_string_copy(value.len());
+                    Ok(value.to_owned())
+                }
+                value => Err(ScriptHostError::new(format!(
+                    "{label} argument {index} must be a string, received {:?}",
+                    value.kind()
+                ))),
+            })
+            .map_err(|error| zr_error(error.message))?;
+        registered_arguments.push(value);
     }
-    Ok(arguments)
+    Ok(registered_arguments)
 }

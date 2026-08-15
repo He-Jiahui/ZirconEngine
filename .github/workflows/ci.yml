@@ -11,6 +11,30 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
+  dependency-governance:
+    name: Dependency governance (${{ matrix.manifest }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        manifest:
+          - Cargo.toml
+          - zircon_plugins/Cargo.toml
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Test dependency-governance contract
+        run: python -B -m unittest tools.tests.test_frameworks_06_dependency_governance_contract -v
+
+      - name: Check advisories, duplicate versions, licenses, and sources
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          rust-version: "1.94.1"
+          manifest-path: ${{ matrix.manifest }}
+          arguments: --all-features
+          command: check
+          command-arguments: advisories bans licenses sources
+
   runtime-profile-feature-matrix-plan:
     name: Runtime profile feature matrix plan
     runs-on: ubuntu-latest

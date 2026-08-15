@@ -35,6 +35,7 @@ impl ViewportToolbarPointerBridge {
             ),
         };
         if self.sync_clicked_control(surface_key, control) {
+            self.applied_surface_frames.remove(surface_key);
             self.rebuild_surface();
         }
 

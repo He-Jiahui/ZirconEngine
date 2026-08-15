@@ -13,6 +13,16 @@ struct RetainedViewportPresenterFactory {
 }
 
 impl RuntimeUiSurfacePresenterFactory for RetainedViewportPresenterFactory {
+    fn poll_ready(&self) -> HostPresenterResult<bool> {
+        let render_framework = {
+            let mut shared = self.controller.lock_shared();
+            shared
+                .poll_or_start_render_framework()
+                .map_err(runtime_factory_error)?
+        };
+        Ok(render_framework.is_some())
+    }
+
     fn create(
         &self,
         descriptor: UiSurfaceDescriptor,

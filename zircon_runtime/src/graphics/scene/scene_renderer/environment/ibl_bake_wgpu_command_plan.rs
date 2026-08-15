@@ -1,16 +1,15 @@
 use crate::core::framework::render::{
-    ComputePipelineCacheKey, CubemapFace, IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES,
-    IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, IblBakeArtifactDescriptor,
-    IblBakeArtifactReadbackSectionKind, IblBakeArtifactRequest,
-    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE, ShaderDispatchExtent, ShaderParameterValue,
-    source_cubemap_face_mip_offset, source_cubemap_mip_size,
+    source_cubemap_face_mip_offset, source_cubemap_mip_size, ComputePipelineCacheKey, CubemapFace,
+    IblBakeArtifactDescriptor, IblBakeArtifactReadbackSectionKind, IblBakeArtifactRequest,
+    ShaderDispatchExtent, ShaderParameterValue, IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES,
+    IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
 };
 
 use super::ibl_bake_graph_plan::{
     IBL_BAKE_IRRADIANCE_CUBE_RESOURCE, IBL_BAKE_IRRADIANCE_SH9_RESOURCE, IBL_BAKE_PMREM_RESOURCE,
 };
 use super::ibl_bake_shader_plan::{
-    IblBakeComputeKernelKind, IblBakeComputeKernelPlan, ibl_bake_compute_kernel_plans_for_request,
+    ibl_bake_compute_kernel_plans_for_request, IblBakeComputeKernelKind, IblBakeComputeKernelPlan,
 };
 mod realtime_slice;
 
@@ -141,7 +140,7 @@ pub(in crate::graphics::scene::scene_renderer) enum IblBakeWgpuReadbackSource {
 pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_wgpu_command_plan_for_request(
     request: &IblBakeArtifactRequest,
 ) -> IblBakeWgpuCommandPlanSet {
-    let descriptor = IblBakeArtifactDescriptor::current_for_request(request);
+    let descriptor = IblBakeArtifactDescriptor::current_for_runtime_cache_request(request);
     let commands = ibl_bake_compute_kernel_plans_for_request(request)
         .into_iter()
         .map(|kernel| ibl_bake_wgpu_command_plan_for_kernel(request, descriptor, kernel))
@@ -235,7 +234,7 @@ fn params_plan_for_kernel(kernel: &IblBakeComputeKernelPlan) -> IblBakeWgpuParam
             u32_param(kernel, "sample_count"),
             0,
             f32_param(kernel, "roughness").to_bits(),
-            0,
+            f32_param(kernel, "write_terminal_average_to_all_faces").to_bits(),
         ],
         IblBakeComputeKernelKind::IrradianceSh9 => vec![
             u32_param(kernel, "source_face_size"),
@@ -247,7 +246,7 @@ fn params_plan_for_kernel(kernel: &IblBakeComputeKernelPlan) -> IblBakeWgpuParam
             u32_param(kernel, "source_face_size"),
             u32_param(kernel, "irradiance_face_size"),
             u32_param(kernel, "sample_count"),
-            0,
+            u32_param(kernel, "source_mip_level"),
         ],
     };
     IblBakeWgpuParamsPlan { words }

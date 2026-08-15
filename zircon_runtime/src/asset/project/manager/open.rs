@@ -8,15 +8,26 @@ use crate::asset::{ArtifactStore, AssetImportError, AssetImporter};
 
 use super::super::{
     PackageAssetRegistry, ProjectCatalogInputGeneration, ProjectManifest, ProjectPaths,
+    ResolvedProjectPath,
 };
 use super::ProjectManager;
 
 impl ProjectManager {
     pub fn open(root: impl AsRef<Path>) -> Result<Self, AssetImportError> {
         let paths = ProjectPaths::from_root(root)?;
+        Self::open_paths(paths)
+    }
+
+    /// Opens a project from a caller-owned physical path without resolving it a second time.
+    pub fn open_resolved(root: &ResolvedProjectPath) -> Result<Self, AssetImportError> {
+        Self::open_paths(ProjectPaths::from_resolved_root(root))
+    }
+
+    fn open_paths(paths: ProjectPaths) -> Result<Self, AssetImportError> {
         let manifest = ProjectManifest::load(paths.manifest_path())?;
         paths.ensure_derived_layout()?;
         paths.ensure_asset_roots(&manifest.asset_roots)?;
+        super::durable_transaction::recover_project_generation(&paths, &manifest)?;
         let mut package_assets = PackageAssetRegistry::default();
         package_assets.register_project_roots(paths.root(), &manifest.asset_roots)?;
         let asset_registry = AssetRegistryIndex::load_or_rebuild(

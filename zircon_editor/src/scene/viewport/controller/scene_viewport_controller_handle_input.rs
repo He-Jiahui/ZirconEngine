@@ -8,9 +8,8 @@ use zircon_runtime_interface::math::Vec2;
 use crate::scene::viewport::pointer::ViewportPointerRoute;
 
 use super::{
-    SceneViewportController, constants::PRIMARY_NAV_THRESHOLD,
-    scene_viewport_controller_pointer_route::route_owner,
-    viewport_drag_session::ViewportDragSession,
+    constants::PRIMARY_NAV_THRESHOLD, scene_viewport_controller_pointer_route::route_owner,
+    viewport_drag_session::ViewportDragSession, SceneViewportController,
 };
 
 impl SceneViewportController {

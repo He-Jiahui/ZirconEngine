@@ -4,7 +4,8 @@ use crate::ui::retained_host::host_contract::chrome_command_stream::{
 };
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_text::{
-    font_request_for_face, HostTextFontFace,
+    font_request_for_face, runtime_font_family_for_face, take_runtime_text_face_capture_count,
+    HostTextFontFace,
 };
 use zircon_runtime::rhi::{
     UiSurfaceCommandKind, UiSurfaceImageUvRect, UiSurfaceResolvedCommandKind, UiSurfaceTextStyle,
@@ -103,7 +104,8 @@ fn runtime_draw_list_forwards_atlas_uv_to_runtime_surface_payload() {
 }
 
 #[test]
-fn runtime_draw_list_projects_editor_text_family_and_weight_to_runtime_surface() {
+fn borrowed_and_owned_runtime_draw_lists_project_resolved_editor_text_style() {
+    let _ = take_runtime_text_face_capture_count();
     let mut stream = ChromeCommandStream::full_rebuild((128, 64));
     stream.push_command_for_test(ChromeCommand {
         layer: ChromeCommandLayer::Text,
@@ -148,57 +150,101 @@ fn runtime_draw_list_projects_editor_text_family_and_weight_to_runtime_surface()
         },
     });
 
-    let draw_list = ui_surface_draw_list_from_stream(&stream);
+    let borrowed_draw_list = ui_surface_draw_list_from_stream(&stream);
+    let owned_draw_list = ui_surface_draw_list_from_owned_stream(stream);
+    let mono_family = runtime_font_family_for_face(HostTextFontFace::Mono);
+    let strong_family = runtime_font_family_for_face(HostTextFontFace::UiStrong);
+    assert_eq!(
+        take_runtime_text_face_capture_count(),
+        2,
+        "borrowed and owned draw-list conversions should each capture one coherent face set"
+    );
 
-    let UiSurfaceCommandKind::Text {
-        font_family,
-        font_weight,
-        style,
-        ..
-    } = &draw_list.commands[0].kind
-    else {
-        panic!("expected code text command");
-    };
-    assert_eq!(
-        font_family.as_deref(),
-        Some(
-            font_request_for_face(HostTextFontFace::Mono)
-                .family
-                .as_str()
-        )
-    );
-    assert_eq!(
-        *font_weight,
-        UiResolvedStyle::normalized_font_weight(
-            font_request_for_face(HostTextFontFace::Mono).weight
-        )
-    );
-    assert_eq!(*style, UiSurfaceTextStyle::Regular);
+    for draw_list in [&borrowed_draw_list, &owned_draw_list] {
+        let UiSurfaceCommandKind::Text {
+            font_family,
+            font_weight,
+            style,
+            ..
+        } = &draw_list.commands[0].kind
+        else {
+            panic!("expected code text command");
+        };
+        assert_eq!(font_family.as_deref(), Some(mono_family.as_ref()));
+        assert_eq!(
+            *font_weight,
+            UiResolvedStyle::normalized_font_weight(
+                font_request_for_face(HostTextFontFace::Mono).weight
+            )
+        );
+        assert_eq!(*style, UiSurfaceTextStyle::Regular);
 
-    let UiSurfaceCommandKind::Text {
-        font_family,
-        font_weight,
-        style,
-        ..
-    } = &draw_list.commands[1].kind
-    else {
-        panic!("expected strong text command");
-    };
+        let UiSurfaceCommandKind::Text {
+            font_family,
+            font_weight,
+            style,
+            ..
+        } = &draw_list.commands[1].kind
+        else {
+            panic!("expected strong text command");
+        };
+        assert_eq!(font_family.as_deref(), Some(strong_family.as_ref()));
+        assert_eq!(
+            *font_weight,
+            UiResolvedStyle::normalized_font_weight(
+                font_request_for_face(HostTextFontFace::UiStrong).weight
+            )
+        );
+        assert_eq!(*style, UiSurfaceTextStyle::Strong);
+    }
+}
+
+#[test]
+fn runtime_draw_list_font_projection_work_is_bounded_per_stream() {
+    let _ = take_runtime_text_face_capture_count();
+    let mut text_stream = ChromeCommandStream::full_rebuild((128, 64));
+    for index in 0..1_000 {
+        text_stream.push_command_for_test(ChromeCommand {
+            layer: ChromeCommandLayer::Text,
+            z_index: index,
+            frame: FrameRect::default(),
+            clip: None,
+            kind: ChromeCommandKind::Text {
+                text: format!("label-{index}"),
+                color: [255; 4],
+                size: 12.0,
+                line_height: 14.0,
+                style: UiTextRunPaintStyle::default(),
+            },
+        });
+    }
+
+    let draw_list = ui_surface_draw_list_from_stream(&text_stream);
+    let owned_draw_list = ui_surface_draw_list_from_owned_stream(text_stream.clone());
+
+    assert_eq!(draw_list.commands.len(), 1_000);
+    assert_eq!(owned_draw_list.commands.len(), 1_000);
     assert_eq!(
-        font_family.as_deref(),
-        Some(
-            font_request_for_face(HostTextFontFace::UiStrong)
-                .family
-                .as_str()
-        )
+        take_runtime_text_face_capture_count(),
+        2,
+        "borrowed and owned font face capture work must not scale with text command count"
     );
+
+    let mut quad_stream = ChromeCommandStream::full_rebuild((16, 16));
+    quad_stream.push_quad(
+        ChromeCommandLayer::Static,
+        0,
+        FrameRect::default(),
+        None,
+        [0; 4],
+        0.0,
+    );
+    let _ = ui_surface_draw_list_from_owned_stream(quad_stream);
     assert_eq!(
-        *font_weight,
-        UiResolvedStyle::normalized_font_weight(
-            font_request_for_face(HostTextFontFace::UiStrong).weight
-        )
+        take_runtime_text_face_capture_count(),
+        0,
+        "a non-text stream must not resolve any font face"
     );
-    assert_eq!(*style, UiSurfaceTextStyle::Strong);
 }
 
 #[test]
@@ -227,7 +273,7 @@ fn owned_runtime_draw_list_moves_image_pixels_into_the_draw_list_resource_table(
             width: 2,
             height: 2,
             upload_bytes: 16,
-            rgba: Some(vec![7; 16]),
+            rgba: Some(vec![7; 16].into()),
             atlas_uv: None,
         },
     );
@@ -278,7 +324,7 @@ fn borrowed_runtime_draw_list_skips_resident_image_resource_pixels() {
             width: 2,
             height: 2,
             upload_bytes: 16,
-            rgba: Some(vec![9; 16]),
+            rgba: Some(vec![9; 16].into()),
             atlas_uv: None,
         },
     );
@@ -309,12 +355,17 @@ fn borrowed_runtime_draw_list_keeps_shared_image_pixels_out_of_commands() {
                 width: 2,
                 height: 2,
                 upload_bytes: 16,
-                rgba: Some(vec![3; 16]),
+                rgba: Some(vec![3; 16].into()),
                 atlas_uv: None,
             },
         );
     }
     stream.compact_image_resources();
+    let source_rgba_ptr = stream
+        .image_resource("image://shared", 3)
+        .expect("stream owns the shared source")
+        .rgba
+        .as_ptr();
 
     let draw_list = ui_surface_draw_list_from_stream(&stream);
 
@@ -326,8 +377,17 @@ fn borrowed_runtime_draw_list_keeps_shared_image_pixels_out_of_commands() {
         draw_list
             .image_resource("image://shared", 3)
             .expect("shared image source must be copied once into the resource table")
-            .rgba,
-        vec![3; 16]
+            .rgba
+            .as_ref(),
+        &[3; 16]
+    );
+    assert_eq!(
+        draw_list
+            .image_resource("image://shared", 3)
+            .expect("draw list shares the image source")
+            .rgba
+            .as_ptr(),
+        source_rgba_ptr
     );
 }
 
@@ -345,7 +405,7 @@ fn owned_runtime_draw_list_preserves_distinct_generations_of_one_resource_key() 
                 width: 2,
                 height: 2,
                 upload_bytes: 16,
-                rgba: Some(vec![generation as u8; 16]),
+                rgba: Some(vec![generation as u8; 16].into()),
                 atlas_uv: None,
             },
         );
@@ -361,15 +421,17 @@ fn owned_runtime_draw_list_preserves_distinct_generations_of_one_resource_key() 
         draw_list
             .image_resource("atlas://editor/icons", 4)
             .expect("older image generation")
-            .rgba,
-        vec![4; 16]
+            .rgba
+            .as_ref(),
+        &[4; 16]
     );
     assert_eq!(
         draw_list
             .image_resource("atlas://editor/icons", 5)
             .expect("newer image generation")
-            .rgba,
-        vec![5; 16]
+            .rgba
+            .as_ref(),
+        &[5; 16]
     );
 }
 
@@ -386,7 +448,7 @@ fn borrowed_runtime_draw_list_falls_back_to_inline_pixels_without_resource_entry
             width: 2,
             height: 2,
             upload_bytes: 16,
-            rgba: Some(vec![4; 16]),
+            rgba: Some(vec![4; 16].into()),
             atlas_uv: None,
         },
     );
@@ -401,8 +463,9 @@ fn borrowed_runtime_draw_list_falls_back_to_inline_pixels_without_resource_entry
         draw_list
             .image_resource("image://inline-fallback", 4)
             .expect("uncompacted stream must retain its inline source once")
-            .rgba,
-        vec![4; 16]
+            .rgba
+            .as_ref(),
+        &[4; 16]
     );
 }
 
@@ -419,7 +482,7 @@ fn resident_atlas_stays_out_of_owned_draw_list_resources() {
             width: 2,
             height: 2,
             upload_bytes: 16,
-            rgba: Some(vec![8; 16]),
+            rgba: Some(vec![8; 16].into()),
             atlas_uv: Some(ChromeImageUvRect {
                 min: [0.0, 0.0],
                 max: [0.5, 0.5],

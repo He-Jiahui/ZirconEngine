@@ -3,7 +3,7 @@ use wgpu::util::DeviceExt;
 
 use crate::core::framework::render::{RenderImageColorSpace, TextureMetadata, TextureUsageHint};
 
-use super::{MIP_GEN_MIPS_PER_DISPATCH, MipGenDispatch, MipGenDispatchPlan};
+use super::{MipGenDispatch, MipGenDispatchPlan, MIP_GEN_MIPS_PER_DISPATCH};
 
 const MIP_GEN_SHADER: &str = include_str!("shaders/mip_gen.wgsl");
 const MIP_GEN_STORAGE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
@@ -265,7 +265,11 @@ const fn mip_extent(value: u32, level: u32) -> u32 {
         1
     } else {
         let shifted = value >> level;
-        if shifted == 0 { 1 } else { shifted }
+        if shifted == 0 {
+            1
+        } else {
+            shifted
+        }
     }
 }
 

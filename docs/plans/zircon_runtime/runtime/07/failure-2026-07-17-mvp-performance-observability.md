@@ -56,3 +56,10 @@ profiling 容器和 task diagnostic schema 都由 runtime diagnostics owner 定�
 ## 修复结果与回传
 
 Open state: `profiling ring 已实现待验证；任务可观测性待 Runtime07/11 修复`。
+
+## 2026-08-13 前向续作
+
+- JobScheduler 现将 queue wait 与 execution duration 分开：仅成功开始的任务保存 execution 起点，只有正常或 panic 的终态累积 `tasks.execution_samples`/`tasks.execution_ms`；未启动取消与 diagnostics disabled 均不建立样本。
+- queued、active、dependency wait、queue wait、execution、panic 与 cancel 已在同一 shard snapshot/report surface 输出。main-thread wait 归因仍需 Runtime11 的执行域边界定义，故 failure 不关闭。
+- 新增真实 `schedule(...).wait()` 回归：一个成功 worker task 必须同时产生一个 completion 与一个 execution sample，断言不依赖机器相关耗时阈值。
+- 未运行 Cargo 或性能矩阵；保持 open，等待受管 Windows 行为与压力证据。

@@ -1,12 +1,12 @@
 use std::fs;
 use std::sync::Arc;
 
-use crate::asset::{AssetReference, pipeline::manager::ProjectAssetManager};
+use crate::asset::{pipeline::manager::ProjectAssetManager, AssetReference};
 use crate::core::framework::render::{
-    GEOMETRY_SOURCE_PLUGIN_ID_START, GeometrySourceBindingKind, GeometrySourceBindingRequirement,
-    GeometrySourceDescriptor, GeometrySourceId, GeometrySourceVertexAttribute,
-    RenderShaderDefinitionValue, SHADING_MODEL_ID_STANDARD_PBR, ShaderFeatureBits, ShaderPassType,
-    ShaderPipelineDiagnosticStage, ShaderQualityTier, ShaderVariantPrewarmManifest,
+    GeometrySourceBindingKind, GeometrySourceBindingRequirement, GeometrySourceDescriptor,
+    GeometrySourceId, GeometrySourceVertexAttribute, RenderShaderDefinitionValue,
+    ShaderFeatureBits, ShaderPassType, ShaderPipelineDiagnosticStage, ShaderQualityTier,
+    ShaderVariantPrewarmManifest, GEOMETRY_SOURCE_PLUGIN_ID_START, SHADING_MODEL_ID_STANDARD_PBR,
 };
 use crate::core::resource::ResourceId;
 use crate::dynamic_api::{
@@ -17,17 +17,17 @@ use crate::graphics::backend::RenderBackend;
 use crate::graphics::pipeline::PipelineAsyncQueueResult;
 use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::scene::resources::{
-    GPU_MATERIAL_UNIFORM_MIN_SIZE, PipelineKey, ResourceStreamer, default_pipeline_key,
-    fallback_shader_uri,
+    default_pipeline_key, fallback_shader_uri, PipelineKey, ResourceStreamer,
+    GPU_MATERIAL_UNIFORM_MIN_SIZE,
 };
 use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
-use crate::graphics::shader::{ShaderVariantCacheDisk, prewarm_shader_variants_to_disk};
+use crate::graphics::shader::{prewarm_shader_variants_to_disk, ShaderVariantCacheDisk};
 
 use super::super::super::mesh_pass::{MeshPassPipelineKind, MeshPipelineVariantId};
 use super::super::mesh_pipeline_standard_material_template_source;
 use super::super::{
-    MAX_ASYNC_BASE_PIPELINES_IN_FLIGHT, MAX_PENDING_PIPELINE_CREATION_DIAGNOSTICS,
-    MeshPipelineCache, PipelineCreationTarget,
+    MeshPipelineCache, PipelineCreationTarget, MAX_ASYNC_BASE_PIPELINES_IN_FLIGHT,
+    MAX_PENDING_PIPELINE_CREATION_DIAGNOSTICS,
 };
 use super::mesh_shader_module_cache_key;
 
@@ -298,6 +298,9 @@ fn runtime_environment_only_pbr_base_prewarm_populates_the_renderer_cache() {
             .contains_key(&viewer_variant_id),
         "prewarm must populate the viewer's no-shadow-receiver Base variant"
     );
+    let first_creation_metrics = cache.shader_variant_miss_report();
+    assert_eq!(first_creation_metrics.render_pipeline_creation_count, 1);
+    assert_eq!(first_creation_metrics.shader_module_creation_count, 1);
     let repeated_prewarm = cache
         .prewarm_environment_only_pbr_base_pipeline(&device, &mut streamer)
         .expect("repeated environment-only PBR prewarm must resolve the builtin shader revision");
@@ -319,6 +322,23 @@ fn runtime_environment_only_pbr_base_prewarm_populates_the_renderer_cache() {
         "the cache-hit timing must retain its source and cache lookup accounting"
     );
     assert_eq!(cache.mesh_variant_pipelines.len(), 1);
+    let repeated_creation_metrics = cache.shader_variant_miss_report();
+    assert_eq!(
+        repeated_creation_metrics.render_pipeline_creation_count,
+        first_creation_metrics.render_pipeline_creation_count
+    );
+    assert_eq!(
+        repeated_creation_metrics.shader_module_creation_count,
+        first_creation_metrics.shader_module_creation_count
+    );
+    assert_eq!(
+        repeated_creation_metrics.render_pipeline_creation_cpu_microseconds,
+        first_creation_metrics.render_pipeline_creation_cpu_microseconds
+    );
+    assert_eq!(
+        repeated_creation_metrics.shader_module_creation_cpu_microseconds,
+        first_creation_metrics.shader_module_creation_cpu_microseconds
+    );
 
     let viewer_shader_key = cache
         .shader_modules
@@ -489,7 +509,9 @@ fn runtime_environment_only_pbr_base_queue_never_falls_back_to_sync_when_worker_
             .shader_variant_miss_report()
             .pipeline_diagnostics()
             .iter()
-        .any(|diagnostic| diagnostic.message.contains("async Base pipeline compiler is unavailable")),
+            .any(|diagnostic| diagnostic
+                .message
+                .contains("async Base pipeline compiler is unavailable")),
         "worker loss must remain visible through the pipeline diagnostics"
     );
     let diagnostic_count = cache
@@ -708,7 +730,10 @@ fn runtime_environment_only_pbr_base_queue_retries_after_async_capacity_is_recla
                 .async_base_pipeline_compiler
                 .as_mut()
                 .expect("the async compiler should remain available while its budget is filled")
-                .try_queue(queued_id, || Err("test-only queued predecessor".to_string())),
+                .try_queue(
+                    queued_id,
+                    || Err("test-only queued predecessor".to_string())
+                ),
             PipelineAsyncQueueResult::Queued
         );
     }
@@ -753,7 +778,9 @@ fn runtime_environment_only_pbr_base_queue_retries_after_async_capacity_is_recla
     );
     let retry_report = cache
         .queue_environment_only_pbr_base_pipeline(&device, &mut streamer)
-        .expect("the next admission attempt must queue the environment variant after capacity returns");
+        .expect(
+            "the next admission attempt must queue the environment variant after capacity returns",
+        );
     assert!(!retry_report.pipeline_ready());
     assert_eq!(
         cache.async_pipeline_compile_pending_count(),
@@ -816,14 +843,12 @@ fn runtime_environment_only_provider_fallback_resolves_generic_base_without_asyn
         ShaderQualityTier::default(),
     );
 
-    assert!(
-        !cache
-            .pipeline_and_shader_key_for_variant(generic_variant)
-            .expect("generic Base variant key after provider upgrade")
-            .2
-            .features
-            .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR)
-    );
+    assert!(!cache
+        .pipeline_and_shader_key_for_variant(generic_variant)
+        .expect("generic Base variant key after provider upgrade")
+        .2
+        .features
+        .contains(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR));
     assert!(
         cache
             .ensure_pipeline_for_variant(&device, &streamer, generic_variant)
@@ -917,6 +942,11 @@ fn runtime_environment_only_pbr_base_prewarm_waits_for_its_queued_async_variant(
     assert!(prewarm.cache_hit());
     assert!(!prewarm.created_pipeline());
     assert_eq!(cache.async_pipeline_compile_pending_count(), 0);
+    let creation_metrics = cache.shader_variant_miss_report();
+    assert_eq!(creation_metrics.render_pipeline_creation_count, 1);
+    assert_eq!(creation_metrics.shader_module_creation_count, 1);
+    assert_eq!(creation_metrics.async_base_pipeline_queue_wait_count, 1);
+    assert!(creation_metrics.async_base_pipeline_queue_wait_microseconds > 0);
 }
 
 #[test]

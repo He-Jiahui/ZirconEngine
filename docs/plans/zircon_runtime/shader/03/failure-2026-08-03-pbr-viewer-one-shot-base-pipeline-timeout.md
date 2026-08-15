@@ -53,7 +53,7 @@ The viewer has retry-delay state only. It has no deadline owned by the shared on
 
 ## 修复结果与回传
 
-Open state: `待修复`; no validation pass is claimed. The candidate forward repair is implemented but remains open until its focused managed Windows tests, current-source screenshot metadata, and RenderDoc replay complete.
+Open state: `implementation complete; acceptance pending`. No managed validation pass is claimed. The forward repair remains open until its focused locked Windows tests, current-source v12 screenshot metadata, and RenderDoc replay complete.
 
 ### 前向修复收据 (2026-08-03)
 
@@ -61,3 +61,16 @@ Open state: `待修复`; no validation pass is claimed. The candidate forward re
 - Applied Viewer patch 78: when the readiness query returns `false`, the host retries Base-PSO admission before scheduling its existing bounded backoff. Worker and shader-compilation failures remain terminal.
 - Runtime now checks pending/capacity before shader-source assembly, so a full queue does not repeatedly assemble the reduced WGSL source. Regression coverage holds a 64-slot queue full across repeated admissions, releases one worker completion, verifies target re-admission, then verifies readiness.
 - This handoff remains `open` until managed Windows focused tests, current-source screenshot metadata under `docs/tests/runtime/shader`, and RenderDoc replay complete. M6 remains `in_progress`; no accepted milestone status is claimed here.
+
+### 前向精度修复收据 (2026-08-08)
+
+- The shared one-shot recheck now caps its final `WaitUntil` deadline at the same absolute 45-second screenshot/RenderDoc timeout. A final 250 ms backoff can no longer delay the terminal transition past that deadline.
+- The retry timing policy and its pure deadline tests now live in `zircon_app/src/bin/zircon_shader_pbr_viewer/base_pipeline_recheck.rs`; `app.rs` retains only viewer state and event-loop scheduling. Interactive presentation explicitly keeps the uncapped bounded backoff.
+- Static formatting and source-contract checks passed. Post-fix independent review reports `Critical 0 / Important 0 / Minor 0`; the integration candidate must include the new `base_pipeline_recheck.rs` module with its parent import.
+- This is not managed-runtime acceptance: this handoff remains `open`, and the focused locked Windows tests, current-source screenshot metadata, and RenderDoc replay remain required before closure.
+
+### 性能证据基础设施收据 (2026-08-13)
+
+- Ready-frame sidecar advances to v12 and snapshots the renderer's twelve shader/PSO structure, residency, WGPU creation-cost, and successfully admitted async Base queue-wait metrics only after the Ready render succeeds. This lets the pending current-source screenshot distinguish the historical DX12 creation cost from worker admission delay without changing the 45-second one-shot timeout policy.
+- The standalone verifier keeps v2-v11 behind `--allow-legacy-schema`, requires every v12 field plus nonzero registered/resident Base GPU objects, and rejects overflow or internally inconsistent structure/residency values. Successful v12 CLI output includes the twelve metrics and key startup/Ready timings as structured JSON for cold-run comparison. Its Python contract suite, Rust formatting, and scoped diff-integrity checks pass.
+- This forward work does not close the handoff. The same focused locked Windows tests, current-source v12 screenshot metadata under `docs/tests/runtime/shader`, and `D:\Tools\renderdoc\renderdoccmd.exe replay --loops 1` remain the only open acceptance items.

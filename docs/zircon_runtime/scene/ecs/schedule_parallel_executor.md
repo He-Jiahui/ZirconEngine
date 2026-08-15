@@ -103,3 +103,9 @@ Behavior coverage in `ecs_schedule/parallel_executor.rs` covers:
 Cargo validation is pending. The focused `ecs_schedule` run compiled until an unrelated UI test import error in `zircon_runtime/src/ui/tests/asset_dependency_index.rs`, so these schedule tests did not execute.
 
 The 2026-07-17 performance slice added the copy-on-write registry snapshot regression. It remains Cargo-validation pending. Per-run abort state, per-batch result slots, cloned system-id vectors, and dependency handles remain explicit measurement candidates; no allocation reduction is claimed for those paths yet.
+
+## Production Runner Relationship
+
+`ScheduleParallelExecutor` is not the current product-scene owner. Production `WorldDriver` delegates to `SceneScheduleRunner`, whose compiled native-system plan uses `SystemParamAccess` conflicts to select worker-safe batches. It takes those native systems out of `World`, executes them through `JobScheduler::join` without sharing `&mut World`, and merges worker-local command queues in stable order. Non-worker-safe and non-native lanes remain on the main thread. Worker callbacks and command application share one unwind boundary, so taken systems are restored before either panic resumes.
+
+`NativeSystemScheduleDiagnostics` records the product path's worker-batch/conflict, ready-delay, utilization, callback-latency, callback/conservative-writer counters, and two temporary-control-buffer values. Production overlap is currently proved by behavior tests rather than a published counter. `temporary_control_buffer_count` counts the systems/timings containers plus the optional command-queue-reference container; `temporary_control_buffer_bytes` is their capacity-byte proxy. These values are observability inputs, not global allocator-call counts or an allocation benchmark result. Cargo and product workload validation remain pending.

@@ -2,13 +2,13 @@ use std::collections::BTreeMap;
 
 use super::super::constraints::aggregate_row_constraints;
 use super::super::region_state::RegionState;
+use super::super::{ShellFrame, ShellRegionId, ShellSizePx, solve_axis_constraints};
 use super::super::{
-    compact_side_defaults, minimum_document_width_fraction, WorkbenchChromeMetrics,
+    WorkbenchChromeMetrics, compact_side_defaults, minimum_document_width_fraction,
 };
-use super::super::{solve_axis_constraints, ShellFrame, ShellRegionId, ShellSizePx};
 use super::resolved_region_frames::ResolvedRegionFrames;
 use super::side_width_allocation::balanced_side_widths_for_budget;
-use super::vertical_bands::{resolve_vertical_flex_bands, VerticalFlexBandRequest};
+use super::vertical_bands::{VerticalFlexBandRequest, resolve_vertical_flex_bands};
 
 pub(super) fn build_region_frames(
     size: ShellSizePx,

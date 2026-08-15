@@ -20,7 +20,7 @@ plan_sources:
   - dev/slint/internal/core/textlayout.rs
   - dev/Fyrox/fyrox-ui/src/formatted_text.rs
 tests:
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map/tests.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/source_map_tests.rs
   - zircon_runtime/src/ui/text/geometry/tests/mixed_bidi.rs
   - zircon_runtime/src/ui/tests/text_hit_testing.rs
   - zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs

@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use crate::asset::{MeshAsset, ModelPrimitiveAsset};
 use crate::core::framework::render::{
-    DisplayMode, RenderMaterialPropertyUniformPayload, RenderMeshLodSelection, RenderMeshSnapshot,
-    RenderMeshStaticState, RendererCommon, render_mesh_stable_instance_key,
+    render_mesh_stable_instance_key, DisplayMode, RenderMaterialPropertyUniformPayload,
+    RenderMeshLodSelection, RenderMeshSnapshot, RenderMeshStaticState, RendererCommon,
 };
 use crate::core::framework::scene::{EntityId, Mobility};
 use crate::core::math::{RenderMat4, Vec4};
@@ -16,7 +16,7 @@ use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPale
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::super::resources::{
-    GpuMeshResource, ResourceStreamer, default_pipeline_key,
+    default_pipeline_key, GpuMeshResource, ResourceStreamer,
 };
 use super::super::super::super::primitives::render_mat4_or;
 use super::super::super::mesh_draw::MeshCommandSortInput;
@@ -25,8 +25,8 @@ use super::mesh_draw_build_context::MeshDrawBuildContext;
 use super::morph_payload_upload::morph_payload_from_mesh_asset;
 use super::pending_mesh_draw::{PendingMeshDraw, PendingMeshGeometry, PendingSkinnedGpuSource};
 use super::skinning::{
-    SkinnedMeshPreparedPrimitive, prepare_skinned_mesh_asset_primitive,
-    prepare_skinned_model_primitive,
+    prepare_skinned_mesh_asset_primitive, prepare_skinned_model_primitive,
+    SkinnedMeshPreparedPrimitive,
 };
 
 mod material_inputs;
@@ -347,7 +347,11 @@ fn resource_revision_signature(resource_id: ResourceId, revision: u64) -> u64 {
 
 fn nonzero_hash(hasher: DefaultHasher) -> u64 {
     let signature = hasher.finish();
-    if signature == 0 { 1 } else { signature }
+    if signature == 0 {
+        1
+    } else {
+        signature
+    }
 }
 
 fn next_draw_ordinal(draw_ordinal: &mut u32) -> u32 {

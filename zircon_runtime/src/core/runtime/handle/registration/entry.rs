@@ -19,6 +19,8 @@ pub(super) fn service_entry(
         lifecycle: LifecycleState::Registered,
         initialization_owner: None,
         instance: None,
+        admission_open: false,
+        in_flight_calls: 0,
     }
 }
 

@@ -30,6 +30,7 @@ use zircon_runtime_interface::ui::v2::{
 mod document_module;
 mod interaction;
 mod popup_projection;
+mod scene_fragment;
 mod scene_snapshot;
 mod shell_layout;
 mod support;
@@ -43,6 +44,7 @@ fn workbench_projection_test_owners_stay_within_budget() {
         ("mod.rs", include_str!("mod.rs")),
         ("shell_layout.rs", include_str!("shell_layout.rs")),
         ("document_module.rs", include_str!("document_module.rs")),
+        ("scene_fragment.rs", include_str!("scene_fragment.rs")),
         ("scene_snapshot.rs", include_str!("scene_snapshot.rs")),
         ("interaction.rs", include_str!("interaction.rs")),
         ("popup_projection.rs", include_str!("popup_projection.rs")),

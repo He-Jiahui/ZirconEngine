@@ -94,7 +94,7 @@ Runtime 12 current child-owner sync (2026-07-10): `input_stack_boundary` reports
 ### M1 动作映射层设计与最小实现
 
 - 切片 1.1（设计定稿）：`InputAction`/`InputActionContext`/`InputBinding`/`InputActionMap`/`InputActionState` 签名草案（serde 可序列化、跨 dynamic_api ABI-safe；对照 Godot InputMap 的 action 字符串键 + bevy ButtonInput 泛型）；数据来源（项目配置文件）与 runtime 注册路径。落 `core/framework/input`（契约）+ `input/runtime`（求值）。
-- 切片 1.2（实现 + 测试）：`action_map_resolves_chords_and_reports_just_activated`、`rebinding_action_does_not_require_recompilation`、`action_contexts_filter_gameplay_and_menu_maps_without_rebinding`（数据驱动锚）。调用方迁移：无强制（新增层；既有原语保留为底层读口）。
+- 切片 1.2（实现 + 测试）：`action_map_resolves_chords_and_reports_just_activated`、`replacing_action_map_rebuilds_bindings_automatically`、`action_contexts_filter_gameplay_and_menu_maps_without_rebinding`（数据驱动锚）。调用方迁移：无强制（新增层；既有原语保留为底层读口）。
 - DoD：`cargo test -p zircon_runtime --lib input --locked` 全绿；文档含"何时用 action vs 原始按键"判据。
 
 ### M2 gamepad 桥接与热插拔

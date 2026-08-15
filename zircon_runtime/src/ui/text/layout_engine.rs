@@ -1,12 +1,12 @@
 use crate::text::layout::{
-    TextLineMetrics, line_metrics_with_provider,
+    line_metrics_with_provider,
     measure_text_size_with_provider as measure_backend_text_size_with_provider,
     measure_text_source_range_width_with_provider as measure_backend_text_source_range_width_with_provider,
+    TextLineMetrics,
 };
 use crate::text::{
-    SharedTextLayoutSession, TextDocumentKey, build_resolved_text_glyph_artifact,
-    build_resolved_text_glyph_artifact_with_shared_source, register_resolved_text_glyph_artifact,
-    text_style,
+    build_resolved_text_glyph_artifact, build_resolved_text_glyph_artifact_with_shared_source,
+    register_resolved_text_glyph_artifact, text_style, SharedTextLayoutSession, TextDocumentKey,
 };
 use std::sync::Arc;
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
@@ -17,7 +17,7 @@ use zircon_runtime_interface::ui::surface::{
 
 use crate::text::register_compiled_rich_text_artifact;
 
-use super::rich_text::parse_source_text;
+use super::rich_text::{parse_source_text, UiParsedText};
 
 mod candidate_line;
 mod direction;
@@ -40,8 +40,8 @@ use ellipsis::{
     merge_clipped_lines_for_tail_preserving_ellipsis,
 };
 use line_box::{
-    MIN_TEXT_FONT_SIZE, aligned_x, available_wrap_extent,
-    materialize_arabic_tatweels_for_justified_line, resolve_line_widths_with_provider,
+    aligned_x, available_wrap_extent, materialize_arabic_tatweels_for_justified_line,
+    resolve_line_widths_with_provider, MIN_TEXT_FONT_SIZE,
 };
 use viewport::visible_plain_text_lines;
 use wrapping::wrap_source_runs_with_provider;
@@ -114,6 +114,20 @@ pub(crate) fn measure_unwrapped_text_height_with_provider(
         .0
         .max(1) as f32;
     Some(line_height * line_count)
+}
+
+/// Uses the same hard-line window decision as layout before a retained owner chooses whether a
+/// full-document prewarm would be wasted. The line-metrics sample and hard-line index are then
+/// reused by the subsequent layout request.
+pub(super) fn viewport_selects_partial_plain_text(
+    parsed: &UiParsedText,
+    style: &UiResolvedStyle,
+    viewport: UiTextViewport,
+    document_key: Option<TextDocumentKey>,
+    provider: &mut SharedTextLayoutSession,
+) -> bool {
+    let line_height = line_metrics_with_provider(&text_style(style), provider).line_height;
+    visible_plain_text_lines(parsed, style, viewport, line_height, document_key, provider).is_some()
 }
 
 pub(crate) fn measure_text_source_range_width(
@@ -222,15 +236,41 @@ pub(super) fn layout_parsed_text_with_provider_and_viewport(
     document_key: Option<TextDocumentKey>,
     provider: &mut SharedTextLayoutSession,
 ) -> UiResolvedTextLayout {
-    let mut layout = layout_parsed_text_without_artifacts_with_viewport(
-        parsed,
-        style,
-        frame,
-        clip_frame,
-        viewport,
-        document_key,
-        provider,
-    );
+    let collect_profile_metrics = layout_profile_metrics_enabled();
+    #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+    let cache_report_before = collect_profile_metrics.then(|| provider.cache_report());
+    let mut layout = {
+        crate::profile_scope!("runtime", "text.layout", "resolve_without_artifact");
+        layout_parsed_text_without_artifacts_with_viewport(
+            parsed,
+            style,
+            frame,
+            clip_frame,
+            viewport,
+            document_key,
+            provider,
+        )
+    };
+    #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+    if collect_profile_metrics {
+        let cache_report_after = provider.cache_report();
+        let cache_report_before = cache_report_before
+            .expect("active layout profiling must capture the shaped-cache baseline");
+        crate::profile_counter!(
+            "runtime",
+            "layout_pre_artifact_shaped_cache_hit_count",
+            cache_report_after
+                .hit_count
+                .saturating_sub(cache_report_before.hit_count)
+        );
+        crate::profile_counter!(
+            "runtime",
+            "layout_pre_artifact_shaped_cache_miss_count",
+            cache_report_after
+                .miss_count
+                .saturating_sub(cache_report_before.miss_count)
+        );
+    }
     if !matches!(
         style.rich_text_format,
         zircon_runtime_interface::ui::surface::UiRichTextFormat::Plain
@@ -251,6 +291,22 @@ pub(super) fn layout_parsed_text_with_provider_and_viewport(
         layout.rich_text_artifact = Some(register_resolved_text_glyph_artifact(Arc::new(artifact)));
     }
     layout
+}
+
+/// Tracy streams counters continuously, while the CPU recorder should remain inert when idle.
+fn layout_profile_metrics_enabled() -> bool {
+    #[cfg(feature = "profiling-tracy")]
+    {
+        return true;
+    }
+    #[cfg(all(feature = "profiling", not(feature = "profiling-tracy")))]
+    {
+        return crate::core::diagnostics::profiling::capture_active();
+    }
+    #[cfg(not(any(feature = "profiling", feature = "profiling-tracy")))]
+    {
+        false
+    }
 }
 
 pub(super) fn layout_parsed_text_with_provider(

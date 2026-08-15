@@ -3,14 +3,14 @@ use std::ops::Range;
 use bytemuck::{Pod, Zeroable};
 
 use crate::core::math::UVec2;
+use crate::text::layout::justify_line_advances;
+use crate::text::sdf::{
+    scale_sdf_metrics_for_display, SdfAtlasBake, SdfAtlasRect, SdfBakeParams, SdfBakedGlyph,
+    SdfGlyphMetrics, SdfMode, SdfRunCpuPreparation,
+};
 use crate::text::ShapedGlyphRotation;
 #[cfg(test)]
 use crate::text::TextRenderState;
-use crate::text::layout::justify_line_advances;
-use crate::text::sdf::{
-    SdfAtlasBake, SdfAtlasRect, SdfBakeParams, SdfBakedGlyph, SdfGlyphMetrics, SdfMode,
-    SdfRunCpuPreparation, scale_sdf_metrics_for_display,
-};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{UiTextAlign, UiTextDirection, UiTextWritingMode};
 
@@ -247,6 +247,28 @@ pub(super) fn aligned_text_start_x(text: &ScreenSpaceUiTextBatch, text_width: f3
         UiTextAlign::Justify => 0.0,
     };
     positioned_frame.x + offset
+}
+
+pub(super) fn horizontal_sdf_text_baseline(
+    text: &ScreenSpaceUiTextBatch,
+    positioned_frame: UiFrame,
+    glyphs: &[RunGlyph],
+) -> f32 {
+    if let Some(relative_baseline) = text
+        .text_decoration_baseline
+        .map(|baseline| baseline - text.frame.y)
+        .filter(|baseline| baseline.is_finite())
+    {
+        return positioned_frame.y + relative_baseline;
+    }
+
+    let line_ascent = glyphs
+        .iter()
+        .map(|glyph| glyph.metrics.ascent)
+        .fold(text.font_size.max(1.0), f32::max);
+    positioned_frame.y
+        + (text.line_height.max(text.font_size) - text.font_size.max(1.0)).max(0.0) * 0.5
+        + line_ascent
 }
 
 pub(super) fn resolve_sdf_glyph_advances(

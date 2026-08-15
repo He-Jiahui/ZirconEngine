@@ -1,6 +1,8 @@
 ---
 related_code:
+  - Cargo.toml
   - zircon_runtime/Cargo.toml
+  - zircon_runtime/runtime-feature-presets.toml
   - zircon_runtime/src/lib.rs
   - zircon_app/Cargo.toml
   - zircon_app/src/plugins/groups.rs
@@ -10,6 +12,7 @@ related_code:
   - zircon_plugins/first_party_runtime_catalog/Cargo.toml
   - tools/check-runtime-domain-features.ps1
   - tools/tests/test_frameworks_03_domain_feature_matrix.py
+  - tools/tests/test_frameworks_03_server_feature_boundary.py
   - tools/tests/test_runtime_tech_stack_boundary.py
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/index.md
@@ -179,11 +182,26 @@ current-main 默认 feature Runtime 全量 lib suite 仍 RED/pending，M1 未 ac
 
 ### M3 拆分后收口（依赖计划 01 M3）
 
+状态（2026-08-10）：已对计划 01 先行物理拆出的 `zr_rhi`/`zr_rhi_wgpu` 完成首个成员
+feature-forwarding 边界切片。根 workspace 两条内部依赖均显式关闭默认 feature；闭包审计修复了
+`default-features = false` 且无请求 feature 的常驻本地包会被漏算的问题，并证明 Server 的
+Runtime/App 闭包包含中立 `zr_rhi`、不包含 `zr_rhi_wgpu` 或其 `platform-winit`。该切片 Source
+闭包同时证明 Client/Editor 正向激活 `zr_rhi_wgpu` 并把 `platform-winit` 转发到两个成员。该切片
+Source Ready，独立二审 C0/I0/M0；managed Cargo pending。其余成员尚未物理拆出，因此 M3
+整体仍未完成。
+
 实现切片：
 - 门面 feature 全部改为转发成员 crate feature；可选域 crate `optional = true`；
 - 复核守卫组合，补"成员 crate 不被越级启用"的 cargo tree 断言。
+- 已落地的首批静态闭包守卫同时校验 workspace member dependency 的
+  `default-features = false`、中立 RHI 常驻可达与 WGPU backend 的 Server 排除；后续每个物理
+  `zr_*` 成员必须进入同一闭包模型，不得用源码字符串计数代替依赖图。
 
-测试阶段：M1+M2 全命令复测；验收证据：server 组合编译单元列表（`cargo build --timings` 的 crate 清单）不含 zr_ui/zr_graphics/zr_animation/zr_navigation/zr_script。
+测试阶段：当前 Frameworks03 Python 合同 55/55 GREEN，新增 RHI 闭包 focused 1/1 先 RED
+后 GREEN；11 输入 focused 静态票据与 8,021 输入 canonical Rust 1.94.1 Server check 请求均已
+取得 durable receipt，终态待 coordinator wakeup；M1+M2 Cargo 全命令与 managed Server package
+graph 仍待复测。最终验收证据：server 组合编译单元列表（`cargo build --timings` 的 crate 清单）不含
+zr_ui/zr_graphics/zr_animation/zr_navigation/zr_script。
 
 ### M4 profile API hard-cut 消费收敛
 
@@ -252,7 +270,8 @@ Rust source scan 确认旧 builder、`.feature_preset()` 与名称推断为零�
 - 2026-07-15 硬切记录：[`03/2026-07-15-runtime-profile-id-canonical-import.md`](03/2026-07-15-runtime-profile-id-canonical-import.md)（canonical type owner 与显式 preset-table lookup 已完成；受管 integration contract 2/2）
 - 2026-07-17 显式 export profile 记录：[`03/2026-07-17-export-profile-runtime-profile-explicit-hardcut.md`](03/2026-07-17-export-profile-runtime-profile-explicit-hardcut.md)（生产 hard-cut 已实现，受管 Cargo 验收 pending）
 - 2026-07-22 Audio owner 硬切记录：[`03/2026-07-22-audio-channel-layout-owner-hardcut.md`](03/2026-07-22-audio-channel-layout-owner-hardcut.md)（Sound root 私有重导出已删除，无兼容层；静态门与受管 `sound-contracts` 编译均 GREEN）
+- 2026-08-10 M3 首批成员 feature forwarding：[`03/2026-08-10-m3-rhi-feature-forwarding-boundary.md`](03/2026-08-10-m3-rhi-feature-forwarding-boundary.md)（workspace 默认 feature 硬关闭、Server RHI package closure 与 Neural editor profile 单源同步已实现；独立二审 C0/I0/M0，managed Cargo pending）
 - fixed 已修复：[target-server-libtest-feature-gating](../../zircon_editor/editor/11/fixed-2026-07-11-target-server-libtest-feature-gating.md)
 - fixed 已修复：[runtime-module-structure-cfg-fence](../../zircon_editor/editor/10/fixed-2026-07-11-runtime-module-structure-cfg-fence.md)
 - fixed 已修复：[planar-filter-test-surface-export](03/fixed-2026-07-13-planar-filter-test-surface-export.md)
-- 当前状态：M1 进行中；feature 命名、`target-server` 域裁剪、AI/Net/Sound/Physics contract 独立门控与 ZRPack asset owner 硬迁移已完成。Sound channel topology 已硬迁到常驻 `core::framework::audio`；Physics 持久化 material/joint/skeleton schema 已硬迁到常驻 `core::framework::scene::physics`，可选 simulation/query/world-sync/manager 合同保留在 `physics-contracts`，LevelSystem 与 diagnostics 通过声明期 enabled/disabled adapter 隔离。两条迁移均无旧路径兼容重导出。Client/Editor 预设包含四个 contract 域，Server 不隐式包含，直接 plugin 消费者显式请求各自契约。Frameworks Python 合同门当前 76/76；其中四个 optional manager guard 已硬切为无 trait root re-export 的 `ManagerServiceHandle`/`define_manager_handle_access!`，六 profile TOML 也已逐项同步当前 Runtime/App Cargo members（含 Editor navigation plugin 与 Server `dep:naga`）。Runtime `physics` 聚焦 35/35，Physics plugin owner 的 feature-on 46/46、feature-off 43/43 已通过；nightly `core-min + physics-contracts` 单开通过（12m39s，52 条既有 warning），nightly `target-server` 排除组合通过（15m14s，53 条既有 warning）。M1 逐域 runner 固定 12 域、`core-min + 单域`、locked/no-default/lib check 与失败汇总；2026-07-11 fresh locked/offline 独立目标矩阵已 12/12 全绿。首轮 11/12 精确暴露 `graphics` 反向依赖 `ui`；修复后 Graphics rich-text layout 改为消费 `graphics::text` owner，UI-only frame conversion 在声明处受 `ui` gate 控制，公共 render-mode resolution 下沉 `zircon_runtime_interface`，不增加兼容重导出。M1 App 当前完整 harness 与包级 Runtime absorption 门均已 GREEN；默认 feature Runtime 全量 lib suite 仍为 RED/pending。2026-07-17 fresh G7 复核确认用户优先的 `engine-code-structure-convention.md` 与 `engine-code-review-findings-2026-06.md` 当前旧 owner 违规均为 0；父计划此前记录的 58 个 Text 引用属于已收敛历史快照。M4 已完成；M5 已把 `ExportProfile` Rust 构造、Runtime/App/Editor 消费者和 export build plan 硬切为显式 `RuntimeProfileId`，旧 builder 与 name/target fallback 均为零，受管 Cargo 验收 pending。M2 已把六 profile feature preset 与 runtime module/plugin assembly 收敛到 schema v2 TOML，生成器对 12 个 module identity/cfg gate 和六个 `RuntimeProfileId` 分支做严格检查，手写 `runtime_profile/defaults.rs` 已硬删除且无兼容层；实现与首轮独立审查问题修复完成，受管 current-main Cargo 验收 pending。此前 Python 契约、server production check、Rust 断言、Editor CLI 目标测试、Windows nightly locked/offline 六 profile 矩阵及 Runtime `--all-features` 证据保留；因此仍不声明 M1、M2、M5 或计划 03 accepted。
+- 当前状态：M1 进行中；feature 命名、`target-server` 域裁剪、AI/Net/Sound/Physics contract 独立门控与 ZRPack asset owner 硬迁移已完成。Sound channel topology 已硬迁到常驻 `core::framework::audio`；Physics 持久化 material/joint/skeleton schema 已硬迁到常驻 `core::framework::scene::physics`，可选 simulation/query/world-sync/manager 合同保留在 `physics-contracts`，LevelSystem 与 diagnostics 通过声明期 enabled/disabled adapter 隔离。两条迁移均无旧路径兼容重导出。Client/Editor 预设包含四个 contract 域，Server 不隐式包含，直接 plugin 消费者显式请求各自契约。历史 Frameworks Python 合同门为 76/76；本次实际复跑的五个 owner suite 为 55/55，并把 Neural editor provider 同步进 Editor/Dev canonical profile，避免 App feature 已接线而 schema v2 单源漂移。其中四个 optional manager guard 已硬切为无 trait root re-export 的 `ManagerServiceHandle`/`define_manager_handle_access!`，六 profile TOML 也已逐项同步当前 Runtime/App Cargo members（含 Editor navigation/Neural plugin 与 Server `dep:naga`）。Runtime `physics` 聚焦 35/35，Physics plugin owner 的 feature-on 46/46、feature-off 43/43 已通过；nightly `core-min + physics-contracts` 单开通过（12m39s，52 条既有 warning），nightly `target-server` 排除组合通过（15m14s，53 条既有 warning）。M1 逐域 runner 固定 12 域、`core-min + 单域`、locked/no-default/lib check 与失败汇总；2026-07-11 fresh locked/offline 独立目标矩阵已 12/12 全绿。首轮 11/12 精确暴露 `graphics` 反向依赖 `ui`；修复后 Graphics rich-text layout 改为消费 `graphics::text` owner，UI-only frame conversion 在声明处受 `ui` gate 控制，公共 render-mode resolution 下沉 `zircon_runtime_interface`，不增加兼容重导出。M1 App 当前完整 harness 与包级 Runtime absorption 门均已 GREEN；默认 feature Runtime 全量 lib suite 仍为 RED/pending。2026-07-17 fresh G7 复核确认用户优先的 `engine-code-structure-convention.md` 与 `engine-code-review-findings-2026-06.md` 当前旧 owner 违规均为 0；父计划此前记录的 58 个 Text 引用属于已收敛历史快照。M4 已完成；M5 已把 `ExportProfile` Rust 构造、Runtime/App/Editor 消费者和 export build plan 硬切为显式 `RuntimeProfileId`，旧 builder 与 name/target fallback 均为零，受管 Cargo 验收 pending。M2 已把六 profile feature preset 与 runtime module/plugin assembly 收敛到 schema v2 TOML，生成器对 12 个 module identity/cfg gate 和六个 `RuntimeProfileId` 分支做严格检查，手写 `runtime_profile/defaults.rs` 已硬删除且无兼容层；实现与首轮独立审查问题修复完成，受管 current-main Cargo 验收 pending。M3 的首个已拆成员切片已显式关闭 RHI workspace 默认 feature，修复本地包闭包漏算，并静态证明 Server 不启用 WGPU backend；其余成员仍依赖计划 01 物理拆分。此前 Python 契约、server production check、Rust 断言、Editor CLI 目标测试、Windows nightly locked/offline 六 profile 矩阵及 Runtime `--all-features` 证据保留；因此仍不声明 M1、M2、M3、M5 或计划 03 accepted。

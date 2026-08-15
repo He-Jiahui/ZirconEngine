@@ -9,7 +9,7 @@ mod text;
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::render_commands::HostPaintCommand;
 
-use identity::{AxisLabelKind, axis_label_kind};
+use identity::{axis_label_kind, AxisLabelKind};
 use scale_link::push_scale_link;
 use text::push_axis_text;
 

@@ -1,5 +1,6 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::visual_assets::HostPaintImagePixels;
+use std::sync::Arc;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn apply_rounded_alpha_mask(
     image: &mut HostPaintImagePixels,
@@ -13,13 +14,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn apply_r
 
     let width = image.width;
     let height = image.height;
+    let rgba = Arc::make_mut(&mut image.rgba);
     for y in 0..height {
         for x in 0..width {
             if rounded_mask_contains_pixel(x, y, width, height, mask_radius) {
                 continue;
             }
             let offset = ((y as usize * width as usize) + x as usize) * 4 + 3;
-            image.rgba[offset] = 0;
+            rgba[offset] = 0;
         }
     }
     image.resource_key = format!(

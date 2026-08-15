@@ -2,6 +2,12 @@ mod physics;
 
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use crate::core::math::Quat;
+use crate::scene::components::{
+    AmbientLight, AnimationGraphPlayerComponent, AnimationPlayerComponent,
+    AnimationSequencePlayerComponent, AnimationSkeletonComponent,
+    AnimationStateMachinePlayerComponent, CameraComponent, DirectionalLight, LocalTransform,
+    MeshRenderer, PointLight, RectLight, SpotLight,
+};
 use crate::scene::{EntityId, SceneError, SceneResult};
 
 use super::super::World;
@@ -91,7 +97,7 @@ impl World {
                 self.set_mobility(entity, parse_mobility(&kind)?)
             }
             "camera" => {
-                let Some(camera) = self.cameras.get_mut(&entity) else {
+                let Some(camera) = self.get_mut::<CameraComponent>(entity) else {
                     return missing_component_error(entity, property_path);
                 };
                 match segments.as_slice() {
@@ -122,7 +128,7 @@ impl World {
                 Ok(true)
             }
             "meshrenderer" | "mesh" => {
-                let Some(mesh) = self.mesh_renderers.get_mut(&entity) else {
+                let Some(mesh) = self.get_mut::<MeshRenderer>(entity) else {
                     return missing_component_error(entity, property_path);
                 };
                 match segments.as_slice() {
@@ -230,7 +236,7 @@ impl World {
                 Ok(true)
             }
             "ambientlight" => {
-                let Some(light) = self.ambient_lights.get_mut(&entity) else {
+                let Some(light) = self.get_mut::<AmbientLight>(entity) else {
                     return missing_component_error(entity, property_path);
                 };
                 match segments.as_slice() {
@@ -261,7 +267,7 @@ impl World {
                 Ok(true)
             }
             "directionallight" | "light" => {
-                let Some(light) = self.directional_lights.get_mut(&entity) else {
+                let Some(light) = self.get_mut::<DirectionalLight>(entity) else {
                     return missing_component_error(entity, property_path);
                 };
                 match segments.as_slice() {
@@ -292,7 +298,7 @@ impl World {
                 Ok(true)
             }
             "pointlight" => {
-                let Some(light) = self.point_lights.get_mut(&entity) else {
+                let Some(light) = self.get_mut::<PointLight>(entity) else {
                     return missing_component_error(entity, property_path);
                 };
                 match segments.as_slice() {
@@ -323,7 +329,7 @@ impl World {
                 Ok(true)
             }
             "rectlight" => {
-                let Some(light) = self.rect_lights.get_mut(&entity) else {
+                let Some(light) = self.get_mut::<RectLight>(entity) else {
                     return missing_component_error(entity, property_path);
                 };
                 match segments.as_slice() {
@@ -361,7 +367,7 @@ impl World {
                 Ok(true)
             }
             "spotlight" => {
-                let Some(light) = self.spot_lights.get_mut(&entity) else {
+                let Some(light) = self.get_mut::<SpotLight>(entity) else {
                     return missing_component_error(entity, property_path);
                 };
                 match segments.as_slice() {
@@ -416,7 +422,7 @@ impl World {
             "collider" => self.set_collider_property(entity, &segments, value, property_path),
             "joint" => self.set_joint_property(entity, &segments, value, property_path),
             "animationskeleton" => {
-                let Some(skeleton) = self.animation_skeletons.get_mut(&entity) else {
+                let Some(skeleton) = self.get_mut::<AnimationSkeletonComponent>(entity) else {
                     return missing_component_error(entity, property_path);
                 };
                 match segments.as_slice() {
@@ -433,7 +439,7 @@ impl World {
                 Ok(true)
             }
             "animationplayer" => {
-                let Some(player) = self.animation_players.get_mut(&entity) else {
+                let Some(player) = self.get_mut::<AnimationPlayerComponent>(entity) else {
                     return missing_component_error(entity, property_path);
                 };
                 let changed = set_animation_player_like_property(
@@ -453,7 +459,7 @@ impl World {
                 Ok(changed)
             }
             "animationsequenceplayer" => {
-                let Some(player) = self.animation_sequence_players.get_mut(&entity) else {
+                let Some(player) = self.get_mut::<AnimationSequencePlayerComponent>(entity) else {
                     return missing_component_error(entity, property_path);
                 };
                 let changed = set_animation_player_like_property(
@@ -473,7 +479,7 @@ impl World {
                 Ok(changed)
             }
             "animationgraphplayer" => {
-                let Some(player) = self.animation_graph_players.get_mut(&entity) else {
+                let Some(player) = self.get_mut::<AnimationGraphPlayerComponent>(entity) else {
                     return missing_component_error(entity, property_path);
                 };
                 let changed = match segments.as_slice() {
@@ -512,7 +518,8 @@ impl World {
                 Ok(changed)
             }
             "animationstatemachineplayer" => {
-                let Some(player) = self.animation_state_machine_players.get_mut(&entity) else {
+                let Some(player) = self.get_mut::<AnimationStateMachinePlayerComponent>(entity)
+                else {
                     return missing_component_error(entity, property_path);
                 };
                 let changed = match segments.as_slice() {
@@ -571,7 +578,7 @@ impl World {
         value: ScenePropertyValue,
         property_path: &ComponentPropertyPath,
     ) -> SceneResult<bool> {
-        let Some(current) = self.local_transforms.get(&entity).copied() else {
+        let Some(current) = self.get::<LocalTransform>(entity).copied() else {
             return missing_component_error(entity, property_path);
         };
         let mut next = current.transform;

@@ -31,7 +31,7 @@ impl ViewportRecord {
             let graph_dump = self
                 .last_capture_pipeline
                 .as_ref()
-                .map(|pipeline| self.capture_graph_dump(pipeline));
+                .map(|pipeline| pipeline.graph_dump_text());
             if let Some(capture) = self.last_capture.as_mut() {
                 capture.graph_dump = graph_dump;
             }
@@ -91,27 +91,6 @@ impl ViewportRecord {
         }
         true
     }
-
-    pub(in crate::graphics::runtime::render_framework) fn capture_graph_dump(
-        &self,
-        compiled_pipeline: &Arc<CompiledRenderPipeline>,
-    ) -> String {
-        if self
-            .last_capture_pipeline
-            .as_ref()
-            .is_some_and(|previous| Arc::ptr_eq(previous, compiled_pipeline))
-        {
-            if let Some(graph_dump) = self
-                .last_capture
-                .as_ref()
-                .and_then(|capture| capture.graph_dump.as_ref())
-            {
-                return graph_dump.clone();
-            }
-        }
-
-        compiled_pipeline.graph().dump().to_text()
-    }
 }
 
 pub(super) fn capture_generation_is_newer(previous: Option<u64>, candidate: u64) -> bool {
@@ -134,7 +113,9 @@ pub(super) fn attach_profile_to_matching_capture(
 
 #[cfg(test)]
 mod tests {
-    use crate::core::framework::render::{CapturedFrame, RenderFrameProfile};
+    use crate::core::framework::render::{
+        CapturedFrame, RenderFrameProfile, RenderGpuTimingStatus,
+    };
 
     use super::attach_profile_to_matching_capture;
 
@@ -182,6 +163,7 @@ mod tests {
             &RenderFrameProfile {
                 frame_generation: 7,
                 gpu_frame_time_us: Some(42),
+                gpu_timing_status: RenderGpuTimingStatus::Measured,
                 profile_latency_frames: 3,
                 ..RenderFrameProfile::default()
             }
@@ -195,6 +177,7 @@ mod tests {
         )
         .expect("backfilled capture profile remains decodable");
         assert_eq!(profile.gpu_frame_time_us, Some(42));
+        assert_eq!(profile.gpu_timing_status, RenderGpuTimingStatus::Measured);
         assert_eq!(profile.profile_latency_frames, 3);
     }
 }

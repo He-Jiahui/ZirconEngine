@@ -66,7 +66,6 @@ impl RenderGraphComputeDispatchRecord {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RenderGraphComputeWorkloadDispatchContext {
-    pub viewport_size: [u32; 2],
     pub cluster_grid_size: [u32; 2],
     pub froxel_grid_size: [u32; 3],
     pub hzb_furthest_size: [u32; 2],
@@ -76,13 +75,11 @@ pub struct RenderGraphComputeWorkloadDispatchContext {
 
 impl RenderGraphComputeWorkloadDispatchContext {
     pub fn new(
-        viewport_size: [u32; 2],
         cluster_grid_size: [u32; 2],
         hzb_furthest_size: [u32; 2],
         indirect_args_count: u32,
     ) -> Self {
         Self {
-            viewport_size: [viewport_size[0].max(1), viewport_size[1].max(1)],
             cluster_grid_size: [cluster_grid_size[0].max(1), cluster_grid_size[1].max(1)],
             froxel_grid_size: [1, 1, 1],
             hzb_furthest_size: [hzb_furthest_size[0].max(1), hzb_furthest_size[1].max(1)],
@@ -101,34 +98,42 @@ impl RenderGraphComputeWorkloadDispatchContext {
         self
     }
 
-    fn expected_dispatch_groups(self, workload: &RenderGraphComputeWorkload) -> [u32; 3] {
+    fn expected_dispatch_groups(self, workload: &RenderGraphComputeWorkload) -> Option<[u32; 3]> {
         match &workload.dispatch_extent {
-            RenderGraphComputeDispatchExtent::Viewport => {
-                dispatch_groups_for_2d_extent(self.viewport_size, workload.workgroup_size)
-            }
-            RenderGraphComputeDispatchExtent::ClusterGrid => {
-                dispatch_groups_for_2d_extent(self.cluster_grid_size, workload.workgroup_size)
-            }
-            RenderGraphComputeDispatchExtent::FroxelGrid => {
-                dispatch_groups_for_3d_extent(self.froxel_grid_size, workload.workgroup_size)
-            }
-            RenderGraphComputeDispatchExtent::FroxelGridXy => dispatch_groups_for_2d_extent(
+            RenderGraphComputeDispatchExtent::ClusterGrid => Some(dispatch_groups_for_2d_extent(
+                self.cluster_grid_size,
+                workload.workgroup_size,
+            )),
+            RenderGraphComputeDispatchExtent::FroxelGrid => Some(dispatch_groups_for_3d_extent(
+                self.froxel_grid_size,
+                workload.workgroup_size,
+            )),
+            RenderGraphComputeDispatchExtent::FroxelGridXy => Some(dispatch_groups_for_2d_extent(
                 [self.froxel_grid_size[0], self.froxel_grid_size[1]],
                 workload.workgroup_size,
-            ),
-            RenderGraphComputeDispatchExtent::HzbFurthest => {
-                dispatch_groups_for_2d_extent(self.hzb_furthest_size, workload.workgroup_size)
-            }
+            )),
+            RenderGraphComputeDispatchExtent::HzbFurthest => Some(dispatch_groups_for_2d_extent(
+                self.hzb_furthest_size,
+                workload.workgroup_size,
+            )),
             RenderGraphComputeDispatchExtent::IndirectArgs => {
                 if let Some(dispatch_group_count) = self.indirect_args_dispatch_group_count {
-                    return dispatch_groups_for_1d_group_count(
+                    return Some(dispatch_groups_for_1d_group_count(
                         dispatch_group_count,
                         workload.workgroup_size,
-                    );
+                    ));
                 }
-                dispatch_groups_for_1d_extent(self.indirect_args_count, workload.workgroup_size)
+                Some(dispatch_groups_for_1d_extent(
+                    self.indirect_args_count,
+                    workload.workgroup_size,
+                ))
             }
-            RenderGraphComputeDispatchExtent::Fixed(groups) => *groups,
+            RenderGraphComputeDispatchExtent::Fixed(groups) => Some(*groups),
+            // The executor resolves both forms from GPU resources. The audit context has no
+            // buffer contents or texture extent, so recording a fabricated CPU group count
+            // would turn a real dispatch into a false mismatch.
+            RenderGraphComputeDispatchExtent::FromBuffer { .. }
+            | RenderGraphComputeDispatchExtent::PerPixel { .. } => None,
         }
     }
 }
@@ -224,7 +229,8 @@ impl RenderGraphComputeWorkloadAuditRecord {
             RenderGraphComputeWorkloadAuditStatus::PipelineLabelMismatch
         } else if actual.workgroup_size != planned.workgroup_size {
             RenderGraphComputeWorkloadAuditStatus::WorkgroupSizeMismatch
-        } else if actual.dispatch_groups_known && actual.dispatch_groups != planned_dispatch_groups
+        } else if actual.dispatch_groups_known
+            && planned_dispatch_groups.is_some_and(|expected| actual.dispatch_groups != expected)
         {
             RenderGraphComputeWorkloadAuditStatus::DispatchExtentMismatch
         } else {
@@ -237,7 +243,7 @@ impl RenderGraphComputeWorkloadAuditRecord {
             actual_pipeline_label: Some(actual.pipeline_label.clone()),
             planned_workgroup_size: Some(planned.workgroup_size),
             actual_workgroup_size: Some(actual.workgroup_size),
-            planned_dispatch_groups: Some(planned_dispatch_groups),
+            planned_dispatch_groups,
             actual_dispatch_groups: actual
                 .dispatch_groups_known
                 .then_some(actual.dispatch_groups),
@@ -258,7 +264,7 @@ impl RenderGraphComputeWorkloadAuditRecord {
             actual_pipeline_label: None,
             planned_workgroup_size: Some(planned.workgroup_size),
             actual_workgroup_size: None,
-            planned_dispatch_groups: Some(dispatch_context.expected_dispatch_groups(planned)),
+            planned_dispatch_groups: dispatch_context.expected_dispatch_groups(planned),
             actual_dispatch_groups: None,
             status: RenderGraphComputeWorkloadAuditStatus::MissingDispatch,
         }

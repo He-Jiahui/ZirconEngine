@@ -1,7 +1,7 @@
 use zircon_runtime::scene::components::NodeKind;
 
 use crate::core::commands::MenuItemModel;
-use crate::core::editor_event::{ConsoleMessageFilter, MenuAction};
+use crate::core::editor_event::{ConsoleMessageFilter, ConsoleSourceFilter, MenuAction};
 use crate::core::editor_operation::EditorOperationPath;
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 
@@ -39,6 +39,23 @@ pub(crate) fn operation_path_for_menu_action(action: &MenuAction) -> Option<Edit
         }
         MenuAction::SetConsoleMessageFilter(ConsoleMessageFilter::Error) => {
             "view.console.filter.error"
+        }
+        MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::All) => "view.console.source.all",
+        MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::Editor) => {
+            "view.console.source.editor"
+        }
+        MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::Runtime) => {
+            "view.console.source.runtime"
+        }
+        MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::Play) => "view.console.source.play",
+        MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::Plugin) => {
+            "view.console.source.plugin"
+        }
+        MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::Import) => {
+            "view.console.source.import"
+        }
+        MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::ScriptBuild) => {
+            "view.console.source.script_build"
         }
         MenuAction::EnterPlayMode => "runtime.play_mode.enter",
         MenuAction::ExitPlayMode => "runtime.play_mode.exit",

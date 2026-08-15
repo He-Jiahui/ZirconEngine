@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::asset::project::AssetMetaDocument;
-use crate::asset::{AssetUri, AssetUuid, FontAsset, ProjectAssetManager};
+use crate::asset::{runtime_asset_path, AssetUri, AssetUuid, FontAsset, ProjectAssetManager};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct LoadedTextFontSource {
@@ -92,12 +92,19 @@ fn font_manifest_asset_uuid(manifest_path: &Path) -> Option<AssetUuid> {
 }
 
 fn resolve_font_asset_path(asset_ref: &str) -> Option<PathBuf> {
+    resolve_font_asset_path_with(asset_ref, runtime_font_asset_path)
+}
+
+fn runtime_font_asset_path(relative: &Path) -> PathBuf {
+    runtime_asset_path(relative)
+}
+
+fn resolve_font_asset_path_with(
+    asset_ref: &str,
+    resolve_runtime_asset: impl FnOnce(&Path) -> PathBuf,
+) -> Option<PathBuf> {
     if let Some(relative) = asset_ref.strip_prefix("res://") {
-        return Some(
-            Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("assets")
-                .join(relative),
-        );
+        return Some(resolve_runtime_asset(Path::new(relative)));
     }
     let path = PathBuf::from(asset_ref);
     path.is_absolute()
@@ -111,7 +118,7 @@ fn resolve_manifest_source_path(
     source: &str,
 ) -> Option<PathBuf> {
     let allowed_root = if asset_ref.starts_with("res://") {
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("assets")
+        runtime_asset_path("")
     } else {
         manifest_path.parent()?.to_path_buf()
     };

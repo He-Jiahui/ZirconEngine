@@ -3,7 +3,9 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 #[test]
 fn runtime_15_scene_world_project_io_mesh_is_child_owner() {
     let parent = read_runtime_src("scene/world/project_io.rs");
+    let document = read_runtime_src("scene/world/project_io/document.rs");
     let mesh = read_runtime_src("scene/world/project_io/mesh.rs");
+    let scene_asset = read_runtime_src("scene/world/project_io/scene_asset.rs");
     let runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
@@ -13,19 +15,20 @@ fn runtime_15_scene_world_project_io_mesh_is_child_owner() {
     let ecs_doc = read_repo("docs/zircon_runtime/scene/ecs.md");
 
     assert_contains_all(
-        "project I/O parent keeps scene document flow and delegates mesh projection",
+        "project I/O parent is wiring-only",
         &parent,
         &[
+            "mod document;",
             "mod mesh;",
-            "use mesh::{mesh_from_asset, mesh_to_asset};",
-            "mesh_from_asset(project, entity.mesh.as_ref())",
-            "mesh_to_asset(project, record.mesh)?",
-            "pub fn from_scene_asset",
-            "pub fn to_scene_asset",
-            "fn normalize_loaded_state",
+            "mod scene_asset;",
+            "pub use document::SceneProjectError;",
         ],
     );
     for moved_owner in [
+        "pub fn from_scene_asset",
+        "pub fn to_scene_asset",
+        "pub fn save_project_to_path",
+        "fn normalize_loaded_state",
         "SceneMeshInstanceAsset",
         "SceneMeshLodLevelAsset",
         "SceneMeshPrimitiveBindingAsset",
@@ -42,6 +45,27 @@ fn runtime_15_scene_world_project_io_mesh_is_child_owner() {
             "scene/world/project_io.rs should delegate {moved_owner} to project_io/mesh.rs"
         );
     }
+    assert_contains_all(
+        "scene-asset child owns conversion flow and delegates mesh projection",
+        &scene_asset,
+        &[
+            "use super::mesh::{mesh_from_asset, mesh_to_asset};",
+            "mesh_from_asset(project, entity.mesh.as_ref())",
+            "mesh_to_asset(project, record.mesh)?",
+            "pub fn from_scene_asset",
+            "pub fn to_scene_asset",
+        ],
+    );
+    assert_contains_all(
+        "document child owns persisted document flow",
+        &document,
+        &[
+            "pub fn save_project_to_path",
+            "pub fn load_project_from_path",
+            "fn normalize_loaded_state",
+            "struct BoundedDocumentWriter",
+        ],
+    );
     assert_contains_all(
         "mesh child owns scene mesh asset and renderer projection",
         &mesh,
@@ -63,7 +87,12 @@ fn runtime_15_scene_world_project_io_mesh_is_child_owner() {
 
     for (path, source) in [
         ("scene/world/project_io.rs", parent.as_str()),
+        ("scene/world/project_io/document.rs", document.as_str()),
         ("scene/world/project_io/mesh.rs", mesh.as_str()),
+        (
+            "scene/world/project_io/scene_asset.rs",
+            scene_asset.as_str(),
+        ),
     ] {
         let line_count = source.lines().count();
         assert!(

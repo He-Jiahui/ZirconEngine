@@ -1,15 +1,15 @@
-use crate::scene::EntityId;
 use crate::scene::ecs::{
     Component, ComponentId, ComponentLifecycleEvent, LifecycleEventKind, ObserverId,
 };
+use crate::scene::EntityId;
 
-use super::World;
+use super::{SceneResult, World};
 
 impl World {
     pub fn observe_component_lifecycle<T>(
         &mut self,
         kind: LifecycleEventKind,
-        observer: impl Fn(&mut World, ComponentLifecycleEvent) + Send + Sync + 'static,
+        observer: impl Fn(&mut World, &ComponentLifecycleEvent) + Send + Sync + 'static,
     ) -> ObserverId
     where
         T: Component,
@@ -40,7 +40,7 @@ impl World {
         self.observers.observe_entity_event(entity, observer)
     }
 
-    pub fn remove_observer(&mut self, observer: ObserverId) -> bool {
+    pub fn remove_observer(&mut self, observer: ObserverId) -> SceneResult<()> {
         self.observers.remove(observer)
     }
 

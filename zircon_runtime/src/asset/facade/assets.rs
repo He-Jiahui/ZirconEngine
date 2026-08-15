@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use super::{Asset, AssetEventReceiver, AssetLoadState, Handle};
-use crate::core::resource::{ResourceLease, ResourceManager, ResourceMarker, ResourceRecord};
+use crate::core::resource::{
+    ResourceLease, ResourceManager, ResourceMarker, ResourceMutationBatch, ResourceRecord,
+    ResourceRegistryError, ResourceResult,
+};
 
 #[derive(Clone, Debug)]
 pub struct Assets<TAsset: Asset> {
@@ -33,50 +36,55 @@ impl<TAsset: Asset> Assets<TAsset> {
 
     pub fn contains(&self, handle: Handle<TAsset>) -> bool {
         self.manager
-            .registry()
-            .get(handle.id())
-            .is_some_and(|record| record.kind == TAsset::Marker::KIND)
+            .readiness_generation()
+            .contains_kind(handle.id(), TAsset::Marker::KIND)
     }
 
     pub fn load_state(&self, handle: Handle<TAsset>) -> AssetLoadState {
-        let record = self.manager.registry().get(handle.id()).cloned();
-        if !record
-            .as_ref()
-            .is_some_and(|record| record.kind == TAsset::Marker::KIND)
-        {
+        let generation = self.manager.readiness_generation();
+        let Some(row) = generation.row(handle.id()) else {
+            return AssetLoadState::NotLoaded;
+        };
+        if row.record.kind != TAsset::Marker::KIND {
             return AssetLoadState::NotLoaded;
         }
-
-        AssetLoadState::from_resource(
-            record.as_ref(),
-            self.manager.runtime_state(handle.id()),
-            self.get(handle).is_some(),
-        )
+        row.typed_load_state::<TAsset>().into()
     }
 
     pub fn failure_reason(&self, handle: Handle<TAsset>) -> Option<String> {
-        let record = self.manager.registry().get(handle.id()).cloned()?;
-        if record.kind != TAsset::Marker::KIND {
+        let generation = self.manager.readiness_generation();
+        let row = generation.row(handle.id())?;
+        if row.record.kind != TAsset::Marker::KIND {
             return None;
         }
-        record.failure_reason().map(str::to_owned)
+        row.record.failure_reason().map(str::to_owned)
     }
 
-    pub fn insert(&self, record: ResourceRecord, asset: TAsset) -> Option<Handle<TAsset>> {
+    pub fn insert(&self, record: ResourceRecord, asset: TAsset) -> ResourceResult<Handle<TAsset>> {
         if record.kind != TAsset::Marker::KIND {
-            return None;
+            return Err(ResourceRegistryError::KindConflict {
+                id: record.id.to_string(),
+                current_kind: record.kind,
+                requested_kind: TAsset::Marker::KIND,
+            });
         }
-        self.manager
-            .register_ready(record, asset)
+        let handle = self
+            .manager
+            .register_ready(record, asset)?
             .typed::<TAsset::Marker>()
-            .map(Handle::from_resource_handle)
+            .expect("matching resource kind produces a typed handle");
+        Ok(Handle::from_resource_handle(handle))
     }
 
-    pub fn remove_by_locator(&self, locator: &crate::asset::AssetUri) -> Option<ResourceRecord> {
-        let record = self.manager.registry().get_by_locator(locator).cloned()?;
-        (record.kind == TAsset::Marker::KIND)
-            .then(|| self.manager.remove_by_locator(locator))
-            .flatten()
+    pub fn remove_by_locator(
+        &self,
+        locator: &crate::asset::AssetUri,
+    ) -> ResourceResult<Option<ResourceRecord>> {
+        let receipt = self.manager.commit(
+            ResourceMutationBatch::new().remove_kind(locator.clone(), TAsset::Marker::KIND),
+        )?;
+        let removed = receipt.removed_records().next().cloned();
+        Ok(removed)
     }
 
     pub fn subscribe_events(&self) -> AssetEventReceiver<TAsset> {

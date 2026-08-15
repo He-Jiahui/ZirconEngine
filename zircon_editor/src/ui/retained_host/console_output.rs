@@ -76,6 +76,23 @@ impl ConsoleOutputPaintMetadata {
     ) -> Vec<usize> {
         let line_start = self.line_rows.start.min(row_count);
         let line_end = self.line_rows.end.min(row_count).max(line_start);
+        let visible_line_rows = self.visible_line_node_rows(row_count, scroll_px);
+
+        let mut rows =
+            Vec::with_capacity(row_count - (line_end - line_start) + visible_line_rows.len());
+        rows.extend(0..line_start);
+        rows.extend(visible_line_rows);
+        rows.extend(line_end..row_count);
+        rows
+    }
+
+    pub(in crate::ui::retained_host) fn visible_line_node_rows(
+        &self,
+        row_count: usize,
+        scroll_px: f32,
+    ) -> Range<usize> {
+        let line_start = self.line_rows.start.min(row_count);
+        let line_end = self.line_rows.end.min(row_count).max(line_start);
         let available_line_count = (line_end - line_start) / self.nodes_per_line;
         let scroll_px = scroll_px.max(0.0);
         let visible_start_px = (scroll_px + self.viewport.y - self.line_origin_y).max(0.0);
@@ -87,14 +104,15 @@ impl ConsoleOutputPaintMetadata {
         let line_end_exclusive = line_end_exclusive.min(available_line_count).max(first_line);
         let visible_row_start = line_start + first_line * self.nodes_per_line;
         let visible_row_end = line_start + line_end_exclusive * self.nodes_per_line;
+        visible_row_start..visible_row_end
+    }
 
-        let mut rows = Vec::with_capacity(
-            row_count - (line_end - line_start) + visible_row_end.saturating_sub(visible_row_start),
-        );
-        rows.extend(0..line_start);
-        rows.extend(visible_row_start..visible_row_end);
-        rows.extend(line_end..row_count);
-        rows
+    pub(in crate::ui::retained_host) fn line_node_rows(
+        &self,
+        row_count: usize,
+    ) -> Range<usize> {
+        let start = self.line_rows.start.min(row_count);
+        start..self.line_rows.end.min(row_count).max(start)
     }
 }
 

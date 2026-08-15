@@ -67,3 +67,23 @@ WOC 的真实产品顺序是模式/角色选择、post-selection Welcome、Loadi
 ## 修复结果与回传
 
 Open state: `待修复`; no pass is claimed. WOC 保持 bootstrap 为默认场景，继续完成可独立验证的 Shell、偏好、输入与 Eastbrook 内容切片，真实产品转换门保持开放。
+
+### 2026-08-11 current-source request foundation
+
+- `zircon_runtime_interface::runtime_api` 现定义 V1 scene-transition request、policy、result 与
+  typed validation error。请求只接受 canonical `res://` project URI；绝对路径、反斜杠、空/`.`/`..`
+  segment、query 与 fragment 均在进入 Runtime 前拒绝。
+- `zr.zircon.gameplay` 现声明 `gameplay.scene_transition` capability 与
+  `request_scene_transition(scene_uri) -> request_id`。脚本提交把 DTO 写入 World typed resource；同一 World
+  只保留最新 pending request，稳定序号由独立常量大小 resource 生成，不建立 dynamic component、全局队列或
+  WOC URI 特判。
+- TDD source-contract 首次因缺少 `scene_transition.rs` 而 RED；实现后独立 `rustc --test` 为 `2 passed / 0
+  failed`。精确 Rust 1.94.1 rustfmt、scoped `git diff --check` 与 plan-output audit 均通过；全库 handoff
+  validator 仍只有既有 Editor06 一项外部错误，本记录未新增 schema error。
+- 当前基础层尚未接入 `RuntimeDynamicSession` 的帧边界 consumer，也未实现 staged scene prepare、old-world
+  rollback、script/UI stop-start、terminal result publication 或 WOC bootstrap -> Eastbrook 产品 fixture。
+  `project.rs`/`state.rs` 当前包含其他未提交工作，本切片未覆盖或改写它们；因此不向
+  `ZrRuntimeHostRequestV1`/App host router 增加一个无人消费的分支。
+- managed Cargo 仍受全局 artifact gate 阻断：audit request
+  `5e3ec570ace84f75934d5fc25513ccb4` 报告三个非本会话所有的 `E:\ZirconBuilds` target；未删除或重用这些
+  外部产物。failure 保持 open，不声明 fixed artifact、commit 或产品通过。

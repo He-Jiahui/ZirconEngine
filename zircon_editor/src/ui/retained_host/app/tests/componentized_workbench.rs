@@ -3,7 +3,9 @@ use crate::core::editing::operation::{
     DeferredOperationInvocation, OperationCommand, OperationCommandFactory,
     OperationCommandFactoryError, OperationCommandFactoryRegistration, PendingEditRetention,
 };
-use crate::core::editor_event::{EditorEventTransient, EditorViewportEvent, SelectionHostEvent};
+use crate::core::editor_event::{
+    EditorEventTransient, EditorOperationEvent, EditorViewportEvent, SelectionHostEvent,
+};
 use crate::core::editor_operation::EditorOperationInvocation;
 use crate::core::play::{PlayEditTarget, PlayKind, PlayStartRequest};
 use crate::scene::modes::SceneModeActivation;
@@ -86,7 +88,7 @@ fn pointer_component_template_action_reaches_retained_host_operation_dispatch() 
         },
         UiPointerComponentEventReason::DefaultClick,
     )
-    .with_template_action(UiTemplateActionInvocation::new(
+    .with_template_action(UiTemplateActionInvocation::route(
         "file.project.open",
         Default::default(),
     ));
@@ -97,6 +99,39 @@ fn pointer_component_template_action_reaches_retained_host_operation_dispatch() 
         harness.delta_events_since(baseline),
         vec![EditorEvent::WorkbenchMenu(MenuAction::OpenProject)]
     );
+}
+
+#[test]
+fn pointer_component_command_action_preserves_registry_disabled_policy() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_retained_pointer_command_action_disabled");
+    let baseline = harness.journal_len();
+    let event = UiPointerComponentEvent::new(
+        &UiTreeId::new("editor.workbench.template"),
+        UiNodeId::new(8),
+        "WorkbenchStop",
+        "WorkbenchStop/Click",
+        UiEventKind::Click,
+        UiComponentEvent::Commit {
+            property: "activated".to_string(),
+            value: UiValue::Bool(true),
+        },
+        UiPointerComponentEventReason::DefaultClick,
+    )
+    .with_template_action(UiTemplateActionInvocation::action("runtime.play_mode.exit"));
+
+    pane_surface_host(&harness.root_ui).invoke_pointer_component_event(event);
+
+    let events = harness.delta_events_since(baseline);
+    assert!(matches!(
+        events.as_slice(),
+        [EditorEvent::Operation(EditorOperationEvent::ControlFailure {
+            operation_id,
+            error,
+        })] if operation_id == "runtime.play_mode.exit"
+            && error == "editor command runtime.play_mode.exit is disabled by its when clause"
+    ));
 }
 
 #[test]
@@ -211,10 +246,9 @@ fn componentized_workbench_surface_control_requires_active_workbench_window_temp
 
     let mut host = harness.host.borrow_mut();
     let selected_before = workbench_control_bool(&host, "WorkbenchToolScale", "selected");
-    assert!(
-        host.dispatch_componentized_workbench_surface_control("WorkbenchToolScale", "Tool/Scale")
-            .is_none()
-    );
+    assert!(host
+        .dispatch_componentized_workbench_surface_control("WorkbenchToolScale", "Tool/Scale")
+        .is_none());
     assert_eq!(
         workbench_control_bool(&host, "WorkbenchToolScale", "selected"),
         selected_before
@@ -294,12 +328,11 @@ fn resolved_pending_play_decision_clears_the_retained_notification_modal() {
         "WorkbenchNotificationCenter",
         "open"
     ));
-    assert!(
-        host.runtime
-            .play_sessions()
-            .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
-            .is_ok()
-    );
+    assert!(host
+        .runtime
+        .play_sessions()
+        .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
+        .is_ok());
 }
 
 fn deferred_pending_edit(name: &str) -> DeferredOperationInvocation {

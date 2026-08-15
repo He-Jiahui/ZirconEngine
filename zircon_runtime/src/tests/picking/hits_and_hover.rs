@@ -163,7 +163,7 @@ fn picking_output_resolution_shares_one_projection_between_hover_and_report() {
     ];
 
     crate::core::framework::picking::reset_sorted_hit_projection_metrics();
-    let (hover_map, report) = resolve_picking_outputs(&outputs);
+    let (hover_map, report) = crate::core::framework::picking::resolve_picking_outputs(&outputs);
     let (projection_builds, pointer_group_sorts) =
         crate::core::framework::picking::sorted_hit_projection_metrics();
 

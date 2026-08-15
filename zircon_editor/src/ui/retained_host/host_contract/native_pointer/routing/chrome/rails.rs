@@ -17,9 +17,10 @@ pub(super) fn route_activity_rail(
     y: f32,
 ) -> Option<ChromePointerRoute> {
     let rail = activity_rail_frame_for_pointer(region, rail_before_panel, rail_width, x, y)?;
-    activity_rail_button_hit(&rail, buttons, x, y)?;
+    let control_id = activity_rail_button_hit(&rail, buttons, x, y)?;
     Some(ChromePointerRoute::ActivityRail {
         side: if rail_before_panel { "left" } else { "right" }.into(),
+        control_id,
         local_x: x - rail.x,
         local_y: y - rail.y,
     })

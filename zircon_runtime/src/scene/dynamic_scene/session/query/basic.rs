@@ -3,11 +3,11 @@ use super::super::{RuntimeSessionArchive, RuntimeSessionSlot};
 pub(in crate::scene::dynamic_scene::session) fn slot_count(
     archive: &RuntimeSessionArchive,
 ) -> usize {
-    archive.slots.len()
+    archive.payload_arc().slot_count()
 }
 
 pub(in crate::scene::dynamic_scene::session) fn is_empty(archive: &RuntimeSessionArchive) -> bool {
-    archive.slots.is_empty()
+    archive.payload_arc().is_empty()
 }
 
 pub(in crate::scene::dynamic_scene::session) fn contains_slot(
@@ -26,12 +26,14 @@ pub(in crate::scene::dynamic_scene::session) fn slot<'a>(
 
 pub(in crate::scene::dynamic_scene::session) fn slots(
     archive: &RuntimeSessionArchive,
-) -> &[RuntimeSessionSlot] {
-    &archive.slots
+) -> impl Iterator<Item = &RuntimeSessionSlot> {
+    archive.iter_canonical_slots()
 }
 
 pub(in crate::scene::dynamic_scene::session) fn slot_ids(
     archive: &RuntimeSessionArchive,
 ) -> impl Iterator<Item = &str> {
-    archive.slots.iter().map(|slot| slot.slot_id.as_str())
+    archive
+        .iter_canonical_slots()
+        .map(|slot| slot.slot_id.as_str())
 }

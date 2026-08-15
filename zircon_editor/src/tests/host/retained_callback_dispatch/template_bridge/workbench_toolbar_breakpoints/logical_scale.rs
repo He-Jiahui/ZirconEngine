@@ -34,6 +34,12 @@ fn toolbar_priority_uses_logical_width_under_scale() {
     );
     assert!(bridge.control_frame("WorkbenchRunPlay").is_some());
     assert!(bridge.control_frame("WorkbenchRunMode").is_some());
+    assert_eq!(
+        control_string(&bridge, "WorkbenchModuleSave", "text").as_deref(),
+        Some("Save"),
+        "logical 640px should not use the <=480px Ultra icon density"
+    );
+    assert!(bridge.control_frame("WorkbenchToolbarSave").is_some());
 
     bridge
         .recompute_layout_with_workbench_model_at_scale(
@@ -51,8 +57,8 @@ fn toolbar_priority_uses_logical_width_under_scale() {
     for control_id in ["WorkbenchLayoutGrid", "WorkbenchThemeToggle"] {
         assert_eq!(
             control_visibility(&bridge, control_id),
-            Some(UiVisibility::Collapsed),
-            "logical 1260px should still defer {control_id}"
+            Some(UiVisibility::Visible),
+            "MVP layout controls should remain directly reachable at logical 1260px"
         );
     }
 }

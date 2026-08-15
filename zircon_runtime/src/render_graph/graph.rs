@@ -1,9 +1,10 @@
 use std::collections::{BTreeSet, HashMap};
 
 use super::types::{
-    PassFlags, QueueLane, RenderGraphComputeWorkload, RenderGraphPassResourceAccess,
-    RenderGraphResource, RenderGraphResourceAccessKind, RenderGraphResourceDeclaration,
-    RenderGraphResourceDesc, RenderGraphResourceKind, RenderGraphResourceLifetime, RenderPassId,
+    PassFlags, QueueLane, RenderGraphComputePassMetadata, RenderGraphComputeWorkload,
+    RenderGraphPassResourceAccess, RenderGraphResource, RenderGraphResourceAccessKind,
+    RenderGraphResourceDeclaration, RenderGraphResourceDesc, RenderGraphResourceKind,
+    RenderGraphResourceLifetime, RenderGraphResourceVersion, RenderPassId,
 };
 use super::RenderGraphDump;
 use crate::rhi::{TextureDimension, TextureFormat, TextureResidency};
@@ -19,6 +20,7 @@ pub struct CompiledRenderPass {
     pub culled: bool,
     pub executor_id: Option<String>,
     pub compute_workload: Option<RenderGraphComputeWorkload>,
+    pub compute_pass_metadata: Option<RenderGraphComputePassMetadata>,
     pub resources: Vec<RenderGraphPassResourceAccess>,
 }
 
@@ -53,6 +55,21 @@ pub struct CompiledRenderGraphStats {
     pub total_dependency_count: usize,
     pub external_output_count: usize,
     pub sparse_texture_lifetime_count: usize,
+    // Compile-miss algorithmic work counters, not CPU or GPU wall-clock timings.
+    pub compile_resource_access_visit_count: usize,
+    pub compile_execution_dependency_count: usize,
+    pub compile_provenance_dependency_count: usize,
+    pub compile_cull_root_count: usize,
+    pub compile_cull_dependency_visit_count: usize,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct CompiledRenderGraphCompileWork {
+    pub resource_access_visit_count: usize,
+    pub execution_dependency_count: usize,
+    pub provenance_dependency_count: usize,
+    pub cull_root_count: usize,
+    pub cull_dependency_visit_count: usize,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -159,6 +176,14 @@ pub struct CompiledRenderGraph {
         ),
         (usize, usize),
     >,
+    pass_resource_version_indices: HashMap<
+        (
+            RenderPassId,
+            RenderGraphResource,
+            CompiledRenderGraphAccessIndexKind,
+        ),
+        RenderGraphResourceVersion,
+    >,
     resource_declarations: Vec<RenderGraphResourceDeclaration>,
     resource_declaration_indices: HashMap<RenderGraphResource, usize>,
     resource_declaration_indices_by_name: HashMap<String, usize>,
@@ -176,6 +201,8 @@ impl CompiledRenderGraph {
         passes: Vec<CompiledRenderPass>,
         resource_declarations: Vec<RenderGraphResourceDeclaration>,
         resource_lifetimes: Vec<RenderGraphResourceLifetime>,
+        pass_resource_versions: Vec<Vec<RenderGraphResourceVersion>>,
+        compile_work: CompiledRenderGraphCompileWork,
     ) -> Self {
         let pass_indices = passes
             .iter()
@@ -209,18 +236,34 @@ impl CompiledRenderGraph {
                     .or_insert((pass_index, access_index));
             }
         }
+        let mut pass_resource_version_indices = HashMap::new();
+        for (pass_index, pass) in passes.iter().enumerate() {
+            let Some(resource_versions) = pass_resource_versions.get(pass_index) else {
+                continue;
+            };
+            for (access, version) in pass.resources.iter().zip(resource_versions) {
+                pass_resource_version_indices
+                    .entry((pass.id, version.resource(), access.access.into()))
+                    .or_insert(*version);
+            }
+        }
         let resource_lifetime_indices = resource_lifetimes
             .iter()
             .enumerate()
             .map(|(index, lifetime)| (lifetime.resource, index))
             .collect();
         let transient_allocation_plan = build_transient_allocation_plan(&resource_lifetimes);
-        let stats = CompiledRenderGraphStats::from_compiled_graph(&passes, &resource_lifetimes);
+        let stats = CompiledRenderGraphStats::from_compiled_graph(
+            &passes,
+            &resource_lifetimes,
+            compile_work,
+        );
         Self {
             name,
             passes,
             pass_indices,
             pass_resource_access_indices,
+            pass_resource_version_indices,
             resource_declarations,
             resource_declaration_indices,
             resource_declaration_indices_by_name,
@@ -257,6 +300,17 @@ impl CompiledRenderGraph {
         self.passes
             .get(*pass_index)
             .and_then(|pass| pass.resources.get(*access_index))
+    }
+
+    pub fn resource_version_for_access(
+        &self,
+        pass: RenderPassId,
+        resource: RenderGraphResource,
+        access: RenderGraphResourceAccessKind,
+    ) -> Option<RenderGraphResourceVersion> {
+        self.pass_resource_version_indices
+            .get(&(pass, resource, access.into()))
+            .copied()
     }
 
     pub fn resource_declarations(&self) -> &[RenderGraphResourceDeclaration] {
@@ -320,10 +374,16 @@ impl CompiledRenderGraphStats {
     fn from_compiled_graph(
         passes: &[CompiledRenderPass],
         resource_lifetimes: &[RenderGraphResourceLifetime],
+        compile_work: CompiledRenderGraphCompileWork,
     ) -> Self {
         let mut stats = Self {
             total_pass_count: passes.len(),
             resource_lifetime_count: resource_lifetimes.len(),
+            compile_resource_access_visit_count: compile_work.resource_access_visit_count,
+            compile_execution_dependency_count: compile_work.execution_dependency_count,
+            compile_provenance_dependency_count: compile_work.provenance_dependency_count,
+            compile_cull_root_count: compile_work.cull_root_count,
+            compile_cull_dependency_visit_count: compile_work.cull_dependency_visit_count,
             sparse_texture_lifetime_count: resource_lifetimes
                 .iter()
                 .filter(|lifetime| lifetime.is_sparse_reserved_texture())
@@ -455,9 +515,9 @@ fn allocate_transient_lifetimes<'a>(
             .first()
             .is_some_and(|(last_pass, _)| *last_pass < lifetime.first_pass)
         {
-            let (_, slot) = active_slots
-                .pop_first()
-                .expect("active transient allocation slot exists");
+            let Some((_, slot)) = active_slots.pop_first() else {
+                break;
+            };
             free_slots.insert(slot);
         }
         let slot = free_slots.pop_first().unwrap_or_else(|| {

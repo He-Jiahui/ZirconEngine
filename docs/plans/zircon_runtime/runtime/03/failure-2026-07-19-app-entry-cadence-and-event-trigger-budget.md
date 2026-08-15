@@ -18,6 +18,15 @@ tests:
   - focused/unfocused idle cadence counters
   - unhandled event no-frame regression
   - duplicate resize no-work regression
+  - frame_pump_publishes_only_the_final_control_flow
+  - only_consumed_raw_device_motion_schedules_a_reactive_frame
+  - handled_window_events_schedule_frames_but_duplicate_resize_does_not
+  - game_cadence_throttles_unfocused_and_occluded_windows
+  - mobile_cadence_has_explicit_foreground_and_background_limits
+  - explicit_continuous_profile_ignores_visibility_throttling
+  - low_power_cadence_consumes_runtime_immediate_and_after_demand
+  - reactive_pending_request_survives_runtime_idle_until_next_pump
+  - reactive_pending_request_still_polls_when_runtime_immediate_coalesces
 ---
 
 # Runtime03：app entry cadence与事件触发预算
@@ -52,4 +61,10 @@ App entry 缺少统一 event relevance authority，frame pump 重复发布 contr
 
 2026-07-23 current-source复核：`runtime_entry_app/**`74/74、3,673行指纹`bda129...b2c`确认demand/coalesced-wake止损已在当前源码，且8个frame-cadence unit tests覆盖reactive/continuous/headless局部状态机；没有current-source managed Cargo、30秒idle、event storm或duplicate resize counter。该静态证据不重开Runtime03已完成的schedule里程碑，只保持本post-completion failure open。
 
-Open state: `App demand已静态贯通；event relevance、single control-flow publish、focus/visibility profile与same-size resize早退及产品计数仍待跨Runtime10/Editor01完成`。
+2026-08-10 current-source前向修复：window事件改由显式handled-event表决定frame request，raw device事件仅已消费的`PointerMotion`请求帧；`pump_frame_loop`每次只发布一次最终control flow；同一normalized viewport size在请求层与surface resize owner均提前返回，不再重复runtime resize、surface rebind或presenter resize。TDD源码红态、scoped rustfmt、diff-check与静态合同通过；未执行Cargo、30秒产品idle/event storm或产品计数验收。
+
+2026-08-10 focus/visibility current-source前向修复：沿用同一`RuntimeFrameCadence`而非平台分支，按Bevy focused/unfocused profile与Unreal foreground idle gate收敛为Game前台`Poll`、失焦60 Hz、遮挡1 Hz，Mobile前台60 Hz、后台/遮挡1 Hz，显式Continuous始终`Poll`，Desktop reactive与Headless fixed不变。focus/occlusion先更新cadence，再仅为真实状态边沿请求帧，重复事件不会重置deadline；LowPower消费`Immediate/After/Idle`，control flow取runtime deadline与profile周期的较早者。shutdown summary新增accepted/coalesced/ignored request、focus/occlusion transition与low-power pump/suppression计数。二次审查发现的moved-value编译问题、重复状态风暴与LowPower demand丢失均已前向修复；TDD源码红态、scoped rustfmt、diff-check与静态合同通过；未执行Cargo、30秒产品idle/event storm或产品计数验收。
+
+2026-08-10 第三轮审查前向修复：pump开始时消费旧request后，gamepad budget等pump内生产者仍可能创建新的capacity-one request；最终control-flow现在读取该pending token，Reactive/LowPower发布一次`Poll`，下一次`take_frame_request`消费后恢复`Wait/WaitUntil`。runtime `Idle`只清runtime deadline，`Immediate`即使与本地pending request合并也不会让该帧永久沉睡。新增上述两条回归；scoped rustfmt、diff-check与静态合同通过，未执行Cargo或产品计数验收。
+
+Open state: `app_cadence_source_repair_complete_pending_managed_cargo_and_product_counters`。

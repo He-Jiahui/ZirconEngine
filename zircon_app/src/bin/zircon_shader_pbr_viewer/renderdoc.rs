@@ -76,16 +76,21 @@ impl RenderDocCaptureReport {
 #[cfg(test)]
 mod tests {
     use super::RenderDocCaptureReport;
+    use crate::work_paths::viewer_test_artifact_root;
 
     fn temporary_capture_path(extension: &str) -> std::path::PathBuf {
         let nonce = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .expect("system time must be after the Unix epoch")
             .as_nanos();
-        std::env::temp_dir().join(format!(
-            "zircon-renderdoc-capture-evidence-{}-{nonce}.{extension}",
-            std::process::id()
-        ))
+        viewer_test_artifact_root("renderdoc-capture-evidence")
+            .join(format!("capture-{nonce}.{extension}"))
+    }
+
+    fn remove_capture_fixture(path: &std::path::Path) {
+        let _ = std::fs::remove_file(path);
+        std::fs::remove_dir_all(path.parent().expect("test path should have a parent"))
+            .expect("test artifact root should be removed");
     }
 
     #[test]
@@ -129,6 +134,11 @@ mod tests {
             .expect_err("a missing RenderDoc capture must not be accepted as evidence");
 
         assert!(error.contains("artifact is unavailable"));
+        remove_capture_fixture(
+            report
+                .latest_capture_path()
+                .expect("fixture path should exist"),
+        );
     }
 
     #[test]
@@ -141,7 +151,7 @@ mod tests {
         };
 
         let result = report.capture_path_for_evidence();
-        std::fs::remove_file(&capture_path).expect("remove capture fixture");
+        remove_capture_fixture(&capture_path);
 
         let error = result.expect_err("only lowercase .rdc files are valid capture evidence");
         assert!(error.contains("lowercase .rdc artifact"));
@@ -157,7 +167,7 @@ mod tests {
         };
 
         let result = report.capture_path_for_evidence();
-        std::fs::remove_file(&capture_path).expect("remove capture fixture");
+        remove_capture_fixture(&capture_path);
 
         let error =
             result.expect_err("an empty RenderDoc capture must not be accepted as evidence");
@@ -176,7 +186,7 @@ mod tests {
         let result = report
             .capture_path_for_evidence()
             .map(std::path::Path::to_path_buf);
-        std::fs::remove_file(&capture_path).expect("remove capture fixture");
+        remove_capture_fixture(&capture_path);
 
         assert_eq!(
             result.expect("a completed bridge capture should expose its artifact path"),

@@ -58,6 +58,13 @@ struct AuthoredGraphResources {
     external_resources: BTreeMap<String, ExternalResource>,
 }
 
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct ResourceVersionKey {
+    resource_name: String,
+    resource_kind: RenderFeatureResourceKind,
+    producer_pass_name: String,
+}
+
 fn author_graph_resources(
     graph: &mut RenderGraphBuilder,
     graph_resources: BTreeMap<String, PipelineGraphResourcePlan>,
@@ -106,12 +113,20 @@ fn author_graph_passes(
     resources: &AuthoredGraphResources,
     options: &RenderPipelineCompileOptions,
 ) -> Result<Vec<CompiledRenderPipelinePassStage>, String> {
-    let mut previous = None;
     let mut pass_stages = Vec::new();
     let mut produced_texture_resources = BTreeSet::<String>::new();
+    let version_producers = declared_resource_version_producers(descriptors);
 
     for stage in stages {
-        for pass_descriptor in ordered_stage_pass_descriptors(*stage, descriptors) {
+        for pass_descriptor in
+            ordered_stage_pass_descriptors(*stage, descriptors, stages, &version_producers)?
+        {
+            if pass_descriptor.flags.has_side_effects && pass_descriptor.resources.is_empty() {
+                return Err(format!(
+                    "render pass `{}` declares side effects without graph resources; declare the affected graph resource",
+                    pass_descriptor.pass_name
+                ));
+            }
             pass_stages.push(CompiledRenderPipelinePassStage::new(
                 pass_descriptor.pass_name.clone(),
                 *stage,
@@ -125,12 +140,6 @@ fn author_graph_passes(
             graph
                 .set_pass_flags(pass, pass_descriptor.flags)
                 .map_err(|error| error.to_string())?;
-            if let Some(workload) = pass_descriptor.compute_workload.clone() {
-                graph
-                    .set_compute_workload(pass, workload)
-                    .map_err(|error| error.to_string())?;
-            }
-
             for resource in &pass_descriptor.resources {
                 author_pass_resource_access(
                     graph,
@@ -140,12 +149,16 @@ fn author_graph_passes(
                     &mut produced_texture_resources,
                 )?;
             }
-            if let Some(before) = previous {
+            if let Some(workload) = pass_descriptor.compute_workload.clone() {
                 graph
-                    .add_dependency(before, pass)
+                    .set_compute_workload(pass, workload)
                     .map_err(|error| error.to_string())?;
             }
-            previous = Some(pass);
+            if let Some(compute_pass) = &pass_descriptor.compute_pass {
+                graph
+                    .set_compute_pass_metadata(pass, compute_pass.graph_metadata())
+                    .map_err(|error| error.to_string())?;
+            }
         }
     }
 
@@ -191,55 +204,151 @@ fn author_environment_ibl_bake_passes(
 fn ordered_stage_pass_descriptors(
     stage: RenderPassStage,
     descriptors: &[RenderFeatureDescriptor],
-) -> Vec<RenderFeaturePassDescriptor> {
-    let mut passes = stage_pass_descriptors(stage, descriptors);
-    order_unique_resource_producers_before_readers(&mut passes);
-    if stage == RenderPassStage::PostProcess {
-        order_post_process_bloom_after_scene_color_splits(&mut passes);
-    }
-    passes
+    stages: &[RenderPassStage],
+    version_producers: &BTreeMap<ResourceVersionKey, RenderPassStage>,
+) -> Result<Vec<RenderFeaturePassDescriptor>, String> {
+    order_explicit_resource_version_consumers(
+        stage,
+        stage_pass_descriptors(stage, descriptors),
+        stages,
+        version_producers,
+    )
 }
 
-fn order_unique_resource_producers_before_readers(passes: &mut Vec<RenderFeaturePassDescriptor>) {
+fn declared_resource_version_producers(
+    descriptors: &[RenderFeatureDescriptor],
+) -> BTreeMap<ResourceVersionKey, RenderPassStage> {
+    let mut producers = BTreeMap::new();
+    for descriptor in descriptors {
+        for pass in &descriptor.stage_passes {
+            for resource in &pass.resources {
+                if resource.access == RenderFeatureResourceAccess::Write {
+                    producers.insert(
+                        ResourceVersionKey {
+                            resource_name: resource.name.clone(),
+                            resource_kind: resource.kind,
+                            producer_pass_name: pass.pass_name.clone(),
+                        },
+                        pass.stage,
+                    );
+                }
+            }
+        }
+    }
+    producers
+}
+
+fn order_explicit_resource_version_consumers(
+    stage: RenderPassStage,
+    passes: Vec<RenderFeaturePassDescriptor>,
+    stages: &[RenderPassStage],
+    version_producers: &BTreeMap<ResourceVersionKey, RenderPassStage>,
+) -> Result<Vec<RenderFeaturePassDescriptor>, String> {
     let pass_count = passes.len();
     if pass_count < 2 {
-        return;
+        return Ok(passes);
     }
 
     let mut outgoing = vec![BTreeSet::<usize>::new(); pass_count];
     let mut indegree = vec![0usize; pass_count];
-    for producer_index in 0..pass_count {
-        for write in passes[producer_index]
-            .resources
-            .iter()
-            .filter(|resource| resource.access == RenderFeatureResourceAccess::Write)
-        {
-            let writer_count = passes
+    let mut producers = BTreeMap::<ResourceVersionKey, usize>::new();
+    for (pass_index, pass) in passes.iter().enumerate() {
+        for resource in &pass.resources {
+            if resource.access == RenderFeatureResourceAccess::Write {
+                producers.insert(
+                    ResourceVersionKey {
+                        resource_name: resource.name.clone(),
+                        resource_kind: resource.kind,
+                        producer_pass_name: pass.pass_name.clone(),
+                    },
+                    pass_index,
+                );
+            }
+        }
+    }
+
+    for (consumer_index, pass) in passes.iter().enumerate() {
+        for resource in &pass.resources {
+            let Some(version) = &resource.input_version else {
+                continue;
+            };
+            if resource.access != RenderFeatureResourceAccess::Read {
+                return Err(format!(
+                    "render pass `{}` declares output resource `{}` as a versioned input",
+                    pass.pass_name, resource.name
+                ));
+            }
+            if version.resource_name() != resource.name || version.resource_kind() != resource.kind
+            {
+                return Err(format!(
+                    "render pass `{}` versioned input `{}` does not match the declared resource",
+                    pass.pass_name, resource.name
+                ));
+            }
+            let version_key = ResourceVersionKey {
+                resource_name: version.resource_name().to_string(),
+                resource_kind: version.resource_kind(),
+                producer_pass_name: version.producer_pass_name().to_string(),
+            };
+            let Some(&producer_stage) = version_producers.get(&version_key) else {
+                return Err(format!(
+                    "render pass `{}` reads resource version `{}` from producer `{}`, but that output is not declared by an active feature",
+                    pass.pass_name,
+                    version.resource_name(),
+                    version.producer_pass_name()
+                ));
+            };
+            let producer_stage_index = stages
                 .iter()
-                .filter(|pass| {
-                    pass.resources.iter().any(|resource| {
-                        resource.name == write.name
-                            && resource.kind == write.kind
-                            && resource.access == RenderFeatureResourceAccess::Write
-                    })
-                })
-                .count();
-            if writer_count != 1 {
+                .position(|candidate| *candidate == producer_stage)
+                .ok_or_else(|| {
+                    format!(
+                        "render pass `{}` reads resource version `{}` from producer `{}`, but producer stage {:?} is not declared by the renderer",
+                        pass.pass_name,
+                        version.resource_name(),
+                        version.producer_pass_name(),
+                        producer_stage
+                    )
+                })?;
+            let consumer_stage_index = stages
+                .iter()
+                .position(|candidate| *candidate == stage)
+                .ok_or_else(|| {
+                    format!(
+                        "render pass `{}` declares versioned input `{}` in undeclared renderer stage {:?}",
+                        pass.pass_name,
+                        version.resource_name(),
+                        stage
+                    )
+                })?;
+            if producer_stage_index > consumer_stage_index {
+                return Err(format!(
+                    "render pass `{}` reads resource version `{}` from later producer `{}`",
+                    pass.pass_name,
+                    version.resource_name(),
+                    version.producer_pass_name()
+                ));
+            }
+            if producer_stage != stage {
                 continue;
             }
-            for (reader_index, reader) in passes.iter().enumerate() {
-                if reader_index == producer_index
-                    || !reader.resources.iter().any(|resource| {
-                        resource.name == write.name
-                            && resource.kind == write.kind
-                            && resource.access == RenderFeatureResourceAccess::Read
-                    })
-                {
-                    continue;
-                }
-                if outgoing[producer_index].insert(reader_index) {
-                    indegree[reader_index] += 1;
-                }
+            let Some(&producer_index) = producers.get(&version_key) else {
+                return Err(format!(
+                    "render pass `{}` reads resource version `{}` from producer `{}`, but that output is absent from its stage",
+                    pass.pass_name,
+                    version.resource_name(),
+                    version.producer_pass_name()
+                ));
+            };
+            if producer_index == consumer_index {
+                return Err(format!(
+                    "render pass `{}` cannot read its own produced resource version `{}`",
+                    pass.pass_name,
+                    version.resource_name()
+                ));
+            }
+            if outgoing[producer_index].insert(consumer_index) {
+                indegree[consumer_index] += 1;
             }
         }
     }
@@ -249,7 +358,7 @@ fn order_unique_resource_producers_before_readers(passes: &mut Vec<RenderFeature
     while order.len() < pass_count {
         let Some(next) = (0..pass_count).find(|index| !emitted[*index] && indegree[*index] == 0)
         else {
-            return;
+            return Err("render feature resource version dependencies contain a cycle".to_string());
         };
         emitted[next] = true;
         order.push(next);
@@ -258,60 +367,10 @@ fn order_unique_resource_producers_before_readers(passes: &mut Vec<RenderFeature
         }
     }
 
-    let original = passes.clone();
-    *passes = order
+    Ok(order
         .into_iter()
-        .map(|index| original[index].clone())
-        .collect();
-}
-
-fn order_post_process_bloom_after_scene_color_splits(
-    passes: &mut Vec<RenderFeaturePassDescriptor>,
-) {
-    let Some(bloom_index) = passes
-        .iter()
-        .position(|pass| pass.executor_id.as_str() == "post.bloom-extract")
-    else {
-        return;
-    };
-
-    let bloom = passes.remove(bloom_index);
-    let after_latest_scene_color_split = passes
-        .iter()
-        .rposition(|pass| is_bloom_scene_color_input_producer(pass.executor_id.as_str()))
-        .map(|index| index + 1)
-        .unwrap_or(0);
-    let before_exposure = passes
-        .iter()
-        .position(|pass| is_bloom_downstream_post_process(pass.executor_id.as_str()))
-        .unwrap_or(passes.len());
-    let insert_index = before_exposure.max(after_latest_scene_color_split);
-    passes.insert(insert_index.min(passes.len()), bloom);
-}
-
-fn is_bloom_scene_color_input_producer(executor_id: &str) -> bool {
-    matches!(
-        executor_id,
-        "temporal.taa-resolve" | "post.depth-of-field" | "post.motion-blur"
-    )
-}
-
-fn is_bloom_downstream_post_process(executor_id: &str) -> bool {
-    matches!(
-        executor_id,
-        "post.exposure.histogram"
-            | "post.exposure.resolve"
-            | "post.screen-space-reflection-reflection-pyramid"
-            | "post.screen-space-reflection-reflection-pyramid-coarse"
-            | "post.screen-space-reflection-specular-occlusion"
-            | "post.screen-space-reflection-resolve"
-            | "post.scene-composite"
-            | "post.blur"
-            | "post.color-lut-bake"
-            | "post.uber"
-            | "post.upscale"
-            | "post.output-transfer"
-    )
+        .map(|index| passes[index].clone())
+        .collect())
 }
 
 fn author_pass_resource_access(
@@ -356,10 +415,9 @@ fn read_texture_resource(
         RenderFeatureResourceKind::External => graph
             .read_external(pass, resources.external_resources[resource_name])
             .map_err(|error| error.to_string()),
-        RenderFeatureResourceKind::Buffer => unreachable!(
-            "texture resource `{}` was compiled as a buffer",
-            resource_name
-        ),
+        RenderFeatureResourceKind::Buffer => Err(format!(
+            "texture resource `{resource_name}` was compiled as a buffer"
+        )),
     }
 }
 
@@ -394,10 +452,10 @@ fn write_texture_resource(
         RenderFeatureResourceKind::External => {
             write_external_resource(graph, pass, resource, resources)
         }
-        RenderFeatureResourceKind::Buffer => unreachable!(
+        RenderFeatureResourceKind::Buffer => Err(format!(
             "texture resource `{}` was compiled as a buffer",
             resource.name
-        ),
+        )),
     }
 }
 
@@ -414,10 +472,9 @@ fn read_buffer_resource(
         RenderFeatureResourceKind::External => graph
             .read_external(pass, resources.external_resources[resource_name])
             .map_err(|error| error.to_string()),
-        RenderFeatureResourceKind::Texture => unreachable!(
-            "buffer resource `{}` was compiled as a texture",
-            resource_name
-        ),
+        RenderFeatureResourceKind::Texture => Err(format!(
+            "buffer resource `{resource_name}` was compiled as a texture"
+        )),
     }
 }
 
@@ -434,10 +491,10 @@ fn write_buffer_resource(
         RenderFeatureResourceKind::External => {
             write_external_resource(graph, pass, resource, resources)
         }
-        RenderFeatureResourceKind::Texture => unreachable!(
+        RenderFeatureResourceKind::Texture => Err(format!(
             "buffer resource `{}` was compiled as a texture",
             resource.name
-        ),
+        )),
     }
 }
 

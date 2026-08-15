@@ -13,7 +13,13 @@ fn render_planar_filter_plugin_workload_uses_the_pipeline_owned_contract() {
     assert_eq!(workload.workgroup_size, PLANAR_FILTER_WORKGROUP_SIZE);
     assert_eq!(
         workload.dispatch_extent,
-        crate::render_graph::RenderGraphComputeDispatchExtent::Viewport
+        crate::render_graph::RenderGraphComputeDispatchExtent::PerPixel {
+            target: PLANAR_REFLECTION_TEXTURE_RESOURCE.to_string(),
+            local_size: [
+                PLANAR_FILTER_WORKGROUP_SIZE[0],
+                PLANAR_FILTER_WORKGROUP_SIZE[1]
+            ],
+        }
     );
 }
 
@@ -35,17 +41,15 @@ fn render_planar_filter_shader_parses_and_owns_roughness_mip_contract() {
 
 #[test]
 fn render_planar_filter_rejects_invalid_extent_and_mip_count() {
-    assert!(
-        validate_filter_request(
-            wgpu::Extent3d {
-                width: 0,
-                height: 8,
-                depth_or_array_layers: 1,
-            },
-            1,
-        )
-        .is_err()
-    );
+    assert!(validate_filter_request(
+        wgpu::Extent3d {
+            width: 0,
+            height: 8,
+            depth_or_array_layers: 1,
+        },
+        1,
+    )
+    .is_err());
     assert!(validate_filter_request(test_extent(), 0).is_err());
     assert!(validate_filter_request(test_extent(), MIP_COUNT + 1).is_err());
     assert!(validate_filter_request(test_extent(), MIP_COUNT).is_ok());

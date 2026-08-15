@@ -41,7 +41,7 @@ fn ui_v2_resolved_pseudo_state_uses_painter_selector_priority() {
 }
 
 #[test]
-fn ui_v2_resolved_pseudo_state_keeps_selection_identity_above_hover() {
+fn ui_v2_resolved_pseudo_state_prioritizes_drop_target_over_persistent_selection() {
     let mut selected_document = v2_document(
         "asset://ui/tests/resolved_selected_runtime_style.v2.ui",
         "root",
@@ -83,7 +83,7 @@ fn ui_v2_resolved_pseudo_state_keeps_selection_identity_above_hover() {
     let resolved = UiV2StyleResolver::resolve(&selected_document, &compiled.arena).unwrap();
     assert_eq!(
         resolved.nodes["root"].self_values["background"].as_str(),
-        Some("#303030")
+        Some("#252525")
     );
 
     let mut checked_document = v2_document(
@@ -127,7 +127,7 @@ fn ui_v2_resolved_pseudo_state_keeps_selection_identity_above_hover() {
     let resolved = UiV2StyleResolver::resolve(&checked_document, &compiled.arena).unwrap();
     assert_eq!(
         resolved.nodes["root"].self_values["background"].as_str(),
-        Some("#404040")
+        Some("#252525")
     );
 
     let mut open_document =
@@ -142,6 +142,7 @@ fn ui_v2_resolved_pseudo_state_keeps_selection_identity_above_hover() {
                 ("hovered".to_string(), Value::Boolean(true)),
                 ("drop_hovered".to_string(), Value::Boolean(true)),
                 ("selected".to_string(), Value::Boolean(true)),
+                ("focused".to_string(), Value::Boolean(true)),
                 ("popup_open".to_string(), Value::Boolean(true)),
             ]),
             ..Default::default()
@@ -159,6 +160,10 @@ fn ui_v2_resolved_pseudo_state_keeps_selection_identity_above_hover() {
                 "Dropdown.material:resolved-open",
                 [("background", "#505050")],
             ),
+            style_rule(
+                "Dropdown.material:resolved-drop-hovered",
+                [("background", "#252525")],
+            ),
         ],
     });
 
@@ -166,7 +171,7 @@ fn ui_v2_resolved_pseudo_state_keeps_selection_identity_above_hover() {
     let resolved = UiV2StyleResolver::resolve(&open_document, &compiled.arena).unwrap();
     assert_eq!(
         resolved.nodes["root"].self_values["background"].as_str(),
-        Some("#505050")
+        Some("#252525")
     );
 }
 
@@ -241,7 +246,7 @@ fn ui_v2_surface_runtime_resolved_pseudo_state_restyles_from_component_state_pri
 }
 
 #[test]
-fn ui_v2_surface_runtime_resolved_pseudo_state_keeps_selection_identity_above_hover() {
+fn ui_v2_surface_runtime_resolved_pseudo_state_prioritizes_drop_target_over_persistent_selection() {
     let mut document = v2_document(
         "asset://ui/tests/resolved_selected_runtime_style_component.v2.ui",
         "root",
@@ -307,6 +312,13 @@ fn ui_v2_surface_runtime_resolved_pseudo_state_keeps_selection_identity_above_ho
     );
 
     assert!(surface.component_states.set_selected(node_id, true));
+    surface.mark_component_state_render_dirty(node_id).unwrap();
+    assert_eq!(
+        runtime_color_attr(&surface, node_id, "background"),
+        Some("#252525")
+    );
+
+    assert!(surface.component_states.set_drop_hovered(node_id, false));
     surface.mark_component_state_render_dirty(node_id).unwrap();
     assert_eq!(
         runtime_color_attr(&surface, node_id, "background"),

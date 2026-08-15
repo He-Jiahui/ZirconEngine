@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::ui::asset_editor::palette::{
-    build_palette_entries, insert_palette_item_with_placement, PaletteInsertMode,
+    insert_palette_item_with_placement, PaletteInsertMode, UiAssetPaletteCatalog,
     UiAssetPaletteEntryKind, UiAssetPaletteInsertionPlacement,
 };
 use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
@@ -20,7 +20,8 @@ fn ui_asset_editor_palette_uses_runtime_descriptor_native_entries() {
     let document = layout_document_with_local_component();
     let imports = BTreeMap::new();
 
-    let entries = build_palette_entries(&document, &imports);
+    let catalog = UiAssetPaletteCatalog::build(&document, &imports);
+    let entries = catalog.entries();
     let button = entries
         .iter()
         .find(|entry| entry.label == "Native / Button")
@@ -63,7 +64,8 @@ fn ui_asset_editor_palette_preserves_local_and_imported_reference_sources() {
         imported_widget_document(),
     );
 
-    let entries = build_palette_entries(&document, &imports);
+    let catalog = UiAssetPaletteCatalog::build(&document, &imports);
+    let entries = catalog.entries();
     assert!(entries.iter().any(|entry| {
         entry.label == "Component / LocalPanel"
             && matches!(
@@ -84,7 +86,8 @@ fn ui_asset_editor_palette_preserves_local_and_imported_reference_sources() {
 #[test]
 fn ui_asset_editor_palette_instantiates_descriptor_default_node_templates() {
     let mut document = layout_document_with_local_component();
-    let entries = build_palette_entries(&document, &BTreeMap::new());
+    let catalog = UiAssetPaletteCatalog::build(&document, &BTreeMap::new());
+    let entries = catalog.entries();
     let button = entries
         .iter()
         .find(|entry| entry.label == "Native / Button")
@@ -110,7 +113,8 @@ fn ui_asset_editor_palette_instantiates_descriptor_default_node_templates() {
 #[test]
 fn ui_asset_editor_palette_uses_runtime_descriptor_slots_for_native_children() {
     let mut document = layout_document_with_local_component();
-    let entries = build_palette_entries(&document, &BTreeMap::new());
+    let catalog = UiAssetPaletteCatalog::build(&document, &BTreeMap::new());
+    let entries = catalog.entries();
     let group = entries
         .iter()
         .find(|entry| entry.label == "Native / Group")

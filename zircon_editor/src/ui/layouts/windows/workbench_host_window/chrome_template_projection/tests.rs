@@ -167,6 +167,22 @@ fn side_dock_header_nodes_compact_inactive_tabs_inside_narrow_panel() {
 }
 
 #[test]
+fn side_dock_header_nodes_reuse_the_stable_projection_without_rebuilding_rows() {
+    dock_header::clear_side_dock_header_projection_cache_for_tests();
+    let tabs = model_rc(vec![test_tab("Asset Browser", true, true)]);
+
+    let first = side_dock_header_nodes(&tabs, &"fyrox_panel".into(), 240.0, 31.0);
+    let second = side_dock_header_nodes(&tabs, &"fyrox_panel".into(), 240.0, 31.0);
+
+    assert!(first.shares_values_with(&second));
+    assert_eq!(
+        dock_header::side_dock_header_projection_builds_for_tests(),
+        1,
+        "unchanged side dock input must reuse its projected rows"
+    );
+}
+
+#[test]
 fn menu_popup_nodes_project_absolute_rows_beyond_authored_slots() {
     let items = model_rc(
         (0..18)
@@ -212,14 +228,14 @@ fn menu_popup_nodes_project_absolute_rows_beyond_authored_slots() {
         "row 16 should keep the same TOML-derived row cadence as authored slots"
     );
     assert!(
-            row_17.frame.y > label_15.frame.y,
-            "absolute row 17 should be projected into the scrollable popup content instead of being truncated at slot 15"
-        );
+        row_17.frame.y > label_15.frame.y,
+        "absolute row 17 should be projected into the scrollable popup content instead of being truncated at slot 15"
+    );
     assert_eq!(label_16.icon_name.as_str(), "folder-open-outline");
     assert!(
-            label_16.has_preview_image,
-            "overflow rows should keep menu action SVG projection when cloned beyond authored stencil slots"
-        );
+        label_16.has_preview_image,
+        "overflow rows should keep menu action SVG projection when cloned beyond authored stencil slots"
+    );
 }
 
 #[test]
@@ -242,9 +258,9 @@ fn menu_chrome_nodes_project_extension_slots_beyond_authored_stencil() {
 
     assert_eq!(slot_8.text.as_str(), "Plugin8");
     assert!(
-            slot_8.frame.x > slot_6.frame.x + slot_6.frame.width,
-            "extension top-level menus should be projected after the authored menu stencil instead of being truncated at slot 6"
-        );
+        slot_8.frame.x > slot_6.frame.x + slot_6.frame.width,
+        "extension top-level menus should be projected after the authored menu stencil instead of being truncated at slot 6"
+    );
 }
 
 #[test]
@@ -337,6 +353,12 @@ fn activity_rail_nodes_current_drawer_tabs_svg_icons_and_selected_state() {
     let hierarchy_icon = node(&nodes, "ActivityRailButtonIcon0");
     let assets_icon = node(&nodes, "ActivityRailButtonIcon1");
 
+    assert_eq!(hierarchy_button.frame.x, 3.0);
+    assert_eq!(hierarchy_button.frame.width, 28.0);
+    assert!(hierarchy_button.frame.x + hierarchy_button.frame.width <= 34.0);
+    assert_eq!(hierarchy_icon.frame.x, 8.0);
+    assert_eq!(hierarchy_icon.frame.width, 18.0);
+    assert!(hierarchy_icon.frame.x + hierarchy_icon.frame.width <= 34.0);
     assert_eq!(
         hierarchy_button.surface_variant.as_str(),
         "inset",
@@ -356,6 +378,147 @@ fn activity_rail_nodes_current_drawer_tabs_svg_icons_and_selected_state() {
     assert!(!hierarchy_icon.focused);
     assert_eq!(assets_icon.icon_name.as_str(), "folder-open-outline");
     assert_eq!(assets_icon.text_tone.as_str(), "subtle");
+}
+
+#[test]
+fn control_frame_unions_all_render_primitives_for_the_same_control() {
+    let nodes = model_rc(vec![
+        ViewTemplateNodeData {
+            control_id: "ActivityRailButton0".into(),
+            frame: ViewTemplateFrameData {
+                x: 30.0,
+                y: 143.0,
+                width: 1.0,
+                height: 32.0,
+            },
+            ..ViewTemplateNodeData::default()
+        },
+        ViewTemplateNodeData {
+            control_id: "ActivityRailButton0".into(),
+            frame: ViewTemplateFrameData {
+                x: 3.0,
+                y: 143.0,
+                width: 28.0,
+                height: 32.0,
+            },
+            ..ViewTemplateNodeData::default()
+        },
+    ]);
+
+    assert_eq!(
+        control_frame(&nodes, "ActivityRailButton0"),
+        FrameRect {
+            x: 3.0,
+            y: 143.0,
+            width: 28.0,
+            height: 32.0,
+        }
+    );
+}
+
+#[test]
+fn stencil_template_selection_is_independent_of_render_primitive_order() {
+    let surface = ViewTemplateNodeData {
+        control_id: "ActivityRailButton0".into(),
+        role: "Button".into(),
+        frame: ViewTemplateFrameData {
+            x: 3.0,
+            y: 143.0,
+            width: 28.0,
+            height: 32.0,
+        },
+        ..ViewTemplateNodeData::default()
+    };
+    let separator = ViewTemplateNodeData {
+        control_id: "ActivityRailButton0".into(),
+        role: "Button".into(),
+        frame: ViewTemplateFrameData {
+            x: 30.0,
+            y: 143.0,
+            width: 1.0,
+            height: 32.0,
+        },
+        ..ViewTemplateNodeData::default()
+    };
+
+    for candidates in [
+        [surface.clone(), separator.clone()],
+        [separator.clone(), surface.clone()],
+    ] {
+        let mut templates = BTreeMap::new();
+        for candidate in candidates {
+            retain_dominant_control_template(&mut templates, 0, candidate);
+        }
+        let selected = templates.get(&0).expect("dominant template");
+        assert_eq!(selected.frame.x, 3.0);
+        assert_eq!(selected.frame.width, 28.0);
+    }
+}
+
+#[test]
+fn independent_activity_rails_do_not_evict_each_others_retained_surface() {
+    crate::ui::layouts::views::clear_view_template_projection_caches_for_tests();
+    let left_tabs = model_rc(vec![test_tab_with_icon(
+        "Hierarchy",
+        "hierarchy",
+        true,
+        false,
+    )]);
+    let right_tabs = model_rc(vec![test_tab_with_icon(
+        "Inspector",
+        "inspector",
+        true,
+        false,
+    )]);
+
+    let first_left = activity_rail_nodes_for_surface(
+        "host.left.activity.rail",
+        &left_tabs,
+        &"jetbrains_shell".into(),
+        34.0,
+        420.0,
+    );
+    let _right = activity_rail_nodes_for_surface(
+        "host.right.activity.rail",
+        &right_tabs,
+        &"jetbrains_shell".into(),
+        34.0,
+        520.0,
+    );
+    let second_left = activity_rail_nodes_for_surface(
+        "host.left.activity.rail",
+        &left_tabs,
+        &"jetbrains_shell".into(),
+        34.0,
+        420.0,
+    );
+
+    assert!(first_left.shares_values_with(&second_left));
+}
+
+#[test]
+fn document_and_bottom_headers_keep_independent_retained_surfaces() {
+    crate::ui::layouts::views::clear_view_template_projection_caches_for_tests();
+    let document_tabs = model_rc(vec![test_tab("Scene", true, true)]);
+    let bottom_tabs = model_rc(vec![test_tab("Console", true, false)]);
+
+    let first_document = document_dock_header_nodes(
+        &document_tabs,
+        &"Scene".into(),
+        &"fyrox_panel".into(),
+        720.0,
+        31.0,
+    );
+    let _bottom = bottom_dock_header_nodes(&bottom_tabs, &"fyrox_panel".into(), 1280.0, 31.0);
+    let second_document = document_dock_header_nodes(
+        &document_tabs,
+        &"Scene".into(),
+        &"fyrox_panel".into(),
+        720.0,
+        31.0,
+    );
+
+    assert!(first_document.shares_values_with(&second_document));
 }
 
 #[test]
@@ -391,6 +554,10 @@ fn page_and_dock_tabs_project_svg_icons_and_close_button_icon() {
     assert!(page_assets.has_preview_image);
     assert!(!page_assets.selected);
     assert_eq!(page_assets.text_tone.as_str(), "subtle");
+    assert!(
+        maybe_node(&page_nodes, "PageTabClose0").is_some(),
+        "the authored page template must provide the close control without appending a copied node model"
+    );
 
     let dock_nodes =
         document_dock_header_nodes(&tabs, &"".into(), &"fyrox_panel".into(), 640.0, 40.0);
@@ -410,6 +577,28 @@ fn page_and_dock_tabs_project_svg_icons_and_close_button_icon() {
         dock_close.has_preview_image,
         "dock close controls should render as SVG icon buttons instead of empty inset blocks"
     );
+}
+
+#[test]
+fn page_chrome_reuses_the_template_model_when_tabs_are_stable() {
+    let tabs = model_rc(vec![test_tab("Scene", true, true)]);
+
+    let first = page_chrome_nodes(
+        &tabs,
+        &"Demo".into(),
+        &"jetbrains_shell".into(),
+        640.0,
+        64.0,
+    );
+    let second = page_chrome_nodes(
+        &tabs,
+        &"Demo".into(),
+        &"jetbrains_shell".into(),
+        640.0,
+        64.0,
+    );
+
+    assert!(first.shares_values_with(&second));
 }
 
 #[test]

@@ -3,7 +3,7 @@ use std::f32::consts::{PI, TAU};
 use super::super::raster::ChartRaster;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    HostMaterialPalette, current_host_palette,
+    current_host_palette, HostMaterialPalette,
 };
 
 type GaugeColors = [[u8; 4]; 2];

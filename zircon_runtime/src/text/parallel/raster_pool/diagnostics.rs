@@ -17,6 +17,10 @@ const TEXT_RASTER_WORKER_COMPLETION_BACKLOG_BYTES_DIAGNOSTIC: &str =
     "text.raster.worker.completion_backlog_bytes";
 const TEXT_RASTER_WORKER_COMPLETION_BACKPRESSURED_DIAGNOSTIC: &str =
     "text.raster.worker.completion_backpressured";
+const TEXT_RASTER_WORKER_COMPLETION_BUDGET_REJECTED_DIAGNOSTIC: &str =
+    "text.raster.worker.completion_budget_rejected";
+const TEXT_RASTER_WORKER_COMPLETION_REJECTED_BYTES_DIAGNOSTIC: &str =
+    "text.raster.worker.completion_rejected_bytes";
 const TEXT_RASTER_WORKER_REQUEST_BACKPRESSURED_DIAGNOSTIC: &str =
     "text.raster.worker.request_backpressured";
 pub(crate) const TEXT_RASTER_WORKER_BUDGETED_THREADS_DIAGNOSTIC: &str =
@@ -48,6 +52,8 @@ pub(crate) struct TextRasterWorkerPoolDiagnostics {
     pub(crate) completion_backlog: usize,
     pub(crate) completion_backlog_bytes: usize,
     pub(crate) completion_backpressured: u64,
+    pub(crate) completion_budget_rejected: u64,
+    pub(crate) completion_rejected_bytes: u64,
     pub(crate) request_backpressured: u64,
 }
 
@@ -91,6 +97,8 @@ impl Default for TextRasterWorkerPoolDiagnostics {
             completion_backlog: 0,
             completion_backlog_bytes: 0,
             completion_backpressured: 0,
+            completion_budget_rejected: 0,
+            completion_rejected_bytes: 0,
             request_backpressured: 0,
         }
     }
@@ -222,6 +230,10 @@ impl TextRasterWorkerPool {
                 diagnostics.completion_backpressured as f64,
             ),
             (
+                TEXT_RASTER_WORKER_COMPLETION_BUDGET_REJECTED_DIAGNOSTIC,
+                diagnostics.completion_budget_rejected as f64,
+            ),
+            (
                 TEXT_RASTER_WORKER_REQUEST_BACKPRESSURED_DIAGNOSTIC,
                 diagnostics.request_backpressured as f64,
             ),
@@ -242,6 +254,10 @@ impl TextRasterWorkerPool {
             (
                 TEXT_RASTER_WORKER_COMPLETION_BACKLOG_BYTES_DIAGNOSTIC,
                 diagnostics.completion_backlog_bytes as f64,
+            ),
+            (
+                TEXT_RASTER_WORKER_COMPLETION_REJECTED_BYTES_DIAGNOSTIC,
+                diagnostics.completion_rejected_bytes as f64,
             ),
         ] {
             store.record(

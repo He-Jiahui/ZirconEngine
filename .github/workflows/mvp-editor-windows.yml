@@ -11,6 +11,7 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
   CARGO_TARGET_DIR: D:\ZirconBuilds\cargo-target
+  MVP_EVIDENCE_ROOT: D:\ZirconBuilds\mvp-ci-results-${{ github.run_id }}-${{ github.run_attempt }}
 
 jobs:
   mvp-editor-windows:
@@ -39,17 +40,20 @@ jobs:
       - name: Prepare MVP diagnostic evidence directory
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path test-results | Out-Null
+          if ($env:MVP_EVIDENCE_ROOT -notmatch '^D:\\ZirconBuilds\\mvp-ci-results-[0-9]+-[0-9]+$') {
+            throw "MVP evidence root must be a run-bound D:\ZirconBuilds path; got '$env:MVP_EVIDENCE_ROOT'."
+          }
+          New-Item -ItemType Directory -Force -Path $env:MVP_EVIDENCE_ROOT | Out-Null
           @(
             "rustc: $(& rustc -Vv | Out-String)",
             "cargo: $(& cargo -V | Out-String)"
-          ) | Set-Content -Encoding utf8 test-results/environment.txt
+          ) | Set-Content -Encoding utf8 "$env:MVP_EVIDENCE_ROOT\environment.txt"
 
       - name: Build editor host binary
         shell: pwsh
         run: |
           & cargo build -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked 2>&1 |
-            Tee-Object -FilePath test-results/build-editor.log
+            Tee-Object -FilePath "$env:MVP_EVIDENCE_ROOT\build-editor.log"
           $cargoExitCode = $LASTEXITCODE
           if ($cargoExitCode -ne 0) { exit $cargoExitCode }
 
@@ -57,7 +61,7 @@ jobs:
         shell: pwsh
         run: |
           & cargo build -p zircon_app --bin zircon_runtime --no-default-features --features target-client --locked 2>&1 |
-            Tee-Object -FilePath test-results/build-runtime.log
+            Tee-Object -FilePath "$env:MVP_EVIDENCE_ROOT\build-runtime.log"
           $cargoExitCode = $LASTEXITCODE
           if ($cargoExitCode -ne 0) { exit $cargoExitCode }
 
@@ -65,7 +69,7 @@ jobs:
         shell: pwsh
         run: |
           & cargo test -p zircon_app --lib --no-default-features --features target-editor-host --locked project_automation_ -- --test-threads=1 2>&1 |
-            Tee-Object -FilePath test-results/project-automation.log
+            Tee-Object -FilePath "$env:MVP_EVIDENCE_ROOT\project-automation.log"
           $cargoExitCode = $LASTEXITCODE
           if ($cargoExitCode -ne 0) { exit $cargoExitCode }
 
@@ -73,10 +77,10 @@ jobs:
         shell: pwsh
         run: |
           & cargo test -p zircon_editor --lib core::project::tests::template_creation::renderable_empty_template_has_the_f2_camera_cube_and_sun_contract --locked -- --exact --test-threads=1 2>&1 |
-            Tee-Object -FilePath test-results/f1-template.log
+            Tee-Object -FilePath "$env:MVP_EVIDENCE_ROOT\f1-template.log"
           $cargoExitCode = $LASTEXITCODE
           if ($cargoExitCode -ne 0) { exit $cargoExitCode }
-          if (-not (Select-String -LiteralPath test-results/f1-template.log -SimpleMatch 'test result: ok. 1 passed; 0 failed' -Quiet)) {
+          if (-not (Select-String -LiteralPath "$env:MVP_EVIDENCE_ROOT\f1-template.log" -SimpleMatch 'test result: ok. 1 passed; 0 failed' -Quiet)) {
             Write-Error 'F1 exact gate did not execute exactly one passing test.'
             exit 1
           }
@@ -85,19 +89,19 @@ jobs:
         shell: pwsh
         run: |
           & cargo test -p zircon_editor --lib core::project::tests::template_creation::template_creation_rebuilds_regenerable_asset_state_from_source_after_deletion --locked -- --exact --test-threads=1 2>&1 |
-            Tee-Object -FilePath test-results/f1-registry-rebuild.log
+            Tee-Object -FilePath "$env:MVP_EVIDENCE_ROOT\f1-registry-rebuild.log"
           $cargoExitCode = $LASTEXITCODE
           if ($cargoExitCode -ne 0) { exit $cargoExitCode }
-          if (-not (Select-String -LiteralPath test-results/f1-registry-rebuild.log -SimpleMatch 'test result: ok. 1 passed; 0 failed' -Quiet)) {
+          if (-not (Select-String -LiteralPath "$env:MVP_EVIDENCE_ROOT\f1-registry-rebuild.log" -SimpleMatch 'test result: ok. 1 passed; 0 failed' -Quiet)) {
             Write-Error 'F1 registry rebuild gate did not execute exactly one passing test.'
             exit 1
           }
 
           & cargo test -p zircon_editor --lib core::project::tests::template_creation::template_creation_recovers_a_corrupt_persisted_registry_from_source_metadata --locked -- --exact --test-threads=1 2>&1 |
-            Tee-Object -FilePath test-results/f1-registry-corrupt.log
+            Tee-Object -FilePath "$env:MVP_EVIDENCE_ROOT\f1-registry-corrupt.log"
           $cargoExitCode = $LASTEXITCODE
           if ($cargoExitCode -ne 0) { exit $cargoExitCode }
-          if (-not (Select-String -LiteralPath test-results/f1-registry-corrupt.log -SimpleMatch 'test result: ok. 1 passed; 0 failed' -Quiet)) {
+          if (-not (Select-String -LiteralPath "$env:MVP_EVIDENCE_ROOT\f1-registry-corrupt.log" -SimpleMatch 'test result: ok. 1 passed; 0 failed' -Quiet)) {
             Write-Error 'F1 corrupt registry recovery gate did not execute exactly one passing test.'
             exit 1
           }
@@ -105,15 +109,15 @@ jobs:
       - name: Test F2 persisted WGPU scene and input contract
         shell: pwsh
         run: |
-          $env:ZR_F2_BASIC_SCENE_CAPTURE_PNG = Join-Path $PWD 'test-results/f2-runtime-frame.png'
+          $env:ZR_F2_BASIC_SCENE_CAPTURE_PNG = Join-Path $env:MVP_EVIDENCE_ROOT 'f2-runtime-frame.png'
           & cargo test -p zircon_runtime --lib dynamic_api::session::tests::foundation_render::render_product_f2_persisted_basic_scene_renders_accepts_input_and_shuts_down --locked -- --exact --test-threads=1 2>&1 |
-            Tee-Object -FilePath test-results/f2-runtime.log
+            Tee-Object -FilePath "$env:MVP_EVIDENCE_ROOT\f2-runtime.log"
           $cargoExitCode = $LASTEXITCODE
           if ($cargoExitCode -ne 0) {
             Write-Error 'WGPU adapter unavailable or F2 MVP scene/render/input contract failed; blank captures are never accepted.'
             exit $cargoExitCode
           }
-          if (-not (Select-String -LiteralPath test-results/f2-runtime.log -SimpleMatch 'test result: ok. 1 passed; 0 failed' -Quiet)) {
+          if (-not (Select-String -LiteralPath "$env:MVP_EVIDENCE_ROOT\f2-runtime.log" -SimpleMatch 'test result: ok. 1 passed; 0 failed' -Quiet)) {
             Write-Error 'F2 exact gate did not execute exactly one passing test.'
             exit 1
           }
@@ -122,10 +126,10 @@ jobs:
         shell: pwsh
         run: |
           & cargo test -p zircon_editor --lib tests::workbench::project::document_roundtrip::editor_project_document_roundtrips_world_and_workspace --locked -- --exact --test-threads=1 2>&1 |
-            Tee-Object -FilePath test-results/f3-persistence.log
+            Tee-Object -FilePath "$env:MVP_EVIDENCE_ROOT\f3-persistence.log"
           $cargoExitCode = $LASTEXITCODE
           if ($cargoExitCode -ne 0) { exit $cargoExitCode }
-          if (-not (Select-String -LiteralPath test-results/f3-persistence.log -SimpleMatch 'test result: ok. 1 passed; 0 failed' -Quiet)) {
+          if (-not (Select-String -LiteralPath "$env:MVP_EVIDENCE_ROOT\f3-persistence.log" -SimpleMatch 'test result: ok. 1 passed; 0 failed' -Quiet)) {
             Write-Error 'F3 exact gate did not execute exactly one passing test.'
             exit 1
           }
@@ -134,10 +138,10 @@ jobs:
         shell: pwsh
         run: |
           & cargo test -p zircon_app --test editor_mvp_authoring --no-default-features --features target-editor-host --locked f4_project_authoring_survives_full_application_restart -- --exact --test-threads=1 2>&1 |
-            Tee-Object -FilePath test-results/f4-authoring.log
+            Tee-Object -FilePath "$env:MVP_EVIDENCE_ROOT\f4-authoring.log"
           $cargoExitCode = $LASTEXITCODE
           if ($cargoExitCode -ne 0) { exit $cargoExitCode }
-          if (-not (Select-String -LiteralPath test-results/f4-authoring.log -SimpleMatch 'test result: ok. 1 passed; 0 failed' -Quiet)) {
+          if (-not (Select-String -LiteralPath "$env:MVP_EVIDENCE_ROOT\f4-authoring.log" -SimpleMatch 'test result: ok. 1 passed; 0 failed' -Quiet)) {
             Write-Error 'F4 exact gate did not execute exactly one passing test.'
             exit 1
           }
@@ -146,7 +150,9 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $buildEvidenceRoot = Join-Path $PWD 'test-results\build'
+          Import-Module .\tools\mvp\MvpProductInputManifest.psm1 -Force -ErrorAction Stop
+          $sourceFingerprint = Get-MvpSourceFingerprint -RepositoryRoot $PWD
+          $buildEvidenceRoot = Join-Path $env:MVP_EVIDENCE_ROOT 'build'
           $buildLogRoot = Join-Path $buildEvidenceRoot 'logs'
           New-Item -ItemType Directory -Force -Path $buildLogRoot | Out-Null
 
@@ -211,14 +217,14 @@ jobs:
           $profileContractSummary = [ordered]@{
             schema_version = 1
             summary_kind = 'profile-contract'
-            source_fingerprint = $env:GITHUB_SHA
+            source_fingerprint = $sourceFingerprint
             status = 'passed'
             gates = $profileGates
           }
           $workspaceSummary = [ordered]@{
             schema_version = 1
             summary_kind = 'workspace'
-            source_fingerprint = $env:GITHUB_SHA
+            source_fingerprint = $sourceFingerprint
             status = 'passed'
             gates = $workspaceGates
           }
@@ -237,33 +243,22 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $binaryInputRoot = Join-Path $env:RUNNER_TEMP 'zircon-mvp-binary-inputs'
-          $targetDebugDirectory = Join-Path $env:CARGO_TARGET_DIR 'debug'
-          New-Item -ItemType Directory -Force -Path $binaryInputRoot | Out-Null
+          $runIdentity = "$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          $binaryInputRoot = Join-Path 'D:\ZirconBuilds' "mvp-product-inputs-$runIdentity"
+          & .\tools\mvp\Build-MvpProductInputs.ps1 -ArtifactOutputDirectory $binaryInputRoot
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $productInputManifest = Join-Path $binaryInputRoot 'mvp-product-inputs.json'
+          $sourceFingerprint = (Get-Content -LiteralPath $productInputManifest -Raw -Encoding UTF8 | ConvertFrom-Json).source_fingerprint
+          if ($sourceFingerprint -notmatch '^[0-9A-F]{64}$') {
+            throw 'Managed product input manifest did not publish a valid source fingerprint.'
+          }
 
-          & cargo build -p zircon_runtime --lib --no-default-features --features target-editor-host --locked 2>&1 |
-            Tee-Object -FilePath test-results/f5-editor-runtime-library.log
-          $cargoExitCode = $LASTEXITCODE
-          if ($cargoExitCode -ne 0) { exit $cargoExitCode }
-          $editorRuntimeLibrary = Join-Path $binaryInputRoot 'zircon_runtime_editor.dll'
-          Copy-Item -LiteralPath (Join-Path $targetDebugDirectory 'zircon_runtime.dll') -Destination $editorRuntimeLibrary -Force
-
-          & cargo build -p zircon_runtime --lib --no-default-features --features target-client --locked 2>&1 |
-            Tee-Object -FilePath test-results/f5-runtime-library.log
-          $cargoExitCode = $LASTEXITCODE
-          if ($cargoExitCode -ne 0) { exit $cargoExitCode }
-          $runtimeLibrary = Join-Path $binaryInputRoot 'zircon_runtime.dll'
-          Copy-Item -LiteralPath (Join-Path $targetDebugDirectory 'zircon_runtime.dll') -Destination $runtimeLibrary -Force
-
-          $buildEvidenceRoot = Join-Path $PWD 'test-results\build'
+          $buildEvidenceRoot = Join-Path $env:MVP_EVIDENCE_ROOT 'build'
           $profileContractSummaryPath = Join-Path $buildEvidenceRoot 'profile-contract-summary.json'
           $workspaceSummaryPath = Join-Path $buildEvidenceRoot 'workspace-summary.json'
 
           $stageJson = & .\tools\mvp\Stage-MvpProducts.ps1 `
-            -RuntimeExecutable (Join-Path $targetDebugDirectory 'zircon_runtime.exe') `
-            -EditorExecutable (Join-Path $targetDebugDirectory 'zircon_editor.exe') `
-            -RuntimeLibrary $runtimeLibrary `
-            -EditorRuntimeLibrary $editorRuntimeLibrary `
+            -ProductInputManifest $productInputManifest `
             -TemplateRoot (Join-Path $PWD 'templates\projects') `
             -EngineAssetRoot (Join-Path $PWD 'zircon_editor\assets') `
             -AuthoringAutomationRequest (Join-Path $PWD 'tools\mvp\mvp-authoring-automation.json') `
@@ -271,24 +266,23 @@ jobs:
             -CreateProject `
             -ProjectName 'ZirconMvpFixture' `
             -StagingRoot 'D:\ZirconBuilds' `
-            -SourceFingerprint $env:GITHUB_SHA `
             -RepeatCount 2 `
             -TimeoutSeconds 90 `
             -Json
           $stage = $stageJson | ConvertFrom-Json
 
-          $evidenceRoot = Join-Path $env:RUNNER_TEMP 'zircon-mvp-f5-evidence'
+          $evidenceRoot = Join-Path 'D:\ZirconBuilds' "mvp-f5-evidence-$runIdentity"
           $acceptanceJson = & .\tools\mvp\Invoke-MvpAcceptance.ps1 `
             -StagingRoot $stage.staging_root `
             -EvidenceRoot $evidenceRoot `
-            -ExpectedSourceFingerprint $env:GITHUB_SHA `
+            -ExpectedSourceFingerprint $sourceFingerprint `
             -ProfileContractSummaryPath $profileContractSummaryPath `
             -WorkspaceSummaryPath $workspaceSummaryPath `
             -RequireF5Evidence `
             -Json
           $acceptance = $acceptanceJson | ConvertFrom-Json
 
-          $artifactRoot = Join-Path $PWD 'test-results\f5-product'
+          $artifactRoot = Join-Path $env:MVP_EVIDENCE_ROOT 'f5-product'
           Copy-Item -LiteralPath $evidenceRoot -Destination $artifactRoot -Recurse -Force
 
       - name: Upload MVP diagnostic evidence
@@ -296,6 +290,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mvp-editor-windows-evidence
-          path: test-results
+          path: ${{ env.MVP_EVIDENCE_ROOT }}
           if-no-files-found: error
           retention-days: 7

@@ -13,4 +13,7 @@ pub(super) fn register_handled_pointer_node(
     dispatcher.register(node_id, UiPointerEventKind::Down, |_context| {
         UiPointerDispatchEffect::handled()
     });
+    dispatcher.register(node_id, UiPointerEventKind::Scroll, |_context| {
+        UiPointerDispatchEffect::handled()
+    });
 }

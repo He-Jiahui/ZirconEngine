@@ -3,13 +3,12 @@ use std::fs;
 
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::{
-    AssetImporter, AssetUri, ImportedAsset, MESH_ATTRIBUTE_COLOR, MESH_ATTRIBUTE_JOINT_INDEX,
-    MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
-    MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0, MESH_ATTRIBUTE_UV1, MeshAsset,
-    MeshAssetManagementRecord, MeshAssetManagementRecordSet, MeshAttributeFormat,
-    MeshAttributeSummary, MeshAttributeValues, MeshIndexFormat, MeshIndices, MeshMorphTargetAsset,
-    MeshSkinAsset, MeshValidationError, MeshVertex, ModelPrimitiveAsset, VirtualGeometryAsset,
-    ZMeshDocument,
+    AssetImporter, AssetUri, ImportedAsset, MeshAsset, MeshAssetManagementRecord,
+    MeshAssetManagementRecordSet, MeshAttributeFormat, MeshAttributeSummary, MeshAttributeValues,
+    MeshIndexFormat, MeshIndices, MeshMorphTargetAsset, MeshSkinAsset, MeshValidationError,
+    MeshVertex, ModelPrimitiveAsset, VirtualGeometryAsset, ZMeshDocument, MESH_ATTRIBUTE_COLOR,
+    MESH_ATTRIBUTE_JOINT_INDEX, MESH_ATTRIBUTE_JOINT_WEIGHT, MESH_ATTRIBUTE_NORMAL,
+    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MESH_ATTRIBUTE_UV0, MESH_ATTRIBUTE_UV1,
 };
 use crate::core::framework::render::RenderMeshTopology;
 use crate::core::math::{Vec2, Vec3};
@@ -46,6 +45,7 @@ fn sample_zmesh_document(indices: MeshIndices) -> ZMeshDocument {
         asset_usage: Default::default(),
         morph_targets: Vec::new(),
         skin: None,
+        mesh_sdf: None,
         virtual_geometry: Some(sample_virtual_geometry()),
     }
 }

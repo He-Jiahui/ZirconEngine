@@ -74,7 +74,7 @@ pub(in crate::ui::retained_host::host_contract) fn presentation_with_viewport_im
         resource_key: "viewport:test-initial".into(),
         width: 2,
         height: 2,
-        rgba: vec![255; 16],
+        rgba: Some(vec![255; 16].into()),
     });
     presentation
 }
@@ -247,7 +247,7 @@ pub(in crate::ui::retained_host::host_contract) fn root_overlay_image_command<'a
                                 payload.resource_key.as_str(),
                                 payload.resource_generation,
                             )
-                            .map(|resource| resource.rgba.as_slice())
+                            .map(|resource| resource.rgba.as_ref())
                     }) == Some(overlay_rgba) =>
             {
                 Some(payload)

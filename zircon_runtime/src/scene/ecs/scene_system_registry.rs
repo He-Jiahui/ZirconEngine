@@ -4,8 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     BoxedRuntimeSceneSystem, BoxedSceneSystem, InternalSceneSystem, IntoSceneSystem,
-    RuntimeSceneSystem, SceneSystem, SceneSystemDescriptor, SceneSystemMetadata,
-    ScheduleConflictGraph, ScheduleConflictNode, ScheduleError, SystemParam, SystemStage,
+    IntoWorldlessSceneSystem, RuntimeSceneSystem, SceneSystem, SceneSystemDescriptor,
+    SceneSystemMetadata, SceneSystemThreadAffinity, ScheduleConflictGraph, ScheduleConflictNode,
+    ScheduleError, SystemParam, SystemStage, WorldlessSystemParam,
 };
 
 #[derive(Serialize, Deserialize)]
@@ -73,6 +74,34 @@ impl SceneSystemRegistry {
                 });
             }
         };
+        insert_native_system_sorted(&mut self.native_systems, system);
+        Ok(())
+    }
+
+    pub fn register_worldless_native_system<P, S>(
+        &mut self,
+        id: impl Into<String>,
+        stage: SystemStage,
+        order: i32,
+        world: &mut crate::scene::World,
+        system: S,
+    ) -> Result<(), ScheduleError>
+    where
+        P: WorldlessSystemParam + 'static,
+        P::State: Send,
+        S: IntoWorldlessSceneSystem<P>,
+    {
+        let id = id.into();
+        validate_system_id(&id)?;
+        self.ensure_unique_system_id(&id)?;
+        let metadata = SceneSystemMetadata::new(id.clone(), stage, order)
+            .with_thread_affinity(SceneSystemThreadAffinity::WorkerSafe);
+        let system = system
+            .into_worldless_scene_system(metadata, world)
+            .map_err(|source| ScheduleError::SystemParam {
+                system_id: id,
+                source,
+            })?;
         insert_native_system_sorted(&mut self.native_systems, system);
         Ok(())
     }

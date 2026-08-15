@@ -72,7 +72,6 @@ pub(super) struct MirrorDocsSources {
     pub(super) submit_context_split_layout_guard: &'static str,
     pub(super) submit_context_status_docs_guard: &'static str,
     pub(super) submit_error_paths_guard: &'static str,
-    pub(super) cargo_gate_guard: &'static str,
 }
 
 pub(super) fn load() -> MirrorDocsSources {

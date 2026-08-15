@@ -2,14 +2,63 @@ use std::collections::{BTreeMap, HashMap};
 
 use zr_rhi::{
     UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceImagePayload,
-    UiSurfaceImageUvRect, UiSurfaceRect,
+    UiSurfaceImageResource, UiSurfaceImageUvRect, UiSurfaceRect,
 };
 
+use super::image_cache::UI_IMAGE_TEXTURE_FORMAT;
 use super::*;
+
+#[path = "tests/native_submission.rs"]
+mod native_submission;
+
+#[test]
+fn retryable_surface_acquisition_does_not_advance_the_presented_frame_count() {
+    for acquisition in [
+        wgpu::CurrentSurfaceTexture::Outdated,
+        wgpu::CurrentSurfaceTexture::Lost,
+        wgpu::CurrentSurfaceTexture::Timeout,
+        wgpu::CurrentSurfaceTexture::Occluded,
+    ] {
+        assert_eq!(
+            retryable_surface_outcome(&acquisition),
+            Some(UiSurfacePresentOutcome::RetryableNoSubmit)
+        );
+    }
+    assert_eq!(
+        advance_presented_frame_count(17, UiSurfacePresentOutcome::RetryableNoSubmit),
+        17
+    );
+    assert_eq!(
+        advance_presented_frame_count(17, UiSurfacePresentOutcome::Submitted),
+        18
+    );
+}
+
+#[test]
+fn retryable_surface_presentation_preserves_surface_stats_contract() {
+    let presentation = retryable_surface_presentation((640, 480));
+
+    assert_eq!(
+        presentation.outcome,
+        UiSurfacePresentOutcome::RetryableNoSubmit
+    );
+    assert_eq!(
+        presentation.draw_list_stats.outcome,
+        UiSurfacePresentOutcome::RetryableNoSubmit
+    );
+    assert_eq!(presentation.draw_list_stats.surface_size, (640, 480));
+    assert_eq!(presentation.draw_list_stats.draw_calls, 0);
+    assert_eq!(presentation.draw_list_stats.visible_command_count, 0);
+    assert!(presentation.image_resource_stats.is_none());
+    assert!(presentation.recorded_stats.is_none());
+    assert!(!presentation.gpu_timestamp_supported);
+    assert_eq!(presentation.gpu_time_us, None);
+    assert_eq!(presentation.gpu_profile_latency_frames, 0);
+}
 
 #[test]
 fn wgpu_ui_surface_moves_staged_image_pixels_into_the_native_cache() {
-    let rgba = vec![17; 16];
+    let rgba: std::sync::Arc<[u8]> = vec![17; 16].into();
     let rgba_ptr = rgba.as_ptr();
     let mut staged = Some(UiSurfaceImageResource {
         generation: 4,
@@ -25,7 +74,7 @@ fn wgpu_ui_surface_moves_staged_image_pixels_into_the_native_cache() {
 
     assert!(staged.is_none());
     assert_eq!(moved.as_ptr(), rgba_ptr);
-    assert_eq!(moved, vec![17; 16]);
+    assert_eq!(moved.as_ref(), &[17; 16]);
 }
 
 #[test]
@@ -35,7 +84,7 @@ fn wgpu_ui_surface_rejects_short_staged_image_pixels() {
         width: 2,
         height: 2,
         upload_bytes: 16,
-        rgba: vec![17; 15],
+        rgba: vec![17; 15].into(),
     });
     let draw_list = UiSurfaceDrawList::new((2, 2), None, Vec::new());
 
@@ -95,6 +144,10 @@ fn wgpu_ui_surface_presenter_records_present_stats() {
     assert_eq!(stats.image_prepare_command_visit_count, 0);
     assert_eq!(stats.image_prepare_cache_hit_count, 0);
     assert_eq!(stats.image_upload_write_count, 0);
+    assert_eq!(stats.image_shared_resolve_count, 0);
+    assert_eq!(stats.image_shared_upload_write_count, 0);
+    assert_eq!(stats.image_shared_upload_bytes, 0);
+    assert_eq!(stats.image_shared_resident_bytes, 0);
     assert_eq!(stats.presented_frame_count, 1);
     let stats_copy = stats;
     assert_eq!(stats, stats_copy);
@@ -221,6 +274,39 @@ fn wgpu_ui_surface_presenter_resize_tracks_draw_list_size() {
 
     assert_eq!(presenter.descriptor().clamped_size(), (64, 48));
     assert_eq!(stats.surface_size, (64, 48));
+}
+
+#[test]
+fn target_only_resize_uses_retained_copy_only_after_the_projection_is_ready() {
+    let damage = UiSurfaceRect::new(4.0, 5.0, 6.0, 7.0);
+    let mut draw_list =
+        UiSurfaceDrawList::with_generation((320, 200), Some(damage), Vec::new(), 41);
+    draw_list.retarget_surface_size_preserving_projection((480, 280));
+
+    assert_eq!(
+        surface_render_mode(&draw_list, false),
+        SurfaceRenderMode::FullRedraw
+    );
+    assert_eq!(
+        surface_render_mode(&draw_list, true),
+        SurfaceRenderMode::RetainedProjectionCopy
+    );
+    assert_eq!(
+        render_damage(&draw_list, SurfaceRenderMode::FullRedraw),
+        None
+    );
+    assert_eq!(
+        render_damage(&draw_list, SurfaceRenderMode::RetainedProjectionCopy),
+        None
+    );
+
+    let mut cache = CompiledUiBatchPlanCache::default();
+    let first = cache.resolve(&draw_list, true);
+    assert_eq!(first.draw_list_stats.unwrap().surface_size, (480, 280));
+    draw_list.retarget_surface_size_preserving_projection((520, 300));
+    let reused = cache.resolve(&draw_list, true);
+    assert_eq!(reused.batch_plan_cache_hit_count, 1);
+    assert_eq!(reused.draw_list_stats.unwrap().surface_size, (520, 300));
 }
 
 #[test]
@@ -753,126 +839,4 @@ fn atlas_image(
             },
         },
     }
-}
-
-#[test]
-fn wgpu_ui_surface_render_pass_coalesces_contiguous_non_text_ops() {
-    let source = include_str!("render_pass.rs");
-    let compact = source.split_whitespace().collect::<String>();
-
-    assert!(
-        compact.contains("letrun_end=non_text_run_end(draw_ops,op_index);"),
-        "render recording must find the complete contiguous solid/image run"
-    );
-    assert!(
-        compact.contains("forrun_indexinop_index..run_end{"),
-        "one render pass must record every op in the contiguous non-text run"
-    );
-}
-
-#[test]
-fn wgpu_ui_surface_marks_the_complete_present_submission_for_renderdoc() {
-    let source = include_str!("../ui_surface.rs");
-
-    assert!(
-        source.contains("encoder.push_debug_group(\"zircon::UI\");"),
-        "the full UI submission must be grouped under the standard RenderDoc UI marker"
-    );
-    assert!(
-        source.contains("encoder.pop_debug_group();"),
-        "the UI debug group must close before command submission"
-    );
-}
-
-#[test]
-fn wgpu_ui_surface_shared_context_path_does_not_request_a_second_device() {
-    let source = include_str!("../ui_surface.rs");
-    let shared_constructor = source
-        .split("fn new_with_context(\n        descriptor: UiSurfaceDescriptor,\n        context: WgpuUiSurfaceContext,")
-        .nth(1)
-        .and_then(|source| source.split("fn from_surface(").next())
-        .expect("native renderer should expose the shared-context construction path");
-
-    assert!(shared_constructor.contains("create_surface(&context.instance, target)?"));
-    assert!(!shared_constructor.contains("request_device"));
-}
-
-#[test]
-fn wgpu_ui_surface_external_image_path_uses_the_shared_texture_without_cpu_upload() {
-    let source = include_str!("../ui_surface/image_cache.rs");
-    let external_prepare = source
-        .split("fn prepare_external_image(")
-        .nth(1)
-        .and_then(|source| source.split("fn admit(").next())
-        .expect("native renderer should prepare external images independently");
-
-    assert!(external_prepare.contains("WgpuUiImageResource::from_external"));
-    assert!(!external_prepare.contains("queue.write_texture"));
-    assert!(external_prepare.contains("image_payload_layout"));
-    assert!(external_prepare.contains("layout.expected_len as u64"));
-
-    let presenter_source = include_str!("../ui_surface.rs");
-    let confirm = presenter_source
-        .split("let image_resource_stats = self.image_cache.prepare(")
-        .nth(1)
-        .expect("native presenter should prepare image resources");
-    assert!(confirm.contains("provider.confirm_resident"));
-}
-
-#[test]
-fn wgpu_ui_surface_copies_shared_products_to_generation_stable_textures() {
-    let source = include_str!("../ui_surface.rs");
-    let copy = source
-        .split("fn copy_texture_for_external_image")
-        .nth(1)
-        .expect("shared WGPU context should expose a GPU-only product copy");
-
-    assert!(copy.contains("create_texture"));
-    assert!(copy.contains("copy_texture_to_texture"));
-    assert!(copy.contains("self.queue.submit"));
-    assert!(copy.contains("byte_space_sample_view_format"));
-    assert!(copy.contains("view_formats"));
-}
-
-#[test]
-fn wgpu_ui_surface_samples_srgb_products_as_byte_space_images() {
-    assert_eq!(
-        super::byte_space_sample_view_format(wgpu::TextureFormat::Rgba8UnormSrgb),
-        Some(wgpu::TextureFormat::Rgba8Unorm)
-    );
-    assert_eq!(
-        super::byte_space_sample_view_format(wgpu::TextureFormat::Bgra8UnormSrgb),
-        Some(wgpu::TextureFormat::Bgra8Unorm)
-    );
-    assert_eq!(
-        super::byte_space_sample_view_format(wgpu::TextureFormat::Rgba8Unorm),
-        None
-    );
-}
-
-#[test]
-fn wgpu_ui_surface_presents_submitted_frame_before_readback_error() {
-    let source = include_str!("../ui_surface.rs");
-    let map_error = source.find("let readback_map_error").unwrap_or_default();
-    let present = source
-        .find("surface_texture.present();")
-        .unwrap_or_default();
-    let propagate = source
-        .find("if let Some(error) = readback_map_error")
-        .unwrap_or_default();
-
-    assert!(map_error < present);
-    assert!(present < propagate);
-}
-
-#[test]
-fn wgpu_ui_surface_setup_production_path_is_panic_free() {
-    let source = include_str!("surface_setup.rs")
-        .split("\n#[cfg(test)]")
-        .next()
-        .unwrap_or_default();
-
-    assert!(!source.contains(".expect("));
-    assert!(!source.contains(".unwrap("));
-    assert!(!source.contains("panic!("));
 }

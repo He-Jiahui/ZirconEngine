@@ -1,10 +1,11 @@
 use super::super::sdf_upload::{SdfAtlasUploadMode, SdfAtlasUploadPageReport};
 use super::super::text_pixel_snap::text_frame_device_origin;
 use super::vertices::{
-    RunGlyph, SdfUvRect, aligned_text_start_x, build_sdf_vertices, horizontal_sdf_glyph_frame,
+    aligned_text_start_x, build_sdf_vertices, horizontal_sdf_glyph_frame,
     horizontal_shaped_sdf_glyph_frame, pixel_to_ndc_x, pixel_to_ndc_y, resolve_sdf_glyph_advances,
     resolve_vertical_sdf_glyph_advances, sdf_screen_px_range, sdf_uv_at_destination,
-    vertical_sdf_glyph_frame, vertical_shaped_sdf_glyph_frame,
+    vertical_sdf_glyph_frame, vertical_shaped_sdf_glyph_frame, RunGlyph, SdfUvRect,
+    SDF_TEXT_PRIMITIVE_GLYPH,
 };
 use super::*;
 use crate::asset::ProjectAssetManager;
@@ -12,22 +13,22 @@ use crate::core::framework::text::{TextGlyph, TextGlyphFlags, TextGlyphRotation}
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiGlyphArtifactLine;
 use crate::graphics::scene::scene_renderer::ui::sdf_atlas::{
-    SdfAtlasAllocationFailure, SdfAtlasAllocationFailureReason, SdfAtlasPlan, SdfAtlasRun,
-    plan_sdf_atlas,
+    plan_sdf_atlas, SdfAtlasAllocationFailure, SdfAtlasAllocationFailureReason, SdfAtlasPlan,
+    SdfAtlasRun,
 };
-use crate::text::TextRenderState;
 use crate::text::atlas::{
     GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet, GlyphRasterPlacement,
     GlyphSmoothingMode,
 };
 use crate::text::font::{FontDatabase, SystemFontPolicy};
 use crate::text::sdf::{
-    SdfAtlasBake, SdfAtlasBakeReport, SdfBakedGlyph, SdfFontBakeCache, SdfGlyphMetrics,
-    scale_sdf_metrics_for_display,
+    scale_sdf_metrics_for_display, SdfAtlasBake, SdfAtlasBakeReport, SdfBakedGlyph,
+    SdfFontBakeCache, SdfGlyphMetrics,
 };
 use crate::text::sdf::{SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot};
 use crate::text::sdf::{SdfBakeParams, SdfMode};
 use crate::text::shaping::vertical_glyph_rotation;
+use crate::text::TextRenderState;
 use crate::text::{ResolvedTextGlyphArtifact, ResolvedTextGlyphArtifactLine, VerticalMode};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
@@ -35,6 +36,7 @@ use zircon_runtime_interface::ui::surface::{
     UiTextWritingMode,
 };
 
+mod compiled_frame;
 mod decoration_geometry;
 mod draw_plan;
 mod layout_placement;
@@ -256,10 +258,12 @@ fn text_batch(text: &str, frame: UiFrame) -> ScreenSpaceUiTextBatch {
                 None,
             ),
         command_generation: 1,
+        raster_scale: 1.0,
         text: text.to_string(),
         frame,
         clip_frame: None,
         source_range: None,
+        is_source_isomorphic_layout_line: false,
         glyph_advances: Vec::new(),
         shaped_glyphs: Vec::new(),
         preserve_shaped_glyphs: false,

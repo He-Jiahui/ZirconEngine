@@ -9,7 +9,7 @@ use crate::graphics::scene::scene_renderer::post_process::{
     clustered_lighting_dispatch_groups, clustered_lighting_workgroup_size,
     exposure_histogram_dispatch_groups, exposure_histogram_workgroup_size,
     exposure_resolve_dispatch_groups, exposure_resolve_workgroup_size, hzb_build_dispatch_groups,
-    hzb_build_workgroup_size, ssao_dispatch_groups, ssao_workgroup_size,
+    hzb_build_workgroup_size,
 };
 use crate::graphics::visibility::HzbBuilder;
 use crate::render_graph::RenderGraphResourceAccessKind;
@@ -135,88 +135,6 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 exposure_resolve_dispatch_groups(),
                 vec![current_resource_name.to_string()],
             ));
-        Ok(())
-    }
-
-    pub(in crate::graphics::scene::scene_renderer) fn record_ssao_to_resources(
-        &mut self,
-        pass_name: &str,
-        executor_id: &str,
-        depth_resource_name: &str,
-        normal_resource_name: &str,
-        hzb_furthest_resource_name: &str,
-        ambient_occlusion_resource_name: &str,
-    ) -> Result<(), String> {
-        let stack = self.post_process_stack.ok_or_else(|| {
-            format!(
-                "SSAO graph executor for pass `{pass_name}` requires post-process stack context"
-            )
-        })?;
-        let resources = &*self.resources;
-        let resource_resolver = self.resource_resolver;
-        let depth_view = Self::require_texture_view_by_name(
-            resources,
-            resource_resolver,
-            depth_resource_name,
-            RenderGraphResourceAccessKind::Read,
-        )?;
-        let normal_view = Self::require_texture_view_by_name(
-            resources,
-            resource_resolver,
-            normal_resource_name,
-            RenderGraphResourceAccessKind::Read,
-        )?;
-        let hzb_furthest_view = Self::require_texture_view_by_name(
-            resources,
-            resource_resolver,
-            hzb_furthest_resource_name,
-            RenderGraphResourceAccessKind::Read,
-        )?;
-        let hzb_furthest_full_mip_view = Self::optional_owned_texture_full_mip_view_by_name(
-            resources,
-            resource_resolver,
-            hzb_furthest_resource_name,
-            RenderGraphResourceAccessKind::Read,
-        )?;
-        let hzb_furthest_sampling_view = hzb_furthest_full_mip_view
-            .as_ref()
-            .unwrap_or(hzb_furthest_view);
-        let ambient_occlusion_view = Self::require_texture_view_by_name(
-            resources,
-            resource_resolver,
-            ambient_occlusion_resource_name,
-            RenderGraphResourceAccessKind::Write,
-        )?;
-        let target = stack.target;
-        let enabled = stack.runtime_features.ssao_enabled;
-        let dispatch_groups = ssao_dispatch_groups(target.size);
-        let workgroup_size = ssao_workgroup_size();
-        stack.post_process.execute_ssao(
-            self.device,
-            self.queue,
-            self.encoder,
-            target.size,
-            depth_view,
-            normal_view,
-            hzb_furthest_sampling_view,
-            stack
-                .history_textures
-                .map(|history| &history.ambient_occlusion_view),
-            ambient_occlusion_view,
-            enabled,
-            stack.history_available,
-        );
-        if enabled {
-            self.compute_dispatches
-                .push(RenderGraphComputeDispatchRecord::new(
-                    pass_name,
-                    executor_id,
-                    "zircon-ssao-pipeline",
-                    workgroup_size,
-                    dispatch_groups,
-                    vec![ambient_occlusion_resource_name.to_string()],
-                ));
-        }
         Ok(())
     }
 

@@ -1,7 +1,7 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::render_commands::HostPaintCommand;
 use super::super::style::tree_view_surface_color;
-use super::metrics::{MUI_X_TREE_ROW_COUNT, tree_view_row_metrics};
+use super::metrics::{tree_view_row_metrics, MUI_X_TREE_ROW_COUNT};
 use super::row::push_tree_view_row;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tree_view(

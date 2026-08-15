@@ -108,7 +108,7 @@ The remaining higher-level design choice is whether a future UI/render plan want
 10. `WorldDriver::tick_level(...)` at `zircon_runtime/src/scene/module/world_driver.rs:11` converts `advance.real_delta()` and the fixed timestep to `Real`, then consumes `advance.fixed_step_plan()`.
 11. `WorldDriver` consumes that single `FixedStepPlan`: when the schedule reaches `SystemStage::FixedFirst`, it runs every stage in `SystemStage::FIXED_LOOP` once per drained step, then skips fixed-loop stages in the outer stage iteration.
 12. `run_stage(...)` at `zircon_runtime/src/scene/module/world_driver.rs:64` delegates to `SceneScheduleRunner::run_stage(...)`.
-13. `SceneScheduleRunner::run_stage(...)` at `zircon_runtime/src/scene/ecs/schedule_runner.rs:13` executes `Internal`, `Native`, `ApplyDeferred`, and `Hook` steps. Internal non-`ApplyDeferred` systems and hooks flush deferred world work after each step.
+13. `SceneScheduleRunner::run_stage(...)` at `zircon_runtime/src/scene/ecs/schedule_runner.rs:13` executes `Internal`, `Native`, `Runtime`, and `ApplyDeferred` steps. Internal systems except `ApplyDeferred` and `UpdateEvents`, plus Runtime steps, flush deferred world work at their explicit schedule boundaries.
 
 The old gap was step 10: `WorldDriver` used to advance time again after the dynamic session had already called `tick_time(...)`. Current source has removed that second advance.
 
@@ -118,16 +118,19 @@ The old gap was step 10: `WorldDriver` used to advance time again after the dyna
 
 | Product policy | Winit control flow | Pump admission |
 |---|---|---|
-| `Game` / `Continuous` | `Poll` | Every `about_to_wait`; continuous gameplay is unchanged. |
-| `Mobile` | `Poll` | Continuous while the mobile event loop is active, so animation/time does not stall behind an event-only wait. |
+| `Game` | `Poll` while focused and visible; otherwise `WaitUntil(next_deadline)` | Focused visible gameplay remains continuous. An unfocused visible window uses a 60 Hz low-power deadline; an occluded window uses a 1 Hz background deadline. Explicit event requests still coalesce and can admit one immediate pump. |
+| `Continuous` | `Poll` | Explicit display/debug throughput override; focus and occlusion do not throttle it. |
+| `Mobile` | `WaitUntil(next_deadline)` | 60 Hz while focused and visible, 1 Hz while unfocused or occluded. Explicit event requests still coalesce and can admit one immediate pump. |
 | `DesktopApp` | `Wait` | One initial frame, then only after a non-redraw window event, device event, resume/surface creation, or `proxy_wake_up`. Repeated requests coalesce. |
 | `Headless` | `WaitUntil(next_deadline)` | Fixed periodic pump without a window/redraw dependency. The persistent deadline advances only after a due pump, so an early OS/proxy wake neither pumps an extra frame nor shifts the interval. The 16 ms local policy constant is private to this host cadence owner. |
 
-Reactive admission occurs before gamepad polling, `tick_frame`, host-request draining, and OS redraw. An idle Desktop `about_to_wait` therefore returns before all four. `WindowEvent::RedrawRequested` is explicitly excluded from new frame admission, so presenting an admitted frame cannot schedule itself forever. The existing tick → host request → redraw order is unchanged for admitted frames.
+The profile split follows Bevy's focused/unfocused `WinitSettings` while retaining Unreal's rule that focus loss is an engine-loop cadence concern rather than a Windows-only branch. Focus and occlusion update the same `RuntimeFrameCadence` before their ABI events are dispatched.
 
-`RuntimeEntryApp` logs `runtime_frame_cadence_summary` on shutdown with frame-request, pump, idle-suppression, and redraw-request counts. Those counters are the application-side correlate for the required WPR CPU/wakeup trace; they are not a substitute for WPR acceptance.
+Reactive admission occurs before gamepad polling, `tick_frame`, host-request draining, and OS redraw. An idle Desktop `about_to_wait` therefore returns before all four. The explicit window-event relevance table includes only handled runtime events; raw device admission includes only consumed pointer motion. Focus/occlusion are edge-owned by their lifecycle handlers, so repeated state notifications do not reset low-power deadlines. `WindowEvent::RedrawRequested` is excluded from new frame admission, so presenting an admitted frame cannot schedule itself forever. The existing tick → host request → redraw order is unchanged for admitted frames, and each pump publishes final control flow once.
 
-The reactive contract is not yet a fixed return. OS input and the `ApplicationHandler::proxy_wake_up` consumer are wired, but the product does not yet construct and route a proven `EventLoopProxy` producer from runtime-owned long animation, timer, or background-completion sources. Until the managed app tests, Desktop 30-second WPR trace, and runtime-origin wake product regression pass, the Runtime03 idle-cadence failure remains open.
+Low-power modes consume the same `Idle` / `Immediate` / `After` runtime demand as Desktop reactive mode. `Immediate` uses the capacity-one frame request and host wake; `After` publishes the earlier of the runtime deadline and profile period; `Idle` clears only the runtime deadline. If a producer creates another request during an admitted pump, final control-flow publication observes that pending token as one `Poll`; the next `take_frame_request` consumes it before Reactive/LowPower returns to `Wait` / `WaitUntil`. This also preserves an already-pending request when runtime `Immediate` coalesces or `Idle` clears its own deadline. `RuntimeEntryApp` logs `runtime_frame_cadence_summary` on shutdown with request-attempt, accepted, coalesced, ignored, pump, idle-suppression, redraw-request, focus-transition, occlusion-transition, low-power-pump, and low-power-suppression counts. Those counters are the application-side correlate for the required WPR CPU/wakeup trace; they are not a substitute for WPR acceptance.
+
+The reactive contract is not yet a fixed return. OS input, the `ApplicationHandler::proxy_wake_up` consumer, and the capacity-one project-generation producer are wired in current source, including empty-change reconciliation commits. Until the managed app tests, Desktop 30-second WPR trace, event-storm/duplicate-resize counters, and runtime-origin wake product regression pass, the Runtime03 idle-cadence failure remains open.
 
 ## Stage Table
 
@@ -228,6 +231,12 @@ Runtime 03 M3.1 adds executor-level observability without changing the frame own
 The diagnostic write remains report-owned. A future frame owner can call it at the point it considers authoritative for a frame without making the executor depend on dynamic session or scene-level state.
 
 Detailed owner notes live in `docs/zircon_runtime/scene/ecs/schedule_parallel_executor.md`.
+
+### Production native-system path
+
+The production `SceneScheduleRunner` is distinct from the generic executor above. Its compiled native-system plan uses `SystemParamAccess` conflict metadata to form worker-safe batches, temporarily takes those systems out of `World`, and executes them through `JobScheduler::join` without sharing `&mut World` between workers. Worker-local command queues merge in stable system order; non-worker-safe, Internal, Runtime, and deferred-barrier work remains on the main-thread lane. Worker callbacks and command application share one unwind boundary, so taken systems are restored before either panic resumes.
+
+`NativeSystemScheduleDiagnostics` publishes worker-batch/conflict counts, ready delay, worker utilization, callback p95, callback/conservative-writer counters, plus `scene.ecs.native_system.temporary_control_buffer_count` and `scene.ecs.native_system.temporary_control_buffer_bytes`. Overlap currently has behavior-test evidence but no published product counter. The last two values count temporary worker-batch containers and their capacity-byte proxy; they are not allocator-call counters and do not establish an allocation-performance acceptance result. Managed Cargo and the F2 product overlap/World-lock/allocation matrix remain pending.
 
 ## Structural Audit Mirror
 

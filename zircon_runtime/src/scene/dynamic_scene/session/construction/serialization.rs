@@ -2,7 +2,7 @@ use std::io::Write;
 
 use super::super::archive::RuntimeSessionArchiveWirePayload;
 use super::super::{
-    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES, RuntimeSessionArchive, RuntimeSessionArchiveError,
+    RuntimeSessionArchive, RuntimeSessionArchiveError, MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES,
 };
 
 pub(in crate::scene::dynamic_scene::session) fn from_versioned_json(
@@ -12,7 +12,6 @@ pub(in crate::scene::dynamic_scene::session) fn from_versioned_json(
     let payload: RuntimeSessionArchiveWirePayload = serde_json::from_str(json)?;
     let mut archive = RuntimeSessionArchive::from_deserialized_payload(payload.into());
     archive.normalize_slot_metadata();
-    archive.sort_slots();
     archive.record_normalized();
     archive.ensure_supported()?;
     archive.record_validated();

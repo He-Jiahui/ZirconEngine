@@ -23,7 +23,6 @@ mod particle;
 mod reactive_mask;
 
 const TAA_RESOLVE_EXECUTOR_ID: &str = "temporal.taa-resolve";
-const TAA_REACTIVE_MASK_CLEAR_EXECUTOR_ID: &str = "temporal.taa-reactive-mask-clear";
 const TAA_REACTIVE_MASK_MESH_EXECUTOR_ID: &str = "temporal.taa-reactive-mask-mesh";
 
 #[test]

@@ -15,7 +15,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn retaine
         resource_key: retained_image_resource_key(buffer.width(), buffer.height(), &rgba),
         width: buffer.width(),
         height: buffer.height(),
-        rgba,
+        rgba: rgba.into(),
         atlas: None,
     };
     image.is_valid().then_some(image)

@@ -1,22 +1,19 @@
-use std::{
-    path::Path,
-    sync::{Arc, Mutex},
-};
+use std::{path::Path, sync::Mutex};
 
-use zircon_runtime::plugin::native::{NativePluginLiveHost, NativePluginRuntimePlayModeSnapshot};
+use zircon_runtime::plugin::native::{NativePluginHostHandle, NativePluginRuntimePlayModeSnapshot};
 use zircon_runtime::plugin::RuntimePluginBridgeLifecycleState;
 
 use super::{PluginBridgeActivation, PluginBridgeActivationReport};
 
 pub struct NativePluginBridgeActivation {
-    live_host: Arc<NativePluginLiveHost>,
+    live_host: NativePluginHostHandle,
     bridge_lifecycle: Option<RuntimePluginBridgeLifecycleState>,
     transition_gate: Mutex<()>,
     active_snapshot: Mutex<Option<NativePluginRuntimePlayModeSnapshot>>,
 }
 
 impl NativePluginBridgeActivation {
-    pub fn new(live_host: Arc<NativePluginLiveHost>) -> Self {
+    pub fn new(live_host: NativePluginHostHandle) -> Self {
         Self {
             live_host,
             bridge_lifecycle: None,
@@ -26,7 +23,7 @@ impl NativePluginBridgeActivation {
     }
 
     pub fn new_with_bridge_lifecycle(
-        live_host: Arc<NativePluginLiveHost>,
+        live_host: NativePluginHostHandle,
         bridge_lifecycle: RuntimePluginBridgeLifecycleState,
     ) -> Self {
         Self {

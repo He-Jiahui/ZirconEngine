@@ -120,8 +120,8 @@ impl ProjectAssetManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::asset::AssetUri;
     use crate::asset::watch::{AssetChange, AssetChangeKind, AssetWatchBatchDiagnostics};
+    use crate::asset::AssetUri;
 
     #[test]
     fn manager_accumulates_bounded_watch_batch_diagnostics() {

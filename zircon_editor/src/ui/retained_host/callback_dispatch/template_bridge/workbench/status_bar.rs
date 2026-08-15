@@ -22,6 +22,26 @@ const STATUS_TASK_LABEL: &str = "WorkbenchStatusTaskLabel";
 const STATUS_TASK_BAR: &str = "WorkbenchStatusTaskBar";
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
+    pub(crate) fn prepare_status_line(
+        &mut self,
+        status_line: &str,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        let status_line = status_line.trim();
+        let text = if status_line.is_empty() {
+            "Ready"
+        } else {
+            status_line
+        };
+        self.mutate_control_property(STATUS_READY, "text", UiValue::String(text.to_string()))
+    }
+
+    pub(crate) fn prepare_status_task_progress(
+        &mut self,
+        task: Option<&StatusTaskProgressSnapshot>,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        self.sync_status_task_progress(task)
+    }
+
     pub(super) fn sync_status_bar(
         &mut self,
         chrome: &EditorChromeSnapshot,

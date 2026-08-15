@@ -4,12 +4,12 @@ use crate::render_graph::RenderGraphComputeDispatchExtent;
 
 use super::ibl_bake_shader_plan::IblBakeComputeKernelKind;
 use super::ibl_bake_wgpu_binding::{
-    IblBakeWgpuOutputBindingResource, create_ibl_bake_wgpu_bind_group,
-    create_ibl_bake_wgpu_params_buffer,
+    create_ibl_bake_wgpu_bind_group, create_ibl_bake_wgpu_params_buffer,
+    IblBakeWgpuOutputBindingResource,
 };
 use super::ibl_bake_wgpu_command_plan::{
-    IblBakeWgpuCommandPlan, ibl_bake_wgpu_command_plan_for_request,
-    ibl_bake_wgpu_prefilter_command_for_slice,
+    ibl_bake_wgpu_command_plan_for_request, ibl_bake_wgpu_prefilter_command_for_slice,
+    IblBakeWgpuCommandPlan,
 };
 use super::ibl_bake_wgpu_dispatch::encode_ibl_bake_wgpu_compute_dispatch;
 use super::ibl_bake_wgpu_pipeline_cache::IblBakeWgpuPipelineCache;
@@ -18,7 +18,9 @@ use super::realtime_ibl_gpu_resources::RealtimeIblGpuResources;
 use super::realtime_ibl_gpu_timestamps::{
     RealtimeIblGpuTimestampReadback, RealtimeIblGpuTimestampRecorder,
 };
-use super::realtime_ibl_graph_plan::{RealtimeIblGraphPassKind, RealtimeIblGraphPlan};
+use super::realtime_ibl_graph_plan::{
+    RealtimeIblGraphPass, RealtimeIblGraphPassKind, RealtimeIblGraphPlan,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(in crate::graphics) struct RealtimeIblWgpuRecordReport {
@@ -54,19 +56,20 @@ impl RealtimeIblWgpuRecorder {
         request: &IblBakeArtifactRequest,
         sky: &ProceduralSkyParams,
         plan: &RealtimeIblGraphPlan,
+        recording_passes: &[RealtimeIblGraphPass],
         resources: &RealtimeIblGpuResources,
         ibl_pipeline_cache: &mut IblBakeWgpuPipelineCache,
     ) -> Result<RealtimeIblWgpuRecordResult, String> {
         let work_slot = plan.work.slot;
         let compute_request = (*request).with_required_contents(IblBakeArtifactContents::PMREM_SH9);
-        let mut dispatch_groups = Vec::with_capacity(plan.passes.len());
+        let mut dispatch_groups = Vec::with_capacity(recording_passes.len());
         let capture = &self.capture;
         let timestamp_recorder =
             Self::timestamp_recorder(&mut self.timestamps, device, gpu_timing_enabled);
         if let Some(timestamps) = timestamp_recorder {
             timestamps.write_start(encoder);
         }
-        for pass in &plan.passes {
+        for pass in recording_passes {
             match pass.kind {
                 RealtimeIblGraphPassKind::CaptureSky(faces)
                 | RealtimeIblGraphPassKind::CaptureCloud(faces) => {
@@ -126,7 +129,7 @@ impl RealtimeIblWgpuRecorder {
             timestamp_recorder.map(|timestamps| timestamps.write_end_and_resolve(encoder));
         Ok(RealtimeIblWgpuRecordResult {
             report: RealtimeIblWgpuRecordReport {
-                pass_count: plan.passes.len(),
+                pass_count: recording_passes.len(),
                 dispatch_count: dispatch_groups.len(),
                 dispatch_groups,
             },
@@ -200,7 +203,11 @@ fn fixed_dispatch_groups(extent: &RenderGraphComputeDispatchExtent) -> Result<[u
 
 const fn mip_dimension(base_size: u32, mip_level: u32) -> u32 {
     let shifted = base_size >> mip_level;
-    if shifted == 0 { 1 } else { shifted }
+    if shifted == 0 {
+        1
+    } else {
+        shifted
+    }
 }
 
 #[cfg(test)]

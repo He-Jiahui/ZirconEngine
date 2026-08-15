@@ -9,12 +9,61 @@ if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
 
 from plugin_structure_audits.capability import (  # noqa: E402
+    FIRST_PARTY_EDITOR_RUNTIME_MIRROR_ROOTS,
+    FIRST_PARTY_RUNTIME_CAPABILITY_ROOTS,
+    collect_navigation_runtime_mirror_contract_violations,
     collect_native_abi_projection_violations,
     parse_capability_string_constants,
 )
 
 
 class PluginStructureAuditCapabilityTests(unittest.TestCase):
+    def test_neural_editor_mirror_is_in_the_first_party_audit(self):
+        self.assertIn("neural", FIRST_PARTY_EDITOR_RUNTIME_MIRROR_ROOTS)
+
+    def test_neural_runtime_capability_owner_is_in_the_first_party_audit(self):
+        self.assertIn("neural", FIRST_PARTY_RUNTIME_CAPABILITY_ROOTS)
+
+    def test_navigation_overlay_frame_contract_is_the_current_mirror_audit_owner(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repo_root = Path(temporary_directory)
+            editor_plugin = repo_root / "navigation" / "editor" / "src" / "plugin.rs"
+            runtime_mirror = (
+                repo_root / "navigation" / "editor" / "src" / "runtime_mirror.rs"
+            )
+            runtime_plugin = repo_root / "navigation" / "runtime" / "src" / "plugin.rs"
+            editor_plugin.parent.mkdir(parents=True)
+            runtime_plugin.parent.mkdir(parents=True)
+            editor_plugin.write_text(
+                "navigation_runtime_event_consumers_with_mirror(pie_mirror.clone())",
+                encoding="utf-8",
+            )
+            runtime_mirror.write_text(
+                "EditorRuntimeEventConsumerState\n"
+                "NAVIGATION_OVERLAY_CONSUMER_ID\n"
+                "NAVIGATION_OVERLAY_FRAME_PAYLOAD_SCHEMA\n",
+                encoding="utf-8",
+            )
+            runtime_plugin.write_text(
+                "register_mirrored_event::<NavigationOverlayFrame>", encoding="utf-8"
+            )
+
+            self.assertEqual(
+                [],
+                collect_navigation_runtime_mirror_contract_violations(
+                    repo_root, editor_plugin, runtime_mirror, runtime_plugin
+                ),
+            )
+
+            runtime_plugin.write_text(
+                "register_mirrored_event::<NavAgentTickReport>", encoding="utf-8"
+            )
+            violations = collect_navigation_runtime_mirror_contract_violations(
+                repo_root, editor_plugin, runtime_mirror, runtime_plugin
+            )
+            self.assertEqual(1, len(violations))
+            self.assertIn("NavigationOverlayFrame", violations[0])
+
     def test_dist_abi_projection_audit_rejects_only_hand_written_bindings(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             repo_root = Path(temporary_directory)

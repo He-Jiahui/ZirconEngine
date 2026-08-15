@@ -22,7 +22,15 @@ pub(crate) fn registrations() -> Vec<RenderPassExecutorRegistration> {
 }
 
 pub fn planar_reflection_filter_compute_workload() -> RenderGraphComputeWorkload {
-    RenderGraphComputeWorkload::viewport(PLANAR_FILTER_PIPELINE_LABEL, PLANAR_FILTER_WORKGROUP_SIZE)
+    RenderGraphComputeWorkload::per_pixel(
+        PLANAR_FILTER_PIPELINE_LABEL,
+        PLANAR_FILTER_WORKGROUP_SIZE,
+        PLANAR_REFLECTION_TEXTURE_RESOURCE,
+        [
+            PLANAR_FILTER_WORKGROUP_SIZE[0],
+            PLANAR_FILTER_WORKGROUP_SIZE[1],
+        ],
+    )
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

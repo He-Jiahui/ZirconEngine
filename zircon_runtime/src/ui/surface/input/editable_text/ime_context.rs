@@ -326,6 +326,7 @@ fn grapheme_adjacent_to_caret_exceeds_byte_limit(
 }
 
 fn grapheme_start_for_offset(text: &str, offset: usize) -> usize {
+    let offset = clamp_text_boundary(text, offset);
     for (start, grapheme) in UnicodeSegmentation::grapheme_indices(text, true) {
         if offset <= start || offset < start.saturating_add(grapheme.len()) {
             return start;
@@ -334,104 +335,23 @@ fn grapheme_start_for_offset(text: &str, offset: usize) -> usize {
     text.len()
 }
 
-#[cfg(test)]
-mod tests {
-    use std::borrow::Cow;
-
-    use super::{committed_text_for_input_method, surrounding_text_for_state};
-    use zircon_runtime_interface::ui::surface::{
-        UiEditableTextState, UiTextCaret, UiTextCaretAffinity, UiTextComposition, UiTextRange,
-        UiTextSelection,
-    };
-
-    #[test]
-    fn surrounding_text_omits_a_selection_that_exceeds_the_window() {
-        let grapheme = "e\u{301}";
-        let text = grapheme.repeat(600);
-        let caret_offset = grapheme.len() * 300;
-        let state = UiEditableTextState {
-            text,
-            caret: UiTextCaret {
-                offset: caret_offset,
-                affinity: UiTextCaretAffinity::Downstream,
-            },
-            selection: Some(UiTextSelection {
-                anchor: 0,
-                focus: caret_offset,
-            }),
-            ..Default::default()
-        };
-
-        assert!(surrounding_text_for_state(&state).is_none());
+fn grapheme_end_for_offset(text: &str, offset: usize) -> usize {
+    let offset = clamp_text_boundary(text, offset);
+    for (start, grapheme) in UnicodeSegmentation::grapheme_indices(text, true) {
+        let end = start.saturating_add(grapheme.len());
+        if offset <= start {
+            return start;
+        }
+        if offset < end {
+            return end;
+        }
     }
-
-    #[test]
-    fn input_method_text_borrows_the_committed_text_without_a_composition() {
-        let state = UiEditableTextState {
-            text: "committed text".to_owned(),
-            ..Default::default()
-        };
-
-        let (text, source_range, source_replacement_len) = committed_text_for_input_method(&state);
-
-        assert!(matches!(text, Cow::Borrowed(_)));
-        assert_eq!(text, "committed text");
-        assert_eq!(source_range, UiTextRange::default());
-        assert_eq!(source_replacement_len, 0);
-    }
-
-    #[test]
-    fn paint_only_composition_keeps_the_visible_text_and_mapping_for_ime_context() {
-        let state = UiEditableTextState {
-            text: "aXb".to_owned(),
-            caret: UiTextCaret {
-                offset: 2,
-                affinity: UiTextCaretAffinity::Downstream,
-            },
-            composition: Some(UiTextComposition {
-                range: UiTextRange { start: 1, end: 2 },
-                preedit_clauses: Vec::new(),
-                text: "X".to_owned(),
-                restore_text: None,
-            }),
-            ..Default::default()
-        };
-
-        let surrounding = surrounding_text_for_state(&state).expect("visible surrounding text");
-
-        assert_eq!(surrounding.text, "aXb");
-        assert_eq!(surrounding.cursor_byte, 1);
-        assert_eq!(surrounding.anchor_byte, 1);
-    }
-
-    #[test]
-    fn surrounding_text_rebases_the_restored_composition_range() {
-        let state = UiEditableTextState {
-            text: "aWXYZQf".to_owned(),
-            caret: UiTextCaret {
-                offset: 6,
-                affinity: UiTextCaretAffinity::Downstream,
-            },
-            composition: Some(UiTextComposition {
-                range: UiTextRange { start: 1, end: 6 },
-                preedit_clauses: Vec::new(),
-                text: "WXYZQ".to_owned(),
-                restore_text: Some("bcde".to_owned()),
-            }),
-            ..Default::default()
-        };
-
-        let surrounding = surrounding_text_for_state(&state).expect("committed surrounding text");
-
-        assert_eq!(surrounding.text, "abcdef");
-        assert_eq!(surrounding.cursor_byte, 5);
-        assert_eq!(surrounding.anchor_byte, 5);
-        assert_eq!(
-            surrounding.composition_range,
-            Some(zircon_runtime_interface::ui::dispatch::UiTextByteRange::new(1, 5))
-        );
-    }
+    text.len()
 }
+
+#[cfg(test)]
+#[path = "ime_context/tests.rs"]
+mod tests;
 
 fn committed_text_for_input_method(
     state: &UiEditableTextState,
@@ -478,10 +398,14 @@ fn font_metrics_for_node(surface: &UiSurface, target: UiNodeId) -> FontMetrics {
     let font_size = number_attribute(metadata, "font_size").unwrap_or(DEFAULT_FONT_SIZE);
     FontMetrics {
         char_advance: (font_size * 0.6).max(CARET_WIDTH),
-        line_height: number_attribute(metadata, "line_height")
-            .unwrap_or(font_size * 1.2)
-            .max(font_size),
+        line_height: line_height_for_metadata(metadata, font_size),
     }
+}
+
+fn line_height_for_metadata(metadata: Option<&UiTemplateNodeMetadata>, font_size: f32) -> f32 {
+    number_attribute(metadata, "line_height")
+        .unwrap_or(UiResolvedStyle::default_line_height(font_size))
+        .max(font_size)
 }
 
 fn text_frame_for_node(surface: &UiSurface, target: UiNodeId) -> Option<UiFrame> {
@@ -507,14 +431,21 @@ fn range_rects_for_text(
     font_metrics: FontMetrics,
     wrap_columns: Option<usize>,
 ) -> Vec<UiFrame> {
-    let start = clamp_text_boundary(text, range.start);
-    let end = clamp_text_boundary(text, range.end).max(start);
+    let range_start = clamp_text_boundary(text, range.start);
+    let range_end = clamp_text_boundary(text, range.end).max(range_start);
+    let collapsed = range_start == range_end;
+    let start = grapheme_start_for_offset(text, range_start);
+    let end = if collapsed {
+        start
+    } else {
+        grapheme_end_for_offset(text, range_end).max(start)
+    };
     let (mut line, mut column) = visual_line_column_for_offset(text, start, wrap_columns);
     let mut segment_line = line;
     let mut segment_start_column = column;
     let mut rects = Vec::new();
 
-    if start == end {
+    if collapsed {
         rects.push(line_segment_rect(
             text_frame,
             font_metrics,
@@ -525,8 +456,8 @@ fn range_rects_for_text(
         return rects;
     }
 
-    for ch in text[start..end].chars() {
-        if ch == '\n' {
+    for grapheme in text[start..end].graphemes(true) {
+        if is_text_line_break_grapheme(grapheme) {
             push_line_segment_rect(
                 &mut rects,
                 text_frame,
@@ -578,6 +509,10 @@ fn range_rects_for_text(
     rects
 }
 
+fn is_text_line_break_grapheme(grapheme: &str) -> bool {
+    matches!(grapheme, "\n" | "\r" | "\r\n")
+}
+
 fn push_line_segment_rect(
     rects: &mut Vec<UiFrame>,
     text_frame: UiFrame,
@@ -624,11 +559,11 @@ fn visual_line_column_for_offset(
     offset: usize,
     wrap_columns: Option<usize>,
 ) -> (usize, usize) {
-    let offset = clamp_text_boundary(text, offset);
+    let offset = grapheme_start_for_offset(text, offset);
     let mut line = 0;
     let mut column = 0;
-    for ch in text[..offset].chars() {
-        if ch == '\n' {
+    for grapheme in text[..offset].graphemes(true) {
+        if is_text_line_break_grapheme(grapheme) {
             line += 1;
             column = 0;
         } else {

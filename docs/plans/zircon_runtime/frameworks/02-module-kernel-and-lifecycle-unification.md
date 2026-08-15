@@ -8,19 +8,6 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/mod.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor.rs
   - zircon_app/src/plugins/groups.rs
-implementation_files:
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_inventory_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_inventory_rows/root_inventory_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_inventory_rows/owner_path_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_inventory_rows/root_path_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/production_guard_support/core_and_evidence/child_group_inventory_rows/guard_inventory_rows.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/root_paths/production_guard_core_and_evidence_paths.rs
-  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/owner_paths/production_guard_row_owner_paths/core_and_evidence.rs
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/index.md
   - docs/plans/milestone-validation-policy.md
@@ -34,6 +21,11 @@ reference_engines:
 ---
 
 # 02 · 模块内核与生命周期统一
+
+G7 owner 元数据维护（2026-08-09）：frontmatter 中 12 个已删除的 Runtime15
+plan-status/structure-guard 实现路径已直接移除，没有恢复旧测试树、兼容路径或虚构替代 owner；
+本计划的 G7 悬空引用由 12 降为 0。此次维护不改变下文 M1–M3 的实现与验收状态：受管
+Cargo、Runtime06 下层 failure 和 accepted closeout 仍按原记录保持 pending/open。
 
 | M3/M4 测试阶段 | UI text pipeline test owner split | `frameworks_02_m3_ui_text_pipeline_test_owner_split_static_passed_cargo_deferred` | 2026-07-08 | `Runtime 15 M3 UI text pipeline test owner split` / `runtime_15_m3_ui_text_pipeline_test_owner_split_static_passed_cargo_deferred` 按 frameworks 02 的模块内核/生命周期守卫口径，删除旧 `ui/tests/text_pipeline.rs` flat owner 并硬切为 `ui/tests/text_pipeline/` folder-backed test tree；route `mod.rs` 仅挂载 child owners，fixtures/font registry/layout request/measure cache/surface cache/render-extract prewarm 分别承接断言。验证：focused `text_pipeline` cargo test 15/15，`runtime_15_no_oversized_test_files` 1/1，全量 structure filter 1226/1303 passed、77 failed remaining；Cargo gate deferred。 |
 

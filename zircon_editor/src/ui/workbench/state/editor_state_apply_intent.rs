@@ -1,10 +1,13 @@
 use std::collections::BTreeSet;
+use std::sync::Arc;
 
 use zircon_runtime::scene::{NodeId, Scene};
 
 use crate::core::editing::command::EditorCommand;
 use crate::core::editing::context::CoreEditContext;
-use crate::core::editing::engine::{HistoryContextId, MergeMode};
+use crate::core::editing::engine::{
+    EditCommandError, HistoryContextId, MergeMode, SelectionSnapshot,
+};
 use crate::core::editing::intent::EditorIntent;
 use crate::core::editing::selection::SceneSelection;
 
@@ -235,7 +238,8 @@ impl EditorState {
             return Err("scene editing is disabled during play mode".to_string());
         }
         self.bind_transaction_context()?;
-        let mut scope = self
+        let editor_context = Arc::clone(&self.context);
+        let mut scope = editor_context
             .transactions()
             .begin(label, HistoryContextId::Global)
             .map_err(|error| error.to_string())?;
@@ -243,8 +247,11 @@ impl EditorState {
         for command in commands {
             scope.push(command).map_err(|error| error.to_string())?;
         }
-        scope.commit().map_err(|error| error.to_string())?;
-        self.sync_selection_from_transaction_context()?;
+        scope
+            .commit_after_apply(|selection_after| {
+                self.sync_selection_from_transaction_snapshot(selection_after)
+            })
+            .map_err(|error| error.to_string())?;
         self.sync_selection_state();
         Ok(())
     }
@@ -276,17 +283,53 @@ impl EditorState {
             .map_err(|error| error.to_string())
     }
 
-    fn sync_selection_from_transaction_context(&mut self) -> Result<(), String> {
-        let selection = self
+    pub(crate) fn ensure_transaction_context_selection_is_current(&self) -> Result<(), String> {
+        let selection = self.viewport_controller.selection();
+        let selection = SceneSelection::new(
+            selection.active_items().iter().copied().collect(),
+            selection.active_primary(),
+        );
+        let current = self
             .transactions()
             .with_context::<CoreEditContext, _>(CoreEditContext::scene_selection)
             .map_err(|error| error.to_string())?
-            .ok_or_else(|| "editor transaction context is not CoreEditContext".to_string())?
-            .map_err(|error| error.to_string())?;
+            .ok_or_else(|| "editor transaction context is not CoreEditContext".to_string())?;
+        if matches!(current, Ok(current) if current == selection) {
+            return Ok(());
+        }
+        self.bind_transaction_context()
+    }
+
+    fn sync_selection_from_transaction_context(&mut self) -> Result<(), String> {
+        let selection = self
+            .transactions()
+            .with_context::<CoreEditContext, _>(CoreEditContext::selection_snapshot)
+            .map_err(|error| error.to_string())?
+            .ok_or_else(|| "editor transaction context is not CoreEditContext".to_string())?;
+        self.sync_selection_from_transaction_snapshot(&selection)
+            .map_err(|error| error.to_string())
+    }
+
+    fn sync_selection_from_transaction_snapshot(
+        &mut self,
+        selection: &SelectionSnapshot,
+    ) -> Result<(), EditCommandError> {
+        #[cfg(test)]
+        if std::mem::take(&mut self.fail_next_transaction_selection_sync) {
+            return Err(EditCommandError::InvariantViolation {
+                invariant: "forced transaction selection synchronization failure",
+            });
+        }
+        let selection = selection.scene_selection()?;
         self.viewport_controller
             .selection_mut()
             .replace_active(selection.items().to_vec(), selection.primary());
         Ok(())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fail_next_transaction_selection_sync_for_test(&mut self) {
+        self.fail_next_transaction_selection_sync = true;
     }
 }
 

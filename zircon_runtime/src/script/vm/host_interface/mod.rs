@@ -11,8 +11,10 @@ pub use descriptor::{
     VmSystemRegistration, VmSystemStage,
 };
 pub use error::VmHostInterfaceError;
-pub(crate) use registry::VmHostInterfaceGenerationSnapshot;
 pub use registry::VmHostInterfaceRegistry;
+pub(crate) use registry::{
+    VmHostInterfaceActiveOwner, VmHostInterfaceActiveSnapshot, VmHostInterfaceGenerationSnapshot,
+};
 
 /// Capability required for a VM package to register scheduled systems.
 pub const VM_SYSTEM_CAPABILITY: &str = "runtime.script.extension.system";

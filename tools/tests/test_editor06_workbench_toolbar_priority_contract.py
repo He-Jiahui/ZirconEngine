@@ -7,6 +7,10 @@ PRIORITY = ROOT / (
     "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/"
     "workbench/toolbar_layout/priority.rs"
 )
+TOOLBAR_LAYOUT = ROOT / (
+    "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/"
+    "workbench/toolbar_layout.rs"
+)
 TEMPLATE_SURFACE = ROOT / (
     "zircon_editor/src/ui/workbench/reference/template_surface.rs"
 )
@@ -29,13 +33,16 @@ LEGACY_PREFERRED_HOST = ROOT / "zircon_editor/src/ui/workbench/view/preferred_ho
 
 
 class Editor06WorkbenchToolbarPriorityContractTests(unittest.TestCase):
-    def test_toolbar_width_resolution_indexes_control_nodes_once(self) -> None:
+    def test_toolbar_width_resolution_reuses_template_surface_control_slots(self) -> None:
         source = PRIORITY.read_text(encoding="utf-8")
+        toolbar_layout = TOOLBAR_LAYOUT.read_text(encoding="utf-8")
 
-        self.assertIn("ToolbarControlIndex", source)
-        self.assertIn("ToolbarControlIndex::new(surface)", source)
-        self.assertEqual(source.count(".values()"), 1)
-        self.assertNotIn("surface_control_node_id", source)
+        self.assertIn("EditorWorkbenchTemplateSurface", source)
+        self.assertIn("template_surface.control_node_id(control_id)", source)
+        self.assertIn("resolve_toolbar_priority(&self.template_surface", toolbar_layout)
+        self.assertNotIn("ToolbarControlIndex", source)
+        self.assertNotIn("HashMap", source)
+        self.assertNotIn(".values()", source)
 
     def test_componentized_workbench_reuses_a_stable_control_node_index(self) -> None:
         source = TEMPLATE_SURFACE.read_text(encoding="utf-8")

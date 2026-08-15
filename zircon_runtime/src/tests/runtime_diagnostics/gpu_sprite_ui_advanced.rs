@@ -202,6 +202,18 @@ pub(super) fn assert_gpu_sprite_ui_advanced(snapshot: &RuntimeDiagnosticsSnapsho
     );
     assert_render_count_series(
         &snapshot.store,
+        "render.hybrid_gi.radiance_cache.update_probe_count",
+        12.0,
+        &["hybrid_gi", "radiance_cache", "update"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hybrid_gi.radiance_cache.gpu_dispatch.consume",
+        6.0,
+        &["hybrid_gi", "radiance_cache", "gpu_dispatch"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
         "render.hybrid_gi.surface_cache.invalidated_page_count",
         15.0,
         &["hybrid_gi", "surface_cache", "invalidation"],
@@ -211,6 +223,114 @@ pub(super) fn assert_gpu_sprite_ui_advanced(snapshot: &RuntimeDiagnosticsSnapsho
         "render.hybrid_gi.voxel.invalidated_clipmap_count",
         23.0,
         &["hybrid_gi", "voxel", "invalidation"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.uploaded_page_count",
+        29.0,
+        &["hybrid_gi", "global_sdf", "upload"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.cpu_prepare_time_us",
+        1500.0,
+        &["hybrid_gi", "global_sdf", "cpu", "prepare"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.cpu_candidate_build_time_us",
+        500.0,
+        &["hybrid_gi", "global_sdf", "cpu", "candidate", "build"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.cpu_influence_update_time_us",
+        100.0,
+        &["hybrid_gi", "global_sdf", "cpu", "influence", "update"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.mesh_projection.cache_hit",
+        true,
+        &["hybrid_gi", "global_sdf", "mesh_projection", "cache"],
+    );
+    assert_render_bool_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.mesh_projection.rebuilt",
+        false,
+        &["hybrid_gi", "global_sdf", "mesh_projection", "cache"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.candidate_overflow_page_count",
+        31.0,
+        &["hybrid_gi", "global_sdf", "candidate", "overflow"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.candidate_contributor_count",
+        32.0,
+        &["hybrid_gi", "global_sdf", "candidate", "contributor"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.clipmap_fallback_count",
+        2.0,
+        &["hybrid_gi", "global_sdf", "clipmap", "fallback"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.candidate_bucket_capacity_bytes",
+        768.0,
+        &["hybrid_gi", "global_sdf", "candidate", "capacity"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.persistent_resource_byte_count",
+        4096.0,
+        &["hybrid_gi", "global_sdf", "resource", "persistent"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.transient_buffer_creation_count",
+        7.0,
+        &["hybrid_gi", "global_sdf", "resource", "transient"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.transient_bind_group_creation_count",
+        1.0,
+        &["hybrid_gi", "global_sdf", "resource", "transient"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.transient_parameter_upload_byte_count",
+        16.0,
+        &["hybrid_gi", "global_sdf", "resource", "upload"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.transient_page_upload_byte_count",
+        36.0,
+        &["hybrid_gi", "global_sdf", "resource", "upload"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.transient_mesh_upload_byte_count",
+        432.0,
+        &["hybrid_gi", "global_sdf", "resource", "upload"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.transient_completion_upload_byte_count",
+        4.0,
+        &["hybrid_gi", "global_sdf", "resource", "upload"],
+    );
+    assert_render_count_series(
+        &snapshot.store,
+        "render.hybrid_gi.global_sdf.transient_upload_byte_count",
+        488.0,
+        &["hybrid_gi", "global_sdf", "resource", "upload"],
     );
     assert_render_bool_series(
         &snapshot.store,

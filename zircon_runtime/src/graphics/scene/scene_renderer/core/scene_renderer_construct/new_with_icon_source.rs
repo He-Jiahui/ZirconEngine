@@ -5,8 +5,8 @@ use std::time::Instant;
 use crate::asset::ProjectAssetManagerAccess;
 use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
 use crate::graphics::backend::{
-    DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES, DEFAULT_GPU_TIMER_MAX_PASSES, GpuPassTimer,
-    GpuPipelineStatisticsTimer,
+    GpuPassTimer, GpuPipelineStatisticsTimer, DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES,
+    DEFAULT_GPU_TIMER_MAX_PASSES,
 };
 use crate::graphics::{
     RenderFeatureDescriptor, RenderPassExecutorRegistration, RuntimePrepareCollectorRegistration,
@@ -177,8 +177,8 @@ impl SceneRenderer {
             } else {
                 None
             };
-        let gpu_pass_timer = startup_options
-            .allow_gpu_timing()
+        let gpu_pass_timing_requested = startup_options.allow_gpu_timing();
+        let gpu_pass_timer = gpu_pass_timing_requested
             .then(|| {
                 GpuPassTimer::try_new(
                     &backend.device,
@@ -187,8 +187,7 @@ impl SceneRenderer {
                 )
             })
             .flatten();
-        let gpu_pipeline_statistics_timer = startup_options
-            .allow_gpu_timing()
+        let gpu_pipeline_statistics_timer = gpu_pass_timing_requested
             .then(|| {
                 GpuPipelineStatisticsTimer::try_new(
                     &backend.device,
@@ -196,6 +195,13 @@ impl SceneRenderer {
                 )
             })
             .flatten();
+        let last_gpu_timing_status = if !gpu_pass_timing_requested {
+            crate::core::framework::render::RenderGpuTimingStatus::Disabled
+        } else if gpu_pass_timer.is_some() {
+            crate::core::framework::render::RenderGpuTimingStatus::Deferred
+        } else {
+            crate::core::framework::render::RenderGpuTimingStatus::Unavailable
+        };
         Ok((
             Self {
                 backend,
@@ -205,9 +211,11 @@ impl SceneRenderer {
                 last_capture_target: None,
                 history_targets: HashMap::new(),
                 generation: 0,
+                gpu_pass_timing_requested,
                 gpu_pass_timer,
                 gpu_pipeline_statistics_timer,
                 last_gpu_timer_frame_result: None,
+                last_gpu_timing_status,
                 last_gpu_pipeline_statistics_frame_result: None,
                 render_pass_executors:
                     RenderPassExecutorRegistry::with_builtin_noop_executors_for_render_features_and_executor_registrations(
@@ -220,7 +228,7 @@ impl SceneRenderer {
                 last_prepared_sprite_queue_stats: Default::default(),
                 frame_timing_report_requested: false,
                 parallel_record_min_passes_per_bucket: None,
-                hzb_indirect_args_readback_enabled: false,
+                hzb_diagnostics_readback_enabled: false,
                 last_frame_timing_report: SceneRendererFrameTimingReport::default(),
                 advanced_plugin_outputs: SceneRendererAdvancedPluginOutputs::default(),
             },

@@ -19,6 +19,8 @@ related_code:
   - zircon_runtime/src/plugin/native_plugin_loader/discover.rs
   - zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs
   - zircon_runtime/src/plugin/native_plugin_loader/discover/tests.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/discovery_refresh/contract.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/discovery_refresh/service.rs
   - zircon_runtime/src/plugin/native_plugin_loader/candidate_from_manifest.rs
   - zircon_runtime/src/plugin/native_plugin_loader/discover_load_manifest.rs
   - zircon_runtime/src/plugin/native_plugin_loader/candidate_from_manifest.rs
@@ -154,9 +156,11 @@ The main plugin path is VM/plugin lifecycle, stable host handles, slot hot reloa
 
 Product/export startup treats `plugins/native_plugins.toml` as the native package authority and never recursively scans an arbitrary export root. Editor/dev discovery uses one process authority keyed by canonical plugin root. A root publishes an immutable generation assembled from path-sorted manifest records; every `NativePluginLoader` consumer, including editor status/export and the live host, observes that same generation instead of building a private report cache.
 
-The cold scan is breadth-first, stops below a directory once its `plugin.toml` establishes a package boundary, does not follow symbolic links, rejects canonical paths outside the root, tracks visited canonical directories to break junction cycles, and enforces a depth limit of 16. Duplicate package ids keep the first path-sorted candidate and produce a deterministic diagnostic naming both paths. At most 16 root authorities remain cached; least-recently-used roots release their watcher and snapshot on eviction.
+The cold scan is breadth-first, stops below a directory once its `plugin.toml` establishes a package boundary, does not follow symbolic links, rejects canonical paths outside the root, tracks visited canonical directories to break junction cycles, and enforces a depth limit of 16. Duplicate package ids keep the first path-sorted candidate and produce a deterministic diagnostic naming both paths. At most 16 cached root identities and bounded refresh admissions are retained.
 
-Each cached root owns a recursive filesystem watcher whose callback only queues paths. The next discovery read drains those paths under the per-root lock and rebuilds only affected manifest records or subtrees. Tooling may call `refresh_discovery_manifest` or `remove_discovered_path` for deterministic event delivery. An unchanged discovery performs no directory enumeration, entry inspection, manifest read, or TOML parse; `discovery_generation` exposes the currently published generation. Filesystem and parse errors remain strings only at `NativePluginLoadReport.diagnostics`.
+An unchanged discovery projects the immutable root-scan generation without directory enumeration, entry inspection, manifest read, or TOML parse; `discovery_generation` exposes that generation. The current explicit notification APIs, `refresh_discovery_manifest` and `remove_discovered_path`, still schedule a bounded full-root `RootScan`. They do not yet own a recursive watcher queue or an incremental manifest index, so the same zero-work guarantee does not apply to a notification refresh.
+
+The required follow-up authority contract is one immutable, root-scoped manifest index with path-scoped change/remove records, deterministic duplicate-id selection, last-good retention after a failed parse, and merged watcher bursts. It must publish through the existing generation/ticket service rather than introducing an editor cache or second scanner. Filesystem and parse errors remain strings only at `NativePluginLoadReport.diagnostics`.
 
 ## FFI Panic Boundary
 

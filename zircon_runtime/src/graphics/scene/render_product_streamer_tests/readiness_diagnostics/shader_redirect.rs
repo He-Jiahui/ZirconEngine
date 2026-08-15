@@ -7,7 +7,7 @@ use crate::core::framework::render::{
     builtin_geometry_source_descriptor, ShaderPassType, GEOMETRY_SOURCE_ID_STATIC_MESH,
 };
 use crate::graphics::shader::{
-    assemble_material_shader_template, validate_material_shader_template_assembly,
+    assemble_material_shader_template, validate_material_shader_template_wgsl_with_segments,
     MaterialShaderTemplateRequest, ShaderTemplateAssemblyError,
 };
 use crate::plugin::PluginShaderModuleSource;
@@ -83,7 +83,7 @@ fn render_product_streamer_resolves_plugin_imports_into_validated_module_sources
     assert!(assembly
         .include_content_hashes
         .contains(&expected_content_hash));
-    validate_material_shader_template_assembly(&assembly)
+    validate_material_shader_template_wgsl_with_segments(&assembly.wgsl_source, &assembly.segments)
         .expect("plugin product assembly is valid WGSL");
     validate_wgpu_shader_module(
         &device,
@@ -170,13 +170,14 @@ fn render_product_streamer_resolves_source_only_imports_into_validated_module_so
     let assembly = material_template_assembly(&streamer, &surface_id, includes);
     assert!(assembly.wgsl_source.contains("vec3f(0.25, 0.5, 0.75)"));
     assert!(!assembly.wgsl_source.contains("vec3f(0.9, 0.1, 0.1)"));
-    assert!(assembly.include_content_hashes.iter().any(|hash| hash
-        == &blake3::hash(
-            b"fn source_only_lighting() -> vec3f { return vec3f(0.25, 0.5, 0.75); }"
+    assert!(assembly.include_content_hashes.iter().any(|hash| {
+        hash == &blake3::hash(
+            b"fn source_only_lighting() -> vec3f { return vec3f(0.25, 0.5, 0.75); }",
         )
         .to_hex()
-        .to_string()));
-    validate_material_shader_template_assembly(&assembly)
+        .to_string()
+    }));
+    validate_material_shader_template_wgsl_with_segments(&assembly.wgsl_source, &assembly.segments)
         .expect("source-only product assembly is valid WGSL");
 }
 

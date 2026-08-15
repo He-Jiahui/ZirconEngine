@@ -676,7 +676,7 @@ fn confirm_delete_success_with_injected_recycler_drops_project_only_from_hub() {
 
 fn session_with_source(temp: &std::path::Path, source: &std::path::Path) -> HubRuntimeSession {
     let config_path = temp.join("hub.toml");
-    let editor_config_path = temp.join("editor.json");
+    let shared_recent_projects_path = temp.join("recent_projects.json");
     let mut config = HubConfig::default();
     config.settings.default_project_dir = temp.join("projects");
     config.settings.default_source_dir = source.to_path_buf();
@@ -692,12 +692,7 @@ fn session_with_source(temp: &std::path::Path, source: &std::path::Path) -> HubR
     config.active_engine_id = Some(source_engine_id(source));
     config.runtime.new_project_engine_id = Some(source_engine_id(source));
     config.save(&config_path).unwrap();
-    fs::write(
-        &editor_config_path,
-        r#"{"editor.startup.session":{"recent_projects":[]}}"#,
-    )
-    .unwrap();
-    HubRuntimeSession::load_from_paths(config_path, editor_config_path).unwrap()
+    HubRuntimeSession::load_from_paths(config_path, shared_recent_projects_path).unwrap()
 }
 
 fn write_valid_project_manifest(root: &std::path::Path, name: &str) {
@@ -710,7 +705,9 @@ fn write_valid_project_manifest(root: &std::path::Path, name: &str) {
 }
 
 fn temp_test_dir(prefix: &str) -> PathBuf {
-    let path = std::env::temp_dir().join(format!(
+    let target_directory = std::env::var_os("CARGO_TARGET_DIR")
+        .expect("Hub project-action filesystem tests require coordinator-managed CARGO_TARGET_DIR");
+    let path = PathBuf::from(target_directory).join(format!(
         "{prefix}-{}-{}",
         std::process::id(),
         crate::projects::now_unix_ms()

@@ -25,8 +25,10 @@ pub(in crate::ui::retained_host::host_contract) fn create_host_chrome_presenter(
             }
             let size = descriptor.clamped_size();
             if let Some(runtime_factory) = runtime_factory {
-                if let Ok(surface) = runtime_factory.create(descriptor) {
-                    return Ok((Box::new(GpuChromePresenter::new(surface, size)), true));
+                if runtime_factory.poll_ready().unwrap_or(false) {
+                    if let Ok(surface) = runtime_factory.create(descriptor) {
+                        return Ok((Box::new(GpuChromePresenter::new(surface, size)), true));
+                    }
                 }
             }
             let surface = create_default_ui_surface_presenter(descriptor)?;

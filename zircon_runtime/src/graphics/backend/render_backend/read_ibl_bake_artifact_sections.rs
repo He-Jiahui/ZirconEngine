@@ -74,6 +74,23 @@ pub(crate) fn read_ibl_bake_artifact_wgpu_sections(
     resources: IblBakeArtifactWgpuReadbackResources<'_>,
 ) -> Result<IblBakeArtifactReadbackSections, GraphicsError> {
     let descriptor = resources.descriptor;
+    build_ibl_bake_artifact_wgpu_readback_batch(device, resources)?
+        .finish(device, queue, descriptor)
+}
+
+pub(crate) fn prepare_ibl_bake_artifact_wgpu_readback(
+    device: &wgpu::Device,
+    resources: IblBakeArtifactWgpuReadbackResources<'_>,
+) -> Result<IblBakeArtifactWgpuPendingReadback, GraphicsError> {
+    let descriptor = resources.descriptor;
+    Ok(build_ibl_bake_artifact_wgpu_readback_batch(device, resources)?.into_pending(descriptor))
+}
+
+fn build_ibl_bake_artifact_wgpu_readback_batch(
+    device: &wgpu::Device,
+    resources: IblBakeArtifactWgpuReadbackResources<'_>,
+) -> Result<IblBakeArtifactWgpuReadbackBatch, GraphicsError> {
+    let descriptor = resources.descriptor;
     let mut batch = IblBakeArtifactWgpuReadbackBatch::new(device);
 
     if resources.requires_pmrem_texture() {
@@ -100,7 +117,90 @@ pub(crate) fn read_ibl_bake_artifact_wgpu_sections(
         batch.add_irradiance_cube(device, texture);
     }
 
-    batch.finish(device, queue, descriptor)
+    Ok(batch)
+}
+
+pub(crate) struct IblBakeArtifactWgpuPendingReadback {
+    descriptor: IblBakeArtifactDescriptor,
+    command_buffer: Option<wgpu::CommandBuffer>,
+    pmrem: Option<CubeMipChainReadback>,
+    sh9: Option<BufferReadback>,
+    irradiance_cube: Option<CubeMipChainReadback>,
+    completion: Option<mpsc::Receiver<Result<(), String>>>,
+    remaining_map_count: usize,
+}
+
+impl IblBakeArtifactWgpuPendingReadback {
+    pub(crate) fn take_command_buffer(&mut self) -> Option<wgpu::CommandBuffer> {
+        self.command_buffer.take()
+    }
+
+    pub(crate) fn begin_map(&mut self) {
+        if self.remaining_map_count == 0 || self.completion.is_some() {
+            return;
+        }
+        let (sender, receiver) = mpsc::channel();
+        if let Some(readback) = self.pmrem.as_ref() {
+            readback.map_async(sender.clone());
+        }
+        if let Some(readback) = self.sh9.as_ref() {
+            readback.map_async(sender.clone());
+        }
+        if let Some(readback) = self.irradiance_cube.as_ref() {
+            readback.map_async(sender.clone());
+        }
+        drop(sender);
+        self.completion = Some(receiver);
+    }
+
+    pub(crate) fn poll_ready(&mut self) -> Result<bool, GraphicsError> {
+        if self.remaining_map_count == 0 {
+            return Ok(true);
+        }
+        let Some(completion) = self.completion.as_ref() else {
+            return Ok(false);
+        };
+        loop {
+            match completion.try_recv() {
+                Ok(Ok(())) => {
+                    self.remaining_map_count = self.remaining_map_count.saturating_sub(1);
+                    if self.remaining_map_count == 0 {
+                        return Ok(true);
+                    }
+                }
+                Ok(Err(error)) => {
+                    self.unmap_all();
+                    return Err(GraphicsError::BufferMap(error));
+                }
+                Err(mpsc::TryRecvError::Empty) => return Ok(false),
+                Err(mpsc::TryRecvError::Disconnected) => {
+                    self.unmap_all();
+                    return Err(GraphicsError::BufferMap(
+                        "IBL bake readback map callbacks disconnected before completion"
+                            .to_string(),
+                    ));
+                }
+            }
+        }
+    }
+
+    pub(crate) fn finish(self) -> Result<IblBakeArtifactReadbackSections, GraphicsError> {
+        if self.remaining_map_count != 0 {
+            return Err(GraphicsError::BufferMap(
+                "IBL bake readback was consumed before all map callbacks completed".to_string(),
+            ));
+        }
+        Ok(readback_sections_from_mapped_buffers(
+            self.descriptor,
+            self.pmrem,
+            self.sh9,
+            self.irradiance_cube,
+        ))
+    }
+
+    fn unmap_all(&self) {
+        IblBakeArtifactWgpuReadbackBatch::unmap_all(&self.pmrem, &self.sh9, &self.irradiance_cube);
+    }
 }
 
 /// Keeps a cache-miss artifact readback behind one GPU submission and one device wait.
@@ -164,6 +264,30 @@ impl IblBakeArtifactWgpuReadbackBatch {
         ));
     }
 
+    fn into_pending(
+        self,
+        descriptor: IblBakeArtifactDescriptor,
+    ) -> IblBakeArtifactWgpuPendingReadback {
+        let readback_count = self.pmrem.is_some() as usize
+            + self.sh9.is_some() as usize
+            + self.irradiance_cube.is_some() as usize;
+        let Self {
+            encoder,
+            pmrem,
+            sh9,
+            irradiance_cube,
+        } = self;
+        IblBakeArtifactWgpuPendingReadback {
+            descriptor,
+            command_buffer: (readback_count > 0).then(|| encoder.finish()),
+            pmrem,
+            sh9,
+            irradiance_cube,
+            completion: None,
+            remaining_map_count: readback_count,
+        }
+    }
+
     fn finish(
         self,
         device: &wgpu::Device,
@@ -216,17 +340,12 @@ impl IblBakeArtifactWgpuReadbackBatch {
             return Err(error);
         }
 
-        let mut sections = IblBakeArtifactReadbackSections::new(descriptor);
-        if let Some(readback) = pmrem {
-            sections = sections.with_pmrem_rgba16f_bytes(readback.into_bytes());
-        }
-        if let Some(readback) = sh9 {
-            sections = sections.with_irradiance_sh9_bytes(readback.into_bytes());
-        }
-        if let Some(readback) = irradiance_cube {
-            sections = sections.with_irradiance_cube_rgba16f_bytes(readback.into_bytes());
-        }
-        Ok(sections)
+        Ok(readback_sections_from_mapped_buffers(
+            descriptor,
+            pmrem,
+            sh9,
+            irradiance_cube,
+        ))
     }
 
     fn unmap_all(
@@ -244,6 +363,25 @@ impl IblBakeArtifactWgpuReadbackBatch {
             readback.unmap();
         }
     }
+}
+
+fn readback_sections_from_mapped_buffers(
+    descriptor: IblBakeArtifactDescriptor,
+    pmrem: Option<CubeMipChainReadback>,
+    sh9: Option<BufferReadback>,
+    irradiance_cube: Option<CubeMipChainReadback>,
+) -> IblBakeArtifactReadbackSections {
+    let mut sections = IblBakeArtifactReadbackSections::new(descriptor);
+    if let Some(readback) = pmrem {
+        sections = sections.with_pmrem_rgba16f_bytes(readback.into_bytes());
+    }
+    if let Some(readback) = sh9 {
+        sections = sections.with_irradiance_sh9_bytes(readback.into_bytes());
+    }
+    if let Some(readback) = irradiance_cube {
+        sections = sections.with_irradiance_cube_rgba16f_bytes(readback.into_bytes());
+    }
+    sections
 }
 
 struct BufferReadback {

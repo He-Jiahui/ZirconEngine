@@ -19,6 +19,7 @@ pub(in crate::ui::retained_host::host_contract) struct GpuChromePresenter<P: UiS
     surface_cache_initialized: bool,
     native_resize_projection_size: (u32, u32),
     native_resize_draw_list: Option<UiSurfaceDrawList>,
+    native_resize_generation: u64,
     #[cfg(test)]
     native_resize_snapshot_build_count: u64,
     #[cfg(test)]

@@ -2,8 +2,8 @@ use crate::core::framework::render::RenderImageDimension;
 
 use super::super::TextureAsset;
 use super::bytes::{read_u32_le, read_u64_le};
-use super::layout::{ktx_gl_compressed_layout, ktx2_vk_compressed_layout};
-use super::{TextureUploadPlan, TextureUploadSubresource, texture_descriptor_mip_count};
+use super::layout::{ktx2_vk_compressed_layout, ktx_gl_compressed_layout};
+use super::{texture_descriptor_mip_count, TextureUploadPlan, TextureUploadSubresource};
 
 pub(super) const KTX2_IDENTIFIER: &[u8] = b"\xABKTX 20\xBB\r\n\x1A\n";
 pub(super) const KTX2_LEVEL_INDEX_OFFSET: usize = 80;
@@ -332,5 +332,9 @@ const fn mip_extent(value: u32, level: u32) -> u32 {
     } else {
         value >> level
     };
-    if shifted == 0 { 1 } else { shifted }
+    if shifted == 0 {
+        1
+    } else {
+        shifted
+    }
 }

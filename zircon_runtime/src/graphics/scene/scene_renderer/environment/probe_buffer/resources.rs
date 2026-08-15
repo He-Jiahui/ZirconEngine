@@ -3,13 +3,14 @@ use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
 use crate::core::framework::render::{
-    ProbeInfluenceShape, ReflectionProbeData, RenderCameraTarget, derive_planar_reflection_camera,
+    derive_planar_reflection_camera, ProbeInfluenceShape, ReflectionProbeData, RenderCameraTarget,
 };
-use crate::core::math::{Vec3, view_matrix};
+use crate::core::math::{view_matrix, Vec3};
+use crate::core::resource::ResourceId;
 #[cfg(test)]
 use crate::graphics::backend::{
-    BufferByteReadback, Rgba16FloatTextureRegionReadback, read_buffer_bytes,
-    read_texture_rgba16float_region,
+    read_buffer_bytes, read_texture_rgba16float_region, BufferByteReadback,
+    Rgba16FloatTextureRegionReadback,
 };
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::types::ViewportRenderFrame;
@@ -19,8 +20,8 @@ use super::gpu_layout::{
 };
 use super::slot_allocator::ProbeCubemapSlotAllocator;
 use super::upload::{
-    ReflectionProbeAssetError, ReflectionProbeAssetRejection, upload_probe_pmrem_texture,
-    validate_probe_pmrem_texture,
+    upload_probe_pmrem_texture, validate_probe_pmrem_texture, ReflectionProbeAssetError,
+    ReflectionProbeAssetRejection,
 };
 
 pub(super) const MAX_REFLECTION_PROBES: usize = 64;
@@ -41,6 +42,26 @@ struct ReflectionProbeResourceCapacity {
     cubemap_mip_count: u32,
     planar_texture_size: u32,
     planar_mip_count: u32,
+}
+
+struct ReflectionProbeCandidate<'a> {
+    probe: &'a ReflectionProbeData,
+    cubemap: ResourceId,
+    revision: Option<u64>,
+    distance: f32,
+    extraction_order: usize,
+}
+
+fn reflection_probe_candidate_order(
+    left: &ReflectionProbeCandidate<'_>,
+    right: &ReflectionProbeCandidate<'_>,
+) -> std::cmp::Ordering {
+    left.distance
+        .total_cmp(&right.distance)
+        .then_with(|| right.probe.priority().cmp(&left.probe.priority()))
+        .then_with(|| left.probe.probe_id().cmp(&right.probe.probe_id()))
+        .then_with(|| left.cubemap.cmp(&right.cubemap))
+        .then_with(|| left.extraction_order.cmp(&right.extraction_order))
 }
 
 impl ReflectionProbeResourceCapacity {
@@ -85,6 +106,8 @@ pub(in crate::graphics::scene::scene_renderer) struct SceneReflectionProbeResour
     environment_only_provider_upgrade: bool,
     #[cfg(test)]
     probe_capacity: usize,
+    #[cfg(test)]
+    candidate_registry_resolution_count: usize,
 }
 
 impl SceneReflectionProbeResources {
@@ -215,6 +238,8 @@ impl SceneReflectionProbeResources {
             environment_only_provider_upgrade: false,
             #[cfg(test)]
             probe_capacity: capacity.probe_count,
+            #[cfg(test)]
+            candidate_registry_resolution_count: 0,
         }
     }
 
@@ -254,6 +279,30 @@ impl SceneReflectionProbeResources {
                 .first_rejection
                 .map(|rejection| format!("{rejection:?}")),
         )
+    }
+
+    #[cfg(test)]
+    pub(super) const fn candidate_registry_resolution_count_for_tests(&self) -> usize {
+        self.candidate_registry_resolution_count
+    }
+
+    #[cfg(test)]
+    pub(super) fn gpu_planar_params_for_tests(
+        &self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> Result<GpuPlanarReflection, crate::graphics::types::GraphicsError> {
+        let bytes = read_buffer_bytes(
+            device,
+            queue,
+            &self.planar_params_buffer,
+            BufferByteReadback {
+                source_offset: 0,
+                byte_len: std::mem::size_of::<GpuPlanarReflection>() as u64,
+                label: "zircon-planar-reflection-params-readback",
+            },
+        )?;
+        Ok(bytemuck::pod_read_unaligned::<GpuPlanarReflection>(&bytes))
     }
 
     #[cfg(test)]
@@ -336,17 +385,16 @@ impl SceneReflectionProbeResources {
         frame: &ViewportRenderFrame,
         enabled: bool,
     ) -> ReflectionProbeUploadReport {
-        if self.environment_only_placeholder
-            && reflection_provider_resources_requested(frame, enabled)
-        {
-            *self = Self::new(device);
-            self.environment_only_provider_upgrade = true;
-        }
-        self.prepare_planar_reflection(queue, frame);
         let mut report = ReflectionProbeUploadReport {
             extracted_probe_count: frame.environment().probes.len(),
             ..ReflectionProbeUploadReport::default()
         };
+        let planar_params = selected_planar_reflection_params(frame);
+        if self.environment_only_placeholder && planar_params.is_some() {
+            self.upgrade_environment_only_provider(device, queue, planar_params);
+        } else {
+            self.write_planar_reflection(queue, planar_params);
+        }
         if !enabled {
             self.write_probe_header(queue, 0);
             self.last_report = report;
@@ -359,88 +407,136 @@ impl SceneReflectionProbeResources {
             .environment()
             .probes
             .iter()
-            .filter_map(|probe| {
+            .enumerate()
+            .filter_map(|(extraction_order, probe)| {
                 let cubemap = probe.baked_cubemap()?;
-                (probe.intensity() > 0.0 && probe.layer_mask().intersects(camera_layers))
-                    .then(|| {
-                        (
-                            probe,
-                            cubemap,
-                            None,
-                            probe_distance_to_influence(probe, camera_position),
-                        )
-                    })
+                (probe.intensity() > 0.0 && probe.layer_mask().intersects(camera_layers)).then(
+                    || ReflectionProbeCandidate {
+                        probe,
+                        cubemap,
+                        revision: None,
+                        distance: probe_distance_to_influence(probe, camera_position),
+                        extraction_order,
+                    },
+                )
             })
             .collect::<Vec<_>>();
-        let candidate_order = |
-            left: &(&ReflectionProbeData, crate::core::resource::ResourceId, Option<u64>, f32),
-            right: &(&ReflectionProbeData, crate::core::resource::ResourceId, Option<u64>, f32),
-        | {
-            left.3
-                .total_cmp(&right.3)
-                .then_with(|| right.0.priority().cmp(&left.0.priority()))
-                .then_with(|| left.0.probe_id().cmp(&right.0.probe_id()))
+        let mut overflow_candidates = if candidates.len() > MAX_REFLECTION_PROBES {
+            candidates
+                .select_nth_unstable_by(MAX_REFLECTION_PROBES, reflection_probe_candidate_order);
+            candidates.split_off(MAX_REFLECTION_PROBES)
+        } else {
+            Vec::new()
         };
-        if candidates.len() > MAX_REFLECTION_PROBES {
-            candidates.select_nth_unstable_by(MAX_REFLECTION_PROBES, candidate_order);
-            candidates.truncate(MAX_REFLECTION_PROBES);
-        }
-        candidates.sort_by(candidate_order);
-
+        candidates.sort_by(reflection_probe_candidate_order);
         let asset_manager = match streamer.asset_manager() {
             Ok(asset_manager) => asset_manager,
-            Err(_) => return report,
+            Err(_) => {
+                self.write_probe_header(queue, 0);
+                self.last_report = report;
+                return report;
+            }
         };
         let resource_manager = asset_manager.resource_manager();
+        #[cfg(test)]
+        let mut candidate_registry_resolution_count = 0;
         {
             let registry = resource_manager.registry();
-            for (_, cubemap, revision, _) in &mut candidates {
-                *revision = registry.get(*cubemap).map(|record| record.revision);
+            for candidate in &mut candidates {
+                #[cfg(test)]
+                {
+                    candidate_registry_resolution_count += 1;
+                }
+                candidate.revision = registry
+                    .get(candidate.cubemap)
+                    .map(|record| record.revision);
             }
         }
         let mut gpu_probes = Vec::with_capacity(candidates.len());
-        for (probe, cubemap, revision, _) in candidates {
-            let Some(revision) = revision else {
-                record_probe_asset_rejection(
-                    &mut report,
-                    ReflectionProbeAssetError::MissingResource { cubemap },
-                );
-                continue;
-            };
-            let slot = match self.slots.get(cubemap) {
-                Some(slot) if slot.revision == revision => {
-                    self.slots.acquire(cubemap, revision).slot
-                }
-                _ => {
-                    let texture = match asset_manager.load_texture_asset(cubemap) {
-                        Ok(texture) => texture,
-                        Err(source) => {
-                            record_probe_asset_rejection(
-                                &mut report,
-                                ReflectionProbeAssetError::Load { cubemap, source },
-                            );
-                            continue;
+        let mut upload_candidate =
+            |candidate: ReflectionProbeCandidate<'_>, gpu_probes: &mut Vec<GpuReflectionProbe>| {
+                let ReflectionProbeCandidate {
+                    probe,
+                    cubemap,
+                    revision,
+                    ..
+                } = candidate;
+                let Some(revision) = revision else {
+                    record_probe_asset_rejection(
+                        &mut report,
+                        ReflectionProbeAssetError::MissingResource { cubemap },
+                    );
+                    return;
+                };
+                let slot = match self.slots.get(cubemap) {
+                    Some(slot) if slot.revision == revision => {
+                        self.slots.acquire(cubemap, revision).slot
+                    }
+                    _ => {
+                        let texture = match asset_manager.load_texture_asset(cubemap) {
+                            Ok(texture) => texture,
+                            Err(source) => {
+                                record_probe_asset_rejection(
+                                    &mut report,
+                                    ReflectionProbeAssetError::Load { cubemap, source },
+                                );
+                                return;
+                            }
+                        };
+                        let bytes = match validate_probe_pmrem_texture(cubemap, &texture) {
+                            Ok(bytes) => bytes,
+                            Err(error) => {
+                                record_probe_asset_rejection(&mut report, error);
+                                return;
+                            }
+                        };
+                        if self.environment_only_placeholder {
+                            self.upgrade_environment_only_provider(device, queue, planar_params);
                         }
-                    };
-                    let bytes = match validate_probe_pmrem_texture(cubemap, &texture) {
-                        Ok(bytes) => bytes,
-                        Err(error) => {
-                            record_probe_asset_rejection(&mut report, error);
-                            continue;
-                        }
-                    };
-                    let allocation = self.slots.acquire(cubemap, revision);
-                    debug_assert!(allocation.requires_upload);
-                    upload_probe_pmrem_texture(queue, &self.cubemap_array, allocation.slot, bytes);
-                    report.uploaded_cubemap_count += 1;
-                    allocation.slot
-                }
+                        let allocation = self.slots.acquire(cubemap, revision);
+                        debug_assert!(allocation.requires_upload);
+                        upload_probe_pmrem_texture(
+                            queue,
+                            &self.cubemap_array,
+                            allocation.slot,
+                            bytes,
+                        );
+                        report.uploaded_cubemap_count += 1;
+                        allocation.slot
+                    }
+                };
+                gpu_probes.push(GpuReflectionProbe::from_probe(
+                    probe,
+                    slot,
+                    REFLECTION_PROBE_MIP_COUNT,
+                ));
             };
-            gpu_probes.push(GpuReflectionProbe::from_probe(
-                probe,
-                slot,
-                REFLECTION_PROBE_MIP_COUNT,
-            ));
+        for candidate in candidates {
+            upload_candidate(candidate, &mut gpu_probes);
+        }
+        if gpu_probes.len() < MAX_REFLECTION_PROBES && !overflow_candidates.is_empty() {
+            overflow_candidates.sort_by(reflection_probe_candidate_order);
+            for mut candidate in overflow_candidates {
+                if gpu_probes.len() == MAX_REFLECTION_PROBES {
+                    break;
+                }
+                {
+                    let registry = resource_manager.registry();
+                    #[cfg(test)]
+                    {
+                        candidate_registry_resolution_count += 1;
+                    }
+                    candidate.revision = registry
+                        .get(candidate.cubemap)
+                        .map(|record| record.revision);
+                }
+                upload_candidate(candidate, &mut gpu_probes);
+            }
+        }
+        drop(upload_candidate);
+        #[cfg(test)]
+        {
+            self.candidate_registry_resolution_count += candidate_registry_resolution_count;
         }
 
         if !gpu_probes.is_empty() {
@@ -460,57 +556,49 @@ impl SceneReflectionProbeResources {
         );
     }
 
-    fn prepare_planar_reflection(&self, queue: &wgpu::Queue, frame: &ViewportRenderFrame) {
-        let selected_target = frame.extract.view.selected_camera_target();
-        let is_capture_camera = matches!(selected_target, RenderCameraTarget::Texture(target) if frame
-            .extract
-            .lighting
-            .advanced_lighting
-            .planar_probes
-            .iter()
-            .any(|probe| probe.capture_target() == Some(*target)));
-        let params = if is_capture_camera {
-            GpuPlanarReflection::default()
-        } else {
-            frame
-                .extract
-                .lighting
-                .advanced_lighting
-                .planar_probes
-                .iter()
-                .filter(|probe| {
-                    probe.capture_target().is_some()
-                        && probe
-                            .layer_mask
-                            .intersects(frame.extract.view.selected_camera_layers())
-                })
-                .min_by_key(|probe| probe.probe_id)
-                .and_then(|probe| planar_gpu_params(frame, probe))
-                .unwrap_or_default()
-        };
-        queue.write_buffer(&self.planar_params_buffer, 0, bytemuck::bytes_of(&params));
+    fn upgrade_environment_only_provider(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        planar_params: Option<GpuPlanarReflection>,
+    ) {
+        *self = Self::new(device);
+        self.environment_only_provider_upgrade = true;
+        self.write_planar_reflection(queue, planar_params);
+    }
+
+    fn write_planar_reflection(&self, queue: &wgpu::Queue, params: Option<GpuPlanarReflection>) {
+        queue.write_buffer(
+            &self.planar_params_buffer,
+            0,
+            bytemuck::bytes_of(&params.unwrap_or_default()),
+        );
     }
 }
 
-fn reflection_provider_resources_requested(frame: &ViewportRenderFrame, enabled: bool) -> bool {
+fn selected_planar_reflection_params(frame: &ViewportRenderFrame) -> Option<GpuPlanarReflection> {
     let camera_layers = frame.extract.view.selected_camera_layers();
-    let has_visible_baked_probe = enabled
-        && frame.environment().probes.iter().any(|probe| {
-            probe.baked_cubemap().is_some()
-                && probe.intensity() > 0.0
-                && probe.layer_mask().intersects(camera_layers)
-        });
     let planar_probes = &frame.extract.lighting.advanced_lighting.planar_probes;
-    let is_planar_capture_camera = matches!(
-        frame.extract.view.selected_camera_target(),
-        RenderCameraTarget::Texture(target) if planar_probes
+    match frame.extract.view.selected_camera_target() {
+        RenderCameraTarget::Texture(target) => planar_probes
             .iter()
-            .any(|probe| probe.capture_target() == Some(*target))
-    );
-    let has_visible_planar_provider = planar_probes.iter().any(|probe| {
-        probe.capture_target().is_some() && probe.layer_mask.intersects(camera_layers)
-    });
-    has_visible_baked_probe || is_planar_capture_camera || has_visible_planar_provider
+            .filter(|probe| probe.capture_target() == Some(*target))
+            .filter_map(|probe| {
+                planar_gpu_params(frame, probe).map(|params| (probe.probe_id, params))
+            })
+            .min_by_key(|(probe_id, _)| *probe_id)
+            .map(|_| GpuPlanarReflection::default()),
+        _ => planar_probes
+            .iter()
+            .filter(|probe| {
+                probe.capture_target().is_some() && probe.layer_mask.intersects(camera_layers)
+            })
+            .filter_map(|probe| {
+                planar_gpu_params(frame, probe).map(|params| (probe.probe_id, params))
+            })
+            .min_by_key(|(probe_id, _)| *probe_id)
+            .map(|(_, params)| params),
+    }
 }
 
 fn planar_gpu_params(

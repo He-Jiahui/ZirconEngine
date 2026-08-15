@@ -1,4 +1,4 @@
-use super::NativeBitmapAtlasPrepareReport;
+use super::report::NativeBitmapAtlasPrepareReport;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum NativeBitmapAtlasHandoff {

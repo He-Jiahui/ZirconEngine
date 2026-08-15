@@ -21,12 +21,18 @@ use zircon_runtime::core::{CoreError, CoreHandle, CoreWeak};
 
 const MAX_PENDING_IK_COMMANDS_PER_WORLD: usize = 4_096;
 
+#[derive(Clone, Debug, Default)]
+struct WorldIkCommandQueue {
+    replacement_epoch: u64,
+    commands: Vec<AnimationIkCommand>,
+}
+
 #[derive(Clone, Debug)]
 pub struct DefaultAnimationManager {
     // The registry owns this service, so its runtime back-reference must not complete an Arc cycle.
     core: Option<CoreWeak>,
     playback_settings: Arc<Mutex<AnimationPlaybackSettings>>,
-    ik_commands: Arc<Mutex<HashMap<WorldHandle, Vec<AnimationIkCommand>>>>,
+    ik_commands: Arc<Mutex<HashMap<WorldHandle, WorldIkCommandQueue>>>,
 }
 
 impl Default for DefaultAnimationManager {
@@ -116,24 +122,137 @@ impl AnimationManager for DefaultAnimationManager {
         pose::sample_clip_pose(skeleton, clip, time_seconds, looping)
     }
 
-    fn queue_ik_command(&self, command: AnimationIkCommand) -> Result<(), AnimationIkCommandError> {
+    fn queue_ik_command(
+        &self,
+        replacement_epoch: u64,
+        command: AnimationIkCommand,
+    ) -> Result<(), AnimationIkCommandError> {
         command.validate()?;
         let world = command.world();
         let mut queues = poison_recovery::lock_recover(&self.ik_commands);
         let queue = queues.entry(world).or_default();
-        if queue.len() >= MAX_PENDING_IK_COMMANDS_PER_WORLD {
+        if replacement_epoch < queue.replacement_epoch {
+            return Err(AnimationIkCommandError::StaleReplacementEpoch {
+                world,
+                submitted_epoch: replacement_epoch,
+                current_epoch: queue.replacement_epoch,
+            });
+        }
+        if replacement_epoch > queue.replacement_epoch {
+            queue.replacement_epoch = replacement_epoch;
+            queue.commands.clear();
+        }
+        if queue.commands.len() >= MAX_PENDING_IK_COMMANDS_PER_WORLD {
             return Err(AnimationIkCommandError::QueueFull {
                 world,
                 capacity: MAX_PENDING_IK_COMMANDS_PER_WORLD,
             });
         }
-        queue.push(command);
+        queue.commands.push(command);
         Ok(())
     }
 
-    fn drain_ik_commands(&self, world: WorldHandle) -> Vec<AnimationIkCommand> {
-        poison_recovery::lock_recover(&self.ik_commands)
-            .remove(&world)
-            .unwrap_or_default()
+    fn drain_ik_commands(
+        &self,
+        world: WorldHandle,
+        replacement_epoch: u64,
+    ) -> Vec<AnimationIkCommand> {
+        self.drain_ik_commands_excluding(world, replacement_epoch, &[])
+    }
+
+    fn drain_ik_commands_excluding(
+        &self,
+        world: WorldHandle,
+        replacement_epoch: u64,
+        deferred_entities: &[zircon_runtime::scene::EntityId],
+    ) -> Vec<AnimationIkCommand> {
+        let mut queues = poison_recovery::lock_recover(&self.ik_commands);
+        let queue = queues.entry(world).or_default();
+        if replacement_epoch < queue.replacement_epoch {
+            return Vec::new();
+        }
+        if replacement_epoch > queue.replacement_epoch {
+            queue.replacement_epoch = replacement_epoch;
+            queue.commands.clear();
+            return Vec::new();
+        }
+        let (retained, admitted) = std::mem::take(&mut queue.commands)
+            .into_iter()
+            .partition(|command| deferred_entities.contains(&command.entity()));
+        queue.commands = retained;
+        admitted
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use zircon_runtime::core::framework::animation::{
+        AnimationIkCommand, AnimationIkCommandError, AnimationLookAtCommand, AnimationManager,
+        AnimationTargetId,
+    };
+    use zircon_runtime::core::framework::scene::WorldHandle;
+    use zircon_runtime::core::math::Vec3;
+
+    use super::DefaultAnimationManager;
+
+    fn look_at(world: WorldHandle, entity: u64) -> AnimationIkCommand {
+        AnimationIkCommand::LookAt(AnimationLookAtCommand {
+            world,
+            entity,
+            bone: AnimationTargetId::from_segments(["head"]),
+            target: Vec3::new(0.0, 1.0, 1.0),
+            axis: Vec3::new(0.0, 0.0, 1.0),
+            clamp_degrees: 45.0,
+            weight: 1.0,
+        })
+    }
+
+    #[test]
+    fn selective_ik_drain_retains_deferred_entity_commands() {
+        let manager = DefaultAnimationManager::default();
+        let world = WorldHandle::new(7);
+        let replacement_epoch = 3;
+        manager
+            .queue_ik_command(replacement_epoch, look_at(world, 17))
+            .expect("admitted entity command queues");
+        manager
+            .queue_ik_command(replacement_epoch, look_at(world, 18))
+            .expect("deferred entity command queues");
+
+        let admitted = manager.drain_ik_commands_excluding(world, replacement_epoch, &[18]);
+        assert_eq!(admitted.len(), 1);
+        assert_eq!(admitted[0].entity(), 17);
+
+        let retained = manager.drain_ik_commands(world, replacement_epoch);
+        assert_eq!(retained.len(), 1);
+        assert_eq!(retained[0].entity(), 18);
+    }
+
+    #[test]
+    fn replacement_epoch_retires_deferred_ik_commands_and_rejects_late_old_epoch() {
+        let manager = DefaultAnimationManager::default();
+        let world = WorldHandle::new(7);
+        manager
+            .queue_ik_command(1, look_at(world, 17))
+            .expect("old World command queues");
+        assert!(manager
+            .drain_ik_commands_excluding(world, 1, &[17])
+            .is_empty());
+
+        assert!(manager.drain_ik_commands(world, 2).is_empty());
+        assert_eq!(
+            manager.queue_ik_command(1, look_at(world, 18)),
+            Err(AnimationIkCommandError::StaleReplacementEpoch {
+                world,
+                submitted_epoch: 1,
+                current_epoch: 2,
+            })
+        );
+
+        let current = look_at(world, 19);
+        manager
+            .queue_ik_command(2, current.clone())
+            .expect("replacement World command queues");
+        assert_eq!(manager.drain_ik_commands(world, 2), vec![current]);
     }
 }

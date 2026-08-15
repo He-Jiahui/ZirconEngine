@@ -20,7 +20,7 @@ use crate::scene::components::NodeKind;
 use crate::scene::world::{SceneProjectError, World};
 
 use super::authoring_boundary::{
-    SERIALIZED_AUTHORING_TOKENS, assert_text_excludes_authoring_tokens,
+    assert_text_excludes_authoring_tokens, SERIALIZED_AUTHORING_TOKENS,
 };
 use super::support::{
     create_test_project, project_animation_clip_handle, project_animation_graph_handle,

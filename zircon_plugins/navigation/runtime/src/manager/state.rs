@@ -54,6 +54,7 @@ impl Default for BakeContextState {
 #[derive(Debug)]
 pub(crate) struct NavigationRuntimeState {
     pub(super) next_handle: u64,
+    pub(super) overlay_generation: u64,
     pub(super) loaded: HashMap<NavMeshHandle, NavMeshAsset>,
     pub(super) generated_bakes: HashMap<Option<u64>, GeneratedBakeState>,
     pub(super) settings: NavigationSettingsAsset,
@@ -75,6 +76,7 @@ impl Default for NavigationRuntimeState {
     fn default() -> Self {
         Self {
             next_handle: 1,
+            overlay_generation: 0,
             loaded: HashMap::new(),
             generated_bakes: HashMap::new(),
             settings: NavigationSettingsAsset::default(),
@@ -94,6 +96,10 @@ impl Default for NavigationRuntimeState {
 }
 
 impl NavigationRuntimeState {
+    pub(super) fn advance_overlay_generation(&mut self) {
+        self.overlay_generation = self.overlay_generation.saturating_add(1);
+    }
+
     pub(super) fn generated_snapshot(
         &self,
         surface_entity: Option<u64>,
@@ -142,6 +148,7 @@ impl NavigationRuntimeState {
             );
         }
         self.stats.loaded_nav_meshes = self.loaded.len();
+        self.advance_overlay_generation();
     }
 
     pub(super) fn clear_generated_snapshots(&mut self) {
@@ -154,6 +161,7 @@ impl NavigationRuntimeState {
             self.loaded.remove(&handle);
         }
         self.stats.loaded_nav_meshes = self.loaded.len();
+        self.advance_overlay_generation();
     }
 
     pub(super) fn advance_bake_context(&mut self, surface: Option<u64>) -> u64 {

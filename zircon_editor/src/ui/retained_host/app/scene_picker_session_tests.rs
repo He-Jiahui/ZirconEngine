@@ -7,8 +7,8 @@ use crate::ui::host::editor_asset_manager::{
 };
 
 use super::scene_picker_session::{
-    ScenePickerMode, scene_create_request_for_query, scene_entries_from_catalog,
-    scene_entry_for_open_submission, scene_open_palette_state,
+    scene_create_request_for_query, scene_entries_from_catalog, scene_entry_for_open_submission,
+    scene_open_palette_state, ScenePickerMode,
 };
 
 fn catalog_record(locator: &str, kind: ResourceKind) -> EditorAssetCatalogRecord {

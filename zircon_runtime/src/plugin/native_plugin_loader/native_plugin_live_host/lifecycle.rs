@@ -26,6 +26,36 @@ pub(super) type NativePluginLiveHostLifecycleResult<T> =
     std::result::Result<T, NativePluginLiveHostLifecycleError>;
 
 #[derive(Debug)]
+pub(super) enum NativePluginHotReloadPublicationError {
+    LiveHostLock(NativePluginLiveHostLoadingError),
+    RuntimeBridgeMethodBindings {
+        plugin_id: String,
+        source: NativePluginBridgeMethodError,
+    },
+}
+
+impl std::fmt::Display for NativePluginHotReloadPublicationError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::LiveHostLock(error) => write!(formatter, "{error}"),
+            Self::RuntimeBridgeMethodBindings { plugin_id, source } => write!(
+                formatter,
+                "runtime plugin {plugin_id} bridge method binding install failed during hot reload: {source}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for NativePluginHotReloadPublicationError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::LiveHostLock(error) => Some(error),
+            Self::RuntimeBridgeMethodBindings { source, .. } => Some(source),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub(super) enum NativePluginLiveHostLifecycleError {
     LiveHostLock(NativePluginLiveHostLoadingError),
     RuntimePluginNotLoaded {
@@ -59,6 +89,11 @@ pub(super) enum NativePluginLiveHostLifecycleError {
     },
     HotReloadRestore {
         source: super::hot_reload::NativePluginHotReloadError,
+        rollback_diagnostics: Vec<String>,
+        rollback_diagnostic: String,
+    },
+    HotReloadPublication {
+        source: NativePluginHotReloadPublicationError,
         rollback_diagnostics: Vec<String>,
         rollback_diagnostic: String,
     },
@@ -117,6 +152,17 @@ impl std::fmt::Display for NativePluginLiveHostLifecycleError {
                 source,
                 rollback_diagnostics.join("; ")
             ),
+            Self::HotReloadPublication {
+                source,
+                rollback_diagnostics,
+                rollback_diagnostic,
+            } => {
+                write!(formatter, "{source}")?;
+                if !rollback_diagnostics.is_empty() {
+                    write!(formatter, "; {}", rollback_diagnostics.join("; "))?;
+                }
+                write!(formatter, "; {rollback_diagnostic}")
+            }
             Self::RuntimeBridgeMethodBindings { plugin_id, source } => write!(
                 formatter,
                 "runtime plugin {plugin_id} bridge method binding install failed during hot reload: {source}"
@@ -137,6 +183,7 @@ impl std::error::Error for NativePluginLiveHostLifecycleError {
             Self::HotReloadSnapshot { source } | Self::HotReloadRestore { source, .. } => {
                 Some(source)
             }
+            Self::HotReloadPublication { source, .. } => Some(source),
             Self::RuntimeBridgeMethodBindings { source, .. } => Some(source),
             Self::PluginBusy { source, .. } => Some(source),
             Self::UnloadBehavior { source, .. }
@@ -397,11 +444,16 @@ impl NativePluginLiveHost {
                         .unwrap_or_else(|unload_error| vec![unload_error.to_string()]),
                     );
                     if let Some(existing) = unloaded_existing.take() {
-                        let restore_diagnostics = restore_runtime_snapshot(snapshot, &existing)
-                            .unwrap_or_else(|restore_error| vec![restore_error.to_string()]);
-                        existing.cancel_lifecycle_transition();
-                        rollback_diagnostics.extend(restore_diagnostics);
-                        reload_state.mark_existing_restored();
+                        match restore_runtime_snapshot(snapshot, &existing) {
+                            Ok(restore_diagnostics) => {
+                                existing.cancel_lifecycle_transition();
+                                rollback_diagnostics.extend(restore_diagnostics);
+                                reload_state.mark_existing_restored();
+                            }
+                            Err(restore_error) => {
+                                rollback_diagnostics.push(restore_error.to_string());
+                            }
+                        }
                     }
                     return Err(NativePluginLiveHostLifecycleError::HotReloadRestore {
                         source: error,
@@ -434,11 +486,34 @@ impl NativePluginLiveHost {
         let mut loaded = match lock_loaded_native_plugins(&self.loaded) {
             Ok(loaded) => loaded,
             Err(error) => {
-                rollback_unloaded_existing_runtime_snapshot(
+                let had_unloaded_existing = unloaded_existing.is_some();
+                let mut rollback_diagnostics =
+                    unload_replacement_after_failed_publication(&plugin, module_kind);
+                match rollback_unloaded_existing_runtime_snapshot(
                     runtime_snapshot.as_ref(),
                     unloaded_existing.as_ref(),
-                );
-                return Err(NativePluginLiveHostLifecycleError::LiveHostLock(error));
+                ) {
+                    Ok(()) => {
+                        if had_unloaded_existing {
+                            reload_state.mark_existing_restored();
+                        }
+                        return Err(NativePluginLiveHostLifecycleError::HotReloadPublication {
+                            source: NativePluginHotReloadPublicationError::LiveHostLock(error),
+                            rollback_diagnostics,
+                            rollback_diagnostic: reload_state.rollback_diagnostic(),
+                        });
+                    }
+                    Err(source) => {
+                        rollback_diagnostics.push(format!(
+                            "native plugin live host publication failed before the retained generation could be restored: {error}"
+                        ));
+                        return Err(NativePluginLiveHostLifecycleError::HotReloadRestore {
+                            source,
+                            rollback_diagnostics,
+                            rollback_diagnostic: reload_state.rollback_diagnostic(),
+                        });
+                    }
+                }
             }
         };
         if let Some(bindings) = bridge_binding_update {
@@ -447,16 +522,39 @@ impl NativePluginLiveHost {
                     &loaded, plugin_id, bindings,
                 )
             {
-                rollback_unloaded_existing_runtime_snapshot(
+                drop(loaded);
+                let had_unloaded_existing = unloaded_existing.is_some();
+                let mut rollback_diagnostics =
+                    unload_replacement_after_failed_publication(&plugin, module_kind);
+                match rollback_unloaded_existing_runtime_snapshot(
                     runtime_snapshot.as_ref(),
                     unloaded_existing.as_ref(),
-                );
-                return Err(
-                    NativePluginLiveHostLifecycleError::RuntimeBridgeMethodBindings {
-                        plugin_id: plugin_id.to_string(),
-                        source,
-                    },
-                );
+                ) {
+                    Ok(()) => {
+                        if had_unloaded_existing {
+                            reload_state.mark_existing_restored();
+                        }
+                        return Err(NativePluginLiveHostLifecycleError::HotReloadPublication {
+                            source:
+                                NativePluginHotReloadPublicationError::RuntimeBridgeMethodBindings {
+                                    plugin_id: plugin_id.to_string(),
+                                    source,
+                                },
+                            rollback_diagnostics,
+                            rollback_diagnostic: reload_state.rollback_diagnostic(),
+                        });
+                    }
+                    Err(restore_error) => {
+                        rollback_diagnostics.push(format!(
+                            "runtime bridge method binding publication failed before the retained generation could be restored: {source}"
+                        ));
+                        return Err(NativePluginLiveHostLifecycleError::HotReloadRestore {
+                            source: restore_error,
+                            rollback_diagnostics,
+                            rollback_diagnostic: reload_state.rollback_diagnostic(),
+                        });
+                    }
+                }
             }
         }
         loaded.insert(
@@ -477,17 +575,33 @@ impl NativePluginLiveHost {
     }
 }
 
+// A retained generation may resume callback admission only after its saved state restores.
 fn rollback_unloaded_existing_runtime_snapshot(
     runtime_snapshot: Option<&PluginStateSnapshot>,
     unloaded_existing: Option<&super::super::LoadedNativePlugin>,
-) {
+) -> super::hot_reload::NativePluginHotReloadResult<()> {
     let Some(existing) = unloaded_existing else {
-        return;
+        return Ok(());
     };
     if let Some(snapshot) = runtime_snapshot {
-        let _ = restore_runtime_snapshot(snapshot, existing);
+        restore_runtime_snapshot(snapshot, existing)?;
     }
     existing.cancel_lifecycle_transition();
+    Ok(())
+}
+
+fn unload_replacement_after_failed_publication(
+    plugin: &super::super::LoadedNativePlugin,
+    module_kind: PluginModuleKind,
+) -> Vec<String> {
+    diagnostics_from_behavior_report(
+        &format!(
+            "{} unload after failed hot reload publication",
+            module_kind_label(module_kind)
+        ),
+        unload_behavior(plugin, module_kind),
+    )
+    .unwrap_or_else(|unload_error| vec![unload_error.to_string()])
 }
 
 pub(super) fn load_for_module_kind(

@@ -1,5 +1,5 @@
 use super::super::super::data::TemplatePaneNodeData;
-use super::super::style_selector::{WorkbenchListRowStyle, select_workbench_list_row_style};
+use super::super::style_selector::{select_workbench_list_row_style, WorkbenchListRowStyle};
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn list_row_background(
     node: &TemplatePaneNodeData,

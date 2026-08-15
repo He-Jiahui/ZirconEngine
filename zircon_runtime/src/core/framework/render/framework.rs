@@ -1,8 +1,9 @@
 use super::{
-    CapturedFrame, GraphicsDebuggerStatus, RenderFrameExtract, RenderFrameworkError,
-    RenderPipelineHandle, RenderQualityProfile, RenderStats, RenderSubmissionConfig,
-    RenderViewportDescriptor, RenderViewportHandle, RenderViewportSurfaceDescriptor,
-    RenderViewportProduct, RenderVirtualGeometryDebugSnapshot, RenderVisibleSpatialQuerySnapshot,
+    CapturedFrame, CapturedHdrFrame, GraphicsDebuggerStatus, RenderFrameExtract,
+    RenderFrameworkError, RenderPipelineHandle, RenderQualityProfile, RenderStats,
+    RenderSubmissionConfig, RenderViewportDescriptor, RenderViewportHandle, RenderViewportProduct,
+    RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
+    RenderVisibleSpatialQuerySnapshot,
 };
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 use zr_rhi::{UiSurfaceDescriptor, UiSurfacePresenter};
@@ -117,6 +118,16 @@ pub trait RenderFramework: Send + Sync {
         &self,
         viewport: RenderViewportHandle,
     ) -> Result<Option<CapturedFrame>, RenderFrameworkError>;
+
+    /// Reads the retained, linear HDR scene-color product of a completed frame.
+    fn capture_scene_color_hdr(
+        &self,
+        _viewport: RenderViewportHandle,
+    ) -> Result<Option<CapturedHdrFrame>, RenderFrameworkError> {
+        Err(RenderFrameworkError::UnsupportedCapability {
+            capability: "linear HDR scene-color capture".to_string(),
+        })
+    }
 
     fn capture_frame_if_newer(
         &self,

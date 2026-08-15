@@ -3,19 +3,82 @@ use std::sync::{Arc, Barrier};
 use std::time::{Duration, Instant};
 
 use zircon_runtime_interface::{
+    ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeFrameRequestV1, ZrRuntimeNativeSurfaceTargetV1,
     ZrRuntimeOperationHandle, ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2,
-    ZrRuntimeOperationSubmitRequestV1, ZrRuntimeSessionHandle,
+    ZrRuntimeOperationSubmitRequestV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportSizeV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
 use crate::core::gateway::{
     DetachedEditorRuntimeGateway, EditorRuntimeFrameDemand, EditorRuntimeGateway,
-    EditorRuntimeGatewayHandle, GatewayError, RuntimeCapabilities, SessionProfileKind,
+    EditorRuntimeGatewayHandle, EditorRuntimeHighlightSet, GatewayError, RuntimeCapabilities,
+    SessionProfileKind,
 };
 
 struct SessionOnlyGateway {
     session: u64,
     capabilities: Arc<RuntimeCapabilities>,
     tick_calls: Arc<AtomicUsize>,
+}
+
+#[derive(Default)]
+struct HighlightRecordingGateway {
+    submissions: AtomicUsize,
+}
+
+impl EditorRuntimeGateway for HighlightRecordingGateway {
+    fn session_handle(&self) -> ZrRuntimeSessionHandle {
+        ZrRuntimeSessionHandle::invalid()
+    }
+
+    fn submit_highlight_set(&self, _set: EditorRuntimeHighlightSet) -> Result<(), GatewayError> {
+        self.submissions.fetch_add(1, Ordering::SeqCst);
+        Ok(())
+    }
+}
+
+#[derive(Default)]
+struct ViewportSurfaceRecordingGateway {
+    binds: AtomicUsize,
+    unbinds: AtomicUsize,
+    presents: AtomicUsize,
+}
+
+impl EditorRuntimeGateway for ViewportSurfaceRecordingGateway {
+    fn session_handle(&self) -> ZrRuntimeSessionHandle {
+        ZrRuntimeSessionHandle::invalid()
+    }
+
+    fn bind_viewport_surface(
+        &self,
+        _request: ZrRuntimeBindViewportSurfaceRequestV1,
+    ) -> Result<(), GatewayError> {
+        self.binds.fetch_add(1, Ordering::SeqCst);
+        Ok(())
+    }
+
+    fn unbind_viewport_surface(
+        &self,
+        _viewport: ZrRuntimeViewportHandle,
+    ) -> Result<(), GatewayError> {
+        self.unbinds.fetch_add(1, Ordering::SeqCst);
+        Ok(())
+    }
+
+    fn present_viewport(&self, _request: ZrRuntimeFrameRequestV1) -> Result<(), GatewayError> {
+        self.presents.fetch_add(1, Ordering::SeqCst);
+        Ok(())
+    }
+}
+
+fn submit_through_generic<T: EditorRuntimeGateway>(gateway: &T) -> Result<(), GatewayError> {
+    gateway.submit_highlight_set(EditorRuntimeHighlightSet::new(
+        ZrRuntimeViewportHandle::new(4),
+        1,
+        [8, 2],
+        true,
+        [0.2, 0.6, 0.9, 1.0],
+    ))
 }
 
 impl SessionOnlyGateway {
@@ -306,4 +369,88 @@ fn detached_gateway_returns_typed_capability_error() {
             capability: "runtime.operation.submit"
         }
     ));
+}
+
+#[test]
+fn detached_gateway_reports_highlight_capability_missing() {
+    let error = DetachedEditorRuntimeGateway
+        .submit_highlight_set(EditorRuntimeHighlightSet::new(
+            ZrRuntimeViewportHandle::new(1),
+            1,
+            [4],
+            true,
+            [0.2, 0.6, 0.9, 1.0],
+        ))
+        .unwrap_err();
+
+    assert_eq!(
+        error,
+        GatewayError::CapabilityMissing {
+            capability: "runtime.editor_overlay.highlight_set",
+        }
+    );
+}
+
+#[test]
+fn detached_gateway_production_owner_has_no_inline_test_module() {
+    let source = include_str!("../../core/gateway/detached.rs");
+
+    assert!(
+        !source.contains("#[cfg(test)]"),
+        "detached gateway production owner must not retain an inline test module"
+    );
+    assert!(
+        !source.contains("DefaultLevelManager"),
+        "detached gateway production owner must not import concrete level fixtures"
+    );
+}
+
+#[test]
+fn highlight_submission_forwards_through_trait_object_and_generic_handle_dispatch() {
+    let gateway = Arc::new(HighlightRecordingGateway::default());
+    let handle = EditorRuntimeGatewayHandle::new(gateway.clone());
+
+    let trait_object: &dyn EditorRuntimeGateway = &handle;
+    trait_object
+        .submit_highlight_set(EditorRuntimeHighlightSet::new(
+            ZrRuntimeViewportHandle::new(3),
+            2,
+            [6, 1],
+            true,
+            [0.2, 0.6, 0.9, 1.0],
+        ))
+        .unwrap();
+    submit_through_generic(&handle).unwrap();
+
+    assert_eq!(gateway.submissions.load(Ordering::SeqCst), 2);
+}
+
+#[test]
+fn viewport_surface_calls_forward_through_the_stable_handle() {
+    let gateway = Arc::new(ViewportSurfaceRecordingGateway::default());
+    let handle = EditorRuntimeGatewayHandle::new(gateway.clone());
+    let viewport = ZrRuntimeViewportHandle::new(4);
+    let size = ZrRuntimeViewportSizeV1::new(320, 180);
+    let trait_object: &dyn EditorRuntimeGateway = &handle;
+
+    trait_object
+        .bind_viewport_surface(ZrRuntimeBindViewportSurfaceRequestV1::new(
+            ZIRCON_RUNTIME_ABI_VERSION_V1,
+            viewport,
+            size,
+            ZrRuntimeNativeSurfaceTargetV1::none(ZIRCON_RUNTIME_ABI_VERSION_V1),
+        ))
+        .unwrap();
+    handle
+        .present_viewport(ZrRuntimeFrameRequestV1::new(
+            ZIRCON_RUNTIME_ABI_VERSION_V1,
+            viewport,
+            size,
+        ))
+        .unwrap();
+    trait_object.unbind_viewport_surface(viewport).unwrap();
+
+    assert_eq!(gateway.binds.load(Ordering::SeqCst), 1);
+    assert_eq!(gateway.presents.load(Ordering::SeqCst), 1);
+    assert_eq!(gateway.unbinds.load(Ordering::SeqCst), 1);
 }

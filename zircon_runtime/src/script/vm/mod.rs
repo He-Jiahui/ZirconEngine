@@ -11,7 +11,7 @@ mod plugin;
 mod reflection;
 mod runtime;
 mod runtime_context;
-mod scene_hook;
+mod scene_system;
 mod tests;
 
 pub use backend::{BuiltinVmBackendFamily, VmBackendFamily};
@@ -44,13 +44,15 @@ pub use host_interface::{
 };
 pub use module::{module_descriptor, ScriptModule};
 pub use plugin::{
-    discover_vm_plugin_package, discover_vm_plugin_packages, migrate_vm_state_blob,
-    DiscoveredVmPluginPackage, VmPluginGarbageCollectionMode, VmPluginGarbageCollectionPolicy,
-    VmPluginHotReloadPolicy, VmPluginInstance, VmPluginManagementPolicy,
-    VmPluginManagementPolicyError, VmPluginManagementPolicyResult, VmPluginManifest,
-    VmPluginMemoryPolicy, VmPluginPackage, VmPluginPackageSource, VmStateBlob, VmStateFieldRename,
-    VmStateMigrationError, VmStateObject, VmStateSchema, VmStateTypeIdentity, VmStateTypeSchema,
-    ZrVmExecutionMode, ZrVmPluginProjectSource, VM_STATE_SCHEMA_VERSION_V2,
+    discover_vm_plugin_package, discover_vm_plugin_package_with_limits,
+    discover_vm_plugin_packages, discover_vm_plugin_packages_with_limits, migrate_vm_state_blob,
+    DiscoveredVmPluginPackage, VmPluginDiscoveryLimits, VmPluginDiscoveryRequest,
+    VmPluginGarbageCollectionMode, VmPluginGarbageCollectionPolicy, VmPluginHotReloadPolicy,
+    VmPluginInstance, VmPluginManagementPolicy, VmPluginManagementPolicyError,
+    VmPluginManagementPolicyResult, VmPluginManifest, VmPluginMemoryPolicy, VmPluginPackage,
+    VmPluginPackageSource, VmStateBlob, VmStateFieldRename, VmStateMigrationError, VmStateObject,
+    VmStateSchema, VmStateTypeIdentity, VmStateTypeSchema, ZrVmExecutionMode,
+    ZrVmPluginProjectSource, VM_STATE_SCHEMA_VERSION_V2,
 };
 pub use reflection::{
     VmReflectionCatalog, VmReflectionError, VmReflectionRegistrySnapshot, VmReflectionSchema,
@@ -62,7 +64,7 @@ pub use runtime_context::{script_float, VmReflectionWorldAccess, VmReflectionWor
 pub(crate) use runtime_context::{with_script_runtime_call_context, ScriptRuntimeCallContext};
 #[cfg(feature = "test-support")]
 pub use runtime_context::{with_script_runtime_test_context, ScriptRuntimeTestContext};
-pub use scene_hook::{
-    script_scene_fixed_update_hook_registration, script_scene_update_hook_registration,
-    ScriptSceneLifecyclePhase, ScriptSceneRuntimeHook,
+pub use scene_system::{
+    ScriptSceneLifecyclePhase, ScriptSceneRuntimeSystem, SCRIPT_SCENE_FIXED_UPDATE_SYSTEM,
+    SCRIPT_SCENE_RUNTIME_SYSTEM_SET, SCRIPT_SCENE_UPDATE_SYSTEM,
 };

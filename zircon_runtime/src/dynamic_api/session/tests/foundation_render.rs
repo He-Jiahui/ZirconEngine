@@ -2,19 +2,19 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::asset::{project_asset_manager_handle, AssetUri, ProjectPaths};
+use crate::asset::{AssetUri, ProjectPaths, project_asset_manager_handle};
 use crate::core::framework::input::{InputButton, InputEvent};
 use crate::core::framework::render::RenderStats;
 use crate::core::manager::resolve_manager_service;
 use crate::core::resource::ResourceState;
 use crate::runtime_diagnostics::collect_runtime_diagnostics;
 use image::ImageFormat;
-use zircon_runtime_interface::project::{render_project_template, ProjectTemplateId};
+use zircon_runtime_interface::project::{ProjectTemplateId, render_project_template};
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeViewportHandle,
-    ZrRuntimeViewportSizeV1, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
     ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_KEY_ACTION_PRESSED_V1,
-    ZR_RUNTIME_KEY_ACTION_RELEASED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
+    ZR_RUNTIME_KEY_ACTION_RELEASED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1, ZrByteSlice,
+    ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
 };
 
 use super::super::{RuntimeDynamicSession, RuntimeDynamicSessionProfile, RuntimeProjectConfig};
@@ -26,7 +26,8 @@ const CAPTURE_ENV: &str = "ZR_F2_BASIC_SCENE_CAPTURE_PNG";
 #[test]
 fn render_product_f2_persisted_basic_scene_renders_accepts_input_and_shuts_down() {
     let project = F2Project::create();
-    let config = RuntimeProjectConfig::from_root(project.root.clone());
+    let config = RuntimeProjectConfig::from_root(project.root.clone())
+        .expect("F2 project root should resolve before session creation");
 
     let (first, second_gpu_upload_bytes) = {
         let mut session =
@@ -76,6 +77,39 @@ fn render_product_f2_persisted_basic_scene_renders_accepts_input_and_shuts_down(
         restarted.stats.last_mesh_draw_count,
     );
     project.assert_removable_after_sessions_drop();
+}
+
+#[test]
+fn f2_exported_png_roundtrips_captured_rgba() {
+    let root = unique_f2_capture_root("png-roundtrip");
+    let path = root.join("frame.png");
+    let rgba = vec![
+        0, 0, 0, 0, // Transparent clear pixel.
+        12, 34, 56, 255, // Opaque visible pixel.
+        90, 80, 70, 128, // Partial alpha must survive PNG encoding.
+        255, 255, 255, 1,
+    ];
+
+    write_f2_capture_png(&path, 2, 2, &rgba);
+    assert_f2_capture_png(&path, 2, 2, &rgba);
+
+    std::fs::remove_dir_all(root).expect("remove F2 PNG roundtrip fixture");
+}
+
+#[test]
+fn f2_fixture_roots_follow_the_resolved_test_binary_directory() {
+    let root = unique_f2_fixture_root("root-location");
+    let executable = std::env::current_exe().expect("locate the F2 test executable");
+    let binary_directory = executable
+        .parent()
+        .expect("F2 test executable must have a parent directory");
+    let resolved_binary_directory =
+        ProjectPaths::resolve_existing(binary_directory).expect("resolve F2 test binary directory");
+
+    assert!(
+        root.starts_with(resolved_binary_directory.operation_path()),
+        "F2 fixture output must retain the test binary's physical output root"
+    );
 }
 
 fn assert_template_assets_ready(session: &RuntimeDynamicSession) {
@@ -161,9 +195,11 @@ fn assert_input_ingress(session: &mut RuntimeDynamicSession) {
         event,
         InputEvent::CursorMoved { x, y } if *x == pointer[0] && *y == pointer[1]
     )));
-    assert!(input_events
-        .iter()
-        .any(|event| matches!(event, InputEvent::ButtonPressed(_))));
+    assert!(
+        input_events
+            .iter()
+            .any(|event| matches!(event, InputEvent::ButtonPressed(_)))
+    );
     assert!(input_events.iter().any(|event| matches!(
         event,
         InputEvent::KeyboardInput {
@@ -201,9 +237,11 @@ fn assert_input_ingress(session: &mut RuntimeDynamicSession) {
         .resolve_input_manager()
         .expect("F2 input manager")
         .drain_events();
-    assert!(released_events
-        .iter()
-        .any(|event| matches!(event, InputEvent::ButtonReleased(InputButton::MouseLeft))));
+    assert!(
+        released_events
+            .iter()
+            .any(|event| matches!(event, InputEvent::ButtonReleased(InputButton::MouseLeft)))
+    );
     assert!(released_events.iter().any(|event| matches!(
         event,
         InputEvent::KeyboardInput {
@@ -251,6 +289,15 @@ fn assert_basic_scene_frame(frame: &ProductFrame, label: &str) {
         frame.rgba.len(),
         (CAPTURE_WIDTH * CAPTURE_HEIGHT * 4) as usize,
         "{label} must return a complete RGBA frame"
+    );
+    let non_transparent_pixels = frame
+        .rgba
+        .chunks_exact(4)
+        .filter(|pixel| pixel[3] != 0)
+        .count();
+    assert!(
+        non_transparent_pixels > 0,
+        "{label} must contain non-transparent pixels in the presented RGBA frame"
     );
     let background = &frame.rgba[..4];
     let changed_pixels = frame
@@ -341,14 +388,64 @@ fn export_capture_if_requested(frame: &ProductFrame) {
     let Ok(path) = std::env::var(CAPTURE_ENV) else {
         return;
     };
-    if let Some(parent) = Path::new(&path).parent() {
+    let path = Path::new(&path);
+    write_f2_capture_png(path, frame.width, frame.height, &frame.rgba);
+    assert_f2_capture_png(path, frame.width, frame.height, &frame.rgba);
+}
+
+fn write_f2_capture_png(path: &Path, width: u32, height: u32, rgba: &[u8]) {
+    if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).expect("create F2 capture output directory");
     }
-    let image = image::RgbaImage::from_raw(frame.width, frame.height, frame.rgba.clone())
+    let image = image::RgbaImage::from_raw(width, height, rgba.to_vec())
         .expect("F2 capture buffer must match dimensions");
     image
         .save_with_format(path, ImageFormat::Png)
         .expect("write F2 product capture PNG");
+}
+
+fn assert_f2_capture_png(path: &Path, width: u32, height: u32, rgba: &[u8]) {
+    let captured = image::open(path)
+        .expect("read F2 product capture PNG")
+        .to_rgba8();
+    assert_eq!(
+        captured.dimensions(),
+        (width, height),
+        "F2 product capture must preserve frame dimensions"
+    );
+    assert_eq!(
+        captured.as_raw(),
+        rgba,
+        "F2 product capture must preserve RGBA pixels, including alpha and visible primitive output"
+    );
+}
+
+fn unique_f2_capture_root(label: &str) -> PathBuf {
+    static NEXT_ID: AtomicU64 = AtomicU64::new(1);
+
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system time after unix epoch")
+        .as_nanos();
+    unique_f2_fixture_root(format!(
+        "capture-{label}-{}_{}_{}",
+        std::process::id(),
+        NEXT_ID.fetch_add(1, Ordering::Relaxed),
+        unique
+    ))
+}
+
+fn unique_f2_fixture_root(label: impl AsRef<str>) -> PathBuf {
+    let executable = std::env::current_exe().expect("locate the F2 test executable");
+    let binary_directory = executable
+        .parent()
+        .expect("F2 test executable must have a parent directory");
+    let binary_directory = ProjectPaths::resolve_existing(binary_directory)
+        .expect("resolve the F2 test binary directory");
+    binary_directory
+        .operation_path()
+        .join("zircon-f2-fixtures")
+        .join(label.as_ref())
 }
 
 struct ProductFrame {
@@ -370,8 +467,8 @@ impl F2Project {
             .duration_since(UNIX_EPOCH)
             .expect("system time after unix epoch")
             .as_nanos();
-        let root = std::env::temp_dir().join(format!(
-            "zircon_f2_basic_scene_{}_{}_{}",
+        let root = unique_f2_fixture_root(format!(
+            "basic-scene-{}_{}_{}",
             std::process::id(),
             NEXT_ID.fetch_add(1, Ordering::Relaxed),
             unique

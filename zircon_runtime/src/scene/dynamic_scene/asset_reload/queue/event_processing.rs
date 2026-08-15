@@ -1,8 +1,8 @@
 use std::time::Instant;
 
 use crate::{
-    asset::{AssetEvent, AssetEventKind, AssetId, SceneAsset, facade::AssetEventPoll},
-    core::{JobScheduler, framework::tasks::AsyncTaskState},
+    asset::{facade::AssetEventPoll, AssetEvent, AssetEventKind, AssetId, SceneAsset},
+    core::{framework::tasks::AsyncTaskState, JobScheduler},
     scene::dynamic_scene::DynamicSceneSpawnTask,
 };
 
@@ -13,8 +13,8 @@ use super::{
         skip::{DynamicSceneAssetReloadSkipReason, DynamicSceneAssetReloadSkippedEvent},
         task::DynamicSceneAssetReloadTask,
     },
-    DeferredReload, DynamicSceneAssetReloadQueue, LATEST_REVISION_METADATA_BYTES,
-    LatestRevisionState, ORDER_ENTRY_METADATA_BYTES, locator_metadata_bytes,
+    locator_metadata_bytes, DeferredReload, DynamicSceneAssetReloadQueue, LatestRevisionState,
+    LATEST_REVISION_METADATA_BYTES, ORDER_ENTRY_METADATA_BYTES,
 };
 
 impl DynamicSceneAssetReloadQueue {

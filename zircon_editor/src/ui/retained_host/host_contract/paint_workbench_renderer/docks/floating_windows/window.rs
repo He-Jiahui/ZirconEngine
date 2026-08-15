@@ -9,7 +9,7 @@ use super::super::super::super::paint_primitives::{
 };
 use super::super::super::super::paint_template_nodes::draw_template_nodes;
 use super::super::super::super::paint_theme::{
-    HostControlMetrics, HostMaterialPalette, current_host_metrics, current_host_palette,
+    current_host_metrics, current_host_palette, HostControlMetrics, HostMaterialPalette,
 };
 use super::super::pane;
 
@@ -83,6 +83,18 @@ pub(super) fn draw_floating_window(
     );
 }
 
+pub(super) fn floating_window_paint_bounds(window: &FrameRect) -> FrameRect {
+    let shadow = floating_window_shadow_frame(window, current_host_metrics());
+    let right = window.right().max(shadow.right());
+    let bottom = window.bottom().max(shadow.bottom());
+    FrameRect {
+        x: window.x.min(shadow.x),
+        y: window.y.min(shadow.y),
+        width: (right - window.x.min(shadow.x)).max(0.0),
+        height: (bottom - window.y.min(shadow.y)).max(0.0),
+    }
+}
+
 fn floating_window_shadow_frame(window: &FrameRect, metrics: HostControlMetrics) -> FrameRect {
     FrameRect {
         x: window.x + metrics.gap_s,
@@ -150,6 +162,23 @@ mod tests {
         assert_eq!(shadow.y, 35.0);
         assert_eq!(shadow.width, 200.0);
         assert_eq!(shadow.height, 120.0);
+    }
+
+    #[test]
+    fn floating_window_paint_bounds_include_the_shadow_only_region() {
+        let window = FrameRect {
+            x: 20.0,
+            y: 30.0,
+            width: 200.0,
+            height: 120.0,
+        };
+
+        let bounds = floating_window_paint_bounds(&window);
+
+        assert_eq!(bounds.x, window.x);
+        assert_eq!(bounds.y, window.y);
+        assert!(bounds.right() > window.right());
+        assert!(bounds.bottom() > window.bottom());
     }
 
     #[test]

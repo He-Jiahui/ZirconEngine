@@ -1,7 +1,7 @@
 use super::super::*;
-use crate::ui::retained_host::ui_perf::{UiPerfCounter, record_current_ui_perf_counter};
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 use zircon_runtime::diagnostic_log::{
-    DiagnosticLogLevel, diagnostic_log_allows, write_diagnostic_log, write_error,
+    diagnostic_log_allows, write_diagnostic_log, write_error, DiagnosticLogLevel,
 };
 
 impl RetainedEditorHost {
@@ -53,9 +53,11 @@ impl RetainedEditorHost {
                     };
                     self.runtime
                         .sync_renderer_visible_spatial_snapshot(visible_spatial_snapshot);
-                    // RenderStats are updated by submission after pane payloads were collected.
-                    // Refresh presentation data once so diagnostics observe the committed frame.
-                    self.mark_presentation_dirty();
+                    // RenderStats are presentation data only while a diagnostics surface is
+                    // visible. Normal viewport frames must not schedule a full workbench rebuild.
+                    if self.runtime_diagnostics_visible {
+                        self.mark_presentation_dirty();
+                    }
                 }
                 Ok(false) => {
                     keep_render_dirty = true;
@@ -91,6 +93,7 @@ mod tests {
             .map(|(arm, _)| arm)
             .expect("render submission success arm should remain explicit");
 
+        assert!(success_arm.contains("if self.runtime_diagnostics_visible"));
         assert!(success_arm.contains("self.mark_presentation_dirty();"));
         assert!(success_arm.contains("visible_spatial_snapshot"));
         assert!(success_arm.contains("sync_renderer_visible_spatial_snapshot"));

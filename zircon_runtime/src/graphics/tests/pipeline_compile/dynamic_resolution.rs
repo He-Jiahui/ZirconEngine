@@ -226,6 +226,32 @@ fn dynamic_resolution_keeps_terminal_anti_alias_input_at_viewport_size() {
                 && desc.height == 240
                 && desc.format == TextureFormat::Rgba8UnormSrgb
     ));
+
+    let fxaa = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "fxaa")
+        .expect("terminal FXAA should compile before dynamic-resolution upscale");
+    assert!(fxaa.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::TONEMAPPED
+            && resource.access == RenderGraphResourceAccessKind::Read
+    }));
+    assert!(fxaa.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::FINAL_COMPOSITED
+            && resource.access == RenderGraphResourceAccessKind::Write
+    }));
+
+    let upscale = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "upscale")
+        .expect("dynamic resolution should compile the explicit upscale pass");
+    assert!(upscale.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::FINAL_COMPOSITED
+            && resource.access == RenderGraphResourceAccessKind::Read
+    }));
 }
 
 #[test]

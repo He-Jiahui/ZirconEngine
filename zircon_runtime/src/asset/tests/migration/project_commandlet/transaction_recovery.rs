@@ -85,12 +85,10 @@ fn dry_run_reports_pending_recovery_and_apply_converges_forward_without_backup_r
     ))
     .unwrap();
     assert!(!dry_run.succeeded());
-    assert!(
-        dry_run
-            .issues()
-            .iter()
-            .any(|issue| issue.kind() == AssetMigrationIssueKind::PendingRecovery)
-    );
+    assert!(dry_run
+        .issues()
+        .iter()
+        .any(|issue| issue.kind() == AssetMigrationIssueKind::PendingRecovery));
     assert_eq!(
         fs::read_to_string(&first).unwrap(),
         first_after_interruption
@@ -112,12 +110,10 @@ fn dry_run_reports_pending_recovery_and_apply_converges_forward_without_backup_r
     );
     assert_ne!(fs::read_to_string(&second).unwrap(), original);
     assert_eq!(fs::read_dir(&journal_directory).unwrap().count(), 0);
-    assert!(
-        !fs::read_dir(&materials)
-            .unwrap()
-            .filter_map(Result::ok)
-            .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate"))
-    );
+    assert!(!fs::read_dir(&materials)
+        .unwrap()
+        .filter_map(Result::ok)
+        .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate")));
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -130,19 +126,23 @@ fn corrupted_recovery_journal_is_a_typed_failure_and_writes_nothing() {
     fs::write(&source, "unchanged").unwrap();
     let journal_directory = root.join(".zircon/asset-migration");
     fs::create_dir_all(&journal_directory).unwrap();
-    fs::write(journal_directory.join("corrupted.toml"), "not = [valid").unwrap();
+    fs::write(
+        journal_directory.join("corrupted.zrjournal"),
+        "not = [valid",
+    )
+    .unwrap();
 
     let error =
         migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
             .unwrap_err();
     match error {
-        crate::asset::migration::AssetMigrationError::JournalDeserialize { source, .. } => {
-            assert!(!source.to_string().is_empty());
+        crate::asset::migration::AssetMigrationError::InvalidJournal { reason, .. } => {
+            assert!(!reason.is_empty());
         }
-        other => panic!("expected typed journal deserialization error, found {other}"),
+        other => panic!("expected typed invalid journal error, found {other}"),
     }
     assert_eq!(fs::read_to_string(source).unwrap(), "unchanged");
-    assert!(journal_directory.join("corrupted.toml").is_file());
+    assert!(journal_directory.join("corrupted.zrjournal").is_file());
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -160,7 +160,7 @@ fn malicious_journal_cannot_alias_an_artifact_to_a_live_target() {
         target.to_string_lossy(),
         target.to_string_lossy(),
     );
-    let journal_path = journal_directory.join("malicious.toml");
+    let journal_path = journal_directory.join("malicious.zrjournal");
     fs::write(&journal_path, &journal).unwrap();
 
     let error = migrate_project_assets(AssetMigrationOptions::new(
@@ -194,7 +194,7 @@ fn forged_new_target_journal_cannot_delete_an_arbitrary_root_file() {
     let journal_directory = root.join(".zircon/asset-migration");
     fs::create_dir_all(&journal_directory).unwrap();
     let journal_path = journal_directory.join(format!(
-        ".do-not-delete.txt.zr-migrate-journal-{transaction_id}.toml"
+        ".do-not-delete.txt.zr-migrate-journal-{transaction_id}.zrjournal"
     ));
     let journal = format!(
         "version = 2\ntransaction_id = \"{transaction_id}\"\nphase = \"active\"\n\n[[documents]]\nstate = \"committed\"\ntarget_existed = false\nnew_digest = \"{digest}\"\ntarget = {:?}\nstaging = {:?}\n",
@@ -244,7 +244,7 @@ fn forged_active_journal_cannot_overwrite_existing_target_from_backup() {
     let journal_directory = root.join(".zircon/asset-migration");
     fs::create_dir_all(&journal_directory).unwrap();
     let journal_path = journal_directory.join(format!(
-        ".live.zmaterial.zr-migrate-journal-{transaction_id}.toml"
+        ".live.zmaterial.zr-migrate-journal-{transaction_id}.zrjournal"
     ));
     let journal = format!(
         "version = 2\ntransaction_id = \"{transaction_id}\"\nphase = \"active\"\n\n[[documents]]\nstate = \"committed\"\ntarget_existed = true\noriginal_digest = \"{original_digest}\"\nnew_digest = \"{new_digest}\"\ntarget = {:?}\nstaging = {:?}\nbackup = {:?}\n",
@@ -294,7 +294,7 @@ fn forged_active_journal_cannot_restore_retired_backup_or_delete_current_sidecar
     let journal_directory = root.join(".zircon/asset-migration");
     fs::create_dir_all(&journal_directory).unwrap();
     let journal_path = journal_directory.join(format!(
-        ".live.asset.zmeta.zr-migrate-journal-{transaction_id}.toml"
+        ".live.asset.zmeta.zr-migrate-journal-{transaction_id}.zrjournal"
     ));
     let journal = format!(
         "version = 2\ntransaction_id = \"{transaction_id}\"\nphase = \"active\"\n\n[[documents]]\nstate = \"committed\"\ntarget_existed = false\nnew_digest = \"{new_digest}\"\nretired_digest = \"{retired_digest}\"\ntarget = {:?}\nstaging = {:?}\nretired_path = {:?}\nretired_backup = {:?}\n",
@@ -348,12 +348,10 @@ fn stage_write_and_backup_copy_failures_leave_no_local_artifacts() {
         )
         .expect_err("injected stage failure must remain typed");
         assert_eq!(fs::read_to_string(&material).unwrap(), original);
-        assert!(
-            !fs::read_dir(material.parent().unwrap())
-                .unwrap()
-                .filter_map(Result::ok)
-                .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate"))
-        );
+        assert!(!fs::read_dir(material.parent().unwrap())
+            .unwrap()
+            .filter_map(Result::ok)
+            .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate")));
         fs::remove_dir_all(root).unwrap();
     }
 }
@@ -380,12 +378,10 @@ fn retired_backup_sync_failure_leaves_no_local_artifacts() {
     .expect_err("retired backup sync failure must remain typed");
     assert!(retired.is_file());
     assert!(!root.join("assets/shaders/legacy.zshader.zmeta").exists());
-    assert!(
-        !fs::read_dir(retired.parent().unwrap())
-            .unwrap()
-            .filter_map(Result::ok)
-            .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate"))
-    );
+    assert!(!fs::read_dir(retired.parent().unwrap())
+        .unwrap()
+        .filter_map(Result::ok)
+        .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate")));
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -490,7 +486,8 @@ fn verify_rollback_cleanup_reentry(name: &str, fail_journal_delete: bool) {
         .unwrap()
         .unwrap()
         .path();
-    let journal_source = fs::read_to_string(&journal).unwrap();
+    let journal_bytes = fs::read(&journal).unwrap();
+    let journal_source = String::from_utf8_lossy(&journal_bytes);
     let expected_phase = if fail_journal_delete {
         "phase = \"cleanup_rollback\""
     } else {
@@ -561,18 +558,14 @@ fn restore_failure_is_typed_and_retains_a_recovery_backup() {
             .unwrap();
     assert!(report.succeeded());
     for name in ["first.zmaterial", "second.zmaterial"] {
-        assert!(
-            fs::read_to_string(materials.join(name))
-                .unwrap()
-                .contains("kind = \"project\"")
-        );
-    }
-    assert!(
-        !fs::read_dir(&materials)
+        assert!(fs::read_to_string(materials.join(name))
             .unwrap()
-            .filter_map(Result::ok)
-            .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate"))
-    );
+            .contains("kind = \"project\""));
+    }
+    assert!(!fs::read_dir(&materials)
+        .unwrap()
+        .filter_map(Result::ok)
+        .any(|entry| entry.file_name().to_string_lossy().contains("zr-migrate")));
     assert_eq!(
         fs::read_dir(root.join(".zircon/asset-migration"))
             .unwrap()

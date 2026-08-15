@@ -6,6 +6,7 @@ mod commands;
 mod compiled_binding;
 mod component_access;
 mod component_type_registry;
+mod deferred_structural_segment;
 mod derived_state;
 mod dirty_state;
 mod dynamic_components;
@@ -21,6 +22,7 @@ mod performance_diagnostics;
 mod project_io;
 mod property_access;
 mod query;
+mod query_order;
 mod records;
 mod render;
 mod render_particles;
@@ -34,12 +36,16 @@ mod typed_api;
 mod world;
 
 pub use compiled_binding::{
-    CompiledDescendantNameEntry, CompiledDescendantNameIndex, CompiledScenePropertyTarget,
-    CompiledScenePropertyWriter, ComponentFieldId, PathId,
+    CompiledDescendantNameEntry, CompiledDescendantNameIndex, CompiledScenePropertyAccessStats,
+    CompiledScenePropertyTarget, CompiledScenePropertyWriter, ComponentFieldId, PathId,
 };
 pub use component_type_registry::ComponentTypeRegistry;
-pub use dynamic_components::DynamicComponentInstance;
+pub(crate) use deferred_structural_segment::DeferredStructuralBatch;
 pub(in crate::scene) use dynamic_components::json_from_scene_property_value;
+pub use dynamic_components::DynamicComponentInstance;
 pub use error::{SceneError, SceneResult};
 pub use project_io::SceneProjectError;
+pub(crate) use query_order::{StableQueryLocationIter, StableWorldEntityIter};
+pub use transaction::{DetachedEntityBatch, DetachedEntityBatchRestoreError};
+pub(in crate::scene) use transaction::{PreflightComponentRow, PreflightDynamicComponent};
 pub use world::World;

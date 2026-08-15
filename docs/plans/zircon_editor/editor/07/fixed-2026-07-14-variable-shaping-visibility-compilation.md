@@ -9,7 +9,7 @@ origin_child_dir: docs/plans/zircon_editor/editor/07
 fixing_child_dir: docs/plans/zircon_runtime/text/02
 related_code:
   - zircon_runtime/src/text/shaping/horizontal/mod.rs
-  - zircon_runtime/src/text/shaping/horizontal/projection.rs
+  - zircon_runtime/src/text/shaping/horizontal/direct.rs
   - zircon_runtime/src/text/shaping/cosmic.rs
 tests:
   - cargo test -p zircon_editor --lib --locked tests::editor_event::runtime::when_evaluation::typed_document_focus_tracks_floating_activation_and_focused_close -- --exact --test-threads=1 --nocapture
@@ -40,7 +40,7 @@ resolved_at: 2026-07-14
 
 ## 最低共享层根因
 
-旧 folder-backed variable shaping 切分后，helper 可见性低于稳定 shaping owner 的 re-export/consumer 边界。当前架构已把该职责硬切到 `shaping::horizontal::{backend,projection}`，`projection` helper 仅以 `pub(in crate::graphics::text::shaping)` 暴露给 cosmic owner；不是 cosmic consumer 的调用特判。
+旧 folder-backed variable shaping 切分后，helper 可见性低于稳定 shaping owner 的 re-export/consumer 边界。当前架构已把该职责硬切到 `shaping::horizontal::{backend,direct}`；`direct` 仅在 `crate::text::shaping` 内消费 backend 输出并投影 canonical shaped run，不是 cosmic consumer 的调用特判。旧 `projection` 名称仅属于这次已关闭失败的历史上下文。
 
 ## 架构修复验收
 
@@ -57,6 +57,6 @@ resolved_at: 2026-07-14
 ## 修复结果与回传
 
 - 根因：Horizontal variable-font secondary shaping was implemented in a private flat helper and re-exported across the text shaping boundary, so the Editor upward build hit Rust E0364/E0603 visibility errors; the Editor paint fixture also lacked the new ShapedGlyph font_instance_id field.
-- 架构修复：Hard-cut the helper into the folder-backed graphics/text/shaping/horizontal backend and projection modules, keep apply_horizontal_backend_shaping scoped to the shaping subsystem, and update the Editor fixture to construct the canonical ShapedGlyph contract with font_instance_id.
+- 架构修复：Hard-cut the helper into the folder-backed text/shaping/horizontal backend and direct modules, keep backend shaping scoped to the shaping subsystem, and update the Editor fixture to construct the canonical ShapedGlyph contract with font_instance_id.
 - 验证：Windows coordinator job d4821ebfeef1445eb743515c9439948c passed text_horizontal_ 5/5; Windows coordinator job 15ed7b7df026474486615df05a7abc37 passed the originating Editor07 exact test 1/1 with 3172 filtered out. No E0364/E0603 visibility error remained.
 - 回传：Variable-font shaping now compiles through the real Editor07 consumer and the exact floating-focus test passes; return the verified fix to Editor07 and close this Text02 failure lifecycle.

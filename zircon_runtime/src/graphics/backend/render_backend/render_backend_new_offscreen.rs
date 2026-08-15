@@ -1,4 +1,5 @@
 use crate::graphics::types::GraphicsError;
+use std::sync::Arc;
 
 use super::config::RenderBackendConfig;
 use super::render_backend::RenderBackend;
@@ -22,6 +23,7 @@ impl RenderBackend {
             adapter,
             device,
             queue,
+            ui_image_registry: Arc::new(zr_rhi_wgpu::WgpuUiSharedImageRegistry::default()),
             backend_name,
             config,
         })

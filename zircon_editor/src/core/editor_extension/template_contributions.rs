@@ -6,8 +6,8 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    EditorExtensionRegistration, EditorExtensionRegistry, EditorExtensionRegistryError,
-    EditorUiTemplatePaneDataSource, insert_unique, validate_contribution_id,
+    insert_unique, validate_contribution_id, EditorExtensionRegistration, EditorExtensionRegistry,
+    EditorExtensionRegistryError, EditorUiTemplatePaneDataSource,
 };
 
 impl EditorExtensionRegistry {

@@ -168,7 +168,6 @@ fn effective_post_process_stack_culls_disabled_optional_post_process_passes() {
     for pass_name in [
         "velocity-object",
         "velocity-camera",
-        "taa-reactive-mask-clear",
         "taa-reactive-mask-mesh",
         "taa-resolve",
         "motion-vector-tile-max",

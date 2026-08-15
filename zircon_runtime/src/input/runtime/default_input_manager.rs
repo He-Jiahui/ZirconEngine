@@ -137,10 +137,8 @@ impl InputManagerFacade for DefaultInputManager {
             InputEvent::FileDragDrop(event) => {
                 state.file_drag_drop_events.push(event.clone());
             }
-            InputEvent::KeyboardFocusLost => {
-                state.buttons.release_where(|button| {
-                    matches!(button, InputButton::Key(_) | InputButton::KeyCode(_))
-                });
+            InputEvent::FocusLost => {
+                state.clear_active_input_for_focus_loss();
             }
             InputEvent::Touch { id, phase, x, y } => match phase {
                 TouchPhase::Started | TouchPhase::Moved => {

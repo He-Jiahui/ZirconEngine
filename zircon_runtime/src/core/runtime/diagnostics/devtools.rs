@@ -6,7 +6,6 @@ use crate::core::{CoreHandle, LifecycleState, ServiceKind, StartupMode};
 pub struct RuntimeDevtoolsSnapshot {
     pub modules: Vec<RuntimeDevtoolsModuleSnapshot>,
     pub services: Vec<RuntimeDevtoolsServiceSnapshot>,
-    pub scene_hooks: Vec<RuntimeDevtoolsSceneHookSnapshot>,
     pub plugin_catalog: Vec<RuntimeDevtoolsPluginCatalogEntry>,
     pub native_backend_status: RuntimeDevtoolsBackendStatus,
     pub vm_backend_status: RuntimeDevtoolsBackendStatus,
@@ -33,14 +32,6 @@ pub struct RuntimeDevtoolsServiceSnapshot {
     pub lifecycle: LifecycleState,
     pub dependencies: Vec<String>,
     pub active: bool,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct RuntimeDevtoolsSceneHookSnapshot {
-    pub id: String,
-    pub plugin_id: String,
-    pub stage: String,
-    pub order: i32,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -82,7 +73,6 @@ pub(crate) fn project_runtime_devtools_snapshot(
     RuntimeDevtoolsSnapshot {
         modules: collect_module_snapshots(core),
         services: collect_service_snapshots(core),
-        scene_hooks: collect_scene_hook_snapshots(core),
         plugin_catalog: collect_plugin_catalog_entries(core),
         native_backend_status: RuntimeDevtoolsBackendStatus {
             backend: "native_dynamic".to_string(),
@@ -143,17 +133,6 @@ fn collect_service_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsServiceSna
         .collect::<Vec<_>>();
     drop(services);
     snapshots.sort_by(|left, right| left.name.cmp(&right.name));
-    snapshots
-}
-
-fn collect_scene_hook_snapshots(core: &CoreHandle) -> Vec<RuntimeDevtoolsSceneHookSnapshot> {
-    let mut snapshots = lock_poison_recovered(&core.inner.scene_hook_snapshots).clone();
-    snapshots.sort_by(|left, right| {
-        left.stage
-            .cmp(&right.stage)
-            .then(left.order.cmp(&right.order))
-            .then(left.id.cmp(&right.id))
-    });
     snapshots
 }
 
@@ -254,10 +233,6 @@ mod tests {
             panic!("poison devtools services registry");
         }));
         let _ = panic::catch_unwind(AssertUnwindSafe(|| {
-            let _guard = handle.inner.scene_hook_snapshots.lock().unwrap();
-            panic!("poison devtools scene hook diagnostics snapshots");
-        }));
-        let _ = panic::catch_unwind(AssertUnwindSafe(|| {
             let _guard = handle.inner.devtools_plugin_catalog_entries.lock().unwrap();
             panic!("poison devtools plugin catalog entries");
         }));
@@ -268,7 +243,6 @@ mod tests {
         );
         assert!(snapshot.modules.is_empty());
         assert!(snapshot.services.is_empty());
-        assert!(snapshot.scene_hooks.is_empty());
         assert!(snapshot.plugin_catalog.is_empty());
     }
 

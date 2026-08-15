@@ -145,6 +145,50 @@ fn shared_host_page_pointer_bridge_skips_rebuild_for_unchanged_layout() {
 }
 
 #[test]
+fn shared_host_page_measured_frame_patch_preserves_surface_authority() {
+    let mut bridge = HostPagePointerBridge::new();
+    let layout = sample_host_page_layout();
+    let tab = layout.tabs[1].clone();
+    assert!(bridge.sync(layout));
+    let authority_generation = bridge.debug_surface_authority_generation();
+    let measured_x = tab.frame.x + 8.0;
+    let measured_width = tab.frame.width + 12.0;
+
+    let route = bridge
+        .handle_click(
+            tab.page_index,
+            measured_x,
+            measured_width,
+            UiPoint::new(4.0, 12.0),
+        )
+        .expect("measured host page tab should remain routable");
+    assert_eq!(
+        route.route,
+        Some(HostPagePointerRoute::Tab {
+            item_index: 1,
+            page_id: "inspector".to_string(),
+        })
+    );
+    assert_eq!(
+        bridge.debug_surface_authority_generation(),
+        authority_generation
+    );
+
+    bridge
+        .handle_click(
+            tab.page_index,
+            measured_x,
+            measured_width,
+            UiPoint::new(4.0, 12.0),
+        )
+        .expect("unchanged measured frame should reuse the projected hit geometry");
+    assert_eq!(
+        bridge.debug_surface_authority_generation(),
+        authority_generation
+    );
+}
+
+#[test]
 fn shared_host_page_pointer_bridge_routes_overflow_button_from_shared_hit_test() {
     let mut bridge = HostPagePointerBridge::new();
     let layout = sample_overflow_host_page_layout();

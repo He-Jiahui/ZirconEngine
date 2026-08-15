@@ -2,10 +2,7 @@ use std::collections::BTreeMap;
 
 use super::super::card_capture_shading::scene_voxel_clipmap_rgba;
 use super::super::hybrid_gi_prepare_execution_inputs::HybridGiPrepareExecutionInputs;
-use super::super::voxel_clipmap_debug::{
-    scene_voxel_clipmap_cell_dominant_node_ids, scene_voxel_clipmap_cell_dominant_rgba_samples,
-    scene_voxel_clipmap_cell_rgba_samples,
-};
+use super::super::voxel_clipmap_debug::scene_voxel_clipmap_cell_samples;
 use crate::hybrid_gi::renderer::HybridGiScenePrepareResourcesSnapshot;
 use crate::hybrid_gi::types::{
     HybridGiPrepareVoxelCell, HybridGiPrepareVoxelClipmap, HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT,
@@ -45,60 +42,56 @@ pub(super) fn store_scene_prepare_voxel_resource_samples(
         &inputs.scene_voxel_clipmaps,
         &voxel_cell_occupancy_counts,
     );
-    let voxel_clipmap_cell_rgba_samples = inputs
+    let projected_cell_capacity = inputs
         .scene_voxel_clipmaps
-        .iter()
-        .flat_map(|clipmap| {
-            scene_voxel_clipmap_cell_rgba_samples(clipmap, streamer, inputs)
+        .len()
+        .saturating_mul(HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT);
+    let mut voxel_clipmap_cell_rgba_samples = Vec::with_capacity(projected_cell_capacity);
+    let mut voxel_clipmap_cell_dominant_node_ids = Vec::with_capacity(projected_cell_capacity);
+    let mut voxel_clipmap_cell_dominant_rgba_samples = Vec::with_capacity(projected_cell_capacity);
+    for clipmap in &inputs.scene_voxel_clipmaps {
+        let samples = scene_voxel_clipmap_cell_samples(clipmap, streamer, inputs);
+        let clipmap_id = clipmap.clipmap_id;
+        voxel_clipmap_cell_rgba_samples.extend(samples.rgba_samples.into_iter().map(
+            |(cell_index, rgba)| {
+                (
+                    clipmap_id,
+                    cell_index,
+                    runtime_voxel_cell_radiance_overrides
+                        .get(&(clipmap_id, cell_index))
+                        .copied()
+                        .unwrap_or(rgba),
+                )
+            },
+        ));
+        voxel_clipmap_cell_dominant_node_ids.extend(samples.dominant_node_ids.into_iter().map(
+            |(cell_index, node_id)| {
+                (
+                    clipmap_id,
+                    cell_index,
+                    runtime_voxel_cell_dominant_node_overrides
+                        .get(&(clipmap_id, cell_index))
+                        .copied()
+                        .unwrap_or(node_id),
+                )
+            },
+        ));
+        voxel_clipmap_cell_dominant_rgba_samples.extend(
+            samples
+                .dominant_rgba_samples
                 .into_iter()
                 .map(|(cell_index, rgba)| {
                     (
-                        clipmap.clipmap_id,
+                        clipmap_id,
                         cell_index,
                         runtime_voxel_cell_radiance_overrides
-                            .get(&(clipmap.clipmap_id, cell_index))
+                            .get(&(clipmap_id, cell_index))
                             .copied()
                             .unwrap_or(rgba),
                     )
-                })
-        })
-        .collect();
-    let voxel_clipmap_cell_dominant_node_ids = inputs
-        .scene_voxel_clipmaps
-        .iter()
-        .flat_map(|clipmap| {
-            scene_voxel_clipmap_cell_dominant_node_ids(clipmap, streamer, inputs)
-                .into_iter()
-                .map(|(cell_index, node_id)| {
-                    (
-                        clipmap.clipmap_id,
-                        cell_index,
-                        runtime_voxel_cell_dominant_node_overrides
-                            .get(&(clipmap.clipmap_id, cell_index))
-                            .copied()
-                            .unwrap_or(node_id),
-                    )
-                })
-        })
-        .collect();
-    let voxel_clipmap_cell_dominant_rgba_samples = inputs
-        .scene_voxel_clipmaps
-        .iter()
-        .flat_map(|clipmap| {
-            scene_voxel_clipmap_cell_dominant_rgba_samples(clipmap, streamer, inputs)
-                .into_iter()
-                .map(|(cell_index, rgba)| {
-                    (
-                        clipmap.clipmap_id,
-                        cell_index,
-                        runtime_voxel_cell_radiance_overrides
-                            .get(&(clipmap.clipmap_id, cell_index))
-                            .copied()
-                            .unwrap_or(rgba),
-                    )
-                })
-        })
-        .collect();
+                }),
+        );
+    }
     snapshot.store_voxel_resource_samples(
         voxel_clipmap_rgba_samples,
         voxel_clipmap_occupancy_masks,

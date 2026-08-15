@@ -3,8 +3,9 @@ use crate::core::framework::render::{
     MotionVectorCameraStatus, RenderBudgetKey, RenderColorLutReadbackReport,
     RenderExposureReadbackReport, RenderGraphExecutionAliasReport,
     RenderGraphExecutionProfileReport, RenderGraphExecutionResourceReport,
-    RenderGraphMaterializationReport, RenderGraphPassProfileMetrics, RenderGraphPassProfileRecord,
-    RenderGraphStageExecutionReport, RenderHistoryCopyReport, RenderSceneVelocityReadbackReport,
+    RenderGraphMaterializationReport, RenderGraphParallelRecordingReport,
+    RenderGraphPassProfileMetrics, RenderGraphPassProfileRecord, RenderGraphStageExecutionReport,
+    RenderHistoryCopyReport, RenderSceneVelocityReadbackReport,
 };
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::LightGridStats;
@@ -71,6 +72,7 @@ pub struct RenderGraphExecutionRecord {
     materialization_report: RenderGraphMaterializationReport,
     resource_alias_report: RenderGraphExecutionAliasReport,
     pass_profile_records: Vec<RenderGraphPassProfileRecord>,
+    parallel_recording_report: RenderGraphParallelRecordingReport,
     history_copy_report: RenderHistoryCopyReport,
     scene_velocity_readback_report: RenderSceneVelocityReadbackReport,
     #[cfg(test)]
@@ -79,6 +81,9 @@ pub struct RenderGraphExecutionRecord {
     color_lut_readback_report: RenderColorLutReadbackReport,
     hzb_occlusion_cull_report: Option<HzbOcclusionCullReport>,
     light_grid_report: Option<RenderGraphLightGridReport>,
+    taa_reactive_mask_encoded_pass_count: usize,
+    taa_reactive_mask_encoded_write_bytes: u64,
+    taa_resolve_bind_group_create_count: usize,
 }
 
 impl RenderGraphExecutionRecord {
@@ -273,6 +278,28 @@ impl RenderGraphExecutionRecord {
         );
     }
 
+    pub fn record_parallel_recording_eligibility(&mut self, bucket_count: usize) {
+        self.parallel_recording_report.eligible_stage_count = self
+            .parallel_recording_report
+            .eligible_stage_count
+            .saturating_add(1);
+        self.parallel_recording_report.eligible_bucket_count = self
+            .parallel_recording_report
+            .eligible_bucket_count
+            .saturating_add(bucket_count);
+    }
+
+    pub fn record_parallel_recording_execution(&mut self, bucket_count: usize) {
+        self.parallel_recording_report.executed_stage_count = self
+            .parallel_recording_report
+            .executed_stage_count
+            .saturating_add(1);
+        self.parallel_recording_report.executed_bucket_count = self
+            .parallel_recording_report
+            .executed_bucket_count
+            .saturating_add(bucket_count);
+    }
+
     pub fn set_history_copy_report(&mut self, report: RenderHistoryCopyReport) {
         self.history_copy_report = report;
     }
@@ -306,6 +333,21 @@ impl RenderGraphExecutionRecord {
 
     pub fn set_light_grid_report(&mut self, report: RenderGraphLightGridReport) {
         self.light_grid_report = Some(report);
+    }
+
+    pub fn add_taa_reactive_mask_encoding(&mut self, pass_count: usize, write_bytes: u64) {
+        self.taa_reactive_mask_encoded_pass_count = self
+            .taa_reactive_mask_encoded_pass_count
+            .saturating_add(pass_count);
+        self.taa_reactive_mask_encoded_write_bytes = self
+            .taa_reactive_mask_encoded_write_bytes
+            .saturating_add(write_bytes);
+    }
+
+    pub fn add_taa_resolve_bind_group_create_count(&mut self, count: usize) {
+        self.taa_resolve_bind_group_create_count = self
+            .taa_resolve_bind_group_create_count
+            .saturating_add(count);
     }
 
     pub fn push_compute_dispatch(&mut self, dispatch: RenderGraphComputeDispatchRecord) {
@@ -419,6 +461,10 @@ impl RenderGraphExecutionRecord {
         RenderGraphExecutionProfileReport::new(self.pass_profile_records.clone())
     }
 
+    pub fn parallel_recording_report(&self) -> RenderGraphParallelRecordingReport {
+        self.parallel_recording_report
+    }
+
     pub fn stage_execution_report(&self) -> RenderGraphStageExecutionReport {
         let mut seen_stages = [false; RenderPassStage::ALL.len()];
         let mut staged_pass_count = 0;
@@ -487,6 +533,17 @@ impl RenderGraphExecutionRecord {
 
     pub fn light_grid_report(&self) -> Option<RenderGraphLightGridReport> {
         self.light_grid_report
+    }
+
+    pub fn taa_reactive_mask_encoding(&self) -> (usize, u64) {
+        (
+            self.taa_reactive_mask_encoded_pass_count,
+            self.taa_reactive_mask_encoded_write_bytes,
+        )
+    }
+
+    pub fn taa_resolve_bind_group_create_count(&self) -> usize {
+        self.taa_resolve_bind_group_create_count
     }
 
     #[cfg(test)]

@@ -13,6 +13,11 @@ impl HostMenuPointerBridge {
             surface: UiSurface::new(UiTreeId::new("zircon.editor.workbench.menu_pointer")),
             dispatcher: UiPointerDispatcher::default(),
             route_intents: Default::default(),
+            popup_menu_index: None,
+            popup_items: Vec::new(),
+            popup_route_indices: Default::default(),
+            #[cfg(test)]
+            surface_authority_generation: 0,
         };
         bridge.rebuild_surface();
         bridge

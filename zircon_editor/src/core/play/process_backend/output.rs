@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-use crossbeam_channel::{Receiver, Sender, TryRecvError, TrySendError, bounded};
+use crossbeam_channel::{bounded, Receiver, Sender, TryRecvError, TrySendError};
 
 const PLAY_OUTPUT_QUEUE_CAPACITY: usize = 1_024;
 const PLAY_OUTPUT_QUEUE_BYTE_CAPACITY: usize = 4 * 1024 * 1024;
@@ -170,6 +170,16 @@ pub(super) struct PlayOutputPump {
 pub(super) struct PlayOutputCaptureError {
     message: String,
     readers: Vec<JoinHandle<()>>,
+}
+
+impl std::fmt::Debug for PlayOutputCaptureError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("PlayOutputCaptureError")
+            .field("message", &self.message)
+            .field("reader_count", &self.readers.len())
+            .finish()
+    }
 }
 
 impl PlayOutputCaptureError {
@@ -487,9 +497,9 @@ mod performance_source_guards {
     use crossbeam_channel::bounded;
 
     use super::{
-        BoundedLineDecoder, OutputByteBudget, PLAY_OUTPUT_DRAIN_BYTE_LIMIT,
-        PLAY_OUTPUT_MAX_LINE_BYTES, PLAY_OUTPUT_QUEUE_BYTE_CAPACITY, PlayOutputCounters,
-        PlayOutputLine, PlayOutputPump, PlayOutputStream,
+        BoundedLineDecoder, OutputByteBudget, PlayOutputCounters, PlayOutputLine, PlayOutputPump,
+        PlayOutputStream, PLAY_OUTPUT_DRAIN_BYTE_LIMIT, PLAY_OUTPUT_MAX_LINE_BYTES,
+        PLAY_OUTPUT_QUEUE_BYTE_CAPACITY,
     };
 
     fn pump_with_queued_lines(lines: &[String]) -> (PlayOutputPump, Arc<OutputByteBudget>) {
@@ -561,11 +571,9 @@ mod performance_source_guards {
             .find(|diagnostic| diagnostic.starts_with("process.stdout: "))
             .expect("stdout line should be preserved");
         assert!(line.len() <= "process.stdout: ".len() + PLAY_OUTPUT_MAX_LINE_BYTES + 96);
-        assert!(
-            diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.starts_with("process.output_truncated_lines=1"))
-        );
+        assert!(diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.starts_with("process.output_truncated_lines=1")));
     }
 
     #[test]
@@ -581,11 +589,9 @@ mod performance_source_guards {
             .map(String::as_str)
             .collect::<Vec<_>>();
         assert_eq!(first_output.len(), 3);
-        assert!(
-            first_output
-                .iter()
-                .all(|diagnostic| diagnostic.ends_with(line.as_str()))
-        );
+        assert!(first_output
+            .iter()
+            .all(|diagnostic| diagnostic.ends_with(line.as_str())));
         assert!(
             queue_bytes.used() > 0,
             "deferred line must keep its reservation"

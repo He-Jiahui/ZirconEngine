@@ -53,3 +53,9 @@ LevelSystem只有mutable domain state和owned getter，没有按domain revision�
 ## 修复结果与回传
 
 Open state: `待修复`; no pass is claimed.
+
+## 2026-08-13 前向续作
+
+- physics sealed snapshot 现在需要 replacement epoch 才能提交；在 World lane 内复核 epoch 后才取得 physics publication lane，锁顺序与 world replacement 一致。
+- Physics runtime 的 tick、事件投递、frame-state 发布以及 synchronized-body 回写均共享同一 epoch；replacement 竞争到的旧结果不再进入新 World。
+- 增加 retired epoch publication 回归。未运行 Cargo 或 WGPU；仍保持 open，等待受管 Windows 验证与性能测量。

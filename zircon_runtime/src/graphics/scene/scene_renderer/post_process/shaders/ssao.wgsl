@@ -3,12 +3,12 @@ struct SsaoParams {
     tuning: vec4<f32>,
 };
 
-@group(0) @binding(0) var depth_tex: texture_depth_2d;
-@group(0) @binding(1) var normal_tex: texture_2d<f32>;
-@group(0) @binding(2) var previous_ao_tex: texture_2d<f32>;
-@group(0) @binding(3) var<uniform> params: SsaoParams;
-@group(0) @binding(4) var ao_out: texture_storage_2d<rgba8unorm, write>;
-@group(0) @binding(5) var hzb_furthest_tex: texture_2d<f32>;
+@group(1) @binding(0) var depth_tex: texture_depth_2d;
+@group(1) @binding(1) var normal_tex: texture_2d<f32>;
+@group(1) @binding(2) var previous_ao_tex: texture_2d<f32>;
+@group(1) @binding(3) var<uniform> params: SsaoParams;
+@group(1) @binding(4) var ao_out: texture_storage_2d<rgba8unorm, write>;
+@group(1) @binding(5) var hzb_furthest_tex: texture_2d<f32>;
 
 fn load_depth(coords: vec2<i32>, size: vec2<i32>) -> f32 {
     let clamped = clamp(coords, vec2<i32>(0, 0), size - vec2<i32>(1, 1));
@@ -37,6 +37,10 @@ fn cs_main(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
     }
 
     let coord = vec2<i32>(invocation_id.xy);
+    if (params.viewport_and_flags.w == 0u) {
+        textureStore(ao_out, coord, vec4<f32>(1.0));
+        return;
+    }
     let size_i32 = vec2<i32>(viewport_size);
     let center_depth = load_depth(coord, size_i32);
     let encoded_normal = textureLoad(normal_tex, coord, 0).xyz;

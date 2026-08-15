@@ -20,6 +20,9 @@ pub enum ProgressNotificationError {
     DuplicateJob {
         job: JobId,
     },
+    CapacityExceeded {
+        maximum: usize,
+    },
 }
 
 impl Display for ProgressNotificationError {
@@ -43,6 +46,9 @@ impl Display for ProgressNotificationError {
                 "job {} already has a progress notification",
                 job.value()
             ),
+            Self::CapacityExceeded { maximum } => {
+                write!(formatter, "progress notification capacity is {maximum}")
+            }
         }
     }
 }

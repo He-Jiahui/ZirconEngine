@@ -19,9 +19,14 @@ fn scene_components_keep_only_runtime_world_domains_after_editor_boundary_cutove
         "ecs/archetype/mod.rs",
         "ecs/archetype/id.rs",
         "ecs/archetype/index.rs",
-        "ecs/archetype/move_result.rs",
         "ecs/archetype/record.rs",
         "ecs/archetype/signature.rs",
+        "ecs/archetype/table/mod.rs",
+        "ecs/archetype/table/column.rs",
+        "ecs/archetype/table/error.rs",
+        "ecs/archetype/table/preflighted_row.rs",
+        "ecs/archetype/table/table.rs",
+        "ecs/archetype/table/taken_row.rs",
         "ecs/bundle.rs",
         "ecs/commands/mod.rs",
         "ecs/commands/command.rs",
@@ -68,7 +73,6 @@ fn scene_components_keep_only_runtime_world_domains_after_editor_boundary_cutove
         "ecs/storage/component_storage/location.rs",
         "ecs/storage/component_storage/sparse.rs",
         "ecs/storage/component_storage/store.rs",
-        "ecs/storage/component_storage/table.rs",
         "ecs/storage_type.rs",
     ] {
         assert!(

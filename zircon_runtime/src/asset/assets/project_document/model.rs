@@ -3,7 +3,7 @@ use zircon_runtime_interface::project::PersistedAssetReference;
 
 use crate::asset::{AssetReference, ModelAsset, ReferenceResolutionError};
 
-use super::codec::{ProjectDocumentArtifact, decode_document, encode_document};
+use super::codec::{decode_document, encode_document, ProjectDocumentArtifact};
 use crate::asset::assets::ProjectDocumentError;
 
 #[derive(Deserialize, Serialize)]
@@ -88,6 +88,7 @@ mod tests {
                 vertices: Vec::new(),
                 indices: Vec::new(),
                 mesh: Some(AssetReference::new(guid, locator.clone())),
+                mesh_sdf: None,
                 virtual_geometry: None,
             }],
         };

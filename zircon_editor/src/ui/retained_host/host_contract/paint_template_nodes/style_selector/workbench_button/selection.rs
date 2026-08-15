@@ -24,16 +24,21 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
 ) -> WorkbenchButtonStyle {
     let state = resolved_state_for_node(node);
     let interaction = state.button_interaction_state();
-    let focus_uses_hover_surface =
-        state.is_pointer_hot() || state.open || state.selected || state.checked;
-    let mut style = base_button_style(kind, interaction, focus_uses_hover_surface);
+    let selection_active = state.selected || state.checked;
+    let focus_uses_hover_surface = state.is_pointer_hot() || state.open || selection_active;
+    let visual_interaction = if selection_active && interaction == ButtonInteractionState::Normal {
+        ButtonInteractionState::Hover
+    } else {
+        interaction
+    };
+    let mut style = base_button_style(kind, visual_interaction, focus_uses_hover_surface);
     style.interaction = interaction;
 
     if is_unavailable_button_interaction(interaction) {
         return style;
     }
 
-    if should_apply_declared_button_surface(node, kind, interaction) {
+    if !selection_active && should_apply_declared_button_surface(node, kind, interaction) {
         if let Some(surface) =
             declared_button_style_color(node.button_style.element.background_color.as_ref())
         {
@@ -67,7 +72,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
 }
 
 fn declared_button_style_color(color: Option<&UiStyleColor>) -> Option<[u8; 4]> {
-    resolved_style_color(color).filter(|color| color[3] > 0)
+    resolved_style_color(color)
 }
 
 fn should_apply_declared_button_surface(

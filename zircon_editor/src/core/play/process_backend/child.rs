@@ -1,7 +1,7 @@
 use std::process::{ExitStatus, Stdio};
 
 use crate::core::play::MaterializedPlayScene;
-use crate::core::process::{ProcessTreeLease, terminate_process_tree};
+use crate::core::process::{terminate_process_tree, ProcessTreeLease};
 
 use super::command::PlayProcessCommand;
 use super::output::PlayOutputPump;

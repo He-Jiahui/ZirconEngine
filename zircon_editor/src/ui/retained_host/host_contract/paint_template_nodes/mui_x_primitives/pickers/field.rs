@@ -1,5 +1,5 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
-use super::super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
+use super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 use super::super::super::render_commands::HostPaintCommand;
 use super::super::{node_background, node_radius, push_quad};
 use super::geometry::{picker_field_frame, picker_field_icon_frame, picker_root_frame};

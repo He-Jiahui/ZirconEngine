@@ -34,22 +34,24 @@ control_id = "WorkbenchToolbarCommandRow"
 classes = ["workbench-toolbar-command-row"]
 layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
 children = [
-  { node = "toolbar_file_group" },
+  { node = "toolbar_file_group", slot = { layout = { linear_size = { rule = "StretchContent", value = 1.0, shrink_value = 1.0 } } } },
   { node = "toolbar_file_group_divider", slot = { layout = { alignment = { vertical = "Center" } } } },
   { node = "toolbar_spacer_left" },
-  { node = "toolbar_module_commands" },
+  { node = "toolbar_module_commands", slot = { layout = { linear_size = { rule = "StretchContent", value = 1.0, shrink_value = 1.0 } } } },
   { node = "toolbar_tool_group_divider", slot = { layout = { alignment = { vertical = "Center" } } } },
-  { node = "toolbar_tool_group" },
+  { node = "toolbar_tool_group", slot = { layout = { linear_size = { rule = "StretchContent", value = 1.0, shrink_value = 1.0 } } } },
   { node = "toolbar_spacer_right" },
   { node = "toolbar_run_group_divider", slot = { layout = { alignment = { vertical = "Center" } } } },
-  { node = "toolbar_run_group" },
+  { node = "toolbar_run_group", slot = { layout = { linear_size = { rule = "StretchContent", value = 1.0, shrink_value = 1.0 } } } },
+  { node = "toolbar_layout_group_divider", slot = { layout = { alignment = { vertical = "Center" } } } },
+  { node = "toolbar_layout_group", slot = { layout = { linear_size = { rule = "StretchContent", value = 1.0, shrink_value = 1.0 } } } },
 ]
 
 [nodes.toolbar_file_group]
 component = "HorizontalGroup"
 control_id = "WorkbenchToolbarFileGroup"
 classes = ["workbench-toolbar-group"]
-layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { min = 64.0, preferred = 132.0, max = 132.0, priority = 90, weight = 1.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
   { node = "toolbar_menu", slot = { layout = { alignment = { vertical = "Center" } } } },
   { node = "toolbar_assets", slot = { layout = { alignment = { vertical = "Center" } } } },
@@ -208,7 +210,7 @@ events = [{ id = "WorkbenchModule/More", event = "Click", route = "workbench.mod
 component = "HorizontalGroup"
 control_id = "WorkbenchModuleCommands"
 classes = ["workbench-toolbar-group", "workbench-module-commands"]
-layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { min = 388.0, preferred = 388.0, max = 388.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { min = 72.0, preferred = 388.0, max = 388.0, priority = 60, weight = 1.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
   { node = "module_save", slot = { layout = { alignment = { vertical = "Center" } } } },
   { node = "module_browse", slot = { layout = { alignment = { vertical = "Center" } } } },
@@ -221,7 +223,7 @@ children = [
 component = "WorkbenchButton"
 control_id = "WorkbenchModuleSave"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Save", icon = "zircon_editor_shell/toolbar/save.svg", button_variant = "outlined", button_color = "secondary", button_size = "small", layout_spacing = "$editor.density.gap.small" }
+props = { text = "Save", icon = "zircon_editor_shell/toolbar/save.svg", button_variant = "tertiary", button_color = "secondary", button_size = "small", background_color = "transparent", border_color = "transparent", layout_spacing = "$editor.density.gap.small" }
 layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Save", event = "Click", route = "workbench.module.save" }]
 
@@ -229,7 +231,7 @@ events = [{ id = "WorkbenchModule/Save", event = "Click", route = "workbench.mod
 component = "WorkbenchButton"
 control_id = "WorkbenchModuleBrowse"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Browse", icon = "zircon_editor_shell/toolbar/folder-open.svg", button_variant = "outlined", button_color = "secondary", button_size = "small", layout_spacing = "$editor.density.gap.small" }
+props = { text = "Browse", icon = "zircon_editor_shell/toolbar/folder-open.svg", button_variant = "tertiary", button_color = "secondary", button_size = "small", background_color = "transparent", border_color = "transparent", layout_spacing = "$editor.density.gap.small" }
 layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Browse", event = "Click", route = "workbench.module.browse" }]
 
@@ -245,7 +247,7 @@ events = [{ id = "WorkbenchModule/Compile", event = "Click", route = "workbench.
 component = "WorkbenchButton"
 control_id = "WorkbenchModuleDiff"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Diff", button_variant = "outlined", button_color = "secondary", button_size = "small" }
+props = { text = "Diff", button_variant = "tertiary", button_color = "secondary", button_size = "small", background_color = "transparent", border_color = "transparent" }
 layout = { width = { min = 54.0, preferred = 54.0, max = 54.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Diff", event = "Click", route = "workbench.module.diff" }]
 
@@ -253,7 +255,7 @@ events = [{ id = "WorkbenchModule/Diff", event = "Click", route = "workbench.mod
 component = "WorkbenchButton"
 control_id = "WorkbenchModuleSimulate"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Sim", button_variant = "outlined", button_color = "secondary", button_size = "small" }
+props = { text = "Sim", button_variant = "tertiary", button_color = "secondary", button_size = "small", background_color = "transparent", border_color = "transparent" }
 layout = { width = { min = 50.0, preferred = 50.0, max = 50.0, stretch = "Fixed" }, height = { min = "$editor.control.height.compact", preferred = "$editor.control.height.compact", max = "$editor.control.height.compact", stretch = "Fixed" } }
 events = [{ id = "WorkbenchModule/Simulate", event = "Click", route = "workbench.module.simulate" }]
 
@@ -261,7 +263,7 @@ events = [{ id = "WorkbenchModule/Simulate", event = "Click", route = "workbench
 component = "HorizontalGroup"
 control_id = "WorkbenchToolbarToolGroup"
 classes = ["workbench-toolbar-group"]
-layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { min = 182.0, preferred = 182.0, max = 182.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { min = 34.0, preferred = 182.0, max = 182.0, priority = 40, weight = 1.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
   { node = "tool_select", slot = { layout = { alignment = { vertical = "Center" } } } },
   { node = "tool_move", slot = { layout = { alignment = { vertical = "Center" } } } },
@@ -333,11 +335,26 @@ layout = { width = { min = "$editor.control.border_width", preferred = "$editor.
 component = "HorizontalGroup"
 control_id = "WorkbenchToolbarRunGroup"
 classes = ["workbench-toolbar-group"]
-layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { min = 142.0, preferred = 142.0, max = 142.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { min = 34.0, preferred = 70.0, max = 70.0, priority = 100, weight = 1.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
   { node = "run_play", slot = { layout = { alignment = { vertical = "Center" } } } },
   { node = "run_stop", slot = { layout = { alignment = { vertical = "Center" } } } },
   { node = "run_mode", slot = { layout = { alignment = { vertical = "Center" } } } },
+]
+
+[nodes.toolbar_layout_group_divider]
+component = "WorkbenchDivider"
+control_id = "WorkbenchToolbarLayoutGroupDivider"
+classes = ["workbench-toolbar-divider"]
+props = { orientation = "vertical", variant = "middle", thickness = "$editor.control.border_width", layout_min_height = 22.0 }
+layout = { width = { min = "$editor.control.border_width", preferred = "$editor.control.border_width", max = "$editor.control.border_width", stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.toolbar_layout_group]
+component = "HorizontalGroup"
+control_id = "WorkbenchToolbarLayoutGroup"
+classes = ["workbench-toolbar-group"]
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { min = 32.0, preferred = 68.0, max = 68.0, priority = 20, weight = 1.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
   { node = "layout_grid", slot = { layout = { alignment = { vertical = "Center" } } } },
   { node = "theme_toggle", slot = { layout = { alignment = { vertical = "Center" } } } },
 ]

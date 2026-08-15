@@ -167,11 +167,9 @@ fn authoring_registry_rejects_duplicate_graph_node_ids() {
         )
         .unwrap_err();
 
-    assert!(
-        error
-            .to_string()
-            .contains("graph node output already registered")
-    );
+    assert!(error
+        .to_string()
+        .contains("graph node output already registered"));
 }
 
 #[test]
@@ -185,11 +183,9 @@ fn authoring_registry_rejects_invalid_operation_payload_schema_ids() {
         )
         .unwrap_err();
 
-    assert!(
-        error
-            .to_string()
-            .contains("editor command payload schema id `material_editor. compile.v1` is invalid")
-    );
+    assert!(error
+        .to_string()
+        .contains("editor command payload schema id `material_editor. compile.v1` is invalid"));
 }
 
 #[test]

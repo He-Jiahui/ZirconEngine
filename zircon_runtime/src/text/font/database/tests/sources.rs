@@ -57,10 +57,7 @@ fn text_font_database_decodes_woff2_once_for_native_and_sdf_consumers() {
     )
     .unwrap();
     let encoded = encode(&original, BrotliQuality::default()).unwrap();
-    let source_path = std::env::temp_dir().join(format!(
-        "zircon-runtime-text-font-database-{}-decode.woff2",
-        std::process::id()
-    ));
+    let source_path = unique_font_fixture_path("font-database-decode", "woff2");
     std::fs::write(&source_path, encoded).unwrap();
 
     let mut database = FontDatabase::default();
@@ -199,10 +196,12 @@ fn text_font_database_builds_discovered_system_face_metadata_once_on_first_use()
         .face_source_identity(face)
         .expect("system face source identity");
     assert_ne!(source_identity, [0; 16]);
-    assert!(database
-        .face_metrics(face)
-        .expect("system face metrics")
-        .is_some());
+    assert!(
+        database
+            .face_metrics(face)
+            .expect("system face metrics")
+            .is_some()
+    );
     assert_eq!(database.face_metadata_build_count(), 1);
 
     assert_eq!(

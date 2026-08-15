@@ -15,6 +15,7 @@ pub(in crate::dynamic_api::session) struct SessionSlot {
 enum SessionSlotPhase {
     Open,
     Closing,
+    TeardownRetryPending,
 }
 
 #[derive(Debug)]
@@ -38,7 +39,7 @@ impl SessionSlot {
 
     pub(super) fn begin_action(self: &Arc<Self>) -> Option<SessionActionGuard> {
         let mut lifecycle = self.lock_lifecycle();
-        if lifecycle.phase == SessionSlotPhase::Closing {
+        if lifecycle.phase != SessionSlotPhase::Open {
             return None;
         }
         lifecycle.active_actions += 1;
@@ -56,11 +57,20 @@ impl SessionSlot {
 
     pub(super) fn begin_close(&self) -> bool {
         let mut lifecycle = self.lock_lifecycle();
-        if lifecycle.phase == SessionSlotPhase::Closing {
-            return false;
+        match lifecycle.phase {
+            SessionSlotPhase::Open | SessionSlotPhase::TeardownRetryPending => {
+                lifecycle.phase = SessionSlotPhase::Closing;
+                true
+            }
+            SessionSlotPhase::Closing => false,
         }
-        lifecycle.phase = SessionSlotPhase::Closing;
-        true
+    }
+
+    pub(super) fn preserve_failed_teardown_for_retry(&self) {
+        let mut lifecycle = self.lock_lifecycle();
+        debug_assert_eq!(lifecycle.phase, SessionSlotPhase::Closing);
+        debug_assert_eq!(lifecycle.active_actions, 0);
+        lifecycle.phase = SessionSlotPhase::TeardownRetryPending;
     }
 
     pub(super) fn wait_for_actions(&self) {
@@ -88,7 +98,7 @@ impl SessionSlot {
 
     #[cfg(test)]
     pub(super) fn is_closing(&self) -> bool {
-        self.lock_lifecycle().phase == SessionSlotPhase::Closing
+        self.lock_lifecycle().phase != SessionSlotPhase::Open
     }
 
     fn lock_lifecycle(&self) -> MutexGuard<'_, SessionSlotLifecycle> {

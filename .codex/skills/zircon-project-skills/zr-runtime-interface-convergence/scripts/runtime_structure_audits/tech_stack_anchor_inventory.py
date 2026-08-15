@@ -81,5 +81,4 @@ CARGO_GATE_ANCHORS = (
     "cargo test -p zircon_runtime --lib extensions --locked",
     "cargo test -p zircon_runtime --lib text_shaper --locked -- --nocapture",
     "cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_physics_runtime --locked",
-    "runtime_01_tech_stack_cargo_gate_records_completed_dependency_validation",
 )

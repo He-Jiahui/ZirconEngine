@@ -12,4 +12,13 @@ pub(crate) struct HostDocumentTabPointerBridge {
     pub(in crate::ui::retained_host::document_tab_pointer) surface: UiSurface,
     pub(in crate::ui::retained_host::document_tab_pointer) dispatcher: UiPointerDispatcher,
     pub(in crate::ui::retained_host::document_tab_pointer) route_intents: EditorRouteIntentMap,
+    #[cfg(test)]
+    pub(in crate::ui::retained_host::document_tab_pointer) surface_authority_generation: u64,
+}
+
+impl HostDocumentTabPointerBridge {
+    #[cfg(test)]
+    pub(crate) const fn debug_surface_authority_generation(&self) -> u64 {
+        self.surface_authority_generation
+    }
 }

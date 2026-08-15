@@ -20,8 +20,11 @@ pub use vm_plugin_instance::VmPluginInstance;
 pub use vm_plugin_manifest::VmPluginManifest;
 pub use vm_plugin_package::{VmPluginPackage, ZrVmExecutionMode, ZrVmPluginProjectSource};
 pub use vm_plugin_package_discovery::{
-    discover_vm_plugin_package, discover_vm_plugin_packages, DiscoveredVmPluginPackage,
+    discover_vm_plugin_package, discover_vm_plugin_package_with_limits,
+    discover_vm_plugin_packages, discover_vm_plugin_packages_with_limits,
+    DiscoveredVmPluginPackage, VmPluginDiscoveryLimits, VmPluginDiscoveryRequest,
 };
+pub(crate) use vm_plugin_package_discovery::{VmPluginDiscoveryWorker, VmPluginPayloadCache};
 pub use vm_plugin_package_source::VmPluginPackageSource;
 pub use vm_state_blob::{
     VmStateBlob, VmStateObject, VmStateTypeIdentity, VM_STATE_SCHEMA_VERSION_V2,

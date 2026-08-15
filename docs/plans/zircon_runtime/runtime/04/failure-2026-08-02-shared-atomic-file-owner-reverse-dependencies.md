@@ -118,3 +118,24 @@ behavior/fault injection code moved intact rather than being copied or rewritten
 Focused current-source tests, independent review, managed Runtime package gates, fixed return, and
 Frameworks05 M4 acceptance remain pending, so this artifact stays `open` and does not claim an
 accepted source pass.
+
+## 2026-08-11 durability forward repair
+
+The shared owner now also owns the durability semantics that were previously stronger only in the
+Platform Preferences consumer. New parent directories are created root-to-leaf and each directory
+entry is confirmed before the next level is created; a failed barrier durably removes the current
+writer's unconfirmed empty directory, while a concurrently created directory is synchronized but
+never deleted by the losing writer. New-target publication and Unix replacement synchronize the
+containing directory. Unix backup creation and removal are also followed by directory barriers.
+Windows new-target, backup move, and restore use `MoveFileExW` with `MOVEFILE_WRITE_THROUGH`, while
+successful `ReplaceFileW` publication is followed by a committed-target file sync before backup
+cleanup. Platform Preferences now consumes these shared stage/commit semantics without reopening
+and synchronizing the committed target a second time.
+
+Fault regressions cover directory-barrier cleanup and same-path retry, concurrent-directory
+ownership, nested-target post-publication parent-sync failure, Unix backup retention/cleanup, and
+Windows committed-target sync failure with backup retention. Scoped rustfmt, `git diff --check`,
+contract scans, and trailing-whitespace checks pass. An independent second review reports zero
+Critical, Important, or Minor findings. The managed focused Rust test request was rejected before
+Cargo by the coordinator's unmanaged-artifact preflight, so no Rust test pass is claimed and this
+handoff remains `open`.

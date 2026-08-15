@@ -25,7 +25,6 @@ struct RuntimeMenu {
     title: String,
     subtitle: String,
     button_label: String,
-    button_action: RuntimeMenuAction,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -58,9 +57,10 @@ pub(super) fn runtime_session_menu_action_at(
     viewport_size: UVec2,
     cursor: Vec2,
 ) -> Option<RuntimeMenuAction> {
-    let menu = collect_runtime_menu(world)?;
+    let (_, value) = collect_runtime_menu_entry(world)?;
+    let action = menu_action_from_value(value)?;
     let layout = menu_layout(viewport_size);
-    layout.button.contains(cursor).then_some(menu.button_action)
+    layout.button.contains(cursor).then_some(action)
 }
 
 pub(super) fn write_runtime_menu_action(world: &mut World, action: RuntimeMenuAction) -> bool {
@@ -77,29 +77,41 @@ pub(super) fn write_runtime_menu_action(world: &mut World, action: RuntimeMenuAc
 }
 
 fn collect_runtime_menu(world: &World) -> Option<RuntimeMenu> {
-    let entity = collect_runtime_menu_entity(world)?;
-    menu_from_value(world.dynamic_component(entity, GAMEPLAY_MENU_COMPONENT)?)
+    let (_, value) = collect_runtime_menu_entry(world)?;
+    menu_from_value(value)
 }
 
 fn collect_runtime_menu_entity(world: &World) -> Option<u64> {
-    world
-        .node_records()
-        .into_iter()
-        .find(|node| {
-            world
-                .dynamic_component(node.id, GAMEPLAY_MENU_COMPONENT)
-                .is_some()
-        })
-        .map(|node| node.id)
+    collect_runtime_menu_entry(world).map(|(entity, _)| entity)
+}
+
+fn collect_runtime_menu_entry(world: &World) -> Option<(u64, &serde_json::Value)> {
+    let mut rows = Vec::new();
+    world.dynamic_component_rows(GAMEPLAY_MENU_COMPONENT, &mut rows);
+    rows.into_iter().next()
+}
+
+fn menu_state_from_value(value: &serde_json::Value) -> Option<RuntimeMenuState> {
+    match value.get("state").and_then(serde_json::Value::as_str)? {
+        "start" => Some(RuntimeMenuState::Start),
+        "game_over" => Some(RuntimeMenuState::GameOver),
+        _ => None,
+    }
+}
+
+fn menu_action_from_value(value: &serde_json::Value) -> Option<RuntimeMenuAction> {
+    menu_state_from_value(value).map(menu_action_from_state)
+}
+
+fn menu_action_from_state(state: RuntimeMenuState) -> RuntimeMenuAction {
+    match state {
+        RuntimeMenuState::Start => RuntimeMenuAction::StartGame,
+        RuntimeMenuState::GameOver => RuntimeMenuAction::RetryGame,
+    }
 }
 
 fn menu_from_value(value: &serde_json::Value) -> Option<RuntimeMenu> {
-    let state = value.get("state").and_then(serde_json::Value::as_str)?;
-    let state = match state {
-        "start" => RuntimeMenuState::Start,
-        "game_over" => RuntimeMenuState::GameOver,
-        _ => return None,
-    };
+    let state = menu_state_from_value(value)?;
     let default_title = match state {
         RuntimeMenuState::Start => "Vampire Roguelite",
         RuntimeMenuState::GameOver => "Game Over",
@@ -115,16 +127,11 @@ fn menu_from_value(value: &serde_json::Value) -> Option<RuntimeMenu> {
     let title = menu_string(value, "title", default_title);
     let subtitle = menu_string(value, "subtitle", default_subtitle);
     let button_label = menu_string(value, "button", default_button);
-    let button_action = match state {
-        RuntimeMenuState::Start => RuntimeMenuAction::StartGame,
-        RuntimeMenuState::GameOver => RuntimeMenuAction::RetryGame,
-    };
     Some(RuntimeMenu {
         state,
         title,
         subtitle,
         button_label,
-        button_action,
     })
 }
 
@@ -318,6 +325,93 @@ mod tests {
             .commands
             .iter()
             .any(|command| command.text.as_deref() == Some("Start Game")));
+    }
+
+    #[test]
+    fn runtime_session_fallback_ui_menu_lookup_uses_the_dynamic_component_sparse_index() {
+        let source = include_str!("menu.rs");
+        let start = source
+            .find("fn collect_runtime_menu_entity(")
+            .expect("menu component lookup");
+        let end = source[start..]
+            .find("\nfn menu_from_value(")
+            .map(|offset| start + offset)
+            .expect("menu component lookup end");
+        let lookup_source = &source[start..end];
+        assert!(lookup_source.contains("dynamic_component_rows"));
+        assert!(!lookup_source.contains("node_records()"));
+
+        let mut world = World::empty();
+        for _ in 0..4_096 {
+            world.spawn_node(NodeKind::Empty);
+        }
+        let entity = world.spawn_node(NodeKind::Empty);
+        world
+            .set_dynamic_component(
+                entity,
+                GAMEPLAY_MENU_COMPONENT,
+                serde_json::json!({ "state": "start", "button": "Indexed Start" }),
+            )
+            .unwrap();
+
+        let extract = runtime_session_menu_extract(&world, UVec2::new(640, 360)).unwrap();
+        assert!(extract
+            .list
+            .commands
+            .iter()
+            .any(|command| command.text.as_deref() == Some("Indexed Start")));
+    }
+
+    #[test]
+    fn runtime_session_fallback_ui_menu_hit_test_does_not_build_presentation_strings() {
+        let source = include_str!("menu.rs");
+        let start = source
+            .find("pub(super) fn runtime_session_menu_action_at(")
+            .expect("menu hit-test entry");
+        let end = source[start..]
+            .find("\npub(super) fn write_runtime_menu_action(")
+            .map(|offset| start + offset)
+            .expect("menu hit-test entry end");
+        let hit_test_source = &source[start..end];
+        assert!(hit_test_source.contains("menu_action_from_value"));
+        assert!(!hit_test_source.contains("collect_runtime_menu("));
+
+        let parser_start = source
+            .find("fn menu_action_from_value(")
+            .expect("menu action parser");
+        let parser_end = source[parser_start..]
+            .find("\nfn menu_action_from_state(")
+            .map(|offset| parser_start + offset)
+            .expect("menu action parser end");
+        let parser_source = &source[parser_start..parser_end];
+        assert!(!parser_source.contains("menu_string"));
+        assert!(!parser_source.contains("String"));
+        assert!(!parser_source.contains("to_string"));
+
+        let mut world = World::empty();
+        let entity = world.spawn_node(NodeKind::Empty);
+        world
+            .set_dynamic_component(
+                entity,
+                GAMEPLAY_MENU_COMPONENT,
+                serde_json::json!({
+                    "state": "game_over",
+                    "title": "unused title",
+                    "subtitle": "unused subtitle",
+                    "button": "unused button"
+                }),
+            )
+            .unwrap();
+        let layout = menu_layout(UVec2::new(640, 360));
+
+        assert_eq!(
+            runtime_session_menu_action_at(
+                &world,
+                UVec2::new(640, 360),
+                Vec2::new(layout.button.x + 8.0, layout.button.y + 8.0),
+            ),
+            Some(RuntimeMenuAction::RetryGame)
+        );
     }
 
     #[test]

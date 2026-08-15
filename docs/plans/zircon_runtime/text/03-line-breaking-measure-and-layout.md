@@ -46,6 +46,7 @@ related_code:
   - zircon_runtime/src/text/layout/overflow.rs
   - zircon_runtime/src/text/layout/tab.rs
   - zircon_runtime/src/text/layout/measure.rs
+  - zircon_runtime/src/text/layout/measure/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text_pixel_snap.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs
@@ -701,3 +702,25 @@ secondary review reports no actionable P0/P1/P2. Status remains `implementation_
 resolving_failure / managed_validation_pending`: coordinator-managed Cargo and real WGPU product
 framebuffer execution remain required before accepted closeout, and no PNG was created by this
 source repair.
+
+2026-08-15 static foundation/status update: `measure.rs` now has an ignored, 31-sample
+`DirectTextShapeRunProvider` grapheme-projection scale reporter for combining-Latin and RTL-mark
+inputs at 1/100/1k/10k graphemes. It records glyph count plus p50/p95 after shaping, so the pending
+managed run can distinguish projection cost from font lookup, shaping, and raster work. The same
+projection owner has one feature-gated runtime profile scope, deliberately outside its glyph loop.
+The Text03 failure record documents the current `O(G + N log G + I)` expectation, the Unreal
+shaping-time cluster-count reference, and a measurement gate before any further structural
+optimization. Scoped Rust 2024 formatting and whitespace checks pass. This completes the current
+non-validation foundation work; status remains `implementation_complete / resolving_failure /
+managed_validation_pending` while UI12 retains the Cargo lane. No Cargo, framebuffer test, PNG,
+milestone acceptance, commit, or WeCom message is claimed.
+
+2026-08-15 static structure update: the same measure owner is now physically split into the
+452-line production leaf `text/layout/measure.rs` and the 320-line folder-backed behavior and
+profiling owner `text/layout/measure/tests.rs`. This removes the production-file soft-budget
+pressure and satisfies the convention that behavior tests beyond the small inline threshold have
+their own owner, without changing the measurement algorithm, public surface, or the existing ten
+functional regressions plus ignored p50/p95 probe. Scoped Rust 2021 `rustfmt --check` and
+`git diff --check` pass; Cargo remains deliberately unstarted until UI12 releases the shared lane.
+Status remains `implementation_complete / resolving_failure / managed_validation_pending`: no
+performance data, framebuffer, PNG, milestone acceptance, commit, or WeCom message is claimed.

@@ -6,8 +6,8 @@ use std::{
 use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiSize},
     surface::{
-        UiResolvedStyle, UiResolvedTextLayout, UiRichTextFormat, UiTextAlign, UiTextDirection,
-        UiTextOverflow, UiTextRange, UiTextWrap, UiTextWritingMode, normalize_ui_text_language_tag,
+        normalize_ui_text_language_tag, UiResolvedStyle, UiResolvedTextLayout, UiRichTextFormat,
+        UiTextAlign, UiTextDirection, UiTextOverflow, UiTextRange, UiTextWrap, UiTextWritingMode,
     },
 };
 
@@ -229,8 +229,17 @@ impl<'a> UiTextLayoutRequest<'a> {
         hasher.finish()
     }
 
-    pub(crate) const fn has_stable_viewport_document(&self) -> bool {
-        self.document_key.is_some() && self.preedit.is_none() && self.viewport.is_some()
+    pub(crate) fn supports_viewport_virtualized_plain_layout(&self) -> bool {
+        self.document_key.is_some()
+            && self.preedit.is_none()
+            && self.viewport.is_some()
+            && matches!(self.style.rich_text_format, UiRichTextFormat::Plain)
+            && matches!(
+                self.style.text_writing_mode,
+                UiTextWritingMode::HorizontalTb
+            )
+            && matches!(self.style.wrap, UiTextWrap::None)
+            && matches!(self.style.text_overflow, UiTextOverflow::Clip)
     }
 
     pub(crate) fn resolved_text(&self) -> Cow<'_, str> {

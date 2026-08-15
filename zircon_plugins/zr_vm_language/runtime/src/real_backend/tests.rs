@@ -7,10 +7,7 @@ use zircon_runtime::script::{CapabilitySet, HostExportFunction, HostExportRegist
 use super::errors::zr_error;
 use super::host_modules::{native_function_label, validate_native_function_arity};
 use super::lock::acquire_zr_vm_lock;
-use super::values::{
-    from_zr_return_value_for_export, from_zr_value_for_function, to_zr_value,
-    to_zr_value_for_function,
-};
+use super::values::{from_zr_return_value_for_export, to_zr_value, to_zr_value_for_function};
 
 #[test]
 fn zr_vm_real_backend_runtime_lock_recovers_after_poison() {
@@ -124,15 +121,10 @@ fn to_zr_value_lowers_supported_host_values() {
 }
 
 #[test]
-fn byte_arrays_round_trip_losslessly_across_the_zr_vm_boundary() {
+fn byte_arrays_round_trip_losslessly_across_the_owned_zr_vm_return_boundary() {
     let source = ScriptHostValue::Bytes(vec![0, 104, 128, 255]);
     let value = to_zr_value(source.clone()).expect("lower bytes as a ZrVM array");
 
-    assert_eq!(
-        from_zr_value_for_function(&value, "example.bytes", 0)
-            .expect("raise byte array for a native callback"),
-        source
-    );
     assert_eq!(
         from_zr_return_value_for_export(&value, "example.bytes")
             .expect("raise byte array from an export"),
@@ -156,28 +148,26 @@ fn host_handle_i64_transport_preserves_packed_generation_bits() {
 }
 
 #[test]
-fn from_zr_value_for_function_rejects_non_byte_array_elements_with_context() {
+fn from_zr_return_value_for_export_rejects_non_byte_array_elements_with_context() {
     let mut value = zr_vm_rust_binding::Value::new_array().unwrap();
     value
         .array_push(&zr_vm_rust_binding::Value::new_string("not-a-byte").unwrap())
         .unwrap();
-    let error = from_zr_value_for_function(&value, "example.unsupported", 2).unwrap_err();
+    let error = from_zr_return_value_for_export(&value, "example.unsupported").unwrap_err();
 
-    assert!(error.message.contains("example.unsupported"));
-    assert!(error.message.contains("argument 2"));
+    assert!(error.message.contains("export example.unsupported"));
     assert!(error.message.contains("expected byte integer"));
 }
 
 #[test]
-fn from_zr_value_for_function_rejects_out_of_range_byte_array_elements() {
+fn from_zr_return_value_for_export_rejects_out_of_range_byte_array_elements() {
     let mut value = zr_vm_rust_binding::Value::new_array().unwrap();
     value
         .array_push(&zr_vm_rust_binding::Value::new_int(256).unwrap())
         .unwrap();
-    let error = from_zr_value_for_function(&value, "example.bytes", 1).unwrap_err();
+    let error = from_zr_return_value_for_export(&value, "example.bytes").unwrap_err();
 
-    assert!(error.message.contains("example.bytes"));
-    assert!(error.message.contains("argument 1"));
+    assert!(error.message.contains("export example.bytes"));
     assert!(error.message.contains("outside 0..=255: 256"));
 }
 

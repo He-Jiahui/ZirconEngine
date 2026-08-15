@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use super::super::{
-    RuntimeSessionArchiveError, RuntimeSessionSlotSelectionReport, RuntimeSessionSlotSelector,
-    io as archive_io,
+    io as archive_io, RuntimeSessionArchiveError, RuntimeSessionSlotSelectionReport,
+    RuntimeSessionSlotSelector,
 };
 
 pub(in crate::scene::dynamic_scene::session) fn latest_updated_slot_id_from_path(

@@ -5,9 +5,9 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 use zircon_runtime_interface::export::{
-    ExportPreset, ExportPresetLoadError, ExportPresetValidationError, load_export_preset,
+    load_export_preset, ExportPreset, ExportPresetLoadError, ExportPresetValidationError,
 };
-use zircon_runtime_interface::serialization::{WriteError, write_versioned_text};
+use zircon_runtime_interface::serialization::{write_versioned_text, WriteError};
 
 const EXPORT_PRESET_DIRECTORY: &str = "export";
 const EXPORT_PRESET_EXTENSION: &str = "zpreset";

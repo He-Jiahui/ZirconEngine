@@ -40,6 +40,8 @@ last_refined: 2026-07-23
 
 # 09 UI 子系统架构收束
 
+Current-source UI architecture mirror 2026-08-14: `ui_architecture_boundary` reports `expected_source_file_count = 52`, `expected_ui_entry_count = 20`, `expected_surface_entry_count = 26`, `legacy_full_hits = 70`, `expected_legacy_full_hits = 70`, `legacy_production_hits = 0`, `expected_legacy_production_hits = 0`, `legacy_production_file_count = 0`, `expected_legacy_production_file_count = 0`, `taffy_production_hits = 175`, `expected_taffy_production_hits = 175`, `taffy_production_file_count = 10`, `expected_taffy_production_file_count = 10`, `runtime_v2_anchor_count = 10`, `interface_v2_anchor_count = 9`, `guard_anchor_count = 19`, `cargo_gate_anchor_count = 7`, `doc_anchor_count = 61`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, and `risks = []`. This current snapshot supersedes older dated counts without rewriting their history.
+
 承接两条上游线：(a) 子计划 05 的 legacy debt bucket 中 **UI input/render、UI template/layout、input 三桶**的 owner 落点即本计划；(b) 文本栈职责归 01-M2（本计划不重复）。渲染提交路径（glyphon GPU 提交、ui surface render 的 wgpu 侧）归 render 计划与 rhi_wgpu owner。
 
 ## 现状与证据（2026-06-12 实仓盘点）
@@ -188,6 +190,34 @@ editor_layout/(规范/契约,DTO 落 zircon_runtime_interface) → editor_ui/(�
 - `cargo test -p zircon_runtime --lib template --locked -- --nocapture`
 - `cargo test -p zircon_runtime --lib ui --locked`（收尾全族）
 - 验收证据：边界文档 + 失败路径测试；`shared-ui-template-runtime.md` 与代码一致。
+
+### M4 增量 arranged tree 与 hit grid patch
+
+**Dependencies:** M3 accepted.
+
+- 目标：消费 layout geometry changed set，局部更新 arranged geometry 与 hit-grid 空间索引；只有结构、排序或裁剪语义变化才升级为全量重建。
+- 验收：单节点 parent-directed 尺寸变化的 arranged/hit outer visits 与 changed node 数线性，未变化 draw-order entry 与 hit cell 不重建；auto parent、clip、z-order、popup、scroll、detach/attach 保持正确性。
+
+### M5 增量文本与 render extract patch
+
+**Dependencies:** M4 accepted.
+
+- 目标：按 text/layout/resource generation 保留 shaped/layout buffer，局部更新受影响 render command ranges，禁止先全量 extract 再比较缓存。
+- 验收：单文本变化只 shape/rebuild 目标文本和必要命令；稳定 extract 的 node visit、临时 command Vec 与 payload clone 为零。
+
+### M6 Arc frame、Workbench 局部同步与虚拟化
+
+**Dependencies:** M5 accepted.
+
+- 目标：以 generation-owned `Arc` artifacts 发布 surface frame，Workbench/native window 使用 generation cursor，长列表只物化可见窗口。
+- 验收：稳定 frame read 不复制 arranged/render/hit/focus/report/ECS projection；pane/native 更新只随对应 generation，长时间 retained-memory 无持续增长。
+
+### M7 真实运行时验收与旧路径删除
+
+**Dependencies:** M6 accepted.
+
+- 目标：删除 event-time full surface/projection/render fallback，接入 diagnostics、GPU/softbuffer submit、bundle 构建和真实窗口采样。
+- 验收：受管 build、focused contracts、profiling bundle smoke、像素对拍、600-event 样本及 hover/scroll/typing/docking 压力全部通过；独立 EXE 可携带完整资产/DLL 启动。
 
 ## 状态与产出记录
 

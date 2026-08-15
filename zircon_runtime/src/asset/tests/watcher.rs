@@ -5,12 +5,12 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::asset::AssetUri;
+use crate::asset::watch::{watch_ingress, watch_loop_for_test, watched_asset_uri_for_path};
 use crate::asset::watch::{
     AssetChange, AssetChangeKind, AssetWatchBatch, AssetWatchError, AssetWatchEvent, AssetWatcher,
     AssetWatcherOptions,
 };
-use crate::asset::watch::{watch_ingress, watch_loop_for_test, watched_asset_uri_for_path};
+use crate::asset::AssetUri;
 
 #[test]
 fn watcher_folds_redundant_events_into_latest_change_set() {
@@ -44,6 +44,21 @@ fn watcher_ignores_meta_sidecar_paths() {
 
     assert!(watched_asset_uri_for_path(assets_root, meta_path).is_err());
     assert!(watched_asset_uri_for_path(assets_root, old_meta_path).is_err());
+}
+
+#[test]
+fn watcher_ignores_atomic_write_transaction_siblings() {
+    let assets_root = Path::new("sandbox/assets");
+    let staging = Path::new("sandbox/assets/shaders/.pbr_shader.zmeta.zr-staging-37484-1180");
+    let backup = Path::new("sandbox/assets/shaders/.pbr_shader.zmeta.zr-backup-37484-1181");
+    let ordinary_hidden = Path::new("sandbox/assets/.zr-staging-guide.txt");
+
+    assert!(watched_asset_uri_for_path(assets_root, staging).is_err());
+    assert!(watched_asset_uri_for_path(assets_root, backup).is_err());
+    assert_eq!(
+        watched_asset_uri_for_path(assets_root, ordinary_hidden).unwrap(),
+        AssetUri::parse("res://.zr-staging-guide.txt").unwrap()
+    );
 }
 
 #[test]

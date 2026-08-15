@@ -15,7 +15,7 @@ pub(super) fn to_host_contract_project_overview(
     }
 }
 
-pub(super) fn to_host_contract_host_window_layout(
+pub(in crate::ui::retained_host::ui) fn to_host_contract_host_window_layout(
     layout: &host_window::HostWindowLayoutData,
 ) -> host_contract::HostWindowLayoutData {
     host_contract::HostWindowLayoutData {
@@ -32,7 +32,7 @@ pub(super) fn to_host_contract_host_window_layout(
     }
 }
 
-pub(super) fn to_host_contract_host_shell(
+pub(in crate::ui::retained_host::ui) fn to_host_contract_host_shell(
     shell: &host_window::HostWindowShellData,
 ) -> host_contract::HostWindowShellData {
     host_contract::HostWindowShellData {
@@ -216,7 +216,7 @@ pub(super) fn to_host_contract_drag_overlay(
     }
 }
 
-pub(super) fn to_host_contract_side_dock(
+pub(in crate::ui::retained_host::ui) fn to_host_contract_side_dock(
     dock: &host_window::HostSideDockSurfaceData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,
@@ -284,7 +284,7 @@ pub(super) fn to_host_contract_document_dock(
     }
 }
 
-pub(super) fn to_host_contract_bottom_dock(
+pub(in crate::ui::retained_host::ui) fn to_host_contract_bottom_dock(
     dock: &host_window::HostBottomDockSurfaceData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,

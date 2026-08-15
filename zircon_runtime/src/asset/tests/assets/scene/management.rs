@@ -4,8 +4,9 @@ use crate::asset::{
     SceneAssetManagementRecordSet, SceneAssetOverview, SceneCameraAsset, SceneCameraTargetAsset,
     SceneColliderAsset, SceneColliderShapeAsset, SceneDirectionalLightAsset, SceneEntityAsset,
     SceneEntityManagementRecordSet, SceneJointAsset, SceneJointKindAsset, SceneMeshInstanceAsset,
-    SceneMobilityAsset, ScenePointLightAsset, SceneRigidBodyAsset, SceneRigidBodyTypeAsset,
-    SceneTerrainAsset, SceneTileMapAsset, TransformAsset,
+    SceneMeshLodLevelAsset, SceneMeshPrimitiveBindingAsset, SceneMobilityAsset,
+    ScenePointLightAsset, SceneRigidBodyAsset, SceneRigidBodyTypeAsset, SceneTerrainAsset,
+    SceneTileMapAsset, TransformAsset,
 };
 use crate::core::resource::ResourceId;
 
@@ -18,6 +19,103 @@ fn scene_management_summaries_accumulate_each_record_and_entity_once() {
     let asset = include_str!("../../../assets/scene/asset.rs");
     assert!(asset.contains("for entity in &overview.entities"));
     assert!(!asset.contains("self.management_record(scene_id).entity_management_records()"));
+}
+
+#[test]
+fn scene_entity_management_overview_counts_references_without_materializing_rows() {
+    let management = include_str!("../../../assets/scene/management.rs");
+    let scene_entity = management
+        .split("impl SceneEntityAsset")
+        .nth(1)
+        .expect("read scene entity management implementation");
+    let overview = scene_entity
+        .split("pub fn overview")
+        .nth(1)
+        .expect("read scene entity overview implementation");
+
+    assert!(overview.contains("direct_reference_count: self.direct_reference_count()"));
+    assert!(!overview.contains("let direct_references = self.direct_references();"));
+}
+
+#[test]
+fn scene_entity_direct_reference_count_matches_materialized_rows_with_primitives_and_lods() {
+    let mut entity = empty_scene_entity(1, "CountedEntity");
+    entity.camera = Some(SceneCameraAsset {
+        target: SceneCameraTargetAsset::Texture {
+            texture: asset_ref("count-camera", "res://textures/count-camera.png"),
+        },
+        ..SceneCameraAsset::default()
+    });
+    entity.mesh = Some(SceneMeshInstanceAsset {
+        model: asset_ref("count-model", "res://models/count.gltf"),
+        mesh: Some(asset_ref("count-mesh", "res://models/count.gltf#Mesh0")),
+        material: asset_ref("count-material", "res://materials/count.zmaterial"),
+        render_queue: 0,
+        material_queue: 0,
+        order_in_layer: 0,
+        depth_bias: 0.0,
+        morph_weights: Vec::new(),
+        primitives: vec![SceneMeshPrimitiveBindingAsset {
+            mesh: asset_ref("count-primitive-mesh", "res://models/count.gltf#Primitive0"),
+            material: asset_ref(
+                "count-primitive-material",
+                "res://materials/count-primitive.zmaterial",
+            ),
+        }],
+        lods: vec![SceneMeshLodLevelAsset {
+            min_distance: 10.0,
+            model: asset_ref("count-lod-model", "res://models/count-lod.gltf"),
+            mesh: Some(asset_ref(
+                "count-lod-mesh",
+                "res://models/count-lod.gltf#Mesh0",
+            )),
+            material: asset_ref("count-lod-material", "res://materials/count-lod.zmaterial"),
+            primitives: vec![SceneMeshPrimitiveBindingAsset {
+                mesh: asset_ref(
+                    "count-lod-primitive-mesh",
+                    "res://models/count-lod.gltf#Primitive0",
+                ),
+                material: asset_ref(
+                    "count-lod-primitive-material",
+                    "res://materials/count-lod-primitive.zmaterial",
+                ),
+            }],
+        }],
+    });
+    entity.collider = Some(SceneColliderAsset {
+        shape: SceneColliderShapeAsset::Sphere { radius: 0.5 },
+        sensor: false,
+        layer: 1,
+        collision_group: 1,
+        collision_mask: u32::MAX,
+        material: Some(asset_ref(
+            "count-physics-material",
+            "res://physics/count.physics_material.toml",
+        )),
+        material_override: None,
+        local_transform: TransformAsset::default(),
+    });
+    entity.animation_graph_player = Some(SceneAnimationGraphPlayerAsset {
+        graph: asset_ref("count-animation", "res://animation/count.graph.zranim"),
+        parameters: Default::default(),
+        playing: true,
+    });
+    entity.terrain = Some(SceneTerrainAsset {
+        terrain: asset_ref("count-terrain", "res://terrain/count.zterrain"),
+    });
+    entity.tilemap = Some(SceneTileMapAsset {
+        tilemap: asset_ref("count-tilemap", "res://tilemaps/count.ztilemap"),
+    });
+    entity.prefab_instance = Some(PrefabInstanceAsset {
+        prefab: asset_ref("count-prefab", "res://prefabs/count.zprefab"),
+        local_transform: TransformAsset::default(),
+        overrides: Vec::new(),
+    });
+
+    assert_eq!(
+        entity.direct_reference_count(),
+        entity.direct_references().len()
+    );
 }
 
 #[test]

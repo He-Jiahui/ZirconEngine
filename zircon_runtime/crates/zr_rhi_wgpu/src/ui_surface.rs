@@ -5,31 +5,37 @@ use std::sync::Arc;
 use crate::{GpuPassTimer, GpuReadbackQueue};
 use zr_rhi::{
     RhiError, UiSurfaceDescriptor, UiSurfaceDrawList, UiSurfaceImageResourceTable,
-    UiSurfacePresentStats, UiSurfacePresenter,
+    UiSurfacePresentOutcome, UiSurfacePresentStats, UiSurfacePresenter,
 };
 
 mod batching;
 mod geometry;
 mod image_cache;
 mod pipeline;
+mod presentation;
 mod render_pass;
 mod retained_cache;
+mod shared_image_registry;
 mod surface_setup;
 mod text;
 
-use batching::{BatchDrawPlan, BatchDrawPlanStats, CompiledUiBatchPlanCache};
+use batching::{BatchDrawPlanStats, CompiledUiBatchPlanCache};
 use image_cache::{WgpuUiImageCache, WgpuUiImageResourceStats};
 use pipeline::{
     create_image_bind_group_layout, create_image_pipeline, create_image_sampler,
     create_solid_instance_pipeline, create_solid_pipeline,
 };
-use render_pass::{
-    record_draw_ops_to_view, TargetLoad, WgpuUiDrawBufferCache, WgpuUiDrawBufferStats,
-    WgpuUiRecordedDrawStats,
-};
+use render_pass::{WgpuUiDrawBufferCache, WgpuUiDrawBufferStats, WgpuUiRecordedDrawStats};
 use retained_cache::WgpuRetainedSurfaceCache;
+pub use shared_image_registry::WgpuUiSharedImageRegistry;
 use surface_setup::{configure_surface, create_surface, instance_descriptor, request_device};
 use text::{WgpuUiTextPrepareStats, WgpuUiTextRenderer};
+
+#[cfg(test)]
+use presentation::{
+    render_damage, retryable_surface_outcome, retryable_surface_presentation, surface_render_mode,
+    SurfaceRenderMode,
+};
 
 const UI_GPU_TIMER_MAX_PASSES: u32 = 1;
 const UI_GPU_TIMER_PASS_NAME: &str = "ui.surface";
@@ -56,6 +62,7 @@ pub struct WgpuUiSurfaceContext {
     adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
+    shared_image_registry: Arc<WgpuUiSharedImageRegistry>,
 }
 
 impl WgpuUiSurfaceContext {
@@ -65,11 +72,28 @@ impl WgpuUiSurfaceContext {
         device: wgpu::Device,
         queue: wgpu::Queue,
     ) -> Self {
+        Self::new_with_shared_image_registry(
+            instance,
+            adapter,
+            device,
+            queue,
+            Arc::new(WgpuUiSharedImageRegistry::default()),
+        )
+    }
+
+    pub fn new_with_shared_image_registry(
+        instance: wgpu::Instance,
+        adapter: wgpu::Adapter,
+        device: wgpu::Device,
+        queue: wgpu::Queue,
+        shared_image_registry: Arc<WgpuUiSharedImageRegistry>,
+    ) -> Self {
         Self {
             instance,
             adapter,
             device,
             queue,
+            shared_image_registry,
         }
     }
 
@@ -125,6 +149,7 @@ impl WgpuUiSurfaceContext {
             width,
             height,
             generation,
+            WgpuUiExternalImageAlphaMode::Opaque,
             byte_space_view_format,
         )
     }
@@ -140,6 +165,15 @@ fn byte_space_sample_view_format(format: wgpu::TextureFormat) -> Option<wgpu::Te
     }
 }
 
+/// Alpha representation accepted by the premultiplied UI image pipeline.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WgpuUiExternalImageAlphaMode {
+    /// Every sampled texel has alpha one, so straight and premultiplied RGB are equivalent.
+    Opaque,
+    /// RGB channels have already been multiplied by alpha before any linear filtering.
+    Premultiplied,
+}
+
 /// A generation-stable texture product that can be sampled by a UI surface sharing its device.
 ///
 /// The owner must retain this value until every UI present that resolves `generation` has been
@@ -151,12 +185,38 @@ pub struct WgpuUiExternalImage {
     width: u32,
     height: u32,
     generation: u64,
+    alpha_mode: WgpuUiExternalImageAlphaMode,
     sample_view_format: Option<wgpu::TextureFormat>,
 }
 
 impl WgpuUiExternalImage {
-    pub fn new(texture: wgpu::Texture, width: u32, height: u32, generation: u64) -> Self {
-        Self::new_with_sample_view_format(texture, width, height, generation, None)
+    /// Declares a texture whose sampled alpha is always one.
+    pub fn new_opaque(texture: wgpu::Texture, width: u32, height: u32, generation: u64) -> Self {
+        Self::new_with_sample_view_format(
+            texture,
+            width,
+            height,
+            generation,
+            WgpuUiExternalImageAlphaMode::Opaque,
+            None,
+        )
+    }
+
+    /// Declares a texture whose RGB channels are already multiplied by alpha.
+    pub fn new_premultiplied(
+        texture: wgpu::Texture,
+        width: u32,
+        height: u32,
+        generation: u64,
+    ) -> Self {
+        Self::new_with_sample_view_format(
+            texture,
+            width,
+            height,
+            generation,
+            WgpuUiExternalImageAlphaMode::Premultiplied,
+            None,
+        )
     }
 
     fn new_with_sample_view_format(
@@ -164,6 +224,7 @@ impl WgpuUiExternalImage {
         width: u32,
         height: u32,
         generation: u64,
+        alpha_mode: WgpuUiExternalImageAlphaMode,
         sample_view_format: Option<wgpu::TextureFormat>,
     ) -> Self {
         Self {
@@ -171,8 +232,14 @@ impl WgpuUiExternalImage {
             width,
             height,
             generation,
+            alpha_mode,
             sample_view_format,
         }
+    }
+
+    /// Returns the alpha representation declared by the producer.
+    pub const fn alpha_mode(&self) -> WgpuUiExternalImageAlphaMode {
+        self.alpha_mode
     }
 
     fn matches_generation(&self, generation: u64) -> bool {
@@ -298,12 +365,16 @@ impl WgpuUiSurfacePresenter {
 
 impl UiSurfacePresenter for WgpuUiSurfacePresenter {
     fn resize(&mut self, width: u32, height: u32) -> Result<(), RhiError> {
-        self.descriptor.width = width.max(1);
-        self.descriptor.height = height.max(1);
-        if let WgpuUiSurfaceBackend::Native(renderer) = &mut self.backend {
-            renderer.resize(self.descriptor.clamped_size())?;
+        let size = (width.max(1), height.max(1));
+        if size == self.descriptor.clamped_size() {
+            return Ok(());
         }
-        self.last_stats.surface_size = self.descriptor.clamped_size();
+        self.descriptor.width = size.0;
+        self.descriptor.height = size.1;
+        if let WgpuUiSurfaceBackend::Native(renderer) = &mut self.backend {
+            renderer.resize(size)?;
+        }
+        self.last_stats.surface_size = size;
         Ok(())
     }
 
@@ -337,6 +408,7 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
                 batch_stats.batch_plan_cache_hit_count =
                     resolved_draw_plan.batch_plan_cache_hit_count;
                 WgpuUiSurfacePresentation {
+                    outcome: UiSurfacePresentOutcome::Submitted,
                     draw_list_stats: resolved_draw_plan
                         .draw_list_stats
                         .unwrap_or_else(|| draw_list.stats()),
@@ -352,6 +424,7 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
         };
 
         let mut stats = presentation.draw_list_stats;
+        stats.outcome = presentation.outcome;
         stats.compiled_draw_calls = presentation.batch_stats.draw_calls;
         stats.compiled_visible_draw_item_count = presentation.batch_stats.visible_draw_item_count;
         stats.compiled_solid_vertex_count = presentation.batch_stats.solid_vertex_count;
@@ -398,6 +471,10 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
         if let Some(image_resource_stats) = presentation.image_resource_stats {
             stats.image_upload_bytes = image_resource_stats.upload_bytes;
             stats.image_upload_write_count = image_resource_stats.upload_write_count;
+            stats.image_shared_resolve_count = image_resource_stats.shared_resolve_count;
+            stats.image_shared_upload_write_count = image_resource_stats.shared_upload_write_count;
+            stats.image_shared_upload_bytes = image_resource_stats.shared_upload_bytes;
+            stats.image_shared_resident_bytes = image_resource_stats.shared_resident_bytes;
             stats.image_cache_key_allocation_count =
                 image_resource_stats.cache_key_allocation_count;
             stats.image_cache_prune_visit_count = image_resource_stats.cache_prune_visit_count;
@@ -410,9 +487,12 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
                 image_resource_stats.prepare_command_visit_count;
             stats.image_prepare_cache_hit_count = image_resource_stats.prepare_cache_hit_count;
         }
-        self.presented_frame_count = self.presented_frame_count.saturating_add(1);
+        self.presented_frame_count =
+            advance_presented_frame_count(self.presented_frame_count, presentation.outcome);
         stats.presented_frame_count = self.presented_frame_count;
-        self.last_stats = stats;
+        if presentation.outcome.is_submitted() {
+            self.last_stats = stats;
+        }
         Ok(stats)
     }
 
@@ -432,6 +512,7 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
 }
 
 struct WgpuUiSurfacePresentation {
+    outcome: UiSurfacePresentOutcome,
     draw_list_stats: UiSurfacePresentStats,
     batch_stats: BatchDrawPlanStats,
     text_stats: WgpuUiTextPrepareStats,
@@ -444,12 +525,21 @@ struct WgpuUiSurfacePresentation {
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct WgpuUiSurfaceRenderStats {
+    outcome: UiSurfacePresentOutcome,
     draw_buffers: WgpuUiDrawBufferStats,
     recorded: WgpuUiRecordedDrawStats,
     retained_cache_copy_bytes: u64,
     gpu_timestamp_supported: bool,
     gpu_time_us: Option<u64>,
     gpu_profile_latency_frames: u32,
+}
+
+fn advance_presented_frame_count(current: u64, outcome: UiSurfacePresentOutcome) -> u64 {
+    if outcome.is_submitted() {
+        current.saturating_add(1)
+    } else {
+        current
+    }
 }
 
 impl WgpuUiSurfaceRenderStats {
@@ -496,6 +586,7 @@ struct WgpuUiSurfaceRenderer {
     image_sampler: wgpu::Sampler,
     retained_cache: Option<WgpuRetainedSurfaceCache>,
     image_cache: WgpuUiImageCache,
+    shared_image_registry: Arc<WgpuUiSharedImageRegistry>,
     external_images: Option<Arc<dyn WgpuUiSurfaceExternalImageProvider>>,
     pending_image_resources: UiSurfaceImageResourceTable,
     text: WgpuUiTextRenderer,
@@ -584,6 +675,7 @@ impl WgpuUiSurfaceRenderer {
             image_sampler,
             retained_cache,
             image_cache: WgpuUiImageCache::default(),
+            shared_image_registry: context.shared_image_registry,
             external_images,
             pending_image_resources: UiSurfaceImageResourceTable::default(),
             text,
@@ -602,330 +694,10 @@ impl WgpuUiSurfaceRenderer {
         self.surface.configure(&self.device, &self.config);
         Ok(())
     }
-
-    fn present(
-        &mut self,
-        draw_list: &UiSurfaceDrawList,
-    ) -> Result<WgpuUiSurfacePresentation, RhiError> {
-        self.resize_if_needed(draw_list.surface_size)?;
-        self.present_index = self.present_index.saturating_add(1);
-        let bypass_retained_cache = draw_list.bypasses_retained_surface_cache();
-        if let Some(retained_cache) = &mut self.retained_cache {
-            if bypass_retained_cache {
-                retained_cache.invalidate();
-            } else if !retained_cache.matches(self.config.format, draw_list.surface_size) {
-                retained_cache.resize(&self.device, self.config.format, draw_list.surface_size);
-            }
-        }
-        let cache_ready = !bypass_retained_cache
-            && self.retained_cache.as_ref().is_some_and(|retained_cache| {
-                retained_cache.matches(self.config.format, draw_list.surface_size)
-                    && retained_cache.initialized()
-            });
-        let mode = surface_render_mode(draw_list, cache_ready);
-        let damage = render_damage(draw_list, mode);
-        let resolved_draw_plan = self
-            .compiled_batch_plan
-            .resolve(draw_list, mode == SurfaceRenderMode::FullRedraw);
-        let draw_list_stats = resolved_draw_plan
-            .draw_list_stats
-            .unwrap_or_else(|| draw_list.stats());
-        let draw_plan = resolved_draw_plan.plan;
-        let image_resource_stats = self.image_cache.prepare(
-            &self.device,
-            &self.queue,
-            &self.image_bind_group_layout,
-            &self.image_sampler,
-            self.present_index,
-            draw_list,
-            &draw_plan.image_upload_sources,
-            self.external_images.as_deref(),
-            &mut self.pending_image_resources,
-        );
-        let text_stats = self.text.prepare(
-            &self.device,
-            &self.queue,
-            draw_list.projection_size(),
-            draw_list,
-            &draw_plan.ops,
-        );
-        let render_stats = self.render_draw_list_to_surface(draw_list, &draw_plan, mode, damage)?;
-        if let Some(provider) = self.external_images.as_deref() {
-            for source in &draw_plan.image_upload_sources {
-                if self
-                    .image_cache
-                    .is_resident(&source.resource_key, source.resource_generation)
-                    && provider
-                        .resolve(&source.resource_key, source.resource_generation)
-                        .is_some()
-                {
-                    // Submission has accepted the product, so future renderer frames may skip
-                    // only this viewport's CPU capture fallback.
-                    provider.confirm_resident(&source.resource_key, source.resource_generation);
-                }
-            }
-        }
-        let mut batch_stats = draw_plan.stats;
-        batch_stats.batch_plan_build_count = resolved_draw_plan.batch_plan_build_count;
-        batch_stats.batch_plan_cache_hit_count = resolved_draw_plan.batch_plan_cache_hit_count;
-        if resolved_draw_plan.batch_plan_build_count == 0 {
-            batch_stats.overlap_candidate_count = 0;
-        }
-        batch_stats.vertex_buffer_create_count =
-            render_stats.draw_buffers.vertex_buffer_create_count;
-        batch_stats.vertex_upload_bytes = render_stats.draw_buffers.vertex_upload_bytes;
-        batch_stats.retained_cache_copy_bytes = render_stats.retained_cache_copy_bytes;
-        Ok(WgpuUiSurfacePresentation {
-            draw_list_stats,
-            batch_stats,
-            text_stats,
-            image_resource_stats: Some(image_resource_stats),
-            recorded_stats: Some(render_stats.recorded),
-            gpu_timestamp_supported: render_stats.gpu_timestamp_supported,
-            gpu_time_us: render_stats.gpu_time_us,
-            gpu_profile_latency_frames: render_stats.gpu_profile_latency_frames,
-        })
-    }
-
-    fn resize_if_needed(&mut self, size: (u32, u32)) -> Result<(), RhiError> {
-        if size != (self.config.width, self.config.height) {
-            self.resize(size)?;
-        }
-        Ok(())
-    }
-
-    fn render_draw_list_to_surface(
-        &mut self,
-        draw_list: &UiSurfaceDrawList,
-        draw_plan: &BatchDrawPlan,
-        mode: SurfaceRenderMode,
-        damage: Option<zr_rhi::UiSurfaceRect>,
-    ) -> Result<WgpuUiSurfaceRenderStats, RhiError> {
-        let completed_timing = {
-            let (gpu_pass_timer, readback_queue) =
-                (&mut self.gpu_pass_timer, &mut self.gpu_readback_queue);
-            gpu_pass_timer
-                .as_mut()
-                .and_then(|timer| timer.try_collect(&self.device, readback_queue))
-        };
-        let gpu_time_us = completed_timing.as_ref().and_then(|result| {
-            result
-                .pass_timings
-                .iter()
-                .find(|timing| timing.pass_name == UI_GPU_TIMER_PASS_NAME)
-                .map(|timing| timing.gpu_time_us)
-        });
-        let gpu_profile_latency_frames = completed_timing.map_or(0, |result| {
-            self.present_index
-                .saturating_sub(result.frame_generation)
-                .min(u64::from(u32::MAX)) as u32
-        });
-        let mut render_stats = WgpuUiSurfaceRenderStats {
-            gpu_timestamp_supported: self.gpu_pass_timer.is_some(),
-            gpu_time_us,
-            gpu_profile_latency_frames,
-            ..WgpuUiSurfaceRenderStats::default()
-        };
-        let surface_texture = match self.surface.get_current_texture() {
-            wgpu::CurrentSurfaceTexture::Success(surface_texture)
-            | wgpu::CurrentSurfaceTexture::Suboptimal(surface_texture) => surface_texture,
-            wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
-                self.surface.configure(&self.device, &self.config);
-                return Ok(render_stats);
-            }
-            wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => {
-                return Ok(render_stats);
-            }
-            wgpu::CurrentSurfaceTexture::Validation => {
-                return Err(RhiError::SurfaceUnavailable(
-                    "surface validation error".to_string(),
-                ));
-            }
-        };
-        let target_view = surface_texture
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-        let draw_ops = &draw_plan.ops;
-        let resolved_buffers =
-            self.compiled_draw_buffers
-                .resolve(&self.device, &self.queue, draw_list, draw_plan);
-        let buffers = resolved_buffers.buffers;
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("zircon-ui-surface-encoder"),
-            });
-        encoder.push_debug_group("zircon::UI");
-        let readback_ready = self.gpu_pass_timer.is_some()
-            && self
-                .gpu_readback_queue
-                .prepare_frame(&self.device, self.present_index)
-                .is_ok();
-        let timestamp_scope = if readback_ready {
-            self.gpu_pass_timer.as_mut().and_then(|timer| {
-                timer.begin_frame(self.present_index);
-                timer.begin_pass(&mut encoder, UI_GPU_TIMER_PASS_NAME)
-            })
-        } else {
-            None
-        };
-
-        match mode {
-            SurfaceRenderMode::FullRedraw => {
-                if draw_list.bypasses_retained_surface_cache() {
-                    render_stats.add_recorded(record_draw_ops_to_view(
-                        &mut encoder,
-                        &target_view,
-                        TargetLoad::ClearBlack,
-                        draw_list.surface_size,
-                        draw_list.projection_size(),
-                        damage,
-                        draw_ops,
-                        &buffers,
-                        &self.solid_pipeline,
-                        &self.solid_instance_pipeline,
-                        &self.image_pipeline,
-                        &self.image_cache,
-                        &mut self.text,
-                    ));
-                } else if let Some(retained_cache) = &mut self.retained_cache {
-                    render_stats.add_recorded(record_draw_ops_to_view(
-                        &mut encoder,
-                        retained_cache.view(),
-                        TargetLoad::ClearBlack,
-                        draw_list.surface_size,
-                        draw_list.projection_size(),
-                        damage,
-                        draw_ops,
-                        &buffers,
-                        &self.solid_pipeline,
-                        &self.solid_instance_pipeline,
-                        &self.image_pipeline,
-                        &self.image_cache,
-                        &mut self.text,
-                    ));
-                    render_stats.retained_cache_copy_bytes = render_stats
-                        .retained_cache_copy_bytes
-                        .saturating_add(retained_cache.record_copy_to_surface(
-                            &mut encoder,
-                            &surface_texture.texture,
-                            draw_list.surface_size,
-                        ));
-                    retained_cache.mark_initialized();
-                } else {
-                    render_stats.add_recorded(record_draw_ops_to_view(
-                        &mut encoder,
-                        &target_view,
-                        TargetLoad::ClearBlack,
-                        draw_list.surface_size,
-                        draw_list.projection_size(),
-                        damage,
-                        draw_ops,
-                        &buffers,
-                        &self.solid_pipeline,
-                        &self.solid_instance_pipeline,
-                        &self.image_pipeline,
-                        &self.image_cache,
-                        &mut self.text,
-                    ));
-                }
-            }
-            SurfaceRenderMode::DamagePatch => {
-                let retained_cache = self.retained_cache.as_mut().ok_or_else(|| {
-                    RhiError::SurfaceUnavailable(
-                        "damage patch requested without a retained surface cache".to_string(),
-                    )
-                })?;
-                render_stats.add_recorded(record_draw_ops_to_view(
-                    &mut encoder,
-                    retained_cache.view(),
-                    TargetLoad::Load,
-                    draw_list.surface_size,
-                    draw_list.projection_size(),
-                    damage,
-                    draw_ops,
-                    &buffers,
-                    &self.solid_pipeline,
-                    &self.solid_instance_pipeline,
-                    &self.image_pipeline,
-                    &self.image_cache,
-                    &mut self.text,
-                ));
-                render_stats.retained_cache_copy_bytes = render_stats
-                    .retained_cache_copy_bytes
-                    .saturating_add(retained_cache.record_copy_to_surface(
-                        &mut encoder,
-                        &surface_texture.texture,
-                        draw_list.surface_size,
-                    ));
-                retained_cache.mark_initialized();
-            }
-        }
-
-        if let (Some(timer), Some(scope)) = (&self.gpu_pass_timer, timestamp_scope) {
-            timer.end_pass(&mut encoder, scope);
-        }
-        if readback_ready {
-            if let Some(timer) = &mut self.gpu_pass_timer {
-                timer.resolve_and_request(&mut encoder, &mut self.gpu_readback_queue);
-            }
-            if let Err(error) = self
-                .gpu_readback_queue
-                .encode_copies(&mut encoder, self.present_index)
-            {
-                self.gpu_readback_queue.abort_frame(self.present_index);
-                return Err(RhiError::SurfaceUnavailable(error.to_string()));
-            }
-        }
-        encoder.pop_debug_group();
-        self.queue.submit(Some(encoder.finish()));
-        let readback_map_error = if readback_ready {
-            match self.gpu_readback_queue.begin_map(self.present_index) {
-                Ok(()) => None,
-                Err(error) => {
-                    self.gpu_readback_queue.abort_frame(self.present_index);
-                    Some(error)
-                }
-            }
-        } else {
-            None
-        };
-        surface_texture.present();
-        if let Some(error) = readback_map_error {
-            return Err(RhiError::SurfaceUnavailable(error.to_string()));
-        }
-        Ok(WgpuUiSurfaceRenderStats {
-            draw_buffers: resolved_buffers.stats,
-            ..render_stats
-        })
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum SurfaceRenderMode {
-    FullRedraw,
-    DamagePatch,
-}
-
-fn surface_render_mode(draw_list: &UiSurfaceDrawList, cache_ready: bool) -> SurfaceRenderMode {
-    if draw_list.damage.is_some() && cache_ready {
-        SurfaceRenderMode::DamagePatch
-    } else {
-        SurfaceRenderMode::FullRedraw
-    }
 }
 
 fn retained_cache_copy_supported(surface_usage: wgpu::TextureUsages) -> bool {
     surface_usage.contains(wgpu::TextureUsages::COPY_DST)
-}
-
-fn render_damage(
-    draw_list: &UiSurfaceDrawList,
-    mode: SurfaceRenderMode,
-) -> Option<zr_rhi::UiSurfaceRect> {
-    (mode == SurfaceRenderMode::DamagePatch)
-        .then_some(draw_list.damage)
-        .flatten()
 }
 
 #[cfg(test)]

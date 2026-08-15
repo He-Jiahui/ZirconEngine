@@ -1,7 +1,7 @@
 use crate::ui::retained_host::host_contract::data::HostBottomDockSurfaceData;
 
-use super::super::super::super::PanePointerRoute;
 use super::super::super::super::geometry::translated;
+use super::super::super::super::PanePointerRoute;
 use super::super::super::mode::PaneRouteMode;
 use super::super::super::pane::pane_route_from_pane;
 
@@ -10,6 +10,7 @@ pub(super) fn route_bottom_dock_pane(
     x: f32,
     y: f32,
     mode: PaneRouteMode,
+    console_scroll_px: f32,
 ) -> Option<PanePointerRoute> {
     let content = translated(
         &dock.content_frame,
@@ -23,5 +24,6 @@ pub(super) fn route_bottom_dock_pane(
         y,
         Some(dock.surface_key.as_str()),
         mode,
+        console_scroll_px,
     )
 }

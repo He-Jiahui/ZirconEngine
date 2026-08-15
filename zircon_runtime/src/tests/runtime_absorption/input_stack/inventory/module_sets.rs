@@ -12,7 +12,9 @@ const EXPECTED_INPUT_RUNTIME_MODULES: &[&str] = &[
     "module/mod.rs",
     "module/module_type.rs",
     "runtime/action_evaluator.rs",
-    "runtime/action_evaluator/binding_index.rs",
+    "runtime/action_evaluator/consumed_input_index.rs",
+    "runtime/action_evaluator/generation.rs",
+    "runtime/action_evaluator/workspace.rs",
     "runtime/action_evaluator/frame_axis_index.rs",
     "runtime/default_input_action_manager.rs",
     "runtime/default_input_manager.rs",
@@ -46,6 +48,7 @@ const EXPECTED_FRAMEWORK_INPUT_MODULES: &[&str] = &[
     "input_frame_snapshot.rs",
     "input_manager.rs",
     "input_snapshot.rs",
+    "module_identity.rs",
     "mod.rs",
     "mouse_wheel.rs",
     "touch.rs",
@@ -63,8 +66,8 @@ const EXPECTED_INPUT_TEST_MODULES: &[&str] = &[
 
 #[test]
 fn runtime_12_input_stack_inventory_owner_files_match_structure_audit_counts() {
-    assert_eq!(EXPECTED_INPUT_RUNTIME_MODULES.len(), 18);
-    assert_eq!(EXPECTED_FRAMEWORK_INPUT_MODULES.len(), 25);
+    assert_eq!(EXPECTED_INPUT_RUNTIME_MODULES.len(), 20);
+    assert_eq!(EXPECTED_FRAMEWORK_INPUT_MODULES.len(), 26);
     assert_eq!(EXPECTED_INPUT_TEST_MODULES.len(), 7);
 
     let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"));

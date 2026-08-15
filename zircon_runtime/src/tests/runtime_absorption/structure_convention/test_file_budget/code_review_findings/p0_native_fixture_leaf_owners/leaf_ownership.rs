@@ -21,13 +21,6 @@ fn runtime_15_p0_native_fixture_review_guards_are_leaf_owners() {
         0,
         "{PARENT} should stay a route-only parent"
     );
-    for moved_test in [] {
-        assert!(
-            !parent.contains(&moved_test),
-            "leaf-owned native fixture review guard `{moved_test}` should not return to {PARENT}"
-        );
-    }
-
     assert_contains_all(
         "SDK macro leaf owns D-S8/D3 native fixture review guard",
         &sdk_macro_leaf,

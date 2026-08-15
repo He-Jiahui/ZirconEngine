@@ -1,4 +1,4 @@
-use super::types::{change, click, submit, ExtensionBindingSpec};
+use super::types::{ExtensionBindingSpec, change, click, submit};
 
 pub(super) const WORLD_BUILDING_BINDINGS: &[ExtensionBindingSpec] = &[
     click(

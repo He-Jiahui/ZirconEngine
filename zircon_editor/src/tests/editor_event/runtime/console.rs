@@ -15,11 +15,9 @@ fn console_clear_builtin_binding_clears_history_without_replacing_latest_status(
     let snapshot = runtime.runtime.editor_snapshot();
     assert_eq!(snapshot.status_line, "Scene ready");
     assert!(snapshot.console_output.is_empty());
-    assert!(
-        effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PRESENTATION_DATA)
-    );
+    assert!(effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PRESENTATION_DATA));
     assert!(!effects.dirty_domains().requires_layout());
 }
 
@@ -42,11 +40,9 @@ fn console_filter_builtin_bindings_change_visible_history_and_restore_all_messag
         filtered.filter(),
         crate::core::editor_event::ConsoleMessageFilter::Error
     );
-    assert!(
-        error_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PRESENTATION_DATA)
-    );
+    assert!(error_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PRESENTATION_DATA));
 
     dispatch_builtin_template_binding(&runtime.runtime, "ConsolePaneBody/FilterAll")
         .expect("Console all-filter binding should exist")

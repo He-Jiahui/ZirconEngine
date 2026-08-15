@@ -31,7 +31,7 @@ pub(in super::super) const EXPECTED_RUNTIME_10_BEHAVIOR_TEST_ANCHORS: &[(&str, &
         &[
             "runtime_api_pointer_rejects_null_from_entry_symbol",
             "runtime_api_pointer_rejects_version_mismatch_before_session_creation",
-            "runtime_api_pointer_rejects_missing_required_functions_before_session_creation",
+            "runtime_api_pointer_names_every_missing_required_function",
             "runtime_library_loader_reports_missing_entry_symbol_source_path",
             "runtime_library_loader_reports_missing_entry_symbol_from_dynamic_library",
             "runtime_session_create_reports_first_call_failure_context",

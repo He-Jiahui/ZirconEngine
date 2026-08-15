@@ -221,7 +221,7 @@ fn runtime_15_ui_v2_style_runtime_tests_are_folder_backed() {
     for moved_test in [
         "fn ui_v2_style_specificity_and_pseudo_state_are_resolved",
         "fn ui_v2_surface_runtime_pseudo_state_restyles_from_retained_component_state",
-        "fn ui_v2_resolved_pseudo_state_keeps_selection_identity_above_hover",
+        "fn ui_v2_resolved_pseudo_state_prioritizes_drop_target_over_persistent_selection",
         "fn ui_v2_surface_property_mutation_updates_runtime_style_baseline_metadata",
         "fn ui_v2_inline_style_overrides_cascade_values_in_style_overrides",
     ] {

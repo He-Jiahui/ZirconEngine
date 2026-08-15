@@ -1,5 +1,5 @@
 use crate::graphics::scene::scene_renderer::{
-    SCENE_COLOR_HDR_FORMAT, post_process::POST_PROCESS_INTERMEDIATE_HDR_FORMAT,
+    post_process::POST_PROCESS_INTERMEDIATE_HDR_FORMAT, SCENE_COLOR_HDR_FORMAT,
 };
 
 use super::super::super::depth_sampling_mode::PostProcessDepthSamplingMode;
@@ -14,8 +14,8 @@ use super::depth_of_field_prepare_pipeline::depth_of_field_prepare_pipeline;
 use super::exposure_histogram_pipeline::exposure_histogram_pipeline;
 use super::exposure_resolve_pipeline::exposure_resolve_pipeline;
 use super::fxaa_pipeline::fxaa_pipeline;
-use super::hzb_pipeline::{hzb_msaa_pipeline, hzb_pipeline};
 use super::half_res_transparency_pipeline::{composite_pipeline, depth_downsample_pipeline};
+use super::hzb_pipeline::{hzb_msaa_pipeline, hzb_pipeline};
 use super::motion_blur_pipeline::motion_blur_pipeline;
 use super::motion_vector_neighbor_max_pipeline::motion_vector_neighbor_max_pipeline;
 use super::motion_vector_tile_max_pipeline::motion_vector_tile_max_pipeline;
@@ -193,7 +193,7 @@ const fn bloom_target_format() -> wgpu::TextureFormat {
 
 #[cfg(test)]
 mod tests {
-    use super::{POST_PROCESS_INTERMEDIATE_HDR_FORMAT, bloom_target_format};
+    use super::{bloom_target_format, POST_PROCESS_INTERMEDIATE_HDR_FORMAT};
 
     #[test]
     fn bloom_pipeline_targets_intermediate_hdr_resource_format() {

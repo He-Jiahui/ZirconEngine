@@ -1,10 +1,10 @@
-use crate::text::SharedTextLayoutSession;
 use crate::text::layout::{
-    GraphemeAdvanceIndex, corrected_glyph_ranges_with_provider, line_break_chunks_with_provider,
+    corrected_glyph_ranges_with_provider, line_break_chunks_with_provider,
     line_text_fits_with_provider as shared_line_text_fits_with_provider,
     should_wrap_before_accumulated, trim_leading_wrap_spaces,
-    word_smart_line_break_chunks_with_provider,
+    word_smart_line_break_chunks_with_provider, GraphemeAdvanceIndex,
 };
+use crate::text::SharedTextLayoutSession;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiTextRange, UiTextRunKind, UiTextWrap,
 };
@@ -12,8 +12,8 @@ use zircon_runtime_interface::ui::surface::{
 use super::super::grapheme::leading_grapheme_continuation_len;
 use super::super::rich_text::UiTextSourceRun;
 use super::candidate_line::{
-    CandidateLine, PendingBreakSuffix, append_segment, push_current_line, push_wrapped_line,
-    trim_word_break_trailing_spaces,
+    append_segment, push_current_line, push_wrapped_line, split_candidate_lines_at_shaping_caps,
+    trim_word_break_trailing_spaces, CandidateLine, PendingBreakSuffix,
 };
 use super::direction::resolve_direction;
 use crate::text::text_style;
@@ -164,6 +164,7 @@ fn wrap_source_fragments_with_line_widths_provider(
     });
 
     push_current_line(&mut lines, &mut current);
+    split_candidate_lines_at_shaping_caps(&mut lines);
     if lines.is_empty() {
         lines.push(CandidateLine::empty());
     }

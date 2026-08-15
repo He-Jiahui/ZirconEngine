@@ -60,9 +60,23 @@ pub enum DynamicSceneError {
         actual_generation: u64,
     },
     #[error(
+        "dynamic scene target world changed from change tick {expected_tick} to {actual_tick} before commit"
+    )]
+    TargetChangeTickChanged {
+        expected_tick: u64,
+        actual_tick: u64,
+    },
+    #[error(
         "dynamic scene target component schema changed from generation {expected_generation} to {actual_generation} before apply"
     )]
     TargetSchemaChanged {
+        expected_generation: u64,
+        actual_generation: u64,
+    },
+    #[error(
+        "dynamic scene target component registry changed from generation {expected_generation} to {actual_generation} before commit"
+    )]
+    TargetComponentRegistryChanged {
         expected_generation: u64,
         actual_generation: u64,
     },

@@ -4,13 +4,24 @@ import argparse
 from collections import Counter
 import json
 import re
+import stat
 import subprocess
 from dataclasses import asdict, dataclass
-from pathlib import Path, PureWindowsPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Iterable
+
+if __package__:
+    from .convention_exemptions import (
+        audit_rust_exemptions as audit_rust_exemptions_from_catalog,
+    )
+else:  # pragma: no cover - direct script import path.
+    from convention_exemptions import (
+        audit_rust_exemptions as audit_rust_exemptions_from_catalog,
+    )
 
 
 DOCUMENT_PATH_FIELDS = ("implementation_files", "related_code")
+FRONT_MATTER_LIST_FIELDS = (*DOCUMENT_PATH_FIELDS, "tests")
 CONVENTION_RULES_PATH = Path(
     "docs/plans/zircon_runtime/frameworks/development-conventions.md"
 )
@@ -287,7 +298,8 @@ def audit_rule_guard_coverage(repo_root: Path) -> dict[str, object]:
 
 
 def audit_document_paths(repo_root: Path) -> dict[str, object]:
-    repo_root = repo_root.resolve()
+    validator = _RepositoryPathValidator(repo_root)
+    repo_root = validator.repo_root
     docs_root = repo_root / "docs"
     document_count = 0
     checked_path_count = 0
@@ -303,6 +315,7 @@ def audit_document_paths(repo_root: Path) -> dict[str, object]:
             "violation_count": 1,
             "reason_counts": {"missing docs root": 1},
             "path_root_counts": {"docs": 1},
+            "resolution_metrics": validator.resolution_metrics(),
             "violations": [
                 {
                     "document": "docs",
@@ -318,12 +331,19 @@ def audit_document_paths(repo_root: Path) -> dict[str, object]:
         if fields is None:
             continue
         document_count += 1
-        for field in DOCUMENT_PATH_FIELDS:
-            for declared_path in fields.get(field, []):
+        for field in FRONT_MATTER_LIST_FIELDS:
+            declared_paths = fields.get(field, [])
+            if field == "tests":
+                declared_paths = [
+                    path
+                    for entry in declared_paths
+                    for path in _test_reference_paths(entry)
+                ]
+            for declared_path in declared_paths:
                 checked_path_count += 1
                 if declared_path not in path_reason_cache:
-                    path_reason_cache[declared_path] = _path_violation_reason(
-                        repo_root, declared_path
+                    path_reason_cache[declared_path] = validator.violation_reason(
+                        declared_path
                     )
                 reason = path_reason_cache[declared_path]
                 if reason is not None:
@@ -354,8 +374,19 @@ def audit_document_paths(repo_root: Path) -> dict[str, object]:
         "path_root_counts": dict(
             sorted(path_root_counts.items(), key=lambda item: (-item[1], item[0]))
         ),
+        "resolution_metrics": validator.resolution_metrics(),
         "violations": violations,
     }
+
+
+def audit_rust_exemptions(repo_root: Path) -> dict[str, object]:
+    rule_report = audit_rule_guard_coverage(repo_root)
+    return audit_rust_exemptions_from_catalog(
+        repo_root,
+        rule_report=rule_report,
+        convention_rules_path=CONVENTION_RULES_PATH,
+        rule_id_pattern=RULE_ID_PATTERN,
+    )
 
 
 def _front_matter_path_fields(document: Path) -> dict[str, list[str]] | None:
@@ -367,7 +398,7 @@ def _front_matter_path_fields(document: Path) -> dict[str, list[str]] | None:
     except StopIteration:
         return None
 
-    fields = {field: [] for field in DOCUMENT_PATH_FIELDS}
+    fields = {field: [] for field in FRONT_MATTER_LIST_FIELDS}
     active_field: str | None = None
     for line in lines[1:end]:
         if line and not line[0].isspace():
@@ -383,18 +414,98 @@ def _front_matter_path_fields(document: Path) -> dict[str, list[str]] | None:
     return fields
 
 
-def _path_violation_reason(repo_root: Path, declared_path: str) -> str | None:
-    windows_path = PureWindowsPath(declared_path)
+def _test_reference_paths(entry: str) -> list[str]:
+    if not entry:
+        return []
+    path = entry.split("::", maxsplit=1)[0].rstrip(":")
+    path = re.sub(r":\d+(?::\d+)?$", "", path).replace("\\", "/")
+    if any(marker in path for marker in ("*", "?", "[", "]", "{", "}", "<", ">")):
+        return []
+    repository_path = path[2:] if path.startswith("./") else path
+    if re.search(r"(?:^|/)[^/]+\.[A-Za-z0-9]+$", path) is None:
+        return []
+    windows_path = PureWindowsPath(path)
     if windows_path.is_absolute() or windows_path.drive:
-        return "absolute path"
-    candidate = (repo_root / Path(declared_path.replace("\\", "/"))).resolve()
-    try:
-        candidate.relative_to(repo_root)
-    except ValueError:
-        return "repository escape"
-    if not candidate.exists():
-        return "missing path"
-    return None
+        return [repository_path]
+    if re.match(r"^[A-Za-z][A-Za-z0-9+.-]*://", path):
+        return []
+    posix_path = PurePosixPath(path)
+    if posix_path.is_absolute() or ".." in posix_path.parts:
+        return [repository_path]
+    if any(character.isspace() for character in entry):
+        return []
+    if any(part in {"build", "target"} for part in PurePosixPath(repository_path).parts):
+        return []
+    return [repository_path]
+
+
+class _RepositoryPathValidator:
+    def __init__(self, repo_root: Path) -> None:
+        self.repo_root = repo_root.resolve()
+        self._resolved_parents: dict[Path, Path] = {}
+        self._unique_path_count = 0
+        self._parent_resolution_count = 0
+        self._reparse_leaf_resolution_count = 0
+        self._relative_segment_resolution_count = 0
+
+    def violation_reason(self, declared_path: str) -> str | None:
+        self._unique_path_count += 1
+        windows_path = PureWindowsPath(declared_path)
+        normalized_path = declared_path.replace("\\", "/")
+        posix_path = PurePosixPath(normalized_path)
+        if windows_path.is_absolute() or windows_path.drive or posix_path.is_absolute():
+            return "absolute path"
+
+        candidate = self.repo_root / Path(normalized_path)
+        exists = candidate.exists()
+        if ".." in posix_path.parts:
+            resolved_candidate = candidate.resolve()
+            self._relative_segment_resolution_count += 1
+        elif self._is_reparse_leaf(candidate):
+            resolved_candidate = candidate.resolve()
+            self._reparse_leaf_resolution_count += 1
+        else:
+            lexical_parent = candidate.parent
+            resolved_parent = self._resolved_parents.get(lexical_parent)
+            if resolved_parent is None:
+                resolved_parent = lexical_parent.resolve()
+                self._resolved_parents[lexical_parent] = resolved_parent
+                self._parent_resolution_count += 1
+            resolved_candidate = resolved_parent / candidate.name
+
+        try:
+            resolved_candidate.relative_to(self.repo_root)
+        except ValueError:
+            return "repository escape"
+        if not exists:
+            return "missing path"
+        return None
+
+    def resolution_metrics(self) -> dict[str, int]:
+        return {
+            "unique_path_count": self._unique_path_count,
+            "full_resolution_count": (
+                self._parent_resolution_count
+                + self._reparse_leaf_resolution_count
+                + self._relative_segment_resolution_count
+            ),
+            "parent_resolution_count": self._parent_resolution_count,
+            "reparse_leaf_resolution_count": self._reparse_leaf_resolution_count,
+            "relative_segment_resolution_count": (
+                self._relative_segment_resolution_count
+            ),
+        }
+
+    @staticmethod
+    def _is_reparse_leaf(candidate: Path) -> bool:
+        try:
+            metadata = candidate.lstat()
+        except OSError:
+            return False
+        return stat.S_ISLNK(metadata.st_mode) or bool(
+            getattr(metadata, "st_file_attributes", 0)
+            & stat.FILE_ATTRIBUTE_REPARSE_POINT
+        )
 
 
 def run_conventions(
@@ -409,6 +520,7 @@ def run_conventions(
         "schema_version": 1,
         "repo_root": str(repo_root.resolve()),
         "docs": None,
+        "exemptions": None,
         "guards": None,
         "commands": [],
         "passed": True,
@@ -422,6 +534,11 @@ def run_conventions(
         guards_report = audit_rule_guard_coverage(repo_root)
         report["guards"] = guards_report
         if guards_report["violation_count"]:
+            report["passed"] = False
+    if "exemptions" in selected_set:
+        exemptions_report = audit_rust_exemptions(repo_root)
+        report["exemptions"] = exemptions_report
+        if exemptions_report["violation_count"]:
             report["passed"] = False
 
     command_reports: list[dict[str, object]] = []
@@ -467,7 +584,7 @@ def run_conventions(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Run Zircon documentation, formatting, and scoped lint convention gates."
+        description="Run Zircon documentation, exemption, formatting, and scoped lint gates."
     )
     parser.add_argument(
         "--repo-root",
@@ -478,7 +595,15 @@ def main() -> int:
     parser.add_argument(
         "--only",
         action="append",
-        choices=("docs", "guards", "layering", "structure", "fmt", "clippy"),
+        choices=(
+            "docs",
+            "guards",
+            "exemptions",
+            "layering",
+            "structure",
+            "fmt",
+            "clippy",
+        ),
         help="Run only the selected gate; repeat for multiple gates.",
     )
     parser.add_argument(
@@ -492,6 +617,7 @@ def main() -> int:
     selected = args.only or [
         "docs",
         "guards",
+        "exemptions",
         "layering",
         "structure",
         "fmt",
@@ -531,6 +657,19 @@ def main() -> int:
                 print(
                     f"  {guards_report['document']}:{violation['line']} "
                     f"{violation['rule_id']} ({violation['reason']})"
+                )
+        exemptions_report = report.get("exemptions")
+        if isinstance(exemptions_report, dict):
+            print(
+                "exemptions: "
+                f"{exemptions_report['valid_exemption_count']} valid / "
+                f"{exemptions_report['allow_attribute_count']} allow attributes, "
+                f"{exemptions_report['violation_count']} violations"
+            )
+            for violation in exemptions_report["violations"]:
+                print(
+                    f"  {violation['path']}:{violation['line']} "
+                    f"{violation['member']} ({violation['reason']})"
                 )
         for command in report["commands"]:
             rendered = " ".join(command["argv"])

@@ -1,13 +1,9 @@
 use crate::scene::ecs::{
-    ComponentStorageLocation, QueryDataAccess, QueryFilter, StableEntityLocation,
+    ArchetypeIndexPerformanceStats, QueryDataAccess, QueryFilter, StorageType,
 };
-use crate::scene::EntityId;
 use crate::scene::World;
 
-use super::super::cached_query_iter::{
-    cached_query_component_locations, cached_query_entity_index,
-};
-use super::QueryState;
+use super::{CachedArchetypePlan, QueryComponentBinding, QueryState};
 
 impl<D, F> QueryState<D, F>
 where
@@ -15,59 +11,70 @@ where
     F: QueryFilter,
 {
     pub fn update_cache(&mut self, world: &World) {
-        let revision = world.query_cache_revision();
-        if self.cached_revision == revision {
+        let archetype_generation = world.archetype_generation();
+        if self.cached_archetype_generation == archetype_generation {
+            self.refresh_plan_memberships(world);
             self.cache_hits = self.cache_hits.saturating_add(1);
             return;
         }
-        self.cached_entities.clear();
-        self.cached_entity_indices.clear();
-        self.cached_locations.clear();
-        self.cached_component_locations.clear();
-        self.cached_component_location_offsets.clear();
-        self.cached_component_location_offsets.push(0);
-        let matched_archetypes = world.matching_query_archetypes(&self.access);
-        let candidate_count = world.matching_query_archetype_entity_count(&matched_archetypes);
-        self.cached_archetype_generation = world.archetype_generation();
-        let component_count = self.access.reads().len();
-        self.cached_entities.reserve(candidate_count);
-        self.cached_entity_indices.reserve(candidate_count);
-        self.cached_locations.reserve(candidate_count);
-        self.cached_component_location_offsets
-            .reserve(candidate_count);
-        self.cached_component_locations
-            .reserve(candidate_count.saturating_mul(component_count));
-        let mut component_locations = Vec::with_capacity(component_count);
-        world.visit_entity_locations_matching_archetypes(&matched_archetypes, |location| {
-            world.component_storage_locations_for_internal(
-                location.internal,
-                self.access.reads(),
-                &mut component_locations,
+
+        if self.cached_archetype_generation != u64::MAX
+            && self.cached_archetype_generation < archetype_generation
+        {
+            let index_stats_before = world.query_archetype_index_performance_stats();
+            let new_matches = world.matching_query_archetypes_from(
+                &self.access,
+                self.cached_archetype_generation as usize,
             );
-            if D::matches_component_locations(world, location.stable_id, &component_locations) {
-                let cache_index = self.cached_entities.len();
-                self.cached_entities.push(location.stable_id);
-                self.cached_entity_indices
-                    .push((location.stable_id, cache_index));
-                self.cached_locations.push(location);
-                self.cached_component_locations
-                    .extend(component_locations.iter().copied());
-                self.cached_component_location_offsets
-                    .push(self.cached_component_locations.len());
+            self.record_archetype_index_work(
+                index_stats_before,
+                world.query_archetype_index_performance_stats(),
+            );
+            self.cached_archetype_generation = archetype_generation;
+            if new_matches.is_empty() {
+                self.refresh_plan_memberships(world);
+                self.cache_hits = self.cache_hits.saturating_add(1);
+                return;
             }
-        });
-        self.cached_archetypes = matched_archetypes;
-        self.cached_entity_indices
-            .sort_unstable_by_key(|(entity, _)| *entity);
-        self.cached_revision = revision;
+
+            let compiled_new_plans = new_matches
+                .into_iter()
+                .map(|archetype| self.compile_archetype_plan(world, archetype))
+                .collect::<Vec<_>>();
+            self.cached_archetype_plans.extend(compiled_new_plans);
+            self.refresh_plan_memberships(world);
+            self.cache_misses = self.cache_misses.saturating_add(1);
+            self.cache_rebuilds = self.cache_rebuilds.saturating_add(1);
+            return;
+        }
+
+        let index_stats_before = world.query_archetype_index_performance_stats();
+        let matched_archetypes = world.matching_query_archetypes(&self.access);
+        self.record_archetype_index_work(
+            index_stats_before,
+            world.query_archetype_index_performance_stats(),
+        );
+        let compiled_plans = matched_archetypes
+            .iter()
+            .copied()
+            .map(|archetype| self.compile_archetype_plan(world, archetype))
+            .collect::<Vec<_>>();
+        self.cached_archetype_plans = compiled_plans;
+        let candidate_count = world.matching_query_archetype_entity_count(&matched_archetypes);
+        self.cached_archetype_generation = archetype_generation;
+        self.cached_entity_count = candidate_count;
         self.cache_misses = self.cache_misses.saturating_add(1);
         self.cache_rebuilds = self.cache_rebuilds.saturating_add(1);
         self.last_candidate_entity_count = candidate_count;
-        self.last_matched_entity_count = self.cached_entities.len();
+        self.last_matched_entity_count = candidate_count;
     }
 
     pub fn cached_archetype_count(&self) -> usize {
-        self.cached_archetypes.len()
+        self.cached_archetype_plans.len()
+    }
+
+    pub(crate) fn cached_archetype_plans(&self) -> &[CachedArchetypePlan] {
+        &self.cached_archetype_plans
     }
 
     pub fn cached_archetype_generation(&self) -> u64 {
@@ -75,52 +82,94 @@ where
     }
 
     pub fn cached_entity_count(&self) -> usize {
-        self.cached_entities.len()
-    }
-
-    pub(crate) fn cached_entities(&self) -> &[EntityId] {
-        &self.cached_entities
-    }
-
-    pub(crate) fn cached_entity_index(&self, entity: EntityId) -> Option<usize> {
-        cached_query_entity_index(&self.cached_entity_indices, entity)
-    }
-
-    pub(crate) fn cached_entity_location(
-        &self,
-        entity: EntityId,
-    ) -> Option<(StableEntityLocation, &[ComponentStorageLocation])> {
-        let index = self.cached_entity_index(entity)?;
-        let stable_location = self.cached_locations.get(index).copied()?;
-        let component_locations = cached_query_component_locations(
-            &self.cached_component_locations,
-            &self.cached_component_location_offsets,
-            index,
-        )?;
-        Some((stable_location, component_locations))
-    }
-
-    pub fn cached_location_count(&self) -> usize {
-        self.cached_locations.len()
-    }
-
-    pub fn cached_locations(&self) -> &[StableEntityLocation] {
-        &self.cached_locations
-    }
-
-    pub fn cached_component_locations(&self) -> &[ComponentStorageLocation] {
-        &self.cached_component_locations
-    }
-
-    pub fn cached_component_location_offsets(&self) -> &[usize] {
-        &self.cached_component_location_offsets
+        self.cached_entity_count
     }
 
     pub fn cached_revision(&self) -> u64 {
-        self.cached_revision
+        self.cached_archetype_generation
     }
 
     pub fn cache_rebuilds(&self) -> u64 {
         self.cache_rebuilds
+    }
+
+    fn compile_archetype_plan(
+        &mut self,
+        world: &World,
+        archetype: crate::scene::ecs::ArchetypeId,
+    ) -> CachedArchetypePlan {
+        self.archetype_plan_compilations = self.archetype_plan_compilations.saturating_add(1);
+        let mut bindings = Vec::with_capacity(self.access.reads().len());
+        for component_id in self.access.reads().iter().copied() {
+            self.archetype_component_membership_checks =
+                self.archetype_component_membership_checks.saturating_add(1);
+            if !world.query_archetype_contains_component(archetype, component_id) {
+                continue;
+            }
+            let rust_type_id = world
+                .query_component_rust_type_id(component_id)
+                .expect("matching query component must retain a registered Rust type");
+            let binding = match world.query_component_storage_type(component_id) {
+                Some(StorageType::Table) => {
+                    self.table_column_slot_bindings =
+                        self.table_column_slot_bindings.saturating_add(1);
+                    QueryComponentBinding::Table {
+                        component_id,
+                        rust_type_id,
+                        column_slot: world
+                            .query_archetype_column_slot(archetype, component_id)
+                            .expect(
+                                "matching dense query component must own a compiled column slot",
+                            ),
+                    }
+                }
+                Some(StorageType::SparseSet) => {
+                    self.sparse_component_bindings =
+                        self.sparse_component_bindings.saturating_add(1);
+                    QueryComponentBinding::SparseSet {
+                        component_id,
+                        rust_type_id,
+                    }
+                }
+                None => continue,
+            };
+            bindings.push(binding);
+        }
+        CachedArchetypePlan::new(
+            archetype,
+            world
+                .query_archetype_membership_generation(archetype)
+                .expect("matching query archetype must retain a membership generation"),
+            bindings,
+        )
+    }
+
+    fn record_archetype_index_work(
+        &mut self,
+        before: ArchetypeIndexPerformanceStats,
+        after: ArchetypeIndexPerformanceStats,
+    ) {
+        let delta = after.saturating_delta_since(before);
+        self.archetype_index_component_probes = self
+            .archetype_index_component_probes
+            .saturating_add(delta.component_index_probes);
+        self.archetype_index_signature_membership_checks = self
+            .archetype_index_signature_membership_checks
+            .saturating_add(delta.signature_membership_checks);
+    }
+
+    fn refresh_plan_memberships(&mut self, world: &World) {
+        let mut candidate_count = 0_usize;
+        for plan in &mut self.cached_archetype_plans {
+            let archetype = plan.archetype_id();
+            if let Some(generation) = world.query_archetype_membership_generation(archetype) {
+                plan.refresh_membership_generation(generation);
+            }
+            candidate_count =
+                candidate_count.saturating_add(world.query_archetype_entity_count(archetype));
+        }
+        self.cached_entity_count = candidate_count;
+        self.last_candidate_entity_count = candidate_count;
+        self.last_matched_entity_count = candidate_count;
     }
 }

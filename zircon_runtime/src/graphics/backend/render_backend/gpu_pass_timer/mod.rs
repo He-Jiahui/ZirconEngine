@@ -1,7 +1,7 @@
 pub(crate) use zr_rhi_wgpu::{
     GpuPassPipelineStatistics, GpuPassTimer, GpuPassTimestampScope, GpuPassTiming,
     GpuPipelineStatistics, GpuPipelineStatisticsFrameResult, GpuPipelineStatisticsScope,
-    GpuPipelineStatisticsTimer, GpuTimerFrameResult, DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES,
-    DEFAULT_GPU_TIMER_MAX_PASSES, GPU_PIPELINE_STATISTICS_REQUIRED_FEATURES,
-    GPU_TIMESTAMP_REQUIRED_FEATURES,
+    GpuPipelineStatisticsTimer, GpuTimerFrameObservation, GpuTimerFrameResult, GpuTimerFrameStatus,
+    DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES, DEFAULT_GPU_TIMER_MAX_PASSES,
+    GPU_PIPELINE_STATISTICS_REQUIRED_FEATURES, GPU_TIMESTAMP_REQUIRED_FEATURES,
 };

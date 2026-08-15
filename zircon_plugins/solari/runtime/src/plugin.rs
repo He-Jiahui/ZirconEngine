@@ -8,8 +8,8 @@ use zircon_runtime::plugin::{
 
 use crate::capability::RUNTIME_CRATE_NAME;
 use crate::{
-    RUNTIME_CAPABILITIES, RUNTIME_CAPABILITY, SOLARI_CAPABILITY, SOLARI_DECLARATION,
-    SOLARI_UNAVAILABLE_MESSAGE, module_descriptor, solari_runtime_provider_registration,
+    module_descriptor, solari_runtime_provider_registration, RUNTIME_CAPABILITIES,
+    RUNTIME_CAPABILITY, SOLARI_CAPABILITY, SOLARI_DECLARATION, SOLARI_UNAVAILABLE_MESSAGE,
 };
 
 pub const SOLARI_DIST_CRATE_NAME: &str = "zircon_plugin_solari_dist";

@@ -1,5 +1,5 @@
 use super::super::super::super::super::data::TemplatePaneNodeData;
-use super::super::super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
+use super::super::super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 use super::super::super::resolved_style_color;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn badge_root_background_color(

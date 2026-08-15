@@ -1,16 +1,15 @@
 use crate::core::framework::render::{
-    GEOMETRY_SOURCE_ID_STATIC_MESH, GeometrySourceDescriptor, GeometrySourceId, ShaderFeatureBits,
-    ShaderPassType, builtin_geometry_source_descriptor,
+    builtin_geometry_source_descriptor, GeometrySourceDescriptor, GeometrySourceId,
+    ShaderFeatureBits, ShaderPassType, GEOMETRY_SOURCE_ID_STATIC_MESH,
 };
 use crate::graphics::scene::resources::{PipelineKey, ResourceStreamer};
 use crate::graphics::shader::{
-    DeferredGBufferShaderTemplateRequest, MaterialShaderTemplateAssembly,
-    MaterialShaderTemplateRequest, ShaderAssemblySegment, ShaderAssemblySegmentKind,
-    ShaderTemplateAssemblyError, ShaderTemplateValidationError,
-    TaaReactiveMaskShaderTemplateRequest, assemble_deferred_gbuffer_shader_template,
-    assemble_material_shader_template, assemble_taa_reactive_mask_shader_template,
-    standard_material_surface_source_for_features,
-    validate_material_shader_template_wgsl_with_segments,
+    assemble_deferred_gbuffer_shader_template, assemble_material_shader_template,
+    assemble_taa_reactive_mask_shader_template, standard_material_surface_source_for_features,
+    validate_material_shader_template_wgsl_with_segments, DeferredGBufferShaderTemplateRequest,
+    MaterialShaderTemplateAssembly, MaterialShaderTemplateRequest, ShaderAssemblySegment,
+    ShaderAssemblySegmentKind, ShaderTemplateAssemblyError, ShaderTemplateValidationError,
+    TaaReactiveMaskShaderTemplateRequest,
 };
 
 const MESH_SHADER_TEMPLATE_REVISION: &str = "mesh-template-v1";

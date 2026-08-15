@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use super::super::super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveMergePolicy,
-    RuntimeSessionArchiveMergeReport, path_merge,
+    path_merge, RuntimeSessionArchive, RuntimeSessionArchiveError,
+    RuntimeSessionArchiveMergePolicy, RuntimeSessionArchiveMergeReport,
 };
 
 impl RuntimeSessionArchive {

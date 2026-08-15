@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: open
+status: source_complete_dynamic_validation_pending
 created_at: 2026-07-22
 summary_slug: renderer-common-direct-extract-test-field-drift
 origin_plan: docs/plans/zircon_plugins/01-plugin-architecture-core.md

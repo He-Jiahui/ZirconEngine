@@ -1,7 +1,7 @@
 use super::{
-    build_source_cubemap_upload_artifact, IblBakeArtifactContents, IblBakeArtifactRequest,
-    SourceCubemapIrradianceCube, SourceCubemapIrradianceSh9, SourceCubemapMipChain,
-    SourceCubemapUploadArtifact,
+    build_source_cubemap_upload_artifact, IblBakeArtifactContents, IblBakeArtifactDescriptor,
+    IblBakeArtifactRequest, SourceCubemapIrradianceCube, SourceCubemapIrradianceSh9,
+    SourceCubemapMipChain, SourceCubemapUploadArtifact,
 };
 use crate::core::math::{Real, Vec4};
 
@@ -185,6 +185,7 @@ pub struct SourceCubemapEnvironment {
     /// Cached identity of the PMREM section supplied by a bake artifact.
     pub pmrem_hash: [u32; 4],
     pub bake_artifact_hash: [u32; 4],
+    accepted_bake_artifact_descriptor: Option<IblBakeArtifactDescriptor>,
     pub intensity: Real,
     pub rotation_radians: Real,
     pub source_revision: u64,
@@ -200,6 +201,7 @@ impl PartialEq for SourceCubemapEnvironment {
             && self.irradiance_cube == other.irradiance_cube
             && self.pmrem_hash == other.pmrem_hash
             && self.bake_artifact_hash == other.bake_artifact_hash
+            && self.accepted_bake_artifact_descriptor == other.accepted_bake_artifact_descriptor
             && self.intensity == other.intensity
             && self.rotation_radians == other.rotation_radians
             && self.source_revision == other.source_revision
@@ -220,6 +222,7 @@ impl SourceCubemapEnvironment {
             irradiance_cube: None,
             pmrem_hash: [0; 4],
             bake_artifact_hash: [0; 4],
+            accepted_bake_artifact_descriptor: None,
             intensity: 1.0,
             rotation_radians: 0.0,
             source_revision,
@@ -234,6 +237,7 @@ impl SourceCubemapEnvironment {
         if self.texture_upload_key() != upload_key {
             // Drop outdated pre-encoded rows before a replacement artifact is built.
             self.upload_artifact = None;
+            self.accepted_bake_artifact_descriptor = None;
         }
         self
     }
@@ -262,6 +266,21 @@ impl SourceCubemapEnvironment {
     /// Records artifact provenance without changing GPU texture content identity.
     pub fn with_bake_artifact_hash(mut self, bake_artifact_hash: [u32; 4]) -> Self {
         self.bake_artifact_hash = bake_artifact_hash;
+        self
+    }
+
+    /// The descriptor that produced all active artifact-backed environment sections.
+    ///
+    /// It is provenance only and deliberately remains outside the GPU upload key.
+    pub fn accepted_bake_artifact_descriptor(&self) -> Option<IblBakeArtifactDescriptor> {
+        self.accepted_bake_artifact_descriptor
+    }
+
+    pub(super) fn with_accepted_bake_artifact_descriptor(
+        mut self,
+        descriptor: IblBakeArtifactDescriptor,
+    ) -> Self {
+        self.accepted_bake_artifact_descriptor = Some(descriptor);
         self
     }
 
@@ -428,7 +447,10 @@ fn procedural_sun_hash(params: &ProceduralSkyParams, sun: ResolvedProceduralSun)
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::framework::render::build_source_cubemap_from_equirect;
+    use crate::core::framework::render::{
+        build_source_cubemap_from_equirect, source_cubemap_environment_with_bake_artifact,
+        IblBakeArtifactDescriptor, IblBakeArtifactPayload,
+    };
 
     #[test]
     fn procedural_default_matches_existing_preview_gradient() {
@@ -673,17 +695,29 @@ mod tests {
 
     #[test]
     fn source_cubemap_bake_replacement_discards_prepared_upload_cache() {
-        let mut environment = SourceCubemapEnvironment::new(
+        let environment = SourceCubemapEnvironment::new(
             build_source_cubemap_from_equirect(1, |_, _| [0.25, 0.5, 0.75, 1.0]),
             3,
             [1, 2, 3, 4],
         )
         .with_prepared_upload_artifact();
         let replacement = build_source_cubemap_from_equirect(1, |_, _| [0.75, 0.5, 0.25, 1.0]);
+        let request = environment.ibl_bake_artifact_request(IblBakeArtifactContents::PMREM_SH9);
+        let payload = IblBakeArtifactPayload::from_source_cubemap(
+            IblBakeArtifactDescriptor::current_for_request(&request),
+            &replacement,
+            None,
+        )
+        .expect("replacement cubemap should encode as a current CPU artifact");
 
-        environment.replace_bake_artifact_content(replacement, [5, 6, 7, 8], [9, 10, 11, 12], None);
+        let environment = source_cubemap_environment_with_bake_artifact(&environment, &payload)
+            .expect("current CPU artifact should hydrate the source environment");
 
-        assert!(environment.upload_artifact.is_none());
+        assert!(environment.prepared_upload_artifact().is_some());
+        assert_eq!(
+            environment.accepted_bake_artifact_descriptor(),
+            Some(payload.descriptor())
+        );
     }
 
     #[test]
@@ -698,6 +732,29 @@ mod tests {
 
         assert_eq!(with_provenance.bake_artifact_hash, [9, 8, 7, 6]);
         assert_eq!(with_provenance.texture_upload_key(), upload_key);
+        assert!(with_provenance
+            .accepted_bake_artifact_descriptor()
+            .is_none());
+    }
+
+    #[test]
+    fn source_cubemap_manual_irradiance_change_clears_accepted_artifact_descriptor() {
+        let environment = SourceCubemapEnvironment::new(
+            build_source_cubemap_from_equirect(1, |_, _| [0.25, 0.5, 0.75, 1.0]),
+            3,
+            [1, 2, 3, 4],
+        );
+        let descriptor = IblBakeArtifactDescriptor::current_for_request(
+            &environment.ibl_bake_artifact_request(IblBakeArtifactContents::PMREM_SH9),
+        );
+        let changed = environment
+            .with_accepted_bake_artifact_descriptor(descriptor)
+            .with_irradiance_cube(SourceCubemapIrradianceCube::new(
+                1,
+                vec![[0.25, 0.5, 0.75]; 6],
+            ));
+
+        assert!(changed.accepted_bake_artifact_descriptor().is_none());
     }
 
     #[test]

@@ -1,12 +1,10 @@
 ---
 related_code:
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
-  - zircon_runtime/src/scene/runtime_hook/set.rs
   - zircon_runtime/src/scene/ecs/mod.rs
   - zircon_runtime/src/scene/ecs/archetype/mod.rs
   - zircon_runtime/src/scene/ecs/archetype/id.rs
   - zircon_runtime/src/scene/ecs/archetype/index.rs
-  - zircon_runtime/src/scene/ecs/archetype/move_result.rs
   - zircon_runtime/src/scene/ecs/archetype/record.rs
   - zircon_runtime/src/scene/ecs/archetype/signature.rs
   - zircon_runtime/src/scene/ecs/bundle.rs
@@ -105,7 +103,6 @@ related_code:
   - zircon_runtime/src/scene/ecs/storage/component_storage/location.rs
   - zircon_runtime/src/scene/ecs/storage/component_storage/sparse.rs
   - zircon_runtime/src/scene/ecs/storage/component_storage/store.rs
-  - zircon_runtime/src/scene/ecs/storage/component_storage/table.rs
   - zircon_runtime/src/scene/ecs/storage/component_storage/component_results.rs
   - zircon_runtime/src/scene/ecs/storage/component_remove_result.rs
   - zircon_runtime/src/scene/ecs/storage/storage_error.rs
@@ -149,7 +146,7 @@ related_code:
   - zircon_runtime/src/scene/world/property_access/entries.rs
   - zircon_runtime/src/scene/world/property_access/entries/physics.rs
   - zircon_runtime/src/scene/world/property_access/path_resolution.rs
-  - zircon_runtime/src/animation/sequence/apply.rs
+  - zircon_runtime/src/animation/sequence/compiled.rs
   - zircon_runtime/src/animation/sequence/target.rs
   - zircon_runtime/src/scene/world/property_access/read.rs
   - zircon_runtime/src/scene/world/property_access/value_conversion.rs
@@ -176,7 +173,7 @@ related_code:
   - zircon_runtime/src/scene/reflect/dynamic_component.rs
   - zircon_runtime/src/scene/reflect/builtin_reflection/hierarchy.rs
   - zircon_runtime/src/core/framework/scene/mobility.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn.rs
+  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/mod.rs
   - zircon_runtime/src/script/vm/gameplay_host/combat.rs
   - zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs
   - zircon_runtime/src/script/vm/gameplay_host/transform.rs
@@ -233,12 +230,10 @@ related_code:
 implementation_files:
   - zircon_runtime/src/core/framework/scene/mod.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
-  - zircon_runtime/src/scene/runtime_hook/set.rs
   - zircon_runtime/src/core/runtime/diagnostics/frame_diagnostics.rs
   - zircon_runtime/src/scene/ecs/archetype/mod.rs
   - zircon_runtime/src/scene/ecs/archetype/id.rs
   - zircon_runtime/src/scene/ecs/archetype/index.rs
-  - zircon_runtime/src/scene/ecs/archetype/move_result.rs
   - zircon_runtime/src/scene/ecs/archetype/record.rs
   - zircon_runtime/src/scene/ecs/archetype/signature.rs
   - zircon_runtime/src/scene/ecs/bundle.rs
@@ -332,7 +327,6 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/storage/component_storage/location.rs
   - zircon_runtime/src/scene/ecs/storage/component_storage/sparse.rs
   - zircon_runtime/src/scene/ecs/storage/component_storage/store.rs
-  - zircon_runtime/src/scene/ecs/storage/component_storage/table.rs
   - zircon_runtime/src/scene/ecs/storage/component_storage/component_results.rs
   - zircon_runtime/src/scene/ecs/storage/component_remove_result.rs
   - zircon_runtime/src/scene/ecs/storage/storage_error.rs
@@ -376,7 +370,7 @@ implementation_files:
   - zircon_runtime/src/scene/world/property_access/entries.rs
   - zircon_runtime/src/scene/world/property_access/entries/physics.rs
   - zircon_runtime/src/scene/world/property_access/path_resolution.rs
-  - zircon_runtime/src/animation/sequence/apply.rs
+  - zircon_runtime/src/animation/sequence/compiled.rs
   - zircon_runtime/src/animation/sequence/target.rs
   - zircon_runtime/src/scene/world/property_access/read.rs
   - zircon_runtime/src/scene/world/property_access/value_conversion.rs
@@ -392,7 +386,7 @@ implementation_files:
   - zircon_runtime/src/scene/world/world.rs
   - zircon_runtime/src/scene/reflect/builtin_reflection/hierarchy.rs
   - zircon_runtime/src/core/framework/scene/mobility.rs
-  - zircon_runtime/src/scene/dynamic_scene/scene/spawn.rs
+  - zircon_runtime/src/scene/dynamic_scene/scene/spawn/mod.rs
   - zircon_runtime/src/script/vm/gameplay_host/combat.rs
   - zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs
   - zircon_runtime/src/script/vm/gameplay_host/transform.rs
@@ -1039,6 +1033,8 @@ doc_type: module-detail
 
 # Scene ECS Kernel
 
+Runtime 08 current hard-cut sync (2026-08-10): `ecs_kernel_data_boundary` now owns `expected_source_file_count = 75`; the inventory removes `ArchetypeMove` and `TableComponentStorage`, adds the six-file archetype-table owner plus `typed_api/{component_row,projection_rebuild}.rs`, and keeps `expected_test_file_count = 10`. This supersedes earlier current-count paragraphs while preserving their dated historical evidence.
+
 Runtime 08 executable reconciliation (2026-07-10): `change_tick` passes 4/4 and `messages` passes 24/24. The available binary reports `entity` 78/81, `observer` 16/17, `command` 144/149, and `ecs` 330/340; every Runtime 08-owned stale owner/status/naming guard selected by those filters has current-source focused evidence, while one LUT render behavior failure and one strict render GPU-context 800-line budget failure remain external/open. Full filter promotion waits for a fresh binary. Evidence: `tests/acceptance/runtime-ecs-kernel-filters-current-result.md`.
 
 Runtime 08 current child-owner sync (2026-07-10): `ecs_kernel_data_boundary` reports `expected_source_file_count = 69`, `expected_test_file_count = 10`, `archetype_anchors = 15/15`, `storage_anchors = 9/9`, `component_storage_private_reexport_anchors = 9/9`, `component_identity_anchors = 18/18`, `entity_lifecycle_anchors = 10/10`, `observer_anchors = 8/8`, `deferred_command_anchors = 11/11`, `event_message_anchors = 12/12`, `resource_identity_anchors = 12/12`, `change_tick_anchors = 6/6`, `runtime_08_guard_anchors = 21/21`, `behavior_test_anchor_count = 16`, `missing_behavior_test_anchors = []`, `doc_anchors = 13/13`, `pending_cargo_gate_anchors = 6/6`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts` keeps the plan, runtime index, ECS module doc, M0 review, and interface-convergence mirror aligned. The 10 test owners explicitly include `ecs_kernel_data/inventory.rs` and `cargo_gates/early/runtime_08.rs`; this supersedes the historical 8-route-owner mirror and does not close the pending `entity/observer/command/messages/change_tick/ecs` Cargo gates.
@@ -1068,19 +1064,19 @@ The implementation follows Bevy's split between external entity values, entity l
 
 - `ComponentId`, `ResourceId`, and `ArchetypeId` are typed indices scoped to the ECS kernel. They are intentionally separate from asset `ResourceId` under `zircon_runtime::core::resource`.
 - `ArchetypeSignature` splits table and sparse-set component ids for a unique component-set identity, following Bevy's distinction between archetypes and tables. `ArchetypeIndex` owns runtime archetype records, maps signatures to `ArchetypeId`, and indexes components to candidate archetypes for query cache rebuilds. `matching_archetypes(...)` starts from the shortest sorted component-index list when a required component exists; when the query has no required components, it pre-sizes the result from the full record count and pushes records that pass the required/without predicate directly.
-- `StorageType::Table` is the default fast-iteration path. Removing a table component uses swap-remove and reports the moved entity so callers can update table rows.
+- `StorageType::Table` is the default fast-iteration path. Each `ArchetypeRecord` owns its aligned `ArchetypeTable`; structural moves and removals swap rows there and repair the moved entity's `EntityRegistry` location before publishing the target row.
 - `StorageType::SparseSet` is the random-access insertion/removal path and does not move unrelated entities on removal.
 - `ComponentRegistry` assigns `ComponentId` values for Rust `Component` types and dynamic plugin component ids. Rust components use their `Component::STORAGE_TYPE`; dynamic plugin component presence is represented as sparse-set storage.
 - `ResourceRegistry` assigns `ResourceId` values for Rust `Resource` types. This ECS `ResourceId` is separate from asset/resource-manager ids.
-- `ComponentStorage` is a type-erased lower-layer storage primitive for M1 tests and the M2 typed component API. It enforces one storage type per component ID and reports type mismatch rather than silently changing storage semantics. Each stored component also carries `ComponentTicks { added, changed }` so query filters can evaluate Bevy-style `Added<T>` and `Changed<T>` windows. Despawning a scene entity removes all typed component storage entries for its internal entity. M11 exposes `ComponentStorageLocation`, `get_table_row(...)`, and `get_with_ticks_at_location(...)` so later dense query iteration can use table rows directly instead of rediscovering component rows through entity maps. Table-row location reads verify the cached entity before returning a value, so stale rows caused by swap-remove fail closed.
+- `ComponentStorage` is the type-erased sparse-set owner for M1 tests and the M2 typed component API. It enforces one storage type per component ID and reports type mismatch rather than silently changing storage semantics. Sparse entries carry `ComponentTicks { added, changed }` so query filters can evaluate Bevy-style `Added<T>` and `Changed<T>` windows. Table reads, ticks, mutations, and dense query iteration route from `EntityLocation` through the owning `ArchetypeTable`; a stale entity/row location fails closed instead of falling back to a component-store table map.
 
 ## Runtime 08 Data-Kernel Alignment Verdict
 
-Runtime plan 08 compares the ECS data kernel with `bevy_ecs` at the storage, entity lifecycle, observer, event/message, and deferred-command layers. The June 12 audit corrected an obsolete one-backing-store assumption: `StorageType` already exposes `Table` and `SparseSet`, and `storage/component_storage/` now keeps a stable `ComponentStorage` facade while splitting table rows, sparse entries, location DTOs, raw entries, and helper utilities into folder-backed owners. The intentional difference from Bevy is the stable public `EntityId` and a unified facade, not absence of sparse storage.
+Runtime plan 08 compares the ECS data kernel with `bevy_ecs` at the storage, entity lifecycle, observer, event/message, and deferred-command layers. The current hard cut keeps both `Table` and `SparseSet` semantics without two table owners: `ArchetypeTable` owns row-aligned table columns and `storage/component_storage/` owns sparse entries, locations, raw entries, and helper utilities. The intentional difference from Bevy is the stable public `EntityId`, not absence of sparse storage.
 
 | Dimension | Bevy anchor | Zircon owner | Verdict |
 |---|---|---|---|
-| Storage shape | `bevy_ecs::storage::{table,sparse_set}` | `StorageType::{Table,SparseSet}` plus `storage/component_storage/{store,table,sparse,location}.rs` | Keep the dual storage semantics behind the stable `ComponentStorage` facade. Do not add another storage abstraction without plan 07 hot-path evidence; current debt is Cargo validation, not storage capability. |
+| Storage shape | `bevy_ecs::storage::{table,sparse_set}` | `StorageType::{Table,SparseSet}`, `ArchetypeTable`, and sparse-only `storage/component_storage/{store,sparse,location}.rs` | Keep table rows under their archetype and sparse sets under `ComponentStorage`; do not restore a table facade or add another storage abstraction. Current debt is Cargo validation, not storage capability. |
 | Entity allocation and reuse | Bevy generational entity allocation | `EntityRegistry`, `InternalEntity`, `StableEntityLocation`, and stable `EntityId` | Keep stable serialized `EntityId` as the public world identity and use `InternalEntity { index, generation }` only inside the runtime kernel. Despawn must reject stale internal handles, reuse slots only with a new generation, and keep old stable IDs from aliasing the replacement entity. |
 | Observers and lifecycle hooks | Bevy observers/hooks | `ObserverStore` plus `World::trigger_*` and `World::trigger_component_lifecycle(...)` | Zircon observers are immediate and synchronous. `ObserverStore` owns immutable, key-indexed lifecycle/global/entity callback buckets; dispatch clones only the matched bucket handle before invoking callbacks, so callbacks may mutate `World`. Removing an observer during dispatch affects later triggers, not the already captured bucket; registering one during dispatch becomes visible on the next trigger. Targeted entity-event observers are released after their target's Despawn lifecycle fanout and never apply to a reused entity ID. Lifecycle callbacks run inside the mutation that inserts/removes/despawns the component. |
 | Events and messages | Bevy events with reader cursors | `Events<T>` current/next queue and bounded retained `Messages<T>` with `MessageId<T>` | Keep both channels. `Events<T>` is a frame-advanced current/next event queue and requires `update_events` for visibility; `clear_events` prunes both current and next queues. `Messages<T>` is an id-bearing bounded log with per-reader cursors: entry, declared-byte, and age budgets bound retention; the First-stage `UpdateEvents` owner advances age retirement, while `clear_messages` creates an explicit generation boundary. Ordinary event update/clear calls do not otherwise prune messages. They are not duplicates. |

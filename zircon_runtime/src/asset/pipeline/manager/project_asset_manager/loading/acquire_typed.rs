@@ -1,5 +1,5 @@
-use crate::core::CoreError;
 use crate::core::resource::{ResourceData, ResourceHandle, ResourceLease, ResourceMarker};
+use crate::core::CoreError;
 
 use super::super::super::errors::asset_error_message;
 use super::super::ProjectAssetManager;

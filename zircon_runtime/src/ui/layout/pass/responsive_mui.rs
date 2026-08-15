@@ -10,6 +10,8 @@ use zircon_runtime_interface::ui::{
     tree::{UiTree, UiTreeError, UiVisibility},
 };
 
+use super::slot::UiLayoutSlotIndex;
+
 const MUI_DEFAULT_SPACING_UNIT: f32 = 8.0;
 
 // Mirrors Material UI's default breakpoint keys so authored responsive props
@@ -27,23 +29,60 @@ pub(super) fn apply_mui_responsive_layout(
     root_size: UiSize,
 ) -> Result<(), UiTreeError> {
     let viewport = MuiResponsiveViewport::from_root_size(root_size);
-    let node_ids = tree.nodes.keys().copied().collect::<Vec<_>>();
-    apply_use_media_query_matches(tree, viewport, &node_ids)?;
-    apply_responsive_visibility(tree, viewport, &node_ids)?;
-    apply_responsive_containers(tree, viewport, &node_ids)?;
-    apply_responsive_grid_slots(tree, viewport)
+    let candidates = MuiResponsiveCandidates::for_tree(tree);
+    apply_use_media_query_matches(tree, viewport, &candidates.media_query_node_ids)?;
+    apply_responsive_visibility(tree, viewport, &candidates.visibility_node_ids)?;
+    apply_responsive_containers(tree, viewport, &candidates.container_node_ids)?;
+    apply_responsive_grid_slots(tree, viewport, &candidates.implicit_grid_parent_ids)
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+struct MuiResponsiveCandidates {
+    media_query_node_ids: Vec<UiNodeId>,
+    visibility_node_ids: Vec<UiNodeId>,
+    container_node_ids: Vec<UiNodeId>,
+    implicit_grid_parent_ids: BTreeSet<UiNodeId>,
+}
+
+impl MuiResponsiveCandidates {
+    fn for_tree(tree: &UiTree) -> Self {
+        let mut candidates = Self::default();
+        for (node_id, node) in &tree.nodes {
+            let Some(metadata) = node.template_metadata.as_ref() else {
+                continue;
+            };
+            let attributes = &metadata.attributes;
+            if metadata.component == "UseMediaQuery" {
+                candidates.media_query_node_ids.push(*node_id);
+            }
+            if attributes.contains_key("display")
+                || attributes.contains_key("visibility")
+                || attributes.contains_key("visible")
+            {
+                candidates.visibility_node_ids.push(*node_id);
+            }
+            if matches!(metadata.component.as_str(), "Grid" | "Stack" | "Masonry")
+                && !has_explicit_layout_container(attributes)
+            {
+                candidates.container_node_ids.push(*node_id);
+            }
+            if metadata.component == "Grid"
+                && bool_attribute(attributes, "container")
+                && !has_explicit_layout_container(attributes)
+            {
+                candidates.implicit_grid_parent_ids.insert(*node_id);
+            }
+        }
+        candidates
+    }
 }
 
 pub(super) fn apply_mui_responsive_layout_for_nodes(
     tree: &mut UiTree,
     root_size: UiSize,
     dirty_node_ids: &BTreeSet<UiNodeId>,
-    slot_indices: &BTreeMap<UiNodeId, usize>,
+    slot_index: &UiLayoutSlotIndex,
 ) -> Result<(), UiTreeError> {
-    if slot_indices.len() != tree.slots.len() {
-        return apply_mui_responsive_layout(tree, root_size);
-    }
-
     let viewport = MuiResponsiveViewport::from_root_size(root_size);
     let node_ids = dirty_node_ids
         .iter()
@@ -71,7 +110,7 @@ pub(super) fn apply_mui_responsive_layout_for_nodes(
         if !is_implicit_mui_grid_container(tree, parent_id)? {
             continue;
         }
-        let Some(slot_index) = slot_indices.get(&child_id).copied() else {
+        let Some(slot_index) = slot_index.first_index_for_edge(tree, parent_id, child_id) else {
             return apply_mui_responsive_layout(tree, root_size);
         };
         let Some(slot) = tree.slots.get(slot_index) else {
@@ -164,8 +203,16 @@ fn apply_responsive_containers(
 fn apply_responsive_grid_slots(
     tree: &mut UiTree,
     viewport: MuiResponsiveViewport,
+    implicit_grid_parent_ids: &BTreeSet<UiNodeId>,
 ) -> Result<(), UiTreeError> {
     for index in 0..tree.slots.len() {
+        if !tree
+            .slots
+            .get(index)
+            .is_some_and(|slot| implicit_grid_parent_ids.contains(&slot.parent_id))
+        {
+            continue;
+        }
         apply_responsive_grid_slot(tree, viewport, index)?;
     }
     Ok(())
@@ -691,6 +738,61 @@ fn mark_node_visibility_dirty(
         node.container,
         UiContainerKind::ScrollableBox(_) | UiContainerKind::MasonryBox(_)
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use toml::Value;
+    use zircon_runtime_interface::ui::{
+        event_ui::{UiNodeId, UiNodePath},
+        tree::{UiTemplateNodeMetadata, UiTree, UiTreeNode},
+    };
+
+    use super::MuiResponsiveCandidates;
+
+    fn node(id: u64, component: &str, attributes: &[(&str, Value)]) -> UiTreeNode {
+        UiTreeNode::new(UiNodeId::new(id), UiNodePath::new(format!("root/{id}")))
+            .with_template_metadata(UiTemplateNodeMetadata {
+                component: component.to_string(),
+                attributes: attributes
+                    .iter()
+                    .map(|(name, value)| ((*name).to_string(), value.clone()))
+                    .collect(),
+                ..UiTemplateNodeMetadata::default()
+            })
+    }
+
+    #[test]
+    fn full_pass_candidates_exclude_non_responsive_template_nodes() {
+        let mut tree = UiTree::default();
+        tree.nodes.insert(UiNodeId::new(1), node(1, "Button", &[]));
+        tree.nodes.insert(
+            UiNodeId::new(2),
+            node(
+                2,
+                "UseMediaQuery",
+                &[("query", Value::String("(min-width: 600px)".into()))],
+            ),
+        );
+        tree.nodes.insert(
+            UiNodeId::new(3),
+            node(3, "Box", &[("display", Value::String("none".into()))]),
+        );
+        tree.nodes.insert(
+            UiNodeId::new(4),
+            node(4, "Grid", &[("container", Value::Boolean(true))]),
+        );
+
+        let candidates = MuiResponsiveCandidates::for_tree(&tree);
+
+        assert_eq!(candidates.media_query_node_ids, vec![UiNodeId::new(2)]);
+        assert_eq!(candidates.visibility_node_ids, vec![UiNodeId::new(3)]);
+        assert_eq!(candidates.container_node_ids, vec![UiNodeId::new(4)]);
+        assert_eq!(
+            candidates.implicit_grid_parent_ids,
+            [UiNodeId::new(4)].into_iter().collect()
+        );
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

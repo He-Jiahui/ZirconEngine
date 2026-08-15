@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+use zircon_runtime::asset::AssetUri;
+
+use crate::core::project::SceneOpenRequest;
 use crate::ui::binding::EditorUiEventKind;
 use crate::ui::host::editor_asset_manager::EditorAssetCatalogGeneration;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
@@ -13,6 +16,15 @@ const WINDOW_BINDING_ID: &str = "CommandPalette/WindowRequested";
 const COMMIT_BINDING_ID: &str = "CommandPalette/Commit";
 
 impl RetainedEditorHost {
+    pub(super) fn open_startup_scene(&mut self, scene_uri: AssetUri) -> Result<(), String> {
+        let scene_uri_text = scene_uri.to_string();
+        let ticket = self.runtime.begin_scene_picker()?;
+        let request = SceneOpenRequest::new(scene_uri);
+        self.runtime.submit_scene_open_request(ticket, request)?;
+        self.set_status_line(format!("Opened scene {scene_uri_text}"));
+        Ok(())
+    }
+
     pub(super) fn open_workbench_scene_picker(&mut self, mode: ScenePickerMode) {
         let ticket = match self.runtime.begin_scene_picker() {
             Ok(ticket) => ticket,
@@ -21,13 +33,14 @@ impl RetainedEditorHost {
                 return;
             }
         };
-        let catalog: Arc<EditorAssetCatalogGeneration> = match self.editor_asset_manager_at_use_point() {
-            Ok(manager) => manager.catalog_snapshot(),
-            Err(error) => {
-                self.set_status_line(error.to_string());
-                return;
-            }
-        };
+        let catalog: Arc<EditorAssetCatalogGeneration> =
+            match self.editor_asset_manager_at_use_point() {
+                Ok(manager) => manager.catalog_snapshot(),
+                Err(error) => {
+                    self.set_status_line(error.to_string());
+                    return;
+                }
+            };
         let session = super::scene_picker_session::ScenePickerSession::new(ticket, mode, &catalog);
         let state = session.command_palette_state("", 0, false);
         match self
@@ -240,5 +253,18 @@ fn scene_picker_action_name(mode: ScenePickerMode) -> &'static str {
     match mode {
         ScenePickerMode::Open => "Open",
         ScenePickerMode::Create => "Create",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn startup_scene_submission_reuses_the_document_route() {
+        let source = include_str!("scene_picker_actions.rs");
+
+        assert!(source.contains("fn open_startup_scene"));
+        assert!(source.contains("self.runtime.begin_scene_picker()"));
+        assert!(source.contains("SceneOpenRequest::new(scene_uri)"));
+        assert!(source.contains(".submit_scene_open_request(ticket, request)"));
     }
 }

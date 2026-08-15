@@ -8,15 +8,28 @@ use crate::ui::retained_host::primitives::ModelRc;
 use self::menu::hit_test_template_menu_rows;
 use self::option::hit_test_template_option_rows;
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::HostPaneTemplateHitIndex;
 
 pub(in crate::ui::retained_host::host_contract) use self::hit::TemplatePopupRowHit;
 
 pub(in crate::ui::retained_host::host_contract) fn hit_test_template_popup_rows(
     nodes: &ModelRc<TemplatePaneNodeData>,
+    index: Option<&HostPaneTemplateHitIndex>,
     origin: &FrameRect,
     x: f32,
     y: f32,
 ) -> Option<TemplatePopupRowHit> {
+    if let Some(index) = index {
+        index.begin_query();
+        for row in index.popup_rows().iter().rev().copied() {
+            index.record_popup_candidate_visit();
+            let node = nodes.get(row)?;
+            if let Some(hit) = hit_test_template_popup_node(node, origin, x, y) {
+                return Some(hit);
+            }
+        }
+        return None;
+    }
     for node in nodes.iter().rev() {
         if let Some(hit) = hit_test_template_popup_node(node, origin, x, y) {
             return Some(hit);

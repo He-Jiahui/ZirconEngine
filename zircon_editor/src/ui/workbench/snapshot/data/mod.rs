@@ -25,4 +25,7 @@ pub use inspector_snapshot::{
 pub use project_overview_snapshot::ProjectOverviewSnapshot;
 pub(crate) use scene_entry::SceneEntryProjectionCache;
 pub use scene_entry::{SceneEntries, SceneEntry};
+pub(crate) use scene_entry::{
+    SceneInspectionHierarchyFragment, SceneInspectionHierarchyFragmentError,
+};
 pub use status_task_progress_snapshot::{StatusTaskProgressSnapshot, StatusTaskProgressTone};

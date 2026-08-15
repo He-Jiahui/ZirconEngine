@@ -1,7 +1,7 @@
 use super::super::*;
-use crate::ui::retained_host::ui_perf::{UiPerfCounter, record_current_ui_perf_counter};
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 use zircon_runtime::diagnostic_log::{
-    DiagnosticLogLevel, diagnostic_log_allows, write_diagnostic_log,
+    diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
 };
 
 impl RetainedEditorHost {

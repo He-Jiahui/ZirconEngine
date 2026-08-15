@@ -1,6 +1,6 @@
 use super::super::raster::ChartRaster;
 use crate::ui::retained_host::host_contract::paint_theme::{
-    HostMaterialPalette, current_host_palette,
+    current_host_palette, HostMaterialPalette,
 };
 
 const MUI_X_CHART_LINE_WIDTH: f32 = 2.4;

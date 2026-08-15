@@ -1,5 +1,11 @@
-use crate::scene::ecs::{ChangeTickWindow, SystemParamAccess, SystemParamError};
+use crate::scene::ecs::{
+    ChangeTickWindow, SystemParamAccess, SystemParamError, WorkerCommandBuffer,
+};
 use crate::scene::World;
+
+pub(crate) mod worldless_private {
+    pub trait Sealed {}
+}
 
 pub trait SystemParam {
     type State;
@@ -16,7 +22,20 @@ pub trait SystemParam {
         ticks: ChangeTickWindow,
     ) -> Self::Item<'world>;
 
+    /// Returns the single deferred-command lane owned by this parameter
+    /// composition, when it contains `CommandsParam`.
+    fn deferred_command_buffer_mut(_state: &mut Self::State) -> Option<&mut WorkerCommandBuffer> {
+        None
+    }
+
     fn record_performance_diagnostics(_world: &mut World, _state: &mut Self::State) {}
+}
+
+/// Restricts worker execution to parameters that can produce an item without
+/// borrowing World. This marker is deliberately separate from `SystemParam`:
+/// normal systems retain the complete parameter surface.
+pub trait WorldlessSystemParam: SystemParam + worldless_private::Sealed {
+    fn get_param_without_world<'world>(state: &'world mut Self::State) -> Self::Item<'world>;
 }
 
 impl SystemParam for () {
@@ -36,6 +55,12 @@ impl SystemParam for () {
         _ticks: ChangeTickWindow,
     ) -> Self::Item<'world> {
     }
+}
+
+impl worldless_private::Sealed for () {}
+
+impl WorldlessSystemParam for () {
+    fn get_param_without_world<'world>(_state: &'world mut Self::State) -> Self::Item<'world> {}
 }
 
 macro_rules! tuple_system_param {
@@ -69,6 +94,35 @@ macro_rules! tuple_system_param {
                 let ($($name,)*) = state;
                 $($name::record_performance_diagnostics(world, $name);)*
             }
+
+            #[allow(non_snake_case)]
+            fn deferred_command_buffer_mut(state: &mut Self::State) -> Option<&mut WorkerCommandBuffer> {
+                let ($($name,)*) = state;
+                let mut command_buffer = None;
+                $(
+                    if command_buffer.is_none() {
+                        command_buffer = $name::deferred_command_buffer_mut($name);
+                    }
+                )*
+                command_buffer
+            }
+        }
+
+        impl<$($name),*> worldless_private::Sealed for ($($name,)*)
+        where
+            $($name: WorldlessSystemParam,)*
+        {}
+
+        impl<$($name),*> WorldlessSystemParam for ($($name,)*)
+        where
+            $($name: WorldlessSystemParam,)*
+        {
+            #[allow(non_snake_case)]
+            fn get_param_without_world<'world>(state: &'world mut Self::State) -> Self::Item<'world> {
+                let ($($name,)*) = state;
+                ($($name::get_param_without_world($name),)*)
+            }
+
         }
     };
 }

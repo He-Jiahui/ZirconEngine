@@ -22,6 +22,8 @@ pub struct ProjectManifest {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub engine_version_req: Option<String>,
     pub default_scene: AssetUri,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ui_roots: Vec<AssetUri>,
     #[serde(default = "default_asset_roots")]
     pub asset_roots: Vec<RelPath>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -49,6 +51,7 @@ impl ProjectManifest {
             format_version: PROJECT_MANIFEST_FORMAT_VERSION,
             engine_version_req: None,
             default_scene,
+            ui_roots: Vec::new(),
             asset_roots: default_asset_roots(),
             settings: None,
             asset_manifest: None,

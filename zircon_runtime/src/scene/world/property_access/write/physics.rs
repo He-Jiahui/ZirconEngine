@@ -3,7 +3,9 @@ use crate::core::framework::scene::physics::{
 };
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use crate::core::math::Vec3;
-use crate::scene::components::ColliderShape;
+use crate::scene::components::{
+    ColliderComponent, ColliderShape, JointComponent, RigidBodyComponent,
+};
 use crate::scene::{EntityId, SceneError, SceneResult};
 
 use super::super::super::World;
@@ -22,7 +24,7 @@ impl World {
         value: ScenePropertyValue,
         property_path: &ComponentPropertyPath,
     ) -> SceneResult<bool> {
-        let Some(rigid_body) = self.rigid_bodies.get_mut(&entity) else {
+        let Some(rigid_body) = self.get_mut::<RigidBodyComponent>(entity) else {
             return missing_component_error(entity, property_path);
         };
         match segments {
@@ -192,7 +194,7 @@ impl World {
         value: ScenePropertyValue,
         property_path: &ComponentPropertyPath,
     ) -> SceneResult<bool> {
-        let Some(collider) = self.colliders.get_mut(&entity) else {
+        let Some(collider) = self.get_mut::<ColliderComponent>(entity) else {
             return missing_component_error(entity, property_path);
         };
         match segments {
@@ -378,7 +380,7 @@ impl World {
         value: ScenePropertyValue,
         property_path: &ComponentPropertyPath,
     ) -> SceneResult<bool> {
-        let Some(joint) = self.joints.get_mut(&entity) else {
+        let Some(joint) = self.get_mut::<JointComponent>(entity) else {
             return missing_component_error(entity, property_path);
         };
         match segments {

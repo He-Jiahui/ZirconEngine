@@ -1,5 +1,5 @@
 use crate::ui::retained_host::host_contract::paint_theme::{
-    HostControlMetrics, current_host_metrics,
+    current_host_metrics, HostControlMetrics,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -11,15 +11,14 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub border_width: f32,
     pub text_inset: f32,
     pub text_value_gap: f32,
-    pub text_clip_guard: f32,
     pub icon_glyph_size: f32,
     pub signal_icon_left: f32,
     pub signal_text_gap: f32,
     pub signal_marker_size: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_status_metrics()
--> WorkbenchStatusMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workbench_status_metrics(
+) -> WorkbenchStatusMetrics {
     workbench_status_metrics_from_host(current_host_metrics())
 }
 
@@ -34,7 +33,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
         border_width: metrics.border_width,
         text_inset: metrics.gap_s,
         text_value_gap: metrics.gap_s,
-        text_clip_guard: metrics.text_clip_guard,
         // Status icons share the compact Icon16 slot with panel buttons.
         icon_glyph_size: (metrics.row_height - metrics.gap_l)
             .min(metrics.row_height)
@@ -54,13 +52,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_
     workbench_status_metrics().radius
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_icon_button_radius()
--> f32 {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_icon_button_radius(
+) -> f32 {
     workbench_status_metrics().radius
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_icon_glyph_size()
--> f32 {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn status_icon_glyph_size(
+) -> f32 {
     workbench_status_metrics().icon_glyph_size
 }
 
@@ -86,7 +84,6 @@ mod tests {
         host.gap_m = 9.0;
         host.gap_l = 13.0;
         host.row_height = 28.0;
-        host.text_clip_guard = 7.0;
 
         let metrics = workbench_status_metrics_from_host(host);
 
@@ -96,7 +93,6 @@ mod tests {
         assert_eq!(metrics.border_width, 1.5);
         assert_eq!(metrics.text_inset, 5.0);
         assert_eq!(metrics.text_value_gap, 5.0);
-        assert_eq!(metrics.text_clip_guard, 7.0);
         assert_eq!(metrics.icon_glyph_size, 15.0);
         assert_eq!(metrics.signal_icon_left, 9.0);
         assert_eq!(metrics.signal_text_gap, 9.0);

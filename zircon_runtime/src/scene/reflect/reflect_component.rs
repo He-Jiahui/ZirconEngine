@@ -25,6 +25,14 @@ pub type ReflectComponentWriteFieldsBySlot =
         Vec<(u32, zircon_runtime_interface::reflect::ReflectedValue)>,
     ) -> Result<bool, zircon_runtime_interface::reflect::ReflectError>;
 
+pub type ReflectComponentStageClone =
+    fn(
+        &crate::scene::World,
+        crate::scene::EntityId,
+        &str,
+        &mut crate::scene::World,
+    ) -> Result<(), zircon_runtime_interface::reflect::ReflectError>;
+
 #[derive(Clone)]
 pub struct ReflectComponent {
     pub type_path: String,
@@ -56,6 +64,7 @@ pub struct ReflectComponent {
     pub read_field_by_slot: Option<ReflectComponentReadFieldBySlot>,
     pub write_field_by_slot: Option<ReflectComponentWriteFieldBySlot>,
     pub write_fields_by_slot: Option<ReflectComponentWriteFieldsBySlot>,
+    pub stage_clone: Option<ReflectComponentStageClone>,
     pub remove: fn(
         &mut crate::scene::World,
         crate::scene::EntityId,
@@ -106,6 +115,7 @@ impl ReflectComponent {
             read_field_by_slot: None,
             write_field_by_slot: None,
             write_fields_by_slot: None,
+            stage_clone: None,
             remove,
         }
     }
@@ -125,6 +135,13 @@ impl ReflectComponent {
         write_fields_by_slot: ReflectComponentWriteFieldsBySlot,
     ) -> Self {
         self.write_fields_by_slot = Some(write_fields_by_slot);
+        self
+    }
+
+    /// Enables affected-row transactions to clone one component into an
+    /// isolated preflight World without cloning the live World.
+    pub fn with_stage_clone(mut self, stage_clone: ReflectComponentStageClone) -> Self {
+        self.stage_clone = Some(stage_clone);
         self
     }
 
@@ -203,6 +220,19 @@ impl ReflectComponent {
             return Err(missing_dense_slot_adapter(&self.type_path, "batch write"));
         };
         write_fields_by_slot(world, entity, &self.type_path, fields)
+    }
+
+    pub fn stage_clone(
+        &self,
+        source: &crate::scene::World,
+        entity: crate::scene::EntityId,
+        target: &mut crate::scene::World,
+    ) -> Result<bool, zircon_runtime_interface::reflect::ReflectError> {
+        let Some(stage_clone) = self.stage_clone else {
+            return Ok(false);
+        };
+        stage_clone(source, entity, &self.type_path, target)?;
+        Ok(true)
     }
 
     pub fn remove(

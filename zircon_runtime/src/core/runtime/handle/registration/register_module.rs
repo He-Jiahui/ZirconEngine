@@ -26,6 +26,13 @@ static NEXT_REGISTERED_SERVICE_INDEX: AtomicU32 = AtomicU32::new(FIRST_REGISTERE
 impl CoreHandle {
     pub fn register_module(&self, descriptor: ModuleDescriptor) -> Result<(), CoreError> {
         crate::profile_scope!("runtime", "core", "register_module");
+        // The graph snapshot takes this lock before reading module descriptors. Keep it for
+        // the whole registration transaction so a successful registration cannot be omitted
+        // from a concurrently-created frozen graph.
+        let frozen_graph = self.lock_frozen_module_graph();
+        if frozen_graph.is_some() {
+            return Err(CoreError::ModuleGraphFrozen);
+        }
         let module_name = descriptor.name.clone();
         if !is_canonical_module_name(&module_name) {
             return Err(CoreError::InvalidModuleName(module_name));

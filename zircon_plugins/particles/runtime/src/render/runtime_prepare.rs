@@ -13,7 +13,8 @@ use crate::ParticlesManager;
 
 use super::gpu::{
     ParticleGpuCounterReadback, ParticleGpuRuntimeBufferBindings, ParticleGpuRuntimeOwnerHandle,
-    PARTICLE_GPU_COUNTER_WORDS_BASE, PARTICLE_GPU_INDIRECT_DRAW_WORDS,
+    PARTICLE_GPU_COUNTER_WORDS_BASE, PARTICLE_GPU_INDIRECT_DRAW_WORDS, PARTICLE_GPU_MAX_PARTICLES,
+    PARTICLE_GPU_NEUTRAL_MAX_EMITTERS,
 };
 
 const COLLECTOR_ID: &str = "particles.runtime-prepare";
@@ -24,11 +25,14 @@ const COUNTERS_RESOURCE: &str = "particles.gpu.counters";
 const ALIVE_INDICES_RESOURCE: &str = "particles.gpu.alive-indices";
 const INDIRECT_DRAW_ARGS_RESOURCE: &str = "particles.gpu.indirect-draw-args";
 const DEBUG_READBACK_RESOURCE: &str = "particles.gpu.debug-readback";
-const PARTICLE_WORDS_PER_NEUTRAL_SLOT: u32 = 16;
-const EMITTER_PARAMS_BYTES_PER_EMITTER: u64 = 256;
 
 pub fn particle_runtime_prepare_collector_registration() -> RuntimePrepareCollectorRegistration {
-    RuntimePrepareCollectorRegistration::new(COLLECTOR_ID, particle_runtime_prepare_collector)
+    RuntimePrepareCollectorRegistration::new_collector(
+        COLLECTOR_ID,
+        Arc::new(NeutralParticleRuntimePrepareCollector {
+            runtime_owner: ParticleGpuRuntimeOwnerHandle::default(),
+        }),
+    )
 }
 
 pub fn particle_runtime_prepare_collector_registration_with_manager(
@@ -56,6 +60,19 @@ struct ParticleRuntimePrepareCollector {
     pending_readbacks: Mutex<VecDeque<ParticleGpuSharedReadback>>,
 }
 
+struct NeutralParticleRuntimePrepareCollector {
+    runtime_owner: ParticleGpuRuntimeOwnerHandle,
+}
+
+impl RuntimePrepareCollector for NeutralParticleRuntimePrepareCollector {
+    fn collect(
+        &self,
+        context: &mut RuntimePrepareCollectorContext<'_>,
+    ) -> Result<RenderPluginRendererOutputs, GraphicsError> {
+        collect_neutral_particle_gpu_runtime_prepare(context, &self.runtime_owner)
+    }
+}
+
 impl ParticleRuntimePrepareCollector {
     fn new(manager: ParticlesManager, runtime_owner: ParticleGpuRuntimeOwnerHandle) -> Self {
         Self {
@@ -80,23 +97,26 @@ impl RuntimePrepareCollector for ParticleRuntimePrepareCollector {
     }
 }
 
-fn particle_runtime_prepare_collector(
+fn collect_neutral_particle_gpu_runtime_prepare(
     context: &mut RuntimePrepareCollectorContext<'_>,
+    runtime_owner: &ParticleGpuRuntimeOwnerHandle,
 ) -> Result<RenderPluginRendererOutputs, GraphicsError> {
-    let Some(frame) = context
-        .frame_extract()
-        .particles
-        .gpu_frame
-        .as_ref()
-        .cloned()
-    else {
+    let mut owner = runtime_owner
+        .lock()
+        .map_err(|error| GraphicsError::Asset(error.to_string()))?;
+    owner.deactivate();
+    let Some(frame) = context.frame_extract().particles.gpu_frame.as_ref() else {
         return Ok(RenderPluginRendererOutputs::default());
     };
 
-    register_neutral_particle_external_buffers(context, &frame);
+    if let Some(bindings) =
+        owner.prepare_neutral_frame(context.device, context.queue, context.encoder, frame)
+    {
+        register_neutral_particle_external_buffers(context, bindings);
+    }
 
     Ok(RenderPluginRendererOutputs {
-        particles: readback_outputs_from_frame(&frame),
+        particles: neutral_readback_outputs_from_frame(frame),
         ..RenderPluginRendererOutputs::default()
     })
 }
@@ -113,10 +133,22 @@ fn collect_real_particle_gpu_runtime_prepare(
             .lock()
             .map_err(|_| GraphicsError::BufferMap("particle readback queue lock poisoned".into()))?
             .clear();
-        return particle_runtime_prepare_collector(context);
+        return collect_neutral_particle_gpu_runtime_prepare(context, runtime_owner);
     }
 
     let completed_outputs = take_completed_particle_readback(pending_readbacks)?;
+    if !context.gpu_work_admitted() {
+        let owner = runtime_owner
+            .lock()
+            .map_err(|error| GraphicsError::Asset(error.to_string()))?;
+        if let Ok(bindings) = owner.active_bindings() {
+            register_real_particle_external_buffers(context, bindings);
+        }
+        return Ok(RenderPluginRendererOutputs {
+            particles: completed_outputs.unwrap_or_default(),
+            ..RenderPluginRendererOutputs::default()
+        });
+    }
     let mut owner = runtime_owner
         .lock()
         .map_err(|error| GraphicsError::Asset(error.to_string()))?;
@@ -257,94 +289,19 @@ fn register_real_particle_external_buffers(
 
 fn register_neutral_particle_external_buffers(
     context: &mut RuntimePrepareCollectorContext<'_>,
-    frame: &RenderParticleGpuFrameExtract,
+    bindings: ParticleGpuRuntimeBufferBindings<'_>,
 ) {
-    let particle_slot_count = neutral_particle_slot_count(frame);
-    let emitter_count = neutral_emitter_count(frame);
-    let particle_buffer_bytes = neutral_particle_buffer_bytes(particle_slot_count);
-    let counter_words = counter_word_count(emitter_count);
-    let counter_bytes = word_bytes(counter_words);
-    let alive_indices_bytes = word_bytes(particle_slot_count.max(1) as u64);
-    let indirect_draw_bytes = word_bytes(PARTICLE_GPU_INDIRECT_DRAW_WORDS);
-    let debug_readback_bytes = counter_bytes + indirect_draw_bytes;
-
-    let particles_a = create_external_buffer(
-        context.device,
-        "zircon-particle-runtime-prepare-particles-a",
-        particle_buffer_bytes,
-        particle_storage_usage(),
+    register_external_buffer(context, PARTICLES_A_RESOURCE, bindings.particles_a);
+    register_external_buffer(context, PARTICLES_B_RESOURCE, bindings.particles_b);
+    register_external_buffer(context, EMITTER_PARAMS_RESOURCE, bindings.emitter_params);
+    register_external_buffer(context, COUNTERS_RESOURCE, bindings.counters);
+    register_external_buffer(context, ALIVE_INDICES_RESOURCE, bindings.alive_indices);
+    register_external_buffer(
+        context,
+        INDIRECT_DRAW_ARGS_RESOURCE,
+        bindings.indirect_draw_args,
     );
-    let particles_b = create_external_buffer(
-        context.device,
-        "zircon-particle-runtime-prepare-particles-b",
-        particle_buffer_bytes,
-        particle_storage_usage(),
-    );
-    let emitter_params = create_external_buffer(
-        context.device,
-        "zircon-particle-runtime-prepare-emitter-params",
-        emitter_count.max(1) as u64 * EMITTER_PARAMS_BYTES_PER_EMITTER,
-        wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-    );
-    let counters = create_external_buffer(
-        context.device,
-        "zircon-particle-runtime-prepare-counters",
-        counter_bytes,
-        wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
-    );
-    let alive_indices = create_external_buffer(
-        context.device,
-        "zircon-particle-runtime-prepare-alive-indices",
-        alive_indices_bytes,
-        wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
-    );
-    let indirect_draw_args = create_external_buffer(
-        context.device,
-        "zircon-particle-runtime-prepare-indirect-draw-args",
-        indirect_draw_bytes,
-        wgpu::BufferUsages::STORAGE
-            | wgpu::BufferUsages::COPY_DST
-            | wgpu::BufferUsages::COPY_SRC
-            | wgpu::BufferUsages::INDIRECT,
-    );
-    let debug_readback = create_external_buffer(
-        context.device,
-        "zircon-particle-runtime-prepare-debug-readback",
-        debug_readback_bytes,
-        wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
-    );
-
-    context
-        .queue
-        .write_buffer(&counters, 0, &counter_words_for_frame(frame));
-    context.queue.write_buffer(
-        &alive_indices,
-        0,
-        &alive_index_words(frame.alive_count.min(particle_slot_count)),
-    );
-    context.queue.write_buffer(
-        &indirect_draw_args,
-        0,
-        &u32_words_to_bytes(&frame.indirect_draw_args),
-    );
-    context
-        .encoder
-        .copy_buffer_to_buffer(&counters, 0, &debug_readback, 0, counter_bytes);
-    context.encoder.copy_buffer_to_buffer(
-        &indirect_draw_args,
-        0,
-        &debug_readback,
-        counter_bytes,
-        indirect_draw_bytes,
-    );
-
-    register_external_buffer(context, PARTICLES_A_RESOURCE, &particles_a);
-    register_external_buffer(context, PARTICLES_B_RESOURCE, &particles_b);
-    register_external_buffer(context, EMITTER_PARAMS_RESOURCE, &emitter_params);
-    register_external_buffer(context, COUNTERS_RESOURCE, &counters);
-    register_external_buffer(context, ALIVE_INDICES_RESOURCE, &alive_indices);
-    register_external_buffer(context, INDIRECT_DRAW_ARGS_RESOURCE, &indirect_draw_args);
-    register_external_buffer(context, DEBUG_READBACK_RESOURCE, &debug_readback);
+    register_external_buffer(context, DEBUG_READBACK_RESOURCE, bindings.debug_readback);
 }
 
 fn register_external_buffer(
@@ -369,11 +326,37 @@ fn register_external_buffer_with_label(
     source_label: &'static str,
     buffer: &wgpu::Buffer,
 ) {
-    context.register_external_buffer_binding_with_backing(
+    let backing_name = particle_external_buffer_backing_name(logical_name, source_label);
+    context.register_static_external_buffer_binding_with_backing(
         logical_name,
-        format!("{logical_name}:runtime-prepare-{source_label}"),
+        backing_name,
         buffer,
     );
+}
+
+fn particle_external_buffer_backing_name(
+    logical_name: &'static str,
+    source_label: &'static str,
+) -> &'static str {
+    match (logical_name, source_label) {
+        (PARTICLES_A_RESOURCE, "neutral-frame") => "particles.gpu.particles-a:neutral-frame",
+        (PARTICLES_B_RESOURCE, "neutral-frame") => "particles.gpu.particles-b:neutral-frame",
+        (EMITTER_PARAMS_RESOURCE, "neutral-frame") => "particles.gpu.emitter-params:neutral-frame",
+        (COUNTERS_RESOURCE, "neutral-frame") => "particles.gpu.counters:neutral-frame",
+        (ALIVE_INDICES_RESOURCE, "neutral-frame") => "particles.gpu.alive-indices:neutral-frame",
+        (INDIRECT_DRAW_ARGS_RESOURCE, "neutral-frame") => {
+            "particles.gpu.indirect-draw-args:neutral-frame"
+        }
+        (DEBUG_READBACK_RESOURCE, "neutral-frame") => "particles.gpu.debug-readback:neutral-frame",
+        (PARTICLES_A_RESOURCE, "backend") => "particles.gpu.particles-a:backend",
+        (PARTICLES_B_RESOURCE, "backend") => "particles.gpu.particles-b:backend",
+        (EMITTER_PARAMS_RESOURCE, "backend") => "particles.gpu.emitter-params:backend",
+        (COUNTERS_RESOURCE, "backend") => "particles.gpu.counters:backend",
+        (ALIVE_INDICES_RESOURCE, "backend") => "particles.gpu.alive-indices:backend",
+        (INDIRECT_DRAW_ARGS_RESOURCE, "backend") => "particles.gpu.indirect-draw-args:backend",
+        (DEBUG_READBACK_RESOURCE, "backend") => "particles.gpu.debug-readback:backend",
+        _ => "particles.gpu.unknown:runtime-prepare",
+    }
 }
 
 fn readback_outputs_from_frame(
@@ -388,68 +371,23 @@ fn readback_outputs_from_frame(
     }
 }
 
-fn create_external_buffer(
-    device: &wgpu::Device,
-    label: &'static str,
-    size: u64,
-    usage: wgpu::BufferUsages,
-) -> wgpu::Buffer {
-    device.create_buffer(&wgpu::BufferDescriptor {
-        label: Some(label),
-        size: size.max(std::mem::size_of::<u32>() as u64),
-        usage,
-        mapped_at_creation: false,
-    })
-}
-
-fn particle_storage_usage() -> wgpu::BufferUsages {
-    wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC
-}
-
-fn neutral_particle_slot_count(frame: &RenderParticleGpuFrameExtract) -> u32 {
-    frame
-        .alive_count
-        .max(frame.spawned_total)
-        .max(frame.indirect_draw_args[1])
-        .max(1)
-}
-
-fn neutral_emitter_count(frame: &RenderParticleGpuFrameExtract) -> u32 {
-    frame.per_emitter_spawned.len().max(1) as u32
-}
-
-fn neutral_particle_buffer_bytes(slot_count: u32) -> u64 {
-    word_bytes(slot_count.max(1) as u64 * PARTICLE_WORDS_PER_NEUTRAL_SLOT as u64)
-}
-
-fn counter_word_count(emitter_count: u32) -> u64 {
-    PARTICLE_GPU_COUNTER_WORDS_BASE as u64 + emitter_count.max(1) as u64
-}
-
-fn counter_words_for_frame(frame: &RenderParticleGpuFrameExtract) -> Vec<u8> {
-    let mut words = vec![frame.alive_count, frame.spawned_total, 0, 0];
-    words.extend(frame.per_emitter_spawned.iter().copied());
-    let expected_words = counter_word_count(neutral_emitter_count(frame)) as usize;
-    if words.len() < expected_words {
-        words.resize(expected_words, 0);
+fn neutral_readback_outputs_from_frame(
+    frame: &RenderParticleGpuFrameExtract,
+) -> RenderParticleGpuReadbackOutputs {
+    let mut indirect_draw_args = frame.indirect_draw_args;
+    indirect_draw_args[1] = indirect_draw_args[1].min(PARTICLE_GPU_MAX_PARTICLES);
+    RenderParticleGpuReadbackOutputs {
+        alive_count: frame.alive_count.min(PARTICLE_GPU_MAX_PARTICLES),
+        spawned_total: frame.spawned_total.min(PARTICLE_GPU_MAX_PARTICLES),
+        debug_flags: 0,
+        per_emitter_spawned: frame
+            .per_emitter_spawned
+            .iter()
+            .take(PARTICLE_GPU_NEUTRAL_MAX_EMITTERS as usize)
+            .copied()
+            .collect(),
+        indirect_draw_args,
     }
-    u32_words_to_bytes(&words)
-}
-
-fn alive_index_words(alive_count: u32) -> Vec<u8> {
-    let words = (0..alive_count.max(1)).collect::<Vec<_>>();
-    u32_words_to_bytes(&words)
-}
-
-fn word_bytes(word_count: u64) -> u64 {
-    word_count.max(1) * std::mem::size_of::<u32>() as u64
-}
-
-fn u32_words_to_bytes(words: &[u32]) -> Vec<u8> {
-    words
-        .iter()
-        .flat_map(|word| word.to_le_bytes())
-        .collect::<Vec<_>>()
 }
 
 #[cfg(test)]
@@ -457,7 +395,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn particle_runtime_prepare_neutral_frame_sizes_cover_readback_payload() {
+    fn particle_runtime_prepare_neutral_frame_preserves_readback_payload() {
         let frame = RenderParticleGpuFrameExtract {
             alive_count: 3,
             spawned_total: 5,
@@ -465,19 +403,8 @@ mod tests {
             indirect_draw_args: [6, 3, 0, 0],
         };
 
-        assert_eq!(neutral_particle_slot_count(&frame), 5);
-        assert_eq!(neutral_emitter_count(&frame), 2);
         assert_eq!(
-            counter_word_count(neutral_emitter_count(&frame)),
-            PARTICLE_GPU_COUNTER_WORDS_BASE as u64 + 2
-        );
-        assert_eq!(
-            counter_words_for_frame(&frame),
-            u32_words_to_bytes(&[3, 5, 0, 0, 2, 3])
-        );
-        assert_eq!(alive_index_words(3), u32_words_to_bytes(&[0, 1, 2]));
-        assert_eq!(
-            readback_outputs_from_frame(&frame),
+            neutral_readback_outputs_from_frame(&frame),
             RenderParticleGpuReadbackOutputs {
                 alive_count: 3,
                 spawned_total: 5,
@@ -489,16 +416,23 @@ mod tests {
     }
 
     #[test]
-    fn particle_runtime_prepare_neutral_frame_uses_minimum_nonzero_buffers() {
-        let frame = RenderParticleGpuFrameExtract::default();
+    fn neutral_readback_never_exceeds_the_neutral_gpu_buffer_budget() {
+        let frame = RenderParticleGpuFrameExtract {
+            alive_count: PARTICLE_GPU_MAX_PARTICLES + 1,
+            spawned_total: PARTICLE_GPU_MAX_PARTICLES + 2,
+            per_emitter_spawned: vec![1; PARTICLE_GPU_NEUTRAL_MAX_EMITTERS as usize + 1],
+            indirect_draw_args: [6, PARTICLE_GPU_MAX_PARTICLES + 3, 0, 0],
+        };
 
-        assert_eq!(neutral_particle_slot_count(&frame), 1);
-        assert_eq!(neutral_emitter_count(&frame), 1);
+        let outputs = neutral_readback_outputs_from_frame(&frame);
+
+        assert_eq!(outputs.alive_count, PARTICLE_GPU_MAX_PARTICLES);
+        assert_eq!(outputs.spawned_total, PARTICLE_GPU_MAX_PARTICLES);
         assert_eq!(
-            counter_words_for_frame(&frame),
-            u32_words_to_bytes(&[0, 0, 0, 0, 0])
+            outputs.per_emitter_spawned.len(),
+            PARTICLE_GPU_NEUTRAL_MAX_EMITTERS as usize
         );
-        assert_eq!(alive_index_words(0), u32_words_to_bytes(&[0]));
+        assert_eq!(outputs.indirect_draw_args[1], PARTICLE_GPU_MAX_PARTICLES);
     }
 
     #[test]
@@ -506,5 +440,40 @@ mod tests {
         let registration = particle_runtime_prepare_collector_registration();
 
         assert_eq!(registration.collector_id(), COLLECTOR_ID);
+    }
+
+    #[test]
+    fn neutral_runtime_prepare_uses_persistent_owner_and_static_binding_ids() {
+        let source = include_str!("runtime_prepare.rs")
+            .split("\n#[cfg(test)]")
+            .next()
+            .unwrap_or_default();
+
+        assert!(source.contains("owner.prepare_neutral_frame("));
+        assert!(!source.contains("fn create_external_buffer("));
+        assert!(!source.contains("format!(\"{logical_name}:runtime-prepare"));
+        assert!(source.contains("register_static_external_buffer_binding_with_backing("));
+        assert!(source.contains("particles.gpu.indirect-draw-args:neutral-frame"));
+    }
+
+    #[test]
+    fn readback_capacity_degradation_reuses_an_executed_backend_before_compute() {
+        let source = include_str!("runtime_prepare.rs");
+        let admission_gate = ["if !context.", "gpu_work_admitted() {"].concat();
+        let retained_bindings = ["owner.", "active_bindings()"].concat();
+        let compute_execution = ["owner\n        .", "execute_instances("].concat();
+        let admission_gate = source
+            .find(&admission_gate)
+            .expect("particle runtime prepare must guard new GPU work on readback admission");
+        let retained_bindings = source[admission_gate..]
+            .find(&retained_bindings)
+            .map(|offset| admission_gate + offset)
+            .expect("capacity degradation must retain an executed backend binding");
+        let compute_execution = source
+            .find(&compute_execution)
+            .expect("particle runtime prepare must retain its GPU compute path");
+
+        assert!(admission_gate < retained_bindings);
+        assert!(retained_bindings < compute_execution);
     }
 }

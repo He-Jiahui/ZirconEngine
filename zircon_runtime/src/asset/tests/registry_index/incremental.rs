@@ -1,7 +1,7 @@
 use crate::asset::registry::AssetRegistryIndex;
 use crate::asset::watch::{AssetChange, AssetChangeKind};
 use crate::asset::{AssetKind, AssetUuid};
-use crate::core::resource::io::atomic_file::AtomicWriteFault;
+use crate::core::resource::io::AtomicWriteFault;
 
 use super::{registry_root, unique_root, uri, write_asset};
 
@@ -228,16 +228,12 @@ fn removed_source_deletes_all_subassets_and_reverse_edges() {
         )
         .unwrap();
 
-    assert!(
-        index
-            .resolve_asset_id_by_path(&uri("res://bundles/atlas.multi"))
-            .is_err()
-    );
-    assert!(
-        index
-            .resolve_asset_id_by_path(&uri("res://bundles/atlas.multi#Sprite"))
-            .is_err()
-    );
+    assert!(index
+        .resolve_asset_id_by_path(&uri("res://bundles/atlas.multi"))
+        .is_err());
+    assert!(index
+        .resolve_asset_id_by_path(&uri("res://bundles/atlas.multi#Sprite"))
+        .is_err());
     assert!(index.get_referencers_by_uuid(subasset_uuid).is_empty());
     assert!(index.get_dependencies_by_uuid(material_uuid).is_empty());
     std::fs::remove_dir_all(project).unwrap();
@@ -274,11 +270,9 @@ fn renamed_source_releases_previous_path_and_preserves_guid() {
         )
         .unwrap();
 
-    assert!(
-        index
-            .resolve_asset_id_by_path(&uri("res://data/old.data"))
-            .is_err()
-    );
+    assert!(index
+        .resolve_asset_id_by_path(&uri("res://data/old.data"))
+        .is_err());
     assert_eq!(
         index.resolve_asset_id_by_path(&uri("res://data/new.data")),
         Ok(crate::asset::AssetId::from_asset_uuid(uuid))

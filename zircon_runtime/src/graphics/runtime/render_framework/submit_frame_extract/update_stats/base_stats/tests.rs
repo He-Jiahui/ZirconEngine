@@ -161,7 +161,8 @@ fn update_visibility_static_index_stats_records_latest_report() {
 #[test]
 fn update_hzb_occlusion_stats_records_latest_cull_report() {
     let mut stats = RenderStats::default();
-    let report = HzbOcclusionCullReport::single_frame_reproject(6, 42, 2, 1, true);
+    let report = HzbOcclusionCullReport::single_frame_reproject(6, 42, 2, 1, true)
+        .with_workspace_stats(1, 32, 1);
 
     update_hzb_occlusion_stats(&mut stats, Some(report));
 
@@ -170,6 +171,9 @@ fn update_hzb_occlusion_stats_records_latest_cull_report() {
     assert_eq!(stats.last_hzb_occlusion_candidate_instance_count, 42);
     assert_eq!(stats.last_hzb_occlusion_dispatch_group_count, 2);
     assert_eq!(stats.last_hzb_occlusion_dispatched_phase_count, 1);
+    assert_eq!(stats.last_hzb_occlusion_params_buffer_create_count, 1);
+    assert_eq!(stats.last_hzb_occlusion_params_upload_byte_count, 32);
+    assert_eq!(stats.last_hzb_occlusion_bind_group_create_count, 1);
     assert!(stats.last_hzb_occlusion_history_available);
     assert!(!stats.last_hzb_occlusion_readback_available);
 }
@@ -226,6 +230,9 @@ fn update_hzb_occlusion_stats_resets_when_no_report() {
         last_hzb_occlusion_candidate_instance_count: 42,
         last_hzb_occlusion_dispatch_group_count: 2,
         last_hzb_occlusion_dispatched_phase_count: 1,
+        last_hzb_occlusion_params_buffer_create_count: 1,
+        last_hzb_occlusion_params_upload_byte_count: 32,
+        last_hzb_occlusion_bind_group_create_count: 1,
         last_hzb_occlusion_history_available: true,
         last_hzb_occlusion_readback_available: true,
         last_hzb_occlusion_readback_source_frame_index: Some(6),
@@ -252,6 +259,9 @@ fn update_hzb_occlusion_stats_resets_when_no_report() {
     assert_eq!(stats.last_hzb_occlusion_candidate_instance_count, 0);
     assert_eq!(stats.last_hzb_occlusion_dispatch_group_count, 0);
     assert_eq!(stats.last_hzb_occlusion_dispatched_phase_count, 0);
+    assert_eq!(stats.last_hzb_occlusion_params_buffer_create_count, 0);
+    assert_eq!(stats.last_hzb_occlusion_params_upload_byte_count, 0);
+    assert_eq!(stats.last_hzb_occlusion_bind_group_create_count, 0);
     assert!(!stats.last_hzb_occlusion_history_available);
     assert!(!stats.last_hzb_occlusion_readback_available);
     assert_eq!(stats.last_hzb_occlusion_readback_source_frame_index, None);

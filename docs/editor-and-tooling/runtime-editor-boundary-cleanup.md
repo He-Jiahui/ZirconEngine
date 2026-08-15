@@ -49,7 +49,7 @@ related_code:
   - zircon_plugins/physics/runtime/src/runtime_system.rs
   - zircon_runtime/src/scene/world/property_access/mod.rs
   - zircon_runtime/src/scene/world/property_access/path_resolution.rs
-  - zircon_runtime/src/animation/sequence/apply.rs
+  - zircon_runtime/src/animation/sequence/compiled.rs
   - zircon_runtime/src/animation/sequence/target.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
   - zircon_runtime/src/scene/world/render.rs
@@ -109,7 +109,7 @@ implementation_files:
   - zircon_plugins/physics/runtime/src/runtime_system.rs
   - zircon_runtime/src/scene/world/property_access/mod.rs
   - zircon_runtime/src/scene/world/property_access/path_resolution.rs
-  - zircon_runtime/src/animation/sequence/apply.rs
+  - zircon_runtime/src/animation/sequence/compiled.rs
   - zircon_runtime/src/animation/sequence/target.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
   - zircon_runtime/src/scene/world/render.rs

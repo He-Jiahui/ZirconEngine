@@ -204,6 +204,20 @@ impl UiSurface {
         }
     }
 
+    /// Publishes geometry already authored in each node's layout cache and prepares the
+    /// surface for subsequent node-local incremental layout updates at the same root size.
+    pub fn rebuild_authored_frames(&mut self, root_size: UiSize) {
+        self.rebuild();
+        self.last_layout_root_size = Some(root_size);
+        self.dirty_index_initialized = true;
+        let _ = self
+            .invalidation
+            .commit_pending()
+            .expect("surface-owned invalidation transaction must use the current generation");
+        self.clear_dirty_flags();
+        self.reset_pending_pool_report();
+    }
+
     pub fn dirty_flags(&self) -> UiDirtyFlags {
         let mut dirty_candidates = self.dirty_node_ids.clone();
         dirty_candidates.extend(self.invalidation.pending_changed_node_ids());

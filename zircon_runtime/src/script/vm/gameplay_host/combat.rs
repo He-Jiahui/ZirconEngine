@@ -1,38 +1,42 @@
 use crate::core::framework::animation::AnimationParameterValue;
-use crate::core::framework::script::{ScriptHostCallFrame, ScriptHostError, ScriptHostValue};
+use crate::core::framework::script::{
+    ScriptHostCallFrame, ScriptHostError, ScriptHostHotPathMetrics, ScriptHostValue,
+};
 use crate::script::runtime_context_for_frame;
-use crate::script::vm::scene_hook::script_binding_number_for_entity;
+use crate::script::vm::scene_system::script_binding_number_for_entity;
 
 use super::error::GameplayHostResult;
 use super::script_bindings::{
     apply_damage_to_script_health, apply_heal_to_script_health, SCRIPT_BINDINGS_COMPONENT,
 };
 use super::values::{
-    expect_bool, expect_entity, expect_float, expect_string, to_json_string, vec3_to_array,
+    expect_bool, expect_entity, expect_float, to_json_string, vec3_to_array, with_string,
 };
 
 pub(super) fn set_animation_bool(
     context: &ScriptHostCallFrame<'_>,
 ) -> Result<ScriptHostValue, ScriptHostError> {
     let entity = expect_entity(context, 0)?;
-    let parameter = expect_string(context, 1)?;
     let value = expect_bool(context, 2)?;
     let runtime = runtime_context_for_frame(context)?;
-    let result = runtime
-        .level
-        .with_world_mut(|world| -> GameplayHostResult<bool> {
-            let Some(mut player) = world.animation_state_machine_player(entity).cloned() else {
-                return Ok(false);
-            };
-            player
-                .parameters
-                .insert(parameter.to_owned(), AnimationParameterValue::Bool(value));
-            world.set_animation_state_machine_player(entity, Some(player))?;
-            Ok(true)
-        });
-    result
-        .map(ScriptHostValue::Bool)
-        .map_err(ScriptHostError::from)
+    with_string(context, 1, |parameter: &str| {
+        let result = runtime
+            .level
+            .with_world_mut(|world| -> GameplayHostResult<bool> {
+                let Some(mut player) = world.animation_state_machine_player(entity).cloned() else {
+                    return Ok(false);
+                };
+                ScriptHostHotPathMetrics::record_guest_string_copy(parameter.len());
+                player
+                    .parameters
+                    .insert(parameter.to_owned(), AnimationParameterValue::Bool(value));
+                world.set_animation_state_machine_player(entity, Some(player))?;
+                Ok(true)
+            });
+        result
+            .map(ScriptHostValue::Bool)
+            .map_err(ScriptHostError::from)
+    })
 }
 
 pub(super) fn damage_entity(
@@ -55,7 +59,8 @@ pub(super) fn damage_entity(
                 return Ok(false);
             };
             if remaining_health <= f64::EPSILON {
-                Ok(world.remove_entity(entity))
+                world.remove_entity(entity)?;
+                Ok(true)
             } else {
                 world.set_dynamic_component(entity, SCRIPT_BINDINGS_COMPONENT, bindings)?;
                 Ok(true)
@@ -129,7 +134,7 @@ pub(super) fn damage_entity_report(
             };
             let killed = remaining_health <= f64::EPSILON;
             if killed {
-                world.remove_entity(entity);
+                world.remove_entity(entity)?;
             } else {
                 world.set_dynamic_component(entity, SCRIPT_BINDINGS_COMPONENT, bindings)?;
             }

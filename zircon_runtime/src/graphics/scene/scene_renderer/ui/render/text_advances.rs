@@ -7,7 +7,7 @@ use crate::core::framework::text::{
 };
 use crate::text::font::shared_font_database_generation;
 use crate::text::{
-    ShapedGlyphRotation, rebuild_resolved_text_glyph_artifact_line, shared_text_layout_service,
+    rebuild_resolved_text_glyph_artifact_line, shared_text_layout_service, ShapedGlyphRotation,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -114,12 +114,15 @@ pub(in crate::graphics::scene::scene_renderer::ui) fn refresh_screen_space_text_
             return;
         }
         // Rebind the whole Text02 line after a font generation swap; never shape a visual run.
-        let Some(line) = rebuild_resolved_text_glyph_artifact_line(
+        let Some((line, generation)) = rebuild_resolved_text_glyph_artifact_line(
             artifact_line.artifact.as_ref(),
             artifact_line.line_index,
         ) else {
             return;
         };
+        if shared_font_database_generation() != generation {
+            return;
+        }
         artifact_line.refreshed_line = Some(line);
         artifact_line.font_generation = generation;
         return;
@@ -349,7 +352,11 @@ fn sanitized_advance(value: f32) -> f32 {
 }
 
 fn sanitized_position(value: f32) -> f32 {
-    if value.is_finite() { value } else { 0.0 }
+    if value.is_finite() {
+        value
+    } else {
+        0.0
+    }
 }
 
 #[cfg(all(test, target_os = "windows"))]

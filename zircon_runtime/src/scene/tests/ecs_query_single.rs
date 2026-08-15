@@ -1,6 +1,6 @@
-use crate::scene::World;
 use crate::scene::components::Name;
 use crate::scene::ecs::{Component, QuerySingleError, QueryState, SystemState};
+use crate::scene::World;
 
 #[derive(Debug, PartialEq, Eq)]
 struct Health(u32);

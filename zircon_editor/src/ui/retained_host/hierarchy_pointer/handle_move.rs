@@ -12,7 +12,9 @@ impl HierarchyPointerBridge {
         point: UiPoint,
     ) -> Result<HierarchyPointerDispatch, String> {
         self.refresh_row_metrics();
-        let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Move, point))?;
+        let dispatched_route =
+            self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Move, point))?;
+        let route = self.project_route_at_point(dispatched_route, point);
         match route.as_ref() {
             Some(HierarchyPointerRoute::Node { item_index, .. }) => {
                 self.state.hovered_item_index = Some(*item_index);

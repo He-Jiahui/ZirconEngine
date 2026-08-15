@@ -47,4 +47,16 @@ fn runtime_entry_delegates_window_status_forwarding_to_lifecycle_module() {
             "runtime entry should keep window status event forwarding source-visible",
         );
     }
+
+    assert_source_order(
+        runtime_window_lifecycle_source.as_str(),
+        &[
+            "fn handle_window_occluded",
+            "if self.frame_cadence.set_window_occluded(occluded)",
+            "self.request_runtime_frame();",
+            "ZrRuntimeEventV1::window_occluded",
+            "self.dispatch_runtime_event(event_loop, event);",
+        ],
+        "occlusion must update the cadence owner before the runtime status event is dispatched",
+    );
 }

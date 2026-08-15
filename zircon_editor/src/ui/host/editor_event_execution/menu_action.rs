@@ -1,11 +1,11 @@
 use std::path::{Path, PathBuf};
 
 use zircon_runtime::asset::project::ProjectPaths;
-use zircon_runtime::diagnostic_log::write_log;
 
 use crate::core::editing::engine::{HistoryContextId, HistorySaveMarkOutcome};
 use crate::core::editing::intent::EditorIntent;
 use crate::core::editor_event::{EditorEventEffect, MenuAction};
+use crate::core::logging::{EditorLogService, LogEntry, LogSeverity, LogSource};
 use crate::core::play::{PlayKind, PlaySceneSource, PlayStartRequest};
 use crate::ui::host::EditorHostEventController;
 use crate::ui::workbench::layout::LayoutCommand;
@@ -65,8 +65,9 @@ pub(super) fn execute_menu_action(
                 .capture_save_token(HistoryContextId::Global)
                 .map_err(|error| error.to_string())?;
             let save_token_generation = save_token.generation();
-            write_log(
-                "editor_project_save",
+            emit_project_save_log(
+                controller.context().logs(),
+                LogSeverity::Info,
                 project_save_started_diagnostic(
                     &path,
                     pre_save_dirty,
@@ -78,16 +79,18 @@ pub(super) fn execute_menu_action(
                 Some(scene) => scene,
                 None => {
                     let error = "No project open";
-                    write_log(
-                        "editor_project_save",
+                    emit_project_save_log(
+                        controller.context().logs(),
+                        LogSeverity::Error,
                         project_save_failed_diagnostic(&path, "resolve_scene", error),
                     );
                     return Err(error.to_string());
                 }
             };
             if let Err(error) = shell.manager.save_project(&path, &scene) {
-                write_log(
-                    "editor_project_save",
+                emit_project_save_log(
+                    controller.context().logs(),
+                    LogSeverity::Error,
                     project_save_failed_diagnostic(&path, "persist", &error),
                 );
                 return Err(error.to_string());
@@ -96,8 +99,9 @@ pub(super) fn execute_menu_action(
                 match transactions.mark_saved_if_unchanged(HistoryContextId::Global, save_token) {
                     Ok(outcome) => outcome,
                     Err(error) => {
-                        write_log(
-                            "editor_project_save",
+                        emit_project_save_log(
+                            controller.context().logs(),
+                            LogSeverity::Error,
                             project_save_failed_diagnostic(&path, "mark_saved", &error),
                         );
                         return Err(error.to_string());
@@ -106,8 +110,9 @@ pub(super) fn execute_menu_action(
             let persisted_generation = transactions
                 .history_generation_snapshot(HistoryContextId::Global)
                 .ok();
-            write_log(
-                "editor_project_save",
+            emit_project_save_log(
+                controller.context().logs(),
+                LogSeverity::Info,
                 project_save_completed_diagnostic(
                     &path,
                     pre_save_dirty_generation,
@@ -167,12 +172,20 @@ pub(super) fn execute_menu_action(
                 ],
             })
         }
-        MenuAction::ClearConsole => Ok(ExecutionOutcome {
-            changed: shell.state.clear_console_history(),
+        MenuAction::ClearConsole => {
+            let cleared_logs = controller.context().logs().clear();
+            let cleared_legacy_output = shell.state.clear_console_history();
+            Ok(ExecutionOutcome {
+                changed: cleared_logs != 0 || cleared_legacy_output,
+                effects: vec![EditorEventEffect::PresentationChanged],
+            })
+        }
+        MenuAction::SetConsoleMessageFilter(filter) => Ok(ExecutionOutcome {
+            changed: shell.set_console_message_filter(*filter),
             effects: vec![EditorEventEffect::PresentationChanged],
         }),
-        MenuAction::SetConsoleMessageFilter(filter) => Ok(ExecutionOutcome {
-            changed: shell.state.set_console_message_filter(*filter),
+        MenuAction::SetConsoleSourceFilter(filter) => Ok(ExecutionOutcome {
+            changed: shell.set_console_source_filter(*filter),
             effects: vec![EditorEventEffect::PresentationChanged],
         }),
         MenuAction::SelectPlayMode(kind) => {
@@ -209,6 +222,7 @@ pub(super) fn execute_menu_action(
                     Ok(transition) => {
                         let backend_attachable = transition.backend_attachable;
                         let backend_diagnostics = transition.backend_diagnostics;
+                        controller.log_play_backend_diagnostics(&backend_diagnostics);
                         let report = transition.activation;
                         let is_clean = report.is_clean();
                         shell
@@ -338,6 +352,31 @@ pub(super) fn execute_menu_action(
     }
 }
 
+// Saving runs outside a retained-host render-frame callback, so no frame is available to record.
+const UNKNOWN_PROJECT_SAVE_LOG_FRAME: u64 = 0;
+
+fn emit_project_save_log(logs: &EditorLogService, severity: LogSeverity, message: String) {
+    let entry = LogEntry::new(
+        LogSource::editor(),
+        severity,
+        message,
+        UNKNOWN_PROJECT_SAVE_LOG_FRAME,
+        None,
+    )
+    .or_else(|_| {
+        LogEntry::new(
+            LogSource::editor(),
+            severity,
+            "editor_project_save diagnostic exceeds the log-entry limit.",
+            UNKNOWN_PROJECT_SAVE_LOG_FRAME,
+            None,
+        )
+    });
+    if let Ok(entry) = entry {
+        let _ = logs.emit(entry);
+    }
+}
+
 fn project_save_started_diagnostic(
     path: &Path,
     pre_save_dirty: bool,
@@ -385,6 +424,7 @@ mod tests {
     use std::path::Path;
 
     use crate::core::editing::engine::HistorySaveMarkOutcome;
+    use crate::core::logging::{EditorLogService, LogFilter, LogSeverity, LogSource};
 
     use super::{
         project_save_completed_diagnostic, project_save_failed_diagnostic,
@@ -420,6 +460,42 @@ mod tests {
 
         let resolve_failure = project_save_failed_diagnostic(path, "resolve_scene", "no project");
         assert!(resolve_failure.contains("phase=resolve_scene"));
+    }
+
+    #[test]
+    fn project_save_lifecycle_diagnostics_enter_the_editor_log_service() {
+        let logs = EditorLogService::default();
+        let diagnostic = project_save_started_diagnostic(Path::new("C:/projects/demo"), true, 9, 9);
+
+        super::emit_project_save_log(&logs, LogSeverity::Info, diagnostic);
+
+        let records = logs.snapshot(&LogFilter::default());
+        assert_eq!(records.len(), 1);
+        let entry = records[0].entry();
+        assert_eq!(entry.source(), &LogSource::editor());
+        assert_eq!(entry.severity(), LogSeverity::Info);
+        assert_eq!(entry.timestamp_frame(), 0);
+        assert!(entry
+            .message()
+            .contains("editor_project_save result=started"));
+        assert!(entry.message().contains("save_token_generation=9"));
+    }
+
+    #[test]
+    fn oversized_project_save_diagnostic_preserves_its_error_severity_in_the_fallback() {
+        let logs = EditorLogService::default();
+
+        super::emit_project_save_log(&logs, LogSeverity::Error, "x".repeat(9 * 1024));
+
+        let records = logs.snapshot(&LogFilter::default());
+        assert_eq!(records.len(), 1);
+        let entry = records[0].entry();
+        assert_eq!(entry.source(), &LogSource::editor());
+        assert_eq!(entry.severity(), LogSeverity::Error);
+        assert_eq!(
+            entry.message(),
+            "editor_project_save diagnostic exceeds the log-entry limit."
+        );
     }
 
     #[cfg(windows)]

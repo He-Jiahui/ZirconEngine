@@ -1,53 +1,74 @@
 use crate::core::framework::render::{ComputeDispatchPlan, ShaderDispatchExtent};
 use crate::rhi::{BufferDesc, TextureDesc};
+use zircon_runtime_interface::resource::AssetReference;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct RenderPassId(pub(crate) usize);
+pub struct RenderPassId(pub(crate) usize, pub(crate) u64);
 
 impl RenderPassId {
+    pub(crate) const fn from_index(index: usize, generation: u64) -> Self {
+        Self(index, generation)
+    }
+
     pub const fn index(self) -> usize {
         self.0
     }
+
+    pub(crate) const fn generation(self) -> u64 {
+        self.1
+    }
 }
 
-/// Stable logical texture handle allocated by `RenderGraphBuilder`.
+/// Builder-scoped logical texture handle allocated by `RenderGraphBuilder`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct RgTextureHandle(pub(crate) usize);
+pub struct RgTextureHandle(pub(crate) usize, pub(crate) u64);
 
 impl RgTextureHandle {
-    pub(crate) const fn from_index(index: usize) -> Self {
-        Self(index)
+    pub(crate) const fn from_index(index: usize, generation: u64) -> Self {
+        Self(index, generation)
     }
 
     pub const fn index(self) -> usize {
         self.0
     }
+
+    pub(crate) const fn generation(self) -> u64 {
+        self.1
+    }
 }
 
-/// Stable logical buffer handle allocated by `RenderGraphBuilder`.
+/// Builder-scoped logical buffer handle allocated by `RenderGraphBuilder`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct RgBufferHandle(pub(crate) usize);
+pub struct RgBufferHandle(pub(crate) usize, pub(crate) u64);
 
 impl RgBufferHandle {
-    pub(crate) const fn from_index(index: usize) -> Self {
-        Self(index)
+    pub(crate) const fn from_index(index: usize, generation: u64) -> Self {
+        Self(index, generation)
     }
 
     pub const fn index(self) -> usize {
         self.0
+    }
+
+    pub(crate) const fn generation(self) -> u64 {
+        self.1
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct ExternalResource(pub(crate) usize);
+pub struct ExternalResource(pub(crate) usize, pub(crate) u64);
 
 impl ExternalResource {
-    pub(crate) const fn from_index(index: usize) -> Self {
-        Self(index)
+    pub(crate) const fn from_index(index: usize, generation: u64) -> Self {
+        Self(index, generation)
     }
 
     pub const fn index(self) -> usize {
         self.0
+    }
+
+    pub(crate) const fn generation(self) -> u64 {
+        self.1
     }
 }
 
@@ -65,6 +86,27 @@ impl RenderGraphResource {
             Self::TransientBuffer(_) => RenderGraphResourceKind::TransientBuffer,
             Self::External(_) => RenderGraphResourceKind::External,
         }
+    }
+}
+
+/// Immutable logical value identity produced by a render graph resource write.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct RenderGraphResourceVersion {
+    resource: RenderGraphResource,
+    ordinal: u64,
+}
+
+impl RenderGraphResourceVersion {
+    pub(crate) const fn new(resource: RenderGraphResource, ordinal: u64) -> Self {
+        Self { resource, ordinal }
+    }
+
+    pub const fn resource(self) -> RenderGraphResource {
+        self.resource
+    }
+
+    pub const fn ordinal(self) -> u64 {
+        self.ordinal
     }
 }
 
@@ -281,15 +323,118 @@ pub struct RenderGraphPassResourceAccess {
     pub attachment_ops: Option<RenderGraphAttachmentOps>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ComputeBindingKind {
+    UniformBuffer,
+    StorageBufferRead,
+    StorageBufferReadWrite,
+    SampledTexture,
+    StorageTextureWrite,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BindingSchemaEntry {
+    pub binding: u32,
+    pub resource: String,
+    pub kind: ComputeBindingKind,
+    /// `None` binds the resource's default view; `Some` binds exactly one owned texture mip.
+    pub texture_mip_level: Option<u32>,
+    /// Requests an owned texture view spanning all mips when available; imported textures retain
+    /// their default view because their backing mip topology is not owned by the render graph.
+    pub texture_full_mip_chain: bool,
+    /// `None` binds the whole buffer; `Some` binds from a device-aligned byte offset.
+    pub buffer_offset: Option<u64>,
+}
+
+impl BindingSchemaEntry {
+    pub fn new(binding: u32, resource: impl Into<String>, kind: ComputeBindingKind) -> Self {
+        Self {
+            binding,
+            resource: resource.into(),
+            kind,
+            texture_mip_level: None,
+            texture_full_mip_chain: false,
+            buffer_offset: None,
+        }
+    }
+
+    pub fn with_texture_mip_level(mut self, mip_level: u32) -> Self {
+        self.texture_mip_level = Some(mip_level);
+        self.texture_full_mip_chain = false;
+        self
+    }
+
+    pub fn with_texture_full_mip_chain(mut self) -> Self {
+        self.texture_mip_level = None;
+        self.texture_full_mip_chain = true;
+        self
+    }
+
+    pub fn with_buffer_offset(mut self, offset: u64) -> Self {
+        self.buffer_offset = Some(offset);
+        self
+    }
+}
+
+/// Graph-owned execution payload lowered from a graphics compute descriptor.
+/// It deliberately contains no WGPU objects so compiled graphs stay reusable.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum RenderGraphComputeShaderSource {
+    Wgsl { label: String, source: String },
+    Asset { asset: AssetReference },
+}
+
+impl RenderGraphComputeShaderSource {
+    pub fn wgsl(label: impl Into<String>, source: impl Into<String>) -> Self {
+        Self::Wgsl {
+            label: label.into(),
+            source: source.into(),
+        }
+    }
+
+    pub fn asset(asset: AssetReference) -> Self {
+        Self::Asset { asset }
+    }
+}
+
+/// The concrete compute payload paired with a pass workload in a compiled graph.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RenderGraphComputePassMetadata {
+    pub shader: RenderGraphComputeShaderSource,
+    pub entry_point: String,
+    pub bindings: Vec<BindingSchemaEntry>,
+}
+
+impl RenderGraphComputePassMetadata {
+    pub fn new(
+        shader: RenderGraphComputeShaderSource,
+        entry_point: impl Into<String>,
+        bindings: Vec<BindingSchemaEntry>,
+    ) -> Self {
+        Self {
+            shader,
+            entry_point: entry_point.into(),
+            bindings,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RenderGraphComputeDispatchExtent {
-    Viewport,
     ClusterGrid,
     FroxelGrid,
     FroxelGridXy,
     HzbFurthest,
     IndirectArgs,
     Fixed([u32; 3]),
+    FromBuffer {
+        buffer: String,
+        offset: u64,
+    },
+    PerPixel {
+        target: String,
+        local_size: [u32; 2],
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -312,14 +457,6 @@ impl RenderGraphComputeWorkload {
             workgroup_size,
             dispatch_extent,
         }
-    }
-
-    pub fn viewport(pipeline_label: impl Into<String>, workgroup_size: [u32; 3]) -> Self {
-        Self::new(
-            pipeline_label,
-            workgroup_size,
-            RenderGraphComputeDispatchExtent::Viewport,
-        )
     }
 
     pub fn cluster_grid(pipeline_label: impl Into<String>, workgroup_size: [u32; 3]) -> Self {
@@ -374,6 +511,38 @@ impl RenderGraphComputeWorkload {
         )
     }
 
+    pub fn from_buffer(
+        pipeline_label: impl Into<String>,
+        workgroup_size: [u32; 3],
+        buffer: impl Into<String>,
+        offset: u64,
+    ) -> Self {
+        Self::new(
+            pipeline_label,
+            workgroup_size,
+            RenderGraphComputeDispatchExtent::FromBuffer {
+                buffer: buffer.into(),
+                offset,
+            },
+        )
+    }
+
+    pub fn per_pixel(
+        pipeline_label: impl Into<String>,
+        workgroup_size: [u32; 3],
+        target: impl Into<String>,
+        local_size: [u32; 2],
+    ) -> Self {
+        Self::new(
+            pipeline_label,
+            workgroup_size,
+            RenderGraphComputeDispatchExtent::PerPixel {
+                target: target.into(),
+                local_size,
+            },
+        )
+    }
+
     pub fn from_shader_dispatch(dispatch: &ComputeDispatchPlan) -> Self {
         Self::new(
             dispatch.pipeline_label.clone(),
@@ -385,7 +554,6 @@ impl RenderGraphComputeWorkload {
 
 fn render_graph_dispatch_extent(extent: ShaderDispatchExtent) -> RenderGraphComputeDispatchExtent {
     match extent {
-        ShaderDispatchExtent::Viewport => RenderGraphComputeDispatchExtent::Viewport,
         ShaderDispatchExtent::ClusterGrid => RenderGraphComputeDispatchExtent::ClusterGrid,
         ShaderDispatchExtent::HzbFurthest => RenderGraphComputeDispatchExtent::HzbFurthest,
         ShaderDispatchExtent::IndirectArgs => RenderGraphComputeDispatchExtent::IndirectArgs,

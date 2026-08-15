@@ -103,9 +103,9 @@ mod tests {
     };
 
     use super::{
-        BINDLESS_MATERIAL_MAX_SLOT_COUNT, BINDLESS_MATERIAL_REQUIRED_FEATURES,
-        GPU_TIMESTAMP_REQUIRED_FEATURES, REQUIRED_RENDER_BIND_GROUP_LIMIT,
-        required_render_features, required_render_limits,
+        required_render_features, required_render_limits, BINDLESS_MATERIAL_MAX_SLOT_COUNT,
+        BINDLESS_MATERIAL_REQUIRED_FEATURES, GPU_TIMESTAMP_REQUIRED_FEATURES,
+        REQUIRED_RENDER_BIND_GROUP_LIMIT,
     };
 
     #[test]

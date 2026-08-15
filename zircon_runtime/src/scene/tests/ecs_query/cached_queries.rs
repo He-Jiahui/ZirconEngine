@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn query_state_cached_iteration_rebuilds_only_for_structural_changes() {
+fn query_state_cached_iteration_rebuilds_only_for_new_matching_archetypes() {
     let mut world = World::empty();
     let player = world
         .spawn((Name("Player".to_string()), Health(10), Player))
@@ -11,23 +11,11 @@ fn query_state_cached_iteration_rebuilds_only_for_structural_changes() {
         .unwrap();
 
     let mut query = world.query_filtered::<(EntityId, &Health), Without<Enemy>>();
-    let health_id = world.registered_component_id::<Health>().unwrap();
     assert_eq!(query.cache_rebuilds(), 1);
     assert_eq!(query.cached_entity_count(), 1);
-    assert_eq!(query.cached_location_count(), 1);
-    assert_eq!(
-        query.cached_locations()[0],
-        world.internal_entity_location(player).unwrap()
-    );
-    assert_eq!(
-        cached_component_locations_for(&query, 0),
-        &[ComponentStorageLocation {
-            component_id: health_id,
-            storage_type: StorageType::Table,
-            entity: world.internal_entity(player).unwrap(),
-            table_row: Some(0),
-        }]
-    );
+    assert_eq!(query.cached_archetype_count(), 1);
+    assert_eq!(query.cached_archetype_plans()[0].bindings().len(), 1);
+    assert!(format!("{:?}", query.cached_archetype_plans()[0].bindings()).contains("Table"));
     let initial_revision = query.cached_revision();
 
     let first = query
@@ -53,23 +41,7 @@ fn query_state_cached_iteration_rebuilds_only_for_structural_changes() {
         .collect::<Vec<_>>();
     assert_eq!(after_spawn, vec![(player, 11), (prop, 2)]);
     assert_eq!(query.cache_rebuilds(), 2);
-    assert_eq!(
-        query
-            .cached_locations()
-            .iter()
-            .map(|location| location.stable_id)
-            .collect::<Vec<_>>(),
-        vec![player, prop]
-    );
-    assert_eq!(
-        (0..query.cached_location_count())
-            .map(|index| cached_component_locations_for(&query, index)[0].entity)
-            .collect::<Vec<_>>(),
-        vec![
-            world.internal_entity(player).unwrap(),
-            world.internal_entity(prop).unwrap()
-        ]
-    );
+    assert_eq!(query.cached_entity_count(), 2);
     assert!(query.cached_revision() > initial_revision);
 
     world.remove::<Health>(player).unwrap();
@@ -78,16 +50,8 @@ fn query_state_cached_iteration_rebuilds_only_for_structural_changes() {
         .map(|(entity, health)| (entity, health.0))
         .collect::<Vec<_>>();
     assert_eq!(after_remove, vec![(prop, 2)]);
-    assert_eq!(query.cache_rebuilds(), 3);
-    assert_eq!(query.cached_location_count(), 1);
-    assert_eq!(
-        query.cached_locations()[0],
-        world.internal_entity_location(prop).unwrap()
-    );
-    assert_eq!(
-        cached_component_locations_for(&query, 0)[0].table_row,
-        Some(0)
-    );
+    assert_eq!(query.cache_rebuilds(), 2);
+    assert_eq!(query.cached_entity_count(), 1);
     assert_eq!(world.get::<Health>(enemy), Some(&Health(4)));
 }
 
@@ -244,13 +208,11 @@ fn query_state_count_and_empty_helpers_can_use_cached_candidates() {
     assert_eq!(query.count_cached(&world), 0);
     assert!(query.is_empty_cached(&world));
     assert!(!query.contains_cached(&world, player));
-    assert!(
-        query
-            .iter_many_cached(&world, [player, enemy])
-            .collect::<Vec<_>>()
-            .is_empty()
-    );
-    assert_eq!(query.cache_rebuilds(), 2);
+    assert!(query
+        .iter_many_cached(&world, [player, enemy])
+        .collect::<Vec<_>>()
+        .is_empty());
+    assert_eq!(query.cache_rebuilds(), 1);
 
     world.insert(enemy, Player).unwrap();
     assert_eq!(
@@ -316,7 +278,7 @@ fn query_state_count_and_empty_helpers_can_use_cached_candidates() {
             .map(|(entity, health)| (entity, health.0)),
         Ok((enemy, 4))
     );
-    assert_eq!(query.cache_rebuilds(), 3);
+    assert_eq!(query.cache_rebuilds(), 2);
 
     let mut optional_query = world.query::<(EntityId, Option<&Health>)>();
     assert!(optional_query.contains(&world, prop));
@@ -371,7 +333,7 @@ fn query_state_count_and_empty_helpers_can_use_cached_candidates() {
 }
 
 #[test]
-fn query_state_cached_direct_iteration_reads_storage_locations() {
+fn query_state_cached_direct_iteration_reads_compiled_archetype_slots() {
     let mut world = World::empty();
     let player = world
         .spawn((Name("Player".to_string()), Health(10), Player))
@@ -387,16 +349,15 @@ fn query_state_cached_direct_iteration_reads_storage_locations() {
         .collect::<Vec<_>>();
 
     assert_eq!(first, vec![(player, 10), (enemy, 4)]);
-    assert_eq!(query.cached_component_locations().len(), 2);
-    assert_eq!(query.cached_component_location_offsets(), &[0, 1, 2]);
+    assert_eq!(query.cached_entity_count(), 2);
+    assert_eq!(query.cached_archetype_count(), 1);
+    let bindings = query.cached_archetype_plans()[0].bindings();
+    assert_eq!(bindings.len(), 1);
     assert_eq!(
-        cached_component_locations_for(&query, 0)[0].table_row,
-        Some(0)
+        bindings[0].component_id(),
+        world.registered_component_id::<Health>().unwrap()
     );
-    assert_eq!(
-        cached_component_locations_for(&query, 1)[0].table_row,
-        Some(1)
-    );
+    assert!(format!("{:?}", bindings[0]).contains("column_slot"));
     assert_eq!(query.cache_rebuilds(), 1);
 
     world.remove::<Health>(player).unwrap();
@@ -406,12 +367,8 @@ fn query_state_cached_direct_iteration_reads_storage_locations() {
         .collect::<Vec<_>>();
 
     assert_eq!(after_remove, vec![(enemy, 4)]);
-    assert_eq!(query.cache_rebuilds(), 2);
-    assert_eq!(query.cached_component_location_offsets(), &[0, 1]);
-    assert_eq!(
-        cached_component_locations_for(&query, 0)[0].table_row,
-        Some(0)
-    );
+    assert_eq!(query.cache_rebuilds(), 1);
+    assert_eq!(query.cached_entity_count(), 1);
 }
 
 #[test]
@@ -440,7 +397,7 @@ fn query_state_cached_direct_iteration_preserves_optional_and_ref_items() {
 }
 
 #[test]
-fn query_state_cached_direct_iteration_reads_sparse_locations() {
+fn query_state_cached_direct_iteration_reads_sparse_plan_bindings() {
     let mut world = World::empty();
     let player = world
         .spawn((Name("Player".to_string()), SparseScore(3), Player))
@@ -458,25 +415,12 @@ fn query_state_cached_direct_iteration_reads_sparse_locations() {
         .collect::<Vec<_>>();
 
     assert_eq!(rows, vec![(player, 3), (enemy, 9)]);
-    assert_eq!(
-        (0..query.cached_location_count())
-            .map(|index| cached_component_locations_for(&query, index)[0])
-            .collect::<Vec<_>>(),
-        vec![
-            ComponentStorageLocation {
-                component_id: score_id,
-                storage_type: StorageType::SparseSet,
-                entity: world.internal_entity(player).unwrap(),
-                table_row: None,
-            },
-            ComponentStorageLocation {
-                component_id: score_id,
-                storage_type: StorageType::SparseSet,
-                entity: world.internal_entity(enemy).unwrap(),
-                table_row: None,
-            },
-        ]
-    );
+    assert_eq!(query.cached_entity_count(), 2);
+    assert!(query.cached_archetype_plans().iter().all(|plan| {
+        plan.bindings().len() == 1
+            && plan.bindings()[0].component_id() == score_id
+            && format!("{:?}", plan.bindings()[0]).contains("SparseSet")
+    }));
 
     world.remove::<SparseScore>(player).unwrap();
     let after_remove = query
@@ -485,15 +429,43 @@ fn query_state_cached_direct_iteration_reads_sparse_locations() {
         .collect::<Vec<_>>();
 
     assert_eq!(after_remove, vec![(enemy, 9)]);
-    assert_eq!(
-        cached_component_locations_for(&query, 0)[0],
-        ComponentStorageLocation {
-            component_id: score_id,
-            storage_type: StorageType::SparseSet,
-            entity: world.internal_entity(enemy).unwrap(),
-            table_row: None,
-        }
-    );
+    assert_eq!(query.cached_entity_count(), 1);
+}
+
+#[test]
+fn cached_sparse_optional_rows_and_tick_filters_use_compiled_locations() {
+    let mut world = World::empty();
+    let present = world
+        .spawn((Name("Present sparse score".to_string()), SparseScore(3)))
+        .unwrap();
+    let absent = world
+        .spawn((Name("Absent sparse score".to_string()),))
+        .unwrap();
+
+    let mut optional = world.query::<(EntityId, Option<&SparseScore>)>();
+    let initial = optional
+        .iter_cached(&world)
+        .map(|(entity, score)| (entity, score.map(|score| score.0)))
+        .collect::<Vec<_>>();
+    assert_eq!(initial, vec![(present, Some(3)), (absent, None)]);
+
+    world.clear_trackers();
+    world.insert(absent, SparseScore(8)).unwrap();
+    let mut added = world.query_filtered::<(EntityId, &SparseScore), Added<SparseScore>>();
+    let added_rows = added
+        .iter_cached(&world)
+        .map(|(entity, score)| (entity, score.0))
+        .collect::<Vec<_>>();
+    assert_eq!(added_rows, vec![(absent, 8)]);
+
+    world.clear_trackers();
+    world.insert(present, SparseScore(4)).unwrap();
+    let mut changed = world.query_filtered::<(EntityId, &SparseScore), Changed<SparseScore>>();
+    let changed_rows = changed
+        .iter_cached(&world)
+        .map(|(entity, score)| (entity, score.0))
+        .collect::<Vec<_>>();
+    assert_eq!(changed_rows, vec![(present, 4)]);
 }
 
 #[test]

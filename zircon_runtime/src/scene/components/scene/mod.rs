@@ -12,7 +12,7 @@ mod reflection;
 mod transform;
 
 pub use self::activation::{
-    ActiveInHierarchy, ActiveSelf, RenderLayerMask, default_render_layer_mask,
+    default_render_layer_mask, ActiveInHierarchy, ActiveSelf, RenderLayerMask,
 };
 pub use self::animation::{
     AnimationGraphPlayerComponent, AnimationPlayerComponent, AnimationSequencePlayerComponent,

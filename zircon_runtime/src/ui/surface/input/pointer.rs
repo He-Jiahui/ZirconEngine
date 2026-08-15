@@ -116,8 +116,12 @@ pub(super) fn dispatch_pointer_input(
     if clear_cursor_point_after_dispatch {
         surface.input.clear_last_cursor_point();
     }
-    let event = result.event.clone();
-    annotate_pointer_route_trace(surface, &routed_result.route, &event, &mut result);
+    annotate_pointer_route_trace(
+        surface,
+        &routed_result.route,
+        &pointer_for_text,
+        &mut result,
+    );
     annotate_result_route_steps(&mut result);
     Ok(result)
 }

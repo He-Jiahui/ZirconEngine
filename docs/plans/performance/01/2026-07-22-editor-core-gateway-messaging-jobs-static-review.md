@@ -25,7 +25,7 @@ reference_sources:
   - dev/Fyrox/editor/src/plugin.rs
 tests:
   - zircon_editor/src/core/gateway/session.rs::tests::owned_output_decode_does_not_repeat_validation
-  - zircon_editor/src/core/editor_plugin.rs::tests::descriptor_runtime_manifest_matching_uses_one_index
+  - zircon_editor/src/tests/editor_plugin_catalog_consistency.rs
   - zircon_editor/src/core/editor_extension.rs::tests::extension_registry_validation_does_not_collect_path_segments
   - zircon_editor/src/core/editor_message/inbox.rs source guards
   - zircon_editor/src/core/editor_event/retention.rs source guards

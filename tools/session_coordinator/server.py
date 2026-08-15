@@ -335,6 +335,10 @@ class CoordinatorApplication:
             "artifact.cleanup",
             "artifact.fixture_acquire",
             "artifact.fixture_release",
+            "artifact.staging_acquire",
+            "artifact.staging_begin_publish",
+            "artifact.staging_complete_publish",
+            "artifact.staging_release",
             "governance.retention.apply",
             "governance.retention.compact",
             "ownership.transfer.preview",
@@ -2036,6 +2040,37 @@ class CoordinatorApplication:
                     lease_id, owner_pid=owner_pid
                 ).to_dict()
             }
+        if name == "artifact.staging_acquire":
+            governance = self._require_artifact_governance()
+            purpose = arguments.get("purpose")
+            final_path = arguments.get("final_path")
+            owner_pid = self._artifact_owner_pid(arguments)
+            if not isinstance(purpose, str) or not isinstance(final_path, str):
+                raise CoordinatorError(
+                    "artifact_product_staging_arguments_invalid",
+                    "Product staging acquire requires purpose, final path, and owner PID",
+                )
+            return {
+                "lease": governance.acquire_product_staging(
+                    purpose, final_path=final_path, owner_pid=owner_pid
+                ).to_dict()
+            }
+        staging_transitions = {
+            "artifact.staging_begin_publish": "begin_product_staging_publish",
+            "artifact.staging_complete_publish": "complete_product_staging_publish",
+            "artifact.staging_release": "release_product_staging",
+        }
+        if name in staging_transitions:
+            governance = self._require_artifact_governance()
+            lease_id = arguments.get("lease_id")
+            owner_pid = self._artifact_owner_pid(arguments)
+            if not isinstance(lease_id, str):
+                raise CoordinatorError(
+                    "artifact_product_staging_arguments_invalid",
+                    "Product staging transition requires a lease ID and owner PID",
+                )
+            transition = getattr(governance, staging_transitions[name])
+            return {"lease": transition(lease_id, owner_pid=owner_pid).to_dict()}
         if name == "finalize.preview":
             maintenance = self._authorize_maintenance(arguments)
             preview = self.finalize.preview(
@@ -2288,6 +2323,16 @@ class CoordinatorApplication:
                 "Unmanaged artifact governance is disabled for this coordinator",
             )
         return self.artifact_governance
+
+    @staticmethod
+    def _artifact_owner_pid(arguments: dict[str, object]) -> int:
+        owner_pid = arguments.get("owner_pid")
+        if isinstance(owner_pid, bool) or not isinstance(owner_pid, int) or owner_pid <= 0:
+            raise CoordinatorError(
+                "artifact_product_staging_arguments_invalid",
+                "Product staging owner PID must be a positive integer",
+            )
+        return owner_pid
 
     def _artifact_governance_paths(self) -> list[str]:
         if self.artifact_governance is None:

@@ -185,7 +185,7 @@ The interface is deliberately narrower than the existing Rust module contracts. 
 - `handles.rs` defines zero-invalid opaque runtime, viewport, and plugin handles.
 - `status.rs` defines raw status codes and diagnostic byte payload attachment.
 - `buffer.rs` defines borrowed byte slices and plugin/runtime-owned byte buffers with explicit free callbacks.
-- `runtime_api.rs` is now a structural facade over `runtime_api/{api_table,constants,events,host_requests,operation,plugin_event_mirror,requests,viewport}.rs`. The folder defines the frozen V1 and expanded V2 runtime function-table shapes and symbols, fixed event records, viewport sizing records, native surface binding requests, runtime-to-host request DTOs, plugin-event and operation lifecycle DTOs, frame/accessibility capture requests, and typed captured-frame results.
+- `runtime_api.rs` is now a structural facade over `runtime_api/{api_table,constants,events,host_requests,operation,plugin_event_mirror,requests,viewport}.rs`. The folder defines the frozen V6 runtime function-table shape and symbol; `world_sync/**` owns transport-neutral query, watch, token, and invalidation DTOs. Together they define fixed event records, viewport sizing records, native surface binding requests, runtime-to-host request DTOs, plugin-event and operation lifecycle DTOs, frame/accessibility capture requests, and typed captured-frame results.
 - `plugin_api.rs` defines the plugin entry symbol, v1 plugin entry report shape, and optional plugin-side callback slots.
 - `plugin_events.rs` defines the generic v1 plugin event callback ABI. Subsystems such as sound project their own neutral event DTOs into namespace-tagged byte-slice requests instead of passing Rust trait objects or subsystem-owned runtime state across dynamic-library boundaries.
 - `manifest.rs` defines target mode, module kind, and module descriptor DTO seeds for later runtime/plugin adapters.
@@ -194,11 +194,11 @@ The interface is deliberately narrower than the existing Rust module contracts. 
 ## Milestone 1 Runtime Cdylib
 
 `zircon_runtime` declares `crate-type = ["rlib", "cdylib"]` and exposes only
-`zircon_runtime_get_api_v2` from `zircon_runtime::dynamic_api`. It returns the 19-field
-`ZrRuntimeApiV2` after validating `ZrHostApiV1`; the retired runtime table and entry symbol are not
+`zircon_runtime_get_api_v6` from `zircon_runtime::dynamic_api`. It returns the frozen 24-field
+`ZrRuntimeApiV6` after validating `ZrHostApiV1`; retired runtime tables and entry symbols are not
 exported or aliased.
 
-Runtime 10 M1.3 owns the final panic containment layer at that dynamic-library edge. The V2 table-acquisition export returns a null table pointer if acquisition unexpectedly unwinds, and every advertised V2 session function pointer targets an `exports.rs` `_ffi` wrapper that converts unexpected unwinds to `ZrStatusCode::Panic` instead of letting panic state cross the C ABI. The private `dynamic_api::session` and `session::operation` owner functions stay Rust-ABI `unsafe fn` so the wrapper can catch an unwind before it reaches the exported C ABI edge.
+Runtime 10 M1.3 owns the final panic containment layer at that dynamic-library edge. The V6 table-acquisition export returns a null table pointer if acquisition unexpectedly unwinds, and every advertised V6 session function pointer targets an `exports.rs` `_ffi` wrapper that converts unexpected unwinds to `ZrStatusCode::Panic` instead of letting panic state cross the C ABI. The private `dynamic_api::session` and `session::operation` owner functions stay Rust-ABI `unsafe fn` so the wrapper can catch an unwind before it reaches the exported C ABI edge.
 
 The dynamic runtime session owns the concrete runtime implementation objects that previously lived in `zircon_app` runtime preview code:
 
@@ -209,7 +209,7 @@ The dynamic runtime session owns the concrete runtime implementation objects tha
 - Input manager event routing.
 - Render framework viewport creation, extract submission, and captured-frame retrieval.
 
-`ZrRuntimeSessionConfigV1.profile` is interpreted at session creation before runtime bootstrap. Empty and `runtime` create the normal runtime preview profile, while `editor`, `dev`, `minimal`, and `headless` are accepted named profiles for host-specific policy. Unknown profile bytes are rejected as invalid arguments before allocating a dynamic session, so dev-profile behavior branches on a stable profile enum rather than string checks scattered through the runtime. The current `dev` dynamic session enables Bevy `LogDiagnosticsPlugin`-style diagnostic-store logging on a one-second runtime-owned schedule; the app host still only calls `tick_frame` and does not inspect runtime diagnostics.
+`ZrRuntimeSessionConfigV3.profile` is interpreted at session creation before runtime bootstrap. Empty and `runtime` create the normal runtime preview profile, while `editor`, `dev`, `minimal`, and `headless` are accepted named profiles for host-specific policy. Unknown profile bytes are rejected as invalid arguments before allocating a dynamic session, so dev-profile behavior branches on a stable profile enum rather than string checks scattered through the runtime. The same carrier holds one resolved physical `project_root` anchor plus optional project-relative `play_scene` and logical `play_report_pipe` startup inputs. The runtime resolves the relative scene under that root and materializes it before first-frame selection; it does not modify the project manifest. The current `dev` dynamic session enables Bevy `LogDiagnosticsPlugin`-style diagnostic-store logging on a one-second runtime-owned schedule; the app host still only calls `tick_frame` and does not inspect runtime diagnostics.
 
 The ABI boundary receives only `ZrRuntimeEventV1` values for viewport resize, pointer motion, mouse button, mouse wheel, keyboard, IME, touch, gamepad, lifecycle, accessibility action, and raw mouse motion input. It returns `ZrRuntimeFrameV1`, whose `rgba` field is a runtime-owned byte buffer with an explicit free callback.
 
@@ -217,14 +217,26 @@ The ABI boundary receives only `ZrRuntimeEventV1` values for viewport resize, po
 
 `zircon_app` runtime profile now loads runtime with `libloading` instead of bootstrapping runtime preview internals directly. The loader resolves the library path from `ZIRCON_RUNTIME_LIBRARY` first, then falls back to an executable-sibling platform name: `zircon_runtime.dll`, `libzircon_runtime.dylib`, or `libzircon_runtime.so`. Development builds launched directly from Cargo target directories also check executable-sibling `deps/<platform runtime library>` when the packaged sibling library has not been staged yet.
 
-The runtime runner accepts an explicit dynamic session policy argument before the library session is created: `--runtime-session-profile <runtime|editor|dev|minimal|headless>` or `--runtime-session-profile=dev`. The runner strips diagnostic log arguments first, parses the session profile second, rejects duplicate or unknown profile arguments, and passes the selected bytes through `RuntimeSession::create_with_profile(...)` into `ZrRuntimeSessionConfigV1.profile`. `-h` and `--help` print the accepted profile names, log controls, and `ZIRCON_RUNTIME_LIBRARY` override before loading the dynamic runtime library. This is intentionally narrower than Bevy's code-level plugin group selection: Zircon's app host chooses the dynamic runtime session policy at process startup, while concrete module ownership, runtime clocks, and dev diagnostic cadence stay inside `zircon_runtime`.
+The runtime runner accepts an explicit dynamic session policy argument before the library session is created: `--runtime-session-profile <runtime|editor|dev|minimal|headless>` or `--runtime-session-profile=dev`. The runner strips diagnostic log arguments first, parses the session profile second, rejects duplicate or unknown profile arguments, and passes the selected bytes through `RuntimeSession::create_with_profile(...)` into `ZrRuntimeSessionConfigV3.profile`. `-h` and `--help` print the accepted profile names, log controls, and `ZIRCON_RUNTIME_LIBRARY` override before loading the dynamic runtime library. This is intentionally narrower than Bevy's code-level plugin group selection: Zircon's app host chooses the dynamic runtime session policy at process startup, while concrete module ownership, runtime clocks, and dev diagnostic cadence stay inside `zircon_runtime`.
 
 `RuntimeEntryApp` now owns only the window, optional softbuffer presenter, dynamic runtime session wrapper, viewport handle, and current viewport size. Winit events are converted to interface events and sent to runtime. `about_to_wait` calls the optional `tick_frame` ABI before requesting redraw, so the dynamic runtime's `CoreRuntime::tick_time(...)` path advances before the next present or frame capture. Redraw requests prefer the optional runtime surface-present ABI only when `bind_viewport_surface`, `unbind_viewport_surface`, and `present_viewport` are all inside the advertised table size and non-null. Otherwise, redraw falls back to `capture_frame` and blits the returned RGBA bytes through softbuffer.
 
-`LoadedRuntime` resolves only V2. A missing symbol or invalid table is rejected without downgrade.
-The loader stores the V2 table pointer plus its advertised `size_bytes`; the layout must reach
-`harvest_operation` and provide the complete base, mirror, and operation function groups. The editor product may use the same
-loader with the process-linked V2 table so linked plugin registration reports and
+`RuntimeSession` calls `destroy_session` before it releases the host wake registration or lets
+`LoadedRuntime` drop its dynamic library. A non-OK destroy result is an unrecoverable process
+boundary failure: it means the runtime cannot prove its copied host callback and DLL-owned workers
+have stopped. The host records the diagnostic and terminates the process before normal Rust drop
+can unload the library. It does not leak or retain `libloading::Library` as a recovery mechanism.
+The runtime rejects synchronous same-session destroy from inside that session's active wake callback
+before close admission, because waiting for callback quiescence there would wait on the caller's own
+in-flight guard. A destroy issued from another thread retains the normal disable-and-drain barrier.
+The same fail-fast rule applies when `create_session` fails after acquiring its dynamic diagnostic
+worker lease: it must either join that worker before returning the construction error or terminate
+before a caller can unload the library.
+
+`LoadedRuntime` resolves only V6. A missing symbol or invalid table is rejected without downgrade.
+The loader stores the V6 table pointer plus its advertised `size_bytes`; the layout must reach
+`drain_world_invalidations` and provide the complete base, mirror, operation, and world-sync function groups. The editor product may use the same
+loader with the process-linked V6 table so linked plugin registration reports and
 the runtime session registry remain in one image. `RuntimeEntryApp` binds native Win32 surface
 metadata before the resize event when the coherent surface path is available, rebinds before later
 resize events, unbinds before falling back if a previously enabled surface-present path stops
@@ -232,30 +244,25 @@ presenting, and best-effort unbinds during `Drop` before the window and softbuff
 are destroyed.
 
 Runtime 10 M3 tightens the cdylib failure paths around this loader. `LoadedRuntime::load` owns the
-real `libloading` open and V2-only lookup, while `validate_runtime_api_pointer(...)` tests table
+real `libloading` open and V6-only lookup, while `validate_runtime_api_pointer(...)` tests table
 rejection without constructing a real dynamic library. Focused tests cover null, wrong table
-version, missing base functions, incomplete V2 mirror/operation lifecycle, and the real
-V2-symbol-missing branch. Source guards also lock the single symbol lookup and the first `create_session` call's `create runtime session`
+version, missing base functions, incomplete V6 mirror/operation/world-sync lifecycle, and the real
+V6-symbol-missing branch. Source guards also lock the single symbol lookup and the first `create_session` call's `create runtime session`
 failure context.
 
-Once V2 validation succeeds, `LoadedRuntime` exposes base session, plugin-event mirror, and
-submit/poll/harvest entries as required functions. `RuntimeSession` therefore has no secondary
+Once V6 validation succeeds, `LoadedRuntime` exposes base session, plugin-event mirror,
+submit/poll/harvest, and world-sync entries as required functions. `RuntimeSession` therefore has no secondary
 "capability unavailable" branch for these groups. Poll and harvest decode the runtime-owned JSON
 buffer, free it through its callback, then require `ZIRCON_RUNTIME_ABI_VERSION_V1` before returning
 the typed DTO. Editor operation commands repeat the ABI check at the command boundary so alternate
 gateway implementations cannot inject a foreign progress/result layout into transaction logic.
 
-### Current V2-only Structural Evidence
+### Current V6 Structural Evidence
 
-Current V2-only owner inventory: `expected_source_file_count = 48`.
-
-Current direct evidence is produced by `dynamic_runtime_api_boundary`: 48/48 source files, 10/10
-function-table structs, no field-count or `#[repr(C)]` mismatch, 17/17 V2 session wrappers, one
-table-acquisition panic boundary, V2-only loader anchors, and no reported risks.
-Machine mirror: `function_table_structs = 10/10`, `ffi_panic_anchors = 9/9`, and
-`loader_failure_anchors = 13/13`.
-Older detailed count snapshots retained below are historical evidence. The permanent guard remains
-`runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts`.
+The V6 source inventory has `expected_source_file_count = 51`, including World Sync DTO and
+session owners. The structural guard pins 10 function tables, the 24-field V6 table, and
+`runtime_session_ffi_wrappers = 22/22`; Cargo acceptance remains separately pending.
+The permanent guard remains `runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts`.
 
 ## Validation
 
@@ -298,4 +305,4 @@ The 2026-05-24 plugin-event ABI slice was validated with scoped interface eviden
 `ZrPluginEventCallbackRequestV1` is intentionally generic. It carries an ABI version, subsystem namespace, plugin ID, handler ID, event ID, optional source path, event time, payload schema, and opaque payload bytes as borrowed `ZrByteSlice` values. The callback writes `ZrPluginEventCallbackResultV1`, whose status and diagnostics capture handler-level acceptance or rejection without letting a subsystem pass Rust closures, runtime managers, scene state, or editor objects across the boundary.
 
 The first concrete consumer is the sound runtime adapter: sound projects `SoundDynamicEventDelivery` into the generic callback request under the `sound.dynamic_events` namespace. The interface crate does not know sound semantics, and the sound framework DTOs still do not own dynamic-library function pointers. Generic native plugin discovery and attachment of `ZrPluginApiV1::invoke_event` to subsystem handler descriptors remains loader/runtime integration work outside this interface DTO slice.
-<!-- Runtime 10 V2-only audit mirror: runtime_session_ffi_wrappers = 17/17 -->
+<!-- Runtime 10 V6-only audit mirror: runtime_session_ffi_wrappers = 22/22 -->

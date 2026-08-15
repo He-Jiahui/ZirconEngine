@@ -7,9 +7,9 @@ EXPECTED_FIXED_HOST_MODULES = 6
 EXPECTED_FIXED_HOST_FUNCTIONS = 61
 EXPECTED_TYPE_DESCRIPTORS = 2
 EXPECTED_BUILTIN_CALLBACKS = 20
-EXPECTED_GAMEPLAY_CALLBACKS = 39
+EXPECTED_GAMEPLAY_CALLBACKS = 40
 EXPECTED_MACRO_HOST_FUNCTIONS = 2
-EXPECTED_HOST_CAPABILITIES = 12
+EXPECTED_HOST_CAPABILITIES = 13
 SCRIPT_LEDGER_TEST_MAX_LINES = 700
 GAMEPLAY_TEST_MAX_LINES = 1000
 
@@ -22,6 +22,7 @@ RUNTIME_13_SOURCE_FILES = (
     "zircon_runtime/src/script/vm/gameplay_host/input.rs",
     "zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs",
     "zircon_runtime/src/script/vm/gameplay_host/navigation.rs",
+    "zircon_runtime/src/script/vm/gameplay_host/scene_transition.rs",
     "zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs",
     "zircon_runtime/src/script/vm/gameplay_host/transform.rs",
     "zircon_runtime/src/script/vm/gameplay_host/values.rs",
@@ -29,6 +30,11 @@ RUNTIME_13_SOURCE_FILES = (
     "zircon_runtime/src/script/vm/host/host_export_registry.rs",
     "zircon_runtime/src/script/vm/host/script_call_table.rs",
     "zircon_runtime/src/core/framework/script.rs",
+    "zircon_runtime/src/core/framework/script/argument_views.rs",
+    "zircon_runtime/src/core/framework/script/call_frame.rs",
+    "zircon_runtime/src/core/framework/script/descriptors.rs",
+    "zircon_runtime/src/core/framework/script/hot_path_metrics.rs",
+    "zircon_runtime/src/core/framework/script/value_contracts.rs",
     "zircon_runtime/src/script/vm/capability_set.rs",
     "zircon_runtime/src/script/vm/handles.rs",
     "zircon_runtime/src/script/vm/runtime_context.rs",
@@ -68,6 +74,7 @@ HOST_CAPABILITIES = (
     "gameplay.input",
     "gameplay.entity",
     "gameplay.navigation",
+    "gameplay.scene_transition",
     "bridge.call",
 )
 LEDGER_DOC_ANCHORS = (
@@ -82,6 +89,8 @@ LEDGER_DOC_ANCHORS = (
     "host_function_registry_matches_documented_ledger",
     "host_capability_representatives_are_declared_on_registered_modules",
     "host_function_without_required_capability_is_rejected_with_explicit_error",
+    "request_scene_transition",
+    "gameplay.scene_transition",
 )
 RUNTIME_13_GUARDS = (
     "host_function_registry_matches_documented_ledger",

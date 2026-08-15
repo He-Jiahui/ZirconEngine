@@ -14,9 +14,9 @@ related_code:
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report/registrations.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_load_report/diagnostics.rs
 tests:
-  - native load-report projection build-count benchmark
-  - package/feature registration report byte-equivalence test
-  - 1k-package scaling and deterministic-order test
+  - projection_preserves_registration_and_diagnostic_outputs_as_json_bytes
+  - native_load_projection_preserves_order_and_projection_statistics
+  - public_load_report_getters_share_one_frozen_projection
 ---
 
 # Plugins01：native load report 重复构建 manifest/diagnostic projection

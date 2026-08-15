@@ -37,7 +37,9 @@ impl HostEventLoopWake {
     }
 
     fn request(&self) {
-        self.state.requested.store(true, Ordering::Release);
+        if !mark_wake_pending(&self.state.requested) {
+            return;
+        }
         let proxy = self.lock_proxy().clone();
         if let Some(proxy) = proxy {
             proxy.wake_up();
@@ -52,8 +54,14 @@ impl HostEventLoopWake {
     }
 }
 
+fn mark_wake_pending(requested: &AtomicBool) -> bool {
+    !requested.swap(true, Ordering::AcqRel)
+}
+
 #[cfg(test)]
 mod tests {
+    use std::sync::atomic::AtomicBool;
+
     use super::HostEventLoopWake;
 
     #[test]
@@ -66,5 +74,15 @@ mod tests {
 
         assert!(wake.take_request());
         assert!(!wake.take_request());
+    }
+
+    #[test]
+    fn native_wake_is_signaled_only_on_the_pending_edge() {
+        let requested = AtomicBool::new(false);
+
+        assert!(super::mark_wake_pending(&requested));
+        assert!(!super::mark_wake_pending(&requested));
+        assert!(requested.swap(false, std::sync::atomic::Ordering::AcqRel));
+        assert!(super::mark_wake_pending(&requested));
     }
 }

@@ -1,6 +1,6 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_frame::HostRgbaFrame;
-use super::super::super::super::paint_geometry::{PixelRect, is_visible_frame};
+use super::super::super::super::paint_geometry::{is_visible_frame, PixelRect};
 use super::super::super::clip::effective_clip;
 use super::super::rects::draw_rect_clipped;
 

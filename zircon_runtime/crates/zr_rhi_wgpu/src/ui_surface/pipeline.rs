@@ -28,14 +28,38 @@ pub(super) fn create_solid_pipeline(
                 step_mode: wgpu::VertexStepMode::Vertex,
                 attributes: &[
                     wgpu::VertexAttribute {
-                        offset: 0,
+                        offset: std::mem::offset_of!(SolidVertex, position) as wgpu::BufferAddress,
                         shader_location: 0,
                         format: wgpu::VertexFormat::Float32x2,
                     },
                     wgpu::VertexAttribute {
-                        offset: std::mem::size_of::<[f32; 2]>() as wgpu::BufferAddress,
+                        offset: std::mem::offset_of!(SolidVertex, color) as wgpu::BufferAddress,
                         shader_location: 1,
                         format: wgpu::VertexFormat::Float32x4,
+                    },
+                    wgpu::VertexAttribute {
+                        offset: std::mem::offset_of!(SolidVertex, local_position)
+                            as wgpu::BufferAddress,
+                        shader_location: 2,
+                        format: wgpu::VertexFormat::Float32x2,
+                    },
+                    wgpu::VertexAttribute {
+                        offset: std::mem::offset_of!(SolidVertex, half_extent)
+                            as wgpu::BufferAddress,
+                        shader_location: 3,
+                        format: wgpu::VertexFormat::Float32x2,
+                    },
+                    wgpu::VertexAttribute {
+                        offset: std::mem::offset_of!(SolidVertex, corner_radius)
+                            as wgpu::BufferAddress,
+                        shader_location: 4,
+                        format: wgpu::VertexFormat::Float32,
+                    },
+                    wgpu::VertexAttribute {
+                        offset: std::mem::offset_of!(SolidVertex, border_width)
+                            as wgpu::BufferAddress,
+                        shader_location: 5,
+                        format: wgpu::VertexFormat::Float32,
                     },
                 ],
             }],
@@ -104,7 +128,7 @@ pub(super) fn create_solid_instance_pipeline(
         },
         fragment: Some(wgpu::FragmentState {
             module: &shader,
-            entry_point: Some("solid_fs_main"),
+            entry_point: Some("solid_instance_fs_main"),
             compilation_options: Default::default(),
             targets: &[Some(wgpu::ColorTargetState {
                 format: target_format,
@@ -223,6 +247,7 @@ mod tests {
             "solid_vs_main",
             "solid_instance_vs_main",
             "solid_fs_main",
+            "solid_instance_fs_main",
             "image_vs_main",
             "image_fs_main",
         ] {
@@ -235,6 +260,7 @@ mod tests {
         for helper in [
             "material_tint",
             "premultiply_alpha",
+            "rounded_box_distance",
             "rounded_box_alpha",
             "material_solid_color",
             "material_image_color",
@@ -244,6 +270,21 @@ mod tests {
                 "ui_material.wgsl must keep the Material UI helper `{helper}`"
             );
         }
+    }
+
+    #[test]
+    fn analytic_solid_vertex_abi_carries_pixel_space_shape_parameters() {
+        assert_eq!(std::mem::size_of::<super::SolidVertex>(), 48);
+        assert_eq!(std::mem::offset_of!(super::SolidVertex, position), 0);
+        assert_eq!(std::mem::offset_of!(super::SolidVertex, color), 8);
+        assert_eq!(std::mem::offset_of!(super::SolidVertex, local_position), 24);
+        assert_eq!(std::mem::offset_of!(super::SolidVertex, half_extent), 32);
+        assert_eq!(std::mem::offset_of!(super::SolidVertex, corner_radius), 40);
+        assert_eq!(std::mem::offset_of!(super::SolidVertex, border_width), 44);
+        assert!(UI_MATERIAL_SHADER.contains("fwidth(outer_distance)"));
+        assert!(UI_MATERIAL_SHADER
+            .contains("smoothstep(distance_width * 0.5, distance_width * -0.5, signed_distance)"));
+        assert!(UI_MATERIAL_SHADER.contains("outer_coverage - inner_coverage"));
     }
 
     #[test]
@@ -265,12 +306,25 @@ mod tests {
         );
         assert!(
             UI_MATERIAL_SHADER.contains("return material_solid_color(input.color);"),
-            "solid fragment output must go through the Material solid color path"
+            "flat solid fragment output must go through the Material solid color path"
+        );
+        assert!(
+            UI_MATERIAL_SHADER.contains("input.color.a * coverage"),
+            "analytic rounded solids must apply distance-field coverage before premultiplication"
         );
         assert!(
             UI_MATERIAL_SHADER
                 .contains("return material_image_color(textureSample(source_texture, source_sampler, input.uv));"),
             "image fragment output must go through the Material image color path"
+        );
+        let image_helper = UI_MATERIAL_SHADER
+            .split("fn material_image_color")
+            .nth(1)
+            .and_then(|source| source.split('}').next())
+            .expect("image material helper must remain explicit");
+        assert!(
+            !image_helper.contains("premultiply_alpha"),
+            "filtered image texels are already premultiplied and must not be multiplied twice"
         );
     }
 }

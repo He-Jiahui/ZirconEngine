@@ -5,6 +5,8 @@ mod apply_presentation_impl;
 mod asset_browser_icon_button_painter_tests;
 #[path = "ui/component_contract_metadata.rs"]
 mod component_contract_metadata;
+#[path = "ui/floating_pane_geometry.rs"]
+mod floating_pane_geometry;
 mod pane_data_conversion;
 #[cfg(test)]
 #[path = "ui/reference_component_tests.rs"]
@@ -14,6 +16,10 @@ mod reference_component_tests;
 mod reference_overlay_apply_tests;
 #[path = "ui/root_template_overlay.rs"]
 mod root_template_overlay;
+#[path = "ui/scoped_presentation.rs"]
+mod scoped_presentation;
+#[path = "ui/shell_content_presentation.rs"]
+mod shell_content_presentation;
 #[cfg(test)]
 #[path = "ui/structure_component_tests.rs"]
 mod structure_component_tests;
@@ -28,6 +34,7 @@ mod workbench_window_projection;
 
 pub(crate) use apply_presentation_impl::{
     apply_presentation, apply_presentation_with_template_v2_data,
+    to_host_contract_scene_viewport_chrome,
 };
 #[cfg(test)]
 pub(crate) use pane_data_conversion::refresh_runtime_diagnostics_debug_reflector_from_body_surface;
@@ -45,5 +52,16 @@ pub(crate) use pane_data_conversion::to_host_contract_hierarchy_pane_from_host_p
 pub(crate) use pane_data_conversion::to_host_contract_inspector_pane_from_host_pane;
 #[cfg(test)]
 pub(crate) use pane_data_conversion::to_host_contract_runtime_diagnostics_pane_from_host_pane;
+pub(crate) use scoped_presentation::{
+    build_ui_asset_presentation_patch, patch_ui_asset_presentation,
+};
+pub(crate) use shell_content_presentation::{
+    patch_shell_content_presentation_from_state, shell_content_target, ShellContentTarget,
+};
 #[cfg(test)]
 pub(crate) use workbench_window_projection::to_host_contract_workbench_window_nodes;
+pub(crate) use workbench_window_projection::to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale;
+pub(crate) use workbench_window_projection::{
+    build_host_contract_workbench_window_node_patch_at_mount_and_scale,
+    patch_host_contract_workbench_window_nodes_at_mount_and_scale, WorkbenchWindowNodePatch,
+};

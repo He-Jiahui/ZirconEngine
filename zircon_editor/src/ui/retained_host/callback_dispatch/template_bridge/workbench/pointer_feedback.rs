@@ -211,7 +211,7 @@ fn pointer_range_update(surface: &UiSurface, route: &UiPointerRoute) -> Option<P
     let node_id = pointer_range_target(surface, route)?;
     let node = surface.tree.nodes.get(&node_id)?;
     let metadata = node.template_metadata.as_ref()?;
-    let frame = surface.arranged_tree.get(node_id).map(|node| node.frame)?;
+    let frame = surface.arranged_node(node_id).map(|node| node.frame)?;
     let value_property = surface
         .input
         .pointer_drag_property(node_id)

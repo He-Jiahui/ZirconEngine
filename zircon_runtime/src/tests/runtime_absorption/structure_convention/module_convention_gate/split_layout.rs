@@ -10,6 +10,14 @@ const GUARD: &str = "runtime_15_module_convention_gate_guard_is_folder_backed";
 
 const PARENT_PATH: &str =
     "zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate.rs";
+const CHILD_PATHS: &[&str] = &[
+    "zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/helpers.rs",
+    "zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/module_doc_frontmatter.rs",
+    "zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/output_contract.rs",
+    "zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/debt_boundary.rs",
+    "zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/audit_status.rs",
+    "zircon_runtime/src/tests/runtime_absorption/structure_convention/module_convention_gate/split_layout.rs",
+];
 const ROW_PARENT_PATH: &str = "structure_convention/module_convention_gate.rs";
 const ROW_CHILD_PATHS: &[&str] = &[
     "structure_convention/module_convention_gate/helpers.rs",

@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use crate::text::{ShapedGlyphRun, SharedTextLayoutSession, TextRange, text_style};
+use crate::text::{text_style, ShapedGlyphRun, SharedTextLayoutSession, TextRange};
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextRange};
 
 pub fn shape_text_line(text: &str, style: &UiResolvedStyle) -> ShapedGlyphRun {
+    crate::profile_scope!("runtime", "text.surface", "shape_text_line");
     let mut session = SharedTextLayoutSession::new();
     Arc::unwrap_or_clone(session.shape_horizontal_line(
         text,
@@ -22,6 +23,32 @@ mod tests {
 
     use super::shape_text_line;
     use crate::ui::surface::measure_text_source_range_width;
+
+    #[cfg(feature = "profiling")]
+    #[test]
+    fn shape_text_line_emits_one_surface_profile_span() {
+        let _capture_guard = crate::core::diagnostics::profiling::test_capture_lock();
+        let mut config = crate::core::diagnostics::profiling::ProfileCaptureConfig::default();
+        config.session_id = "surface-text-shape-profile".to_owned();
+        config.max_spans = 2;
+        assert!(crate::core::diagnostics::profiling::start_capture(config).active);
+
+        let _ = shape_text_line("Profile", &UiResolvedStyle::default());
+
+        let snapshot = crate::core::diagnostics::profiling::snapshot();
+        assert!(
+            !crate::core::diagnostics::profiling::reset_capture().active,
+            "surface shape profiling capture must reset before another test starts"
+        );
+        assert_eq!(
+            snapshot
+                .spans
+                .iter()
+                .filter(|span| span.category == "text.surface" && span.name == "shape_text_line")
+                .count(),
+            1
+        );
+    }
 
     #[test]
     fn shape_text_line_exposes_surface_shaped_run_without_font_family_requirement() {

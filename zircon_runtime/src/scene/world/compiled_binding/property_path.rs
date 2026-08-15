@@ -1,5 +1,9 @@
 use crate::core::framework::scene::{ComponentPropertyPath, EntityPath, ScenePropertyValue};
 use crate::core::math::Quat;
+use crate::scene::components::{
+    AmbientLight, CameraComponent, DirectionalLight, LocalTransform, MeshRenderer, PointLight,
+    RectLight, SpotLight,
+};
 use crate::scene::{EntityId, SceneError, SceneResult, World};
 
 use super::compiled_scene_animation_fields::CompiledAnimationRuntimeProperty;
@@ -227,27 +231,31 @@ impl World {
         property_path: &ComponentPropertyPath,
     ) -> Option<CompiledScenePropertyTarget> {
         let entity = self.get_entity_by_path(entity_path)?;
-        Some(self.compile_scene_property_target_for_entity(
-            entity,
-            entity_path.as_str(),
-            property_path,
-        ))
+        let component_field_key = Self::canonical_component_field_key(property_path);
+        self.record_scene_property_canonicalization(component_field_key.len());
+        Some(
+            self.compile_scene_property_target_for_entity_with_canonical_field(
+                entity,
+                entity_path.as_str(),
+                &component_field_key,
+            ),
+        )
     }
 
-    fn compile_scene_property_target_for_entity(
+    fn compile_scene_property_target_for_entity_with_canonical_field(
         &mut self,
         entity: EntityId,
         entity_identity: &str,
-        property_path: &ComponentPropertyPath,
+        component_field_key: &str,
     ) -> CompiledScenePropertyTarget {
         let root = self.scene_binding_root(entity);
         let generation = self.scene_binding_generation(root);
         let path_id = self.scene_binding_generations.intern_path(entity_identity);
-        let component_field_key = Self::canonical_component_field_key(property_path);
         let component_field_id = self
             .scene_binding_generations
-            .intern_component_field(&component_field_key);
+            .intern_component_field(component_field_key);
 
+        self.record_scene_property_target_compilation();
         CompiledScenePropertyTarget::new(entity, root, path_id, component_field_id, generation)
     }
 
@@ -261,10 +269,18 @@ impl World {
         entity_path: &EntityPath,
         property_path: &ComponentPropertyPath,
     ) -> SceneResult<Option<CompiledScenePropertyWriter>> {
-        let property = self.compile_scene_property_writer_kind(property_path)?;
-        let Some(target) = self.compile_scene_property_target(entity_path, property_path) else {
+        let component_field_key = Self::canonical_component_field_key(property_path);
+        self.record_scene_property_canonicalization(component_field_key.len());
+        let property =
+            self.compile_scene_property_writer_kind(property_path, &component_field_key)?;
+        let Some(entity) = self.get_entity_by_path(entity_path) else {
             return Ok(None);
         };
+        let target = self.compile_scene_property_target_for_entity_with_canonical_field(
+            entity,
+            entity_path.as_str(),
+            &component_field_key,
+        );
         Ok(Some(CompiledScenePropertyWriter::new(
             target,
             property_path.clone(),
@@ -281,14 +297,17 @@ impl World {
         canonical_entity_path: &EntityPath,
         property_path: &ComponentPropertyPath,
     ) -> SceneResult<Option<CompiledScenePropertyWriter>> {
-        let property = self.compile_scene_property_writer_kind(property_path)?;
+        let component_field_key = Self::canonical_component_field_key(property_path);
+        self.record_scene_property_canonicalization(component_field_key.len());
+        let property =
+            self.compile_scene_property_writer_kind(property_path, &component_field_key)?;
         if !self.contains_entity(entity) {
             return Ok(None);
         }
-        let target = self.compile_scene_property_target_for_entity(
+        let target = self.compile_scene_property_target_for_entity_with_canonical_field(
             entity,
             canonical_entity_path.as_str(),
-            property_path,
+            &component_field_key,
         );
         Ok(Some(CompiledScenePropertyWriter::new(
             target,
@@ -300,9 +319,10 @@ impl World {
     fn compile_scene_property_writer_kind(
         &self,
         property_path: &ComponentPropertyPath,
+        component_field_key: &str,
     ) -> SceneResult<CompiledScenePropertyWriterKind> {
-        let component_field_key = Self::canonical_component_field_key(property_path);
-        CompiledScenePropertyWriterKind::from_canonical_key(&component_field_key)
+        self.record_scene_property_field_dispatch_compilation();
+        CompiledScenePropertyWriterKind::from_canonical_key(component_field_key)
             .or_else(|| {
                 CompiledDynamicProperty::compile(self, property_path)
                     .map(CompiledScenePropertyWriterKind::Dynamic)
@@ -321,14 +341,13 @@ impl World {
         target: &CompiledScenePropertyWriter,
     ) -> Option<ScenePropertyValue> {
         if !target.is_current_for(self) {
+            self.record_compiled_scene_property_stale_target();
             return None;
         }
+        self.record_compiled_scene_property_reader_access();
         match &target.property {
             CompiledScenePropertyWriterKind::Transform(property) => {
-                let transform = self
-                    .local_transforms
-                    .get(&target.entity())
-                    .map(|local| local.transform)?;
+                let transform = self.get::<LocalTransform>(target.entity())?.transform;
                 Some(match property {
                     CompiledTransformProperty::Translation => {
                         ScenePropertyValue::Vec3(transform.translation.to_array())
@@ -351,7 +370,7 @@ impl World {
                 })
             }
             CompiledScenePropertyWriterKind::MeshRenderer(property) => {
-                let mesh = self.mesh_renderers.get(&target.entity())?;
+                let mesh = self.get::<MeshRenderer>(target.entity())?;
                 Some(match property {
                     CompiledMeshRendererProperty::RenderQueue => {
                         ScenePropertyValue::Integer(mesh.render_queue.into())
@@ -377,7 +396,7 @@ impl World {
                 self.read_compiled_animation_runtime_property(target.entity(), *property)
             }
             CompiledScenePropertyWriterKind::Camera(property) => {
-                let camera = self.cameras.get(&target.entity())?;
+                let camera = self.get::<CameraComponent>(target.entity())?;
                 Some(match property {
                     CompiledCameraProperty::FovYRadians => {
                         ScenePropertyValue::Scalar(camera.fov_y_radians)
@@ -388,69 +407,66 @@ impl World {
             }
             CompiledScenePropertyWriterKind::Light(property) => Some(match property {
                 CompiledLightProperty::AmbientColor => ScenePropertyValue::Vec3(
-                    self.ambient_lights.get(&target.entity())?.color.to_array(),
+                    self.get::<AmbientLight>(target.entity())?.color.to_array(),
                 ),
                 CompiledLightProperty::AmbientIntensity => {
-                    ScenePropertyValue::Scalar(self.ambient_lights.get(&target.entity())?.intensity)
+                    ScenePropertyValue::Scalar(self.get::<AmbientLight>(target.entity())?.intensity)
                 }
                 CompiledLightProperty::AmbientAffectsLightmappedMeshes => ScenePropertyValue::Bool(
-                    self.ambient_lights
-                        .get(&target.entity())?
+                    self.get::<AmbientLight>(target.entity())?
                         .affects_lightmapped_meshes,
                 ),
                 CompiledLightProperty::DirectionalDirection => ScenePropertyValue::Vec3(
-                    self.directional_lights
-                        .get(&target.entity())?
+                    self.get::<DirectionalLight>(target.entity())?
                         .direction
                         .to_array(),
                 ),
                 CompiledLightProperty::DirectionalColor => ScenePropertyValue::Vec3(
-                    self.directional_lights
-                        .get(&target.entity())?
+                    self.get::<DirectionalLight>(target.entity())?
                         .color
                         .to_array(),
                 ),
                 CompiledLightProperty::DirectionalIntensity => ScenePropertyValue::Scalar(
-                    self.directional_lights.get(&target.entity())?.intensity,
+                    self.get::<DirectionalLight>(target.entity())?.intensity,
                 ),
                 CompiledLightProperty::PointColor => ScenePropertyValue::Vec3(
-                    self.point_lights.get(&target.entity())?.color.to_array(),
+                    self.get::<PointLight>(target.entity())?.color.to_array(),
                 ),
                 CompiledLightProperty::PointIntensity => {
-                    ScenePropertyValue::Scalar(self.point_lights.get(&target.entity())?.intensity)
+                    ScenePropertyValue::Scalar(self.get::<PointLight>(target.entity())?.intensity)
                 }
                 CompiledLightProperty::PointRange => {
-                    ScenePropertyValue::Scalar(self.point_lights.get(&target.entity())?.range)
+                    ScenePropertyValue::Scalar(self.get::<PointLight>(target.entity())?.range)
                 }
                 CompiledLightProperty::RectColor => ScenePropertyValue::Vec3(
-                    self.rect_lights.get(&target.entity())?.color.to_array(),
+                    self.get::<RectLight>(target.entity())?.color.to_array(),
                 ),
                 CompiledLightProperty::RectIntensity => {
-                    ScenePropertyValue::Scalar(self.rect_lights.get(&target.entity())?.intensity)
+                    ScenePropertyValue::Scalar(self.get::<RectLight>(target.entity())?.intensity)
                 }
                 CompiledLightProperty::RectRange => {
-                    ScenePropertyValue::Scalar(self.rect_lights.get(&target.entity())?.range)
+                    ScenePropertyValue::Scalar(self.get::<RectLight>(target.entity())?.range)
                 }
                 CompiledLightProperty::RectSize => ScenePropertyValue::Vec2(
-                    self.rect_lights.get(&target.entity())?.size.to_array(),
+                    self.get::<RectLight>(target.entity())?.size.to_array(),
                 ),
                 CompiledLightProperty::SpotDirection => ScenePropertyValue::Vec3(
-                    self.spot_lights.get(&target.entity())?.direction.to_array(),
+                    self.get::<SpotLight>(target.entity())?.direction.to_array(),
                 ),
                 CompiledLightProperty::SpotColor => ScenePropertyValue::Vec3(
-                    self.spot_lights.get(&target.entity())?.color.to_array(),
+                    self.get::<SpotLight>(target.entity())?.color.to_array(),
                 ),
                 CompiledLightProperty::SpotIntensity => {
-                    ScenePropertyValue::Scalar(self.spot_lights.get(&target.entity())?.intensity)
+                    ScenePropertyValue::Scalar(self.get::<SpotLight>(target.entity())?.intensity)
                 }
                 CompiledLightProperty::SpotRange => {
-                    ScenePropertyValue::Scalar(self.spot_lights.get(&target.entity())?.range)
+                    ScenePropertyValue::Scalar(self.get::<SpotLight>(target.entity())?.range)
                 }
                 CompiledLightProperty::SpotInnerAngleRadians => ScenePropertyValue::Scalar(
-                    self.spot_lights.get(&target.entity())?.inner_angle_radians,
+                    self.get::<SpotLight>(target.entity())?.inner_angle_radians,
                 ),
                 CompiledLightProperty::SpotOuterAngleRadians => ScenePropertyValue::Scalar(
-                    self.spot_lights.get(&target.entity())?.outer_angle_radians,
+                    self.get::<SpotLight>(target.entity())?.outer_angle_radians,
                 ),
             }),
             CompiledScenePropertyWriterKind::Dynamic(property) => self
@@ -470,11 +486,13 @@ impl World {
         value: ScenePropertyValue,
     ) -> SceneResult<bool> {
         if !target.is_current_for(self) {
+            self.record_compiled_scene_property_stale_target();
             return Err(SceneError::PropertyUnavailable {
                 entity: target.entity(),
                 property_path: target.property_path.to_string(),
             });
         }
+        self.record_compiled_scene_property_writer_access();
         let generation = self.world_generation();
         let changed = match &target.property {
             CompiledScenePropertyWriterKind::Transform(property) => {
@@ -521,7 +539,7 @@ impl World {
         property: CompiledTransformProperty,
         value: ScenePropertyValue,
     ) -> SceneResult<bool> {
-        let Some(local) = self.local_transforms.get(&target.entity()).copied() else {
+        let Some(local) = self.get::<LocalTransform>(target.entity()).copied() else {
             return Err(SceneError::MissingRequiredComponent {
                 operation: "write compiled transform property",
                 entity: target.entity(),
@@ -570,7 +588,7 @@ impl World {
         value: ScenePropertyValue,
     ) -> SceneResult<bool> {
         let changed = {
-            let Some(camera) = self.cameras.get_mut(&target.entity()) else {
+            let Some(camera) = self.get_mut::<CameraComponent>(target.entity()) else {
                 return Err(SceneError::MissingRequiredComponent {
                     operation: "write compiled camera property",
                     entity: target.entity(),
@@ -602,7 +620,7 @@ impl World {
         value: ScenePropertyValue,
     ) -> SceneResult<bool> {
         let changed = {
-            let Some(mesh) = self.mesh_renderers.get_mut(&target.entity()) else {
+            let Some(mesh) = self.get_mut::<MeshRenderer>(target.entity()) else {
                 return Err(SceneError::MissingRequiredComponent {
                     operation: "write compiled mesh renderer property",
                     entity: target.entity(),

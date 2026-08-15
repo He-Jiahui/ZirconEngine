@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::rhi::{TextureDimension, TextureFormat, TextureResidency};
 
 use super::graph::{CompiledRenderGraph, CompiledRenderGraphStats};
@@ -12,6 +14,8 @@ use super::types::{
 pub struct RenderGraphDump {
     pub graph_name: String,
     pub stats: CompiledRenderGraphStats,
+    pub executable_topology_layer_count: usize,
+    pub executable_topology_peak_width: usize,
     pub pass_rows: Vec<RenderGraphDumpPassRow>,
     pub resource_rows: Vec<RenderGraphDumpResourceRow>,
     pub transient_slot_rows: Vec<RenderGraphDumpTransientSlotRow>,
@@ -28,6 +32,8 @@ pub struct RenderGraphDumpPassRow {
     pub culled: bool,
     pub allow_culling: bool,
     pub has_side_effects: bool,
+    /// The dependency-ready layer used for executable-pass recording diagnostics.
+    pub executable_topology_layer: Option<usize>,
     pub dependencies: Vec<RenderPassId>,
     pub executor_id: Option<String>,
     pub compute_workload: Option<RenderGraphComputeWorkload>,
@@ -39,6 +45,7 @@ pub struct RenderGraphDumpPassResourceRow {
     pub name: String,
     pub kind: RenderGraphResourceKind,
     pub access: RenderGraphResourceAccessKind,
+    pub version: u64,
     pub attachment_ops: Option<RenderGraphAttachmentOps>,
 }
 
@@ -52,7 +59,10 @@ pub struct RenderGraphDumpResourceRow {
     pub live: bool,
     pub first_pass: Option<usize>,
     pub last_pass: Option<usize>,
+    /// Slot index within `transient_bucket_key_hash`; it is not globally unique.
     pub transient_slot: Option<usize>,
+    /// Descriptor-compatibility bucket that qualifies `transient_slot`.
+    pub transient_bucket_key_hash: Option<u64>,
     pub size_bytes: Option<u64>,
     pub slot_reserved_bytes: Option<u64>,
 }
@@ -88,6 +98,7 @@ pub struct RenderGraphDumpTransientSlotRow {
 impl RenderGraphDump {
     pub fn from_graph(graph: &CompiledRenderGraph) -> Self {
         let allocation_plan = graph.transient_allocation_plan();
+        let topology = executable_topology(graph);
         let pass_rows = graph
             .passes()
             .iter()
@@ -102,10 +113,15 @@ impl RenderGraphDump {
                 culled: pass.culled,
                 allow_culling: pass.flags.allow_culling,
                 has_side_effects: pass.flags.has_side_effects,
+                executable_topology_layer: topology.layers_by_pass.get(&pass.id).copied(),
                 dependencies: pass.dependencies.clone(),
                 executor_id: pass.executor_id.clone(),
                 compute_workload: pass.compute_workload.clone(),
-                resources: pass.resources.iter().map(pass_resource_row).collect(),
+                resources: pass
+                    .resources
+                    .iter()
+                    .map(|access| pass_resource_row(graph, pass.id, access))
+                    .collect(),
             })
             .collect();
         let resource_rows = graph
@@ -141,6 +157,8 @@ impl RenderGraphDump {
         Self {
             graph_name: graph.name().to_owned(),
             stats: graph.stats(),
+            executable_topology_layer_count: topology.layer_count,
+            executable_topology_peak_width: topology.peak_width,
             pass_rows,
             resource_rows,
             transient_slot_rows,
@@ -150,20 +168,31 @@ impl RenderGraphDump {
     pub fn to_text(&self) -> String {
         let mut text = String::new();
         text.push_str(&format!(
-            "render_graph name={} passes={} executable={} culled={} resources={}\n",
+            "render_graph name={} passes={} executable={} culled={} resources={} topology_layers={} topology_peak_width={}\n",
             self.graph_name,
             self.stats.total_pass_count,
             self.stats.executable_pass_count,
             self.stats.culled_pass_count,
-            self.stats.resource_lifetime_count
+            self.stats.resource_lifetime_count,
+            self.executable_topology_layer_count,
+            self.executable_topology_peak_width
+        ));
+        text.push_str(&format!(
+            "compile_access_visits={} compile_execution_edges={} compile_provenance_edges={} compile_cull_roots={} compile_cull_edge_visits={}\n",
+            self.stats.compile_resource_access_visit_count,
+            self.stats.compile_execution_dependency_count,
+            self.stats.compile_provenance_dependency_count,
+            self.stats.compile_cull_root_count,
+            self.stats.compile_cull_dependency_visit_count,
         ));
         text.push_str("passes:\n");
         for pass in &self.pass_rows {
             text.push_str(&format!(
-                "  pass[{}] id={} name={} queue={} declared_queue={} fallback={} culled={} executor={} deps={} resources={}\n",
+                "  pass[{}] id={} name={} layer={} queue={} declared_queue={} fallback={} culled={} executor={} deps={} resources={}\n",
                 pass.order,
                 pass.id.index(),
                 pass.name,
+                optional_usize_text(pass.executable_topology_layer),
                 queue_lane_label(pass.queue),
                 queue_lane_label(pass.declared_queue),
                 pass.queue_fallback,
@@ -174,10 +203,11 @@ impl RenderGraphDump {
             ));
             for resource in &pass.resources {
                 text.push_str(&format!(
-                    "    {} {} kind={} ops={}\n",
+                    "    {} {} kind={} version={} ops={}\n",
                     resource_access_label(resource.access),
                     resource.name,
                     resource_kind_label(resource.kind),
+                    resource.version,
                     attachment_ops_text(resource.attachment_ops)
                 ));
             }
@@ -191,7 +221,7 @@ impl RenderGraphDump {
         text.push_str("resources:\n");
         for resource in &self.resource_rows {
             text.push_str(&format!(
-                "  resource name={} kind={} imported={} usage={} live={} lifetime={} slot={} size_bytes={} slot_reserved_bytes={} desc={}\n",
+                "  resource name={} kind={} imported={} usage={} live={} lifetime={} slot={} bucket={} size_bytes={} slot_reserved_bytes={} desc={}\n",
                 resource.name,
                 resource_kind_label(resource.kind),
                 resource.imported,
@@ -199,6 +229,7 @@ impl RenderGraphDump {
                 resource.live,
                 lifetime_text(resource.first_pass, resource.last_pass),
                 optional_usize_text(resource.transient_slot),
+                optional_u64_text(resource.transient_bucket_key_hash),
                 optional_u64_text(resource.size_bytes),
                 optional_u64_text(resource.slot_reserved_bytes),
                 resource_desc_text(&resource.desc)
@@ -218,11 +249,58 @@ impl RenderGraphDump {
     }
 }
 
-fn pass_resource_row(access: &RenderGraphPassResourceAccess) -> RenderGraphDumpPassResourceRow {
+struct ExecutableTopology {
+    layers_by_pass: HashMap<RenderPassId, usize>,
+    layer_count: usize,
+    peak_width: usize,
+}
+
+fn executable_topology(graph: &CompiledRenderGraph) -> ExecutableTopology {
+    let mut layers_by_pass = HashMap::new();
+    let mut layer_widths = Vec::new();
+
+    for pass in graph.passes() {
+        if pass.culled {
+            continue;
+        }
+
+        let layer = pass
+            .dependencies
+            .iter()
+            .filter_map(|dependency| layers_by_pass.get(dependency).copied())
+            .max()
+            .map_or(0, |dependency_layer| dependency_layer + 1);
+        if layer_widths.len() <= layer {
+            layer_widths.resize(layer + 1, 0);
+        }
+        layer_widths[layer] += 1;
+        layers_by_pass.insert(pass.id, layer);
+    }
+
+    ExecutableTopology {
+        layers_by_pass,
+        layer_count: layer_widths.len(),
+        peak_width: layer_widths.into_iter().max().unwrap_or(0),
+    }
+}
+
+fn pass_resource_row(
+    graph: &CompiledRenderGraph,
+    pass: RenderPassId,
+    access: &RenderGraphPassResourceAccess,
+) -> RenderGraphDumpPassResourceRow {
+    let version = graph
+        .resource_declaration_by_name(&access.name)
+        .filter(|declaration| declaration.kind == access.kind)
+        .and_then(|declaration| {
+            graph.resource_version_for_access(pass, declaration.resource, access.access)
+        })
+        .map_or(0, |version| version.ordinal());
     RenderGraphDumpPassResourceRow {
         name: access.name.clone(),
         kind: access.kind,
         access: access.access,
+        version,
         attachment_ops: access.attachment_ops,
     }
 }
@@ -243,6 +321,7 @@ fn resource_row(
         first_pass: lifetime.map(|lifetime| lifetime.first_pass),
         last_pass: lifetime.map(|lifetime| lifetime.last_pass),
         transient_slot: allocation.map(|allocation| allocation.slot),
+        transient_bucket_key_hash: allocation.map(|allocation| allocation.bucket_key_hash),
         size_bytes: allocation.map(|allocation| allocation.size_bytes),
         slot_reserved_bytes,
     }
@@ -365,5 +444,154 @@ fn resource_desc_text(desc: &RenderGraphDumpResourceDesc) -> String {
             usage_bits,
         } => format!("buffer:size_bytes={} usage=0x{:x}", size_bytes, usage_bits),
         RenderGraphDumpResourceDesc::External => "external".to_owned(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RenderGraphDump;
+    use crate::render_graph::{QueueLane, RenderGraphBuilder};
+    use crate::rhi::{TextureDesc, TextureFormat, TextureUsage};
+
+    #[test]
+    fn render_graph_dump_resource_rows_preserve_transient_bucket_identity() {
+        let mut builder = RenderGraphBuilder::new("dump-bucket-identity");
+        let r8 = builder.create_texture(TextureDesc::new(
+            "r8-color",
+            32,
+            32,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        ));
+        let r16 = builder.create_texture(TextureDesc::new(
+            "r16-color",
+            32,
+            32,
+            TextureFormat::Rgba16Float,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        ));
+        let output = builder.import_external_resource("output");
+
+        let write_r8 = builder.add_pass("write-r8", QueueLane::Graphics);
+        let write_r16 = builder.add_pass("write-r16", QueueLane::Graphics);
+        let present = builder.add_pass("present", QueueLane::Graphics);
+        builder.write_texture(write_r8, r8).unwrap();
+        builder.write_texture(write_r16, r16).unwrap();
+        builder.read_texture(present, r8).unwrap();
+        builder.read_texture(present, r16).unwrap();
+        builder.write_external(present, output).unwrap();
+
+        let dump = RenderGraphDump::from_graph(&builder.compile().unwrap());
+        let r8_row = dump
+            .resource_rows
+            .iter()
+            .find(|resource| resource.name == "r8-color")
+            .unwrap();
+        let r16_row = dump
+            .resource_rows
+            .iter()
+            .find(|resource| resource.name == "r16-color")
+            .unwrap();
+
+        assert_eq!(r8_row.transient_slot, Some(0));
+        assert_eq!(r16_row.transient_slot, Some(0));
+        assert_ne!(
+            r8_row.transient_bucket_key_hash,
+            r16_row.transient_bucket_key_hash
+        );
+
+        let text = dump.to_text();
+        assert!(text.contains(&format!(
+            "resource name=r8-color kind=TransientTexture imported=false usage=- live=true lifetime=0..2 slot=0 bucket={}",
+            r8_row.transient_bucket_key_hash.unwrap()
+        )));
+        assert!(text.contains(&format!(
+            "resource name=r16-color kind=TransientTexture imported=false usage=- live=true lifetime=1..2 slot=0 bucket={}",
+            r16_row.transient_bucket_key_hash.unwrap()
+        )));
+    }
+
+    #[test]
+    fn render_graph_dump_reports_executable_topology_layers() {
+        let mut builder = RenderGraphBuilder::new("dump-topology-layers");
+        let left = builder.create_texture(TextureDesc::new(
+            "left",
+            32,
+            32,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        ));
+        let right = builder.create_texture(TextureDesc::new(
+            "right",
+            32,
+            32,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+        ));
+        let unused = builder.create_texture(TextureDesc::new(
+            "unused",
+            32,
+            32,
+            TextureFormat::Rgba8UnormSrgb,
+            TextureUsage::RENDER_ATTACHMENT,
+        ));
+        let output = builder.import_external_resource("output");
+
+        let write_left = builder.add_pass("write-left", QueueLane::Graphics);
+        let write_right = builder.add_pass("write-right", QueueLane::AsyncCompute);
+        let write_unused = builder.add_pass("write-unused", QueueLane::Graphics);
+        let composite = builder.add_pass("composite", QueueLane::Graphics);
+        builder.write_texture(write_left, left).unwrap();
+        builder.write_texture(write_right, right).unwrap();
+        builder.write_texture(write_unused, unused).unwrap();
+        builder.read_texture(composite, left).unwrap();
+        builder.read_texture(composite, right).unwrap();
+        builder.write_external(composite, output).unwrap();
+
+        let dump = RenderGraphDump::from_graph(&builder.compile().unwrap());
+
+        assert_eq!(dump.executable_topology_layer_count, 2);
+        assert_eq!(dump.executable_topology_peak_width, 2);
+        assert_eq!(
+            dump.pass_rows
+                .iter()
+                .find(|pass| pass.name == "write-left")
+                .unwrap()
+                .executable_topology_layer,
+            Some(0)
+        );
+        assert_eq!(
+            dump.pass_rows
+                .iter()
+                .find(|pass| pass.name == "write-right")
+                .unwrap()
+                .executable_topology_layer,
+            Some(0)
+        );
+        assert_eq!(
+            dump.pass_rows
+                .iter()
+                .find(|pass| pass.name == "composite")
+                .unwrap()
+                .executable_topology_layer,
+            Some(1)
+        );
+        assert_eq!(
+            dump.pass_rows
+                .iter()
+                .find(|pass| pass.name == "write-unused")
+                .unwrap()
+                .executable_topology_layer,
+            None
+        );
+
+        let text = dump.to_text();
+        assert!(text.starts_with(
+            "render_graph name=dump-topology-layers passes=4 executable=3 culled=1 resources=3 topology_layers=2 topology_peak_width=2\n"
+        ));
+        assert!(text.contains("pass[0] id=0 name=write-left layer=0"));
+        assert!(text.contains("pass[1] id=1 name=write-right layer=0"));
+        assert!(text.contains("name=write-unused layer=-"));
+        assert!(text.contains("name=composite layer=1"));
     }
 }

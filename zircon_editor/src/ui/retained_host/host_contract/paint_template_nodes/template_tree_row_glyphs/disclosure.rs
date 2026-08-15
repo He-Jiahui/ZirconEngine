@@ -1,7 +1,7 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
 use super::super::template_icon_assets::push_icon_asset_pixels;
-use super::segments::{GlyphSegmentSpec, TREE_DISCLOSURE_GLYPH_GRID_UNITS, push_segments};
+use super::segments::{push_segments, GlyphSegmentSpec, TREE_DISCLOSURE_GLYPH_GRID_UNITS};
 
 const TREE_DISCLOSURE_DOWN_ICON: &str = "zircon_editor_shell/toolbar/dropdown.svg";
 const TREE_DISCLOSURE_RIGHT_ICON: &str = "zircon_editor_shell/toolbar/chevron-right.svg";

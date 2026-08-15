@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use crate::ui::workbench::view::{ViewDescriptor, ViewDescriptorId, ViewInstance, ViewInstanceId};
 
 use super::{
-    ViewTabSnapshot, descriptor_content_kind::descriptor_content_kind,
-    placeholder_view::placeholder_view,
+    descriptor_content_kind::descriptor_content_kind, placeholder_view::placeholder_view,
+    ViewTabSnapshot,
 };
 
 pub(crate) fn resolve_view_tab(

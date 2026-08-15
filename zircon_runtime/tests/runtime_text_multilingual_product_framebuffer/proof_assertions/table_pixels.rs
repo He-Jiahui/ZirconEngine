@@ -7,7 +7,7 @@ use zircon_runtime_interface::ui::{
     },
 };
 
-pub(super) fn assert_bbcode_table_pixels(
+pub(in super::super) fn assert_bbcode_table_pixels(
     samples: &[UiRenderCommand],
     capture: &CapturedFrame,
     background: &CapturedFrame,
@@ -20,7 +20,7 @@ pub(super) fn assert_bbcode_table_pixels(
     );
 }
 
-pub(super) fn assert_vertical_bbcode_table_pixels(
+pub(in super::super) fn assert_vertical_bbcode_table_pixels(
     samples: &[UiRenderCommand],
     capture: &CapturedFrame,
     background: &CapturedFrame,

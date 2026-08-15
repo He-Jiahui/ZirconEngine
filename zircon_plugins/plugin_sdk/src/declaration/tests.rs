@@ -185,12 +185,10 @@ fn declare_plugin_projects_runtime_descriptor_metadata() {
         descriptor.module_descriptor().init_level,
         zircon_runtime::core::InitLevel::Post
     );
-    assert!(
-        descriptor
-            .module_descriptor()
-            .module_dependencies
-            .is_empty()
-    );
+    assert!(descriptor
+        .module_descriptor()
+        .module_dependencies
+        .is_empty());
     let manifest = descriptor.package_manifest();
     let runtime_module = manifest
         .modules

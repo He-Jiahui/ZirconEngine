@@ -11,7 +11,6 @@ mod motion_vector_tile_max;
 mod output_transfer;
 mod post_process;
 mod smaa;
-mod ssao;
 mod taa_resolve;
 mod upscale;
 mod velocity_camera;
@@ -22,7 +21,10 @@ pub(super) use color_lut_bake::color_lut_bake;
 pub(super) use depth_of_field_prepare::depth_of_field_prepare;
 pub(super) use exposure_histogram::exposure_histogram;
 pub(super) use exposure_resolve::exposure_resolve;
-pub(super) use half_res_transparency::{composite as half_res_transparency_composite, depth_downsample as half_res_transparency_depth_downsample};
+pub(super) use half_res_transparency::{
+    composite as half_res_transparency_composite,
+    depth_downsample as half_res_transparency_depth_downsample,
+};
 pub(super) use hzb::{hzb, hzb_msaa};
 pub(super) use motion_vector_neighbor_max::motion_vector_neighbor_max;
 pub(super) use motion_vector_tile_max::{
@@ -31,7 +33,6 @@ pub(super) use motion_vector_tile_max::{
 pub(super) use output_transfer::output_transfer;
 pub(super) use post_process::post_process;
 pub(super) use smaa::smaa;
-pub(super) use ssao::ssao;
 pub(super) use taa_resolve::taa_resolve;
 pub(super) use upscale::upscale;
 pub(super) use velocity_camera::velocity_camera;

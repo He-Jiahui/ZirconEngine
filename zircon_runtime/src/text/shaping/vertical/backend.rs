@@ -66,6 +66,8 @@ pub(super) fn shape_vertical_run(
     face.set_variations(&variations);
     let scale = font_size.max(1.0) / face.units_per_em().max(1) as f32;
     let projected_features = projected_vertical_features(features, include_kerning);
+    #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+    super::super::cosmic::record_direct_backend_shape_call();
     let shaped = rustybuzz::shape(
         &face,
         &projected_features,
@@ -76,6 +78,8 @@ pub(super) fn shape_vertical_run(
     // feature and the same buffer context, to establish actual provenance.
     let substituted_clusters = detect_vertical_substitution
         .then(|| {
+            #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+            super::super::cosmic::record_direct_backend_shape_call();
             let without_vertical = rustybuzz::shape(
                 &face,
                 &vertical_features_disabled(&projected_features),

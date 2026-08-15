@@ -16,7 +16,9 @@ pub(super) fn route_chrome_press_damage_frame(
     route: &ChromePointerRoute,
 ) -> Option<FrameRect> {
     match route {
-        ChromePointerRoute::ActivityRail { .. } => route_activity_rail_damage_frame(presentation),
+        ChromePointerRoute::ActivityRail {
+            side, control_id, ..
+        } => route_activity_rail_damage_frame(presentation, side.as_str(), control_id.as_str()),
         ChromePointerRoute::DocumentTab { surface_key, .. } => {
             route_document_tab_damage_frame(presentation, surface_key.as_str())
         }

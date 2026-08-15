@@ -1,12 +1,12 @@
 ---
 related_code:
-  - zircon_runtime/src/rhi/capabilities.rs
-  - zircon_runtime/src/rhi/descriptors.rs
-  - zircon_runtime/src/rhi/descriptors/pipeline.rs
-  - zircon_runtime/src/rhi/device.rs
-  - zircon_runtime/src/rhi/device/handles.rs
-  - zircon_runtime/src/rhi/mod.rs
-  - zircon_runtime/src/rhi/ui_surface.rs
+  - zircon_runtime/crates/zr_rhi/src/capabilities.rs
+  - zircon_runtime/crates/zr_rhi/src/descriptors.rs
+  - zircon_runtime/crates/zr_rhi/src/descriptors/pipeline.rs
+  - zircon_runtime/crates/zr_rhi/src/device.rs
+  - zircon_runtime/crates/zr_rhi/src/device/handles.rs
+  - zircon_runtime/crates/zr_rhi/src/lib.rs
+  - zircon_runtime/crates/zr_rhi/src/ui_surface.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md
@@ -15,7 +15,7 @@ reference_sources:
   - dev/bevy/crates/bevy_render/src/render_resource/mod.rs
   - dev/UnrealEngine/Engine/Source/Runtime/RHI/Public/RHICommandList.h
 tests:
-  - zircon_runtime/src/rhi/tests
+  - zircon_runtime/crates/zr_rhi/src/tests
   - current-source Windows zircon_runtime RHI tests pending
 doc_type: implementation-evidence
 status: static_complete_dynamic_pending
@@ -25,7 +25,7 @@ status: static_complete_dynamic_pending
 
 ## 范围与覆盖
 
-`zircon_runtime/src/rhi/{capabilities.rs,descriptors.rs,descriptors/pipeline.rs,device.rs,device/handles.rs,mod.rs,ui_surface.rs}`生产面当前源 **7/7** 个Rust文件、**2,695** 行已逐文件阅读。范围是backend capability、buffer/texture/sampler/pipeline descriptors、typed handles、command/device traits、UI surface DTO/stats与root factory；`rhi/tests/**`及`rhi_wgpu`其余实现另行验收。
+`zircon_runtime/crates/zr_rhi/src/{capabilities.rs,descriptors.rs,descriptors/pipeline.rs,device.rs,device/handles.rs,lib.rs,ui_surface.rs}`生产面当前源 **7/7** 个Rust文件、**2,695** 行已逐文件阅读。范围是backend capability、buffer/texture/sampler/pipeline descriptors、typed handles、command/device traits、UI surface DTO/stats与root factory；`zr_rhi/src/tests/**`及`zr_rhi_wgpu`其余实现另行验收。
 
 ## 性能结论
 

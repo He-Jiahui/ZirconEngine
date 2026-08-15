@@ -10,6 +10,7 @@ mod welcome_recent_pointer_bridge_handle_click;
 mod welcome_recent_pointer_bridge_handle_move;
 mod welcome_recent_pointer_bridge_handle_scroll;
 mod welcome_recent_pointer_bridge_new;
+mod welcome_recent_pointer_bridge_project_route;
 mod welcome_recent_pointer_bridge_rebuild_surface;
 mod welcome_recent_pointer_bridge_sync;
 mod welcome_recent_pointer_dispatch;

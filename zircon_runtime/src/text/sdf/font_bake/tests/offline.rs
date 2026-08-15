@@ -11,6 +11,8 @@ use zircon_runtime_interface::project::RelPath;
 
 use super::super::{resolve_font_face, SdfFontBakeCache};
 
+const TEXT_SDF_OFFLINE_WORK_DIRECTORY: &str = ".runtime_text_sdf_offline_work";
+
 #[test]
 fn text_sdf_offline_lookup_resolves_manifest_and_instance_once() {
     let source = include_str!("../offline_source.rs");
@@ -60,6 +62,16 @@ fn text_sdf_font_bake_consumers_use_database_glyph_metadata_without_reparse() {
 #[test]
 fn text_sdf_offline_glyph_hits_skip_dynamic_gen_and_miss_falls_back() {
     let fixture = OfflineFontProject::new();
+    assert!(fixture.root.starts_with(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("zircon_runtime manifest must have a workspace parent")
+            .join("docs")
+            .join("tests")
+            .join("runtime")
+            .join("text")
+            .join(TEXT_SDF_OFFLINE_WORK_DIRECTORY)
+    ));
     let asset_manager = ProjectAssetManager::default();
     asset_manager
         .open_project(fixture.root.to_string_lossy().as_ref())
@@ -282,11 +294,20 @@ impl OfflineFontProject {
 
     fn new() -> Self {
         static NEXT_ID: AtomicU64 = AtomicU64::new(0);
-        let root = std::env::temp_dir().join(format!(
-            "zircon-runtime-text-offline-sdf-{}-{}",
-            std::process::id(),
-            NEXT_ID.fetch_add(1, Ordering::Relaxed)
-        ));
+        let workspace_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("zircon_runtime manifest must have a workspace parent");
+        let root = workspace_root
+            .join("docs")
+            .join("tests")
+            .join("runtime")
+            .join("text")
+            .join(TEXT_SDF_OFFLINE_WORK_DIRECTORY)
+            .join(format!(
+                "zircon-runtime-text-offline-sdf-{}-{}",
+                std::process::id(),
+                NEXT_ID.fetch_add(1, Ordering::Relaxed)
+            ));
         let paths = ProjectPaths::from_root(&root).expect("fixture paths");
         paths
             .ensure_layout(&[RelPath::project_assets()])

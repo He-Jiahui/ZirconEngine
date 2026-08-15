@@ -1,6 +1,6 @@
 use super::super::super::super::data::{FrameRect, HostWindowPresentationData};
 use super::super::super::super::menu_popup_metrics::{
-    MENU_POPUP_ANCHOR_GAP, MENU_POPUP_SHELL_MARGIN, menu_popup_shell_padding,
+    menu_popup_shell_padding, MENU_POPUP_ANCHOR_GAP, MENU_POPUP_SHELL_MARGIN,
 };
 
 use super::shell::{menu_shell_height, menu_shell_width};

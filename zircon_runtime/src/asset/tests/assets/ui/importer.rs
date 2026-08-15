@@ -114,7 +114,7 @@ fn importer_decodes_zui_component_assets_from_zui() {
     let component_path = root.join("button.zui");
     fs::write(&component_path, V2_COMPONENT_UI_TOML).unwrap();
 
-    let importer = importer_with_first_wave_plugin_fixtures();
+    let importer = AssetImporter::default();
 
     let component = importer
         .import_from_source(
@@ -142,7 +142,7 @@ fn importer_decodes_zui_view_and_style_assets_from_zui() {
     fs::write(&view_path, V2_VIEW_UI_TOML).unwrap();
     fs::write(&style_path, V2_STYLE_UI_TOML).unwrap();
 
-    let importer = importer_with_first_wave_plugin_fixtures();
+    let importer = AssetImporter::default();
 
     let view = importer
         .import_from_source(&view_path, &AssetUri::parse("res://ui/panel.zui").unwrap())

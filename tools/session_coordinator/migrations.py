@@ -14,7 +14,7 @@ from .models import CoordinatorError
 from .supervision.migration import migrate_supervision_schema
 
 
-LATEST_SCHEMA_VERSION = 64
+LATEST_SCHEMA_VERSION = 65
 
 
 def _migration_1(connection: Connection) -> None:
@@ -2641,6 +2641,42 @@ def _migration_64(connection: Connection) -> None:
     )
 
 
+def _migration_65(connection: Connection) -> None:
+    """Bind production staging directories to identity-preserving publication."""
+    connection.executescript(
+        """
+        CREATE TABLE artifact_product_staging_leases (
+            lease_id TEXT PRIMARY KEY CHECK (length(lease_id) = 32),
+            purpose TEXT NOT NULL CHECK (purpose <> ''),
+            staging_target_key TEXT NOT NULL,
+            staging_dir TEXT NOT NULL,
+            final_target_key TEXT NOT NULL,
+            final_dir TEXT NOT NULL,
+            owner_pid INTEGER NOT NULL CHECK (owner_pid > 0),
+            owner_process_creation_time TEXT NOT NULL
+                CHECK (owner_process_creation_time <> ''),
+            status TEXT NOT NULL CHECK (
+                status IN ('active', 'publishing', 'published', 'released', 'recovered')
+            ),
+            staging_filesystem_identity TEXT,
+            published_filesystem_identity TEXT,
+            created_at TEXT NOT NULL,
+            publishing_at TEXT,
+            published_at TEXT,
+            released_at TEXT
+        );
+        CREATE INDEX idx_artifact_product_staging_status
+            ON artifact_product_staging_leases(status, created_at, lease_id);
+        CREATE UNIQUE INDEX idx_artifact_product_staging_live_source
+            ON artifact_product_staging_leases(staging_target_key)
+            WHERE status IN ('active', 'publishing');
+        CREATE UNIQUE INDEX idx_artifact_product_staging_live_final
+            ON artifact_product_staging_leases(final_target_key)
+            WHERE status IN ('active', 'publishing', 'published');
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -2706,6 +2742,7 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     62: _migration_62,
     63: _migration_63,
     64: _migration_64,
+    65: _migration_65,
 }
 
 

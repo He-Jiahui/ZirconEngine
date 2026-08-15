@@ -47,7 +47,6 @@ impl FullScenePostProcessResources {
     ) -> Self {
         let depth_sampling_mode = PostProcessDepthSamplingMode::for_backend_name(backend_name);
         let bloom_bind_group_layout = bind_group_layouts::bloom(device);
-        let ssao_bind_group_layout = bind_group_layouts::ssao(device);
         let cluster_bind_group_layout = bind_group_layouts::cluster(device);
         let hzb_bind_group_layout = bind_group_layouts::hzb(device);
         let hzb_msaa_bind_group_layout = bind_group_layouts::hzb_msaa(device);
@@ -110,9 +109,10 @@ impl FullScenePostProcessResources {
         let fallback_texture_views = create_fallback_texture_views(device, queue);
 
         Self {
+            hzb_fallback_resource_identity:
+                crate::graphics::scene::scene_renderer::hzb::HzbSampledResourceIdentity::new(),
             depth_sampling_mode,
             bloom_bind_group_layout,
-            ssao_bind_group_layout,
             cluster_bind_group_layout,
             hzb_bind_group_layout,
             hzb_msaa_bind_group_layout,
@@ -123,6 +123,9 @@ impl FullScenePostProcessResources {
             color_lut_bake_bind_group_layout,
             depth_of_field_prepare_bind_group_layout,
             taa_resolve_bind_group_layout,
+            taa_resolve_bind_group_cache: std::sync::Mutex::new(
+                crate::graphics::scene::scene_renderer::temporal::taa::taa_resolve_bind_group_cache::TaaResolveBindGroupCache::default(),
+            ),
             velocity_camera_bind_group_layout,
             motion_vector_tile_max_bind_group_layout,
             motion_vector_tile_max_parameter_bindings,
@@ -133,7 +136,6 @@ impl FullScenePostProcessResources {
             smaa_bind_group_layout,
             terminal_resource_cache: TerminalPostProcessResourceCache::new(),
             bloom_pipeline: pipeline_bundle.bloom_pipeline,
-            ssao_pipeline: std::sync::OnceLock::new(),
             cluster_pipeline: pipeline_bundle.cluster_pipeline,
             hzb_pipeline: pipeline_bundle.hzb_pipeline,
             hzb_msaa_pipeline: pipeline_bundle.hzb_msaa_pipeline,
@@ -187,6 +189,7 @@ impl FullScenePostProcessResources {
             hybrid_gi_trace_region_buffer: buffer_bundle.hybrid_gi_trace_region_buffer,
             reflection_probe_buffer: buffer_bundle.reflection_probe_buffer,
             black_texture_view: fallback_texture_views.black_texture_view,
+            black_texture_identity: crate::graphics::resource_identity::SampledTextureIdentity::new(),
             white_texture_view: fallback_texture_views.white_texture_view,
             hzb_source_texture_view: fallback_texture_views.hzb_source_texture_view,
             effect_lut_texture_view: fallback_texture_views.effect_lut_texture_view,

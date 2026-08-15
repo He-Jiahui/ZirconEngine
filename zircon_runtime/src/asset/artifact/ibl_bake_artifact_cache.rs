@@ -4,9 +4,11 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 use crate::core::framework::render::{
-    IBL_BAKE_ALGORITHM_VERSION, IblBakeArtifactBlob, IblBakeArtifactBlobError,
-    IblBakeArtifactCandidate, IblBakeArtifactDescriptor, IblBakeArtifactRequest, IblBakeKey,
+    IblBakeArtifactBlob, IblBakeArtifactBlobError, IblBakeArtifactCandidate,
+    IblBakeArtifactDescriptor, IblBakeArtifactProducer, IblBakeArtifactRequest, IblBakeKey,
+    IBL_BAKE_ALGORITHM_VERSION,
 };
+use crate::core::resource::io::atomic_write;
 
 pub const IBL_BAKE_RUNTIME_CACHE_DIRECTORY: &str = "render/ibl";
 pub const IBL_BAKE_RUNTIME_CACHE_EXTENSION: &str = "zribl";
@@ -59,16 +61,13 @@ impl IblBakeArtifactCacheStore {
         &self,
         blob: &IblBakeArtifactBlob,
     ) -> Result<PathBuf, IblBakeArtifactCacheError> {
-        let path = self.runtime_cache_path_for_descriptor(blob.descriptor());
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).map_err(|source| {
-                IblBakeArtifactCacheError::CreateDirectory {
-                    path: parent.to_path_buf(),
-                    source,
-                }
-            })?;
+        if blob.descriptor().producer() != IblBakeArtifactProducer::RendererGpuRuntime {
+            return Err(IblBakeArtifactCacheError::InvalidProducer {
+                producer: blob.descriptor().producer(),
+            });
         }
-        fs::write(&path, blob.encode()).map_err(|source| IblBakeArtifactCacheError::Write {
+        let path = self.runtime_cache_path_for_descriptor(blob.descriptor());
+        atomic_write(&path, &blob.encode()).map_err(|source| IblBakeArtifactCacheError::Write {
             path: path.clone(),
             source,
         })?;
@@ -94,7 +93,7 @@ impl IblBakeArtifactCacheStore {
         };
 
         Ok(
-            match IblBakeArtifactBlob::decode_current_for_request(request, &bytes) {
+            match IblBakeArtifactBlob::decode_current_runtime_cache_for_request(request, &bytes) {
                 Ok(blob) => IblBakeArtifactCacheRead::Hit(blob),
                 Err(error) => IblBakeArtifactCacheRead::Rejected(error),
             },
@@ -124,6 +123,8 @@ impl IblBakeArtifactCacheRead {
 
 #[derive(Debug, Error)]
 pub enum IblBakeArtifactCacheError {
+    #[error("runtime IBL cache requires a renderer GPU artifact, got {producer:?}")]
+    InvalidProducer { producer: IblBakeArtifactProducer },
     #[error("create IBL bake artifact cache directory {path:?}: {source}")]
     CreateDirectory {
         path: PathBuf,
@@ -167,5 +168,22 @@ fn update_bake_key_hash(hasher: &mut blake3::Hasher, bake_key: IblBakeKey) {
 fn update_u32_array_hash(hasher: &mut blake3::Hasher, values: &[u32; 4]) {
     for value in values {
         hasher.update(&value.to_le_bytes());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn runtime_cache_writer_uses_runtime_atomic_publication() {
+        let source = include_str!("ibl_bake_artifact_cache.rs");
+        let writer = source
+            .split("pub fn write_runtime_cache(")
+            .nth(1)
+            .and_then(|writer| writer.split("pub fn read_runtime_cache(").next())
+            .expect("runtime cache store must retain its writer");
+
+        assert!(source.contains("core::resource::io::atomic_write"));
+        assert!(writer.contains("atomic_write("));
+        assert!(!writer.contains("fs::write("));
     }
 }

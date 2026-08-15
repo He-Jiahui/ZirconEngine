@@ -23,7 +23,7 @@ FFI_PANIC_ANCHORS = (
         "zircon_runtime/src/dynamic_api/exports.rs",
         "runtime dynamic API panic caught at FFI boundary",
     ),
-    ("zircon_runtime/src/dynamic_api/exports.rs", "zircon_runtime_get_api_v2_inner"),
+    ("zircon_runtime/src/dynamic_api/exports.rs", "zircon_runtime_get_api_v6_inner"),
     ("zircon_runtime/src/dynamic_api/exports.rs", "Err(_) => core::ptr::null()"),
     (
         "zircon_runtime/src/dynamic_api/tests/api_table.rs",
@@ -39,7 +39,7 @@ FFI_PANIC_ANCHORS = (
 LOADER_FAILURE_ANCHORS = (
     (
         "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
-        ".get::<ZrRuntimeGetApiFnV2>(ZR_RUNTIME_GET_API_SYMBOL_V2)",
+        ".get::<ZrRuntimeGetApiFnV6>(ZR_RUNTIME_GET_API_SYMBOL_V6)",
     ),
     (
         "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
@@ -67,19 +67,15 @@ LOADER_FAILURE_ANCHORS = (
     ),
     (
         "zircon_app/src/entry/runtime_library/tests.rs",
-        "runtime_api_pointer_rejects_missing_required_functions_before_session_creation",
+        "runtime_api_pointer_names_every_missing_required_function",
     ),
     (
         "zircon_app/src/entry/runtime_library/tests.rs",
-        "runtime_api_pointer_rejects_missing_required_operation_functions",
-    ),
-    (
-        "zircon_app/src/entry/runtime_library/tests.rs",
-        "runtime_session_does_not_recheck_required_v2_mirror_or_operation_capabilities",
+        "runtime_session_does_not_recheck_required_v6_mirror_or_operation_capabilities",
     ),
     (
         "zircon_app/src/entry/runtime_library/runtime_session/operation.rs",
-        "operation_output_abi_rejects_foreign_versions",
+        "operation_result_abi_rejects_foreign_versions",
     ),
     (
         "zircon_app/src/entry/runtime_library/tests.rs",

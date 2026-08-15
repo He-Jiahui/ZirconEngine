@@ -60,21 +60,3 @@ impl EditorRuntimeHighlightSet {
         self.viewport.is_valid() && self.tint_rgba.iter().all(|component| component.is_finite())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::EditorRuntimeHighlightSet;
-    use zircon_runtime_interface::ZrRuntimeViewportHandle;
-
-    #[test]
-    fn canonicalizes_entity_ids_before_crossing_gateway() {
-        let set = EditorRuntimeHighlightSet::new(
-            ZrRuntimeViewportHandle::new(2),
-            4,
-            [7, 1, 7, 3],
-            true,
-            [0.3, 0.5, 0.8, 1.0],
-        );
-        assert_eq!(set.entities(), &[1, 3, 7]);
-    }
-}

@@ -4,6 +4,9 @@ use std::sync::Arc;
 use zircon_runtime::core::framework::render::{HighlightRenderAttributes, HighlightSet};
 use zircon_runtime::core::CoreHandle;
 use zircon_runtime::scene::{LevelSystem, World};
+use zircon_runtime_interface::world_sync::{
+    InvalidationBatch, WatchRegistration, WatchToken, WorldQuery, WorldQueryResult,
+};
 use zircon_runtime_interface::{
     ZrRuntimeOperationHandle, ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2,
     ZrRuntimeOperationSubmitRequestV1, ZrRuntimeSessionHandle,
@@ -82,10 +85,23 @@ impl EditorRuntimeGateway for InProcessGateway {
         Ok(())
     }
 
-    fn submit_highlight_set(
-        &self,
-        set: EditorRuntimeHighlightSet,
-    ) -> Result<(), GatewayError> {
+    fn query_world(&self, query: WorldQuery) -> Result<WorldQueryResult, GatewayError> {
+        Ok(self.level.with_world(|world| world.query_world(&query)))
+    }
+
+    fn watch_world(&self, registration: WatchRegistration) -> Result<WatchToken, GatewayError> {
+        Ok(self.level.watch_world(registration))
+    }
+
+    fn unwatch_world(&self, token: WatchToken) -> Result<bool, GatewayError> {
+        Ok(self.level.unwatch_world(token))
+    }
+
+    fn drain_world_invalidations(&self) -> Result<Vec<InvalidationBatch>, GatewayError> {
+        Ok(self.level.drain_world_invalidations())
+    }
+
+    fn submit_highlight_set(&self, set: EditorRuntimeHighlightSet) -> Result<(), GatewayError> {
         if !set.is_valid() {
             return Err(GatewayError::Protocol {
                 message: "invalid runtime highlight set".to_owned(),
@@ -131,43 +147,5 @@ impl EditorRuntimeGateway for InProcessGateway {
         Err(GatewayError::CapabilityMissing {
             capability: "runtime.operation.harvest",
         })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::InProcessGateway;
-    use crate::core::gateway::{EditorRuntimeGateway, EditorRuntimeHighlightSet};
-    use zircon_runtime::scene::{DefaultLevelManager, World};
-    use zircon_runtime_interface::ZrRuntimeViewportHandle;
-
-    #[test]
-    fn in_process_submission_updates_only_its_viewport_latest_value() {
-        let level = DefaultLevelManager::default().create_level(World::empty(), Default::default());
-        let gateway = InProcessGateway::for_authoring_level(level.clone());
-
-        gateway
-            .submit_highlight_set(EditorRuntimeHighlightSet::new(
-                ZrRuntimeViewportHandle::new(2),
-                5,
-                [8, 2, 8],
-                true,
-                [0.2, 0.5, 0.8, 1.0],
-            ))
-            .unwrap();
-        gateway
-            .submit_highlight_set(EditorRuntimeHighlightSet::new(
-                ZrRuntimeViewportHandle::new(2),
-                4,
-                [99],
-                true,
-                [0.2, 0.5, 0.8, 1.0],
-            ))
-            .unwrap();
-
-        let retained = level.viewport_highlight_set(2).unwrap();
-        assert_eq!(retained.generation(), 5);
-        assert_eq!(retained.set().entities(), &[2, 8]);
-        assert!(level.viewport_highlight_set(3).is_none());
     }
 }

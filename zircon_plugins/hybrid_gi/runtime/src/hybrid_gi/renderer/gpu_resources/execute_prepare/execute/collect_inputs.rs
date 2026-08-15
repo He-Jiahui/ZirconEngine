@@ -1,16 +1,19 @@
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use zircon_runtime::core::framework::render::{
-    RenderDirectionalLightSnapshot, RenderMeshSnapshot, RenderPointLightSnapshot,
-    RenderSpotLightSnapshot,
+    RenderDirectionalLightSnapshot, RenderMeshBounds, RenderMeshSnapshot, RenderPointLightSnapshot,
+    RenderSpotLightSnapshot, RENDER_HYBRID_GI_PROBE_TRACE_DIAGNOSTIC_WORD_COUNT,
 };
 use zircon_runtime::core::math::Vec3;
 
 use crate::hybrid_gi::types::{
-    HybridGiPrepareFrame, HybridGiPrepareSurfaceCacheDepthSourceSample, HybridGiResolveRuntime,
+    HybridGiPrepareFrame, HybridGiPrepareRadianceCacheConsume, HybridGiPrepareRadianceCacheUpdate,
+    HybridGiPrepareSurfaceCacheDepthSourceSample, HybridGiResolveRuntime,
     HybridGiScenePrepareFrame,
 };
 
+use super::super::super::gpu_radiance_cache_consume_input::GpuRadianceCacheConsumeInput;
 use super::super::pending_probe_inputs::pending_probe_inputs;
 use super::super::resident_probe_inputs::resident_probe_inputs;
 use super::super::trace_region_inputs::trace_region_inputs;
@@ -28,7 +31,10 @@ pub(super) fn collect_inputs(
     prepare: &HybridGiPrepareFrame,
     resolve_runtime: Option<&HybridGiResolveRuntime>,
     scene_prepare: Option<&HybridGiScenePrepareFrame>,
-    scene_meshes: &[RenderMeshSnapshot],
+    radiance_cache_updates: &[HybridGiPrepareRadianceCacheUpdate],
+    radiance_cache_consumes: &[HybridGiPrepareRadianceCacheConsume],
+    scene_mesh_world_bounds: Arc<[(u64, RenderMeshBounds)]>,
+    scene_meshes: Arc<[RenderMeshSnapshot]>,
     directional_lights: &[RenderDirectionalLightSnapshot],
     point_lights: &[RenderPointLightSnapshot],
     spot_lights: &[RenderSpotLightSnapshot],
@@ -39,8 +45,25 @@ pub(super) fn collect_inputs(
         .map(|probe| [probe.probe_id, probe.slot])
         .collect::<Vec<_>>();
     let resident_probe_inputs = resident_probe_inputs(prepare, resolve_runtime);
+    let resident_probe_index_by_id = resident_probe_inputs
+        .iter()
+        .enumerate()
+        .map(|(index, probe)| (probe.probe_id, index.min(u32::MAX as usize) as u32))
+        .collect::<BTreeMap<_, _>>();
     let pending_probe_inputs = pending_probe_inputs(prepare, resolve_runtime);
     let trace_region_inputs = trace_region_inputs(prepare, resolve_runtime);
+    let radiance_cache_update_inputs = radiance_cache_updates.iter().map(Into::into).collect();
+    let radiance_cache_consume_inputs = radiance_cache_consumes
+        .iter()
+        .filter_map(|consume| {
+            resident_probe_index_by_id
+                .get(&consume.probe_id)
+                .copied()
+                .map(|resident_probe_index| {
+                    GpuRadianceCacheConsumeInput::new(consume, resident_probe_index)
+                })
+        })
+        .collect();
     let scene_card_capture_requests = scene_prepare
         .map(|prepare| prepare.card_capture_requests.clone())
         .unwrap_or_default();
@@ -78,9 +101,14 @@ pub(super) fn collect_inputs(
             + (resident_probe_inputs.len() + pending_probe_inputs.len()).max(1) * 2,
         trace_lighting_word_count: 1
             + (resident_probe_inputs.len() + pending_probe_inputs.len()).max(1) * 2,
+        trace_diagnostic_word_count: 1
+            + (resident_probe_inputs.len() + pending_probe_inputs.len()).max(1)
+                * RENDER_HYBRID_GI_PROBE_TRACE_DIAGNOSTIC_WORD_COUNT,
         cache_entries,
         resident_probe_inputs,
         pending_probe_inputs,
+        radiance_cache_update_inputs,
+        radiance_cache_consume_inputs,
         trace_region_inputs,
         scene_card_capture_requests,
         scene_surface_cache_depth_source_samples,
@@ -88,7 +116,8 @@ pub(super) fn collect_inputs(
         scene_card_capture_descriptor_count,
         scene_voxel_clipmaps,
         scene_voxel_cells,
-        scene_meshes: scene_meshes.to_vec(),
+        scene_mesh_world_bounds,
+        scene_meshes,
         directional_lights: directional_lights.to_vec(),
         point_lights: point_lights.to_vec(),
         spot_lights: spot_lights.to_vec(),
@@ -157,6 +186,7 @@ mod tests {
 
     use crate::hybrid_gi::types::{
         HybridGiPrepareCardCaptureRequest, HybridGiPrepareProbe,
+        HybridGiPrepareRadianceCacheConsume, HybridGiPrepareRadianceCacheUpdate,
         HybridGiPrepareSurfaceCachePageContent, HybridGiResolveProbeSceneData,
         HybridGiResolveTraceRegionSceneData,
     };
@@ -207,6 +237,19 @@ mod tests {
                 atlas_sample_rgba: [10, 20, 30, 255],
                 capture_sample_rgba: [40, 50, 60, 255],
             }],
+            radiance_cache_updates: vec![HybridGiPrepareRadianceCacheUpdate {
+                slot: 3,
+                generation: 9,
+                radiance_rgb: [40, 50, 60],
+                confidence_q8: 200,
+                reuse_committed_radiance: false,
+            }],
+            radiance_cache_consumes: vec![HybridGiPrepareRadianceCacheConsume {
+                probe_id: 7,
+                generation: 9,
+                slots: [3; 8],
+                weights_q16: [u16::MAX, 0, 0, 0, 0, 0, 0, 0],
+            }],
             ..HybridGiScenePrepareFrame::default()
         };
 
@@ -214,6 +257,9 @@ mod tests {
             &prepare,
             Some(&runtime),
             Some(&scene_prepare),
+            &scene_prepare.radiance_cache_updates,
+            &scene_prepare.radiance_cache_consumes,
+            &[],
             &[],
             &[],
             &[],
@@ -227,5 +273,25 @@ mod tests {
         assert_eq!(inputs.scene_card_capture_descriptor_count, 1);
         assert_eq!(inputs.scene_surface_cache_page_contents.len(), 1);
         assert_eq!(inputs.scene_surface_cache_depth_source_samples.len(), 1);
+        assert_eq!(inputs.radiance_cache_update_inputs.len(), 1);
+        assert_eq!(inputs.radiance_cache_update_inputs[0].slot, 3);
+        assert_eq!(inputs.radiance_cache_update_inputs[0].generation_low, 9);
+        assert_eq!(
+            inputs.radiance_cache_update_inputs[0]
+                .radiance_confidence
+                .to_le_bytes(),
+            [40, 50, 60, 200]
+        );
+        assert_eq!(inputs.radiance_cache_consume_inputs.len(), 1);
+        assert_eq!(inputs.radiance_cache_consume_inputs[0].probe_id, 7);
+        assert_eq!(
+            inputs.radiance_cache_consume_inputs[0].resident_probe_index,
+            0
+        );
+        assert_eq!(inputs.radiance_cache_consume_inputs[0].slots, [3; 8]);
+        assert_eq!(
+            inputs.radiance_cache_consume_inputs[0].weights_q16[0],
+            u32::from(u16::MAX)
+        );
     }
 }

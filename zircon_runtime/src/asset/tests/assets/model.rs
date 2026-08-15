@@ -32,6 +32,7 @@ fn model_asset_toml_roundtrip_preserves_virtual_geometry_payload() {
             mesh: Some(asset_reference(
                 "res://models/nanite_teapot.model.toml#Mesh0/Primitive0",
             )),
+            mesh_sdf: None,
             virtual_geometry: Some(sample_virtual_geometry_asset()),
         }],
     };
@@ -61,6 +62,7 @@ fn virtual_geometry_vertex_ordinals_pack_into_joint_index_slots() {
         ],
         indices: vec![0, 1, 2],
         mesh: None,
+        mesh_sdf: None,
         virtual_geometry: Some(sample_virtual_geometry_asset()),
     };
 
@@ -88,6 +90,7 @@ fn virtual_geometry_vertex_ordinals_do_not_rewrite_skinned_primitives() {
         vertices: vertices.clone(),
         indices: vec![0, 1],
         mesh: None,
+        mesh_sdf: None,
         virtual_geometry: Some(sample_virtual_geometry_asset()),
     };
 
@@ -98,14 +101,13 @@ fn virtual_geometry_vertex_ordinals_do_not_rewrite_skinned_primitives() {
 
 #[test]
 fn virtual_geometry_vertex_ordinals_do_not_rewrite_non_vg_primitives() {
-    let vertices = vec![
-        MeshVertex::new(Vec3::ZERO, Vec3::Y, Vec2::ZERO)
-            .with_skinning([9, 8, 7, 6], [1.0, 0.0, 0.0, 0.0]),
-    ];
+    let vertices = vec![MeshVertex::new(Vec3::ZERO, Vec3::Y, Vec2::ZERO)
+        .with_skinning([9, 8, 7, 6], [1.0, 0.0, 0.0, 0.0])];
     let mut primitive = ModelPrimitiveAsset {
         vertices: vertices.clone(),
         indices: vec![0],
         mesh: None,
+        mesh_sdf: None,
         virtual_geometry: None,
     };
 
@@ -125,12 +127,14 @@ fn model_asset_overview_reports_root_and_primitive_mesh_summary() {
                 mesh: Some(asset_reference(
                     "res://models/overview.model.toml#Mesh0/Primitive0",
                 )),
+                mesh_sdf: None,
                 virtual_geometry: None,
             },
             ModelPrimitiveAsset {
                 vertices: triangle_vertices([10.0, 0.0, 2.0]),
                 indices: vec![0, 1, 2, 2, 1, 0],
                 mesh: None,
+                mesh_sdf: None,
                 virtual_geometry: Some(sample_virtual_geometry_asset()),
             },
         ],
@@ -206,6 +210,7 @@ fn model_asset_management_record_wraps_id_and_overview() {
             mesh: Some(asset_reference(
                 "res://models/managed.model.toml#Mesh0/Primitive0",
             )),
+            mesh_sdf: None,
             virtual_geometry: None,
         }],
     };
@@ -234,6 +239,7 @@ fn model_asset_management_record_set_sorts_and_summarizes_records() {
             mesh: Some(asset_reference(
                 "res://models/flat.model.toml#Mesh0/Primitive0",
             )),
+            mesh_sdf: None,
             virtual_geometry: None,
         }],
     };
@@ -245,6 +251,7 @@ fn model_asset_management_record_set_sorts_and_summarizes_records() {
             mesh: Some(asset_reference(
                 "res://models/virtualized.model.toml#Mesh0/Primitive0",
             )),
+            mesh_sdf: None,
             virtual_geometry: Some(sample_virtual_geometry_asset()),
         }],
     };
@@ -287,12 +294,14 @@ fn model_asset_direct_references_deduplicate_primitive_meshes() {
                 vertices: triangle_vertices([0.0, 0.0, 0.0]),
                 indices: vec![0, 1, 2],
                 mesh: Some(shared_mesh.clone()),
+                mesh_sdf: None,
                 virtual_geometry: None,
             },
             ModelPrimitiveAsset {
                 vertices: triangle_vertices([1.0, 0.0, 0.0]),
                 indices: vec![0, 1, 2],
                 mesh: Some(shared_mesh.clone()),
+                mesh_sdf: None,
                 virtual_geometry: None,
             },
         ],

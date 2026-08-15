@@ -574,7 +574,11 @@ fn critical_editor_shells_are_hard_cut_to_zui_assets() {
         );
     }
 
-    let view_projection = source("src/ui/layouts/views/view_projection.rs");
+    let view_projection = format!(
+        "{}\n{}",
+        source("src/ui/layouts/views/view_projection.rs"),
+        source("src/ui/layouts/views/view_projection/store_cache.rs")
+    );
     for required in [
         "NonV2AssetPath",
         "UiV2PrototypeStoreFileCache",

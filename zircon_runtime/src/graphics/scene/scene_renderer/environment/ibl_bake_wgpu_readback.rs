@@ -2,7 +2,8 @@ use crate::core::framework::render::{
     IblBakeArtifactContents, IblBakeArtifactDescriptor, IblBakeArtifactReadbackSections,
 };
 use crate::graphics::backend::{
-    IblBakeArtifactWgpuReadbackResources, read_ibl_bake_artifact_wgpu_sections,
+    prepare_ibl_bake_artifact_wgpu_readback, read_ibl_bake_artifact_wgpu_sections,
+    IblBakeArtifactWgpuPendingReadback, IblBakeArtifactWgpuReadbackResources,
 };
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphExecutionResources;
 use crate::graphics::types::GraphicsError;
@@ -56,6 +57,16 @@ pub(in crate::graphics::scene::scene_renderer) fn read_ibl_bake_artifact_wgpu_se
     let readback = ibl_bake_wgpu_readback_resources_from_graph_resources(descriptor, resources)
         .map_err(GraphicsError::BufferMap)?;
     read_ibl_bake_artifact_wgpu_sections(device, queue, readback)
+}
+
+pub(in crate::graphics::scene::scene_renderer) fn prepare_ibl_bake_artifact_wgpu_readback_from_graph_resources(
+    device: &wgpu::Device,
+    descriptor: IblBakeArtifactDescriptor,
+    resources: &RenderGraphExecutionResources,
+) -> Result<IblBakeArtifactWgpuPendingReadback, GraphicsError> {
+    let readback = ibl_bake_wgpu_readback_resources_from_graph_resources(descriptor, resources)
+        .map_err(GraphicsError::BufferMap)?;
+    prepare_ibl_bake_artifact_wgpu_readback(device, readback)
 }
 
 fn required_owned_texture<'a>(
@@ -117,11 +128,9 @@ mod tests {
         );
         assert!(resources.owned_texture(IBL_BAKE_PMREM_RESOURCE).is_some());
         assert!(resources.buffer(IBL_BAKE_IRRADIANCE_SH9_RESOURCE).is_some());
-        assert!(
-            resources
-                .owned_texture(IBL_BAKE_IRRADIANCE_CUBE_RESOURCE)
-                .is_some()
-        );
+        assert!(resources
+            .owned_texture(IBL_BAKE_IRRADIANCE_CUBE_RESOURCE)
+            .is_some());
         resources.release_transient_backings_into_pool(&mut Default::default());
     }
 

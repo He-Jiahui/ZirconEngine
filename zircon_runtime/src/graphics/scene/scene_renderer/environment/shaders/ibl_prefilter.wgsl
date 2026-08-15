@@ -11,7 +11,7 @@ struct IblPrefilterParams {
     sample_count: u32,
     first_face: u32,
     roughness: f32,
-    _pad1: f32,
+    write_terminal_average_to_all_faces: f32,
 };
 
 @group(0) @binding(0) var<uniform> params: IblPrefilterParams;
@@ -174,16 +174,69 @@ fn final_pmrem_face_average(
     return color / 6.0;
 }
 
+fn terminal_pmrem_face_average(
+    sample_count: u32,
+    source_face_size: f32,
+    source_max_mip: f32,
+) -> vec3<f32> {
+    if (params.mip_level == 0u || params.roughness <= 0.0001) {
+        // The CPU PMREM chain averages a terminal 1x1 mip across all faces,
+        // including the valid single-mip layout.
+        let lod = source_footprint_lod(source_face_size, source_max_mip);
+        var color = vec3<f32>(0.0, 0.0, 0.0);
+        for (var face = 0u; face < 6u; face = face + 1u) {
+            let face_axis = cube_face_direction(face, vec2<f32>(0.0, 0.0));
+            color = color + textureSampleLevel(
+                source_cubemap,
+                source_sampler,
+                face_axis,
+                lod,
+            ).rgb;
+        }
+        return color / 6.0;
+    }
+    return final_pmrem_face_average(sample_count, source_face_size, source_max_mip);
+}
+
 @compute @workgroup_size(8, 8, 1)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let mip_size = max(params.mip_face_size, 1u);
-    let face = params.first_face + global_id.z;
-    if (global_id.x >= mip_size || global_id.y >= mip_size || face >= 6u) {
+    if (global_id.x >= mip_size || global_id.y >= mip_size) {
         return;
     }
 
     let source_face_size = f32(max(textureDimensions(source_cubemap).x, 1u));
     let source_max_mip = f32(max(textureNumLevels(source_cubemap), 1u) - 1u);
+    if (params.write_terminal_average_to_all_faces > 0.5) {
+        let filtered = terminal_pmrem_face_average(
+            max(params.sample_count, 1u),
+            source_face_size,
+            source_max_mip,
+        );
+        for (var output_face = 0u; output_face < 6u; output_face = output_face + 1u) {
+            textureStore(
+                pmrem_output,
+                vec2<i32>(global_id.xy),
+                i32(output_face),
+                vec4<f32>(filtered, 1.0),
+            );
+        }
+        return;
+    }
+
+    let face = params.first_face + global_id.z;
+    if (face >= 6u) {
+        return;
+    }
+    if (params.mip_level + 1u >= params.mip_count && mip_size == 1u) {
+        let filtered = terminal_pmrem_face_average(
+            max(params.sample_count, 1u),
+            source_face_size,
+            source_max_mip,
+        );
+        textureStore(pmrem_output, vec2<i32>(global_id.xy), i32(face), vec4<f32>(filtered, 1.0));
+        return;
+    }
     let normal = texel_direction(face, global_id.xy, mip_size);
     if (params.mip_level == 0u || params.roughness <= 0.0001) {
         let source = textureSampleLevel(
@@ -197,16 +250,6 @@ fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     }
 
     let sample_count = max(params.sample_count, 1u);
-    if (params.mip_level + 1u >= params.mip_count && mip_size == 1u) {
-        let filtered = final_pmrem_face_average(
-            sample_count,
-            source_face_size,
-            source_max_mip,
-        );
-        textureStore(pmrem_output, vec2<i32>(global_id.xy), i32(face), vec4<f32>(filtered, 1.0));
-        return;
-    }
-
     var color = vec3<f32>(0.0, 0.0, 0.0);
     var weight_sum = 0.0;
     if (params.roughness >= FULL_ROUGHNESS_COSINE_THRESHOLD) {

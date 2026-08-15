@@ -66,11 +66,11 @@ fn normalized_sample_offset(offset: f32, max_offset: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::{
+        fallback_raster_font_size, fallback_raster_scale, fontdue_fallback_sample_offset_x,
+        logical_font_size, missing_fontdue_y_offset, normalized_fallback_sample_offset_x,
+        normalized_subpixel_offset, raster_metric_scale, swash_hinting_for_size,
         MIN_RASTER_METRIC_PX, NATIVE_SWASH_RASTER_SCALE, NATIVE_SWASH_SAMPLE_OFFSET_X,
-        NATIVE_SWASH_SAMPLE_OFFSET_Y, fallback_raster_font_size, fallback_raster_scale,
-        fontdue_fallback_sample_offset_x, logical_font_size, missing_fontdue_y_offset,
-        normalized_fallback_sample_offset_x, normalized_subpixel_offset, raster_metric_scale,
-        swash_hinting_for_size,
+        NATIVE_SWASH_SAMPLE_OFFSET_Y,
     };
 
     #[test]

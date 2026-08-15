@@ -17,9 +17,7 @@ use crate::ui::template_runtime::{
 
 #[cfg(test)]
 use super::super::projection_support::load_builtin_runtime;
-use super::super::projection_support::{
-    binding_for_control, build_bindings_by_id, project_builtin_document_with_runtime,
-};
+use super::super::projection_support::project_builtin_document_with_runtime;
 use super::error::BuiltinViewportToolbarTemplateBridgeError;
 use super::host_projection::{
     build_builtin_viewport_toolbar_surface, project_builtin_viewport_toolbar_host_projection,
@@ -29,9 +27,11 @@ use super::host_projection::{
 pub(crate) struct BuiltinViewportToolbarTemplateBridge {
     runtime: Arc<EditorUiHostRuntime>,
     projection: RetainedUiProjection,
-    bindings_by_id: BTreeMap<String, EditorUiBinding>,
+    bindings_by_control: BTreeMap<String, BTreeMap<UiEventKind, EditorUiBinding>>,
     surface: UiSurface,
     host_projection: RetainedUiHostProjection,
+    #[cfg(test)]
+    layout_recompute_count: usize,
 }
 
 impl BuiltinViewportToolbarTemplateBridge {
@@ -46,7 +46,15 @@ impl BuiltinViewportToolbarTemplateBridge {
     ) -> Result<Self, BuiltinViewportToolbarTemplateBridgeError> {
         let projection =
             project_builtin_document_with_runtime(&runtime, BUILTIN_VIEWPORT_TOOLBAR_DOCUMENT_ID)?;
-        let bindings_by_id = build_bindings_by_id(&projection);
+        let mut bindings_by_control =
+            BTreeMap::<String, BTreeMap<UiEventKind, EditorUiBinding>>::new();
+        for projected_binding in &projection.bindings {
+            let path = projected_binding.binding.path();
+            bindings_by_control
+                .entry(path.control_id.clone())
+                .or_default()
+                .insert(path.event_kind, projected_binding.binding.clone());
+        }
         let surface =
             build_builtin_viewport_toolbar_surface(runtime.as_ref(), UiSize::new(1280.0, 28.0))?;
         let host_projection = project_builtin_viewport_toolbar_host_projection(
@@ -57,9 +65,11 @@ impl BuiltinViewportToolbarTemplateBridge {
         Ok(Self {
             runtime,
             projection,
-            bindings_by_id,
+            bindings_by_control,
             surface,
             host_projection,
+            #[cfg(test)]
+            layout_recompute_count: 0,
         })
     }
 
@@ -73,6 +83,10 @@ impl BuiltinViewportToolbarTemplateBridge {
             &self.projection,
             &self.surface,
         )?;
+        #[cfg(test)]
+        {
+            self.layout_recompute_count = self.layout_recompute_count.saturating_add(1);
+        }
         Ok(())
     }
 
@@ -81,12 +95,14 @@ impl BuiltinViewportToolbarTemplateBridge {
         control_id: &str,
         event_kind: UiEventKind,
     ) -> Option<&EditorUiBinding> {
-        binding_for_control(
-            &self.bindings_by_id,
-            &self.host_projection,
-            control_id,
-            event_kind,
-        )
+        self.bindings_by_control
+            .get(control_id)
+            .and_then(|bindings| bindings.get(&event_kind))
+    }
+
+    #[cfg(test)]
+    pub(crate) fn layout_recompute_count(&self) -> usize {
+        self.layout_recompute_count
     }
 
     pub(crate) fn control_frame_for_control(&self, control_id: &str) -> Option<UiFrame> {
@@ -100,7 +116,7 @@ impl BuiltinViewportToolbarTemplateBridge {
         surface_key: &str,
         surface_size: UiSize,
         mut hit_control_id: F,
-    ) -> UiSurfaceFrame
+    ) -> Arc<UiSurfaceFrame>
     where
         F: FnMut(&str) -> Option<String>,
     {

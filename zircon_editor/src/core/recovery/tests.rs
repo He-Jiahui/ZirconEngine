@@ -1,22 +1,20 @@
 use std::collections::BTreeSet;
 use std::fs;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc;
 use std::sync::{Arc, Barrier};
 use std::thread;
 use std::time::Duration;
 
 use super::{
-    AutosaveAdmissionError, AutosaveDocumentId, AutosaveDocumentRequest, AutosaveDocumentState,
-    AutosaveExtension, AutosaveJobAdapter, AutosaveJobPolicy, AutosavePolicy, AutosaveScheduler,
-    AutosaveSnapshot, AutosaveSnapshotSource, AutosaveStore, RestoreAction, RestoreCandidate,
-    RestoreFlow, RestoreFlowError, RestoreResolution, RestoreStartup, SessionGuard,
-    SessionGuardError, SessionLockDurability, SessionLockInspection,
+    AutosaveDocumentId, AutosaveDocumentState, AutosaveExtension, AutosaveJobPolicy,
+    AutosavePolicy, AutosaveScheduler, AutosaveSourcePath, AutosaveStore, RestoreAction,
+    RestoreCandidate, RestoreFlow, RestoreFlowError, RestoreResolution, RestoreStartup,
+    SessionGuard, SessionGuardAdmission, SessionGuardError, SessionLockDurability,
+    SessionLockInspection,
 };
-use crate::core::jobs::{
-    EditorJob, EditorJobAdmissionLimits, EditorJobLimits, EditorJobSpec, JobCategory, JobContext,
-    JobError, JobPriority, MutexGroup, test_job_system_with_limits,
-};
+use crate::core::jobs::{JobCategory, JobPriority, MutexGroup};
+
+mod autosave_adapter;
 
 fn document_id(value: &str) -> AutosaveDocumentId {
     AutosaveDocumentId::parse(value).expect("test document id should be valid")
@@ -24,6 +22,10 @@ fn document_id(value: &str) -> AutosaveDocumentId {
 
 fn extension(value: &str) -> AutosaveExtension {
     AutosaveExtension::parse(value).expect("test extension should be valid")
+}
+
+fn recovery_source_path(value: &str) -> AutosaveSourcePath {
+    AutosaveSourcePath::parse(value).expect("test recovery source path should be valid")
 }
 
 fn expected_lock_durability() -> SessionLockDurability {
@@ -133,6 +135,7 @@ fn autosave_writes_only_the_project_autosave_tree_and_preserves_source_bytes() {
     let snapshot = store
         .write_snapshot(
             &document_id("scene_main"),
+            &recovery_source_path("scenes/main.zscene"),
             1,
             &extension("zscene"),
             b"autosave snapshot",
@@ -162,6 +165,7 @@ fn autosave_rotates_each_document_to_the_latest_three_sequences() {
         store
             .write_snapshot(
                 &document,
+                &recovery_source_path("scenes/world_01.zscene"),
                 sequence,
                 &zscene_extension,
                 format!("snapshot-{sequence}").as_bytes(),
@@ -180,6 +184,7 @@ fn autosave_rotates_each_document_to_the_latest_three_sequences() {
             "2.zscene".to_string(),
             "3.zscene".to_string(),
             "4.zscene".to_string(),
+            "recovery.json".to_string(),
         ])
     );
     remove_temporary_root(&root);
@@ -194,23 +199,32 @@ fn autosave_rejects_reusing_an_existing_snapshot_sequence() {
     let backup_extension = extension("backup");
 
     store
-        .write_snapshot(&document, 1, &zscene_extension, b"first snapshot")
+        .write_snapshot(
+            &document,
+            &recovery_source_path("scenes/main.zscene"),
+            1,
+            &zscene_extension,
+            b"first snapshot",
+        )
         .unwrap();
-    assert!(
-        store
-            .write_snapshot(&document, 1, &zscene_extension, b"replacement snapshot")
-            .is_err()
-    );
-    assert!(
-        store
-            .write_snapshot(
-                &document,
-                1,
-                &backup_extension,
-                b"different-extension snapshot",
-            )
-            .is_err()
-    );
+    assert!(store
+        .write_snapshot(
+            &document,
+            &recovery_source_path("scenes/main.zscene"),
+            1,
+            &zscene_extension,
+            b"replacement snapshot",
+        )
+        .is_err());
+    assert!(store
+        .write_snapshot(
+            &document,
+            &recovery_source_path("scenes/main.zscene"),
+            1,
+            &backup_extension,
+            b"different-extension snapshot",
+        )
+        .is_err());
     assert_eq!(
         fs::read(root.join(".zircon/autosave/scene_main/1.zscene")).unwrap(),
         b"first snapshot"
@@ -229,6 +243,7 @@ fn autosave_sequence_reservation_allows_only_one_concurrent_extension() {
         first_start.wait();
         first_store.write_snapshot(
             &document_id("scene_main"),
+            &recovery_source_path("scenes/main.zscene"),
             1,
             &extension("zscene"),
             b"zscene snapshot",
@@ -240,6 +255,7 @@ fn autosave_sequence_reservation_allows_only_one_concurrent_extension() {
         second_start.wait();
         second_store.write_snapshot(
             &document_id("scene_main"),
+            &recovery_source_path("scenes/main.zscene"),
             1,
             &extension("backup"),
             b"backup snapshot",
@@ -255,8 +271,102 @@ fn autosave_sequence_reservation_allows_only_one_concurrent_extension() {
         .filter_map(Result::ok)
         .filter_map(|entry| entry.file_name().into_string().ok())
         .collect::<BTreeSet<_>>();
-    assert_eq!(snapshots.len(), 1);
+    let snapshot_files = snapshots
+        .iter()
+        .filter(|name| {
+            name.split_once('.')
+                .and_then(|(sequence, _)| sequence.parse::<u64>().ok())
+                .is_some()
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(snapshot_files.len(), 1);
     assert!(snapshots.iter().all(|name| !name.starts_with('.')));
+    remove_temporary_root(&root);
+}
+
+#[test]
+fn autosave_sequence_reservation_rejects_same_sequence_from_independent_stores() {
+    let root = temporary_root("independent-store-sequence");
+    let start = Arc::new(Barrier::new(2));
+    let first_store = AutosaveStore::new(&root);
+    let first_start = Arc::clone(&start);
+    let first = thread::spawn(move || {
+        first_start.wait();
+        first_store.write_snapshot(
+            &document_id("scene_main"),
+            &recovery_source_path("scenes/main.zscene"),
+            1,
+            &extension("zscene"),
+            b"zscene snapshot",
+        )
+    });
+    let second_store = AutosaveStore::new(&root);
+    let second_start = Arc::clone(&start);
+    let second = thread::spawn(move || {
+        second_start.wait();
+        second_store.write_snapshot(
+            &document_id("scene_main"),
+            &recovery_source_path("scenes/main.zscene"),
+            1,
+            &extension("backup"),
+            b"backup snapshot",
+        )
+    });
+
+    let results = [first.join().unwrap(), second.join().unwrap()];
+    assert_eq!(results.iter().filter(|result| result.is_ok()).count(), 1);
+    assert_eq!(results.iter().filter(|result| result.is_err()).count(), 1);
+
+    let snapshots = fs::read_dir(root.join(".zircon/autosave/scene_main"))
+        .unwrap()
+        .filter_map(Result::ok)
+        .filter_map(|entry| entry.file_name().into_string().ok())
+        .filter(|name| {
+            name.split_once('.')
+                .and_then(|(sequence, _)| sequence.parse::<u64>().ok())
+                .is_some()
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(snapshots.len(), 1);
+    remove_temporary_root(&root);
+}
+
+#[test]
+fn autosave_stale_sequence_marker_blocks_reuse_but_not_recovery_discovery() {
+    let root = temporary_root("stale-sequence-marker");
+    let store = AutosaveStore::new(&root);
+    let document = document_id("scene_main");
+    let source_path = recovery_source_path("scenes/main.zscene");
+    let snapshot = store
+        .write_snapshot(
+            &document,
+            &source_path,
+            1,
+            &extension("zscene"),
+            b"first snapshot",
+        )
+        .unwrap();
+    let directory = snapshot.parent().unwrap();
+    let stale_marker = directory.join(".2.autosave-reservation");
+    fs::write(&stale_marker, b"interrupted writer").unwrap();
+
+    assert_eq!(store.next_sequence(&document, 1).unwrap(), 3);
+
+    assert!(matches!(
+        store.write_snapshot(
+            &document,
+            &source_path,
+            2,
+            &extension("zscene"),
+            b"second snapshot",
+        ),
+        Err(super::AutosaveError::SnapshotSequenceUnavailable { sequence: 2, .. })
+    ));
+
+    let candidates = store.recovery_candidates().unwrap();
+    assert_eq!(candidates.len(), 1);
+    assert_eq!(candidates[0].autosave_path(), snapshot.as_path());
+    assert!(stale_marker.exists());
     remove_temporary_root(&root);
 }
 
@@ -268,149 +378,6 @@ fn autosave_rejects_path_traversal_identifiers_and_extensions() {
     assert!(AutosaveExtension::parse("../source").is_err());
     assert!(AutosaveExtension::parse("scene.data").is_err());
     assert!(AutosaveExtension::parse(" ").is_err());
-}
-
-#[test]
-fn autosave_adapter_defers_snapshot_capture_until_the_admitted_mutex_turn() {
-    let root = temporary_root("adapter-admission");
-    let jobs =
-        test_job_system_with_limits(EditorJobLimits::default().with_limit(JobCategory::Import, 1));
-    let save_mutex = MutexGroup::parse("save_scene_main").unwrap();
-    let (started_sender, started_receiver) = mpsc::channel();
-    let (release_sender, release_receiver) = mpsc::channel();
-    let foreground = jobs
-        .submit(
-            EditorJobSpec::new("foreground-save", JobCategory::Import)
-                .with_mutex_group(save_mutex.clone()),
-            GateJob::new(started_sender, release_receiver),
-        )
-        .unwrap();
-    started_receiver.recv().unwrap();
-
-    let source = Arc::new(CountingSnapshotSource::success());
-    let mut adapter = AutosaveJobAdapter::new(
-        jobs.clone(),
-        AutosaveStore::new(&root),
-        AutosaveScheduler::new(AutosavePolicy::new(Duration::from_secs(10)).unwrap()),
-    );
-    let document = document_id("scene_main");
-    let dirty = [AutosaveDocumentState::from_dirty_for_test(
-        document.clone(),
-        true,
-    )];
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                [AutosaveDocumentRequest::new(
-                    document,
-                    AutosaveJobPolicy::for_save_mutex(save_mutex),
-                    source.clone(),
-                )
-                .with_estimated_pending_bytes(32)],
-            )
-            .unwrap()
-    );
-    assert_eq!(source.capture_count(), 0);
-    assert!(adapter.is_in_flight());
-
-    release_sender.send(()).unwrap();
-    assert_eq!(foreground.wait(), Ok(()));
-    let completion = wait_for_autosave_completion(&mut adapter, Duration::from_secs(11));
-    assert_eq!(completion.succeeded(), 1);
-    assert_eq!(completion.failed(), 0);
-    assert_eq!(source.capture_count(), 1);
-    assert!(root.join(".zircon/autosave/scene_main/1.zscene").is_file());
-    remove_temporary_root(&root);
-}
-
-#[test]
-fn autosave_adapter_releases_single_flight_when_atomic_admission_is_rejected() {
-    let jobs = test_job_system_with_limits(EditorJobLimits::default().with_admission_limits(
-        EditorJobAdmissionLimits::new(0, 1024, Duration::from_secs(10)),
-    ));
-    let root = temporary_root("adapter-rejected");
-    let mut adapter = AutosaveJobAdapter::new(
-        jobs,
-        AutosaveStore::new(&root),
-        AutosaveScheduler::new(AutosavePolicy::new(Duration::from_secs(10)).unwrap()),
-    );
-    let document = document_id("scene_main");
-    let dirty = [AutosaveDocumentState::from_dirty_for_test(
-        document.clone(),
-        true,
-    )];
-    let source = Arc::new(CountingSnapshotSource::success());
-
-    assert!(matches!(
-        adapter.schedule(
-            Duration::from_secs(10),
-            &dirty,
-            [AutosaveDocumentRequest::new(
-                document,
-                AutosaveJobPolicy::for_save_mutex(MutexGroup::parse("save_scene_main").unwrap()),
-                source.clone(),
-            )],
-        ),
-        Err(AutosaveAdmissionError::JobSubmit(
-            crate::core::jobs::JobSubmitError::AdmissionEntryLimitExceeded { limit: 0 }
-        ))
-    ));
-    assert!(!adapter.is_in_flight());
-    assert_eq!(source.capture_count(), 0);
-    remove_temporary_root(&root);
-}
-
-#[test]
-fn autosave_adapter_advances_after_a_write_failure_and_shutdown_rejects_new_work() {
-    let root = temporary_root("adapter-failure-shutdown");
-    let jobs = test_job_system_with_limits(EditorJobLimits::default());
-    let mut adapter = AutosaveJobAdapter::new(
-        jobs,
-        AutosaveStore::new(&root),
-        AutosaveScheduler::new(AutosavePolicy::new(Duration::from_secs(10)).unwrap()),
-    );
-    let document = document_id("scene_main");
-    let dirty = [AutosaveDocumentState::from_dirty_for_test(
-        document.clone(),
-        true,
-    )];
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                [AutosaveDocumentRequest::new(
-                    document.clone(),
-                    AutosaveJobPolicy::for_save_mutex(
-                        MutexGroup::parse("save_scene_main").unwrap()
-                    ),
-                    Arc::new(CountingSnapshotSource::failure()),
-                )],
-            )
-            .unwrap()
-    );
-    let completion = wait_for_autosave_completion(&mut adapter, Duration::from_secs(12));
-    assert_eq!(completion.succeeded(), 0);
-    assert_eq!(completion.failed(), 1);
-    assert!(!adapter.is_in_flight());
-
-    assert_eq!(adapter.begin_shutdown(), Vec::new());
-    assert!(!adapter.is_accepting());
-    assert!(matches!(
-        adapter.schedule(
-            Duration::from_secs(22),
-            &dirty,
-            [AutosaveDocumentRequest::new(
-                document,
-                AutosaveJobPolicy::for_save_mutex(MutexGroup::parse("save_scene_main").unwrap()),
-                Arc::new(CountingSnapshotSource::success()),
-            )],
-        ),
-        Err(AutosaveAdmissionError::ShuttingDown)
-    ));
-    remove_temporary_root(&root);
 }
 
 #[test]
@@ -441,6 +408,73 @@ fn session_guard_persists_heartbeat_and_requires_explicit_residual_takeover() {
         SessionGuard::inspect(&root).unwrap(),
         SessionLockInspection::Missing
     );
+    remove_temporary_root(&root);
+}
+
+#[test]
+fn session_guard_claim_reports_the_active_record_without_transferring_ownership() {
+    let root = temporary_root("session-guard-active-claim");
+    let mut guard = SessionGuard::acquire(&root).unwrap();
+    let expected = guard.record().clone();
+
+    assert!(matches!(
+        SessionGuard::claim(&root).unwrap(),
+        SessionGuardAdmission::Active {
+            record: Some(record)
+        } if record == expected
+    ));
+    assert!(matches!(
+        SessionGuard::inspect(&root).unwrap(),
+        SessionLockInspection::Residual(record) if record == expected
+    ));
+
+    guard.release().unwrap();
+    remove_temporary_root(&root);
+}
+
+#[test]
+fn session_guard_claim_holds_a_residual_record_until_explicit_takeover() {
+    let root = temporary_root("session-guard-residual-claim");
+    let guard = SessionGuard::acquire(&root).unwrap();
+    let expected = guard.record().clone();
+    drop(guard);
+
+    let claim = SessionGuard::claim(&root).unwrap();
+    assert!(matches!(
+        claim,
+        SessionGuardAdmission::Residual(ref residual) if residual.record() == &expected
+    ));
+    assert!(matches!(
+        SessionGuard::inspect(&root).unwrap(),
+        SessionLockInspection::Residual(record) if record == expected
+    ));
+
+    drop(claim);
+    let mut replacement =
+        SessionGuard::replace_residual_at(&root, &expected, std::time::SystemTime::now()).unwrap();
+    replacement.release().unwrap();
+    remove_temporary_root(&root);
+}
+
+#[cfg(any(windows, unix))]
+#[test]
+fn session_guard_uses_the_physical_project_identity_for_directory_aliases() {
+    let root = temporary_root("session-guard-project-alias");
+    let physical = root.join("physical-project");
+    let alias = root.join("project-alias");
+    fs::create_dir_all(&physical).unwrap();
+    create_project_directory_alias(&physical, &alias);
+
+    let mut guard = SessionGuard::acquire(&alias).unwrap();
+    assert_eq!(
+        guard.path(),
+        physical.join(".zircon").join("session.lock").as_path()
+    );
+    assert!(matches!(
+        SessionGuard::inspect(&physical).unwrap(),
+        SessionLockInspection::Residual(_)
+    ));
+    guard.release().unwrap();
     remove_temporary_root(&root);
 }
 
@@ -732,80 +766,6 @@ fn restore_flow_preserves_residual_takeover_without_candidates() {
     remove_temporary_root(&root);
 }
 
-fn wait_for_autosave_completion(
-    adapter: &mut AutosaveJobAdapter,
-    now: Duration,
-) -> super::AutosaveCompletion {
-    for _ in 0..1_000 {
-        let completion = adapter.pump_completed(now);
-        if completion.pending() == 0 && completion.succeeded() + completion.failed() != 0 {
-            return completion;
-        }
-        thread::yield_now();
-    }
-    panic!("autosave job did not reach a terminal result");
-}
-
-struct GateJob {
-    started: mpsc::Sender<()>,
-    release: mpsc::Receiver<()>,
-}
-
-impl GateJob {
-    fn new(started: mpsc::Sender<()>, release: mpsc::Receiver<()>) -> Self {
-        Self { started, release }
-    }
-}
-
-impl EditorJob for GateJob {
-    type Output = ();
-
-    fn run(self, _context: JobContext) -> Result<Self::Output, JobError> {
-        self.started.send(()).unwrap();
-        self.release.recv().unwrap();
-        Ok(())
-    }
-}
-
-struct CountingSnapshotSource {
-    captures: AtomicUsize,
-    failure: bool,
-}
-
-impl CountingSnapshotSource {
-    fn success() -> Self {
-        Self {
-            captures: AtomicUsize::new(0),
-            failure: false,
-        }
-    }
-
-    fn failure() -> Self {
-        Self {
-            captures: AtomicUsize::new(0),
-            failure: true,
-        }
-    }
-
-    fn capture_count(&self) -> usize {
-        self.captures.load(Ordering::Acquire)
-    }
-}
-
-impl AutosaveSnapshotSource for CountingSnapshotSource {
-    fn capture(&self, _document: &AutosaveDocumentId) -> Result<AutosaveSnapshot, JobError> {
-        self.captures.fetch_add(1, Ordering::AcqRel);
-        if self.failure {
-            return Err(JobError::failed(std::io::Error::other("snapshot failure")));
-        }
-        Ok(AutosaveSnapshot::new(
-            1,
-            extension("zscene"),
-            b"autosave snapshot".to_vec(),
-        ))
-    }
-}
-
 fn temporary_root(label: &str) -> std::path::PathBuf {
     std::env::temp_dir().join(format!(
         "zircon-editor-autosave-{label}-{}-{}",
@@ -815,6 +775,26 @@ fn temporary_root(label: &str) -> std::path::PathBuf {
             .expect("system clock should be after Unix epoch")
             .as_nanos()
     ))
+}
+
+#[cfg(windows)]
+fn create_project_directory_alias(target: &std::path::Path, alias: &std::path::Path) {
+    let command = format!(r#"mklink /J "{}" "{}""#, alias.display(), target.display());
+    let output = std::process::Command::new("cmd")
+        .args(["/D", "/S", "/C"])
+        .arg(command)
+        .output()
+        .expect("start mklink for project alias fixture");
+    assert!(
+        output.status.success(),
+        "create project alias fixture failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+#[cfg(unix)]
+fn create_project_directory_alias(target: &std::path::Path, alias: &std::path::Path) {
+    std::os::unix::fs::symlink(target, alias).expect("create project alias fixture");
 }
 
 fn remove_temporary_root(path: &std::path::Path) {

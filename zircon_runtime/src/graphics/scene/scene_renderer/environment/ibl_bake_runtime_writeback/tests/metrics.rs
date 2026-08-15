@@ -1,7 +1,7 @@
 use crate::core::framework::render::{
-    CubemapFace, SourceCubemapIrradianceCube, SourceCubemapMipChain,
     cubemap_direction_from_scaled_uv, cubemap_face_scaled_uv_from_direction,
-    cubemap_scaled_uv_for_texel, source_cubemap_mip_size,
+    cubemap_scaled_uv_for_texel, source_cubemap_mip_size, CubemapFace, SourceCubemapIrradianceCube,
+    SourceCubemapMipChain,
 };
 
 pub(super) fn synthetic_seam_stress_environment(u: f32, v: f32) -> [f32; 4] {

@@ -10,7 +10,8 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         mut self,
         resource_resolver: Option<RgResourceResolver<'a>>,
     ) -> Self {
-        self.resource_resolver = resource_resolver;
+        self.resource_resolver =
+            resource_resolver.map(|resolver| resolver.with_physical_resources(self.resources));
         self
     }
 
@@ -85,33 +86,64 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         self.resources.owned_texture_full_mip_view(resource_name)
     }
 
-    pub(in crate::graphics::scene::scene_renderer) fn require_texture_view_by_name<'resources>(
-        resources: &'resources RenderGraphExecutionResources,
+    pub fn texture_view_with_full_mip_fallback(
+        &self,
+        resource_name: &str,
+        access: RenderGraphResourceAccessKind,
+    ) -> Result<wgpu::TextureView, String> {
+        if let Some(view) = Self::optional_owned_texture_full_mip_view_by_name(
+            self.resources,
+            self.resource_resolver,
+            resource_name,
+            access,
+        )? {
+            return Ok(view);
+        }
+        self.require_texture_view(resource_name, access).cloned()
+    }
+
+    pub fn require_owned_texture_mip_view(
+        &self,
+        resource_name: &str,
+        access: RenderGraphResourceAccessKind,
+        mip_level: u32,
+    ) -> Result<wgpu::TextureView, String> {
+        if let Some(resolver) = self.resource_resolver {
+            let declaration =
+                resolver.require_pass_resource_declaration_by_name(resource_name, access)?;
+            if declaration.kind != RenderGraphResourceKind::TransientTexture {
+                return Err(format!(
+                    "render graph resource `{resource_name}` must be a transient texture before a mip view can be requested"
+                ));
+            }
+            self.resources
+                .require_texture_view_for_declaration(declaration)?;
+        }
+        self.resources
+            .owned_texture_mip_view(resource_name, mip_level)
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn require_texture_view_by_name(
+        resources: &'a RenderGraphExecutionResources,
         resource_resolver: Option<RgResourceResolver<'a>>,
         resource_name: &str,
         access: RenderGraphResourceAccessKind,
-    ) -> Result<&'resources wgpu::TextureView, String> {
+    ) -> Result<&'a wgpu::TextureView, String> {
         if let Some(resolver) = resource_resolver {
-            let declaration =
-                resolver.require_pass_resource_declaration_by_name(resource_name, access)?;
-            resources.require_texture_view_for_declaration(declaration)
+            return resolver.texture_view_by_name(resource_name, access);
         } else {
             resources.require_texture_view(resource_name)
         }
     }
 
-    pub(in crate::graphics::scene::scene_renderer::graph_execution::render_pass_execution_context::gpu) fn require_buffer_by_name<
-        'resources,
-    >(
-        resources: &'resources RenderGraphExecutionResources,
+    pub(in crate::graphics::scene::scene_renderer::graph_execution::render_pass_execution_context::gpu) fn require_buffer_by_name(
+        resources: &'a RenderGraphExecutionResources,
         resource_resolver: Option<RgResourceResolver<'a>>,
         resource_name: &str,
         access: RenderGraphResourceAccessKind,
-    ) -> Result<&'resources wgpu::Buffer, String> {
+    ) -> Result<&'a wgpu::Buffer, String> {
         if let Some(resolver) = resource_resolver {
-            let declaration =
-                resolver.require_pass_resource_declaration_by_name(resource_name, access)?;
-            resources.require_buffer_for_declaration(declaration)
+            return resolver.buffer_by_name(resource_name, access);
         } else {
             resources.require_buffer(resource_name)
         }
@@ -429,6 +461,13 @@ mod tests {
             .with_resource_resolver(&graph, pass.id)
             .with_gpu(gpu);
 
+        assert!(context
+            .resource_resolver()
+            .is_some_and(|resolver| resolver.has_physical_resources()));
+        assert!(context
+            .gpu()
+            .and_then(RenderPassGpuExecutionContext::resource_resolver)
+            .is_some_and(|resolver| resolver.has_physical_resources()));
         context
             .gpu()
             .unwrap()

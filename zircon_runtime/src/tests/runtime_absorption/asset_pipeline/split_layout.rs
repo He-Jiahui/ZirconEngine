@@ -1,4 +1,5 @@
 const PARENT_SOURCE: &str = include_str!("../asset_pipeline.rs");
+const CARGO_GATE_SOURCE: &str = include_str!("cargo_gate.rs");
 const INVENTORY_SOURCE: &str = include_str!("inventory.rs");
 const MIRROR_DOCS_SOURCE: &str = include_str!("mirror_docs.rs");
 const SUPPORT_SOURCE: &str = include_str!("support.rs");
@@ -19,6 +20,7 @@ fn runtime_15_asset_pipeline_route_owner_is_folder_backed() {
         "parent route owner",
         PARENT_SOURCE,
         &[
+            "#[path = \"asset_pipeline/cargo_gate.rs\"]",
             "#[path = \"asset_pipeline/inventory.rs\"]",
             "#[path = \"asset_pipeline/mirror_docs.rs\"]",
             "#[path = \"asset_pipeline/support.rs\"]",
@@ -50,6 +52,14 @@ fn assert_parent_route_only() {
 
 fn assert_child_owners_are_focused() {
     assert_contains_all(
+        "Cargo gate child",
+        CARGO_GATE_SOURCE,
+        &[
+            "runtime_04_asset_pipeline_cargo_gate_stays_visible_until_asset_validation",
+            "assert_runtime_04_mirror_docs",
+        ],
+    );
+    assert_contains_all(
         "inventory child",
         INVENTORY_SOURCE,
         &[
@@ -65,7 +75,7 @@ fn assert_child_owners_are_focused() {
         &[
             "runtime_04_asset_pipeline_mirror_docs_match_structure_audit_counts",
             "EXPECTED_RUNTIME_04_BEHAVIOR_TEST_ANCHORS",
-            "ASSET_PIPELINE_MIRROR_DOC_ANCHORS",
+            "assert_runtime_04_mirror_docs",
         ],
     );
     assert_contains_all(
@@ -80,7 +90,8 @@ fn assert_child_owners_are_focused() {
 
 fn assert_line_budget() {
     for (label, source, max_lines) in [
-        ("parent route owner", PARENT_SOURCE, 14),
+        ("parent route owner", PARENT_SOURCE, 16),
+        ("Cargo gate child", CARGO_GATE_SOURCE, 180),
         ("inventory child", INVENTORY_SOURCE, 150),
         ("mirror docs child", MIRROR_DOCS_SOURCE, 150),
         ("support child", SUPPORT_SOURCE, 40),
@@ -104,6 +115,7 @@ fn assert_docs_and_status_mirror_split() {
         "module convention doc",
         MODULE_CONVENTION_DOC,
         &[
+            "asset_pipeline/cargo_gate.rs",
             "asset_pipeline/inventory.rs",
             "asset_pipeline/mirror_docs.rs",
             "asset_pipeline/support.rs",

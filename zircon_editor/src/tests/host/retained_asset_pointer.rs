@@ -1,5 +1,5 @@
 use crate::core::editor_event::{EditorAssetEvent, EditorEvent};
-use crate::tests::editor_event::support::{EventRuntimeHarness, env_lock};
+use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use crate::ui::host::editor_asset_manager::{
     EditorAssetCatalogGeneration, EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord,
     EditorAssetFolderRecord,
@@ -11,9 +11,9 @@ use crate::ui::retained_host::asset_pointer::{
     AssetReferenceListPointerEntry, AssetReferenceListPointerLayout,
 };
 use crate::ui::retained_host::callback_dispatch::{
-    BuiltinAssetSurfaceTemplateBridge, dispatch_builtin_asset_surface_control,
-    dispatch_shared_asset_content_pointer_click, dispatch_shared_asset_reference_pointer_click,
-    dispatch_shared_asset_tree_pointer_click,
+    dispatch_builtin_asset_surface_control, dispatch_shared_asset_content_pointer_click,
+    dispatch_shared_asset_reference_pointer_click, dispatch_shared_asset_tree_pointer_click,
+    BuiltinAssetSurfaceTemplateBridge,
 };
 use crate::ui::workbench::asset_content_layout::{
     AssetContentLayoutMetrics, AssetContentSurfaceProfile,
@@ -58,6 +58,137 @@ fn shared_asset_pointer_bridges_skip_rebuild_for_unchanged_layout_and_state() {
     let mut reference_bridge = AssetReferenceListPointerBridge::new();
     assert!(reference_bridge.sync(reference_layout.clone(), state.clone()));
     assert!(!reference_bridge.sync(reference_layout, state));
+}
+
+#[test]
+fn asset_pointer_surfaces_keep_constant_authority_for_large_virtual_lists() {
+    const ITEM_COUNT: usize = 10_000;
+
+    let folder_ids = (0..ITEM_COUNT)
+        .map(|index| format!("res://folder-{index:05}"))
+        .collect::<Vec<_>>();
+    let mut tree_bridge = AssetFolderTreePointerBridge::new();
+    let tree_generation = tree_bridge.surface_authority_generation_for_test();
+    tree_bridge.sync(
+        AssetFolderTreePointerLayout {
+            pane_size: UiSize::new(240.0, 200.0),
+            folder_ids: folder_ids.clone(),
+        },
+        AssetListPointerState::default(),
+    );
+    assert_eq!(tree_bridge.surface_node_count_for_test(), 2);
+    let tree_point = UiPoint::new(72.0, 71.0);
+    let tree_scrolled = tree_bridge
+        .handle_scroll(tree_point, 5_000.0 * 32.0)
+        .expect("large asset tree should scroll without rebuilding row nodes");
+    let tree_route = tree_scrolled
+        .route
+        .expect("large asset tree should route the row revealed by scrolling");
+    assert!(
+        matches!(&tree_route, AssetPointerTreeRoute::Folder { row_index, .. } if *row_index >= 5_000)
+    );
+    assert_eq!(
+        tree_bridge
+            .handle_click(tree_point)
+            .expect("asset tree click should use the current scroll authority")
+            .route,
+        Some(tree_route)
+    );
+    assert_eq!(
+        tree_bridge.surface_authority_generation_for_test(),
+        tree_generation
+    );
+
+    let item_ids = (0..ITEM_COUNT)
+        .map(|index| format!("asset-{index:05}"))
+        .collect::<Vec<_>>();
+    let content_layout = AssetContentListPointerLayout {
+        pane_size: UiSize::new(420.0, 220.0),
+        surface_profile: AssetContentSurfaceProfile::Browser,
+        view_mode: AssetViewMode::List,
+        folder_ids: Vec::new(),
+        item_ids: item_ids.clone(),
+    };
+    let content_metrics = AssetContentLayoutMetrics::for_surface(
+        AssetContentSurfaceProfile::Browser,
+        AssetViewMode::List,
+    );
+    let content_stride = content_metrics.item_height + content_metrics.row_gap;
+    let content_point = UiPoint::new(
+        148.0,
+        content_metrics.first_row_y() + content_metrics.item_height * 0.5,
+    );
+    let mut content_bridge = AssetContentListPointerBridge::new();
+    let content_generation = content_bridge.surface_authority_generation_for_test();
+    content_bridge.sync(content_layout, AssetListPointerState::default());
+    assert_eq!(content_bridge.surface_node_count_for_test(), 2);
+    let content_scrolled = content_bridge
+        .handle_scroll(content_point, 5_000.0 * content_stride)
+        .expect("large asset content list should scroll without rebuilding row nodes");
+    let expected_content_route = AssetPointerContentRoute::Item {
+        row_index: 5_000,
+        item_index: 5_000,
+        asset_uuid: item_ids[5_000].clone(),
+    };
+    assert_eq!(content_scrolled.route, Some(expected_content_route.clone()));
+    assert_eq!(
+        content_bridge
+            .handle_click(content_point)
+            .expect("asset content click should use the current scroll authority")
+            .route,
+        Some(expected_content_route)
+    );
+    assert_eq!(
+        content_bridge.surface_authority_generation_for_test(),
+        content_generation
+    );
+
+    let entries = (0..ITEM_COUNT)
+        .map(|index| AssetReferenceListPointerEntry {
+            asset_uuid: format!("reference-{index:05}"),
+            known_project_asset: index != 5_001,
+        })
+        .collect::<Vec<_>>();
+    let mut reference_bridge = AssetReferenceListPointerBridge::new();
+    let reference_generation = reference_bridge.surface_authority_generation_for_test();
+    reference_bridge.sync(
+        AssetReferenceListPointerLayout {
+            pane_size: UiSize::new(280.0, 180.0),
+            entries: entries.clone(),
+        },
+        AssetListPointerState::default(),
+    );
+    assert_eq!(reference_bridge.surface_node_count_for_test(), 2);
+    let reference_point = UiPoint::new(72.0, 37.0);
+    let reference_scrolled = reference_bridge
+        .handle_scroll(reference_point, 5_000.0 * 38.0)
+        .expect("large reference list should scroll without rebuilding row nodes");
+    let expected_reference_route = AssetPointerReferenceRoute::Item {
+        row_index: 5_000,
+        asset_uuid: entries[5_000].asset_uuid.clone(),
+    };
+    assert_eq!(
+        reference_scrolled.route,
+        Some(expected_reference_route.clone())
+    );
+    assert_eq!(
+        reference_bridge
+            .handle_click(reference_point)
+            .expect("reference click should use the current scroll authority")
+            .route,
+        Some(expected_reference_route)
+    );
+    assert_eq!(
+        reference_bridge
+            .handle_click(UiPoint::new(reference_point.x, reference_point.y + 38.0))
+            .expect("unknown reference should still route to the list surface")
+            .route,
+        Some(AssetPointerReferenceRoute::ListSurface)
+    );
+    assert_eq!(
+        reference_bridge.surface_authority_generation_for_test(),
+        reference_generation
+    );
 }
 
 #[test]
@@ -255,6 +386,49 @@ fn shared_asset_content_pointer_bridge_hits_thumbnail_grid_columns_and_scrolls_r
         .handle_scroll(UiPoint::new(210.0, 160.0), 160.0)
         .expect("thumbnail grid should scroll by complete card rows");
     assert!(scrolled.state.scroll_offset > 0.0);
+}
+
+#[test]
+fn asset_content_hover_uses_stable_direct_row_routing() {
+    let mut pointer_bridge = AssetContentListPointerBridge::new();
+    pointer_bridge.sync(
+        AssetContentListPointerLayout {
+            pane_size: UiSize::new(420.0, 220.0),
+            surface_profile: AssetContentSurfaceProfile::Browser,
+            view_mode: AssetViewMode::List,
+            folder_ids: Vec::new(),
+            item_ids: vec!["asset-a".to_string(), "asset-b".to_string()],
+        },
+        AssetListPointerState::default(),
+    );
+    let metrics = AssetContentLayoutMetrics::for_surface(
+        AssetContentSurfaceProfile::Browser,
+        AssetViewMode::List,
+    );
+    let first_row = UiPoint::new(120.0, metrics.first_row_y() + metrics.item_height * 0.5);
+
+    assert_eq!(
+        pointer_bridge
+            .update_hovered_row(first_row)
+            .expect("first entry should change hover")
+            .hovered_row_index,
+        Some(0)
+    );
+    assert_eq!(pointer_bridge.update_hovered_row(first_row), None);
+    assert_eq!(
+        pointer_bridge
+            .handle_move(UiPoint::new(
+                120.0,
+                metrics.first_row_y() + metrics.item_height * 1.5,
+            ))
+            .expect("second row should route")
+            .route,
+        Some(AssetPointerContentRoute::Item {
+            row_index: 1,
+            item_index: 1,
+            asset_uuid: "asset-b".to_string(),
+        })
+    );
 }
 
 #[test]

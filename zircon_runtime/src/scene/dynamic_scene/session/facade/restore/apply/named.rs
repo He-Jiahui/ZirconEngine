@@ -2,7 +2,7 @@ use crate::scene::{LevelSystem, World};
 
 use super::super::super::super::super::EntityRemap;
 use super::super::super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveError, restore as session_restore,
+    restore as session_restore, RuntimeSessionArchive, RuntimeSessionArchiveError,
 };
 
 impl RuntimeSessionArchive {

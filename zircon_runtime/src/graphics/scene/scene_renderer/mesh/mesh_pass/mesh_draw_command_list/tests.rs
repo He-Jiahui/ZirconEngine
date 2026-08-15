@@ -86,9 +86,7 @@ fn mesh_pass_buffers_split_material_marked_transparency_without_losing_counts() 
     assert_eq!(buffers.transparent().commands().len(), 1);
     assert!(!buffers.transparent().commands()[0].uses_half_resolution_transparency());
     assert_eq!(buffers.half_resolution_transparent().commands().len(), 1);
-    assert!(
-        buffers.half_resolution_transparent().commands()[0].uses_half_resolution_transparency()
-    );
+    assert!(buffers.half_resolution_transparent().commands()[0].uses_half_resolution_transparency());
     assert_eq!(buffers.stats().transparent_command_count, 2);
 }
 
@@ -321,7 +319,9 @@ fn mesh_pass_command_buffers_report_indirect_batch_stats_when_gpu_driven_support
     assert_eq!(default_stats.indirect_batch_count, 0);
     assert_eq!(default_stats.indirect_fallback_draw_count, 4);
 
-    let stats = buffers.stats_with_indirect_batches(&gpu_driven_capabilities());
+    let plans =
+        super::super::MeshPassIndirectDrawPlans::build(&buffers, &gpu_driven_capabilities());
+    let stats = buffers.stats_with_indirect_plan(plans.stats());
 
     assert_eq!(stats.command_count, 4);
     assert_eq!(stats.indirect_batch_count, 2);

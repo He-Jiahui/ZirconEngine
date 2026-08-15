@@ -1,8 +1,8 @@
 use super::super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::super::super::render_commands::HostPaintCommand;
 use super::super::style::{
-    MUI_FIELD_FILLED_RADIUS, MUI_FIELD_OUTLINED_RADIUS, configured_radius, field_fill_color,
-    field_stroke_color, field_stroke_width,
+    configured_radius, field_fill_color, field_stroke_color, field_stroke_width,
+    MUI_FIELD_FILLED_RADIUS, MUI_FIELD_OUTLINED_RADIUS,
 };
 use super::underline::push_underline;
 

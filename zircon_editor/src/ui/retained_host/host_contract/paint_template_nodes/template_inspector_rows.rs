@@ -1,6 +1,6 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::render_commands::HostPaintCommand;
-use super::template_inspector_row_kind::{InspectorRowKind, inspector_row_kind};
+use super::template_inspector_row_kind::{inspector_row_kind, InspectorRowKind};
 
 mod disclosure;
 mod primitives;

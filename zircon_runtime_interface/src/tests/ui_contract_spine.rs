@@ -39,7 +39,8 @@ use crate::ui::{
     text::{UiTextCursorStyle, UiTextEdit, UiTextEditSource},
     tree::UiDirtyFlags,
     widget::{
-        UiWidgetBehavior, UiWidgetContract, UiWidgetEvent, UiWidgetEventKind, UiWidgetEventSource,
+        UiPopupAnchor, UiWidgetBehavior, UiWidgetContract, UiWidgetEvent, UiWidgetEventKind,
+        UiWidgetEventSource,
     },
 };
 
@@ -127,6 +128,7 @@ fn ui_painter_state_contracts_round_trip_and_resolve_button_state() {
     let pressed_and_focused = UiPainterState {
         pressed: true,
         focused: true,
+        focus_visible: true,
         ..UiPainterState::normal()
     };
     assert_eq!(
@@ -138,10 +140,10 @@ fn ui_painter_state_contracts_round_trip_and_resolve_button_state() {
         selected: true,
         ..UiPainterState::normal()
     };
-    assert!(selected.is_focus_visible());
+    assert!(!selected.is_focus_visible());
     assert_eq!(
         selected.button_interaction_state(),
-        ButtonInteractionState::Focused
+        ButtonInteractionState::Normal
     );
 
     let disabled = UiPainterState {
@@ -423,6 +425,13 @@ fn ui_widget_text_and_cursor_contracts_serialize_typed_events() {
         min_thumb_extent: Some(18.0),
         ..UiWidgetContract::default()
     };
+    let popup = UiWidgetContract {
+        behavior: UiWidgetBehavior::Popup,
+        popup_anchor: UiPopupAnchor::Control {
+            control_id: "window_menu_trigger".to_string(),
+        },
+        ..UiWidgetContract::default()
+    };
 
     let round_tripped_events = round_trip(&events);
     assert_eq!(round_tripped_events, events);
@@ -432,6 +441,8 @@ fn ui_widget_text_and_cursor_contracts_serialize_typed_events() {
     assert_eq!(round_trip(&cursor), cursor);
     assert_eq!(round_trip(&widget), widget);
     assert_eq!(round_trip(&scrollbar), scrollbar);
+    assert_eq!(round_trip(&popup), popup);
+    assert_eq!(popup.popup_anchor.control_id(), Some("window_menu_trigger"));
     assert_eq!(
         widget.resolved_behavior("CustomMeter"),
         UiWidgetBehavior::Range
@@ -644,6 +655,7 @@ fn ui_render_extract_kind_and_stats_contract_does_not_break_legacy_extracts() {
                 },
             ],
         },
+        ..UiRenderExtract::default()
     };
     let stats = UiRenderStats::from_extract(&extract);
 

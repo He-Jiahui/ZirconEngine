@@ -46,6 +46,31 @@ pub(super) fn assert_camera_loop_uses_shared_sources(sources: &SubmitContextSour
             && !submit_camera_loop_body.contains("source_extract.take()"),
         "submit_camera_loop should not restore the old owned-extract terminal move model"
     );
+    let terminal_camera_target_body = camera_loop
+        .split("pub(super) fn viewport_terminal_camera_target(")
+        .nth(1)
+        .and_then(|tail| tail.split("fn camera_loop_submissions(").next())
+        .expect("viewport_terminal_camera_target body should remain visible to the guard");
+    for required_terminal_target_anchor in [
+        "resolve_camera_sequence_borrowed(&extract.view.cameras).sequence",
+        "terminal_screen_space_ui_camera_position(&sequence)",
+        "Ok(terminal.target.clone())",
+    ] {
+        assert!(
+            terminal_camera_target_body.contains(required_terminal_target_anchor),
+            "terminal camera target should borrow the shared extract and clone only its target `{required_terminal_target_anchor}`"
+        );
+    }
+    for forbidden_terminal_target_clone in [
+        "extract.clone()",
+        "extract.view.cameras.clone()",
+        ".map(|submission| submission.camera.target.clone())",
+    ] {
+        assert!(
+            !terminal_camera_target_body.contains(forbidden_terminal_target_clone),
+            "terminal camera target should not restore stale submission/extract clone anchor `{forbidden_terminal_target_clone}`"
+        );
+    }
     for required_camera_loop_anchor in [
         "struct CameraLoopSubmission {",
         "camera: CameraRenderDescriptor,",
@@ -70,7 +95,6 @@ pub(super) fn assert_camera_loop_uses_shared_sources(sources: &SubmitContextSour
         "source_state.restore_for_submission(extract)",
         "extract.select_camera_descriptor(submission.camera)",
         "submit_selected_camera(\n            &mut source_extract,",
-        ".map(|submission| submission.camera.target.clone())",
     ] {
         assert!(
             camera_loop.contains(required_camera_loop_anchor),
@@ -139,7 +163,7 @@ pub(super) fn assert_camera_loop_uses_shared_sources(sources: &SubmitContextSour
         "&mut frame.extract",
         "source_payloads,",
         "attach_prepared_sidebands_to_runtime_frame(frame, prepared);",
-        "render_frame_with_pipeline(",
+        "render_frame_with_pipeline_async_capture_task_pool_with_environment_ibl_bake_reservation(",
         "&*frame,",
     ] {
         assert!(

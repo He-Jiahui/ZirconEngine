@@ -1,4 +1,4 @@
-use crate::core::framework::scene::WorldHandle;
+use crate::core::framework::scene::{EntityId, WorldHandle};
 use crate::core::math::Real;
 
 use super::{
@@ -53,11 +53,22 @@ pub trait AnimationManager: Send + Sync {
     }
     fn queue_ik_command(
         &self,
+        _replacement_epoch: u64,
         _command: AnimationIkCommand,
     ) -> Result<(), AnimationIkCommandError> {
         Err(AnimationIkCommandError::Unsupported)
     }
-    fn drain_ik_commands(&self, _world: WorldHandle) -> Vec<AnimationIkCommand> {
+    fn drain_ik_commands(
+        &self,
+        _world: WorldHandle,
+        _replacement_epoch: u64,
+    ) -> Vec<AnimationIkCommand> {
         Vec::new()
     }
+    fn drain_ik_commands_excluding(
+        &self,
+        world: WorldHandle,
+        replacement_epoch: u64,
+        deferred_entities: &[EntityId],
+    ) -> Vec<AnimationIkCommand>;
 }

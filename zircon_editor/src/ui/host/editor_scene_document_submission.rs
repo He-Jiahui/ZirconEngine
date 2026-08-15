@@ -19,11 +19,12 @@ impl AuthoringSceneInstaller for EditorStateSceneInstaller<'_> {
     type Error = String;
 
     fn install_scene(&mut self, scene: &Scene) -> Result<(), Self::Error> {
-        let level = self
+        let authoring_world = self
             .manager
-            .create_runtime_level(scene.clone())
+            .prepare_authoring_world(scene.clone())
             .map_err(|error| error.to_string())?;
-        self.state.replace_world(level, &self.project_path)
+        self.state
+            .replace_world(authoring_world, &self.project_path)
     }
 }
 
@@ -99,22 +100,31 @@ impl EditorHostEventController {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn project_scene_installer_creates_a_runtime_level_before_replacing_authoring_world() {
+    fn project_scene_installer_prepares_an_authoring_seed_before_replacing_authoring_world() {
         let source = include_str!("editor_scene_document_submission.rs");
-        let create_level = [
+        let prepare_seed = [
             "self",
             "            .manager",
-            "            .create_runtime_level(scene.clone())",
+            "            .prepare_authoring_world(scene.clone())",
         ]
         .join("\n");
-        let legacy_scene_install = [
+        let raw_level_install = [
             "self.state.replace_world(",
             "scene.clone(), &self.project_path)",
         ]
         .concat();
 
-        assert!(source.contains(&create_level));
-        assert!(source.contains("self.state.replace_world(level, &self.project_path)"));
-        assert!(!source.contains(&legacy_scene_install));
+        assert!(source.contains(&prepare_seed));
+        assert!(source.contains("self.state.replace_world(authoring_world, &self.project_path)"));
+        assert!(!source.contains(".create_runtime_level(scene.clone())"));
+        assert!(!source.contains(&raw_level_install));
+    }
+
+    #[test]
+    fn authoring_seed_preparation_does_not_reexpose_the_runtime_level_through_manager_project() {
+        let source = include_str!("editor_manager_project.rs");
+
+        assert!(source.contains(".prepare_authoring_world(scene)"));
+        assert!(!source.contains(".create_runtime_level(scene)"));
     }
 }

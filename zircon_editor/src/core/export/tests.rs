@@ -6,10 +6,10 @@ use zircon_runtime_interface::export::{
 };
 
 use super::{
-    CompileHostStage, ExportPipelinePlan, ExportPresetStore, ExportStageExecutor, ExportStageNode,
-    ExportStageOutput, ExportStagePreparation, PlatformBundleLayout, ZirconBuildCommand,
-    ZirconBuildCommandExecution, ZirconBuildCommandRunner, ZirconBuildStageExecutor,
-    zircon_build_stage_plan,
+    zircon_build_stage_plan, CompileHostStage, ExportPipelinePlan, ExportPresetStore,
+    ExportStageExecutor, ExportStageNode, ExportStageOutput, ExportStagePreparation,
+    PlatformBundleLayout, ZirconBuildCommand, ZirconBuildCommandExecution,
+    ZirconBuildCommandRunner, ZirconBuildStageExecutor,
 };
 
 #[test]
@@ -63,12 +63,10 @@ fn identical_fingerprints_skip_every_completed_stage() {
     let mut resumed = FixtureExecutor::default();
     let second = plan.run(&mut resumed, Some(&first)).unwrap();
     assert!(resumed.executions.is_empty());
-    assert!(
-        second
-            .stages
-            .iter()
-            .all(|record| record.status == ExportStageStatus::Skipped)
-    );
+    assert!(second
+        .stages
+        .iter()
+        .all(|record| record.status == ExportStageStatus::Skipped));
 }
 
 #[test]
@@ -87,12 +85,10 @@ fn expected_output_identity_prevents_cross_directory_resume() {
         moved.executions,
         vec![ExportStage::Validate, ExportStage::Pack]
     );
-    assert!(
-        second
-            .stages
-            .iter()
-            .all(|record| record.status == ExportStageStatus::Passed)
-    );
+    assert!(second
+        .stages
+        .iter()
+        .all(|record| record.status == ExportStageStatus::Passed));
 }
 
 #[test]
@@ -111,12 +107,10 @@ fn changed_upstream_output_reruns_that_stage_and_its_consumer() {
         changed.executions,
         vec![ExportStage::Validate, ExportStage::Pack]
     );
-    assert!(
-        second
-            .stages
-            .iter()
-            .all(|record| record.status == ExportStageStatus::Passed)
-    );
+    assert!(second
+        .stages
+        .iter()
+        .all(|record| record.status == ExportStageStatus::Passed));
 }
 
 #[test]
@@ -277,15 +271,13 @@ fn zircon_build_executor_runs_compile_host_then_validates_platform_bundle() {
         report.record(ExportStage::PlatformBundle).unwrap().status,
         ExportStageStatus::Passed
     );
-    assert!(
-        report
-            .record(ExportStage::PlatformBundle)
-            .unwrap()
-            .io
-            .outputs
-            .iter()
-            .any(|artifact| artifact.key == "launcher")
-    );
+    assert!(report
+        .record(ExportStage::PlatformBundle)
+        .unwrap()
+        .io
+        .outputs
+        .iter()
+        .any(|artifact| artifact.key == "launcher"));
 }
 
 #[test]
@@ -326,11 +318,9 @@ fn zircon_build_resume_reexecutes_when_staged_output_is_deleted_or_tampered() {
     std::fs::remove_file(&runtime).unwrap();
     let mut missing =
         ZirconBuildStageExecutor::new(preset, compile_host, RecordingBuildRunner::default());
-    assert!(
-        zircon_build_stage_plan()
-            .run(&mut missing, Some(&report))
-            .is_err()
-    );
+    assert!(zircon_build_stage_plan()
+        .run(&mut missing, Some(&report))
+        .is_err());
     assert_eq!(missing.into_runner().commands.len(), 1);
 }
 

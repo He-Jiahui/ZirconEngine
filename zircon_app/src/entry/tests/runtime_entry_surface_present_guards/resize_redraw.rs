@@ -2,7 +2,8 @@ use super::super::source_assertions::assert_source_order;
 use super::sources::{
     runtime_app_source, runtime_application_handler_source, runtime_frame_loop_source,
     runtime_product_diagnostics_source, runtime_surface_present_source,
-    runtime_window_creation_source, runtime_window_events_source,
+    runtime_surface_redraw_source, runtime_surface_resize_source, runtime_window_creation_source,
+    runtime_window_events_source,
 };
 
 #[test]
@@ -25,9 +26,8 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
         "surface-present redraw should reach the root frame-capture writer through the runtime entry app"
     );
     assert!(
-        runtime_surface_present_source
-            .contains("self.surface_present_enabled && !self.surface_present_failed"),
-        "surface-present helper should skip native present or rebind after a surface-present failure"
+        runtime_surface_present_source.contains("if self.surface_present_enabled {"),
+        "surface-present helper should use native present only after a successful bind"
     );
     assert_source_order(
         runtime_window_creation_source,
@@ -63,7 +63,7 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
             "fn resize_surface_presenter",
             "let viewport_size = ZrRuntimeViewportSizeV1::new(size.width.max(1), size.height.max(1));",
             "if let Err(error) = self.resize_viewport(viewport_size)",
-            "self.surface_present_enabled && !self.surface_present_failed",
+            "if self.surface_present_enabled {",
             "self.bind_current_window_surface()",
             "if let Err(error) = presenter.resize(viewport_size)",
         ],
@@ -81,17 +81,16 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
         runtime_surface_present_source.as_str(),
         &[
             "fn present_redraw_frame",
-            "self.surface_present_enabled && !self.surface_present_failed",
+            "if self.surface_present_enabled {",
             ".present_viewport(self.viewport, self.viewport_size)",
-            "self.fail_surface_present();",
             "self.ensure_fallback_presenter(event_loop)",
             ".capture_frame(self.viewport, self.viewport_size)",
         ],
-        "runtime redraw should fall back to capture_frame plus softbuffer after native present failure in the same branch",
+        "runtime redraw should use capture_frame plus softbuffer only when native surface presentation is unavailable",
     );
     for required_path in [
-        "self.complete_first_presented_frame(event_loop);",
-        "fn complete_first_presented_frame(&mut self, event_loop: &dyn ActiveEventLoop)",
+        "self.complete_presented_frame(event_loop);",
+        "fn complete_presented_frame(&mut self, event_loop: &dyn ActiveEventLoop)",
         "fn emit_first_frame_product_diagnostics_once(&mut self)",
     ] {
         assert!(
@@ -102,11 +101,12 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
     assert_source_order(
         runtime_surface_present_source.as_str(),
         &[
-            "fn complete_first_presented_frame",
+            "fn complete_presented_frame",
             "self.capture_first_presented_frame_if_requested()",
             "if self.require_persisted_scene_diagnostics {",
             "self.emit_first_frame_product_diagnostics_once()",
-            "first_presented_frame_diagnostic(self.exit_after_first_presented_frame)",
+            "self.presented_frame_count = self.presented_frame_count.saturating_add(1);",
+            "presented_frame_exit_diagnostic(",
         ],
         "runtime first-frame startup smoke should complete diagnostics before applying its exit policy",
     );
@@ -138,15 +138,9 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
         runtime_surface_present_source.contains("runtime_product_teardown surface_unbind="),
         "runtime surface-present lifecycle should record its product teardown result"
     );
-    assert_source_order(
-        runtime_surface_present_source.as_str(),
-        &[
-            "fn fail_surface_present(&mut self)",
-            "self.surface_present_failed = true;",
-            "self.fallback_surface_present();",
-            "fn ensure_fallback_presenter",
-        ],
-        "surface-present failure should mark failure before entering the softbuffer fallback path",
+    assert!(
+        !runtime_surface_present_source.contains("fn fail_surface_present(&mut self)"),
+        "explicit native surface failures must not retain a helper that converts them into fallback success"
     );
     for unbind_path in [
         "self.session.unbind_viewport_surface(self.viewport)",
@@ -184,7 +178,6 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
     for diagnostic in [
         "runtime_surface_present_enabled",
         "runtime_surface_present_fallback",
-        "runtime_surface_present_failed",
     ] {
         assert!(
             runtime_surface_present_source.contains(diagnostic),
@@ -215,5 +208,63 @@ fn runtime_surface_present_bind_resize_redraw_and_teardown_paths_stay_source_vis
     assert!(
         runtime_surface_present_source.contains("SoftbufferRuntimePresenter::new"),
         "runtime surface-present fallback should preserve SoftbufferRuntimePresenter construction"
+    );
+}
+
+#[test]
+fn explicit_native_surface_failure_branches_remain_fail_closed_before_fallback() {
+    let window_creation = runtime_window_creation_source();
+    let redraw = runtime_surface_redraw_source();
+    let resize = runtime_surface_resize_source();
+    let initial_bind = window_creation
+        .split("match self.bind_window_surface(window.as_ref())")
+        .nth(1)
+        .expect("window creation must retain the initial native surface bind match");
+
+    assert_source_order(
+        initial_bind,
+        &[
+            "Err(error) => {",
+            "self.report_fatal_failure(",
+            "runtime window surface bind failed: {error}",
+            "event_loop.exit();",
+            "return false;",
+        ],
+        "an explicit initial native surface bind error must terminate product startup",
+    );
+    assert_source_order(
+        redraw,
+        &[
+            ".present_viewport(self.viewport, self.viewport_size)",
+            "Ok(false) => {",
+            "self.report_fatal_failure(",
+            "native surface presentation returned unavailable after a successful bind",
+            "event_loop.exit();",
+            "return;",
+            "Err(error) => {",
+            "self.report_fatal_failure(",
+            "native surface presentation failed: {error}",
+            "event_loop.exit();",
+            "return;",
+            "self.ensure_fallback_presenter(event_loop)",
+        ],
+        "native presentation failures must terminate before the optional fallback path",
+    );
+    assert_source_order(
+        resize,
+        &[
+            "self.bind_current_window_surface()",
+            "Ok(false) => {",
+            "self.report_fatal_failure(",
+            "native surface rebind returned unavailable after a successful bind",
+            "event_loop.exit();",
+            "return;",
+            "Err(error) => {",
+            "self.report_fatal_failure(",
+            "native surface rebind failed: {error}",
+            "event_loop.exit();",
+            "return;",
+        ],
+        "native rebind failures must terminate instead of degrading into fallback success",
     );
 }

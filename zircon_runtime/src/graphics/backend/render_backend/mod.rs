@@ -14,6 +14,8 @@ mod read_texture_rgba16float_3d;
 mod read_texture_rgba16float_region;
 mod render_backend;
 mod render_backend_new_offscreen;
+#[cfg(test)]
+mod renderdoc_capture_file_path;
 mod request_device;
 mod viewport_surface;
 
@@ -22,9 +24,9 @@ pub(crate) use config::RenderBackendConfig;
 pub(crate) use gpu_pass_timer::{
     GpuPassPipelineStatistics, GpuPassTimer, GpuPassTimestampScope, GpuPassTiming,
     GpuPipelineStatistics, GpuPipelineStatisticsFrameResult, GpuPipelineStatisticsScope,
-    GpuPipelineStatisticsTimer, GpuTimerFrameResult, DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES,
-    DEFAULT_GPU_TIMER_MAX_PASSES, GPU_PIPELINE_STATISTICS_REQUIRED_FEATURES,
-    GPU_TIMESTAMP_REQUIRED_FEATURES,
+    GpuPipelineStatisticsTimer, GpuTimerFrameObservation, GpuTimerFrameResult, GpuTimerFrameStatus,
+    DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES, DEFAULT_GPU_TIMER_MAX_PASSES,
+    GPU_PIPELINE_STATISTICS_REQUIRED_FEATURES, GPU_TIMESTAMP_REQUIRED_FEATURES,
 };
 pub(crate) use gpu_readback_queue::{
     GpuReadbackQueue, ReadbackCallback, ReadbackError, ReadbackPollStats, ReadbackTicket,
@@ -38,7 +40,8 @@ pub(crate) use read_buffer_bytes::{
 #[cfg(test)]
 pub(crate) use read_buffer_f32x4::read_buffer_f32x4;
 pub(crate) use read_ibl_bake_artifact_sections::{
-    read_ibl_bake_artifact_wgpu_sections, IblBakeArtifactWgpuReadbackResources,
+    prepare_ibl_bake_artifact_wgpu_readback, read_ibl_bake_artifact_wgpu_sections,
+    IblBakeArtifactWgpuPendingReadback, IblBakeArtifactWgpuReadbackResources,
 };
 pub(crate) use read_texture_rgba::read_texture_rgba;
 #[cfg(test)]
@@ -48,4 +51,6 @@ pub(crate) use read_texture_rgba16float_region::{
     Rgba16FloatTextureRegionReadback,
 };
 pub(crate) use render_backend::RenderBackend;
+#[cfg(test)]
+pub(crate) use renderdoc_capture_file_path::configure_renderdoc_capture_file_path_template;
 pub(crate) use viewport_surface::ViewportSurface;

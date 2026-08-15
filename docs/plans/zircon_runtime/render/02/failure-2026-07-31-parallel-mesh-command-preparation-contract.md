@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: open
+status: source_complete_dynamic_validation_pending
 created_at: 2026-07-31
 summary_slug: parallel-mesh-command-preparation-contract
 origin_plan: docs/plans/zircon_runtime/render/17-performance-and-profiling.md

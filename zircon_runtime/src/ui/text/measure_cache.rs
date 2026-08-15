@@ -1,17 +1,19 @@
 use crate::core::framework::text::TextDirection;
 use crate::core::runtime::tasks::TaskPool;
 use crate::text::{
-    SharedTextLayoutSession, TextDocumentKey, TextRange,
     cache::{
-        DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY, DEFAULT_TEXT_MEASURE_CACHE_CAPACITY,
         ShapedRunCacheReport, TextFrameDedup, TextFrameDedupReport, TextLayoutCache,
         TextLayoutCacheReport, TextLayoutWidthValidity, TextMeasureCache, TextMeasureCacheReport,
+        DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY, DEFAULT_TEXT_MEASURE_CACHE_CAPACITY,
     },
     font::shared_font_database_generation,
-    layout::measure_line_width,
+    has_multiple_hard_lines,
+    layout::{measure_line_width, resolved_text_spans},
     parallel::shape_pool::{TextParallelShapeBatchReport, TextShapeParagraph},
-    text_style,
+    text_style, SharedTextLayoutSession, TextDocumentKey, TextRange, TextStyle, VerticalMode,
 };
+#[cfg(feature = "profiling")]
+use crate::text::{CompiledRichTextCacheFrameSampler, CompiledRichTextCacheReport};
 use std::{
     hash::{Hash, Hasher},
     mem::size_of,
@@ -19,14 +21,16 @@ use std::{
 };
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 use zircon_runtime_interface::ui::surface::{
-    UiResolvedStyle, UiRichTextFormat, UiTextDirection, UiTextRange, UiTextWrap, UiTextWritingMode,
+    UiResolvedStyle, UiRichTextFormat, UiTextDirection, UiTextOverflow, UiTextRange, UiTextWrap,
+    UiTextWritingMode,
 };
 
+use super::layout_engine::viewport_selects_partial_plain_text as layout_viewport_selects_partial_plain_text;
 use super::resolved_layout::{
-    UiTextLayoutRequest, UiTextLayoutResolution, UiTextStyleKey, resolve_text_layout_with_provider,
-    resolve_text_layout_with_provider_and_parsed,
+    resolve_text_layout_with_provider, resolve_text_layout_with_provider_and_parsed,
+    UiTextLayoutRequest, UiTextLayoutResolution, UiTextStyleKey,
 };
-use super::rich_text::{UiParsedText, parse_source_text};
+use super::rich_text::{parse_source_text, UiParsedText};
 use super::shaper::{
     measure_text_size_with_provider as measure_backend_text_size_with_provider,
     measure_unwrapped_text_height_with_provider,
@@ -142,10 +146,16 @@ impl UiTextMeasureSizeKey {
 mod generation_key_tests {
     use std::sync::Arc;
 
-    use super::{UiTextMeasureCache, UiTextMeasureKey, UiTextMeasureSizeKey};
+    use super::{
+        UiTextMeasureCache, UiTextMeasureKey, UiTextMeasureSizeKey,
+        RETAINED_PLAIN_DOCUMENT_MAX_BYTES,
+    };
     use crate::text::TextDocumentKey;
     use crate::ui::text::{UiTextLayoutRequest, UiTextViewport};
-    use zircon_runtime_interface::ui::{layout::UiFrame, surface::UiResolvedStyle};
+    use zircon_runtime_interface::ui::{
+        layout::UiFrame,
+        surface::{UiResolvedStyle, UiTextOverflow, UiTextWrap},
+    };
 
     #[test]
     fn ui_text_cache_keys_change_with_font_database_generation() {
@@ -192,6 +202,37 @@ mod generation_key_tests {
         assert_eq!(cache.retained_plain_documents.len(), 2);
         assert!(cache.retained_plain_document_bytes <= RETAINED_PLAIN_DOCUMENT_MAX_BYTES);
     }
+
+    #[test]
+    fn complete_viewport_layout_cache_hit_skips_the_hard_line_index_probe() {
+        let style = UiResolvedStyle {
+            wrap: UiTextWrap::None,
+            text_overflow: UiTextOverflow::Clip,
+            ..UiResolvedStyle::default()
+        };
+        let request = UiTextLayoutRequest::new(
+            "first\nsecond",
+            &style,
+            UiFrame::new(0.0, 0.0, 120.0, 48.0),
+            Some(UiFrame::new(0.0, 0.0, 120.0, 48.0)),
+        )
+        .with_document_key(TextDocumentKey::new(9, 1))
+        .with_viewport(UiTextViewport::new(0.0, 48.0, 2).expect("finite viewport"));
+        let mut cache = UiTextMeasureCache::default();
+
+        cache.begin_frame();
+        cache.resolve_or_shape(&request);
+        cache.finish_frame();
+        let first = cache.text_layout_session.hard_line_index_report();
+
+        cache.begin_frame();
+        cache.resolve_or_shape(&request);
+        let second = cache.text_layout_session.hard_line_index_report();
+
+        assert_eq!(first.build_count, 1);
+        assert_eq!(second.hit_count, first.hit_count);
+        assert_eq!(cache.frame_layout_report().hit_count, 1);
+    }
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -231,8 +272,7 @@ fn text_hash(text: &str) -> u64 {
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct UiTextShapePrewarmRequest {
-    text: Arc<str>,
-    style: UiResolvedStyle,
+    paragraphs: Vec<TextShapeParagraph>,
 }
 
 const RETAINED_PLAIN_DOCUMENT_CAPACITY: usize = 16;
@@ -248,36 +288,92 @@ struct RetainedPlainTextDocument {
 
 impl UiTextShapePrewarmRequest {
     pub(crate) fn horizontal(text: impl Into<Arc<str>>, style: UiResolvedStyle) -> Self {
+        let text = text.into();
         Self {
-            text: text.into(),
-            style,
+            paragraphs: TextShapeParagraph::horizontal_paragraphs(
+                text.as_ref(),
+                text_style(&style),
+                TextDirection::Auto,
+                TextRange {
+                    start: 0,
+                    end: text.len(),
+                },
+            ),
         }
     }
 
     pub(crate) fn from_layout_source(text: &str, style: UiResolvedStyle) -> Option<Self> {
-        if text.is_empty()
-            || !matches!(style.rich_text_format, UiRichTextFormat::Plain)
-            || !matches!(style.text_writing_mode, UiTextWritingMode::HorizontalTb)
-        {
+        if text.is_empty() {
             return None;
         }
-        Some(Self {
-            text: Arc::from(text),
-            style,
-        })
-    }
+        if matches!(style.rich_text_format, UiRichTextFormat::Plain)
+            && matches!(style.text_writing_mode, UiTextWritingMode::HorizontalTb)
+        {
+            return Some(Self::horizontal(text, style));
+        }
 
-    fn to_shape_paragraphs(&self) -> Vec<TextShapeParagraph> {
-        TextShapeParagraph::horizontal_paragraphs(
-            self.text.as_ref(),
-            text_style(&self.style),
-            TextDirection::Auto,
-            TextRange {
-                start: 0,
-                end: self.text.len(),
-            },
-        )
+        let vertical_mode = matches!(style.text_writing_mode, UiTextWritingMode::VerticalRl)
+            .then_some(VerticalMode::Mixed);
+        let base_style = text_style(&style);
+        let parsed = parse_source_text(text, style.rich_text_format.into());
+        let paragraphs: Vec<TextShapeParagraph> =
+            if parsed.runs.iter().any(|run| run.inline().is_some()) {
+                // Inline rich layout routes through RichAdvanceIndex. Reuse its exact resolved-span
+                // projection so adjacent runs with the same effective style share the cache key.
+                resolved_text_spans(&parsed, &base_style)
+                    .into_iter()
+                    .flat_map(|span| {
+                        parsed
+                            .text()
+                            .get(span.start..span.end)
+                            .into_iter()
+                            .flat_map(move |text| {
+                                rich_layout_span_shape_paragraphs(
+                                    text,
+                                    span.style.clone(),
+                                    vertical_mode,
+                                )
+                            })
+                    })
+                    .collect()
+            } else {
+                // Non-inline layout resolves canonical candidate-line metrics after source runs are
+                // assembled. Prewarm its complete hard line so the cache key serves that line without
+                // speculatively materializing competing per-run variants before wrapping is known.
+                layout_hard_line_shape_paragraphs(parsed.text(), base_style, vertical_mode)
+            };
+        (!paragraphs.is_empty()).then_some(Self { paragraphs })
     }
+}
+
+fn rich_layout_span_shape_paragraphs(
+    text: &str,
+    style: TextStyle,
+    vertical_mode: Option<VerticalMode>,
+) -> Vec<TextShapeParagraph> {
+    layout_hard_line_shape_paragraphs(text, style, vertical_mode)
+}
+
+fn layout_hard_line_shape_paragraphs(
+    text: &str,
+    style: TextStyle,
+    vertical_mode: Option<VerticalMode>,
+) -> Vec<TextShapeParagraph> {
+    crate::text::hard_lines(text)
+        .into_iter()
+        .filter_map(|line| {
+            text.get(line.content)
+                .filter(|content| !content.is_empty())
+                .map(|content| {
+                    TextShapeParagraph::layout_span(
+                        content,
+                        style.clone(),
+                        TextDirection::Auto,
+                        vertical_mode,
+                    )
+                })
+        })
+        .collect()
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -290,7 +386,10 @@ pub(crate) struct UiTextMeasureCache {
     retained_plain_documents: Vec<RetainedPlainTextDocument>,
     retained_plain_document_bytes: usize,
     retained_plain_document_access: u64,
+    uncached_document_resolve_count: usize,
     shape_prewarm_report: TextParallelShapeBatchReport,
+    #[cfg(feature = "profiling")]
+    compiled_rich_text_cache_sampler: CompiledRichTextCacheFrameSampler,
     frame_index: u64,
 }
 
@@ -305,7 +404,11 @@ impl Default for UiTextMeasureCache {
             retained_plain_documents: Vec::new(),
             retained_plain_document_bytes: 0,
             retained_plain_document_access: 0,
+            uncached_document_resolve_count: 0,
             shape_prewarm_report: TextParallelShapeBatchReport::default(),
+            #[cfg(feature = "profiling")]
+            compiled_rich_text_cache_sampler: CompiledRichTextCacheFrameSampler::from_shared_cache(
+            ),
             frame_index: 0,
         }
     }
@@ -329,6 +432,7 @@ impl UiTextMeasureCache {
         self.text_layout_session.begin_frame(self.frame_index);
         self.layout_frame_dedup.begin_frame(self.frame_index);
         self.layout_cache.begin_frame(self.frame_index);
+        self.uncached_document_resolve_count = 0;
         self.shape_prewarm_report = TextParallelShapeBatchReport::default();
     }
 
@@ -358,12 +462,21 @@ impl UiTextMeasureCache {
         self.shape_prewarm_report
     }
 
+    #[cfg(feature = "profiling")]
+    pub(crate) fn sample_compiled_rich_text_cache(&mut self) -> CompiledRichTextCacheReport {
+        self.compiled_rich_text_cache_sampler.sample()
+    }
+
     pub(crate) fn frame_layout_report(&self) -> TextLayoutCacheReport {
         self.layout_cache.report()
     }
 
     pub(crate) fn frame_layout_dedup_report(&self) -> TextFrameDedupReport {
         self.layout_frame_dedup.report()
+    }
+
+    pub(crate) const fn frame_uncached_document_resolve_count(&self) -> usize {
+        self.uncached_document_resolve_count
     }
 
     pub(crate) fn prewarm_horizontal_paragraphs(
@@ -374,7 +487,7 @@ impl UiTextMeasureCache {
     ) -> TextParallelShapeBatchReport {
         let paragraphs = requests
             .iter()
-            .flat_map(UiTextShapePrewarmRequest::to_shape_paragraphs)
+            .flat_map(|request| request.paragraphs.iter().cloned())
             .collect::<Vec<_>>();
         let report =
             self.text_layout_session
@@ -450,14 +563,20 @@ impl UiTextMeasureCache {
             return size;
         }
 
-        let size = if let Some(size) = self.measure_cache.get(&key, text).copied() {
-            size
+        let (stored_text, size) = if let Some((stored_text, size)) =
+            self.measure_cache.get_with_stored_text(&key, text)
+        {
+            (Arc::clone(stored_text), *size)
         } else {
             let measured =
                 measure_backend_text_size_with_provider(text, style, &mut self.text_layout_session);
-            *self.measure_cache.insert(key.clone(), text, measured)
+            let stored_text: Arc<str> = Arc::from(text);
+            let size = *self
+                .measure_cache
+                .insert(key.clone(), Arc::clone(&stored_text), measured);
+            (stored_text, size)
         };
-        self.measure_frame_dedup.insert(key, text, size);
+        self.measure_frame_dedup.insert(key, stored_text, size);
         size
     }
 
@@ -469,22 +588,21 @@ impl UiTextMeasureCache {
         measure_unwrapped_text_height_with_provider(text, style, &mut self.text_layout_session)
     }
 
+    /// Returns true only when layout will materialize a strict hard-line subset for this owner.
+    /// This preserves full-document prewarm for short source even when its clip is smaller than
+    /// its frame, while allowing retained logs to avoid shaping every paragraph first.
+    pub(crate) fn viewport_selects_partial_plain_text(
+        &mut self,
+        request: &UiTextLayoutRequest<'_>,
+    ) -> bool {
+        self.retained_plain_document_for_viewport(request)
+            .is_some_and(|(_, is_partial)| is_partial)
+    }
+
     pub(crate) fn resolve_or_shape(
         &mut self,
         request: &UiTextLayoutRequest<'_>,
     ) -> UiTextLayoutResolution {
-        if request.has_stable_viewport_document()
-            && matches!(request.style.rich_text_format, UiRichTextFormat::Plain)
-        {
-            // Virtualized retained documents provide a revisioned identity. Avoid copying or
-            // scanning the full source just to cache each distinct scroll window.
-            let parsed = self.retained_plain_document(request);
-            return resolve_text_layout_with_provider_and_parsed(
-                request,
-                &parsed,
-                &mut self.text_layout_session,
-            );
-        }
         let key = UiTextMeasureKey::from_request(request);
         let resolved_text = request.resolved_text();
         if let Some(resolution) = self
@@ -495,29 +613,82 @@ impl UiTextMeasureCache {
             return resolution;
         }
 
-        let resolved_text: Arc<str> = Arc::from(resolved_text.as_ref());
         let width_validity = TextLayoutWidthValidity::exact(request.frame.width);
-        let resolution = if let Some(resolution) = self
-            .layout_cache
-            .get(&key, resolved_text.as_ref(), request.frame.width)
-            .cloned()
-        {
-            resolution
-        } else {
-            let resolution =
-                resolve_text_layout_with_provider(request, &mut self.text_layout_session);
-            self.layout_cache
-                .insert(
-                    key.clone(),
-                    Arc::clone(&resolved_text),
-                    width_validity,
-                    resolution,
-                )
-                .clone()
+        if let Some((stored_text, resolution)) = self.layout_cache.get_with_stored_text(
+            &key,
+            resolved_text.as_ref(),
+            request.frame.width,
+        ) {
+            let resolution = resolution.clone();
+            self.layout_frame_dedup
+                .insert(key, Arc::clone(stored_text), resolution.clone());
+            return resolution;
+        }
+
+        let complete_viewport_document = match self.retained_plain_document_for_viewport(request) {
+            Some((parsed, true)) => {
+                // A strict hard-line subset has no reusable complete-document layout. Keep its
+                // parsed document and hard-line index, but do not let viewport-specific geometry
+                // enter the persistent cache.
+                self.uncached_document_resolve_count =
+                    self.uncached_document_resolve_count.saturating_add(1);
+                let resolution = resolve_text_layout_with_provider_and_parsed(
+                    request,
+                    &parsed,
+                    &mut self.text_layout_session,
+                );
+                self.layout_frame_dedup
+                    .insert(key, parsed.rich.shared_text(), resolution.clone());
+                return resolution;
+            }
+            Some((parsed, false)) => Some(parsed),
+            None => None,
         };
+
+        let resolution = match complete_viewport_document {
+            Some(parsed) => resolve_text_layout_with_provider_and_parsed(
+                request,
+                &parsed,
+                &mut self.text_layout_session,
+            ),
+            None => resolve_text_layout_with_provider(request, &mut self.text_layout_session),
+        };
+        let resolved_text: Arc<str> = Arc::from(resolved_text.as_ref());
+        let resolution = self
+            .layout_cache
+            .insert(
+                key.clone(),
+                Arc::clone(&resolved_text),
+                width_validity,
+                resolution,
+            )
+            .clone();
         self.layout_frame_dedup
             .insert(key, resolved_text, resolution.clone());
         resolution
+    }
+
+    fn retained_plain_document_for_viewport(
+        &mut self,
+        request: &UiTextLayoutRequest<'_>,
+    ) -> Option<(UiParsedText, bool)> {
+        let viewport = request.layout_viewport()?;
+        if !request.supports_viewport_virtualized_plain_layout() {
+            return None;
+        }
+        if !has_multiple_hard_lines(request.text) {
+            return None;
+        }
+
+        let parsed = self.retained_plain_document(request);
+        let is_partial = layout_viewport_selects_partial_plain_text(
+            &parsed,
+            request.style,
+            viewport,
+            request.document_key,
+            &mut self.text_layout_session,
+        );
+        Some((parsed, is_partial))
     }
 
     fn retained_plain_document(&mut self, request: &UiTextLayoutRequest<'_>) -> UiParsedText {

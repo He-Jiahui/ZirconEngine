@@ -2,7 +2,7 @@ param(
     [string]$Scenario = "manual",
     [string[]]$ScenarioList = @(),
     [switch]$AllUiScenarios,
-    [string]$OutputRoot = "target/zircon-profiles",
+    [string]$OutputRoot = "E:\zircon-profiles",
     [switch]$SkipBuild,
     [switch]$CaptureSoftbufferScreenshot,
     [switch]$UseTracy,
@@ -14,6 +14,30 @@ param(
     [int]$AutoPointerMoveCount = 0,
     [ValidateRange(0, 1000)]
     [int]$AutoPointerMoveDelayMs = 2,
+    [ValidateRange(0, 1000000)]
+    [int]$AutoClickCount = 0,
+    [ValidateRange(0, 1000)]
+    [int]$AutoClickDelayMs = 4,
+    [ValidateRange(0, 1000000)]
+    [int]$AutoWheelCount = 0,
+    [ValidateRange(0, 1000)]
+    [int]$AutoWheelDelayMs = 2,
+    [ValidateRange(0, 100000)]
+    [int]$HierarchyLogicalNodeCount = 0,
+    [ValidateRange(0, 10000)]
+    [int]$AssetCatalogItemCount = 0,
+    [ValidateRange(2, 240)]
+    [int]$AutoResizeStepCount = 24,
+    [ValidateRange(1, 1000)]
+    [int]$AutoResizeDelayMs = 40,
+    [ValidateRange(0, 120)]
+    [int]$WithinProcessWarmupPresentCount = 1,
+    [ValidateRange(0, 30)]
+    [int]$WithinProcessQuiescenceSeconds = 2,
+    [ValidateRange(1, 10)]
+    [int]$MeasuredRunCount = 3,
+    [ValidateRange(0, 30)]
+    [int]$RunQuiescenceSeconds = 2,
     [int]$MaxFrames = 2048,
     [int]$MaxSpans = 65536,
     [int]$MaxCounters = 65536,
@@ -24,17 +48,49 @@ param(
 $ErrorActionPreference = "Stop"
 
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$OutputPath = Join-Path $RepoRoot $OutputRoot
+. (Join-Path $PSScriptRoot "profile-capture-paths.ps1")
+. (Join-Path $PSScriptRoot "profile-capture-manifest.ps1")
+. (Join-Path $PSScriptRoot "ui-profile-native-resize.ps1")
+. (Join-Path $PSScriptRoot "ui-profile-latency-evidence.ps1")
+. (Join-Path $PSScriptRoot "ui-profile-process-evidence.ps1")
+. (Join-Path $PSScriptRoot "ui-profile-scale-fixture.ps1")
+
+$OutputPath = Resolve-ZirconProfileOutputRoot -RepoRoot $RepoRoot -Path $OutputRoot
+$VerificationScreenshotRoot = Join-Path $RepoRoot "docs\tests\editor\profile-captures"
+$ManagedCargoTargetRoots = @(
+    "D:\cargo-targets",
+    "E:\cargo-targets",
+    "F:\cargo-targets",
+    "D:\targets",
+    "E:\targets",
+    "F:\targets",
+    "D:\ZirconBuilds",
+    "E:\ZirconBuilds",
+    "F:\ZirconBuilds"
+)
 
 function Resolve-ProfilingTargetDir {
-    if (-not [string]::IsNullOrWhiteSpace($env:CARGO_TARGET_DIR)) {
-        $cargoTarget = $env:CARGO_TARGET_DIR
-        if (-not [System.IO.Path]::IsPathRooted($cargoTarget)) {
-            $cargoTarget = Join-Path $RepoRoot $cargoTarget
-        }
-        return Join-Path $cargoTarget "profiling"
+    if ([string]::IsNullOrWhiteSpace($env:CARGO_TARGET_DIR)) {
+        throw "CARGO_TARGET_DIR must be set to a coordinator-managed Windows cargo target before profile capture."
     }
-    return Join-Path $RepoRoot "target\profiling"
+    if (-not [System.IO.Path]::IsPathRooted($env:CARGO_TARGET_DIR)) {
+        throw "CARGO_TARGET_DIR must be an absolute coordinator-managed Windows cargo target."
+    }
+
+    $cargoTarget = [System.IO.Path]::GetFullPath($env:CARGO_TARGET_DIR)
+    $managedRoot = $ManagedCargoTargetRoots |
+        ForEach-Object { [System.IO.Path]::GetFullPath($_).TrimEnd('\\') } |
+        Where-Object {
+            $candidateRoot = $_ + [System.IO.Path]::DirectorySeparatorChar
+            $cargoTarget.Equals($_, [System.StringComparison]::OrdinalIgnoreCase) -or
+                $cargoTarget.StartsWith($candidateRoot, [System.StringComparison]::OrdinalIgnoreCase)
+        } |
+        Select-Object -First 1
+    if ($null -eq $managedRoot) {
+        throw "CARGO_TARGET_DIR must resolve beneath a coordinator-managed Windows cargo target root."
+    }
+
+    return Join-Path $cargoTarget "profiling"
 }
 
 $TargetDir = Resolve-ProfilingTargetDir
@@ -67,8 +123,12 @@ function Resolve-CaptureScenarios {
             "material_lab_click",
             "idle_hover",
             "click",
+            "viewport_toolbar_click",
             "drag",
             "drawer_resize",
+            "window_resize",
+            "hierarchy_scroll",
+            "welcome_recent_scroll",
             "asset_refresh",
             "viewport_image"
         )
@@ -77,6 +137,27 @@ function Resolve-CaptureScenarios {
         return Expand-CaptureScenarioNames -Names $ScenarioList
     }
     return Expand-CaptureScenarioNames -Names @($Scenario)
+}
+
+function Get-ScenarioWithinProcessWarmupPresentCount {
+    param([string]$ScenarioName)
+
+    if ($ScenarioName.Trim().ToLowerInvariant() -in @('startup', 'material_lab_startup')) {
+        return 0
+    }
+    return $WithinProcessWarmupPresentCount
+}
+
+function Get-ScenarioRequestedWheelOperationCount {
+    param([string]$ScenarioName)
+
+    if ($ScenarioName.Trim().ToLowerInvariant() -notin @("hierarchy_scroll", "welcome_recent_scroll")) {
+        return 0
+    }
+    if ($AutoWheelCount -gt 0) {
+        return $AutoWheelCount
+    }
+    return 24
 }
 
 function Get-ScenarioInstruction {
@@ -88,8 +169,12 @@ function Get-ScenarioInstruction {
         "material_lab_click" { return "Launch the Material Component Lab, click representative prototype controls, then close." }
         "idle_hover" { return "Move the pointer slowly across toolbar, hierarchy rows, inspector fields, and tabs for several seconds, then close." }
         "click" { return "Click toolbar buttons, hierarchy rows, tabs, and inspector controls, then close." }
+        "viewport_toolbar_click" { return "Click source-bound controls in the live scene viewport toolbar, then close." }
         "drag" { return "Drag selection or draggable editor controls where available, then close." }
         "drawer_resize" { return "Drag side or bottom pane splitters repeatedly, then close." }
+        "window_resize" { return "Resize the native editor window repeatedly, restore its original extent, then close." }
+        "hierarchy_scroll" { return "Scroll the live hierarchy pane in alternating directions, then close." }
+        "welcome_recent_scroll" { return "Scroll the Welcome recent-project viewport in alternating directions, then close." }
         "asset_refresh" { return "Trigger an asset refresh or reopen the project/asset pane, then close." }
         "viewport_image" { return "Let the scene/game viewport update for several seconds, orbit if useful, then close." }
         default { return "Perform the target interaction, then close the editor to export the report." }
@@ -116,7 +201,9 @@ function Show-UiScenarioEvidence {
         [string]$ScenarioName
     )
 
+    $normalizedScenario = $ScenarioName.Trim().ToLowerInvariant()
     $evidenceScenario = Resolve-InteractionScenarioName -ScenarioName $ScenarioName
+    $requiresMaterialLabPaintOnlyAuthority = $normalizedScenario -eq "material_lab_click"
     $hotspots = Join-Path $ProfileDir "ui_hotspots.json"
     if (-not (Test-Path $hotspots)) {
         Write-Warning "UI hotspot evidence was not exported for scenario '$ScenarioName'."
@@ -131,6 +218,25 @@ function Show-UiScenarioEvidence {
         Write-Warning "UI hotspot report does not contain scenario '$evidenceScenario' for requested scenario '$ScenarioName'."
         return $false
     }
+    $hostInvalidationTransactionCount = [int64]$scenario.host_invalidation_transaction_count
+    $hostInvalidationTargetCount = [int64]$scenario.host_invalidation_full_target_count +
+        [int64]$scenario.host_invalidation_shell_content_target_count +
+        [int64]$scenario.host_invalidation_workbench_projection_target_count +
+        [int64]$scenario.host_invalidation_view_presentation_target_count +
+        [int64]$scenario.host_invalidation_window_metrics_target_count +
+        [int64]$scenario.host_invalidation_paint_only_target_count
+    $hasConsistentHostInvalidationEvidence =
+        $hostInvalidationTargetCount -eq $hostInvalidationTransactionCount
+    $paintedPixels = [double]$scenario.painted_pixels
+    $presentedSurfacePixels = [double]$scenario.presented_surface_pixels
+    $hasConsistentDamageEvidence = $paintedPixels -eq 0.0 -or
+        ($presentedSurfacePixels -gt 0.0 -and $paintedPixels -le $presentedSurfacePixels)
+    $damageCoveragePercent = if ($presentedSurfacePixels -gt 0.0) {
+        $paintedPixels * 100.0 / $presentedSurfacePixels
+    }
+    else {
+        0.0
+    }
 
     Write-Host ""
     Write-Host "UI scenario evidence ($evidenceScenario):"
@@ -139,17 +245,64 @@ function Show-UiScenarioEvidence {
             $scenario.dirty_paint_only_count,
             $scenario.redraw_region_count,
             $scenario.redraw_full_frame_count)
+    Write-Host ("- host_invalidation_transaction_count={0} host_invalidation_target_count={1} host_invalidation_scope_count={2} host_invalidation_legacy_dirty_transaction_count={3} slow_path={4}" -f `
+            $scenario.host_invalidation_transaction_count,
+            $hostInvalidationTargetCount,
+            $scenario.host_invalidation_scope_count,
+            $scenario.host_invalidation_legacy_dirty_transaction_count,
+            $scenario.slow_path_rebuild_count)
+    Write-Host ("- host_invalidation_full_target_count={0} host_invalidation_shell_content_target_count={1} host_invalidation_workbench_projection_target_count={2} host_invalidation_view_presentation_target_count={3} host_invalidation_window_metrics_target_count={4} host_invalidation_paint_only_target_count={5}" -f `
+            $scenario.host_invalidation_full_target_count,
+            $scenario.host_invalidation_shell_content_target_count,
+            $scenario.host_invalidation_workbench_projection_target_count,
+            $scenario.host_invalidation_view_presentation_target_count,
+            $scenario.host_invalidation_window_metrics_target_count,
+            $scenario.host_invalidation_paint_only_target_count)
+    Write-Host ("- painted_pixels={0} presented_surface_pixels={1} damage_coverage_percent={2:N2}" -f `
+            $scenario.painted_pixels,
+            $scenario.presented_surface_pixels,
+            $damageCoveragePercent)
     Write-Host ("- gpu_draw_calls={0} gpu_visible_commands={1} gpu_visible_draw_items={2} gpu_batch_layers={3} gpu_batch_dependencies={4}" -f `
             $scenario.gpu_draw_calls,
             $scenario.gpu_visible_commands,
             $scenario.gpu_visible_draw_items,
             $scenario.gpu_batch_layers,
             $scenario.gpu_batch_dependencies)
+    Write-Host ("- gpu_timestamp_supported_present_count={0} gpu_time_sample_count={1} gpu_time_p50_us={2} gpu_time_p95_us={3} gpu_time_max_us={4} gpu_profile_latency_max_frames={5}" -f `
+            $scenario.gpu_timestamp_supported_present_count,
+            $scenario.gpu_time_sample_count,
+            $scenario.gpu_time_p50_us,
+            $scenario.gpu_time_p95_us,
+            $scenario.gpu_time_max_us,
+            $scenario.gpu_profile_latency_max_frames)
+    Write-Host ("- gpu_compiled_draw_items={0} batch_plan_builds={1} batch_plan_cache_hits={2}" -f `
+            $scenario.gpu_compiled_draw_items,
+            $scenario.gpu_batch_plan_build_count,
+            $scenario.gpu_batch_plan_cache_hit_count)
+    Write-Host ("- gpu_vertex_buffer_creates={0} vertex_upload_bytes={1} retained_cache_copy_bytes={2}" -f `
+            $scenario.gpu_vertex_buffer_create_count,
+            $scenario.gpu_vertex_upload_bytes,
+            $scenario.gpu_retained_cache_copy_bytes)
     Write-Host ("- gpu_upload_bytes={0}" -f $scenario.gpu_upload_bytes)
+    Write-Host ("- gpu_image_upload_writes={0} shared_resolves={1} cache_hits={2} invalid_payloads={3}" -f `
+            $scenario.gpu_image_upload_write_count,
+            $scenario.gpu_image_shared_resolve_count,
+            $scenario.gpu_image_prepare_cache_hit_count,
+            $scenario.gpu_image_invalid_payload_count)
+    Write-Host ("- visual_asset_hits={0} misses={1} svg_tree_hits={2} svg_tree_misses={3}" -f `
+            $scenario.visual_asset_cache_hit_count,
+            $scenario.visual_asset_cache_miss_count,
+            $scenario.svg_tree_cache_memory_hit_count,
+            $scenario.svg_tree_cache_miss_count)
+    Write-Host ("- visual_reconcile_visits={0} invalidated={1} svg_reconcile_visits={2} invalidated={3}" -f `
+            $scenario.visual_asset_reconcile_source_visit_count,
+            $scenario.visual_asset_reconciled_invalidation_count,
+            $scenario.svg_tree_reconcile_source_visit_count,
+            $scenario.svg_tree_reconciled_invalidation_count)
     Write-Host ("- software_fallback_present_count={0}" -f $scenario.software_fallback_present_count)
     $scenarioAlerts = @($report.alerts | Where-Object { $_.scenario -eq $evidenceScenario })
     $blockingScenarioAlerts = @($scenarioAlerts | Where-Object {
-            -not ($evidenceScenario -eq "drawer_resize" -and $_.rule -eq "resize_triggered_slow_path_rebuild")
+            -not ($evidenceScenario -in @("drawer_resize", "window_resize") -and $_.rule -eq "resize_triggered_slow_path_rebuild")
         })
     Write-Host ("- alerts={0} blocking_alerts={1}" -f $scenarioAlerts.Count, $blockingScenarioAlerts.Count)
     if ($scenarioAlerts.Count -gt $blockingScenarioAlerts.Count) {
@@ -160,6 +313,9 @@ function Show-UiScenarioEvidence {
     $hasGpuBatch = [int64]$scenario.gpu_draw_calls -gt 0 -and
         [int64]$scenario.gpu_visible_draw_items -gt [int64]$scenario.gpu_draw_calls
     $hasGpuUpload = [int64]$scenario.gpu_upload_bytes -gt 0
+    $hasGpuTimingEvidence =
+        [int64]$scenario.gpu_timestamp_supported_present_count -gt 0 -and
+        [int64]$scenario.gpu_time_sample_count -gt 0
     $hasFrameSamples = [int64]$scenario.frame_count -gt 0
     $hasNoSoftwareFallback = [int64]$scenario.software_fallback_present_count -eq 0
     $hasNoAlerts = $blockingScenarioAlerts.Count -eq 0
@@ -170,6 +326,8 @@ function Show-UiScenarioEvidence {
         "click" { $redrawCount -gt 0 -and $hasGpuBatch -and $hasNoSoftwareFallback -and $hasNoAlerts; break }
         "drag" { $redrawCount -gt 0 -and $hasGpuBatch -and $hasNoSoftwareFallback -and $hasNoAlerts; break }
         "drawer_resize" { $redrawCount -gt 0 -and $hasGpuBatch -and $hasNoSoftwareFallback -and $hasNoAlerts; break }
+        "window_resize" { $redrawCount -gt 0 -and $hasGpuBatch -and $hasNoSoftwareFallback -and $hasNoAlerts; break }
+        "hierarchy_scroll" { $redrawCount -gt 0 -and $hasGpuBatch -and $hasNoSoftwareFallback -and $hasNoAlerts; break }
         "viewport_image" {
             [int64]$scenario.dirty_paint_only_count -gt 0 -and
                 [int64]$scenario.redraw_region_count -gt 0 -and
@@ -182,7 +340,32 @@ function Show-UiScenarioEvidence {
         "asset_refresh" { $hasGpuBatch -and $hasNoSoftwareFallback -and $hasNoAlerts; break }
         default { ($hasFrameSamples -or $hasGpuBatch) -and $hasNoSoftwareFallback -and $hasNoAlerts; break }
     }
+    $evidenceOk = $evidenceOk -and
+        $hasConsistentHostInvalidationEvidence -and
+        $hasConsistentDamageEvidence
+    $hasMaterialLabPaintOnlyAuthority = -not $requiresMaterialLabPaintOnlyAuthority -or (
+        [int64]$scenario.host_invalidation_transaction_count -gt 0 -and
+        [int64]$scenario.host_invalidation_paint_only_target_count -gt 0 -and
+        [int64]$scenario.host_invalidation_full_target_count -eq 0 -and
+        [int64]$scenario.host_invalidation_legacy_dirty_transaction_count -eq 0
+    )
+    $evidenceOk = $evidenceOk -and $hasMaterialLabPaintOnlyAuthority
+    if ($hasGpuBatch) {
+        $evidenceOk = $evidenceOk -and $hasGpuTimingEvidence
+    }
 
+    if (-not $hasConsistentHostInvalidationEvidence) {
+        Write-Warning "Scenario '$ScenarioName' host invalidation target count does not match its transaction count."
+    }
+    if (-not $hasConsistentDamageEvidence) {
+        Write-Warning "Scenario '$ScenarioName' painted-pixel evidence has no valid presented-surface denominator."
+    }
+    if ($hasGpuBatch -and -not $hasGpuTimingEvidence) {
+        Write-Warning "Scenario '$ScenarioName' rendered a GPU batch without a supported GPU timestamp sample."
+    }
+    if (-not $hasMaterialLabPaintOnlyAuthority) {
+        Write-Warning "Scenario '$ScenarioName' did not preserve paint-only host invalidation authority."
+    }
     if (-not $evidenceOk) {
         Write-Warning "Scenario '$ScenarioName' did not produce enough UI/GPU evidence for automated acceptance."
     }
@@ -199,6 +382,9 @@ function Resolve-InteractionScenarioName {
         "material_lab_startup" { return "startup" }
         "material_lab_hover" { return "idle_hover" }
         "material_lab_click" { return "click" }
+        "viewport_toolbar_click" { return "click" }
+        "hierarchy_scroll" { return "idle_hover" }
+        "welcome_recent_scroll" { return "idle_hover" }
         default { return $ScenarioName.Trim().ToLowerInvariant() }
     }
 }
@@ -408,6 +594,16 @@ public static class ZirconProfileCaptureNative
     public static extern bool SetForegroundWindow(IntPtr hWnd);
 
     [DllImport("user32.dll")]
+    public static extern bool SetWindowPos(
+        IntPtr hWnd,
+        IntPtr hWndInsertAfter,
+        int x,
+        int y,
+        int width,
+        int height,
+        uint flags);
+
+    [DllImport("user32.dll")]
     public static extern bool SetCursorPos(int x, int y);
 
     [DllImport("user32.dll")]
@@ -449,6 +645,31 @@ function Save-EditorClientScreenshot {
         $graphics.Dispose()
         $bitmap.Dispose()
     }
+}
+
+function Export-VerificationScreenshots {
+    param(
+        [string]$ProfileDir,
+        [string]$SessionId
+    )
+
+    $screenshots = @(
+        "screenshot_reference.png",
+        "screenshot_gpu.png",
+        "screenshot_softbuffer.png"
+    ) |
+        ForEach-Object { Join-Path $ProfileDir $_ } |
+        Where-Object { Test-Path -LiteralPath $_ }
+    if ($screenshots.Count -eq 0) {
+        return $null
+    }
+
+    $destination = Join-Path $VerificationScreenshotRoot $SessionId
+    New-Item -ItemType Directory -Force -Path $destination | Out-Null
+    foreach ($screenshot in $screenshots) {
+        Copy-Item -LiteralPath $screenshot -Destination (Join-Path $destination (Split-Path -Leaf $screenshot)) -Force
+    }
+    return $destination
 }
 
 function Wait-EditorClientSize {
@@ -740,6 +961,324 @@ function Test-AssetRefreshCounterGate {
         Write-Warning "Scenario 'asset_refresh' did not record any asset/editor/resource change counter."
         return $false
     }
+    $fullInvalidationCount = [double](@($snapshot.counters) |
+            Where-Object { $_.name -eq "ui.asset_refresh.visual_asset_full_invalidation_count" } |
+            Measure-Object -Property value -Sum).Sum
+    $targetedInvalidationCount = [double](@($snapshot.counters) |
+            Where-Object { $_.name -in @(
+                    "ui.asset_refresh.visual_asset_targeted_invalidation_count",
+                    "ui.asset_refresh.svg_tree_targeted_invalidation_count"
+                ) } |
+            Measure-Object -Property value -Sum).Sum
+    $reconcileVisitCount = [double](@($snapshot.counters) |
+            Where-Object { $_.name -in @(
+                    "ui.asset_refresh.visual_asset_reconcile_source_visit_count",
+                    "ui.asset_refresh.svg_tree_reconcile_source_visit_count"
+                ) } |
+            Measure-Object -Property value -Sum).Sum
+    $reconciledInvalidationCount = [double](@($snapshot.counters) |
+            Where-Object { $_.name -in @(
+                    "ui.asset_refresh.visual_asset_reconciled_invalidation_count",
+                    "ui.asset_refresh.svg_tree_reconciled_invalidation_count"
+                ) } |
+            Measure-Object -Property value -Sum).Sum
+    Write-Host ("- asset_refresh_targeted_invalidation={0} reconcile_visits={1} reconciled_invalidation={2} full_invalidation={3}" -f `
+            $targetedInvalidationCount, $reconcileVisitCount,
+            $reconciledInvalidationCount, $fullInvalidationCount)
+    if ($fullInvalidationCount -gt 0) {
+        Write-Warning "Scenario 'asset_refresh' cleared all visual asset caches for a non-visual project change."
+        return $false
+    }
+    return $true
+}
+
+function Export-UiSurfacePresentOutcomeEvidence {
+    param([string]$ProfileDir)
+
+    Export-ZirconUiSurfacePresentOutcomeEvidence -ProfileDir $ProfileDir
+}
+
+function Test-UiSurfaceLatencyEvidenceGate {
+    param(
+        [string]$ProfileDir,
+        [string]$ScenarioName
+    )
+
+    $interactionScenario = Resolve-InteractionScenarioName -ScenarioName $ScenarioName
+    return Test-ZirconUiSurfaceLatencyEvidenceGate `
+        -ProfileDir $ProfileDir `
+        -ScenarioName $ScenarioName `
+        -InteractionScenarioName $interactionScenario `
+        -AutoClickCount $AutoClickCount `
+        -AutoPointerMoveCount $AutoPointerMoveCount `
+        -AutoWheelCount $AutoWheelCount
+}
+
+function Test-InteractionProcessEvidence {
+    param(
+        [object]$Interaction,
+        [int64]$OperationCount = 0,
+        [double]$MaxCpuMsPerOperation = 0.0
+    )
+
+    return Test-ZirconUiInteractionProcessEvidence `
+        -Interaction $Interaction `
+        -OperationCount $OperationCount `
+        -MaxCpuMsPerOperation $MaxCpuMsPerOperation
+}
+
+function Test-WindowResizeCounterGate {
+    param(
+        [string]$ProfileDir,
+        [string]$ScenarioName
+    )
+
+    if ((Resolve-InteractionScenarioName -ScenarioName $ScenarioName) -ne "window_resize") {
+        return $true
+    }
+    $timelinePath = Join-Path $ProfileDir "timeline.zrtrace.json"
+    $evidencePath = Join-Path $ProfileDir "ui_interaction_evidence.json"
+    if (-not (Test-Path $timelinePath) -or -not (Test-Path $evidencePath)) {
+        Write-Warning "Window resize gate requires timeline and interaction evidence artifacts."
+        return $false
+    }
+    $snapshot = Get-Content -Path $timelinePath -Raw | ConvertFrom-Json
+    $evidence = Get-Content -Path $evidencePath -Raw | ConvertFrom-Json
+    if (-not (Test-InteractionProcessEvidence `
+            -Interaction $evidence.interaction `
+            -OperationCount ([int64]$evidence.interaction.completed_steps) `
+            -MaxCpuMsPerOperation 35.0)) {
+        Write-Warning "Window resize gate requires complete and internally consistent CPU/RSS evidence."
+        return $false
+    }
+    $counterTotals = @{}
+    foreach ($name in @(
+            "ui.window_resize.command_snapshot_build_count",
+            "ui.window_resize.command_snapshot_reuse_count",
+            "ui.window_resize.surface_reconfigure_count",
+            "ui.window_resize.duplicate_size_suppressed_count",
+            "ui.window_resize.duplicate_scale_suppressed_count",
+            "ui.window_resize.workbench_model_build_count",
+            "ui.window_resize.chrome_snapshot_count",
+            "ui.window_resize.gpu_image_vertices",
+            "ui.window_resize.gpu_image_prepare_cache_hits",
+            "ui.window_resize.gpu_image_prepare_command_visits",
+            "ui.window_resize.gpu_image_upload_writes",
+            "ui.window_resize.gpu_image_cache_key_allocations",
+            "ui.window_resize.gpu_image_cache_admission_rejects",
+            "ui.window_resize.gpu_image_invalid_payloads",
+            "ui.window_resize.visual_asset_cache_hit_count",
+            "ui.window_resize.visual_asset_cache_miss_count",
+            "ui.window_resize.svg_tree_cache_memory_hit_count",
+            "ui.window_resize.svg_tree_cache_miss_count",
+            "ui.window_resize.visual_asset_full_invalidation_count",
+            "ui.window_resize.shell_drag_authority_rebuild_count",
+            "ui.window_resize.shell_drag_node_insert_count",
+            "ui.window_resize.shell_drag_geometry_patch_count",
+            "ui.window_resize.shell_drag_node_patch_count",
+            "ui.window_resize.shell_drag_dispatcher_rebuild_count",
+            "ui.window_resize.shell_drag_route_map_rebuild_count"
+        )) {
+        $counterTotals[$name] = [double](@($snapshot.counters) |
+                Where-Object { $_.name -eq $name } |
+                Measure-Object -Property value -Sum).Sum
+    }
+    $buildCount = $counterTotals["ui.window_resize.command_snapshot_build_count"]
+    $reuseCount = $counterTotals["ui.window_resize.command_snapshot_reuse_count"]
+    $surfaceCount = $counterTotals["ui.window_resize.surface_reconfigure_count"]
+    $duplicateSizeCount = $counterTotals["ui.window_resize.duplicate_size_suppressed_count"]
+    $duplicateScaleCount = $counterTotals["ui.window_resize.duplicate_scale_suppressed_count"]
+    $modelCount = $counterTotals["ui.window_resize.workbench_model_build_count"]
+    $chromeCount = $counterTotals["ui.window_resize.chrome_snapshot_count"]
+    $imageVertexCount = $counterTotals["ui.window_resize.gpu_image_vertices"]
+    $imagePrepareCacheHitCount = $counterTotals["ui.window_resize.gpu_image_prepare_cache_hits"]
+    $imagePrepareCommandVisitCount = $counterTotals["ui.window_resize.gpu_image_prepare_command_visits"]
+    $imageUploadCount = $counterTotals["ui.window_resize.gpu_image_upload_writes"]
+    $imageAllocationCount = $counterTotals["ui.window_resize.gpu_image_cache_key_allocations"]
+    $imageAdmissionRejectCount = $counterTotals["ui.window_resize.gpu_image_cache_admission_rejects"]
+    $imageInvalidPayloadCount = $counterTotals["ui.window_resize.gpu_image_invalid_payloads"]
+    $visualHitCount = $counterTotals["ui.window_resize.visual_asset_cache_hit_count"]
+    $visualMissCount = $counterTotals["ui.window_resize.visual_asset_cache_miss_count"]
+    $svgHitCount = $counterTotals["ui.window_resize.svg_tree_cache_memory_hit_count"]
+    $svgMissCount = $counterTotals["ui.window_resize.svg_tree_cache_miss_count"]
+    $visualFullInvalidationCount = $counterTotals["ui.window_resize.visual_asset_full_invalidation_count"]
+    $shellDragAuthorityRebuildCount = $counterTotals["ui.window_resize.shell_drag_authority_rebuild_count"]
+    $shellDragNodeInsertCount = $counterTotals["ui.window_resize.shell_drag_node_insert_count"]
+    $shellDragGeometryPatchCount = $counterTotals["ui.window_resize.shell_drag_geometry_patch_count"]
+    $shellDragNodePatchCount = $counterTotals["ui.window_resize.shell_drag_node_patch_count"]
+    $shellDragDispatcherRebuildCount = $counterTotals["ui.window_resize.shell_drag_dispatcher_rebuild_count"]
+    $shellDragRouteMapRebuildCount = $counterTotals["ui.window_resize.shell_drag_route_map_rebuild_count"]
+    Write-Host ("- resize_snapshot_build={0} reuse={1} surface_reconfigure={2} duplicate_size_suppressed={3} duplicate_scale_suppressed={4} model_build={5} chrome_snapshot={6} image_vertices={7} image_prepare_cache_hits={8} image_prepare_command_visits={9} image_uploads={10} image_allocations={11} visual_hits={12} visual_misses={13} svg_tree_hits={14} svg_tree_misses={15} shell_drag_authority_rebuild={16} shell_drag_node_insert={17} shell_drag_geometry_patch={18} shell_drag_node_patch={19} shell_drag_dispatcher_rebuild={20} shell_drag_route_map_rebuild={21}" -f `
+            $buildCount, $reuseCount, $surfaceCount, $duplicateSizeCount, $duplicateScaleCount,
+            $modelCount, $chromeCount, $imageVertexCount, $imagePrepareCacheHitCount,
+            $imagePrepareCommandVisitCount, $imageUploadCount, $imageAllocationCount,
+            $visualHitCount, $visualMissCount, $svgHitCount, $svgMissCount,
+            $shellDragAuthorityRebuildCount, $shellDragNodeInsertCount,
+            $shellDragGeometryPatchCount, $shellDragNodePatchCount,
+            $shellDragDispatcherRebuildCount, $shellDragRouteMapRebuildCount)
+
+    $expectedSteps = [int64]$evidence.interaction.requested_steps
+    $completedSteps = [int64]$evidence.interaction.completed_steps
+    return $expectedSteps -gt 1 -and
+        $completedSteps -eq $expectedSteps -and
+        [bool]$evidence.interaction.restored_original_extent -and
+        $buildCount -eq 1 -and
+        $reuseCount -gt 0 -and
+        $surfaceCount -gt 0 -and
+        $surfaceCount -le $completedSteps -and
+        $modelCount -le 1 -and
+        $chromeCount -le 1 -and
+        $imageVertexCount -gt 0 -and
+        $imagePrepareCacheHitCount -gt 0 -and
+        $imageUploadCount -le 1 -and
+        $imageAllocationCount -le 1 -and
+        $imageAdmissionRejectCount -eq 0 -and
+        $imageInvalidPayloadCount -eq 0 -and
+        $visualHitCount -gt 0 -and
+        $visualMissCount -eq 0 -and
+        $svgHitCount -gt 0 -and
+        $svgMissCount -eq 0 -and
+        $visualFullInvalidationCount -eq 0 -and
+        $shellDragAuthorityRebuildCount -eq 0 -and
+        $shellDragNodeInsertCount -eq 0 -and
+        $shellDragGeometryPatchCount -gt 0 -and
+        $shellDragNodePatchCount -ge $shellDragGeometryPatchCount -and
+        $shellDragDispatcherRebuildCount -eq 0 -and
+        $shellDragRouteMapRebuildCount -eq 0
+}
+
+function Test-HierarchyScrollCounterGate {
+    param(
+        [string]$ProfileDir,
+        [string]$ScenarioName
+    )
+
+    if ($ScenarioName.Trim().ToLowerInvariant() -ne "hierarchy_scroll") {
+        return $true
+    }
+    $timelinePath = Join-Path $ProfileDir "timeline.zrtrace.json"
+    $evidencePath = Join-Path $ProfileDir "ui_interaction_evidence.json"
+    if (-not (Test-Path $timelinePath) -or -not (Test-Path $evidencePath)) {
+        Write-Warning "Hierarchy scroll gate requires timeline and interaction evidence artifacts."
+        return $false
+    }
+    $snapshot = Get-Content -Path $timelinePath -Raw | ConvertFrom-Json
+    $evidence = Get-Content -Path $evidencePath -Raw | ConvertFrom-Json
+    if (-not (Test-InteractionProcessEvidence `
+            -Interaction $evidence.interaction `
+            -OperationCount ([int64]$evidence.interaction.completed_wheel_events) `
+            -MaxCpuMsPerOperation 0.25)) {
+        Write-Warning "Hierarchy scroll gate requires complete and internally consistent CPU/RSS evidence."
+        return $false
+    }
+
+    $counterTotals = @{}
+    foreach ($name in @(
+            "ui.idle_hover.hierarchy_scroll_dispatch_count",
+            "ui.idle_hover.hierarchy_surface_rebuild_count",
+            "ui.idle_hover.hierarchy_row_insert_count",
+            "ui.idle_hover.hierarchy_dispatcher_rebuild_count",
+            "ui.idle_hover.hierarchy_route_map_rebuild_count"
+        )) {
+        $counterTotals[$name] = [double](@($snapshot.counters) |
+                Where-Object { $_.name -eq $name } |
+                Measure-Object -Property value -Sum).Sum
+    }
+
+    $dispatchCount = $counterTotals["ui.idle_hover.hierarchy_scroll_dispatch_count"]
+    $surfaceRebuildCount = $counterTotals["ui.idle_hover.hierarchy_surface_rebuild_count"]
+    $rowInsertCount = $counterTotals["ui.idle_hover.hierarchy_row_insert_count"]
+    $dispatcherRebuildCount = $counterTotals["ui.idle_hover.hierarchy_dispatcher_rebuild_count"]
+    $routeMapRebuildCount = $counterTotals["ui.idle_hover.hierarchy_route_map_rebuild_count"]
+    Write-Host ("- hierarchy_scroll_dispatch={0} surface_rebuild={1} row_insert={2} dispatcher_rebuild={3} route_map_rebuild={4}" -f `
+            $dispatchCount, $surfaceRebuildCount, $rowInsertCount,
+            $dispatcherRebuildCount, $routeMapRebuildCount)
+
+    $requestedWheelEvents = [int64]$evidence.interaction.requested_wheel_events
+    $completedWheelEvents = [int64]$evidence.interaction.completed_wheel_events
+    $hasNoRetainedAuthorityRebuildWork =
+        $surfaceRebuildCount -eq 0 -and
+        $rowInsertCount -eq 0 -and
+        $dispatcherRebuildCount -eq 0 -and
+        $routeMapRebuildCount -eq 0
+    if ($dispatchCount -ne $completedWheelEvents -or
+        $requestedWheelEvents -le 0 -or
+        $completedWheelEvents -ne $requestedWheelEvents -or
+        -not $hasNoRetainedAuthorityRebuildWork) {
+        Write-Warning "Hierarchy scroll profiling counters are missing, inconsistent, or rebuilt retained authority."
+        return $false
+    }
+    return $true
+}
+
+function Test-WelcomeRecentScrollCounterGate {
+    param(
+        [string]$ProfileDir,
+        [string]$ScenarioName
+    )
+
+    if ($ScenarioName.Trim().ToLowerInvariant() -ne "welcome_recent_scroll") {
+        return $true
+    }
+    $timelinePath = Join-Path $ProfileDir "timeline.zrtrace.json"
+    $evidencePath = Join-Path $ProfileDir "ui_interaction_evidence.json"
+    if (-not (Test-Path $timelinePath) -or -not (Test-Path $evidencePath)) {
+        Write-Warning "Welcome recent scroll gate requires timeline and interaction evidence artifacts."
+        return $false
+    }
+    $snapshot = Get-Content -Path $timelinePath -Raw | ConvertFrom-Json
+    $evidence = Get-Content -Path $evidencePath -Raw | ConvertFrom-Json
+    if (-not (Test-InteractionProcessEvidence `
+            -Interaction $evidence.interaction `
+            -OperationCount ([int64]$evidence.interaction.completed_wheel_events) `
+            -MaxCpuMsPerOperation 0.25)) {
+        Write-Warning "Welcome recent scroll gate requires complete and internally consistent CPU/RSS evidence."
+        return $false
+    }
+
+    $counterTotals = @{}
+    foreach ($name in @(
+            "ui.idle_hover.welcome_recent_scroll_dispatch_count",
+            "ui.idle_hover.welcome_recent_surface_rebuild_count",
+            "ui.idle_hover.welcome_recent_authority_rebuild_count",
+            "ui.idle_hover.welcome_recent_row_insert_count",
+            "ui.idle_hover.welcome_recent_geometry_patch_count",
+            "ui.idle_hover.welcome_recent_dispatcher_rebuild_count",
+            "ui.idle_hover.welcome_recent_route_map_rebuild_count"
+        )) {
+        $counterTotals[$name] = [double](@($snapshot.counters) |
+                Where-Object { $_.name -eq $name } |
+                Measure-Object -Property value -Sum).Sum
+    }
+
+    $dispatchCount = $counterTotals["ui.idle_hover.welcome_recent_scroll_dispatch_count"]
+    $surfaceRebuildCount = $counterTotals["ui.idle_hover.welcome_recent_surface_rebuild_count"]
+    $authorityRebuildCount = $counterTotals["ui.idle_hover.welcome_recent_authority_rebuild_count"]
+    $rowInsertCount = $counterTotals["ui.idle_hover.welcome_recent_row_insert_count"]
+    $geometryPatchCount = $counterTotals["ui.idle_hover.welcome_recent_geometry_patch_count"]
+    $dispatcherRebuildCount = $counterTotals["ui.idle_hover.welcome_recent_dispatcher_rebuild_count"]
+    $routeMapRebuildCount = $counterTotals["ui.idle_hover.welcome_recent_route_map_rebuild_count"]
+    Write-Host ("- welcome_recent_scroll_dispatch={0} surface_rebuild={1} authority_rebuild={2} row_insert={3} geometry_patch={4} dispatcher_rebuild={5} route_map_rebuild={6}" -f `
+            $dispatchCount, $surfaceRebuildCount, $authorityRebuildCount,
+            $rowInsertCount, $geometryPatchCount, $dispatcherRebuildCount,
+            $routeMapRebuildCount)
+
+    $requestedWheelEvents = [int64]$evidence.interaction.requested_wheel_events
+    $completedWheelEvents = [int64]$evidence.interaction.completed_wheel_events
+    $hasNoRetainedAuthorityWork =
+        $surfaceRebuildCount -eq 0 -and
+        $authorityRebuildCount -eq 0 -and
+        $rowInsertCount -eq 0 -and
+        $geometryPatchCount -eq 0 -and
+        $dispatcherRebuildCount -eq 0 -and
+        $routeMapRebuildCount -eq 0
+    if ($dispatchCount -ne $completedWheelEvents -or
+        $requestedWheelEvents -le 0 -or
+        $completedWheelEvents -ne $requestedWheelEvents -or
+        -not $hasNoRetainedAuthorityWork) {
+        Write-Warning "Welcome recent scroll profiling counters are missing, inconsistent, or rebuilt retained authority."
+        return $false
+    }
     return $true
 }
 
@@ -749,16 +1288,155 @@ function Test-UiInteractionEvidenceGate {
         [string]$ScenarioName
     )
 
+    $normalizedScenario = $ScenarioName.Trim().ToLowerInvariant()
     $interactionScenario = Resolve-InteractionScenarioName -ScenarioName $ScenarioName
-    if ($interactionScenario -ne "drawer_resize") {
+    $requiresClickStorm = $interactionScenario -eq "click" -and $AutoClickCount -gt 0
+    $requiresPointerStorm = $normalizedScenario -in @("idle_hover", "material_lab_hover") -and
+        $AutoPointerMoveCount -gt 0
+    $requiresWheelStorm = $normalizedScenario -in @("hierarchy_scroll", "welcome_recent_scroll") -and
+        $AutoWheelCount -gt 0
+    if ($interactionScenario -ne "drawer_resize" -and -not $requiresClickStorm -and -not $requiresPointerStorm -and -not $requiresWheelStorm) {
         return $true
     }
     $artifactPath = Join-Path $ProfileDir "ui_interaction_evidence.json"
     if (-not (Test-Path $artifactPath)) {
-        Write-Warning "Drawer resize interaction evidence was not exported."
+        Write-Warning "Required UI interaction evidence was not exported."
         return $false
     }
     $artifact = Get-Content -Path $artifactPath -Raw | ConvertFrom-Json
+    $processOperationCount = 0
+    $maxCpuMsPerOperation = 0.0
+    if ($requiresClickStorm) {
+        $processOperationCount = [int64]$artifact.interaction.completed_clicks
+        $maxCpuMsPerOperation = 0.5
+    }
+    elseif ($requiresPointerStorm) {
+        $processOperationCount = [int64]$artifact.interaction.completed_moves
+        $maxCpuMsPerOperation = 0.25
+    }
+    elseif ($requiresWheelStorm) {
+        $processOperationCount = [int64]$artifact.interaction.completed_wheel_events
+        $maxCpuMsPerOperation = 0.25
+    }
+    if (($requiresClickStorm -or $requiresPointerStorm -or $requiresWheelStorm) -and
+        -not (Test-InteractionProcessEvidence `
+            -Interaction $artifact.interaction `
+            -OperationCount $processOperationCount `
+            -MaxCpuMsPerOperation $maxCpuMsPerOperation)) {
+        Write-Warning "UI interaction gate requires complete and internally consistent CPU/RSS evidence."
+        return $false
+    }
+
+    if ($requiresClickStorm) {
+        $requestedClicks = [int64]$artifact.interaction.requested_clicks
+        $completedClicks = [int64]$artifact.interaction.completed_clicks
+        $targets = @($artifact.interaction.targets)
+        $invalidTargets = @($targets | Where-Object {
+                [string]::IsNullOrWhiteSpace([string]$_.target_id) -or
+                [string]::IsNullOrWhiteSpace([string]$_.target_kind) -or
+                [string]::IsNullOrWhiteSpace([string]$_.target_surface) -or
+                $_.source -ne "ui_profile_geometry.json"
+            })
+        if ($artifact.interaction.scenario -ne "pointer_click_storm" -or
+            $requestedClicks -ne $AutoClickCount -or
+            $completedClicks -ne $requestedClicks -or
+            $null -eq $artifact.interaction.processor_time_delta_ms -or
+            -not ([bool]$artifact.interaction.used_geometry) -or
+            $targets.Count -eq 0 -or
+            $invalidTargets.Count -gt 0) {
+            Write-Warning "Click storm did not complete the source-bound request with geometry target identity and CPU evidence."
+            return $false
+        }
+        if ($normalizedScenario -eq "material_lab_click") {
+            $nonTemplateTargets = @($targets | Where-Object {
+                    $_.target_kind -ne "template_control" -or
+                    -not ([string]$_.target_id).StartsWith("template.", [StringComparison]::Ordinal)
+                })
+            if ($nonTemplateTargets.Count -gt 0) {
+                Write-Warning "Material Lab click storm included a target outside the dispatchable template-control set."
+                return $false
+            }
+        }
+        if ($normalizedScenario -eq "viewport_toolbar_click") {
+            $nonViewportToolbarTargets = @($targets | Where-Object {
+                    $_.target_kind -ne "viewport_toolbar_control"
+                })
+            if ($nonViewportToolbarTargets.Count -gt 0) {
+                Write-Warning "Viewport toolbar click storm included a target outside the published toolbar-control set."
+                return $false
+            }
+        }
+        return $true
+    }
+
+    if ($requiresPointerStorm) {
+        $requestedMoves = [int64]$artifact.interaction.requested_moves
+        $completedMoves = [int64]$artifact.interaction.completed_moves
+        $targets = @($artifact.interaction.targets)
+        $invalidTargets = @($targets | Where-Object {
+                [string]::IsNullOrWhiteSpace([string]$_.target_id) -or
+                [string]::IsNullOrWhiteSpace([string]$_.target_kind) -or
+                [string]::IsNullOrWhiteSpace([string]$_.target_surface) -or
+                $_.source -ne "ui_profile_geometry.json"
+            })
+        if ($artifact.interaction.scenario -ne "pointer_move_storm" -or
+            $requestedMoves -ne $AutoPointerMoveCount -or
+            $completedMoves -ne $requestedMoves -or
+            $null -eq $artifact.interaction.processor_time_delta_ms -or
+            -not ([bool]$artifact.interaction.used_geometry) -or
+            $targets.Count -eq 0 -or
+            $invalidTargets.Count -gt 0) {
+            Write-Warning "Pointer storm did not complete the source-bound request with geometry target identity and CPU evidence."
+            return $false
+        }
+        if ($normalizedScenario -eq "material_lab_hover") {
+            $nonTemplateTargets = @($targets | Where-Object {
+                    $_.target_kind -ne "template_control" -or
+                    -not ([string]$_.target_id).StartsWith("template.", [StringComparison]::Ordinal)
+                })
+            if ($nonTemplateTargets.Count -gt 0) {
+                Write-Warning "Material Lab pointer storm included a target outside the dispatchable template-control set."
+                return $false
+            }
+        }
+        return $true
+    }
+
+    if ($requiresWheelStorm) {
+        $requestedWheelEvents = [int64]$artifact.interaction.requested_wheel_events
+        $completedWheelEvents = [int64]$artifact.interaction.completed_wheel_events
+        $targets = @($artifact.interaction.targets)
+        $invalidTargets = @($targets | Where-Object {
+                [string]::IsNullOrWhiteSpace([string]$_.target_id) -or
+                [string]::IsNullOrWhiteSpace([string]$_.target_kind) -or
+                [string]::IsNullOrWhiteSpace([string]$_.target_surface) -or
+                $_.source -ne "ui_profile_geometry.json"
+            })
+        $hasExpectedTarget = if ($normalizedScenario -eq "welcome_recent_scroll") {
+            $targets.Count -eq 1 -and
+                $targets[0].target_id -eq "welcome.recent.viewport" -and
+                $targets[0].target_kind -eq "welcome_recent_viewport" -and
+                -not [string]::IsNullOrWhiteSpace([string]$targets[0].target_surface)
+        }
+        else {
+            $targets.Count -eq 1 -and
+                $targets[0].target_id -eq "layout.left_region" -and
+                $targets[0].target_kind -eq "pane_region" -and
+                $targets[0].target_surface -eq "left"
+        }
+        if ($artifact.interaction.scenario -ne "pointer_wheel_storm" -or
+            $requestedWheelEvents -ne $AutoWheelCount -or
+            $completedWheelEvents -ne $requestedWheelEvents -or
+            $null -eq $artifact.interaction.processor_time_delta_ms -or
+            -not ([bool]$artifact.interaction.used_geometry) -or
+            -not $hasExpectedTarget -or
+            $invalidTargets.Count -gt 0) {
+            Write-Warning "Wheel storm did not complete the source-bound request on the expected live pane with CPU evidence."
+            return $false
+        }
+        return $true
+    }
+
     if ($null -eq $artifact.interaction -or -not ([bool]$artifact.interaction.used_geometry)) {
         Write-Warning "Drawer resize did not use geometry-derived splitter coordinates."
         return $false
@@ -875,6 +1553,47 @@ function Wait-ProfileGeometry {
     return $null
 }
 
+function Wait-ProfileMeasurementReady {
+    param(
+        [System.Diagnostics.Process]$Process,
+        [string]$ProfileDir,
+        [int]$TimeoutSeconds = 10
+    )
+
+    if (-not (Test-EnvTruthy "ZIRCON_PROFILE_CAPTURE")) {
+        return $true
+    }
+    $warmupPresentCount = 0
+    if (-not [int]::TryParse(
+            [string]$env:ZIRCON_PROFILE_WITHIN_PROCESS_WARMUP_PRESENTS,
+            [ref]$warmupPresentCount) -or $warmupPresentCount -le 0) {
+        return $true
+    }
+
+    $path = Join-Path $ProfileDir "ui_profile_measurement_ready.json"
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+        if ($Process.HasExited) {
+            return $false
+        }
+        if (Test-Path $path) {
+            try {
+                $ready = Get-Content -Path $path -Raw | ConvertFrom-Json
+                if ([int]$ready.schema_version -eq 1 -and
+                    [bool]$ready.measurement_ready -and
+                    [int]$ready.process_id -eq $Process.Id) {
+                    return $true
+                }
+            }
+            catch {
+                # The producer writes through an atomic rename; retry malformed external files.
+            }
+        }
+        Start-Sleep -Milliseconds 100
+    }
+    return $false
+}
+
 function Wait-ProfileGeometrySnapshot {
     param(
         [string]$ProfileDir,
@@ -947,7 +1666,7 @@ function Export-UiInteractionEvidence {
     )
 
     $interactionScenario = Resolve-InteractionScenarioName -ScenarioName $ScenarioName
-    if ($interactionScenario -notin @("drag", "drawer_resize", "click", "idle_hover", "asset_refresh", "viewport_image")) {
+    if ($interactionScenario -notin @("drag", "drawer_resize", "window_resize", "click", "idle_hover", "hierarchy_scroll", "asset_refresh", "viewport_image")) {
         return
     }
 
@@ -1080,52 +1799,88 @@ function Invoke-LiveGeometryResizeInteraction {
     return $true
 }
 
-function Invoke-LiveGeometryClickInteraction {
+function Get-LiveGeometryInteractionTargets {
     param(
         [ZirconProfileCaptureRect]$Rect,
         [object]$Geometry,
-        [switch]$TemplateControlsOnly
+        [switch]$TemplateControlsOnly,
+        [switch]$ViewportToolbarControlsOnly
     )
 
-    $frames = if ($TemplateControlsOnly) {
+    $frames = if ($ViewportToolbarControlsOnly) {
+        @($Geometry.viewport_toolbar_controls)
+    }
+    elseif ($TemplateControlsOnly) {
         @($Geometry.template_controls)
     }
     else {
         @($Geometry.activity_rail_buttons) + @($Geometry.document_tabs) + @($Geometry.viewport_toolbar_controls) + @($Geometry.template_controls)
     }
-    $clicked = 0
+    $targets = @()
     foreach ($entry in $frames) {
-        if ($clicked -ge 3) { break }
+        if ($targets.Count -ge 8) { break }
         if ($null -eq $entry.frame -or [double]$entry.frame.width -le 0 -or [double]$entry.frame.height -le 0) {
             continue
         }
-        Click-CapturePoint -Point (Get-CapturePointFromFrame -Rect $Rect -Frame $entry.frame)
-        $clicked++
+        $point = Get-CapturePointFromFrame -Rect $Rect -Frame $entry.frame
+        $targets += [pscustomobject]@{
+            X = $point.X
+            Y = $point.Y
+            target_id = [string]$entry.id
+            target_kind = [string]$entry.kind
+            target_surface = [string]$entry.surface
+            source = "ui_profile_geometry.json"
+        }
     }
-    return $clicked -gt 0
+    return $targets
 }
 
-function Invoke-LiveGeometryHoverInteraction {
+function Get-LiveGeometryScrollTargets {
     param(
         [ZirconProfileCaptureRect]$Rect,
         [object]$Geometry
     )
 
-    $frames = @($Geometry.activity_rail_buttons) + @($Geometry.document_tabs) + @($Geometry.template_controls) + @($Geometry.viewport_toolbar_controls)
-    $points = @()
-    foreach ($entry in $frames) {
-        if ($points.Count -ge 8) { break }
-        if ($null -ne $entry.frame -and [double]$entry.frame.width -gt 0 -and [double]$entry.frame.height -gt 0) {
-            $points += Get-CapturePointFromFrame -Rect $Rect -Frame $entry.frame
-        }
+    $frame = $Geometry.layout.left_region
+    if ($null -eq $frame -or [double]$frame.width -le 0 -or [double]$frame.height -le 0) {
+        return @()
     }
-    if ($points.Count -eq 0) {
-        return $false
+    $point = Get-CapturePointFromFrame -Rect $Rect -Frame $frame
+    return @([pscustomobject]@{
+            X = $point.X
+            Y = $point.Y
+            target_id = "layout.left_region"
+            target_kind = "pane_region"
+            target_surface = "left"
+            source = "ui_profile_geometry.json"
+        })
+}
+
+function Get-WelcomeRecentScrollTargets {
+    param(
+        [ZirconProfileCaptureRect]$Rect,
+        [object]$Geometry
+    )
+
+    $entry = $Geometry.welcome_recent_frame
+    if ($null -eq $entry -or
+        $entry.id -ne "welcome.recent.viewport" -or
+        $entry.kind -ne "welcome_recent_viewport" -or
+        [string]::IsNullOrWhiteSpace([string]$entry.surface) -or
+        $null -eq $entry.frame -or
+        [double]$entry.frame.width -le 0 -or
+        [double]$entry.frame.height -le 0) {
+        return @()
     }
-    foreach ($point in $points) {
-        Move-CaptureCursor -Point $point -DelayMs 180
-    }
-    return $true
+    $point = Get-CapturePointFromFrame -Rect $Rect -Frame $entry.frame
+    return @([pscustomobject]@{
+            X = $point.X
+            Y = $point.Y
+            target_id = [string]$entry.id
+            target_kind = [string]$entry.kind
+            target_surface = [string]$entry.surface
+            source = "ui_profile_geometry.json"
+        })
 }
 
 function Move-CaptureCursor {
@@ -1136,75 +1891,6 @@ function Move-CaptureCursor {
 
     [ZirconProfileCaptureNative]::SetCursorPos($Point.X, $Point.Y) | Out-Null
     Start-Sleep -Milliseconds $DelayMs
-}
-
-function Invoke-PointerMoveStorm {
-    param(
-        [System.Diagnostics.Process]$Process,
-        [ZirconProfileCaptureRect]$Rect,
-        [int]$Count,
-        [int]$DelayMs
-    )
-
-    if ($Count -le 0) {
-        return $null
-    }
-
-    $width = [Math]::Max(1, $Rect.Right - $Rect.Left)
-    $height = [Math]::Max(1, $Rect.Bottom - $Rect.Top)
-    $horizontalMargin = [Math]::Min(32, [Math]::Max(1, [int]($width * 0.05)))
-    $verticalMargin = [Math]::Min(32, [Math]::Max(1, [int]($height * 0.05)))
-    $xSpan = [Math]::Max(1, $width - ($horizontalMargin * 2))
-    $ySpan = [Math]::Max(1, $height - ($verticalMargin * 2))
-    $completed = 0
-    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-
-    $Process.Refresh()
-    $startWorkingSetBytes = [int64]$Process.WorkingSet64
-    $startPrivateBytes = [int64]$Process.PrivateMemorySize64
-    $peakWorkingSetBytes = $startWorkingSetBytes
-    $peakPrivateBytes = $startPrivateBytes
-
-    for ($index = 0; $index -lt $Count; $index++) {
-        if ($Process.HasExited) {
-            break
-        }
-        $x = $Rect.Left + $horizontalMargin + (($index * 17) % $xSpan)
-        $y = $Rect.Top + $verticalMargin + (($index * 29) % $ySpan)
-        if ([ZirconProfileCaptureNative]::SetCursorPos($x, $y)) {
-            $completed++
-        }
-        if ($DelayMs -gt 0) {
-            Start-Sleep -Milliseconds $DelayMs
-        }
-        if (($index % 32) -eq 31) {
-            $Process.Refresh()
-            $peakWorkingSetBytes = [Math]::Max($peakWorkingSetBytes, [int64]$Process.WorkingSet64)
-            $peakPrivateBytes = [Math]::Max($peakPrivateBytes, [int64]$Process.PrivateMemorySize64)
-        }
-    }
-
-    $stopwatch.Stop()
-    $Process.Refresh()
-    $endWorkingSetBytes = [int64]$Process.WorkingSet64
-    $endPrivateBytes = [int64]$Process.PrivateMemorySize64
-    $peakWorkingSetBytes = [Math]::Max($peakWorkingSetBytes, $endWorkingSetBytes)
-    $peakPrivateBytes = [Math]::Max($peakPrivateBytes, $endPrivateBytes)
-
-    Write-Host ("Pointer storm: requested={0} completed={1} elapsed_ms={2:N1}" -f $Count, $completed, $stopwatch.Elapsed.TotalMilliseconds)
-    return [pscustomobject]@{
-        scenario = "pointer_move_storm"
-        requested_moves = $Count
-        completed_moves = $completed
-        delay_ms = $DelayMs
-        elapsed_ms = [Math]::Round($stopwatch.Elapsed.TotalMilliseconds, 3)
-        start_working_set_bytes = $startWorkingSetBytes
-        end_working_set_bytes = $endWorkingSetBytes
-        peak_working_set_bytes = $peakWorkingSetBytes
-        start_private_bytes = $startPrivateBytes
-        end_private_bytes = $endPrivateBytes
-        peak_private_bytes = $peakPrivateBytes
-    }
 }
 
 function Click-CapturePoint {
@@ -1254,6 +1940,10 @@ function Invoke-AutoScenarioInteraction {
         return
     }
 
+    if (-not (Wait-ProfileMeasurementReady -Process $Process -ProfileDir $ProfileDir)) {
+        throw "Editor did not publish the current-process UI measurement epoch before automatic input."
+    }
+
     $rect = Get-EditorWindowRect -Process $Process
     if ($null -eq $rect) {
         Write-Warning "Auto interaction skipped because the editor window rectangle was unavailable."
@@ -1267,19 +1957,36 @@ function Invoke-AutoScenarioInteraction {
     $geometryPath = Join-Path $ProfileDir "ui_profile_geometry.json"
     $geometry = Wait-ProfileGeometry -ProfileDir $ProfileDir
     $geometryWriteTimeUtc = if (Test-Path $geometryPath) { (Get-Item -Path $geometryPath).LastWriteTimeUtc } else { $null }
+    $pointerTargets = @()
 
     if ($interactionScenario -eq "asset_refresh") {
         Invoke-AssetRefreshChange -SessionId $SessionId
     }
 
-    switch ($interactionScenario) {
+    $interactionKind = if ($normalizedScenario -in @("hierarchy_scroll", "welcome_recent_scroll")) {
+        $normalizedScenario
+    }
+    else {
+        $interactionScenario
+    }
+    switch ($interactionKind) {
         "idle_hover" {
-            if ($null -ne $geometry -and (Invoke-LiveGeometryHoverInteraction -Rect $rect -Geometry $geometry)) {
+            $templateControlsOnly = $normalizedScenario -eq "material_lab_hover"
+            $pointerTargets = if ($null -ne $geometry) {
+                @(Get-LiveGeometryInteractionTargets -Rect $rect -Geometry $geometry -TemplateControlsOnly:$templateControlsOnly)
+            }
+            else {
+                @()
+            }
+            if ($pointerTargets.Count -gt 0) {
+                if ($AutoPointerMoveCount -le 0) {
+                    foreach ($target in $pointerTargets) {
+                        Move-CaptureCursor -Point $target -DelayMs 180
+                    }
+                }
                 break
             }
-            Click-CapturePoint -Point (Get-CapturePoint -Rect $rect -XRatio 0.02 -YRatio 0.18)
-            Start-Sleep -Milliseconds 250
-            $points = @(
+            $fallbackPoints = @(
                 (Get-CapturePoint -Rect $rect -XRatio 0.04 -YRatio 0.04),
                 (Get-CapturePoint -Rect $rect -XRatio 0.05 -YRatio 0.14),
                 (Get-CapturePoint -Rect $rect -XRatio 0.05 -YRatio 0.18),
@@ -1289,21 +1996,62 @@ function Invoke-AutoScenarioInteraction {
                 (Get-CapturePoint -Rect $rect -XRatio 0.82 -YRatio 0.55),
                 (Get-CapturePoint -Rect $rect -XRatio 0.38 -YRatio 0.72)
             )
-            foreach ($point in $points) {
-                Move-CaptureCursor -Point $point -DelayMs 180
+            $pointerTargets = for ($index = 0; $index -lt $fallbackPoints.Count; $index++) {
+                [pscustomobject]@{
+                    X = $fallbackPoints[$index].X
+                    Y = $fallbackPoints[$index].Y
+                    target_id = "fallback.ratio.$index"
+                    target_kind = "fallback"
+                    target_surface = "window"
+                    source = "ratio_fallback"
+                }
+            }
+            if ($AutoPointerMoveCount -le 0) {
+                foreach ($target in $pointerTargets) {
+                    Move-CaptureCursor -Point $target -DelayMs 180
+                }
             }
         }
         "click" {
             $templateControlsOnly = $normalizedScenario -eq "material_lab_click"
-            if ($null -ne $geometry -and (Invoke-LiveGeometryClickInteraction -Rect $rect -Geometry $geometry -TemplateControlsOnly:$templateControlsOnly)) {
+            $viewportToolbarControlsOnly = $normalizedScenario -eq "viewport_toolbar_click"
+            $clickTargets = if ($null -ne $geometry) {
+                @(Get-LiveGeometryInteractionTargets `
+                        -Rect $rect `
+                        -Geometry $geometry `
+                        -TemplateControlsOnly:$templateControlsOnly `
+                        -ViewportToolbarControlsOnly:$viewportToolbarControlsOnly)
+            }
+            else {
+                @()
+            }
+            if ($clickTargets.Count -eq 0) {
+                $fallbackPoints = @(
+                    (Get-CapturePoint -Rect $rect -XRatio 0.12 -YRatio 0.18),
+                    (Get-CapturePoint -Rect $rect -XRatio 0.30 -YRatio 0.16),
+                    (Get-CapturePoint -Rect $rect -XRatio 0.52 -YRatio 0.18)
+                )
+                $clickTargets = for ($index = 0; $index -lt $fallbackPoints.Count; $index++) {
+                    [pscustomobject]@{
+                        X = $fallbackPoints[$index].X
+                        Y = $fallbackPoints[$index].Y
+                        target_id = "fallback.ratio.$index"
+                        target_kind = "fallback"
+                        target_surface = "window"
+                        source = "ratio_fallback"
+                    }
+                }
+            }
+            if ($AutoClickCount -gt 0) {
+                $script:LastInteractionEvidence = Invoke-PointerClickStorm `
+                    -Process $Process `
+                    -Targets $clickTargets `
+                    -Count $AutoClickCount `
+                    -DelayMs $AutoClickDelayMs
                 break
             }
-            foreach ($point in @(
-                (Get-CapturePoint -Rect $rect -XRatio 0.12 -YRatio 0.18),
-                (Get-CapturePoint -Rect $rect -XRatio 0.30 -YRatio 0.16),
-                (Get-CapturePoint -Rect $rect -XRatio 0.52 -YRatio 0.18)
-            )) {
-                Click-CapturePoint -Point $point
+            foreach ($target in @($clickTargets | Select-Object -First 3)) {
+                Click-CapturePoint -Point $target
             }
         }
         "drag" {
@@ -1337,6 +2085,62 @@ function Invoke-AutoScenarioInteraction {
                 (Get-CapturePoint -Rect $rect -XRatio 0.34 -YRatio 0.50)
             )
         }
+        "window_resize" {
+            $script:LastInteractionEvidence = Invoke-ZirconNativeResizeInteraction `
+                -Process $Process `
+                -StepCount $AutoResizeStepCount `
+                -DelayMs $AutoResizeDelayMs
+        }
+        "hierarchy_scroll" {
+            $scrollTargets = if ($null -ne $geometry) {
+                @(Get-LiveGeometryScrollTargets -Rect $rect -Geometry $geometry)
+            }
+            else {
+                @()
+            }
+            if ($scrollTargets.Count -eq 0) {
+                $fallback = Get-CapturePoint -Rect $rect -XRatio 0.14 -YRatio 0.48
+                $scrollTargets = @([pscustomobject]@{
+                        X = $fallback.X
+                        Y = $fallback.Y
+                        target_id = "fallback.ratio.left_pane"
+                        target_kind = "fallback"
+                        target_surface = "left"
+                        source = "ratio_fallback"
+                    })
+            }
+            $wheelCount = Get-ScenarioRequestedWheelOperationCount -ScenarioName $ScenarioName
+            $script:LastInteractionEvidence = Invoke-PointerWheelStorm `
+                -Process $Process `
+                -Targets $scrollTargets `
+                -Count $wheelCount `
+                -DelayMs $AutoWheelDelayMs
+        }
+        "welcome_recent_scroll" {
+            $scrollTargets = if ($null -ne $geometry) {
+                @(Get-WelcomeRecentScrollTargets -Rect $rect -Geometry $geometry)
+            }
+            else {
+                @()
+            }
+            if ($scrollTargets.Count -eq 0) {
+                $fallback = Get-CapturePoint -Rect $rect -XRatio 0.50 -YRatio 0.68
+                $scrollTargets = @([pscustomobject]@{
+                        X = $fallback.X
+                        Y = $fallback.Y
+                        target_id = "fallback.ratio.welcome_recent"
+                        target_kind = "fallback"
+                        target_surface = "document"
+                        source = "ratio_fallback"
+                    })
+            }
+            $wheelCount = Get-ScenarioRequestedWheelOperationCount -ScenarioName $ScenarioName
+            $script:LastInteractionEvidence = Invoke-PointerWheelStorm `
+                -Process $Process `
+                -Targets $scrollTargets `
+                -Count $wheelCount `
+                -DelayMs $AutoWheelDelayMs
+        }
         "asset_refresh" {
             foreach ($point in @(
                 (Get-CapturePoint -Rect $rect -XRatio 0.06 -YRatio 0.18),
@@ -1361,14 +2165,24 @@ function Invoke-AutoScenarioInteraction {
         }
     }
     if ($interactionScenario -eq "idle_hover" -and $AutoPointerMoveCount -gt 0) {
-        $script:LastInteractionEvidence = Invoke-PointerMoveStorm -Process $Process -Rect $rect -Count $AutoPointerMoveCount -DelayMs $AutoPointerMoveDelayMs
+        $script:LastInteractionEvidence = Invoke-PointerMoveStorm `
+            -Process $Process `
+            -Targets $pointerTargets `
+            -Count $AutoPointerMoveCount `
+            -DelayMs $AutoPointerMoveDelayMs
+    }
+    if ($null -ne $script:LastInteractionEvidence) {
+        $script:LastInteractionEvidence = Complete-ZirconProcessQuiescenceEvidence `
+            -Process $Process `
+            -Interaction $script:LastInteractionEvidence `
+            -QuiescenceSeconds $WithinProcessQuiescenceSeconds
     }
     Export-UiInteractionEvidence -ProfileDir $ProfileDir -ScenarioName $ScenarioName -BeforeGeometry $geometry -BeforeWriteTimeUtc $geometryWriteTimeUtc -Interaction $script:LastInteractionEvidence
 }
 
 function Resolve-ProfileProjectRoot {
     param([string]$SessionId)
-    return Join-Path (Join-Path $RepoRoot (Join-Path "target\zircon-profile-projects" $SessionId)) "ProfileCaptureProject"
+    return Join-Path (Join-Path (Join-Path $OutputPath "profile-projects") $SessionId) "ProfileCaptureProject"
 }
 
 function Invoke-AssetRefreshChange {
@@ -1387,8 +2201,17 @@ function Invoke-AssetRefreshChange {
         Write-Warning "Asset refresh interaction could not find project assets root: $assetsRoot"
         return
     }
+    $scaleAssetPath = Join-Path $assetsRoot "profile_catalog_asset_000001.json"
     $materialPath = Join-Path (Join-Path $assetsRoot "materials") "default.zmaterial"
-    if (Test-Path $materialPath) {
+    if ($AssetCatalogItemCount -gt 0 -and (Test-Path -LiteralPath $scaleAssetPath)) {
+        $encoding = New-Object System.Text.UTF8Encoding($false)
+        $payload = [ordered]@{
+            profile_asset_index = 1
+            profile_refresh_generation = (Get-Date).ToUniversalTime().ToString("o")
+        } | ConvertTo-Json -Compress
+        [System.IO.File]::WriteAllText($scaleAssetPath, $payload, $encoding)
+    }
+    elseif (Test-Path $materialPath) {
         Add-Content -Path $materialPath -Value ("`n# profile capture asset refresh {0}" -f (Get-Date -Format o)) -Encoding UTF8
     }
     else {
@@ -1405,17 +2228,31 @@ function Resolve-EditorCaptureArguments {
     )
 
     $normalizedScenario = $ScenarioName.Trim().ToLowerInvariant()
+    if ($normalizedScenario -eq "hierarchy_scroll" -and $HierarchyLogicalNodeCount -gt 0) {
+        $projectRoot = Resolve-ProfileProjectRoot -SessionId $SessionId
+        if (-not (Test-Path -LiteralPath $projectRoot -PathType Container)) {
+            throw "Hierarchy scale project was not materialized before Editor launch: $projectRoot"
+        }
+        return @("--project", $projectRoot)
+    }
+    if ($normalizedScenario -eq "asset_refresh" -and $AssetCatalogItemCount -gt 0) {
+        $projectRoot = Resolve-ProfileProjectRoot -SessionId $SessionId
+        if (-not (Test-Path -LiteralPath $projectRoot -PathType Container)) {
+            throw "Asset catalog scale project was not materialized before Editor launch: $projectRoot"
+        }
+        return @("--project", $projectRoot)
+    }
     if ($normalizedScenario -in @("material_lab_startup", "material_lab_hover", "material_lab_click")) {
         return @(
             "--builtin-view",
             "editor.material_component_lab"
         )
     }
-    if ($normalizedScenario -notin @("idle_hover", "viewport_image", "drag", "drawer_resize", "asset_refresh")) {
+    if ($normalizedScenario -notin @("idle_hover", "viewport_toolbar_click", "viewport_image", "drag", "drawer_resize", "window_resize", "hierarchy_scroll", "asset_refresh")) {
         return @()
     }
 
-    $projectLocation = Join-Path $RepoRoot (Join-Path "target\zircon-profile-projects" $SessionId)
+    $projectLocation = Join-Path (Join-Path $OutputPath "profile-projects") $SessionId
     New-Item -ItemType Directory -Force -Path $projectLocation | Out-Null
     return @(
         "--create-project",
@@ -1431,7 +2268,7 @@ function Resolve-EditorCaptureArguments {
 function Test-ScenarioUsesProfileProject {
     param([string]$ScenarioName)
     $normalizedScenario = $ScenarioName.Trim().ToLowerInvariant()
-    return $normalizedScenario -in @("idle_hover", "viewport_image", "drag", "drawer_resize", "asset_refresh")
+    return $normalizedScenario -in @("idle_hover", "viewport_toolbar_click", "viewport_image", "drag", "drawer_resize", "window_resize", "hierarchy_scroll", "asset_refresh")
 }
 
 function Invoke-EditorCapture {
@@ -1469,6 +2306,10 @@ function Invoke-EditorCapture {
     }
     if (-not [string]::IsNullOrWhiteSpace($SessionId)) {
         New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
+        if (Test-EnvTruthy "ZIRCON_PROFILE_CAPTURE") {
+            Remove-Item -LiteralPath (Join-Path $profileDir "ui_profile_measurement_ready.json") `
+                -Force -ErrorAction SilentlyContinue
+        }
         $startProcessArgs.RedirectStandardOutput = Join-Path $profileDir "$LogStem.stdout.log"
         $startProcessArgs.RedirectStandardError = Join-Path $profileDir "$LogStem.stderr.log"
     }
@@ -1587,20 +2428,9 @@ function Invoke-SoftbufferScreenshotCapture {
     return $capturedSessionId
 }
 
-$features = "target-editor-host profiling profiling-chrome"
-if ($UseTracy) {
-    $features = "$features profiling-tracy"
-}
-
+# Profiling binaries are produced only by the coordinator-managed Windows build.
 if (-not $SkipBuild) {
-    Push-Location $RepoRoot
-    try {
-        cargo build -p zircon_runtime --lib --profile profiling --features $features --locked
-        cargo build -p zircon_app --bin zircon_editor --profile profiling --features $features --locked
-    }
-    finally {
-        Pop-Location
-    }
+    throw "Profile capture requires a managed profiling build. Run the coordinator-owned Windows validation build first, then rerun with -SkipBuild."
 }
 
 if (-not (Test-Path $EditorExe)) {
@@ -1618,6 +2448,19 @@ if (-not (Test-Path $RuntimeDll)) {
 
 New-Item -ItemType Directory -Force -Path $OutputPath | Out-Null
 
+$captureScenarios = @(Resolve-CaptureScenarios)
+if ($HierarchyLogicalNodeCount -gt 0 -and
+    @($captureScenarios | Where-Object { $_.Trim().ToLowerInvariant() -ne "hierarchy_scroll" }).Count -gt 0) {
+    throw "Hierarchy scale inputs are valid only for the hierarchy_scroll scenario."
+}
+if ($AssetCatalogItemCount -gt 0 -and
+    @($captureScenarios | Where-Object { $_.Trim().ToLowerInvariant() -ne "asset_refresh" }).Count -gt 0) {
+    throw "Asset catalog scale inputs are valid only for the asset_refresh scenario."
+}
+if ($HierarchyLogicalNodeCount -gt 0 -and $AssetCatalogItemCount -gt 0) {
+    throw "Only one UI profile scale input can be active for a capture."
+}
+
 $previous = @{
     ZIRCON_PROFILE_CAPTURE = $env:ZIRCON_PROFILE_CAPTURE
     ZIRCON_PROFILE_SESSION = $env:ZIRCON_PROFILE_SESSION
@@ -1625,6 +2468,7 @@ $previous = @{
     ZIRCON_PROFILE_MAX_FRAMES = $env:ZIRCON_PROFILE_MAX_FRAMES
     ZIRCON_PROFILE_MAX_SPANS = $env:ZIRCON_PROFILE_MAX_SPANS
     ZIRCON_PROFILE_MAX_COUNTERS = $env:ZIRCON_PROFILE_MAX_COUNTERS
+    ZIRCON_PROFILE_WITHIN_PROCESS_WARMUP_PRESENTS = $env:ZIRCON_PROFILE_WITHIN_PROCESS_WARMUP_PRESENTS
     ZIRCON_PROFILE_CAPTURE_SCREENSHOTS = $env:ZIRCON_PROFILE_CAPTURE_SCREENSHOTS
     ZIRCON_PROFILE_FORCE_SOFTBUFFER = $env:ZIRCON_PROFILE_FORCE_SOFTBUFFER
     ZIRCON_RUNTIME_LIBRARY = $env:ZIRCON_RUNTIME_LIBRARY
@@ -1635,11 +2479,36 @@ if ($UseTracy -and (Test-Path $TracyProfiler)) {
 }
 
 try {
-    foreach ($scenarioName in (Resolve-CaptureScenarios)) {
-        $SessionId = "$(Get-Date -Format 'yyyyMMdd-HHmmss')-$scenarioName"
-        $ProfileDir = Join-Path $OutputPath $SessionId
-        $wprStarted = $false
-        $SoftbufferSessionId = $null
+    foreach ($scenarioName in $captureScenarios) {
+        for ($runIndex = 0; $runIndex -lt $MeasuredRunCount; $runIndex++) {
+            $runPhase = 'measured'
+            $phaseRunOrdinal = $runIndex + 1
+            $withinProcessWarmupPresentCount = Get-ScenarioWithinProcessWarmupPresentCount -ScenarioName $scenarioName
+            $runProcessScope = if ($withinProcessWarmupPresentCount -gt 0) {
+                'within_process_warm_measure'
+            }
+            else {
+                'fresh_process_startup'
+            }
+            $SessionId = "$(Get-Date -Format 'yyyyMMdd-HHmmss')-$scenarioName-$runPhase-$('{0:D2}' -f $phaseRunOrdinal)"
+            $ProfileDir = Join-Path $OutputPath $SessionId
+            $wprStarted = $false
+            $SoftbufferSessionId = $null
+            $inputFixture = $null
+            $requestedWheelOperationCount = Get-ScenarioRequestedWheelOperationCount -ScenarioName $scenarioName
+
+        if ($HierarchyLogicalNodeCount -gt 0) {
+            $inputFixture = New-ZirconUiHierarchyScaleFixture `
+                -RepoRoot $RepoRoot `
+                -ProjectRoot (Resolve-ProfileProjectRoot -SessionId $SessionId) `
+                -LogicalNodeCount $HierarchyLogicalNodeCount
+        }
+        elseif ($AssetCatalogItemCount -gt 0) {
+            $inputFixture = New-ZirconUiAssetCatalogScaleFixture `
+                -RepoRoot $RepoRoot `
+                -ProjectRoot (Resolve-ProfileProjectRoot -SessionId $SessionId) `
+                -AssetItemCount $AssetCatalogItemCount
+        }
 
         $env:ZIRCON_PROFILE_CAPTURE = "1"
         $env:ZIRCON_PROFILE_SESSION = $SessionId
@@ -1647,10 +2516,53 @@ try {
         $env:ZIRCON_PROFILE_MAX_FRAMES = "$MaxFrames"
         $env:ZIRCON_PROFILE_MAX_SPANS = "$MaxSpans"
         $env:ZIRCON_PROFILE_MAX_COUNTERS = "$MaxCounters"
+        $env:ZIRCON_PROFILE_WITHIN_PROCESS_WARMUP_PRESENTS = "$withinProcessWarmupPresentCount"
         $env:ZIRCON_PROFILE_CAPTURE_SCREENSHOTS = "1"
         $env:ZIRCON_RUNTIME_LIBRARY = $RuntimeDll
 
-        if ($UseWpr) {
+        $sourceManifest = Export-ZirconProfileCaptureManifest `
+            -ProfileDir $ProfileDir `
+            -RepoRoot $RepoRoot `
+            -OutputRoot $OutputPath `
+            -VerificationScreenshotRoot $VerificationScreenshotRoot `
+            -TargetDir $TargetDir `
+            -SessionId $SessionId `
+            -ScenarioName $scenarioName `
+            -EditorExe $EditorExe `
+            -RuntimeDll $RuntimeDll `
+            -InputFixture $inputFixture `
+            -CaptureOptions @{
+                auto_close_seconds = $AutoCloseSeconds
+                auto_interact = $AutoInteract.IsPresent
+                auto_pointer_move_count = $AutoPointerMoveCount
+                auto_pointer_move_delay_ms = $AutoPointerMoveDelayMs
+                auto_click_count = $AutoClickCount
+                auto_click_delay_ms = $AutoClickDelayMs
+                auto_wheel_count = $AutoWheelCount
+                auto_wheel_delay_ms = $AutoWheelDelayMs
+                hierarchy_logical_node_count = $HierarchyLogicalNodeCount
+                asset_catalog_item_count = $AssetCatalogItemCount
+                requested_wheel_operation_count = $requestedWheelOperationCount
+                auto_resize_step_count = $AutoResizeStepCount
+                auto_resize_delay_ms = $AutoResizeDelayMs
+                run_phase = $runPhase
+                run_ordinal = $phaseRunOrdinal
+                measured_run_count = $MeasuredRunCount
+                run_quiescence_seconds = $RunQuiescenceSeconds
+                run_process_scope = $runProcessScope
+                within_process_warmup = $withinProcessWarmupPresentCount -gt 0
+                within_process_warmup_present_count = $withinProcessWarmupPresentCount
+                within_process_quiescence_seconds = $WithinProcessQuiescenceSeconds
+                capture_softbuffer_screenshot = $CaptureSoftbufferScreenshot.IsPresent
+                max_counters = $MaxCounters
+                max_frames = $MaxFrames
+                max_spans = $MaxSpans
+                use_tracy = $UseTracy.IsPresent
+                use_wpr = $UseWpr.IsPresent
+            }
+        Write-Host "Source manifest: $sourceManifest"
+
+        if ($UseWpr -and $runPhase -eq 'measured') {
             $wpr = Get-Command wpr.exe -ErrorAction SilentlyContinue
             if ($wpr) {
                 & $wpr.Source -start CPU -filemode
@@ -1667,7 +2579,9 @@ try {
             Write-Host "Scenario: $scenarioName"
             Write-Host (Get-ScenarioInstruction $scenarioName)
             Invoke-EditorCapture -ScenarioName $scenarioName -SessionId $SessionId
-            $SoftbufferSessionId = Invoke-SoftbufferScreenshotCapture -ScenarioName $scenarioName -SessionId $SessionId
+            if ($runPhase -eq 'measured') {
+                $SoftbufferSessionId = Invoke-SoftbufferScreenshotCapture -ScenarioName $scenarioName -SessionId $SessionId
+            }
         }
         finally {
             if ($wprStarted) {
@@ -1684,18 +2598,37 @@ try {
             Export-UiBatchMetrics -ProfileDir $ProfileDir -ScenarioName $scenarioName
             Export-UiHitConsistency -ProfileDir $ProfileDir
             Export-ScreenshotDiff -ProfileDir $ProfileDir
+            Export-UiSurfacePresentOutcomeEvidence -ProfileDir $ProfileDir
             $batchMetricsOk = Test-UiBatchMetricsGate -ProfileDir $ProfileDir -ScenarioName $scenarioName
             $hitConsistencyOk = Test-UiHitConsistencyGate -ProfileDir $ProfileDir
             $screenshotDiffOk = Test-ScreenshotDiffGate -ProfileDir $ProfileDir
             $assetRefreshOk = Test-AssetRefreshCounterGate -ProfileDir $ProfileDir -ScenarioName $scenarioName
+            $windowResizeOk = Test-WindowResizeCounterGate -ProfileDir $ProfileDir -ScenarioName $scenarioName
+            $hierarchyScrollOk = Test-HierarchyScrollCounterGate -ProfileDir $ProfileDir -ScenarioName $scenarioName
+            $welcomeRecentScrollOk = Test-WelcomeRecentScrollCounterGate -ProfileDir $ProfileDir -ScenarioName $scenarioName
             $interactionEvidenceOk = Test-UiInteractionEvidenceGate -ProfileDir $ProfileDir -ScenarioName $scenarioName
+            $surfaceLatencyOk = Test-UiSurfaceLatencyEvidenceGate -ProfileDir $ProfileDir -ScenarioName $scenarioName
             Export-SoftbufferRunManifest -ProfileDir $ProfileDir -SoftbufferSessionId $SoftbufferSessionId
-            if ($RequireScenarioEvidence -and -not ($scenarioEvidenceOk -and $batchMetricsOk -and $hitConsistencyOk -and $screenshotDiffOk -and $assetRefreshOk -and $interactionEvidenceOk)) {
+            $verificationScreenshotDir = if ($runPhase -eq 'measured') {
+                Export-VerificationScreenshots -ProfileDir $ProfileDir -SessionId $SessionId
+            }
+            else {
+                $null
+            }
+            if ($null -ne $verificationScreenshotDir) {
+                Write-Host "Verification screenshots: $verificationScreenshotDir"
+            }
+            if ($RequireScenarioEvidence -and $runPhase -eq 'measured' -and -not ($scenarioEvidenceOk -and $batchMetricsOk -and $hitConsistencyOk -and $screenshotDiffOk -and $assetRefreshOk -and $windowResizeOk -and $hierarchyScrollOk -and $welcomeRecentScrollOk -and $interactionEvidenceOk -and $surfaceLatencyOk)) {
                 throw "Scenario '$scenarioName' did not meet the requested evidence gate."
             }
         }
         else {
             Write-Warning "Profile directory was not created. Check whether the editor exited normally and profiling features were enabled."
+        }
+            if ($runIndex -lt ($MeasuredRunCount - 1) -and $RunQuiescenceSeconds -gt 0) {
+                Write-Host "Quiescence between measured profile processes: $RunQuiescenceSeconds seconds"
+                Start-Sleep -Seconds $RunQuiescenceSeconds
+            }
         }
     }
 }

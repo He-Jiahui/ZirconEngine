@@ -2,8 +2,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use zircon_runtime::scene::World;
+use zircon_runtime_interface::world_sync::{
+    InvalidationBatch, WatchRegistration, WatchToken, WorldQuery, WorldQueryResult,
+};
 use zircon_runtime_interface::{
-    ProfileControlRequest, ProfileControlResponse, ZrRuntimeEventV1, ZrRuntimeOperationHandle,
+    ProfileControlRequest, ProfileControlResponse, ZrRuntimeBindViewportSurfaceRequestV1,
+    ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeOperationHandle,
     ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2, ZrRuntimeOperationSubmitRequestV1,
     ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle,
     ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
@@ -12,7 +16,7 @@ use zircon_runtime_interface::{
 use super::{EditorRuntimeHighlightSet, GatewayError, RuntimeCapabilities};
 
 pub(crate) trait EditorRuntimeFramePixels {
-    fn rgba(&self) -> Result<&[u8], GatewayError>;
+    fn rgba(&self) -> &[u8];
 
     fn release(self: Box<Self>) -> Result<(), GatewayError>;
 }
@@ -23,8 +27,8 @@ struct EditorOwnedRuntimeFramePixels {
 }
 
 impl EditorRuntimeFramePixels for EditorOwnedRuntimeFramePixels {
-    fn rgba(&self) -> Result<&[u8], GatewayError> {
-        Ok(&self.rgba)
+    fn rgba(&self) -> &[u8] {
+        &self.rgba
     }
 
     fn release(self: Box<Self>) -> Result<(), GatewayError> {
@@ -48,7 +52,7 @@ impl std::fmt::Debug for EditorRuntimeFrame {
             .field("width", &self.width)
             .field("height", &self.height)
             .field("generation", &self.generation)
-            .field("rgba_len", &self.rgba().map_or(0, <[u8]>::len))
+            .field("rgba_len", &self.rgba().len())
             .finish()
     }
 }
@@ -100,7 +104,7 @@ impl EditorRuntimeFrame {
         self.generation
     }
 
-    pub fn rgba(&self) -> Result<&[u8], GatewayError> {
+    pub fn rgba(&self) -> &[u8] {
         self.pixels.rgba()
     }
 
@@ -213,6 +217,30 @@ pub trait EditorRuntimeGateway: Send + Sync {
         Err(GatewayError::RequiresSerializedAccess)
     }
 
+    fn query_world(&self, _query: WorldQuery) -> Result<WorldQueryResult, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.world_sync.query",
+        })
+    }
+
+    fn watch_world(&self, _registration: WatchRegistration) -> Result<WatchToken, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.world_sync.watch",
+        })
+    }
+
+    fn unwatch_world(&self, _token: WatchToken) -> Result<bool, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.world_sync.unwatch",
+        })
+    }
+
+    fn drain_world_invalidations(&self) -> Result<Vec<InvalidationBatch>, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.world_sync.drain",
+        })
+    }
+
     fn tick_frame(&self) -> Result<EditorRuntimeFrameDemand, GatewayError> {
         Err(GatewayError::CapabilityMissing {
             capability: "runtime.frame.tick",
@@ -235,10 +263,31 @@ pub trait EditorRuntimeGateway: Send + Sync {
         })
     }
 
-    fn submit_highlight_set(
+    fn bind_viewport_surface(
         &self,
-        _set: EditorRuntimeHighlightSet,
+        _request: ZrRuntimeBindViewportSurfaceRequestV1,
     ) -> Result<(), GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.viewport.surface.bind",
+        })
+    }
+
+    fn unbind_viewport_surface(
+        &self,
+        _viewport: ZrRuntimeViewportHandle,
+    ) -> Result<(), GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.viewport.surface.unbind",
+        })
+    }
+
+    fn present_viewport(&self, _request: ZrRuntimeFrameRequestV1) -> Result<(), GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.viewport.present",
+        })
+    }
+
+    fn submit_highlight_set(&self, _set: EditorRuntimeHighlightSet) -> Result<(), GatewayError> {
         Err(GatewayError::CapabilityMissing {
             capability: "runtime.editor_overlay.highlight_set",
         })

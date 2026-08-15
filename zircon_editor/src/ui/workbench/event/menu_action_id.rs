@@ -1,4 +1,4 @@
-use crate::core::editor_event::{ConsoleMessageFilter, MenuAction};
+use crate::core::editor_event::{ConsoleMessageFilter, ConsoleSourceFilter, MenuAction};
 use crate::core::play::PlayKind;
 
 use super::node_kind_id::{node_kind_action_id, node_kind_id};
@@ -15,6 +15,9 @@ pub(super) fn menu_action_id(action: &MenuAction) -> String {
         MenuAction::ClearConsole => "workbench.console.clear".to_string(),
         MenuAction::SetConsoleMessageFilter(filter) => {
             format!("workbench.console.filter.{}", filter.as_str())
+        }
+        MenuAction::SetConsoleSourceFilter(filter) => {
+            format!("workbench.console.source.{}", filter.as_str())
         }
         MenuAction::SelectPlayMode(PlayKind::Play) => "workbench.play_mode.select.play".to_string(),
         MenuAction::SelectPlayMode(PlayKind::Simulate) => {
@@ -53,6 +56,27 @@ pub(super) fn menu_action_control_id(action: &MenuAction) -> String {
         }
         MenuAction::SetConsoleMessageFilter(ConsoleMessageFilter::Error) => {
             "SetConsoleMessageFilter.Error".to_string()
+        }
+        MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::All) => {
+            "SetConsoleSourceFilter.All".to_string()
+        }
+        MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::Editor) => {
+            "SetConsoleSourceFilter.Editor".to_string()
+        }
+        MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::Runtime) => {
+            "SetConsoleSourceFilter.Runtime".to_string()
+        }
+        MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::Play) => {
+            "SetConsoleSourceFilter.Play".to_string()
+        }
+        MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::Plugin) => {
+            "SetConsoleSourceFilter.Plugin".to_string()
+        }
+        MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::Import) => {
+            "SetConsoleSourceFilter.Import".to_string()
+        }
+        MenuAction::SetConsoleSourceFilter(ConsoleSourceFilter::ScriptBuild) => {
+            "SetConsoleSourceFilter.ScriptBuild".to_string()
         }
         MenuAction::SelectPlayMode(PlayKind::Play) => "SelectPlayMode.Play".to_string(),
         MenuAction::SelectPlayMode(PlayKind::Simulate) => "SelectPlayMode.Simulate".to_string(),

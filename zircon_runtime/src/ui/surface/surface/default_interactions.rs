@@ -72,7 +72,9 @@ impl UiSurface {
         if route.activation_phase != UiPointerActivationPhase::PrimaryRelease {
             return Ok(());
         }
-        self.apply_default_popup_outside_dismissal_pointer(route, events, binding_reports)?;
+        if self.apply_default_popup_outside_dismissal_pointer(route, events, binding_reports)? {
+            return Ok(());
+        }
         let Some(node_id) = route.click_target else {
             return Ok(());
         };

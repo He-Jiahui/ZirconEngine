@@ -29,10 +29,9 @@ pub use patch::{
     ScenePatchPreviewReport, ScenePatchPreviewResource,
 };
 pub use remap::EntityRemap;
-pub(crate) use scene::CompiledSceneSpawn;
 pub use scene::DynamicScene;
+pub(crate) use scene::{CompiledSceneSpawn, PreflightedSceneMutation};
 pub use session::{
-    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES, RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
     RuntimeSessionArchive, RuntimeSessionArchiveArtifact, RuntimeSessionArchiveArtifactDiagnostics,
     RuntimeSessionArchiveCaptureRetentionReport, RuntimeSessionArchiveError,
     RuntimeSessionArchiveManifest, RuntimeSessionArchiveMergePolicy,
@@ -46,6 +45,7 @@ pub use session::{
     RuntimeSessionSlotExportPreviewReport, RuntimeSessionSlotImportPreviewReport,
     RuntimeSessionSlotMutationPreviewReport, RuntimeSessionSlotSelectionReport,
     RuntimeSessionSlotSelector, RuntimeSessionSlotSummary,
+    MAX_RUNTIME_SESSION_ARCHIVE_ARTIFACT_BYTES, RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
 };
 pub(crate) use spawn_task::{DynamicSceneSpawnTargetSnapshot, StagedDynamicSceneSpawn};
 pub use spawn_task::{DynamicSceneSpawnTask, PreparedDynamicSceneSpawn};

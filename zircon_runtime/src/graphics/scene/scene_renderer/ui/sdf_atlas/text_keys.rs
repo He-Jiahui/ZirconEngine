@@ -1,13 +1,13 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use zircon_runtime_interface::ui::surface::{UiResolvedStyle, normalize_ui_text_language_tag};
+use zircon_runtime_interface::ui::surface::{normalize_ui_text_language_tag, UiResolvedStyle};
 
 use crate::core::framework::text::TextFontFaceHandle;
 use crate::graphics::scene::scene_renderer::ui::render::{
     ScreenSpaceUiGlyphArtifactLine, ScreenSpaceUiShapedGlyph, ScreenSpaceUiTextBatch,
 };
-use crate::text::sdf::{SdfBakeParams, sdf_scalar_requires_atlas_slot};
+use crate::text::sdf::{sdf_scalar_requires_atlas_slot, SdfBakeParams};
 
 use super::SdfAtlasGlyphKey;
 
@@ -145,10 +145,12 @@ mod tests {
                 None,
             ),
             command_generation: 1,
+            raster_scale: 1.0,
             text: "fi".to_string(),
             frame: UiFrame::new(0.0, 0.0, 12.0, 20.0),
             clip_frame: None,
             source_range: Some(UiTextRange { start: 0, end: 2 }),
+            is_source_isomorphic_layout_line: false,
             glyph_advances: vec![12.0],
             shaped_glyphs: Vec::new(),
             preserve_shaped_glyphs: true,

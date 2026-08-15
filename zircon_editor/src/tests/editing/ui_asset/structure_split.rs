@@ -38,7 +38,15 @@ fn ui_asset_editor_subsystem_is_grouped_by_domain_folders() {
         "session/theme_state.rs",
         "session/promotion_state.rs",
         "session/style_state.rs",
-        "session/presentation_state.rs",
+        "session/presentation/mod.rs",
+        "session/presentation/pane.rs",
+        "session/presentation/reflection.rs",
+        "session/presentation/preview.rs",
+        "session/presentation/source.rs",
+        "session/presentation/inspector.rs",
+        "session/presentation/style.rs",
+        "session/presentation/theme.rs",
+        "session/presentation/commands.rs",
         "session/session_state.rs",
         "session/preview_compile.rs",
         "session/preview_state.rs",
@@ -194,28 +202,78 @@ fn ui_asset_editor_command_entry_owns_document_replay_helpers() {
 }
 
 #[test]
-fn ui_asset_editor_presentation_state_owns_view_projection() {
+fn ui_asset_editor_presentation_folder_owns_view_projection() {
     let session_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("src")
         .join("ui")
         .join("asset_editor")
         .join("session");
-    let presentation_source = std::fs::read_to_string(session_root.join("presentation_state.rs"))
-        .expect("read presentation state source");
+    let presentation_root = session_root.join("presentation");
+    let presentation_module =
+        std::fs::read_to_string(presentation_root.join("mod.rs")).expect("read presentation root");
+    let pane_source =
+        std::fs::read_to_string(presentation_root.join("pane.rs")).expect("read pane source");
+    let reflection_source = std::fs::read_to_string(presentation_root.join("reflection.rs"))
+        .expect("read reflection source");
+    let style_source =
+        std::fs::read_to_string(presentation_root.join("style.rs")).expect("read style source");
     let session_source = std::fs::read_to_string(session_root.join("ui_asset_editor_session.rs"))
         .expect("read session source");
 
+    assert!(
+        !session_root.join("presentation_state.rs").exists(),
+        "presentation_state.rs must not survive the folder-backed hard cut",
+    );
     for expected in [
-        "pub fn reflection_model(&self) -> UiAssetEditorReflectionModel",
-        "pub fn pane_presentation(&self) -> UiAssetEditorPanePresentation",
+        "mod pane;",
+        "mod commands;",
+        "mod inspector;",
+        "mod preview;",
+        "mod reflection;",
+        "mod source;",
+        "mod style;",
+        "mod theme;",
     ] {
         assert!(
-            presentation_source.contains(expected),
-            "expected presentation_state.rs to own {expected} after the split",
+            presentation_module.contains(expected),
+            "expected presentation folder root to mount {expected}",
+        );
+    }
+    for (source, expected) in [
+        (
+            &reflection_source,
+            "pub fn reflection_model(&self) -> UiAssetEditorReflectionModel",
+        ),
+        (
+            &pane_source,
+            "pub fn pane_presentation(&self) -> UiAssetEditorPanePresentation",
+        ),
+    ] {
+        assert!(
+            source.contains(expected),
+            "expected presentation folder to own {expected}"
         );
         assert!(
             !session_source.contains(expected),
             "expected ui_asset_editor_session.rs to stop owning {expected} after the split",
+        );
+    }
+
+    for expected in [
+        "selected_node_selector(",
+        "build_stylesheet_items(",
+        "has_selected_node_selector: bool",
+        "stylesheet_items: Vec<String>",
+    ] {
+        assert!(
+            style_source.contains(expected),
+            "expected style.rs to own {expected} after the presentation split",
+        );
+    }
+    for forbidden in ["selected_node_selector(", "build_stylesheet_items("] {
+        assert!(
+            !pane_source.contains(forbidden),
+            "pane.rs must consume the style artifact instead of calling {forbidden}",
         );
     }
 }

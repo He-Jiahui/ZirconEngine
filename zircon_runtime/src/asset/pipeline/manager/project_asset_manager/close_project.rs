@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use crate::asset::watch::{AssetChange, AssetChangeKind};
+use crate::core::resource::ResourceMutationBatch;
 use crate::core::CoreError;
 
 use super::super::resource_sync::project_locators;
@@ -29,15 +30,24 @@ impl ProjectAssetManager {
                 .map(|uri| AssetChange::new(AssetChangeKind::Removed, uri, None))
                 .collect();
 
-            let retired_watchers = self.deactivate_project_watchers();
-            let resource_manager = self.resource_manager();
+            let mut batch = ResourceMutationBatch::new();
             for locator in locators {
-                let _ = resource_manager.remove_by_locator(&locator);
+                batch = batch.remove(locator);
             }
-            self.clear_project_source_paths();
-            *project = None;
+            let mut retired_watchers = None;
+            self.commit_resource_batch_after_dependencies(batch, || {
+                retired_watchers = Some(self.deactivate_project_watchers());
+                self.clear_project_source_paths();
+                *project = None;
+                drop(project);
+                Ok(())
+            })?;
 
-            (root, removed_changes, retired_watchers)
+            (
+                root,
+                removed_changes,
+                retired_watchers.expect("successful project retirement deactivates its watchers"),
+            )
         };
 
         self.publish_project_generation(generation, removed_changes);

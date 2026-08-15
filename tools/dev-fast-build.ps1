@@ -17,6 +17,11 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+$pathResolver = Join-Path $PSScriptRoot "WindowsPathResolver.psm1"
+if (-not (Test-Path -LiteralPath $pathResolver -PathType Leaf)) {
+    throw "Windows path resolver was not found: $pathResolver"
+}
+Import-Module $pathResolver -Force -DisableNameChecking -ErrorAction Stop
 
 function Resolve-RepoRoot {
     param([string]$Start)
@@ -73,25 +78,108 @@ function Resolve-RunBin {
     }
 }
 
-function Assert-AllowedCargoTargetPath {
+function Resolve-AllowedCargoTargetPath {
     param([string]$Path)
 
-    $candidate = [System.IO.Path]::GetFullPath($Path).TrimEnd('\', '/')
+    $targetResolution = Resolve-ZirconWindowsPath -Path $Path
+    $candidate = $targetResolution.OperationalPath.TrimEnd('\', '/')
     $allowedRoots = @(
-        [System.IO.Path]::GetFullPath('D:\cargo-targets').TrimEnd('\', '/'),
-        [System.IO.Path]::GetFullPath('E:\cargo-targets').TrimEnd('\', '/'),
-        [System.IO.Path]::GetFullPath('F:\cargo-targets').TrimEnd('\', '/')
+        'D:\cargo-targets',
+        'E:\cargo-targets',
+        'F:\cargo-targets'
     )
-    foreach ($root in $allowedRoots) {
+    foreach ($rootPath in $allowedRoots) {
+        $root = (Resolve-ZirconWindowsPath -Path $rootPath).OperationalPath.TrimEnd('\', '/')
         if ($candidate.StartsWith($root + '\', [System.StringComparison]::OrdinalIgnoreCase)) {
-            return
+            return $targetResolution
         }
     }
 
-    throw "Cargo build output must be below D:\cargo-targets, E:\cargo-targets, or F:\cargo-targets: $candidate"
+    throw "Cargo build output must physically resolve below D:\cargo-targets, E:\cargo-targets, or F:\cargo-targets: $($targetResolution.DisplayPath)"
+}
+
+function Assert-ChildPath {
+    param(
+        [Parameter(Mandatory)]
+        [object]$ParentResolution,
+        [Parameter(Mandatory)]
+        [object]$ChildResolution,
+        [Parameter(Mandatory)]
+        [string]$Label
+    )
+
+    $parent = $ParentResolution.OperationalPath.TrimEnd('\', '/')
+    $child = $ChildResolution.OperationalPath.TrimEnd('\', '/')
+    if (-not $child.StartsWith($parent + '\', [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "$Label must physically resolve below $($ParentResolution.DisplayPath): $($ChildResolution.DisplayPath)"
+    }
+}
+
+function Push-ManagedFastBuildEnvironment {
+    param(
+        [Parameter(Mandatory)]
+        [object]$SharedTargetResolution,
+        [Parameter(Mandatory)]
+        [object]$TargetResolution
+    )
+
+    Assert-ChildPath -ParentResolution $SharedTargetResolution -ChildResolution $TargetResolution -Label 'Profile target'
+    $temporaryResolution = Resolve-ZirconWindowsPath -Path (Join-Path $TargetResolution.DisplayPath 'temporary')
+    $cargoHomeResolution = Resolve-ZirconWindowsPath -Path (Join-Path $SharedTargetResolution.DisplayPath 'cargo-home')
+    $sccacheResolution = Resolve-ZirconWindowsPath -Path (Join-Path $SharedTargetResolution.DisplayPath 'sccache')
+    Assert-ChildPath -ParentResolution $TargetResolution -ChildResolution $temporaryResolution -Label 'Temporary directory'
+    Assert-ChildPath -ParentResolution $SharedTargetResolution -ChildResolution $cargoHomeResolution -Label 'Cargo home'
+    Assert-ChildPath -ParentResolution $SharedTargetResolution -ChildResolution $sccacheResolution -Label 'sccache directory'
+
+    foreach ($resolution in @($TargetResolution, $temporaryResolution, $cargoHomeResolution, $sccacheResolution)) {
+        [System.IO.Directory]::CreateDirectory($resolution.OperationalPath) | Out-Null
+    }
+
+    $names = @('CARGO_TARGET_DIR', 'CARGO_HOME', 'SCCACHE_DIR', 'TEMP', 'TMP', 'TMPDIR')
+    $previousValues = @{}
+    foreach ($name in $names) {
+        $previousValues[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
+    }
+    $previousPath = [Environment]::GetEnvironmentVariable('PATH', 'Process')
+
+    try {
+        [Environment]::SetEnvironmentVariable('CARGO_TARGET_DIR', $TargetResolution.DisplayPath, 'Process')
+        [Environment]::SetEnvironmentVariable('CARGO_HOME', $cargoHomeResolution.DisplayPath, 'Process')
+        [Environment]::SetEnvironmentVariable('SCCACHE_DIR', $sccacheResolution.DisplayPath, 'Process')
+        foreach ($name in @('TEMP', 'TMP', 'TMPDIR')) {
+            [Environment]::SetEnvironmentVariable($name, $temporaryResolution.DisplayPath, 'Process')
+        }
+        [Environment]::SetEnvironmentVariable('PATH', (Join-Path $cargoHomeResolution.DisplayPath 'bin') + [IO.Path]::PathSeparator + $previousPath, 'Process')
+    }
+    catch {
+        foreach ($name in $names) {
+            [Environment]::SetEnvironmentVariable($name, $previousValues[$name], 'Process')
+        }
+        [Environment]::SetEnvironmentVariable('PATH', $previousPath, 'Process')
+        throw
+    }
+
+    return [pscustomobject]@{
+        PreviousValues = $previousValues
+        PreviousPath   = $previousPath
+        Temporary      = $temporaryResolution.DisplayPath
+        CargoHome      = $cargoHomeResolution.DisplayPath
+        Sccache        = $sccacheResolution.DisplayPath
+    }
+}
+
+function Pop-ManagedFastBuildEnvironment {
+    param([Parameter(Mandatory)][object]$Lease)
+
+    foreach ($name in $Lease.PreviousValues.Keys) {
+        [Environment]::SetEnvironmentVariable($name, $Lease.PreviousValues[$name], 'Process')
+    }
+    [Environment]::SetEnvironmentVariable('PATH', $Lease.PreviousPath, 'Process')
 }
 
 $repoRoot = Resolve-RepoRoot -Start $PSScriptRoot
+$buildEnvironmentLease = $null
+$previousRustcWrapper = [Environment]::GetEnvironmentVariable('RUSTC_WRAPPER', 'Process')
 Push-Location $repoRoot
 try {
     if ($Release -and $CargoProfile -ne "debug") {
@@ -102,18 +190,16 @@ try {
         $drive = [System.IO.Path]::GetPathRoot($repoRoot).TrimEnd('\')
         $SharedTargetRoot = Join-Path $drive "cargo-targets\zircon-shared"
     }
-    Assert-AllowedCargoTargetPath -Path $SharedTargetRoot
+    $sharedTargetResolution = Resolve-AllowedCargoTargetPath -Path $SharedTargetRoot
+    $SharedTargetRoot = $sharedTargetResolution.DisplayPath
 
     $feature = if ([string]::IsNullOrWhiteSpace($FeatureOverride)) {
         Resolve-FeatureSet -RepoRoot $repoRoot -Mode $Profile
     } else {
         $FeatureOverride
     }
-    $targetDir = Join-Path $SharedTargetRoot $Profile
-    Assert-AllowedCargoTargetPath -Path $targetDir
-    New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
-
-    $env:CARGO_TARGET_DIR = $targetDir
+    $targetResolution = Resolve-AllowedCargoTargetPath -Path (Join-Path $SharedTargetRoot $Profile)
+    $buildEnvironmentLease = Push-ManagedFastBuildEnvironment -SharedTargetResolution $sharedTargetResolution -TargetResolution $targetResolution
     if (Ensure-Sccache -AutoInstall:$InstallSccache) {
         $env:RUSTC_WRAPPER = "sccache"
     }
@@ -151,6 +237,9 @@ try {
     Write-Host "CargoProfile: $CargoProfile"
     Write-Host "Action: $Action, Package: $Package"
     Write-Host "CARGO_TARGET_DIR: $env:CARGO_TARGET_DIR"
+    Write-Host "CARGO_HOME: $env:CARGO_HOME"
+    Write-Host "SCCACHE_DIR: $env:SCCACHE_DIR"
+    Write-Host "TEMP: $env:TEMP"
     if ($env:RUSTC_WRAPPER) {
         Write-Host "RUSTC_WRAPPER: $env:RUSTC_WRAPPER"
     }
@@ -159,5 +248,9 @@ try {
     cargo @args
 }
 finally {
+    [Environment]::SetEnvironmentVariable('RUSTC_WRAPPER', $previousRustcWrapper, 'Process')
+    if ($null -ne $buildEnvironmentLease) {
+        Pop-ManagedFastBuildEnvironment -Lease $buildEnvironmentLease
+    }
     Pop-Location
 }

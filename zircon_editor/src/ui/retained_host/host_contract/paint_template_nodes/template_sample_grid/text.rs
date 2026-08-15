@@ -1,10 +1,14 @@
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::paint_text::measure_runtime_text_width;
 use super::super::render_commands::HostPaintCommand;
 use super::geometry::SampleGridGeometry;
-use super::metrics::{AXIS_FONT_SIZE, AXIS_LINE_HEIGHT, TICK_FONT_SIZE, TICK_LINE_HEIGHT};
-use super::palette::{AXIS_TEXT, TICK_TEXT};
+use super::metrics::{
+    AXIS_FONT_SIZE, AXIS_LINE_HEIGHT, AXIS_TITLE_EDGE_INSET, AXIS_TITLE_GAP, TICK_FONT_SIZE,
+    TICK_LINE_HEIGHT, X_TICK_PLOT_GAP,
+};
+use super::palette::SampleGridPalette;
 
 pub(super) fn push_sample_grid_text(
     commands: &mut Vec<HostPaintCommand>,
@@ -13,60 +17,90 @@ pub(super) fn push_sample_grid_text(
     clip: &FrameRect,
     order: i32,
     opacity: f32,
+    palette: SampleGridPalette,
 ) {
     let grid = &node.sample_grid.generation;
-    for tick in grid.x_ticks() {
-        let x = geometry.x_for_value(tick.value(), grid.x_min(), grid.x_max());
-        push_text(
-            commands,
+    let x_tick_frames = grid
+        .x_ticks()
+        .iter()
+        .map(|tick| {
+            let x = geometry.x_for_value(tick.value(), grid.x_min(), grid.x_max());
+            let tick_width = measured_text_frame_width(
+                tick.label(),
+                TICK_FONT_SIZE,
+                geometry.plot.width.min(48.0),
+            );
             FrameRect {
-                x: x - 24.0,
-                y: geometry.plot.y + geometry.plot.height + 4.0,
-                width: 48.0,
+                x: (x - tick_width * 0.5).clamp(
+                    geometry.plot.x,
+                    (geometry.plot.right() - tick_width).max(geometry.plot.x),
+                ),
+                y: geometry.plot.y - TICK_LINE_HEIGHT - X_TICK_PLOT_GAP,
+                width: tick_width,
                 height: TICK_LINE_HEIGHT,
-            },
-            clip,
-            order + 4,
-            tick.label().to_string(),
-            TICK_TEXT,
-            TICK_FONT_SIZE,
-            TICK_LINE_HEIGHT,
-            opacity,
-        );
+            }
+        })
+        .collect::<Vec<_>>();
+    if x_tick_frames
+        .windows(2)
+        .all(|pair| pair[0].right() + AXIS_TITLE_GAP <= pair[1].x)
+    {
+        for (tick, frame) in grid.x_ticks().iter().zip(x_tick_frames) {
+            push_text(
+                commands,
+                frame,
+                clip,
+                order + 4,
+                tick.label().to_string(),
+                palette.tick_text,
+                TICK_FONT_SIZE,
+                TICK_LINE_HEIGHT,
+                opacity,
+            );
+        }
     }
     for tick in grid.y_ticks() {
         let y = geometry.y_for_value(tick.value(), grid.y_min(), grid.y_max());
+        let available_width = (geometry.plot.x - geometry.outer.x - X_TICK_PLOT_GAP).max(0.0);
+        let tick_width = measured_text_frame_width(tick.label(), TICK_FONT_SIZE, available_width);
         push_text(
             commands,
             FrameRect {
-                x: geometry.outer.x + 3.0,
+                x: geometry.plot.x - X_TICK_PLOT_GAP - tick_width,
                 y: y - TICK_LINE_HEIGHT * 0.5,
-                width: (geometry.plot.x - geometry.outer.x - 7.0).max(0.0),
+                width: tick_width,
                 height: TICK_LINE_HEIGHT,
             },
             clip,
             order + 4,
             tick.label().to_string(),
-            TICK_TEXT,
+            palette.tick_text,
             TICK_FONT_SIZE,
             TICK_LINE_HEIGHT,
             opacity,
         );
     }
 
+    let x_axis_width =
+        measured_text_frame_width(grid.x_axis_label(), AXIS_FONT_SIZE, geometry.plot.width);
+    let x_axis_x = geometry.plot.x + (geometry.plot.width - x_axis_width).max(0.0) * 0.5;
     if !grid.y_axis_label().trim().is_empty() {
+        let y_axis_x = geometry.outer.x + AXIS_TITLE_EDGE_INSET;
+        let available_width = (x_axis_x - AXIS_TITLE_GAP - y_axis_x).max(0.0);
+        let y_axis_width =
+            measured_text_frame_width(grid.y_axis_label(), AXIS_FONT_SIZE, available_width);
         push_text(
             commands,
             FrameRect {
-                x: geometry.plot.x,
-                y: geometry.outer.y + 4.0,
-                width: geometry.plot.width * 0.5,
+                x: y_axis_x,
+                y: geometry.outer.y + AXIS_TITLE_EDGE_INSET,
+                width: y_axis_width,
                 height: AXIS_LINE_HEIGHT,
             },
             clip,
             order + 5,
             grid.y_axis_label().to_string(),
-            AXIS_TEXT,
+            palette.axis_text,
             AXIS_FONT_SIZE,
             AXIS_LINE_HEIGHT,
             opacity,
@@ -76,20 +110,27 @@ pub(super) fn push_sample_grid_text(
         push_text(
             commands,
             FrameRect {
-                x: geometry.plot.x + geometry.plot.width * 0.34,
-                y: geometry.outer.y + geometry.outer.height - AXIS_LINE_HEIGHT - 3.0,
-                width: geometry.plot.width * 0.66,
+                x: x_axis_x,
+                y: geometry.outer.y + AXIS_TITLE_EDGE_INSET,
+                width: x_axis_width,
                 height: AXIS_LINE_HEIGHT,
             },
             clip,
             order + 5,
             grid.x_axis_label().to_string(),
-            AXIS_TEXT,
+            palette.axis_text,
             AXIS_FONT_SIZE,
             AXIS_LINE_HEIGHT,
             opacity,
         );
     }
+}
+
+fn measured_text_frame_width(text: &str, font_size: f32, available_width: f32) -> f32 {
+    if !available_width.is_finite() || available_width <= f32::EPSILON {
+        return 0.0;
+    }
+    (measure_runtime_text_width(text, font_size) + 2.0).min(available_width)
 }
 
 pub(super) fn push_text(

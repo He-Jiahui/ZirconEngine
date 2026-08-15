@@ -24,11 +24,38 @@ fn realtime_prefilter_slice_limits_faces_and_serializes_face_offset() {
     assert_eq!(command.dispatch_groups, [2, 2, 2]);
     assert_eq!(command.params.words()[5], 2);
     assert!(command.readback_copies.is_empty());
-    assert!(
-        command
-            .wgsl_source
-            .contains("params.first_face + global_id.z")
-    );
+    assert!(command
+        .wgsl_source
+        .contains("params.first_face + global_id.z"));
+}
+
+#[test]
+fn realtime_terminal_pmrem_slice_uses_single_dispatch_only_for_all_faces() {
+    let request = request();
+    let complete = ibl_bake_wgpu_prefilter_command_for_slice(
+        &request,
+        RealtimeIblPrefilterDispatchSlice {
+            mip_level: 7,
+            first_face: 0,
+            face_count: 6,
+        },
+    )
+    .expect("complete terminal PMREM slice");
+    let partial = ibl_bake_wgpu_prefilter_command_for_slice(
+        &request,
+        RealtimeIblPrefilterDispatchSlice {
+            mip_level: 7,
+            first_face: 2,
+            face_count: 2,
+        },
+    )
+    .expect("partial terminal PMREM slice");
+
+    assert_eq!(complete.dispatch_groups, [1, 1, 1]);
+    assert_eq!(complete.params.words()[7], 1.0_f32.to_bits());
+    assert_eq!(partial.dispatch_groups, [1, 1, 2]);
+    assert_eq!(partial.params.words()[5], 2);
+    assert_eq!(partial.params.words()[7], 0);
 }
 
 #[test]

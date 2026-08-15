@@ -9,6 +9,7 @@ pub(crate) type HostPresenterResult<T> = Result<T, HostPresenterError>;
 pub(crate) enum HostPresenterError {
     Softbuffer(String),
     GpuUnavailable(String),
+    RetryableSurfacePresent,
     Rhi(RhiError),
 }
 
@@ -27,6 +28,9 @@ impl fmt::Display for HostPresenterError {
         match self {
             Self::Softbuffer(error) => write!(f, "softbuffer presenter failed: {error}"),
             Self::GpuUnavailable(reason) => write!(f, "gpu chrome presenter unavailable: {reason}"),
+            Self::RetryableSurfacePresent => {
+                write!(f, "gpu chrome surface present should be retried")
+            }
             Self::Rhi(error) => write!(f, "gpu chrome RHI error: {error}"),
         }
     }

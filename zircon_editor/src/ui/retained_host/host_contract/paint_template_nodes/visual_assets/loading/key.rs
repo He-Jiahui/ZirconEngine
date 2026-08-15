@@ -1,5 +1,4 @@
 use super::super::RasterTargetSize;
-use super::cache::visual_asset_cache_generation;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn image_pixels_cache_key(
     base_key: &str,
@@ -17,10 +16,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn image_p
             )
         })
         .unwrap_or_else(|| "none".to_string());
-    format!(
-        "{base_key}:generation:{}:{size_key}:tint:{tint_key}",
-        visual_asset_cache_generation()
-    )
+    format!("{base_key}:{size_key}:tint:{tint_key}")
 }
 
 #[cfg(test)]
@@ -49,5 +45,6 @@ mod tests {
         assert_ne!(small, large);
         assert_ne!(small, recolored);
         assert!(!small.contains(".svg"));
+        assert!(!small.contains("generation"));
     }
 }

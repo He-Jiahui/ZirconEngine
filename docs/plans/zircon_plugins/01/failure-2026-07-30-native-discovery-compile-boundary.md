@@ -10,12 +10,15 @@ fixing_child_dir: docs/plans/zircon_plugins/01
 plan_link_mode: child_record_only
 related_code:
   - zircon_runtime/src/plugin/native_plugin_loader/discover/authority.rs
+  - zircon_runtime/src/plugin/native_plugin_loader/discover/tests.rs
   - zircon_runtime/src/plugin/native_plugin_loader/discovery_refresh/contract.rs
   - zircon_runtime/src/plugin/native_plugin_loader/discover_load_manifest.rs
   - zircon_runtime/src/plugin/native_plugin_loader/discovery_refresh/tests/admission.rs
 tests:
-  - cargo +1.94.1 test -p zircon_runtime --lib plugin::native_plugin_loader::discover_load_manifest::tests::bounded_load_manifest_rejects_an_entry_before_unbounded_vector_growth --locked --jobs 1 --color never -- --exact --test-threads=1
-  - cargo +1.94.1 test -p zircon_runtime --lib dynamic_scene_session --locked --jobs 1 --color never -- --nocapture --test-threads=1
+  - bounded_load_manifest_rejects_an_entry_before_unbounded_vector_growth
+  - bounded_root_admission_rejects_new_roots_without_evicting_a_snapshot
+  - load_manifest_discovery_is_an_authority_owned_refresh_input
+  - Editor11 dynamic_scene_session managed upward gate
 ---
 
 # Plugins01: native discovery compile boundary
@@ -58,4 +61,4 @@ Discovery authority 已成为同一 `native_plugin_loader` owner 下的唯一生
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed. 当前源已实施生产编译边界、test Arc ownership 与 scratch token scope 修复；fresh 受管 focused/upward 验收、独立复审、failure return 与原子提交仍待完成。
+Open state: `implementation_complete / current-source static review complete / managed focused-upward, independent review, failure return, and atomic commit pending`; no pass is claimed.

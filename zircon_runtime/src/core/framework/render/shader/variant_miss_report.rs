@@ -28,6 +28,30 @@ pub struct ShaderVariantMissReport {
     pub disk_write_count: usize,
     pub disk_error_count: usize,
     #[serde(default)]
+    pub registered_pipeline_variant_count: usize,
+    #[serde(default)]
+    pub registered_shader_variant_count: usize,
+    #[serde(default)]
+    pub texture_presence_normalized_pipeline_variant_count: usize,
+    #[serde(default)]
+    pub texture_presence_equivalent_pipeline_variant_count: usize,
+    #[serde(default)]
+    pub cached_render_pipeline_count: usize,
+    #[serde(default)]
+    pub cached_shader_module_count: usize,
+    #[serde(default)]
+    pub render_pipeline_creation_count: usize,
+    #[serde(default)]
+    pub shader_module_creation_count: usize,
+    #[serde(default)]
+    pub render_pipeline_creation_cpu_microseconds: u64,
+    #[serde(default)]
+    pub shader_module_creation_cpu_microseconds: u64,
+    #[serde(default)]
+    pub async_base_pipeline_queue_wait_count: usize,
+    #[serde(default)]
+    pub async_base_pipeline_queue_wait_microseconds: u64,
+    #[serde(default)]
     pub dimension_summary: ShaderVariantRuntimeDimensionSummary,
     #[serde(default, deserialize_with = "deserialize_pipeline_diagnostics")]
     pipeline_diagnostics: Vec<ShaderPipelineDiagnostic>,
@@ -73,6 +97,51 @@ impl ShaderVariantMissReport {
             .record(key, ShaderVariantRuntimeOutcome::DiskError);
     }
 
+    pub fn record_registered_variant_counts(
+        &mut self,
+        pipeline_variant_count: usize,
+        shader_variant_count: usize,
+        texture_presence_normalized_pipeline_variant_count: usize,
+    ) {
+        self.registered_pipeline_variant_count = pipeline_variant_count;
+        self.registered_shader_variant_count = shader_variant_count;
+        self.texture_presence_normalized_pipeline_variant_count =
+            texture_presence_normalized_pipeline_variant_count;
+        self.texture_presence_equivalent_pipeline_variant_count = pipeline_variant_count
+            .saturating_sub(texture_presence_normalized_pipeline_variant_count);
+    }
+
+    pub fn record_cached_gpu_object_counts(
+        &mut self,
+        render_pipeline_count: usize,
+        shader_module_count: usize,
+    ) {
+        self.cached_render_pipeline_count = render_pipeline_count;
+        self.cached_shader_module_count = shader_module_count;
+    }
+
+    pub fn record_gpu_object_creation_totals(
+        &mut self,
+        render_pipeline_count: usize,
+        shader_module_count: usize,
+        render_pipeline_cpu_microseconds: u64,
+        shader_module_cpu_microseconds: u64,
+    ) {
+        self.render_pipeline_creation_count = render_pipeline_count;
+        self.shader_module_creation_count = shader_module_count;
+        self.render_pipeline_creation_cpu_microseconds = render_pipeline_cpu_microseconds;
+        self.shader_module_creation_cpu_microseconds = shader_module_cpu_microseconds;
+    }
+
+    pub fn record_async_base_pipeline_queue_wait_totals(
+        &mut self,
+        count: usize,
+        cpu_microseconds: u64,
+    ) {
+        self.async_base_pipeline_queue_wait_count = count;
+        self.async_base_pipeline_queue_wait_microseconds = cpu_microseconds;
+    }
+
     pub fn record_pipeline_diagnostic(
         &mut self,
         key: &ShaderVariantKey,
@@ -97,6 +166,50 @@ impl ShaderVariantMissReport {
         self.compile_miss_count += other.compile_miss_count;
         self.disk_write_count += other.disk_write_count;
         self.disk_error_count += other.disk_error_count;
+        if other.registered_pipeline_variant_count > self.registered_pipeline_variant_count {
+            self.registered_pipeline_variant_count = other.registered_pipeline_variant_count;
+            self.registered_shader_variant_count = other.registered_shader_variant_count;
+            self.texture_presence_normalized_pipeline_variant_count =
+                other.texture_presence_normalized_pipeline_variant_count;
+            self.texture_presence_equivalent_pipeline_variant_count =
+                other.texture_presence_equivalent_pipeline_variant_count;
+        }
+        self.cached_render_pipeline_count = self
+            .cached_render_pipeline_count
+            .max(other.cached_render_pipeline_count);
+        self.cached_shader_module_count = self
+            .cached_shader_module_count
+            .max(other.cached_shader_module_count);
+        if creation_snapshot_is_greater(
+            self.render_pipeline_creation_count,
+            self.render_pipeline_creation_cpu_microseconds,
+            other.render_pipeline_creation_count,
+            other.render_pipeline_creation_cpu_microseconds,
+        ) {
+            self.render_pipeline_creation_count = other.render_pipeline_creation_count;
+            self.render_pipeline_creation_cpu_microseconds =
+                other.render_pipeline_creation_cpu_microseconds;
+        }
+        if creation_snapshot_is_greater(
+            self.shader_module_creation_count,
+            self.shader_module_creation_cpu_microseconds,
+            other.shader_module_creation_count,
+            other.shader_module_creation_cpu_microseconds,
+        ) {
+            self.shader_module_creation_count = other.shader_module_creation_count;
+            self.shader_module_creation_cpu_microseconds =
+                other.shader_module_creation_cpu_microseconds;
+        }
+        if creation_snapshot_is_greater(
+            self.async_base_pipeline_queue_wait_count,
+            self.async_base_pipeline_queue_wait_microseconds,
+            other.async_base_pipeline_queue_wait_count,
+            other.async_base_pipeline_queue_wait_microseconds,
+        ) {
+            self.async_base_pipeline_queue_wait_count = other.async_base_pipeline_queue_wait_count;
+            self.async_base_pipeline_queue_wait_microseconds =
+                other.async_base_pipeline_queue_wait_microseconds;
+        }
         self.dimension_summary.accumulate(&other.dimension_summary);
         for diagnostic in other.pipeline_diagnostics {
             self.push_pipeline_diagnostic(diagnostic);
@@ -118,6 +231,17 @@ impl ShaderVariantMissReport {
         }
         self.pipeline_diagnostics.push(diagnostic);
     }
+}
+
+fn creation_snapshot_is_greater(
+    current_count: usize,
+    current_cpu_microseconds: u64,
+    candidate_count: usize,
+    candidate_cpu_microseconds: u64,
+) -> bool {
+    candidate_count > current_count
+        || (candidate_count == current_count
+            && candidate_cpu_microseconds > current_cpu_microseconds)
 }
 
 const MAX_PIPELINE_DIAGNOSTIC_MESSAGE_CHARS: usize = 2048;
@@ -385,6 +509,47 @@ mod tests {
     }
 
     #[test]
+    fn shader_variant_miss_report_legacy_json_defaults_pipeline_shape_gauges() {
+        let mut document = serde_json::to_value(ShaderVariantMissReport::default())
+            .expect("default report serializes");
+        let object = document
+            .as_object_mut()
+            .expect("shader variant report serializes as an object");
+        for field in [
+            "registered_pipeline_variant_count",
+            "registered_shader_variant_count",
+            "texture_presence_normalized_pipeline_variant_count",
+            "texture_presence_equivalent_pipeline_variant_count",
+            "cached_render_pipeline_count",
+            "cached_shader_module_count",
+            "render_pipeline_creation_count",
+            "shader_module_creation_count",
+            "render_pipeline_creation_cpu_microseconds",
+            "shader_module_creation_cpu_microseconds",
+            "async_base_pipeline_queue_wait_count",
+            "async_base_pipeline_queue_wait_microseconds",
+        ] {
+            object.remove(field);
+        }
+
+        let report: ShaderVariantMissReport =
+            serde_json::from_value(document).expect("legacy report deserializes");
+
+        assert_eq!(report.registered_pipeline_variant_count, 0);
+        assert_eq!(report.registered_shader_variant_count, 0);
+        assert_eq!(report.texture_presence_normalized_pipeline_variant_count, 0);
+        assert_eq!(report.texture_presence_equivalent_pipeline_variant_count, 0);
+        assert_eq!(report.cached_render_pipeline_count, 0);
+        assert_eq!(report.cached_shader_module_count, 0);
+        assert_eq!(report.render_pipeline_creation_count, 0);
+        assert_eq!(report.shader_module_creation_count, 0);
+        assert_eq!(report.render_pipeline_creation_cpu_microseconds, 0);
+        assert_eq!(report.shader_module_creation_cpu_microseconds, 0);
+        assert_eq!(report.async_base_pipeline_queue_wait_count, 0);
+        assert_eq!(report.async_base_pipeline_queue_wait_microseconds, 0);
+    }
+
+    #[test]
     fn shader_variant_miss_report_accumulation_normalizes_foreign_diagnostics() {
         let mut destination = ShaderVariantMissReport::default();
         let mut source = ShaderVariantMissReport::default();
@@ -406,5 +571,96 @@ mod tests {
                 .count()
                 <= super::MAX_PIPELINE_DIAGNOSTIC_MESSAGE_CHARS
         );
+    }
+
+    #[test]
+    fn shader_variant_miss_report_registered_variant_gauges_use_latest_counts_and_max_accumulation()
+    {
+        let mut destination = ShaderVariantMissReport::default();
+        destination.record_registered_variant_counts(16, 1, 1);
+        destination.record_cached_gpu_object_counts(12, 3);
+        assert_eq!(destination.registered_pipeline_variant_count, 16);
+        assert_eq!(destination.registered_shader_variant_count, 1);
+        assert_eq!(
+            destination.texture_presence_normalized_pipeline_variant_count,
+            1
+        );
+        assert_eq!(
+            destination.texture_presence_equivalent_pipeline_variant_count,
+            15
+        );
+        assert_eq!(destination.cached_render_pipeline_count, 12);
+        assert_eq!(destination.cached_shader_module_count, 3);
+
+        destination.record_registered_variant_counts(2, 2, 2);
+        assert_eq!(destination.registered_pipeline_variant_count, 2);
+        assert_eq!(destination.registered_shader_variant_count, 2);
+        assert_eq!(
+            destination.texture_presence_normalized_pipeline_variant_count,
+            2
+        );
+        assert_eq!(
+            destination.texture_presence_equivalent_pipeline_variant_count,
+            0
+        );
+
+        let mut source = ShaderVariantMissReport::default();
+        source.record_registered_variant_counts(8, 3, 4);
+        source.record_cached_gpu_object_counts(6, 2);
+        source.record_gpu_object_creation_totals(9, 4, 42, 17);
+        source.record_async_base_pipeline_queue_wait_totals(3, 88);
+        destination.accumulate(source);
+
+        assert_eq!(destination.registered_pipeline_variant_count, 8);
+        assert_eq!(destination.registered_shader_variant_count, 3);
+        assert_eq!(
+            destination.texture_presence_normalized_pipeline_variant_count,
+            4
+        );
+        assert_eq!(
+            destination.texture_presence_equivalent_pipeline_variant_count,
+            4
+        );
+        assert_eq!(destination.cached_render_pipeline_count, 12);
+        assert_eq!(destination.cached_shader_module_count, 3);
+        assert_eq!(destination.render_pipeline_creation_count, 9);
+        assert_eq!(destination.shader_module_creation_count, 4);
+        assert_eq!(destination.render_pipeline_creation_cpu_microseconds, 42);
+        assert_eq!(destination.shader_module_creation_cpu_microseconds, 17);
+        assert_eq!(destination.async_base_pipeline_queue_wait_count, 3);
+        assert_eq!(destination.async_base_pipeline_queue_wait_microseconds, 88);
+    }
+
+    #[test]
+    fn shader_variant_creation_accumulation_keeps_coherent_count_time_snapshots() {
+        let mut destination = ShaderVariantMissReport::default();
+        destination.record_gpu_object_creation_totals(4, 2, 400, 200);
+        let mut more_creations = ShaderVariantMissReport::default();
+        more_creations.record_gpu_object_creation_totals(5, 3, 50, 30);
+        destination.accumulate(more_creations);
+
+        assert_eq!(destination.render_pipeline_creation_count, 5);
+        assert_eq!(destination.render_pipeline_creation_cpu_microseconds, 50);
+        assert_eq!(destination.shader_module_creation_count, 3);
+        assert_eq!(destination.shader_module_creation_cpu_microseconds, 30);
+
+        let mut same_count_more_time = ShaderVariantMissReport::default();
+        same_count_more_time.record_gpu_object_creation_totals(5, 3, 70, 40);
+        same_count_more_time.record_async_base_pipeline_queue_wait_totals(2, 90);
+        destination.accumulate(same_count_more_time);
+
+        assert_eq!(destination.render_pipeline_creation_count, 5);
+        assert_eq!(destination.render_pipeline_creation_cpu_microseconds, 70);
+        assert_eq!(destination.shader_module_creation_count, 3);
+        assert_eq!(destination.shader_module_creation_cpu_microseconds, 40);
+        assert_eq!(destination.async_base_pipeline_queue_wait_count, 2);
+        assert_eq!(destination.async_base_pipeline_queue_wait_microseconds, 90);
+
+        let mut more_wait_samples_less_total = ShaderVariantMissReport::default();
+        more_wait_samples_less_total.record_async_base_pipeline_queue_wait_totals(3, 30);
+        destination.accumulate(more_wait_samples_less_total);
+
+        assert_eq!(destination.async_base_pipeline_queue_wait_count, 3);
+        assert_eq!(destination.async_base_pipeline_queue_wait_microseconds, 30);
     }
 }

@@ -15,6 +15,8 @@ impl HostInvalidationMask {
     pub(crate) const HIT_TEST: Self = Self(1 << 6);
     pub(crate) const WINDOW_METRICS: Self = Self(1 << 7);
     pub(crate) const RENDER: Self = Self(1 << 8);
+    pub(crate) const SHELL_CONTENT: Self = Self(1 << 9);
+    pub(crate) const WORKBENCH_PROJECTION: Self = Self(1 << 10);
 
     pub(crate) const fn union(self, other: Self) -> Self {
         Self(self.0 | other.0)

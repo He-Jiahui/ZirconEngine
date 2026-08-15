@@ -73,3 +73,4 @@ Plan08 commandlet pass is claimed.
 | 日期 | 切片 | 状态 | 完成项目与验证证据 |
 | --- | --- | --- | --- |
 | 2026-07-27 | Plan08 managed gate -> Layout20 export handoff | open | Preserved the terminal Plan08 run id, raw E0432 locations, immutable-source boundary, and post-run Layout20 source-time change. The originating commandlet tests did not execute. |
+| 2026-08-13 | Layout20 current-source export audit | `open / implemented_static / validation_pending` | 当前源码仅在 `template/asset/style.rs` 定义 `UiSelectorSpecificity`，由 `template/asset/mod.rs` 和 `template/mod.rs` 逐层窄回导出；`style_apply.rs` 与 `ui/v2/style.rs` 均消费公开 `ui::template` 路径，没有 DTO 复制、私有 child import 或 consumer-local fallback。该结论来自源码静态审计；未运行受管 Cargo，未声称来源 commandlet 或 failure return 通过。 |

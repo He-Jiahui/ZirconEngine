@@ -102,11 +102,14 @@ fn optional_positive_usize(
             "import setting `{VIRTUAL_GEOMETRY_IMPORT_SETTING}.{key}` must be a positive integer"
         )
     })?;
-    usize::try_from(value).ok().filter(|value| *value > 0).ok_or_else(|| {
-        format!(
+    usize::try_from(value)
+        .ok()
+        .filter(|value| *value > 0)
+        .ok_or_else(|| {
+            format!(
             "import setting `{VIRTUAL_GEOMETRY_IMPORT_SETTING}.{key}` must be a positive integer"
         )
-    })
+        })
 }
 
 #[cfg(test)]
@@ -157,10 +160,8 @@ mod tests {
         )
         .unwrap();
 
-        assert!(
-            VirtualGeometryCookRequest::from_import_settings(&settings)
-                .unwrap_err()
-                .contains("cluster_triangle_count")
-        );
+        assert!(VirtualGeometryCookRequest::from_import_settings(&settings)
+            .unwrap_err()
+            .contains("cluster_triangle_count"));
     }
 }

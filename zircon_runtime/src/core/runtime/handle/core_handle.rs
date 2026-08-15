@@ -5,14 +5,14 @@ use std::sync::Barrier;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::ThreadId;
 
-use crate::core::diagnostics::{
-    RuntimeDevtoolsPluginCatalogEntry, RuntimeDevtoolsSceneHookSnapshot,
-};
-use crate::core::RuntimeModuleLifecycleObserver;
+use crate::core::diagnostics::RuntimeDevtoolsPluginCatalogEntry;
+use crate::core::{CoreError, RuntimeModuleLifecycleObserver};
 
-use super::super::descriptors::RegistryName;
-use super::super::state::CoreRuntimeInner;
-use super::super::state::{ModuleEntry, ServiceEntry};
+use super::super::descriptors::{FrozenModuleGraph, ModuleDescriptor, RegistryName};
+use super::super::state::{
+    CoreRuntimeInner, LifecycleCoordinator, ModuleEntry, ModuleLifecycleCommand,
+    ModuleLifecycleTransitionPermit, ModuleLifecycleTransitionToken, ServiceEntry,
+};
 use super::super::tasks::{JobScheduler, TaskPool, TaskPoolKind, TaskPoolReport, TaskPools};
 use super::super::weak::CoreWeak;
 
@@ -50,6 +50,86 @@ impl CoreHandle {
 
     pub(crate) fn lock_services(&self) -> MutexGuard<'_, HashMap<RegistryName, ServiceEntry>> {
         lock_poison_recovered(&self.inner.services)
+    }
+
+    pub(crate) fn lock_frozen_module_graph(
+        &self,
+    ) -> MutexGuard<'_, Option<Arc<FrozenModuleGraph>>> {
+        lock_poison_recovered(&self.inner.frozen_module_graph)
+    }
+
+    fn lock_lifecycle_coordinator(&self) -> MutexGuard<'_, LifecycleCoordinator> {
+        lock_poison_recovered(&self.inner.lifecycle_coordinator)
+    }
+
+    pub(crate) fn frozen_module_graph(&self) -> Result<Arc<FrozenModuleGraph>, CoreError> {
+        let mut frozen_graph = self.lock_frozen_module_graph();
+        if let Some(graph) = frozen_graph.as_ref() {
+            return Ok(Arc::clone(graph));
+        }
+
+        let mut descriptors = self.registered_module_descriptors();
+        descriptors.sort_by(|left, right| left.name.cmp(&right.name));
+        let graph = Arc::new(FrozenModuleGraph::freeze(descriptors.as_slice())?);
+        *frozen_graph = Some(Arc::clone(&graph));
+        Ok(graph)
+    }
+
+    pub(crate) fn acquire_module_lifecycle_transition(
+        &self,
+        module_name: &str,
+        command: ModuleLifecycleCommand,
+    ) -> Result<ModuleLifecycleTransitionPermit, CoreError> {
+        let owner = std::thread::current().id();
+        let mut coordinator = self.lock_lifecycle_coordinator();
+        loop {
+            match coordinator.begin(module_name, command, owner)? {
+                ModuleLifecycleTransitionPermit::Wait => {
+                    coordinator = self
+                        .inner
+                        .lifecycle_transition_changed
+                        .wait(coordinator)
+                        .unwrap_or_else(|poisoned| poisoned.into_inner());
+                }
+                permit => return Ok(permit),
+            }
+        }
+    }
+
+    pub(crate) fn complete_module_lifecycle_transition(
+        &self,
+        token: &ModuleLifecycleTransitionToken,
+        result: Result<(), CoreError>,
+    ) {
+        let mut coordinator = self.lock_lifecycle_coordinator();
+        coordinator.complete(token, result);
+        drop(coordinator);
+        self.inner.lifecycle_transition_changed.notify_all();
+    }
+
+    pub(crate) fn run_module_lifecycle_transition<F>(
+        &self,
+        module_name: &str,
+        command: ModuleLifecycleCommand,
+        operation: F,
+    ) -> Result<(), CoreError>
+    where
+        F: FnOnce() -> Result<(), CoreError>,
+    {
+        match self.acquire_module_lifecycle_transition(module_name, command)? {
+            ModuleLifecycleTransitionPermit::Completed(result) => result,
+            ModuleLifecycleTransitionPermit::Owner(token) => {
+                let result = operation();
+                self.complete_module_lifecycle_transition(&token, result.clone());
+                result
+            }
+            ModuleLifecycleTransitionPermit::Wait => {
+                Err(CoreError::ModuleLifecycleCoordinatorUnresolved {
+                    module: module_name.to_owned(),
+                    command: command.as_str(),
+                })
+            }
+        }
     }
 
     pub(crate) fn wait_for_service_resolution_change<'a>(
@@ -143,13 +223,6 @@ impl CoreHandle {
         barrier.wait();
     }
 
-    pub(crate) fn replace_devtools_scene_hook_snapshots(
-        &self,
-        snapshots: Vec<RuntimeDevtoolsSceneHookSnapshot>,
-    ) {
-        *lock_poison_recovered(&self.inner.scene_hook_snapshots) = snapshots;
-    }
-
     pub fn replace_devtools_plugin_catalog_entries(
         &self,
         entries: Vec<RuntimeDevtoolsPluginCatalogEntry>,
@@ -161,6 +234,14 @@ impl CoreHandle {
         &self,
     ) -> MutexGuard<'_, Option<Arc<dyn RuntimeModuleLifecycleObserver>>> {
         lock_poison_recovered(&self.inner.runtime_module_lifecycle_observer)
+    }
+
+    fn registered_module_descriptors(&self) -> Vec<ModuleDescriptor> {
+        let modules = self.lock_modules();
+        modules
+            .values()
+            .map(|entry| entry.descriptor().clone())
+            .collect()
     }
 }
 
@@ -198,10 +279,16 @@ mod tests {
         assert!(handle.lock_services().is_empty());
 
         let _ = panic::catch_unwind(AssertUnwindSafe(|| {
-            let _guard = handle.inner.scene_hook_snapshots.lock().unwrap();
-            panic!("poison core handle scene hook diagnostics snapshots");
+            let _guard = handle.inner.frozen_module_graph.lock().unwrap();
+            panic!("poison core handle frozen module graph");
         }));
-        handle.replace_devtools_scene_hook_snapshots(Vec::new());
+        assert!(handle.lock_frozen_module_graph().is_none());
+
+        let _ = panic::catch_unwind(AssertUnwindSafe(|| {
+            let _guard = handle.inner.lifecycle_coordinator.lock().unwrap();
+            panic!("poison core handle lifecycle coordinator");
+        }));
+        let _ = handle.lock_lifecycle_coordinator();
 
         let _ = panic::catch_unwind(AssertUnwindSafe(|| {
             let _guard = handle.inner.devtools_plugin_catalog_entries.lock().unwrap();

@@ -187,8 +187,8 @@ fn tauri_configuration_uses_vite_window_and_capability_boundary() {
         &package,
         &[
             "\"dev\": \"vite --host 127.0.0.1 --port 1420\"",
-            "\"build\": \"tsc -b && vite build\"",
-            "\"typecheck\": \"tsc -b\"",
+            "\"build\": \"npm run typecheck && vite build\"",
+            "\"typecheck\": \"tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json\"",
             "\"tauri:dev\": \"tauri dev\"",
             "\"tauri:build\": \"tauri build\"",
             "\"@mui/material\": \"9.0.1\"",
@@ -523,6 +523,7 @@ fn shell_and_pages_are_structural_composition_surfaces() {
 
 #[test]
 fn backend_commands_and_view_model_keep_rust_state_as_source_of_truth() {
+    let tauri_app = read_crate_file("src/tauri_app/mod.rs");
     let commands = read_crate_file("src/tauri_app/commands.rs");
     let action_request = read_crate_file("src/tauri_app/action_request.rs");
     let runtime_state = read_crate_file("src/tauri_app/runtime_state.rs");
@@ -546,7 +547,10 @@ fn backend_commands_and_view_model_keep_rust_state_as_source_of_truth() {
         &[
             "pub(super) struct HubCommandState",
             "session: Arc<Mutex<HubRuntimeSession>>",
+            "focus_refresh_pending: Arc<AtomicBool>",
             "HubRuntimeSession::load()",
+            "pub(super) fn refresh_recent_projects_on_window_focus",
+            "thread::spawn(move ||",
             "pub(super) fn hub_state(",
             "pub(super) fn hub_action(",
             "HubRuntimeSession::should_run_action_in_background(&request)",
@@ -555,7 +559,7 @@ fn backend_commands_and_view_model_keep_rust_state_as_source_of_truth() {
             "spawn_background_action(request, session_handle, app.clone());",
             "let emit_state = |view_model: &HubViewModel|",
             "run_background_worker_loop(request, &session_handle, &emit_state);",
-            "app.emit(\"hub-state-changed\", view_model)",
+            "app.emit(\"hub-state-changed\", &view_model)",
         ],
         "tauri_app/commands.rs",
     );
@@ -564,8 +568,11 @@ fn backend_commands_and_view_model_keep_rust_state_as_source_of_truth() {
         &[
             "pub(super) struct HubRuntimeSession",
             "HubConfig::load(&config_path)?",
-            "load_editor_recent_project_session(&editor_config_path)?",
-            "merge_recent_projects(config.recent_projects, editor_recent.recent_projects)",
+            "hub_recent_projects_path",
+            "reconcile_shared_recent_projects(",
+            "shared_recent_projects_snapshot",
+            "refresh_shared_recent_projects_on_focus",
+            "load_shared_recent_projects(&self.shared_recent_projects_path)",
             "mod scoped_views;",
             "refresh_project_context_views",
             "self.refresh_source_scoped_views()",
@@ -587,12 +594,20 @@ fn backend_commands_and_view_model_keep_rust_state_as_source_of_truth() {
         "tauri_app/runtime_state.rs",
     );
     assert_contains_all(
+        &tauri_app,
+        &[
+            ".on_window_event(|window, event|",
+            "tauri::WindowEvent::Focused(true)",
+            "refresh_recent_projects_on_window_focus",
+        ],
+        "tauri_app/mod.rs",
+    );
+    assert_contains_all(
         &action_request,
         &[
             "pub(crate) struct HubActionRequest",
             "pub(crate) enum HubAction",
             "pub(crate) fn action(&self) -> Result<HubActionId, HubError>",
-            "pub(crate) fn parse(&self) -> Result<HubAction, HubError>",
             "pub(in crate::tauri_app) fn parse_as(",
             "pub(crate) trait ValidatePayload",
             "fn parse_payload<T>(action: HubActionId, payload: Option<&Value>) -> Result<T, HubError>",

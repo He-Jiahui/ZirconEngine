@@ -9,33 +9,22 @@ use self::hover::set_hovered_workbench_template_hit;
 use super::super::redraw_result::workbench_template_node_move_redraw;
 use super::super::routing::route_pointer_to_workbench_generation;
 
-pub(super) fn dispatch_workbench_template_pointer_move(
-    ui: &UiHostWindow,
+pub(super) fn workbench_template_pointer_hit(
     generation: &HostPresentationGeneration,
     x: f32,
     y: f32,
-) -> Option<NativePointerDispatchResult> {
-    let hit = route_pointer_to_workbench_generation(generation, x, y)?;
-    Some(dispatch_workbench_template_hit(ui, &hit))
+) -> Option<TemplateNodePointerHit> {
+    route_pointer_to_workbench_generation(generation, x, y)
 }
 
-pub(super) fn dispatch_workbench_template_popup_pointer_move(
-    ui: &UiHostWindow,
-    generation: &HostPresentationGeneration,
-    x: f32,
-    y: f32,
-) -> Option<NativePointerDispatchResult> {
-    let hit = route_pointer_to_workbench_generation(generation, x, y)?;
-    if !matches!(
+pub(super) fn is_workbench_template_popup_hit(hit: &TemplateNodePointerHit) -> bool {
+    matches!(
         hit.dispatch_kind.as_str(),
         "workbench_option" | "workbench_menu_item"
-    ) {
-        return None;
-    }
-    Some(dispatch_workbench_template_hit(ui, &hit))
+    )
 }
 
-fn dispatch_workbench_template_hit(
+pub(super) fn dispatch_workbench_template_hit(
     ui: &UiHostWindow,
     hit: &TemplateNodePointerHit,
 ) -> NativePointerDispatchResult {

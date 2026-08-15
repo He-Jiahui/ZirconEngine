@@ -1,5 +1,5 @@
 use crate::asset::assets::{
-    RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT, TextureUploadPlan, TextureUploadSupport,
+    TextureUploadPlan, TextureUploadSupport, RGBA8_UNORM_FORMAT, RGBA8_UNORM_SRGB_FORMAT,
 };
 use crate::core::framework::render::{
     RenderImageColorSpace, RenderImageDescriptor, RenderImageUsage, TextureMipPolicy,

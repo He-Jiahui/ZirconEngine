@@ -6,8 +6,8 @@ use super::super::atlas_texture_upload::{
     create_glyph_atlas_texture_array_resources, glyph_atlas_texture_array_spec,
     write_glyph_atlas_texture_upload_command,
 };
-use super::super::sdf_atlas::{SdfAtlasPlan, distance_field_atlas_layer_count};
-use super::super::sdf_upload::{SdfAtlasUploadReport, sdf_atlas_upload_commands};
+use super::super::sdf_atlas::{distance_field_atlas_layer_count, SdfAtlasPlan};
+use super::super::sdf_upload::{sdf_atlas_upload_commands, SdfAtlasUploadReport};
 
 const SDF_ATLAS_TEXTURE_LABEL: &str = "zircon-screen-space-ui-sdf-atlas";
 const SDF_ATLAS_VIEW_LABEL: &str = "zircon-screen-space-ui-sdf-atlas-view";

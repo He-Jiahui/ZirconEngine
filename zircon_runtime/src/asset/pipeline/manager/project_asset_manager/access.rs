@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use crate::core::manager::{ManagerServiceHandle, resolve_manager_service};
-use crate::core::{CoreError, CoreHandle, CoreWeak};
+use crate::core::manager::{resolve_manager_service, ManagerServiceHandle};
 #[cfg(test)]
 use crate::core::{
-    CoreRuntime, ManagerDescriptor, ModuleDescriptor, RegistryName, ServiceKind, StartupMode,
-    manager::{RegisteredManagerService, manager_service_handle},
+    manager::{manager_service_handle, RegisteredManagerService},
     runtime::ServiceObject,
+    CoreRuntime, ManagerDescriptor, ModuleDescriptor, RegistryName, ServiceKind, StartupMode,
 };
+use crate::core::{CoreError, CoreHandle, CoreWeak};
 
 use super::ProjectAssetManager;
 

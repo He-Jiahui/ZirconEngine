@@ -2,7 +2,7 @@ use std::fs;
 
 use super::super::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
 use super::temp_root;
-use zircon_runtime::asset::project::ProjectPaths;
+use zircon_runtime::asset::project::{ProjectPaths, PROJECT_MANIFEST_FILE};
 
 #[test]
 fn existing_project_root_resolves_an_alias_to_the_canonical_identity() {
@@ -31,6 +31,58 @@ fn existing_project_root_resolves_an_alias_to_the_canonical_identity() {
     let opened = authority.open_project(&alias).unwrap();
     assert_eq!(opened.project().paths().root(), expected_root.as_path());
     drop(opened);
+
+    let resolved = ProjectPaths::resolve_existing(&alias).unwrap();
+    let opened = authority.open_resolved_project(&resolved).unwrap();
+    assert_eq!(opened.project().paths().root(), expected_root.as_path());
+    drop(opened);
+    fs::remove_dir_all(location).unwrap();
+}
+
+#[test]
+fn project_authority_resolves_a_manifest_alias_once_before_opening() {
+    let location = temp_root("manifest-alias-single-resolution");
+    let authority = ProjectAuthority::default();
+    let created = authority
+        .create_project(&NewProjectDraft {
+            project_name: "Manifest Identity Project".to_string(),
+            location: location.to_string_lossy().into_owned(),
+            template: NewProjectTemplate::RenderableEmpty,
+        })
+        .unwrap();
+    let expected_root = created.root.clone();
+    drop(created);
+
+    let alias = location.join("Manifest Project Alias");
+    create_directory_link(&expected_root, &alias);
+    let manifest_alias = alias.join("zircon-project.toml");
+
+    let resolved = authority
+        .resolve_existing_project_root_with_identity(&manifest_alias)
+        .unwrap();
+    assert_eq!(resolved.operation_path(), expected_root.as_path());
+
+    let opened = authority.open_project(&manifest_alias).unwrap();
+    assert_eq!(opened.project().paths().root(), expected_root.as_path());
+    drop(opened);
+    fs::remove_dir_all(location).unwrap();
+}
+
+#[test]
+fn project_authority_keeps_a_manifest_named_directory_as_the_project_root() {
+    let location = temp_root("manifest-named-project-root");
+    let project_root = location.join(PROJECT_MANIFEST_FILE);
+    fs::create_dir_all(&project_root).unwrap();
+    fs::write(project_root.join(PROJECT_MANIFEST_FILE), "[project]\n").unwrap();
+
+    let resolved = ProjectAuthority::default()
+        .resolve_existing_project_root_with_identity(&project_root)
+        .unwrap();
+
+    assert_eq!(
+        resolved,
+        ProjectPaths::resolve_existing(&project_root).unwrap()
+    );
     fs::remove_dir_all(location).unwrap();
 }
 

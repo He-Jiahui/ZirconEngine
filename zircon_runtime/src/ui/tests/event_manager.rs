@@ -6,7 +6,8 @@ use zircon_runtime_interface::ui::{
     event_ui::{
         UiActionDescriptor, UiControlResponse, UiInvocationError, UiInvocationRequest,
         UiNodeDescriptor, UiNodeId, UiNodePath, UiNotification, UiParameterDescriptor,
-        UiPropertyDescriptor, UiReflectionSnapshot, UiStateFlags, UiTreeId, UiValueType,
+        UiPropertyDescriptor, UiReflectionNodePatch, UiReflectionSnapshot, UiStateFlags, UiTreeId,
+        UiValueType,
     },
 };
 
@@ -155,4 +156,62 @@ fn ui_event_manager_reports_explicit_error_for_callable_action_without_route() {
                     action_id: "refresh".to_string(),
                 })
     ));
+}
+
+#[test]
+fn reflection_patch_batch_is_atomic_and_broadcasts_one_diff_per_tree() {
+    let mut manager = UiEventManager::default();
+    let node_path = UiNodePath::new("editor/workbench/scene");
+    manager.replace_tree(UiReflectionSnapshot::new(
+        UiTreeId::new("editor.workbench"),
+        vec![UiNodeId::new(1)],
+        vec![
+            UiNodeDescriptor::new(UiNodeId::new(1), node_path.clone(), "SceneView", "Scene")
+                .with_property(UiPropertyDescriptor::new(
+                    "transient.hovered",
+                    UiValueType::Bool,
+                    json!(false),
+                )),
+        ],
+    ));
+    let (_subscription_id, receiver) = manager.subscribe();
+
+    let diffs = manager
+        .apply_reflection_patches(&[
+            UiReflectionNodePatch::new(node_path.clone())
+                .with_property("transient.hovered", json!(true)),
+            UiReflectionNodePatch::new(node_path.clone()).with_pressed(true),
+        ])
+        .expect("validated patches should apply atomically");
+
+    assert_eq!(diffs.len(), 1);
+    assert_eq!(diffs[0].changed_nodes, vec![UiNodeId::new(1)]);
+    let node = manager.query_node(&node_path).expect("patched node");
+    assert_eq!(
+        node.properties["transient.hovered"].reflected_value,
+        json!(true)
+    );
+    assert!(node.state_flags.pressed);
+    assert!(matches!(
+        receiver.recv().unwrap(),
+        UiNotification::ReflectionDiff(diff) if diff.changed_nodes == vec![UiNodeId::new(1)]
+    ));
+
+    let error = manager
+        .apply_reflection_patches(&[
+            UiReflectionNodePatch::new(node_path.clone())
+                .with_property("transient.hovered", json!(false)),
+            UiReflectionNodePatch::new(node_path.clone())
+                .with_property("missing.property", json!(true)),
+        ])
+        .expect_err("one invalid patch must reject the whole batch");
+    assert!(matches!(error, UiInvocationError::UnknownProperty { .. }));
+    assert_eq!(
+        manager
+            .query_property(&node_path, "transient.hovered")
+            .expect("existing reflected property")
+            .reflected_value,
+        json!(true),
+        "validation failure must not leave the valid prefix applied"
+    );
 }

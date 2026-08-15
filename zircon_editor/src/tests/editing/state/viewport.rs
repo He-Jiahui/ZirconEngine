@@ -18,7 +18,7 @@ use zircon_runtime::asset::pipeline::manager::{ProjectAssetManager, ProjectAsset
 use zircon_runtime::core::framework::render::{
     CapturedFrame, RenderFramework, RenderQualityProfile, RenderStats, RenderViewportDescriptor,
 };
-use zircon_runtime::core::manager::{RegisteredManagerService, manager_service_handle};
+use zircon_runtime::core::manager::{manager_service_handle, RegisteredManagerService};
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
     CoreRuntime, ManagerDescriptor, ModuleDescriptor, RegistryName, ServiceKind, StartupMode,
@@ -87,20 +87,16 @@ fn box_selection_applies_extend_and_toggle_mutations_across_pointer_lifecycle() 
     let _ = state.apply_viewport_command(&ViewportCommand::PointerMoved { x: end.x, y: end.y });
     let _ = state.apply_viewport_command(&ViewportCommand::LeftReleased);
 
-    assert!(
-        state
-            .viewport_controller
-            .selection()
-            .active_items()
-            .contains(&camera)
-    );
-    assert!(
-        state
-            .viewport_controller
-            .selection()
-            .active_items()
-            .contains(&cube)
-    );
+    assert!(state
+        .viewport_controller
+        .selection()
+        .active_items()
+        .contains(&camera));
+    assert!(state
+        .viewport_controller
+        .selection()
+        .active_items()
+        .contains(&cube));
 
     let _ = state.apply_viewport_command(&ViewportCommand::LeftPressed {
         x: start.x,
@@ -110,20 +106,16 @@ fn box_selection_applies_extend_and_toggle_mutations_across_pointer_lifecycle() 
     let _ = state.apply_viewport_command(&ViewportCommand::PointerMoved { x: end.x, y: end.y });
     let _ = state.apply_viewport_command(&ViewportCommand::LeftReleased);
 
-    assert!(
-        state
-            .viewport_controller
-            .selection()
-            .active_items()
-            .contains(&camera)
-    );
-    assert!(
-        !state
-            .viewport_controller
-            .selection()
-            .active_items()
-            .contains(&cube)
-    );
+    assert!(state
+        .viewport_controller
+        .selection()
+        .active_items()
+        .contains(&camera));
+    assert!(!state
+        .viewport_controller
+        .selection()
+        .active_items()
+        .contains(&cube));
 }
 
 #[test]
@@ -200,12 +192,10 @@ fn render_frame_submission_carries_editor_owned_viewport_text_overlay() {
         Some("res://fonts/default.font.toml")
     );
     assert_eq!(command.style.text_render_mode, UiTextRenderMode::Auto);
-    assert!(
-        command
-            .text
-            .as_deref()
-            .is_some_and(|text| text.contains("Move") && text.contains("Persp"))
-    );
+    assert!(command
+        .text
+        .as_deref()
+        .is_some_and(|text| text.contains("Move") && text.contains("Persp")));
 }
 
 #[test]
@@ -380,6 +370,25 @@ fn deleting_during_drag_cancels_preview_before_command_capture() {
     assert!(state.apply_intent(EditorIntent::Undo).unwrap());
     assert!(state.begin_gizmo_transaction().unwrap());
     assert!(state.cancel_gizmo_transaction().unwrap());
+}
+
+#[test]
+fn cancel_interaction_command_restores_an_active_gizmo_preview() {
+    let mut state = test_state();
+    let (cube, initial) = begin_moved_gizmo_drag(&mut state);
+
+    let feedback = state
+        .apply_viewport_command(&ViewportCommand::CancelInteraction)
+        .expect("cancelling an active gizmo preview must succeed");
+
+    assert_eq!(feedback.transformed_node, Some(cube));
+    assert!(!state.viewport_controller.is_handle_drag_active());
+    assert_eq!(
+        state
+            .world
+            .with_world(|scene| scene.find_node(cube).unwrap().transform),
+        initial
+    );
 }
 
 #[test]

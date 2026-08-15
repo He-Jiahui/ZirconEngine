@@ -81,11 +81,10 @@ fn render_advanced_material_lobes_route_opaque_and_masked_batches_to_late_forwar
     list.sort();
 
     assert_eq!(list.commands().len(), 2);
-    assert!(
-        list.commands()
-            .iter()
-            .all(|command| command.phase == RenderPhase::Transparent3d)
-    );
+    assert!(list
+        .commands()
+        .iter()
+        .all(|command| command.phase == RenderPhase::Transparent3d));
     assert!(list.commands().iter().all(|command| {
         command.pipeline_key().requires_forward_path()
             && command.pipeline_kind == MeshPassPipelineKind::Base

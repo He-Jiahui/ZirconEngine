@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 
-use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host as host_contract;
+use crate::ui::weight_heatmap::{
+    WeightHeatmapGeneration, WeightHeatmapGenerationInput, WeightHeatmapSource,
+};
 
 pub(super) struct ProjectedWeightHeatmap {
     pub(super) data: host_contract::TemplatePaneWeightHeatmapData,
@@ -25,19 +27,15 @@ pub(in crate::ui::retained_host::ui) fn projected_weight_heatmap_data(
     }
 
     host_contract::TemplatePaneWeightHeatmapData {
-        columns: integer_attribute(attributes, "heatmap_columns")
-            .unwrap_or(12)
-            .clamp(4, 32),
-        rows: integer_attribute(attributes, "heatmap_rows")
-            .unwrap_or(8)
-            .clamp(3, 24),
-        low_label: string_attribute(attributes, "low_label")
-            .unwrap_or_else(|| "0.0".to_owned())
-            .into(),
-        high_label: string_attribute(attributes, "high_label")
-            .unwrap_or_else(|| "1.0".to_owned())
-            .into(),
-        sources: model_rc(heat_sources(attributes)),
+        generation: WeightHeatmapGeneration::new(WeightHeatmapGenerationInput {
+            columns: integer_attribute(attributes, "heatmap_columns").unwrap_or(12),
+            rows: integer_attribute(attributes, "heatmap_rows").unwrap_or(8),
+            low_label: string_attribute(attributes, "low_label")
+                .unwrap_or_else(|| "0.0".to_owned()),
+            high_label: string_attribute(attributes, "high_label")
+                .unwrap_or_else(|| "1.0".to_owned()),
+            sources: heat_sources(attributes),
+        }),
     }
 }
 
@@ -48,9 +46,7 @@ fn has_variant(attributes: &BTreeMap<String, toml::Value>, expected: &str) -> bo
         .any(|variant| variant.split_whitespace().any(|token| token == expected))
 }
 
-fn heat_sources(
-    attributes: &BTreeMap<String, toml::Value>,
-) -> Vec<host_contract::TemplatePaneWeightHeatmapSourceData> {
+fn heat_sources(attributes: &BTreeMap<String, toml::Value>) -> Vec<WeightHeatmapSource> {
     attributes
         .get("heat_sources")
         .and_then(toml::Value::as_array)
@@ -58,15 +54,15 @@ fn heat_sources(
         .flatten()
         .filter_map(toml::Value::as_table)
         .filter_map(|source| {
-            Some(host_contract::TemplatePaneWeightHeatmapSourceData {
-                x: normalized_number(source.get("x")?)?,
-                y: normalized_number(source.get("y")?)?,
-                weight: normalized_number(source.get("weight")?)?,
-                selected: source
+            Some(WeightHeatmapSource::new(
+                normalized_number(source.get("x")?)?,
+                normalized_number(source.get("y")?)?,
+                normalized_number(source.get("weight")?)?,
+                source
                     .get("selected")
                     .and_then(toml::Value::as_bool)
                     .unwrap_or(false),
-            })
+            ))
         })
         .collect()
 }

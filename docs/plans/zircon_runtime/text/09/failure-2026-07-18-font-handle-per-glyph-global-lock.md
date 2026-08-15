@@ -56,3 +56,22 @@ neutral glyph DTO只保存32-bit slot+generation，而64-bit face/instance ident
 - The resolver records batch count, unique-pair count, rejected stale pairs, and snapshot acquire/wait/hold time. The canonical internal layout session keeps `ShapedGlyphRun` directly and does not project font handles into the framework DTO only to resolve them again.
 - The production guards cover one snapshot acquisition for a repeated batch, unique-pair accounting, an unchanged second registration batch without a republish, and the internal-session no-framework-roundtrip invariant.
 - This records source implementation and deterministic regression coverage only. Managed current-source Cargo plus the 1/100/10k glyph and 1/2/16-thread evidence matrix remain coordinator-owned; keep the handoff open until their receipt is recorded.
+
+2026-08-10 forward-review state:
+`open / resolving_failure / implementation_complete / second_review_complete / managed_validation_pending`.
+
+- Glyph-artifact projection borrows the canonical `Arc<ShapedGlyphRun>` directly, constructs the complete visual line before the final font-generation check, and registers all face/instance pairs in one batch. The caller rechecks the current generation immediately before installing the rebuilt line.
+- Batch resolution atomically rejects stale generation and mixed face/instance generations. Test-only registration and neutral-projection diagnostics are thread-local, so the one-batch/no-neutral regression is isolated from parallel shaping tests without adding production TLS work.
+- The old-placeholder pixel regression and its private generator now live with bake/cache-generation tests; the parent SDF bake test owner is 753 lines and the child is 612 lines, keeping both below the project structure threshold without changing production behavior.
+- Independent read-only second review followed the canonical run, artifact projection, batch registry snapshot, generation retry, and SDF consumers and found no P0/P1/P2. Managed Cargo, the required scale/thread matrix, and product-frame evidence remain pending, so this handoff is not marked fixed.
+
+2026-08-13 Runtime bootstrap follow-up:
+`shared.rs` now registers the complete checked-in `default.font.toml` manifest under a permanent
+Runtime owner before retained headless measurement can run. Its private retained-fallback family is
+registered in both the logical matcher and glyphon's backend database, so CPU measure/paint and
+native shaping select the same packaged face rather than divergent host fallback faces. The GPU UI
+owner attaches to the already registered face-0/face-1 source keys without another TTC registration;
+removing that owner retains the bootstrap faces. Focused source regressions cover logical matching,
+glyphon query/shaping, final-owner alias cleanup, and the two-face attach/remove lifecycle. This is
+implemented and second-source-reviewed evidence only; the handoff remains open pending its declared
+managed validation matrix.

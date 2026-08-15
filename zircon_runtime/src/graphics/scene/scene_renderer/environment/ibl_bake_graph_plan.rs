@@ -1,5 +1,5 @@
 use crate::core::framework::render::{
-    IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, IblBakeArtifactContents, IblBakeArtifactRequest,
+    IblBakeArtifactContents, IblBakeArtifactRequest, IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES,
     SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
 };
 use crate::render_graph::{
@@ -36,7 +36,7 @@ pub(in crate::graphics) const IBL_BAKE_IRRADIANCE_CUBE_PIPELINE_LABEL: &str =
     "zircon-env-ibl-irradiance-cube";
 
 const IBL_BAKE_WORKGROUP_SIZE: [u32; 3] = [8, 8, 1];
-const CUBE_FACE_COUNT: u32 = 6;
+const IBL_BAKE_CUBE_FACE_COUNT: u32 = 6;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::graphics) enum IblBakeGraphPassKind {
@@ -178,7 +178,7 @@ fn pmrem_texture_desc(request: &IblBakeArtifactRequest) -> TextureDesc {
         TextureUsage::STORAGE | TextureUsage::SAMPLED | TextureUsage::COPY_SRC,
     )
     .with_dimension(TextureDimension::Cube)
-    .with_depth(CUBE_FACE_COUNT)
+    .with_depth(IBL_BAKE_CUBE_FACE_COUNT)
     .with_mip_levels(request.pmrem_mip_count())
 }
 
@@ -199,19 +199,18 @@ fn irradiance_cube_texture_desc() -> TextureDesc {
         TextureUsage::STORAGE | TextureUsage::SAMPLED | TextureUsage::COPY_SRC,
     )
     .with_dimension(TextureDimension::Cube)
-    .with_depth(CUBE_FACE_COUNT)
+    .with_depth(IBL_BAKE_CUBE_FACE_COUNT)
 }
 
 fn pmrem_workload(request: &IblBakeArtifactRequest, mip_level: u32) -> RenderGraphComputeWorkload {
-    let mip_size = pmrem_mip_size(request.pmrem_face_size(), mip_level);
     RenderGraphComputeWorkload::fixed(
         IBL_BAKE_PMREM_PIPELINE_LABEL,
         IBL_BAKE_WORKGROUP_SIZE,
-        [
-            div_ceil(mip_size, IBL_BAKE_WORKGROUP_SIZE[0]),
-            div_ceil(mip_size, IBL_BAKE_WORKGROUP_SIZE[1]),
-            CUBE_FACE_COUNT,
-        ],
+        ibl_bake_pmrem_dispatch_groups(
+            request.pmrem_face_size(),
+            request.pmrem_mip_count(),
+            mip_level,
+        ),
     )
 }
 
@@ -236,9 +235,34 @@ fn irradiance_cube_workload() -> RenderGraphComputeWorkload {
                 SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
                 IBL_BAKE_WORKGROUP_SIZE[1],
             ),
-            CUBE_FACE_COUNT,
+            IBL_BAKE_CUBE_FACE_COUNT,
         ],
     )
+}
+
+pub(in crate::graphics) const fn ibl_bake_pmrem_dispatch_groups(
+    face_size: u32,
+    mip_count: u32,
+    mip_level: u32,
+) -> [u32; 3] {
+    let mip_size = pmrem_mip_size(face_size, mip_level);
+    [
+        div_ceil(mip_size, IBL_BAKE_WORKGROUP_SIZE[0]),
+        div_ceil(mip_size, IBL_BAKE_WORKGROUP_SIZE[1]),
+        if ibl_bake_terminal_pmrem_average_mip(face_size, mip_count, mip_level) {
+            1
+        } else {
+            IBL_BAKE_CUBE_FACE_COUNT
+        },
+    ]
+}
+
+pub(in crate::graphics) const fn ibl_bake_terminal_pmrem_average_mip(
+    face_size: u32,
+    mip_count: u32,
+    mip_level: u32,
+) -> bool {
+    mip_level.saturating_add(1) >= mip_count && pmrem_mip_size(face_size, mip_level) == 1
 }
 
 const fn div_ceil(value: u32, divisor: u32) -> u32 {
@@ -247,7 +271,11 @@ const fn div_ceil(value: u32, divisor: u32) -> u32 {
 
 const fn pmrem_mip_size(face_size: u32, mip_level: u32) -> u32 {
     let shifted = face_size >> mip_level;
-    if shifted == 0 { 1 } else { shifted }
+    if shifted == 0 {
+        1
+    } else {
+        shifted
+    }
 }
 
 #[cfg(test)]
@@ -294,18 +322,14 @@ mod tests {
                 "compiled graph should contain PMREM mip pass `{pass_name}`"
             );
         }
-        assert!(
-            graph
-                .passes()
-                .iter()
-                .any(|pass| pass.name == IBL_BAKE_IRRADIANCE_SH9_PASS)
-        );
-        assert!(
-            graph
-                .passes()
-                .iter()
-                .any(|pass| pass.name == IBL_BAKE_IRRADIANCE_CUBE_PASS)
-        );
+        assert!(graph
+            .passes()
+            .iter()
+            .any(|pass| pass.name == IBL_BAKE_IRRADIANCE_SH9_PASS));
+        assert!(graph
+            .passes()
+            .iter()
+            .any(|pass| pass.name == IBL_BAKE_IRRADIANCE_CUBE_PASS));
         for mip_level in 1..8 {
             let previous = compiled_pass_by_name(&graph, &ibl_bake_pmrem_pass_name(mip_level - 1));
             let current = compiled_pass_by_name(&graph, &ibl_bake_pmrem_pass_name(mip_level));
@@ -350,7 +374,7 @@ mod tests {
         );
         assert_eq!(
             plan.passes[7].workload.dispatch_extent,
-            RenderGraphComputeDispatchExtent::Fixed([1, 1, 6])
+            RenderGraphComputeDispatchExtent::Fixed([1, 1, 1])
         );
         assert_eq!(
             plan.passes[8].workload.pipeline_label,
@@ -367,6 +391,27 @@ mod tests {
         assert_eq!(
             plan.passes[9].workload.dispatch_extent,
             RenderGraphComputeDispatchExtent::Fixed([4, 4, 6])
+        );
+    }
+
+    #[test]
+    fn single_mip_pmrem_graph_plan_dispatches_one_cube_average_workgroup() {
+        let request = IblBakeArtifactRequest::new(
+            ProceduralSkyParams::default_gradient().ibl_bake_key(),
+            16,
+            5,
+        )
+        .with_pmrem_layout(1, 1)
+        .with_required_contents(IblBakeArtifactContents::PMREM);
+        let mut builder = RenderGraphBuilder::new("ibl-bake-single-mip-workload-test");
+
+        let plan = append_ibl_bake_artifact_graph_plan(&mut builder, &request)
+            .expect("IBL bake graph plan should append");
+
+        assert_eq!(plan.passes.len(), 1);
+        assert_eq!(
+            plan.passes[0].workload.dispatch_extent,
+            RenderGraphComputeDispatchExtent::Fixed([1, 1, 1])
         );
     }
 
@@ -455,16 +500,12 @@ mod tests {
         assert!(plan.resources.pmrem.is_none());
         assert!(plan.resources.irradiance_sh9.is_some());
         assert!(plan.resources.irradiance_cube.is_none());
-        assert!(
-            graph
-                .resource_lifetime_by_name(IBL_BAKE_PMREM_RESOURCE)
-                .is_none()
-        );
-        assert!(
-            graph
-                .resource_lifetime_by_name(IBL_BAKE_IRRADIANCE_CUBE_RESOURCE)
-                .is_none()
-        );
+        assert!(graph
+            .resource_lifetime_by_name(IBL_BAKE_PMREM_RESOURCE)
+            .is_none());
+        assert!(graph
+            .resource_lifetime_by_name(IBL_BAKE_IRRADIANCE_CUBE_RESOURCE)
+            .is_none());
     }
 
     fn compiled_pass_by_name<'a>(

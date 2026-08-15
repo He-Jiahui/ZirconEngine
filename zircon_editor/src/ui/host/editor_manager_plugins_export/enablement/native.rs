@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use zircon_runtime::asset::project::ProjectManifest;
-use zircon_runtime::plugin::native::NativePluginLoader;
+use zircon_runtime::plugin::native::discover_native_plugins;
 
 use super::super::super::editor_manager::EditorManager;
 use super::super::package_projection::editor_capabilities_for_package;
@@ -16,7 +16,7 @@ impl EditorManager {
         enabled: bool,
     ) -> Result<EditorPluginEnableReport, String> {
         let project_root = project_root.as_ref();
-        let native_report = NativePluginLoader.discover(self.plugin_directory(project_root));
+        let native_report = discover_native_plugins(self.plugin_directory(project_root));
         if self
             .runtime_plugin_catalog()
             .project_selection_for_package(plugin_id)

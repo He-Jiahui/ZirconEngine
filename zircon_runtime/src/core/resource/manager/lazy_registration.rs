@@ -1,91 +1,40 @@
 use crate::core::resource::{
-    ResourceEvent, ResourceEventKind, ResourceRecord, ResourceState, RuntimeResourceState,
-    UntypedResourceHandle,
+    ResourceMutationBatch, ResourceRecord, ResourceResult, UntypedResourceHandle,
 };
 
 use super::resource_manager::ResourceManager;
-use super::revision::next_ready_revision;
 
 impl ResourceManager {
-    pub fn register_lazy_record(&self, record: ResourceRecord) -> UntypedResourceHandle {
-        self.register_lazy_records(std::iter::once(record))
+    pub fn register_lazy_record(
+        &self,
+        record: ResourceRecord,
+    ) -> ResourceResult<UntypedResourceHandle> {
+        Ok(self
+            .register_lazy_records(std::iter::once(record))?
             .pop()
-            .expect("one lazy record produces one handle")
+            .expect("one lazy record produces one handle"))
     }
 
     pub fn register_lazy_records(
         &self,
         records: impl IntoIterator<Item = ResourceRecord>,
-    ) -> Vec<UntypedResourceHandle> {
-        let mut outcomes = {
-            let mut registry = self.lock_registry_write();
-            let mut outcomes = Vec::new();
-            for mut record in records {
-                let id = record.id;
-                let (event_kind, invalidate_payload) = match registry.get(id) {
-                    Some(previous) => {
-                        let previous_state = previous.state;
-                        let previous_revision = previous.revision;
-                        if record.state == ResourceState::Ready {
-                            record.revision = next_ready_revision(previous, &record);
-                        } else {
-                            record.revision = previous_revision;
-                        }
-                        let metadata_changed = previous != &record;
-                        let content_changed = record.revision != previous_revision
-                            || previous_state != ResourceState::Ready
-                            || record.state != ResourceState::Ready;
-                        (
-                            metadata_changed.then_some(ResourceEventKind::Updated),
-                            content_changed,
-                        )
-                    }
-                    None => {
-                        if record.state == ResourceState::Ready && record.revision == 0 {
-                            record.revision = 1;
-                        }
-                        (Some(ResourceEventKind::Added), true)
-                    }
-                };
-                registry.upsert_registry_only(record.clone());
-                outcomes.push((record, event_kind, invalidate_payload));
-            }
-            registry.publish_records(outcomes.iter().map(|(record, _, _)| record));
-            outcomes
-        };
-
-        for (record, _, invalidate_payload) in &outcomes {
-            self.ensure_runtime_slot(record.id);
-            if *invalidate_payload {
-                self.lock_payloads_write().remove(&record.id);
-                let runtime_state = if record.state == ResourceState::Error {
-                    RuntimeResourceState::Error
-                } else {
-                    RuntimeResourceState::Unloaded
-                };
-                self.set_runtime_state(record.id, runtime_state);
-            }
-        }
-
-        self.refresh_readiness_many(outcomes.iter().map(|(record, _, _)| record.id));
-
-        for (record, event_kind, _) in &outcomes {
-            if let Some(event_kind) = event_kind {
-                self.broadcast(ResourceEvent {
-                    kind: *event_kind,
-                    resource_kind: record.kind,
-                    id: record.id,
-                    locator: Some(record.primary_locator.clone()),
-                    previous_locator: None,
-                    revision: record.revision,
-                });
-            }
-        }
-
-        outcomes
-            .drain(..)
-            .map(|(record, _, _)| UntypedResourceHandle::new(record.id, record.kind))
-            .collect()
+    ) -> ResourceResult<Vec<UntypedResourceHandle>> {
+        let records = records.into_iter().collect::<Vec<_>>();
+        let ids = records.iter().map(|record| record.id).collect::<Vec<_>>();
+        let batch = records
+            .into_iter()
+            .fold(ResourceMutationBatch::new(), |batch, record| {
+                batch.upsert_lazy(record)
+            });
+        let receipt = self.commit(batch)?;
+        Ok(ids
+            .into_iter()
+            .map(|id| {
+                receipt
+                    .handle(id)
+                    .expect("a committed lazy upsert produces a handle")
+            })
+            .collect())
     }
 }
 
@@ -107,21 +56,29 @@ mod tests {
         let record = ready_record("digest-v1");
         let id = record.id;
 
-        manager.register_lazy_record(record.clone());
+        manager
+            .register_lazy_record(record.clone())
+            .expect("register initial record");
         assert_eq!(manager.registry().get(id).unwrap().revision, 1);
         assert_eq!(
             manager.runtime_state(id),
             Some(RuntimeResourceState::Unloaded)
         );
-        assert!(manager.store_payload(id, TestPayload));
+        manager
+            .store_payload(id, 1, TestPayload)
+            .expect("store initial payload");
 
-        manager.register_lazy_record(record.clone());
+        manager
+            .register_lazy_record(record.clone())
+            .expect("register unchanged record");
         assert!(manager.get_untyped(id).is_some());
         assert_eq!(manager.registry().get(id).unwrap().revision, 1);
 
         let mut changed = record;
         changed.source_hash = "digest-v2".to_string();
-        manager.register_lazy_record(changed);
+        manager
+            .register_lazy_record(changed)
+            .expect("register changed record");
         assert!(manager.get_untyped(id).is_none());
         assert_eq!(manager.registry().get(id).unwrap().revision, 2);
         assert_eq!(
@@ -135,12 +92,18 @@ mod tests {
         let manager = ResourceManager::new();
         let ready = ready_record("digest-v1");
         let id = ready.id;
-        manager.register_lazy_record(ready.clone());
-        assert!(manager.store_payload(id, TestPayload));
+        manager
+            .register_lazy_record(ready.clone())
+            .expect("register ready record");
+        manager
+            .store_payload(id, 1, TestPayload)
+            .expect("store ready payload");
 
         let mut failed = ready;
         failed.state = ResourceState::Error;
-        manager.register_lazy_record(failed);
+        manager
+            .register_lazy_record(failed)
+            .expect("register failed record");
 
         assert!(manager.get_untyped(id).is_none());
         assert_eq!(manager.runtime_state(id), Some(RuntimeResourceState::Error));

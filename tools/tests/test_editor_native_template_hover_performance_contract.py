@@ -3,32 +3,35 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-HOVER_ROOT = (
-    ROOT
-    / "zircon_editor/src/ui/retained_host/host_contract/window/template_hover"
+HOST_CONTRACT_ROOT = ROOT / "zircon_editor/src/ui/retained_host/host_contract"
+PAINT_HOVER = (
+    HOST_CONTRACT_ROOT
+    / "paint_template_nodes/template_node_pipeline/hover.rs"
 )
 
 
 class EditorNativeTemplateHoverPerformanceContractTests(unittest.TestCase):
-    def test_node_model_is_borrow_scanned_before_wide_rows_are_cloned(self) -> None:
-        source = (HOVER_ROOT / "nodes.rs").read_text(encoding="utf-8")
+    def test_non_matching_control_returns_before_row_models_are_cloned(self) -> None:
+        source = PAINT_HOVER.read_text(encoding="utf-8")
 
-        clone_start = source.index("let values: Vec<_>")
+        clone_start = source.index("let options: Vec<_>")
         preflight = source[:clone_start]
-        self.assertIn("let Some(hovered_row)", preflight)
-        self.assertRegex(preflight, r"nodes\s*\.get\(row\)")
-        self.assertIn("row == hovered_row", source[clone_start:])
-
-    def test_floating_windows_skip_model_replacement_when_hover_target_is_absent(self) -> None:
-        source = (HOVER_ROOT / "panes.rs").read_text(encoding="utf-8")
-        function_start = source.index("pub(super) fn apply_template_hover_to_floating_panes")
-        function = source[function_start:]
-        clone_start = function.index("let floating_windows: Vec<_>")
-        preflight = function[:clone_start]
-
-        self.assertIn("floating_windows.get(row)", preflight)
-        self.assertIn("pane_contains_template_hover_target", preflight)
+        self.assertIn("interaction.hovered_template_control_id.is_empty()", preflight)
+        self.assertIn("node.control_id.as_str() !=", preflight)
         self.assertIn("return;", preflight)
+
+    def test_presentation_snapshot_does_not_materialize_hover_into_models(self) -> None:
+        snapshot = (
+            HOST_CONTRACT_ROOT / "window/presentation/snapshot.rs"
+        ).read_text(encoding="utf-8")
+        draw = (
+            HOST_CONTRACT_ROOT
+            / "paint_template_nodes/template_node_pipeline/draw.rs"
+        ).read_text(encoding="utf-8")
+
+        self.assertNotIn("apply_template_hover_to_presentation", snapshot)
+        self.assertNotIn("apply_template_hover_to_floating_panes", snapshot)
+        self.assertIn("apply_template_hover_to_node", draw)
 
 
 if __name__ == "__main__":

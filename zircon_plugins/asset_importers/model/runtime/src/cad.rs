@@ -1,8 +1,8 @@
 use std::io::Cursor;
 
 use dxf::{
-    entities::{EntityType, Face3D, Polyline, Solid, Trace},
     Drawing, Point,
+    entities::{EntityType, Face3D, Polyline, Solid, Trace},
 };
 use zircon_runtime::asset::{AssetImportContext, AssetImportError, AssetImportOutcome};
 
@@ -46,6 +46,7 @@ pub(crate) fn import_dxf_model(
             .file_stem()
             .and_then(|stem| stem.to_str()),
         &source_hint,
+        context.mesh_sdf_cook_request()?.settings(),
     )?;
 
     model_outcome(context, vec![primitive])

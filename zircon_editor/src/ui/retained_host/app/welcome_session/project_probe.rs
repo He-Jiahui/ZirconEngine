@@ -1,21 +1,26 @@
 use super::super::*;
 use crate::core::jobs::{
-    CancellationToken, EditorJob, EditorJobSpec, JobCategory, JobContext, JobError, JobPriority,
-    JobTicket,
+    CancellationToken, EditorJob, EditorJobAdmission, EditorJobAdmissionKey, EditorJobSpec,
+    EditorJobSystem, JobCategory, JobContext, JobError, JobPriority, JobTicket, MutexGroup,
 };
 use crate::core::project::{
     NewProjectDraft, ProjectAuthority, ProjectAuthorityError, ProjectProbe,
 };
+use std::mem::size_of;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
 // Keep validation responsive while ensuring an uninterrupted input burst cannot defer feedback.
 const WELCOME_PROJECT_PROBE_DEBOUNCE: Duration = Duration::from_millis(50);
 const WELCOME_PROJECT_PROBE_MAX_FEEDBACK_DELAY: Duration = Duration::from_millis(250);
+static NEXT_WELCOME_PROJECT_PROBE_OWNER: AtomicU64 = AtomicU64::new(1);
 
 pub(in crate::ui::retained_host::app) struct WelcomeProjectProbeState {
     generation: u64,
     pending: Option<PendingWelcomeProjectProbe>,
     active: Option<ActiveWelcomeProjectProbe>,
+    admission_key: EditorJobAdmissionKey,
+    mutex_group: MutexGroup,
 }
 
 struct PendingWelcomeProjectProbe {
@@ -29,6 +34,7 @@ struct ActiveWelcomeProjectProbe {
     generation: u64,
     draft: Option<NewProjectDraft>,
     cancel: CancellationToken,
+    jobs: EditorJobSystem,
     ticket: JobTicket<WelcomeProjectProbeResult>,
 }
 
@@ -43,10 +49,13 @@ struct WelcomeProjectProbeResult {
 
 impl Default for WelcomeProjectProbeState {
     fn default() -> Self {
+        let owner = next_welcome_project_probe_owner();
         Self {
             generation: 0,
             pending: None,
             active: None,
+            admission_key: welcome_project_probe_admission_key(owner),
+            mutex_group: welcome_project_probe_mutex_group(owner),
         }
     }
 }
@@ -57,15 +66,18 @@ impl WelcomeProjectProbeState {
             .pending
             .as_ref()
             .is_some_and(|pending| pending.draft == draft)
-            || self
-                .active
-                .as_ref()
-                .is_some_and(|active| active.draft.as_ref() == Some(&draft))
+            || (self.pending.is_none()
+                && self
+                    .active
+                    .as_ref()
+                    .is_some_and(|active| active.draft.as_ref() == Some(&draft)))
         {
             return;
         }
 
-        self.clear_active();
+        if let Some(active) = self.active.as_ref() {
+            active.cancel.cancel();
+        }
         self.generation = self.generation.wrapping_add(1);
         let first_requested_at = self
             .pending
@@ -93,17 +105,29 @@ impl WelcomeProjectProbeState {
             return Ok(false);
         }
 
-        let pending = self
-            .pending
-            .take()
-            .expect("pending probe exists after due check");
-        let draft = pending.draft;
-        self.submit_generation(
+        let (generation, draft) = {
+            let pending = self
+                .pending
+                .as_ref()
+                .expect("pending probe exists after due check");
+            (pending.generation, pending.draft.clone())
+        };
+        if let Err(error) = self.submit_generation(
             jobs,
-            pending.generation,
+            generation,
             Some(draft.clone()),
             WelcomeProjectProbeJob { draft },
-        )?;
+        ) {
+            if matches!(
+                error,
+                crate::core::jobs::JobSubmitError::OldestPendingAgeExceeded { .. }
+            ) {
+                self.clear_active();
+                self.rotate_admission_key();
+            }
+            return Err(error);
+        }
+        self.pending = None;
         Ok(true)
     }
 
@@ -132,18 +156,43 @@ impl WelcomeProjectProbeState {
         J: EditorJob<Output = WelcomeProjectProbeResult>,
     {
         let cancel = CancellationToken::default();
-        let ticket = jobs.submit(
+        let estimated_pending_bytes = draft.as_ref().map_or(1, welcome_project_probe_bytes);
+        let admission = jobs.submit_admitted(
             EditorJobSpec::new("Probe welcome project", JobCategory::Index)
                 .with_priority(JobPriority::Background)
-                .with_cancel(cancel.clone()),
+                .with_mutex_group(self.mutex_group.clone())
+                .with_cancel(cancel.clone())
+                .with_estimated_bytes(estimated_pending_bytes)
+                .with_admission_key(self.admission_key.clone())
+                .with_max_pending_age(WELCOME_PROJECT_PROBE_MAX_FEEDBACK_DELAY),
             job,
         )?;
-        self.active = Some(ActiveWelcomeProjectProbe {
-            generation,
-            draft,
-            cancel,
-            ticket,
-        });
+        match admission {
+            EditorJobAdmission::Accepted(ticket) => {
+                self.active = Some(ActiveWelcomeProjectProbe {
+                    generation,
+                    draft,
+                    cancel,
+                    jobs: jobs.clone(),
+                    ticket,
+                });
+            }
+            EditorJobAdmission::Merged { existing_job } => {
+                let Some(active) = self
+                    .active
+                    .as_mut()
+                    .filter(|active| active.ticket.id() == existing_job)
+                else {
+                    jobs.cancel(existing_job);
+                    return Err(crate::core::jobs::JobSubmitError::AdmissionKeyConflict {
+                        existing_job,
+                    });
+                };
+                active.generation = generation;
+                active.draft = draft;
+                active.cancel = cancel;
+            }
+        }
         Ok(())
     }
 
@@ -167,19 +216,47 @@ impl WelcomeProjectProbeState {
     fn clear(&mut self) {
         self.pending = None;
         self.clear_active();
+        self.rotate_admission_key();
     }
 
     fn clear_active(&mut self) {
         if let Some(active) = self.active.take() {
             active.cancel.cancel();
+            active.jobs.cancel(active.ticket.id());
         }
+    }
+
+    fn rotate_admission_key(&mut self) {
+        self.admission_key =
+            welcome_project_probe_admission_key(next_welcome_project_probe_owner());
     }
 }
 
 impl Drop for WelcomeProjectProbeState {
     fn drop(&mut self) {
-        self.clear();
+        self.pending = None;
+        self.clear_active();
     }
+}
+
+fn next_welcome_project_probe_owner() -> u64 {
+    NEXT_WELCOME_PROJECT_PROBE_OWNER.fetch_add(1, Ordering::Relaxed)
+}
+
+fn welcome_project_probe_admission_key(owner: u64) -> EditorJobAdmissionKey {
+    EditorJobAdmissionKey::new(format!("welcome-project-probe:{owner}"))
+        .expect("built-in welcome project admission key must remain valid")
+}
+
+fn welcome_project_probe_mutex_group(owner: u64) -> MutexGroup {
+    MutexGroup::parse(format!("welcome_project_probe_{owner}"))
+        .expect("built-in welcome project mutex group must remain valid")
+}
+
+fn welcome_project_probe_bytes(draft: &NewProjectDraft) -> usize {
+    size_of::<WelcomeProjectProbeJob>()
+        .saturating_add(draft.project_name.capacity())
+        .saturating_add(draft.location.capacity())
 }
 
 impl EditorJob for WelcomeProjectProbeJob {
@@ -300,18 +377,20 @@ mod tests {
     use std::io;
     use std::path::PathBuf;
     use std::sync::{
-        Arc,
         atomic::{AtomicUsize, Ordering},
-        mpsc,
+        mpsc, Arc,
     };
     use std::time::{Duration, Instant};
 
     use super::{
-        WELCOME_PROJECT_PROBE_DEBOUNCE, WELCOME_PROJECT_PROBE_MAX_FEEDBACK_DELAY,
-        WelcomeProjectProbeJob, WelcomeProjectProbeResult, WelcomeProjectProbeState,
-        merge_probe_diagnostic, project_probe_projection,
+        merge_probe_diagnostic, project_probe_projection, WelcomeProjectProbeJob,
+        WelcomeProjectProbeResult, WelcomeProjectProbeState, WELCOME_PROJECT_PROBE_DEBOUNCE,
+        WELCOME_PROJECT_PROBE_MAX_FEEDBACK_DELAY,
     };
-    use crate::core::jobs::{EditorJob, JobContext, JobError, JobSubmitError, test_job_system};
+    use crate::core::jobs::{
+        test_job_system, test_job_system_with_limits, EditorJob, EditorJobAdmissionLimits,
+        EditorJobLimits, EditorJobSpec, JobCategory, JobContext, JobError, JobSubmitError,
+    };
     use crate::core::project::ProjectAuthorityError;
     use zircon_runtime_interface::project::ProjectNameError;
 
@@ -358,11 +437,9 @@ mod tests {
         let mut state = WelcomeProjectProbeState::default();
         state.generation = 2;
 
-        assert!(
-            state
-                .accept_completion(1, Ok(probe_result("stale-a")))
-                .is_none()
-        );
+        assert!(state
+            .accept_completion(1, Ok(probe_result("stale-a")))
+            .is_none());
         let (generation, result) = state
             .accept_completion(2, Ok(probe_result("current-b")))
             .expect("current generation should be accepted");
@@ -378,22 +455,18 @@ mod tests {
 
         state.request(draft("first"), now);
 
-        assert!(
-            !state
-                .submit_due(
-                    &jobs,
-                    now + WELCOME_PROJECT_PROBE_DEBOUNCE - Duration::from_nanos(1),
-                )
-                .unwrap()
-        );
+        assert!(!state
+            .submit_due(
+                &jobs,
+                now + WELCOME_PROJECT_PROBE_DEBOUNCE - Duration::from_nanos(1),
+            )
+            .unwrap());
         assert!(state.active.is_none());
         assert!(state.pending.is_some());
 
-        assert!(
-            state
-                .submit_due(&jobs, now + WELCOME_PROJECT_PROBE_DEBOUNCE)
-                .unwrap()
-        );
+        assert!(state
+            .submit_due(&jobs, now + WELCOME_PROJECT_PROBE_DEBOUNCE)
+            .unwrap());
         assert_eq!(state.active.as_ref().unwrap().generation, 1);
         state.clear();
     }
@@ -410,11 +483,9 @@ mod tests {
             now + WELCOME_PROJECT_PROBE_MAX_FEEDBACK_DELAY - Duration::from_millis(1),
         );
 
-        assert!(
-            state
-                .submit_due(&jobs, now + WELCOME_PROJECT_PROBE_MAX_FEEDBACK_DELAY)
-                .unwrap()
-        );
+        assert!(state
+            .submit_due(&jobs, now + WELCOME_PROJECT_PROBE_MAX_FEEDBACK_DELAY)
+            .unwrap());
         let active = state.active.as_ref().unwrap();
         assert_eq!(active.generation, 2);
         assert_eq!(active.draft.as_ref().unwrap().project_name, "latest");
@@ -456,6 +527,227 @@ mod tests {
         assert!(!cancel.is_cancelled());
         assert!(state.active.is_some());
         state.clear();
+    }
+
+    #[test]
+    fn returning_to_the_active_draft_replaces_a_different_pending_draft() {
+        let jobs = test_job_system();
+        let mut state = WelcomeProjectProbeState::default();
+        let now = Instant::now();
+        let active_draft = draft("active");
+
+        state.request(active_draft.clone(), now);
+        state
+            .submit_due(&jobs, now + WELCOME_PROJECT_PROBE_DEBOUNCE)
+            .unwrap();
+        state.request(
+            draft("replacement"),
+            now + WELCOME_PROJECT_PROBE_DEBOUNCE + Duration::from_millis(1),
+        );
+        state.request(
+            active_draft,
+            now + WELCOME_PROJECT_PROBE_DEBOUNCE + Duration::from_millis(2),
+        );
+
+        assert_eq!(state.generation, 3);
+        assert_eq!(state.pending.as_ref().unwrap().draft.project_name, "active");
+        state.clear();
+    }
+
+    #[test]
+    fn due_replacement_merges_into_the_pending_probe_and_reuses_its_ticket() {
+        let jobs = test_job_system_with_limits(
+            EditorJobLimits::default().with_limit(JobCategory::Index, 1),
+        );
+        let (started_sender, started_receiver) = mpsc::sync_channel(1);
+        let (release_sender, release_receiver) = mpsc::sync_channel(1);
+        let blocker = jobs
+            .submit(
+                EditorJobSpec::new("welcome-probe-blocker", JobCategory::Index),
+                ProbeQueueGate {
+                    started: started_sender,
+                    release: release_receiver,
+                },
+            )
+            .unwrap();
+        started_receiver.recv().unwrap();
+
+        let now = Instant::now();
+        let mut state = WelcomeProjectProbeState::default();
+        state.request(draft("first"), now);
+        state
+            .submit_due(&jobs, now + WELCOME_PROJECT_PROBE_DEBOUNCE)
+            .unwrap();
+        let first = state.active.as_ref().unwrap();
+        let ticket_id = first.ticket.id();
+        let stale_cancel = first.cancel.clone();
+
+        state.request(
+            draft("latest"),
+            now + WELCOME_PROJECT_PROBE_DEBOUNCE + Duration::from_millis(1),
+        );
+        assert!(stale_cancel.is_cancelled());
+        state
+            .submit_due(
+                &jobs,
+                now + WELCOME_PROJECT_PROBE_DEBOUNCE * 2 + Duration::from_millis(1),
+            )
+            .unwrap();
+
+        let active = state.active.as_ref().unwrap();
+        assert_eq!(active.ticket.id(), ticket_id);
+        assert_eq!(active.generation, 2);
+        assert_eq!(active.draft.as_ref().unwrap().project_name, "latest");
+        assert!(!active.cancel.is_cancelled());
+        let snapshot = jobs.admission_snapshot();
+        assert_eq!(snapshot.pending_entries(), 1);
+        assert_eq!(snapshot.merged_submissions(), 1);
+        assert!(snapshot.pending_estimated_bytes() >= "latest".len());
+
+        state.clear();
+        release_sender.send(()).unwrap();
+        assert_eq!(blocker.wait(), Ok(()));
+    }
+
+    #[test]
+    fn clear_releases_the_pending_probe_reservation_before_key_rotation() {
+        let jobs = test_job_system_with_limits(
+            EditorJobLimits::default().with_limit(JobCategory::Index, 1),
+        );
+        let (started_sender, started_receiver) = mpsc::sync_channel(1);
+        let (release_sender, release_receiver) = mpsc::sync_channel(1);
+        let blocker = jobs
+            .submit(
+                EditorJobSpec::new("welcome-clear-blocker", JobCategory::Index),
+                ProbeQueueGate {
+                    started: started_sender,
+                    release: release_receiver,
+                },
+            )
+            .unwrap();
+        started_receiver.recv().unwrap();
+
+        let now = Instant::now();
+        let mut state = WelcomeProjectProbeState::default();
+        state.request(draft("first"), now);
+        state
+            .submit_due(&jobs, now + WELCOME_PROJECT_PROBE_DEBOUNCE)
+            .unwrap();
+        let first_ticket = state.active.as_ref().unwrap().ticket.id();
+        assert_eq!(jobs.admission_snapshot().pending_entries(), 1);
+
+        state.clear();
+
+        let after_clear = jobs.admission_snapshot();
+        assert_eq!(after_clear.pending_entries(), 0);
+        assert_eq!(after_clear.pending_estimated_bytes(), 0);
+        assert_eq!(after_clear.cancelled_pending(), 1);
+
+        state.request(draft("second"), now + Duration::from_millis(1));
+        state
+            .submit_due(
+                &jobs,
+                now + Duration::from_millis(1) + WELCOME_PROJECT_PROBE_DEBOUNCE,
+            )
+            .unwrap();
+        assert_ne!(state.active.as_ref().unwrap().ticket.id(), first_ticket);
+        assert_eq!(jobs.admission_snapshot().pending_entries(), 1);
+
+        state.clear();
+        assert_eq!(jobs.admission_snapshot().pending_entries(), 0);
+        release_sender.send(()).unwrap();
+        assert_eq!(blocker.wait(), Ok(()));
+    }
+
+    #[test]
+    fn admission_backpressure_preserves_the_due_draft_for_retry() {
+        let jobs =
+            test_job_system_with_limits(EditorJobLimits::default().with_admission_limits(
+                EditorJobAdmissionLimits::new(0, 1, Duration::from_secs(1)),
+            ));
+        let mut state = WelcomeProjectProbeState::default();
+        let now = Instant::now();
+        state.request(draft("retry-me"), now);
+
+        assert_eq!(
+            state
+                .submit_due(&jobs, now + WELCOME_PROJECT_PROBE_DEBOUNCE)
+                .unwrap_err(),
+            JobSubmitError::AdmissionEntryLimitExceeded { limit: 0 }
+        );
+        let pending = state
+            .pending
+            .as_ref()
+            .expect("backpressured draft must remain pending");
+        assert_eq!(pending.generation, 1);
+        assert_eq!(pending.draft.project_name, "retry-me");
+        assert!(state.active.is_none());
+    }
+
+    #[test]
+    fn oldest_age_backpressure_retires_the_stale_ticket_and_preserves_latest_for_retry() {
+        let jobs = test_job_system_with_limits(
+            EditorJobLimits::default().with_limit(JobCategory::Index, 1),
+        );
+        let (started_sender, started_receiver) = mpsc::sync_channel(1);
+        let (release_sender, release_receiver) = mpsc::sync_channel(1);
+        let blocker = jobs
+            .submit(
+                EditorJobSpec::new("welcome-age-blocker", JobCategory::Index),
+                ProbeQueueGate {
+                    started: started_sender,
+                    release: release_receiver,
+                },
+            )
+            .unwrap();
+        started_receiver.recv().unwrap();
+
+        let now = Instant::now();
+        let mut state = WelcomeProjectProbeState::default();
+        state.request(draft("stale"), now);
+        state
+            .submit_due(&jobs, now + WELCOME_PROJECT_PROBE_DEBOUNCE)
+            .unwrap();
+        state.request(draft("latest"), now + Duration::from_millis(1));
+        std::thread::sleep(WELCOME_PROJECT_PROBE_MAX_FEEDBACK_DELAY + Duration::from_millis(10));
+
+        assert_eq!(
+            state
+                .submit_due(
+                    &jobs,
+                    now + WELCOME_PROJECT_PROBE_MAX_FEEDBACK_DELAY + Duration::from_millis(20),
+                )
+                .unwrap_err(),
+            JobSubmitError::OldestPendingAgeExceeded {
+                max_age_ms: WELCOME_PROJECT_PROBE_MAX_FEEDBACK_DELAY.as_millis() as u64,
+            }
+        );
+        assert!(state.active.is_none());
+        assert_eq!(state.pending.as_ref().unwrap().draft.project_name, "latest");
+        assert_eq!(jobs.admission_snapshot().pending_entries(), 0);
+
+        assert!(state
+            .submit_due(
+                &jobs,
+                now + WELCOME_PROJECT_PROBE_MAX_FEEDBACK_DELAY + Duration::from_millis(21),
+            )
+            .unwrap());
+        assert_eq!(
+            state
+                .active
+                .as_ref()
+                .unwrap()
+                .draft
+                .as_ref()
+                .unwrap()
+                .project_name,
+            "latest"
+        );
+        assert_eq!(jobs.admission_snapshot().pending_entries(), 1);
+
+        state.clear();
+        release_sender.send(()).unwrap();
+        assert_eq!(blocker.wait(), Ok(()));
     }
 
     #[test]
@@ -603,6 +895,20 @@ mod tests {
 
     struct CancellationBoundaryProbeJob {
         probe_calls: Arc<AtomicUsize>,
+    }
+
+    struct ProbeQueueGate {
+        started: mpsc::SyncSender<()>,
+        release: mpsc::Receiver<()>,
+    }
+
+    impl EditorJob for ProbeQueueGate {
+        type Output = ();
+
+        fn run(self, _context: JobContext) -> Result<Self::Output, JobError> {
+            self.started.send(()).unwrap();
+            self.release.recv().map_err(JobError::failed)
+        }
     }
 
     impl EditorJob for CancellationBoundaryProbeJob {

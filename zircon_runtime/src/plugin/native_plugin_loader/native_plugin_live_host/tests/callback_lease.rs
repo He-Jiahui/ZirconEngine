@@ -1,3 +1,7 @@
+use super::super::super::benchmark_harness::{
+    BenchmarkMeasurement, BenchmarkRunMetadata, BenchmarkWorkerCompletionGate,
+    BenchmarkWorkerStartGate,
+};
 use super::runtime_behavior::{callback_test_behavior, successful_runtime_command};
 use super::*;
 use crate::plugin::native_plugin_loader::loaded_native_plugin::{
@@ -218,50 +222,133 @@ fn native_callback_atomic_transition_survives_64_thread_lease_races() {
     assert_eq!(diagnostics.callback_state_mutex_acquisitions, 0);
 }
 
+const CALLBACK_BENCHMARK_TOTAL_LEASES: usize = 1_000_000;
+const CALLBACK_BENCHMARK_WARMUP_LEASES: usize = 10_000;
+
 #[test]
-#[ignore = "manual 1/2/16/64-thread x 1M same-plugin callback lease benchmark"]
-fn native_callback_atomic_lease_1_2_16_64_thread_benchmark() {
-    const TOTAL_LEASES: usize = 1_000_000;
-    for thread_count in [1_usize, 2, 16, 64] {
-        let plugin = Arc::new(native_live_host_test_plugin_with_behavior(
-            "physics",
-            callback_test_behavior(successful_runtime_command),
-        ));
-        plugin.set_callback_diagnostics_enabled(false);
-        let start = Arc::new(std::sync::Barrier::new(thread_count + 1));
-        let base = TOTAL_LEASES / thread_count;
-        let remainder = TOTAL_LEASES % thread_count;
-        let workers = (0..thread_count)
-            .map(|worker_index| {
-                let plugin = Arc::clone(&plugin);
-                let start = Arc::clone(&start);
-                let iterations = base + usize::from(worker_index < remainder);
-                std::thread::spawn(move || {
-                    start.wait();
-                    for _ in 0..iterations {
-                        let lease = plugin
-                            .callback_owner_lease()
-                            .expect("benchmark callback lease should be admitted");
-                        std::hint::black_box(&lease);
-                    }
-                })
-            })
-            .collect::<Vec<_>>();
-        let started = std::time::Instant::now();
-        start.wait();
-        for worker in workers {
-            worker.join().expect("benchmark worker should not panic");
-        }
-        let elapsed = started.elapsed();
-        let diagnostics = plugin.callback_diagnostics();
-        assert_eq!(diagnostics.active_callbacks, 0);
-        assert_eq!(diagnostics.callback_state_mutex_acquisitions, 0);
-        eprintln!(
-            "native callback atomic lease: threads={thread_count} total={TOTAL_LEASES} \
-             elapsed_ns={} leases_per_second={:.2} state_mutex_acquires={}",
-            elapsed.as_nanos(),
-            TOTAL_LEASES as f64 / elapsed.as_secs_f64(),
+#[ignore = "manual 1-thread x 1M same-plugin callback lease benchmark"]
+fn native_callback_atomic_lease_1_thread_benchmark() {
+    run_callback_lease_benchmark(1);
+}
+
+#[test]
+#[ignore = "manual 2-thread x 1M same-plugin callback lease benchmark"]
+fn native_callback_atomic_lease_2_thread_benchmark() {
+    run_callback_lease_benchmark(2);
+}
+
+#[test]
+#[ignore = "manual 16-thread x 1M same-plugin callback lease benchmark"]
+fn native_callback_atomic_lease_16_thread_benchmark() {
+    run_callback_lease_benchmark(16);
+}
+
+#[test]
+#[ignore = "manual 64-thread x 1M same-plugin callback lease benchmark"]
+fn native_callback_atomic_lease_64_thread_benchmark() {
+    run_callback_lease_benchmark(64);
+}
+
+fn run_callback_lease_benchmark(thread_count: usize) {
+    let metadata = BenchmarkRunMetadata::from_environment(
+        "native_callback_atomic_lease",
+        format!("threads={thread_count},total_leases={CALLBACK_BENCHMARK_TOTAL_LEASES}"),
+    )
+    .expect("benchmark metadata must be bound to a managed optimized-profile run");
+    let plugin = Arc::new(native_live_host_test_plugin_with_behavior(
+        "physics",
+        callback_test_behavior(successful_runtime_command),
+    ));
+    plugin.set_callback_diagnostics_enabled(false);
+
+    run_callback_lease_batch(&plugin, thread_count, CALLBACK_BENCHMARK_WARMUP_LEASES);
+    let workers = callback_lease_workers(
+        Arc::clone(&plugin),
+        thread_count,
+        CALLBACK_BENCHMARK_TOTAL_LEASES,
+    );
+    workers.start.wait_until_ready();
+    let started = std::time::Instant::now();
+    workers.start.start();
+    workers.wait_for_completion();
+    let elapsed = started.elapsed();
+    for worker in workers.threads {
+        worker.join().expect("benchmark worker should not panic");
+    }
+
+    let diagnostics = plugin.callback_diagnostics();
+    assert_eq!(diagnostics.active_callbacks, 0);
+    assert_eq!(diagnostics.callback_state_mutex_acquisitions, 0);
+    metadata.emit(BenchmarkMeasurement {
+        warmup_operations: CALLBACK_BENCHMARK_WARMUP_LEASES as u64,
+        measured_operations: CALLBACK_BENCHMARK_TOTAL_LEASES as u64,
+        elapsed,
+        counters: &[(
+            "state_mutex_acquires",
             diagnostics.callback_state_mutex_acquisitions,
-        );
+        )],
+        latency_sample: None,
+    });
+}
+
+struct CallbackLeaseWorkers {
+    start: BenchmarkWorkerStartGate,
+    completion: BenchmarkWorkerCompletionGate,
+    threads: Vec<std::thread::JoinHandle<()>>,
+}
+
+impl CallbackLeaseWorkers {
+    fn wait_for_completion(&self) {
+        self.completion.wait();
+    }
+}
+
+fn run_callback_lease_batch(
+    plugin: &Arc<LoadedNativePlugin>,
+    thread_count: usize,
+    total_leases: usize,
+) {
+    let workers = callback_lease_workers(Arc::clone(plugin), thread_count, total_leases);
+    workers.start.wait_until_ready();
+    workers.start.start();
+    workers.wait_for_completion();
+    for worker in workers.threads {
+        worker
+            .join()
+            .expect("benchmark warm-up worker should not panic");
+    }
+}
+
+fn callback_lease_workers(
+    plugin: Arc<LoadedNativePlugin>,
+    thread_count: usize,
+    total_leases: usize,
+) -> CallbackLeaseWorkers {
+    let start = BenchmarkWorkerStartGate::new(thread_count);
+    let completion = BenchmarkWorkerCompletionGate::new(thread_count);
+    let base = total_leases / thread_count;
+    let remainder = total_leases % thread_count;
+    let threads = (0..thread_count)
+        .map(|worker_index| {
+            let plugin = Arc::clone(&plugin);
+            let worker_start = start.worker_start();
+            let worker_completion = completion.worker_completion();
+            let iterations = base + usize::from(worker_index < remainder);
+            std::thread::spawn(move || {
+                let _worker_completion = worker_completion;
+                worker_start.await_start();
+                for _ in 0..iterations {
+                    let lease = plugin
+                        .callback_owner_lease()
+                        .expect("benchmark callback lease should be admitted");
+                    std::hint::black_box(lease);
+                }
+            })
+        })
+        .collect();
+    CallbackLeaseWorkers {
+        start,
+        completion,
+        threads,
     }
 }

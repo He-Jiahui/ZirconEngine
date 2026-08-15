@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
-use crate::core::export::{FileMetadataIdentity, file_metadata_identity};
+use crate::core::export::{file_metadata_identity, FileMetadataIdentity};
 use crate::ui::layouts::windows::workbench_host_window::{
     BuildExportPaneViewData, BuildExportTargetViewData,
 };

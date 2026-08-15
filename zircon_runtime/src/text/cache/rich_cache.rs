@@ -16,6 +16,7 @@ pub struct CompiledRichTextCacheReport {
     pub miss_count: u64,
     pub parse_count: u64,
     pub eviction_count: u64,
+    pub admission_bypass_count: u64,
     pub candidate_probe_count: u64,
     pub resident_entries: usize,
     pub resident_bytes: usize,
@@ -29,6 +30,7 @@ pub struct CompiledRichTextCacheFrameSampler {
     last_miss_count: u64,
     last_parse_count: u64,
     last_eviction_count: u64,
+    last_admission_bypass_count: u64,
     last_candidate_probe_count: u64,
 }
 
@@ -47,6 +49,7 @@ impl CompiledRichTextCacheFrameSampler {
             last_miss_count: report.miss_count,
             last_parse_count: report.parse_count,
             last_eviction_count: report.eviction_count,
+            last_admission_bypass_count: report.admission_bypass_count,
             last_candidate_probe_count: report.candidate_probe_count,
         }
     }
@@ -62,6 +65,9 @@ impl CompiledRichTextCacheFrameSampler {
             eviction_count: cumulative
                 .eviction_count
                 .saturating_sub(self.last_eviction_count),
+            admission_bypass_count: cumulative
+                .admission_bypass_count
+                .saturating_sub(self.last_admission_bypass_count),
             candidate_probe_count: cumulative
                 .candidate_probe_count
                 .saturating_sub(self.last_candidate_probe_count),
@@ -96,6 +102,7 @@ struct RichTextArtifactEntry {
     key: RichTextArtifactKey,
     cell: Arc<RichTextArtifactCell>,
     resident_bytes: usize,
+    compiled_bytes_accounted: bool,
 }
 
 impl IndexedTextCacheEntry<RichTextArtifactKey> for RichTextArtifactEntry {
@@ -108,6 +115,8 @@ struct CompiledRichTextCache {
     index: IndexedTextCache<RichTextArtifactKey, RichTextArtifactEntry>,
     hash_builder: RandomState,
     report: CompiledRichTextCacheReport,
+    completed_resident_entries: usize,
+    completed_resident_bytes: usize,
 }
 
 impl CompiledRichTextCache {
@@ -120,6 +129,8 @@ impl CompiledRichTextCache {
                 max_bytes: DEFAULT_COMPILED_RICH_TEXT_CACHE_MAX_BYTES,
                 ..CompiledRichTextCacheReport::default()
             },
+            completed_resident_entries: 0,
+            completed_resident_bytes: 0,
         }
     }
 
@@ -157,14 +168,17 @@ impl CompiledRichTextCache {
             .saturating_add(lookup.candidate_count as u64);
         if let Some(slot) = lookup.slot {
             self.report.hit_count = self.report.hit_count.saturating_add(1);
-            let cell = self.index.entry(slot).map(|entry| Arc::clone(&entry.cell));
-            if cell
+            let entry = self
+                .index
+                .entry(slot)
+                .map(|entry| (Arc::clone(&entry.cell), entry.compiled_bytes_accounted));
+            if entry
                 .as_ref()
-                .is_some_and(|cell| cell.compiled.get().is_some())
+                .is_some_and(|(_, compiled_bytes_accounted)| *compiled_bytes_accounted)
             {
                 self.index.touch(slot);
             }
-            if let Some(cell) = cell {
+            if let Some((cell, _)) = entry {
                 return cell;
             }
         }
@@ -175,17 +189,17 @@ impl CompiledRichTextCache {
             compiled: OnceLock::new(),
         });
         let initial_bytes = cell.markup.len();
-        self.index.update_or_insert_with(
-            None,
-            RichTextArtifactEntry {
-                key,
-                cell: Arc::clone(&cell),
-                resident_bytes: initial_bytes,
-            },
-            false,
-            |_, _| unreachable!("a fresh rich-text cell cannot update an existing slot"),
-            |entry| entry,
-        );
+        if !self.reserve_for(1, initial_bytes) {
+            self.report.admission_bypass_count =
+                self.report.admission_bypass_count.saturating_add(1);
+            return cell;
+        }
+        self.index.insert_untracked(RichTextArtifactEntry {
+            key,
+            cell: Arc::clone(&cell),
+            resident_bytes: initial_bytes,
+            compiled_bytes_accounted: false,
+        });
         self.report.resident_bytes = self.report.resident_bytes.saturating_add(initial_bytes);
         self.report.resident_entries = self.index.len();
         cell
@@ -209,31 +223,31 @@ impl CompiledRichTextCache {
             self.report.miss_count = self.report.miss_count.saturating_add(1);
             return None;
         };
-        let compiled = self
-            .index
-            .entry(slot)
-            .and_then(|entry| entry.cell.compiled.get())
-            .cloned();
+        let entry = self.index.entry(slot).map(|entry| {
+            (
+                entry.cell.compiled.get().cloned(),
+                entry.compiled_bytes_accounted,
+            )
+        });
+        let compiled = entry.as_ref().and_then(|(compiled, _)| compiled.clone());
         if compiled.is_some() {
             self.report.hit_count = self.report.hit_count.saturating_add(1);
-            self.index.touch(slot);
+            if entry.is_some_and(|(_, compiled_bytes_accounted)| compiled_bytes_accounted) {
+                self.index.touch(slot);
+            }
         } else {
             self.report.miss_count = self.report.miss_count.saturating_add(1);
         }
         compiled
     }
 
-    fn record_compiled(&mut self, cell: &Arc<RichTextArtifactCell>, compiled_bytes: usize) {
-        let generation = cell
-            .compiled
-            .get()
-            .map(|compiled| compiled.generation())
-            .unwrap_or_default();
-        let format = cell
-            .compiled
-            .get()
-            .map(|compiled| compiled.format())
-            .unwrap_or(RichTextFormat::Plain);
+    fn record_compiled(
+        &mut self,
+        cell: &Arc<RichTextArtifactCell>,
+        format: RichTextFormat,
+        generation: RichTextParserGeneration,
+        compiled_bytes: usize,
+    ) {
         let key = self.key(&cell.markup, format, generation);
         let Some(slot) = self
             .index
@@ -242,6 +256,42 @@ impl CompiledRichTextCache {
         else {
             return;
         };
+        let Some((resident_bytes, compiled_bytes_accounted)) = self
+            .index
+            .entry(slot)
+            .map(|entry| (entry.resident_bytes, entry.compiled_bytes_accounted))
+        else {
+            return;
+        };
+        if compiled_bytes_accounted {
+            self.index.touch(slot);
+            return;
+        }
+        if compiled_bytes > self.report.max_bytes {
+            if let Some(entry) = self.index.remove(slot) {
+                self.report.resident_bytes = self
+                    .report
+                    .resident_bytes
+                    .saturating_sub(entry.resident_bytes);
+            }
+            self.report.resident_entries = self.index.len();
+            self.report.admission_bypass_count =
+                self.report.admission_bypass_count.saturating_add(1);
+            return;
+        }
+        let additional_bytes = compiled_bytes.saturating_sub(resident_bytes);
+        if !self.reserve_for(0, additional_bytes) {
+            if let Some(entry) = self.index.remove(slot) {
+                self.report.resident_bytes = self
+                    .report
+                    .resident_bytes
+                    .saturating_sub(entry.resident_bytes);
+            }
+            self.report.resident_entries = self.index.len();
+            self.report.admission_bypass_count =
+                self.report.admission_bypass_count.saturating_add(1);
+            return;
+        }
         let Some(entry) = self.index.entry_mut(slot) else {
             return;
         };
@@ -251,24 +301,56 @@ impl CompiledRichTextCache {
             .saturating_sub(entry.resident_bytes)
             .saturating_add(compiled_bytes);
         entry.resident_bytes = compiled_bytes;
+        entry.compiled_bytes_accounted = true;
+        self.completed_resident_entries = self.completed_resident_entries.saturating_add(1);
+        self.completed_resident_bytes =
+            self.completed_resident_bytes.saturating_add(compiled_bytes);
         self.index.touch(slot);
-        self.enforce_budget();
+        self.report.resident_entries = self.index.len();
     }
 
-    fn enforce_budget(&mut self) {
-        while self.index.len() > self.report.max_entries
-            || self.report.resident_bytes > self.report.max_bytes
+    fn reserve_for(&mut self, additional_entries: usize, additional_bytes: usize) -> bool {
+        if additional_entries > self.report.max_entries || additional_bytes > self.report.max_bytes
+        {
+            return false;
+        }
+        let required_entry_reclamation = self
+            .index
+            .len()
+            .saturating_add(additional_entries)
+            .saturating_sub(self.report.max_entries);
+        let required_byte_reclamation = self
+            .report
+            .resident_bytes
+            .saturating_add(additional_bytes)
+            .saturating_sub(self.report.max_bytes);
+        if required_entry_reclamation > self.completed_resident_entries
+            || required_byte_reclamation > self.completed_resident_bytes
+        {
+            return false;
+        }
+        while self.index.len().saturating_add(additional_entries) > self.report.max_entries
+            || self.report.resident_bytes.saturating_add(additional_bytes) > self.report.max_bytes
         {
             let Some(entry) = self.index.pop_oldest() else {
-                break;
+                self.report.resident_entries = self.index.len();
+                return false;
             };
+            if entry.compiled_bytes_accounted {
+                self.completed_resident_entries = self.completed_resident_entries.saturating_sub(1);
+                self.completed_resident_bytes = self
+                    .completed_resident_bytes
+                    .saturating_sub(entry.resident_bytes);
+            }
             self.report.resident_bytes = self
                 .report
                 .resident_bytes
                 .saturating_sub(entry.resident_bytes);
             self.report.eviction_count = self.report.eviction_count.saturating_add(1);
+            self.report.resident_entries = self.index.len();
         }
         self.report.resident_entries = self.index.len();
+        true
     }
 }
 
@@ -282,20 +364,15 @@ pub(crate) fn cached_compiled_rich_text(
         let mut cache = lock_cache();
         cache.lookup_or_insert(markup, format, generation)
     };
-    let mut compiled_here = false;
-    let compiled = Arc::clone(cell.compiled.get_or_init(|| {
-        compiled_here = true;
+    Arc::clone(cell.compiled.get_or_init(|| {
         {
             let mut cache = lock_cache();
             cache.report.parse_count = cache.report.parse_count.saturating_add(1);
         }
-        Arc::new(compile(Arc::clone(&cell.markup)))
-    }));
-    if compiled_here {
-        let mut cache = lock_cache();
-        cache.record_compiled(&cell, compiled.estimated_bytes());
-    }
-    compiled
+        let compiled = Arc::new(compile(Arc::clone(&cell.markup)));
+        lock_cache().record_compiled(&cell, format, generation, compiled.estimated_bytes());
+        compiled
+    }))
 }
 
 pub(crate) fn lookup_cached_compiled_rich_text(
@@ -351,9 +428,12 @@ mod tests {
             emoji_generation: 1,
         };
         let first = cache.lookup_or_insert("[b]one[/b]", RichTextFormat::BbCode, generation);
+        record_compiled_cell(&mut cache, &first, RichTextFormat::BbCode, generation);
         let repeated = cache.lookup_or_insert("[b]one[/b]", RichTextFormat::BbCode, generation);
         let second = cache.lookup_or_insert("[b]two[/b]", RichTextFormat::BbCode, generation);
+        record_compiled_cell(&mut cache, &second, RichTextFormat::BbCode, generation);
         let third = cache.lookup_or_insert("[b]three[/b]", RichTextFormat::BbCode, generation);
+        record_compiled_cell(&mut cache, &third, RichTextFormat::BbCode, generation);
 
         assert!(Arc::ptr_eq(&first, &repeated));
         assert!(!Arc::ptr_eq(&first, &second));
@@ -362,6 +442,42 @@ mod tests {
         assert_eq!(cache.report.miss_count, 3);
         assert_eq!(cache.report.eviction_count, 1);
         assert_eq!(cache.report.resident_entries, 2);
+    }
+
+    fn record_compiled_cell(
+        cache: &mut CompiledRichTextCache,
+        cell: &Arc<super::RichTextArtifactCell>,
+        format: RichTextFormat,
+        generation: RichTextParserGeneration,
+    ) {
+        let compiled = compiled_cell_artifact(cell, format, generation);
+        cache.record_compiled(cell, format, generation, compiled.estimated_bytes());
+        assert!(cell.compiled.set(compiled).is_ok());
+    }
+
+    fn compiled_cell_artifact(
+        cell: &Arc<super::RichTextArtifactCell>,
+        format: RichTextFormat,
+        generation: RichTextParserGeneration,
+    ) -> Arc<CompiledRichText> {
+        compiled_cell_artifact_with_text(cell, format, generation, cell.markup.to_string())
+    }
+
+    fn compiled_cell_artifact_with_text(
+        cell: &Arc<super::RichTextArtifactCell>,
+        format: RichTextFormat,
+        generation: RichTextParserGeneration,
+        text: String,
+    ) -> Arc<CompiledRichText> {
+        Arc::new(CompiledRichText::new(
+            Arc::clone(&cell.markup),
+            format,
+            generation,
+            RichParseResult {
+                text: text.into(),
+                ..RichParseResult::default()
+            },
+        ))
     }
 
     #[test]
@@ -388,16 +504,119 @@ mod tests {
     }
 
     #[test]
-    fn compiled_rich_cache_does_not_evict_an_in_flight_single_flight_cell() {
+    fn compiled_rich_cache_bypasses_a_second_in_flight_cell_when_budget_is_full() {
         let mut cache = CompiledRichTextCache::new();
         cache.report.max_entries = 1;
         let generation = RichTextParserGeneration::default();
 
         let first = cache.lookup_or_insert("first", RichTextFormat::Plain, generation);
-        let _second = cache.lookup_or_insert("second", RichTextFormat::Plain, generation);
+        let second = cache.lookup_or_insert("second", RichTextFormat::Plain, generation);
         let repeated = cache.lookup_or_insert("first", RichTextFormat::Plain, generation);
 
         assert!(Arc::ptr_eq(&first, &repeated));
+        assert!(!Arc::ptr_eq(&first, &second));
+        assert_eq!(cache.report.resident_entries, 1);
+        assert_eq!(cache.report.resident_bytes, first.markup.len());
+        assert_eq!(cache.report.admission_bypass_count, 1);
+    }
+
+    #[test]
+    fn compiled_rich_cache_discards_a_completed_cell_that_exceeds_its_byte_budget() {
+        let mut cache = CompiledRichTextCache::new();
+        cache.report.max_bytes = 1;
+        let generation = RichTextParserGeneration::default();
+
+        let cell = cache.lookup_or_insert("x", RichTextFormat::Plain, generation);
+        let compiled = compiled_cell_artifact(&cell, RichTextFormat::Plain, generation);
+        cache.record_compiled(
+            &cell,
+            RichTextFormat::Plain,
+            generation,
+            compiled.estimated_bytes(),
+        );
+        assert!(cell.compiled.get().is_none());
+        assert_eq!(cache.report.resident_entries, 0);
+        assert_eq!(cache.report.resident_bytes, 0);
+        assert!(cell.compiled.set(compiled).is_ok());
+
+        assert!(cell.compiled.get().is_some());
+        assert_eq!(cache.report.eviction_count, 0);
+        assert_eq!(cache.report.admission_bypass_count, 1);
+    }
+
+    #[test]
+    fn compiled_rich_cache_bypasses_markup_that_exceeds_its_byte_budget() {
+        let mut cache = CompiledRichTextCache::new();
+        cache.report.max_bytes = 3;
+
+        let cell = cache.lookup_or_insert(
+            "four",
+            RichTextFormat::Plain,
+            RichTextParserGeneration::default(),
+        );
+
+        assert_eq!(cell.markup.as_ref(), "four");
+        assert_eq!(cache.report.resident_entries, 0);
+        assert_eq!(cache.report.resident_bytes, 0);
+        assert_eq!(cache.report.admission_bypass_count, 1);
+    }
+
+    #[test]
+    fn oversized_completion_does_not_evict_a_healthy_compiled_entry() {
+        let mut cache = CompiledRichTextCache::new();
+        cache.report.max_entries = 2;
+        let generation = RichTextParserGeneration::default();
+        let retained = cache.lookup_or_insert("retained", RichTextFormat::Plain, generation);
+        record_compiled_cell(&mut cache, &retained, RichTextFormat::Plain, generation);
+        let retained_bytes = cache.report.resident_bytes;
+        cache.report.max_bytes = retained_bytes.saturating_add(1);
+
+        let oversized = cache.lookup_or_insert("x", RichTextFormat::Plain, generation);
+        let compiled = compiled_cell_artifact_with_text(
+            &oversized,
+            RichTextFormat::Plain,
+            generation,
+            "expanded".repeat(retained_bytes.saturating_add(1)),
+        );
+        let eviction_count = cache.report.eviction_count;
+        cache.record_compiled(
+            &oversized,
+            RichTextFormat::Plain,
+            generation,
+            compiled.estimated_bytes(),
+        );
+        assert!(oversized.compiled.set(compiled).is_ok());
+
+        let repeated = cache.lookup_or_insert("retained", RichTextFormat::Plain, generation);
+        assert!(Arc::ptr_eq(&retained, &repeated));
+        assert_eq!(cache.report.eviction_count, eviction_count);
+        assert_eq!(cache.report.resident_entries, 1);
+        assert_eq!(cache.report.resident_bytes, retained_bytes);
+        assert_eq!(cache.report.admission_bypass_count, 1);
+    }
+
+    #[test]
+    fn failed_pending_admission_does_not_partially_evict_completed_entries() {
+        let mut cache = CompiledRichTextCache::new();
+        cache.report.max_entries = 3;
+        let generation = RichTextParserGeneration::default();
+        let retained = cache.lookup_or_insert("retained", RichTextFormat::Plain, generation);
+        record_compiled_cell(&mut cache, &retained, RichTextFormat::Plain, generation);
+        let retained_bytes = cache.report.resident_bytes;
+        cache.report.max_bytes = retained_bytes.saturating_add(8);
+
+        let pending = cache.lookup_or_insert("12345678", RichTextFormat::Plain, generation);
+        let eviction_count = cache.report.eviction_count;
+        let oversized_markup = "x".repeat(cache.report.max_bytes);
+        let bypassed = cache.lookup_or_insert(&oversized_markup, RichTextFormat::Plain, generation);
+
+        assert!(!Arc::ptr_eq(&pending, &bypassed));
+        assert_eq!(cache.report.eviction_count, eviction_count);
+        assert_eq!(cache.report.resident_entries, 2);
+        assert_eq!(cache.report.resident_bytes, cache.report.max_bytes);
+        assert_eq!(cache.report.admission_bypass_count, 1);
+        let repeated = cache.lookup_or_insert("retained", RichTextFormat::Plain, generation);
+        assert!(Arc::ptr_eq(&retained, &repeated));
     }
 
     #[test]
@@ -422,6 +641,7 @@ mod tests {
             miss_count: 4,
             parse_count: 4,
             eviction_count: 1,
+            admission_bypass_count: 2,
             candidate_probe_count: 12,
             resident_entries: 3,
             resident_bytes: 128,
@@ -434,6 +654,7 @@ mod tests {
             miss_count: 5,
             parse_count: 5,
             eviction_count: 2,
+            admission_bypass_count: 5,
             candidate_probe_count: 17,
             resident_entries: 3,
             resident_bytes: 160,
@@ -444,6 +665,7 @@ mod tests {
         assert_eq!(frame.miss_count, 1);
         assert_eq!(frame.parse_count, 1);
         assert_eq!(frame.eviction_count, 1);
+        assert_eq!(frame.admission_bypass_count, 3);
         assert_eq!(frame.candidate_probe_count, 5);
         assert_eq!(frame.resident_entries, 3);
         assert_eq!(frame.resident_bytes, 160);

@@ -1,6 +1,8 @@
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
-use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use crate::ui::timeline_strip::{TimelineStripGeneration, TimelineStripStaticContent};
+
+use super::super::super::data::FrameRect;
 use super::super::super::paint_text::measure_runtime_text_width;
 use super::super::render_commands::HostPaintCommand;
 use super::geometry::TimelineStripGeometry;
@@ -9,38 +11,45 @@ use super::palette::TimelineStripPalette;
 
 pub(super) fn push_timeline_text(
     commands: &mut Vec<HostPaintCommand>,
-    node: &TemplatePaneNodeData,
+    generation: &TimelineStripGeneration,
     geometry: &TimelineStripGeometry,
-    ticks: &[f32],
+    static_content: &TimelineStripStaticContent,
     clip: &FrameRect,
     order: i32,
     opacity: f32,
     metrics: TimelineStripMetrics,
     palette: TimelineStripPalette,
 ) {
-    for (index, &tick) in ticks.iter().enumerate() {
-        let x = geometry.x_for_time(tick, node.timeline_strip.duration);
+    let ticks = static_content.ticks();
+    for (index, tick) in ticks.iter().enumerate() {
+        let x = geometry.x_for_time(tick.value(), generation.duration());
         let previous_x = index
             .checked_sub(1)
             .and_then(|previous| ticks.get(previous))
-            .map(|previous| geometry.x_for_time(*previous, node.timeline_strip.duration));
+            .map(|previous| geometry.x_for_time(previous.value(), generation.duration()));
         let next_x = ticks
             .get(index + 1)
-            .map(|next| geometry.x_for_time(*next, node.timeline_strip.duration));
-        let label = format_time(tick);
+            .map(|next| geometry.x_for_time(next.value(), generation.duration()));
         push_text(
             commands,
-            timeline_tick_label_frame(&geometry.ruler, x, previous_x, next_x, &label, metrics),
+            timeline_tick_label_frame(
+                &geometry.ruler,
+                x,
+                previous_x,
+                next_x,
+                tick.label(),
+                metrics,
+            ),
             clip,
             order + 6,
-            label,
+            tick.label().to_owned(),
             palette.tick_text,
             metrics,
             opacity,
         );
     }
 
-    if !node.timeline_strip.track_label.trim().is_empty() {
+    if !generation.track_label().trim().is_empty() {
         push_text(
             commands,
             FrameRect {
@@ -52,7 +61,7 @@ pub(super) fn push_timeline_text(
             },
             clip,
             order + 7,
-            node.timeline_strip.track_label.to_string(),
+            generation.track_label().to_owned(),
             palette.track_text,
             metrics,
             opacity,
@@ -61,9 +70,9 @@ pub(super) fn push_timeline_text(
 
     let footer_text = format!(
         "{:.2} / {:.2} ({:.0}%)",
-        node.timeline_strip.current_time,
-        node.timeline_strip.duration,
-        (node.timeline_strip.current_time / node.timeline_strip.duration.max(f32::EPSILON) * 100.0)
+        generation.current_time(),
+        generation.duration(),
+        (generation.current_time() / generation.duration().max(f32::EPSILON) * 100.0)
             .clamp(0.0, 100.0)
     );
     push_text(
@@ -182,13 +191,9 @@ fn empty_text_frame(anchor: &FrameRect) -> FrameRect {
     }
 }
 
-fn format_time(time: f32) -> String {
-    format!("{time:.1}")
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{TimelineStripMetrics, timeline_tick_label_frame};
+    use super::{timeline_tick_label_frame, TimelineStripMetrics};
     use crate::ui::retained_host::host_contract::{
         data::FrameRect, paint_text::measure_runtime_text_width,
     };

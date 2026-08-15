@@ -32,13 +32,11 @@ fn project_authority_opens_a_project_owned_scene_by_canonical_uri() {
         document.source_path(),
         root.join("assets").join("scenes").join("main.scene.toml")
     );
-    assert!(
-        document
-            .world()
-            .nodes()
-            .iter()
-            .any(|node| node.name == "Cube")
-    );
+    assert!(document
+        .world()
+        .nodes()
+        .iter()
+        .any(|node| node.name == "Cube"));
 
     drop(project);
     fs::remove_dir_all(location).unwrap();

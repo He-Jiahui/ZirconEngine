@@ -74,7 +74,7 @@ impl HubRuntimeSession {
                     HubMessage::raw_text(output_dir.to_string_lossy().into_owned()),
                 )
                 .with_operation(TaskOperationKind::Process, output_dir.to_string_lossy());
-                self.persist(None)
+                self.persist()
             }
             Err(error) => self.record_output_folder_failure(
                 output_dir.to_string_lossy().into_owned(),
@@ -154,7 +154,7 @@ impl HubRuntimeSession {
         );
         self.task_status = TaskStatus::error("Open Output failed", detail, recovery)
             .with_operation(TaskOperationKind::Process, target);
-        self.persist(None)
+        self.persist()
     }
 }
 
@@ -327,7 +327,7 @@ mod tests {
         output_dir: &std::path::Path,
     ) -> HubRuntimeSession {
         let config_path = temp.join("hub.toml");
-        let editor_config_path = temp.join("editor.json");
+        let shared_recent_projects_path = temp.join("recent_projects.json");
         let mut config = HubConfig::default();
         config.action_history.push(HubActionRecord {
             finished_unix_ms: 42,
@@ -343,11 +343,11 @@ mod tests {
         });
         config.save(&config_path).unwrap();
         fs::write(
-            &editor_config_path,
-            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+            &shared_recent_projects_path,
+            r#"{"protocol_version":1,"projects":[]}"#,
         )
         .unwrap();
-        HubRuntimeSession::load_from_paths(config_path, editor_config_path).unwrap()
+        HubRuntimeSession::load_from_paths(config_path, shared_recent_projects_path).unwrap()
     }
 
     fn temp_test_dir(prefix: &str) -> PathBuf {

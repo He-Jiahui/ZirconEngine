@@ -27,6 +27,8 @@ pub(in crate::hybrid_gi::renderer) struct HybridGiGpuReadbackFuture {
     pub(super) completed_traces: WordReadback,
     pub(super) irradiance: WordReadback,
     pub(super) trace_lighting: WordReadback,
+    pub(super) trace_diagnostics: WordReadback,
+    pub(super) radiance_cache_dispatch_counts: WordReadback,
     pub(super) scene_prepare_resources: Option<HybridGiScenePrepareResourcesSnapshot>,
     pub(super) atlas_slot_samples: Vec<(u32, RuntimeGpuReadback)>,
     pub(super) capture_slot_samples: Vec<(u32, RuntimeGpuReadback)>,
@@ -43,6 +45,8 @@ impl HybridGiGpuReadbackFuture {
             && self.completed_traces.is_ready()
             && self.irradiance.is_ready()
             && self.trace_lighting.is_ready()
+            && self.trace_diagnostics.is_ready()
+            && self.radiance_cache_dispatch_counts.is_ready()
             && self
                 .atlas_slot_samples
                 .iter()
@@ -101,6 +105,19 @@ impl HybridGiGpuPendingReadback {
             &self.trace_lighting_buffer,
             self.trace_lighting_word_count,
         )?;
+        let trace_diagnostics = request_words(
+            context,
+            "hybrid-gi.trace-diagnostics",
+            &self.trace_diagnostic_buffer,
+            self.trace_diagnostic_word_count,
+        )?;
+        let radiance_cache_dispatch_counts = request_word_range(
+            context,
+            "hybrid-gi.radiance-cache-dispatch-counts",
+            &self.radiance_cache_dispatch_counter_buffer,
+            self.radiance_cache_dispatch_counter_word_offset,
+            self.radiance_cache_dispatch_counter_word_count,
+        )?;
         let atlas_slot_samples = request_slot_samples(
             context,
             "hybrid-gi.atlas-slot",
@@ -147,6 +164,8 @@ impl HybridGiGpuPendingReadback {
             completed_traces,
             irradiance,
             trace_lighting,
+            trace_diagnostics,
+            radiance_cache_dispatch_counts,
             scene_prepare_resources: self.scene_prepare_resources,
             atlas_slot_samples,
             capture_slot_samples,
@@ -164,10 +183,25 @@ fn request_words(
     buffer: &wgpu::Buffer,
     word_count: usize,
 ) -> Result<WordReadback, GraphicsError> {
+    request_word_range(context, name, buffer, 0, word_count)
+}
+
+fn request_word_range(
+    context: &mut RuntimePrepareCollectorContext<'_>,
+    name: impl Into<String>,
+    buffer: &wgpu::Buffer,
+    word_offset: usize,
+    word_count: usize,
+) -> Result<WordReadback, GraphicsError> {
+    let byte_offset = word_offset as u64 * std::mem::size_of::<u32>() as u64;
     let byte_len = word_count.max(1) as u64 * std::mem::size_of::<u32>() as u64;
     Ok(WordReadback {
         word_count,
-        readback: context.request_gpu_readback(name, buffer, 0..byte_len)?,
+        readback: context.request_gpu_readback(
+            name,
+            buffer,
+            byte_offset..byte_offset + byte_len,
+        )?,
     })
 }
 

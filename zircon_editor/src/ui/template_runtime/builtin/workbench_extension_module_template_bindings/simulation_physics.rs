@@ -1,4 +1,4 @@
-use super::types::{change, click, submit, ExtensionBindingSpec};
+use super::types::{ExtensionBindingSpec, change, click, submit};
 
 pub(super) const SIMULATION_PHYSICS_BINDINGS: &[ExtensionBindingSpec] = &[
     click(

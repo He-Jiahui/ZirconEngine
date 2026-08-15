@@ -1,6 +1,8 @@
 use std::cell::Cell;
 
-use crate::core::framework::script::{ScriptHostCallFrame, ScriptHostError, ScriptHostValue};
+use crate::core::framework::script::{
+    ScriptHostCallFrame, ScriptHostError, ScriptHostHotPathMetrics, ScriptHostValue,
+};
 use crate::core::{CoreHandle, CoreWeak};
 use crate::scene::{EntityId, LevelSystem, World};
 
@@ -39,6 +41,7 @@ impl VmReflectionWorldAccess {
     ) -> Option<R> {
         with_active_script_runtime_call_context(|context| {
             context.map(|context| {
+                ScriptHostHotPathMetrics::record_world_scope_entry();
                 operation(VmReflectionWorldOperation {
                     context,
                     _runtime_issued: self,
@@ -191,8 +194,18 @@ mod tests {
             || {
                 with_active_script_runtime_call_context(|active| {
                     let active = active.expect("active context");
-                    let frame =
-                        ScriptHostCallFrame::new("zr.gameplay", "entity", &[], &[], Some(active));
+                    let empty_arguments: [crate::core::framework::script::ScriptHostValue; 0] = [];
+                    let argument_source =
+                        crate::core::framework::script::ScriptHostOwnedArgumentSource::new(
+                            &empty_arguments,
+                        );
+                    let frame = ScriptHostCallFrame::new(
+                        "zr.gameplay",
+                        "entity",
+                        crate::core::framework::script::ScriptHostArguments::new(&argument_source),
+                        &[],
+                        Some(active),
+                    );
                     std::ptr::eq(
                         active,
                         runtime_context_for_frame(&frame).expect("frame context"),

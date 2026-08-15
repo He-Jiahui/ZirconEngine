@@ -1,12 +1,10 @@
-use crate::core::TaskPool;
 use crate::core::framework::render::{
-    AntiAliasMode, PostProcessGraphResourceNames, RenderCapabilitySummary,
-    RenderPluginRendererOutputs, SkyboxMode, select_irradiance_volume_for_view,
+    select_irradiance_volume_for_view, AntiAliasMode, PostProcessGraphResourceNames,
+    RenderCapabilitySummary, RenderPluginRendererOutputs, SkyboxMode,
 };
-use crate::graphics::CompiledRenderPipeline;
+use crate::core::TaskPool;
 use crate::graphics::backend::{GpuPassTimer, GpuPipelineStatisticsTimer, OffscreenTarget};
-use crate::graphics::debug_markers::{RENDERDOC_MARKER_FRAME_EXTRACT, insert_marker};
-use crate::graphics::scene::HALF_RES_TRANSPARENCY_MESH_EXECUTOR_ID;
+use crate::graphics::debug_markers::{insert_marker, RENDERDOC_MARKER_FRAME_EXTRACT};
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::core::scene_renderer_render_with_pipeline::AsyncViewportCaptureRequest;
 use crate::graphics::scene::scene_renderer::graph_execution::{
@@ -15,20 +13,23 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
 };
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
 use crate::graphics::scene::scene_renderer::mesh::{
-    MeshDrawReplayStatsAccumulator, MeshPassIndirectDrawExecutions,
     build_mesh_pass_command_buffers_cached, build_mesh_pass_command_buffers_cached_parallel,
+    MeshDrawReplayStatsAccumulator, MeshPassIndirectDrawPlans,
 };
 use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
 use crate::graphics::scene::scene_renderer::sprite::prepare_sprite_queue_stats;
+use crate::graphics::scene::scene_renderer::SceneRendererDeferredLightingProfile;
+use crate::graphics::scene::HALF_RES_TRANSPARENCY_MESH_EXECUTOR_ID;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
+use crate::graphics::{CompiledRenderPipeline, EnvironmentIblBakeReservation};
 
 use super::super::super::scene_renderer_core::{
-    SceneRendererAdvancedPluginReadbacks, SceneRendererCore, merge_plugin_renderer_outputs,
+    merge_plugin_renderer_outputs, SceneRendererAdvancedPluginReadbacks, SceneRendererCore,
 };
 use super::super::SceneRendererCompiledSceneOutputs;
 use super::assign_execution_owned_indirect_args::assign_execution_owned_indirect_args;
 use super::bind_compiled_scene_graph_resources::{
-    CompiledSceneGraphResourceBindingFlags, bind_compiled_scene_graph_resources,
+    bind_compiled_scene_graph_resources, CompiledSceneGraphResourceBindingFlags,
 };
 use super::build_compiled_scene_draws::build_compiled_scene_draws;
 use super::execute_compiled_scene_graph_stages::CompiledSceneGraphStageContext;
@@ -58,10 +59,12 @@ impl SceneRendererCore {
         mut gpu_pipeline_statistics_timer: Option<&mut GpuPipelineStatisticsTimer>,
         compute_task_pool: Option<&TaskPool>,
         parallel_record_min_passes_per_bucket: Option<usize>,
-        hzb_indirect_args_readback_enabled: bool,
+        hzb_diagnostics_readback_enabled: bool,
         viewport_capture: Option<AsyncViewportCaptureRequest>,
+        environment_ibl_bake_reservation: Option<EnvironmentIblBakeReservation>,
     ) -> Result<SceneRendererCompiledSceneOutputs, GraphicsError> {
         ensure_compiled_scene_graph_resources(
+            self.deferred_lighting_profile,
             self.post_process.has_full_resources(),
             self.scene_clear.is_some(),
         )?;
@@ -207,10 +210,13 @@ impl SceneRendererCore {
             // Preserve material-marked transparent meshes on profile, MSAA, and plugin fallbacks.
             mesh_pass_command_buffers.merge_half_resolution_transparent_into_transparent();
         }
+        let mesh_pass_indirect_plans =
+            MeshPassIndirectDrawPlans::build(&mesh_pass_command_buffers, capabilities);
         let mesh_pass_command_stats =
-            mesh_pass_command_buffers.stats_with_indirect_batches(capabilities);
-        let mut mesh_pass_indirect_draws =
-            MeshPassIndirectDrawExecutions::build(device, capabilities, &mesh_pass_command_buffers);
+            mesh_pass_command_buffers.stats_with_indirect_plan(mesh_pass_indirect_plans.stats());
+        let (mut mesh_pass_indirect_draws, mesh_indirect_workspace_stats) = self
+            .mesh_indirect_draw_workspace
+            .prepare(device, queue, capabilities, mesh_pass_indirect_plans);
         mesh_pass_indirect_draws.attach_visible_remap_scene_bind_groups(device, &self.gpu_scene);
         let prepared_mesh_queue_stats = compiled_scene_draws
             .prepared_mesh_queue_stats()
@@ -220,7 +226,8 @@ impl SceneRendererCore {
             .with_pending_command_cache_extraction_stats(
                 compiled_scene_draws.pending_command_cache_extraction_stats(),
             )
-            .with_mesh_pass_command_buffer_stats(mesh_pass_command_stats);
+            .with_mesh_pass_command_buffer_stats(mesh_pass_command_stats)
+            .with_indirect_workspace_stats(mesh_indirect_workspace_stats);
         debug_assert_eq!(
             prepared_mesh_queue_stats.draw_count,
             compiled_scene_draws.draws().len()
@@ -346,8 +353,53 @@ impl SceneRendererCore {
         .map_err(GraphicsError::Asset)?
         .is_some();
 
-        let mut advanced_plugin_readbacks =
-            self.execute_runtime_prepare_passes(device, queue, &mut encoder, streamer, frame)?;
+        self.readback_frame_index = self.readback_frame_index.wrapping_add(1);
+        let readback_frame_index = self.readback_frame_index;
+        let readback_ready = self
+            .readback_queue
+            .prepare_frame(device, readback_frame_index)
+            .is_ok();
+        if readback_ready {
+            if let Some(timer) = gpu_pass_timer.as_deref_mut() {
+                timer.begin_frame(generation_ids.timer_frame());
+            }
+        } else if let Some(timer) = gpu_pass_timer.as_deref_mut() {
+            let _ = timer.defer_frame(generation_ids.timer_frame());
+        }
+        let mut advanced_plugin_readbacks = match self.execute_runtime_prepare_passes(
+            device,
+            queue,
+            &mut encoder,
+            streamer,
+            frame,
+            readback_ready,
+            gpu_pass_timer.as_deref_mut(),
+        ) {
+            Ok(readbacks) => readbacks,
+            Err(error) => {
+                if readback_ready {
+                    self.readback_queue.abort_frame(readback_frame_index);
+                    if let Some(timer) = gpu_pass_timer.as_deref_mut() {
+                        let _ = timer.defer_frame(generation_ids.timer_frame());
+                    }
+                }
+                return Err(error);
+            }
+        };
+        if readback_ready {
+            if let Err(error) =
+                advanced_plugin_readbacks.register_gpu_readbacks(&mut self.readback_queue)
+            {
+                self.readback_queue.abort_frame(readback_frame_index);
+                if let Some(timer) = gpu_pass_timer.as_deref_mut() {
+                    let _ = timer.defer_frame(generation_ids.timer_frame());
+                }
+                return Err(GraphicsError::BufferMap(error));
+            }
+        } else {
+            advanced_plugin_readbacks
+                .fail_gpu_readbacks("shared GPU readback queue was unavailable for this frame");
+        }
         let mut graph_resources = RenderGraphExecutionResources::new();
         self.transient_resource_pool.begin_frame();
         let environment_source_cubemap_view = frame
@@ -355,12 +407,14 @@ impl SceneRendererCore {
             .skybox
             .source_cubemap_environment()
             .map(|_| self.scene_environment_cubemap.source_view());
-        let final_target_output = bind_compiled_scene_graph_resources(
+        let final_target_output = match bind_compiled_scene_graph_resources(
             device,
+            queue,
             pipeline,
             streamer,
             frame,
             target,
+            &self.post_process,
             self.gpu_scene.light_buffer(),
             history_textures.as_deref(),
             CompiledSceneGraphResourceBindingFlags {
@@ -374,41 +428,53 @@ impl SceneRendererCore {
             },
             &mut graph_resources,
             &mut self.transient_resource_pool,
+            &mut self.neutral_graph_buffers,
             mesh_draw_lists,
             self.hzb_occlusion_culler.as_ref(),
             &self.shadow_atlas_resources,
             advanced_plugin_readbacks.external_buffer_bindings(),
             environment_source_cubemap_view,
-        )?;
-        let materialization_report = graph_resources
+        ) {
+            Ok(output) => output,
+            Err(error) => {
+                if readback_ready {
+                    self.readback_queue.abort_frame(readback_frame_index);
+                    if let Some(timer) = gpu_pass_timer.as_deref_mut() {
+                        let _ = timer.defer_frame(generation_ids.timer_frame());
+                    }
+                }
+                return Err(error);
+            }
+        };
+        let materialization_report = match graph_resources
             .validate_materialized_graph_resources(pipeline.graph())
-            .map_err(GraphicsError::Asset)?;
+            .map_err(GraphicsError::Asset)
+        {
+            Ok(report) => report,
+            Err(error) => {
+                if readback_ready {
+                    self.readback_queue.abort_frame(readback_frame_index);
+                    if let Some(timer) = gpu_pass_timer.as_deref_mut() {
+                        let _ = timer.defer_frame(generation_ids.timer_frame());
+                    }
+                }
+                return Err(error);
+            }
+        };
         let mut graph_execution_record = RenderGraphExecutionRecord::default();
         graph_execution_record.set_materialization_report(materialization_report);
         graph_execution_record.set_resource_report(graph_resources.resource_report());
         graph_execution_record.set_resource_alias_report(graph_resources.resource_alias_report());
-        let mut graph_plugin_outputs = RenderPluginRendererOutputs::default();
-        self.readback_frame_index = self.readback_frame_index.wrapping_add(1);
-        let readback_frame_index = self.readback_frame_index;
-        let readback_ready = self
-            .readback_queue
-            .prepare_frame(device, readback_frame_index)
-            .is_ok();
-        if readback_ready {
-            if let Err(error) =
-                advanced_plugin_readbacks.register_gpu_readbacks(&mut self.readback_queue)
-            {
-                self.readback_queue.abort_frame(readback_frame_index);
-                return Err(GraphicsError::BufferMap(error));
-            }
-        } else {
-            advanced_plugin_readbacks
-                .fail_gpu_readbacks("shared GPU readback queue was unavailable for this frame");
+        for profile in advanced_plugin_readbacks.take_gpu_pass_profiles() {
+            graph_execution_record.push_pass_profile_with_budget_key(
+                profile.pass_name,
+                profile.executor_id,
+                profile.budget_key,
+                profile.cpu_elapsed_micros,
+            );
         }
+        let mut graph_plugin_outputs = RenderPluginRendererOutputs::default();
         if readback_ready {
-            if let Some(timer) = gpu_pass_timer.as_deref_mut() {
-                timer.begin_frame(generation_ids.timer_frame());
-            }
             if let Some(timer) = gpu_pipeline_statistics_timer.as_deref_mut() {
                 timer.begin_frame(generation_ids.timer_frame());
             }
@@ -451,6 +517,9 @@ impl SceneRendererCore {
         if let Err(error) = graph_execution_result {
             if readback_ready {
                 self.readback_queue.abort_frame(readback_frame_index);
+                if let Some(timer) = gpu_pass_timer.as_deref_mut() {
+                    let _ = timer.defer_frame(generation_ids.timer_frame());
+                }
             }
             if let Some(submission) = realtime_ibl_submission.take() {
                 self.realtime_ibl.complete_submission(submission, false);
@@ -458,9 +527,10 @@ impl SceneRendererCore {
             return Err(error);
         }
 
-        let hzb_readback_requested = graph_execution_record
-            .hzb_occlusion_cull_report()
-            .is_some_and(|report| report.dispatched_phase_count > 0);
+        let hzb_readback_requested = hzb_diagnostics_readback_enabled
+            && graph_execution_record
+                .hzb_occlusion_cull_report()
+                .is_some_and(|report| report.dispatched_phase_count > 0);
         if readback_ready {
             if let Some(submission) = realtime_ibl_submission.as_ref() {
                 self.realtime_ibl.request_gpu_timestamp_readback(
@@ -470,7 +540,7 @@ impl SceneRendererCore {
                 );
             }
             if let Some(timer) = gpu_pass_timer.as_deref_mut() {
-                timer.resolve_and_request(
+                let _ = timer.resolve_and_request(
                     command_encoders.serial_encoder(device),
                     &mut self.readback_queue,
                 );
@@ -487,7 +557,6 @@ impl SceneRendererCore {
                         &mut self.readback_queue,
                         &mesh_pass_indirect_draws,
                         readback_frame_index,
-                        hzb_indirect_args_readback_enabled,
                     ) {
                         self.readback_queue.abort_frame(readback_frame_index);
                         if let Some(submission) = realtime_ibl_submission.take() {
@@ -542,6 +611,7 @@ impl SceneRendererCore {
             graph_resources: &mut graph_resources,
             graph_execution_record: &mut graph_execution_record,
             environment_ibl_bake_request: pipeline.environment_ibl_bake_request,
+            environment_ibl_bake_reservation,
             realtime_ibl_submission,
             readback_frame_index: readback_ready.then_some(readback_frame_index),
         })?;
@@ -582,12 +652,18 @@ impl SceneRendererCore {
 }
 
 fn ensure_compiled_scene_graph_resources(
+    deferred_lighting_profile: SceneRendererDeferredLightingProfile,
     has_full_post_process_resources: bool,
     has_scene_clear_resources: bool,
 ) -> Result<(), GraphicsError> {
-    if !has_full_post_process_resources {
+    if !deferred_lighting_profile.supports_compiled_scene_graph() {
         return Err(GraphicsError::Asset(
             "environment-only PBR startup profile cannot execute a compiled scene graph".to_owned(),
+        ));
+    }
+    if !has_full_post_process_resources {
+        return Err(GraphicsError::Asset(
+            "compiled scene graph requires full post-process resources".to_owned(),
         ));
     }
     if !has_scene_clear_resources {
@@ -596,29 +672,6 @@ fn ensure_compiled_scene_graph_resources(
         ));
     }
     Ok(())
-}
-
-#[cfg(test)]
-mod resource_mode_tests {
-    use super::ensure_compiled_scene_graph_resources;
-    use crate::graphics::types::GraphicsError;
-
-    #[test]
-    fn output_transfer_only_resources_are_rejected_before_compiled_graph_execution() {
-        assert!(ensure_compiled_scene_graph_resources(true, true).is_ok());
-        let error = ensure_compiled_scene_graph_resources(false, true)
-            .expect_err("expected output-transfer-only rejection");
-        assert!(matches!(error, GraphicsError::Asset(_)));
-        assert!(
-            error
-                .to_string()
-                .contains("cannot execute a compiled scene graph")
-        );
-        let error = ensure_compiled_scene_graph_resources(true, false)
-            .expect_err("expected missing scene-clear rejection");
-        assert!(matches!(error, GraphicsError::Asset(_)));
-        assert!(error.to_string().contains("scene-clear resources"));
-    }
 }
 
 fn collect_irradiance_sample_positions<T>(
@@ -648,38 +701,4 @@ impl RenderGenerationIds {
 }
 
 #[cfg(test)]
-mod performance_tests {
-    use std::cell::Cell;
-
-    use super::{RenderGenerationIds, collect_irradiance_sample_positions};
-
-    #[test]
-    fn gpu_timer_frame_generation_stays_independent_from_mesh_command_cache_generation() {
-        let generation_ids = RenderGenerationIds::new(41, 7);
-
-        assert_eq!(generation_ids.timer_frame(), 41);
-        assert_eq!(generation_ids.mesh_commands, 7);
-    }
-
-    #[test]
-    fn frame_without_irradiance_volumes_does_not_scan_mesh_positions() {
-        let visited = Cell::new(0);
-        let positions = (0..4).inspect(|_| visited.set(visited.get() + 1));
-
-        let collected = collect_irradiance_sample_positions(false, positions);
-
-        assert!(collected.is_none());
-        assert_eq!(visited.get(), 0);
-    }
-
-    #[test]
-    fn frame_with_irradiance_volumes_collects_mesh_positions_once() {
-        let visited = Cell::new(0);
-        let positions = (0..4).inspect(|_| visited.set(visited.get() + 1));
-
-        let collected = collect_irradiance_sample_positions(true, positions);
-
-        assert_eq!(collected, Some(vec![0, 1, 2, 3]));
-        assert_eq!(visited.get(), 4);
-    }
-}
+mod tests;

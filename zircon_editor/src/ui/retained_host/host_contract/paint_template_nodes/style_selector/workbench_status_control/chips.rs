@@ -3,7 +3,7 @@ use super::helpers::{
     declared_color, is_unavailable_status_state, status_node_is_hot, status_node_is_selected,
 };
 use super::model::WorkbenchStatusChipStyle;
-use super::palette::{WorkbenchStatusControlPalette, workbench_status_control_palette};
+use super::palette::{workbench_status_control_palette, WorkbenchStatusControlPalette};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::{UiPainterFamily, UiPainterResolvedState};
 

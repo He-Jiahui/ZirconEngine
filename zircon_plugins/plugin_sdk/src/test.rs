@@ -183,7 +183,6 @@ pub struct TestRuntimeBuilder {
     base_modules: Vec<TestRuntimeBaseModule>,
     runtime_registrations: Vec<RuntimePluginRegistrationReport>,
     feature_registrations: Vec<RuntimePluginFeatureRegistrationReport>,
-    install_scene_runtime_hooks: bool,
     install_scene_runtime_extension_plan: bool,
     activate_base_modules: bool,
     activate_plugin_modules: bool,
@@ -197,7 +196,6 @@ impl Default for TestRuntimeBuilder {
             base_modules: TestRuntimeBaseModule::default_stack().to_vec(),
             runtime_registrations: Vec::new(),
             feature_registrations: Vec::new(),
-            install_scene_runtime_hooks: true,
             install_scene_runtime_extension_plan: true,
             activate_base_modules: true,
             activate_plugin_modules: true,
@@ -261,11 +259,6 @@ impl TestRuntimeBuilder {
         report: RuntimePluginFeatureRegistrationReport,
     ) -> Self {
         self.feature_registrations.push(report);
-        self
-    }
-
-    pub fn without_scene_runtime_hooks(mut self) -> Self {
-        self.install_scene_runtime_hooks = false;
         self
     }
 
@@ -339,18 +332,6 @@ impl TestRuntimeBuilder {
                 activated_modules.push(module.name.clone());
             }
         }
-        if self.install_scene_runtime_hooks {
-            scene::install_scene_runtime_hooks(
-                &runtime.handle(),
-                extension_report.registry.scene_hooks().iter().cloned(),
-            )
-            .map_err(|source| TestRuntimeError::Core {
-                action: "install scene runtime hooks",
-                target: scene::WORLD_DRIVER_NAME.to_string(),
-                source,
-            })?;
-        }
-
         Ok(TestRuntime {
             runtime,
             extension_report,

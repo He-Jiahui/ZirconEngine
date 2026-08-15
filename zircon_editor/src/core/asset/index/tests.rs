@@ -84,11 +84,9 @@ fn compound_registry() -> Arc<AssetRegistryIndex> {
 
 #[test]
 fn rows_borrow_runtime_registry_authority_and_meta_v7_projection() {
-    let registry = registry(vec![
-        entry("sky", "res://textures/sky.png", "digest-a")
-            .with_tags(BTreeSet::from(["environment".to_owned()]))
-            .with_dependencies(vec![uuid("shared-sampler")]),
-    ]);
+    let registry = registry(vec![entry("sky", "res://textures/sky.png", "digest-a")
+        .with_tags(BTreeSet::from(["environment".to_owned()]))
+        .with_dependencies(vec![uuid("shared-sampler")])]);
     let expected_entry = registry.entry_by_uuid(uuid("sky")).unwrap() as *const _;
     let mut index = EditorAssetIndex::new(Arc::clone(&registry));
 
@@ -214,10 +212,12 @@ fn import_state_precedence_is_deterministic() {
 
 #[test]
 fn persisted_artifact_completeness_drives_import_validity_not_preview_state() {
-    let mut index = EditorAssetIndex::new(registry(vec![
-        entry("sky", "res://textures/sky.png", "digest-a")
-            .with_tags(BTreeSet::from(["environment".to_owned()])),
-    ]));
+    let mut index = EditorAssetIndex::new(registry(vec![entry(
+        "sky",
+        "res://textures/sky.png",
+        "digest-a",
+    )
+    .with_tags(BTreeSet::from(["environment".to_owned()]))]));
     let mut metadata = (*ready_meta("sky", "res://textures/sky.png", "digest-a")).clone();
     metadata.preview_state = PreviewState::Error;
 
@@ -308,10 +308,12 @@ fn multi_entry_validation_failure_rolls_back_the_whole_document() {
 
 #[test]
 fn metadata_refresh_does_not_complete_an_active_import() {
-    let mut index = EditorAssetIndex::new(registry(vec![
-        entry("sky", "res://textures/sky.png", "digest-a")
-            .with_tags(BTreeSet::from(["environment".to_owned()])),
-    ]));
+    let mut index = EditorAssetIndex::new(registry(vec![entry(
+        "sky",
+        "res://textures/sky.png",
+        "digest-a",
+    )
+    .with_tags(BTreeSet::from(["environment".to_owned()]))]));
     index.begin_import(uuid("sky")).unwrap();
 
     index

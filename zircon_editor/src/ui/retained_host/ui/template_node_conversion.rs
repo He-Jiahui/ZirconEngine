@@ -129,6 +129,8 @@ pub(crate) fn to_host_contract_template_node(
         checked: false,
         expanded: false,
         focused: data.focused,
+        focus_visible: false,
+        focus_visible_known: false,
         hovered: data.hovered,
         pressed: data.pressed,
         dragging: false,

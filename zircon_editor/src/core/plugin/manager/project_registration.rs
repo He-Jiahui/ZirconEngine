@@ -7,8 +7,8 @@ use crate::core::plugin::EditorPluginRegistrationReport;
 
 use super::super::admission::validate_catalog_admission;
 use super::{
-    EditorPluginCatalogSnapshot, EditorPluginDiscovery, EditorPluginDiscoveryError,
-    EditorPluginManager, EditorPluginSource, discovery_index,
+    discovery_index, EditorPluginCatalogSnapshot, EditorPluginDiscovery,
+    EditorPluginDiscoveryError, EditorPluginManager, EditorPluginSource,
 };
 
 impl EditorPluginManager {

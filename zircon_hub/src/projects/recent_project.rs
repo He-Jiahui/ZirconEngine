@@ -1,13 +1,17 @@
+use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
+use zircon_runtime_interface::hub_protocol::HUB_RECENT_PROJECT_LIMIT_V1;
 use zircon_runtime_interface::project::ProjectManifestSummary;
+
+use crate::error::HubError;
 
 #[cfg(test)]
 use zircon_runtime_interface::project::PROJECT_MANIFEST_FORMAT_VERSION;
 
-pub const RECENT_PROJECT_LIMIT: usize = 8;
+pub const RECENT_PROJECT_LIMIT: usize = HUB_RECENT_PROJECT_LIMIT_V1;
 
 /// Hub project history entry whose display identity is always the shared manifest summary.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

@@ -554,3 +554,51 @@ fn sdf_font_bake_prefers_shaped_glyph_id_on_authoritative_face() {
 
     assert_eq!(glyph_index(font, &key, face, Some(face)), shaped_id);
 }
+
+#[test]
+fn sdf_font_bake_does_not_match_the_old_rounded_rect_placeholder() {
+    let mut bake = SdfFontBakeCache::new();
+    let mut font_database = FontDatabase::with_default_fallbacks();
+    let asset_manager = ProjectAssetManager::default();
+    let plan = atlas_plan_for_glyphs(&['A']);
+
+    let atlas = bake.build_atlas_from_slots(
+        plan.atlas_size,
+        &plan.slots,
+        &mut font_database,
+        &asset_manager,
+    );
+
+    let actual = slot_pixels_for_bake_page(&atlas, plan.atlas_size.x, 0, plan.slots[0].rect);
+    let placeholder =
+        old_rounded_rect_placeholder(plan.slots[0].rect.width, plan.slots[0].rect.height);
+    assert_ne!(actual, placeholder);
+    assert!(atlas.report.nonzero_pixel_count > 0);
+}
+
+fn old_rounded_rect_placeholder(width: u32, height: u32) -> Vec<u8> {
+    const PADDING: f32 = 4.0;
+    const SPREAD: f32 = 6.0;
+    let center_x = width as f32 * 0.5;
+    let center_y = height as f32 * 0.5;
+    let half_width = (center_x - PADDING).max(1.0);
+    let half_height = (center_y - PADDING).max(1.0);
+    let mut pixels = Vec::with_capacity(width as usize * height as usize);
+
+    for y in 0..height {
+        for x in 0..width {
+            let dx = (x as f32 + 0.5 - center_x).abs() - half_width;
+            let dy = (y as f32 + 0.5 - center_y).abs() - half_height;
+            let outside_x = dx.max(0.0);
+            let outside_y = dy.max(0.0);
+            let outside_distance = (outside_x * outside_x + outside_y * outside_y).sqrt();
+            let inside_distance = dx.max(dy).min(0.0);
+            let signed_inside_distance = -(outside_distance + inside_distance);
+            pixels.push(
+                ((0.5 + signed_inside_distance / SPREAD).clamp(0.0, 1.0) * 255.0).round() as u8,
+            );
+        }
+    }
+
+    pixels
+}

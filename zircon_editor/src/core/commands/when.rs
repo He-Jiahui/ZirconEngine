@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::asset::AssetWriteAccess;
 use crate::core::editor_message::{PlayStateKind, SceneModeId};
+use crate::scene::selection::WorldDomain;
 
 use super::{DocumentKind, PlayModePredicate};
 
@@ -108,6 +109,12 @@ pub struct CommandEvalCtx {
     scene_mode: Option<SceneModeId>,
     selection_count: usize,
     #[serde(default)]
+    selection_domain: WorldDomain,
+    #[serde(default)]
+    selection_revision: u64,
+    #[serde(default)]
+    scene_mode_revision: u64,
+    #[serde(default)]
     asset_write_access: AssetWriteAccess,
     play_state: PlayStateKind,
     capabilities: BTreeSet<String>,
@@ -123,6 +130,9 @@ impl CommandEvalCtx {
             focused_document_kind: None,
             scene_mode: None,
             selection_count: 0,
+            selection_domain: WorldDomain::default(),
+            selection_revision: 0,
+            scene_mode_revision: 0,
             asset_write_access: AssetWriteAccess::ReadOnly,
             play_state: PlayStateKind::Edit,
             capabilities: BTreeSet::new(),
@@ -177,6 +187,24 @@ impl CommandEvalCtx {
 
     pub fn with_selection_count(mut self, count: usize) -> Self {
         self.selection_count = count;
+        self
+    }
+
+    /// Binds this snapshot to the active authoring or play selection domain.
+    pub fn with_selection_domain(mut self, domain: WorldDomain) -> Self {
+        self.selection_domain = domain;
+        self
+    }
+
+    /// Binds this snapshot to the authoritative selection identity, not only its cardinality.
+    pub fn with_selection_revision(mut self, revision: u64) -> Self {
+        self.selection_revision = revision;
+        self
+    }
+
+    /// Binds this snapshot to the active scene-mode topology generation.
+    pub fn with_scene_mode_revision(mut self, revision: u64) -> Self {
+        self.scene_mode_revision = revision;
         self
     }
 

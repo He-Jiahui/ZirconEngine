@@ -104,8 +104,9 @@ TOML 再生成 Rust identity/capability/ABI 常量。静态审计脚本继续消
 
 ### M1 元数据单源与 SDK 宏
 
-状态（2026-07-31）：runtime `declare_plugin!` 与 gltf generated-manifest parity 已落地；dist ABI
-投影、可复现 sync/generator 入口及全 first-party 迁移尚未完成，M1 进行中。
+状态（2026-08-08）：runtime `declare_plugin!` 与 gltf generated-manifest parity 已落地；Rust
+`cargo-zircon plugin sync-manifest/check-manifest` 已形成可复现的 declaration-to-TOML 入口。dist ABI
+投影及全 first-party 迁移尚未完成，M1 进行中。
 
 实现切片：`declare_plugin!` 宏 + manifest 生成/同步机制；`gltf_importer` 与 `native_dynamic_fixture` 先迁为样板；其余 first-party 插件批量迁移（硬切换，同批删除手写常量文件）。
 
@@ -121,8 +122,12 @@ TOML 再生成 Rust identity/capability/ABI 常量。静态审计脚本继续消
 
 ### M2 cargo-zircon 脚手架与检查器
 
-状态（2026-07-31）：计划要求的 Rust `cargo-zircon` tool crate 与三条子命令均未落地；现有
-Python validator/audits 继续作为回归层，不把它们计作 M2 完成或兼容实现。
+状态（2026-08-08）：Rust `cargo-zircon` tool crate 已实现 `plugin new/check/validate`，模板覆盖
+importer/system/editor 三形态；`plugin check` 已接入 CI，五分钟工作流与 manifest sync/check
+入口由 `docs/cli-and-tooling/cargo-zircon-plugin-workflow.md` 持有。current-source hardening 将
+check/scaffold/manifest-sync 的 production `panic/unwrap/expect` 扫描归零，并由 integration source
+contract 常驻防回归。scaffold/check/validate/manifest-sync 的 managed Rust 测试和真实 generated-plugin
+package build E2E 仍 pending，因此 M2 为 `implementation-complete / validation-pending`，不声明 accepted。
 
 实现切片：`cargo zircon plugin new/check/validate` 三命令；模板覆盖 importer/system/editor 三形态；`check` 接入 CI。
 
@@ -173,13 +178,14 @@ gltf importer 样板、dev-only 文件监视、计划 02 生命周期完整勾�
 ## Code Review 收敛 (2026-07-31)
 
 - 已按 current source 把“runtime 三重声明、贫弱字符串诊断、热重载空转”等历史描述收敛为
-  已落地的声明宏、类型化错误树和 live-host/fixture，以及仍真实存在的 dist ABI 投影、tool crate、
-  importer 样板与 fresh acceptance 缺口。
+  已落地的声明宏、类型化错误树、cargo-zircon tool crate 和 live-host/fixture，以及仍真实存在的
+  dist ABI 投影、importer 样板与 fresh acceptance 缺口。
 - 未采纳“`include_str!(plugin.toml)` 证明 TOML→Rust authority”的判断：当前 plugin.toml 有 generated
   header，catalog parity test 与 `package_manifest()` 勾稽，include 只承担发布快照打包。真正缺口是
-  generator/sync 入口未闭环及 dist identity/capability/symbol 字面量未改由 Rust 单源投影。
+  全 first-party generator/sync 迁移未闭环及 dist identity/capability/symbol 字面量未改由 Rust 单源投影。
 - M1 必须同批生成 nul 结尾 ID、entry symbol、capability bytes/registration manifest 并删除 dist
-  手写值；不保留旧常量 alias。M2 仍要求 Rust `cargo-zircon`，Python validator 只作为回归层。
+  手写值；不保留旧常量 alias。M2 的 Rust `cargo-zircon` 是唯一开发者命令 owner，Python validator
+  只作为回归层，不构成兼容入口。
 - Runtime12 failure 的两个 `NativePluginEntryReport` fixture 已补齐
   `missing_required_capabilities`/`denied_capabilities` 空列表；此前 retry 在 foreign Plugins01 compile
   boundary 结束，未执行目标测试，因此只记 implementation-forward-fixed / managed compile pending。
@@ -195,5 +201,5 @@ gltf importer 样板、dev-only 文件监视、计划 02 生命周期完整勾�
   [`native discovery metered collector contract`](04/failure-2026-07-29-native-discovery-metered-collector-contract.md)
   的 current source 已有前向 repair，但相关 Runtime/Plugins01 文件由外部 owner 收敛；本计划不抢改、
   不加上层 workaround，待 owner current-source 证据后按 failure lifecycle closeout。
-- 当前里程碑：M1 partial，M2 not-started，M3 code-complete/validation-pending，M4 partial；计划 04
+- 当前里程碑：M1 partial，M2 implementation-complete/validation-pending，M3 code-complete/validation-pending，M4 partial；计划 04
   未完成、未 accepted。queued/running 验证只延迟 accepted closeout，不暂停后续设计与实现。

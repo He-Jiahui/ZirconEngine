@@ -66,7 +66,7 @@ impl AnimationEditorSession {
         Ok(None)
     }
 
-    pub(super) fn document_bytes(&self) -> Result<Vec<u8>, AnimationEditorSessionError> {
+    pub(crate) fn document_bytes(&self) -> Result<Vec<u8>, AnimationEditorSessionError> {
         match &self.document {
             AnimationEditorDocument::Sequence(document) => document
                 .asset

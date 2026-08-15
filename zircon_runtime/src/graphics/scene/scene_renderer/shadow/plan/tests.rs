@@ -1,9 +1,9 @@
 use super::*;
 use crate::core::framework::render::{
-    DEFAULT_RENDER_LAYER_MASK, FallbackSkyboxKind, LightShadowSettings, PreviewEnvironmentExtract,
-    RenderFrameExtract, RenderLayerSet, RenderOverlayExtract, RenderPointLightSnapshot,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot,
-    RenderWorldSnapshotHandle, ShadowPcfQuality, ShadowResolutionTier, ViewportCameraSnapshot,
+    FallbackSkyboxKind, LightShadowSettings, PreviewEnvironmentExtract, RenderFrameExtract,
+    RenderLayerSet, RenderOverlayExtract, RenderPointLightSnapshot, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderWorldSnapshotHandle, ShadowPcfQuality,
+    ShadowResolutionTier, ViewportCameraSnapshot, DEFAULT_RENDER_LAYER_MASK,
 };
 use crate::core::math::{Transform, UVec2, Vec3, Vec4};
 use crate::graphics::scene::scene_renderer::shadow::shadow_light_params_hash;
@@ -225,21 +225,18 @@ fn render_shadow_frame_plan_assigns_point_light_contiguous_face_slots() {
             slot_count: POINT_LIGHT_SHADOW_FACE_COUNT
         })
     );
-    assert!(
-        plan.slots()
-            .iter()
-            .all(|slot| slot.flags_bits() & GPU_SHADOW_SLOT_FLAG_POINT_FACE != 0)
-    );
-    assert!(
-        plan.slots()
-            .iter()
-            .all(|slot| slot.view_proj != Mat4::IDENTITY.to_cols_array_2d())
-    );
-    assert!(
-        plan.atlas_passes()
-            .iter()
-            .all(|slot_pass| slot_pass.view_proj != Mat4::IDENTITY)
-    );
+    assert!(plan
+        .slots()
+        .iter()
+        .all(|slot| slot.flags_bits() & GPU_SHADOW_SLOT_FLAG_POINT_FACE != 0));
+    assert!(plan
+        .slots()
+        .iter()
+        .all(|slot| slot.view_proj != Mat4::IDENTITY.to_cols_array_2d()));
+    assert!(plan
+        .atlas_passes()
+        .iter()
+        .all(|slot_pass| slot_pass.view_proj != Mat4::IDENTITY));
     assert_eq!(
         plan.atlas_passes()
             .iter()

@@ -22,7 +22,6 @@ mod root_sources;
 pub(super) use root_child_rows::*;
 pub(super) use root_paths::*;
 pub(super) use root_sources::*;
-pub(super) use root_statuses::*;
 
 pub(super) fn assert_typed_error_moved_guards_stay_child_owned() {
     preserved_guards::assert_typed_error_preserved_review_guards_are_current();

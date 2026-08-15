@@ -1,7 +1,9 @@
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::host_contract::data::{
     TemplateNodeFrameData, TemplatePaneNodeData, TemplatePaneWeightHeatmapData,
-    TemplatePaneWeightHeatmapSourceData,
+};
+use crate::ui::weight_heatmap::{
+    WeightHeatmapGeneration, WeightHeatmapGenerationInput, WeightHeatmapSource,
 };
 
 use super::super::super::template_nodes::paint_template_nodes_for_test;
@@ -13,30 +15,17 @@ fn weight_heatmap_node(width: f32, height: f32) -> TemplatePaneNodeData {
         component_role: "canvas".into(),
         component_variant: "weight-heatmap".into(),
         weight_heatmap: TemplatePaneWeightHeatmapData {
-            columns: 16,
-            rows: 10,
-            low_label: "0.0".into(),
-            high_label: "1.0".into(),
-            sources: model_rc(vec![
-                TemplatePaneWeightHeatmapSourceData {
-                    x: 0.5,
-                    y: 0.58,
-                    weight: 1.0,
-                    selected: true,
-                },
-                TemplatePaneWeightHeatmapSourceData {
-                    x: 0.15,
-                    y: 0.2,
-                    weight: 0.35,
-                    selected: false,
-                },
-                TemplatePaneWeightHeatmapSourceData {
-                    x: 0.85,
-                    y: 0.25,
-                    weight: 0.45,
-                    selected: false,
-                },
-            ]),
+            generation: WeightHeatmapGeneration::new(WeightHeatmapGenerationInput {
+                columns: 16,
+                rows: 10,
+                low_label: "0.0".to_owned(),
+                high_label: "1.0".to_owned(),
+                sources: vec![
+                    WeightHeatmapSource::new(0.5, 0.58, 1.0, true),
+                    WeightHeatmapSource::new(0.15, 0.2, 0.35, false),
+                    WeightHeatmapSource::new(0.85, 0.25, 0.45, false),
+                ],
+            }),
         },
         frame: TemplateNodeFrameData {
             x: 0.0,

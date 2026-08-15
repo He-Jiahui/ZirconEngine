@@ -12,6 +12,7 @@ pub use harness::{EditorUiCompatibilityHarness, EditorUiCompatibilitySnapshot};
 pub use host_nodes::{
     RetainedUiHostBindingProjection, RetainedUiHostModel, RetainedUiHostNodeProjection,
 };
+pub(crate) use model::RetainedUiProjectionSurfaceMetadataIndex;
 pub use model::{RetainedUiBindingProjection, RetainedUiNodeProjection, RetainedUiProjection};
 pub use retained_adapter::{
     RetainedUiHostAdapter, RetainedUiHostComponentKind, RetainedUiHostNodeModel,

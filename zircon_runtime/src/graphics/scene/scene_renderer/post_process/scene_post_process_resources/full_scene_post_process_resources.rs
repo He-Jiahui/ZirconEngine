@@ -1,13 +1,17 @@
+use std::sync::Mutex;
+
 use super::super::resources::depth_sampling_mode::PostProcessDepthSamplingMode;
 use super::super::resources::terminal_resource_cache::TerminalPostProcessResourceCache;
+use crate::graphics::resource_identity::SampledTextureIdentity;
+use crate::graphics::scene::scene_renderer::temporal::taa::taa_resolve_bind_group_cache::TaaResolveBindGroupCache;
 use crate::graphics::shader::FullscreenPassParameterBindings;
 
 pub(crate) struct FullScenePostProcessResources {
+    pub(in crate::graphics::scene::scene_renderer) hzb_fallback_resource_identity:
+        crate::graphics::scene::scene_renderer::hzb::HzbSampledResourceIdentity,
     pub(in crate::graphics::scene::scene_renderer) depth_sampling_mode:
         PostProcessDepthSamplingMode,
     pub(in crate::graphics::scene::scene_renderer::post_process) bloom_bind_group_layout:
-        wgpu::BindGroupLayout,
-    pub(in crate::graphics::scene::scene_renderer::post_process) ssao_bind_group_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) cluster_bind_group_layout:
         wgpu::BindGroupLayout,
@@ -29,6 +33,8 @@ pub(crate) struct FullScenePostProcessResources {
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer) taa_resolve_bind_group_layout:
         wgpu::BindGroupLayout,
+    pub(in crate::graphics::scene::scene_renderer) taa_resolve_bind_group_cache:
+        Mutex<TaaResolveBindGroupCache>,
     pub(in crate::graphics::scene::scene_renderer) velocity_camera_bind_group_layout:
         wgpu::BindGroupLayout,
     pub(in crate::graphics::scene::scene_renderer::post_process) motion_vector_tile_max_bind_group_layout:
@@ -49,8 +55,6 @@ pub(crate) struct FullScenePostProcessResources {
         TerminalPostProcessResourceCache,
     pub(in crate::graphics::scene::scene_renderer::post_process) bloom_pipeline:
         wgpu::RenderPipeline,
-    pub(in crate::graphics::scene::scene_renderer::post_process) ssao_pipeline:
-        std::sync::OnceLock<wgpu::ComputePipeline>,
     pub(in crate::graphics::scene::scene_renderer::post_process) cluster_pipeline:
         wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) hzb_pipeline:
@@ -132,6 +136,7 @@ pub(crate) struct FullScenePostProcessResources {
     pub(in crate::graphics::scene::scene_renderer::post_process) reflection_probe_buffer:
         wgpu::Buffer,
     pub(in crate::graphics::scene::scene_renderer) black_texture_view: wgpu::TextureView,
+    pub(in crate::graphics::scene::scene_renderer) black_texture_identity: SampledTextureIdentity,
     pub(in crate::graphics::scene::scene_renderer::post_process) white_texture_view:
         wgpu::TextureView,
     pub(in crate::graphics::scene::scene_renderer::post_process) hzb_source_texture_view:

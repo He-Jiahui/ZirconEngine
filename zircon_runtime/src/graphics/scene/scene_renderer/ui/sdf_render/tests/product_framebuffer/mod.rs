@@ -1,6 +1,6 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use crate::graphics::backend::{RenderBackend, read_texture_rgba};
+use crate::graphics::backend::{read_texture_rgba, RenderBackend};
 use crate::graphics::scene::scene_renderer::ui::render::text_decorations::ScreenSpaceUiTextDecorations;
 use crate::graphics::scene::scene_renderer::ui::render::text_effects::{
     ScreenSpaceUiTextEffects, ScreenSpaceUiTextGlow, ScreenSpaceUiTextOutline,
@@ -14,8 +14,8 @@ mod assertions;
 mod transforms;
 
 use assertions::{
-    FramebufferProof, assert_framebuffer_proof_is_outside_target,
-    framebuffer_proof_is_outside_target,
+    assert_framebuffer_proof_is_outside_target, framebuffer_proof_is_outside_target,
+    FramebufferProof,
 };
 use transforms::{perspective_about_clip_center, rotation_about_clip_center};
 

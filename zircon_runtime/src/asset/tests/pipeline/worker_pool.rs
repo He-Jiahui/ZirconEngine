@@ -1,11 +1,13 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use crossbeam_channel::{Sender, bounded};
+use crossbeam_channel::{bounded, Sender};
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::pipeline::types::{AssetRequest, CpuAssetPayload, TextureSource};
 use crate::asset::pipeline::worker_pool::{
+    AssetWorkerCompletionError, AssetWorkerCompletionTicket, AssetWorkerPool,
+    AssetWorkerPoolFrameSampler, AssetWorkerPoolOptions, AssetWorkerThreadBudgetSource,
     ASSET_WORKER_BUDGETED_THREADS_DIAGNOSTIC, ASSET_WORKER_CANCEL_WALL_SAMPLES_DIAGNOSTIC,
     ASSET_WORKER_CANCEL_WALL_TOTAL_MS_DIAGNOSTIC, ASSET_WORKER_COMPLETED_DIAGNOSTIC,
     ASSET_WORKER_COMPLETION_BYTES_DIAGNOSTIC, ASSET_WORKER_DROP_WALL_SAMPLES_DIAGNOSTIC,
@@ -13,13 +15,11 @@ use crate::asset::pipeline::worker_pool::{
     ASSET_WORKER_FRAME_COMPLETED_DIAGNOSTIC, ASSET_WORKER_FRAME_FAILED_DIAGNOSTIC,
     ASSET_WORKER_IN_FLIGHT_DIAGNOSTIC, ASSET_WORKER_PAYLOAD_CLONE_BYTES_DIAGNOSTIC,
     ASSET_WORKER_QUEUE_AGE_SAMPLES_DIAGNOSTIC, ASSET_WORKER_QUEUE_AGE_TOTAL_MS_DIAGNOSTIC,
-    ASSET_WORKER_QUEUE_PEAK_DIAGNOSTIC, AssetWorkerCompletionError, AssetWorkerCompletionTicket,
-    AssetWorkerPool, AssetWorkerPoolFrameSampler, AssetWorkerPoolOptions,
-    AssetWorkerThreadBudgetSource,
+    ASSET_WORKER_QUEUE_PEAK_DIAGNOSTIC,
 };
-use crate::core::CoreError;
 use crate::core::diagnostics::DiagnosticStore;
 use crate::core::runtime::tasks::{TaskPool, TaskPoolDescriptor, TaskPoolKind, TaskTimer};
+use crate::core::CoreError;
 
 mod diagnostics;
 mod lifecycle;

@@ -56,6 +56,7 @@ enum SampledPixelCoverage {
     Empty,
     Alpha(u8),
     Subpixel([u8; 3]),
+    Color([u8; 4]),
 }
 
 impl SampledPixelCoverage {
@@ -73,6 +74,11 @@ impl SampledPixelCoverage {
             }
             SampledPixelCoverage::Subpixel(coverage) => {
                 blend_pixel_channel_coverage(frame, x, y, color, coverage);
+            }
+            SampledPixelCoverage::Color(mut pixel) => {
+                // Color glyphs retain their own RGB, while the text run still controls opacity.
+                pixel[3] = ((pixel[3] as u16 * color[3] as u16) / 255) as u8;
+                blend_pixel(frame, x, y, pixel);
             }
         }
     }
@@ -119,6 +125,22 @@ fn sampled_pixel_coverage(
                 SampledPixelCoverage::Empty
             } else {
                 SampledPixelCoverage::Subpixel(coverage)
+            }
+        }
+        CachedGlyphRasterFormat::ColorRgba => {
+            let pixel = sampled_color_coverage(
+                bitmap,
+                raster_width,
+                raster_height,
+                logical_column,
+                logical_row,
+                raster_scale,
+                sample_offset_x,
+            );
+            if pixel[3] == 0 {
+                SampledPixelCoverage::Empty
+            } else {
+                SampledPixelCoverage::Color(pixel)
             }
         }
     }
@@ -206,6 +228,55 @@ fn sampled_subpixel_coverage(
             averaged_channel_coverage(sums[2], count, maxes[2]),
         ]
     }
+}
+
+fn sampled_color_coverage(
+    bitmap: &[u8],
+    raster_width: usize,
+    raster_height: usize,
+    logical_column: usize,
+    logical_row: usize,
+    raster_scale: f32,
+    sample_offset_x: f32,
+) -> [u8; 4] {
+    if uses_native_pixel_sampling(raster_width, raster_height, raster_scale) {
+        let offset = (logical_row * raster_width + logical_column) * 4;
+        return bitmap
+            .get(offset..offset + 4)
+            .and_then(|pixel| pixel.try_into().ok())
+            .unwrap_or([0, 0, 0, 0]);
+    }
+
+    let mut weighted_color = [0_u32; 3];
+    let mut alpha_sum = 0_u32;
+    let mut alpha_max = 0_u8;
+    let mut count = 0_u32;
+    let sample_x_range =
+        raster_sample_x_range(logical_column, raster_scale, sample_offset_x, raster_width);
+    for sample_y in raster_sample_y_range(logical_row, raster_scale, raster_height) {
+        let row_start = sample_y * raster_width * 4;
+        for sample_x in sample_x_range.clone() {
+            let offset = row_start + sample_x * 4;
+            let alpha = bitmap[offset + 3];
+            for channel in 0..3 {
+                weighted_color[channel] += bitmap[offset + channel] as u32 * alpha as u32;
+            }
+            alpha_sum += alpha as u32;
+            alpha_max = alpha_max.max(alpha);
+            count += 1;
+        }
+    }
+
+    if count == 0 || alpha_sum == 0 {
+        return [0, 0, 0, 0];
+    }
+
+    [
+        (weighted_color[0] / alpha_sum) as u8,
+        (weighted_color[1] / alpha_sum) as u8,
+        (weighted_color[2] / alpha_sum) as u8,
+        averaged_channel_coverage(alpha_sum, count, alpha_max),
+    ]
 }
 
 #[cfg(test)]

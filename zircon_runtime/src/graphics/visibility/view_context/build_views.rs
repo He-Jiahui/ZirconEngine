@@ -39,13 +39,12 @@ impl FrameVisibility {
         visible_stable_instance_keys: &BTreeSet<u64>,
         task_pool: Option<&TaskPool>,
     ) -> Self {
-        let mut frame_visibility =
-            Self::from_main_view(
-                camera,
-                bvh_instances,
-                primitive_relevance,
-                visible_stable_instance_keys,
-            );
+        let mut frame_visibility = Self::from_main_view(
+            camera,
+            bvh_instances,
+            primitive_relevance,
+            visible_stable_instance_keys,
+        );
         let extra_view_capacity =
             extra_view_capacity(scene_camera_entity, camera_descriptors, lighting);
         if extra_view_capacity == 0 {

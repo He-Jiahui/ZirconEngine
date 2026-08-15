@@ -360,6 +360,7 @@ fn register_skin_sphere_model(asset_manager: &ProjectAssetManager) -> ResourceHa
             vertices,
             indices,
             mesh: None,
+            mesh_sdf: None,
             virtual_geometry: None,
         }],
     };

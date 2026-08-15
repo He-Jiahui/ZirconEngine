@@ -57,7 +57,7 @@ journal、listener inbox 与 service fanout 没有共同的 retention/ownership 
 
 ## 修复结果与回传
 
-Open state: `2026-07-18 源码已落地 retention classes、共享 Arc payload、per-listener inbox 与 sequence/journal/listener 分锁；静态契约和 diff gate 已通过。仍待 Coordinator01 immutable full-input barrier fixed return 后执行 source-bound 1k/10k stress、完整 editor_event 回归、独立 review、failure -> fixed return 与 managed commit；在这些证据完成前不得标记 fixed。`
+Open state: `2026-08-05 已前向修复 listener page 的全量三队列 clone/sort、latest-state 线性定位与每事件独立 serde counting：queue 改为 delivery-cursor/age/event-sequence/key 索引，控制面硬切为 bounded page，shared record 只计算一次编码长度而不常驻第二份 JSON。cursor 采用 listener-local arrival ordinal，避免迟到的低 event sequence 被 continuation 跳过。registry 已按配置变更生成 immutable route snapshot，service 与 control 在 global registry guard 外执行 filter/per-owner enqueue/status/page/ack。source-bound 1k/10k stress、完整 editor_event 回归、独立 review、failure -> fixed return 与 managed commit 仍未完成；在这些证据完成前不得标记 fixed。`
 
 实现与当前阻塞证据：[`2026-07-18-editor-event-retention-and-lock-split.md`](2026-07-18-editor-event-retention-and-lock-split.md)。
 
@@ -67,4 +67,12 @@ Open state: `2026-07-18 源码已落地 retention classes、共享 Arc payload�
 
 Editor02后续必须以shared encoded owner/一次accounting、immutable route/filter generation、锁外per-owner enqueue、latest key index和cursor-first bounded k-way page修复，不得退回无界channel或私有线程池。验收增加0/1/1k/10k listeners/events、64B/2MiB/64MiB payload、0/50/100% filter、0/1/99% cursor与1/16 threads，记录serde traversal、record/delivery/JSON clone bytes、coalesce visits/shifts、merge/sort、lock wait/hold、queue bytes/age、p95/RSS，并复跑当前117 tests和F4 retained-host WPR。
 
-当前源码静态边界：`listener/registry.rs` inline test与`src/tests/editor_event/retention.rs` helper的`EditorEventRecord` literal缺新增`binding_path`、`transaction_id`、`save_generation`字段。Performance01未运行Cargo、未编辑这些foreign dirty文件，因此这不是动态RED；current-source gate与独立review完成前failure继续open。
+2026-08-05 forward repair：`listener/registry.rs` inline test与`src/tests/editor_event/retention.rs` helper 已补齐 `binding_path`、`transaction_id`、`save_generation`。同步删除旧无界 delivery query，并把 `AckDeliveriesThrough` 硬切为 delivery cursor；新增混合 retention-class 的 cursor page continuation、先确认后迟到低 sequence 仍可拉取、终页后空页与非法页大小回归；新实现不保留旧 API 或 compatibility shim。immutable route snapshot/per-owner inbox 的旧 snapshot、filter/disable/unregister 线性化和 detached inbox 投递亦已通过最终独立二审 `0/0/0`。详情见 `2026-08-05-retention-cursor-page-hardcut.md`；该 P0 仍须 managed current-source gate，failure 保持 open。
+
+## 产出记录与时间
+
+| 时间 | 切片 | 状态 | 完成项目与后续门禁 |
+| --- | --- | --- | --- |
+| 2026-08-05 CST | PERF-MVP-067 cursor page / latest-state index | `source_forward_repair_static_green / independent_second_review_green / managed_validation_pending` | 删除 `QueryDeliveries`/`QueryDeliveriesSince`，三类 queue 硬切为 delivery-cursor `BTreeMap`、age/event-sequence `BTreeSet`、latest-state key index；listener polling 变为 cursor-first bounded k-way page，shared record 在构造期一次 JSON length accounting 后释放临时 bytes。registry guard 仅产生 shared page，owned delivery/JSON 在 guard 析构后投影。ACK 同样以 delivery cursor 截断，覆盖 delayed-low-sequence/terminal-empty page 与非法页大小；公开架构文档、acceptance 审计和控制回归名称均已硬切到 `QueryDeliveriesPage` 与 delivery-cursor ACK，避免新调用方或维护者重接旧无界协议。`rustfmt`、scoped diff 与旧路径静态审计已复跑，最终独立二审 `0/0/0`。尚未执行 Cargo；route snapshot/per-owner enqueue 已由下一行继续修复。 |
+| 2026-08-05 CST | PERF-MVP-067 immutable route / per-owner inbox | `source_forward_repair_static_green / independent_second_review_green / managed_validation_pending` | registry 在 listener config mutation 时重建 immutable `Arc<[EditorEventListenerRoute]>`；record 仅在 registry lock 内复制 route snapshot，filter 与每个 inbox lock 均在其后，control 的 status/page/ack 同样采用 handle 后锁外 retention。回归覆盖 old in-flight snapshot 与新 filter/disable/unregister 的线性化语义、detached inbox 的旧 route 实际投递；静态锁边界与 legacy-path 审计和最终独立二审 `0/0/0` 通过。remaining gate 是 source-bound Cargo 和 0/1k/10k contention/stress。 |
+| 2026-08-05 CST | PERF-MVP-067 retention stress receipt | `source_forward_repair_static_green / independent_second_review_green / managed_validation_queued` | current source manifest 封存 journal、retention、immutable route/registry、service 与 1,000-listener cursor-page regression；focused stress 由 coordinator 执行。 | Ticket `0a59c4cedd8a43da9270ec689e17b22a` 已收到 queued receipt；未轮询，未将排队状态记为 test pass，failure 保持 open。 |

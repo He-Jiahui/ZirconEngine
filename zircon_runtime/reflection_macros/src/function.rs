@@ -77,7 +77,7 @@ pub(crate) fn host_function_impl(
         let name = &param.name;
         let ty = &param.ty;
         let type_ref = quote! {
-            <#ty as ::zircon_runtime::core::framework::script::ScriptHostFromValue>::script_host_type_ref()
+            <#ty as ::zircon_runtime::core::framework::script::ScriptHostFromArgument>::script_host_type_ref()
         };
         quote! {
             .with_parameter({
@@ -94,12 +94,12 @@ pub(crate) fn host_function_impl(
         let name = &param.ident;
         let ty = &param.ty;
         quote! {
-            let #name = <#ty as ::zircon_runtime::core::framework::script::ScriptHostFromValue>::from_script_host_value(
-                context.arguments.get(#index).ok_or_else(|| {
-                    ::zircon_runtime::core::framework::script::ScriptHostError::new(format!("argument {} was not provided", #index))
-                })?,
-                #index,
-            )?;
+            let #name = context.arguments.with_argument(#index, |value| {
+                <#ty as ::zircon_runtime::core::framework::script::ScriptHostFromArgument>::from_script_host_argument(
+                    value,
+                    #index,
+                )
+            })?;
         }
     });
     let call_args = params.iter().map(|param| &param.ident);

@@ -2,9 +2,16 @@ use std::collections::{HashMap, VecDeque};
 use std::time::Instant;
 
 use zircon_runtime_interface::{
-    ProfileCaptureConfig, ProfileCounterSnapshot, ProfileFrameSnapshot, ProfileSnapshot,
+    ProfileCaptureConfig, ProfileCounterSnapshot, ProfileFrameSnapshot,
+    ProfileRecorderRetentionSnapshot, ProfileSampleRetentionSnapshot, ProfileSnapshot,
     ProfileSpanSnapshot,
 };
+
+#[derive(Clone, Copy, Debug, Default)]
+struct RetentionCounter {
+    written: u64,
+    overwritten: u64,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ProfileRecorderStatus {
@@ -34,6 +41,9 @@ pub struct ProfileRecorder {
     frames: VecDeque<ProfileFrameSnapshot>,
     spans: VecDeque<ProfileSpanSnapshot>,
     counters: VecDeque<ProfileCounterSnapshot>,
+    frame_retention: RetentionCounter,
+    span_retention: RetentionCounter,
+    counter_retention: RetentionCounter,
 }
 
 impl ProfileRecorder {
@@ -47,6 +57,9 @@ impl ProfileRecorder {
             frames: VecDeque::new(),
             spans: VecDeque::new(),
             counters: VecDeque::new(),
+            frame_retention: RetentionCounter::default(),
+            span_retention: RetentionCounter::default(),
+            counter_retention: RetentionCounter::default(),
         }
     }
 
@@ -59,6 +72,7 @@ impl ProfileRecorder {
         self.frames.clear();
         self.spans.clear();
         self.counters.clear();
+        self.reset_retention();
         ProfileRecorderStatus {
             active: true,
             feature_enabled: true,
@@ -83,6 +97,7 @@ impl ProfileRecorder {
         self.frames.clear();
         self.spans.clear();
         self.counters.clear();
+        self.reset_retention();
         ProfileRecorderStatus {
             active: false,
             feature_enabled: true,
@@ -119,15 +134,30 @@ impl ProfileRecorder {
     }
 
     pub fn record_span(&mut self, span: ProfileSpanSnapshot) {
-        push_ring(&mut self.spans, span, self.config.max_spans);
+        record_ring_sample(
+            &mut self.spans,
+            span,
+            self.config.max_spans,
+            &mut self.span_retention,
+        );
     }
 
     pub fn record_frame(&mut self, frame: ProfileFrameSnapshot) {
-        push_ring(&mut self.frames, frame, self.config.max_frames);
+        record_ring_sample(
+            &mut self.frames,
+            frame,
+            self.config.max_frames,
+            &mut self.frame_retention,
+        );
     }
 
     pub fn record_counter(&mut self, counter: ProfileCounterSnapshot) {
-        push_ring(&mut self.counters, counter, self.config.max_counters);
+        record_ring_sample(
+            &mut self.counters,
+            counter,
+            self.config.max_counters,
+            &mut self.counter_retention,
+        );
     }
 
     pub fn snapshot(&self) -> ProfileSnapshot {
@@ -140,17 +170,72 @@ impl ProfileRecorder {
             frames: self.frames.iter().cloned().collect(),
             spans: self.spans.iter().cloned().collect(),
             counters: self.counters.iter().cloned().collect(),
+            recorder_retention: vec![ProfileRecorderRetentionSnapshot {
+                frames: retention_snapshot(
+                    self.frame_retention,
+                    self.frames.len(),
+                    self.config.max_frames,
+                ),
+                spans: retention_snapshot(
+                    self.span_retention,
+                    self.spans.len(),
+                    self.config.max_spans,
+                ),
+                counters: retention_snapshot(
+                    self.counter_retention,
+                    self.counters.len(),
+                    self.config.max_counters,
+                ),
+            }],
         }
+    }
+
+    fn reset_retention(&mut self) {
+        self.frame_retention = RetentionCounter::default();
+        self.span_retention = RetentionCounter::default();
+        self.counter_retention = RetentionCounter::default();
     }
 }
 
 /// Appends to a bounded sample queue without shifting retained samples on eviction.
-fn push_ring<T>(items: &mut VecDeque<T>, item: T, max_items: usize) {
+fn push_ring<T>(items: &mut VecDeque<T>, item: T, max_items: usize) -> bool {
     let max_items = max_items.max(1);
-    if items.len() >= max_items {
+    let overwritten = if items.len() >= max_items {
         items.pop_front();
-    }
+        true
+    } else {
+        false
+    };
     items.push_back(item);
+    overwritten
+}
+
+fn record_ring_sample<T>(
+    items: &mut VecDeque<T>,
+    item: T,
+    max_items: usize,
+    retention: &mut RetentionCounter,
+) {
+    retention.written = retention.written.saturating_add(1);
+    if push_ring(items, item, max_items) {
+        retention.overwritten = retention.overwritten.saturating_add(1);
+    }
+}
+
+fn retention_snapshot(
+    retention: RetentionCounter,
+    retained: usize,
+    capacity: usize,
+) -> ProfileSampleRetentionSnapshot {
+    let retained = u64::try_from(retained).unwrap_or(u64::MAX);
+    ProfileSampleRetentionSnapshot {
+        capacity: u64::try_from(capacity.max(1)).unwrap_or(u64::MAX),
+        written: retention.written,
+        overwritten: retention.overwritten,
+        retained,
+        oldest_sequence: (retained > 0).then(|| retention.written.saturating_sub(retained)),
+        newest_sequence: (retained > 0).then(|| retention.written.saturating_sub(1)),
+    }
 }
 
 #[cfg(test)]
@@ -166,11 +251,13 @@ mod tests {
     #[test]
     fn ring_push_evicts_oldest_sample_at_capacity() {
         let mut samples = VecDeque::with_capacity(3);
+        let mut overwrites = Vec::new();
 
         for sample in 0..5 {
-            push_ring(&mut samples, sample, 3);
+            overwrites.push(push_ring(&mut samples, sample, 3));
         }
 
+        assert_eq!(overwrites, vec![false, false, false, true, true]);
         assert_eq!(samples.into_iter().collect::<Vec<_>>(), vec![2, 3, 4]);
     }
 
@@ -205,6 +292,44 @@ mod tests {
         assert_eq!(snapshot.spans[1].name, "third");
         assert_eq!(snapshot.counters.len(), 1);
         assert_eq!(snapshot.counters[0].value, 2.0);
+        assert_eq!(snapshot.recorder_retention.len(), 1);
+        let retention = &snapshot.recorder_retention[0];
+        assert_eq!(retention.frames.capacity, 1);
+        assert_eq!(retention.frames.written, 2);
+        assert_eq!(retention.frames.overwritten, 1);
+        assert_eq!(retention.frames.retained, 1);
+        assert_eq!(retention.frames.oldest_sequence, Some(1));
+        assert_eq!(retention.frames.newest_sequence, Some(1));
+        assert_eq!(retention.spans.capacity, 2);
+        assert_eq!(retention.spans.written, 3);
+        assert_eq!(retention.spans.overwritten, 1);
+        assert_eq!(retention.spans.retained, 2);
+        assert_eq!(retention.spans.oldest_sequence, Some(1));
+        assert_eq!(retention.spans.newest_sequence, Some(2));
+        assert_eq!(retention.counters.capacity, 1);
+        assert_eq!(retention.counters.written, 2);
+        assert_eq!(retention.counters.overwritten, 1);
+        assert_eq!(retention.counters.retained, 1);
+        assert_eq!(retention.counters.oldest_sequence, Some(1));
+        assert_eq!(retention.counters.newest_sequence, Some(1));
+    }
+
+    #[test]
+    fn recorder_reset_clears_retention_sequence_authority() {
+        let mut recorder = ProfileRecorder::new(ProfileCaptureConfig::default());
+        recorder.start_capture(ProfileCaptureConfig::default());
+        recorder.record_frame(frame(0));
+
+        recorder.reset();
+
+        let snapshot = recorder.snapshot();
+        assert_eq!(snapshot.recorder_retention.len(), 1);
+        let retention = &snapshot.recorder_retention[0].frames;
+        assert_eq!(retention.written, 0);
+        assert_eq!(retention.overwritten, 0);
+        assert_eq!(retention.retained, 0);
+        assert_eq!(retention.oldest_sequence, None);
+        assert_eq!(retention.newest_sequence, None);
     }
 
     fn frame(frame_index: u64) -> ProfileFrameSnapshot {

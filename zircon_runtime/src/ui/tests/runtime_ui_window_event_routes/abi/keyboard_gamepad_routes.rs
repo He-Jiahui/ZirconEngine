@@ -20,7 +20,7 @@ fn runtime_ui_manager_routes_runtime_keyboard_enter_through_focused_window_path(
         track_frame.y + track_frame.height * 0.5,
     );
     manager.register_pointer_handler(track_button, UiPointerEventKind::Down, |_| {
-        UiPointerDispatchEffect::set_focus(true)
+        UiPointerDispatchEffect::set_focus()
     });
 
     manager
@@ -37,6 +37,14 @@ fn runtime_ui_manager_routes_runtime_keyboard_enter_through_focused_window_path(
         )
         .expect("runtime mouse-button ABI event should focus the track button");
     assert_eq!(manager.surface().focus.focused, Some(track_button));
+    assert!(
+        !manager
+            .surface()
+            .component_state(track_button)
+            .expect("focused pointer target")
+            .flags
+            .focus_visible
+    );
 
     let result = manager
         .dispatch_runtime_event(
@@ -146,7 +154,7 @@ fn runtime_ui_manager_routes_runtime_gamepad_dpad_right_through_focused_navigati
         track_frame.y + track_frame.height * 0.5,
     );
     manager.register_pointer_handler(track_button, UiPointerEventKind::Down, |_| {
-        UiPointerDispatchEffect::set_focus(true)
+        UiPointerDispatchEffect::set_focus()
     });
     manager.register_navigation_handler(track_button, UiNavigationEventKind::Right, move |_| {
         UiNavigationDispatchEffect::focus(close_button)
@@ -274,7 +282,7 @@ fn runtime_ui_manager_routes_runtime_gamepad_axis_right_through_focused_analog_n
         track_frame.y + track_frame.height * 0.5,
     );
     manager.register_pointer_handler(track_button, UiPointerEventKind::Down, |_| {
-        UiPointerDispatchEffect::set_focus(true)
+        UiPointerDispatchEffect::set_focus()
     });
     manager.register_navigation_handler(track_button, UiNavigationEventKind::Right, move |_| {
         UiNavigationDispatchEffect::focus(close_button)

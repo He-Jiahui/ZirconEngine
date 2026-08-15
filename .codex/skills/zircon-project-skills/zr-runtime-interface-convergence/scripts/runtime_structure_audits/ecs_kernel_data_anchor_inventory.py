@@ -4,9 +4,9 @@ ARCHETYPE_ANCHORS = (
     "pub struct ArchetypeId(usize)",
     "pub const EMPTY: Self = Self(0);",
     "pub struct ArchetypeRecord",
-    "pub(super) fn push_entity(&mut self, entity: EntityId) -> usize",
-    "pub(super) fn swap_remove_entity(",
-    "pub struct ArchetypeMove",
+    "table: ArchetypeTable,",
+    "pub(super) fn take_row(",
+    "pub(super) fn append_preflighted_row(",
     "pub struct ArchetypeIndex",
     "by_signature: HashMap<ArchetypeSignature, ArchetypeId>",
     "by_component: HashMap<ComponentId, Vec<ArchetypeId>>",
@@ -22,10 +22,10 @@ STORAGE_ANCHORS = (
     "Table,",
     "SparseSet,",
     "pub struct ComponentStorage",
-    "table_components: HashMap<ComponentId, TableComponentStorage>,",
+    "Dense table values live in `ArchetypeTable`.",
     "sparse_components: HashMap<ComponentId, SparseComponentStorage>,",
     "pub struct ComponentStorageLocation",
-    "pub fn get_table_row<T>",
+    "pub(crate) fn insert_preflighted_at_tick<T>",
     "pub fn get_with_ticks_at_location<T>",
 )
 COMPONENT_STORAGE_PRIVATE_REEXPORT_ANCHORS = (
@@ -38,11 +38,11 @@ COMPONENT_STORAGE_PRIVATE_REEXPORT_ANCHORS = (
         "pub use store::ComponentStorage;",
     ),
     (
-        "zircon_runtime/src/scene/ecs/storage/component_storage/sparse.rs",
-        "use super::entry::{RawRemoveResult, StoredComponent};",
+        "zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs",
+        "pub(crate) use entry::{",
     ),
     (
-        "zircon_runtime/src/scene/ecs/storage/component_storage/table.rs",
+        "zircon_runtime/src/scene/ecs/storage/component_storage/sparse.rs",
         "use super::entry::{RawRemoveResult, StoredComponent};",
     ),
     (
@@ -59,11 +59,11 @@ COMPONENT_STORAGE_PRIVATE_REEXPORT_ANCHORS = (
     ),
     (
         "zircon_runtime/src/scene/ecs/storage/component_storage/store.rs",
-        "use super::table::TableComponentStorage;",
+        "use super::entry::{PreflightedTransferredComponentRow, StoredComponent, TransferredComponentRow};",
     ),
     (
         "zircon_runtime/src/scene/ecs/storage/component_storage/store.rs",
-        "use super::component_results::{downcast_component, sort_component_ids_if_needed};",
+        "use super::component_results::downcast_component;",
     ),
 )
 COMPONENT_STORAGE_PRIVATE_REEXPORT_FORBIDDEN_SNIPPETS = (
@@ -77,7 +77,7 @@ COMPONENT_STORAGE_PRIVATE_REEXPORT_FORBIDDEN_SNIPPETS = (
     ),
     (
         "zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs",
-        "pub(super) use table::",
+        "mod table;",
     ),
     (
         "zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs",
@@ -92,8 +92,8 @@ COMPONENT_STORAGE_PRIVATE_REEXPORT_FORBIDDEN_SNIPPETS = (
         "pub(in crate::scene::ecs::storage) use sparse::",
     ),
     (
-        "zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs",
-        "pub(in crate::scene::ecs::storage) use table::",
+        "zircon_runtime/src/scene/ecs/storage/component_storage/store.rs",
+        "use super::table::",
     ),
     (
         "zircon_runtime/src/scene/ecs/storage/component_storage/mod.rs",
@@ -101,10 +101,6 @@ COMPONENT_STORAGE_PRIVATE_REEXPORT_FORBIDDEN_SNIPPETS = (
     ),
     (
         "zircon_runtime/src/scene/ecs/storage/component_storage/sparse.rs",
-        "use super::{RawRemoveResult, StoredComponent};",
-    ),
-    (
-        "zircon_runtime/src/scene/ecs/storage/component_storage/table.rs",
         "use super::{RawRemoveResult, StoredComponent};",
     ),
     (
@@ -153,10 +149,10 @@ OBSERVER_ANCHORS = (
     "pub fn observe_lifecycle(",
     "pub fn observe_event<E>(",
     "pub fn observe_entity_event<E>(",
-    "pub fn remove(&mut self, id: ObserverId) -> bool",
+    "pub fn remove(&mut self, id: ObserverId) -> SceneResult<()>",
     "pub(crate) fn lifecycle_callbacks(",
-    "let mut callbacks = Vec::with_capacity(callback_count);",
-    "callbacks.push(observer.callback.clone());",
+    "lifecycle_buckets: HashMap<LifecycleObserverKey, Arc<BTreeMap<ObserverId, LifecycleObserver>>>",
+    "observer_locations: HashMap<ObserverId, ObserverBucket>",
 )
 COMMAND_ANCHORS = (
     "pub enum DeferredCommandOperation",

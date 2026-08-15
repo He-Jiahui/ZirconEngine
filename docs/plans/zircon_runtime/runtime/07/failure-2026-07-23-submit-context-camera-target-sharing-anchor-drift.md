@@ -52,4 +52,8 @@ Runtime07 的生产锚点与“camera target 来自共享 submission source”�
 
 ## 修复结果与回传
 
-Open state: `待 Runtime07 核对 shared-source 等价语义并取得精确守卫与上行门禁的有效动态证据`。
+Open state: `Runtime07 已核对并修复 shared-source 守卫漂移；受管 current-source Cargo、独立 review 与 fixed return 仍待完成`。
+
+2026-08-11 current-source 复核确认生产路径没有恢复整份 `RenderFrameExtract` clone：`viewport_terminal_camera_target` 从 `&extract.view.cameras` 调用 `resolve_camera_sequence_borrowed`，只在最终 terminal descriptor 上执行 `target.clone()`。守卫已删除过期的 `.map(|submission| submission.camera.target.clone())` 文本要求，改为限定函数体并同时验证 borrowed sequence、terminal position、final target clone，以及禁止 extract/camera-list/stale-submission clone。继续执行守卫时暴露的 `render_frame_with_pipeline(` 旧方法名也已收紧到当前 `render_frame_with_pipeline_async_capture_task_pool_with_environment_ibl_bake_reservation(`，直接 `&*frame` streaming 语义未变。
+
+source-bound standalone guard 已从原始第 75 行 panic 转为 exit 0；`rustfmt --check` 与 scoped `git diff --check` GREEN。协调器 session `runtime07-camera-target-sharing-guard-20260811` 未生成 Cargo job；artifact audit request `5e3ec570ace84f75934d5fc25513ccb4` 仍报告三个外部未登记 E 盘产物，未越权删除。故本记录不声明 managed Cargo 或完整 failure closure，继续保持 `open`。

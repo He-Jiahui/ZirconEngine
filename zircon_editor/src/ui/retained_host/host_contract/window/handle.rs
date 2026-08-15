@@ -9,12 +9,14 @@ use crate::ui::retained_host::primitives::{
 
 use super::super::globals::HostContractState;
 use super::super::presenter::paint_host_presentation_snapshot;
+use super::attention::HostWindowAttention;
 use super::presentation::host_presentation_from_state;
 pub(crate) use snapshot::HostWindowSnapshot;
 
 #[derive(Clone)]
 pub(crate) struct HostWindowHandle {
     pub(in crate::ui::retained_host::host_contract) state: Rc<RefCell<HostContractState>>,
+    pub(in crate::ui::retained_host::host_contract) attention: HostWindowAttention,
 }
 
 impl HostWindowHandle {
@@ -60,6 +62,10 @@ impl HostWindowHandle {
 
     pub(crate) fn is_maximized(&self) -> bool {
         self.state.borrow().window_maximized
+    }
+
+    pub(crate) fn window_attention(&self) -> HostWindowAttention {
+        self.attention.clone()
     }
 
     pub(crate) fn on_close_requested(&self, callback: impl Fn() -> CloseRequestResponse + 'static) {

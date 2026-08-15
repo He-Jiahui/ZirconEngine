@@ -50,18 +50,18 @@ Build {
 
 **热接入底座**：`DynamicScene` 热重载队列 + `AssetReloadFrameApplyReport { applied, failed, stale, pending_count }` 按帧应用报告（`reports.rs:70-73`）——脚本模块若走资产管线（`import_*` 家族增脚本导入器），重载通道免费获得。
 
-**编辑器侧空白**：无编译触发（watch/手动/Play 前置皆无）；无诊断面板契约；无编译状态呈现；`--headless --operation`（16 取证：`entry_runner/editor.rs:313-361`）可作 CI 编译入口但无编译操作注册。
+**编辑器侧空白**：无编译触发（watch/手动/Play 前置皆无）；无诊断面板契约；无编译状态呈现；CI 入口应注册 `build-scripts` commandlet 并通过 `--run build-scripts` 调用，当前尚未注册。
 
 ## 目标
 
 1. **`ScriptBuildOrchestrator`**（编辑器侧）：
-   - 触发源三路：保存触发（watch 脚本源目录，去抖 300ms 合批）/ 手动命令（08：`zircon.script.build`）/ Play 前置（04 `Building` 态委托）；
-   - 构建队列（Fyrox `VecDeque<CommandDescriptor>` 直译）：`BuildStep::{CompileModules(Vec<ModuleRef>), ValidateLedger, RefreshBindings}`——多步、前步失败即止；
+   - 触发源三路：保存触发（watch 脚本源目录，去抖 300ms 合批且首事件 1000ms 硬截止）/ 手动命令（08：`zircon.script.build`）/ Play 前置（04 `Building` 态委托）；
+   - 构建准入为 active generation + 至多一个 coalesced pending generation，按 `Watch < Command < Play` 提升意图；`BuildStep::{CompileModules(Vec<ModuleRef>), ValidateLedger, RefreshBindings}`——多步、前步失败即止；
    - 状态机 `Idle / Building{queue_pos} / Succeeded{artifacts} / Failed{diagnostics}`，事件入 01 bus；`play_after_build` 语义由 04 消费。
 2. **诊断契约**（DTO 入 `zircon_runtime_interface/src/script_diagnostics/`）：`ScriptDiagnostic { severity, module, file, line, col, code, message, related: Vec<RelatedInfo> }`——VM 编译器产出、编辑器汇聚；面板数据源（按模块分组/按严重度过滤/点击跳转——外部 IDE 或内部查看器，17 设置项 `script.editor.open_mode`）；状态栏徽标（错误/警告计数）。
 3. **产物热接入**：VM 模块产物走资产热重载队列（脚本模块注册为资产类型——09 `AssetTypeRegistry` 一条目 + importer 一枚）；应用报告 `AssetReloadFrameApplyReport` 已按帧回流 → 02 `WorldFact::AssetReloadApplied` → 编辑器提示；**实例状态迁移**：VM 层 reload 前对模块实例状态做 serde 快照、reload 后按字段名重放（runtime/13 的 marshalling 值类型通道复用），字段失配处置（缺省填/丢弃）入报告——UE 教训的显式防线；迁移失败 → 保持旧模块运行 + 诊断。
 4. **Play 链路与互斥**：`Building` 期间 Play 按钮转等待（04 状态机）；编译失败 → 中止 Play 并聚焦诊断面板；编译 job 与导入 job 在 14 门面同属互斥资源（脚本产物即资产，避免编译写/导入读竞态）。
-5. **CI/无头**：`build-scripts` commandlet（16 注册表）：全量编译 + 诊断 JSON 输出 + 非零退出码——`--headless --operation` 既有通道消费。
+5. **CI/无头**：`build-scripts` commandlet（16 注册表）：全量编译 + 诊断 JSON 输出 + 非零退出码——`zircon_editor --run build-scripts` 是唯一产品无头入口。
 6. **（条件）Rust crate 形态**：若 runtime/13 落地 dylib 玩法路线——cargo 子进程封装（继承 `tools/dev-fast-build.ps1` 的 profile/共享 target-dir/磁盘策略纪律）、产物校验、重载即重启 PIE（不做状态迁移的诚实降级）。
 
 ## 非目标
@@ -76,7 +76,7 @@ Build {
 zircon_editor/src/core/script_build/
   mod.rs
   request.rs          # request/step/dispatch/completion 值对象
-  orchestrator.rs     # 状态机 + 三触发源 + request FIFO + step 队列
+  orchestrator.rs     # 状态机 + 三触发源 + bounded generation admission + step 队列
   watch.rs            # 后续源目录监视适配（复用 runtime asset/watch 事件，经 gateway）
   diagnostics_sink.rs # 汇聚 + 面板数据源投影
 zircon_runtime_interface/src/script_diagnostics/   # DTO
@@ -101,8 +101,8 @@ zircon_runtime_interface/src/script_diagnostics/   # DTO
 
 ### M1 编排器与诊断面（假编译器）
 
-- 切片 1.1：`orchestrator.rs` 状态机 + 三触发源（watch 去抖合批/命令/Play 委托接口）+ 队列语义（前步失败即止）；假编译器夹具。2026-07-18 已完成纯领域生产核心与测试夹具；异步 completion 绑定原 dispatch 的 request+step 双身份，拒绝同 request 旧步骤迟到推进当前步骤。受管 Rust 测试阶段待 Coordinator01 完整 compile-input snapshot 解禁，见 [子计划记录](13/2026-07-18-script-build-orchestrator-m1.md)。
-- 切片 1.2：`script_diagnostics` DTO + `diagnostics_sink.rs`（分组/过滤/跳转动作发 bus 消息）+ 状态栏徽标数据源。
+- 切片 1.1：`orchestrator.rs` 状态机 + 三触发源（watch 去抖合批/命令/Play 委托接口）+ 队列语义（前步失败即止）；假编译器夹具。2026-07-18 已完成纯领域生产核心与测试夹具；异步 completion 绑定原 dispatch 的 request+step 双身份，拒绝同 request 旧步骤迟到推进当前步骤。2026-08-11 已补 first-event max latency、20 路径/64KiB 双预算、单 pending generation、Command/Play single-flight、Play precedence 与显式 Cancelled outcome；受管 Rust 测试仍待仓库级 artifact gate 解禁，见 [子计划记录](13/2026-07-18-script-build-orchestrator-m1.md)与 [open failure](13/failure-2026-07-22-script-build-debounce-admission-backpressure.md)。
+- 切片 1.2：`script_diagnostics` DTO + `diagnostics_sink.rs`（分组/过滤/跳转动作发 bus 消息）+ 状态栏徽标数据源。2026-08-11 已完成 DTO、Editor17 canonical log severity/jump 投影与 generation/request/step 有界去重的 current-source 实现；静态合同 8/8、scoped rustfmt/diff check GREEN，受管 Rust 测试仍被仓库级未登记 D/E/F artifact gate 阻塞，failure 保持 open，见 [交接记录](13/failure-2026-08-05-script-build-diagnostics-editor-log-source-bridge.md)。
 - 测试阶段：`cargo test -p zircon_editor --lib --locked`（状态机全迁移矩阵/去抖合批时序/队列中断/诊断汇聚分组）+ `cargo test -p zircon_runtime_interface --locked`（DTO 往返）。更新 `docs/zircon_editor/core/script_build.md`。
 
 ### M2 真实 VM 接线与热接入
@@ -132,11 +132,7 @@ zircon_runtime_interface/src/script_diagnostics/   # DTO
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-产出明细位于 [2026-07-18 ScriptBuildOrchestrator M1.1 子计划](13/2026-07-18-script-build-orchestrator-m1.md)。M1.2 诊断 DTO/sink、M2 真实 VM、M3 Play/job/commandlet 接线均未完成，本计划保持 `in_progress`。
+产出明细位于 [2026-07-18 ScriptBuildOrchestrator M1.1 子计划](13/2026-07-18-script-build-orchestrator-m1.md)。M1.2 的 DTO/canonical-log sink 已有 current-source 实现但受管 Rust 验证未完成；状态栏徽标、M2 真实 VM、M3 Play/job/commandlet 接线仍未完成，本计划保持 `in_progress`。
 
-- 2026-07-22 性能复核：超过20条unique watch path已立即折叠为full-rebuild sentinel，snapshot最后
-  outcome改Arc共享；standalone Rust tests 10/10、静态合同5/5。滑动debounce仍缺first-event max
-  latency，Command/Play FIFO仍无entry/bytes/age预算与generation single-flight；见
-  [open failure](13/failure-2026-07-22-script-build-debounce-admission-backpressure.md)与PERF-MVP-557，
-  联动Editor14/Runtime11，不以扩大队列解决。
+- 2026-08-11 性能修复：watch batch 具备首事件 1000ms 硬截止与 20 路径/64KiB 双预算，超限立即折叠 full-rebuild sentinel；无界 `VecDeque` 已替换为单 pending generation，等价 Command/Play 共享 typed request/generation id，并按 `Watch < Command < Play` 提升到 latest Play resume intent。独立 Rust 行为夹具 6/6（含 1M explicit storm）、Editor13 静态合同 8/8、scoped rustfmt/diff check GREEN。failure 仍 open：Editor14 共享 job ticket 的 entry/bytes/oldest-age 与取消接线、产品 caller F4 trace、current-source managed Cargo 待完成；见 [open failure](13/failure-2026-07-22-script-build-debounce-admission-backpressure.md)与 PERF-MVP-557。
 - 2026-07-30 current-source性能复核：`core/script_build/**`4/4、912行、13 tests已按稳定SHA逐文件复读；20-path+sentinel、Arc outcome与linear dispatch ticket继续成立。除`core/mod.rs`导出外仍无watch/command/Play/job/VM/commandlet产品caller，不把接线前风险写成当前UI实测。PERF-MVP-557补充fixed three-step Vec、dispatch最多20个PathBuf clone、持续debounce starvation及Command/Play无界admission；M2/M3前必须用source generation、bounded/coalesced ticket和Editor14/Runtime11唯一job owner收口。rustfmt/whitespace GREEN，managed Cargo、规模counter与F4仍待；证据见`../../performance/01/2026-07-30-editor-core-script-build-current-review.md`。

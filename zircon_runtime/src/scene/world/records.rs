@@ -3,9 +3,15 @@ use std::collections::{BTreeMap, HashSet};
 use super::transform_validation::validate_transform_for_write;
 use super::{SceneError, SceneResult, World};
 use crate::scene::components::{
-    ActiveSelf, Hierarchy, LocalTransform, Mobility, Name, NodeRecord, RenderLayerMask,
+    ActiveSelf, AmbientLight, AnimationGraphPlayerComponent, AnimationPlayerComponent,
+    AnimationSequencePlayerComponent, AnimationSkeletonComponent,
+    AnimationStateMachinePlayerComponent, CameraComponent, ColliderComponent, DirectionalLight,
+    Hierarchy, JointComponent, LocalTransform, Mesh2dComponent, MeshRenderer, Mobility, Name,
+    NodeRecord, PointLight, RectLight, RenderLayerMask, RigidBodyComponent, SpotLight,
+    Sprite2dComponent,
 };
-use crate::scene::EntityId;
+use crate::scene::{ecs::InternalEntity, EntityId};
+use zircon_runtime_interface::world_sync::WorldFact;
 
 struct PreparedNodeRecordBatch {
     records: Vec<NodeRecord>,
@@ -14,25 +20,25 @@ struct PreparedNodeRecordBatch {
 
 impl World {
     pub fn node_record(&self, entity: EntityId) -> Option<NodeRecord> {
-        let name = self.names.get(&entity)?.0.clone();
+        let name = self.get::<Name>(entity)?.0.clone();
         let kind = self.node_kind(entity)?;
-        let parent = match self.hierarchy.get(&entity) {
+        let parent = match self.get::<Hierarchy>(entity) {
             Some(hierarchy) => hierarchy.parent,
             None => None,
         };
-        let transform = match self.local_transforms.get(&entity) {
+        let transform = match self.get::<LocalTransform>(entity) {
             Some(local) => local.transform,
             None => LocalTransform::default().transform,
         };
-        let active = match self.active_self.get(&entity) {
+        let active = match self.get::<ActiveSelf>(entity) {
             Some(active) => active.0,
             None => ActiveSelf::default().0,
         };
-        let render_layer_mask = match self.render_layer_masks.get(&entity) {
+        let render_layer_mask = match self.get::<RenderLayerMask>(entity) {
             Some(mask) => mask.0,
             None => RenderLayerMask::default().0,
         };
-        let mobility = match self.mobility.get(&entity) {
+        let mobility = match self.get::<Mobility>(entity) {
             Some(mobility) => *mobility,
             None => Mobility::default(),
         };
@@ -43,28 +49,29 @@ impl World {
             kind,
             parent,
             transform,
-            camera: self.cameras.get(&entity).cloned(),
-            mesh: self.mesh_renderers.get(&entity).cloned(),
-            sprite_2d: self.sprite_2d.get(&entity).cloned(),
-            mesh_2d: self.mesh_2d.get(&entity).cloned(),
-            ambient_light: self.ambient_lights.get(&entity).cloned(),
-            directional_light: self.directional_lights.get(&entity).cloned(),
-            point_light: self.point_lights.get(&entity).cloned(),
-            rect_light: self.rect_lights.get(&entity).cloned(),
-            spot_light: self.spot_lights.get(&entity).cloned(),
+            camera: self.get::<CameraComponent>(entity).cloned(),
+            mesh: self.get::<MeshRenderer>(entity).cloned(),
+            sprite_2d: self.get::<Sprite2dComponent>(entity).cloned(),
+            mesh_2d: self.get::<Mesh2dComponent>(entity).cloned(),
+            ambient_light: self.get::<AmbientLight>(entity).cloned(),
+            directional_light: self.get::<DirectionalLight>(entity).cloned(),
+            point_light: self.get::<PointLight>(entity).cloned(),
+            rect_light: self.get::<RectLight>(entity).cloned(),
+            spot_light: self.get::<SpotLight>(entity).cloned(),
             active,
             render_layer_mask,
             mobility,
-            rigid_body: self.rigid_bodies.get(&entity).cloned(),
-            collider: self.colliders.get(&entity).cloned(),
-            joint: self.joints.get(&entity).cloned(),
-            animation_skeleton: self.animation_skeletons.get(&entity).cloned(),
-            animation_player: self.animation_players.get(&entity).cloned(),
-            animation_sequence_player: self.animation_sequence_players.get(&entity).cloned(),
-            animation_graph_player: self.animation_graph_players.get(&entity).cloned(),
+            rigid_body: self.get::<RigidBodyComponent>(entity).cloned(),
+            collider: self.get::<ColliderComponent>(entity).cloned(),
+            joint: self.get::<JointComponent>(entity).cloned(),
+            animation_skeleton: self.get::<AnimationSkeletonComponent>(entity).cloned(),
+            animation_player: self.get::<AnimationPlayerComponent>(entity).cloned(),
+            animation_sequence_player: self
+                .get::<AnimationSequencePlayerComponent>(entity)
+                .cloned(),
+            animation_graph_player: self.get::<AnimationGraphPlayerComponent>(entity).cloned(),
             animation_state_machine_player: self
-                .animation_state_machine_players
-                .get(&entity)
+                .get::<AnimationStateMachinePlayerComponent>(entity)
                 .cloned(),
         })
     }
@@ -127,12 +134,15 @@ impl World {
             self.insert_prevalidated_node_record(record);
         }
         self.next_id = self.next_id.max(next_id);
-        self.bump_query_cache_revision();
+        self.bump_lifecycle_visibility_revision();
         self.mark_derived_state_dirty();
         self.inspection_artifact_cache.mark_hierarchy_rows_dirty();
         self.advance_world_generation();
-        for entity in inserted_entities {
+        for entity in inserted_entities.iter().copied() {
             self.advance_scene_binding_generations_for_new_descendant(entity);
+        }
+        for entity in inserted_entities {
+            self.record_world_fact(WorldFact::Spawned(entity));
         }
         self.record_staged_lifecycle_events = prior_staging;
 
@@ -146,94 +156,99 @@ impl World {
         Ok(())
     }
 
-    fn insert_prevalidated_node_record(&mut self, record: NodeRecord) {
-        let entity = record.id;
-        self.insert_prevalidated_node_record_without_archetype(record);
-        self.rebuild_fixed_component_presence_into_final_archetype(entity);
-    }
-
-    pub(super) fn insert_prevalidated_node_record_without_archetype(&mut self, record: NodeRecord) {
-        self.register_prevalidated_stable_entity(record.id);
-        self.entities.push(record.id);
-        self.kinds.insert(record.id, record.kind);
-        self.record_node_kind_added(record.kind);
-        self.names.insert(record.id, Name(record.name));
-        self.hierarchy.insert(
-            record.id,
+    pub(super) fn insert_prevalidated_node_record(&mut self, record: NodeRecord) -> InternalEntity {
+        let internal_entity = self.register_prevalidated_node_identity_without_components(&record);
+        let mut row = self.begin_component_row(record.id);
+        self.stage_component_row_value(&mut row, Name(record.name));
+        self.stage_component_row_value(
+            &mut row,
             Hierarchy {
                 parent: record.parent,
             },
         );
-        self.local_transforms.insert(
-            record.id,
+        self.stage_component_row_value(
+            &mut row,
             LocalTransform {
                 transform: record.transform,
             },
         );
-        self.active_self
-            .insert(record.id, ActiveSelf(record.active));
-        self.render_layer_masks
-            .insert(record.id, RenderLayerMask(record.render_layer_mask));
-        self.mobility.insert(record.id, record.mobility);
+        self.stage_component_row_value(&mut row, ActiveSelf(record.active));
+        self.stage_component_row_value(&mut row, RenderLayerMask(record.render_layer_mask));
+        self.stage_component_row_value(&mut row, record.mobility);
 
         if let Some(camera) = record.camera {
-            self.cameras.insert(record.id, camera);
-            if self.active_camera == 0 || !self.cameras.contains_key(&self.active_camera) {
+            self.stage_component_row_value(&mut row, camera);
+        }
+        if let Some(mesh) = record.mesh {
+            self.stage_component_row_value(&mut row, mesh);
+        }
+        if let Some(sprite_2d) = record.sprite_2d {
+            self.stage_component_row_value(&mut row, sprite_2d);
+        }
+        if let Some(mesh_2d) = record.mesh_2d {
+            self.stage_component_row_value(&mut row, mesh_2d);
+        }
+        if let Some(ambient_light) = record.ambient_light {
+            self.stage_component_row_value(&mut row, ambient_light);
+        }
+        if let Some(directional_light) = record.directional_light {
+            self.stage_component_row_value(&mut row, directional_light);
+        }
+        if let Some(point_light) = record.point_light {
+            self.stage_component_row_value(&mut row, point_light);
+        }
+        if let Some(rect_light) = record.rect_light {
+            self.stage_component_row_value(&mut row, rect_light);
+        }
+        if let Some(spot_light) = record.spot_light {
+            self.stage_component_row_value(&mut row, spot_light);
+        }
+        if let Some(rigid_body) = record.rigid_body {
+            self.stage_component_row_value(&mut row, rigid_body);
+        }
+        if let Some(collider) = record.collider {
+            self.stage_component_row_value(&mut row, collider);
+        }
+        if let Some(joint) = record.joint {
+            self.stage_component_row_value(&mut row, joint);
+        }
+        if let Some(animation_skeleton) = record.animation_skeleton {
+            self.stage_component_row_value(&mut row, animation_skeleton);
+        }
+        if let Some(animation_player) = record.animation_player {
+            self.stage_component_row_value(&mut row, animation_player);
+        }
+        if let Some(animation_sequence_player) = record.animation_sequence_player {
+            self.stage_component_row_value(&mut row, animation_sequence_player);
+        }
+        if let Some(animation_graph_player) = record.animation_graph_player {
+            self.stage_component_row_value(&mut row, animation_graph_player);
+        }
+        if let Some(animation_state_machine_player) = record.animation_state_machine_player {
+            self.stage_component_row_value(&mut row, animation_state_machine_player);
+        }
+        self.commit_component_row(record.id, row, true);
+        if self.active_camera == 0
+            || !self.contains_component::<CameraComponent>(self.active_camera)
+        {
+            if self.contains_component::<CameraComponent>(record.id) {
                 self.active_camera = record.id;
             }
         }
-        if let Some(mesh) = record.mesh {
-            self.mesh_renderers.insert(record.id, mesh);
-        }
-        if let Some(sprite_2d) = record.sprite_2d {
-            self.sprite_2d.insert(record.id, sprite_2d);
-        }
-        if let Some(mesh_2d) = record.mesh_2d {
-            self.mesh_2d.insert(record.id, mesh_2d);
-        }
-        if let Some(ambient_light) = record.ambient_light {
-            self.ambient_lights.insert(record.id, ambient_light);
-        }
-        if let Some(directional_light) = record.directional_light {
-            self.directional_lights.insert(record.id, directional_light);
-        }
-        if let Some(point_light) = record.point_light {
-            self.point_lights.insert(record.id, point_light);
-        }
-        if let Some(rect_light) = record.rect_light {
-            self.rect_lights.insert(record.id, rect_light);
-        }
-        if let Some(spot_light) = record.spot_light {
-            self.spot_lights.insert(record.id, spot_light);
-        }
-        if let Some(rigid_body) = record.rigid_body {
-            self.rigid_bodies.insert(record.id, rigid_body);
-        }
-        if let Some(collider) = record.collider {
-            self.colliders.insert(record.id, collider);
-        }
-        if let Some(joint) = record.joint {
-            self.joints.insert(record.id, joint);
-        }
-        if let Some(animation_skeleton) = record.animation_skeleton {
-            self.animation_skeletons
-                .insert(record.id, animation_skeleton);
-        }
-        if let Some(animation_player) = record.animation_player {
-            self.animation_players.insert(record.id, animation_player);
-        }
-        if let Some(animation_sequence_player) = record.animation_sequence_player {
-            self.animation_sequence_players
-                .insert(record.id, animation_sequence_player);
-        }
-        if let Some(animation_graph_player) = record.animation_graph_player {
-            self.animation_graph_players
-                .insert(record.id, animation_graph_player);
-        }
-        if let Some(animation_state_machine_player) = record.animation_state_machine_player {
-            self.animation_state_machine_players
-                .insert(record.id, animation_state_machine_player);
-        }
+        internal_entity
+    }
+
+    /// Registers only the entity bookkeeping required by a bundle spawn.
+    /// The bundle transaction remains the sole publisher of component values.
+    pub(super) fn register_prevalidated_node_identity_without_components(
+        &mut self,
+        record: &NodeRecord,
+    ) -> InternalEntity {
+        let internal_entity = self.register_prevalidated_stable_entity(record.id);
+        self.append_entity_to_dense_storage(record.id);
+        self.kinds.insert(record.id, record.kind);
+        self.record_node_kind_added(record.kind);
+        internal_entity
     }
 
     fn validate_node_record_batch_mobility(
@@ -241,7 +256,7 @@ impl World {
         records_by_id: &BTreeMap<EntityId, &NodeRecord>,
     ) -> SceneResult<()> {
         let mut existing_static_child_parents = HashSet::new();
-        for child in self.entities.iter().copied() {
+        for child in self.stable_entity_ids() {
             if self.mobility(child) != Some(Mobility::Static) {
                 continue;
             }
@@ -306,7 +321,7 @@ impl World {
         if trimmed.is_empty() {
             return Err(SceneError::EmptyNodeName);
         }
-        let Some(current) = self.names.get(&entity) else {
+        let Some(current) = self.get::<Name>(entity) else {
             if !self.contains_entity(entity) {
                 return Err(SceneError::missing_entity("rename", entity));
             }
@@ -330,9 +345,21 @@ mod tests {
 
     use crate::scene::{
         components::{ActiveSelf, Hierarchy, LocalTransform, Mobility, Name, RenderLayerMask},
-        ecs::LifecycleEventKind,
+        ecs::{Component, LifecycleEventKind, StorageType},
         NodeKind, World,
     };
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct RebuiltArchetypeMarker;
+
+    impl Component for RebuiltArchetypeMarker {}
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct RebuiltSparseArchetypeMarker;
+
+    impl Component for RebuiltSparseArchetypeMarker {
+        const STORAGE_TYPE: StorageType = StorageType::SparseSet;
+    }
 
     fn node_record_with_id(id: u64) -> crate::scene::components::NodeRecord {
         let mut source = World::empty();
@@ -409,6 +436,50 @@ mod tests {
         assert!(signature.contains(&active));
         assert!(signature.contains(&render_layer_mask));
         assert!(signature.contains(&mobility));
+    }
+
+    #[test]
+    fn pending_component_row_publishes_dense_and_sparse_values_in_one_transition() {
+        let mut world = World::empty();
+        let entity = world.spawn_node(NodeKind::Empty);
+        let marker = world.component_id::<RebuiltArchetypeMarker>();
+        let sparse_marker = world.component_id::<RebuiltSparseArchetypeMarker>();
+        let assignments_before = world.archetype_assignment_count();
+
+        let mut row = world.begin_component_row(entity);
+        world.stage_component_row_value(&mut row, RebuiltArchetypeMarker);
+        world.stage_component_row_value(&mut row, RebuiltSparseArchetypeMarker);
+        world.commit_component_row(entity, row, true);
+
+        assert!(
+            world
+                .entity_archetype_component_ids(entity)
+                .contains(&marker),
+            "final signature reconstruction must not depend on a fixed component whitelist"
+        );
+        assert!(
+            world
+                .entity_archetype_component_ids(entity)
+                .contains(&sparse_marker),
+            "final signature reconstruction must preserve sparse canonical storage rows"
+        );
+        assert!(world.get::<RebuiltArchetypeMarker>(entity).is_some());
+        assert!(world.get::<RebuiltSparseArchetypeMarker>(entity).is_some());
+        assert_eq!(world.archetype_assignment_count() - assignments_before, 1);
+    }
+
+    #[test]
+    fn node_record_batch_publishes_one_final_archetype_assignment_per_record() {
+        let mut world = World::empty();
+        let first = node_record_with_id(41);
+        let second = node_record_with_id(42);
+        let assignments_before = world.archetype_assignment_count();
+
+        world
+            .insert_owned_node_records(vec![first, second])
+            .expect("prevalidated records should publish their final signatures");
+
+        assert_eq!(world.archetype_assignment_count() - assignments_before, 2);
     }
 
     #[test]

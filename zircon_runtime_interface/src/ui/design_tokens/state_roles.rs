@@ -84,7 +84,10 @@ impl EditorStateRoleTokens {
             hovered: EditorStateColorRole::Surface2,
             pressed: EditorStateColorRole::Surface3,
             selected: EditorStateColorRole::SurfaceSelected,
-            focused: EditorStateColorRole::SurfaceSelected,
+            // Keyboard focus is an affordance, not persistent selection. The
+            // corresponding painter style keeps this fill and composes the
+            // focus-ring token as an independent outline.
+            focused: EditorStateColorRole::Surface1,
             disabled: EditorStateColorRole::TextDisabled,
             loading: EditorStateColorRole::Accent,
         }

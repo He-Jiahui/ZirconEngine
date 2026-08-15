@@ -1,12 +1,13 @@
 use std::collections::BTreeMap;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
-use crate::graphics::CompiledRenderPipeline;
-use crate::graphics::RenderFeatureDescriptor;
+use crate::graphics::feature::COMPUTE_GENERIC_EXECUTOR_ID;
 use crate::graphics::scene::anti_alias::fxaa::FXAA_EXECUTOR_ID;
 use crate::graphics::scene::anti_alias::smaa::SMAA_EXECUTOR_ID;
 use crate::graphics::scene::scene_renderer::environment::ibl_bake_compute_executor::ibl_bake_compute_executor_registrations;
+use crate::graphics::CompiledRenderPipeline;
+use crate::graphics::RenderFeatureDescriptor;
 
 use super::builtin_postprocess_executors::{
     bloom_extract_executor, bloom_postprocess_executor, blur_postprocess_executor,
@@ -19,10 +20,9 @@ use super::builtin_postprocess_executors::{
     particle_velocity_executor, scene_composite_postprocess_executor,
     screen_space_reflection_reflection_pyramid_coarse_executor,
     screen_space_reflection_reflection_pyramid_executor, screen_space_reflection_resolve_executor,
-    screen_space_reflection_specular_occlusion_executor, smaa_postprocess_executor, ssao_executor,
-    taa_reactive_mask_clear_executor, taa_reactive_mask_mesh_executor,
-    taa_resolve_postprocess_executor, uber_postprocess_executor, upscale_postprocess_executor,
-    velocity_camera_executor, velocity_mesh_object_executor,
+    screen_space_reflection_specular_occlusion_executor, smaa_postprocess_executor,
+    taa_reactive_mask_mesh_executor, taa_resolve_postprocess_executor, uber_postprocess_executor,
+    upscale_postprocess_executor, velocity_camera_executor, velocity_mesh_object_executor,
 };
 use super::builtin_scene_executors::{
     advanced_pbr_opaque_executor, deferred_gbuffer_executor, deferred_lighting_executor,
@@ -31,10 +31,11 @@ use super::builtin_scene_executors::{
     particle_billboard_executor, screen_space_ui_executor, shadow_atlas_executor, sprite_executor,
     transmission_mesh_executor, transmission_scene_copy_executor,
 };
+use super::generic_compute_executor::generic_compute_executor;
 use super::preview_sky_executor::preview_sky_scene_color_executor;
 use super::render_pass_executor_registration::{
-    RenderPassExecutor, RenderPassRecordingPolicy, render_pass_executor_from_fn,
-    render_pass_executor_from_parallel_safe_fn,
+    render_pass_executor_from_fn, render_pass_executor_from_parallel_safe_fn, RenderPassExecutor,
+    RenderPassRecordingPolicy,
 };
 use super::{RenderPassExecutionContext, RenderPassExecutorId, RenderPassExecutorRegistration};
 
@@ -90,6 +91,10 @@ impl RenderPassExecutorRegistry {
                 noop_render_pass_executor,
             );
         }
+        registry.register_executor(
+            COMPUTE_GENERIC_EXECUTOR_ID.into(),
+            generic_compute_executor(),
+        );
         registry.register("post.bloom".into(), bloom_postprocess_executor);
         registry.register(
             "post.exposure.histogram".into(),
@@ -146,7 +151,6 @@ impl RenderPassExecutorRegistry {
             "sky.preview-scene-color".into(),
             preview_sky_scene_color_executor,
         );
-        registry.register("ao.ssao-evaluate".into(), ssao_executor);
         registry.register("lighting.light-grid".into(), clustered_lighting_executor);
         registry.register("visibility.hzb-build".into(), hzb_build_executor);
         registry.register(
@@ -160,10 +164,6 @@ impl RenderPassExecutorRegistry {
             velocity_mesh_object_executor,
         );
         registry.register("particle.velocity".into(), particle_velocity_executor);
-        registry.register(
-            "temporal.taa-reactive-mask-clear".into(),
-            taa_reactive_mask_clear_executor,
-        );
         registry.register(
             "temporal.taa-reactive-mask-mesh".into(),
             taa_reactive_mask_mesh_executor,

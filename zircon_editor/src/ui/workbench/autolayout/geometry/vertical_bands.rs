@@ -1,6 +1,6 @@
 use super::super::{
-    compact_bottom_defaults, fixed_axis, solve_axis_constraints, AxisConstraint, ShellFrame,
-    ShellSizePx, WorkbenchChromeMetrics,
+    AxisConstraint, ShellFrame, ShellSizePx, WorkbenchChromeMetrics, compact_bottom_defaults,
+    fixed_axis, solve_axis_constraints,
 };
 
 /// Inputs for the shell's flex-column bands, expressed entirely in logical layout units.

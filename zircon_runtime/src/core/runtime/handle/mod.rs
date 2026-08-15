@@ -10,4 +10,5 @@ mod states;
 mod time;
 
 pub use core_handle::CoreHandle;
+pub use resolution::{ServiceCallGuard, ServiceHandle};
 pub(crate) use service_identity::RegisteredServiceIdentity;

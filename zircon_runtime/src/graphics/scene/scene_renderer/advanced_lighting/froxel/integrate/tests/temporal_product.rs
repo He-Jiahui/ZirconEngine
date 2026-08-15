@@ -1,5 +1,21 @@
+use std::fs;
+use std::path::PathBuf;
+use std::sync::mpsc;
+
+use image::{ImageBuffer, ImageFormat, Rgba};
+
+use crate::core::framework::render::{FroxelGridParams, ViewportCameraSnapshot};
+use crate::core::math::{UVec2, Vec3};
+
+use super::super::super::light_scatter::{FroxelLightScatterPipeline, FroxelLightScatterRequest};
 use super::super::super::GpuFroxelTemporalReprojection;
-use super::*;
+use super::super::FroxelViewReconstruction;
+use super::fixture::{
+    clear_shadow_atlas, create_lighting_resources, create_shadow_resources, d3_view_descriptor,
+    LightingResources, READBACK_BYTES_PER_ROW, TEST_GRID, TEST_OUTPUT,
+    TEST_SHADOWED_RECEIVER_DEPTH,
+};
+use super::support::{f16_bits_to_f32, render_test_output_dir, test_device};
 
 const TEMPORAL_PRODUCT_PNG: &str = "plan18_volumetric_temporal_reprojection_wgpu_20260711.png";
 const TEMPORAL_PRODUCT_REPORT: &str = "plan18_volumetric_temporal_reprojection_wgpu_20260711.txt";
@@ -87,7 +103,7 @@ fn run_temporal_matrix(device: &wgpu::Device, queue: &wgpu::Queue) -> TemporalMa
     ];
     let lighting = create_lighting_resources(device);
     let (_shadow, shadow_view, shadow_sampler, shadow_slots, shadow_globals) =
-        create_shadow_resources(device);
+        create_shadow_resources(device, TEST_SHADOWED_RECEIVER_DEPTH);
     let grid = FroxelGridParams {
         dimensions: TEST_GRID,
         near_depth: 0.1,

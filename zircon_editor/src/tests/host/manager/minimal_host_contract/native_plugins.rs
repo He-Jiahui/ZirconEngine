@@ -167,8 +167,9 @@ capabilities = ["runtime.feature.native_tool.timeline_bridge"]
         1,
     );
 
-    let native_report = zircon_runtime::plugin::native::NativePluginLoader
-        .discover(manager.plugin_directory(&project_root));
+    let native_report = zircon_runtime::plugin::native::discover_native_plugins(
+        manager.plugin_directory(&project_root),
+    );
     let status = manager.native_plugin_status_report_from_load_report(&manifest, &native_report);
     let native = status
         .plugins

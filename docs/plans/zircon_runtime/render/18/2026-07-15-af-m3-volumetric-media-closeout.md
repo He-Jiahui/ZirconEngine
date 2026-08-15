@@ -43,10 +43,24 @@ Date: 2026-07-15
 
 ## Remaining acceptance gates
 
-- Land the Render05 forward-depth shadow comparison repair after its completed RED and focused GREEN with broad shadow validation, review, fixed handoff, and managed commit; consume only the returned SHA in AF-M3.
-- Rerun the ignored exporter with WGPU debug and validation enabled after the Render05 dependency lands; inspect and hash only a passing PNG and report.
+- Revalidate the current-source Render05 `LessEqual` shadow comparison through the ignored exporter with WGPU debug and validation enabled; inspect and hash only a passing PNG and report.
 - Capture and replay the current product execution with RenderDoc; record the capture size and SHA-256.
 - Update the module document with final artifact hashes, complete independent review, and submit a corrective immutable manifest to coordinator validation and milestone commit; explicitly reconcile the provisional `ad2c6f98` absorption instead of claiming a first-time implementation commit.
+
+## 2026-08-13 structure checkpoint
+
+The froxel integration test tree was forward-split to keep the shared test owner below the
+repository file-budget gate without changing any WGPU test, shader contract, product assertion,
+or exporter name. `froxel/integrate/tests.rs` now owns the 3D-radiance WGSL ABI contract and
+mounts `fixture.rs`, `product.rs`, `temporal_product.rs`, and `support.rs`. The fixture owner
+contains only fixed grid, light-grid, shadow-atlas, buffer, and texture setup; the two product
+owners separately retain the light-scatter and temporal-reprojection workflows and their existing
+PNG exporters. Current line counts are 75/233/544/446/85 respectively. The volumetric plugin
+product owner was also split into a 555-line execution owner and a 421-line evidence owner while
+preserving its exporter names, pixel gates, report fields, and `docs/tests/runtime/render` output
+path. No touched test owner exceeds the 800-line rule. Formatting and patch-whitespace checks
+passed. This is a source-structure repair only: M3 remains `testing_in_progress` until the existing
+product PNG and RenderDoc gates pass on current source.
 
 ## Status and completed items
 
@@ -57,6 +71,6 @@ Date: 2026-07-15
 | M3 | Feature-off shader variants | implementation_completed | Forward, deferred, and sky assembly use explicit enabled/disabled volumetric sources; forward and sky now have Naga validation assertions for both variants. |
 | M3 | Shadow scene bind-group ABI repair | completed | Managed real-WGPU validation test passed 1/1. |
 | M3 | Runtime testing stage | completed | Managed job `87b0728d17194711a2de95b4179455be` passed the exact light-scatter filter 8/8, then reservation-bound job `f1c822b416184a778bb07b064e246f5a` passed the broader Runtime filter 28/28; both completed with exit code 0 on Windows. |
-| M3 | Plugin and product testing stage | blocked_by_sound_lock_render01_return_render05 | Current-source job `0a467106c5024e1599b98bc96e304264` passed the layout gate 1/1 and reproduced the exporter failure 0/1 after dependency lockfile closure. The RenderDoc delayed-registration helper completed managed RED 0/1 then GREEN 1/1. Render05's focused contract also completed RED 0/1 then GREEN 1/1. Render01's focused propagation gate plus both many-point and directional forward/deferred parity tests are GREEN 1/1 each; its broad run is 113/3/1, with all shared deferred failures removed and only three Render05 visual metrics still RED. The Sound canonical lockfile commit, Render01 fixed return/review/commit, and Render05's canonical-1.94.1 metric repair/broad/review/commit remain required. |
-| M3 | Product evidence | root_cause_confirmed_fix_pending | Fresh product metrics and diagnostic D3D12 replay prove a forward-depth compare inversion between shadow rendering (`LessEqual + clear 1.0`) and atlas sampling (`GreaterEqual`). Capture registration is now bounded and validated; existing PNG/report/RDC remain diagnostic only until the post-Render05 exporter and fresh RenderDoc replay pass. |
+| M3 | Plugin and product testing stage | dynamic_validation_pending | Current source uses the shared `LessEqual` shadow-atlas comparison, retains bounded RenderDoc capture registration, and keeps the product executor/evidence owners below the file-budget gate. The coordinator-managed ignored exporter and fresh RenderDoc replay remain pending; queued or running validation does not block independent source work. |
+| M3 | Product evidence | source_fix_present_validation_pending | The forward-depth comparison mismatch has a current-source forward repair. Existing PNG/report/RDC artifacts remain diagnostic only until the coordinator produces a passing current-source exporter result and fresh RenderDoc replay. |
 | M3 | Independent review and milestone commit | provisional_absorption_reconciliation_pending | Independent review is 0 Critical/0 Important/0 Minor, but foreign integration commit `ad2c6f98` absorbed 26/27 paths before product acceptance and outside the Render18 immutable manifest. Final closure requires passing product evidence, a fresh review, and a narrowly scoped corrective manifest/commit that records this reconciliation. |

@@ -1,5 +1,5 @@
-use std::ffi::{CStr, CString, c_char, c_void};
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::ffi::{c_char, c_void, CStr, CString};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use serde::{Deserialize, Serialize};
 pub use zircon_runtime_interface::{ZrByteBufferRef, ZrByteSlice, ZrStatus};
@@ -593,8 +593,8 @@ fn owner_token(data: *mut u8, len: usize, capacity: usize) -> u64 {
 macro_rules! export_native_plugin_descriptor_v3 {
     ($descriptor:expr) => {
         #[no_mangle]
-        pub extern "C" fn zircon_native_plugin_descriptor_v3()
-        -> *const $crate::native::NativePluginAbiV3 {
+        pub extern "C" fn zircon_native_plugin_descriptor_v3(
+        ) -> *const $crate::native::NativePluginAbiV3 {
             ($descriptor).as_ptr()
         }
     };

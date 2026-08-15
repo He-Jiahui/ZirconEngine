@@ -4,9 +4,9 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use crate::core::editor_message::DocumentId;
 
 use super::{
-    DocumentCloseLease, DocumentSaveReport, DocumentToolkit, DocumentToolkitDescriptor,
-    DocumentToolkitSnapshot, SaveCtx, SaveError, SaveReason, ToolkitInstanceId,
-    ToolkitRegistryError,
+    DocumentAutosavePayload, DocumentCloseLease, DocumentSaveReport, DocumentToolkit,
+    DocumentToolkitDescriptor, DocumentToolkitSnapshot, SaveCtx, SaveError, SaveReason,
+    ToolkitInstanceId, ToolkitRegistryError,
 };
 
 pub struct DocumentToolkitRegistry<Host> {
@@ -211,6 +211,41 @@ impl<Host> DocumentToolkitRegistry<Host> {
             reason,
             context.written_bytes(),
         ))
+    }
+
+    /// Uses the foreground-save lease for snapshot capture. Autosave therefore
+    /// shares the document authority's real exclusion in addition to the job
+    /// queue mutex group used for asynchronous ordering.
+    pub fn capture_autosave(
+        &self,
+        document: DocumentId,
+        host: &Host,
+    ) -> Result<DocumentAutosavePayload, SaveError> {
+        let (toolkit, _lease) = self.begin_save(document)?;
+        toolkit
+            .capture_autosave(host)
+            .map_err(|source| SaveError::AutosaveHookFailed { document, source })
+    }
+
+    pub fn autosave_source_path(
+        &self,
+        document: DocumentId,
+        host: &Host,
+    ) -> Result<std::path::PathBuf, SaveError> {
+        let toolkit = {
+            let state = self.lock_state();
+            let entry = state
+                .by_document
+                .get(&document)
+                .ok_or(SaveError::DocumentNotRegistered { document })?;
+            if entry.closing {
+                return Err(SaveError::DocumentClosing { document });
+            }
+            Arc::clone(&entry.toolkit)
+        };
+        toolkit
+            .autosave_source_path(host)
+            .map_err(|source| SaveError::AutosaveHookFailed { document, source })
     }
 
     fn lock_state(&self) -> MutexGuard<'_, RegistryState<Host>> {

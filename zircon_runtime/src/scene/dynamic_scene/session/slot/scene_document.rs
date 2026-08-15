@@ -1,8 +1,8 @@
 use std::fmt;
 
 use serde::{
-    Deserialize, Deserializer, Serialize, Serializer,
     de::{self, DeserializeSeed, MapAccess, Visitor},
+    Deserialize, Deserializer, Serialize, Serializer,
 };
 use serde_json::value::RawValue;
 use zircon_runtime_interface::serialization::{PayloadHeader, VersionedSchema};

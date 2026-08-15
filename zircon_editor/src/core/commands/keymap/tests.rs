@@ -11,9 +11,9 @@ use zircon_runtime_interface::ui::dispatch::{
 
 use crate::core::editor_operation::EditorOperationPath;
 use crate::core::settings::{
-    EDITOR_KEYMAP_OVERRIDES_KEY, EditorKeymapOverrides, SettingValue, SettingsDecodeError,
-    SettingsKey, SettingsLoad, SettingsScope, SettingsStore, SettingsStoreError,
-    editor_keymap_overrides, settings_registry_with_defaults,
+    editor_keymap_overrides, settings_registry_with_defaults, EditorKeymapOverrides, SettingValue,
+    SettingsDecodeError, SettingsKey, SettingsLoad, SettingsScope, SettingsStore,
+    SettingsStoreError, EDITOR_KEYMAP_OVERRIDES_KEY,
 };
 
 use super::{EditorKeyChord, EditorKeymap};

@@ -1,6 +1,6 @@
-use std::collections::{HashMap, hash_map::Entry};
+use std::collections::{hash_map::Entry, HashMap};
 
-use zircon_runtime_interface::ui::surface::{UiTextRenderMode, resolve_ui_text_render_mode};
+use zircon_runtime_interface::ui::surface::{resolve_ui_text_render_mode, UiTextRenderMode};
 
 use super::super::font_asset::load_ui_font_manifest_with_asset_manager;
 use crate::asset::ProjectAssetManager;

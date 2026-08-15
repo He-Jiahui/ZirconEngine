@@ -11,6 +11,10 @@ fn realtime_runtime_defers_gpu_resource_creation_until_a_procedural_frame() {
 
     assert!(!runtime.is_gpu_initialized());
     assert!(!runtime.gpu_timestamps_supported());
+    assert_eq!(
+        runtime.compiled_graph_cache_stats(),
+        RealtimeIblCompiledGraphCacheStats::default()
+    );
 }
 
 #[test]
@@ -22,12 +26,10 @@ fn first_procedural_frame_initializes_realtime_gpu_resources_and_starts_full_bat
     let prepared = runtime.prepare_frame(&backend.device, ProceduralSkyParams::default_gradient());
 
     assert!(runtime.is_gpu_initialized());
-    assert!(
-        prepared
-            .batch
-            .as_ref()
-            .is_some_and(|batch| batch.is_full_update())
-    );
+    assert!(prepared
+        .batch
+        .as_ref()
+        .is_some_and(|batch| batch.is_full_update()));
 }
 
 #[test]
@@ -184,8 +186,52 @@ fn realtime_ibl_compiled_graph_cache_reuses_an_unchanged_topology() {
         .resolve(&changed_request, &batch)
         .expect("a sky-only bake key change reuses the compiled topology");
 
-    assert_eq!(cache.variant_count(), 1);
-    assert_eq!(cache.compile_count(), 1);
+    assert_eq!(
+        cache.stats(),
+        super::RealtimeIblCompiledGraphCacheStats {
+            cache_hit_count: 2,
+            cache_miss_count: 1,
+            compile_count: 1,
+            variant_count: 1,
+        }
+    );
+}
+
+#[test]
+fn realtime_ibl_cached_recording_order_matches_the_compiled_graph() {
+    let sky = ProceduralSkyParams::default_gradient();
+    let request = IblBakeArtifactRequest::new(
+        sky.ibl_bake_key(),
+        SOURCE_CUBEMAP_PMREM_FACE_SIZE,
+        SOURCE_CUBEMAP_PMREM_MIP_COUNT,
+    );
+    let mut scheduler = RealtimeIblTimeSliceScheduler::new(
+        RealtimeIblTimeSliceConfig::try_new(request.pmrem_mip_count() as u8, 2)
+            .expect("valid realtime IBL scheduler config"),
+    );
+    scheduler.request_rebake(sky.ibl_bake_key());
+    let batch = scheduler
+        .begin_frame(1)
+        .expect("initial realtime IBL batch");
+    let mut cache = RealtimeIblCompiledGraphCache::new();
+
+    let artifact = cache
+        .resolve(&request, &batch)
+        .expect("initial topology compiles");
+
+    assert_eq!(
+        artifact
+            .recording_passes()
+            .iter()
+            .map(|pass| pass.pass_id)
+            .collect::<Vec<_>>(),
+        artifact
+            .graph()
+            .passes()
+            .iter()
+            .map(|pass| pass.id)
+            .collect::<Vec<_>>(),
+    );
 }
 
 #[test]
@@ -219,8 +265,8 @@ fn realtime_ibl_compiled_graph_cache_distinguishes_operation_topologies() {
     assert_ne!(first.operations(), second.operations());
     assert_eq!(first.ready_slot(), second.ready_slot());
     assert_eq!(first.work_slot(), second.work_slot());
-    assert_eq!(cache.variant_count(), 2);
-    assert_eq!(cache.compile_count(), 2);
+    assert_eq!(cache.stats().variant_count, 2);
+    assert_eq!(cache.stats().compile_count, 2);
 }
 
 #[test]
@@ -263,8 +309,8 @@ fn realtime_ibl_compiled_graph_cache_distinguishes_buffer_slot_topologies() {
     assert_eq!(first.operations(), second.operations());
     assert_ne!(first.ready_slot(), second.ready_slot());
     assert_ne!(first.work_slot(), second.work_slot());
-    assert_eq!(cache.variant_count(), 2);
-    assert_eq!(cache.compile_count(), 2);
+    assert_eq!(cache.stats().variant_count, 2);
+    assert_eq!(cache.stats().compile_count, 2);
 }
 
 #[test]
@@ -300,8 +346,8 @@ fn realtime_ibl_compiled_graph_cache_distinguishes_request_geometry() {
     assert_eq!(first.operations(), second.operations());
     assert_eq!(first.ready_slot(), second.ready_slot());
     assert_eq!(first.work_slot(), second.work_slot());
-    assert_eq!(cache.variant_count(), 2);
-    assert_eq!(cache.compile_count(), 2);
+    assert_eq!(cache.stats().variant_count, 2);
+    assert_eq!(cache.stats().compile_count, 2);
 }
 
 fn complete_pending_realtime_ibl_rebake(

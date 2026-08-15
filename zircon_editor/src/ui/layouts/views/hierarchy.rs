@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
-use crate::ui::layouts::common::model_rc;
-use crate::ui::layouts::views::view_projection::build_view_template_nodes;
+use crate::ui::layouts::views::view_projection::{
+    ViewTemplateNodePatch, build_view_template_node_projection_with_patches,
+};
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::workbench::snapshot::SceneEntries;
 use zircon_runtime_interface::ui::layout::UiSize;
@@ -33,51 +34,43 @@ pub(crate) fn hierarchy_pane_nodes(
         },
     );
 
-    let mut nodes = build_view_template_nodes(
+    let node_patches = hierarchy_visual_state_patches(active_entry.is_some());
+    let Ok(projection) = build_view_template_node_projection_with_patches(
         "hierarchy.template_projection",
         HIERARCHY_LAYOUT_ASSET_PATH,
         &[(HIERARCHY_STYLE_ASSET_ID, HIERARCHY_STYLE_ASSET_PATH)],
         size,
         &text_overrides,
-    )
-    .unwrap_or_default();
-    apply_hierarchy_visual_state(&mut nodes, active_entry.is_some());
-    model_rc(nodes)
+        &node_patches,
+    ) else {
+        return ModelRc::default();
+    };
+    projection.into_model()
 }
 
-fn apply_hierarchy_visual_state(nodes: &mut [ViewTemplateNodeData], has_selection: bool) {
-    if let Some(node) = nodes
-        .iter_mut()
-        .find(|node| node.control_id == HIERARCHY_LIST_PANEL)
-    {
-        node.selected = has_selection;
-        node.focused = false;
-        node.surface_variant = if has_selection {
-            "panel".into()
-        } else {
-            "inset".into()
-        };
-        node.text_tone = if has_selection {
-            "default".into()
-        } else {
-            "muted".into()
-        };
-    }
-
-    if let Some(node) = nodes
-        .iter_mut()
-        .find(|node| node.control_id == HIERARCHY_HEADER_PANEL)
-    {
-        node.focused = false;
-        node.surface_variant = "inset".into();
-        node.text_tone = "default".into();
-    }
-
-    if let Some(node) = nodes
-        .iter_mut()
-        .find(|node| node.control_id == HIERARCHY_EMPTY_STATE_MESSAGE)
-    {
-        node.focused = false;
-        node.text_tone = "muted".into();
-    }
+fn hierarchy_visual_state_patches(has_selection: bool) -> BTreeMap<String, ViewTemplateNodePatch> {
+    BTreeMap::from([
+        (
+            HIERARCHY_LIST_PANEL.to_string(),
+            ViewTemplateNodePatch::visual_state(
+                has_selection,
+                false,
+                if has_selection { "panel" } else { "inset" },
+                if has_selection { "default" } else { "muted" },
+            ),
+        ),
+        (
+            HIERARCHY_HEADER_PANEL.to_string(),
+            ViewTemplateNodePatch::default()
+                .focused(false)
+                .surface_variant("inset")
+                .text_tone("default"),
+        ),
+        (
+            HIERARCHY_EMPTY_STATE_MESSAGE.to_string(),
+            ViewTemplateNodePatch::default()
+                .focused(false)
+                .text_tone("muted"),
+        ),
+    ])
 }

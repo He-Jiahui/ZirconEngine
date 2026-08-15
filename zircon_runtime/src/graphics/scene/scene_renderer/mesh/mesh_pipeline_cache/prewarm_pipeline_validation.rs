@@ -187,8 +187,8 @@ fn material_sampler_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
 #[cfg(all(test, feature = "dynamic-api"))]
 mod tests {
     use crate::core::framework::render::{
-        SHADING_MODEL_ID_BLINN_PHONG, ShaderFeatureBits, ShaderQualityTier,
-        ShaderVariantPrewarmSource,
+        ShaderFeatureBits, ShaderQualityTier, ShaderVariantPrewarmSource,
+        SHADING_MODEL_ID_BLINN_PHONG,
     };
     use crate::dynamic_api::builtin_standard_material_shader_prewarm_manifest_for_geometry;
     use crate::graphics::backend::RenderBackend;

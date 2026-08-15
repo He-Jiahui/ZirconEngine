@@ -13,6 +13,22 @@ fn register_null_host_export(exports: &HostExportRegistry, module_name: &str, fu
         .expect("minimal host export should register");
 }
 
+fn int_argument(
+    context: &crate::core::framework::script::ScriptHostCallFrame<'_>,
+    index: usize,
+) -> i64 {
+    context
+        .arguments
+        .with_argument(index, |value| match value {
+            ScriptHostValueRef::Int(value) => Ok(value),
+            value => Err(ScriptHostError::new(format!(
+                "argument {index} expected integer, received {:?}",
+                value.kind()
+            ))),
+        })
+        .expect("integer fixture must be present")
+}
+
 #[test]
 fn host_handles_are_stable_and_valid() {
     let registry = HostRegistry::default();
@@ -66,14 +82,8 @@ fn host_export_registry_validates_descriptors_and_dispatches_callbacks() {
         .register_module(
             descriptor,
             [HostExportFunction::new("add", |context| {
-                let left = match context.arguments[0] {
-                    ScriptHostValue::Int(value) => value,
-                    _ => 0,
-                };
-                let right = match context.arguments[1] {
-                    ScriptHostValue::Int(value) => value,
-                    _ => 0,
-                };
+                let left = int_argument(context, 0);
+                let right = int_argument(context, 1);
                 Ok(ScriptHostValue::Int(left + right))
             })],
         )
@@ -121,14 +131,8 @@ fn script_call_table_pre_resolves_host_export_callbacks() {
                     context.module_name.to_owned(),
                     context.function_name.to_owned(),
                 ));
-                let left = match context.arguments[0] {
-                    ScriptHostValue::Int(value) => value,
-                    _ => 0,
-                };
-                let right = match context.arguments[1] {
-                    ScriptHostValue::Int(value) => value,
-                    _ => 0,
-                };
+                let left = int_argument(context, 0);
+                let right = int_argument(context, 1);
                 Ok(ScriptHostValue::Int(left + right))
             })],
         )
@@ -141,11 +145,13 @@ fn script_call_table_pre_resolves_host_export_callbacks() {
     assert_eq!(site.id().raw(), 0);
     assert_eq!(site.module_name(), "test.host");
     assert_eq!(site.function_name(), "add");
+    let arguments = [ScriptHostValue::Int(2), ScriptHostValue::Int(5)];
+    let source = ScriptHostOwnedArgumentSource::new(&arguments);
     assert_eq!(
         call_table
             .call(
                 site.id(),
-                vec![ScriptHostValue::Int(2), ScriptHostValue::Int(5)],
+                ScriptHostArguments::new(&source),
                 &CapabilitySet::default().with("test.add"),
             )
             .unwrap(),
@@ -180,19 +186,30 @@ fn runtime13_host_call_frames_borrow_stable_call_site_and_capability_storage() {
                         .with_required_capability("test.borrowed.call"),
                 ),
             [HostExportFunction::new("inspect", move |context| {
-                let ScriptHostValue::String(text) = &context.arguments[0] else {
-                    panic!("host call frame must preserve the string argument");
-                };
-                let ScriptHostValue::Bytes(bytes) = &context.arguments[1] else {
-                    panic!("host call frame must preserve the bytes argument");
-                };
+                let text_pointer = context.arguments.with_argument(0, |value| match value {
+                    ScriptHostValueRef::String(value) => Ok(value.as_ptr() as usize),
+                    value => Err(ScriptHostError::new(format!(
+                        "expected string, received {:?}",
+                        value.kind()
+                    ))),
+                })?;
+                let (bytes_pointer, byte_count) =
+                    context.arguments.with_argument(1, |value| match value {
+                        ScriptHostValueRef::Bytes(value) => {
+                            Ok((value.byte_at(0)? as usize, value.len()?))
+                        }
+                        value => Err(ScriptHostError::new(format!(
+                            "expected bytes, received {:?}",
+                            value.kind()
+                        ))),
+                    })?;
                 *observed_storage_for_callback.lock().unwrap() = Some((
                     context.module_name.as_ptr() as usize,
                     context.function_name.as_ptr() as usize,
                     context.granted_capabilities.as_ptr() as usize,
-                    context.arguments.as_ptr() as usize,
-                    text.as_ptr() as usize,
-                    bytes.as_ptr() as usize,
+                    text_pointer,
+                    bytes_pointer,
+                    byte_count,
                 ));
                 Ok(ScriptHostValue::Null)
             })],
@@ -208,18 +225,24 @@ fn runtime13_host_call_frames_borrow_stable_call_site_and_capability_storage() {
         ScriptHostValue::String("call-frame-text".to_string()),
         ScriptHostValue::Bytes(vec![1, 2, 3, 4]),
     ];
-    let expected_argument_storage = arguments.as_ptr() as usize;
     let expected_text_storage = match &arguments[0] {
         ScriptHostValue::String(text) => text.as_ptr() as usize,
         _ => panic!("expected string fixture"),
     };
-    let expected_bytes_storage = match &arguments[1] {
-        ScriptHostValue::Bytes(bytes) => bytes.as_ptr() as usize,
+    let expected_first_byte = match &arguments[1] {
+        ScriptHostValue::Bytes(bytes) => usize::from(bytes[0]),
         _ => panic!("expected bytes fixture"),
     };
+    let expected_byte_count = match &arguments[1] {
+        ScriptHostValue::Bytes(bytes) => bytes.len(),
+        _ => panic!("expected bytes fixture"),
+    };
+    let source = ScriptHostOwnedArgumentSource::new(&arguments);
 
     assert_eq!(
-        call_table.call(site.id(), arguments, &granted).unwrap(),
+        call_table
+            .call(site.id(), ScriptHostArguments::new(&source), &granted)
+            .unwrap(),
         ScriptHostValue::Null
     );
     assert_eq!(
@@ -228,9 +251,9 @@ fn runtime13_host_call_frames_borrow_stable_call_site_and_capability_storage() {
             site.module_name().as_ptr() as usize,
             site.function_name().as_ptr() as usize,
             granted.capabilities.as_ptr() as usize,
-            expected_argument_storage,
             expected_text_storage,
-            expected_bytes_storage,
+            expected_first_byte,
+            expected_byte_count,
         ))
     );
 }
@@ -290,7 +313,8 @@ fn runtime13_performance_script_call_table_uses_borrowed_name_index_and_direct_d
     assert!(table_source.contains(".get(module_name)?"));
     assert!(table_source.contains(".get(function_name)?"));
     assert!(table_source.contains("let frame = ScriptHostCallFrame::new("));
-    assert!(table_source.contains("&arguments,"));
+    assert!(table_source.contains("arguments,"));
+    assert!(!table_source.contains("&arguments,"));
     assert!(table_source.contains("&granted_capabilities.capabilities,"));
     assert!(table_source.contains("with_active_script_runtime_call_context"));
     assert!(!table_source.contains(".to_string()"));
@@ -366,7 +390,13 @@ fn host_export_registry_preserves_precise_type_refs_for_zr_vm_registration() {
         .register_module(
             descriptor,
             [HostExportFunction::new("identity", |context| {
-                Ok(context.arguments[0].clone())
+                context.arguments.with_argument(0, |value| match value {
+                    ScriptHostValueRef::Float(value) => Ok(ScriptHostValue::Float(value)),
+                    value => Err(ScriptHostError::new(format!(
+                        "expected float, received {:?}",
+                        value.kind()
+                    ))),
+                })
             })],
         )
         .unwrap();

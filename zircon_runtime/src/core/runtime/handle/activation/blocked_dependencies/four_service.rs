@@ -73,7 +73,12 @@ pub(in super::super) fn first_blocked_four_service_dependency(
                 None
             }
         }
-        [first_dependency, second_dependency, third_dependency, fourth_dependency] => {
+        [
+            first_dependency,
+            second_dependency,
+            third_dependency,
+            fourth_dependency,
+        ] => {
             if first_dependency == first_service_name
                 || second_dependency == first_service_name
                 || third_dependency == first_service_name
@@ -102,7 +107,13 @@ pub(in super::super) fn first_blocked_four_service_dependency(
                 None
             }
         }
-        [first_dependency, second_dependency, third_dependency, fourth_dependency, fifth_dependency] => {
+        [
+            first_dependency,
+            second_dependency,
+            third_dependency,
+            fourth_dependency,
+            fifth_dependency,
+        ] => {
             if first_dependency == first_service_name
                 || second_dependency == first_service_name
                 || third_dependency == first_service_name

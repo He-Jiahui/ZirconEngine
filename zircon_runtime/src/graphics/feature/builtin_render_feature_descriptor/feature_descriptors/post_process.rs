@@ -106,9 +106,14 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
                 QueueLane::AsyncCompute,
             )
             .with_executor_id("post.exposure.histogram")
-            .with_compute_workload(RenderGraphComputeWorkload::viewport(
+            .with_compute_workload(RenderGraphComputeWorkload::per_pixel(
                 EXPOSURE_HISTOGRAM_PIPELINE_LABEL,
                 EXPOSURE_HISTOGRAM_WORKGROUP_SIZE,
+                PostProcessGraphResourceNames::SCENE_COLOR,
+                [
+                    EXPOSURE_HISTOGRAM_WORKGROUP_SIZE[0],
+                    EXPOSURE_HISTOGRAM_WORKGROUP_SIZE[1],
+                ],
             ))
             .read_texture(PostProcessGraphResourceNames::SCENE_COLOR)
             .write_buffer(PostProcessGraphResourceNames::EXPOSURE_HISTOGRAM),

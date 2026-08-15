@@ -284,7 +284,9 @@ fn replaced_provider_lives_until_in_flight_call_and_cached_snapshot_finish() {
 fn pinned_provider_lives_until_guard_drops_after_reload_and_deactivate() {
     let drops = Arc::new(AtomicUsize::new(0));
     let (bridge, table, slot) = finalized_drop_tracked_import(37, Arc::clone(&drops));
-    let guard = bridge.pin().expect("initial provider pin");
+    let guard = crate::plugin::WeakBridge::<dyn WeatherQueryInterface>::owned(table.clone())
+        .pin()
+        .expect("initial provider pin");
 
     table
         .replace_provider::<dyn WeatherQueryInterface>(

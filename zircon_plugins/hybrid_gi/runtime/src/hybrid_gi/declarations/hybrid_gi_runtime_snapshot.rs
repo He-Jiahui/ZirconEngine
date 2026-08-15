@@ -7,6 +7,12 @@ pub(crate) struct HybridGiRuntimeSnapshot {
     scene_card_count: usize,
     scene_screen_probe_count: usize,
     scene_radiance_cache_entry_count: usize,
+    radiance_cache_resident_probe_count: usize,
+    radiance_cache_update_probe_count: usize,
+    radiance_cache_truncated_demand_count: usize,
+    radiance_cache_generation: u64,
+    radiance_cache_scroll_count: u64,
+    radiance_cache_history_clear_count: u64,
     surface_cache_resident_page_count: usize,
     surface_cache_dirty_page_count: usize,
     surface_cache_feedback_card_count: usize,
@@ -27,6 +33,12 @@ impl HybridGiRuntimeSnapshot {
         scene_card_count: usize,
         scene_screen_probe_count: usize,
         scene_radiance_cache_entry_count: usize,
+        radiance_cache_resident_probe_count: usize,
+        radiance_cache_update_probe_count: usize,
+        radiance_cache_truncated_demand_count: usize,
+        radiance_cache_generation: u64,
+        radiance_cache_scroll_count: u64,
+        radiance_cache_history_clear_count: u64,
         surface_cache_resident_page_count: usize,
         surface_cache_dirty_page_count: usize,
         surface_cache_feedback_card_count: usize,
@@ -44,6 +56,12 @@ impl HybridGiRuntimeSnapshot {
             scene_card_count,
             scene_screen_probe_count,
             scene_radiance_cache_entry_count,
+            radiance_cache_resident_probe_count,
+            radiance_cache_update_probe_count,
+            radiance_cache_truncated_demand_count,
+            radiance_cache_generation,
+            radiance_cache_scroll_count,
+            radiance_cache_history_clear_count,
             surface_cache_resident_page_count,
             surface_cache_dirty_page_count,
             surface_cache_feedback_card_count,
@@ -81,6 +99,30 @@ impl HybridGiRuntimeSnapshot {
 
     pub(crate) fn scene_radiance_cache_entry_count(&self) -> usize {
         self.scene_radiance_cache_entry_count
+    }
+
+    pub(crate) fn radiance_cache_resident_probe_count(&self) -> usize {
+        self.radiance_cache_resident_probe_count
+    }
+
+    pub(crate) fn radiance_cache_update_probe_count(&self) -> usize {
+        self.radiance_cache_update_probe_count
+    }
+
+    pub(crate) fn radiance_cache_truncated_demand_count(&self) -> usize {
+        self.radiance_cache_truncated_demand_count
+    }
+
+    pub(crate) fn radiance_cache_generation(&self) -> u64 {
+        self.radiance_cache_generation
+    }
+
+    pub(crate) fn radiance_cache_scroll_count(&self) -> u64 {
+        self.radiance_cache_scroll_count
+    }
+
+    pub(crate) fn radiance_cache_history_clear_count(&self) -> u64 {
+        self.radiance_cache_history_clear_count
     }
 
     pub(crate) fn surface_cache_resident_page_count(&self) -> usize {

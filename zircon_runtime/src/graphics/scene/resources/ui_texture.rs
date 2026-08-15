@@ -128,7 +128,8 @@ mod tests {
                 imported,
                 ResourceKind::Texture,
                 locator,
-            ));
+            ))
+            .unwrap();
 
         assert_ne!(requested, imported);
         assert_eq!(resolve_ui_texture_id(&manager, requested), imported);

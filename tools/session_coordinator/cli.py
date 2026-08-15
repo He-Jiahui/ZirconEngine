@@ -431,6 +431,18 @@ def _parser() -> argparse.ArgumentParser:
     artifact_fixture_release = artifact_commands.add_parser("fixture-release")
     artifact_fixture_release.add_argument("--lease-id", required=True)
     artifact_fixture_release.add_argument("--owner-pid", required=True, type=int)
+    artifact_staging_acquire = artifact_commands.add_parser("staging-acquire")
+    artifact_staging_acquire.add_argument("--purpose", required=True)
+    artifact_staging_acquire.add_argument("--final-path", required=True)
+    artifact_staging_acquire.add_argument("--owner-pid", required=True, type=int)
+    for command_name in (
+        "staging-begin-publish",
+        "staging-complete-publish",
+        "staging-release",
+    ):
+        artifact_staging_transition = artifact_commands.add_parser(command_name)
+        artifact_staging_transition.add_argument("--lease-id", required=True)
+        artifact_staging_transition.add_argument("--owner-pid", required=True, type=int)
 
     finalize = commands.add_parser("finalize")
     finalize.add_argument("--commit", dest="finalize_commit", action="store_true")
@@ -1593,6 +1605,25 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
         if arguments.artifact_command == "fixture-release":
             return client.command(
                 "artifact.fixture_release",
+                {"lease_id": arguments.lease_id, "owner_pid": arguments.owner_pid},
+            )
+        if arguments.artifact_command == "staging-acquire":
+            return client.command(
+                "artifact.staging_acquire",
+                {
+                    "purpose": arguments.purpose,
+                    "final_path": arguments.final_path,
+                    "owner_pid": arguments.owner_pid,
+                },
+            )
+        staging_commands = {
+            "staging-begin-publish": "artifact.staging_begin_publish",
+            "staging-complete-publish": "artifact.staging_complete_publish",
+            "staging-release": "artifact.staging_release",
+        }
+        if arguments.artifact_command in staging_commands:
+            return client.command(
+                staging_commands[arguments.artifact_command],
                 {"lease_id": arguments.lease_id, "owner_pid": arguments.owner_pid},
             )
         return client.command(f"artifact.{arguments.artifact_command}")

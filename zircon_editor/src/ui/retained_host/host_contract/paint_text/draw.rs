@@ -66,5 +66,13 @@ fn draw_text_with_size_and_style_impl(
             return;
         }
     }
-    draw_layout_glyphs(frame, &clip, layout.font_face, &layout.glyphs, color, style);
+    draw_layout_glyphs(
+        frame,
+        &clip,
+        layout.font_face,
+        &layout.glyphs,
+        &layout.artifact_raster_fonts,
+        color,
+        style,
+    );
 }

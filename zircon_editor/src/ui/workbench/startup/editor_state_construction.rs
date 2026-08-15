@@ -175,6 +175,8 @@ impl EditorState {
             scene_entry_projection_cache: Default::default(),
             gizmo_transaction: None,
             play_session: None,
+            #[cfg(test)]
+            fail_next_transaction_selection_sync: false,
         };
         if state.project_open {
             state

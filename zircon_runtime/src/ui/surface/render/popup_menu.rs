@@ -18,6 +18,7 @@ pub(super) fn popup_menu_render_commands(
     node_id: UiNodeId,
     metadata: Option<&UiTemplateNodeMetadata>,
     frame: UiFrame,
+    anchor_frame: Option<UiFrame>,
     clip_frame: Option<UiFrame>,
     z_index: i32,
     opacity: f32,
@@ -28,6 +29,9 @@ pub(super) fn popup_menu_render_commands(
     if !is_open_context_menu(metadata) {
         return Vec::new();
     }
+    let Some(anchor_frame) = anchor_frame else {
+        return Vec::new();
+    };
     let items = menu_items(metadata);
     if items.is_empty() {
         return Vec::new();
@@ -37,7 +41,14 @@ pub(super) fn popup_menu_render_commands(
     let Some(row_height) = menu_row_height(frame, items.len()) else {
         return Vec::new();
     };
-    let popup_frame = menu_popup_frame(metadata, frame, clip_frame, row_height, items.len());
+    let popup_frame = menu_popup_frame(
+        metadata,
+        frame,
+        anchor_frame,
+        clip_frame,
+        row_height,
+        items.len(),
+    );
     let mut commands = Vec::new();
     let render_clip = if has_popup_position_metadata(metadata) {
         popup_layout_bounds(frame, clip_frame)
@@ -99,9 +110,23 @@ pub(super) fn popup_menu_render_commands(
     commands
 }
 
+pub(super) fn popup_menu_may_emit_text(metadata: Option<&UiTemplateNodeMetadata>) -> bool {
+    let Some(metadata) = metadata else {
+        return false;
+    };
+    is_open_context_menu(metadata)
+        && metadata
+            .attributes
+            .get("menu_items")
+            .or_else(|| metadata.attributes.get("options"))
+            .and_then(Value::as_array)
+            .is_some_and(|items| !items.is_empty())
+}
+
 fn menu_popup_frame(
     metadata: &UiTemplateNodeMetadata,
     frame: UiFrame,
+    anchor_frame: UiFrame,
     clip_frame: Option<UiFrame>,
     row_height: f32,
     row_count: usize,
@@ -109,7 +134,7 @@ fn menu_popup_frame(
     if !has_popup_position_metadata(metadata) {
         return frame;
     }
-    let anchor_frame = popup_anchor_frame(metadata, frame);
+    let anchor_frame = popup_anchor_frame(metadata, anchor_frame);
     let bounds = popup_layout_bounds(frame, clip_frame);
     anchored_popup_frame(
         metadata,

@@ -164,6 +164,19 @@ class CargoRunnerSourceRootTests(unittest.TestCase):
             )
 
             self.assertEqual(source, runner.popen.call_args.kwargs["cwd"])
+            child_environment = runner.popen.call_args.kwargs["env"]
+            target_directory = Path(jobs.get.return_value.target_dir).resolve()
+            self.assertEqual(str(target_directory), child_environment["CARGO_TARGET_DIR"])
+            self.assertEqual(
+                str(target_directory / "cargo-home"), child_environment["CARGO_HOME"]
+            )
+            self.assertEqual(
+                str(target_directory / "sccache"), child_environment["SCCACHE_DIR"]
+            )
+            for name in ("TEMP", "TMP", "TMPDIR"):
+                self.assertEqual(
+                    str(target_directory / "temporary"), child_environment[name]
+                )
             release.set()
 
     def test_runner_rejects_a_missing_source_root_before_spawn(self) -> None:

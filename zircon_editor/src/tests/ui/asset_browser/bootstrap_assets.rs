@@ -1,4 +1,4 @@
-use crate::ui::layouts::views::{ViewTemplateNodeData, asset_browser_pane_nodes};
+use crate::ui::layouts::views::{asset_browser_pane_nodes, ViewTemplateNodeData};
 use crate::ui::workbench::snapshot::{
     AssetItemSnapshot, AssetSelectionSnapshot, AssetUtilityTab, AssetViewMode,
     AssetWorkspaceSnapshot,

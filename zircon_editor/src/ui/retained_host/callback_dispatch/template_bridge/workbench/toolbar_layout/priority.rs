@@ -1,13 +1,14 @@
-use std::collections::HashMap;
-
 use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{event_ui::UiNodeId, layout::UiContainerKind};
+
+use crate::ui::workbench::reference::EditorWorkbenchTemplateSurface;
 
 const COMMAND_ROW_CONTROL_ID: &str = "WorkbenchToolbarCommandRow";
 const COMMAND_DIVIDERS: &[&str] = &[
     "WorkbenchToolbarFileGroupDivider",
     "WorkbenchToolbarToolGroupDivider",
     "WorkbenchToolbarRunGroupDivider",
+    "WorkbenchToolbarLayoutGroupDivider",
 ];
 const FILE_CONTROLS: &[&str] = &[
     "WorkbenchToolbarMenu",
@@ -35,12 +36,7 @@ const TRANSFORM_TOOLS: &[&str] = &[
     "WorkbenchToolSnap",
 ];
 const PRIMARY_RUN_CONTROLS: &[&str] = &["WorkbenchRunPlay", "WorkbenchRunMode"];
-const FULL_RUN_CONTROLS: &[&str] = &[
-    "WorkbenchRunPlay",
-    "WorkbenchRunMode",
-    "WorkbenchLayoutGrid",
-    "WorkbenchThemeToggle",
-];
+const LAYOUT_CONTROLS: &[&str] = &["WorkbenchLayoutGrid", "WorkbenchThemeToggle"];
 const FULL_MODULE_TABS: &[&str] = &[
     "WorkbenchModuleScene",
     "WorkbenchModuleEffect",
@@ -55,7 +51,7 @@ const FULL_MODULE_TABS: &[&str] = &[
     "WorkbenchModuleHud",
 ];
 
-const COMMAND_CONTENT_MAX_FILL: f32 = 0.60;
+const COMMAND_CONTENT_MAX_FILL: f32 = 0.62;
 const MODULE_TAB_CONTENT_MAX_FILL: f32 = 0.72;
 
 pub(super) struct ToolbarPriorityProjection {
@@ -65,7 +61,7 @@ pub(super) struct ToolbarPriorityProjection {
 }
 
 pub(super) fn resolve_toolbar_priority(
-    surface: &UiSurface,
+    template_surface: &EditorWorkbenchTemplateSurface,
     available_width: f32,
 ) -> ToolbarPriorityProjection {
     let compact = ToolbarPriorityProjection {
@@ -73,7 +69,8 @@ pub(super) fn resolve_toolbar_priority(
         transform_tools: false,
         full_command_set: false,
     };
-    let controls = ToolbarControlIndex::new(surface);
+    let surface = &template_surface.surface;
+    let controls = ToolbarControlSlots { template_surface };
     let Some(command_row_gap) = structural_gap_width(surface, &controls, COMMAND_ROW_CONTROL_ID)
     else {
         return compact;
@@ -101,7 +98,7 @@ pub(super) fn resolve_toolbar_priority(
     else {
         return compact;
     };
-    let Some(full_run_width) = control_sequence_width(surface, &controls, FULL_RUN_CONTROLS) else {
+    let Some(layout_width) = control_sequence_width(surface, &controls, LAYOUT_CONTROLS) else {
         return compact;
     };
     let Some(full_module_tabs_width) = control_sequence_width(surface, &controls, FULL_MODULE_TABS)
@@ -114,9 +111,14 @@ pub(super) fn resolve_toolbar_priority(
         + primary_module_width
         + transform_width
         + primary_run_width
+        + layout_width
         + command_chrome_width;
-    let full_command_width =
-        file_width + full_module_width + transform_width + full_run_width + command_chrome_width;
+    let full_command_width = file_width
+        + full_module_width
+        + transform_width
+        + primary_run_width
+        + layout_width
+        + command_chrome_width;
 
     ToolbarPriorityProjection {
         compact_module_tabs: !fits_fill_ratio(
@@ -139,7 +141,7 @@ pub(super) fn resolve_toolbar_priority(
 
 fn control_sequence_width(
     surface: &UiSurface,
-    controls: &ToolbarControlIndex<'_>,
+    controls: &ToolbarControlSlots<'_>,
     control_ids: &[&str],
 ) -> Option<f32> {
     let width = control_intrinsic_width(surface, controls, control_ids)?;
@@ -155,7 +157,7 @@ fn control_sequence_width(
 
 fn control_intrinsic_width(
     surface: &UiSurface,
-    controls: &ToolbarControlIndex<'_>,
+    controls: &ToolbarControlSlots<'_>,
     control_ids: &[&str],
 ) -> Option<f32> {
     control_ids.iter().try_fold(0.0, |width, control_id| {
@@ -167,7 +169,7 @@ fn control_intrinsic_width(
 
 fn structural_gap_width(
     surface: &UiSurface,
-    controls: &ToolbarControlIndex<'_>,
+    controls: &ToolbarControlSlots<'_>,
     control_id: &str,
 ) -> Option<f32> {
     let node_id = controls.node_id(control_id)?;
@@ -176,28 +178,13 @@ fn structural_gap_width(
     Some(gap * node.children.len().saturating_sub(1) as f32)
 }
 
-struct ToolbarControlIndex<'a> {
-    node_ids: HashMap<&'a str, UiNodeId>,
+struct ToolbarControlSlots<'a> {
+    template_surface: &'a EditorWorkbenchTemplateSurface,
 }
 
-impl<'a> ToolbarControlIndex<'a> {
-    fn new(surface: &'a UiSurface) -> Self {
-        let node_ids = surface
-            .tree
-            .nodes
-            .values()
-            .filter_map(|node| {
-                node.template_metadata
-                    .as_ref()
-                    .and_then(|metadata| metadata.control_id.as_deref())
-                    .map(|control_id| (control_id, node.node_id))
-            })
-            .collect();
-        Self { node_ids }
-    }
-
+impl ToolbarControlSlots<'_> {
     fn node_id(&self, control_id: &str) -> Option<UiNodeId> {
-        self.node_ids.get(control_id).copied()
+        self.template_surface.control_node_id(control_id)
     }
 }
 

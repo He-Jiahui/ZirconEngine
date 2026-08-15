@@ -7,10 +7,10 @@ use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 
 use crate::core::editor_event::{EditorEventEnvelope, EditorEventSource};
 use crate::ui::host::EditorHostEventController;
-use crate::ui::retained_host::event_bridge::{UiHostEventEffects, apply_record_effects};
+use crate::ui::retained_host::event_bridge::{apply_record_effects, UiHostEventEffects};
 use crate::ui::retained_host::workbench_preview_actions::is_workbench_preview_action;
 use crate::ui::workbench::event::operation_path_for_menu_action;
-use crate::ui::workbench::event::{EditorHostEvent, dispatch_editor_host_binding};
+use crate::ui::workbench::event::{dispatch_editor_host_binding, EditorHostEvent};
 use serde_json::{Number, Value};
 use zircon_runtime_interface::ui::{
     binding::UiBindingValue, component::UiValue, dispatch::UiTemplateActionInvocation,
@@ -58,14 +58,39 @@ pub(crate) fn dispatch_template_action_invocation(
     runtime: &EditorHostEventController,
     action: &UiTemplateActionInvocation,
 ) -> Result<UiHostEventEffects, String> {
-    let operation =
-        EditorOperationPath::parse(action.route.clone()).map_err(|error| error.to_string())?;
+    if let Some(binding) = editor_binding_for_template_action(action)? {
+        return dispatch_editor_binding(runtime, binding);
+    }
+    let operation = EditorOperationPath::parse(action.target_id().to_string())
+        .map_err(|error| error.to_string())?;
     let invocation = EditorOperationInvocation::new(operation)
         .with_arguments(ui_template_action_payload_to_json(&action.payload));
     let record = runtime.invoke_operation(EditorOperationSource::UiBinding, invocation)?;
     let mut effects = UiHostEventEffects::default();
     apply_record_effects(&mut effects, &record);
     Ok(effects)
+}
+
+fn editor_binding_for_template_action(
+    action: &UiTemplateActionInvocation,
+) -> Result<Option<EditorUiBinding>, String> {
+    if !action.is_action() {
+        return Ok(None);
+    }
+    if !action.payload.is_empty() {
+        return Err(format!(
+            "editor command action {} must not declare a route payload",
+            action.target_id()
+        ));
+    }
+    Ok(Some(EditorUiBinding::new(
+        "TemplateAction",
+        action.target_id(),
+        crate::ui::binding::EditorUiEventKind::Click,
+        EditorUiBindingPayload::EditorCommand {
+            command_id: action.target_id().to_string(),
+        },
+    )))
 }
 
 fn operation_invocation_for_binding(
@@ -188,6 +213,9 @@ fn is_reference_preview_action(binding: &EditorUiBinding) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::commands::{
+        CommandEvalCtx, EditorCommandDispatchError, EditorCommandRegistry,
+    };
 
     #[test]
     fn template_action_payload_preserves_typed_object_arguments() {
@@ -211,5 +239,40 @@ mod tests {
                 "nested": { "kind": "tile" },
             })
         );
+    }
+
+    #[test]
+    fn template_editor_action_projects_to_the_canonical_editor_command_payload() {
+        let action = UiTemplateActionInvocation::action("view.console.clear");
+        let binding = editor_binding_for_template_action(&action)
+            .expect("action identity should be valid")
+            .expect("editor action should project to a binding");
+
+        assert!(matches!(
+            binding.payload(),
+            EditorUiBindingPayload::EditorCommand { command_id }
+                if command_id == "view.console.clear"
+        ));
+    }
+
+    #[test]
+    fn template_editor_action_keeps_registry_disabled_command_policy() {
+        let action = UiTemplateActionInvocation::action("runtime.play_mode.exit");
+        let binding = editor_binding_for_template_action(&action)
+            .expect("action identity should be valid")
+            .expect("editor action should project to a binding");
+        let EditorUiBindingPayload::EditorCommand { command_id } = binding.payload() else {
+            panic!("template editor action must project to an EditorCommand payload");
+        };
+
+        let error = EditorCommandRegistry::default_workbench()
+            .event_for_command(command_id, &CommandEvalCtx::interactive())
+            .expect_err("exit-play must be disabled while the editor is not playing");
+
+        assert!(matches!(
+            error,
+            EditorCommandDispatchError::DisabledByWhen { command_id }
+                if command_id.as_str() == "runtime.play_mode.exit"
+        ));
     }
 }

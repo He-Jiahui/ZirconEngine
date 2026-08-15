@@ -9,7 +9,7 @@ mod wake_registration;
 mod tests;
 
 pub(super) use frame_activity::RuntimeFrameActivity;
-pub(super) use frame_demand::{RuntimeFrameDemand, MAX_RUNTIME_FRAME_DEMAND_DELAY};
+pub(super) use frame_demand::{MAX_RUNTIME_FRAME_DEMAND_DELAY, RuntimeFrameDemand};
 pub(super) use session_store::{
     destroy_session_slot, insert_session, insert_session_with_wake, with_session,
     with_session_activity,

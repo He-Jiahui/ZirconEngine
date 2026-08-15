@@ -4,7 +4,7 @@ use crate::ui::asset_editor::UiDesignerSelectionModel;
 use zircon_runtime_interface::ui::template::UiAssetDocument;
 
 use super::undo_stack::UiAssetEditorUndoTransition;
-use super::{apply_external_effects_to_asset_sources, UiAssetEditorSourceCursorSnapshot};
+use super::{UiAssetEditorSourceCursorSnapshot, apply_external_effects_to_asset_sources};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiAssetEditorReplayWorkspace {

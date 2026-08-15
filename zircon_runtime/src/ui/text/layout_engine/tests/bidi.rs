@@ -163,7 +163,7 @@ fn bidi_visual_order_keeps_grapheme_advances_in_visual_sequence() {
 
 #[test]
 fn bidi_visual_order_keeps_virtual_tatweel_in_rtl_visual_sequence() {
-    use super::super::candidate_line::{CandidateLine, append_segment, insert_virtual_text};
+    use super::super::candidate_line::{append_segment, insert_virtual_text, CandidateLine};
     use super::super::visual_order::apply_visual_order_with_advances;
     use zircon_runtime_interface::ui::surface::UiTextRunKind;
 

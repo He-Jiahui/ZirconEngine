@@ -56,4 +56,25 @@ Runtime11 的动态模块组装没有把 linked plugin 已声明的 canonical an
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+Open state: `实现已收敛，声明门禁仍被无关 Runtime lib-test 编译错误阻断`; no pass is claimed.
+
+### 2026-08-05 协调器验证证据
+
+- 当前 `HEAD` `94cf43ec32367781308dd8d37f04382201109696` 已按 package identity 分流：linked
+  `animation` 不再追加 Runtime fallback `AnimationModule`，unlinked 会话保留无 production evaluator 的 fallback；
+  `linked_animation_plugin_registers_its_canonical_runtime_module_once` 与
+  `builtin_dynamic_session_does_not_install_animation_evaluator_hook` 分别覆盖 linked/unlinked 路由。
+- 初始不可变验证副本 `1106195a16954107917f5249f25abb63`（输入哈希
+  `41426f552826efac4725c9b8c7f06db6a14c3ce5e087125c2ee81459e6cec1f5`，run
+  `a32ef9f3bee943f4a9fe9d3a05cd6168`）在 `zircon_runtime_interface` 的 17 个模板
+  `include_bytes!` 输入缺失处以 101 终止，目标测试未执行。
+- 为避免 Cargo 闭包自动 overlay 旧 Performance 会话的数百个无关 attribution，建立了仅归属 17 个模板文件的
+  最小验证会话；最终副本 `a16ecc2c755f42c88fad05a276ad4954` 成功物化，输入哈希
+  `19b5411f3648ae0e53364719f55029491f11b34c6b5a270c724dfca196011020`。
+- 最终 run `b511d5321d82480eba77516d9be61f56` 顺序请求 linked 聚焦回归、unlinked 聚焦回归、
+  `zircon_runtime --lib dynamic_api` 与 `zircon_plugin_animation_runtime` package gate；它在构建
+  `zircon_runtime` lib-test 时以 101 终止，报告 1066 个现有且跨域的编译错误，目标测试仍未执行。代表性阻断包括
+  `RenderDeviceLimitDiagnostics` 字段漂移、`asset/project/paths.rs` 的 `u16` ASCII API、多个结构审计 source
+  projection 漂移、图形测试借用/字段漂移与 ECS 测试生命周期错误。
+- 因声明的 managed Cargo gate 没有执行通过，本 handoff 保持 `open`，不得生成 failure return、fixed receipt、
+  Git commit 或企微完成通知。后续应先由这些下层 owner 收敛 Runtime lib-test 编译基线，再复用上述四门禁回传。

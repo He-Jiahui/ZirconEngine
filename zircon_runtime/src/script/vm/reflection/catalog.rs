@@ -35,6 +35,7 @@ struct CatalogState {
 pub(crate) struct PreparedVmReflectionGeneration {
     candidate: CatalogState,
     snapshot: VmReflectionRegistrySnapshot,
+    registrations: Arc<[ReflectTypeRegistration]>,
     base_epoch: u64,
     candidate_epoch: u64,
     registration_count: usize,
@@ -49,7 +50,7 @@ impl PreparedVmReflectionGeneration {
 /// Immutable registry candidate paired with the catalog revision that owns its dense slots.
 #[derive(Clone)]
 pub struct VmReflectionRegistrySnapshot {
-    registry: TypeRegistry,
+    registry: Arc<TypeRegistry>,
     revision: u64,
     base_committed_epoch: u64,
     candidate_epoch: u64,
@@ -60,7 +61,7 @@ pub struct VmReflectionRegistrySnapshot {
 impl VmReflectionRegistrySnapshot {
     /// Returns the canonical reflected registry captured for this revision.
     pub fn registry(&self) -> &TypeRegistry {
-        &self.registry
+        self.registry.as_ref()
     }
 
     /// Returns the immutable catalog revision assigned to this registry.
@@ -90,6 +91,7 @@ impl VmReflectionRegistrySnapshot {
 #[derive(Clone)]
 pub struct VmReflectionCatalog {
     state: Arc<RwLock<CatalogState>>,
+    committed_snapshot: Arc<RwLock<VmReflectionRegistrySnapshot>>,
     mutation: Arc<Mutex<()>>,
     core: Arc<RwLock<Option<CoreWeak>>>,
     next_candidate_epoch: Arc<AtomicU64>,
@@ -99,13 +101,24 @@ pub struct VmReflectionCatalog {
 
 impl Default for VmReflectionCatalog {
     fn default() -> Self {
+        let committed_epoch = Arc::new(AtomicU64::new(0));
+        let current_revision = Arc::new(AtomicU64::new(0));
+        let committed_snapshot = VmReflectionRegistrySnapshot {
+            registry: Arc::new(crate::scene::reflect::builtin_type_registry()),
+            revision: 0,
+            base_committed_epoch: 0,
+            candidate_epoch: 0,
+            committed_epoch: Arc::clone(&committed_epoch),
+            current_revision: Arc::clone(&current_revision),
+        };
         Self {
             state: Arc::new(RwLock::new(CatalogState::default())),
+            committed_snapshot: Arc::new(RwLock::new(committed_snapshot)),
             mutation: Arc::new(Mutex::new(())),
             core: Arc::new(RwLock::new(None)),
             next_candidate_epoch: Arc::new(AtomicU64::new(1)),
-            committed_epoch: Arc::new(AtomicU64::new(0)),
-            current_revision: Arc::new(AtomicU64::new(0)),
+            committed_epoch,
+            current_revision,
         }
     }
 }
@@ -157,24 +170,30 @@ impl VmReflectionCatalog {
             expected_owner,
             projected.registrations(),
         )?;
-        let registry = self.registry_for_state(&candidate)?;
-        self.validate_existing_worlds(&registrations_from_state(&candidate))?;
-        let candidate_epoch = if candidate == current {
-            base_epoch
+        let registrations: Arc<[ReflectTypeRegistration]> =
+            registrations_from_state(&candidate).into();
+        let (snapshot, candidate_epoch) = if candidate == current {
+            (self.committed_snapshot_read().clone(), base_epoch)
         } else {
-            self.allocate_candidate_epoch()?
-        };
-        let snapshot = VmReflectionRegistrySnapshot {
-            registry,
-            revision: candidate.revision,
-            base_committed_epoch: base_epoch,
-            candidate_epoch,
-            committed_epoch: Arc::clone(&self.committed_epoch),
-            current_revision: Arc::clone(&self.current_revision),
+            let candidate_epoch = self.allocate_candidate_epoch()?;
+            let registry = Arc::new(self.registry_for_state(&candidate)?);
+            self.validate_existing_worlds(registrations.as_ref())?;
+            (
+                VmReflectionRegistrySnapshot {
+                    registry,
+                    revision: candidate.revision,
+                    base_committed_epoch: base_epoch,
+                    candidate_epoch,
+                    committed_epoch: Arc::clone(&self.committed_epoch),
+                    current_revision: Arc::clone(&self.current_revision),
+                },
+                candidate_epoch,
+            )
         };
         Ok(PreparedVmReflectionGeneration {
             candidate,
             snapshot,
+            registrations,
             base_epoch,
             candidate_epoch,
             registration_count: projected.registrations().len(),
@@ -199,7 +218,11 @@ impl VmReflectionCatalog {
                 committed_epoch,
             });
         }
-        self.commit_candidate(prepared.candidate, prepared.candidate_epoch)?;
+        self.publish_candidate(
+            prepared.candidate,
+            prepared.snapshot,
+            prepared.registrations,
+        )?;
         Ok(prepared.registration_count)
     }
 
@@ -208,11 +231,10 @@ impl VmReflectionCatalog {
         let _mutation = self.mutation_lock();
         let current = self.state_read().clone();
         let (candidate, removed) = self.candidate_without_slot(slot)?;
-        let candidate_epoch = if candidate == current {
-            self.committed_epoch.load(Ordering::Acquire)
-        } else {
-            self.allocate_candidate_epoch()?
-        };
+        if candidate == current {
+            return Ok(removed);
+        }
+        let candidate_epoch = self.allocate_candidate_epoch()?;
         self.commit_candidate(candidate, candidate_epoch)?;
         Ok(removed)
     }
@@ -231,20 +253,42 @@ impl VmReflectionCatalog {
         candidate: CatalogState,
         candidate_epoch: u64,
     ) -> Result<(), VmReflectionError> {
-        self.validate_candidate(&candidate)?;
-        let registrations = registrations_from_state(&candidate);
+        let base_epoch = self.committed_epoch.load(Ordering::Acquire);
+        let registrations: Arc<[ReflectTypeRegistration]> =
+            registrations_from_state(&candidate).into();
+        let registry = Arc::new(self.registry_for_state(&candidate)?);
+        self.validate_existing_worlds(registrations.as_ref())?;
+        let snapshot = VmReflectionRegistrySnapshot {
+            registry,
+            revision: candidate.revision,
+            base_committed_epoch: base_epoch,
+            candidate_epoch,
+            committed_epoch: Arc::clone(&self.committed_epoch),
+            current_revision: Arc::clone(&self.current_revision),
+        };
+        self.publish_candidate(candidate, snapshot, registrations)
+    }
+
+    fn publish_candidate(
+        &self,
+        candidate: CatalogState,
+        snapshot: VmReflectionRegistrySnapshot,
+        registrations: Arc<[ReflectTypeRegistration]>,
+    ) -> Result<(), VmReflectionError> {
+        let revision = candidate.revision;
+        let candidate_epoch = snapshot.candidate_epoch;
         if let Some(core) = self.bound_core() {
             let manager = crate::scene::resolve_default_level_manager(&core)?;
-            manager.sync_vm_types_atomically(&registrations, || {
-                let revision = candidate.revision;
+            manager.sync_vm_types_atomically(registrations.as_ref(), || {
                 *self.state_write() = candidate;
+                *self.committed_snapshot_write() = snapshot;
                 self.current_revision.store(revision, Ordering::Release);
                 self.committed_epoch
                     .store(candidate_epoch, Ordering::Release);
             })?;
         } else {
-            let revision = candidate.revision;
             *self.state_write() = candidate;
+            *self.committed_snapshot_write() = snapshot;
             self.current_revision.store(revision, Ordering::Release);
             self.committed_epoch
                 .store(candidate_epoch, Ordering::Release);
@@ -255,16 +299,7 @@ impl VmReflectionCatalog {
     /// Returns the latest committed canonical registry snapshot.
     pub fn current_snapshot(&self) -> Result<VmReflectionRegistrySnapshot, VmReflectionError> {
         let _mutation = self.mutation_lock();
-        let state = self.state_read().clone();
-        let committed_epoch = self.committed_epoch.load(Ordering::Acquire);
-        Ok(VmReflectionRegistrySnapshot {
-            registry: self.registry_for_state(&state)?,
-            revision: state.revision,
-            base_committed_epoch: committed_epoch,
-            candidate_epoch: committed_epoch,
-            committed_epoch: Arc::clone(&self.committed_epoch),
-            current_revision: Arc::clone(&self.current_revision),
-        })
+        Ok(self.committed_snapshot_read().clone())
     }
 
     /// Returns the latest committed reflection revision.
@@ -387,6 +422,18 @@ impl VmReflectionCatalog {
 
     fn state_write(&self) -> RwLockWriteGuard<'_, CatalogState> {
         self.state
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn committed_snapshot_read(&self) -> RwLockReadGuard<'_, VmReflectionRegistrySnapshot> {
+        self.committed_snapshot
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    fn committed_snapshot_write(&self) -> RwLockWriteGuard<'_, VmReflectionRegistrySnapshot> {
+        self.committed_snapshot
             .write()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }

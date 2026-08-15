@@ -11,6 +11,7 @@ use super::{PackageAssetRegistry, ProjectCatalogInputGeneration, ProjectManifest
 mod artifact_access;
 mod asset_kind;
 mod collect_files;
+mod durable_transaction;
 mod hash_bytes;
 mod importer_access;
 mod is_meta_sidecar;
@@ -24,7 +25,6 @@ mod scan_and_import;
 mod source_mtime_unix_ms;
 mod source_path_for_uri;
 mod source_uri_for_path;
-mod targeted_transaction;
 
 pub(crate) use load_or_create_meta::mint_meta_for_migration;
 

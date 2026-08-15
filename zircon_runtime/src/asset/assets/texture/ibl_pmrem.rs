@@ -2,8 +2,8 @@ use thiserror::Error;
 
 use crate::asset::AssetUri;
 use crate::core::framework::render::{
-    IBL_BAKE_ALGORITHM_VERSION, IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES, IblBakeArtifactBlob,
-    RenderImageColorSpace, RenderImageDimension, SOURCE_CUBEMAP_FACE_COUNT,
+    IblBakeArtifactBlob, RenderImageColorSpace, RenderImageDimension, IBL_BAKE_ALGORITHM_VERSION,
+    IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES, SOURCE_CUBEMAP_FACE_COUNT,
 };
 
 use super::{TextureAsset, TextureAssetDescriptor, TexturePayload};
@@ -15,7 +15,9 @@ pub const IBL_PMREM_RGBA16F_GPU_FORMAT: &str = "rgba16float";
 pub enum IblPmremTextureError {
     #[error("IBL bake artifact does not contain a PMREM section")]
     MissingPmrem,
-    #[error("IBL bake artifact algorithm version {actual} is stale; current version is {expected}")]
+    #[error(
+        "IBL bake artifact algorithm version {actual} is stale; current version is {expected}"
+    )]
     StaleAlgorithmVersion { expected: u64, actual: u64 },
     #[error("texture payload is not the Zircon RGBA16F PMREM container")]
     NotPmremContainer,

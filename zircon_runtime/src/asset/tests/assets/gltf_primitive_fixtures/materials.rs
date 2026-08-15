@@ -121,6 +121,7 @@ pub(in super::super) fn write_texture_transform_triangle_gltf(root: &Path) -> Pa
       "occlusionTexture": {
         "index": 0,
         "texCoord": 0,
+        "strength": 0.25,
         "extensions": {
           "KHR_texture_transform": {
             "offset": [0.4, 0.5],

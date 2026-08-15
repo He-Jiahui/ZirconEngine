@@ -1,5 +1,5 @@
 use crate::capability::{RENDERING_DECLARATION, RUNTIME_CAPABILITIES, RUNTIME_CRATE_NAME};
-use crate::{RENDERING_FEATURES, feature_manifest, module_descriptor};
+use crate::{feature_manifest, module_descriptor, RENDERING_FEATURES};
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{

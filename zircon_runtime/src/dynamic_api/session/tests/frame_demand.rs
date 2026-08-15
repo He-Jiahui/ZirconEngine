@@ -1,18 +1,15 @@
 use zircon_runtime_interface::{ZrRuntimeFrameDemandV1, ZrStatus, ZrStatusCode};
 
-use crate::core::resource::{AnimationSequenceMarker, ResourceHandle, ResourceId};
 use crate::core::CoreError;
+use crate::core::resource::{AnimationSequenceMarker, ResourceHandle, ResourceId};
 use crate::dynamic_api::session::profile::RuntimeDynamicSessionProfile;
 use crate::dynamic_api::session::state::RuntimeDynamicSession;
 use crate::scene::components::{AnimationSequencePlayerComponent, NodeKind};
-use crate::scene::{
-    DefaultLevelManager, EntityId, SceneRuntimeHook, SceneRuntimeHookContext,
-    SceneRuntimeHookDescriptor, SceneRuntimeHookRegistration, SystemStage, World,
-};
+use crate::scene::{DefaultLevelManager, EntityId, SystemStage, World};
 
 use super::super::ffi;
 use super::super::registry::{
-    destroy_session_slot, insert_session, with_session, with_session_activity, RuntimeFrameDemand,
+    RuntimeFrameDemand, destroy_session_slot, insert_session, with_session, with_session_activity,
 };
 use super::super::state::animation_frame_demand;
 
@@ -63,19 +60,23 @@ fn active_animation_tick_emits_immediate_then_paused_tick_resets_to_idle() {
 #[test]
 fn failed_tick_does_not_publish_or_retain_animation_frame_demand() {
     let (session, _) = session_with_active_sequence();
-    crate::scene::install_scene_runtime_hooks(
-        &session.runtime.handle(),
-        [SceneRuntimeHookRegistration::new(
-            SceneRuntimeHookDescriptor::new(
-                "test.frame-demand-failure",
-                "test",
-                SystemStage::PostUpdate,
-            )
-            .with_order(1),
-            FailAfterAnimation,
-        )],
-    )
-    .unwrap();
+    let mut registry = crate::plugin::RuntimeExtensionRegistry::default();
+    let owner = registry.intern_plugin_module("test.runtime").unwrap();
+    registry
+        .register_runtime_scene_system(
+            owner,
+            "test.frame-demand-failure",
+            SystemStage::PostUpdate,
+            || |_| Err(CoreError::RuntimeUnavailable),
+        )
+        .with_order(1)
+        .register()
+        .unwrap();
+    let plan = registry.world_runtime_extension_plan().unwrap();
+    session
+        .level
+        .with_world_mut(|world| plan.apply_to_world(world))
+        .unwrap();
     let handle = insert_session(session);
 
     let expected_output = ZrRuntimeFrameDemandV1::after(123);
@@ -114,12 +115,4 @@ fn session_with_active_sequence() -> (RuntimeDynamicSession, EntityId) {
         entity
     });
     (session, entity)
-}
-
-struct FailAfterAnimation;
-
-impl SceneRuntimeHook for FailAfterAnimation {
-    fn run(&self, _context: SceneRuntimeHookContext<'_>) -> Result<(), CoreError> {
-        Err(CoreError::RuntimeUnavailable)
-    }
 }

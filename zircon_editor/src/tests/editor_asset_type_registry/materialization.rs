@@ -665,7 +665,7 @@ fn registry_delta_path_has_no_entry_clone_or_per_delta_full_sort() {
 #[test]
 fn host_asset_type_consumers_route_through_one_generation_cache() {
     let registration = include_str!("../../ui/host/editor_extension_registration.rs");
-    let runtime_access = include_str!("../../ui/host/editor_event_runtime_access.rs");
+    let runtime_access = include_str!("../../ui/host/editor_event_runtime_access/asset_access.rs");
     let asset_event = include_str!("../../ui/host/editor_event_execution/asset_event.rs");
     let shell = include_str!("../../ui/workbench/shell_state.rs");
 

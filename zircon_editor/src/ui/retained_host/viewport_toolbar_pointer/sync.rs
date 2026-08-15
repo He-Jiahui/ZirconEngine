@@ -18,6 +18,8 @@ impl ViewportToolbarPointerBridge {
             .collect::<BTreeSet<_>>();
         self.controls_by_surface
             .retain(|surface_key, _| valid_surface_keys.contains(surface_key.as_str()));
+        self.applied_surface_frames
+            .retain(|surface_key, _| valid_surface_keys.contains(surface_key.as_str()));
         self.rebuild_surface();
         true
     }

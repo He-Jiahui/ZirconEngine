@@ -5,11 +5,10 @@ use zircon_runtime_interface::ui::{
         UiFocusChangeEvent, UiFocusChangeReason, UiFocusVisible, UiFocusVisibleReason,
         UiFocusedInput, UiFocusedInputKind,
     },
-    tree::{UiTemplateNodeMetadata, UiTreeError},
-    widget::UiWidgetBehavior,
+    tree::UiTreeError,
 };
 
-use crate::ui::tree::UiRuntimeTreeFocusExt;
+mod modal_scope;
 
 use super::input::{
     commit_editable_text_composition_for_focus_loss, editable_text_input_is_secure,
@@ -22,7 +21,7 @@ impl UiSurface {
         self.focus_node_with_reason(
             node_id,
             UiFocusChangeReason::Programmatic,
-            UiFocusVisible::visible(UiFocusVisibleReason::Programmatic),
+            UiFocusVisible::hidden(UiFocusVisibleReason::Programmatic),
         )?;
         Ok(())
     }
@@ -33,12 +32,12 @@ impl UiSurface {
         reason: UiFocusChangeReason,
         visible: UiFocusVisible,
     ) -> Result<Option<UiFocusChangeEvent>, UiTreeError> {
-        let node_id = self.enforced_mui_modal_focus_target(node_id)?;
+        let node_id = self.enforced_modal_focus_target(node_id)?;
         let node = self
             .tree
             .node(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
-        if !(node.is_focus_candidate() || self.is_open_mui_modal_focus_root(node_id))
+        if !(node.is_focus_candidate() || self.is_open_modal_focus_root(node_id))
             || !is_valid_input_owner(self, node_id)
         {
             return Err(UiTreeError::MissingNode(node_id));
@@ -53,11 +52,17 @@ impl UiSurface {
         self.navigation.focus_visible = visible.visible;
 
         if let Some(previous_id) = previous.filter(|previous_id| *previous_id != node_id) {
-            if self.component_states.set_focused(previous_id, false) {
+            let focused_changed = self.component_states.set_focused(previous_id, false);
+            let focus_visible_changed = self.component_states.set_focus_visible(previous_id, false);
+            if focused_changed || focus_visible_changed {
                 mark_component_focus_render_dirty(self, previous_id);
             }
         }
-        if self.component_states.set_focused(node_id, true) {
+        let focused_changed = self.component_states.set_focused(node_id, true);
+        let focus_visible_changed = self
+            .component_states
+            .set_focus_visible(node_id, visible.visible);
+        if focused_changed || focus_visible_changed {
             mark_component_focus_render_dirty(self, node_id);
         }
 
@@ -91,7 +96,9 @@ impl UiSurface {
         self.focus.focus_visible = visible;
         self.navigation.navigation_root = None;
         self.navigation.focus_visible = false;
-        if self.component_states.set_focused(previous, false) {
+        let focused_changed = self.component_states.set_focused(previous, false);
+        let focus_visible_changed = self.component_states.set_focus_visible(previous, false);
+        if focused_changed || focus_visible_changed {
             mark_component_focus_render_dirty(self, previous);
         }
         self.transition_focus_input_method(Some(previous), None);
@@ -121,7 +128,7 @@ impl UiSurface {
         self.focus_node_with_reason(
             target,
             UiFocusChangeReason::Autofocus,
-            UiFocusVisible::visible(UiFocusVisibleReason::Programmatic),
+            UiFocusVisible::hidden(UiFocusVisibleReason::Programmatic),
         )
     }
 
@@ -243,112 +250,9 @@ impl UiSurface {
 
     fn is_focus_target(&self, node_id: UiNodeId) -> bool {
         self.tree.nodes.get(&node_id).is_some_and(|node| {
-            (node.is_focus_candidate() || self.is_open_mui_modal_focus_root(node_id))
+            (node.is_focus_candidate() || self.is_open_modal_focus_root(node_id))
                 && is_valid_input_owner(self, node_id)
         })
-    }
-
-    pub(crate) fn apply_mui_modal_focus_transition(
-        &mut self,
-        node_id: UiNodeId,
-        open: bool,
-    ) -> Result<Option<UiFocusChangeEvent>, UiTreeError> {
-        if !self.is_mui_modal_focus_component(node_id)? {
-            return Ok(None);
-        }
-        if open {
-            return self.open_mui_modal_focus_scope(node_id);
-        }
-        self.close_mui_modal_focus_scope(node_id)
-    }
-
-    fn open_mui_modal_focus_scope(
-        &mut self,
-        node_id: UiNodeId,
-    ) -> Result<Option<UiFocusChangeEvent>, UiTreeError> {
-        let restore = self.focus.focused;
-        if let Some(existing) = self
-            .focus
-            .modal_restore_stack
-            .iter_mut()
-            .find(|entry| entry.modal == node_id)
-        {
-            existing.restore = restore;
-        } else {
-            self.focus.modal_restore_stack.push(
-                zircon_runtime_interface::ui::surface::UiModalFocusRestoreState {
-                    modal: node_id,
-                    restore,
-                },
-            );
-        }
-
-        if self.mui_modal_bool_attribute(node_id, "disable_auto_focus")? {
-            return Ok(None);
-        }
-        if self
-            .focus
-            .focused
-            .is_some_and(|focused| self.tree.node_is_descendant_of(node_id, focused))
-        {
-            return Ok(None);
-        }
-        let Some(target) = self.mui_modal_focus_scope_target(node_id)? else {
-            return Ok(None);
-        };
-        self.focus_node_with_reason(
-            target,
-            UiFocusChangeReason::Autofocus,
-            UiFocusVisible::visible(UiFocusVisibleReason::Programmatic),
-        )
-    }
-
-    fn close_mui_modal_focus_scope(
-        &mut self,
-        node_id: UiNodeId,
-    ) -> Result<Option<UiFocusChangeEvent>, UiTreeError> {
-        let restore = self.take_mui_modal_restore_target(node_id);
-        if !self.mui_modal_bool_attribute(node_id, "disable_restore_focus")? {
-            if let Some(restore) = restore.filter(|restore| self.is_focus_target(*restore)) {
-                return self.focus_node_with_reason(
-                    restore,
-                    UiFocusChangeReason::Programmatic,
-                    UiFocusVisible::visible(UiFocusVisibleReason::Programmatic),
-                );
-            }
-        }
-        if self
-            .focus
-            .focused
-            .is_some_and(|focused| self.tree.node_is_descendant_of(node_id, focused))
-        {
-            return Ok(self.clear_focus_with_reason(UiFocusChangeReason::Clear));
-        }
-        Ok(None)
-    }
-
-    fn take_mui_modal_restore_target(&mut self, node_id: UiNodeId) -> Option<UiNodeId> {
-        let index = self
-            .focus
-            .modal_restore_stack
-            .iter()
-            .rposition(|entry| entry.modal == node_id)?;
-        self.focus.modal_restore_stack.remove(index).restore
-    }
-
-    fn enforced_mui_modal_focus_target(
-        &self,
-        requested: UiNodeId,
-    ) -> Result<UiNodeId, UiTreeError> {
-        let Some(root) = self.tree.active_mui_modal_root(Some(requested)) else {
-            return Ok(requested);
-        };
-        if self.tree.node_is_descendant_of(root, requested) {
-            return Ok(requested);
-        }
-        Ok(self
-            .mui_modal_focus_scope_target(root)?
-            .unwrap_or(requested))
     }
 
     fn transition_focus_input_method(
@@ -397,65 +301,6 @@ impl UiSurface {
             input_method_request(UiInputMethodRequestKind::Disable, owner),
         );
         true
-    }
-
-    fn mui_modal_focus_scope_target(
-        &self,
-        root: UiNodeId,
-    ) -> Result<Option<UiNodeId>, UiTreeError> {
-        self.first_valid_focusable_in_subtree(root)
-    }
-
-    fn first_valid_focusable_in_subtree(
-        &self,
-        root: UiNodeId,
-    ) -> Result<Option<UiNodeId>, UiTreeError> {
-        let mut stack = vec![root];
-        while let Some(node_id) = stack.pop() {
-            let node = self
-                .tree
-                .node(node_id)
-                .ok_or(UiTreeError::MissingNode(node_id))?;
-            if node.is_focus_candidate() && is_valid_input_owner(self, node_id) {
-                return Ok(Some(node_id));
-            }
-            for child_id in node.children.iter().rev() {
-                stack.push(*child_id);
-            }
-        }
-        Ok(None)
-    }
-
-    fn is_open_mui_modal_focus_root(&self, node_id: UiNodeId) -> bool {
-        self.tree.node(node_id).is_some_and(|node| {
-            node.template_metadata.as_ref().is_some_and(|metadata| {
-                is_mui_modal_focus_metadata(metadata)
-                    && node.state_flags.enabled
-                    && node.is_render_visible()
-                    && (bool_attribute(metadata, "open") || bool_attribute(metadata, "popup_open"))
-            })
-        })
-    }
-
-    fn is_mui_modal_focus_component(&self, node_id: UiNodeId) -> Result<bool, UiTreeError> {
-        let node = self
-            .tree
-            .node(node_id)
-            .ok_or(UiTreeError::MissingNode(node_id))?;
-        Ok(node
-            .template_metadata
-            .as_ref()
-            .is_some_and(is_mui_modal_focus_metadata))
-    }
-
-    fn mui_modal_bool_attribute(&self, node_id: UiNodeId, key: &str) -> Result<bool, UiTreeError> {
-        let node = self
-            .tree
-            .node(node_id)
-            .ok_or(UiTreeError::MissingNode(node_id))?;
-        Ok(node.template_metadata.as_ref().is_some_and(|metadata| {
-            bool_attribute_any(metadata, mui_modal_bool_attribute_aliases(key))
-        }))
     }
 
     fn clear_invalid_transient_input_owners(&mut self) {
@@ -560,19 +405,10 @@ fn mark_component_focus_render_dirty(surface: &mut UiSurface, node_id: UiNodeId)
     let _ = surface.mark_component_state_render_dirty(node_id);
 }
 
-fn is_mui_modal_focus_metadata(metadata: &UiTemplateNodeMetadata) -> bool {
-    is_mui_modal_focus_component(metadata.component.as_str())
-        || metadata.widget.resolved_behavior(&metadata.component) == UiWidgetBehavior::Popup
-}
-
-fn is_mui_modal_focus_component(component: &str) -> bool {
-    matches!(
-        component,
-        "Dialog" | "ConfirmDialog" | "Modal" | "Popover" | "Menu"
-    )
-}
-
-fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> bool {
+fn bool_attribute(
+    metadata: &zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata,
+    key: &str,
+) -> bool {
     metadata
         .attributes
         .get(key)
@@ -580,15 +416,9 @@ fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> bool {
         .unwrap_or(false)
 }
 
-fn bool_attribute_any(metadata: &UiTemplateNodeMetadata, keys: &[&str]) -> bool {
+fn bool_attribute_any(
+    metadata: &zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata,
+    keys: &[&str],
+) -> bool {
     keys.iter().any(|key| bool_attribute(metadata, key))
-}
-
-fn mui_modal_bool_attribute_aliases(key: &str) -> &[&str] {
-    match key {
-        "disable_auto_focus" => &["disable_auto_focus", "disableAutoFocus"],
-        "disable_enforce_focus" => &["disable_enforce_focus", "disableEnforceFocus"],
-        "disable_restore_focus" => &["disable_restore_focus", "disableRestoreFocus"],
-        _ => &[],
-    }
 }

@@ -1,4 +1,8 @@
-use super::*;
+use std::fs;
+
+use super::support::pane_body_path;
+use crate::ui::binding::EditorUiBindingPayload;
+use crate::ui::template_runtime::EditorUiHostRuntime;
 
 #[test]
 fn performance_timeline_body_exposes_capture_export_and_summary_sections() {

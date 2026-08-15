@@ -1,6 +1,6 @@
 use crate::core::framework::render::RenderStats;
 
-use super::{record_bool, record_count, DiagnosticStore};
+use super::{record_bool, record_bytes, record_count, DiagnosticStore};
 pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
     let frame_index = stats.submitted_frames;
     record_count(
@@ -51,6 +51,27 @@ pub(super) fn record(store: &mut DiagnosticStore, stats: &RenderStats) {
         frame_index,
         stats.last_hzb_occlusion_dispatched_phase_count,
         &["render", "hzb", "occlusion", "dispatch"],
+    );
+    record_count(
+        store,
+        "render.hzb.occlusion.params_buffer_create_count",
+        frame_index,
+        stats.last_hzb_occlusion_params_buffer_create_count,
+        &["render", "hzb", "occlusion", "buffer"],
+    );
+    record_bytes(
+        store,
+        "render.hzb.occlusion.params_upload_byte_count",
+        frame_index,
+        stats.last_hzb_occlusion_params_upload_byte_count,
+        &["render", "hzb", "occlusion", "upload"],
+    );
+    record_count(
+        store,
+        "render.hzb.occlusion.bind_group_create_count",
+        frame_index,
+        stats.last_hzb_occlusion_bind_group_create_count,
+        &["render", "hzb", "occlusion", "binding"],
     );
     record_bool(
         store,

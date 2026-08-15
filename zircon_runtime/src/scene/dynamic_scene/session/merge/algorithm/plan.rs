@@ -6,7 +6,7 @@ pub struct RuntimeSessionArchiveMergePlan<'incoming> {
     target_generation: u64,
     target_revision: u64,
     report: RuntimeSessionArchiveMergeReport,
-    replacements: Vec<(usize, &'incoming RuntimeSessionSlot)>,
+    replacements: Vec<&'incoming RuntimeSessionSlot>,
     inserts: Vec<&'incoming RuntimeSessionSlot>,
 }
 
@@ -44,11 +44,7 @@ impl RuntimeSessionArchiveMergePlan<'_> {
 
         // Clone only after all validation and conflict planning has completed.
         // Preview consumes the borrowed plan without cloning slot payloads.
-        let replacements = self
-            .replacements
-            .into_iter()
-            .map(|(slot_index, slot)| (slot_index, slot.clone()))
-            .collect();
+        let replacements = self.replacements.into_iter().cloned().collect();
         let inserts = self.inserts.into_iter().cloned().collect();
         target.commit_staged_slot_rows(replacements, inserts, std::iter::empty());
         Ok(report)
@@ -66,9 +62,9 @@ pub(in crate::scene::dynamic_scene::session) fn prepare_merge_archive<'incoming>
     let mut report = RuntimeSessionArchiveMergeReport::default();
     let mut replacements = Vec::new();
     let mut inserts = Vec::new();
-    for slot in &incoming.slots {
+    for slot in incoming.iter_canonical_slots() {
         match target.indexed_slot_index(&slot.slot_id) {
-            Some(slot_index) => match policy {
+            Some(_) => match policy {
                 RuntimeSessionArchiveMergePolicy::RejectConflicts => {
                     return Err(RuntimeSessionArchiveError::DuplicateSlotId {
                         slot_id: slot.slot_id.clone(),
@@ -79,7 +75,7 @@ pub(in crate::scene::dynamic_scene::session) fn prepare_merge_archive<'incoming>
                 }
                 RuntimeSessionArchiveMergePolicy::ReplaceExisting => {
                     report.replaced_slot_ids.push(slot.slot_id.clone());
-                    replacements.push((slot_index, slot));
+                    replacements.push(slot);
                 }
             },
             None => {

@@ -4,7 +4,7 @@ mod segments;
 mod shapes;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use identity::{
-    ButtonGlyph, button_glyph_for_key,
+    button_glyph_for_key, ButtonGlyph,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::button_icon_size;
 #[cfg(test)]

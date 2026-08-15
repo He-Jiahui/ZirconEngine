@@ -4,12 +4,20 @@ use crate::core::diagnostics::{DiagnosticStore, DiagnosticStoreSnapshot};
 use crate::core::math::{Transform, Vec3};
 use crate::scene::components::Name;
 use crate::scene::ecs::{
-    ChangeDetectionScanStats, Changed, Component, ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC,
+    ChangeDetectionScanStats, Changed, Component, EcsFramePerformanceDiagnostics,
+    InternalSceneSystem, QueryState, QueryStateCacheStats, SystemState,
+    ECS_ARCHETYPE_COMPONENT_INDEX_PROBES_DIAGNOSTIC, ECS_ARCHETYPE_ROW_APPENDS_DIAGNOSTIC,
+    ECS_ARCHETYPE_SIGNATURE_MEMBERSHIP_CHECKS_DIAGNOSTIC,
+    ECS_BUNDLE_FINAL_ARCHETYPE_TRANSITIONS_DIAGNOSTIC,
+    ECS_BUNDLE_INTERMEDIATE_SIGNATURES_DIAGNOSTIC, ECS_BUNDLE_LIFECYCLE_EVENTS_DIAGNOSTIC,
+    ECS_BUNDLE_STAGING_ALLOCATIONS_DIAGNOSTIC, ECS_BUNDLE_STORAGE_MOVES_DIAGNOSTIC,
+    ECS_BUNDLE_TRANSACTION_COUNT_DIAGNOSTIC, ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC,
     ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC, ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC,
     ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC,
     ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC, ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC,
-    ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC, EcsFramePerformanceDiagnostics, InternalSceneSystem,
-    QueryState, QueryStateCacheStats, SystemState,
+    ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC, ECS_QUERY_PLAN_COMPILATIONS_DIAGNOSTIC,
+    ECS_QUERY_PLAN_COMPONENT_MEMBERSHIP_CHECKS_DIAGNOSTIC,
+    ECS_QUERY_PLAN_SPARSE_BINDINGS_DIAGNOSTIC, ECS_QUERY_PLAN_TABLE_BINDINGS_DIAGNOSTIC,
 };
 use crate::scene::{EntityId, NodeKind, World};
 
@@ -17,11 +25,13 @@ const ENTITY_COUNT: usize = 128;
 const REPEATED_QUERY_RUNS: usize = 8;
 const CHANGED_ENTITY_COUNT: usize = 16;
 const TRANSFORM_READS: usize = 128;
-
 #[derive(Debug, PartialEq, Eq)]
-struct Health(u32);
+pub(super) struct Health(pub(super) u32);
 
 impl Component for Health {}
+
+#[path = "ecs_performance_acceptance/columnar.rs"]
+mod columnar;
 
 fn spawn_health_entities(world: &mut World, count: usize) -> Vec<EntityId> {
     (0..count)
@@ -59,6 +69,12 @@ fn ecs_frame_performance_diagnostics_record_query_and_change_counts() {
         cached_entity_count: 64,
         candidate_entity_count: 96,
         matched_entity_count: 48,
+        archetype_plan_compilations: 2,
+        archetype_component_membership_checks: 4,
+        table_column_slot_bindings: 3,
+        sparse_component_bindings: 1,
+        archetype_index_component_probes: 2,
+        archetype_index_signature_membership_checks: 4,
     });
     frame.add_query_stats(QueryStateCacheStats {
         cache_hits: 5,
@@ -69,12 +85,21 @@ fn ecs_frame_performance_diagnostics_record_query_and_change_counts() {
         cached_entity_count: 32,
         candidate_entity_count: 48,
         matched_entity_count: 24,
+        archetype_plan_compilations: 3,
+        archetype_component_membership_checks: 6,
+        table_column_slot_bindings: 4,
+        sparse_component_bindings: 2,
+        archetype_index_component_probes: 3,
+        archetype_index_signature_membership_checks: 6,
     });
     frame.add_change_detection_stats(ChangeDetectionScanStats {
         scanned_marks: 6,
         added_matches: 2,
         changed_matches: 1,
     });
+    frame
+        .bundle_transactions_mut()
+        .record_commit(true, 1, 9, 18, 9);
     frame.add_change_detection_stats(ChangeDetectionScanStats {
         scanned_marks: 4,
         added_matches: 1,
@@ -89,9 +114,21 @@ fn ecs_frame_performance_diagnostics_record_query_and_change_counts() {
     assert_eq!(frame.query.cached_entity_count, 96);
     assert_eq!(frame.query.candidate_entity_count, 144);
     assert_eq!(frame.query.matched_entity_count, 72);
+    assert_eq!(frame.query.archetype_plan_compilations, 5);
+    assert_eq!(frame.query.archetype_component_membership_checks, 10);
+    assert_eq!(frame.query.table_column_slot_bindings, 7);
+    assert_eq!(frame.query.sparse_component_bindings, 3);
+    assert_eq!(frame.archetype_index.component_index_probes, 5);
+    assert_eq!(frame.archetype_index.signature_membership_checks, 10);
     assert_eq!(frame.change_detection.scanned_marks, 10);
     assert_eq!(frame.change_detection.added_matches, 3);
     assert_eq!(frame.change_detection.changed_matches, 4);
+    assert_eq!(frame.bundle_transactions.committed_transactions, 1);
+    assert_eq!(frame.bundle_transactions.final_archetype_transitions, 1);
+    assert_eq!(frame.bundle_transactions.intermediate_signatures, 0);
+    assert_eq!(frame.bundle_transactions.component_storage_moves, 9);
+    assert_eq!(frame.bundle_transactions.lifecycle_events, 18);
+    assert_eq!(frame.bundle_transactions.staged_value_allocations, 9);
 
     let mut diagnostics = DiagnosticStore::default();
     frame.record_diagnostics(&mut diagnostics, 7);
@@ -117,6 +154,40 @@ fn ecs_frame_performance_diagnostics_record_query_and_change_counts() {
         Some(72.0)
     );
     assert_eq!(
+        diagnostic_current(&snapshot, ECS_QUERY_PLAN_COMPILATIONS_DIAGNOSTIC),
+        Some(5.0)
+    );
+    assert_eq!(
+        diagnostic_current(
+            &snapshot,
+            ECS_QUERY_PLAN_COMPONENT_MEMBERSHIP_CHECKS_DIAGNOSTIC
+        ),
+        Some(10.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_QUERY_PLAN_TABLE_BINDINGS_DIAGNOSTIC),
+        Some(7.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_QUERY_PLAN_SPARSE_BINDINGS_DIAGNOSTIC),
+        Some(3.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_ARCHETYPE_COMPONENT_INDEX_PROBES_DIAGNOSTIC),
+        Some(5.0)
+    );
+    assert_eq!(
+        diagnostic_current(
+            &snapshot,
+            ECS_ARCHETYPE_SIGNATURE_MEMBERSHIP_CHECKS_DIAGNOSTIC
+        ),
+        Some(10.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_ARCHETYPE_ROW_APPENDS_DIAGNOSTIC),
+        Some(0.0)
+    );
+    assert_eq!(
         diagnostic_current(&snapshot, ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC),
         Some(10.0)
     );
@@ -127,6 +198,30 @@ fn ecs_frame_performance_diagnostics_record_query_and_change_counts() {
     assert_eq!(
         diagnostic_current(&snapshot, ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC),
         Some(4.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_BUNDLE_TRANSACTION_COUNT_DIAGNOSTIC),
+        Some(1.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_BUNDLE_FINAL_ARCHETYPE_TRANSITIONS_DIAGNOSTIC),
+        Some(1.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_BUNDLE_INTERMEDIATE_SIGNATURES_DIAGNOSTIC),
+        Some(0.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_BUNDLE_STORAGE_MOVES_DIAGNOSTIC),
+        Some(9.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_BUNDLE_LIFECYCLE_EVENTS_DIAGNOSTIC),
+        Some(18.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_BUNDLE_STAGING_ALLOCATIONS_DIAGNOSTIC),
+        Some(9.0)
     );
 }
 
@@ -143,7 +238,7 @@ fn spawn_query_hot_path_reuses_cache_until_structural_change() {
     let start = Instant::now();
     let baseline_sum = system.run(&mut world, |query| {
         let iter = query.iter();
-        assert!(iter.uses_cached_component_locations());
+        assert!(iter.uses_compiled_archetype_plans());
         iter.map(|(_, health)| u64::from(health.0)).sum::<u64>()
     });
     assert_eq!(baseline_sum, expected_health_sum(ENTITY_COUNT, 0));
@@ -325,6 +420,57 @@ fn system_state_records_query_cache_stats_into_world_frame_diagnostics() {
 }
 
 #[test]
+fn system_state_publishes_actual_plan_and_archetype_counters_after_structural_change() {
+    let mut world = World::empty();
+    world
+        .spawn((Name("Initial query plan".to_string()), Health(1)))
+        .unwrap();
+
+    type HealthAndSparseQuery =
+        QueryState<(EntityId, &'static Health, Option<&'static SparseMarker>)>;
+    let mut system = SystemState::<HealthAndSparseQuery>::new(&mut world).unwrap();
+
+    world.reset_ecs_frame_performance_diagnostics();
+    world
+        .spawn((
+            Name("New matching archetype".to_string()),
+            Health(2),
+            SparseMarker,
+        ))
+        .unwrap();
+
+    assert_eq!(system.run(&mut world, |query| query.iter().count()), 2);
+
+    let frame = world.ecs_frame_performance_diagnostics();
+    assert_eq!(frame.query.archetype_plan_compilations, 1);
+    assert_eq!(frame.query.archetype_component_membership_checks, 2);
+    assert_eq!(frame.query.table_column_slot_bindings, 1);
+    assert_eq!(frame.query.sparse_component_bindings, 1);
+    assert_eq!(frame.archetype_index.component_index_probes, 0);
+    assert_eq!(frame.archetype_index.signature_membership_checks, 1);
+    assert_eq!(frame.archetype_index.row_appends, 2);
+
+    let mut diagnostics = DiagnosticStore::default();
+    frame.record_diagnostics(&mut diagnostics, 13);
+    let snapshot = diagnostics.snapshot();
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_ARCHETYPE_COMPONENT_INDEX_PROBES_DIAGNOSTIC),
+        Some(0.0)
+    );
+    assert_eq!(
+        diagnostic_current(
+            &snapshot,
+            ECS_ARCHETYPE_SIGNATURE_MEMBERSHIP_CHECKS_DIAGNOSTIC
+        ),
+        Some(1.0)
+    );
+    assert_eq!(
+        diagnostic_current(&snapshot, ECS_ARCHETYPE_ROW_APPENDS_DIAGNOSTIC),
+        Some(2.0)
+    );
+}
+
+#[test]
 fn system_state_records_change_detection_stats_into_world_frame_diagnostics() {
     let mut world = World::empty();
     let entities = spawn_health_entities(&mut world, ENTITY_COUNT);
@@ -415,6 +561,31 @@ fn changed_filter_hot_path_matches_only_mutated_entities_without_cache_rebuild()
         CHANGED_ENTITY_COUNT,
         system.state().cache_rebuilds(),
         start.elapsed().as_micros()
+    );
+}
+
+#[test]
+fn stable_table_query_hot_path_has_zero_hash_probes_and_any_downcasts() {
+    let query_iter = include_str!("../ecs/query/query_iter.rs");
+    let query_data = include_str!("../ecs/query/query_data.rs");
+    let query_filter = include_str!("../ecs/query/query_filter.rs");
+    let cached_query_iter = include_str!("../ecs/query/cached_query_iter.rs");
+    let archetype_plan = include_str!("../ecs/query/query_state/archetype_plan.rs");
+    let world_query = include_str!("../world/query.rs");
+    let despawn = include_str!("../world/hierarchy.rs");
+
+    assert!(!query_iter.contains("HashMap"));
+    assert!(!query_iter.contains("downcast"));
+    assert!(!archetype_plan.contains("HashMap"));
+    assert!(!archetype_plan.contains("downcast"));
+    assert!(!query_data.contains("registered_component_id::<T>()"));
+    assert!(!query_filter.contains("registered_component_id::<T>()"));
+    assert!(!cached_query_iter.contains("registered_component_id::<T>()"));
+    assert!(world_query.contains("get_by_slot::<T>(archetype, row, column_slot)"));
+    assert!(
+        despawn.contains("let component_ids = self.entity_archetype_component_ids(entity);")
+            && despawn.contains(".remove_entity_components(internal, &component_ids);")
+            && !despawn.contains("component_storage.remove_entity(internal)")
     );
 }
 

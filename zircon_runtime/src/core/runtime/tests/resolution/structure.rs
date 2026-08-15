@@ -1,3 +1,15 @@
+use std::sync::Arc;
+
+use super::super::super::{CoreWeak, ServiceFactory, ServiceObject};
+
+#[test]
+fn service_factory_accepts_only_a_weak_core_capability() {
+    let _factory: ServiceFactory = Arc::new(|core: &CoreWeak| {
+        assert!(core.upgrade().is_none());
+        Ok(Arc::new(()) as ServiceObject)
+    });
+}
+
 #[test]
 fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
     let resolution_mod_source = include_str!("mod.rs");

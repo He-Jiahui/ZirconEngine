@@ -1,4 +1,4 @@
-use super::{ActionControl, ExtensionNavigationSpec, action, spec};
+use super::{action, spec, ActionControl, ExtensionNavigationSpec};
 
 const LEVEL_STREAMING_TAB_CONTROLS: &[&str] = &[
     "WorkbenchExtensionLevelStreamingCellsTab",

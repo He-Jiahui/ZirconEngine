@@ -1,6 +1,6 @@
 use crate::ui::retained_host::viewport_toolbar_pointer::{
-    ViewportToolbarPointerBridge, ViewportToolbarPointerRoute,
-    build_viewport_toolbar_pointer_layout,
+    build_viewport_toolbar_pointer_layout, ViewportToolbarPointerBridge,
+    ViewportToolbarPointerRoute,
 };
 use zircon_runtime_interface::ui::layout::UiPoint;
 

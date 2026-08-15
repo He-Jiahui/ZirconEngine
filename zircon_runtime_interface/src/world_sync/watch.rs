@@ -33,6 +33,7 @@ impl WatchRegistration {
 }
 
 /// Runtime-issued opaque subscription identity; runtime never stores editor view ids.
+#[repr(transparent)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct WatchToken(u64);
@@ -44,5 +45,9 @@ impl WatchToken {
 
     pub const fn value(self) -> u64 {
         self.0
+    }
+
+    pub const fn is_valid(self) -> bool {
+        self.0 != 0
     }
 }

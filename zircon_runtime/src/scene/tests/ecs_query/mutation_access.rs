@@ -12,10 +12,10 @@ fn query_state_mutates_matching_components_without_touching_filtered_entities() 
 
     let mut query = world.query_filtered::<&mut Health, With<Player>>();
     let health_id = world.registered_component_id::<Health>().unwrap();
-    assert_eq!(query.cached_location_count(), 1);
-    assert_eq!(query.cached_locations()[0].stable_id, player);
+    assert_eq!(query.cached_entity_count(), 1);
+    assert_eq!(query.cached_archetype_count(), 1);
     assert_eq!(
-        cached_component_locations_for(&query, 0)[0].component_id,
+        query.cached_archetype_plans()[0].bindings()[0].component_id(),
         health_id
     );
     assert_eq!(query.cache_rebuilds(), 1);
@@ -33,7 +33,7 @@ fn query_state_mutates_matching_components_without_touching_filtered_entities() 
     assert_eq!(world.get::<Health>(player), Some(&Health(17)));
     assert_eq!(world.get::<Health>(ally), Some(&Health(9)));
     assert_eq!(world.get::<Health>(enemy), Some(&Health(4)));
-    assert_eq!(query.cache_rebuilds(), 2);
+    assert_eq!(query.cache_rebuilds(), 1);
 }
 
 #[test]

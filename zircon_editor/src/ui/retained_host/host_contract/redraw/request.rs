@@ -9,6 +9,9 @@ use super::super::data::FrameRect;
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum HostRedrawRequest {
     None,
+    FrameUpdate {
+        scenario: UiPerfScenario,
+    },
     Full {
         frame_update: bool,
         scenario: UiPerfScenario,

@@ -1,4 +1,4 @@
-use super::types::{ActionControl, ExtensionNavigationSpec, action, spec};
+use super::types::{action, spec, ActionControl, ExtensionNavigationSpec};
 
 mod level_tools;
 mod prefab_and_scatter;
@@ -40,16 +40,12 @@ mod tests {
                 navigation.command_controls.len(),
                 navigation.command_actions.len()
             );
-            assert!(
-                navigation
-                    .open_action_id
-                    .starts_with("workbench.extension.")
-            );
-            assert!(
-                navigation
-                    .workspace_control_id
-                    .starts_with("WorkbenchExtension")
-            );
+            assert!(navigation
+                .open_action_id
+                .starts_with("workbench.extension."));
+            assert!(navigation
+                .workspace_control_id
+                .starts_with("WorkbenchExtension"));
             assert!(!navigation.field_actions.is_empty());
             let namespace = navigation.open_action_id.trim_end_matches(".open");
             assert!(namespace.len() < navigation.open_action_id.len());

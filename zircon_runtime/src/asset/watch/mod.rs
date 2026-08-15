@@ -23,10 +23,10 @@ pub use asset_watch_batch::{AssetWatchBatch, AssetWatchBatchDiagnostics};
 pub use asset_watch_error::AssetWatchError;
 pub use asset_watch_event::AssetWatchEvent;
 pub use asset_watcher::{
-    ASSET_WATCH_DEFAULT_DEBOUNCE, ASSET_WATCH_DEFAULT_INGRESS_BYTE_CAPACITY,
-    ASSET_WATCH_DEFAULT_INGRESS_ENTRY_CAPACITY, ASSET_WATCH_DEFAULT_MAX_BATCH_LATENCY,
-    ASSET_WATCH_DEFAULT_PENDING_BYTE_CAPACITY, ASSET_WATCH_DEFAULT_PENDING_ENTRY_CAPACITY,
-    AssetWatcher, AssetWatcherOptions,
+    AssetWatcher, AssetWatcherOptions, ASSET_WATCH_DEFAULT_DEBOUNCE,
+    ASSET_WATCH_DEFAULT_INGRESS_BYTE_CAPACITY, ASSET_WATCH_DEFAULT_INGRESS_ENTRY_CAPACITY,
+    ASSET_WATCH_DEFAULT_MAX_BATCH_LATENCY, ASSET_WATCH_DEFAULT_PENDING_BYTE_CAPACITY,
+    ASSET_WATCH_DEFAULT_PENDING_ENTRY_CAPACITY,
 };
 #[cfg(test)]
 pub(crate) use watch_loop::{watch_ingress, watch_loop_for_test};

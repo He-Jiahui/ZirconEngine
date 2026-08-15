@@ -8,16 +8,18 @@ use crate::render_graph::{CompiledRenderGraph, RenderGraphResourceKind};
 use crate::rhi::{TextureDesc, TextureFormat, TextureUsage};
 
 pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) fn bind_frame_graph_resources(
+    device: &wgpu::Device,
     graph: &CompiledRenderGraph,
     resources: &mut RenderGraphExecutionResources,
-    target: &OffscreenTarget,
+    target: &mut OffscreenTarget,
     scene_light_data_buffer: &wgpu::Buffer,
     imported_final_target: Option<RenderGraphImportedFinalTarget<'_>>,
     shadow_atlas_resources: Option<&ShadowAtlasResources>,
 ) {
-    debug_assert_eq!(
-        target.retained_frame_texture_count(),
-        OffscreenTarget::RETAINED_FRAME_TEXTURE_COUNT,
+    let retained_texture_count = target.retained_frame_texture_count();
+    debug_assert!(
+        retained_texture_count == OffscreenTarget::RETAINED_FRAME_TEXTURE_COUNT
+            || retained_texture_count == OffscreenTarget::RETAINED_FRAME_TEXTURE_COUNT + 1,
         "fixed offscreen frame target must retain every WGPU texture owner backing imported views"
     );
 
@@ -27,6 +29,7 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
         PostProcessGraphResourceNames::SCENE_COLOR,
         &target.scene_color,
         &target.scene_color_view,
+        target.scene_color_identity,
         TextureDesc::new(
             PostProcessGraphResourceNames::SCENE_COLOR,
             target.render_size.x,
@@ -35,12 +38,14 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED | TextureUsage::COPY_SRC,
         ),
     );
-    bind_live_frame_target_texture(
+    bind_live_frame_target_texture_with_identity(
         graph,
         resources,
         PostProcessGraphResourceNames::SCENE_DEPTH,
         &target.depth_view,
+        target.depth_identity,
     );
+    bind_live_scene_velocity(device, graph, resources, target);
     bind_live_final_target_aliases(graph, resources, target, imported_final_target);
     bind_live_frame_target_texture(
         graph,
@@ -123,16 +128,61 @@ fn bind_live_frame_target_texture(
     }
 }
 
+fn bind_live_frame_target_texture_with_identity(
+    graph: &CompiledRenderGraph,
+    resources: &mut RenderGraphExecutionResources,
+    logical_name: &'static str,
+    view: &wgpu::TextureView,
+    identity: crate::graphics::resource_identity::SampledTextureIdentity,
+) {
+    if graph_has_live_resource(graph, logical_name) {
+        resources.import_borrowed_texture_view_with_identity(logical_name, view, identity);
+    }
+}
+
+fn bind_live_scene_velocity(
+    device: &wgpu::Device,
+    graph: &CompiledRenderGraph,
+    resources: &mut RenderGraphExecutionResources,
+    target: &mut OffscreenTarget,
+) {
+    let logical_name = PostProcessGraphResourceNames::SCENE_VELOCITY;
+    if !graph_has_live_resource(graph, logical_name) {
+        return;
+    }
+    target.ensure_scene_velocity(device);
+    let (texture, view, identity) = target
+        .scene_velocity()
+        .expect("live scene-velocity graph resource must retain an offscreen backing");
+    bind_live_frame_target_owned_texture(
+        graph,
+        resources,
+        logical_name,
+        texture,
+        view,
+        identity,
+        TextureDesc::new(
+            logical_name,
+            target.render_size.x,
+            target.render_size.y,
+            TextureFormat::Rg16Float,
+            TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED | TextureUsage::COPY_SRC,
+        ),
+    );
+}
+
 fn bind_live_frame_target_owned_texture(
     graph: &CompiledRenderGraph,
     resources: &mut RenderGraphExecutionResources,
     logical_name: &'static str,
     texture: &wgpu::Texture,
     view: &wgpu::TextureView,
+    identity: crate::graphics::resource_identity::SampledTextureIdentity,
     desc: TextureDesc,
 ) {
     if graph_has_live_resource(graph, logical_name) {
         resources.import_borrowed_texture(logical_name, texture, view, desc);
+        resources.import_borrowed_texture_view_with_identity(logical_name, view, identity);
     }
 }
 
@@ -183,7 +233,7 @@ mod tests {
     #[test]
     fn frame_binder_imports_only_live_compiled_frame_resources() {
         let backend = RenderBackend::new_offscreen().unwrap();
-        let target = OffscreenTarget::new(&backend.device, UVec2::new(16, 16));
+        let mut target = OffscreenTarget::new(&backend.device, UVec2::new(16, 16));
         let graph = live_frame_resource_graph();
         let mut resources = RenderGraphExecutionResources::new();
         let scene_light_data = backend.device.create_buffer(&wgpu::BufferDescriptor {
@@ -194,9 +244,10 @@ mod tests {
         });
 
         bind_frame_graph_resources(
+            &backend.device,
             &graph,
             &mut resources,
-            &target,
+            &mut target,
             &scene_light_data,
             None,
             None,
@@ -207,6 +258,15 @@ mod tests {
         assert!(resources.has_texture_view(PostProcessGraphResourceNames::FINAL_COLOR));
         assert!(resources.has_buffer(PostProcessGraphResourceNames::LIGHT_LIST));
         assert!(resources.has_buffer(PostProcessGraphResourceNames::SCENE_LIGHT_DATA));
+        assert!(
+            target.scene_velocity().is_none(),
+            "a compiled graph without scene velocity must not allocate its fixed backing"
+        );
+        assert_eq!(
+            target.retained_frame_texture_count(),
+            OffscreenTarget::RETAINED_FRAME_TEXTURE_COUNT,
+            "an unused scene velocity target must not increase retained frame memory"
+        );
         assert!(
             !resources.has_texture_view(PostProcessGraphResourceNames::GLOBAL_ILLUMINATION),
             "unused fixed frame targets must not be pre-bound into the graph resource table"
@@ -220,21 +280,24 @@ mod tests {
     #[test]
     fn frame_binder_reuses_fixed_scene_color_and_depth_targets() {
         let backend = RenderBackend::new_offscreen().unwrap();
-        let target = OffscreenTarget::new(&backend.device, UVec2::new(16, 16));
+        let mut target = OffscreenTarget::new(&backend.device, UVec2::new(16, 16));
         let graph = live_scene_target_graph();
         let mut resources = RenderGraphExecutionResources::new();
+        let cluster_buffer = target.cluster_buffer.clone();
 
         bind_frame_graph_resources(
+            &backend.device,
             &graph,
             &mut resources,
-            &target,
-            &target.cluster_buffer,
+            &mut target,
+            &cluster_buffer,
             None,
             None,
         );
 
         assert!(resources.has_texture_view(PostProcessGraphResourceNames::SCENE_COLOR));
         assert!(resources.has_texture_view(PostProcessGraphResourceNames::SCENE_DEPTH));
+        assert!(resources.has_texture_view(PostProcessGraphResourceNames::SCENE_VELOCITY));
         assert!(
             resources
                 .physical_texture(PostProcessGraphResourceNames::SCENE_COLOR)
@@ -249,6 +312,18 @@ mod tests {
         );
         assert!(
             resources
+                .physical_texture(PostProcessGraphResourceNames::SCENE_VELOCITY)
+                .is_some(),
+            "scene-velocity debug readback requires the retained frame texture owner"
+        );
+        assert_eq!(
+            resources
+                .physical_texture_desc(PostProcessGraphResourceNames::SCENE_VELOCITY)
+                .map(|desc| desc.format),
+            Some(crate::rhi::TextureFormat::Rg16Float)
+        );
+        assert!(
+            resources
                 .owned_texture(PostProcessGraphResourceNames::SCENE_COLOR)
                 .is_none(),
             "scene-color must stay bound to the fixed frame target instead of a graph-owned transient"
@@ -259,16 +334,22 @@ mod tests {
                 .is_none(),
             "scene-depth must stay bound to the fixed frame target instead of a graph-owned transient"
         );
+        assert!(
+            resources
+                .owned_texture(PostProcessGraphResourceNames::SCENE_VELOCITY)
+                .is_none(),
+            "scene-velocity must stay bound to the fixed frame target instead of a graph-owned transient"
+        );
         let report = resources.resource_report();
-        assert_eq!(report.texture_view_count, 2);
-        assert_eq!(report.external_texture_view_count, 2);
+        assert_eq!(report.texture_view_count, 3);
+        assert_eq!(report.external_texture_view_count, 3);
         assert_eq!(report.owned_texture_count, 0);
     }
 
     #[test]
     fn frame_binder_rebinds_live_final_aliases_to_imported_texture_target() {
         let backend = RenderBackend::new_offscreen().unwrap();
-        let target = OffscreenTarget::new(&backend.device, UVec2::new(16, 16));
+        let mut target = OffscreenTarget::new(&backend.device, UVec2::new(16, 16));
         let imported = backend.device.create_texture(&wgpu::TextureDescriptor {
             label: Some("zircon-test-imported-final-target"),
             size: wgpu::Extent3d {
@@ -286,12 +367,14 @@ mod tests {
         let imported_view = imported.create_view(&wgpu::TextureViewDescriptor::default());
         let graph = final_alias_graph();
         let mut resources = RenderGraphExecutionResources::new();
+        let cluster_buffer = target.cluster_buffer.clone();
 
         bind_frame_graph_resources(
+            &backend.device,
             &graph,
             &mut resources,
-            &target,
-            &target.cluster_buffer,
+            &mut target,
+            &cluster_buffer,
             Some(RenderGraphImportedFinalTarget {
                 view: &imported_view,
             }),
@@ -314,15 +397,17 @@ mod tests {
     #[test]
     fn frame_binder_leaves_advanced_transients_for_materialization() {
         let backend = RenderBackend::new_offscreen().unwrap();
-        let target = OffscreenTarget::new(&backend.device, UVec2::new(16, 16));
+        let mut target = OffscreenTarget::new(&backend.device, UVec2::new(16, 16));
         let graph = advanced_transient_graph();
         let mut resources = RenderGraphExecutionResources::new();
+        let cluster_buffer = target.cluster_buffer.clone();
 
         bind_frame_graph_resources(
+            &backend.device,
             &graph,
             &mut resources,
-            &target,
-            &target.cluster_buffer,
+            &mut target,
+            &cluster_buffer,
             None,
             None,
         );
@@ -389,9 +474,14 @@ mod tests {
             PostProcessGraphResourceNames::SCENE_DEPTH,
             RenderGraphExternalResourceBinding::report_only_texture(),
         );
+        let scene_velocity = builder.import_external_resource_with_binding(
+            PostProcessGraphResourceNames::SCENE_VELOCITY,
+            RenderGraphExternalResourceBinding::report_only_texture(),
+        );
         let pass = side_effect_pass(&mut builder, "scene-target-use");
         builder.read_external(pass, scene_color).unwrap();
         builder.read_external(pass, scene_depth).unwrap();
+        builder.read_external(pass, scene_velocity).unwrap();
         builder.compile().unwrap()
     }
 
@@ -444,7 +534,6 @@ mod tests {
     }
 
     const ADVANCED_POST_PROCESS_TRANSIENTS: &[&str] = &[
-        PostProcessGraphResourceNames::SCENE_VELOCITY,
         PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX,
         PostProcessGraphResourceNames::MOTION_VECTOR_TILE_MAX_COARSE,
         PostProcessGraphResourceNames::MOTION_VECTOR_NEIGHBOR_MAX,

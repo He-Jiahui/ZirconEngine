@@ -33,6 +33,25 @@ fn system_state_runs_query_resource_and_commands_params() {
 }
 
 #[test]
+fn commands_param_rejects_multiple_deferred_command_lanes() {
+    let mut world = World::empty();
+
+    let tuple_error = SystemState::<(CommandsParam, CommandsParam)>::new(&mut world)
+        .expect_err("two command params would alias one system-owned worker lane");
+    assert_eq!(tuple_error, SystemParamError::MultipleDeferredCommandParams);
+
+    let param_set_error = SystemState::<ParamSet<(CommandsParam, CommandsParam)>>::new(&mut world)
+        .expect_err("ParamSet must not bypass the one-lane command ownership rule");
+    assert_eq!(
+        param_set_error,
+        SystemParamError::MultipleDeferredCommandParams
+    );
+
+    type CommandsAndLocal = (CommandsParam, LocalParam<LocalCounter>);
+    assert!(SystemState::<CommandsAndLocal>::new(&mut world).is_ok());
+}
+
+#[test]
 fn system_query_for_each_mut_uses_persistent_query_state_cache() {
     let mut world = World::empty();
     let player = world
@@ -175,27 +194,21 @@ fn param_set_component_access_is_conservative_across_sibling_filters() {
     )>;
     let system = SystemState::<Params>::new(&mut world).unwrap();
 
-    assert!(
-        system
-            .access()
-            .component_access()
-            .writes()
-            .contains(&health_component)
-    );
-    assert!(
-        !system
-            .access()
-            .component_access()
-            .with()
-            .contains(&marker_component)
-    );
-    assert!(
-        !system
-            .access()
-            .component_access()
-            .without()
-            .contains(&marker_component)
-    );
+    assert!(system
+        .access()
+        .component_access()
+        .writes()
+        .contains(&health_component));
+    assert!(!system
+        .access()
+        .component_access()
+        .with()
+        .contains(&marker_component));
+    assert!(!system
+        .access()
+        .component_access()
+        .without()
+        .contains(&marker_component));
 }
 
 #[test]

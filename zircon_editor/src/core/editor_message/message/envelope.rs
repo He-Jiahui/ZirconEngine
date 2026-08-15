@@ -38,4 +38,15 @@ impl EditorMessage {
     pub fn dirty(&self) -> Option<&EditorViewDirtyMark> {
         self.dirty.as_ref()
     }
+
+    pub(in crate::core::editor_message) fn coalesce_latest_from(mut self, previous: &Self) -> Self {
+        if let (
+            EditorMessagePayload::SceneInspection(current),
+            EditorMessagePayload::SceneInspection(previous),
+        ) = (&mut self.payload, &previous.payload)
+        {
+            current.coalesce_selection_from(previous);
+        }
+        self
+    }
 }

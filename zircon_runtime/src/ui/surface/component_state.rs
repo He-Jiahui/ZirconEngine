@@ -30,6 +30,12 @@ impl UiSurfaceComponentStateStore {
                 {
                     let _ = self.set_focused(*node_id, true);
                 }
+                if bool_attribute(&metadata.attributes, "focus_visible")
+                    || bool_attribute(&metadata.attributes, "focus-visible")
+                    || bool_attribute(&metadata.attributes, "focusVisible")
+                {
+                    let _ = self.set_focus_visible(*node_id, true);
+                }
                 if bool_attribute(&metadata.attributes, "pressed")
                     || bool_attribute(&metadata.attributes, "active")
                 {
@@ -94,6 +100,9 @@ impl UiSurfaceComponentStateStore {
             "focus" | "focused" => {
                 changed |= self.set_focused(node_id, *value);
             }
+            "focus_visible" | "focus-visible" | "focusVisible" => {
+                changed |= self.set_focus_visible(node_id, *value);
+            }
             "pressed" | "active" => {
                 changed |= self.set_pressed(node_id, *value);
             }
@@ -147,6 +156,15 @@ impl UiSurfaceComponentStateStore {
             return false;
         }
         state.flags.focused = focused;
+        true
+    }
+
+    pub(crate) fn set_focus_visible(&mut self, node_id: UiNodeId, focus_visible: bool) -> bool {
+        let state = self.states.entry(node_id).or_default();
+        if state.flags.focus_visible == focus_visible {
+            return false;
+        }
+        state.flags.focus_visible = focus_visible;
         true
     }
 
@@ -286,6 +304,9 @@ pub(crate) fn property_may_affect_runtime_pseudo_state(property: &str) -> bool {
             | "loading"
             | "focus"
             | "focused"
+            | "focus_visible"
+            | "focus-visible"
+            | "focusVisible"
             | "hover"
             | "hovered"
     )

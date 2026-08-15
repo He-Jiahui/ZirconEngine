@@ -9,10 +9,10 @@ use crate::scene::viewport::{
     SceneViewportController, TransformHandleKind, TransformSpace, ViewportCameraSnapshot,
 };
 use zircon_runtime::core::framework::picking::{HitTarget, PickingAxis};
-use zircon_runtime::scene::Scene;
 use zircon_runtime::scene::components::NodeKind;
+use zircon_runtime::scene::Scene;
 use zircon_runtime_interface::math::{
-    Transform, UVec2, Vec2, Vec3, Vec4, perspective, view_matrix,
+    perspective, view_matrix, Transform, UVec2, Vec2, Vec3, Vec4,
 };
 use zircon_runtime_interface::ui::layout::UiPoint;
 
@@ -359,13 +359,11 @@ fn viewport_render_snapshot_ignores_stale_editor_selection() {
     assert!(snapshot.overlays.selection.is_empty());
     assert!(snapshot.overlays.selection_anchors.is_empty());
     assert!(snapshot.overlays.handles.is_empty());
-    assert!(
-        snapshot
-            .overlays
-            .scene_gizmos
-            .iter()
-            .all(|gizmo| !gizmo.selected)
-    );
+    assert!(snapshot
+        .overlays
+        .scene_gizmos
+        .iter()
+        .all(|gizmo| !gizmo.selected));
 }
 
 fn test_camera() -> ViewportCameraSnapshot {

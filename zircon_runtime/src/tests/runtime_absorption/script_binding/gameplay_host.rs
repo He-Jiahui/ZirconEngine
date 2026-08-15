@@ -54,4 +54,15 @@ fn runtime_13_gameplay_host_owner_split_keeps_domain_files() {
         navigation.contains("NavMeshAgentDescriptor"),
         "gameplay_host/navigation.rs should own nav-agent mutation"
     );
+    let scene_transition = include_str!("../../../script/vm/gameplay_host/scene_transition.rs");
+    for anchor in [
+        "ZrRuntimeProjectSceneTransitionRequestV1::try_new",
+        "ZrRuntimeProjectSceneTransitionPolicyV1::ReplaceActive",
+        "world.insert_resource(request)",
+    ] {
+        assert!(
+            scene_transition.contains(anchor),
+            "gameplay_host/scene_transition.rs should retain transition request anchor `{anchor}`"
+        );
+    }
 }

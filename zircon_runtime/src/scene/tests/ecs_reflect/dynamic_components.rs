@@ -525,11 +525,9 @@ fn plugin_unload_guard_still_counts_reflected_dynamic_components() {
     assert!(blocked.contains("weather.Component.CloudLayer"));
     assert!(blocked.contains(&format!("entity {entity}")));
     assert_eq!(world.dynamic_component_count_for_plugin("weather"), 1);
-    assert!(
-        world
-            .type_registry()
-            .contains_type_path("weather.Component.CloudLayer")
-    );
+    assert!(world
+        .type_registry()
+        .contains_type_path("weather.Component.CloudLayer"));
 }
 
 #[test]

@@ -11,7 +11,9 @@ use crate::asset::assets::{
     MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MeshAsset,
     MeshAttributeValues, MeshMorphTargetAsset, MeshSkinAsset, ModelAsset, ModelPrimitiveAsset,
 };
-use crate::asset::{AssetImportContext, AssetImportError, AssetImportOutcome, ImportedAsset};
+use crate::asset::{
+    AssetImportContext, AssetImportError, AssetImportOutcome, ImportedAsset, MeshSdfCookBudget,
+};
 
 pub(crate) fn import_gltf(
     context: &AssetImportContext,
@@ -25,6 +27,8 @@ pub(crate) fn import_gltf(
     let mesh_skins = mesh_skin_assets_by_mesh(&document, &buffers);
     let source_hint = context.uri.to_string();
     let virtual_geometry_request = context.virtual_geometry_cook_request()?;
+    let mesh_sdf_request = context.mesh_sdf_cook_request()?;
+    let mut mesh_sdf_budget = MeshSdfCookBudget::default();
 
     for mesh in document.meshes() {
         let mut mesh_primitives = Vec::new();
@@ -106,19 +110,24 @@ pub(crate) fn import_gltf(
                 mesh_name,
                 &source_hint,
                 &virtual_geometry_request,
+                &mesh_sdf_request,
+                &mut mesh_sdf_budget,
             )?;
             let primitive_label = format!("Mesh{}/Primitive{}", mesh.index(), primitive.index());
             let primitive_uri = gltf_label_uri(&context.uri, &primitive_label);
             primitive_asset.mesh = Some(gltf_label_reference(&context.uri, &primitive_label));
             let virtual_geometry = primitive_asset.virtual_geometry.take();
+            let mesh_sdf = primitive_asset.mesh_sdf.take();
             let mut mesh_asset = MeshAsset::from_model_primitive(primitive_uri, &primitive_asset);
             mesh_asset.virtual_geometry = virtual_geometry;
+            mesh_asset.mesh_sdf = mesh_sdf;
             mesh_asset.morph_targets = morph_targets_from_reader(&reader);
             mesh_asset.skin = mesh_skins.get(&mesh.index()).cloned();
             let primitive_reference = ModelPrimitiveAsset {
                 vertices: Vec::new(),
                 indices: Vec::new(),
                 mesh: primitive_asset.mesh,
+                mesh_sdf: None,
                 virtual_geometry: None,
             };
             mesh_primitives.push(GltfPrimitiveSubasset {

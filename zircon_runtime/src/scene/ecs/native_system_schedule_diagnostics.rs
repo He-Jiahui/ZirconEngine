@@ -14,6 +14,10 @@ pub const NATIVE_SYSTEM_WORKER_BATCH_COUNT_DIAGNOSTIC: &str =
 pub const NATIVE_SYSTEM_CALLBACK_COUNT_DIAGNOSTIC: &str = "scene.ecs.native_system.callback_count";
 pub const NATIVE_SYSTEM_CONSERVATIVE_WORLD_WRITER_COUNT_DIAGNOSTIC: &str =
     "scene.ecs.native_system.conservative_world_writer_count";
+pub const NATIVE_SYSTEM_TEMPORARY_CONTROL_BUFFER_COUNT_DIAGNOSTIC: &str =
+    "scene.ecs.native_system.temporary_control_buffer_count";
+pub const NATIVE_SYSTEM_TEMPORARY_CONTROL_BUFFER_BYTES_DIAGNOSTIC: &str =
+    "scene.ecs.native_system.temporary_control_buffer_bytes";
 
 const CALLBACK_LATENCY_BUCKET_COUNT: usize = 65;
 
@@ -23,6 +27,8 @@ pub struct NativeSystemScheduleDiagnostics {
     worker_batch_count: u64,
     callback_count: u64,
     conservative_world_writer_count: u64,
+    temporary_control_buffer_count: u64,
+    temporary_control_buffer_bytes: u64,
     worker_callback_count: u64,
     ready_delay_ns: u64,
     worker_busy_ns: u64,
@@ -37,6 +43,8 @@ impl Default for NativeSystemScheduleDiagnostics {
             worker_batch_count: 0,
             callback_count: 0,
             conservative_world_writer_count: 0,
+            temporary_control_buffer_count: 0,
+            temporary_control_buffer_bytes: 0,
             worker_callback_count: 0,
             ready_delay_ns: 0,
             worker_busy_ns: 0,
@@ -75,6 +83,8 @@ impl NativeSystemScheduleDiagnostics {
         timings: &[NativeSystemCallbackTiming],
         elapsed: Duration,
         scheduler_parallelism: usize,
+        temporary_control_buffer_count: usize,
+        temporary_control_buffer_bytes: usize,
     ) {
         if timings.is_empty() {
             return;
@@ -84,6 +94,12 @@ impl NativeSystemScheduleDiagnostics {
         self.worker_callback_count = self
             .worker_callback_count
             .saturating_add(timings.len() as u64);
+        self.temporary_control_buffer_count = self
+            .temporary_control_buffer_count
+            .saturating_add(temporary_control_buffer_count as u64);
+        self.temporary_control_buffer_bytes = self
+            .temporary_control_buffer_bytes
+            .saturating_add(temporary_control_buffer_bytes as u64);
         let active_workers = timings.len().min(scheduler_parallelism.max(1));
         self.worker_capacity_ns = self
             .worker_capacity_ns
@@ -113,6 +129,14 @@ impl NativeSystemScheduleDiagnostics {
 
     pub fn conservative_world_writer_count(&self) -> u64 {
         self.conservative_world_writer_count
+    }
+
+    pub fn temporary_control_buffer_count(&self) -> u64 {
+        self.temporary_control_buffer_count
+    }
+
+    pub fn temporary_control_buffer_bytes(&self) -> u64 {
+        self.temporary_control_buffer_bytes
     }
 
     pub fn ready_delay_ms(&self) -> f64 {
@@ -167,7 +191,7 @@ impl NativeSystemScheduleDiagnostics {
             self.callback_latency_buckets[bucket].saturating_add(1);
     }
 
-    fn diagnostic_values(&self) -> [(&'static str, f64, &'static str); 7] {
+    fn diagnostic_values(&self) -> [(&'static str, f64, &'static str); 9] {
         [
             (
                 NATIVE_SYSTEM_CONFLICT_COUNT_DIAGNOSTIC,
@@ -203,6 +227,16 @@ impl NativeSystemScheduleDiagnostics {
                 NATIVE_SYSTEM_CONSERVATIVE_WORLD_WRITER_COUNT_DIAGNOSTIC,
                 self.conservative_world_writer_count as f64,
                 "callback",
+            ),
+            (
+                NATIVE_SYSTEM_TEMPORARY_CONTROL_BUFFER_COUNT_DIAGNOSTIC,
+                self.temporary_control_buffer_count as f64,
+                "buffer",
+            ),
+            (
+                NATIVE_SYSTEM_TEMPORARY_CONTROL_BUFFER_BYTES_DIAGNOSTIC,
+                self.temporary_control_buffer_bytes as f64,
+                "byte",
             ),
         ]
     }
@@ -259,12 +293,16 @@ mod tests {
             ],
             Duration::from_micros(40),
             2,
+            3,
+            384,
         );
 
         assert_eq!(diagnostics.conflict_count(), 3);
         assert_eq!(diagnostics.worker_batch_count(), 1);
         assert_eq!(diagnostics.callback_count(), 3);
         assert_eq!(diagnostics.conservative_world_writer_count(), 1);
+        assert_eq!(diagnostics.temporary_control_buffer_count(), 3);
+        assert_eq!(diagnostics.temporary_control_buffer_bytes(), 384);
         assert!((diagnostics.ready_delay_ms() - 0.006).abs() < f64::EPSILON);
         assert_eq!(diagnostics.worker_utilization(), 0.625);
         assert!(diagnostics.callback_p95_ms() >= 0.03);
@@ -272,7 +310,7 @@ mod tests {
         let mut store = DiagnosticStore::default();
         diagnostics.record_diagnostics(&mut store, 7);
         let snapshot = store.snapshot();
-        assert_eq!(snapshot.series.len(), 7);
+        assert_eq!(snapshot.series.len(), 9);
         assert!(snapshot.series.iter().any(|series| {
             series.path.as_str() == NATIVE_SYSTEM_CONFLICT_COUNT_DIAGNOSTIC
                 && series.current == Some(3.0)
@@ -280,6 +318,14 @@ mod tests {
         assert!(snapshot.series.iter().any(|series| {
             series.path.as_str() == NATIVE_SYSTEM_CALLBACK_P95_MS_DIAGNOSTIC
                 && series.current.is_some_and(|value| value >= 0.03)
+        }));
+        assert!(snapshot.series.iter().any(|series| {
+            series.path.as_str() == NATIVE_SYSTEM_TEMPORARY_CONTROL_BUFFER_COUNT_DIAGNOSTIC
+                && series.current == Some(3.0)
+        }));
+        assert!(snapshot.series.iter().any(|series| {
+            series.path.as_str() == NATIVE_SYSTEM_TEMPORARY_CONTROL_BUFFER_BYTES_DIAGNOSTIC
+                && series.current == Some(384.0)
         }));
     }
 }

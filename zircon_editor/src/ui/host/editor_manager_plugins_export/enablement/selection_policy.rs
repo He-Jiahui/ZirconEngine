@@ -2,7 +2,7 @@ use std::path::Path;
 
 use zircon_runtime::asset::project::ProjectManifest;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
-use zircon_runtime::plugin::native::{NativePluginLoadReport, NativePluginLoader};
+use zircon_runtime::plugin::native::{discover_native_plugins, NativePluginLoadReport};
 use zircon_runtime::{
     core::framework::project::ExportPackagingStrategy,
     core::framework::project::ProjectPluginSelection,
@@ -35,8 +35,7 @@ impl EditorManager {
         plugin_id: &str,
         packaging: ExportPackagingStrategy,
     ) -> Result<EditorPluginSelectionUpdateReport, String> {
-        let native_report =
-            NativePluginLoader.discover(self.plugin_directory(project_root.as_ref()));
+        let native_report = discover_native_plugins(self.plugin_directory(project_root.as_ref()));
         let mut selection = self.completed_native_aware_project_selection_from_load_report(
             manifest,
             plugin_id,
@@ -77,8 +76,7 @@ impl EditorManager {
         plugin_id: &str,
         target_modes: impl IntoIterator<Item = RuntimeTargetMode>,
     ) -> Result<EditorPluginSelectionUpdateReport, String> {
-        let native_report =
-            NativePluginLoader.discover(self.plugin_directory(project_root.as_ref()));
+        let native_report = discover_native_plugins(self.plugin_directory(project_root.as_ref()));
         let mut selection = self.completed_native_aware_project_selection_from_load_report(
             manifest,
             plugin_id,

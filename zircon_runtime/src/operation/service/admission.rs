@@ -2,13 +2,14 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use zircon_runtime_interface::{
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle,
-    ZrRuntimeOperationPhase, ZrRuntimeOperationSubmitRequestV1,
+    ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle, ZrRuntimeOperationPhase,
+    ZrRuntimeOperationSubmitRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
 use super::{
-    RuntimeOperationAdmissionReservation, RuntimeOperationService, RuntimeOperationServiceError,
-    RuntimeOperationTask, RuntimeOperationTaskState, consume_raw_admission, json_value_byte_len,
+    consume_raw_admission, json_value_byte_len, RuntimeOperationAdmissionReservation,
+    RuntimeOperationService, RuntimeOperationServiceError, RuntimeOperationTask,
+    RuntimeOperationTaskState,
 };
 
 impl RuntimeOperationService {

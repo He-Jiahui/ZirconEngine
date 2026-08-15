@@ -1,4 +1,142 @@
 use super::*;
+use zircon_runtime_interface::runtime_api::{
+    ZrRuntimeProjectSceneTransitionPolicyV1, ZrRuntimeProjectSceneTransitionRequestV1,
+};
+
+#[test]
+fn gameplay_scene_transition_is_capability_gated_and_replaces_the_pending_request() {
+    let core = CoreRuntime::new();
+    let level = LevelSystem::new(
+        WorldHandle::new(41),
+        Arc::new(Mutex::new(World::empty())),
+        LevelMetadata::default(),
+    );
+    let exports = HostExportRegistry::new(HostRegistry::default());
+    register_gameplay_host_module(&exports).expect("gameplay host registration");
+
+    let denied = with_script_runtime_call_context(
+        ScriptRuntimeCallContext {
+            core: core.weak(),
+            level: level.clone(),
+            entity: 0,
+            delta_seconds: 0.016,
+        },
+        || {
+            exports.call_with_capabilities(
+                GAMEPLAY_MODULE,
+                "request_scene_transition",
+                vec![ScriptHostValue::String(
+                    "res://scenes/intro.scene.toml".to_string(),
+                )],
+                &CapabilitySet::default(),
+            )
+        },
+    )
+    .expect_err("scene transitions require their dedicated capability");
+    assert!(denied.to_string().contains("missing capability"));
+
+    let capabilities = CapabilitySet::default().with("gameplay.scene_transition");
+    let first = with_script_runtime_call_context(
+        ScriptRuntimeCallContext {
+            core: core.weak(),
+            level: level.clone(),
+            entity: 0,
+            delta_seconds: 0.016,
+        },
+        || {
+            exports.call_with_capabilities(
+                GAMEPLAY_MODULE,
+                "request_scene_transition",
+                vec![ScriptHostValue::String(
+                    "res://scenes/intro.scene.toml".to_string(),
+                )],
+                &capabilities,
+            )
+        },
+    )
+    .expect("capability grants a scene transition request");
+    let ScriptHostValue::Int(first_id) = first else {
+        panic!("scene transition should return a request id");
+    };
+    assert!(first_id >= 0);
+
+    let first_request = level.with_world(|world| {
+        world
+            .get_resource::<ZrRuntimeProjectSceneTransitionRequestV1>()
+            .cloned()
+            .expect("first request is stored for the project transition owner")
+    });
+    assert_eq!(first_request.request_id, first_id as u64);
+    assert_eq!(first_request.scene_uri, "res://scenes/intro.scene.toml");
+    assert_eq!(
+        first_request.policy,
+        ZrRuntimeProjectSceneTransitionPolicyV1::ReplaceActive
+    );
+
+    let invalid = with_script_runtime_call_context(
+        ScriptRuntimeCallContext {
+            core: core.weak(),
+            level: level.clone(),
+            entity: 0,
+            delta_seconds: 0.016,
+        },
+        || {
+            exports.call_with_capabilities(
+                GAMEPLAY_MODULE,
+                "request_scene_transition",
+                vec![ScriptHostValue::String(
+                    "res://scenes/../outside.scene.toml".to_string(),
+                )],
+                &capabilities,
+            )
+        },
+    )
+    .expect_err("non-canonical project scene URI is rejected");
+    assert!(invalid
+        .to_string()
+        .contains("canonical forward-slash segments"));
+    assert_eq!(
+        level.with_world(|world| {
+            world
+                .get_resource::<ZrRuntimeProjectSceneTransitionRequestV1>()
+                .cloned()
+        }),
+        Some(first_request.clone()),
+        "a rejected request must preserve the last pending transition"
+    );
+
+    let second = with_script_runtime_call_context(
+        ScriptRuntimeCallContext {
+            core: core.weak(),
+            level: level.clone(),
+            entity: 0,
+            delta_seconds: 0.016,
+        },
+        || {
+            exports.call_with_capabilities(
+                GAMEPLAY_MODULE,
+                "request_scene_transition",
+                vec![ScriptHostValue::String(
+                    "res://scenes/next.scene.toml".to_string(),
+                )],
+                &capabilities,
+            )
+        },
+    )
+    .expect("second transition request");
+    let ScriptHostValue::Int(second_id) = second else {
+        panic!("scene transition should return a request id");
+    };
+    assert!(second_id > first_id);
+    let current = level.with_world(|world| {
+        world
+            .get_resource::<ZrRuntimeProjectSceneTransitionRequestV1>()
+            .cloned()
+            .expect("latest request remains available to the project transition owner")
+    });
+    assert_eq!(current.request_id, second_id as u64);
+    assert_eq!(current.scene_uri, "res://scenes/next.scene.toml");
+}
 
 #[test]
 fn gameplay_pose_exports_update_entity_transform() {

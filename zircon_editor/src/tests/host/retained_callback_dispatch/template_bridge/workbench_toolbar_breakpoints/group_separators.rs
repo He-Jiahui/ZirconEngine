@@ -3,6 +3,7 @@ use super::*;
 const FILE_GROUP_SEPARATOR: &str = "WorkbenchToolbarFileGroupDivider";
 const TOOL_GROUP_SEPARATOR: &str = "WorkbenchToolbarToolGroupDivider";
 const RUN_GROUP_SEPARATOR: &str = "WorkbenchToolbarRunGroupDivider";
+const LAYOUT_GROUP_SEPARATOR: &str = "WorkbenchToolbarLayoutGroupDivider";
 
 #[test]
 fn toolbar_group_dividers_follow_command_priority() {
@@ -11,7 +12,13 @@ fn toolbar_group_dividers_follow_command_priority() {
         Err(error) => panic!("test environment lock is poisoned: {error}"),
     };
 
-    for (width, tool_group_visible) in [(640.0, false), (900.0, false), (1260.0, true)] {
+    for (width, tool_group_visible) in [
+        (420.0, false),
+        (640.0, false),
+        (900.0, false),
+        (1260.0, true),
+        (1672.0, true),
+    ] {
         let bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(width, 720.0))
             .unwrap_or_else(|error| panic!("{width}px workbench should build: {error:?}"));
 
@@ -36,6 +43,13 @@ fn toolbar_group_dividers_follow_command_priority() {
         if tool_group_visible {
             assert_vertical_divider_frame(&bridge, TOOL_GROUP_SEPARATOR);
         }
+
+        assert_eq!(
+            control_visibility(&bridge, LAYOUT_GROUP_SEPARATOR),
+            Some(UiVisibility::Visible),
+            "layout divider should keep iconized layout commands distinct at {width}px"
+        );
+        assert_vertical_divider_frame(&bridge, LAYOUT_GROUP_SEPARATOR);
     }
 }
 
@@ -45,8 +59,8 @@ fn toolbar_group_dividers_preserve_command_order() {
         Ok(guard) => guard,
         Err(error) => panic!("test environment lock is poisoned: {error}"),
     };
-    let bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1260.0, 720.0))
-        .expect("regular workbench should build");
+    let bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0))
+        .expect("full workbench should build");
 
     let file_group = bridge
         .control_frame("WorkbenchToolbarFileGroup")
@@ -75,6 +89,12 @@ fn toolbar_group_dividers_preserve_command_order() {
     let run_group = bridge
         .control_frame("WorkbenchToolbarRunGroup")
         .expect("run group should have a frame");
+    let layout_divider = bridge
+        .control_frame(LAYOUT_GROUP_SEPARATOR)
+        .expect("layout divider should have a frame");
+    let layout_group = bridge
+        .control_frame("WorkbenchToolbarLayoutGroup")
+        .expect("layout group should have a frame");
 
     assert!(file_group.right() <= file_divider.x);
     assert!(file_divider.right() <= left_spacer.x);
@@ -84,6 +104,8 @@ fn toolbar_group_dividers_preserve_command_order() {
     assert!(tool_group.right() <= right_spacer.x);
     assert!(right_spacer.right() <= run_divider.x);
     assert!(run_divider.right() <= run_group.x);
+    assert!(run_group.right() <= layout_divider.x);
+    assert!(layout_divider.right() <= layout_group.x);
     assert!(
         left_spacer.width > 0.0,
         "left spacer should absorb free width"

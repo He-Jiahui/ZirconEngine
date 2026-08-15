@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -11,12 +11,21 @@ use super::super::presenter::{HostChromePresenter, HostPresenterBackend};
 use super::super::redraw::HostRedrawRequest;
 use super::UiHostWindow;
 use crate::ui::retained_host::ui_perf::UiPerfScenario;
+#[cfg(feature = "profiling")]
+use input_outcome::UiInputOutcomeTracker;
+#[cfg(feature = "profiling")]
+use profile_capture::UiProfileWarmupState;
 
 mod events;
 mod input;
+mod input_outcome;
 mod lifecycle;
 mod platform_input;
+mod profile_capture;
 mod redraw;
+
+const SURFACE_PRESENT_RETRY_BASE_DELAY: Duration = Duration::from_millis(8);
+const SURFACE_PRESENT_RETRY_MAX_DELAY: Duration = Duration::from_millis(250);
 
 pub(in crate::ui::retained_host::host_contract) struct UiHostWindowEventLoop {
     host: UiHostWindow,
@@ -26,15 +35,21 @@ pub(in crate::ui::retained_host::host_contract) struct UiHostWindowEventLoop {
     shared_gpu_presenter_active: bool,
     last_pointer_position: Option<(f32, f32)>,
     pending_redraw: HostRedrawRequest,
+    pending_surface_present_retry: HostRedrawRequest,
+    pending_surface_present_retry_deadline: Option<Instant>,
+    surface_present_retry_attempt: u8,
     pending_resize_reflow_deadline: Option<Instant>,
+    pending_presenter_resize: Option<(u32, u32)>,
+    runtime_presenter_upgrade_attempted: bool,
+    runtime_presenter_upgrade_poll_deadline: Option<Instant>,
     ime_allowed: bool,
     current_modifiers: ModifiersState,
     next_input_sequence: u64,
     profile_artifact_capture_requested: bool,
     #[cfg(feature = "profiling")]
-    pending_input_started_at: Option<Instant>,
+    input_outcomes: UiInputOutcomeTracker,
     #[cfg(feature = "profiling")]
-    pending_damage_started_at: Option<Instant>,
+    profile_warmup: UiProfileWarmupState,
 }
 
 impl UiHostWindowEventLoop {
@@ -50,15 +65,21 @@ impl UiHostWindowEventLoop {
                 UiPerfScenario::Startup,
                 true,
             ),
+            pending_surface_present_retry: HostRedrawRequest::None,
+            pending_surface_present_retry_deadline: None,
+            surface_present_retry_attempt: 0,
             pending_resize_reflow_deadline: None,
+            pending_presenter_resize: None,
+            runtime_presenter_upgrade_attempted: false,
+            runtime_presenter_upgrade_poll_deadline: None,
             ime_allowed: false,
             current_modifiers: ModifiersState::empty(),
             next_input_sequence: 1,
             profile_artifact_capture_requested: false,
             #[cfg(feature = "profiling")]
-            pending_input_started_at: None,
+            input_outcomes: UiInputOutcomeTracker::default(),
             #[cfg(feature = "profiling")]
-            pending_damage_started_at: None,
+            profile_warmup: UiProfileWarmupState::from_env(),
         }
     }
 }

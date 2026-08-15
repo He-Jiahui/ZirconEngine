@@ -1,18 +1,21 @@
 use crate::hybrid_gi::renderer::HybridGiGpuReadback;
 use zircon_runtime::core::framework::render::{
-    RenderHybridGiReadbackOutputs, RenderPluginRendererOutputs,
+    RenderHybridGiGlobalSdfStats, RenderHybridGiReadbackOutputs, RenderPluginRendererOutputs,
 };
 
 use super::hybrid_gi_readback_outputs::HybridGiReadbackOutputs;
 
 pub(in crate::hybrid_gi::renderer) fn plugin_renderer_outputs_from_gpu_readback(
     readback: Option<HybridGiGpuReadback>,
+    global_sdf_stats: Option<RenderHybridGiGlobalSdfStats>,
 ) -> RenderPluginRendererOutputs {
     let mut readback_outputs = HybridGiReadbackOutputs::default();
     readback_outputs.store_gpu_readback(readback);
+    let mut hybrid_gi = readback_outputs.take_neutral_readback_outputs();
+    hybrid_gi.global_sdf_stats = global_sdf_stats;
 
     RenderPluginRendererOutputs {
-        hybrid_gi: readback_outputs.take_neutral_readback_outputs(),
+        hybrid_gi,
         ..RenderPluginRendererOutputs::default()
     }
 }
@@ -54,14 +57,17 @@ mod tests {
             Vec::new(),
         );
 
-        let outputs = plugin_renderer_outputs_from_gpu_readback(Some(HybridGiGpuReadback::new(
-            vec![(5, 7)],
-            vec![11],
-            vec![21],
-            vec![(11, [1, 2, 3])],
-            vec![(11, [7, 8, 9])],
-            Some(scene_prepare),
-        )));
+        let outputs = plugin_renderer_outputs_from_gpu_readback(
+            Some(HybridGiGpuReadback::new(
+                vec![(5, 7)],
+                vec![11],
+                vec![21],
+                vec![(11, [1, 2, 3])],
+                vec![(11, [7, 8, 9])],
+                Some(scene_prepare),
+            )),
+            None,
+        );
 
         assert_eq!(outputs.hybrid_gi.cache_entries[0].key, 5);
         assert_eq!(outputs.hybrid_gi.completed_probe_ids, vec![11]);

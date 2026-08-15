@@ -4,7 +4,7 @@ use zircon_runtime_interface::math::Vec2;
 
 use crate::scene::viewport::GizmoAxis;
 
-use super::{SceneViewportController, viewport_drag_session::ViewportDragSession};
+use super::{viewport_drag_session::ViewportDragSession, SceneViewportController};
 
 impl SceneViewportController {
     pub(in crate::scene::viewport::controller) fn projected_selected_node(

@@ -1,6 +1,8 @@
+use std::sync::Arc;
+
 use super::super::super::super::data::FrameRect;
-use super::super::super::HostRgbaFrame;
 use super::super::super::recording::{HostPaintAtlasImage, HostRecordedPaintKind};
+use super::super::super::HostRgbaFrame;
 use super::record::record_command;
 
 impl HostRgbaFrame {
@@ -11,7 +13,7 @@ impl HostRgbaFrame {
         resource_key: impl Into<String>,
         width: u32,
         height: u32,
-        rgba: Option<Vec<u8>>,
+        rgba: Option<Arc<[u8]>>,
         atlas: Option<HostPaintAtlasImage>,
     ) {
         record_command(

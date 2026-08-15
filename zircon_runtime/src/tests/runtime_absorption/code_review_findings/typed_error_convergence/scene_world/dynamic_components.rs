@@ -5,7 +5,11 @@ fn review_f5_dynamic_component_errors_preserve_scene_error_sources() {
     let component_type_registry =
         include_str!("../../../../../scene/world/component_type_registry.rs");
     let dynamic_scene_error = include_str!("../../../../../scene/dynamic_scene/error.rs");
-    let dynamic_scene_spawn = include_str!("../../../../../scene/dynamic_scene/scene/spawn.rs");
+    let dynamic_scene_spawn = concat!(
+        include_str!("../../../../../scene/dynamic_scene/scene/spawn/mod.rs"),
+        include_str!("../../../../../scene/dynamic_scene/scene/spawn/resource.rs"),
+        include_str!("../../../../../scene/dynamic_scene/scene/spawn/transaction.rs")
+    );
     let reflect_dynamic_component =
         include_str!("../../../../../scene/reflect/dynamic_component.rs");
     let plugin_component_registry =
@@ -88,10 +92,10 @@ fn review_f5_dynamic_component_errors_preserve_scene_error_sources() {
         dynamic_scene_error.contains("WorldMutation(#[from] SceneError)")
             && !dynamic_scene_error.contains("WorldMutation(String)")
             && dynamic_scene_spawn.contains("world.register_component_type(descriptor.clone())?;")
-            && dynamic_scene_spawn.contains("world.insert_node_record(record)?;")
-            && dynamic_scene_spawn.contains(
-                "world.set_dynamic_component(entity, component.type_path.clone(), value)?;"
-            )
+            && dynamic_scene_spawn
+                .contains("world.insert_owned_node_records(records).map_err(Into::into)")
+            && dynamic_scene_spawn
+                .contains("world.set_dynamic_component(write.entity, type_path, value)?;")
             && !dynamic_scene_spawn.contains("WorldMutation(error.to_string())"),
         "DynamicScene world mutation errors should preserve SceneError sources"
     );

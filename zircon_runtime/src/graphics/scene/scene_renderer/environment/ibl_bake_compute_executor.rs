@@ -9,18 +9,19 @@ use crate::render_graph::{
 };
 
 use super::ibl_bake_graph_plan::{
+    ibl_bake_pmrem_dispatch_groups, ibl_bake_pmrem_mip_from_pass_name,
     IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_CUBE_PIPELINE_LABEL,
     IBL_BAKE_IRRADIANCE_CUBE_RESOURCE, IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID,
     IBL_BAKE_IRRADIANCE_SH9_PIPELINE_LABEL, IBL_BAKE_IRRADIANCE_SH9_RESOURCE,
     IBL_BAKE_PMREM_EXECUTOR_ID, IBL_BAKE_PMREM_PIPELINE_LABEL, IBL_BAKE_PMREM_RESOURCE,
-    IBL_BAKE_SOURCE_CUBEMAP_RESOURCE, ibl_bake_pmrem_mip_from_pass_name,
+    IBL_BAKE_SOURCE_CUBEMAP_RESOURCE,
 };
 use super::ibl_bake_wgpu_dispatch::record_ibl_bake_wgpu_pass_for_request;
 
 const IBL_BAKE_WORKGROUP_SIZE: [u32; 3] = [8, 8, 1];
 
-pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_compute_executor_registrations()
--> Vec<RenderPassExecutorRegistration> {
+pub(in crate::graphics::scene::scene_renderer) fn ibl_bake_compute_executor_registrations(
+) -> Vec<RenderPassExecutorRegistration> {
     vec![
         RenderPassExecutorRegistration::new(IBL_BAKE_PMREM_EXECUTOR_ID, ibl_bake_pmrem_executor),
         RenderPassExecutorRegistration::new(
@@ -223,12 +224,11 @@ fn output_dispatch_groups(
                             context.pass_name
                         )
                     })?;
-                let mip_size = mip_dimension(desc.width.min(desc.height), mip_level);
-                return Ok([
-                    div_ceil(mip_size, IBL_BAKE_WORKGROUP_SIZE[0]),
-                    div_ceil(mip_size, IBL_BAKE_WORKGROUP_SIZE[1]),
-                    desc.depth,
-                ]);
+                return Ok(ibl_bake_pmrem_dispatch_groups(
+                    desc.width.min(desc.height),
+                    desc.mip_levels,
+                    mip_level,
+                ));
             }
             Ok([
                 div_ceil(desc.width, IBL_BAKE_WORKGROUP_SIZE[0]),
@@ -254,16 +254,11 @@ const fn div_ceil(value: u32, divisor: u32) -> u32 {
     value.saturating_add(divisor.saturating_sub(1)) / divisor
 }
 
-const fn mip_dimension(base_size: u32, mip_level: u32) -> u32 {
-    let shifted = base_size >> mip_level;
-    if shifted == 0 { 1 } else { shifted }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        EnvironmentExtract, IblBakeArtifactContents, IblBakeArtifactRequest, ProceduralSkyParams,
-        SourceCubemapEnvironment, build_source_cubemap_from_equirect,
+        build_source_cubemap_from_equirect, EnvironmentExtract, IblBakeArtifactContents,
+        IblBakeArtifactRequest, ProceduralSkyParams, SourceCubemapEnvironment,
     };
     use crate::graphics::scene::scene_renderer::graph_execution::{
         RenderGraphComputeWorkloadDispatchContext, RenderGraphExecutionRecord, RenderPassExecutorId,
@@ -271,12 +266,12 @@ mod tests {
     use crate::render_graph::{QueueLane, RenderGraphBuilder};
 
     use super::super::ibl_bake_graph_plan::{
+        append_ibl_bake_artifact_graph_plan, ibl_bake_pmrem_pass_name,
         IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_CUBE_PASS,
         IBL_BAKE_IRRADIANCE_CUBE_PIPELINE_LABEL, IBL_BAKE_IRRADIANCE_CUBE_RESOURCE,
         IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_SH9_PASS,
         IBL_BAKE_IRRADIANCE_SH9_PIPELINE_LABEL, IBL_BAKE_IRRADIANCE_SH9_RESOURCE,
         IBL_BAKE_PMREM_EXECUTOR_ID, IBL_BAKE_PMREM_PIPELINE_LABEL, IBL_BAKE_PMREM_RESOURCE,
-        append_ibl_bake_artifact_graph_plan, ibl_bake_pmrem_pass_name,
     };
     use super::*;
 
@@ -293,8 +288,7 @@ mod tests {
             .expect("IBL bake graph plan should append");
         let graph = builder.compile().expect("graph should compile");
         let mut record = RenderGraphExecutionRecord::default();
-        let dispatch_context =
-            RenderGraphComputeWorkloadDispatchContext::new([1, 1], [1, 1], [1, 1], 0);
+        let dispatch_context = RenderGraphComputeWorkloadDispatchContext::new([1, 1], [1, 1], 0);
 
         for pass in graph.passes() {
             let context =
@@ -349,7 +343,7 @@ mod tests {
             [IBL_BAKE_PMREM_RESOURCE.to_string()]
         );
         assert_eq!(pmrem_mip0.dispatch_groups, [16, 16, 6]);
-        assert_eq!(pmrem_mip7.dispatch_groups, [1, 1, 6]);
+        assert_eq!(pmrem_mip7.dispatch_groups, [1, 1, 1]);
         assert_eq!(sh9.dispatch_groups, [1, 1, 1]);
         assert_eq!(iem.dispatch_groups, [4, 4, 6]);
     }
@@ -423,12 +417,10 @@ mod tests {
             )
             .with_resource_resolver(&graph, pass.id);
 
-        assert!(
-            context
-                .resource_resolver()
-                .and_then(|resolver| resolver.resource_lifetime_by_name(IBL_BAKE_PMREM_RESOURCE))
-                .is_none()
-        );
+        assert!(context
+            .resource_resolver()
+            .and_then(|resolver| resolver.resource_lifetime_by_name(IBL_BAKE_PMREM_RESOURCE))
+            .is_none());
 
         let rebuilt =
             ibl_bake_request_from_frame_environment_and_graph_metadata(&context, &environment)

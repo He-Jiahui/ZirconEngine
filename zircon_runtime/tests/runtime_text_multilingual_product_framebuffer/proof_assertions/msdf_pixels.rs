@@ -4,7 +4,7 @@ use zircon_runtime_interface::ui::{
     surface::{UiRenderCommand, UiTextRenderMode},
 };
 
-pub(super) fn assert_msdf_sharp_corner_pixels(
+pub(in super::super) fn assert_msdf_sharp_corner_pixels(
     samples: &[UiRenderCommand],
     capture: &CapturedFrame,
     background: &CapturedFrame,

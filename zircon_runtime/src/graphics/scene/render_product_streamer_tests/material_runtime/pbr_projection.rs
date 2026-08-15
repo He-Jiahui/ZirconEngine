@@ -38,6 +38,11 @@ fn render_product_pbr_streamer_projects_standard_material_into_runtime_key() {
     let mut streamer =
         ResourceStreamer::new_for_test(asset_manager, &device, &queue, &texture_layout);
 
+    let unprepared_capture = streamer
+        .material_capture_seed(&material_id)
+        .expect("asset-backed material capture seed");
+    assert_eq!(unprepared_capture.occlusion_strength, 0.25);
+
     streamer
         .ensure_material(
             &device,
@@ -53,6 +58,8 @@ fn render_product_pbr_streamer_projects_standard_material_into_runtime_key() {
     assert_eq!(capture.emissive.to_array(), [0.1, 0.2, 0.3]);
     assert_eq!(capture.metallic, 0.35);
     assert_eq!(capture.roughness, 0.65);
+    assert_eq!(capture.occlusion_strength, 0.25);
+    assert_eq!(material.occlusion_strength, 0.25);
     assert!(capture.double_sided);
     assert!(!capture.alpha_blend);
     assert_eq!(capture.alpha_cutoff, Some(0.42));

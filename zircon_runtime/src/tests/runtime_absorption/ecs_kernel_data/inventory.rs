@@ -6,9 +6,14 @@ const EXPECTED_RUNTIME_08_SOURCE_FILES: &[&str] = &[
     "src/scene/ecs/archetype/mod.rs",
     "src/scene/ecs/archetype/id.rs",
     "src/scene/ecs/archetype/index.rs",
-    "src/scene/ecs/archetype/move_result.rs",
     "src/scene/ecs/archetype/record.rs",
     "src/scene/ecs/archetype/signature.rs",
+    "src/scene/ecs/archetype/table/mod.rs",
+    "src/scene/ecs/archetype/table/column.rs",
+    "src/scene/ecs/archetype/table/error.rs",
+    "src/scene/ecs/archetype/table/preflighted_row.rs",
+    "src/scene/ecs/archetype/table/table.rs",
+    "src/scene/ecs/archetype/table/taken_row.rs",
     "src/scene/ecs/bundle.rs",
     "src/scene/ecs/storage_type.rs",
     "src/scene/ecs/storage/component_storage/mod.rs",
@@ -17,7 +22,6 @@ const EXPECTED_RUNTIME_08_SOURCE_FILES: &[&str] = &[
     "src/scene/ecs/storage/component_storage/location.rs",
     "src/scene/ecs/storage/component_storage/sparse.rs",
     "src/scene/ecs/storage/component_storage/store.rs",
-    "src/scene/ecs/storage/component_storage/table.rs",
     "src/scene/ecs/component/mod.rs",
     "src/scene/ecs/component/id.rs",
     "src/scene/ecs/component/marker.rs",
@@ -69,6 +73,8 @@ const EXPECTED_RUNTIME_08_SOURCE_FILES: &[&str] = &[
     "src/scene/ecs/change_detection/wrappers.rs",
     "src/scene/ecs/removal.rs",
     "src/scene/world/identity.rs",
+    "src/scene/world/typed_api/component_row.rs",
+    "src/scene/world/typed_api/projection_rebuild.rs",
     "src/scene/world/observers.rs",
     "src/scene/world/events.rs",
     "src/scene/world/messages.rs",
@@ -82,11 +88,13 @@ const EXPECTED_RUNTIME_08_TEST_FILES: &[&str] = &[
     "src/scene/tests/component_structure/runtime_08_owner_tree.rs",
     "src/tests/runtime_absorption/ecs_kernel_data.rs",
     "src/tests/runtime_absorption/ecs_kernel_data/inventory.rs",
+    "src/tests/runtime_absorption/ecs_kernel_data/guard_coverage.rs",
+    "src/tests/runtime_absorption/ecs_kernel_data/docs.rs",
 ];
 
 #[test]
 fn runtime_08_ecs_kernel_data_mirror_docs_match_structure_audit_counts() {
-    assert_eq!(EXPECTED_RUNTIME_08_SOURCE_FILES.len(), 69);
+    assert_eq!(EXPECTED_RUNTIME_08_SOURCE_FILES.len(), 75);
     assert_eq!(EXPECTED_RUNTIME_08_TEST_FILES.len(), 10);
     assert_eq!(
         guard_coverage::EXPECTED_RUNTIME_08_BEHAVIOR_TEST_ANCHORS.len(),

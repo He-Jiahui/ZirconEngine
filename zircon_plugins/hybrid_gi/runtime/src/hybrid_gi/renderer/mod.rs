@@ -8,6 +8,7 @@ pub(in crate::hybrid_gi::renderer) use gpu_readback::{
 };
 pub(crate) use gpu_readback::{HybridGiGpuReadback, HybridGiScenePrepareResourcesSnapshot};
 pub(in crate::hybrid_gi::renderer) use gpu_resources::{
-    HybridGiGpuResources, HybridGiMaterialCaptureSeed, HybridGiMaterialCaptureSource,
+    GlobalSdfGpuReadbackFuture, GlobalSdfGpuState, HybridGiGpuResources,
+    HybridGiMaterialCaptureSeed, HybridGiMaterialCaptureSource, RadianceCacheGpuState,
 };
 pub(crate) use root_output_sources::runtime_prepare_collector;

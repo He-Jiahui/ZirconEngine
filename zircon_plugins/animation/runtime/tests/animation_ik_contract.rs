@@ -53,11 +53,11 @@ fn manager_ik_commands_are_validated_and_drained_per_world() {
         weight: 0.75,
     });
 
-    manager.queue_ik_command(command.clone()).unwrap();
+    manager.queue_ik_command(3, command.clone()).unwrap();
 
-    assert!(manager.drain_ik_commands(other_world).is_empty());
-    assert_eq!(manager.drain_ik_commands(world), vec![command]);
-    assert!(manager.drain_ik_commands(world).is_empty());
+    assert!(manager.drain_ik_commands(other_world, 3).is_empty());
+    assert_eq!(manager.drain_ik_commands(world, 3), vec![command]);
+    assert!(manager.drain_ik_commands(world, 3).is_empty());
 
     let invalid = AnimationIkCommand::LookAt(AnimationLookAtCommand {
         world,
@@ -69,7 +69,7 @@ fn manager_ik_commands_are_validated_and_drained_per_world() {
         weight: 1.0,
     });
     assert_eq!(
-        manager.queue_ik_command(invalid),
+        manager.queue_ik_command(3, invalid),
         Err(AnimationIkCommandError::DegenerateAxis { world, entity: 41 })
     );
 }

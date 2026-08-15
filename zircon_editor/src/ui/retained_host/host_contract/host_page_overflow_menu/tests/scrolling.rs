@@ -11,10 +11,13 @@ fn overflow_row_hit_cannot_select_the_clipped_portion_outside_its_popup() {
     let clipped_y = popup.y + popup.height + 1.0;
 
     assert!(clipped_y < first_row.y + first_row.height);
-    assert!(
-        host_page_overflow_row_hit_in_popup(&presentation, &popup, first_row.x + 1.0, clipped_y,)
-            .is_none()
-    );
+    assert!(host_page_overflow_row_hit_in_popup(
+        &presentation,
+        &popup,
+        first_row.x + 1.0,
+        clipped_y,
+    )
+    .is_none());
 }
 
 #[test]
@@ -32,15 +35,13 @@ fn overflow_row_hit_does_not_activate_through_the_scrollbar_gutter() {
     };
     let viewport = host_page_overflow_content_viewport_frame(&popup);
 
-    assert!(
-        host_page_overflow_row_hit_in_popup(
-            &presentation,
-            &popup,
-            viewport.x + viewport.width - 1.0,
-            viewport.y + 1.0,
-        )
-        .is_none()
-    );
+    assert!(host_page_overflow_row_hit_in_popup(
+        &presentation,
+        &popup,
+        viewport.x + viewport.width - 1.0,
+        viewport.y + 1.0,
+    )
+    .is_none());
 }
 
 #[test]

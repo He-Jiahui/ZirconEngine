@@ -3,20 +3,20 @@ use std::sync::Arc;
 
 use zircon_runtime_interface::math::UVec2;
 
-use crate::core::editor_event::ConsoleMessageFilter;
+use crate::core::editor_event::{ConsoleMessageFilter, ConsoleSourceFilter};
 use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::layouts::views::blank_viewport_chrome;
 use crate::ui::layouts::windows::workbench_host_window::{
-    ConsolePaneViewData, PaneContentSize, PanePayloadBuildContext, PanePresentation,
-    PaneShellPresentation, build_pane_body_presentation,
+    build_pane_body_presentation, ConsolePaneViewData, PaneContentSize, PanePayloadBuildContext,
+    PanePresentation, PaneShellPresentation,
 };
 use crate::ui::retained_host::host_contract::paint_template_nodes::template_node_command_summary_for_test;
 use crate::ui::retained_host::to_host_contract_console_pane_from_host_pane;
 use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::snapshot::{
-    AssetWorkspaceSnapshot, CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY, ConsoleOutputLevelCounts,
-    ConsoleOutputSnapshot, EditorChromeSnapshot, EditorConsoleMessageLevel,
-    ProjectOverviewSnapshot, WorkbenchSnapshot,
+    AssetWorkspaceSnapshot, ConsoleOutputLevelCounts, ConsoleOutputSnapshot, EditorChromeSnapshot,
+    EditorConsoleMessageLevel, ProjectOverviewSnapshot, WorkbenchSnapshot,
+    CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY,
 };
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use crate::ui::workbench::view::{
@@ -192,11 +192,9 @@ fn console_template_body_projection_replaces_legacy_console_nodes_for_retained_c
         output_lines[1].frame.y,
         output_lines[0].frame.y + output_lines[0].frame.height
     );
-    assert!(
-        !nodes
-            .iter()
-            .any(|node| node.control_id == "ConsoleOutputLinePrototype")
-    );
+    assert!(!nodes
+        .iter()
+        .any(|node| node.control_id == "ConsoleOutputLinePrototype"));
     let severity_labels = nodes
         .iter()
         .filter(|node| node.control_id.starts_with("ConsoleOutputSeverity"))
@@ -539,6 +537,71 @@ fn console_template_body_projects_filtered_lines_total_counts_and_selected_segme
         assert_eq!(node.checked, selected);
         assert_eq!(node.binding_id, binding_id);
         assert_eq!(node.role, "Button");
+    }
+}
+
+#[test]
+fn console_template_body_projects_source_filter_and_typed_jump_action_tokens() {
+    let output = ConsoleOutputSnapshot::activity(
+        Arc::from("#77 [frame 12] [import] material warning\n#78 [frame 13] [editor] plain"),
+        Arc::from([
+            EditorConsoleMessageLevel::Warning,
+            EditorConsoleMessageLevel::Info,
+        ]),
+        ConsoleMessageFilter::All,
+        ConsoleSourceFilter::Import,
+        Arc::from([Some(77), None]),
+    );
+    let projected = to_host_contract_console_pane_from_host_pane(
+        &console_pane_with_output("ignored legacy text", output),
+        PaneContentSize::new(320.0, 220.0),
+    );
+    let nodes = (0..projected.nodes.row_count())
+        .filter_map(|row| projected.nodes.row_data(row))
+        .collect::<Vec<_>>();
+
+    let row = nodes
+        .iter()
+        .find(|node| node.control_id == "ConsoleOutputLine0000")
+        .expect("activity log row");
+    assert_eq!(row.action_id, "workbench.activity_log.jump.77");
+    assert_eq!(row.dispatch_kind, "activity_log_jump");
+    assert_eq!(row.text_tone, "accent");
+    let plain_row = nodes
+        .iter()
+        .find(|node| node.control_id == "ConsoleOutputLine0001")
+        .expect("plain activity log row");
+    assert!(plain_row.action_id.is_empty());
+    assert!(plain_row.dispatch_kind.is_empty());
+
+    for (control_id, selected, binding_id) in [
+        ("ConsoleSourceAll", false, "ConsolePaneBody/SourceAll"),
+        ("ConsoleSourceEditor", false, "ConsolePaneBody/SourceEditor"),
+        (
+            "ConsoleSourceRuntime",
+            false,
+            "ConsolePaneBody/SourceRuntime",
+        ),
+        ("ConsoleSourcePlay", false, "ConsolePaneBody/SourcePlay"),
+        (
+            "ConsoleSourcePlugin",
+            false,
+            "ConsolePaneBody/SourcePlugin",
+        ),
+        ("ConsoleSourceImport", true, "ConsolePaneBody/SourceImport"),
+        (
+            "ConsoleSourceScriptBuild",
+            false,
+            "ConsolePaneBody/SourceScriptBuild",
+        ),
+    ] {
+        let node = nodes
+            .iter()
+            .find(|node| node.control_id == control_id)
+            .unwrap_or_else(|| panic!("missing {control_id}"));
+        assert_eq!(node.selected, selected);
+        assert_eq!(node.checked, selected);
+        assert_eq!(node.binding_id, binding_id);
     }
 }
 

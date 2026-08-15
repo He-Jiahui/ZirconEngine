@@ -37,11 +37,9 @@ fn componentized_workbench_inspector_property_edit_updates_row_preview() {
     .expect("inspector property edit route should be handled")
     .unwrap();
 
-    assert!(
-        effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert!(!effects.render_dirty);
     assert!(!effects.presentation_dirty);
     assert_eq!(
@@ -71,11 +69,9 @@ fn componentized_workbench_inspector_property_edit_updates_row_preview() {
     .expect("inspector property commit route should be handled")
     .unwrap();
 
-    assert!(
-        commit_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(commit_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert_eq!(
         control_string(&bridge, "WorkbenchMeshRow", "value").as_deref(),
         Some("false")
@@ -94,11 +90,9 @@ fn componentized_workbench_inspector_property_edit_updates_row_preview() {
     .expect("virtual inspector property edit route should be handled")
     .unwrap();
 
-    assert!(
-        virtual_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(virtual_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert_eq!(
         control_string(&bridge, "WorkbenchComponentPropertyVirtualRow05", "value").as_deref(),
         Some("2")
@@ -144,11 +138,9 @@ fn componentized_workbench_inspector_property_edit_rejects_disabled_customizatio
     .expect("disabled customization edit route should be handled")
     .unwrap();
 
-    assert!(
-        !effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(!effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert_eq!(
         control_string(&bridge, "WorkbenchMeshRow", "value").as_deref(),
         Some("true")
@@ -190,11 +182,9 @@ fn componentized_workbench_transform_axis_edit_updates_field_and_row_preview() {
     .expect("position axis edit route should be handled")
     .unwrap();
 
-    assert!(
-        position_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(position_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert!(!position_effects.render_dirty);
     assert!(!position_effects.presentation_dirty);
     assert_eq!(
@@ -276,11 +266,9 @@ fn componentized_workbench_module_field_edit_updates_value_preview() {
     .expect("ability module field edit route should be handled")
     .unwrap();
 
-    assert!(
-        ability_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(ability_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert!(!ability_effects.render_dirty);
     assert!(!ability_effects.presentation_dirty);
     assert_eq!(
@@ -313,11 +301,9 @@ fn componentized_workbench_module_field_edit_updates_value_preview() {
     )
     .expect("render module field commit route should be handled")
     .unwrap();
-    assert!(
-        render_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(render_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert_eq!(
         control_string(&bridge, "WorkbenchRenderPipelineField", "value").as_deref(),
         Some("ForwardPlus.rp")
@@ -335,11 +321,9 @@ fn componentized_workbench_module_field_edit_updates_value_preview() {
     )
     .expect("known module edit binding should be swallowed on the wrong control")
     .unwrap();
-    assert!(
-        !ignored_effects
-            .dirty_domains()
-            .contains(HostInvalidationMask::PAINT_ONLY)
-    );
+    assert!(!ignored_effects
+        .dirty_domains()
+        .contains(HostInvalidationMask::PAINT_ONLY));
     assert_eq!(
         control_string(&bridge, "WorkbenchAbilityNameField", "value").as_deref(),
         Some("GA_Dash_Preview")

@@ -23,7 +23,7 @@ tests:
   - rustfmt and scoped git diff check passed
   - current-source Cargo, scale counters, F2 traces and RenderDoc pending
 doc_type: implementation-evidence
-status: static_complete_dynamic_pending
+status: source_complete_dynamic_validation_pending
 ---
 
 # Runtime render sideband/relevance/renderer-common逐文件性能静态审查（2026-07-18）
@@ -42,8 +42,13 @@ VG runtime-prepare collector原对`prepared_virtual_geometry_readback_outputs()`
 
 当persistent particle runtime owner没有instance时，neutral collector每帧clone `gpu_frame`，创建particles A/B、emitter params、counters、alive indices、indirect args、debug readback共7个buffer，构造多份临时`Vec<u32>/Vec<u8>`并为每binding格式化String；即使empty frame也创建最小非零buffer。真实backend路径已持有`ParticleGpuRuntimeOwnerHandle`和active bindings，neutral fallback反而是高频资源抖动源。
 
-Render12/17与Plugin01应把neutral fallback也纳入per-device/viewport persistent owner，按capacity增长复用7类buffer，dirty range写入并共享static binding IDs；empty/no-particle frame不创建/写入资源。Bevy `RawBufferVec`/`BufferVec`只在capacity不足或label变化时重建GPU buffer，普通帧复用buffer并仅queue write，Zircon应采用同类契约。该改造涉及GPU lifetime与collector ABI，本轮不做局部兼容双路径。
+Current source puts the neutral fallback behind the existing `ParticleGpuRuntimeOwnerHandle`.
+Its seven buffers grow only on capacity or device change; empty frames create and write nothing;
+stable frames write only dirty counter, alive-index, or indirect ranges; and all bindings use static
+backing IDs. The neutral renderer output follows the same particle/emitter bounds, so it cannot
+recreate an unbounded `per_emitter_spawned` clone. The real simulation backend retains its own
+full readback contract.
 
 ## 验收要求
 
-PERF-MVP-347按page/cluster/traversal/visbuffer records 0/1/1k/100k记录sideband clone bytes、feedback item counts、merge duplicates和external buffer creates：prepared readback deep clone=0、每item feedback次数=1、stable page-request buffer create=0。PERF-MVP-348按particles/emitters 0/1/1k/100k、stable/1% changed记录buffer create/destroy、CPU temp alloc、write bytes、binding String alloc和CPU/GPU p95：empty creates=0、stable creates=0、buffer count固定≤7、只写dirty range。phase summary另要求temporary Vec alloc=0并最终由static diagnostic metadata消除固定String。current-source Cargo、provider/collector/feedback parity、F2 trace与RenderDoc通过前，本批留在`pending.md`。
+PERF-MVP-347按page/cluster/traversal/visbuffer records 0/1/1k/100k记录sideband clone bytes、feedback item counts、merge duplicates和external buffer creates：prepared readback deep clone=0、每item feedback次数=1、stable page-request buffer create=0。PERF-MVP-348按particles/emitters 0/1/1k/100k、stable/1% changed记录buffer create/destroy、CPU temp alloc、write bytes、binding String alloc和CPU/GPU p95：empty creates=0、stable creates=0、buffer count固定≤7、只写dirty range。current source has focused static guards, `rustfmt`, and scoped diff checks. A Windows coordinator validation request returned `cargo_reuse_pool_busy` before Cargo began; Cargo, provider/collector/feedback parity, F2 trace, WGPU, and RenderDoc remain pending.

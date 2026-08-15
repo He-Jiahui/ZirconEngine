@@ -7,6 +7,9 @@ mod receipt;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+use super::identity::{NotificationId, NotificationSource};
+
 pub use center::{DecisionCenterConfig, DecisionNotificationCenter};
 pub use error::DecisionNotificationError;
 pub use id::{
@@ -18,5 +21,3 @@ pub use model::{
     MAX_LOCALIZATION_KEY_BYTES,
 };
 pub use receipt::{DecisionReceipt, DecisionReceiptBatch, DecisionResolveReport};
-
-pub(crate) use super::identity::{NotificationId, NotificationSource};

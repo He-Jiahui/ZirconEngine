@@ -6,8 +6,8 @@ use zircon_runtime_interface::{ZrRuntimeSessionHandle, ZrStatus};
 
 use super::session_slot::SessionSlot;
 use super::{RuntimeFrameActivity, RuntimeWakeRegistration};
-use crate::dynamic_api::session::status::{invalid_argument, not_found};
 use crate::dynamic_api::session::RuntimeDynamicSession;
+use crate::dynamic_api::session::status::{invalid_argument, not_found, teardown_incomplete};
 
 static SESSION_REGISTRY: OnceLock<Mutex<SessionRegistry>> = OnceLock::new();
 
@@ -95,6 +95,12 @@ pub(in crate::dynamic_api::session) fn destroy_session_slot(
         Ok(slot) => slot,
         Err(status) => return status,
     };
+    if slot
+        .frame_activity()
+        .wake_callback_active_on_current_thread()
+    {
+        return invalid_argument(b"runtime wake callback cannot destroy its session synchronously");
+    }
     if !slot.begin_close() {
         return not_found(b"runtime session not found");
     }
@@ -102,6 +108,16 @@ pub(in crate::dynamic_api::session) fn destroy_session_slot(
     slot.frame_activity().disable_wake_entries();
     slot.wait_for_actions();
     slot.frame_activity().wait_for_wake_callbacks();
+    let session_shutdown = slot
+        .lock_session()
+        .as_mut()
+        .is_none_or(RuntimeDynamicSession::shutdown_before_library_unload);
+
+    if !session_shutdown {
+        slot.preserve_failed_teardown_for_retry();
+        return teardown_incomplete();
+    }
+
     drop(slot.take_session());
 
     let mut registry = lock_registry();

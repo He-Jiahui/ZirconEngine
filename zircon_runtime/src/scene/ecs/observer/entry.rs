@@ -1,4 +1,5 @@
 use std::any::TypeId;
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::scene::ecs::{ComponentId, ComponentLifecycleEvent, LifecycleEventKind};
@@ -36,27 +37,27 @@ pub(super) struct EntityEventObserver {
 }
 
 pub(crate) struct LifecycleCallbackBucket {
-    observers: Arc<[LifecycleObserver]>,
+    observers: Arc<BTreeMap<ObserverId, LifecycleObserver>>,
 }
 
 impl LifecycleCallbackBucket {
-    pub(super) fn new(observers: Arc<[LifecycleObserver]>) -> Self {
+    pub(super) fn new(observers: Arc<BTreeMap<ObserverId, LifecycleObserver>>) -> Self {
         Self { observers }
     }
 
     pub(crate) fn dispatch(&self, world: &mut World, event: ComponentLifecycleEvent) {
-        for observer in self.observers.iter() {
-            (observer.callback)(world, event.clone());
+        for observer in self.observers.values() {
+            (observer.callback)(world, &event);
         }
     }
 }
 
 pub(crate) struct EventCallbackBucket {
-    observers: Arc<[EventObserver]>,
+    observers: Arc<BTreeMap<ObserverId, EventObserver>>,
 }
 
 impl EventCallbackBucket {
-    pub(super) fn new(observers: Arc<[EventObserver]>) -> Self {
+    pub(super) fn new(observers: Arc<BTreeMap<ObserverId, EventObserver>>) -> Self {
         Self { observers }
     }
 
@@ -64,18 +65,18 @@ impl EventCallbackBucket {
     where
         E: 'static,
     {
-        for observer in self.observers.iter() {
+        for observer in self.observers.values() {
             (observer.callback)(world, event);
         }
     }
 }
 
 pub(crate) struct EntityEventCallbackBucket {
-    observers: Arc<[EntityEventObserver]>,
+    observers: Arc<BTreeMap<ObserverId, EntityEventObserver>>,
 }
 
 impl EntityEventCallbackBucket {
-    pub(super) fn new(observers: Arc<[EntityEventObserver]>) -> Self {
+    pub(super) fn new(observers: Arc<BTreeMap<ObserverId, EntityEventObserver>>) -> Self {
         Self { observers }
     }
 
@@ -83,7 +84,7 @@ impl EntityEventCallbackBucket {
     where
         E: 'static,
     {
-        for observer in self.observers.iter() {
+        for observer in self.observers.values() {
             (observer.callback)(world, entity, event);
         }
     }

@@ -40,6 +40,15 @@ pub enum RuntimeSessionArchiveError {
         current_revision: u64,
     },
     #[error(
+        "runtime session archive prune plan is stale (expected generation {expected_generation} revision {expected_revision}, found generation {current_generation} revision {current_revision})"
+    )]
+    StalePrunePlan {
+        expected_generation: u64,
+        expected_revision: u64,
+        current_generation: u64,
+        current_revision: u64,
+    },
+    #[error(
         "runtime session archive capture-retention plan is stale (expected generation {expected_generation} revision {expected_revision}, found generation {current_generation} revision {current_revision})"
     )]
     StaleCaptureRetentionPlan {

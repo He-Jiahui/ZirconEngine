@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use super::lifecycle::ServiceKind;
+use super::lifecycle::{LifecycleState, ServiceKind};
 use thiserror::Error;
 
 pub type CoreResult<T> = std::result::Result<T, CoreError>;
@@ -50,10 +50,27 @@ pub enum CoreError {
         dependency: String,
         dependency_kind: ServiceKind,
     },
+    #[error("service dependency missing for {service}: {dependency}")]
+    MissingServiceDependency { service: String, dependency: String },
+    #[error("service dependency duplicated for {service}: {dependency}")]
+    DuplicateServiceDependency { service: String, dependency: String },
+    #[error(
+        "undeclared cross-module service dependency: {service} ({service_module}) -> {dependency} ({dependency_module})"
+    )]
+    UndeclaredCrossModuleServiceDependency {
+        service: String,
+        service_module: String,
+        dependency: String,
+        dependency_module: String,
+    },
+    #[error("service dependency cycle detected: {path:?}")]
+    ServiceDependencyCycle { path: Vec<String> },
     #[error("cyclic dependency detected while resolving {0}")]
     DependencyCycle(String),
     #[error("module dependency missing for {module}: {dependency}")]
     MissingModuleDependency { module: String, dependency: String },
+    #[error("module dependency duplicated for {module}: {dependency}")]
+    DuplicateModuleDependency { module: String, dependency: String },
     #[error(
         "module init-level violation for {module} ({module_level}): dependency {dependency} is later at {dependency_level}"
     )]
@@ -65,8 +82,41 @@ pub enum CoreError {
     },
     #[error("module dependency cycle detected: {path:?}")]
     ModuleDependencyCycle { path: Vec<String> },
+    #[error("module graph is frozen; no further module registrations are accepted")]
+    ModuleGraphFrozen,
+    #[error("module lifecycle command reentered from its own callback: {module} ({command})")]
+    ModuleLifecycleCommandReentrant {
+        module: String,
+        command: &'static str,
+    },
+    #[error("invalid module lifecycle transition for {module}: cannot {command} while {state:?}")]
+    InvalidModuleLifecycleTransition {
+        module: String,
+        command: &'static str,
+        state: LifecycleState,
+    },
+    #[error("module lifecycle epoch space is exhausted")]
+    ModuleLifecycleEpochExhausted,
+    #[error("module lifecycle coordinator left {module} unresolved during {command}")]
+    ModuleLifecycleCoordinatorUnresolved {
+        module: String,
+        command: &'static str,
+    },
+    #[error("module lifecycle callback panicked while {command} was running for {module}")]
+    ModuleLifecycleCallbackPanicked {
+        module: String,
+        command: &'static str,
+    },
     #[error("module ready timeout for {module} after {budget:?}")]
     ModuleReadyTimeout { module: String, budget: Duration },
+    #[error(
+        "module service-call drain timed out for {module} after {budget:?}; {in_flight_calls} call(s) remain"
+    )]
+    ServiceCallDrainTimeout {
+        module: String,
+        budget: Duration,
+        in_flight_calls: usize,
+    },
     #[error(
         "module cleanup timeout for {module} operation {operation} after {budget:?}; {incomplete_entries} entries remain"
     )]
@@ -83,9 +133,7 @@ pub enum CoreError {
         activation: Box<CoreError>,
         cleanup: Box<CoreError>,
     },
-    #[error(
-        "module batch activation failed: {activation}; cleanup failures: {cleanup_failures:?}"
-    )]
+    #[error("module batch activation failed: {activation}; cleanup failures: {cleanup_failures:?}")]
     ModuleBatchActivationRollback {
         activation: Box<CoreError>,
         cleanup_failures: Vec<(String, CoreError)>,
@@ -96,6 +144,13 @@ pub enum CoreError {
     RuntimeUnavailable,
     #[error("service unload blocked for {0}; still referenced by {1:?}")]
     UnloadBlocked(String, Vec<String>),
+    #[error(
+        "module unload blocked for {module}; dependent modules are still running: {dependents:?}"
+    )]
+    ModuleUnloadBlocked {
+        module: String,
+        dependents: Vec<String>,
+    },
     #[error("runtime module lifecycle observer blocked deactivation: {0}")]
     RuntimeModuleLifecycleBlocked(String),
     #[error("service downcast failed for {0}")]

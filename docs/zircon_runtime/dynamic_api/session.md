@@ -352,7 +352,7 @@ Runtime 15 M2 input mouse-wheel line-delta naming hard cutover records `runtime_
 - `session/input_events.rs` maps ABI numeric input/window/gamepad/IME constants into `core::framework::input` DTOs, including the ASCII-style WASD and digit-key codes emitted by the standalone app's physical-key converter for gameplay scripts and choice prompts.
 - `session/preview.rs` owns fallback frame and accessibility preview payloads used when the dynamic preview cannot extract a full UI surface.
 - `session/profile.rs` owns `RuntimeDynamicSessionProfile`, ABI profile byte parsing, fixed-step policy, diagnostic-log schedule selection, and render-bridge enablement policy. `session.rs` imports only the profile type and keeps session creation, ticking, rendering, and lifecycle orchestration.
-- `session/registry/mod.rs` is a zero-behavior child mount and re-export facade. `session/registry/session_store.rs` owns the global registry, handle allocation, poison-safe lookup/destroy, and `with_session` dispatch; `session_slot.rs` owns action admission, the private session lock, and close/wake quiescence. `session.rs` imports only the facade entry points it needs for ABI create/destroy/dispatch.
+- `session/registry/mod.rs` is a zero-behavior child mount and re-export facade. `session/registry/session_store.rs` owns the global registry, handle allocation, poison-safe lookup/destroy, and `with_session` dispatch; `session_slot.rs` owns action admission, the private session lock, and close/wake quiescence; `wake_registration.rs` owns callback admission/drain plus the current-thread callback marker. A synchronous same-session destroy issued from its active wake callback is rejected before close admission, while cross-thread destroy still disables and drains callbacks before unload. `session.rs` imports only the facade entry points it needs for ABI create/destroy/dispatch.
 - `session/hud.rs` extracts runtime HUD UI from gameplay dynamic components such as `gameplay.hud_text` and passes it through the normal frame presentation path. Generic text still has a fallback path, while the vampire sample HUD parser converts structured HP/XP/time/weapon/buff text into a graphical screen-space panel with bars, icon slots, and prompt rows. Combat health bars for the sample must remain in this HUD layer instead of reappearing as scene mesh/cube entities.
 - `session/menu.rs` extracts the runtime gameplay menu overlay from `gameplay.menu_state` and handles pointer hit-testing for its single command button. It writes the selected command back through `gameplay.control_state`, keeping Start/Retry interaction in the same dynamic-component channel the project script can consume on the next tick.
 - `session/tests/` owns focused tests for the private session orchestrator. `vampire_runtime_support.rs` keeps shared project-session fixtures, `vampire_gameplay.rs` owns movement/combat/AI assertions, `vampire_menu.rs` owns Start/Game Over flows, `vampire_hud.rs` owns world-HUD capture checks, `frame_diagnostics.rs` owns extract/FPS diagnostics, and `runtime_errors.rs` owns narrow error-format coverage.
@@ -363,15 +363,15 @@ Runtime 15 M4 dynamic API session profile owner split is recorded as `runtime_15
 
 Runtime 15 M4 dynamic API session registry owner split is recorded as `runtime_15_dynamic_api_session_registry_owner_split_static_passed_cargo_deferred`. `dynamic_api/session.rs` remains the runtime ABI session lifecycle owner, `dynamic_api/session/registry/mod.rs` remains a zero-behavior facade, `registry/session_store.rs` owns `SESSION_REGISTRY`, `SessionRegistry`, handle allocation and dispatch, and `registry/session_slot.rs` owns action/close admission plus the private session lock. The structure guard `runtime_15_dynamic_api_session_registry_is_child_owner` keeps behavior out of the facade and parent and keeps each production owner within budget.
 
-This keeps the FFI boundary below the large-file warning line. The wider V3 ABI hard cut remains one atomic Runtime10/Runtime03 candidate and is not accepted by this structure-only split.
+This keeps the FFI boundary below the large-file warning line. The V6 ABI hard cut remains one atomic Runtime10/Editor02 candidate and is not accepted by a structure-only split.
 
 ## FFI Panic Boundary
 
-`dynamic_api::exports` owns the final panic containment layer for the exported C ABI. `zircon_runtime_get_api_v2` validates `ZrHostApiV1` before returning the static `ZrRuntimeApiV2` table, and performs that lookup through an inner helper wrapped by `catch_unwind`; an unexpected unwind during table acquisition returns a null table pointer instead of crossing the `extern "C"` boundary.
+`dynamic_api::exports` owns the final panic containment layer for the exported C ABI. `zircon_runtime_get_api_v6` validates `ZrHostApiV1` before returning the static `ZrRuntimeApiV6` table, and performs that lookup through an inner helper wrapped by `catch_unwind`; an unexpected unwind during table acquisition returns a null table pointer instead of crossing the `extern "C"` boundary.
 
-Every advertised `ZrRuntimeApiV2` session function pointer points at an `_ffi` wrapper in `exports.rs`. The wrappers delegate normal validation and behavior to private Rust-ABI `dynamic_api::session` and `session::operation` owner functions, then translate any unexpected unwind into `ZrStatusCode::Panic` with the stable diagnostic `runtime dynamic API panic caught at FFI boundary`. This keeps version checks, handle checks, project loading, event routing, capture, surface, profile-control, tick, host-request, plugin-event, and operation semantics in their session owners while keeping the ABI panic guard at the final dynamic-library edge.
+Every advertised `ZrRuntimeApiV6` session function pointer points at an `_ffi` wrapper in `exports.rs`. The wrappers delegate normal validation and behavior to private Rust-ABI `dynamic_api::session` and `session::operation` owner functions, then translate any unexpected unwind into `ZrStatusCode::Panic` with the stable diagnostic `runtime dynamic API panic caught at FFI boundary`. This keeps version checks, handle checks, project loading, event routing, capture, surface, profile-control, tick, host-request, plugin-event, operation, and world-sync semantics in their session owners while keeping the ABI panic guard at the final dynamic-library edge.
 
-`runtime_api_table_entries_are_panic_wrapped_at_ffi_boundary` is the focused API-table source guard for this split: it rejects direct function-table entries that bypass the wrappers, requires the shared panic translator, locks the null-return path for panics during `zircon_runtime_get_api_v2`, and rejects `extern "C"` declarations from the private session and operation owner functions so unwind containment remains catchable.
+`runtime_api_table_entries_are_panic_wrapped_at_ffi_boundary` is the focused API-table source guard for this split: it rejects direct function-table entries that bypass the wrappers, requires the shared panic translator, locks the null-return path for panics during `zircon_runtime_get_api_v6`, and rejects `extern "C"` declarations from the private session and operation owner functions so unwind containment remains catchable.
 
 `runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge` is the runtime-absorption guard for the same contract. It ties `exports.rs`, private session owners, the focused API-table test, this module document, Runtime 10, and the runtime index together so the exported C ABI edge cannot silently drift back into `session.rs`.
 
@@ -417,7 +417,7 @@ Current mirror-docs owner refresh 2026-07-06: `Runtime 15 M3 Runtime 07 owner-bu
 
 `profile_control` accepts `ProfileControlCommand::RuntimeDiagnosticsSnapshot` as a session-owned JSON command. The command returns `ProfileControlResponse.runtime_diagnostics` with `RuntimeDiagnosticsSnapshot`, `RuntimeDiagnosticSeriesSnapshot`, `RuntimeDiagnosticMeasurement`, and `RuntimeSceneAssetReloadDiagnostics` DTOs from `zircon_runtime_interface::profiling`.
 
-This command intentionally does not add a new V2 runtime-table function pointer. Hosts still call the existing `profile_control` entry and free the returned buffer through the same runtime-owned profile buffer callback. Calling the lower-level profiling recorder with this command returns `runtime diagnostics snapshot requires dynamic session`, because only `RuntimeDynamicSession` owns the live `CoreRuntime`, project scene-asset reload queue, and last reload frame report.
+This command intentionally does not add a new V6 runtime-table function pointer. Hosts still call the existing `profile_control` entry and free the returned buffer through the same runtime-owned profile buffer callback. Calling the lower-level profiling recorder with this command returns `runtime diagnostics snapshot requires dynamic session`, because only `RuntimeDynamicSession` owns the live `CoreRuntime`, project scene-asset reload queue, and last reload frame report.
 
 When no project scene-asset reload queue exists, the response still includes `scene_asset_reload.enabled = false` with zero counts. When reload is enabled, the response mirrors the last frame's drained/scheduled/skipped/superseded/applied/failed/stale/pending counts and receiver-disconnected flag. Detailed asset events and runtime error types stay inside `zircon_runtime`; the dynamic ABI exposes only stable JSON counts.
 
@@ -489,7 +489,17 @@ The dynamic session must not:
 
 ## Project Runtime Entry
 
-`zircon_app` now accepts `--project <path>` and `--project=<path>` for the `zircon_runtime` binary. The app encodes that path into the dynamic-session ABI `project_manifest` byte slice; the runtime side treats an empty slice as the old default-level behavior and a non-empty slice as a project root.
+`zircon_app` accepts `--project <path>` and `--project=<path>` for the `zircon_runtime` binary. The input may name either an existing project root or that root's `zircon-project.toml`. The app resolves aliases, junctions, SUBST drives, symbolic links, and Windows verbatim-path display form at its process boundary, normalizes a manifest input to its parent physical root, and encodes only that physical root anchor into the dynamic-session ABI `project_root` byte slice. Project-local scene, cache, and release paths remain normalized `RelPath` values and are joined to that anchor only at their owning filesystem boundary. The runtime ABI accepts the same root-or-manifest shape, resolves it into `ResolvedProjectPath` once, then opens it with `ProjectManager::open_resolved`; no downstream project service receives the caller's raw lexical path or reimplements Windows path compatibility.
+
+Play-in-Editor supplies `--play-scene <relative-path>` and `--play-report-pipe <name>` through the
+same `ZrRuntimeSessionConfigV3` startup carrier. The parser accepts equals and space forms, rejects
+duplicate, blank, absolute, prefixed, or escaping scene values, and requires `--project`. The scene
+is a current versioned `DynamicScene` snapshot under the project root; it is decoded before the
+session's first level is selected. The report outlet emits ordered `starting`, `ready`,
+`start-failed`, and `terminal` records through the editor-owned bounded child-output path, while
+stdout and stderr diagnostics remain independently captured.
+
+The `zircon_editor --project <path>` GUI entry follows the same rule. Its public `ProjectAuthority::open_project` boundary resolves the raw command-line input once, then transfers the resulting `ResolvedProjectPath` to `open_resolved_project`; its retained-host startup request uses the opened physical root while all visible text is projected through the resolver's display view. Project, asset, scene, and UI code must consume this resolved identity rather than add a Windows-only path branch.
 
 When a project root is provided, `RuntimeProjectConfig` opens `zircon-project.toml`, reads `default_scene`, and calls `scene::load_level_asset(core, project_root, default_scene)`. That path scans/imports `project_root/assets`, loads the scene asset artifact, instantiates a `LevelSystem`, and then the session ticks that level before input `begin_frame`. The same config also reads `scripts.package_roots` and `scripts.startup_packages`, discovers `plugin.toml` packages under those roots, filters to the requested startup packages when listed, and loads them through `VmPluginManager`.
 
@@ -552,7 +562,7 @@ The session installs linked scene hooks after module activation and applies the 
 registry to the actual `LevelSystem` World before the first frame. Consequently plugin resources,
 mirrored events, and runtime scene systems participate in the normal `LevelSystem::tick` path.
 The dynamic-library ABI path still creates an empty linked-registration set. The application
-loader requires the complete V2 table and rejects missing or incomplete runtime libraries.
+loader requires the complete V6 table and rejects missing or incomplete runtime libraries.
 
 The Rust-linked entry returns `RuntimeDynamicSessionError`, including a classified unknown-profile
 variant and typed sources for core, project, render, extension, and operation failures. Public
@@ -564,19 +574,19 @@ session, then drain the emitted typed payload. The `zircon_app` product test add
 Navigation runtime/editor pair and verifies capability disable removes the consumer before the next
 tick.
 
-## Runtime API V2 Operation Lifecycle
+## Runtime API V6 Operation and World Sync Lifecycle
 
-Current V2-only owner inventory: `expected_source_file_count = 48`.
+Current V6 owner inventory: `expected_source_file_count = 51`.
 
-The 2026-07-15 versioned cut makes `submit_operation`, `poll_operation`, and `harvest_operation` required members of `ZrRuntimeApiV2`. The app loader requires the complete V2 mirror/operation groups and has no old-table fallback. `session/state.rs` owns dynamic session state, ticking, and render behavior; `session/construction.rs` owns assembly; `session/ffi.rs` owns the private ABI entry functions; `session/hooks.rs` owns built-in hook policy; `session/linked_session.rs` owns the typed linked-session public entry; and `session/operation.rs` owns operation ABI decode/encode. The parent `session.rs` is only a module/re-export façade. Navigation registers typed bake, clear, and generated-snapshot restore handlers without exposing `World` to the editor. Results are harvested once, and nonterminal harvest attempts remain typed failures.
+`submit_operation`, `poll_operation`, `harvest_operation`, `query_world`, `watch_world`,
+`unwatch_world`, and `drain_world_invalidations` are required members of `ZrRuntimeApiV6`. The
+app loader validates the complete V6 group and has no old-table fallback. `session/ffi.rs` owns
+the private ABI entry functions, `session/operation.rs` owns operation ABI decode/encode, and
+`session/world_sync.rs` owns runtime-world query/watch/drain routing. The parent `session.rs` is a
+module/re-export façade; it does not expose `World` or editor view identities across the ABI.
 
-Current direct evidence is produced by `dynamic_runtime_api_boundary`: 48/48 source files, 10/10
-function-table structs, no field-count or `#[repr(C)]` mismatch,
-`runtime_session_ffi_wrappers = 17/17`, one
-table-acquisition panic boundary, V2-only loader anchors, and no reported risks.
-Machine mirror: `function_table_structs = 10/10`, `ffi_panic_anchors = 9/9`, and
-`loader_failure_anchors = 13/13`.
-Older detailed count snapshots retained below are historical evidence. The permanent guard remains
+`dynamic_runtime_api_boundary` tracks 51 source files, 10 function tables, the 24-field V6 table,
+and `runtime_session_ffi_wrappers = 22/22`. The permanent guard remains
 `runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts`.
 
 ## Validation

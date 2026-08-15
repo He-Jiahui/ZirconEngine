@@ -11,8 +11,8 @@ use crate::core::editor_operation::EditorOperationPath;
 
 use super::{
     AssetWriteTargetDescriptor, CommandEvalCtx, EditorCommandAction, EditorCommandDescriptor,
-    EditorCommandPaletteCatalog, EditorCommandPaletteQueryWindow,
-    defaults::default_workbench_commands, menu::menu_bar_model, menu::menu_model,
+    EditorCommandPaletteCatalog, defaults::default_workbench_commands, menu::menu_bar_model,
+    menu::menu_model,
 };
 
 /// The only registry for editor command metadata, invocation, discovery, and extensions.
@@ -209,29 +209,6 @@ impl EditorCommandRegistry {
                 self.commands(),
             ))
         }))
-    }
-
-    pub fn command_palette_query_window(
-        &self,
-        context: &CommandEvalCtx,
-        query: &str,
-        offset: usize,
-        limit: usize,
-    ) -> EditorCommandPaletteQueryWindow {
-        let catalog = self.command_palette_catalog();
-        catalog.query_window(context, query, offset, limit)
-    }
-
-    pub fn command_palette_query_window_with_mru(
-        &self,
-        context: &CommandEvalCtx,
-        query: &str,
-        offset: usize,
-        limit: usize,
-        mru: &super::EditorCommandPaletteMru,
-    ) -> EditorCommandPaletteQueryWindow {
-        let catalog = self.command_palette_catalog();
-        catalog.query_window_with_mru(context, query, offset, limit, mru)
     }
 
     pub fn menu_bar_model(&self, context: &CommandEvalCtx) -> super::MenuBarModel {
@@ -506,7 +483,9 @@ fn validate_headless_commandlet(
 ) -> Result<(), EditorCommandRegistryError> {
     let headless_action = matches!(
         descriptor.action(),
-        EditorCommandAction::HeadlessAssetMigration | EditorCommandAction::HeadlessPluginList
+        EditorCommandAction::HeadlessAssetMigration
+            | EditorCommandAction::HeadlessPluginList
+            | EditorCommandAction::HeadlessAuthoringAutomation
     );
     if !headless_action {
         if descriptor.headless_commandlet_route().is_some() {
@@ -723,12 +702,9 @@ mod tests {
                 .expect("generated command ids should be unique");
         }
 
-        let window = registry.command_palette_query_window(
-            &CommandEvalCtx::interactive(),
-            "palette command",
-            480,
-            24,
-        );
+        let catalog = registry.command_palette_catalog();
+        let window =
+            catalog.query_window(&CommandEvalCtx::interactive(), "palette command", 480, 24);
 
         assert_eq!(window.total_match_count(), 1_000);
         assert_eq!(window.offset(), 480);
@@ -737,7 +713,7 @@ mod tests {
         assert_eq!(window.metrics().visited_entries, 1_000);
         assert_eq!(window.metrics().enablement_evaluations, 1_000);
         assert_eq!(window.metrics().candidate_handles, 504);
-        assert_eq!(window.metrics().owned_buffers, 3);
+        assert_eq!(window.metrics().owned_buffers, 4);
         assert_eq!(
             window.entries().next().map(|entry| entry.id.as_str()),
             Some("test.palette.command_0480")
@@ -765,9 +741,9 @@ mod tests {
         .expect("the bounded MRU list should be valid");
         let context = CommandEvalCtx::interactive();
 
-        let unfiltered = registry.command_palette_query_window_with_mru(&context, "", 0, 4, &mru);
-        let fuzzy =
-            registry.command_palette_query_window_with_mru(&context, "palette command", 0, 4, &mru);
+        let catalog = registry.command_palette_catalog();
+        let unfiltered = catalog.query_window_with_mru(&context, "", 0, 4, &mru);
+        let fuzzy = catalog.query_window_with_mru(&context, "palette command", 0, 4, &mru);
         let expected = vec![
             "test.palette.command_0003",
             "test.palette.command_0001",
@@ -792,6 +768,37 @@ mod tests {
     }
 
     #[test]
+    fn palette_query_index_visits_only_documents_with_the_rarest_query_byte() {
+        let mut commands = (0..1_000).map(test_command).collect::<Vec<_>>();
+        commands.push(EditorCommandDescriptor::new(
+            EditorOperationPath::parse("test.palette.unique_zanzibar")
+                .expect("unique command id should be valid"),
+            "Unique Zanzibar Action",
+            EditorCommandCategory::Command,
+            EditorCommandAction::Emit(EditorEvent::Transient(
+                EditorEventTransient::OpenCommandPalette,
+            )),
+        ));
+        let registry =
+            EditorCommandRegistry::new(commands).expect("generated command ids should be unique");
+
+        let window = registry.command_palette_catalog().query_window(
+            &CommandEvalCtx::interactive(),
+            "zanzibar",
+            0,
+            12,
+        );
+
+        assert_eq!(window.total_match_count(), 1);
+        assert_eq!(window.metrics().visited_entries, 1);
+        assert_eq!(window.metrics().enablement_evaluations, 1);
+        assert_eq!(
+            window.entries().next().map(|entry| entry.id.as_str()),
+            Some("test.palette.unique_zanzibar")
+        );
+    }
+
+    #[test]
     fn palette_catalog_enablement_slot_preserves_descriptor_requirements() {
         let descriptor = test_command(0)
             .with_when(WhenClause::SelectionNonEmpty)
@@ -803,14 +810,11 @@ mod tests {
             .with_selection_count(1)
             .with_capabilities(["palette.execute"]);
 
-        assert!(
-            registry
-                .command_palette_query_window(&selected, "palette", 0, 16)
-                .is_empty()
-        );
+        let catalog = registry.command_palette_catalog();
+        assert!(catalog.query_window(&selected, "palette", 0, 16).is_empty());
         assert_eq!(
-            registry
-                .command_palette_query_window(
+            catalog
+                .query_window(
                     &selected.with_asset_write_access(AssetWriteAccess::Writable),
                     "palette",
                     0,
@@ -830,9 +834,11 @@ mod tests {
                 .expect("generated command ids should be unique");
         }
         let context = CommandEvalCtx::interactive();
+        let catalog = registry.command_palette_catalog();
 
         let mut elapsed_micros = Vec::with_capacity(1_000);
         let mut maximum_visited_entries = 0;
+        let mut maximum_document_byte_visits = 0;
         let mut maximum_text_comparisons = 0;
         let mut maximum_enablement_evaluations = 0;
         let mut maximum_candidate_handles = 0;
@@ -841,11 +847,11 @@ mod tests {
         for index in 0..1_000 {
             let query = format!("command {:02}", index % 100);
             let started_at = Instant::now();
-            let metrics = registry
-                .command_palette_query_window(&context, &query, 0, 16)
-                .metrics();
+            let metrics = catalog.query_window(&context, &query, 0, 16).metrics();
             elapsed_micros.push(started_at.elapsed().as_micros());
             maximum_visited_entries = maximum_visited_entries.max(metrics.visited_entries);
+            maximum_document_byte_visits =
+                maximum_document_byte_visits.max(metrics.document_byte_visits);
             maximum_text_comparisons = maximum_text_comparisons.max(metrics.text_comparisons);
             maximum_enablement_evaluations =
                 maximum_enablement_evaluations.max(metrics.enablement_evaluations);
@@ -862,14 +868,15 @@ mod tests {
         let p95_micros = elapsed_micros[p95_index];
 
         println!(
-            "EDITOR08_PALETTE_QUERY_BURST samples=1000 p95_us={p95_micros} max_visits={maximum_visited_entries} max_text_comparisons={maximum_text_comparisons} max_enablement_evaluations={maximum_enablement_evaluations} max_candidate_handles={maximum_candidate_handles} max_retained_handles={maximum_retained_handles} max_owned_buffers={maximum_owned_buffers}"
+            "EDITOR08_PALETTE_QUERY_BURST samples=1000 p95_us={p95_micros} max_visits={maximum_visited_entries} max_document_byte_visits={maximum_document_byte_visits} max_text_comparisons={maximum_text_comparisons} max_enablement_evaluations={maximum_enablement_evaluations} max_candidate_handles={maximum_candidate_handles} max_retained_handles={maximum_retained_handles} max_owned_buffers={maximum_owned_buffers}"
         );
         assert_eq!(maximum_visited_entries, 1_000);
+        assert!(maximum_document_byte_visits > 0);
         assert!(maximum_text_comparisons > 0);
         assert_eq!(maximum_enablement_evaluations, 1_000);
         assert!(maximum_candidate_handles <= 16);
         assert!(maximum_retained_handles <= 16);
-        assert_eq!(maximum_owned_buffers, 3);
+        assert_eq!(maximum_owned_buffers, 4);
     }
 
     fn test_command(index: usize) -> EditorCommandDescriptor {

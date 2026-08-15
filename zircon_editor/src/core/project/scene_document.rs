@@ -2,11 +2,11 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use zircon_runtime::asset::{AssetUri, project::ProjectManager};
+use zircon_runtime::asset::{project::ProjectManager, AssetUri};
 use zircon_runtime::scene::Scene;
 use zircon_runtime_interface::resource::ResourceScheme;
 
-use super::filesystem::{ScenePathGuard, protect_scene_path, reject_linked_components};
+use super::filesystem::{protect_scene_path, reject_linked_components, ScenePathGuard};
 use super::{ProjectAuthority, ProjectAuthorityError};
 
 static NEXT_SCENE_PUBLICATION: AtomicU64 = AtomicU64::new(1);

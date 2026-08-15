@@ -33,12 +33,10 @@ fn assets_insert_remove_and_project_manager_helpers_use_typed_facade() {
     assert!(matches!(added, AssetEvent::Added { .. }));
     assert_eq!(added.handle().id(), texture_id);
 
-    assert!(
-        manager
-            .assets::<ShaderAsset>()
-            .remove_by_locator(&texture_locator)
-            .is_none()
-    );
+    assert!(manager
+        .assets::<ShaderAsset>()
+        .remove_by_locator(&texture_locator)
+        .is_err());
     assert_eq!(
         resource_manager.registry().get(texture_id).unwrap().kind,
         ResourceKind::Texture
@@ -47,6 +45,7 @@ fn assets_insert_remove_and_project_manager_helpers_use_typed_facade() {
     let removed = manager
         .assets::<TextureAsset>()
         .remove_by_locator(&texture_locator)
+        .unwrap()
         .expect("removed texture record");
     assert_eq!(removed.id, texture_id);
     assert!(resource_manager.registry().get(texture_id).is_none());
@@ -59,7 +58,9 @@ fn project_asset_manager_load_returns_typed_handle_and_state() {
     let texture_record = record("res://textures/checker.png", ResourceKind::Texture);
     let texture_locator = texture_record.primary_locator.clone();
     let texture_id = texture_record.id;
-    resource_manager.register_ready(texture_record, texture_asset("res://textures/checker.png"));
+    resource_manager
+        .register_ready(texture_record, texture_asset("res://textures/checker.png"))
+        .unwrap();
 
     let handle = manager
         .load::<TextureAsset>(&texture_locator)
@@ -80,7 +81,7 @@ fn project_asset_manager_load_returns_typed_handle_and_state() {
     )
     .with_state(ResourceState::Pending);
     let pending_id = pending_record.id;
-    resource_manager.register_record(pending_record);
+    resource_manager.register_record(pending_record).unwrap();
     assert_eq!(
         manager.asset_load_state_by_id::<MaterialAsset>(pending_id),
         AssetLoadState::Loading
@@ -94,7 +95,9 @@ fn project_asset_manager_load_accepts_v2_ui_payload_under_ui_layout_kind() {
     let ui_record = record("res://ui/panel.zui", ResourceKind::UiLayout);
     let ui_locator = ui_record.primary_locator.clone();
     let ui_id = ui_record.id;
-    resource_manager.register_ready(ui_record, ui_v2_view_asset());
+    resource_manager
+        .register_ready(ui_record, ui_v2_view_asset())
+        .unwrap();
 
     let handle = manager
         .load::<UiV2ViewAsset>(&ui_locator)

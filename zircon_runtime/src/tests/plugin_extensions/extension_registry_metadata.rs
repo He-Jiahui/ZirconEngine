@@ -203,11 +203,11 @@ fn runtime_extension_registry_revokes_owner_tracked_contributions() {
         .register_shading_model("weather", weather_toon_shading_model())
         .unwrap();
     registry
-        .register_native_system::<(), _>(weather, "weather.tick", SystemStage::Update, |()| {})
+        .register_native_system::<(), _>(weather, "weather.tick", SystemStage::Update, || |()| {})
         .register()
         .unwrap();
     registry
-        .register_native_system::<(), _>(storm, "storm.tick", SystemStage::Update, |()| {})
+        .register_native_system::<(), _>(storm, "storm.tick", SystemStage::Update, || |()| {})
         .register()
         .unwrap();
 

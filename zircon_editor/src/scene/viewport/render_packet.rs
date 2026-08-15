@@ -5,8 +5,8 @@ use crate::scene::viewport::{
     SceneViewportExtractRequest, SceneViewportSettings, SelectionAnchorExtract,
     SelectionHighlightExtract, ViewportCameraSnapshot, ViewportIconId,
 };
-use zircon_runtime::scene::Scene;
 use zircon_runtime::scene::components::{NodeKind, SceneNode};
+use zircon_runtime::scene::Scene;
 use zircon_runtime_interface::math::{Real, UVec2, Vec4};
 
 const SCENE_CLEAR_COLOR: Vec4 = Vec4::new(0.09, 0.11, 0.14, 1.0);

@@ -1,9 +1,11 @@
 use std::rc::Rc;
 
 use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge;
+use crate::ui::retained_host::console_output::{ConsoleOutputPaintMetadata, ConsoleOutputViewport};
 use crate::ui::retained_host::host_contract::data::{
-    FrameRect, HostWindowPresentationData, TemplateNodeFrameData, TemplatePaneCollectionRowData,
-    TemplatePaneMenuItemData, TemplatePaneNodeData, TemplatePaneOptionData,
+    ConsolePaneData, FrameRect, HostWindowPresentationData, PaneData, TemplateNodeFrameData,
+    TemplatePaneCollectionRowData, TemplatePaneMenuItemData, TemplatePaneNodeData,
+    TemplatePaneOptionData,
 };
 use crate::ui::retained_host::host_contract::template_component_family::TemplateComponentFamily;
 use crate::ui::retained_host::host_contract::template_geometry::template_nodes_bounds;
@@ -17,9 +19,54 @@ use super::surface_frame_builder::{
     reset_template_surface_frame_build_count, template_surface_frame_build_count,
 };
 use super::{
-    hit_test_workbench_window_template_node_with_index, HostWorkbenchHitIndex,
-    TemplateNodePointerHit,
+    hit_test_pane_template_node, hit_test_workbench_window_template_node_with_index,
+    rebuild_pane_template_hit_artifacts, HostWorkbenchHitIndex, TemplateNodePointerHit,
 };
+
+#[test]
+fn pane_hit_test_skips_the_full_popup_scan_when_no_popup_is_open() {
+    let nodes = (0..10_000)
+        .map(|row| TemplatePaneNodeData {
+            node_id: format!("node-{row}").into(),
+            control_id: format!("Control{row}").into(),
+            action_id: format!("action.{row}").into(),
+            frame: TemplateNodeFrameData {
+                x: 8.0,
+                y: row as f32 * 28.0,
+                width: 120.0,
+                height: 20.0,
+            },
+            ..TemplatePaneNodeData::default()
+        })
+        .collect();
+    let mut pane = PaneData {
+        id: "editor.scale#1".into(),
+        kind: "TemplateV2".into(),
+        template_v2: crate::ui::retained_host::host_contract::data::TemplateV2PaneData {
+            nodes: model(nodes),
+        },
+        ..PaneData::default()
+    };
+    rebuild_pane_template_hit_artifacts(&mut pane, UiSize::new(160.0, 280_000.0));
+    let index = pane
+        .body_template_hit_index
+        .as_ref()
+        .expect("pane hit index should be built")
+        .clone();
+    let body = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: 160.0,
+        height: 280_000.0,
+    };
+
+    let hit = hit_test_pane_template_node(&pane, &body, 16.0, 279_980.0, 0.0)
+        .expect("the final pane control should remain hit-testable");
+
+    assert_eq!(hit.control_id.as_str(), "Control9999");
+    assert_eq!(index.query_count_for_test(), 1);
+    assert_eq!(index.last_popup_candidate_visit_count_for_test(), 0);
+}
 
 fn hit_test_workbench_window_template_node(
     presentation: &HostWindowPresentationData,
@@ -28,6 +75,132 @@ fn hit_test_workbench_window_template_node(
 ) -> Option<TemplateNodePointerHit> {
     let index = HostWorkbenchHitIndex::from_presentation(presentation);
     hit_test_workbench_window_template_node_with_index(presentation, &index, x, y)
+}
+
+#[test]
+fn console_pane_hit_test_uses_scrolled_line_geometry() {
+    let metadata = ConsoleOutputPaintMetadata::new(
+        ConsoleOutputViewport {
+            x: 8.0,
+            y: 40.0,
+            width: 240.0,
+            height: 36.0,
+        },
+        40.0,
+        1,
+        3,
+    )
+    .expect("console output metadata");
+    let nodes = ModelRc::with_metadata(
+        vec![
+            TemplatePaneNodeData {
+                node_id: "source-filter".into(),
+                control_id: "ConsoleSourceAll".into(),
+                role: "Button".into(),
+                action_id: "workbench.console.source.all".into(),
+                frame: TemplateNodeFrameData {
+                    x: 8.0,
+                    y: 8.0,
+                    width: 120.0,
+                    height: 20.0,
+                },
+                ..TemplatePaneNodeData::default()
+            },
+            console_jump_node("line-1", "workbench.activity_log.jump.1", 40.0),
+            console_jump_node("line-2", "workbench.activity_log.jump.2", 58.0),
+            console_jump_node("line-3", "workbench.activity_log.jump.3", 76.0),
+        ],
+        metadata,
+    );
+    let pane = PaneData {
+        id: "editor.console#1".into(),
+        kind: "Console".into(),
+        console: ConsolePaneData {
+            nodes,
+            status_text: "three activity rows".into(),
+        },
+        ..PaneData::default()
+    };
+    let body = FrameRect {
+        x: 100.0,
+        y: 50.0,
+        width: 260.0,
+        height: 100.0,
+    };
+
+    let hit = hit_test_pane_template_node(&pane, &body, 120.0, 99.0, 18.0)
+        .expect("the second row should move into the first visible slot");
+
+    assert_eq!(hit.action_id.as_str(), "workbench.activity_log.jump.2");
+    assert_eq!(hit.frame.y, 90.0);
+
+    assert!(
+        hit_test_pane_template_node(&pane, &body, 200.0, 130.0, 18.0).is_none(),
+        "a raw log row below the clipped viewport must not remain dispatchable"
+    );
+    let header = hit_test_pane_template_node(&pane, &body, 120.0, 65.0, 18.0)
+        .expect("non-log controls outside the output viewport must remain dispatchable");
+    assert_eq!(header.control_id.as_str(), "ConsoleSourceAll");
+}
+
+#[test]
+fn console_popup_rows_take_priority_over_scrolled_log_rows() {
+    let metadata = ConsoleOutputPaintMetadata::new(
+        ConsoleOutputViewport {
+            x: 8.0,
+            y: 40.0,
+            width: 240.0,
+            height: 36.0,
+        },
+        40.0,
+        1,
+        1,
+    )
+    .expect("console output metadata");
+    let nodes = ModelRc::with_metadata(
+        vec![
+            TemplatePaneNodeData {
+                node_id: "source-filter".into(),
+                control_id: "ConsoleSourceFilter".into(),
+                role: "Dropdown".into(),
+                component_role: "dropdown".into(),
+                edit_action_id: "workbench.console.source.select".into(),
+                popup_open: true,
+                structured_options: model(vec![option("all", false), option("runtime", false)]),
+                frame: TemplateNodeFrameData {
+                    x: 8.0,
+                    y: 8.0,
+                    width: 120.0,
+                    height: 20.0,
+                },
+                ..TemplatePaneNodeData::default()
+            },
+            console_jump_node("line-2", "workbench.activity_log.jump.2", 58.0),
+        ],
+        metadata,
+    );
+    let pane = PaneData {
+        id: "editor.console#1".into(),
+        kind: "Console".into(),
+        console: ConsolePaneData {
+            nodes,
+            status_text: "one activity row".into(),
+        },
+        ..PaneData::default()
+    };
+    let body = FrameRect {
+        x: 100.0,
+        y: 50.0,
+        width: 260.0,
+        height: 100.0,
+    };
+
+    let hit = hit_test_pane_template_node(&pane, &body, 120.0, 99.0, 18.0)
+        .expect("the open source popup should cover the scrolled log row");
+
+    assert_eq!(hit.dispatch_kind.as_str(), "workbench_option");
+    assert_eq!(hit.value_text.as_str(), "all");
+    assert_eq!(hit.action_id.as_str(), "workbench.console.source.select");
 }
 
 #[test]
@@ -631,6 +804,23 @@ fn option(id: &str, disabled: bool) -> TemplatePaneOptionData {
         label: id.into(),
         disabled,
         ..TemplatePaneOptionData::default()
+    }
+}
+
+fn console_jump_node(control_id: &str, action_id: &str, y: f32) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        node_id: control_id.into(),
+        control_id: control_id.into(),
+        role: "Label".into(),
+        dispatch_kind: "activity_log_jump".into(),
+        action_id: action_id.into(),
+        frame: TemplateNodeFrameData {
+            x: 72.0,
+            y,
+            width: 176.0,
+            height: 18.0,
+        },
+        ..TemplatePaneNodeData::default()
     }
 }
 

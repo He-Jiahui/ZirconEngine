@@ -36,20 +36,16 @@ pub fn register_runtime_systems(
         payload_schema: NET_EVENT_SCHEMA.to_string(),
     })?;
     module
-        .runtime_scene_system(
-            NET_POLL_INGRESS_SYSTEM,
-            SystemStage::First,
-            run_net_poll_ingress,
-        )
+        .runtime_scene_system(NET_POLL_INGRESS_SYSTEM, SystemStage::First, || {
+            run_net_poll_ingress
+        })
         .in_set(NET_MAIN_SYSTEM_SET)
         .in_set(NET_TRANSPORT_SYSTEM_SET)
         .register()?;
     module
-        .runtime_scene_system(
-            NET_FLUSH_EGRESS_SYSTEM,
-            SystemStage::Last,
-            run_net_flush_egress,
-        )
+        .runtime_scene_system(NET_FLUSH_EGRESS_SYSTEM, SystemStage::Last, || {
+            run_net_flush_egress
+        })
         .in_set(NET_MAIN_SYSTEM_SET)
         .in_set(NET_TRANSPORT_SYSTEM_SET)
         .register()

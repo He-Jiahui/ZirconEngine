@@ -7,7 +7,7 @@ use std::sync::{Mutex, OnceLock};
 use std::time::UNIX_EPOCH;
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
 use zircon_runtime::diagnostic_log::{
-    diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
+    DiagnosticLogLevel, diagnostic_log_allows, write_diagnostic_log,
 };
 use zircon_runtime::ui::template::UiCompiledDocument;
 use zircon_runtime_interface::ui::template::{
@@ -182,8 +182,8 @@ impl BuiltinTemplateCompileCacheKey {
     }
 }
 
-fn builtin_template_compile_cache(
-) -> &'static Mutex<BTreeMap<BuiltinTemplateCompileCacheKey, UiCompiledDocument>> {
+fn builtin_template_compile_cache()
+-> &'static Mutex<BTreeMap<BuiltinTemplateCompileCacheKey, UiCompiledDocument>> {
     static CACHE: OnceLock<Mutex<BTreeMap<BuiltinTemplateCompileCacheKey, UiCompiledDocument>>> =
         OnceLock::new();
     CACHE.get_or_init(|| Mutex::new(BTreeMap::new()))
@@ -225,8 +225,8 @@ fn editor_template_verbose_enabled() -> bool {
     diagnostic_log_allows(DiagnosticLogLevel::Verbose)
 }
 
-fn builtin_template_document_cache(
-) -> &'static Mutex<BTreeMap<BuiltinTemplateCompileCacheKey, UiAssetDocument>> {
+fn builtin_template_document_cache()
+-> &'static Mutex<BTreeMap<BuiltinTemplateCompileCacheKey, UiAssetDocument>> {
     static CACHE: OnceLock<Mutex<BTreeMap<BuiltinTemplateCompileCacheKey, UiAssetDocument>>> =
         OnceLock::new();
     CACHE.get_or_init(|| Mutex::new(BTreeMap::new()))

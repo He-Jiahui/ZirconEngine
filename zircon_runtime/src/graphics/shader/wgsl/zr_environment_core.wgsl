@@ -1,4 +1,6 @@
 const ZR_ENVIRONMENT_EPSILON: f32 = 0.000001;
+const ZR_ENVIRONMENT_ROUGHEST_PMREM_MIP: f32 = 1.0;
+const ZR_ENVIRONMENT_PMREM_ROUGHNESS_MIP_SCALE: f32 = 1.2;
 const ZR_ENVIRONMENT_SOURCE_CUBEMAP_KIND: f32 = 3.0;
 const ZR_ENVIRONMENT_REALTIME_IBL_KIND: f32 = 4.0;
 
@@ -89,10 +91,15 @@ fn zr_environment_specular_pmrem_color_at_clamped_lod_normalized(
 
 fn zr_environment_mip_from_roughness(roughness: f32, max_mip: f32) -> f32 {
     let clamped_roughness = clamp(roughness, 0.0, 1.0);
-    if (clamped_roughness <= 0.000001 || max_mip <= 0.0) {
+    if (clamped_roughness <= ZR_ENVIRONMENT_EPSILON || max_mip <= 0.0) {
         return 0.0;
     }
-    return clamp(max_mip - 1.0 + 1.2 * log2(clamped_roughness), 0.0, max_mip);
+    return clamp(
+        max_mip - ZR_ENVIRONMENT_ROUGHEST_PMREM_MIP
+            + ZR_ENVIRONMENT_PMREM_ROUGHNESS_MIP_SCALE * log2(clamped_roughness),
+        0.0,
+        max_mip,
+    );
 }
 
 fn zr_environment_env_brdf_lut(f0: vec3<f32>, roughness: f32, no_v: f32) -> vec3<f32> {
@@ -188,6 +195,26 @@ fn zr_environment_diffuse_color_normalized(normal: vec3<f32>) -> vec3<f32> {
     return zr_environment_procedural_sky_color_normalized(normal);
 }
 
+fn zr_environment_specular_occlusion(
+    no_v: f32,
+    roughness: f32,
+    occlusion: f32,
+) -> f32 {
+    let clamped_no_v = clamp(no_v, 0.0, 1.0);
+    let clamped_roughness = clamp(roughness, 0.0, 1.0);
+    let clamped_occlusion = clamp(occlusion, 0.0, 1.0);
+    if (clamped_occlusion <= 0.0
+        || clamped_occlusion >= 1.0
+        || clamped_roughness <= ZR_ENVIRONMENT_EPSILON)
+    {
+        return clamped_occlusion;
+    }
+    let roughness_sq = clamped_roughness * clamped_roughness;
+    let specular_occlusion =
+        pow(clamped_no_v + clamped_occlusion, roughness_sq) - 1.0 + clamped_occlusion;
+    return clamp(specular_occlusion, 0.0, 1.0);
+}
+
 fn zr_environment_pbr_components_from_reflection(
     normal: vec3<f32>,
     view_dir: vec3<f32>,
@@ -217,11 +244,17 @@ fn zr_environment_pbr_components_from_reflection(
             clamped_metallic,
         );
         let no_v = clamp(dot(normal, view_dir), 0.0, 1.0);
-        specular_environment =
-            reflection * zr_environment_env_brdf_lut(f0, clamped_roughness, no_v);
+        let specular_occlusion = zr_environment_specular_occlusion(
+            no_v,
+            clamped_roughness,
+            clamped_occlusion,
+        );
+        specular_environment = reflection
+            * zr_environment_env_brdf_lut(f0, clamped_roughness, no_v)
+            * specular_occlusion;
     }
     return ZrEnvironmentPbrComponents(
         diffuse_environment * clamped_occlusion,
-        specular_environment * clamped_occlusion,
+        specular_environment,
     );
 }

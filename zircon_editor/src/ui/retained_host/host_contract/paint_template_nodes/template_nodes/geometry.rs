@@ -14,7 +14,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn templat
         return None;
     }
     let node_clip = template_node_clip(node, origin, pane_clip)?;
-    intersect(&rect, &node_clip).map(|_| (rect, node_clip))
+    (node.popup_open || intersect(&rect, &node_clip).is_some()).then_some((rect, node_clip))
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn template_node_intersects_clip(
+    node: &TemplatePaneNodeData,
+    origin: &FrameRect,
+    clip: &FrameRect,
+) -> bool {
+    template_node_rect_and_clip(node, origin, clip).is_some()
 }
 
 fn template_node_clip(

@@ -159,6 +159,38 @@ taa_reactive_mask_strength = 2.0
 }
 
 #[test]
+fn material_owned_occlusion_strength_reports_invalid_override() {
+    let material = MaterialAsset::from_toml_str(
+        r#"
+version = 2
+name = "Invalid Occlusion"
+
+[shader]
+uuid = "00000000-0000-0000-0000-000000000001"
+url = "res://shaders/pbr.zshader"
+
+[overrides]
+occlusion_strength = 2.0
+"#,
+    )
+    .unwrap();
+
+    assert_eq!(material.occlusion_strength(), 1.0);
+    assert!(material.validation_errors().iter().any(|error| matches!(
+        error,
+        RenderMaterialValidationError::PropertyOverrideTypeMismatch {
+            source,
+            path,
+            name,
+            expected,
+        } if *source == RenderMaterialDiagnosticSource::MaterialOverride
+            && path == "overrides.occlusion_strength"
+            && name == "occlusion_strength"
+            && expected == "number in 0..=1"
+    )));
+}
+
+#[test]
 fn material_asset_reports_invalid_lighting_model_as_material_validation_error() {
     let material = MaterialAsset::from_toml_str(
         r#"

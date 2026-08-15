@@ -2,7 +2,7 @@ use std::sync::atomic::Ordering;
 
 use crate::core::editing::engine::{EditCommandError, EditorTransactionEngine, HistoryContextId};
 
-use super::fixture::{DeltaCommand, FixtureContext, finalized_counter};
+use super::fixture::{finalized_counter, DeltaCommand, FixtureContext};
 
 fn engine_with_committed_history() -> (
     EditorTransactionEngine,
@@ -66,11 +66,9 @@ fn failed_exclusive_context_update_preserves_context_selection_and_history() {
         Some((5, 7))
     );
     assert_eq!(finalized.load(Ordering::SeqCst), 0);
-    assert!(
-        engine
-            .undo(HistoryContextId::Global)
-            .expect("the preserved history should remain undoable")
-    );
+    assert!(engine
+        .undo(HistoryContextId::Global)
+        .expect("the preserved history should remain undoable"));
 }
 
 #[test]

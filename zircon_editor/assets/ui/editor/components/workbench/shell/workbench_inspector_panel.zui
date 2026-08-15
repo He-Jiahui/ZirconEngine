@@ -125,7 +125,7 @@ component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformPositionX"
 classes = ["workbench-axis-value-field"]
 props = { value = "128.4", value_color = "$editor.text.secondary" }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+layout = { width = { min = "$editor.density.axis_value_field.min_width", preferred = "$editor.density.axis_value_field.preferred_width", max = "$editor.density.axis_value_field.max_width", stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "Inspector/TransformPositionXEdit", event = "Change", route = "workbench.inspector.transform.position_x.edit" },
   { id = "Inspector/TransformPositionXCommit", event = "Submit", route = "workbench.inspector.transform.position_x.commit" },
@@ -143,7 +143,7 @@ component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformPositionY"
 classes = ["workbench-axis-value-field"]
 props = { value = "64.2", value_color = "$editor.text.secondary" }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+layout = { width = { min = "$editor.density.axis_value_field.min_width", preferred = "$editor.density.axis_value_field.preferred_width", max = "$editor.density.axis_value_field.max_width", stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "Inspector/TransformPositionYEdit", event = "Change", route = "workbench.inspector.transform.position_y.edit" },
   { id = "Inspector/TransformPositionYCommit", event = "Submit", route = "workbench.inspector.transform.position_y.commit" },
@@ -161,7 +161,7 @@ component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformPositionZ"
 classes = ["workbench-axis-value-field"]
 props = { value = "-32.7", value_color = "$editor.text.secondary" }
-layout = { width = { min = 62.0, preferred = 62.0, max = 62.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+layout = { width = { min = "$editor.density.axis_value_field.min_width", preferred = "$editor.density.axis_value_field.preferred_width", max = "$editor.density.axis_value_field.max_width", stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "Inspector/TransformPositionZEdit", event = "Change", route = "workbench.inspector.transform.position_z.edit" },
   { id = "Inspector/TransformPositionZCommit", event = "Submit", route = "workbench.inspector.transform.position_z.commit" },
@@ -194,7 +194,7 @@ component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformRotationX"
 classes = ["workbench-axis-value-field"]
 props = { value = "0 deg", disabled = true, editable_text = false, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+layout = { width = { min = "$editor.density.axis_value_field.min_width", preferred = "$editor.density.axis_value_field.preferred_width", max = "$editor.density.axis_value_field.max_width", stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 
 [nodes.rotation_axis_y]
 component = "WorkbenchLabel"
@@ -208,7 +208,7 @@ component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformRotationY"
 classes = ["workbench-axis-value-field"]
 props = { value = "90 deg", disabled = true, editable_text = false, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+layout = { width = { min = "$editor.density.axis_value_field.min_width", preferred = "$editor.density.axis_value_field.preferred_width", max = "$editor.density.axis_value_field.max_width", stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 
 [nodes.rotation_axis_z]
 component = "WorkbenchLabel"
@@ -222,7 +222,7 @@ component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformRotationZ"
 classes = ["workbench-axis-value-field"]
 props = { value = "0 deg", disabled = true, editable_text = false, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+layout = { width = { min = "$editor.density.axis_value_field.min_width", preferred = "$editor.density.axis_value_field.preferred_width", max = "$editor.density.axis_value_field.max_width", stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 
 [nodes.scale_row]
 component = "HorizontalGroup"
@@ -258,7 +258,7 @@ component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformScaleX"
 classes = ["workbench-axis-value-field"]
 props = { value = "1.00", value_color = "$editor.text.secondary" }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+layout = { width = { min = "$editor.density.axis_value_field.min_width", preferred = "$editor.density.axis_value_field.preferred_width", max = "$editor.density.axis_value_field.max_width", stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "Inspector/TransformScaleXEdit", event = "Change", route = "workbench.inspector.transform.scale_x.edit" },
   { id = "Inspector/TransformScaleXCommit", event = "Submit", route = "workbench.inspector.transform.scale_x.commit" },
@@ -276,7 +276,7 @@ component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformScaleY"
 classes = ["workbench-axis-value-field"]
 props = { value = "1.00", value_color = "$editor.text.secondary" }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+layout = { width = { min = "$editor.density.axis_value_field.min_width", preferred = "$editor.density.axis_value_field.preferred_width", max = "$editor.density.axis_value_field.max_width", stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "Inspector/TransformScaleYEdit", event = "Change", route = "workbench.inspector.transform.scale_y.edit" },
   { id = "Inspector/TransformScaleYCommit", event = "Submit", route = "workbench.inspector.transform.scale_y.commit" },
@@ -294,7 +294,7 @@ component = "WorkbenchAxisValueField"
 control_id = "WorkbenchTransformScaleZ"
 classes = ["workbench-axis-value-field"]
 props = { value = "1.00", value_color = "$editor.text.secondary" }
-layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+layout = { width = { min = "$editor.density.axis_value_field.min_width", preferred = "$editor.density.axis_value_field.preferred_width", max = "$editor.density.axis_value_field.max_width", stretch = "Fixed" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
 events = [
   { id = "Inspector/TransformScaleZEdit", event = "Change", route = "workbench.inspector.transform.scale_z.edit" },
   { id = "Inspector/TransformScaleZCommit", event = "Submit", route = "workbench.inspector.transform.scale_z.commit" },

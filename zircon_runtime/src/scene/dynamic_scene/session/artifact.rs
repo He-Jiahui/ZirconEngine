@@ -421,8 +421,7 @@ fn build_manifest(payload: &RuntimeSessionArchivePayload) -> RuntimeSessionArchi
         format_version: payload.format_version,
         slots: Arc::new(
             payload
-                .slots
-                .iter()
+                .canonical_slots()
                 .map(RuntimeSessionSlot::summary)
                 .collect(),
         ),
@@ -432,10 +431,10 @@ fn build_manifest(payload: &RuntimeSessionArchivePayload) -> RuntimeSessionArchi
 fn build_statistics(payload: &RuntimeSessionArchivePayload) -> RuntimeSessionArchiveStatistics {
     let mut statistics = RuntimeSessionArchiveStatistics {
         format_version: payload.format_version,
-        slot_count: payload.slots.len(),
+        slot_count: payload.slot_count(),
         ..Default::default()
     };
-    for slot in &payload.slots {
+    for slot in payload.canonical_slots() {
         let entity_count = slot.scene.entities.len();
         let resource_count = slot.scene.resources.len();
         record_slot_counts(&mut statistics, entity_count, resource_count);

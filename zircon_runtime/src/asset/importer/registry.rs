@@ -6,8 +6,8 @@ use std::sync::Arc;
 use thiserror::Error;
 
 use super::{
-    AssetImporterCapabilityReport, AssetImporterCapabilityStatus, AssetImporterDescriptor,
-    AssetImporterHandler, normalize_extension, normalize_full_suffix,
+    normalize_extension, normalize_full_suffix, AssetImporterCapabilityReport,
+    AssetImporterCapabilityStatus, AssetImporterDescriptor, AssetImporterHandler,
 };
 use crate::asset::AssetImportError;
 

@@ -1,7 +1,7 @@
 use crate::text::RichTextFormat;
 use crate::text::TextAlign;
 
-use super::parse_rich_text;
+use super::parser_registry::parse_rich_text;
 
 #[test]
 fn text_rich_bbcode_paragraph_attributes_use_block_metadata() {

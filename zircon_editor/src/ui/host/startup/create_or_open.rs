@@ -1,4 +1,4 @@
-use crate::core::project::{NewProjectDraft, ProjectAuthority};
+use crate::core::project::NewProjectDraft;
 use crate::ui::host::project_access::project_open_is_degraded;
 use crate::ui::workbench::project::EditorProjectDocument;
 use crate::ui::workbench::startup::{EditorSessionMode, EditorStartupSessionDocument};
@@ -8,28 +8,11 @@ use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
 
 impl EditorUiHost {
-    pub fn open_project_and_remember(
-        &self,
-        path: impl AsRef<std::path::Path>,
-    ) -> Result<EditorStartupSessionDocument, EditorError> {
-        let document = self.open_project(&path)?;
-        self.remember_prepared_project(document)
-    }
-
-    pub(crate) fn open_prepared_project_and_remember(
-        &self,
-        project: ProjectManager,
-    ) -> Result<EditorStartupSessionDocument, EditorError> {
-        let document = self.open_prepared_project(project)?;
-        self.remember_prepared_project(document)
-    }
-
-    fn remember_prepared_project(
+    pub(in crate::ui::host) fn remember_prepared_project(
         &self,
         document: EditorProjectDocument,
     ) -> Result<EditorStartupSessionDocument, EditorError> {
         let status_message = project_open_status_message(&document);
-        self.remember_opened_project(&document.root_path, document.manifest.summary())?;
         self.dismiss_welcome_page()?;
 
         Ok(EditorStartupSessionDocument {
@@ -42,14 +25,6 @@ impl EditorUiHost {
             can_open_existing: false,
             status_message,
         })
-    }
-
-    pub fn create_project_and_open(
-        &self,
-        draft: NewProjectDraft,
-    ) -> Result<EditorStartupSessionDocument, EditorError> {
-        let created = ProjectAuthority::default().create_project(&draft)?;
-        self.open_prepared_project_and_remember(created.into_project())
     }
 }
 

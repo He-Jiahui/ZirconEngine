@@ -16,6 +16,61 @@ use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsa
 mod transient_aliasing;
 
 #[test]
+fn render_graph_rejects_handles_from_a_different_builder_generation() {
+    let mut source = RenderGraphBuilder::new("source");
+    let foreign_pass = source.add_pass("source-pass", QueueLane::Graphics);
+    let foreign_texture = source.create_texture(TextureDesc::new(
+        "foreign-texture",
+        4,
+        4,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+    ));
+    let foreign_buffer = source.create_buffer(BufferDesc::new(
+        "foreign-buffer",
+        16,
+        BufferUsage::STORAGE | BufferUsage::COPY_DST,
+    ));
+    let foreign_external = source.import_external_resource("foreign-external");
+
+    let mut destination = RenderGraphBuilder::new("destination");
+    let local_pass = destination.add_pass("destination-pass", QueueLane::Graphics);
+
+    assert!(matches!(
+        destination.add_dependency(foreign_pass, local_pass),
+        Err(RenderGraphError::ForeignPass { .. })
+    ));
+    assert!(matches!(
+        destination.read_texture(local_pass, foreign_texture),
+        Err(RenderGraphError::ForeignResource {
+            kind: RenderGraphResourceKind::TransientTexture,
+            ..
+        })
+    ));
+    assert!(matches!(
+        destination.read_buffer(local_pass, foreign_buffer),
+        Err(RenderGraphError::ForeignResource {
+            kind: RenderGraphResourceKind::TransientBuffer,
+            ..
+        })
+    ));
+    assert!(matches!(
+        destination.read_external(local_pass, foreign_external),
+        Err(RenderGraphError::ForeignResource {
+            kind: RenderGraphResourceKind::External,
+            ..
+        })
+    ));
+    assert!(matches!(
+        destination.mark_persistent(foreign_texture),
+        Err(RenderGraphError::ForeignResource {
+            kind: RenderGraphResourceKind::TransientTexture,
+            ..
+        })
+    ));
+}
+
+#[test]
 fn graph_tracks_transient_lifetimes_and_resource_edges() {
     let mut builder = RenderGraphBuilder::new("frame");
     let color = builder.create_texture(TextureDesc::new(
@@ -452,6 +507,37 @@ fn graph_rejects_read_after_discarded_transient_attachment_store() {
 }
 
 #[test]
+fn graph_rejects_attachment_load_after_discarded_transient_store() {
+    let mut builder = RenderGraphBuilder::new("discarded-store-load");
+    let color = builder.create_texture(TextureDesc::new(
+        "scene-color",
+        32,
+        32,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::RENDER_ATTACHMENT,
+    ));
+    let discard = builder.add_pass("scratch-lighting", QueueLane::Graphics);
+    let load = builder.add_pass("resume-lighting", QueueLane::Graphics);
+    builder
+        .write_texture_with_ops(discard, color, RenderGraphAttachmentOps::clear_discard())
+        .unwrap();
+    builder
+        .write_texture_with_ops(load, color, RenderGraphAttachmentOps::load_store())
+        .unwrap();
+
+    let error = builder.compile().unwrap_err();
+
+    assert!(matches!(
+        error,
+        RenderGraphError::ReadAfterDiscardedStore {
+            resource,
+            pass,
+            producer,
+        } if resource == "scene-color" && pass == "resume-lighting" && producer == "scratch-lighting"
+    ));
+}
+
+#[test]
 fn graph_rejects_transient_read_without_producer() {
     let mut builder = RenderGraphBuilder::new("frame");
     let buffer = builder.create_buffer(BufferDesc::new(
@@ -528,26 +614,41 @@ fn graph_resolves_resource_producers_after_manual_dependency_ordering() {
 }
 
 #[test]
-fn graph_rejects_write_after_write_without_dependency() {
-    let mut builder = RenderGraphBuilder::new("frame");
+fn graph_infers_resource_hazard_edges_and_keeps_readers_live_before_overwrite() {
+    let mut builder = RenderGraphBuilder::new("resource-hazards");
     let color = builder.create_texture(TextureDesc::new(
         "scene-color",
         128,
         64,
         TextureFormat::Rgba8UnormSrgb,
-        TextureUsage::RENDER_ATTACHMENT,
+        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
     ));
-    let a = builder.add_pass("opaque", QueueLane::Graphics);
-    let b = builder.add_pass("debug-overdraw", QueueLane::Graphics);
-    builder.write_texture(a, color).unwrap();
-    builder.write_texture(b, color).unwrap();
+    let output = builder.import_external_resource("viewport-output");
+    let sample_output = builder.import_external_resource("sample-output");
+    let seed = builder.add_pass("seed", QueueLane::Graphics);
+    let sample = builder.add_pass("sample", QueueLane::Graphics);
+    let overwrite = builder.add_pass("overwrite", QueueLane::Graphics);
+    let present = builder.add_pass("present", QueueLane::Graphics);
+    builder.write_texture(seed, color).unwrap();
+    builder.read_texture(sample, color).unwrap();
+    builder.write_external(sample, sample_output).unwrap();
+    builder.write_texture(overwrite, color).unwrap();
+    builder.read_texture(present, color).unwrap();
+    builder.write_external(present, output).unwrap();
 
-    let error = builder.compile().unwrap_err();
-    assert!(matches!(
-        error,
-        RenderGraphError::WriteAfterWriteMissingDependency { resource, .. }
-            if resource == "scene-color"
-    ));
+    let graph = builder.compile().unwrap();
+    let pass = |name: &str| {
+        graph
+            .passes()
+            .iter()
+            .find(|pass| pass.name == name)
+            .unwrap()
+    };
+
+    assert_eq!(pass("sample").dependencies, vec![seed]);
+    assert_eq!(pass("overwrite").dependencies, vec![seed, sample]);
+    assert_eq!(pass("present").dependencies, vec![overwrite]);
+    assert!(graph.passes().iter().all(|pass| !pass.culled));
 }
 
 #[test]
@@ -743,4 +844,132 @@ fn graph_culling_keeps_manual_dependencies_of_live_passes() {
             .collect::<Vec<_>>(),
         vec![("manual-setup", false), ("present", false)]
     );
+}
+
+#[test]
+fn graph_culling_drops_clear_overwritten_resource_version() {
+    let mut builder = RenderGraphBuilder::new("clear-overwrite-culling");
+    let color = builder.create_texture(TextureDesc::new(
+        "scene-color",
+        32,
+        32,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+    ));
+    let output = builder.import_external_resource("viewport-output");
+
+    let stale = builder.add_pass("stale-lighting", QueueLane::Graphics);
+    let replacement = builder.add_pass("replacement-lighting", QueueLane::Graphics);
+    let present = builder.add_pass("present", QueueLane::Graphics);
+    builder.write_texture(stale, color).unwrap();
+    builder.write_texture(replacement, color).unwrap();
+    builder.read_texture(present, color).unwrap();
+    builder.write_external(present, output).unwrap();
+
+    let graph = builder.compile().unwrap();
+
+    assert_eq!(
+        graph
+            .passes()
+            .iter()
+            .map(|pass| (pass.name.as_str(), pass.culled))
+            .collect::<Vec<_>>(),
+        vec![
+            ("stale-lighting", true),
+            ("replacement-lighting", false),
+            ("present", false),
+        ]
+    );
+    assert!(graph.passes()[1].dependencies.is_empty());
+    assert_eq!(graph.passes()[2].dependencies, vec![replacement]);
+    let color_resource = RenderGraphResource::TransientTexture(color);
+    assert_eq!(
+        graph
+            .resource_version_for_access(
+                stale,
+                color_resource,
+                RenderGraphResourceAccessKind::Write,
+            )
+            .map(|version| version.ordinal()),
+        Some(1)
+    );
+    assert_eq!(
+        graph
+            .resource_version_for_access(
+                replacement,
+                color_resource,
+                RenderGraphResourceAccessKind::Write,
+            )
+            .map(|version| version.ordinal()),
+        Some(2)
+    );
+    assert_eq!(
+        graph
+            .resource_version_for_access(
+                present,
+                color_resource,
+                RenderGraphResourceAccessKind::Read,
+            )
+            .map(|version| version.ordinal()),
+        Some(2)
+    );
+    let stats = graph.stats();
+    assert_eq!(stats.compile_resource_access_visit_count, 4);
+    assert_eq!(stats.compile_execution_dependency_count, 2);
+    assert_eq!(stats.compile_provenance_dependency_count, 1);
+    assert_eq!(stats.compile_cull_root_count, 1);
+    assert_eq!(stats.compile_cull_dependency_visit_count, 1);
+    let dump = graph.dump();
+    assert_eq!(dump.pass_rows[1].resources[0].version, 2);
+    assert!(dump.to_text().contains("compile_access_visits=4"));
+    assert!(dump.to_text().contains("version=2"));
+}
+
+#[test]
+fn graph_culling_keeps_loaded_resource_version_producer() {
+    let mut builder = RenderGraphBuilder::new("load-version-culling");
+    let color = builder.create_texture(TextureDesc::new(
+        "scene-color",
+        32,
+        32,
+        TextureFormat::Rgba8UnormSrgb,
+        TextureUsage::RENDER_ATTACHMENT | TextureUsage::SAMPLED,
+    ));
+    let output = builder.import_external_resource("viewport-output");
+
+    let producer = builder.add_pass("opaque", QueueLane::Graphics);
+    let load = builder.add_pass("transparent", QueueLane::Graphics);
+    let present = builder.add_pass("present", QueueLane::Graphics);
+    builder.write_texture(producer, color).unwrap();
+    builder
+        .write_texture_with_ops(load, color, RenderGraphAttachmentOps::load_store())
+        .unwrap();
+    builder.read_texture(present, color).unwrap();
+    builder.write_external(present, output).unwrap();
+
+    let graph = builder.compile().unwrap();
+
+    assert!(graph.passes().iter().all(|pass| !pass.culled));
+    assert_eq!(graph.passes()[1].dependencies, vec![producer]);
+    assert_eq!(graph.passes()[2].dependencies, vec![load]);
+}
+
+#[test]
+fn graph_culling_keeps_external_load_producer() {
+    let mut builder = RenderGraphBuilder::new("external-load-version-culling");
+    let output = builder.import_external_resource("viewport-output");
+
+    let base = builder.add_pass("opaque", QueueLane::Graphics);
+    let overlay = builder.add_pass("overlay", QueueLane::Graphics);
+    builder
+        .write_external_with_ops(base, output, RenderGraphAttachmentOps::clear_store())
+        .unwrap();
+    builder
+        .write_external_with_ops(overlay, output, RenderGraphAttachmentOps::load_store())
+        .unwrap();
+
+    let graph = builder.compile().unwrap();
+
+    assert!(graph.passes().iter().all(|pass| !pass.culled));
+    assert_eq!(graph.passes()[1].dependencies, vec![base]);
 }

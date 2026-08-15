@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use super::{
-    ZrPackDeltaInstallError, ZrPackDeltaInstallReport, ZrPackInstallReceipt, ZrPackPromotionReport,
-    promotion, receipt_io, staging,
+    promotion, receipt_io, staging, ZrPackDeltaInstallError, ZrPackDeltaInstallReport,
+    ZrPackInstallReceipt, ZrPackPromotionReport,
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

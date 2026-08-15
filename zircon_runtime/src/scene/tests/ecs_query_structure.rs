@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 const EXPECTED_QUERY_STATE_MODULES: &[&str] = &[
+    "archetype_plan",
     "cache",
     "cached_direct",
     "many_item_array",

@@ -1,10 +1,10 @@
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
-    FOUNDATION_MODULE_NAME, module_descriptor as foundation_module_descriptor,
+    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 
+use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
-use crate::ui::host::module::{self, EDITOR_MANAGER_NAME, module_descriptor};
 use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::preset::EditorUiDesignStack;
 use crate::ui::workbench::view::{
@@ -342,11 +342,9 @@ fn debug_observatory_activity_window_reuses_runtime_diagnostics_payload() {
     assert_eq!(descriptor.kind, ViewKind::ActivityWindow);
     assert_eq!(descriptor.default_title, "Debug Observatory");
     assert_eq!(descriptor.icon_key, "debug-observatory");
-    assert!(
-        descriptor
-            .required_capabilities
-            .contains(&crate::ui::host::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS.to_string())
-    );
+    assert!(descriptor
+        .required_capabilities
+        .contains(&crate::ui::host::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS.to_string()));
     let pane_template = descriptor
         .pane_template
         .as_ref()
@@ -384,11 +382,9 @@ fn performance_timeline_activity_view_uses_dedicated_payload_and_diagnostics_cap
     assert_eq!(descriptor.kind, ViewKind::ActivityView);
     assert_eq!(descriptor.default_title, "Performance Timeline");
     assert_eq!(descriptor.icon_key, "performance-timeline");
-    assert!(
-        descriptor
-            .required_capabilities
-            .contains(&crate::ui::host::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS.to_string())
-    );
+    assert!(descriptor
+        .required_capabilities
+        .contains(&crate::ui::host::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS.to_string()));
     let pane_template = descriptor
         .pane_template
         .as_ref()

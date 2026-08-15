@@ -1,4 +1,4 @@
-use super::super::super::paint_theme::{HostControlMetrics, current_host_metrics};
+use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchTooltipMetrics
@@ -24,8 +24,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub icon_max: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tooltip_metrics()
--> WorkbenchTooltipMetrics {
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tooltip_metrics(
+) -> WorkbenchTooltipMetrics {
     tooltip_metrics_from_host(current_host_metrics())
 }
 

@@ -81,10 +81,12 @@ fn partially_clipped_property_row_keeps_only_clipped_paint_commands() {
     ));
 
     assert!(!commands.is_empty());
-    assert!(commands.iter().all(|command| command
-        .clip_frame
-        .as_ref()
-        .is_some_and(|clip_frame| frame_is_within(&clip, clip_frame))));
+    assert!(commands.iter().all(|command| {
+        command
+            .clip_frame
+            .as_ref()
+            .is_some_and(|clip_frame| frame_is_within(&clip, clip_frame))
+    }));
 }
 
 fn frame_is_within(

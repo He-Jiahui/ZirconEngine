@@ -18,25 +18,25 @@ use super::super::super::mesh_draw::{
 };
 use super::super::super::mesh_pass::MeshPassCommandBuffers;
 use super::super::super::prepared_queue::{
-    PreparedMeshQueueStats, summarize_prepared_mesh_queue_items,
+    summarize_prepared_mesh_queue_items, PreparedMeshQueueStats,
 };
 use super::super::create_mesh_draw::create_mesh_draw;
 use super::super::indexed_indirect_args::IndexedIndirectArgs;
 use super::build_mesh_draw_build_context::build_mesh_draw_build_context;
 use super::extend_pending_draws_for_mesh_instance::extend_pending_draws_for_mesh_instance;
 use super::geometry_source_selection::{
-    PendingMeshSourceSelection, pending_draw_has_enabled_skinned_gpu_source,
-    pending_mesh_draw_geometry_source, pending_mesh_source_selection,
+    pending_draw_has_enabled_skinned_gpu_source, pending_mesh_draw_geometry_source,
+    pending_mesh_source_selection, PendingMeshSourceSelection,
 };
-use super::gpu_scene_sync::{SyncedGpuSceneEntry, sync_gpu_scene_pending_draws};
+use super::gpu_scene_sync::{sync_gpu_scene_pending_draws, SyncedGpuSceneEntry};
 use super::morph_payload_upload::upload_morph_payloads;
 use super::pending_command_cache_extract::{
-    PendingMeshCommandCacheExtractionContext, PendingMeshCommandCacheExtractionStats,
-    PendingMeshDrawRemainder, extract_pending_static_mesh_command_cache_hits,
+    extract_pending_static_mesh_command_cache_hits, PendingMeshCommandCacheExtractionContext,
+    PendingMeshCommandCacheExtractionStats, PendingMeshDrawRemainder,
 };
 use super::pending_command_cache_plan::{
-    PendingMeshCommandCachePlanStats, PendingMeshCommandCacheVisibility,
-    summarize_pending_mesh_command_cache_plan,
+    summarize_pending_mesh_command_cache_plan, PendingMeshCommandCachePlanStats,
+    PendingMeshCommandCacheVisibility,
 };
 use super::pending_mesh_draw::{PendingMeshGeometry, PendingSkinnedGpuSource};
 use super::phase_ordering::phase_ordered_meshes;
@@ -125,6 +125,7 @@ pub(crate) fn build_mesh_draws(
     frame: &ViewportRenderFrame,
     virtual_geometry_enabled: bool,
     volumetric_fog_enabled: bool,
+    direct_lighting_preparation: Option<bool>,
     shadow_light_slots: Option<&ShadowLightSlotAssignments>,
     command_cache_extraction: Option<PendingMeshCommandCacheExtractionContext<'_>>,
 ) -> BuiltMeshDraws {
@@ -161,16 +162,18 @@ pub(crate) fn build_mesh_draws(
         frame.virtual_geometry_debug_snapshot.as_ref(),
     );
     let morph_upload_report = upload_morph_payloads(device, queue, gpu_scene, &mut pending_draws);
-    let mut packed_lights = pack_lighting_extract_with_cookies(
-        &frame.extract.lighting,
-        &frame.extract.lighting.advanced_lighting.cookies,
-        frame.preview().lighting_enabled,
-    );
-    if let Some(shadow_light_slots) = shadow_light_slots {
-        shadow_light_slots
-            .apply_to_packed_lights(&frame.extract.lighting, &mut packed_lights.lights);
+    if let Some(direct_lighting_enabled) = direct_lighting_preparation {
+        let mut packed_lights = pack_lighting_extract_with_cookies(
+            &frame.extract.lighting,
+            &frame.extract.lighting.advanced_lighting.cookies,
+            direct_lighting_enabled,
+        );
+        if let Some(shadow_light_slots) = shadow_light_slots {
+            shadow_light_slots
+                .apply_to_packed_lights(&frame.extract.lighting, &mut packed_lights.lights);
+        }
+        gpu_scene.write_lights(device, &packed_lights.lights);
     }
-    gpu_scene.write_lights(device, &packed_lights.lights);
     let (gpu_scene_upload_report, gpu_scene_entries) = sync_gpu_scene_pending_draws(
         device,
         queue,
@@ -547,7 +550,11 @@ fn material_uniform_override_signature(
         unsupported.reason.hash(&mut hasher);
     }
     let hash = hasher.finish();
-    if hash == 0 { 1 } else { hash }
+    if hash == 0 {
+        1
+    } else {
+        hash
+    }
 }
 
 fn pending_mesh_identity(pending_draw: &super::pending_mesh_draw::PendingMeshDraw) -> usize {
@@ -674,11 +681,49 @@ mod tests {
     };
     use crate::core::framework::scene::Mobility;
     use crate::core::math::{UVec2, Vec4};
-    use crate::graphics::ViewportRenderFrame;
     use crate::graphics::visibility::{
         FrameVisibility, ViewCullingStats, ViewVisibilityContext, VisibilityBounds,
         VisibilityViewKey,
     };
+    use crate::graphics::ViewportRenderFrame;
+
+    fn production_source() -> &'static str {
+        include_str!("build.rs")
+            .split_once("#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("mesh draw builder should retain a test-module boundary")
+    }
+
+    #[test]
+    fn omitted_direct_light_preparation_skips_packing_and_gpu_light_buffer_writes() {
+        let source = production_source();
+        let build_function = source
+            .split("pub(crate) fn build_mesh_draws(")
+            .nth(1)
+            .expect("mesh draw builder function");
+        let omitted_branch = build_function
+            .split("if let Some(direct_lighting_enabled) = direct_lighting_preparation {")
+            .nth(1)
+            .and_then(|source| source.split("let (gpu_scene_upload_report").next())
+            .expect("direct-light preparation branch");
+
+        assert!(omitted_branch.contains("pack_lighting_extract_with_cookies("));
+        assert!(omitted_branch.contains("gpu_scene.write_lights("));
+        assert!(
+            !build_function[..build_function
+                .find("if let Some(direct_lighting_enabled) = direct_lighting_preparation {")
+                .expect("direct-light preparation gate")]
+                .contains("pack_lighting_extract_with_cookies("),
+            "light packing must stay behind the profile-controlled preparation gate"
+        );
+        assert!(
+            !build_function[..build_function
+                .find("if let Some(direct_lighting_enabled) = direct_lighting_preparation {")
+                .expect("direct-light preparation gate")]
+                .contains("gpu_scene.write_lights("),
+            "GPU light-buffer writes must stay behind the profile-controlled preparation gate"
+        );
+    }
 
     #[test]
     fn mesh_visibility_states_keep_sibling_primitives_independent() {

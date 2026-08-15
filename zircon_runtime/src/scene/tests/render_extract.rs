@@ -186,3 +186,49 @@ fn assert_source_excludes(path: &std::path::Path, source: &str, forbidden: &[&st
         );
     }
 }
+
+#[test]
+fn viewport_extract_profiling_keeps_clone_projection_visit_and_sort_attribution_separate() {
+    let world_source = include_str!("../world/world.rs");
+    let render_source = include_str!("../world/render.rs");
+    let compact_world_source = world_source
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .collect::<String>();
+    let compact_render_source = render_source
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .collect::<String>();
+
+    for scope in ["world_clone", "world_projection_rebuild"] {
+        let invocation = format!("crate::profile_scope!(\"runtime\",\"scene\",\"{scope}\");");
+        assert!(
+            compact_world_source.contains(&invocation),
+            "World cloning must expose the `{scope}` profiling boundary"
+        );
+    }
+    for scope in [
+        "viewport_render_packet",
+        "render_frame_extract",
+        "render_mesh_visit",
+        "render_mesh_sort",
+    ] {
+        let invocation = format!("crate::profile_scope!(\"runtime\",\"scene\",\"{scope}\");");
+        assert!(
+            compact_render_source.contains(&invocation),
+            "Viewport extraction must expose the `{scope}` profiling boundary"
+        );
+    }
+    for counter in [
+        "viewport_packet_mesh_count",
+        "viewport_packet_mesh_payload_bytes",
+        "render_frame_mesh_count",
+        "render_frame_mesh_payload_bytes",
+    ] {
+        let invocation_prefix = format!("crate::profile_counter!(\"runtime\",\"{counter}\",");
+        assert!(
+            compact_render_source.contains(&invocation_prefix),
+            "Viewport extraction must expose the `{counter}` profiling counter"
+        );
+    }
+}

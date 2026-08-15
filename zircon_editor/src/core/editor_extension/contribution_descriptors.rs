@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::core::asset::AssetTypeId;
 use crate::core::editor_operation::EditorOperationPath;
 
-use super::{EditorExtensionRegistryError, validate_contribution_id};
+use super::{validate_contribution_id, EditorExtensionRegistryError};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DrawerDescriptor {

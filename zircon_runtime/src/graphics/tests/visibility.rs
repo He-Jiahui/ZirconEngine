@@ -203,18 +203,14 @@ fn visibility_context_without_history_marks_bvh_full_rebuild() {
         context.bvh_update_plan.inserted_stable_instance_keys,
         vec![stable_key(crate_entity), stable_key(tree_entity)]
     );
-    assert!(
-        context
-            .bvh_update_plan
-            .updated_stable_instance_keys
-            .is_empty()
-    );
-    assert!(
-        context
-            .bvh_update_plan
-            .removed_stable_instance_keys
-            .is_empty()
-    );
+    assert!(context
+        .bvh_update_plan
+        .updated_stable_instance_keys
+        .is_empty());
+    assert!(context
+        .bvh_update_plan
+        .removed_stable_instance_keys
+        .is_empty());
     assert_eq!(context.bvh_instances.len(), 2);
     assert_eq!(context.history_snapshot.instances.len(), 2);
     assert_eq!(
@@ -252,7 +248,7 @@ fn visibility_context_with_history_tracks_bvh_dirty_entities() {
             Transform::from_translation(Vec3::new(1.0, 0.0, 0.0)),
         )
         .expect("moving mesh transform should update");
-    assert!(world.remove_entity(removed));
+    world.remove_entity(removed).unwrap();
     let inserted = world.spawn_mesh_node(
         model_handle("res://models/statue.obj"),
         material_handle("res://materials/statue.zmaterial"),
@@ -573,7 +569,7 @@ fn remove_default_meshes(world: &mut World) {
         .map(|node| node.id)
         .collect::<Vec<_>>();
     for entity in mesh_entities {
-        assert!(world.remove_entity(entity));
+        world.remove_entity(entity).unwrap();
     }
 }
 

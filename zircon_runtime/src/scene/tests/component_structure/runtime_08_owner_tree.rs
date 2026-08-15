@@ -49,13 +49,7 @@ fn runtime_08_ecs_data_owner_trees_stay_folder_backed_after_cutover() {
     for (owner, children) in [
         (
             "archetype",
-            &[
-                "id.rs",
-                "index.rs",
-                "move_result.rs",
-                "record.rs",
-                "signature.rs",
-            ][..],
+            &["id.rs", "index.rs", "record.rs", "signature.rs"][..],
         ),
         ("component", &["id.rs", "marker.rs", "registry.rs"][..]),
         (
@@ -151,6 +145,7 @@ fn runtime_08_ecs_data_owner_trees_stay_folder_backed_after_cutover() {
     }
 
     let component_storage_root = ecs_root.join("storage").join("component_storage");
+    let archetype_table_root = ecs_root.join("archetype").join("table");
     assert!(
         component_storage_root.join("mod.rs").exists(),
         "Runtime 08 ECS component storage owner should stay folder-backed"
@@ -168,11 +163,27 @@ fn runtime_08_ecs_data_owner_trees_stay_folder_backed_after_cutover() {
         "location.rs",
         "sparse.rs",
         "store.rs",
-        "table.rs",
     ] {
         assert!(
             component_storage_root.join(child).exists(),
             "Runtime 08 ECS component storage owner should keep child `{child}`"
+        );
+    }
+    assert!(
+        !component_storage_root.join("table.rs").exists(),
+        "dense table values must not regain a second owner under ComponentStorage"
+    );
+    for child in [
+        "mod.rs",
+        "column.rs",
+        "error.rs",
+        "preflighted_row.rs",
+        "table.rs",
+        "taken_row.rs",
+    ] {
+        assert!(
+            archetype_table_root.join(child).exists(),
+            "Runtime 08 ArchetypeTable owner should keep child `{child}`"
         );
     }
     let component_storage_mod_source =
@@ -243,8 +254,18 @@ fn runtime_08_ecs_root_leaf_owners_stay_explicit_after_data_cutover() {
             "pub use bundle::Bundle;",
             &[
                 "pub trait Bundle: 'static + Send + Sync",
-                "fn insert_into(self, world: &mut World, entity: EntityId) -> SceneResult<()>;",
+                "fn stage_into<S>(self, staging: &mut S) -> SceneResult<()>",
+                "fn stage<T>(&mut self, component: T) -> SceneResult<()>",
                 "tuple_bundle!(A, B, C, D, E, F, G, H);",
+            ],
+        ),
+        (
+            "bundle_transaction_diagnostics",
+            "pub use bundle_transaction_diagnostics::{",
+            &[
+                "pub struct BundleTransactionDiagnostics",
+                "pub staged_value_allocations: u64",
+                "pub(crate) fn record_commit",
             ],
         ),
         (
@@ -288,6 +309,36 @@ fn runtime_08_ecs_root_leaf_owners_stay_explicit_after_data_cutover() {
         let source = std::fs::read_to_string(owner_path).unwrap();
         assert_source_contains(&source, &owner_file, source_anchors);
     }
+}
+
+#[test]
+fn runtime_08_archetype_table_owner_stays_folder_backed() {
+    let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+    let table_root = manifest_root.join("src/scene/ecs/archetype/table");
+
+    assert!(
+        table_root.join("mod.rs").exists(),
+        "Runtime 08 archetype table owner should stay folder-backed"
+    );
+    assert!(
+        !manifest_root
+            .join("src/scene/ecs/archetype/table.rs")
+            .exists(),
+        "retired flat Runtime 08 archetype table owner should not be restored"
+    );
+    for child in [
+        "column.rs",
+        "error.rs",
+        "preflighted_row.rs",
+        "table.rs",
+        "taken_row.rs",
+    ] {
+        assert!(
+            table_root.join(child).exists(),
+            "Runtime 08 archetype table owner should keep child `{child}`"
+        );
+    }
+    assert_structural_module_owner(&table_root.join("mod.rs"), "archetype/table/mod.rs");
 }
 
 fn assert_structural_module_owner(path: &std::path::Path, label: &str) {

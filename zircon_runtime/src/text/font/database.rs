@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
-use glyphon::{fontdb, FontSystem};
+use glyphon::{FontSystem, fontdb};
 
 use crate::asset::assets::decode_font_source;
 use crate::text::{
@@ -21,7 +21,7 @@ use super::face_metadata::FontFaceMetadata;
 use super::fallback::MissingGlyphLog;
 use super::fallback_cache::{CompositeFontIdentity, FallbackCaches};
 use super::instance::{EffectiveInstanceCache, FontInstanceRegistry};
-use super::matching::{font_family_identity, FontFamilyIdentity};
+use super::matching::{FontFamilyIdentity, font_family_identity};
 
 mod asset_lifecycle;
 mod error;
@@ -86,6 +86,7 @@ pub(crate) struct FontDatabase {
     faces: Vec<StoredFontFace>,
     active_face_count: usize,
     family_index: HashMap<FontFamilyIdentity, Vec<FontFaceId>>,
+    family_alias_index: HashMap<FontFamilyIdentity, Vec<FontFaceId>>,
     source_face_index: HashMap<FontSourceKey, FontFaceId>,
     asset_source_index: HashMap<FontAssetSourceKey, FontFaceId>,
     asset_source_owners: HashMap<FontAssetSourceKey, HashSet<String>>,
@@ -129,6 +130,7 @@ impl Default for FontDatabase {
             faces: Vec::new(),
             active_face_count: 0,
             family_index: HashMap::new(),
+            family_alias_index: HashMap::new(),
             source_face_index: HashMap::new(),
             asset_source_index: HashMap::new(),
             asset_source_owners: HashMap::new(),

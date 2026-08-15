@@ -3,7 +3,7 @@ related_code:
   - zircon_runtime/src/ui/component
   - zircon_runtime/src/ui/tests/component_catalog/catalog_inventory.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/table.rs
-  - zircon_editor/src/ui/asset_editor/palette/build.rs
+  - zircon_editor/src/ui/asset_editor/palette/catalog.rs
   - zircon_editor/src/ui/asset_editor/palette/native_slots.rs
   - zircon_editor/src/ui/template_runtime/showcase_demo_state.rs
 plan_sources:

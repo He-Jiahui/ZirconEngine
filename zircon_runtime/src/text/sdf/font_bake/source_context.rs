@@ -6,7 +6,7 @@ use crate::text::sdf::{
     sdf_variation_hash, SdfGenerationSourceContext, SdfGenerationSourceHandle,
     SdfGlyphGenerationError,
 };
-use crate::text::FontFaceId;
+use crate::text::{FontFaceId, InstancedFaceId};
 
 use super::SdfAtlasGlyphKey;
 
@@ -85,11 +85,9 @@ impl SdfGenerationSourceCache {
         &mut self,
         key: &SdfAtlasGlyphKey,
         face: FontFaceId,
+        instance: Option<InstancedFaceId>,
         font_database: &FontDatabase,
     ) -> Result<Arc<SdfGenerationSourceContext>, SdfGlyphGenerationError> {
-        let instance = key
-            .font_instance_id
-            .and_then(crate::text::font::resolve_font_instance_handle);
         let variations = font_database
             .effective_instance_variations_shared(face, instance, key.font_weight)
             .map_err(|_| SdfGlyphGenerationError::InvalidFaceIndex(0))?;

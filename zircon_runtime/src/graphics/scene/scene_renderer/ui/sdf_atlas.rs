@@ -4,9 +4,9 @@ use std::sync::Arc;
 use super::render::ScreenSpaceUiTextBatch;
 use crate::core::math::UVec2;
 use crate::text::atlas::{
-    GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT, GlyphAtlasAllocation, GlyphAtlasDirtyPage,
-    GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageReservation,
-    GlyphAtlasPageResidencyDecision, GlyphAtlasRect, GlyphAtlasSet, GlyphAtlasShelfAllocator,
+    GlyphAtlasAllocation, GlyphAtlasDirtyPage, GlyphAtlasFormat, GlyphAtlasPageKey,
+    GlyphAtlasPageReservation, GlyphAtlasPageResidencyDecision, GlyphAtlasRect, GlyphAtlasSet,
+    GlyphAtlasShelfAllocator, GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
 };
 use crate::text::sdf::{
     SdfAtlasGlyphGenerationFailure, SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot, SdfBakeParams,
@@ -151,6 +151,7 @@ impl ScreenSpaceUiSdfAtlas {
     }
 
     pub(super) fn prepare(&mut self, texts: &[ScreenSpaceUiTextBatch]) {
+        crate::profile_scope!("runtime", "ui_text.sdf_prepare", "sdf_atlas_plan");
         if self.prepared_texts.matches(texts) {
             self.last_report = stable_cache_report(&self.plan);
             return;

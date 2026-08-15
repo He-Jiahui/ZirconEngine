@@ -903,21 +903,24 @@ fn register_bridge_replay_system(
                     .map_err(|error| error.to_string())
             },
             move || {
-                let api = bridge_call_scope.api();
-                let Some(call) = api.bridge.call else {
-                    return;
-                };
-                let status = unsafe {
-                    call(
-                        bridge_call_scope.handle(),
-                        bridge_interface_slot.raw(),
-                        bridge_method_slot,
-                        std::ptr::null(),
-                        0,
-                        ZrByteBufferRef::empty(),
-                    )
-                };
-                let _ = status.status_code() == ZrStatusCode::Ok;
+                let bridge_call_scope = Arc::clone(&bridge_call_scope);
+                move || {
+                    let api = bridge_call_scope.api();
+                    let Some(call) = api.bridge.call else {
+                        return;
+                    };
+                    let status = unsafe {
+                        call(
+                            bridge_call_scope.handle(),
+                            bridge_interface_slot.raw(),
+                            bridge_method_slot,
+                            std::ptr::null(),
+                            0,
+                            ZrByteBufferRef::empty(),
+                        )
+                    };
+                    let _ = status.status_code() == ZrStatusCode::Ok;
+                }
             },
         )
         .with_order(system.order);

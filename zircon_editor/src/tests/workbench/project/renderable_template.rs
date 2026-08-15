@@ -78,7 +78,7 @@ fn project_authority_scaffolds_directory_project_defaults() {
     let mut project = ProjectManager::open(&created_root).unwrap();
     project.scan_and_import().unwrap();
 
-    let loaded = EditorProjectDocument::load_from_project(&project).unwrap();
+    let loaded = EditorProjectDocument::load_from_project_for_tests(&project).unwrap();
     assert_eq!(loaded.manifest.name, "WelcomeProject");
     assert_eq!(
         loaded.manifest.default_scene.to_string(),

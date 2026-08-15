@@ -1,4 +1,6 @@
-use crate::core::editor_message::{EditorViewInvalidationMask, ViewDirtySet};
+use crate::core::editor_message::{
+    EditorViewInvalidationMask, SharedEditorMessageBus, ViewDirtySet,
+};
 
 use super::fixture::view;
 
@@ -19,6 +21,30 @@ fn dirty_set_merges_masks_per_view_and_keeps_views_separate() {
     );
     assert_eq!(
         dirty.mask_for(&inspector_view),
+        Some(EditorViewInvalidationMask::LAYOUT)
+    );
+}
+
+#[test]
+fn shared_bus_merges_a_borrowed_dirty_batch_with_existing_view_state() {
+    let existing = view("scene.workspace");
+    let inspector = view("inspector.properties");
+    let bus = SharedEditorMessageBus::default();
+    let mut batch = ViewDirtySet::default();
+
+    bus.mark_view_dirty(existing.clone(), EditorViewInvalidationMask::PAINT_ONLY);
+    batch.mark_ref(&existing, EditorViewInvalidationMask::HIT_TEST);
+    batch.mark_ref(&inspector, EditorViewInvalidationMask::LAYOUT);
+    bus.mark_view_dirty_set(&batch);
+
+    let dirty = bus.drain_dirty();
+    assert_eq!(dirty.len(), 2);
+    assert_eq!(
+        dirty.mask_for(&existing),
+        Some(EditorViewInvalidationMask::PAINT_ONLY.union(EditorViewInvalidationMask::HIT_TEST))
+    );
+    assert_eq!(
+        dirty.mask_for(&inspector),
         Some(EditorViewInvalidationMask::LAYOUT)
     );
 }

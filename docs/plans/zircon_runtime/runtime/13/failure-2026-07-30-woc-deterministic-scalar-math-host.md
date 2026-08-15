@@ -30,29 +30,30 @@ tests:
 
 ## 失败现象与复现证据
 
-`zircon_runtime/src/script/vm/host/builtin_host_modules.rs` registers
-`zr.zircon.math`, but its executable surface currently contains only
+The original 2026-07-30 source snapshot registered `zr.zircon.math` with only
 `vec3_length(x, y, z)` and `vec3_dot(ax, ay, az, bx, by, bz)`. The requested
 current-head WOC simulation imports the registered module identity at 36 source
 sites and requires scalar `abs`, `atan2`, `ceil`, `cos`, `exp`, `floor`, `sin`,
-`sqrt`, and target-compatible exponentiation. No registered host export or
-published scalar precision/exception contract provides those calls.
+`sqrt`, and target-compatible exponentiation.
 
-The WOC project therefore cannot execute its source-authored scalar combat,
-movement, geometry and Chronomancy paths through the required `zr_vm:project`
-backend. A source-local approximation, different import module, native gameplay
-calculation, or precomputed substitute would invalidate the one-authority
-determinism contract.
+The current Runtime13 source now registers those nine scalar exports in version
+`0.2.0` under `math.scalar`, with `libm 0.2.16`, explicit `Float` descriptors,
+finite argument/result rejection, reflection-ledger rows, and focused
+module-surface vectors. The runtime call boundary now rejects `Int` rather than
+silently widening it, so the executable ABI agrees with the published float
+signature. This failure remains open because neither the source-bound managed
+Runtime13 gates nor the dependent WOC `zr_vm:project` scalar vectors have run
+against the recovered snapshot.
 
 ## 最低共享层根因
 
 Runtime13's host-function ledger and reflection system define the public
-`zr.zircon.math` surface, but the module has not been extended from vector
-descriptors/helpers into a versioned deterministic scalar ABI. The missing
-contract includes callable exports, argument/result finite-value policy,
-cross-platform precision/rounding semantics, capability declaration and
-reflection documentation. It is independent of the WOC package and belongs at
-the Runtime13 host boundary.
+`zr.zircon.math` surface. The source implementation has closed the missing
+export, finite-value, capability, reflection, and call-time float-boundary
+pieces. Remaining acceptance risk is dynamic: prove the pinned scalar vectors
+on the managed Runtime13 targets and prove WOC calls the same registered host
+module after Plugins08 supplies its transactional project backend. This remains
+independent of the WOC package and belongs at the Runtime13 host boundary.
 
 ## 架构修复验收
 

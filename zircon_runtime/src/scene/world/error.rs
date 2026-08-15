@@ -2,7 +2,7 @@ use thiserror::Error;
 use zircon_runtime_interface::reflect::ReflectError;
 
 use crate::scene::{
-    ecs::{EntityRegistryError, StorageError},
+    ecs::{EntityRegistryError, ObserverId, StorageError},
     EntityId,
 };
 
@@ -23,6 +23,8 @@ pub enum SceneError {
     },
     #[error("entity {entity} already exists")]
     DuplicateEntity { entity: EntityId },
+    #[error("observer {} is not registered", observer.index())]
+    MissingObserver { observer: ObserverId },
     #[error("entity {entity} cannot advance the world identity allocator")]
     EntityIdExhausted { entity: EntityId },
     #[error("node name cannot be empty")]
@@ -137,8 +139,16 @@ pub enum SceneError {
     },
     #[error("bundle commit requires final-state validation")]
     BundleFinalStateNotValidated,
-    #[error("bundle staged {staged} components but received {committed} commit values")]
-    BundleCommitIncomplete { staged: usize, committed: usize },
+    #[error("bundle cannot contain duplicate component types")]
+    DuplicateBundleComponentType,
+    #[error("bundle accepts at most {limit} staged component values")]
+    BundleComponentLimitExceeded { limit: usize },
+    #[error("bundle preflight can reserve at most {limit} component types")]
+    BundleTypeReservationLimitExceeded { limit: usize },
+    #[error("bundle transaction invariant failed: {reason}")]
+    BundleTransactionInvariant { reason: &'static str },
+    #[error("detached entity batch invariant failed: {reason}")]
+    DetachedEntityBatchInvariant { reason: &'static str },
     #[error("{0}")]
     Message(String),
 }

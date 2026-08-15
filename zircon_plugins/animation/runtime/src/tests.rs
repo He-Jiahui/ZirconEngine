@@ -1,4 +1,3 @@
-use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::core::framework::animation::{
     AnimationIkCommand, AnimationIkCommandError, AnimationLookAtCommand, AnimationManager,
     AnimationTargetId,
@@ -6,6 +5,7 @@ use zircon_runtime::core::framework::animation::{
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::math::Vec3;
+use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::plugin::PluginModuleKind;
 
 use super::*;
@@ -34,11 +34,11 @@ fn plugin_manager_validates_and_drains_ik_commands_per_world() {
         weight: 0.75,
     });
 
-    manager.queue_ik_command(command.clone()).unwrap();
+    manager.queue_ik_command(3, command.clone()).unwrap();
 
-    assert!(manager.drain_ik_commands(other_world).is_empty());
-    assert_eq!(manager.drain_ik_commands(world), vec![command]);
-    assert!(manager.drain_ik_commands(world).is_empty());
+    assert!(manager.drain_ik_commands(other_world, 3).is_empty());
+    assert_eq!(manager.drain_ik_commands(world, 3), vec![command]);
+    assert!(manager.drain_ik_commands(world, 3).is_empty());
 
     let invalid = AnimationIkCommand::LookAt(AnimationLookAtCommand {
         world,
@@ -50,7 +50,7 @@ fn plugin_manager_validates_and_drains_ik_commands_per_world() {
         weight: 1.0,
     });
     assert_eq!(
-        manager.queue_ik_command(invalid),
+        manager.queue_ik_command(3, invalid),
         Err(AnimationIkCommandError::DegenerateAxis { world, entity: 41 })
     );
 }
@@ -60,32 +60,26 @@ fn animation_registration_contributes_runtime_module() {
     let report = plugin_registration();
 
     assert!(report.is_success(), "{:?}", report.diagnostics);
-    assert!(
-        report
-            .extensions
-            .modules()
-            .iter()
-            .any(|module| module.name == ANIMATION_MODULE_NAME)
-    );
-    assert!(
-        report
-            .extensions
-            .plugin_runtime_systems()
-            .any(|(owner, system)| {
-                report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
-                    && system.id == ANIMATION_EVALUATE_SYSTEM
-                    && system.stage == zircon_runtime::scene::SystemStage::PostUpdate
-            })
-    );
-    assert!(
-        report
-            .extensions
-            .plugin_resources()
-            .any(|(owner, resource)| {
-                report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
-                    && resource.type_name() == std::any::type_name::<AnimationEvaluationPipeline>()
-            })
-    );
+    assert!(report
+        .extensions
+        .modules()
+        .iter()
+        .any(|module| module.name == ANIMATION_MODULE_NAME));
+    assert!(report
+        .extensions
+        .plugin_runtime_systems()
+        .any(|(owner, system)| {
+            report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
+                && system.id == ANIMATION_EVALUATE_SYSTEM
+                && system.stage == zircon_runtime::scene::SystemStage::PostUpdate
+        }));
+    assert!(report
+        .extensions
+        .plugin_resources()
+        .any(|(owner, resource)| {
+            report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
+                && resource.type_name() == std::any::type_name::<AnimationEvaluationPipeline>()
+        }));
     assert!(report.extensions.plugin_events().any(|(owner, event)| {
         report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
             && event.type_name() == std::any::type_name::<AnimationClipEvent>()
@@ -98,19 +92,17 @@ fn animation_registration_contributes_runtime_module() {
         report.extensions.plugin_module_name(owner) == Some(PLUGIN_RUNTIME_MODULE_NAME)
             && event.type_name() == std::any::type_name::<AnimationStateMachineLayerDiagnostic>()
     }));
-    assert!(
-        report
-            .extensions
-            .plugin_event_catalogs()
-            .iter()
-            .any(|catalog| {
-                catalog.namespace == "animation.events"
-                    && catalog.events.iter().any(|event| {
-                        event.id == ANIMATION_CLIP_EVENT
-                            && event.payload_schema == ANIMATION_CLIP_EVENT_SCHEMA
-                    })
-            })
-    );
+    assert!(report
+        .extensions
+        .plugin_event_catalogs()
+        .iter()
+        .any(|catalog| {
+            catalog.namespace == "animation.events"
+                && catalog.events.iter().any(|event| {
+                    event.id == ANIMATION_CLIP_EVENT
+                        && event.payload_schema == ANIMATION_CLIP_EVENT_SCHEMA
+                })
+        }));
     assert_eq!(
         report.package_manifest.modules[0].system_sets,
         vec![ANIMATION_SYSTEM_SET.to_string()]
@@ -132,30 +124,26 @@ fn animation_registration_contributes_runtime_module() {
         report.package_manifest.maturity,
         zircon_runtime::plugin::PluginMaturity::Beta
     );
-    assert!(
-        report
-            .package_manifest
-            .capability_statuses
-            .iter()
-            .any(|status| {
-                status.capability == ANIMATION_RUNTIME_CAPABILITY
-                    && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
-                    && status
-                        .bevy_references
-                        .iter()
-                        .any(|reference| reference == "dev/bevy/crates/bevy_animation/src/lib.rs")
-            })
-    );
-    assert!(
-        report
-            .package_manifest
-            .capability_statuses
-            .iter()
-            .any(|status| {
-                status.capability == ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY
-                    && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
-            })
-    );
+    assert!(report
+        .package_manifest
+        .capability_statuses
+        .iter()
+        .any(|status| {
+            status.capability == ANIMATION_RUNTIME_CAPABILITY
+                && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
+                && status
+                    .bevy_references
+                    .iter()
+                    .any(|reference| reference == "dev/bevy/crates/bevy_animation/src/lib.rs")
+        }));
+    assert!(report
+        .package_manifest
+        .capability_statuses
+        .iter()
+        .any(|status| {
+            status.capability == ANIMATION_TIMELINE_EVENT_TRACK_CAPABILITY
+                && status.status == zircon_runtime::plugin::CapabilityStatus::Partial
+        }));
 }
 
 #[test]
@@ -197,11 +185,9 @@ fn animation_module_resolves_manager() {
 fn animation_package_manifest_declares_dist_contract() {
     let manifest = package_manifest();
 
-    assert!(
-        manifest
-            .default_packaging
-            .contains(&ExportPackagingStrategy::NativeDynamic)
-    );
+    assert!(manifest
+        .default_packaging
+        .contains(&ExportPackagingStrategy::NativeDynamic));
 
     let distribution = manifest
         .distribution
@@ -240,12 +226,10 @@ fn animation_package_manifest_declares_dist_contract() {
         assert!(native_module.capabilities.contains(&capability.to_string()));
     }
 
-    assert!(
-        manifest
-            .modules
-            .iter()
-            .any(|module| module.name == "animation.runtime")
-    );
+    assert!(manifest
+        .modules
+        .iter()
+        .any(|module| module.name == "animation.runtime"));
     assert_eq!(
         manifest.modules[0].system_sets,
         vec![ANIMATION_SYSTEM_SET.to_string()]

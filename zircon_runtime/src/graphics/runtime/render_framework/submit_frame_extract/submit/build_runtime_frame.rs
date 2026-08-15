@@ -359,6 +359,7 @@ mod tests {
                     .expect("test extract has selected camera descriptor"),
             ),
             Default::default(),
+            false,
             None,
             crate::graphics::ViewportRenderOutputTarget::Texture {
                 handle: output_texture,

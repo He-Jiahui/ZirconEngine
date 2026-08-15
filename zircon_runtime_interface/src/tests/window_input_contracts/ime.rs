@@ -119,7 +119,7 @@ fn ui_window_input_pump_preserves_validated_preedit_clauses() {
 
     assert!(matches!(
         &input,
-        UiWindowInputPumpEvent::Input(UiInputEvent::Ime(ime))
+        UiInputEvent::Ime(ime)
             if ime.kind == UiImeInputEventKind::Preedit
                 && ime.text == "abcd"
                 && ime.cursor_range == Some(UiTextByteRange::new(3, 4))

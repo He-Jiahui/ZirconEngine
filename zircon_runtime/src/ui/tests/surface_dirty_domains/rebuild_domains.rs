@@ -145,3 +145,67 @@ fn surface_dirty_rebuild_recomputes_layout_for_structural_domains() {
         assert_dirty_cleared(&surface);
     }
 }
+
+#[test]
+fn interaction_dirty_patches_only_the_changed_button() {
+    let mut surface = sibling_surface(UiContainerKind::Free, LayoutBoundary::ParentDirected);
+
+    surface
+        .invalidate_node(primary_id(), UiInvalidationReason::Interaction)
+        .unwrap();
+    let report = surface.rebuild_dirty(root_size()).unwrap();
+
+    assert!(!report.layout_recomputed);
+    assert!(report.arranged_rebuilt);
+    assert!(report.hit_grid_rebuilt);
+    assert!(report.render_rebuilt);
+    assert_eq!(report.arranged_outer_node_visit_count, 1);
+    assert_eq!(report.hit_grid_outer_node_visit_count, 1);
+    assert_eq!(report.render_outer_node_visit_count, 1);
+    assert!(surface
+        .hit_test
+        .grid
+        .entries
+        .iter()
+        .any(|entry| entry.node_id == primary_id()));
+}
+
+#[test]
+fn pointer_event_eligibility_change_falls_back_and_removes_the_hit_entry() {
+    let mut surface = sibling_surface(UiContainerKind::Free, LayoutBoundary::ParentDirected);
+    surface
+        .tree
+        .node_mut(primary_id())
+        .expect("primary node should exist")
+        .pointer_events = zircon_runtime_interface::ui::tree::UiPointerEvents::None;
+    surface
+        .mark_node_dirty(
+            primary_id(),
+            UiDirtyFlags {
+                hit_test: true,
+                input: true,
+                ..UiDirtyFlags::default()
+            },
+        )
+        .unwrap();
+
+    let report = surface.rebuild_dirty(root_size()).unwrap();
+
+    assert_eq!(report.arranged_outer_node_visit_count, 1);
+    assert_eq!(
+        report.hit_grid_outer_node_visit_count,
+        surface.arranged_tree.draw_order.len()
+    );
+    assert!(surface
+        .hit_test
+        .grid
+        .entries
+        .iter()
+        .all(|entry| entry.node_id != primary_id()));
+    assert!(surface
+        .hit_test
+        .grid
+        .entries
+        .iter()
+        .any(|entry| entry.node_id == sibling_id()));
+}

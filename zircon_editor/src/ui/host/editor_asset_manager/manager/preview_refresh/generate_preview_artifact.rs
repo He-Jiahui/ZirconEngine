@@ -22,11 +22,11 @@ pub(super) fn generate_preview_artifact(
     })?;
     match definition.thumbnail() {
         ThumbnailProviderDescriptor::SourceImage => {
-            let source_path = project.source_path_for_uri(&record.locator)?;
-            let image = image::open(&source_path).map_err(|error| {
+            let source_path = project.resolve_source_path_for_uri(&record.locator)?;
+            let image = image::open(source_path.operation_path()).map_err(|error| {
                 AssetImportError::Parse(format!(
                     "failed to decode preview image {}: {error}",
-                    source_path.display()
+                    source_path.display_path().display()
                 ))
             })?;
             cache

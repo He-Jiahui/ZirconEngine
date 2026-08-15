@@ -1,8 +1,8 @@
 use super::super::super::super::paint_theme::PALETTE;
 use super::super::style::{
-    SEGMENT_SELECTED_BACKGROUND, segmented_control_style, selected_segment_border_width,
-    selected_segment_surface_color, selected_segment_underline_color,
-    selected_segment_underline_height, tab_style, tab_text_color,
+    segmented_control_style, selected_segment_border_width, selected_segment_surface_color,
+    selected_segment_underline_color, selected_segment_underline_height, tab_style, tab_text_color,
+    SEGMENT_SELECTED_BACKGROUND,
 };
 use super::support::{segmented_node, tab_node};
 use crate::ui::retained_host::primitives::Color;

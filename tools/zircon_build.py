@@ -20,6 +20,10 @@ except ModuleNotFoundError:  # pragma: no cover - exercised only on old Python.
 
 try:
     from .zircon_build_config import BuildConfig
+    from .zircon_build_cargo_environment import (
+        assert_managed_windows_build_root,
+        managed_cargo_environment,
+    )
     from .zircon_build_asset_staging import (
         copy_resource_dirs,
         stage_engine_assets,
@@ -65,6 +69,10 @@ try:
     )
 except ImportError:  # pragma: no cover - exercised when run as a script.
     from zircon_build_config import BuildConfig
+    from zircon_build_cargo_environment import (
+        assert_managed_windows_build_root,
+        managed_cargo_environment,
+    )
     from zircon_build_asset_staging import (
         copy_resource_dirs,
         stage_engine_assets,
@@ -137,12 +145,12 @@ def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python tools/zircon_build.py --targets hub,editor,runtime --out E:\\zircon-build --mode debug
-  python tools/zircon_build.py --targets editor,runtime --out E:\\zircon-build --mode debug
-  python tools/zircon_build.py --targets runtime --out E:\\zircon-build-profile --mode profiling --runtime-features target-client,profiling,profiling-tracy
-  python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out E:\\zircon-build --mode debug
-  python tools/zircon_build.py --targets plugins --plugins all --plugin-carrier native_dynamic --out E:\\zircon-build --mode release
-  python tools/zircon_build.py --targets font-sdf --font-sdf-manifest E:\\project\\font-sdf.json --out E:\\zircon-build --mode release
+  python tools/zircon_build.py --targets hub,editor,runtime --out E:\\ZirconBuilds\\zircon --mode debug
+  python tools/zircon_build.py --targets editor,runtime --out E:\\ZirconBuilds\\zircon --mode debug
+  python tools/zircon_build.py --targets runtime --out E:\\ZirconBuilds\\zircon-profile --mode profiling --runtime-features target-client,profiling,profiling-tracy
+  python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out E:\\ZirconBuilds\\zircon --mode debug
+  python tools/zircon_build.py --targets plugins --plugins all --plugin-carrier native_dynamic --out E:\\ZirconBuilds\\zircon --mode release
+  python tools/zircon_build.py --targets font-sdf --font-sdf-manifest E:\\ZirconBuilds\\project\\font-sdf.json --out E:\\ZirconBuilds\\zircon --mode release
 
 Plugin carrier boundary:
   native_dynamic crates are cdylib plugins copied into ZirconEngine/plugins.
@@ -154,7 +162,11 @@ Plugin carrier boundary:
         "--target",
         help="Comma-separated build targets: hub,editor,runtime,plugins,font-sdf.",
     )
-    parser.add_argument("--out", "--output", help="Build output directory.")
+    parser.add_argument(
+        "--out",
+        "--output",
+        help="Build output directory under an approved Windows build root.",
+    )
     parser.add_argument(
         "--font-sdf-manifest",
         help="Versioned JSON bake manifest required by the font-sdf target.",
@@ -588,6 +600,9 @@ def print_plan(config: BuildConfig) -> None:
 
 def build(config: BuildConfig) -> None:
     if not config.dry_run:
+        assert_managed_windows_build_root(config.out_root)
+        assert_managed_windows_build_root(config.engine_root)
+        assert_managed_windows_build_root(config.targets_root)
         config.engine_root.mkdir(parents=True, exist_ok=True)
         config.targets_root.mkdir(parents=True, exist_ok=True)
 
@@ -671,8 +686,13 @@ def prewarm_shaders(config: BuildConfig) -> None:
     if config.dry_run:
         print("DRY-RUN", quote_command(command))
         return
+    environment = managed_cargo_environment(
+        config.targets_root / "shader_prewarm", config.targets_root
+    )
     print(quote_command(command))
-    result = subprocess.run(command, cwd=config.repo_root, check=False)
+    result = subprocess.run(
+        command, cwd=config.repo_root, check=False, env=environment
+    )
     print_shader_prewarm_report_dimensions(config.shader_prewarm_report_path)
     if result.returncode == 0:
         validate_staged_shader_prewarm_acceptance_contract(config)
@@ -792,8 +812,20 @@ def run_cargo(config: BuildConfig, args: list[str]) -> None:
     if config.dry_run:
         print("DRY-RUN", quote_command(command))
         return
+    try:
+        target_index = args.index("--target-dir") + 1
+    except ValueError as error:
+        raise ValueError("Cargo build command must declare --target-dir.") from error
+    if target_index >= len(args):
+        raise ValueError("Cargo build command is missing a target directory value.")
+    target_dir = Path(args[target_index])
+    if not target_dir.is_absolute():
+        target_dir = config.repo_root / target_dir
+    environment = managed_cargo_environment(
+        target_dir, config.targets_root
+    )
     print(quote_command(command))
-    subprocess.run(command, cwd=config.repo_root, check=True)
+    subprocess.run(command, cwd=config.repo_root, check=True, env=environment)
 
 
 def copy_artifact(config: BuildConfig, target_dir: Path, artifact_name: str) -> None:

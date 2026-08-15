@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: open
+status: source_complete_dynamic_validation_pending
 created_at: 2026-07-29
 summary_slug: gpu-pass-timer-backend-facade
 origin_plan: docs/plans/zircon_plugins/09-export-publishing.md
@@ -75,3 +75,11 @@ off. Completed three-slot readbacks are inserted by frame generation before drai
 rendering now keeps the frame-profiler generation distinct from its mesh-command cache generation.
 Managed current-source compile evidence remains pending, so this handoff is not yet promoted to
 fixed.
+
+2026-08-10 forward repair: `FrameProfiler` now retains every GPU profile resolved during one
+submission instead of allowing a pipeline-statistics result to overwrite an independently resolved
+timer result. Matching timer/statistics results are merged before their profile is cloned; distinct
+generations are each backfilled into their matching capture mailbox, while the flat latest-profile
+diagnostic still selects the newest generation. Focused Rust formatting, diff checks, and a
+simultaneous timer/statistics regression contract pass statically. This remains source progress only;
+the managed current-source Cargo/WGPU timestamp and RenderDoc evidence above is still required.

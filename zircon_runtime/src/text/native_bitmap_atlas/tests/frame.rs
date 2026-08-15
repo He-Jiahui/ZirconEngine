@@ -1,6 +1,8 @@
 use super::*;
 use crate::text::raster::SwashRasterRequest;
+use glyphon::{Color, TextBounds};
 
+#[path = "frame/missing_raster.rs"]
 mod missing_raster;
 
 const TEST_FRAME_FONT_BYTES: &[u8] = include_bytes!(concat!(
@@ -456,16 +458,12 @@ fn native_bitmap_atlas_frame_separates_same_storage_format_atlas_layers() {
             .collect::<Vec<_>>(),
         vec![GlyphAtlasFormat::SubpixelMask, GlyphAtlasFormat::Color]
     );
-    assert!(
-        storage_submissions
-            .iter()
-            .all(|submission| submission.storage_format == GlyphAtlasStorageFormat::Rgba8Unorm)
-    );
-    assert!(
-        storage_submissions
-            .iter()
-            .all(|submission| submission.atlas_layer_count() == 1)
-    );
+    assert!(storage_submissions
+        .iter()
+        .all(|submission| submission.storage_format == GlyphAtlasStorageFormat::Rgba8Unorm));
+    assert!(storage_submissions
+        .iter()
+        .all(|submission| submission.atlas_layer_count() == 1));
 }
 
 #[test]

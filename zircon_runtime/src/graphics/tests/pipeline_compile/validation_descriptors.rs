@@ -276,6 +276,7 @@ fn pipeline_compile_rejects_storage_write_mode_on_read_access() {
             name: "scene-color".to_string(),
             kind: RenderFeatureResourceKind::Texture,
             access: RenderFeatureResourceAccess::Read,
+            input_version: None,
             minimum_size_bytes: None,
             attachment_ops: None,
             write_mode: RenderFeatureResourceWriteMode::Storage,

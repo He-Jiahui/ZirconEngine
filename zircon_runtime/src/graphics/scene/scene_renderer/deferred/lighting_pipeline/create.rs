@@ -7,7 +7,7 @@ use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
 use super::shader_source::{
-    DeferredLightingShaderSourceRequest, assemble_deferred_lighting_shader_source,
+    assemble_deferred_lighting_shader_source, DeferredLightingShaderSourceRequest,
 };
 
 // The DX12 HLSL writer derives vertex outputs from a same-module fragment input.

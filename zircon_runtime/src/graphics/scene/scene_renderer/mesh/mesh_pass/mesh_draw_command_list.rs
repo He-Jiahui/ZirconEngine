@@ -1,7 +1,7 @@
-use crate::core::framework::render::{RenderCapabilitySummary, RenderPhase};
+use crate::core::framework::render::RenderPhase;
 
 use super::cached_mesh_draw_commands::MeshDrawCommandCacheStats;
-use super::indirect_draw_batcher::{IndirectDrawBatcher, IndirectDrawBatcherStats};
+use super::indirect_draw_batcher::IndirectDrawBatcherStats;
 use super::mesh_draw_command::{DrawInstanceSource, MeshDrawArgs, MeshDrawCommand};
 
 mod builder;
@@ -245,12 +245,16 @@ impl MeshPassCommandBuffers {
     }
 
     pub(crate) fn stats(&self) -> MeshPassCommandBufferStats {
-        self.stats_with_indirect_batches(&RenderCapabilitySummary::default())
+        let fallback_draw_count = self.command_count();
+        self.stats_with_indirect_plan(IndirectDrawBatcherStats {
+            fallback_draw_count,
+            ..IndirectDrawBatcherStats::default()
+        })
     }
 
-    pub(crate) fn stats_with_indirect_batches(
+    pub(crate) fn stats_with_indirect_plan(
         &self,
-        capabilities: &RenderCapabilitySummary,
+        indirect_stats: IndirectDrawBatcherStats,
     ) -> MeshPassCommandBufferStats {
         let depth_prepass = self.depth_prepass.stats();
         let shadow = self.shadow.stats();
@@ -274,29 +278,6 @@ impl MeshPassCommandBuffers {
             velocity,
             taa_reactive_mask,
         ];
-
-        let mut indirect_stats = indirect_batch_stats(
-            capabilities,
-            [
-                self.depth_prepass.commands(),
-                self.shadow.commands(),
-                self.opaque.commands(),
-                self.alpha_mask.commands(),
-                self.advanced_pbr_opaque.commands(),
-                self.transparent.commands(),
-                self.half_resolution_transparent.commands(),
-                self.velocity.commands(),
-                self.taa_reactive_mask.commands(),
-            ],
-        );
-        accumulate_indirect_batch_stats(
-            &mut indirect_stats,
-            IndirectDrawBatcher::build(
-                self.transmission.commands(),
-                &RenderCapabilitySummary::default(),
-            )
-            .stats(),
-        );
 
         MeshPassCommandBufferStats {
             command_count: lists.iter().map(|stats| stats.command_count).sum(),
@@ -324,8 +305,29 @@ impl MeshPassCommandBuffers {
             cache_invalidated_transform_count: self.cache_stats.cache_invalidated_transform_count,
             cache_invalidated_geometry_count: self.cache_stats.cache_invalidated_geometry_count,
             cache_invalidated_material_count: self.cache_stats.cache_invalidated_material_count,
-            ..indirect_stats
+            indirect_batch_count: indirect_stats.batch_count,
+            indirect_batched_draw_count: indirect_stats.batched_draw_count,
+            indirect_fallback_draw_count: indirect_stats.fallback_draw_count,
+            indirect_args_count: indirect_stats.indirect_args_count,
         }
+    }
+
+    fn command_count(&self) -> usize {
+        [
+            self.depth_prepass.commands(),
+            self.shadow.commands(),
+            self.opaque.commands(),
+            self.alpha_mask.commands(),
+            self.advanced_pbr_opaque.commands(),
+            self.transmission.commands(),
+            self.transparent.commands(),
+            self.half_resolution_transparent.commands(),
+            self.velocity.commands(),
+            self.taa_reactive_mask.commands(),
+        ]
+        .iter()
+        .map(|commands| commands.len())
+        .sum()
     }
 }
 
@@ -340,29 +342,6 @@ fn is_transmission(command: &MeshDrawCommand) -> bool {
 fn append_command_list(target: &mut MeshDrawCommandList, source: MeshDrawCommandList) {
     target.commands.extend(source.into_commands());
     target.sort();
-}
-
-fn indirect_batch_stats<const N: usize>(
-    capabilities: &RenderCapabilitySummary,
-    command_lists: [&[MeshDrawCommand]; N],
-) -> MeshPassCommandBufferStats {
-    let mut stats = MeshPassCommandBufferStats::default();
-    for commands in command_lists {
-        let batcher = IndirectDrawBatcher::build(commands, capabilities);
-        let batch_stats = batcher.stats();
-        accumulate_indirect_batch_stats(&mut stats, batch_stats);
-    }
-    stats
-}
-
-fn accumulate_indirect_batch_stats(
-    stats: &mut MeshPassCommandBufferStats,
-    batch_stats: IndirectDrawBatcherStats,
-) {
-    stats.indirect_batch_count += batch_stats.batch_count;
-    stats.indirect_batched_draw_count += batch_stats.batched_draw_count;
-    stats.indirect_fallback_draw_count += batch_stats.fallback_draw_count;
-    stats.indirect_args_count += batch_stats.indirect_args_count;
 }
 
 fn sort_mesh_draw_commands(commands: &mut [MeshDrawCommand]) {

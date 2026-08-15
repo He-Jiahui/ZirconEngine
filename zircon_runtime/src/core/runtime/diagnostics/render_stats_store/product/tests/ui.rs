@@ -13,6 +13,8 @@ fn render_product_diagnostics_record_ui_text_raster_stats() {
         last_ui_text_unmapped_glyph_count: 2,
         last_ui_text_visible_raster_glyph_count: 11,
         last_ui_text_raster_source_image_count: 10,
+        last_ui_text_raster_persistent_key_count: 12,
+        last_ui_text_raster_source_cache_miss_count: 7,
         last_ui_text_missing_raster_image_count: 2,
         last_ui_text_visible_missing_raster_image_count: 1,
         last_ui_text_visible_raster_placeholder_count: 3,
@@ -20,6 +22,9 @@ fn render_product_diagnostics_record_ui_text_raster_stats() {
         last_ui_text_raster_worker_failed_count: 1,
         last_ui_text_raster_renderer_upload_requeued_count: 4,
         last_ui_text_raster_renderer_upload_failure_count: 5,
+        last_ui_text_sdf_generation_pending_batch_count: 6,
+        last_ui_text_sdf_generation_completion_backlog_count: 7,
+        last_ui_text_sdf_generation_failure_count: 8,
         ..RenderStats::default()
     };
 
@@ -37,6 +42,18 @@ fn render_product_diagnostics_record_ui_text_raster_stats() {
         &store,
         "render.ui.text.raster.source_image_count",
         10.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.ui.text.raster.persistent_key_count",
+        12.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.ui.text.raster.source_cache_miss_count",
+        7.0,
         "count",
     );
     assert_series(
@@ -79,6 +96,24 @@ fn render_product_diagnostics_record_ui_text_raster_stats() {
         &store,
         "render.ui.text.raster.renderer_upload_failure_count",
         5.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.ui.text.sdf_generation.pending_batch_count",
+        6.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.ui.text.sdf_generation.completion_backlog_count",
+        7.0,
+        "count",
+    );
+    assert_series(
+        &store,
+        "render.ui.text.sdf_generation.failure_count",
+        8.0,
         "count",
     );
 }

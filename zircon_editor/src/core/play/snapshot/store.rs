@@ -4,6 +4,9 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use zircon_runtime::asset::project::ProjectPaths;
+use zircon_runtime_interface::project::RelPath;
+
 use super::PlaySceneSource;
 
 #[derive(Debug, Default)]
@@ -15,6 +18,7 @@ pub struct PlaySnapshotStore {
 pub struct MaterializedPlayScene {
     instance_id: String,
     path: PathBuf,
+    relative_path: RelPath,
     owned_root: Option<PathBuf>,
 }
 
@@ -24,32 +28,36 @@ impl PlaySnapshotStore {
         project_root: &Path,
         source: &PlaySceneSource,
     ) -> Result<MaterializedPlayScene, String> {
+        let paths = ProjectPaths::from_root(project_root).map_err(|error| {
+            play_snapshot_path_error("failed to resolve project root", project_root, error)
+        })?;
         let instance_id = self.next_instance_id();
         match source {
-            PlaySceneSource::Persisted(path) => {
-                let path = if path.is_absolute() {
-                    path.clone()
-                } else {
-                    project_root.join(path)
-                };
+            PlaySceneSource::Persisted(relative_path) => {
+                let path = relative_path.join_to(paths.root());
                 if !path.is_file() {
                     return Err(format!(
                         "persisted play scene does not exist: {}",
-                        path.display()
+                        display_play_snapshot_path(&path).display()
                     ));
                 }
                 Ok(MaterializedPlayScene {
                     instance_id,
                     path,
+                    relative_path: relative_path.clone(),
                     owned_root: None,
                 })
             }
             PlaySceneSource::Snapshot(document) => {
-                let root = project_root.join(".zircon").join("play").join(&instance_id);
+                let root = paths.play_root().join(&instance_id);
                 fs::create_dir_all(&root).map_err(|error| {
-                    format!("failed to create play snapshot {}: {error}", root.display())
+                    play_snapshot_path_error("failed to create play snapshot", &root, error)
                 })?;
                 let final_path = root.join("play-scene.zrscene.json");
+                let relative_path = RelPath::parse(format!(
+                    ".zircon/play/{instance_id}/play-scene.zrscene.json"
+                ))
+                .expect("generated Play snapshot paths are project-relative");
                 let temporary_path = root.join("play-scene.zrscene.json.tmp");
                 let write_result = write_atomic_snapshot(&temporary_path, &final_path, document);
                 if let Err(error) = write_result {
@@ -59,6 +67,7 @@ impl PlaySnapshotStore {
                 Ok(MaterializedPlayScene {
                     instance_id,
                     path: final_path,
+                    relative_path,
                     owned_root: Some(root),
                 })
             }
@@ -83,12 +92,16 @@ impl MaterializedPlayScene {
         &self.path
     }
 
+    pub fn relative_path(&self) -> &RelPath {
+        &self.relative_path
+    }
+
     pub fn cleanup(&mut self) -> Result<(), String> {
         let Some(root) = self.owned_root.as_ref() else {
             return Ok(());
         };
         fs::remove_dir_all(root).map_err(|error| {
-            format!("failed to clean play snapshot {}: {error}", root.display())
+            play_snapshot_path_error("failed to clean play snapshot", root, error)
         })?;
         self.owned_root = None;
         Ok(())
@@ -107,28 +120,62 @@ fn write_atomic_snapshot(temporary: &Path, target: &Path, document: &str) -> Res
         .write(true)
         .open(temporary)
         .map_err(|error| {
-            format!(
-                "failed to create play snapshot temporary file {}: {error}",
-                temporary.display()
+            play_snapshot_path_error(
+                "failed to create play snapshot temporary file",
+                temporary,
+                error,
             )
         })?;
     file.write_all(document.as_bytes()).map_err(|error| {
-        format!(
-            "failed to write play snapshot temporary file {}: {error}",
-            temporary.display()
+        play_snapshot_path_error(
+            "failed to write play snapshot temporary file",
+            temporary,
+            error,
         )
     })?;
     file.sync_all().map_err(|error| {
-        format!(
-            "failed to flush play snapshot temporary file {}: {error}",
-            temporary.display()
+        play_snapshot_path_error(
+            "failed to flush play snapshot temporary file",
+            temporary,
+            error,
         )
     })?;
     fs::rename(temporary, target).map_err(|error| {
         format!(
             "failed to publish play snapshot {} -> {}: {error}",
-            temporary.display(),
-            target.display()
+            display_play_snapshot_path(temporary).display(),
+            display_play_snapshot_path(target).display()
         )
     })
+}
+
+fn display_play_snapshot_path(path: &Path) -> PathBuf {
+    ProjectPaths::display_path(path)
+}
+
+fn play_snapshot_path_error(action: &str, path: &Path, error: impl std::fmt::Display) -> String {
+    format!(
+        "{action} {}: {error}",
+        display_play_snapshot_path(path).display()
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::play_snapshot_path_error;
+
+    #[cfg(windows)]
+    #[test]
+    fn snapshot_error_messages_hide_windows_verbatim_operation_paths() {
+        assert_eq!(
+            play_snapshot_path_error(
+                "failed to create play snapshot",
+                Path::new(r"\\?\C:\projects\forest\.zircon\play\instance"),
+                "access denied",
+            ),
+            "failed to create play snapshot C:\\projects\\forest\\.zircon\\play\\instance: access denied"
+        );
+    }
 }

@@ -12,6 +12,7 @@ impl FontDatabase {
     /// databases that carry the same font payload.
     pub(in crate::text::font) fn has_same_render_inputs(&self, other: &Self) -> bool {
         self.fallback_families == other.fallback_families
+            && self.family_alias_index == other.family_alias_index
             && self.project_composite_font == other.project_composite_font
             && self.default_ui_family == other.default_ui_family
             && self.faces.len() == other.faces.len()

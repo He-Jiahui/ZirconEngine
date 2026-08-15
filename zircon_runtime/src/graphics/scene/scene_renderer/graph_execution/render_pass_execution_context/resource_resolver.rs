@@ -4,14 +4,12 @@ use crate::render_graph::{
     RenderPassId,
 };
 
-#[cfg(test)]
 use super::super::RenderGraphExecutionResources;
 
 #[derive(Clone, Copy)]
 pub struct RgResourceResolver<'a> {
     graph: &'a CompiledRenderGraph,
     pass_id: RenderPassId,
-    #[cfg(test)]
     physical: Option<&'a RenderGraphExecutionResources>,
 }
 
@@ -31,12 +29,10 @@ impl<'a> RgResourceResolver<'a> {
         Self {
             graph,
             pass_id,
-            #[cfg(test)]
             physical: None,
         }
     }
 
-    #[cfg(test)]
     pub(in crate::graphics::scene::scene_renderer) fn with_physical(
         graph: &'a CompiledRenderGraph,
         pass_id: RenderPassId,
@@ -47,6 +43,14 @@ impl<'a> RgResourceResolver<'a> {
             pass_id,
             physical: Some(physical),
         }
+    }
+
+    pub(in crate::graphics::scene::scene_renderer) fn with_physical_resources(
+        mut self,
+        physical: &'a RenderGraphExecutionResources,
+    ) -> Self {
+        self.physical = Some(physical);
+        self
     }
 
     pub fn resource_declaration(
@@ -123,7 +127,6 @@ impl<'a> RgResourceResolver<'a> {
         Some(declaration)
     }
 
-    #[cfg(test)]
     pub(in crate::graphics::scene::scene_renderer) fn texture_view_by_name(
         &self,
         resource_name: &str,
@@ -133,7 +136,6 @@ impl<'a> RgResourceResolver<'a> {
         self.texture_view(declaration.resource, access)
     }
 
-    #[cfg(test)]
     pub(in crate::graphics::scene::scene_renderer) fn texture_view(
         &self,
         resource: RenderGraphResource,
@@ -144,7 +146,6 @@ impl<'a> RgResourceResolver<'a> {
             .require_texture_view_for_declaration(declaration)
     }
 
-    #[cfg(test)]
     pub(in crate::graphics::scene::scene_renderer) fn buffer_by_name(
         &self,
         resource_name: &str,
@@ -154,7 +155,6 @@ impl<'a> RgResourceResolver<'a> {
         self.buffer(declaration.resource, access)
     }
 
-    #[cfg(test)]
     pub(in crate::graphics::scene::scene_renderer) fn buffer(
         &self,
         resource: RenderGraphResource,
@@ -171,7 +171,6 @@ impl<'a> RgResourceResolver<'a> {
             .unwrap_or(&[])
     }
 
-    #[cfg(test)]
     fn require_pass_resource_declaration(
         &self,
         resource: RenderGraphResource,
@@ -222,7 +221,6 @@ impl<'a> RgResourceResolver<'a> {
         Ok(declaration)
     }
 
-    #[cfg(test)]
     fn physical_resources(&self) -> Result<&'a RenderGraphExecutionResources, String> {
         self.physical.ok_or_else(|| {
             format!(
@@ -242,15 +240,8 @@ impl<'a> RgResourceResolver<'a> {
         self.graph.pass(self.pass_id)
     }
 
-    fn has_physical_resources(&self) -> bool {
-        #[cfg(test)]
-        {
-            self.physical.is_some()
-        }
-        #[cfg(not(test))]
-        {
-            false
-        }
+    pub(in crate::graphics::scene::scene_renderer) fn has_physical_resources(&self) -> bool {
+        self.physical.is_some()
     }
 }
 
@@ -348,7 +339,8 @@ mod tests {
         resources
             .materialize_transient_resources_with_pool(&backend.device, &graph, &mut transient_pool)
             .unwrap();
-        let resolver = RgResourceResolver::with_physical(&graph, opaque_pass.id, &resources);
+        let resolver =
+            RgResourceResolver::new(&graph, opaque_pass.id).with_physical_resources(&resources);
 
         resolver
             .texture_view_by_name("scene-depth", RenderGraphResourceAccessKind::Read)

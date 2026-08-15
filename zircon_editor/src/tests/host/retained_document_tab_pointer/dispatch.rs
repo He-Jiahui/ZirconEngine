@@ -73,6 +73,37 @@ fn shared_document_tab_pointer_bridge_skips_rebuild_for_unchanged_layout() {
 }
 
 #[test]
+fn shared_document_tab_measured_frame_patch_preserves_surface_authority() {
+    let mut bridge = HostDocumentTabPointerBridge::new();
+    assert!(bridge.sync(sample_document_tab_layout()));
+    let authority_generation = bridge.debug_surface_authority_generation();
+
+    let first = bridge
+        .handle_activate_click("document", 1, 110.0, 120.0, UiPoint::new(132.0, 14.0))
+        .expect("measured document tab should remain routable");
+    assert_eq!(
+        first.route,
+        Some(HostDocumentTabPointerRoute::ActivateTab {
+            surface_key: "document".to_string(),
+            item_index: 1,
+            instance_id: "editor.game#1".to_string(),
+        })
+    );
+    assert_eq!(
+        bridge.debug_surface_authority_generation(),
+        authority_generation
+    );
+
+    bridge
+        .handle_activate_click("document", 1, 110.0, 120.0, UiPoint::new(132.0, 14.0))
+        .expect("unchanged measured frame should reuse the projected hit geometry");
+    assert_eq!(
+        bridge.debug_surface_authority_generation(),
+        authority_generation
+    );
+}
+
+#[test]
 fn shared_document_tab_pointer_click_dispatches_focus_view_through_runtime_dispatcher() {
     let _guard = env_lock().lock().unwrap();
 

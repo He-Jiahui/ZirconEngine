@@ -13,11 +13,11 @@ use super::{
     },
     generated_bottom_panel_navigation::is_workbench_generated_bottom_action,
     module_navigation::{
-        MODULE_COMMAND_CONTROLS, MODULE_PANEL_COMMAND_CONTROLS, MODULE_TAB_CONTROLS,
         is_workbench_module_action, workbench_module_command_control_id,
         workbench_module_panel_command_control_id, workbench_module_panel_row_control_id,
         workbench_module_panel_row_group, workbench_module_panel_tab_control_id,
-        workbench_module_panel_tab_group, workbench_module_tab_control_id,
+        workbench_module_panel_tab_group, workbench_module_tab_control_id, MODULE_COMMAND_CONTROLS,
+        MODULE_PANEL_COMMAND_CONTROLS, MODULE_TAB_CONTROLS,
     },
 };
 

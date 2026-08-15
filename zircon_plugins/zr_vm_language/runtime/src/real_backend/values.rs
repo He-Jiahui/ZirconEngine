@@ -1,36 +1,118 @@
-use zircon_runtime::core::framework::script::ScriptHostValue;
+use zircon_runtime::core::framework::script::{
+    ScriptHostArgumentSource, ScriptHostByteSource, ScriptHostByteView, ScriptHostError,
+    ScriptHostValue, ScriptHostValueRef,
+};
 use zr_vm_rust_binding as zrvm;
 
 use super::errors::zr_error;
 
-pub(super) fn read_host_arguments_for_function(
-    context: &zrvm::NativeCallContext,
-    function_label: &str,
-) -> Result<Vec<ScriptHostValue>, zrvm::Error> {
-    let count = context.argument_count().map_err(|error| {
-        zr_error(format!(
-            "failed to read argument count for {function_label}: {error}"
-        ))
-    })?;
-    let mut arguments = Vec::with_capacity(count);
-    for index in 0..count {
-        let value = context.argument(index).map_err(|error| {
-            zr_error(format!(
-                "failed to read argument {index} for {function_label}: {error}"
-            ))
-        })?;
-        arguments.push(from_zr_value_for_function(&value, function_label, index)?);
-    }
-    Ok(arguments)
+pub(super) struct ZrVmScriptHostArgumentSource<'context, 'native> {
+    context: &'context zrvm::NativeCallContext<'native>,
+    function_label: &'context str,
+    argument_count: usize,
 }
 
-pub(super) fn from_zr_value_for_function(
-    value: &zrvm::Value,
-    function_label: &str,
-    index: usize,
-) -> Result<ScriptHostValue, zrvm::Error> {
-    let value_label = format!("{function_label} argument {index}");
-    from_zr_value(value, &value_label)
+impl<'context, 'native> ZrVmScriptHostArgumentSource<'context, 'native> {
+    pub(super) fn new(
+        context: &'context zrvm::NativeCallContext<'native>,
+        function_label: &'context str,
+    ) -> Result<Self, zrvm::Error> {
+        let argument_count = context.argument_count().map_err(|error| {
+            zr_error(format!(
+                "failed to read argument count for {function_label}: {error}"
+            ))
+        })?;
+        Ok(Self {
+            context,
+            function_label,
+            argument_count,
+        })
+    }
+}
+
+impl ScriptHostArgumentSource for ZrVmScriptHostArgumentSource<'_, '_> {
+    fn len(&self) -> usize {
+        self.argument_count
+    }
+
+    fn visit_argument(
+        &self,
+        index: usize,
+        visitor: &mut dyn for<'argument> FnMut(
+            ScriptHostValueRef<'argument>,
+        ) -> Result<(), ScriptHostError>,
+    ) -> Result<(), ScriptHostError> {
+        if index >= self.argument_count {
+            return Err(ScriptHostError::new(format!(
+                "{} argument {index} was not provided",
+                self.function_label
+            )));
+        }
+
+        self.context
+            .with_argument(index, |argument| match argument.kind()? {
+                zrvm::NativeArgumentKind::Null => {
+                    visitor(ScriptHostValueRef::Null).map_err(|error| zr_error(error.message))
+                }
+                zrvm::NativeArgumentKind::Bool => {
+                    visitor(ScriptHostValueRef::Bool(argument.read_bool()?))
+                        .map_err(|error| zr_error(error.message))
+                }
+                zrvm::NativeArgumentKind::Int => {
+                    visitor(ScriptHostValueRef::Int(argument.read_int()?))
+                        .map_err(|error| zr_error(error.message))
+                }
+                zrvm::NativeArgumentKind::Float => {
+                    visitor(ScriptHostValueRef::Float(argument.read_float()?))
+                        .map_err(|error| zr_error(error.message))
+                }
+                zrvm::NativeArgumentKind::String => argument.with_str(|value| {
+                    visitor(ScriptHostValueRef::String(value))
+                        .map_err(|error| zr_error(error.message))
+                }),
+                zrvm::NativeArgumentKind::Array => {
+                    let bytes = ZrVmByteSource {
+                        argument: &argument,
+                    };
+                    visitor(ScriptHostValueRef::Bytes(ScriptHostByteView::Source(
+                        &bytes,
+                    )))
+                    .map_err(|error| zr_error(error.message))
+                }
+                kind => {
+                    return Err(zr_error(format!(
+                        "unsupported zr_vm value kind {kind:?} at {} argument {index}",
+                        self.function_label
+                    )));
+                }
+            })
+            .map_err(|error| {
+                ScriptHostError::new(format!(
+                    "failed to read argument {index} for {}: {error}",
+                    self.function_label
+                ))
+            })
+    }
+}
+
+struct ZrVmByteSource<'source, 'argument> {
+    argument: &'source zrvm::NativeArgumentView<'argument>,
+}
+
+impl ScriptHostByteSource for ZrVmByteSource<'_, '_> {
+    fn len(&self) -> Result<usize, ScriptHostError> {
+        self.argument.byte_len().map_err(|error| {
+            ScriptHostError::new(format!("failed to read byte-array length: {error}"))
+        })
+    }
+
+    fn byte_at(&self, index: usize) -> Result<u8, ScriptHostError> {
+        self.argument.byte_at(index).map_err(|error| {
+            ScriptHostError::new(format!(
+                "failed to read byte-array element {index}: {error}"
+            ))
+        })
+    }
 }
 
 pub(super) fn from_zr_return_value_for_export(

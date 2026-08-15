@@ -1,5 +1,6 @@
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $validator = Join-Path $repoRoot '.codex\skills\zircon-dev\scripts\validate-matrix.ps1'
+$productInputBuilder = Join-Path $repoRoot 'tools\mvp\Build-MvpProductInputs.ps1'
 $originalTestMode = $env:VALIDATE_MATRIX_TEST_MODE
 
 $env:VALIDATE_MATRIX_TEST_MODE = '1'
@@ -62,6 +63,34 @@ Describe 'MVP product binary build contract' {
         }
 
         $message | Should Match 'outside coordinator-governed D/E/F roots'
+    }
+
+    It 'permits the dedicated MVP product-input root through the explicit validator mode' {
+        $requestedPath = "D:\ZirconBuilds\mvp-product-inputs-contract-$([guid]::NewGuid().ToString('N'))"
+
+        $resolved = Assert-ArtifactOutputDirectory -Path $requestedPath -MvpProductInputArtifactOutput
+        $resolution = Resolve-ZirconWindowsPath -Path $requestedPath
+
+        $resolved | Should Be $resolution.OperationalPath
+        $resolution.DisplayPath | Should Match '^D:\\ZirconBuilds\\mvp-product-inputs-'
+    }
+
+    It 'permits a resolver-normalized device path for the dedicated MVP product-input root' {
+        $requestedPath = "\\?\D:\ZirconBuilds\mvp-product-inputs-device-$([guid]::NewGuid().ToString('N'))"
+
+        $resolved = Assert-ArtifactOutputDirectory -Path $requestedPath -MvpProductInputArtifactOutput
+        $resolution = Resolve-ZirconWindowsPath -Path $requestedPath
+
+        $resolved | Should Be $resolution.OperationalPath
+        $resolution.DisplayPath | Should Match '^D:\\ZirconBuilds\\mvp-product-inputs-device-'
+    }
+
+    It 'keeps the product-input default and managed validator invocation under ZirconBuilds' {
+        $builderSource = Get-Content -LiteralPath $productInputBuilder -Raw
+
+        $builderSource | Should Match 'Join-Path ''E:\\ZirconBuilds'' \("mvp-product-inputs-"'
+        $builderSource | Should Match '"-MvpProductInputArtifactOutput"'
+        $builderSource | Should Not Match '\$env:LOCALAPPDATA'
     }
 
     It 'resolves device and junction paths before evaluating build artifact output directories' {

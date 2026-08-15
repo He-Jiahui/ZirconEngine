@@ -8,11 +8,10 @@ use zircon_runtime_interface::ui::{
     surface::{UiResolvedStyle, UiTextOverflow, UiTextRunPaintStyle, UiTextWrap},
 };
 
-use super::draw::{DEFAULT_FONT_SIZE, DEFAULT_LINE_HEIGHT, draw_text_with_size_and_style};
+use super::draw::{draw_text_with_size_and_style, DEFAULT_FONT_SIZE, DEFAULT_LINE_HEIGHT};
 use super::font::{
-    HostTextFontFace, font_face_for_paint_style, font_request_for_face,
-    font_request_for_face_with_preferences, runtime_font_family_for_face,
-    runtime_text_style_for_face,
+    font_face_for_paint_style, font_request_for_face, font_request_for_face_with_preferences,
+    runtime_font_family_for_face, runtime_text_style_for_face, HostTextFontFace,
 };
 use super::raster::rasterize_cached_glyph;
 use super::{measure_runtime_text_width, measure_runtime_text_width_with_style};
@@ -149,12 +148,10 @@ fn text_draw_skips_disjoint_active_and_explicit_clips() {
         UiTextRunPaintStyle::default(),
     );
 
-    assert!(
-        frame
-            .as_bytes()
-            .chunks_exact(4)
-            .all(|pixel| pixel == [0, 0, 0, 255])
-    );
+    assert!(frame
+        .as_bytes()
+        .chunks_exact(4)
+        .all(|pixel| pixel == [0, 0, 0, 255]));
 }
 
 #[test]
@@ -405,18 +402,13 @@ fn retained_text_measure_selects_runtime_family_for_ui_and_code_faces() {
     let mono_width = measure_runtime_text_width_with_style(text, font_size, code_style);
     let ui_style = runtime_single_line_measure_style(font_size, HostTextFontFace::Ui);
     let mono_style = runtime_single_line_measure_style(font_size, HostTextFontFace::Mono);
+    let ui_family = runtime_font_family_for_face(HostTextFontFace::Ui);
+    let mono_family = runtime_font_family_for_face(HostTextFontFace::Mono);
 
-    assert_eq!(
-        ui_style.font_family.as_deref(),
-        Some(font_request_for_face(HostTextFontFace::Ui).family.as_str())
-    );
+    assert_eq!(ui_style.font_family.as_deref(), Some(ui_family.as_ref()));
     assert_eq!(
         mono_style.font_family.as_deref(),
-        Some(
-            font_request_for_face(HostTextFontFace::Mono)
-                .family
-                .as_str()
-        )
+        Some(mono_family.as_ref())
     );
     assert!((ui_width - measure_text_size(text, &ui_style).width).abs() < 0.01);
     assert!((mono_width - measure_text_size(text, &mono_style).width).abs() < 0.01);

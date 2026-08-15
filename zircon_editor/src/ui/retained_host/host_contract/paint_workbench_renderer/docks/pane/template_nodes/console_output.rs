@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use crate::ui::retained_host::console_output::{
-    CONSOLE_OUTPUT_LINE_PREFIX, CONSOLE_OUTPUT_SEVERITY_PREFIX, ConsoleOutputPaintMetadata,
+    ConsoleOutputPaintMetadata, CONSOLE_OUTPUT_LINE_PREFIX, CONSOLE_OUTPUT_SEVERITY_PREFIX,
 };
 use crate::ui::retained_host::host_contract::data::{
     FrameRect, HostPaneInteractionStateData, TemplateNodeFrameData, TemplatePaneNodeData,

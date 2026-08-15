@@ -1,4 +1,4 @@
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 use super::{
     EditorEventListenerDelivery, EditorEventListenerDescriptor, EditorEventListenerStatus,
@@ -27,6 +27,7 @@ pub(crate) fn listener_deliveries(deliveries: &[EditorEventListenerDelivery]) ->
         .map(|delivery| {
             json!({
                 "listener_id": delivery.listener_id,
+                "delivery_cursor": delivery.delivery_cursor,
                 "event_id": delivery.event_id,
                 "sequence": delivery.sequence,
                 "source": delivery.source,

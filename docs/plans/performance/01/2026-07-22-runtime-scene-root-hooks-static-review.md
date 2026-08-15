@@ -4,7 +4,7 @@ related_code:
   - zircon_runtime/src/scene/navigation.rs
   - zircon_runtime/src/scene/prelude.rs
   - zircon_runtime/src/scene/runtime_extension
-  - zircon_runtime/src/scene/runtime_hook
+  - zircon_runtime/src/scene/runtime_extension
   - zircon_runtime/src/scene/runtime_level_traits.rs
   - zircon_runtime/src/scene/semantics
   - zircon_runtime/src/scene/serializer
@@ -28,7 +28,7 @@ status: static_complete_dynamic_pending
 
 ## 范围与覆盖
 
-`zircon_runtime/src/scene/{mod.rs,navigation.rs,prelude.rs,runtime_level_traits.rs,runtime_extension/**,runtime_hook/**,semantics/**,serializer/**}`当前源 **9/9** 个Rust文件、**688** 行已逐文件阅读；并为调用频率与锁边界继续核对`module/{world_driver,level_manager_lifecycle}.rs`及既有stage-plan源码守卫。`scene/mod.rs`已有共享工作区改动，本切片只读保护，没有覆盖。
+`zircon_runtime/src/scene/{mod.rs,navigation.rs,prelude.rs,runtime_level_traits.rs,runtime_extension/**,semantics/**,serializer/**}`当前源 **9/9** 个Rust文件、**688** 行已逐文件阅读；并为调用频率与锁边界继续核对`module/{world_driver,level_manager_lifecycle}.rs`及既有stage-plan源码守卫。`scene/mod.rs`已有共享工作区改动，本切片只读保护，没有覆盖。
 
 这些文件中root/prelude/semantics/runtime-level traits只是零运行期开销的类型或导出边界；serializer把同步scene I/O/投影委托给既有World owner，不在facade重复构造。`SceneNavigationRuntime`内置实现覆盖single-agent入口，剩余全World收集与邻域问题继续归PERF-MVP-437，不重复立项。
 

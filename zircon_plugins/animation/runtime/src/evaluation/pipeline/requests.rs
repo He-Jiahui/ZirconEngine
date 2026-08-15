@@ -21,6 +21,7 @@ pub(super) struct AnimationSceneScan {
 
 #[derive(Clone, Debug)]
 pub(super) struct PendingSequenceSample {
+    pub(super) entity: EntityId,
     pub(super) sequence_id: AssetId,
     pub(super) asset_revision: Option<u64>,
     pub(super) time_seconds: Real,

@@ -1,0 +1,8 @@
+# Ephemeral, uniquely named test-fixture work roots. Accepted visual evidence remains tracked.
+.runtime_text_font_fixture_work/
+.runtime_text_font_manifest_work/
+.runtime_text_font_project_work/
+.runtime_text_product_framebuffer_work/
+.runtime_text_profile_work/
+.runtime_text_sdf_manifest_work/
+.runtime_text_sdf_offline_work/

@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Weak, mpsc};
+use std::sync::{mpsc, Arc, Weak};
 use std::time::Duration;
 
 use crate::core::editing::engine::{

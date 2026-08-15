@@ -1,5 +1,5 @@
 use super::super::super::data::TemplatePaneNodeData;
-use super::super::super::paint_theme::{HostMaterialPalette, current_host_palette};
+use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
 use super::super::template_style::is_button_disabled;
 
 const MATERIAL_STATE_LAYER_OPACITY_HOVER: f32 = 0.08;

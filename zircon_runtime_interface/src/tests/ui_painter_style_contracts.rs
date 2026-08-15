@@ -1,321 +1,275 @@
+use crate::ui::design_tokens::EditorDesignTokens;
 use crate::ui::style::{
     ButtonInteractionState, UiPainterFamily, UiPainterResolvedState, UiPainterState,
-    UiPainterStyleSelector,
+    UiPainterStyleSelector, UiPainterVisualState,
 };
 
 #[test]
-fn ui_painter_state_resolves_family_specific_priority() {
-    let state = UiPainterState {
-        hovered: true,
+fn ui_painter_primary_state_uses_one_priority_for_every_family() {
+    let cases = [
+        (
+            UiPainterState {
+                disabled: true,
+                loading: true,
+                drop_hovered: true,
+                ..UiPainterState::normal()
+            },
+            UiPainterResolvedState::Disabled,
+        ),
+        (
+            UiPainterState {
+                loading: true,
+                drop_hovered: true,
+                dragging: true,
+                ..UiPainterState::normal()
+            },
+            UiPainterResolvedState::Loading,
+        ),
+        (
+            UiPainterState {
+                drop_hovered: true,
+                dragging: true,
+                pressed: true,
+                ..UiPainterState::normal()
+            },
+            UiPainterResolvedState::DropHovered,
+        ),
+        (
+            UiPainterState {
+                dragging: true,
+                pressed: true,
+                open: true,
+                ..UiPainterState::normal()
+            },
+            UiPainterResolvedState::Dragging,
+        ),
+        (
+            UiPainterState {
+                pressed: true,
+                open: true,
+                checked: true,
+                ..UiPainterState::normal()
+            },
+            UiPainterResolvedState::Pressed,
+        ),
+        (
+            UiPainterState {
+                open: true,
+                checked: true,
+                selected: true,
+                ..UiPainterState::normal()
+            },
+            UiPainterResolvedState::Open,
+        ),
+        (
+            UiPainterState {
+                checked: true,
+                selected: true,
+                hovered: true,
+                ..UiPainterState::normal()
+            },
+            UiPainterResolvedState::Checked,
+        ),
+        (
+            UiPainterState {
+                selected: true,
+                hovered: true,
+                ..UiPainterState::normal()
+            },
+            UiPainterResolvedState::Selected,
+        ),
+        (
+            UiPainterState {
+                hovered: true,
+                ..UiPainterState::normal()
+            },
+            UiPainterResolvedState::Hovered,
+        ),
+        (UiPainterState::normal(), UiPainterResolvedState::Normal),
+    ];
+
+    for family in all_painter_families() {
+        for (state, expected) in cases {
+            assert_visual_state(state, family, expected);
+        }
+    }
+}
+
+#[test]
+fn focus_visible_is_an_overlay_and_never_replaces_primary_identity() {
+    let selected_and_focused = UiPainterState {
         focused: true,
-        pressed: false,
-        checked: true,
-        selected: false,
-        disabled: false,
-        open: true,
-        dragging: false,
-        drop_hovered: false,
-        loading: false,
+        focus_visible: true,
+        selected: true,
+        hovered: true,
+        ..UiPainterState::normal()
     };
 
+    for family in all_painter_families() {
+        let visual = UiPainterStyleSelector::visual_state_for_family(selected_and_focused, family);
+        assert_eq!(visual.primary, UiPainterResolvedState::Selected);
+        assert!(visual.focus_visible);
+        assert!(!visual.drop_indicator);
+    }
+
+    let pointer_focus = UiPainterState {
+        focused: true,
+        ..UiPainterState::normal()
+    };
     assert_eq!(
-        state.resolved_state_for_family(UiPainterFamily::Button),
-        UiPainterResolvedState::Focused
-    );
-    assert_eq!(
-        state.resolved_state_for_family(UiPainterFamily::Checkbox),
-        UiPainterResolvedState::Focused
-    );
-    assert_eq!(
-        state.resolved_state_for_family(UiPainterFamily::Slider),
-        UiPainterResolvedState::Focused
-    );
-    assert_eq!(
-        state.resolved_state_for_family(UiPainterFamily::Dropdown),
-        UiPainterResolvedState::Focused
-    );
-    assert_eq!(
-        state.resolved_state_for_family(UiPainterFamily::Alert),
-        UiPainterResolvedState::Focused
+        pointer_focus.visual_state_for_family(UiPainterFamily::Button),
+        UiPainterVisualState {
+            primary: UiPainterResolvedState::Normal,
+            focus_visible: false,
+            drop_indicator: false,
+        }
     );
 }
 
 #[test]
-fn ui_painter_state_keeps_disabled_and_loading_priorities_explicit() {
-    let disabled_pressed = UiPainterState {
+fn legacy_scalar_projection_keeps_native_focus_consumers_rendering_during_cutover() {
+    let selected_and_focused = UiPainterState {
+        selected: true,
+        focused: true,
+        focus_visible: true,
+        ..UiPainterState::normal()
+    };
+
+    for family in all_painter_families() {
+        let composite = selected_and_focused.visual_state_for_family(family);
+        assert_eq!(composite.primary, UiPainterResolvedState::Selected);
+        assert!(composite.focus_visible);
+        assert_eq!(
+            selected_and_focused.resolved_state_for_family(family),
+            UiPainterResolvedState::Focused,
+            "{family:?} legacy scalar projection must remain visible until M4 migration"
+        );
+    }
+}
+
+#[test]
+fn painter_state_defaults_focus_visible_for_older_payloads_and_round_trips_new_intent() {
+    let older: UiPainterState =
+        serde_json::from_str(r#"{"focused":true}"#).expect("older painter state must deserialize");
+    assert!(older.focused);
+    assert!(!older.focus_visible);
+
+    let keyboard_focus = UiPainterState {
+        focused: true,
+        focus_visible: true,
+        ..UiPainterState::normal()
+    };
+    let encoded = serde_json::to_string(&keyboard_focus).expect("painter state must serialize");
+    let decoded: UiPainterState =
+        serde_json::from_str(&encoded).expect("painter state must round-trip");
+    assert_eq!(decoded, keyboard_focus);
+}
+
+#[test]
+fn drop_indicator_is_composed_without_losing_primary_priority() {
+    let disabled_drop_target = UiPainterState {
         disabled: true,
-        loading: true,
+        drop_hovered: true,
+        focus_visible: true,
+        ..UiPainterState::normal()
+    };
+
+    let visual = disabled_drop_target.visual_state_for_family(UiPainterFamily::TreeRow);
+    assert_eq!(visual.primary, UiPainterResolvedState::Disabled);
+    assert!(visual.focus_visible);
+    assert!(visual.drop_indicator);
+
+    let active_drop_target = UiPainterState {
+        drop_hovered: true,
+        dragging: true,
         pressed: true,
-        hovered: true,
         ..UiPainterState::normal()
     };
     assert_eq!(
-        disabled_pressed.resolved_state_for_family(UiPainterFamily::Slider),
-        UiPainterResolvedState::Disabled
+        active_drop_target
+            .visual_state_for_family(UiPainterFamily::Button)
+            .primary,
+        UiPainterResolvedState::DropHovered
+    );
+}
+
+#[test]
+fn button_interaction_keeps_legacy_focus_without_changing_primary_state() {
+    let keyboard_focus = UiPainterState {
+        focused: true,
+        focus_visible: true,
+        ..UiPainterState::normal()
+    };
+
+    assert_eq!(
+        keyboard_focus.resolved_state_for_family(UiPainterFamily::Button),
+        UiPainterResolvedState::Normal
     );
     assert_eq!(
-        disabled_pressed.button_interaction_state(),
+        keyboard_focus.button_interaction_state(),
+        ButtonInteractionState::Focused
+    );
+
+    let disabled_focus = UiPainterState {
+        disabled: true,
+        focus_visible: true,
+        ..UiPainterState::normal()
+    };
+    assert_eq!(
+        disabled_focus.button_interaction_state(),
         ButtonInteractionState::Disabled
     );
 
-    let loading_button = UiPainterState {
-        loading: true,
-        pressed: true,
-        hovered: true,
+    let drop_target_focus = UiPainterState {
+        drop_hovered: true,
+        focus_visible: true,
         ..UiPainterState::normal()
     };
     assert_eq!(
-        loading_button.resolved_state_for_family(UiPainterFamily::Button),
-        UiPainterResolvedState::Loading
-    );
-    assert_eq!(
-        loading_button.button_interaction_state(),
-        ButtonInteractionState::Loading
-    );
-    assert_eq!(
-        loading_button.resolved_state_for_family(UiPainterFamily::Slider),
-        UiPainterResolvedState::Loading
-    );
-    assert_eq!(
-        loading_button.resolved_state_for_family(UiPainterFamily::Checkbox),
-        UiPainterResolvedState::Loading
+        drop_target_focus.button_interaction_state(),
+        ButtonInteractionState::Hover,
+        "higher-priority drop target feedback must not collapse into focus"
     );
 }
 
 #[test]
-fn ui_painter_state_keeps_drag_priority_above_focus() {
-    let focused_dragging = UiPainterState {
-        focused: true,
-        hovered: true,
-        dragging: true,
-        selected: true,
-        checked: true,
-        ..UiPainterState::normal()
-    };
-
-    for family in [
-        UiPainterFamily::Generic,
-        UiPainterFamily::IconButton,
-        UiPainterFamily::Dropdown,
-        UiPainterFamily::PopupRow,
-        UiPainterFamily::Alert,
-        UiPainterFamily::Tooltip,
-        UiPainterFamily::TextField,
-        UiPainterFamily::ListRow,
-        UiPainterFamily::TreeRow,
-        UiPainterFamily::TableRow,
-        UiPainterFamily::Tab,
-        UiPainterFamily::Toast,
-        UiPainterFamily::Chrome,
-    ] {
-        assert_selector(focused_dragging, family, UiPainterResolvedState::Dragging);
-    }
-
-    for family in [
-        UiPainterFamily::Toggle,
-        UiPainterFamily::Checkbox,
-        UiPainterFamily::Radio,
-        UiPainterFamily::Slider,
-    ] {
-        assert_selector(focused_dragging, family, UiPainterResolvedState::Dragging);
-    }
-
-    assert_selector(
-        focused_dragging,
-        UiPainterFamily::Button,
-        UiPainterResolvedState::Hovered,
-    );
-    assert_eq!(
-        focused_dragging.button_interaction_state(),
-        ButtonInteractionState::Hover
-    );
-}
-
-#[test]
-fn ui_painter_state_keeps_selection_identity_above_hover() {
-    let selected_hot = UiPainterState {
-        hovered: true,
-        drop_hovered: true,
-        selected: true,
-        ..UiPainterState::normal()
-    };
-
-    for family in [
-        UiPainterFamily::Generic,
-        UiPainterFamily::IconButton,
-        UiPainterFamily::Dropdown,
-        UiPainterFamily::PopupRow,
-        UiPainterFamily::Alert,
-        UiPainterFamily::Tooltip,
-        UiPainterFamily::TextField,
-        UiPainterFamily::ListRow,
-        UiPainterFamily::TreeRow,
-        UiPainterFamily::TableRow,
-        UiPainterFamily::Tab,
-        UiPainterFamily::Toast,
-        UiPainterFamily::Chrome,
-    ] {
-        assert_selector(selected_hot, family, UiPainterResolvedState::Selected);
-    }
-
-    for family in [
-        UiPainterFamily::Toggle,
-        UiPainterFamily::Checkbox,
-        UiPainterFamily::Radio,
-    ] {
-        assert_selector(selected_hot, family, UiPainterResolvedState::Selected);
-    }
-
-    let checked_hot = UiPainterState {
-        hovered: true,
-        drop_hovered: true,
-        checked: true,
-        ..UiPainterState::normal()
-    };
-
-    for family in [
-        UiPainterFamily::Generic,
-        UiPainterFamily::IconButton,
-        UiPainterFamily::Dropdown,
-        UiPainterFamily::PopupRow,
-        UiPainterFamily::Alert,
-        UiPainterFamily::Tooltip,
-        UiPainterFamily::TextField,
-        UiPainterFamily::ListRow,
-        UiPainterFamily::TreeRow,
-        UiPainterFamily::TableRow,
-        UiPainterFamily::Tab,
-        UiPainterFamily::Toast,
-        UiPainterFamily::Chrome,
-        UiPainterFamily::Toggle,
-        UiPainterFamily::Checkbox,
-        UiPainterFamily::Radio,
-    ] {
-        assert_selector(checked_hot, family, UiPainterResolvedState::Checked);
-    }
-
-    assert_selector(
-        selected_hot,
-        UiPainterFamily::Button,
-        UiPainterResolvedState::Focused,
-    );
-    assert_eq!(
-        selected_hot.button_interaction_state(),
-        ButtonInteractionState::Focused
-    );
-}
-
-#[test]
-fn ui_painter_state_keeps_open_above_selection_for_open_controls() {
-    let open_selected_hot = UiPainterState {
-        open: true,
-        hovered: true,
-        drop_hovered: true,
-        selected: true,
-        checked: true,
-        ..UiPainterState::normal()
-    };
-
-    assert_selector(
-        open_selected_hot,
-        UiPainterFamily::Dropdown,
-        UiPainterResolvedState::Open,
-    );
-}
-
-#[test]
-fn ui_painter_style_selector_is_canonical_for_all_workbench_families() {
-    let disabled_over_everything = UiPainterState {
-        disabled: true,
-        loading: true,
-        pressed: true,
-        focused: true,
-        hovered: true,
-        selected: true,
-        checked: true,
-        open: true,
-        dragging: true,
-        drop_hovered: true,
-    };
-    for family in all_painter_families() {
-        assert_selector(
-            disabled_over_everything,
-            family,
-            UiPainterResolvedState::Disabled,
-        );
-    }
-
-    let interactive_busy = UiPainterState {
-        loading: true,
-        pressed: true,
-        focused: true,
-        hovered: true,
-        selected: true,
-        checked: true,
-        open: true,
-        dragging: true,
-        drop_hovered: true,
-        ..UiPainterState::normal()
-    };
-    for family in [
-        UiPainterFamily::Generic,
-        UiPainterFamily::IconButton,
-        UiPainterFamily::Toggle,
-        UiPainterFamily::Checkbox,
-        UiPainterFamily::Radio,
-        UiPainterFamily::Slider,
-        UiPainterFamily::Dropdown,
-        UiPainterFamily::PopupRow,
-        UiPainterFamily::Alert,
-        UiPainterFamily::Tooltip,
-        UiPainterFamily::TextField,
-        UiPainterFamily::ListRow,
-        UiPainterFamily::TreeRow,
-        UiPainterFamily::TableRow,
-        UiPainterFamily::Tab,
-        UiPainterFamily::Toast,
-        UiPainterFamily::Chrome,
-    ] {
-        assert_selector(interactive_busy, family, UiPainterResolvedState::Loading);
-    }
-    assert_selector(
-        interactive_busy,
-        UiPainterFamily::Button,
-        UiPainterResolvedState::Loading,
-    );
-
-    assert_selector(
+fn editor_painter_tokens_compose_focus_and_drop_overlays_over_primary_fill() {
+    let tokens = EditorDesignTokens::workbench_dark();
+    let selected_focus = tokens.resolve_painter_style(
         UiPainterState {
-            loading: true,
-            pressed: true,
-            hovered: true,
-            checked: true,
+            selected: true,
+            focused: true,
+            focus_visible: true,
             ..UiPainterState::normal()
         },
-        UiPainterFamily::Checkbox,
-        UiPainterResolvedState::Loading,
+        UiPainterFamily::Button,
     );
 
-    let button_hot_without_focus = UiPainterState {
-        open: true,
-        dragging: true,
-        drop_hovered: true,
-        ..UiPainterState::normal()
-    };
-    assert_selector(
-        button_hot_without_focus,
-        UiPainterFamily::Button,
-        UiPainterResolvedState::Hovered,
+    assert_eq!(selected_focus.state, UiPainterResolvedState::Selected);
+    assert_eq!(
+        selected_focus.background_color,
+        tokens.palette.surface_selected
     );
+    assert_eq!(selected_focus.border_color, tokens.palette.accent);
+    assert_eq!(
+        selected_focus.focus_outline_color,
+        Some(tokens.palette.focus_ring)
+    );
+    assert_eq!(selected_focus.drop_indicator_color, None);
 
-    let button_selected_is_focus_visible = UiPainterState {
-        selected: true,
-        ..UiPainterState::normal()
-    };
-    assert_selector(
-        button_selected_is_focus_visible,
-        UiPainterFamily::Button,
-        UiPainterResolvedState::Focused,
+    let drop_target = tokens.resolve_painter_style(
+        UiPainterState {
+            drop_hovered: true,
+            selected: true,
+            ..UiPainterState::normal()
+        },
+        UiPainterFamily::TreeRow,
+    );
+    assert_eq!(drop_target.state, UiPainterResolvedState::DropHovered);
+    assert_eq!(drop_target.background_color, tokens.palette.surface[2]);
+    assert_eq!(
+        drop_target.drop_indicator_color,
+        Some(tokens.palette.accent)
     );
 }
 
@@ -342,19 +296,24 @@ fn all_painter_families() -> [UiPainterFamily; 18] {
     ]
 }
 
-fn assert_selector(
+fn assert_visual_state(
     state: UiPainterState,
     family: UiPainterFamily,
     expected: UiPainterResolvedState,
 ) {
     assert_eq!(
-        UiPainterStyleSelector::resolved_state_for_family(state, family),
+        UiPainterStyleSelector::visual_state_for_family(state, family).primary,
         expected,
         "{family:?} selector priority drifted"
     );
     assert_eq!(
-        state.resolved_state_for_family(family),
+        state.visual_state_for_family(family).primary,
         expected,
         "{family:?} UiPainterState helper drifted from selector"
+    );
+    assert_eq!(
+        state.resolved_state_for_family(family),
+        expected,
+        "{family:?} legacy primary helper drifted from composite output"
     );
 }

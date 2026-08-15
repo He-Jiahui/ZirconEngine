@@ -35,8 +35,10 @@ fn event_listener_control_gates_named_event_deliveries() {
         )
         .unwrap();
     let disabled_deliveries = runtime.runtime.handle_event_listener_control_request(
-        EditorEventListenerControlRequest::QueryDeliveries {
+        EditorEventListenerControlRequest::QueryDeliveriesPage {
             listener_id: listener_id.clone(),
+            after_delivery_cursor: 0,
+            max_deliveries: 256,
         },
     );
     assert_eq!(
@@ -64,7 +66,11 @@ fn event_listener_control_gates_named_event_deliveries() {
         .unwrap();
 
     let deliveries = runtime.runtime.handle_event_listener_control_request(
-        EditorEventListenerControlRequest::QueryDeliveries { listener_id },
+        EditorEventListenerControlRequest::QueryDeliveriesPage {
+            listener_id,
+            after_delivery_cursor: 0,
+            max_deliveries: 256,
+        },
     );
     assert_eq!(
         deliveries.value["deliveries"][0]["operation_id"],
@@ -116,7 +122,11 @@ fn event_listener_filter_limits_delivery_by_operation_path_prefix() {
         .unwrap();
 
     let deliveries = runtime.runtime.handle_event_listener_control_request(
-        EditorEventListenerControlRequest::QueryDeliveries { listener_id },
+        EditorEventListenerControlRequest::QueryDeliveriesPage {
+            listener_id,
+            after_delivery_cursor: 0,
+            max_deliveries: 256,
+        },
     );
     let deliveries = deliveries.value["deliveries"]
         .as_array()
@@ -174,7 +184,11 @@ fn event_listener_filter_limits_delivery_by_operation_group() {
         .unwrap();
 
     let deliveries = runtime.runtime.handle_event_listener_control_request(
-        EditorEventListenerControlRequest::QueryDeliveries { listener_id },
+        EditorEventListenerControlRequest::QueryDeliveriesPage {
+            listener_id,
+            after_delivery_cursor: 0,
+            max_deliveries: 256,
+        },
     );
     let deliveries = deliveries.value["deliveries"]
         .as_array()
@@ -241,7 +255,11 @@ fn event_listener_filter_limits_delivery_by_source_and_failure_state() {
     assert!(cli_failure.error.is_some());
 
     let deliveries = runtime.runtime.handle_event_listener_control_request(
-        EditorEventListenerControlRequest::QueryDeliveries { listener_id },
+        EditorEventListenerControlRequest::QueryDeliveriesPage {
+            listener_id,
+            after_delivery_cursor: 0,
+            max_deliveries: 256,
+        },
     );
     let deliveries = deliveries.value["deliveries"]
         .as_array()
@@ -295,7 +313,11 @@ fn event_listener_control_clears_operation_path_filter() {
         .unwrap();
 
     let deliveries = runtime.runtime.handle_event_listener_control_request(
-        EditorEventListenerControlRequest::QueryDeliveries { listener_id },
+        EditorEventListenerControlRequest::QueryDeliveriesPage {
+            listener_id,
+            after_delivery_cursor: 0,
+            max_deliveries: 256,
+        },
     );
     let deliveries = deliveries.value["deliveries"]
         .as_array()
@@ -340,15 +362,17 @@ fn event_listener_control_unregisters_listener_and_drops_deliveries() {
     let listeners = runtime
         .runtime
         .handle_event_listener_control_request(EditorEventListenerControlRequest::ListListeners);
-    assert!(
-        listeners.value["listeners"]
-            .as_array()
-            .expect("listeners")
-            .is_empty()
-    );
+    assert!(listeners.value["listeners"]
+        .as_array()
+        .expect("listeners")
+        .is_empty());
 
     let deliveries = runtime.runtime.handle_event_listener_control_request(
-        EditorEventListenerControlRequest::QueryDeliveries { listener_id },
+        EditorEventListenerControlRequest::QueryDeliveriesPage {
+            listener_id,
+            after_delivery_cursor: 0,
+            max_deliveries: 256,
+        },
     );
     assert_eq!(
         deliveries.error.as_deref(),
@@ -365,8 +389,10 @@ fn event_listener_control_rejects_unknown_listener_queries() {
     let listener_id = "External.MissingPanel".to_string();
 
     let deliveries = runtime.runtime.handle_event_listener_control_request(
-        EditorEventListenerControlRequest::QueryDeliveries {
+        EditorEventListenerControlRequest::QueryDeliveriesPage {
             listener_id: listener_id.clone(),
+            after_delivery_cursor: 0,
+            max_deliveries: 256,
         },
     );
     assert_eq!(
@@ -375,9 +401,10 @@ fn event_listener_control_rejects_unknown_listener_queries() {
     );
 
     let cursor = runtime.runtime.handle_event_listener_control_request(
-        EditorEventListenerControlRequest::QueryDeliveriesSince {
+        EditorEventListenerControlRequest::QueryDeliveriesPage {
             listener_id: listener_id.clone(),
-            after_sequence: 10,
+            after_delivery_cursor: 10,
+            max_deliveries: 256,
         },
     );
     assert_eq!(
@@ -388,7 +415,7 @@ fn event_listener_control_rejects_unknown_listener_queries() {
     let ack = runtime.runtime.handle_event_listener_control_request(
         EditorEventListenerControlRequest::AckDeliveriesThrough {
             listener_id,
-            sequence: 10,
+            delivery_cursor: 10,
         },
     );
     assert_eq!(
@@ -398,7 +425,7 @@ fn event_listener_control_rejects_unknown_listener_queries() {
 }
 
 #[test]
-fn event_listener_control_queries_deliveries_after_sequence_cursor() {
+fn event_listener_control_queries_delivery_pages_after_a_delivery_cursor() {
     use crate::core::editor_event::EditorEventListenerControlRequest;
     use crate::core::editor_operation::{
         EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
@@ -433,9 +460,10 @@ fn event_listener_control_queries_deliveries_after_sequence_cursor() {
         .unwrap();
 
     let deliveries = runtime.runtime.handle_event_listener_control_request(
-        EditorEventListenerControlRequest::QueryDeliveriesSince {
+        EditorEventListenerControlRequest::QueryDeliveriesPage {
             listener_id,
-            after_sequence: 1,
+            after_delivery_cursor: 1,
+            max_deliveries: 256,
         },
     );
     let deliveries = deliveries.value["deliveries"]
@@ -447,7 +475,7 @@ fn event_listener_control_queries_deliveries_after_sequence_cursor() {
 }
 
 #[test]
-fn event_listener_control_acknowledges_deliveries_through_sequence() {
+fn event_listener_control_acknowledges_deliveries_through_delivery_cursor() {
     use crate::core::editor_event::EditorEventListenerControlRequest;
     use crate::core::editor_operation::{
         EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
@@ -484,14 +512,18 @@ fn event_listener_control_acknowledges_deliveries_through_sequence() {
     let ack = runtime.runtime.handle_event_listener_control_request(
         EditorEventListenerControlRequest::AckDeliveriesThrough {
             listener_id: listener_id.clone(),
-            sequence: 1,
+            delivery_cursor: 1,
         },
     );
     assert!(ack.error.is_none());
     assert_eq!(ack.value["removed"], 1);
 
     let deliveries = runtime.runtime.handle_event_listener_control_request(
-        EditorEventListenerControlRequest::QueryDeliveries { listener_id },
+        EditorEventListenerControlRequest::QueryDeliveriesPage {
+            listener_id,
+            after_delivery_cursor: 0,
+            max_deliveries: 256,
+        },
     );
     let deliveries = deliveries.value["deliveries"]
         .as_array()
@@ -551,7 +583,7 @@ fn event_listener_control_reports_listener_status_with_pending_delivery_bounds()
     runtime.runtime.handle_event_listener_control_request(
         EditorEventListenerControlRequest::AckDeliveriesThrough {
             listener_id: listener_id.clone(),
-            sequence: 2,
+            delivery_cursor: 2,
         },
     );
     let empty_status = runtime.runtime.handle_event_listener_control_request(

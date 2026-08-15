@@ -5,6 +5,9 @@ use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
 use super::support::editor_asset_root;
 
+#[path = "workbench_primitives/search_input.rs"]
+mod search_input;
+
 struct WorkbenchPrimitiveContract {
     file_name: &'static str,
     component_name: &'static str,

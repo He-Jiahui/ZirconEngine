@@ -12,20 +12,22 @@ use crate::graphics::{
 
 use super::super::super::super::deferred::DeferredSceneResources;
 use super::super::super::super::environment::{IblBakeWgpuPipelineCache, RealtimeIblRuntime};
-use super::super::super::super::hzb::{HzbOcclusionCuller, hzb_occlusion_supported_by_limits};
+use super::super::super::super::hzb::{hzb_occlusion_supported_by_limits, HzbOcclusionCuller};
 use super::super::super::super::mesh::skinning::{
     create_empty_skinned_joint_palette_buffer, skinned_joint_palette_storage_min_binding_size,
 };
-use super::super::super::super::mesh::{CachedMeshDrawCommands, MeshPipelineCache};
+use super::super::super::super::mesh::{
+    CachedMeshDrawCommands, MeshIndirectDrawWorkspace, MeshPipelineCache,
+};
 use super::super::super::super::overlay::{ViewportIconSource, ViewportOverlayRenderer};
 use super::super::super::super::particle::ParticleRenderer;
 use super::super::super::super::post_process::ScenePostProcessResources;
 use super::super::super::super::scene_clear::SceneRegionClearResources;
-use super::super::super::super::shadow::ShadowMapRenderer;
 use super::super::super::super::shadow::atlas::{
-    SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT, ShadowAtlasAllocator, ShadowAtlasConfig,
-    ShadowAtlasResourceConfig, ShadowAtlasResources,
+    ShadowAtlasAllocator, ShadowAtlasConfig, ShadowAtlasResourceConfig, ShadowAtlasResources,
+    SHADOW_ATLAS_DEFAULT_CSM_ROW_HEIGHT,
 };
+use super::super::super::super::shadow::ShadowMapRenderer;
 use super::super::super::super::sprite::SpriteRenderer;
 use super::super::super::super::ui::ScreenSpaceUiRenderer;
 use super::super::super::constants::{DEPTH_FORMAT, SCENE_COLOR_HDR_FORMAT};
@@ -62,6 +64,27 @@ impl SceneRendererCore {
         let resolved_asset_manager = asset_manager
             .resolve()
             .map_err(|error| GraphicsError::Asset(error.to_string()))?;
+        #[cfg(test)]
+        let project_root = resolved_asset_manager
+            .current_project_manager()
+            .map(|project| project.paths().root().to_path_buf())
+            // Graphics unit tests can intentionally construct a renderer before a project opens.
+            // This test-only root preserves their isolated, non-product fixture behavior.
+            .unwrap_or_else(|| {
+                std::env::current_dir().expect("graphics unit tests require a working directory")
+            });
+        #[cfg(not(test))]
+        let project_root = resolved_asset_manager
+            .current_project_manager()
+            .ok_or_else(|| {
+                GraphicsError::Asset(
+                    "scene renderer requires an active project before pipeline cache construction"
+                        .to_owned(),
+                )
+            })?
+            .paths()
+            .root()
+            .to_path_buf();
         let plugin_shading_models = plugin_shading_models.into_iter().collect::<Vec<_>>();
         let scene_bind_group_bundle = create_scene_bind_group_bundle(device, queue);
         let skinned_joint_palette_fallback_buffer =
@@ -88,6 +111,7 @@ impl SceneRendererCore {
             queue,
             scene_color_format,
             adapter_info,
+            &project_root,
             &scene_bind_group_bundle.layout,
             &material_texture_bind_group_layout,
             gpu_scene.scene_bind_group_layout(),
@@ -104,7 +128,9 @@ impl SceneRendererCore {
         let mesh_and_environment = mesh_and_environment_started.elapsed();
 
         let shadows_started = Instant::now();
-        let shadow_map_renderer = ShadowMapRenderer::new(device, &scene_bind_group_bundle.layout);
+        let shadow_map_renderer = deferred_lighting_profile
+            .uses_shadow_map_renderer()
+            .then(|| ShadowMapRenderer::new(device, &scene_bind_group_bundle.layout));
         // The zero-direct-light preview retains valid shared bindings without reserving the
         // full 4096-square shadow atlas used by scene-capable renderer profiles.
         let shadow_atlas_resource_config =
@@ -192,6 +218,7 @@ impl SceneRendererCore {
             &texture_bind_group_layout,
             icon_source,
             volumetric_fog_enabled,
+            deferred_lighting_profile.uses_interaction_overlays(),
         );
         let screen_space_ui_renderer = if deferred_lighting_profile.uses_screen_space_ui() {
             Some(ScreenSpaceUiRenderer::new(
@@ -224,9 +251,12 @@ impl SceneRendererCore {
                 realtime_ibl,
                 scene_bind_group_realtime_ibl_slot: None,
                 cached_mesh_draw_commands: CachedMeshDrawCommands::default(),
+                mesh_indirect_draw_workspace: MeshIndirectDrawWorkspace::default(),
+                neutral_graph_buffers: Default::default(),
                 gpu_scene,
                 hzb_occlusion_culler,
                 scene_clear,
+                deferred_lighting_profile,
                 shadow_map_renderer,
                 shadow_atlas_allocator,
                 shadow_atlas_resources,
@@ -239,6 +269,7 @@ impl SceneRendererCore {
                 transient_resource_pool: Default::default(),
                 readback_queue: GpuReadbackQueue::new(device),
                 readback_frame_index: 0,
+                ibl_bake_runtime_writebacks: Default::default(),
                 advanced_plugin_resources,
             },
             SceneRendererCoreStartupReport {

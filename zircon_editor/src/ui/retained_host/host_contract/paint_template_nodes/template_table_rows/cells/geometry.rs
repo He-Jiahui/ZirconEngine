@@ -1,8 +1,8 @@
 use super::super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::actions::table_action_column_width;
 use super::super::identity::{is_table_header, is_table_tail};
-use super::allocation::{TableColumnLayout, allocate_table_columns_for_node};
-use super::metrics::{TABLE_COLUMN_COUNT, WorkbenchTableCellMetrics, table_cell_metrics};
+use super::allocation::{allocate_table_columns_for_node, TableColumnLayout};
+use super::metrics::{table_cell_metrics, WorkbenchTableCellMetrics, TABLE_COLUMN_COUNT};
 
 #[derive(Clone, Copy)]
 struct TableCellLayout {

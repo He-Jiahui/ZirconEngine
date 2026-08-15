@@ -1,4 +1,5 @@
 use super::HybridGiScenePrepareResourcesSnapshot;
+use zircon_runtime::core::framework::render::RenderHybridGiProbeTraceDiagnosticRecord;
 
 #[cfg_attr(not(test), allow(dead_code))]
 impl HybridGiScenePrepareResourcesSnapshot {
@@ -59,6 +60,10 @@ impl HybridGiScenePrepareResourcesSnapshot {
 
     pub(crate) fn probe_trace_tiles(&self) -> &[(u32, u32, u32, u32)] {
         &self.probe_trace_tiles
+    }
+
+    pub(crate) fn probe_trace_diagnostics(&self) -> &[RenderHybridGiProbeTraceDiagnosticRecord] {
+        &self.probe_trace_diagnostics
     }
 
     pub(crate) fn probe_trace_dispatch(&self) -> [u32; 3] {

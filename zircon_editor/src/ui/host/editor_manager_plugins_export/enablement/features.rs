@@ -2,7 +2,7 @@ use std::{path::Path, sync::Arc};
 
 use zircon_runtime::asset::project::ProjectManifest;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
-use zircon_runtime::plugin::native::NativePluginLoader;
+use zircon_runtime::plugin::native::discover_native_plugins;
 use zircon_runtime::{
     core::framework::project::ProjectPluginManifest,
     core::framework::project::ProjectPluginSelection, plugin::PluginFeatureBundleManifest,
@@ -39,8 +39,7 @@ impl EditorManager {
         feature_id: &str,
         enabled: bool,
     ) -> Result<EditorPluginFeatureSelectionUpdateReport, String> {
-        let native_report =
-            NativePluginLoader.discover(self.plugin_directory(project_root.as_ref()));
+        let native_report = discover_native_plugins(self.plugin_directory(project_root.as_ref()));
         let catalog = self.native_aware_runtime_plugin_catalog_from_load_report(&native_report);
         let report = set_project_plugin_feature_enabled_with_catalog(
             &catalog,
@@ -79,8 +78,7 @@ impl EditorManager {
         plugin_id: &str,
         feature_id: &str,
     ) -> Result<EditorPluginFeatureSelectionUpdateReport, String> {
-        let native_report =
-            NativePluginLoader.discover(self.plugin_directory(project_root.as_ref()));
+        let native_report = discover_native_plugins(self.plugin_directory(project_root.as_ref()));
         let catalog = self.native_aware_runtime_plugin_catalog_from_load_report(&native_report);
         let report = enable_project_plugin_feature_dependencies_with_catalog(
             &catalog,

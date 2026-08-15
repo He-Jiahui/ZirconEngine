@@ -49,9 +49,8 @@ impl VmScriptBehaviorBridge {
             .slot_for_package_name(callback.package_id())
             .map_err(|error| ScriptHostError::new(error.to_string()))?;
         let generation = manager
-            .slot(slot)
-            .map_err(|error| ScriptHostError::new(error.to_string()))?
-            .generation;
+            .active_generation(slot)
+            .map_err(|error| ScriptHostError::new(error.to_string()))?;
         if let Some(cached) = self.lock_callbacks().get(callback).copied() {
             if cached.slot == slot && cached.generation == generation {
                 return Ok(cached);

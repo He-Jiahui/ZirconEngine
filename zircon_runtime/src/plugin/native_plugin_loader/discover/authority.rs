@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
 use super::super::candidate_from_manifest::append_candidate_from_manifest_path;
@@ -10,13 +10,17 @@ use super::super::collect_manifests::{
 use super::super::discovery_refresh::{
     is_native_plugin_discovery_io_lane, native_plugin_discovery_refresh_service,
     native_plugin_discovery_root, NativePluginDiscoveryInputIdentity,
-    NativePluginDiscoveryRefreshBudget, NativePluginDiscoveryRefreshError,
-    NativePluginDiscoveryRefreshInput, NativePluginDiscoveryRefreshRequest,
-    NativePluginDiscoveryRefreshService, NativePluginDiscoveryRefreshSink,
-    NativePluginDiscoveryRefreshTerminal, NativePluginDiscoveryRefreshTicket,
+    NativePluginDiscoveryManifestAction, NativePluginDiscoveryRefreshBudget,
+    NativePluginDiscoveryRefreshError, NativePluginDiscoveryRefreshInput,
+    NativePluginDiscoveryRefreshRequest, NativePluginDiscoveryRefreshService,
+    NativePluginDiscoveryRefreshSink, NativePluginDiscoveryRefreshTerminal,
+    NativePluginDiscoveryRefreshTicket, NativePluginDiscoveryRefreshWork,
     NativePluginDiscoveryRoot, NativePluginDiscoverySnapshot,
 };
 use super::super::NativePluginLoadReport;
+
+#[cfg(test)]
+use super::super::discovery_refresh::NativePluginDiscoveryRefreshMetrics;
 
 static DISCOVERY_AUTHORITY: OnceLock<NativePluginDiscoveryAuthority> = OnceLock::new();
 const MAX_ROOT_IDENTITIES: usize = 32;
@@ -97,22 +101,28 @@ impl NativePluginDiscoveryAuthority {
             // facade's previous read-current-manifest behavior by refreshing this distinct
             // selection root on each call, while still coalescing concurrent callers here.
             true,
+            NativePluginDiscoveryRefreshWork::root_scan(),
         )
     }
 
     pub(super) fn refresh_manifest(
         &self,
         root: &Path,
-        _manifest_path: &Path,
+        manifest_path: &Path,
     ) -> NativePluginLoadReport {
-        // A notification has no private incremental cache. The filesystem mutation must already
-        // be visible; this schedules the authority's bounded full-root refresh.
-        self.project_root(root, true)
+        self.project_notification(
+            root,
+            manifest_path,
+            NativePluginDiscoveryManifestAction::Refresh,
+        )
     }
 
-    pub(super) fn remove_path(&self, root: &Path, _removed_path: &Path) -> NativePluginLoadReport {
-        // Removal is likewise a full-root notification. A path that still exists is rediscovered.
-        self.project_root(root, true)
+    pub(super) fn remove_path(&self, root: &Path, removed_path: &Path) -> NativePluginLoadReport {
+        self.project_notification(
+            root,
+            removed_path,
+            NativePluginDiscoveryManifestAction::Remove,
+        )
     }
 
     pub(super) fn generation(&self, root: &Path) -> Option<u64> {
@@ -123,11 +133,41 @@ impl NativePluginDiscoveryAuthority {
             .map(|snapshot| snapshot.generation())
     }
 
+    #[cfg(test)]
+    pub(super) fn metrics(&self, root: &Path) -> Option<NativePluginDiscoveryRefreshMetrics> {
+        let root = self.cached_root_identity(root)?;
+        self.refresh
+            .snapshot(&root)
+            .filter(|snapshot| snapshot.input() == &NativePluginDiscoveryRefreshInput::RootScan)
+            .map(|snapshot| snapshot.metrics())
+    }
+
     fn project_root(&self, path: &Path, force_refresh: bool) -> NativePluginLoadReport {
         self.project_input(
             path,
             NativePluginDiscoveryRefreshInput::root_scan(),
             force_refresh,
+            NativePluginDiscoveryRefreshWork::root_scan(),
+        )
+    }
+
+    fn project_notification(
+        &self,
+        path: &Path,
+        notification_path: &Path,
+        action: NativePluginDiscoveryManifestAction,
+    ) -> NativePluginLoadReport {
+        if is_native_plugin_discovery_io_lane() {
+            return self.report_without_wait(path, &NativePluginDiscoveryRefreshInput::RootScan);
+        }
+        let root = self.root_identity(path);
+        let lexical_root = lexical_root_path(path);
+        let work = notification_work(&root, &lexical_root, notification_path, action);
+        self.project_refresh(
+            root,
+            NativePluginDiscoveryRefreshInput::root_scan(),
+            true,
+            work,
         )
     }
 
@@ -136,12 +176,13 @@ impl NativePluginDiscoveryAuthority {
         path: &Path,
         input: NativePluginDiscoveryRefreshInput,
         force_refresh: bool,
+        work: NativePluginDiscoveryRefreshWork,
     ) -> NativePluginLoadReport {
         if is_native_plugin_discovery_io_lane() {
             return self.report_without_wait(path, &input);
         }
         let root = self.root_identity(path);
-        self.project_refresh(root, input, force_refresh)
+        self.project_refresh(root, input, force_refresh, work)
     }
 
     fn project_refresh(
@@ -149,6 +190,7 @@ impl NativePluginDiscoveryAuthority {
         root: NativePluginDiscoveryRoot,
         input: NativePluginDiscoveryRefreshInput,
         force_refresh: bool,
+        work: NativePluginDiscoveryRefreshWork,
     ) -> NativePluginLoadReport {
         if !force_refresh {
             if let Some(snapshot) = self.refresh.snapshot_for(&root, &input) {
@@ -158,7 +200,7 @@ impl NativePluginDiscoveryAuthority {
 
         let mut force_refresh = force_refresh;
         loop {
-            let ticket = self.ticket_for(&root, &input, force_refresh);
+            let ticket = self.ticket_for(&root, &input, force_refresh, work.clone());
             // A notification may supersede an active generation exactly once. If it loses to a
             // later notification while waiting, reuse that winner instead of submitting another
             // generation and turning latest-wins into an authority-level livelock.
@@ -195,6 +237,7 @@ impl NativePluginDiscoveryAuthority {
         root: &NativePluginDiscoveryRoot,
         input: &NativePluginDiscoveryRefreshInput,
         force_refresh: bool,
+        work: NativePluginDiscoveryRefreshWork,
     ) -> NativePluginDiscoveryRefreshTicket {
         let mut in_flight = lock_recover(&self.in_flight);
         let key = AuthorityRefreshKey::new(root.clone(), input.clone());
@@ -207,10 +250,11 @@ impl NativePluginDiscoveryAuthority {
                     return existing_ticket;
                 }
 
-                // The first notification after ordinary discovery creates one latest-wins
-                // successor. Later notifications merge into that successor instead of making a
-                // cancellation loop.
-                let ticket = self.refresh.submit_with_input(root.clone(), input.clone());
+                // Notify the service of every path batch. It preserves one pending ticket and
+                // merges latest actions rather than creating a cancellation/generation loop.
+                let ticket = self
+                    .refresh
+                    .submit_with_work(root.clone(), input.clone(), work);
                 in_flight.insert(
                     key.clone(),
                     InFlightRefresh {
@@ -222,7 +266,9 @@ impl NativePluginDiscoveryAuthority {
             }
             in_flight.remove(&key);
         }
-        let ticket = self.refresh.submit_with_input(root.clone(), input.clone());
+        let ticket = self
+            .refresh
+            .submit_with_work(root.clone(), input.clone(), work);
         in_flight.insert(
             key,
             InFlightRefresh {
@@ -357,9 +403,19 @@ pub(in crate::plugin::native_plugin_loader) fn collect_refresh(
     request: &NativePluginDiscoveryRefreshRequest,
     sink: &mut NativePluginDiscoveryRefreshSink,
 ) -> Result<NativePluginDiscoveryInputIdentity, NativePluginDiscoveryRefreshError> {
-    match request.input() {
-        NativePluginDiscoveryRefreshInput::RootScan => collect_root_scan(request, sink),
-        NativePluginDiscoveryRefreshInput::LoadManifest { export_root } => {
+    match (request.input(), request.work()) {
+        (
+            NativePluginDiscoveryRefreshInput::RootScan,
+            NativePluginDiscoveryRefreshWork::FullRootScan,
+        ) => collect_root_scan(request, sink),
+        (NativePluginDiscoveryRefreshInput::RootScan, _) if request.base_snapshot().is_none() => {
+            collect_root_scan(request, sink)
+        }
+        (
+            NativePluginDiscoveryRefreshInput::RootScan,
+            NativePluginDiscoveryRefreshWork::ManifestBatch { .. },
+        ) => collect_incremental_manifest_batch(request, sink),
+        (NativePluginDiscoveryRefreshInput::LoadManifest { export_root }, _) => {
             super::super::discover_load_manifest::collect_load_manifest(request, sink, export_root)
         }
     }
@@ -390,6 +446,10 @@ fn collect_root_scan(
     };
     visitor.checkpoint()?;
     drop(visitor);
+    sink.record_traversal(
+        traversal.enumerated_directories,
+        traversal.inspected_entries,
+    );
     input_identity(
         request,
         sink,
@@ -397,6 +457,26 @@ fn collect_root_scan(
         traversal.enumerated_directories,
         traversal.inspected_entries,
     )
+}
+
+fn collect_incremental_manifest_batch(
+    request: &NativePluginDiscoveryRefreshRequest,
+    sink: &mut NativePluginDiscoveryRefreshSink,
+) -> Result<NativePluginDiscoveryInputIdentity, NativePluginDiscoveryRefreshError> {
+    let Some(actions) = request.work().manifest_actions() else {
+        return Err(NativePluginDiscoveryRefreshError::collector(
+            "incremental native plugin discovery expected a manifest notification batch",
+        ));
+    };
+    for (path, action) in actions {
+        request.check_active()?;
+        if matches!(action, NativePluginDiscoveryManifestAction::Refresh) {
+            // A path delta either publishes atomically with its replacement candidate or fails
+            // as a whole, leaving the service's immutable last-good snapshot untouched.
+            append_candidate_from_manifest_path(request, sink, path.clone())?;
+        }
+    }
+    input_identity(request, sink, "manifest-batch", 0, 0)
 }
 
 pub(in crate::plugin::native_plugin_loader) fn input_identity(
@@ -484,6 +564,65 @@ fn lexical_root_path(path: &Path) -> PathBuf {
             .map(|current| current.join(path))
             .unwrap_or_else(|_| path.to_path_buf())
     }
+}
+
+fn notification_work(
+    root: &NativePluginDiscoveryRoot,
+    lexical_root: &Path,
+    notification_path: &Path,
+    action: NativePluginDiscoveryManifestAction,
+) -> NativePluginDiscoveryRefreshWork {
+    let Some(path) = canonical_notification_path(root.as_path(), lexical_root, notification_path)
+    else {
+        // A watcher overflow or an untrusted path cannot prove a finite delta. Recover through
+        // the bounded scanner while keeping the authority's stable `(root, input)` key.
+        return NativePluginDiscoveryRefreshWork::root_scan();
+    };
+    match action {
+        NativePluginDiscoveryManifestAction::Refresh => {
+            NativePluginDiscoveryRefreshWork::refresh_manifest(path)
+        }
+        NativePluginDiscoveryManifestAction::Remove => {
+            NativePluginDiscoveryRefreshWork::remove_path(path)
+        }
+    }
+}
+
+fn canonical_notification_path(
+    canonical_root: &Path,
+    lexical_root: &Path,
+    notification_path: &Path,
+) -> Option<PathBuf> {
+    if !notification_path.is_absolute() {
+        return join_under_root(canonical_root, notification_path);
+    }
+    if let Ok(relative_path) = notification_path.strip_prefix(canonical_root) {
+        if let Some(mapped) = join_under_root(canonical_root, relative_path) {
+            return Some(mapped);
+        }
+    }
+    notification_path
+        .strip_prefix(lexical_root)
+        .ok()
+        .and_then(|relative_path| join_under_root(canonical_root, relative_path))
+}
+
+fn join_under_root(canonical_root: &Path, relative_path: &Path) -> Option<PathBuf> {
+    let mut path = canonical_root.to_path_buf();
+    for component in relative_path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::Normal(segment) => path.push(segment),
+            Component::ParentDir => {
+                if path == canonical_root {
+                    return None;
+                }
+                path.pop();
+            }
+            Component::Prefix(_) | Component::RootDir => return None,
+        }
+    }
+    Some(path)
 }
 
 fn lock_recover<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {

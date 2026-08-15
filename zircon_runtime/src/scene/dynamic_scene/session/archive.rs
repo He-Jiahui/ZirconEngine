@@ -1,14 +1,15 @@
-use std::cmp::Ordering as ComparisonOrdering;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
-use serde::{Deserialize, Serialize};
+use serde::ser::SerializeStruct;
+use serde::{Deserialize, Serialize, Serializer};
 
 use super::artifact::RuntimeSessionArchiveSealState;
 use super::error::RuntimeSessionArchiveError;
+use super::metadata::RuntimeSessionMetadata;
 use super::slot::RuntimeSessionSlot;
 
 pub const RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION: u32 = 1;
@@ -17,19 +18,16 @@ static NEXT_RUNTIME_SESSION_ARCHIVE_GENERATION: AtomicU64 = AtomicU64::new(1);
 static NEXT_RUNTIME_SESSION_ARCHIVE_LINEAGE: AtomicU64 = AtomicU64::new(1);
 
 #[doc(hidden)]
-#[derive(Clone, Debug, PartialEq, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug)]
 pub struct RuntimeSessionArchivePayload {
     pub(crate) format_version: u32,
-    #[serde(default)]
-    pub(crate) slots: Vec<RuntimeSessionSlot>,
-    #[serde(skip)]
+    slots: Vec<RuntimeSessionSlot>,
     slot_indices: BTreeMap<String, usize>,
-    #[serde(skip)]
-    updated_slot_indices: Vec<usize>,
-    #[serde(skip)]
-    tag_slot_indices: BTreeMap<String, Vec<usize>>,
+    updated_slot_indices: BTreeMap<RuntimeSessionSlotUpdateKey, usize>,
+    tag_slot_indices: BTreeMap<String, BTreeMap<RuntimeSessionSlotUpdateKey, usize>>,
 }
+
+type RuntimeSessionSlotUpdateKey = (u64, String);
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -51,7 +49,7 @@ impl RuntimeSessionArchivePayload {
             format_version,
             slots,
             slot_indices: BTreeMap::new(),
-            updated_slot_indices: Vec::new(),
+            updated_slot_indices: BTreeMap::new(),
             tag_slot_indices: BTreeMap::new(),
         };
         payload.rebuild_slot_indexes();
@@ -62,22 +60,76 @@ impl RuntimeSessionArchivePayload {
         self.slot_indices.clear();
         self.updated_slot_indices.clear();
         self.tag_slot_indices.clear();
-        for (slot_index, slot) in self.slots.iter().enumerate() {
-            self.slot_indices.insert(slot.slot_id.clone(), slot_index);
-            for tag in &slot.metadata.tags {
-                self.tag_slot_indices
-                    .entry(tag.clone())
-                    .or_default()
-                    .push(slot_index);
+        for slot_index in 0..self.slots.len() {
+            let slot_id = self.slots[slot_index].slot_id.clone();
+            self.slot_indices.insert(slot_id, slot_index);
+            self.index_slot_secondary_entries(slot_index);
+        }
+    }
+
+    fn insert_slot(&mut self, slot: RuntimeSessionSlot) {
+        let slot_index = self.slots.len();
+        let slot_id = slot.slot_id.clone();
+        self.slots.push(slot);
+        self.slot_indices.insert(slot_id, slot_index);
+        self.index_slot_secondary_entries(slot_index);
+    }
+
+    fn replace_slot(&mut self, slot_index: usize, slot: RuntimeSessionSlot) -> RuntimeSessionSlot {
+        debug_assert_eq!(self.slots[slot_index].slot_id, slot.slot_id);
+        let replaced = std::mem::replace(&mut self.slots[slot_index], slot);
+        self.remove_slot_secondary_entries(&replaced);
+        self.index_slot_secondary_entries(slot_index);
+        replaced
+    }
+
+    fn remove_slot(&mut self, slot_index: usize) -> RuntimeSessionSlot {
+        let removed = self.slots.swap_remove(slot_index);
+        self.remove_slot_secondary_entries(&removed);
+        self.slot_indices.remove(&removed.slot_id);
+        if let Some(moved_slot) = self.slots.get(slot_index) {
+            self.slot_indices
+                .insert(moved_slot.slot_id.clone(), slot_index);
+            self.index_slot_secondary_entries(slot_index);
+        }
+        removed
+    }
+
+    fn replace_slot_metadata(&mut self, slot_index: usize, metadata: RuntimeSessionMetadata) {
+        let previous = self.slots[slot_index].clone();
+        self.remove_slot_secondary_entries(&previous);
+        self.slots[slot_index].metadata = metadata;
+        self.index_slot_secondary_entries(slot_index);
+    }
+
+    fn index_slot_secondary_entries(&mut self, slot_index: usize) {
+        let update_key = slot_update_key(&self.slots[slot_index]);
+        self.updated_slot_indices
+            .insert(update_key.clone(), slot_index);
+        let tags = self.slots[slot_index].metadata.tags.clone();
+        for tag in tags {
+            self.tag_slot_indices
+                .entry(tag)
+                .or_default()
+                .insert(update_key.clone(), slot_index);
+        }
+    }
+
+    fn remove_slot_secondary_entries(&mut self, slot: &RuntimeSessionSlot) {
+        let update_key = slot_update_key(slot);
+        self.updated_slot_indices.remove(&update_key);
+        let mut empty_tags = Vec::new();
+        for tag in &slot.metadata.tags {
+            let Some(tag_indices) = self.tag_slot_indices.get_mut(tag) else {
+                continue;
+            };
+            tag_indices.remove(&update_key);
+            if tag_indices.is_empty() {
+                empty_tags.push(tag.clone());
             }
         }
-        self.updated_slot_indices.extend(0..self.slots.len());
-        let slots = &self.slots;
-        self.updated_slot_indices
-            .sort_by(|left, right| compare_slot_update_order(&slots[*left], &slots[*right]));
-        for slot_indices in self.tag_slot_indices.values_mut() {
-            slot_indices
-                .sort_by(|left, right| compare_slot_update_order(&slots[*left], &slots[*right]));
+        for tag in empty_tags {
+            self.tag_slot_indices.remove(&tag);
         }
     }
 
@@ -95,46 +147,86 @@ impl RuntimeSessionArchivePayload {
         self.tag_slot_indices
             .get(tag)
             .into_iter()
-            .flatten()
+            .flat_map(|slot_indices| slot_indices.values())
             .filter_map(|index| self.slots.get(*index))
     }
 
     fn indexed_latest_slot(&self) -> Option<&RuntimeSessionSlot> {
         self.updated_slot_indices
-            .last()
-            .and_then(|index| self.slots.get(*index))
+            .last_key_value()
+            .and_then(|(_, index)| self.slots.get(*index))
     }
 
     fn indexed_oldest_slot(&self) -> Option<&RuntimeSessionSlot> {
         self.updated_slot_indices
-            .first()
-            .and_then(|index| self.slots.get(*index))
+            .first_key_value()
+            .and_then(|(_, index)| self.slots.get(*index))
+    }
+
+    fn indexed_slots_by_update(&self) -> impl DoubleEndedIterator<Item = &RuntimeSessionSlot> {
+        self.updated_slot_indices
+            .values()
+            .filter_map(|index| self.slots.get(*index))
     }
 
     fn indexed_latest_tag_slot(&self, tag: &str) -> Option<&RuntimeSessionSlot> {
         self.tag_slot_indices
             .get(tag)
-            .and_then(|slot_indices| slot_indices.last())
-            .and_then(|index| self.slots.get(*index))
+            .and_then(|slot_indices| slot_indices.last_key_value())
+            .and_then(|(_, index)| self.slots.get(*index))
     }
 
     fn indexed_oldest_tag_slot(&self, tag: &str) -> Option<&RuntimeSessionSlot> {
         self.tag_slot_indices
             .get(tag)
-            .and_then(|slot_indices| slot_indices.first())
-            .and_then(|index| self.slots.get(*index))
+            .and_then(|slot_indices| slot_indices.first_key_value())
+            .and_then(|(_, index)| self.slots.get(*index))
+    }
+
+    pub(super) fn canonical_slots(&self) -> impl Iterator<Item = &RuntimeSessionSlot> {
+        self.slot_indices
+            .values()
+            .filter_map(|slot_index| self.slots.get(*slot_index))
+    }
+
+    pub(super) fn slot_count(&self) -> usize {
+        self.slots.len()
+    }
+
+    pub(super) fn is_empty(&self) -> bool {
+        self.slots.is_empty()
+    }
+
+    fn dense_slots(&self) -> impl Iterator<Item = &RuntimeSessionSlot> {
+        self.slots.iter()
     }
 }
 
-fn compare_slot_update_order(
-    left: &RuntimeSessionSlot,
-    right: &RuntimeSessionSlot,
-) -> ComparisonOrdering {
-    left.metadata
-        .updated_at_unix_millis
-        .unwrap_or(0)
-        .cmp(&right.metadata.updated_at_unix_millis.unwrap_or(0))
-        .then_with(|| left.slot_id.cmp(&right.slot_id))
+fn slot_update_key(slot: &RuntimeSessionSlot) -> RuntimeSessionSlotUpdateKey {
+    (
+        slot.metadata.updated_at_unix_millis.unwrap_or(0),
+        slot.slot_id.clone(),
+    )
+}
+
+impl Serialize for RuntimeSessionArchivePayload {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("RuntimeSessionArchivePayload", 2)?;
+        state.serialize_field("format_version", &self.format_version)?;
+        let slots = self.canonical_slots().collect::<Vec<_>>();
+        state.serialize_field("slots", &slots)?;
+        state.end()
+    }
+}
+
+impl PartialEq for RuntimeSessionArchivePayload {
+    fn eq(&self, other: &Self) -> bool {
+        self.format_version == other.format_version
+            && self.canonical_slots().eq(other.canonical_slots())
+    }
 }
 
 pub struct RuntimeSessionArchive {
@@ -147,6 +239,7 @@ pub(super) struct RuntimeSessionArchiveGenerationState {
     pub(super) lineage: u64,
     pub(super) revision: u64,
     pub(super) counters: Arc<RuntimeSessionArchiveStageCounters>,
+    pub(super) validation_gate: Mutex<()>,
     pub(super) sealed: Mutex<RuntimeSessionArchiveSealState>,
 }
 
@@ -213,8 +306,37 @@ impl RuntimeSessionArchive {
         }
     }
 
+    pub(in crate::scene::dynamic_scene::session) fn has_current_validation_ticket(&self) -> bool {
+        self.state.counters.validated.load(Ordering::Acquire)
+    }
+
     pub(super) fn payload_arc(&self) -> Arc<RuntimeSessionArchivePayload> {
         Arc::clone(&self.payload)
+    }
+
+    fn payload_mut(&mut self) -> &mut RuntimeSessionArchivePayload {
+        self.state = next_revision_state(&self.state);
+        Arc::make_mut(&mut self.payload)
+    }
+
+    pub(in crate::scene::dynamic_scene::session) fn normalize_slot_metadata_rows(&mut self) {
+        let payload = self.payload_mut();
+        for slot in &mut payload.slots {
+            slot.metadata.normalize();
+        }
+        payload.rebuild_slot_indexes();
+    }
+
+    pub(in crate::scene::dynamic_scene::session) fn iter_canonical_slots(
+        &self,
+    ) -> impl Iterator<Item = &RuntimeSessionSlot> {
+        self.payload.canonical_slots()
+    }
+
+    pub(in crate::scene::dynamic_scene::session) fn iter_dense_slot_rows(
+        &self,
+    ) -> impl Iterator<Item = &RuntimeSessionSlot> {
+        self.payload.dense_slots()
     }
 
     pub(in crate::scene::dynamic_scene::session) fn indexed_slot(
@@ -250,6 +372,12 @@ impl RuntimeSessionArchive {
         self.payload.indexed_oldest_slot()
     }
 
+    pub(in crate::scene::dynamic_scene::session) fn indexed_slots_by_update(
+        &self,
+    ) -> impl DoubleEndedIterator<Item = &RuntimeSessionSlot> {
+        self.payload.indexed_slots_by_update()
+    }
+
     pub(in crate::scene::dynamic_scene::session) fn indexed_latest_tag_slot(
         &self,
         tag: &str,
@@ -264,52 +392,75 @@ impl RuntimeSessionArchive {
         self.payload.indexed_oldest_tag_slot(tag)
     }
 
-    pub(in crate::scene::dynamic_scene::session) fn rebuild_slot_indexes(&mut self) {
-        Arc::make_mut(&mut self.payload).rebuild_slot_indexes();
+    pub(in crate::scene::dynamic_scene::session) fn replace_slot_metadata(
+        &mut self,
+        slot_id: &str,
+        metadata: RuntimeSessionMetadata,
+    ) -> bool {
+        let Some(slot_index) = self.indexed_slot_index(slot_id) else {
+            return false;
+        };
+        let payload = self.payload_mut();
+        payload.replace_slot_metadata(slot_index, metadata);
+        true
+    }
+
+    pub(in crate::scene::dynamic_scene::session) fn remove_indexed_slot(
+        &mut self,
+        slot_id: &str,
+    ) -> Option<RuntimeSessionSlot> {
+        let slot_index = self.indexed_slot_index(slot_id)?;
+        let payload = self.payload_mut();
+        Some(payload.remove_slot(slot_index))
     }
 
     pub(in crate::scene::dynamic_scene::session) fn commit_staged_slot_rows<'slot>(
         &mut self,
-        replacements: Vec<(usize, RuntimeSessionSlot)>,
+        replacements: Vec<RuntimeSessionSlot>,
         inserts: Vec<RuntimeSessionSlot>,
         removed_slot_ids: impl IntoIterator<Item = &'slot str>,
     ) {
         let removed_slot_ids = removed_slot_ids.into_iter().collect::<BTreeSet<_>>();
-        let payload = &mut **self;
-        // Reserve before changing a row so allocation failure cannot expose a
-        // partial batch through the archive's authoritative payload.
+        let payload = self.payload_mut();
+        // Grow the dense rows before applying the batch. Secondary maps are
+        // repaired by the same per-row primitives used by single-slot commits.
         payload.slots.reserve(inserts.len());
-        for (slot_index, slot) in replacements {
-            payload.slots[slot_index] = slot;
+        for slot_id in &removed_slot_ids {
+            if let Some(slot_index) = payload.indexed_slot_index(slot_id) {
+                let _ = payload.remove_slot(slot_index);
+            }
         }
-        payload.slots.extend(inserts);
-        if !removed_slot_ids.is_empty() {
-            payload
-                .slots
-                .retain(|slot| !removed_slot_ids.contains(slot.slot_id.as_str()));
+        for slot in replacements {
+            if removed_slot_ids.contains(slot.slot_id.as_str()) {
+                continue;
+            }
+            if let Some(slot_index) = payload.indexed_slot_index(&slot.slot_id) {
+                let _ = payload.replace_slot(slot_index, slot);
+            } else {
+                debug_assert!(false, "staged replacement must retain its target row");
+            }
         }
-        payload
-            .slots
-            .sort_by(|left, right| left.slot_id.cmp(&right.slot_id));
-        payload.rebuild_slot_indexes();
+        for slot in inserts {
+            if removed_slot_ids.contains(slot.slot_id.as_str()) {
+                continue;
+            }
+            debug_assert!(payload.indexed_slot(&slot.slot_id).is_none());
+            payload.insert_slot(slot);
+        }
     }
 
     pub(in crate::scene::dynamic_scene::session) fn commit_slot_upsert(
         &mut self,
         slot: RuntimeSessionSlot,
     ) {
-        let payload = &mut **self;
-        match payload.indexed_slot_index(&slot.slot_id) {
-            Some(slot_index) => payload.slots[slot_index] = slot,
-            None => {
-                let slot_index = payload
-                    .slots
-                    .binary_search_by(|existing| existing.slot_id.cmp(&slot.slot_id))
-                    .unwrap_or_else(|slot_index| slot_index);
-                payload.slots.insert(slot_index, slot);
+        let slot_index = self.indexed_slot_index(&slot.slot_id);
+        let payload = self.payload_mut();
+        match slot_index {
+            Some(slot_index) => {
+                let _ = payload.replace_slot(slot_index, slot);
             }
+            None => payload.insert_slot(slot),
         }
-        payload.rebuild_slot_indexes();
     }
 
     pub(in crate::scene::dynamic_scene::session) fn commit_slot_rename(
@@ -326,16 +477,11 @@ impl RuntimeSessionArchive {
             });
         }
 
-        let payload = &mut **self;
-        let mut slot = payload.slots.remove(slot_index);
+        let payload = self.payload_mut();
+        let mut slot = payload.remove_slot(slot_index);
         debug_assert_eq!(slot.slot_id, source_slot_id);
         slot.slot_id = destination_slot_id;
-        let slot_index = payload
-            .slots
-            .binary_search_by(|existing| existing.slot_id.cmp(&slot.slot_id))
-            .unwrap_or_else(|slot_index| slot_index);
-        payload.slots.insert(slot_index, slot);
-        payload.rebuild_slot_indexes();
+        payload.insert_slot(slot);
         Ok(())
     }
 }
@@ -373,19 +519,13 @@ impl Deref for RuntimeSessionArchive {
     }
 }
 
-impl DerefMut for RuntimeSessionArchive {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.state = next_revision_state(&self.state);
-        Arc::make_mut(&mut self.payload)
-    }
-}
-
 fn new_lineage_state() -> Arc<RuntimeSessionArchiveGenerationState> {
     Arc::new(RuntimeSessionArchiveGenerationState {
         generation: NEXT_RUNTIME_SESSION_ARCHIVE_GENERATION.fetch_add(1, Ordering::AcqRel),
         lineage: NEXT_RUNTIME_SESSION_ARCHIVE_LINEAGE.fetch_add(1, Ordering::AcqRel),
         revision: 1,
         counters: Arc::new(RuntimeSessionArchiveStageCounters::default()),
+        validation_gate: Mutex::new(()),
         sealed: Mutex::new(RuntimeSessionArchiveSealState::Open),
     })
 }
@@ -398,6 +538,29 @@ fn next_revision_state(
         lineage: current.lineage,
         revision: current.revision.saturating_add(1),
         counters: Arc::new(RuntimeSessionArchiveStageCounters::default()),
+        validation_gate: Mutex::new(()),
         sealed: Mutex::new(RuntimeSessionArchiveSealState::Open),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RuntimeSessionArchive;
+
+    #[test]
+    fn invalid_runtime_session_archive_generation_caches_its_seal_rejection() {
+        let archive = RuntimeSessionArchive::from_payload(u32::MAX, Vec::new());
+
+        let first = archive
+            .sealed_artifact()
+            .expect_err("unsupported format must reject the generation");
+        let second = archive
+            .sealed_artifact()
+            .expect_err("deterministic validation rejection must be cached");
+
+        assert_eq!(first.to_string(), second.to_string());
+        let diagnostics = archive.artifact_diagnostics();
+        assert_eq!(diagnostics.validate_count, 0);
+        assert_eq!(diagnostics.serialize_count, 0);
+    }
 }

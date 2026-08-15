@@ -2,10 +2,10 @@ use super::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::ui::retained_host::PaneSurfaceHostContext;
 use crate::ui::retained_host::asset_pointer::{
     AssetContentListPointerBridge, AssetContentListPointerLayout, AssetListPointerState,
 };
+use crate::ui::retained_host::PaneSurfaceHostContext;
 use crate::ui::workbench::asset_content_layout::{
     AssetContentLayoutMetrics, AssetContentSurfaceProfile,
 };
@@ -156,11 +156,9 @@ fn assert_populated_asset_content(window: &UiHostWindow) {
 
     assert!(first_row.frame.width > 0.0 && first_row.frame.height > 0.0);
     assert!(first_row.selected);
-    assert!(
-        !projected
-            .iter()
-            .any(|node| node.control_id == "AssetsActivityContentEmptyText")
-    );
+    assert!(!projected
+        .iter()
+        .any(|node| node.control_id == "AssetsActivityContentEmptyText"));
 }
 
 pub(super) fn assets_drawer_window(width: u32, height: u32) -> UiHostWindow {

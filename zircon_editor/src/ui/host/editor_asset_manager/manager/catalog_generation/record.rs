@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use zircon_runtime::asset::project::ProjectPaths;
 use zircon_runtime::asset::{AssetUri, AssetUuid};
 
 use crate::ui::host::editor_asset_manager::{AssetCatalogRecord, EditorAssetCatalogRecord};
@@ -18,8 +19,12 @@ pub(in crate::ui::host::editor_asset_manager::manager) fn record_to_view(
         file_name: record.file_name.clone(),
         extension: record.extension.clone(),
         preview_state: record.preview_state,
-        meta_path: record.meta_path.to_string_lossy().into_owned(),
-        preview_artifact_path: record.preview_artifact_path.to_string_lossy().into_owned(),
+        meta_path: ProjectPaths::display_path(&record.meta_path)
+            .to_string_lossy()
+            .into_owned(),
+        preview_artifact_path: ProjectPaths::display_path(&record.preview_artifact_path)
+            .to_string_lossy()
+            .into_owned(),
         source_mtime_unix_ms: record.source_mtime_unix_ms,
         source_hash: record.source_hash.clone(),
         dirty: record.dirty,

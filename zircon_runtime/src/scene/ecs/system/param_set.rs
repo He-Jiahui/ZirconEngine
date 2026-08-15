@@ -64,10 +64,20 @@ where
 macro_rules! init_param_set_state {
     ($world:ident, $access:ident, $(($param:ident, $state:ident, $candidate:ident)),+ $(,)?) => {{
         let outer_access = $access.clone();
+        let mut deferred_command_lane_count = outer_access.deferred_command_lane_count();
         $(
             let mut $candidate = outer_access.clone();
             let $state = {
                 let state = $param::init_state($world, &mut $candidate)?;
+                let candidate_lanes = $candidate
+                    .deferred_command_lane_count()
+                    .saturating_sub(outer_access.deferred_command_lane_count());
+                deferred_command_lane_count = deferred_command_lane_count
+                    .checked_add(candidate_lanes)
+                    .ok_or(SystemParamError::MultipleDeferredCommandParams)?;
+                if deferred_command_lane_count > 1 {
+                    return Err(SystemParamError::MultipleDeferredCommandParams);
+                }
                 $access.merge_param_set_access(&$candidate);
                 state
             };

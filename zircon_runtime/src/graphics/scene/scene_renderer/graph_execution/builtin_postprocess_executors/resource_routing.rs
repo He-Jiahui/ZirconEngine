@@ -4,19 +4,9 @@ use crate::render_graph::RenderGraphResourceAccessKind;
 use super::super::RenderPassExecutionContext;
 
 pub(super) fn output_transfer_output_resource(
-    context: &RenderPassExecutionContext<'_>,
+    _context: &RenderPassExecutionContext<'_>,
 ) -> &'static str {
-    if context.declares_resource_name_access(
-        PostProcessGraphResourceNames::FINAL_COMPOSITED,
-        RenderGraphResourceAccessKind::Write,
-    ) || context
-        .attachment_ops_for_write(PostProcessGraphResourceNames::FINAL_COMPOSITED)
-        .is_some()
-    {
-        PostProcessGraphResourceNames::FINAL_COMPOSITED
-    } else {
-        PostProcessGraphResourceNames::FINAL_COLOR
-    }
+    PostProcessGraphResourceNames::FINAL_COLOR
 }
 
 pub(super) fn output_transfer_input_resource(
@@ -27,8 +17,37 @@ pub(super) fn output_transfer_input_resource(
         RenderGraphResourceAccessKind::Read,
     ) {
         PostProcessGraphResourceNames::UPSCALED
+    } else if context.declares_resource_name_access(
+        PostProcessGraphResourceNames::FINAL_COMPOSITED,
+        RenderGraphResourceAccessKind::Read,
+    ) {
+        PostProcessGraphResourceNames::FINAL_COMPOSITED
     } else {
         PostProcessGraphResourceNames::TONEMAPPED
+    }
+}
+
+pub(super) fn upscale_input_resource(context: &RenderPassExecutionContext<'_>) -> &'static str {
+    if context.declares_resource_name_access(
+        PostProcessGraphResourceNames::FINAL_COMPOSITED,
+        RenderGraphResourceAccessKind::Read,
+    ) {
+        PostProcessGraphResourceNames::FINAL_COMPOSITED
+    } else {
+        PostProcessGraphResourceNames::TONEMAPPED
+    }
+}
+
+pub(super) fn terminal_anti_alias_input_resource(
+    context: &RenderPassExecutionContext<'_>,
+) -> &'static str {
+    if context.declares_resource_name_access(
+        PostProcessGraphResourceNames::TONEMAPPED,
+        RenderGraphResourceAccessKind::Read,
+    ) {
+        PostProcessGraphResourceNames::TONEMAPPED
+    } else {
+        PostProcessGraphResourceNames::FINAL_COMPOSITED
     }
 }
 
@@ -89,7 +108,7 @@ pub(super) fn uber_input_resource(context: &RenderPassExecutionContext<'_>) -> &
 mod tests {
     use super::{
         bloom_input_resource, output_transfer_input_resource, output_transfer_output_resource,
-        uber_input_resource,
+        terminal_anti_alias_input_resource, uber_input_resource, upscale_input_resource,
     };
     use crate::core::framework::render::PostProcessGraphResourceNames;
     use crate::graphics::RenderPassExecutorId;
@@ -101,7 +120,7 @@ mod tests {
     use super::super::super::RenderPassExecutionContext;
 
     #[test]
-    fn output_transfer_executor_targets_terminal_input_when_declared() {
+    fn output_transfer_executor_always_targets_final_color() {
         let context = RenderPassExecutionContext::with_graph_metadata_and_resources(
             "output-transfer",
             RenderPassExecutorId::new("post.output-transfer"),
@@ -110,14 +129,14 @@ mod tests {
             vec![RenderGraphPassResourceAccess {
                 name: PostProcessGraphResourceNames::FINAL_COMPOSITED.to_string(),
                 kind: RenderGraphResourceKind::TransientTexture,
-                access: RenderGraphResourceAccessKind::Write,
+                access: RenderGraphResourceAccessKind::Read,
                 attachment_ops: None,
             }],
         );
 
         assert_eq!(
             output_transfer_output_resource(&context),
-            PostProcessGraphResourceNames::FINAL_COMPOSITED
+            PostProcessGraphResourceNames::FINAL_COLOR
         );
     }
 
@@ -155,6 +174,69 @@ mod tests {
         assert_eq!(
             output_transfer_input_resource(&context),
             PostProcessGraphResourceNames::UPSCALED
+        );
+    }
+
+    #[test]
+    fn output_transfer_executor_reads_terminal_anti_alias_result_when_declared() {
+        let context = RenderPassExecutionContext::with_graph_metadata_and_resources(
+            "output-transfer",
+            RenderPassExecutorId::new("post.output-transfer"),
+            QueueLane::Graphics,
+            PassFlags::default(),
+            vec![RenderGraphPassResourceAccess {
+                name: PostProcessGraphResourceNames::FINAL_COMPOSITED.to_string(),
+                kind: RenderGraphResourceKind::TransientTexture,
+                access: RenderGraphResourceAccessKind::Read,
+                attachment_ops: None,
+            }],
+        );
+
+        assert_eq!(
+            output_transfer_input_resource(&context),
+            PostProcessGraphResourceNames::FINAL_COMPOSITED
+        );
+    }
+
+    #[test]
+    fn upscale_executor_reads_terminal_anti_alias_result_when_declared() {
+        let context = RenderPassExecutionContext::with_graph_metadata_and_resources(
+            "upscale",
+            RenderPassExecutorId::new("post.upscale"),
+            QueueLane::Graphics,
+            PassFlags::default(),
+            vec![RenderGraphPassResourceAccess {
+                name: PostProcessGraphResourceNames::FINAL_COMPOSITED.to_string(),
+                kind: RenderGraphResourceKind::TransientTexture,
+                access: RenderGraphResourceAccessKind::Read,
+                attachment_ops: None,
+            }],
+        );
+
+        assert_eq!(
+            upscale_input_resource(&context),
+            PostProcessGraphResourceNames::FINAL_COMPOSITED
+        );
+    }
+
+    #[test]
+    fn terminal_anti_alias_executor_reads_tonemapped_input_when_declared() {
+        let context = RenderPassExecutionContext::with_graph_metadata_and_resources(
+            "fxaa",
+            RenderPassExecutorId::new("post.fxaa"),
+            QueueLane::Graphics,
+            PassFlags::default(),
+            vec![RenderGraphPassResourceAccess {
+                name: PostProcessGraphResourceNames::TONEMAPPED.to_string(),
+                kind: RenderGraphResourceKind::TransientTexture,
+                access: RenderGraphResourceAccessKind::Read,
+                attachment_ops: None,
+            }],
+        );
+
+        assert_eq!(
+            terminal_anti_alias_input_resource(&context),
+            PostProcessGraphResourceNames::TONEMAPPED
         );
     }
 

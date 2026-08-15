@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use super::super::super::super::{
-    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveManifest, io,
+    io, RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionArchiveManifest,
 };
 
 pub(in crate::scene::dynamic_scene::session) fn save_single_slot_archive_to_path_atomically(

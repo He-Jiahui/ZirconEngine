@@ -58,7 +58,10 @@ fn shared_menu_pointer_layout_derives_button_frames_from_shared_shell_when_menu_
 
     assert_eq!(
         layout.button_frames,
-        expected_menu_button_frames_for_model(UiFrame::new(32.0, 18.0, 1440.0, 900.0), &model.menu_bar),
+        expected_menu_button_frames_for_model(
+            UiFrame::new(32.0, 18.0, 1440.0, 900.0),
+            &model.menu_bar
+        ),
         "shared shell projection should still own runtime-measured top-level menu button frames when menu bar frame is temporarily unavailable"
     );
 }
@@ -121,8 +124,7 @@ fn shared_menu_pointer_layout_extends_menu_button_frames_for_extension_menus() {
 
     assert_eq!(layout.button_frames.len(), 9);
     assert!(
-        layout.button_frames[8].x
-            > layout.button_frames[6].x + layout.button_frames[6].width,
+        layout.button_frames[8].x > layout.button_frames[6].x + layout.button_frames[6].width,
         "extension menu slots should continue after the authored TOML menu bar stencil instead of replacing slot 0"
     );
     assert!(

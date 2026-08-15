@@ -1,14 +1,14 @@
 use crate::core::framework::text::{TextGlyph, TextGlyphRotation};
-use crate::text::ShapedGlyphRotation;
 use crate::text::atlas::{GlyphAtlasFormat, GlyphRasterPlacement, GlyphSmoothingMode};
+use crate::text::ShapedGlyphRotation;
 use zircon_runtime_interface::ui::layout::UiFrame;
 
 use super::super::render::ScreenSpaceUiTextBatch;
 use super::super::sdf_atlas::SdfAtlasPlan;
 use super::super::text_pixel_snap::{text_frame_device_origin, text_glyph_device_frame};
 use super::vertices::{
-    RunGlyph, ScreenSpaceUiSdfVertex, aligned_text_start_x, atlas_uv_rect, push_clipped_glyph_quad,
-    vertical_sdf_glyph_frame,
+    aligned_text_start_x, atlas_uv_rect, horizontal_sdf_text_baseline, push_clipped_glyph_quad,
+    vertical_sdf_glyph_frame, RunGlyph, ScreenSpaceUiSdfVertex,
 };
 
 pub(super) fn push_horizontal_artifact_sdf_text_vertices(
@@ -30,13 +30,7 @@ pub(super) fn push_horizontal_artifact_sdf_text_vertices(
         return;
     }
     let positioned_frame = text_frame_device_origin(text.frame);
-    let line_ascent = glyphs
-        .iter()
-        .map(|glyph| glyph.metrics.ascent)
-        .fold(text.font_size.max(1.0), f32::max);
-    let baseline = positioned_frame.y
-        + (text.line_height.max(text.font_size) - text.font_size.max(1.0)).max(0.0) * 0.5
-        + line_ascent;
+    let baseline = horizontal_artifact_baseline(text, positioned_frame, &glyphs);
     let text_width = artifact_glyphs
         .iter()
         .map(|glyph| glyph.advance.max(0.0))
@@ -73,6 +67,22 @@ pub(super) fn push_horizontal_artifact_sdf_text_vertices(
         );
         cursor_x += advance;
     }
+}
+
+fn horizontal_artifact_baseline(
+    text: &ScreenSpaceUiTextBatch,
+    positioned_frame: UiFrame,
+    glyphs: &[RunGlyph],
+) -> f32 {
+    if let Some(baseline) = text
+        .glyph_artifact_line
+        .as_ref()
+        .and_then(|line| line.layout_baseline())
+    {
+        // The resolved line owns the baseline; raster metrics only describe the bitmap bearing.
+        return positioned_frame.y + baseline;
+    }
+    horizontal_sdf_text_baseline(text, positioned_frame, glyphs)
 }
 
 pub(super) fn push_vertical_artifact_sdf_text_vertices(

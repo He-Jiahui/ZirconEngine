@@ -291,19 +291,20 @@ mod tests {
     fn settings_draft_folder_changes_wait_for_save_settings() {
         let temp = temp_test_dir("zircon-hub-settings-draft-folder");
         let config_path = temp.join("hub.toml");
-        let editor_config_path = temp.join("editor.json");
+        let shared_recent_projects_path = temp.join("recent_projects.json");
         let selected_output = temp.join("selected-output");
         let mut config = HubConfig::default();
         config.settings.default_build_output_dir = temp.join("persisted-output");
         config.settings.default_source_dir = create_valid_source_checkout(&temp);
         config.save(&config_path).unwrap();
         fs::write(
-            &editor_config_path,
-            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+            &shared_recent_projects_path,
+            r#"{"protocol_version":1,"projects":[]}"#,
         )
         .unwrap();
         let mut session =
-            HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path).unwrap();
+            HubRuntimeSession::load_from_paths(config_path.clone(), shared_recent_projects_path)
+                .unwrap();
 
         SettingsFolderField::DefaultBuildOutputDir
             .set_path(&mut session.settings_draft, selected_output.clone());
@@ -345,17 +346,18 @@ mod tests {
     fn update_settings_draft_recomputes_health_without_persisting() {
         let temp = temp_test_dir("zircon-hub-settings-draft-health");
         let config_path = temp.join("hub.toml");
-        let editor_config_path = temp.join("editor.json");
+        let shared_recent_projects_path = temp.join("recent_projects.json");
         let mut config = HubConfig::default();
         config.settings.python_path = "python".to_string();
         config.save(&config_path).unwrap();
         fs::write(
-            &editor_config_path,
-            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+            &shared_recent_projects_path,
+            r#"{"protocol_version":1,"projects":[]}"#,
         )
         .unwrap();
         let mut session =
-            HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path).unwrap();
+            HubRuntimeSession::load_from_paths(config_path.clone(), shared_recent_projects_path)
+                .unwrap();
 
         let model = session
             .apply_action(HubActionRequest {
@@ -393,18 +395,19 @@ mod tests {
     fn discard_settings_draft_restores_saved_settings_without_persisting() {
         let temp = temp_test_dir("zircon-hub-settings-discard-draft");
         let config_path = temp.join("hub.toml");
-        let editor_config_path = temp.join("editor.json");
+        let shared_recent_projects_path = temp.join("recent_projects.json");
         let mut config = HubConfig::default();
         config.settings.default_source_dir = create_valid_source_checkout(&temp);
         config.settings.python_path = "python".to_string();
         config.save(&config_path).unwrap();
         fs::write(
-            &editor_config_path,
-            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+            &shared_recent_projects_path,
+            r#"{"protocol_version":1,"projects":[]}"#,
         )
         .unwrap();
         let mut session =
-            HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path).unwrap();
+            HubRuntimeSession::load_from_paths(config_path.clone(), shared_recent_projects_path)
+                .unwrap();
         session.settings_draft.python_path = "broken-python".to_string();
 
         session
@@ -429,18 +432,19 @@ mod tests {
     fn restore_default_settings_updates_draft_without_persisting() {
         let temp = temp_test_dir("zircon-hub-settings-restore-defaults");
         let config_path = temp.join("hub.toml");
-        let editor_config_path = temp.join("editor.json");
+        let shared_recent_projects_path = temp.join("recent_projects.json");
         let mut config = HubConfig::default();
         config.settings.default_source_dir = create_valid_source_checkout(&temp);
         config.settings.python_path = "custom-python".to_string();
         config.save(&config_path).unwrap();
         fs::write(
-            &editor_config_path,
-            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+            &shared_recent_projects_path,
+            r#"{"protocol_version":1,"projects":[]}"#,
         )
         .unwrap();
         let mut session =
-            HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path).unwrap();
+            HubRuntimeSession::load_from_paths(config_path.clone(), shared_recent_projects_path)
+                .unwrap();
 
         session
             .apply_action(HubActionRequest {
@@ -464,18 +468,19 @@ mod tests {
     fn browse_settings_folder_cancel_keeps_existing_draft() {
         let temp = temp_test_dir("zircon-hub-settings-browse-cancel");
         let config_path = temp.join("hub.toml");
-        let editor_config_path = temp.join("editor.json");
+        let shared_recent_projects_path = temp.join("recent_projects.json");
         let mut config = HubConfig::default();
         config.settings.default_source_dir = create_valid_source_checkout(&temp);
         config.settings.default_project_dir = temp.join("persisted-projects");
         config.save(&config_path).unwrap();
         fs::write(
-            &editor_config_path,
-            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+            &shared_recent_projects_path,
+            r#"{"protocol_version":1,"projects":[]}"#,
         )
         .unwrap();
         let mut session =
-            HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path).unwrap();
+            HubRuntimeSession::load_from_paths(config_path.clone(), shared_recent_projects_path)
+                .unwrap();
         session.folder_picker = |_| Ok(None);
 
         session
@@ -511,18 +516,19 @@ mod tests {
     fn save_settings_rejects_invalid_draft_from_shared_field_spec() {
         let temp = temp_test_dir("zircon-hub-settings-save-shared-field-spec");
         let config_path = temp.join("hub.toml");
-        let editor_config_path = temp.join("editor.json");
+        let shared_recent_projects_path = temp.join("recent_projects.json");
         let mut config = HubConfig::default();
         config.settings.default_source_dir = create_valid_source_checkout(&temp);
         config.settings.python_path = "python".to_string();
         config.save(&config_path).unwrap();
         fs::write(
-            &editor_config_path,
-            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+            &shared_recent_projects_path,
+            r#"{"protocol_version":1,"projects":[]}"#,
         )
         .unwrap();
         let mut session =
-            HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path).unwrap();
+            HubRuntimeSession::load_from_paths(config_path.clone(), shared_recent_projects_path)
+                .unwrap();
         session.settings_draft.python_path.clear();
 
         session
@@ -553,7 +559,7 @@ mod tests {
     fn save_settings_rejects_source_engine_without_runtime_workspace_member() {
         let temp = temp_test_dir("zircon-hub-settings-save-invalid-source");
         let config_path = temp.join("hub.toml");
-        let editor_config_path = temp.join("editor.json");
+        let shared_recent_projects_path = temp.join("recent_projects.json");
         let invalid_source = temp.join("InvalidSource");
         fs::create_dir_all(invalid_source.join("tools")).unwrap();
         fs::write(
@@ -566,12 +572,13 @@ mod tests {
         config.settings.default_source_dir = create_valid_source_checkout(&temp);
         config.save(&config_path).unwrap();
         fs::write(
-            &editor_config_path,
-            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+            &shared_recent_projects_path,
+            r#"{"protocol_version":1,"projects":[]}"#,
         )
         .unwrap();
         let mut session =
-            HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path).unwrap();
+            HubRuntimeSession::load_from_paths(config_path.clone(), shared_recent_projects_path)
+                .unwrap();
 
         session
             .apply_action(HubActionRequest {
@@ -608,17 +615,18 @@ mod tests {
     fn browse_settings_folder_errors_use_current_language() {
         let temp = temp_test_dir("zircon-hub-settings-folder-language");
         let config_path = temp.join("hub.toml");
-        let editor_config_path = temp.join("editor.json");
+        let shared_recent_projects_path = temp.join("recent_projects.json");
         let mut config = HubConfig::default();
         config.settings.language = crate::settings::HubLanguage::Chinese;
         config.save(&config_path).unwrap();
         fs::write(
-            &editor_config_path,
-            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+            &shared_recent_projects_path,
+            r#"{"protocol_version":1,"projects":[]}"#,
         )
         .unwrap();
-        let mut session = HubRuntimeSession::load_from_paths(config_path, editor_config_path)
-            .expect("session should load");
+        let mut session =
+            HubRuntimeSession::load_from_paths(config_path, shared_recent_projects_path)
+                .expect("session should load");
 
         session
             .browse_settings_folder(Some("missing-field"), None)
@@ -671,17 +679,17 @@ mod tests {
     fn save_settings_validation_errors_return_localized_view_model() {
         let temp = temp_test_dir("zircon-hub-settings-save-validation");
         let config_path = temp.join("hub.toml");
-        let editor_config_path = temp.join("editor.json");
+        let shared_recent_projects_path = temp.join("recent_projects.json");
         let mut config = HubConfig::default();
         config.settings.language = crate::settings::HubLanguage::Chinese;
         config.save(&config_path).unwrap();
         fs::write(
-            &editor_config_path,
-            r#"{"editor.startup.session":{"recent_projects":[]}}"#,
+            &shared_recent_projects_path,
+            r#"{"protocol_version":1,"projects":[]}"#,
         )
         .unwrap();
         let mut session =
-            HubRuntimeSession::load_from_paths(config_path.clone(), editor_config_path)
+            HubRuntimeSession::load_from_paths(config_path.clone(), shared_recent_projects_path)
                 .expect("session should load");
 
         let model = session

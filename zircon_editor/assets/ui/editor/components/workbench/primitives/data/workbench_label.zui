@@ -16,5 +16,5 @@ default_classes = ["workbench-label", "workbench-primitive"]
 component = "Label"
 control_id = "WorkbenchLabelRoot"
 classes = ["workbench-label"]
-props = { text = "Label", font_size = "$editor.typography.body.size", font_weight = "$editor.typography.medium.weight", text_tone = "primary", foreground_color = "$editor.text.primary", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall" }
-layout = { width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 22.0, max = "$editor.control.height.dense", stretch = "Fixed" } }
+props = { text = "Label", text_overflow = "ellipsis", font_size = "$editor.typography.body.size", font_weight = "$editor.typography.medium.weight", line_height_ratio = "$editor.typography.line_height", text_tone = "primary", foreground_color = "$editor.text.primary", layout_padding_top = "$editor.density.gap.xsmall", layout_padding_bottom = "$editor.density.gap.xsmall" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.label.min_height", preferred = "$editor.density.label.preferred_height", max = "$editor.density.label.max_height", stretch = "Fixed" } }

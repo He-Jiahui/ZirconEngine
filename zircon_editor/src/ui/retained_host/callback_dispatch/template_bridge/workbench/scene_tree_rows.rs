@@ -36,13 +36,15 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         entry_count: usize,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        scene_tree_virtual_rows(&self.template_surface.surface)?
-            .reconcile(
-                &mut self.template_surface.surface,
-                entry_count,
-                virtual_metadata_from_prototype,
-            )
-            .map_err(BuiltinHostWindowTemplateBridgeError::from)
+        let topology_changed = scene_tree_virtual_rows(&self.template_surface.surface)?.reconcile(
+            &mut self.template_surface.surface,
+            entry_count,
+            virtual_metadata_from_prototype,
+        )?;
+        if topology_changed {
+            self.template_surface.refresh_control_node_index()?;
+        }
+        Ok(())
     }
 
     pub(super) fn scene_tree_control_ids(
@@ -64,8 +66,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         control_id: &str,
     ) -> Result<bool, BuiltinHostWindowTemplateBridgeError> {
         Ok(SCENE_TREE_STATIC_CONTROLS.contains(&control_id)
-            || scene_tree_virtual_rows(&self.template_surface.surface)?
-                .contains_control(&self.template_surface.surface, control_id))
+            || self.scene_hierarchy_projection.contains_control(control_id))
     }
 }
 

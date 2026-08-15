@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 
 use crate::ui::workbench::layout::{MainPageId, WorkbenchLayout};
 
-use super::super::floating_window::{clamp_floating_window_frame, default_floating_window_frame};
 use super::super::ShellFrame;
+use super::super::floating_window::{clamp_floating_window_frame, default_floating_window_frame};
 
 const EPSILON: f32 = 0.001;
 

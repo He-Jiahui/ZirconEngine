@@ -1,10 +1,11 @@
 use crate::core::framework::render::RenderPluginRendererOutputs;
+use crate::graphics::backend::GpuPassTimer;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::graphics::{
     RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RuntimePrepareCollectorContext,
     RuntimePrepareCollectorRegistration, RuntimePrepareExternalBufferBinding,
-    RuntimePrepareGpuReadbackRequest,
+    RuntimePrepareGpuPassProfile, RuntimePrepareGpuReadbackRequest,
 };
 
 pub(in crate::graphics::scene::scene_renderer::core) type SceneRendererRuntimePrepareCollector =
@@ -17,6 +18,9 @@ pub(in crate::graphics::scene::scene_renderer::core) type SceneRendererRuntimePr
                 &ViewportRenderFrame,
                 &mut Vec<RuntimePrepareExternalBufferBinding>,
                 &mut Vec<RuntimePrepareGpuReadbackRequest>,
+                bool,
+                Option<&mut GpuPassTimer>,
+                &mut Vec<RuntimePrepareGpuPassProfile>,
             ) -> Result<RenderPluginRendererOutputs, GraphicsError>
             + Send,
     >;
@@ -111,16 +115,29 @@ fn scene_runtime_prepare_collector_from_registration(
     registration: RuntimePrepareCollectorRegistration,
 ) -> SceneRendererRuntimePrepareCollector {
     Box::new(
-        move |device, queue, encoder, streamer, frame, external_buffer_bindings, gpu_readbacks| {
-            let mut context = RuntimePrepareCollectorContext::new_with_gpu_readbacks(
-                device,
-                queue,
-                encoder,
-                streamer,
-                frame,
-                external_buffer_bindings,
-                gpu_readbacks,
-            );
+        move |device,
+              queue,
+              encoder,
+              streamer,
+              frame,
+              external_buffer_bindings,
+              gpu_readbacks,
+              gpu_work_admitted,
+              gpu_pass_timer,
+              gpu_pass_profiles| {
+            let mut context =
+                RuntimePrepareCollectorContext::new_with_gpu_readbacks_and_gpu_work_admission(
+                    device,
+                    queue,
+                    encoder,
+                    streamer,
+                    frame,
+                    external_buffer_bindings,
+                    gpu_readbacks,
+                    gpu_work_admitted,
+                    gpu_pass_timer,
+                    gpu_pass_profiles,
+                );
             registration.collect(&mut context)
         },
     )

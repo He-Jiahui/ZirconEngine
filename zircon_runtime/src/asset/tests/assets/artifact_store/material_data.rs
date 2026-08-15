@@ -73,6 +73,7 @@ url = "res://shaders/vampire_effect"
 base_color = [0.42, 0.72, 0.86, 0.98]
 metallic = 0.0
 roughness = 0.9
+occlusion_strength = 0.25
 emissive = [0.08, 0.18, 0.24]
 double_sided = true
 
@@ -98,6 +99,16 @@ mode = "opaque"
     let loaded = store.read(&paths, &artifact_uri).unwrap();
 
     assert_binary_artifact_payload(&paths, &artifact_uri);
+    let ImportedAsset::Material(loaded_material) = &loaded else {
+        panic!("material artifact must reload as a material");
+    };
+    assert_eq!(loaded_material.occlusion_strength(), 0.25);
+    assert_eq!(
+        loaded_material
+            .standard_material_descriptor()
+            .occlusion_strength,
+        0.25
+    );
     assert_eq!(loaded, ImportedAsset::Material(material));
 
     let _ = fs::remove_dir_all(root);

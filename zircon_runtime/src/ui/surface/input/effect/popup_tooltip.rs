@@ -45,30 +45,59 @@ fn apply_popup_effect(
     if let Some(owner) = owner {
         require_valid_input_owner(surface, owner)?;
     }
-    let route_owner = owner.or_else(|| surface.input.popup_owner(popup_id));
+    let fallback_route_owner = owner.or_else(|| surface.input.popup_owner(popup_id));
+    let declarative_popup_node = surface
+        .unique_popup_state_for_id(popup_id)
+        .map(|(node_id, _, _)| node_id);
     match kind {
         UiPopupEffectKind::Open => {
-            surface
-                .input
-                .open_popup(popup_id.to_string(), route_owner, anchor);
+            if !surface
+                .set_declarative_popup_open_by_id(popup_id, true)
+                .map_err(|source| UiSurfaceInputEffectError::PopupStateRejected { source })?
+            {
+                surface
+                    .input
+                    .open_popup(popup_id.to_string(), fallback_route_owner, anchor);
+            }
         }
         UiPopupEffectKind::Close => {
-            surface.input.close_popup(popup_id);
+            return surface
+                .dismiss_popup_by_id(popup_id)
+                .map_err(|source| UiSurfaceInputEffectError::PopupStateRejected { source });
         }
         UiPopupEffectKind::Toggle => {
-            surface
-                .input
-                .toggle_popup(popup_id.to_string(), route_owner, anchor);
+            let declared_open = declarative_popup_node
+                .and_then(|node_id| surface.popup_state_for_node(node_id))
+                .map(|(_, open)| open);
+            match declared_open {
+                Some(open) => {
+                    let _ = surface
+                        .set_declarative_popup_open_by_id(popup_id, !open)
+                        .map_err(|source| UiSurfaceInputEffectError::PopupStateRejected {
+                            source,
+                        })?;
+                }
+                None => {
+                    surface
+                        .input
+                        .toggle_popup(popup_id.to_string(), fallback_route_owner, anchor)
+                }
+            }
         }
     }
-    Ok(route_owner)
+    Ok(match declarative_popup_node {
+        Some(node_id) => surface.popup_route_owner_for_node(node_id),
+        None => fallback_route_owner,
+    })
 }
 
 fn apply_transient_dismissal_effect(
     surface: &mut UiSurface,
     target: UiTransientDismissalTarget,
 ) -> UiSurfaceInputEffectResult<Option<UiNodeId>> {
-    Ok(surface.input.dismiss_transient_ui(target))
+    surface
+        .dismiss_transient_ui(target)
+        .map_err(|source| UiSurfaceInputEffectError::PopupStateRejected { source })
 }
 
 fn apply_tooltip_effect(

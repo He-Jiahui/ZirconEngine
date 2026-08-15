@@ -34,13 +34,14 @@ mod sprite;
 mod submission;
 mod surface;
 mod temporal_jitter;
+mod view_family;
 mod view_matrix_pair;
+mod viewport_highlight_store;
+mod viewport_product;
 mod virtual_geometry_debug_snapshot;
 mod virtual_geometry_debug_snapshot_streams;
 mod virtual_geometry_execution_draw;
 mod visible_spatial_query;
-mod viewport_product;
-mod viewport_highlight_store;
 
 pub use advanced::{
     AdvancedProfileRuntimePlan, AdvancedProviderAvailability, AdvancedProviderReport,
@@ -78,12 +79,13 @@ pub use backend_types::{
     RenderFeatureQualitySettings, RenderGpuSceneUploadPath, RenderGraphExecutionAliasRecord,
     RenderGraphExecutionAliasReport, RenderGraphExecutionCoverageReport,
     RenderGraphExecutionProfileReport, RenderGraphExecutionResourceReport,
-    RenderGraphMaterializationReport, RenderGraphPassProfileRecord,
-    RenderGraphStageExecutionReport, RenderGraphTransientPoolReport, RenderHistoryCopyReport,
-    RenderHybridGiPayloadSource, RenderPipelineHandle, RenderQualityProfile, RenderQuery,
-    RenderQueueCapability, RenderSceneVelocityReadbackReport, RenderStats,
-    RenderViewportDescriptor, RenderViewportHandle, RenderVirtualGeometryPayloadSource,
-    RenderingBackendInfo, DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
+    RenderGraphMaterializationReport, RenderGraphParallelRecordingReport,
+    RenderGraphPassProfileRecord, RenderGraphStageExecutionReport, RenderGraphTransientPoolReport,
+    RenderHistoryCopyReport, RenderHybridGiPayloadSource, RenderPipelineHandle,
+    RenderQualityProfile, RenderQuery, RenderQueueCapability, RenderSceneVelocityReadbackReport,
+    RenderStats, RenderViewportDescriptor, RenderViewportHandle,
+    RenderVirtualGeometryPayloadSource, RenderingBackendInfo,
+    DEFAULT_HALF_RES_TRANSPARENCY_DEPTH_SIGMA,
 };
 pub use camera::{
     aspect_ratio_from_viewport_size, default_viewport_aspect_ratio, DisplayMode,
@@ -102,7 +104,7 @@ pub use camera_stack::{
     CameraRenderType, CameraSequenceEntry, CameraSequenceReport, CameraSequenceViolation,
     CameraSequenceViolationReason, RenderCameraClear,
 };
-pub use capture::{CapturedFrame, RenderCaptureReport, RenderCaptureSource};
+pub use capture::{CapturedFrame, CapturedHdrFrame, RenderCaptureReport, RenderCaptureSource};
 pub use core_pipeline::{
     build_mesh_phase_queue, build_sprite_phase_queue, packed_sort_key_u64, CorePipelineKind,
     MeshPhaseInput, RenderPhase, RenderPhaseItem, RenderPhaseMeshSource, RenderPhaseQueue,
@@ -113,47 +115,58 @@ pub use core_pipeline::{
 };
 pub use environment::{
     append_rgb_as_rgba16f_texels, append_rgba16f_texels, build_environment_brdf_lut,
-    build_source_cubemap_from_captured_faces,
+    build_environment_brdf_lut_with_extent, build_source_cubemap_from_captured_faces,
     build_source_cubemap_from_captured_faces_with_quality, build_source_cubemap_from_equirect,
     build_source_cubemap_from_source_mips, build_source_cubemap_from_source_mips_with_quality,
-    build_source_cubemap_irradiance_cube, build_source_cubemap_upload_artifact,
-    cubemap_direction_from_scaled_uv, cubemap_face_scaled_uv_from_direction,
-    cubemap_face_size_from_equirect_height, cubemap_scaled_uv_for_texel,
-    cubemap_solid_angle_from_scaled_uv, cubemap_texel_direction, cubemap_texel_solid_angle,
-    decode_rgb_from_rgba16f_texels, decode_rgba16f_texels, encode_rgba16f_texels,
-    environment_brdf_lut_integrate, environment_brdf_lut_texel_index, equirect_uv_from_direction,
+    build_source_cubemap_irradiance_cube,
+    build_source_cubemap_irradiance_cube_with_parallel_executor,
+    build_source_cubemap_upload_artifact, cubemap_direction_from_scaled_uv,
+    cubemap_face_scaled_uv_from_direction, cubemap_face_size_from_equirect_height,
+    cubemap_scaled_uv_for_texel, cubemap_solid_angle_from_scaled_uv, cubemap_texel_direction,
+    cubemap_texel_solid_angle, decode_rgb_from_rgba16f_texels, decode_rgba16f_texels,
+    encode_rgba16f_texels, environment_brdf_lut_integrate, environment_brdf_lut_texel_index,
+    equirect_uv_from_direction,
+    rebuild_source_cubemap_from_source_mips_with_pmrem_layout_and_parallel_executor_and_timing,
+    rebuild_source_cubemap_from_source_mips_with_pmrem_layout_and_timing,
     reflection_probe_box_project_direction, reflection_probe_influence_weight,
     resolve_ibl_bake_artifact_payload, select_ibl_bake_artifact, select_reflection_probe_blend,
-    source_cubemap_capture_hash, source_cubemap_environment_with_bake_artifact,
-    source_cubemap_evaluate_irradiance_sh9, source_cubemap_face_mip_offset,
-    source_cubemap_face_size_from_equirect_height, source_cubemap_irradiance_mip_level,
-    source_cubemap_mip_chain_with_bake_artifact, source_cubemap_mip_count, source_cubemap_mip_size,
-    source_cubemap_pmrem_mip_from_roughness, source_cubemap_roughness_from_pmrem_mip,
-    source_cubemap_sample_count, source_cubemap_sample_irradiance_cube, CubemapFace,
-    EnvironmentBrdfLutTexel, EnvironmentExtract, IblBakeArtifactBlob, IblBakeArtifactBlobCandidate,
+    source_cubemap_capture_hash, source_cubemap_environment_from_source_mips_with_bake_artifact,
+    source_cubemap_environment_with_bake_artifact, source_cubemap_evaluate_irradiance_sh9,
+    source_cubemap_face_mip_offset, source_cubemap_face_size_from_equirect_height,
+    source_cubemap_irradiance_mip_level, source_cubemap_mip_chain_with_bake_artifact,
+    source_cubemap_mip_count, source_cubemap_mip_size, source_cubemap_pmrem_mip_from_roughness,
+    source_cubemap_roughness_from_pmrem_mip, source_cubemap_sample_count,
+    source_cubemap_sample_irradiance_cube, CubemapFace, EnvironmentBrdfLutTexel,
+    EnvironmentExtract, IblBakeArtifactBlob, IblBakeArtifactBlobCandidate,
     IblBakeArtifactBlobError, IblBakeArtifactCandidate, IblBakeArtifactContents,
     IblBakeArtifactDescriptor, IblBakeArtifactHeader, IblBakeArtifactHeaderError,
-    IblBakeArtifactPayload, IblBakeArtifactPayloadError, IblBakeArtifactReadbackError,
-    IblBakeArtifactReadbackSectionKind, IblBakeArtifactReadbackSections, IblBakeArtifactRequest,
-    IblBakeArtifactResolvedPayload, IblBakeArtifactSelection, IblBakeArtifactSource, IblBakeKey,
-    LightProbeGridData, LightmapAtlasBudget, LightmapAtlasDescriptor, LightmapAtlasFormat,
-    LightmapAtlasPage, LightmapBakeOutput, LightmapBakeRequest, LightmapBakeSceneSnapshot,
-    LightmapConsumeContract, LightmapContractValidationError, LightmapInstanceSlot,
-    ProbeBakeTiming, ProbeInfluenceShape, ProceduralSkyParams, ReflectionProbeBlend,
-    ReflectionProbeBlendEntry, ReflectionProbeData, ReflectionProbeValidationError, ShL2Rgb,
-    SkyboxMode, SkyboxSettings, SourceCubemapBakeArtifactError, SourceCubemapEnvironment,
+    IblBakeArtifactPayload, IblBakeArtifactPayloadError, IblBakeArtifactProducer,
+    IblBakeArtifactReadbackError, IblBakeArtifactReadbackSectionKind,
+    IblBakeArtifactReadbackSections, IblBakeArtifactRequest, IblBakeArtifactResolvedPayload,
+    IblBakeArtifactSelection, IblBakeArtifactSource, IblBakeDiffuseIntegrator,
+    IblBakeDiffuseRepresentation, IblBakeKey, IblBakeOutputFormat, IblBakePmremIntegrator,
+    IblBakeRecipe, IblBakeRecipeIdentity, LightProbeGridData, LightmapAtlasBudget,
+    LightmapAtlasDescriptor, LightmapAtlasFormat, LightmapAtlasPage, LightmapBakeOutput,
+    LightmapBakeRequest, LightmapBakeSceneSnapshot, LightmapConsumeContract,
+    LightmapContractValidationError, LightmapInstanceSlot, ProbeBakeTiming, ProbeInfluenceShape,
+    ProceduralSkyParams, ReflectionProbeBlend, ReflectionProbeBlendEntry, ReflectionProbeData,
+    ReflectionProbeValidationError, ShL2Rgb, SkyboxMode, SkyboxSettings,
+    SourceCubemapBakeArtifactError, SourceCubemapBuildTiming, SourceCubemapEnvironment,
     SourceCubemapIrradianceCube, SourceCubemapIrradianceSh9, SourceCubemapMipChain,
     SourceCubemapPrefilterQuality, SourceCubemapUploadArtifact, SourceCubemapUploadKey,
-    SourceCubemapUploadMip, ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT, ENVIRONMENT_BRDF_LUT_SIZE,
-    IBL_BAKE_ALGORITHM_VERSION, IBL_BAKE_ARTIFACT_HEADER_SIZE,
-    IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES, IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES,
-    LIGHTMAP_CONSUME_CONTRACT_VERSION, LIGHTMAP_SCENE_SNAPSHOT_VERSION,
-    PROCEDURAL_SKY_DEFAULT_SOURCE_REVISION, RGBA16F_TEXEL_SIZE_BYTES, SH_L2_RGB_COEFFICIENT_COUNT,
-    SOURCE_CUBEMAP_FACE_COUNT, SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT,
-    SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE, SOURCE_CUBEMAP_IRRADIANCE_SOURCE_FACE_SIZE,
-    SOURCE_CUBEMAP_MAX_FACE_SIZE, SOURCE_CUBEMAP_MIN_FACE_SIZE, SOURCE_CUBEMAP_PMREM_FACE_SIZE,
-    SOURCE_CUBEMAP_PMREM_MIP_COUNT, SOURCE_CUBEMAP_ROUGHEST_MIP,
-    SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE,
+    SourceCubemapUploadMip, CANONICAL_IBL_BAKE_ALGORITHM_VERSION,
+    CANONICAL_IBL_BAKE_DIFFUSE_SOURCE_FACE_SIZE, CANONICAL_IBL_BAKE_IRRADIANCE_CUBE_FACE_SIZE,
+    CANONICAL_IBL_BAKE_RECIPE, CANONICAL_IBL_BAKE_ROUGHEST_MIP_OFFSET,
+    CANONICAL_IBL_BAKE_ROUGHNESS_MIP_SCALE, ENVIRONMENT_BRDF_LUT_HEIGHT,
+    ENVIRONMENT_BRDF_LUT_SAMPLE_COUNT, ENVIRONMENT_BRDF_LUT_WIDTH, IBL_BAKE_ALGORITHM_VERSION,
+    IBL_BAKE_ARTIFACT_HEADER_SIZE, IBL_BAKE_ARTIFACT_RGBA16F_TEXEL_SIZE_BYTES,
+    IBL_BAKE_ARTIFACT_SH9_SIZE_BYTES, LIGHTMAP_CONSUME_CONTRACT_VERSION,
+    LIGHTMAP_SCENE_SNAPSHOT_VERSION, PROCEDURAL_SKY_DEFAULT_SOURCE_REVISION,
+    RGBA16F_TEXEL_SIZE_BYTES, SH_L2_RGB_COEFFICIENT_COUNT, SOURCE_CUBEMAP_FACE_COUNT,
+    SOURCE_CUBEMAP_IRRADIANCE_COEFFICIENT_COUNT, SOURCE_CUBEMAP_IRRADIANCE_CUBE_FACE_SIZE,
+    SOURCE_CUBEMAP_IRRADIANCE_SOURCE_FACE_SIZE, SOURCE_CUBEMAP_MAX_FACE_SIZE,
+    SOURCE_CUBEMAP_MIN_FACE_SIZE, SOURCE_CUBEMAP_PMREM_FACE_SIZE, SOURCE_CUBEMAP_PMREM_MIP_COUNT,
+    SOURCE_CUBEMAP_ROUGHEST_MIP, SOURCE_CUBEMAP_ROUGHNESS_MIP_SCALE,
 };
 pub use frame_extract::{
     DebugOverlayExtract, GeometryExtract, GeometryPhaseInput, LightingExtract, ParticleExtract,
@@ -167,13 +180,12 @@ pub use frame_phase_queue_summary::{
     RenderFramePhaseQueueSummaryPhaseOrderSpan,
 };
 pub use frame_profile::{
-    RenderBudgetKey, RenderFrameBudget, RenderFrameProfile, RenderPassProfileEntry,
-    RenderPassPipelineStatistics, RenderSubsystemProfileEntry,
+    RenderBudgetKey, RenderFrameBudget, RenderFrameProfile, RenderGpuTimingStatus,
+    RenderPassPipelineStatistics, RenderPassProfileEntry, RenderSubsystemProfileEntry,
 };
-pub use highlight_set::{HighlightRenderAttributes, HighlightSet};
 pub use framework::RenderFramework;
 pub use framework_error::RenderFrameworkError;
-pub use viewport_product::RenderViewportProduct;
+pub use highlight_set::{HighlightRenderAttributes, HighlightSet};
 pub use image::{
     default_color_space_for_texture_usage, default_compression_for_texture_usage,
     default_mip_filter_for_texture_usage, validate_texture_metadata, RenderImageAssetUsage,
@@ -232,9 +244,9 @@ pub use overlay::{
     RenderOverlayExtract, SceneGizmoKind, SceneGizmoOverlayExtract, SelectionAnchorExtract,
     SelectionHighlightExtract, ViewportIconId,
 };
-pub use viewport_highlight_store::{ViewportHighlightSet, ViewportHighlightStore};
 pub use plugin_renderer_outputs::{
-    RenderHybridGiCacheEntryRecord, RenderHybridGiReadbackOutputs,
+    RenderHybridGiCacheEntryRecord, RenderHybridGiGlobalSdfStats,
+    RenderHybridGiRadianceCacheGpuStage, RenderHybridGiReadbackOutputs,
     RenderHybridGiScenePrepareReadbackOutputs, RenderHybridGiScenePrepareSample,
     RenderHybridGiSurfaceCachePageRecord, RenderHybridGiTraceTileRecord,
     RenderHybridGiVoxelCellDominantNodeRecord, RenderHybridGiVoxelCellRecord,
@@ -242,7 +254,7 @@ pub use plugin_renderer_outputs::{
     RenderHybridGiVoxelOccupancyMaskRecord, RenderParticleGpuReadbackOutputs,
     RenderPluginRendererOutputs, RenderVirtualGeometryNodeClusterCullReadbackOutputs,
     RenderVirtualGeometryPageAssignmentRecord, RenderVirtualGeometryPageReplacementRecord,
-    RenderVirtualGeometryReadbackOutputs,
+    RenderVirtualGeometryReadbackOutputs, RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT,
 };
 pub use post_process::{
     interp_bool, interp_discrete, interp_float_lerp, interp_vec3_lerp, PostProcessEffectKind,
@@ -269,11 +281,16 @@ pub use post_process::{
     MIN_COLOR_LOOKUP_TEXTURE_SIZE, OUTPUT_TRANSFER_DEFAULT, TONEMAPPED_SDR_FORMAT,
 };
 pub use prepared_runtime_sidebands::{
-    RenderHybridGiCompositePolicy, RenderHybridGiPreparedFrame, RenderHybridGiPreparedProbe,
+    RenderHybridGiCompositePolicy, RenderHybridGiPreparedCardCaptureRequest,
+    RenderHybridGiPreparedCardOwner, RenderHybridGiPreparedFrame, RenderHybridGiPreparedProbe,
     RenderHybridGiPreparedProbeRtLighting, RenderHybridGiPreparedProbeSceneData,
+    RenderHybridGiPreparedRadianceCacheConsume, RenderHybridGiPreparedRadianceCacheUpdate,
+    RenderHybridGiPreparedSceneFrame, RenderHybridGiPreparedSurfaceCachePageContent,
     RenderHybridGiPreparedTraceRegionSceneData, RenderHybridGiPreparedUpdateRequest,
+    RenderHybridGiPreparedVoxelCell, RenderHybridGiPreparedVoxelClipmap,
     RenderPreparedRuntimeSidebands, HYBRID_GI_SOURCE_BAKED_BASELINE,
     HYBRID_GI_SOURCE_DYNAMIC_DELTA, HYBRID_GI_SOURCE_FULL_DYNAMIC,
+    RENDER_HYBRID_GI_RADIANCE_CACHE_INTERPOLATION_CORNER_COUNT,
 };
 pub use profile::{
     RenderProductFeature, RenderProductProfile, RenderProfileBundle, RenderProfileValidationError,
@@ -324,10 +341,9 @@ pub use shader::{
     ShaderVariantPrewarmExecutionBudget, ShaderVariantPrewarmExecutionBudgetError,
     ShaderVariantPrewarmExecutionBudgetSummary, ShaderVariantPrewarmFailure,
     ShaderVariantPrewarmManifest, ShaderVariantPrewarmManifestIntegrityError,
-    ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest,
-    ShaderVariantPrewarmSource, ShaderVariantPrewarmSourceId,
-    ShaderVariantPrewarmSourceProvenanceEntry, ShaderVariantPrewarmSourceProvenanceSummary,
-    ShaderVariantPrewarmWgpuModuleValidationSummary,
+    ShaderVariantPrewarmReport, ShaderVariantPrewarmRequest, ShaderVariantPrewarmSource,
+    ShaderVariantPrewarmSourceId, ShaderVariantPrewarmSourceProvenanceEntry,
+    ShaderVariantPrewarmSourceProvenanceSummary, ShaderVariantPrewarmWgpuModuleValidationSummary,
     ShaderVariantPrewarmWgpuPipelineValidationSummary, ShaderVariantPrewarmWrittenVariant,
     ShaderVariantRuntimeDimensionCount, ShaderVariantRuntimeDimensionSummary,
     COMPUTE_SHADER_FIRST_RESOURCE_BINDING, COMPUTE_SHADER_PARAMS_BINDING,
@@ -355,7 +371,17 @@ pub use sprite::{
 pub use submission::RenderSubmissionConfig;
 pub use surface::RenderViewportSurfaceDescriptor;
 pub use temporal_jitter::{halton, TemporalJitterSample, TemporalJitterSequence};
+pub use view_family::{
+    RenderDynamicResolutionController, RenderDynamicResolutionDecision,
+    RenderDynamicResolutionDecisionReason, RenderDynamicResolutionGpuSample,
+    RenderDynamicResolutionScope, RenderPipelinePhase, RenderResolutionPlan,
+    RenderResolutionPolicy, RenderTemporalHistoryKey, RenderUpscalerKind,
+    RenderViewFamilyPhaseTargets, RenderViewFamilyPipeline, RenderViewFamilyTarget,
+    MAX_RENDER_RESOLUTION_FRACTION, MIN_RENDER_RESOLUTION_FRACTION,
+};
 pub use view_matrix_pair::ViewProjectionMatrixPair;
+pub use viewport_highlight_store::{ViewportHighlightSet, ViewportHighlightStore};
+pub use viewport_product::RenderViewportProduct;
 pub use virtual_geometry_debug_snapshot::{
     RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryBvhVisualizationNode,
     RenderVirtualGeometryClusterSelectionInputSource,

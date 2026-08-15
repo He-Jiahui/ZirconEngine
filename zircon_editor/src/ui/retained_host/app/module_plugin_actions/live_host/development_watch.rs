@@ -3,12 +3,12 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, RecvTimeoutError, TrySendError};
-use std::sync::{Arc, Weak};
+use std::sync::Arc;
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
-use zircon_runtime::plugin::native::NativePluginLiveHost;
+use zircon_runtime::plugin::native::{NativePluginHostHandle, NativePluginHostWeakHandle};
 
 const RELOAD_DEBOUNCE: Duration = Duration::from_millis(350);
 
@@ -64,7 +64,7 @@ pub(super) struct DevelopmentPluginWatch {
 
 impl DevelopmentPluginWatch {
     pub(super) fn start(
-        live_host: &Arc<NativePluginLiveHost>,
+        live_host: &NativePluginHostHandle,
         key: DevelopmentPluginWatchKey,
     ) -> Result<Self, String> {
         let (changed, pending_changes) = mpsc::sync_channel(1);
@@ -108,7 +108,7 @@ impl DevelopmentPluginWatch {
 
         let stop = Arc::new(AtomicBool::new(false));
         let worker_stop = stop.clone();
-        let host = Arc::downgrade(live_host);
+        let host = live_host.downgrade();
         let worker_key = key.clone();
         let worker = thread::Builder::new()
             .name(format!("zr-plugin-watch-{}", key.plugin_id))
@@ -136,7 +136,7 @@ impl Drop for DevelopmentPluginWatch {
 }
 
 fn run_development_watch_worker(
-    live_host: Weak<NativePluginLiveHost>,
+    live_host: NativePluginHostWeakHandle,
     key: DevelopmentPluginWatchKey,
     stop: Arc<AtomicBool>,
     pending_changes: mpsc::Receiver<()>,

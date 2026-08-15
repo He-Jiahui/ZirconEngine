@@ -19,11 +19,12 @@ use super::forward_shadow_receiver::{
     create_forward_shadow_receiver_layout,
 };
 use super::{
-    MAX_ASYNC_BASE_PIPELINES_IN_FLIGHT, MAX_ASYNC_SHADER_SOURCE_VALIDATIONS_IN_FLIGHT,
-    MeshPipelineCache, MeshPipelineVariantRegistry,
+    MeshPipelineCache, MeshPipelineVariantRegistry, MAX_ASYNC_BASE_PIPELINES_IN_FLIGHT,
+    MAX_ASYNC_SHADER_SOURCE_VALIDATIONS_IN_FLIGHT,
 };
 
 impl MeshPipelineCache {
+    #[cfg(test)]
     pub(crate) fn new(
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -37,6 +38,7 @@ impl MeshPipelineCache {
             queue,
             target_format,
             None,
+            &std::env::temp_dir().join("zircon-mesh-pipeline-cache-tests"),
             scene_layout,
             material_layout,
             gpu_scene_layout,
@@ -49,6 +51,7 @@ impl MeshPipelineCache {
         queue: &wgpu::Queue,
         target_format: wgpu::TextureFormat,
         adapter_info: &wgpu::AdapterInfo,
+        project_root: &std::path::Path,
         scene_layout: &wgpu::BindGroupLayout,
         material_layout: &wgpu::BindGroupLayout,
         gpu_scene_layout: &wgpu::BindGroupLayout,
@@ -59,6 +62,7 @@ impl MeshPipelineCache {
             queue,
             target_format,
             Some(adapter_info),
+            project_root,
             scene_layout,
             material_layout,
             gpu_scene_layout,
@@ -71,6 +75,7 @@ impl MeshPipelineCache {
         queue: &wgpu::Queue,
         target_format: wgpu::TextureFormat,
         adapter_info: Option<&wgpu::AdapterInfo>,
+        project_root: &std::path::Path,
         scene_layout: &wgpu::BindGroupLayout,
         material_layout: &wgpu::BindGroupLayout,
         gpu_scene_layout: &wgpu::BindGroupLayout,
@@ -87,6 +92,17 @@ impl MeshPipelineCache {
             ],
             immediate_size: 0,
         });
+        let environment_only_mesh_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("zircon-environment-only-mesh-layout"),
+                bind_group_layouts: &[
+                    Some(scene_layout),
+                    None,
+                    Some(material_layout),
+                    Some(gpu_scene_layout),
+                ],
+                immediate_size: 0,
+            });
         let oit_fragment_store_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 label: Some("zircon-oit-fragment-store-layout"),
@@ -141,11 +157,10 @@ impl MeshPipelineCache {
             SceneReflectionProbeResources::new(device)
         };
         let lightmaps = SceneLightmapResources::new(device, queue);
-        let project_root =
-            std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
         Self {
             target_format,
             mesh_pipeline_layout,
+            environment_only_mesh_pipeline_layout,
             oit_fragment_store_layout,
             oit_mesh_pipeline_layout,
             forward_shadow_receiver_layout,
@@ -179,7 +194,7 @@ impl MeshPipelineCache {
                 .into_iter()
                 .map(|descriptor| (descriptor.id, descriptor))
                 .collect(),
-            shader_variant_disk_cache: default_runtime_shader_cache(&project_root),
+            shader_variant_disk_cache: default_runtime_shader_cache(project_root),
             pending_pipeline_creation_diagnostics: Vec::new(),
             shader_source_validation_compiler: PipelineAsyncCompiler::new(
                 "mesh-shader-validate",
@@ -188,7 +203,7 @@ impl MeshPipelineCache {
             .ok(),
             runtime_pipeline_cache: adapter_info
                 .map_or_else(RuntimePipelineCache::disabled, |info| {
-                    RuntimePipelineCache::new(device, info, &project_root)
+                    RuntimePipelineCache::new(device, info, project_root)
                 }),
             async_base_pipeline_compiler: PipelineAsyncCompiler::new(
                 "mesh-pipeline-compile",
@@ -198,6 +213,7 @@ impl MeshPipelineCache {
             allow_async_pipeline_compile: false,
             force_synchronous_base_pipeline_compile: false,
             async_variant_first_frame_miss_count: 0,
+            pipeline_creation_metrics: Default::default(),
         }
     }
 }

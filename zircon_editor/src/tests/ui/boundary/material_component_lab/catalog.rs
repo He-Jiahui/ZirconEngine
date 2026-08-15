@@ -232,7 +232,10 @@ fn material_component_lab_prototypes_map_to_foundation_catalog_descriptors() {
         .collect::<BTreeSet<_>>();
 
     assert_eq!(
-        mapped_keys.union(&demo_only_keys).cloned().collect::<BTreeSet<_>>(),
+        mapped_keys
+            .union(&demo_only_keys)
+            .cloned()
+            .collect::<BTreeSet<_>>(),
         prototype_keys,
         "every Material Lab prototype should be explicitly mapped to catalog descriptors or marked demo-only"
     );

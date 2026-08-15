@@ -6,9 +6,9 @@ use crate::{
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::core::framework::render::{
-    GEOMETRY_SOURCE_PLUGIN_ID_START, GeometrySourceBindingKind, GeometrySourceBindingRequirement,
-    GeometrySourceDescriptor, GeometrySourceId, GeometrySourceVertexAttribute,
-    RenderShaderDefinitionValue,
+    GeometrySourceBindingKind, GeometrySourceBindingRequirement, GeometrySourceDescriptor,
+    GeometrySourceId, GeometrySourceVertexAttribute, RenderShaderDefinitionValue,
+    GEOMETRY_SOURCE_PLUGIN_ID_START,
 };
 use zircon_runtime::plugin::{
     PluginDistributionManifest, PluginModuleManifest, PluginPackageManifest,

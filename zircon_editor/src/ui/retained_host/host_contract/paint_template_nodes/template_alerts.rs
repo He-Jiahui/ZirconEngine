@@ -8,10 +8,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use comman
 
 #[cfg(test)]
 use super::style_selector::{
-    WorkbenchAlertTone as AlertTone, select_workbench_alert_style, select_workbench_toast_style,
+    select_workbench_alert_style, select_workbench_toast_style, WorkbenchAlertTone as AlertTone,
 };
 #[cfg(test)]
-use identity::{WorkbenchAlertKind, workbench_alert_kind};
+use identity::{workbench_alert_kind, WorkbenchAlertKind};
 #[cfg(test)]
 use toast::toast_status_mark_size;
 

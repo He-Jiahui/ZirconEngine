@@ -123,12 +123,10 @@ fn runtime_session_archive_preview_save_to_path_reports_targets_without_writing_
         Some(10)
     );
     assert!(!missing_path.exists());
-    assert!(
-        !missing_path
-            .parent()
-            .expect("missing path should have parent")
-            .exists()
-    );
+    assert!(!missing_path
+        .parent()
+        .expect("missing path should have parent")
+        .exists());
 
     let existing_path = root.join("sessions").join("archive.zrsession.json");
     fs::create_dir_all(
@@ -150,14 +148,12 @@ fn runtime_session_archive_preview_save_to_path_reports_targets_without_writing_
             .expect("existing target payload should remain readable after preview"),
         existing_payload
     );
-    assert!(
-        temporary_archive_leftovers(
-            existing_path
-                .parent()
-                .expect("existing path should have parent")
-        )
-        .is_empty()
-    );
+    assert!(temporary_archive_leftovers(
+        existing_path
+            .parent()
+            .expect("existing path should have parent")
+    )
+    .is_empty());
 
     let directory_target = root.join("sessions").join("directory-target");
     fs::create_dir_all(&directory_target).expect("directory target fixture should be created");
@@ -168,14 +164,12 @@ fn runtime_session_archive_preview_save_to_path_reports_targets_without_writing_
             if error.kind() == std::io::ErrorKind::AlreadyExists
     ));
     assert!(directory_target.is_dir());
-    assert!(
-        temporary_archive_leftovers(
-            existing_path
-                .parent()
-                .expect("existing path should have parent")
-        )
-        .is_empty()
-    );
+    assert!(temporary_archive_leftovers(
+        existing_path
+            .parent()
+            .expect("existing path should have parent")
+    )
+    .is_empty());
 
     let _ = fs::remove_dir_all(root);
 }

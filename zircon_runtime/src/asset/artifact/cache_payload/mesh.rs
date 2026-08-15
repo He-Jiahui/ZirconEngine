@@ -3,8 +3,8 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::asset::{
-    AssetUri, MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset, MeshSkinAsset,
-    VirtualGeometryAsset,
+    AssetUri, MeshAsset, MeshAttributeValues, MeshIndices, MeshMorphTargetAsset, MeshSdfAsset,
+    MeshSkinAsset, VirtualGeometryAsset,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -16,6 +16,8 @@ pub(super) struct ArtifactCacheMeshAsset {
     asset_usage: crate::asset::MeshAssetUsage,
     morph_targets: Vec<ArtifactCacheMeshMorphTargetAsset>,
     skin: Option<MeshSkinAsset>,
+    #[serde(default)]
+    mesh_sdf: Option<MeshSdfAsset>,
     virtual_geometry: Option<VirtualGeometryAsset>,
 }
 
@@ -33,6 +35,7 @@ impl From<&MeshAsset> for ArtifactCacheMeshAsset {
                 .map(ArtifactCacheMeshMorphTargetAsset::from)
                 .collect(),
             skin: asset.skin.clone(),
+            mesh_sdf: asset.mesh_sdf.clone(),
             virtual_geometry: asset.virtual_geometry.clone(),
         }
     }
@@ -52,6 +55,7 @@ impl ArtifactCacheMeshAsset {
                 .map(ArtifactCacheMeshMorphTargetAsset::into)
                 .collect(),
             skin: self.skin,
+            mesh_sdf: self.mesh_sdf,
             virtual_geometry: self.virtual_geometry,
         }
     }

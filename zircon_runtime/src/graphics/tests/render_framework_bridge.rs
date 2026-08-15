@@ -83,6 +83,7 @@ fn test_ui_extract(text: &str) -> UiRenderExtract {
                 opacity: 1.0,
             }],
         },
+        raster_scale: 1.0,
     }
 }
 
@@ -119,9 +120,11 @@ fn neural_compute_render_feature_descriptor() -> RenderFeatureDescriptor {
             QueueLane::AsyncCompute,
         )
         .with_executor_id("plugin.neural.inference")
-        .with_compute_workload(RenderGraphComputeWorkload::viewport(
+        .with_compute_workload(RenderGraphComputeWorkload::per_pixel(
             "zircon-neural-inference",
             [8, 8, 1],
+            "scene-color",
+            [8, 8],
         ))
         .read_texture("scene-color")
         .write_storage_external("neural-inference-output")

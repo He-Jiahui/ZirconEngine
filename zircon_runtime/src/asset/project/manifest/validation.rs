@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use zircon_runtime_interface::project::{validate_engine_version_req, RelPath};
+use zircon_runtime_interface::resource::ResourceScheme;
 
 use super::{ProjectManifest, ProjectManifestError};
 use crate::asset::project::ProjectPaths;
@@ -38,6 +39,27 @@ impl ProjectManifest {
                         descendant: left.to_string(),
                     });
                 }
+            }
+        }
+        let mut ui_roots = BTreeSet::new();
+        for root in &self.ui_roots {
+            if root.scheme() != ResourceScheme::Res {
+                return Err(ProjectManifestError::InvalidUiRootScheme {
+                    root: root.to_string(),
+                });
+            }
+            if root.path().trim().is_empty() {
+                return Err(ProjectManifestError::EmptyUiRoot);
+            }
+            if root.label().is_some() {
+                return Err(ProjectManifestError::LabelledUiRoot {
+                    root: root.to_string(),
+                });
+            }
+            if !ui_roots.insert(root.to_string()) {
+                return Err(ProjectManifestError::DuplicateUiRoot {
+                    root: root.to_string(),
+                });
             }
         }
         Ok(())

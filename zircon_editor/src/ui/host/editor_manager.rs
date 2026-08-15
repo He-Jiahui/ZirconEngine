@@ -1,18 +1,21 @@
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 
 use super::editor_ui_host::EditorUiHost;
+use super::runtime_services::EditorHostRuntimeServices;
 use crate::core::commands::{EditorCommandPaletteMru, EditorKeymap};
 use crate::core::context::{EditorContext, EditorContextBuilder};
 use crate::core::document::DocumentLifecycleAuthority;
 use crate::core::editor_operation::EditorOperationPath;
 use crate::core::plugin::{EditorPluginLifecycleMessageBridge, EditorPluginManager};
+use crate::core::recovery::SessionGuard;
 use crate::core::settings::{EditorKeymapOverrides, SettingsSnapshot};
 use crate::ui::host::editor_manager_plugins_export::{
     EditorPluginStatusReport, ProjectPluginStatusSnapshot,
 };
-use zircon_runtime::asset::{AssetUri, project::ProjectManifest};
+use zircon_runtime::asset::{project::ProjectManifest, AssetUri};
 use zircon_runtime::core::{CoreError, CoreHandle};
 use zircon_runtime::plugin::RuntimePluginCatalog;
+use zircon_runtime_interface::hub_protocol::HubSessionToken;
 use zircon_runtime_interface::ui::dispatch::UiKeyboardInputEvent;
 
 /// A manager-local derived cache, keyed by the authority's immutable override payload.
@@ -97,7 +100,25 @@ pub struct EditorManager {
     plugin_lifecycle_messages: EditorPluginLifecycleMessageBridge,
     builtin_plugin_status: Mutex<Arc<ProjectPluginStatusSnapshot>>,
     project_plugin_status: Mutex<Option<Arc<ProjectPluginStatusSnapshot>>>,
+    /// The OS-backed admission lease for the active runtime project generation.
+    pub(super) project_session_guard: Mutex<Option<SessionGuard>>,
+    /// One Hub launch token consumed only by the first project admission attempt of this host.
+    pub(super) hub_launch_session: Mutex<Option<HubSessionToken>>,
     capability_updates: Mutex<()>,
+}
+
+impl Drop for EditorManager {
+    fn drop(&mut self) {
+        // `run_editor_with_config` releases this lease explicitly. This covers construction and
+        // other early-error paths where Rust cannot propagate a shutdown error from `Drop`.
+        let guard_slot = self
+            .project_session_guard
+            .get_mut()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(guard) = guard_slot.as_mut() {
+            let _ = guard.release();
+        }
+    }
 }
 
 impl EditorManager {
@@ -108,9 +129,11 @@ impl EditorManager {
     pub fn new(core: &CoreHandle) -> Result<Self, CoreError> {
         let scheduler = core.scheduler().clone();
         let context = EditorContextBuilder::new(scheduler).build();
+        let runtime_services = EditorHostRuntimeServices::new(core);
         let host = EditorUiHost::bootstrap(
-            core,
+            runtime_services,
             context.jobs().clone(),
+            context.logs_handle(),
             context.dirty_documents().clone(),
             Arc::clone(context.settings()),
         )
@@ -142,6 +165,8 @@ impl EditorManager {
                 EditorPluginStatusReport::default(),
             ))),
             project_plugin_status: Mutex::new(None),
+            project_session_guard: Mutex::new(None),
+            hub_launch_session: Mutex::new(None),
             capability_updates: Mutex::new(()),
         };
         manager.refresh_builtin_plugin_status();
@@ -150,6 +175,14 @@ impl EditorManager {
 
     pub fn context(&self) -> &Arc<EditorContext> {
         &self.context
+    }
+
+    /// Configures the single Hub launch context before startup is allowed to admit a project.
+    pub(crate) fn configure_hub_launch_session(&self, session: Option<HubSessionToken>) {
+        *self
+            .hub_launch_session
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = session;
     }
 
     /// Returns the current derived keymap for the legacy manager service boundary.
@@ -286,8 +319,8 @@ mod tests {
     use crate::core::commands::EditorKeyChord;
     use crate::core::editor_operation::EditorOperationPath;
     use crate::core::settings::{
-        EDITOR_KEYMAP_OVERRIDES_KEY, EditorKeymapOverrides, SettingValue, SettingsAuthority,
-        SettingsKey, SettingsScope, VIEWPORT_TRANSLATE_STEP_KEY,
+        EditorKeymapOverrides, SettingValue, SettingsAuthority, SettingsKey, SettingsScope,
+        EDITOR_KEYMAP_OVERRIDES_KEY, VIEWPORT_TRANSLATE_STEP_KEY,
     };
 
     use super::EditorKeymapProjection;

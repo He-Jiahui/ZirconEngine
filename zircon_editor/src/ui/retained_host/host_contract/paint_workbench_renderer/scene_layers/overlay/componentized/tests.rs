@@ -84,7 +84,7 @@ fn live_viewport_fallback_filter_keeps_chrome_and_dynamic_overlays() {
             resource_key: "viewport:test".into(),
             width: 1,
             height: 1,
-            rgba: vec![255; 4].into(),
+            rgba: Some(vec![255; 4].into()),
         }),
         ..HostWindowPresentationData::default()
     };

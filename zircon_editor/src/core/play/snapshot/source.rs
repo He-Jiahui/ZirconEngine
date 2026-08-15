@@ -1,16 +1,17 @@
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use zircon_runtime::scene::{DynamicScene, World};
+use zircon_runtime_interface::project::{RelPath, RelPathError};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum PlaySceneSource {
-    Persisted(PathBuf),
+    Persisted(RelPath),
     Snapshot(Arc<str>),
 }
 
 impl PlaySceneSource {
-    pub fn persisted(path: impl Into<PathBuf>) -> Self {
-        Self::Persisted(path.into())
+    pub fn persisted(path: impl AsRef<str>) -> Result<Self, RelPathError> {
+        RelPath::parse(path).map(Self::Persisted)
     }
 
     pub fn from_world(world: &World) -> Result<Self, String> {

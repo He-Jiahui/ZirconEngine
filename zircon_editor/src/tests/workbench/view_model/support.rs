@@ -118,16 +118,14 @@ pub(super) fn sample_exclusive_chrome() -> EditorChromeSnapshot {
         dirty: true,
         host: ViewHost::ExclusivePage(MainPageId::new("page:prefab")),
     };
-    let descriptors = vec![
-        ViewDescriptor::new(
-            ViewDescriptorId::new("editor.prefab"),
-            ViewKind::ActivityWindow,
-            "Prefab Editor",
-        )
-        .with_multi_instance(true)
-        .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage)
-        .with_icon_key("prefab"),
-    ];
+    let descriptors = vec![ViewDescriptor::new(
+        ViewDescriptorId::new("editor.prefab"),
+        ViewKind::ActivityWindow,
+        "Prefab Editor",
+    )
+    .with_multi_instance(true)
+    .with_workbench_slot(WorkbenchSlot::ExclusiveMainPage)
+    .with_icon_key("prefab")];
     EditorChromeSnapshot::build(
         EditorDataSnapshot {
             scene_entries: Default::default(),

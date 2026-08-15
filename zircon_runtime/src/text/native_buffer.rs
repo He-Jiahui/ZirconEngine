@@ -136,14 +136,16 @@ impl TextRenderState {
 }
 
 fn native_attrs(request: NativeTextBufferRequest<'_>) -> Attrs<'_> {
-    let mut attrs = if request.code {
-        Attrs::new().family(Family::Monospace)
-    } else {
-        request
-            .family
-            .map(|family| Attrs::new().family(Family::Name(family)))
-            .unwrap_or_else(Attrs::new)
-    };
+    let mut attrs = request
+        .family
+        .map(|family| Attrs::new().family(Family::Name(family)))
+        .unwrap_or_else(|| {
+            if request.code {
+                Attrs::new().family(Family::Monospace)
+            } else {
+                Attrs::new()
+            }
+        });
     let query = native_font_query(request);
     attrs = attrs.weight(Weight(query.weight.0));
     if matches!(query.style, FontStyle::Italic) {
@@ -218,7 +220,7 @@ mod tests {
         code.code = true;
         let attrs = native_attrs(code);
         let query = native_font_query(code);
-        assert_eq!(attrs.family, Family::Monospace);
+        assert_eq!(attrs.family, Family::Name("Zircon Mono"));
         assert_eq!(attrs.weight, Weight(450));
         assert_eq!(query.families, vec![FontFamilyName::from("Zircon Mono")]);
         assert_eq!(query.weight, FontWeight(450));

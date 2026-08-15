@@ -4,7 +4,7 @@ use crate::core::editing::engine::{
 };
 use crate::core::editor_message::DocumentId;
 
-use super::fixture::{DeltaCommand, FixtureContext, finalized_counter};
+use super::fixture::{finalized_counter, DeltaCommand, FixtureContext};
 
 fn document(value: u64) -> HistoryContextId {
     HistoryContextId::Document(DocumentId::new(value))
@@ -133,11 +133,9 @@ fn undo_redo_and_history_clear_publish_current_dirty_state() {
     let mut transition = engine
         .begin_exclusive_transition("clear history dirty projection")
         .unwrap();
-    assert!(
-        transition
-            .clear_history_and_context::<FixtureContext>(history, "FixtureContext", |_| Ok(()))
-            .unwrap()
-    );
+    assert!(transition
+        .clear_history_and_context::<FixtureContext>(history, "FixtureContext", |_| Ok(()))
+        .unwrap());
     drop(transition);
     let cleared = engine.dirty_states_since(Some(redone.cursor())).unwrap();
     assert_eq!(cleared.kind(), HistoryDirtyBatchKind::Delta);

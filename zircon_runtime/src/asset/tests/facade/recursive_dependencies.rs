@@ -33,7 +33,9 @@ fn recursive_dependency_load_state_walks_nested_resource_dependencies() {
         DependencyLoadState::Loaded
     );
 
-    resource_manager.start_reload(texture_id, Vec::new());
+    resource_manager
+        .start_reload(texture_id, Vec::new())
+        .unwrap();
     assert_eq!(
         manager.dependency_load_state(material_handle),
         DependencyLoadState::Loaded,
@@ -44,10 +46,12 @@ fn recursive_dependency_load_state_walks_nested_resource_dependencies() {
         RecursiveDependencyLoadState::Reloading
     );
 
-    resource_manager.fail_reload(
-        texture_id,
-        vec![ResourceDiagnostic::error("texture failed")],
-    );
+    resource_manager
+        .fail_reload(
+            texture_id,
+            vec![ResourceDiagnostic::error("texture failed")],
+        )
+        .unwrap();
     assert_eq!(
         manager.recursive_dependency_load_state(material_handle),
         RecursiveDependencyLoadState::Failed
@@ -101,7 +105,9 @@ fn load_states_separate_root_direct_and_recursive_dependency_state() {
     assert!(manager.is_loaded_with_direct_dependencies(material_handle));
     assert!(manager.is_loaded_with_dependencies(material_handle));
 
-    resource_manager.start_reload(texture_id, Vec::new());
+    resource_manager
+        .start_reload(texture_id, Vec::new())
+        .unwrap();
     assert_eq!(
         manager.dependency_load_state(material_handle),
         DependencyLoadState::Loaded,
@@ -283,7 +289,9 @@ fn dependency_load_state_reports_first_level_dependency_changes() {
         .insert(material, material_asset("res://shaders/pbr.wgsl"))
         .expect("material handle");
 
-    resource_manager.start_reload(shader_id, Vec::new());
+    resource_manager
+        .start_reload(shader_id, Vec::new())
+        .unwrap();
 
     assert_eq!(
         manager.dependency_load_state(material_handle),

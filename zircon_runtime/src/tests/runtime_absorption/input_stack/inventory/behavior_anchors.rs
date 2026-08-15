@@ -2,7 +2,7 @@ const EXPECTED_RUNTIME_12_BEHAVIOR_TEST_ANCHORS: &[&str] = &[
     "input_snapshot_just_pressed_is_true_for_exactly_one_frame",
     "frame_input_clears_after_level_tick_not_before",
     "action_map_resolves_chords_and_reports_just_activated",
-    "rebinding_action_does_not_require_recompilation",
+    "replacing_action_map_rebuilds_bindings_automatically",
     "action_contexts_filter_gameplay_and_menu_maps_without_rebinding",
     "gamepad_axis_binding_reports_continuous_action_value",
     "consumed_gamepad_axis_does_not_activate_gameplay_action",
@@ -14,11 +14,17 @@ const EXPECTED_RUNTIME_12_BEHAVIOR_TEST_ANCHORS: &[&str] = &[
     "input_recording_captures_drainable_event_records_by_frame",
     "input_replay_restores_frame_snapshots_in_recorded_order",
     "cursor_host_requests_are_frame_local_and_drainable",
+    "action_evaluator_indexes_10_100_1000_and_10000_bindings_once",
+    "action_evaluator_indexes_axis_frame_sources_once_for_10_100_1000_and_10000_bindings",
+    "action_evaluator_records_generation_builds_and_distinct_projected_actions",
+    "action_evaluator_reuses_workspace_after_axis_warmup",
+    "action_evaluator_reuses_consumed_button_index_at_10000_bindings",
+    "action_evaluator_reuses_consumed_axis_index_at_10000_bindings",
 ];
 
 #[test]
 fn runtime_12_input_stack_behavior_anchors_remain_visible() {
-    assert_eq!(EXPECTED_RUNTIME_12_BEHAVIOR_TEST_ANCHORS.len(), 15);
+    assert_eq!(EXPECTED_RUNTIME_12_BEHAVIOR_TEST_ANCHORS.len(), 21);
 
     let behavior_test_sources = [
         include_str!("../../../../input/tests/input_manager.rs"),

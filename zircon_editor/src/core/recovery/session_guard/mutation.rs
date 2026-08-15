@@ -3,8 +3,8 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 use super::{
-    SESSION_LOCK_FILE_NAME, SessionGuardError, SessionLockDurability, SessionLockRecord,
-    encode_record,
+    encode_record, SessionGuardError, SessionLockDurability, SessionLockRecord,
+    SESSION_LOCK_FILE_NAME,
 };
 
 pub(super) fn create_lock(

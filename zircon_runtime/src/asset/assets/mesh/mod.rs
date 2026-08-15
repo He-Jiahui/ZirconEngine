@@ -2,6 +2,7 @@ mod attribute;
 mod constants;
 mod indices;
 mod mesh_asset;
+mod mesh_sdf;
 mod metadata;
 mod normals;
 mod tangents;
@@ -22,7 +23,12 @@ pub use mesh_asset::{
     MeshAsset, MeshAssetManagementRecord, MeshAssetManagementRecordFailure,
     MeshAssetManagementRecordSet, MeshAssetManagementRecordSetSummary, MeshAssetOverview,
 };
+pub(crate) use mesh_sdf::{mesh_sdf_source_hash, MESH_SDF_FIXED_METADATA_BYTES};
+pub use mesh_sdf::{
+    MeshSdfAsset, MeshSdfCookSettings, MeshSdfEncoding, MeshSdfValidationError,
+    MESH_SDF_SCHEMA_VERSION,
+};
 pub use metadata::{MeshMorphTargetAsset, MeshSkinAsset};
 pub use usage::MeshAssetUsage;
 pub use validation::MeshValidationError;
-pub use zmesh_document::{ZMESH_DOCUMENT_VERSION, ZMeshDocument};
+pub use zmesh_document::{ZMeshDocument, ZMESH_DOCUMENT_VERSION};

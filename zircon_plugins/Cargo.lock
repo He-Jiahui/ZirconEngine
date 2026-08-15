@@ -6430,6 +6430,7 @@ version = "0.1.0"
 dependencies = [
  "zircon_editor",
  "zircon_plugin_navigation_editor",
+ "zircon_plugin_neural_editor",
  "zircon_runtime",
 ]
 
@@ -6443,6 +6444,7 @@ dependencies = [
  "zircon_plugin_hybrid_gi_runtime",
  "zircon_plugin_navigation_runtime",
  "zircon_plugin_net_runtime",
+ "zircon_plugin_neural_runtime",
  "zircon_plugin_particles_runtime",
  "zircon_plugin_rendering_runtime",
  "zircon_plugin_solari_runtime",
@@ -6457,6 +6459,7 @@ dependencies = [
 name = "zircon_plugin_ai_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_ai_runtime",
  "zircon_plugin_sdk",
 ]
 
@@ -6485,6 +6488,7 @@ dependencies = [
 name = "zircon_plugin_animation_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_animation_runtime",
  "zircon_plugin_sdk",
 ]
 
@@ -6503,6 +6507,7 @@ dependencies = [
 name = "zircon_plugin_animation_graph_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_animation_graph_editor",
  "zircon_plugin_sdk",
 ]
 
@@ -6512,6 +6517,7 @@ version = "0.1.0"
 dependencies = [
  "zircon_editor",
  "zircon_plugin_editor_support",
+ "zircon_plugin_sdk",
  "zircon_runtime",
  "zircon_runtime_interface",
 ]
@@ -6532,6 +6538,7 @@ dependencies = [
 name = "zircon_plugin_asset_importer_audio_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_asset_importer_audio_runtime",
  "zircon_plugin_sdk",
 ]
 
@@ -6547,6 +6554,7 @@ dependencies = [
 name = "zircon_plugin_asset_importer_data_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_asset_importer_data_runtime",
  "zircon_plugin_sdk",
 ]
 
@@ -6566,6 +6574,7 @@ dependencies = [
 name = "zircon_plugin_asset_importer_model_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_asset_importer_model_runtime",
  "zircon_plugin_sdk",
 ]
 
@@ -6584,6 +6593,7 @@ dependencies = [
 name = "zircon_plugin_asset_importer_shader_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_asset_importer_shader_runtime",
  "zircon_plugin_sdk",
 ]
 
@@ -6601,6 +6611,7 @@ dependencies = [
 name = "zircon_plugin_asset_importer_texture_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_asset_importer_texture_runtime",
  "zircon_plugin_sdk",
 ]
 
@@ -6616,6 +6627,7 @@ dependencies = [
 name = "zircon_plugin_audio_importer_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_audio_importer_runtime",
  "zircon_plugin_sdk",
 ]
 
@@ -6632,6 +6644,7 @@ dependencies = [
 name = "zircon_plugin_editor_build_export_desktop_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_editor_build_export_desktop_editor",
  "zircon_plugin_sdk",
 ]
 
@@ -6641,6 +6654,7 @@ version = "0.1.0"
 dependencies = [
  "zircon_editor",
  "zircon_plugin_editor_support",
+ "zircon_plugin_sdk",
  "zircon_runtime",
  "zircon_runtime_interface",
 ]
@@ -6663,6 +6677,7 @@ dependencies = [
 name = "zircon_plugin_gltf_importer_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_gltf_importer_runtime",
  "zircon_plugin_sdk",
 ]
 
@@ -6681,6 +6696,7 @@ dependencies = [
 name = "zircon_plugin_hybrid_gi_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_hybrid_gi_runtime",
  "zircon_plugin_sdk",
 ]
 
@@ -6711,6 +6727,7 @@ dependencies = [
 name = "zircon_plugin_material_editor_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_material_editor_editor",
  "zircon_plugin_sdk",
 ]
 
@@ -6720,6 +6737,7 @@ version = "0.1.0"
 dependencies = [
  "zircon_editor",
  "zircon_plugin_editor_support",
+ "zircon_plugin_sdk",
  "zircon_runtime",
  "zircon_runtime_interface",
 ]
@@ -6737,6 +6755,7 @@ dependencies = [
 name = "zircon_plugin_native_window_hosting_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_native_window_hosting_editor",
  "zircon_plugin_sdk",
 ]
 
@@ -6746,6 +6765,7 @@ version = "0.1.0"
 dependencies = [
  "zircon_editor",
  "zircon_plugin_editor_support",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -6753,6 +6773,7 @@ dependencies = [
 name = "zircon_plugin_navigation_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_navigation_runtime",
  "zircon_plugin_sdk",
 ]
 
@@ -6804,6 +6825,7 @@ dependencies = [
 name = "zircon_plugin_net_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_net_runtime",
  "zircon_plugin_sdk",
 ]
 
@@ -6884,9 +6906,47 @@ dependencies = [
 ]
 
 [[package]]
+name = "zircon_plugin_neural_dist"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_neural_runtime",
+ "zircon_plugin_sdk",
+]
+
+[[package]]
+name = "zircon_plugin_neural_editor"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "zircon_editor",
+ "zircon_plugin_neural_runtime",
+ "zircon_plugin_sdk",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_neural_post_process_runtime"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_neural_runtime",
+ "zircon_plugin_rendering_post_process_runtime",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_neural_runtime"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_neural_post_process_runtime",
+ "zircon_plugin_sdk",
+ "zircon_runtime",
+]
+
+[[package]]
 name = "zircon_plugin_obj_importer_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_obj_importer_runtime",
  "zircon_plugin_sdk",
 ]
 
@@ -6903,6 +6963,7 @@ dependencies = [
 name = "zircon_plugin_opus_importer_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_opus_importer_runtime",
  "zircon_plugin_sdk",
 ]
 
@@ -6919,6 +6980,7 @@ dependencies = [
 name = "zircon_plugin_particles_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_particles_runtime",
  "zircon_plugin_sdk",
 ]
 
@@ -6946,6 +7008,7 @@ dependencies = [
 name = "zircon_plugin_physics_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_physics_runtime",
  "zircon_plugin_sdk",
 ]
 
@@ -6975,6 +7038,7 @@ dependencies = [
 name = "zircon_plugin_prefab_tools_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_prefab_tools_runtime",
  "zircon_plugin_sdk",
 ]
 
@@ -7054,6 +7118,7 @@ dependencies = [
 name = "zircon_plugin_rendering_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_rendering_runtime",
  "zircon_plugin_sdk",
 ]
 
@@ -7287,6 +7352,7 @@ dependencies = [
 name = "zircon_plugin_runtime_diagnostics_dist"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_runtime_diagnostics_editor",
  "zircon_plugin_sdk",
 ]
 
@@ -7296,6 +7362,7 @@ version = "0.1.0"
 dependencies = [
  "zircon_editor",
  "zircon_plugin_editor_support",
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -7315,6 +7382,7 @@ name = "zircon_plugin_sdk_examples_dist"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_sdk",
+ "zircon_plugin_sdk_examples_editor",
 ]
 
 [[package]]
@@ -7332,6 +7400,7 @@ name = "zircon_plugin_shader_wgsl_importer_dist"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_sdk",
+ "zircon_plugin_shader_wgsl_importer_runtime",
 ]
 
 [[package]]
@@ -7348,6 +7417,7 @@ name = "zircon_plugin_solari_dist"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_sdk",
+ "zircon_plugin_solari_runtime",
 ]
 
 [[package]]
@@ -7363,6 +7433,7 @@ name = "zircon_plugin_sound_dist"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_sdk",
+ "zircon_plugin_sound_runtime",
 ]
 
 [[package]]
@@ -7381,6 +7452,7 @@ name = "zircon_plugin_sound_ray_traced_convolution_dist"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_sdk",
+ "zircon_plugin_sound_ray_traced_convolution_runtime",
 ]
 
 [[package]]
@@ -7396,6 +7468,7 @@ dependencies = [
 name = "zircon_plugin_sound_ray_traced_convolution_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -7404,6 +7477,7 @@ name = "zircon_plugin_sound_runtime"
 version = "0.1.0"
 dependencies = [
  "kira",
+ "zircon_plugin_sdk",
  "zircon_plugin_sound_ray_traced_convolution_runtime",
  "zircon_plugin_sound_timeline_animation_runtime",
  "zircon_runtime",
@@ -7415,6 +7489,7 @@ name = "zircon_plugin_sound_timeline_animation_dist"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_sdk",
+ "zircon_plugin_sound_timeline_animation_runtime",
 ]
 
 [[package]]
@@ -7430,6 +7505,7 @@ dependencies = [
 name = "zircon_plugin_sound_timeline_animation_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_plugin_sdk",
  "zircon_runtime",
 ]
 
@@ -7438,6 +7514,7 @@ name = "zircon_plugin_terrain_dist"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_sdk",
+ "zircon_plugin_terrain_runtime",
 ]
 
 [[package]]
@@ -7464,6 +7541,7 @@ name = "zircon_plugin_texture_dist"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_sdk",
+ "zircon_plugin_texture_runtime",
 ]
 
 [[package]]
@@ -7481,6 +7559,7 @@ name = "zircon_plugin_texture_importer_dist"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_sdk",
+ "zircon_plugin_texture_importer_runtime",
 ]
 
 [[package]]
@@ -7492,9 +7571,9 @@ dependencies = [
  "psd",
  "serde",
  "toml",
- "zstd",
  "zircon_plugin_sdk",
  "zircon_runtime",
+ "zstd",
 ]
 
 [[package]]
@@ -7510,6 +7589,7 @@ name = "zircon_plugin_tilemap_2d_dist"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_sdk",
+ "zircon_plugin_tilemap_2d_runtime",
 ]
 
 [[package]]
@@ -7536,6 +7616,7 @@ name = "zircon_plugin_timeline_sequence_dist"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_sdk",
+ "zircon_plugin_timeline_sequence_editor",
 ]
 
 [[package]]
@@ -7544,6 +7625,7 @@ version = "0.1.0"
 dependencies = [
  "zircon_editor",
  "zircon_plugin_editor_support",
+ "zircon_plugin_sdk",
  "zircon_runtime",
  "zircon_runtime_interface",
 ]
@@ -7553,6 +7635,7 @@ name = "zircon_plugin_ui_asset_authoring_dist"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_sdk",
+ "zircon_plugin_ui_asset_authoring_editor",
 ]
 
 [[package]]
@@ -7561,6 +7644,7 @@ version = "0.1.0"
 dependencies = [
  "zircon_editor",
  "zircon_plugin_editor_support",
+ "zircon_plugin_sdk",
  "zircon_runtime",
  "zircon_runtime_interface",
 ]
@@ -7570,6 +7654,7 @@ name = "zircon_plugin_ui_document_importer_dist"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_sdk",
+ "zircon_plugin_ui_document_importer_runtime",
 ]
 
 [[package]]
@@ -7586,6 +7671,7 @@ name = "zircon_plugin_virtual_geometry_dist"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_sdk",
+ "zircon_plugin_virtual_geometry_runtime",
 ]
 
 [[package]]
@@ -7614,6 +7700,7 @@ name = "zircon_plugin_zr_vm_language_dist"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_sdk",
+ "zircon_plugin_zr_vm_language_runtime",
 ]
 
 [[package]]
@@ -7656,6 +7743,7 @@ dependencies = [
  "glyphon",
  "image",
  "libloading 0.9.0",
+ "libm",
  "meshopt",
  "naga",
  "nalgebra",
@@ -7679,6 +7767,7 @@ dependencies = [
  "tracing",
  "ttf-parser 0.25.1",
  "unicode-bidi",
+ "unicode-bidi-mirroring",
  "unicode-linebreak",
  "unicode-normalization",
  "unicode-script",
@@ -7692,6 +7781,8 @@ dependencies = [
  "zircon_reflect_derive",
  "zircon_runtime_interface",
  "zircon_runtime_reflection_macros",
+ "zr_rhi",
+ "zr_rhi_wgpu",
  "zstd",
 ]
 
@@ -7724,6 +7815,29 @@ name = "zmij"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
+
+[[package]]
+name = "zr_rhi"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "thiserror 2.0.18",
+ "winit",
+]
+
+[[package]]
+name = "zr_rhi_wgpu"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "glyphon",
+ "pollster",
+ "thiserror 2.0.18",
+ "wgpu",
+ "winit",
+ "zircon_runtime_interface",
+ "zr_rhi",
+]
 
 [[package]]
 name = "zr_vm_rust_binding"

@@ -19,6 +19,7 @@ fn hot_reload_transitions_through_reloading_state_and_emits_modified_event() {
             texture_record,
             texture_asset("res://textures/reload-success.png"),
         )
+        .unwrap()
         .typed::<TextureMarker>()
         .map(Handle::<TextureAsset>::from_resource_handle)
         .expect("texture handle");
@@ -41,10 +42,13 @@ fn hot_reload_transitions_through_reloading_state_and_emits_modified_event() {
         AssetEvent::Modified { .. }
     ));
 
-    manager.register_ready(
-        record("res://textures/reload-success.png", ResourceKind::Texture).with_source_hash("v2"),
-        texture_asset("res://textures/reload-success.png"),
-    );
+    manager
+        .register_ready(
+            record("res://textures/reload-success.png", ResourceKind::Texture)
+                .with_source_hash("v2"),
+            texture_asset("res://textures/reload-success.png"),
+        )
+        .unwrap();
     assert_eq!(textures.load_state(texture_handle), AssetLoadState::Loaded);
     assert!(matches!(
         texture_events.recv_timeout(Duration::from_secs(1)).unwrap(),
@@ -64,6 +68,7 @@ fn reload_failure_emits_reload_failed_event_and_lands_failed_state() {
             texture_record,
             texture_asset("res://textures/reload-failed.png"),
         )
+        .unwrap()
         .typed::<TextureMarker>()
         .map(Handle::<TextureAsset>::from_resource_handle)
         .expect("texture handle");
@@ -79,10 +84,12 @@ fn reload_failure_emits_reload_failed_event_and_lands_failed_state() {
         AssetEvent::Modified { .. }
     ));
 
-    manager.fail_reload(
-        texture_id,
-        vec![ResourceDiagnostic::error("hot reload decode failed")],
-    );
+    manager
+        .fail_reload(
+            texture_id,
+            vec![ResourceDiagnostic::error("hot reload decode failed")],
+        )
+        .unwrap();
     assert_eq!(textures.load_state(texture_handle), AssetLoadState::Failed);
     assert_eq!(
         textures.failure_reason(texture_handle).as_deref(),

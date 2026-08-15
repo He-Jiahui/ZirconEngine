@@ -41,7 +41,6 @@ fn atomic_controls_share_editor_visual_and_density_tokens() {
             "workbench_icon_button.zui",
             workbench_asset!("primitives/inputs/workbench_icon_button.zui"),
             &[
-                "$editor.surface.2",
                 "$editor.surface.hover",
                 "$editor.surface.3",
                 "$editor.surface.selected",
@@ -62,7 +61,6 @@ fn atomic_controls_share_editor_visual_and_density_tokens() {
             "workbench_rail_button.zui",
             workbench_asset!("primitives/chrome/workbench_rail_button.zui"),
             &[
-                "$editor.surface.2",
                 "$editor.surface.hover",
                 "$editor.surface.3",
                 "$editor.surface.selected",
@@ -97,6 +95,9 @@ fn atomic_controls_share_editor_visual_and_density_tokens() {
                 "$editor.control.radius.control",
                 "$editor.density.gap.small",
                 "$editor.density.gap.medium",
+                "$editor.density.axis_value_field.min_width",
+                "$editor.density.axis_value_field.preferred_width",
+                "$editor.density.axis_value_field.max_width",
                 "$editor.control.height.dense",
                 "$editor.control.height.compact",
                 "$editor.typography.body.size",

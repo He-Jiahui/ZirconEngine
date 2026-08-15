@@ -11,10 +11,12 @@ use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::super::data::SceneViewportChromeData;
 use super::super::data::{
-    FrameRect, HostMenuStateData, HostPaneInteractionStateData, HostPresentationGeneration,
-    HostWindowPresentationData,
+    FrameRect, HostDockPresentationPatch, HostMenuStateData, HostPaneInteractionStateData,
+    HostPresentationGeneration, HostWindowLayoutData, HostWindowPresentationData,
+    HostWindowShellData, TemplatePaneNodeData,
 };
 use super::UiHostWindow;
+use crate::ui::retained_host::primitives::ModelRc;
 
 pub(in crate::ui::retained_host::host_contract) use self::snapshot::host_presentation_from_state;
 
@@ -58,6 +60,47 @@ impl UiHostWindow {
         state.presentation_rebuild_count = state.presentation_rebuild_count.saturating_add(1);
         record_current_ui_perf_counter(UiPerfCounter::PresentationRebuildCount, 1.0);
         state.update_host_presentation(update)
+    }
+
+    pub(crate) fn update_host_presentation_if<R>(
+        &self,
+        predicate: impl FnOnce(&HostWindowPresentationData) -> bool,
+        update: impl FnOnce(&mut HostWindowPresentationData) -> R,
+    ) -> Option<R> {
+        let mut state = self.state.borrow_mut();
+        if !predicate(state.host_presentation.as_ref()) {
+            return None;
+        }
+        state.presentation_rebuild_count = state.presentation_rebuild_count.saturating_add(1);
+        record_current_ui_perf_counter(UiPerfCounter::PresentationRebuildCount, 1.0);
+        Some(state.update_host_presentation(update))
+    }
+
+    pub(crate) fn patch_workbench_window_nodes(
+        &self,
+        nodes: ModelRc<TemplatePaneNodeData>,
+        changed_rows: &[usize],
+    ) -> bool {
+        self.state
+            .borrow_mut()
+            .patch_workbench_window_nodes(nodes, changed_rows)
+    }
+
+    pub(crate) fn patch_host_presentation_dock(
+        &self,
+        expected_structure_generation: u64,
+        next_shell: HostWindowShellData,
+        next_layout: HostWindowLayoutData,
+        patch: HostDockPresentationPatch,
+        replacements: &[(ModelRc<TemplatePaneNodeData>, ModelRc<TemplatePaneNodeData>)],
+    ) -> bool {
+        self.state.borrow_mut().patch_host_presentation_dock(
+            expected_structure_generation,
+            next_shell,
+            next_layout,
+            patch,
+            replacements,
+        )
     }
 
     pub(crate) fn patch_scene_viewport_chrome(

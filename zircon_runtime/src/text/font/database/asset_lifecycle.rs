@@ -2,6 +2,8 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::sync::Arc;
 
+use glyphon::fontdb;
+
 use crate::asset::FontAsset;
 use crate::text::{FontFaceDescriptor, FontFaceId, FontFamilyName};
 
@@ -15,6 +17,42 @@ use crate::text::font::face_metadata::FontFaceMetadata;
 use crate::text::font::matching::font_family_identity;
 
 impl FontDatabase {
+    pub(crate) fn register_font_family_alias(
+        &mut self,
+        face: FontFaceId,
+        alias: FontFamilyName,
+    ) -> bool {
+        if alias.is_empty() || self.face(face).is_none() {
+            return false;
+        }
+        let alias_identity = font_family_identity(alias.as_str());
+        if self
+            .family_alias_index
+            .get(&alias_identity)
+            .is_some_and(|aliases| aliases.contains(&face))
+        {
+            return false;
+        }
+        let Some(primary_backend) = self.backend_faces.backend_face_id(face) else {
+            return false;
+        };
+        let Some(mut backend_alias) = self.backend_database.face(primary_backend).cloned() else {
+            return false;
+        };
+        backend_alias.id = fontdb::ID::dummy();
+        backend_alias.families = vec![(
+            (alias.as_str()).to_string(),
+            fontdb::Language::English_UnitedStates,
+        )];
+        backend_alias.post_script_name = alias.as_str().to_string();
+        let alias_backend = self.backend_database.push_face_info(backend_alias);
+        self.backend_faces.insert_alias(alias_backend, face);
+        let aliases = self.family_alias_index.entry(alias_identity).or_default();
+        aliases.push(face);
+        self.detach_face_dependent_caches();
+        true
+    }
+
     pub(crate) fn font_asset_primary_face(&self, owner: &str) -> Option<FontFaceId> {
         self.asset_owners
             .get(owner)?
@@ -209,13 +247,17 @@ impl FontDatabase {
         if remove_family {
             self.family_index.remove(&family);
         }
+        self.family_alias_index.retain(|_, aliases| {
+            aliases.retain(|candidate| *candidate != face);
+            !aliases.is_empty()
+        });
         self.source_face_index
             .retain(|_, candidate| *candidate != face);
         self.asset_source_index
             .retain(|_, candidate| *candidate != face);
         self.default_instances.remove(&face);
         self.instances.remove_face(face);
-        if let Some(backend) = self.backend_faces.remove_face(face) {
+        for backend in self.backend_faces.remove_face(face) {
             self.backend_database.remove_face(backend);
         }
         self.active_face_count = self.active_face_count.saturating_sub(1);

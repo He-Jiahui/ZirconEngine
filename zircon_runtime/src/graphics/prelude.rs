@@ -11,6 +11,8 @@ pub use super::{
     RenderPipelineAsset, RenderPipelineCompileOptions, RenderPipelineCompileReport,
     RuntimeGpuReadback, RuntimePrepareCollector, RuntimePrepareCollectorContext,
     RuntimePrepareCollectorFn, RuntimePrepareCollectorRegistration,
-    RuntimePrepareMaterialCaptureSeed, SceneRenderer, ViewportFrame, ViewportFrameTextureHandle,
-    ViewportRenderRegion, WgpuRenderFramework, RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
+    RuntimePrepareMaterialCaptureSeed, RuntimePrepareMeshGeometrySeed,
+    RuntimePrepareMeshSdfDeformationReason, RuntimePrepareMeshSdfSeed, SceneRenderer,
+    ViewportFrame, ViewportFrameTextureHandle, ViewportRenderRegion, WgpuRenderFramework,
+    RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
 };

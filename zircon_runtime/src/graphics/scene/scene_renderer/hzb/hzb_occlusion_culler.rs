@@ -2,7 +2,6 @@ use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
 use bytemuck::{Pod, Zeroable};
-use wgpu::util::DeviceExt;
 
 use crate::graphics::resource_limits::HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE;
 use crate::graphics::scene::scene_renderer::graph_execution::RenderPassMeshCommandLists;
@@ -14,7 +13,10 @@ use crate::graphics::visibility::{
 };
 use zr_rhi_wgpu::{GpuReadbackQueue, ReadbackError};
 
+use super::bind_group_cache::HzbOcclusionBindGroupCache;
+use super::params_workspace::HzbOcclusionParamsWorkspace;
 use super::phase_dispatch::{HzbOcclusionPhaseDispatch, HzbOcclusionPhaseDispatchSummary};
+use super::HzbSampledResourceIdentity;
 
 pub(crate) const HZB_OCCLUSION_CULL_PIPELINE_LABEL: &str = "zircon-hzb-occlusion-cull-pipeline";
 pub(crate) const HZB_OCCLUSION_CULL_WORKGROUP_SIZE: [u32; 3] = [64, 1, 1];
@@ -30,12 +32,11 @@ pub(crate) const HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE: &str =
 
 const HZB_OCCLUSION_DEPTH_BIAS: f32 = 0.001;
 const HZB_OCCLUSION_RADIUS_SCALE: f32 = 1.25;
-const HZB_OCCLUSION_CULL_PARAMS_BUFFER_SIZE: u64 =
+pub(super) const HZB_OCCLUSION_CULL_PARAMS_BUFFER_SIZE: u64 =
     std::mem::size_of::<HzbOcclusionCullParams>() as u64;
 pub(crate) const HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE: u64 =
     std::mem::size_of::<HzbOcclusionCullGpuStats>() as u64;
-const MAX_PENDING_HZB_STATS_READBACKS: usize = 4;
-const MAX_PENDING_HZB_INDIRECT_ARGS_READBACKS: usize = 4;
+const MAX_PENDING_HZB_DIAGNOSTIC_FRAMES: usize = 4;
 const HZB_OCCLUSION_CULL_SHADER: &str = concat!(
     include_str!("../mesh/shaders/zr_gpu_scene.wgsl"),
     "\n",
@@ -46,13 +47,13 @@ const HZB_OCCLUSION_CULL_SHADER: &str = concat!(
 
 #[repr(C, align(16))]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
-struct HzbOcclusionCullParams {
+pub(super) struct HzbOcclusionCullParams {
     counts: [u32; 4],
     values: [f32; 4],
 }
 
 impl HzbOcclusionCullParams {
-    fn new(args_count: u32) -> Self {
+    pub(super) fn new(args_count: u32) -> Self {
         Self {
             counts: [args_count, 0, 0, 0],
             values: [
@@ -88,7 +89,8 @@ impl HzbOcclusionCullGpuStats {
 pub(crate) struct HzbOcclusionCuller {
     bind_group_layout: wgpu::BindGroupLayout,
     pipeline: wgpu::ComputePipeline,
-    params_buffer: wgpu::Buffer,
+    params_workspace: Mutex<HzbOcclusionParamsWorkspace>,
+    bind_group_cache: Mutex<HzbOcclusionBindGroupCache>,
     stats_buffer: wgpu::Buffer,
     stats_readbacks: Arc<Mutex<HzbStatsReadbackQueue>>,
     pending_indirect_args: Mutex<VecDeque<PendingHzbIndirectArgs>>,
@@ -112,7 +114,7 @@ struct PendingHzbIndirectArgs {
 
 impl HzbStatsReadbackQueue {
     fn reserve(&mut self, source_frame_index: u64) -> bool {
-        if self.slots.len() >= MAX_PENDING_HZB_STATS_READBACKS {
+        if self.slots.len() >= MAX_PENDING_HZB_DIAGNOSTIC_FRAMES {
             self.dropped_count = self.dropped_count.saturating_add(1);
             return false;
         }
@@ -220,12 +222,6 @@ impl HzbOcclusionCuller {
             compilation_options: wgpu::PipelineCompilationOptions::default(),
             cache: None,
         });
-        let params_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("zircon-hzb-occlusion-cull-params"),
-            size: HZB_OCCLUSION_CULL_PARAMS_BUFFER_SIZE,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
         let stats_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("zircon-hzb-occlusion-cull-stats"),
             size: HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE,
@@ -237,7 +233,8 @@ impl HzbOcclusionCuller {
         Self {
             bind_group_layout,
             pipeline,
-            params_buffer,
+            params_workspace: Mutex::new(HzbOcclusionParamsWorkspace::default()),
+            bind_group_cache: Mutex::new(HzbOcclusionBindGroupCache::default()),
             stats_buffer,
             stats_readbacks: Arc::new(Mutex::new(HzbStatsReadbackQueue::default())),
             pending_indirect_args: Mutex::new(VecDeque::new()),
@@ -252,6 +249,7 @@ impl HzbOcclusionCuller {
         scene_bind_group: &wgpu::BindGroup,
         gpu_scene_bind_group: &wgpu::BindGroup,
         previous_hzb_view: &wgpu::TextureView,
+        sampled_resource_identity: HzbSampledResourceIdentity,
         mesh_draw_lists: RenderPassMeshCommandLists<'_>,
         history_available: bool,
     ) -> HzbOcclusionCullReport {
@@ -264,6 +262,9 @@ impl HzbOcclusionCuller {
         self.clear_stats(queue);
 
         let mut dispatch_summary = HzbOcclusionPhaseDispatchSummary::default();
+        let mut params_buffer_create_count = 0u32;
+        let mut params_upload_byte_count = 0u64;
+        let mut bind_group_create_count = 0u32;
         for execution in mesh_draw_lists
             .hzb_occlusion_indirect_executions()
             .into_iter()
@@ -275,14 +276,22 @@ impl HzbOcclusionCuller {
             execution
                 .compaction_resources()
                 .encode_clear_outputs(encoder);
-            self.execute_indirect_args_buffer(
+            let prepare_stats = self.execute_indirect_args_buffer(
                 device,
+                queue,
                 encoder,
                 scene_bind_group,
                 gpu_scene_bind_group,
                 previous_hzb_view,
+                sampled_resource_identity,
                 &phase_dispatch,
             );
+            params_buffer_create_count =
+                params_buffer_create_count.saturating_add(prepare_stats.params_buffer_create_count);
+            params_upload_byte_count =
+                params_upload_byte_count.saturating_add(prepare_stats.params_upload_byte_count);
+            bind_group_create_count =
+                bind_group_create_count.saturating_add(prepare_stats.bind_group_create_count);
             execution.mark_compaction_ready_for_replay();
             dispatch_summary.record_phase(&phase_dispatch);
         }
@@ -292,6 +301,11 @@ impl HzbOcclusionCuller {
             dispatch_summary.dispatch_group_count(),
             dispatch_summary.dispatched_phase_count(),
             history_available,
+        )
+        .with_workspace_stats(
+            params_buffer_create_count,
+            params_upload_byte_count,
+            bind_group_create_count,
         )
     }
 
@@ -306,44 +320,52 @@ impl HzbOcclusionCuller {
     fn execute_indirect_args_buffer(
         &self,
         device: &wgpu::Device,
+        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         scene_bind_group: &wgpu::BindGroup,
         gpu_scene_bind_group: &wgpu::BindGroup,
         previous_hzb_view: &wgpu::TextureView,
+        sampled_resource_identity: HzbSampledResourceIdentity,
         phase_dispatch: &HzbOcclusionPhaseDispatch<'_>,
-    ) {
+    ) -> HzbOcclusionWorkspacePrepareStats {
         let execution = phase_dispatch.execution();
-        self.encode_params_upload(device, encoder, phase_dispatch.args_count());
-        let bind_group = self.create_bind_group_for_execution(device, previous_hzb_view, execution);
+        let params = self
+            .params_workspace
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .prepare(
+                device,
+                queue,
+                execution.resource_identity().workspace_id(),
+                phase_dispatch.args_count(),
+            );
+        let mut bind_group_cache = self
+            .bind_group_cache
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let bind_group = bind_group_cache.prepare(
+            device,
+            &self.bind_group_layout,
+            sampled_resource_identity,
+            previous_hzb_view,
+            &params.buffer,
+            &self.stats_buffer,
+            execution,
+        );
         let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
             label: Some("zircon-hzb-occlusion-cull"),
             timestamp_writes: None,
         });
         pass.set_pipeline(&self.pipeline);
         pass.set_bind_group(0, scene_bind_group, &[]);
-        pass.set_bind_group(1, &bind_group, &[]);
+        pass.set_bind_group(1, bind_group.bind_group, &[]);
         pass.set_bind_group(3, gpu_scene_bind_group, &[]);
         pass.dispatch_workgroups(phase_dispatch.dispatch_group_count(), 1, 1);
-    }
-
-    fn encode_params_upload(
-        &self,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-        args_count: u32,
-    ) {
-        let upload = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("zircon-hzb-occlusion-cull-params-upload"),
-            contents: bytemuck::bytes_of(&HzbOcclusionCullParams::new(args_count)),
-            usage: wgpu::BufferUsages::COPY_SRC,
-        });
-        encoder.copy_buffer_to_buffer(
-            &upload,
-            0,
-            &self.params_buffer,
-            0,
-            HZB_OCCLUSION_CULL_PARAMS_BUFFER_SIZE,
-        );
+        HzbOcclusionWorkspacePrepareStats {
+            params_buffer_create_count: params.stats.created_buffer_count,
+            params_upload_byte_count: params.stats.uploaded_byte_count,
+            bind_group_create_count: u32::from(bind_group.created),
+        }
     }
 
     pub(crate) fn request_frame_readbacks(
@@ -351,65 +373,62 @@ impl HzbOcclusionCuller {
         queue: &mut GpuReadbackQueue,
         indirect_draws: &MeshPassIndirectDrawExecutions,
         source_frame_index: u64,
-        capture_indirect_args: bool,
     ) -> Result<(), ReadbackError> {
+        let indirect_args_admitted = self
+            .pending_indirect_args
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .len()
+            < MAX_PENDING_HZB_DIAGNOSTIC_FRAMES;
+        if !indirect_args_admitted {
+            self.stats_readbacks
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .record_drop();
+            return Ok(());
+        }
         let stats_readbacks = Arc::clone(&self.stats_readbacks);
-        if stats_readbacks
+        if !stats_readbacks
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .reserve(source_frame_index)
         {
-            if let Err(error) = queue.request_readback_external(
-                "hzb-occlusion.stats",
-                &self.stats_buffer,
-                0..HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE,
-                Box::new(move |result| {
-                    let mut readbacks = stats_readbacks
-                        .lock()
-                        .unwrap_or_else(|poisoned| poisoned.into_inner());
-                    let Some(stats) = result
-                        .ok()
-                        .and_then(|bytes| decode_gpu_stats(&bytes))
-                        .map(HzbOcclusionCullGpuStats::readback_stats)
-                    else {
-                        readbacks.fail(source_frame_index);
-                        return;
-                    };
-                    readbacks.complete(source_frame_index, stats);
-                }),
-            ) {
-                self.stats_readbacks
-                    .lock()
-                    .unwrap_or_else(|poisoned| poisoned.into_inner())
-                    .cancel(source_frame_index);
-                return Err(error);
-            }
+            return Ok(());
         }
-        if capture_indirect_args {
-            let can_request_indirect_args = {
-                let pending = self
-                    .pending_indirect_args
+        if let Err(error) = queue.request_readback_external(
+            "hzb-occlusion.stats",
+            &self.stats_buffer,
+            0..HZB_OCCLUSION_CULL_STATS_BUFFER_SIZE,
+            Box::new(move |result| {
+                let mut readbacks = stats_readbacks
                     .lock()
                     .unwrap_or_else(|poisoned| poisoned.into_inner());
-                pending.len() < MAX_PENDING_HZB_INDIRECT_ARGS_READBACKS
-            };
-            if !can_request_indirect_args {
-                self.stats_readbacks
-                    .lock()
-                    .unwrap_or_else(|poisoned| poisoned.into_inner())
-                    .record_drop();
-                return Ok(());
-            }
-            let indirect_args = indirect_draws
-                .request_hzb_occlusion_args_readbacks(queue, "hzb-occlusion.indirect-args")?;
-            self.pending_indirect_args
+                let Some(stats) = result
+                    .ok()
+                    .and_then(|bytes| decode_gpu_stats(&bytes))
+                    .map(HzbOcclusionCullGpuStats::readback_stats)
+                else {
+                    readbacks.fail(source_frame_index);
+                    return;
+                };
+                readbacks.complete(source_frame_index, stats);
+            }),
+        ) {
+            self.stats_readbacks
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner())
-                .push_back(PendingHzbIndirectArgs {
-                    source_frame_index,
-                    readbacks: indirect_args,
-                });
+                .cancel(source_frame_index);
+            return Err(error);
         }
+        let indirect_args = indirect_draws
+            .request_hzb_occlusion_args_readbacks(queue, "hzb-occlusion.indirect-args")?;
+        self.pending_indirect_args
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .push_back(PendingHzbIndirectArgs {
+                source_frame_index,
+                readbacks: indirect_args,
+            });
         Ok(())
     }
 
@@ -479,57 +498,13 @@ impl HzbOcclusionCuller {
     pub(crate) fn stats_buffer(&self) -> &wgpu::Buffer {
         &self.stats_buffer
     }
+}
 
-    fn create_bind_group_for_execution(
-        &self,
-        device: &wgpu::Device,
-        previous_hzb_view: &wgpu::TextureView,
-        execution: &MeshIndirectDrawExecution,
-    ) -> wgpu::BindGroup {
-        let compaction_resources = execution.compaction_resources();
-        device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("zircon-hzb-occlusion-cull-bind-group"),
-            layout: &self.bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(previous_hzb_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: self.params_buffer.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: execution.args_buffer().as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: compaction_resources.metadata_buffer().as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 4,
-                    resource: compaction_resources
-                        .visible_instance_index_buffer()
-                        .as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 5,
-                    resource: compaction_resources.draw_count_buffer().as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 6,
-                    resource: compaction_resources
-                        .compacted_indirect_args_buffer()
-                        .as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 7,
-                    resource: self.stats_buffer.as_entire_binding(),
-                },
-            ],
-        })
-    }
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct HzbOcclusionWorkspacePrepareStats {
+    params_buffer_create_count: u32,
+    params_upload_byte_count: u64,
+    bind_group_create_count: u32,
 }
 
 fn decode_gpu_stats(bytes: &[u8]) -> Option<HzbOcclusionCullGpuStats> {

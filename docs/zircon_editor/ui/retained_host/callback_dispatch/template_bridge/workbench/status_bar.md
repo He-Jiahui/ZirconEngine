@@ -4,7 +4,7 @@ related_code:
   - zircon_editor/src/ui/workbench/snapshot/data/editor_data_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot.rs
   - zircon_editor/src/ui/workbench/model/status_bar_model.rs
-  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access/status.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/template_bridges.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions.rs

@@ -49,4 +49,10 @@ Domain projection没有发布bounded immutable timeline generation、预格式�
 
 ## 修复结果与回传
 
-Open state: `待performance会话回传直接bounded tick修复；待Editor07回传timeline generation与scrub/static-dynamic counters`。
+Open state: `current source 已具备 pixel-column + hard-cap 的整数索引 tick admission；Editor07 已补齐 immutable timeline generation、预格式化 tick label 与 static/dynamic identity。仍待受管 Rust 验证、EditorUI08 static/dynamic compiled cache、Render13 bounded batch 与 1/100/10,000 keys 的完整规模证据，当前不得 fixed return`。
+
+## 产出记录与时间
+
+| 日期 | 里程碑/切片 | 状态 | 完成项目与验证证据 |
+|---|---|---|---|
+| 2026-08-08 | Timeline generation hard cut | 代码完成 / 二次审查 0/0/0 / failure 保持 `open` | 新增 `ui/timeline_strip` 作为唯一领域 owner：`TimelineStripGeneration` 持有不可变 keys、预格式化的 visual-budget tick 内容、static/dynamic generation identity；`TemplatePaneTimelineStripData` 删除 raw duration/current-time/tick-interval/`ModelRc` 字段。投影一次性构造 generation，painter 只消费 typed slices，不再自行格式化或读 ModelRc。审查揭示的跨 reprojection static reuse、key static-vs-selection dynamic identity 与 resize cache 无界问题已前向修复为按 `static_generation + visual_budget` 键控的 16-entry LRU，miss 在锁外构建并二次入库；并补齐 hard cap、非法输入、跨 generation `Arc` 复用与缓存上界回归。静态合同 RED 5 项后 GREEN 5/5；与 sample-grid、preview hit-index 合并为 12/12；Python 语法检查、Rust 逐文件解析、旧 consumer 零命中和 scoped `git diff --check` 已通过。两轮独立复审均为 0/0/0。受管 Cargo、EditorUI08 compiled cache、Render13 bounded batch 与完整规模证据仍待执行，故不关闭 failure。 |

@@ -6,8 +6,8 @@ use crate::core::editor_event::{
 };
 use crate::core::editor_message::SharedEditorMessageBus;
 
-use super::EditorEventStamp;
 use super::state::EditorEventSequenceState;
+use super::EditorEventStamp;
 
 /// Journal, listener, sequence, and revision owner for editor events.
 pub struct EditorEventService {
@@ -51,7 +51,12 @@ impl EditorEventService {
         {
             self.lock_journal().push(Arc::clone(&record));
         }
-        self.lock_listeners().notify(record);
+        let routes = { self.lock_listeners().delivery_routes() };
+        for route in routes.iter() {
+            if route.accepts(record.record()) {
+                route.enqueue(Arc::clone(&record));
+            }
+        }
     }
 
     pub fn journal(&self) -> EditorEventJournal {
