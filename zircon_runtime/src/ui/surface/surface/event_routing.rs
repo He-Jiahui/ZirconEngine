@@ -11,8 +11,7 @@ use crate::ui::tree::{
 use zircon_runtime_interface::ui::{
     dispatch::{
         UiDispatchReply, UiDispatchReplyStep, UiInputDispatchResult, UiInputEvent,
-        UiInputModifiers, UiNavigationDispatchResult, UiPointerDispatchEffect,
-        UiPointerDispatchResult, UiPointerEvent,
+        UiInputModifiers, UiNavigationDispatchResult, UiPointerDispatchResult, UiPointerEvent,
     },
     event_ui::UiNodeId,
     focus::{UiFocusChangeReason, UiFocusVisible, UiFocusVisibleReason},
@@ -207,7 +206,7 @@ impl UiSurface {
             modifiers,
             event.scroll_delta,
         )?;
-        let mut result = dispatcher.dispatch(&self.tree, route.clone())?;
+        let mut result = dispatcher.dispatch(&self.tree, route)?;
         if let Some(node_id) = result.captured_by {
             if capture_before_dispatch != Some(node_id) {
                 result.diagnostics.capture_started = true;
@@ -225,27 +224,10 @@ impl UiSurface {
             }
         }
         if let Some(node_id) = result.focus_changed_to {
-            let focus_visible = result
-                .invocations
-                .iter()
-                .rev()
-                .find_map(|invocation| match invocation.effect {
-                    UiPointerDispatchEffect::SetFocus { focus_visible }
-                        if invocation.node_id == node_id =>
-                    {
-                        Some(focus_visible)
-                    }
-                    _ => None,
-                })
-                .unwrap_or(false);
             self.focus_node_with_reason(
                 node_id,
                 UiFocusChangeReason::Input,
-                if focus_visible {
-                    UiFocusVisible::visible(UiFocusVisibleReason::PointerInteraction)
-                } else {
-                    UiFocusVisible::hidden(UiFocusVisibleReason::PointerInteraction)
-                },
+                UiFocusVisible::hidden(UiFocusVisibleReason::PointerInteraction),
             )?;
         }
         if result.focus_cleared {
@@ -398,16 +380,23 @@ impl UiSurface {
     ) -> Result<UiPointerRoute, UiTreeError> {
         let point = query.hit_point();
         let hit = self.hit_test_with_query(query);
-        let previous_hovered = self.focus.hovered.clone();
         let captured = self.focus.captured;
         let previous_pressed = self.focus.pressed;
         let target = captured.or(hit.top_hit);
-        let bubbled = match target {
-            Some(node_id) => self.tree.bubble_route(node_id)?,
-            None => Vec::new(),
+        let bubbled = match (captured, target) {
+            (None, Some(node_id)) if hit.path.target == Some(node_id) => {
+                hit.path.bubble_route.clone()
+            }
+            (_, Some(node_id)) => self.tree.bubble_route(node_id)?,
+            (_, None) => Vec::new(),
         };
 
-        self.focus.hovered = hit.stacked.clone();
+        let (entered, left) = if hit.stacked == self.focus.hovered {
+            (Vec::new(), Vec::new())
+        } else {
+            let previous_hovered = std::mem::replace(&mut self.focus.hovered, hit.stacked.clone());
+            hover_diff(&hit.stacked, &previous_hovered)
+        };
         if matches!(kind, UiPointerEventKind::Down) {
             self.focus.pressed = target;
             if let Some(focus_target) = self
@@ -456,11 +445,11 @@ impl UiSurface {
             point,
             scroll_delta,
             target,
-            hit_path: hit.path.clone(),
+            hit_path: hit.path,
             bubbled,
-            stacked: hit.stacked.clone(),
-            entered: diff_nodes(&hit.stacked, &previous_hovered),
-            left: diff_nodes(&previous_hovered, &hit.stacked),
+            stacked: hit.stacked,
+            entered,
+            left,
             captured,
             pressed,
             click_target,
@@ -524,7 +513,7 @@ impl UiSurface {
                 }
             }
         }
-        let mut result = dispatcher.dispatch(&self.tree, route.clone())?;
+        let mut result = dispatcher.dispatch(&self.tree, route)?;
         if result.focus_changed_to.is_none() {
             if let Some(node_id) = self.tree.next_navigation_target(route.target, route.kind)? {
                 result.handled_by = Some(route.target.unwrap_or(node_id));
@@ -542,12 +531,40 @@ impl UiSurface {
     }
 }
 
-fn diff_nodes(current: &[UiNodeId], previous: &[UiNodeId]) -> Vec<UiNodeId> {
-    current
+fn hover_diff(current: &[UiNodeId], previous: &[UiNodeId]) -> (Vec<UiNodeId>, Vec<UiNodeId>) {
+    if current == previous {
+        return (Vec::new(), Vec::new());
+    }
+    let entered = current
         .iter()
         .filter(|node_id| !previous.contains(node_id))
         .copied()
-        .collect()
+        .collect();
+    let left = previous
+        .iter()
+        .filter(|node_id| !current.contains(node_id))
+        .copied()
+        .collect();
+    (entered, left)
+}
+
+#[cfg(test)]
+mod hot_path_tests {
+    use super::hover_diff;
+    use zircon_runtime_interface::ui::event_ui::UiNodeId;
+
+    #[test]
+    fn hover_diff_preserves_route_order_without_set_allocation() {
+        let shared = UiNodeId::new(1);
+        let previous_leaf = UiNodeId::new(2);
+        let current_leaf = UiNodeId::new(3);
+
+        assert_eq!(
+            hover_diff(&[current_leaf, shared], &[previous_leaf, shared]),
+            (vec![current_leaf], vec![previous_leaf])
+        );
+        assert_eq!(hover_diff(&[shared], &[shared]), (Vec::new(), Vec::new()));
+    }
 }
 
 fn activation_phase(
