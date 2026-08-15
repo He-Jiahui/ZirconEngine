@@ -25,8 +25,8 @@ resolved_at: 2026-08-14
 ## 来源执行者
 
 - 来源计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
-- 触发切片：compile-time resource input closure candidate closeout.
-- 修复责任计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`.
+- 来源执行切片：compile-time resource input closure candidate closeout.
+- 修复责任计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
 - 交接原因：`IntegrationCandidateService` owns candidate state transitions, while the shared stale-lock classifier is currently owned by the Coordinator finalize infrastructure.
 
 ## 失败现象与复现证据
