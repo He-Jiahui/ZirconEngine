@@ -2,7 +2,7 @@
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-当前已完成 lifecycle/registry、event/task execution、diagnostics/profiling/config、resource/asset/serialization、scene/ECS/world lifecycle、platform/input/process host、script/plugin runtime，Physics、Audio、Animation、Navigation、Network，RHI/Render Graph/GPU lifetime，renderer/visibility/GPU Scene，material/shader/pipeline/PSO，render asset streaming/residency，direct lighting/clustered light grid/shadow，environment/sky/IBL/reflection probe，baked lighting/lightmap/irradiance volume/offline bake、Hybrid GI、Volumetric Fog/Froxel、advanced surface lighting、temporal AA/velocity/history/upscaling，以及exposure/color/bloom/DOF/motion blur/SSR/terminal composition的首轮 E3 审查；runtime UI/text/accessibility尚未完成。
+当前已完成 lifecycle/registry、event/task execution、diagnostics/profiling/config、resource/asset/serialization、scene/ECS/world lifecycle、platform/input/process host、script/plugin runtime，Physics、Audio、Animation、Navigation、Network，RHI/Render Graph/GPU lifetime，renderer/visibility/GPU Scene，material/shader/pipeline/PSO，render asset streaming/residency，direct lighting/clustered light grid/shadow，environment/sky/IBL/reflection probe，baked lighting/lightmap/irradiance volume/offline bake、Hybrid GI、Volumetric Fog/Froxel、advanced surface lighting、temporal AA/velocity/history/upscaling、exposure/color/bloom/DOF/motion blur/SSR/terminal composition，以及runtime UI architecture/tree/layout/input/accessibility的首轮 E3 审查；runtime text/font与GPU UI renderer尚未完成。
 
 | 编号 | 审查单元 | 当前概述 |
 |---|---|---|
@@ -30,6 +30,8 @@
 | [09G2](09g2-advanced-surface-lighting-review.md) | Light cookie / OIT / planar reflection / SSS / transmission | 已确认普通World不产出Cookie/OIT/Planar、Editor plugin仅登记能力，OIT将HDR压为UNORM且固定per-pixel overflow直接丢片元，Planar共享纹理与最小ID参数在多probe时错配，SSS固定192 candidate/像素且无profile/thickness/quality预算，Transmission为normal.xy屏幕偏移并会二次应用Volumetric Fog |
 | [09H1](09h1-temporal-aa-velocity-history-upscaling-review.md) | Temporal AA / velocity / history / upscaling | 已确认full-frame equality使正常camera/mesh/animation/particle变化逐帧失效history，ViewFamily只校验不进入提交/资源链，动态分辨率TAA会混绑render-size输出与display-size history，camera velocity混用尺寸域，particle velocity仅test fixture可达，MSAA只有descriptor无pipeline/resolve，FXAA/SMAA/upscale算法身份与provider/DRS/产品证据均不完整 |
 | [09H2](09h2-exposure-color-bloom-dof-motion-blur-ssr-terminal-review.md) | Exposure / color / bloom / DOF / motion blur / SSR / terminal composition | 已确认HDR在baked LUT前被clamp、默认None tonemap写固定LDR、HDR output enum未接生产链、曝光复用全局history且固定1/60秒、15类Volume registry仅四类可持久化、Overlay复用base settings、Motion Blur单位/neighbor-max与SSR BRDF/fallback合同错误，以及Bloom/DOF/SSR性能算法和当前artifact不足 |
-| 11 | Runtime UI/text/accessibility | queued |
+| [11A](11a-runtime-ui-architecture-tree-layout-input-accessibility-review.md) | Runtime UI architecture / tree / layout / input / accessibility | 已确认产品dispatch结果与host request丢失、timer/window lifecycle未接入、空module driver与多owner、Tree/hit-grid安全缺口、临时Taffy、伪virtualization、焦点/弹窗字符串权威、Accessibility无OS adapter及WorldSpace descriptor-only false surface |
+| 11B | Runtime text / font / shaping / editing / IME | queued |
+| 11C | GPU UI renderer / atlas / SDF / batch / clip / submit | queued |
 
 既有 `docs/plans/zircon_runtime/` 计划仍是实现 owner；本目录负责以 current source 重新核对其工程化完成度。发现状态与既有计划冲突时，由编号审查计划列出需要重开的条目，不在索引复制证据。

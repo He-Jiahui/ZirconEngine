@@ -2,7 +2,7 @@
 
 ## 1. 用途
 
-本账本记录“物理上读到了哪里”和证据等级，不记录里程碑验收结果。数字是 2026-08-15 当前工作区快照，包含测试代码；工作区存在大量其他会话修改，因此每个深审单元在写入修复计划前仍需重新取指纹并复核重叠文件。
+本账本记录“物理上读到了哪里”和证据等级，不记录里程碑验收结果。workspace总量数字是 2026-08-15 快照，最新UI切片更新于 2026-08-16，均包含测试代码；工作区存在大量其他会话修改，因此每个深审单元在写入修复计划前仍需重新取指纹并复核重叠文件。
 
 证据等级使用主计划的 E0-E4 定义。`queued` 仅表示已建立扫描范围，不表示不存在问题。
 
@@ -11,7 +11,7 @@
 | package/domain | Rust 文件 | Rust 行数 | 当前深审状态 |
 |---|---:|---:|---|
 | `zircon_app` | 190 | 28,885 | 局部 E3：bootstrap/session teardown及runtime entry window/input/surface/cadence host；其余 queued |
-| `zircon_runtime` | 7,643 | 1,081,110 | 局部 E3：core/runtime/resource/scene/platform/systems及graphics到temporal AA/velocity/history/upscaling；其余 queued |
+| `zircon_runtime` | 7,643 | 1,081,110 | 局部 E3：core/runtime/resource/scene/platform/systems、graphics到terminal composition及runtime UI architecture/tree/layout/input/accessibility；其余 queued |
 | `zircon_runtime_interface` | 416 | 49,572 | 局部 E2：runtime event V1 input/window/lifecycle shape；其余 queued |
 | `zircon_editor` | 5,711 | 563,950 | 局部 E3：process tree、Play process与export process output调用点；其余 queued |
 | `zircon_plugins` | 2,817 | 221,355 | 局部 E3：plugin SDK、ZrVM real backend、first-party catalog与公共注册面；feature内部算法仍queued |
@@ -566,7 +566,34 @@ Exposure / Color / Bloom / DOF / Motion Blur / SSR / Terminal轮次详细阅读�
 
 本轮没有运行Cargo、Editor、WGPU或RenderDoc，没有重导出artifact，也未执行HDR monitor、exposure动态序列、Bloom firefly、foreground DOF、fast-thin motion、rough/offscreen SSR、camera stack、4K/stereo/XR、device loss或同画质benchmark。focused set中42个文件存在其他Session修改或untracked状态，09H2标记`source_recheck_required`。2026-07-05旧日志虽记录12个post-process product tests通过，唯一旧PNG却含大面积洋红/青色颗粒；2026-08-01 current-source exporter又在session coordinator超时，均不能证明当前颜色/效果产品完成。
 
-## 25. 测试形态快照
+## 25. Runtime UI Architecture / Tree / Layout / Input / Accessibility 物理范围
+
+| 子域 | 文件/行数 | 本轮状态 |
+|---|---:|---|
+| `zircon_runtime/src/ui` architecture production | 370 / 70,644 | E3：module、tree、layout、surface、dispatch、binding、event、component、template/v2、accessibility、platform input |
+| `zircon_runtime_interface/src/ui` architecture production | 196 / 17,732 | E3：tree/layout/focus/navigation/input/window/a11y/component/template/ECS DTO；text/render延后 |
+| dedicated architecture tests | 372 / 89,208 | E2：1,482个test属性、1个ignored；关键行为交叉核对 |
+| deferred UI text/render integration | 120 / 30,333 | queued：11B/11C |
+| dynamic product bridge | 6 / 2,952 | E3：5 modified + `runtime_ui.rs` untracked，实施前source recheck |
+| production architecture fingerprints | 370 + 196 | Runtime `414e14cd2dd03f73f10886b93d58d5d2aa26a4ebb2b2ef34e773f5316afe6e54`；Interface `6e3f27c235509e9699e9aa300b88a73ff484f6d55ada588ad9eea9af8b249359` |
+
+Runtime UI architecture轮次详细阅读覆盖：
+
+- 从project manifest `ui_roots`追踪prototype store、v2 surface build、dynamic session construction、multi-surface render/input/accessibility、host request drain和window/lifecycle event；
+- 确认产品把`UiInputDispatchResult`压成bool，component/binding/clipboard/popup/tooltip/pointer lock/link/IME host request全部丢失，gameplay没有权威action/data-binding接口；
+- 确认每surface `UiInputManager`从不tick、timestamp恒0，dynamic bridge没有调用已有window pump，DPI/raster scale/focus loss/application deactivate/close与UI脱节；
+- 确认`UiRuntimeDriver`为空、`UiConfig.enabled`无消费者，module event manager只被Editor使用，真实surface owner位于未跟踪dynamic session文件，test manager又是`#[cfg(test)]`；
+- 逐读incremental layout/Taffy bridge，确认局部subtree patch真实存在，但每container临时创建direct-leaf Taffy tree后丢弃，不是persistent graph；mixed backend和uniform grid只提供近似语义；
+- 逐读virtual list/scroll/pool，确认全部child仍物化和measure/arrange，visible range只隐藏subtree；pool主要为Editor特定row bridge且无通用budget/eviction；
+- 逐读Tree mutation与hit grid，确认public graph可绕过transaction，顺序insert为O(N²)，递归路径缺统一cycle/depth guard；hit grid没有finite/checked cell/bytes budget，可被巨大bounds触发overflow/OOM；
+- 逐读focus/navigation/popup，确认每event全树候选收集/排序、多个公开boundary/restore/group契约未消费，modal/popup依赖MUI组件名和属性alias；
+- 逐读accessibility extract/action/AccessKit converter，确认neutral snapshot/action基础真实，但产品只有JSON capture，无OS window adapter、incremental TreeUpdate/action callback/focus lifecycle，role/relation/live schema不足；
+- 反查UI ECS和WorldSpaceSurface，确认前者只是昂贵diagnostic projection，后者只有catalog/capability/tests，无scene/camera/render/ray-hit产品consumer；
+- 对照Bevy persistent UiSurface/Taffy schedule、Fyrox UserInterface dt/update、Unreal SlateApplication/invalidation/platform accessibility、Godot DisplayServer IME/AccessibilityServer。
+
+本轮没有运行Cargo、Editor、产品、屏幕阅读器、WGPU、真实IME/触控/手写笔或性能采样。architecture范围有68个dirty production文件，dynamic bridge 6/6均modified/untracked；11A标记`source_recheck_required`。详细发现与7 P0、31 P1、8 P2见`zircon_runtime/11a-runtime-ui-architecture-tree-layout-input-accessibility-review.md`。
+
+## 26. 测试形态快照
 
 `core::runtime` 的 activation/registration/resolution 三组测试共有 96 个 `#[test]`，同时出现 94 次 `include_str!` 和 641 次 `.contains(...)`。这说明测试数量不能直接代表行为置信度：大量断言锁定源文件文本、文件拆分和 1-5 元特化分支，而非并发状态机、停机闭环和活对象语义。
 
@@ -574,10 +601,10 @@ Exposure / Color / Bloom / DOF / Motion Blur / SSR / Terminal轮次详细阅读�
 
 本轮未发现有效行为覆盖：同一模块 activate/activate 与 activate/deactivate 竞争、真实 `cleanup` 后 observer veto 回滚、单模块 activation 的 dependency closure、同 kind 服务反向拓扑、产品退出触发全量 cleanup、卸载后外部强引用的可撤销性。
 
-## 26. 后续扫描队列
+## 27. 后续扫描队列
 
 1. Runtime systems：Physics、Audio、Animation、Navigation与Network已完成首轮E3静态审查；script/plugin runtime已完成首轮公共控制面审查，feature内部算法随所属系统复核。
-2. Graphics：RHI、Render Graph、GPU lifetime、renderer/visibility/GPU Scene、material/shader/pipeline/PSO、render asset streaming/residency、direct lighting/clustered light grid/shadow、environment/sky/IBL/reflection probe、baked lighting/lightmap/irradiance volume/offline bake、Hybrid GI、Volumetric Fog/Froxel、advanced surface lighting、temporal AA/velocity/history/upscaling，以及exposure/color/bloom/DOF/motion blur/SSR/terminal composition已完成首轮E3静态审查；继续runtime UI/text/accessibility。
+2. Graphics/UI：RHI、Render Graph、GPU lifetime、renderer/visibility/GPU Scene、material/shader/pipeline/PSO、render asset streaming/residency、direct lighting/clustered light grid/shadow、environment/sky/IBL/reflection probe、baked lighting/lightmap/irradiance volume/offline bake、Hybrid GI、Volumetric Fog/Froxel、advanced surface lighting、temporal AA/velocity/history/upscaling、exposure/color/bloom/DOF/motion blur/SSR/terminal composition，以及runtime UI architecture/tree/layout/input/accessibility已完成首轮E3静态审查；继续11B text/font与11C GPU UI renderer。
 3. Host/ABI/Plugin：`zircon_app`、`zircon_runtime_interface`、dynamic library/session、plugin SDK剩余面。
 4. Editor/Hub：authoring transaction、viewport/runtime bridge、content workflow、项目与引擎管理。
 5. Tooling：workspace、derive/codegen、验证器、CI、打包与长期性能基线。

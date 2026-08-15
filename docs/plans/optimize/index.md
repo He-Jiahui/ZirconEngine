@@ -4,7 +4,7 @@
 
 本目录承接 ZirconEngine 对 Unreal、Fyrox、Bevy、Godot 与仓内 Unity Graphics 参考源码的全量工程化差距审查。审查规则、分层顺序和完成定义由 [00-engine-wide-review.md](00-engine-wide-review.md) 统一拥有；物理扫描进度由 [coverage.md](coverage.md) 维护。
 
-当前已完成 `zircon_runtime` 从core lifecycle到advanced surface lighting、temporal AA/velocity/history/upscaling，以及exposure/color/bloom/DOF/motion blur/SSR/terminal composition的连续首轮纵向深审，整个引擎仍处于 `in_progress`；runtime UI以及App、ABI、Editor、Plugins、Hub和Tooling大范围仍待审。没有进入编号子计划并达到 E2/E3 的模块不得视为已审查，也不得由本页给出“完整”结论。
+当前已完成 `zircon_runtime` 从core lifecycle到advanced surface lighting、temporal AA/velocity/history/upscaling、exposure/color/bloom/DOF/motion blur/SSR/terminal composition，以及runtime UI architecture/tree/layout/input/accessibility的连续首轮纵向深审，整个引擎仍处于 `in_progress`；runtime text/font与GPU UI renderer，以及App、ABI、Editor、Plugins、Hub和Tooling大范围仍待审。没有进入编号子计划并达到 E2/E3 的模块不得视为已审查，也不得由本页给出“完整”结论。
 
 ## 分类
 
@@ -23,5 +23,6 @@
 - Runtime 生产入口只激活模块，未形成统一的反向停机调用链；进程级 task/timer worker 又未参加动态会话销毁。
 - 模块 deactivation 在可拒绝通知之前执行 `cleanup`，失败后却恢复 `Running`，破坏生命周期原子性。
 - 模块状态转换缺少并发所有者、等待/取消和合法迁移校验；服务卸载又向公开调用方返回不可撤销的强 `Arc<T>`。
+- Runtime UI 产品桥把完整 dispatch result 压缩成 `bool`，组件事件、binding、clipboard、popup、pointer lock、link和IME host request全部丢失；每surface input manager又未tick或接收window lifecycle。
 
-详细证据和重构路线由 [zircon_runtime/01-core-runtime-lifecycle-registry-review.md](zircon_runtime/01-core-runtime-lifecycle-registry-review.md) 与 [zircon_runtime/02-core-runtime-events-tasks-review.md](zircon_runtime/02-core-runtime-events-tasks-review.md) 分别拥有。
+详细证据和重构路线由 [zircon_runtime/01-core-runtime-lifecycle-registry-review.md](zircon_runtime/01-core-runtime-lifecycle-registry-review.md)、[zircon_runtime/02-core-runtime-events-tasks-review.md](zircon_runtime/02-core-runtime-events-tasks-review.md) 与 [zircon_runtime/11a-runtime-ui-architecture-tree-layout-input-accessibility-review.md](zircon_runtime/11a-runtime-ui-architecture-tree-layout-input-accessibility-review.md) 分别拥有。
