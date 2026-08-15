@@ -10,9 +10,18 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: local
 related_code:
-  - tools/zircon-session.ps1
+  - tools/session_coordinator/failure_dependency_graph.py
+  - tools/session_coordinator/failures.py
+  - tools/session_coordinator/migrations.py
+  - tools/session_coordinator/control_plane/snapshot.py
+  - tools/session_coordinator/tests/test_failures.py
+  - tools/session_coordinator/tests/test_database.py
+  - tools/session_coordinator/tests/test_control_snapshot.py
 tests:
   - .\tools\zircon-session.ps1 failure audit
+  - python -m unittest tools.session_coordinator.tests.test_failures -v
+  - python -m unittest tools.session_coordinator.tests.test_database -v
+  - python -m unittest tools.session_coordinator.tests.test_control_snapshot.ControlSnapshotTests.test_failure_diagnostics_project_structured_details -v
 ---
 
 # Coordinator01: failure dependency graph contains ownership cycles
@@ -175,7 +184,7 @@ The repository has accumulated valid-looking pairwise handoffs without enforcing
 - Performance01 的 picking 类型锚已在当前源码落地并多次不再复现原 E0277；该 artifact 仍因外部整库编译 blocker 缺少 focused Picking 与 Runtime12 mirror 的最终 managed 1/1。完成这条现有验收并按原 lifecycle return，是 SCC 1 最早且不篡改 ownership 的安全断边。
 - SCC 2 必须按上方 55 个 exact artifacts 分别复核。`source complete / managed validation pending` 的 artifact 应优先完成原 gate 与 fixed return；仍缺生产合同的 artifact 保持原 owner。不得把 22-plan SCC 批量重定向到 Coordinator01，也不得把 plan-level cycle 当作任一产品 Failure 已修复。
 
-## 当前快照审计（2026-08-15）
+## 前一快照审计（2026-08-15）
 
 - An immutable current-source parse of 614 handoff artifacts reports
   `15 cycle + 8 excessive_depth + 40 schema_validation + 1 self_edge`.
@@ -195,14 +204,34 @@ The repository has accumulated valid-looking pairwise handoffs without enforcing
   a handoff during parsing. No mixed snapshot was published; current counts come
   from the same immutable snapshot preparation path without the database write.
 
+## Schema 63 SCC 清单投影（2026-08-15）
+
+- RED proof first established that `GraphDiagnostic` had no structured details,
+  `failure_diagnostics` had no `details_json`, and the control snapshot could not
+  expose an exact SCC edge inventory.
+- Coordinator now computes deterministic strongly connected components rather
+  than reporting traversal-dependent DFS back-edges. Each `cycle` diagnostic
+  carries a stable SHA-256 `componentId`, the sorted component plans, every
+  internal `originPlan -> fixingPlan` edge, and the sorted exact failure
+  artifacts that contribute that edge.
+- Schema 63 persists those details in `failure_diagnostics.details_json`; legacy
+  diagnostics migrate with `{}` and retain their code, message, paths and
+  timestamp. The control snapshot projects the same structured object.
+- An immutable current-source preparation over `619` handoff artifacts produced
+  `2 cycle SCC + 8 excessive_depth + 65 schema_validation + 3 self_edge`.
+  The nontrivial SCC is `a26ff7596d79` with `22 plans / 59 edges / 69 exact
+  artifacts`; the second is the independent self-loop `4854bc37d50e` with
+  `1 plan / 1 edge / 1 artifact`.
+- The eight depth diagnostics remain present. This change makes repair evidence
+  exact and durable; it does not suppress depth, relabel foreign ownership, or
+  claim that the underlying cycles are fixed.
+
 ## 修复结果与回传
 
-Open state: `SCC inventory current / Coordinator schema clean / owner forward repairs pending`.
-The current immutable snapshot reports 15 cycle diagnostics and eight derived
-depth diagnostics. The exact SCC edge inventory above remains the ownership
-baseline; the 2026-08-15 section records subsequent drift and the new Editor14
-self-edge. SCC 1 has no misowned edge; its earliest safe break is the ordinary
-fixed return of the source-complete picking artifact after the missing managed
-evidence is accepted. SCC 2 requires the same artifact-by-artifact process,
-beginning with source-complete artifacts whose only remaining dependency is
-managed evidence. No cycle or depth diagnostic is yet claimed fixed.
+Open state: `durable SCC inventory implemented / owner forward repairs pending`.
+Schema 63 has replaced traversal-shaped cycle paths with two deterministic SCC
+inventories and exact edge artifacts. The historical edge list above remains
+useful review context, while the durable `details_json` projection is now the
+canonical current-source inventory. Foreign plans must still close or correct
+their factual handoffs one artifact at a time. No cycle, depth, schema or
+self-edge diagnostic is claimed fixed by this Coordinator-only repair.

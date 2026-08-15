@@ -502,6 +502,61 @@ class FailureGraphTests(unittest.TestCase):
         self.assertIn("self_edge", codes)
         self.assertIn("duplicate_lifecycle", codes)
 
+    def test_cycle_inventory_groups_one_scc_with_exact_edge_artifacts_durably(self) -> None:
+        plan_a = self.fixture.add_plan("docs/plans/a/01-a.md")
+        plan_b = self.fixture.add_plan("docs/plans/b/02-b.md")
+        plan_c = self.fixture.add_plan("docs/plans/c/03-c.md")
+        a_to_b = (
+            self.fixture.add_handoff(plan_a, plan_b, "a-to-b-first"),
+            self.fixture.add_handoff(plan_a, plan_b, "a-to-b-second"),
+        )
+        b_to_c = self.fixture.add_handoff(plan_b, plan_c, "b-to-c")
+        c_to_a = self.fixture.add_handoff(plan_c, plan_a, "c-to-a")
+        artifacts = (*a_to_b, b_to_c, c_to_a)
+
+        imported = self.service.import_repository()
+        cycle = next(item for item in imported.diagnostics if item.code == "cycle")
+        persisted = next(
+            item for item in self.service.audit().diagnostics if item.code == "cycle"
+        )
+
+        expected_plans = [
+            plan.path.relative_to(self.root).as_posix()
+            for plan in (plan_a, plan_b, plan_c)
+        ]
+        expected_artifacts = sorted(
+            path.relative_to(self.root).as_posix() for path in artifacts
+        )
+        self.assertEqual(
+            1, len([item for item in imported.diagnostics if item.code == "cycle"])
+        )
+        self.assertRegex(cycle.details["componentId"], r"^[0-9a-f]{64}$")
+        self.assertEqual(expected_plans, cycle.details["plans"])
+        self.assertEqual(
+            [
+                {
+                    "originPlan": expected_plans[0],
+                    "fixingPlan": expected_plans[1],
+                    "artifacts": sorted(
+                        path.relative_to(self.root).as_posix() for path in a_to_b
+                    ),
+                },
+                {
+                    "originPlan": expected_plans[1],
+                    "fixingPlan": expected_plans[2],
+                    "artifacts": [b_to_c.relative_to(self.root).as_posix()],
+                },
+                {
+                    "originPlan": expected_plans[2],
+                    "fixingPlan": expected_plans[0],
+                    "artifacts": [c_to_a.relative_to(self.root).as_posix()],
+                },
+            ],
+            cycle.details["edges"],
+        )
+        self.assertEqual(tuple(expected_artifacts), cycle.paths)
+        self.assertEqual(cycle, persisted)
+
     def test_live_dependency_graph_ignores_fixed_handoff_history(self) -> None:
         plan_a = self.fixture.add_plan("docs/plans/a/01-a.md")
         plan_b = self.fixture.add_plan("docs/plans/b/02-b.md")

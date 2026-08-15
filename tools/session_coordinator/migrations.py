@@ -14,7 +14,7 @@ from .models import CoordinatorError
 from .supervision.migration import migrate_supervision_schema
 
 
-LATEST_SCHEMA_VERSION = 62
+LATEST_SCHEMA_VERSION = 63
 
 
 def _migration_1(connection: Connection) -> None:
@@ -2607,6 +2607,16 @@ def _migration_62(connection: Connection) -> None:
     )
 
 
+def _migration_63(connection: Connection) -> None:
+    """Preserve structured failure dependency diagnostics."""
+    connection.execute(
+        """
+        ALTER TABLE failure_diagnostics
+            ADD COLUMN details_json TEXT NOT NULL DEFAULT '{}'
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -2670,6 +2680,7 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     60: _migration_60,
     61: _migration_61,
     62: _migration_62,
+    63: _migration_63,
 }
 
 

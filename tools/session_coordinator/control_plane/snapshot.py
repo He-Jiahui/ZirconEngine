@@ -224,6 +224,7 @@ class ControlSnapshotService:
                 "code": row["code"],
                 "message": row["message"],
                 "paths": json.loads(row["paths_json"]),
+                "details": json.loads(row["details_json"]),
                 "createdAt": row["created_at"],
             }
             for row in connection.execute(

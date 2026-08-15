@@ -24,6 +24,39 @@ from tools.session_coordinator.workflows.store import WorkflowStore
 
 
 class ControlSnapshotTests(unittest.TestCase):
+    def test_failure_diagnostics_project_structured_details(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            details = {
+                "componentId": "a" * 64,
+                "plans": ["docs/plans/a/01-a.md", "docs/plans/b/02-b.md"],
+                "edges": [
+                    {
+                        "originPlan": "docs/plans/a/01-a.md",
+                        "fixingPlan": "docs/plans/b/02-b.md",
+                        "artifacts": ["docs/plans/b/02/failure-a-to-b.md"],
+                    }
+                ],
+            }
+            with database.transaction() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO failure_diagnostics(
+                        code, message, paths_json, details_json, created_at
+                    ) VALUES ('cycle', 'SCC', '[]', ?, 'now')
+                    """,
+                    (json.dumps(details),),
+                )
+
+            snapshot = ControlSnapshotService(
+                database, WorkflowProjectionService(), lambda _connection: {"status": "ok"}
+            ).build()
+
+        self.assertEqual(details, snapshot["failures"]["diagnostics"][0]["details"])
+
     def test_intervention_projects_one_actionable_failure_and_validation_queue(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

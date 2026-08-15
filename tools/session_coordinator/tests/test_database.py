@@ -155,6 +155,49 @@ class DatabaseTests(unittest.TestCase):
             self.assertEqual(LATEST_SCHEMA_VERSION, version)
             self.assertIn("origin_workflow_node", columns)
 
+    def test_latest_schema_persists_structured_failure_diagnostic_details(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+
+            migrate(database)
+
+            with database.connect() as connection:
+                columns = {
+                    row[1]
+                    for row in connection.execute(
+                        "PRAGMA table_info(failure_diagnostics)"
+                    )
+                }
+
+            self.assertIn("details_json", columns)
+
+    def test_schema_63_preserves_existing_failure_diagnostics_with_empty_details(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            with mock.patch(
+                "tools.session_coordinator.migrations.LATEST_SCHEMA_VERSION", 62
+            ):
+                self.assertEqual(62, migrate(database))
+            with database.transaction() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO failure_diagnostics(
+                        code, message, paths_json, created_at
+                    ) VALUES ('cycle', 'legacy cycle', '["legacy.md"]', 'now')
+                    """
+                )
+
+            self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
+
+            with database.connect() as connection:
+                row = connection.execute(
+                    """SELECT code, message, paths_json, details_json
+                       FROM failure_diagnostics"""
+                ).fetchone()
+            self.assertEqual(
+                ("cycle", "legacy cycle", '["legacy.md"]', "{}"), tuple(row)
+            )
+
     def test_schema_47_clears_only_terminal_finalize_snapshots_and_compacts(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             database = Database(Path(directory) / "coordinator.sqlite3")

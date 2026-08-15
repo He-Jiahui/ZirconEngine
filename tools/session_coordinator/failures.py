@@ -17,6 +17,7 @@ from types import ModuleType
 from typing import Any
 
 from .database import Database
+from .failure_dependency_graph import GraphDiagnostic, failure_graph_diagnostics
 from .failure_snapshot_drift import failure_snapshot_drift
 from .models import CoordinatorError, utc_text
 from .plans import PlanRepository
@@ -83,13 +84,6 @@ class FailureNode:
     priority: int
     plan_link_mode: str
     related_code: tuple[str, ...]
-
-
-@dataclass(frozen=True, slots=True)
-class GraphDiagnostic:
-    code: str
-    message: str
-    paths: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -191,6 +185,7 @@ class FailureGraphService:
 
         by_lifecycle: dict[str, list[Any]] = {}
         edges: dict[str, set[str]] = {}
+        edge_artifacts: dict[tuple[str, str], set[str]] = {}
         origin_workflow_nodes: dict[str, str | None] = {}
         handoff_scopes: dict[str, tuple[str, tuple[str, ...]]] = {}
         for record in records:
@@ -231,6 +226,9 @@ class FailureGraphService:
                         )
                 else:
                     edges.setdefault(origin, set()).add(fixing)
+                    edge_artifacts.setdefault((origin, fixing), set()).add(
+                        record.relative_path
+                    )
                 if origin.casefold() == fixing.casefold() and failure_scope != LOCAL_FAILURE_SCOPE:
                     diagnostics.append(
                         GraphDiagnostic(
@@ -248,7 +246,11 @@ class FailureGraphService:
                         tuple(item.relative_path for item in lifecycle_records),
                     )
                 )
-        diagnostics.extend(self._graph_diagnostics(edges))
+        diagnostics.extend(
+            failure_graph_diagnostics(
+                edges, edge_artifacts, max_depth=self.max_depth
+            )
+        )
 
         rows = tuple(
             _FailureImportRow(
@@ -339,13 +341,15 @@ class FailureGraphService:
             for diagnostic in prepared.diagnostics:
                 connection.execute(
                     """
-                    INSERT INTO failure_diagnostics(code, message, paths_json, created_at)
-                    VALUES (?, ?, ?, ?)
+                    INSERT INTO failure_diagnostics(
+                        code, message, paths_json, details_json, created_at
+                    ) VALUES (?, ?, ?, ?, ?)
                     """,
                     (
                         diagnostic.code,
                         diagnostic.message,
                         json.dumps(diagnostic.paths),
+                        json.dumps(diagnostic.details, sort_keys=True),
                         now,
                     ),
                 )
@@ -469,6 +473,7 @@ class FailureGraphService:
                 code=row["code"],
                 message=row["message"],
                 paths=tuple(json.loads(row["paths_json"])),
+                details=json.loads(row["details_json"]),
             )
             for row in diagnostic_rows
         )
@@ -1056,45 +1061,6 @@ Open state: `待修复`; the coordinator must keep the validation ticket and rou
             self.import_repository()
             raise
         return destination
-
-    def _graph_diagnostics(self, edges: dict[str, set[str]]) -> list[GraphDiagnostic]:
-        diagnostics: list[GraphDiagnostic] = []
-        visiting: list[str] = []
-        visited: set[str] = set()
-        reported_cycles: set[tuple[str, ...]] = set()
-
-        def visit(node: str) -> int:
-            if node in visiting:
-                start = visiting.index(node)
-                cycle = tuple(visiting[start:] + [node])
-                normalized = tuple(sorted(set(cycle), key=str.casefold))
-                if normalized not in reported_cycles:
-                    reported_cycles.add(normalized)
-                    diagnostics.append(
-                        GraphDiagnostic("cycle", "Failure dependency cycle detected", cycle)
-                    )
-                return 0
-            if node in visited:
-                return 0
-            visiting.append(node)
-            depth = 0
-            for target in sorted(edges.get(node, ()), key=str.casefold):
-                depth = max(depth, 1 + visit(target))
-            visiting.pop()
-            visited.add(node)
-            if depth > self.max_depth:
-                diagnostics.append(
-                    GraphDiagnostic(
-                        "excessive_depth",
-                        f"Failure dependency depth {depth} exceeds {self.max_depth}",
-                        (node,),
-                    )
-                )
-            return depth
-
-        for node in sorted(set(edges) | {item for targets in edges.values() for item in targets}, key=str.casefold):
-            visit(node)
-        return diagnostics
 
     def _validator_module(self) -> ModuleType:
         if self._validator is not None:
