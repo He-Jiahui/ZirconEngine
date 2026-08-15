@@ -1,5 +1,5 @@
 use super::super::rust_source_view::production_code_view;
-use super::{assert_contains_all, read_repo, read_runtime_src};
+use super::{assert_contains_all, read_runtime_src};
 
 #[test]
 fn runtime_15_screen_space_ui_text_font_id_report_is_child_owner() {
@@ -11,21 +11,6 @@ fn runtime_15_screen_space_ui_text_font_id_report_is_child_owner() {
     let text_module = read_runtime_src("text/mod.rs");
     let native_buffer = read_runtime_src("text/native_buffer.rs");
     let render_state = read_runtime_src("text/render_state.rs");
-    let runtime_15_plan = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
-    );
-    let runtime_index = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
-    );
-    let review_findings = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
-    );
-    let structure_convention = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
-    );
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let graphics_text_doc = read_repo("docs/zircon_runtime/graphics/text.md");
-    let ui_text_doc = read_repo("docs/zircon_runtime/ui/text.md");
     let parent_production = production_code_view(&parent);
     let font_id_report_production = production_code_view(&font_id_report);
     let render_state_production = production_code_view(&render_state);

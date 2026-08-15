@@ -150,3 +150,10 @@ pattern. Their unused document reads are removed; Script VM also no longer
 imports the repository reader that served only those reads. Both guards retain
 their production-owner, mount, and poison-safe lock assertions. This remains
 an open forward repair pending managed Cargo and immutable review.
+
+The screen-space UI text font-ID report owner guard also read seven archived
+Runtime15 or module documents without using them in any assertion. Those
+declaration-only reads and the now-unused repository-reader import are removed.
+The parent/child ownership, narrow font-face query, and production-file budget
+assertions remain unchanged. This is static source-scope repair only; the
+canonical failure remains open pending managed Cargo and immutable review.
