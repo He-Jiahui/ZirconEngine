@@ -138,6 +138,16 @@ function Resolve-AbsoluteTargetDir {
     return (Resolve-ZirconWindowsPath -Path $CliTargetDir -BasePath $RepoRoot).DisplayPath
 }
 
+function Resolve-ManagedCargoTargetPath {
+    param([Parameter(Mandatory)][string]$TargetDirectory)
+
+    $targetResolution = Resolve-ZirconWindowsPath -Path $TargetDirectory
+    if ($targetResolution.DisplayPath -notmatch '^[D-F]:\\') {
+        throw "Managed Cargo target must physically resolve under D:, E:, or F:, not '$($targetResolution.DisplayPath)'."
+    }
+    return $targetResolution
+}
+
 function Resolve-WorkspaceManifest {
     param(
         [string]$RepoRoot,
@@ -383,6 +393,8 @@ function Resolve-CoordinatorCargoTarget {
     }
     if (-not [string]::IsNullOrWhiteSpace($requestedTarget)) {
         $absoluteRequestedTarget = Resolve-AbsoluteTargetDir -RepoRoot $RepoRoot -CliTargetDir $requestedTarget
+        $absoluteRequestedTarget = (Resolve-ManagedCargoTargetPath `
+            -TargetDirectory $absoluteRequestedTarget).DisplayPath
         $arguments += @("--target-dir", $absoluteRequestedTarget)
     }
     if ($DryRunMode) {
@@ -404,6 +416,7 @@ function Resolve-CoordinatorCargoTarget {
         -Response $response `
         -Command "cargo acquire" `
         -FieldPath "job.dry_run")
+    $targetDir = (Resolve-ManagedCargoTargetPath -TargetDirectory $targetDir).DisplayPath
     $reason = if ($EphemeralLane) {
         "coordinator managed ephemeral $LaneKind lane"
     } elseif ($selectionMode -eq "managed") {
@@ -446,18 +459,20 @@ function Complete-CoordinatorCargoTarget {
         [switch]$Started
     )
 
+    if ($ResolvedTarget.DryRun -or -not $Started) {
+        return
+    }
+
     $finishFailure = $null
-    if ($Started) {
-        try {
-            Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
-                "cargo", "finish", $ResolvedTarget.JobId,
-                "--exit-code", [string]$ExitCode,
-                "--session-id", $ResolvedTarget.OwnerId
-            ) | Out-Null
-        }
-        catch {
-            $finishFailure = $_
-        }
+    try {
+        Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
+            "cargo", "finish", $ResolvedTarget.JobId,
+            "--exit-code", [string]$ExitCode,
+            "--session-id", $ResolvedTarget.OwnerId
+        ) | Out-Null
+    }
+    catch {
+        $finishFailure = $_
     }
 
     try {
@@ -925,6 +940,92 @@ function Invoke-CargoWithEnvironment {
     }
 }
 
+function Push-ManagedCargoEnvironment {
+    param(
+        [Parameter(Mandatory)]
+        [string]$TargetDirectory
+    )
+
+    $targetResolution = Resolve-ManagedCargoTargetPath -TargetDirectory $TargetDirectory
+    $targetPath = $targetResolution.OperationalPath.TrimEnd([char[]]@(
+        [System.IO.Path]::DirectorySeparatorChar,
+        [System.IO.Path]::AltDirectorySeparatorChar
+    ))
+    $targetPrefix = $targetPath + [System.IO.Path]::DirectorySeparatorChar
+    $managedDirectories = [ordered]@{}
+    foreach ($entry in @(
+        @{ Name = "temporary"; Label = "temporary directory" },
+        @{ Name = "cargo-home"; Label = "Cargo home" },
+        @{ Name = "sccache"; Label = "sccache directory" }
+    )) {
+        $resolution = Resolve-ZirconWindowsPath -Path (
+            Join-ZirconWindowsPath -Path $targetResolution.OperationalPath -ChildPath $entry.Name
+        )
+        if (-not $resolution.OperationalPath.StartsWith(
+                $targetPrefix,
+                [System.StringComparison]::OrdinalIgnoreCase
+            )) {
+            throw "Managed $($entry.Label) escapes the coordinator target: $($resolution.DisplayPath)"
+        }
+        [System.IO.Directory]::CreateDirectory($resolution.OperationalPath) | Out-Null
+        $managedDirectories[$entry.Name] = $resolution
+    }
+
+    $previousValues = @{}
+    $environmentPaths = [ordered]@{
+        CARGO_TARGET_DIR = $targetResolution.OperationalPath
+        TEMP = $managedDirectories["temporary"].OperationalPath
+        TMP = $managedDirectories["temporary"].OperationalPath
+        TMPDIR = $managedDirectories["temporary"].OperationalPath
+        CARGO_HOME = $managedDirectories["cargo-home"].OperationalPath
+        SCCACHE_DIR = $managedDirectories["sccache"].OperationalPath
+    }
+    try {
+        foreach ($name in $environmentPaths.Keys) {
+            $previousValues[$name] = [Environment]::GetEnvironmentVariable($name, "Process")
+            [Environment]::SetEnvironmentVariable(
+                $name,
+                $environmentPaths[$name],
+                "Process"
+            )
+        }
+    } catch {
+        foreach ($name in $previousValues.Keys) {
+            [Environment]::SetEnvironmentVariable(
+                $name,
+                $previousValues[$name],
+                "Process"
+            )
+        }
+        throw
+    }
+
+    return [pscustomobject]@{
+        TemporaryOperationalPath = $managedDirectories["temporary"].OperationalPath
+        TemporaryDisplayPath     = $managedDirectories["temporary"].DisplayPath
+        CargoHomeOperationalPath = $managedDirectories["cargo-home"].OperationalPath
+        CargoHomeDisplayPath     = $managedDirectories["cargo-home"].DisplayPath
+        SccacheOperationalPath   = $managedDirectories["sccache"].OperationalPath
+        SccacheDisplayPath       = $managedDirectories["sccache"].DisplayPath
+        PreviousValues           = $previousValues
+    }
+}
+
+function Pop-ManagedCargoEnvironment {
+    param(
+        [Parameter(Mandatory)]
+        [psobject]$Lease
+    )
+
+    foreach ($name in $Lease.PreviousValues.Keys) {
+        [Environment]::SetEnvironmentVariable(
+            $name,
+            $Lease.PreviousValues[$name],
+            "Process"
+        )
+    }
+}
+
 function Invoke-ValidateMatrixMain {
     $script:Results = [System.Collections.Generic.List[object]]::new()
 
@@ -1018,8 +1119,16 @@ function Invoke-ValidateMatrixMain {
 
     $coordinatorJobFailed = $false
     $coordinatorJobStarted = $false
+    $primaryFailure = $null
     $locationPushed = $false
+    $cargoEnvironmentLease = $null
     try {
+    if (-not $resolvedTarget.DryRun) {
+        $cargoEnvironmentLease = Push-ManagedCargoEnvironment `
+            -TargetDirectory $resolvedTarget.TargetDir
+        Write-Host ("Temporary dir: {0}" -f $cargoEnvironmentLease.TemporaryDisplayPath)
+        Write-Host ("Cargo home: {0}" -f $cargoEnvironmentLease.CargoHomeDisplayPath)
+    }
     Write-Host "Repo root: $resolvedRepoRoot"
     Write-Host "Workspace manifest: $($resolvedWorkspace.RelativePath)"
     Write-Host "Cargo working directory: $($resolvedWorkspace.Directory)"
@@ -1114,17 +1223,41 @@ function Invoke-ValidateMatrixMain {
         }
     } catch {
         $coordinatorJobFailed = $true
+        $primaryFailure = $_
         throw
     } finally {
         if ($locationPushed) {
             Pop-Location
         }
         $jobExitCode = if ($coordinatorJobFailed -or ($Results | Where-Object { $_.ExitCode -ne 0 })) { 1 } else { 0 }
-        Complete-CoordinatorCargoTarget `
-            -RepoRoot $resolvedRepoRoot `
-            -ResolvedTarget $resolvedTarget `
-            -ExitCode $jobExitCode `
-            -Started:$coordinatorJobStarted
+        $cleanupFailure = $null
+        try {
+            Complete-CoordinatorCargoTarget `
+                -RepoRoot $resolvedRepoRoot `
+                -ResolvedTarget $resolvedTarget `
+                -ExitCode $jobExitCode `
+                -Started:$coordinatorJobStarted
+        } catch {
+            $cleanupFailure = $_
+        }
+        try {
+            if ($null -ne $cargoEnvironmentLease) {
+                Pop-ManagedCargoEnvironment -Lease $cargoEnvironmentLease
+            }
+        } catch {
+            if ($null -eq $cleanupFailure) {
+                $cleanupFailure = $_
+            } else {
+                Write-Warning ("Additional managed Cargo environment cleanup failure: {0}" -f $_.Exception.Message)
+            }
+        }
+        if ($null -ne $cleanupFailure) {
+            if ($null -ne $primaryFailure) {
+                Write-Warning ("Coordinator cleanup also failed after the primary validation error: {0}" -f $cleanupFailure.Exception.Message)
+            } else {
+                throw $cleanupFailure
+            }
+        }
     }
 
     Write-Host ""

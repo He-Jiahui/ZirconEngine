@@ -36,6 +36,82 @@ Describe "Validate matrix Windows PowerShell compatibility" {
     }
 }
 
+Describe "Validate matrix managed Cargo environment policy" {
+    It "rejects a target that physically resolves outside the approved drives before coordinator acquisition" {
+        $targetDirectory = Join-Path "C:\cargo-targets\zircon-engine" (
+            "validate-matrix-disallowed-{0}" -f [guid]::NewGuid().ToString("N")
+        )
+
+        $failure = $null
+        try {
+            Resolve-ManagedCargoTargetPath -TargetDirectory $targetDirectory | Out-Null
+        }
+        catch {
+            $failure = $_
+        }
+
+        $failure | Should Not BeNullOrEmpty
+        $failure.Exception.Message | Should Match "must physically resolve under D:, E:, or F:"
+        Test-Path -LiteralPath $targetDirectory | Should Be $false
+    }
+
+    It "keeps manual and coordinator-managed target validation on the shared physical-path guard" {
+        $source = Get-Content -Raw -Encoding UTF8 $script:ValidateMatrixScript
+
+        $source | Should Match 'Resolve-ManagedCargoTargetPath\s+`?\s*-TargetDirectory\s+\$absoluteRequestedTarget'
+        $source | Should Match 'Resolve-ManagedCargoTargetPath\s+-TargetDirectory\s+\$targetDir'
+    }
+
+    It "binds temporary and Cargo cache output to the managed target and restores the caller environment" {
+        $targetDirectory = Join-Path "E:\cargo-targets\zircon-engine" (
+            "validate-matrix-temporary-{0}" -f [guid]::NewGuid().ToString("N")
+        )
+        $names = @("CARGO_TARGET_DIR", "TEMP", "TMP", "TMPDIR", "CARGO_HOME", "SCCACHE_DIR")
+        $previousValues = @{}
+        foreach ($name in $names) {
+            $previousValues[$name] = [Environment]::GetEnvironmentVariable($name, "Process")
+            [Environment]::SetEnvironmentVariable($name, "C:\caller-$($name.ToLowerInvariant())", "Process")
+        }
+
+        try {
+            $lease = $null
+            try {
+                $managedTargetResolution = Resolve-ManagedCargoTargetPath -TargetDirectory $targetDirectory
+                $lease = Push-ManagedCargoEnvironment -TargetDirectory $targetDirectory
+
+                $lease.TemporaryDisplayPath | Should Be (Join-Path $managedTargetResolution.DisplayPath "temporary")
+                $lease.CargoHomeDisplayPath | Should Be (Join-Path $managedTargetResolution.DisplayPath "cargo-home")
+                $lease.SccacheDisplayPath | Should Be (Join-Path $managedTargetResolution.DisplayPath "sccache")
+                Test-Path -LiteralPath $lease.TemporaryOperationalPath -PathType Container | Should Be $true
+                Test-Path -LiteralPath $lease.CargoHomeOperationalPath -PathType Container | Should Be $true
+                Test-Path -LiteralPath $lease.SccacheOperationalPath -PathType Container | Should Be $true
+                [Environment]::GetEnvironmentVariable("CARGO_TARGET_DIR", "Process") | Should Be $managedTargetResolution.OperationalPath
+                foreach ($name in @("TEMP", "TMP", "TMPDIR")) {
+                    [Environment]::GetEnvironmentVariable($name, "Process") | Should Be $lease.TemporaryOperationalPath
+                }
+                [Environment]::GetEnvironmentVariable("CARGO_HOME", "Process") | Should Be $lease.CargoHomeOperationalPath
+                [Environment]::GetEnvironmentVariable("SCCACHE_DIR", "Process") | Should Be $lease.SccacheOperationalPath
+            }
+            finally {
+                if ($null -ne $lease) {
+                    Pop-ManagedCargoEnvironment -Lease $lease
+                }
+                if (Test-Path -LiteralPath $targetDirectory) {
+                    Remove-Item -LiteralPath $targetDirectory -Recurse -Force
+                }
+            }
+            foreach ($name in $names) {
+                [Environment]::GetEnvironmentVariable($name, "Process") | Should Be "C:\caller-$($name.ToLowerInvariant())"
+            }
+        }
+        finally {
+            foreach ($name in $names) {
+                [Environment]::SetEnvironmentVariable($name, $previousValues[$name], "Process")
+            }
+        }
+    }
+}
+
 function Get-CiProfileFeatureMatrix {
     $workflowPath = Join-Path $script:ValidateMatrixTestRepoRoot ".github\workflows\profile-feature-contract.yml"
     $workflow = Get-Content -Raw -Encoding UTF8 $workflowPath
@@ -410,6 +486,104 @@ Describe "Coordinator supervisor role" {
         $startMatch.Success | Should Be $true
         $startMatch.Value | Should Match '"--supervisor"'
         $startMatch.Value | Should Match '"cargo", "start"'
+    }
+}
+
+Describe "Coordinator pre-start failure cleanup" {
+    It "preserves an invalid coordinator target error without releasing the unstarted job" {
+        $script:PreStartCoordinatorCalls = [System.Collections.Generic.List[string]]::new()
+        Mock Resolve-ValidationSessionId { return "validate-matrix:test" }
+        Mock New-CargoCompatibilityJson { return "{}" }
+        Mock Invoke-SessionCoordinatorJson {
+            $command = $Arguments -join " "
+            $script:PreStartCoordinatorCalls.Add($command)
+            if ($command -match '^session register') {
+                return [pscustomobject]@{
+                    session = [pscustomobject]@{ session_id = "validate-matrix:test" }
+                }
+            }
+            return [pscustomobject]@{
+                job = [pscustomobject]@{
+                    job_id = "invalid-target-job"
+                    target_dir = "C:\cargo-targets\zircon-engine\invalid-target-job"
+                    dry_run = $false
+                }
+            }
+        }
+
+        $failure = $null
+        try {
+            Resolve-CoordinatorCargoTarget `
+                -RepoRoot $script:ValidateMatrixTestRepoRoot `
+                -LaneKind "test" `
+                -WorkspaceManifest "Cargo.toml" | Out-Null
+        }
+        catch {
+            $failure = $_
+        }
+
+        $failure | Should Not BeNullOrEmpty
+        $failure.Exception.Message | Should Match "must physically resolve under D:, E:, or F:"
+        $script:PreStartCoordinatorCalls.Count | Should Be 2
+        ($script:PreStartCoordinatorCalls -join "`n") | Should Not Match "cargo release"
+    }
+
+    It "preserves the primary error without releasing the current wrapper before cargo start" {
+        Mock Resolve-CoordinatorCargoTarget {
+            return [pscustomobject]@{
+                SelectionMode     = "managed"
+                JobId             = "pre-start-job"
+                TargetDir         = "E:\cargo-targets\zircon-engine\pre-start-job"
+                AbsoluteTargetDir = "E:\cargo-targets\zircon-engine\pre-start-job"
+                Reason            = "coordinator managed test lane"
+                OwnerId           = "validate-matrix:test"
+                DryRun            = $false
+            }
+        }
+        Mock Push-ManagedCargoEnvironment {
+            throw "primary pre-start failure"
+        }
+        Mock Invoke-SessionCoordinatorJson {
+            throw "cargo_process_tree_alive cleanup failure"
+        }
+
+        $failure = $null
+        try {
+            Invoke-ValidateMatrixMain | Out-Null
+        }
+        catch {
+            $failure = $_
+        }
+
+        $failure | Should Not BeNullOrEmpty
+        $failure.Exception.Message | Should Match "primary pre-start failure"
+        $failure.Exception.Message | Should Not Match "cleanup failure"
+        Assert-MockCalled Invoke-SessionCoordinatorJson -Times 0 -ParameterFilter {
+            $Arguments[0] -eq "cargo" -and $Arguments[1] -eq "release"
+        }
+    }
+
+    It "finishes and releases a coordinator job after cargo start" {
+        $script:CoordinatorCompletionCalls = [System.Collections.Generic.List[string]]::new()
+        Mock Invoke-SessionCoordinatorJson {
+            $script:CoordinatorCompletionCalls.Add(($Arguments -join " "))
+            return [pscustomobject]@{}
+        }
+        $target = [pscustomobject]@{
+            JobId  = "started-job"
+            OwnerId = "validate-matrix:test"
+            DryRun = $false
+        }
+
+        Complete-CoordinatorCargoTarget `
+            -RepoRoot $script:ValidateMatrixTestRepoRoot `
+            -ResolvedTarget $target `
+            -ExitCode 1 `
+            -Started
+
+        $script:CoordinatorCompletionCalls.Count | Should Be 2
+        $script:CoordinatorCompletionCalls[0] | Should Match "cargo finish started-job"
+        $script:CoordinatorCompletionCalls[1] | Should Match "cargo release started-job"
     }
 }
 
