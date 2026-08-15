@@ -134,3 +134,17 @@ its dispatcher owner and is no longer a stale surface caller requirement.
 `rustfmt --check` and `git diff --check` passed for exactly those three source files. This is a
 copy-stable source integration only. No Runtime09 or UI12 Cargo job ran for this revision, so the
 handoff remains `open` and this section is not a fixed return.
+
+### 2026-08-15 popup frame authority integration
+
+`3019fae557ffc2db2ebc38fb120bf8c130ce76ce` integrates the remaining Runtime-owned popup frame
+authority manifest: frame hit testing, render cache invalidation, surface rebuild/publication,
+popup default interactions, tree hit testing, and widget-menu regression coverage. The commit adds
+`surface/frame_publication.rs` as the ephemeral `UiSurfaceFrame` cache owner; it refreshes from the
+authoritative projected hit grid and invalidates independently of immutable surface value equality.
+
+The exact nine-file manifest passed `rustfmt --check` and `git diff --check`. Existing focused
+coverage remains in `render_popup_menu.rs` for live control-anchor resolution and rejected missing,
+duplicate, or disabled triggers. No Cargo command was submitted in this integration window, so no
+dynamic test count, job/run, or fixed return is claimed. The handoff remains `open` pending the
+managed Runtime09 and UI12 validation sequence plus independent review.
