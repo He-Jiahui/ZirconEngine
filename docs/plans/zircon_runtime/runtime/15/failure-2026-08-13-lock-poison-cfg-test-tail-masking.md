@@ -157,3 +157,17 @@ declaration-only reads and the now-unused repository-reader import are removed.
 The parent/child ownership, narrow font-face query, and production-file budget
 assertions remain unchanged. This is static source-scope repair only; the
 canonical failure remains open pending managed Cargo and immutable review.
+
+## 2026-08-15 shared-view integration follow-up
+
+The shared lexical/cfg production-view owner is integrated at
+`b8fb3bd0a`; all lock-poison consumers continue to route through that single
+owner. The last structure-guard-local first-`cfg(test)` split was an unowned
+Render01 materialization guard. Its single-file successor replaced the split
+with `production_section` and integrated at `f49583ffeb6fa130d59504bbf7b8c87bc34dd7a1`.
+
+A fresh static scan of the entire `structure_convention` guard tree now reports
+zero legacy `.split`/`.split_once` calls that take `cfg(test)`. This only
+removes the remaining false-green masking route. No source-bound managed Cargo
+result or independent immutable review exists yet, so this handoff remains
+`open` and no fixed return is authorized.
