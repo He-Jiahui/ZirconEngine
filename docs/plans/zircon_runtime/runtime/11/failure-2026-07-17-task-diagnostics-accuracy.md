@@ -63,4 +63,12 @@ Runtime11 当前实现已保留 Performance01 的 detached unwind-safe completio
 - 新增 queue saturation、1/2/4-worker pressure matrix、并发 lifecycle 守恒、worker wait、panic/cancel 与 detached panic 行为测试；hotpath 只使用原子计数，不增加诊断锁。
 - 非 Cargo JobSystem audit 已通过 1/1；受管 focused Cargo 与独立复审仍待完成。
 
+## 2026-08-15 测量架构复核
+
+Runtime11 将任务生命周期的四类时间保持分离：dependency wait 是创建到依赖就绪，queue wait 是入队到 worker 开始，execution 是 worker 开始到终态，explicit wait 是调用方到 handle 终态。scheduler 仅在 diagnostics 启用时记录这些时间；写入保持 shard-local atomic，报告仍走稳定 snapshot 路径。
+
+当前恢复的 source slice 增加 `tasks.execution_samples` 与 `tasks.execution_ms`，使队列压力与实际执行时间可以分别评估，不会和 dependency wait 或 explicit wait 混淆。Runtime11 继续使用底层 Rayon pool，不引入第二套 work-stealing queue。该边界与 Unreal TaskGraph 对 task identity/priority、trace/stats、wait handling 的职责分离一致。
+
+此处不声明性能、功耗或引擎对比结果。任何调度算法变动之前，仍需在受管 D:/E: source-bound job 中采集 1/2/N worker 压力 baseline；本 handoff 在该动态验证和 immutable review 完成前保持 `open`。
+
 Open state: `Runtime11 code complete / managed focused validation and Performance01 fixed return pending`。

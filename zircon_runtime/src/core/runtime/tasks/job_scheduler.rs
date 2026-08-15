@@ -56,7 +56,8 @@ impl JobScheduler {
         let enqueued_at = diagnostics.record_scheduled_and_enqueued();
         self.pool.spawn(move || {
             let tracked = diagnostics.record_started(enqueued_at);
-            run_detached_task(diagnostics, tracked, task);
+            let execution_started_at = diagnostics.execution_started_at(tracked);
+            run_detached_task(diagnostics, execution_started_at, task);
         });
     }
 
@@ -68,9 +69,15 @@ impl JobScheduler {
         let enqueued_at = diagnostics.record_scheduled_and_enqueued();
         self.pool.spawn(move || {
             let tracked = diagnostics.record_started(enqueued_at);
-            complete_scheduled_task(handle_for_task, diagnostics, tracked, move || {
-                task();
-            });
+            let execution_started_at = diagnostics.execution_started_at(tracked);
+            complete_scheduled_task(
+                handle_for_task,
+                diagnostics,
+                execution_started_at,
+                move || {
+                    task();
+                },
+            );
         });
         handle
     }
@@ -183,7 +190,8 @@ impl PendingScheduledJob {
         let enqueued_at = diagnostics.record_enqueued(self.diagnostics_tracked);
         self.pool.spawn(move || {
             let tracked = diagnostics.record_started(enqueued_at);
-            complete_scheduled_task(handle, diagnostics, tracked, move || {
+            let execution_started_at = diagnostics.execution_started_at(tracked);
+            complete_scheduled_task(handle, diagnostics, execution_started_at, move || {
                 task();
             });
         });
@@ -211,14 +219,17 @@ impl PendingScheduledJob {
 
 struct DetachedTaskCompletion {
     diagnostics: Arc<JobSchedulerDiagnosticsState>,
-    tracked: bool,
+    execution_started_at: Option<Instant>,
 }
 
 impl DetachedTaskCompletion {
-    fn new(diagnostics: Arc<JobSchedulerDiagnosticsState>, tracked: bool) -> Self {
+    fn new(
+        diagnostics: Arc<JobSchedulerDiagnosticsState>,
+        execution_started_at: Option<Instant>,
+    ) -> Self {
         Self {
             diagnostics,
-            tracked,
+            execution_started_at,
         }
     }
 }
@@ -226,27 +237,27 @@ impl DetachedTaskCompletion {
 impl Drop for DetachedTaskCompletion {
     fn drop(&mut self) {
         self.diagnostics
-            .record_active_terminal(std::thread::panicking(), self.tracked);
+            .record_active_terminal(std::thread::panicking(), self.execution_started_at);
     }
 }
 
 fn run_detached_task(
     diagnostics: Arc<JobSchedulerDiagnosticsState>,
-    tracked: bool,
+    execution_started_at: Option<Instant>,
     task: impl FnOnce(),
 ) {
-    let _completion = DetachedTaskCompletion::new(diagnostics, tracked);
+    let _completion = DetachedTaskCompletion::new(diagnostics, execution_started_at);
     task();
 }
 
 fn complete_scheduled_task(
     handle: JobHandle,
     diagnostics: Arc<JobSchedulerDiagnosticsState>,
-    tracked: bool,
+    execution_started_at: Option<Instant>,
     task: impl FnOnce(),
 ) {
     let result = catch_unwind(AssertUnwindSafe(task));
-    diagnostics.record_active_terminal(result.is_err(), tracked);
+    diagnostics.record_active_terminal(result.is_err(), execution_started_at);
     match result {
         Ok(()) => handle.mark_complete(),
         Err(payload) => handle.mark_panicked(panic_payload_message(payload)),
@@ -277,6 +288,22 @@ mod tests {
     }
 
     #[test]
+    fn scheduled_task_records_one_execution_sample_after_completion() {
+        let scheduler = JobScheduler::from_pool(TaskPool::new(
+            TaskPoolDescriptor::compute().with_worker_threads(1),
+        ))
+        .with_diagnostics();
+
+        scheduler.schedule(|| {}).wait();
+
+        let report = scheduler.diagnostic_report();
+        assert_eq!(report.scheduled, 1);
+        assert_eq!(report.completed, 1);
+        assert_eq!(report.execution_samples, 1);
+        assert!(report.execution_ms >= 0.0);
+    }
+
+    #[test]
     fn detached_spawn_counts_panicked_tasks_as_completed() {
         const CHILD_ENV: &str = "ZIRCON_DETACHED_PANIC_DIAGNOSTICS_CHILD";
         const CHILD_STARTED: &str = "zircon detached panic child started";
@@ -296,8 +323,9 @@ mod tests {
         diagnostics.enable();
         let enqueued_at = diagnostics.record_scheduled_and_enqueued();
         let tracked = diagnostics.record_started(enqueued_at);
+        let execution_started_at = diagnostics.execution_started_at(tracked);
         let result = panic::catch_unwind(AssertUnwindSafe(|| {
-            run_detached_task(Arc::clone(&diagnostics), tracked, || {
+            run_detached_task(Arc::clone(&diagnostics), execution_started_at, || {
                 panic!("detached task failure")
             });
         }));
@@ -308,6 +336,7 @@ mod tests {
         assert_eq!(report.panicked, 1);
         assert_eq!(report.queued, 0);
         assert_eq!(report.active, 0);
+        assert_eq!(report.execution_samples, 1);
 
         let test_executable = std::env::current_exe().expect("current lib-test executable");
         let listed = Command::new(&test_executable)

@@ -16,6 +16,8 @@ pub const TASKS_QUEUED_DIAGNOSTIC: &str = "tasks.queued";
 pub const TASKS_ACTIVE_DIAGNOSTIC: &str = "tasks.active";
 pub const TASKS_QUEUE_WAIT_SAMPLES_DIAGNOSTIC: &str = "tasks.queue_wait_samples";
 pub const TASKS_QUEUE_WAIT_MS_DIAGNOSTIC: &str = "tasks.queue_wait_ms";
+pub const TASKS_EXECUTION_SAMPLES_DIAGNOSTIC: &str = "tasks.execution_samples";
+pub const TASKS_EXECUTION_MS_DIAGNOSTIC: &str = "tasks.execution_ms";
 pub const TASKS_PANICKED_DIAGNOSTIC: &str = "tasks.panicked";
 pub const TASKS_CANCELLED_DIAGNOSTIC: &str = "tasks.cancelled";
 pub const TASKS_DEPENDENCY_WAIT_MS_DIAGNOSTIC: &str = "tasks.dependency_wait_ms";
@@ -90,12 +92,22 @@ impl JobSchedulerDiagnosticsState {
         true
     }
 
-    pub(super) fn record_active_terminal(&self, panicked: bool, tracked: bool) {
-        if !tracked {
+    pub(super) fn execution_started_at(&self, tracked: bool) -> Option<Instant> {
+        tracked.then(Instant::now)
+    }
+
+    pub(super) fn record_active_terminal(
+        &self,
+        panicked: bool,
+        execution_started_at: Option<Instant>,
+    ) {
+        let Some(execution_started_at) = execution_started_at else {
             return;
-        }
+        };
         let shard = self.current_shard();
         let _update = shard.begin_update();
+        add_duration_ns(&shard.execution_ns, execution_started_at.elapsed());
+        shard.execution_samples.fetch_add(1, Ordering::Relaxed);
         if panicked {
             shard.panicked.fetch_add(1, Ordering::Relaxed);
         } else {
@@ -218,6 +230,8 @@ struct DiagnosticsShard {
     panicked: AtomicU64,
     cancelled: AtomicU64,
     queue_wait_ns: AtomicU64,
+    execution_ns: AtomicU64,
+    execution_samples: AtomicU64,
     dependency_wait_ns: AtomicU64,
     explicit_wait_ns: AtomicU64,
 }
@@ -234,6 +248,8 @@ impl Default for DiagnosticsShard {
             panicked: AtomicU64::new(0),
             cancelled: AtomicU64::new(0),
             queue_wait_ns: AtomicU64::new(0),
+            execution_ns: AtomicU64::new(0),
+            execution_samples: AtomicU64::new(0),
             dependency_wait_ns: AtomicU64::new(0),
             explicit_wait_ns: AtomicU64::new(0),
         }
@@ -286,6 +302,8 @@ impl DiagnosticsShard {
                 cancelled: self.cancelled.load(Ordering::Relaxed),
             },
             queue_wait_ns: self.queue_wait_ns.load(Ordering::Relaxed),
+            execution_ns: self.execution_ns.load(Ordering::Relaxed),
+            execution_samples: self.execution_samples.load(Ordering::Relaxed),
             dependency_wait_ns: self.dependency_wait_ns.load(Ordering::Relaxed),
             explicit_wait_ns: self.explicit_wait_ns.load(Ordering::Relaxed),
         }
@@ -314,6 +332,8 @@ impl Drop for DiagnosticsUpdate<'_> {
 struct JobDiagnosticsSnapshot {
     lifecycle: JobLifecycleSnapshot,
     queue_wait_ns: u64,
+    execution_ns: u64,
+    execution_samples: u64,
     dependency_wait_ns: u64,
     explicit_wait_ns: u64,
 }
@@ -322,6 +342,10 @@ impl JobDiagnosticsSnapshot {
     fn merge(&mut self, other: Self) {
         self.lifecycle.merge(other.lifecycle);
         self.queue_wait_ns = self.queue_wait_ns.saturating_add(other.queue_wait_ns);
+        self.execution_ns = self.execution_ns.saturating_add(other.execution_ns);
+        self.execution_samples = self
+            .execution_samples
+            .saturating_add(other.execution_samples);
         self.dependency_wait_ns = self
             .dependency_wait_ns
             .saturating_add(other.dependency_wait_ns);
@@ -338,6 +362,8 @@ impl JobDiagnosticsSnapshot {
             active: lifecycle.active(),
             queue_wait_samples: lifecycle.started,
             queue_wait_ms: duration_ms(self.queue_wait_ns),
+            execution_samples: self.execution_samples,
+            execution_ms: duration_ms(self.execution_ns),
             panicked: lifecycle.panicked,
             cancelled: lifecycle.cancelled,
             dependency_wait_ms: duration_ms(self.dependency_wait_ns),
@@ -417,11 +443,29 @@ mod tests {
             .record_scheduled_and_enqueued()
             .expect("enabled diagnostics should record queue admission");
         assert!(state.record_started(Some(enqueued_at)));
-        state.record_active_terminal(false, true);
+        state.record_active_terminal(false, state.execution_started_at(true));
 
         let report = state.report();
         assert_eq!(report.scheduled, 1);
         assert_eq!(report.completed, 1);
+        assert_eq!(report.execution_samples, 1);
+        assert!(report.execution_ms >= 0.0);
+    }
+
+    #[test]
+    fn cancelled_task_without_worker_start_has_no_execution_sample() {
+        let state = JobSchedulerDiagnosticsState::default();
+        state.enable();
+
+        assert!(state.record_scheduled());
+        state.record_cancelled(true);
+
+        let report = state.report();
+        assert_eq!(report.scheduled, 1);
+        assert_eq!(report.completed, 1);
+        assert_eq!(report.cancelled, 1);
+        assert_eq!(report.execution_samples, 0);
+        assert_eq!(report.execution_ms, 0.0);
     }
 
     #[test]

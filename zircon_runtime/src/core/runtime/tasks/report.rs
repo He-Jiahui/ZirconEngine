@@ -3,7 +3,8 @@ use crate::core::diagnostics::DiagnosticStore;
 use super::{
     TaskPool, TaskPoolKind, TaskPoolThreadCounts, TASKS_ACTIVE_DIAGNOSTIC,
     TASKS_CANCELLED_DIAGNOSTIC, TASKS_COMPLETED_DIAGNOSTIC, TASKS_DEPENDENCY_WAITING_DIAGNOSTIC,
-    TASKS_DEPENDENCY_WAIT_MS_DIAGNOSTIC, TASKS_EXPLICIT_WAIT_MS_DIAGNOSTIC,
+    TASKS_DEPENDENCY_WAIT_MS_DIAGNOSTIC, TASKS_EXECUTION_MS_DIAGNOSTIC,
+    TASKS_EXECUTION_SAMPLES_DIAGNOSTIC, TASKS_EXPLICIT_WAIT_MS_DIAGNOSTIC,
     TASKS_PANICKED_DIAGNOSTIC, TASKS_QUEUED_DIAGNOSTIC, TASKS_QUEUE_WAIT_MS_DIAGNOSTIC,
     TASKS_QUEUE_WAIT_SAMPLES_DIAGNOSTIC, TASKS_SCHEDULED_DIAGNOSTIC,
 };
@@ -17,6 +18,8 @@ pub struct JobSchedulerReport {
     pub active: u64,
     pub queue_wait_samples: u64,
     pub queue_wait_ms: f64,
+    pub execution_samples: u64,
+    pub execution_ms: f64,
     pub panicked: u64,
     pub cancelled: u64,
     pub dependency_wait_ms: f64,
@@ -42,6 +45,11 @@ impl JobSchedulerReport {
                 "{}={:.3}",
                 TASKS_QUEUE_WAIT_MS_DIAGNOSTIC, self.queue_wait_ms
             ),
+            format!(
+                "{}={}",
+                TASKS_EXECUTION_SAMPLES_DIAGNOSTIC, self.execution_samples
+            ),
+            format!("{}={:.3}", TASKS_EXECUTION_MS_DIAGNOSTIC, self.execution_ms),
             format!("{}={}", TASKS_PANICKED_DIAGNOSTIC, self.panicked),
             format!("{}={}", TASKS_CANCELLED_DIAGNOSTIC, self.cancelled),
             format!(
@@ -88,6 +96,12 @@ impl JobSchedulerReport {
                 self.queue_wait_ms,
                 Some("ms"),
             ),
+            (
+                TASKS_EXECUTION_SAMPLES_DIAGNOSTIC,
+                self.execution_samples as f64,
+                Some("sample"),
+            ),
+            (TASKS_EXECUTION_MS_DIAGNOSTIC, self.execution_ms, Some("ms")),
             (
                 TASKS_PANICKED_DIAGNOSTIC,
                 self.panicked as f64,
