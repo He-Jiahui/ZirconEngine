@@ -1764,6 +1764,58 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual(moved_head, committed["commit_sha"])
         self.assertIsNone(committed["index_snapshot"])
 
+    def test_restart_recovers_recreated_index_lock_before_resetting_paths(self) -> None:
+        paths = self._complete_with_changes()
+        unrelated_path = self.repo / "unrelated-staged.txt"
+        unrelated_path.write_text("preserve this staged blob\n", encoding="utf-8")
+        subprocess.run(
+            ["git", "add", "--", unrelated_path.name], cwd=self.repo, check=True
+        )
+        original_staged_blob = subprocess.run(
+            ["git", "show", f":{unrelated_path.name}"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+        ).stdout
+        original_accept = self.baselines.accept_commit
+        self.baselines.accept_commit = mock.Mock(
+            side_effect=RuntimeError("injected baseline failure")
+        )
+        with self.assertRaises(RuntimeError):
+            self.service.finalize(
+                "session-a",
+                paths=paths,
+                message="feat(runtime): recovery lock fixture",
+                maintenance=True,
+            )
+        self.baselines.accept_commit = original_accept
+        lock_path = self.service._index_path().with_name("index.lock")
+        lock_path.write_bytes(b"")
+        recovered_locks: list[Path] = []
+
+        def recover_recreated_lock(path: Path):
+            recovered_locks.append(path)
+            path.unlink()
+            return None
+
+        self.service.index_lock_recoverer = recover_recreated_lock
+        self._authorize_recovery_process()
+
+        recovered = self.service.recover_stale_mutex()
+
+        self.assertEqual(0, recovered)
+        self.assertEqual([lock_path], recovered_locks)
+        self.assertFalse(lock_path.exists())
+        self.assertEqual(unrelated_path.name, self._staged_names())
+        recovered_staged_blob = subprocess.run(
+            ["git", "show", f":{unrelated_path.name}"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+        ).stdout
+        self.assertEqual(original_staged_blob, recovered_staged_blob)
+        self.assertIsNone(self._mutex_owner())
+
     def test_recovery_keeps_pending_when_baseline_retry_fails(self) -> None:
         paths = self._complete_with_changes()
         original_accept = self.baselines.accept_commit

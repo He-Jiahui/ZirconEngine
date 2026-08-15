@@ -1125,9 +1125,15 @@ class GitFinalizeService:
         completed = False
         try:
             current_head = self._git("rev-parse", "HEAD")
+            index_path = self._index_path()
             for recovery in recoveries:
                 request_id = str(recovery["request_id"])
                 session_id = str(recovery["session_id"])
+                # A maintenance finalize can recover one abandoned lock before
+                # publishing HEAD and then leave another while restoring the
+                # shared index. Startup must revalidate that second lock before
+                # any recovery reset attempts to create index.lock again.
+                self._recover_index_lock(request_id, session_id, index_path)
                 isolated_validation = self._isolated_patch_event_payload(
                     session_id,
                     request_id,
@@ -1178,7 +1184,7 @@ class GitFinalizeService:
                         and index_snapshot is not None
                     ):
                         self._restore_index(
-                            self._index_path(),
+                            index_path,
                             bool(index_existed),
                             bytes(index_snapshot),
                         )
@@ -1232,7 +1238,7 @@ class GitFinalizeService:
                             },
                         )
                     self._restore_index(
-                        self._index_path(),
+                        index_path,
                         bool(index_existed),
                         bytes(index_snapshot),
                     )

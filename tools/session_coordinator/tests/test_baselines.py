@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import io
 import json
 import subprocess
+import tarfile
 import tempfile
 import unittest
 from pathlib import Path
@@ -158,6 +160,47 @@ class BaselineTests(unittest.TestCase):
         manifest = self.service._commit_manifest(commit)
 
         self.assertEqual(hash_bytes(filtered), manifest["filtered.txt"])
+
+    def test_archive_manifest_drains_git_stdout_after_tar_end_marker(self) -> None:
+        archive_buffer = io.BytesIO()
+        content = b"fixture content\n"
+        with tarfile.open(fileobj=archive_buffer, mode="w") as archive:
+            member = tarfile.TarInfo("fixture.txt")
+            member.size = len(content)
+            archive.addfile(member, io.BytesIO(content))
+        pipe_bytes = archive_buffer.getvalue() + b"git pipe trailer"
+
+        class ArchiveStdout(io.BytesIO):
+            def close(self) -> None:
+                # Keep the cursor observable when the service closes the pipe.
+                pass
+
+        class ArchiveProcess:
+            def __init__(self) -> None:
+                self.stdout = ArchiveStdout(pipe_bytes)
+                self.stderr = io.BytesIO()
+                self.returncode = None
+
+            def poll(self):
+                return self.returncode
+
+            def kill(self) -> None:
+                self.returncode = -1
+
+            def wait(self) -> int:
+                if self.returncode is None:
+                    self.returncode = 0 if self.stdout.tell() == len(pipe_bytes) else 1
+                return self.returncode
+
+        process = ArchiveProcess()
+        with mock.patch(
+            "tools.session_coordinator.baselines.subprocess.Popen",
+            return_value=process,
+        ):
+            manifest = self.service._commit_manifest("fixture-commit")
+
+        self.assertEqual(hash_bytes(content), manifest["fixture.txt"])
+        self.assertEqual(len(pipe_bytes), process.stdout.tell())
 
     def test_head_refresh_never_absorbs_other_session_dirty_worktree(self) -> None:
         dirty = self.repo / "other-session.txt"

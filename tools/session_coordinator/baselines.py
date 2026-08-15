@@ -760,6 +760,11 @@ class BaselineService:
                         for chunk in iter(lambda: source.read(1024 * 1024), b""):
                             digest.update(chunk)
                     manifest[path] = digest.hexdigest()
+            # tarfile stops at the archive end marker, which can precede EOF on
+            # the producer pipe. Drain the remaining bytes before closing the
+            # reader so git archive cannot observe a broken pipe while flushing.
+            for _ in iter(lambda: process.stdout.read(1024 * 1024), b""):
+                pass
         except BaseException:
             if process.poll() is None:
                 process.kill()
