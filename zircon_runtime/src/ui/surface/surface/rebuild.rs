@@ -3,14 +3,15 @@ use std::{collections::BTreeSet, time::Instant};
 use crate::ui::layout::{
     compute_incremental_layout_tree_with_text_measure_cache,
     compute_layout_tree_with_text_measure_cache,
+    compute_layout_tree_with_text_measure_cache_and_slot_index,
 };
 use crate::ui::surface::{
     arranged_node_indices, arranged_slot_indices, build_arranged_tree,
     invalidation::UiInvalidationReason,
-    patch_arranged_tree_geometry,
+    patch_arranged_tree_geometry, patch_arranged_tree_input,
     render::{
         extract_ui_render_commands_for_nodes_with_component_states_and_text_measure_cache,
-        extract_ui_render_tree_from_arranged_with_component_states_and_text_measure_cache,
+        extract_ui_render_tree_from_arranged_indexed_with_component_states_and_text_measure_cache_and_control_index,
         UiSurfaceRenderCacheStats,
     },
 };
@@ -62,11 +63,13 @@ impl UiSurface {
             self.text_measure_cache.begin_frame();
         }
         let mut extract =
-            extract_ui_render_tree_from_arranged_with_component_states_and_text_measure_cache(
+            extract_ui_render_tree_from_arranged_indexed_with_component_states_and_text_measure_cache_and_control_index(
                 &self.tree,
                 &self.arranged_tree,
+                &self.arranged_node_indices,
                 Some(&self.component_states),
                 Some(&mut self.text_measure_cache),
+                Some(&self.control_index),
             );
         extract.raster_scale = self.current_raster_scale();
         let update = self.render_cache.update_for_arranged(
@@ -127,7 +130,11 @@ impl UiSurface {
     pub(crate) fn refresh_render_extract_for_current_tree(&mut self) {
         self.arranged_tree = build_arranged_tree(&self.tree);
         self.refresh_arranged_node_indices();
+        self.hit_test
+            .rebuild_arranged_indexed(&self.arranged_tree, &self.arranged_node_indices);
         let _ = self.rebuild_render_extract(false);
+        self.seed_popup_stack_from_tree_metadata();
+        self.rebuild_projected_hit_test();
         self.mark_surface_frame_dirty();
     }
 
@@ -157,7 +164,8 @@ impl UiSurface {
         self.refresh_arranged_node_indices();
         let arranged_elapsed_micros = elapsed_micros(arranged_start);
         let hit_start = Instant::now();
-        self.hit_test.rebuild_arranged(&self.arranged_tree);
+        self.hit_test
+            .rebuild_arranged_indexed(&self.arranged_tree, &self.arranged_node_indices);
         let hit_grid_elapsed_micros = elapsed_micros(hit_start);
         let render_start = Instant::now();
         let render_stats = self.rebuild_render_extract(true);
@@ -184,6 +192,7 @@ impl UiSurface {
         }
         .with_text_cache_stats(text_cache_stats);
         self.seed_popup_stack_from_tree_metadata();
+        self.rebuild_projected_hit_test();
         self.mark_surface_frame_dirty();
         if !requires_layout_rebuild(dirty_flags) {
             let _ = self
@@ -215,6 +224,7 @@ impl UiSurface {
     }
 
     pub fn clear_dirty_flags(&mut self) {
+        self.control_index.synchronize_pending(&self.tree);
         let mut dirty_node_ids = std::mem::take(&mut self.dirty_node_ids);
         dirty_node_ids.extend(self.tree.pending_mutation_node_ids().iter().copied());
         for node_id in dirty_node_ids {
@@ -334,7 +344,7 @@ impl UiSurface {
                 Some(&mut self.text_measure_cache),
                 &dirty_node_ids,
                 root_size_changed,
-                &self.arranged_slot_indices,
+                &self.layout_slot_index,
             )?;
             self.last_layout_root_size = Some(root_size);
             self.last_layout_geometry_changed_node_ids =
@@ -400,13 +410,19 @@ impl UiSurface {
             let hit_grid_full_rebuild =
                 !arranged_patched || hit_grid_patch.as_ref().is_some_and(Result::is_err);
             if hit_grid_full_rebuild {
-                self.hit_test.rebuild_arranged(&self.arranged_tree);
+                self.hit_test
+                    .rebuild_arranged_indexed(&self.arranged_tree, &self.arranged_node_indices);
             }
             let hit_grid_elapsed_micros = elapsed_micros(hit_start);
             let render_start = Instant::now();
             let mut render_changed_node_ids = dirty_node_ids.clone();
             render_changed_node_ids.extend(layout_stats.geometry_changed_node_ids.iter().copied());
-            let render_local_patch = if arranged_patched && local_layout_patch_dirty {
+            let popup_trigger_dependency_changed =
+                self.popup_trigger_requires_full_render_extract(&render_changed_node_ids);
+            let render_local_patch = if !popup_trigger_dependency_changed
+                && arranged_patched
+                && local_layout_patch_dirty
+            {
                 if dirty.style || dirty.text {
                     match self.patch_render_nodes(&render_changed_node_ids) {
                         Ok(stats) => {
@@ -435,7 +451,8 @@ impl UiSurface {
                         },
                     }
                 }
-            } else if !dirty.style
+            } else if !popup_trigger_dependency_changed
+                && !dirty.style
                 && !dirty.visible_range
                 && !dirty.hit_test
                 && !dirty.input
@@ -494,6 +511,13 @@ impl UiSurface {
             }
             .with_text_cache_stats(text_cache_stats);
             self.last_rebuild_report = report;
+            if self.popup_stack_requires_reconciliation(&render_changed_node_ids) {
+                self.seed_popup_stack_from_tree_metadata();
+            }
+            self.synchronize_projected_hit_test(
+                &layout_stats.geometry_changed_node_ids,
+                hit_grid_full_rebuild,
+            );
             let _ = self
                 .invalidation
                 .commit_pending()
@@ -509,34 +533,76 @@ impl UiSurface {
             dirty_node_count,
             ..UiSurfaceRebuildReport::default()
         };
+        let mut input_patch_node_ids = None;
+        let mut hit_grid_full_rebuild = false;
         if dirty.hit_test || dirty.input {
             let arranged_start = Instant::now();
-            self.arranged_tree = build_arranged_tree(&self.tree);
-            self.refresh_arranged_node_indices();
+            input_patch_node_ids = patch_arranged_tree_input(
+                &self.tree,
+                &mut self.arranged_tree,
+                &dirty_node_ids,
+                &self.arranged_node_indices,
+                &self.arranged_slot_indices,
+            );
+            if input_patch_node_ids.is_none() {
+                self.arranged_tree = build_arranged_tree(&self.tree);
+                self.refresh_arranged_node_indices();
+            }
             report.arranged_elapsed_micros = elapsed_micros(arranged_start);
             let hit_start = Instant::now();
-            self.hit_test.rebuild_arranged(&self.arranged_tree);
+            let hit_grid_patch = input_patch_node_ids.as_ref().map(|node_ids| {
+                self.hit_test.patch_arranged_geometry(
+                    &self.arranged_tree,
+                    node_ids,
+                    &self.arranged_node_indices,
+                )
+            });
+            let hit_grid_changed = hit_grid_patch
+                .as_ref()
+                .and_then(|result| result.as_ref().ok().copied())
+                .unwrap_or(false);
+            hit_grid_full_rebuild = input_patch_node_ids.is_none()
+                || hit_grid_patch.as_ref().is_some_and(Result::is_err);
+            if hit_grid_full_rebuild {
+                self.hit_test
+                    .rebuild_arranged_indexed(&self.arranged_tree, &self.arranged_node_indices);
+            }
             report.hit_grid_elapsed_micros = elapsed_micros(hit_start);
             report.arranged_rebuilt = true;
-            report.hit_grid_rebuilt = true;
-            report.arranged_outer_node_visit_count = self.tree.nodes.len();
-            report.hit_grid_outer_node_visit_count = self.arranged_tree.draw_order.len();
+            report.hit_grid_rebuilt = hit_grid_changed || hit_grid_full_rebuild;
+            report.arranged_outer_node_visit_count = input_patch_node_ids
+                .as_ref()
+                .map_or(self.tree.nodes.len(), BTreeSet::len);
+            report.hit_grid_outer_node_visit_count = if hit_grid_changed {
+                input_patch_node_ids.as_ref().map_or(0, BTreeSet::len)
+            } else if hit_grid_full_rebuild {
+                self.arranged_tree.draw_order.len()
+            } else {
+                0
+            };
         }
         if dirty.render {
             let render_start = Instant::now();
             self.text_measure_cache.begin_frame();
-            let render_local_patch =
-                if !dirty.hit_test && !dirty.input && !dirty_node_ids.is_empty() {
-                    match self.patch_render_nodes(&dirty_node_ids) {
-                        Ok(stats) => {
-                            self.text_measure_cache.finish_frame();
-                            Some(stats)
-                        }
-                        Err(()) => None,
+            let render_patch_node_ids = input_patch_node_ids
+                .as_ref()
+                .filter(|_| dirty.hit_test || dirty.input)
+                .unwrap_or(&dirty_node_ids);
+            let render_local_patch = if (!dirty.hit_test && !dirty.input
+                || input_patch_node_ids.is_some())
+                && !render_patch_node_ids.is_empty()
+                && !self.popup_trigger_requires_full_render_extract(render_patch_node_ids)
+            {
+                match self.patch_render_nodes(render_patch_node_ids) {
+                    Ok(stats) => {
+                        self.text_measure_cache.finish_frame();
+                        Some(stats)
                     }
-                } else {
-                    None
-                };
+                    Err(()) => None,
+                }
+            } else {
+                None
+            };
             let render_stats = render_local_patch
                 .clone()
                 .unwrap_or_else(|| self.rebuild_render_extract_with_text_frame(false, false));
@@ -546,7 +612,7 @@ impl UiSurface {
             report.render_command_rebuilt_count = render_stats.rebuilt_command_count;
             report.render_damage_rect_count = render_stats.damage_rect_count;
             report.render_outer_node_visit_count = if render_local_patch.is_some() {
-                dirty_node_ids.len()
+                render_patch_node_ids.len()
             } else {
                 self.arranged_tree.draw_order.len()
             };
@@ -556,6 +622,11 @@ impl UiSurface {
             ..report.with_counts(self.rebuild_counts())
         };
         self.last_rebuild_report = report;
+        if self.popup_stack_requires_reconciliation(&dirty_node_ids) {
+            self.seed_popup_stack_from_tree_metadata();
+        }
+        let hit_grid_affected_node_ids = input_patch_node_ids.unwrap_or_default();
+        self.synchronize_projected_hit_test(&hit_grid_affected_node_ids, hit_grid_full_rebuild);
         let _ = self
             .invalidation
             .commit_pending()
@@ -574,20 +645,37 @@ impl UiSurface {
         let dirty_node_count = self.invalidation.pending_changed_node_count();
         self.text_measure_cache.begin_frame();
         let layout_start = Instant::now();
-        self.layout_engine_report = compute_layout_tree_with_text_measure_cache(
+        self.layout_engine_report = compute_layout_tree_with_text_measure_cache_and_slot_index(
             &mut self.tree,
             root_size,
             Some(&mut self.text_measure_cache),
+            &self.layout_slot_index,
         )?;
         self.refresh_layout_engine_selection_indices();
         self.last_layout_root_size = Some(root_size);
         let layout_elapsed_micros = elapsed_micros(layout_start);
         let arranged_start = Instant::now();
-        self.arranged_tree = build_arranged_tree(&self.tree);
+        let next_arranged_tree = build_arranged_tree(&self.tree);
+        self.last_layout_geometry_changed_node_ids = next_arranged_tree
+            .nodes
+            .iter()
+            .filter(|next| {
+                self.arranged_node(next.node_id).is_none_or(|previous| {
+                    previous.frame != next.frame
+                        || previous.clip_frame != next.clip_frame
+                        || previous.z_index != next.z_index
+                        || previous.parent != next.parent
+                        || previous.children != next.children
+                })
+            })
+            .map(|node| node.node_id)
+            .collect();
+        self.arranged_tree = next_arranged_tree;
         self.refresh_arranged_node_indices();
         let arranged_elapsed_micros = elapsed_micros(arranged_start);
         let hit_start = Instant::now();
-        self.hit_test.rebuild_arranged(&self.arranged_tree);
+        self.hit_test
+            .rebuild_arranged_indexed(&self.arranged_tree, &self.arranged_node_indices);
         let hit_grid_elapsed_micros = elapsed_micros(hit_start);
         let render_start = Instant::now();
         let render_stats = self.rebuild_render_extract_with_text_frame(true, false);
@@ -617,6 +705,7 @@ impl UiSurface {
         }
         .with_text_cache_stats(text_cache_stats);
         self.seed_popup_stack_from_tree_metadata();
+        self.rebuild_projected_hit_test();
         let _ = self
             .invalidation
             .commit_pending()

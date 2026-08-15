@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::{
     component::{UiComponentEvent, UiValue},
     dispatch::{UiComponentEventReport, UiPointerComponentEvent, UiPointerComponentEventReason},
     event_ui::UiNodeId,
-    surface::{UiArrangedNode, UiPointerRoute},
+    surface::UiPointerRoute,
     tree::{UiTemplateNodeMetadata, UiTreeError},
     widget::UiWidgetBehavior,
 };
@@ -55,9 +55,9 @@ impl UiSurface {
         route: &UiPointerRoute,
         events: &mut Vec<UiPointerComponentEvent>,
         binding_reports: &mut Vec<UiBindingUpdateReport>,
-    ) -> Result<(), UiTreeError> {
+    ) -> Result<bool, UiTreeError> {
         let Some(close) = self.default_popup_outside_close(route)? else {
-            return Ok(());
+            return Ok(false);
         };
         let report = self.mutate_property(UiPropertyMutationRequest::widget_behavior(
             close.popup_id,
@@ -65,7 +65,7 @@ impl UiSurface {
             UiValue::Bool(false),
         ))?;
         if !matches!(report.status, UiPropertyMutationStatus::Accepted) {
-            return Ok(());
+            return Ok(false);
         }
         binding_reports.push(report.binding);
         self.push_pointer_component_events_for_component_event_kind(
@@ -74,7 +74,8 @@ impl UiSurface {
             UiEventKind::Click,
             UiComponentEvent::ClosePopup,
             UiPointerComponentEventReason::DefaultClick,
-        )
+        )?;
+        Ok(true)
     }
 
     pub(super) fn apply_default_popup_keyboard_action(
@@ -314,8 +315,10 @@ impl UiSurface {
         &self,
         route: &UiPointerRoute,
     ) -> Result<Option<UiDefaultMenuPopupClose>, UiTreeError> {
-        for arranged in self.arranged_tree.nodes.iter().rev() {
-            let node_id = arranged.node_id;
+        for popup in self.input.popup_stack.iter().rev() {
+            let Some(node_id) = popup.popup_node else {
+                continue;
+            };
             let node = self
                 .tree
                 .node(node_id)
@@ -337,8 +340,11 @@ impl UiSurface {
                 &["popup_open", "open"],
                 false,
             );
-            if !popup_open || pointer_route_is_inside_popup(route, arranged) {
+            if !popup_open {
                 continue;
+            }
+            if pointer_route_is_inside_popup(route, node_id) {
+                return Ok(None);
             }
             if !popup_backdrop_click_enabled(metadata) {
                 return Ok(None);
@@ -387,12 +393,6 @@ fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> bool {
         .unwrap_or(false)
 }
 
-fn pointer_route_is_inside_popup(route: &UiPointerRoute, popup: &UiArrangedNode) -> bool {
-    route.bubbled.contains(&popup.node_id)
-        || route.stacked.contains(&popup.node_id)
-        || popup
-            .frame
-            .intersection(popup.clip_frame)
-            .unwrap_or(popup.frame)
-            .contains_point(route.point)
+fn pointer_route_is_inside_popup(route: &UiPointerRoute, popup_node_id: UiNodeId) -> bool {
+    route.bubbled.contains(&popup_node_id) || route.stacked.contains(&popup_node_id)
 }

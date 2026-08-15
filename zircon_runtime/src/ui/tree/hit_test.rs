@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
 
 use crate::ui::surface::{
-    arranged_bubble_route, arranged_effective_input_policy, build_arranged_tree,
-    is_arranged_child_hit_path_visible,
+    arranged_bubble_route, arranged_bubble_route_indexed, arranged_effective_input_policy,
+    arranged_effective_input_policy_indexed, arranged_node_indexed, arranged_node_indices,
+    build_arranged_tree, is_arranged_child_hit_path_visible,
+    is_arranged_child_hit_path_visible_indexed,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use zircon_runtime_interface::ui::surface::{
@@ -64,7 +66,16 @@ impl UiHitTestIndex {
     }
 
     pub fn rebuild_arranged(&mut self, arranged_tree: &UiArrangedTree) {
-        self.grid = build_hit_grid(arranged_tree);
+        let node_indices = arranged_node_indices(arranged_tree);
+        self.rebuild_arranged_indexed(arranged_tree, &node_indices);
+    }
+
+    pub(crate) fn rebuild_arranged_indexed(
+        &mut self,
+        arranged_tree: &UiArrangedTree,
+        node_indices: &BTreeMap<UiNodeId, usize>,
+    ) {
+        self.grid = build_hit_grid(arranged_tree, node_indices);
         self.reindex_entry_cells();
     }
 
@@ -211,6 +222,17 @@ impl UiHitTestIndex {
 
     fn entry_index_by_node_id(&self, node_id: UiNodeId) -> Option<usize> {
         self.entry_indices.get(&node_id).copied()
+    }
+
+    pub(crate) fn entry_by_node_id(&self, node_id: UiNodeId) -> Option<&UiHitTestEntry> {
+        self.entry_index_by_node_id(node_id)
+            .and_then(|entry_index| self.grid.entries.get(entry_index))
+    }
+
+    pub(crate) fn ensure_entry_lookup(&mut self) {
+        if self.entry_indices.len() != self.grid.entries.len() {
+            self.reindex_entry_cells();
+        }
     }
 
     fn reindex_entry_cells(&mut self) {
@@ -398,14 +420,14 @@ fn is_arranged_child_hit_path_visible_for_patch(
     node_id: UiNodeId,
 ) -> Result<bool, ()> {
     let node = arranged_node_for_patch(arranged_tree, arranged_node_indices, node_id).ok_or(())?;
-    if !node.is_self_hit_test_visible() {
+    if !node.allows_self_pointer_hit_test() {
         return Ok(false);
     }
     let mut current = node.parent;
     while let Some(ancestor_id) = current {
         let ancestor =
             arranged_node_for_patch(arranged_tree, arranged_node_indices, ancestor_id).ok_or(())?;
-        if !ancestor.allows_child_hit_test() {
+        if !ancestor.allows_child_pointer_hit_test() {
             return Ok(false);
         }
         current = ancestor.parent;
@@ -496,22 +518,28 @@ fn cached_bubble_route(entry: &UiHitTestEntry) -> Option<&[UiNodeId]> {
         .then_some(entry.bubble_route.as_slice())
 }
 
-fn build_hit_grid(arranged_tree: &UiArrangedTree) -> UiHitTestGrid {
+fn build_hit_grid(
+    arranged_tree: &UiArrangedTree,
+    node_indices: &BTreeMap<UiNodeId, usize>,
+) -> UiHitTestGrid {
     let mut entries: Vec<_> = arranged_tree
         .draw_order
         .iter()
-        .filter_map(|node_id| arranged_tree.get(*node_id))
+        .filter_map(|node_id| arranged_node_indexed(arranged_tree, node_indices, *node_id).ok())
         .filter(|node| node.supports_pointer())
         .filter(|node| {
-            is_arranged_child_hit_path_visible(arranged_tree, node.node_id).unwrap_or(false)
+            is_arranged_child_hit_path_visible_indexed(arranged_tree, node_indices, node.node_id)
+                .unwrap_or(false)
         })
         .filter_map(|node| {
             let effective_input_policy =
-                arranged_effective_input_policy(arranged_tree, node.node_id).ok()?;
+                arranged_effective_input_policy_indexed(arranged_tree, node_indices, node.node_id)
+                    .ok()?;
             if effective_input_policy == UiInputPolicy::Ignore {
                 return None;
             }
-            let bubble_route = arranged_bubble_route(arranged_tree, node.node_id).ok()?;
+            let bubble_route =
+                arranged_bubble_route_indexed(arranged_tree, node_indices, node.node_id).ok()?;
             let clip_frame = node.frame.intersection(node.clip_frame)?;
             Some(UiHitTestEntry {
                 node_id: node.node_id,
@@ -677,8 +705,31 @@ mod incremental_patch_tests {
     use zircon_runtime_interface::ui::{
         event_ui::{UiNodePath, UiTreeId},
         surface::UiArrangedNode,
-        tree::UiVisibility,
+        tree::{UiPointerEvents, UiVisibility},
     };
+
+    #[test]
+    fn missing_ephemeral_lookup_requires_explicit_reindex() {
+        let node_id = UiNodeId::new(1);
+        let arranged_tree = UiArrangedTree {
+            tree_id: UiTreeId::new("ui.hit.lookup-reindex"),
+            roots: vec![node_id],
+            nodes: vec![pointer_node(node_id, 0, UiFrame::new(0.0, 0.0, 20.0, 20.0))],
+            draw_order: vec![node_id],
+            canvas_layers: Vec::new(),
+        };
+        let mut index = UiHitTestIndex::default();
+        index.rebuild_arranged(&arranged_tree);
+        index.entry_cells.clear();
+        index.entry_indices.clear();
+
+        assert!(index.entry_by_node_id(node_id).is_none());
+        index.ensure_entry_lookup();
+        assert_eq!(
+            index.entry_by_node_id(node_id).map(|entry| entry.node_id),
+            Some(node_id)
+        );
+    }
 
     #[test]
     fn moving_entry_across_cells_keeps_one_hit_index() {
@@ -731,6 +782,62 @@ mod incremental_patch_tests {
         );
     }
 
+    #[test]
+    fn self_none_excludes_the_node_but_keeps_pointer_children() {
+        let parent_id = UiNodeId::new(10);
+        let child_id = UiNodeId::new(11);
+        let frame = UiFrame::new(0.0, 0.0, 20.0, 20.0);
+        let mut parent = pointer_node(parent_id, 0, frame);
+        parent.children.push(child_id);
+        parent.pointer_events = UiPointerEvents::SelfNone;
+        let mut child = pointer_node(child_id, 1, frame);
+        child.parent = Some(parent_id);
+        let arranged_tree = UiArrangedTree {
+            tree_id: UiTreeId::new("ui.hit.pointer-events.self-none"),
+            roots: vec![parent_id],
+            nodes: vec![parent, child],
+            draw_order: vec![parent_id, child_id],
+            canvas_layers: Vec::new(),
+        };
+
+        let mut index = UiHitTestIndex::default();
+        index.rebuild_arranged(&arranged_tree);
+
+        assert_eq!(
+            index
+                .grid
+                .entries
+                .iter()
+                .map(|entry| entry.node_id)
+                .collect::<Vec<_>>(),
+            vec![child_id]
+        );
+    }
+
+    #[test]
+    fn none_excludes_the_entire_pointer_subtree() {
+        let parent_id = UiNodeId::new(20);
+        let child_id = UiNodeId::new(21);
+        let frame = UiFrame::new(0.0, 0.0, 20.0, 20.0);
+        let mut parent = pointer_node(parent_id, 0, frame);
+        parent.children.push(child_id);
+        parent.pointer_events = UiPointerEvents::None;
+        let mut child = pointer_node(child_id, 1, frame);
+        child.parent = Some(parent_id);
+        let arranged_tree = UiArrangedTree {
+            tree_id: UiTreeId::new("ui.hit.pointer-events.none"),
+            roots: vec![parent_id],
+            nodes: vec![parent, child],
+            draw_order: vec![parent_id, child_id],
+            canvas_layers: Vec::new(),
+        };
+
+        let mut index = UiHitTestIndex::default();
+        index.rebuild_arranged(&arranged_tree);
+
+        assert!(index.grid.entries.is_empty());
+    }
+
     fn pointer_node(node_id: UiNodeId, paint_order: u64, frame: UiFrame) -> UiArrangedNode {
         UiArrangedNode {
             node_id,
@@ -743,6 +850,7 @@ mod incremental_patch_tests {
             paint_order,
             visibility: UiVisibility::Visible,
             input_policy: UiInputPolicy::Receive,
+            pointer_events: Default::default(),
             enabled: true,
             clickable: true,
             hoverable: true,

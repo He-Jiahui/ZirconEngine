@@ -1,5 +1,6 @@
 mod arranged;
 mod component_state;
+mod control_index;
 mod diagnostics;
 mod ecs_projection;
 mod focus;
@@ -14,6 +15,7 @@ mod reflection_snapshot;
 mod render;
 mod slots;
 mod surface;
+mod text_artifact;
 mod text_geometry;
 mod text_shape;
 mod timeline;
@@ -25,11 +27,15 @@ use zircon_runtime_interface::ui::{
 
 pub use crate::ui::text::layout_text;
 pub(crate) use arranged::{
-    arranged_bubble_route, arranged_effective_input_policy, arranged_focus_path,
+    arranged_bubble_route, arranged_bubble_route_indexed, arranged_effective_input_policy,
+    arranged_effective_input_policy_indexed, arranged_focus_path, arranged_node_indexed,
     arranged_node_indices, arranged_slot_indices, build_arranged_tree,
-    is_arranged_child_hit_path_visible, is_arranged_render_visible, patch_arranged_tree_geometry,
+    is_arranged_child_hit_path_visible, is_arranged_child_hit_path_visible_indexed,
+    is_arranged_render_visible, is_arranged_render_visible_indexed, patch_arranged_tree_geometry,
+    patch_arranged_tree_input,
 };
 pub use component_state::UiSurfaceComponentStateStore;
+pub(crate) use control_index::UiSurfaceControlIndex;
 pub use diagnostics::{
     debug_surface_frame, debug_surface_frame_for_pick, debug_surface_frame_for_selection,
     debug_surface_frame_with_options,
@@ -54,6 +60,11 @@ pub use reflection_snapshot::reflector_snapshot;
 pub use render::{extract_ui_render_tree, extract_ui_render_tree_from_arranged};
 pub(crate) use render::{measure_text_with_cache, measure_text_with_fixed_width_cache};
 pub use surface::{UiSurface, UiSurfaceRebuildReport};
+pub use text_artifact::{
+    current_resolved_text_font_generation, resolved_text_glyph_artifact_line,
+    UiResolvedTextGlyphArtifactLine, UiTextGlyphArtifactFaceSnapshot,
+    UiTextGlyphArtifactRasterFace, UiTextGlyphArtifactRasterFaces,
+};
 pub use text_geometry::{text_caret_frame_for_layout, text_range_frames_for_layout};
 pub use text_shape::shape_text_line;
 pub use timeline::UiDebugTimelineStore;
