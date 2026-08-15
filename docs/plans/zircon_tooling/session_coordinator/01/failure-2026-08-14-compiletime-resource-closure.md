@@ -1,6 +1,6 @@
 ---
 handoff_kind: failure
-status: resolving
+status: open
 created_at: 2026-08-14
 summary_slug: compiletime-resource-closure
 origin_plan: docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
@@ -22,7 +22,7 @@ tests:
 ## 来源执行者
 
 - 来源计划：`docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md`
-- 触发切片：Editor01 gateway current-source validation.
+- 来源执行切片：Editor01 gateway current-source validation.
 - 修复责任计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
 - 交接原因：Editor01 can submit a source manifest, but only Coordinator01 owns the
   immutable validation-copy input closure. The failure reproduces before Rust can
@@ -50,7 +50,18 @@ than Cargo metadata, and can legitimately resolve outside a package root through
 `env!("CARGO_MANIFEST_DIR")` plus `concat!`. This made every dependent editor or
 runtime validation non-self-contained.
 
-## 修复结果
+## 架构修复验收
+
+- Discover real `include_bytes!` and `include_str!` compiler inputs from tracked
+  Rust sources without accepting lookalikes in comments or string literals.
+- Resolve literal and static `concat!(env!("CARGO_MANIFEST_DIR"), ...)` paths
+  inside the repository, and fail closed for missing, dynamic, or escaping inputs.
+- Enumerate thousands of resource roots through bounded deterministic Git calls
+  so Windows command length cannot invalidate an otherwise complete closure.
+- Materialize a real immutable validation copy and prove Cargo starts from it;
+  downstream product compilation may fail, but closure planning must not.
+
+## 修复结果与回传
 
 - `validation_copies.py` now lexes tracked Rust source while excluding comments,
   quoted strings, raw strings, and character literals; it recognizes real
@@ -65,14 +76,22 @@ runtime validation non-self-contained.
   macro in a comment/string is ignored.
 - An existing metadata fixture now uses valid Rust string-literal syntax so the
   parser does not accept an invalid source representation.
+- The production materialization and run IDs below are forward evidence for the
+  fixing plan. The handoff remains open only for the Editor01 origin owner to
+  accept that evidence and execute the ordinary fixed return.
 
 ## 验收状态
 
-Implementation and Python regression are complete. Coordinator service-source
-integration and a newly materialized managed Cargo copy remain pending; the
-currently running service predates this source change, and shared validation
-window coordination forbids launching a replacement Cargo request at this time.
-No Editor01 Cargo pass is claimed by this record.
+The compile-time include closure landed in `93049504c`, and Windows-safe bounded
+Git enumeration for thousands of resource roots landed in `9b9e03755`. A real
+managed copy `5e67c4a2af86451b828d732b3a116446` subsequently reached
+`materialized` with immutable input manifest
+`e2e860b6d87f905e72a62eaebc3a99be5cb1f82015b98dda899180fd46136c09`.
+Its one validation run `6482e830a92648a8bf9f1a51d90613a3` launched Cargo and
+terminated with downstream current-source compile diagnostics rather than a
+closure-planning or missing-resource failure. This proves the Coordinator-owned
+materialization boundary; it does not claim an Editor01 Cargo pass or perform the
+origin-plan lifecycle return.
 
 ## 禁止临时方案
 
@@ -97,3 +116,7 @@ No Editor01 Cargo pass is claimed by this record.
   `Ran 1 test in 7.128s`; 最终完整 `test_validation_copies` 通过，
   `Ran 7 tests in 86.629s`。待完成：服务集成后的 managed validation-copy/Cargo
   复验、独立评审和服务提交。
+- 2026-08-15 13:00:00 +08:00 | status: open | 已提交：compile-time include
+  closure `93049504c` 与 bounded Git batching `9b9e03755`。真实 copy
+  `5e67c4a2...` materialized 后 run `6482e830...` 已启动 Cargo；剩余仅为
+  Editor01 origin lifecycle return，不宣称下游产品编译通过。
