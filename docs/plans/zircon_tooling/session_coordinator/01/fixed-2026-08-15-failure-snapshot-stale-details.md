@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-15
 summary_slug: failure-snapshot-stale-details
 origin_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
@@ -16,7 +16,9 @@ related_code:
 tests:
   - python -m unittest tools.session_coordinator.tests.test_failures -v
   - python -m unittest tools.session_coordinator.tests.test_server.ServerTests.test_registration_snapshot_parse_does_not_hold_the_database_writer tools.session_coordinator.tests.test_server.ServerTests.test_database_busy_diagnostic_does_not_terminate_maintenance_loop -v
+resolved_at: 2026-08-15
 ---
+
 
 # Coordinator01: stale failure snapshots omit the changed artifacts
 
@@ -62,19 +64,7 @@ bounded deterministic manifest diff.
 
 ## 修复结果与回传
 
-Implemented a dedicated manifest-drift projector and connected it to the
-fail-closed prepared-snapshot comparison. Durable error details now carry exact
-artifact/category counts, a deterministic bounded change list, the available
-expected/current SHA-256 identities, and an explicit truncation bit without
-exposing absolute paths.
-
-Validation evidence:
-
-- RED: the focused stale-import tests failed because production returned `{}`;
-  the bounded helper test initially failed to import because the projector did
-  not exist.
-- GREEN: all 25 `test_failures` cases pass, including modified, added, removed,
-  stable ordering, and truncation coverage.
-- The existing session-registration writer-boundary and maintenance DB-busy
-  loop regressions both pass, proving the diagnostics did not move parsing into
-  a write transaction or weaken recovery behavior.
+- 根因：Prepared failure imports discarded the already available immutable manifest identities when their stale CAS rejected concurrent artifact drift.
+- 架构修复：Project added, removed, and modified manifest entries through a deterministic 64-entry diagnostic bound while retaining exact category counts and fail-closed snapshot replacement.
+- 验证：FailureGraph 25/25; registration writer-boundary and maintenance DB-busy regressions 2/2; committed HEAD 688016c892b41d8171cb32abdd244852302b71c2; successor 77601e56c54a428ba8bcc243e0e828bf schema62 healthy; durable failure import 912def6af4f341ca875709d9729f5faa completed.
+- 回传：Coordinator01 stale-snapshot diagnostics are committed, loaded, and lifecycle-closed with exact bounded drift evidence.
