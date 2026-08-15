@@ -22,7 +22,6 @@ mod metadata;
 mod resource_registration;
 mod runtime_core;
 mod runtime_scene_system_registration;
-mod scene_hook;
 mod system_registration;
 
 pub(in crate::plugin::extension_registry) use event_registration::EventRegistration;

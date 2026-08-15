@@ -63,7 +63,7 @@ pub struct RuntimeSceneSystemRegistrationBuilder<'registry, S> {
     owner: PluginModuleId,
     id: String,
     stage: SystemStage,
-    system: S,
+    system_factory: Arc<dyn Fn() -> S + Send + Sync>,
     sets: Vec<SystemSetId>,
     constraints: Vec<SystemOrderingConstraint>,
     order: i32,
@@ -71,25 +71,21 @@ pub struct RuntimeSceneSystemRegistrationBuilder<'registry, S> {
 
 impl<'registry, S> RuntimeSceneSystemRegistrationBuilder<'registry, S>
 where
-    S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError>
-        + Send
-        + Sync
-        + Clone
-        + 'static,
+    S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError> + Send + 'static,
 {
     pub(super) fn new(
         registry: &'registry mut RuntimeExtensionRegistry,
         owner: PluginModuleId,
         id: impl Into<String>,
         stage: SystemStage,
-        system: S,
+        system_factory: Arc<dyn Fn() -> S + Send + Sync>,
     ) -> Self {
         Self {
             registry,
             owner,
             id: id.into(),
             stage,
-            system,
+            system_factory,
             sets: Vec::new(),
             constraints: Vec::new(),
             order: 0,
@@ -124,14 +120,14 @@ where
         let order = self.order;
         let sets = self.sets;
         let constraints = self.constraints;
-        let system_template = self.system;
+        let system_factory = self.system_factory;
         let metadata = SceneSystemMetadata::new(id.clone(), stage, order)
             .with_sets(sets.clone())
             .with_constraints(constraints.clone());
         let build = SharedRuntimeSceneSystemBuild::new(
             id.clone(),
             Arc::new(move || {
-                let mut system = system_template.clone();
+                let mut system = system_factory();
                 let system: BoxedRuntimeSceneSystem = Box::new(FunctionRuntimeSceneSystem::new(
                     metadata.clone(),
                     move |context| system(context),
@@ -154,21 +150,18 @@ where
 }
 
 impl RuntimeExtensionRegistry {
+    /// Registers a factory that produces a fresh callback for every runtime scene-system instance.
     pub fn register_runtime_scene_system<S>(
         &mut self,
         owner: PluginModuleId,
         id: impl Into<String>,
         stage: SystemStage,
-        system: S,
+        system_factory: impl Fn() -> S + Send + Sync + 'static,
     ) -> RuntimeSceneSystemRegistrationBuilder<'_, S>
     where
-        S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError>
-            + Send
-            + Sync
-            + Clone
-            + 'static,
+        S: FnMut(RuntimeSceneSystemContext<'_>) -> Result<(), CoreError> + Send + 'static,
     {
-        RuntimeSceneSystemRegistrationBuilder::new(self, owner, id, stage, system)
+        RuntimeSceneSystemRegistrationBuilder::new(self, owner, id, stage, Arc::new(system_factory))
     }
 
     pub(crate) fn register_runtime_scene_system_registration(
@@ -201,6 +194,7 @@ impl RuntimeExtensionRegistry {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::{Arc, Mutex};
 
     use super::*;
@@ -212,20 +206,26 @@ mod tests {
     #[test]
     fn runtime_scene_system_callback_state_is_private_per_instance() {
         let observed = Arc::new(Mutex::new(Vec::new()));
+        let factory_builds = Arc::new(AtomicUsize::new(0));
         let mut registry = RuntimeExtensionRegistry::default();
         let owner = registry.intern_plugin_module("tests.runtime").unwrap();
-        let observed_for_system = Arc::clone(&observed);
-        let mut calls = 0usize;
+        let observed_for_factory = Arc::clone(&observed);
+        let factory_builds_for_factory = Arc::clone(&factory_builds);
 
         registry
             .register_runtime_scene_system(
                 owner,
                 "tests.runtime.private-state",
                 SystemStage::Update,
-                move |_| {
-                    calls += 1;
-                    observed_for_system.lock().unwrap().push(calls);
-                    Ok(())
+                move || {
+                    factory_builds_for_factory.fetch_add(1, Ordering::SeqCst);
+                    let observed = Arc::clone(&observed_for_factory);
+                    let mut calls = 0usize;
+                    move |_| {
+                        calls += 1;
+                        observed.lock().unwrap().push(calls);
+                        Ok(())
+                    }
                 },
             )
             .register()
@@ -255,5 +255,6 @@ mod tests {
             .unwrap();
 
         assert_eq!(*observed.lock().unwrap(), vec![1, 1]);
+        assert_eq!(factory_builds.load(Ordering::SeqCst), 2);
     }
 }

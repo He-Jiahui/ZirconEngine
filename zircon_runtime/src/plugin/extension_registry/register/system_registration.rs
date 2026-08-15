@@ -1,17 +1,18 @@
 use std::fmt;
 use std::marker::PhantomData;
+use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 use std::sync::Arc;
 
 use crate::plugin::RuntimeExtensionRegistryError;
-use crate::scene::World;
 use crate::scene::ecs::{
     BoxedSceneSystem, SceneSystem, SceneSystemMetadata, SceneSystemThreadAffinity, ScheduleError,
     SystemOrderingConstraint, SystemParam, SystemParamAccess, SystemParamError, SystemRef,
     SystemSetId, SystemStage, SystemState, WorkerCommandBuffer,
 };
+use crate::scene::World;
 
-use super::super::RuntimeExtensionRegistry;
 use super::super::owner::PluginModuleId;
+use super::super::RuntimeExtensionRegistry;
 
 type SystemBuildFn =
     Arc<dyn Fn(&mut World) -> Result<BoxedSceneSystem, ScheduleError> + Send + Sync>;
@@ -68,7 +69,7 @@ where
     owner: PluginModuleId,
     id: String,
     stage: SystemStage,
-    system: S,
+    system_factory: Arc<dyn Fn() -> S + Send + Sync>,
     sets: Vec<SystemSetId>,
     constraints: Vec<SystemOrderingConstraint>,
     order: i32,
@@ -79,21 +80,21 @@ impl<'registry, P, S> SystemRegistrationBuilder<'registry, P, S>
 where
     P: SystemParam + 'static,
     P::State: Send,
-    S: for<'world> FnMut(P::Item<'world>) + Send + Sync + Clone + 'static,
+    S: for<'world> FnMut(P::Item<'world>) + Send + 'static,
 {
     pub(super) fn new(
         registry: &'registry mut RuntimeExtensionRegistry,
         owner: PluginModuleId,
         id: impl Into<String>,
         stage: SystemStage,
-        system: S,
+        system_factory: Arc<dyn Fn() -> S + Send + Sync>,
     ) -> Self {
         Self {
             registry,
             owner,
             id: id.into(),
             stage,
-            system,
+            system_factory,
             sets: Vec::new(),
             constraints: Vec::new(),
             order: 0,
@@ -129,7 +130,7 @@ where
         let order = self.order;
         let sets = self.sets;
         let constraints = self.constraints;
-        let system_template = self.system;
+        let system_factory = self.system_factory;
         let metadata = SceneSystemMetadata::new(id.clone(), stage, order)
             .with_sets(sets.clone())
             .with_constraints(constraints.clone());
@@ -137,15 +138,12 @@ where
         let build = SharedSystemBuild::new(
             build_id.clone(),
             Arc::new(move |world| {
-                let system = CallbackSceneSystem::<P, S>::new(
-                    metadata.clone(),
-                    world,
-                    system_template.clone(),
-                )
-                .map_err(|source| ScheduleError::SystemParam {
-                    system_id: build_id.clone(),
-                    source,
-                })?;
+                let system =
+                    CallbackSceneSystem::<P, S>::new(metadata.clone(), world, system_factory())
+                        .map_err(|source| ScheduleError::SystemParam {
+                            system_id: build_id.clone(),
+                            source,
+                        })?;
                 Ok(Box::new(system))
             }),
         );
@@ -175,7 +173,7 @@ pub(crate) struct ExternalSystemRegistrationBuilder<'registry, S> {
     stage: SystemStage,
     affinity: SceneSystemThreadAffinity,
     access_build: ExternalAccessBuildFn,
-    system: S,
+    system_factory: Arc<dyn Fn() -> S + Send + Sync>,
     sets: Vec<SystemSetId>,
     constraints: Vec<SystemOrderingConstraint>,
     order: i32,
@@ -183,7 +181,7 @@ pub(crate) struct ExternalSystemRegistrationBuilder<'registry, S> {
 
 impl<'registry, S> ExternalSystemRegistrationBuilder<'registry, S>
 where
-    S: FnMut() + Send + Sync + Clone + 'static,
+    S: FnMut() + Send + 'static,
 {
     fn new(
         registry: &'registry mut RuntimeExtensionRegistry,
@@ -192,7 +190,7 @@ where
         stage: SystemStage,
         affinity: SceneSystemThreadAffinity,
         access_build: ExternalAccessBuildFn,
-        system: S,
+        system_factory: Arc<dyn Fn() -> S + Send + Sync>,
     ) -> Self {
         Self {
             registry,
@@ -201,7 +199,7 @@ where
             stage,
             affinity,
             access_build,
-            system,
+            system_factory,
             sets: Vec::new(),
             constraints: Vec::new(),
             order: 0,
@@ -236,7 +234,7 @@ where
         let order = self.order;
         let sets = self.sets;
         let constraints = self.constraints;
-        let system_template = self.system;
+        let system_factory = self.system_factory;
         let metadata = SceneSystemMetadata::new(id.clone(), stage, order)
             .with_sets(sets.clone())
             .with_constraints(constraints.clone())
@@ -254,7 +252,7 @@ where
                 Ok(Box::new(ExternalCallbackSceneSystem::new(
                     metadata.clone(),
                     access,
-                    system_template.clone(),
+                    system_factory(),
                 )))
             }),
         );
@@ -279,7 +277,7 @@ pub(crate) struct ExternalCommandSystemRegistrationBuilder<'registry, S> {
     stage: SystemStage,
     affinity: SceneSystemThreadAffinity,
     access_build: ExternalAccessBuildFn,
-    system: S,
+    system_factory: Arc<dyn Fn() -> S + Send + Sync>,
     sets: Vec<SystemSetId>,
     constraints: Vec<SystemOrderingConstraint>,
     order: i32,
@@ -288,7 +286,7 @@ pub(crate) struct ExternalCommandSystemRegistrationBuilder<'registry, S> {
 
 impl<'registry, S> ExternalCommandSystemRegistrationBuilder<'registry, S>
 where
-    S: FnMut(&mut WorkerCommandBuffer) + Send + Sync + Clone + 'static,
+    S: FnMut(&mut WorkerCommandBuffer) + Send + 'static,
 {
     fn new(
         registry: &'registry mut RuntimeExtensionRegistry,
@@ -297,7 +295,7 @@ where
         stage: SystemStage,
         affinity: SceneSystemThreadAffinity,
         access_build: ExternalAccessBuildFn,
-        system: S,
+        system_factory: Arc<dyn Fn() -> S + Send + Sync>,
     ) -> Self {
         Self {
             registry,
@@ -306,7 +304,7 @@ where
             stage,
             affinity,
             access_build,
-            system,
+            system_factory,
             sets: Vec::new(),
             constraints: Vec::new(),
             order: 0,
@@ -348,7 +346,7 @@ where
         let sets = self.sets;
         let constraints = self.constraints;
         let command_capacity = self.command_capacity;
-        let system_template = self.system;
+        let system_factory = self.system_factory;
         let metadata = SceneSystemMetadata::new(id.clone(), stage, order)
             .with_sets(sets.clone())
             .with_constraints(constraints.clone())
@@ -363,12 +361,17 @@ where
                         system_id: build_id.clone(),
                         message,
                     })?;
-                access.add_deferred_commands();
+                access
+                    .add_deferred_commands()
+                    .map_err(|source| ScheduleError::SystemParam {
+                        system_id: build_id.clone(),
+                        source,
+                    })?;
                 Ok(Box::new(ExternalCommandCallbackSceneSystem::new(
                     metadata.clone(),
                     access,
                     command_capacity,
-                    system_template.clone(),
+                    system_factory(),
                 )))
             }),
         );
@@ -387,21 +390,23 @@ where
 }
 
 impl RuntimeExtensionRegistry {
+    /// Registers a factory that produces a fresh typed callback for every World build.
     pub fn register_native_system<P, S>(
         &mut self,
         owner: PluginModuleId,
         id: impl Into<String>,
         stage: SystemStage,
-        system: S,
+        system_factory: impl Fn() -> S + Send + Sync + 'static,
     ) -> SystemRegistrationBuilder<'_, P, S>
     where
         P: SystemParam + 'static,
         P::State: Send,
-        S: for<'world> FnMut(P::Item<'world>) + Send + Sync + Clone + 'static,
+        S: for<'world> FnMut(P::Item<'world>) + Send + 'static,
     {
-        SystemRegistrationBuilder::new(self, owner, id, stage, system)
+        SystemRegistrationBuilder::new(self, owner, id, stage, Arc::new(system_factory))
     }
 
+    /// Registers a factory that produces a fresh worldless callback for every World build.
     pub(crate) fn register_external_native_system<S>(
         &mut self,
         owner: PluginModuleId,
@@ -409,10 +414,10 @@ impl RuntimeExtensionRegistry {
         stage: SystemStage,
         affinity: SceneSystemThreadAffinity,
         access_build: impl Fn(&mut World) -> Result<SystemParamAccess, String> + Send + Sync + 'static,
-        system: S,
+        system_factory: impl Fn() -> S + Send + Sync + 'static,
     ) -> ExternalSystemRegistrationBuilder<'_, S>
     where
-        S: FnMut() + Send + Sync + Clone + 'static,
+        S: FnMut() + Send + 'static,
     {
         ExternalSystemRegistrationBuilder::new(
             self,
@@ -421,10 +426,11 @@ impl RuntimeExtensionRegistry {
             stage,
             affinity,
             Arc::new(access_build),
-            system,
+            Arc::new(system_factory),
         )
     }
 
+    /// Registers a factory that produces a fresh deferred-command callback for every World build.
     pub(crate) fn register_external_native_command_system<S>(
         &mut self,
         owner: PluginModuleId,
@@ -432,10 +438,10 @@ impl RuntimeExtensionRegistry {
         stage: SystemStage,
         affinity: SceneSystemThreadAffinity,
         access_build: impl Fn(&mut World) -> Result<SystemParamAccess, String> + Send + Sync + 'static,
-        system: S,
+        system_factory: impl Fn() -> S + Send + Sync + 'static,
     ) -> ExternalCommandSystemRegistrationBuilder<'_, S>
     where
-        S: FnMut(&mut WorkerCommandBuffer) + Send + Sync + Clone + 'static,
+        S: FnMut(&mut WorkerCommandBuffer) + Send + 'static,
     {
         ExternalCommandSystemRegistrationBuilder::new(
             self,
@@ -444,7 +450,7 @@ impl RuntimeExtensionRegistry {
             stage,
             affinity,
             Arc::new(access_build),
-            system,
+            Arc::new(system_factory),
         )
     }
 
@@ -626,8 +632,17 @@ where
     }
 
     fn run(&mut self, world: &mut World) {
-        self.run_callback();
+        world.reclaim_worker_command_buffer(&mut self.command_buffer);
+        let result = catch_unwind(AssertUnwindSafe(|| self.run_callback()));
+        if let Err(payload) = result {
+            self.command_buffer.discard_pending();
+            resume_unwind(payload);
+        }
         world.merge_worker_command_buffer(&mut self.command_buffer);
+    }
+
+    fn bind_deferred_system_key(&mut self, key: crate::scene::ecs::DeferredSystemKey) {
+        self.command_buffer.bind_compiled_key(key);
     }
 
     fn run_without_world(&mut self) {
@@ -654,6 +669,7 @@ pub(super) fn validate_plugin_system_id(id: &str) -> Result<(), RuntimeExtension
 
 #[cfg(test)]
 mod tests {
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::{Arc, Condvar, Mutex};
     use std::thread;
     use std::time::Duration;
@@ -663,19 +679,25 @@ mod tests {
     #[test]
     fn typed_scene_system_callback_state_is_private_per_world() {
         let observed = Arc::new(Mutex::new(Vec::new()));
+        let factory_builds = Arc::new(AtomicUsize::new(0));
         let mut registry = RuntimeExtensionRegistry::default();
         let owner = registry.intern_plugin_module("tests.typed").unwrap();
-        let observed_for_system = Arc::clone(&observed);
-        let mut calls = 0usize;
+        let observed_for_factory = Arc::clone(&observed);
+        let factory_builds_for_factory = Arc::clone(&factory_builds);
 
         registry
             .register_native_system::<(), _>(
                 owner,
                 "tests.typed.private-state",
                 SystemStage::Update,
-                move |_| {
-                    calls += 1;
-                    observed_for_system.lock().unwrap().push(calls);
+                move || {
+                    factory_builds_for_factory.fetch_add(1, Ordering::SeqCst);
+                    let observed = Arc::clone(&observed_for_factory);
+                    let mut calls = 0usize;
+                    move |_| {
+                        calls += 1;
+                        observed.lock().unwrap().push(calls);
+                    }
                 },
             )
             .register()
@@ -691,15 +713,17 @@ mod tests {
         second.run(&mut second_world);
 
         assert_eq!(*observed.lock().unwrap(), vec![1, 1]);
+        assert_eq!(factory_builds.load(Ordering::SeqCst), 2);
     }
 
     #[test]
     fn external_scene_system_callback_state_is_private_per_world() {
         let observed = Arc::new(Mutex::new(Vec::new()));
+        let factory_builds = Arc::new(AtomicUsize::new(0));
         let mut registry = RuntimeExtensionRegistry::default();
         let owner = registry.intern_plugin_module("tests.external").unwrap();
-        let observed_for_system = Arc::clone(&observed);
-        let mut calls = 0usize;
+        let observed_for_factory = Arc::clone(&observed);
+        let factory_builds_for_factory = Arc::clone(&factory_builds);
 
         registry
             .register_external_native_system(
@@ -709,8 +733,13 @@ mod tests {
                 SceneSystemThreadAffinity::WorkerSafe,
                 |_world| Ok(SystemParamAccess::default()),
                 move || {
-                    calls += 1;
-                    observed_for_system.lock().unwrap().push(calls);
+                    factory_builds_for_factory.fetch_add(1, Ordering::SeqCst);
+                    let observed = Arc::clone(&observed_for_factory);
+                    let mut calls = 0usize;
+                    move || {
+                        calls += 1;
+                        observed.lock().unwrap().push(calls);
+                    }
                 },
             )
             .register()
@@ -726,6 +755,7 @@ mod tests {
         second.run_without_world();
 
         assert_eq!(*observed.lock().unwrap(), vec![1, 1]);
+        assert_eq!(factory_builds.load(Ordering::SeqCst), 2);
     }
 
     #[test]
@@ -752,21 +782,24 @@ mod tests {
                 SceneSystemThreadAffinity::WorkerSafe,
                 |_world| Ok(SystemParamAccess::default()),
                 move || {
-                    let (progress_lock, progress_changed) = &*progress_for_system;
-                    let mut progress = progress_lock.lock().unwrap();
-                    progress.active += 1;
-                    progress.max_active = progress.max_active.max(progress.active);
-                    if progress.active == 2 {
-                        progress.both_started = true;
+                    let progress = Arc::clone(&progress_for_system);
+                    move || {
+                        let (progress_lock, progress_changed) = &*progress;
+                        let mut progress = progress_lock.lock().unwrap();
+                        progress.active += 1;
+                        progress.max_active = progress.max_active.max(progress.active);
+                        if progress.active == 2 {
+                            progress.both_started = true;
+                            progress_changed.notify_all();
+                        }
+                        let (mut progress, _) = progress_changed
+                            .wait_timeout_while(progress, Duration::from_secs(1), |progress| {
+                                !progress.both_started
+                            })
+                            .unwrap();
+                        progress.active -= 1;
                         progress_changed.notify_all();
                     }
-                    let (mut progress, _) = progress_changed
-                        .wait_timeout_while(progress, Duration::from_secs(1), |progress| {
-                            !progress.both_started
-                        })
-                        .unwrap();
-                    progress.active -= 1;
-                    progress_changed.notify_all();
                 },
             )
             .register()

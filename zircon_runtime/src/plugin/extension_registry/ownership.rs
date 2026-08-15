@@ -34,7 +34,6 @@ pub struct ExtensionOwnership {
     pub plugin_options: Vec<ExtensionSlot>,
     pub plugin_event_catalogs: Vec<ExtensionSlot>,
     pub asset_importers: Vec<AssetImporterDescriptor>,
-    pub scene_hooks: Vec<ExtensionSlot>,
 }
 
 impl ExtensionOwnership {
@@ -61,8 +60,7 @@ impl ExtensionOwnership {
             && self.components.is_empty()
             && self.plugin_options.is_empty()
             && self.plugin_event_catalogs.is_empty()
-            && self.asset_importers.is_empty()
-            && self.scene_hooks.is_empty();
+            && self.asset_importers.is_empty();
         #[cfg(feature = "ui")]
         let empty = empty && self.ui_components.is_empty();
         empty

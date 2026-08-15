@@ -68,7 +68,6 @@ fn namespace_validation_does_not_collect_split_segments() {
     for source in [
         include_str!("../validation/plugin_event_catalog.rs"),
         include_str!("../validation/plugin_option.rs"),
-        include_str!("../validation/scene_hook.rs"),
     ] {
         assert!(
             !source.contains("let segments: Vec<_> = value.split('.').collect();"),

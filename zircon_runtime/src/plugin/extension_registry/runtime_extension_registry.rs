@@ -14,10 +14,7 @@ use crate::plugin::bridge::{FrozenBridgeTable, InterfaceExport, InterfaceImport}
 use crate::plugin::PluginShaderModuleSource;
 #[cfg(feature = "ui")]
 use crate::plugin::UiComponentDescriptor;
-use crate::{
-    plugin::PluginEventCatalogManifest, plugin::PluginOptionManifest,
-    scene::SceneRuntimeHookRegistration,
-};
+use crate::{plugin::PluginEventCatalogManifest, plugin::PluginOptionManifest};
 use std::any::TypeId;
 
 use super::owner::{PluginModuleId, PluginModuleInterner};
@@ -76,7 +73,6 @@ pub struct RuntimeExtensionRegistry {
     pub(super) plugin_event_catalogs: TypedExtensionPoint<String, PluginEventCatalogManifest>,
     pub(super) asset_importers: AssetImporterRegistry,
     pub(super) asset_importers_finalized: bool,
-    pub(super) scene_hooks: TypedExtensionPoint<String, SceneRuntimeHookRegistration>,
     owner_revocation_listeners: Vec<OwnerRevocationListener>,
 }
 
@@ -128,7 +124,6 @@ impl RuntimeExtensionRegistry {
         self.plugin_options.freeze();
         self.plugin_event_catalogs.freeze();
         self.asset_importers_finalized = true;
-        self.scene_hooks.freeze();
         self.finalize_bridge_imports();
     }
 
@@ -155,8 +150,7 @@ impl RuntimeExtensionRegistry {
             && self.components.is_frozen()
             && self.plugin_options.is_frozen()
             && self.plugin_event_catalogs.is_frozen()
-            && self.asset_importers_finalized
-            && self.scene_hooks.is_frozen();
+            && self.asset_importers_finalized;
         #[cfg(feature = "ui")]
         let finalized = finalized && self.ui_components.is_frozen();
         finalized
@@ -219,7 +213,6 @@ impl RuntimeExtensionRegistry {
             plugin_options: self.plugin_options.entries_owned_by(owner).collect(),
             plugin_event_catalogs: self.plugin_event_catalogs.entries_owned_by(owner).collect(),
             asset_importers,
-            scene_hooks: self.scene_hooks.entries_owned_by(owner).collect(),
         }
     }
 
@@ -286,7 +279,6 @@ impl RuntimeExtensionRegistry {
             plugin_options: self.plugin_options.remove_owned_by(owner),
             plugin_event_catalogs: self.plugin_event_catalogs.remove_owned_by(owner),
             asset_importers,
-            scene_hooks: self.scene_hooks.remove_owned_by(owner),
         };
         if bridge_was_finalized {
             self.finalize_bridge_imports();

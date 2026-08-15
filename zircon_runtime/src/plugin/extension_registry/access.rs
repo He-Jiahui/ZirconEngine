@@ -14,7 +14,6 @@ use super::{PluginModuleId, RuntimeExtensionRegistry};
 
 mod metadata;
 mod runtime_core;
-mod scene_hook;
 
 impl RuntimeExtensionRegistry {
     pub fn shader_module_sources(&self) -> &[PluginShaderModuleSource] {
