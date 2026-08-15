@@ -7,13 +7,6 @@ const LOCK_UNWRAP_CALL: &str = concat!(".lock().", "unwrap()");
 fn runtime_15_rhi_wgpu_render_device_lock_poison_recovery_guard_covers_device_state() {
     let wgpu_device = read_repo("zircon_runtime/crates/zr_rhi_wgpu/src/device.rs");
     let structure_parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let rhi_doc = read_repo("docs/zircon_runtime/rhi/descriptors.md");
 
     assert_contains_all(
         "RHI WGPU render device poison recovery",

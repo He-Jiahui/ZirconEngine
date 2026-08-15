@@ -144,3 +144,9 @@ read and assert against the ProjectAssetManager, AssetWorkerPool, and service
 contract production sources; poison-recovery and direct-lock assertions remain
 unchanged. This is static source-scope repair only: managed Cargo, immutable
 review, and the canonical failure return remain pending.
+
+The RHI WGPU and Script VM guards had the same declaration-only document input
+pattern. Their unused document reads are removed; Script VM also no longer
+imports the repository reader that served only those reads. Both guards retain
+their production-owner, mount, and poison-safe lock assertions. This remains
+an open forward repair pending managed Cargo and immutable review.

@@ -1,5 +1,5 @@
 use super::rust_source_view::production_code_view;
-use super::{assert_contains_all_exact, repo_path, runtime_src_path};
+use super::{assert_contains_all_exact, runtime_src_path};
 
 const READ_UNWRAP_CALL: &str = concat!(".read().", "unwrap()");
 const WRITE_UNWRAP_CALL: &str = concat!(".write().", "unwrap()");
@@ -9,21 +9,6 @@ fn runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_guard_cove
 ) {
     let vm_plugin_manager = read_runtime_src("script/vm/runtime/vm_plugin_manager.rs");
     let structure_parent = read_runtime_src("tests/runtime_absorption/structure_convention.rs");
-    let runtime_15_plan =
-        read_repo(
-            "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
-        );
-    let runtime_index = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
-    );
-    let review_findings = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
-    );
-    let structure_convention = read_repo(
-        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
-    );
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let script_vm_doc = read_repo("docs/zircon_runtime/script/vm/zr_vm_host_reflection.md");
 
     assert_contains_all_exact(
         "VM plugin manager selected-backend poison recovery",
@@ -64,9 +49,4 @@ fn assert_no_direct_rwlock_unwrap_in_production(label: &str, source: &str) {
 fn read_runtime_src(relative: &str) -> String {
     std::fs::read_to_string(runtime_src_path(relative))
         .unwrap_or_else(|error| panic!("failed to read runtime source `{relative}`: {error}"))
-}
-
-fn read_repo(relative: &str) -> String {
-    std::fs::read_to_string(repo_path(relative))
-        .unwrap_or_else(|error| panic!("failed to read repository file `{relative}`: {error}"))
 }
