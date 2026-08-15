@@ -17,6 +17,7 @@ from types import ModuleType
 from typing import Any
 
 from .database import Database
+from .failure_snapshot_drift import failure_snapshot_drift
 from .models import CoordinatorError, utc_text
 from .plans import PlanRepository
 
@@ -292,6 +293,10 @@ class FailureGraphService:
             raise CoordinatorError(
                 "failure_snapshot_stale",
                 "Failure artifacts changed after the import snapshot was prepared",
+                details=failure_snapshot_drift(
+                    prepared.artifact_manifest,
+                    current_manifest,
+                ),
             )
 
         now = utc_text()

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 import tempfile
 import unittest
@@ -14,6 +15,7 @@ from tools.session_coordinator.failures import (
     FailureResolution,
     failure_artifact_snapshot,
 )
+from tools.session_coordinator.failure_snapshot_drift import failure_snapshot_drift
 from tools.session_coordinator.models import CoordinatorError
 from tools.session_coordinator import migrations as migrations_module
 from tools.session_coordinator.migrations import migrate
@@ -356,7 +358,107 @@ class FailureGraphTests(unittest.TestCase):
                 self.service.import_prepared_snapshot(prepared, connection=connection)
 
         self.assertEqual("failure_snapshot_stale", stale.exception.code)
+        expected_hash = dict(prepared.artifact_manifest)[
+            handoff.relative_to(self.root).as_posix()
+        ]
+        current_hash = hashlib.sha256(handoff.read_bytes()).hexdigest()
+        self.assertEqual(
+            {
+                "expectedArtifactCount": 1,
+                "currentArtifactCount": 1,
+                "addedCount": 0,
+                "removedCount": 0,
+                "modifiedCount": 1,
+                "changeCount": 1,
+                "changes": [
+                    {
+                        "path": handoff.relative_to(self.root).as_posix(),
+                        "kind": "modified",
+                        "expectedHash": expected_hash,
+                        "currentHash": current_hash,
+                    }
+                ],
+                "truncated": False,
+            },
+            stale.exception.details,
+        )
         self.assertEqual(0, self.service.audit().node_count)
+
+    def test_prepared_import_reports_added_and_removed_failure_artifacts(self) -> None:
+        origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
+        fixing = self.fixture.add_plan("docs/plans/runtime/02-runtime.md")
+        removed = self.fixture.add_handoff(origin, fixing, "removed")
+        prepared = self.service.prepare_import_snapshot()
+        removed_hash = dict(prepared.artifact_manifest)[
+            removed.relative_to(self.root).as_posix()
+        ]
+        removed.unlink()
+        added = self.fixture.add_handoff(origin, fixing, "added")
+
+        with self.assertRaises(CoordinatorError) as stale:
+            self.service.import_prepared_snapshot(prepared)
+
+        self.assertEqual("failure_snapshot_stale", stale.exception.code)
+        self.assertEqual(
+            [
+                {
+                    "path": added.relative_to(self.root).as_posix(),
+                    "kind": "added",
+                    "expectedHash": None,
+                    "currentHash": hashlib.sha256(added.read_bytes()).hexdigest(),
+                },
+                {
+                    "path": removed.relative_to(self.root).as_posix(),
+                    "kind": "removed",
+                    "expectedHash": removed_hash,
+                    "currentHash": None,
+                },
+            ],
+            stale.exception.details["changes"],
+        )
+        self.assertEqual(2, stale.exception.details["changeCount"])
+        self.assertEqual(1, stale.exception.details["addedCount"])
+        self.assertEqual(1, stale.exception.details["removedCount"])
+        self.assertEqual(0, stale.exception.details["modifiedCount"])
+        self.assertFalse(stale.exception.details["truncated"])
+
+    def test_failure_snapshot_drift_is_deterministic_and_bounded(self) -> None:
+        details = failure_snapshot_drift(
+            (
+                ("docs/plans/z/failure-z.md", "a" * 64),
+                ("docs/plans/m/failure-m.md", "b" * 64),
+            ),
+            (
+                ("docs/plans/m/failure-m.md", "c" * 64),
+                ("docs/plans/a/failure-a.md", "d" * 64),
+            ),
+            limit=2,
+        )
+
+        self.assertEqual(2, details["expectedArtifactCount"])
+        self.assertEqual(2, details["currentArtifactCount"])
+        self.assertEqual(1, details["addedCount"])
+        self.assertEqual(1, details["removedCount"])
+        self.assertEqual(1, details["modifiedCount"])
+        self.assertEqual(3, details["changeCount"])
+        self.assertEqual(
+            [
+                {
+                    "path": "docs/plans/a/failure-a.md",
+                    "kind": "added",
+                    "expectedHash": None,
+                    "currentHash": "d" * 64,
+                },
+                {
+                    "path": "docs/plans/m/failure-m.md",
+                    "kind": "modified",
+                    "expectedHash": "b" * 64,
+                    "currentHash": "c" * 64,
+                },
+            ],
+            details["changes"],
+        )
+        self.assertTrue(details["truncated"])
 
     def test_controlled_import_rejects_live_drift_after_parsing_captured_bytes(self) -> None:
         origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
