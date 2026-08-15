@@ -8,11 +8,15 @@ use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::scene::{
     ComponentPropertyPath, ScenePropertyEntry, ScenePropertyValue,
 };
+use crate::scene::components::{
+    AmbientLight, AnimationGraphPlayerComponent, AnimationPlayerComponent,
+    AnimationSequencePlayerComponent, AnimationSkeletonComponent,
+    AnimationStateMachinePlayerComponent, CameraComponent, DirectionalLight, LocalTransform,
+    MeshRenderer, Mobility, Name, PointLight, RectLight, SpotLight,
+};
 use crate::scene::EntityId;
-use crate::scene::components::Mobility;
 
 use super::super::World;
-use super::value_conversion::normalized_identifier_matches;
 
 const MESH_RENDERER_MORPH_WEIGHT_PATH_PREFIX: &str = "MeshRenderer.morph_weights.";
 
@@ -26,7 +30,7 @@ impl World {
         self.visit_property_entries(entity, true, |path, value, animatable| {
             entries.push(ScenePropertyEntry::new(
                 ComponentPropertyPath::parse(path).expect("valid property path"),
-                value,
+                value(),
                 animatable,
             ));
             true
@@ -35,41 +39,26 @@ impl World {
         entries
     }
 
-    pub(super) fn property_entry_value(
-        &self,
-        entity: EntityId,
-        target_component: &str,
-        target_segments: &[String],
-    ) -> Option<ScenePropertyValue> {
-        let mut found = None;
-        self.visit_property_entries(entity, false, |path, value, _animatable| {
-            if property_path_literal_matches_normalized(path, target_component, target_segments) {
-                found = Some(value);
-                false
-            } else {
-                true
-            }
-        });
-        found
-    }
-
     fn visit_property_entries<F>(&self, entity: EntityId, include_dynamic: bool, mut visitor: F)
     where
-        F: FnMut(&str, ScenePropertyValue, bool) -> bool,
+        F: FnMut(&str, &mut dyn FnMut() -> ScenePropertyValue, bool) -> bool,
     {
         if !self.contains_entity(entity) {
             return;
         }
 
+        // A targeted read compares the path before invoking this factory, so it
+        // never materializes values for unrelated inspector fields.
         macro_rules! push_entry {
             ($path:expr, $value:expr, $animatable:expr $(,)?) => {
-                if !visitor($path, $value, $animatable) {
+                let mut build_value = || $value;
+                if !visitor($path, &mut build_value, $animatable) {
                     return;
                 }
             };
         }
 
-        if let Some(name) = self.names.get(&entity) {
+        if let Some(name) = self.get::<Name>(entity) {
             push_entry!(
                 "Name.value",
                 ScenePropertyValue::String(name.0.clone()),
@@ -81,7 +70,7 @@ impl World {
             ScenePropertyValue::Entity(self.parent_of(entity)),
             false,
         );
-        if let Some(local) = self.local_transforms.get(&entity).copied() {
+        if let Some(local) = self.get::<LocalTransform>(entity).copied() {
             push_entry!(
                 "Transform.translation",
                 ScenePropertyValue::Vec3(local.transform.translation.to_array()),
@@ -118,7 +107,7 @@ impl World {
                 false,
             );
         }
-        if let Some(camera) = self.cameras.get(&entity) {
+        if let Some(camera) = self.get::<CameraComponent>(entity) {
             push_entry!(
                 "Camera.fov_y_radians",
                 ScenePropertyValue::Scalar(camera.fov_y_radians),
@@ -135,7 +124,7 @@ impl World {
                 true,
             );
         }
-        if let Some(mesh) = self.mesh_renderers.get(&entity) {
+        if let Some(mesh) = self.get::<MeshRenderer>(entity) {
             push_entry!(
                 "MeshRenderer.model",
                 ScenePropertyValue::Resource(mesh.model.id().to_string()),
@@ -201,7 +190,7 @@ impl World {
                 true,
             );
         }
-        if let Some(light) = self.ambient_lights.get(&entity) {
+        if let Some(light) = self.get::<AmbientLight>(entity) {
             push_entry!(
                 "AmbientLight.color",
                 ScenePropertyValue::Vec3(light.color.to_array()),
@@ -218,7 +207,7 @@ impl World {
                 false,
             );
         }
-        if let Some(light) = self.directional_lights.get(&entity) {
+        if let Some(light) = self.get::<DirectionalLight>(entity) {
             push_entry!(
                 "DirectionalLight.direction",
                 ScenePropertyValue::Vec3(light.direction.to_array()),
@@ -235,7 +224,7 @@ impl World {
                 true,
             );
         }
-        if let Some(light) = self.point_lights.get(&entity) {
+        if let Some(light) = self.get::<PointLight>(entity) {
             push_entry!(
                 "PointLight.color",
                 ScenePropertyValue::Vec3(light.color.to_array()),
@@ -252,7 +241,7 @@ impl World {
                 true,
             );
         }
-        if let Some(light) = self.rect_lights.get(&entity) {
+        if let Some(light) = self.get::<RectLight>(entity) {
             push_entry!(
                 "RectLight.color",
                 ScenePropertyValue::Vec3(light.color.to_array()),
@@ -274,7 +263,7 @@ impl World {
                 true,
             );
         }
-        if let Some(light) = self.spot_lights.get(&entity) {
+        if let Some(light) = self.get::<SpotLight>(entity) {
             push_entry!(
                 "SpotLight.direction",
                 ScenePropertyValue::Vec3(light.direction.to_array()),
@@ -309,14 +298,14 @@ impl World {
         if !self.visit_physics_property_entries(entity, &mut visitor) {
             return;
         }
-        if let Some(skeleton) = self.animation_skeletons.get(&entity) {
+        if let Some(skeleton) = self.get::<AnimationSkeletonComponent>(entity) {
             push_entry!(
                 "AnimationSkeleton.skeleton",
                 ScenePropertyValue::Resource(skeleton.skeleton.id().to_string()),
                 false,
             );
         }
-        if let Some(player) = self.animation_players.get(&entity) {
+        if let Some(player) = self.get::<AnimationPlayerComponent>(entity) {
             push_entry!(
                 "AnimationPlayer.clip",
                 ScenePropertyValue::Resource(player.clip.id().to_string()),
@@ -348,7 +337,7 @@ impl World {
                 false,
             );
         }
-        if let Some(player) = self.animation_sequence_players.get(&entity) {
+        if let Some(player) = self.get::<AnimationSequencePlayerComponent>(entity) {
             push_entry!(
                 "AnimationSequencePlayer.sequence",
                 ScenePropertyValue::Resource(player.sequence.id().to_string()),
@@ -375,7 +364,7 @@ impl World {
                 false,
             );
         }
-        if let Some(player) = self.animation_graph_players.get(&entity) {
+        if let Some(player) = self.get::<AnimationGraphPlayerComponent>(entity) {
             push_entry!(
                 "AnimationGraphPlayer.graph",
                 ScenePropertyValue::Resource(player.graph.id().to_string()),
@@ -394,7 +383,7 @@ impl World {
                 );
             }
         }
-        if let Some(player) = self.animation_state_machine_players.get(&entity) {
+        if let Some(player) = self.get::<AnimationStateMachinePlayerComponent>(entity) {
             push_entry!(
                 "AnimationStateMachinePlayer.state_machine",
                 ScenePropertyValue::Resource(player.state_machine.id().to_string()),
@@ -433,7 +422,11 @@ impl World {
                     let Some(scene_value) = dynamic_scene_value_from_json(value) else {
                         continue;
                     };
-                    push_entry!(&format!("{component_id}.{property}"), scene_value, true);
+                    push_entry!(
+                        &format!("{component_id}.{property}"),
+                        scene_value.clone(),
+                        true,
+                    );
                 }
             }
         }
@@ -443,10 +436,10 @@ impl World {
         // The counts mirror the property groups pushed by `property_entries`.
         let mut capacity = 1;
 
-        if self.names.contains_key(&entity) {
+        if self.contains_component::<Name>(entity) {
             capacity += 1;
         }
-        if self.local_transforms.contains_key(&entity) {
+        if self.contains_component::<LocalTransform>(entity) {
             capacity += 3;
         }
         if self.active_self(entity).is_some() {
@@ -458,44 +451,44 @@ impl World {
         if self.mobility(entity).is_some() {
             capacity += 1;
         }
-        if self.cameras.contains_key(&entity) {
+        if self.contains_component::<CameraComponent>(entity) {
             capacity += 3;
         }
-        if let Some(mesh) = self.mesh_renderers.get(&entity) {
+        if let Some(mesh) = self.get::<MeshRenderer>(entity) {
             capacity += 10 + mesh.morph_weights.len();
             if mesh.mesh.is_some() {
                 capacity += 1;
             }
         }
-        if self.ambient_lights.contains_key(&entity) {
+        if self.contains_component::<AmbientLight>(entity) {
             capacity += 3;
         }
-        if self.directional_lights.contains_key(&entity) {
+        if self.contains_component::<DirectionalLight>(entity) {
             capacity += 3;
         }
-        if self.point_lights.contains_key(&entity) {
+        if self.contains_component::<PointLight>(entity) {
             capacity += 3;
         }
-        if self.rect_lights.contains_key(&entity) {
+        if self.contains_component::<RectLight>(entity) {
             capacity += 4;
         }
-        if self.spot_lights.contains_key(&entity) {
+        if self.contains_component::<SpotLight>(entity) {
             capacity += 6;
         }
         capacity += self.physics_property_entry_capacity_hint(entity);
-        if self.animation_skeletons.contains_key(&entity) {
+        if self.contains_component::<AnimationSkeletonComponent>(entity) {
             capacity += 1;
         }
-        if self.animation_players.contains_key(&entity) {
+        if self.contains_component::<AnimationPlayerComponent>(entity) {
             capacity += 6;
         }
-        if self.animation_sequence_players.contains_key(&entity) {
+        if self.contains_component::<AnimationSequencePlayerComponent>(entity) {
             capacity += 5;
         }
-        if let Some(player) = self.animation_graph_players.get(&entity) {
+        if let Some(player) = self.get::<AnimationGraphPlayerComponent>(entity) {
             capacity += 2 + player.parameters.len();
         }
-        if let Some(player) = self.animation_state_machine_players.get(&entity) {
+        if let Some(player) = self.get::<AnimationStateMachinePlayerComponent>(entity) {
             capacity += 3 + player.parameters.len();
         }
         if let Some(dynamic_components) = self.dynamic_components.get(&entity) {
@@ -530,34 +523,6 @@ fn decimal_digit_count(mut value: usize) -> usize {
         digits += 1;
     }
     digits
-}
-
-fn property_path_literal_matches_normalized(
-    path: &str,
-    target_component: &str,
-    target_segments: &[String],
-) -> bool {
-    let Some((component, segments)) = path.split_once('.') else {
-        return false;
-    };
-
-    normalized_identifier_matches(component, target_component)
-        && property_literal_segments_match_normalized(segments, target_segments)
-}
-
-fn property_literal_segments_match_normalized(segments: &str, target_segments: &[String]) -> bool {
-    let mut target_index = 0;
-    for segment in segments.split('.') {
-        if target_index >= target_segments.len() {
-            return false;
-        }
-        if !normalized_identifier_matches(segment, &target_segments[target_index]) {
-            return false;
-        }
-        target_index += 1;
-    }
-
-    target_index == target_segments.len()
 }
 
 fn dynamic_scene_value_from_json(value: &Value) -> Option<ScenePropertyValue> {

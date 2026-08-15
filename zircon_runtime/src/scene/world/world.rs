@@ -1,198 +1,162 @@
-use serde::{Deserialize, Deserializer, Serialize};
-use std::collections::{BTreeSet, HashMap};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::sync::{Arc, Mutex};
 
 use super::{
-    compiled_binding::SceneBindingGenerations, derived_state::NODE_KIND_ORDINAL_COUNT,
-    dirty_state::DerivedStateDirty, generation::WorldGeneration, ComponentTypeRegistry,
+    compiled_binding::{CompiledScenePropertyAccessDiagnostics, SceneBindingGenerations},
+    derived_state::{HierarchyMutationIndex, NODE_KIND_ORDINAL_COUNT},
+    dirty_state::DerivedStateDirty,
+    generation::{LifecycleVisibilityRevision, WorldGeneration},
+    ComponentTypeRegistry,
 };
 use crate::scene::components::{
     ActiveSelf, AmbientLight, AnimationGraphPlayerComponent, AnimationPlayerComponent,
     AnimationSequencePlayerComponent, AnimationSkeletonComponent,
     AnimationStateMachinePlayerComponent, CameraComponent, ColliderComponent, DirectionalLight,
     Hierarchy, JointComponent, LocalTransform, Mesh2dComponent, MeshRenderer, Mobility, Name,
-    NodeKind, PointLight, PostProcessSettingsComponent, PostProcessVolumeComponent, RectLight,
-    RenderLayerMask, RigidBodyComponent, SceneNode, SpotLight, Sprite2dComponent,
+    NodeKind, PointLight, RectLight, RenderLayerMask, RigidBodyComponent, SceneNode, SpotLight,
+    Sprite2dComponent,
 };
 use crate::scene::ecs::{
     ArchetypeIndex, ChangeTick, CommandQueue, ComponentLifecycleEvent, ComponentRegistry,
-    ComponentStorage, DeferredCommandError, EcsFramePerformanceDiagnostics, EntityRegistry,
-    EventStore, MessageStore, ObserverStore, RemovedComponentEvents, ResourceRegistry,
-    ResourceStore, Schedule,
+    ComponentStorage, DeferredCommandError, DeferredCommandTarget, DeferredEntityRef,
+    DeferredSpawnToken, EcsFramePerformanceDiagnostics, EntityRegistry, EventStore, MessageStore,
+    ObserverStore, RemovedComponentEvents, ResourceRegistry, ResourceStore, Schedule,
 };
 use crate::scene::event_mirror::RuntimeEventMirrorRegistry;
+use crate::scene::inspection::SubscriptionTable;
 use crate::scene::inspection::WorldInspectionArtifactCache;
 use crate::scene::reflect::TypeRegistry;
 use crate::scene::EntityId;
-#[derive(Clone, Copy, Debug, Default)]
-pub(super) struct QueryCacheRevision(u64);
+use zircon_runtime_interface::world_sync::WorldFact;
 
-impl QueryCacheRevision {
+#[derive(Clone, Copy, Debug, Default)]
+pub(super) struct ArchetypeAssignmentCounter(u64);
+
+impl ArchetypeAssignmentCounter {
     pub(super) const fn get(self) -> u64 {
         self.0
     }
 
-    pub(super) fn advance(&mut self) {
+    pub(super) fn record_assignment(&mut self) {
         self.0 = self.0.saturating_add(1);
     }
 }
 
-impl PartialEq for QueryCacheRevision {
+impl PartialEq for ArchetypeAssignmentCounter {
     fn eq(&self, _other: &Self) -> bool {
         true
     }
 }
 
-#[derive(Debug, PartialEq, Serialize)]
+/// Runtime-only sink owned by the live LevelSystem session.
+///
+/// The sink deliberately does not participate in persistent-world equality. A clone or decoded
+/// world receives its default empty sink, so staging mutations cannot enter a live session's
+/// invalidation queue.
+#[derive(Debug, Default)]
+pub(super) struct WorldSyncSubscriptionSink(Option<Arc<Mutex<SubscriptionTable>>>);
+
+impl PartialEq for WorldSyncSubscriptionSink {
+    fn eq(&self, _other: &Self) -> bool {
+        true
+    }
+}
+
+impl WorldSyncSubscriptionSink {
+    fn attach(&mut self, subscriptions: Arc<Mutex<SubscriptionTable>>) {
+        self.0 = Some(subscriptions);
+    }
+
+    fn record(&self, world: &World, fact: WorldFact) {
+        let Some(subscriptions) = self.0.as_ref().map(Arc::clone) else {
+            return;
+        };
+        subscriptions
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .record_fact(world, fact);
+    }
+
+    fn invalidate_component_type(&self, type_name: &str) {
+        let Some(subscriptions) = self.0.as_ref().map(Arc::clone) else {
+            return;
+        };
+        subscriptions
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .invalidate_component_type(type_name);
+    }
+}
+
+#[derive(Debug, PartialEq)]
 pub struct World {
     pub(super) entities: Vec<EntityId>,
-    #[serde(default)]
+    pub(super) entity_dense_rows: HashMap<EntityId, usize>,
     pub(super) kinds: HashMap<EntityId, NodeKind>,
-    #[serde(skip, default)]
     pub(super) node_kind_ordinals: [usize; NODE_KIND_ORDINAL_COUNT],
-    pub(super) names: HashMap<EntityId, Name>,
-    pub(super) hierarchy: HashMap<EntityId, Hierarchy>,
-    pub(super) local_transforms: HashMap<EntityId, LocalTransform>,
-    pub(super) cameras: HashMap<EntityId, CameraComponent>,
-    pub(super) mesh_renderers: HashMap<EntityId, MeshRenderer>,
-    #[serde(default)]
-    pub(super) sprite_2d: HashMap<EntityId, Sprite2dComponent>,
-    #[serde(default)]
-    pub(super) mesh_2d: HashMap<EntityId, Mesh2dComponent>,
-    #[serde(default)]
-    pub(super) ambient_lights: HashMap<EntityId, AmbientLight>,
-    pub(super) directional_lights: HashMap<EntityId, DirectionalLight>,
-    #[serde(default)]
-    pub(super) point_lights: HashMap<EntityId, PointLight>,
-    #[serde(default)]
-    pub(super) rect_lights: HashMap<EntityId, RectLight>,
-    #[serde(default)]
-    pub(super) spot_lights: HashMap<EntityId, SpotLight>,
-    #[serde(skip, default)]
-    pub(super) post_process_settings: HashMap<EntityId, PostProcessSettingsComponent>,
-    #[serde(skip, default)]
-    pub(super) post_process_volumes: HashMap<EntityId, PostProcessVolumeComponent>,
-    #[serde(default)]
-    pub(super) rigid_bodies: HashMap<EntityId, RigidBodyComponent>,
-    #[serde(default)]
-    pub(super) colliders: HashMap<EntityId, ColliderComponent>,
-    #[serde(default)]
-    pub(super) joints: HashMap<EntityId, JointComponent>,
-    #[serde(default)]
-    pub(super) animation_skeletons: HashMap<EntityId, AnimationSkeletonComponent>,
-    #[serde(default)]
-    pub(super) animation_players: HashMap<EntityId, AnimationPlayerComponent>,
-    #[serde(default)]
-    pub(super) animation_sequence_players: HashMap<EntityId, AnimationSequencePlayerComponent>,
-    #[serde(default)]
-    pub(super) animation_graph_players: HashMap<EntityId, AnimationGraphPlayerComponent>,
-    #[serde(default)]
-    pub(super) animation_state_machine_players:
-        HashMap<EntityId, AnimationStateMachinePlayerComponent>,
-    #[serde(default, rename = "active")]
-    pub(super) active_self: HashMap<EntityId, ActiveSelf>,
-    #[serde(default)]
-    pub(super) render_layer_masks: HashMap<EntityId, RenderLayerMask>,
-    #[serde(default)]
-    pub(super) mobility: HashMap<EntityId, Mobility>,
-    #[serde(default)]
     pub(super) dynamic_components: HashMap<EntityId, HashMap<String, serde_json::Value>>,
-    #[serde(skip, default)]
     pub(super) dynamic_component_generations: HashMap<String, u64>,
-    #[serde(skip, default)]
     pub(super) component_types: ComponentTypeRegistry,
-    #[serde(skip, default)]
     pub(super) type_registry: TypeRegistry,
-    #[serde(skip, default)]
     pub(super) vm_catalog_type_paths: BTreeSet<String>,
-    #[serde(skip, default)]
     pub(super) vm_dynamic_type_paths: BTreeSet<String>,
     pub(super) next_id: EntityId,
     pub(super) active_camera: EntityId,
-    #[serde(skip, default)]
     pub(super) schedule: Schedule,
-    #[serde(skip, default)]
     pub(super) archetype_index: ArchetypeIndex,
-    #[serde(skip, default)]
+    pub(super) stable_query_order: super::query_order::StableQueryOrderIndex,
+    pub(super) hierarchy_mutation_index: HierarchyMutationIndex,
     pub(super) entity_registry: EntityRegistry,
-    #[serde(skip, default)]
     pub(super) component_registry: ComponentRegistry,
-    #[serde(skip, default)]
     pub(super) component_storage: ComponentStorage,
-    #[serde(skip, default)]
     pub(super) removed_component_events: RemovedComponentEvents,
-    #[serde(skip, default)]
     pub(super) resource_registry: ResourceRegistry,
-    #[serde(skip, default)]
     pub(super) resources: ResourceStore,
-    #[serde(skip, default)]
     pub(super) events: EventStore,
-    #[serde(skip, default)]
     pub(super) event_mirrors: RuntimeEventMirrorRegistry,
-    #[serde(skip, default)]
     pub(super) messages: MessageStore,
-    #[serde(skip, default)]
     pub(super) observers: ObserverStore,
-    #[serde(skip, default)]
+    pub(super) world_sync_subscriptions: WorldSyncSubscriptionSink,
     pub(super) staged_lifecycle_events: Vec<ComponentLifecycleEvent>,
-    #[serde(skip, default)]
     pub(super) record_staged_lifecycle_events: bool,
-    #[serde(skip, default)]
     pub(super) command_queue: CommandQueue,
-    #[serde(skip, default)]
     pub(super) deferred_command_errors: Vec<DeferredCommandError>,
-    #[serde(skip, default)]
+    pub(super) deferred_direct_spawn_ordinal: u32,
+    pub(super) deferred_direct_system_ordinal: u32,
+    pub(super) deferred_spawn_resolutions: BTreeMap<DeferredSpawnToken, EntityId>,
+    pub(super) published_deferred_spawns: BTreeSet<DeferredSpawnToken>,
     pub(super) ecs_frame_performance_diagnostics: EcsFramePerformanceDiagnostics,
-    #[serde(skip, default)]
-    pub(super) query_cache_revision: QueryCacheRevision,
-    #[serde(skip, default)]
+    pub(super) archetype_assignment_counter: ArchetypeAssignmentCounter,
+    pub(super) lifecycle_visibility_revision: LifecycleVisibilityRevision,
     pub(super) world_generation: WorldGeneration,
-    #[serde(skip, default)]
     pub(super) scene_binding_generations: SceneBindingGenerations,
-    #[serde(skip, default = "default_change_tick")]
+    pub(super) compiled_scene_property_access_diagnostics: CompiledScenePropertyAccessDiagnostics,
     pub(super) change_tick: ChangeTick,
-    #[serde(skip, default)]
     pub(super) last_change_tick: ChangeTick,
-    #[serde(skip, default)]
     pub(super) active_change_tick: Option<ChangeTick>,
-    #[serde(skip, default)]
     pub(super) node_cache: Vec<SceneNode>,
-    #[serde(skip, default)]
     pub(in crate::scene) inspection_artifact_cache: WorldInspectionArtifactCache,
-    #[serde(skip, default)]
     pub(super) derived_state_dirty: DerivedStateDirty,
 }
 
 impl Clone for World {
     fn clone(&self) -> Self {
+        crate::profile_scope!("runtime", "scene", "world_clone");
+        let persistent_entity_core = self.persistent_entity_core_component_snapshot();
+        let persistent_scene_render = self.persistent_scene_render_component_snapshot();
+        let runtime_only_post_process = self.runtime_only_post_process_component_snapshot();
+        let persistent_physics = self.persistent_physics_component_snapshot();
+        let persistent_lighting = self.persistent_lighting_component_snapshot();
+        let persistent_render_2d = self.persistent_render_2d_component_snapshot();
+        let persistent_animation_runtime = self.persistent_animation_runtime_component_snapshot();
+        let world_generation = self.world_generation;
+        let stable_entities = self.stable_entity_ids().collect::<Vec<_>>();
         let mut cloned = Self {
             entities: self.entities.clone(),
+            entity_dense_rows: Default::default(),
             kinds: self.kinds.clone(),
             node_kind_ordinals: self.node_kind_ordinals,
-            names: self.names.clone(),
-            hierarchy: self.hierarchy.clone(),
-            local_transforms: self.local_transforms.clone(),
-            cameras: self.cameras.clone(),
-            mesh_renderers: self.mesh_renderers.clone(),
-            sprite_2d: self.sprite_2d.clone(),
-            mesh_2d: self.mesh_2d.clone(),
-            ambient_lights: self.ambient_lights.clone(),
-            directional_lights: self.directional_lights.clone(),
-            point_lights: self.point_lights.clone(),
-            rect_lights: self.rect_lights.clone(),
-            spot_lights: self.spot_lights.clone(),
-            post_process_settings: self.post_process_settings.clone(),
-            post_process_volumes: self.post_process_volumes.clone(),
-            rigid_bodies: self.rigid_bodies.clone(),
-            colliders: self.colliders.clone(),
-            joints: self.joints.clone(),
-            animation_skeletons: self.animation_skeletons.clone(),
-            animation_players: self.animation_players.clone(),
-            animation_sequence_players: self.animation_sequence_players.clone(),
-            animation_graph_players: self.animation_graph_players.clone(),
-            animation_state_machine_players: self.animation_state_machine_players.clone(),
-            active_self: self.active_self.clone(),
-            render_layer_masks: self.render_layer_masks.clone(),
-            mobility: self.mobility.clone(),
             dynamic_components: self.dynamic_components.clone(),
             dynamic_component_generations: self.dynamic_component_generations.clone(),
             component_types: self.component_types.clone(),
@@ -203,6 +167,8 @@ impl Clone for World {
             active_camera: self.active_camera,
             schedule: self.schedule.clone(),
             archetype_index: Default::default(),
+            stable_query_order: Default::default(),
+            hierarchy_mutation_index: Default::default(),
             entity_registry: Default::default(),
             component_registry: self.component_registry.clone(),
             component_storage: Default::default(),
@@ -213,23 +179,43 @@ impl Clone for World {
             event_mirrors: self.event_mirrors.clone(),
             messages: self.messages.clone(),
             observers: self.observers.clone(),
+            world_sync_subscriptions: Default::default(),
             staged_lifecycle_events: Vec::new(),
             record_staged_lifecycle_events: true,
             command_queue: self.command_queue.clone(),
             deferred_command_errors: self.deferred_command_errors.clone(),
+            deferred_direct_spawn_ordinal: self.deferred_direct_spawn_ordinal,
+            deferred_direct_system_ordinal: self.deferred_direct_system_ordinal,
+            deferred_spawn_resolutions: Default::default(),
+            published_deferred_spawns: Default::default(),
             ecs_frame_performance_diagnostics: self.ecs_frame_performance_diagnostics.clone(),
-            query_cache_revision: self.query_cache_revision,
-            world_generation: self.world_generation.clone(),
+            archetype_assignment_counter: Default::default(),
+            lifecycle_visibility_revision: self.lifecycle_visibility_revision,
+            world_generation,
             scene_binding_generations: self.scene_binding_generations.clone(),
+            compiled_scene_property_access_diagnostics: Default::default(),
             change_tick: self.change_tick,
             last_change_tick: self.last_change_tick,
             active_change_tick: self.active_change_tick,
             node_cache: self.node_cache.clone(),
-            inspection_artifact_cache: self.inspection_artifact_cache.clone(),
+            inspection_artifact_cache: self
+                .inspection_artifact_cache
+                .clone_for_world_generation(world_generation.get()),
             derived_state_dirty: Default::default(),
         };
-        cloned.rebuild_entity_registry();
-        cloned.rebuild_component_storage_projection();
+        {
+            crate::profile_scope!("runtime", "scene", "world_projection_rebuild");
+            cloned.rebuild_entity_registry_with_stable_order(stable_entities);
+            cloned.rebuild_component_storage_projection_with_owned_components(
+                persistent_entity_core,
+                persistent_scene_render,
+                runtime_only_post_process,
+                persistent_physics,
+                persistent_lighting,
+                persistent_render_2d,
+                persistent_animation_runtime,
+            );
+        }
         cloned.record_staged_lifecycle_events = self.record_staged_lifecycle_events;
         cloned.staged_lifecycle_events = self.staged_lifecycle_events.clone();
         cloned
@@ -287,41 +273,134 @@ struct WorldPersistentState {
     active_camera: EntityId,
 }
 
+#[derive(Serialize)]
+struct WorldPersistentStateRef<'a> {
+    entities: Vec<EntityId>,
+    kinds: &'a HashMap<EntityId, NodeKind>,
+    names: HashMap<EntityId, Name>,
+    hierarchy: HashMap<EntityId, Hierarchy>,
+    local_transforms: HashMap<EntityId, LocalTransform>,
+    cameras: HashMap<EntityId, CameraComponent>,
+    mesh_renderers: HashMap<EntityId, MeshRenderer>,
+    sprite_2d: HashMap<EntityId, Sprite2dComponent>,
+    mesh_2d: HashMap<EntityId, Mesh2dComponent>,
+    ambient_lights: HashMap<EntityId, AmbientLight>,
+    directional_lights: HashMap<EntityId, DirectionalLight>,
+    point_lights: HashMap<EntityId, PointLight>,
+    rect_lights: HashMap<EntityId, RectLight>,
+    spot_lights: HashMap<EntityId, SpotLight>,
+    rigid_bodies: HashMap<EntityId, RigidBodyComponent>,
+    colliders: HashMap<EntityId, ColliderComponent>,
+    joints: HashMap<EntityId, JointComponent>,
+    animation_skeletons: HashMap<EntityId, AnimationSkeletonComponent>,
+    animation_players: HashMap<EntityId, AnimationPlayerComponent>,
+    animation_sequence_players: HashMap<EntityId, AnimationSequencePlayerComponent>,
+    animation_graph_players: HashMap<EntityId, AnimationGraphPlayerComponent>,
+    animation_state_machine_players: HashMap<EntityId, AnimationStateMachinePlayerComponent>,
+    #[serde(rename = "active")]
+    active_self: HashMap<EntityId, ActiveSelf>,
+    render_layer_masks: HashMap<EntityId, RenderLayerMask>,
+    mobility: HashMap<EntityId, Mobility>,
+    dynamic_components: &'a HashMap<EntityId, HashMap<String, serde_json::Value>>,
+    next_id: EntityId,
+    active_camera: EntityId,
+}
+
+impl Serialize for World {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let persistent_entity_core = self.persistent_entity_core_component_snapshot();
+        let persistent_scene_render = self.persistent_scene_render_component_snapshot();
+        let persistent_physics = self.persistent_physics_component_snapshot();
+        let persistent_lighting = self.persistent_lighting_component_snapshot();
+        let persistent_render_2d = self.persistent_render_2d_component_snapshot();
+        let persistent_animation_runtime = self.persistent_animation_runtime_component_snapshot();
+        WorldPersistentStateRef {
+            entities: self.stable_entity_ids().collect(),
+            kinds: &self.kinds,
+            names: persistent_entity_core.names,
+            hierarchy: persistent_entity_core.hierarchy,
+            local_transforms: persistent_entity_core.local_transforms,
+            cameras: persistent_scene_render.cameras,
+            mesh_renderers: persistent_scene_render.mesh_renderers,
+            sprite_2d: persistent_render_2d.sprite_2d,
+            mesh_2d: persistent_render_2d.mesh_2d,
+            ambient_lights: persistent_lighting.ambient_lights,
+            directional_lights: persistent_lighting.directional_lights,
+            point_lights: persistent_lighting.point_lights,
+            rect_lights: persistent_lighting.rect_lights,
+            spot_lights: persistent_lighting.spot_lights,
+            rigid_bodies: persistent_physics.rigid_bodies,
+            colliders: persistent_physics.colliders,
+            joints: persistent_physics.joints,
+            animation_skeletons: persistent_animation_runtime.skeletons,
+            animation_players: persistent_animation_runtime.players,
+            animation_sequence_players: persistent_animation_runtime.sequence_players,
+            animation_graph_players: persistent_animation_runtime.graph_players,
+            animation_state_machine_players: persistent_animation_runtime.state_machine_players,
+            active_self: persistent_entity_core.active_self,
+            render_layer_masks: persistent_scene_render.render_layer_masks,
+            mobility: persistent_scene_render.mobility,
+            dynamic_components: &self.dynamic_components,
+            next_id: self.next_id,
+            active_camera: self.active_camera,
+        }
+        .serialize(serializer)
+    }
+}
+
 impl<'de> Deserialize<'de> for World {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         let state = WorldPersistentState::deserialize(deserializer)?;
+        let persistent_entity_core =
+            Self::persistent_entity_core_component_snapshot_from_serialized_maps(
+                state.names,
+                state.hierarchy,
+                state.local_transforms,
+                state.active_self,
+            );
+        let persistent_scene_render =
+            Self::persistent_scene_render_component_snapshot_from_serialized_maps(
+                state.render_layer_masks,
+                state.cameras,
+                state.mesh_renderers,
+                state.mobility,
+            );
+        let persistent_physics = Self::persistent_physics_component_snapshot_from_serialized_maps(
+            state.rigid_bodies,
+            state.colliders,
+            state.joints,
+        );
+        let persistent_lighting = Self::persistent_lighting_component_snapshot_from_serialized_maps(
+            state.ambient_lights,
+            state.directional_lights,
+            state.point_lights,
+            state.rect_lights,
+            state.spot_lights,
+        );
+        let persistent_render_2d =
+            Self::persistent_render_2d_component_snapshot_from_serialized_maps(
+                state.sprite_2d,
+                state.mesh_2d,
+            );
+        let persistent_animation_runtime =
+            Self::persistent_animation_runtime_component_snapshot_from_serialized_maps(
+                state.animation_skeletons,
+                state.animation_players,
+                state.animation_sequence_players,
+                state.animation_graph_players,
+                state.animation_state_machine_players,
+            );
         let mut world = Self {
             entities: state.entities,
+            entity_dense_rows: Default::default(),
             kinds: state.kinds,
             node_kind_ordinals: Default::default(),
-            names: state.names,
-            hierarchy: state.hierarchy,
-            local_transforms: state.local_transforms,
-            cameras: state.cameras,
-            mesh_renderers: state.mesh_renderers,
-            sprite_2d: state.sprite_2d,
-            mesh_2d: state.mesh_2d,
-            ambient_lights: state.ambient_lights,
-            directional_lights: state.directional_lights,
-            point_lights: state.point_lights,
-            rect_lights: state.rect_lights,
-            spot_lights: state.spot_lights,
-            post_process_settings: HashMap::new(),
-            post_process_volumes: HashMap::new(),
-            rigid_bodies: state.rigid_bodies,
-            colliders: state.colliders,
-            joints: state.joints,
-            animation_skeletons: state.animation_skeletons,
-            animation_players: state.animation_players,
-            animation_sequence_players: state.animation_sequence_players,
-            animation_graph_players: state.animation_graph_players,
-            animation_state_machine_players: state.animation_state_machine_players,
-            active_self: state.active_self,
-            render_layer_masks: state.render_layer_masks,
-            mobility: state.mobility,
             dynamic_components: state.dynamic_components,
             dynamic_component_generations: HashMap::new(),
             component_types: Default::default(),
@@ -332,6 +411,8 @@ impl<'de> Deserialize<'de> for World {
             active_camera: state.active_camera,
             schedule: Default::default(),
             archetype_index: Default::default(),
+            stable_query_order: Default::default(),
+            hierarchy_mutation_index: Default::default(),
             entity_registry: Default::default(),
             component_registry: Default::default(),
             component_storage: Default::default(),
@@ -342,14 +423,21 @@ impl<'de> Deserialize<'de> for World {
             event_mirrors: Default::default(),
             messages: Default::default(),
             observers: Default::default(),
+            world_sync_subscriptions: Default::default(),
             staged_lifecycle_events: Vec::new(),
             record_staged_lifecycle_events: false,
             command_queue: Default::default(),
             deferred_command_errors: Vec::new(),
+            deferred_direct_spawn_ordinal: 0,
+            deferred_direct_system_ordinal: 0,
+            deferred_spawn_resolutions: Default::default(),
+            published_deferred_spawns: Default::default(),
             ecs_frame_performance_diagnostics: Default::default(),
-            query_cache_revision: QueryCacheRevision::default(),
+            archetype_assignment_counter: Default::default(),
+            lifecycle_visibility_revision: LifecycleVisibilityRevision::default(),
             world_generation: WorldGeneration::default(),
             scene_binding_generations: SceneBindingGenerations::default(),
+            compiled_scene_property_access_diagnostics: Default::default(),
             change_tick: default_change_tick(),
             last_change_tick: ChangeTick::ZERO,
             active_change_tick: None,
@@ -359,7 +447,17 @@ impl<'de> Deserialize<'de> for World {
         };
         crate::scene::reflect::register_builtin_reflection(&mut world);
         world.rebuild_entity_registry();
-        world.rebuild_typed_component_presence();
+        world.component_registry = Default::default();
+        let runtime_only_post_process = world.runtime_only_post_process_component_snapshot();
+        world.rebuild_component_storage_projection_with_owned_components(
+            persistent_entity_core,
+            persistent_scene_render,
+            runtime_only_post_process,
+            persistent_physics,
+            persistent_lighting,
+            persistent_render_2d,
+            persistent_animation_runtime,
+        );
         world.rebuild_node_kind_ordinals();
         Ok(world)
     }
@@ -376,6 +474,26 @@ impl Default for World {
 }
 
 impl World {
+    /// Attaches the live session-owned invalidation table to this authoritative world only.
+    ///
+    /// Cloned and deserialized worlds intentionally reset this sink so staging and snapshots
+    /// cannot publish facts into the live level session.
+    pub(in crate::scene) fn attach_world_sync_subscriptions(
+        &mut self,
+        subscriptions: Arc<Mutex<SubscriptionTable>>,
+    ) {
+        self.world_sync_subscriptions.attach(subscriptions);
+    }
+
+    pub(in crate::scene) fn record_world_fact(&self, fact: WorldFact) {
+        self.world_sync_subscriptions.record(self, fact);
+    }
+
+    pub(in crate::scene) fn invalidate_world_component_type(&self, type_name: &str) {
+        self.world_sync_subscriptions
+            .invalidate_component_type(type_name);
+    }
+
     pub(in crate::scene) fn type_registry_for_reflection(&self) -> &TypeRegistry {
         &self.type_registry
     }
