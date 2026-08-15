@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import hashlib
 import os
@@ -413,6 +414,51 @@ class ServerTests(unittest.TestCase):
             ).stdout
             self.assertEqual("value = 1\n", committed)
             self.assertEqual("value = 2\n", source.read_text(encoding="utf-8"))
+
+    def test_isolated_patch_route_is_maintenance_only_and_has_no_compile_ticket(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            )
+            application.supervision.mark_healthy()
+            result = mock.Mock()
+            result.to_dict.return_value = {
+                "requestId": "isolated-request",
+                "derivedBlob": "d" * 40,
+            }
+            service = mock.Mock()
+            service.finalize.return_value = result
+            application.isolated_patch_finalize = service
+
+            response = application.command(
+                "maintenance.finalize_patch",
+                {
+                    "session_id": "render-owner",
+                    "target": "tools/construct.rs",
+                    "expected_head": "a" * 40,
+                    "expected_blob": "b" * 40,
+                    "patch_base64": base64.b64encode(b"patch-bytes").decode("ascii"),
+                    "message": "fix(coordinator): isolate target patch",
+                    "validation_commands": [
+                        ["python", "-m", "unittest", "focused.case"]
+                    ],
+                },
+            )
+
+            self.assertEqual("isolated-request", response["result"]["requestId"])
+            service.finalize.assert_called_once_with(
+                session_id="render-owner",
+                target="tools/construct.rs",
+                patch=b"patch-bytes",
+                expected_head="a" * 40,
+                expected_blob="b" * 40,
+                message="fix(coordinator): isolate target patch",
+                validation_commands=(("python", "-m", "unittest", "focused.case"),),
+            )
 
     def test_pending_git_recovery_still_requires_the_daemon_process_lock(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

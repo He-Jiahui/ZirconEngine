@@ -24,6 +24,8 @@ related_code:
   - tools/session_coordinator/migrations.py
   - tools/session_coordinator/supervision/lifecycle.py
   - tools/session_coordinator/patches.py
+  - tools/session_coordinator/isolated_patch_contract.py
+  - tools/session_coordinator/isolated_patch_finalize.py
   - tools/session_coordinator/workspace_copy.py
   - tools/session_coordinator/server.py
   - tools/session_coordinator/web/src/pages/ActionsPage.tsx
@@ -55,6 +57,8 @@ implementation_files:
   - tools/session_coordinator/migrations.py
   - tools/session_coordinator/supervision/lifecycle.py
   - tools/session_coordinator/patches.py
+  - tools/session_coordinator/isolated_patch_contract.py
+  - tools/session_coordinator/isolated_patch_finalize.py
   - tools/session_coordinator/workspace_copy.py
   - tools/session_coordinator/server.py
   - tools/session_coordinator/web/src/pages/ActionsPage.tsx
@@ -79,6 +83,7 @@ tests:
   - tools/session_coordinator/tests/test_action_execution.py
   - tools/session_coordinator/tests/test_action_concurrency.py
   - tools/session_coordinator/tests/test_server.py
+  - tools/session_coordinator/tests/test_isolated_patch_finalize.py
   - tools/session_coordinator/tests/test_supervision_actions.py
   - tools/session_coordinator/tests/test_sessions.py
   - tools/session_coordinator/web/src/__tests__/contracts.test.ts
@@ -111,6 +116,11 @@ doc_type: module-detail
 - `actions/service.py` persists preview, denial, confirmation and completion state, while `actions/executor.py` invokes existing domain services without accepting shell commands, SQL or browser-supplied paths.
 - `supervision/lifecycle.py` owns the durable handoff between a controlled service action and a successor daemon. The catalog's `service.rollover` path is deliberately separate from stop/restart: it reloads only after the process monitor reports no live managed Cargo descendants.
 - `server.py` composes the module and delegates `/control/v1/*` and `/ui/*` before the legacy bearer route handling.
+- `isolated_patch_contract.py` defines the immutable request/result identity and the
+  allowlisted validation environment. `isolated_patch_finalize.py` owns the
+  maintainer-only, single-target path from an immutable HEAD blob plus explicit
+  patch to a CAS-published commit. It never consumes a compile ticket or reads the
+  live target as commit input.
 
 ## Invariants
 
@@ -129,6 +139,13 @@ doc_type: module-detail
 13. A lease scope is hierarchy-exclusive: a live directory lease conflicts with every foreign descendant file or directory lease, and a live child-file lease conflicts with a later foreign ancestor claim. A directory owner may validate its own descendants without manufacturing duplicate child leases. This makes shared-main writes exclusive at the module boundary rather than only at byte-identical paths.
 14. Automatic Session stale marking skips only a Session with a managed Cargo job in `running` state. It does not renew file leases or reservations, shield an unstarted `leased` job, or change FIFO admission; once the job is terminal, the ordinary liveness window applies again.
 15. A healthy rollover successor coalesces a second `service.rollover` requested during its 60-second stabilization window. The duplicate action succeeds with an auditable `coalesced` result and does not schedule another shutdown, close Session admission, or alter leases and FIFO reservations.
+16. `maintenance finalize-patch` is an isolated maintenance finalizer, not an
+    integration candidate. It requires symbolic `main`, a live target lease,
+    ancestor base HEAD, exact unchanged target blob, one explicit patch and
+    non-empty validation commands. Validation runs from the derived temporary-index
+    checkout with an explicit environment allowlist. Publication uses the raw shared
+    index bytes as a CAS identity, preserves the mixed worktree bytes and foreign
+    staged projection, and aligns only the target entry after main advances.
 
 ## Data Flow
 
@@ -153,6 +170,21 @@ Sessions remain executable, and a later explicit reload follows the normal
 live-Cargo safety check.
 
 `session.heartbeat` is a lightweight non-blocking mutation. The legacy command route and the typed control action both renew the Session record and its own active leases in the same request flow; the response includes `leases.renewed`. This preserves source ownership during long validation waits without extending any foreign lease or changing Cargo lane admission.
+
+When a target file contains unrelated live edits, an operator may pipe one unified
+diff to `maintenance finalize-patch --patch-stdin`. The command binds the request to
+`--expected-head` and `--expected-blob`, builds the patch in a temporary Git index,
+and checks that exactly `--target` changed with mode `100644`. It then checks out that
+temporary tree to an isolated directory and runs every `--validation-command` there.
+The durable prepared, validated, index-locked, and finalized events record base
+HEAD/blob, patch hash, derived blob, actual parent HEAD, validation commands and
+status, commit SHA, and staged projection fingerprints. If current HEAD advanced only
+on other paths, publication uses it as the new parent. A target blob change, branch
+switch, lease loss, validation failure, shared-index drift, worktree drift, or
+`update-ref` CAS failure rejects the request. A crash after main publication remains
+in the ordinary finalize ledger; startup recovery restores the captured index and
+emits the specialized finalized evidence. No compile ticket is accepted because a
+ticket for the live mixed overlay does not validate this derived blob.
 
 The default business-Session liveness window is 86400 seconds (24 hours). It is deliberately
 longer than the 300-second lease plus 120-second grace and the independent Cargo
@@ -204,6 +236,7 @@ therefore cannot make a currently quiet synchronizer look like a Session gate.
 - Elevation grants are single-use and actor-bound. Browser roles fall back to Observer when elevation expires.
 - Runtime-authenticated preview and confirmation reuse the Session binding recorded on the request, so the protocol does not rely on a browser cookie while still rejecting cross-request actor or daemon changes.
 - A rollover with a non-empty managed process-tree PID list fails with `lifecycle_rollover_live_cargo`; it neither terminates nor releases the job. Empty PID lists on unstarted leases are intentionally not treated as a drain blocker.
+- An isolated patch that touches another path, changes target mode, carries a credential marker, observes an already-staged target, or sees target blob drift is rejected before `HEAD` publication. A post-publication interruption stays in the ordinary recoverable finalize ledger with its original index snapshot.
 - Red operations remain present but disabled through M3. Service drain is preview-only; attempts to confirm it fail closed.
 
 ## Verification

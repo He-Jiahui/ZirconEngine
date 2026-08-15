@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import os
 import secrets
@@ -27,6 +28,7 @@ from .baselines import BaselineService
 from .database import Database
 from .governance import StateConvergenceService
 from .integration_candidates import IntegrationCandidateService
+from .isolated_patch_finalize import IsolatedPatchFinalizeService
 from .manifest_retention import ManifestRetentionService
 from .ownership_matrix import OwnershipMatrixService
 from .ownership_transfers import OwnershipTransferService
@@ -418,6 +420,12 @@ class CoordinatorApplication:
         )
         if _git_finalize_recovery_pending(self.database):
             self.finalize.recover_stale_mutex()
+        self.isolated_patch_finalize = IsolatedPatchFinalizeService(
+            self.database,
+            config.repo_root,
+            self.baselines,
+            self.leases,
+        )
         self.artifact_governance = (
             ArtifactGovernanceService(self.database, roots=config.enabled_target_roots)
             if config.unmanaged_artifact_sweep_enabled and config.enabled_target_roots
@@ -1398,6 +1406,30 @@ class CoordinatorApplication:
                 session_id=(str(raw_session_id) if raw_session_id is not None else None),
             )
             return {"artifactReceipt": receipt.to_dict()}
+        if name == "maintenance.finalize_patch":
+            self._require_maintenance_capability(arguments)
+            try:
+                patch = base64.b64decode(
+                    str(arguments.get("patch_base64") or ""), validate=True
+                )
+            except ValueError as error:
+                raise CoordinatorError(
+                    "isolated_patch_encoding_invalid",
+                    "Isolated maintenance patch must be valid base64",
+                ) from error
+            result = self.isolated_patch_finalize.finalize(
+                session_id=str(arguments["session_id"]),
+                target=str(arguments["target"]),
+                patch=patch,
+                expected_head=str(arguments["expected_head"]),
+                expected_blob=str(arguments["expected_blob"]),
+                message=str(arguments["message"]),
+                validation_commands=tuple(
+                    tuple(str(part) for part in command)
+                    for command in arguments.get("validation_commands") or ()
+                ),
+            )
+            return {"result": result.to_dict()}
         if name == "integration.submit":
             candidate = self.integration_candidates.submit(
                 session_id=str(arguments["session_id"]),

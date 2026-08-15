@@ -568,6 +568,18 @@ def _parser() -> argparse.ArgumentParser:
     maintenance_tick.add_argument("--apply-legacy-archive", action="store_true")
     maintenance_tick.add_argument("--apply-lifecycle", action="store_true")
     maintenance_tick.add_argument("--report")
+    maintenance_finalize_patch = maintenance_commands.add_parser("finalize-patch")
+    maintenance_finalize_patch.add_argument("--session-id", required=True)
+    maintenance_finalize_patch.add_argument("--target", required=True)
+    maintenance_finalize_patch.add_argument("--expected-head", required=True)
+    maintenance_finalize_patch.add_argument("--expected-blob", required=True)
+    maintenance_finalize_patch.add_argument("--message", required=True)
+    patch_source = maintenance_finalize_patch.add_mutually_exclusive_group(required=True)
+    patch_source.add_argument("--patch-file")
+    patch_source.add_argument("--patch-stdin", action="store_true")
+    maintenance_finalize_patch.add_argument(
+        "--validation-command", action="append", required=True
+    )
 
     audit = commands.add_parser("audit")
     audit_commands = audit.add_subparsers(dest="audit_command", required=True)
@@ -1849,6 +1861,33 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                 "command": command,
                 "toolchain": toolchain,
                 "coverage": coverage,
+            },
+        )
+    if (
+        arguments.command == "maintenance"
+        and arguments.maintenance_command == "finalize-patch"
+    ):
+        patch = (
+            sys.stdin.buffer.read()
+            if arguments.patch_stdin
+            else Path(arguments.patch_file).read_bytes()
+        )
+        return client.command(
+            "maintenance.finalize_patch",
+            {
+                "session_id": arguments.session_id,
+                "target": arguments.target,
+                "expected_head": arguments.expected_head,
+                "expected_blob": arguments.expected_blob,
+                "message": arguments.message,
+                "patch_base64": base64.b64encode(patch).decode("ascii"),
+                "validation_commands": [
+                    _split_command(command)
+                    for command in arguments.validation_command
+                ],
+                "maintenance_capability": os.environ.get(
+                    "ZIRCON_COORDINATOR_MAINTENANCE_TOKEN"
+                ),
             },
         )
     if arguments.command == "maintenance" and arguments.maintenance_command == "tick":

@@ -1128,6 +1128,16 @@ class GitFinalizeService:
             for recovery in recoveries:
                 request_id = str(recovery["request_id"])
                 session_id = str(recovery["session_id"])
+                isolated_validation = self._isolated_patch_event_payload(
+                    session_id,
+                    request_id,
+                    "maintenance.isolated_patch_validated",
+                )
+                if isolated_validation is not None:
+                    self._recover_isolated_patch_index_lock(
+                        session_id,
+                        request_id,
+                    )
                 if recovery.get("status") == "committed" and recovery.get("commit_sha"):
                     with self.database.transaction() as connection:
                         connection.execute(
@@ -1198,6 +1208,14 @@ class GitFinalizeService:
                             """,
                             (reason, utc_text(), session_id),
                         )
+                        if isolated_validation is not None:
+                            self._record_recovered_isolated_patch(
+                                connection,
+                                session_id=session_id,
+                                request_id=request_id,
+                                commit_sha=recovered_sha,
+                                validated=isolated_validation,
+                            )
                 else:
                     if (
                         start_head != current_head
@@ -1913,6 +1931,108 @@ class GitFinalizeService:
         except CoordinatorError:
             return False
         return parent == start_head and subject == message and changed == set(paths)
+
+    def _isolated_patch_event_payload(
+        self,
+        session_id: str,
+        request_id: str,
+        event_type: str,
+        *,
+        connection=None,
+    ) -> dict[str, object] | None:
+        def find(active_connection) -> dict[str, object] | None:
+            rows = active_connection.execute(
+                """
+                SELECT payload_json FROM events
+                WHERE session_id=? AND event_type=?
+                ORDER BY event_id DESC
+                """,
+                (session_id, event_type),
+            ).fetchall()
+            for row in rows:
+                try:
+                    payload = json.loads(str(row["payload_json"]))
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    continue
+                if (
+                    isinstance(payload, dict)
+                    and payload.get("requestId") == request_id
+                ):
+                    return payload
+            return None
+
+        if connection is not None:
+            return find(connection)
+        with self.database.connect() as active_connection:
+            return find(active_connection)
+
+    def _recover_isolated_patch_index_lock(
+        self,
+        session_id: str,
+        request_id: str,
+    ) -> None:
+        lock_event = self._isolated_patch_event_payload(
+            session_id,
+            request_id,
+            "maintenance.isolated_patch_index_locked",
+        )
+        if lock_event is None:
+            return
+        index_path = self._index_path()
+        lock_path = index_path.with_name(index_path.name + ".lock")
+        expected_display = self._display_git_path(lock_path)
+        if lock_event.get("lockPath") != expected_display:
+            raise CoordinatorError(
+                "finalize_recovery_index_lock_ambiguous",
+                "Isolated finalize recovery lock identity is inconsistent",
+                details={"request_id": request_id},
+            )
+        if not lock_path.exists():
+            return
+        try:
+            if not lock_path.is_file() or lock_path.stat().st_size != 0:
+                raise CoordinatorError(
+                    "finalize_recovery_index_lock_ambiguous",
+                    "Isolated finalize recovery lock is not an owned zero-byte lock",
+                    details={"request_id": request_id, "lock_path": expected_display},
+                )
+            lock_path.unlink()
+        except OSError as error:
+            raise CoordinatorError(
+                "finalize_recovery_index_lock_ambiguous",
+                "Cannot remove the proven isolated finalize recovery lock",
+                details={"request_id": request_id, "lock_path": expected_display},
+            ) from error
+
+    def _record_recovered_isolated_patch(
+        self,
+        connection,
+        *,
+        session_id: str,
+        request_id: str,
+        commit_sha: str,
+        validated: dict[str, object],
+    ) -> None:
+        existing = self._isolated_patch_event_payload(
+            session_id,
+            request_id,
+            "maintenance.isolated_patch_finalized",
+            connection=connection,
+        )
+        if existing is not None:
+            return
+        payload = {
+            **validated,
+            "commitSha": commit_sha,
+            "recovered": True,
+        }
+        connection.execute(
+            """
+            INSERT INTO events(session_id, event_type, payload_json, created_at)
+            VALUES (?, 'maintenance.isolated_patch_finalized', ?, ?)
+            """,
+            (session_id, json.dumps(payload, sort_keys=True), utc_text()),
+        )
 
     def _is_ancestor(self, ancestor: str, descendant: str) -> bool:
         return (
