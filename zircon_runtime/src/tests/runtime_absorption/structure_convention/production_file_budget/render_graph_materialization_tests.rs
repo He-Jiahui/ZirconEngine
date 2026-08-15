@@ -1,3 +1,4 @@
+use super::super::rust_source_view::production_section;
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
 #[test]
@@ -121,10 +122,7 @@ fn runtime_15_render_graph_materialization_requires_transient_pool() {
     let resource_resolver = read_runtime_src(
         "graphics/scene/scene_renderer/graph_execution/render_pass_execution_context/resource_resolver.rs",
     );
-    let resource_resolver_production = resource_resolver
-        .split_once("#[cfg(test)]\nmod tests")
-        .map(|(production, _)| production)
-        .unwrap_or(resource_resolver.as_str());
+    let resource_resolver_production = production_section(&resource_resolver);
     let compiled_graph = read_runtime_src("render_graph/graph.rs");
     let compiled_graph_builder = read_runtime_src("render_graph/builder/compile.rs");
     let transient_aliasing_tests =
