@@ -2169,6 +2169,119 @@ class ServerTests(unittest.TestCase):
             self.assertTrue(registration_done.is_set())
             self.assertEqual([], errors)
 
+    def test_planless_registration_does_not_prepare_or_import_failure_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            )
+            application.supervision.mark_healthy()
+
+            with (
+                mock.patch.object(
+                    application.failures,
+                    "prepare_import_snapshot",
+                    side_effect=AssertionError(
+                        "planless registration parsed the repository failure graph"
+                    ),
+                ) as prepared,
+                mock.patch.object(
+                    application.failures,
+                    "import_repository",
+                    side_effect=AssertionError(
+                        "planless registration imported the repository failure graph"
+                    ),
+                ) as imported,
+            ):
+                result = application.execute_command_request(
+                    "session.register",
+                    {"session_id": "planless-maintenance"},
+                    request_id="e" * 32,
+                )
+                repeated = application.execute_command_request(
+                    "session.register",
+                    {"session_id": "planless-maintenance"},
+                    request_id="d" * 32,
+                )
+
+            self.assertEqual("registered", result["session"]["status"])
+            self.assertEqual([], result["open_failures"])
+            self.assertEqual("planless-maintenance", repeated["session"]["session_id"])
+            self.assertEqual([], repeated["open_failures"])
+            prepared.assert_not_called()
+            imported.assert_not_called()
+
+    def test_existing_plan_registration_still_prepares_failure_snapshot(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            fixture = FailureGraphFixture(repo)
+            plan = fixture.add_plan("docs/plans/runtime/01-runtime.md")
+            plan_path = plan.path.relative_to(repo).as_posix()
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            )
+            application.supervision.mark_healthy()
+            application.sessions.register(
+                session_id="plan-owner",
+                plan_path=plan_path,
+                write_scope=[plan_path],
+            )
+
+            with (
+                mock.patch.object(
+                    application.failures,
+                    "prepare_import_snapshot",
+                    wraps=application.failures.prepare_import_snapshot,
+                ) as prepared,
+                mock.patch.object(
+                    application.failures,
+                    "import_prepared_snapshot",
+                    wraps=application.failures.import_prepared_snapshot,
+                ) as imported,
+            ):
+                result = application.execute_command_request(
+                    "session.register",
+                    {"session_id": "plan-owner"},
+                    request_id="f" * 32,
+                )
+
+            self.assertEqual(plan_path, result["session"]["plan_path"])
+            prepared.assert_called_once_with()
+            imported.assert_called_once()
+
+    def test_registration_race_to_plan_fails_closed_without_writer_parse(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            )
+            application.supervision.mark_healthy()
+
+            with (
+                mock.patch.object(
+                    application,
+                    "_session_registration_effective_plan",
+                    side_effect=(None, "docs/plans/runtime/01-runtime.md"),
+                ),
+                mock.patch.object(
+                    application.failures, "prepare_import_snapshot"
+                ) as prepared,
+                mock.patch.object(application.failures, "import_repository") as imported,
+                self.assertRaises(CoordinatorError) as rejected,
+            ):
+                application.execute_command_request(
+                    "session.register",
+                    {"session_id": "racing-maintenance"},
+                    request_id="1" * 32,
+                )
+
+            self.assertEqual("failure_snapshot_missing", rejected.exception.code)
+            prepared.assert_not_called()
+            imported.assert_not_called()
+
     def test_database_busy_diagnostic_does_not_terminate_maintenance_loop(self) -> None:
         application = mock.Mock()
         application.read_only = False

@@ -851,7 +851,8 @@ class CoordinatorApplication:
 
         def prepare_failures() -> None:
             nonlocal prepared_failures
-            prepared_failures = self.failures.prepare_import_snapshot()
+            if self._session_registration_effective_plan(arguments):
+                prepared_failures = self.failures.prepare_import_snapshot()
 
         def admit(connection: sqlite3.Connection):
             if self.read_only:
@@ -862,11 +863,6 @@ class CoordinatorApplication:
             self.supervision.require_mutation_allowed_in_connection(
                 connection, self._mutation_operation("session.register", arguments)
             )
-            if prepared_failures is None:  # pragma: no cover - journal contract guard
-                raise CoordinatorError(
-                    "failure_snapshot_missing",
-                    "Session registration failure snapshot was not prepared",
-                )
             return (
                 self._session_registration_response(
                     arguments,
@@ -888,15 +884,16 @@ class CoordinatorApplication:
             before_admission=prepare_failures,
         )
 
-    def _session_registration_open_failures(
+    def _session_registration_effective_plan(
         self,
         arguments: dict[str, Any],
         *,
         connection: sqlite3.Connection | None = None,
-        prepared_snapshot: FailureImportSnapshot | None = None,
-    ) -> list[Any]:
-        session_id = str(arguments["session_id"])
+    ) -> str | None:
         requested_plan = arguments.get("plan_path")
+        if requested_plan:
+            return str(requested_plan)
+        session_id = str(arguments["session_id"])
         try:
             existing = (
                 self.sessions.get_in_connection(connection, session_id)
@@ -906,11 +903,27 @@ class CoordinatorApplication:
         except CoordinatorError as error:
             if error.code != "session_not_found":
                 raise
-            existing = None
-        effective_plan = requested_plan or (existing.plan_path if existing else None)
+            return None
+        return existing.plan_path
+
+    def _session_registration_open_failures(
+        self,
+        arguments: dict[str, Any],
+        *,
+        connection: sqlite3.Connection | None = None,
+        prepared_snapshot: FailureImportSnapshot | None = None,
+    ) -> list[Any]:
+        effective_plan = self._session_registration_effective_plan(
+            arguments, connection=connection
+        )
         if not effective_plan:
             return []
         if prepared_snapshot is None:
+            if connection is not None:
+                raise CoordinatorError(
+                    "failure_snapshot_missing",
+                    "Plan-backed Session registration failure snapshot was not prepared",
+                )
             self.failures.import_repository(connection=connection)
         else:
             self.failures.import_prepared_snapshot(
