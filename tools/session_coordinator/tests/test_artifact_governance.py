@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import stat
 import subprocess
 import tempfile
@@ -14,6 +15,7 @@ from tools.session_coordinator.cargo_jobs import CargoJobService, CargoLaneKind,
 from tools.session_coordinator.database import Database
 from tools.session_coordinator.migrations import migrate
 from tools.session_coordinator.models import CoordinatorError
+from tools.session_coordinator.processes import process_creation_time
 from tools.session_coordinator.sessions import SessionService
 from tools.session_coordinator.tests.helpers import init_repo
 
@@ -57,6 +59,168 @@ class ArtifactGovernanceTests(unittest.TestCase):
 
         self.assertEqual([str(unmanaged.resolve())], [item.path for item in candidates])
         self.assertNotIn(job.target_dir, [item.path for item in candidates])
+
+    def test_live_fixture_lease_is_managed_until_its_owner_removes_it(self) -> None:
+        lease = self.governance.acquire_fixture("paths-contract", owner_pid=os.getpid())
+        fixture = Path(lease.path)
+        fixture.mkdir(parents=True)
+        marker = fixture / "keep.txt"
+        marker.write_text("active", encoding="utf-8")
+
+        self.assertEqual((), self.governance.scan())
+        result = self.governance.cleanup(max_candidates=10)
+
+        self.assertEqual((), result.deleted)
+        self.assertTrue(marker.is_file())
+
+    def test_live_fixture_lease_survives_before_the_directory_is_created(self) -> None:
+        lease = self.governance.acquire_fixture("creation-window", owner_pid=os.getpid())
+
+        result = self.governance.cleanup(max_candidates=10)
+
+        self.assertEqual((), result.deleted)
+        with self.database.connect() as connection:
+            status = connection.execute(
+                "SELECT status FROM artifact_fixture_leases WHERE lease_id=?",
+                (lease.lease_id,),
+            ).fetchone()["status"]
+        self.assertEqual("active", status)
+
+    def test_fixture_release_requires_removal_and_does_not_exempt_recreation(self) -> None:
+        lease = self.governance.acquire_fixture("release-contract", owner_pid=os.getpid())
+        fixture = Path(lease.path)
+        fixture.mkdir(parents=True)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.governance.release_fixture(lease.lease_id, owner_pid=os.getpid())
+
+        self.assertEqual("artifact_fixture_still_exists", rejected.exception.code)
+        shutil.rmtree(fixture)
+        parent = fixture.parent
+        if parent.is_dir() and not any(parent.iterdir()):
+            parent.rmdir()
+        released = self.governance.release_fixture(
+            lease.lease_id, owner_pid=os.getpid()
+        )
+        self.assertEqual("released", released.status)
+
+        fixture.mkdir(parents=True)
+        candidates = self.governance.scan()
+
+        self.assertTrue(
+            any(fixture.is_relative_to(Path(item.path)) for item in candidates),
+            candidates,
+        )
+
+    def test_fixture_release_rejects_a_foreign_owner(self) -> None:
+        lease = self.governance.acquire_fixture("owner-contract", owner_pid=os.getpid())
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.governance.release_fixture(lease.lease_id, owner_pid=os.getpid() + 1)
+
+        self.assertEqual("artifact_fixture_owner_mismatch", rejected.exception.code)
+
+    def test_cleanup_recovers_missing_parent_reservation_before_fixture_acquire(self) -> None:
+        missing_parent = self.builds_root / f"mvp-test-fixtures-{os.getpid()}"
+        key = str(missing_parent.resolve()).replace("/", "\\").casefold()
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO cleanup_reservations(
+                       target_key, target_dir, reserved_at,
+                       reservation_kind, filesystem_identity
+                   ) VALUES (?, ?, '2026-08-15T00:00:00+00:00', 'artifact', 'old')""",
+                (key, str(missing_parent.resolve())),
+            )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.governance.acquire_fixture("stale-reservation", owner_pid=os.getpid())
+        self.assertEqual("artifact_fixture_cleanup_reserved", rejected.exception.code)
+
+        result = self.governance.cleanup()
+        lease = self.governance.acquire_fixture(
+            "stale-reservation", owner_pid=os.getpid()
+        )
+
+        self.assertEqual((str(missing_parent.resolve()),), result.deleted)
+        self.assertTrue(Path(lease.path).is_relative_to(missing_parent))
+        with self.database.connect() as connection:
+            remaining = connection.execute(
+                "SELECT COUNT(*) FROM cleanup_reservations WHERE target_key=?", (key,)
+            ).fetchone()[0]
+        self.assertEqual(0, remaining)
+
+    def test_dead_fixture_identity_is_unmanaged_and_recovered_after_cleanup(self) -> None:
+        lease_id = "1" * 32
+        fixture = (
+            self.builds_root
+            / f"mvp-test-fixtures-{os.getpid()}"
+            / f"dead-contract-{lease_id}"
+        )
+        fixture.mkdir(parents=True)
+        key = str(fixture.resolve()).replace("/", "\\").casefold()
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO artifact_fixture_leases(
+                       lease_id, target_key, target_dir, prefix, owner_pid,
+                       owner_process_creation_time, status, created_at
+                   ) VALUES (?, ?, ?, 'dead-contract', ?, ?, 'active', ?)""",
+                (
+                    lease_id,
+                    key,
+                    str(fixture.resolve()),
+                    os.getpid(),
+                    process_creation_time(os.getpid()) + "-reused",
+                    "2026-08-16T00:00:00+00:00",
+                ),
+            )
+
+        result = self.governance.cleanup(max_candidates=10)
+
+        self.assertTrue(any(Path(path) == fixture.parent for path in result.deleted))
+        self.assertFalse(fixture.exists())
+        with self.database.connect() as connection:
+            status = connection.execute(
+                "SELECT status FROM artifact_fixture_leases WHERE lease_id=?",
+                (lease_id,),
+            ).fetchone()["status"]
+        self.assertEqual("recovered", status)
+
+    def test_dead_missing_fixture_lease_is_recovered_without_prefix_exemption(self) -> None:
+        lease_id = "2" * 32
+        fixture = (
+            self.builds_root
+            / f"mvp-test-fixtures-{os.getpid()}"
+            / f"missing-contract-{lease_id}"
+        )
+        key = str(fixture.resolve()).replace("/", "\\").casefold()
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO artifact_fixture_leases(
+                       lease_id, target_key, target_dir, prefix, owner_pid,
+                       owner_process_creation_time, status, created_at
+                   ) VALUES (?, ?, ?, 'missing-contract', ?, ?, 'active', ?)""",
+                (
+                    lease_id,
+                    key,
+                    str(fixture.resolve()),
+                    os.getpid(),
+                    process_creation_time(os.getpid()) + "-reused",
+                    "2026-08-16T00:00:00+00:00",
+                ),
+            )
+
+        result = self.governance.cleanup(max_candidates=10)
+
+        self.assertEqual((), result.deleted)
+        self.assertEqual((), result.failed)
+        with self.database.connect() as connection:
+            row = connection.execute(
+                """SELECT status, released_at FROM artifact_fixture_leases
+                   WHERE lease_id=?""",
+                (lease_id,),
+            ).fetchone()
+        self.assertEqual("recovered", row["status"])
+        self.assertIsNotNone(row["released_at"])
 
     def test_cleanup_removes_unknown_build_directory_and_persists_audit_event(self) -> None:
         unmanaged = self.builds_root / "manual-renderdoc-output"
@@ -339,6 +503,36 @@ class ArtifactGovernanceTests(unittest.TestCase):
         with self.database.connect() as connection:
             remaining = connection.execute(
                 "SELECT COUNT(*) FROM cleanup_reservations WHERE target_key=?", (key,)
+            ).fetchone()[0]
+        self.assertEqual(0, remaining)
+
+    def test_restart_recovers_all_missing_mvp_fixture_parent_reservations(self) -> None:
+        missing = tuple(
+            self.builds_root / f"mvp-test-fixtures-{pid}"
+            for pid in (11376, 29760, 10976, 16996)
+        )
+        with self.database.transaction() as connection:
+            for path in missing:
+                key = str(path.resolve()).replace("/", "\\").casefold()
+                connection.execute(
+                    """INSERT INTO cleanup_reservations(
+                           target_key, target_dir, reserved_at,
+                           reservation_kind, filesystem_identity
+                       ) VALUES (?, ?, '2026-08-15T00:00:00+00:00', 'artifact', 'old')""",
+                    (key, str(path.resolve())),
+                )
+
+        result = self.governance.recover_reservations()
+
+        self.assertEqual(
+            tuple(sorted(str(path.resolve()) for path in missing)),
+            tuple(sorted(result.deleted)),
+        )
+        self.assertEqual((), result.failed)
+        with self.database.connect() as connection:
+            remaining = connection.execute(
+                """SELECT COUNT(*) FROM cleanup_reservations
+                   WHERE reservation_kind='artifact'"""
             ).fetchone()[0]
         self.assertEqual(0, remaining)
 

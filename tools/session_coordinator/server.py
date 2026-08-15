@@ -333,6 +333,8 @@ class CoordinatorApplication:
             "validation_copy.run",
             "validation_copy.cleanup",
             "artifact.cleanup",
+            "artifact.fixture_acquire",
+            "artifact.fixture_release",
             "governance.retention.apply",
             "governance.retention.compact",
             "ownership.transfer.preview",
@@ -1991,6 +1993,48 @@ class CoordinatorApplication:
                 "deleted": list(result.deleted),
                 "failed": [item.path for item in result.failed],
                 "remaining": self._artifact_governance_paths(),
+            }
+        if name == "artifact.fixture_acquire":
+            governance = self._require_artifact_governance()
+            prefix = arguments.get("prefix")
+            owner_pid = arguments.get("owner_pid")
+            if not isinstance(prefix, str) or isinstance(owner_pid, bool):
+                raise CoordinatorError(
+                    "artifact_fixture_arguments_invalid",
+                    "Fixture acquire requires a prefix and numeric owner PID",
+                )
+            try:
+                owner_pid = int(owner_pid)
+            except (TypeError, ValueError) as error:
+                raise CoordinatorError(
+                    "artifact_fixture_arguments_invalid",
+                    "Fixture acquire requires a prefix and numeric owner PID",
+                ) from error
+            return {
+                "lease": governance.acquire_fixture(
+                    prefix, owner_pid=owner_pid
+                ).to_dict()
+            }
+        if name == "artifact.fixture_release":
+            governance = self._require_artifact_governance()
+            lease_id = arguments.get("lease_id")
+            owner_pid = arguments.get("owner_pid")
+            if not isinstance(lease_id, str) or isinstance(owner_pid, bool):
+                raise CoordinatorError(
+                    "artifact_fixture_arguments_invalid",
+                    "Fixture release requires a lease ID and numeric owner PID",
+                )
+            try:
+                owner_pid = int(owner_pid)
+            except (TypeError, ValueError) as error:
+                raise CoordinatorError(
+                    "artifact_fixture_arguments_invalid",
+                    "Fixture release requires a lease ID and numeric owner PID",
+                ) from error
+            return {
+                "lease": governance.release_fixture(
+                    lease_id, owner_pid=owner_pid
+                ).to_dict()
             }
         if name == "finalize.preview":
             maintenance = self._authorize_maintenance(arguments)

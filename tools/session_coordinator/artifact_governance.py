@@ -2,15 +2,22 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import stat
 import threading
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
 from .cargo_jobs import target_identity, targets_overlap
 from .database import Database
 from .models import CoordinatorError, utc_text
+from .processes import process_creation_time, process_is_alive
 from .windows_tree_delete import filesystem_identity, remove_tree
+
+
+_FIXTURE_PREFIX = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+_FIXTURE_LEASE_ID = re.compile(r"^[0-9a-f]{32}$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,6 +30,30 @@ class UnmanagedArtifact:
 class UnmanagedArtifactCleanup:
     deleted: tuple[str, ...]
     failed: tuple[UnmanagedArtifact, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ArtifactFixtureLease:
+    lease_id: str
+    path: str
+    prefix: str
+    owner_pid: int
+    owner_process_creation_time: str
+    status: str
+    created_at: str
+    released_at: str | None
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "leaseId": self.lease_id,
+            "path": self.path,
+            "prefix": self.prefix,
+            "ownerPid": self.owner_pid,
+            "ownerProcessCreationTime": self.owner_process_creation_time,
+            "status": self.status,
+            "createdAt": self.created_at,
+            "releasedAt": self.released_at,
+        }
 
 
 class ArtifactGovernanceService:
@@ -48,6 +79,151 @@ class ArtifactGovernanceService:
             configured_roots.append(root)
         self.roots = tuple(dict.fromkeys(configured_roots))
         self._cleanup_lock = threading.Lock()
+
+    def acquire_fixture(self, prefix: str, *, owner_pid: int) -> ArtifactFixtureLease:
+        if not isinstance(prefix, str) or not _FIXTURE_PREFIX.fullmatch(prefix):
+            raise CoordinatorError(
+                "artifact_fixture_prefix_invalid",
+                "Fixture prefix must contain only letters, digits, dots, underscores, or hyphens",
+            )
+        if (
+            isinstance(owner_pid, bool)
+            or not isinstance(owner_pid, int)
+            or owner_pid <= 0
+        ):
+            raise CoordinatorError(
+                "artifact_fixture_owner_invalid", "Fixture owner PID must be positive"
+            )
+        owner_identity = self._live_process_creation_time(owner_pid)
+        if owner_identity is None:
+            raise CoordinatorError(
+                "artifact_fixture_owner_not_alive",
+                "Fixture owner process is not alive",
+                details={"ownerPid": owner_pid},
+            )
+        root = next(
+            (item for item in self.roots if item.name.casefold() == "zirconbuilds"),
+            None,
+        )
+        if root is None:
+            raise CoordinatorError(
+                "artifact_fixture_root_unavailable",
+                "No governed ZirconBuilds root is configured for test fixtures",
+            )
+        lease_id = uuid.uuid4().hex
+        target = root / f"mvp-test-fixtures-{owner_pid}" / f"{prefix}-{lease_id}"
+        target_key = target_identity(target)
+        created_at = utc_text()
+        with self.database.transaction() as connection:
+            for row in connection.execute(
+                "SELECT target_dir FROM cleanup_reservations"
+            ):
+                if targets_overlap(target_key, target_identity(str(row["target_dir"]))):
+                    raise CoordinatorError(
+                        "artifact_fixture_cleanup_reserved",
+                        "Fixture path overlaps an active artifact cleanup reservation",
+                        details={"path": str(target)},
+                    )
+            connection.execute(
+                """INSERT INTO artifact_fixture_leases(
+                       lease_id, target_key, target_dir, prefix, owner_pid,
+                       owner_process_creation_time, status, created_at
+                   ) VALUES (?, ?, ?, ?, ?, ?, 'active', ?)""",
+                (
+                    lease_id,
+                    target_key,
+                    str(target),
+                    prefix,
+                    owner_pid,
+                    owner_identity,
+                    created_at,
+                ),
+            )
+            self._insert_fixture_event(
+                connection,
+                "artifact.fixture_acquired",
+                lease_id=lease_id,
+                path=str(target),
+                owner_pid=owner_pid,
+            )
+        return ArtifactFixtureLease(
+            lease_id,
+            str(target),
+            prefix,
+            owner_pid,
+            owner_identity,
+            "active",
+            created_at,
+            None,
+        )
+
+    def release_fixture(
+        self, lease_id: str, *, owner_pid: int
+    ) -> ArtifactFixtureLease:
+        if not isinstance(lease_id, str) or not _FIXTURE_LEASE_ID.fullmatch(lease_id):
+            raise CoordinatorError(
+                "artifact_fixture_lease_invalid",
+                "Fixture lease ID must be 32 lowercase hex digits",
+            )
+        with self.database.transaction() as connection:
+            row = connection.execute(
+                "SELECT * FROM artifact_fixture_leases WHERE lease_id=?", (lease_id,)
+            ).fetchone()
+            if row is None:
+                raise CoordinatorError(
+                    "artifact_fixture_lease_not_found", "Fixture lease does not exist"
+                )
+            if owner_pid != int(row["owner_pid"]):
+                raise CoordinatorError(
+                    "artifact_fixture_owner_mismatch",
+                    "Fixture lease belongs to another process",
+                )
+            if row["status"] == "released":
+                return self._fixture_lease(row)
+            if row["status"] != "active":
+                raise CoordinatorError(
+                    "artifact_fixture_lease_terminal",
+                    "Fixture lease was already recovered by artifact governance",
+                )
+            if not self._fixture_owner_matches(row):
+                raise CoordinatorError(
+                    "artifact_fixture_owner_mismatch",
+                    "Fixture lease process identity no longer matches its owner",
+                )
+            path = Path(str(row["target_dir"]))
+            try:
+                path.lstat()
+            except FileNotFoundError:
+                pass
+            except OSError as error:
+                raise CoordinatorError(
+                    "artifact_fixture_path_unverifiable",
+                    "Fixture path could not be verified before release",
+                    details={"path": str(path)},
+                ) from error
+            else:
+                raise CoordinatorError(
+                    "artifact_fixture_still_exists",
+                    "Fixture directory must be removed before its lease is released",
+                    details={"path": str(path)},
+                )
+            released_at = utc_text()
+            connection.execute(
+                """UPDATE artifact_fixture_leases
+                   SET status='released', released_at=?
+                   WHERE lease_id=? AND status='active'""",
+                (released_at, lease_id),
+            )
+            self._insert_fixture_event(
+                connection,
+                "artifact.fixture_released",
+                lease_id=lease_id,
+                path=str(path),
+                owner_pid=owner_pid,
+            )
+            values = dict(row)
+            values.update(status="released", released_at=released_at)
+            return self._fixture_lease(values)
 
     def scan(self) -> tuple[UnmanagedArtifact, ...]:
         managed = self._managed_paths()
@@ -75,7 +251,16 @@ class ArtifactGovernanceService:
         if max_candidates < 1:
             raise ValueError("max_candidates must be positive")
         with self._cleanup_lock:
-            return self._cleanup(max_candidates=max_candidates)
+            self._recover_missing_fixture_leases()
+            recovered = self._recover_reservations(max_candidates=max_candidates)
+            processed = len(recovered.deleted) + len(recovered.failed)
+            if processed >= max_candidates:
+                return recovered
+            current = self._cleanup(max_candidates=max_candidates - processed)
+            return UnmanagedArtifactCleanup(
+                recovered.deleted + current.deleted,
+                recovered.failed + current.failed,
+            )
 
     def _cleanup(self, *, max_candidates: int) -> UnmanagedArtifactCleanup:
         deleted: list[str] = []
@@ -99,9 +284,56 @@ class ArtifactGovernanceService:
 
     def recover_reservations(self) -> UnmanagedArtifactCleanup:
         with self._cleanup_lock:
+            self._recover_missing_fixture_leases()
             return self._recover_reservations()
 
-    def _recover_reservations(self) -> UnmanagedArtifactCleanup:
+    def _recover_missing_fixture_leases(self) -> None:
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                """SELECT lease_id, target_dir, owner_pid,
+                          owner_process_creation_time
+                   FROM artifact_fixture_leases
+                   WHERE status='active'"""
+            ).fetchall()
+        missing = []
+        for row in rows:
+            if self._fixture_owner_matches(row):
+                continue
+            try:
+                Path(str(row["target_dir"])).lstat()
+            except FileNotFoundError:
+                missing.append(row)
+            except OSError:
+                continue
+        if not missing:
+            return
+        recovered_at = utc_text()
+        with self.database.transaction() as connection:
+            for row in missing:
+                updated = connection.execute(
+                    """UPDATE artifact_fixture_leases
+                       SET status='recovered', released_at=?
+                       WHERE lease_id=? AND status='active'
+                         AND owner_pid=? AND owner_process_creation_time=?""",
+                    (
+                        recovered_at,
+                        row["lease_id"],
+                        row["owner_pid"],
+                        row["owner_process_creation_time"],
+                    ),
+                ).rowcount
+                if updated:
+                    self._insert_fixture_event(
+                        connection,
+                        "artifact.fixture_recovered",
+                        lease_id=str(row["lease_id"]),
+                        path=str(row["target_dir"]),
+                        owner_pid=int(row["owner_pid"]),
+                    )
+
+    def _recover_reservations(
+        self, *, max_candidates: int | None = None
+    ) -> UnmanagedArtifactCleanup:
         with self.database.connect() as connection:
             rows = connection.execute(
                 """SELECT target_dir, filesystem_identity
@@ -109,6 +341,8 @@ class ArtifactGovernanceService:
                    WHERE reservation_kind='artifact'
                    ORDER BY reserved_at, target_key"""
             ).fetchall()
+        if max_candidates is not None:
+            rows = rows[:max_candidates]
         deleted: list[str] = []
         failed: list[UnmanagedArtifact] = []
         for row in rows:
@@ -251,6 +485,12 @@ class ArtifactGovernanceService:
                    WHERE storage_path IS NOT NULL"""
             )
         )
+        for row in connection.execute(
+            """SELECT target_dir, owner_pid, owner_process_creation_time
+               FROM artifact_fixture_leases WHERE status='active'"""
+        ):
+            if self._fixture_owner_matches(row):
+                managed_values.append(str(row["target_dir"]))
         return any(
             targets_overlap(target_key, target_identity(value)) for value in managed_values
         )
@@ -270,6 +510,25 @@ class ArtifactGovernanceService:
                        WHERE target_key=? AND reservation_kind='artifact'""",
                     (key,),
                 )
+                recovered_at = utc_text()
+                for row in connection.execute(
+                    """SELECT lease_id, target_dir FROM artifact_fixture_leases
+                       WHERE status='active'"""
+                ).fetchall():
+                    if targets_overlap(key, target_identity(str(row["target_dir"]))):
+                        connection.execute(
+                            """UPDATE artifact_fixture_leases
+                               SET status='recovered', released_at=?
+                               WHERE lease_id=? AND status='active'""",
+                            (recovered_at, row["lease_id"]),
+                        )
+                        self._insert_fixture_event(
+                            connection,
+                            "artifact.fixture_recovered",
+                            lease_id=str(row["lease_id"]),
+                            path=str(row["target_dir"]),
+                            owner_pid=None,
+                        )
             self._insert_event(
                 connection,
                 (
@@ -353,7 +612,62 @@ class ArtifactGovernanceService:
                 "SELECT storage_path FROM workflow_artifacts WHERE storage_path IS NOT NULL"
             ):
                 self._add_managed_path(paths, row["storage_path"])
+            for row in connection.execute(
+                """SELECT target_dir, owner_pid, owner_process_creation_time
+                   FROM artifact_fixture_leases WHERE status='active'"""
+            ):
+                if self._fixture_owner_matches(row):
+                    self._add_managed_path(paths, row["target_dir"])
         return tuple(paths)
+
+    @staticmethod
+    def _fixture_lease(row) -> ArtifactFixtureLease:
+        return ArtifactFixtureLease(
+            lease_id=str(row["lease_id"]),
+            path=str(row["target_dir"]),
+            prefix=str(row["prefix"]),
+            owner_pid=int(row["owner_pid"]),
+            owner_process_creation_time=str(row["owner_process_creation_time"]),
+            status=str(row["status"]),
+            created_at=str(row["created_at"]),
+            released_at=(str(row["released_at"]) if row["released_at"] else None),
+        )
+
+    @staticmethod
+    def _live_process_creation_time(pid: int) -> str | None:
+        if not process_is_alive(pid):
+            return None
+        try:
+            return process_creation_time(pid)
+        except (OSError, ValueError):
+            return None
+
+    def _fixture_owner_matches(self, row) -> bool:
+        identity = self._live_process_creation_time(int(row["owner_pid"]))
+        return identity is not None and identity == str(
+            row["owner_process_creation_time"]
+        )
+
+    @staticmethod
+    def _insert_fixture_event(
+        connection,
+        event_type: str,
+        *,
+        lease_id: str,
+        path: str,
+        owner_pid: int | None,
+    ) -> None:
+        connection.execute(
+            "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
+            (
+                event_type,
+                json.dumps(
+                    {"leaseId": lease_id, "path": path, "ownerPid": owner_pid},
+                    sort_keys=True,
+                ),
+                utc_text(),
+            ),
+        )
 
     def _managed_cargo_snapshot(self) -> tuple[dict[str, str], ...]:
         with self.database.connect() as connection:

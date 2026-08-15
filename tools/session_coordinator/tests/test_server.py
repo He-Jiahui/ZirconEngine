@@ -43,6 +43,93 @@ from tools.session_coordinator.workspace_copy import WorkspaceCopyRecord
 
 
 class ServerTests(unittest.TestCase):
+    def test_artifact_fixture_commands_route_process_bound_lifecycle(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            )
+            application.supervision.mark_healthy()
+            governance = mock.Mock()
+            acquired = mock.Mock()
+            acquired.to_dict.return_value = {
+                "leaseId": "a" * 32,
+                "path": r"D:\ZirconBuilds\mvp-test-fixtures-42\server-a",
+                "ownerPid": 42,
+                "status": "active",
+            }
+            released = mock.Mock()
+            released.to_dict.return_value = {
+                "leaseId": "a" * 32,
+                "path": r"D:\ZirconBuilds\mvp-test-fixtures-42\server-a",
+                "ownerPid": 42,
+                "status": "released",
+            }
+            governance.acquire_fixture.return_value = acquired
+            governance.release_fixture.return_value = released
+            application.artifact_governance = governance
+
+            acquire_result = application.command(
+                "artifact.fixture_acquire", {"prefix": "server", "owner_pid": 42}
+            )
+            release_result = application.command(
+                "artifact.fixture_release", {"lease_id": "a" * 32, "owner_pid": 42}
+            )
+
+        governance.acquire_fixture.assert_called_once_with("server", owner_pid=42)
+        governance.release_fixture.assert_called_once_with("a" * 32, owner_pid=42)
+        self.assertEqual("active", acquire_result["lease"]["status"])
+        self.assertEqual("released", release_result["lease"]["status"])
+
+    def test_artifact_fixture_cli_sends_only_prefix_lease_and_owner_pid(self) -> None:
+        parser = cli._parser()
+        acquired = parser.parse_args(
+            [
+                "artifact",
+                "fixture-acquire",
+                "--prefix",
+                "build-editor",
+                "--owner-pid",
+                "42",
+            ]
+        )
+        released = parser.parse_args(
+            [
+                "artifact",
+                "fixture-release",
+                "--lease-id",
+                "a" * 32,
+                "--owner-pid",
+                "42",
+            ]
+        )
+        client = mock.Mock()
+        client.command.side_effect = (
+            {"lease": {"status": "active"}},
+            {"lease": {"status": "released"}},
+        )
+
+        with mock.patch.object(cli.CoordinatorClient, "from_runtime", return_value=client):
+            acquire_result = cli._run(acquired)
+            release_result = cli._run(released)
+
+        self.assertEqual("active", acquire_result["lease"]["status"])
+        self.assertEqual("released", release_result["lease"]["status"])
+        self.assertEqual(
+            [
+                mock.call(
+                    "artifact.fixture_acquire",
+                    {"prefix": "build-editor", "owner_pid": 42},
+                ),
+                mock.call(
+                    "artifact.fixture_release",
+                    {"lease_id": "a" * 32, "owner_pid": 42},
+                ),
+            ],
+            client.command.call_args_list,
+        )
+
     def test_governance_converge_routes_preview_and_apply_through_audited_service(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

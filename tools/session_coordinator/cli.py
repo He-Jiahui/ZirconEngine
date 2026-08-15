@@ -425,6 +425,12 @@ def _parser() -> argparse.ArgumentParser:
     artifact_commands = artifact.add_subparsers(dest="artifact_command", required=True)
     artifact_commands.add_parser("audit")
     artifact_commands.add_parser("cleanup")
+    artifact_fixture_acquire = artifact_commands.add_parser("fixture-acquire")
+    artifact_fixture_acquire.add_argument("--prefix", required=True)
+    artifact_fixture_acquire.add_argument("--owner-pid", required=True, type=int)
+    artifact_fixture_release = artifact_commands.add_parser("fixture-release")
+    artifact_fixture_release.add_argument("--lease-id", required=True)
+    artifact_fixture_release.add_argument("--owner-pid", required=True, type=int)
 
     finalize = commands.add_parser("finalize")
     finalize.add_argument("--commit", dest="finalize_commit", action="store_true")
@@ -1579,6 +1585,16 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
             )
         return client.command(f"cleanup.{arguments.cleanup_command}", payload)
     if arguments.command == "artifact":
+        if arguments.artifact_command == "fixture-acquire":
+            return client.command(
+                "artifact.fixture_acquire",
+                {"prefix": arguments.prefix, "owner_pid": arguments.owner_pid},
+            )
+        if arguments.artifact_command == "fixture-release":
+            return client.command(
+                "artifact.fixture_release",
+                {"lease_id": arguments.lease_id, "owner_pid": arguments.owner_pid},
+            )
         return client.command(f"artifact.{arguments.artifact_command}")
     if arguments.command == "finalize":
         direct = arguments.finalize_command is None

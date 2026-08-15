@@ -14,7 +14,7 @@ from .models import CoordinatorError
 from .supervision.migration import migrate_supervision_schema
 
 
-LATEST_SCHEMA_VERSION = 63
+LATEST_SCHEMA_VERSION = 64
 
 
 def _migration_1(connection: Connection) -> None:
@@ -2617,6 +2617,30 @@ def _migration_63(connection: Connection) -> None:
     )
 
 
+def _migration_64(connection: Connection) -> None:
+    """Register process-bound test fixtures with artifact governance."""
+    connection.executescript(
+        """
+        CREATE TABLE artifact_fixture_leases (
+            lease_id TEXT PRIMARY KEY
+                CHECK (length(lease_id) = 32),
+            target_key TEXT NOT NULL UNIQUE,
+            target_dir TEXT NOT NULL UNIQUE,
+            prefix TEXT NOT NULL,
+            owner_pid INTEGER NOT NULL CHECK (owner_pid > 0),
+            owner_process_creation_time TEXT NOT NULL
+                CHECK (owner_process_creation_time <> ''),
+            status TEXT NOT NULL
+                CHECK (status IN ('active', 'released', 'recovered')),
+            created_at TEXT NOT NULL,
+            released_at TEXT
+        );
+        CREATE INDEX idx_artifact_fixture_leases_active
+            ON artifact_fixture_leases(status, created_at, lease_id);
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -2681,6 +2705,7 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     61: _migration_61,
     62: _migration_62,
     63: _migration_63,
+    64: _migration_64,
 }
 
 
