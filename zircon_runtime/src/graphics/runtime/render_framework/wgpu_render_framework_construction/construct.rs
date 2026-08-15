@@ -332,6 +332,7 @@ impl WgpuRenderFramework {
                     memory_budget: Default::default(),
                     degrade_ladder: Default::default(),
                     graphics_debugger,
+                    viewport_products: Default::default(),
                 }),
             }),
         })
