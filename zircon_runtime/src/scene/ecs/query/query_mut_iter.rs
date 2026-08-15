@@ -1,21 +1,22 @@
 use std::marker::PhantomData;
 
-use super::cached_query_iter::cached_query_component_locations;
+use super::query_state::{find_cached_archetype_plan, CachedArchetypePlan};
 use crate::scene::ecs::{
     ChangeTickWindow, ComponentStorageLocation, QueryFilter, QueryMutData, QueryState,
+    StableEntityLocation,
 };
-use crate::scene::{EntityId, World};
+use crate::scene::World;
 
-/// Mutable full-query iterator over a cached, unique structural candidate list.
+/// Mutable full-query iterator over a call-local stable candidate snapshot.
 pub struct QueryMutIter<'world, 'state, D, F = ()>
 where
     D: QueryMutData,
     F: QueryFilter,
 {
     world: *mut World,
-    entities: &'state [EntityId],
-    component_locations: &'state [ComponentStorageLocation],
-    component_location_offsets: &'state [usize],
+    plans: &'state [CachedArchetypePlan],
+    candidates: Vec<StableEntityLocation>,
+    component_locations: Vec<ComponentStorageLocation>,
     index: usize,
     ticks: ChangeTickWindow,
     _marker: PhantomData<(&'world mut World, fn() -> (D, F))>,
@@ -28,32 +29,21 @@ where
 {
     pub(crate) fn new(
         world: &'world mut World,
-        entities: &'state [EntityId],
-        component_locations: &'state [ComponentStorageLocation],
-        component_location_offsets: &'state [usize],
+        plans: &'state [CachedArchetypePlan],
         ticks: ChangeTickWindow,
     ) -> Self {
+        let candidates = world
+            .stable_query_location_iter(plans.iter().map(CachedArchetypePlan::archetype_id))
+            .collect();
         Self {
             world,
-            entities,
-            component_locations,
-            component_location_offsets,
+            plans,
+            candidates,
+            component_locations: Vec::new(),
             index: 0,
             ticks,
             _marker: PhantomData,
         }
-    }
-
-    fn matches_entity(&self, entity: EntityId, index: usize) -> bool {
-        let world = unsafe { &*self.world };
-        let Some(component_locations) = cached_query_component_locations(
-            self.component_locations,
-            self.component_location_offsets,
-            index,
-        ) else {
-            return false;
-        };
-        F::matches_component_locations(world, entity, component_locations, self.ticks)
     }
 }
 
@@ -65,13 +55,31 @@ where
     type Item = D::Item<'world>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(entity) = self.entities.get(self.index).copied() {
-            let index = self.index;
+        while let Some(stable_location) = self.candidates.get(self.index).copied() {
             self.index += 1;
-            if self.matches_entity(entity, index) {
-                // QueryState cache candidates are unique entity ids, so yielded
-                // mutable items cannot alias each other across iterator steps.
-                return unsafe { fetch_mut_unchecked::<D>(self.world, entity, self.ticks) };
+            let plan =
+                find_cached_archetype_plan(self.plans, stable_location.location.archetype_id)?;
+            let world = unsafe { &*self.world };
+            if !plan.write_component_locations(
+                world,
+                stable_location,
+                &mut self.component_locations,
+            ) {
+                continue;
+            }
+            let entity = stable_location.stable_id;
+            if F::matches_component_locations(world, entity, &self.component_locations, self.ticks)
+            {
+                // Candidate entities are unique and the query access descriptor
+                // prevents overlapping mutable component access.
+                return unsafe {
+                    D::fetch_mut_with_component_locations(
+                        &mut *self.world,
+                        entity,
+                        &self.component_locations,
+                        self.ticks,
+                    )
+                };
             }
         }
         None
@@ -96,23 +104,6 @@ where
         ticks: ChangeTickWindow,
     ) -> QueryMutIter<'world, 'state, D, F> {
         self.update_cache(world);
-        QueryMutIter::new(
-            world,
-            self.cached_entities(),
-            self.cached_component_locations(),
-            self.cached_component_location_offsets(),
-            ticks,
-        )
+        QueryMutIter::new(world, self.cached_archetype_plans(), ticks)
     }
-}
-
-unsafe fn fetch_mut_unchecked<'world, D>(
-    world: *mut World,
-    entity: EntityId,
-    ticks: ChangeTickWindow,
-) -> Option<D::Item<'world>>
-where
-    D: QueryMutData,
-{
-    D::fetch_mut_with_ticks(unsafe { &mut *world }, entity, ticks)
 }

@@ -1,277 +1,26 @@
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
-use std::mem::{align_of, size_of, MaybeUninit};
+use std::mem::size_of;
 use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
+use std::time::{Duration, Instant};
 
-use crate::scene::{EntityId, World};
+use crate::scene::World;
 
-use super::{Command, ErasedCommand};
+use super::inline_command_arena::{InlineCommandArena, WorkerInlineCommandArena};
+use super::queued_command::{InlineCommand, QueuedCommand};
+use super::{
+    Command, CommandQueueMetrics, DeferredCommandReport, DeferredSystemKey, QueuedStructuralCommand,
+};
 
-const INLINE_COMMAND_BYTES: usize = 192;
-const INLINE_COMMAND_ALIGNMENT: usize = 64;
-const INLINE_COMMAND_BYTE_BUDGET: usize = 4 * 1024 * 1024;
-
-#[repr(C, align(64))]
-struct InlineCommandPayload {
-    bytes: [MaybeUninit<u8>; INLINE_COMMAND_BYTES],
-}
-
-impl InlineCommandPayload {
-    fn new() -> Self {
-        Self {
-            bytes: [MaybeUninit::uninit(); INLINE_COMMAND_BYTES],
-        }
-    }
-
-    fn as_mut_ptr(&mut self) -> *mut u8 {
-        self.bytes.as_mut_ptr().cast()
-    }
-}
-
-struct InlineCommand {
-    payload: InlineCommandPayload,
-    apply: unsafe fn(*mut u8, &mut World),
-    drop_payload: unsafe fn(*mut u8),
-    armed: bool,
-}
-
-impl InlineCommand {
-    fn new<C>(command: C) -> Self
-    where
-        C: Command,
-    {
-        debug_assert!(can_inline::<C>(0));
-
-        let mut inline = Self {
-            payload: InlineCommandPayload::new(),
-            apply: apply_inline::<C>,
-            drop_payload: drop_inline::<C>,
-            armed: false,
-        };
-
-        // The payload starts at offset zero of a 64-byte-aligned slot. `can_inline`
-        // admits only payloads that fit this slot and require no stricter alignment.
-        unsafe {
-            inline.payload.as_mut_ptr().cast::<C>().write(command);
-        }
-        inline.armed = true;
-        inline
-    }
-
-    fn apply(&mut self, world: &mut World) {
-        let apply = self.apply;
-        self.armed = false;
-
-        // `armed` means the slot holds one initialized `C`. Clear it before calling
-        // user code so an unwind cannot make `Drop` run on the moved payload again.
-        unsafe {
-            apply(self.payload.as_mut_ptr(), world);
-        }
-    }
-}
-
-impl Drop for InlineCommand {
-    fn drop(&mut self) {
-        if self.armed {
-            // An armed slot contains one initialized payload that was never moved into
-            // `Command::apply`; dropping it releases abandoned and panic-discarded work.
-            unsafe {
-                (self.drop_payload)(self.payload.as_mut_ptr());
-            }
-        }
-    }
-}
-
-unsafe fn apply_inline<C>(payload: *mut u8, world: &mut World)
-where
-    C: Command,
-{
-    // Callers provide the aligned, initialized storage created by `InlineCommand::new`.
-    let command = unsafe { payload.cast::<C>().read() };
-    command.apply(world);
-}
-
-unsafe fn drop_inline<C>(payload: *mut u8)
-where
-    C: Command,
-{
-    // Callers invoke this only for the aligned, initialized storage still owned by a slot.
-    unsafe {
-        payload.cast::<C>().drop_in_place();
-    }
-}
-
-enum QueuedCommand {
-    Inline(InlineCommand, usize),
-    Fallback(Box<dyn ErasedCommand>, usize),
-}
-
-impl QueuedCommand {
-    fn storage(&self) -> QueuedCommandStorage {
-        match self {
-            Self::Inline(_, bytes) => QueuedCommandStorage::Inline(*bytes),
-            Self::Fallback(_, bytes) => QueuedCommandStorage::Fallback(*bytes),
-        }
-    }
-
-    fn apply(self, world: &mut World) {
-        match self {
-            Self::Inline(mut command, _) => command.apply(world),
-            Self::Fallback(command, _) => command.apply_boxed(world),
-        }
-    }
-}
-
-#[derive(Clone, Copy)]
-enum QueuedCommandStorage {
-    Inline(usize),
-    Fallback(usize),
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct CommandQueueMetrics {
-    queued_inline_commands: usize,
-    queued_fallback_commands: usize,
-    queued_inline_bytes: usize,
-    queued_inline_slot_bytes: usize,
-    queued_fallback_bytes: usize,
-    queue_storage_growths: usize,
-    fallback_payload_allocations: usize,
-    fallback_payload_releases: usize,
-    inline_payload_releases: usize,
-    inline_dispatch_calls: usize,
-    fallback_dispatch_calls: usize,
-    discarded_inline_commands: usize,
-    discarded_fallback_commands: usize,
-}
-
-impl CommandQueueMetrics {
-    pub fn queued_inline_commands(&self) -> usize {
-        self.queued_inline_commands
-    }
-
-    pub fn queued_fallback_commands(&self) -> usize {
-        self.queued_fallback_commands
-    }
-
-    pub fn queued_inline_bytes(&self) -> usize {
-        self.queued_inline_bytes
-    }
-
-    /// Actual occupied inline-slot storage, including the fixed slot cost for
-    /// small payloads. This is the quantity bounded by the queue byte budget.
-    pub fn queued_inline_slot_bytes(&self) -> usize {
-        self.queued_inline_slot_bytes
-    }
-
-    pub fn queued_fallback_bytes(&self) -> usize {
-        self.queued_fallback_bytes
-    }
-
-    /// Counts backing-vector growth, not one allocation per inline payload.
-    pub fn queue_storage_growths(&self) -> usize {
-        self.queue_storage_growths
-    }
-
-    /// Counts explicit boxed fallback allocations only.
-    pub fn fallback_payload_allocations(&self) -> usize {
-        self.fallback_payload_allocations
-    }
-
-    /// Counts consumed or panic-discarded boxed fallback payloads.
-    pub fn fallback_payload_releases(&self) -> usize {
-        self.fallback_payload_releases
-    }
-
-    /// Counts consumed or panic-discarded inline payloads.
-    pub fn inline_payload_releases(&self) -> usize {
-        self.inline_payload_releases
-    }
-
-    pub fn inline_dispatch_calls(&self) -> usize {
-        self.inline_dispatch_calls
-    }
-
-    pub fn fallback_dispatch_calls(&self) -> usize {
-        self.fallback_dispatch_calls
-    }
-
-    pub fn discarded_inline_commands(&self) -> usize {
-        self.discarded_inline_commands
-    }
-
-    pub fn discarded_fallback_commands(&self) -> usize {
-        self.discarded_fallback_commands
-    }
-
-    fn queued(&mut self, storage: QueuedCommandStorage) {
-        match storage {
-            QueuedCommandStorage::Inline(bytes) => {
-                self.queued_inline_commands += 1;
-                self.queued_inline_bytes += bytes;
-                self.queued_inline_slot_bytes += INLINE_COMMAND_BYTES;
-            }
-            QueuedCommandStorage::Fallback(bytes) => {
-                self.queued_fallback_commands += 1;
-                self.queued_fallback_bytes += bytes;
-                self.fallback_payload_allocations += 1;
-            }
-        }
-    }
-
-    fn queue_storage_grew(&mut self) {
-        self.queue_storage_growths += 1;
-    }
-
-    fn dispatched(&mut self, storage: QueuedCommandStorage) {
-        match storage {
-            QueuedCommandStorage::Inline(bytes) => {
-                self.queued_inline_commands -= 1;
-                self.queued_inline_bytes -= bytes;
-                self.queued_inline_slot_bytes -= INLINE_COMMAND_BYTES;
-                self.inline_payload_releases += 1;
-                self.inline_dispatch_calls += 1;
-            }
-            QueuedCommandStorage::Fallback(bytes) => {
-                self.queued_fallback_commands -= 1;
-                self.queued_fallback_bytes -= bytes;
-                self.fallback_payload_releases += 1;
-                self.fallback_dispatch_calls += 1;
-            }
-        }
-    }
-
-    fn discard_queued(&mut self) {
-        self.discarded_inline_commands += self.queued_inline_commands;
-        self.discarded_fallback_commands += self.queued_fallback_commands;
-        self.inline_payload_releases += self.queued_inline_commands;
-        self.fallback_payload_releases += self.queued_fallback_commands;
-        self.queued_inline_commands = 0;
-        self.queued_fallback_commands = 0;
-        self.queued_inline_bytes = 0;
-        self.queued_inline_slot_bytes = 0;
-        self.queued_fallback_bytes = 0;
-    }
-
-    fn merge_from(&mut self, other: Self) {
-        self.queued_inline_commands += other.queued_inline_commands;
-        self.queued_fallback_commands += other.queued_fallback_commands;
-        self.queued_inline_bytes += other.queued_inline_bytes;
-        self.queued_inline_slot_bytes += other.queued_inline_slot_bytes;
-        self.queued_fallback_bytes += other.queued_fallback_bytes;
-        self.queue_storage_growths += other.queue_storage_growths;
-        self.fallback_payload_allocations += other.fallback_payload_allocations;
-        self.fallback_payload_releases += other.fallback_payload_releases;
-        self.inline_payload_releases += other.inline_payload_releases;
-        self.inline_dispatch_calls += other.inline_dispatch_calls;
-        self.fallback_dispatch_calls += other.fallback_dispatch_calls;
-        self.discarded_inline_commands += other.discarded_inline_commands;
-        self.discarded_fallback_commands += other.discarded_fallback_commands;
-    }
-}
-
+/// The World-bound deferred-command owner. Payload storage and queued-entry
+/// mechanics live in sibling leaf modules so this type only owns barriers.
 #[derive(Default)]
 pub struct CommandQueue {
     commands: Vec<QueuedCommand>,
+    inline_arena: InlineCommandArena,
+    // Worker arenas stay separate until the barrier has drained them, so their
+    // physical blocks can return to the producer that prewarmed them.
+    worker_inline_arenas: Vec<WorkerInlineCommandArena>,
     metrics: CommandQueueMetrics,
 }
 
@@ -279,10 +28,9 @@ impl CommandQueue {
     pub fn with_capacity(command_capacity: usize) -> Self {
         Self {
             commands: Vec::with_capacity(command_capacity),
-            metrics: CommandQueueMetrics {
-                queue_storage_growths: usize::from(command_capacity > 0),
-                ..CommandQueueMetrics::default()
-            },
+            inline_arena: InlineCommandArena::with_command_capacity(command_capacity),
+            worker_inline_arenas: Vec::new(),
+            metrics: CommandQueueMetrics::with_command_capacity(command_capacity),
         }
     }
 
@@ -290,13 +38,48 @@ impl CommandQueue {
     where
         C: Command,
     {
+        self.push_with(
+            command,
+            InlineCommandArena::try_push::<C>,
+            |command, bytes| QueuedCommand::Fallback(Box::new(command), bytes),
+        );
+    }
+
+    pub(crate) fn push_structural<C>(&mut self, command: C)
+    where
+        C: QueuedStructuralCommand,
+    {
+        self.push_with(
+            command,
+            InlineCommandArena::try_push_structural::<C>,
+            |command, bytes| QueuedCommand::StructuralFallback(Box::new(command), bytes),
+        );
+    }
+
+    fn push_with<C>(
+        &mut self,
+        command: C,
+        inline_push: fn(&mut InlineCommandArena, C) -> Result<(InlineCommand, usize, bool), C>,
+        fallback: impl FnOnce(C, usize) -> QueuedCommand,
+    ) where
+        C: Command,
+    {
         let payload_bytes = size_of::<C>();
-        let command = if can_inline::<C>(self.metrics.queued_inline_slot_bytes) {
-            QueuedCommand::Inline(InlineCommand::new(command), payload_bytes)
-        } else {
-            QueuedCommand::Fallback(Box::new(command), payload_bytes)
+        let command = match inline_push(&mut self.inline_arena, command) {
+            Ok((command, storage_bytes, storage_grew)) => {
+                if storage_grew {
+                    self.metrics.inline_block_storage_grew();
+                }
+                QueuedCommand::Inline {
+                    command,
+                    payload_bytes,
+                    storage_bytes,
+                }
+            }
+            Err(command) => fallback(command, payload_bytes),
         };
-        self.metrics.queued(command.storage());
+        self.metrics
+            .queued(command.storage().expect("new command must own storage"));
         if self.commands.len() == self.commands.capacity() {
             self.metrics.queue_storage_grew();
         }
@@ -304,24 +87,113 @@ impl CommandQueue {
     }
 
     pub fn apply(&mut self, world: &mut World) -> DeferredCommandReport {
+        let started_at = Instant::now();
         let applied_count = self.commands.len();
         world.clear_deferred_command_errors();
 
-        let (commands, metrics) = (&mut self.commands, &mut self.metrics);
+        let mut spawn_tokens = BTreeSet::new();
+        for command in &self.commands {
+            // Only a structural spawn produces a token. A later command that
+            // merely references an old public handle cannot resurrect it or
+            // claim another entity id in this window.
+            command.collect_spawn_tokens(
+                &self.inline_arena,
+                &self.worker_inline_arenas,
+                &mut spawn_tokens,
+            );
+        }
+        let resolved_entities = match world.reserve_deferred_spawn_tokens(spawn_tokens) {
+            Ok(resolved_entities) => resolved_entities,
+            Err(error) => {
+                // This window cannot be retried with a different partial id
+                // plan. Consume it exactly once, retaining the next window
+                // that World::apply_deferred has already swapped aside.
+                self.discard_pending();
+                self.metrics.record_world_apply(started_at.elapsed());
+                return DeferredCommandReport::new(
+                    applied_count,
+                    Vec::new(),
+                    Some(error),
+                    BTreeMap::new(),
+                );
+            }
+        };
+        world.install_deferred_spawn_resolutions(&resolved_entities);
+
+        let (commands, inline_arena, worker_inline_arenas, metrics) = (
+            &mut self.commands,
+            &mut self.inline_arena,
+            &mut self.worker_inline_arenas,
+            &mut self.metrics,
+        );
+        let mut cursor = 0;
         let result = catch_unwind(AssertUnwindSafe(|| {
-            for command in commands.drain(..) {
-                let storage = command.storage();
+            let mut structural_batch = None;
+            while cursor < commands.len() {
+                let command = std::mem::replace(&mut commands[cursor], QueuedCommand::Consumed);
+                cursor += 1;
+                let storage = command
+                    .storage()
+                    .expect("unconsumed queue entry must own storage");
                 metrics.dispatched(storage);
-                command.apply(world);
+
+                if command
+                    .structural_metadata(inline_arena, worker_inline_arenas)
+                    .is_some()
+                {
+                    let batch = structural_batch
+                        .get_or_insert_with(crate::scene::world::DeferredStructuralBatch::new);
+                    command.stage_structural(inline_arena, worker_inline_arenas, batch, world);
+                    continue;
+                }
+
+                if let Some(batch) = structural_batch.take() {
+                    for error in batch.finish(world) {
+                        world.record_deferred_command_error(error);
+                    }
+                }
+                command.apply(inline_arena, worker_inline_arenas, world);
+            }
+
+            if let Some(batch) = structural_batch.take() {
+                for error in batch.finish(world) {
+                    world.record_deferred_command_error(error);
+                }
             }
         }));
 
         if let Err(payload) = result {
-            metrics.discard_queued();
+            for command in commands.iter_mut().skip(cursor) {
+                let command = std::mem::replace(command, QueuedCommand::Consumed);
+                if let Some(storage) = command.storage() {
+                    metrics.discarded(storage);
+                    command.discard(inline_arena, worker_inline_arenas);
+                }
+            }
+            commands.clear();
+            inline_arena.reset();
+            for worker_arena in worker_inline_arenas {
+                worker_arena.arena.reset();
+            }
+            world.clear_deferred_spawn_resolutions();
+            metrics.record_world_apply(started_at.elapsed());
             resume_unwind(payload);
         }
 
-        DeferredCommandReport::new(applied_count, world.take_deferred_command_errors())
+        commands.clear();
+        inline_arena.reset();
+        for worker_arena in worker_inline_arenas {
+            worker_arena.arena.reset();
+        }
+        let published_entities = world.take_published_deferred_spawn_resolutions();
+        world.clear_deferred_spawn_resolutions();
+        metrics.record_world_apply(started_at.elapsed());
+        DeferredCommandReport::new(
+            applied_count,
+            world.take_deferred_command_errors(),
+            None,
+            published_entities,
+        )
     }
 
     pub fn len(&self) -> usize {
@@ -336,10 +208,175 @@ impl CommandQueue {
         self.metrics
     }
 
+    pub(super) fn record_worker_batch_merge(&mut self, elapsed: Duration) {
+        self.metrics.record_worker_batch_merge(elapsed);
+    }
+
+    pub(crate) fn discard_pending(&mut self) {
+        for command in &mut self.commands {
+            let command = std::mem::replace(command, QueuedCommand::Consumed);
+            if let Some(storage) = command.storage() {
+                self.metrics.discarded(storage);
+                command.discard(&mut self.inline_arena, &mut self.worker_inline_arenas);
+            }
+        }
+        self.commands.clear();
+        self.inline_arena.reset();
+        for worker_arena in &mut self.worker_inline_arenas {
+            worker_arena.arena.reset();
+        }
+    }
+
     pub(crate) fn append(&mut self, other: &mut Self) {
+        let required_capacity = self.commands.len().saturating_add(other.commands.len());
+        if required_capacity > self.commands.capacity() {
+            self.metrics.queue_storage_grew();
+        }
+        let (queue_block_offset, storage_grew, queue_leading_padding) =
+            self.inline_arena.append(&mut other.inline_arena);
+        if storage_grew {
+            self.metrics.inline_block_storage_grew();
+        }
+        if queue_leading_padding != 0 {
+            let mut prefix_recorded = false;
+            for command in &mut other.commands {
+                if command.add_queue_inline_storage_prefix(queue_leading_padding) {
+                    prefix_recorded = true;
+                    break;
+                }
+            }
+            debug_assert!(prefix_recorded);
+            other
+                .metrics
+                .add_queued_inline_storage_padding(queue_leading_padding);
+        }
+
+        let source_worker_arenas = std::mem::take(&mut other.worker_inline_arenas);
+        let mut worker_arena_remaps = Vec::with_capacity(source_worker_arenas.len());
+        for mut source_worker_arena in source_worker_arenas {
+            let source_index = worker_arena_remaps.len();
+            let matching_destination = self
+                .worker_inline_arenas
+                .iter()
+                .position(|arena| arena.matches(&source_worker_arena.key));
+            if let Some(destination_index) = matching_destination {
+                let (block_offset, storage_grew, leading_padding) = self.worker_inline_arenas
+                    [destination_index]
+                    .arena
+                    .append(&mut source_worker_arena.arena);
+                if storage_grew {
+                    self.metrics.inline_block_storage_grew();
+                }
+                if leading_padding != 0 {
+                    let mut prefix_recorded = false;
+                    for command in &mut other.commands {
+                        if command.add_worker_inline_storage_prefix(source_index, leading_padding) {
+                            prefix_recorded = true;
+                            break;
+                        }
+                    }
+                    debug_assert!(prefix_recorded);
+                    other
+                        .metrics
+                        .add_queued_inline_storage_padding(leading_padding);
+                }
+                worker_arena_remaps.push((destination_index, block_offset));
+            } else {
+                let destination_index = self.worker_inline_arenas.len();
+                self.worker_inline_arenas.push(source_worker_arena);
+                worker_arena_remaps.push((destination_index, 0));
+            }
+        }
+
+        for command in &mut other.commands {
+            command.remap_appended_arena(queue_block_offset, &worker_arena_remaps);
+        }
         self.commands.append(&mut other.commands);
         self.metrics.merge_from(other.metrics);
         other.metrics = CommandQueueMetrics::default();
+    }
+
+    pub(crate) fn append_worker(&mut self, other: &mut Self, key: &DeferredSystemKey) {
+        debug_assert!(other.worker_inline_arenas.is_empty());
+        let required_capacity = self.commands.len().saturating_add(other.commands.len());
+        if required_capacity > self.commands.capacity() {
+            self.metrics.queue_storage_grew();
+        }
+
+        let worker_arena_index = self
+            .worker_inline_arenas
+            .iter()
+            .position(|arena| arena.matches(key));
+        let (worker_arena_index, block_offset, storage_grew, leading_padding) =
+            if let Some(index) = worker_arena_index {
+                let arena = &mut self.worker_inline_arenas[index].arena;
+                let (block_offset, storage_grew, leading_padding) =
+                    arena.append(&mut other.inline_arena);
+                (index, block_offset, storage_grew, leading_padding)
+            } else {
+                let index = self.worker_inline_arenas.len();
+                self.worker_inline_arenas.push(WorkerInlineCommandArena {
+                    key: key.clone(),
+                    arena: std::mem::take(&mut other.inline_arena),
+                });
+                (index, 0, false, 0)
+            };
+
+        if storage_grew {
+            self.metrics.inline_block_storage_grew();
+        }
+        if leading_padding != 0 {
+            let mut prefix_recorded = false;
+            for command in &mut other.commands {
+                if command.add_queue_inline_storage_prefix(leading_padding) {
+                    prefix_recorded = true;
+                    break;
+                }
+            }
+            debug_assert!(prefix_recorded);
+            other
+                .metrics
+                .add_queued_inline_storage_padding(leading_padding);
+        }
+        for command in &mut other.commands {
+            command.remap_inline_to_worker(worker_arena_index, block_offset);
+        }
+        self.commands.append(&mut other.commands);
+        self.metrics.merge_from(other.metrics);
+        other.metrics = CommandQueueMetrics::default();
+    }
+
+    pub(crate) fn reclaim_worker_arena(
+        &mut self,
+        worker_queue: &mut Self,
+        key: &DeferredSystemKey,
+    ) {
+        let Some(index) = self
+            .worker_inline_arenas
+            .iter()
+            .position(|arena| arena.matches(key))
+        else {
+            return;
+        };
+        if self
+            .commands
+            .iter()
+            .any(|command| command.references_worker_arena(index))
+        {
+            return;
+        }
+        assert!(
+            worker_queue.is_empty(),
+            "worker command buffer must be empty before its arena returns"
+        );
+        let last_index = self.worker_inline_arenas.len() - 1;
+        let worker_arena = self.worker_inline_arenas.swap_remove(index);
+        if index != last_index {
+            for command in &mut self.commands {
+                command.remap_worker_arena(last_index, index);
+            }
+        }
+        worker_queue.inline_arena = worker_arena.arena;
     }
 }
 
@@ -349,6 +386,12 @@ impl fmt::Debug for CommandQueue {
             .field("len", &self.commands.len())
             .field("metrics", &self.metrics)
             .finish()
+    }
+}
+
+impl Drop for CommandQueue {
+    fn drop(&mut self) {
+        self.discard_pending();
     }
 }
 
@@ -364,85 +407,17 @@ impl PartialEq for CommandQueue {
     }
 }
 
-fn can_inline<C>(queued_inline_slot_bytes: usize) -> bool
-where
-    C: Command,
-{
-    size_of::<C>() <= INLINE_COMMAND_BYTES
-        && align_of::<C>() <= INLINE_COMMAND_ALIGNMENT
-        && queued_inline_slot_bytes
-            <= INLINE_COMMAND_BYTE_BUDGET.saturating_sub(INLINE_COMMAND_BYTES)
-}
+#[cfg(test)]
+mod tests {
+    use super::{CommandQueue, World};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum DeferredCommandOperation {
-    Spawn,
-    Insert,
-    InsertBundle,
-    Remove,
-    Despawn,
-}
+    #[test]
+    fn ecs_commands_apply_records_one_world_owned_boundary() {
+        let mut queue = CommandQueue::default();
+        queue.push(|_: &mut World| {});
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DeferredCommandError {
-    operation: DeferredCommandOperation,
-    entity: EntityId,
-    message: String,
-}
+        queue.apply(&mut World::empty());
 
-impl DeferredCommandError {
-    pub fn new(
-        operation: DeferredCommandOperation,
-        entity: EntityId,
-        message: impl Into<String>,
-    ) -> Self {
-        Self {
-            operation,
-            entity,
-            message: message.into(),
-        }
-    }
-
-    pub fn operation(&self) -> DeferredCommandOperation {
-        self.operation
-    }
-
-    pub fn entity(&self) -> EntityId {
-        self.entity
-    }
-
-    pub fn message(&self) -> &str {
-        &self.message
-    }
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct DeferredCommandReport {
-    applied_count: usize,
-    errors: Vec<DeferredCommandError>,
-}
-
-impl DeferredCommandReport {
-    pub fn new(applied_count: usize, errors: Vec<DeferredCommandError>) -> Self {
-        Self {
-            applied_count,
-            errors,
-        }
-    }
-
-    pub fn applied_count(&self) -> usize {
-        self.applied_count
-    }
-
-    pub fn error_count(&self) -> usize {
-        self.errors.len()
-    }
-
-    pub fn is_success(&self) -> bool {
-        self.errors.is_empty()
-    }
-
-    pub fn errors(&self) -> &[DeferredCommandError] {
-        &self.errors
+        assert_eq!(queue.metrics().world_apply_count(), 1);
     }
 }

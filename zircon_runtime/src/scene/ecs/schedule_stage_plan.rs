@@ -107,6 +107,29 @@ impl SceneScheduleStagePlan {
     ) -> &ScheduleConflictGraph {
         &self.native_conflict_graphs_by_stage[stage.rank()]
     }
+
+    pub(crate) fn native_system_deferred_key(&self, id: &str) -> Option<super::DeferredSystemKey> {
+        for steps in &self.native_steps_by_stage {
+            for step in steps {
+                if let ScheduledSceneStep::Native {
+                    id: step_id,
+                    stage,
+                    order,
+                    ..
+                } = step
+                {
+                    if step_id == id {
+                        return Some(super::DeferredSystemKey::compiled(
+                            stage.rank(),
+                            *order,
+                            step_id.clone(),
+                        ));
+                    }
+                }
+            }
+        }
+        None
+    }
 }
 
 fn internal_system_counts_by_stage(

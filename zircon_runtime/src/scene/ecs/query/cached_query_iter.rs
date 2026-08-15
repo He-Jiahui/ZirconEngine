@@ -1,9 +1,10 @@
-use std::marker::PhantomData;
+use std::{any::TypeId, marker::PhantomData};
 
 use super::query_filter::{Added, Changed, QueryFilter, With, Without};
+use super::query_state::{find_cached_archetype_plan, CachedArchetypePlan};
 use crate::scene::ecs::{
-    ChangeTickWindow, Component, ComponentId, ComponentStorageLocation, Mut, QueryDataAccess,
-    QueryEntityItem, Ref, StableEntityLocation,
+    ChangeTickWindow, Component, ComponentStorageLocation, Mut, QueryDataAccess, QueryEntityItem,
+    Ref, StableEntityLocation,
 };
 use crate::scene::{EntityId, World};
 
@@ -34,11 +35,10 @@ where
     F: CachedQueryFilter,
 {
     world: &'world World,
-    entities: &'state [EntityId],
-    locations: &'state [StableEntityLocation],
-    component_locations: &'state [ComponentStorageLocation],
-    component_location_offsets: &'state [usize],
-    index: usize,
+    plans: &'state [CachedArchetypePlan],
+    component_locations: Vec<ComponentStorageLocation>,
+    plan_index: usize,
+    row: usize,
     ticks: ChangeTickWindow,
     _marker: PhantomData<fn() -> (D, F)>,
 }
@@ -51,11 +51,8 @@ where
     I::Item: QueryEntityItem,
 {
     world: &'world World,
-    cached_entities: &'state [EntityId],
-    locations: &'state [StableEntityLocation],
-    component_locations: &'state [ComponentStorageLocation],
-    component_location_offsets: &'state [usize],
-    cached_entity_indices: &'state [(EntityId, usize)],
+    plans: &'state [CachedArchetypePlan],
+    component_locations: Vec<ComponentStorageLocation>,
     requested_entities: I,
     ticks: ChangeTickWindow,
     _marker: PhantomData<fn() -> (D, F)>,
@@ -68,19 +65,15 @@ where
 {
     pub(crate) fn new(
         world: &'world World,
-        entities: &'state [EntityId],
-        locations: &'state [StableEntityLocation],
-        component_locations: &'state [ComponentStorageLocation],
-        component_location_offsets: &'state [usize],
+        plans: &'state [CachedArchetypePlan],
         ticks: ChangeTickWindow,
     ) -> Self {
         Self {
             world,
-            entities,
-            locations,
-            component_locations,
-            component_location_offsets,
-            index: 0,
+            plans,
+            component_locations: Vec::new(),
+            plan_index: 0,
+            row: 0,
             ticks,
             _marker: PhantomData,
         }
@@ -96,11 +89,7 @@ where
 {
     pub(crate) fn new<EntityList>(
         world: &'world World,
-        cached_entities: &'state [EntityId],
-        locations: &'state [StableEntityLocation],
-        component_locations: &'state [ComponentStorageLocation],
-        component_location_offsets: &'state [usize],
-        cached_entity_indices: &'state [(EntityId, usize)],
+        plans: &'state [CachedArchetypePlan],
         requested_entities: EntityList,
         ticks: ChangeTickWindow,
     ) -> Self
@@ -110,11 +99,8 @@ where
     {
         Self {
             world,
-            cached_entities,
-            locations,
-            component_locations,
-            component_location_offsets,
-            cached_entity_indices,
+            plans,
+            component_locations: Vec::new(),
             requested_entities: requested_entities.into_iter(),
             ticks,
             _marker: PhantomData,
@@ -130,28 +116,37 @@ where
     type Item = D::Item<'world>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        while let Some(entity) = self.entities.get(self.index).copied() {
-            let stable_location = self.locations.get(self.index).copied()?;
-            let component_locations = cached_query_component_locations(
-                self.component_locations,
-                self.component_location_offsets,
-                self.index,
-            )?;
-            self.index += 1;
-
-            if F::matches_cached(self.world, entity, component_locations, self.ticks) {
+        loop {
+            let plan = self.plans.get(self.plan_index)?;
+            let Some(stable_location) = self
+                .world
+                .query_stable_location_at(plan.archetype_id(), self.row)
+            else {
+                self.plan_index += 1;
+                self.row = 0;
+                continue;
+            };
+            self.row += 1;
+            if !plan.write_component_locations(
+                self.world,
+                stable_location,
+                &mut self.component_locations,
+            ) {
+                continue;
+            }
+            let entity = stable_location.stable_id;
+            if F::matches_cached(self.world, entity, &self.component_locations, self.ticks) {
                 if let Some(item) = D::fetch_cached(
                     self.world,
                     entity,
                     stable_location,
-                    component_locations,
+                    &self.component_locations,
                     self.ticks,
                 ) {
                     return Some(item);
                 }
             }
         }
-        None
     }
 }
 
@@ -167,23 +162,27 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         for entity_item in self.requested_entities.by_ref() {
             let entity = entity_item.entity_id();
-            let Some(index) = cached_query_entity_index(self.cached_entity_indices, entity) else {
+            let Some(stable_location) = self.world.internal_entity_location(entity) else {
                 continue;
             };
-            let entity = *self.cached_entities.get(index)?;
-            let stable_location = *self.locations.get(index)?;
-            let component_locations = cached_query_component_locations(
-                self.component_locations,
-                self.component_location_offsets,
-                index,
-            )?;
-
-            if F::matches_cached(self.world, entity, component_locations, self.ticks) {
+            let Some(plan) =
+                find_cached_archetype_plan(self.plans, stable_location.location.archetype_id)
+            else {
+                continue;
+            };
+            if !plan.write_component_locations(
+                self.world,
+                stable_location,
+                &mut self.component_locations,
+            ) {
+                continue;
+            }
+            if F::matches_cached(self.world, entity, &self.component_locations, self.ticks) {
                 if let Some(item) = D::fetch_cached(
                     self.world,
                     entity,
                     stable_location,
-                    component_locations,
+                    &self.component_locations,
                     self.ticks,
                 ) {
                     return Some(item);
@@ -192,26 +191,6 @@ where
         }
         None
     }
-}
-
-pub(crate) fn cached_query_entity_index(
-    cached_entity_indices: &[(EntityId, usize)],
-    entity: EntityId,
-) -> Option<usize> {
-    let entry = cached_entity_indices
-        .binary_search_by_key(&entity, |(candidate, _)| *candidate)
-        .ok()?;
-    Some(cached_entity_indices[entry].1)
-}
-
-pub(crate) fn cached_query_component_locations<'locations>(
-    component_locations: &'locations [ComponentStorageLocation],
-    component_location_offsets: &[usize],
-    index: usize,
-) -> Option<&'locations [ComponentStorageLocation]> {
-    let start = *component_location_offsets.get(index)?;
-    let end = *component_location_offsets.get(index + 1)?;
-    component_locations.get(start..end)
 }
 
 impl<T> CachedQueryFilter for With<T>
@@ -334,8 +313,7 @@ where
         component_locations: &[ComponentStorageLocation],
         _ticks: ChangeTickWindow,
     ) -> Option<Self::Item<'world>> {
-        let component_id = world.registered_component_id::<T>()?;
-        let location = component_location(component_locations, component_id)?;
+        let location = component_location::<T>(component_locations)?;
         let (value, _) = world.component_ref_with_ticks_at_location::<T>(*location)?;
         Some(value)
     }
@@ -354,8 +332,7 @@ where
         component_locations: &[ComponentStorageLocation],
         _ticks: ChangeTickWindow,
     ) -> Option<Self::Item<'world>> {
-        let component_id = world.registered_component_id::<T>()?;
-        let location = component_location(component_locations, component_id)?;
+        let location = component_location::<T>(component_locations)?;
         let (value, _) = world.component_ref_with_ticks_at_location::<T>(*location)?;
         Some(value)
     }
@@ -374,8 +351,7 @@ where
         component_locations: &[ComponentStorageLocation],
         ticks: ChangeTickWindow,
     ) -> Option<Self::Item<'world>> {
-        let component_id = world.registered_component_id::<T>()?;
-        let location = component_location(component_locations, component_id)?;
+        let location = component_location::<T>(component_locations)?;
         let (value, component_ticks) =
             world.component_ref_with_ticks_at_location::<T>(*location)?;
         Some(Ref::new(value, component_ticks, ticks))
@@ -395,8 +371,7 @@ where
         component_locations: &[ComponentStorageLocation],
         ticks: ChangeTickWindow,
     ) -> Option<Self::Item<'world>> {
-        let component_id = world.registered_component_id::<T>()?;
-        let location = component_location(component_locations, component_id)?;
+        let location = component_location::<T>(component_locations)?;
         let (value, component_ticks) =
             world.component_ref_with_ticks_at_location::<T>(*location)?;
         Some(Ref::new(value, component_ticks, ticks))
@@ -416,10 +391,7 @@ where
         component_locations: &[ComponentStorageLocation],
         _ticks: ChangeTickWindow,
     ) -> Option<Self::Item<'world>> {
-        let Some(component_id) = world.registered_component_id::<T>() else {
-            return Some(None);
-        };
-        let Some(location) = component_location(component_locations, component_id) else {
+        let Some(location) = component_location::<T>(component_locations) else {
             return Some(None);
         };
         let Some((value, _)) = world.component_ref_with_ticks_at_location::<T>(*location) else {
@@ -502,14 +474,16 @@ tuple_cached_query_data!(A, B, C, D, E, F);
 tuple_cached_query_data!(A, B, C, D, E, F, G);
 tuple_cached_query_data!(A, B, C, D, E, F, G, H);
 
-fn component_location(
+fn component_location<T>(
     component_locations: &[ComponentStorageLocation],
-    component_id: ComponentId,
-) -> Option<&ComponentStorageLocation> {
-    let index = component_locations
-        .binary_search_by_key(&component_id, |location| location.component_id)
-        .ok()?;
-    component_locations.get(index)
+) -> Option<&ComponentStorageLocation>
+where
+    T: Component,
+{
+    let rust_type_id = TypeId::of::<T>();
+    component_locations
+        .iter()
+        .find(|location| location.rust_type_id == Some(rust_type_id))
 }
 
 fn component_ticks_at_location<T>(
@@ -519,8 +493,7 @@ fn component_ticks_at_location<T>(
 where
     T: Component,
 {
-    let component_id = world.registered_component_id::<T>()?;
-    let location = component_location(component_locations, component_id)?;
+    let location = component_location::<T>(component_locations)?;
     let (_, ticks) = world.component_ref_with_ticks_at_location::<T>(*location)?;
     Some(ticks)
 }
