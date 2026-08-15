@@ -308,7 +308,11 @@ class CoordinatorClient:
             try:
                 detail = self.control_request("GET", f"/control/v1/actions/{action_id}")
             except CoordinatorClientError as error:
-                if kind != "service.rollover" or error.code not in {"offline", "command_timeout"}:
+                if kind != "service.rollover" or error.code not in {
+                    "offline",
+                    "command_timeout",
+                    "action_instance_mismatch",
+                }:
                     raise
                 continue
             action = detail.get("action")

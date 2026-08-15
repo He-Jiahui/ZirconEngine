@@ -119,6 +119,75 @@ class DeferredActionClientTests(unittest.TestCase):
         self.assertEqual(4, request.call_count)
         self.assertTrue(str(request.call_args_list[1].args[2]).endswith("/confirm"))
 
+    def test_rollover_status_poll_recovers_while_successor_reconciles_action_identity(self) -> None:
+        executing = {
+            "actionId": "action-a",
+            "status": "executing",
+            "result": None,
+        }
+        succeeded = {
+            "actionId": "action-a",
+            "status": "succeeded",
+            "result": {"successorInstanceId": "daemon-b"},
+        }
+        with (
+            mock.patch.object(
+                CoordinatorClient,
+                "control_request",
+                autospec=True,
+                side_effect=(
+                    self._preview(),
+                    {"action": executing},
+                    CoordinatorClientError(
+                        "action_instance_mismatch",
+                        "action belongs to the predecessor instance",
+                    ),
+                    {"action": succeeded},
+                ),
+            ) as request,
+            mock.patch("tools.session_coordinator.client.time.sleep", return_value=None),
+        ):
+            result = self._client().execute_control_action(
+                "service.rollover",
+                {"timeoutSeconds": 30},
+                reason="wait for successor action reconciliation",
+            )
+
+        self.assertEqual(succeeded, result)
+        self.assertEqual(4, request.call_count)
+
+    def test_non_rollover_action_identity_mismatch_is_not_retried(self) -> None:
+        executing = {
+            "actionId": "action-a",
+            "status": "executing",
+            "result": None,
+        }
+        with (
+            mock.patch.object(
+                CoordinatorClient,
+                "control_request",
+                autospec=True,
+                side_effect=(
+                    self._preview(),
+                    {"action": executing},
+                    CoordinatorClientError(
+                        "action_instance_mismatch",
+                        "action belongs to another instance",
+                    ),
+                ),
+            ) as request,
+            mock.patch("tools.session_coordinator.client.time.sleep", return_value=None),
+        ):
+            with self.assertRaises(CoordinatorClientError) as rejected:
+                self._client().execute_control_action(
+                    "validation.start",
+                    {"sessionId": "session-a"},
+                    reason="preserve action identity enforcement",
+                )
+
+        self.assertEqual("action_instance_mismatch", rejected.exception.code)
+        self.assertEqual(3, request.call_count)
+
     def test_malformed_polled_detail_is_typed_invalid_response(self) -> None:
         executing = {
             "actionId": "action-a",

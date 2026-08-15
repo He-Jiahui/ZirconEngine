@@ -8,9 +8,10 @@ Cargo validator, copies runtime assets, and publishes the bundle only after all
 steps succeed. The final directory is never overwritten.
 
 .PARAMETER OutputDirectory
-Final bundle directory. It must be on a local drive outside the coordinator-
-managed D:, E:, and F: roots. Relative paths are resolved from the repository
-root. When omitted, a unique directory under %USERPROFILE%\ZirconBuilds is used.
+Final bundle directory. It must be below an approved
+D:\ZirconBuilds, E:\ZirconBuilds, or F:\ZirconBuilds root. Relative paths are
+resolved below the first available approved root. When omitted, a unique directory below the
+first available approved root is used. A requested parent directory must already exist.
 
 .PARAMETER SkipSmokeTest
 Skips the zircon_editor.exe --help launch check. Intended for script tests only.
@@ -19,7 +20,7 @@ Skips the zircon_editor.exe --help launch check. Intended for script tests only.
 .\tools\build-editor.ps1
 
 .EXAMPLE
-.\tools\build-editor.ps1 -OutputDirectory C:\ZirconBuilds\editor-debug-local
+.\tools\build-editor.ps1 -OutputDirectory E:\ZirconBuilds\editor-debug-local
 #>
 [CmdletBinding()]
 param(
@@ -64,6 +65,7 @@ function Invoke-ManagedBuild {
         '-NoDefaultFeatures'
         '-Features', 'target-editor-host'
         '-SkipTest'
+        '-MvpProductInputArtifactOutput'
         '-ArtifactOutputDirectory', $ArtifactOutputDirectory
         '-PublishArtifact', $Artifact
     )
@@ -82,29 +84,62 @@ function Resolve-BundleOutputDirectory {
         [string]$RepositoryRoot
     )
 
-    if ([string]::IsNullOrWhiteSpace($RequestedPath)) {
-        $userProfile = [Environment]::GetFolderPath([Environment+SpecialFolder]::UserProfile)
-        if ([string]::IsNullOrWhiteSpace($userProfile)) {
-            throw 'Unable to resolve the current user profile for the default output directory.'
+    $approvedRoots = @(
+        'D:\ZirconBuilds',
+        'E:\ZirconBuilds',
+        'F:\ZirconBuilds'
+    )
+    # A configured root must retain its own physical identity; otherwise an E:/D:/F: alias
+    # could make an output on another volume appear to be under an approved root.
+    $approvedRootResolutions = @(
+        $approvedRoots | Where-Object {
+            Test-Path -LiteralPath ([System.IO.Path]::GetPathRoot($_)) -PathType Container
+        } | ForEach-Object {
+            $expectedDisplayPath = [System.IO.Path]::GetFullPath($_).TrimEnd('\\')
+            $rootResolution = Resolve-ZirconWindowsPath -Path $_
+            if ([string]::Equals(
+                    $rootResolution.DisplayPath.TrimEnd('\\'),
+                    $expectedDisplayPath,
+                    [System.StringComparison]::OrdinalIgnoreCase)) {
+                [pscustomobject]@{
+                    DisplayPath = $rootResolution.DisplayPath.TrimEnd('\\')
+                    OperationalPath = $rootResolution.OperationalPath.TrimEnd('\\')
+                }
+            }
         }
+    )
+    if ($approvedRootResolutions.Count -eq 0) {
+        throw 'No approved D:\ZirconBuilds, E:\ZirconBuilds, or F:\ZirconBuilds artifact root is available.'
+    }
 
+    if ([string]::IsNullOrWhiteSpace($RequestedPath)) {
+        $approvedRoot = $approvedRootResolutions | Select-Object -First 1
         $suffix = '{0}-{1}' -f (Get-Date -Format 'yyyyMMdd-HHmmss'), ([guid]::NewGuid().ToString('N').Substring(0, 8))
-        $RequestedPath = Join-Path $userProfile "ZirconBuilds\editor-debug-$suffix"
+        $RequestedPath = Join-Path $approvedRoot.DisplayPath "editor-debug-$suffix"
     }
-    elseif (-not [System.IO.Path]::IsPathRooted($RequestedPath)) {
-        $RequestedPath = Join-Path $RepositoryRoot $RequestedPath
+    elseif ($RequestedPath -notmatch '^[A-Za-z]:(?:$|[^\\/])' -and
+            -not [System.IO.Path]::IsPathRooted($RequestedPath)) {
+        $approvedRoot = $approvedRootResolutions | Select-Object -First 1
+        $RequestedPath = Join-Path $approvedRoot.DisplayPath $RequestedPath
+    }
+    # Resolve existing junctions before comparing roots. GetFullPath alone can collapse a
+    # `junction\\..` tail first, making a physical output outside the approved roots appear safe.
+    $outputResolution = Resolve-ZirconWindowsPath -Path $RequestedPath -BasePath $RepositoryRoot
+    $operationalPath = $outputResolution.OperationalPath.TrimEnd('\\')
+    $approvedRoot = $approvedRootResolutions | Where-Object {
+        $operationalPath.StartsWith(
+            $_.OperationalPath + [System.IO.Path]::DirectorySeparatorChar,
+            [System.StringComparison]::OrdinalIgnoreCase)
+    } | Select-Object -First 1
+    if ($null -eq $approvedRoot) {
+        throw "OutputDirectory must resolve below an approved D:\ZirconBuilds, E:\ZirconBuilds, or F:\ZirconBuilds root: $($outputResolution.DisplayPath)"
     }
 
-    $resolvedPath = [System.IO.Path]::GetFullPath($RequestedPath)
-    $driveRoot = [System.IO.Path]::GetPathRoot($resolvedPath)
-    if ($driveRoot -notmatch '^[A-Za-z]:\\$') {
-        throw "OutputDirectory must resolve to a local drive: $resolvedPath"
+    return [pscustomobject]@{
+        DisplayPath = $outputResolution.DisplayPath.TrimEnd('\\')
+        OperationalPath = $operationalPath
+        ApprovedRootOperationalPath = $approvedRoot.OperationalPath
     }
-    if ($driveRoot -in @('D:\', 'E:\', 'F:\')) {
-        throw "OutputDirectory must be outside coordinator-managed D/E/F roots: $resolvedPath"
-    }
-
-    return $resolvedPath.TrimEnd('\')
 }
 
 function Get-Sha256Hex {
@@ -124,34 +159,128 @@ function Get-Sha256Hex {
     }
 }
 
+function Copy-BundleDirectoryTree {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Source,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Destination
+    )
+
+    $sourceAttributes = [System.IO.File]::GetAttributes($Source)
+    if (-not [bool]($sourceAttributes -band [System.IO.FileAttributes]::Directory)) {
+        throw "Bundle asset source is not a directory: $Source"
+    }
+    if ([bool]($sourceAttributes -band [System.IO.FileAttributes]::ReparsePoint)) {
+        throw "Refusing to copy a reparse-point bundle asset directory: $Source"
+    }
+
+    [System.IO.Directory]::CreateDirectory($Destination) | Out-Null
+    foreach ($sourceChild in [System.IO.Directory]::EnumerateFileSystemEntries($Source)) {
+        $childAttributes = [System.IO.File]::GetAttributes($sourceChild)
+        $destinationChild = Join-ZirconWindowsPath `
+            -Path $Destination `
+            -ChildPath ([System.IO.Path]::GetFileName($sourceChild))
+        if ([bool]($childAttributes -band [System.IO.FileAttributes]::Directory)) {
+            if ([bool]($childAttributes -band [System.IO.FileAttributes]::ReparsePoint)) {
+                throw "Refusing to copy a reparse-point bundle asset directory: $sourceChild"
+            }
+            Copy-BundleDirectoryTree -Source $sourceChild -Destination $destinationChild
+        }
+        elseif ([bool]($childAttributes -band [System.IO.FileAttributes]::ReparsePoint)) {
+            throw "Refusing to copy a reparse-point bundle asset file: $sourceChild"
+        }
+        else {
+            [System.IO.File]::Copy($sourceChild, $destinationChild, $false)
+        }
+    }
+}
+
+function Get-BundleDirectoryFileCount {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    $directoryAttributes = [System.IO.File]::GetAttributes($Path)
+    if ([bool]($directoryAttributes -band [System.IO.FileAttributes]::ReparsePoint)) {
+        throw "Refusing to enumerate a reparse-point bundle directory: $Path"
+    }
+
+    [int]$count = 0
+    foreach ($childPath in [System.IO.Directory]::EnumerateFileSystemEntries($Path)) {
+        $childAttributes = [System.IO.File]::GetAttributes($childPath)
+        if ([bool]($childAttributes -band [System.IO.FileAttributes]::Directory)) {
+            if ([bool]($childAttributes -band [System.IO.FileAttributes]::ReparsePoint)) {
+                throw "Refusing to enumerate a reparse-point bundle directory: $childPath"
+            }
+            $count += Get-BundleDirectoryFileCount -Path $childPath
+        }
+        else {
+            $count += 1
+        }
+    }
+    return $count
+}
+
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $validator = Join-Path $repoRoot '.codex\skills\zircon-dev\scripts\validate-matrix.ps1'
+$pathResolver = Join-Path $repoRoot 'tools\WindowsPathResolver.psm1'
 $assetSource = Join-Path $repoRoot 'zircon_runtime\assets'
-$finalDirectory = Resolve-BundleOutputDirectory -RequestedPath $OutputDirectory -RepositoryRoot $repoRoot
-$finalParent = [System.IO.Path]::GetDirectoryName($finalDirectory)
-$finalLeaf = [System.IO.Path]::GetFileName($finalDirectory)
 
 if (-not (Test-Path -LiteralPath $validator -PathType Leaf)) {
     throw "Managed Cargo validator was not found: $validator"
 }
+if (-not (Test-Path -LiteralPath $pathResolver -PathType Leaf)) {
+    throw "Windows path resolver was not found: $pathResolver"
+}
+Import-Module $pathResolver -Force -DisableNameChecking -ErrorAction Stop
+
 if (-not (Test-Path -LiteralPath $assetSource -PathType Container)) {
     throw "Runtime asset directory was not found: $assetSource"
 }
+$assetSourceOperationalPath = (Resolve-ZirconWindowsPath -Path $assetSource).OperationalPath
+$bundleOutput = Resolve-BundleOutputDirectory -RequestedPath $OutputDirectory -RepositoryRoot $repoRoot
+$finalDisplayDirectory = $bundleOutput.DisplayPath
+$finalDirectory = $bundleOutput.OperationalPath
+$finalParent = [System.IO.Path]::GetDirectoryName($finalDirectory)
+$finalLeaf = [System.IO.Path]::GetFileName($finalDirectory)
+
 if ([string]::IsNullOrWhiteSpace($finalParent) -or [string]::IsNullOrWhiteSpace($finalLeaf)) {
-    throw "OutputDirectory must name a bundle directory: $finalDirectory"
+    throw "OutputDirectory must name a bundle directory: $finalDisplayDirectory"
 }
-if (Test-Path -LiteralPath $finalDirectory) {
-    throw "Refusing to overwrite existing output: $finalDirectory"
+if (-not [System.IO.Directory]::Exists($finalParent)) {
+    throw "OutputDirectory parent must already exist below an approved artifact root: $finalDisplayDirectory"
+}
+if ([System.IO.Directory]::Exists($finalDirectory) -or [System.IO.File]::Exists($finalDirectory)) {
+    throw "Refusing to overwrite existing output: $finalDisplayDirectory"
 }
 
-$partialLeaf = '{0}.partial-{1}' -f $finalLeaf, ([guid]::NewGuid().ToString('N'))
-$partialDirectory = Join-Path $finalParent $partialLeaf
-$partialCreated = $false
+$stagingLeaf = 'mvp-product-inputs-build-editor-{0}' -f ([guid]::NewGuid().ToString('N'))
+$stagingDirectory = Join-ZirconWindowsPath `
+    -Path $bundleOutput.ApprovedRootOperationalPath `
+    -ChildPath $stagingLeaf
+$stagingCreated = $false
+$approvedRootLease = $null
+$stagingLease = $null
+$cleanupRootLease = $null
 
 try {
-    [System.IO.Directory]::CreateDirectory($finalParent) | Out-Null
-    [System.IO.Directory]::CreateDirectory($partialDirectory) | Out-Null
-    $partialCreated = $true
+    $approvedRootLease = Open-ZirconWindowsDirectoryLease `
+        -Path $bundleOutput.ApprovedRootOperationalPath `
+        -ExpectedOperationalPath $bundleOutput.ApprovedRootOperationalPath
+    if ([System.IO.Directory]::Exists($stagingDirectory) -or [System.IO.File]::Exists($stagingDirectory)) {
+        throw "Generated staging directory already exists: $stagingDirectory"
+    }
+    [System.IO.Directory]::CreateDirectory($stagingDirectory) | Out-Null
+    $stagingCreated = $true
+    $stagingLease = Open-ZirconWindowsDirectoryLease `
+        -Path $stagingDirectory `
+        -ExpectedOperationalPath $stagingDirectory `
+        -ForMove `
+        -DenyWrite `
+        -NoFollow
 
     Write-Host 'Building Zircon editor executable...' -ForegroundColor Cyan
     Invoke-ManagedBuild `
@@ -159,7 +288,7 @@ try {
         -RepositoryRoot $repoRoot `
         -Package 'zircon_app' `
         -Binary 'zircon_editor' `
-        -ArtifactOutputDirectory $partialDirectory `
+        -ArtifactOutputDirectory $stagingDirectory `
         -Artifact 'zircon_editor.exe'
 
     Write-Host 'Building Zircon runtime library...' -ForegroundColor Cyan
@@ -167,30 +296,51 @@ try {
         -Validator $validator `
         -RepositoryRoot $repoRoot `
         -Package 'zircon_runtime' `
-        -ArtifactOutputDirectory $partialDirectory `
+        -ArtifactOutputDirectory $stagingDirectory `
         -Artifact 'zircon_runtime.dll'
 
     Write-Host 'Copying runtime assets...' -ForegroundColor Cyan
-    Copy-Item -LiteralPath $assetSource -Destination $partialDirectory -Recurse
+    Copy-BundleDirectoryTree `
+        -Source $assetSourceOperationalPath `
+        -Destination (Join-ZirconWindowsPath -Path $stagingDirectory -ChildPath 'assets')
 
-    $editorPath = Join-Path $partialDirectory 'zircon_editor.exe'
-    $runtimePath = Join-Path $partialDirectory 'zircon_runtime.dll'
-    $assetPath = Join-Path $partialDirectory 'assets'
-    foreach ($requiredPath in @($editorPath, $runtimePath, $assetPath)) {
-        if (-not (Test-Path -LiteralPath $requiredPath)) {
-            throw "Required bundle content was not produced: $requiredPath"
-        }
+    $editorPath = Join-ZirconWindowsPath -Path $stagingDirectory -ChildPath 'zircon_editor.exe'
+    $runtimePath = Join-ZirconWindowsPath -Path $stagingDirectory -ChildPath 'zircon_runtime.dll'
+    $assetPath = Join-ZirconWindowsPath -Path $stagingDirectory -ChildPath 'assets'
+    if (-not [System.IO.File]::Exists($editorPath)) {
+        throw "Required bundle executable was not produced: $editorPath"
+    }
+    if (-not [System.IO.File]::Exists($runtimePath)) {
+        throw "Required bundle runtime library was not produced: $runtimePath"
+    }
+    if (-not [System.IO.Directory]::Exists($assetPath)) {
+        throw "Required bundle asset directory was not produced: $assetPath"
     }
 
     if (-not $SkipSmokeTest) {
         Write-Host 'Running editor launch smoke test...' -ForegroundColor Cyan
-        Push-Location $partialDirectory
+        $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+        $startInfo.FileName = $editorPath
+        $startInfo.Arguments = '--help'
+        $startInfo.WorkingDirectory = $stagingDirectory
+        $startInfo.UseShellExecute = $false
+        $startInfo.RedirectStandardOutput = $true
+        $startInfo.RedirectStandardError = $true
+        $smokeProcess = [System.Diagnostics.Process]::new()
         try {
-            $helpOutput = @(& $editorPath --help 2>&1)
-            $helpExitCode = $LASTEXITCODE
+            $smokeProcess.StartInfo = $startInfo
+            if (-not $smokeProcess.Start()) {
+                throw 'Editor smoke test process did not start.'
+            }
+            $helpOutput = @(
+                $smokeProcess.StandardOutput.ReadToEnd()
+                $smokeProcess.StandardError.ReadToEnd()
+            )
+            $smokeProcess.WaitForExit()
+            $helpExitCode = $smokeProcess.ExitCode
         }
         finally {
-            Pop-Location
+            $smokeProcess.Dispose()
         }
 
         if ($helpExitCode -ne 0) {
@@ -201,23 +351,27 @@ try {
         }
     }
 
-    if (Test-Path -LiteralPath $finalDirectory) {
-        throw "Output appeared while the build was running; refusing to overwrite it: $finalDirectory"
+    if ([System.IO.Directory]::Exists($finalDirectory) -or [System.IO.File]::Exists($finalDirectory)) {
+        throw "Output appeared while the build was running; refusing to overwrite it: $finalDisplayDirectory"
     }
 
-    Move-Item -LiteralPath $partialDirectory -Destination $finalDirectory
-    $partialCreated = $false
+    $finalDirectory = Move-ZirconWindowsLeasedPathWithinRoot `
+        -SourceLease $stagingLease `
+        -Destination $finalDirectory `
+        -ApprovedRoot $bundleOutput.ApprovedRootOperationalPath
+    $stagingCreated = $false
 
-    $finalEditor = Join-Path $finalDirectory 'zircon_editor.exe'
-    $finalRuntime = Join-Path $finalDirectory 'zircon_runtime.dll'
-    $editorInfo = Get-Item -LiteralPath $finalEditor
-    $runtimeInfo = Get-Item -LiteralPath $finalRuntime
-    $assetCount = @(Get-ChildItem -LiteralPath (Join-Path $finalDirectory 'assets') -File -Recurse).Count
+    $finalEditor = Join-ZirconWindowsPath -Path $finalDirectory -ChildPath 'zircon_editor.exe'
+    $finalRuntime = Join-ZirconWindowsPath -Path $finalDirectory -ChildPath 'zircon_runtime.dll'
+    $editorInfo = [System.IO.FileInfo]::new($finalEditor)
+    $runtimeInfo = [System.IO.FileInfo]::new($finalRuntime)
+    $assetCount = Get-BundleDirectoryFileCount `
+        -Path (Join-ZirconWindowsPath -Path $finalDirectory -ChildPath 'assets')
 
     Write-Host ''
-    Write-Host "Editor bundle ready: $finalDirectory" -ForegroundColor Green
+    Write-Host "Editor bundle ready: $finalDisplayDirectory" -ForegroundColor Green
     [pscustomobject]@{
-        OutputDirectory = $finalDirectory
+        OutputDirectory = $finalDisplayDirectory
         EditorBytes = $editorInfo.Length
         EditorSha256 = Get-Sha256Hex -LiteralPath $finalEditor
         RuntimeBytes = $runtimeInfo.Length
@@ -227,16 +381,36 @@ try {
     }
 }
 catch {
-    if ($partialCreated -and (Test-Path -LiteralPath $partialDirectory)) {
-        $partialParent = [System.IO.Path]::GetDirectoryName($partialDirectory)
-        $isExpectedParent = [string]::Equals(
-            $partialParent,
-            $finalParent,
-            [System.StringComparison]::OrdinalIgnoreCase)
-        $isExpectedLeaf = $partialLeaf.StartsWith("$finalLeaf.partial-", [System.StringComparison]::Ordinal)
-        if ($isExpectedParent -and $isExpectedLeaf) {
-            Remove-Item -LiteralPath $partialDirectory -Recurse -Force
+    if ($stagingCreated) {
+        if ($null -eq $stagingLease) {
+            Write-Warning 'Skipping staging cleanup because its original directory lease was not acquired.'
+        }
+        else {
+            try {
+                $approvedRootLease.Dispose()
+                $approvedRootLease = $null
+                $cleanupRootLease = Open-ZirconWindowsDirectoryLease `
+                    -Path $bundleOutput.ApprovedRootOperationalPath `
+                    -ExpectedOperationalPath $bundleOutput.ApprovedRootOperationalPath `
+                    -DenyWrite `
+                    -NoFollow
+                Remove-ZirconWindowsLeasedDirectoryTree -Lease $stagingLease
+            }
+            catch {
+                Write-Warning "Skipping staging cleanup because its held directory could not be deleted: $($_.Exception.Message)"
+            }
         }
     }
     throw
+}
+finally {
+    if ($null -ne $cleanupRootLease) {
+        $cleanupRootLease.Dispose()
+    }
+    if ($null -ne $stagingLease) {
+        $stagingLease.Dispose()
+    }
+    if ($null -ne $approvedRootLease) {
+        $approvedRootLease.Dispose()
+    }
 }

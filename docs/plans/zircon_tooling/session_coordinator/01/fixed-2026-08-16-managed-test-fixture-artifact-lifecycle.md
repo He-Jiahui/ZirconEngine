@@ -18,10 +18,15 @@ related_code:
   - tools/session_coordinator/tests/test_artifact_governance.py
   - tools/session_coordinator/tests/test_migrations.py
   - tools/session_coordinator/tests/test_server.py
+  - tools/mvp/MvpTestFixturePaths.psm1
+  - tools/tests/mvp-test-fixture-paths.Tests.ps1
+  - tools/tests/build-editor.Tests.ps1
 tests:
   - python -B -m unittest tools.session_coordinator.tests.test_artifact_governance
   - python -B -m unittest tools.session_coordinator.tests.test_migrations
   - python -B -m unittest tools.session_coordinator.tests.test_server.ServerTests.test_artifact_fixture_commands_route_process_bound_lifecycle tools.session_coordinator.tests.test_server.ServerTests.test_artifact_fixture_cli_sends_only_prefix_lease_and_owner_pid
+  - powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools/tests/mvp-test-fixture-paths.Tests.ps1
+  - Invoke-Pester tools/tests/build-editor.Tests.ps1
 ---
 
 # Coordinator01: managed test fixture artifact lifecycle
@@ -57,11 +62,11 @@ Artifact governance recognized Cargo jobs, validation copies, workflow artifacts
 - Do not exempt `mvp-test-fixtures-*` by prefix, disable the guardian, extend cleanup timeouts, or let callers provide a target path.
 - Do not treat PID alone as ownership; PID reuse must fail the process-creation identity check.
 - Do not release a lease before deleting its physical tree or delete a live leased tree through a second cleanup path.
-- Consumer adoption by `MvpTestFixturePaths.psm1` must occur only after the schema-64 successor is committed and healthy; this service record does not claim that later 15/15 Pester result.
+- Consumer adoption by `MvpTestFixturePaths.psm1` must occur only after the schema-64 successor is committed and healthy; tests must use the real service lifecycle rather than a mocked prefix exemption.
 
 ## 修复结果与回传
 
 - 根因：Active test fixtures and missing cleanup reservations had no continuously reachable managed lifecycle in artifact governance.
 - 架构修复：Added process-identity-bound fixture leases, service-issued governed paths, delete-before-release enforcement, and cleanup/startup recovery for both existing and missing stale targets.
-- 验证：The service RED suite failed on all absent schema/API/recovery boundaries, then the focused lifecycle, CLI/server, schema, four-production-reservation, live creation-window, and dead-owner recovery tests passed. The complete artifact-governance suite is the managed finalizer gate.
-- 回传：After the schema-64 controlled rollover clears the four durable stale reservations, the MVP fixture helper can adopt `artifact fixture-acquire` and `artifact fixture-release` without weakening artifact governance.
+- 验证：Managed maintenance commit `54da7a6cc175831f28d47fafc29f3ee8732e7c98` passed the 29/29 service gate. Controlled rollover action `07e66e3a28ef41178de21abc5924e64b` loaded healthy schema-64 successor `c4cc316b608a46b1803e186c8cbf5925` and cleared all four durable stale reservations. The real helper lifecycle contract exits 0, and finalizer-equivalent `build-editor.Tests.ps1` passes 15/15 in 250.88s without Cargo.
+- 回传：`MvpTestFixturePaths.psm1` now acquires before creating, deletes before releasing, and proves a released path is unmanaged if recreated. Artifact governance remains strict and no prefix exemption was added.

@@ -17,6 +17,18 @@ Describe 'Windows path resolver' {
         }
     }
 
+    It 'hides a verbatim prefix when rejecting a drive-relative path' {
+        $message = $null
+        try {
+            Resolve-ZirconWindowsPath -Path '\\?\C:ambiguous-project-root'
+        }
+        catch {
+            $message = $_.Exception.Message
+        }
+
+        $message | Should Be "Windows paths must be drive-rooted, not drive-relative: 'C:ambiguous-project-root'."
+    }
+
     It 'resolves an uncreated child through its existing junction ancestor' {
         $targetDirectory = Join-Path $TestDrive 'target'
         $junctionDirectory = Join-Path $TestDrive 'junction'
@@ -26,8 +38,8 @@ Describe 'Windows path resolver' {
         $resolved = Resolve-ZirconWindowsPath -Path (Join-Path $junctionDirectory 'product-inputs')
 
         $resolved.OperationalPath | Should Match '^\\\\\?\\'
-        $resolved.PSObject.Properties.Name | Should Not Contain 'ResolvedPath'
-        $resolved.PSObject.Properties.Name | Should Not Contain 'ResolvedExistingPath'
+        ($resolved.PSObject.Properties.Name -contains 'ResolvedPath') | Should Be $false
+        ($resolved.PSObject.Properties.Name -contains 'ResolvedExistingPath') | Should Be $false
         $resolved.DisplayPath | Should Be (Join-Path $targetDirectory 'product-inputs')
     }
 
