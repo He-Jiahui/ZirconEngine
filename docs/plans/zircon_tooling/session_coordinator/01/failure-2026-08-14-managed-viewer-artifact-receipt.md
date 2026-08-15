@@ -9,11 +9,14 @@ origin_child_dir: docs/plans/zircon_runtime/shader/06
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
+  - tools/session_coordinator/artifact_receipts.py
   - tools/session_coordinator/workspace_copy.py
   - tools/session_coordinator/control_plane/actions/executor.py
+  - tools/session_coordinator/tests/test_artifact_receipts.py
   - tools/write_zircon_shader_pbr_build_provenance.ps1
   - tools/zircon_profile_shader_pbr_viewer.ps1
 tests:
+  - python -m unittest tools.session_coordinator.tests.test_artifact_receipts -v
   - Invoke-Pester -Script .\tools\tests\zircon_profile_shader_pbr_viewer.Tests.ps1 -PassThru
   - Select-String -LiteralPath .\tools\write_zircon_shader_pbr_build_provenance.ps1 -Pattern 'last_write_utc'
 ---
@@ -93,5 +96,22 @@ binary was produced by the current managed source copy.
 
 ## 修复结果与回传
 
-Open state: `待修复`; no managed viewer artifact receipt or profile acceptance pass
-is claimed.
+Coordinator-owned receipt issuance was implemented by
+`eb52a1aadb68458f0ed7d02faf454ef0ac32a500`. A receipt now seals the artifact
+under the managed target only after a successful terminal build and durably binds
+its path, SHA-256, byte length, producing job/command, validation ticket, and
+immutable copy input manifest. Receipt creation rejects target escape, nonzero or
+missing output, post-build mutation, foreign Session access, and ticket sources
+that are not a hash-identical or tombstoned subset of the materialized copy.
+
+Source hashing occurs before the SQLite write transaction; the copy and ticket
+signatures are revalidated inside the short insertion transaction. The complete
+`tools.session_coordinator.tests.test_artifact_receipts` suite passed `13/13`, and
+the durable fixing-plan evidence is recorded in
+`2026-08-15-managed-viewer-artifact-receipt-forward-evidence.md`.
+
+Open state: `Coordinator contract fixed / Shader06 acceptance pending`. The
+Shader06 origin owner still owns the managed viewer build, five-cold/five-warm
+capture, screenshot/RenderDoc gates, receipt consumption, and ordinary lifecycle
+return. This record does not claim those product-side gates or close their origin
+failure on Coordinator evidence alone.

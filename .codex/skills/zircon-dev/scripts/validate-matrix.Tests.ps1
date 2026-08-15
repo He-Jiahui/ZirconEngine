@@ -490,6 +490,51 @@ Describe "Coordinator supervisor role" {
 }
 
 Describe "Coordinator pre-start failure cleanup" {
+    It "keeps a nonzero validation stage as the primary outcome when coordinator cleanup is offline" {
+        $cleanupFailure = [System.Management.Automation.ErrorRecord]::new(
+            [System.InvalidOperationException]::new("coordinator offline during cleanup"),
+            "coordinator_offline",
+            [System.Management.Automation.ErrorCategory]::ConnectionError,
+            $null
+        )
+        $warnings = @()
+        $failure = $null
+
+        try {
+            $warnings = @(Resolve-ValidationCleanupFailure `
+                -CleanupFailure $cleanupFailure `
+                -HasFailedStep `
+                3>&1)
+        }
+        catch {
+            $failure = $_
+        }
+
+        $failure | Should BeNullOrEmpty
+        ($warnings -join "`n") | Should Match "validation stage returned nonzero"
+        ($warnings -join "`n") | Should Match "coordinator offline during cleanup"
+    }
+
+    It "still reports coordinator cleanup failure after otherwise successful validation" {
+        $cleanupFailure = [System.Management.Automation.ErrorRecord]::new(
+            [System.InvalidOperationException]::new("coordinator offline after success"),
+            "coordinator_offline",
+            [System.Management.Automation.ErrorCategory]::ConnectionError,
+            $null
+        )
+        $failure = $null
+
+        try {
+            Resolve-ValidationCleanupFailure -CleanupFailure $cleanupFailure
+        }
+        catch {
+            $failure = $_
+        }
+
+        $failure | Should Not BeNullOrEmpty
+        $failure.Exception.Message | Should Match "coordinator offline after success"
+    }
+
     It "preserves an invalid coordinator target error without releasing the unstarted job" {
         $script:PreStartCoordinatorCalls = [System.Collections.Generic.List[string]]::new()
         Mock Resolve-ValidationSessionId { return "validate-matrix:test" }

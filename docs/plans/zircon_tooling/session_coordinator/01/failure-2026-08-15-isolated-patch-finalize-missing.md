@@ -106,9 +106,21 @@ Independent reproduction also found that a PowerShell object pipeline cannot car
 `--patch-stdin` byte-exactly because it may encode line records and append a newline.
 `tools/zircon-session.ps1` now rejects that flag with an explicit `--patch-file`
 instruction. Direct Python CLI binary stdin remains unchanged, and `--patch-file`
-remains byte-exact. A follow-up managed maintenance commit, daemon rollover, and owner
-replay of the same Render17 patch are pending before this record can transition to
-fixed.
+remains byte-exact.
+
+The Windows checkout hardening was committed as
+`a82485da17b30856b2e3e60f306b7e51c0b012b9` and loaded by a healthy successor.
+Render17 then replayed the owner-issued exact patch through production. Durable
+finalize row `6fa51d7defe5476b94145801d761093e` reached `committed` and published
+`4ef70ac5b3bcef55f8c3eb77c929e85b4691ed0d`, whose only product change is the
+required `viewport_products: Default::default(),` insertion. The derived
+validation used the isolated rustfmt gate; the mixed live worktree bytes and the
+foreign staged projection were preserved by the production path.
+
+Open state: `Coordinator implementation and real replay complete / Render17 return
+pending`. The fixing plan has no remaining code or replay work. The Render17 origin
+owner must still accept the durable evidence and execute the ordinary lifecycle
+return; Coordinator does not claim that foreign owner step.
 
 ## 产出记录与时间
 
@@ -123,5 +135,8 @@ fixed.
   checkout failure 128 on the two 192/193-character reflection-probe resource paths.
   The exact-path regression is RED under `%TEMP%` and GREEN after a deterministic
   over-budget candidate falls back to a private short root. Reparse rejection,
-  child-only cleanup, and PowerShell 7/5.1 `--patch-stdin` rejection are covered;
-  follow-up commit, rollover, and Render17 replay remain pending.
+  child-only cleanup, and PowerShell 7/5.1 `--patch-stdin` rejection are covered.
+- 2026-08-15 | status: open | Windows hardening committed as `a82485da1`; the
+  successor accepted production replay finalize `6fa51d7d...`, which committed the
+  exact one-line Render17 patch as `4ef70ac5b`. Coordinator work is complete; only
+  the origin-owner fixed return remains open.

@@ -492,6 +492,28 @@ function Complete-CoordinatorCargoTarget {
     }
 }
 
+function Resolve-ValidationCleanupFailure {
+    param(
+        [AllowNull()][object]$CleanupFailure,
+        [AllowNull()][object]$PrimaryFailure,
+        [switch]$HasFailedStep
+    )
+
+    if ($null -eq $CleanupFailure) {
+        return
+    }
+    if ($null -ne $PrimaryFailure) {
+        Write-Warning ("Coordinator cleanup also failed after the primary validation error: {0}" -f $CleanupFailure.Exception.Message)
+        return
+    }
+    if ($HasFailedStep) {
+        Write-Warning ("Coordinator cleanup also failed after a validation stage returned nonzero: {0}" -f $CleanupFailure.Exception.Message)
+        return
+    }
+
+    throw $CleanupFailure
+}
+
 function Format-ByteCount {
     param([int64]$Bytes)
 
@@ -1229,7 +1251,8 @@ function Invoke-ValidateMatrixMain {
         if ($locationPushed) {
             Pop-Location
         }
-        $jobExitCode = if ($coordinatorJobFailed -or ($Results | Where-Object { $_.ExitCode -ne 0 })) { 1 } else { 0 }
+        $hasFailedStep = $null -ne ($Results | Where-Object { $_.ExitCode -ne 0 } | Select-Object -First 1)
+        $jobExitCode = if ($coordinatorJobFailed -or $hasFailedStep) { 1 } else { 0 }
         $cleanupFailure = $null
         try {
             Complete-CoordinatorCargoTarget `
@@ -1251,13 +1274,10 @@ function Invoke-ValidateMatrixMain {
                 Write-Warning ("Additional managed Cargo environment cleanup failure: {0}" -f $_.Exception.Message)
             }
         }
-        if ($null -ne $cleanupFailure) {
-            if ($null -ne $primaryFailure) {
-                Write-Warning ("Coordinator cleanup also failed after the primary validation error: {0}" -f $cleanupFailure.Exception.Message)
-            } else {
-                throw $cleanupFailure
-            }
-        }
+        Resolve-ValidationCleanupFailure `
+            -CleanupFailure $cleanupFailure `
+            -PrimaryFailure $primaryFailure `
+            -HasFailedStep:$hasFailedStep
     }
 
     Write-Host ""
