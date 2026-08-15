@@ -175,6 +175,34 @@ The repository has accumulated valid-looking pairwise handoffs without enforcing
 - Performance01 的 picking 类型锚已在当前源码落地并多次不再复现原 E0277；该 artifact 仍因外部整库编译 blocker 缺少 focused Picking 与 Runtime12 mirror 的最终 managed 1/1。完成这条现有验收并按原 lifecycle return，是 SCC 1 最早且不篡改 ownership 的安全断边。
 - SCC 2 必须按上方 55 个 exact artifacts 分别复核。`source complete / managed validation pending` 的 artifact 应优先完成原 gate 与 fixed return；仍缺生产合同的 artifact 保持原 owner。不得把 22-plan SCC 批量重定向到 Coordinator01，也不得把 plan-level cycle 当作任一产品 Failure 已修复。
 
+## 当前快照审计（2026-08-15）
+
+- An immutable current-source parse of 614 handoff artifacts reports
+  `15 cycle + 8 excessive_depth + 40 schema_validation + 1 self_edge`.
+  Coordinator-owned schema errors were reduced to zero by commits `d41424f86`
+  and `28502aa55`; the remaining 40 schema errors belong to other numbered plans.
+- The exact self-edge is
+  `docs/plans/zircon_editor/editor/14/failure-2026-08-12-thread-ownership-guard-test-scope.md`.
+  It declares Editor14 as both origin and fixing plan but omits
+  `failure_scope: local`. The content describes an Editor14-owned guard repair
+  whose Runtime11 and Editor12 prerequisites already have separate failures.
+- Editor14 must therefore make the factual choice: declare this artifact local
+  if it remains the owner of its guard lifecycle, or name the real lower fixing
+  plan if the artifact itself is intended as a cross-plan handoff. Coordinator
+  will not edit the foreign untracked file merely to suppress the diagnostic.
+- A durable `failure.import` request `71cbeec9bb8a4f3c9c2b6fa0361c481b`
+  correctly rejected with `failure_snapshot_stale` after another owner changed
+  a handoff during parsing. No mixed snapshot was published; current counts come
+  from the same immutable snapshot preparation path without the database write.
+
 ## 修复结果与回传
 
-Open state: `SCC inventory complete / factual ownership review complete / owner forward repairs pending`. Six invalid workflow-node declarations were removed and one validated edge return reduced the earlier graph, but the current 561-node ledger reports 13 cycle diagnostics and eight derived depth diagnostics. The exact two-SCC edge inventory above is canonical. SCC 1 has no misowned edge; its earliest safe break is the ordinary fixed return of the source-complete picking artifact after the missing managed evidence is accepted. SCC 2 requires the same artifact-by-artifact process, beginning with source-complete artifacts whose only remaining dependency is managed evidence. No cycle or depth diagnostic is yet claimed fixed.
+Open state: `SCC inventory current / Coordinator schema clean / owner forward repairs pending`.
+The current immutable snapshot reports 15 cycle diagnostics and eight derived
+depth diagnostics. The exact SCC edge inventory above remains the ownership
+baseline; the 2026-08-15 section records subsequent drift and the new Editor14
+self-edge. SCC 1 has no misowned edge; its earliest safe break is the ordinary
+fixed return of the source-complete picking artifact after the missing managed
+evidence is accepted. SCC 2 requires the same artifact-by-artifact process,
+beginning with source-complete artifacts whose only remaining dependency is
+managed evidence. No cycle or depth diagnostic is yet claimed fixed.
