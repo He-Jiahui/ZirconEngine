@@ -157,6 +157,60 @@ print(json.dumps({"argv": sys.argv[1:]}, separators=(",", ":")))
                 server.server_close()
                 server_thread.join(timeout=2)
 
+    def test_wrapper_rejects_patch_stdin_that_cannot_be_byte_exact(self) -> None:
+        shells = [
+            (name, executable)
+            for name, executable in (
+                ("PowerShell 7", shutil.which("pwsh")),
+                ("Windows PowerShell 5.1", shutil.which("powershell.exe")),
+            )
+            if executable is not None
+        ]
+        if not shells:
+            self.skipTest("PowerShell is unavailable")
+
+        wrapper = Path(__file__).resolve().parents[3] / "tools" / "zircon-session.ps1"
+        invocation = r"""
+& $env:ZIRCON_TEST_WRAPPER `
+    -Command maintenance `
+    -RepoRoot $env:ZIRCON_TEST_REPO `
+    -Json `
+    -Arguments @('finalize-patch', '--patch-stdin')
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory) / "repo"
+            repo.mkdir()
+            environment = {
+                **os.environ,
+                "ZIRCON_TEST_REPO": str(repo),
+                "ZIRCON_TEST_WRAPPER": str(wrapper),
+            }
+            for shell_name, executable in shells:
+                with self.subTest(shell=shell_name):
+                    completed = subprocess.run(
+                        [
+                            executable,
+                            "-NoProfile",
+                            "-ExecutionPolicy",
+                            "Bypass",
+                            "-Command",
+                            invocation,
+                        ],
+                        cwd=wrapper.parents[1],
+                        env=environment,
+                        capture_output=True,
+                        text=True,
+                        encoding="utf-8",
+                        errors="replace",
+                        timeout=30,
+                        check=False,
+                    )
+                    self.assertNotEqual(0, completed.returncode)
+                    self.assertIn(
+                        "use --patch-file",
+                        (completed.stdout or "") + (completed.stderr or ""),
+                    )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -285,6 +285,10 @@ if ($Command -eq "start") {
     exit 0
 }
 
+if ($null -ne $Arguments -and $Arguments -contains '--patch-stdin') {
+    throw '--patch-stdin is not byte-exact through PowerShell; use --patch-file.'
+}
+
 if ($Command -notin @("status", "stop")) {
     $startupState = Start-Coordinator
     if (-not $Json) {

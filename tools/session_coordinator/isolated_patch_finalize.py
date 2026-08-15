@@ -19,6 +19,7 @@ from .git_finalize import (
     _TYPE_DECLARATION_SOURCE_SUFFIXES,
 )
 from .git_index_lock import IndexLockRecoveryRefused, recover_stale_index_lock
+from .isolated_patch_checkout import IsolatedPatchCheckoutRootAllocator
 from .isolated_patch_contract import (
     VALIDATION_ENVIRONMENT_KEYS,
     IsolatedPatchFinalizeResult,
@@ -32,6 +33,8 @@ from .models import CoordinatorError, utc_text
 
 
 _GIT_ERROR_LIMIT = 2_048
+
+
 class IsolatedPatchFinalizeService:
     """Publish one HEAD-derived patch without reading or writing live target bytes."""
 
@@ -48,12 +51,17 @@ class IsolatedPatchFinalizeService:
         leases: LeaseService,
         *,
         index_lock_recoverer: Callable[[Path], object | None] | None = None,
+        checkout_base_candidates: tuple[Path, ...] | None = None,
     ):
         self.database = database
         self.repo_root = Path(repo_root).resolve()
         self.baselines = baselines
         self.leases = leases
         self.index_lock_recoverer = index_lock_recoverer or recover_stale_index_lock
+        self.checkout_roots = IsolatedPatchCheckoutRootAllocator(
+            self.repo_root,
+            base_candidates=checkout_base_candidates,
+        )
 
     def finalize(
         self,
@@ -628,8 +636,14 @@ class IsolatedPatchFinalizeService:
         commands: tuple[tuple[str, ...], ...],
         identity: dict[str, object],
     ) -> None:
-        with tempfile.TemporaryDirectory(prefix="zircon-isolated-patch-") as directory:
-            root = Path(directory).resolve()
+        tracked = self._git_bytes("ls-files", "-z", environment=index_environment)
+        tracked_paths = tuple(
+            item.decode("utf-8", errors="surrogateescape").replace("\\", "/")
+            for item in tracked.split(b"\0")
+            if item
+        )
+        with self.checkout_roots.allocate(tracked_paths) as root:
+            self.checkout_roots.require_private_root(root)
             prefix = str(root) + os.sep
             self._git_text(
                 "checkout-index",
@@ -651,6 +665,7 @@ class IsolatedPatchFinalizeService:
                     "ZR_ISOLATED_PATCH_BASE_BLOB": str(identity["baseBlob"]),
                     "ZR_ISOLATED_PATCH_HASH": str(identity["patchHash"]),
                     "ZR_ISOLATED_PATCH_DERIVED_BLOB": str(identity["derivedBlob"]),
+                    "GIT_CEILING_DIRECTORIES": str(root.parent),
                 }
             )
             for command in commands:

@@ -26,6 +26,16 @@ from tools.session_coordinator.tests.helpers import init_repo
 
 
 _TARGET = "tools/construct.rs"
+_LONG_CHECKOUT_PATHS = (
+    "docs/tests/runtime/shader/reflection_probe_capture_product_20260711/"
+    "render/ibl-derived/v0000002f2c526421/"
+    "d0cb4901c81d11ac77301bba77ee9169f9fba9712ec9c314ac26d73f6f8724c9/"
+    "face_0064_mips_07.zribl",
+    "docs/tests/runtime/shader/reflection_probe_capture_product_20260711/"
+    "render/ibl-source/v0000002f2c526421/"
+    "d0cb4901c81d11ac77301bba77ee9169f9fba9712ec9c314ac26d73f6f8724c9/"
+    "face_0064_mips_07.zcube",
+)
 _BASE_SOURCE = """fn construct() {
     State {
         degrade_ladder: Default::default(),
@@ -156,6 +166,7 @@ class IsolatedPatchFinalizeTests(unittest.TestCase):
         )
         self.assertEqual(worktree_before, self.target.read_bytes())
         self.assertEqual(staged_paths_before, self._staged_paths())
+
         self.assertEqual(283, result.staged_path_count)
         self.assertEqual(
             staged_before,
@@ -195,6 +206,77 @@ class IsolatedPatchFinalizeTests(unittest.TestCase):
         self.assertEqual("committed", request["status"])
         self.assertEqual(result.commit_sha, request["commit_sha"])
         self.assertEqual(1, request["maintenance"])
+
+    @unittest.skipUnless(os.name == "nt", "Windows path-length regression")
+    def test_validation_checkout_uses_short_root_for_tracked_long_paths(self) -> None:
+        for relative in _LONG_CHECKOUT_PATHS:
+            resource = self.repo / relative
+            resource.parent.mkdir(parents=True, exist_ok=True)
+            resource.write_bytes(b"fixture")
+        subprocess.run(
+            ["git", "add", "--", *_LONG_CHECKOUT_PATHS],
+            cwd=self.repo,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "commit", "-qm", "test: add long checkout resources"],
+            cwd=self.repo,
+            check=True,
+        )
+        self.baselines.refresh_for_head_change()
+        long_base = self.repo.parent / ("long-checkout-base-" + "x" * 96)
+        long_base.mkdir()
+        short_base = Path.home().resolve()
+        short_children_before = set(short_base.glob(".zr-ip-*"))
+        service = IsolatedPatchFinalizeService(
+            self.database,
+            self.repo,
+            self.baselines,
+            self.leases,
+            checkout_base_candidates=(long_base, short_base),
+        )
+        validation = (
+            sys.executable,
+            "-c",
+            "import os; from pathlib import Path; "
+            "root=Path(os.environ['ZR_ISOLATED_PATCH_ROOT']); "
+            f"assert root.parent == Path({str(short_base)!r}); "
+            "assert max(len(str(root / Path(value))) for value in "
+            f"{_LONG_CHECKOUT_PATHS!r}) <= 248; "
+            + "; ".join(
+                f"assert Path({relative!r}).is_file()"
+                for relative in _LONG_CHECKOUT_PATHS
+            ),
+        )
+
+        result = service.finalize(
+            session_id="render-owner",
+            target=_TARGET,
+            patch=_PATCH,
+            expected_head=self.base_head,
+            expected_blob=self.base_blob,
+            message="fix(coordinator): validate long checkout paths",
+            validation_commands=(validation,),
+        )
+
+        self.assertEqual(result.commit_sha, self._git("rev-parse", "HEAD"))
+        for relative in _LONG_CHECKOUT_PATHS:
+            self.assertEqual("fixture", self._git("show", f"HEAD:{relative}"))
+        self.assertEqual([], list(long_base.glob(".zr-ip-*")))
+        self.assertEqual(short_children_before, set(short_base.glob(".zr-ip-*")))
+
+    def test_validation_checkout_rejects_reparse_root(self) -> None:
+        root = mock.Mock(spec=Path)
+        root.is_dir.return_value = True
+        root.is_symlink.return_value = False
+        root.is_junction.return_value = True
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.checkout_roots.require_private_root(root)
+
+        self.assertEqual(
+            "isolated_patch_checkout_root_unsafe", rejected.exception.code
+        )
 
     def test_expected_head_may_be_ancestor_when_target_blob_is_unchanged(self) -> None:
         unrelated = self.repo / "tools" / "unrelated.rs"

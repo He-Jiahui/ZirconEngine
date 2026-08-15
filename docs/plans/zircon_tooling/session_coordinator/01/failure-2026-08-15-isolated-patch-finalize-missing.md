@@ -10,14 +10,18 @@ fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 failure_scope: cross_plan
 related_code:
+  - tools/zircon-session.ps1
   - tools/session_coordinator/isolated_patch_contract.py
+  - tools/session_coordinator/isolated_patch_checkout.py
   - tools/session_coordinator/isolated_patch_finalize.py
   - tools/session_coordinator/git_finalize.py
   - tools/session_coordinator/cli.py
   - tools/session_coordinator/server.py
   - tools/session_coordinator/tests/test_isolated_patch_finalize.py
+  - tools/session_coordinator/tests/test_powershell_wrapper_arguments.py
 tests:
   - python -m unittest tools.session_coordinator.tests.test_isolated_patch_finalize
+  - python -m unittest tools.session_coordinator.tests.test_powershell_wrapper_arguments
 ---
 
 # Coordinator01: mixed worktree files cannot publish one validated HEAD-derived patch
@@ -80,9 +84,31 @@ identity because that ticket describes the live mixed overlay, not the derived b
 
 ## 修复结果与回传
 
-Production implementation and focused regression evidence are complete. The managed
-Coordinator maintenance commit, daemon rollover, and first Render17 immutable patch
-consumption are intentionally pending before this record can transition to fixed.
+Production implementation was committed as
+`123b0376193a0eeb21c51ea754c0c600da890f9f` and loaded by healthy schema-62 daemon
+`0516959fe6184e6dbbb83e82ff7e4e09`. The first real request
+`824ec1dc29114dcaa4ef4de4a5d3b166` failed before derivation because its caller patch
+header was malformed; it did not publish or modify shared state.
+
+The corrected owner-issued request `67135178e5664f4185cafb6b009492c2`
+(`finalize_requests` row `5fbecb6326e14818be2c363abfff420a`) crossed patch
+application and failed during `checkout-index`. The default Windows `%TEMP%` prefix
+made the two tracked reflection-probe resources ending in
+`face_0064_mips_07.{zribl,zcube}` exceed the Git for Windows filename limit. On
+Windows the service now creates an atomic random child under an ordered set of
+existing user-writable bases, computes the longest indexed path in UTF-16 code units,
+and accepts only a root whose maximum is at most 248. It revalidates the child as a
+non-reparse directory immediately before checkout, sets a Git discovery ceiling, and
+removes only the child it created. The same production relative paths are covered by
+a deterministic over-budget-to-short-root checkout/finalize regression.
+
+Independent reproduction also found that a PowerShell object pipeline cannot carry
+`--patch-stdin` byte-exactly because it may encode line records and append a newline.
+`tools/zircon-session.ps1` now rejects that flag with an explicit `--patch-file`
+instruction. Direct Python CLI binary stdin remains unchanged, and `--patch-file`
+remains byte-exact. A follow-up managed maintenance commit, daemon rollover, and owner
+replay of the same Render17 patch are pending before this record can transition to
+fixed.
 
 ## 产出记录与时间
 
@@ -92,4 +118,10 @@ consumption are intentionally pending before this record can transition to fixed
 - 2026-08-15 | status: open | Independent review closed index-CAS, same-OID branch
   switch, durable validation/recovery, validation-environment leakage, mode-change,
   and final worktree-drift windows. Focused recovery and publication regressions are
-  green; managed commit and first immutable Render17 consumption remain pending.
+  green; managed implementation commit and schema-62 rollover completed.
+- 2026-08-15 | status: open | Real owner request `67135178...` reproduced Windows
+  checkout failure 128 on the two 192/193-character reflection-probe resource paths.
+  The exact-path regression is RED under `%TEMP%` and GREEN after a deterministic
+  over-budget candidate falls back to a private short root. Reparse rejection,
+  child-only cleanup, and PowerShell 7/5.1 `--patch-stdin` rejection are covered;
+  follow-up commit, rollover, and Render17 replay remain pending.
