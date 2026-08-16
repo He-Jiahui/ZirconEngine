@@ -75,6 +75,41 @@ fn windows_unicode_case_aliases_for_missing_targets_are_rejected() {
     fs::remove_dir_all(root).unwrap();
 }
 
+#[cfg(windows)]
+#[test]
+fn windows_verbatim_missing_journal_owner_commits_generation() {
+    let logical_root = std::env::temp_dir().join(format!(
+        "zircon-durable-windows-verbatim-journal-{}-{}",
+        std::process::id(),
+        crate::core::resource::io::NEXT_ATOMIC_FILE_ID
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    ));
+    fs::create_dir_all(logical_root.join(".zircon")).unwrap();
+    fs::create_dir_all(logical_root.join("assets")).unwrap();
+    let root = fs::canonicalize(&logical_root).unwrap();
+    assert!(root.to_string_lossy().starts_with(r"\\?\"));
+    let journal = root.join(".zircon/project-generation");
+    let target = root.join("assets/generation.zmeta");
+
+    let mut report = DurableCommitReport::default();
+    let disposition = commit_prepared_files(
+        &journal,
+        "project",
+        vec![PreparedFileWrite::new(
+            target.clone(),
+            b"first-generation".to_vec(),
+        )],
+        TransactionFault::None,
+        &mut report,
+    )
+    .unwrap();
+
+    assert_eq!(disposition, DurableCommitDisposition::Durable);
+    assert_eq!(fs::read(target).unwrap(), b"first-generation");
+    assert_eq!(report, DurableCommitReport::default());
+    fs::remove_dir_all(logical_root).unwrap();
+}
+
 #[cfg(unix)]
 #[test]
 fn directory_symlink_target_aliases_are_rejected() {

@@ -128,7 +128,7 @@ fn project_manager_reimports_material_when_ready_artifact_payload_is_stale() {
 
     let rewritten = fs::read(&artifact_path).unwrap();
     assert!(
-        rewritten.starts_with(b"ZRARTM04"),
+        rewritten.starts_with(b"ZRARTM05"),
         "stale cache payload should be replaced by a freshly imported artifact manifest"
     );
 

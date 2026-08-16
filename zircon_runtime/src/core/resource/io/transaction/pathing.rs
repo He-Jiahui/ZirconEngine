@@ -2,7 +2,7 @@ use std::cmp::Ordering as CmpOrdering;
 use std::ffi::OsString;
 use std::fs;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static NEXT_TRANSACTION_ID: AtomicU64 = AtomicU64::new(1);
@@ -159,6 +159,9 @@ fn split_at_deepest_existing_ancestor(path: &Path) -> io::Result<(PathBuf, Vec<O
 
     for component in path.components() {
         candidate.push(component.as_os_str());
+        if matches!(component, Component::Prefix(_)) {
+            continue;
+        }
         match fs::metadata(&candidate) {
             Ok(_) => {
                 deepest_existing = Some(candidate.clone());

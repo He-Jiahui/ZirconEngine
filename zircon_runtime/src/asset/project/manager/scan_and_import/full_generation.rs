@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -11,7 +11,7 @@ use crate::asset::registry::AssetRegistryIndex;
 use crate::asset::watch::AssetChange;
 use crate::asset::{
     AssetId, AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor,
-    AssetKind, ImportedAsset,
+    AssetKind, ImportedAsset, ShaderAsset,
 };
 use crate::core::resource::{ResourceDiagnostic, ResourceRecord, ResourceRegistry, ResourceState};
 
@@ -129,6 +129,8 @@ impl ProjectManager {
         let mut catalog_inputs = HashMap::new();
         let mut shader_import_paths = HashMap::new();
         let mut imported = Vec::with_capacity(sources.len());
+        let mut restored_records = Vec::new();
+        let mut ready_shaders = Vec::new();
         let mut writes = Vec::new();
 
         let _import_phase = ProjectGenerationPhase::Import.enter();
@@ -204,6 +206,7 @@ impl ProjectManager {
                         dependencies_for_entry(meta, record.primary_locator()),
                     );
                     stage_project_resource(&mut registry, record.clone())?;
+                    restored_records.push(record.clone());
                     imported.push(record);
                 }
                 observation.record_restored_source();
@@ -241,6 +244,7 @@ impl ProjectManager {
                                 config_hash,
                                 descriptor.as_ref(),
                                 outcome,
+                                &mut ready_shaders,
                                 &mut writes,
                                 &mut observation,
                             )?;
@@ -309,8 +313,15 @@ impl ProjectManager {
             let shader_import_dependencies = ShaderImportDependencyIndex::from_artifacts(
                 &self.artifact_store,
                 &self.paths,
-                &imported,
+                &restored_records,
             )?;
+            let (shader_import_dependencies, _) = shader_import_dependencies
+                .prepare_source_replacement(
+                    &HashSet::new(),
+                    ready_shaders
+                        .iter()
+                        .map(|(record, shader)| (record, shader)),
+                );
             shader_import_dependencies.append_dependencies(&mut dependencies_by_id);
             resolve_imported_dependencies(&mut registry, &mut imported, &dependencies_by_id)?;
             shader_import_dependencies
@@ -474,6 +485,7 @@ impl ProjectManager {
         config_hash: String,
         descriptor: Option<&AssetImporterDescriptor>,
         mut outcome: AssetImportOutcome,
+        ready_shaders: &mut Vec<(ResourceRecord, ShaderAsset)>,
         writes: &mut Vec<PreparedFileWrite>,
         observation: &mut ProjectGenerationObservation,
     ) -> Result<Vec<ResourceRecord>, AssetImportError> {
@@ -545,16 +557,18 @@ impl ProjectManager {
                         .unwrap_or_default()
                 },
             });
-            records.push(
-                ResourceRecord::new(entry_asset_id, entry_kind, entry.locator)
-                    .with_source_hash(source_digest.clone())
-                    .with_importer_id(meta.importer_id.clone())
-                    .with_importer_version(meta.importer_version)
-                    .with_config_hash(config_hash.clone())
-                    .with_artifact_locator(artifact.locator)
-                    .with_state(ResourceState::Ready)
-                    .with_diagnostics(entry.diagnostics),
-            );
+            let record = ResourceRecord::new(entry_asset_id, entry_kind, entry.locator)
+                .with_source_hash(source_digest.clone())
+                .with_importer_id(meta.importer_id.clone())
+                .with_importer_version(meta.importer_version)
+                .with_config_hash(config_hash.clone())
+                .with_artifact_locator(artifact.locator)
+                .with_state(ResourceState::Ready)
+                .with_diagnostics(entry.diagnostics);
+            if let ImportedAsset::Shader(shader) = entry.asset {
+                ready_shaders.push((record.clone(), shader));
+            }
+            records.push(record);
         }
         meta.entries = entries;
         Ok(records)

@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::asset::project::ProjectPaths;
 use crate::asset::{
-    ArtifactStore, AssetId, AssetImportError, AssetUri, ImportedAsset, ShaderAsset,
+    ArtifactStore, AssetId, AssetImportError, AssetKind, AssetUri, ImportedAsset, ShaderAsset,
 };
 use crate::core::framework::render::{
     is_builtin_shader_module_token, is_generated_shader_module_token,
@@ -31,6 +31,9 @@ impl ShaderImportDependencyIndex {
     ) -> Result<Self, AssetImportError> {
         let mut index = Self::default();
         for record in imported {
+            if record.kind != AssetKind::Shader {
+                continue;
+            }
             let Some(artifact_uri) = record.artifact_locator.as_ref() else {
                 continue;
             };
@@ -73,10 +76,10 @@ impl ShaderImportDependencyIndex {
             .collect()
     }
 
-    pub(super) fn prepare_source_replacement(
+    pub(super) fn prepare_source_replacement<'a>(
         &self,
         removed_ids: &HashSet<AssetId>,
-        ready_payloads: &[(ResourceRecord, ImportedAsset)],
+        ready_shaders: impl IntoIterator<Item = (&'a ResourceRecord, &'a ShaderAsset)>,
     ) -> (Self, HashSet<AssetId>) {
         let mut next = self.clone();
         let mut affected_paths = HashSet::new();
@@ -89,14 +92,12 @@ impl ShaderImportDependencyIndex {
             }
             next.remove(*id);
         }
-        for (record, asset) in ready_payloads {
+        for (record, shader) in ready_shaders {
             affected_ids.insert(record.id());
-            if let ImportedAsset::Shader(shader) = asset {
-                if let Some(path) = shader.import_path.as_ref().filter(|path| !path.is_empty()) {
-                    affected_paths.insert(path.clone());
-                }
-                next.insert(record.id(), record.primary_locator.clone(), shader);
+            if let Some(path) = shader.import_path.as_ref().filter(|path| !path.is_empty()) {
+                affected_paths.insert(path.clone());
             }
+            next.insert(record.id(), record.primary_locator.clone(), shader);
         }
         for path in affected_paths {
             affected_ids.extend(
@@ -200,4 +201,31 @@ impl ShaderImportDependencyIndex {
 
 fn generated_or_builtin_module(import_path: &str) -> bool {
     is_builtin_shader_module_token(import_path) || is_generated_shader_module_token(import_path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::asset::AssetUuid;
+
+    #[test]
+    fn restored_non_shader_records_are_filtered_before_artifact_reads() {
+        let paths = ProjectPaths::from_root(std::env::temp_dir()).unwrap();
+        let missing_artifact = AssetUri::parse("lib://data/missing.zasset").unwrap();
+        let record = ResourceRecord::new(
+            AssetId::from_asset_uuid(AssetUuid::new()),
+            AssetKind::Data,
+            AssetUri::parse("res://data/missing.json").unwrap(),
+        )
+        .with_artifact_locator(missing_artifact);
+
+        let index = ShaderImportDependencyIndex::from_artifacts(
+            &ArtifactStore::default(),
+            &paths,
+            &[record],
+        )
+        .expect("non-shader records must not enter dependency-index artifact reads");
+
+        assert!(index.shaders_by_id.is_empty());
+    }
 }

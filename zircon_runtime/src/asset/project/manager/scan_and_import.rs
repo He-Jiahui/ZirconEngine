@@ -212,7 +212,7 @@ impl ProjectManager {
             self.asset_registry.prepare_source_removal(source);
         let (shader_import_dependencies, shader_affected_ids) = self
             .shader_import_dependencies
-            .prepare_source_replacement(&removed_ids, &[]);
+            .prepare_source_replacement(&removed_ids, std::iter::empty());
         let dependency_changes = shader_affected_ids.into_iter().map(|id| {
             (
                 id,

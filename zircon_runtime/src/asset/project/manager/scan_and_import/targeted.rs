@@ -238,9 +238,16 @@ impl ProjectManager {
             imported.push(record);
         }
 
-        let (shader_import_dependencies, shader_affected_ids) = self
-            .shader_import_dependencies
-            .prepare_source_replacement(&replaced_ids, &ready_payloads);
+        let (shader_import_dependencies, shader_affected_ids) =
+            self.shader_import_dependencies.prepare_source_replacement(
+                &replaced_ids,
+                ready_payloads
+                    .iter()
+                    .filter_map(|(record, asset)| match asset {
+                        ImportedAsset::Shader(shader) => Some((record, shader)),
+                        _ => None,
+                    }),
+            );
         let dependency_changes = shader_affected_ids.into_iter().map(|id| {
             (
                 id,

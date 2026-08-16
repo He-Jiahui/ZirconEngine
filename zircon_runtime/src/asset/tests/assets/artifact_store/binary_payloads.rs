@@ -98,6 +98,63 @@ fn artifact_store_roundtrips_mesh_assets_with_binary_attribute_payloads() {
 }
 
 #[test]
+fn artifact_store_roundtrips_model_assets_without_skipping_optional_wire_fields() {
+    let root = unique_temp_project_root("artifact_store_model_binary_payloads");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
+
+    let model = crate::asset::ModelAsset {
+        uri: AssetUri::parse("res://models/arena_gate.zmodel").unwrap(),
+        primitives: vec![
+            crate::asset::ModelPrimitiveAsset {
+                vertices: vec![
+                    crate::asset::MeshVertex::new(
+                        crate::core::math::Vec3::ZERO,
+                        crate::core::math::Vec3::Z,
+                        crate::core::math::Vec2::ZERO,
+                    ),
+                    crate::asset::MeshVertex::new(
+                        crate::core::math::Vec3::X,
+                        crate::core::math::Vec3::Z,
+                        crate::core::math::Vec2::X,
+                    ),
+                    crate::asset::MeshVertex::new(
+                        crate::core::math::Vec3::Y,
+                        crate::core::math::Vec3::Z,
+                        crate::core::math::Vec2::Y,
+                    ),
+                ],
+                indices: vec![0, 1, 2],
+                mesh: None,
+                mesh_sdf: None,
+                virtual_geometry: None,
+            },
+            crate::asset::ModelPrimitiveAsset {
+                vertices: Vec::new(),
+                indices: Vec::new(),
+                mesh: Some(asset_reference("res://meshes/arena_gate.zmesh")),
+                mesh_sdf: None,
+                virtual_geometry: None,
+            },
+        ],
+    };
+    let metadata = ResourceRecord::new(AssetId::new(), AssetKind::Model, model.uri.clone());
+    let store = ArtifactStore::default();
+
+    let artifact_uri = store
+        .write(&paths, &metadata, &ImportedAsset::Model(model.clone()))
+        .unwrap();
+    let loaded = store.read(&paths, &artifact_uri).unwrap();
+
+    assert_binary_artifact_payload(&paths, &artifact_uri);
+    assert_eq!(loaded, ImportedAsset::Model(model));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn artifact_store_roundtrips_texture_assets_with_binary_payloads() {
     let root = unique_temp_project_root("artifact_store_texture_binary_payloads");
     let paths = ProjectPaths::from_root(&root).unwrap();

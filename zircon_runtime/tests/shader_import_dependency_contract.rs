@@ -23,7 +23,7 @@ fn project_shader_source_only_imports_become_reload_dependencies() {
     .unwrap();
 
     let shared_uri =
-        write_include_shader_package(&paths, "shared", "shader_hot_reload_sandbox::shared");
+        write_include_shader_package(&paths, "shared", "shader_hot_reload_sandbox::shared", &[]);
     let surface_uri = write_surface_shader_package(
         &paths,
         "surface",
@@ -59,6 +59,58 @@ fn project_shader_source_only_imports_become_reload_dependencies() {
     let _ = fs::remove_dir_all(root);
 }
 
+#[test]
+fn project_shader_dependency_index_merges_restored_consumers_with_new_providers() {
+    let root = unique_temp_project_root("shader_import_dependency_restart_contract");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
+    let consumer_uri = write_include_shader_package(
+        &paths,
+        "consumer",
+        "restart_contract::consumer",
+        &["restart_contract::provider"],
+    );
+    ProjectManifest::new("Shader Restart Sandbox", consumer_uri.clone(), 1)
+        .save(paths.manifest_path())
+        .unwrap();
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    manager.scan_and_import().unwrap();
+    let consumer_artifact = manager
+        .registry()
+        .get_by_locator(&consumer_uri)
+        .and_then(|record| record.artifact_locator().cloned())
+        .expect("consumer artifact locator");
+    assert!(manager
+        .registry()
+        .get_by_locator(&consumer_uri)
+        .expect("consumer record")
+        .dependency_ids
+        .is_empty());
+    drop(manager);
+
+    let provider_uri =
+        write_include_shader_package(&paths, "provider", "restart_contract::provider", &[]);
+    let mut restarted = ProjectManager::open(&root).unwrap();
+    restarted.scan_and_import().unwrap();
+
+    let provider_id = restarted
+        .registry()
+        .get_by_locator(&provider_uri)
+        .expect("provider record")
+        .id();
+    let consumer = restarted
+        .registry()
+        .get_by_locator(&consumer_uri)
+        .expect("restored consumer record");
+    assert_eq!(consumer.artifact_locator(), Some(&consumer_artifact));
+    assert!(consumer.dependency_ids.contains(&provider_id));
+
+    let _ = fs::remove_dir_all(root);
+}
+
 fn unique_temp_project_root(label: &str) -> PathBuf {
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -71,7 +123,12 @@ fn unique_temp_project_root(label: &str) -> PathBuf {
     ))
 }
 
-fn write_include_shader_package(paths: &ProjectPaths, name: &str, import_path: &str) -> AssetUri {
+fn write_include_shader_package(
+    paths: &ProjectPaths,
+    name: &str,
+    import_path: &str,
+    imports: &[&str],
+) -> AssetUri {
     let shader_uri = AssetUri::parse(&format!("res://shaders/{name}")).unwrap();
     let shader_meta_path = paths
         .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
@@ -88,6 +145,10 @@ fn write_include_shader_package(paths: &ProjectPaths, name: &str, import_path: &
         .join("shaders")
         .join(name);
     fs::create_dir_all(&shader_dir).unwrap();
+    let imports = imports
+        .iter()
+        .map(|source| format!("\n[[imports]]\nsource = \"{source}\"\n"))
+        .collect::<String>();
     fs::write(
         shader_dir.join(format!("{name}.zshader")),
         format!(
@@ -96,6 +157,7 @@ kind = "include"
 version = 2
 import_path = "{import_path}"
 wgsl_files = ["{name}.wgsl"]
+{imports}
 "#
         ),
     )

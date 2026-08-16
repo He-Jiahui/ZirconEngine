@@ -24,8 +24,8 @@ use crate::asset::{
 
 const ARTIFACT_CACHE_EXTENSION: &str = "zasset";
 const ARTIFACT_CACHE_SUFFIX: &str = ".zasset";
-const ARTIFACT_MANIFEST_MAGIC: &[u8] = b"ZRARTM04";
-const ARTIFACT_MANIFEST_SCHEMA_VERSION: u32 = 4;
+const ARTIFACT_MANIFEST_MAGIC: &[u8] = b"ZRARTM05";
+const ARTIFACT_MANIFEST_SCHEMA_VERSION: u32 = 5;
 const ARTIFACT_STAGING_DIRECTORY: &str = ".staging";
 const ARTIFACT_CACHE_ZSTD_LEVEL: i32 = 1;
 const BLAKE3_HEX_LENGTH: usize = 64;

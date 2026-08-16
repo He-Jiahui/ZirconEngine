@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::asset::{
-    AssetImportError, AssetUri, DataAsset, ImportedAsset, MaterialGraphAsset, ModelAsset,
-    PhysicsMaterialAsset, PrefabAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset,
-    TextureAsset, TexturePayload, TileMapAsset, TileSetAsset, UiIconAsset, UiThemeAsset,
+    AssetImportError, AssetUri, DataAsset, ImportedAsset, MaterialGraphAsset, PhysicsMaterialAsset,
+    PrefabAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset, TextureAsset, TexturePayload,
+    TileMapAsset, TileSetAsset, UiIconAsset, UiThemeAsset,
 };
 use crate::core::framework::animation::{
     AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
@@ -17,6 +17,7 @@ mod font;
 mod json_value;
 mod material_shader;
 mod mesh;
+mod model;
 mod scene;
 mod toml_value;
 mod ui;
@@ -25,6 +26,7 @@ use font::ArtifactCacheFontAsset;
 use json_value::ArtifactCacheJsonValue;
 use material_shader::{ArtifactCacheMaterialAsset, ArtifactCacheShaderAsset};
 use mesh::ArtifactCacheMeshAsset;
+use model::ArtifactCacheModelAsset;
 use scene::ArtifactCacheSceneAsset;
 use ui::{ArtifactCacheUiAssetDocument, ArtifactCacheUiV2AssetDocument};
 
@@ -50,7 +52,7 @@ pub(super) enum ArtifactCacheAsset {
     TileMap(TileMapAsset),
     Prefab(ArtifactCachePrefabAsset),
     Scene(ArtifactCacheSceneAsset),
-    Model(ModelAsset),
+    Model(ArtifactCacheModelAsset),
     Mesh(ArtifactCacheMeshAsset),
     AnimationSkeleton(AnimationSkeletonAsset),
     AnimationClip(AnimationClipAsset),
@@ -93,7 +95,7 @@ impl ArtifactCacheAsset {
             ImportedAsset::TileMap(asset) => Self::TileMap(asset.clone()),
             ImportedAsset::Prefab(asset) => Self::Prefab(ArtifactCachePrefabAsset::from(asset)),
             ImportedAsset::Scene(asset) => Self::Scene(ArtifactCacheSceneAsset::from(asset)),
-            ImportedAsset::Model(asset) => Self::Model(asset.clone()),
+            ImportedAsset::Model(asset) => Self::Model(ArtifactCacheModelAsset::from(asset)),
             ImportedAsset::Mesh(asset) => Self::Mesh(ArtifactCacheMeshAsset::from(asset)),
             ImportedAsset::AnimationSkeleton(asset) => Self::AnimationSkeleton(asset.clone()),
             ImportedAsset::AnimationClip(asset) => Self::AnimationClip(asset.clone()),
@@ -143,7 +145,7 @@ impl ArtifactCacheAsset {
             Self::TileMap(asset) => ImportedAsset::TileMap(asset),
             Self::Prefab(asset) => ImportedAsset::Prefab(asset.into_asset()?),
             Self::Scene(asset) => ImportedAsset::Scene(asset.into_asset()?),
-            Self::Model(asset) => ImportedAsset::Model(asset),
+            Self::Model(asset) => ImportedAsset::Model(asset.into_asset()),
             Self::Mesh(asset) => ImportedAsset::Mesh(asset.into_asset()),
             Self::AnimationSkeleton(asset) => ImportedAsset::AnimationSkeleton(asset),
             Self::AnimationClip(asset) => ImportedAsset::AnimationClip(asset),
