@@ -359,7 +359,7 @@ mod tests {
 
         assert!(error.contains("commit frame capture"), "{error}");
         assert!(path.is_dir(), "failed commit must preserve the destination");
-        assert_eq!(partial_capture_files(&root), Vec::new());
+        assert!(partial_capture_files(&root).is_empty());
         std::fs::remove_dir_all(root).unwrap();
     }
 
@@ -376,7 +376,7 @@ mod tests {
 
         assert!(error.contains("encode frame capture"), "{error}");
         assert!(!path.exists());
-        assert_eq!(partial_capture_files(&root), Vec::new());
+        assert!(partial_capture_files(&root).is_empty());
         std::fs::remove_dir_all(root).unwrap();
     }
 
@@ -395,7 +395,7 @@ mod tests {
 
         assert_eq!(decoded.dimensions(), (1, 1));
         assert_eq!(decoded.as_raw(), &[1, 2, 3, 255]);
-        assert_eq!(partial_capture_files(&root), Vec::new());
+        assert!(partial_capture_files(&root).is_empty());
         std::fs::remove_dir_all(root).unwrap();
     }
 

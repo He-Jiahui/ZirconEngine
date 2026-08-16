@@ -1,0 +1,7 @@
+# App01 M2/P1-12 host foreign-output budget
+
+## 状态与产出记录
+
+| 里程碑 | 范围 | 状态 | 完成日期 | 证据 |
+|---|---|---|---|---|
+| M2/P1-12 host slice | Host request `256 KiB / 256 items / 10 ms`、profile `16 MiB / 65,536 items / 250 ms`、operation result `1 MiB / 16,384 JSON nodes / 25 ms`、plugin event `256 KiB / 64 items / 10 ms`；统一 128 层 JSON 嵌套上限；profile item 预算覆盖 series、subsystem tags 与完整 history；foreign release 后的接收提交通过会话锁线性化；任一协议拒绝均熔断整个 `RuntimeSession` 的后续 FFI 调用，并按 payload/session-protocol 类别输出 teardown telemetry；foreign-owned buffer release/validation 与测试分别拆入独立 owner module，`RuntimeSession` 生产实现/测试也拆为 `765 / 395` 行 | `target_client_validated / editor_host_handoff_open / m2_in_progress` | 2026-08-16 | Windows managed `target-client`：foreign-output `17/17`，相邻 operation/profile 协议合同 `2/2`，产品 bin build 通过。release 926 B / 256 items / 2,000 iterations 独立执行 5 轮：中位数 P50 `5.9 us`、P95 `7.4 us`、P99 `12.2 us`、`162,880 payloads/s`；观测范围 P99 `7.2-14.9 us`、吞吐 `109,777-174,388 payloads/s`，最差 P99 为 10 ms 预算的 `0.149%`。相较前次记录，P99 中位数降低 `8.3%`，吞吐中位数提高 `5.6%`。`target-editor-host` 被 Editor14 E0015 阻塞，见 [failure-2026-08-16-app01-editor-host-autosave-const-call.md](../../../zircon_editor/editor/14/failure-2026-08-16-app01-editor-host-autosave-const-call.md)。现有 `zircon_editor::SessionGateway` 实例仍直接调用 raw V6 ABI，未共享 `ForeignOutputState`；Editor01 需定义可注入的共享协议策略/状态，并执行 client/editor 双入口合同矩阵后才能关闭 editor-host gate。M2 其余 capability handshake、quiesce、world output 与 fault DLL 仍未闭合。 |

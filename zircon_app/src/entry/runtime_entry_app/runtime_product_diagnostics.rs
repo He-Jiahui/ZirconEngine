@@ -306,6 +306,8 @@ mod tests {
                 max_sampled_textures_per_shader_stage: 16,
                 max_storage_buffers_per_shader_stage: 8,
                 max_storage_buffer_binding_size: 134_217_728,
+                max_binding_array_elements_per_shader_stage: 4_096,
+                max_binding_array_sampler_elements_per_shader_stage: 1_024,
             }),
             diagnostic_series: vec![
                 numeric_series("render.graph.executed_pass_count", 4.0),
@@ -420,6 +422,8 @@ mod tests {
                 max_sampled_textures_per_shader_stage: 16,
                 max_storage_buffers_per_shader_stage: 8,
                 max_storage_buffer_binding_size: 134_217_728,
+                max_binding_array_elements_per_shader_stage: 4_096,
+                max_binding_array_sampler_elements_per_shader_stage: 1_024,
             }),
             diagnostic_series: vec![
                 numeric_series("render.graph.executed_pass_count", 1.0),

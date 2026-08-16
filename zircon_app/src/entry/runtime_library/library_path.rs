@@ -225,9 +225,10 @@ mod tests {
     fn runtime_library_override_path_preserves_empty_fallback_and_absolute_paths() {
         let absolute = std::env::temp_dir().join("zircon-runtime-library-test.dll");
 
-        assert_eq!(
-            runtime_library_override_path_from_value(Some(OsString::new())).unwrap(),
-            None
+        assert!(
+            runtime_library_override_path_from_value(Some(OsString::new()))
+                .unwrap()
+                .is_none()
         );
         let selected =
             runtime_library_override_path_from_value(Some(absolute.clone().into_os_string()))
