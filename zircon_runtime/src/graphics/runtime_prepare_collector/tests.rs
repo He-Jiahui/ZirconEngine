@@ -5,8 +5,10 @@ use super::*;
 use crate::core::framework::render::{
     FallbackSkyboxKind, PreviewEnvironmentExtract, RenderOverlayExtract,
     RenderSceneGeometryExtract, RenderVirtualGeometryNodeClusterCullReadbackOutputs,
-    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderWorldSnapshotHandle, RendererCommon, ViewportCameraSnapshot,
 };
+use crate::core::framework::scene::Mobility;
+use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use crate::graphics::backend::RenderBackend;
 
 #[test]
@@ -17,10 +19,29 @@ fn collector_context_exposes_viewport_size_extract_and_prepared_sidebands() {
         label: Some("zircon-runtime-prepare-context-test-encoder"),
     });
     let streamer = test_resource_streamer(&device, &queue);
-    let extract = RenderFrameExtract::from_snapshot(
+    let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(44),
         empty_scene_snapshot(),
     );
+    extract.geometry.meshes.push(RenderMeshSnapshot {
+        node_id: 9,
+        stable_instance_key: 90,
+        transform_revision: 1,
+        transform: Default::default(),
+        model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
+            "tests/runtime-prepare/model",
+        )),
+        mesh: None,
+        material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+            "tests/runtime-prepare/material",
+        )),
+        mesh_lod: None,
+        morph_weights: Vec::new(),
+        tint: Vec4::ONE,
+        mobility: Mobility::Static,
+        static_state: Default::default(),
+        common: RendererCommon::default(),
+    });
     let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(1280, 720))
         .with_prepared_runtime_sidebands(RenderPreparedRuntimeSidebands::new(
             RenderPluginRendererOutputs {
@@ -54,6 +75,8 @@ fn collector_context_exposes_viewport_size_extract_and_prepared_sidebands() {
     assert_eq!(context.viewport_size(), UVec2::new(1280, 720));
     assert_eq!(context.frame_extract().world.raw(), 44);
     assert_eq!(context.scene_snapshot().scene.meshes.len(), 0);
+    assert_eq!(context.scene_meshes().len(), 1);
+    assert_eq!(context.scene_meshes()[0].node_id, 9);
     assert_eq!(
         context
             .prepared_hybrid_gi_readback_outputs()

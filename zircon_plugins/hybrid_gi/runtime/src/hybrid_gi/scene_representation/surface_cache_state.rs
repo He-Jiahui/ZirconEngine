@@ -46,6 +46,7 @@ pub(crate) struct HybridGiSurfaceCacheState {
     page_contents: Vec<HybridGiSurfaceCachePageContentEntry>,
     next_page_id: u32,
     scene_revision: u32,
+    radiance_source_revision: u32,
 }
 
 impl HybridGiSurfaceCacheState {
@@ -144,6 +145,8 @@ impl HybridGiSurfaceCacheState {
         );
         self.refresh_capture_atlas_entries();
         self.rebind_page_contents();
+        let radiance_source_changed = self.page_contents != previous_page_contents;
+        self.bump_radiance_source_revision_if(radiance_source_changed);
         self.bump_scene_revision_if(
             self.resident_pages != previous_resident_pages_snapshot
                 || self.dirty_page_ids != previous_dirty_page_ids
@@ -152,7 +155,7 @@ impl HybridGiSurfaceCacheState {
                 || self.page_table_entries != previous_page_table_entries_snapshot
                 || self.capture_slot_reservations != previous_capture_slot_reservations
                 || self.capture_atlas_entries != previous_capture_atlas_entries
-                || self.page_contents != previous_page_contents,
+                || radiance_source_changed,
         );
     }
 
@@ -258,7 +261,9 @@ impl HybridGiSurfaceCacheState {
                 })
             })
             .collect();
-        self.bump_scene_revision_if(self.page_contents != previous_page_contents);
+        let radiance_source_changed = self.page_contents != previous_page_contents;
+        self.bump_radiance_source_revision_if(radiance_source_changed);
+        self.bump_scene_revision_if(radiance_source_changed);
     }
 
     fn refresh_capture_atlas_entries(&mut self) {
@@ -406,6 +411,10 @@ impl HybridGiSurfaceCacheState {
         self.scene_revision
     }
 
+    pub(super) fn radiance_source_revision(&self) -> u32 {
+        self.radiance_source_revision
+    }
+
     #[cfg(test)]
     pub(crate) fn page_contents(&self) -> Vec<(u32, u32, u32, u32, [u8; 4], [u8; 4])> {
         self.page_contents_snapshot()
@@ -438,7 +447,9 @@ impl HybridGiSurfaceCacheState {
                 },
             )
             .collect();
-        self.bump_scene_revision_if(self.page_contents != previous_page_contents);
+        let radiance_source_changed = self.page_contents != previous_page_contents;
+        self.bump_radiance_source_revision_if(radiance_source_changed);
+        self.bump_scene_revision_if(radiance_source_changed);
     }
 
     fn resident_page_ids_snapshot(&self) -> Vec<u32> {
@@ -451,6 +462,12 @@ impl HybridGiSurfaceCacheState {
     fn bump_scene_revision_if(&mut self, changed: bool) {
         if changed {
             self.scene_revision = self.scene_revision.wrapping_add(1);
+        }
+    }
+
+    fn bump_radiance_source_revision_if(&mut self, changed: bool) {
+        if changed {
+            self.radiance_source_revision = self.radiance_source_revision.wrapping_add(1);
         }
     }
 }

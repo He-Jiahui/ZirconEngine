@@ -3,14 +3,14 @@ use std::sync::atomic::Ordering;
 use bytemuck::{Pod, Zeroable};
 
 use crate::hybrid_gi::scene_representation::{
-    GLOBAL_SDF_CLIPMAP_COUNT, GLOBAL_SDF_MAX_RESIDENT_PAGE_COUNT, GLOBAL_SDF_PAGES_PER_EDGE,
-    HybridGiGlobalSdfPageKey, HybridGiGlobalSdfSceneState,
+    HybridGiGlobalSdfPageKey, HybridGiGlobalSdfSceneState, GLOBAL_SDF_CLIPMAP_COUNT,
+    GLOBAL_SDF_MAX_RESIDENT_PAGE_COUNT, GLOBAL_SDF_PAGES_PER_EDGE,
 };
 
-use super::GlobalSdfGpuState;
 use super::state::{
     GLOBAL_SDF_TRACE_PAGE_TABLE_ENTRY_COUNT, GLOBAL_SDF_TRACE_PAGE_UNAVAILABLE_SLOT,
 };
+use super::GlobalSdfGpuState;
 
 const FNV64_OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;
 const FNV64_PRIME: u64 = 0x0000_0100_0000_01b3;
@@ -181,7 +181,6 @@ mod tests {
         let mut scene = HybridGiGlobalSdfSceneState::default();
         scene.synchronize(Vec3::ZERO, &[], 1);
         let requests = scene.dirty_page_build_requests();
-        scene.commit_pages(&requests);
         let fallback = requests[0];
         scene.resolve_pages_to_fallback(&[fallback]);
 

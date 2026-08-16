@@ -53,7 +53,7 @@ pub(super) fn scene_voxel_clipmap_occupancy_mask(
     debug_assert!(HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT <= u64::BITS as usize);
 
     let mut occupancy_mask = 0_u64;
-    for mesh in &inputs.scene_meshes {
+    for mesh in inputs.scene_meshes.iter() {
         let Some([(x_start, x_end), (y_start, y_end), (z_start, z_end)]) =
             mesh_cell_ranges(clipmap, mesh, inputs)
         else {
@@ -82,7 +82,7 @@ pub(super) fn scene_voxel_clipmap_cell_rgba_samples(
 
     let mut cell_radiance = [Vec3::ZERO; HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT];
     let mut cell_has_sample = [false; HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT];
-    for mesh in &inputs.scene_meshes {
+    for mesh in inputs.scene_meshes.iter() {
         let Some([(x_start, x_end), (y_start, y_end), (z_start, z_end)]) =
             mesh_cell_ranges(clipmap, mesh, inputs)
         else {
@@ -132,7 +132,7 @@ pub(super) fn scene_voxel_clipmap_cell_samples(
     let mut dominant_rgba_samples = [[0, 0, 0, 0]; HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT];
     let mut clipmap_has_scene_sample = false;
 
-    for mesh in &inputs.scene_meshes {
+    for mesh in inputs.scene_meshes.iter() {
         let Some([(x_start, x_end), (y_start, y_end), (z_start, z_end)]) =
             mesh_cell_ranges(clipmap, mesh, inputs)
         else {
@@ -240,7 +240,7 @@ fn scene_voxel_clipmap_cell_dominant_entries(
     let mut dominant_rgba_samples = [[0, 0, 0, 0]; HYBRID_GI_VOXEL_CLIPMAP_CELL_COUNT];
     let mut clipmap_has_scene_sample = false;
 
-    for mesh in &inputs.scene_meshes {
+    for mesh in inputs.scene_meshes.iter() {
         let Some([(x_start, x_end), (y_start, y_end), (z_start, z_end)]) =
             mesh_cell_ranges(clipmap, mesh, inputs)
         else {

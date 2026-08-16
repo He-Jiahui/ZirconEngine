@@ -246,15 +246,19 @@ pub use overlay::{
 };
 pub use plugin_renderer_outputs::{
     RenderHybridGiCacheEntryRecord, RenderHybridGiGlobalSdfStats,
-    RenderHybridGiRadianceCacheGpuStage, RenderHybridGiReadbackOutputs,
-    RenderHybridGiScenePrepareReadbackOutputs, RenderHybridGiScenePrepareSample,
-    RenderHybridGiSurfaceCachePageRecord, RenderHybridGiTraceTileRecord,
-    RenderHybridGiVoxelCellDominantNodeRecord, RenderHybridGiVoxelCellRecord,
-    RenderHybridGiVoxelCellSampleRecord, RenderHybridGiVoxelClipmapRecord,
-    RenderHybridGiVoxelOccupancyMaskRecord, RenderParticleGpuReadbackOutputs,
-    RenderPluginRendererOutputs, RenderVirtualGeometryNodeClusterCullReadbackOutputs,
-    RenderVirtualGeometryPageAssignmentRecord, RenderVirtualGeometryPageReplacementRecord,
-    RenderVirtualGeometryReadbackOutputs, RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT,
+    RenderHybridGiProbeTraceDiagnosticRecord, RenderHybridGiRadianceCacheGpuStage,
+    RenderHybridGiReadbackOutputs, RenderHybridGiScenePrepareReadbackOutputs,
+    RenderHybridGiScenePrepareSample, RenderHybridGiSurfaceCachePageRecord,
+    RenderHybridGiTraceCostCounters, RenderHybridGiTraceFallbackReason,
+    RenderHybridGiTraceIntersectionSource, RenderHybridGiTraceLightingSource,
+    RenderHybridGiTraceTileRecord, RenderHybridGiVoxelCellDominantNodeRecord,
+    RenderHybridGiVoxelCellRecord, RenderHybridGiVoxelCellSampleRecord,
+    RenderHybridGiVoxelClipmapRecord, RenderHybridGiVoxelOccupancyMaskRecord,
+    RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs,
+    RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryPageAssignmentRecord,
+    RenderVirtualGeometryPageReplacementRecord, RenderVirtualGeometryReadbackOutputs,
+    RENDER_HYBRID_GI_PROBE_TRACE_DIAGNOSTIC_WORD_COUNT,
+    RENDER_HYBRID_GI_RADIANCE_CACHE_GPU_STAGE_COUNT,
 };
 pub use post_process::{
     interp_bool, interp_discrete, interp_float_lerp, interp_vec3_lerp, PostProcessEffectKind,

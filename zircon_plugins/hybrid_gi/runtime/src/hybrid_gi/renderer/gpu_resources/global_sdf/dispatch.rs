@@ -52,24 +52,28 @@ impl GlobalSdfGpuResources {
             &inputs.pages,
             wgpu::BufferUsages::STORAGE,
         );
+        let fallback_object = [GlobalSdfGpuObject::zeroed()];
+        let object_upload = if inputs.objects.is_empty() {
+            &fallback_object[..]
+        } else {
+            &inputs.objects
+        };
         let object_buffer = create_pod_storage_buffer(
             device,
             "zircon-hybrid-gi-global-sdf-objects",
-            if inputs.objects.is_empty() {
-                &[GlobalSdfGpuObject::zeroed()]
-            } else {
-                &inputs.objects
-            },
+            object_upload,
             wgpu::BufferUsages::STORAGE,
         );
+        let fallback_payload = [GlobalSdfGpuMeshPayload::zeroed()];
+        let payload_upload = if inputs.payloads.is_empty() {
+            &fallback_payload[..]
+        } else {
+            &inputs.payloads
+        };
         let payload_buffer = create_pod_storage_buffer(
             device,
             "zircon-hybrid-gi-global-sdf-mesh-payloads",
-            if inputs.payloads.is_empty() {
-                &[GlobalSdfGpuMeshPayload::zeroed()]
-            } else {
-                &inputs.payloads
-            },
+            payload_upload,
             wgpu::BufferUsages::STORAGE,
         );
         let voxel_buffer = create_u32_storage_buffer(

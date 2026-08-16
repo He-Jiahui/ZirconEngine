@@ -1,5 +1,7 @@
 use super::*;
-use crate::hybrid_gi::scene_representation::HybridGiGlobalSdfClipmapBounds;
+use crate::hybrid_gi::scene_representation::{
+    HybridGiGlobalSdfClipmapBounds, HybridGiMeshSdfAssetState, HybridGiMeshSdfFallbackReason,
+};
 use zircon_runtime::core::framework::render::{
     render_mesh_stable_instance_key, render_mesh_transform_revision, CastShadowsMode,
     RenderLayerSet, RenderMeshBounds, RenderMeshSnapshot, RenderMeshStaticState, RendererCommon,

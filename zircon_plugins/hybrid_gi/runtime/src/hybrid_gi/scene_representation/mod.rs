@@ -15,7 +15,8 @@ mod voxel_scene_state;
 
 pub(in crate::hybrid_gi) use global_sdf_scene_state::{
     HybridGiGlobalSdfClipmapBounds, HybridGiGlobalSdfPageBuildRequest, HybridGiGlobalSdfPageKey,
-    HybridGiGlobalSdfSceneState, GLOBAL_SDF_CLIPMAP_COUNT, GLOBAL_SDF_PAGES_PER_EDGE,
+    HybridGiGlobalSdfSceneState, GLOBAL_SDF_CLIPMAP_COUNT, GLOBAL_SDF_MAX_PAGE_CANDIDATES,
+    GLOBAL_SDF_MAX_RESIDENT_PAGE_COUNT, GLOBAL_SDF_PAGES_PER_EDGE,
 };
 #[cfg(test)]
 pub(crate) use input_set::HybridGiInputSet;

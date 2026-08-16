@@ -550,7 +550,7 @@ mod tests {
         assert!((material_occlusion(0.2, 0.25) - 0.8).abs() <= f32::EPSILON);
         assert!((material_occlusion(0.2, 1.0) - 0.2).abs() <= f32::EPSILON);
         assert_eq!(material_occlusion(f32::NAN, 1.0), 1.0);
-        assert_eq!(material_occlusion(0.2, f32::NAN), 0.2);
+        assert!((material_occlusion(0.2, f32::NAN) - 0.2).abs() <= f32::EPSILON);
     }
 
     #[test]

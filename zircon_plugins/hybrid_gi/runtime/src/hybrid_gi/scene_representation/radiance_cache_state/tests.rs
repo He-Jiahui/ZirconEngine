@@ -79,8 +79,8 @@ fn radiance_cache_reads_current_resident_corners_with_trilinear_weights() {
     state.clipmaps = vec![clipmap];
     state.generation = 1;
     state.input_revision = Some(HybridGiRadianceCacheInputRevision {
-        surface_cache_revision: 0,
-        voxel_scene_revision: 0,
+        surface_cache_radiance_source_revision: 0,
+        voxel_radiance_source_revision: 0,
         participation_epoch: 1,
     });
     state.update_report.mark_stable_generation(1);

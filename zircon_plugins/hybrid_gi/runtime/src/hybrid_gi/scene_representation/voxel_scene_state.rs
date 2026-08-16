@@ -30,6 +30,7 @@ pub(crate) struct HybridGiVoxelSceneState {
     voxel_cells: Vec<HybridGiPrepareVoxelCell>,
     scene_prepare_voxel_cell_overrides: Vec<HybridGiPrepareVoxelCell>,
     scene_revision: u32,
+    radiance_source_revision: u32,
 }
 
 impl HybridGiVoxelSceneState {
@@ -91,13 +92,15 @@ impl HybridGiVoxelSceneState {
         self.resident_clipmap_ids = resident_clipmap_ids;
         self.clipmap_descriptors = clipmap_descriptors;
         self.voxel_cells = voxel_cells;
+        let radiance_source_changed = self.voxel_cells != previous_voxel_cells;
+        self.bump_radiance_source_revision_if(radiance_source_changed);
         self.bump_scene_revision_if(
             scene_changed
                 || self.resident_clipmap_ids != previous_resident_clipmap_ids
                 || self.dirty_clipmap_ids != previous_dirty_clipmap_ids
                 || self.invalidated_clipmap_ids != previous_invalidated_clipmap_ids
                 || self.clipmap_descriptors != previous_clipmap_descriptors
-                || self.voxel_cells != previous_voxel_cells
+                || radiance_source_changed
                 || self.scene_prepare_voxel_cell_overrides
                     != previous_scene_prepare_voxel_cell_overrides,
         );
@@ -113,7 +116,9 @@ impl HybridGiVoxelSceneState {
             surface_cache_page_contents,
             &[],
         );
-        self.bump_scene_revision_if(self.voxel_cells != previous_voxel_cells);
+        let radiance_source_changed = self.voxel_cells != previous_voxel_cells;
+        self.bump_radiance_source_revision_if(radiance_source_changed);
+        self.bump_scene_revision_if(radiance_source_changed);
     }
 
     pub(crate) fn apply_scene_prepare_voxel_cells(
@@ -129,8 +134,10 @@ impl HybridGiVoxelSceneState {
             self.scene_prepare_voxel_cell_overrides.clone();
         self.scene_prepare_voxel_cell_overrides = readback_voxel_cells.to_vec();
         merge_scene_prepare_voxel_cells(&mut self.voxel_cells, readback_voxel_cells);
+        let radiance_source_changed = self.voxel_cells != previous_voxel_cells;
+        self.bump_radiance_source_revision_if(radiance_source_changed);
         self.bump_scene_revision_if(
-            self.voxel_cells != previous_voxel_cells
+            radiance_source_changed
                 || self.scene_prepare_voxel_cell_overrides
                     != previous_scene_prepare_voxel_cell_overrides,
         );
@@ -188,6 +195,10 @@ impl HybridGiVoxelSceneState {
         self.scene_revision
     }
 
+    pub(super) fn radiance_source_revision(&self) -> u32 {
+        self.radiance_source_revision
+    }
+
     #[cfg(test)]
     pub(crate) fn invalidated_clipmap_ids(&self) -> Vec<u32> {
         self.invalidated_clipmap_ids_snapshot()
@@ -214,6 +225,12 @@ impl HybridGiVoxelSceneState {
     fn bump_scene_revision_if(&mut self, changed: bool) {
         if changed {
             self.scene_revision = self.scene_revision.wrapping_add(1);
+        }
+    }
+
+    fn bump_radiance_source_revision_if(&mut self, changed: bool) {
+        if changed {
+            self.radiance_source_revision = self.radiance_source_revision.wrapping_add(1);
         }
     }
 }

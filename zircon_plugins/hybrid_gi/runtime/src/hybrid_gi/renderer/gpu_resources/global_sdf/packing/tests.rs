@@ -16,6 +16,7 @@ use zircon_runtime::graphics::{RuntimePrepareMeshSdfDeformationReason, RuntimePr
 use crate::hybrid_gi::scene_representation::{
     HybridGiGlobalSdfClipmapBounds, HybridGiGlobalSdfPageBuildRequest, HybridGiGlobalSdfSceneState,
     HybridGiMeshSdfAssetState, HybridGiMeshSdfMaterialFlags, HybridGiMeshSdfObject,
+    GLOBAL_SDF_MAX_RESIDENT_PAGE_COUNT,
 };
 
 use super::*;
@@ -27,7 +28,7 @@ fn gpu_abi_is_four_byte_aligned_and_page_capacity_is_bounded() {
     assert_eq!(std::mem::size_of::<GlobalSdfGpuObject>(), 48);
     assert_eq!(std::mem::size_of::<GlobalSdfGpuMeshPayload>(), 128);
     assert_eq!(GLOBAL_SDF_PAGE_VOXEL_COUNT, 512);
-    assert_eq!(GLOBAL_SDF_ATLAS_PAGE_CAPACITY, 128);
+    assert_eq!(GLOBAL_SDF_MAX_RESIDENT_PAGE_COUNT, 128);
 }
 
 #[test]

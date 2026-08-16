@@ -85,8 +85,8 @@ struct HybridGiRadianceCacheResidentProbe {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct HybridGiRadianceCacheInputRevision {
-    surface_cache_revision: u32,
-    voxel_scene_revision: u32,
+    surface_cache_radiance_source_revision: u32,
+    voxel_radiance_source_revision: u32,
     participation_epoch: u64,
 }
 
@@ -175,8 +175,8 @@ impl HybridGiRadianceCacheState {
         // Move the retained allocation out while resident state mutates, then restore it below.
         let selected_demands = std::mem::take(&mut self.selected_demands);
         let input_revision = HybridGiRadianceCacheInputRevision {
-            surface_cache_revision: surface_cache.scene_revision(),
-            voxel_scene_revision: voxel_scene.scene_revision(),
+            surface_cache_radiance_source_revision: surface_cache.radiance_source_revision(),
+            voxel_radiance_source_revision: voxel_scene.radiance_source_revision(),
             participation_epoch,
         };
         let source_inputs_changed = self.input_revision != Some(input_revision);

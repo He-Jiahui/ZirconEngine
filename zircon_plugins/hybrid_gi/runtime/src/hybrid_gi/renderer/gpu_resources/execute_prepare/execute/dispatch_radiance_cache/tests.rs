@@ -14,6 +14,8 @@ use super::super::super::super::super::{
 };
 use super::*;
 
+const HYBRID_GI_STORAGE_BUFFER_BINDING_COUNT: u32 = 9;
+
 #[test]
 fn radiance_cache_workgroup_count_covers_each_nonempty_input_range() {
     assert_eq!(radiance_cache_workgroup_count(0), 0);
@@ -398,10 +400,19 @@ fn test_device() -> Option<(wgpu::Device, wgpu::Queue)> {
         force_fallback_adapter: false,
     }))
     .ok()?;
+    if adapter.limits().max_storage_buffers_per_shader_stage
+        < HYBRID_GI_STORAGE_BUFFER_BINDING_COUNT
+    {
+        return None;
+    }
+    let required_limits = wgpu::Limits {
+        max_storage_buffers_per_shader_stage: HYBRID_GI_STORAGE_BUFFER_BINDING_COUNT,
+        ..wgpu::Limits::default()
+    };
     pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
         label: Some("zircon-hybrid-gi-radiance-cache-test-device"),
         required_features: wgpu::Features::empty(),
-        required_limits: wgpu::Limits::default(),
+        required_limits,
         memory_hints: wgpu::MemoryHints::Performance,
         trace: wgpu::Trace::Off,
         experimental_features: wgpu::ExperimentalFeatures::disabled(),

@@ -1,5 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
+use std::thread;
+use std::time::{Duration, Instant};
 
 use image::{ImageBuffer, ImageFormat, Rgba};
 use zircon_runtime::core::framework::render::{
@@ -76,6 +78,11 @@ const SCENE_DEPTH_SOURCE_SAMPLING_WGPU_PNG: &str =
     "plan18_hybrid_gi_scene_depth_source_sampling_wgpu_20260707.png";
 const SCENE_DEPTH_SOURCE_SAMPLING_WGPU_REPORT: &str =
     "plan18_hybrid_gi_scene_depth_source_sampling_wgpu_20260707.txt";
+const GPU_READBACK_EVIDENCE_FRAME_LIMIT: usize =
+    zircon_runtime::graphics::RuntimePrepareCollectorContext::MAX_IN_FLIGHT_GPU_READBACK_FRAMES
+        * 32;
+const GPU_READBACK_EVIDENCE_TIMEOUT: Duration = Duration::from_secs(15);
+const GPU_READBACK_EVIDENCE_POLL_INTERVAL: Duration = Duration::from_millis(1);
 
 #[path = "hybrid_gi_render_framework_stats/current_frame_post_uber_msaa.rs"]
 mod current_frame_post_uber_msaa;
@@ -116,26 +123,67 @@ fn render_framework_stats_expose_scene_representation_screen_probe_and_radiance_
     server
         .set_quality_profile(viewport, hybrid_gi_only_quality_profile())
         .unwrap();
-    server.submit_frame_extract(viewport, extract).unwrap();
+    server
+        .submit_frame_extract(viewport, extract.clone())
+        .unwrap();
 
-    let stats = server.query_stats().unwrap();
-    assert_eq!(stats.last_hybrid_gi_graph_executed_pass_count, 4);
-    assert_eq!(stats.last_hybrid_gi_active_probe_count, 0);
-    assert_eq!(stats.last_hybrid_gi_requested_probe_count, 0);
-    assert_eq!(stats.last_hybrid_gi_dirty_probe_count, 0);
+    let first_stats = server.query_stats().unwrap();
+    assert_eq!(first_stats.last_hybrid_gi_graph_executed_pass_count, 4);
+    assert_eq!(first_stats.last_hybrid_gi_active_probe_count, 0);
+    assert_eq!(first_stats.last_hybrid_gi_requested_probe_count, 0);
+    assert_eq!(first_stats.last_hybrid_gi_dirty_probe_count, 0);
     assert_eq!(
-        stats.last_hybrid_gi_scene_card_count, 2,
+        first_stats.last_hybrid_gi_scene_card_count, 2,
         "expected public RenderFramework stats to expose scene-representation cards without direct renderer readback access"
     );
     assert_eq!(
-        stats.last_hybrid_gi_surface_cache_resident_page_count, 1,
+        first_stats.last_hybrid_gi_surface_cache_resident_page_count, 1,
         "expected the HGI plugin runtime provider to project card-budgeted surface-cache residency through neutral RenderStats"
     );
     assert_eq!(
-        stats.last_hybrid_gi_surface_cache_feedback_card_count, 1,
+        first_stats.last_hybrid_gi_surface_cache_feedback_card_count, 1,
         "expected the over-budget second scene card to remain visible as plugin-owned surface-cache feedback"
     );
-    assert!(stats.last_hybrid_gi_surface_cache_depth_sample_count >= 1);
+    assert_eq!(
+        first_stats.last_hybrid_gi_global_sdf_object_count, 2,
+        "expected both canonical runtime-extract meshes to reach the HGI runtime-prepare projection"
+    );
+
+    let mut last_stats = first_stats;
+    let mut gpu_readback_stats = None;
+    let readback_deadline = Instant::now() + GPU_READBACK_EVIDENCE_TIMEOUT;
+    for _ in 0..GPU_READBACK_EVIDENCE_FRAME_LIMIT {
+        server
+            .submit_frame_extract(viewport, extract.clone())
+            .unwrap();
+        last_stats = server.query_stats().unwrap();
+        if last_stats.last_hybrid_gi_surface_cache_depth_sample_count >= 1
+            && last_stats.last_hybrid_gi_probe_trace_tile_count >= 1
+        {
+            gpu_readback_stats = Some(last_stats.clone());
+            break;
+        }
+        if Instant::now() >= readback_deadline {
+            break;
+        }
+        thread::sleep(GPU_READBACK_EVIDENCE_POLL_INTERVAL);
+    }
+    let stats = gpu_readback_stats.unwrap_or_else(|| {
+        panic!(
+            "bounded follow-up frames must publish surface-cache depth and probe-trace GPU readback; depth_samples={}, trace_tiles={}, in_flight={}, completed={}, slot_reuse_rejections={}, global_sdf_objects={}, global_sdf_resident_pages={}, global_sdf_sampleable_pages={}, global_sdf_dirty_pages={}, global_sdf_dispatched_pages={}, global_sdf_uploaded_pages={}",
+            last_stats.last_hybrid_gi_surface_cache_depth_sample_count,
+            last_stats.last_hybrid_gi_probe_trace_tile_count,
+            last_stats.last_readback_in_flight_count,
+            last_stats.last_readback_completed_count,
+            last_stats.last_readback_slot_reuse_rejection_count,
+            last_stats.last_hybrid_gi_global_sdf_object_count,
+            last_stats.last_hybrid_gi_global_sdf_resident_page_count,
+            last_stats.last_hybrid_gi_global_sdf_sampleable_page_count,
+            last_stats.last_hybrid_gi_global_sdf_dirty_page_count,
+            last_stats.last_hybrid_gi_global_sdf_dispatched_page_count,
+            last_stats.last_hybrid_gi_global_sdf_uploaded_page_count,
+        )
+    });
     assert!(stats.last_hybrid_gi_probe_trace_tile_count >= 1);
     assert_eq!(
         stats.last_hybrid_gi_probe_trace_dispatch_group_count[0..2],
@@ -324,7 +372,7 @@ fn mesh(
         morph_weights: Vec::new(),
         tint: Vec4::ONE,
         mobility: Mobility::Static,
-        static_state: RenderMeshStaticState::from_transform_static(true),
+        static_state: RenderMeshStaticState::new(true, 1, 1),
         common: RendererCommon {
             layer_mask: RenderLayerSet::from_scene_schema_v1_mask(u32::MAX),
             is_static: true,

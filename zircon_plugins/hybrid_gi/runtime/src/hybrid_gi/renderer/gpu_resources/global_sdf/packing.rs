@@ -122,7 +122,7 @@ pub(super) fn pack_global_sdf_build_inputs(
     let mut ready_voxel_counts = HashMap::<usize, Option<usize>>::new();
     let mut dispositions = Vec::with_capacity(requests.len());
     let mut complete_pages = Vec::<(HybridGiGlobalSdfPageBuildRequest, Vec<usize>)>::new();
-    let mut candidate_overflow_page_count = 0;
+    let mut candidate_overflow_page_count = 0_usize;
     for request in requests.iter().copied() {
         if request.atlas_slot() >= GLOBAL_SDF_MAX_RESIDENT_PAGE_COUNT as u32 {
             dispositions.push(GlobalSdfPageBuildDisposition {
@@ -194,7 +194,7 @@ pub(super) fn pack_global_sdf_build_inputs(
         let page_voxel_count = page_candidates
             .iter()
             .copied()
-            .filter_map(|index| ready_voxel_counts[index])
+            .filter_map(|index| ready_voxel_counts[&index])
             .sum::<usize>();
         if page_voxel_count > GLOBAL_SDF_MAX_UPLOAD_VOXEL_WORDS {
             dispositions.push(GlobalSdfPageBuildDisposition {
@@ -214,7 +214,7 @@ pub(super) fn pack_global_sdf_build_inputs(
             .iter()
             .copied()
             .filter(|index| !selected_objects[*index])
-            .filter_map(|index| ready_voxel_counts[index])
+            .filter_map(|index| ready_voxel_counts[&index])
             .sum::<usize>();
         if selected_voxel_count.saturating_add(additional_voxels)
             > GLOBAL_SDF_MAX_UPLOAD_VOXEL_WORDS

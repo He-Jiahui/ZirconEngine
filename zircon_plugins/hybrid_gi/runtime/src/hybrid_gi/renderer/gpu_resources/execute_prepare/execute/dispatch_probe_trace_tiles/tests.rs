@@ -13,6 +13,8 @@ mod multi_ray_quality;
 mod surface_cache_hzb;
 mod voxel_lookup;
 
+const PROBE_TRACE_TILE_STORAGE_BUFFER_BINDING_COUNT: u32 = 9;
+
 #[test]
 fn trace_probe_tiles_shader_writes_trace_lighting_buffer_from_tile_schedule() {
     let Some((device, queue)) = test_device() else {
@@ -409,10 +411,19 @@ fn test_device_with_backends(backends: wgpu::Backends) -> Option<(wgpu::Device, 
         force_fallback_adapter: false,
     }))
     .ok()?;
+    if adapter.limits().max_storage_buffers_per_shader_stage
+        < PROBE_TRACE_TILE_STORAGE_BUFFER_BINDING_COUNT
+    {
+        return None;
+    }
+    let required_limits = wgpu::Limits {
+        max_storage_buffers_per_shader_stage: PROBE_TRACE_TILE_STORAGE_BUFFER_BINDING_COUNT,
+        ..wgpu::Limits::default()
+    };
     pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
         label: Some("zircon-hybrid-gi-trace-probe-tiles-test-device"),
         required_features: wgpu::Features::empty(),
-        required_limits: wgpu::Limits::default(),
+        required_limits,
         memory_hints: wgpu::MemoryHints::Performance,
         trace: wgpu::Trace::Off,
         experimental_features: wgpu::ExperimentalFeatures::disabled(),

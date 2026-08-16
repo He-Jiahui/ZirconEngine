@@ -27,6 +27,8 @@ const FALLBACK_TRACE_DIAGNOSTIC_WORD_COUNT: usize = 256;
 
 mod bind_group;
 
+#[cfg(test)]
+use bind_group::create_probe_trace_tile_dispatch_bind_group_from_buffers_with_diagnostics;
 use bind_group::{
     create_probe_trace_tile_dispatch_bind_group,
     create_probe_trace_tile_dispatch_bind_group_from_buffers_with_diagnostics_and_voxel_lookup,
@@ -316,9 +318,8 @@ fn create_probe_trace_tile_dispatch_params_buffer(
         completed_probe_count,
         tile_count,
         surface_cache_params,
-        0,
-        0,
         scene_prepare_descriptor_count,
+        0,
     )
 }
 

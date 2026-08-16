@@ -99,6 +99,10 @@ pub(in crate::hybrid_gi::renderer) struct GlobalSdfGpuReadbackFuture {
 }
 
 impl GlobalSdfGpuReadbackFuture {
+    fn completion_byte_count(&self) -> u64 {
+        (self.requests.len() * std::mem::size_of::<u32>()) as u64
+    }
+
     pub(in crate::hybrid_gi::renderer) fn requests(&self) -> &[HybridGiGlobalSdfPageBuildRequest] {
         &self.requests
     }

@@ -3,9 +3,9 @@ mod selection;
 #[cfg(test)]
 mod tests;
 
-pub(super) use declarations::{
+pub(in crate::hybrid_gi) use declarations::{
     HybridGiIntersectionBackend, HybridGiLightingSource, HybridGiTraceCapabilities,
     HybridGiTraceCostCounters, HybridGiTraceDomain, HybridGiTraceFallbackReason,
     HybridGiTraceRequest, HybridGiTraceResult, HybridGiTraceSource,
 };
-pub(super) use selection::{HybridGiTraceCapabilityGraph, HybridGiTraceRoute};
+pub(in crate::hybrid_gi) use selection::{HybridGiTraceCapabilityGraph, HybridGiTraceRoute};

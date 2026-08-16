@@ -109,6 +109,7 @@ fn export_depth_normal_support_spatial_denoise_wgpu_png() {
 
 fn spatial_filter_trace_words() -> ([u32; TRACE_WORD_COUNT], Vec<[f32; 4]>) {
     let mut words = test_trace_words(
+        SURFACE_CACHE_FLAG | RADIANCE_VALID_FLAG,
         [0; (TEST_SIZE * TEST_SIZE) as usize],
         [DEFAULT_NORMAL_CODE; (TEST_SIZE * TEST_SIZE) as usize],
     );

@@ -30,7 +30,7 @@ mod neutral_projection;
 
 use global_sdf_stats::{global_sdf_runtime_stats, GlobalSdfCpuPrepareTimings};
 use material_capture::RuntimePrepareMaterialCaptureCache;
-use mesh_projection::RuntimePrepareMeshSdfProjectionCache;
+use mesh_projection::RuntimePrepareMeshProjectionCache;
 use neutral_projection::{
     prepare_frame_from_neutral, radiance_cache_consumes_from_neutral,
     radiance_cache_updates_for_instance, resolve_runtime_from_neutral, scene_prepare_from_neutral,
@@ -64,7 +64,7 @@ struct HybridGiRuntimePrepareInstanceState {
     global_sdf_gpu_state: GlobalSdfGpuState,
     bootstrap: RadianceCacheBootstrapState,
     mesh_sdf_scene_state: HybridGiMeshSdfSceneState,
-    mesh_sdf_projection_cache: RuntimePrepareMeshSdfProjectionCache,
+    mesh_projection_cache: RuntimePrepareMeshProjectionCache,
     global_sdf_scene_state: HybridGiGlobalSdfSceneState,
     pending_readbacks: VecDeque<HybridGiRuntimePreparePendingReadback>,
     pending_global_sdf_readbacks: VecDeque<GlobalSdfGpuReadbackFuture>,
@@ -143,7 +143,7 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
         else {
             return Ok(RenderPluginRendererOutputs::default());
         };
-        let scene_meshes = &context.scene_snapshot().scene.meshes;
+        let scene_meshes = context.scene_meshes();
         let directional_lights = context.frame_extract().lighting.directional_lights.clone();
         let point_lights = context.frame_extract().lighting.point_lights.clone();
         let spot_lights = context.frame_extract().lighting.spot_lights.clone();
@@ -191,12 +191,12 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
                 "hybrid GI runtime-prepare instance {instance_id} was not retained after insertion"
             )));
         };
-        let global_sdf_completions = instance.collect_ready_global_sdf_builds();
+        let global_sdf_completions = instance.collect_ready_global_sdf_builds()?;
         let global_sdf_uploaded_page_count = global_sdf_completions.len();
         instance
             .global_sdf_scene_state
             .commit_pages(&global_sdf_completions);
-        let completed_readback = instance.collect_ready_readbacks();
+        let completed_readback = instance.collect_ready_readbacks()?;
         if !context.gpu_work_admitted() {
             return Ok(plugin_renderer_outputs_from_gpu_readback(
                 completed_readback,
@@ -207,7 +207,7 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
             gpu_resources.get_or_insert_with(|| HybridGiGpuResources::new(context.device));
         let mesh_projection_started = Instant::now();
         let mesh_projection_cache_hit = instance
-            .mesh_sdf_projection_cache
+            .mesh_projection_cache
             .can_reuse(scene_meshes, &global_sdf_clipmap_bounds);
         let (mesh_sdf_sync, mesh_object_collection_time_us, mesh_scene_sync_time_us) =
             if mesh_projection_cache_hit {
@@ -218,29 +218,23 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
                 )
             } else {
                 instance
-                    .mesh_sdf_projection_cache
+                    .mesh_projection_cache
                     .refresh_material_capture(context, scene_meshes);
-                let mesh_sdf_objects = mesh_sdf_objects_from_context(
+                let mesh_projection = mesh_projection_from_context(
                     context,
-                    instance.mesh_sdf_projection_cache.material_capture(),
+                    instance.mesh_projection_cache.material_capture(),
                     scene_meshes,
                     &global_sdf_clipmap_bounds,
                 );
                 let mesh_scene_sync_started = Instant::now();
-                let sync = instance.mesh_sdf_scene_state.synchronize(mesh_sdf_objects);
+                let sync = instance
+                    .mesh_sdf_scene_state
+                    .synchronize(mesh_projection.mesh_sdf_objects);
                 let mesh_scene_sync_time_us = elapsed_micros(mesh_scene_sync_started);
-                let scene_mesh_world_bounds = Arc::from(
-                    instance
-                        .mesh_sdf_scene_state
-                        .objects()
-                        .iter()
-                        .map(|object| (object.stable_instance_key(), object.bounds()))
-                        .collect::<Vec<_>>(),
-                );
-                instance.mesh_sdf_projection_cache.capture(
+                instance.mesh_projection_cache.capture(
                     scene_meshes,
                     &global_sdf_clipmap_bounds,
-                    scene_mesh_world_bounds,
+                    mesh_projection.scene_mesh_world_bounds,
                 );
                 let mesh_object_collection_time_us =
                     elapsed_micros(mesh_projection_started).saturating_sub(mesh_scene_sync_time_us);
@@ -313,10 +307,10 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
             }
         }
         let global_sdf_candidate_build_time_us = elapsed_micros(global_sdf_candidate_build_started);
-        let scene_mesh_world_bounds = instance.mesh_sdf_projection_cache.scene_mesh_world_bounds();
+        let scene_mesh_world_bounds = instance.mesh_projection_cache.scene_mesh_world_bounds();
         let scene_prepare =
             scene_prepare_from_neutral(&prepared_frame, scene_mesh_world_bounds.as_ref());
-        let execution_scene_meshes = instance.mesh_sdf_projection_cache.scene_meshes();
+        let execution_scene_meshes = instance.mesh_projection_cache.scene_meshes();
         let global_sdf_stats = global_sdf_runtime_stats(
             &instance.global_sdf_scene_state,
             &instance.global_sdf_gpu_state,
@@ -353,7 +347,7 @@ impl RuntimePrepareCollector for HybridGiRuntimePrepareCollector {
             context.device,
             context.queue,
             &mut *context.encoder,
-            instance.mesh_sdf_projection_cache.material_capture(),
+            instance.mesh_projection_cache.material_capture(),
             Some(&prepare),
             scene_prepare.as_ref(),
             &radiance_cache_updates,
@@ -416,7 +410,7 @@ impl HybridGiRuntimePrepareCollectorState {
                 global_sdf_gpu_state: GlobalSdfGpuState::new(device),
                 bootstrap: RadianceCacheBootstrapState::default(),
                 mesh_sdf_scene_state: HybridGiMeshSdfSceneState::default(),
-                mesh_sdf_projection_cache: RuntimePrepareMeshSdfProjectionCache::default(),
+                mesh_projection_cache: RuntimePrepareMeshProjectionCache::default(),
                 global_sdf_scene_state: HybridGiGlobalSdfSceneState::default(),
                 pending_readbacks: VecDeque::new(),
                 pending_global_sdf_readbacks: VecDeque::new(),
@@ -443,7 +437,10 @@ impl HybridGiRuntimePrepareInstanceState {
 
     fn collect_ready_global_sdf_builds(
         &mut self,
-    ) -> Vec<crate::hybrid_gi::scene_representation::HybridGiGlobalSdfPageBuildRequest> {
+    ) -> Result<
+        Vec<crate::hybrid_gi::scene_representation::HybridGiGlobalSdfPageBuildRequest>,
+        GraphicsError,
+    > {
         let mut completed = Vec::new();
         while self
             .pending_global_sdf_readbacks
@@ -453,16 +450,17 @@ impl HybridGiRuntimePrepareInstanceState {
             let Some(pending) = self.pending_global_sdf_readbacks.pop_front() else {
                 break;
             };
-            if let Some(Ok(mut pages)) = pending.try_collect() {
+            if let Some(result) = pending.try_collect() {
+                let mut pages = result?;
                 completed.append(&mut pages);
             }
         }
-        completed
+        Ok(completed)
     }
 
     fn collect_ready_readbacks(
         &mut self,
-    ) -> Option<crate::hybrid_gi::renderer::HybridGiGpuReadback> {
+    ) -> Result<Option<crate::hybrid_gi::renderer::HybridGiGpuReadback>, GraphicsError> {
         let mut latest_success = None;
         while self
             .pending_readbacks
@@ -475,13 +473,12 @@ impl HybridGiRuntimePrepareInstanceState {
             let Some(result) = pending.future.try_collect() else {
                 continue;
             };
-            if let Ok(readback) = result {
-                self.bootstrap
-                    .confirm_submission(pending.radiance_cache_revision);
-                latest_success = Some(readback);
-            }
+            let readback = result?;
+            self.bootstrap
+                .confirm_submission(pending.radiance_cache_revision);
+            latest_success = Some(readback);
         }
-        latest_success
+        Ok(latest_success)
     }
 }
 
@@ -519,36 +516,55 @@ fn rotate_global_sdf_build_requests<T>(requests: &mut [T], cursor: &mut usize, b
     *cursor = (start + budget.max(1)) % requests.len();
 }
 
-fn mesh_sdf_objects_from_context(
+struct RuntimePrepareMeshProjection {
+    mesh_sdf_objects: Vec<HybridGiMeshSdfObject>,
+    scene_mesh_world_bounds: Arc<
+        [(
+            u64,
+            zircon_runtime::core::framework::render::RenderMeshBounds,
+        )],
+    >,
+}
+
+fn mesh_projection_from_context(
     context: &RuntimePrepareCollectorContext<'_>,
     material_capture: &RuntimePrepareMaterialCaptureCache,
     scene_meshes: &[RenderMeshSnapshot],
     clipmaps: &[HybridGiGlobalSdfClipmapBounds],
-) -> Vec<HybridGiMeshSdfObject> {
-    scene_meshes
-        .iter()
-        .filter_map(|mesh| {
-            let geometry = context.mesh_geometry_seed(mesh)?;
-            let material = material_capture
-                .material_capture_seed(&mesh.material.id())
-                .map_or_else(HybridGiMeshSdfMaterialFlags::default, |seed| {
-                    HybridGiMeshSdfMaterialFlags {
-                        casts_shadows: seed.cast_shadows,
-                        emissive: (seed.emissive.is_finite() && seed.emissive.max_element() > 0.0)
-                            || seed.emissive_texture.is_some(),
-                    }
-                });
-            Some(HybridGiMeshSdfObject::from_sources(
-                mesh,
-                geometry.local_bounds,
-                geometry.resource_revision,
-                geometry.shape_revision,
-                HybridGiMeshSdfAssetState::from_runtime(geometry.mesh_sdf),
-                material,
-                clipmaps,
-            ))
-        })
-        .collect()
+) -> RuntimePrepareMeshProjection {
+    let mut mesh_sdf_objects = Vec::with_capacity(scene_meshes.len());
+    let mut scene_mesh_world_bounds = Vec::with_capacity(scene_meshes.len());
+    for mesh in scene_meshes {
+        let Some(geometry) = context.mesh_geometry_seed(mesh) else {
+            continue;
+        };
+        scene_mesh_world_bounds.push((
+            mesh.stable_instance_key,
+            geometry.local_bounds.transformed(mesh.transform),
+        ));
+        let material = material_capture
+            .material_capture_seed(&mesh.material.id())
+            .map_or_else(HybridGiMeshSdfMaterialFlags::default, |seed| {
+                HybridGiMeshSdfMaterialFlags {
+                    casts_shadows: seed.cast_shadows,
+                    emissive: (seed.emissive.is_finite() && seed.emissive.max_element() > 0.0)
+                        || seed.emissive_texture.is_some(),
+                }
+            });
+        mesh_sdf_objects.push(HybridGiMeshSdfObject::from_sources(
+            mesh,
+            geometry.local_bounds,
+            geometry.resource_revision,
+            geometry.shape_revision,
+            HybridGiMeshSdfAssetState::from_runtime(geometry.mesh_sdf),
+            material,
+            clipmaps,
+        ));
+    }
+    RuntimePrepareMeshProjection {
+        mesh_sdf_objects,
+        scene_mesh_world_bounds: scene_mesh_world_bounds.into(),
+    }
 }
 
 impl HybridGiRuntimePrepareCollector {

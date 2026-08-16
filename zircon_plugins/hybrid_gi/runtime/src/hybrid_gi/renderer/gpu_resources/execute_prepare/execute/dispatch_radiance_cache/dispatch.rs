@@ -87,7 +87,7 @@ struct RadianceCacheDispatchParams {
     stage: u32,
 }
 
-pub(super) fn dispatch_radiance_cache(
+pub(in crate::hybrid_gi::renderer::gpu_resources::execute_prepare::execute) fn dispatch_radiance_cache(
     device: &wgpu::Device,
     resources: &HybridGiGpuResources,
     state: &RadianceCacheGpuState,

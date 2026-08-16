@@ -33,10 +33,11 @@ fn trace_probe_tiles_pipeline_keeps_diagnostics_entrypoint_in_the_output_owner()
         include_str!("../../../../../shaders/trace_probe_tiles_global_sdf.wgsl");
     let aggregate_source = include_str!("../../../../../shaders/trace_probe_tiles_aggregate.wgsl");
     let output_source = include_str!("../../../../../shaders/trace_probe_tiles_output.wgsl");
+    let voxel_source = include_str!("../../../../../shaders/trace_probe_tiles_voxel.wgsl");
 
     assert!(trace_source.contains("const TRACE_DIAGNOSTIC_WORDS_PER_ENTRY: u32 = 13u;"));
     assert!(trace_source.contains("const SCENE_PREPARE_SIGNED_POSITION_BIAS: f32 = 2048.0;"));
-    assert!(trace_source.contains("(f32(i32(value)) - SCENE_PREPARE_SIGNED_POSITION_BIAS)"));
+    assert!(voxel_source.contains("(f32(i32(value)) - SCENE_PREPARE_SIGNED_POSITION_BIAS)"));
     assert!(!trace_source.contains("fn sample_global_sdf("));
     assert!(!trace_source.contains("fn global_sdf_tile_sample("));
     assert!(!trace_source.contains("fn tile_trace("));
@@ -98,7 +99,7 @@ fn trace_probe_tiles_shader_uses_global_sdf_before_voxel_fallback() {
         &fallback_surface_cache,
         0,
         &[0_u32; 512],
-        [2_064, 2_048, 2_032],
+        [2_032, 2_048, 2_032],
     );
 
     assert_eq!(output.lighting, [1, 7, pack_rgb8([117, 167, 222])]);
@@ -173,7 +174,7 @@ fn trace_diagnostics_aggregate_mixed_surface_and_global_sdf_tiles() {
         &[[0_u32; 12]],
         &[0, 7, 0, 1, 1, 7, 1, 1],
         &[0_u32; 512],
-        [2_064, 2_048, 2_032],
+        [2_032, 2_048, 2_032],
     );
 
     assert_eq!(diagnostics[0], 1);
@@ -208,9 +209,10 @@ fn trace_diagnostics_aggregate_mixed_global_sdf_and_voxel_tiles() {
         return;
     };
     let fallback_surface_cache = create_probe_trace_tile_fallback_surface_cache_textures(&device);
-    let mut global_sdf_atlas = [8.0_f32.to_bits(); 512];
-    // The quantized test probe starts in absolute page [-1, 0, -1], at cell [7, 0, 7].
-    global_sdf_atlas[7 + 7 * 64] = 0.0_f32.to_bits();
+    let mut global_sdf_atlas = [1.0_f32.to_bits(); 512];
+    // Sample 1 stays in the resident page and reaches this cell. Sample 3 exits
+    // through the unavailable negative-Y neighbor and falls back to the voxel cell.
+    global_sdf_atlas[7 + 8 + 6 * 64] = 0.0_f32.to_bits();
 
     let diagnostics = trace_mixed_source_tiles(
         &device,
@@ -221,10 +223,10 @@ fn trace_diagnostics_aggregate_mixed_global_sdf_and_voxel_tiles() {
         TRACE_BACKEND_GLOBAL_SDF | TRACE_BACKEND_VOXEL_CLIPMAP,
         1,
         1,
-        &[voxel_cell_descriptor_words(7, 2, 4, [24, 96, 160])],
-        &[0, 7, 0, 1, 1, 7, 2, 12],
+        &[voxel_cell_descriptor_words(7, 3, 4, [24, 96, 160])],
+        &[0, 7, 1, 1, 1, 7, 3, 12],
         &global_sdf_atlas,
-        [2_064, 2_048, 2_032],
+        [2_032, 2_048, 2_032],
     );
 
     assert_eq!(diagnostics[0], 1);
@@ -284,7 +286,7 @@ fn export_hybrid_gi_m5_global_sdf_trace_wgpu_png() {
             &fallback_surface_cache,
             tile_sample_id as u32,
             &global_sdf_bindings,
-            [1_824, 2_176, 2_176],
+            [1_808, 2_176, 2_176],
         )
         .lighting[2];
     }
@@ -300,11 +302,11 @@ fn export_hybrid_gi_m5_global_sdf_trace_wgpu_png() {
         .count();
     assert!(
         distinct_samples > 1,
-        "directional Global SDF trace should produce hit and miss variation"
+        "directional Global SDF trace should produce hit and miss variation; samples={samples:?}"
     );
     assert!(
         global_sdf_hit_cells > 0,
-        "at least one direction should sphere-trace the uploaded Global SDF"
+        "at least one direction should sphere-trace the uploaded Global SDF; samples={samples:?}"
     );
 
     let output_dir = render_test_output_dir();
@@ -399,7 +401,7 @@ fn trace_global_sdf_tile_with_buffers(
             global_sdf_page_count,
             TRACE_BACKEND_GLOBAL_SDF,
             trace_lighting_source_code(HybridGiLightingSource::ProbeLineage),
-            0,
+            trace_fallback_reason_code(Some(HybridGiTraceFallbackReason::ScreenDataUnavailable)),
             0,
             0,
             global_sdf_clipmaps,
@@ -616,9 +618,10 @@ fn build_sphere_global_sdf(
     let requests = scene.dirty_page_build_requests();
     assert_eq!(requests.len(), 1);
     let clipmaps = scene.clipmap_bounds().to_vec();
+    let local_bounds = RenderMeshBounds::from_min_max([-2.0; 3], [2.0; 3]);
     let object = HybridGiMeshSdfObject::from_sources(
         &global_sdf_test_mesh(Vec3::new(-2.0, 2.0, 2.0)),
-        RenderMeshBounds::from_min_max([-4.0; 3], [4.0; 3]),
+        local_bounds,
         1,
         1,
         HybridGiMeshSdfAssetState::Ready(Arc::<[MeshSdfAsset]>::from(vec![sphere_mesh_sdf_asset(
@@ -649,11 +652,7 @@ fn build_sphere_global_sdf(
         .expect("ready Mesh SDF page must dispatch a Global SDF build");
     let persistent_resource_byte_count = state.persistent_resource_byte_count();
     assert!(persistent_resource_byte_count > 0);
-    let completion_readback = readback_buffer(
-        device,
-        "zircon-hybrid-gi-global-sdf-product-completion-readback",
-        pending.request_count(),
-    );
+    let completion_readback = create_readback_buffer(device, pending.request_count());
     pending.copy_completion_to(&mut encoder, &completion_readback);
     queue.submit(std::iter::once(encoder.finish()));
     let completed = pending
@@ -666,13 +665,15 @@ fn build_sphere_global_sdf(
 }
 
 fn sphere_mesh_sdf_asset(radius: f32) -> MeshSdfAsset {
-    let distance_limit = 4.0;
+    let half_extent = 2.0;
+    let voxel_size = 0.5;
     let voxels = (0..8)
         .flat_map(|z| {
             (0..8).flat_map(move |y| {
                 (0..8).map(move |x| {
-                    let position = Vec3::new(x as f32 - 3.5, y as f32 - 3.5, z as f32 - 3.5);
-                    (((position.length() - radius) / distance_limit).clamp(-1.0, 1.0)
+                    let position =
+                        Vec3::new(x as f32 - 3.5, y as f32 - 3.5, z as f32 - 3.5) * voxel_size;
+                    (((position.length() - radius) / half_extent).clamp(-1.0, 1.0)
                         * i16::MAX as f32)
                         .round() as i16
                 })
@@ -682,10 +683,10 @@ fn sphere_mesh_sdf_asset(radius: f32) -> MeshSdfAsset {
     MeshSdfAsset {
         schema_version: MESH_SDF_SCHEMA_VERSION,
         source_hash: [1; 32],
-        local_bounds: RenderMeshBounds::from_min_max([-4.0; 3], [4.0; 3]),
+        local_bounds: RenderMeshBounds::from_min_max([-half_extent; 3], [half_extent; 3]),
         dimensions: [8; 3],
-        voxel_size: [1.0; 3],
-        distance_range: [-distance_limit, distance_limit],
+        voxel_size: [voxel_size; 3],
+        distance_range: [-half_extent, half_extent],
         encoding: MeshSdfEncoding::SignedNormalized16,
         cook_settings: MeshSdfCookSettings::default(),
         voxels,

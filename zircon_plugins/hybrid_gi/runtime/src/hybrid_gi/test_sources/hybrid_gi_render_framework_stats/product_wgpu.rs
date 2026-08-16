@@ -1,5 +1,8 @@
 use super::*;
 
+const M5_PERFORMANCE_SETTLE_FRAME_COUNT: usize = 300;
+const M5_PERFORMANCE_WARM_SAMPLE_COUNT: usize = 31;
+
 #[test]
 #[ignore]
 fn export_hybrid_gi_voxel_miss_fallback_wgpu_png() {
@@ -17,29 +20,136 @@ fn export_hybrid_gi_voxel_miss_fallback_wgpu_png() {
     server
         .set_quality_profile(viewport, hybrid_gi_only_quality_profile())
         .unwrap();
+    let cold_submit_started = Instant::now();
     server
         .submit_frame_extract(viewport, extract.clone())
         .unwrap();
+    let cold_submit_wall_time_us =
+        u64::try_from(cold_submit_started.elapsed().as_micros()).unwrap_or(u64::MAX);
 
     let first_stats = server.query_stats().unwrap();
     assert_eq!(first_stats.last_hybrid_gi_graph_executed_pass_count, 4);
     assert_eq!(first_stats.last_hybrid_gi_scene_card_count, 2);
     assert!(first_stats.last_hybrid_gi_surface_cache_resident_page_count >= 1);
-    assert!(first_stats.last_hybrid_gi_surface_cache_depth_sample_count >= 1);
-    assert!(first_stats.last_hybrid_gi_probe_trace_tile_count >= 1);
+    assert!(first_stats.last_hybrid_gi_voxel_resident_clipmap_count >= 1);
+    assert!(
+        !first_stats.last_hybrid_gi_global_sdf_mesh_projection_cache_hit,
+        "the first product frame must measure the cold mesh projection path"
+    );
+
+    let renderdoc_capture_requested = std::env::var_os("ZR_HGI_M5_RENDERDOC_CAPTURE").is_some();
+    if renderdoc_capture_requested {
+        server.request_graphics_debugger_capture(viewport).unwrap();
+    }
+
+    let readback_wait_started = Instant::now();
+    let readback_deadline = readback_wait_started + GPU_READBACK_EVIDENCE_TIMEOUT;
+    let mut followup_frame_count = 0_usize;
+    let mut last_stats = first_stats.clone();
+    let mut gpu_readback_stats = None;
+    for _ in 0..GPU_READBACK_EVIDENCE_FRAME_LIMIT {
+        server
+            .submit_frame_extract(viewport, extract.clone())
+            .unwrap();
+        followup_frame_count = followup_frame_count.saturating_add(1);
+        last_stats = server.query_stats().unwrap();
+        if renderdoc_capture_requested && followup_frame_count == 1 {
+            let capture_status = server.query_graphics_debugger_status().unwrap();
+            assert!(!capture_status.capture_pending);
+            assert_eq!(
+                capture_status.last_capture_frame,
+                last_stats.last_generation
+            );
+            assert_eq!(capture_status.last_error, None);
+        }
+        if last_stats.last_hybrid_gi_surface_cache_depth_sample_count >= 1
+            && last_stats.last_hybrid_gi_probe_trace_tile_count >= 1
+            && last_stats.last_hybrid_gi_global_sdf_mesh_projection_cache_hit
+        {
+            gpu_readback_stats = Some(last_stats.clone());
+            break;
+        }
+        if Instant::now() >= readback_deadline {
+            break;
+        }
+        thread::sleep(GPU_READBACK_EVIDENCE_POLL_INTERVAL);
+    }
+    let readback_wait_wall_time_us =
+        u64::try_from(readback_wait_started.elapsed().as_micros()).unwrap_or(u64::MAX);
+    let mut stats = gpu_readback_stats.unwrap_or_else(|| {
+        panic!(
+            "bounded follow-up frames must publish product GPU readback on the warm mesh projection path; depth_samples={}, trace_tiles={}, cache_hit={}, in_flight={}, completed={}, followup_frames={}, wait_us={}",
+            last_stats.last_hybrid_gi_surface_cache_depth_sample_count,
+            last_stats.last_hybrid_gi_probe_trace_tile_count,
+            last_stats.last_hybrid_gi_global_sdf_mesh_projection_cache_hit,
+            last_stats.last_readback_in_flight_count,
+            last_stats.last_readback_completed_count,
+            followup_frame_count,
+            readback_wait_wall_time_us,
+        )
+    });
     assert_eq!(
-        first_stats.last_hybrid_gi_probe_trace_dispatch_group_count[0..2],
+        stats.last_hybrid_gi_global_sdf_cpu_mesh_scene_sync_time_us, 0,
+        "a warm product frame must not resynchronize the unchanged mesh SDF scene"
+    );
+    assert_eq!(
+        stats.last_hybrid_gi_probe_trace_dispatch_group_count[0..2],
         [1, 1]
     );
-    assert!(first_stats.last_hybrid_gi_probe_trace_dispatch_group_count[2] >= 1);
-    assert!(first_stats.last_hybrid_gi_voxel_resident_clipmap_count >= 1);
-
-    server.submit_frame_extract(viewport, extract).unwrap();
-    let stats = server.query_stats().unwrap();
+    assert!(stats.last_hybrid_gi_probe_trace_dispatch_group_count[2] >= 1);
     assert!(
         stats.last_hybrid_gi_cache_entry_count >= 1,
         "expected stateful runtime prepare collector GPU readback to feed provider cache entries"
     );
+
+    for _ in 0..M5_PERFORMANCE_SETTLE_FRAME_COUNT {
+        server
+            .submit_frame_extract(viewport, extract.clone())
+            .unwrap();
+    }
+    let mut warm_submit_wall_time_us = [0_u64; M5_PERFORMANCE_WARM_SAMPLE_COUNT];
+    let mut warm_cpu_prepare_time_us = [0_u64; M5_PERFORMANCE_WARM_SAMPLE_COUNT];
+    let mut warm_cache_lookup_time_us = [0_u64; M5_PERFORMANCE_WARM_SAMPLE_COUNT];
+    let mut warm_cache_hit_count = 0_usize;
+    let mut warm_zero_scene_sync_count = 0_usize;
+    let mut warm_zero_transient_upload_count = 0_usize;
+    for sample_index in 0..M5_PERFORMANCE_WARM_SAMPLE_COUNT {
+        let submit_started = Instant::now();
+        server
+            .submit_frame_extract(viewport, extract.clone())
+            .unwrap();
+        warm_submit_wall_time_us[sample_index] =
+            u64::try_from(submit_started.elapsed().as_micros()).unwrap_or(u64::MAX);
+        stats = server.query_stats().unwrap();
+        warm_cpu_prepare_time_us[sample_index] =
+            stats.last_hybrid_gi_global_sdf_cpu_prepare_time_us;
+        warm_cache_lookup_time_us[sample_index] =
+            stats.last_hybrid_gi_global_sdf_cpu_mesh_object_collection_time_us;
+        warm_cache_hit_count +=
+            usize::from(stats.last_hybrid_gi_global_sdf_mesh_projection_cache_hit);
+        warm_zero_scene_sync_count +=
+            usize::from(stats.last_hybrid_gi_global_sdf_cpu_mesh_scene_sync_time_us == 0);
+        warm_zero_transient_upload_count += usize::from(
+            stats.last_hybrid_gi_global_sdf_transient_upload_byte_count == 0
+                && stats.last_hybrid_gi_global_sdf_transient_buffer_creation_count == 0
+                && stats.last_hybrid_gi_global_sdf_transient_bind_group_creation_count == 0,
+        );
+    }
+    assert_eq!(
+        warm_cache_hit_count, M5_PERFORMANCE_WARM_SAMPLE_COUNT,
+        "all settled warm samples must reuse the mesh projection"
+    );
+    assert_eq!(
+        warm_zero_scene_sync_count, M5_PERFORMANCE_WARM_SAMPLE_COUNT,
+        "all settled warm samples must avoid mesh SDF scene resynchronization"
+    );
+    assert_eq!(
+        warm_zero_transient_upload_count, M5_PERFORMANCE_WARM_SAMPLE_COUNT,
+        "all settled warm samples must avoid Global SDF transient build allocations and uploads"
+    );
+    let warm_submit_summary = warm_sample_summary(warm_submit_wall_time_us);
+    let warm_cpu_prepare_summary = warm_sample_summary(warm_cpu_prepare_time_us);
+    let warm_cache_lookup_summary = warm_sample_summary(warm_cache_lookup_time_us);
 
     let frame = server
         .capture_frame(viewport)
@@ -52,7 +162,7 @@ fn export_hybrid_gi_voxel_miss_fallback_wgpu_png() {
     fs::write(
         output_dir.join(SCENE_REPRESENTATION_WGPU_REPORT),
         format!(
-            "png={}\nwidth={}\nheight={}\ngeneration={}\nvisible_pixels={}\nmin_luma={:.2}\nmax_luma={:.2}\ngpu_scene_prepare_depth_trace_readback=surface_cache_depth_texture+gpu_probe_trace_tile_buffer\ngpu_probe_trace_tile_generation=generate_probe_trace_tiles_compute+indirect_args_readback\ngpu_probe_trace_tile_dispatch=trace_probe_tiles_compute+writes_probe_trace_lighting_buffer\ngpu_probe_trace_tile_surface_cache_sampling=trace_probe_tiles_compute+surface_cache_atlas_depth_texture_load\ngpu_probe_trace_tile_voxel_miss_fallback=trace_probe_tiles_compute+scene_prepare_voxel_cell_descriptor_radiance\nvalidated_surface_cache_depth_sample_count={}\nvalidated_surface_cache_texture_sampling_shader=trace_probe_tiles_shader_samples_surface_cache_atlas_and_depth_textures_exact_rgb\nvalidated_voxel_miss_fallback_shader=trace_probe_tiles_shader_uses_voxel_cell_descriptor_when_surface_cache_sample_is_invalid_exact_rgb\ngpu_scene_screen_probe_prepare_work_items=screen_probe_descriptors_to_transient_prepare_probes\nneutral_hybrid_gi_prepared_frame_sideband=provider_prepare_output_resident_screen_probes+probe_scene_data\nruntime_prepare_material_capture_context=collector_context_material_capture_seed+sample_texture_rgba_from_resource_streamer\nruntime_prepare_collector_execution=stateful_gpu_prepare_pending_readback_collected\nruntime_prepare_scene_prepare_reconstruction=deferred_pending_neutral_scene_prepare_to_internal_card_requests\nvalidated_provider_prepared_frame_resident_screen_probe_count=2\nvalidated_runtime_prepare_transient_screen_probe_count=2\nlast_hybrid_gi_graph_executed_pass_count={}\nlast_hybrid_gi_cache_entry_count={}\nlast_hybrid_gi_scene_card_count={}\nlast_hybrid_gi_surface_cache_resident_page_count={}\nlast_hybrid_gi_surface_cache_feedback_card_count={}\nlast_hybrid_gi_surface_cache_depth_sample_count={}\nlast_hybrid_gi_probe_trace_tile_count={}\nlast_hybrid_gi_probe_trace_dispatch_group_count={:?}\nlast_hybrid_gi_scene_screen_probe_count={}\nlast_hybrid_gi_scene_radiance_cache_entry_count={}\nlast_hybrid_gi_voxel_resident_clipmap_count={}\n",
+            "png={}\nwidth={}\nheight={}\ngeneration={}\nvisible_pixels={}\nmin_luma={:.2}\nmax_luma={:.2}\ngpu_scene_prepare_depth_trace_readback=surface_cache_depth_texture+gpu_probe_trace_tile_buffer\ngpu_probe_trace_tile_generation=generate_probe_trace_tiles_compute+indirect_args_readback\ngpu_probe_trace_tile_dispatch=trace_probe_tiles_compute+writes_probe_trace_lighting_buffer\ngpu_probe_trace_tile_surface_cache_sampling=trace_probe_tiles_compute+surface_cache_atlas_depth_texture_load\ngpu_probe_trace_tile_voxel_miss_fallback=trace_probe_tiles_compute+scene_prepare_voxel_cell_descriptor_radiance\nvalidated_surface_cache_depth_sample_count={}\nvalidated_surface_cache_texture_sampling_shader=trace_probe_tiles_shader_samples_surface_cache_atlas_and_depth_textures_exact_rgb\nvalidated_voxel_miss_fallback_shader=trace_probe_tiles_shader_uses_voxel_cell_descriptor_when_surface_cache_sample_is_invalid_exact_rgb\ngpu_scene_screen_probe_prepare_work_items=screen_probe_descriptors_to_transient_prepare_probes\nneutral_hybrid_gi_prepared_frame_sideband=provider_prepare_output_resident_screen_probes+probe_scene_data\nruntime_prepare_material_capture_context=collector_context_material_capture_seed+sample_texture_rgba_from_resource_streamer\nruntime_prepare_collector_execution=stateful_gpu_prepare_pending_readback_collected\nruntime_prepare_scene_prepare_reconstruction=deferred_pending_neutral_scene_prepare_to_internal_card_requests\nvalidated_provider_prepared_frame_resident_screen_probe_count=2\nvalidated_runtime_prepare_transient_screen_probe_count=2\ncold_submit_wall_time_us={}\ngpu_readback_wait_wall_time_us={}\ngpu_readback_followup_frame_count={}\ncold_global_sdf_cpu_prepare_time_us={}\ncold_global_sdf_cpu_mesh_object_collection_time_us={}\ncold_global_sdf_cpu_mesh_scene_sync_time_us={}\ncold_global_sdf_mesh_projection_cache_hit={}\nwarm_global_sdf_cpu_prepare_time_us={}\nwarm_global_sdf_cpu_mesh_object_collection_time_us={}\nwarm_global_sdf_cpu_mesh_scene_sync_time_us={}\nwarm_global_sdf_mesh_projection_cache_hit={}\nlast_hybrid_gi_graph_executed_pass_count={}\nlast_hybrid_gi_cache_entry_count={}\nlast_hybrid_gi_scene_card_count={}\nlast_hybrid_gi_surface_cache_resident_page_count={}\nlast_hybrid_gi_surface_cache_feedback_card_count={}\nlast_hybrid_gi_surface_cache_depth_sample_count={}\nlast_hybrid_gi_probe_trace_tile_count={}\nlast_hybrid_gi_probe_trace_dispatch_group_count={:?}\nlast_hybrid_gi_scene_screen_probe_count={}\nlast_hybrid_gi_scene_radiance_cache_entry_count={}\nlast_hybrid_gi_voxel_resident_clipmap_count={}\nm5_performance_settle_frame_count={}\nm5_performance_warm_sample_count={}\nwarm_mesh_projection_cache_hit_count={}\nwarm_zero_mesh_scene_sync_count={}\nwarm_zero_transient_upload_count={}\nwarm_submit_wall_time_us_p50={}\nwarm_submit_wall_time_us_p95={}\nwarm_submit_wall_time_us_max={}\nwarm_global_sdf_cpu_prepare_time_us_p50={}\nwarm_global_sdf_cpu_prepare_time_us_p95={}\nwarm_global_sdf_cpu_prepare_time_us_max={}\nwarm_mesh_projection_cache_lookup_time_us_p50={}\nwarm_mesh_projection_cache_lookup_time_us_p95={}\nwarm_mesh_projection_cache_lookup_time_us_max={}\ncold_global_sdf_transient_upload_byte_count={}\nwarm_global_sdf_transient_upload_byte_count={}\n",
             SCENE_REPRESENTATION_WGPU_PNG,
             frame.width,
             frame.height,
@@ -60,7 +170,18 @@ fn export_hybrid_gi_voxel_miss_fallback_wgpu_png() {
             metrics.visible_pixels,
             metrics.min_luma,
             metrics.max_luma,
-            first_stats.last_hybrid_gi_surface_cache_depth_sample_count,
+            stats.last_hybrid_gi_surface_cache_depth_sample_count,
+            cold_submit_wall_time_us,
+            readback_wait_wall_time_us,
+            followup_frame_count,
+            first_stats.last_hybrid_gi_global_sdf_cpu_prepare_time_us,
+            first_stats.last_hybrid_gi_global_sdf_cpu_mesh_object_collection_time_us,
+            first_stats.last_hybrid_gi_global_sdf_cpu_mesh_scene_sync_time_us,
+            first_stats.last_hybrid_gi_global_sdf_mesh_projection_cache_hit,
+            stats.last_hybrid_gi_global_sdf_cpu_prepare_time_us,
+            stats.last_hybrid_gi_global_sdf_cpu_mesh_object_collection_time_us,
+            stats.last_hybrid_gi_global_sdf_cpu_mesh_scene_sync_time_us,
+            stats.last_hybrid_gi_global_sdf_mesh_projection_cache_hit,
             stats.last_hybrid_gi_graph_executed_pass_count,
             stats.last_hybrid_gi_cache_entry_count,
             stats.last_hybrid_gi_scene_card_count,
@@ -72,6 +193,22 @@ fn export_hybrid_gi_voxel_miss_fallback_wgpu_png() {
             stats.last_hybrid_gi_scene_screen_probe_count,
             stats.last_hybrid_gi_scene_radiance_cache_entry_count,
             stats.last_hybrid_gi_voxel_resident_clipmap_count,
+            M5_PERFORMANCE_SETTLE_FRAME_COUNT,
+            M5_PERFORMANCE_WARM_SAMPLE_COUNT,
+            warm_cache_hit_count,
+            warm_zero_scene_sync_count,
+            warm_zero_transient_upload_count,
+            warm_submit_summary[0],
+            warm_submit_summary[1],
+            warm_submit_summary[2],
+            warm_cpu_prepare_summary[0],
+            warm_cpu_prepare_summary[1],
+            warm_cpu_prepare_summary[2],
+            warm_cache_lookup_summary[0],
+            warm_cache_lookup_summary[1],
+            warm_cache_lookup_summary[2],
+            first_stats.last_hybrid_gi_global_sdf_transient_upload_byte_count,
+            stats.last_hybrid_gi_global_sdf_transient_upload_byte_count,
         ),
     )
     .unwrap();
@@ -79,6 +216,17 @@ fn export_hybrid_gi_voxel_miss_fallback_wgpu_png() {
         metrics.visible_pixels > 0 && metrics.max_luma > 8.0,
         "expected nonblack Wgpu product frame; metrics={metrics:?}"
     );
+}
+
+fn warm_sample_summary(mut samples: [u64; M5_PERFORMANCE_WARM_SAMPLE_COUNT]) -> [u64; 3] {
+    samples.sort_unstable();
+    let p50_index = samples.len() / 2;
+    let p95_index = (samples.len() * 95).div_ceil(100).saturating_sub(1);
+    [
+        samples[p50_index],
+        samples[p95_index],
+        samples[samples.len() - 1],
+    ]
 }
 
 #[test]

@@ -659,11 +659,8 @@ pub(super) fn model_handle(asset_manager: &ProjectAssetManager) -> ResourceHandl
 
 fn open_test_project(root: &PathBuf) -> Arc<ProjectAssetManager> {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    asset_manager
-        .open_project(root.to_string_lossy().as_ref())
-        .unwrap();
-    let mut project = ProjectManager::open(root).unwrap();
-    project.scan_and_import().unwrap();
+    let project = ProjectManager::open(root).unwrap();
+    asset_manager.open_prepared_project(project).unwrap();
     asset_manager
 }
 

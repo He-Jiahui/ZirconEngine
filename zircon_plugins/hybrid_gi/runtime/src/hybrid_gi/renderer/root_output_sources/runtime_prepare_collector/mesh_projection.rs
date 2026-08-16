@@ -10,7 +10,7 @@ use crate::hybrid_gi::scene_representation::HybridGiGlobalSdfClipmapBounds;
 use super::material_capture::RuntimePrepareMaterialCaptureCache;
 
 /// Comparison-only cache. Mesh SDF scene state remains the authoritative projected-object owner.
-pub(super) struct RuntimePrepareMeshSdfProjectionCache {
+pub(super) struct RuntimePrepareMeshProjectionCache {
     initialized: bool,
     scene_meshes: Arc<[RenderMeshSnapshot]>,
     scene_mesh_world_bounds: Arc<[(u64, RenderMeshBounds)]>,
@@ -18,7 +18,7 @@ pub(super) struct RuntimePrepareMeshSdfProjectionCache {
     material_capture: RuntimePrepareMaterialCaptureCache,
 }
 
-impl Default for RuntimePrepareMeshSdfProjectionCache {
+impl Default for RuntimePrepareMeshProjectionCache {
     fn default() -> Self {
         Self {
             initialized: false,
@@ -30,7 +30,7 @@ impl Default for RuntimePrepareMeshSdfProjectionCache {
     }
 }
 
-impl RuntimePrepareMeshSdfProjectionCache {
+impl RuntimePrepareMeshProjectionCache {
     pub(super) fn can_reuse(
         &self,
         scene_meshes: &[RenderMeshSnapshot],
@@ -51,11 +51,12 @@ impl RuntimePrepareMeshSdfProjectionCache {
         clipmap_bounds: &[HybridGiGlobalSdfClipmapBounds],
         scene_mesh_world_bounds: Arc<[(u64, RenderMeshBounds)]>,
     ) {
+        let projection_complete = scene_mesh_world_bounds.len() == scene_meshes.len();
         self.scene_meshes = Arc::from(scene_meshes);
         self.scene_mesh_world_bounds = scene_mesh_world_bounds;
         self.clipmap_bounds.clear();
         self.clipmap_bounds.extend_from_slice(clipmap_bounds);
-        self.initialized = true;
+        self.initialized = projection_complete;
     }
 
     pub(super) fn refresh_material_capture(
@@ -85,13 +86,13 @@ mod tests {
     use std::sync::Arc;
 
     use zircon_runtime::core::framework::render::{
-        RenderMeshSnapshot, RenderMeshStaticState, RendererCommon,
+        RenderMeshBounds, RenderMeshSnapshot, RenderMeshStaticState, RendererCommon,
     };
     use zircon_runtime::core::framework::scene::Mobility;
     use zircon_runtime::core::math::{Transform, Vec3, Vec4};
     use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
-    use super::RuntimePrepareMeshSdfProjectionCache;
+    use super::RuntimePrepareMeshProjectionCache;
     use crate::hybrid_gi::scene_representation::HybridGiGlobalSdfClipmapBounds;
 
     #[test]
@@ -106,7 +107,7 @@ mod tests {
     fn cache_reuses_only_the_same_page_aligned_clipmap_snapshot() {
         let initial = [HybridGiGlobalSdfClipmapBounds::new(0, Vec3::ZERO, 16.0)];
         let shifted = [HybridGiGlobalSdfClipmapBounds::new(0, Vec3::X * 4.0, 16.0)];
-        let mut cache = RuntimePrepareMeshSdfProjectionCache::default();
+        let mut cache = RuntimePrepareMeshProjectionCache::default();
 
         assert!(!cache.can_reuse(&[], &initial));
         cache.capture(&[], &initial, Arc::from([]));
@@ -136,10 +137,42 @@ mod tests {
             static_state: RenderMeshStaticState::new(false, 7, 11),
             common: RendererCommon::default(),
         }];
-        let mut cache = RuntimePrepareMeshSdfProjectionCache::default();
+        let mut cache = RuntimePrepareMeshProjectionCache::default();
 
         cache.capture(&meshes, &clipmaps, Arc::from([]));
 
         assert!(!cache.can_reuse(&meshes, &clipmaps));
+    }
+
+    #[test]
+    fn cache_retries_static_meshes_until_every_geometry_projection_is_ready() {
+        let clipmaps = [HybridGiGlobalSdfClipmapBounds::new(0, Vec3::ZERO, 16.0)];
+        let meshes = [RenderMeshSnapshot {
+            node_id: 1,
+            stable_instance_key: 1,
+            transform_revision: 1,
+            transform: Transform::from_translation(Vec3::ZERO),
+            model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
+                "res://models/cache-test.model.toml",
+            )),
+            mesh: None,
+            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                "res://materials/cache-test.zmaterial",
+            )),
+            mesh_lod: None,
+            morph_weights: Vec::new(),
+            tint: Vec4::ONE,
+            mobility: Mobility::Static,
+            static_state: RenderMeshStaticState::new(true, 7, 11),
+            common: RendererCommon::default(),
+        }];
+        let mut cache = RuntimePrepareMeshProjectionCache::default();
+
+        cache.capture(&meshes, &clipmaps, Arc::from([]));
+        assert!(!cache.can_reuse(&meshes, &clipmaps));
+
+        let bounds = RenderMeshBounds::from_min_max([-1.0; 3], [1.0; 3]);
+        cache.capture(&meshes, &clipmaps, Arc::from([(1, bounds)]));
+        assert!(cache.can_reuse(&meshes, &clipmaps));
     }
 }

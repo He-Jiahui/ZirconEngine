@@ -193,6 +193,11 @@ impl<'a> RuntimePrepareCollectorContext<'a> {
         self.frame_extract
     }
 
+    /// Returns meshes from the canonical runtime extract rather than the compatibility snapshot.
+    pub fn scene_meshes(&self) -> &[RenderMeshSnapshot] {
+        &self.frame_extract.geometry.meshes
+    }
+
     pub fn scene_snapshot(&self) -> &RenderSceneSnapshot {
         &self.frame.scene
     }

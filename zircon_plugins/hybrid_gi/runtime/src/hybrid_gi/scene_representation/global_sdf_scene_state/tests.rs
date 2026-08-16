@@ -1,4 +1,6 @@
 use super::*;
+use zircon_runtime::core::framework::render::RenderMeshBounds;
+use zircon_runtime::core::math::Vec3;
 
 #[test]
 fn global_sdf_statistics_distinguish_dirty_and_sampleable_pages() {
@@ -55,7 +57,7 @@ fn dirty_region_only_invalidates_intersecting_resident_pages() {
     state.synchronize(Vec3::ZERO, &[], 64);
     let initial_dirty = state.dirty_page_build_requests();
     state.commit_pages(&initial_dirty);
-    let region = RenderMeshBounds::from_min_max([-0.25; 3], [0.25; 3]);
+    let region = RenderMeshBounds::from_min_max([10.0, -0.25, -0.25], [10.25, 0.25, 0.25]);
 
     state.synchronize(Vec3::ZERO, &[region], 64);
 
@@ -224,11 +226,9 @@ fn residency_clamps_an_untrusted_page_budget_to_the_gpu_atlas_capacity() {
 
     let requests = state.dirty_page_build_requests();
     assert_eq!(requests.len(), GLOBAL_SDF_MAX_RESIDENT_PAGE_COUNT);
-    assert!(
-        requests
-            .iter()
-            .all(|request| request.atlas_slot() < GLOBAL_SDF_MAX_RESIDENT_PAGE_COUNT as u32)
-    );
+    assert!(requests
+        .iter()
+        .all(|request| request.atlas_slot() < GLOBAL_SDF_MAX_RESIDENT_PAGE_COUNT as u32));
     assert_eq!(
         requests
             .iter()

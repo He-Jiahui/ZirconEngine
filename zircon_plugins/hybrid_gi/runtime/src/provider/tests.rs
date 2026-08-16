@@ -10,7 +10,7 @@ use zircon_runtime::core::framework::render::{
     RenderMeshSnapshot, RenderMeshStaticState, RendererCommon, HYBRID_GI_SOURCE_FULL_DYNAMIC,
 };
 use zircon_runtime::core::framework::scene::Mobility;
-use zircon_runtime::core::math::{Transform, Vec4};
+use zircon_runtime::core::math::{Transform, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
 #[test]
