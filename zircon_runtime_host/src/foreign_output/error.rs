@@ -1,6 +1,8 @@
 //! Errors raised while consuming runtime-owned output.
 
-use zircon_runtime_interface::{ZrStatus, ZrStatusCode};
+use zircon_runtime_interface::{
+    ZrStatus, ZrStatusCode, ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RuntimeForeignOutputErrorKind {
@@ -41,7 +43,18 @@ impl RuntimeForeignOutputError {
         if status.is_ok() {
             return None;
         }
-        let diagnostics = unsafe { status.diagnostics.as_slice() };
+        let diagnostics = match unsafe {
+            status
+                .diagnostics
+                .checked_slice(ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1)
+        } {
+            Ok(diagnostics) => diagnostics,
+            Err(error) => {
+                return Some(Self::protocol_violation(format!(
+                    "failed to {operation}: runtime returned invalid status diagnostics: {error:?}"
+                )));
+            }
+        };
         let diagnostics = String::from_utf8_lossy(diagnostics);
         let code = match status.status_code() {
             ZrStatusCode::Ok => "ok",
@@ -52,6 +65,7 @@ impl RuntimeForeignOutputError {
             ZrStatusCode::CapabilityDenied => "capability-denied",
             ZrStatusCode::BridgeNotEnabled => "bridge-not-enabled",
             ZrStatusCode::Panic => "panic",
+            ZrStatusCode::LimitExceeded => "limit-exceeded",
         };
         Some(Self::runtime_call(format!(
             "failed to {operation}: {code}: {diagnostics}"

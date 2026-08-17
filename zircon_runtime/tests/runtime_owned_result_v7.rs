@@ -11,7 +11,7 @@ use zircon_runtime_interface::{
     ProfileControlCommand, ProfileControlRequest, ProfileControlResponse, ZrByteSlice,
     ZrOwnedResultV2, ZrRuntimeAllocationId, ZrRuntimeApiV7, ZrRuntimeSessionConfigV3,
     ZrRuntimeSessionHandle, ZrRuntimeWakeSinkV1, ZrStatus, ZrStatusCode,
-    ZIRCON_RUNTIME_ABI_VERSION_V3,
+    ZIRCON_RUNTIME_ABI_VERSION_V3, ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1,
 };
 
 const WARMUP_ITERATIONS: usize = 128;
@@ -33,7 +33,13 @@ fn runtime_api() -> &'static ZrRuntimeApiV7 {
 }
 
 fn status_diagnostics(status: ZrStatus) -> String {
-    String::from_utf8_lossy(unsafe { status.diagnostics.as_slice() }).into_owned()
+    let bytes = unsafe {
+        status
+            .diagnostics
+            .checked_slice(ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1)
+    }
+    .expect("runtime status diagnostics must use a valid bounded byte slice");
+    String::from_utf8_lossy(bytes).into_owned()
 }
 
 fn create_session(api: &ZrRuntimeApiV7) -> ZrRuntimeSessionHandle {

@@ -177,8 +177,23 @@ fn operation_service_dispatches_only_from_owner_tick() {
     assert_eq!(preparations.load(Ordering::SeqCst), 1);
     assert_eq!(applications.load(Ordering::SeqCst), 1);
 
-    let result = service.harvest(handle).unwrap();
+    let prepared = service
+        .prepare_harvest(handle, |result| Ok::<_, ()>(result.clone()))
+        .unwrap()
+        .unwrap();
+    assert_eq!(prepared.succeeded_output().unwrap()["echo"]["value"], 9);
+    service.rollback_harvest(handle);
+    assert_eq!(
+        service.poll(handle).unwrap().phase(),
+        Some(ZrRuntimeOperationPhase::Completed)
+    );
+
+    let result = service
+        .prepare_harvest(handle, |result| Ok::<_, ()>(result.clone()))
+        .unwrap()
+        .unwrap();
     assert_eq!(result.succeeded_output().unwrap()["echo"]["value"], 9);
+    service.commit_harvest(handle);
     assert!(matches!(
         service.harvest(handle),
         Err(RuntimeOperationServiceError::AlreadyHarvested { .. })

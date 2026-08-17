@@ -4,6 +4,8 @@ use zircon_runtime_interface::{
     ZrRuntimeFrameDemandV1, ZrRuntimeOperationHandle, ZrRuntimeOperationStatusV2, ZrStatus,
     ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
     ZR_RUNTIME_FRAME_DEMAND_IDLE_V1, ZR_RUNTIME_FRAME_DEMAND_IMMEDIATE_V1,
+    ZR_RUNTIME_FRAME_MAX_DIMENSION_V1, ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1,
+    ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1,
 };
 
 use super::super::{EditorRuntimeFrameDemand, GatewayError};
@@ -54,8 +56,12 @@ pub(super) fn ensure_frame_rgba_shape(
     height: u32,
     rgba: &[u8],
 ) -> Result<(), GatewayError> {
-    if rgba.is_empty() {
-        return Ok(());
+    if width > ZR_RUNTIME_FRAME_MAX_DIMENSION_V1 || height > ZR_RUNTIME_FRAME_MAX_DIMENSION_V1 {
+        return Err(GatewayError::Protocol {
+            message: format!(
+                "runtime frame dimensions {width}x{height} exceed maximum {ZR_RUNTIME_FRAME_MAX_DIMENSION_V1}"
+            ),
+        });
     }
     let expected = u64::from(width)
         .checked_mul(u64::from(height))
@@ -64,6 +70,16 @@ pub(super) fn ensure_frame_rgba_shape(
         .ok_or_else(|| GatewayError::Protocol {
             message: format!("runtime frame dimensions {width}x{height} overflow RGBA byte length"),
         })?;
+    if expected > ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1 {
+        return Err(GatewayError::Protocol {
+            message: format!(
+                "runtime frame RGBA length {expected} exceeds maximum {ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1}"
+            ),
+        });
+    }
+    if rgba.is_empty() {
+        return Ok(());
+    }
     if rgba.len() == expected {
         return Ok(());
     }
@@ -151,7 +167,14 @@ pub(super) fn ensure_status(status: ZrStatus, operation: &'static str) -> Result
     if status.is_ok() {
         return Ok(());
     }
-    let diagnostics = unsafe { status.diagnostics.as_slice() };
+    let diagnostics = unsafe {
+        status
+            .diagnostics
+            .checked_slice(ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1)
+    }
+    .map_err(|error| GatewayError::Protocol {
+        message: format!("{operation} returned invalid status diagnostics: {error:?}"),
+    })?;
     let diagnostics = String::from_utf8_lossy(diagnostics);
     Err(GatewayError::Runtime {
         message: format!(
@@ -159,4 +182,29 @@ pub(super) fn ensure_status(status: ZrStatus, operation: &'static str) -> Result
             status.status_code()
         ),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn frame_shape_rejects_shared_dimension_and_rgba_limits() {
+        let dimension_error =
+            ensure_frame_rgba_shape(ZR_RUNTIME_FRAME_MAX_DIMENSION_V1 + 1, 1, &[])
+                .expect_err("oversized foreign frame dimensions must be rejected");
+        assert!(matches!(
+            dimension_error,
+            GatewayError::Protocol { message }
+                if message.contains("exceed maximum 16384")
+        ));
+
+        let rgba_error = ensure_frame_rgba_shape(ZR_RUNTIME_FRAME_MAX_DIMENSION_V1, 4_097, &[])
+            .expect_err("oversized foreign RGBA lengths must be rejected");
+        assert!(matches!(
+            rgba_error,
+            GatewayError::Protocol { message }
+                if message.contains("exceeds maximum 268435456")
+        ));
+    }
 }

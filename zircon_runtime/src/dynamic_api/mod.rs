@@ -1,5 +1,6 @@
 //! Dynamic runtime library API exported through `zircon_runtime_interface`.
 
+mod bounded_json;
 mod camera_controller;
 mod exports;
 mod frame;

@@ -74,7 +74,8 @@ pub(super) fn expire_terminal_results_in_state(
             (matches!(
                 task.phase,
                 ZrRuntimeOperationPhase::Completed | ZrRuntimeOperationPhase::Failed
-            ) && now.saturating_duration_since(terminal_at) >= terminal_result_ttl)
+            ) && !task.harvest_in_flight
+                && now.saturating_duration_since(terminal_at) >= terminal_result_ttl)
                 .then_some((*handle, terminal_at))
         })
         .collect();

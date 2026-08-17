@@ -250,6 +250,7 @@ mod tests {
             deadline: None,
             deadline_armed: true,
             terminal_at: None,
+            harvest_in_flight: false,
             snapshot_claimed: false,
             prepare_in_flight: true,
             apply_claimed: false,

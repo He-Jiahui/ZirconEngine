@@ -14,8 +14,8 @@ pub use event_mirror::{
     RuntimeEventMirrorSubscription,
 };
 pub(crate) use event_mirror::{
-    RUNTIME_EVENT_MIRROR_PAGE_MAX_EVENTS, RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES,
-    RUNTIME_EVENT_MIRROR_QUEUE_MAX_EVENTS,
+    RuntimeEventMirrorDrainPage, RuntimeEventMirrorPayload, RUNTIME_EVENT_MIRROR_PAGE_MAX_EVENTS,
+    RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES, RUNTIME_EVENT_MIRROR_QUEUE_MAX_EVENTS,
 };
 pub use level_system::{
     AnimationStateTransitionRuntime, LevelLifecycleState, LevelMetadata, LevelSystem,
@@ -36,6 +36,15 @@ pub use runtime_level_traits::{RuntimeObject, RuntimeSystem};
 
 pub type EntityId = u64;
 pub type NodeId = EntityId;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum WorldQueryBudgetError {
+    EncodedBytes { observed: usize, limit: usize },
+    Items { observed: usize, limit: usize },
+    NestingDepth { observed: usize, limit: usize },
+    ProcessingTime { limit_micros: u64 },
+    Json(String),
+}
 
 pub mod components;
 pub mod dynamic_scene;

@@ -5,9 +5,9 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use zircon_runtime_interface::{
-    ZrRuntimeFrameDemandV1, ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimeWakeSinkV1, ZrStatus,
-    ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2,
-    ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
+    ZrByteSlice, ZrRuntimeFrameDemandV1, ZrRuntimeHostRequestBatchV1,
+    ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimeWakeSinkV1, ZrStatus, ZrStatusCode,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
 };
 
 use super::allocation_registry::allocation_census;
@@ -15,8 +15,9 @@ use super::frame_demand::FrameDemandAccumulator;
 use super::{
     destroy_session_slot, insert_session_with_wake, register_runtime_allocation,
     register_runtime_allocation_in_action, release_runtime_allocation, session_is_closing,
-    with_session, with_session_activity, with_session_result_finalized, RuntimeAllocationKind,
-    RuntimeFrameDemand, RuntimeWakeRegistration, MAX_RUNTIME_FRAME_DEMAND_DELAY,
+    with_session, with_session_activity, with_session_result_committed,
+    with_session_result_finalized, RuntimeAllocationKind, RuntimeFrameDemand,
+    RuntimeWakeRegistration, MAX_RUNTIME_FRAME_DEMAND_DELAY,
 };
 use crate::dynamic_api::session::profile::RuntimeDynamicSessionProfile;
 use crate::dynamic_api::session::state::RuntimeDynamicSession;
@@ -27,6 +28,40 @@ static WAKE_RELEASED: AtomicBool = AtomicBool::new(false);
 static WAKE_COUNT: AtomicU32 = AtomicU32::new(0);
 static REENTRANT_DESTROY_HANDLE: AtomicU64 = AtomicU64::new(0);
 static REENTRANT_DESTROY_STATUS: AtomicU32 = AtomicU32::new(u32::MAX);
+
+#[test]
+fn committed_session_result_rolls_back_in_flight_state_when_finalization_fails() {
+    let session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None).unwrap();
+    let handle = insert_session_with_wake(session, RuntimeWakeRegistration::disabled());
+    let expected = ZrStatus::new(ZrStatusCode::Error, ZrByteSlice::empty());
+
+    let status = with_session_result_committed(
+        handle,
+        |session| {
+            session.pending_host_request_output = Some(ZrRuntimeHostRequestBatchV1::empty(
+                ZIRCON_RUNTIME_ABI_VERSION_V1,
+            ));
+            session.host_request_output_in_flight = true;
+            Ok(())
+        },
+        |_active_handle, ()| -> Result<(), ZrStatus> { Err(expected) },
+        |session| session.commit_host_request_output(),
+        |session| session.rollback_host_request_output(),
+    )
+    .expect_err("failed ownership registration must roll back the in-flight marker");
+
+    assert_eq!(status, expected);
+    assert_eq!(
+        with_session(handle, |session| {
+            assert!(!session.host_request_output_in_flight);
+            assert!(session.pending_host_request_output.is_some());
+            ZrStatus::ok()
+        })
+        .status_code(),
+        ZrStatusCode::Ok
+    );
+    assert_eq!(destroy_session_slot(handle).status_code(), ZrStatusCode::Ok);
+}
 
 unsafe extern "C" fn blocking_wake(_token: u64) {
     WAKE_ENTERED.store(true, Ordering::Release);

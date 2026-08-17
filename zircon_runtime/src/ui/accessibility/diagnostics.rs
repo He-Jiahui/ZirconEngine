@@ -9,28 +9,30 @@ use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
 };
 
-pub(super) fn validate_snapshot(snapshot: &mut UiAccessibilityTreeSnapshot) {
+pub(super) fn validate_snapshot_bounded<E>(
+    snapshot: &mut UiAccessibilityTreeSnapshot,
+    mut observe_diagnostics: impl FnMut(usize) -> Result<(), E>,
+) -> Result<(), E> {
     let mut diagnostics = Vec::new();
     let mut seen = BTreeSet::new();
-    let nodes: BTreeMap<UiNodeId, usize> = snapshot
-        .nodes
-        .iter()
-        .enumerate()
-        .filter_map(|(index, node)| {
-            if !seen.insert(node.node_id) {
-                diagnostics.push(diagnostic(
-                    UiAccessibilityDiagnosticSeverity::Error,
-                    UiAccessibilityDiagnosticCode::DuplicateNodeId,
-                    Some(node.node_id),
-                    "accessibility snapshot contains duplicate node id",
-                ));
-                return None;
-            }
-            Some((node.node_id, index))
-        })
-        .collect();
+    let mut nodes = BTreeMap::new();
+    for (index, node) in snapshot.nodes.iter().enumerate() {
+        if !seen.insert(node.node_id) {
+            diagnostics.push(diagnostic(
+                UiAccessibilityDiagnosticSeverity::Error,
+                UiAccessibilityDiagnosticCode::DuplicateNodeId,
+                Some(node.node_id),
+                "accessibility snapshot contains duplicate node id",
+            ));
+            observe_diagnostics(1)?;
+            continue;
+        }
+        nodes.insert(node.node_id, index);
+        observe_diagnostics(0)?;
+    }
 
     for node in snapshot.nodes.iter() {
+        let diagnostic_count = diagnostics.len();
         validate_relation(
             node,
             node.labelled_by,
@@ -51,10 +53,14 @@ pub(super) fn validate_snapshot(snapshot: &mut UiAccessibilityTreeSnapshot) {
         validate_hidden_focusable(node, &mut diagnostics);
         validate_actions(node, &mut diagnostics);
         validate_relation_cycle(node, &snapshot.nodes, &nodes, &mut diagnostics);
+        observe_diagnostics(diagnostics.len().saturating_sub(diagnostic_count))?;
     }
 
+    let diagnostic_count = diagnostics.len();
     validate_focus(snapshot, &nodes, &mut diagnostics);
+    observe_diagnostics(diagnostics.len().saturating_sub(diagnostic_count))?;
     snapshot.diagnostics.extend(diagnostics);
+    Ok(())
 }
 
 fn validate_relation(

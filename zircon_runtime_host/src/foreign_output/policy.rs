@@ -1,23 +1,22 @@
 //! Shared host limits for each runtime output family.
 
-use std::time::Duration;
+use zircon_runtime_interface::{
+    ZR_RUNTIME_HOST_REQUEST_OUTPUT_LIMIT_V1, ZR_RUNTIME_OPERATION_RESULT_OUTPUT_LIMIT_V1,
+    ZR_RUNTIME_PLUGIN_EVENT_OUTPUT_LIMIT_V1, ZR_RUNTIME_PROFILE_RESPONSE_OUTPUT_LIMIT_V1,
+    ZR_RUNTIME_WORLD_INVALIDATION_OUTPUT_LIMIT_V1, ZR_RUNTIME_WORLD_QUERY_OUTPUT_LIMIT_V1,
+};
 
 use super::RuntimeForeignOutputBudget;
 
 pub const HOST_REQUEST_OUTPUT_BUDGET: RuntimeForeignOutputBudget =
-    RuntimeForeignOutputBudget::new(256 * 1024, 256, Duration::from_millis(10)).allow_empty();
+    RuntimeForeignOutputBudget::from_interface(ZR_RUNTIME_HOST_REQUEST_OUTPUT_LIMIT_V1);
 pub const PROFILE_RESPONSE_OUTPUT_BUDGET: RuntimeForeignOutputBudget =
-    RuntimeForeignOutputBudget::new(16 * 1024 * 1024, 65_536, Duration::from_millis(250))
-        .allow_empty();
+    RuntimeForeignOutputBudget::from_interface(ZR_RUNTIME_PROFILE_RESPONSE_OUTPUT_LIMIT_V1);
 pub const OPERATION_RESULT_OUTPUT_BUDGET: RuntimeForeignOutputBudget =
-    RuntimeForeignOutputBudget::new(1024 * 1024, 16_384, Duration::from_millis(25));
-pub const PLUGIN_EVENT_OUTPUT_BUDGET: RuntimeForeignOutputBudget = RuntimeForeignOutputBudget::new(
-    zircon_runtime_interface::ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
-    zircon_runtime_interface::ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
-    Duration::from_millis(10),
-)
-.allow_empty();
+    RuntimeForeignOutputBudget::from_interface(ZR_RUNTIME_OPERATION_RESULT_OUTPUT_LIMIT_V1);
+pub const PLUGIN_EVENT_OUTPUT_BUDGET: RuntimeForeignOutputBudget =
+    RuntimeForeignOutputBudget::from_interface(ZR_RUNTIME_PLUGIN_EVENT_OUTPUT_LIMIT_V1);
 pub const WORLD_QUERY_OUTPUT_BUDGET: RuntimeForeignOutputBudget =
-    RuntimeForeignOutputBudget::new(1024 * 1024, 16_384, Duration::from_millis(25));
+    RuntimeForeignOutputBudget::from_interface(ZR_RUNTIME_WORLD_QUERY_OUTPUT_LIMIT_V1);
 pub const WORLD_INVALIDATION_OUTPUT_BUDGET: RuntimeForeignOutputBudget =
-    RuntimeForeignOutputBudget::new(1024 * 1024, 16_384, Duration::from_millis(25)).allow_empty();
+    RuntimeForeignOutputBudget::from_interface(ZR_RUNTIME_WORLD_INVALIDATION_OUTPUT_LIMIT_V1);

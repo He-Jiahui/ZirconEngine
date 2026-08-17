@@ -29,8 +29,16 @@ impl DefaultSoundManager {
     }
 
     pub fn with_config(core: Option<&CoreHandle>, config: SoundConfig) -> Self {
+        Self::with_weak_core(core.map(CoreHandle::downgrade), config)
+    }
+
+    pub(crate) fn from_weak_core(core: &CoreWeak) -> Self {
+        Self::with_weak_core(Some(core.clone()), SoundConfig::default())
+    }
+
+    fn with_weak_core(core: Option<CoreWeak>, config: SoundConfig) -> Self {
         Self {
-            core: core.map(CoreHandle::downgrade),
+            core,
             config: Arc::new(Mutex::new(config.clone())),
             state: Arc::new(Mutex::new(SoundEngineState::new(&config))),
         }

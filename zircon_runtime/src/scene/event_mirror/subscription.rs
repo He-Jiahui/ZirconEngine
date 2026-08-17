@@ -1,12 +1,11 @@
 use std::collections::{BTreeSet, VecDeque};
+use std::io::{self, Write};
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::time::Instant;
-
-#[cfg(test)]
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde::Serialize;
+use zircon_runtime_interface::ZR_RUNTIME_PLUGIN_EVENT_OUTPUT_LIMIT_V1;
 
 use crate::scene::ecs::{Event, EventObserverHandle};
 use crate::scene::World;
@@ -17,6 +16,7 @@ pub(crate) const RUNTIME_EVENT_MIRROR_PAGE_MAX_EVENTS: usize = 64;
 pub(crate) const RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES: usize = 128 * 1024;
 pub(crate) const RUNTIME_EVENT_MIRROR_QUEUE_MAX_EVENTS: usize = 16 * 1024;
 pub(crate) const RUNTIME_EVENT_MIRROR_QUEUE_MAX_PAYLOAD_BYTES: usize = 64 * 1024 * 1024;
+const RUNTIME_EVENT_PAYLOAD_DEADLINE_CHECK_INTERVAL_BYTES: usize = 4 * 1024;
 
 trait ErasedRuntimeEventMirrorSubscription: Send + Sync {
     fn connect(&mut self, world: &mut World) -> bool;
@@ -102,21 +102,23 @@ impl RuntimeEventMirrorQueue {
     where
         E: Serialize,
     {
-        let payload = match serde_json::to_vec(event) {
+        let max_depth = ZR_RUNTIME_PLUGIN_EVENT_OUTPUT_LIMIT_V1
+            .max_nesting_depth
+            .saturating_sub(3);
+        let mut writer = BoundedRuntimeEventPayloadWriter::new(
+            RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES,
+            max_depth,
+            ZR_RUNTIME_PLUGIN_EVENT_OUTPUT_LIMIT_V1.max_processing_time_micros,
+        );
+        let result = serde_json::to_writer(&mut writer, event);
+        let payload = match writer.finish(result) {
             Ok(payload) => payload,
-            Err(error) => {
-                self.record_failure(RuntimeEventMirrorQueueFailure::Serialize(error.to_string()));
+            Err(failure) => {
+                self.record_failure(failure);
                 return false;
             }
         };
         let encoded_payload_bytes = payload.len();
-        if encoded_payload_bytes > RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES {
-            self.record_failure(RuntimeEventMirrorQueueFailure::PayloadTooLarge {
-                payload_bytes: encoded_payload_bytes,
-                max_payload_bytes: RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES,
-            });
-            return false;
-        }
         let Some(next_payload_bytes) = self
             .pending_payload_bytes
             .checked_add(encoded_payload_bytes)
@@ -199,6 +201,135 @@ impl RuntimeEventMirrorQueue {
     }
 }
 
+struct BoundedRuntimeEventPayloadWriter {
+    payload: Vec<u8>,
+    max_bytes: usize,
+    max_depth: usize,
+    depth: usize,
+    in_string: bool,
+    escaped: bool,
+    started: Instant,
+    max_processing_time_micros: u64,
+    bytes_until_deadline_check: usize,
+    failure: Option<RuntimeEventMirrorQueueFailure>,
+}
+
+impl BoundedRuntimeEventPayloadWriter {
+    fn new(max_bytes: usize, max_depth: usize, max_processing_time_micros: u64) -> Self {
+        Self {
+            payload: Vec::with_capacity(max_bytes.min(4 * 1024)),
+            max_bytes,
+            max_depth,
+            depth: 0,
+            in_string: false,
+            escaped: false,
+            started: Instant::now(),
+            max_processing_time_micros,
+            bytes_until_deadline_check: 0,
+            failure: None,
+        }
+    }
+
+    fn finish(
+        mut self,
+        result: Result<(), serde_json::Error>,
+    ) -> Result<Vec<u8>, RuntimeEventMirrorQueueFailure> {
+        if let Some(failure) = self.failure.take() {
+            return Err(failure);
+        }
+        result.map_err(|error| RuntimeEventMirrorQueueFailure::Serialize(error.to_string()))?;
+        if self.deadline_exceeded() {
+            return Err(RuntimeEventMirrorQueueFailure::ProcessingTime {
+                limit_micros: self.max_processing_time_micros,
+            });
+        }
+        Ok(self.payload)
+    }
+
+    fn deadline_exceeded(&self) -> bool {
+        self.started.elapsed() > Duration::from_micros(self.max_processing_time_micros)
+    }
+
+    fn fail(
+        &mut self,
+        failure: RuntimeEventMirrorQueueFailure,
+        message: &'static str,
+    ) -> io::Error {
+        self.failure = Some(failure);
+        io::Error::other(message)
+    }
+}
+
+impl Write for BoundedRuntimeEventPayloadWriter {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        let observed = self.payload.len().saturating_add(bytes.len());
+        if observed > self.max_bytes {
+            return Err(self.fail(
+                RuntimeEventMirrorQueueFailure::PayloadTooLarge {
+                    payload_bytes: observed,
+                    max_payload_bytes: self.max_bytes,
+                },
+                "runtime event payload byte budget exceeded",
+            ));
+        }
+
+        let mut offset = 0;
+        while offset < bytes.len() {
+            if self.bytes_until_deadline_check == 0 {
+                if self.deadline_exceeded() {
+                    return Err(self.fail(
+                        RuntimeEventMirrorQueueFailure::ProcessingTime {
+                            limit_micros: self.max_processing_time_micros,
+                        },
+                        "runtime event payload processing deadline exceeded",
+                    ));
+                }
+                self.bytes_until_deadline_check =
+                    RUNTIME_EVENT_PAYLOAD_DEADLINE_CHECK_INTERVAL_BYTES;
+            }
+
+            let chunk_len = (bytes.len() - offset).min(self.bytes_until_deadline_check);
+            for byte in &bytes[offset..offset + chunk_len] {
+                if self.in_string {
+                    if self.escaped {
+                        self.escaped = false;
+                    } else if *byte == b'\\' {
+                        self.escaped = true;
+                    } else if *byte == b'"' {
+                        self.in_string = false;
+                    }
+                    continue;
+                }
+                match *byte {
+                    b'"' => self.in_string = true,
+                    b'{' | b'[' => {
+                        self.depth = self.depth.saturating_add(1);
+                        if self.depth > self.max_depth {
+                            return Err(self.fail(
+                                RuntimeEventMirrorQueueFailure::PayloadTooDeep {
+                                    observed_depth: self.depth,
+                                    max_depth: self.max_depth,
+                                },
+                                "runtime event payload nesting budget exceeded",
+                            ));
+                        }
+                    }
+                    b'}' | b']' => self.depth = self.depth.saturating_sub(1),
+                    _ => {}
+                }
+            }
+            offset += chunk_len;
+            self.bytes_until_deadline_check -= chunk_len;
+        }
+        self.payload.extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
 struct QueuedRuntimeEventPayload {
     payload: Vec<u8>,
     enqueued_at: Instant,
@@ -230,6 +361,13 @@ enum RuntimeEventMirrorQueueFailure {
     PayloadTooLarge {
         payload_bytes: usize,
         max_payload_bytes: usize,
+    },
+    PayloadTooDeep {
+        observed_depth: usize,
+        max_depth: usize,
+    },
+    ProcessingTime {
+        limit_micros: u64,
     },
     Overflow {
         pending_events: usize,
@@ -394,6 +532,20 @@ impl RuntimeEventMirrorSubscriptionRecord {
                 payload_bytes,
                 max_payload_bytes,
             },
+            RuntimeEventMirrorQueueFailure::PayloadTooDeep {
+                observed_depth,
+                max_depth,
+            } => RuntimeEventMirrorError::PayloadTooDeep {
+                event_id: self.event_id.clone(),
+                observed_depth,
+                max_depth,
+            },
+            RuntimeEventMirrorQueueFailure::ProcessingTime { limit_micros } => {
+                RuntimeEventMirrorError::ProcessingTime {
+                    event_id: self.event_id.clone(),
+                    limit_micros,
+                }
+            }
             RuntimeEventMirrorQueueFailure::Overflow {
                 pending_events,
                 pending_payload_bytes,
@@ -538,5 +690,27 @@ mod tests {
         let second = queue.drain_page(1).expect("limited second queue page");
         assert_eq!(second.payloads.len(), 1);
         assert_eq!(second.remaining_deliveries, 0);
+    }
+
+    #[test]
+    fn writer_stops_serialization_at_the_payload_byte_budget() {
+        let oversized = "x".repeat(RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES * 2);
+        let mut writer = BoundedRuntimeEventPayloadWriter::new(
+            RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES,
+            ZR_RUNTIME_PLUGIN_EVENT_OUTPUT_LIMIT_V1.max_nesting_depth,
+            u64::MAX,
+        );
+
+        let result = serde_json::to_writer(&mut writer, &oversized);
+        let failure = writer
+            .finish(result)
+            .expect_err("oversized event payload must stop at the writer boundary");
+        assert!(matches!(
+            failure,
+            RuntimeEventMirrorQueueFailure::PayloadTooLarge {
+                max_payload_bytes: RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES,
+                ..
+            }
+        ));
     }
 }

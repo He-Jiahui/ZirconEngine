@@ -242,5 +242,8 @@ fn runtime_event_accessibility_action_carries_serialized_payload_bytes() {
 
     assert_eq!(event.kind, ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1);
     assert_eq!(event.viewport, ZrRuntimeViewportHandle::new(22));
-    assert_eq!(unsafe { event.payload.as_slice() }, bytes.as_slice());
+    assert_eq!(
+        unsafe { event.payload.checked_slice(bytes.len()) }.unwrap(),
+        bytes.as_slice()
+    );
 }

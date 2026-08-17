@@ -226,36 +226,47 @@ impl RuntimeOperationService {
         Ok(())
     }
 
-    pub fn harvest(
+    pub(crate) fn prepare_harvest<T, E>(
         &self,
         handle: ZrRuntimeOperationHandle,
-    ) -> Result<ZrRuntimeOperationResultV1, RuntimeOperationServiceError> {
+        prepare: impl FnOnce(&ZrRuntimeOperationResultV1) -> Result<T, E>,
+    ) -> Result<Result<T, E>, RuntimeOperationServiceError> {
+        let mut state = self.lock_state();
+        let task = state
+            .tasks
+            .get_mut(&handle)
+            .ok_or(RuntimeOperationServiceError::UnknownHandle { handle })?;
+        validate_harvestable_task(task, handle)?;
+        if task.harvest_in_flight {
+            return Err(RuntimeOperationServiceError::NotTerminal { handle });
+        }
+        let prepared = prepare(
+            task.result
+                .as_ref()
+                .ok_or(RuntimeOperationServiceError::NotTerminal { handle })?,
+        );
+        if prepared.is_ok() {
+            task.harvest_in_flight = true;
+        }
+        Ok(prepared)
+    }
+
+    pub(crate) fn commit_harvest(
+        &self,
+        handle: ZrRuntimeOperationHandle,
+    ) -> ZrRuntimeOperationResultV1 {
         let mut state = self.lock_state();
         let (result, released_bytes, terminal_phase) = {
             let task = state
                 .tasks
                 .get_mut(&handle)
-                .ok_or(RuntimeOperationServiceError::UnknownHandle { handle })?;
-            if task.phase == ZrRuntimeOperationPhase::Harvested {
-                return Err(RuntimeOperationServiceError::AlreadyHarvested { handle });
-            }
-            if task.phase == ZrRuntimeOperationPhase::Cancelled {
-                return Err(RuntimeOperationServiceError::OperationCancelled { handle });
-            }
-            if task.phase == ZrRuntimeOperationPhase::Expired {
-                return Err(RuntimeOperationServiceError::OperationExpired { handle });
-            }
-            if !matches!(
-                task.phase,
-                ZrRuntimeOperationPhase::Completed | ZrRuntimeOperationPhase::Failed
-            ) {
-                return Err(RuntimeOperationServiceError::NotTerminal { handle });
-            }
+                .expect("an in-flight harvest must retain its operation task");
+            debug_assert!(task.harvest_in_flight);
             let terminal_phase = task.phase;
             let result = task
                 .result
                 .take()
-                .ok_or(RuntimeOperationServiceError::NotTerminal { handle })?;
+                .expect("an in-flight harvest must retain its operation result");
             let released_bytes = std::mem::replace(&mut task.retained_bytes, 0);
             task.payload = None;
             task.prepared_command = None;
@@ -263,6 +274,7 @@ impl RuntimeOperationService {
             task.prepared_command_bytes = 0;
             task.prepared_result_bytes = 0;
             task.deadline_armed = false;
+            task.harvest_in_flight = false;
             task.phase = ZrRuntimeOperationPhase::Harvested;
             task.detail_kind = ZrRuntimeOperationDetailKindV2::Harvested;
             task.detail_value = u64::from(terminal_phase.raw());
@@ -275,7 +287,28 @@ impl RuntimeOperationService {
             .expect("harvested operation bytes must remain accounted");
         drop(state);
         self.refresh_maintenance_after_transition();
-        Ok(result)
+        result
+    }
+
+    pub(crate) fn rollback_harvest(&self, handle: ZrRuntimeOperationHandle) {
+        let mut state = self.lock_state();
+        let task = state
+            .tasks
+            .get_mut(&handle)
+            .expect("an in-flight harvest rollback must retain its operation task");
+        debug_assert!(task.harvest_in_flight);
+        task.harvest_in_flight = false;
+        drop(state);
+        self.refresh_maintenance_after_transition();
+    }
+
+    pub fn harvest(
+        &self,
+        handle: ZrRuntimeOperationHandle,
+    ) -> Result<ZrRuntimeOperationResultV1, RuntimeOperationServiceError> {
+        self.prepare_harvest(handle, |_| Ok::<_, std::convert::Infallible>(()))?
+            .expect("infallible harvest snapshot must succeed");
+        Ok(self.commit_harvest(handle))
     }
 
     fn arm_deadline(
@@ -697,6 +730,28 @@ impl RuntimeOperationService {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
+}
+
+fn validate_harvestable_task(
+    task: &RuntimeOperationTask,
+    handle: ZrRuntimeOperationHandle,
+) -> Result<(), RuntimeOperationServiceError> {
+    if task.phase == ZrRuntimeOperationPhase::Harvested {
+        return Err(RuntimeOperationServiceError::AlreadyHarvested { handle });
+    }
+    if task.phase == ZrRuntimeOperationPhase::Cancelled {
+        return Err(RuntimeOperationServiceError::OperationCancelled { handle });
+    }
+    if task.phase == ZrRuntimeOperationPhase::Expired {
+        return Err(RuntimeOperationServiceError::OperationExpired { handle });
+    }
+    if !matches!(
+        task.phase,
+        ZrRuntimeOperationPhase::Completed | ZrRuntimeOperationPhase::Failed
+    ) {
+        return Err(RuntimeOperationServiceError::NotTerminal { handle });
+    }
+    Ok(())
 }
 
 impl Default for RuntimeOperationService {

@@ -1,10 +1,12 @@
 //! Per-output resource budgets enforced by the host.
 
 use std::time::Duration;
+use zircon_runtime_interface::{ZrRuntimePayloadLimitV1, ZR_RUNTIME_JSON_MAX_NESTING_DEPTH_V1};
 
 use super::RuntimeForeignOutputError;
 
-pub const RUNTIME_FOREIGN_OUTPUT_JSON_MAX_NESTING_DEPTH: usize = 128;
+pub const RUNTIME_FOREIGN_OUTPUT_JSON_MAX_NESTING_DEPTH: usize =
+    ZR_RUNTIME_JSON_MAX_NESTING_DEPTH_V1;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RuntimeForeignOutputBudget {
@@ -15,6 +17,15 @@ pub struct RuntimeForeignOutputBudget {
 }
 
 impl RuntimeForeignOutputBudget {
+    pub const fn from_interface(limit: ZrRuntimePayloadLimitV1) -> Self {
+        Self {
+            max_encoded_bytes: limit.max_encoded_bytes,
+            max_items: limit.max_items,
+            max_decode_time: Duration::from_micros(limit.max_processing_time_micros),
+            allow_empty: limit.allow_empty,
+        }
+    }
+
     pub const fn new(
         max_encoded_bytes: usize,
         max_items: usize,

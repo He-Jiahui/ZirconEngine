@@ -46,6 +46,29 @@ fn missing_session_entry_points_reject_nonzero_handle() {
     );
 }
 
+#[test]
+fn capture_frame_rejects_extreme_dimensions_before_rendering_or_allocation() {
+    let api = runtime_api();
+    let capture_frame = api.capture_frame.expect("capture_frame");
+    let session = create_test_session(api);
+    let mut output = ZrRuntimeFrameV2::empty(ZIRCON_RUNTIME_ABI_VERSION_V2);
+    let request = ZrRuntimeFrameRequestV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        default_viewport(),
+        ZrRuntimeViewportSizeV1::new(u32::MAX, u32::MAX),
+    );
+
+    let status = unsafe { capture_frame(session, request, &mut output) };
+
+    assert_session_status(
+        status,
+        ZrStatusCode::LimitExceeded,
+        "runtime frame dimensions exceed limit",
+    );
+    assert!(output.is_empty());
+    destroy_test_session(api, session);
+}
+
 fn assert_handle_entry_points_reject_session(
     api: &zircon_runtime_interface::ZrRuntimeApiV7,
     session: ZrRuntimeSessionHandle,

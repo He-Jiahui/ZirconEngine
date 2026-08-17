@@ -118,6 +118,128 @@ fn world_query_filters_editor_visible_components_and_short_circuits_by_generatio
 }
 
 #[test]
+fn bounded_world_query_stops_before_materializing_rows_above_the_item_budget() {
+    let mut world = World::empty();
+    world.spawn_node(NodeKind::Empty);
+    let query = WorldQuery::default();
+
+    let error = world
+        .query_world_bounded(
+            &query,
+            zircon_runtime_interface::ZrRuntimePayloadLimitV1::new(1024, 0, 10_000),
+        )
+        .expect_err("one matching row must exceed a zero-item producer budget");
+
+    assert_eq!(
+        error,
+        crate::scene::WorldQueryBudgetError::Items {
+            observed: 1,
+            limit: 0
+        }
+    );
+}
+
+#[test]
+fn bounded_world_query_stops_before_retaining_rows_above_the_byte_budget() {
+    let mut world = World::empty();
+    world.spawn_node(NodeKind::Empty);
+    let query = WorldQuery::default();
+
+    let error = world
+        .query_world_bounded(
+            &query,
+            zircon_runtime_interface::ZrRuntimePayloadLimitV1::new(1, 16, 10_000),
+        )
+        .expect_err("one matching row must exceed a one-byte producer budget");
+
+    assert!(matches!(
+        error,
+        crate::scene::WorldQueryBudgetError::EncodedBytes { limit: 1, .. }
+    ));
+}
+
+#[test]
+fn bounded_world_query_accounts_for_the_empty_rows_envelope() {
+    let world = World::empty();
+    let query = WorldQuery::default();
+    let encoded = serde_json::to_vec(&WorldQueryResult::Rows(Vec::new())).unwrap();
+
+    let error = world
+        .query_world_bounded(
+            &query,
+            zircon_runtime_interface::ZrRuntimePayloadLimitV1::new(encoded.len() - 1, 0, 10_000),
+        )
+        .expect_err("the tagged empty rows envelope must consume the byte budget");
+
+    assert_eq!(
+        error,
+        crate::scene::WorldQueryBudgetError::EncodedBytes {
+            observed: encoded.len(),
+            limit: encoded.len() - 1,
+        }
+    );
+}
+
+#[test]
+fn bounded_world_query_accounts_for_the_not_modified_envelope() {
+    let world = World::empty();
+    let generation = world.world_generation();
+    let query = WorldQuery {
+        generation_hint: Some(generation),
+        ..WorldQuery::default()
+    };
+    let encoded = serde_json::to_vec(&WorldQueryResult::NotModified { generation }).unwrap();
+
+    let error = world
+        .query_world_bounded(
+            &query,
+            zircon_runtime_interface::ZrRuntimePayloadLimitV1::new(encoded.len() - 1, 0, 10_000),
+        )
+        .expect_err("the tagged not-modified envelope must consume the byte budget");
+
+    assert_eq!(
+        error,
+        crate::scene::WorldQueryBudgetError::EncodedBytes {
+            observed: encoded.len(),
+            limit: encoded.len() - 1,
+        }
+    );
+}
+
+#[test]
+fn bounded_world_query_rejects_an_oversized_selected_field_before_retaining_the_row() {
+    let mut world = World::empty();
+    let entity = world.spawn_node(NodeKind::Empty);
+    let component_type = world
+        .inspect_fields(entity)
+        .into_iter()
+        .find(|field| field.component_type_path.ends_with("::Name"))
+        .expect("empty nodes expose a reflected Name field")
+        .component_type_path;
+    world.rename_node(entity, "x".repeat(4 * 1024)).unwrap();
+    let query = WorldQuery {
+        filter: QueryFilter {
+            with: vec![component_type.clone()],
+            without: Vec::new(),
+        },
+        select: vec![ComponentSelector::new(component_type)],
+        generation_hint: None,
+    };
+
+    let error = world
+        .query_world_bounded(
+            &query,
+            zircon_runtime_interface::ZrRuntimePayloadLimitV1::new(512, 16, 100_000),
+        )
+        .expect_err("the selected reflected value must be bounded before row retention");
+
+    assert!(matches!(
+        error,
+        crate::scene::WorldQueryBudgetError::EncodedBytes { limit: 512, .. }
+    ));
+}
+
+#[test]
 fn inspection_artifact_reuses_its_arc_until_the_world_generation_changes() {
     let mut world = World::empty();
     let entity = world.spawn_node(NodeKind::Empty);

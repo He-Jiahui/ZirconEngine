@@ -71,11 +71,11 @@ use crate::{
         },
         tree::{UiDirtyFlags, UiInputPolicy, UiTree, UiTreeError, UiTreeNode, UiVisibility},
     },
-    ZrByteSlice, ZrOwnedByteBuffer, ZrPluginApiV1, ZrPluginEventCallbackRequestV1,
-    ZrPluginEventCallbackResultV1, ZrRuntimeApiV7, ZrRuntimeCursorGrabModeV1,
-    ZrRuntimeCursorHostRequestKindV1, ZrRuntimeCursorHostRequestV1, ZrRuntimeCursorPositionV1,
-    ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2,
-    ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1,
+    ZrByteSlice, ZrByteSliceError, ZrOwnedByteBuffer, ZrPluginApiV1,
+    ZrPluginEventCallbackRequestV1, ZrPluginEventCallbackResultV1, ZrRuntimeApiV7,
+    ZrRuntimeCursorGrabModeV1, ZrRuntimeCursorHostRequestKindV1, ZrRuntimeCursorHostRequestV1,
+    ZrRuntimeCursorPositionV1, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1,
+    ZrRuntimeFrameV2, ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1,
     ZrRuntimeHostFetchRequestV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
     ZrRuntimeImeCursorAreaV1, ZrRuntimeImeHostRequestKindV1, ZrRuntimeImeHostRequestV1,
     ZrRuntimeImeSurroundingTextV1, ZrRuntimeNativeSurfaceTargetV1, ZrRuntimeSessionConfigV3,
@@ -675,7 +675,40 @@ fn byte_slices_can_be_empty_or_static() {
 
     let bytes = ZrByteSlice::from_static(b"runtime");
     assert_eq!(bytes.len, 7);
-    assert_eq!(unsafe { bytes.as_slice() }, b"runtime");
+    assert_eq!(unsafe { bytes.checked_slice(7) }.unwrap(), b"runtime");
+}
+
+#[test]
+fn byte_slices_reject_invalid_shape_and_limits_before_slice_construction() {
+    let null_nonempty = ZrByteSlice {
+        data: core::ptr::null(),
+        len: 1,
+    };
+    assert_eq!(
+        unsafe { null_nonempty.checked_slice(16) },
+        Err(ZrByteSliceError::NullWithNonZeroLength)
+    );
+
+    let byte = 7_u8;
+    let over_address_space = ZrByteSlice {
+        data: &byte,
+        len: (isize::MAX as usize).saturating_add(1),
+    };
+    assert_eq!(
+        unsafe { over_address_space.checked_slice(usize::MAX) },
+        Err(ZrByteSliceError::LengthExceedsAddressSpace {
+            len: (isize::MAX as usize).saturating_add(1),
+        })
+    );
+
+    let over_budget = ZrByteSlice {
+        data: &byte,
+        len: 2,
+    };
+    assert_eq!(
+        unsafe { over_budget.checked_slice(1) },
+        Err(ZrByteSliceError::LengthExceedsLimit { len: 2, limit: 1 })
+    );
 }
 
 #[test]
@@ -694,7 +727,11 @@ fn status_preserves_raw_codes_and_diagnostics() {
 
     assert!(!status.is_ok());
     assert_eq!(status.status_code(), ZrStatusCode::UnsupportedVersion);
-    assert_eq!(unsafe { status.diagnostics.as_slice() }, b"bad abi");
+    assert_eq!(
+        unsafe { status.diagnostics.checked_slice(usize::MAX) }.unwrap(),
+        b"bad abi"
+    );
+    assert_eq!(ZrStatusCode::from_raw(8), ZrStatusCode::LimitExceeded);
 }
 
 #[test]
@@ -890,28 +927,37 @@ fn plugin_event_callback_request_preserves_payload_slices() {
 
     assert_eq!(request.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
     assert_eq!(
-        unsafe { request.namespace.as_slice() },
+        unsafe { request.namespace.checked_slice(usize::MAX) }.unwrap(),
         b"sound.dynamic_events"
     );
-    assert_eq!(unsafe { request.plugin_id.as_slice() }, b"native_sound");
-    assert_eq!(unsafe { request.handler_id.as_slice() }, b"impact");
     assert_eq!(
-        unsafe { request.event_id.as_slice() },
+        unsafe { request.plugin_id.checked_slice(usize::MAX) }.unwrap(),
+        b"native_sound"
+    );
+    assert_eq!(
+        unsafe { request.handler_id.checked_slice(usize::MAX) }.unwrap(),
+        b"impact"
+    );
+    assert_eq!(
+        unsafe { request.event_id.checked_slice(usize::MAX) }.unwrap(),
         b"sound.dynamic.impact"
     );
     assert_eq!(
-        unsafe { request.source_path.as_slice() },
+        unsafe { request.source_path.checked_slice(usize::MAX) }.unwrap(),
         b"Timeline/Combat/Impact"
     );
     assert_eq!(request.time_seconds, 1.25);
     assert_eq!(
-        unsafe { request.payload_schema.as_slice() },
+        unsafe { request.payload_schema.checked_slice(usize::MAX) }.unwrap(),
         b"sound.dynamic.impact.v1"
     );
-    assert_eq!(unsafe { request.payload.as_slice() }, b"{\"gain\":0.5}");
+    assert_eq!(
+        unsafe { request.payload.checked_slice(usize::MAX) }.unwrap(),
+        b"{\"gain\":0.5}"
+    );
     assert_eq!(result.status.status_code(), ZrStatusCode::Error);
     assert_eq!(
-        unsafe { result.status.diagnostics.as_slice() },
+        unsafe { result.status.diagnostics.checked_slice(usize::MAX) }.unwrap(),
         b"handler rejected event"
     );
 }
@@ -1224,19 +1270,22 @@ fn runtime_abi_events_cover_lifecycle_touch_keyboard_and_canvas_metrics() {
     assert_eq!(keyboard.kind, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1);
     assert_eq!(keyboard.button, ZR_RUNTIME_KEY_ACTION_PRESSED_V1);
     assert_eq!(keyboard.key_code, 65);
-    assert_eq!(unsafe { keyboard.payload.as_slice() }, b"KeyA");
+    assert_eq!(
+        unsafe { keyboard.payload.checked_slice(usize::MAX) }.unwrap(),
+        b"KeyA"
+    );
     assert_eq!(cursor_entered.kind, ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1);
     assert_eq!(cursor_left.kind, ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1);
     assert_eq!(file_hovered.kind, ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1);
     assert_eq!(file_hovered.state, ZR_RUNTIME_FILE_DRAG_HOVERED_V1);
     assert_eq!(
-        unsafe { file_hovered.payload.as_slice() },
+        unsafe { file_hovered.payload.checked_slice(usize::MAX) }.unwrap(),
         b"C:/tmp/asset.png"
     );
     assert_eq!(file_dropped.kind, ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1);
     assert_eq!(file_dropped.state, ZR_RUNTIME_FILE_DRAG_DROPPED_V1);
     assert_eq!(
-        unsafe { file_dropped.payload.as_slice() },
+        unsafe { file_dropped.payload.checked_slice(usize::MAX) }.unwrap(),
         b"C:/tmp/asset.png"
     );
     assert_eq!(file_cancelled.kind, ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1);
@@ -1283,7 +1332,7 @@ fn runtime_abi_events_cover_lifecycle_touch_keyboard_and_canvas_metrics() {
         ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1
     );
     assert_eq!(
-        unsafe { gamepad_connection.payload.as_slice() },
+        unsafe { gamepad_connection.payload.checked_slice(usize::MAX) }.unwrap(),
         b"Test Pad"
     );
     assert_eq!(gamepad_button.kind, ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1);
@@ -1333,10 +1382,16 @@ fn runtime_abi_events_cover_lifecycle_touch_keyboard_and_canvas_metrics() {
     assert_eq!(ime_preedit.key_code, 0);
     assert_eq!(ime_preedit.scan_code, 2);
     assert_ne!(ime_preedit.key_code, ZR_RUNTIME_IME_CURSOR_HIDDEN_V1);
-    assert_eq!(unsafe { ime_preedit.payload.as_slice() }, "ni".as_bytes());
+    assert_eq!(
+        unsafe { ime_preedit.payload.checked_slice(usize::MAX) }.unwrap(),
+        "ni".as_bytes()
+    );
     assert_eq!(ime_commit.kind, ZR_RUNTIME_EVENT_KIND_IME_V1);
     assert_eq!(ime_commit.state, ZR_RUNTIME_IME_STATE_COMMIT_V1);
-    assert_eq!(unsafe { ime_commit.payload.as_slice() }, "你".as_bytes());
+    assert_eq!(
+        unsafe { ime_commit.payload.checked_slice(usize::MAX) }.unwrap(),
+        "你".as_bytes()
+    );
     assert_eq!(ime_delete.kind, ZR_RUNTIME_EVENT_KIND_IME_V1);
     assert_eq!(ime_delete.state, ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1);
     assert_eq!(ime_delete.key_code, 1);
@@ -1359,7 +1414,10 @@ fn runtime_abi_events_cover_lifecycle_touch_keyboard_and_canvas_metrics() {
         ime_surrounding_text.state,
         ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1
     );
-    assert_eq!(unsafe { ime_surrounding_text.payload.as_slice() }, b"hello");
+    assert_eq!(
+        unsafe { ime_surrounding_text.payload.checked_slice(usize::MAX) }.unwrap(),
+        b"hello"
+    );
     assert_eq!(ime_surrounding_text.key_code, 5);
     assert_eq!(ime_surrounding_text.scan_code, 0);
     assert_eq!(metrics.logical_size.width, 1280);
@@ -1378,7 +1436,7 @@ fn runtime_host_fetch_request_declares_streaming_resource_contract() {
     assert_eq!(request.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
     assert_eq!(request.flags, ZR_RUNTIME_FETCH_FLAG_STREAMING_V1);
     assert_eq!(
-        unsafe { request.uri.as_slice() },
+        unsafe { request.uri.checked_slice(usize::MAX) }.unwrap(),
         b"res://assets/zircon-project.toml"
     );
 }
@@ -1547,7 +1605,7 @@ fn runtime_abi_translated_event_helpers_cover_mobile_and_browser_host_callbacks(
     assert_eq!(resize.event.size.width, 1280);
     assert_eq!(resize.event.metrics.device_scale_factor, 2.0);
     assert_eq!(
-        unsafe { resize.host_reason.as_slice() },
+        unsafe { resize.host_reason.checked_slice(usize::MAX) }.unwrap(),
         b"viewport_metrics"
     );
     assert_eq!(touch.event.kind, ZR_RUNTIME_EVENT_KIND_TOUCH_V1);
@@ -1555,7 +1613,10 @@ fn runtime_abi_translated_event_helpers_cover_mobile_and_browser_host_callbacks(
     assert_eq!(touch.event.state, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1);
     assert_eq!(keyboard.event.kind, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1);
     assert_eq!(keyboard.event.button, crate::ZR_RUNTIME_KEY_ACTION_TEXT_V1);
-    assert_eq!(unsafe { keyboard.event.payload.as_slice() }, b"A");
+    assert_eq!(
+        unsafe { keyboard.event.payload.checked_slice(usize::MAX) }.unwrap(),
+        b"A"
+    );
 }
 
 #[test]

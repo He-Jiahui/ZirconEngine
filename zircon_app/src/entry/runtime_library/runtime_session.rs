@@ -21,8 +21,11 @@ use zircon_runtime_interface::{
     ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
     ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_ABI_VERSION_V3, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
     ZR_RUNTIME_FRAME_DEMAND_IDLE_V1, ZR_RUNTIME_FRAME_DEMAND_IMMEDIATE_V1,
+    ZR_RUNTIME_FRAME_MAX_DIMENSION_V1, ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
+    ZR_RUNTIME_PLUGIN_EVENT_SUBSCRIBE_REQUEST_LIMIT_V1, ZR_RUNTIME_PROFILE_REQUEST_LIMIT_V1,
+    ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1,
 };
 
 use super::{
@@ -32,6 +35,7 @@ use super::{
 mod foreign_output;
 mod operation;
 mod owned_buffer;
+mod request_encoding;
 
 use foreign_output::{
     ForeignOutputKind, ForeignOutputState, HOST_REQUEST_OUTPUT_BUDGET, PLUGIN_EVENT_OUTPUT_BUDGET,
@@ -41,6 +45,7 @@ use owned_buffer::{
     release_owned_result, release_owned_result_after_error,
     validate_owned_result_releasing_on_error,
 };
+use request_encoding::encode_runtime_request;
 
 pub(crate) const MAX_HOST_RUNTIME_FRAME_DELAY: Duration = Duration::from_secs(60);
 
@@ -435,9 +440,12 @@ impl RuntimeSession {
         let Some(profile_control) = self.runtime().profile_control() else {
             return Ok(None);
         };
-        let request = serde_json::to_vec(request).map_err(|error| {
-            RuntimeLibraryError::new(format!("encode runtime profile request: {error}"))
-        })?;
+        let request = encode_runtime_request(
+            request,
+            ZR_RUNTIME_PROFILE_REQUEST_LIMIT_V1,
+            1,
+            "encode runtime profile request",
+        )?;
         let releaser = self.output_releaser();
         let mut output = ZrOwnedResultV2::empty();
         let status = unsafe {
@@ -483,12 +491,16 @@ impl RuntimeSession {
         self.foreign_output
             .ensure_session_available("subscribe runtime plugin event")?;
         let subscribe = self.runtime().subscribe_plugin_event();
-        let request = serde_json::to_vec(&ZrRuntimePluginEventSubscribeRequestV1::new(
-            ZIRCON_RUNTIME_ABI_VERSION_V1,
-            event_id,
-            payload_schema,
-        ))
-        .map_err(|error| RuntimeLibraryError::new(error.to_string()))?;
+        let request = encode_runtime_request(
+            &ZrRuntimePluginEventSubscribeRequestV1::new(
+                ZIRCON_RUNTIME_ABI_VERSION_V1,
+                event_id,
+                payload_schema,
+            ),
+            ZR_RUNTIME_PLUGIN_EVENT_SUBSCRIBE_REQUEST_LIMIT_V1,
+            3,
+            "encode runtime plugin event subscription request",
+        )?;
         let mut subscription = ZrRuntimePluginEventSubscriptionHandle::invalid();
         ensure_status(
             unsafe {
@@ -653,7 +665,16 @@ fn ensure_status(status: ZrStatus, operation: &'static str) -> Result<(), Runtim
     if status.is_ok() {
         return Ok(());
     }
-    let diagnostics = unsafe { status.diagnostics.as_slice() };
+    let diagnostics = unsafe {
+        status
+            .diagnostics
+            .checked_slice(ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1)
+    }
+    .map_err(|error| {
+        RuntimeLibraryError::new(format!(
+            "failed to {operation}: runtime returned invalid status diagnostics: {error:?}"
+        ))
+    })?;
     let diagnostics = String::from_utf8_lossy(diagnostics);
     let code = match status.status_code() {
         ZrStatusCode::Ok => "ok",
@@ -664,6 +685,7 @@ fn ensure_status(status: ZrStatus, operation: &'static str) -> Result<(), Runtim
         ZrStatusCode::CapabilityDenied => "capability-denied",
         ZrStatusCode::BridgeNotEnabled => "bridge-not-enabled",
         ZrStatusCode::Panic => "panic",
+        ZrStatusCode::LimitExceeded => "limit-exceeded",
     };
     Err(RuntimeLibraryError::new(format!(
         "failed to {operation}: {code}: {diagnostics}"
@@ -696,10 +718,23 @@ fn validate_runtime_frame(frame: &ZrRuntimeFrameV2) -> Result<(), RuntimeLibrary
             frame.width, frame.height
         )));
     }
+    if frame.width > ZR_RUNTIME_FRAME_MAX_DIMENSION_V1
+        || frame.height > ZR_RUNTIME_FRAME_MAX_DIMENSION_V1
+    {
+        return Err(RuntimeLibraryError::new(format!(
+            "runtime frame dimensions {}x{} exceed maximum {}",
+            frame.width, frame.height, ZR_RUNTIME_FRAME_MAX_DIMENSION_V1
+        )));
+    }
     let expected_len = (frame.width as usize)
         .checked_mul(frame.height as usize)
         .and_then(|pixel_count| pixel_count.checked_mul(4))
         .ok_or_else(|| RuntimeLibraryError::new("runtime frame pixel length overflowed usize"))?;
+    if expected_len > ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1 {
+        return Err(RuntimeLibraryError::new(format!(
+            "runtime frame RGBA length {expected_len} exceeds maximum {ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1}"
+        )));
+    }
     if frame.rgba.len != expected_len as u64 {
         return Err(RuntimeLibraryError::new(format!(
             "runtime frame returned {} RGBA bytes for {}x{} pixels; expected {}",

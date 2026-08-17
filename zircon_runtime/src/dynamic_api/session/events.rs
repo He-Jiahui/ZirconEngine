@@ -8,16 +8,18 @@ use zircon_runtime_interface::ui::surface::{
     UiNavigationEventKind, UiPointerButton, UiPointerEventKind,
 };
 use zircon_runtime_interface::{
-    ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, ZR_RUNTIME_BUTTON_STATE_RELEASED_V1,
-    ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1, ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1,
-    ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1, ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1,
-    ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1,
-    ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1, ZR_RUNTIME_EVENT_KIND_IME_V1,
-    ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1, ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1,
-    ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1,
-    ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1, ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1,
-    ZR_RUNTIME_EVENT_KIND_TOUCH_V1, ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1,
-    ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1, ZR_RUNTIME_FILE_DRAG_CANCELLED_V1,
+    ui::accessibility::UiAccessibilityActionRequest, ZrRuntimeEventV1, ZrStatus,
+    ZR_RUNTIME_ACCESSIBILITY_ACTION_REQUEST_LIMIT_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+    ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1,
+    ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1, ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1,
+    ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1,
+    ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1,
+    ZR_RUNTIME_EVENT_KIND_IME_V1, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1,
+    ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1,
+    ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1,
+    ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1, ZR_RUNTIME_EVENT_KIND_TOUCH_V1,
+    ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1, ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1,
+    ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1, ZR_RUNTIME_FILE_DRAG_CANCELLED_V1,
     ZR_RUNTIME_FILE_DRAG_DROPPED_V1, ZR_RUNTIME_FILE_DRAG_HOVERED_V1,
     ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_Y_V1,
     ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_LEFT_V1,
@@ -31,15 +33,14 @@ use zircon_runtime_interface::{
     ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1, ZR_RUNTIME_KEY_ACTION_PRESSED_V1,
     ZR_RUNTIME_KEY_ACTION_RELEASED_V1, ZR_RUNTIME_KEY_ACTION_TEXT_V1,
     ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1, ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1,
-    ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
-    ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1, ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1,
-    ZR_RUNTIME_MOUSE_WHEEL_COORDS_PRESENT_V1, ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1,
-    ZR_RUNTIME_TOUCH_PHASE_ENDED_V1, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
-    ZR_RUNTIME_TOUCH_PHASE_STARTED_V1, ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
+    ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1, ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1,
+    ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1, ZR_RUNTIME_MOUSE_WHEEL_COORDS_PRESENT_V1,
+    ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1, ZR_RUNTIME_TOUCH_PHASE_ENDED_V1,
+    ZR_RUNTIME_TOUCH_PHASE_MOVED_V1, ZR_RUNTIME_TOUCH_PHASE_STARTED_V1,
+    ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
     ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1, ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1,
     ZR_RUNTIME_WINDOW_STATUS_MOVED_V1, ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1,
     ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1, ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1,
-    ZrRuntimeEventV1, ZrStatus, ui::accessibility::UiAccessibilityActionRequest,
 };
 
 use crate::core::framework::input::{
@@ -48,14 +49,18 @@ use crate::core::framework::input::{
 };
 use crate::core::math::Vec2;
 
+use super::super::bounded_json;
+
 use super::input_events::{
     gamepad_axis, gamepad_button, ime_cursor, ime_cursor_area, ime_surrounding_text, input_button,
     keyboard_logical_key, mouse_scroll_unit, nonzero_u16, touch_phase, window_bool,
     window_scale_factor, window_theme,
 };
 use super::menu::{runtime_session_menu_action_at, write_runtime_menu_action};
-use super::status::{error_status, invalid_argument, not_found};
-use super::{DEFAULT_VIEWPORT, RuntimeDynamicSession};
+use super::status::{
+    error_status, invalid_argument, invalid_or_limit_payload, limit_exceeded, not_found,
+};
+use super::{RuntimeDynamicSession, DEFAULT_VIEWPORT};
 
 impl RuntimeDynamicSession {
     pub(super) fn handle_event(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
@@ -140,10 +145,21 @@ impl RuntimeDynamicSession {
     }
 
     fn handle_accessibility_action(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
-        let payload = unsafe { event.payload.as_slice() };
-        let request = match serde_json::from_slice::<UiAccessibilityActionRequest>(payload) {
+        let request = match unsafe {
+            bounded_json::decode::<UiAccessibilityActionRequest>(
+                event.payload,
+                ZR_RUNTIME_ACCESSIBILITY_ACTION_REQUEST_LIMIT_V1,
+                |_| 1,
+            )
+        } {
             Ok(request) => request,
-            Err(_) => return invalid_argument(b"invalid accessibility action payload"),
+            Err(error) => {
+                return invalid_or_limit_payload(
+                    &error,
+                    b"invalid accessibility action payload",
+                    b"accessibility action payload exceeds limit",
+                );
+            }
         };
         if self.runtime_ui.is_empty() {
             return not_found(
@@ -326,7 +342,10 @@ impl RuntimeDynamicSession {
     }
 
     fn handle_keyboard(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
-        let payload = unsafe { event.payload.as_slice() };
+        let payload = match event_payload(event) {
+            Ok(payload) => payload,
+            Err(status) => return status,
+        };
         let text = if payload.is_empty() {
             None
         } else {
@@ -397,7 +416,10 @@ impl RuntimeDynamicSession {
     }
 
     fn handle_ime(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
-        let payload = unsafe { event.payload.as_slice() };
+        let payload = match event_payload(event) {
+            Ok(payload) => payload,
+            Err(status) => return status,
+        };
         let text_payload = || match String::from_utf8(payload.to_vec()) {
             Ok(text) => Ok(text),
             Err(_) => Err(invalid_argument(b"invalid runtime ime payload")),
@@ -509,7 +531,10 @@ impl RuntimeDynamicSession {
     }
 
     fn handle_file_drag_drop(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
-        let payload = unsafe { event.payload.as_slice() };
+        let payload = match event_payload(event) {
+            Ok(payload) => payload,
+            Err(status) => return status,
+        };
         let path_payload = || match String::from_utf8(payload.to_vec()) {
             Ok(path) => Ok(path),
             Err(_) => Err(invalid_argument(b"invalid runtime file drag path")),
@@ -573,7 +598,10 @@ impl RuntimeDynamicSession {
             ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1 => false,
             _ => return invalid_argument(b"unknown runtime gamepad connection state"),
         };
-        let payload = unsafe { event.payload.as_slice() };
+        let payload = match event_payload(event) {
+            Ok(payload) => payload,
+            Err(status) => return status,
+        };
         let name = if payload.is_empty() {
             None
         } else {
@@ -712,6 +740,20 @@ impl RuntimeDynamicSession {
         &mut self,
     ) -> zircon_runtime_interface::ui::dispatch::UiInputEventMetadata {
         self.runtime_ui.next_input_metadata()
+    }
+}
+
+fn event_payload(event: ZrRuntimeEventV1) -> Result<&'static [u8], ZrStatus> {
+    match unsafe {
+        event
+            .payload
+            .checked_slice(ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1)
+    } {
+        Ok(payload) => Ok(payload),
+        Err(error) if error.is_limit_exceeded() => {
+            Err(limit_exceeded(b"runtime event payload exceeds limit"))
+        }
+        Err(_) => Err(invalid_argument(b"invalid runtime event payload slice")),
     }
 }
 

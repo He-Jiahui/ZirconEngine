@@ -15,7 +15,8 @@ use zircon_runtime_interface::{
     ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle,
     ZrStatus, ZrStatusCode, ZR_RUNTIME_FRAME_DEMAND_IDLE_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
-    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
+    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1, ZR_RUNTIME_WORLD_QUERY_REQUEST_LIMIT_V1,
+    ZR_RUNTIME_WORLD_WATCH_REQUEST_LIMIT_V1,
 };
 
 use crate::core::gateway::{
@@ -211,7 +212,13 @@ unsafe extern "C" fn fake_query_world(
     request: ZrByteSlice,
     output: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
-    let query = match serde_json::from_slice::<WorldQuery>(unsafe { request.as_slice() }) {
+    let request = match unsafe {
+        request.checked_slice(ZR_RUNTIME_WORLD_QUERY_REQUEST_LIMIT_V1.max_encoded_bytes)
+    } {
+        Ok(request) => request,
+        Err(_) => return ZrStatus::new(ZrStatusCode::InvalidArgument, ZrByteSlice::empty()),
+    };
+    let query = match serde_json::from_slice::<WorldQuery>(request) {
         Ok(query) => query,
         Err(_) => return ZrStatus::new(ZrStatusCode::InvalidArgument, ZrByteSlice::empty()),
     };
@@ -225,11 +232,16 @@ unsafe extern "C" fn fake_watch_world(
     request: ZrByteSlice,
     output: *mut WatchToken,
 ) -> ZrStatus {
-    let registration =
-        match serde_json::from_slice::<WatchRegistration>(unsafe { request.as_slice() }) {
-            Ok(registration) => registration,
-            Err(_) => return ZrStatus::new(ZrStatusCode::InvalidArgument, ZrByteSlice::empty()),
-        };
+    let request = match unsafe {
+        request.checked_slice(ZR_RUNTIME_WORLD_WATCH_REQUEST_LIMIT_V1.max_encoded_bytes)
+    } {
+        Ok(request) => request,
+        Err(_) => return ZrStatus::new(ZrStatusCode::InvalidArgument, ZrByteSlice::empty()),
+    };
+    let registration = match serde_json::from_slice::<WatchRegistration>(request) {
+        Ok(registration) => registration,
+        Err(_) => return ZrStatus::new(ZrStatusCode::InvalidArgument, ZrByteSlice::empty()),
+    };
     WORLD_WATCH_REQUESTS.lock().unwrap().push(registration);
     unsafe { output.write(WatchToken::new(41)) };
     ZrStatus::ok()

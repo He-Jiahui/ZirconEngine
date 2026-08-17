@@ -1,17 +1,23 @@
 use std::ptr;
 
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrOwnedResultV2, ZrRuntimeOperationHandle, ZrRuntimeOperationStatusV2,
-    ZrRuntimeSessionHandle, ZrStatus, ZrStatusCode,
+    ZrByteSlice, ZrOwnedResultV2, ZrRuntimeOperationHandle, ZrRuntimeOperationResultV1,
+    ZrRuntimeOperationStatusV2, ZrRuntimeOperationSubmitRequestV1, ZrRuntimeSessionHandle,
+    ZrStatus, ZrStatusCode, ZR_RUNTIME_OPERATION_REQUEST_LIMIT_V1,
+    ZR_RUNTIME_OPERATION_RESULT_OUTPUT_LIMIT_V1,
 };
 
 use crate::operation::RuntimeOperationServiceError;
 
+use super::super::bounded_json;
 use super::registry::{
-    register_runtime_allocation_in_action, with_session, with_session_result_finalized,
+    register_runtime_allocation_in_action, with_session, with_session_result_committed,
     RuntimeAllocationKind,
 };
-use super::status::{error_status, invalid_argument, not_found, unsupported_version};
+use super::status::{
+    error_status, invalid_argument, invalid_or_limit_payload, not_found, output_payload_status,
+    unsupported_version,
+};
 
 pub(crate) unsafe fn submit_operation(
     session: ZrRuntimeSessionHandle,
@@ -25,11 +31,27 @@ pub(crate) unsafe fn submit_operation(
         if request_json.is_empty() {
             return invalid_argument(b"missing runtime operation request");
         }
-        if request_json.len > runtime.operations.max_retained_bytes() {
-            return invalid_argument(b"runtime operation request exceeds retained byte capacity");
-        }
-        let request_json = unsafe { request_json.as_slice() };
-        match runtime.operations.submit_json(request_json) {
+        let mut limit = ZR_RUNTIME_OPERATION_REQUEST_LIMIT_V1;
+        limit.max_encoded_bytes = limit
+            .max_encoded_bytes
+            .min(runtime.operations.max_retained_bytes());
+        let request = match unsafe {
+            bounded_json::decode::<ZrRuntimeOperationSubmitRequestV1>(
+                request_json,
+                limit,
+                |request| bounded_json::json_value_item_count(&request.payload).saturating_add(2),
+            )
+        } {
+            Ok(request) => request,
+            Err(error) => {
+                return invalid_or_limit_payload(
+                    &error,
+                    b"invalid runtime operation request",
+                    b"runtime operation request exceeds limit",
+                );
+            }
+        };
+        match runtime.operations.submit(request) {
             Ok(handle) => {
                 unsafe { ptr::write(out_handle, handle) };
                 ZrStatus::ok()
@@ -72,9 +94,14 @@ pub(crate) unsafe fn harvest_operation(
     if !handle.is_valid() {
         return invalid_argument(b"invalid runtime operation handle");
     }
-    match with_session_result_finalized(
+    match with_session_result_committed(
         session,
-        |runtime| encode_harvest_json_result(runtime.operations.harvest(handle)),
+        |runtime| {
+            runtime
+                .operations
+                .prepare_harvest(handle, encode_harvest_json_result)
+                .map_err(operation_error_status)?
+        },
         |active_session, bytes| {
             let output = register_runtime_allocation_in_action(
                 active_session,
@@ -84,19 +111,24 @@ pub(crate) unsafe fn harvest_operation(
             unsafe { ptr::write(out_result, output) };
             Ok(ZrStatus::ok())
         },
+        |runtime| {
+            let _ = runtime.operations.commit_harvest(handle);
+        },
+        |runtime| runtime.operations.rollback_harvest(handle),
     ) {
         Ok(status) | Err(status) => status,
     }
 }
 
-fn encode_harvest_json_result<T: serde::Serialize>(
-    result: Result<T, RuntimeOperationServiceError>,
-) -> Result<Vec<u8>, ZrStatus> {
-    let value = match result {
-        Ok(value) => value,
-        Err(error) => return Err(operation_error_status(error)),
-    };
-    serde_json::to_vec(&value).map_err(error_status)
+fn encode_harvest_json_result(value: &ZrRuntimeOperationResultV1) -> Result<Vec<u8>, ZrStatus> {
+    bounded_json::encode(value, ZR_RUNTIME_OPERATION_RESULT_OUTPUT_LIMIT_V1, || {
+        value
+            .succeeded_output()
+            .map(bounded_json::json_value_item_count)
+            .unwrap_or(1)
+            .saturating_add(1)
+    })
+    .map_err(|error| output_payload_status(error, b"runtime operation result exceeds limit"))
 }
 
 fn operation_error_status(error: RuntimeOperationServiceError) -> ZrStatus {

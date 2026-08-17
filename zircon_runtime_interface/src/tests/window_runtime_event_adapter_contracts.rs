@@ -538,6 +538,23 @@ fn runtime_event_adapter_rejects_unsupported_or_malformed_events() {
         UiRuntimeEventAdapterError::InvalidTextPayload
     );
 
+    let malformed_keyboard = ZrRuntimeEventV1::keyboard(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        viewport(),
+        ZR_RUNTIME_KEY_ACTION_TEXT_V1,
+        0,
+        0,
+        ZrByteSlice {
+            data: core::ptr::null(),
+            len: 1,
+        },
+    );
+    assert_eq!(
+        runtime_event_to_window_input_pump_event(&adapter_context(), malformed_keyboard)
+            .unwrap_err(),
+        UiRuntimeEventAdapterError::InvalidTextPayload
+    );
+
     let mut theme = ZrRuntimeEventV1::new(
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         crate::ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1,

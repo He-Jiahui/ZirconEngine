@@ -9,8 +9,8 @@ use super::owned_buffer::{
     ensure_status_releasing_output_on_error, release_owned_result_after_result,
 };
 use super::{
-    profile_control_response_item_count, project_root_for_abi, release_owned_result,
-    validate_owned_result_releasing_on_error, validate_plugin_event_batch,
+    encode_runtime_request, profile_control_response_item_count, project_root_for_abi,
+    release_owned_result, validate_owned_result_releasing_on_error, validate_plugin_event_batch,
     validate_plugin_event_encoded_len, validate_runtime_frame,
     validate_runtime_frame_releasing_on_error, RuntimeFrame, RuntimeLibraryError,
     RuntimeSessionTeardownFailureState,
@@ -21,7 +21,7 @@ use zircon_runtime_interface::{
     ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventDeliveryV1,
     ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeReleaseAllocationFnV2, ZrRuntimeSessionHandle,
     ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2,
-    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
+    ZR_RUNTIME_FRAME_MAX_DIMENSION_V1, ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
 };
 
@@ -292,7 +292,7 @@ fn runtime_frame_validation_rejects_foreign_abi() {
 }
 
 #[test]
-fn runtime_frame_validation_rejects_zero_dimensions_and_length_overflow() {
+fn runtime_frame_validation_rejects_zero_dimensions_and_shared_limits() {
     let zero_width = ZrRuntimeFrameV2 {
         abi_version: ZIRCON_RUNTIME_ABI_VERSION_V2,
         width: 0,
@@ -316,10 +316,51 @@ fn runtime_frame_validation_rejects_zero_dimensions_and_length_overflow() {
     };
     assert_eq!(
         validate_runtime_frame(&overflow)
-            .expect_err("unrepresentable RGBA lengths must reject capture")
+            .expect_err("dimensions above the shared maximum must reject capture")
             .to_string(),
-        "runtime frame pixel length overflowed usize"
+        "runtime frame dimensions 4294967295x4294967295 exceed maximum 16384"
     );
+
+    let oversized_rgba = ZrRuntimeFrameV2 {
+        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V2,
+        width: ZR_RUNTIME_FRAME_MAX_DIMENSION_V1,
+        height: 4_097,
+        generation: 1,
+        rgba: ZrOwnedResultV2 {
+            data: core::ptr::null(),
+            len: u64::from(ZR_RUNTIME_FRAME_MAX_DIMENSION_V1) * 4_097 * 4,
+            allocation: ZrRuntimeAllocationId::invalid(),
+        },
+    };
+    assert_eq!(
+        validate_runtime_frame(&oversized_rgba)
+            .expect_err("RGBA outputs above the shared byte maximum must reject capture")
+            .to_string(),
+        "runtime frame RGBA length 268500992 exceeds maximum 268435456"
+    );
+}
+
+#[test]
+fn runtime_request_encoding_rejects_oversized_plugin_subscription_before_ffi() {
+    let request = zircon_runtime_interface::ZrRuntimePluginEventSubscribeRequestV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        "x".repeat(
+            zircon_runtime_interface::ZR_RUNTIME_PLUGIN_EVENT_SUBSCRIBE_REQUEST_LIMIT_V1
+                .max_encoded_bytes,
+        ),
+        "zircon.test.v1",
+    );
+
+    let error = encode_runtime_request(
+        &request,
+        zircon_runtime_interface::ZR_RUNTIME_PLUGIN_EVENT_SUBSCRIBE_REQUEST_LIMIT_V1,
+        3,
+        "encode test request",
+    )
+    .expect_err("the app must enforce the runtime request limit before entering FFI");
+
+    assert!(error.to_string().contains("JSON encoded length"));
+    assert!(error.to_string().contains("exceeds maximum 262144"));
 }
 
 #[test]

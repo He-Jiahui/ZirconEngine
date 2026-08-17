@@ -559,7 +559,11 @@ fn native_host_bridge_call_checks_entry_status_without_materializing_a_diagnosti
 }
 
 fn native_bridge_test_method(call: NativeBridgeCall) -> ZrStatus {
-    let payload = unsafe { call.payload.as_slice() };
+    let payload = unsafe {
+        call.payload
+            .checked_slice(zircon_runtime_interface::ZR_RUNTIME_NATIVE_STRING_MAX_ENCODED_BYTES_V1)
+    }
+    .expect("valid native bridge test payload");
     if call.interface_slot == 0 && call.method_slot == 7 && payload == b"ping" {
         status(ZrStatusCode::CapabilityDenied)
     } else {

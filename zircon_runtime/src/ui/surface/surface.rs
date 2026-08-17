@@ -5,27 +5,6 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 
-use crate::ui::v2::UiV2RuntimeStyleIndex;
-use crate::ui::{
-    layout::UiLayoutSlotIndex,
-    tree::{UiHitTestIndex, UiHitTestResult, UiRuntimeTreeRoutingExt},
-};
-use zircon_runtime_interface::ui::accessibility::UiAccessibilityTreeSnapshot;
-use zircon_runtime_interface::ui::tree::{UiDirtyFlags, UiTree, UiTreeError};
-use zircon_runtime_interface::ui::{
-    component::UiValue,
-    dispatch::UiTransientDismissalTarget,
-    event_ui::{UiNodeId, UiReflectorSnapshot, UiTreeId},
-    focus::{UiFocusChangeEvent, UiFocusChangeReason},
-    layout::{UiFrame, UiLayoutEngineSelectionReport, UiPoint},
-    style::{UiPainterFamily, UiPainterResolvedState},
-    surface::{
-        UiArrangedNode, UiArrangedTree, UiFocusPath, UiFocusState, UiHitTestDebugDump,
-        UiHitTestQuery, UiNavigationState, UiRenderCommand, UiRenderCommandKind, UiRenderExtract,
-        UiRenderList, UiSurfaceDebugOptions, UiSurfaceDebugSnapshot, UiSurfaceWindowState,
-    },
-};
-
 use super::{
     arranged_focus_path,
     component_state::{property_may_affect_runtime_pseudo_state, UiSurfaceComponentStateStore},
@@ -47,6 +26,26 @@ use super::{
     render::{popup_base_z, UiSurfaceRenderCache},
 };
 use crate::ui::text::UiTextMeasureCache;
+use crate::ui::v2::UiV2RuntimeStyleIndex;
+use crate::ui::{
+    layout::UiLayoutSlotIndex,
+    tree::{UiHitTestIndex, UiHitTestResult, UiRuntimeTreeRoutingExt},
+};
+use zircon_runtime_interface::ui::accessibility::UiAccessibilityTreeSnapshot;
+use zircon_runtime_interface::ui::tree::{UiDirtyFlags, UiTree, UiTreeError};
+use zircon_runtime_interface::ui::{
+    component::UiValue,
+    dispatch::UiTransientDismissalTarget,
+    event_ui::{UiNodeId, UiReflectorSnapshot, UiTreeId},
+    focus::{UiFocusChangeEvent, UiFocusChangeReason},
+    layout::{UiFrame, UiLayoutEngineSelectionReport, UiPoint},
+    style::{UiPainterFamily, UiPainterResolvedState},
+    surface::{
+        UiArrangedNode, UiArrangedTree, UiFocusPath, UiFocusState, UiHitTestDebugDump,
+        UiHitTestQuery, UiNavigationState, UiRenderCommand, UiRenderCommandKind, UiRenderExtract,
+        UiRenderList, UiSurfaceDebugOptions, UiSurfaceDebugSnapshot, UiSurfaceWindowState,
+    },
+};
 
 mod default_interactions;
 mod event_routing;
@@ -318,6 +317,20 @@ impl UiSurface {
 
     pub fn accessibility_snapshot(&self) -> UiAccessibilityTreeSnapshot {
         crate::ui::accessibility::accessibility_snapshot(self)
+    }
+
+    pub(crate) fn accessibility_snapshot_bounded(
+        &self,
+        budget: &mut crate::ui::accessibility::AccessibilityBuildBudget,
+    ) -> Result<
+        UiAccessibilityTreeSnapshot,
+        crate::ui::accessibility::AccessibilitySnapshotBudgetError,
+    > {
+        crate::ui::accessibility::accessibility_snapshot_bounded(self, budget)
+    }
+
+    pub(crate) fn accessibility_source_node_count(&self) -> usize {
+        self.tree.nodes.len()
     }
 
     pub fn debug_hit_test(&self, point: UiPoint) -> UiHitTestDebugDump {

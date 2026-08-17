@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::builtin::RuntimeModuleLoadReport;
 use crate::core::framework::render::{
-    RENDER_PROFILE_CONFIG_KEY, RenderProfileBundle, RenderSubmissionConfig,
+    RenderProfileBundle, RenderSubmissionConfig, RENDER_PROFILE_CONFIG_KEY,
 };
 use crate::core::manager::{input_manager_handle, resolve_manager_service};
 use crate::core::math::{UVec2, Vec2};
@@ -16,11 +16,11 @@ use crate::scene::components::NodeKind;
 
 use super::super::camera_controller::RuntimeCameraController;
 use super::super::runtime_loop::RuntimeRenderBridge;
-use super::project::{RuntimePreparedProject, RuntimeProjectConfig, project_opened_log};
+use super::project::{project_opened_log, RuntimePreparedProject, RuntimeProjectConfig};
 use super::{
+    event_mirror, linked_plugins::LinkedRuntimePluginPlan, merge_builtin_script_scene_systems,
     RuntimeDynamicSession, RuntimeDynamicSessionError, RuntimeDynamicSessionProfile,
-    RuntimeDynamicSessionResult, event_mirror, linked_plugins::LinkedRuntimePluginPlan,
-    merge_builtin_script_scene_systems,
+    RuntimeDynamicSessionResult,
 };
 
 fn store_profile_submission_config(
@@ -349,6 +349,12 @@ pub(super) fn build(
         cursor: Vec2::ZERO,
         input_manager,
         input_diagnostics: Default::default(),
+        pending_host_request_output: None,
+        host_request_output_commit_count: 0,
+        host_request_output_in_flight: false,
+        pending_world_invalidation_output: None,
+        world_invalidation_output_page: None,
+        world_invalidation_output_in_flight: false,
         next_plugin_event_subscription: 1,
         plugin_event_subscriptions: event_mirror::empty_plugin_event_subscriptions(),
         operations,
@@ -361,8 +367,8 @@ pub(super) fn build(
 #[cfg(test)]
 mod tests {
     use super::{
-        CoreRuntime, RENDER_PROFILE_CONFIG_KEY, RenderProfileBundle, RenderSubmissionConfig,
-        RuntimeDynamicSessionProfile, store_profile_submission_config,
+        store_profile_submission_config, CoreRuntime, RenderProfileBundle, RenderSubmissionConfig,
+        RuntimeDynamicSessionProfile, RENDER_PROFILE_CONFIG_KEY,
     };
 
     #[test]

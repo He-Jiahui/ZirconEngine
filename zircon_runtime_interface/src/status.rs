@@ -11,6 +11,7 @@ pub enum ZrStatusCode {
     CapabilityDenied = 5,
     Panic = 6,
     BridgeNotEnabled = 7,
+    LimitExceeded = 8,
 }
 
 impl ZrStatusCode {
@@ -24,6 +25,7 @@ impl ZrStatusCode {
             5 => Self::CapabilityDenied,
             6 => Self::Panic,
             7 => Self::BridgeNotEnabled,
+            8 => Self::LimitExceeded,
             _ => Self::Error,
         }
     }

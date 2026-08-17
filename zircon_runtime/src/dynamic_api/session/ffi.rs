@@ -6,16 +6,20 @@ use zircon_runtime_interface::{
     ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeAllocationId,
     ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1,
     ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2, ZrRuntimeHighlightSetV1,
-    ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventSubscribeRequestV1,
-    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionConfigV3, ZrRuntimeSessionHandle,
-    ZrRuntimeViewportHandle, ZrStatus, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_ABI_VERSION_V3,
+    ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimePluginEventSubscriptionHandle,
+    ZrRuntimeSessionConfigV3, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrStatus,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_ABI_VERSION_V3,
+    ZR_RUNTIME_FRAME_MAX_DIMENSION_V1, ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1,
+    ZR_RUNTIME_PLUGIN_EVENT_SUBSCRIBE_REQUEST_LIMIT_V1, ZR_RUNTIME_PROFILE_REQUEST_LIMIT_V1,
+    ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1, ZR_RUNTIME_SESSION_PROFILE_MAX_ENCODED_BYTES_V1,
+    ZR_RUNTIME_WORLD_QUERY_REQUEST_LIMIT_V1, ZR_RUNTIME_WORLD_WATCH_REQUEST_LIMIT_V1,
 };
 
+use super::super::bounded_json;
 use super::super::frame::{
-    encode_accessibility_tree, encode_host_request_batch, encode_profile_response,
-    encode_world_sync_payload, write_accessibility_tree, write_frame, write_host_requests,
-    write_profile_response, write_world_sync_payload,
+    encode_accessibility_tree, encode_profile_response, encode_world_query_payload,
+    write_accessibility_tree, write_frame, write_host_requests, write_profile_response,
+    write_world_sync_payload,
 };
 use super::super::surface::render_surface_descriptor;
 use super::diagnostics::runtime_diagnostics_response;
@@ -23,12 +27,15 @@ use super::profile::RuntimeDynamicSessionProfile;
 use super::project::RuntimeProjectConfig;
 use super::registry::{
     destroy_session_slot, insert_session_with_wake, register_runtime_allocation_in_action,
-    release_runtime_allocation, with_session, with_session_activity, with_session_result_finalized,
-    RuntimeAllocationKind, RuntimeWakeRegistration,
+    release_runtime_allocation, with_session, with_session_activity, with_session_result_committed,
+    with_session_result_finalized, RuntimeAllocationKind, RuntimeWakeRegistration,
 };
-use super::status::{error_status, invalid_argument, not_found, unsupported_version};
+use super::status::{
+    error_status, invalid_argument, invalid_or_limit_payload, limit_exceeded, not_found,
+    output_payload_status, unsupported_version,
+};
 use super::RuntimeProjectError;
-use super::{event_mirror, RuntimeDynamicSession, RuntimeDynamicSessionError, DEFAULT_VIEWPORT};
+use super::{RuntimeDynamicSession, DEFAULT_VIEWPORT};
 
 pub(in crate::dynamic_api) unsafe fn create_session(
     config: ZrRuntimeSessionConfigV3,
@@ -46,11 +53,34 @@ pub(in crate::dynamic_api) unsafe fn create_session(
         Err(_) => return invalid_argument(b"invalid runtime wake sink"),
     };
 
-    let profile =
-        match RuntimeDynamicSessionProfile::from_bytes(unsafe { config.profile.as_slice() }) {
-            Some(profile) => profile,
-            None => return invalid_argument(b"unknown runtime session profile"),
-        };
+    let profile_bytes = match unsafe {
+        config
+            .profile
+            .checked_slice(ZR_RUNTIME_SESSION_PROFILE_MAX_ENCODED_BYTES_V1)
+    } {
+        Ok(bytes) => bytes,
+        Err(error) if error.is_limit_exceeded() => {
+            return limit_exceeded(b"runtime session profile exceeds limit");
+        }
+        Err(_) => return invalid_argument(b"invalid runtime session profile slice"),
+    };
+    for path in [
+        config.project_root,
+        config.play_scene,
+        config.play_report_pipe,
+    ] {
+        match unsafe { path.checked_slice(ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1) } {
+            Ok(_) => {}
+            Err(error) if error.is_limit_exceeded() => {
+                return limit_exceeded(b"runtime project path exceeds limit");
+            }
+            Err(_) => return invalid_argument(b"invalid runtime project path slice"),
+        }
+    }
+    let profile = match RuntimeDynamicSessionProfile::from_bytes(profile_bytes) {
+        Some(profile) => profile,
+        None => return invalid_argument(b"unknown runtime session profile"),
+    };
     let project_config = match RuntimeProjectConfig::from_abi_startup_config(
         config.project_root,
         config.play_scene,
@@ -159,9 +189,11 @@ pub(in crate::dynamic_api) unsafe fn capture_frame(
             if request.viewport != DEFAULT_VIEWPORT {
                 return Err(not_found(b"runtime viewport not found"));
             }
+            validate_frame_dimensions(request.size.width, request.size.height)?;
             session.capture_frame(request).map_err(error_status)
         },
         |active_handle, frame| {
+            validate_frame_output(frame.width, frame.height, frame.rgba.len())?;
             let rgba = register_runtime_allocation_in_action(
                 active_handle,
                 RuntimeAllocationKind::Frame,
@@ -201,14 +233,20 @@ pub(in crate::dynamic_api) unsafe fn capture_accessibility_tree(
             if request.viewport != DEFAULT_VIEWPORT {
                 return Err(not_found(b"runtime viewport not found"));
             }
+            validate_frame_dimensions(request.size.width, request.size.height)?;
             session
                 .capture_accessibility_tree(request)
+                .map_err(|error| {
+                    output_payload_status(error, b"runtime accessibility tree output exceeds limit")
+                })
                 .and_then(|snapshot| {
-                    encode_accessibility_tree(&snapshot).map_err(|source| {
-                        RuntimeDynamicSessionError::EncodeAccessibilityTree { source }
+                    encode_accessibility_tree(&snapshot).map_err(|error| {
+                        output_payload_status(
+                            error,
+                            b"runtime accessibility tree output exceeds limit",
+                        )
                     })
                 })
-                .map_err(error_status)
         },
         |active_handle, bytes| {
             let output = register_runtime_allocation_in_action(
@@ -277,6 +315,9 @@ pub(in crate::dynamic_api) unsafe fn present_viewport(
         if request.viewport != DEFAULT_VIEWPORT {
             return not_found(b"runtime viewport not found");
         }
+        if let Err(status) = validate_frame_dimensions(request.size.width, request.size.height) {
+            return status;
+        }
         match session.present_viewport(request) {
             Ok(()) => ZrStatus::ok(),
             Err(error) => error_status(error),
@@ -311,18 +352,37 @@ pub(in crate::dynamic_api) unsafe fn profile_control(
             if request_json.is_empty() {
                 return Err(invalid_argument(b"missing profile control request"));
             }
-            let request = match serde_json::from_slice::<ProfileControlRequest>(unsafe {
-                request_json.as_slice()
-            }) {
+            let request = match unsafe {
+                bounded_json::decode::<ProfileControlRequest>(
+                    request_json,
+                    ZR_RUNTIME_PROFILE_REQUEST_LIMIT_V1,
+                    |_| 1,
+                )
+            } {
                 Ok(request) => request,
-                Err(_) => return Err(invalid_argument(b"invalid profile control request")),
+                Err(bounded_json::BoundedJsonError::Slice(error)) => {
+                    return Err(if error.is_limit_exceeded() {
+                        limit_exceeded(b"profile control request exceeds byte limit")
+                    } else {
+                        invalid_argument(b"invalid profile control request byte slice")
+                    });
+                }
+                Err(error) => {
+                    return Err(invalid_or_limit_payload(
+                        &error,
+                        b"invalid profile control request",
+                        b"profile control request exceeds byte limit",
+                    ));
+                }
             };
             let response = if request.command == ProfileControlCommand::RuntimeDiagnosticsSnapshot {
                 runtime_diagnostics_response(session)
             } else {
                 crate::core::diagnostics::profiling::control(request)
             };
-            encode_profile_response(&response).map_err(error_status)
+            encode_profile_response(&response).map_err(|error| {
+                output_payload_status(error, b"profile control response exceeds limit")
+            })
         },
         |active_handle, bytes| {
             let output = register_runtime_allocation_in_action(
@@ -371,25 +431,25 @@ pub(in crate::dynamic_api) unsafe fn drain_host_requests(
     if out_requests.is_null() {
         return write_host_requests(out_requests, ZrOwnedResultV2::empty());
     }
-    match with_session_result_finalized(
+    match with_session_result_committed(
         handle,
         |session| {
-            let batch = session.drain_host_requests();
-            if batch.requests.is_empty() {
-                return Ok(Vec::new());
-            }
-            encode_host_request_batch(&batch).map_err(error_status)
+            session.prepare_host_request_output().map_err(|error| {
+                output_payload_status(error, b"runtime host request output exceeds limit")
+            })
         },
         |active_handle, bytes| {
-            let output = register_runtime_allocation_in_action(
+            register_runtime_allocation_in_action(
                 active_handle,
                 RuntimeAllocationKind::HostRequests,
                 bytes,
-            )?;
-            Ok(write_host_requests(out_requests, output))
+            )
         },
+        RuntimeDynamicSession::commit_host_request_output,
+        RuntimeDynamicSession::rollback_host_request_output,
     ) {
-        Ok(status) | Err(status) => status,
+        Ok(output) => write_host_requests(out_requests, output),
+        Err(status) => status,
     }
 }
 
@@ -402,15 +462,22 @@ pub(in crate::dynamic_api) unsafe fn subscribe_plugin_event(
         if out_subscription.is_null() || request_json.is_empty() {
             return invalid_argument(b"missing runtime plugin event subscription request");
         }
-        let request =
-            match serde_json::from_slice::<ZrRuntimePluginEventSubscribeRequestV1>(unsafe {
-                request_json.as_slice()
-            }) {
-                Ok(request) => request,
-                Err(_) => {
-                    return invalid_argument(b"invalid runtime plugin event subscription request");
-                }
-            };
+        let request = match unsafe {
+            bounded_json::decode::<ZrRuntimePluginEventSubscribeRequestV1>(
+                request_json,
+                ZR_RUNTIME_PLUGIN_EVENT_SUBSCRIBE_REQUEST_LIMIT_V1,
+                |_| 3,
+            )
+        } {
+            Ok(request) => request,
+            Err(error) => {
+                return invalid_or_limit_payload(
+                    &error,
+                    b"invalid runtime plugin event subscription request",
+                    b"runtime plugin event subscription request exceeds limit",
+                );
+            }
+        };
         if request.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
             return unsupported_version();
         }
@@ -450,24 +517,30 @@ pub(in crate::dynamic_api) unsafe fn drain_plugin_events(
     if out_deliveries.is_null() {
         return invalid_argument(b"missing runtime plugin event output");
     }
-    match with_session_result_finalized(
+    match with_session_result_committed(
         handle,
         |session| {
             session
-                .drain_plugin_events(handle.raw(), subscription)
-                .map_err(error_status)
+                .prepare_plugin_event_output(handle.raw(), subscription)
+                .map_err(|error| {
+                    output_payload_status(error, b"runtime plugin event output exceeds limit")
+                })
         },
         |active_handle, bytes| {
-            let output = register_runtime_allocation_in_action(
+            register_runtime_allocation_in_action(
                 active_handle,
                 RuntimeAllocationKind::PluginEvents,
                 bytes,
-            )?;
-            unsafe { ptr::write(out_deliveries, output) };
-            Ok(ZrStatus::ok())
+            )
         },
+        |session| session.commit_plugin_event_output(subscription),
+        |session| session.rollback_plugin_event_output(subscription),
     ) {
-        Ok(status) | Err(status) => status,
+        Ok(output) => {
+            unsafe { ptr::write(out_deliveries, output) };
+            ZrStatus::ok()
+        }
+        Err(status) => status,
     }
 }
 
@@ -482,14 +555,36 @@ pub(in crate::dynamic_api) unsafe fn query_world(
     match with_session_result_finalized(
         handle,
         |session| {
-            let query =
-                match serde_json::from_slice::<WorldQuery>(unsafe { request_json.as_slice() }) {
-                    Ok(query) => query,
-                    Err(_) => {
-                        return Err(invalid_argument(b"invalid runtime world query request"));
-                    }
-                };
-            encode_world_sync_payload(&session.query_world(query)).map_err(error_status)
+            let query = match unsafe {
+                bounded_json::decode::<WorldQuery>(
+                    request_json,
+                    ZR_RUNTIME_WORLD_QUERY_REQUEST_LIMIT_V1,
+                    |query| {
+                        query
+                            .filter
+                            .with
+                            .len()
+                            .saturating_add(query.filter.without.len())
+                            .saturating_add(query.select.len())
+                            .saturating_add(1)
+                    },
+                )
+            } {
+                Ok(query) => query,
+                Err(error) => {
+                    return Err(invalid_or_limit_payload(
+                        &error,
+                        b"invalid runtime world query request",
+                        b"runtime world query request exceeds limit",
+                    ));
+                }
+            };
+            let result = session.query_world(query).map_err(|error| {
+                output_payload_status(error, b"runtime world query output exceeds limit")
+            })?;
+            encode_world_query_payload(&result).map_err(|error| {
+                output_payload_status(error, b"runtime world query output exceeds limit")
+            })
         },
         |active_handle, bytes| {
             let output = register_runtime_allocation_in_action(
@@ -513,11 +608,21 @@ pub(in crate::dynamic_api) unsafe fn watch_world(
         if out_token.is_null() || registration_json.is_empty() {
             return invalid_argument(b"missing runtime world watch request or output");
         }
-        let registration = match serde_json::from_slice::<WatchRegistration>(unsafe {
-            registration_json.as_slice()
-        }) {
+        let registration = match unsafe {
+            bounded_json::decode::<WatchRegistration>(
+                registration_json,
+                ZR_RUNTIME_WORLD_WATCH_REQUEST_LIMIT_V1,
+                |_| 1,
+            )
+        } {
             Ok(registration) => registration,
-            Err(_) => return invalid_argument(b"invalid runtime world watch request"),
+            Err(error) => {
+                return invalid_or_limit_payload(
+                    &error,
+                    b"invalid runtime world watch request",
+                    b"runtime world watch request exceeds limit",
+                );
+            }
         };
         unsafe {
             ptr::write(out_token, session.watch_world(registration));
@@ -549,21 +654,47 @@ pub(in crate::dynamic_api) unsafe fn drain_world_invalidations(
     if out_batches.is_null() {
         return invalid_argument(b"missing runtime world invalidation output");
     }
-    match with_session_result_finalized(
+    match with_session_result_committed(
         handle,
         |session| {
-            let batches = session.drain_world_invalidations();
-            encode_world_sync_payload(&batches).map_err(error_status)
+            session
+                .prepare_world_invalidation_output()
+                .map_err(|error| {
+                    output_payload_status(error, b"runtime world invalidation output exceeds limit")
+                })
         },
         |active_handle, bytes| {
-            let output = register_runtime_allocation_in_action(
+            register_runtime_allocation_in_action(
                 active_handle,
                 RuntimeAllocationKind::WorldSync,
                 bytes,
-            )?;
-            Ok(write_world_sync_payload(out_batches, output))
+            )
         },
+        RuntimeDynamicSession::commit_world_invalidation_output,
+        RuntimeDynamicSession::rollback_world_invalidation_output,
     ) {
-        Ok(status) | Err(status) => status,
+        Ok(output) => write_world_sync_payload(out_batches, output),
+        Err(status) => status,
     }
+}
+
+fn validate_frame_dimensions(width: u32, height: u32) -> Result<(), ZrStatus> {
+    if width > ZR_RUNTIME_FRAME_MAX_DIMENSION_V1 || height > ZR_RUNTIME_FRAME_MAX_DIMENSION_V1 {
+        return Err(limit_exceeded(b"runtime frame dimensions exceed limit"));
+    }
+    let rgba_bytes = u64::from(width)
+        .saturating_mul(u64::from(height))
+        .saturating_mul(4);
+    if rgba_bytes > ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1 as u64 {
+        return Err(limit_exceeded(b"runtime frame byte size exceeds limit"));
+    }
+    Ok(())
+}
+
+fn validate_frame_output(width: u32, height: u32, rgba_bytes: usize) -> Result<(), ZrStatus> {
+    validate_frame_dimensions(width, height)?;
+    if rgba_bytes > ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1 {
+        return Err(limit_exceeded(b"runtime frame output exceeds limit"));
+    }
+    Ok(())
 }

@@ -1,20 +1,20 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-use zircon_runtime_interface::ZrByteSlice;
 use zircon_runtime_interface::project::RelPath;
+use zircon_runtime_interface::{ZrByteSlice, ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1};
 
 use crate::asset::project::{
     ProjectManager, ProjectManifest, ProjectPaths, ProjectScriptManifest, ResolvedProjectPath,
 };
-use crate::asset::{ProjectInfo, asset_manager_handle, project_asset_manager_handle};
-use crate::core::CoreHandle;
+use crate::asset::{asset_manager_handle, project_asset_manager_handle, ProjectInfo};
 use crate::core::framework::navigation::NavMeshAsset;
 use crate::core::framework::project::ProjectPluginManifest;
 use crate::core::manager::{navigation_manager_handle, resolve_manager_service};
+use crate::core::CoreHandle;
 use crate::diagnostic_log::{write_log, write_log_lazy};
 use crate::scene::{DynamicScene, DynamicSceneAssetReloadQueue, LevelMetadata, LevelSystem, World};
-use crate::script::{VM_PLUGIN_MANAGER_NAME, VmPluginManager};
+use crate::script::{VmPluginManager, VM_PLUGIN_MANAGER_NAME};
 
 use super::error::{RuntimeProjectError, RuntimeProjectResult};
 use super::runtime_ui::RuntimeUiSurfaceSet;
@@ -62,7 +62,14 @@ impl RuntimeProjectConfig {
         if slice.is_empty() {
             return Ok(None);
         }
-        let bytes = unsafe { slice.as_slice() };
+        let bytes = unsafe { slice.checked_slice(ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1) }
+            .map_err(|error| RuntimeProjectError::ResolveProjectRoot {
+                root: PathBuf::from("<invalid ABI project root>"),
+                source: std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    format!("invalid runtime project root byte slice: {error:?}"),
+                ),
+            })?;
         let value = std::str::from_utf8(bytes)
             .map_err(|source| RuntimeProjectError::ProjectRootUtf8 { source })?
             .trim();
@@ -77,6 +84,17 @@ impl RuntimeProjectConfig {
         play_scene: ZrByteSlice,
         play_report_pipe: ZrByteSlice,
     ) -> RuntimeProjectResult<Option<Self>> {
+        for slice in [project_root, play_scene, play_report_pipe] {
+            unsafe { slice.checked_slice(ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1) }.map_err(
+                |error| RuntimeProjectError::ResolveProjectRoot {
+                    root: PathBuf::from("<invalid ABI startup path>"),
+                    source: std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        format!("invalid runtime startup path byte slice: {error:?}"),
+                    ),
+                },
+            )?;
+        }
         let Some(mut project) = Self::from_abi_slice(project_root)? else {
             if !play_scene.is_empty() {
                 return Err(RuntimeProjectError::PlaySceneRequiresProject);
@@ -449,7 +467,9 @@ fn parse_optional_play_scene(slice: ZrByteSlice) -> RuntimeProjectResult<Option<
     if slice.is_empty() {
         return Ok(None);
     }
-    let value = std::str::from_utf8(unsafe { slice.as_slice() })
+    let bytes = unsafe { slice.checked_slice(ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1) }
+        .expect("runtime startup byte slices are validated before Play scene parsing");
+    let value = std::str::from_utf8(bytes)
         .map_err(|source| RuntimeProjectError::PlaySceneUtf8 { source })?;
     if value.trim().is_empty() {
         return Err(RuntimeProjectError::EmptyPlayScene);
@@ -466,7 +486,9 @@ fn parse_optional_play_report_pipe(slice: ZrByteSlice) -> RuntimeProjectResult<O
     if slice.is_empty() {
         return Ok(None);
     }
-    let value = std::str::from_utf8(unsafe { slice.as_slice() })
+    let bytes = unsafe { slice.checked_slice(ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1) }
+        .expect("runtime startup byte slices are validated before Play report parsing");
+    let value = std::str::from_utf8(bytes)
         .map_err(|source| RuntimeProjectError::PlayReportPipeUtf8 { source })?;
     if value.trim().is_empty() {
         return Err(RuntimeProjectError::EmptyPlayReportPipe);
@@ -548,7 +570,7 @@ mod tests {
     use zircon_runtime_interface::ZrByteSlice;
 
     use super::{
-        RuntimeLoadedProjectManifest, RuntimeProjectConfig, RuntimeProjectError, project_opened_log,
+        project_opened_log, RuntimeLoadedProjectManifest, RuntimeProjectConfig, RuntimeProjectError,
     };
 
     #[test]
@@ -734,11 +756,9 @@ mod tests {
             error,
             RuntimeProjectError::ResolveProjectRoot { .. }
         ));
-        assert!(
-            error
-                .to_string()
-                .contains("Windows project paths must be drive-rooted, not drive-relative")
-        );
+        assert!(error
+            .to_string()
+            .contains("Windows project paths must be drive-rooted, not drive-relative"));
     }
 
     #[test]

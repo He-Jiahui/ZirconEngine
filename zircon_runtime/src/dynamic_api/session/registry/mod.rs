@@ -17,7 +17,7 @@ pub(super) use frame_activity::RuntimeFrameActivity;
 pub(super) use frame_demand::{RuntimeFrameDemand, MAX_RUNTIME_FRAME_DEMAND_DELAY};
 pub(super) use session_store::{
     destroy_session_slot, insert_session, insert_session_with_wake, with_session,
-    with_session_activity, with_session_result_finalized,
+    with_session_activity, with_session_result_committed, with_session_result_finalized,
 };
 #[cfg(test)]
 pub(super) use session_store::{poison_registry_lock_for_test, session_is_closing};

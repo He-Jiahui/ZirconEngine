@@ -85,6 +85,46 @@ pub(in crate::dynamic_api::session) fn with_session_result_finalized<T, U>(
     with_session_activity_result_finalized(handle, |session, _activity| action(session), finalize)
 }
 
+pub(in crate::dynamic_api::session) fn with_session_result_committed<T, U>(
+    handle: ZrRuntimeSessionHandle,
+    action: impl FnOnce(&mut RuntimeDynamicSession) -> Result<T, ZrStatus>,
+    finalize: impl FnOnce(ZrRuntimeSessionHandle, T) -> Result<U, ZrStatus>,
+    commit: impl FnOnce(&mut RuntimeDynamicSession),
+    rollback: impl FnOnce(&mut RuntimeDynamicSession),
+) -> Result<U, ZrStatus> {
+    let slot = find_session_slot(handle)?;
+    let Some(action_guard) = slot.begin_action() else {
+        return Err(not_found(b"runtime session not found"));
+    };
+    let value = {
+        let mut session = slot.lock_session();
+        let session = session
+            .as_mut()
+            .expect("an active runtime session action must retain its session");
+        action(session)?
+    };
+    let finalized = match finalize(handle, value) {
+        Ok(finalized) => finalized,
+        Err(status) => {
+            let mut session = slot.lock_session();
+            let session = session
+                .as_mut()
+                .expect("an active runtime session rollback must retain its session");
+            rollback(session);
+            return Err(status);
+        }
+    };
+    {
+        let mut session = slot.lock_session();
+        let session = session
+            .as_mut()
+            .expect("an active runtime session finalizer must retain its session");
+        commit(session);
+    }
+    drop(action_guard);
+    Ok(finalized)
+}
+
 fn with_session_activity_result<T>(
     handle: ZrRuntimeSessionHandle,
     action: impl FnOnce(&mut RuntimeDynamicSession, &RuntimeFrameActivity) -> Result<T, ZrStatus>,

@@ -1,11 +1,14 @@
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
-use zircon_runtime_interface::world_sync::{AssetReloadFrameApplyReportDto, WorldFact};
+use zircon_runtime_interface::world_sync::{
+    AssetReloadFrameApplyReportDto, InvalidationBatch, WorldFact,
+};
 use zircon_runtime_interface::{
     ui::accessibility::UiAccessibilityTreeSnapshot, RuntimeInputDiagnosticsSnapshot,
     ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeFrameRequestV1, ZrRuntimeHostRequestBatchV1,
     ZrRuntimeHostRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZR_RUNTIME_ACCESSIBILITY_TREE_OUTPUT_LIMIT_V1, ZR_RUNTIME_HOST_REQUEST_OUTPUT_LIMIT_V1,
 };
 
 use crate::core::framework::channel::ChannelWakeCallback;
@@ -25,8 +28,9 @@ use crate::scene::{
     DynamicSceneAssetReloadFrameApplyReport, DynamicSceneAssetReloadQueue, LevelSystem,
 };
 
+use super::super::bounded_json::BoundedJsonError;
 use super::super::camera_controller::RuntimeCameraController;
-use super::super::frame::{encode_frame, EncodedRuntimeFrame};
+use super::super::frame::{encode_frame, encode_host_request_batch, EncodedRuntimeFrame};
 use super::super::runtime_loop::RuntimeRenderBridge;
 use super::construction;
 use super::event_mirror;
@@ -108,6 +112,12 @@ pub(super) struct RuntimeDynamicSession {
     pub(super) cursor: Vec2,
     pub(super) input_manager: ManagerServiceHandle<dyn InputManager>,
     pub(super) input_diagnostics: RuntimeInputDiagnostics,
+    pub(super) pending_host_request_output: Option<ZrRuntimeHostRequestBatchV1>,
+    pub(super) host_request_output_commit_count: usize,
+    pub(super) host_request_output_in_flight: bool,
+    pub(super) pending_world_invalidation_output: Option<Vec<InvalidationBatch>>,
+    pub(super) world_invalidation_output_page: Option<Vec<InvalidationBatch>>,
+    pub(super) world_invalidation_output_in_flight: bool,
     pub(super) next_plugin_event_subscription: u64,
     pub(super) plugin_event_subscriptions:
         std::collections::HashMap<u64, event_mirror::RuntimePluginEventSubscriptionState>,
@@ -269,7 +279,56 @@ impl RuntimeDynamicSession {
         self.last_scene_asset_reload_report = Some(report);
     }
 
-    pub(super) fn drain_host_requests(&mut self) -> ZrRuntimeHostRequestBatchV1 {
+    pub(super) fn prepare_host_request_output(&mut self) -> Result<Vec<u8>, BoundedJsonError> {
+        if self.host_request_output_in_flight {
+            return Err(BoundedJsonError::Json(
+                "runtime host request output is already in flight".to_string(),
+            ));
+        }
+        if self.pending_host_request_output.is_none() {
+            self.pending_host_request_output = Some(self.collect_host_requests());
+        }
+        let pending = self
+            .pending_host_request_output
+            .as_ref()
+            .expect("pending host request output was initialized");
+        let page_limit = pending
+            .requests
+            .len()
+            .min(ZR_RUNTIME_HOST_REQUEST_OUTPUT_LIMIT_V1.max_items);
+        let (bytes, commit_count) = if page_limit == 0 {
+            (Vec::new(), 0)
+        } else {
+            encode_largest_host_request_prefix(pending, page_limit)?
+        };
+        self.host_request_output_commit_count = commit_count;
+        self.host_request_output_in_flight = true;
+        Ok(bytes)
+    }
+
+    pub(super) fn commit_host_request_output(&mut self) {
+        debug_assert!(self.host_request_output_in_flight);
+        let pending = self
+            .pending_host_request_output
+            .as_mut()
+            .expect("an in-flight host request output must retain its pending batch");
+        pending
+            .requests
+            .drain(..self.host_request_output_commit_count);
+        if pending.requests.is_empty() {
+            self.pending_host_request_output = None;
+        }
+        self.host_request_output_commit_count = 0;
+        self.host_request_output_in_flight = false;
+    }
+
+    pub(super) fn rollback_host_request_output(&mut self) {
+        debug_assert!(self.host_request_output_in_flight);
+        self.host_request_output_commit_count = 0;
+        self.host_request_output_in_flight = false;
+    }
+
+    fn collect_host_requests(&mut self) -> ZrRuntimeHostRequestBatchV1 {
         let input_manager = match self.resolve_input_manager() {
             Ok(input_manager) => input_manager,
             Err(error) => {
@@ -419,16 +478,73 @@ impl RuntimeDynamicSession {
     pub(super) fn capture_accessibility_tree(
         &mut self,
         request: ZrRuntimeAccessibilityTreeRequestV1,
-    ) -> RuntimeDynamicSessionResult<UiAccessibilityTreeSnapshot> {
+    ) -> Result<UiAccessibilityTreeSnapshot, BoundedJsonError> {
         self.resize_viewport(UVec2::new(
             request.size.width.max(1),
             request.size.height.max(1),
         ));
         self.runtime_ui
-            .accessibility_snapshot(self.camera_controller.viewport_size())
-            .map_err(|source| RuntimeDynamicSessionError::RuntimeUiLayout { source })
+            .accessibility_snapshot(
+                self.camera_controller.viewport_size(),
+                ZR_RUNTIME_ACCESSIBILITY_TREE_OUTPUT_LIMIT_V1,
+            )
             .map(|snapshot| snapshot.unwrap_or_else(dynamic_preview_accessibility_snapshot))
     }
+}
+
+fn encode_largest_host_request_prefix(
+    pending: &ZrRuntimeHostRequestBatchV1,
+    page_limit: usize,
+) -> Result<(Vec<u8>, usize), BoundedJsonError> {
+    let started = Instant::now();
+    let encode = |count: usize| -> Result<Vec<u8>, BoundedJsonError> {
+        check_host_request_encoding_deadline(started)?;
+        let bytes = encode_host_request_batch(&ZrRuntimeHostRequestBatchV1::new(
+            pending.abi_version,
+            pending.requests[..count].to_vec(),
+        ))?;
+        check_host_request_encoding_deadline(started)?;
+        Ok(bytes)
+    };
+    match encode(page_limit) {
+        Ok(bytes) => return Ok((bytes, page_limit)),
+        Err(error) if !deterministic_host_request_failure(&error) => return Err(error),
+        Err(_) => {}
+    }
+
+    let first = encode(1)?;
+    let mut best = (first, 1_usize);
+    let mut low = 2_usize;
+    let mut high = page_limit;
+    while low < high {
+        let candidate = low + (high - low) / 2;
+        match encode(candidate) {
+            Ok(bytes) => {
+                best = (bytes, candidate);
+                low = candidate + 1;
+            }
+            Err(error) if deterministic_host_request_failure(&error) => high = candidate,
+            Err(error) => return Err(error),
+        }
+    }
+    Ok(best)
+}
+
+fn check_host_request_encoding_deadline(started: Instant) -> Result<(), BoundedJsonError> {
+    let limit_micros = ZR_RUNTIME_HOST_REQUEST_OUTPUT_LIMIT_V1.max_processing_time_micros;
+    if started.elapsed() > Duration::from_micros(limit_micros) {
+        return Err(BoundedJsonError::ProcessingTime { limit_micros });
+    }
+    Ok(())
+}
+
+fn deterministic_host_request_failure(error: &BoundedJsonError) -> bool {
+    matches!(
+        error,
+        BoundedJsonError::EncodedBytes { .. }
+            | BoundedJsonError::Items { .. }
+            | BoundedJsonError::NestingDepth { .. }
+    )
 }
 
 fn asset_reload_world_fact(report: &DynamicSceneAssetReloadFrameApplyReport) -> Option<WorldFact> {

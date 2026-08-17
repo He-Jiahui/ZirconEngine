@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::time::{Duration, Instant};
 use zircon_runtime_interface::ui::accessibility::{
     UiAccessibilityActionRequest, UiAccessibilityDiagnostic, UiAccessibilityTreeSnapshot,
 };
@@ -12,6 +13,8 @@ use zircon_runtime_interface::ui::surface::{
     UiPointerButton, UiPointerEventKind, UiRenderExtract, UiRenderList,
 };
 use zircon_runtime_interface::ui::tree::UiTreeError;
+
+use super::super::bounded_json::BoundedJsonError;
 
 use crate::asset::project::ProjectManager;
 use crate::asset::{AssetKind, AssetUri, ImportedAsset};
@@ -131,59 +134,59 @@ impl RuntimeUiSurfaceSet {
     pub(super) fn accessibility_snapshot(
         &mut self,
         viewport_size: crate::core::math::UVec2,
-    ) -> Result<Option<UiAccessibilityTreeSnapshot>, UiTreeError> {
+        limit: zircon_runtime_interface::ZrRuntimePayloadLimitV1,
+    ) -> Result<Option<UiAccessibilityTreeSnapshot>, BoundedJsonError> {
         if self.surfaces.is_empty() {
             return Ok(None);
         }
+        let source_nodes = self.surfaces.iter().fold(0_usize, |count, surface| {
+            count.saturating_add(surface.surface.accessibility_source_node_count())
+        });
+        if source_nodes > limit.max_items {
+            return Err(BoundedJsonError::Items {
+                observed: source_nodes,
+                limit: limit.max_items,
+            });
+        }
+        let started = Instant::now();
         let root_size = ui_size(viewport_size);
+        let mut budget = crate::ui::accessibility::AccessibilityBuildBudget::new(limit);
         let mut snapshot = UiAccessibilityTreeSnapshot {
             tree_id: UiTreeId::new(RUNTIME_PROJECT_UI_TREE_ID),
             ..UiAccessibilityTreeSnapshot::default()
         };
+        budget
+            .observe_value(&snapshot, 0)
+            .map_err(|error| accessibility_budget_error(error, limit))?;
         for (surface_index, runtime_surface) in self.surfaces.iter_mut().enumerate() {
-            runtime_surface.surface.rebuild_dirty(root_size)?;
-            let local = runtime_surface.surface.accessibility_snapshot();
-            snapshot.roots.extend(
-                local
-                    .roots
-                    .into_iter()
-                    .map(|node_id| global_node_id(surface_index, node_id)),
-            );
-            snapshot
-                .nodes
-                .extend(local.nodes.into_iter().map(|mut node| {
-                    node.node_id = global_node_id(surface_index, node.node_id);
-                    node.children = node
-                        .children
-                        .into_iter()
-                        .map(|node_id| global_node_id(surface_index, node_id))
-                        .collect();
-                    node.labelled_by = node
-                        .labelled_by
-                        .map(|node_id| global_node_id(surface_index, node_id));
-                    node.label_for = node
-                        .label_for
-                        .map(|node_id| global_node_id(surface_index, node_id));
-                    node.node_path = node
-                        .node_path
-                        .map(|path| UiNodePath::new(format!("surface-{surface_index}:{}", path.0)));
-                    node
-                }));
-            snapshot
-                .diagnostics
-                .extend(local.diagnostics.into_iter().map(
-                    |mut diagnostic: UiAccessibilityDiagnostic| {
-                        diagnostic.node_id = diagnostic
-                            .node_id
-                            .map(|node_id| global_node_id(surface_index, node_id));
-                        diagnostic
-                    },
-                ));
+            let elapsed = started.elapsed();
+            let processing_limit = Duration::from_micros(limit.max_processing_time_micros);
+            if elapsed > processing_limit {
+                return Err(BoundedJsonError::ProcessingTime {
+                    limit_micros: limit.max_processing_time_micros,
+                });
+            }
+            runtime_surface
+                .surface
+                .rebuild_dirty(root_size)
+                .map_err(|error| BoundedJsonError::Json(error.to_string()))?;
+            let local = runtime_surface
+                .surface
+                .accessibility_snapshot_bounded(&mut budget)
+                .map_err(|error| accessibility_budget_error(error, limit))?;
+            let local = globalize_accessibility_snapshot(surface_index, local, &mut budget)
+                .map_err(|error| accessibility_budget_error(error, limit))?;
+            snapshot.roots.extend(local.roots);
+            snapshot.nodes.extend(local.nodes);
+            snapshot.diagnostics.extend(local.diagnostics);
             if let Some(focused) = local.focused {
                 // Later manifest roots render and receive input above earlier roots.
-                snapshot.focused = Some(global_node_id(surface_index, focused));
+                snapshot.focused = Some(focused);
             }
         }
+        budget
+            .validate_payload(&snapshot)
+            .map_err(|error| accessibility_budget_error(error, limit))?;
         Ok(Some(snapshot))
     }
 
@@ -327,6 +330,94 @@ impl RuntimeUiSurfaceSet {
             zircon_runtime_interface::ui::dispatch::UiInputTimestamp::default(),
             UiInputSequence::new(self.input_sequence),
         )
+    }
+}
+
+fn globalize_accessibility_snapshot(
+    surface_index: usize,
+    mut snapshot: UiAccessibilityTreeSnapshot,
+    budget: &mut crate::ui::accessibility::AccessibilityBuildBudget,
+) -> Result<UiAccessibilityTreeSnapshot, crate::ui::accessibility::AccessibilitySnapshotBudgetError>
+{
+    for root in &mut snapshot.roots {
+        let global = global_node_id(surface_index, *root);
+        budget.observe_replacement(root, &global, 2)?;
+        *root = global;
+    }
+    for node in &mut snapshot.nodes {
+        let global = global_node_id(surface_index, node.node_id);
+        budget.observe_replacement(&node.node_id, &global, 3)?;
+        node.node_id = global;
+        for child in &mut node.children {
+            let global = global_node_id(surface_index, *child);
+            budget.observe_replacement(child, &global, 4)?;
+            *child = global;
+        }
+        let labelled_by = node
+            .labelled_by
+            .map(|node_id| global_node_id(surface_index, node_id));
+        budget.observe_replacement(&node.labelled_by, &labelled_by, 3)?;
+        node.labelled_by = labelled_by;
+        let label_for = node
+            .label_for
+            .map(|node_id| global_node_id(surface_index, node_id));
+        budget.observe_replacement(&node.label_for, &label_for, 3)?;
+        node.label_for = label_for;
+        let node_path = node.node_path.take();
+        let global_path = node_path
+            .as_ref()
+            .map(|path| UiNodePath::new(format!("surface-{surface_index}:{}", path.0)));
+        budget.observe_replacement(&node_path, &global_path, 3)?;
+        node.node_path = global_path;
+    }
+    for diagnostic in &mut snapshot.diagnostics {
+        let node_id = diagnostic
+            .node_id
+            .map(|node_id| global_node_id(surface_index, node_id));
+        budget.observe_replacement(&diagnostic.node_id, &node_id, 3)?;
+        diagnostic.node_id = node_id;
+    }
+    let focused = snapshot
+        .focused
+        .map(|node_id| global_node_id(surface_index, node_id));
+    budget.observe_replacement(&snapshot.focused, &focused, 2)?;
+    snapshot.focused = focused;
+    Ok(snapshot)
+}
+
+fn accessibility_budget_error(
+    error: crate::ui::accessibility::AccessibilitySnapshotBudgetError,
+    limit: zircon_runtime_interface::ZrRuntimePayloadLimitV1,
+) -> BoundedJsonError {
+    match error {
+        crate::ui::accessibility::AccessibilitySnapshotBudgetError::EncodedBytes {
+            observed,
+            ..
+        } => BoundedJsonError::EncodedBytes {
+            observed,
+            limit: limit.max_encoded_bytes,
+        },
+        crate::ui::accessibility::AccessibilitySnapshotBudgetError::Items { observed, .. } => {
+            BoundedJsonError::Items {
+                observed,
+                limit: limit.max_items,
+            }
+        }
+        crate::ui::accessibility::AccessibilitySnapshotBudgetError::ProcessingTime { .. } => {
+            BoundedJsonError::ProcessingTime {
+                limit_micros: limit.max_processing_time_micros,
+            }
+        }
+        crate::ui::accessibility::AccessibilitySnapshotBudgetError::NestingDepth {
+            observed,
+            ..
+        } => BoundedJsonError::NestingDepth {
+            observed,
+            limit: limit.max_nesting_depth,
+        },
+        crate::ui::accessibility::AccessibilitySnapshotBudgetError::Json(message) => {
+            BoundedJsonError::Json(message)
+        }
     }
 }
 

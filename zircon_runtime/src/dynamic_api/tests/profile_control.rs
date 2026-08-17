@@ -26,6 +26,53 @@ fn profile_control_rejects_invalid_json_after_session_action_admission() {
 }
 
 #[test]
+fn profile_control_rejects_malformed_and_oversized_slices_before_decode() {
+    let api = runtime_api();
+    let profile_control = api.profile_control.expect("profile_control");
+    let session = create_test_session(api);
+    let mut output = ZrOwnedResultV2::empty();
+
+    let malformed = unsafe {
+        profile_control(
+            session,
+            ZrByteSlice {
+                data: core::ptr::null(),
+                len: 1,
+            },
+            &mut output,
+        )
+    };
+    assert_session_status(
+        malformed,
+        ZrStatusCode::InvalidArgument,
+        "invalid profile control request byte slice",
+    );
+    assert!(output.is_empty());
+
+    let byte = b'{';
+    let oversized = unsafe {
+        profile_control(
+            session,
+            ZrByteSlice {
+                data: &byte,
+                len: zircon_runtime_interface::ZR_RUNTIME_PROFILE_REQUEST_LIMIT_V1
+                    .max_encoded_bytes
+                    + 1,
+            },
+            &mut output,
+        )
+    };
+    assert_session_status(
+        oversized,
+        ZrStatusCode::LimitExceeded,
+        "profile control request exceeds byte limit",
+    );
+    assert!(output.is_empty());
+
+    destroy_test_session(api, session);
+}
+
+#[test]
 fn profile_control_snapshot_returns_serialized_response() {
     let api = runtime_api();
     let profile_control = api.profile_control.expect("profile_control");

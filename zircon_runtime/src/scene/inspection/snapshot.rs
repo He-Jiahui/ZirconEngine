@@ -1,12 +1,16 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
+use std::io::{self, Write};
+use std::time::{Duration, Instant};
 
-use serde::{Deserialize, Serialize};
-use zircon_runtime_interface::reflect::{ReflectFieldInfo, ReflectFieldValue};
+use serde::ser::{SerializeSeq, SerializeStruct};
+use serde::{Deserialize, Serialize, Serializer};
+use zircon_runtime_interface::reflect::{ReflectFieldInfo, ReflectFieldValue, ReflectedValue};
 use zircon_runtime_interface::world_sync::{EntityRow, QueryFilter, WorldQuery, WorldQueryResult};
+use zircon_runtime_interface::ZrRuntimePayloadLimitV1;
 
 use crate::scene::components::{NodeKind, SceneNode};
 use crate::scene::reflect::RuntimeTypeRegistration;
-use crate::scene::{EntityId, World};
+use crate::scene::{EntityId, World, WorldQueryBudgetError};
 
 use super::{WorldInspectionField, WorldInspectionHierarchyRow};
 
@@ -75,6 +79,387 @@ impl World {
             .collect();
         query.result_for_generation(generation, rows)
     }
+
+    pub(crate) fn query_world_bounded(
+        &self,
+        query: &WorldQuery,
+        limit: ZrRuntimePayloadLimitV1,
+    ) -> Result<WorldQueryResult, WorldQueryBudgetError> {
+        let mut budget = WorldQueryBuildBudget::new(limit);
+        let generation = self.world_generation();
+        if generation != u64::MAX && query.generation_hint == Some(generation) {
+            let result = WorldQueryResult::NotModified { generation };
+            budget.validate_result(&result)?;
+            return Ok(result);
+        }
+
+        let mut rows = Vec::new();
+        budget.observe_rows_candidate(&rows, None)?;
+        budget.check_deadline()?;
+        for entity in self.entity_ids_for_query() {
+            budget.check_deadline()?;
+            if !query_matches_world_components(self, entity, &query.filter) {
+                continue;
+            }
+            budget.ensure_additional_items(1)?;
+            let (components, component_items) =
+                selected_reflected_components_bounded(self, entity, query, &mut budget)?;
+            let row_items = component_items.saturating_add(1);
+            budget.observe_items(row_items)?;
+            let row = EntityRow { entity, components };
+            budget.observe_rows_candidate(&rows, Some(&row))?;
+            rows.push(row);
+        }
+        budget.check_deadline()?;
+        Ok(query.result_for_generation(generation, rows))
+    }
+}
+
+struct WorldQueryBuildBudget {
+    limit: ZrRuntimePayloadLimitV1,
+    started: Instant,
+    item_count: usize,
+    encoded_payload_bytes: usize,
+    preflight_value_bytes: usize,
+}
+
+impl WorldQueryBuildBudget {
+    fn new(limit: ZrRuntimePayloadLimitV1) -> Self {
+        Self {
+            limit,
+            started: Instant::now(),
+            item_count: 0,
+            encoded_payload_bytes: 0,
+            preflight_value_bytes: 0,
+        }
+    }
+
+    fn check_deadline(&self) -> Result<(), WorldQueryBudgetError> {
+        if self.started.elapsed() > Duration::from_micros(self.limit.max_processing_time_micros) {
+            return Err(WorldQueryBudgetError::ProcessingTime {
+                limit_micros: self.limit.max_processing_time_micros,
+            });
+        }
+        Ok(())
+    }
+
+    fn observe_items(&mut self, count: usize) -> Result<(), WorldQueryBudgetError> {
+        self.item_count = self.item_count.saturating_add(count);
+        if self.item_count > self.limit.max_items {
+            return Err(WorldQueryBudgetError::Items {
+                observed: self.item_count,
+                limit: self.limit.max_items,
+            });
+        }
+        Ok(())
+    }
+
+    fn ensure_additional_items(&self, count: usize) -> Result<(), WorldQueryBudgetError> {
+        let observed = self.item_count.saturating_add(count);
+        if observed > self.limit.max_items {
+            return Err(WorldQueryBudgetError::Items {
+                observed,
+                limit: self.limit.max_items,
+            });
+        }
+        Ok(())
+    }
+
+    fn preflight_reflected_value(
+        &mut self,
+        value: &ReflectedValue,
+    ) -> Result<(), WorldQueryBudgetError> {
+        self.check_deadline()?;
+        self.ensure_nesting_offset(5)?;
+        let mut writer = WorldQueryCountingWriter::new(
+            self.encoded_payload_bytes
+                .saturating_add(self.preflight_value_bytes),
+            self.limit.max_encoded_bytes,
+            self.limit.max_nesting_depth,
+            5,
+            self.started,
+            self.limit.max_processing_time_micros,
+        );
+        let result = serde_json::to_writer(&mut writer, value);
+        let value_bytes = writer.finish_with_count(result)?;
+        self.preflight_value_bytes = self.preflight_value_bytes.saturating_add(value_bytes);
+        Ok(())
+    }
+
+    fn observe_rows_candidate(
+        &mut self,
+        rows: &[EntityRow],
+        next: Option<&EntityRow>,
+    ) -> Result<(), WorldQueryBudgetError> {
+        self.check_deadline()?;
+        let mut writer = WorldQueryCountingWriter::new(
+            0,
+            self.limit.max_encoded_bytes,
+            self.limit.max_nesting_depth,
+            0,
+            self.started,
+            self.limit.max_processing_time_micros,
+        );
+        let candidate = WorldQueryRowsCandidate { rows, next };
+        let result = serde_json::to_writer(&mut writer, &candidate);
+        self.encoded_payload_bytes = writer.finish_with_count(result)?;
+        self.preflight_value_bytes = 0;
+        Ok(())
+    }
+
+    fn validate_result(&mut self, result: &WorldQueryResult) -> Result<(), WorldQueryBudgetError> {
+        self.check_deadline()?;
+        let mut writer = WorldQueryCountingWriter::new(
+            0,
+            self.limit.max_encoded_bytes,
+            self.limit.max_nesting_depth,
+            0,
+            self.started,
+            self.limit.max_processing_time_micros,
+        );
+        let result = serde_json::to_writer(&mut writer, result);
+        self.encoded_payload_bytes = writer.finish_with_count(result)?;
+        Ok(())
+    }
+
+    fn ensure_nesting_offset(&self, offset: usize) -> Result<(), WorldQueryBudgetError> {
+        if offset > self.limit.max_nesting_depth {
+            return Err(WorldQueryBudgetError::NestingDepth {
+                observed: offset,
+                limit: self.limit.max_nesting_depth,
+            });
+        }
+        Ok(())
+    }
+}
+
+struct WorldQueryRowsCandidate<'a> {
+    rows: &'a [EntityRow],
+    next: Option<&'a EntityRow>,
+}
+
+impl Serialize for WorldQueryRowsCandidate<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("WorldQueryResult", 2)?;
+        state.serialize_field("kind", "rows")?;
+        state.serialize_field(
+            "data",
+            &WorldQueryRowsSequence {
+                rows: self.rows,
+                next: self.next,
+            },
+        )?;
+        state.end()
+    }
+}
+
+struct WorldQueryRowsSequence<'a> {
+    rows: &'a [EntityRow],
+    next: Option<&'a EntityRow>,
+}
+
+impl Serialize for WorldQueryRowsSequence<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut sequence = serializer.serialize_seq(Some(
+            self.rows
+                .len()
+                .saturating_add(usize::from(self.next.is_some())),
+        ))?;
+        for row in self.rows {
+            sequence.serialize_element(row)?;
+        }
+        if let Some(next) = self.next {
+            sequence.serialize_element(next)?;
+        }
+        sequence.end()
+    }
+}
+
+struct WorldQueryCountingWriter {
+    base_count: usize,
+    count: usize,
+    max_bytes: usize,
+    max_depth: usize,
+    depth: usize,
+    in_string: bool,
+    escaped: bool,
+    started: Instant,
+    max_processing_time_micros: u64,
+    failure: Option<WorldQueryBudgetError>,
+}
+
+impl WorldQueryCountingWriter {
+    fn new(
+        base_count: usize,
+        max_bytes: usize,
+        max_depth: usize,
+        nesting_offset: usize,
+        started: Instant,
+        max_processing_time_micros: u64,
+    ) -> Self {
+        Self {
+            base_count,
+            count: 0,
+            max_bytes,
+            max_depth,
+            depth: nesting_offset,
+            in_string: false,
+            escaped: false,
+            started,
+            max_processing_time_micros,
+            failure: None,
+        }
+    }
+
+    fn finish_with_count(
+        mut self,
+        result: Result<(), serde_json::Error>,
+    ) -> Result<usize, WorldQueryBudgetError> {
+        if let Some(error) = self.failure.take() {
+            return Err(error);
+        }
+        result.map_err(|error| WorldQueryBudgetError::Json(error.to_string()))?;
+        if self.started.elapsed() > Duration::from_micros(self.max_processing_time_micros) {
+            return Err(WorldQueryBudgetError::ProcessingTime {
+                limit_micros: self.max_processing_time_micros,
+            });
+        }
+        Ok(self.count)
+    }
+}
+
+impl Write for WorldQueryCountingWriter {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        if self.started.elapsed() > Duration::from_micros(self.max_processing_time_micros) {
+            self.failure = Some(WorldQueryBudgetError::ProcessingTime {
+                limit_micros: self.max_processing_time_micros,
+            });
+            return Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                "world query build deadline exceeded",
+            ));
+        }
+        let count = self.count.saturating_add(bytes.len());
+        let observed = self.base_count.saturating_add(count);
+        if observed > self.max_bytes {
+            self.failure = Some(WorldQueryBudgetError::EncodedBytes {
+                observed,
+                limit: self.max_bytes,
+            });
+            return Err(io::Error::other("world query byte budget exceeded"));
+        }
+        for byte in bytes {
+            if self.in_string {
+                if self.escaped {
+                    self.escaped = false;
+                } else if *byte == b'\\' {
+                    self.escaped = true;
+                } else if *byte == b'"' {
+                    self.in_string = false;
+                }
+                continue;
+            }
+            match *byte {
+                b'"' => self.in_string = true,
+                b'{' | b'[' => {
+                    self.depth = self.depth.saturating_add(1);
+                    if self.depth > self.max_depth {
+                        self.failure = Some(WorldQueryBudgetError::NestingDepth {
+                            observed: self.depth,
+                            limit: self.max_depth,
+                        });
+                        return Err(io::Error::other("world query nesting budget exceeded"));
+                    }
+                }
+                b'}' | b']' => self.depth = self.depth.saturating_sub(1),
+                _ => {}
+            }
+        }
+        self.count = count;
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+fn selected_reflected_components_bounded(
+    world: &World,
+    entity: EntityId,
+    query: &WorldQuery,
+    budget: &mut WorldQueryBuildBudget,
+) -> Result<(BTreeMap<String, serde_json::Value>, usize), WorldQueryBudgetError> {
+    let mut components = BTreeMap::new();
+    let mut item_count = 0_usize;
+    for selector in &query.select {
+        budget.check_deadline()?;
+        let Some(runtime) = reflected_component_runtime(world, entity, &selector.type_name) else {
+            continue;
+        };
+        let Some(adapter) = runtime.component.as_ref() else {
+            continue;
+        };
+        let mut values = serde_json::Map::new();
+        for field in runtime
+            .registration
+            .type_info
+            .fields
+            .iter()
+            .filter(|field| field.editor_visible)
+        {
+            budget.check_deadline()?;
+            let Ok(value) = adapter.read_field(world, entity, &field.name) else {
+                continue;
+            };
+            budget.ensure_additional_items(item_count.saturating_add(2))?;
+            budget.preflight_reflected_value(&value)?;
+            let value = serde_json::to_value(&value)
+                .map_err(|error| WorldQueryBudgetError::Json(error.to_string()))?;
+            values.insert(field.name.clone(), value);
+            item_count = item_count.saturating_add(1);
+        }
+        if !values.is_empty() {
+            budget.ensure_additional_items(item_count.saturating_add(2))?;
+            item_count = item_count.saturating_add(1);
+            components.insert(selector.type_name.clone(), values.into());
+        }
+    }
+    Ok((components, item_count))
+}
+
+fn reflected_component_runtime<'a>(
+    world: &'a World,
+    entity: EntityId,
+    type_name: &str,
+) -> Option<&'a RuntimeTypeRegistration> {
+    world.type_registry().iter().find(|runtime| {
+        let metadata = &runtime.registration;
+        metadata.type_path.type_path == type_name
+            && metadata.is_component
+            && metadata.editor_visible
+            && runtime
+                .component
+                .as_ref()
+                .is_some_and(|adapter| adapter.contains(world, entity))
+    })
+}
+
+fn query_matches_world_components(world: &World, entity: EntityId, filter: &QueryFilter) -> bool {
+    filter
+        .with
+        .iter()
+        .all(|type_name| reflected_component_runtime(world, entity, type_name).is_some())
+        && filter
+            .without
+            .iter()
+            .all(|type_name| reflected_component_runtime(world, entity, type_name).is_none())
 }
 
 fn query_matches_reflected_components(

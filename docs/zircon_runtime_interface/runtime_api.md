@@ -71,6 +71,7 @@ doc_type: module-detail
 - `runtime_api/viewport.rs` owns viewport size, metrics, native surface target, and bind-surface request DTOs.
 - `runtime_api/events.rs` owns `ZrRuntimeEventV1`, `ZrRuntimeTranslatedEventV1`, and event constructor helpers.
 - `runtime_api/requests.rs` owns host fetch, frame capture, accessibility tree capture, and captured frame DTOs.
+- `buffer.rs` owns byte carriers plus the shared byte/item/depth/time budgets used by runtime producers and host consumers.
 
 The V7 cutover replaces all older runtime tables. `zircon_runtime_get_api_v7` returns the frozen
 25-field `ZrRuntimeApiV7`, including one allocation-release entry plus plugin-event, operation, and required world
@@ -97,9 +98,23 @@ the immutable bytes and release the originating session handle plus that id thro
 releases return `NotFound` without removing storage or changing its owner census. Session destruction is rejected while its
 allocation census is nonzero and may be retried after the outstanding results are released.
 
+Borrowed `ZrByteSlice` values must cross `checked_slice` before Rust constructs a slice. The check
+rejects null plus nonzero length, lengths above `isize::MAX`, and lengths above the selected call
+family's byte budget. Empty slices remain valid where the call contract allows them. JSON request
+and result families share `ZrRuntimePayloadLimitV1` values for encoded bytes, structural items,
+nesting depth, and processing time; producer and host policy constants derive from the same values.
+Malformed carriers or JSON return `InvalidArgument`, while an otherwise shaped request or output
+that exceeds a resource budget returns `LimitExceeded`.
+
+Frame requests are rejected before rendering when either dimension exceeds 16,384 or the computed
+RGBA footprint exceeds 256 MiB. Runtime status diagnostics use a 4 KiB UTF-8-aligned thread-local
+buffer instead of leaking an allocation. A diagnostics pointer is valid only until the next dynamic
+status is produced on the same thread, so consumers must inspect it synchronously and enforce the
+same 4 KiB limit.
+
 ## Boundary Rules
 
-The interface crate may define stable ABI records, borrowed byte-slice payloads, immutable owned-result views, opaque handles, numeric discriminants, and optional function-table slots.
+The interface crate may define stable ABI records, checked borrowed byte-slice payloads, immutable owned-result views, opaque handles, resource-budget constants, numeric discriminants, and optional function-table slots.
 
 It must not own runtime behavior: no `CoreRuntime`, no ECS state, no editor authoring state, no OS window objects, no GPU resources, no plugin implementation registry, and no dynamic session lifecycle. Those remain in `zircon_runtime`, `zircon_app`, or plugin runtime crates.
 

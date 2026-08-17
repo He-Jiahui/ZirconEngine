@@ -46,6 +46,18 @@ pub enum RuntimeEventMirrorError {
         max_payload_bytes: usize,
     },
     #[error(
+        "runtime event mirror `{event_id}` payload nesting depth is {observed_depth}, maximum is {max_depth}"
+    )]
+    PayloadTooDeep {
+        event_id: String,
+        observed_depth: usize,
+        max_depth: usize,
+    },
+    #[error(
+        "runtime event mirror `{event_id}` payload processing exceeded {limit_micros} microseconds"
+    )]
+    ProcessingTime { event_id: String, limit_micros: u64 },
+    #[error(
         "runtime event mirror `{event_id}` queue overflowed at {pending_events}/{max_events} events and {pending_payload_bytes}/{max_payload_bytes} payload bytes"
     )]
     QueueOverflow {

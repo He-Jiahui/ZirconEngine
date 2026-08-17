@@ -5,8 +5,10 @@ use std::sync::{
 };
 use std::time::{Duration, Instant};
 
+use serde::de::IgnoredAny;
 use serde::Deserialize;
 
+use super::decode::decode_bounded_json;
 use super::{
     RuntimeForeignOutputBudget, RuntimeForeignOutputErrorKind, RuntimeForeignOutputKind,
     RuntimeForeignOutputState, RuntimeOwnedOutputReleaser,
@@ -18,6 +20,37 @@ use zircon_runtime_interface::{
 
 const RELEASE_DIAGNOSTIC: &[u8] = b"test allocation is still in use";
 const CALL_DIAGNOSTIC: &[u8] = b"test call failed";
+static BUSINESS_DESERIALIZE_CALLS: AtomicUsize = AtomicUsize::new(0);
+
+struct BusinessDeserializeProbe;
+
+impl<'de> Deserialize<'de> for BusinessDeserializeProbe {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        BUSINESS_DESERIALIZE_CALLS.fetch_add(1, Ordering::SeqCst);
+        IgnoredAny::deserialize(deserializer)?;
+        Ok(Self)
+    }
+}
+
+#[test]
+fn bounded_decode_preflights_the_json_graph_before_business_deserialization() {
+    BUSINESS_DESERIALIZE_CALLS.store(0, Ordering::SeqCst);
+    let budget = RuntimeForeignOutputBudget::new(1024, 2, Duration::from_secs(1));
+    let nested = format!("{}0{}", "[".repeat(160), "]".repeat(160));
+
+    let (result, _) = decode_bounded_json::<BusinessDeserializeProbe, String>(
+        nested.as_bytes(),
+        budget,
+        "JSON graph preflight probe",
+        |_| Ok(1),
+    );
+
+    assert!(result.is_err());
+    assert_eq!(BUSINESS_DESERIALIZE_CALLS.load(Ordering::SeqCst), 0);
+}
 
 struct TestAllocation {
     _bytes: Box<[u8]>,
@@ -433,6 +466,50 @@ fn foreign_output_decode_performance_acceptance() {
                 .as_nanos(),
         "p99 boundary latency {p99_ns}ns exceeded the shared 10ms host-request budget"
     );
+}
+
+#[test]
+fn foreign_output_policies_derive_from_interface_limits() {
+    let policies = [
+        (
+            super::HOST_REQUEST_OUTPUT_BUDGET,
+            zircon_runtime_interface::ZR_RUNTIME_HOST_REQUEST_OUTPUT_LIMIT_V1,
+        ),
+        (
+            super::PROFILE_RESPONSE_OUTPUT_BUDGET,
+            zircon_runtime_interface::ZR_RUNTIME_PROFILE_RESPONSE_OUTPUT_LIMIT_V1,
+        ),
+        (
+            super::OPERATION_RESULT_OUTPUT_BUDGET,
+            zircon_runtime_interface::ZR_RUNTIME_OPERATION_RESULT_OUTPUT_LIMIT_V1,
+        ),
+        (
+            super::PLUGIN_EVENT_OUTPUT_BUDGET,
+            zircon_runtime_interface::ZR_RUNTIME_PLUGIN_EVENT_OUTPUT_LIMIT_V1,
+        ),
+        (
+            super::WORLD_QUERY_OUTPUT_BUDGET,
+            zircon_runtime_interface::ZR_RUNTIME_WORLD_QUERY_OUTPUT_LIMIT_V1,
+        ),
+        (
+            super::WORLD_INVALIDATION_OUTPUT_BUDGET,
+            zircon_runtime_interface::ZR_RUNTIME_WORLD_INVALIDATION_OUTPUT_LIMIT_V1,
+        ),
+    ];
+
+    for (policy, interface) in policies {
+        assert_eq!(policy.max_encoded_bytes, interface.max_encoded_bytes);
+        assert_eq!(policy.max_items, interface.max_items);
+        assert_eq!(
+            policy.max_decode_time.as_micros(),
+            u128::from(interface.max_processing_time_micros)
+        );
+        assert_eq!(policy.allow_empty, interface.allow_empty);
+        assert_eq!(
+            super::RUNTIME_FOREIGN_OUTPUT_JSON_MAX_NESTING_DEPTH,
+            interface.max_nesting_depth
+        );
+    }
 }
 
 fn percentile_nanoseconds(samples: &[u128], percentile: usize) -> u128 {

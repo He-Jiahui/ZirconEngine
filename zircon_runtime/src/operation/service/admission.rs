@@ -131,6 +131,7 @@ impl RuntimeOperationService {
                 deadline,
                 deadline_armed: deadline.is_none(),
                 terminal_at: None,
+                harvest_in_flight: false,
                 snapshot_claimed: false,
                 prepare_in_flight: false,
                 apply_claimed: false,

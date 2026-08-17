@@ -87,7 +87,16 @@ pub(super) fn destroy_test_session(
 }
 
 pub(super) fn status_message(status: ZrStatus) -> String {
-    String::from_utf8(unsafe { status.diagnostics.as_slice() }.to_vec()).unwrap()
+    String::from_utf8(
+        unsafe {
+            status.diagnostics.checked_slice(
+                zircon_runtime_interface::ZR_RUNTIME_STATUS_DIAGNOSTICS_MAX_ENCODED_BYTES_V1,
+            )
+        }
+        .unwrap()
+        .to_vec(),
+    )
+    .unwrap()
 }
 
 pub(super) fn assert_session_status(

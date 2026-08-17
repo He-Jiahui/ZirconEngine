@@ -1099,7 +1099,13 @@ fn native_live_host_registration_replay_plugin_with_schema(
 }
 
 fn native_live_host_dist_system_bridge_method(call: NativeBridgeCall) -> ZrStatus {
-    let payload = unsafe { call.payload.as_slice() };
+    let payload = match unsafe {
+        call.payload
+            .checked_slice(ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1)
+    } {
+        Ok(payload) => payload,
+        Err(_) => return ZrStatus::new(ZrStatusCode::InvalidArgument, ZrByteSlice::empty()),
+    };
     if call.method_slot == 7 && payload.is_empty() {
         DIST_SYSTEM_BRIDGE_TICK_COUNT.fetch_add(1, Ordering::SeqCst);
         ZrStatus::ok()
@@ -1109,7 +1115,13 @@ fn native_live_host_dist_system_bridge_method(call: NativeBridgeCall) -> ZrStatu
 }
 
 fn native_registration_replay_reloaded_bridge_method(call: NativeBridgeCall) -> ZrStatus {
-    let payload = unsafe { call.payload.as_slice() };
+    let payload = match unsafe {
+        call.payload
+            .checked_slice(ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1)
+    } {
+        Ok(payload) => payload,
+        Err(_) => return ZrStatus::new(ZrStatusCode::InvalidArgument, ZrByteSlice::empty()),
+    };
     if call.method_slot == 7 && payload.is_empty() {
         RELOADED_SYSTEM_BRIDGE_TICK_COUNT.fetch_add(1, Ordering::SeqCst);
         ZrStatus::ok()
@@ -1119,7 +1131,13 @@ fn native_registration_replay_reloaded_bridge_method(call: NativeBridgeCall) -> 
 }
 
 fn native_registration_replay_old_generation_bridge_method(call: NativeBridgeCall) -> ZrStatus {
-    let payload = unsafe { call.payload.as_slice() };
+    let payload = match unsafe {
+        call.payload
+            .checked_slice(ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1)
+    } {
+        Ok(payload) => payload,
+        Err(_) => return ZrStatus::new(ZrStatusCode::InvalidArgument, ZrByteSlice::empty()),
+    };
     if call.method_slot == 7 && payload.is_empty() {
         OLD_GENERATION_SYSTEM_BRIDGE_TICK_COUNT.fetch_add(1, Ordering::SeqCst);
         ZrStatus::ok()
@@ -1129,7 +1147,13 @@ fn native_registration_replay_old_generation_bridge_method(call: NativeBridgeCal
 }
 
 fn native_registration_replay_interleaved_old_bridge_method(call: NativeBridgeCall) -> ZrStatus {
-    let payload = unsafe { call.payload.as_slice() };
+    let payload = match unsafe {
+        call.payload
+            .checked_slice(ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1)
+    } {
+        Ok(payload) => payload,
+        Err(_) => return ZrStatus::new(ZrStatusCode::InvalidArgument, ZrByteSlice::empty()),
+    };
     if call.method_slot == 7 && payload.is_empty() {
         INTERLEAVED_OLD_SYSTEM_BRIDGE_TICK_COUNT.fetch_add(1, Ordering::SeqCst);
         ZrStatus::ok()
@@ -1141,7 +1165,13 @@ fn native_registration_replay_interleaved_old_bridge_method(call: NativeBridgeCa
 fn native_registration_replay_interleaved_reloaded_bridge_method(
     call: NativeBridgeCall,
 ) -> ZrStatus {
-    let payload = unsafe { call.payload.as_slice() };
+    let payload = match unsafe {
+        call.payload
+            .checked_slice(ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1)
+    } {
+        Ok(payload) => payload,
+        Err(_) => return ZrStatus::new(ZrStatusCode::InvalidArgument, ZrByteSlice::empty()),
+    };
     if call.method_slot == 7 && payload.is_empty() {
         INTERLEAVED_RELOADED_SYSTEM_BRIDGE_TICK_COUNT.fetch_add(1, Ordering::SeqCst);
         ZrStatus::ok()

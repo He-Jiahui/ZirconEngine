@@ -16,7 +16,10 @@ use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
-use zircon_runtime_interface::{ZrByteBufferRef, ZrByteSlice, ZrStatus, ZrStatusCode};
+use zircon_runtime_interface::{
+    ZrByteBufferRef, ZrByteSlice, ZrStatus, ZrStatusCode,
+    ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1,
+};
 
 use super::super::behavior_calls::{NativePluginBehavior, NativePluginCommandTable};
 
@@ -731,7 +734,13 @@ impl NativeLiveHostBridge for NativeLiveHostBridgeProvider {
 }
 
 fn native_live_host_bridge_method(call: NativeBridgeCall) -> ZrStatus {
-    let payload = unsafe { call.payload.as_slice() };
+    let payload = match unsafe {
+        call.payload
+            .checked_slice(ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1)
+    } {
+        Ok(payload) => payload,
+        Err(_) => return ZrStatus::new(ZrStatusCode::InvalidArgument, ZrByteSlice::empty()),
+    };
     if call.interface_slot == 0 && matches!(call.method_slot, 7 | 9) && payload == b"ping" {
         ZrStatus::new(ZrStatusCode::CapabilityDenied, ZrByteSlice::empty())
     } else {

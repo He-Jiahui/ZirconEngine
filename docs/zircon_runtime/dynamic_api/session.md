@@ -467,6 +467,38 @@ Runtime 15 E9/F2 now treats the dynamic session registry and per-session executi
 
 `session/tests/lock_poison.rs::dynamic_api_session_registry_accessors_recover_poisoned_locks` poisons the registry through a `#[cfg(test)]` store-owner helper and poisons the session through the real `with_session` action-admission path. It then verifies that dispatch recovers and destroy removes the handle without exposing the registry map or session lock outside their owner modules. The Runtime 15 lock-poison guard mirrors the same contract into current status output and plan docs.
 
+## Checked payload and producer budget contract
+
+Every caller-owned byte carrier is validated before `from_raw_parts`, UTF-8 conversion, JSON
+decode, rendering, or session mutation. Session profile and project paths use fixed byte ceilings;
+event text uses the shared event ceiling; profile, plugin subscription, operation, accessibility,
+world query, and watch JSON use their family-specific byte/item/time limits. Bad carrier shape or
+bad JSON returns `InvalidArgument`; resource exhaustion returns `LimitExceeded`.
+
+Runtime-owned JSON is written through the bounded writer for accessibility trees, profile
+responses, host requests, operation results, plugin event pages, world query results, and world
+invalidations. The writer checks encoded bytes and elapsed time while serializing, so it cannot
+first grow an unbounded `Vec` and reject it afterward. Item counts are computed from the typed
+payload before serialization. Frame dimensions and the computed RGBA footprint are checked before
+capture/presentation, and returned frame bytes are checked again before allocation registration.
+
+Host requests, plugin events, and world invalidations retain a prepared page until allocation
+registration and ABI output publication succeed. Commit consumes only the encoded prefix; rollback
+keeps it available for retry. Large queues are split by the shared item, byte, nesting, and total
+processing-time ceilings. A single plugin payload or host request that deterministically cannot fit
+is reported once and removed so later valid work cannot be permanently blocked. Operation harvest
+uses the same prepare/register/commit transaction: encode or allocation failure leaves the terminal
+result harvestable, while a successful commit transfers the result without cloning it.
+
+World-query rows are selected from the stable entity iterator and checked for item count, encoded
+bytes, nesting depth, and elapsed time before retention. Accessibility extraction applies its item
+and deadline budget while nodes and diagnostics are produced, rather than after a complete tree has
+already been materialized.
+
+Dynamic error diagnostics are formatted directly into a 4 KiB thread-local buffer with UTF-8
+boundary truncation. This removes the former per-error permanent allocation leak; callers must read
+the borrowed diagnostics synchronously before another dynamic status is produced on that thread.
+
 ## Boundary Rules
 
 The dynamic session may:
@@ -539,7 +571,7 @@ Standalone keyboard events originate in `zircon_app::entry::runtime_entry_app::c
 
 When `current_ui_extract` sees a valid `gameplay.menu_state`, the menu overlay has priority over the gameplay HUD extract. This is intentional: Start and Game Over are modal runtime states, while the world HUD bars remain scene data. Left mouse release over the overlay button writes only the command string (`"start_game"` or `"retry_game"`) and leaves lifecycle ownership in the project script.
 
-Dynamic API error statuses now carry the concrete session creation failure string across the ABI diagnostics slice instead of collapsing every startup error to `runtime dynamic API error`. That diagnostic payload is intentionally leaked for process lifetime because `ZrStatus` exposes only a borrowed `ZrByteSlice`; larger runtime outputs use `ZrOwnedResultV2` and the V7 table-level allocation release contract. `RuntimeDynamicSession::new` also initializes the `runtime-dynamic` diagnostic log before project startup so frame/FPS diagnostics and startup failure context share the same runtime-owned diagnostic channel.
+Dynamic API error statuses carry the concrete session creation failure string across the ABI diagnostics slice instead of collapsing every startup error to `runtime dynamic API error`. The borrowed `ZrByteSlice` points into a bounded thread-local UTF-8 diagnostic buffer and remains valid until the next status write on that thread; it no longer leaks one allocation per failure. Larger runtime outputs use `ZrOwnedResultV2` and the V7 table-level allocation release contract. `RuntimeDynamicSession::new` also initializes the `runtime-dynamic` diagnostic log before project startup so frame/FPS diagnostics and startup failure context share the same runtime-owned diagnostic channel.
 
 Runtime 15 F5 dynamic API session typed errors records `runtime_15_dynamic_api_session_typed_errors_static_passed_cargo_deferred`: `dynamic_api/session/error.rs` now owns `RuntimeDynamicSessionError` / `RuntimeDynamicSessionResult` and `RuntimeProjectError` / `RuntimeProjectResult`. Session construction, project root parsing, project asset/default scene/navmesh/script loading, scene hook registration, level ticking, render bridge submit/present/bind, and accessibility encode failures stay typed until `dynamic_api/session/status.rs::error_status(...)` converts them into the C ABI `ZrStatus` message. `review_f5_dynamic_api_session_uses_typed_errors_before_abi_status_boundary` locks `dynamic_api/session/error.rs`, `RuntimeDynamicSessionError::RenderBridgeStep`, `RuntimeProjectError::LoadDefaultScene`, the ABI status boundary, and the status-output anchors.
 

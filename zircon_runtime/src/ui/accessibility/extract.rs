@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     accessibility::{
         UiA11yRole, UiA11yState, UiAccessibilityAction, UiAccessibilityDiagnostic,
@@ -12,24 +13,51 @@ use zircon_runtime_interface::ui::{
     widget::{UiWidgetBehavior, UiWidgetContract},
 };
 
-use crate::ui::surface::UiSurface;
-
-use super::{diagnostics::validate_snapshot, name};
+use super::{
+    budget::{AccessibilityBuildBudget, AccessibilitySnapshotBudgetError},
+    diagnostics::validate_snapshot_bounded,
+    name,
+};
 use state::{
     checked_state_for, disabled_state_for, expanded_state_for, pressed_state_for,
     selected_state_for, text_selection_state_for, value_state_for,
 };
 
+mod resolution;
 mod state;
 
 pub(crate) fn accessibility_snapshot(surface: &UiSurface) -> UiAccessibilityTreeSnapshot {
+    let mut budget = AccessibilityBuildBudget::unbounded();
+    build_accessibility_snapshot(surface, &mut budget)
+        .expect("unbounded accessibility extraction cannot exhaust its budget")
+}
+
+pub(crate) fn accessibility_snapshot_bounded(
+    surface: &UiSurface,
+    budget: &mut AccessibilityBuildBudget,
+) -> Result<UiAccessibilityTreeSnapshot, AccessibilitySnapshotBudgetError> {
+    build_accessibility_snapshot(surface, budget)
+}
+
+fn build_accessibility_snapshot(
+    surface: &UiSurface,
+    budget: &mut AccessibilityBuildBudget,
+) -> Result<UiAccessibilityTreeSnapshot, AccessibilitySnapshotBudgetError> {
     let mut nodes = BTreeMap::new();
     let mut relation_targets = BTreeSet::new();
     let mut hidden_source_relation_targets = BTreeSet::new();
     let mut hidden_relation_targets = BTreeSet::new();
     let mut diagnostics = Vec::new();
+    budget.observe_value(
+        &UiAccessibilityTreeSnapshot {
+            tree_id: surface.tree.tree_id.clone(),
+            ..UiAccessibilityTreeSnapshot::default()
+        },
+        0,
+    )?;
 
     for node in surface.tree.nodes.values() {
+        budget.check_deadline()?;
         let effectively_hidden = is_effectively_hidden(surface, node);
         if include_node(surface, node, false, false, effectively_hidden) {
             collect_relation_targets(
@@ -41,17 +69,21 @@ pub(crate) fn accessibility_snapshot(surface: &UiSurface) -> UiAccessibilityTree
     }
 
     for node in surface.tree.nodes.values() {
+        budget.check_deadline()?;
         let is_relation_target = relation_targets.contains(&node.node_id);
         let can_retain_hidden_relation_target =
             hidden_source_relation_targets.contains(&node.node_id);
         let effectively_hidden = is_effectively_hidden(surface, node);
         if is_hidden_focusable(node, effectively_hidden) {
-            diagnostics.push(diagnostic(
+            let hidden_focusable = diagnostic(
                 UiAccessibilityDiagnosticSeverity::Error,
                 UiAccessibilityDiagnosticCode::HiddenFocusable,
                 Some(node.node_id),
                 "hidden focusable node is excluded from normal accessibility traversal",
-            ));
+            );
+            budget.observe_items(1)?;
+            budget.observe_value(&hidden_focusable, 2)?;
+            diagnostics.push(hidden_focusable);
         }
         if include_node(
             surface,
@@ -63,25 +95,38 @@ pub(crate) fn accessibility_snapshot(surface: &UiSurface) -> UiAccessibilityTree
             if effectively_hidden && can_retain_hidden_relation_target {
                 hidden_relation_targets.insert(node.node_id);
             }
+            preflight_node_text_sources(node, budget)?;
             let (accessibility_node, mut node_diagnostics) =
                 build_node(surface, node, effectively_hidden);
+            budget.observe_items(
+                1_usize
+                    .saturating_add(accessibility_node.actions.len())
+                    .saturating_add(node_diagnostics.len()),
+            )?;
+            budget.observe_value(&accessibility_node, 2)?;
+            for diagnostic in &node_diagnostics {
+                budget.observe_value(diagnostic, 2)?;
+            }
             diagnostics.append(&mut node_diagnostics);
             nodes.insert(node.node_id, accessibility_node);
         }
     }
 
-    resolve_names(surface, &mut nodes);
-    resolve_descriptions(surface, &mut nodes, &mut diagnostics);
+    budget.check_deadline()?;
+    resolve_names(surface, &mut nodes, budget)?;
+    resolve_descriptions(surface, &mut nodes, &mut diagnostics, budget)?;
     prune_hidden_relation_targets(surface, &mut nodes, &mut hidden_relation_targets);
-    filter_children(surface, &mut nodes, &hidden_relation_targets);
+    filter_children(surface, &mut nodes, &hidden_relation_targets, budget)?;
 
-    let roots = surface
-        .tree
-        .roots
-        .iter()
-        .copied()
-        .filter(|root| nodes.contains_key(root) && !hidden_relation_targets.contains(root))
-        .collect();
+    let mut roots = Vec::new();
+    for root in surface.tree.roots.iter().copied() {
+        budget.check_deadline()?;
+        if nodes.contains_key(&root) && !hidden_relation_targets.contains(&root) {
+            budget.observe_items(1)?;
+            budget.observe_value(&root, 2)?;
+            roots.push(root);
+        }
+    }
     let mut snapshot = UiAccessibilityTreeSnapshot {
         tree_id: surface.tree.tree_id.clone(),
         roots,
@@ -91,6 +136,7 @@ pub(crate) fn accessibility_snapshot(surface: &UiSurface) -> UiAccessibilityTree
     };
 
     for hidden_target in hidden_relation_targets {
+        budget.check_deadline()?;
         if let Some(node) = snapshot
             .nodes
             .iter_mut()
@@ -101,8 +147,21 @@ pub(crate) fn accessibility_snapshot(surface: &UiSurface) -> UiAccessibilityTree
         }
     }
 
-    validate_snapshot(&mut snapshot);
-    snapshot
+    let diagnostic_count_before_validation = snapshot.diagnostics.len();
+    validate_snapshot_bounded(&mut snapshot, |count| budget.observe_items(count))?;
+    for diagnostic in &snapshot.diagnostics[diagnostic_count_before_validation..] {
+        budget.observe_value(diagnostic, 2)?;
+    }
+    budget.check_deadline()?;
+    budget.validate_payload(&snapshot)?;
+    Ok(snapshot)
+}
+
+fn preflight_node_text_sources(
+    node: &UiTreeNode,
+    budget: &AccessibilityBuildBudget,
+) -> Result<(), AccessibilitySnapshotBudgetError> {
+    resolution::preflight_node_text_sources(node, budget)
 }
 
 fn collect_relation_targets(
@@ -164,9 +223,9 @@ fn include_node(
         || explicit_accessibility
         || has_explicit_widget(metadata)
         || is_interactive(node)
-        || name::own_text(metadata).is_some()
-        || name::alt_text(metadata).is_some()
-        || name::tooltip_text(metadata).is_some()
+        || name::has_own_text(metadata)
+        || name::has_alt_text(metadata)
+        || name::has_tooltip_text(metadata)
         || is_relation_target
         || surface
             .arranged_tree
@@ -251,106 +310,21 @@ fn build_node(
     )
 }
 
-fn resolve_names(surface: &UiSurface, nodes: &mut BTreeMap<UiNodeId, UiAccessibilityNode>) {
-    let ids: Vec<_> = nodes.keys().copied().collect();
-    for node_id in ids {
-        let name = nodes
-            .get(&node_id)
-            .and_then(|node| node.name.clone())
-            .or_else(|| labelled_by_name(surface, nodes, node_id))
-            .or_else(|| {
-                surface
-                    .tree
-                    .node(node_id)
-                    .and_then(|node| name::own_text(node.template_metadata.as_ref()))
-            })
-            .or_else(|| {
-                surface
-                    .tree
-                    .node(node_id)
-                    .and_then(|node| name::alt_text(node.template_metadata.as_ref()))
-            })
-            .or_else(|| nodes.get(&node_id).and_then(|node| node.tooltip.clone()));
-        if let Some(node) = nodes.get_mut(&node_id) {
-            node.name = name;
-        }
-    }
-}
-
-fn labelled_by_name(
+fn resolve_names(
     surface: &UiSurface,
-    nodes: &BTreeMap<UiNodeId, UiAccessibilityNode>,
-    node_id: UiNodeId,
-) -> Option<String> {
-    let label_id = nodes.get(&node_id)?.labelled_by?;
-    referenced_text(surface, nodes, label_id)
+    nodes: &mut BTreeMap<UiNodeId, UiAccessibilityNode>,
+    budget: &mut AccessibilityBuildBudget,
+) -> Result<(), AccessibilitySnapshotBudgetError> {
+    resolution::resolve_names(surface, nodes, budget)
 }
 
 fn resolve_descriptions(
     surface: &UiSurface,
     nodes: &mut BTreeMap<UiNodeId, UiAccessibilityNode>,
     diagnostics: &mut Vec<UiAccessibilityDiagnostic>,
-) {
-    let ids: Vec<_> = nodes.keys().copied().collect();
-    for node_id in ids {
-        let Some(description) = nodes
-            .get(&node_id)
-            .and_then(|node| node.description.as_deref())
-        else {
-            continue;
-        };
-
-        let Some(reference) = description.strip_prefix('#') else {
-            continue;
-        };
-
-        let Some(description_target) = parse_node_id(reference) else {
-            clear_description_reference(
-                nodes,
-                diagnostics,
-                node_id,
-                "description reference is not a valid node id",
-            );
-            continue;
-        };
-
-        if let Some(description) = referenced_text(surface, nodes, description_target) {
-            if let Some(node) = nodes.get_mut(&node_id) {
-                node.description = Some(description);
-            }
-        } else if nodes.contains_key(&description_target) {
-            clear_description_reference(
-                nodes,
-                diagnostics,
-                node_id,
-                "description reference target has no usable accessible text",
-            );
-        } else {
-            clear_description_reference(
-                nodes,
-                diagnostics,
-                node_id,
-                "description reference points to a node outside the snapshot",
-            );
-        }
-    }
-}
-
-fn clear_description_reference(
-    nodes: &mut BTreeMap<UiNodeId, UiAccessibilityNode>,
-    diagnostics: &mut Vec<UiAccessibilityDiagnostic>,
-    node_id: UiNodeId,
-    message: &'static str,
-) {
-    if let Some(node) = nodes.get_mut(&node_id) {
-        node.description = None;
-    }
-    diagnostics.push(diagnostic(
-        UiAccessibilityDiagnosticSeverity::Error,
-        UiAccessibilityDiagnosticCode::DanglingDescription,
-        Some(node_id),
-        message,
-    ));
+    budget: &mut AccessibilityBuildBudget,
+) -> Result<(), AccessibilitySnapshotBudgetError> {
+    resolution::resolve_descriptions(surface, nodes, diagnostics, budget)
 }
 
 fn prune_hidden_relation_targets(
@@ -358,89 +332,16 @@ fn prune_hidden_relation_targets(
     nodes: &mut BTreeMap<UiNodeId, UiAccessibilityNode>,
     hidden_relation_targets: &mut BTreeSet<UiNodeId>,
 ) {
-    let unusable_targets: Vec<_> = hidden_relation_targets
-        .iter()
-        .copied()
-        .filter(|target| referenced_text(surface, nodes, *target).is_none())
-        .collect();
-    for target in unusable_targets {
-        hidden_relation_targets.remove(&target);
-        nodes.remove(&target);
-    }
-}
-
-fn referenced_text(
-    surface: &UiSurface,
-    nodes: &BTreeMap<UiNodeId, UiAccessibilityNode>,
-    target_id: UiNodeId,
-) -> Option<String> {
-    if !nodes.contains_key(&target_id) {
-        return None;
-    }
-    surface
-        .tree
-        .node(target_id)
-        .and_then(|node| node.template_metadata.as_ref())
-        .and_then(|metadata| {
-            metadata
-                .a11y
-                .name
-                .clone()
-                .or_else(|| name::own_text(Some(metadata)))
-                .or_else(|| name::alt_text(Some(metadata)))
-                .or_else(|| metadata.a11y.tooltip.clone())
-                .or_else(|| metadata.widget.tooltip.clone())
-                .or_else(|| name::tooltip_text(Some(metadata)))
-        })
+    resolution::prune_hidden_relation_targets(surface, nodes, hidden_relation_targets)
 }
 
 fn filter_children(
     surface: &UiSurface,
     nodes: &mut BTreeMap<UiNodeId, UiAccessibilityNode>,
     hidden_relation_targets: &BTreeSet<UiNodeId>,
-) {
-    let included: BTreeSet<_> = nodes.keys().copied().collect();
-    for node in surface.tree.nodes.values() {
-        let mut filtered = Vec::new();
-        for child in node.children.iter().copied() {
-            collect_included_children(
-                surface,
-                child,
-                &included,
-                hidden_relation_targets,
-                &mut filtered,
-            );
-        }
-        if let Some(accessibility_node) = nodes.get_mut(&node.node_id) {
-            accessibility_node.children = filtered;
-        }
-    }
-}
-
-fn collect_included_children(
-    surface: &UiSurface,
-    node_id: UiNodeId,
-    included: &BTreeSet<UiNodeId>,
-    hidden_relation_targets: &BTreeSet<UiNodeId>,
-    children: &mut Vec<UiNodeId>,
-) {
-    if hidden_relation_targets.contains(&node_id) {
-        return;
-    }
-    if included.contains(&node_id) {
-        children.push(node_id);
-        return;
-    }
-
-    let Some(node) = surface.tree.nodes.get(&node_id) else {
-        return;
-    };
-    if is_hidden(node) {
-        return;
-    }
-    for child in node.children.iter().copied() {
-        collect_included_children(surface, child, included, hidden_relation_targets, children);
-    }
+    budget: &mut AccessibilityBuildBudget,
+) -> Result<(), AccessibilitySnapshotBudgetError> {
+    resolution::filter_children(surface, nodes, hidden_relation_targets, budget)
 }
 
 fn role_for(node: &UiTreeNode, metadata: Option<&UiTemplateNodeMetadata>) -> UiA11yRole {

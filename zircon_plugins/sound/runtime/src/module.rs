@@ -42,7 +42,9 @@ pub fn module_descriptor() -> ModuleDescriptor {
                     "ProjectAssetManager",
                 ),
             ],
-            factory(|core| Ok(Arc::new(DefaultSoundManager::new(Some(core))) as ServiceObject)),
+            factory(
+                |core| Ok(Arc::new(DefaultSoundManager::from_weak_core(core)) as ServiceObject),
+            ),
         ))
         .with_manager(ManagerDescriptor::new(
             qualified_name(SOUND_MODULE_NAME, ServiceKind::Manager, "SoundManager"),

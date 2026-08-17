@@ -25,6 +25,7 @@ pub(super) struct RuntimeOperationTask {
     pub(super) deadline: Option<Instant>,
     pub(super) deadline_armed: bool,
     pub(super) terminal_at: Option<Instant>,
+    pub(super) harvest_in_flight: bool,
     pub(super) snapshot_claimed: bool,
     pub(super) prepare_in_flight: bool,
     pub(super) apply_claimed: bool,
