@@ -1,7 +1,11 @@
 use crate::core::framework::render::{ShaderFeatureBits, ShaderPassType};
 
 use super::environment::{wgsl_function_source, wgsl_without_comments};
-use super::{assemble_material_shader_template, material_template_request, static_mesh_descriptor};
+use super::{
+    assemble_material_shader_template, material_template_request,
+    standard_material_surface_source_for_features, static_mesh_descriptor,
+    validate_material_shader_template_wgsl, MaterialShaderTemplateRequest,
+};
 
 #[test]
 fn environment_only_pbr_reuses_caller_normalized_surface_inputs() {
@@ -430,12 +434,18 @@ fn environment_only_forward_specialization_excludes_unreachable_environment_api(
         ShaderPassType::Forward,
     ))
     .expect("generic Forward template assembly");
+    let features = ShaderFeatureBits::new(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR);
+    let surface = standard_material_surface_source_for_features(features, 0.5);
     let specialized = assemble_material_shader_template(
-        material_template_request(static_mesh_descriptor(), ShaderPassType::Forward).with_features(
-            ShaderFeatureBits::new(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR),
-        ),
+        MaterialShaderTemplateRequest::new(
+            static_mesh_descriptor(),
+            ShaderPassType::Forward,
+            surface.source,
+            surface.entry_point,
+        )
+        .with_features(surface.features),
     )
-    .expect("environment-only Forward template assembly");
+    .expect("environment-only Standard-PBR Forward template assembly");
     let generic_source = wgsl_without_comments(&generic.wgsl_source);
     let specialized_source = wgsl_without_comments(&specialized.wgsl_source);
 
@@ -502,4 +512,6 @@ fn environment_only_forward_specialization_excludes_unreachable_environment_api(
         generic.wgsl_source.len(),
         specialized.wgsl_source.len(),
     );
+    validate_material_shader_template_wgsl(&specialized.wgsl_source)
+        .expect("environment-only Standard-PBR Forward WGSL should validate");
 }
