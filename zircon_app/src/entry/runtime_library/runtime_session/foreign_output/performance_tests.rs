@@ -8,7 +8,7 @@ use super::{
     ForeignOutputBudget, ForeignOutputKind, ForeignOutputState,
     FOREIGN_OUTPUT_JSON_MAX_NESTING_DEPTH, HOST_REQUEST_OUTPUT_BUDGET,
 };
-use crate::entry::runtime_library::runtime_library_error::RuntimeLibraryErrorKind;
+use zircon_runtime_host::foreign_output::RuntimeForeignOutputErrorKind as RuntimeLibraryErrorKind;
 
 static DEADLINE_RELEASED: AtomicBool = AtomicBool::new(false);
 static DEADLINE_VALIDATOR_CALLED: AtomicBool = AtomicBool::new(false);
@@ -92,7 +92,7 @@ fn decode_deadline_interrupts_parsing_before_schema_validation() {
     let budget = ForeignOutputBudget::new(1_024, 4, Duration::ZERO);
 
     let error = state
-        .decode_json::<TestPayload>(
+        .decode_json::<TestPayload, &'static str>(
             output,
             ForeignOutputKind::HostRequests,
             budget,
@@ -123,7 +123,7 @@ fn decode_time_budget_includes_schema_validation_and_item_counting() {
     let budget = ForeignOutputBudget::new(1_024, 4, Duration::from_millis(1));
 
     let error = state
-        .decode_json::<TestPayload>(
+        .decode_json::<TestPayload, &'static str>(
             output,
             ForeignOutputKind::HostRequests,
             budget,
@@ -152,7 +152,7 @@ fn json_nesting_limit_releases_and_fuses_before_schema_validation() {
     bytes.extend(std::iter::repeat_n(b']', depth));
 
     let error = state
-        .decode_json::<serde_json::Value>(
+        .decode_json::<serde_json::Value, &'static str>(
             owned_bytes(bytes, release_nesting_limited),
             ForeignOutputKind::OperationResult,
             ForeignOutputBudget::new(1_024, 1_024, Duration::from_millis(25)),
@@ -182,7 +182,7 @@ fn foreign_output_decode_performance_acceptance() {
     let warmup_state = ForeignOutputState::default();
     for _ in 0..WARMUP_ITERATIONS {
         let decoded = warmup_state
-            .decode_json::<TestPayload>(
+            .decode_json::<TestPayload, &'static str>(
                 owned_json(&payload, release_benchmark),
                 ForeignOutputKind::HostRequests,
                 HOST_REQUEST_OUTPUT_BUDGET,
@@ -200,7 +200,7 @@ fn foreign_output_decode_performance_acceptance() {
         let output = owned_json(&payload, release_benchmark);
         let started = Instant::now();
         let decoded = state
-            .decode_json::<TestPayload>(
+            .decode_json::<TestPayload, &'static str>(
                 output,
                 ForeignOutputKind::HostRequests,
                 HOST_REQUEST_OUTPUT_BUDGET,
@@ -231,7 +231,7 @@ fn foreign_output_decode_performance_acceptance() {
     );
     assert_eq!(metrics.rejected_payloads, 0);
     assert!(
-        p99_ns <= HOST_REQUEST_OUTPUT_BUDGET.max_decode_time.as_nanos(),
+        p99_ns <= HOST_REQUEST_OUTPUT_BUDGET.max_decode_time().as_nanos(),
         "p99 boundary latency {p99_ns}ns exceeded the 10ms host-request budget"
     );
 }

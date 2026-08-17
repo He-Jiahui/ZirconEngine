@@ -72,6 +72,7 @@ fn run_real_runtime_abi_delivery_storm(delivery_count: u64) -> serde_json::Value
             api,
             session,
             RuntimeCapabilities::editor_default(),
+            Arc::new(zircon_runtime_host::foreign_output::RuntimeForeignOutputState::default()),
         )
         .expect("construct editor gateway over the real runtime API")
     });

@@ -1,16 +1,19 @@
+use zircon_runtime_host::foreign_output::{
+    profile_control_response_item_count, RuntimeForeignOutputKind, PROFILE_RESPONSE_OUTPUT_BUDGET,
+};
 use zircon_runtime_interface::{
     ProfileControlRequest, ProfileControlResponse, ZrByteSlice, ZrOwnedByteBuffer,
 };
 
 use super::super::GatewayError;
 use super::gateway::SessionGateway;
-use super::output::{decode_owned_output, validate_output_status};
 
 impl SessionGateway {
     pub(super) fn profile_control(
         &self,
         request: &ProfileControlRequest,
     ) -> Result<Option<ProfileControlResponse>, GatewayError> {
+        self.ensure_output_available(RuntimeForeignOutputKind::ProfileResponse)?;
         let Some(profile) = self.api.profile_control else {
             return Ok(None);
         };
@@ -28,7 +31,16 @@ impl SessionGateway {
                 &mut output,
             )
         };
-        let output = validate_output_status(status, output, "control runtime profiling")?;
-        decode_owned_output(output, "control runtime profiling").map(Some)
+        self.decode_output(
+            status,
+            output,
+            RuntimeForeignOutputKind::ProfileResponse,
+            PROFILE_RESPONSE_OUTPUT_BUDGET,
+            "control runtime profiling",
+            "free runtime profile response",
+            |response: &ProfileControlResponse| {
+                Ok::<usize, GatewayError>(profile_control_response_item_count(response))
+            },
+        )
     }
 }

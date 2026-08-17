@@ -8639,6 +8639,7 @@ dependencies = [
  "zircon_first_party_editor_catalog",
  "zircon_first_party_runtime_catalog",
  "zircon_runtime",
+ "zircon_runtime_host",
  "zircon_runtime_interface",
 ]
 
@@ -8668,6 +8669,7 @@ dependencies = [
  "windows-sys 0.61.2",
  "winit",
  "zircon_runtime",
+ "zircon_runtime_host",
  "zircon_runtime_interface",
 ]
 
@@ -9031,6 +9033,15 @@ dependencies = [
  "zr_rhi",
  "zr_rhi_wgpu",
  "zstd",
+]
+
+[[package]]
+name = "zircon_runtime_host"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "zircon_runtime_interface",
 ]
 
 [[package]]

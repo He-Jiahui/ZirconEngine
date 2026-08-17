@@ -579,7 +579,13 @@ pub(super) fn api_table() -> ZrRuntimeApiV6 {
 pub(super) fn gateway(api: ZrRuntimeApiV6) -> SessionGateway {
     let owner: Arc<dyn Send + Sync> = Arc::new(());
     unsafe {
-        SessionGateway::new(owner, api, ZrRuntimeSessionHandle::new(17), capabilities())
-            .expect("valid session gateway")
+        SessionGateway::new(
+            owner,
+            api,
+            ZrRuntimeSessionHandle::new(17),
+            capabilities(),
+            Arc::new(zircon_runtime_host::foreign_output::RuntimeForeignOutputState::default()),
+        )
+        .expect("valid session gateway")
     }
 }

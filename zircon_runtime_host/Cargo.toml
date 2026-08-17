@@ -1,0 +1,11 @@
+[package]
+name = "zircon_runtime_host"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Safe host-side ownership, decoding, and protocol state for Zircon runtime ABI outputs."
+
+[dependencies]
+serde.workspace = true
+serde_json = "1.0.149"
+zircon_runtime_interface.workspace = true

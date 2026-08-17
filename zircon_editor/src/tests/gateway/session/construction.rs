@@ -17,6 +17,7 @@ fn session_gateway_rejects_an_invalid_session_handle() {
             api_table(),
             ZrRuntimeSessionHandle::invalid(),
             capabilities(),
+            Arc::new(zircon_runtime_host::foreign_output::RuntimeForeignOutputState::default()),
         )
         .expect_err("an invalid runtime session cannot back a gateway")
     };
@@ -31,8 +32,14 @@ fn session_gateway_rejects_a_foreign_runtime_api_version() {
     api.abi_version += 1;
     let foreign_version = api.abi_version;
     let error = unsafe {
-        SessionGateway::new(owner, api, ZrRuntimeSessionHandle::new(17), capabilities())
-            .expect_err("a foreign runtime API cannot back a gateway")
+        SessionGateway::new(
+            owner,
+            api,
+            ZrRuntimeSessionHandle::new(17),
+            capabilities(),
+            Arc::new(zircon_runtime_host::foreign_output::RuntimeForeignOutputState::default()),
+        )
+        .expect_err("a foreign runtime API cannot back a gateway")
     };
 
     let GatewayError::Protocol { message } = error else {

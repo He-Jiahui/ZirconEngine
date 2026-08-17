@@ -1,15 +1,16 @@
 use std::time::{Duration, Instant};
 
+use zircon_runtime_host::foreign_output::{
+    plugin_event_batch_item_count, RuntimeForeignOutputKind, PLUGIN_EVENT_OUTPUT_BUDGET,
+};
 use zircon_runtime_interface::{
     ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimePluginEventDeliveryBatchV1,
     ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimePluginEventSubscriptionHandle,
     ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
-    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
 };
 
 use super::super::{EditorRuntimePluginEventPage, GatewayError};
 use super::gateway::SessionGateway;
-use super::output::{decode_owned_output, release_output_after_error, validate_output_status};
 use super::protocol::{ensure_output_abi, ensure_status};
 
 impl SessionGateway {
@@ -18,6 +19,7 @@ impl SessionGateway {
         event_id: &str,
         payload_schema: &str,
     ) -> Result<Option<ZrRuntimePluginEventSubscriptionHandle>, GatewayError> {
+        self.ensure_session_available("subscribe runtime plugin event")?;
         let subscribe = Self::required(
             self.api.subscribe_plugin_event,
             "runtime.plugin_event.subscribe",
@@ -45,9 +47,12 @@ impl SessionGateway {
             "subscribe runtime plugin event",
         )?;
         if !subscription.is_valid() {
-            return Err(GatewayError::Protocol {
-                message: "runtime returned an invalid plugin event subscription".to_string(),
-            });
+            return self.reject_protocol(
+                RuntimeForeignOutputKind::PluginEvents,
+                GatewayError::Protocol {
+                    message: "runtime returned an invalid plugin event subscription".to_string(),
+                },
+            );
         }
         Ok(Some(subscription))
     }
@@ -56,6 +61,7 @@ impl SessionGateway {
         &self,
         subscription: ZrRuntimePluginEventSubscriptionHandle,
     ) -> Result<bool, GatewayError> {
+        self.ensure_session_available("unsubscribe runtime plugin event")?;
         let unsubscribe = Self::required(
             self.api.unsubscribe_plugin_event,
             "runtime.plugin_event.unsubscribe",
@@ -71,58 +77,56 @@ impl SessionGateway {
         &self,
         subscription: ZrRuntimePluginEventSubscriptionHandle,
     ) -> Result<EditorRuntimePluginEventPage, GatewayError> {
+        self.ensure_output_available(RuntimeForeignOutputKind::PluginEvents)?;
         let drain = Self::required(self.api.drain_plugin_events, "runtime.plugin_event.drain")?;
         let mut output = ZrOwnedByteBuffer::empty();
         let runtime_drain_started = Instant::now();
         let status = unsafe { drain(self.session, subscription, &mut output) };
         let runtime_drain_elapsed = runtime_drain_started.elapsed();
-        let output = validate_output_status(status, output, "drain runtime plugin events")?;
-        if output.is_empty() {
-            output.release()?;
+        let encoded_bytes = output.len;
+        let decode_started = Instant::now();
+        let batch = self.decode_output(
+            status,
+            output,
+            RuntimeForeignOutputKind::PluginEvents,
+            PLUGIN_EVENT_OUTPUT_BUDGET,
+            "drain runtime plugin events",
+            "free runtime plugin events",
+            |batch: &ZrRuntimePluginEventDeliveryBatchV1| {
+                ensure_output_abi(batch.abi_version, "runtime plugin event batch")?;
+                if batch.deliveries.len() > ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1 {
+                    return Err(GatewayError::Protocol {
+                        message: format!(
+                            "runtime plugin event batch returned {} deliveries; maximum is {ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1}",
+                            batch.deliveries.len()
+                        ),
+                    });
+                }
+                if let Some(delivery) = batch
+                    .deliveries
+                    .iter()
+                    .find(|delivery| delivery.subscription != subscription)
+                {
+                    return Err(GatewayError::Protocol {
+                        message: format!(
+                            "runtime plugin event delivery subscription {} did not match requested subscription {}",
+                            delivery.subscription.raw(),
+                            subscription.raw()
+                        ),
+                    });
+                }
+                Ok(plugin_event_batch_item_count(batch))
+            },
+        )?;
+        let decode_elapsed = decode_started.elapsed();
+        let Some(batch) = batch else {
             return Ok(EditorRuntimePluginEventPage::new(
                 Vec::new(),
                 0,
                 runtime_drain_elapsed,
                 Duration::ZERO,
             ));
-        }
-        let encoded_bytes = output.len();
-        if encoded_bytes > ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1 {
-            return release_output_after_error(
-                output,
-                GatewayError::Protocol {
-                    message: format!(
-                        "runtime plugin event page returned {encoded_bytes} encoded bytes; maximum is {ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1}"
-                    ),
-                },
-            );
-        }
-        let decode_started = Instant::now();
-        let batch: ZrRuntimePluginEventDeliveryBatchV1 =
-            decode_owned_output(output, "drain runtime plugin events")?;
-        let decode_elapsed = decode_started.elapsed();
-        ensure_output_abi(batch.abi_version, "runtime plugin event batch")?;
-        if batch.deliveries.len() > ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1 {
-            return Err(GatewayError::Protocol {
-                message: format!(
-                    "runtime plugin event batch returned {} deliveries; maximum is {ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1}",
-                    batch.deliveries.len()
-                ),
-            });
-        }
-        if let Some(delivery) = batch
-            .deliveries
-            .iter()
-            .find(|delivery| delivery.subscription != subscription)
-        {
-            return Err(GatewayError::Protocol {
-                message: format!(
-                    "runtime plugin event delivery subscription {} did not match requested subscription {}",
-                    delivery.subscription.raw(),
-                    subscription.raw()
-                ),
-            });
-        }
+        };
         Ok(EditorRuntimePluginEventPage::new(
             batch.deliveries,
             encoded_bytes,

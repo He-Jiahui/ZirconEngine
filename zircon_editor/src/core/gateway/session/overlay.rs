@@ -9,6 +9,7 @@ impl SessionGateway {
         &self,
         set: EditorRuntimeHighlightSet,
     ) -> Result<(), GatewayError> {
+        self.ensure_session_available("submit runtime highlight set")?;
         if !set.is_valid() {
             return Err(GatewayError::Protocol {
                 message: "invalid runtime highlight set".to_owned(),

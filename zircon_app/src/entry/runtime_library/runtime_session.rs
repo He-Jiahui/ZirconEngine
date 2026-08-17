@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use zircon_runtime::diagnostic_log::write_log;
 use zircon_runtime::plugin::RuntimePluginRegistrationReport;
+use zircon_runtime_host::foreign_output::profile_control_response_item_count;
 use zircon_runtime_interface::project::RelPath;
 use zircon_runtime_interface::{
     ProfileControlRequest, ProfileControlResponse, ZrByteSlice, ZrOwnedByteBuffer,
@@ -34,11 +35,8 @@ use foreign_output::{
     ForeignOutputKind, ForeignOutputState, HOST_REQUEST_OUTPUT_BUDGET, PLUGIN_EVENT_OUTPUT_BUDGET,
     PROFILE_RESPONSE_OUTPUT_BUDGET,
 };
-#[cfg(test)]
-use owned_buffer::release_owned_buffer_after_result;
 use owned_buffer::{
-    ensure_status_releasing_output_on_error, release_owned_buffer,
-    release_owned_buffer_after_error, validate_owned_buffer,
+    release_owned_buffer, release_owned_buffer_after_error,
     validate_owned_buffer_releasing_on_error,
 };
 
@@ -88,7 +86,7 @@ pub(crate) struct RuntimeSession {
     wake_registration: Option<RuntimeWakeRegistration>,
     viewport_surface_bound: Arc<AtomicBool>,
     teardown_failure_state: RuntimeSessionTeardownFailureState,
-    foreign_output: ForeignOutputState,
+    foreign_output: Arc<ForeignOutputState>,
 }
 
 impl RuntimeSession {
@@ -102,11 +100,7 @@ impl RuntimeSession {
     > {
         self.foreign_output
             .ensure_session_available("create runtime editor gateway")
-            .map_err(
-                |error| zircon_editor::core::gateway::GatewayError::Protocol {
-                    message: error.to_string(),
-                },
-            )?;
+            .map_err(zircon_editor::core::gateway::GatewayError::from)?;
         let owner: Arc<dyn Send + Sync> = self.clone();
         let gateway = unsafe {
             zircon_editor::core::gateway::SessionGateway::new(
@@ -114,6 +108,7 @@ impl RuntimeSession {
                 self.runtime().editor_gateway_api_table(),
                 self.handle,
                 capabilities,
+                self.foreign_output.clone(),
             )?
         }
         .with_viewport_surface_lifecycle_state(self.viewport_surface_lifecycle_state());
@@ -191,7 +186,7 @@ impl RuntimeSession {
             wake_registration,
             viewport_surface_bound: Arc::new(AtomicBool::new(false)),
             teardown_failure_state: RuntimeSessionTeardownFailureState::default(),
-            foreign_output: ForeignOutputState::default(),
+            foreign_output: Arc::new(ForeignOutputState::default()),
         })
     }
 
@@ -218,7 +213,7 @@ impl RuntimeSession {
             wake_registration: None,
             viewport_surface_bound: Arc::new(AtomicBool::new(false)),
             teardown_failure_state: RuntimeSessionTeardownFailureState::default(),
-            foreign_output: ForeignOutputState::default(),
+            foreign_output: Arc::new(ForeignOutputState::default()),
         })
     }
 
@@ -246,7 +241,7 @@ impl RuntimeSession {
         size: ZrRuntimeViewportSizeV1,
     ) -> Result<RuntimeFrame<'_>, RuntimeLibraryError> {
         self.foreign_output
-            .ensure_session_available("capture runtime frame")?;
+            .ensure_available(ForeignOutputKind::SessionProtocol)?;
         let capture_frame = self.runtime().capture_frame();
         let mut frame = ZrRuntimeFrameV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
         let status = unsafe {
@@ -256,21 +251,33 @@ impl RuntimeSession {
                 &mut frame,
             )
         };
-        ensure_status_releasing_output_on_error(
+        self.foreign_output.ensure_call_succeeded(
             status,
-            "capture runtime frame",
             frame.rgba,
+            ForeignOutputKind::SessionProtocol,
+            "capture runtime frame",
             "free runtime frame output after failed capture",
         )?;
-        validate_owned_buffer_releasing_on_error(
+        if let Err(error) = validate_owned_buffer_releasing_on_error(
             frame.rgba,
             "capture runtime frame",
             "free runtime frame output after invalid capture",
-        )?;
-        validate_runtime_frame_releasing_on_error(&frame)?;
+        ) {
+            return self
+                .foreign_output
+                .reject_protocol(ForeignOutputKind::SessionProtocol, error)
+                .map_err(Into::into);
+        }
+        if let Err(error) = validate_runtime_frame_releasing_on_error(&frame) {
+            return self
+                .foreign_output
+                .reject_protocol(ForeignOutputKind::SessionProtocol, error)
+                .map_err(Into::into);
+        }
         Ok(RuntimeFrame {
             frame,
             teardown_failure_state: self.teardown_failure_state.clone(),
+            foreign_output: self.foreign_output.clone(),
             _session: PhantomData,
         })
     }
@@ -355,7 +362,8 @@ impl RuntimeSession {
             Ok(demand) => Ok(demand),
             Err(error) => self
                 .foreign_output
-                .reject_protocol(ForeignOutputKind::SessionProtocol, error),
+                .reject_protocol(ForeignOutputKind::SessionProtocol, error)
+                .map_err(Into::into),
         }
     }
 
@@ -384,7 +392,7 @@ impl RuntimeSession {
         )?;
         let batch = self
             .foreign_output
-            .decode_json::<ZrRuntimeHostRequestBatchV1>(
+            .decode_json::<ZrRuntimeHostRequestBatchV1, _>(
                 output,
                 ForeignOutputKind::HostRequests,
                 HOST_REQUEST_OUTPUT_BUDGET,
@@ -432,14 +440,16 @@ impl RuntimeSession {
             "control runtime profiling",
             "free runtime profile response",
         )?;
-        self.foreign_output.decode_json::<ProfileControlResponse>(
-            output,
-            ForeignOutputKind::ProfileResponse,
-            PROFILE_RESPONSE_OUTPUT_BUDGET,
-            "decode runtime profile response",
-            "free runtime profile response",
-            |response| Ok(profile_control_response_item_count(response)),
-        )
+        Ok(self
+            .foreign_output
+            .decode_json::<ProfileControlResponse, &'static str>(
+                output,
+                ForeignOutputKind::ProfileResponse,
+                PROFILE_RESPONSE_OUTPUT_BUDGET,
+                "decode runtime profile response",
+                "free runtime profile response",
+                |response| Ok(profile_control_response_item_count(response)),
+            )?)
     }
 
     pub(crate) fn supports_viewport_surface_present(&self) -> bool {
@@ -475,12 +485,15 @@ impl RuntimeSession {
             "subscribe runtime plugin event",
         )?;
         if !subscription.is_valid() {
-            return self.foreign_output.reject_protocol(
-                ForeignOutputKind::PluginEvents,
-                RuntimeLibraryError::protocol_violation(
-                    "runtime returned an invalid plugin event subscription",
-                ),
-            );
+            return self
+                .foreign_output
+                .reject_protocol(
+                    ForeignOutputKind::PluginEvents,
+                    RuntimeLibraryError::protocol_violation(
+                        "runtime returned an invalid plugin event subscription",
+                    ),
+                )
+                .map_err(Into::into);
         }
         Ok(Some(subscription))
     }
@@ -517,7 +530,7 @@ impl RuntimeSession {
         )?;
         let batch = self
             .foreign_output
-            .decode_json::<ZrRuntimePluginEventDeliveryBatchV1>(
+            .decode_json::<ZrRuntimePluginEventDeliveryBatchV1, RuntimeLibraryError>(
                 output,
                 ForeignOutputKind::PluginEvents,
                 PLUGIN_EVENT_OUTPUT_BUDGET,
@@ -525,7 +538,7 @@ impl RuntimeSession {
                 "free runtime plugin events",
                 |batch| {
                     validate_plugin_event_batch(&batch, subscription)?;
-                    Ok(batch.deliveries.len())
+                    Ok::<usize, RuntimeLibraryError>(batch.deliveries.len())
                 },
             )?;
         Ok(batch.map(|batch| batch.deliveries).unwrap_or_default())
@@ -574,6 +587,7 @@ fn abort_after_runtime_session_teardown_failure(detail: &str) -> ! {
 pub(crate) struct RuntimeFrame<'session> {
     frame: ZrRuntimeFrameV1,
     teardown_failure_state: RuntimeSessionTeardownFailureState,
+    foreign_output: Arc<ForeignOutputState>,
     _session: PhantomData<&'session RuntimeSession>,
 }
 
@@ -601,7 +615,12 @@ impl Drop for RuntimeFrame<'_> {
         let buffer = self.frame.rgba;
         self.frame.rgba = ZrOwnedByteBuffer::empty();
         if let Err(error) = release_owned_buffer(buffer, "free runtime frame buffer") {
-            self.teardown_failure_state.record(error);
+            if let Err(protocol_error) = self
+                .foreign_output
+                .reject_protocol::<()>(ForeignOutputKind::SessionProtocol, error)
+            {
+                self.teardown_failure_state.record(protocol_error.into());
+            }
         }
     }
 }
@@ -716,49 +735,6 @@ fn validate_plugin_event_encoded_len(encoded_len: usize) -> Result<(), RuntimeLi
     Err(RuntimeLibraryError::new(format!(
         "runtime plugin event page returned {encoded_len} encoded bytes; maximum is {ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1}"
     )))
-}
-
-fn profile_control_response_item_count(response: &ProfileControlResponse) -> usize {
-    let mut count = 1_usize.saturating_add(response.files.len());
-    if let Some(snapshot) = &response.snapshot {
-        count = count.saturating_add(profile_snapshot_item_count(snapshot));
-    }
-    if let Some(diagnostics) = &response.runtime_diagnostics {
-        count = diagnostics.diagnostic_series.iter().fold(
-            count.saturating_add(diagnostics.diagnostic_series.len()),
-            |count, series| {
-                count
-                    .saturating_add(series.subsystem_tags.len())
-                    .saturating_add(series.history.len())
-            },
-        );
-        count = count.saturating_add(profile_snapshot_item_count(&diagnostics.profile));
-    }
-    if let Some(report) = &response.hotspot_report {
-        count = count
-            .saturating_add(report.hotspots.len())
-            .saturating_add(report.hints.len());
-    }
-    if let Some(report) = &response.counter_hotspot_report {
-        count = count
-            .saturating_add(report.counters.len())
-            .saturating_add(report.hints.len());
-    }
-    if let Some(report) = &response.ui_hotspot_report {
-        count = count
-            .saturating_add(report.scenarios.len())
-            .saturating_add(report.alerts.len());
-    }
-    count
-}
-
-fn profile_snapshot_item_count(snapshot: &zircon_runtime_interface::ProfileSnapshot) -> usize {
-    snapshot
-        .frames
-        .len()
-        .saturating_add(snapshot.spans.len())
-        .saturating_add(snapshot.counters.len())
-        .saturating_add(snapshot.recorder_retention.len())
 }
 
 #[cfg(test)]

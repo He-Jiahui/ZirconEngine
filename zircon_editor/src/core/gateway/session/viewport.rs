@@ -13,6 +13,7 @@ impl SessionGateway {
         &self,
         request: ZrRuntimeBindViewportSurfaceRequestV1,
     ) -> Result<(), GatewayError> {
+        self.ensure_session_available("bind runtime viewport surface")?;
         let bind = Self::required(
             self.api.bind_viewport_surface,
             "runtime.viewport.surface.bind",
@@ -29,6 +30,7 @@ impl SessionGateway {
         &self,
         viewport: ZrRuntimeViewportHandle,
     ) -> Result<(), GatewayError> {
+        self.ensure_session_available("unbind runtime viewport surface")?;
         let unbind = Self::required(
             self.api.unbind_viewport_surface,
             "runtime.viewport.surface.unbind",
@@ -45,6 +47,7 @@ impl SessionGateway {
         &self,
         request: ZrRuntimeFrameRequestV1,
     ) -> Result<(), GatewayError> {
+        self.ensure_session_available("present runtime viewport")?;
         let present = Self::required(self.api.present_viewport, "runtime.viewport.present")?;
         ensure_status(
             unsafe { present(self.session, request) },

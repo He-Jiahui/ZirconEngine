@@ -17,3 +17,18 @@ pub enum GatewayError {
     #[error("runtime gateway protocol failed: {message}")]
     Protocol { message: String },
 }
+
+impl From<zircon_runtime_host::foreign_output::RuntimeForeignOutputError> for GatewayError {
+    fn from(error: zircon_runtime_host::foreign_output::RuntimeForeignOutputError) -> Self {
+        use zircon_runtime_host::foreign_output::RuntimeForeignOutputErrorKind;
+
+        match error.kind() {
+            RuntimeForeignOutputErrorKind::RuntimeCall => Self::Runtime {
+                message: error.to_string(),
+            },
+            RuntimeForeignOutputErrorKind::ProtocolViolation => Self::Protocol {
+                message: error.to_string(),
+            },
+        }
+    }
+}

@@ -178,7 +178,7 @@ fn display_colliding_template_id(mut ordinal: usize) -> String {
 
 #[test]
 fn enabled_asset_type_materialization_commits_one_generation_batch() {
-    let source = include_str!("../../../../ui/host/editor_extension_registration.rs");
+    let source = include_str!("../../../../../ui/host/editor_extension_registration.rs");
     let implementation = source
         .split("pub(crate) fn materialize_enabled_asset_types(")
         .nth(1)

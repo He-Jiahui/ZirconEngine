@@ -174,7 +174,7 @@ impl AutosaveJobAdapter {
         self.scheduler.is_in_flight()
     }
 
-    pub(crate) const fn is_due(&self, now: Duration) -> bool {
+    pub(crate) fn is_due(&self, now: Duration) -> bool {
         self.scheduler.is_due(now)
     }
 

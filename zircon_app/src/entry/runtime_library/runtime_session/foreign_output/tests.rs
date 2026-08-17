@@ -6,7 +6,7 @@ use serde::Deserialize;
 use zircon_runtime_interface::{ZrByteSlice, ZrOwnedByteBuffer, ZrStatus, ZrStatusCode};
 
 use super::{ForeignOutputBudget, ForeignOutputKind, ForeignOutputState};
-use crate::entry::runtime_library::runtime_library_error::RuntimeLibraryErrorKind;
+use zircon_runtime_host::foreign_output::RuntimeForeignOutputErrorKind as RuntimeLibraryErrorKind;
 
 static ACCEPTED_RELEASED: AtomicBool = AtomicBool::new(false);
 static CALL_FAILURE_RELEASED: AtomicBool = AtomicBool::new(false);
@@ -186,7 +186,7 @@ fn accepted_payload_is_released_and_records_per_kind_metrics() {
     let encoded_len = output.len as u64;
 
     let decoded = state
-        .decode_json::<TestPayload>(
+        .decode_json::<TestPayload, &'static str>(
             output,
             ForeignOutputKind::HostRequests,
             budget(1_024, 4),
@@ -225,7 +225,7 @@ fn failed_foreign_call_releases_output_without_fusing_when_cleanup_succeeds() {
         )
         .expect_err("runtime call failure should propagate");
 
-    assert_eq!(error.kind(), RuntimeLibraryErrorKind::General);
+    assert_eq!(error.kind(), RuntimeLibraryErrorKind::RuntimeCall);
     assert!(CALL_FAILURE_RELEASED.load(Ordering::Acquire));
     assert!(!state.is_protocol_failed());
     let metrics = state.metrics().for_kind(ForeignOutputKind::ProfileResponse);
@@ -307,7 +307,7 @@ fn empty_allowed_payload_is_released_without_decode() {
     };
 
     let decoded = state
-        .decode_json::<TestPayload>(
+        .decode_json::<TestPayload, &'static str>(
             output,
             ForeignOutputKind::HostRequests,
             budget(1_024, 4).allow_empty(),
@@ -335,7 +335,7 @@ fn malformed_storage_is_released_before_protocol_failure() {
     };
 
     let error = state
-        .decode_json::<TestPayload>(
+        .decode_json::<TestPayload, &'static str>(
             output,
             ForeignOutputKind::ProfileResponse,
             budget(1_024, 4),
@@ -362,7 +362,7 @@ fn oversized_payload_is_released_before_the_session_fuses() {
     let encoded_len = output.len;
 
     let error = state
-        .decode_json::<TestPayload>(
+        .decode_json::<TestPayload, &'static str>(
             output,
             ForeignOutputKind::OperationResult,
             budget(encoded_len - 1, 4),
@@ -397,7 +397,7 @@ fn buffer_returned_after_another_thread_fuses_is_still_released() {
     let state = ForeignOutputState::default();
     let first = owned_json(&serde_json::json!({ "values": [1, 2] }), release_oversized);
     let first_len = first.len;
-    let _ = state.decode_json::<TestPayload>(
+    let _ = state.decode_json::<TestPayload, &'static str>(
         first,
         ForeignOutputKind::OperationResult,
         budget(first_len - 1, 4),
@@ -409,7 +409,7 @@ fn buffer_returned_after_another_thread_fuses_is_still_released() {
         owned_json(&serde_json::json!({ "values": [3] }), release_fused_return);
 
     let error = state
-        .decode_json::<TestPayload>(
+        .decode_json::<TestPayload, &'static str>(
             returned_after_fuse,
             ForeignOutputKind::HostRequests,
             budget(1_024, 4),
@@ -431,7 +431,7 @@ fn decode_rechecks_the_session_fuse_after_schema_validation() {
     let outer = owned_json(&serde_json::json!({ "values": [1, 2] }), release_race_outer);
 
     let error = state
-        .decode_json::<TestPayload>(
+        .decode_json::<TestPayload, &'static str>(
             outer,
             ForeignOutputKind::HostRequests,
             budget(1_024, 4),
@@ -443,7 +443,7 @@ fn decode_rechecks_the_session_fuse_after_schema_validation() {
                     release_race_trigger,
                 );
                 let trigger_len = trigger.len;
-                let _ = state.decode_json::<TestPayload>(
+                let _ = state.decode_json::<TestPayload, &'static str>(
                     trigger,
                     ForeignOutputKind::OperationResult,
                     budget(trigger_len - 1, 4),
@@ -483,7 +483,7 @@ fn payload_released_while_another_call_fuses_is_not_accepted() {
                 &serde_json::json!({ "values": [1, 2] }),
                 release_while_another_call_fuses,
             );
-            state_for_decode.decode_json::<TestPayload>(
+            state_for_decode.decode_json::<TestPayload, &'static str>(
                 output,
                 ForeignOutputKind::HostRequests,
                 budget(1_024, 4),
@@ -500,7 +500,7 @@ fn payload_released_while_another_call_fuses_is_not_accepted() {
         );
         let trigger_len = trigger.len;
         state
-            .decode_json::<TestPayload>(
+            .decode_json::<TestPayload, &'static str>(
                 trigger,
                 ForeignOutputKind::OperationResult,
                 budget(trigger_len - 1, 4),
@@ -541,7 +541,7 @@ fn item_budget_violation_releases_and_fuses_after_schema_decode() {
     );
 
     let error = state
-        .decode_json::<TestPayload>(
+        .decode_json::<TestPayload, &'static str>(
             output,
             ForeignOutputKind::HostRequests,
             budget(1_024, 2),

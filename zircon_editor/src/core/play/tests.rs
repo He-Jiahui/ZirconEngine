@@ -49,6 +49,7 @@ fn play_gateway_attachment_preserves_authoring_world_access_across_detach() {
             ZrRuntimeApiV6::empty(),
             ZrRuntimeSessionHandle::new(1),
             RuntimeCapabilities::editor_default(),
+            Arc::new(zircon_runtime_host::foreign_output::RuntimeForeignOutputState::default()),
         )
     }
     .expect("a valid session handle should construct a serialized gateway");
@@ -121,12 +122,10 @@ fn host_play_attachment_preserves_edit_selection_and_undo_history() {
 
     let created = {
         let mut shell = controller.shell().lock();
-        assert!(
-            shell
-                .state
-                .apply_intent(EditorIntent::CreateNode(NodeKind::Empty))
-                .expect("the edit domain should accept a scene command")
-        );
+        assert!(shell
+            .state
+            .apply_intent(EditorIntent::CreateNode(NodeKind::Empty))
+            .expect("the edit domain should accept a scene command"));
         shell
             .state
             .viewport_controller
@@ -141,6 +140,7 @@ fn host_play_attachment_preserves_edit_selection_and_undo_history() {
             ZrRuntimeApiV6::empty(),
             ZrRuntimeSessionHandle::new(2),
             RuntimeCapabilities::editor_default(),
+            Arc::new(zircon_runtime_host::foreign_output::RuntimeForeignOutputState::default()),
         )
     }
     .expect("a valid session handle should construct a serialized gateway");
@@ -169,20 +169,16 @@ fn host_play_attachment_preserves_edit_selection_and_undo_history() {
     controller
         .detach_play_gateway(play_instance)
         .expect("detaching play must leave the edit facade in place");
-    assert!(
-        controller
-            .gateway_for(WorldDomain::Play(play_instance))
-            .is_none()
-    );
+    assert!(controller
+        .gateway_for(WorldDomain::Play(play_instance))
+        .is_none());
 
     {
         let mut shell = controller.shell().lock();
-        assert!(
-            shell
-                .state
-                .apply_intent(EditorIntent::Undo)
-                .expect("undo after play detaches should use the preserved edit history")
-        );
+        assert!(shell
+            .state
+            .apply_intent(EditorIntent::Undo)
+            .expect("undo after play detaches should use the preserved edit history"));
         assert_eq!(
             shell.state.viewport_controller.selection().active_primary(),
             Some(selection_before)

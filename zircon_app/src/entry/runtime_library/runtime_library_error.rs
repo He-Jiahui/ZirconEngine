@@ -48,6 +48,19 @@ impl fmt::Display for RuntimeLibraryError {
 
 impl Error for RuntimeLibraryError {}
 
+impl From<zircon_runtime_host::foreign_output::RuntimeForeignOutputError> for RuntimeLibraryError {
+    fn from(error: zircon_runtime_host::foreign_output::RuntimeForeignOutputError) -> Self {
+        use zircon_runtime_host::foreign_output::RuntimeForeignOutputErrorKind;
+
+        match error.kind() {
+            RuntimeForeignOutputErrorKind::RuntimeCall => Self::new(error.to_string()),
+            RuntimeForeignOutputErrorKind::ProtocolViolation => {
+                Self::protocol_violation(error.to_string())
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{RuntimeLibraryError, RuntimeLibraryErrorKind};

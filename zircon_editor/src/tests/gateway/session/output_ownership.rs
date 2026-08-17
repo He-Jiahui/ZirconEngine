@@ -25,6 +25,7 @@ fn session_gateway_keeps_the_runtime_provider_alive() {
             api_table(),
             ZrRuntimeSessionHandle::new(17),
             capabilities(),
+            Arc::new(zircon_runtime_host::foreign_output::RuntimeForeignOutputState::default()),
         )
         .expect("valid session gateway")
     };
@@ -43,8 +44,14 @@ fn session_gateway_retains_foreign_frame_storage_until_explicit_release() {
     let mut api = api_table();
     api.capture_frame = Some(fake_capture_owned_frame);
     let gateway = unsafe {
-        SessionGateway::new(owner, api, ZrRuntimeSessionHandle::new(17), capabilities())
-            .expect("valid session gateway")
+        SessionGateway::new(
+            owner,
+            api,
+            ZrRuntimeSessionHandle::new(17),
+            capabilities(),
+            Arc::new(zircon_runtime_host::foreign_output::RuntimeForeignOutputState::default()),
+        )
+        .expect("valid session gateway")
     };
 
     let frame = gateway

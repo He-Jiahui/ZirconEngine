@@ -9,6 +9,7 @@ use super::super::{
 };
 use super::gateway::SessionGateway;
 use super::protocol::frame_demand_from_runtime;
+use zircon_runtime_host::foreign_output::{RuntimeForeignOutputKind, RuntimeForeignOutputState};
 use zircon_runtime_interface::{
     ZrByteSlice, ZrRuntimeApiV6, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeFrameDemandV1,
     ZrRuntimeFrameRequestV1, ZrRuntimeHighlightSetV1, ZrRuntimeNativeSurfaceTargetV1,
@@ -113,6 +114,7 @@ fn session_gateway_forwards_viewport_surface_lifecycle_without_runtime_ownership
             api,
             ZrRuntimeSessionHandle::new(15),
             RuntimeCapabilities::editor_default(),
+            Arc::new(RuntimeForeignOutputState::default()),
         )
     }
     .unwrap();
@@ -170,6 +172,7 @@ fn session_gateway_updates_the_injected_viewport_surface_lifecycle_state() {
             api,
             ZrRuntimeSessionHandle::new(17),
             RuntimeCapabilities::editor_default(),
+            Arc::new(RuntimeForeignOutputState::default()),
         )
     }
     .unwrap()
@@ -202,6 +205,7 @@ fn session_gateway_preserves_surface_lifecycle_state_when_runtime_calls_fail() {
             bind_api,
             ZrRuntimeSessionHandle::new(18),
             RuntimeCapabilities::editor_default(),
+            Arc::new(RuntimeForeignOutputState::default()),
         )
     }
     .unwrap()
@@ -226,6 +230,7 @@ fn session_gateway_preserves_surface_lifecycle_state_when_runtime_calls_fail() {
             unbind_api,
             ZrRuntimeSessionHandle::new(19),
             RuntimeCapabilities::editor_default(),
+            Arc::new(RuntimeForeignOutputState::default()),
         )
     }
     .unwrap()
@@ -243,6 +248,7 @@ fn session_gateway_reports_each_missing_viewport_surface_entry() {
             ZrRuntimeApiV6::empty(),
             ZrRuntimeSessionHandle::new(16),
             RuntimeCapabilities::editor_default(),
+            Arc::new(RuntimeForeignOutputState::default()),
         )
     }
     .unwrap();
@@ -293,6 +299,7 @@ fn session_gateway_submits_the_canonical_abi_value() {
             api,
             ZrRuntimeSessionHandle::new(9),
             RuntimeCapabilities::editor_default(),
+            Arc::new(RuntimeForeignOutputState::default()),
         )
     }
     .unwrap();
@@ -334,6 +341,7 @@ fn session_gateway_rejects_an_unreported_overlay_capability() {
             api,
             ZrRuntimeSessionHandle::new(10),
             RuntimeCapabilities::new(SessionProfileKind::Editor, Vec::<String>::new(), Vec::new()),
+            Arc::new(RuntimeForeignOutputState::default()),
         )
     }
     .unwrap();
@@ -355,23 +363,19 @@ fn session_gateway_rejects_an_unreported_overlay_capability() {
 }
 
 #[test]
-fn owned_output_decode_validates_the_payload_once() {
-    let source = include_str!("output.rs");
-    let decode_body = source
-        .split("fn decode_owned_output")
-        .nth(1)
-        .and_then(|body| body.split("fn validate_output_status").next())
-        .expect("decode-owned-output body should remain available");
-    let repeated_validation = ["output.val", "idate(operation)"].concat();
-    assert!(!decode_body.contains(&repeated_validation));
+fn session_gateway_has_no_private_unbounded_json_decoder() {
+    let session_sources = [
+        include_str!("gateway.rs"),
+        include_str!("operations.rs"),
+        include_str!("plugin_events.rs"),
+        include_str!("profile.rs"),
+        include_str!("world_sync.rs"),
+    ];
 
-    let drain_source = include_str!("plugin_events.rs");
-    let drain_body = drain_source
-        .split("fn drain_plugin_events")
-        .nth(1)
-        .expect("session drain body should remain available");
-    let explicit_validation = ["output.val", "idate(\"drain runtime plugin events\")"].concat();
-    assert!(!drain_body.contains(&explicit_validation));
+    assert!(session_sources
+        .iter()
+        .all(|source| !source.contains("serde_json::from_slice")));
+    assert!(include_str!("gateway.rs").contains(".decode_json("));
 }
 
 #[test]
@@ -390,13 +394,38 @@ fn unknown_runtime_frame_demand_kind_returns_a_protocol_error() {
 }
 
 #[test]
-fn session_gateway_invariant_breaks_fail_closed() {
-    let source = include_str!("output.rs");
-    let validation_body = source
-        .split("fn validate_output_status")
-        .nth(1)
-        .expect("validate-output-status body should remain available");
+fn shared_foreign_output_fuse_blocks_later_gateway_calls() {
+    RECORDED_VIEWPORT_PRESENTS.lock().unwrap().clear();
+    let foreign_output = Arc::new(RuntimeForeignOutputState::default());
+    let mut api = ZrRuntimeApiV6::empty();
+    api.present_viewport = Some(record_viewport_present);
+    let gateway = unsafe {
+        SessionGateway::new(
+            Arc::new(()),
+            api,
+            ZrRuntimeSessionHandle::new(21),
+            RuntimeCapabilities::editor_default(),
+            foreign_output.clone(),
+        )
+    }
+    .unwrap();
+    let _ = foreign_output.reject_protocol::<()>(
+        RuntimeForeignOutputKind::WorldQuery,
+        "runtime world query violated its output budget",
+    );
 
-    assert!(validation_body.contains("inconsistent validated-output cleanup state"));
-    assert!(!validation_body.contains("unreachable!"));
+    let error = gateway
+        .present_viewport(ZrRuntimeFrameRequestV1::new(
+            ZIRCON_RUNTIME_ABI_VERSION_V1,
+            ZrRuntimeViewportHandle::new(3),
+            ZrRuntimeViewportSizeV1::new(32, 18),
+        ))
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        GatewayError::Protocol { message }
+            if message.contains("prior foreign-output protocol violation")
+    ));
+    assert!(RECORDED_VIEWPORT_PRESENTS.lock().unwrap().is_empty());
 }

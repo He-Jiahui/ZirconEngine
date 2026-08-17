@@ -6,10 +6,7 @@ pub(super) fn release_owned_buffer(
     output: ZrOwnedByteBuffer,
     operation: &'static str,
 ) -> Result<(), RuntimeLibraryError> {
-    let Some(free) = output.free else {
-        return Ok(());
-    };
-    ensure_status(unsafe { free(output) }, operation)
+    zircon_runtime_host::foreign_output::release_owned_buffer(output, operation).map_err(Into::into)
 }
 
 pub(super) fn release_owned_buffer_after_error<T>(
@@ -41,34 +38,8 @@ pub(super) fn validate_owned_buffer(
     output: &ZrOwnedByteBuffer,
     operation: &'static str,
 ) -> Result<(), RuntimeLibraryError> {
-    if output.len > output.capacity {
-        return Err(RuntimeLibraryError::new(format!(
-            "{operation} returned malformed storage: len {} exceeds capacity {}",
-            output.len, output.capacity
-        )));
-    }
-    if output.len > isize::MAX as usize || output.capacity > isize::MAX as usize {
-        return Err(RuntimeLibraryError::new(format!(
-            "{operation} returned malformed storage: len {} and capacity {} exceed the maximum Rust slice allocation",
-            output.len, output.capacity
-        )));
-    }
-    if output.data.is_null() {
-        return if output.len == 0 && output.capacity == 0 {
-            Ok(())
-        } else {
-            Err(RuntimeLibraryError::new(format!(
-                "{operation} returned malformed storage: null data with len {} and capacity {}",
-                output.len, output.capacity
-            )))
-        };
-    }
-    if output.free.is_none() {
-        return Err(RuntimeLibraryError::new(format!(
-            "{operation} returned owned storage without a free callback"
-        )));
-    }
-    Ok(())
+    zircon_runtime_host::foreign_output::validate_owned_buffer(output, operation)
+        .map_err(Into::into)
 }
 
 pub(super) fn validate_owned_buffer_releasing_on_error(

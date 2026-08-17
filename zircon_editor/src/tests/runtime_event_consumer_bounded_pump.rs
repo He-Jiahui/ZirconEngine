@@ -129,6 +129,7 @@ fn abi_gateway() -> SessionGateway {
             api,
             ZrRuntimeSessionHandle::new(7),
             RuntimeCapabilities::editor_default(),
+            Arc::new(zircon_runtime_host::foreign_output::RuntimeForeignOutputState::default()),
         )
         .expect("construct bounded ABI session gateway")
     }

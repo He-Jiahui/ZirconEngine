@@ -162,4 +162,5 @@ zircon_editor = { path = "../zircon_editor", optional = true }
 zircon_first_party_editor_catalog = { path = "../zircon_plugins/first_party_editor_catalog", optional = true, default-features = false }
 zircon_first_party_runtime_catalog = { path = "../zircon_plugins/first_party_runtime_catalog", optional = true, default-features = false }
 zircon_runtime = { path = "../zircon_runtime", default-features = false }
+zircon_runtime_host.workspace = true
 zircon_runtime_interface = { path = "../zircon_runtime_interface" }

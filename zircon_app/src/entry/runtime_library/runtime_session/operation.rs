@@ -1,5 +1,6 @@
 use std::mem::MaybeUninit;
 
+use zircon_runtime_host::foreign_output::operation_result_item_count;
 use zircon_runtime_interface::{
     ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeOperationHandle, ZrRuntimeOperationResultV1,
     ZrRuntimeOperationStatusV2, ZrRuntimeOperationSubmitRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
@@ -37,12 +38,15 @@ impl RuntimeSession {
             "submit runtime operation",
         )?;
         if !handle.is_valid() {
-            return self.foreign_output.reject_protocol(
-                ForeignOutputKind::OperationResult,
-                RuntimeLibraryError::protocol_violation(
-                    "runtime returned an invalid operation handle",
-                ),
-            );
+            return self
+                .foreign_output
+                .reject_protocol(
+                    ForeignOutputKind::OperationResult,
+                    RuntimeLibraryError::protocol_violation(
+                        "runtime returned an invalid operation handle",
+                    ),
+                )
+                .map_err(Into::into);
         }
         Ok(handle)
     }
@@ -63,7 +67,8 @@ impl RuntimeSession {
         if let Err(error) = ensure_operation_status(&status, handle) {
             return self
                 .foreign_output
-                .reject_protocol(ForeignOutputKind::OperationResult, error);
+                .reject_protocol(ForeignOutputKind::OperationResult, error)
+                .map_err(Into::into);
         }
         Ok(status)
     }
@@ -308,24 +313,4 @@ fn decode_operation_output<T: serde::de::DeserializeOwned>(
                 "{operation} returned an empty payload"
             ))
         })
-}
-
-fn operation_result_item_count(result: &ZrRuntimeOperationResultV1) -> usize {
-    result
-        .succeeded_output()
-        .map(json_value_item_count)
-        .unwrap_or(1)
-        .saturating_add(1)
-}
-
-fn json_value_item_count(value: &serde_json::Value) -> usize {
-    match value {
-        serde_json::Value::Array(values) => values.iter().fold(1_usize, |count, value| {
-            count.saturating_add(json_value_item_count(value))
-        }),
-        serde_json::Value::Object(values) => values.values().fold(1_usize, |count, value| {
-            count.saturating_add(json_value_item_count(value))
-        }),
-        _ => 1,
-    }
 }

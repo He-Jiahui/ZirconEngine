@@ -1,9 +1,13 @@
 use std::marker::PhantomData;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
+use super::foreign_output::{ForeignOutputKind, ForeignOutputState};
+use super::owned_buffer::{
+    ensure_status_releasing_output_on_error, release_owned_buffer_after_result,
+};
 use super::{
-    ensure_status_releasing_output_on_error, profile_control_response_item_count,
-    project_root_for_abi, release_owned_buffer, release_owned_buffer_after_result,
+    profile_control_response_item_count, project_root_for_abi, release_owned_buffer,
     validate_owned_buffer_releasing_on_error, validate_plugin_event_batch,
     validate_plugin_event_encoded_len, validate_runtime_frame,
     validate_runtime_frame_releasing_on_error, RuntimeFrame, RuntimeLibraryError,
@@ -87,6 +91,7 @@ unsafe extern "C" fn reject_frame_buffer_release(buffer: ZrOwnedByteBuffer) -> Z
 #[test]
 fn runtime_frame_release_failure_is_recorded_for_terminal_teardown() {
     let teardown_failure_state = RuntimeSessionTeardownFailureState::default();
+    let foreign_output = Arc::new(ForeignOutputState::default());
     let mut frame = ZrRuntimeFrameV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
     frame.width = 1;
     frame.height = 1;
@@ -101,12 +106,21 @@ fn runtime_frame_release_failure_is_recorded_for_terminal_teardown() {
     drop(RuntimeFrame {
         frame,
         teardown_failure_state: teardown_failure_state.clone(),
+        foreign_output: foreign_output.clone(),
         _session: PhantomData,
     });
 
     assert_eq!(
         teardown_failure_state.take().unwrap().to_string(),
         "failed to free runtime frame buffer: error: frame allocation still in use"
+    );
+    assert!(foreign_output.is_protocol_failed());
+    assert_eq!(
+        foreign_output
+            .metrics()
+            .for_kind(ForeignOutputKind::SessionProtocol)
+            .rejected_payloads,
+        1
     );
 }
 
