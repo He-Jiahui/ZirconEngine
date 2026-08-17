@@ -2,27 +2,29 @@ use std::panic::{catch_unwind, AssertUnwindSafe};
 
 use zircon_runtime_interface::world_sync::WatchToken;
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrHostApiV1, ZrOwnedByteBuffer, ZrRuntimeAccessibilityTreeRequestV1,
-    ZrRuntimeApiV6, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1,
-    ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeHighlightSetV1,
+    ZrByteSlice, ZrHostApiV1, ZrOwnedResultV2, ZrRuntimeAccessibilityTreeRequestV1,
+    ZrRuntimeAllocationId, ZrRuntimeApiV7, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1,
+    ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2, ZrRuntimeHighlightSetV1,
     ZrRuntimeOperationHandle, ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionConfigV3,
     ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrStatus, ZrStatusCode,
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V6,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V7,
 };
 
 use super::session::{
     bind_viewport_surface, capture_accessibility_tree, capture_frame, create_session,
     destroy_session, drain_host_requests, drain_plugin_events, drain_world_invalidations,
     handle_event, harvest_operation, poll_operation, present_viewport, profile_control,
-    query_world, submit_highlight_set, submit_operation, subscribe_plugin_event, tick_frame,
-    unbind_viewport_surface, unsubscribe_plugin_event, unwatch_world, watch_world,
+    query_world, release_allocation, submit_highlight_set, submit_operation,
+    subscribe_plugin_event, tick_frame, unbind_viewport_surface, unsubscribe_plugin_event,
+    unwatch_world, watch_world,
 };
 
-static RUNTIME_API_V6: ZrRuntimeApiV6 = ZrRuntimeApiV6 {
-    abi_version: ZIRCON_RUNTIME_API_VERSION_V6,
-    size_bytes: core::mem::size_of::<ZrRuntimeApiV6>(),
+static RUNTIME_API_V7: ZrRuntimeApiV7 = ZrRuntimeApiV7 {
+    abi_version: ZIRCON_RUNTIME_API_VERSION_V7,
+    size_bytes: core::mem::size_of::<ZrRuntimeApiV7>(),
     create_session: Some(create_session_ffi),
     destroy_session: Some(destroy_session_ffi),
+    release_allocation: Some(release_allocation_ffi),
     handle_event: Some(handle_event_ffi),
     capture_frame: Some(capture_frame_ffi),
     capture_accessibility_tree: Some(capture_accessibility_tree_ffi),
@@ -46,25 +48,25 @@ static RUNTIME_API_V6: ZrRuntimeApiV6 = ZrRuntimeApiV6 {
 };
 
 #[no_mangle]
-pub unsafe extern "C" fn zircon_runtime_get_api_v6(
+pub unsafe extern "C" fn zircon_runtime_get_api_v7(
     host: *const ZrHostApiV1,
-) -> *const ZrRuntimeApiV6 {
+) -> *const ZrRuntimeApiV7 {
     match catch_unwind(AssertUnwindSafe(|| unsafe {
-        zircon_runtime_get_api_v6_inner(host)
+        zircon_runtime_get_api_v7_inner(host)
     })) {
         Ok(api) => api,
         Err(_) => core::ptr::null(),
     }
 }
 
-unsafe fn zircon_runtime_get_api_v6_inner(host: *const ZrHostApiV1) -> *const ZrRuntimeApiV6 {
+unsafe fn zircon_runtime_get_api_v7_inner(host: *const ZrHostApiV1) -> *const ZrRuntimeApiV7 {
     #[cfg(feature = "profiling-tracy")]
     let _ = crate::core::diagnostics::profiling::initialize_tracy_sink();
 
     if !host_abi_is_supported(host) {
         return core::ptr::null();
     }
-    &RUNTIME_API_V6
+    &RUNTIME_API_V7
 }
 
 fn host_abi_is_supported(host: *const ZrHostApiV1) -> bool {
@@ -95,6 +97,13 @@ unsafe extern "C" fn destroy_session_ffi(handle: ZrRuntimeSessionHandle) -> ZrSt
     catch_ffi_panic(|| unsafe { destroy_session(handle) })
 }
 
+unsafe extern "C" fn release_allocation_ffi(
+    session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    catch_ffi_panic(|| unsafe { release_allocation(session, allocation) })
+}
+
 unsafe extern "C" fn handle_event_ffi(
     handle: ZrRuntimeSessionHandle,
     event: ZrRuntimeEventV1,
@@ -105,7 +114,7 @@ unsafe extern "C" fn handle_event_ffi(
 unsafe extern "C" fn capture_frame_ffi(
     handle: ZrRuntimeSessionHandle,
     request: ZrRuntimeFrameRequestV1,
-    out_frame: *mut ZrRuntimeFrameV1,
+    out_frame: *mut ZrRuntimeFrameV2,
 ) -> ZrStatus {
     catch_ffi_panic(|| unsafe { capture_frame(handle, request, out_frame) })
 }
@@ -113,7 +122,7 @@ unsafe extern "C" fn capture_frame_ffi(
 unsafe extern "C" fn capture_accessibility_tree_ffi(
     handle: ZrRuntimeSessionHandle,
     request: ZrRuntimeAccessibilityTreeRequestV1,
-    out_tree: *mut ZrOwnedByteBuffer,
+    out_tree: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
     catch_ffi_panic(|| unsafe { capture_accessibility_tree(handle, request, out_tree) })
 }
@@ -149,7 +158,7 @@ unsafe extern "C" fn submit_highlight_set_ffi(
 unsafe extern "C" fn profile_control_ffi(
     handle: ZrRuntimeSessionHandle,
     request_json: ZrByteSlice,
-    out_json: *mut ZrOwnedByteBuffer,
+    out_json: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
     catch_ffi_panic(|| unsafe { profile_control(handle, request_json, out_json) })
 }
@@ -163,7 +172,7 @@ unsafe extern "C" fn tick_frame_ffi(
 
 unsafe extern "C" fn drain_host_requests_ffi(
     handle: ZrRuntimeSessionHandle,
-    out_requests: *mut ZrOwnedByteBuffer,
+    out_requests: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
     catch_ffi_panic(|| unsafe { drain_host_requests(handle, out_requests) })
 }
@@ -186,7 +195,7 @@ unsafe extern "C" fn unsubscribe_plugin_event_ffi(
 unsafe extern "C" fn drain_plugin_events_ffi(
     handle: ZrRuntimeSessionHandle,
     subscription: ZrRuntimePluginEventSubscriptionHandle,
-    out_deliveries: *mut ZrOwnedByteBuffer,
+    out_deliveries: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
     catch_ffi_panic(|| unsafe { drain_plugin_events(handle, subscription, out_deliveries) })
 }
@@ -210,7 +219,7 @@ unsafe extern "C" fn poll_operation_ffi(
 unsafe extern "C" fn harvest_operation_ffi(
     handle: ZrRuntimeSessionHandle,
     operation: ZrRuntimeOperationHandle,
-    out_result: *mut ZrOwnedByteBuffer,
+    out_result: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
     catch_ffi_panic(|| unsafe { harvest_operation(handle, operation, out_result) })
 }
@@ -218,7 +227,7 @@ unsafe extern "C" fn harvest_operation_ffi(
 unsafe extern "C" fn query_world_ffi(
     handle: ZrRuntimeSessionHandle,
     request_json: ZrByteSlice,
-    out_result: *mut ZrOwnedByteBuffer,
+    out_result: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
     catch_ffi_panic(|| unsafe { query_world(handle, request_json, out_result) })
 }
@@ -241,7 +250,7 @@ unsafe extern "C" fn unwatch_world_ffi(
 
 unsafe extern "C" fn drain_world_invalidations_ffi(
     handle: ZrRuntimeSessionHandle,
-    out_batches: *mut ZrOwnedByteBuffer,
+    out_batches: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
     catch_ffi_panic(|| unsafe { drain_world_invalidations(handle, out_batches) })
 }

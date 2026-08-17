@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeSessionHandle, ZrStatus};
+use crate::{ZrByteSlice, ZrOwnedResultV2, ZrRuntimeSessionHandle, ZrStatus};
 
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -240,8 +240,8 @@ pub type ZrRuntimePollOperationFnV2 = unsafe extern "C" fn(
     ZrRuntimeOperationHandle,
     *mut ZrRuntimeOperationStatusV2,
 ) -> ZrStatus;
-pub type ZrRuntimeHarvestOperationFnV1 = unsafe extern "C" fn(
+pub type ZrRuntimeHarvestOperationFnV2 = unsafe extern "C" fn(
     ZrRuntimeSessionHandle,
     ZrRuntimeOperationHandle,
-    *mut ZrOwnedByteBuffer,
+    *mut ZrOwnedResultV2,
 ) -> ZrStatus;

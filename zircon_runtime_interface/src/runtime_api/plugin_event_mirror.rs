@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::value::{to_raw_value, RawValue};
 
-use crate::{ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeSessionHandle, ZrStatus};
+use crate::{ZrByteSlice, ZrOwnedResultV2, ZrRuntimeSessionHandle, ZrStatus};
 
 /// Maximum event deliveries returned by one V1 plugin-event drain page.
 pub const ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1: usize = 64;
@@ -155,8 +155,8 @@ pub type ZrRuntimeUnsubscribePluginEventFnV1 = unsafe extern "C" fn(
     ZrRuntimePluginEventSubscriptionHandle,
 ) -> ZrStatus;
 
-pub type ZrRuntimeDrainPluginEventsFnV1 = unsafe extern "C" fn(
+pub type ZrRuntimeDrainPluginEventsFnV2 = unsafe extern "C" fn(
     ZrRuntimeSessionHandle,
     ZrRuntimePluginEventSubscriptionHandle,
-    *mut ZrOwnedByteBuffer,
+    *mut ZrOwnedResultV2,
 ) -> ZrStatus;

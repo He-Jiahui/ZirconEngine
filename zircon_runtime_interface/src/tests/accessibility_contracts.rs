@@ -1,5 +1,5 @@
 use crate::{
-    runtime_api::ZrRuntimeCaptureFrameFnV1,
+    runtime_api::ZrRuntimeCaptureFrameFnV2,
     ui::{
         accessibility::{
             UiAccessibilityAction, UiAccessibilityActionRequest, UiAccessibilityActionResult,
@@ -12,10 +12,10 @@ use crate::{
         },
         event_ui::UiNodeId,
     },
-    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeApiV6,
-    ZrRuntimeCaptureAccessibilityTreeFnV1, ZrRuntimeEventV1, ZrRuntimeSessionHandle,
+    ZrByteSlice, ZrOwnedResultV2, ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeApiV7,
+    ZrRuntimeCaptureAccessibilityTreeFnV2, ZrRuntimeEventV1, ZrRuntimeSessionHandle,
     ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode,
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V6,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V7,
     ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1,
 };
 
@@ -173,19 +173,19 @@ fn runtime_accessibility_capture_function_type_matches_abi_shape() {
     unsafe extern "C" fn capture_stub(
         session: ZrRuntimeSessionHandle,
         request: ZrRuntimeAccessibilityTreeRequestV1,
-        output: *mut ZrOwnedByteBuffer,
+        output: *mut ZrOwnedResultV2,
     ) -> ZrStatus {
         assert_eq!(session, ZrRuntimeSessionHandle::new(11));
         assert_eq!(request.generation_hint, 4);
         assert!(!output.is_null());
         unsafe {
-            *output = ZrOwnedByteBuffer::empty();
+            *output = ZrOwnedResultV2::empty();
         }
         ZrStatus::ok()
     }
 
-    let capture: ZrRuntimeCaptureAccessibilityTreeFnV1 = capture_stub;
-    let mut output = ZrOwnedByteBuffer::empty();
+    let capture: ZrRuntimeCaptureAccessibilityTreeFnV2 = capture_stub;
+    let mut output = ZrOwnedResultV2::empty();
     let status = unsafe {
         capture(
             ZrRuntimeSessionHandle::new(11),
@@ -205,17 +205,17 @@ fn runtime_accessibility_capture_function_type_matches_abi_shape() {
 
 #[test]
 fn runtime_api_default_leaves_accessibility_capture_optional() {
-    let api = ZrRuntimeApiV6::empty();
+    let api = ZrRuntimeApiV7::empty();
 
-    assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V6);
-    assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV6>());
+    assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V7);
+    assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV7>());
     assert!(api.capture_frame.is_none());
     assert!(api.capture_accessibility_tree.is_none());
     assert!(api.profile_control.is_none());
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV6, capture_accessibility_tree),
-        core::mem::offset_of!(ZrRuntimeApiV6, capture_frame)
-            + core::mem::size_of::<Option<ZrRuntimeCaptureFrameFnV1>>()
+        core::mem::offset_of!(ZrRuntimeApiV7, capture_accessibility_tree),
+        core::mem::offset_of!(ZrRuntimeApiV7, capture_frame)
+            + core::mem::size_of::<Option<ZrRuntimeCaptureFrameFnV2>>()
     );
 }
 

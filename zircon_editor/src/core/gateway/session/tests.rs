@@ -11,10 +11,10 @@ use super::gateway::SessionGateway;
 use super::protocol::frame_demand_from_runtime;
 use zircon_runtime_host::foreign_output::{RuntimeForeignOutputKind, RuntimeForeignOutputState};
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrRuntimeApiV6, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeFrameDemandV1,
-    ZrRuntimeFrameRequestV1, ZrRuntimeHighlightSetV1, ZrRuntimeNativeSurfaceTargetV1,
-    ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus,
-    ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZrByteSlice, ZrRuntimeAllocationId, ZrRuntimeApiV7, ZrRuntimeBindViewportSurfaceRequestV1,
+    ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeHighlightSetV1,
+    ZrRuntimeNativeSurfaceTargetV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
 static RECORDED_HIGHLIGHT_SETS: Mutex<Vec<(u64, u64, Vec<u64>, bool, [u32; 4])>> =
@@ -23,6 +23,19 @@ static RECORDED_VIEWPORT_SURFACE_BINDS: Mutex<Vec<(u64, u32, u32, u32, u32, u64,
     Mutex::new(Vec::new());
 static RECORDED_VIEWPORT_SURFACE_UNBINDS: Mutex<Vec<u64>> = Mutex::new(Vec::new());
 static RECORDED_VIEWPORT_PRESENTS: Mutex<Vec<(u64, u32, u32)>> = Mutex::new(Vec::new());
+
+unsafe extern "C" fn release_test_allocation(
+    _session: ZrRuntimeSessionHandle,
+    _allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    ZrStatus::ok()
+}
+
+fn test_api() -> ZrRuntimeApiV7 {
+    let mut api = ZrRuntimeApiV7::empty();
+    api.release_allocation = Some(release_test_allocation);
+    api
+}
 
 unsafe extern "C" fn record_highlight_set(
     _session: ZrRuntimeSessionHandle,
@@ -104,7 +117,7 @@ fn session_gateway_forwards_viewport_surface_lifecycle_without_runtime_ownership
     RECORDED_VIEWPORT_SURFACE_UNBINDS.lock().unwrap().clear();
     RECORDED_VIEWPORT_PRESENTS.lock().unwrap().clear();
 
-    let mut api = ZrRuntimeApiV6::empty();
+    let mut api = test_api();
     api.bind_viewport_surface = Some(record_viewport_surface_bind);
     api.unbind_viewport_surface = Some(record_viewport_surface_unbind);
     api.present_viewport = Some(record_viewport_present);
@@ -163,7 +176,7 @@ fn session_gateway_forwards_viewport_surface_lifecycle_without_runtime_ownership
 #[test]
 fn session_gateway_updates_the_injected_viewport_surface_lifecycle_state() {
     let surface_bound = Arc::new(AtomicBool::new(false));
-    let mut api = ZrRuntimeApiV6::empty();
+    let mut api = test_api();
     api.bind_viewport_surface = Some(record_viewport_surface_bind);
     api.unbind_viewport_surface = Some(record_viewport_surface_unbind);
     let gateway = unsafe {
@@ -197,7 +210,7 @@ fn session_gateway_updates_the_injected_viewport_surface_lifecycle_state() {
 fn session_gateway_preserves_surface_lifecycle_state_when_runtime_calls_fail() {
     let viewport = ZrRuntimeViewportHandle::new(3);
     let bind_state = Arc::new(AtomicBool::new(false));
-    let mut bind_api = ZrRuntimeApiV6::empty();
+    let mut bind_api = test_api();
     bind_api.bind_viewport_surface = Some(reject_viewport_surface_bind);
     let bind_gateway = unsafe {
         SessionGateway::new(
@@ -222,7 +235,7 @@ fn session_gateway_preserves_surface_lifecycle_state_when_runtime_calls_fail() {
     assert!(!bind_state.load(Ordering::Acquire));
 
     let unbind_state = Arc::new(AtomicBool::new(true));
-    let mut unbind_api = ZrRuntimeApiV6::empty();
+    let mut unbind_api = test_api();
     unbind_api.unbind_viewport_surface = Some(reject_viewport_surface_unbind);
     let unbind_gateway = unsafe {
         SessionGateway::new(
@@ -245,7 +258,7 @@ fn session_gateway_reports_each_missing_viewport_surface_entry() {
     let gateway = unsafe {
         SessionGateway::new(
             Arc::new(()),
-            ZrRuntimeApiV6::empty(),
+            test_api(),
             ZrRuntimeSessionHandle::new(16),
             RuntimeCapabilities::editor_default(),
             Arc::new(RuntimeForeignOutputState::default()),
@@ -291,7 +304,7 @@ fn session_gateway_reports_each_missing_viewport_surface_entry() {
 #[test]
 fn session_gateway_submits_the_canonical_abi_value() {
     RECORDED_HIGHLIGHT_SETS.lock().unwrap().clear();
-    let mut api = ZrRuntimeApiV6::empty();
+    let mut api = test_api();
     api.submit_highlight_set = Some(record_highlight_set);
     let gateway = unsafe {
         SessionGateway::new(
@@ -333,7 +346,7 @@ fn session_gateway_submits_the_canonical_abi_value() {
 
 #[test]
 fn session_gateway_rejects_an_unreported_overlay_capability() {
-    let mut api = ZrRuntimeApiV6::empty();
+    let mut api = test_api();
     api.submit_highlight_set = Some(record_highlight_set);
     let gateway = unsafe {
         SessionGateway::new(
@@ -397,7 +410,7 @@ fn unknown_runtime_frame_demand_kind_returns_a_protocol_error() {
 fn shared_foreign_output_fuse_blocks_later_gateway_calls() {
     RECORDED_VIEWPORT_PRESENTS.lock().unwrap().clear();
     let foreign_output = Arc::new(RuntimeForeignOutputState::default());
-    let mut api = ZrRuntimeApiV6::empty();
+    let mut api = test_api();
     api.present_viewport = Some(record_viewport_present);
     let gateway = unsafe {
         SessionGateway::new(

@@ -6,8 +6,8 @@ pub(in super::super) const EXPECTED_RUNTIME_10_FUNCTION_TABLES: &[(&str, &str, u
     ),
     (
         "zircon_runtime_interface/src/runtime_api/api_table.rs",
-        "ZrRuntimeApiV6",
-        24,
+        "ZrRuntimeApiV7",
+        25,
     ),
     (
         "zircon_runtime_interface/src/plugin_api.rs",
@@ -64,12 +64,14 @@ pub(in super::super) const EXPECTED_RUNTIME_10_FUNCTION_TABLES: &[(&str, &str, u
 pub(in super::super) const EXPECTED_RUNTIME_10_SESSION_OPERATIONS: &[&str] = &[
     "create_session",
     "destroy_session",
+    "release_allocation",
     "handle_event",
     "capture_frame",
     "capture_accessibility_tree",
     "bind_viewport_surface",
     "unbind_viewport_surface",
     "present_viewport",
+    "submit_highlight_set",
     "profile_control",
     "tick_frame",
     "drain_host_requests",

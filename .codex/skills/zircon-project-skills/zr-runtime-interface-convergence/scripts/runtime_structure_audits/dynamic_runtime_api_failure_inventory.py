@@ -12,6 +12,31 @@ LEGACY_RUNTIME_API_SYMBOLS = (
     "ZR_RUNTIME_GET_API_SYMBOL_V1",
     "zircon_runtime_get_api_v1",
     "RuntimeApi::V1",
+    "ZrRuntimeApiV2",
+    "ZrRuntimeGetApiFnV2",
+    "ZR_RUNTIME_GET_API_SYMBOL_V2",
+    "zircon_runtime_get_api_v2",
+    "RuntimeApi::V2",
+    "ZrRuntimeApiV3",
+    "ZrRuntimeGetApiFnV3",
+    "ZR_RUNTIME_GET_API_SYMBOL_V3",
+    "zircon_runtime_get_api_v3",
+    "RuntimeApi::V3",
+    "ZrRuntimeApiV4",
+    "ZrRuntimeGetApiFnV4",
+    "ZR_RUNTIME_GET_API_SYMBOL_V4",
+    "zircon_runtime_get_api_v4",
+    "RuntimeApi::V4",
+    "ZrRuntimeApiV5",
+    "ZrRuntimeGetApiFnV5",
+    "ZR_RUNTIME_GET_API_SYMBOL_V5",
+    "zircon_runtime_get_api_v5",
+    "RuntimeApi::V5",
+    "ZrRuntimeApiV6",
+    "ZrRuntimeGetApiFnV6",
+    "ZR_RUNTIME_GET_API_SYMBOL_V6",
+    "zircon_runtime_get_api_v6",
+    "RuntimeApi::V6",
 )
 
 
@@ -23,7 +48,7 @@ FFI_PANIC_ANCHORS = (
         "zircon_runtime/src/dynamic_api/exports.rs",
         "runtime dynamic API panic caught at FFI boundary",
     ),
-    ("zircon_runtime/src/dynamic_api/exports.rs", "zircon_runtime_get_api_v6_inner"),
+    ("zircon_runtime/src/dynamic_api/exports.rs", "zircon_runtime_get_api_v7_inner"),
     ("zircon_runtime/src/dynamic_api/exports.rs", "Err(_) => core::ptr::null()"),
     (
         "zircon_runtime/src/dynamic_api/tests/api_table.rs",
@@ -39,7 +64,7 @@ FFI_PANIC_ANCHORS = (
 LOADER_FAILURE_ANCHORS = (
     (
         "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
-        ".get::<ZrRuntimeGetApiFnV6>(ZR_RUNTIME_GET_API_SYMBOL_V6)",
+        ".get::<ZrRuntimeGetApiFnV7>(ZR_RUNTIME_GET_API_SYMBOL_V7)",
     ),
     (
         "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
@@ -71,7 +96,7 @@ LOADER_FAILURE_ANCHORS = (
     ),
     (
         "zircon_app/src/entry/runtime_library/tests.rs",
-        "runtime_session_does_not_recheck_required_v6_mirror_or_operation_capabilities",
+        "runtime_session_does_not_recheck_required_v7_mirror_or_operation_capabilities",
     ),
     (
         "zircon_app/src/entry/runtime_library/runtime_session/operation.rs",

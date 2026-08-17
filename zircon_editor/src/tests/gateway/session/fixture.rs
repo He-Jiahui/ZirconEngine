@@ -1,16 +1,17 @@
 //! Shared ABI fixtures for session gateway contract tests.
 
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use zircon_runtime_interface::world_sync::{
     InvalidationBatch, WatchRegistration, WatchToken, WorldFact, WorldQuery, WorldQueryResult,
 };
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV6, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1,
-    ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeOperationDetailKindV2,
-    ZrRuntimeOperationHandle, ZrRuntimeOperationPhase, ZrRuntimeOperationResultV1,
-    ZrRuntimeOperationStatusV2, ZrRuntimePluginEventDeliveryBatchV1,
+    ZrByteSlice, ZrOwnedResultV2, ZrRuntimeAllocationId, ZrRuntimeApiV7, ZrRuntimeEventV1,
+    ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2,
+    ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle, ZrRuntimeOperationPhase,
+    ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2, ZrRuntimePluginEventDeliveryBatchV1,
     ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle,
     ZrStatus, ZrStatusCode, ZR_RUNTIME_FRAME_DEMAND_IDLE_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
@@ -28,6 +29,8 @@ pub(super) static FREED_OUTPUTS: AtomicUsize = AtomicUsize::new(0);
 pub(super) static OUTPUT_TEST_LOCK: Mutex<()> = Mutex::new(());
 pub(super) static WORLD_QUERY_REQUESTS: Mutex<Vec<WorldQuery>> = Mutex::new(Vec::new());
 pub(super) static WORLD_WATCH_REQUESTS: Mutex<Vec<WatchRegistration>> = Mutex::new(Vec::new());
+static NEXT_ALLOCATION_ID: AtomicU64 = AtomicU64::new(1);
+static TEST_ALLOCATIONS: OnceLock<Mutex<HashMap<u64, Box<[u8]>>>> = OnceLock::new();
 
 pub(super) struct OwnerDropProbe(pub(super) Arc<AtomicUsize>);
 
@@ -124,10 +127,10 @@ unsafe extern "C" fn fake_handle_event(
 unsafe extern "C" fn fake_capture_frame(
     _session: ZrRuntimeSessionHandle,
     request: ZrRuntimeFrameRequestV1,
-    output: *mut ZrRuntimeFrameV1,
+    output: *mut ZrRuntimeFrameV2,
 ) -> ZrStatus {
     let mut frame =
-        ZrRuntimeFrameV1::empty(zircon_runtime_interface::ZIRCON_RUNTIME_ABI_VERSION_V1);
+        ZrRuntimeFrameV2::empty(zircon_runtime_interface::ZIRCON_RUNTIME_ABI_VERSION_V2);
     frame.width = request.size.width;
     frame.height = request.size.height;
     output.write(frame);
@@ -137,10 +140,10 @@ unsafe extern "C" fn fake_capture_frame(
 pub(super) unsafe extern "C" fn fake_capture_owned_frame(
     _session: ZrRuntimeSessionHandle,
     request: ZrRuntimeFrameRequestV1,
-    output: *mut ZrRuntimeFrameV1,
+    output: *mut ZrRuntimeFrameV2,
 ) -> ZrStatus {
     let mut frame =
-        ZrRuntimeFrameV1::empty(zircon_runtime_interface::ZIRCON_RUNTIME_ABI_VERSION_V1);
+        ZrRuntimeFrameV2::empty(zircon_runtime_interface::ZIRCON_RUNTIME_ABI_VERSION_V2);
     frame.width = request.size.width;
     frame.height = request.size.height;
     frame.generation = 31;
@@ -152,10 +155,10 @@ pub(super) unsafe extern "C" fn fake_capture_owned_frame(
 pub(super) unsafe extern "C" fn fake_capture_truncated_frame(
     _session: ZrRuntimeSessionHandle,
     _request: ZrRuntimeFrameRequestV1,
-    output: *mut ZrRuntimeFrameV1,
+    output: *mut ZrRuntimeFrameV2,
 ) -> ZrStatus {
     let mut frame =
-        ZrRuntimeFrameV1::empty(zircon_runtime_interface::ZIRCON_RUNTIME_ABI_VERSION_V1);
+        ZrRuntimeFrameV2::empty(zircon_runtime_interface::ZIRCON_RUNTIME_ABI_VERSION_V2);
     frame.width = 2;
     frame.height = 2;
     write_owned_bytes(vec![1, 2, 3, 4], &mut frame.rgba);
@@ -163,29 +166,40 @@ pub(super) unsafe extern "C" fn fake_capture_truncated_frame(
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn free_json_output(output: ZrOwnedByteBuffer) -> ZrStatus {
-    drop(Vec::from_raw_parts(
-        output.data,
-        output.len,
-        output.capacity,
-    ));
+unsafe extern "C" fn release_json_output(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    TEST_ALLOCATIONS
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .remove(&allocation.raw())
+        .expect("fixture allocation must be released exactly once");
     FREED_OUTPUTS.fetch_add(1, Ordering::SeqCst);
     ZrStatus::ok()
 }
 
-fn write_owned_bytes(mut bytes: Vec<u8>, output: *mut ZrOwnedByteBuffer) {
-    let buffer = ZrOwnedByteBuffer {
-        data: bytes.as_mut_ptr(),
-        len: bytes.len(),
-        capacity: bytes.capacity(),
-        owner_token: 0,
-        free: Some(free_json_output),
+fn write_owned_bytes(bytes: Vec<u8>, output: *mut ZrOwnedResultV2) {
+    let bytes = bytes.into_boxed_slice();
+    let data = bytes.as_ptr();
+    let len = bytes.len() as u64;
+    let allocation = ZrRuntimeAllocationId::new(NEXT_ALLOCATION_ID.fetch_add(1, Ordering::Relaxed));
+    TEST_ALLOCATIONS
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .insert(allocation.raw(), bytes);
+    unsafe {
+        output.write(ZrOwnedResultV2 {
+            data,
+            len,
+            allocation,
+        })
     };
-    std::mem::forget(bytes);
-    unsafe { output.write(buffer) };
 }
 
-fn write_json_output<T: serde::Serialize>(value: &T, output: *mut ZrOwnedByteBuffer) {
+fn write_json_output<T: serde::Serialize>(value: &T, output: *mut ZrOwnedResultV2) {
     write_owned_bytes(
         serde_json::to_vec(value).expect("serialize fake ABI output"),
         output,
@@ -195,7 +209,7 @@ fn write_json_output<T: serde::Serialize>(value: &T, output: *mut ZrOwnedByteBuf
 unsafe extern "C" fn fake_query_world(
     _session: ZrRuntimeSessionHandle,
     request: ZrByteSlice,
-    output: *mut ZrOwnedByteBuffer,
+    output: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
     let query = match serde_json::from_slice::<WorldQuery>(unsafe { request.as_slice() }) {
         Ok(query) => query,
@@ -244,7 +258,7 @@ unsafe extern "C" fn fake_unwatch_world(
 
 unsafe extern "C" fn fake_drain_world_invalidations(
     _session: ZrRuntimeSessionHandle,
-    output: *mut ZrOwnedByteBuffer,
+    output: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
     write_json_output(
         &vec![InvalidationBatch {
@@ -276,7 +290,7 @@ unsafe extern "C" fn fake_unsubscribe_plugin_event(
 unsafe extern "C" fn fake_drain_plugin_events(
     _session: ZrRuntimeSessionHandle,
     subscription: ZrRuntimePluginEventSubscriptionHandle,
-    output: *mut ZrOwnedByteBuffer,
+    output: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
     write_json_output(
         &ZrRuntimePluginEventDeliveryBatchV1::new(
@@ -299,7 +313,7 @@ unsafe extern "C" fn fake_drain_plugin_events(
 pub(super) unsafe extern "C" fn fake_drain_crossed_plugin_events(
     _session: ZrRuntimeSessionHandle,
     subscription: ZrRuntimePluginEventSubscriptionHandle,
-    output: *mut ZrOwnedByteBuffer,
+    output: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
     write_json_output(
         &ZrRuntimePluginEventDeliveryBatchV1::new(
@@ -321,7 +335,7 @@ pub(super) unsafe extern "C" fn fake_drain_crossed_plugin_events(
 pub(super) unsafe extern "C" fn fake_drain_oversized_plugin_event_page(
     _session: ZrRuntimeSessionHandle,
     _subscription: ZrRuntimePluginEventSubscriptionHandle,
-    output: *mut ZrOwnedByteBuffer,
+    output: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
     write_owned_bytes(
         vec![b'{'; ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1 + 1],
@@ -333,7 +347,7 @@ pub(super) unsafe extern "C" fn fake_drain_oversized_plugin_event_page(
 pub(super) unsafe extern "C" fn fake_drain_plugin_event_page_above_delivery_limit(
     _session: ZrRuntimeSessionHandle,
     subscription: ZrRuntimePluginEventSubscriptionHandle,
-    output: *mut ZrOwnedByteBuffer,
+    output: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
     let deliveries = (0..=ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1)
         .map(|sequence| {
@@ -385,7 +399,7 @@ unsafe extern "C" fn fake_poll_operation(
 unsafe extern "C" fn fake_harvest_operation(
     _session: ZrRuntimeSessionHandle,
     operation: ZrRuntimeOperationHandle,
-    output: *mut ZrOwnedByteBuffer,
+    output: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
     write_json_output(
         &ZrRuntimeOperationResultV1::succeeded(
@@ -418,7 +432,7 @@ pub(super) unsafe extern "C" fn fake_poll_crossed_operation(
 pub(super) unsafe extern "C" fn fake_harvest_crossed_operation(
     _session: ZrRuntimeSessionHandle,
     operation: ZrRuntimeOperationHandle,
-    output: *mut ZrOwnedByteBuffer,
+    output: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
     write_json_output(
         &ZrRuntimeOperationResultV1::succeeded(
@@ -519,26 +533,19 @@ pub(super) unsafe extern "C" fn fake_poll_error_with_output(
 pub(super) unsafe extern "C" fn fake_drain_empty_owned_output(
     _session: ZrRuntimeSessionHandle,
     _subscription: ZrRuntimePluginEventSubscriptionHandle,
-    output: *mut ZrOwnedByteBuffer,
+    output: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
-    let mut bytes = Vec::with_capacity(1);
-    output.write(ZrOwnedByteBuffer {
-        data: bytes.as_mut_ptr(),
-        len: 0,
-        capacity: bytes.capacity(),
-        owner_token: 0,
-        free: Some(free_json_output),
-    });
-    std::mem::forget(bytes);
+    write_owned_bytes(vec![0_u8], output);
+    (*output).len = 0;
     ZrStatus::ok()
 }
 
 pub(super) unsafe extern "C" fn fake_drain_empty_plugin_event_page(
     _session: ZrRuntimeSessionHandle,
     _subscription: ZrRuntimePluginEventSubscriptionHandle,
-    output: *mut ZrOwnedByteBuffer,
+    output: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
-    output.write(ZrOwnedByteBuffer::empty());
+    output.write(ZrOwnedResultV2::empty());
     ZrStatus::ok()
 }
 
@@ -558,8 +565,9 @@ pub(super) fn capabilities() -> RuntimeCapabilities {
     )
 }
 
-pub(super) fn api_table() -> ZrRuntimeApiV6 {
-    let mut api = ZrRuntimeApiV6::empty();
+pub(super) fn api_table() -> ZrRuntimeApiV7 {
+    let mut api = ZrRuntimeApiV7::empty();
+    api.release_allocation = Some(release_json_output);
     api.tick_frame = Some(fake_tick_frame);
     api.handle_event = Some(fake_handle_event);
     api.capture_frame = Some(fake_capture_frame);
@@ -576,7 +584,7 @@ pub(super) fn api_table() -> ZrRuntimeApiV6 {
     api
 }
 
-pub(super) fn gateway(api: ZrRuntimeApiV6) -> SessionGateway {
+pub(super) fn gateway(api: ZrRuntimeApiV7) -> SessionGateway {
     let owner: Arc<dyn Send + Sync> = Arc::new(());
     unsafe {
         SessionGateway::new(

@@ -2,7 +2,7 @@ use zircon_runtime_host::foreign_output::{
     profile_control_response_item_count, RuntimeForeignOutputKind, PROFILE_RESPONSE_OUTPUT_BUDGET,
 };
 use zircon_runtime_interface::{
-    ProfileControlRequest, ProfileControlResponse, ZrByteSlice, ZrOwnedByteBuffer,
+    ProfileControlRequest, ProfileControlResponse, ZrByteSlice, ZrOwnedResultV2,
 };
 
 use super::super::GatewayError;
@@ -20,7 +20,7 @@ impl SessionGateway {
         let request = serde_json::to_vec(request).map_err(|error| GatewayError::Protocol {
             message: format!("encode runtime profile request: {error}"),
         })?;
-        let mut output = ZrOwnedByteBuffer::empty();
+        let mut output = ZrOwnedResultV2::empty();
         let status = unsafe {
             profile(
                 self.session,

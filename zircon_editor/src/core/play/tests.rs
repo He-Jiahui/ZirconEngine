@@ -3,7 +3,9 @@ use std::sync::{Arc, Mutex};
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::scene::{DefaultLevelManager, NodeKind, World};
 use zircon_runtime_interface::math::UVec2;
-use zircon_runtime_interface::{ZrRuntimeApiV6, ZrRuntimeSessionHandle};
+use zircon_runtime_interface::{
+    ZrRuntimeAllocationId, ZrRuntimeApiV7, ZrRuntimeSessionHandle, ZrStatus,
+};
 
 use crate::core::editing::authoring_world::EditorAuthoringWorld;
 use crate::core::editing::intent::EditorIntent;
@@ -36,6 +38,19 @@ struct OrderedBackend {
     poll_exit_code: Option<Option<i32>>,
 }
 
+unsafe extern "C" fn release_test_allocation(
+    _session: ZrRuntimeSessionHandle,
+    _allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    ZrStatus::ok()
+}
+
+fn test_runtime_api() -> ZrRuntimeApiV7 {
+    let mut api = ZrRuntimeApiV7::empty();
+    api.release_allocation = Some(release_test_allocation);
+    api
+}
+
 #[test]
 fn play_gateway_attachment_preserves_authoring_world_access_across_detach() {
     let authoring_level = DefaultLevelManager::default().create_default_level();
@@ -46,7 +61,7 @@ fn play_gateway_attachment_preserves_authoring_world_access_across_detach() {
     let session_gateway = unsafe {
         SessionGateway::new(
             Arc::new(()),
-            ZrRuntimeApiV6::empty(),
+            test_runtime_api(),
             ZrRuntimeSessionHandle::new(1),
             RuntimeCapabilities::editor_default(),
             Arc::new(zircon_runtime_host::foreign_output::RuntimeForeignOutputState::default()),
@@ -137,7 +152,7 @@ fn host_play_attachment_preserves_edit_selection_and_undo_history() {
     let session_gateway = unsafe {
         SessionGateway::new(
             Arc::new(()),
-            ZrRuntimeApiV6::empty(),
+            test_runtime_api(),
             ZrRuntimeSessionHandle::new(2),
             RuntimeCapabilities::editor_default(),
             Arc::new(zircon_runtime_host::foreign_output::RuntimeForeignOutputState::default()),

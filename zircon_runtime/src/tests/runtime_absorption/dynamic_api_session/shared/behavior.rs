@@ -7,7 +7,7 @@ pub(in super::super) const EXPECTED_RUNTIME_10_BEHAVIOR_TEST_ANCHORS: &[(&str, &
         "zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs",
         &[
             "destroy_session_reports_explicit_not_found_for_missing_nonzero_handle",
-            "destroy_session_removes_registry_entry_so_destroyed_handles_become_missing",
+            "destroy_session_removes_registry_entry_only_after_event_mirror_quiescent_teardown",
             "session_destroy_reports_explicit_not_found_after_headless_destroy",
         ],
     ),
@@ -40,5 +40,15 @@ pub(in super::super) const EXPECTED_RUNTIME_10_BEHAVIOR_TEST_ANCHORS: &[(&str, &
     (
         "zircon_runtime/src/dynamic_api/tests/profile_control.rs",
         &["profile_control_runtime_diagnostics_snapshot_returns_store_and_scene_reload_report"],
+    ),
+    (
+        "zircon_runtime/tests/runtime_owned_result_v7.rs",
+        &[
+            "runtime_v7_owned_results_require_opaque_exactly_once_release",
+            "runtime_v7_release_is_concurrent_and_exactly_once",
+            "runtime_v7_destroy_is_retryable_after_outstanding_result_release",
+            "runtime_v7_release_rejects_a_different_session_without_changing_owner_census",
+            "runtime_v7_release_performance_acceptance",
+        ],
     ),
 ];

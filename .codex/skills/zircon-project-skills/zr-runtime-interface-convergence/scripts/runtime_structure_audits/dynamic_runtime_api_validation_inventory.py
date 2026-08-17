@@ -16,7 +16,7 @@ BEHAVIOR_TEST_ANCHORS = (
     ),
     (
         "zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs",
-        "destroy_session_removes_registry_entry_so_destroyed_handles_become_missing",
+        "destroy_session_removes_registry_entry_only_after_event_mirror_quiescent_teardown",
     ),
     (
         "zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs",
@@ -69,6 +69,26 @@ BEHAVIOR_TEST_ANCHORS = (
     (
         "zircon_runtime/src/dynamic_api/tests/profile_control.rs",
         "profile_control_runtime_diagnostics_snapshot_returns_store_and_scene_reload_report",
+    ),
+    (
+        "zircon_runtime/tests/runtime_owned_result_v7.rs",
+        "runtime_v7_owned_results_require_opaque_exactly_once_release",
+    ),
+    (
+        "zircon_runtime/tests/runtime_owned_result_v7.rs",
+        "runtime_v7_release_is_concurrent_and_exactly_once",
+    ),
+    (
+        "zircon_runtime/tests/runtime_owned_result_v7.rs",
+        "runtime_v7_destroy_is_retryable_after_outstanding_result_release",
+    ),
+    (
+        "zircon_runtime/tests/runtime_owned_result_v7.rs",
+        "runtime_v7_release_rejects_a_different_session_without_changing_owner_census",
+    ),
+    (
+        "zircon_runtime/tests/runtime_owned_result_v7.rs",
+        "runtime_v7_release_performance_acceptance",
     ),
 )
 

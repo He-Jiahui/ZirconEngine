@@ -7,17 +7,19 @@ use std::time::Duration;
 
 use zircon_runtime::diagnostic_log::write_log;
 use zircon_runtime::plugin::RuntimePluginRegistrationReport;
-use zircon_runtime_host::foreign_output::profile_control_response_item_count;
+use zircon_runtime_host::foreign_output::{
+    profile_control_response_item_count, RuntimeOwnedOutputReleaser,
+};
 use zircon_runtime_interface::project::RelPath;
 use zircon_runtime_interface::{
-    ProfileControlRequest, ProfileControlResponse, ZrByteSlice, ZrOwnedByteBuffer,
+    ProfileControlRequest, ProfileControlResponse, ZrByteSlice, ZrOwnedResultV2,
     ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1,
-    ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
+    ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
     ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventDeliveryV1,
     ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimePluginEventSubscriptionHandle,
     ZrRuntimeSessionConfigV3, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
     ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZIRCON_RUNTIME_ABI_VERSION_V3, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_ABI_VERSION_V3, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
     ZR_RUNTIME_FRAME_DEMAND_IDLE_V1, ZR_RUNTIME_FRAME_DEMAND_IMMEDIATE_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
@@ -36,8 +38,8 @@ use foreign_output::{
     PROFILE_RESPONSE_OUTPUT_BUDGET,
 };
 use owned_buffer::{
-    release_owned_buffer, release_owned_buffer_after_error,
-    validate_owned_buffer_releasing_on_error,
+    release_owned_result, release_owned_result_after_error,
+    validate_owned_result_releasing_on_error,
 };
 
 pub(crate) const MAX_HOST_RUNTIME_FRAME_DELAY: Duration = Duration::from_secs(60);
@@ -227,6 +229,10 @@ impl RuntimeSession {
             .expect("runtime library must remain loaded until session destruction")
     }
 
+    fn output_releaser(&self) -> RuntimeOwnedOutputReleaser {
+        RuntimeOwnedOutputReleaser::new(self.handle, self.runtime().release_allocation())
+    }
+
     pub(crate) fn handle_event(&self, event: ZrRuntimeEventV1) -> Result<(), RuntimeLibraryError> {
         self.foreign_output
             .ensure_session_available("send runtime event")?;
@@ -243,7 +249,8 @@ impl RuntimeSession {
         self.foreign_output
             .ensure_available(ForeignOutputKind::SessionProtocol)?;
         let capture_frame = self.runtime().capture_frame();
-        let mut frame = ZrRuntimeFrameV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
+        let releaser = self.output_releaser();
+        let mut frame = ZrRuntimeFrameV2::empty(ZIRCON_RUNTIME_ABI_VERSION_V2);
         let status = unsafe {
             capture_frame(
                 self.handle,
@@ -251,24 +258,29 @@ impl RuntimeSession {
                 &mut frame,
             )
         };
-        self.foreign_output.ensure_call_succeeded(
+        frame.rgba = self.foreign_output.ensure_call_succeeded(
             status,
             frame.rgba,
+            releaser,
             ForeignOutputKind::SessionProtocol,
             "capture runtime frame",
             "free runtime frame output after failed capture",
         )?;
-        if let Err(error) = validate_owned_buffer_releasing_on_error(
+        frame.rgba = match validate_owned_result_releasing_on_error(
             frame.rgba,
+            releaser,
             "capture runtime frame",
             "free runtime frame output after invalid capture",
         ) {
-            return self
-                .foreign_output
-                .reject_protocol(ForeignOutputKind::SessionProtocol, error)
-                .map_err(Into::into);
-        }
-        if let Err(error) = validate_runtime_frame_releasing_on_error(&frame) {
+            Ok(output) => output,
+            Err(error) => {
+                return self
+                    .foreign_output
+                    .reject_protocol(ForeignOutputKind::SessionProtocol, error)
+                    .map_err(Into::into)
+            }
+        };
+        if let Err(error) = validate_runtime_frame_releasing_on_error(&mut frame, releaser) {
             return self
                 .foreign_output
                 .reject_protocol(ForeignOutputKind::SessionProtocol, error)
@@ -278,6 +290,7 @@ impl RuntimeSession {
             frame,
             teardown_failure_state: self.teardown_failure_state.clone(),
             foreign_output: self.foreign_output.clone(),
+            releaser,
             _session: PhantomData,
         })
     }
@@ -381,11 +394,13 @@ impl RuntimeSession {
         let Some(drain_host_requests) = self.runtime().drain_host_requests() else {
             return Ok(Vec::new());
         };
-        let mut output = ZrOwnedByteBuffer::empty();
+        let releaser = self.output_releaser();
+        let mut output = ZrOwnedResultV2::empty();
         let status = unsafe { drain_host_requests(self.handle, &mut output) };
-        self.foreign_output.ensure_call_succeeded(
+        output = self.foreign_output.ensure_call_succeeded(
             status,
             output,
+            releaser,
             ForeignOutputKind::HostRequests,
             "drain runtime host requests",
             "free runtime host requests",
@@ -394,6 +409,7 @@ impl RuntimeSession {
             .foreign_output
             .decode_json::<ZrRuntimeHostRequestBatchV1, _>(
                 output,
+                releaser,
                 ForeignOutputKind::HostRequests,
                 HOST_REQUEST_OUTPUT_BUDGET,
                 "decode runtime host requests",
@@ -422,7 +438,8 @@ impl RuntimeSession {
         let request = serde_json::to_vec(request).map_err(|error| {
             RuntimeLibraryError::new(format!("encode runtime profile request: {error}"))
         })?;
-        let mut output = ZrOwnedByteBuffer::empty();
+        let releaser = self.output_releaser();
+        let mut output = ZrOwnedResultV2::empty();
         let status = unsafe {
             profile_control(
                 self.handle,
@@ -433,9 +450,10 @@ impl RuntimeSession {
                 &mut output,
             )
         };
-        self.foreign_output.ensure_call_succeeded(
+        output = self.foreign_output.ensure_call_succeeded(
             status,
             output,
+            releaser,
             ForeignOutputKind::ProfileResponse,
             "control runtime profiling",
             "free runtime profile response",
@@ -444,6 +462,7 @@ impl RuntimeSession {
             .foreign_output
             .decode_json::<ProfileControlResponse, &'static str>(
                 output,
+                releaser,
                 ForeignOutputKind::ProfileResponse,
                 PROFILE_RESPONSE_OUTPUT_BUDGET,
                 "decode runtime profile response",
@@ -519,11 +538,13 @@ impl RuntimeSession {
         self.foreign_output
             .ensure_available(ForeignOutputKind::PluginEvents)?;
         let drain = self.runtime().drain_plugin_events();
-        let mut output = ZrOwnedByteBuffer::empty();
+        let releaser = self.output_releaser();
+        let mut output = ZrOwnedResultV2::empty();
         let status = unsafe { drain(self.handle, subscription, &mut output) };
-        self.foreign_output.ensure_call_succeeded(
+        output = self.foreign_output.ensure_call_succeeded(
             status,
             output,
+            releaser,
             ForeignOutputKind::PluginEvents,
             "drain runtime plugin events",
             "free runtime plugin events",
@@ -532,6 +553,7 @@ impl RuntimeSession {
             .foreign_output
             .decode_json::<ZrRuntimePluginEventDeliveryBatchV1, RuntimeLibraryError>(
                 output,
+                releaser,
                 ForeignOutputKind::PluginEvents,
                 PLUGIN_EVENT_OUTPUT_BUDGET,
                 "decode runtime plugin events",
@@ -585,9 +607,10 @@ fn abort_after_runtime_session_teardown_failure(detail: &str) -> ! {
 }
 
 pub(crate) struct RuntimeFrame<'session> {
-    frame: ZrRuntimeFrameV1,
+    frame: ZrRuntimeFrameV2,
     teardown_failure_state: RuntimeSessionTeardownFailureState,
     foreign_output: Arc<ForeignOutputState>,
+    releaser: RuntimeOwnedOutputReleaser,
     _session: PhantomData<&'session RuntimeSession>,
 }
 
@@ -601,20 +624,21 @@ impl RuntimeFrame<'_> {
     }
 
     pub(crate) fn rgba(&self) -> &[u8] {
-        let rgba = self.frame.rgba;
+        let rgba = &self.frame.rgba;
         if rgba.data.is_null() || rgba.len == 0 {
             &[]
         } else {
-            unsafe { slice::from_raw_parts(rgba.data.cast_const(), rgba.len) }
+            let len = usize::try_from(rgba.len).expect("validated runtime frame length");
+            unsafe { slice::from_raw_parts(rgba.data, len) }
         }
     }
 }
 
 impl Drop for RuntimeFrame<'_> {
     fn drop(&mut self) {
-        let buffer = self.frame.rgba;
-        self.frame.rgba = ZrOwnedByteBuffer::empty();
-        if let Err(error) = release_owned_buffer(buffer, "free runtime frame buffer") {
+        let output = std::mem::replace(&mut self.frame.rgba, ZrOwnedResultV2::empty());
+        if let Err(error) = release_owned_result(output, self.releaser, "free runtime frame buffer")
+        {
             if let Err(protocol_error) = self
                 .foreign_output
                 .reject_protocol::<()>(ForeignOutputKind::SessionProtocol, error)
@@ -659,8 +683,8 @@ fn project_root_for_abi(project_root: Option<&Path>) -> Result<Option<&str>, Run
         .transpose()
 }
 
-fn validate_runtime_frame(frame: &ZrRuntimeFrameV1) -> Result<(), RuntimeLibraryError> {
-    if frame.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
+fn validate_runtime_frame(frame: &ZrRuntimeFrameV2) -> Result<(), RuntimeLibraryError> {
+    if frame.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V2 {
         return Err(RuntimeLibraryError::new(format!(
             "runtime frame used unsupported ABI version {}",
             frame.abi_version
@@ -676,7 +700,7 @@ fn validate_runtime_frame(frame: &ZrRuntimeFrameV1) -> Result<(), RuntimeLibrary
         .checked_mul(frame.height as usize)
         .and_then(|pixel_count| pixel_count.checked_mul(4))
         .ok_or_else(|| RuntimeLibraryError::new("runtime frame pixel length overflowed usize"))?;
-    if frame.rgba.len != expected_len {
+    if frame.rgba.len != expected_len as u64 {
         return Err(RuntimeLibraryError::new(format!(
             "runtime frame returned {} RGBA bytes for {}x{} pixels; expected {}",
             frame.rgba.len, frame.width, frame.height, expected_len
@@ -686,12 +710,14 @@ fn validate_runtime_frame(frame: &ZrRuntimeFrameV1) -> Result<(), RuntimeLibrary
 }
 
 fn validate_runtime_frame_releasing_on_error(
-    frame: &ZrRuntimeFrameV1,
+    frame: &mut ZrRuntimeFrameV2,
+    releaser: RuntimeOwnedOutputReleaser,
 ) -> Result<(), RuntimeLibraryError> {
     match validate_runtime_frame(frame) {
         Ok(()) => Ok(()),
-        Err(error) => release_owned_buffer_after_error(
-            frame.rgba,
+        Err(error) => release_owned_result_after_error(
+            std::mem::replace(&mut frame.rgba, ZrOwnedResultV2::empty()),
+            releaser,
             error,
             "free runtime frame output after invalid capture",
         ),

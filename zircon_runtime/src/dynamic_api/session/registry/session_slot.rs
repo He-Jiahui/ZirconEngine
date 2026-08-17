@@ -47,6 +47,16 @@ impl SessionSlot {
         Some(SessionActionGuard::new(Arc::clone(self)))
     }
 
+    pub(super) fn begin_release_action(self: &Arc<Self>) -> Option<SessionActionGuard> {
+        let mut lifecycle = self.lock_lifecycle();
+        if lifecycle.phase == SessionSlotPhase::Closing {
+            return None;
+        }
+        lifecycle.active_actions += 1;
+        drop(lifecycle);
+        Some(SessionActionGuard::new(Arc::clone(self)))
+    }
+
     pub(super) fn finish_action(&self) {
         let mut lifecycle = self.lock_lifecycle();
         lifecycle.active_actions -= 1;

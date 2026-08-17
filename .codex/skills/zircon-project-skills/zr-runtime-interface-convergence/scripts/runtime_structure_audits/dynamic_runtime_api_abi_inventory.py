@@ -2,6 +2,8 @@ from __future__ import annotations
 
 
 SOURCE_FILES = (
+    "zircon_runtime_interface/src/buffer.rs",
+    "zircon_runtime_interface/src/handles.rs",
     "zircon_runtime_interface/src/runtime_api/api_table.rs",
     "zircon_runtime_interface/src/runtime_api/host_requests.rs",
     "zircon_runtime_interface/src/runtime_api/operation.rs",
@@ -13,12 +15,13 @@ SOURCE_FILES = (
     "zircon_runtime_interface/src/profiling.rs",
     "zircon_runtime_interface/src/tests/abi_safety_contracts.rs",
     "zircon_runtime_interface/src/tests/contracts.rs",
+    "zircon_runtime_interface/src/tests/runtime_owned_result.rs",
     "zircon_runtime/src/dynamic_api/exports.rs",
     "zircon_runtime/src/dynamic_api/session.rs",
     "zircon_runtime/src/dynamic_api/session/construction.rs",
     "zircon_runtime/src/dynamic_api/session/ffi.rs",
     "zircon_runtime/src/dynamic_api/session/world_sync.rs",
-    "zircon_runtime/src/dynamic_api/session/hooks.rs",
+    "zircon_runtime/src/dynamic_api/session/registry/mod.rs",
     "zircon_runtime/src/dynamic_api/session/linked_session.rs",
     "zircon_runtime/src/dynamic_api/session/state.rs",
     "zircon_runtime/src/dynamic_api/session/profile.rs",
@@ -28,6 +31,7 @@ SOURCE_FILES = (
     "zircon_runtime/src/dynamic_api/session/host_requests.rs",
     "zircon_runtime/src/dynamic_api/session/linked_plugins.rs",
     "zircon_runtime/src/dynamic_api/session/operation.rs",
+    "zircon_runtime/src/dynamic_api/session/registry/allocation_registry.rs",
     "zircon_runtime/src/dynamic_api/tests/api_table.rs",
     "zircon_runtime/src/dynamic_api/tests/host_request_payloads.rs",
     "zircon_runtime/src/dynamic_api/tests/host_requests.rs",
@@ -37,6 +41,7 @@ SOURCE_FILES = (
     "zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs",
     "zircon_runtime/src/dynamic_api/tests/session_entry_points.rs",
     "zircon_runtime/src/dynamic_api/tests/session_profiles.rs",
+    "zircon_runtime/tests/runtime_owned_result_v7.rs",
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session.rs",
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/shared.rs",
     "zircon_runtime/src/tests/runtime_absorption/dynamic_api_session/headless_profiles.rs",
@@ -53,14 +58,20 @@ SOURCE_FILES = (
     "zircon_app/src/entry/runtime_library/tests.rs",
     "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",
     "zircon_app/src/entry/runtime_entry_app/host_requests/cursor/request.rs",
+    "zircon_runtime_host/src/foreign_output/owned_buffer.rs",
+    "zircon_runtime_host/src/foreign_output/state.rs",
+    "zircon_editor/src/core/gateway/session/gateway.rs",
+    "zircon_editor/src/core/gateway/session/output.rs",
 )
-EXPECTED_SOURCE_FILE_COUNT = 51
+EXPECTED_SOURCE_FILE_COUNT = 60
 
 EXPECTED_FUNCTION_TABLES = (
     ("zircon_runtime_interface/src/runtime_api/api_table.rs", "ZrHostApiV1", 4),
-    ("zircon_runtime_interface/src/runtime_api/api_table.rs", "ZrRuntimeApiV6", 24),
+    ("zircon_runtime_interface/src/runtime_api/api_table.rs", "ZrRuntimeApiV7", 25),
     ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostApiV3", 7),
+    ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostApiV4", 7),
     ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostEcsApiV1", 3),
+    ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostEcsApiV2", 3),
     ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostAssetApiV1", 1),
     ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostEventApiV1", 2),
     ("zircon_runtime_interface/src/plugin_api.rs", "ZrHostBridgeApiV1", 1),
@@ -72,12 +83,14 @@ EXPECTED_FUNCTION_TABLES = (
 RUNTIME_SESSION_OPERATIONS = (
     "create_session",
     "destroy_session",
+    "release_allocation",
     "handle_event",
     "capture_frame",
     "capture_accessibility_tree",
     "bind_viewport_surface",
     "unbind_viewport_surface",
     "present_viewport",
+    "submit_highlight_set",
     "profile_control",
     "tick_frame",
     "drain_host_requests",

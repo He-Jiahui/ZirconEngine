@@ -3,10 +3,11 @@ use std::sync::{atomic::AtomicBool, Arc};
 use serde::de::DeserializeOwned;
 use zircon_runtime_host::foreign_output::{
     RuntimeForeignOutputBudget, RuntimeForeignOutputKind, RuntimeForeignOutputState,
+    RuntimeOwnedOutputReleaser,
 };
 use zircon_runtime_interface::{
-    ZrOwnedByteBuffer, ZrRuntimeApiV6, ZrRuntimeSessionHandle, ZrStatus,
-    ZIRCON_RUNTIME_API_VERSION_V6,
+    ZrOwnedResultV2, ZrRuntimeApiV7, ZrRuntimeSessionHandle, ZrStatus,
+    ZIRCON_RUNTIME_API_VERSION_V7,
 };
 
 use super::super::{GatewayError, RuntimeCapabilities};
@@ -14,7 +15,8 @@ use super::super::{GatewayError, RuntimeCapabilities};
 /// Editor-owned facade over a validated runtime session API table.
 pub struct SessionGateway {
     pub(super) _runtime_owner: Arc<dyn Send + Sync>,
-    pub(super) api: ZrRuntimeApiV6,
+    pub(super) api: ZrRuntimeApiV7,
+    pub(super) output_releaser: RuntimeOwnedOutputReleaser,
     pub(super) session: ZrRuntimeSessionHandle,
     pub(super) capabilities: Arc<RuntimeCapabilities>,
     pub(super) viewport_surface_bound: Arc<AtomicBool>,
@@ -30,7 +32,7 @@ impl SessionGateway {
     /// function pointer in `api` loaded until the gateway is dropped.
     pub unsafe fn new(
         runtime_owner: Arc<dyn Send + Sync>,
-        api: ZrRuntimeApiV6,
+        api: ZrRuntimeApiV7,
         session: ZrRuntimeSessionHandle,
         capabilities: RuntimeCapabilities,
         foreign_output: Arc<RuntimeForeignOutputState>,
@@ -38,17 +40,20 @@ impl SessionGateway {
         if !session.is_valid() {
             return Err(GatewayError::SessionLost);
         }
-        if api.abi_version != ZIRCON_RUNTIME_API_VERSION_V6 {
+        if api.abi_version != ZIRCON_RUNTIME_API_VERSION_V7 {
             return Err(GatewayError::Protocol {
                 message: format!(
-                    "session gateway requires runtime API V6, received version {}",
+                    "session gateway requires runtime API V7, received version {}",
                     api.abi_version
                 ),
             });
         }
+        let release_allocation =
+            Self::required(api.release_allocation, "runtime.allocation.release")?;
         Ok(Self {
             _runtime_owner: runtime_owner,
             api,
+            output_releaser: RuntimeOwnedOutputReleaser::new(session, release_allocation),
             session,
             capabilities: Arc::new(capabilities),
             viewport_surface_bound: Arc::new(AtomicBool::new(false)),
@@ -58,7 +63,7 @@ impl SessionGateway {
 
     /// Shares the surface lifecycle marker owned by the runtime session.
     ///
-    /// The editor gateway invokes the normalized V6 functions directly, while
+    /// The editor gateway invokes the normalized V7 functions directly, while
     /// `RuntimeSession` retains destruction authority. Both sides therefore
     /// need the same marker so session teardown can unbind a surface that the
     /// gateway successfully bound.
@@ -108,7 +113,7 @@ impl SessionGateway {
     pub(super) fn decode_output<T, E>(
         &self,
         status: ZrStatus,
-        output: ZrOwnedByteBuffer,
+        output: ZrOwnedResultV2,
         kind: RuntimeForeignOutputKind,
         budget: RuntimeForeignOutputBudget,
         operation: &'static str,
@@ -119,15 +124,24 @@ impl SessionGateway {
         T: DeserializeOwned,
         E: std::fmt::Display,
     {
-        self.foreign_output.ensure_call_succeeded(
+        let output = self.foreign_output.ensure_call_succeeded(
             status,
             output,
+            self.output_releaser,
             kind,
             operation,
             release_operation,
         )?;
         self.foreign_output
-            .decode_json(output, kind, budget, operation, release_operation, validate)
+            .decode_json(
+                output,
+                self.output_releaser,
+                kind,
+                budget,
+                operation,
+                release_operation,
+                validate,
+            )
             .map_err(Into::into)
     }
 }

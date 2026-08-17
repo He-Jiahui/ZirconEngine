@@ -120,7 +120,7 @@ plan_sources:
 | PL-1 | MUST | 元数据单源：一切插件元数据（id/能力/模块/目标/成熟度/打包）只在 `declare_plugin!` 声明一次；plugin.toml 是生成物；禁止手写重复常量 | G5 |
 | PL-2 | MUST | 新插件用 `cargo zircon plugin new` 脚手架生成骨架；目录形态固定 `<id>/{runtime,editor?,dist?}/` + 生成的 plugin.toml | G5 |
 | PL-3 | MUST | 能力命名走既有 namespace（`runtime.plugin.*`、`runtime.asset.importer.*` 等）；feature bundle 规则遵守 owner 唯一 + all-of 依赖语义 | G5 + 审计 |
-| PL-4 | MUST | ABI 纪律：dist(cdylib) 边界只传 `#[repr(C)]` 值、句柄、`ZrByteSlice/ZrOwnedByteBuffer` 序列化载荷；禁止跨界传 Rust trait 对象/集合/字符串切片；符号与 ABI 版本由宏生成，不手写 | G5 + 契约测试 |
+| PL-4 | MUST | ABI 纪律：dist(cdylib) 边界只传 `#[repr(C)]` 值、句柄和版本化字节载荷；runtime 输出使用不可复制的 `ZrOwnedResultV2` + opaque allocation id + table-level release，plugin/host 方向保留其独立 `ZrOwnedByteBuffer` 合同；禁止跨界传 Rust trait 对象/集合/字符串切片；符号与 ABI 版本由单一 owner 生成 | G5 + 契约测试 |
 | PL-5 | MUST | 插件访问宿主只经 host API 函数表与扩展槽注册（RuntimeExtensionRegistry）；禁止链接期直连 `zircon_runtime` 内部路径；`zircon_runtime` 反向只消费注册报告与 manifest，不依赖插件实现 crate | G1 |
 | PL-6 | MUST | 版本与成熟度诚实申报：`sdk_api_version` 语义化；maturity（experimental/beta/stable）如实标注——stable/默认 profile 不接受 required 的 experimental 插件 | 审计 |
 | PL-7 | MUST | 生命周期：默认 `InitLevel::Post`；声明更早层级需在描述符注明依据；实现四阶段钩子，支持热重载的插件必须实现 save_state/restore_state 且状态可序列化 | 评审 + 契约测试 |

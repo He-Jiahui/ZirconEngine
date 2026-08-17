@@ -103,7 +103,7 @@ fn capture_frame_rejects_wrong_abi_after_session_action_admission() {
         ZrRuntimeViewportHandle::new(1),
         ZrRuntimeViewportSizeV1::new(64, 48),
     );
-    let mut output = ZrRuntimeFrameV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
+    let mut output = ZrRuntimeFrameV2::empty(ZIRCON_RUNTIME_ABI_VERSION_V2);
     let session = create_test_session(api);
 
     let status = unsafe { capture_frame(session, request, &mut output) };
@@ -122,7 +122,7 @@ fn capture_frame_rejects_unknown_viewport_after_session_action_admission() {
         ZrRuntimeViewportHandle::new(44),
         ZrRuntimeViewportSizeV1::new(64, 48),
     );
-    let mut output = ZrRuntimeFrameV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
+    let mut output = ZrRuntimeFrameV2::empty(ZIRCON_RUNTIME_ABI_VERSION_V2);
     let session = create_test_session(api);
 
     let status = unsafe { capture_frame(session, request, &mut output) };

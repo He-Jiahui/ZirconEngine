@@ -2,8 +2,9 @@ use std::sync::Arc;
 
 use zircon_runtime_host::foreign_output::RuntimeForeignOutputKind;
 use zircon_runtime_interface::{
-    ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1,
+    ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2,
     ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V2,
 };
 
 use super::super::contract::EditorRuntimeFramePixels;
@@ -16,19 +17,31 @@ use super::protocol::{
 
 struct SessionRuntimeFramePixels {
     _runtime_owner: Arc<dyn Send + Sync>,
-    output: super::output::GatewayOwnedOutput,
+    output: Option<super::output::GatewayOwnedOutput>,
 }
 
 impl EditorRuntimeFramePixels for SessionRuntimeFramePixels {
     fn rgba(&self) -> &[u8] {
         self.output
+            .as_ref()
+            .expect("session frame output remains present until release")
             .bytes("capture runtime frame")
             .expect("validated session frame storage remains owned until the frame is released")
     }
 
-    fn release(self: Box<Self>) -> Result<(), GatewayError> {
-        let Self { output, .. } = *self;
+    fn release(mut self: Box<Self>) -> Result<(), GatewayError> {
+        let output = self
+            .output
+            .take()
+            .expect("session frame output can only be released once");
         output.release()
+    }
+}
+
+impl Drop for SessionRuntimeFramePixels {
+    fn drop(&mut self) {
+        // Release while `_runtime_owner` still keeps the runtime session and DLL alive.
+        drop(self.output.take());
     }
 }
 
@@ -63,7 +76,7 @@ impl SessionGateway {
     ) -> Result<EditorRuntimeFrame, GatewayError> {
         self.ensure_output_available(RuntimeForeignOutputKind::SessionProtocol)?;
         let capture = Self::required(self.api.capture_frame, "runtime.frame.capture")?;
-        let mut frame = ZrRuntimeFrameV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
+        let mut frame = ZrRuntimeFrameV2::empty(ZIRCON_RUNTIME_ABI_VERSION_V2);
         let status = unsafe {
             capture(
                 self.session,
@@ -75,9 +88,15 @@ impl SessionGateway {
             self.foreign_output.clone(),
             status,
             frame.rgba,
+            self.output_releaser,
             "capture runtime frame",
         )?;
-        let validation = ensure_output_abi(frame.abi_version, "runtime frame").and_then(|()| {
+        let validation = ensure_output_abi(
+            frame.abi_version,
+            ZIRCON_RUNTIME_ABI_VERSION_V2,
+            "runtime frame",
+        )
+        .and_then(|()| {
             output
                 .bytes("capture runtime frame")
                 .and_then(|rgba| ensure_frame_rgba_shape(frame.width, frame.height, rgba))
@@ -92,7 +111,7 @@ impl SessionGateway {
             frame.generation,
             Box::new(SessionRuntimeFramePixels {
                 _runtime_owner: self._runtime_owner.clone(),
-                output,
+                output: Some(output),
             }),
         ))
     }

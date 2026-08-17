@@ -5,7 +5,7 @@ fn profile_control_rejects_invalid_json_after_session_action_admission() {
     let api = runtime_api();
     let profile_control = api.profile_control.expect("profile_control");
     let bytes = b"not-json";
-    let mut output = ZrOwnedByteBuffer::empty();
+    let mut output = ZrOwnedResultV2::empty();
     let session = create_test_session(api);
 
     let status = unsafe {
@@ -35,7 +35,7 @@ fn profile_control_snapshot_returns_serialized_response() {
         config: None,
     };
     let bytes = serde_json::to_vec(&request).unwrap();
-    let mut output = ZrOwnedByteBuffer::empty();
+    let mut output = ZrOwnedResultV2::empty();
 
     let status = unsafe {
         profile_control(
@@ -49,14 +49,13 @@ fn profile_control_snapshot_returns_serialized_response() {
     };
 
     assert_eq!(status.status_code(), ZrStatusCode::Ok);
-    let response_bytes =
-        unsafe { core::slice::from_raw_parts(output.data as *const u8, output.len) };
+    let response_bytes = output_bytes(&output);
     let response: zircon_runtime_interface::ProfileControlResponse =
         serde_json::from_slice(response_bytes).unwrap();
     assert_eq!(response.status, "ok");
     assert!(response.snapshot.is_some());
 
-    free_profile_output(output);
+    release_output(session, output);
     destroy_test_session(api, session);
 }
 
@@ -70,7 +69,7 @@ fn profile_control_runtime_diagnostics_snapshot_returns_store_and_scene_reload_r
         config: None,
     };
     let bytes = serde_json::to_vec(&request).unwrap();
-    let mut output = ZrOwnedByteBuffer::empty();
+    let mut output = ZrOwnedResultV2::empty();
 
     let status = unsafe {
         profile_control(
@@ -84,8 +83,7 @@ fn profile_control_runtime_diagnostics_snapshot_returns_store_and_scene_reload_r
     };
 
     assert_eq!(status.status_code(), ZrStatusCode::Ok);
-    let response_bytes =
-        unsafe { core::slice::from_raw_parts(output.data as *const u8, output.len) };
+    let response_bytes = output_bytes(&output);
     let response: zircon_runtime_interface::ProfileControlResponse =
         serde_json::from_slice(response_bytes).unwrap();
     let runtime_diagnostics = response
@@ -104,6 +102,6 @@ fn profile_control_runtime_diagnostics_snapshot_returns_store_and_scene_reload_r
     );
     assert_eq!(runtime_diagnostics.profile.session_id, "local");
 
-    free_profile_output(output);
+    release_output(session, output);
     destroy_test_session(api, session);
 }

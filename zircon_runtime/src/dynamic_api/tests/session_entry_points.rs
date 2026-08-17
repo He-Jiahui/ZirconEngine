@@ -47,7 +47,7 @@ fn missing_session_entry_points_reject_nonzero_handle() {
 }
 
 fn assert_handle_entry_points_reject_session(
-    api: &zircon_runtime_interface::ZrRuntimeApiV6,
+    api: &zircon_runtime_interface::ZrRuntimeApiV7,
     session: ZrRuntimeSessionHandle,
     expected_code: ZrStatusCode,
     expected_message: &str,
@@ -60,7 +60,7 @@ fn assert_handle_entry_points_reject_session(
     );
 
     let capture_frame = api.capture_frame.expect("capture_frame");
-    let mut frame = ZrRuntimeFrameV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
+    let mut frame = ZrRuntimeFrameV2::empty(ZIRCON_RUNTIME_ABI_VERSION_V2);
     assert_session_status(
         unsafe { capture_frame(session, valid_frame_request(), &mut frame) },
         expected_code,
@@ -71,7 +71,7 @@ fn assert_handle_entry_points_reject_session(
     let capture_accessibility_tree = api
         .capture_accessibility_tree
         .expect("capture_accessibility_tree");
-    let mut accessibility_tree = ZrOwnedByteBuffer::empty();
+    let mut accessibility_tree = ZrOwnedResultV2::empty();
     assert_session_status(
         unsafe {
             capture_accessibility_tree(
@@ -110,7 +110,7 @@ fn assert_handle_entry_points_reject_session(
 
     let profile_control = api.profile_control.expect("profile_control");
     let profile_control_request = valid_profile_control_request_bytes();
-    let mut profile_output = ZrOwnedByteBuffer::empty();
+    let mut profile_output = ZrOwnedResultV2::empty();
     assert_session_status(
         unsafe {
             profile_control(
@@ -136,7 +136,7 @@ fn assert_handle_entry_points_reject_session(
     );
 
     let drain_host_requests = api.drain_host_requests.expect("drain_host_requests");
-    let mut host_requests = ZrOwnedByteBuffer::empty();
+    let mut host_requests = ZrOwnedResultV2::empty();
     assert_session_status(
         unsafe { drain_host_requests(session, &mut host_requests) },
         expected_code,
@@ -148,7 +148,7 @@ fn assert_handle_entry_points_reject_session(
     let query_request =
         serde_json::to_vec(&zircon_runtime_interface::world_sync::WorldQuery::default())
             .expect("serialize world query");
-    let mut query_result = ZrOwnedByteBuffer::empty();
+    let mut query_result = ZrOwnedResultV2::empty();
     assert_session_status(
         unsafe {
             query_world(
@@ -207,7 +207,7 @@ fn assert_handle_entry_points_reject_session(
     let drain_world_invalidations = api
         .drain_world_invalidations
         .expect("drain_world_invalidations");
-    let mut batches = ZrOwnedByteBuffer::empty();
+    let mut batches = ZrOwnedResultV2::empty();
     assert_session_status(
         unsafe { drain_world_invalidations(session, &mut batches) },
         expected_code,

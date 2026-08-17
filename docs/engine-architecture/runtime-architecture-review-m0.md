@@ -881,16 +881,16 @@ Current owner-budget line-budgets refresh 2026-07-06: `Runtime 15 M3 Runtime 07 
 
 Current owner-budget split-layout route refresh 2026-07-06: `Runtime 15 M3 Runtime 07 owner-budget split-layout route guard folder-backed split` / `runtime_15_runtime_07_owner_budget_split_layout_route_guard_folder_backed_static_passed_cargo_deferred` adds `performance_hotspots/owner_budget/split_layout/route/{parent_route,split_route,support_routes}.rs` to Runtime 07 audit input while `performance_hotspots/owner_budget/split_layout/route.rs` remains the route owner. The current static mirror reports `expected_source_file_count = 46`, `expected_test_file_count = 91`, `frame_span_anchor_count = 9`, `query_counter_anchor_count = 32`, `change_counter_anchor_count = 13`, `extract_counter_anchor_count = 21`, `asset_worker_anchor_count = 13`, `animation_scene_anchor_count = 19`, `profile_counter_hotspot_anchor_count = 8`, `hotspot_guard_anchor_count = 32`, `test_anchor_count = 29`, `doc_anchor_count = 35`, `cargo_gate_anchor_count = 5`, `stale_hotspot_placeholder_present = false`, `large_file_m1_gate_status = classified-and-clear`, `large_file_hotspot_count = 0`, `large_file_migration_debt_count = 0`, `large_file_owner_class_count = 0`, `large_file_unclassified_hotspot_count = 0`, `missing_large_file_owner_classes = []`, `missing_doc_anchors = []`, `missing_cargo_gate_anchors = []`, `mirror_docs_guard_present = true`, `risks = []`, and keeps `runtime_07_performance_hotpath_mirror_docs_match_structure_audit_counts` visible. The focused split guard is `runtime_15_runtime_07_owner_budget_split_layout_route_guard_folder_backed_split`. This only updates static test-owner inventory; extract/ecs_query/profiling/FPS Cargo gates remain pending.
 
-## Runtime 10 V5-only ABI Sync
+## Runtime 10 V7-only ABI Sync
 
-Current V5 owner inventory: `expected_source_file_count = 51`.
+Current V7 owner inventory: `expected_source_file_count = 60`.
 
-The dynamic runtime boundary exposes only the 24-field `zircon_runtime_get_api_v5` /
-`ZrRuntimeApiV5` pair. V5 includes plugin-event subscription/delivery, required operation
-lifecycle, and query/watch/unwatch/drain world sync; the app rejects missing or incomplete V5
+The dynamic runtime boundary exposes only the 25-field `zircon_runtime_get_api_v7` /
+`ZrRuntimeApiV7` pair. V7 includes opaque allocation release, plugin-event subscription/delivery,
+required operation lifecycle, highlight submission, and query/watch/unwatch/drain world sync; the app rejects missing or incomplete V7
 libraries without downgrade. `dynamic_runtime_api_boundary` pins
-`expected_source_file_count = 51`, `function_table_structs = 10/10`, the 24-field table,
-`runtime_session_ffi_wrappers = 22/22`, direct-entry bypass absence, and the FFI panic boundary.
+`expected_source_file_count = 60`, `function_table_structs = 12/12`, the 25-field table,
+`runtime_session_ffi_wrappers = 23/23`, direct-entry bypass absence, and the FFI panic boundary.
 The parent `dynamic_api/session.rs` remains a façade over explicit child owners, including
 `session/world_sync.rs`. The permanent guard is
 `runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts`.

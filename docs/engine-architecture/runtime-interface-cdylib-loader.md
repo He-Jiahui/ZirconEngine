@@ -184,8 +184,8 @@ The interface is deliberately narrower than the existing Rust module contracts. 
 - `version.rs` defines `ZIRCON_RUNTIME_ABI_VERSION_V1`.
 - `handles.rs` defines zero-invalid opaque runtime, viewport, and plugin handles.
 - `status.rs` defines raw status codes and diagnostic byte payload attachment.
-- `buffer.rs` defines borrowed byte slices and plugin/runtime-owned byte buffers with explicit free callbacks.
-- `runtime_api.rs` is now a structural facade over `runtime_api/{api_table,constants,events,host_requests,operation,plugin_event_mirror,requests,viewport}.rs`. The folder defines the frozen V6 runtime function-table shape and symbol; `world_sync/**` owns transport-neutral query, watch, token, and invalidation DTOs. Together they define fixed event records, viewport sizing records, native surface binding requests, runtime-to-host request DTOs, plugin-event and operation lifecycle DTOs, frame/accessibility capture requests, and typed captured-frame results.
+- `buffer.rs` defines borrowed byte slices, plugin-owned callback buffers, and immutable runtime results released by opaque allocation id.
+- `runtime_api.rs` is now a structural facade over `runtime_api/{api_table,constants,events,host_requests,operation,plugin_event_mirror,requests,viewport}.rs`. The folder defines the frozen V7 runtime function-table shape and symbol; `world_sync/**` owns transport-neutral query, watch, token, and invalidation DTOs. Together they define fixed event records, viewport sizing records, native surface binding requests, runtime-to-host request DTOs, plugin-event and operation lifecycle DTOs, frame/accessibility capture requests, and typed captured-frame results.
 - `plugin_api.rs` defines the plugin entry symbol, v1 plugin entry report shape, and optional plugin-side callback slots.
 - `plugin_events.rs` defines the generic v1 plugin event callback ABI. Subsystems such as sound project their own neutral event DTOs into namespace-tagged byte-slice requests instead of passing Rust trait objects or subsystem-owned runtime state across dynamic-library boundaries.
 - `manifest.rs` defines target mode, module kind, and module descriptor DTO seeds for later runtime/plugin adapters.
@@ -194,11 +194,11 @@ The interface is deliberately narrower than the existing Rust module contracts. 
 ## Milestone 1 Runtime Cdylib
 
 `zircon_runtime` declares `crate-type = ["rlib", "cdylib"]` and exposes only
-`zircon_runtime_get_api_v6` from `zircon_runtime::dynamic_api`. It returns the frozen 24-field
-`ZrRuntimeApiV6` after validating `ZrHostApiV1`; retired runtime tables and entry symbols are not
+`zircon_runtime_get_api_v7` from `zircon_runtime::dynamic_api`. It returns the frozen 25-field
+`ZrRuntimeApiV7` after validating `ZrHostApiV1`; retired runtime tables and entry symbols are not
 exported or aliased.
 
-Runtime 10 M1.3 owns the final panic containment layer at that dynamic-library edge. The V6 table-acquisition export returns a null table pointer if acquisition unexpectedly unwinds, and every advertised V6 session function pointer targets an `exports.rs` `_ffi` wrapper that converts unexpected unwinds to `ZrStatusCode::Panic` instead of letting panic state cross the C ABI. The private `dynamic_api::session` and `session::operation` owner functions stay Rust-ABI `unsafe fn` so the wrapper can catch an unwind before it reaches the exported C ABI edge.
+Runtime 10 M1.3 owns the final panic containment layer at that dynamic-library edge. The V7 table-acquisition export returns a null table pointer if acquisition unexpectedly unwinds, and every advertised V7 function pointer targets an `exports.rs` `_ffi` wrapper that converts unexpected unwinds to `ZrStatusCode::Panic` instead of letting panic state cross the C ABI. The private `dynamic_api::session` and `session::operation` owner functions stay Rust-ABI `unsafe fn` so the wrapper can catch an unwind before it reaches the exported C ABI edge.
 
 The dynamic runtime session owns the concrete runtime implementation objects that previously lived in `zircon_app` runtime preview code:
 
@@ -211,7 +211,7 @@ The dynamic runtime session owns the concrete runtime implementation objects tha
 
 `ZrRuntimeSessionConfigV3.profile` is interpreted at session creation before runtime bootstrap. Empty and `runtime` create the normal runtime preview profile, while `editor`, `dev`, `minimal`, and `headless` are accepted named profiles for host-specific policy. Unknown profile bytes are rejected as invalid arguments before allocating a dynamic session, so dev-profile behavior branches on a stable profile enum rather than string checks scattered through the runtime. The same carrier holds one resolved physical `project_root` anchor plus optional project-relative `play_scene` and logical `play_report_pipe` startup inputs. The runtime resolves the relative scene under that root and materializes it before first-frame selection; it does not modify the project manifest. The current `dev` dynamic session enables Bevy `LogDiagnosticsPlugin`-style diagnostic-store logging on a one-second runtime-owned schedule; the app host still only calls `tick_frame` and does not inspect runtime diagnostics.
 
-The ABI boundary receives only `ZrRuntimeEventV1` values for viewport resize, pointer motion, mouse button, mouse wheel, keyboard, IME, touch, gamepad, lifecycle, accessibility action, and raw mouse motion input. It returns `ZrRuntimeFrameV1`, whose `rgba` field is a runtime-owned byte buffer with an explicit free callback.
+The ABI boundary receives only `ZrRuntimeEventV1` values for viewport resize, pointer motion, mouse button, mouse wheel, keyboard, IME, touch, gamepad, lifecycle, accessibility action, and raw mouse motion input. It returns `ZrRuntimeFrameV2`, whose immutable `rgba` result carries only a pointer, fixed-width length, and opaque allocation id. The host releases that id together with its originating session handle through the mandatory V7 `release_allocation` entry; it never reconstructs a runtime allocator object from caller-writable metadata. The registry checks the session owner before removal, so a crossed-session id cannot free another live session's bytes or reduce its teardown census.
 
 ## Milestone 1 App Loader
 
@@ -257,11 +257,12 @@ buffer, free it through its callback, then require `ZIRCON_RUNTIME_ABI_VERSION_V
 the typed DTO. Editor operation commands repeat the ABI check at the command boundary so alternate
 gateway implementations cannot inject a foreign progress/result layout into transaction logic.
 
-### Current V6 Structural Evidence
+### Current V7 Structural Evidence
 
-The V6 source inventory has `expected_source_file_count = 51`, including World Sync DTO and
-session owners. The structural guard pins 10 function tables, the 24-field V6 table, and
-`runtime_session_ffi_wrappers = 22/22`; Cargo acceptance remains separately pending.
+The V7 source inventory has `expected_source_file_count = 60`, including World Sync DTO,
+allocation registry, host output, and editor gateway owners. The `dynamic_runtime_api_boundary`
+guard pins `function_table_structs = 12/12`, the 25-field `ZrRuntimeApiV7` table, and
+`runtime_session_ffi_wrappers = 23/23`; Cargo acceptance remains separately recorded.
 The permanent guard remains `runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts`.
 
 ## Validation
@@ -305,4 +306,4 @@ The 2026-05-24 plugin-event ABI slice was validated with scoped interface eviden
 `ZrPluginEventCallbackRequestV1` is intentionally generic. It carries an ABI version, subsystem namespace, plugin ID, handler ID, event ID, optional source path, event time, payload schema, and opaque payload bytes as borrowed `ZrByteSlice` values. The callback writes `ZrPluginEventCallbackResultV1`, whose status and diagnostics capture handler-level acceptance or rejection without letting a subsystem pass Rust closures, runtime managers, scene state, or editor objects across the boundary.
 
 The first concrete consumer is the sound runtime adapter: sound projects `SoundDynamicEventDelivery` into the generic callback request under the `sound.dynamic_events` namespace. The interface crate does not know sound semantics, and the sound framework DTOs still do not own dynamic-library function pointers. Generic native plugin discovery and attachment of `ZrPluginApiV1::invoke_event` to subsystem handler descriptors remains loader/runtime integration work outside this interface DTO slice.
-<!-- Runtime 10 V6-only audit mirror: runtime_session_ffi_wrappers = 22/22 -->
+<!-- Runtime 10 V7-only audit mirror: expected_source_file_count = 60; runtime_session_ffi_wrappers = 23/23 -->

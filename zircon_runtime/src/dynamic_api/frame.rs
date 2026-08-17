@@ -1,337 +1,101 @@
 use std::ptr;
 
-use zircon_runtime_interface::{
-    ui::accessibility::UiAccessibilityTreeSnapshot, ZrOwnedByteBuffer, ZrRuntimeFrameV1, ZrStatus,
-    ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
-};
+use zircon_runtime_interface::ui::accessibility::UiAccessibilityTreeSnapshot;
+use zircon_runtime_interface::{ZrOwnedResultV2, ZrRuntimeFrameV2, ZrStatus, ZrStatusCode};
 
 use crate::core::framework::render::CapturedFrame;
 
-const RUNTIME_FRAME_BUFFER_OWNER_TOKEN: u64 = 0x5a52_4652_414d_4501;
-const RUNTIME_ACCESSIBILITY_BUFFER_OWNER_TOKEN: u64 = 0x5a52_4131_3159_0001;
-const RUNTIME_PROFILE_BUFFER_OWNER_TOKEN: u64 = 0x5a52_5052_4f46_0001;
-const RUNTIME_HOST_REQUEST_BUFFER_OWNER_TOKEN: u64 = 0x5a52_484f_5354_0001;
-const RUNTIME_WORLD_SYNC_BUFFER_OWNER_TOKEN: u64 = 0x5a52_5753_594e_4301;
+pub(super) struct EncodedRuntimeFrame {
+    pub(super) width: u32,
+    pub(super) height: u32,
+    pub(super) generation: u64,
+    pub(super) rgba: Vec<u8>,
+}
 
-pub(super) fn encode_frame(frame: CapturedFrame) -> ZrRuntimeFrameV1 {
-    ZrRuntimeFrameV1 {
-        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V1,
+pub(super) fn encode_frame(frame: CapturedFrame) -> EncodedRuntimeFrame {
+    EncodedRuntimeFrame {
         width: frame.width,
         height: frame.height,
         generation: frame.generation,
-        rgba: owned_rgba_buffer(frame.rgba),
+        rgba: frame.rgba,
     }
-}
-
-fn owned_rgba_buffer(mut rgba: Vec<u8>) -> ZrOwnedByteBuffer {
-    if rgba.is_empty() {
-        return ZrOwnedByteBuffer::empty();
-    }
-    let buffer = ZrOwnedByteBuffer {
-        data: rgba.as_mut_ptr(),
-        len: rgba.len(),
-        capacity: rgba.capacity(),
-        owner_token: RUNTIME_FRAME_BUFFER_OWNER_TOKEN,
-        free: Some(free_runtime_frame_bytes),
-    };
-    std::mem::forget(rgba);
-    buffer
-}
-
-pub(super) unsafe extern "C" fn free_runtime_frame_bytes(buffer: ZrOwnedByteBuffer) -> ZrStatus {
-    if buffer.is_empty() {
-        return ZrStatus::ok();
-    }
-    if buffer.owner_token != RUNTIME_FRAME_BUFFER_OWNER_TOKEN || buffer.data.is_null() {
-        return ZrStatus::new(
-            ZrStatusCode::InvalidArgument,
-            invalid_frame_buffer_message(),
-        );
-    }
-    let len = buffer.len;
-    let capacity = buffer.capacity;
-    if len > capacity {
-        return ZrStatus::new(
-            ZrStatusCode::InvalidArgument,
-            invalid_frame_buffer_message(),
-        );
-    }
-    // Reclaim the allocation with the original pointer, length, and capacity exported to the host.
-    let _ = unsafe { Vec::from_raw_parts(buffer.data, len, capacity) };
-    ZrStatus::ok()
 }
 
 pub(super) fn encode_accessibility_tree(
     snapshot: &UiAccessibilityTreeSnapshot,
-) -> Result<ZrOwnedByteBuffer, serde_json::Error> {
-    serde_json::to_vec(snapshot).map(owned_accessibility_buffer)
+) -> Result<Vec<u8>, serde_json::Error> {
+    serde_json::to_vec(snapshot)
 }
 
 pub(super) fn encode_profile_response<T: serde::Serialize>(
     response: &T,
-) -> Result<ZrOwnedByteBuffer, serde_json::Error> {
-    serde_json::to_vec(response).map(owned_profile_buffer)
+) -> Result<Vec<u8>, serde_json::Error> {
+    serde_json::to_vec(response)
 }
 
 pub(super) fn encode_host_request_batch<T: serde::Serialize>(
     response: &T,
-) -> Result<ZrOwnedByteBuffer, serde_json::Error> {
-    serde_json::to_vec(response).map(owned_host_request_buffer)
+) -> Result<Vec<u8>, serde_json::Error> {
+    serde_json::to_vec(response)
 }
 
 pub(super) fn encode_world_sync_payload<T: serde::Serialize>(
     response: &T,
-) -> Result<ZrOwnedByteBuffer, serde_json::Error> {
-    serde_json::to_vec(response).map(owned_world_sync_buffer)
+) -> Result<Vec<u8>, serde_json::Error> {
+    serde_json::to_vec(response)
 }
 
-fn owned_accessibility_buffer(mut bytes: Vec<u8>) -> ZrOwnedByteBuffer {
-    if bytes.is_empty() {
-        return ZrOwnedByteBuffer::empty();
-    }
-    let buffer = ZrOwnedByteBuffer {
-        data: bytes.as_mut_ptr(),
-        len: bytes.len(),
-        capacity: bytes.capacity(),
-        owner_token: RUNTIME_ACCESSIBILITY_BUFFER_OWNER_TOKEN,
-        free: Some(free_runtime_accessibility_bytes),
-    };
-    std::mem::forget(bytes);
-    buffer
-}
-
-pub(super) unsafe extern "C" fn free_runtime_accessibility_bytes(
-    buffer: ZrOwnedByteBuffer,
-) -> ZrStatus {
-    if buffer.is_empty() {
-        return ZrStatus::ok();
-    }
-    if buffer.owner_token != RUNTIME_ACCESSIBILITY_BUFFER_OWNER_TOKEN || buffer.data.is_null() {
-        return ZrStatus::new(
-            ZrStatusCode::InvalidArgument,
-            invalid_accessibility_buffer_message(),
-        );
-    }
-    let len = buffer.len;
-    let capacity = buffer.capacity;
-    if len > capacity {
-        return ZrStatus::new(
-            ZrStatusCode::InvalidArgument,
-            invalid_accessibility_buffer_message(),
-        );
-    }
-    let _ = unsafe { Vec::from_raw_parts(buffer.data, len, capacity) };
-    ZrStatus::ok()
-}
-
-fn owned_profile_buffer(mut bytes: Vec<u8>) -> ZrOwnedByteBuffer {
-    if bytes.is_empty() {
-        return ZrOwnedByteBuffer::empty();
-    }
-    let buffer = ZrOwnedByteBuffer {
-        data: bytes.as_mut_ptr(),
-        len: bytes.len(),
-        capacity: bytes.capacity(),
-        owner_token: RUNTIME_PROFILE_BUFFER_OWNER_TOKEN,
-        free: Some(free_runtime_profile_bytes),
-    };
-    std::mem::forget(bytes);
-    buffer
-}
-
-fn owned_host_request_buffer(mut bytes: Vec<u8>) -> ZrOwnedByteBuffer {
-    if bytes.is_empty() {
-        return ZrOwnedByteBuffer::empty();
-    }
-    let buffer = ZrOwnedByteBuffer {
-        data: bytes.as_mut_ptr(),
-        len: bytes.len(),
-        capacity: bytes.capacity(),
-        owner_token: RUNTIME_HOST_REQUEST_BUFFER_OWNER_TOKEN,
-        free: Some(free_runtime_host_request_bytes),
-    };
-    std::mem::forget(bytes);
-    buffer
-}
-
-fn owned_world_sync_buffer(mut bytes: Vec<u8>) -> ZrOwnedByteBuffer {
-    if bytes.is_empty() {
-        return ZrOwnedByteBuffer::empty();
-    }
-    let buffer = ZrOwnedByteBuffer {
-        data: bytes.as_mut_ptr(),
-        len: bytes.len(),
-        capacity: bytes.capacity(),
-        owner_token: RUNTIME_WORLD_SYNC_BUFFER_OWNER_TOKEN,
-        free: Some(free_runtime_world_sync_bytes),
-    };
-    std::mem::forget(bytes);
-    buffer
-}
-
-pub(super) unsafe extern "C" fn free_runtime_profile_bytes(buffer: ZrOwnedByteBuffer) -> ZrStatus {
-    if buffer.is_empty() {
-        return ZrStatus::ok();
-    }
-    if buffer.owner_token != RUNTIME_PROFILE_BUFFER_OWNER_TOKEN || buffer.data.is_null() {
-        return ZrStatus::new(
-            ZrStatusCode::InvalidArgument,
-            zircon_runtime_interface::ZrByteSlice::from_static(b"invalid runtime profile buffer"),
-        );
-    }
-    let len = buffer.len;
-    let capacity = buffer.capacity;
-    if len > capacity {
-        return ZrStatus::new(
-            ZrStatusCode::InvalidArgument,
-            zircon_runtime_interface::ZrByteSlice::from_static(b"invalid runtime profile buffer"),
-        );
-    }
-    let _ = unsafe { Vec::from_raw_parts(buffer.data, len, capacity) };
-    ZrStatus::ok()
-}
-
-pub(super) unsafe extern "C" fn free_runtime_host_request_bytes(
-    buffer: ZrOwnedByteBuffer,
-) -> ZrStatus {
-    if buffer.is_empty() {
-        return ZrStatus::ok();
-    }
-    if buffer.owner_token != RUNTIME_HOST_REQUEST_BUFFER_OWNER_TOKEN || buffer.data.is_null() {
-        return ZrStatus::new(
-            ZrStatusCode::InvalidArgument,
-            zircon_runtime_interface::ZrByteSlice::from_static(
-                b"invalid runtime host request buffer",
-            ),
-        );
-    }
-    let len = buffer.len;
-    let capacity = buffer.capacity;
-    if len > capacity {
-        return ZrStatus::new(
-            ZrStatusCode::InvalidArgument,
-            zircon_runtime_interface::ZrByteSlice::from_static(
-                b"invalid runtime host request buffer",
-            ),
-        );
-    }
-    let _ = unsafe { Vec::from_raw_parts(buffer.data, len, capacity) };
-    ZrStatus::ok()
-}
-
-pub(super) unsafe extern "C" fn free_runtime_world_sync_bytes(
-    buffer: ZrOwnedByteBuffer,
-) -> ZrStatus {
-    if buffer.is_empty() {
-        return ZrStatus::ok();
-    }
-    if buffer.owner_token != RUNTIME_WORLD_SYNC_BUFFER_OWNER_TOKEN || buffer.data.is_null() {
-        return ZrStatus::new(
-            ZrStatusCode::InvalidArgument,
-            zircon_runtime_interface::ZrByteSlice::from_static(
-                b"invalid runtime world sync buffer",
-            ),
-        );
-    }
-    let len = buffer.len;
-    let capacity = buffer.capacity;
-    if len > capacity {
-        return ZrStatus::new(
-            ZrStatusCode::InvalidArgument,
-            zircon_runtime_interface::ZrByteSlice::from_static(
-                b"invalid runtime world sync buffer",
-            ),
-        );
-    }
-    let _ = unsafe { Vec::from_raw_parts(buffer.data, len, capacity) };
-    ZrStatus::ok()
-}
-
-fn invalid_accessibility_buffer_message() -> zircon_runtime_interface::ZrByteSlice {
-    zircon_runtime_interface::ZrByteSlice::from_static(b"invalid runtime accessibility buffer")
-}
-
-fn invalid_frame_buffer_message() -> zircon_runtime_interface::ZrByteSlice {
-    zircon_runtime_interface::ZrByteSlice::from_static(b"invalid runtime frame buffer")
-}
-
-pub(super) fn write_frame(destination: *mut ZrRuntimeFrameV1, frame: ZrRuntimeFrameV1) -> ZrStatus {
+pub(super) fn write_frame(destination: *mut ZrRuntimeFrameV2, frame: ZrRuntimeFrameV2) -> ZrStatus {
     if destination.is_null() {
-        return ZrStatus::new(
-            ZrStatusCode::InvalidArgument,
-            zircon_runtime_interface::ZrByteSlice::from_static(b"missing frame output"),
-        );
+        return missing_output(b"missing frame output");
     }
-    unsafe {
-        ptr::write(destination, frame);
-    }
+    unsafe { ptr::write(destination, frame) };
     ZrStatus::ok()
 }
 
 pub(super) fn write_accessibility_tree(
-    destination: *mut ZrOwnedByteBuffer,
-    buffer: ZrOwnedByteBuffer,
+    destination: *mut ZrOwnedResultV2,
+    output: ZrOwnedResultV2,
 ) -> ZrStatus {
-    if destination.is_null() {
-        return ZrStatus::new(
-            ZrStatusCode::InvalidArgument,
-            zircon_runtime_interface::ZrByteSlice::from_static(
-                b"missing accessibility tree output",
-            ),
-        );
-    }
-    unsafe {
-        ptr::write(destination, buffer);
-    }
-    ZrStatus::ok()
+    write_output(destination, output, b"missing accessibility tree output")
 }
 
 pub(super) fn write_profile_response(
-    destination: *mut ZrOwnedByteBuffer,
-    buffer: ZrOwnedByteBuffer,
+    destination: *mut ZrOwnedResultV2,
+    output: ZrOwnedResultV2,
 ) -> ZrStatus {
-    if destination.is_null() {
-        return ZrStatus::new(
-            ZrStatusCode::InvalidArgument,
-            zircon_runtime_interface::ZrByteSlice::from_static(b"missing profile output"),
-        );
-    }
-    unsafe {
-        ptr::write(destination, buffer);
-    }
-    ZrStatus::ok()
+    write_output(destination, output, b"missing profile output")
 }
 
 pub(super) fn write_host_requests(
-    destination: *mut ZrOwnedByteBuffer,
-    buffer: ZrOwnedByteBuffer,
+    destination: *mut ZrOwnedResultV2,
+    output: ZrOwnedResultV2,
 ) -> ZrStatus {
-    if destination.is_null() {
-        return ZrStatus::new(
-            ZrStatusCode::InvalidArgument,
-            zircon_runtime_interface::ZrByteSlice::from_static(b"missing host request output"),
-        );
-    }
-    unsafe {
-        ptr::write(destination, buffer);
-    }
-    ZrStatus::ok()
+    write_output(destination, output, b"missing host request output")
 }
 
 pub(super) fn write_world_sync_payload(
-    destination: *mut ZrOwnedByteBuffer,
-    buffer: ZrOwnedByteBuffer,
+    destination: *mut ZrOwnedResultV2,
+    output: ZrOwnedResultV2,
+) -> ZrStatus {
+    write_output(destination, output, b"missing runtime world sync output")
+}
+
+fn write_output(
+    destination: *mut ZrOwnedResultV2,
+    output: ZrOwnedResultV2,
+    missing_message: &'static [u8],
 ) -> ZrStatus {
     if destination.is_null() {
-        return ZrStatus::new(
-            ZrStatusCode::InvalidArgument,
-            zircon_runtime_interface::ZrByteSlice::from_static(
-                b"missing runtime world sync output",
-            ),
-        );
+        return missing_output(missing_message);
     }
-    unsafe {
-        ptr::write(destination, buffer);
-    }
+    unsafe { ptr::write(destination, output) };
     ZrStatus::ok()
+}
+
+fn missing_output(message: &'static [u8]) -> ZrStatus {
+    ZrStatus::new(
+        ZrStatusCode::InvalidArgument,
+        zircon_runtime_interface::ZrByteSlice::from_static(message),
+    )
 }

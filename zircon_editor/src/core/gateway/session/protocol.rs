@@ -94,13 +94,16 @@ pub(super) fn ensure_operation_handle(
 
 pub(super) fn ensure_output_abi(
     abi_version: u32,
+    expected_abi_version: u32,
     output_kind: &'static str,
 ) -> Result<(), GatewayError> {
-    if abi_version == ZIRCON_RUNTIME_ABI_VERSION_V1 {
+    if abi_version == expected_abi_version {
         return Ok(());
     }
     Err(GatewayError::Protocol {
-        message: format!("{output_kind} used unsupported ABI version {abi_version}"),
+        message: format!(
+            "{output_kind} used unsupported ABI version {abi_version}; expected {expected_abi_version}"
+        ),
     })
 }
 

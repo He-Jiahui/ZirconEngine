@@ -56,7 +56,7 @@ fn dynamic_api_submits_polls_and_harvests_runtime_operation() {
         .expect("runtime operation must complete after bounded owner ticks");
     assert_eq!(completed.phase(), Some(ZrRuntimeOperationPhase::Completed));
     let result: ZrRuntimeOperationResultV1 =
-        decode_operation_output(call_operation_output(harvest, session, handle));
+        decode_operation_output(session, call_operation_output(harvest, session, handle));
     assert!(result.succeeded_output().is_some());
 
     destroy_test_session(api, session);
@@ -134,20 +134,23 @@ fn call_operation_output(
     call: unsafe extern "C" fn(
         ZrRuntimeSessionHandle,
         ZrRuntimeOperationHandle,
-        *mut ZrOwnedByteBuffer,
+        *mut ZrOwnedResultV2,
     ) -> ZrStatus,
     session: ZrRuntimeSessionHandle,
     handle: ZrRuntimeOperationHandle,
-) -> ZrOwnedByteBuffer {
-    let mut output = ZrOwnedByteBuffer::empty();
+) -> ZrOwnedResultV2 {
+    let mut output = ZrOwnedResultV2::empty();
     let status = unsafe { call(session, handle, &mut output) };
     assert_eq!(status.status_code(), ZrStatusCode::Ok, "{status:?}");
     output
 }
 
-fn decode_operation_output<T: serde::de::DeserializeOwned>(output: ZrOwnedByteBuffer) -> T {
-    let bytes = unsafe { core::slice::from_raw_parts(output.data.cast_const(), output.len) };
+fn decode_operation_output<T: serde::de::DeserializeOwned>(
+    session: ZrRuntimeSessionHandle,
+    output: ZrOwnedResultV2,
+) -> T {
+    let bytes = output_bytes(&output);
     let decoded = serde_json::from_slice(bytes).unwrap();
-    free_output(output);
+    release_output(session, output);
     decoded
 }

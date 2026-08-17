@@ -1,8 +1,8 @@
 use std::time::Duration;
 
 use zircon_runtime_interface::{
-    ProfileControlCommand, ProfileControlRequest, ZrRuntimeApiV6, ZrRuntimeEventV1,
-    ZrRuntimeTickFrameFnV2, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
+    ProfileControlCommand, ProfileControlRequest, ZrRuntimeEventV1, ZrRuntimeTickFrameFnV2,
+    ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
 };
 
 use crate::core::gateway::{EditorRuntimeFrameDemand, EditorRuntimeGateway, GatewayError};
@@ -45,7 +45,9 @@ fn session_gateway_forwards_abi_tick_event_and_frame_calls() {
 
 #[test]
 fn session_gateway_reports_missing_optional_pointer_as_typed_capability_error() {
-    let gateway = gateway(ZrRuntimeApiV6::empty());
+    let mut api = api_table();
+    api.tick_frame = None;
+    let gateway = gateway(api);
 
     assert_eq!(
         gateway.tick_frame(),

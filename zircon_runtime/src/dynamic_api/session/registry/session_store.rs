@@ -4,10 +4,12 @@ use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 
 use zircon_runtime_interface::{ZrRuntimeSessionHandle, ZrStatus};
 
+use super::action_guard::SessionActionGuard;
+use super::allocation_registry::{forget_session_census, session_has_outstanding_allocations};
 use super::session_slot::SessionSlot;
 use super::{RuntimeFrameActivity, RuntimeWakeRegistration};
-use crate::dynamic_api::session::RuntimeDynamicSession;
 use crate::dynamic_api::session::status::{invalid_argument, not_found, teardown_incomplete};
+use crate::dynamic_api::session::RuntimeDynamicSession;
 
 static SESSION_REGISTRY: OnceLock<Mutex<SessionRegistry>> = OnceLock::new();
 
@@ -70,22 +72,65 @@ pub(in crate::dynamic_api::session) fn with_session_activity(
     handle: ZrRuntimeSessionHandle,
     action: impl FnOnce(&mut RuntimeDynamicSession, &RuntimeFrameActivity) -> ZrStatus,
 ) -> ZrStatus {
+    match with_session_activity_result(handle, |session, activity| Ok(action(session, activity))) {
+        Ok(status) | Err(status) => status,
+    }
+}
+
+pub(in crate::dynamic_api::session) fn with_session_result_finalized<T, U>(
+    handle: ZrRuntimeSessionHandle,
+    action: impl FnOnce(&mut RuntimeDynamicSession) -> Result<T, ZrStatus>,
+    finalize: impl FnOnce(ZrRuntimeSessionHandle, T) -> Result<U, ZrStatus>,
+) -> Result<U, ZrStatus> {
+    with_session_activity_result_finalized(handle, |session, _activity| action(session), finalize)
+}
+
+fn with_session_activity_result<T>(
+    handle: ZrRuntimeSessionHandle,
+    action: impl FnOnce(&mut RuntimeDynamicSession, &RuntimeFrameActivity) -> Result<T, ZrStatus>,
+) -> Result<T, ZrStatus> {
+    with_session_activity_result_finalized(handle, action, |_active_handle, value| Ok(value))
+}
+
+fn with_session_activity_result_finalized<T, U>(
+    handle: ZrRuntimeSessionHandle,
+    action: impl FnOnce(&mut RuntimeDynamicSession, &RuntimeFrameActivity) -> Result<T, ZrStatus>,
+    finalize: impl FnOnce(ZrRuntimeSessionHandle, T) -> Result<U, ZrStatus>,
+) -> Result<U, ZrStatus> {
     let slot = match find_session_slot(handle) {
         Ok(slot) => slot,
-        Err(status) => return status,
+        Err(status) => return Err(status),
     };
     let Some(action_guard) = slot.begin_action() else {
-        return not_found(b"runtime session not found");
+        return Err(not_found(b"runtime session not found"));
     };
-    let status = {
+    let result = {
         let mut session = slot.lock_session();
         let Some(session) = session.as_mut() else {
-            return not_found(b"runtime session not found");
+            return Err(not_found(b"runtime session not found"));
         };
         action(session, slot.frame_activity())
     };
+    let value = result?;
+    let finalized = finalize(handle, value);
     drop(action_guard);
-    status
+    finalized
+}
+
+pub(super) fn begin_session_action(
+    handle: ZrRuntimeSessionHandle,
+) -> Result<SessionActionGuard, ZrStatus> {
+    let slot = find_session_slot(handle)?;
+    slot.begin_action()
+        .ok_or_else(|| not_found(b"runtime session not found"))
+}
+
+pub(super) fn begin_session_release_action(
+    handle: ZrRuntimeSessionHandle,
+) -> Result<SessionActionGuard, ZrStatus> {
+    let slot = find_session_slot(handle)?;
+    slot.begin_release_action()
+        .ok_or_else(|| not_found(b"runtime session not found"))
 }
 
 pub(in crate::dynamic_api::session) fn destroy_session_slot(
@@ -108,6 +153,10 @@ pub(in crate::dynamic_api::session) fn destroy_session_slot(
     slot.frame_activity().disable_wake_entries();
     slot.wait_for_actions();
     slot.frame_activity().wait_for_wake_callbacks();
+    if session_has_outstanding_allocations(handle) {
+        slot.preserve_failed_teardown_for_retry();
+        return teardown_incomplete();
+    }
     let session_shutdown = slot
         .lock_session()
         .as_mut()
@@ -128,6 +177,8 @@ pub(in crate::dynamic_api::session) fn destroy_session_slot(
     {
         registry.sessions.remove(&handle.raw());
     }
+    drop(registry);
+    forget_session_census(handle);
     ZrStatus::ok()
 }
 

@@ -3,6 +3,10 @@
 pub struct ZrRuntimeSessionHandle(pub u64);
 
 #[repr(transparent)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub struct ZrRuntimeAllocationId(pub u64);
+
+#[repr(transparent)]
 #[derive(
     Clone, Copy, Debug, Default, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize,
 )]
@@ -17,6 +21,24 @@ pub const ZIRCON_RUNTIME_DEFAULT_VIEWPORT_HANDLE_V1: ZrRuntimeViewportHandle =
 pub struct ZrRuntimePluginHandle(pub u64);
 
 impl ZrRuntimeSessionHandle {
+    pub const fn new(raw: u64) -> Self {
+        Self(raw)
+    }
+
+    pub const fn invalid() -> Self {
+        Self(0)
+    }
+
+    pub const fn raw(self) -> u64 {
+        self.0
+    }
+
+    pub const fn is_valid(self) -> bool {
+        self.0 != 0
+    }
+}
+
+impl ZrRuntimeAllocationId {
     pub const fn new(raw: u64) -> Self {
         Self(raw)
     }

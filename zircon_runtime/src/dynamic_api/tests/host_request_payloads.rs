@@ -22,7 +22,7 @@ fn host_request_batch_encodes_runtime_ime_requests() {
     );
 
     let output = encode_host_request_batch(&batch).unwrap();
-    let batch = host_request_batch_from_output(output);
+    let batch = host_request_batch_from_bytes(&output);
 
     assert_eq!(batch.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
     assert_eq!(batch.requests.len(), 3);
@@ -71,7 +71,7 @@ fn host_request_batch_encodes_gamepad_rumble_requests() {
     );
 
     let output = encode_host_request_batch(&batch).unwrap();
-    let batch = host_request_batch_from_output(output);
+    let batch = host_request_batch_from_bytes(&output);
 
     assert_eq!(batch.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
     assert_eq!(batch.requests.len(), 2);
@@ -118,7 +118,7 @@ fn host_request_batch_encodes_cursor_requests() {
     );
 
     let output = encode_host_request_batch(&batch).unwrap();
-    let batch = host_request_batch_from_output(output);
+    let batch = host_request_batch_from_bytes(&output);
 
     assert_eq!(batch.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
     assert_eq!(batch.requests.len(), 4);
@@ -154,24 +154,4 @@ fn host_request_batch_encodes_cursor_requests() {
             ..
         }) if position.x == 320.0 && position.y == 180.0
     ));
-}
-
-#[test]
-fn host_request_free_rejects_wrong_owner_token() {
-    let mut bytes = vec![1_u8, 2, 3];
-    let buffer = ZrOwnedByteBuffer {
-        data: bytes.as_mut_ptr(),
-        len: bytes.len(),
-        capacity: bytes.capacity(),
-        owner_token: 0,
-        free: Some(free_runtime_host_request_bytes),
-    };
-
-    let status = unsafe { free_runtime_host_request_bytes(buffer) };
-
-    assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
-    assert_eq!(
-        status_message(status),
-        "invalid runtime host request buffer"
-    );
 }

@@ -5,7 +5,7 @@ use zircon_runtime_host::foreign_output::{
 use zircon_runtime_interface::world_sync::{
     InvalidationBatch, WatchRegistration, WatchToken, WorldQuery, WorldQueryResult,
 };
-use zircon_runtime_interface::{ZrByteSlice, ZrOwnedByteBuffer};
+use zircon_runtime_interface::{ZrByteSlice, ZrOwnedResultV2};
 
 use super::super::GatewayError;
 use super::gateway::SessionGateway;
@@ -18,7 +18,7 @@ impl SessionGateway {
         let request = serde_json::to_vec(&query).map_err(|error| GatewayError::Protocol {
             message: format!("runtime world query request cannot be encoded as JSON: {error}"),
         })?;
-        let mut output = ZrOwnedByteBuffer::empty();
+        let mut output = ZrOwnedResultV2::empty();
         let status = unsafe {
             query_world(
                 self.session,
@@ -111,7 +111,7 @@ impl SessionGateway {
             self.api.drain_world_invalidations,
             "runtime.world_sync.drain",
         )?;
-        let mut output = ZrOwnedByteBuffer::empty();
+        let mut output = ZrOwnedResultV2::empty();
         let status = unsafe { drain(self.session, &mut output) };
         self.decode_output(
             status,

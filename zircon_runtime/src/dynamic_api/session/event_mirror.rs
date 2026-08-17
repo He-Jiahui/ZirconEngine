@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 use std::io::Write;
-use std::ptr;
 
 use zircon_runtime_interface::{
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
-    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1, ZrByteSlice, ZrOwnedByteBuffer,
     ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventSubscribeRequestV1,
-    ZrRuntimePluginEventSubscriptionHandle, ZrStatus, ZrStatusCode,
+    ZrRuntimePluginEventSubscriptionHandle, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
+    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
 };
 
 #[cfg(test)]
@@ -16,7 +15,6 @@ use crate::scene::RuntimeEventMirrorSubscription;
 
 use super::RuntimeDynamicSession;
 
-const RUNTIME_PLUGIN_EVENT_BUFFER_OWNER_TOKEN: u64 = 0x5a52_5045_564e_5401;
 pub(in crate::dynamic_api) const RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES: usize =
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1;
 pub(in crate::dynamic_api) const RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES: usize =
@@ -86,7 +84,7 @@ impl RuntimeDynamicSession {
         &mut self,
         play_session_id: u64,
         handle: ZrRuntimePluginEventSubscriptionHandle,
-    ) -> Result<ZrOwnedByteBuffer, String> {
+    ) -> Result<Vec<u8>, String> {
         let state = self
             .plugin_event_subscriptions
             .get_mut(&handle.raw())
@@ -104,7 +102,7 @@ impl RuntimeDynamicSession {
             if page.remaining_deliveries > 0 && delivery_limit == 0 {
                 return Err("runtime plugin event sequence overflowed".to_string());
             }
-            return Ok(ZrOwnedByteBuffer::empty());
+            return Ok(Vec::new());
         }
 
         let descriptor = state.subscription.descriptor();
@@ -157,9 +155,9 @@ pub(super) fn empty_plugin_event_subscriptions() -> HashMap<u64, RuntimePluginEv
 
 pub(super) fn encode_plugin_event_batch(
     batch: &ZrRuntimePluginEventDeliveryBatchV1,
-) -> Result<ZrOwnedByteBuffer, String> {
+) -> Result<Vec<u8>, String> {
     if batch.deliveries.is_empty() {
-        return Ok(ZrOwnedByteBuffer::empty());
+        return Ok(Vec::new());
     }
     let bytes = serde_json::to_vec(batch).map_err(|error| error.to_string())?;
     owned_plugin_event_buffer_with_wire_ceiling(bytes)
@@ -169,9 +167,7 @@ fn write_json_integer(bytes: &mut Vec<u8>, value: u64) -> Result<(), String> {
     write!(bytes, "{value}").map_err(|error| error.to_string())
 }
 
-fn owned_plugin_event_buffer_with_wire_ceiling(
-    bytes: Vec<u8>,
-) -> Result<ZrOwnedByteBuffer, String> {
+fn owned_plugin_event_buffer_with_wire_ceiling(bytes: Vec<u8>) -> Result<Vec<u8>, String> {
     // The scene mirror caps each page at a fixed event / encoded-payload budget and
     // registration caps both descriptor strings at 128 bytes. Even worst-case JSON
     // escaping therefore stays below this wire ceiling; keep the runtime check so a
@@ -183,62 +179,13 @@ fn owned_plugin_event_buffer_with_wire_ceiling(
             RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES
         ));
     }
-    Ok(owned_plugin_event_buffer(bytes))
-}
-
-pub(super) unsafe fn write_plugin_event_batch(
-    output: *mut ZrOwnedByteBuffer,
-    buffer: ZrOwnedByteBuffer,
-) -> ZrStatus {
-    if output.is_null() {
-        return ZrStatus::new(
-            ZrStatusCode::InvalidArgument,
-            ZrByteSlice::from_static(b"missing runtime plugin event output"),
-        );
-    }
-    unsafe { ptr::write(output, buffer) };
-    ZrStatus::ok()
-}
-
-fn owned_plugin_event_buffer(mut bytes: Vec<u8>) -> ZrOwnedByteBuffer {
-    if bytes.is_empty() {
-        return ZrOwnedByteBuffer::empty();
-    }
-    let buffer = ZrOwnedByteBuffer {
-        data: bytes.as_mut_ptr(),
-        len: bytes.len(),
-        capacity: bytes.capacity(),
-        owner_token: RUNTIME_PLUGIN_EVENT_BUFFER_OWNER_TOKEN,
-        free: Some(free_runtime_plugin_event_bytes),
-    };
-    std::mem::forget(bytes);
-    buffer
-}
-
-unsafe extern "C" fn free_runtime_plugin_event_bytes(buffer: ZrOwnedByteBuffer) -> ZrStatus {
-    if buffer.is_empty() {
-        return ZrStatus::ok();
-    }
-    if buffer.owner_token != RUNTIME_PLUGIN_EVENT_BUFFER_OWNER_TOKEN || buffer.data.is_null() {
-        return ZrStatus::new(
-            ZrStatusCode::InvalidArgument,
-            ZrByteSlice::from_static(b"invalid runtime plugin event buffer"),
-        );
-    }
-    if buffer.len > buffer.capacity {
-        return ZrStatus::new(
-            ZrStatusCode::InvalidArgument,
-            ZrByteSlice::from_static(b"invalid runtime plugin event buffer"),
-        );
-    }
-    let _ = unsafe { Vec::from_raw_parts(buffer.data, buffer.len, buffer.capacity) };
-    ZrStatus::ok()
+    Ok(bytes)
 }
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+    use std::sync::Arc;
 
     use serde::Serialize;
     use serde_json::json;
@@ -246,8 +193,8 @@ mod tests {
     use super::super::profile::RuntimeDynamicSessionProfile;
     use super::*;
     use crate::scene::{
-        RUNTIME_EVENT_MIRROR_PAGE_MAX_EVENTS, RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES,
-        RuntimeEventMirrorRegistration, SceneError,
+        RuntimeEventMirrorRegistration, SceneError, RUNTIME_EVENT_MIRROR_PAGE_MAX_EVENTS,
+        RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES,
     };
 
     const SEQUENCE_WINDOW_EVENT_ID: &str = "dynamic_api.plugin_event.sequence_window";
@@ -368,7 +315,6 @@ mod tests {
         let buffer = encode_plugin_event_batch(&batch).unwrap();
 
         assert!(buffer.is_empty());
-        assert!(buffer.free.is_none());
     }
 
     #[test]
@@ -388,23 +334,17 @@ mod tests {
         let buffer = session
             .drain_plugin_events(7, subscription)
             .expect("two deliveries fit within remaining sequence headroom");
-        let bytes = unsafe { std::slice::from_raw_parts(buffer.data, buffer.len) };
-        let batch = serde_json::from_slice::<ZrRuntimePluginEventDeliveryBatchV1>(bytes)
+        let batch = serde_json::from_slice::<ZrRuntimePluginEventDeliveryBatchV1>(&buffer)
             .expect("sequence-window event page");
         assert_eq!(batch.deliveries.len(), 2);
         assert_eq!(batch.deliveries[0].sequence, u64::MAX - 1);
         assert_eq!(batch.deliveries[1].sequence, u64::MAX);
         assert_eq!(batch.remaining_deliveries, 0);
-        assert_eq!(
-            unsafe { free_runtime_plugin_event_bytes(buffer) }.status_code(),
-            ZrStatusCode::Ok
-        );
 
         let idle = session
             .drain_plugin_events(7, subscription)
             .expect("an idle page at the maximum sequence remains representable");
         assert!(idle.is_empty());
-        assert!(idle.free.is_none());
     }
 
     #[test]
@@ -445,11 +385,7 @@ mod tests {
             ZrRuntimePluginEventDeliveryBatchV1::new(ZIRCON_RUNTIME_ABI_VERSION_V1, deliveries);
 
         let buffer = encode_plugin_event_batch(&batch).unwrap();
-        assert!(buffer.len <= RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES);
-        assert_eq!(
-            unsafe { free_runtime_plugin_event_bytes(buffer) }.status_code(),
-            ZrStatusCode::Ok
-        );
+        assert!(buffer.len() <= RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES);
 
         let oversized = ZrRuntimePluginEventDeliveryBatchV1::new(
             ZIRCON_RUNTIME_ABI_VERSION_V1,
@@ -495,11 +431,7 @@ mod tests {
 
         let buffer = encode_plugin_event_batch(&batch).unwrap();
 
-        assert!(buffer.len <= RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES);
-        assert_eq!(
-            unsafe { free_runtime_plugin_event_bytes(buffer) }.status_code(),
-            ZrStatusCode::Ok
-        );
+        assert!(buffer.len() <= RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES);
     }
 
     #[test]
@@ -525,10 +457,6 @@ mod tests {
         );
 
         let buffer = encode_plugin_event_batch(&batch).unwrap();
-        assert!(buffer.len <= RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES);
-        assert_eq!(
-            unsafe { free_runtime_plugin_event_bytes(buffer) }.status_code(),
-            ZrStatusCode::Ok
-        );
+        assert!(buffer.len() <= RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES);
     }
 }

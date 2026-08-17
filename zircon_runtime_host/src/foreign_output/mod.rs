@@ -19,8 +19,8 @@ pub use item_count::{
 pub use kind::RuntimeForeignOutputKind;
 pub use metrics::{RuntimeForeignOutputMetrics, RuntimeForeignOutputMetricsSnapshot};
 pub use owned_buffer::{
-    release_owned_buffer, release_owned_buffer_after_error, release_owned_buffer_after_result,
-    validate_owned_buffer, validate_owned_buffer_releasing_on_error,
+    release_owned_result, release_owned_result_after_error, release_owned_result_after_result,
+    validate_owned_result, validate_owned_result_releasing_on_error, RuntimeOwnedOutputReleaser,
 };
 pub use policy::{
     HOST_REQUEST_OUTPUT_BUDGET, OPERATION_RESULT_OUTPUT_BUDGET, PLUGIN_EVENT_OUTPUT_BUDGET,

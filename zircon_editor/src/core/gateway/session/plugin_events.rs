@@ -4,7 +4,7 @@ use zircon_runtime_host::foreign_output::{
     plugin_event_batch_item_count, RuntimeForeignOutputKind, PLUGIN_EVENT_OUTPUT_BUDGET,
 };
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimePluginEventDeliveryBatchV1,
+    ZrByteSlice, ZrOwnedResultV2, ZrRuntimePluginEventDeliveryBatchV1,
     ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimePluginEventSubscriptionHandle,
     ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
 };
@@ -79,11 +79,11 @@ impl SessionGateway {
     ) -> Result<EditorRuntimePluginEventPage, GatewayError> {
         self.ensure_output_available(RuntimeForeignOutputKind::PluginEvents)?;
         let drain = Self::required(self.api.drain_plugin_events, "runtime.plugin_event.drain")?;
-        let mut output = ZrOwnedByteBuffer::empty();
+        let mut output = ZrOwnedResultV2::empty();
         let runtime_drain_started = Instant::now();
         let status = unsafe { drain(self.session, subscription, &mut output) };
         let runtime_drain_elapsed = runtime_drain_started.elapsed();
-        let encoded_bytes = output.len;
+        let encoded_bytes = usize::try_from(output.len).unwrap_or(usize::MAX);
         let decode_started = Instant::now();
         let batch = self.decode_output(
             status,
@@ -93,7 +93,11 @@ impl SessionGateway {
             "drain runtime plugin events",
             "free runtime plugin events",
             |batch: &ZrRuntimePluginEventDeliveryBatchV1| {
-                ensure_output_abi(batch.abi_version, "runtime plugin event batch")?;
+                ensure_output_abi(
+                    batch.abi_version,
+                    ZIRCON_RUNTIME_ABI_VERSION_V1,
+                    "runtime plugin event batch",
+                )?;
                 if batch.deliveries.len() > ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1 {
                     return Err(GatewayError::Protocol {
                         message: format!(

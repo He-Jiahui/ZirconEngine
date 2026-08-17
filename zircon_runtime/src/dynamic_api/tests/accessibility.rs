@@ -12,7 +12,7 @@ fn capture_accessibility_tree_requires_output_pointer() {
         capture_accessibility_tree(
             session,
             accessibility_tree_request(ZIRCON_RUNTIME_ABI_VERSION_V1, 1),
-            core::ptr::null_mut::<ZrOwnedByteBuffer>(),
+            core::ptr::null_mut::<ZrOwnedResultV2>(),
         )
     };
 
@@ -27,7 +27,7 @@ fn capture_accessibility_tree_rejects_wrong_abi_after_session_action_admission()
     let capture_accessibility_tree = api
         .capture_accessibility_tree
         .expect("capture_accessibility_tree");
-    let mut output = ZrOwnedByteBuffer::empty();
+    let mut output = ZrOwnedResultV2::empty();
     let session = create_test_session(api);
 
     let status = unsafe {
@@ -49,7 +49,7 @@ fn capture_accessibility_tree_rejects_unknown_viewport() {
     let capture_accessibility_tree = api
         .capture_accessibility_tree
         .expect("capture_accessibility_tree");
-    let mut output = ZrOwnedByteBuffer::empty();
+    let mut output = ZrOwnedResultV2::empty();
     let session = create_test_session(api);
 
     let status = unsafe {
@@ -73,7 +73,7 @@ fn capture_accessibility_tree_returns_serialized_preview_snapshot() {
         .capture_accessibility_tree
         .expect("capture_accessibility_tree");
     let session = create_test_session(api);
-    let mut output = ZrOwnedByteBuffer::empty();
+    let mut output = ZrOwnedResultV2::empty();
 
     let status = unsafe {
         capture_accessibility_tree(
@@ -85,9 +85,9 @@ fn capture_accessibility_tree_returns_serialized_preview_snapshot() {
 
     assert_eq!(status.status_code(), ZrStatusCode::Ok);
     assert!(!output.is_empty());
-    assert!(output.free.is_some());
+    assert!(output.allocation.is_valid());
 
-    let bytes = unsafe { core::slice::from_raw_parts(output.data as *const u8, output.len) };
+    let bytes = output_bytes(&output);
     let snapshot: UiAccessibilityTreeSnapshot = serde_json::from_slice(bytes).unwrap();
     assert_eq!(snapshot.roots, vec![UiNodeId::new(1)]);
     assert_eq!(snapshot.nodes.len(), 1);
@@ -100,28 +100,8 @@ fn capture_accessibility_tree_returns_serialized_preview_snapshot() {
             == "runtime UI surface accessibility extraction unavailable in dynamic preview"
     }));
 
-    free_output(output);
+    release_output(session, output);
     destroy_test_session(api, session);
-}
-
-#[test]
-fn accessibility_free_rejects_wrong_owner_token() {
-    let mut bytes = vec![1_u8, 2, 3];
-    let buffer = ZrOwnedByteBuffer {
-        data: bytes.as_mut_ptr(),
-        len: bytes.len(),
-        capacity: bytes.capacity(),
-        owner_token: 0,
-        free: Some(free_runtime_accessibility_bytes),
-    };
-
-    let status = unsafe { free_runtime_accessibility_bytes(buffer) };
-
-    assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
-    assert_eq!(
-        status_message(status),
-        "invalid runtime accessibility buffer"
-    );
 }
 
 #[test]

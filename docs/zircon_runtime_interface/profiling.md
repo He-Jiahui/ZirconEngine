@@ -71,13 +71,13 @@ The interface crate does not own recorder state, file I/O, Tracy subscribers, ed
 
 ## Optional Runtime ABI Hook
 
-`ZrRuntimeProfileControlFnV1` has this ABI shape:
+`ZrRuntimeProfileControlFnV2` has this ABI shape:
 
 ```text
 unsafe extern "C" fn(session, request_json, out_json) -> ZrStatus
 ```
 
-The request and response are JSON-encoded `ProfileControlRequest` and `ProfileControlResponse` values carried through `ZrByteSlice` and `ZrOwnedByteBuffer`. The command enum supports:
+The request and response are JSON-encoded `ProfileControlRequest` and `ProfileControlResponse` values carried through `ZrByteSlice` and `ZrOwnedResultV2`. The command enum supports:
 
 - `start_capture` with optional config.
 - `stop_capture`.
@@ -85,11 +85,11 @@ The request and response are JSON-encoded `ProfileControlRequest` and `ProfileCo
 - `export_report`.
 - `reset`.
 
-`ZrRuntimeApiV2` places `profile_control` after `present_viewport`. The V2 table layout is validated through its operation tail, while capability-optional entries may still be null and are read through offset-gated accessors. The later `tick_frame` field follows `profile_control`; it is not part of profiling but follows the same nullable capability rule. There is no V1 table fallback.
+`ZrRuntimeApiV7` places `profile_control` after `submit_highlight_set`. The frozen V7 layout is validated exactly by each host before session creation; there is no older-table lookup or fallback.
 
 ## Buffer Ownership
 
-Dynamic runtime responses use `ZrOwnedByteBuffer` with a runtime-owned free callback. `zircon_runtime::dynamic_api::frame` owns the profile-response buffer token and free routine, mirroring the existing frame and accessibility JSON buffers. Hosts must call the returned free function when present after decoding the response.
+Dynamic runtime responses use immutable `ZrOwnedResultV2` views. The runtime registers each non-empty profile response under an opaque allocation id, and hosts must call the mandatory `ZrRuntimeApiV7::release_allocation` entry with the originating session handle after decoding or rejecting the response. The registry validates that session before removal; pointer, length, capacity, and allocator metadata are never trusted as release authority.
 
 ## Test Coverage
 

@@ -72,9 +72,9 @@ use crate::{
         tree::{UiDirtyFlags, UiInputPolicy, UiTree, UiTreeError, UiTreeNode, UiVisibility},
     },
     ZrByteSlice, ZrOwnedByteBuffer, ZrPluginApiV1, ZrPluginEventCallbackRequestV1,
-    ZrPluginEventCallbackResultV1, ZrRuntimeApiV6, ZrRuntimeCursorGrabModeV1,
+    ZrPluginEventCallbackResultV1, ZrRuntimeApiV7, ZrRuntimeCursorGrabModeV1,
     ZrRuntimeCursorHostRequestKindV1, ZrRuntimeCursorHostRequestV1, ZrRuntimeCursorPositionV1,
-    ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1,
+    ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2,
     ZrRuntimeGamepadRumbleRequestKindV1, ZrRuntimeGamepadRumbleRequestV1,
     ZrRuntimeHostFetchRequestV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
     ZrRuntimeImeCursorAreaV1, ZrRuntimeImeHostRequestKindV1, ZrRuntimeImeHostRequestV1,
@@ -82,7 +82,7 @@ use crate::{
     ZrRuntimeSessionHandle, ZrRuntimeTranslatedEventV1, ZrRuntimeViewportHandle,
     ZrRuntimeViewportMetricsV1, ZrRuntimeViewportSizeV1, ZrRuntimeWakeSinkV1, ZrStatus,
     ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2,
-    ZIRCON_RUNTIME_ABI_VERSION_V3, ZIRCON_RUNTIME_API_VERSION_V6,
+    ZIRCON_RUNTIME_ABI_VERSION_V3, ZIRCON_RUNTIME_API_VERSION_V7,
     ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1,
     ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1, ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1,
     ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1,
@@ -699,12 +699,13 @@ fn status_preserves_raw_codes_and_diagnostics() {
 
 #[test]
 fn runtime_api_table_records_size_and_version() {
-    let api = ZrRuntimeApiV6::empty();
+    let api = ZrRuntimeApiV7::empty();
 
-    assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V6);
-    assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV6>());
-    assert_eq!(core::mem::size_of::<ZrRuntimeApiV6>(), 192);
+    assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V7);
+    assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV7>());
+    assert_eq!(core::mem::size_of::<ZrRuntimeApiV7>(), 200);
     assert!(api.create_session.is_none());
+    assert!(api.release_allocation.is_none());
     assert!(api.capture_frame.is_none());
     assert!(api.bind_viewport_surface.is_none());
     assert!(api.unbind_viewport_surface.is_none());
@@ -724,63 +725,63 @@ fn runtime_api_table_records_size_and_version() {
     assert!(api.unwatch_world.is_none());
     assert!(api.drain_world_invalidations.is_none());
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV6, bind_viewport_surface),
-        core::mem::offset_of!(ZrRuntimeApiV6, capture_accessibility_tree)
-            + core::mem::size_of::<Option<crate::ZrRuntimeCaptureAccessibilityTreeFnV1>>()
+        core::mem::offset_of!(ZrRuntimeApiV7, bind_viewport_surface),
+        core::mem::offset_of!(ZrRuntimeApiV7, capture_accessibility_tree)
+            + core::mem::size_of::<Option<crate::ZrRuntimeCaptureAccessibilityTreeFnV2>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV6, submit_highlight_set),
-        core::mem::offset_of!(ZrRuntimeApiV6, present_viewport)
+        core::mem::offset_of!(ZrRuntimeApiV7, submit_highlight_set),
+        core::mem::offset_of!(ZrRuntimeApiV7, present_viewport)
             + core::mem::size_of::<Option<crate::ZrRuntimePresentViewportFnV1>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV6, profile_control),
-        core::mem::offset_of!(ZrRuntimeApiV6, submit_highlight_set)
+        core::mem::offset_of!(ZrRuntimeApiV7, profile_control),
+        core::mem::offset_of!(ZrRuntimeApiV7, submit_highlight_set)
             + core::mem::size_of_val(&api.submit_highlight_set)
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV6, tick_frame),
-        core::mem::offset_of!(ZrRuntimeApiV6, profile_control)
-            + core::mem::size_of::<Option<crate::ZrRuntimeProfileControlFnV1>>()
+        core::mem::offset_of!(ZrRuntimeApiV7, tick_frame),
+        core::mem::offset_of!(ZrRuntimeApiV7, profile_control)
+            + core::mem::size_of::<Option<crate::ZrRuntimeProfileControlFnV2>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV6, drain_host_requests),
-        core::mem::offset_of!(ZrRuntimeApiV6, tick_frame)
+        core::mem::offset_of!(ZrRuntimeApiV7, drain_host_requests),
+        core::mem::offset_of!(ZrRuntimeApiV7, tick_frame)
             + core::mem::size_of::<Option<crate::ZrRuntimeTickFrameFnV2>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV6, subscribe_plugin_event),
-        core::mem::offset_of!(ZrRuntimeApiV6, drain_host_requests)
-            + core::mem::size_of::<Option<crate::ZrRuntimeDrainHostRequestsFnV1>>()
+        core::mem::offset_of!(ZrRuntimeApiV7, subscribe_plugin_event),
+        core::mem::offset_of!(ZrRuntimeApiV7, drain_host_requests)
+            + core::mem::size_of::<Option<crate::ZrRuntimeDrainHostRequestsFnV2>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV6, unsubscribe_plugin_event),
-        core::mem::offset_of!(ZrRuntimeApiV6, subscribe_plugin_event)
+        core::mem::offset_of!(ZrRuntimeApiV7, unsubscribe_plugin_event),
+        core::mem::offset_of!(ZrRuntimeApiV7, subscribe_plugin_event)
             + core::mem::size_of::<Option<crate::ZrRuntimeSubscribePluginEventFnV1>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV6, drain_plugin_events),
-        core::mem::offset_of!(ZrRuntimeApiV6, unsubscribe_plugin_event)
+        core::mem::offset_of!(ZrRuntimeApiV7, drain_plugin_events),
+        core::mem::offset_of!(ZrRuntimeApiV7, unsubscribe_plugin_event)
             + core::mem::size_of::<Option<crate::ZrRuntimeUnsubscribePluginEventFnV1>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV6, query_world),
-        core::mem::offset_of!(ZrRuntimeApiV6, harvest_operation)
-            + core::mem::size_of::<Option<crate::ZrRuntimeHarvestOperationFnV1>>()
+        core::mem::offset_of!(ZrRuntimeApiV7, query_world),
+        core::mem::offset_of!(ZrRuntimeApiV7, harvest_operation)
+            + core::mem::size_of::<Option<crate::ZrRuntimeHarvestOperationFnV2>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV6, watch_world),
-        core::mem::offset_of!(ZrRuntimeApiV6, query_world)
-            + core::mem::size_of::<Option<crate::ZrRuntimeQueryWorldFnV1>>()
+        core::mem::offset_of!(ZrRuntimeApiV7, watch_world),
+        core::mem::offset_of!(ZrRuntimeApiV7, query_world)
+            + core::mem::size_of::<Option<crate::ZrRuntimeQueryWorldFnV2>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV6, unwatch_world),
-        core::mem::offset_of!(ZrRuntimeApiV6, watch_world)
+        core::mem::offset_of!(ZrRuntimeApiV7, unwatch_world),
+        core::mem::offset_of!(ZrRuntimeApiV7, watch_world)
             + core::mem::size_of::<Option<crate::ZrRuntimeWatchWorldFnV1>>()
     );
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV6, drain_world_invalidations),
-        core::mem::offset_of!(ZrRuntimeApiV6, unwatch_world)
+        core::mem::offset_of!(ZrRuntimeApiV7, drain_world_invalidations),
+        core::mem::offset_of!(ZrRuntimeApiV7, unwatch_world)
             + core::mem::size_of::<Option<crate::ZrRuntimeUnwatchWorldFnV1>>()
     );
 }
@@ -1564,7 +1565,7 @@ fn runtime_frame_request_and_frame_carry_size_and_owned_rgba() {
         ZrRuntimeViewportHandle::new(7),
         ZrRuntimeViewportSizeV1::new(640, 360),
     );
-    let frame = ZrRuntimeFrameV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
+    let frame = ZrRuntimeFrameV2::empty(ZIRCON_RUNTIME_ABI_VERSION_V2);
 
     assert_eq!(request.viewport.raw(), 7);
     assert_eq!(request.size.width, 640);

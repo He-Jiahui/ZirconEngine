@@ -1,5 +1,6 @@
 use core::ptr;
 
+use crate::handles::ZrRuntimeAllocationId;
 use crate::status::ZrStatus;
 
 #[repr(C)]
@@ -90,5 +91,28 @@ impl ZrOwnedByteBuffer {
 
     pub const fn is_empty(self) -> bool {
         self.data.is_null() && self.len == 0 && self.capacity == 0
+    }
+}
+
+/// Immutable runtime-owned output whose allocation is released by opaque ID.
+#[repr(C)]
+#[derive(Debug, PartialEq, Eq)]
+pub struct ZrOwnedResultV2 {
+    pub data: *const u8,
+    pub len: u64,
+    pub allocation: ZrRuntimeAllocationId,
+}
+
+impl ZrOwnedResultV2 {
+    pub const fn empty() -> Self {
+        Self {
+            data: ptr::null(),
+            len: 0,
+            allocation: ZrRuntimeAllocationId::invalid(),
+        }
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        self.data.is_null() && self.len == 0 && !self.allocation.is_valid()
     }
 }

@@ -3,21 +3,20 @@ use std::time::Duration;
 
 use zircon_runtime_interface::world_sync::{AssetReloadFrameApplyReportDto, WorldFact};
 use zircon_runtime_interface::{
-    RuntimeInputDiagnosticsSnapshot, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1,
-    ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
-    ui::accessibility::UiAccessibilityTreeSnapshot,
+    ui::accessibility::UiAccessibilityTreeSnapshot, RuntimeInputDiagnosticsSnapshot,
+    ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeFrameRequestV1, ZrRuntimeHostRequestBatchV1,
+    ZrRuntimeHostRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
-use crate::core::CoreRuntime;
 use crate::core::framework::channel::ChannelWakeCallback;
 use crate::core::framework::input::{InputEvent, InputManager};
 use crate::core::framework::render::RenderViewportSurfaceDescriptor;
-use crate::core::manager::{ManagerServiceHandle, resolve_manager_service};
+use crate::core::manager::{resolve_manager_service, ManagerServiceHandle};
 use crate::core::math::{UVec2, Vec2};
+use crate::core::CoreRuntime;
 use crate::diagnostic_log::{
-    DiagnosticStoreLogSchedule, DynamicProcessLogLease, write_diagnostic_store_snapshot, write_log,
-    write_log_lazy,
+    write_diagnostic_store_snapshot, write_log, write_log_lazy, DiagnosticStoreLogSchedule,
+    DynamicProcessLogLease,
 };
 use crate::operation::RuntimeOperationService;
 use crate::plugin::RuntimePluginRegistrationReport;
@@ -27,7 +26,7 @@ use crate::scene::{
 };
 
 use super::super::camera_controller::RuntimeCameraController;
-use super::super::frame::encode_frame;
+use super::super::frame::{encode_frame, EncodedRuntimeFrame};
 use super::super::runtime_loop::RuntimeRenderBridge;
 use super::construction;
 use super::event_mirror;
@@ -40,7 +39,7 @@ use super::project::RuntimeProjectConfig;
 use super::registry::RuntimeFrameDemand;
 use super::runtime_ui::RuntimeUiSurfaceSet;
 use super::scene_asset_reload_diagnostics::record_scene_asset_reload_frame_report;
-use super::{DEFAULT_VIEWPORT, RuntimeDynamicSessionError, RuntimeDynamicSessionResult};
+use super::{RuntimeDynamicSessionError, RuntimeDynamicSessionResult, DEFAULT_VIEWPORT};
 
 const DYNAMIC_RUNTIME_DIAGNOSTIC_LOG_SCOPE: &str = "runtime_diagnostics";
 const DYNAMIC_SESSION_DESTROY_DRAIN_TIMEOUT: Duration = Duration::ZERO;
@@ -351,7 +350,7 @@ impl RuntimeDynamicSession {
     pub(super) fn capture_frame(
         &mut self,
         request: ZrRuntimeFrameRequestV1,
-    ) -> RuntimeDynamicSessionResult<ZrRuntimeFrameV1> {
+    ) -> RuntimeDynamicSessionResult<EncodedRuntimeFrame> {
         let requested = UVec2::new(request.size.width.max(1), request.size.height.max(1));
         self.resize_viewport(requested);
         let extract = self.current_extract();
@@ -469,8 +468,8 @@ mod tests {
 
     use super::super::profile::RuntimeDynamicSessionProfile;
     use super::{
-        RuntimeDynamicSession, RuntimeInputDiagnostics, asset_reload_frame_demand,
-        asset_reload_world_fact,
+        asset_reload_frame_demand, asset_reload_world_fact, RuntimeDynamicSession,
+        RuntimeInputDiagnostics,
     };
 
     #[test]
@@ -492,15 +491,13 @@ mod tests {
         );
 
         assert!(session.shutdown_before_library_unload());
-        assert!(
-            handle
-                .inner
-                .modules
-                .lock()
-                .expect("test module registry")
-                .values()
-                .all(|entry| entry.lifecycle == LifecycleState::Unloaded)
-        );
+        assert!(handle
+            .inner
+            .modules
+            .lock()
+            .expect("test module registry")
+            .values()
+            .all(|entry| entry.lifecycle == LifecycleState::Unloaded));
     }
 
     #[test]

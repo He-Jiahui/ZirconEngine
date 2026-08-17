@@ -21,7 +21,7 @@ use crate::{
     dynamic_api::{create_linked_runtime_session, RuntimeDynamicSessionError},
 };
 use zircon_runtime_interface::{
-    ZrOwnedByteBuffer, ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventSubscribeRequestV1,
+    ZrOwnedResultV2, ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventSubscribeRequestV1,
     ZrRuntimePluginEventSubscriptionHandle,
 };
 
@@ -77,11 +77,11 @@ fn linked_plugin_event_drain_returns_empty_owned_buffer_for_idle_subscription() 
     };
     assert_eq!(status.status_code(), ZrStatusCode::Ok, "{status:?}");
 
-    let mut output = ZrOwnedByteBuffer::empty();
+    let mut output = ZrOwnedResultV2::empty();
     let status = unsafe { drain(session, subscription, &mut output) };
     assert_eq!(status.status_code(), ZrStatusCode::Ok, "{status:?}");
     assert!(output.is_empty());
-    assert!(output.free.is_none());
+    assert!(!output.allocation.is_valid());
 
     destroy_test_session(api, session);
 }
@@ -220,23 +220,23 @@ fn drain_plugin_event_batch(
     drain: unsafe extern "C" fn(
         ZrRuntimeSessionHandle,
         ZrRuntimePluginEventSubscriptionHandle,
-        *mut ZrOwnedByteBuffer,
+        *mut ZrOwnedResultV2,
     ) -> ZrStatus,
     session: ZrRuntimeSessionHandle,
     subscription: ZrRuntimePluginEventSubscriptionHandle,
 ) -> Option<ZrRuntimePluginEventDeliveryBatchV1> {
-    let mut output = ZrOwnedByteBuffer::empty();
+    let mut output = ZrOwnedResultV2::empty();
     let status = unsafe { drain(session, subscription, &mut output) };
     assert_eq!(status.status_code(), ZrStatusCode::Ok, "{status:?}");
     if output.is_empty() {
-        assert!(output.free.is_none());
+        assert!(!output.allocation.is_valid());
         return None;
     }
-    assert!(output.len <= RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES);
-    let bytes = unsafe { core::slice::from_raw_parts(output.data, output.len) };
+    assert!(output.len <= RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES as u64);
+    let bytes = output_bytes(&output);
     let batch = serde_json::from_slice::<ZrRuntimePluginEventDeliveryBatchV1>(bytes).unwrap();
     assert!(batch.deliveries.len() <= RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES);
-    free_output(output);
+    release_output(session, output);
     Some(batch)
 }
 

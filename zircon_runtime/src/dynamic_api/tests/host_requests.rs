@@ -6,8 +6,7 @@ fn drain_host_requests_requires_output_pointer() {
     let drain_host_requests = api.drain_host_requests.expect("drain_host_requests");
     let session = create_test_session(api);
 
-    let status =
-        unsafe { drain_host_requests(session, core::ptr::null_mut::<ZrOwnedByteBuffer>()) };
+    let status = unsafe { drain_host_requests(session, core::ptr::null_mut::<ZrOwnedResultV2>()) };
 
     destroy_test_session(api, session);
     assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
@@ -18,7 +17,7 @@ fn drain_host_requests_requires_output_pointer() {
 fn drain_host_requests_rejects_unknown_session() {
     let api = runtime_api();
     let drain_host_requests = api.drain_host_requests.expect("drain_host_requests");
-    let mut output = ZrOwnedByteBuffer::empty();
+    let mut output = ZrOwnedResultV2::empty();
 
     let status = unsafe { drain_host_requests(ZrRuntimeSessionHandle::new(99_999), &mut output) };
 
@@ -68,13 +67,13 @@ fn dynamic_session_drains_runtime_ime_cursor_area_and_surrounding_text_requests_
         "",
     );
 
-    let mut output = ZrOwnedByteBuffer::empty();
+    let mut output = ZrOwnedResultV2::empty();
     assert_session_status(
         unsafe { drain_host_requests(session, &mut output) },
         ZrStatusCode::Ok,
         "",
     );
-    let batch = host_request_batch_from_output(output);
+    let batch = host_request_batch_from_output(session, output);
     assert_eq!(batch.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
     assert_eq!(batch.requests.len(), 2);
     assert!(matches!(
@@ -96,7 +95,7 @@ fn dynamic_session_drains_runtime_ime_cursor_area_and_surrounding_text_requests_
                 && request.target_viewport == Some(default_viewport())
     ));
 
-    let mut second_output = ZrOwnedByteBuffer::empty();
+    let mut second_output = ZrOwnedResultV2::empty();
     assert_session_status(
         unsafe { drain_host_requests(session, &mut second_output) },
         ZrStatusCode::Ok,

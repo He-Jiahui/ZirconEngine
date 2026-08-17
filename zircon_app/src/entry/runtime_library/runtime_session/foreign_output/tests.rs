@@ -1,9 +1,15 @@
+use std::collections::HashMap;
+use std::sync::atomic::AtomicU64;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Barrier, Mutex, OnceLock};
 use std::time::Duration;
 
 use serde::Deserialize;
-use zircon_runtime_interface::{ZrByteSlice, ZrOwnedByteBuffer, ZrStatus, ZrStatusCode};
+use zircon_runtime_host::foreign_output::RuntimeOwnedOutputReleaser;
+use zircon_runtime_interface::{
+    ZrByteSlice, ZrOwnedResultV2, ZrRuntimeAllocationId, ZrRuntimeReleaseAllocationFnV2,
+    ZrRuntimeSessionHandle, ZrStatus, ZrStatusCode,
+};
 
 use super::{ForeignOutputBudget, ForeignOutputKind, ForeignOutputState};
 use zircon_runtime_host::foreign_output::RuntimeForeignOutputErrorKind as RuntimeLibraryErrorKind;
@@ -19,6 +25,8 @@ static MALFORMED_RELEASED: AtomicBool = AtomicBool::new(false);
 static RACE_OUTER_RELEASED: AtomicBool = AtomicBool::new(false);
 static RACE_TRIGGER_RELEASED: AtomicBool = AtomicBool::new(false);
 static RELEASE_RACE: OnceLock<Mutex<Option<Arc<ReleaseRace>>>> = OnceLock::new();
+static NEXT_ALLOCATION_ID: AtomicU64 = AtomicU64::new(1);
+static TEST_ALLOCATIONS: OnceLock<Mutex<HashMap<u64, Box<[u8]>>>> = OnceLock::new();
 
 struct ReleaseRace {
     entered: Barrier,
@@ -42,87 +50,111 @@ struct TestPayload {
     values: Vec<u32>,
 }
 
-unsafe extern "C" fn release_accepted(output: ZrOwnedByteBuffer) -> ZrStatus {
-    release_vec(output);
+unsafe extern "C" fn release_accepted(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_vec(allocation);
     ACCEPTED_RELEASED.store(true, Ordering::Release);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn release_oversized(output: ZrOwnedByteBuffer) -> ZrStatus {
-    release_vec(output);
+unsafe extern "C" fn release_oversized(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_vec(allocation);
     OVERSIZED_RELEASED.store(true, Ordering::Release);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn release_call_failure(output: ZrOwnedByteBuffer) -> ZrStatus {
-    release_vec(output);
+unsafe extern "C" fn release_call_failure(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_vec(allocation);
     CALL_FAILURE_RELEASED.store(true, Ordering::Release);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn reject_release(output: ZrOwnedByteBuffer) -> ZrStatus {
-    release_vec(output);
+unsafe extern "C" fn reject_release(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_vec(allocation);
     ZrStatus::new(
         ZrStatusCode::Error,
         ZrByteSlice::from_static(RELEASE_FAILURE_DIAGNOSTIC),
     )
 }
 
-unsafe extern "C" fn release_empty(output: ZrOwnedByteBuffer) -> ZrStatus {
-    if !output.data.is_null() {
-        unsafe {
-            drop(Box::from_raw(output.data));
-        }
-    }
+unsafe extern "C" fn release_empty(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_vec(allocation);
     EMPTY_RELEASED.store(true, Ordering::Release);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn release_fused_return(output: ZrOwnedByteBuffer) -> ZrStatus {
-    release_vec(output);
+unsafe extern "C" fn release_fused_return(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_vec(allocation);
     FUSED_RETURN_RELEASED.store(true, Ordering::Release);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn release_malformed(output: ZrOwnedByteBuffer) -> ZrStatus {
-    if !output.data.is_null() {
-        unsafe {
-            drop(Box::from_raw(output.data));
-        }
-    }
+unsafe extern "C" fn release_malformed(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_vec(allocation);
     MALFORMED_RELEASED.store(true, Ordering::Release);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn release_failed_ownership(output: ZrOwnedByteBuffer) -> ZrStatus {
-    if !output.data.is_null() {
-        unsafe {
-            drop(Box::from_raw(output.data));
-        }
-    }
+unsafe extern "C" fn release_failed_ownership(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_vec(allocation);
     FAILED_OWNERSHIP_RELEASED.store(true, Ordering::Release);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn release_item_limited(output: ZrOwnedByteBuffer) -> ZrStatus {
-    release_vec(output);
+unsafe extern "C" fn release_item_limited(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_vec(allocation);
     ITEM_LIMIT_RELEASED.store(true, Ordering::Release);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn release_race_outer(output: ZrOwnedByteBuffer) -> ZrStatus {
-    release_vec(output);
+unsafe extern "C" fn release_race_outer(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_vec(allocation);
     RACE_OUTER_RELEASED.store(true, Ordering::Release);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn release_race_trigger(output: ZrOwnedByteBuffer) -> ZrStatus {
-    release_vec(output);
+unsafe extern "C" fn release_race_trigger(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_vec(allocation);
     RACE_TRIGGER_RELEASED.store(true, Ordering::Release);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn release_while_another_call_fuses(output: ZrOwnedByteBuffer) -> ZrStatus {
+unsafe extern "C" fn release_while_another_call_fuses(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
     let synchronization = RELEASE_RACE
         .get()
         .expect("release-race synchronization should be installed")
@@ -133,45 +165,48 @@ unsafe extern "C" fn release_while_another_call_fuses(output: ZrOwnedByteBuffer)
         .clone();
     synchronization.entered.wait();
     synchronization.resume.wait();
-    release_vec(output);
+    release_vec(allocation);
     ZrStatus::ok()
 }
 
-fn release_vec(output: ZrOwnedByteBuffer) {
-    if !output.data.is_null() {
-        unsafe {
-            drop(Vec::from_raw_parts(
-                output.data,
-                output.len,
-                output.capacity,
-            ));
-        }
-    }
+fn release_vec(allocation: ZrRuntimeAllocationId) {
+    TEST_ALLOCATIONS
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .remove(&allocation.raw())
+        .expect("test allocation must be released exactly once");
 }
 
 fn owned_json(
     value: &impl serde::Serialize,
-    release: unsafe extern "C" fn(ZrOwnedByteBuffer) -> ZrStatus,
-) -> ZrOwnedByteBuffer {
+    release: ZrRuntimeReleaseAllocationFnV2,
+) -> ZrOwnedResultV2 {
     owned_bytes(
         serde_json::to_vec(value).expect("serialize test payload"),
         release,
     )
 }
 
-fn owned_bytes(
-    mut bytes: Vec<u8>,
-    release: unsafe extern "C" fn(ZrOwnedByteBuffer) -> ZrStatus,
-) -> ZrOwnedByteBuffer {
-    let output = ZrOwnedByteBuffer {
-        data: bytes.as_mut_ptr(),
-        len: bytes.len(),
-        capacity: bytes.capacity(),
-        owner_token: 1,
-        free: Some(release),
-    };
-    std::mem::forget(bytes);
-    output
+fn owned_bytes(bytes: Vec<u8>, _release: ZrRuntimeReleaseAllocationFnV2) -> ZrOwnedResultV2 {
+    let bytes = bytes.into_boxed_slice();
+    let data = bytes.as_ptr();
+    let len = bytes.len() as u64;
+    let allocation = ZrRuntimeAllocationId::new(NEXT_ALLOCATION_ID.fetch_add(1, Ordering::Relaxed));
+    TEST_ALLOCATIONS
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .insert(allocation.raw(), bytes);
+    ZrOwnedResultV2 {
+        data,
+        len,
+        allocation,
+    }
+}
+
+fn releaser(release: ZrRuntimeReleaseAllocationFnV2) -> RuntimeOwnedOutputReleaser {
+    RuntimeOwnedOutputReleaser::new(ZrRuntimeSessionHandle::new(1), release)
 }
 
 fn budget(max_bytes: usize, max_items: usize) -> ForeignOutputBudget {
@@ -183,11 +218,12 @@ fn accepted_payload_is_released_and_records_per_kind_metrics() {
     ACCEPTED_RELEASED.store(false, Ordering::Release);
     let state = ForeignOutputState::default();
     let output = owned_json(&serde_json::json!({ "values": [1, 2] }), release_accepted);
-    let encoded_len = output.len as u64;
+    let encoded_len = output.len;
 
     let decoded = state
         .decode_json::<TestPayload, &'static str>(
             output,
+            releaser(release_accepted),
             ForeignOutputKind::HostRequests,
             budget(1_024, 4),
             "decode test host requests",
@@ -219,6 +255,7 @@ fn failed_foreign_call_releases_output_without_fusing_when_cleanup_succeeds() {
                 ZrByteSlice::from_static(CALL_FAILURE_DIAGNOSTIC),
             ),
             output,
+            releaser(release_call_failure),
             ForeignOutputKind::ProfileResponse,
             "control test profiling",
             "free test profile response",
@@ -245,6 +282,7 @@ fn failed_call_cleanup_failure_fuses_with_both_diagnostics() {
                 ZrByteSlice::from_static(CALL_FAILURE_DIAGNOSTIC),
             ),
             output,
+            releaser(reject_release),
             ForeignOutputKind::OperationResult,
             "harvest test operation",
             "free test operation output",
@@ -266,13 +304,9 @@ fn failed_call_cleanup_failure_fuses_with_both_diagnostics() {
 fn failed_call_with_invalid_output_ownership_releases_and_fuses() {
     FAILED_OWNERSHIP_RELEASED.store(false, Ordering::Release);
     let state = ForeignOutputState::default();
-    let output = ZrOwnedByteBuffer {
-        data: Box::into_raw(Box::new(0_u8)),
-        len: 2,
-        capacity: 1,
-        owner_token: 4,
-        free: Some(release_failed_ownership),
-    };
+    let mut output = owned_bytes(vec![0_u8], release_failed_ownership);
+    output.data = core::ptr::null();
+    output.len = 2;
 
     let error = state
         .ensure_call_succeeded(
@@ -281,6 +315,7 @@ fn failed_call_with_invalid_output_ownership_releases_and_fuses() {
                 ZrByteSlice::from_static(CALL_FAILURE_DIAGNOSTIC),
             ),
             output,
+            releaser(release_failed_ownership),
             ForeignOutputKind::ProfileResponse,
             "control test profiling",
             "free failed test profile response",
@@ -289,26 +324,21 @@ fn failed_call_with_invalid_output_ownership_releases_and_fuses() {
 
     assert_eq!(error.kind(), RuntimeLibraryErrorKind::ProtocolViolation);
     assert!(error.to_string().contains("invalid output ownership"));
-    assert!(error.to_string().contains("len 2 exceeds capacity 1"));
+    assert!(error.to_string().contains("returned null data with len 2"));
     assert!(FAILED_OWNERSHIP_RELEASED.load(Ordering::Acquire));
     assert!(state.is_protocol_failed());
 }
 
 #[test]
-fn empty_allowed_payload_is_released_without_decode() {
+fn canonical_empty_payload_skips_release_and_decode() {
     EMPTY_RELEASED.store(false, Ordering::Release);
     let state = ForeignOutputState::default();
-    let output = ZrOwnedByteBuffer {
-        data: Box::into_raw(Box::new(0_u8)),
-        len: 0,
-        capacity: 1,
-        owner_token: 2,
-        free: Some(release_empty),
-    };
+    let output = ZrOwnedResultV2::empty();
 
     let decoded = state
         .decode_json::<TestPayload, &'static str>(
             output,
+            releaser(release_empty),
             ForeignOutputKind::HostRequests,
             budget(1_024, 4).allow_empty(),
             "decode empty test host requests",
@@ -318,7 +348,7 @@ fn empty_allowed_payload_is_released_without_decode() {
         .expect("an empty page is a valid no-work result");
 
     assert_eq!(decoded, None);
-    assert!(EMPTY_RELEASED.load(Ordering::Acquire));
+    assert!(!EMPTY_RELEASED.load(Ordering::Acquire));
     assert!(!state.is_protocol_failed());
 }
 
@@ -326,27 +356,24 @@ fn empty_allowed_payload_is_released_without_decode() {
 fn malformed_storage_is_released_before_protocol_failure() {
     MALFORMED_RELEASED.store(false, Ordering::Release);
     let state = ForeignOutputState::default();
-    let output = ZrOwnedByteBuffer {
-        data: Box::into_raw(Box::new(0_u8)),
-        len: 2,
-        capacity: 1,
-        owner_token: 3,
-        free: Some(release_malformed),
-    };
+    let mut output = owned_bytes(vec![0_u8], release_malformed);
+    output.data = core::ptr::null();
+    output.len = 2;
 
     let error = state
         .decode_json::<TestPayload, &'static str>(
             output,
+            releaser(release_malformed),
             ForeignOutputKind::ProfileResponse,
             budget(1_024, 4),
             "decode malformed test profile response",
             "free malformed test profile response",
             |_| Ok(1),
         )
-        .expect_err("malformed ownership metadata must fail before slicing");
+        .expect_err("malformed owned result must fail before slicing");
 
     assert_eq!(error.kind(), RuntimeLibraryErrorKind::ProtocolViolation);
-    assert!(error.to_string().contains("len 2 exceeds capacity 1"));
+    assert!(error.to_string().contains("returned null data with len 2"));
     assert!(MALFORMED_RELEASED.load(Ordering::Acquire));
     assert!(state.is_protocol_failed());
 }
@@ -359,11 +386,12 @@ fn oversized_payload_is_released_before_the_session_fuses() {
         &serde_json::json!({ "values": [1, 2, 3] }),
         release_oversized,
     );
-    let encoded_len = output.len;
+    let encoded_len = usize::try_from(output.len).unwrap();
 
     let error = state
         .decode_json::<TestPayload, &'static str>(
             output,
+            releaser(release_oversized),
             ForeignOutputKind::OperationResult,
             budget(encoded_len - 1, 4),
             "decode test operation result",
@@ -396,9 +424,10 @@ fn buffer_returned_after_another_thread_fuses_is_still_released() {
     FUSED_RETURN_RELEASED.store(false, Ordering::Release);
     let state = ForeignOutputState::default();
     let first = owned_json(&serde_json::json!({ "values": [1, 2] }), release_oversized);
-    let first_len = first.len;
+    let first_len = usize::try_from(first.len).unwrap();
     let _ = state.decode_json::<TestPayload, &'static str>(
         first,
+        releaser(release_oversized),
         ForeignOutputKind::OperationResult,
         budget(first_len - 1, 4),
         "decode first test operation",
@@ -411,6 +440,7 @@ fn buffer_returned_after_another_thread_fuses_is_still_released() {
     let error = state
         .decode_json::<TestPayload, &'static str>(
             returned_after_fuse,
+            releaser(release_fused_return),
             ForeignOutputKind::HostRequests,
             budget(1_024, 4),
             "decode raced test host requests",
@@ -433,6 +463,7 @@ fn decode_rechecks_the_session_fuse_after_schema_validation() {
     let error = state
         .decode_json::<TestPayload, &'static str>(
             outer,
+            releaser(release_race_outer),
             ForeignOutputKind::HostRequests,
             budget(1_024, 4),
             "decode raced outer host requests",
@@ -442,9 +473,10 @@ fn decode_rechecks_the_session_fuse_after_schema_validation() {
                     &serde_json::json!({ "values": [3, 4] }),
                     release_race_trigger,
                 );
-                let trigger_len = trigger.len;
+                let trigger_len = usize::try_from(trigger.len).unwrap();
                 let _ = state.decode_json::<TestPayload, &'static str>(
                     trigger,
+                    releaser(release_race_trigger),
                     ForeignOutputKind::OperationResult,
                     budget(trigger_len - 1, 4),
                     "decode raced fuse trigger",
@@ -485,6 +517,7 @@ fn payload_released_while_another_call_fuses_is_not_accepted() {
             );
             state_for_decode.decode_json::<TestPayload, &'static str>(
                 output,
+                releaser(release_while_another_call_fuses),
                 ForeignOutputKind::HostRequests,
                 budget(1_024, 4),
                 "decode release-raced host requests",
@@ -498,10 +531,11 @@ fn payload_released_while_another_call_fuses_is_not_accepted() {
             &serde_json::json!({ "values": [3, 4] }),
             release_race_trigger,
         );
-        let trigger_len = trigger.len;
+        let trigger_len = usize::try_from(trigger.len).unwrap();
         state
             .decode_json::<TestPayload, &'static str>(
                 trigger,
+                releaser(release_race_trigger),
                 ForeignOutputKind::OperationResult,
                 budget(trigger_len - 1, 4),
                 "decode concurrent fuse trigger",
@@ -543,6 +577,7 @@ fn item_budget_violation_releases_and_fuses_after_schema_decode() {
     let error = state
         .decode_json::<TestPayload, &'static str>(
             output,
+            releaser(release_item_limited),
             ForeignOutputKind::HostRequests,
             budget(1_024, 2),
             "decode test host requests",

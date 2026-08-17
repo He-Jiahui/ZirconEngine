@@ -2,13 +2,14 @@ use std::ptr;
 
 use zircon_runtime_interface::world_sync::{WatchRegistration, WatchToken, WorldQuery};
 use zircon_runtime_interface::{
-    ProfileControlCommand, ProfileControlRequest, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZIRCON_RUNTIME_ABI_VERSION_V3, ZrByteSlice, ZrOwnedByteBuffer,
-    ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1,
-    ZrRuntimeFrameDemandV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeHighlightSetV1,
+    ProfileControlCommand, ProfileControlRequest, ZrByteSlice, ZrOwnedResultV2,
+    ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeAllocationId,
+    ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1,
+    ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2, ZrRuntimeHighlightSetV1,
     ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventSubscribeRequestV1,
     ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionConfigV3, ZrRuntimeSessionHandle,
-    ZrRuntimeViewportHandle, ZrStatus,
+    ZrRuntimeViewportHandle, ZrStatus, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_ABI_VERSION_V3,
 };
 
 use super::super::frame::{
@@ -17,16 +18,17 @@ use super::super::frame::{
     write_profile_response, write_world_sync_payload,
 };
 use super::super::surface::render_surface_descriptor;
-use super::RuntimeProjectError;
 use super::diagnostics::runtime_diagnostics_response;
 use super::profile::RuntimeDynamicSessionProfile;
 use super::project::RuntimeProjectConfig;
 use super::registry::{
-    RuntimeWakeRegistration, destroy_session_slot, insert_session_with_wake, with_session,
-    with_session_activity,
+    destroy_session_slot, insert_session_with_wake, register_runtime_allocation_in_action,
+    release_runtime_allocation, with_session, with_session_activity, with_session_result_finalized,
+    RuntimeAllocationKind, RuntimeWakeRegistration,
 };
 use super::status::{error_status, invalid_argument, not_found, unsupported_version};
-use super::{DEFAULT_VIEWPORT, RuntimeDynamicSession, RuntimeDynamicSessionError, event_mirror};
+use super::RuntimeProjectError;
+use super::{event_mirror, RuntimeDynamicSession, RuntimeDynamicSessionError, DEFAULT_VIEWPORT};
 
 pub(in crate::dynamic_api) unsafe fn create_session(
     config: ZrRuntimeSessionConfigV3,
@@ -115,6 +117,13 @@ pub(in crate::dynamic_api) unsafe fn destroy_session(handle: ZrRuntimeSessionHan
     destroy_session_slot(handle)
 }
 
+pub(in crate::dynamic_api) unsafe fn release_allocation(
+    session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_runtime_allocation(session, allocation)
+}
+
 pub(in crate::dynamic_api) unsafe fn handle_event(
     handle: ZrRuntimeSessionHandle,
     event: ZrRuntimeEventV1,
@@ -131,57 +140,87 @@ pub(in crate::dynamic_api) unsafe fn handle_event(
 pub(in crate::dynamic_api) unsafe fn capture_frame(
     handle: ZrRuntimeSessionHandle,
     request: ZrRuntimeFrameRequestV1,
-    out_frame: *mut ZrRuntimeFrameV1,
+    out_frame: *mut ZrRuntimeFrameV2,
 ) -> ZrStatus {
     crate::profile_frame!("runtime", "capture_frame");
     crate::profile_scope!("runtime", "dynamic_api", "capture_frame");
-    with_session(handle, |session| {
-        if request.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
-            return unsupported_version();
-        }
-        if request.viewport != DEFAULT_VIEWPORT {
-            return not_found(b"runtime viewport not found");
-        }
-        if out_frame.is_null() {
-            return write_frame(
+    if out_frame.is_null() {
+        return write_frame(
+            out_frame,
+            ZrRuntimeFrameV2::empty(ZIRCON_RUNTIME_ABI_VERSION_V2),
+        );
+    }
+    match with_session_result_finalized(
+        handle,
+        |session| {
+            if request.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
+                return Err(unsupported_version());
+            }
+            if request.viewport != DEFAULT_VIEWPORT {
+                return Err(not_found(b"runtime viewport not found"));
+            }
+            session.capture_frame(request).map_err(error_status)
+        },
+        |active_handle, frame| {
+            let rgba = register_runtime_allocation_in_action(
+                active_handle,
+                RuntimeAllocationKind::Frame,
+                frame.rgba,
+            )?;
+            Ok(write_frame(
                 out_frame,
-                ZrRuntimeFrameV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1),
-            );
-        }
-        match session.capture_frame(request) {
-            Ok(frame) => write_frame(out_frame, frame),
-            Err(error) => error_status(error),
-        }
-    })
+                ZrRuntimeFrameV2 {
+                    abi_version: ZIRCON_RUNTIME_ABI_VERSION_V2,
+                    width: frame.width,
+                    height: frame.height,
+                    generation: frame.generation,
+                    rgba,
+                },
+            ))
+        },
+    ) {
+        Ok(status) | Err(status) => status,
+    }
 }
 
 pub(in crate::dynamic_api) unsafe fn capture_accessibility_tree(
     handle: ZrRuntimeSessionHandle,
     request: ZrRuntimeAccessibilityTreeRequestV1,
-    out_tree: *mut ZrOwnedByteBuffer,
+    out_tree: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
     crate::profile_scope!("runtime", "dynamic_api", "capture_accessibility_tree");
-    with_session(handle, |session| {
-        if request.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
-            return unsupported_version();
-        }
-        if request.viewport != DEFAULT_VIEWPORT {
-            return not_found(b"runtime viewport not found");
-        }
-        if out_tree.is_null() {
-            return write_accessibility_tree(out_tree, ZrOwnedByteBuffer::empty());
-        }
-        match session
-            .capture_accessibility_tree(request)
-            .and_then(|snapshot| {
-                encode_accessibility_tree(&snapshot).map_err(|source| {
-                    RuntimeDynamicSessionError::EncodeAccessibilityTree { source }
+    if out_tree.is_null() {
+        return write_accessibility_tree(out_tree, ZrOwnedResultV2::empty());
+    }
+    match with_session_result_finalized(
+        handle,
+        |session| {
+            if request.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
+                return Err(unsupported_version());
+            }
+            if request.viewport != DEFAULT_VIEWPORT {
+                return Err(not_found(b"runtime viewport not found"));
+            }
+            session
+                .capture_accessibility_tree(request)
+                .and_then(|snapshot| {
+                    encode_accessibility_tree(&snapshot).map_err(|source| {
+                        RuntimeDynamicSessionError::EncodeAccessibilityTree { source }
+                    })
                 })
-            }) {
-            Ok(buffer) => write_accessibility_tree(out_tree, buffer),
-            Err(error) => error_status(error),
-        }
-    })
+                .map_err(error_status)
+        },
+        |active_handle, bytes| {
+            let output = register_runtime_allocation_in_action(
+                active_handle,
+                RuntimeAllocationKind::Accessibility,
+                bytes,
+            )?;
+            Ok(write_accessibility_tree(out_tree, output))
+        },
+    ) {
+        Ok(status) | Err(status) => status,
+    }
 }
 
 pub(in crate::dynamic_api) unsafe fn bind_viewport_surface(
@@ -261,31 +300,41 @@ pub(in crate::dynamic_api) unsafe fn submit_highlight_set(
 pub(in crate::dynamic_api) unsafe fn profile_control(
     handle: ZrRuntimeSessionHandle,
     request_json: ZrByteSlice,
-    out_json: *mut ZrOwnedByteBuffer,
+    out_json: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
-    with_session(handle, |session| {
-        if out_json.is_null() {
-            return write_profile_response(out_json, ZrOwnedByteBuffer::empty());
-        }
-        if request_json.is_empty() {
-            return invalid_argument(b"missing profile control request");
-        }
-        let request = match serde_json::from_slice::<ProfileControlRequest>(unsafe {
-            request_json.as_slice()
-        }) {
-            Ok(request) => request,
-            Err(_) => return invalid_argument(b"invalid profile control request"),
-        };
-        let response = if request.command == ProfileControlCommand::RuntimeDiagnosticsSnapshot {
-            runtime_diagnostics_response(session)
-        } else {
-            crate::core::diagnostics::profiling::control(request)
-        };
-        match encode_profile_response(&response) {
-            Ok(buffer) => write_profile_response(out_json, buffer),
-            Err(error) => error_status(error),
-        }
-    })
+    if out_json.is_null() {
+        return write_profile_response(out_json, ZrOwnedResultV2::empty());
+    }
+    match with_session_result_finalized(
+        handle,
+        |session| {
+            if request_json.is_empty() {
+                return Err(invalid_argument(b"missing profile control request"));
+            }
+            let request = match serde_json::from_slice::<ProfileControlRequest>(unsafe {
+                request_json.as_slice()
+            }) {
+                Ok(request) => request,
+                Err(_) => return Err(invalid_argument(b"invalid profile control request")),
+            };
+            let response = if request.command == ProfileControlCommand::RuntimeDiagnosticsSnapshot {
+                runtime_diagnostics_response(session)
+            } else {
+                crate::core::diagnostics::profiling::control(request)
+            };
+            encode_profile_response(&response).map_err(error_status)
+        },
+        |active_handle, bytes| {
+            let output = register_runtime_allocation_in_action(
+                active_handle,
+                RuntimeAllocationKind::Profile,
+                bytes,
+            )?;
+            Ok(write_profile_response(out_json, output))
+        },
+    ) {
+        Ok(status) | Err(status) => status,
+    }
 }
 
 pub(in crate::dynamic_api) unsafe fn tick_frame(
@@ -316,22 +365,32 @@ pub(in crate::dynamic_api) unsafe fn tick_frame(
 
 pub(in crate::dynamic_api) unsafe fn drain_host_requests(
     handle: ZrRuntimeSessionHandle,
-    out_requests: *mut ZrOwnedByteBuffer,
+    out_requests: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
     crate::profile_scope!("runtime", "dynamic_api", "drain_host_requests");
-    with_session(handle, |session| {
-        if out_requests.is_null() {
-            return write_host_requests(out_requests, ZrOwnedByteBuffer::empty());
-        }
-        let batch = session.drain_host_requests();
-        if batch.requests.is_empty() {
-            return write_host_requests(out_requests, ZrOwnedByteBuffer::empty());
-        }
-        match encode_host_request_batch(&batch) {
-            Ok(buffer) => write_host_requests(out_requests, buffer),
-            Err(error) => error_status(error),
-        }
-    })
+    if out_requests.is_null() {
+        return write_host_requests(out_requests, ZrOwnedResultV2::empty());
+    }
+    match with_session_result_finalized(
+        handle,
+        |session| {
+            let batch = session.drain_host_requests();
+            if batch.requests.is_empty() {
+                return Ok(Vec::new());
+            }
+            encode_host_request_batch(&batch).map_err(error_status)
+        },
+        |active_handle, bytes| {
+            let output = register_runtime_allocation_in_action(
+                active_handle,
+                RuntimeAllocationKind::HostRequests,
+                bytes,
+            )?;
+            Ok(write_host_requests(out_requests, output))
+        },
+    ) {
+        Ok(status) | Err(status) => status,
+    }
 }
 
 pub(in crate::dynamic_api) unsafe fn subscribe_plugin_event(
@@ -383,40 +442,66 @@ pub(in crate::dynamic_api) unsafe fn unsubscribe_plugin_event(
 pub(in crate::dynamic_api) unsafe fn drain_plugin_events(
     handle: ZrRuntimeSessionHandle,
     subscription: ZrRuntimePluginEventSubscriptionHandle,
-    out_deliveries: *mut ZrOwnedByteBuffer,
+    out_deliveries: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
-    with_session(handle, |session| {
-        if !subscription.is_valid() {
-            return invalid_argument(b"invalid runtime plugin event subscription");
-        }
-        if out_deliveries.is_null() {
-            return invalid_argument(b"missing runtime plugin event output");
-        }
-        match session.drain_plugin_events(handle.raw(), subscription) {
-            Ok(buffer) => unsafe { event_mirror::write_plugin_event_batch(out_deliveries, buffer) },
-            Err(error) => error_status(error),
-        }
-    })
+    if !subscription.is_valid() {
+        return invalid_argument(b"invalid runtime plugin event subscription");
+    }
+    if out_deliveries.is_null() {
+        return invalid_argument(b"missing runtime plugin event output");
+    }
+    match with_session_result_finalized(
+        handle,
+        |session| {
+            session
+                .drain_plugin_events(handle.raw(), subscription)
+                .map_err(error_status)
+        },
+        |active_handle, bytes| {
+            let output = register_runtime_allocation_in_action(
+                active_handle,
+                RuntimeAllocationKind::PluginEvents,
+                bytes,
+            )?;
+            unsafe { ptr::write(out_deliveries, output) };
+            Ok(ZrStatus::ok())
+        },
+    ) {
+        Ok(status) | Err(status) => status,
+    }
 }
 
 pub(in crate::dynamic_api) unsafe fn query_world(
     handle: ZrRuntimeSessionHandle,
     request_json: ZrByteSlice,
-    out_result: *mut ZrOwnedByteBuffer,
+    out_result: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
-    with_session(handle, |session| {
-        if out_result.is_null() || request_json.is_empty() {
-            return invalid_argument(b"missing runtime world query request or output");
-        }
-        let query = match serde_json::from_slice::<WorldQuery>(unsafe { request_json.as_slice() }) {
-            Ok(query) => query,
-            Err(_) => return invalid_argument(b"invalid runtime world query request"),
-        };
-        match encode_world_sync_payload(&session.query_world(query)) {
-            Ok(payload) => write_world_sync_payload(out_result, payload),
-            Err(error) => error_status(error),
-        }
-    })
+    if out_result.is_null() || request_json.is_empty() {
+        return invalid_argument(b"missing runtime world query request or output");
+    }
+    match with_session_result_finalized(
+        handle,
+        |session| {
+            let query =
+                match serde_json::from_slice::<WorldQuery>(unsafe { request_json.as_slice() }) {
+                    Ok(query) => query,
+                    Err(_) => {
+                        return Err(invalid_argument(b"invalid runtime world query request"));
+                    }
+                };
+            encode_world_sync_payload(&session.query_world(query)).map_err(error_status)
+        },
+        |active_handle, bytes| {
+            let output = register_runtime_allocation_in_action(
+                active_handle,
+                RuntimeAllocationKind::WorldSync,
+                bytes,
+            )?;
+            Ok(write_world_sync_payload(out_result, output))
+        },
+    ) {
+        Ok(status) | Err(status) => status,
+    }
 }
 
 pub(in crate::dynamic_api) unsafe fn watch_world(
@@ -459,16 +544,26 @@ pub(in crate::dynamic_api) unsafe fn unwatch_world(
 
 pub(in crate::dynamic_api) unsafe fn drain_world_invalidations(
     handle: ZrRuntimeSessionHandle,
-    out_batches: *mut ZrOwnedByteBuffer,
+    out_batches: *mut ZrOwnedResultV2,
 ) -> ZrStatus {
-    with_session(handle, |session| {
-        if out_batches.is_null() {
-            return invalid_argument(b"missing runtime world invalidation output");
-        }
-        let batches = session.drain_world_invalidations();
-        match encode_world_sync_payload(&batches) {
-            Ok(payload) => write_world_sync_payload(out_batches, payload),
-            Err(error) => error_status(error),
-        }
-    })
+    if out_batches.is_null() {
+        return invalid_argument(b"missing runtime world invalidation output");
+    }
+    match with_session_result_finalized(
+        handle,
+        |session| {
+            let batches = session.drain_world_invalidations();
+            encode_world_sync_payload(&batches).map_err(error_status)
+        },
+        |active_handle, bytes| {
+            let output = register_runtime_allocation_in_action(
+                active_handle,
+                RuntimeAllocationKind::WorldSync,
+                bytes,
+            )?;
+            Ok(write_world_sync_payload(out_batches, output))
+        },
+    ) {
+        Ok(status) | Err(status) => status,
+    }
 }

@@ -1,20 +1,22 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::mpsc;
+use std::sync::Arc;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use zircon_runtime_interface::{
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2, ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
     ZrRuntimeFrameDemandV1, ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimeWakeSinkV1, ZrStatus,
-    ZrStatusCode,
+    ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2,
+    ZR_RUNTIME_FRAME_DEMAND_AFTER_V1,
 };
 
+use super::allocation_registry::allocation_census;
 use super::frame_demand::FrameDemandAccumulator;
 use super::{
-    MAX_RUNTIME_FRAME_DEMAND_DELAY, RuntimeFrameDemand, RuntimeWakeRegistration,
-    destroy_session_slot, insert_session_with_wake, session_is_closing, with_session,
-    with_session_activity,
+    destroy_session_slot, insert_session_with_wake, register_runtime_allocation,
+    register_runtime_allocation_in_action, release_runtime_allocation, session_is_closing,
+    with_session, with_session_activity, with_session_result_finalized, RuntimeAllocationKind,
+    RuntimeFrameDemand, RuntimeWakeRegistration, MAX_RUNTIME_FRAME_DEMAND_DELAY,
 };
 use crate::dynamic_api::session::profile::RuntimeDynamicSessionProfile;
 use crate::dynamic_api::session::state::RuntimeDynamicSession;
@@ -275,4 +277,275 @@ fn destroy_session_slot_preserves_failed_event_mirror_teardown_for_explicit_retr
         destroy_session_slot(handle).status_code(),
         ZrStatusCode::NotFound
     );
+}
+
+#[test]
+fn allocation_finalizer_keeps_destroy_in_action_barrier_until_registration_finishes() {
+    let session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None).unwrap();
+    let handle = insert_session_with_wake(session, RuntimeWakeRegistration::disabled());
+    let (finalizer_entered_tx, finalizer_entered_rx) = mpsc::channel();
+    let (release_finalizer_tx, release_finalizer_rx) = mpsc::channel();
+    let (allocation_tx, allocation_rx) = mpsc::channel();
+
+    let producer = thread::spawn(move || {
+        let allocation = with_session_result_finalized(
+            handle,
+            |_session| Ok(vec![0x5a_u8; 32]),
+            |active_handle, bytes| {
+                finalizer_entered_tx.send(()).unwrap();
+                release_finalizer_rx.recv().unwrap();
+                register_runtime_allocation_in_action(
+                    active_handle,
+                    RuntimeAllocationKind::Accessibility,
+                    bytes,
+                )
+                .map(|output| output.allocation)
+            },
+        )
+        .expect("runtime allocation finalizer");
+        allocation_tx.send(allocation).unwrap();
+    });
+    finalizer_entered_rx.recv().unwrap();
+
+    let (destroy_started_tx, destroy_started_rx) = mpsc::channel();
+    let (destroy_tx, destroy_rx) = mpsc::channel();
+    let destroy = thread::spawn(move || {
+        destroy_started_tx.send(()).unwrap();
+        destroy_tx
+            .send(destroy_session_slot(handle).status_code())
+            .unwrap();
+    });
+    destroy_started_rx.recv().unwrap();
+
+    let closing_deadline = Instant::now() + Duration::from_secs(1);
+    while !session_is_closing(handle) && Instant::now() < closing_deadline {
+        thread::yield_now();
+    }
+    let closing = session_is_closing(handle);
+    let destroy_wait = destroy_rx.recv_timeout(Duration::from_millis(50));
+    release_finalizer_tx.send(()).unwrap();
+
+    assert!(closing, "destroy must enter the closing phase");
+    assert_eq!(destroy_wait, Err(mpsc::RecvTimeoutError::Timeout));
+
+    let allocation = allocation_rx.recv().unwrap();
+    producer.join().unwrap();
+    assert_eq!(destroy_rx.recv().unwrap(), ZrStatusCode::Error);
+    destroy.join().unwrap();
+
+    assert_eq!(
+        release_runtime_allocation(handle, allocation).status_code(),
+        ZrStatusCode::Ok
+    );
+    assert_eq!(destroy_session_slot(handle).status_code(), ZrStatusCode::Ok);
+}
+
+#[test]
+fn runtime_allocation_release_uses_the_session_bound_opaque_id_and_cannot_double_free() {
+    let session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None).unwrap();
+    let handle = insert_session_with_wake(session, RuntimeWakeRegistration::disabled());
+    let output = register_runtime_allocation(
+        handle,
+        RuntimeAllocationKind::WorldSync,
+        vec![1_u8, 2, 3, 4],
+    )
+    .expect("registered runtime allocation");
+    let allocation = output.allocation;
+
+    assert_eq!(output.len, 4);
+    assert!(!output.data.is_null());
+    assert_eq!(allocation_census(handle).outstanding_allocations, 1);
+    assert_eq!(allocation_census(handle).outstanding_bytes, 4);
+    assert_eq!(
+        release_runtime_allocation(handle, allocation).status_code(),
+        ZrStatusCode::Ok
+    );
+    assert_eq!(
+        release_runtime_allocation(handle, allocation).status_code(),
+        ZrStatusCode::NotFound
+    );
+    assert_eq!(allocation_census(handle).outstanding_allocations, 0);
+    assert_eq!(allocation_census(handle).outstanding_bytes, 0);
+    assert_eq!(destroy_session_slot(handle).status_code(), ZrStatusCode::Ok);
+}
+
+#[test]
+fn forged_runtime_allocation_id_never_changes_the_session_census() {
+    let session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None).unwrap();
+    let handle = insert_session_with_wake(session, RuntimeWakeRegistration::disabled());
+    let output =
+        register_runtime_allocation(handle, RuntimeAllocationKind::Accessibility, vec![9_u8; 32])
+            .expect("registered runtime allocation");
+    let before = allocation_census(handle);
+
+    assert_eq!(
+        release_runtime_allocation(
+            handle,
+            zircon_runtime_interface::ZrRuntimeAllocationId::new(u64::MAX),
+        )
+        .status_code(),
+        ZrStatusCode::NotFound
+    );
+    assert_eq!(allocation_census(handle), before);
+    assert_eq!(
+        release_runtime_allocation(handle, output.allocation).status_code(),
+        ZrStatusCode::Ok
+    );
+    assert_eq!(destroy_session_slot(handle).status_code(), ZrStatusCode::Ok);
+}
+
+#[test]
+fn runtime_allocation_release_rejects_a_foreign_session_without_changing_owner_census() {
+    let owner = insert_session_with_wake(
+        RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None).unwrap(),
+        RuntimeWakeRegistration::disabled(),
+    );
+    let foreign = insert_session_with_wake(
+        RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None).unwrap(),
+        RuntimeWakeRegistration::disabled(),
+    );
+    let output =
+        register_runtime_allocation(owner, RuntimeAllocationKind::WorldSync, vec![1_u8, 2, 3, 4])
+            .expect("registered runtime allocation");
+    let owner_census = allocation_census(owner);
+
+    assert_eq!(
+        release_runtime_allocation(foreign, output.allocation).status_code(),
+        ZrStatusCode::NotFound
+    );
+    assert_eq!(allocation_census(owner), owner_census);
+    assert_eq!(
+        destroy_session_slot(foreign).status_code(),
+        ZrStatusCode::Ok
+    );
+    assert_eq!(
+        release_runtime_allocation(owner, output.allocation).status_code(),
+        ZrStatusCode::Ok
+    );
+    assert_eq!(destroy_session_slot(owner).status_code(), ZrStatusCode::Ok);
+}
+
+#[test]
+fn concurrent_runtime_allocation_release_reclaims_exactly_once() {
+    let session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None).unwrap();
+    let handle = insert_session_with_wake(session, RuntimeWakeRegistration::disabled());
+    let output =
+        register_runtime_allocation(handle, RuntimeAllocationKind::Profile, vec![7_u8; 64])
+            .expect("registered runtime allocation");
+    let allocation = output.allocation;
+    let first = thread::spawn(move || release_runtime_allocation(handle, allocation).status_code());
+    let second =
+        thread::spawn(move || release_runtime_allocation(handle, allocation).status_code());
+    let mut statuses = [first.join().unwrap(), second.join().unwrap()];
+    statuses.sort_by_key(|status| status.as_raw());
+
+    assert_eq!(statuses, [ZrStatusCode::Ok, ZrStatusCode::NotFound]);
+    let census = allocation_census(handle);
+    assert_eq!(census.outstanding_allocations, 0);
+    assert_eq!(census.outstanding_bytes, 0);
+    assert_eq!(census.high_water_allocations, 1);
+    assert_eq!(census.high_water_bytes, 64);
+    assert_eq!(destroy_session_slot(handle).status_code(), ZrStatusCode::Ok);
+}
+
+#[test]
+fn outstanding_runtime_allocation_blocks_destroy_until_release_and_retry() {
+    let session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None).unwrap();
+    let handle = insert_session_with_wake(session, RuntimeWakeRegistration::disabled());
+    let output =
+        register_runtime_allocation(handle, RuntimeAllocationKind::Frame, vec![255_u8; 16])
+            .expect("registered runtime allocation");
+
+    assert_eq!(
+        destroy_session_slot(handle).status_code(),
+        ZrStatusCode::Error
+    );
+    assert!(session_is_closing(handle));
+    assert_eq!(allocation_census(handle).outstanding_allocations, 1);
+    assert_eq!(
+        release_runtime_allocation(handle, output.allocation).status_code(),
+        ZrStatusCode::Ok
+    );
+    assert_eq!(destroy_session_slot(handle).status_code(), ZrStatusCode::Ok);
+    assert_eq!(
+        destroy_session_slot(handle).status_code(),
+        ZrStatusCode::NotFound
+    );
+}
+
+#[test]
+fn runtime_allocation_registry_performance_acceptance() {
+    const WARMUP_ITERATIONS: usize = 128;
+    const MEASURED_ITERATIONS: usize = 2_000;
+    const PAYLOAD_BYTES: usize = 4 * 1024;
+    const P99_BUDGET: Duration = Duration::from_millis(1);
+    const MIN_THROUGHPUT_PER_SECOND: f64 = 10_000.0;
+
+    let session = RuntimeDynamicSession::new(RuntimeDynamicSessionProfile::Headless, None).unwrap();
+    let handle = insert_session_with_wake(session, RuntimeWakeRegistration::disabled());
+    let payload = vec![0x5a_u8; PAYLOAD_BYTES];
+
+    for _ in 0..WARMUP_ITERATIONS {
+        let output = register_runtime_allocation(
+            handle,
+            RuntimeAllocationKind::HostRequests,
+            payload.clone(),
+        )
+        .expect("warmup runtime allocation");
+        assert_eq!(
+            release_runtime_allocation(handle, output.allocation).status_code(),
+            ZrStatusCode::Ok
+        );
+    }
+
+    let mut samples = Vec::with_capacity(MEASURED_ITERATIONS);
+    for _ in 0..MEASURED_ITERATIONS {
+        let started = Instant::now();
+        let output = register_runtime_allocation(
+            handle,
+            RuntimeAllocationKind::HostRequests,
+            payload.clone(),
+        )
+        .expect("measured runtime allocation");
+        assert_eq!(
+            release_runtime_allocation(handle, output.allocation).status_code(),
+            ZrStatusCode::Ok
+        );
+        samples.push(started.elapsed().as_nanos());
+    }
+    samples.sort_unstable();
+
+    let percentile = |percent: usize| {
+        let rank = samples
+            .len()
+            .saturating_mul(percent)
+            .div_ceil(100)
+            .saturating_sub(1)
+            .min(samples.len() - 1);
+        samples[rank]
+    };
+    let p50_ns = percentile(50);
+    let p95_ns = percentile(95);
+    let p99_ns = percentile(99);
+    let total_ns = samples.iter().copied().sum::<u128>();
+    let throughput = MEASURED_ITERATIONS as f64 * 1_000_000_000.0 / total_ns.max(1) as f64;
+    println!(
+        "RUNTIME_INTERFACE01_ALLOCATION_REGISTRY_PERF iterations={MEASURED_ITERATIONS} payload_bytes={PAYLOAD_BYTES} p50_ns={p50_ns} p95_ns={p95_ns} p99_ns={p99_ns} throughput_cycles_per_second={throughput:.0}"
+    );
+
+    let census = allocation_census(handle);
+    assert_eq!(census.outstanding_allocations, 0);
+    assert_eq!(census.outstanding_bytes, 0);
+    assert_eq!(census.high_water_allocations, 1);
+    assert_eq!(census.high_water_bytes, PAYLOAD_BYTES as u64);
+    assert!(
+        p99_ns <= P99_BUDGET.as_nanos(),
+        "allocation registry p99 {p99_ns}ns exceeded {}ns",
+        P99_BUDGET.as_nanos()
+    );
+    assert!(
+        throughput >= MIN_THROUGHPUT_PER_SECOND,
+        "allocation registry throughput {throughput:.0}/s fell below {MIN_THROUGHPUT_PER_SECOND:.0}/s"
+    );
+    assert_eq!(destroy_session_slot(handle).status_code(), ZrStatusCode::Ok);
 }

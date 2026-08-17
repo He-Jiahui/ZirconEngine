@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 const FUNCTION_TABLE_SOURCES: &[(&str, &[&str])] = &[
     (
         "src/runtime_api/api_table.rs",
-        &["ZrHostApiV1", "ZrRuntimeApiV6"],
+        &["ZrHostApiV1", "ZrRuntimeApiV7"],
     ),
     (
         "src/plugin_api.rs",
@@ -25,7 +25,7 @@ const FUNCTION_TABLE_SOURCES: &[(&str, &[&str])] = &[
 ];
 const FUNCTION_TABLE_FIELD_COUNTS: &[(&str, &str, usize)] = &[
     ("src/runtime_api/api_table.rs", "ZrHostApiV1", 4),
-    ("src/runtime_api/api_table.rs", "ZrRuntimeApiV6", 24),
+    ("src/runtime_api/api_table.rs", "ZrRuntimeApiV7", 25),
     ("src/plugin_api.rs", "ZrHostApiV3", 7),
     ("src/plugin_api.rs", "ZrHostApiV4", 7),
     ("src/plugin_api.rs", "ZrHostEcsApiV1", 3),
@@ -37,9 +37,10 @@ const FUNCTION_TABLE_FIELD_COUNTS: &[(&str, &str, usize)] = &[
     ("src/plugin_api.rs", "ZrPluginStateSnapshotApiV1", 4),
     ("src/plugin_api.rs", "ZrPluginApiV1", 4),
 ];
-const RUNTIME_API_V6_SESSION_OPERATION_FIELDS: &[&str] = &[
+const RUNTIME_API_V7_SESSION_OPERATION_FIELDS: &[&str] = &[
     "create_session",
     "destroy_session",
+    "release_allocation",
     "handle_event",
     "capture_frame",
     "capture_accessibility_tree",
@@ -118,9 +119,9 @@ fn function_table_field_counts_match_runtime_10_inventory() {
 #[test]
 fn runtime_api_session_operation_surface_matches_inventory() {
     let source = read_manifest_source("src/runtime_api/api_table.rs");
-    let v6_fields =
-        discover_struct_fields(&source, "src/runtime_api/api_table.rs", "ZrRuntimeApiV6");
-    let v6_operation_fields = v6_fields
+    let v7_fields =
+        discover_struct_fields(&source, "src/runtime_api/api_table.rs", "ZrRuntimeApiV7");
+    let v7_operation_fields = v7_fields
         .iter()
         .filter_map(|field| match field.as_str() {
             "abi_version" | "size_bytes" => None,
@@ -129,13 +130,13 @@ fn runtime_api_session_operation_surface_matches_inventory() {
         .collect::<Vec<_>>();
 
     assert_eq!(
-        v6_operation_fields, RUNTIME_API_V6_SESSION_OPERATION_FIELDS,
-        "ZrRuntimeApiV6 session operation surface changed; update runtime 10 docs and failure-path tests before changing the guard"
+        v7_operation_fields, RUNTIME_API_V7_SESSION_OPERATION_FIELDS,
+        "ZrRuntimeApiV7 session operation surface changed; update runtime 10 docs and failure-path tests before changing the guard"
     );
 }
 
 #[test]
-fn runtime_v6_play_startup_dtos_keep_explicit_c_layout_and_raw_kind() {
+fn runtime_play_startup_dtos_keep_explicit_c_layout_and_raw_kind() {
     let session_source = read_manifest_source("src/runtime_api/session.rs");
     let demand_source = read_manifest_source("src/runtime_api/frame_demand.rs");
 
@@ -252,6 +253,12 @@ fn runtime_table_v2_export_and_loader_fallback_stay_hard_deleted() {
         "zircon_runtime_get_api_v4",
         "ZIRCON_RUNTIME_API_VERSION_V4",
         "RuntimeApi::V4",
+        "ZrRuntimeApiV6",
+        "ZrRuntimeGetApiFnV6",
+        "ZR_RUNTIME_GET_API_SYMBOL_V6",
+        "zircon_runtime_get_api_v6",
+        "ZIRCON_RUNTIME_API_VERSION_V6",
+        "RuntimeApi::V6",
     ];
     let violations = sources
         .iter()
@@ -264,7 +271,7 @@ fn runtime_table_v2_export_and_loader_fallback_stay_hard_deleted() {
 
     assert!(
         violations.is_empty(),
-        "the runtime table is V6-only; remove retired runtime table exports, loaders, and signatures:\n{}",
+        "the runtime table is V7-only; remove retired runtime table exports, loaders, and signatures:\n{}",
         violations.join("\n")
     );
 }
@@ -293,8 +300,8 @@ fn runtime_10_version_strategy_rejects_in_place_table_shape_changes() {
     assert!(
         version_source.contains("pub const ZIRCON_RUNTIME_ABI_VERSION_V2: u32 = 2;")
             && version_source.contains("pub const ZIRCON_RUNTIME_ABI_VERSION_V3: u32 = 3;")
-            && version_source.contains("pub const ZIRCON_RUNTIME_API_VERSION_V6: u32 = 6;"),
-        "the V6 table and changed V3 session config need explicit version owners"
+            && version_source.contains("pub const ZIRCON_RUNTIME_API_VERSION_V7: u32 = 7;"),
+        "the V7 table and changed V3 session config need explicit version owners"
     );
     assert!(
         !version_source.contains("ZIRCON_RUNTIME_API_VERSION_V2"),
@@ -363,6 +370,7 @@ fn discover_api_struct_names(source: &str) -> BTreeSet<String> {
                 || name.ends_with("ApiV4")
                 || name.ends_with("ApiV5")
                 || name.ends_with("ApiV6")
+                || name.ends_with("ApiV7")
             {
                 Some(name.to_string())
             } else {

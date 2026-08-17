@@ -34,7 +34,7 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
     assert_runtime_10_files_exist(repo_root, EXPECTED_RUNTIME_10_SOURCE_FILES);
     assert_function_table_shapes(repo_root);
     assert_runtime_10_ffi_wrappers(&exports_source, &session_source, &operation_source);
-    assert_runtime_10_v6_only_hard_cutover(repo_root);
+    assert_runtime_10_v7_only_hard_cutover(repo_root);
     assert_runtime_10_behavior_test_anchors(repo_root);
     assert_runtime_10_host_request_payload_anchors(repo_root);
 
@@ -59,9 +59,9 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
             .unwrap_or_else(|error| panic!("`{relative_doc}` should be readable: {error}"));
         for required_doc_anchor in [
             "dynamic_runtime_api_boundary",
-            "expected_source_file_count = 51",
-            "ZrRuntimeApiV6",
-            "runtime_session_ffi_wrappers = 22/22",
+            "expected_source_file_count = 60",
+            "ZrRuntimeApiV7",
+            "runtime_session_ffi_wrappers = 23/23",
             "runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts",
         ] {
             assert!(
@@ -75,8 +75,8 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
 fn assert_runtime_10_files_exist(repo_root: &Path, files: &[&str]) {
     assert_eq!(
         files.len(),
-        51,
-        "Runtime 10 dynamic API source inventory should stay at 51 files"
+        60,
+        "Runtime 10 dynamic API source inventory should stay at 60 files"
     );
     for relative_file in files {
         assert!(
@@ -100,8 +100,8 @@ fn assert_runtime_10_behavior_test_anchors(repo_root: &Path) {
         }
     }
     assert_eq!(
-        behavior_anchor_count, 16,
-        "Runtime 10 behavior test anchor inventory should stay at 16 tests"
+        behavior_anchor_count, 20,
+        "Runtime 10 behavior test anchor inventory should stay at 20 tests"
     );
 }
 
@@ -138,8 +138,8 @@ fn assert_runtime_10_host_request_payload_anchors(repo_root: &Path) {
 fn assert_function_table_shapes(repo_root: &Path) {
     assert_eq!(
         EXPECTED_RUNTIME_10_FUNCTION_TABLES.len(),
-        10,
-        "Runtime 10 ABI inventory should keep 10 function-table structs"
+        12,
+        "Runtime 10 ABI inventory should keep 12 function-table structs"
     );
     for (relative_file, table_name, expected_fields) in EXPECTED_RUNTIME_10_FUNCTION_TABLES {
         let source = fs::read_to_string(repo_root.join(relative_file))
@@ -163,14 +163,14 @@ fn assert_runtime_10_ffi_wrappers(
 ) {
     assert_eq!(
         EXPECTED_RUNTIME_10_SESSION_OPERATIONS.len(),
-        22,
-        "Runtime 10 session operation inventory should stay at 22 operations"
+        23,
+        "Runtime 10 function inventory should stay at 23 operations"
     );
     for operation in EXPECTED_RUNTIME_10_SESSION_OPERATIONS {
         let wrapper = format!("{operation}_ffi");
         assert!(
             exports_source.contains(&format!("Some({wrapper})")),
-            "`ZrRuntimeApiV6` should advertise `{wrapper}`"
+            "`ZrRuntimeApiV7` should advertise `{wrapper}`"
         );
         assert!(
             exports_source.contains(&format!("fn {wrapper}(")),
@@ -182,7 +182,7 @@ fn assert_runtime_10_ffi_wrappers(
         );
         assert!(
             !exports_source.contains(&format!("Some({operation}),")),
-            "`ZrRuntimeApiV6` must not advertise `{operation}` directly"
+            "`ZrRuntimeApiV7` must not advertise `{operation}` directly"
         );
         let owner_source = if operation.ends_with("_operation") {
             operation_source
@@ -209,7 +209,7 @@ fn assert_runtime_10_ffi_wrappers(
     );
 }
 
-fn assert_runtime_10_v6_only_hard_cutover(repo_root: &Path) {
+fn assert_runtime_10_v7_only_hard_cutover(repo_root: &Path) {
     const PRODUCTION_OWNERS: &[&str] = &[
         "zircon_runtime_interface/src/runtime_api/api_table.rs",
         "zircon_runtime/src/dynamic_api/exports.rs",
@@ -236,6 +236,16 @@ fn assert_runtime_10_v6_only_hard_cutover(repo_root: &Path) {
         "ZR_RUNTIME_GET_API_SYMBOL_V4",
         "zircon_runtime_get_api_v4",
         "RuntimeApi::V4",
+        "ZrRuntimeApiV5",
+        "ZrRuntimeGetApiFnV5",
+        "ZR_RUNTIME_GET_API_SYMBOL_V5",
+        "zircon_runtime_get_api_v5",
+        "RuntimeApi::V5",
+        "ZrRuntimeApiV6",
+        "ZrRuntimeGetApiFnV6",
+        "ZR_RUNTIME_GET_API_SYMBOL_V6",
+        "zircon_runtime_get_api_v6",
+        "RuntimeApi::V6",
     ];
 
     for relative_file in PRODUCTION_OWNERS {

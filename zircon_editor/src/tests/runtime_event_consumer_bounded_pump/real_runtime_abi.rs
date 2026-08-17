@@ -7,7 +7,7 @@ use zircon_runtime::{
     core::framework::{platform::RuntimeTargetMode, project::ProjectPluginSelection},
     core::runtime::ServiceObject,
     core::{DriverDescriptor, ModuleDescriptor, RegistryName, StartupMode},
-    dynamic_api::{create_linked_runtime_session, zircon_runtime_get_api_v6},
+    dynamic_api::{create_linked_runtime_session, zircon_runtime_get_api_v7},
     engine_module::factory,
     plugin::{
         PluginEventManifest, PluginPackageManifest, RuntimeExtensionRegistry,
@@ -16,7 +16,7 @@ use zircon_runtime::{
     scene::SystemStage,
 };
 use zircon_runtime_interface::{
-    ZrRuntimeApiV6, ZrRuntimeFrameDemandV1, ZrRuntimeSessionHandle, ZrStatusCode,
+    ZrRuntimeApiV7, ZrRuntimeFrameDemandV1, ZrRuntimeSessionHandle, ZrStatusCode,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
 };
@@ -178,13 +178,13 @@ fn run_real_runtime_abi_delivery_storm(delivery_count: u64) -> serde_json::Value
     })
 }
 
-fn real_runtime_api() -> ZrRuntimeApiV6 {
-    let api = unsafe { zircon_runtime_get_api_v6(std::ptr::null()) };
+fn real_runtime_api() -> ZrRuntimeApiV7 {
+    let api = unsafe { zircon_runtime_get_api_v7(std::ptr::null()) };
     assert!(!api.is_null(), "real runtime API table should be available");
     unsafe { std::ptr::read(api) }
 }
 
-fn destroy_real_runtime_session(api: ZrRuntimeApiV6, session: ZrRuntimeSessionHandle) {
+fn destroy_real_runtime_session(api: ZrRuntimeApiV7, session: ZrRuntimeSessionHandle) {
     let destroy = api
         .destroy_session
         .expect("real runtime API exposes destroy_session");

@@ -93,7 +93,7 @@ pub(in super::super) const EXPECTED_RUNTIME_10_HOST_REQUEST_PAYLOAD_ANCHORS: &[(
     ),
     (
         "zircon_runtime/src/dynamic_api/tests/host_request_payloads.rs",
-        "host_request_free_rejects_wrong_owner_token",
+        "host_request_batch_from_bytes(&output)",
     ),
     (
         "zircon_app/src/entry/runtime_entry_app/host_requests/routing.rs",

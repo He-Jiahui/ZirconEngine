@@ -1,6 +1,7 @@
+use std::collections::HashMap;
 use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc, Barrier,
+    atomic::{AtomicU64, AtomicUsize, Ordering},
+    Arc, Barrier, Mutex, OnceLock,
 };
 use std::time::{Duration, Instant};
 
@@ -8,22 +9,38 @@ use serde::Deserialize;
 
 use super::{
     RuntimeForeignOutputBudget, RuntimeForeignOutputErrorKind, RuntimeForeignOutputKind,
-    RuntimeForeignOutputState,
+    RuntimeForeignOutputState, RuntimeOwnedOutputReleaser,
 };
-use zircon_runtime_interface::{ZrByteSlice, ZrOwnedByteBuffer, ZrStatus, ZrStatusCode};
+use zircon_runtime_interface::{
+    ZrByteSlice, ZrOwnedResultV2, ZrRuntimeAllocationId, ZrRuntimeSessionHandle, ZrStatus,
+    ZrStatusCode,
+};
 
 const RELEASE_DIAGNOSTIC: &[u8] = b"test allocation is still in use";
 const CALL_DIAGNOSTIC: &[u8] = b"test call failed";
 
 struct TestAllocation {
-    bytes: Vec<u8>,
-    releases: Arc<AtomicUsize>,
+    _bytes: Box<[u8]>,
+    releases: Option<Arc<AtomicUsize>>,
     reject_release: bool,
 }
 
-unsafe extern "C" fn release_test_output(output: ZrOwnedByteBuffer) -> ZrStatus {
-    let allocation = unsafe { Box::from_raw(output.owner_token as usize as *mut TestAllocation) };
-    allocation.releases.fetch_add(1, Ordering::SeqCst);
+static NEXT_ALLOCATION_ID: AtomicU64 = AtomicU64::new(1);
+static TEST_ALLOCATIONS: OnceLock<Mutex<HashMap<u64, TestAllocation>>> = OnceLock::new();
+
+unsafe extern "C" fn release_test_output(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    let allocation = TEST_ALLOCATIONS
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .remove(&allocation.raw())
+        .expect("test allocation must be released exactly once");
+    if let Some(releases) = &allocation.releases {
+        releases.fetch_add(1, Ordering::SeqCst);
+    }
     if allocation.reject_release {
         ZrStatus::new(
             ZrStatusCode::Error,
@@ -34,25 +51,35 @@ unsafe extern "C" fn release_test_output(output: ZrOwnedByteBuffer) -> ZrStatus 
     }
 }
 
+fn test_releaser() -> RuntimeOwnedOutputReleaser {
+    RuntimeOwnedOutputReleaser::new(ZrRuntimeSessionHandle::new(1), release_test_output)
+}
+
 fn owned_output(
     bytes: impl Into<Vec<u8>>,
     releases: Arc<AtomicUsize>,
     reject_release: bool,
-) -> ZrOwnedByteBuffer {
-    let allocation = Box::new(TestAllocation {
-        bytes: bytes.into(),
-        releases,
-        reject_release,
-    });
-    let data = allocation.bytes.as_ptr().cast_mut();
-    let len = allocation.bytes.len();
-    let capacity = allocation.bytes.capacity();
-    ZrOwnedByteBuffer {
+) -> ZrOwnedResultV2 {
+    let bytes = bytes.into().into_boxed_slice();
+    let data = bytes.as_ptr();
+    let len = bytes.len() as u64;
+    let allocation = ZrRuntimeAllocationId::new(NEXT_ALLOCATION_ID.fetch_add(1, Ordering::Relaxed));
+    TEST_ALLOCATIONS
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .insert(
+            allocation.raw(),
+            TestAllocation {
+                _bytes: bytes,
+                releases: Some(releases),
+                reject_release,
+            },
+        );
+    ZrOwnedResultV2 {
         data,
         len,
-        capacity,
-        owner_token: Box::into_raw(allocation) as usize as u64,
-        free: Some(release_test_output),
+        allocation,
     }
 }
 
@@ -66,29 +93,39 @@ struct BenchmarkPayload {
     values: Vec<u32>,
 }
 
-unsafe extern "C" fn release_benchmark_output(output: ZrOwnedByteBuffer) -> ZrStatus {
-    if !output.data.is_null() {
-        unsafe {
-            drop(Vec::from_raw_parts(
-                output.data,
-                output.len,
-                output.capacity,
-            ));
-        }
-    }
-    ZrStatus::ok()
+unsafe extern "C" fn release_benchmark_output(
+    session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    unsafe { release_test_output(session, allocation) }
 }
 
-fn benchmark_output(mut bytes: Vec<u8>) -> ZrOwnedByteBuffer {
-    let output = ZrOwnedByteBuffer {
-        data: bytes.as_mut_ptr(),
-        len: bytes.len(),
-        capacity: bytes.capacity(),
-        owner_token: 1,
-        free: Some(release_benchmark_output),
-    };
-    std::mem::forget(bytes);
-    output
+fn benchmark_releaser() -> RuntimeOwnedOutputReleaser {
+    RuntimeOwnedOutputReleaser::new(ZrRuntimeSessionHandle::new(1), release_benchmark_output)
+}
+
+fn benchmark_output(bytes: Vec<u8>) -> ZrOwnedResultV2 {
+    let bytes = bytes.into_boxed_slice();
+    let data = bytes.as_ptr();
+    let len = bytes.len() as u64;
+    let allocation = ZrRuntimeAllocationId::new(NEXT_ALLOCATION_ID.fetch_add(1, Ordering::Relaxed));
+    TEST_ALLOCATIONS
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .insert(
+            allocation.raw(),
+            TestAllocation {
+                _bytes: bytes,
+                releases: None,
+                reject_release: false,
+            },
+        );
+    ZrOwnedResultV2 {
+        data,
+        len,
+        allocation,
+    }
 }
 
 fn test_budget(max_bytes: usize, max_items: usize) -> RuntimeForeignOutputBudget {
@@ -102,6 +139,7 @@ fn bounded_json_acceptance_releases_once_and_records_metrics() {
     let payload = state
         .decode_json(
             owned_output(br#"{"values":[1,2,3]}"#.to_vec(), releases.clone(), false),
+            test_releaser(),
             RuntimeForeignOutputKind::WorldQuery,
             test_budget(1024, 4),
             "decode runtime world query",
@@ -133,6 +171,7 @@ fn oversized_output_releases_then_fuses_every_session_call() {
     let error = state
         .decode_json::<TestPayload, _>(
             owned_output(br#"{"values":[1]}"#.to_vec(), releases.clone(), false),
+            test_releaser(),
             RuntimeForeignOutputKind::WorldQuery,
             test_budget(4, 8),
             "decode runtime world query",
@@ -161,12 +200,13 @@ fn oversized_output_releases_then_fuses_every_session_call() {
 }
 
 #[test]
-fn explicitly_empty_pages_are_accepted_and_released() {
+fn canonical_empty_pages_are_accepted_without_release() {
     let releases = Arc::new(AtomicUsize::new(0));
     let state = RuntimeForeignOutputState::default();
     let decoded = state
         .decode_json::<Vec<u64>, _>(
-            owned_output(Vec::new(), releases.clone(), false),
+            ZrOwnedResultV2::empty(),
+            test_releaser(),
             RuntimeForeignOutputKind::WorldInvalidations,
             test_budget(1024, 8).allow_empty(),
             "drain runtime world invalidations",
@@ -176,7 +216,7 @@ fn explicitly_empty_pages_are_accepted_and_released() {
         .expect("empty page is an allowed protocol outcome");
 
     assert_eq!(decoded, None);
-    assert_eq!(releases.load(Ordering::SeqCst), 1);
+    assert_eq!(releases.load(Ordering::SeqCst), 0);
     assert!(!state.is_protocol_failed());
 }
 
@@ -187,6 +227,7 @@ fn release_failure_preserves_cleanup_diagnostic_and_fuses_session() {
     let error = state
         .decode_json(
             owned_output(br#"{"values":[1]}"#.to_vec(), releases.clone(), true),
+            test_releaser(),
             RuntimeForeignOutputKind::OperationResult,
             test_budget(1024, 8),
             "harvest runtime operation",
@@ -211,6 +252,7 @@ fn nesting_and_total_decode_time_are_both_bounded() {
     let depth_error = state
         .decode_json::<serde_json::Value, _>(
             owned_output(nested.into_bytes(), releases.clone(), false),
+            test_releaser(),
             RuntimeForeignOutputKind::ProfileResponse,
             test_budget(4096, 512),
             "decode runtime profile response",
@@ -228,6 +270,7 @@ fn nesting_and_total_decode_time_are_both_bounded() {
     let time_error = state
         .decode_json(
             owned_output(br#"{"values":[1]}"#.to_vec(), releases.clone(), false),
+            test_releaser(),
             RuntimeForeignOutputKind::ProfileResponse,
             RuntimeForeignOutputBudget::new(1024, 8, Duration::from_millis(1)),
             "decode runtime profile response",
@@ -252,7 +295,8 @@ fn ordinary_call_failure_releases_output_without_fusing_protocol() {
                 ZrStatusCode::Error,
                 ZrByteSlice::from_static(CALL_DIAGNOSTIC),
             ),
-            owned_output(Vec::new(), releases.clone(), false),
+            owned_output(vec![0_u8], releases.clone(), false),
+            test_releaser(),
             RuntimeForeignOutputKind::HostRequests,
             "drain runtime host requests",
             "free runtime host requests",
@@ -279,6 +323,7 @@ fn concurrent_protocol_rejection_prevents_inflight_acceptance() {
     let decode = std::thread::spawn(move || {
         decode_state.decode_json(
             owned_output(br#"{"values":[1,2,3]}"#.to_vec(), decode_releases, false),
+            test_releaser(),
             RuntimeForeignOutputKind::WorldQuery,
             RuntimeForeignOutputBudget::new(1024, 8, Duration::from_secs(5)),
             "decode concurrent runtime world query",
@@ -330,6 +375,7 @@ fn foreign_output_decode_performance_acceptance() {
         let decoded = warmup
             .decode_json(
                 benchmark_output(payload.clone()),
+                benchmark_releaser(),
                 RuntimeForeignOutputKind::HostRequests,
                 super::HOST_REQUEST_OUTPUT_BUDGET,
                 "decode benchmark host requests",
@@ -348,6 +394,7 @@ fn foreign_output_decode_performance_acceptance() {
         let decoded = state
             .decode_json(
                 output,
+                benchmark_releaser(),
                 RuntimeForeignOutputKind::HostRequests,
                 super::HOST_REQUEST_OUTPUT_BUDGET,
                 "decode benchmark host requests",

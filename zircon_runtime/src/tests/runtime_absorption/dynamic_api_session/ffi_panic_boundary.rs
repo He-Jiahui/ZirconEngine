@@ -17,7 +17,7 @@ fn runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge() {
         "catch_unwind(AssertUnwindSafe",
         "ZrStatusCode::Panic",
         "runtime dynamic API panic caught at FFI boundary",
-        "zircon_runtime_get_api_v6_inner",
+        "zircon_runtime_get_api_v7_inner",
         "Err(_) => core::ptr::null()",
     ] {
         assert!(
@@ -29,6 +29,7 @@ fn runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge() {
     for (inner, wrapper) in [
         ("create_session", "create_session_ffi"),
         ("destroy_session", "destroy_session_ffi"),
+        ("release_allocation", "release_allocation_ffi"),
         ("handle_event", "handle_event_ffi"),
         ("capture_frame", "capture_frame_ffi"),
         (
@@ -38,6 +39,7 @@ fn runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge() {
         ("bind_viewport_surface", "bind_viewport_surface_ffi"),
         ("unbind_viewport_surface", "unbind_viewport_surface_ffi"),
         ("present_viewport", "present_viewport_ffi"),
+        ("submit_highlight_set", "submit_highlight_set_ffi"),
         ("profile_control", "profile_control_ffi"),
         ("tick_frame", "tick_frame_ffi"),
         ("drain_host_requests", "drain_host_requests_ffi"),
@@ -54,7 +56,7 @@ fn runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge() {
     ] {
         assert!(
             exports_source.contains(&format!("Some({wrapper})")),
-            "`ZrRuntimeApiV6` should advertise `{wrapper}` instead of the session owner `{inner}`"
+            "`ZrRuntimeApiV7` should advertise `{wrapper}` instead of the session owner `{inner}`"
         );
         assert!(
             exports_source.contains(&format!("fn {wrapper}(")),
@@ -66,7 +68,7 @@ fn runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge() {
         );
         assert!(
             !exports_source.contains(&format!("Some({inner}),")),
-            "`ZrRuntimeApiV6` must not bypass the panic wrapper by advertising `{inner}` directly"
+            "`ZrRuntimeApiV7` must not bypass the panic wrapper by advertising `{inner}` directly"
         );
         let owner_source = if inner.ends_with("_operation") {
             operation_source

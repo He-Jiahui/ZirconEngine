@@ -1,22 +1,27 @@
+use std::collections::HashMap;
 use std::marker::PhantomData;
+use std::sync::atomic::AtomicU64;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, OnceLock};
 
 use super::foreign_output::{ForeignOutputKind, ForeignOutputState};
 use super::owned_buffer::{
-    ensure_status_releasing_output_on_error, release_owned_buffer_after_result,
+    ensure_status_releasing_output_on_error, release_owned_result_after_result,
 };
 use super::{
-    profile_control_response_item_count, project_root_for_abi, release_owned_buffer,
-    validate_owned_buffer_releasing_on_error, validate_plugin_event_batch,
+    profile_control_response_item_count, project_root_for_abi, release_owned_result,
+    validate_owned_result_releasing_on_error, validate_plugin_event_batch,
     validate_plugin_event_encoded_len, validate_runtime_frame,
     validate_runtime_frame_releasing_on_error, RuntimeFrame, RuntimeLibraryError,
     RuntimeSessionTeardownFailureState,
 };
+use zircon_runtime_host::foreign_output::RuntimeOwnedOutputReleaser;
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeFrameV1, ZrRuntimePluginEventDeliveryBatchV1,
-    ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscriptionHandle, ZrStatus, ZrStatusCode,
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
+    ZrByteSlice, ZrOwnedResultV2, ZrRuntimeAllocationId, ZrRuntimeFrameV2,
+    ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventDeliveryV1,
+    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeReleaseAllocationFnV2, ZrRuntimeSessionHandle,
+    ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2,
+    ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_DELIVERIES_V1,
     ZR_RUNTIME_PLUGIN_EVENT_PAGE_MAX_ENCODED_BYTES_V1,
 };
 
@@ -25,6 +30,8 @@ const CAPTURE_DIAGNOSTIC: &[u8] = b"capture submission rejected";
 static EMPTY_BUFFER_RELEASED: AtomicBool = AtomicBool::new(false);
 static BOX_BUFFER_RELEASED: AtomicBool = AtomicBool::new(false);
 static FRAME_PIXELS_RELEASED: AtomicBool = AtomicBool::new(false);
+static NEXT_ALLOCATION_ID: AtomicU64 = AtomicU64::new(1);
+static TEST_ALLOCATIONS: OnceLock<Mutex<HashMap<u64, Box<[u8]>>>> = OnceLock::new();
 
 #[test]
 fn profile_item_budget_counts_diagnostic_series_history_and_tags() {
@@ -46,67 +53,88 @@ fn profile_item_budget_counts_diagnostic_series_history_and_tags() {
     assert_eq!(profile_control_response_item_count(&response), 7);
 }
 
-unsafe extern "C" fn record_empty_buffer_release(buffer: ZrOwnedByteBuffer) -> ZrStatus {
-    if !buffer.data.is_null() {
-        unsafe {
-            drop(Box::from_raw(buffer.data));
-        }
-    }
+unsafe extern "C" fn record_empty_buffer_release(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_test_allocation(allocation);
     EMPTY_BUFFER_RELEASED.store(true, Ordering::Release);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn release_box_buffer(buffer: ZrOwnedByteBuffer) -> ZrStatus {
-    if !buffer.data.is_null() {
-        unsafe {
-            drop(Box::from_raw(buffer.data));
-        }
-    }
+unsafe extern "C" fn release_box_buffer(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_test_allocation(allocation);
     BOX_BUFFER_RELEASED.store(true, Ordering::Release);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn release_frame_pixels(buffer: ZrOwnedByteBuffer) -> ZrStatus {
-    if !buffer.data.is_null() {
-        unsafe {
-            drop(Box::from_raw(buffer.data));
-        }
-    }
+unsafe extern "C" fn release_frame_pixels(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_test_allocation(allocation);
     FRAME_PIXELS_RELEASED.store(true, Ordering::Release);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn reject_frame_buffer_release(buffer: ZrOwnedByteBuffer) -> ZrStatus {
-    if !buffer.data.is_null() {
-        unsafe {
-            drop(Box::from_raw(buffer.data));
-        }
-    }
+unsafe extern "C" fn reject_frame_buffer_release(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_test_allocation(allocation);
     ZrStatus::new(
         ZrStatusCode::Error,
         ZrByteSlice::from_static(FRAME_RELEASE_DIAGNOSTIC),
     )
 }
 
+fn owned_bytes(bytes: Vec<u8>) -> ZrOwnedResultV2 {
+    let bytes = bytes.into_boxed_slice();
+    let data = bytes.as_ptr();
+    let len = bytes.len() as u64;
+    let allocation = ZrRuntimeAllocationId::new(NEXT_ALLOCATION_ID.fetch_add(1, Ordering::Relaxed));
+    TEST_ALLOCATIONS
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .insert(allocation.raw(), bytes);
+    ZrOwnedResultV2 {
+        data,
+        len,
+        allocation,
+    }
+}
+
+fn release_test_allocation(allocation: ZrRuntimeAllocationId) {
+    TEST_ALLOCATIONS
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .remove(&allocation.raw())
+        .expect("test allocation must be released exactly once");
+}
+
+fn releaser(release: ZrRuntimeReleaseAllocationFnV2) -> RuntimeOwnedOutputReleaser {
+    RuntimeOwnedOutputReleaser::new(ZrRuntimeSessionHandle::new(1), release)
+}
+
 #[test]
 fn runtime_frame_release_failure_is_recorded_for_terminal_teardown() {
     let teardown_failure_state = RuntimeSessionTeardownFailureState::default();
     let foreign_output = Arc::new(ForeignOutputState::default());
-    let mut frame = ZrRuntimeFrameV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
+    let mut frame = ZrRuntimeFrameV2::empty(ZIRCON_RUNTIME_ABI_VERSION_V2);
     frame.width = 1;
     frame.height = 1;
-    frame.rgba = ZrOwnedByteBuffer {
-        data: Box::into_raw(Box::new(0_u8)),
-        len: 1,
-        capacity: 1,
-        owner_token: 1,
-        free: Some(reject_frame_buffer_release),
-    };
+    frame.rgba = owned_bytes(vec![0_u8]);
 
     drop(RuntimeFrame {
         frame,
         teardown_failure_state: teardown_failure_state.clone(),
         foreign_output: foreign_output.clone(),
+        releaser: releaser(reject_frame_buffer_release),
         _session: PhantomData,
     });
 
@@ -170,32 +198,26 @@ fn runtime_project_root_abi_rejects_unrepresentable_os_paths() {
 }
 
 #[test]
-fn empty_owned_buffer_still_invokes_its_release_callback() {
+fn noncanonical_empty_owned_result_still_invokes_release() {
     EMPTY_BUFFER_RELEASED.store(false, Ordering::Release);
-    let output = ZrOwnedByteBuffer {
-        data: Box::into_raw(Box::new(0_u8)),
-        len: 0,
-        capacity: 1,
-        owner_token: 7,
-        free: Some(record_empty_buffer_release),
-    };
+    let mut output = owned_bytes(vec![0_u8]);
+    output.len = 0;
     assert_eq!(output.len, 0);
     assert!(!output.data.is_null());
 
-    release_owned_buffer(output, "free empty runtime output").unwrap();
+    release_owned_result(
+        output,
+        releaser(record_empty_buffer_release),
+        "release empty runtime output",
+    )
+    .unwrap();
 
     assert!(EMPTY_BUFFER_RELEASED.load(Ordering::Acquire));
 }
 
 #[test]
 fn failed_output_call_retains_call_and_release_diagnostics() {
-    let output = ZrOwnedByteBuffer {
-        data: Box::into_raw(Box::new(0_u8)),
-        len: 1,
-        capacity: 1,
-        owner_token: 2,
-        free: Some(reject_frame_buffer_release),
-    };
+    let output = owned_bytes(vec![0_u8]);
 
     let error = ensure_status_releasing_output_on_error(
         ZrStatus::new(
@@ -204,6 +226,7 @@ fn failed_output_call_retains_call_and_release_diagnostics() {
         ),
         "capture runtime frame",
         output,
+        releaser(reject_frame_buffer_release),
         "free runtime frame output after failed capture",
     )
     .expect_err("call and release failures must reject the runtime operation");
@@ -217,40 +240,31 @@ fn failed_output_call_retains_call_and_release_diagnostics() {
 #[test]
 fn malformed_owned_buffer_is_released_and_rejected_before_decode() {
     BOX_BUFFER_RELEASED.store(false, Ordering::Release);
-    let output = ZrOwnedByteBuffer {
-        data: Box::into_raw(Box::new(0_u8)),
-        len: 2,
-        capacity: 1,
-        owner_token: 3,
-        free: Some(release_box_buffer),
-    };
+    let mut output = owned_bytes(vec![0_u8]);
+    output.data = core::ptr::null();
+    output.len = 2;
 
-    let error = validate_owned_buffer_releasing_on_error(
+    let error = validate_owned_result_releasing_on_error(
         output,
+        releaser(release_box_buffer),
         "decode runtime host requests",
         "free runtime host requests",
     )
     .expect_err("malformed runtime-owned storage must be rejected before slicing");
 
-    assert_eq!(
-        error.to_string(),
-        "decode runtime host requests returned malformed storage: len 2 exceeds capacity 1"
-    );
+    let message = error.to_string();
+    assert!(message
+        .starts_with("decode runtime host requests returned null data with len 2 and allocation "));
     assert!(BOX_BUFFER_RELEASED.load(Ordering::Acquire));
 }
 
 #[test]
 fn decode_and_release_failures_preserve_both_diagnostics() {
-    let output = ZrOwnedByteBuffer {
-        data: Box::into_raw(Box::new(0_u8)),
-        len: 1,
-        capacity: 1,
-        owner_token: 4,
-        free: Some(reject_frame_buffer_release),
-    };
+    let output = owned_bytes(vec![0_u8]);
 
-    let result: Result<(), RuntimeLibraryError> = release_owned_buffer_after_result(
+    let result: Result<(), RuntimeLibraryError> = release_owned_result_after_result(
         output,
+        releaser(reject_frame_buffer_release),
         Err(RuntimeLibraryError::new(
             "decode runtime host requests: expected value",
         )),
@@ -266,25 +280,25 @@ fn decode_and_release_failures_preserve_both_diagnostics() {
 
 #[test]
 fn runtime_frame_validation_rejects_foreign_abi() {
-    let frame = ZrRuntimeFrameV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1 + 1);
+    let frame = ZrRuntimeFrameV2::empty(ZIRCON_RUNTIME_ABI_VERSION_V2 + 1);
 
     let error = validate_runtime_frame(&frame)
         .expect_err("a successful capture must use the negotiated frame ABI");
 
     assert_eq!(
         error.to_string(),
-        "runtime frame used unsupported ABI version 2"
+        "runtime frame used unsupported ABI version 3"
     );
 }
 
 #[test]
 fn runtime_frame_validation_rejects_zero_dimensions_and_length_overflow() {
-    let zero_width = ZrRuntimeFrameV1 {
-        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V1,
+    let zero_width = ZrRuntimeFrameV2 {
+        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V2,
         width: 0,
         height: 1,
         generation: 1,
-        rgba: ZrOwnedByteBuffer::empty(),
+        rgba: ZrOwnedResultV2::empty(),
     };
     assert_eq!(
         validate_runtime_frame(&zero_width)
@@ -293,12 +307,12 @@ fn runtime_frame_validation_rejects_zero_dimensions_and_length_overflow() {
         "runtime frame returned invalid dimensions 0x1"
     );
 
-    let overflow = ZrRuntimeFrameV1 {
-        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V1,
+    let overflow = ZrRuntimeFrameV2 {
+        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V2,
         width: u32::MAX,
         height: u32::MAX,
         generation: 1,
-        rgba: ZrOwnedByteBuffer::empty(),
+        rgba: ZrOwnedResultV2::empty(),
     };
     assert_eq!(
         validate_runtime_frame(&overflow)
@@ -310,26 +324,23 @@ fn runtime_frame_validation_rejects_zero_dimensions_and_length_overflow() {
 
 #[test]
 fn frame_protocol_and_release_failures_preserve_both_diagnostics() {
-    let frame = ZrRuntimeFrameV1 {
-        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V1 + 1,
+    let mut frame = ZrRuntimeFrameV2 {
+        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V2 + 1,
         width: 1,
         height: 1,
         generation: 1,
-        rgba: ZrOwnedByteBuffer {
-            data: Box::into_raw(Box::new(0_u8)),
-            len: 1,
-            capacity: 1,
-            owner_token: 6,
-            free: Some(reject_frame_buffer_release),
-        },
+        rgba: owned_bytes(vec![0_u8]),
     };
 
-    let error = validate_runtime_frame_releasing_on_error(&frame)
-        .expect_err("frame protocol and cleanup failures must both remain visible");
+    let error = validate_runtime_frame_releasing_on_error(
+        &mut frame,
+        releaser(reject_frame_buffer_release),
+    )
+    .expect_err("frame protocol and cleanup failures must both remain visible");
 
     assert_eq!(
         error.to_string(),
-        "runtime frame used unsupported ABI version 2; cleanup also failed: failed to free runtime frame output after invalid capture: error: frame allocation still in use"
+        "runtime frame used unsupported ABI version 3; cleanup also failed: failed to free runtime frame output after invalid capture: error: frame allocation still in use"
     );
 }
 
@@ -384,22 +395,17 @@ fn plugin_event_batch_rejects_crossed_subscriptions_and_oversized_pages() {
 #[test]
 fn runtime_frame_validation_releases_truncated_pixels() {
     FRAME_PIXELS_RELEASED.store(false, Ordering::Release);
-    let frame = ZrRuntimeFrameV1 {
-        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V1,
+    let mut frame = ZrRuntimeFrameV2 {
+        abi_version: ZIRCON_RUNTIME_ABI_VERSION_V2,
         width: 1,
         height: 1,
         generation: 1,
-        rgba: ZrOwnedByteBuffer {
-            data: Box::into_raw(Box::new(0_u8)),
-            len: 1,
-            capacity: 1,
-            owner_token: 5,
-            free: Some(release_frame_pixels),
-        },
+        rgba: owned_bytes(vec![0_u8]),
     };
 
-    let error = validate_runtime_frame_releasing_on_error(&frame)
-        .expect_err("truncated runtime frame pixels must reject capture");
+    let error =
+        validate_runtime_frame_releasing_on_error(&mut frame, releaser(release_frame_pixels))
+            .expect_err("truncated runtime frame pixels must reject capture");
 
     assert_eq!(
         error.to_string(),

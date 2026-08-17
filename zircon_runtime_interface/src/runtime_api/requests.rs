@@ -1,4 +1,4 @@
-use crate::buffer::{ZrByteSlice, ZrOwnedByteBuffer};
+use crate::buffer::{ZrByteSlice, ZrOwnedResultV2};
 use crate::handles::ZrRuntimeViewportHandle;
 
 use super::viewport::ZrRuntimeViewportSizeV1;
@@ -69,27 +69,27 @@ impl ZrRuntimeAccessibilityTreeRequestV1 {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug)]
-pub struct ZrRuntimeFrameV1 {
+#[derive(Debug)]
+pub struct ZrRuntimeFrameV2 {
     pub abi_version: u32,
     pub width: u32,
     pub height: u32,
     pub generation: u64,
-    pub rgba: ZrOwnedByteBuffer,
+    pub rgba: ZrOwnedResultV2,
 }
 
-impl ZrRuntimeFrameV1 {
+impl ZrRuntimeFrameV2 {
     pub const fn empty(abi_version: u32) -> Self {
         Self {
             abi_version,
             width: 0,
             height: 0,
             generation: 0,
-            rgba: ZrOwnedByteBuffer::empty(),
+            rgba: ZrOwnedResultV2::empty(),
         }
     }
 
-    pub const fn is_empty(self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.width == 0 || self.height == 0 || self.rgba.is_empty()
     }
 }

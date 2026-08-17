@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use crate::buffer::{ZrByteSlice, ZrOwnedByteBuffer};
+use crate::buffer::{ZrByteSlice, ZrOwnedResultV2};
 use crate::handles::ZrRuntimeSessionHandle;
 use crate::status::ZrStatus;
 
-pub type ZrRuntimeProfileControlFnV1 =
-    unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrByteSlice, *mut ZrOwnedByteBuffer) -> ZrStatus;
+pub type ZrRuntimeProfileControlFnV2 =
+    unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrByteSlice, *mut ZrOwnedResultV2) -> ZrStatus;
 
 pub const PROFILE_TIMELINE_NATIVE_FILE: &str = "timeline.zrtrace.json";
 pub const PROFILE_TIMELINE_PERFETTO_FILE: &str = "timeline.perfetto.json";
@@ -495,7 +495,7 @@ pub struct UiHotspotAlert {
     pub message: String,
 }
 
-/// JSON command carried through `ZrRuntimeProfileControlFnV1`.
+/// JSON command carried through `ZrRuntimeProfileControlFnV2`.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ProfileControlCommand {

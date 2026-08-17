@@ -7,14 +7,14 @@ use std::time::Duration;
 
 use serde::de::DeserializeOwned;
 
-use zircon_runtime_interface::{ZrOwnedByteBuffer, ZrStatus};
+use zircon_runtime_interface::{ZrOwnedResultV2, ZrStatus};
 
 use super::decode::decode_bounded_json;
 use super::kind::{RuntimeForeignOutputKind, RUNTIME_FOREIGN_OUTPUT_KIND_COUNT};
 use super::metrics::{empty_counters, RuntimeForeignOutputCounters};
 use super::{
-    release_owned_buffer, validate_owned_buffer, RuntimeForeignOutputBudget,
-    RuntimeForeignOutputError, RuntimeForeignOutputMetricsSnapshot,
+    release_owned_result, validate_owned_result, RuntimeForeignOutputBudget,
+    RuntimeForeignOutputError, RuntimeForeignOutputMetricsSnapshot, RuntimeOwnedOutputReleaser,
 };
 
 pub struct RuntimeForeignOutputState {
@@ -80,18 +80,19 @@ impl RuntimeForeignOutputState {
     pub fn ensure_call_succeeded(
         &self,
         status: ZrStatus,
-        output: ZrOwnedByteBuffer,
+        output: ZrOwnedResultV2,
+        releaser: RuntimeOwnedOutputReleaser,
         kind: RuntimeForeignOutputKind,
         operation: &'static str,
         release_operation: &'static str,
-    ) -> Result<(), RuntimeForeignOutputError> {
+    ) -> Result<ZrOwnedResultV2, RuntimeForeignOutputError> {
         let Some(call_error) = RuntimeForeignOutputError::from_status(status, operation) else {
-            return Ok(());
+            return Ok(output);
         };
         self.counters[kind.index()].record_call_failure();
-        let encoded_len = output.len;
-        let ownership_error = validate_owned_buffer(&output, release_operation).err();
-        let release_error = release_owned_buffer(output, release_operation).err();
+        let encoded_len = reported_len(&output);
+        let ownership_error = validate_owned_result(&output, release_operation).err();
+        let release_error = release_owned_result(output, releaser, release_operation).err();
         match (ownership_error, release_error) {
             (None, None) => Err(call_error),
             (ownership_error, release_error) => {
@@ -113,7 +114,8 @@ impl RuntimeForeignOutputState {
 
     pub fn decode_json<T, E>(
         &self,
-        output: ZrOwnedByteBuffer,
+        output: ZrOwnedResultV2,
+        releaser: RuntimeOwnedOutputReleaser,
         kind: RuntimeForeignOutputKind,
         budget: RuntimeForeignOutputBudget,
         operation: &'static str,
@@ -124,10 +126,11 @@ impl RuntimeForeignOutputState {
         T: DeserializeOwned,
         E: std::fmt::Display,
     {
-        let encoded_len = output.len;
+        let encoded_len = reported_len(&output);
         if self.is_protocol_failed() {
             return self.reject_and_release(
                 output,
+                releaser,
                 kind,
                 encoded_len,
                 Duration::ZERO,
@@ -135,19 +138,24 @@ impl RuntimeForeignOutputState {
                 release_operation,
             );
         }
-        if let Err(error) = validate_owned_buffer(&output, operation) {
-            return self.reject_and_release(
-                output,
-                kind,
-                encoded_len,
-                Duration::ZERO,
-                error,
-                release_operation,
-            );
-        }
+        let encoded_len = match validate_owned_result(&output, operation) {
+            Ok(encoded_len) => encoded_len,
+            Err(error) => {
+                return self.reject_and_release(
+                    output,
+                    releaser,
+                    kind,
+                    encoded_len,
+                    Duration::ZERO,
+                    error,
+                    release_operation,
+                )
+            }
+        };
         if let Err(error) = budget.validate_encoded_len(encoded_len, operation) {
             return self.reject_and_release(
                 output,
+                releaser,
                 kind,
                 encoded_len,
                 Duration::ZERO,
@@ -159,6 +167,7 @@ impl RuntimeForeignOutputState {
             if !budget.allow_empty {
                 return self.reject_and_release(
                     output,
+                    releaser,
                     kind,
                     0,
                     Duration::ZERO,
@@ -170,6 +179,7 @@ impl RuntimeForeignOutputState {
             }
             return self.finish_acceptance(
                 output,
+                releaser,
                 kind,
                 0,
                 Duration::ZERO,
@@ -179,11 +189,12 @@ impl RuntimeForeignOutputState {
             );
         }
 
-        let bytes = unsafe { slice::from_raw_parts(output.data.cast_const(), encoded_len) };
+        let bytes = unsafe { slice::from_raw_parts(output.data, encoded_len) };
         let (decoded, decode_time) = decode_bounded_json(bytes, budget, operation, validate);
         match decoded {
             Ok(decoded) => self.finish_acceptance(
                 output,
+                releaser,
                 kind,
                 encoded_len,
                 decode_time,
@@ -193,6 +204,7 @@ impl RuntimeForeignOutputState {
             ),
             Err(error) => self.reject_and_release(
                 output,
+                releaser,
                 kind,
                 encoded_len,
                 decode_time,
@@ -240,14 +252,15 @@ impl RuntimeForeignOutputState {
 
     fn reject_and_release<T>(
         &self,
-        output: ZrOwnedByteBuffer,
+        output: ZrOwnedResultV2,
+        releaser: RuntimeOwnedOutputReleaser,
         kind: RuntimeForeignOutputKind,
         encoded_len: usize,
         decode_time: Duration,
         error: RuntimeForeignOutputError,
         release_operation: &'static str,
     ) -> Result<T, RuntimeForeignOutputError> {
-        let error = match release_owned_buffer(output, release_operation) {
+        let error = match release_owned_result(output, releaser, release_operation) {
             Ok(()) => error,
             Err(release_error) => error.with_cleanup_failure(&release_error),
         };
@@ -256,7 +269,8 @@ impl RuntimeForeignOutputState {
 
     fn finish_acceptance<T>(
         &self,
-        output: ZrOwnedByteBuffer,
+        output: ZrOwnedResultV2,
+        releaser: RuntimeOwnedOutputReleaser,
         kind: RuntimeForeignOutputKind,
         encoded_len: usize,
         decode_time: Duration,
@@ -264,7 +278,7 @@ impl RuntimeForeignOutputState {
         release_operation: &'static str,
         value: Option<T>,
     ) -> Result<Option<T>, RuntimeForeignOutputError> {
-        let release_error = release_owned_buffer(output, release_operation).err();
+        let release_error = release_owned_result(output, releaser, release_operation).err();
         let _acceptance = self
             .acceptance_gate
             .lock()
@@ -327,4 +341,8 @@ fn fused_session_call_error(operation: &'static str) -> RuntimeForeignOutputErro
     RuntimeForeignOutputError::protocol_violation(format!(
         "runtime session rejected {operation} because a prior foreign-output protocol violation fused the session"
     ))
+}
+
+fn reported_len(output: &ZrOwnedResultV2) -> usize {
+    usize::try_from(output.len).unwrap_or(usize::MAX)
 }

@@ -63,7 +63,7 @@ doc_type: module-detail
 ## Owner Split
 
 - `runtime_api.rs` is a facade only. It declares child modules and re-exports the stable public ABI names.
-- `runtime_api/api_table.rs` owns the V6 dynamic-library symbol, function pointer types, `ZrHostApiV1`, `ZrRuntimeApiV6`, and `ZrRuntimeSessionConfigV3`.
+- `runtime_api/api_table.rs` owns the V7 dynamic-library symbol, function pointer types, `ZrHostApiV1`, `ZrRuntimeApiV7`, and `ZrRuntimeSessionConfigV3`.
 - `runtime_api/constants.rs` owns ABI numeric discriminants for event kinds, native surface kinds, window/gamepad/IME states, and fetch flags.
 - `runtime_api/host_requests.rs` owns runtime-to-host request DTOs, currently IME requests and gamepad rumble requests.
 - `runtime_api/plugin_event_mirror.rs` owns typed plugin-event subscription and delivery DTOs.
@@ -72,9 +72,9 @@ doc_type: module-detail
 - `runtime_api/events.rs` owns `ZrRuntimeEventV1`, `ZrRuntimeTranslatedEventV1`, and event constructor helpers.
 - `runtime_api/requests.rs` owns host fetch, frame capture, accessibility tree capture, and captured frame DTOs.
 
-The V6 cutover replaces all older runtime tables. `zircon_runtime_get_api_v6` returns the frozen
-24-field `ZrRuntimeApiV6`, including plugin-event, operation, and required world
-query/watch/unwatch/drain entries. Hosts resolve only V6; old table exports and loader fallbacks
+The V7 cutover replaces all older runtime tables. `zircon_runtime_get_api_v7` returns the frozen
+25-field `ZrRuntimeApiV7`, including one allocation-release entry plus plugin-event, operation, and required world
+query/watch/unwatch/drain entries. Hosts resolve only V7; old table exports and loader fallbacks
 are deleted. Existing `*V1` DTO names remain only where their payload layouts did not change.
 
 `ZrRuntimeSessionConfigV3` carries the selected profile, one physical `project_root` anchor, an
@@ -83,16 +83,23 @@ runtime validates and resolves those inputs before it creates a session; a versi
 decoded before the first runtime frame, not by rewriting the project manifest or replacing a
 default world after startup.
 
-Although the C-compatible table stores function pointers as optional slots, the V6 host contract
-requires the base session, plugin-event mirror, operation, and world-sync groups. The app loader
+Although the C-compatible table stores function pointers as optional slots, the V7 host contract
+requires allocation release plus the base session, plugin-event mirror, operation, and world-sync groups. The app loader
 rejects a missing member before session construction; after that gate, those accessors are required
 functions rather than per-call capability fallbacks. World query and invalidation payloads are JSON
-inside `ZrOwnedByteBuffer`; watches use the transparent, runtime-issued `WatchToken`, never an
+inside immutable `ZrOwnedResultV2` records; watches use the transparent, runtime-issued `WatchToken`, never an
 editor view id.
+
+Runtime-owned output never exposes allocator capacity, an owner token, or a per-result free callback.
+The producer registers each non-empty result under an opaque `ZrRuntimeAllocationId`; hosts borrow
+the immutable bytes and release the originating session handle plus that id through
+`ZrRuntimeApiV7::release_allocation`. Duplicate, forged, wrong-session, and concurrent losing
+releases return `NotFound` without removing storage or changing its owner census. Session destruction is rejected while its
+allocation census is nonzero and may be retried after the outstanding results are released.
 
 ## Boundary Rules
 
-The interface crate may define stable ABI records, borrowed byte-slice payloads, owned byte buffers, handles, numeric discriminants, and optional function-table slots.
+The interface crate may define stable ABI records, borrowed byte-slice payloads, immutable owned-result views, opaque handles, numeric discriminants, and optional function-table slots.
 
 It must not own runtime behavior: no `CoreRuntime`, no ECS state, no editor authoring state, no OS window objects, no GPU resources, no plugin implementation registry, and no dynamic session lifecycle. Those remain in `zircon_runtime`, `zircon_app`, or plugin runtime crates.
 
@@ -108,8 +115,8 @@ New ABI additions should land in the narrow owner file:
 - viewport/native surface records in `viewport.rs`;
 - capture/fetch request records in `requests.rs`.
 
-Do not add new behavior back into `runtime_api.rs`. The interface boundary test keeps this file as a small facade, requires each owner module to be declared and re-exported, and rejects oversized owner files before the ABI surface becomes another support hot spot. `tests/abi_safety_contracts.rs` locks `ZrHostApiV1` and `ZrRuntimeApiV6` as `#[repr(C)]` function-table structs, fixes V6 at 24 fields and its complete field order, and rejects public signature lines that introduce dynamic object carriers unsuitable for the ABI boundary. The structural audit mirrors the facade shape as `runtime_api_boundary` so the owner layout is visible in architecture review output without first running the Rust test binary; `runtime_api_markdown.py` owns the audit's Markdown rendering so the boundary module remains focused on ABI shape and risk calculation.
+Do not add new behavior back into `runtime_api.rs`. The interface boundary test keeps this file as a small facade, requires each owner module to be declared and re-exported, and rejects oversized owner files before the ABI surface becomes another support hot spot. `tests/abi_safety_contracts.rs` locks `ZrHostApiV1` and `ZrRuntimeApiV7` as `#[repr(C)]` function-table structs, fixes V7 at 25 fields and its complete field order, and rejects public signature lines that introduce dynamic object carriers unsuitable for the ABI boundary. The structural audit mirrors the facade shape as `runtime_api_boundary` so the owner layout is visible in architecture review output without first running the Rust test binary; `runtime_api_markdown.py` owns the audit's Markdown rendering so the boundary module remains focused on ABI shape and risk calculation.
 
 ## Validation
 
-The split is accepted only when `zircon_runtime_interface` compiles standalone and `runtime_api_boundary` reports the declared owner modules, a small facade, no missing re-exports, no direct ABI declarations in `runtime_api.rs`, and no oversized owner modules. Focused interface tests assert the exact V6 table size/order, required mirror/operation/world-sync placement, event constructors, host request and plugin-event serialization, world-sync JSON/token contracts, and frame/accessibility capture DTO contracts.
+The split is accepted only when `zircon_runtime_interface` compiles standalone and `runtime_api_boundary` reports the declared owner modules, a small facade, no missing re-exports, no direct ABI declarations in `runtime_api.rs`, and no oversized owner modules. Focused interface tests assert the exact V7 table size/order, mandatory allocation release, required mirror/operation/world-sync placement, event constructors, host request and plugin-event serialization, world-sync JSON/token contracts, and frame/accessibility capture DTO contracts.

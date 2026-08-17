@@ -3,9 +3,9 @@ use std::{env, path::Path};
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::math::{Transform, Vec3};
 use zircon_runtime_interface::{
+    ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeViewportHandle,
     ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
-    ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1, ZrByteSlice,
-    ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeViewportHandle,
+    ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
 };
 
 use super::super::{RuntimeDynamicSession, RuntimeProjectConfig};
@@ -382,11 +382,7 @@ pub(super) fn capture_vampire_frame_for_env(session: &mut RuntimeDynamicSession,
             vampire_capture_viewport_size(),
         ))
         .unwrap();
-    let rgba = if frame.rgba.data.is_null() || frame.rgba.len == 0 {
-        &[]
-    } else {
-        unsafe { std::slice::from_raw_parts(frame.rgba.data.cast_const(), frame.rgba.len) }
-    };
+    let rgba = frame.rgba.as_slice();
     export_vampire_capture_frame_if_requested(env_var, rgba, frame.width, frame.height);
 }
 

@@ -8,7 +8,7 @@ mod session;
 mod shader_prewarm;
 mod surface;
 
-pub use exports::zircon_runtime_get_api_v6;
+pub use exports::zircon_runtime_get_api_v7;
 pub use session::{create_linked_runtime_session, RuntimeDynamicSessionError, RuntimeProjectError};
 pub(crate) use shader_prewarm::builtin_standard_material_shader_prewarm_manifest_for_geometry_with_plugin_shading_models;
 pub use shader_prewarm::{

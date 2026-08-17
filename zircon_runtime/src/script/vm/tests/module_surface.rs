@@ -210,8 +210,18 @@ fn runtime13_scalar_math_host_uses_libm_vectors_and_rejects_non_finite_values() 
 }
 
 #[test]
-fn script_module_descriptor_registers_vm_plugin_runtime_before_manager_facade() {
+fn script_module_descriptor_registers_manager_owner_before_plugin_facade() {
     let descriptor = module_descriptor();
+
+    let manager = descriptor
+        .managers
+        .iter()
+        .find(|manager| manager.name.as_str() == VM_PLUGIN_MANAGER_NAME)
+        .expect("vm plugin manager descriptor");
+    assert!(manager
+        .dependencies
+        .iter()
+        .any(|dependency| dependency.name.as_str() == PLUGIN_HOST_DRIVER_NAME));
 
     let plugin = descriptor
         .plugins
@@ -222,17 +232,7 @@ fn script_module_descriptor_registers_vm_plugin_runtime_before_manager_facade() 
     assert!(plugin
         .dependencies
         .iter()
-        .any(|dependency| dependency.name.as_str() == PLUGIN_HOST_DRIVER_NAME));
-
-    let manager = descriptor
-        .managers
-        .iter()
-        .find(|manager| manager.name.as_str() == VM_PLUGIN_MANAGER_NAME)
-        .expect("vm plugin manager descriptor");
-    assert!(manager
-        .dependencies
-        .iter()
-        .any(|dependency| dependency.name.as_str() == VM_PLUGIN_RUNTIME_NAME));
+        .any(|dependency| dependency.name.as_str() == VM_PLUGIN_MANAGER_NAME));
 }
 
 #[test]

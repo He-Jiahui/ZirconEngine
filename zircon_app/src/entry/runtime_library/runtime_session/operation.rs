@@ -1,8 +1,9 @@
 use std::mem::MaybeUninit;
 
 use zircon_runtime_host::foreign_output::operation_result_item_count;
+use zircon_runtime_host::foreign_output::RuntimeOwnedOutputReleaser;
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeOperationHandle, ZrRuntimeOperationResultV1,
+    ZrByteSlice, ZrOwnedResultV2, ZrRuntimeOperationHandle, ZrRuntimeOperationResultV1,
     ZrRuntimeOperationStatusV2, ZrRuntimeOperationSubmitRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
     ZIRCON_RUNTIME_ABI_VERSION_V2,
 };
@@ -82,6 +83,7 @@ impl RuntimeSession {
         let harvest = self.runtime().harvest_operation();
         decode_operation_output(
             &self.foreign_output,
+            self.output_releaser(),
             |output| unsafe { harvest(self.handle, handle, output) },
             "harvest runtime operation",
             |result: &ZrRuntimeOperationResultV1| {
@@ -156,13 +158,13 @@ fn ensure_operation_output_handle(
 mod tests {
     use super::{
         decode_operation_output, ensure_operation_output_handle, ensure_operation_result_abi,
-        ensure_operation_status, ForeignOutputState,
+        ensure_operation_status, ForeignOutputState, RuntimeOwnedOutputReleaser,
     };
     use crate::entry::runtime_library::runtime_library_error::RuntimeLibraryErrorKind;
     use zircon_runtime_interface::{
-        ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle,
-        ZrRuntimeOperationPhase, ZrRuntimeOperationStatusV2, ZrStatus, ZrStatusCode,
-        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrByteSlice, ZrOwnedResultV2, ZrRuntimeAllocationId, ZrRuntimeOperationDetailKindV2,
+        ZrRuntimeOperationHandle, ZrRuntimeOperationPhase, ZrRuntimeOperationStatusV2,
+        ZrRuntimeSessionHandle, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
     };
 
     const OPERATION_RELEASE_DIAGNOSTIC: &[u8] = b"operation allocation still in use";
@@ -172,32 +174,23 @@ mod tests {
         abi_version: u32,
     }
 
-    unsafe extern "C" fn return_foreign_operation_output(
-        output: *mut ZrOwnedByteBuffer,
-    ) -> ZrStatus {
-        let mut bytes = br#"{"abi_version":2}"#.to_vec();
-        let owned = ZrOwnedByteBuffer {
-            data: bytes.as_mut_ptr(),
-            len: bytes.len(),
-            capacity: bytes.capacity(),
-            owner_token: 1,
-            free: Some(reject_operation_output_release),
+    unsafe extern "C" fn return_foreign_operation_output(output: *mut ZrOwnedResultV2) -> ZrStatus {
+        static BYTES: &[u8] = br#"{"abi_version":2}"#;
+        let owned = ZrOwnedResultV2 {
+            data: BYTES.as_ptr(),
+            len: BYTES.len() as u64,
+            allocation: ZrRuntimeAllocationId::new(1),
         };
-        std::mem::forget(bytes);
         unsafe {
             output.write(owned);
         }
         ZrStatus::ok()
     }
 
-    unsafe extern "C" fn reject_operation_output_release(output: ZrOwnedByteBuffer) -> ZrStatus {
-        unsafe {
-            drop(Vec::from_raw_parts(
-                output.data,
-                output.len,
-                output.capacity,
-            ));
-        }
+    unsafe extern "C" fn reject_operation_output_release(
+        _session: ZrRuntimeSessionHandle,
+        _allocation: ZrRuntimeAllocationId,
+    ) -> ZrStatus {
         ZrStatus::new(
             ZrStatusCode::Error,
             ZrByteSlice::from_static(OPERATION_RELEASE_DIAGNOSTIC),
@@ -237,6 +230,10 @@ mod tests {
     fn operation_abi_and_release_failures_preserve_both_diagnostics() {
         let error = decode_operation_output(
             &ForeignOutputState::default(),
+            RuntimeOwnedOutputReleaser::new(
+                ZrRuntimeSessionHandle::new(1),
+                reject_operation_output_release,
+            ),
             |output| unsafe { return_foreign_operation_output(output) },
             "poll runtime operation",
             |output: &TestOperationOutput| {
@@ -286,15 +283,17 @@ mod tests {
 
 fn decode_operation_output<T: serde::de::DeserializeOwned>(
     foreign_output: &ForeignOutputState,
-    call: impl FnOnce(*mut ZrOwnedByteBuffer) -> zircon_runtime_interface::ZrStatus,
+    releaser: RuntimeOwnedOutputReleaser,
+    call: impl FnOnce(*mut ZrOwnedResultV2) -> zircon_runtime_interface::ZrStatus,
     operation: &'static str,
     validate: impl FnOnce(&T) -> Result<usize, RuntimeLibraryError>,
 ) -> Result<T, RuntimeLibraryError> {
-    let mut output = ZrOwnedByteBuffer::empty();
+    let mut output = ZrOwnedResultV2::empty();
     let status = call(&mut output);
-    foreign_output.ensure_call_succeeded(
+    output = foreign_output.ensure_call_succeeded(
         status,
         output,
+        releaser,
         ForeignOutputKind::OperationResult,
         operation,
         "free runtime operation output",
@@ -302,6 +301,7 @@ fn decode_operation_output<T: serde::de::DeserializeOwned>(
     foreign_output
         .decode_json(
             output,
+            releaser,
             ForeignOutputKind::OperationResult,
             OPERATION_RESULT_OUTPUT_BUDGET,
             operation,

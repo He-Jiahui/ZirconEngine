@@ -1,8 +1,15 @@
+use std::collections::HashMap;
+use std::sync::atomic::AtomicU64;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use serde::Deserialize;
-use zircon_runtime_interface::{ZrOwnedByteBuffer, ZrStatus};
+use zircon_runtime_host::foreign_output::RuntimeOwnedOutputReleaser;
+use zircon_runtime_interface::{
+    ZrOwnedResultV2, ZrRuntimeAllocationId, ZrRuntimeReleaseAllocationFnV2, ZrRuntimeSessionHandle,
+    ZrStatus,
+};
 
 use super::{
     ForeignOutputBudget, ForeignOutputKind, ForeignOutputState,
@@ -14,70 +21,87 @@ static DEADLINE_RELEASED: AtomicBool = AtomicBool::new(false);
 static DEADLINE_VALIDATOR_CALLED: AtomicBool = AtomicBool::new(false);
 static NESTING_LIMIT_RELEASED: AtomicBool = AtomicBool::new(false);
 static VALIDATION_TIME_RELEASED: AtomicBool = AtomicBool::new(false);
+static NEXT_ALLOCATION_ID: AtomicU64 = AtomicU64::new(1);
+static TEST_ALLOCATIONS: OnceLock<Mutex<HashMap<u64, Box<[u8]>>>> = OnceLock::new();
 
 #[derive(Debug, Deserialize)]
 struct TestPayload {
     values: Vec<u32>,
 }
 
-unsafe extern "C" fn release_deadline(output: ZrOwnedByteBuffer) -> ZrStatus {
-    release_vec(output);
+unsafe extern "C" fn release_deadline(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_vec(allocation);
     DEADLINE_RELEASED.store(true, Ordering::Release);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn release_nesting_limited(output: ZrOwnedByteBuffer) -> ZrStatus {
-    release_vec(output);
+unsafe extern "C" fn release_nesting_limited(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_vec(allocation);
     NESTING_LIMIT_RELEASED.store(true, Ordering::Release);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn release_benchmark(output: ZrOwnedByteBuffer) -> ZrStatus {
-    release_vec(output);
+unsafe extern "C" fn release_benchmark(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_vec(allocation);
     ZrStatus::ok()
 }
 
-unsafe extern "C" fn release_validation_timed(output: ZrOwnedByteBuffer) -> ZrStatus {
-    release_vec(output);
+unsafe extern "C" fn release_validation_timed(
+    _session: ZrRuntimeSessionHandle,
+    allocation: ZrRuntimeAllocationId,
+) -> ZrStatus {
+    release_vec(allocation);
     VALIDATION_TIME_RELEASED.store(true, Ordering::Release);
     ZrStatus::ok()
 }
 
-fn release_vec(output: ZrOwnedByteBuffer) {
-    if !output.data.is_null() {
-        unsafe {
-            drop(Vec::from_raw_parts(
-                output.data,
-                output.len,
-                output.capacity,
-            ));
-        }
-    }
+fn release_vec(allocation: ZrRuntimeAllocationId) {
+    TEST_ALLOCATIONS
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .remove(&allocation.raw())
+        .expect("benchmark allocation must be released exactly once");
 }
 
 fn owned_json(
     value: &impl serde::Serialize,
-    release: unsafe extern "C" fn(ZrOwnedByteBuffer) -> ZrStatus,
-) -> ZrOwnedByteBuffer {
+    release: ZrRuntimeReleaseAllocationFnV2,
+) -> ZrOwnedResultV2 {
     owned_bytes(
         serde_json::to_vec(value).expect("serialize test payload"),
         release,
     )
 }
 
-fn owned_bytes(
-    mut bytes: Vec<u8>,
-    release: unsafe extern "C" fn(ZrOwnedByteBuffer) -> ZrStatus,
-) -> ZrOwnedByteBuffer {
-    let output = ZrOwnedByteBuffer {
-        data: bytes.as_mut_ptr(),
-        len: bytes.len(),
-        capacity: bytes.capacity(),
-        owner_token: 1,
-        free: Some(release),
-    };
-    std::mem::forget(bytes);
-    output
+fn owned_bytes(bytes: Vec<u8>, _release: ZrRuntimeReleaseAllocationFnV2) -> ZrOwnedResultV2 {
+    let bytes = bytes.into_boxed_slice();
+    let data = bytes.as_ptr();
+    let len = bytes.len() as u64;
+    let allocation = ZrRuntimeAllocationId::new(NEXT_ALLOCATION_ID.fetch_add(1, Ordering::Relaxed));
+    TEST_ALLOCATIONS
+        .get_or_init(|| Mutex::new(HashMap::new()))
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .insert(allocation.raw(), bytes);
+    ZrOwnedResultV2 {
+        data,
+        len,
+        allocation,
+    }
+}
+
+fn releaser(release: ZrRuntimeReleaseAllocationFnV2) -> RuntimeOwnedOutputReleaser {
+    RuntimeOwnedOutputReleaser::new(ZrRuntimeSessionHandle::new(1), release)
 }
 
 #[test]
@@ -94,6 +118,7 @@ fn decode_deadline_interrupts_parsing_before_schema_validation() {
     let error = state
         .decode_json::<TestPayload, &'static str>(
             output,
+            releaser(release_deadline),
             ForeignOutputKind::HostRequests,
             budget,
             "decode deadline test host requests",
@@ -125,6 +150,7 @@ fn decode_time_budget_includes_schema_validation_and_item_counting() {
     let error = state
         .decode_json::<TestPayload, &'static str>(
             output,
+            releaser(release_validation_timed),
             ForeignOutputKind::HostRequests,
             budget,
             "decode validation-time test host requests",
@@ -154,6 +180,7 @@ fn json_nesting_limit_releases_and_fuses_before_schema_validation() {
     let error = state
         .decode_json::<serde_json::Value, &'static str>(
             owned_bytes(bytes, release_nesting_limited),
+            releaser(release_nesting_limited),
             ForeignOutputKind::OperationResult,
             ForeignOutputBudget::new(1_024, 1_024, Duration::from_millis(25)),
             "decode nested test operation",
@@ -184,6 +211,7 @@ fn foreign_output_decode_performance_acceptance() {
         let decoded = warmup_state
             .decode_json::<TestPayload, &'static str>(
                 owned_json(&payload, release_benchmark),
+                releaser(release_benchmark),
                 ForeignOutputKind::HostRequests,
                 HOST_REQUEST_OUTPUT_BUDGET,
                 "decode benchmark host requests",
@@ -202,6 +230,7 @@ fn foreign_output_decode_performance_acceptance() {
         let decoded = state
             .decode_json::<TestPayload, &'static str>(
                 output,
+                releaser(release_benchmark),
                 ForeignOutputKind::HostRequests,
                 HOST_REQUEST_OUTPUT_BUDGET,
                 "decode benchmark host requests",

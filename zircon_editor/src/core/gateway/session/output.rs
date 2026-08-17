@@ -2,27 +2,31 @@ use std::slice;
 use std::sync::Arc;
 
 use zircon_runtime_host::foreign_output::{
-    release_owned_buffer, validate_owned_buffer, validate_owned_buffer_releasing_on_error,
+    release_owned_result, validate_owned_result, validate_owned_result_releasing_on_error,
     RuntimeForeignOutputError, RuntimeForeignOutputKind, RuntimeForeignOutputState,
+    RuntimeOwnedOutputReleaser,
 };
-use zircon_runtime_interface::{ZrOwnedByteBuffer, ZrStatus};
+use zircon_runtime_interface::{ZrOwnedResultV2, ZrStatus};
 
 use super::super::GatewayError;
 
 pub(super) struct GatewayOwnedOutput {
-    raw: Option<ZrOwnedByteBuffer>,
+    raw: Option<ZrOwnedResultV2>,
+    releaser: RuntimeOwnedOutputReleaser,
     foreign_output: Arc<RuntimeForeignOutputState>,
     kind: RuntimeForeignOutputKind,
 }
 
 impl GatewayOwnedOutput {
     fn new(
-        raw: ZrOwnedByteBuffer,
+        raw: ZrOwnedResultV2,
+        releaser: RuntimeOwnedOutputReleaser,
         foreign_output: Arc<RuntimeForeignOutputState>,
         kind: RuntimeForeignOutputKind,
     ) -> Self {
         Self {
             raw: Some(raw),
+            releaser,
             foreign_output,
             kind,
         }
@@ -32,18 +36,18 @@ impl GatewayOwnedOutput {
         let raw = self.raw.as_ref().ok_or_else(|| GatewayError::Protocol {
             message: format!("{operation} attempted to use released storage"),
         })?;
-        validate_owned_buffer(raw, operation)?;
-        if raw.len == 0 {
+        let len = validate_owned_result(raw, operation)?;
+        if len == 0 {
             return Ok(&[]);
         }
-        Ok(unsafe { slice::from_raw_parts(raw.data.cast_const(), raw.len) })
+        Ok(unsafe { slice::from_raw_parts(raw.data, len) })
     }
 
     pub(super) fn release(mut self) -> Result<(), GatewayError> {
         let Some(raw) = self.raw.take() else {
             return Ok(());
         };
-        match release_owned_buffer(raw, "free runtime gateway output") {
+        match release_owned_result(raw, self.releaser, "release runtime gateway output") {
             Ok(()) => Ok(()),
             Err(error) => self
                 .foreign_output
@@ -58,10 +62,12 @@ impl GatewayOwnedOutput {
     ) -> Result<T, GatewayError> {
         let error = RuntimeForeignOutputError::protocol_violation(error.to_string());
         let error = match self.raw.take() {
-            Some(raw) => match release_owned_buffer(raw, "free runtime gateway output") {
-                Ok(()) => error,
-                Err(release_error) => error.with_cleanup_failure(&release_error),
-            },
+            Some(raw) => {
+                match release_owned_result(raw, self.releaser, "release runtime gateway output") {
+                    Ok(()) => error,
+                    Err(release_error) => error.with_cleanup_failure(&release_error),
+                }
+            }
             None => error,
         };
         self.foreign_output
@@ -75,7 +81,9 @@ impl Drop for GatewayOwnedOutput {
         let Some(raw) = self.raw.take() else {
             return;
         };
-        if let Err(error) = release_owned_buffer(raw, "free runtime gateway output") {
+        if let Err(error) =
+            release_owned_result(raw, self.releaser, "release runtime gateway output")
+        {
             let _ = self.foreign_output.reject_protocol::<()>(self.kind, error);
         }
     }
@@ -84,25 +92,36 @@ impl Drop for GatewayOwnedOutput {
 pub(super) fn capture_owned_output(
     foreign_output: Arc<RuntimeForeignOutputState>,
     status: ZrStatus,
-    output: ZrOwnedByteBuffer,
+    output: ZrOwnedResultV2,
+    releaser: RuntimeOwnedOutputReleaser,
     operation: &'static str,
 ) -> Result<GatewayOwnedOutput, GatewayError> {
     let kind = RuntimeForeignOutputKind::SessionProtocol;
-    foreign_output.ensure_call_succeeded(
+    let output = foreign_output.ensure_call_succeeded(
         status,
         output,
+        releaser,
         kind,
         operation,
-        "free runtime frame output",
+        "release runtime frame output",
     )?;
-    if let Err(error) = validate_owned_buffer_releasing_on_error(
+    let output = match validate_owned_result_releasing_on_error(
         output,
+        releaser,
         operation,
-        "free runtime frame output after invalid capture",
+        "release runtime frame output after invalid capture",
     ) {
-        return foreign_output
-            .reject_protocol(kind, error)
-            .map_err(Into::into);
-    }
-    Ok(GatewayOwnedOutput::new(output, foreign_output, kind))
+        Ok(output) => output,
+        Err(error) => {
+            return foreign_output
+                .reject_protocol(kind, error)
+                .map_err(Into::into)
+        }
+    };
+    Ok(GatewayOwnedOutput::new(
+        output,
+        releaser,
+        foreign_output,
+        kind,
+    ))
 }
