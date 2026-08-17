@@ -1,4 +1,5 @@
 use super::*;
+use crate::text::ShapedGlyphRotation;
 
 #[test]
 fn sdf_draw_plan_creates_one_textured_quad_per_glyph() {

@@ -401,7 +401,10 @@ fn write_capture_evidence(
             warm_profile,
             warm_stats,
         ),
-        renderdoc_capture_files: rdc_files.iter().map(evidence_file_name).collect(),
+        renderdoc_capture_files: rdc_files
+            .iter()
+            .map(|path| evidence_file_name(path.as_path()))
+            .collect(),
         renderdoc_replay_audit: Render17ReplayAuditStatus {
             status: "unavailable_pending_renderdoc_replay",
             audit_script: "docs/plans/performance/01/renderdoc_capture_audit.py",

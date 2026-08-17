@@ -1,5 +1,6 @@
 use super::*;
 use std::sync::{mpsc, Arc};
+use wgpu::util::DeviceExt;
 
 use crate::core::framework::render::{RenderCapabilitySummary, RenderPhase};
 use crate::graphics::backend::RenderBackend;
@@ -112,10 +113,12 @@ fn hzb_occlusion_culls_fully_hidden_indirect_args_on_wgpu() {
     let phase_dispatch = HzbOcclusionPhaseDispatch::new(&execution).expect("test phase dispatch");
     culler.execute_indirect_args_buffer(
         device,
+        queue,
         &mut encoder,
         &scene_bind_group,
         gpu_scene.scene_bind_group(),
         &hzb.view,
+        HzbSampledResourceIdentity::new(),
         &phase_dispatch,
     );
     encoder.copy_buffer_to_buffer(
@@ -284,12 +287,20 @@ fn hzb_cpu_diagnostics_request_stats_and_indirect_args_together() {
 }
 
 #[test]
-fn hzb_occlusion_uploads_phase_params_in_encoder_order() {
-    let source = include_str!("../hzb_occlusion_culler.rs");
+fn hzb_occlusion_uploads_reused_phase_params_before_dispatch() {
+    let culler_source = include_str!("../hzb_occlusion_culler.rs");
+    let workspace_source = include_str!("../params_workspace.rs");
 
-    assert!(source.contains("zircon-hzb-occlusion-cull-params-upload"));
-    assert!(source.contains("encoder.copy_buffer_to_buffer("));
-    assert!(!source.contains("bytemuck::bytes_of(&HzbOcclusionCullParams::new(args_count)),\n            );\n            let bind_group"));
+    assert!(workspace_source.contains("zircon-hzb-occlusion-cull-params"));
+    assert!(workspace_source.contains("queue.write_buffer("));
+    assert!(!culler_source.contains("encoder.copy_buffer_to_buffer("));
+    let prepare = culler_source
+        .find("let params = self")
+        .expect("phase params workspace preparation");
+    let dispatch = culler_source
+        .find("let mut pass = encoder.begin_compute_pass")
+        .expect("HZB compute dispatch");
+    assert!(prepare < dispatch);
 }
 
 #[test]

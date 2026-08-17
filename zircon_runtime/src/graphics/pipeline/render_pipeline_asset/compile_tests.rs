@@ -25,6 +25,18 @@ mod core_contracts;
 mod external_compute_guards;
 mod postprocess_routes;
 
+fn graph_pass_index(
+    compiled: &crate::graphics::pipeline::CompiledRenderPipeline,
+    pass_name: &str,
+) -> usize {
+    compiled
+        .graph()
+        .passes()
+        .iter()
+        .position(|pass| pass.name == pass_name)
+        .unwrap_or_else(|| panic!("missing graph pass `{pass_name}`"))
+}
+
 #[test]
 fn descriptor_filtering_builds_active_resources_once_per_descriptor() {
     let source = include_str!("descriptor_filtering.rs");

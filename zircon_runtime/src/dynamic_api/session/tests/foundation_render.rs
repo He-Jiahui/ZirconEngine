@@ -2,19 +2,19 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::asset::{AssetUri, ProjectPaths, project_asset_manager_handle};
+use crate::asset::{project_asset_manager_handle, AssetUri, ProjectPaths};
 use crate::core::framework::input::{InputButton, InputEvent};
 use crate::core::framework::render::RenderStats;
 use crate::core::manager::resolve_manager_service;
 use crate::core::resource::ResourceState;
 use crate::runtime_diagnostics::collect_runtime_diagnostics;
 use image::ImageFormat;
-use zircon_runtime_interface::project::{ProjectTemplateId, render_project_template};
+use zircon_runtime_interface::project::{render_project_template, ProjectTemplateId};
 use zircon_runtime_interface::{
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+    ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportSizeV1, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
     ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_KEY_ACTION_PRESSED_V1,
-    ZR_RUNTIME_KEY_ACTION_RELEASED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1, ZrByteSlice,
-    ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
+    ZR_RUNTIME_KEY_ACTION_RELEASED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
 };
 
 use super::super::{RuntimeDynamicSession, RuntimeDynamicSessionProfile, RuntimeProjectConfig};
@@ -195,11 +195,9 @@ fn assert_input_ingress(session: &mut RuntimeDynamicSession) {
         event,
         InputEvent::CursorMoved { x, y } if *x == pointer[0] && *y == pointer[1]
     )));
-    assert!(
-        input_events
-            .iter()
-            .any(|event| matches!(event, InputEvent::ButtonPressed(_)))
-    );
+    assert!(input_events
+        .iter()
+        .any(|event| matches!(event, InputEvent::ButtonPressed(_))));
     assert!(input_events.iter().any(|event| matches!(
         event,
         InputEvent::KeyboardInput {
@@ -237,11 +235,9 @@ fn assert_input_ingress(session: &mut RuntimeDynamicSession) {
         .resolve_input_manager()
         .expect("F2 input manager")
         .drain_events();
-    assert!(
-        released_events
-            .iter()
-            .any(|event| matches!(event, InputEvent::ButtonReleased(InputButton::MouseLeft)))
-    );
+    assert!(released_events
+        .iter()
+        .any(|event| matches!(event, InputEvent::ButtonReleased(InputButton::MouseLeft))));
     assert!(released_events.iter().any(|event| matches!(
         event,
         InputEvent::KeyboardInput {
@@ -260,17 +256,7 @@ fn capture_product_frame(session: &mut RuntimeDynamicSession) -> ProductFrame {
             ZrRuntimeViewportSizeV1::new(CAPTURE_WIDTH, CAPTURE_HEIGHT),
         ))
         .expect("F2 WGPU frame capture");
-    let rgba = if frame.rgba.data.is_null() || frame.rgba.len == 0 {
-        Vec::new()
-    } else {
-        unsafe { std::slice::from_raw_parts(frame.rgba.data.cast_const(), frame.rgba.len) }.to_vec()
-    };
-    let free = frame.rgba.free.expect("F2 frame must own a free callback");
-    let free_status = unsafe { free(frame.rgba) };
-    assert!(
-        free_status.is_ok(),
-        "F2 frame buffer must release cleanly: {free_status:?}"
-    );
+    let rgba = frame.rgba;
     let stats = collect_runtime_diagnostics(&session.runtime.handle())
         .render
         .stats

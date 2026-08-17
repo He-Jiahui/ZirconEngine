@@ -30,18 +30,18 @@ fn native_bitmap_atlas_storage_split_does_not_promote_later_alpha_to_full_page()
     let second_alpha = GlyphAtlasBitmapSource {
         raster_key: None,
         format: GlyphAtlasFormat::AlphaMask,
-        content_size: UVec2::new(56, 64),
-        screen_rect: GlyphAtlasScreenRect::new(30.0, 4.0, 56.0, 64.0),
+        content_size: UVec2::new(54, 64),
+        screen_rect: GlyphAtlasScreenRect::new(30.0, 4.0, 54.0, 64.0),
         foreground_color: [1.0, 1.0, 1.0, 1.0],
         background_color: [0.0, 0.0, 0.0, 1.0],
-        source_byte_len: 56 * 64,
+        source_byte_len: 54 * 64,
     };
     let frame = test_frame(
         test_submission([first_alpha, color, second_alpha]),
         vec![
             test_source_image(first_alpha, vec![0xA5; 64]),
             test_source_image(color, vec![0xCC; 256]),
-            test_source_image(second_alpha, vec![0x5A; 56 * 64]),
+            test_source_image(second_alpha, vec![0x5A; 54 * 64]),
         ],
         3,
         0,

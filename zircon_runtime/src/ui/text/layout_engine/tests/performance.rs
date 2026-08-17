@@ -8,7 +8,8 @@ use zircon_runtime_interface::ui::{
 
 use crate::text::SharedTextLayoutSession;
 
-use super::{layout_text_with_provider, test_style};
+use super::super::layout_text_with_provider;
+use super::test_style;
 
 const SAMPLE_COUNT: usize = 31;
 const SCALE_GRAPHEME_COUNTS: [usize; 4] = [1, 100, 1_000, 10_000];

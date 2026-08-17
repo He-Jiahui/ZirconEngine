@@ -2,18 +2,28 @@ use std::sync::Arc;
 
 use glyphon::cosmic_text::{fontdb, CacheKey, CacheKeyFlags, SubpixelBin, Weight};
 use glyphon::SwashContent;
-use glyphon::{Attrs, Buffer, Metrics, Shaping};
+use glyphon::{Attrs, Buffer, FontSystem, Metrics, Shaping, TextArea};
 
+use crate::core::math::UVec2;
+use crate::text::atlas::render_plan::GlyphAtlasScreenRect;
 use crate::text::atlas::{
     glyph_atlas_bitmap_render_submission_plan,
-    glyph_atlas_bitmap_render_submission_plan_with_atlas, GlyphAtlasBitmapPlaceholderGlyph,
-    GlyphAtlasBitmapPlaceholderMode, GlyphAtlasBitmapQueuedGlyph,
-    GlyphAtlasBitmapRenderSubmissionReport, GlyphAtlasPageKey, GlyphAtlasPageSpec,
+    glyph_atlas_bitmap_render_submission_plan_with_atlas, GlyphAtlasBitmapFaceValidity,
+    GlyphAtlasBitmapPlaceholderGlyph, GlyphAtlasBitmapPlaceholderMode, GlyphAtlasBitmapQueuedGlyph,
+    GlyphAtlasBitmapRenderSubmissionPlan, GlyphAtlasBitmapRenderSubmissionReport,
+    GlyphAtlasBitmapRetryFrameState, GlyphAtlasBitmapRetryFrameStateReport,
+    GlyphAtlasBitmapRetryFrameSubmissionReport, GlyphAtlasBitmapSource, GlyphAtlasFormat,
+    GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet, GlyphAtlasStorageFormat,
     GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
 };
 use crate::text::font::FontDatabase;
 use crate::text::parallel::raster_pool::{TextRasterWorkerPool, TextRasterWorkerPoolOptions};
 
+use super::source_image::{
+    native_bitmap_atlas_foreground_color, native_bitmap_atlas_format,
+    native_bitmap_atlas_screen_rect, native_bitmap_atlas_source_from_image,
+    text_bounds_clipped_screen_rect, NativeBitmapGlyphImage,
+};
 use super::*;
 
 const TEST_BITMAP_ATLAS_FRAME_INDEX: u64 = 17;

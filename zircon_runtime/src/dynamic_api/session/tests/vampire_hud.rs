@@ -1,7 +1,7 @@
 use crate::core::math::Vec3;
 use crate::runtime_diagnostics::collect_runtime_diagnostics;
 use zircon_runtime_interface::{
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZrRuntimeFrameRequestV1, ZrRuntimeViewportHandle,
+    ZrRuntimeFrameRequestV1, ZrRuntimeViewportHandle, ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
 use super::super::{RuntimeDynamicSession, RuntimeDynamicSessionProfile};
@@ -116,11 +116,7 @@ fn vampire_project_session_capture_frame_draws_world_hud_bars() {
             vampire_capture_viewport_size(),
         ))
         .unwrap();
-    let rgba = if frame.rgba.data.is_null() || frame.rgba.len == 0 {
-        &[]
-    } else {
-        unsafe { std::slice::from_raw_parts(frame.rgba.data.cast_const(), frame.rgba.len) }
-    };
+    let rgba = frame.rgba.as_slice();
     let top_left_panel_pixels = count_hud_panel_pixels(rgba, frame.width, frame.height);
     let world_hud_bar_pixels = count_world_hud_bar_pixels(rgba, frame.width, frame.height);
     let diagnostics = collect_runtime_diagnostics(&session.runtime.handle());

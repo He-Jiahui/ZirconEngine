@@ -94,7 +94,7 @@ fn activation_transition_gate(
     mpsc::Receiver<()>,
     mpsc::Receiver<()>,
     mpsc::Receiver<()>,
-    mpsc::Sender<()>,
+    mpsc::SyncSender<()>,
 ) {
     let (first_build_started_sender, first_build_started) = mpsc::sync_channel(1);
     let (second_build_started_sender, second_build_started) = mpsc::sync_channel(1);

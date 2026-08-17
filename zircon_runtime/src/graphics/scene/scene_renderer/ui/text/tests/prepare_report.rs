@@ -1,4 +1,6 @@
-use super::super::prepare_report::text_raster_upload_report;
+use super::super::prepare_report::{
+    text_raster_upload_report, ScreenSpaceUiTextSdfGenerationReport,
+};
 use super::super::resolved_batches::ResolvedScreenSpaceUiTextBatches;
 use super::super::*;
 use super::support::text_batch;

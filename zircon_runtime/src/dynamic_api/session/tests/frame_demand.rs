@@ -1,7 +1,7 @@
 use zircon_runtime_interface::{ZrRuntimeFrameDemandV1, ZrStatus, ZrStatusCode};
 
-use crate::core::CoreError;
 use crate::core::resource::{AnimationSequenceMarker, ResourceHandle, ResourceId};
+use crate::core::CoreError;
 use crate::dynamic_api::session::profile::RuntimeDynamicSessionProfile;
 use crate::dynamic_api::session::state::RuntimeDynamicSession;
 use crate::scene::components::{AnimationSequencePlayerComponent, NodeKind};
@@ -9,7 +9,7 @@ use crate::scene::{DefaultLevelManager, EntityId, SystemStage, World};
 
 use super::super::ffi;
 use super::super::registry::{
-    RuntimeFrameDemand, destroy_session_slot, insert_session, with_session, with_session_activity,
+    destroy_session_slot, insert_session, with_session, with_session_activity, RuntimeFrameDemand,
 };
 use super::super::state::animation_frame_demand;
 

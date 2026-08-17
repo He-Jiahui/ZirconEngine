@@ -363,7 +363,9 @@ mod tests {
             Vec::new(),
         );
 
-        let error = resolved_wgsl_source("reduce", None, &metadata).unwrap_err();
+        let Err(error) = resolved_wgsl_source("reduce", None, &metadata) else {
+            panic!("an asset shader without a resource streamer must fail");
+        };
         assert!(error.contains("has no resource streamer"));
         assert!(error.contains("res://shaders/compute/reduce.zshader"));
     }
@@ -377,8 +379,9 @@ mod tests {
         let workload =
             RenderGraphComputeWorkload::fixed("oversized-dispatch", [1, 1, 1], [65, 1, 1]);
 
-        let error = direct_dispatch(&workload, [65, 1, 1], &limits)
-            .expect_err("direct dispatch beyond the device limit must fail");
+        let Err(error) = direct_dispatch(&workload, [65, 1, 1], &limits) else {
+            panic!("direct dispatch beyond the device limit must fail");
+        };
 
         assert!(error.contains("oversized-dispatch"));
         assert!(error.contains("per-dimension limit 64"));

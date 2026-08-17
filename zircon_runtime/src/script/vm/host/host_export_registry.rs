@@ -465,9 +465,14 @@ mod tests {
         );
         let call_table = registry.script_call_table();
         let call_site = call_table.resolve("test.host", "ping").unwrap();
+        let arguments = Vec::new();
+        let source = ScriptHostOwnedArgumentSource::new(&arguments);
         assert_eq!(
             call_site
-                .call(Vec::new(), &CapabilitySet::default())
+                .call(
+                    crate::core::framework::script::ScriptHostArguments::new(&source),
+                    &CapabilitySet::default(),
+                )
                 .unwrap(),
             ScriptHostValue::Null
         );

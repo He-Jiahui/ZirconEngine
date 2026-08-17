@@ -170,6 +170,7 @@ fn native_bitmap_atlas_frame_reuses_approximate_bucket_while_exact_worker_is_pen
                 ..requested_key
             }
         )
+        .with_font_identity([source_cache.face_epoch(), 1])
     );
 }
 

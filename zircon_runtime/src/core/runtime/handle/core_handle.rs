@@ -288,7 +288,7 @@ mod tests {
             let _guard = handle.inner.lifecycle_coordinator.lock().unwrap();
             panic!("poison core handle lifecycle coordinator");
         }));
-        let _ = handle.lock_lifecycle_coordinator();
+        drop(handle.lock_lifecycle_coordinator());
 
         let _ = panic::catch_unwind(AssertUnwindSafe(|| {
             let _guard = handle.inner.devtools_plugin_catalog_entries.lock().unwrap();

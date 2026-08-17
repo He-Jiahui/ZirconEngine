@@ -922,8 +922,10 @@ mod tests {
     use crate::core::math::UVec2;
 
     use super::{
-        RenderOutputTransfer, RenderPipelinePhase, RenderResolutionPolicy, RenderUpscalerKind,
-        RenderViewFamilyPipeline, RenderViewportRect,
+        RenderDynamicResolutionController, RenderDynamicResolutionDecision,
+        RenderDynamicResolutionDecisionReason, RenderDynamicResolutionScope, RenderOutputTransfer,
+        RenderPipelinePhase, RenderResolutionPolicy, RenderUpscalerKind, RenderViewFamilyPipeline,
+        RenderViewportRect,
     };
 
     #[test]

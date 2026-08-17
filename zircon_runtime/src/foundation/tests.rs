@@ -1,4 +1,3 @@
-use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::core::framework::events::{
@@ -10,11 +9,6 @@ use crate::core::CoreRuntime;
 use serde_json::json;
 
 use crate::foundation::{module_descriptor, FOUNDATION_MODULE_NAME};
-
-fn env_lock() -> &'static Mutex<()> {
-    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    LOCK.get_or_init(|| Mutex::new(()))
-}
 
 #[test]
 fn foundation_root_stays_structural_after_module_split() {
@@ -42,7 +36,6 @@ fn foundation_root_stays_structural_after_module_split() {
 
 #[test]
 fn config_manager_roundtrip_works_through_resolver() {
-    let _guard = env_lock().lock().unwrap();
     let runtime = CoreRuntime::new();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
@@ -169,13 +162,12 @@ fn disconnected_event_subscription_is_zero_state_without_an_unbounded_channel() 
 
 #[test]
 fn config_manager_persists_values_to_disk() {
-    let _guard = env_lock().lock().unwrap();
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
     let path = std::env::temp_dir().join(format!("zircon_config_{unique}.json"));
-    std::env::set_var("ZIRCON_CONFIG_PATH", &path);
+    let _config_path_override = super::runtime::override_config_file_path_for_test(path.clone());
 
     let runtime = CoreRuntime::new();
     runtime.register_module(module_descriptor()).unwrap();
@@ -202,7 +194,6 @@ fn config_manager_persists_values_to_disk() {
         Some(json!({"page": "main"}))
     );
 
-    std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = std::fs::remove_file(path);
 }
 

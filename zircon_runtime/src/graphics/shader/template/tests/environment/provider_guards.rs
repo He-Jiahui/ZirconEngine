@@ -317,35 +317,47 @@ fn forward_environment_skips_all_sampling_when_occlusion_is_zero() {
 
 #[test]
 fn forward_environment_rejects_zero_normal_or_view_before_texture_work() {
+    let environment_only_features = ShaderFeatureBits::new(ShaderFeatureBits::ENVIRONMENT_ONLY_PBR);
+    let environment_only_surface =
+        standard_material_surface_source_for_features(environment_only_features, 0.5);
+    let environment_only_request = MaterialShaderTemplateRequest::new(
+        static_mesh_descriptor(),
+        ShaderPassType::Forward,
+        environment_only_surface.source,
+        environment_only_surface.entry_point,
+    )
+    .with_features(environment_only_surface.features);
+
     for (label, request) in [
         (
             "generic",
             material_template_request(static_mesh_descriptor(), ShaderPassType::Forward),
         ),
-        (
-            "environment-only",
-            material_template_request(static_mesh_descriptor(), ShaderPassType::Forward)
-                .with_features(ShaderFeatureBits::new(
-                    ShaderFeatureBits::ENVIRONMENT_ONLY_PBR,
-                )),
-        ),
+        ("environment-only", environment_only_request),
     ] {
         let assembly = assemble_material_shader_template(request)
             .unwrap_or_else(|error| panic!("{label} Forward template assembly: {error:?}"));
         let components =
             wgsl_function_source(&assembly.wgsl_source, "fn zr_environment_pbr_components(");
-        let direction_components = if label == "generic" {
+        let prepared_direction_components = (label == "generic").then(|| {
             wgsl_function_source(
                 &assembly.wgsl_source,
                 "fn zr_environment_pbr_components_with_prepared_inputs(",
             )
-        } else {
-            components
-        };
+        });
+        let direction_components = prepared_direction_components
+            .as_deref()
+            .unwrap_or(components.as_str());
 
-        let normal = components
-            .find("zr_environment_normalize_or_zero(normal_ws)")
-            .unwrap_or_else(|| panic!("{label} PBR should normalize the normal"));
+        let normal = match label {
+            "generic" => components
+                .find("zr_environment_normalize_or_zero(normal_ws)")
+                .expect("generic PBR should normalize an arbitrary normal"),
+            "environment-only" => components
+                .find("let normal = normal_normalized;")
+                .expect("environment-only PBR should reuse the caller-normalized normal"),
+            _ => unreachable!("unexpected Forward PBR test profile: {label}"),
+        };
         let view = match label {
             "generic" => components
                 .find("zr_environment_normalize_or_zero(view_dir_ws)")

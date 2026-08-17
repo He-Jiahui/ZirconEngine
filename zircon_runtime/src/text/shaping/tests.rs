@@ -1,4 +1,3 @@
-#[cfg(feature = "profiling")]
 use std::time::Instant;
 
 use crate::core::framework::text::TextDirection;

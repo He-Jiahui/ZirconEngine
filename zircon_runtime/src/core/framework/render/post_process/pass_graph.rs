@@ -221,14 +221,14 @@ fn ordered_node_indices(
 #[cfg(test)]
 mod tests {
     use crate::core::framework::render::{
-        RenderPipelinePhase, RenderResolutionPolicy, RenderUpscalerKind, RenderViewFamilyPipeline,
+        PostProcessEffectSettings, RenderPipelinePhase, RenderResolutionPolicy, RenderUpscalerKind,
+        RenderViewFamilyPipeline,
     };
     use crate::core::math::UVec2;
 
     use super::{
-        ordered_node_indices, PostProcessEffectKind, PostProcessEffectSettings,
-        PostProcessGraphValidationError, PostProcessPassGraph, PostProcessPassNode,
-        PostProcessStackDescriptor,
+        ordered_node_indices, PostProcessEffectKind, PostProcessGraphValidationError,
+        PostProcessPassGraph, PostProcessPassNode, PostProcessStackDescriptor,
     };
 
     #[test]

@@ -1,6 +1,7 @@
 use crate::core::framework::render::PostProcessGraphResourceNames;
 use crate::graphics::scene::scene_renderer::core::scene_renderer_core::{
     HzbNeutralBuffers, LightGridNeutralBuffers, SceneRendererNeutralGraphBuffers,
+    HZB_INDIRECT_ARGS_NEUTRAL_BACKING,
 };
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionResources, RenderPassMeshCommandLists,

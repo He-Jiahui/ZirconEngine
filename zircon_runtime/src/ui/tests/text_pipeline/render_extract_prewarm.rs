@@ -194,7 +194,7 @@ menu_items = ["open|label=Open"]
     );
     assert!(surface.render_extract.list.commands.iter().any(|command| {
         command.style.painter_family
-            == zircon_runtime_interface::ui::surface::UiPainterFamily::TextField
+            == zircon_runtime_interface::ui::style::UiPainterFamily::TextField
             && command.text.as_deref() == Some("cached input")
             && command.text_layout.is_some()
     }));

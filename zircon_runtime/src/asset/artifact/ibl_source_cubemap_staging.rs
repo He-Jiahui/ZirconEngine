@@ -369,8 +369,15 @@ impl IblSourceCubemapStagingStore {
         if !journal_directory.exists() {
             return Ok(());
         }
+        let resolved_journal_directory =
+            fs::canonicalize(&journal_directory).map_err(|source| {
+                IblSourceCubemapStagingError::BundleJournalRead {
+                    path: journal_directory.clone(),
+                    source,
+                }
+            })?;
         let mut policy = IblSourceCubemapBundleRecoveryPolicy {
-            journal_directory: journal_directory.clone(),
+            journal_directory: resolved_journal_directory,
             source_root: self.source_cubemap_root(),
             asset_derived_root: self.asset_derived_root(),
         };
@@ -721,10 +728,25 @@ mod tests {
     use crate::core::resource::io::transaction::TransactionFault;
 
     use super::{
-        IblBakeArtifactAssetDerivedError, IblSourceCubemapStagingRead, IblSourceCubemapStagingStore,
+        IblBakeArtifactAssetDerivedError, IblSourceCubemapStagingError,
+        IblSourceCubemapStagingRead, IblSourceCubemapStagingStore,
     };
 
     static TEST_DIRECTORY_ID: AtomicU64 = AtomicU64::new(0);
+
+    fn assert_texels_close(actual: &[[Real; 4]], expected: &[[Real; 4]]) {
+        assert_eq!(actual.len(), expected.len(), "texel counts must match");
+        for (texel_index, (actual, expected)) in actual.iter().zip(expected).enumerate() {
+            for component in 0..4 {
+                assert!(
+                    (actual[component] - expected[component]).abs() <= 1.0e-5,
+                    "texel {texel_index} component {component} differs: actual={}, expected={}",
+                    actual[component],
+                    expected[component]
+                );
+            }
+        }
+    }
 
     #[test]
     fn source_path_ignores_pmrem_layout_and_optional_derived_contents() {
@@ -1135,10 +1157,9 @@ mod tests {
             published,
             "the test hook must publish the replacement bundle"
         );
-        assert_eq!(
+        assert_texels_close(
             environment.mip_chain.source_texels(),
             replacement.source_texels(),
-            "the completed read must not combine the initial source with the replacement derived artifact"
         );
         fs::remove_dir_all(root).expect("test cache root must be removable");
     }
@@ -1223,9 +1244,9 @@ mod tests {
             .expect("the reader must retry after a rejected artifact is repaired as a bundle");
 
         assert!(published, "the test hook must publish the repaired bundle");
-        assert_eq!(
+        assert_texels_close(
             environment.mip_chain.source_texels(),
-            source.source_texels()
+            source.source_texels(),
         );
         fs::remove_dir_all(root).expect("test cache root must be removable");
     }

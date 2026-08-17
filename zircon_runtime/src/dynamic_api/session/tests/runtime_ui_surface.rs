@@ -34,7 +34,7 @@ node = "inventory"
 component = "ActionButton"
 control_id = "Inventory"
 props = { text = "Inventory" }
-layout = { width = 240.0, height = 48.0 }
+layout = { width = { min = 240.0, preferred = 240.0, max = 240.0, stretch = "Fixed" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
 "#;
 
 const RUNTIME_UI_ACTION_BUTTON_COMPONENT: &str = r#"
@@ -51,7 +51,7 @@ root = "action_button"
 component = "Button"
 control_id = "ActionButtonPrototype"
 props = { text = "Action" }
-layout = { width = 240.0, height = 48.0 }
+layout = { width = { min = 240.0, preferred = 240.0, max = 240.0, stretch = "Fixed" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
 "#;
 
 const RUNTIME_UI_OVERLAY_VIEW: &str = r#"
@@ -68,7 +68,7 @@ node = "overlay"
 component = "Text"
 control_id = "Overlay"
 props = { text = "Overlay" }
-layout = { width = 180.0, height = 32.0 }
+layout = { width = { min = 180.0, preferred = 180.0, max = 180.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 "#;
 
 const RUNTIME_UI_UNUSED_INVALID_VIEW: &str = r#"
@@ -469,6 +469,7 @@ fn accessibility_request() -> ZrRuntimeAccessibilityTreeRequestV1 {
         ZIRCON_RUNTIME_ABI_VERSION_V1,
         ZrRuntimeViewportHandle::new(1),
         ZrRuntimeViewportSizeV1::new(1280, 720),
+        0,
     )
 }
 
@@ -555,8 +556,30 @@ fn write_template_project(root: &Path) {
         }
         std::fs::write(destination, entry.bytes).expect("write template asset");
     }
+    make_template_scene_dynamic(root);
     ProjectPaths::from_root(root)
         .expect("project paths")
         .ensure_derived_layout()
         .expect("project derived layout");
+}
+
+fn make_template_scene_dynamic(root: &Path) {
+    let scene_path = root.join("assets/scenes/main.scene.toml");
+    let source = std::fs::read_to_string(&scene_path).expect("read template scene");
+    let mut scene = toml::from_str::<toml::Value>(&source).expect("parse template scene");
+    let entities = scene
+        .get_mut("entities")
+        .and_then(toml::Value::as_array_mut)
+        .expect("template scene entities");
+    for entity in entities {
+        let entity = entity.as_table_mut().expect("template scene entity");
+        if entity.contains_key("mobility") {
+            entity.insert(
+                "mobility".to_owned(),
+                toml::Value::String("Dynamic".to_owned()),
+            );
+        }
+    }
+    let source = toml::to_string(&scene).expect("serialize dynamic UI fixture scene");
+    std::fs::write(scene_path, source).expect("write dynamic UI fixture scene");
 }

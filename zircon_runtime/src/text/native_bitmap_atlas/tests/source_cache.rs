@@ -128,6 +128,7 @@ fn native_bitmap_atlas_source_cache_evicts_least_recently_used_source() {
             insert_count: 3,
             lru_touch_count: 3,
             evicted_count: 1,
+            evicted_byte_count: 4,
             invalidated_count: 0,
             entry_count: 2,
             ..NativeBitmapAtlasSourceCacheFrameReport::default()
@@ -524,9 +525,11 @@ fn native_bitmap_atlas_source_cache_bounds_new_raster_requests_per_frame() {
         .expect("test font should register a binary face");
     let font_id = face.id;
     let worker_pool = TextRasterWorkerPool::new_without_workers_for_test(
-        TextRasterWorkerPoolOptions::new(1).with_queue_depth(
-            super::super::source_cache::NATIVE_BITMAP_ATLAS_MAX_RASTER_REQUESTS_PER_FRAME + 1,
-        ),
+        TextRasterWorkerPoolOptions::new(1)
+            .with_queue_depth(
+                super::super::source_cache::NATIVE_BITMAP_ATLAS_MAX_RASTER_REQUESTS_PER_FRAME + 1,
+            )
+            .with_request_byte_budget(usize::MAX),
     );
     let mut cache = NativeBitmapAtlasSourceCache::with_capacity(4);
     let font_database = FontDatabase::default();

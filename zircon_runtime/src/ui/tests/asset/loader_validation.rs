@@ -265,8 +265,9 @@ path = "samples/minimal"
 
     let document = UiAssetLoader::load_toml_str(ROUTE_ACTION_WITH_PAYLOAD_LAYOUT)
         .expect("a route action may carry typed payload");
-    let action = document.root.unwrap().bindings[0]
+    let action = document.root.as_ref().unwrap().bindings[0]
         .action
+        .as_ref()
         .expect("route action should remain authored");
 
     assert_eq!(action.route.as_deref(), Some("Project.Open"));
