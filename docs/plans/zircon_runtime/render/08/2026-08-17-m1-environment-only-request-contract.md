@@ -21,8 +21,8 @@ Files: ["zircon_runtime/src/graphics/shader/template/tests/environment_only_pbr.
 
 ## Fresh Testing Evidence
 
-- Windows 托管验收：`Dry run: off`，原始特化 1/1、自定义 surface 相邻合同 1/1、provider guards 13/13；完整 Tooling10 矩阵共 126 个测试实例通过。
-- 专用最终 WGSL 长度不超过通用版本的 50%，排除 5 个无关绑定和 14 个不可达 provider API，同时保留全局 IBL 所需入口。
+- Windows 托管验收：`Dry run: off`，原始特化 1/1、自定义 surface 相邻合同 1/1、provider guards 13/13；完整 Tooling10 矩阵共发现 126 项，实际执行并通过 125 项，另有 1 项 `#[ignore]`。
+- 专用最终 WGSL 长度不超过通用版本的 50%，排除 5 个无关绑定和 15 个不可达 provider API，同时保留全局 IBL 所需入口。
 
 ## Review
 
