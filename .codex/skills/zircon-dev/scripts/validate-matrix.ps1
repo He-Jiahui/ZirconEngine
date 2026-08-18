@@ -408,15 +408,32 @@ function Resolve-CoordinatorCargoTarget {
         -Response $response `
         -Command "cargo acquire" `
         -FieldPath "job.job_id")
-    $targetDir = [string](Require-CoordinatorResponseField `
-        -Response $response `
-        -Command "cargo acquire" `
-        -FieldPath "job.target_dir")
-    $dryRun = [bool](Require-CoordinatorResponseField `
-        -Response $response `
-        -Command "cargo acquire" `
-        -FieldPath "job.dry_run")
-    $targetDir = (Resolve-ManagedCargoTargetPath -TargetDirectory $targetDir).DisplayPath
+    try {
+        $targetDir = [string](Require-CoordinatorResponseField `
+            -Response $response `
+            -Command "cargo acquire" `
+            -FieldPath "job.target_dir")
+        $dryRun = [bool](Require-CoordinatorResponseField `
+            -Response $response `
+            -Command "cargo acquire" `
+            -FieldPath "job.dry_run")
+        $targetDir = (Resolve-ManagedCargoTargetPath -TargetDirectory $targetDir).DisplayPath
+    }
+    catch {
+        $resolutionFailure = $_
+        try {
+            Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
+                "cargo", "release", $jobId,
+                "--session-id", $ownerId
+            ) | Out-Null
+        }
+        catch {
+            Write-Warning `
+                ("Coordinator release also failed after target resolution failed: {0}" -f $_.Exception.Message) `
+                -WarningAction Continue
+        }
+        throw $resolutionFailure
+    }
     $reason = if ($EphemeralLane) {
         "coordinator managed ephemeral $LaneKind lane"
     } elseif ($selectionMode -eq "managed") {
@@ -456,10 +473,14 @@ function Complete-CoordinatorCargoTarget {
         [string]$RepoRoot,
         [object]$ResolvedTarget,
         [int]$ExitCode,
-        [switch]$Started
+        [switch]$StartAttempted
     )
 
-    if ($ResolvedTarget.DryRun -or -not $Started) {
+    if (-not $StartAttempted) {
+        Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
+            "cargo", "release", $ResolvedTarget.JobId,
+            "--session-id", $ResolvedTarget.OwnerId
+        ) | Out-Null
         return
     }
 
@@ -503,11 +524,15 @@ function Resolve-ValidationCleanupFailure {
         return
     }
     if ($null -ne $PrimaryFailure) {
-        Write-Warning ("Coordinator cleanup also failed after the primary validation error: {0}" -f $CleanupFailure.Exception.Message)
+        Write-Warning `
+            ("Coordinator cleanup also failed after the primary validation error: {0}" -f $CleanupFailure.Exception.Message) `
+            -WarningAction Continue
         return
     }
     if ($HasFailedStep) {
-        Write-Warning ("Coordinator cleanup also failed after a validation stage returned nonzero: {0}" -f $CleanupFailure.Exception.Message)
+        Write-Warning `
+            ("Coordinator cleanup also failed after a validation stage returned nonzero: {0}" -f $CleanupFailure.Exception.Message) `
+            -WarningAction Continue
         return
     }
 
@@ -1140,7 +1165,7 @@ function Invoke-ValidateMatrixMain {
         -DryRunMode:$DryRun
 
     $coordinatorJobFailed = $false
-    $coordinatorJobStarted = $false
+    $coordinatorJobStartAttempted = $false
     $primaryFailure = $null
     $locationPushed = $false
     $cargoEnvironmentLease = $null
@@ -1171,8 +1196,8 @@ function Invoke-ValidateMatrixMain {
         Write-Host ("Free space on {0}: {1} (threshold {2})" -f $cleanupStatus.DriveRoot, (Format-ByteCount -Bytes $cleanupStatus.FreeBytes), (Format-ByteCount -Bytes $cleanupStatus.ThresholdBytes))
     }
 
+    $coordinatorJobStartAttempted = -not $resolvedTarget.DryRun
     Start-CoordinatorCargoTarget -RepoRoot $resolvedRepoRoot -ResolvedTarget $resolvedTarget
-    $coordinatorJobStarted = -not $resolvedTarget.DryRun
     Push-Location $resolvedWorkspace.Directory
     $locationPushed = $true
         if ($null -ne $cleanupStatus -and $cleanupStatus.RequiresCleanup) {
@@ -1259,7 +1284,7 @@ function Invoke-ValidateMatrixMain {
                 -RepoRoot $resolvedRepoRoot `
                 -ResolvedTarget $resolvedTarget `
                 -ExitCode $jobExitCode `
-                -Started:$coordinatorJobStarted
+                -StartAttempted:$coordinatorJobStartAttempted
         } catch {
             $cleanupFailure = $_
         }
@@ -1271,7 +1296,9 @@ function Invoke-ValidateMatrixMain {
             if ($null -eq $cleanupFailure) {
                 $cleanupFailure = $_
             } else {
-                Write-Warning ("Additional managed Cargo environment cleanup failure: {0}" -f $_.Exception.Message)
+                Write-Warning `
+                    ("Additional managed Cargo environment cleanup failure: {0}" -f $_.Exception.Message) `
+                    -WarningAction Continue
             }
         }
         Resolve-ValidationCleanupFailure `

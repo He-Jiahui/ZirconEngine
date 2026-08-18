@@ -316,13 +316,30 @@ function Test-ValidatorDryRun {
                 -RepoRoot $sourceRoot `
                 -ResolvedTarget $dryRunTarget `
                 -ExitCode 1 `
-                -Started:$false
+                -StartAttempted:$false
 
             Assert-True ($releaseCalls.Count -eq 1) "Dry-run cleanup did not issue exactly one coordinator command."
             $release = $releaseCalls[0]
             Assert-True ($release.RepoRoot -eq $sourceRoot) "Dry-run cleanup used the wrong repository root."
             Assert-True (($release.Arguments -join " ") -eq "cargo release dry-run-job --session-id $sessionId") `
                 "Dry-run cleanup did not release its coordinator job: $($release.Arguments -join " ")"
+
+            $releaseCalls.Clear()
+            $preStartTarget = [pscustomobject]@{
+                JobId = "pre-start-job"
+                OwnerId = $sessionId
+                DryRun = $false
+            }
+            & $completeCoordinatorTarget `
+                -RepoRoot $sourceRoot `
+                -ResolvedTarget $preStartTarget `
+                -ExitCode 1 `
+                -StartAttempted:$false
+
+            Assert-True ($releaseCalls.Count -eq 1) `
+                "Pre-start cleanup did not issue exactly one coordinator command."
+            Assert-True (($releaseCalls[0].Arguments -join " ") -eq "cargo release pre-start-job --session-id $sessionId") `
+                "Pre-start cleanup did not release its coordinator job: $($releaseCalls[0].Arguments -join " ")"
 
             $releaseCalls.Clear()
             $failFinish = $true
@@ -337,7 +354,7 @@ function Test-ValidatorDryRun {
                     -RepoRoot $sourceRoot `
                     -ResolvedTarget $startedTarget `
                     -ExitCode 1 `
-                    -Started
+                    -StartAttempted
             }
             catch {
                 $finishFailure = $_
@@ -362,7 +379,7 @@ function Test-ValidatorDryRun {
                     -RepoRoot $sourceRoot `
                     -ResolvedTarget $startedTarget `
                     -ExitCode 1 `
-                    -Started
+                    -StartAttempted
             }
             catch {
                 $releaseFailure = $_
@@ -382,7 +399,7 @@ function Test-ValidatorDryRun {
                     -RepoRoot $sourceRoot `
                     -ResolvedTarget $startedTarget `
                     -ExitCode 1 `
-                    -Started
+                    -StartAttempted
             }
             catch {
                 $dualFailure = $_

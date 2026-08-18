@@ -535,7 +535,7 @@ Describe "Coordinator pre-start failure cleanup" {
         $failure.Exception.Message | Should Match "coordinator offline after success"
     }
 
-    It "preserves an invalid coordinator target error without releasing the unstarted job" {
+    It "preserves an invalid coordinator target error and releases the unstarted job" {
         $script:PreStartCoordinatorCalls = [System.Collections.Generic.List[string]]::new()
         Mock Resolve-ValidationSessionId { return "validate-matrix:test" }
         Mock New-CargoCompatibilityJson { return "{}" }
@@ -569,11 +569,57 @@ Describe "Coordinator pre-start failure cleanup" {
 
         $failure | Should Not BeNullOrEmpty
         $failure.Exception.Message | Should Match "must physically resolve under D:, E:, or F:"
-        $script:PreStartCoordinatorCalls.Count | Should Be 2
-        ($script:PreStartCoordinatorCalls -join "`n") | Should Not Match "cargo release"
+        $script:PreStartCoordinatorCalls.Count | Should Be 3
+        ($script:PreStartCoordinatorCalls -join "`n") | Should Match "cargo release invalid-target-job"
     }
 
-    It "preserves the primary error without releasing the current wrapper before cargo start" {
+    It "keeps an invalid target error primary when release cleanup also fails" {
+        $script:TargetResolutionWarnings = [System.Collections.Generic.List[string]]::new()
+        Mock Resolve-ValidationSessionId { return "validate-matrix:test" }
+        Mock New-CargoCompatibilityJson { return "{}" }
+        Mock Invoke-SessionCoordinatorJson {
+            $command = $Arguments -join " "
+            if ($command -match '^session register') {
+                return [pscustomobject]@{
+                    session = [pscustomobject]@{ session_id = "validate-matrix:test" }
+                }
+            }
+            if ($command -match '^cargo release') {
+                throw "synthetic target release failure"
+            }
+            return [pscustomobject]@{
+                job = [pscustomobject]@{
+                    job_id = "invalid-target-job"
+                    target_dir = "C:\cargo-targets\zircon-engine\invalid-target-job"
+                    dry_run = $false
+                }
+            }
+        }
+
+        $previousWarningPreference = $WarningPreference
+        $WarningPreference = "Stop"
+        $failure = $null
+        try {
+            Resolve-CoordinatorCargoTarget `
+                -RepoRoot $script:ValidateMatrixTestRepoRoot `
+                -LaneKind "test" `
+                -WorkspaceManifest "Cargo.toml" 3>&1 |
+                ForEach-Object { $script:TargetResolutionWarnings.Add([string]$_) }
+        }
+        catch {
+            $failure = $_
+        }
+        finally {
+            $WarningPreference = $previousWarningPreference
+        }
+
+        $failure | Should Not BeNullOrEmpty
+        $failure.Exception.Message | Should Match "must physically resolve under D:, E:, or F:"
+        $failure.Exception.Message | Should Not Match "synthetic target release failure"
+        ($script:TargetResolutionWarnings -join "`n") | Should Match "synthetic target release failure"
+    }
+
+    It "preserves the primary error while releasing the current wrapper before cargo start" {
         Mock Resolve-CoordinatorCargoTarget {
             return [pscustomobject]@{
                 SelectionMode     = "managed"
@@ -603,9 +649,52 @@ Describe "Coordinator pre-start failure cleanup" {
         $failure | Should Not BeNullOrEmpty
         $failure.Exception.Message | Should Match "primary pre-start failure"
         $failure.Exception.Message | Should Not Match "cleanup failure"
-        Assert-MockCalled Invoke-SessionCoordinatorJson -Times 0 -ParameterFilter {
+        Assert-MockCalled Invoke-SessionCoordinatorJson -Times 1 -ParameterFilter {
             $Arguments[0] -eq "cargo" -and $Arguments[1] -eq "release"
         }
+    }
+
+    It "finishes then releases when cargo start has an ambiguous response failure" {
+        $script:AmbiguousStartCleanupCalls = [System.Collections.Generic.List[string]]::new()
+        Mock Resolve-CoordinatorCargoTarget {
+            return [pscustomobject]@{
+                SelectionMode     = "managed"
+                JobId             = "ambiguous-start-job"
+                TargetDir         = "E:\cargo-targets\zircon-engine\ambiguous-start-job"
+                AbsoluteTargetDir = "E:\cargo-targets\zircon-engine\ambiguous-start-job"
+                Reason            = "coordinator managed test lane"
+                OwnerId           = "validate-matrix:test"
+                DryRun            = $false
+            }
+        }
+        Mock Push-ManagedCargoEnvironment {
+            return [pscustomobject]@{
+                TemporaryDisplayPath = "E:\cargo-targets\zircon-engine\ambiguous-start-job\tmp"
+                CargoHomeDisplayPath = "E:\cargo-targets\zircon-engine\ambiguous-start-job\cargo-home"
+            }
+        }
+        Mock Pop-ManagedCargoEnvironment {}
+        Mock Start-CoordinatorCargoTarget {
+            throw "primary cargo start response failure"
+        }
+        Mock Invoke-SessionCoordinatorJson {
+            $script:AmbiguousStartCleanupCalls.Add(($Arguments -join " "))
+            return [pscustomobject]@{}
+        }
+
+        $failure = $null
+        try {
+            Invoke-ValidateMatrixMain | Out-Null
+        }
+        catch {
+            $failure = $_
+        }
+
+        $failure | Should Not BeNullOrEmpty
+        $failure.Exception.Message | Should Match "primary cargo start response failure"
+        $script:AmbiguousStartCleanupCalls.Count | Should Be 2
+        $script:AmbiguousStartCleanupCalls[0] | Should Match "cargo finish ambiguous-start-job"
+        $script:AmbiguousStartCleanupCalls[1] | Should Match "cargo release ambiguous-start-job"
     }
 
     It "finishes and releases a coordinator job after cargo start" {
@@ -624,7 +713,7 @@ Describe "Coordinator pre-start failure cleanup" {
             -RepoRoot $script:ValidateMatrixTestRepoRoot `
             -ResolvedTarget $target `
             -ExitCode 1 `
-            -Started
+            -StartAttempted
 
         $script:CoordinatorCompletionCalls.Count | Should Be 2
         $script:CoordinatorCompletionCalls[0] | Should Match "cargo finish started-job"
@@ -1865,7 +1954,12 @@ Describe "Default profile feature topology" {
             )
         @(Get-CargoFeatureValues -CargoTomlPath $cargoTomlPath -FeatureName "target-editor-host") |
             Should Be @(
-                "zircon_runtime/target-editor-host", "ai-contracts", "net-contracts",
+                "zircon_runtime/target-editor-host",
+                "first-party-advanced-render-runtime-plugins",
+                "first-party-navigation-runtime-plugin",
+                "first-party-navigation-editor-plugin",
+                "first-party-neural-editor-plugin",
+                "ai-contracts", "net-contracts",
                 "physics-contracts", "sound-contracts", "animation", "diagnostic-log",
                 "dynamic-api", "graphics", "navigation", "script", "text", "ui",
                 "dep:zircon_editor", "default-platform"
@@ -1906,7 +2000,7 @@ Describe "Default profile feature topology" {
             Should Be $expectedInteractiveFeatures
 
         $serverFeatures = @(Get-CargoFeatureValues -CargoTomlPath $cargoTomlPath -FeatureName "target-server")
-        $serverFeatures | Should Be @("core-min", "diagnostic-log", "platform-headless")
+        $serverFeatures | Should Be @("core-min", "diagnostic-log", "platform-headless", "dep:naga")
         $forbiddenServerFeatures = @(
             "default-platform",
             "platform-window",
@@ -1980,11 +2074,11 @@ Describe "Default profile feature topology" {
 
         $cargoManifestTemplate | Should Match 'features = \[\\"\{target_feature\}\\"\]'
         $cargoManifestTemplate | Should Match 'RuntimeTargetMode::ServerRuntime\s*=>\s*"target-server"'
-        $cargoManifestTemplate | Should Match '(?s)ExportPlatformHostKind::Desktop\s*\|\s*crate::plugin::ExportPlatformHostKind::Headless\s*=>\s*\{\}'
+        $cargoManifestTemplate | Should Match '(?s)ExportPlatformHostKind::Desktop\s*\|\s*crate::core::framework::project::ExportPlatformHostKind::Headless\s*=>\s*\{\}'
 
         $headlessHostArm = [regex]::Match(
             $platformHostFiles,
-            '(?s)ExportPlatformHostKind::Headless\s*=>\s*(?<body>.*?)(?=,\s*crate::plugin::ExportPlatformHostKind::MobileApp)'
+            '(?s)ExportPlatformHostKind::Headless\s*=>\s*(?<body>.*?)(?=\s*crate::core::framework::project::ExportPlatformHostKind::MobileApp)'
         )
         $headlessHostArm.Success | Should Be $true
         $headlessHostArm.Groups["body"].Value | Should Match 'path:\s*"src/main\.rs"'
