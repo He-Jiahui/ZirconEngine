@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from contextlib import contextmanager
 from pathlib import Path
@@ -209,6 +210,11 @@ class IsolatedPatchFinalizeTests(unittest.TestCase):
 
     @unittest.skipUnless(os.name == "nt", "Windows path-length regression")
     def test_validation_checkout_uses_short_root_for_tracked_long_paths(self) -> None:
+        subprocess.run(
+            ["git", "config", "core.longpaths", "true"],
+            cwd=self.repo,
+            check=True,
+        )
         for relative in _LONG_CHECKOUT_PATHS:
             resource = self.repo / relative
             resource.parent.mkdir(parents=True, exist_ok=True)
@@ -577,6 +583,8 @@ new mode 100755
             index_path = self.repo / index_path
         recovery_lock = index_path.with_name(index_path.name + ".lock")
         recovery_lock.write_bytes(b"")
+        stale_timestamp = time.time() - 60.0
+        os.utime(recovery_lock, (stale_timestamp, stale_timestamp))
         lock_path = self.database.path.parent / "coordinator.lock"
         lock_path.write_text(json.dumps({"pid": os.getpid()}), encoding="utf-8")
         finalizer = GitFinalizeService(

@@ -117,6 +117,15 @@ required `viewport_products: Default::default(),` insertion. The derived
 validation used the isolated rustfmt gate; the mixed live worktree bytes and the
 foreign staged projection were preserved by the production path.
 
+Current-source recovery hardening later added a 30-second minimum age before an
+unowned zero-byte Git index lock may be removed. The isolated-patch interruption
+fixture still created a brand-new lock and therefore failed with
+`finalize_index_lock_recovery_refused` / `too_young`; production behavior was
+correct. The fixture now ages only its synthetic lock by 60 seconds before invoking
+the real recovery path. The focused regression and the complete isolated-patch,
+PowerShell argument, and index-lock matrix pass 27/27 without weakening the minimum
+age, stable-observation, or live-owner checks.
+
 Open state: `Coordinator implementation and real replay complete / Render17 return
 pending`. The fixing plan has no remaining code or replay work. The Render17 origin
 owner must still accept the durable evidence and execute the ordinary lifecycle
@@ -140,3 +149,17 @@ return; Coordinator does not claim that foreign owner step.
   successor accepted production replay finalize `6fa51d7d...`, which committed the
   exact one-line Render17 patch as `4ef70ac5b`. Coordinator work is complete; only
   the origin-owner fixed return remains open.
+- 2026-08-19 | status: open | Current-source RED reproduced the synthetic young-lock
+  mismatch; the fixture now supplies a stale lock and 27/27 focused tests pass. The
+  production 30-second age and live-owner fail-closed policy remains unchanged;
+  lifecycle return still requires an active Render17 origin-destination lease.
+- 2026-08-19 | status: open | Managed validation ticket `f0689fb0...` ran all 17
+  isolated-patch tests from an immutable copy and exposed one fixture prerequisite:
+  the outer per-copy temporary root made the nested Git repository too long to add
+  the two tracked long-path inputs. The nested fixture now enables repo-local
+  `core.longpaths` only for input construction; the production assertion still
+  requires the derived checkout root to be the selected short root and every
+  materialized path to remain at most 248 characters. The original focused case
+  passes 1/1 and the complete isolated-patch module passes 17/17 locally after the
+  fixture correction; the successor immutable-copy ticket is the final acceptance
+  gate for the longer managed temporary root.
