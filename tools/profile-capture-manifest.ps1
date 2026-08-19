@@ -144,6 +144,7 @@ function Get-ZirconProfileCriticalSourcePaths {
 function Get-ZirconProfileCaptureToolPaths {
     return @(
         "tools/ui-profile-capture.ps1",
+        "tools/ui-profile-scenarios.ps1",
         "tools/ui-profile-latency-evidence.ps1",
         "tools/ui-profile-process-evidence.ps1",
         "tools/ui-profile-native-resize.ps1",

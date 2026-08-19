@@ -1,6 +1,7 @@
 $script:ProfileCaptureScript = Join-Path $PSScriptRoot "..\ui-profile-capture.ps1"
 $script:ProfileCapturePaths = Join-Path $PSScriptRoot "..\profile-capture-paths.ps1"
 $script:ProfileCaptureManifest = Join-Path $PSScriptRoot "..\profile-capture-manifest.ps1"
+$script:ProfileCaptureScenarios = Join-Path $PSScriptRoot "..\ui-profile-scenarios.ps1"
 $script:ProfileNativeInteraction = Join-Path $PSScriptRoot "..\ui-profile-native-resize.ps1"
 $script:ProfileLatencyEvidence = Join-Path $PSScriptRoot "..\ui-profile-latency-evidence.ps1"
 $script:ProfileProcessEvidence = Join-Path $PSScriptRoot "..\ui-profile-process-evidence.ps1"
@@ -23,6 +24,9 @@ if (Test-Path -LiteralPath $script:ProfileCapturePaths) {
 }
 if (Test-Path -LiteralPath $script:ProfileCaptureManifest) {
     . $script:ProfileCaptureManifest
+}
+if (Test-Path -LiteralPath $script:ProfileCaptureScenarios) {
+    . $script:ProfileCaptureScenarios
 }
 if (Test-Path -LiteralPath $script:ProfileLatencyEvidence) {
     . $script:ProfileLatencyEvidence
@@ -55,6 +59,7 @@ function New-ProfileManifestTestRepository {
     }
     foreach ($relativePath in @(
         'tools/ui-profile-capture.ps1',
+        'tools/ui-profile-scenarios.ps1',
         'tools/ui-profile-latency-evidence.ps1',
         'tools/ui-profile-process-evidence.ps1',
         'tools/ui-profile-native-resize.ps1',
@@ -78,6 +83,42 @@ function New-ProfileManifestTestRepository {
 }
 
 Describe "ui-profile-capture output contract" {
+    It "canonicalizes registered UI profile scenarios before output resolution" {
+        Get-Command Resolve-ZirconUiProfileCaptureScenarios -ErrorAction SilentlyContinue |
+            Should Not BeNullOrEmpty
+
+        (@(Resolve-ZirconUiProfileCaptureScenarios -Scenario ' CLICK, startup ') -join ',') |
+            Should Be 'click,startup'
+        (@(Resolve-ZirconUiProfileCaptureScenarios -Scenario 'manual') -join ',') |
+            Should Be 'manual'
+        (@(Resolve-ZirconUiProfileCaptureScenarios -AllUiScenarios) -join ',') |
+            Should Be 'startup,material_lab_startup,material_lab_hover,material_lab_click,idle_hover,click,viewport_toolbar_click,drag,drawer_resize,window_resize,hierarchy_scroll,welcome_recent_scroll,asset_refresh,viewport_image'
+
+        $scenarioResolutionIndex = $script:ProfileCaptureSource.IndexOf('$captureScenarios = @(Resolve-ZirconUiProfileCaptureScenarios')
+        $outputRootIndex = $script:ProfileCaptureSource.IndexOf('$OutputPath = Resolve-ZirconProfileOutputRoot')
+        ($scenarioResolutionIndex -ge 0) | Should Be $true
+        ($scenarioResolutionIndex -lt $outputRootIndex) | Should Be $true
+    }
+
+    It "rejects unsafe or unregistered UI profile scenario input without filesystem helpers" {
+        foreach ($unsafeScenario in @(
+                '..',
+                '..\\escape',
+                'E:\\escape',
+                '\\\\server\\share',
+                'startup/click',
+                'CON',
+                'unknown_scenario'
+            )) {
+            { Resolve-ZirconUiProfileCaptureScenarios -Scenario $unsafeScenario } |
+                Should Throw 'Unsupported UI profile scenario'
+        }
+
+        $scenarioSource = Get-Content -LiteralPath $script:ProfileCaptureScenarios -Raw
+        $scenarioSource | Should Not Match 'Join-Path'
+        $scenarioSource | Should Not Match 'New-Item'
+    }
+
     It "accepts only E drive profile output roots" {
         Get-Command Resolve-ZirconProfileOutputRoot -ErrorAction SilentlyContinue | Should Not BeNullOrEmpty
 
@@ -217,15 +258,24 @@ Describe "ui-profile-capture output contract" {
         $script:ProfileCaptureSource | Should Match 'ui_profile_measurement_ready\.json'
         $script:ProfileCaptureSource | Should Match 'function Wait-ProfileMeasurementReady'
         $script:ProfileCaptureSource | Should Match '\[int\]\$ready\.process_id -eq \$Process\.Id'
-        $afterInteraction = $script:ProfileCaptureSource.Split(
-            'function Invoke-AutoScenarioInteraction', 2)[1]
-        $interaction = $afterInteraction.Split(
-            'function Invoke-SoftbufferScreenshotCapture', 2)[0]
-        $ready = $interaction.IndexOf('Wait-ProfileMeasurementReady')
-        $foreground = $interaction.IndexOf('[ZirconProfileCaptureNative]::SetForegroundWindow')
+        $profileCaptureSource = Get-Content -LiteralPath $script:ProfileCaptureScript -Raw
+        $interactionStart = $profileCaptureSource.IndexOf('function Invoke-AutoScenarioInteraction')
+        $interactionEnd = $profileCaptureSource.IndexOf(
+            'function Invoke-SoftbufferScreenshotCapture',
+            $interactionStart
+        )
+        $ready = $profileCaptureSource.IndexOf('Wait-ProfileMeasurementReady', $interactionStart)
+        $foreground = $profileCaptureSource.IndexOf(
+            '[ZirconProfileCaptureNative]::SetForegroundWindow',
+            $interactionStart
+        )
 
+        $interactionStart | Should BeGreaterThan -1
+        $interactionEnd | Should BeGreaterThan $interactionStart
         $ready | Should BeGreaterThan -1
+        $ready | Should BeLessThan $interactionEnd
         $foreground | Should BeGreaterThan $ready
+        $foreground | Should BeLessThan $interactionEnd
     }
 
     It "exports damage coverage and host invalidation decision evidence" {
@@ -1215,7 +1265,10 @@ Describe "ui-profile-capture output contract" {
     }
 
     It "writes a source and binary bound manifest before capture" {
-        $trackedSource = Join-Path $script:RepoRoot 'zircon_editor\src\ui\retained_host\app\host_lifecycle\recompute.rs'
+        $repoRoot = New-ProfileManifestTestRepository `
+            -Root (Join-Path $TestDrive 'source-bound-manifest-repository')
+        $trackedSource = Join-Path $repoRoot 'zircon_editor\src\ui\retained_host\app\host_lifecycle\recompute.rs'
+        $nativeInteractionToolPath = Join-Path $repoRoot 'tools\ui-profile-native-resize.ps1'
         $editorExe = Join-Path $TestDrive 'editor.exe'
         $runtimeDll = Join-Path $TestDrive 'runtime.dll'
         Set-Content -LiteralPath $editorExe -Value 'editor binary' -Encoding ASCII
@@ -1223,7 +1276,7 @@ Describe "ui-profile-capture output contract" {
 
         $manifestPath = Export-ZirconProfileCaptureManifest `
             -ProfileDir (Join-Path $TestDrive 'profile') `
-            -RepoRoot $script:RepoRoot `
+            -RepoRoot $repoRoot `
             -OutputRoot 'E:\zircon-profiles' `
             -VerificationScreenshotRoot 'E:\Git\ZirconEngine\docs\tests\editor\profile-captures' `
             -TargetDir 'E:\cargo-targets\zircon-editor-profile' `
@@ -1240,9 +1293,10 @@ Describe "ui-profile-capture output contract" {
         $manifest.scenario | Should Be 'click'
         $manifest.capture.output_root | Should Be 'E:\zircon-profiles'
         $manifest.input_fixture | Should BeNullOrEmpty
-        $manifest.capture.tool_files.Count | Should Be 7
+        $manifest.capture.tool_files.Count | Should Be 8
         $captureToolPaths = @($manifest.capture.tool_files.relative_path)
         ($captureToolPaths -contains 'tools/ui-profile-capture.ps1') | Should Be $true
+        ($captureToolPaths -contains 'tools/ui-profile-scenarios.ps1') | Should Be $true
         ($captureToolPaths -contains 'tools/ui-profile-latency-evidence.ps1') | Should Be $true
         ($captureToolPaths -contains 'tools/ui-profile-process-evidence.ps1') | Should Be $true
         ($captureToolPaths -contains 'tools/ui-profile-native-resize.ps1') | Should Be $true
@@ -1253,7 +1307,7 @@ Describe "ui-profile-capture output contract" {
             Where-Object { $_.relative_path -eq 'tools/ui-profile-native-resize.ps1' } |
             Select-Object -First 1
         $nativeInteractionTool.sha256 |
-            Should Be ((Get-FileHash -LiteralPath $script:ProfileNativeInteraction -Algorithm SHA256).Hash.ToLowerInvariant())
+            Should Be ((Get-FileHash -LiteralPath $nativeInteractionToolPath -Algorithm SHA256).Hash.ToLowerInvariant())
         $manifest.repository.critical_source_files.Count | Should Be 103
         $manifest.repository.critical_source_files[0].relative_path |
             Should Be 'zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs'

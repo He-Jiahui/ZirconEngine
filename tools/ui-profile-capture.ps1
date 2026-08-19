@@ -50,11 +50,16 @@ $ErrorActionPreference = "Stop"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 . (Join-Path $PSScriptRoot "profile-capture-paths.ps1")
 . (Join-Path $PSScriptRoot "profile-capture-manifest.ps1")
+. (Join-Path $PSScriptRoot "ui-profile-scenarios.ps1")
 . (Join-Path $PSScriptRoot "ui-profile-native-resize.ps1")
 . (Join-Path $PSScriptRoot "ui-profile-latency-evidence.ps1")
 . (Join-Path $PSScriptRoot "ui-profile-process-evidence.ps1")
 . (Join-Path $PSScriptRoot "ui-profile-scale-fixture.ps1")
 
+$captureScenarios = @(Resolve-ZirconUiProfileCaptureScenarios `
+        -Scenario $Scenario `
+        -ScenarioList $ScenarioList `
+        -AllUiScenarios:$AllUiScenarios)
 $OutputPath = Resolve-ZirconProfileOutputRoot -RepoRoot $RepoRoot -Path $OutputRoot
 $VerificationScreenshotRoot = Join-Path $RepoRoot "docs\tests\editor\profile-captures"
 $ManagedCargoTargetRoots = @(
@@ -99,46 +104,6 @@ $RuntimeDll = Join-Path $TargetDir "zircon_runtime.dll"
 $TracyProfiler = Join-Path $RepoRoot "dev\tracy\tracy-profiler.exe"
 $script:LastInteractionEvidence = $null
 
-function Expand-CaptureScenarioNames {
-    param([string[]]$Names)
-
-    $expanded = @()
-    foreach ($name in $Names) {
-        foreach ($part in ($name -split ",")) {
-            $trimmed = $part.Trim()
-            if (-not [string]::IsNullOrWhiteSpace($trimmed)) {
-                $expanded += $trimmed
-            }
-        }
-    }
-    return $expanded
-}
-
-function Resolve-CaptureScenarios {
-    if ($AllUiScenarios) {
-        return @(
-            "startup",
-            "material_lab_startup",
-            "material_lab_hover",
-            "material_lab_click",
-            "idle_hover",
-            "click",
-            "viewport_toolbar_click",
-            "drag",
-            "drawer_resize",
-            "window_resize",
-            "hierarchy_scroll",
-            "welcome_recent_scroll",
-            "asset_refresh",
-            "viewport_image"
-        )
-    }
-    if ($ScenarioList.Count -gt 0) {
-        return Expand-CaptureScenarioNames -Names $ScenarioList
-    }
-    return Expand-CaptureScenarioNames -Names @($Scenario)
-}
-
 function Get-ScenarioWithinProcessWarmupPresentCount {
     param([string]$ScenarioName)
 
@@ -162,23 +127,7 @@ function Get-ScenarioRequestedWheelOperationCount {
 
 function Get-ScenarioInstruction {
     param([string]$Name)
-    switch ($Name) {
-        "startup" { return "Launch, wait until the first editor frame is stable, then close the editor." }
-        "material_lab_startup" { return "Launch the Material Component Lab, wait until the first frame is stable, then close the editor." }
-        "material_lab_hover" { return "Launch the Material Component Lab, move the pointer across prototype controls, then close." }
-        "material_lab_click" { return "Launch the Material Component Lab, click representative prototype controls, then close." }
-        "idle_hover" { return "Move the pointer slowly across toolbar, hierarchy rows, inspector fields, and tabs for several seconds, then close." }
-        "click" { return "Click toolbar buttons, hierarchy rows, tabs, and inspector controls, then close." }
-        "viewport_toolbar_click" { return "Click source-bound controls in the live scene viewport toolbar, then close." }
-        "drag" { return "Drag selection or draggable editor controls where available, then close." }
-        "drawer_resize" { return "Drag side or bottom pane splitters repeatedly, then close." }
-        "window_resize" { return "Resize the native editor window repeatedly, restore its original extent, then close." }
-        "hierarchy_scroll" { return "Scroll the live hierarchy pane in alternating directions, then close." }
-        "welcome_recent_scroll" { return "Scroll the Welcome recent-project viewport in alternating directions, then close." }
-        "asset_refresh" { return "Trigger an asset refresh or reopen the project/asset pane, then close." }
-        "viewport_image" { return "Let the scene/game viewport update for several seconds, orbit if useful, then close." }
-        default { return "Perform the target interaction, then close the editor to export the report." }
-    }
+    return Get-ZirconUiProfileCaptureScenarioInstruction -ScenarioId $Name
 }
 
 function Show-ProfileSummary {
@@ -2448,7 +2397,6 @@ if (-not (Test-Path $RuntimeDll)) {
 
 New-Item -ItemType Directory -Force -Path $OutputPath | Out-Null
 
-$captureScenarios = @(Resolve-CaptureScenarios)
 if ($HierarchyLogicalNodeCount -gt 0 -and
     @($captureScenarios | Where-Object { $_.Trim().ToLowerInvariant() -ne "hierarchy_scroll" }).Count -gt 0) {
     throw "Hierarchy scale inputs are valid only for the hierarchy_scroll scenario."
