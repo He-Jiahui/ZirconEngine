@@ -161,60 +161,6 @@ pub(super) fn push_current_line(lines: &mut Vec<CandidateLine>, current: &mut Ca
     }
 }
 
-/// Enforces the backend shaping cap after fragments from adjacent rich runs have been joined.
-/// Hard separators are removed before a candidate reaches this owner, but markup boundaries can
-/// still otherwise join multiple individually bounded source runs into one oversized request.
-pub(super) fn split_candidate_lines_at_shaping_caps(lines: &mut Vec<CandidateLine>) {
-    if !lines
-        .iter()
-        .any(|line| line.text.len() > crate::text::TEXT_SHAPING_RUN_MAX_BYTES)
-    {
-        return;
-    }
-
-    let mut capped = Vec::with_capacity(lines.len());
-    for line in std::mem::take(lines) {
-        if line.text.len() <= crate::text::TEXT_SHAPING_RUN_MAX_BYTES {
-            capped.push(line);
-            continue;
-        }
-        capped.extend(split_candidate_line_at_shaping_caps(line));
-    }
-    *lines = capped;
-}
-
-fn split_candidate_line_at_shaping_caps(line: CandidateLine) -> Vec<CandidateLine> {
-    let mut capped = Vec::new();
-    for hard_line in crate::text::hard_lines(&line.text) {
-        if hard_line.content.is_empty() {
-            continue;
-        }
-        let mut fragment = CandidateLine::empty();
-        for run in &line.runs {
-            let start = hard_line.content.start.max(run.visual_range.start);
-            let end = hard_line.content.end.min(run.visual_range.end);
-            if start >= end {
-                continue;
-            }
-            let local_start = start.saturating_sub(run.visual_range.start);
-            let local_end = end.saturating_sub(run.visual_range.start);
-            let Some(text) = run.text.get(local_start..local_end) else {
-                continue;
-            };
-            append_segment(
-                &mut fragment,
-                run.kind,
-                text,
-                source_subrange(run.source_range, run.text.len(), local_start, local_end),
-            );
-        }
-        if !fragment.text.is_empty() {
-            capped.push(fragment);
-        }
-    }
-    capped
-}
-
 pub(super) fn push_wrapped_line(lines: &mut Vec<CandidateLine>, current: &mut CandidateLine) {
     append_pending_break_suffix(current);
     push_current_line(lines, current);

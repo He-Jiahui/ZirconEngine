@@ -9,10 +9,10 @@ mod tokens;
 
 pub use ids::EditorWorkbenchReferenceIds;
 pub use metrics::EditorWorkbenchReferenceMetrics;
-pub use surface::{EditorWorkbenchReferenceSurface, build_editor_workbench_reference_surface};
+pub use surface::{build_editor_workbench_reference_surface, EditorWorkbenchReferenceSurface};
 pub use template_surface::{
-    EditorWorkbenchTemplateControlIds, EditorWorkbenchTemplateFrames,
-    EditorWorkbenchTemplateSurface, EditorWorkbenchTemplateSurfaceError,
-    build_editor_workbench_template_surface,
+    build_editor_workbench_template_surface, EditorWorkbenchTemplateControlIds,
+    EditorWorkbenchTemplateFrames, EditorWorkbenchTemplateSurface,
+    EditorWorkbenchTemplateSurfaceError,
 };
 pub use tokens::EditorWorkbenchReferencePalette;

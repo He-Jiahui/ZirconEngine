@@ -54,6 +54,7 @@ impl SceneScheduleStagePlan {
                             system.id(),
                             system.stage(),
                             plan_order,
+                            system.clock_domain(),
                             worker_safe,
                             system.access().has_conservative_world_access(),
                         ));
@@ -63,6 +64,7 @@ impl SceneScheduleStagePlan {
                                     system.id(),
                                     system.stage(),
                                     plan_order,
+                                    system.clock_domain(),
                                 ),
                             );
                         }
@@ -72,6 +74,7 @@ impl SceneScheduleStagePlan {
                             system.id(),
                             system.stage(),
                             plan_order,
+                            system.clock_domain(),
                         ));
                     }
                 }

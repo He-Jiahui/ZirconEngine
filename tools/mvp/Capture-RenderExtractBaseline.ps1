@@ -28,6 +28,7 @@ Import-Module (Join-Path $PSScriptRoot 'MvpProductInputManifest.psm1') -Force -E
 Import-Module (Join-Path $repoRoot 'tools\WindowsPathResolver.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'RenderExtractFrozenInput.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'RenderExtractProcessJob.psm1') -Force -ErrorAction Stop
+. (Join-Path $repoRoot 'tools\profile-capture-paths.ps1')
 
 function Get-RenderExtractBaselineRunPlan {
     param(
@@ -760,7 +761,8 @@ function Invoke-RenderExtractBaselineProcess {
         throw $wprStopFailure
     }
 
-    $profileDirectory = Join-ZirconWindowsPath -Path $profilesRoot -ChildPath $sessionId
+    $profileBasename = ConvertTo-ZirconProfileSessionBasename -SessionId $sessionId
+    $profileDirectory = Join-ZirconWindowsPath -Path $profilesRoot -ChildPath $profileBasename
     foreach ($name in @('timeline.zrtrace.json', 'hotspots.json', 'counter_hotspots.json', 'summary.md')) {
         $path = Join-ZirconWindowsPath -Path $profileDirectory -ChildPath $name
         if (-not [IO.File]::Exists($path) -or [IO.FileInfo]::new($path).Length -le 0) {

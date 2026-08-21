@@ -7,6 +7,7 @@ pub const DEFAULT_DIAGNOSTIC_LOG_QUEUE_CAPACITY: usize = 4_096;
 pub const DEFAULT_DIAGNOSTIC_LOG_BATCH_RECORDS: usize = 256;
 pub const DEFAULT_DIAGNOSTIC_LOG_BATCH_BYTES: usize = 256 * 1_024;
 pub const DEFAULT_DIAGNOSTIC_LOG_FLUSH_INTERVAL: Duration = Duration::from_millis(50);
+pub const DEFAULT_DIAGNOSTIC_LOG_CRITICAL_ENQUEUE_TIMEOUT: Duration = Duration::from_millis(2);
 pub const DEFAULT_DIAGNOSTIC_LOG_CRASH_FLUSH_TIMEOUT: Duration = Duration::from_millis(250);
 pub const DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(2);
 
@@ -16,6 +17,7 @@ pub struct DiagnosticLogSinkSettings {
     pub max_batch_records: usize,
     pub max_batch_bytes: usize,
     pub flush_interval: Duration,
+    pub critical_enqueue_timeout: Duration,
 }
 
 impl DiagnosticLogSinkSettings {
@@ -39,6 +41,11 @@ impl DiagnosticLogSinkSettings {
         self
     }
 
+    pub fn with_critical_enqueue_timeout(mut self, timeout: Duration) -> Self {
+        self.critical_enqueue_timeout = timeout;
+        self
+    }
+
     pub(crate) fn normalized(mut self) -> Self {
         self.queue_capacity = self.queue_capacity.max(1);
         self.max_batch_records = self.max_batch_records.max(1);
@@ -54,6 +61,7 @@ impl Default for DiagnosticLogSinkSettings {
             max_batch_records: DEFAULT_DIAGNOSTIC_LOG_BATCH_RECORDS,
             max_batch_bytes: DEFAULT_DIAGNOSTIC_LOG_BATCH_BYTES,
             flush_interval: DEFAULT_DIAGNOSTIC_LOG_FLUSH_INTERVAL,
+            critical_enqueue_timeout: DEFAULT_DIAGNOSTIC_LOG_CRITICAL_ENQUEUE_TIMEOUT,
         }
     }
 }
@@ -145,6 +153,10 @@ impl DiagnosticLogSettings {
                 "diagnostic_log.flush_interval_ms={}",
                 self.sink.flush_interval.as_millis()
             ),
+            format!(
+                "diagnostic_log.critical_enqueue_timeout_ms={}",
+                self.sink.critical_enqueue_timeout.as_millis()
+            ),
         ]
     }
 
@@ -173,6 +185,8 @@ impl From<DiagnosticLogFilterConfig> for DiagnosticLogSettings {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use super::DiagnosticLogSettings;
     use crate::diagnostic_log::{
         DiagnosticLogFilter, DiagnosticLogFilterConfig, DiagnosticLogLevel, DiagnosticLogLocation,
@@ -204,5 +218,24 @@ mod tests {
         assert!(diagnostics.contains("diagnostic_log.max_batch_records=256"));
         assert!(diagnostics.contains("diagnostic_log.max_batch_bytes=262144"));
         assert!(diagnostics.contains("diagnostic_log.flush_interval_ms=50"));
+        assert!(diagnostics.contains("diagnostic_log.critical_enqueue_timeout_ms=2"));
+    }
+
+    #[test]
+    fn critical_enqueue_timeout_is_configurable_and_visible() {
+        let settings = DiagnosticLogSettings::new("runtime").with_sink_settings(
+            super::DiagnosticLogSinkSettings::default()
+                .with_critical_enqueue_timeout(Duration::from_millis(7)),
+        );
+
+        assert_eq!(
+            settings.sink.critical_enqueue_timeout,
+            Duration::from_millis(7)
+        );
+        assert!(
+            settings
+                .format_diagnostics()
+                .contains("diagnostic_log.critical_enqueue_timeout_ms=7")
+        );
     }
 }

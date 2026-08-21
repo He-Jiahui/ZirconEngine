@@ -4,7 +4,7 @@ use super::support::{
 use zircon_runtime_interface::ui::surface::UiDebugOverlayPrimitiveKind;
 
 use crate::ui::layouts::windows::workbench_host_window::{
-    PanePayload, PanePayloadBuildContext, build_pane_body_presentation,
+    build_pane_body_presentation, PanePayload, PanePayloadBuildContext,
 };
 
 #[test]
@@ -28,65 +28,47 @@ fn runtime_diagnostics_payload_uses_active_ui_debug_snapshot_when_available() {
         payload.ui_debug_reflector_summary,
         "UI Debug Reflector: 2 nodes, 3 commands, schema v1"
     );
-    assert!(
-        payload
-            .ui_debug_reflector_nodes
-            .iter()
-            .any(|node| node.contains("runtime/root/live_button") && node.contains("node=2"))
-    );
-    assert!(
-        payload
-            .ui_debug_reflector_details
-            .iter()
-            .any(|detail| detail.contains("Selected: runtime/root/live_button"))
-    );
-    assert!(
-        payload
-            .ui_debug_reflector_sections
-            .iter()
-            .any(|line| line == "Layout Engine:")
-    );
-    assert!(
-        payload
-            .ui_debug_reflector_sections
-            .iter()
-            .any(|line| line == "Canvas Layers:")
-    );
-    assert!(
-        payload
-            .ui_debug_reflector_sections
-            .iter()
-            .any(|line| line == "  parent=1 layer=0 z=1 children=[2]")
-    );
-    assert!(
-        payload
-            .ui_debug_reflector_sections
-            .iter()
-            .any(|line| line == "Pipeline:")
-    );
-    assert!(
-        payload
-            .ui_debug_reflector_sections
-            .iter()
-            .any(|line| line == "ECS Projection:")
-    );
-    assert!(
-        payload
-            .ui_debug_reflector_sections
-            .iter()
-            .any(|line| line == "  selected: taffy=1 zircon=1")
-    );
+    assert!(payload
+        .ui_debug_reflector_nodes
+        .iter()
+        .any(|node| node.contains("runtime/root/live_button") && node.contains("node=2")));
+    assert!(payload
+        .ui_debug_reflector_details
+        .iter()
+        .any(|detail| detail.contains("Selected: runtime/root/live_button")));
+    assert!(payload
+        .ui_debug_reflector_sections
+        .iter()
+        .any(|line| line == "Layout Engine:"));
+    assert!(payload
+        .ui_debug_reflector_sections
+        .iter()
+        .any(|line| line == "Canvas Layers:"));
+    assert!(payload
+        .ui_debug_reflector_sections
+        .iter()
+        .any(|line| line == "  parent=1 layer=0 z=1 children=[2]"));
+    assert!(payload
+        .ui_debug_reflector_sections
+        .iter()
+        .any(|line| line == "Pipeline:"));
+    assert!(payload
+        .ui_debug_reflector_sections
+        .iter()
+        .any(|line| line == "ECS Projection:"));
+    assert!(payload
+        .ui_debug_reflector_sections
+        .iter()
+        .any(|line| line == "  selected: taffy=1 zircon=1"));
     assert!(payload.ui_debug_reflector_sections.iter().any(|line| {
         line.contains("node=2")
             && line.contains("family=Overlay")
             && line.contains("selected=Zircon")
             && line.contains("reason=ZirconOwnedSemantics")
     }));
-    assert!(
-        payload
-            .ui_debug_reflector_export_status
-            .contains("JSON export ready")
-    );
+    assert!(payload
+        .ui_debug_reflector_export_status
+        .contains("JSON export ready"));
     assert_eq!(payload.ui_debug_reflector_overlay_primitives.len(), 1);
     assert_eq!(
         payload.ui_debug_reflector_overlay_primitives[0].kind,

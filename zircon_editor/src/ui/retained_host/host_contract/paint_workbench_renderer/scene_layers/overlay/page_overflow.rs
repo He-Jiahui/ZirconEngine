@@ -3,7 +3,8 @@ use super::super::super::super::data::{
     HostWindowPresentationData,
 };
 use super::super::super::super::host_page_overflow_menu::{
-    host_page_overflow_content_viewport_frame, host_page_overflow_popup_frame_with_state,
+    host_page_overflow_content_viewport_frame, host_page_overflow_popup_frame,
+    host_page_overflow_popup_frame_with_state, host_page_overflow_row_frame,
     host_page_overflow_row_frame_with_state, host_page_overflow_scroll_content_extent,
     host_page_overflow_scrollbar_reserve, host_page_overflow_visible_row_range_with_state,
 };

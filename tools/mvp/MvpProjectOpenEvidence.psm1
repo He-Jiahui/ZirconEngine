@@ -88,6 +88,15 @@ function Get-MvpProjectOpenRelativePath {
     return $resolvedProjectRoot.Substring($prefix.Length).Replace('\', '/')
 }
 
+function Test-MvpProjectOpenFullyQualifiedWindowsPath {
+    param([Parameter(Mandatory)][string]$Path)
+
+    return $Path -match '^[A-Za-z]:[\\/]' -or
+        $Path -match '^\\\\\?\\[A-Za-z]:[\\/]' -or
+        $Path -match '^\\\\(?![?.][\\/])[^\\/]+[\\/][^\\/]+(?:[\\/]|$)' -or
+        $Path -match '^\\\\\?\\UNC[\\/][^\\/]+[\\/][^\\/]+(?:[\\/]|$)'
+}
+
 function Get-MvpEditorProjectOpenEvidence {
     param(
         [Parameter(Mandatory)][string]$DiagnosticText,
@@ -117,8 +126,27 @@ function Get-MvpEditorProjectOpenEvidence {
     else {
         $ExpectedProjectRoot
     }
-    $expectedProjectRoot = (Resolve-ZirconWindowsPath -Path $expectedProjectRootInput).OperationalPath
-    $resolvedReportedProjectRoot = (Resolve-ZirconWindowsPath -Path $reportedProjectRoot).OperationalPath
+    $expectedProjectRootResolution = Resolve-ZirconWindowsPath -Path $expectedProjectRootInput
+    $expectedProjectRoot = $expectedProjectRootResolution.OperationalPath
+    if ($reportedProjectRoot -eq '.') {
+        $resolvedReportedProjectRoot = $expectedProjectRoot
+    }
+    elseif (Test-MvpProjectOpenFullyQualifiedWindowsPath -Path $reportedProjectRoot) {
+        $resolvedReportedProjectRoot = (Resolve-ZirconWindowsPath -Path $reportedProjectRoot).OperationalPath
+    }
+    else {
+        if ([IO.Path]::IsPathRooted($reportedProjectRoot) -or $reportedProjectRoot.Contains(':')) {
+            throw "Editor project-open diagnostic has an invalid project_root '$reportedProjectRoot'. Expected '.', a staged-project-parent relative path, or an absolute path."
+        }
+        $expectedProjectParent = [IO.Directory]::GetParent($expectedProjectRootResolution.DisplayPath)
+        if ($null -eq $expectedProjectParent) {
+            throw "Editor project-open diagnostic cannot derive the staged parent of '$expectedProjectRootInput'."
+        }
+        $reportedProjectCandidate = [IO.Path]::Combine(
+            $expectedProjectParent.FullName,
+            $reportedProjectRoot)
+        $resolvedReportedProjectRoot = (Resolve-ZirconWindowsPath -Path $reportedProjectCandidate).OperationalPath
+    }
     if (-not $resolvedReportedProjectRoot.Equals($expectedProjectRoot, [StringComparison]::OrdinalIgnoreCase)) {
         throw "Editor project-open diagnostic project_root '$reportedProjectRoot' differs from staged project '$expectedProjectRootInput'."
     }

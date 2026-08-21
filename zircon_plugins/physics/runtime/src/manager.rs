@@ -17,6 +17,7 @@ mod world_sync;
 #[cfg(test)]
 mod tests;
 
+use zircon_runtime::core::CoreWeak;
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::framework::{
     physics::{
@@ -25,7 +26,6 @@ use zircon_runtime::core::framework::{
     },
     scene::physics::PhysicsMaterialMetadata,
 };
-use zircon_runtime::core::CoreWeak;
 
 use crate::backend::builtin::PhysicsTriggerPairMap;
 
@@ -42,7 +42,7 @@ pub struct DefaultPhysicsManager {
     settings: Arc<Mutex<PhysicsSettings>>,
     default_material: PhysicsMaterialMetadata,
     accumulators: Arc<Mutex<HashMap<WorldHandle, f32>>>,
-    synced_worlds: Arc<Mutex<HashMap<WorldHandle, PhysicsWorldSyncState>>>,
+    synced_worlds: Arc<Mutex<HashMap<WorldHandle, Arc<PhysicsWorldSyncState>>>>,
     contacts: Arc<Mutex<HashMap<WorldHandle, Vec<PhysicsContactEvent>>>>,
     trigger_pairs: Arc<Mutex<HashMap<WorldHandle, PhysicsTriggerPairMap>>>,
     triggers: Arc<Mutex<HashMap<WorldHandle, Vec<PhysicsTriggerEvent>>>>,

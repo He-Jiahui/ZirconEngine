@@ -10,7 +10,9 @@ fn product_binaries_log_teardown_completion_before_process_log_shutdown() {
         &[
             "EntryRunner::run_editor_with_args_exit_code",
             "editor_process_teardown_complete",
-            "let _ = shutdown_process_log",
+            "let process_log_shutdown_completed =",
+            "shutdown_process_log(DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT)",
+            "editor_process_exit_code(result, process_log_shutdown_completed)",
         ],
         "editor binary must report teardown only after its entry runner returns and before log shutdown",
     );
@@ -21,7 +23,9 @@ fn product_binaries_log_teardown_completion_before_process_log_shutdown() {
             "let failure_teardown_diagnostic = runtime_process_failure_teardown_diagnostic(&result)",
             "let exit_code = runtime_process_exit_code(result)",
             "eprintln!(\"{diagnostic}\")",
-            "let _ = shutdown_process_log",
+            "let process_log_shutdown_completed =",
+            "shutdown_process_log(DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT)",
+            "runtime_process_exit_code_after_log_shutdown(",
         ],
         "runtime binary must report the startup error and top-level failure teardown before log shutdown",
     );

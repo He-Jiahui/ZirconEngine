@@ -9,7 +9,7 @@ use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 
 use super::super::constants::VIEWPORT_SURFACE_NODE_ID;
-use super::{SharedViewportPointerBridge, dispatch_viewport_event};
+use super::{dispatch_viewport_event, SharedViewportPointerBridge};
 
 pub(crate) fn dispatch_viewport_pointer_event(
     runtime: &EditorHostEventController,

@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
+use std::sync::Arc;
 
 use zircon_plugin_navigation_recast::RecastTiledBakePlan;
 use zircon_runtime::core::framework::navigation::NavMeshBakeDiagnostic;
@@ -10,8 +11,8 @@ use zircon_runtime::core::framework::navigation::{
 };
 
 use super::agent_motion::NavigationAgentMotionState;
-use super::bake::task_pool::{NavMeshBakeTaskHandle, PendingTiledBake};
 use super::bake::PendingDirtyBake;
+use super::bake::task_pool::{NavMeshBakeTaskHandle, PendingTiledBake};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct TiledBakeIdentity {
@@ -55,7 +56,7 @@ impl Default for BakeContextState {
 pub(crate) struct NavigationRuntimeState {
     pub(super) next_handle: u64,
     pub(super) overlay_generation: u64,
-    pub(super) loaded: HashMap<NavMeshHandle, NavMeshAsset>,
+    pub(super) loaded: BTreeMap<u64, Arc<NavMeshAsset>>,
     pub(super) generated_bakes: HashMap<Option<u64>, GeneratedBakeState>,
     pub(super) settings: NavigationSettingsAsset,
     pub(crate) stats: NavigationRuntimeStats,
@@ -77,7 +78,7 @@ impl Default for NavigationRuntimeState {
         Self {
             next_handle: 1,
             overlay_generation: 0,
-            loaded: HashMap::new(),
+            loaded: BTreeMap::new(),
             generated_bakes: HashMap::new(),
             settings: NavigationSettingsAsset::default(),
             stats: NavigationRuntimeStats::default(),
@@ -125,7 +126,7 @@ impl NavigationRuntimeState {
         let key = snapshot.surface_entity;
         if let Some(previous) = self.generated_bakes.remove(&key) {
             if let Some(handle) = previous.loaded_handle {
-                self.loaded.remove(&handle);
+                self.loaded.remove(&handle.0);
             }
         }
         let loaded_handle = snapshot
@@ -135,7 +136,7 @@ impl NavigationRuntimeState {
             .map(|asset| {
                 let handle = NavMeshHandle(self.next_handle);
                 self.next_handle = self.next_handle.saturating_add(1);
-                self.loaded.insert(handle, asset.clone());
+                self.loaded.insert(handle.0, Arc::new(asset.clone()));
                 handle
             });
         if snapshot.asset.is_some() {
@@ -158,7 +159,7 @@ impl NavigationRuntimeState {
             .filter_map(|(_, generated)| generated.loaded_handle)
             .collect::<Vec<_>>();
         for handle in handles {
-            self.loaded.remove(&handle);
+            self.loaded.remove(&handle.0);
         }
         self.stats.loaded_nav_meshes = self.loaded.len();
         self.advance_overlay_generation();

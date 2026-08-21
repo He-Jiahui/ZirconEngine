@@ -5,8 +5,8 @@ use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetViewMode, AssetWork
 use zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens;
 
 use super::labels::asset_state_label;
-use super::name_compaction::{RuntimeFileNameCompaction, compact_file_like_display_name};
-use super::name_lines::{RuntimeNameLineSplit, split_display_name_lines};
+use super::name_compaction::{compact_file_like_display_name, RuntimeFileNameCompaction};
+use super::name_lines::{split_display_name_lines, RuntimeNameLineSplit};
 
 const SUMMARY_NAME_CONTROL_ID: &str = "AssetBrowserContentPreviewName";
 const SUMMARY_NAME_CONTINUATION_CONTROL_ID: &str = "AssetBrowserContentPreviewNameContinuation";
@@ -314,7 +314,7 @@ mod tests {
             .iter()
             .find(|node| node.control_id == "AssetBrowserContentPreviewNameContinuation")
             .expect("summary continuation node should exist");
-        let expected_lines = split_display_name_lines(
+        let (expected_primary, expected_continuation) = split_display_name_lines(
             "NavigationSettingsRuntimeProfile",
             RuntimeNameLineSplit {
                 max_width: SUMMARY_FILE_NAME_MAX_WIDTH,
@@ -322,13 +322,10 @@ mod tests {
                 continuation_font_size: SUMMARY_NAME_CONTINUATION_FONT_SIZE,
             },
         );
-        assert_eq!(name.text.as_str(), expected_lines.primary.as_str());
+        assert_eq!(name.text.as_str(), expected_primary.as_str());
         assert_eq!(name.font_size, SUMMARY_NAME_FONT_SIZE);
         assert_eq!(name.font_weight, 600);
-        assert_eq!(
-            continuation.text.as_str(),
-            expected_lines.continuation.as_str()
-        );
+        assert_eq!(continuation.text.as_str(), expected_continuation.as_str());
         assert_eq!(continuation.role.as_str(), "Label");
         assert_eq!(continuation.font_size, SUMMARY_NAME_CONTINUATION_FONT_SIZE);
         assert_eq!(continuation.font_weight, 500);
@@ -475,20 +472,14 @@ mod tests {
 
         sync_asset_browser_summary_nodes(&mut nodes, &snapshot);
 
-        assert!(
-            nodes
-                .iter()
-                .all(|node| node.control_id != "AssetBrowserContentPreviewCard")
-        );
-        assert!(
-            nodes
-                .iter()
-                .all(|node| node.control_id != "AssetBrowserContentPreviewName")
-        );
-        assert!(
-            nodes
-                .iter()
-                .any(|node| node.control_id == "AssetBrowserContentPanel")
-        );
+        assert!(nodes
+            .iter()
+            .all(|node| node.control_id != "AssetBrowserContentPreviewCard"));
+        assert!(nodes
+            .iter()
+            .all(|node| node.control_id != "AssetBrowserContentPreviewName"));
+        assert!(nodes
+            .iter()
+            .any(|node| node.control_id == "AssetBrowserContentPanel"));
     }
 }

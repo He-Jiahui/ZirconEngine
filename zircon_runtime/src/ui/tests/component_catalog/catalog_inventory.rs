@@ -1,5 +1,10 @@
 use super::*;
 
+use std::hint::black_box;
+use std::time::Instant;
+
+use crate::ui::template::UiDocumentCompiler;
+
 #[test]
 fn shared_component_catalog_views_reuse_process_registries() {
     assert!(std::ptr::eq(
@@ -10,6 +15,114 @@ fn shared_component_catalog_views_reuse_process_registries() {
         UiComponentDescriptorRegistry::material_editor_foundation_shared(),
         UiComponentDescriptorRegistry::material_editor_foundation_shared(),
     ));
+}
+
+#[test]
+fn default_document_compiler_borrows_the_shared_showcase_catalog() {
+    let compiler = UiDocumentCompiler::default();
+
+    assert!(std::ptr::eq(
+        compiler.component_registry(),
+        UiComponentDescriptorRegistry::editor_showcase_shared(),
+    ));
+}
+
+#[test]
+fn document_compiler_owned_registry_override_remains_isolated() {
+    let shared = UiComponentDescriptorRegistry::editor_showcase_shared();
+    let mut owned = shared.clone();
+    let mut custom = shared
+        .descriptor("Button")
+        .expect("showcase Button descriptor")
+        .clone();
+    custom.id = "ProjectButton".to_string();
+    assert!(owned.register(custom).expect("custom descriptor validates"));
+
+    let compiler = UiDocumentCompiler::default().with_component_registry(owned);
+
+    assert!(!std::ptr::eq(compiler.component_registry(), shared));
+    assert!(compiler.component_registry().contains("ProjectButton"));
+    assert!(!shared.contains("ProjectButton"));
+}
+
+#[test]
+#[ignore = "release-only component registry ownership benchmark"]
+fn shared_component_registry_release_benchmark_evidence() {
+    const SAMPLE_PAIRS: usize = 21;
+    const COMPILER_INSTANCES_PER_SAMPLE: usize = 256;
+
+    fn measure(factory: fn() -> UiDocumentCompiler) -> u128 {
+        let started = Instant::now();
+        for _ in 0..COMPILER_INSTANCES_PER_SAMPLE {
+            let compiler = black_box(factory());
+            black_box(compiler.component_registry().len());
+        }
+        started.elapsed().as_nanos().max(1)
+    }
+
+    fn percentile(samples: &[u128], percentile: usize) -> u128 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        let rank = (sorted.len() * percentile).div_ceil(100);
+        sorted[rank.saturating_sub(1)]
+    }
+
+    fn raw(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
+    }
+
+    for _ in 0..4 {
+        black_box(measure(
+            UiDocumentCompiler::legacy_owned_default_for_benchmark,
+        ));
+        black_box(measure(UiDocumentCompiler::default));
+    }
+
+    let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+    let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+    for pair in 0..SAMPLE_PAIRS {
+        if pair % 2 == 0 {
+            legacy_samples.push(measure(
+                UiDocumentCompiler::legacy_owned_default_for_benchmark,
+            ));
+            optimized_samples.push(measure(UiDocumentCompiler::default));
+        } else {
+            optimized_samples.push(measure(UiDocumentCompiler::default));
+            legacy_samples.push(measure(
+                UiDocumentCompiler::legacy_owned_default_for_benchmark,
+            ));
+        }
+    }
+
+    let legacy_p50_ns = percentile(&legacy_samples, 50);
+    let optimized_p50_ns = percentile(&optimized_samples, 50);
+    let legacy_p95_ns = percentile(&legacy_samples, 95);
+    let optimized_p95_ns = percentile(&optimized_samples, 95);
+    let catalog_descriptors = UiComponentDescriptorRegistry::editor_showcase_shared().len();
+    let legacy_descriptor_clones = catalog_descriptors * COMPILER_INSTANCES_PER_SAMPLE;
+
+    println!(
+        "RUNTIME75_SHARED_COMPONENT_REGISTRY_BENCH_V1 sample_pairs={SAMPLE_PAIRS} \
+compiler_instances_per_sample={COMPILER_INSTANCES_PER_SAMPLE} \
+catalog_descriptors={catalog_descriptors} \
+pair_order=alternating_legacy_even legacy_first_pairs=11 optimized_first_pairs=10 \
+legacy_descriptor_clones_per_sample={legacy_descriptor_clones} \
+optimized_descriptor_clones_per_sample=0 legacy_p50_ns={legacy_p50_ns} \
+optimized_p50_ns={optimized_p50_ns} legacy_p95_ns={legacy_p95_ns} \
+optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
+        raw(&legacy_samples),
+        raw(&optimized_samples),
+    );
+
+    assert!(
+        optimized_p95_ns.saturating_mul(4) <= legacy_p95_ns,
+        "borrowed compiler default must reduce P95 construction time by at least 75%: \
+legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
+    );
 }
 
 #[test]

@@ -741,17 +741,7 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
         screenshot_sha256 = ready_png["sha256"]
         timing = self._write_file(
             run_directory / "gpu_timing.txt",
-            (
-                "schema=zircon_shader_pbr_viewer_gpu_timing_evidence_v1\n"
-                "status=measured\n"
-                "screenshot=ready.png\n"
-                f"screenshot_sha256={screenshot_sha256}\n"
-                "frame_generation=1\n"
-                "pass.direct_gpu_scene_upload=0\n"
-                "pass.direct_scene_content=10\n"
-                "pass.direct_output_transfer=2\n"
-                "pass.direct_overlays=1\n"
-            ).encode(),
+            _gpu_timing_distribution(screenshot_sha256).encode(),
         )
         etl = self._write_file(run_directory / "cpu_sampling.etl", b"etl")
         energy_path = run_directory / "energy_meter.csv"
@@ -846,6 +836,57 @@ class ZirconSummarizeShaderPbrProfileTests(unittest.TestCase):
             + payload
             + struct.pack(">I", zlib.crc32(kind + payload) & 0xFFFFFFFF)
         )
+
+
+def _gpu_timing_distribution(screenshot_sha256: str) -> str:
+    pass_values = {
+        "direct_gpu_scene_upload": 0,
+        "direct_scene_content": 10,
+        "direct_output_transfer": 2,
+        "direct_overlays": 1,
+    }
+    pass_names = sorted(pass_values)
+    lines = [
+        "schema=zircon_shader_pbr_viewer_gpu_timing_evidence_v2",
+        "status=measured",
+        "screenshot=ready.png",
+        f"screenshot_sha256={screenshot_sha256}",
+        "screenshot_frame_generation=1",
+        "warmup_sample_count=5",
+        "warmup_first_frame_generation=2",
+        "warmup_last_frame_generation=6",
+        "measured_sample_count=31",
+        "first_measured_frame_generation=7",
+        "last_measured_frame_generation=37",
+        "timestamp_period_ns_bits=1065353216",
+        "timestamp_period_ns=1.000000000",
+        "timestamp_frequency_hz=1000000000.000",
+        "percentile_policy=nearest_rank",
+        "outlier_policy=none_all_samples_retained",
+        f"pass_coverage={','.join(pass_names)}",
+        "total.min_us=13",
+        "total.median_us=13",
+        "total.p95_us=13",
+        "total.max_us=13",
+    ]
+    for pass_name in pass_names:
+        value = pass_values[pass_name]
+        lines.extend(
+            [
+                f"pass.{pass_name}.min_us={value}",
+                f"pass.{pass_name}.median_us={value}",
+                f"pass.{pass_name}.p95_us={value}",
+                f"pass.{pass_name}.max_us={value}",
+            ]
+        )
+    for index, generation in enumerate(range(7, 38)):
+        lines.append(f"sample.{index:03}.frame_generation={generation}")
+        lines.append("sample.{:03}.total_us=13".format(index))
+        for pass_name in pass_names:
+            lines.append(
+                f"sample.{index:03}.pass.{pass_name}_us={pass_values[pass_name]}"
+            )
+    return "\n".join(lines) + "\n"
 
 
 if __name__ == "__main__":

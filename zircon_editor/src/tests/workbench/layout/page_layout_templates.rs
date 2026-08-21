@@ -67,11 +67,10 @@ fn page_templates_assign_focus_review_and_debug_state_profiles() {
         .find(|template| template.page == MainPageId::new("game"))
         .expect("game template");
     assert_eq!(game.default_preset, LayoutPresetName::Focus);
-    assert!(
-        game.default_drawer_states
-            .iter()
-            .all(|state| state.mode == ActivityDrawerMode::Collapsed)
-    );
+    assert!(game
+        .default_drawer_states
+        .iter()
+        .all(|state| state.mode == ActivityDrawerMode::Collapsed));
 
     let diagnostics = templates
         .iter()

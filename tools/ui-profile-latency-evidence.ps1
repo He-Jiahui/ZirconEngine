@@ -390,10 +390,12 @@ function Test-ZirconUiSurfaceLatencyEvidenceGate {
         $p95 = [double]$p95Property.Value
         $p99 = [double]$p99Property.Value
         $max = [double]$maxProperty.Value
-        $invalidNumber = @($p50, $p95, $p99, $max) | Where-Object {
-            [double]::IsNaN($_) -or [double]::IsInfinity($_) -or $_ -lt 0.0
-        }
-        if ($sampleCount -le 0 -or $invalidNumber.Count -gt 0 -or
+        $invalidNumbers = @(
+            @($p50, $p95, $p99, $max) | Where-Object {
+                [double]::IsNaN($_) -or [double]::IsInfinity($_) -or $_ -lt 0.0
+            }
+        )
+        if ($sampleCount -le 0 -or $invalidNumbers.Count -gt 0 -or
             $p50 -gt $p95 -or $p95 -gt $p99 -or $p99 -gt $max) {
             Write-Warning "Interaction latency gate rejected the $stage sample count or percentile order."
             return $false

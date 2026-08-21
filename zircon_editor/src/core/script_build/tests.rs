@@ -579,8 +579,9 @@ fn replayed_completion_does_not_duplicate_diagnostics() {
     let mut sink = ScriptBuildDiagnosticsSink::new(Arc::clone(&service));
     let mut orchestrator = ScriptBuildOrchestrator::default();
     orchestrator.enqueue_command().unwrap();
+    let dispatch = ready(&mut orchestrator, 0);
     let completion = orchestrator
-        .complete(ready(&mut orchestrator, 0), ScriptBuildOutcome::Succeeded)
+        .complete(dispatch, ScriptBuildOutcome::Succeeded)
         .unwrap();
     let diagnostics = [diagnostic(
         ScriptDiagnosticSeverity::Warning,
@@ -609,18 +610,22 @@ fn delayed_accepted_completion_is_stale_after_a_new_generation_is_projected() {
     let mut sink = ScriptBuildDiagnosticsSink::new(Arc::clone(&service));
     let mut orchestrator = ScriptBuildOrchestrator::default();
     orchestrator.enqueue_command().unwrap();
+    let dispatch = ready(&mut orchestrator, 0);
     let delayed_completion = orchestrator
-        .complete(ready(&mut orchestrator, 0), ScriptBuildOutcome::Succeeded)
+        .complete(dispatch, ScriptBuildOutcome::Succeeded)
         .unwrap();
+    let dispatch = ready(&mut orchestrator, 0);
     orchestrator
-        .complete(ready(&mut orchestrator, 0), ScriptBuildOutcome::Succeeded)
+        .complete(dispatch, ScriptBuildOutcome::Succeeded)
         .unwrap();
+    let dispatch = ready(&mut orchestrator, 0);
     orchestrator
-        .complete(ready(&mut orchestrator, 0), ScriptBuildOutcome::Succeeded)
+        .complete(dispatch, ScriptBuildOutcome::Succeeded)
         .unwrap();
     orchestrator.enqueue_command().unwrap();
+    let dispatch = ready(&mut orchestrator, 0);
     let current_completion = orchestrator
-        .complete(ready(&mut orchestrator, 0), ScriptBuildOutcome::Succeeded)
+        .complete(dispatch, ScriptBuildOutcome::Succeeded)
         .unwrap();
     let diagnostic = diagnostic(
         ScriptDiagnosticSeverity::Warning,
@@ -644,9 +649,10 @@ fn compile_failure_logs_before_refresh_and_stops_the_request() {
     let mut sink = ScriptBuildDiagnosticsSink::new(Arc::clone(&service));
     let mut orchestrator = ScriptBuildOrchestrator::default();
     orchestrator.enqueue_command().unwrap();
+    let dispatch = ready(&mut orchestrator, 0);
     let completion = orchestrator
         .complete(
-            ready(&mut orchestrator, 0),
+            dispatch,
             ScriptBuildOutcome::Failed {
                 summary: "compile failed".into(),
             },
@@ -678,8 +684,9 @@ fn diagnostic_storm_uses_the_canonical_bounded_log_store_only() {
     let mut sink = ScriptBuildDiagnosticsSink::new(Arc::clone(&service));
     let mut orchestrator = ScriptBuildOrchestrator::default();
     orchestrator.enqueue_command().unwrap();
+    let dispatch = ready(&mut orchestrator, 0);
     let completion = orchestrator
-        .complete(ready(&mut orchestrator, 0), ScriptBuildOutcome::Succeeded)
+        .complete(dispatch, ScriptBuildOutcome::Succeeded)
         .unwrap();
     let diagnostics = (0..256)
         .map(|index| {

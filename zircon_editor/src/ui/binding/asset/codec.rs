@@ -1,7 +1,7 @@
 use zircon_runtime_interface::ui::{binding::UiBindingCall, binding::UiBindingValue};
 
 use super::AssetCommand;
-use crate::ui::binding::core::{EditorUiBindingError, required_string_argument};
+use crate::ui::binding::core::{required_string_argument, EditorUiBindingError};
 
 impl AssetCommand {
     pub(crate) fn to_call(&self) -> UiBindingCall {

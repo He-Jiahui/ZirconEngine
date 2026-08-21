@@ -1,11 +1,11 @@
 pub(crate) use self::boundary_correction::{
-    corrected_glyph_ranges_with_provider, corrected_index_advance_with_provider,
-    corrected_metric_ranges, BOUNDARY_SHAPING_CONTEXT_GRAPHEMES,
+    BOUNDARY_SHAPING_CONTEXT_GRAPHEMES, corrected_glyph_ranges_with_provider,
+    corrected_index_advance_with_provider, corrected_metric_ranges,
 };
 use self::glue::allows_glyph_fallback;
 pub(crate) use self::greedy::{line_text_fits_with_provider, should_wrap_before_accumulated};
 pub(crate) use self::soft_hyphen::{
-    break_suffix_at as soft_hyphen_break_suffix_at, LineBreakSuffix,
+    LineBreakSuffix, break_suffix_at as soft_hyphen_break_suffix_at,
 };
 pub(crate) use self::wrap_space::{trailing_wrap_space_byte_len, trim_leading_wrap_spaces};
 use super::kinsoku::apply_kinsoku_start_rules;
@@ -67,28 +67,7 @@ where
             },
             true,
         );
-        let paragraph_chunk_start = chunks.len();
         append_shaped_line_break_chunks(text, &shaped, source_range, &mut chunks);
-        if hard_line.is_run_cap_break() {
-            if chunks.len() == paragraph_chunk_start {
-                let source_range = hard_line.content;
-                chunks.push(LineBreakChunk::new(
-                    &text[source_range.clone()],
-                    TextRange {
-                        start: source_range.start,
-                        end: source_range.end,
-                    },
-                    TextRange {
-                        start: source_range.start,
-                        end: source_range.end,
-                    },
-                    None,
-                ));
-            }
-            if let Some(chunk) = chunks.last_mut() {
-                chunk.mandatory_break = true;
-            }
-        }
     }
 
     apply_kinsoku_start_rules(text, chunks)

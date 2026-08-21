@@ -14,7 +14,7 @@ impl SceneRendererCore {
         realtime_ibl: Option<&RealtimeIblPreparedFrame>,
         reflection_probes_enabled: bool,
     ) -> Result<(), GraphicsError> {
-        if let Some(prepared) = realtime_ibl {
+        if let Some(prepared) = realtime_ibl.filter(|prepared| prepared.uses_realtime_resources()) {
             let slot = prepared.sampling_slot();
             if self.scene_bind_group_realtime_ibl_slot != Some(slot) {
                 self.scene_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -73,14 +73,14 @@ impl SceneRendererCore {
             .set_lightmap_bindings(self.mesh_pipelines.lightmaps.bindings());
         let mut scene_uniform = SceneUniform::from_frame(frame);
         scene_uniform.set_global_material_mip_bias(self.global_material_mip_bias);
-        if let Some(prepared) = realtime_ibl {
+        if let Some(prepared) = realtime_ibl.filter(|prepared| prepared.uses_realtime_resources()) {
             scene_uniform.use_realtime_ibl(
                 prepared.source_face_size(),
                 prepared.pmrem_face_size(),
                 prepared.pmrem_mip_count(),
             );
         }
-        if realtime_ibl.is_none() {
+        if !realtime_ibl.is_some_and(RealtimeIblPreparedFrame::uses_realtime_resources) {
             queue.write_buffer(
                 &self.scene_environment_sh9_buffer,
                 0,
@@ -126,5 +126,15 @@ mod tests {
             write_uniform < build_draws,
             "provider fallback must resolve before mesh variants are selected"
         );
+    }
+
+    #[test]
+    fn incomplete_realtime_ticket_keeps_procedural_environment_bindings() {
+        let uniform_source = include_str!("write_scene_uniform.rs");
+
+        assert!(uniform_source.contains("prepared.uses_realtime_resources()"));
+        assert!(uniform_source.contains(
+            "!realtime_ibl.is_some_and(RealtimeIblPreparedFrame::uses_realtime_resources)"
+        ));
     }
 }

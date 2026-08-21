@@ -17,7 +17,7 @@ pub(crate) fn project_root_path(
 
 #[cfg(test)]
 mod tests {
-    use zircon_runtime::asset::project::{PROJECT_MANIFEST_FILE, ProjectPaths};
+    use zircon_runtime::asset::project::{ProjectPaths, PROJECT_MANIFEST_FILE};
     use zircon_runtime::scene::world::SceneProjectError;
 
     use super::project_root_path;

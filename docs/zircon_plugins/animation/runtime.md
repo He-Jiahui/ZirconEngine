@@ -62,6 +62,9 @@ related_code:
   - zircon_runtime/src/core/framework/animation/asset/state_kind.rs
   - zircon_runtime/src/core/framework/animation/asset/state_machine.rs
   - zircon_runtime/src/animation/clip_event.rs
+  - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs
+  - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets/target_path.rs
+  - zircon_runtime/src/asset/tests/assets/gltf_importer/labeled_subassets.rs
   - zircon_runtime/src/core/framework/animation/graph_blend_mode.rs
   - zircon_runtime/src/core/framework/animation/graph_clip_instance.rs
   - zircon_runtime/src/core/framework/animation/graph_evaluation.rs
@@ -125,6 +128,8 @@ implementation_files:
   - zircon_plugins/animation/editor/src/tests.rs
   - zircon_runtime/src/core/framework/animation/asset/mod.rs
   - zircon_runtime/src/animation/clip_event.rs
+  - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs
+  - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets/target_path.rs
   - zircon_runtime/src/core/framework/animation/graph_blend_mode.rs
   - zircon_runtime/src/core/framework/animation/graph_clip_instance.rs
   - zircon_runtime/src/core/framework/animation/graph_evaluation.rs
@@ -208,7 +213,7 @@ The plugin `DefaultAnimationManager` may be installed as a Runtime registry serv
 - Final poses remain owned framework snapshots, but the `LevelSystem` handoff now retains stable entity entries and copies through reusable bone/name storage. Graph base blending also consumes the first weighted pose by ownership instead of cloning it. Together with `PosePool`, this removes the known stable-rig final-handoff allocation boundary without introducing a borrowed plugin object across the Runtime contract.
 - `AnimationClipEvaluator` compiles skeleton targets and clip channels once per `{resource, revision}`, uses skeleton/clip LRU limits of 64/256, bounds diagnostic deduplication at 1,024 entries, recovers through typed invariant errors, and invalidates caches on resource events.
 - `evaluation/compiled_graph/**` compiles node edges and parameters to dense slots, validates missing edges/duplicates/cycles, compiles skeleton masks to dense bone rows, and is cached by `{graph_id, skeleton_id, graph_revision, skeleton_revision}`.
-- `CompiledAnimationStateMachine` compiles entry/from/to states and transition condition parameters to dense slots. `pipeline/state_machine_cache.rs` keeps a bounded revision-aware cache, so the production state-machine phase no longer scans state names or condition parameter names each frame.
+- `CompiledAnimationStateMachine` compiles entry/from/to states and transition condition parameters to dense slots. Trigger condition names are compiled beside their selected transition and are consumed only when ordinary or interruption arbitration actually begins that transition. The scene pipeline commits active state and Trigger removal together after clip-event admission; deferred entities retain the complete update, and a same-name value that is no longer `Trigger` is preserved. `pipeline/state_machine_cache.rs` keeps a bounded revision-aware cache, so the production state-machine phase no longer scans state names or condition parameter names each frame.
 - `PoseBlend` consumes compiled mask rows by bone index. The legacy string-mask path was deleted from production graph/state evaluation.
 - The remaining M1-T3 allocation boundary is `LevelSystem::record_animation_poses(BTreeMap<EntityId, AnimationPoseOutput>)`: ownership moves the final vectors into Runtime and exposes only cloning reads. A reusable final pose owner requires a coordinated Runtime API handback; no plugin-local compatibility wrapper is introduced.
 - PoseApply consumes Runtime08's `World::compile_descendant_name_index(...)` projection. Runtime owns each root's hierarchy/name generation; structured name and reparent writes invalidate only affected ancestor roots, while raw hierarchy-component mutation conservatively invalidates cached roots. `pose_target_binding.rs` derives plugin-local exact/short bone-name maps to dense `EntityId` values only when that Runtime binding changes. Transform writes and unrelated subtree edits retain the existing binding, while stable frames do not scan scene node records or reconstruct alias collections.
@@ -252,7 +257,8 @@ The plugin `DefaultAnimationManager` may be installed as a Runtime registry serv
 - `manager.rs` is the plugin-owned structural `DefaultAnimationManager` facade. `manager/parameters.rs` owns parameter default/value mutation and numeric scalar helpers, `graph.rs` owns graph clip collection plus additive/masked graph evaluation, `state_machine.rs` owns transition condition evaluation and active-state resolution, `pose.rs` owns skeleton bind validation plus clip bone-track sampling, and `sampling.rs` owns finite-value, sample-time, and channel-sample conversion helpers.
 - The private `channel_sampling/` module currently supplies channel sampling and interpolation to the manager facade. `apply_sequence_to_world(...)` remains a Runtime interop re-export until Runtime08 publishes the generation-validated generic compiled property accessor; it must not become a second plugin production evaluator.
 - `DefaultAnimationManager::evaluate_graph(...)` remains a neutral compatibility-facing contract, while the production pipeline consumes `CompiledAnimationGraph` and dense target masks directly.
-- `DefaultAnimationManager::sample_clip_pose(...)` resolves `AnimationClipBoneTrackAsset.target_id` before the legacy `bone_name` fallback. Target ids can match a bone name or the slash-joined skeleton path, for example `Root/Hand`.
+- Base graph clips retain their authored positive finite weights until pose composition. The evaluator normalizes only the contributors that target each bone, so a masked clip cannot attenuate an unrelated bone; invalid weights do not participate and every quaternion is canonicalized to an input-order-independent hemisphere before accumulation.
+- `DefaultAnimationManager::sample_clip_pose(...)` resolves `AnimationClipBoneTrackAsset.target_id` before the legacy `bone_name` fallback. An explicit target id is the complete canonical slash-joined skeleton path, for example `Root/Hand`; a unique leaf `bone_name` is considered only when `target_id` is `None`. The builtin glTF importer derives explicit paths from the selected skeleton's bone/parent table and rejects channels outside that skeleton during import.
 - `apply_sequence_to_world(...)` resolves `AnimationSequenceBindingAsset.target_id` before the legacy `entity_path` fallback. Current runtime target ids accept a stable numeric `EntityId` string or the same canonical `EntityPath` text used by old bindings.
 - `zircon_runtime::scene::WorldDriver` dispatches installed runtime scene systems by schedule stage and contains no animation-specific logic.
 
@@ -263,7 +269,7 @@ Runtime framework contracts are intentionally concrete-free:
 - `apply_sequence_to_world(...)` remains the current Runtime-owned scene-writeback boundary and is reached through the plugin root only while Runtime08 completes compiled property access for every track kind; the neutral `AnimationManager` does not accept `scene::World`.
 - `AnimationClipEvent` is the plugin-owned typed scene event for clip event tracks. It records the source entity, optional target id, event name, payload, clip time, and absolute playback time so looping clips can report boundary occurrences deterministically.
 - `AnimationGraphBlendMode`, `AnimationGraphClipInstance::target_ids`, and `AnimationGraphEvaluation::mask_target_ids` describe additive/masked graph output without moving concrete graph runtime back into `zircon_runtime`.
-- `AnimationClipBoneTrackAsset.target_id`, `AnimationSequenceBindingAsset.target_id`, and `AnimationClipAsset.event_tracks` add stable target/event metadata to the asset contract while keeping old `bone_name` and `entity_path` fallbacks available.
+- `AnimationClipBoneTrackAsset.target_id`, `AnimationSequenceBindingAsset.target_id`, and `AnimationClipAsset.event_tracks` add stable target/event metadata to the asset contract. Old `bone_name` and `entity_path` fallbacks remain available only when their corresponding explicit target id is absent; an invalid explicit clip path does not fall back to a leaf name.
 - `AnimationSequenceApplyReport` reports applied and missing tracks without exposing plugin-owned sequence implementation details.
 - `AnimationTimelineDescriptor`, `AnimationTimelineTrackDescriptor`, and `AnimationTimelineClipDescriptor` summarize sequence property tracks, clip bone tracks, event tracks, mask filtering, and clip spans for editor/runtime/VM callers without exposing plugin-owned sampler state.
 - `AnimationPlayerRuntimeStatus`, `AnimationRigRuntimeStatus`, and `AnimationRuntimeStatus` expose player state, rig pose coverage, missing targets, GPU-skinning readiness, last tick work, and diagnostics as copied data.

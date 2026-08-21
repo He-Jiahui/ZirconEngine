@@ -90,4 +90,11 @@ impl UiHostContext<'_> {
     callback_methods!(ui_callbacks, on_host_drag_pointer_event, invoke_host_drag_pointer_event, host_drag_pointer_event, (kind: i32, x: f32, y: f32));
     callback_methods!(ui_callbacks, on_host_resize_pointer_event, invoke_host_resize_pointer_event, host_resize_pointer_event, (kind: i32, x: f32, y: f32));
     callback_methods!(ui_callbacks, on_unhandled_keyboard_input, invoke_unhandled_keyboard_input, unhandled_keyboard_input, (keyboard: UiKeyboardInputEvent));
+    callback_methods!(
+        ui_callbacks,
+        on_native_window_focus_lost,
+        invoke_native_window_focus_lost,
+        native_window_focus_lost,
+        ()
+    );
 }

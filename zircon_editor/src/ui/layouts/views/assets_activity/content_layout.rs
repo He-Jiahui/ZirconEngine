@@ -3,15 +3,15 @@ use zircon_runtime_interface::ui::design_tokens::{EditorDensityTokens, EditorTyp
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::retained_host::measure_runtime_text_width;
 use crate::ui::workbench::asset_content_layout::{
-    ACTIVITY_CONTENT_PANEL_CONTROL_ID, AssetContentLayoutMetrics, AssetContentSurfaceProfile,
-    RuntimeFileNameCompaction, compact_file_like_display_name,
+    compact_file_like_display_name, AssetContentLayoutMetrics, AssetContentSurfaceProfile,
+    RuntimeFileNameCompaction, ACTIVITY_CONTENT_PANEL_CONTROL_ID,
 };
 use crate::ui::workbench::snapshot::{AssetViewMode, AssetWorkspaceSnapshot};
 
 use super::content_nodes::{
-    EMPTY_CONTROL_ID, folder_badge_control_id, folder_meta_control_id, folder_name_control_id,
-    folder_row_control_id, folder_type_control_id, item_badge_control_id, item_meta_control_id,
-    item_name_control_id, item_row_control_id, item_type_control_id,
+    folder_badge_control_id, folder_meta_control_id, folder_name_control_id, folder_row_control_id,
+    folder_type_control_id, item_badge_control_id, item_meta_control_id, item_name_control_id,
+    item_row_control_id, item_type_control_id, EMPTY_CONTROL_ID,
 };
 
 const ACTIVITY_NAME_MIN_PREFIX_CHARS: usize = 4;

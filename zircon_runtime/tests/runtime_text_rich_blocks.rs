@@ -28,7 +28,7 @@ fn runtime_text_rich_blocks_parse_paragraph_indent_and_nested_markers() {
         RichTextFormat::BbCode,
     );
 
-    assert_eq!(parsed.text, "title\nbody\nA. One\n→ Inner\nB. Two");
+    assert_eq!(parsed.text.as_ref(), "title\nbody\nA. One\n→ Inner\nB. Two");
     assert!(parsed.paragraphs.iter().any(|(_, paragraph)| {
         paragraph.align == Some(TextAlign::Center) && paragraph.indent == Some(12.0)
     }));

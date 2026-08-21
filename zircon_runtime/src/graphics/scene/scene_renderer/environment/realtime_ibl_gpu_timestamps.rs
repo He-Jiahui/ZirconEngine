@@ -9,11 +9,16 @@ const TIMESTAMP_BYTES: u64 = TIMESTAMP_QUERY_COUNT as u64 * size_of::<u64>() as 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RealtimeIblGpuTimingReport {
     pub frame_number: u64,
+    pub generation: u64,
+    pub recipe_fingerprint: String,
     pub logical_state: u8,
-    pub full_update: bool,
+    pub work_slot: String,
     pub operation_label: String,
     pub pass_count: usize,
     pub dispatch_count: usize,
+    pub scheduled_workgroups: u64,
+    pub completed_workgroups: u64,
+    pub terminal_reason: String,
     pub elapsed_gpu_nanoseconds: f64,
 }
 
@@ -124,11 +129,16 @@ impl RealtimeIblGpuTimestampCollector {
 #[derive(Clone, Debug)]
 pub(in crate::graphics) struct RealtimeIblGpuTimingMetadata {
     pub frame_number: u64,
+    pub generation: u64,
+    pub recipe_fingerprint: String,
     pub logical_state: u8,
-    pub full_update: bool,
+    pub work_slot: String,
     pub operation_label: String,
     pub pass_count: usize,
     pub dispatch_count: usize,
+    pub scheduled_workgroups: u64,
+    pub completed_workgroups: u64,
+    pub terminal_reason: String,
 }
 
 impl RealtimeIblGpuTimingMetadata {
@@ -139,11 +149,16 @@ impl RealtimeIblGpuTimingMetadata {
     ) -> RealtimeIblGpuTimingReport {
         RealtimeIblGpuTimingReport {
             frame_number: self.frame_number,
+            generation: self.generation,
+            recipe_fingerprint: self.recipe_fingerprint,
             logical_state: self.logical_state,
-            full_update: self.full_update,
+            work_slot: self.work_slot,
             operation_label: self.operation_label,
             pass_count: self.pass_count,
             dispatch_count: self.dispatch_count,
+            scheduled_workgroups: self.scheduled_workgroups,
+            completed_workgroups: self.completed_workgroups,
+            terminal_reason: self.terminal_reason,
             elapsed_gpu_nanoseconds: elapsed_gpu_nanoseconds(
                 timestamps,
                 timestamp_period_nanoseconds,

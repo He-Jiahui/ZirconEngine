@@ -31,22 +31,26 @@ pub(crate) mod welcome_recent_pointer;
 pub(crate) mod workbench_popup_actions;
 pub(crate) mod workbench_preview_actions;
 
+pub(crate) use app::build_startup_state;
 pub(crate) use app::HostInvalidationMask;
 pub(crate) use event_bridge::HostShellContentScope;
-pub(crate) use app::build_startup_state;
 pub(crate) use host_contract::*;
 
 #[cfg(test)]
-pub(crate) use app::backend_refresh::{AssetBackendRefreshPlan, plan_asset_backend_refresh};
+pub(crate) use app::backend_refresh::{plan_asset_backend_refresh, AssetBackendRefreshPlan};
 #[cfg(test)]
 pub(crate) use app::{
-    NativeFloatingWindowTarget, NativeWindowPresenterStore, collect_native_floating_window_targets,
-    configure_native_floating_window_presentation,
+    collect_native_floating_window_targets, configure_native_floating_window_presentation,
+    NativeFloatingWindowTarget, NativeWindowPresenterStore,
 };
 pub use app::{
-    RetainedHostAutomationResult, run_editor, run_editor_with_config,
-    run_editor_with_startup_request, run_retained_host_automation,
+    run_editor, run_editor_with_config, run_editor_with_startup_request,
+    run_retained_host_automation, RetainedHostAutomationResult,
 };
+#[cfg(test)]
+pub(crate) fn console_content_extent(text: &str) -> f32 {
+    console_output::console_content_extent(text)
+}
 pub use run_config::EditorHostRunConfig;
 #[cfg(test)]
 pub(crate) use ui::apply_presentation;

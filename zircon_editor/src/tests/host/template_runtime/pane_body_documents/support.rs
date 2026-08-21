@@ -2,7 +2,7 @@ use std::path::Path;
 
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
-    FOUNDATION_MODULE_NAME, module_descriptor as foundation_module_descriptor,
+    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime::ui::surface::UiSurface;

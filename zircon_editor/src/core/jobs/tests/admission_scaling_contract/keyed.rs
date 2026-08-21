@@ -1,8 +1,8 @@
 use super::support::{GateJob, MergeCancellationJob, ValueJob};
 use super::{
-    CancellationToken, Duration, EditorJobAdmission, EditorJobAdmissionKey,
-    EditorJobAdmissionLimits, EditorJobLimits, EditorJobSpec, JobCategory, JobError, mpsc,
-    test_job_system_with_limits,
+    mpsc, test_job_system_with_limits, CancellationToken, Duration, EditorJobAdmission,
+    EditorJobAdmissionKey, EditorJobAdmissionLimits, EditorJobLimits, EditorJobSpec, JobCategory,
+    JobError, JobSubmitError,
 };
 
 #[test]

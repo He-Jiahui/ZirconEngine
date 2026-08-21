@@ -1,12 +1,13 @@
 mod contact;
 mod filter;
 mod geometry;
+mod mode;
 mod overlap;
 mod raycast;
 mod sweep;
 
 use zircon_runtime::core::framework::physics::{
-    PhysicsColliderSyncState, PhysicsContactEvent, PhysicsRayCastHit, PhysicsRayCastQuery,
+    PhysicsColliderSyncState, PhysicsContactEvent, PhysicsQueryFilter, PhysicsRayCastHit,
     PhysicsSettings, PhysicsShapeOverlapHit, PhysicsShapeOverlapQuery, PhysicsWorldSyncState,
 };
 use zircon_runtime::core::math::{Real, Vec3};
@@ -18,12 +19,8 @@ pub(crate) fn compute_contact_events(
     contact::compute_contact_events(sync, settings)
 }
 
-pub(crate) fn collider_matches_query(
-    query: &PhysicsRayCastQuery,
-    collider: &PhysicsColliderSyncState,
-) -> bool {
-    filter::collider_matches_query(query, collider)
-}
+pub(crate) use filter::PreparedPhysicsQueryFilter;
+pub(crate) use mode::{append_query_mode, collect_query_mode};
 
 pub(crate) fn colliders_can_interact(
     left: &PhysicsColliderSyncState,
@@ -43,8 +40,9 @@ pub(crate) fn colliders_overlap(
 pub(crate) fn shape_overlap_query(
     sync: &PhysicsWorldSyncState,
     query: &PhysicsShapeOverlapQuery,
+    filter: &PhysicsQueryFilter,
 ) -> Vec<PhysicsShapeOverlapHit> {
-    overlap::shape_overlap_query(sync, query)
+    overlap::shape_overlap_query(sync, query, filter)
 }
 
 pub(crate) fn ray_cast_collider(
@@ -59,6 +57,7 @@ pub(crate) fn ray_cast_collider(
 pub(crate) fn shape_cast_query(
     sync: &PhysicsWorldSyncState,
     query: &zircon_runtime::core::framework::physics::PhysicsShapeCastQuery,
+    filter: &PhysicsQueryFilter,
 ) -> Vec<zircon_runtime::core::framework::physics::PhysicsShapeCastHit> {
-    sweep::shape_cast_query(sync, query)
+    sweep::shape_cast_query(sync, query, filter)
 }

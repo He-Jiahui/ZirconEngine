@@ -223,13 +223,13 @@ impl Clone for World {
 }
 
 #[derive(Deserialize)]
-struct WorldPersistentState {
+pub(super) struct WorldPersistentState {
     entities: Vec<EntityId>,
     #[serde(default)]
     kinds: HashMap<EntityId, NodeKind>,
     names: HashMap<EntityId, Name>,
     hierarchy: HashMap<EntityId, Hierarchy>,
-    local_transforms: HashMap<EntityId, LocalTransform>,
+    pub(super) local_transforms: HashMap<EntityId, LocalTransform>,
     cameras: HashMap<EntityId, CameraComponent>,
     mesh_renderers: HashMap<EntityId, MeshRenderer>,
     #[serde(default)]
@@ -271,6 +271,55 @@ struct WorldPersistentState {
     dynamic_components: HashMap<EntityId, HashMap<String, serde_json::Value>>,
     next_id: EntityId,
     active_camera: EntityId,
+}
+
+impl WorldPersistentState {
+    pub(super) fn first_orphan_component(&self) -> Option<(EntityId, &'static str)> {
+        let known_entities = self.entities.iter().copied().collect::<BTreeSet<_>>();
+
+        macro_rules! check_map {
+            ($field:ident, $component:literal) => {
+                if let Some(entity) = self
+                    .$field
+                    .keys()
+                    .find(|entity| !known_entities.contains(entity))
+                {
+                    return Some((*entity, $component));
+                }
+            };
+        }
+
+        check_map!(kinds, "kinds");
+        check_map!(names, "names");
+        check_map!(hierarchy, "hierarchy");
+        check_map!(local_transforms, "local_transforms");
+        check_map!(cameras, "cameras");
+        check_map!(mesh_renderers, "mesh_renderers");
+        check_map!(sprite_2d, "sprite_2d");
+        check_map!(mesh_2d, "mesh_2d");
+        check_map!(ambient_lights, "ambient_lights");
+        check_map!(directional_lights, "directional_lights");
+        check_map!(point_lights, "point_lights");
+        check_map!(rect_lights, "rect_lights");
+        check_map!(spot_lights, "spot_lights");
+        check_map!(rigid_bodies, "rigid_bodies");
+        check_map!(colliders, "colliders");
+        check_map!(joints, "joints");
+        check_map!(animation_skeletons, "animation_skeletons");
+        check_map!(animation_players, "animation_players");
+        check_map!(animation_sequence_players, "animation_sequence_players");
+        check_map!(animation_graph_players, "animation_graph_players");
+        check_map!(
+            animation_state_machine_players,
+            "animation_state_machine_players"
+        );
+        check_map!(active_self, "active_self");
+        check_map!(render_layer_masks, "render_layer_masks");
+        check_map!(mobility, "mobility");
+        check_map!(dynamic_components, "dynamic_components");
+
+        None
+    }
 }
 
 #[derive(Serialize)]
@@ -351,12 +400,13 @@ impl Serialize for World {
     }
 }
 
-impl<'de> Deserialize<'de> for World {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let state = WorldPersistentState::deserialize(deserializer)?;
+impl World {
+    pub(super) fn from_persistent_state(
+        state: WorldPersistentState,
+    ) -> Result<Self, (EntityId, &'static str)> {
+        if let Some(orphan) = state.first_orphan_component() {
+            return Err(orphan);
+        }
         let persistent_entity_core =
             Self::persistent_entity_core_component_snapshot_from_serialized_maps(
                 state.names,
@@ -460,6 +510,20 @@ impl<'de> Deserialize<'de> for World {
         );
         world.rebuild_node_kind_ordinals();
         Ok(world)
+    }
+}
+
+impl<'de> Deserialize<'de> for World {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let state = WorldPersistentState::deserialize(deserializer)?;
+        Self::from_persistent_state(state).map_err(|(entity, component)| {
+            serde::de::Error::custom(format!(
+                "persisted {component} component belongs to missing entity {entity}"
+            ))
+        })
     }
 }
 

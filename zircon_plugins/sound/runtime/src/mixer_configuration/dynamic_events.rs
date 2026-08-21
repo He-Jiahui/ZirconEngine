@@ -20,6 +20,7 @@ pub(crate) fn retain_dynamic_event_runtime_state(
         .retain(|handler| dynamic_event_ids.contains(&handler.event_id));
     let dynamic_event_handler_keys = state
         .dynamic_event_handlers
+        .handlers()
         .iter()
         .map(|handler| (handler.plugin_id.clone(), handler.handler_id.clone()))
         .collect::<HashSet<_>>();

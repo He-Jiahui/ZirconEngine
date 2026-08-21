@@ -1,8 +1,8 @@
 use std::any::type_name;
 use std::sync::{Arc, Mutex};
 
-use crate::core::framework::state::{NextState, OnEnter, OnExit, OnTransition, StateSpec};
 use crate::core::CoreRuntime;
+use crate::core::framework::state::{NextState, OnEnter, OnExit, OnTransition, StateSpec};
 
 mod hook_index;
 
@@ -160,11 +160,20 @@ fn independent_state_specs_keep_events_and_current_values_separate() {
 }
 
 #[test]
-fn state_handle_init_existing_state_uses_direct_projection() {
-    let states_source = include_str!("../core/runtime/handle/states.rs");
+fn repeated_state_initialization_has_no_transition_side_effects() {
+    let runtime = CoreRuntime::new();
+    let enter_count = Arc::new(Mutex::new(0_u32));
+    let hook_count = Arc::clone(&enter_count);
+    runtime.register_on_enter(OnEnter::new(GameFlow::Loading), move |_| {
+        *hook_count.lock().unwrap() += 1;
+    });
 
-    assert!(states_source.contains("let entered = match self.state::<T>()"));
-    assert!(states_source.contains("Some(state) => Some(state.into_inner())"));
-    assert!(states_source.contains("StateTransitionEvent::new(None, entered, true)"));
-    assert!(!states_source.contains("self.state::<T>().map(State::into_inner)"));
+    let initial = runtime.init_state::<GameFlow>();
+    let repeated = runtime.init_state::<GameFlow>();
+
+    assert_eq!(repeated.exited, None);
+    assert_eq!(repeated.entered, Some(GameFlow::Loading));
+    assert!(repeated.allow_same_state_transitions);
+    assert_eq!(runtime.state_transition_events::<GameFlow>(), vec![initial]);
+    assert_eq!(*enter_count.lock().unwrap(), 1);
 }

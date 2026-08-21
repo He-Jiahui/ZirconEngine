@@ -3,11 +3,11 @@ use std::path::Path;
 use crate::core::jobs::CancellationToken;
 use zircon_runtime::asset::project::ProjectManifest;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
-use zircon_runtime::plugin::native::{
-    discover_native_plugins, load_native_editor_from_load_manifest,
-    load_native_runtime_from_load_manifest, NativePluginLoadReport,
-};
 use zircon_runtime::plugin::ExportBuildPlan;
+use zircon_runtime::plugin::native::{
+    NativePluginLoadReport, discover_native_plugins, load_native_editor_from_load_manifest,
+    load_native_runtime_from_load_manifest,
+};
 
 use super::super::super::editor_manager::EditorManager;
 use super::super::super::native_dynamic_export_preparation::prepare_native_dynamic_packages_with_cancellation;
@@ -386,12 +386,12 @@ manifest = "plugins/split_tool/plugin.toml"
 
         let runtime_report =
             exported_native_load_report_for_profile(&root, RuntimeTargetMode::ClientRuntime);
-        assert!(runtime_report.diagnostics.iter().any(|message| {
+        assert!(runtime_report.diagnostics().iter().any(|message| {
             message.contains(&platform_library_file_name(
                 "zircon_plugin_split_tool_runtime",
             ))
         }));
-        assert!(!runtime_report.diagnostics.iter().any(|message| {
+        assert!(!runtime_report.diagnostics().iter().any(|message| {
             message.contains(&platform_library_file_name(
                 "zircon_plugin_split_tool_editor",
             ))
@@ -399,12 +399,12 @@ manifest = "plugins/split_tool/plugin.toml"
 
         let editor_report =
             exported_native_load_report_for_profile(&root, RuntimeTargetMode::EditorHost);
-        assert!(editor_report.diagnostics.iter().any(|message| {
+        assert!(editor_report.diagnostics().iter().any(|message| {
             message.contains(&platform_library_file_name(
                 "zircon_plugin_split_tool_editor",
             ))
         }));
-        assert!(!editor_report.diagnostics.iter().any(|message| {
+        assert!(!editor_report.diagnostics().iter().any(|message| {
             message.contains(&platform_library_file_name(
                 "zircon_plugin_split_tool_runtime",
             ))

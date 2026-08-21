@@ -8,7 +8,7 @@ pub use runtime::BuiltinPhysicsBackend;
 pub use step::integrate_builtin_physics_steps;
 
 pub(crate) use query_contact::{
-    collider_matches_query, compute_contact_events, ray_cast_collider, shape_cast_query,
-    shape_overlap_query,
+    PreparedPhysicsQueryFilter, append_query_mode, collect_query_mode, compute_contact_events,
+    ray_cast_collider, shape_cast_query, shape_overlap_query,
 };
-pub(crate) use trigger::{compute_trigger_events, PhysicsTriggerPairMap};
+pub(crate) use trigger::{PhysicsTriggerPairMap, compute_trigger_events};

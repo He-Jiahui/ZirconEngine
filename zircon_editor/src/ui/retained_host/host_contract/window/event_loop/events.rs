@@ -1,3 +1,4 @@
+mod focus;
 mod keyboard;
 mod pointer;
 mod resize;
@@ -54,6 +55,7 @@ impl UiHostWindowEventLoop {
                 self.begin_input_outcome(platform_event.sequence);
                 self.reject_input_outcome();
             }
+            WindowEvent::Focused(false) => self.handle_native_window_focus_lost(),
             WindowEvent::KeyboardInput { event, .. } => {
                 self.handle_keyboard_input(event, require_platform_input(platform_input_event));
             }
@@ -91,5 +93,13 @@ mod tests {
         assert!(source.contains("require_platform_input(platform_input_event)"));
         assert!(source.contains("self.begin_input_outcome(platform_event.sequence)"));
         assert!(source.contains("self.reject_input_outcome()"));
+    }
+
+    #[test]
+    fn native_focus_loss_routes_to_the_viewport_interaction_cancellation_callback() {
+        let source = include_str!("events.rs");
+
+        assert!(source.contains("WindowEvent::Focused(false)"));
+        assert!(source.contains("handle_native_window_focus_lost"));
     }
 }

@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::path::Path;
 use std::process::{Child, Command, ExitStatus, Stdio};
 use std::thread;
@@ -7,12 +8,13 @@ use crate::core::jobs::{CancellationToken, EditorJobSystem};
 
 use super::editor_manager_plugins_export::EditorExportCargoInvocation;
 use super::export_process_support::{
-    configure_process_tree_cancellation, create_output_capture, final_output_drain,
-    join_output_with_poll, terminate_process_tree, ExportProcessChildGuard, ExportProcessError,
-    ExportProcessJoin,
+    configure_process_tree_cancellation, create_output_capture, join_output_with_poll,
+    terminate_process_tree, ExportProcessChildGuard, ExportProcessError, ExportProcessJoin,
+    ExportProcessOutputReaders,
 };
 
 const CARGO_PROCESS_CANCEL_POLL_INTERVAL: Duration = Duration::from_millis(100);
+const MAX_CARGO_OUTPUT_TAIL_BYTES: usize = 256 * 1024;
 
 pub(in crate::ui::host) fn invoke_cargo_process(
     jobs: &EditorJobSystem,
@@ -59,8 +61,8 @@ fn invoke_cargo_process_with_join<J: ExportProcessJoin>(
         ExportProcessError::io("failed to invoke Cargo", label, None, None, error)
     })?;
     let mut child_guard = ExportProcessChildGuard::new(child, label);
-    let mut stdout = Vec::new();
-    let mut stderr = Vec::new();
+    let mut stdout = BoundedOutputTail::new(MAX_CARGO_OUTPUT_TAIL_BYTES);
+    let mut stderr = BoundedOutputTail::new(MAX_CARGO_OUTPUT_TAIL_BYTES);
     let outcome = loop {
         let child = child_guard.child_mut();
         let (output, polled) = join_output_with_poll(jobs, &mut output_readers, || {
@@ -92,13 +94,9 @@ fn invoke_cargo_process_with_join<J: ExportProcessJoin>(
         }
         thread::sleep(CARGO_PROCESS_CANCEL_POLL_INTERVAL);
     };
-    append_captured_output(
-        final_output_drain(jobs, &mut output_readers)?,
-        &mut stdout,
-        &mut stderr,
-    );
-    let stdout = String::from_utf8_lossy(&stdout).to_string();
-    let stderr = String::from_utf8_lossy(&stderr).to_string();
+    drain_captured_output(jobs, &mut output_readers, &mut stdout, &mut stderr)?;
+    let stdout = stdout.finish();
+    let stderr = stderr.finish();
     child_guard.disarm();
     match outcome {
         CargoProcessOutcome::Cancelled {
@@ -193,13 +191,89 @@ fn cancelled_invocation(command: Vec<String>, stderr: String) -> EditorExportCar
     }
 }
 
+#[derive(Debug)]
+struct BoundedOutputTail {
+    bytes: VecDeque<u8>,
+    max_bytes: usize,
+    total_bytes: usize,
+    discarded_bytes: usize,
+}
+
+impl BoundedOutputTail {
+    fn new(max_bytes: usize) -> Self {
+        assert!(max_bytes > 0, "output tail budget must be positive");
+        Self {
+            bytes: VecDeque::with_capacity(max_bytes),
+            max_bytes,
+            total_bytes: 0,
+            discarded_bytes: 0,
+        }
+    }
+
+    fn append(&mut self, bytes: &[u8]) {
+        self.total_bytes = self.total_bytes.saturating_add(bytes.len());
+        if bytes.len() >= self.max_bytes {
+            let newly_discarded = self
+                .bytes
+                .len()
+                .saturating_add(bytes.len().saturating_sub(self.max_bytes));
+            self.discarded_bytes = self.discarded_bytes.saturating_add(newly_discarded);
+            self.bytes.clear();
+            self.bytes
+                .extend(bytes[bytes.len() - self.max_bytes..].iter().copied());
+            return;
+        }
+
+        let overflow = self
+            .bytes
+            .len()
+            .saturating_add(bytes.len())
+            .saturating_sub(self.max_bytes);
+        if overflow > 0 {
+            self.bytes.drain(..overflow);
+            self.discarded_bytes = self.discarded_bytes.saturating_add(overflow);
+        }
+        self.bytes.extend(bytes.iter().copied());
+    }
+
+    fn finish(self) -> String {
+        let mut output = String::with_capacity(self.bytes.len() + 96);
+        if self.discarded_bytes > 0 {
+            output.push_str(&format!(
+                "[output truncated: retained last {} bytes of {} total bytes; discarded {} bytes]\n",
+                self.bytes.len(), self.total_bytes, self.discarded_bytes
+            ));
+        }
+        let bytes = self.bytes.into_iter().collect::<Vec<_>>();
+        output.push_str(&String::from_utf8_lossy(&bytes));
+        output
+    }
+}
+
 fn append_captured_output(
     output: super::export_process_support::CapturedOutputChunk,
-    stdout: &mut Vec<u8>,
-    stderr: &mut Vec<u8>,
+    stdout: &mut BoundedOutputTail,
+    stderr: &mut BoundedOutputTail,
 ) {
-    stdout.extend(output.stdout);
-    stderr.extend(output.stderr);
+    stdout.append(&output.stdout);
+    stderr.append(&output.stderr);
+}
+
+fn drain_captured_output<J: ExportProcessJoin>(
+    jobs: &J,
+    readers: &mut ExportProcessOutputReaders,
+    stdout: &mut BoundedOutputTail,
+    stderr: &mut BoundedOutputTail,
+) -> Result<(), ExportProcessError> {
+    loop {
+        let (output, ()) = join_output_with_poll(jobs, readers, || ());
+        let output = output?;
+        let complete = output.stdout.is_empty() && output.stderr.is_empty();
+        append_captured_output(output, stdout, stderr);
+        if complete {
+            return Ok(());
+        }
+    }
 }
 
 fn invocation_from_status(
@@ -255,7 +329,7 @@ mod tests {
             "cmd".to_string(),
             vec![
                 "/C".to_string(),
-                "(for /L %i in (1,1,5000) do @echo stdout-line-%i) & (for /L %i in (1,1,5000) do @echo stderr-line-%i 1>&2)".to_string(),
+                "(for /L %i in (1,1,20000) do @echo stdout-line-%i) & (for /L %i in (1,1,20000) do @echo stderr-line-%i 1>&2)".to_string(),
             ],
         );
         #[cfg(unix)]
@@ -263,7 +337,7 @@ mod tests {
             "sh".to_string(),
             vec![
                 "-c".to_string(),
-                "i=1; while [ $i -le 5000 ]; do printf 'stdout-line-%s\\n' \"$i\"; printf 'stderr-line-%s\\n' \"$i\" >&2; i=$((i+1)); done".to_string(),
+                "i=1; while [ $i -le 20000 ]; do printf 'stdout-line-%s\\n' \"$i\"; printf 'stderr-line-%s\\n' \"$i\" >&2; i=$((i+1)); done".to_string(),
             ],
         );
 
@@ -278,7 +352,54 @@ mod tests {
         .expect("single-worker export process should complete");
 
         assert!(invocation.success);
-        assert!(invocation.stdout.contains("stdout-line-5000"));
-        assert!(invocation.stderr.contains("stderr-line-5000"));
+        assert!(invocation.stdout.contains("stdout-line-20000"));
+        assert!(invocation.stderr.contains("stderr-line-20000"));
+        assert!(invocation.stdout.starts_with("[output truncated:"));
+        assert!(invocation.stderr.starts_with("[output truncated:"));
+        assert!(invocation.stdout.len() <= MAX_CARGO_OUTPUT_TAIL_BYTES + 128);
+        assert!(invocation.stderr.len() <= MAX_CARGO_OUTPUT_TAIL_BYTES + 128);
+    }
+
+    #[test]
+    fn cargo_output_tail_keeps_a_constant_memory_budget_and_reports_discarded_bytes() {
+        let mut tail = BoundedOutputTail::new(8);
+        tail.append(b"0123456789abcdef");
+
+        let output = tail.finish();
+
+        assert!(output.starts_with(
+            "[output truncated: retained last 8 bytes of 16 total bytes; discarded 8 bytes]\n"
+        ));
+        assert!(output.ends_with("89abcdef"));
+        assert!(output.len() < 128);
+    }
+
+    #[test]
+    fn cargo_output_tail_preserves_the_exact_tail_across_capture_chunks() {
+        let mut tail = BoundedOutputTail::new(8);
+        tail.append(b"0123");
+        tail.append(b"456789ab");
+
+        let output = tail.finish();
+
+        assert!(output.starts_with(
+            "[output truncated: retained last 8 bytes of 12 total bytes; discarded 4 bytes]\n"
+        ));
+        assert!(output.ends_with("456789ab"));
+    }
+
+    #[test]
+    fn export_process_final_drains_do_not_reaggregate_the_complete_stream() {
+        let cargo_source = include_str!("export_cargo_process.rs");
+        let support_source = include_str!("export_process_support/output_capture.rs");
+        let wizard_source =
+            include_str!("editor_manager_plugins_export/export_build/wizard/execution.rs");
+
+        assert!(!cargo_source.contains(concat!("final_output_", "drain")));
+        assert!(!support_source.contains(concat!("final_output_", "drain")));
+        assert!(!wizard_source.contains(concat!("final_output_", "drain")));
+        assert!(cargo_source.contains("fn drain_captured_output"));
+        assert!(wizard_source.contains("let complete = output.stdout.is_empty()"));
+        assert!(wizard_source.contains(".record(output, complete, emit_output)"));
     }
 }

@@ -64,7 +64,7 @@ fn editor_only_builtin_catalog_projects_targets_and_capabilities_from_package_ma
         RuntimePluginCatalog::builtin()
             .package_manifests()
             .cloned()
-            .collect(),
+            .collect::<Vec<_>>(),
     );
     let catalog_manifests = catalog.package_manifests();
 

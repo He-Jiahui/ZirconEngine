@@ -262,5 +262,4 @@ mod tests {
         assert!(aggregate.contains("SceneAssetManagementRecordSet::from_records(scene_records)"));
         assert!(aggregate.contains("SceneEntityManagementRecordSet::from_records(scene_entities)"));
     }
-
 }

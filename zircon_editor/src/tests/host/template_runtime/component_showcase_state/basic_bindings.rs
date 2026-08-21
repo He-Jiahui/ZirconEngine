@@ -2,7 +2,7 @@ use zircon_runtime_interface::ui::component::{
     UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata, UiValue,
 };
 
-use super::support::apply_showcase_binding;
+use super::support::{apply_showcase_binding, showcase_binding};
 use crate::ui::template_runtime::{
     EditorUiHostRuntime, RetainedUiHostValue, UiComponentShowcaseDemoEventInput,
 };
@@ -50,12 +50,10 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
     );
     assert!(result.changed);
     assert!(result.refresh_projection);
-    assert!(
-        result
-            .patches
-            .iter()
-            .any(|patch| patch.control_id == "InputFieldDemo")
-    );
+    assert!(result
+        .patches
+        .iter()
+        .any(|patch| patch.control_id == "InputFieldDemo"));
     assert_eq!(
         runtime
             .showcase_demo_state()

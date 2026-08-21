@@ -17,6 +17,14 @@ related_code:
   - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
+  - zircon_runtime_interface/src/profiling.rs
+  - zircon_runtime_interface/src/profiling/session_path.rs
+  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/environment.rs
+  - tools/profile-capture-paths.ps1
+  - tools/ui-profile-capture.ps1
+  - tools/mvp/Capture-RenderExtractBaseline.ps1
+  - tools/tests/ui-profile-capture-output-contract.Tests.ps1
+  - tools/tests/render-extract-baseline-capture.Tests.ps1
   - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/core/runtime/diagnostics/render.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
@@ -47,6 +55,12 @@ implementation_files:
   - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
+  - zircon_runtime_interface/src/profiling.rs
+  - zircon_runtime_interface/src/profiling/session_path.rs
+  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/environment.rs
+  - tools/profile-capture-paths.ps1
+  - tools/ui-profile-capture.ps1
+  - tools/mvp/Capture-RenderExtractBaseline.ps1
   - zircon_runtime/src/runtime_diagnostics/collect.rs
   - zircon_runtime/src/dynamic_api/exports.rs
   - zircon_runtime/src/dynamic_api/session.rs
@@ -76,6 +90,10 @@ tests:
   - zircon_runtime/src/core/runtime/diagnostics/profiling/hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
+  - zircon_runtime_interface/src/profiling/session_path.rs
+  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/environment/tests.rs
+  - tools/tests/ui-profile-capture-output-contract.Tests.ps1
+  - tools/tests/render-extract-baseline-capture.Tests.ps1
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/diagnostics.rs
   - zircon_runtime/src/dynamic_api/tests.rs
   - zircon_runtime/src/graphics/tests/render_profiling.rs
@@ -148,7 +166,7 @@ The sink follows the same reference shape used by Bevy's `trace_tracy` support: 
 
 ## Export And Hotspots
 
-`export_report` snapshots the recorder, analyzes hotspots, and writes profiling artifacts under `<output_root>/<session-id>/`:
+`export_report` snapshots the recorder, analyzes hotspots, and writes profiling artifacts under `<output_root>/<session-basename>/`:
 
 - `timeline.zrtrace.json`: native Zircon snapshot JSON.
 - `timeline.perfetto.json`: Chrome/Perfetto complete-event JSON, written only when the build includes `profiling-chrome` and the capture config keeps `include_perfetto = true`.
@@ -156,6 +174,8 @@ The sink follows the same reference shape used by Bevy's `trace_tracy` support: 
 - `counter_hotspots.json`: generic finite positive counter aggregation for Runtime 07 evidence streams such as extract, ECS, asset worker, animation scene, time, schedule, and task counters.
 - `ui_hotspots.json`: retained-host UI slow-path counter aggregation.
 - `summary.md`: human-readable frame/span/counter and top-hotspot summary.
+
+The session directory is always one sanitized child basename of `output_root`. Empty or dot-only IDs become `session`, leading and trailing dots are removed, separators and other non-portable UTF-8 bytes become `_`, and Windows device basenames (`CON`, `PRN`, `AUX`, `NUL`, `COM1`-`COM9`, and `LPT1`-`LPT9`, including extensions) receive a `session_` prefix. A stable 64-bit hash suffix distinguishes lossy or truncated IDs, and the complete basename is capped at 96 ASCII bytes. Runtime export, Editor artifact discovery, UI profile capture and MVP render-extract capture consume the same `zircon_runtime_interface`/PowerShell contract. This closes parent-directory traversal, device-name, collision and path-length failures; atomic staging, a capture manifest, checksums, stale-artifact removal, and one-step publication remain open under Runtime03 P1-7.
 
 Runtime 15 F5 profile export typed errors are now owned here under status `runtime_15_profile_export_typed_errors_static_passed_cargo_deferred`. `export.rs` exposes `ProfileExportError` / `ProfileExportResult`, with `ProfileExportError::FeatureDisabled`, `ProfileExportError::CreateExportDirectory`, `ProfileExportError::JsonSerialize`, and `ProfileExportError::WriteFile` preserving the failing feature gate, directory, JSON, and file-write sources. The only string downgrade remains the external `ProfileControlResponse` DTO boundary. `review_f5_profile_export_uses_typed_error` locks this contract across Runtime 15 plans, status-output expectations, and this module doc.
 

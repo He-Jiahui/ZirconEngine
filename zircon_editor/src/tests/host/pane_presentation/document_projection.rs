@@ -7,7 +7,7 @@ use super::support::{
     pane_descriptor, runtime_diagnostics_fixture,
 };
 use crate::ui::layouts::windows::workbench_host_window::{
-    BuildExportPaneViewData, ModulePluginsPaneViewData, PanePayload, document_pane,
+    document_pane, BuildExportPaneViewData, ModulePluginsPaneViewData, PanePayload,
 };
 use crate::ui::workbench::layout::{
     ActivityWindowId, DocumentNode, MainHostPageLayout, MainPageId, TabStackLayout, WorkbenchLayout,

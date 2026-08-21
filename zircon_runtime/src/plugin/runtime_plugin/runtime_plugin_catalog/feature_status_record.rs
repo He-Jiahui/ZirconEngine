@@ -16,6 +16,7 @@ pub(super) struct FeatureStatus {
     target_unsupported: bool,
     cycle: bool,
     invalid_owner_dependency: bool,
+    provider_missing: bool,
 }
 
 impl FeatureStatus {

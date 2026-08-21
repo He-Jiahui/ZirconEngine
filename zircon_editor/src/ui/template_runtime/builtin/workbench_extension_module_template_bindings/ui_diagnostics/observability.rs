@@ -1,4 +1,4 @@
-use super::super::types::{ExtensionBindingSpec, change, click, submit};
+use super::super::types::{change, click, submit, ExtensionBindingSpec};
 
 pub(in super::super) const DIAGNOSTICS_OBSERVABILITY_BINDINGS: &[ExtensionBindingSpec] = &[
     click(

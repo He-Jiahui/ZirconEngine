@@ -1,5 +1,5 @@
 use crate::ui::workbench::autolayout::{
-    WorkbenchLayoutTier, workbench_layout_tier_for_logical_width,
+    workbench_layout_tier_for_logical_width, WorkbenchLayoutTier,
 };
 use zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens;
 use zircon_runtime_interface::ui::layout::UiFrame;

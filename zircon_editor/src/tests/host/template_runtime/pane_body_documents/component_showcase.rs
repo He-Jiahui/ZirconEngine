@@ -239,12 +239,10 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
         .node_by_control_id("AssetFieldDemo")
         .expect("component showcase should project AssetFieldDemo");
     assert_eq!(asset.component_role.as_deref(), Some("asset-field"));
-    assert!(
-        asset
-            .accepted_drag_payloads
-            .iter()
-            .any(|kind| kind == "asset")
-    );
+    assert!(asset
+        .accepted_drag_payloads
+        .iter()
+        .any(|kind| kind == "asset"));
     assert!(asset.routes.iter().any(|route| {
         route.binding_id == "UiComponentShowcase/AssetFieldDropped"
             && route.event_kind == UiEventKind::Drop

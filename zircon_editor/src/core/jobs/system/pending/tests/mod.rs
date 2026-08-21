@@ -2,7 +2,7 @@ use std::any::Any;
 
 use crate::core::jobs::JobContext;
 
-use super::super::PendingTask;
+use super::super::pending_task::PendingTask;
 
 pub(super) struct ReplaceablePendingTask;
 

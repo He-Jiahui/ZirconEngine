@@ -1,7 +1,6 @@
 use super::super::super::super::data::FrameRect;
-use super::super::{
-    icon_button_context, icon_button_paint_rect, icon_button_surface_radius, icon_glyph_rect,
-};
+use super::super::geometry::icon_button_surface_radius;
+use super::super::{icon_button_context, icon_button_paint_rect, icon_glyph_rect};
 use super::support::{frame_rect, icon_node};
 
 #[test]

@@ -1,4 +1,4 @@
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::atomic::Ordering;
 use std::sync::mpsc;
 use std::sync::{Arc, Barrier};
@@ -18,11 +18,9 @@ fn primary_generation_initializes_once_and_skips_stable_reads() {
         .primary_snapshot_if_changed(None)
         .expect("the first read must initialize the retained cursor");
     assert!(initial.primary().is_none());
-    assert!(
-        progress
-            .primary_snapshot_if_changed(Some(initial.generation()))
-            .is_none()
-    );
+    assert!(progress
+        .primary_snapshot_if_changed(Some(initial.generation()))
+        .is_none());
 
     let first = JobId::new(2);
     progress.register(first, &EditorJobSpec::new("first", JobCategory::Compile));
@@ -35,11 +33,9 @@ fn primary_generation_initializes_once_and_skips_stable_reads() {
         changed.primary().map(EditorJobProgressSnapshot::id),
         Some(first)
     );
-    assert!(
-        progress
-            .primary_snapshot_if_changed(Some(changed.generation()))
-            .is_none()
-    );
+    assert!(progress
+        .primary_snapshot_if_changed(Some(changed.generation()))
+        .is_none());
 }
 
 #[test]
@@ -143,13 +139,11 @@ fn generation_overflow_panics_before_each_primary_projection_mutation() {
         );
     }));
     assert!(overflow.is_err());
-    assert!(
-        progress
-            .primary_snapshot()
-            .expect("the primary entry must remain visible")
-            .progress()
-            .is_none()
-    );
+    assert!(progress
+        .primary_snapshot()
+        .expect("the primary entry must remain visible")
+        .progress()
+        .is_none());
 
     let (progress, id) = primary_source_at_max_generation();
     let overflow = catch_unwind(AssertUnwindSafe(|| {
@@ -213,11 +207,9 @@ fn replacing_the_primary_advances_only_when_its_visible_snapshot_changes() {
         .generation();
 
     progress.register(primary, &unchanged);
-    assert!(
-        progress
-            .primary_snapshot_if_changed(Some(observed))
-            .is_none()
-    );
+    assert!(progress
+        .primary_snapshot_if_changed(Some(observed))
+        .is_none());
 
     progress.register(
         primary,
@@ -253,11 +245,9 @@ fn non_primary_progress_does_not_advance_the_visible_primary_generation() {
             message: "later".to_owned(),
         },
     );
-    assert!(
-        progress
-            .primary_snapshot_if_changed(Some(observed))
-            .is_none()
-    );
+    assert!(progress
+        .primary_snapshot_if_changed(Some(observed))
+        .is_none());
 
     progress.apply_event(
         first,
@@ -287,11 +277,9 @@ fn non_primary_progress_does_not_advance_the_visible_primary_generation() {
             message: "first".to_owned(),
         },
     );
-    assert!(
-        progress
-            .primary_snapshot_if_changed(Some(changed.generation()))
-            .is_none()
-    );
+    assert!(progress
+        .primary_snapshot_if_changed(Some(changed.generation()))
+        .is_none());
 }
 
 #[test]
@@ -317,11 +305,9 @@ fn terminal_and_completion_do_not_double_advance_the_primary_generation() {
     );
 
     progress.complete(first);
-    assert!(
-        progress
-            .primary_snapshot_if_changed(Some(after_terminal.generation()))
-            .is_none()
-    );
+    assert!(progress
+        .primary_snapshot_if_changed(Some(after_terminal.generation()))
+        .is_none());
 
     progress.complete(later);
     let after_completion = progress

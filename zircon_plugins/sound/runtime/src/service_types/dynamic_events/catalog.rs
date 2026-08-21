@@ -34,7 +34,7 @@ impl DefaultSoundManager {
         state
             .dynamic_event_handlers
             .retain(|handler| handler.event_id != event_id);
-        let handlers = state.dynamic_event_handlers.clone();
+        let handlers = state.dynamic_event_handlers.handlers().to_vec();
         state
             .dynamic_event_executors
             .retain(|key, _| handler_exists(&handlers, key));

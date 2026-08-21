@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use zircon_runtime::asset::ProjectAssetManager;
 use zircon_runtime::core::framework::animation::{
     AnimationParameterMap, AnimationStateTransitionEvaluation,
@@ -5,13 +7,14 @@ use zircon_runtime::core::framework::animation::{
 use zircon_runtime::core::math::Real;
 use zircon_runtime::scene::AnimationStateTransitionRuntime;
 
-use super::state_graph_sample::normalized_state_time;
 use super::AnimationEvaluationPipeline;
+use super::state_graph_sample::normalized_state_time;
 use crate::{CompiledAnimationStateMachine, TransitionRequest, TransitionRuntime};
 
 pub(super) struct InterruptionCandidate {
     pub(super) transition: AnimationStateTransitionEvaluation,
     pub(super) from_time_seconds: Real,
+    pub(super) consumed_triggers: Option<Arc<[String]>>,
 }
 
 pub(super) fn advance_state_machine_transition(
@@ -95,6 +98,7 @@ pub(super) fn select_interruption_candidate(
             return Some(InterruptionCandidate {
                 transition: requested,
                 from_time_seconds: state_time_seconds,
+                consumed_triggers: evaluated.shared_consumed_triggers(),
             });
         }
     }

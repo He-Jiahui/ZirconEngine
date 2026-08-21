@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::render::{RenderLayerSet, RenderParticleSpriteSnapshot};
 use zircon_runtime::core::framework::scene::EntityId;
-use zircon_runtime::core::math::{is_finite_vec3, is_finite_vec4, Real, Transform, Vec2, Vec3};
+use zircon_runtime::core::math::{Real, Transform, Vec2, Vec3, is_finite_vec3, is_finite_vec4};
 
 use crate::asset::{evaluate_color_curve, evaluate_scalar_curve};
 use crate::component::{ParticleEmitterHandle, ParticleSystemComponent};
@@ -101,16 +101,10 @@ impl ParticleSystemInstance {
         Ok(())
     }
 
-    pub(crate) fn sprites(&self) -> Vec<RenderParticleSpriteSnapshot> {
-        let mut sprites = Vec::new();
+    pub(crate) fn append_sprites(&self, sprites: &mut Vec<RenderParticleSpriteSnapshot>) {
         for emitter in &self.emitters {
-            emitter.append_sprites(
-                self.component.entity,
-                self.component.transform,
-                &mut sprites,
-            );
+            emitter.append_sprites(self.component.entity, self.component.transform, sprites);
         }
-        sprites
     }
 
     pub(crate) fn emitter_states(&self) -> Vec<ParticleEmitterRuntimeState> {

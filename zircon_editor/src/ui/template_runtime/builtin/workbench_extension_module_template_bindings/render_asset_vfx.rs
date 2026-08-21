@@ -1,4 +1,4 @@
-use super::types::{ExtensionBindingSpec, change, click, submit};
+use super::types::{change, click, submit, ExtensionBindingSpec};
 
 pub(super) const RENDER_ASSET_VFX_BINDINGS: &[ExtensionBindingSpec] = &[
     click("ShaderEditorOpen", "workbench.extension.shader_editor.open"),

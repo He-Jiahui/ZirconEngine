@@ -1,5 +1,5 @@
-use crate::core::diagnostics::{DiagnosticStore, FrameDiagnostics};
 use crate::core::CoreHandle;
+use crate::core::diagnostics::{DiagnosticStore, FrameDiagnostics};
 
 use super::{
     ArchetypeIndexPerformanceStats, BundleTransactionDiagnostics, ChangeDetectionScanStats,
@@ -37,6 +37,30 @@ pub const ECS_DETACHED_BATCH_CAMERA_INDEX_LOOKUPS_DIAGNOSTIC: &str =
     "scene.ecs.detached_batch.camera_index_lookups";
 pub const ECS_DETACHED_BATCH_ROLLBACK_BYTES_DIAGNOSTIC: &str =
     "scene.ecs.detached_batch.rollback_bytes";
+pub const ECS_DERIVED_STATE_HIERARCHY_VALIDITY_PASSES_DIAGNOSTIC: &str =
+    "scene.ecs.derived_state.hierarchy_validity_passes";
+pub const ECS_DERIVED_STATE_HIERARCHY_PARENT_SNAPSHOT_ENTITIES_DIAGNOSTIC: &str =
+    "scene.ecs.derived_state.hierarchy_parent_snapshot_entities";
+pub const ECS_DERIVED_STATE_HIERARCHY_VALIDITY_ENTITIES_DIAGNOSTIC: &str =
+    "scene.ecs.derived_state.hierarchy_validity_entities";
+pub const ECS_DERIVED_STATE_HIERARCHY_PARENT_CHAIN_STEPS_DIAGNOSTIC: &str =
+    "scene.ecs.derived_state.hierarchy_parent_chain_steps";
+pub const ECS_DERIVED_STATE_HIERARCHY_TOPOLOGY_REBUILDS_DIAGNOSTIC: &str =
+    "scene.ecs.derived_state.hierarchy_topology_rebuilds";
+pub const ECS_DERIVED_STATE_HIERARCHY_TOPOLOGY_REBUILD_ENTITIES_DIAGNOSTIC: &str =
+    "scene.ecs.derived_state.hierarchy_topology_rebuild_entities";
+pub const ECS_DERIVED_STATE_ACTIVE_PROPAGATION_PASSES_DIAGNOSTIC: &str =
+    "scene.ecs.derived_state.active_propagation_passes";
+pub const ECS_DERIVED_STATE_ACTIVE_PROPAGATION_ENTITIES_DIAGNOSTIC: &str =
+    "scene.ecs.derived_state.active_propagation_entities";
+pub const ECS_DERIVED_STATE_WORLD_MATRIX_PROPAGATION_PASSES_DIAGNOSTIC: &str =
+    "scene.ecs.derived_state.world_matrix_propagation_passes";
+pub const ECS_DERIVED_STATE_WORLD_MATRIX_PROPAGATION_ENTITIES_DIAGNOSTIC: &str =
+    "scene.ecs.derived_state.world_matrix_propagation_entities";
+pub const ECS_DERIVED_STATE_NODE_CACHE_REBUILDS_DIAGNOSTIC: &str =
+    "scene.ecs.derived_state.node_cache_rebuilds";
+pub const ECS_DERIVED_STATE_NODE_CACHE_REBUILT_ENTITIES_DIAGNOSTIC: &str =
+    "scene.ecs.derived_state.node_cache_rebuilt_entities";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct DetachedEntityBatchOperationStats {
@@ -174,6 +198,128 @@ impl DetachedEntityBatchDiagnostics {
     }
 }
 
+/// Deterministic work counters for scene derived-state maintenance.
+///
+/// These counters intentionally describe rows and parent-chain steps instead
+/// of elapsed time, so structural regressions remain observable across hosts.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct WorldDerivedStateDiagnostics {
+    pub hierarchy_validity_passes: u64,
+    pub hierarchy_parent_snapshot_entities: u64,
+    pub hierarchy_validity_entities: u64,
+    pub hierarchy_parent_chain_steps: u64,
+    pub hierarchy_topology_rebuilds: u64,
+    pub hierarchy_topology_rebuild_entities: u64,
+    pub active_propagation_passes: u64,
+    pub active_propagation_entities: u64,
+    pub world_matrix_propagation_passes: u64,
+    pub world_matrix_propagation_entities: u64,
+    pub node_cache_rebuilds: u64,
+    pub node_cache_rebuilt_entities: u64,
+}
+
+impl WorldDerivedStateDiagnostics {
+    pub(crate) fn record_hierarchy_validity(
+        &mut self,
+        snapshot_entities: usize,
+        validated_entities: usize,
+        parent_chain_steps: usize,
+    ) {
+        self.hierarchy_validity_passes = self.hierarchy_validity_passes.saturating_add(1);
+        self.hierarchy_parent_snapshot_entities = self
+            .hierarchy_parent_snapshot_entities
+            .saturating_add(snapshot_entities as u64);
+        self.hierarchy_validity_entities = self
+            .hierarchy_validity_entities
+            .saturating_add(validated_entities as u64);
+        self.hierarchy_parent_chain_steps = self
+            .hierarchy_parent_chain_steps
+            .saturating_add(parent_chain_steps as u64);
+    }
+
+    pub(crate) fn record_hierarchy_topology_rebuild(&mut self, entity_count: usize) {
+        self.hierarchy_topology_rebuilds = self.hierarchy_topology_rebuilds.saturating_add(1);
+        self.hierarchy_topology_rebuild_entities = self
+            .hierarchy_topology_rebuild_entities
+            .saturating_add(entity_count as u64);
+    }
+
+    pub(crate) fn record_active_propagation(&mut self, entity_count: usize) {
+        self.active_propagation_passes = self.active_propagation_passes.saturating_add(1);
+        self.active_propagation_entities = self
+            .active_propagation_entities
+            .saturating_add(entity_count as u64);
+    }
+
+    pub(crate) fn record_world_matrix_propagation(&mut self, entity_count: usize) {
+        self.world_matrix_propagation_passes =
+            self.world_matrix_propagation_passes.saturating_add(1);
+        self.world_matrix_propagation_entities = self
+            .world_matrix_propagation_entities
+            .saturating_add(entity_count as u64);
+    }
+
+    pub(crate) fn record_node_cache_rebuild(&mut self, entity_count: usize) {
+        self.node_cache_rebuilds = self.node_cache_rebuilds.saturating_add(1);
+        self.node_cache_rebuilt_entities = self
+            .node_cache_rebuilt_entities
+            .saturating_add(entity_count as u64);
+    }
+
+    fn diagnostic_values(&self) -> [(&'static str, f64); 12] {
+        [
+            (
+                ECS_DERIVED_STATE_HIERARCHY_VALIDITY_PASSES_DIAGNOSTIC,
+                self.hierarchy_validity_passes as f64,
+            ),
+            (
+                ECS_DERIVED_STATE_HIERARCHY_PARENT_SNAPSHOT_ENTITIES_DIAGNOSTIC,
+                self.hierarchy_parent_snapshot_entities as f64,
+            ),
+            (
+                ECS_DERIVED_STATE_HIERARCHY_VALIDITY_ENTITIES_DIAGNOSTIC,
+                self.hierarchy_validity_entities as f64,
+            ),
+            (
+                ECS_DERIVED_STATE_HIERARCHY_PARENT_CHAIN_STEPS_DIAGNOSTIC,
+                self.hierarchy_parent_chain_steps as f64,
+            ),
+            (
+                ECS_DERIVED_STATE_HIERARCHY_TOPOLOGY_REBUILDS_DIAGNOSTIC,
+                self.hierarchy_topology_rebuilds as f64,
+            ),
+            (
+                ECS_DERIVED_STATE_HIERARCHY_TOPOLOGY_REBUILD_ENTITIES_DIAGNOSTIC,
+                self.hierarchy_topology_rebuild_entities as f64,
+            ),
+            (
+                ECS_DERIVED_STATE_ACTIVE_PROPAGATION_PASSES_DIAGNOSTIC,
+                self.active_propagation_passes as f64,
+            ),
+            (
+                ECS_DERIVED_STATE_ACTIVE_PROPAGATION_ENTITIES_DIAGNOSTIC,
+                self.active_propagation_entities as f64,
+            ),
+            (
+                ECS_DERIVED_STATE_WORLD_MATRIX_PROPAGATION_PASSES_DIAGNOSTIC,
+                self.world_matrix_propagation_passes as f64,
+            ),
+            (
+                ECS_DERIVED_STATE_WORLD_MATRIX_PROPAGATION_ENTITIES_DIAGNOSTIC,
+                self.world_matrix_propagation_entities as f64,
+            ),
+            (
+                ECS_DERIVED_STATE_NODE_CACHE_REBUILDS_DIAGNOSTIC,
+                self.node_cache_rebuilds as f64,
+            ),
+            (
+                ECS_DERIVED_STATE_NODE_CACHE_REBUILT_ENTITIES_DIAGNOSTIC,
+                self.node_cache_rebuilt_entities as f64,
+            ),
+        ]
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct EcsFramePerformanceDiagnostics {
     pub bundle_transactions: BundleTransactionDiagnostics,
@@ -182,6 +328,7 @@ pub struct EcsFramePerformanceDiagnostics {
     pub query: QueryStateCacheStats,
     pub change_detection: ChangeDetectionScanStats,
     pub native_system_schedule: NativeSystemScheduleDiagnostics,
+    pub derived_state: WorldDerivedStateDiagnostics,
 }
 
 impl EcsFramePerformanceDiagnostics {
@@ -198,6 +345,7 @@ impl EcsFramePerformanceDiagnostics {
             query,
             change_detection,
             native_system_schedule: NativeSystemScheduleDiagnostics::default(),
+            derived_state: WorldDerivedStateDiagnostics::default(),
         }
     }
 
@@ -282,6 +430,10 @@ impl EcsFramePerformanceDiagnostics {
         &mut self.native_system_schedule
     }
 
+    pub(crate) fn derived_state_mut(&mut self) -> &mut WorldDerivedStateDiagnostics {
+        &mut self.derived_state
+    }
+
     pub fn record_diagnostics(&self, store: &mut DiagnosticStore, frame_index: u64) {
         self.bundle_transactions
             .record_diagnostics(store, frame_index);
@@ -305,6 +457,15 @@ impl EcsFramePerformanceDiagnostics {
         }
         self.query.record_diagnostics(store, frame_index);
         self.change_detection.record_diagnostics(store, frame_index);
+        for (path, value) in self.derived_state.diagnostic_values() {
+            store.record(
+                path,
+                frame_index,
+                value,
+                Some("count"),
+                ["ecs", "derived_state"],
+            );
+        }
         self.native_system_schedule
             .record_diagnostics(store, frame_index);
     }
@@ -339,6 +500,15 @@ impl EcsFramePerformanceDiagnostics {
                 value,
                 Some("count"),
                 ["ecs", "change_detection"],
+            );
+        }
+        for (path, value) in self.derived_state.diagnostic_values() {
+            core.record_diagnostic(
+                path,
+                frame_index,
+                value,
+                Some("count"),
+                ["ecs", "derived_state"],
             );
         }
         self.native_system_schedule.publish(core, frame_index);

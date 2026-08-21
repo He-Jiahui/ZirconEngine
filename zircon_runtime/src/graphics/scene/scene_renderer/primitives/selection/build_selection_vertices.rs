@@ -1,4 +1,3 @@
-use crate::core::framework::render::DisplayMode;
 use crate::core::math::Vec4;
 
 use crate::graphics::scene::resources::ResourceStreamer;
@@ -12,30 +11,28 @@ pub(crate) fn build_selection_vertices(
     streamer: &ResourceStreamer,
 ) -> Vec<LineVertex> {
     let mut vertices = Vec::new();
-    for highlight in &frame.overlays().selection {
-        let Some(mesh_instance) = frame
-            .meshes()
-            .iter()
-            .find(|mesh| mesh.node_id == highlight.owner)
-        else {
-            continue;
-        };
-        let Some(model) = streamer.model(&mesh_instance.model.id()) else {
-            continue;
-        };
-        let color = if frame.overlays().display_mode == DisplayMode::WireOnly {
-            Vec4::new(1.0, 0.88, 0.32, 1.0)
-        } else {
-            Vec4::new(1.0, 0.76, 0.18, 1.0)
-        };
-        for mesh in &model.meshes {
-            append_bounding_box_vertices(
-                &mut vertices,
-                mesh.bounds_min,
-                mesh.bounds_max,
-                mesh_instance.transform.matrix(),
-                color,
-            );
+    if let Some(highlights) = frame.overlays().highlights.as_ref() {
+        if highlights.attributes().outline_enabled {
+            let tint = highlights.attributes().tint_rgba;
+            let color = Vec4::new(tint[0], tint[1], tint[2], tint[3]);
+            for owner in highlights.entities() {
+                let Some(mesh_instance) = frame.meshes().iter().find(|mesh| mesh.node_id == *owner)
+                else {
+                    continue;
+                };
+                let Some(model) = streamer.model(&mesh_instance.model.id()) else {
+                    continue;
+                };
+                for mesh in &model.meshes {
+                    append_bounding_box_vertices(
+                        &mut vertices,
+                        mesh.bounds_min,
+                        mesh.bounds_max,
+                        mesh_instance.transform.matrix(),
+                        color,
+                    );
+                }
+            }
         }
     }
 

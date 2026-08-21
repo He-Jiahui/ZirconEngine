@@ -29,9 +29,10 @@ fn project_native_reports_replace_only_project_rows_and_record_host_lifecycle() 
         .advance_loading_phase(EditorPluginLoadingPhase::Default)
         .expect("the default phase should be reachable for project reports");
 
-    let first = manager
+    manager
         .publish_project_registration_reports([host_owned_project_report("fixture.project.one")])
         .expect("the first project-native report should publish");
+    let first = manager.state_snapshot();
     let first_entry = first
         .entry("fixture.project.one")
         .expect("the project report should be present in the manager");
@@ -48,9 +49,10 @@ fn project_native_reports_replace_only_project_rows_and_record_host_lifecycle() 
     assert!(first_registration.lifecycle_stage_succeeded(&EditorPluginLifecycleStage::Loaded));
     assert!(first_registration.lifecycle_stage_succeeded(&EditorPluginLifecycleStage::Enabled));
 
-    let replacement = manager
+    manager
         .publish_project_registration_reports([host_owned_project_report("fixture.project.two")])
         .expect("reopening another project should retract the prior project source");
+    let replacement = manager.state_snapshot();
     assert!(replacement.entry("fixture.project.one").is_none());
     assert!(replacement.entry("fixture.builtin").is_some());
     assert_eq!(
@@ -60,9 +62,10 @@ fn project_native_reports_replace_only_project_rows_and_record_host_lifecycle() 
         Some(EditorPluginSource::Project)
     );
 
-    let refreshed = manager
+    manager
         .publish_project_registration_reports([host_owned_project_report("fixture.project.two")])
         .expect("republishing the current project should reinitialize its host lifecycle");
+    let refreshed = manager.state_snapshot();
     let refreshed_registration = refreshed
         .catalog_snapshot()
         .registration("fixture.project.two")
@@ -70,9 +73,10 @@ fn project_native_reports_replace_only_project_rows_and_record_host_lifecycle() 
     assert!(refreshed_registration.lifecycle_stage_succeeded(&EditorPluginLifecycleStage::Loaded));
     assert!(refreshed_registration.lifecycle_stage_succeeded(&EditorPluginLifecycleStage::Enabled));
 
-    let cleared = manager
+    manager
         .clear_project_registration_reports()
         .expect("closing the project should clear its native registrations");
+    let cleared = manager.state_snapshot();
     assert!(cleared.entry("fixture.project.two").is_none());
     assert!(cleared.entry("fixture.builtin").is_some());
 }

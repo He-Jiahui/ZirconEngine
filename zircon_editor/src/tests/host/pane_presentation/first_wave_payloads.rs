@@ -3,8 +3,8 @@ use super::support::{
     pane_body_spec, runtime_diagnostics_fixture,
 };
 use crate::ui::layouts::windows::workbench_host_window::{
-    PanePayload, PanePayloadBuildContext, PerformanceTimelineCaptureControlPayload,
-    build_pane_body_presentation,
+    build_pane_body_presentation, PanePayload, PanePayloadBuildContext,
+    PerformanceTimelineCaptureControlPayload,
 };
 use crate::ui::workbench::view::PanePayloadKind;
 
@@ -89,7 +89,7 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
 
         match (descriptor_id, body.payload) {
             ("editor.console", PanePayload::ConsoleV1(payload)) => {
-                assert_eq!(payload.status_text, "Console ready");
+                assert_eq!(payload.status_text.as_ref(), "Console ready");
             }
             ("editor.inspector", PanePayload::InspectorV1(payload)) => {
                 assert_eq!(payload.node_id, 7);
@@ -125,26 +125,18 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
                     payload.animation_status,
                     "Animation: enabled (graphs on, state machines on)"
                 );
-                assert!(
-                    payload
-                        .detail_items
-                        .contains(&"Virtual Geometry Debug: available".to_string())
-                );
-                assert!(
-                    payload
-                        .detail_items
-                        .contains(&"Hybrid GI active probes: 4".to_string())
-                );
-                assert!(
-                    payload
-                        .detail_items
-                        .contains(&"Profiling: active (1 frames, 1 spans, 1 counters)".to_string())
-                );
-                assert!(
-                    payload
-                        .detail_items
-                        .contains(&"Profiling over-budget frames: 1".to_string())
-                );
+                assert!(payload
+                    .detail_items
+                    .contains(&"Virtual Geometry Debug: available".to_string()));
+                assert!(payload
+                    .detail_items
+                    .contains(&"Hybrid GI active probes: 4".to_string()));
+                assert!(payload
+                    .detail_items
+                    .contains(&"Profiling: active (1 frames, 1 spans, 1 counters)".to_string()));
+                assert!(payload
+                    .detail_items
+                    .contains(&"Profiling over-budget frames: 1".to_string()));
                 assert_eq!(
                     payload.ui_debug_reflector_summary,
                     "UI Debug Reflector: no active surface snapshot"
@@ -153,11 +145,9 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
                     payload.ui_debug_reflector_details,
                     vec!["Waiting for Runtime Diagnostics to receive a UiSurfaceDebugSnapshot"]
                 );
-                assert!(
-                    payload
-                        .ui_debug_reflector_export_status
-                        .contains("Export unavailable")
-                );
+                assert!(payload
+                    .ui_debug_reflector_export_status
+                    .contains("Export unavailable"));
                 assert!(payload.ui_debug_reflector_overlay_primitives.is_empty());
                 assert!(!payload.ui_debug_reflector_has_active_snapshot);
             }
@@ -190,13 +180,11 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
                         action_id: "workbench.performance_timeline.capture.stop".to_string(),
                         enabled: true,
                     }));
-                assert!(
-                    payload
-                        .capture_controls
-                        .iter()
-                        .any(|control| control.action_id
-                            == "workbench.performance_timeline.report.export")
-                );
+                assert!(payload
+                    .capture_controls
+                    .iter()
+                    .any(|control| control.action_id
+                        == "workbench.performance_timeline.report.export"));
             }
             ("editor.module_plugins", PanePayload::ModulePluginsV1(payload)) => {
                 assert_eq!(payload.diagnostics, "plugin catalog ready");

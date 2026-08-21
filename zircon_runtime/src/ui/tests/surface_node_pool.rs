@@ -16,13 +16,29 @@ fn surface_node_pool_detach_filters_slots_once_for_the_entire_subtree() {
         .find("tree.slots")
         .expect("node-pool detach should remove detached slots");
     let recycle_loop = source
-        .find("for node_id in detached.iter().copied().rev()")
+        .find("for node_id in node_ids.iter().copied().rev()")
         .expect("node-pool detach should recycle nodes bottom-up");
 
     assert!(
         retain < recycle_loop,
         "slot filtering must run once before the detached-node recycle loop"
     );
+}
+
+#[test]
+fn surface_node_pool_reinsert_uses_the_ui_tree_paint_order_authority() {
+    let source = include_str!("../surface/node_pool.rs");
+    let start = source
+        .find("pub(crate) fn insert_or_reuse_pooled_child(")
+        .expect("node-pool child insertion entry point");
+    let end = source[start..]
+        .find("fn collect_subtree_node_ids(")
+        .map(|offset| start + offset)
+        .expect("node-pool child insertion boundary");
+    let insertion = &source[start..end];
+
+    assert!(insertion.contains("tree.insert_child(parent_id, node)?;"));
+    assert!(!insertion.contains("next_paint_order"));
 }
 
 #[test]
@@ -107,6 +123,7 @@ fn surface_node_pool_reuses_detached_template_node_and_resets_transient_state() 
         .expect("pooled child should be reinserted");
     assert_eq!(child.parent, Some(root_id()));
     assert_eq!(child.node_path, UiNodePath::new("root/action"));
+    assert_eq!(child.paint_order, 2);
     assert!(!child.state_flags.pressed);
     assert!(!child.state_flags.dirty);
     assert!(!child.dirty.style);

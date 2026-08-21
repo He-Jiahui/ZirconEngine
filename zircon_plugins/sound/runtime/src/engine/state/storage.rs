@@ -4,18 +4,19 @@ use std::sync::Arc;
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::framework::sound::{
     ExternalAudioSourceHandle, SoundAutomationBinding, SoundAutomationBindingId, SoundClipId,
-    SoundDynamicEventCatalog, SoundDynamicEventHandlerDescriptor, SoundDynamicEventInvocation,
-    SoundExternalSourceBlock, SoundGameplayEmission, SoundHrtfProfileDescriptor,
-    SoundImpulseResponseId, SoundListenerDescriptor, SoundListenerId, SoundMixerGraph,
-    SoundParameterId, SoundPlaybackFinished, SoundPlaybackId,
-    SoundRayTracedImpulseResponseDescriptor, SoundRayTracingConvolutionStatus, SoundSourceFinished,
-    SoundSourceId, SoundTrackId, SoundTrackMeter, SoundVolumeDescriptor, SoundVolumeId,
+    SoundDynamicEventCatalog, SoundDynamicEventInvocation, SoundExternalSourceBlock,
+    SoundGameplayEmission, SoundHrtfProfileDescriptor, SoundImpulseResponseId,
+    SoundListenerDescriptor, SoundListenerId, SoundMixerGraph, SoundParameterId,
+    SoundPlaybackFinished, SoundPlaybackId, SoundRayTracedImpulseResponseDescriptor,
+    SoundRayTracingConvolutionStatus, SoundSourceFinished, SoundSourceId, SoundTrackId,
+    SoundTrackMeter, SoundVolumeDescriptor, SoundVolumeId,
 };
 
+use crate::SoundConfig;
+use crate::dynamic_events::handlers::DynamicEventHandlerRegistry;
 use crate::kira_bridge::DefaultKiraEngine;
 use crate::output::SoundOutputDeviceRuntimeState;
 use crate::timeline::playback::SoundTimelineSequencePlayback;
-use crate::SoundConfig;
 
 use super::super::{SoundHrtfRenderState, SoundHrtfRenderStateKey};
 use super::{
@@ -54,7 +55,7 @@ pub(crate) struct SoundEngineState {
     pub(crate) ray_traced_impulse_responses:
         HashMap<SoundImpulseResponseId, SoundRayTracedImpulseResponseDescriptor>,
     pub(crate) dynamic_events: SoundDynamicEventCatalog,
-    pub(crate) dynamic_event_handlers: Vec<SoundDynamicEventHandlerDescriptor>,
+    pub(crate) dynamic_event_handlers: DynamicEventHandlerRegistry,
     pub(crate) dynamic_event_executors:
         HashMap<SoundDynamicEventExecutorKey, SoundDynamicEventExecutor>,
     pub(crate) pending_dynamic_events: Vec<SoundDynamicEventInvocation>,
@@ -94,7 +95,7 @@ impl SoundEngineState {
             hrtf_states: HashMap::new(),
             ray_traced_impulse_responses: HashMap::new(),
             dynamic_events: SoundDynamicEventCatalog::empty(),
-            dynamic_event_handlers: Vec::new(),
+            dynamic_event_handlers: DynamicEventHandlerRegistry::default(),
             dynamic_event_executors: HashMap::new(),
             pending_dynamic_events: Vec::new(),
             graph: Arc::new(graph),

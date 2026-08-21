@@ -526,13 +526,11 @@ fn physical_paragraph_ranges(text: &str) -> Vec<UiTextRange> {
     let mut ranges = Vec::new();
     let mut start = 0;
     crate::text::visit_hard_lines(text, |line| {
-        if !line.is_run_cap_break() {
-            ranges.push(UiTextRange {
-                start,
-                end: line.content.end,
-            });
-            start = line.separator.end;
-        }
+        ranges.push(UiTextRange {
+            start,
+            end: line.content.end,
+        });
+        start = line.separator.end;
     });
     ranges
 }

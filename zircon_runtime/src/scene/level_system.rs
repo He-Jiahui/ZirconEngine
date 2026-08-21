@@ -15,11 +15,11 @@ use crate::core::framework::scene::WorldHandle;
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle, RuntimeTimeAdvance};
 use crate::scene::{
+    EntityId, EntityRemap, WORLD_DRIVER_NAME, WorldDriver,
     dynamic_scene::{CompiledSceneSpawn, DynamicScene, DynamicSceneError},
     ecs::RuntimeSceneSystemContext,
     inspection::SubscriptionTable,
     world::World,
-    EntityId, EntityRemap, WorldDriver, WORLD_DRIVER_NAME,
 };
 
 #[cfg(feature = "animation")]
@@ -68,7 +68,7 @@ pub struct LevelSystem {
     viewport_highlights: Arc<Mutex<ViewportHighlightStore>>,
     metadata: Arc<Mutex<LevelMetadata>>,
     lifecycle: Arc<Mutex<LevelLifecycleState>>,
-    subsystems: Arc<Mutex<Vec<String>>>,
+    subsystems: Arc<Mutex<Arc<[String]>>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -112,7 +112,7 @@ impl LevelSystem {
             viewport_highlights: Arc::new(Mutex::new(ViewportHighlightStore::default())),
             metadata: Arc::new(Mutex::new(metadata)),
             lifecycle: Arc::new(Mutex::new(LevelLifecycleState::Loaded)),
-            subsystems: Arc::new(Mutex::new(Vec::new())),
+            subsystems: Arc::new(Mutex::new(Arc::default())),
         }
     }
 
@@ -221,7 +221,7 @@ impl LevelSystem {
         lock_poison_recovered(&self.lifecycle)
     }
 
-    fn lock_subsystems(&self) -> MutexGuard<'_, Vec<String>> {
+    fn lock_subsystems(&self) -> MutexGuard<'_, Arc<[String]>> {
         lock_poison_recovered(&self.subsystems)
     }
 
@@ -423,11 +423,14 @@ impl LevelSystem {
     }
 
     pub fn register_subsystem(&self, subsystem_name: impl Into<String>) {
-        self.lock_subsystems().push(subsystem_name.into());
+        let mut registry = self.lock_subsystems();
+        let mut names = registry.as_ref().to_vec();
+        names.push(subsystem_name.into());
+        *registry = names.into();
     }
 
-    pub fn registered_subsystems(&self) -> Vec<String> {
-        self.lock_subsystems().clone()
+    pub fn registered_subsystems(&self) -> Arc<[String]> {
+        Arc::clone(&self.lock_subsystems())
     }
 }
 
@@ -445,7 +448,7 @@ impl std::fmt::Debug for LevelSystem {
 mod tests {
     #[cfg(feature = "animation")]
     use std::collections::BTreeMap;
-    use std::panic::{catch_unwind, AssertUnwindSafe};
+    use std::panic::{AssertUnwindSafe, catch_unwind};
 
     #[cfg(feature = "animation")]
     use crate::core::framework::animation::AnimationClipEventSamplingRange;
@@ -510,7 +513,10 @@ mod tests {
 
         poison_mutex(&level.subsystems);
         level.register_subsystem("physics");
-        assert_eq!(level.registered_subsystems(), vec!["physics".to_string()]);
+        assert_eq!(
+            level.registered_subsystems().as_ref(),
+            ["physics".to_string()].as_slice()
+        );
 
         level.replace_world_and_reset_runtime_state(World::empty());
         assert_eq!(level.script_state_generation(), script_generation + 1);
@@ -633,3 +639,7 @@ mod tests {
         assert!(level.world_generation() > before);
     }
 }
+
+#[cfg(test)]
+#[path = "level_system/subsystem_snapshot_tests.rs"]
+mod subsystem_snapshot_tests;

@@ -320,8 +320,23 @@ function Open-MvpAcceptanceStagingTreeManifestEntryLeases {
         if ($null -ne $BeforeOpenTreeManifestEntryHook) {
             & $BeforeOpenTreeManifestEntryHook $entry.path
         }
-        $entryHandle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollow($entry.path, $true)
+        $entryHandle = $null
         try {
+            try {
+                $entryHandle = [ZirconMvpAcceptanceNativeFileSystem]::OpenNoFollow($entry.path, $true)
+            }
+            catch {
+                $exception = $_.Exception
+                while ($null -ne $exception.InnerException -and
+                    -not ($exception -is [System.ComponentModel.Win32Exception])) {
+                    $exception = $exception.InnerException
+                }
+                if ($exception -is [System.ComponentModel.Win32Exception] -and
+                    $exception.NativeErrorCode -in @(2, 3)) {
+                    throw "Acceptance staging tree manifest entry '$($entry.relative_path)' does not exist in the staging root."
+                }
+                throw
+            }
             $attributes = [ZirconMvpAcceptanceNativeFileSystem]::GetAttributes($entryHandle)
             Assert-MvpAcceptanceNativeSourceAttributes -Attributes $attributes -Path $entry.path
             $isDirectory = Test-MvpAcceptanceNativeFileAttribute `

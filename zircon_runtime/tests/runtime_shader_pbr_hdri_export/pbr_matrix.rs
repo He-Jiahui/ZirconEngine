@@ -581,9 +581,12 @@ fn render_pbr_matrix_quantitative_frames(
         |paths| write_pbr_matrix_assets(paths, 48, 96),
         |framework, viewport, snapshot| {
             framework
-                .submit_runtime_frame(
+                .submit_frame_extract(
                     viewport,
-                    ViewportRenderFrame::from_snapshot(snapshot.clone(), PBR_MATRIX_OUTPUT_SIZE),
+                    RenderFrameExtract::from_snapshot(
+                        RenderWorldSnapshotHandle::new(0),
+                        snapshot.clone(),
+                    ),
                 )
                 .expect("submit Shader 06 linear HDR PBR matrix");
             let hdr = framework
@@ -600,9 +603,12 @@ fn render_pbr_matrix_quantitative_frames(
                 Vec4::ZERO,
             );
             framework
-                .submit_runtime_frame(
+                .submit_frame_extract(
                     viewport,
-                    ViewportRenderFrame::from_snapshot(diffuse_snapshot, PBR_MATRIX_OUTPUT_SIZE),
+                    RenderFrameExtract::from_snapshot(
+                        RenderWorldSnapshotHandle::new(0),
+                        diffuse_snapshot,
+                    ),
                 )
                 .expect("submit Shader 06 diffuse-only HDR PBR matrix baseline");
             let diffuse_hdr = framework
@@ -610,12 +616,7 @@ fn render_pbr_matrix_quantitative_frames(
                 .expect("capture Shader 06 diffuse-only HDR PBR matrix baseline")
                 .expect("compiled diffuse-only HDR PBR matrix should be available")
                 .rgba16f;
-            let frame = submit_runtime_frame_and_capture(
-                framework,
-                viewport,
-                snapshot,
-                PBR_MATRIX_OUTPUT_SIZE,
-            );
+            let frame = submit_frame_extract_and_capture(framework, viewport, snapshot);
             (frame, hdr, diffuse_hdr)
         },
     )

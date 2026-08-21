@@ -1,5 +1,5 @@
-use crate::ui::EditorActivityReflection;
 use crate::ui::control::EditorUiControlService;
+use crate::ui::EditorActivityReflection;
 use zircon_runtime_interface::ui::event_ui::UiActionDescriptor;
 
 use super::super::animation_route::register_animation_route;

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -60,6 +61,10 @@ class IntegrationCandidateTests(unittest.TestCase):
                           'passed', 'dedupe', 'a', '{}', '[]', '{}', '{}', 'now', 'now')
                 """
             )
+            connection.execute(
+                "UPDATE validation_tickets SET source_manifest_hash=? WHERE ticket_id='compile-pass'",
+                (hashlib.sha256(b"{}").hexdigest(),),
+            )
         self.leases = LeaseService(
             self.database,
             PathPolicy(self.repo),
@@ -84,9 +89,140 @@ class IntegrationCandidateTests(unittest.TestCase):
         )
         return messages
 
-    def _lease(self, path: str) -> None:
+    def _lease(self, path: str, *, bind_ticket: bool = True) -> None:
         acquisition = self.leases.acquire("primary", [path])
         self.assertTrue(acquisition.acquired, acquisition.conflicts)
+        if bind_ticket:
+            self._bind_compile_ticket((path,))
+
+    def _bind_compile_ticket(self, paths: tuple[str, ...]) -> str:
+        manifest = {
+            path: hashlib.sha256((self.repo / path).read_bytes()).hexdigest()
+            for path in paths
+        }
+        manifest_json = json.dumps(
+            manifest, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+        )
+        manifest_hash = hashlib.sha256(manifest_json.encode("utf-8")).hexdigest()
+        with self.database.transaction() as connection:
+            connection.execute(
+                """UPDATE validation_tickets
+                   SET source_manifest_hash=?, source_manifest_json=?
+                   WHERE ticket_id='compile-pass'""",
+                (manifest_hash, manifest_json),
+            )
+        return manifest_hash
+
+    def test_submit_rejects_passed_ticket_for_a_different_source_manifest(self) -> None:
+        source = self.repo / "tools" / "candidate.py"
+        source.parent.mkdir(parents=True)
+        source.write_text("value = 1\n", encoding="utf-8")
+        self._lease("tools/candidate.py", bind_ticket=False)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.submit(
+                session_id="primary",
+                request_id="candidate-manifest-mismatch",
+                paths=("tools/candidate.py",),
+                compile_ticket_id="compile-pass",
+            )
+
+        self.assertEqual(
+            "integration_candidate_compile_manifest_mismatch", rejected.exception.code
+        )
+        with self.database.connect() as connection:
+            self.assertEqual(
+                0,
+                connection.execute("SELECT COUNT(*) FROM integration_candidates").fetchone()[0],
+            )
+            self.assertEqual(
+                0,
+                connection.execute("SELECT COUNT(*) FROM integration_candidate_events").fetchone()[0],
+            )
+            self.assertEqual(
+                0,
+                connection.execute("SELECT COUNT(*) FROM notification_attempts").fetchone()[0],
+            )
+
+    def test_submit_rejects_bytes_changed_after_compile_ticket_passed(self) -> None:
+        source = self.repo / "tools" / "candidate.py"
+        source.parent.mkdir(parents=True)
+        source.write_text("value = 1\n", encoding="utf-8")
+        self._lease("tools/candidate.py")
+        source.write_text("value = 2\n", encoding="utf-8")
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.submit(
+                session_id="primary",
+                request_id="candidate-stale-snapshot",
+                paths=("tools/candidate.py",),
+                compile_ticket_id="compile-pass",
+            )
+
+        self.assertEqual(
+            "integration_candidate_compile_snapshot_stale", rejected.exception.code
+        )
+        with self.database.connect() as connection:
+            self.assertEqual(
+                0,
+                connection.execute("SELECT COUNT(*) FROM integration_candidates").fetchone()[0],
+            )
+
+    def test_submit_rejects_compile_ticket_tombstone(self) -> None:
+        source = self.repo / "tools" / "candidate.py"
+        source.parent.mkdir(parents=True)
+        source.write_text("value = 1\n", encoding="utf-8")
+        self._lease("tools/candidate.py")
+        manifest_json = '{"tools/candidate.py":null}'
+        with self.database.transaction() as connection:
+            connection.execute(
+                """UPDATE validation_tickets
+                   SET source_manifest_hash=?, source_manifest_json=?
+                   WHERE ticket_id='compile-pass'""",
+                (hashlib.sha256(manifest_json.encode("utf-8")).hexdigest(), manifest_json),
+            )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.submit(
+                session_id="primary",
+                request_id="candidate-tombstone",
+                paths=("tools/candidate.py",),
+                compile_ticket_id="compile-pass",
+            )
+
+        self.assertEqual(
+            "integration_candidate_compile_manifest_tombstone", rejected.exception.code
+        )
+
+    def test_submit_rejects_malformed_compile_ticket_manifest(self) -> None:
+        source = self.repo / "tools" / "candidate.py"
+        source.parent.mkdir(parents=True)
+        source.write_text("value = 1\n", encoding="utf-8")
+        self._lease("tools/candidate.py")
+        with self.database.transaction() as connection:
+            connection.execute(
+                """UPDATE validation_tickets
+                   SET source_manifest_hash=?, source_manifest_json=?
+                   WHERE ticket_id='compile-pass'""",
+                (hashlib.sha256(b"{").hexdigest(), "{"),
+            )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.submit(
+                session_id="primary",
+                request_id="candidate-malformed-manifest",
+                paths=("tools/candidate.py",),
+                compile_ticket_id="compile-pass",
+            )
+
+        self.assertEqual(
+            "integration_candidate_compile_manifest_invalid", rejected.exception.code
+        )
+        with self.database.connect() as connection:
+            self.assertEqual(
+                0,
+                connection.execute("SELECT COUNT(*) FROM integration_candidates").fetchone()[0],
+            )
 
     def test_submit_seals_current_blobs_and_replays_the_same_request(self) -> None:
         messages = self._enable_notifications()
@@ -120,6 +256,19 @@ class IntegrationCandidateTests(unittest.TestCase):
             text=True,
         ).stdout
         self.assertEqual("value = 1\n", blob_content)
+        with self.database.connect() as connection:
+            submitted = connection.execute(
+                """SELECT payload_json FROM integration_candidate_events
+                   WHERE candidate_id=? AND event_type='integration.candidate_submitted'""",
+                (first.candidate_id,),
+            ).fetchone()
+            compile_ticket = connection.execute(
+                "SELECT source_manifest_hash FROM validation_tickets WHERE ticket_id='compile-pass'"
+            ).fetchone()
+        self.assertEqual(
+            compile_ticket["source_manifest_hash"],
+            json.loads(submitted["payload_json"])["sourceManifestHash"],
+        )
         self.assertEqual(1, len(messages))
         self.assertIn("提交到协调器", messages[0])
         with self.database.connect() as connection:

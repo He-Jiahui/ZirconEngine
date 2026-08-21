@@ -2,14 +2,13 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use zircon_runtime_interface::{
-    ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle, ZrRuntimeOperationPhase,
-    ZrRuntimeOperationSubmitRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle,
+    ZrRuntimeOperationPhase, ZrRuntimeOperationSubmitRequestV1,
 };
 
 use super::{
-    consume_raw_admission, json_value_byte_len, RuntimeOperationAdmissionReservation,
-    RuntimeOperationService, RuntimeOperationServiceError, RuntimeOperationTask,
-    RuntimeOperationTaskState,
+    RuntimeOperationAdmissionReservation, RuntimeOperationService, RuntimeOperationServiceError,
+    RuntimeOperationTask, RuntimeOperationTaskState, consume_raw_admission, json_value_byte_len,
 };
 
 impl RuntimeOperationService {
@@ -72,6 +71,7 @@ impl RuntimeOperationService {
             })?;
         let payload_bytes = json_value_byte_len(&request.payload)?;
         let mut state = self.lock_state();
+        state.compact_phase_indexes(self.limits.max_tasks);
         let additional_slots = usize::from(reservation.is_none());
         self.evict_tombstones_until_admissible(&mut state, additional_slots);
         let pending_admissions = state.pending_admissions;
@@ -137,6 +137,7 @@ impl RuntimeOperationService {
                 apply_claimed: false,
             },
         );
+        state.queued_snapshot_tasks.push_back(handle);
         state.retained_bytes = task_retained_bytes;
         drop(state);
         if let Some(deadline) = deadline {

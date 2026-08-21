@@ -534,12 +534,13 @@ function Start-MvpStagedProcess {
     $startInfo = [Diagnostics.ProcessStartInfo]::new()
     $startInfo.FileName = $executableResolution.OperationalPath
     # Project-local paths cross the product boundary through the existing `.` RelPath contract.
-    # The staging driver keeps physical identities for process cleanup and evidence only.
+    # Keep physical identities for cleanup and evidence, but give the child an ordinary Windows
+    # cwd so runtimes such as .NET Framework do not reject the verbatim device prefix.
     $startInfo.WorkingDirectory = if ($null -eq $projectRootResolution) {
-        $workingDirectoryResolution.OperationalPath
+        $workingDirectoryResolution.DisplayPath
     }
     else {
-        $projectRootResolution.OperationalPath
+        $projectRootResolution.DisplayPath
     }
     $startInfo.UseShellExecute = $false
     $startInfo.RedirectStandardOutput = $true
@@ -923,10 +924,30 @@ function Get-MvpEditorProductDiagnosticsEvidence {
     if (-not [UInt64]::TryParse([string]$fields.selected_node_id, [ref]$selectedNodeId) -or $selectedNodeId -eq 0) {
         throw "Editor product diagnostic has invalid selected_node_id '$($fields.selected_node_id)'."
     }
-    $reportedProjectPath = (Resolve-ZirconWindowsPath -Path ([string]$fields.project_path)).OperationalPath
-    $expectedProjectPath = (Resolve-ZirconWindowsPath -Path $ProjectRoot).OperationalPath
-    if (-not $reportedProjectPath.Equals($expectedProjectPath, [StringComparison]::OrdinalIgnoreCase)) {
-        throw "Editor product diagnostic project_path '$reportedProjectPath' differs from staged project '$expectedProjectPath'."
+    $reportedEditorProjectPath = [string]$fields.project_path
+    $expectedEditorProjectResolution = Resolve-ZirconWindowsPath -Path $ProjectRoot
+    $expectedProjectPath = $expectedEditorProjectResolution.OperationalPath
+    if ($reportedEditorProjectPath -eq '.') {
+        $resolvedReportedEditorProjectPath = $expectedProjectPath
+    }
+    elseif (Test-MvpFullyQualifiedWindowsPath -Path $reportedEditorProjectPath) {
+        $resolvedReportedEditorProjectPath = (Resolve-ZirconWindowsPath -Path $reportedEditorProjectPath).OperationalPath
+    }
+    else {
+        if ([IO.Path]::IsPathRooted($reportedEditorProjectPath) -or $reportedEditorProjectPath.Contains(':')) {
+            throw "Editor product diagnostic has an invalid project_path '$reportedEditorProjectPath'. Expected '.', a staged-project-parent relative path, or an absolute path."
+        }
+        $expectedEditorProjectParent = [IO.Directory]::GetParent($expectedEditorProjectResolution.DisplayPath)
+        if ($null -eq $expectedEditorProjectParent) {
+            throw "Editor product diagnostic cannot derive the staged parent of '$ProjectRoot'."
+        }
+        $reportedEditorProjectCandidate = [IO.Path]::Combine(
+            $expectedEditorProjectParent.FullName,
+            $reportedEditorProjectPath)
+        $resolvedReportedEditorProjectPath = (Resolve-ZirconWindowsPath -Path $reportedEditorProjectCandidate).OperationalPath
+    }
+    if (-not $resolvedReportedEditorProjectPath.Equals($expectedProjectPath, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Editor product diagnostic project_path '$reportedEditorProjectPath' differs from staged project '$expectedProjectPath'."
     }
     $fields.project_path = Get-MvpRelativePath -Root $StageRoot -Path $ProjectRoot -Label 'Editor product diagnostic project'
     $fields.selected_node_id = $selectedNodeId
@@ -1225,6 +1246,22 @@ function Test-MvpFullyQualifiedWindowsPath {
         $Path -match '^\\\\\?\\UNC[\\/][^\\/]+[\\/][^\\/]+(?:[\\/]|$)'
 }
 
+function Get-MvpStagedProcessStderrSummary {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [int]$MaximumCharacters = 2048
+    )
+
+    if (-not [IO.File]::Exists($Path)) {
+        return '<unavailable>'
+    }
+    $content = [IO.File]::ReadAllText($Path).Trim()
+    if ($content.Length -le $MaximumCharacters) {
+        return $content
+    }
+    return $content.Substring($content.Length - $MaximumCharacters)
+}
+
 function Invoke-MvpStagedAuthoringAutomation {
     param(
         [Parameter(Mandatory)][string]$ExecutablePath,
@@ -1267,7 +1304,8 @@ function Invoke-MvpStagedAuthoringAutomation {
         throw "Staged editor $EvidenceLabel automation did not exit within $TimeoutSeconds seconds."
     }
     catch {
-        throw "Staged editor $EvidenceLabel automation could not launch or collect output: $($_.Exception.Message)"
+        $stderrSummary = Get-MvpStagedProcessStderrSummary -Path $stderr
+        throw "Staged editor $EvidenceLabel automation could not launch or collect output: $($_.Exception.Message) stderr: $stderrSummary See $stdout and $stderr."
     }
     finally {
         $started.Stop()
@@ -1280,18 +1318,7 @@ function Invoke-MvpStagedAuthoringAutomation {
         -StageDirectory $StageRoot `
         -ProjectDirectory $ProjectRoot
     if ($exitCode -ne 0) {
-        $stderrSummary = if ([IO.File]::Exists($stderr)) {
-            $content = [IO.File]::ReadAllText($stderr).Trim()
-            if ($content.Length -gt 2048) {
-                $content.Substring($content.Length - 2048)
-            }
-            else {
-                $content
-            }
-        }
-        else {
-            '<unavailable>'
-        }
+        $stderrSummary = Get-MvpStagedProcessStderrSummary -Path $stderr
         throw "Staged editor $EvidenceLabel automation exited with code $exitCode. stderr: $stderrSummary See $stdout and $stderr."
     }
     $report = Get-MvpAuthoringAutomationEvidence `

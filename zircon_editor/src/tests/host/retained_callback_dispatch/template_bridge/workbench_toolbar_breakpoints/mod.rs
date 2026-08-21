@@ -953,7 +953,7 @@ fn ultra_module_overflow_exposes_every_hidden_module_and_secondary_command() {
         ]
     );
     assert!(
-        opened_menu.frame.bottom() <= 360.0,
+        opened_menu.frame.y + opened_menu.frame.height <= 360.0,
         "ultra overflow menu should remain inside the 360px shell"
     );
 

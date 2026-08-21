@@ -5,6 +5,9 @@ mod style_mapping;
 mod taffy_bridge;
 mod virtualization;
 
+/// Upper bound for asset-authored track counts, slot coordinates/spans, and overscan.
+pub(crate) const MAX_UI_LAYOUT_DISCRETE_VALUE: usize = 4_096;
+
 pub use constraints::solve_axis_constraints;
 pub(crate) use pass::{
     compute_incremental_layout_tree_with_text_measure_cache,

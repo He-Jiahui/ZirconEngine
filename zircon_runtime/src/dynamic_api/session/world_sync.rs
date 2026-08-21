@@ -60,7 +60,9 @@ impl RuntimeDynamicSession {
             ));
         }
         if self.pending_world_invalidation_output.is_none() {
-            self.pending_world_invalidation_output = Some(self.level.drain_world_invalidations());
+            let mut pending = self.level.drain_world_invalidations();
+            reverse_pending_world_invalidations(&mut pending);
+            self.pending_world_invalidation_output = Some(pending);
         }
         let bytes = if let Some(page) = self.world_invalidation_output_page.as_deref() {
             encode_world_invalidation_page(page)?
@@ -100,13 +102,21 @@ impl RuntimeDynamicSession {
     }
 }
 
+fn reverse_pending_world_invalidations(pending: &mut [InvalidationBatch]) {
+    for batch in pending.iter_mut() {
+        batch.dirty.reverse();
+        batch.facts.reverse();
+    }
+    pending.reverse();
+}
+
 fn build_world_invalidation_page(
     pending: &[InvalidationBatch],
     max_items: usize,
 ) -> Vec<InvalidationBatch> {
     let mut remaining_items = max_items;
     let mut page = Vec::new();
-    for batch in pending {
+    for batch in pending.iter().rev() {
         if remaining_items == 0 {
             break;
         }
@@ -117,8 +127,14 @@ fn build_world_invalidation_page(
         remaining_items -= fact_count;
         page.push(InvalidationBatch {
             generation: batch.generation,
-            dirty: batch.dirty[..dirty_count].to_vec(),
-            facts: batch.facts[..fact_count].to_vec(),
+            dirty: batch
+                .dirty
+                .iter()
+                .rev()
+                .take(dirty_count)
+                .copied()
+                .collect(),
+            facts: batch.facts.iter().rev().take(fact_count).cloned().collect(),
         });
         if dirty_count != batch.dirty.len() || fact_count != batch.facts.len() {
             break;
@@ -139,7 +155,7 @@ fn build_largest_world_invalidation_page(
         Err(_) => {}
     }
 
-    let minimum_items = pending.first().map_or(1, |batch| {
+    let minimum_items = pending.last().map_or(1, |batch| {
         usize::from(!batch.dirty.is_empty() || !batch.facts.is_empty()) + 1
     });
     let first = build_world_invalidation_page(pending, minimum_items);
@@ -203,19 +219,25 @@ fn commit_world_invalidation_page(
 ) {
     for delivered in page {
         let source = pending
-            .first_mut()
+            .last_mut()
             .expect("a delivered invalidation fragment must retain its source batch");
         debug_assert_eq!(source.generation, delivered.generation);
-        source.dirty.drain(..delivered.dirty.len());
-        source.facts.drain(..delivered.facts.len());
+        source
+            .dirty
+            .truncate(source.dirty.len() - delivered.dirty.len());
+        source
+            .facts
+            .truncate(source.facts.len() - delivered.facts.len());
         if source.dirty.is_empty() && source.facts.is_empty() {
-            pending.remove(0);
+            pending.pop();
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::hint::black_box;
+
     use super::*;
 
     #[test]
@@ -225,6 +247,7 @@ mod tests {
             dirty: vec![WatchToken::new(1), WatchToken::new(2), WatchToken::new(3)],
             facts: Vec::new(),
         }];
+        reverse_pending_world_invalidations(&mut pending);
 
         let first = build_world_invalidation_page(&pending, 3);
         assert_eq!(first[0].dirty.len(), 2);
@@ -234,5 +257,179 @@ mod tests {
         let second = build_world_invalidation_page(&pending, 3);
         commit_world_invalidation_page(&mut pending, &second);
         assert!(pending.is_empty());
+    }
+
+    #[test]
+    fn world_invalidation_tail_queues_preserve_batch_and_item_order() {
+        let original = vec![
+            InvalidationBatch {
+                generation: 7,
+                dirty: vec![WatchToken::new(1), WatchToken::new(2)],
+                facts: Vec::new(),
+            },
+            InvalidationBatch {
+                generation: 8,
+                dirty: vec![WatchToken::new(3), WatchToken::new(4)],
+                facts: Vec::new(),
+            },
+        ];
+        let mut pending = original.clone();
+        reverse_pending_world_invalidations(&mut pending);
+
+        let page = build_world_invalidation_page(&pending, 6);
+        assert_eq!(page, original);
+        commit_world_invalidation_page(&mut pending, &page);
+        assert!(pending.is_empty());
+    }
+
+    #[test]
+    fn world_invalidation_tail_queue_source_has_no_front_removal() {
+        let source = include_str!("world_sync.rs");
+        let start = source
+            .find("fn commit_world_invalidation_page(")
+            .expect("world invalidation commit owner");
+        let end = source[start..]
+            .find("#[cfg(test)]")
+            .map(|offset| start + offset)
+            .expect("world invalidation commit boundary");
+        let commit = &source[start..end];
+
+        assert!(commit.contains("pending.last_mut()"));
+        assert!(commit.contains("pending.pop()"));
+        assert_eq!(commit.matches(".truncate(").count(), 2);
+        assert!(!commit.contains("remove(0)"));
+        assert!(!commit.contains(".drain(.."));
+    }
+
+    #[test]
+    #[ignore = "managed release performance evidence"]
+    fn world_invalidation_tail_queue_release_benchmark_evidence() {
+        const ITEMS: usize = 20_000;
+        const SAMPLE_PAIRS: usize = 21;
+
+        let (batch_legacy_ns, batch_optimized_ns) = measure_batch_tail_queue(ITEMS, SAMPLE_PAIRS);
+        write_tail_queue_evidence(
+            "WORLD_INVALIDATION_BATCH_TAIL_QUEUE_BENCH_V1",
+            ITEMS,
+            &batch_legacy_ns,
+            &batch_optimized_ns,
+        );
+
+        let (item_legacy_ns, item_optimized_ns) = measure_item_tail_queue(ITEMS, SAMPLE_PAIRS);
+        write_tail_queue_evidence(
+            "WORLD_INVALIDATION_ITEM_TAIL_QUEUE_BENCH_V1",
+            ITEMS,
+            &item_legacy_ns,
+            &item_optimized_ns,
+        );
+    }
+
+    fn measure_batch_tail_queue(items: usize, sample_pairs: usize) -> (Vec<u128>, Vec<u128>) {
+        let mut legacy_samples_ns = Vec::with_capacity(sample_pairs);
+        let mut optimized_samples_ns = Vec::with_capacity(sample_pairs);
+        for sample_index in 0..sample_pairs {
+            let mut legacy: Vec<_> = (0..items).collect();
+            let mut optimized: Vec<_> = (0..items).rev().collect();
+            let mut measure_legacy = || {
+                let started = Instant::now();
+                while !legacy.is_empty() {
+                    black_box(legacy.remove(0));
+                }
+                legacy_samples_ns.push(started.elapsed().as_nanos());
+            };
+            let mut measure_optimized = || {
+                let started = Instant::now();
+                while let Some(batch) = optimized.pop() {
+                    black_box(batch);
+                }
+                optimized_samples_ns.push(started.elapsed().as_nanos());
+            };
+            if sample_index % 2 == 0 {
+                measure_legacy();
+                measure_optimized();
+            } else {
+                measure_optimized();
+                measure_legacy();
+            }
+        }
+        (legacy_samples_ns, optimized_samples_ns)
+    }
+
+    fn measure_item_tail_queue(items: usize, sample_pairs: usize) -> (Vec<u128>, Vec<u128>) {
+        let mut legacy_samples_ns = Vec::with_capacity(sample_pairs);
+        let mut optimized_samples_ns = Vec::with_capacity(sample_pairs);
+        for sample_index in 0..sample_pairs {
+            let mut legacy: Vec<_> = (0..items).collect();
+            let mut optimized: Vec<_> = (0..items).rev().collect();
+            let mut measure_legacy = || {
+                let started = Instant::now();
+                while !legacy.is_empty() {
+                    let item = legacy[0];
+                    drop(legacy.drain(..1));
+                    black_box(item);
+                }
+                legacy_samples_ns.push(started.elapsed().as_nanos());
+            };
+            let mut measure_optimized = || {
+                let started = Instant::now();
+                while let Some(item) = optimized.last().copied() {
+                    optimized.truncate(optimized.len() - 1);
+                    black_box(item);
+                }
+                optimized_samples_ns.push(started.elapsed().as_nanos());
+            };
+            if sample_index % 2 == 0 {
+                measure_legacy();
+                measure_optimized();
+            } else {
+                measure_optimized();
+                measure_legacy();
+            }
+        }
+        (legacy_samples_ns, optimized_samples_ns)
+    }
+
+    fn write_tail_queue_evidence(
+        marker: &str,
+        items: usize,
+        legacy_samples_ns: &[u128],
+        optimized_samples_ns: &[u128],
+    ) {
+        assert_eq!(legacy_samples_ns.len(), optimized_samples_ns.len());
+        let sample_pairs = legacy_samples_ns.len();
+        let legacy_p95_ns = nearest_rank_percentile(legacy_samples_ns, 95);
+        let optimized_p95_ns = nearest_rank_percentile(optimized_samples_ns, 95);
+        let legacy = join_nanosecond_samples(legacy_samples_ns);
+        let optimized = join_nanosecond_samples(optimized_samples_ns);
+        let legacy_moves = (items as u128)
+            .checked_mul((items - 1) as u128)
+            .and_then(|moves| moves.checked_div(2))
+            .unwrap();
+        println!(
+            "{marker} items={items} sample_pairs={sample_pairs} legacy_moves={legacy_moves} \
+             optimized_moves=0 legacy_p95_ns={legacy_p95_ns} \
+             optimized_p95_ns={optimized_p95_ns} legacy_ns={legacy} optimized_ns={optimized}"
+        );
+        assert!(
+            optimized_p95_ns.saturating_mul(4) <= legacy_p95_ns,
+            "optimized P95 {optimized_p95_ns}ns must be at most 25% of legacy P95 {legacy_p95_ns}ns"
+        );
+    }
+
+    fn join_nanosecond_samples(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
+    }
+
+    fn nearest_rank_percentile(samples: &[u128], percentile: usize) -> u128 {
+        assert!(!samples.is_empty());
+        assert!((1..=100).contains(&percentile));
+        let mut ordered = samples.to_vec();
+        ordered.sort_unstable();
+        let index = (ordered.len() * percentile).div_ceil(100) - 1;
+        ordered[index]
     }
 }

@@ -87,6 +87,6 @@ fn tall_inline_alert_requests_runtime_word_wrap_for_its_content_band() {
         .find(|command| command.text.is_some())
         .expect("inline alert content command");
     assert_eq!(text.text_layout_policy, HostTextLayoutPolicy::WordWrap);
-    let metrics = super::super::template_alerts::layout::alert_metrics();
+    let metrics = super::super::layout::alert_metrics();
     assert!(text.frame.height >= metrics.line_height * 2.0);
 }

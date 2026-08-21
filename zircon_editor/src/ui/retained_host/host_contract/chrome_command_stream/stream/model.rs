@@ -127,6 +127,7 @@ impl ChromeCommandStream {
 
 #[cfg(test)]
 mod tests {
+    use super::super::image_resources::ChromeImageResource;
     use super::ChromeCommandStream;
     use crate::ui::retained_host::host_contract::chrome_command_stream::{
         ChromeCommand, ChromeCommandKind, ChromeCommandLayer, ChromeImagePayload,
@@ -175,7 +176,7 @@ mod tests {
 
     #[test]
     fn resident_images_keep_their_commands_but_drop_staged_source_bytes() {
-        let mut stream = ChromeCommandStream::new((64, 64), None, Vec::new());
+        let mut stream = ChromeCommandStream::full_rebuild((64, 64));
         stream.image_resources.insert(
             "atlas://editor/icons".to_string(),
             ChromeImageResource {

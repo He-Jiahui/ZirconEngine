@@ -57,7 +57,7 @@ fn property_row_text_and_scalar_field_stay_inside_a_short_row() {
     let scalar_field = scalar_field_rect(&value_area);
 
     assert_rect_is_contained_by(label_text_rect(&row, 8.0), &row);
-    assert_rect_is_contained_by(value_area, &row);
+    assert_rect_is_contained_by(value_area.clone(), &row);
     assert_rect_is_contained_by(scalar_field.clone(), &value_area);
     assert_rect_is_contained_by(value_text_rect(&scalar_field), &scalar_field);
 }

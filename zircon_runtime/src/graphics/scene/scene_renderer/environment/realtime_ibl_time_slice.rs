@@ -21,9 +21,15 @@ impl RealtimeIblTimeSliceConfig {
                 capture_faces_per_frame,
             })
     }
+
+    fn topology_cache_capacity(self) -> usize {
+        let face_batches = usize::from(CUBE_FACE_COUNT.div_ceil(self.capture_faces_per_frame));
+        let stages = face_batches * 2 + usize::from(self.pmrem_mip_count) * 2 - 1;
+        stages * 2
+    }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(in crate::graphics) enum IblRealtimeBufferSlot {
     A,
     B,
@@ -38,7 +44,7 @@ impl IblRealtimeBufferSlot {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(in crate::graphics) struct CubeFaceRange {
     pub first: u8,
     pub count: u8,
@@ -52,7 +58,7 @@ impl CubeFaceRange {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(in crate::graphics) struct CubeMipRange {
     pub first: u8,
     pub count: u8,
@@ -64,11 +70,12 @@ impl CubeMipRange {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(in crate::graphics) enum RealtimeIblOperation {
     CaptureSky(CubeFaceRange),
-    CaptureCloud(CubeFaceRange),
-    GenerateSourceMips,
+    GenerateSourceMip {
+        mip_level: u8,
+    },
     Prefilter {
         mips: CubeMipRange,
         faces: CubeFaceRange,
@@ -90,13 +97,19 @@ pub(in crate::graphics) struct RealtimeIblBatchToken {
     substep: u8,
 }
 
+impl RealtimeIblBatchToken {
+    pub(in crate::graphics) fn generation(self) -> u64 {
+        self.generation
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(in crate::graphics) struct RealtimeIblFrameBatch {
     token: RealtimeIblBatchToken,
-    full_update: bool,
     ready_slot: IblRealtimeBufferSlot,
     work_slot: IblRealtimeBufferSlot,
     operations: Vec<RealtimeIblOperation>,
+    topology_cache_capacity: usize,
 }
 
 impl RealtimeIblFrameBatch {
@@ -106,10 +119,6 @@ impl RealtimeIblFrameBatch {
 
     pub(in crate::graphics) fn logical_state(&self) -> u8 {
         self.token.state
-    }
-
-    pub(in crate::graphics) fn is_full_update(&self) -> bool {
-        self.full_update
     }
 
     pub(in crate::graphics) fn ready_slot(&self) -> IblRealtimeBufferSlot {
@@ -122,6 +131,24 @@ impl RealtimeIblFrameBatch {
 
     pub(in crate::graphics) fn operations(&self) -> &[RealtimeIblOperation] {
         &self.operations
+    }
+
+    pub(in crate::graphics) fn operation(&self) -> RealtimeIblOperation {
+        *self
+            .operations
+            .first()
+            .expect("realtime IBL frame batches contain exactly one operation")
+    }
+
+    pub(in crate::graphics) fn topology_cache_capacity(&self) -> usize {
+        self.topology_cache_capacity
+    }
+
+    pub(in crate::graphics) fn completes_generation(&self) -> bool {
+        matches!(
+            self.operations.as_slice(),
+            [RealtimeIblOperation::ProjectDiffuseSh9]
+        )
     }
 
     pub(in crate::graphics) fn prefilter_dispatch_slices(
@@ -154,14 +181,171 @@ pub(in crate::graphics) enum RealtimeIblCompletion {
     Stale,
 }
 
+// This ticket keeps partial work private to the non-sampled slot. A newer
+// source revision replaces the ticket, while the last published environment
+// stays stable until a complete successor has passed its terminal SH9 stage.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct EnvironmentGenerationTicket {
+    generation: u64,
+    key: IblBakeKey,
+    stage: EnvironmentGenerationStage,
+}
+
+impl EnvironmentGenerationTicket {
+    fn new(generation: u64, key: IblBakeKey) -> Self {
+        Self {
+            generation,
+            key,
+            stage: EnvironmentGenerationStage::CaptureSky { first_face: 0 },
+        }
+    }
+
+    fn operation(self, config: RealtimeIblTimeSliceConfig) -> RealtimeIblOperation {
+        self.stage.operation(config)
+    }
+
+    fn logical_state(self) -> u8 {
+        self.stage.logical_state()
+    }
+
+    fn substep(self) -> u8 {
+        self.stage.substep()
+    }
+
+    fn is_terminal(self) -> bool {
+        matches!(self.stage, EnvironmentGenerationStage::ProjectDiffuseSh9)
+    }
+
+    fn advance(&mut self, config: RealtimeIblTimeSliceConfig) {
+        self.stage = self.stage.advance(config);
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum EnvironmentGenerationStage {
+    CaptureSky { first_face: u8 },
+    GenerateSourceMip { mip_level: u8 },
+    Prefilter { mip_level: u8, first_face: u8 },
+    ProjectDiffuseSh9,
+}
+
+impl EnvironmentGenerationStage {
+    fn operation(self, config: RealtimeIblTimeSliceConfig) -> RealtimeIblOperation {
+        match self {
+            Self::CaptureSky { first_face } => {
+                RealtimeIblOperation::CaptureSky(CubeFaceRange::new(
+                    first_face,
+                    config
+                        .capture_faces_per_frame
+                        .min(CUBE_FACE_COUNT - first_face),
+                ))
+            }
+            Self::GenerateSourceMip { mip_level } => {
+                RealtimeIblOperation::GenerateSourceMip { mip_level }
+            }
+            Self::Prefilter {
+                mip_level,
+                first_face,
+            } => RealtimeIblOperation::Prefilter {
+                mips: CubeMipRange::new(mip_level, 1),
+                faces: if mip_level == 0 {
+                    CubeFaceRange::new(
+                        first_face,
+                        config
+                            .capture_faces_per_frame
+                            .min(CUBE_FACE_COUNT - first_face),
+                    )
+                } else {
+                    CubeFaceRange::ALL
+                },
+            },
+            Self::ProjectDiffuseSh9 => RealtimeIblOperation::ProjectDiffuseSh9,
+        }
+    }
+
+    fn logical_state(self) -> u8 {
+        match self {
+            Self::CaptureSky { .. } => 0,
+            Self::GenerateSourceMip { .. } => 1,
+            Self::Prefilter { mip_level, .. } => 2_u8.saturating_add(mip_level),
+            Self::ProjectDiffuseSh9 => u8::MAX,
+        }
+    }
+
+    fn substep(self) -> u8 {
+        match self {
+            Self::CaptureSky { first_face } | Self::Prefilter { first_face, .. } => first_face,
+            _ => 0,
+        }
+    }
+
+    fn advance(self, config: RealtimeIblTimeSliceConfig) -> Self {
+        match self {
+            Self::CaptureSky { first_face } => {
+                let next = first_face.saturating_add(config.capture_faces_per_frame);
+                if next < CUBE_FACE_COUNT {
+                    Self::CaptureSky { first_face: next }
+                } else if config.pmrem_mip_count > 1 {
+                    Self::GenerateSourceMip { mip_level: 1 }
+                } else {
+                    Self::Prefilter {
+                        mip_level: 0,
+                        first_face: 0,
+                    }
+                }
+            }
+            Self::GenerateSourceMip { mip_level } => {
+                if mip_level.saturating_add(1) < config.pmrem_mip_count {
+                    Self::GenerateSourceMip {
+                        mip_level: mip_level.saturating_add(1),
+                    }
+                } else {
+                    Self::Prefilter {
+                        mip_level: 0,
+                        first_face: 0,
+                    }
+                }
+            }
+            Self::Prefilter {
+                mip_level: 0,
+                first_face,
+            } => {
+                let next = first_face.saturating_add(config.capture_faces_per_frame);
+                if next < CUBE_FACE_COUNT {
+                    Self::Prefilter {
+                        mip_level: 0,
+                        first_face: next,
+                    }
+                } else if config.pmrem_mip_count > 1 {
+                    Self::Prefilter {
+                        mip_level: 1,
+                        first_face: 0,
+                    }
+                } else {
+                    Self::ProjectDiffuseSh9
+                }
+            }
+            Self::Prefilter { mip_level, .. } => {
+                if mip_level.saturating_add(1) < config.pmrem_mip_count {
+                    Self::Prefilter {
+                        mip_level: mip_level.saturating_add(1),
+                        first_face: 0,
+                    }
+                } else {
+                    Self::ProjectDiffuseSh9
+                }
+            }
+            Self::ProjectDiffuseSh9 => Self::ProjectDiffuseSh9,
+        }
+    }
+}
+
 pub(in crate::graphics) struct RealtimeIblTimeSliceScheduler {
     config: RealtimeIblTimeSliceConfig,
     generation: u64,
-    pending_key: Option<IblBakeKey>,
+    ticket: Option<EnvironmentGenerationTicket>,
     published_key: Option<IblBakeKey>,
     ready_slot: IblRealtimeBufferSlot,
-    state: u8,
-    substep: u8,
     current_frame: Option<u64>,
     current_batch: Option<RealtimeIblFrameBatch>,
 }
@@ -171,27 +355,25 @@ impl RealtimeIblTimeSliceScheduler {
         Self {
             config,
             generation: 0,
-            pending_key: None,
+            ticket: None,
             published_key: None,
             ready_slot: IblRealtimeBufferSlot::A,
-            state: 0,
-            substep: 0,
             current_frame: None,
             current_batch: None,
         }
     }
 
     pub(in crate::graphics) fn request_rebake(&mut self, key: IblBakeKey) -> bool {
-        if self.pending_key == Some(key) {
+        if self.ticket.is_some_and(|ticket| ticket.key == key) {
             return false;
         }
-        if self.published_key == Some(key) && self.pending_key.is_none() {
+        if self.published_key == Some(key) && self.ticket.is_none() {
             return false;
         }
+
         self.generation = self.generation.wrapping_add(1);
-        self.pending_key = (self.published_key != Some(key)).then_some(key);
-        self.state = 0;
-        self.substep = 0;
+        self.ticket = (self.published_key != Some(key))
+            .then(|| EnvironmentGenerationTicket::new(self.generation, key));
         self.current_frame = None;
         self.current_batch = None;
         true
@@ -201,26 +383,20 @@ impl RealtimeIblTimeSliceScheduler {
         &mut self,
         frame_number: u64,
     ) -> Option<RealtimeIblFrameBatch> {
-        self.pending_key?;
+        let ticket = self.ticket?;
         if self.current_frame == Some(frame_number) {
             return self.current_batch.clone();
         }
-        let full_update = self.published_key.is_none();
-        let operations = if full_update {
-            self.full_update_operations()
-        } else {
-            self.sliced_operations()
-        };
         let batch = RealtimeIblFrameBatch {
             token: RealtimeIblBatchToken {
-                generation: self.generation,
-                state: self.state,
-                substep: self.substep,
+                generation: ticket.generation,
+                state: ticket.logical_state(),
+                substep: ticket.substep(),
             },
-            full_update,
             ready_slot: self.ready_slot,
             work_slot: self.ready_slot.other(),
-            operations,
+            operations: vec![ticket.operation(self.config)],
+            topology_cache_capacity: self.config.topology_cache_capacity(),
         };
         self.current_frame = Some(frame_number);
         self.current_batch = Some(batch.clone());
@@ -246,13 +422,20 @@ impl RealtimeIblTimeSliceScheduler {
         if !gpu_succeeded {
             return RealtimeIblCompletion::Retry;
         }
-        if self.published_key.is_none() || self.advance_sliced_state() {
+
+        let Some(ticket) = self.ticket.as_mut() else {
+            return RealtimeIblCompletion::Stale;
+        };
+        if ticket.generation != token.generation {
+            return RealtimeIblCompletion::Stale;
+        }
+        if ticket.is_terminal() {
             self.ready_slot = self.ready_slot.other();
-            self.published_key = self.pending_key.take();
-            self.state = 0;
-            self.substep = 0;
+            self.published_key = Some(ticket.key);
+            self.ticket = None;
             RealtimeIblCompletion::Published
         } else {
+            ticket.advance(self.config);
             RealtimeIblCompletion::Advanced
         }
     }
@@ -262,95 +445,19 @@ impl RealtimeIblTimeSliceScheduler {
     }
 
     pub(in crate::graphics) fn pending_key(&self) -> Option<IblBakeKey> {
-        self.pending_key
+        self.ticket.map(|ticket| ticket.key)
     }
 
     pub(in crate::graphics) fn ready_slot(&self) -> IblRealtimeBufferSlot {
         self.ready_slot
     }
 
+    pub(in crate::graphics) fn has_published_environment(&self) -> bool {
+        self.published_key.is_some()
+    }
+
     pub(in crate::graphics) fn is_rebake_pending(&self) -> bool {
-        self.pending_key.is_some()
-    }
-
-    fn full_update_operations(&self) -> Vec<RealtimeIblOperation> {
-        vec![
-            RealtimeIblOperation::CaptureSky(CubeFaceRange::ALL),
-            RealtimeIblOperation::CaptureCloud(CubeFaceRange::ALL),
-            RealtimeIblOperation::GenerateSourceMips,
-            RealtimeIblOperation::Prefilter {
-                mips: CubeMipRange::new(0, self.config.pmrem_mip_count),
-                faces: CubeFaceRange::ALL,
-            },
-            RealtimeIblOperation::ProjectDiffuseSh9,
-        ]
-    }
-
-    fn sliced_operations(&self) -> Vec<RealtimeIblOperation> {
-        let all_faces = CubeFaceRange::ALL;
-        match self.state {
-            0 => vec![RealtimeIblOperation::CaptureSky(self.current_face_range())],
-            1 => vec![RealtimeIblOperation::CaptureCloud(
-                self.current_face_range(),
-            )],
-            2 => vec![RealtimeIblOperation::GenerateSourceMips],
-            3..=5 => vec![RealtimeIblOperation::Prefilter {
-                mips: CubeMipRange::new(0, 1),
-                faces: CubeFaceRange::new((self.state - 3) * 2, 2),
-            }],
-            6..=8 => self.prefilter_if_available(self.state - 5, 1, all_faces),
-            9 => self.prefilter_if_available(4, 2, all_faces),
-            10 => self.prefilter_if_available(6, u8::MAX, all_faces),
-            _ => vec![RealtimeIblOperation::ProjectDiffuseSh9],
-        }
-    }
-
-    fn prefilter_if_available(
-        &self,
-        first_mip: u8,
-        mip_count: u8,
-        faces: CubeFaceRange,
-    ) -> Vec<RealtimeIblOperation> {
-        let mips = self.clamped_mip_range(first_mip, mip_count);
-        if mips.count == 0 {
-            Vec::new()
-        } else {
-            vec![RealtimeIblOperation::Prefilter { mips, faces }]
-        }
-    }
-
-    fn current_face_range(&self) -> CubeFaceRange {
-        CubeFaceRange::new(
-            self.substep,
-            self.config
-                .capture_faces_per_frame
-                .min(CUBE_FACE_COUNT - self.substep),
-        )
-    }
-
-    fn clamped_mip_range(&self, first: u8, count: u8) -> CubeMipRange {
-        CubeMipRange::new(
-            first.min(self.config.pmrem_mip_count),
-            count.min(self.config.pmrem_mip_count.saturating_sub(first)),
-        )
-    }
-
-    fn advance_sliced_state(&mut self) -> bool {
-        if self.state <= 1 {
-            let next = self
-                .substep
-                .saturating_add(self.config.capture_faces_per_frame);
-            if next < CUBE_FACE_COUNT {
-                self.substep = next;
-                return false;
-            }
-            self.substep = 0;
-        }
-        if self.state == 11 {
-            return true;
-        }
-        self.state += 1;
-        false
+        self.ticket.is_some()
     }
 }
 

@@ -33,6 +33,15 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/rows.rs
   - zircon_runtime/src/plugin/runtime_plugin/descriptor/package_manifest/runtime_module.rs
   - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_descriptor.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/derived_projection.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/derived_projection/tests.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_status.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_status_record.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_report/block.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_report/diagnostic.rs
+  - zircon_runtime/src/tests/plugin_extensions/runtime_plugin_catalog_features/feature_dependency_reports.rs
+  - zircon_runtime/src/tests/plugin_extensions/builtin_catalog_features.rs
   - tools/tests/test_runtime_plugin_descriptor_provided_interface_projection.py
   - zircon_runtime/src/plugin/runtime_plugin/registration_report.rs
   - zircon_runtime/src/plugin/runtime_plugin/registration_report/native/runtime_modules.rs
@@ -825,6 +834,8 @@ registration reports consume importer metadata.
 Package manifests and feature manifests expose the same `with_default_packaging(...)` builder shape. That lets standalone plugin packages, such as editor-only export plugins, override the package-level default export strategy without reaching into the public struct fields or relying on feature-bundle builders by mistake.
 
 First-party owner-embedded optional-feature rows are declared in static `zircon_plugins/<owner>/plugin.toml` manifests and mirrored by `RuntimePluginDescriptor::builtin_catalog()` for runtime/project projection. The mirror must stay byte-for-byte equivalent after TOML decoding for feature id, owner id, dependencies, module rows, capabilities, default packaging, and default enablement. This prevents the export planner and editor Plugin Manager from seeing a different optional-feature contract than the package manifest that ships with the plugin.
+
+Optional-feature metadata is declaration-only and cannot make a selected feature available by itself. The runtime catalog projection indexes each concrete `RuntimePluginFeatureRegistrationReport` by the qualified `feature_id@provider_package_id` identity. Dependency resolution performs one membership check per selected feature before publishing any feature capability. A selected definition without a matching concrete registration becomes a structured `RuntimePluginFeatureBlock` with `provider_missing = true`, publishes neither its feature id nor its capabilities, and adds a fatal product-extension diagnostic that names both the feature and expected provider. This fail-closed gate keeps Editor, export, and standalone projections from treating an unlinked manifest row as executable runtime behavior.
 
 Runtime plugin default-packaging validation is folder-backed. `package_validation/default_packaging.rs` keeps the shared descriptor/package/feature entry point, `default_packaging/presence.rs` owns empty-list diagnostics, `default_packaging/strategies.rs` owns strategy list traversal, `default_packaging/strategies/state.rs` owns seen-strategy state creation, and `default_packaging/strategies/uniqueness.rs` owns duplicate strategy diagnostics plus seen-strategy insertion before linked descriptors, native package manifests, and feature manifests choose export packaging fallbacks.
 

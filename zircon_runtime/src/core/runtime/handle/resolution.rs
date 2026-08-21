@@ -4,8 +4,8 @@ use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use crate::core::CoreError;
 use crate::core::runtime::ServiceObject;
+use crate::core::CoreError;
 use crate::core::{LifecycleState, ServiceKind};
 
 use super::super::contexts::PluginContext;
@@ -550,23 +550,16 @@ impl CoreHandle {
             self.resolve_registered_service_inner(second_dependency_name, None, stack)?;
             return Ok(());
         }
-        if let [
-            first_dependency_name,
-            second_dependency_name,
-            third_dependency_name,
-        ] = dependency_names
+        if let [first_dependency_name, second_dependency_name, third_dependency_name] =
+            dependency_names
         {
             self.resolve_registered_service_inner(first_dependency_name, None, stack)?;
             self.resolve_registered_service_inner(second_dependency_name, None, stack)?;
             self.resolve_registered_service_inner(third_dependency_name, None, stack)?;
             return Ok(());
         }
-        if let [
-            first_dependency_name,
-            second_dependency_name,
-            third_dependency_name,
-            fourth_dependency_name,
-        ] = dependency_names
+        if let [first_dependency_name, second_dependency_name, third_dependency_name, fourth_dependency_name] =
+            dependency_names
         {
             self.resolve_registered_service_inner(first_dependency_name, None, stack)?;
             self.resolve_registered_service_inner(second_dependency_name, None, stack)?;
@@ -574,13 +567,8 @@ impl CoreHandle {
             self.resolve_registered_service_inner(fourth_dependency_name, None, stack)?;
             return Ok(());
         }
-        if let [
-            first_dependency_name,
-            second_dependency_name,
-            third_dependency_name,
-            fourth_dependency_name,
-            fifth_dependency_name,
-        ] = dependency_names
+        if let [first_dependency_name, second_dependency_name, third_dependency_name, fourth_dependency_name, fifth_dependency_name] =
+            dependency_names
         {
             self.resolve_registered_service_inner(first_dependency_name, None, stack)?;
             self.resolve_registered_service_inner(second_dependency_name, None, stack)?;
@@ -694,24 +682,13 @@ fn resolution_stack_contains(stack: &[RegistryName], service_key: &RegistryName)
                 || second_existing == service_key
                 || third_existing == service_key
         }
-        [
-            first_existing,
-            second_existing,
-            third_existing,
-            fourth_existing,
-        ] => {
+        [first_existing, second_existing, third_existing, fourth_existing] => {
             first_existing == service_key
                 || second_existing == service_key
                 || third_existing == service_key
                 || fourth_existing == service_key
         }
-        [
-            first_existing,
-            second_existing,
-            third_existing,
-            fourth_existing,
-            fifth_existing,
-        ] => {
+        [first_existing, second_existing, third_existing, fourth_existing, fifth_existing] => {
             first_existing == service_key
                 || second_existing == service_key
                 || third_existing == service_key

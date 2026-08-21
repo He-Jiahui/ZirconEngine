@@ -13,6 +13,10 @@ related_code:
   - zircon_runtime/src/core/framework/animation/asset/state_kind.rs
   - zircon_runtime/src/asset/importer/error.rs
   - zircon_runtime/src/asset/importer/ingest/import_animation_asset.rs
+  - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs
+  - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets/target_path.rs
+  - zircon_runtime/src/asset/tests/assets/gltf_importer/labeled_subassets.rs
+  - zircon_plugins/animation/runtime/src/evaluation/compiled_animation_clip/compile.rs
   - zircon_runtime/src/asset/assets/mod.rs
   - zircon_runtime/src/asset/tests/assets/animation.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_loaders.rs
@@ -33,6 +37,8 @@ implementation_files:
   - zircon_runtime/src/core/framework/animation/asset/state_kind.rs
   - zircon_runtime/src/asset/importer/error.rs
   - zircon_runtime/src/asset/importer/ingest/import_animation_asset.rs
+  - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets.rs
+  - zircon_runtime/src/asset/importer/ingest/gltf_animation_subassets/target_path.rs
   - docs/zircon_runtime/core/framework/animation-assets.md
   - docs/engine-architecture/hard-cutover-migration-smells-m1.md
 plan_sources:
@@ -111,6 +117,13 @@ Keeping the fallback named as v1 payload handling matters for the hard-cutover m
 `AssetImportError::AnimationAsset` preserves the animation asset decode source at the importer boundary. Import code may still render a display message for user-facing diagnostics, but the runtime no longer discards `AnimationAssetError` when ingesting `.zranim` files.
 
 Clip, graph, and state-machine assets also expose `direct_references()` so generic asset dependency readers can discover skeleton, clip, graph, nested state-machine, and all BlendSpace graph references without running animation playback. References are de-duplicated in stable state/sample order.
+
+`AnimationClipBoneTrackAsset.target_id = Some(...)` is a complete canonical
+slash-joined path in the referenced skeleton, not a leaf-name alias. A legacy
+track with `target_id = None` may resolve its `bone_name` only when that leaf is
+unique. The builtin glTF importer constructs each explicit path from the exact
+selected skeleton bone/parent table and rejects a channel whose node is absent
+from that table, so invalid imported tracks fail before asset publication.
 
 The module is a leaf framework schema owner. It does not load project files, schedule animation systems, mutate ECS state, own plugin lifecycle, or participate in editor projection logic. Concrete importing/caching remains in `asset`; runtime behavior remains in animation runtime systems and plugins. The retired `asset/assets/animation` owner and all asset-facade re-exports were deleted in the Frameworks05 hard cut.
 

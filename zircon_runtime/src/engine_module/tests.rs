@@ -7,8 +7,8 @@ use crate::core::{
 };
 
 use super::{
-    dependency_on, driver_contract, factory, module_context, plugin_context, plugin_factory,
-    qualified_name, EngineModule, EngineService,
+    EngineModule, EngineService, dependency_on, driver_contract, factory, module_context,
+    plugin_context, plugin_factory, qualified_name,
 };
 
 fn stub_driver_descriptor(
@@ -118,14 +118,14 @@ fn contexts_and_factory_preserve_supplied_names() {
         module_context("UiModule", weak.clone()).module_name,
         "UiModule"
     );
-    let plugin_context = plugin_context("ToolPlugin", weak);
+    let plugin_context = plugin_context("ToolPlugin", weak.clone());
     assert_eq!(plugin_context.plugin_name, "ToolPlugin");
     assert!(plugin_context.package_root.is_none());
     assert!(plugin_context.source_root.is_none());
     assert!(plugin_context.data_root.is_none());
 
     let factory = factory(|_| Ok(Arc::new("service".to_string()) as _));
-    let service = factory(&runtime.handle());
+    let service = factory(&weak);
     assert!(service.is_ok());
 
     let plugin_factory =

@@ -104,17 +104,20 @@ impl RuntimeOperationService {
                     return true;
                 }
                 state.retained_bytes = retained_bytes;
-                let Some(task) = state.tasks.get_mut(&handle) else {
-                    return false;
-                };
-                task.prepared_command = Some(command);
-                task.prepared_result = Some(result);
-                task.prepared_command_bytes = command_bytes;
-                task.prepared_result_bytes = result_bytes;
-                task.retained_bytes = prepared_bytes;
-                task.phase = ZrRuntimeOperationPhase::ReadyToApply;
-                task.detail_kind = ZrRuntimeOperationDetailKindV2::None;
-                task.detail_value = 0;
+                {
+                    let Some(task) = state.tasks.get_mut(&handle) else {
+                        return false;
+                    };
+                    task.prepared_command = Some(command);
+                    task.prepared_result = Some(result);
+                    task.prepared_command_bytes = command_bytes;
+                    task.prepared_result_bytes = result_bytes;
+                    task.retained_bytes = prepared_bytes;
+                    task.phase = ZrRuntimeOperationPhase::ReadyToApply;
+                    task.detail_kind = ZrRuntimeOperationDetailKindV2::None;
+                    task.detail_value = 0;
+                }
+                state.ready_apply_tasks.push_back(handle);
                 false
             }
             RuntimeOperationPrepareCompletion::Failed {

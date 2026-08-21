@@ -71,8 +71,7 @@ impl RealtimeIblWgpuRecorder {
         }
         for pass in recording_passes {
             match pass.kind {
-                RealtimeIblGraphPassKind::CaptureSky(faces)
-                | RealtimeIblGraphPassKind::CaptureCloud(faces) => {
+                RealtimeIblGraphPassKind::CaptureSky(faces) => {
                     capture.record_capture(
                         device,
                         encoder,

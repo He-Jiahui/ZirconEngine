@@ -75,7 +75,6 @@ fn write_registered_subasset(
     std::fs::write(&source, b"compound fixture source").unwrap();
     let root_uri = AssetUri::parse(&format!("res://{relative}")).unwrap();
     let mut meta = AssetMetaDocument::new(root_guid, root_uri, AssetKind::Model);
-    meta.unit = AssetSourceUnit::Compound;
     meta.entries.push(AssetMetaEntry {
         uuid: sub_guid,
         url: AssetUri::parse(&format!("res://{relative}#{label}")).unwrap(),
@@ -84,9 +83,15 @@ fn write_registered_subasset(
         dependencies: Vec::new(),
         tags: Default::default(),
     });
-    meta.save(source.with_file_name(format!(
+    let sidecar = source.with_file_name(format!(
         "{}.zmeta",
         source.file_name().unwrap().to_string_lossy()
-    )))
-    .unwrap();
+    ));
+    meta.save(&sidecar).unwrap();
+
+    let persisted = AssetMetaDocument::load(sidecar).unwrap();
+    assert_eq!(persisted.unit, AssetSourceUnit::Single);
+    assert_eq!(persisted.entries.len(), 1);
+    assert_eq!(persisted.entries[0].uuid, sub_guid);
+    assert_eq!(persisted.entries[0].url.label(), Some(label));
 }

@@ -20,6 +20,13 @@ pub(super) fn wire_host_shell_runtime_callbacks(
     });
 
     let weak = Rc::downgrade(host);
+    host_shell.on_native_window_focus_lost(move || {
+        if let Some(host) = weak.upgrade() {
+            host.borrow_mut().cancel_viewport_interaction();
+        }
+    });
+
+    let weak = Rc::downgrade(host);
     host_shell.on_close_prompt_action_clicked(move |action_id| {
         if let Some(host) = weak.upgrade() {
             host.borrow_mut()

@@ -18,9 +18,11 @@ pub(crate) fn build_wireframe_vertices(
     let selection: HashSet<_> = if display_mode == DisplayMode::WireOnly {
         frame
             .overlays()
-            .selection
-            .iter()
-            .map(|highlight| highlight.owner)
+            .highlights
+            .as_ref()
+            .map(|highlights| highlights.entities().iter().copied())
+            .into_iter()
+            .flatten()
             .collect()
     } else {
         HashSet::new()

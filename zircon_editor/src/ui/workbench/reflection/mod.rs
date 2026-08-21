@@ -17,7 +17,7 @@ mod widget_reflector;
 pub use activity_descriptors::activity_descriptors_from_views;
 pub use model_build::build_workbench_reflection_model;
 pub use route_registration::register_workbench_reflection_routes;
-pub(crate) use transient_ui_state::{EditorTransientUiState, apply_transient_projection};
+pub(crate) use transient_ui_state::{apply_transient_projection, EditorTransientUiState};
 pub use widget_reflector::{
     WorkbenchWidgetReflectorError, WorkbenchWidgetReflectorModel, WorkbenchWidgetReflectorRow,
     WorkbenchWidgetReflectorSelection,

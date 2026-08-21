@@ -221,7 +221,7 @@ fn swap_removed_dense_entity_storage_preserves_stable_world_order_across_query_c
         vec!["Middle", "Last"]
     );
 
-    let cloned = world.clone();
+    let mut cloned = world.clone();
     let clone_query = cloned.query::<&Name>();
     assert_eq!(
         clone_query
@@ -231,7 +231,8 @@ fn swap_removed_dense_entity_storage_preserves_stable_world_order_across_query_c
         vec!["Middle", "Last"]
     );
 
-    let restored: World = serde_json::from_str(&serde_json::to_string(&world).unwrap()).unwrap();
+    let mut restored: World =
+        serde_json::from_str(&serde_json::to_string(&world).unwrap()).unwrap();
     let restored_query = restored.query::<&Name>();
     assert_eq!(
         restored_query
@@ -486,7 +487,8 @@ fn detached_subtree_uses_hierarchy_postorder_when_child_is_older_than_parent() {
         batch.entity_ids().collect::<Vec<_>>(),
         vec![older_child, newer_parent]
     );
-    assert!(world.is_empty());
+    let entity_query = world.query::<crate::scene::EntityId>();
+    assert!(entity_query.is_empty(&world));
     world.restore_detached_entity_batch(batch).unwrap();
     assert_eq!(world.parent_of(older_child), Some(newer_parent));
 }
@@ -550,7 +552,8 @@ fn empty_entity_archetype_placement_rejects_a_preallocated_but_unowned_locator()
 
     assert!(
         location_lookup_compact.contains("self.archetype_index.entities(location.archetype_id)")
-            && location_lookup_compact.contains(".and_then(|entities|entities.get(location.table_row))")
+            && location_lookup_compact
+                .contains(".and_then(|entities|entities.get(location.table_row))")
             && location_lookup_compact.contains("(located_entity==Some(entity)).then_some"),
         "a registry preallocation must not be treated as an existing archetype row before the index owns that entity"
     );
@@ -718,13 +721,19 @@ fn entity_registry_error_paths_use_direct_lookup_branches() {
         despawn.contains("let Some(internal) = self.stable_to_internal.remove(&stable_id) else")
     );
     assert!(despawn.contains("return Err(EntityRegistryError::MissingStableId(stable_id));"));
-    assert!(despawn.contains("let Some(slot) = self.slots.get_mut(internal.index() as usize) else"));
+    assert!(
+        despawn.contains("let Some(slot) = self.slots.get_mut(internal.index() as usize) else")
+    );
     assert!(set_location.contains("let Some(internal) = self.internal_for_stable(stable_id) else"));
     assert!(set_location.contains("return Err(EntityRegistryError::MissingStableId(stable_id));"));
-    assert!(set_location
-        .contains("let Some(slot) = self.slots.get_mut(internal.index() as usize) else"));
-    assert!(location_for_internal
-        .contains("let Some(slot) = self.slots.get(internal.index() as usize) else"));
+    assert!(
+        set_location
+            .contains("let Some(slot) = self.slots.get_mut(internal.index() as usize) else")
+    );
+    assert!(
+        location_for_internal
+            .contains("let Some(slot) = self.slots.get(internal.index() as usize) else")
+    );
     assert!(location_for_internal.contains("let Some(stable_id) = slot.stable_id else"));
     assert!(location_for_internal.contains("let Some(location) = slot.location else"));
     assert!(!source.contains(".ok_or("));

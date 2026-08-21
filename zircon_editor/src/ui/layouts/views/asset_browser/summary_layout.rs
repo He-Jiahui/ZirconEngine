@@ -247,7 +247,11 @@ fn finite_non_negative(value: f32) -> f32 {
 }
 
 fn finite_coordinate(value: f32) -> f32 {
-    if value.is_finite() { value } else { 0.0 }
+    if value.is_finite() {
+        value
+    } else {
+        0.0
+    }
 }
 
 #[cfg(test)]
@@ -417,11 +421,9 @@ mod tests {
         }
 
         apply_compact_content_preview_summary_layout(&mut nodes, 40.0, 80.0, 0.0, 0.0);
-        assert!(
-            nodes
-                .iter()
-                .all(|node| node.frame.width == 0.0 && node.frame.height == 0.0)
-        );
+        assert!(nodes
+            .iter()
+            .all(|node| node.frame.width == 0.0 && node.frame.height == 0.0));
     }
 
     fn node(control_id: &str, role: &str, text: &str) -> ViewTemplateNodeData {

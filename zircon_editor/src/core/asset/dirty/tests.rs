@@ -153,21 +153,17 @@ fn external_effects_are_typed_sorted_and_independently_clearable() {
     );
     assert!(snapshot.is_dirty());
 
-    assert!(
-        registry
-            .clear_external_effect(
-                document,
-                &effect("asset.import_settings"),
-                settings_revision,
-            )
-            .unwrap()
-    );
+    assert!(registry
+        .clear_external_effect(
+            document,
+            &effect("asset.import_settings"),
+            settings_revision,
+        )
+        .unwrap());
     assert!(registry.snapshot(document).unwrap().is_dirty());
-    assert!(
-        registry
-            .clear_external_effect(document, &effect("ui.source_buffer"), source_revision)
-            .unwrap()
-    );
+    assert!(registry
+        .clear_external_effect(document, &effect("ui.source_buffer"), source_revision)
+        .unwrap());
     assert!(!registry.snapshot(document).unwrap().is_dirty());
 }
 
@@ -193,11 +189,9 @@ fn remarking_an_effect_advances_its_revision() {
             .external_revision(&effect),
         Some(second)
     );
-    assert!(
-        !registry
-            .clear_external_effect(document, &effect, first)
-            .unwrap()
-    );
+    assert!(!registry
+        .clear_external_effect(document, &effect, first)
+        .unwrap());
     assert_eq!(
         registry
             .snapshot(document)
@@ -205,11 +199,9 @@ fn remarking_an_effect_advances_its_revision() {
             .external_revision(&effect),
         Some(second)
     );
-    assert!(
-        registry
-            .clear_external_effect(document, &effect, second)
-            .unwrap()
-    );
+    assert!(registry
+        .clear_external_effect(document, &effect, second)
+        .unwrap());
 }
 
 #[test]

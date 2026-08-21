@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::ui::layouts::views::view_projection::{
-    ViewTemplateNodePatch, build_view_template_node_projection_with_patches,
+    build_view_template_node_projection_with_patches, ViewTemplateNodePatch,
 };
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::workbench::snapshot::SceneEntries;

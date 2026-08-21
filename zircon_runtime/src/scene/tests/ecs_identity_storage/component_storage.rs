@@ -1,4 +1,5 @@
 use super::*;
+use crate::scene::{ChangeTick, ComponentId, ComponentStorage, ComponentTicks, InternalEntity};
 
 #[test]
 fn component_storage_rejects_dense_values_and_keeps_sparse_locations_addressable() {
@@ -66,14 +67,16 @@ fn component_storage_sparse_iteration_never_exposes_dense_table_values() {
     let second = InternalEntity::new(1, 1);
     let mut storage = ComponentStorage::default();
 
-    assert!(storage
-        .insert(
-            table_component,
-            StorageType::Table,
-            first,
-            TestComponent("table"),
-        )
-        .is_err());
+    assert!(
+        storage
+            .insert(
+                table_component,
+                StorageType::Table,
+                first,
+                TestComponent("table"),
+            )
+            .is_err()
+    );
     storage
         .insert(
             sparse_component,
@@ -196,21 +199,25 @@ fn component_storage_rejects_storage_and_type_mismatches_without_mutating_value(
         )
         .unwrap();
 
-    assert!(storage
-        .insert(
-            component,
-            StorageType::Table,
-            entity,
-            TestComponent("moved")
-        )
-        .unwrap_err()
-        .to_string()
-        .contains("owned by its ArchetypeTable"));
-    assert!(storage
-        .insert(component, StorageType::SparseSet, entity, "wrong-type")
-        .unwrap_err()
-        .to_string()
-        .contains("different Rust type"));
+    assert!(
+        storage
+            .insert(
+                component,
+                StorageType::Table,
+                entity,
+                TestComponent("moved")
+            )
+            .unwrap_err()
+            .to_string()
+            .contains("owned by its ArchetypeTable")
+    );
+    assert!(
+        storage
+            .insert(component, StorageType::SparseSet, entity, "wrong-type")
+            .unwrap_err()
+            .to_string()
+            .contains("different Rust type")
+    );
     assert_eq!(
         storage.get::<TestComponent>(component, entity),
         Some(&TestComponent("typed"))

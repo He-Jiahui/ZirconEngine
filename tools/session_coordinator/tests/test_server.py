@@ -542,27 +542,29 @@ class ServerTests(unittest.TestCase):
                 },
             )
 
-            result = application.command(
-                "validation.record_result",
-                {
-                    "ticket_id": receipt["receipt"]["ticket"]["ticket_id"],
-                    "status": "failed",
-                    "evidence": {"exitCode": 1},
-                    "failure": {
-                        "summary_slug": "focused-test-failed",
-                        "source_slice": "M2 validation ticket",
-                        "reproduction": "python -m unittest focused_case",
-                        "lowest_known_cause": "The focused test reported a repairable failure.",
-                        "acceptance_criteria": ["The focused test passes after repair."],
-                        "related_code": ["tools/session_coordinator/server.py"],
-                        "created_at": "2026-07-31",
+            ticket_id = receipt["receipt"]["ticket"]["ticket_id"]
+            with self.assertRaises(CoordinatorError) as rejected:
+                application.command(
+                    "validation.record_result",
+                    {
+                        "ticket_id": ticket_id,
+                        "status": "failed",
+                        "evidence": {"exitCode": 1},
+                        "failure": {
+                            "summary_slug": "focused-test-failed",
+                            "source_slice": "M2 validation ticket",
+                            "reproduction": "python -m unittest focused_case",
+                            "lowest_known_cause": "The focused test reported a repairable failure.",
+                            "acceptance_criteria": ["The focused test passes after repair."],
+                            "related_code": ["tools/session_coordinator/server.py"],
+                            "created_at": "2026-07-31",
+                        },
                     },
-                },
-            )
+                )
 
-            self.assertEqual("failed", result["result"]["ticket"]["status"])
-            self.assertEqual("forward_fix_required", result["result"]["integration_disposition"])
-            self.assertTrue((repo / result["result"]["failure_artifact"]).is_file())
+            self.assertEqual("validation_ticket_result_worker_only", rejected.exception.code)
+            self.assertEqual("queued", application.validation_tickets.get(ticket_id).status)
+            self.assertEqual([], application.failures.open_for_plan(plan.path))
             self.assertEqual(
                 "active", application.sessions.get("validation-owner").status.value
             )
@@ -600,7 +602,47 @@ class ServerTests(unittest.TestCase):
                     {"ticket_id": ticket_id, "status": "failed", "evidence": {}},
                 )
 
-            self.assertEqual("validation_ticket_failure_context_missing", rejected.exception.code)
+            self.assertEqual("validation_ticket_result_worker_only", rejected.exception.code)
+            self.assertEqual("queued", application.validation_tickets.get(ticket_id).status)
+
+    def test_external_validation_result_cannot_mark_queued_ticket_passed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            fixture = FailureGraphFixture(repo)
+            plan = fixture.add_plan("docs/plans/tooling/01-tooling.md")
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            )
+            application.supervision.mark_healthy()
+            application.sessions.register(
+                session_id="validation-owner",
+                plan_path=plan.path.relative_to(repo).as_posix(),
+            )
+            receipt = application.command(
+                "validation.submit",
+                {
+                    "session_id": "validation-owner",
+                    "request_id": "caller-written-pass",
+                    "source_manifest": {"tools/session_coordinator/server.py": "a" * 64},
+                    "command": ["python", "-m", "unittest", "focused_case"],
+                    "toolchain": {"python": "3.14"},
+                    "coverage": {"kind": "focused"},
+                },
+            )
+            ticket_id = receipt["receipt"]["ticket"]["ticket_id"]
+
+            with self.assertRaises(CoordinatorError) as rejected:
+                application.command(
+                    "validation.record_result",
+                    {
+                        "ticket_id": ticket_id,
+                        "status": "passed",
+                        "evidence": {"exitCode": 0, "claimedBy": "external-caller"},
+                    },
+                )
+
+            self.assertEqual("validation_ticket_result_worker_only", rejected.exception.code)
             self.assertEqual("queued", application.validation_tickets.get(ticket_id).status)
 
     def test_compile_ticket_can_finalize_a_sealed_candidate_through_the_coordinator(self) -> None:
@@ -629,19 +671,18 @@ class ServerTests(unittest.TestCase):
                 {
                     "session_id": "candidate-owner",
                     "request_id": "compile-ticket",
-                    "source_manifest": {"tools/candidate.py": "a" * 64},
+                    "source_manifest": {
+                        "tools/candidate.py": hashlib.sha256(source.read_bytes()).hexdigest()
+                    },
                     "command": ["python", "-m", "py_compile", "tools/candidate.py"],
                     "toolchain": {"python": "3.14"},
                     "coverage": {"kind": "compile"},
                 },
             )
-            application.command(
-                "validation.record_result",
-                {
-                    "ticket_id": ticket["receipt"]["ticket"]["ticket_id"],
-                    "status": "passed",
-                    "evidence": {"exitCode": 0},
-                },
+            application.validation_tickets.record_result(
+                ticket["receipt"]["ticket"]["ticket_id"],
+                "passed",
+                evidence={"exitCode": 0},
             )
             candidate = application.command(
                 "integration.submit",

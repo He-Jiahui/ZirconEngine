@@ -1,5 +1,5 @@
-use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::CompiledRenderPipeline;
+use crate::graphics::pipeline::RenderPassStage;
 
 const SPRITE_GRAPH_STAGES: &[RenderPassStage] = &[
     RenderPassStage::Opaque2d,
@@ -24,20 +24,23 @@ fn pipeline_has_active_sprite_stage(
         .iter()
         .filter(|stage_entry| stage_entry.stage == stage)
         .any(|stage_entry| {
-            pipeline.graph().passes().iter().any(|pass| {
-                pass.name == stage_entry.pass_name
-                    && !pass.culled
-                    && pass
-                        .executor_id
-                        .as_deref()
-                        .is_some_and(|executor_id| executor_id.starts_with("sprite."))
-            })
+            pipeline
+                .graph()
+                .pass(stage_entry.pass_id)
+                .is_some_and(|pass| {
+                    pass.name == stage_entry.pass_name
+                        && !pass.culled
+                        && pass
+                            .executor_id
+                            .as_deref()
+                            .is_some_and(|executor_id| executor_id.starts_with("sprite."))
+                })
         })
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{active_sprite_graph_stages, SPRITE_GRAPH_STAGES};
+    use super::{SPRITE_GRAPH_STAGES, active_sprite_graph_stages};
     use crate::core::framework::render::RenderPipelineHandle;
     use crate::graphics::pipeline::RenderPassStage;
     use crate::graphics::pipeline::{CompiledRenderPipeline, CompiledRenderPipelinePassStage};
@@ -97,7 +100,7 @@ mod tests {
                     },
                 )
                 .expect("sprite stage test root");
-            pass_stages.push(CompiledRenderPipelinePassStage::new(pass_name, stage));
+            pass_stages.push(CompiledRenderPipelinePassStage::new(pass, pass_name, stage));
         }
 
         CompiledRenderPipeline::from_parts(crate::graphics::pipeline::CompiledRenderPipelineParts {

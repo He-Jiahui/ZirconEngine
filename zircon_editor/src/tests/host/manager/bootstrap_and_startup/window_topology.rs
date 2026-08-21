@@ -67,18 +67,14 @@ fn opening_drawer_backed_windows_creates_distinct_exclusive_pages() {
     let asset_page = MainPageId::new("page:editor.asset_browser_window#1");
     let diagnostics_page = MainPageId::new("page:editor.diagnostics_window#1");
     let layout = manager.current_layout();
-    assert!(
-        layout
-            .main_pages
-            .iter()
-            .any(|page| page.id() == &asset_page)
-    );
-    assert!(
-        layout
-            .main_pages
-            .iter()
-            .any(|page| page.id() == &diagnostics_page)
-    );
+    assert!(layout
+        .main_pages
+        .iter()
+        .any(|page| page.id() == &asset_page));
+    assert!(layout
+        .main_pages
+        .iter()
+        .any(|page| page.id() == &diagnostics_page));
     assert_eq!(layout.active_main_page, diagnostics_page);
     let instances = manager.current_view_instances();
     assert_eq!(
@@ -109,28 +105,20 @@ fn scene_and_game_tabs_are_not_closeable() {
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
 
-    assert!(
-        !manager
-            .close_view(&ViewInstanceId::new("editor.scene#1"))
-            .unwrap()
-    );
-    assert!(
-        !manager
-            .close_view(&ViewInstanceId::new("editor.game#1"))
-            .unwrap()
-    );
-    assert!(
-        manager
-            .current_view_instances()
-            .iter()
-            .any(|instance| instance.instance_id.0 == "editor.scene#1")
-    );
-    assert!(
-        manager
-            .current_view_instances()
-            .iter()
-            .any(|instance| instance.instance_id.0 == "editor.game#1")
-    );
+    assert!(!manager
+        .close_view(&ViewInstanceId::new("editor.scene#1"))
+        .unwrap());
+    assert!(!manager
+        .close_view(&ViewInstanceId::new("editor.game#1"))
+        .unwrap());
+    assert!(manager
+        .current_view_instances()
+        .iter()
+        .any(|instance| instance.instance_id.0 == "editor.scene#1"));
+    assert!(manager
+        .current_view_instances()
+        .iter()
+        .any(|instance| instance.instance_id.0 == "editor.game#1"));
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);

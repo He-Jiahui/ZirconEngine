@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, VecDeque};
+use std::collections::{BTreeSet, HashMap, VecDeque};
 use std::io::{self, Write};
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -7,8 +7,8 @@ use std::time::{Duration, Instant};
 use serde::Serialize;
 use zircon_runtime_interface::ZR_RUNTIME_PLUGIN_EVENT_OUTPUT_LIMIT_V1;
 
-use crate::scene::ecs::{Event, EventObserverHandle};
 use crate::scene::World;
+use crate::scene::ecs::{Event, EventObserverHandle};
 
 use super::{RuntimeEventMirrorDescriptor, RuntimeEventMirrorError};
 
@@ -22,7 +22,7 @@ trait ErasedRuntimeEventMirrorSubscription: Send + Sync {
     fn connect(&mut self, world: &mut World) -> bool;
     fn disconnect(&mut self, world: &mut World) -> bool;
     fn drain_payloads(&self)
-        -> Result<RuntimeEventMirrorDrainPage, RuntimeEventMirrorQueueFailure>;
+    -> Result<RuntimeEventMirrorDrainPage, RuntimeEventMirrorQueueFailure>;
     fn drain_payloads_up_to(
         &self,
         max_deliveries: usize,
@@ -399,9 +399,15 @@ impl RuntimeEventMirrorSubscriptionHandle {
 
 #[derive(Default)]
 pub(crate) struct RuntimeEventMirrorReclaimQueue {
-    pending: VecDeque<RuntimeEventMirrorSubscriptionHandle>,
-    pending_handles: BTreeSet<RuntimeEventMirrorSubscriptionHandle>,
+    pending: HashMap<RuntimeEventMirrorSubscriptionHandle, RuntimeEventMirrorPendingLinks>,
+    pending_head: Option<RuntimeEventMirrorSubscriptionHandle>,
+    pending_tail: Option<RuntimeEventMirrorSubscriptionHandle>,
     live_handles: BTreeSet<RuntimeEventMirrorSubscriptionHandle>,
+}
+
+struct RuntimeEventMirrorPendingLinks {
+    previous: Option<RuntimeEventMirrorSubscriptionHandle>,
+    next: Option<RuntimeEventMirrorSubscriptionHandle>,
 }
 
 impl RuntimeEventMirrorReclaimQueue {
@@ -417,39 +423,84 @@ impl RuntimeEventMirrorReclaimQueue {
             self.live_handles.remove(&handle),
             "runtime event mirror handle must remain live until retirement"
         );
-        if self.pending_handles.remove(&handle) {
-            self.pending.retain(|pending| *pending != handle);
-        }
+        self.unlink_pending(handle);
         debug_assert!(self.pending.len() <= self.live_handles.len());
     }
 
     pub(crate) fn enqueue(&mut self, handle: RuntimeEventMirrorSubscriptionHandle) {
-        if !self.live_handles.contains(&handle) || self.pending_handles.contains(&handle) {
+        if !self.live_handles.contains(&handle) || self.pending.contains_key(&handle) {
             return;
         }
         assert!(
             self.pending.len() < self.live_handles.len(),
             "runtime event mirror reclaim queue exceeded its live record hard budget"
         );
-        let inserted = self.pending_handles.insert(handle);
-        debug_assert!(inserted);
-        self.pending.push_back(handle);
+        let previous = self.pending_tail;
+        let replaced = self.pending.insert(
+            handle,
+            RuntimeEventMirrorPendingLinks {
+                previous,
+                next: None,
+            },
+        );
+        debug_assert!(replaced.is_none());
+        if let Some(previous) = previous {
+            self.pending
+                .get_mut(&previous)
+                .expect("runtime event mirror pending tail must remain indexed")
+                .next = Some(handle);
+        } else {
+            self.pending_head = Some(handle);
+        }
+        self.pending_tail = Some(handle);
     }
 
     pub(crate) fn drain(&mut self) -> Vec<RuntimeEventMirrorSubscriptionHandle> {
-        let handles = self.pending.drain(..).collect::<Vec<_>>();
-        self.pending_handles.clear();
+        let mut handles = Vec::with_capacity(self.pending.len());
+        let mut current = self.pending_head.take();
+        self.pending_tail = None;
+        while let Some(handle) = current {
+            let links = self
+                .pending
+                .remove(&handle)
+                .expect("runtime event mirror pending link must remain indexed");
+            handles.push(handle);
+            current = links.next;
+        }
+        debug_assert!(self.pending.is_empty());
         handles
     }
 
     pub(crate) fn pending_handles(
         &self,
     ) -> impl Iterator<Item = &RuntimeEventMirrorSubscriptionHandle> {
-        self.pending_handles.iter()
+        self.pending.keys()
     }
 
     pub(crate) fn live_record_budget(&self) -> usize {
         self.live_handles.len()
+    }
+
+    fn unlink_pending(&mut self, handle: RuntimeEventMirrorSubscriptionHandle) {
+        let Some(links) = self.pending.remove(&handle) else {
+            return;
+        };
+        if let Some(previous) = links.previous {
+            self.pending
+                .get_mut(&previous)
+                .expect("runtime event mirror previous pending link must remain indexed")
+                .next = links.next;
+        } else {
+            self.pending_head = links.next;
+        }
+        if let Some(next) = links.next {
+            self.pending
+                .get_mut(&next)
+                .expect("runtime event mirror next pending link must remain indexed")
+                .previous = links.previous;
+        } else {
+            self.pending_tail = links.previous;
+        }
     }
 }
 
@@ -714,3 +765,7 @@ mod tests {
         ));
     }
 }
+
+#[cfg(test)]
+#[path = "subscription/reclaim_queue_tests.rs"]
+mod reclaim_queue_tests;

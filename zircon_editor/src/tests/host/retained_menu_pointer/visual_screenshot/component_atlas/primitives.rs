@@ -1,6 +1,6 @@
 use super::*;
 
-fn atlas_status_signal(
+pub(super) fn atlas_status_signal(
     control_id: &str,
     text: &str,
     x: f32,
@@ -22,7 +22,7 @@ fn atlas_status_signal(
     }
 }
 
-fn atlas_progress(
+pub(super) fn atlas_progress(
     control_id: &str,
     value_percent: f32,
     x: f32,
@@ -45,7 +45,7 @@ fn atlas_progress(
     }
 }
 
-fn atlas_tooltip(
+pub(super) fn atlas_tooltip(
     control_id: &str,
     text: &str,
     label_text: &str,
@@ -77,7 +77,7 @@ fn atlas_tooltip(
     }
 }
 
-fn atlas_dialog(
+pub(super) fn atlas_dialog(
     control_id: &str,
     title: &str,
     message: &str,
@@ -106,7 +106,7 @@ fn atlas_dialog(
     }
 }
 
-fn atlas_status_chip(
+pub(super) fn atlas_status_chip(
     control_id: &str,
     text: &str,
     x: f32,
@@ -128,7 +128,7 @@ fn atlas_status_chip(
     }
 }
 
-fn atlas_surface(
+pub(super) fn atlas_surface(
     control_id: &str,
     surface_variant: &str,
     x: f32,
@@ -152,7 +152,7 @@ fn atlas_surface(
     }
 }
 
-fn atlas_label(
+pub(super) fn atlas_label(
     control_id: &str,
     text: &str,
     x: f32,
@@ -178,7 +178,7 @@ fn atlas_label(
     }
 }
 
-fn atlas_button(
+pub(super) fn atlas_button(
     control_id: &str,
     text: &str,
     variant: &str,
@@ -203,7 +203,7 @@ fn atlas_button(
     }
 }
 
-fn atlas_button_state(
+pub(super) fn atlas_button_state(
     control_id: &str,
     text: &str,
     variant: &str,
@@ -223,7 +223,7 @@ fn atlas_button_state(
     node
 }
 
-fn atlas_field(
+pub(super) fn atlas_field(
     control_id: &str,
     text: &str,
     x: f32,
@@ -251,7 +251,7 @@ fn atlas_field(
     node
 }
 
-fn atlas_dropdown(
+pub(super) fn atlas_dropdown(
     control_id: &str,
     text: &str,
     x: f32,
@@ -279,7 +279,7 @@ fn atlas_dropdown(
     node
 }
 
-fn atlas_selection(
+pub(super) fn atlas_selection(
     control_id: &str,
     text: &str,
     x: f32,
@@ -305,7 +305,7 @@ fn atlas_selection(
     }
 }
 
-fn atlas_segmented(
+pub(super) fn atlas_segmented(
     control_id: &str,
     options: &[&str],
     selected: &str,
@@ -335,7 +335,7 @@ fn atlas_segmented(
     }
 }
 
-fn atlas_list_row(
+pub(super) fn atlas_list_row(
     control_id: &str,
     text: &str,
     x: f32,
@@ -365,7 +365,7 @@ fn atlas_list_row(
     node
 }
 
-fn atlas_tree_row(
+pub(super) fn atlas_tree_row(
     control_id: &str,
     text: &str,
     x: f32,
@@ -394,7 +394,7 @@ fn atlas_tree_row(
     }
 }
 
-fn atlas_table_row(
+pub(super) fn atlas_table_row(
     control_id: &str,
     cells: &[&str],
     x: f32,

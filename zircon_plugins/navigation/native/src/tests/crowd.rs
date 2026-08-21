@@ -1,3 +1,6 @@
+use std::hint::black_box;
+use std::time::Instant;
+
 use zircon_runtime::core::framework::navigation::NavMeshAgentDescriptor;
 use zircon_runtime::core::framework::navigation::{NavMeshAreaCostAsset, NavMeshAsset};
 
@@ -126,4 +129,115 @@ fn crowd_recycles_inactive_query_filter_slots() {
             },
         )
         .expect("inactive filter slot should be reusable");
+}
+
+#[test]
+fn crowd_read_states_reuses_native_capacity_scratch() {
+    let asset = NavMeshAsset::simple_quad("humanoid", 8.0);
+    let mut crowd = RecastCrowd::from_asset(
+        &asset,
+        RecastCrowdConfig {
+            max_agents: 128,
+            max_agent_radius: 1.0,
+        },
+    )
+    .expect("create crowd");
+    crowd
+        .add_agent([0.0, 0.0, 0.0], &NavMeshAgentDescriptor::default())
+        .expect("add agent");
+    let initial_scratch = crowd.native_state_scratch_identity();
+
+    assert_eq!(crowd.read_states().expect("first state read").len(), 1);
+    let after_first_read = crowd.native_state_scratch_identity();
+    assert_eq!(crowd.read_states().expect("second state read").len(), 1);
+    let after_second_read = crowd.native_state_scratch_identity();
+
+    assert_eq!(initial_scratch, after_first_read);
+    assert_eq!(after_first_read, after_second_read);
+    assert_eq!(after_second_read.1, crowd.capacity());
+}
+
+const CROWD_BENCHMARK_SAMPLE_PAIRS: usize = 21;
+const CROWD_BENCHMARK_ITERATIONS: usize = 64;
+const CROWD_BENCHMARK_CAPACITY: usize = 4_096;
+
+#[test]
+#[ignore = "release performance evidence"]
+fn crowd_state_scratch_release_gate() {
+    let asset = NavMeshAsset::simple_quad("humanoid", 8.0);
+    let mut crowd = RecastCrowd::from_asset(
+        &asset,
+        RecastCrowdConfig {
+            max_agents: u32::try_from(CROWD_BENCHMARK_CAPACITY).unwrap(),
+            max_agent_radius: 1.0,
+        },
+    )
+    .expect("create benchmark crowd");
+    crowd
+        .add_agent([0.0, 0.0, 0.0], &NavMeshAgentDescriptor::default())
+        .expect("add benchmark agent");
+
+    let legacy_states = crowd
+        .read_states_legacy_for_benchmark()
+        .expect("legacy state read");
+    let optimized_states = crowd.read_states().expect("optimized state read");
+    assert_eq!(legacy_states, optimized_states);
+    for _ in 0..16 {
+        black_box(crowd.read_states_legacy_for_benchmark().unwrap());
+        black_box(crowd.read_states().unwrap());
+    }
+
+    let mut legacy_samples_ns = Vec::with_capacity(CROWD_BENCHMARK_SAMPLE_PAIRS);
+    let mut optimized_samples_ns = Vec::with_capacity(CROWD_BENCHMARK_SAMPLE_PAIRS);
+    for pair_index in 0..CROWD_BENCHMARK_SAMPLE_PAIRS {
+        if pair_index % 2 == 0 {
+            legacy_samples_ns.push(measure_crowd_reads(&crowd, false));
+            optimized_samples_ns.push(measure_crowd_reads(&crowd, true));
+        } else {
+            optimized_samples_ns.push(measure_crowd_reads(&crowd, true));
+            legacy_samples_ns.push(measure_crowd_reads(&crowd, false));
+        }
+    }
+
+    let legacy_p95_ns = nearest_rank_percentile(&legacy_samples_ns, 95);
+    let optimized_p95_ns = nearest_rank_percentile(&optimized_samples_ns, 95);
+    assert!(
+        u128::from(optimized_p95_ns) * 100 <= u128::from(legacy_p95_ns) * 110,
+        "scratch P95 {optimized_p95_ns}ns exceeded the 10% regression ceiling over legacy P95 {legacy_p95_ns}ns"
+    );
+
+    println!(
+        "PERF-MVP-PLUGINS14-CROWD-STATE-SCRATCH capacity={CROWD_BENCHMARK_CAPACITY} active_agents=1 iterations_per_sample={CROWD_BENCHMARK_ITERATIONS} sample_pairs={CROWD_BENCHMARK_SAMPLE_PAIRS} order=alternating_legacy_first_even percentile_method=nearest_rank legacy_native_allocations_per_sample={CROWD_BENCHMARK_ITERATIONS} optimized_native_allocations_per_sample=0 legacy_native_default_writes_per_sample={} optimized_native_default_writes_per_sample=0 allocation_reduction_pct=100 default_write_reduction_pct=100 legacy_samples_ns={} optimized_samples_ns={} legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} target_ratio_pct=110",
+        CROWD_BENCHMARK_CAPACITY * CROWD_BENCHMARK_ITERATIONS,
+        join_samples(&legacy_samples_ns),
+        join_samples(&optimized_samples_ns),
+    );
+}
+
+fn measure_crowd_reads(crowd: &RecastCrowd, optimized: bool) -> u64 {
+    let started = Instant::now();
+    for _ in 0..CROWD_BENCHMARK_ITERATIONS {
+        let states = if optimized {
+            crowd.read_states().unwrap()
+        } else {
+            crowd.read_states_legacy_for_benchmark().unwrap()
+        };
+        black_box(states);
+    }
+    u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX)
+}
+
+fn nearest_rank_percentile(samples: &[u64], percentile: usize) -> u64 {
+    let mut ordered = samples.to_vec();
+    ordered.sort_unstable();
+    let rank = ordered.len().saturating_mul(percentile).div_ceil(100);
+    ordered[rank.saturating_sub(1)]
+}
+
+fn join_samples(samples: &[u64]) -> String {
+    samples
+        .iter()
+        .map(u64::to_string)
+        .collect::<Vec<_>>()
+        .join(",")
 }

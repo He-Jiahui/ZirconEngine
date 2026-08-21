@@ -1,6 +1,6 @@
 #[cfg(test)]
 use crate::ui::retained_host::METRICS;
-use crate::ui::retained_host::{HostControlMetrics, current_host_metrics};
+use crate::ui::retained_host::{current_host_metrics, HostControlMetrics};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct PopupAnchorMetrics {

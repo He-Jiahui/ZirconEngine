@@ -8,8 +8,9 @@ mod sink;
 mod timestamp;
 
 pub use diagnostics::{
-    format_diagnostic_store_snapshot, write_diagnostic_store_snapshot, DiagnosticStoreLogSchedule,
-    DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT,
+    format_diagnostic_store_current_snapshot, format_diagnostic_store_snapshot,
+    write_diagnostic_store_current_snapshot, write_diagnostic_store_snapshot,
+    DiagnosticStoreLogSchedule, DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT,
 };
 pub use level::{
     DiagnosticLogFilter, DiagnosticLogFilterConfig, DiagnosticLogLevel,

@@ -1,10 +1,10 @@
 use std::fmt;
 
-use crate::scene::ecs::{
-    DeferredSystemKey, SceneSystemMetadata, SceneSystemThreadAffinity, SystemOrderingConstraint,
-    SystemParamAccess, SystemSetId, SystemStage, WorkerCommandBuffer,
-};
 use crate::scene::World;
+use crate::scene::ecs::{
+    DeferredSystemKey, SceneSystemClockDomain, SceneSystemMetadata, SceneSystemThreadAffinity,
+    SystemOrderingConstraint, SystemParamAccess, SystemSetId, SystemStage, WorkerCommandBuffer,
+};
 
 pub type BoxedSceneSystem = Box<dyn SceneSystem>;
 
@@ -64,6 +64,10 @@ pub trait SceneSystem: Send + 'static {
         self.metadata().thread_affinity()
     }
 
+    fn clock_domain(&self) -> SceneSystemClockDomain {
+        self.metadata().clock_domain()
+    }
+
     fn has_deferred_commands(&self) -> bool {
         self.access().has_deferred_commands()
     }
@@ -78,6 +82,7 @@ impl fmt::Debug for dyn SceneSystem {
             .field("order", &self.order())
             .field("has_deferred_commands", &self.has_deferred_commands())
             .field("thread_affinity", &self.thread_affinity())
+            .field("clock_domain", &self.clock_domain())
             .finish_non_exhaustive()
     }
 }

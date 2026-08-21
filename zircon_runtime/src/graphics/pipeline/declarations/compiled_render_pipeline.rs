@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::core::framework::render::{IblBakeArtifactRequest, RenderPipelineHandle};
 use crate::graphics::feature::RenderFeatureCapabilityRequirement;
-use crate::render_graph::CompiledRenderGraph;
+use crate::render_graph::{CompiledRenderGraph, RenderPassId};
 
 use crate::graphics::extract::FrameHistoryBinding;
 
@@ -17,13 +17,19 @@ pub(crate) use runtime_metadata::CompiledRenderPipelineRuntimeMetadata;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CompiledRenderPipelinePassStage {
+    pub pass_id: RenderPassId,
     pub pass_name: String,
     pub stage: RenderPassStage,
 }
 
 impl CompiledRenderPipelinePassStage {
-    pub fn new(pass_name: impl Into<String>, stage: RenderPassStage) -> Self {
+    pub fn new(
+        pass_id: RenderPassId,
+        pass_name: impl Into<String>,
+        stage: RenderPassStage,
+    ) -> Self {
         Self {
+            pass_id,
             pass_name: pass_name.into(),
             stage,
         }

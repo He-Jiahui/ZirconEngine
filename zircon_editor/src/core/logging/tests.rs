@@ -462,7 +462,7 @@ fn event_dispatch_preserves_sequence_order_when_the_first_publish_is_paused() {
         EditorLogConfig::new(8, 4096).unwrap(),
     ));
     let sink = Arc::new(OrderedEventSink::default());
-    let event_sink: Arc<dyn EditorLogEventSink> = Arc::clone(&sink);
+    let event_sink: Arc<dyn EditorLogEventSink> = sink.clone();
     service.configure_event_sink(event_sink);
     let gate = Arc::new(Barrier::new(2));
     let gate_hook = Arc::clone(&gate);
@@ -513,7 +513,7 @@ fn slow_event_sink_bounds_queued_records_and_requires_a_sequence_resync() {
         gate: Arc::clone(&gate),
         deliveries: Mutex::new(Vec::new()),
     });
-    let event_sink: Arc<dyn EditorLogEventSink> = Arc::clone(&sink);
+    let event_sink: Arc<dyn EditorLogEventSink> = sink.clone();
     service.configure_event_sink(event_sink);
 
     let first_service = Arc::clone(&service);
@@ -568,7 +568,7 @@ fn slow_event_sink_uses_the_byte_budget_before_its_entry_budget() {
         gate: Arc::clone(&gate),
         deliveries: Mutex::new(Vec::new()),
     });
-    let event_sink: Arc<dyn EditorLogEventSink> = Arc::clone(&sink);
+    let event_sink: Arc<dyn EditorLogEventSink> = sink.clone();
     service.configure_event_sink(event_sink);
 
     let first_service = Arc::clone(&service);

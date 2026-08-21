@@ -363,6 +363,14 @@ Runtime 15 M4 dynamic API session profile owner split is recorded as `runtime_15
 
 Runtime 15 M4 dynamic API session registry owner split is recorded as `runtime_15_dynamic_api_session_registry_owner_split_static_passed_cargo_deferred`. `dynamic_api/session.rs` remains the runtime ABI session lifecycle owner, `dynamic_api/session/registry/mod.rs` remains a zero-behavior facade, `registry/session_store.rs` owns `SESSION_REGISTRY`, `SessionRegistry`, handle allocation and dispatch, and `registry/session_slot.rs` owns action/close admission plus the private session lock. The structure guard `runtime_15_dynamic_api_session_registry_is_child_owner` keeps behavior out of the facade and parent and keeps each production owner within budget.
 
+Session handle allocation is checked under the same registry mutex that owns the
+session table. Values 1 through `u64::MAX` are issued at most once; zero is the
+invalid and permanently exhausted sentinel. The fallible linked entry maps
+exhaustion to `RuntimeDynamicSessionError::SessionHandleSpaceExhausted`, while
+the C ABI create entry returns `LimitExceeded` and leaves its output handle
+invalid. A session constructed immediately before exhaustion is shut down before
+the error returns, so rejected admission does not retain runtime resources.
+
 This keeps the FFI boundary below the large-file warning line. The V6 ABI hard cut remains one atomic Runtime10/Editor02 candidate and is not accepted by a structure-only split.
 
 ## FFI Panic Boundary
@@ -377,7 +385,7 @@ Every advertised `ZrRuntimeApiV7` function pointer points at an `_ffi` wrapper i
 
 ## Session Lifecycle Failure Contract
 
-Session lifecycle failures are part of the exported ABI contract, not private implementation details. `destroy_session` accepts each live handle once, then reports `NotFound` with `runtime session not found` after registry removal. `ZrRuntimeSessionHandle::invalid()` is rejected before registry lookup with `InvalidArgument` and `invalid runtime session handle`.
+Session lifecycle failures are part of the exported ABI contract, not private implementation details. `destroy_session` accepts each live handle once, then reports `NotFound` with `runtime session not found` after registry removal. `ZrRuntimeSessionHandle::invalid()` is rejected before registry lookup with `InvalidArgument` and `invalid runtime session handle`. Session creation invalidates caller-owned output before version/profile validation, so every failed create path returns an unusable handle.
 
 `session_lifecycle.rs` owns the create/destroy/tick lifecycle cases: `destroy_session_reports_explicit_not_found_for_missing_nonzero_handle`, `destroy_session_removes_registry_entry_so_destroyed_handles_become_missing`, and `session_destroy_reports_explicit_not_found_after_headless_destroy`. `session_entry_points.rs` owns the cross-entry handle rejection cases: `all_session_entry_points_reject_invalid_handle`, `destroyed_headless_session_entry_points_reject_old_handle`, and `missing_session_entry_points_reject_nonzero_handle`. The dynamic entry-point coverage intentionally uses otherwise valid event, frame, viewport, profile, and host-request arguments so the tests reach session validation instead of version, viewport, or payload preflight branches.
 

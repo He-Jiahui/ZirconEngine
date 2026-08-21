@@ -805,10 +805,12 @@ mod tests {
         assert_eq!(idle.gpu_time_p95_us, 400);
         assert_eq!(idle.gpu_time_max_us, 400);
         assert_eq!(idle.gpu_profile_latency_max_frames, 2);
-        assert!(report
-            .alerts
-            .iter()
-            .any(|alert| alert.rule == "resize_triggered_slow_path_rebuild"));
+        assert!(
+            report
+                .alerts
+                .iter()
+                .any(|alert| alert.rule == "resize_triggered_slow_path_rebuild")
+        );
         assert!(report.alerts.iter().any(|alert| {
             alert.rule == "non_structural_interaction_rebuilt_asset_editor_pane_presentation"
         }));
@@ -884,10 +886,12 @@ mod tests {
 
         let report = super::analyze_ui_hotspots(&snapshot);
 
-        assert!(report
-            .alerts
-            .iter()
-            .any(|alert| alert.rule == "live_patch_reused_compiled_full_projection"));
+        assert!(
+            report
+                .alerts
+                .iter()
+                .any(|alert| alert.rule == "live_patch_reused_compiled_full_projection")
+        );
     }
 
     #[test]
@@ -899,10 +903,12 @@ mod tests {
 
         let report = super::analyze_ui_hotspots(&snapshot);
 
-        assert!(report
-            .alerts
-            .iter()
-            .any(|alert| alert.rule == "non_structural_interaction_rebuilt_presentation"));
+        assert!(
+            report
+                .alerts
+                .iter()
+                .any(|alert| alert.rule == "non_structural_interaction_rebuilt_presentation")
+        );
     }
 
     #[test]
@@ -924,10 +930,12 @@ mod tests {
             .expect("idle hover scenario");
         assert_eq!(idle.chrome_snapshot_count, 1);
         assert_eq!(idle.workbench_model_build_count, 1);
-        assert!(report
-            .alerts
-            .iter()
-            .any(|alert| alert.rule == "hover_rebuilt_chrome_snapshot_or_model"));
+        assert!(
+            report
+                .alerts
+                .iter()
+                .any(|alert| alert.rule == "hover_rebuilt_chrome_snapshot_or_model")
+        );
     }
 
     #[test]
@@ -942,10 +950,12 @@ mod tests {
 
         let report = super::analyze_ui_hotspots(&snapshot);
 
-        assert!(report
-            .alerts
-            .iter()
-            .any(|alert| alert.rule == "region_request_repainted_full_frame"));
+        assert!(
+            report
+                .alerts
+                .iter()
+                .any(|alert| alert.rule == "region_request_repainted_full_frame")
+        );
     }
 
     #[test]
@@ -995,10 +1005,12 @@ mod tests {
 
         let report = super::analyze_ui_hotspots(&snapshot);
 
-        assert!(report
-            .alerts
-            .iter()
-            .any(|alert| alert.rule == "gpu_presenter_fell_back_to_software"));
+        assert!(
+            report
+                .alerts
+                .iter()
+                .any(|alert| alert.rule == "gpu_presenter_fell_back_to_software")
+        );
     }
 
     #[test]
@@ -1010,10 +1022,12 @@ mod tests {
 
         let report = super::analyze_ui_hotspots(&snapshot);
 
-        assert!(report
-            .alerts
-            .iter()
-            .any(|alert| alert.rule == "gpu_presenter_recorded_no_draw_calls"));
+        assert!(
+            report
+                .alerts
+                .iter()
+                .any(|alert| alert.rule == "gpu_presenter_recorded_no_draw_calls")
+        );
     }
 
     #[test]
@@ -1028,10 +1042,12 @@ mod tests {
 
         let report = super::analyze_ui_hotspots(&snapshot);
 
-        assert!(report
-            .alerts
-            .iter()
-            .any(|alert| alert.rule == "viewport_image_missing_gpu_upload"));
+        assert!(
+            report
+                .alerts
+                .iter()
+                .any(|alert| alert.rule == "viewport_image_missing_gpu_upload")
+        );
     }
 
     #[test]

@@ -146,11 +146,10 @@ fn native_host_template_node_move_updates_hover_without_rebuilding_presentation(
         Some(host_frame(72.0, 104.0, 160.0, 24.0)),
         "leaving a template node should repaint the old hover node"
     );
-    assert!(
-        ui.get_pane_interaction_state()
-            .hovered_template_control_id
-            .is_empty()
-    );
+    assert!(ui
+        .get_pane_interaction_state()
+        .hovered_template_control_id
+        .is_empty());
 }
 
 #[test]

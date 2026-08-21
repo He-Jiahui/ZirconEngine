@@ -53,9 +53,7 @@ fn workbench_text_primitives_use_runtime_density_height_tokens() {
             .and_then(toml::Value::as_table)
             .unwrap_or_else(|| panic!("{primitive_name} must declare tokenized text height"));
 
-        for (field, expected_token) in ["min", "preferred", "max"]
-            .into_iter()
-            .zip(expected_tokens)
+        for (field, expected_token) in ["min", "preferred", "max"].into_iter().zip(expected_tokens)
         {
             assert_eq!(
                 height.get(field).and_then(toml::Value::as_str),
@@ -68,8 +66,8 @@ fn workbench_text_primitives_use_runtime_density_height_tokens() {
 
 #[test]
 fn workbench_chip_uses_runtime_density_width_tokens() {
-    let source: toml::Value =
-        toml::from_str(WORKBENCH_CHIP_V2_TOML).expect("chip primitive source should stay valid TOML");
+    let source: toml::Value = toml::from_str(WORKBENCH_CHIP_V2_TOML)
+        .expect("chip primitive source should stay valid TOML");
     let width = source
         .get("nodes")
         .and_then(toml::Value::as_table)

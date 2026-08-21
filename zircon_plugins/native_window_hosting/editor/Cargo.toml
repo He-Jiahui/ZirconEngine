@@ -11,13 +11,11 @@ declaration = ["zircon_plugin_sdk/declaration"]
 editor = [
     "declaration",
     "dep:zircon_editor",
-    "dep:zircon_plugin_editor_support",
     "dep:zircon_runtime",
     "zircon_plugin_sdk/runtime",
 ]
 
 [dependencies]
 zircon_editor = { workspace = true, optional = true }
-zircon_plugin_editor_support = { path = "../../editor_support", optional = true }
 zircon_plugin_sdk = { workspace = true, default-features = false }
 zircon_runtime = { workspace = true, optional = true }

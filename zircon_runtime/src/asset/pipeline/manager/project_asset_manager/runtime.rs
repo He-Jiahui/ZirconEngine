@@ -6,16 +6,16 @@ use std::sync::{MutexGuard, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::asset::project::ProjectGenerationPhase;
 use crate::asset::{AssetImporterRegistry, AssetUri, ProjectManager};
-use crate::core::framework::channel::{ChannelSender, ChannelWakeCallback};
 use crate::core::CoreError;
+use crate::core::framework::channel::{ChannelSender, ChannelWakeCallback};
 
 use super::super::errors::asset_error;
+use super::ProjectAssetManager;
 use super::project_asset_manager::{
     ProjectAssetChangeSubscriber, ProjectAssetGenerationWakeSubscriber, ProjectSourcePathIndex,
     ProjectWatcherActivation, ProjectWatcherActivationState, ProjectWatcherLifecycle,
 };
 use super::resource_publication::PreparedWatchProjectResourceSync;
-use super::ProjectAssetManager;
 use crate::asset::watch::{AssetChange, AssetWatchBatch, AssetWatchError, AssetWatcher};
 use crate::core::resource::{ResourceMutationBatch, ResourceRecord, ResourceScheme};
 
@@ -315,7 +315,7 @@ impl ProjectAssetManager {
                 queued_change_bytes: 0,
                 requires_reconciliation: false,
                 diagnostics: Default::default(),
-                errors: Vec::new(),
+                errors: Default::default(),
                 worker_scheduled: false,
             }),
         });

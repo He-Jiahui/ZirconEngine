@@ -33,7 +33,8 @@ function Test-ZirconUiInteractionProcessEvidence {
         'quiescence_sampled'
     )
     foreach ($field in $requiredFields) {
-        if ($null -eq $Interaction.$field) {
+        $property = $Interaction.PSObject.Properties[$field]
+        if ($null -eq $property -or $null -eq $property.Value) {
             return $false
         }
     }

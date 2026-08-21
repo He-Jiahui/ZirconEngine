@@ -65,7 +65,7 @@ fn scene_asset_load_uses_asset_preserving_normalizer_source_guard() {
     let source = project_io_source();
     let from_scene_asset =
         project_io_section(source, "pub fn from_scene_asset", "pub fn to_scene_asset");
-    assert!(from_scene_asset.contains("world.normalize_scene_asset_after_load();"));
+    assert!(from_scene_asset.contains("world.normalize_scene_asset_after_load()?;"));
     assert!(!from_scene_asset.contains("world.normalize_after_load();"));
 
     let scene_asset_normalizer = project_io_section(
@@ -73,14 +73,14 @@ fn scene_asset_load_uses_asset_preserving_normalizer_source_guard() {
         "fn normalize_scene_asset_after_load",
         "fn normalize_after_load",
     );
-    assert!(scene_asset_normalizer.contains("self.normalize_loaded_state(false);"));
+    assert!(scene_asset_normalizer.contains("self.normalize_loaded_state(false)"));
 
     let project_normalizer = project_io_section(
         source,
         "fn normalize_after_load",
         "fn normalize_loaded_state",
     );
-    assert!(project_normalizer.contains("self.normalize_loaded_state(true);"));
+    assert!(project_normalizer.contains("self.normalize_loaded_state(true)"));
 
     let normalize_loaded_state = project_io_section(
         source,

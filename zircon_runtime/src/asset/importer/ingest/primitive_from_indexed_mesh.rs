@@ -3,8 +3,8 @@ use crate::core::math::{Vec2, Vec3};
 use super::generate_normals::generate_normals;
 use crate::asset::assets::{ModelAsset, ModelPrimitiveAsset};
 use crate::asset::{
-    AssetImportError, MeshSdfCookBudget, MeshSdfCookRequest, MeshVertex,
-    VirtualGeometryCookRequest, cook_mesh_sdf_or_fallback, cook_virtual_geometry_from_mesh,
+    cook_mesh_sdf_or_fallback, cook_virtual_geometry_from_mesh, AssetImportError,
+    MeshSdfCookBudget, MeshSdfCookRequest, MeshVertex, VirtualGeometryCookRequest,
 };
 
 pub(super) fn primitive_from_indexed_mesh(

@@ -30,11 +30,9 @@ fn editor_manager_promotes_local_theme_to_external_style_asset_and_opens_selecte
     assert_eq!(before.theme_selected_source_kind, "Local");
     assert!(before.theme_can_promote_local);
 
-    assert!(
-        manager
-            .promote_ui_asset_editor_local_theme_to_external_style_asset(&instance_id)
-            .expect("promote local theme to external style asset")
-    );
+    assert!(manager
+        .promote_ui_asset_editor_local_theme_to_external_style_asset(&instance_id)
+        .expect("promote local theme to external style asset"));
 
     let theme_path = project_root
         .join("assets")
@@ -91,11 +89,9 @@ fn editor_manager_promotes_local_theme_to_external_style_asset_and_opens_selecte
     );
     assert_eq!(reflection.route.asset_kind, UiAssetKind::Style);
 
-    assert!(
-        manager
-            .undo_ui_asset_editor(&instance_id)
-            .expect("undo promote local theme")
-    );
+    assert!(manager
+        .undo_ui_asset_editor(&instance_id)
+        .expect("undo promote local theme"));
     assert!(!theme_path.exists());
     let undone = manager
         .ui_asset_editor_pane_presentation(&instance_id)
@@ -103,11 +99,9 @@ fn editor_manager_promotes_local_theme_to_external_style_asset_and_opens_selecte
     assert_eq!(undone.theme_selected_source_kind, "Local");
     assert!(undone.theme_can_promote_local);
 
-    assert!(
-        manager
-            .redo_ui_asset_editor(&instance_id)
-            .expect("redo promote local theme")
-    );
+    assert!(manager
+        .redo_ui_asset_editor(&instance_id)
+        .expect("redo promote local theme"));
     assert!(theme_path.exists());
     let redone = manager
         .ui_asset_editor_pane_presentation(&instance_id)
@@ -160,11 +154,9 @@ fn editor_manager_uses_custom_promote_theme_draft_values() {
         .set_ui_asset_editor_promote_theme_display_name(&instance_id, "Editor Shell Theme")
         .expect("set promote theme display name");
 
-    assert!(
-        manager
-            .promote_ui_asset_editor_local_theme_to_external_style_asset(&instance_id)
-            .expect("promote local theme to custom external style asset")
-    );
+    assert!(manager
+        .promote_ui_asset_editor_local_theme_to_external_style_asset(&instance_id)
+        .expect("promote local theme to custom external style asset"));
 
     let theme_path = project_root
         .join("assets")
@@ -236,11 +228,9 @@ fn editor_manager_detaches_selected_imported_theme_into_local_theme_layer() {
         "res://ui/theme/shared_theme.zui"
     );
 
-    assert!(
-        manager
-            .detach_ui_asset_editor_selected_theme_source_to_local(&instance_id)
-            .expect("detach selected imported theme into local layer")
-    );
+    assert!(manager
+        .detach_ui_asset_editor_selected_theme_source_to_local(&instance_id)
+        .expect("detach selected imported theme into local layer"));
 
     let detached = manager
         .ui_asset_editor_pane_presentation(&instance_id)
@@ -293,11 +283,9 @@ fn editor_manager_detaches_selected_imported_theme_into_local_theme_layer() {
         vec!["shared_theme_local_theme", "local_theme"]
     );
 
-    assert!(
-        manager
-            .undo_ui_asset_editor(&instance_id)
-            .expect("undo detach imported theme")
-    );
+    assert!(manager
+        .undo_ui_asset_editor(&instance_id)
+        .expect("undo detach imported theme"));
     let undone = manager
         .ui_asset_editor_pane_presentation(&instance_id)
         .expect("pane after undo detach");
@@ -307,11 +295,9 @@ fn editor_manager_detaches_selected_imported_theme_into_local_theme_layer() {
         "res://ui/theme/shared_theme.zui"
     );
 
-    assert!(
-        manager
-            .redo_ui_asset_editor(&instance_id)
-            .expect("redo detach imported theme")
-    );
+    assert!(manager
+        .redo_ui_asset_editor(&instance_id)
+        .expect("redo detach imported theme"));
     let redone = manager
         .ui_asset_editor_pane_presentation(&instance_id)
         .expect("pane after redo detach");
@@ -370,11 +356,9 @@ fn editor_manager_clones_selected_imported_theme_into_local_theme_layer() {
         .select_ui_asset_editor_theme_source(&instance_id, 1)
         .expect("select imported theme");
 
-    assert!(
-        manager
-            .clone_ui_asset_editor_selected_theme_source_to_local(&instance_id)
-            .expect("clone selected imported theme into local layer")
-    );
+    assert!(manager
+        .clone_ui_asset_editor_selected_theme_source_to_local(&instance_id)
+        .expect("clone selected imported theme into local layer"));
 
     let cloned = manager
         .ui_asset_editor_pane_presentation(&instance_id)
@@ -422,11 +406,9 @@ fn editor_manager_clones_selected_imported_theme_into_local_theme_layer() {
         vec!["shared_theme_local_theme", "local_theme"]
     );
 
-    assert!(
-        manager
-            .undo_ui_asset_editor(&instance_id)
-            .expect("undo clone imported theme")
-    );
+    assert!(manager
+        .undo_ui_asset_editor(&instance_id)
+        .expect("undo clone imported theme"));
     let undone = manager
         .ui_asset_editor_pane_presentation(&instance_id)
         .expect("pane after undo clone");
@@ -436,11 +418,9 @@ fn editor_manager_clones_selected_imported_theme_into_local_theme_layer() {
         "res://ui/theme/shared_theme.zui"
     );
 
-    assert!(
-        manager
-            .redo_ui_asset_editor(&instance_id)
-            .expect("redo clone imported theme")
-    );
+    assert!(manager
+        .redo_ui_asset_editor(&instance_id)
+        .expect("redo clone imported theme"));
     let redone = manager
         .ui_asset_editor_pane_presentation(&instance_id)
         .expect("pane after redo clone");

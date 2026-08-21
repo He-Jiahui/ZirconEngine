@@ -151,9 +151,8 @@ fn workbench_reflection_operation_binding_preserves_native_binding_provenance_an
         UiControlResponse::Invocation(result) if result.error.is_none() && result.value.is_some()
     ));
 
-    let record = runtime
-        .runtime
-        .journal()
+    let journal = runtime.runtime.journal();
+    let record = journal
         .records()
         .last()
         .expect("operation binding must append an event record");

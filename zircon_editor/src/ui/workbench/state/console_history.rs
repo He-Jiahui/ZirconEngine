@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use crate::core::editor_event::ConsoleMessageFilter;
 use crate::ui::workbench::snapshot::{
-    CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY, ConsoleOutputLevelCounts, ConsoleOutputSnapshot,
-    EditorConsoleMessageLevel,
+    ConsoleOutputLevelCounts, ConsoleOutputSnapshot, EditorConsoleMessageLevel,
+    CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY,
 };
 
 #[derive(Clone)]

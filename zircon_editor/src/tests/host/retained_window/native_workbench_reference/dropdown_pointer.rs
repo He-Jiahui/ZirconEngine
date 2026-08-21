@@ -71,11 +71,9 @@ fn componentized_workbench_module_dropdown_selection_paints_native_preview_pixel
         &bridge.surface().render_extract.list.commands,
     );
 
-    assert!(
-        bridge
-            .select_dropdown_option("WorkbenchMaterialDomainDropdown", "post_process")
-            .expect("material domain dropdown option selection should apply")
-    );
+    assert!(bridge
+        .select_dropdown_option("WorkbenchMaterialDomainDropdown", "post_process")
+        .expect("material domain dropdown option selection should apply"));
     assert_eq!(
         bridge
             .host_projection()
@@ -272,18 +270,14 @@ fn native_workbench_secondary_press_requests_scene_context_menu() {
     );
     assert_eq!(request.popup_anchor_x, x);
     assert_eq!(request.popup_anchor_y, y);
-    assert!(
-        request
-            .menu_items
-            .iter()
-            .any(|item| item.as_str() == "Rename|icon=edit")
-    );
-    assert!(
-        request
-            .menu_items
-            .iter()
-            .any(|item| item.as_str() == "Delete|danger,icon=trash")
-    );
+    assert!(request
+        .menu_items
+        .iter()
+        .any(|item| item.as_str() == "Rename|icon=edit"));
+    assert!(request
+        .menu_items
+        .iter()
+        .any(|item| item.as_str() == "Delete|danger,icon=trash"));
 }
 
 #[test]

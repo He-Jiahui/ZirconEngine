@@ -108,3 +108,62 @@ fn dynamic_session_drains_runtime_ime_cursor_area_and_surrounding_text_requests_
 
     destroy_test_session(api, session);
 }
+
+#[test]
+fn oversized_host_request_drain_pages_forward_without_losing_requests() {
+    let api = runtime_api();
+    let handle_event = api.handle_event.expect("handle_event");
+    let drain_host_requests = api.drain_host_requests.expect("drain_host_requests");
+    let session = create_test_session(api);
+    for index in 0..=zircon_runtime_interface::ZR_RUNTIME_HOST_REQUEST_OUTPUT_LIMIT_V1.max_items {
+        assert_session_status(
+            unsafe {
+                handle_event(
+                    session,
+                    ZrRuntimeEventV1::ime_cursor_area(
+                        ZIRCON_RUNTIME_ABI_VERSION_V1,
+                        default_viewport(),
+                        index as f32,
+                        0.0,
+                        1,
+                        1,
+                    ),
+                )
+            },
+            ZrStatusCode::Ok,
+            "",
+        );
+    }
+
+    let mut page_lengths = Vec::new();
+    for _ in 0..2 {
+        let mut output = ZrOwnedResultV2::empty();
+        assert_session_status(
+            unsafe { drain_host_requests(session, &mut output) },
+            ZrStatusCode::Ok,
+            "",
+        );
+        page_lengths.push(
+            host_request_batch_from_output(session, output)
+                .requests
+                .len(),
+        );
+    }
+    assert_eq!(
+        page_lengths,
+        vec![
+            zircon_runtime_interface::ZR_RUNTIME_HOST_REQUEST_OUTPUT_LIMIT_V1.max_items,
+            1,
+        ]
+    );
+
+    let mut empty = ZrOwnedResultV2::empty();
+    assert_session_status(
+        unsafe { drain_host_requests(session, &mut empty) },
+        ZrStatusCode::Ok,
+        "",
+    );
+    assert!(empty.is_empty());
+
+    destroy_test_session(api, session);
+}

@@ -346,7 +346,10 @@ mod tests {
 
         assert_eq!(decoded.dimensions(), (2, 1));
         assert_eq!(decoded.as_raw(), &rgba);
-        assert_eq!(partial_capture_files(&root), Vec::new());
+        assert_eq!(
+            partial_capture_files(&root),
+            Vec::<std::path::PathBuf>::new()
+        );
         std::fs::remove_dir_all(root).unwrap();
     }
 
@@ -379,7 +382,10 @@ mod tests {
             .to_string()
             .contains("failed to encode editor first-frame capture"));
         assert!(!path.exists());
-        assert_eq!(partial_capture_files(&root), Vec::new());
+        assert_eq!(
+            partial_capture_files(&root),
+            Vec::<std::path::PathBuf>::new()
+        );
         std::fs::remove_dir_all(root).unwrap();
     }
 
@@ -398,7 +404,10 @@ mod tests {
             .to_string()
             .contains("failed to commit editor first-frame capture"));
         assert!(path.is_dir(), "failed commit must preserve the destination");
-        assert_eq!(partial_capture_files(&root), Vec::new());
+        assert_eq!(
+            partial_capture_files(&root),
+            Vec::<std::path::PathBuf>::new()
+        );
         std::fs::remove_dir_all(root).unwrap();
     }
 
@@ -417,7 +426,10 @@ mod tests {
 
         assert_eq!(decoded.dimensions(), (1, 1));
         assert_eq!(decoded.as_raw(), &[1, 2, 3, 255]);
-        assert_eq!(partial_capture_files(&root), Vec::new());
+        assert_eq!(
+            partial_capture_files(&root),
+            Vec::<std::path::PathBuf>::new()
+        );
         std::fs::remove_dir_all(root).unwrap();
     }
 

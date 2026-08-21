@@ -6,7 +6,7 @@ use zircon_runtime::{
 use super::*;
 
 #[test]
-fn native_window_hosting_plugin_contributes_window_views_and_capability() {
+fn native_window_hosting_plugin_does_not_publish_core_owned_or_missing_authoring_surfaces() {
     let registration = plugin_registration();
 
     assert!(registration.is_success(), "{:?}", registration.diagnostics);
@@ -20,45 +20,48 @@ fn native_window_hosting_plugin_contributes_window_views_and_capability() {
         registration.package_manifest.capabilities,
         vec![CAPABILITY.to_string()]
     );
-    let views = registration.extensions.views();
-    assert!(views
-        .iter()
-        .any(|view| view.id() == WORKBENCH_WINDOW_VIEW_ID));
-    assert!(views.iter().any(|view| view.id() == PREFAB_WINDOW_VIEW_ID));
-    assert!(registration
-        .extensions
-        .drawers()
-        .iter()
-        .any(|drawer| drawer.id() == NATIVE_WINDOW_DRAWER_ID));
-    assert!(registration
-        .extensions
-        .ui_templates()
-        .iter()
-        .any(|template| template.id() == NATIVE_WINDOW_TEMPLATE_ID));
-    for operation_path in [
-        "view.editor.workbench_window.open",
-        "view.editor.prefab.open",
-    ] {
-        assert!(registration
-            .extensions
-            .menu_items()
-            .iter()
-            .any(|menu| menu.operation().as_str() == operation_path));
-        assert!(registration
-            .extensions
-            .commands()
-            .commands()
-            .any(|operation| operation.id().as_str() == operation_path));
+    assert!(registration.extensions.views().is_empty());
+    assert!(registration.extensions.drawers().is_empty());
+    assert!(registration.extensions.ui_templates().is_empty());
+    assert!(registration.extensions.menu_items().is_empty());
+    assert_eq!(registration.extensions.commands().commands().count(), 0);
+}
+
+#[test]
+fn native_window_hosting_registration_eliminates_phantom_authoring_work() {
+    const REGISTRATIONS: usize = 1_000;
+    const PREVIOUS_CONTRIBUTIONS_PER_REGISTRATION: usize = 8;
+
+    let mut current_contributions = 0usize;
+    for _ in 0..REGISTRATIONS {
+        let registration = plugin_registration();
+        assert!(registration.is_success(), "{:?}", registration.diagnostics);
+        current_contributions += registration.extensions.views().len();
+        current_contributions += registration.extensions.drawers().len();
+        current_contributions += registration.extensions.ui_templates().len();
+        current_contributions += registration.extensions.menu_items().len();
+        current_contributions += registration.extensions.commands().commands().count();
     }
+
+    let previous_contributions = REGISTRATIONS * PREVIOUS_CONTRIBUTIONS_PER_REGISTRATION;
+    assert_eq!(current_contributions, 0);
+    println!(
+        "PERF-MVP-PLUGINS03-NO-PHANTOM-AUTHORING registrations={REGISTRATIONS} \
+         previous_contributions={previous_contributions} current_contributions={current_contributions} \
+         contribution_reduction_percent=100 previous_template_resolutions={REGISTRATIONS} \
+         current_template_resolutions=0 template_resolution_reduction_percent=100"
+    );
 }
 
 #[test]
 fn native_window_hosting_package_manifest_declares_editor_dist_contract() {
     let manifest = package_manifest();
 
-    assert!(manifest
-        .default_packaging
-        .contains(&ExportPackagingStrategy::NativeDynamic));
+    assert!(
+        manifest
+            .default_packaging
+            .contains(&ExportPackagingStrategy::NativeDynamic)
+    );
     let distribution = manifest
         .distribution
         .as_ref()

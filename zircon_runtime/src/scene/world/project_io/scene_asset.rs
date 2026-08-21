@@ -352,7 +352,7 @@ impl World {
             }
         }
 
-        world.normalize_scene_asset_after_load();
+        world.normalize_scene_asset_after_load()?;
         Ok(world)
     }
 

@@ -463,13 +463,14 @@ mod pane_control_state_tests {
     use zircon_runtime::ui::surface::UiSurface;
     use zircon_runtime_interface::ui::{
         component::UiValue,
-        event_ui::{UiNodeId, UiTreeId},
+        event_ui::{UiNodeId, UiNodePath, UiTreeId},
         layout::UiFrame,
         template::UiActionRef,
-        tree::{UiNodePath, UiTemplateNodeMetadata, UiTreeNode},
+        tree::{UiTemplateNodeMetadata, UiTreeNode},
     };
 
     use super::*;
+    use crate::ui::template_runtime::RetainedUiHostNodeProjection;
 
     #[test]
     fn pane_control_state_projects_rows_selection_and_disabled_to_native_and_retained_models() {

@@ -7,7 +7,8 @@ fn editor_asset_boundary_lives_in_editor_crate() {
     let project_access_source = include_str!("../../../ui/host/project_access.rs");
     let asset_workspace_source =
         include_str!("../../../ui/workbench/project/asset_workspace_state.rs");
-    let accessors_source = include_str!("../../../ui/host/editor_event_runtime_access/asset_access.rs");
+    let accessors_source =
+        include_str!("../../../ui/host/editor_event_runtime_access/asset_access.rs");
     let core_mod_source = include_str!("../../../core/mod.rs");
     let runtime_asset_root_source = include_str!("../../../../../zircon_runtime/src/asset/mod.rs");
     let runtime_asset_module_source =
@@ -180,7 +181,8 @@ fn editor_asset_workspace_uses_canonical_resource_state() {
         include_str!("../../../ui/workbench/project/asset_workspace_state.rs");
     let editor_state_asset_workspace_source =
         include_str!("../../../ui/workbench/project/editor_state_asset_workspace.rs");
-    let accessors_source = include_str!("../../../ui/host/editor_event_runtime_access/asset_access.rs");
+    let accessors_source =
+        include_str!("../../../ui/host/editor_event_runtime_access/asset_access.rs");
     let resource_access_source = include_str!("../../../ui/host/resource_access.rs");
     let asset_surface_source =
         include_str!("../../../ui/layouts/views/asset_surface_presentation.rs");
@@ -223,7 +225,8 @@ fn editor_asset_workspace_uses_canonical_resource_record() {
         include_str!("../../../ui/workbench/project/asset_workspace_state.rs");
     let editor_state_asset_workspace_source =
         include_str!("../../../ui/workbench/project/editor_state_asset_workspace.rs");
-    let accessors_source = include_str!("../../../ui/host/editor_event_runtime_access/asset_access.rs");
+    let accessors_source =
+        include_str!("../../../ui/host/editor_event_runtime_access/asset_access.rs");
     let resource_access_source = include_str!("../../../ui/host/resource_access.rs");
     let resource_access_test_source = include_str!("../resource_access/mod.rs");
 

@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use super::{
-    STATIC_FIELD_CACHE_CAPACITY, WeightHeatmapGeneration, WeightHeatmapGenerationInput,
-    WeightHeatmapSource, static_field_cache_entry_count,
+    static_field_cache_entry_count, WeightHeatmapGeneration, WeightHeatmapGenerationInput,
+    WeightHeatmapSource, STATIC_FIELD_CACHE_CAPACITY,
 };
 
 fn source(x: f32, y: f32, weight: f32, selected: bool) -> WeightHeatmapSource {
@@ -50,12 +50,10 @@ fn generation_retains_every_source_without_silent_truncation() {
         .collect::<Vec<_>>();
     let generation = generation(sources);
     assert_eq!(generation.sources().len(), 65_537);
-    assert!(
-        generation
-            .sources()
-            .last()
-            .is_some_and(|source| source.selected())
-    );
+    assert!(generation
+        .sources()
+        .last()
+        .is_some_and(|source| source.selected()));
 }
 
 #[test]

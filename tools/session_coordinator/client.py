@@ -62,6 +62,7 @@ class CoordinatorClient:
                 runtime = json.loads(config.runtime_path.read_text(encoding="utf-8"))
                 host = str(runtime["host"])
                 port = int(runtime["port"])
+                token = str(runtime["token"])
                 break
             except (OSError, ValueError, KeyError, TypeError) as error:
                 if time.monotonic() >= deadline:
@@ -86,7 +87,7 @@ class CoordinatorClient:
             )
         return cls(
             base_url=f"http://{host}:{port}",
-            token="",
+            token=token,
             expected_repository_key=config.repository_key,
             command_timeout_seconds=_environment_timeout_seconds(
                 "ZIRCON_COORDINATOR_COMMAND_TIMEOUT_SECONDS", 300.0
@@ -389,6 +390,7 @@ class CoordinatorClient:
             f"{self.base_url}{path}",
             data=data,
             headers={
+                "Authorization": f"Bearer {self.token}",
                 "Content-Type": "application/json",
             },
             method=method,

@@ -2,6 +2,8 @@ use super::*;
 use std::sync::{Arc, Barrier};
 use std::thread;
 
+use crate::core::notifications::{MAX_NOTIFICATION_ID_BYTES, MAX_NOTIFICATION_SOURCE_ID_BYTES};
+
 fn center() -> DecisionNotificationCenter {
     DecisionNotificationCenter::new(DecisionCenterConfig::default()).unwrap()
 }

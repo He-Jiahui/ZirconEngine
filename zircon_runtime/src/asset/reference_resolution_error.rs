@@ -26,6 +26,15 @@ pub enum ReferenceResolutionError {
     },
     #[error("asset reference {guid} and path hint {path} are both dangling")]
     Dangling { guid: AssetUuid, path: String },
+    #[error(
+        "asset reference {guid} targets missing subasset {label} at {path}; candidates: {candidates:?}"
+    )]
+    DanglingSubasset {
+        guid: AssetUuid,
+        path: String,
+        label: String,
+        candidates: Vec<ResourceLocator>,
+    },
     #[error("asset reference guid {guid} and path hint {path} resolve to different entries")]
     Conflict { guid: AssetUuid, path: String },
     #[error("asset registry disagrees with persisted reference: {message}")]

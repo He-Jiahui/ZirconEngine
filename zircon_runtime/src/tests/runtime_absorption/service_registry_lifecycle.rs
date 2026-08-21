@@ -1,4 +1,4 @@
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
 
 use crate::core::runtime::ServiceObject;
@@ -41,7 +41,7 @@ fn failed_service_initialization_does_not_retain_the_runtime_root() {
                     StartupMode::Lazy,
                     Vec::new(),
                     Arc::new(|core| {
-                        let _construction_back_reference = core.downgrade();
+                        let _construction_back_reference = core.clone();
                         Err(CoreError::MissingConfig(
                             "tests.service_registry.initialization".to_string(),
                         ))
@@ -52,9 +52,11 @@ fn failed_service_initialization_does_not_retain_the_runtime_root() {
         .unwrap();
     runtime.activate_module("WeakFailureModule").unwrap();
 
-    assert!(runtime
-        .resolve_manager::<WeakBackReferenceService>(service_name.as_str())
-        .is_err());
+    assert!(
+        runtime
+            .resolve_manager::<WeakBackReferenceService>(service_name.as_str())
+            .is_err()
+    );
     drop(runtime);
 
     assert!(
@@ -83,7 +85,7 @@ fn module_activation_rollback_drops_registry_owned_weak_services() {
                     Vec::new(),
                     Arc::new(|core| {
                         Ok(Arc::new(WeakBackReferenceService {
-                            _core: core.downgrade(),
+                            _core: core.clone(),
                         }) as ServiceObject)
                     }),
                 )),
@@ -115,7 +117,7 @@ fn service_factory_panic_unwind_does_not_retain_the_runtime_root() {
                     Vec::new(),
                     Arc::new(|core| -> CoreResult<ServiceObject> {
                         let _service = WeakBackReferenceService {
-                            _core: core.downgrade(),
+                            _core: core.clone(),
                         };
                         panic!("deliberate service factory unwind")
                     }),

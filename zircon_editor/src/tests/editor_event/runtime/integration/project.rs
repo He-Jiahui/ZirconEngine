@@ -101,8 +101,8 @@ fn save_project_marks_the_transaction_history_only_after_persisting_the_world() 
             .expect("editor manager should resolve");
         let document = manager.open_project(&root).expect("project should open");
         let level = manager
-            .create_runtime_level(document.world)
-            .expect("opened project scene should create a runtime level");
+            .prepare_authoring_world(document.world)
+            .expect("opened project scene should create an authoring world");
         runtime
             .runtime
             .replace_world(level, root.to_string_lossy())

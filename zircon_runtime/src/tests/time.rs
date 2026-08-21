@@ -14,6 +14,8 @@ fn core_runtime_advances_real_virtual_and_fixed_time_together() {
     let clocks = runtime.time_clocks();
 
     assert_eq!(advance.real_delta(), Duration::from_millis(34));
+    assert_eq!(advance.virtual_delta(), Duration::from_millis(34));
+    assert!(!advance.virtual_time_paused());
     assert_eq!(clocks.real().delta(), Duration::from_millis(34));
     assert_eq!(clocks.real().elapsed(), Duration::from_millis(34));
     assert_eq!(clocks.real().frame_index(), 1);
@@ -34,6 +36,8 @@ fn core_runtime_virtual_pause_scale_and_clamp_feed_fixed_time() {
     let paused = runtime.advance_time_by(Duration::from_millis(35), 8);
 
     assert_eq!(paused.fixed_step_plan().step_count, 0);
+    assert_eq!(paused.virtual_delta(), Duration::ZERO);
+    assert!(paused.virtual_time_paused());
     assert_eq!(runtime.virtual_time().delta(), Duration::ZERO);
     assert_eq!(runtime.fixed_time().overstep(), Duration::ZERO);
 
@@ -42,6 +46,8 @@ fn core_runtime_virtual_pause_scale_and_clamp_feed_fixed_time() {
     let scaled = runtime.advance_time_by(Duration::from_millis(40), 8);
 
     assert_eq!(scaled.fixed_step_plan().step_count, 2);
+    assert_eq!(scaled.virtual_delta(), Duration::from_millis(20));
+    assert!(!scaled.virtual_time_paused());
     assert_eq!(runtime.virtual_time().delta(), Duration::from_millis(20));
     assert_eq!(runtime.fixed_time().elapsed(), Duration::from_millis(20));
 
@@ -49,8 +55,40 @@ fn core_runtime_virtual_pause_scale_and_clamp_feed_fixed_time() {
     let clamped = runtime.advance_time_by(Duration::from_millis(100), 8);
 
     assert_eq!(clamped.fixed_step_plan().step_count, 0);
+    assert_eq!(clamped.virtual_delta(), Duration::from_millis(5));
     assert_eq!(runtime.virtual_time().delta(), Duration::from_millis(5));
     assert_eq!(runtime.fixed_time().overstep(), Duration::from_millis(5));
+}
+
+#[test]
+fn core_runtime_virtual_pause_preserves_existing_fixed_overstep() {
+    let runtime = CoreRuntime::new();
+    runtime.set_fixed_timestep(Duration::from_millis(10));
+
+    let before_pause = runtime.advance_time_by(Duration::from_millis(55), 4);
+    assert_eq!(before_pause.fixed_step_plan().step_count, 4);
+    assert_eq!(runtime.fixed_time().overstep(), Duration::from_millis(15));
+    assert_eq!(runtime.fixed_time().elapsed(), Duration::from_millis(40));
+    assert_eq!(runtime.fixed_time().frame_index(), 4);
+
+    runtime.pause_virtual_time();
+    let paused = runtime.advance_time_by(Duration::from_millis(35), 8);
+
+    assert_eq!(paused.fixed_step_plan().step_count, 0);
+    assert_eq!(
+        paused.fixed_step_plan().remaining_overstep,
+        Duration::from_millis(15)
+    );
+    assert_eq!(runtime.fixed_time().overstep(), Duration::from_millis(15));
+    assert_eq!(runtime.fixed_time().elapsed(), Duration::from_millis(40));
+    assert_eq!(runtime.fixed_time().frame_index(), 4);
+
+    runtime.unpause_virtual_time();
+    let resumed = runtime.advance_time_by(Duration::ZERO, 8);
+    assert_eq!(resumed.fixed_step_plan().step_count, 1);
+    assert_eq!(runtime.fixed_time().overstep(), Duration::from_millis(5));
+    assert_eq!(runtime.fixed_time().elapsed(), Duration::from_millis(50));
+    assert_eq!(runtime.fixed_time().frame_index(), 5);
 }
 
 #[test]

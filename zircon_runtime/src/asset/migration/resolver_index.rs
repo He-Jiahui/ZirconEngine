@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+use std::cell::Cell;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -91,6 +93,7 @@ struct PersistedHintIdentity {
 pub(crate) struct MigrationResolverIndex {
     by_locator: HashMap<AssetUri, Vec<PersistedSourceIdentity>>,
     by_project_hint: HashMap<RelPath, Vec<PersistedHintIdentity>>,
+    lookup_count: Cell<usize>,
 }
 
 impl MigrationResolverIndex {
@@ -99,9 +102,17 @@ impl MigrationResolverIndex {
         compound_bindings: impl IntoIterator<Item = MigrationCompoundBinding>,
     ) -> Result<Self, ReferenceResolutionError> {
         let projections = projections.into_iter().collect::<Vec<_>>();
+        let compound_bindings = compound_bindings.into_iter();
+        let index_capacity = projections
+            .len()
+            .saturating_add(compound_bindings.size_hint().0);
         let mut projections_by_physical_path: HashMap<PathBuf, Vec<&MigrationSourceProjection>> =
-            HashMap::new();
-        let mut index = Self::default();
+            HashMap::with_capacity(projections.len());
+        let mut index = Self {
+            by_locator: HashMap::with_capacity(index_capacity),
+            by_project_hint: HashMap::with_capacity(index_capacity),
+            lookup_count: Cell::new(0),
+        };
 
         for projection in &projections {
             projections_by_physical_path
@@ -147,8 +158,13 @@ impl MigrationResolverIndex {
         &self,
         locator: &AssetUri,
     ) -> Result<RelPath, ReferenceResolutionError> {
+        self.record_lookup();
         let base_locator = base_project_locator(locator)?;
-        match self.by_locator.get(&base_locator).map(Vec::as_slice) {
+        match self
+            .by_locator
+            .get(base_locator.as_ref())
+            .map(Vec::as_slice)
+        {
             None | Some([]) => Err(ReferenceResolutionError::MissingPath {
                 path: locator.to_string(),
             }),
@@ -163,6 +179,7 @@ impl MigrationResolverIndex {
         &self,
         hint: &RelPath,
     ) -> Result<Option<AssetUri>, ReferenceResolutionError> {
+        self.record_lookup();
         match self.by_project_hint.get(hint).map(Vec::as_slice) {
             None | Some([]) => Ok(None),
             Some([identity]) => Ok(Some(identity.locator.clone())),
@@ -172,6 +189,15 @@ impl MigrationResolverIndex {
         }
     }
 
+    pub(crate) fn lookup_count(&self) -> usize {
+        self.lookup_count.get()
+    }
+
+    fn record_lookup(&self) {
+        self.lookup_count
+            .set(self.lookup_count.get().saturating_add(1));
+    }
+
     fn insert(
         &mut self,
         locator: AssetUri,
@@ -179,7 +205,7 @@ impl MigrationResolverIndex {
         compound_hint: bool,
         target_relative: Option<&str>,
     ) -> Result<(), ReferenceResolutionError> {
-        let locator = base_project_locator(&locator)?;
+        let locator = into_base_project_locator(locator)?;
         let target_relative = target_relative.unwrap_or(projection.root_relative.as_str());
         let project_hint = RelPath::parse(format!(
             "{}/{}",
@@ -279,11 +305,28 @@ impl ProjectSourceLookup for MigrationResolverIndex {
     }
 }
 
-fn base_project_locator(locator: &AssetUri) -> Result<AssetUri, ReferenceResolutionError> {
+fn base_project_locator(locator: &AssetUri) -> Result<Cow<'_, AssetUri>, ReferenceResolutionError> {
     if locator.scheme() != ResourceScheme::Res {
         return Err(ReferenceResolutionError::UnsupportedScheme {
             locator: locator.clone(),
         });
+    }
+    if locator.label().is_none() {
+        return Ok(Cow::Borrowed(locator));
+    }
+    AssetUri::new(ResourceScheme::Res, locator.path().to_owned(), None)
+        .map(Cow::Owned)
+        .map_err(|error| ReferenceResolutionError::Registry {
+            message: error.to_string(),
+        })
+}
+
+fn into_base_project_locator(locator: AssetUri) -> Result<AssetUri, ReferenceResolutionError> {
+    if locator.scheme() != ResourceScheme::Res {
+        return Err(ReferenceResolutionError::UnsupportedScheme { locator });
+    }
+    if locator.label().is_none() {
+        return Ok(locator);
     }
     AssetUri::new(ResourceScheme::Res, locator.path().to_owned(), None).map_err(|error| {
         ReferenceResolutionError::Registry {
@@ -294,4 +337,27 @@ fn base_project_locator(locator: &AssetUri) -> Result<AssetUri, ReferenceResolut
 
 fn compound_sidecar_relative_path(locator: &AssetUri, suffix: &str) -> String {
     format!("{}{suffix}", locator.path())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn base_project_locator_borrows_the_common_unlabeled_key() {
+        let locator = AssetUri::parse("res://textures/albedo.ztexture").unwrap();
+        let base = base_project_locator(&locator).unwrap();
+
+        assert!(matches!(base, Cow::Borrowed(value) if std::ptr::eq(value, &locator)));
+        assert_eq!(into_base_project_locator(locator.clone()).unwrap(), locator);
+    }
+
+    #[test]
+    fn base_project_locator_owns_only_the_label_stripped_key() {
+        let locator = AssetUri::parse("res://models/hero.glb#Mesh0").unwrap();
+        let expected = AssetUri::parse("res://models/hero.glb").unwrap();
+
+        assert_eq!(base_project_locator(&locator).unwrap().as_ref(), &expected);
+        assert_eq!(into_base_project_locator(locator).unwrap(), expected);
+    }
 }

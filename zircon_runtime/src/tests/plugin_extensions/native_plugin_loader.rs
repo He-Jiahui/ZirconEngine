@@ -1,9 +1,10 @@
 use std::fs;
+use std::hint::black_box;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
 use std::thread;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use crate::plugin::NativePluginLoader;
 
@@ -40,12 +41,14 @@ manifest = "plugins/weather/plugin.toml"
         report.discovered()[0].manifest_path,
         plugin_root.join("plugin.toml")
     );
-    assert!(report.discovered()[0]
-        .library_path
-        .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .contains("zircon_plugin_weather_runtime"));
+    assert!(
+        report.discovered()[0]
+            .library_path
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .contains("zircon_plugin_weather_runtime")
+    );
     assert_eq!(
         report.discovered()[0].library_path,
         plugin_root
@@ -78,10 +81,12 @@ manifest = "plugins/weather/plugin.toml"
 
     let root_scan = NativePluginLoader.discover(root.join("plugins").join("native_plugins.toml"));
     assert!(root_scan.discovered().is_empty());
-    assert!(root_scan
-        .diagnostics()
-        .iter()
-        .any(|message| { message.contains("native plugin root does not exist") }));
+    assert!(
+        root_scan
+            .diagnostics()
+            .iter()
+            .any(|message| { message.contains("native plugin root does not exist") })
+    );
 
     fs::write(
         plugin_root.join("plugin.toml"),
@@ -90,8 +95,7 @@ manifest = "plugins/weather/plugin.toml"
     .unwrap();
     let refreshed = NativePluginLoader.discover_from_load_manifest(&root);
 
-    assert_eq!(refreshed.discovered().len(), 1);
-    assert_eq!(refreshed.discovered()[0].plugin_id, "climate");
+    assert!(refreshed.discovered().is_empty());
     assert!(refreshed.diagnostics().iter().any(|message| {
         message.contains("native plugin climate load manifest id mismatch: entry id weather")
     }));
@@ -129,16 +133,18 @@ manifest = "plugins/weather/plugin.toml"
     assert_eq!(selection.discovered().len(), 1);
     assert_eq!(selection.discovered()[0].plugin_id, "weather");
     assert!(root_scan.discovered().is_empty());
-    assert!(root_scan
-        .diagnostics()
-        .iter()
-        .any(|message| { message.contains("native plugin root does not exist") }));
+    assert!(
+        root_scan
+            .diagnostics()
+            .iter()
+            .any(|message| { message.contains("native plugin root does not exist") })
+    );
 
     let _ = fs::remove_dir_all(root.as_ref());
 }
 
 #[test]
-fn native_loader_reports_load_manifest_entry_mismatches() {
+fn native_loader_rejects_load_manifest_entry_mismatches_before_loading() {
     let root = temp_export_root("native-load-manifest-mismatch");
     let declared_root = root.join("plugins").join("declared_weather");
     let actual_root = root.join("plugins").join("actual_weather");
@@ -156,17 +162,141 @@ manifest = "plugins/actual_weather/plugin.toml"
     )
     .unwrap();
 
-    let report = NativePluginLoader.discover_from_load_manifest(&root);
+    let report = NativePluginLoader.load_all_from_load_manifest(&root);
 
-    assert_eq!(report.discovered().len(), 1);
-    assert!(report.diagnostics().iter().any(|message| message
-        .contains("native plugin weather load manifest id mismatch: entry id declared_weather")));
-    assert!(report
-        .diagnostics()
-        .iter()
-        .any(|message| message.contains("native plugin weather load manifest path mismatch")));
+    assert!(report.discovered().is_empty());
+    assert!(report.loaded().is_empty());
+    assert!(report.runtime_plugin_registration_reports().is_empty());
+    assert!(
+        report.diagnostics().iter().any(|message| message.contains(
+            "native plugin weather load manifest id mismatch: entry id declared_weather"
+        ))
+    );
+    assert!(
+        report
+            .diagnostics()
+            .iter()
+            .any(|message| message.contains("native plugin weather load manifest path mismatch"))
+    );
+    assert!(
+        !report
+            .diagnostics()
+            .iter()
+            .any(|message| message.contains("library-open"))
+    );
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+#[ignore = "release performance gate; run through the managed Plugins21 validator"]
+fn native_loader_load_manifest_rejection_release_gate() {
+    const SAMPLE_PAIRS: usize = 21;
+    const ITERATIONS: usize = 16;
+    const MAX_REJECTED_TO_VALID_P95_PERCENT: u128 = 125;
+
+    let valid_root = temp_export_root("native-load-manifest-release-valid");
+    let valid_plugin_root = valid_root.join("plugins").join("weather");
+    fs::create_dir_all(&valid_plugin_root).unwrap();
+    fs::write(
+        valid_plugin_root.join("plugin.toml"),
+        runtime_plugin_manifest(),
+    )
+    .unwrap();
+    fs::write(
+        valid_root.join("plugins").join("native_plugins.toml"),
+        r#"
+[[plugins]]
+id = "weather"
+path = "plugins/weather"
+manifest = "plugins/weather/plugin.toml"
+"#,
+    )
+    .unwrap();
+
+    let rejected_root = temp_export_root("native-load-manifest-release-rejected");
+    let rejected_declared_root = rejected_root.join("plugins").join("declared_weather");
+    let rejected_actual_root = rejected_root.join("plugins").join("actual_weather");
+    fs::create_dir_all(&rejected_declared_root).unwrap();
+    fs::create_dir_all(&rejected_actual_root).unwrap();
+    fs::write(
+        rejected_actual_root.join("plugin.toml"),
+        runtime_plugin_manifest(),
+    )
+    .unwrap();
+    fs::write(
+        rejected_root.join("plugins").join("native_plugins.toml"),
+        r#"
+[[plugins]]
+id = "declared_weather"
+path = "plugins/declared_weather"
+manifest = "plugins/actual_weather/plugin.toml"
+"#,
+    )
+    .unwrap();
+
+    let mut valid_samples_ns = Vec::with_capacity(SAMPLE_PAIRS);
+    let mut rejected_samples_ns = Vec::with_capacity(SAMPLE_PAIRS);
+    for pair_index in 0..SAMPLE_PAIRS {
+        let measure_valid = || measure_load_manifest_admission(&valid_root, ITERATIONS, 1, 1);
+        let measure_rejected = || measure_load_manifest_admission(&rejected_root, ITERATIONS, 0, 0);
+        if pair_index % 2 == 0 {
+            valid_samples_ns.push(measure_valid());
+            rejected_samples_ns.push(measure_rejected());
+        } else {
+            rejected_samples_ns.push(measure_rejected());
+            valid_samples_ns.push(measure_valid());
+        }
+    }
+
+    let valid_p95_ns = nearest_rank_percentile(&valid_samples_ns, 95);
+    let rejected_p95_ns = nearest_rank_percentile(&rejected_samples_ns, 95);
+    assert!(
+        rejected_p95_ns * 100 <= valid_p95_ns * MAX_REJECTED_TO_VALID_P95_PERCENT,
+        "rejected manifest P95 {rejected_p95_ns}ns exceeded valid admission P95 {valid_p95_ns}ns by more than {MAX_REJECTED_TO_VALID_P95_PERCENT}%"
+    );
+    let valid_samples_csv = join_samples(&valid_samples_ns);
+    let rejected_samples_csv = join_samples(&rejected_samples_ns);
+    println!(
+        "PERF-MVP-PLUGINS21-LOAD-MANIFEST-REJECTION sample_pairs={SAMPLE_PAIRS} iterations_per_sample={ITERATIONS} order=alternating_valid_first_even percentile_method=nearest_rank valid_load_eligible_per_sample={ITERATIONS} rejected_load_eligible_per_sample=0 load_eligible_reduction_percent=100 valid_p95_ns={valid_p95_ns} rejected_p95_ns={rejected_p95_ns} max_rejected_to_valid_p95_percent={MAX_REJECTED_TO_VALID_P95_PERCENT} valid_samples_ns={valid_samples_csv} rejected_samples_ns={rejected_samples_csv}"
+    );
+
+    let _ = fs::remove_dir_all(valid_root);
+    let _ = fs::remove_dir_all(rejected_root);
+}
+
+fn measure_load_manifest_admission(
+    root: &Path,
+    iterations: usize,
+    expected_discovered: usize,
+    expected_registration_reports: usize,
+) -> u128 {
+    let started = Instant::now();
+    for _ in 0..iterations {
+        let report = NativePluginLoader.load_all_from_load_manifest(root);
+        assert_eq!(report.discovered().len(), expected_discovered);
+        assert_eq!(
+            report.runtime_plugin_registration_reports().len(),
+            expected_registration_reports
+        );
+        black_box(report.loaded().len());
+    }
+    started.elapsed().as_nanos()
+}
+
+fn nearest_rank_percentile(samples: &[u128], percentile: usize) -> u128 {
+    let mut sorted = samples.to_vec();
+    sorted.sort_unstable();
+    let rank = (sorted.len() * percentile).div_ceil(100);
+    sorted[rank.saturating_sub(1)]
+}
+
+fn join_samples(samples: &[u128]) -> String {
+    samples
+        .iter()
+        .map(u128::to_string)
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 #[test]
@@ -184,7 +314,7 @@ path = "plugins/weather"
 manifest = "plugins/weather/plugin.toml"
 
 [[plugins]]
-id = "weather-alias"
+id = "weather"
 path = "plugins/weather"
 manifest = "plugins/weather/plugin.toml"
 "#,
@@ -239,12 +369,14 @@ fn native_loader_discovers_editor_only_native_package() {
     );
     assert_eq!(report.discovered().len(), 1);
     assert_eq!(report.discovered()[0].plugin_id, "native_window_hosting");
-    assert!(report.discovered()[0]
-        .library_path
-        .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .contains("zircon_plugin_native_window_hosting_editor"));
+    assert!(
+        report.discovered()[0]
+            .library_path
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .contains("zircon_plugin_native_window_hosting_editor")
+    );
     assert!(
         report.runtime_plugin_registration_reports().is_empty(),
         "editor-only native packages must not enter runtime plugin registration"
@@ -256,9 +388,11 @@ fn native_loader_discovers_editor_only_native_package() {
         runtime_report.diagnostics()
     );
     assert!(runtime_report.loaded().is_empty());
-    assert!(runtime_report
-        .runtime_plugin_registration_reports()
-        .is_empty());
+    assert!(
+        runtime_report
+            .runtime_plugin_registration_reports()
+            .is_empty()
+    );
 
     let _ = fs::remove_dir_all(root);
 }
@@ -286,12 +420,14 @@ fn native_loader_discovers_feature_extension_package_from_feature_runtime_module
         report.discovered()[0].plugin_id,
         "sound_timeline_animation_track"
     );
-    assert!(report.discovered()[0]
-        .library_path
-        .file_name()
-        .unwrap()
-        .to_string_lossy()
-        .contains("zircon_plugin_sound_timeline_animation_runtime"));
+    assert!(
+        report.discovered()[0]
+            .library_path
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .contains("zircon_plugin_sound_timeline_animation_runtime")
+    );
     assert!(report.runtime_plugin_registration_reports().is_empty());
 
     let feature_reports = report.runtime_plugin_feature_registration_reports();
@@ -516,12 +652,16 @@ fn native_dynamic_fixture_build_uses_isolated_offline_workspace() {
     assert!(arguments.windows(2).any(|arguments| {
         arguments[0] == "--manifest-path" && arguments[1] == workspace_manifest_text
     }));
-    assert!(!arguments
-        .iter()
-        .any(|argument| argument == &plugin_workspace_manifest));
-    assert!(arguments
-        .windows(2)
-        .any(|arguments| { arguments[0] == "--features" && arguments[1] == "abi_v2_only" }));
+    assert!(
+        !arguments
+            .iter()
+            .any(|argument| argument == &plugin_workspace_manifest)
+    );
+    assert!(
+        arguments
+            .windows(2)
+            .any(|arguments| { arguments[0] == "--features" && arguments[1] == "abi_v2_only" })
+    );
 
     let _ = fs::remove_dir_all(build_root);
 }

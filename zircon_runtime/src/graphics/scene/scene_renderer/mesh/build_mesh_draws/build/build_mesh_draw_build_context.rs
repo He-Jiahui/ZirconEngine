@@ -9,11 +9,12 @@ pub(super) fn build_mesh_draw_build_context(
     _virtual_geometry_enabled: bool,
 ) -> MeshDrawBuildContext {
     let selection = frame
-        .scene
-        .overlays
-        .selection
-        .iter()
-        .map(|highlight| highlight.owner)
+        .overlays()
+        .highlights
+        .as_ref()
+        .map(|highlights| highlights.entities().iter().copied())
+        .into_iter()
+        .flatten()
         .collect::<HashSet<_>>();
 
     MeshDrawBuildContext {

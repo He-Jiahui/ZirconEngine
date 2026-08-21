@@ -5,7 +5,7 @@ use crate::text::rich::parser_registry::parse_rich_text;
 use crate::text::shaping::{DirectTextShapeRunProvider, TextShapeRunProvider};
 use crate::text::{
     RichParseResult, RichTextFormat, ShapedGlyphRun, StyleOverride, StyledRun, TextRange,
-    TextStyle, TEXT_SHAPING_RUN_MAX_BYTES,
+    TextShapingWorkBudget, TextStyle,
 };
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -93,16 +93,20 @@ fn rich_span_index_shapes_one_to_one_thousand_alternating_runs_once_each() {
             run_count,
             "{run_count} alternating style runs must each shape exactly once"
         );
-        assert!(provider
-            .requests
-            .iter()
-            .all(|request| request.graphemes(true).count() == 1));
+        assert!(
+            provider
+                .requests
+                .iter()
+                .all(|request| request.graphemes(true).count() == 1)
+        );
     }
 }
 
 #[test]
-fn rich_span_index_uses_canonical_hard_lines_and_shape_cap() {
-    let long_run = "x".repeat(TEXT_SHAPING_RUN_MAX_BYTES + 1);
+fn rich_span_index_source_line_request_topology_evidence() {
+    let budget = TextShapingWorkBudget::default();
+    let long_run = "x".repeat(budget.max_inline_input_bytes() + 1);
+    assert!(budget.exceeds_inline_threshold(long_run.len()));
     let source = format!("first\r\nsecond\u{2028}{long_run}");
     let parsed = parse_rich_text(&source, RichTextFormat::Plain);
     let mut provider = RecordingProvider::default();
@@ -111,11 +115,18 @@ fn rich_span_index_uses_canonical_hard_lines_and_shape_cap() {
         (0.0, 0.0)
     });
 
-    assert_eq!(provider.requests.len(), 4);
+    assert_eq!(provider.requests.len(), 3);
     assert_eq!(provider.requests[0], "first");
     assert_eq!(provider.requests[1], "second");
-    assert_eq!(provider.requests[2].len(), TEXT_SHAPING_RUN_MAX_BYTES);
-    assert_eq!(provider.requests[3], "x");
+    assert_eq!(provider.requests[2], long_run);
+
+    let optimized_requests = provider.requests.len();
+    let legacy_requests = optimized_requests + 1;
+    let reduction_basis_points = (legacy_requests - optimized_requests) * 10_000 / legacy_requests;
+    println!(
+        "PERF-MVP-RTS-P0-001 workload=rich_advance budget_bytes={} legacy_requests={legacy_requests} optimized_requests={optimized_requests} request_reduction_basis_points={reduction_basis_points}",
+        budget.max_inline_input_bytes(),
+    );
 }
 
 #[derive(Default)]

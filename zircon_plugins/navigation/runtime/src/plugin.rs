@@ -3,10 +3,9 @@ use crate::capability::{
     RUNTIME_CAPABILITIES, RUNTIME_CRATE_NAME,
 };
 use crate::{
-    module_descriptor, navigation_component_descriptors, navigation_event_catalog,
-    navigation_plugin_options, DefaultNavigationManager, NavigationOverlayFrame,
-    DEFAULT_NAVIGATION_RUNTIME_DRIVER_NAME, NAVIGATION_MODULE_NAME,
-    NAVIGATION_OVERLAY_FRAME_EVENT_ID, PLUGIN_ID,
+    DEFAULT_NAVIGATION_RUNTIME_DRIVER_NAME, DefaultNavigationManager, NAVIGATION_MODULE_NAME,
+    NAVIGATION_OVERLAY_FRAME_EVENT_ID, NavigationOverlayFrame, PLUGIN_ID, module_descriptor,
+    navigation_component_descriptors, navigation_event_catalog, navigation_plugin_options,
 };
 use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavMeshBakeReport, NavPathResult, NavigationDebugCapture, NavigationError,
@@ -155,10 +154,13 @@ impl RuntimePlugin for NavigationRuntimePlugin {
                                 |world| -> Result<NavAgentTickReport, NavigationError> {
                                     let report =
                                         manager.tick_world_agents(world, context.delta_seconds)?;
-                                    let overlay_frame =
-                                        manager.navigation_overlay_frame(report.clone());
+                                    let overlay_frame = navigation_overlay_frame_if_enabled(
+                                        &manager, world, &report,
+                                    );
                                     world.send_event(report.clone());
-                                    world.send_event(overlay_frame);
+                                    if let Some(overlay_frame) = overlay_frame {
+                                        world.send_event(overlay_frame);
+                                    }
                                     Ok(report)
                                 },
                             )
@@ -179,6 +181,17 @@ impl RuntimePlugin for NavigationRuntimePlugin {
             .register()?;
         Ok(())
     }
+}
+
+pub(crate) fn navigation_overlay_frame_if_enabled(
+    manager: &DefaultNavigationManager,
+    world: &zircon_runtime::scene::World,
+    report: &NavAgentTickReport,
+) -> Option<NavigationOverlayFrame> {
+    world
+        .get_resource::<NavigationDebugCapture>()
+        .is_some_and(|capture| capture.enabled)
+        .then(|| manager.navigation_overlay_frame(report.clone()))
 }
 
 pub fn runtime_plugin_descriptor() -> RuntimePluginDescriptor {

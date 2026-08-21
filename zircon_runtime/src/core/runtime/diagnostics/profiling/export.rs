@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 use thiserror::Error;
+use zircon_runtime_interface::profiling::profile_session_basename;
 use zircon_runtime_interface::{
     CounterHotspotReport, HotspotReport, ProfileSnapshot, UiHotspotReport,
     PROFILE_COUNTER_HOTSPOTS_FILE, PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE,
@@ -56,7 +57,7 @@ pub fn export_snapshot(
     let counter_hotspots = analyze_counter_hotspots(snapshot);
     let ui_hotspots = analyze_ui_hotspots(snapshot);
     let export_dir =
-        PathBuf::from(&snapshot.output_root).join(sanitize_session_id(&snapshot.session_id));
+        PathBuf::from(&snapshot.output_root).join(profile_session_basename(&snapshot.session_id));
     fs::create_dir_all(&export_dir).map_err(|source| {
         ProfileExportError::CreateExportDirectory {
             path: path_string(&export_dir),
@@ -118,19 +119,6 @@ fn write_json<T: Serialize>(dir: &Path, name: &'static str, value: &T) -> Profil
 
 fn path_string(path: &Path) -> String {
     path.to_string_lossy().into_owned()
-}
-
-fn sanitize_session_id(session_id: &str) -> String {
-    session_id
-        .chars()
-        .map(|ch| {
-            if ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | '.') {
-                ch
-            } else {
-                '_'
-            }
-        })
-        .collect::<String>()
 }
 
 #[derive(Serialize)]
@@ -377,9 +365,66 @@ fn first_fix_candidates(
 
 #[cfg(test)]
 mod tests {
+    use super::profile_session_basename;
     use zircon_runtime_interface::{
         ProfileCounterSnapshot, ProfileFrameSnapshot, ProfileSnapshot, ProfileSpanSnapshot,
     };
+
+    #[test]
+    fn profile_session_id_sanitization_always_produces_a_child_basename() {
+        let separated = profile_session_basename("session/with:separators");
+        assert!(separated.starts_with("session_with_separators-"));
+        for (session_id, expected_prefix) in [
+            ("CON", "session_CON-"),
+            ("con.txt", "session_con.txt-"),
+            ("NUL", "session_NUL-"),
+            ("COM1", "session_COM1-"),
+            ("LPT9.log", "session_LPT9.log-"),
+        ] {
+            assert!(
+                profile_session_basename(session_id).starts_with(expected_prefix),
+                "session_id={session_id:?}"
+            );
+        }
+
+        for session_id in ["", ".", "..", "..."] {
+            let sanitized = profile_session_basename(session_id);
+            assert!(!sanitized.is_empty(), "session_id={session_id:?}");
+            assert_ne!(sanitized, ".", "session_id={session_id:?}");
+            assert_ne!(sanitized, "..", "session_id={session_id:?}");
+            assert!(!sanitized.ends_with('.'), "session_id={session_id:?}");
+            assert_eq!(
+                std::path::Path::new(&sanitized).components().count(),
+                1,
+                "session_id={session_id:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn profile_session_id_sanitization_is_collision_resistant_and_bounded() {
+        let colon = profile_session_basename("a:b");
+        let question = profile_session_basename("a?b");
+        let already_safe = profile_session_basename("a_b");
+
+        assert_ne!(colon, question);
+        assert_ne!(colon, already_safe);
+        assert_ne!(question, already_safe);
+        for sanitized in [
+            colon,
+            question,
+            already_safe,
+            profile_session_basename(&"a".repeat(1_024)),
+        ] {
+            assert!(
+                sanitized.len()
+                    <= zircon_runtime_interface::profiling::PROFILE_SESSION_BASENAME_MAX_BYTES,
+                "sanitized basename is too long: {} bytes",
+                sanitized.len()
+            );
+            assert_eq!(std::path::Path::new(&sanitized).components().count(), 1);
+        }
+    }
 
     #[test]
     fn perfetto_trace_contains_complete_event_spans() {
@@ -426,7 +471,9 @@ mod tests {
 
         let report = super::export_snapshot(&snapshot, true).expect("export profile snapshot");
 
-        assert!(report.export_dir.ends_with("session_with_separators"));
+        assert!(report
+            .export_dir
+            .ends_with(&profile_session_basename("session/with:separators")));
         assert!(report.files.contains(&"timeline.zrtrace.json".to_string()));
         assert!(report.files.contains(&"timeline.perfetto.json".to_string()));
         assert!(report.files.contains(&"hotspots.json".to_string()));

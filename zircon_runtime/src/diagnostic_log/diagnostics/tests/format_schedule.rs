@@ -3,7 +3,8 @@ use std::time::Duration;
 use crate::core::diagnostics::DiagnosticStore;
 
 use super::super::{
-    format_diagnostic_store_snapshot, DiagnosticStoreLogSchedule, DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT,
+    format_diagnostic_store_current_snapshot, format_diagnostic_store_snapshot,
+    DiagnosticStoreLogSchedule, DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT,
 };
 
 #[test]
@@ -19,6 +20,18 @@ fn diagnostic_store_snapshot_formats_current_smoothed_min_and_max() {
         vec![
             "time.frame_time: 30.000000ms (smoothed 21.000000ms, min 20.000000ms, max 30.000000ms)"
         ]
+    );
+}
+
+#[test]
+fn diagnostic_store_current_snapshot_preserves_log_output() {
+    let mut store = DiagnosticStore::new(4);
+    store.record("time.frame_time", 1, 20.0, Some("ms"), ["time", "frame"]);
+    store.record("time.frame_time", 2, 30.0, Some("ms"), ["time", "frame"]);
+
+    assert_eq!(
+        format_diagnostic_store_current_snapshot(&store.current_snapshot()),
+        format_diagnostic_store_snapshot(&store.snapshot())
     );
 }
 

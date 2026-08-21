@@ -12,8 +12,8 @@ use zircon_runtime_interface::ui::surface::{
 use super::super::grapheme::leading_grapheme_continuation_len;
 use super::super::rich_text::UiTextSourceRun;
 use super::candidate_line::{
-    append_segment, push_current_line, push_wrapped_line, split_candidate_lines_at_shaping_caps,
-    trim_word_break_trailing_spaces, CandidateLine, PendingBreakSuffix,
+    append_segment, push_current_line, push_wrapped_line, trim_word_break_trailing_spaces,
+    CandidateLine, PendingBreakSuffix,
 };
 use super::direction::resolve_direction;
 use crate::text::text_style;
@@ -164,7 +164,6 @@ fn wrap_source_fragments_with_line_widths_provider(
     });
 
     push_current_line(&mut lines, &mut current);
-    split_candidate_lines_at_shaping_caps(&mut lines);
     if lines.is_empty() {
         lines.push(CandidateLine::empty());
     }
@@ -196,10 +195,8 @@ fn visit_source_segments_preserving_hard_lines(
             });
             emitted = true;
         }
-        if !line.separator.is_empty() || line.is_run_cap_break() {
+        if !line.separator.is_empty() {
             visit(TextSegment {
-                // A capped hard line has no source separator, but it must still end the
-                // candidate line so a later width/glyph pass cannot reshape the whole run.
                 text: &text[line.separator.clone()],
                 range: UiTextRange {
                     start: source_start + line.separator.start,

@@ -145,6 +145,16 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         Ok(())
     }
 
+    #[cfg(test)]
+    pub(crate) fn mutate_control_property_for_test(
+        &mut self,
+        control_id: &str,
+        property: &str,
+        value: UiValue,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        self.mutate_control_property(control_id, property, value)
+    }
+
     pub(super) fn mutate_node_bool(
         &mut self,
         node_id: UiNodeId,

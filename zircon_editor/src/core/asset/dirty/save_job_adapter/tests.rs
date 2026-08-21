@@ -1,7 +1,7 @@
 use std::any::Any;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use crate::core::asset::dirty::{
@@ -22,9 +22,9 @@ use crate::core::extension::{
 };
 use crate::core::gateway::EditorRuntimeGatewayHandle;
 use crate::core::jobs::{
-    EditorJob, EditorJobAdmissionLimits, EditorJobLimits, EditorJobSpec, JobCategory, JobContext,
-    JobError, JobEventKind, JobEventPumpBudget, JobSubmitError, MutexGroup,
-    test_job_system_with_bus, test_job_system_with_limits,
+    test_job_system_with_bus, test_job_system_with_limits, EditorJob, EditorJobAdmissionLimits,
+    EditorJobLimits, EditorJobSpec, JobCategory, JobContext, JobError, JobEventKind,
+    JobEventPumpBudget, JobSubmitError, MutexGroup,
 };
 
 #[test]
@@ -180,14 +180,13 @@ fn interactive_save_reservation_blocks_competing_admission_before_materializing_
     let executor_materializations = Arc::new(AtomicUsize::new(0));
     let mut adapter = SaveDirtyViewsJobAdapter::new(jobs.clone());
 
-    assert!(
-        adapter
-            .schedule(
-                &fixture.request,
-                {
-                    let jobs = jobs.clone();
-                    move |intent| {
-                        assert_eq!(
+    assert!(adapter
+        .schedule(
+            &fixture.request,
+            {
+                let jobs = jobs.clone();
+                move |intent| {
+                    assert_eq!(
                             jobs.submit(
                                 EditorJobSpec::new(
                                     "save-admission-race",
@@ -198,21 +197,20 @@ fn interactive_save_reservation_blocks_competing_admission_before_materializing_
                             .unwrap_err(),
                             JobSubmitError::AdmissionEntryLimitExceeded { limit: 1 }
                         );
-                        Ok(save_mutex(intent.resource_key()))
-                    }
-                },
-                {
-                    let executor_materializations = Arc::clone(&executor_materializations);
-                    move || {
-                        executor_materializations.fetch_add(1, Ordering::SeqCst);
-                        Arc::new(|_: &super::SaveDirtyViewIntent, _: &JobContext| {
-                            SaveDirtyViewCompletion::Saved { written_bytes: 8 }
-                        }) as Arc<dyn SaveDirtyViewExecutor>
-                    }
-                },
-            )
-            .unwrap()
-    );
+                    Ok(save_mutex(intent.resource_key()))
+                }
+            },
+            {
+                let executor_materializations = Arc::clone(&executor_materializations);
+                move || {
+                    executor_materializations.fetch_add(1, Ordering::SeqCst);
+                    Arc::new(|_: &super::SaveDirtyViewIntent, _: &JobContext| {
+                        SaveDirtyViewCompletion::Saved { written_bytes: 8 }
+                    }) as Arc<dyn SaveDirtyViewExecutor>
+                }
+            },
+        )
+        .unwrap());
 
     assert_eq!(executor_materializations.load(Ordering::SeqCst), 1);
     let batch = await_batch(&mut adapter);
@@ -291,21 +289,19 @@ fn interactive_save_batch_reuses_the_caller_supplied_foreground_save_mutex() {
     let executor_calls = Arc::new(AtomicUsize::new(0));
     let mut adapter = SaveDirtyViewsJobAdapter::new(jobs);
 
-    assert!(
-        adapter
-            .schedule(
-                &fixture.request,
-                move |_| Ok(mutex.clone()),
-                executor({
-                    let executor_calls = Arc::clone(&executor_calls);
-                    move |_: &super::SaveDirtyViewIntent, _: &JobContext| {
-                        executor_calls.fetch_add(1, Ordering::SeqCst);
-                        SaveDirtyViewCompletion::Saved { written_bytes: 8 }
-                    }
-                }),
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            &fixture.request,
+            move |_| Ok(mutex.clone()),
+            executor({
+                let executor_calls = Arc::clone(&executor_calls);
+                move |_: &super::SaveDirtyViewIntent, _: &JobContext| {
+                    executor_calls.fetch_add(1, Ordering::SeqCst);
+                    SaveDirtyViewCompletion::Saved { written_bytes: 8 }
+                }
+            }),
+        )
+        .unwrap());
     assert_eq!(executor_calls.load(Ordering::SeqCst), 0);
 
     release.send(()).unwrap();
@@ -327,24 +323,22 @@ fn interactive_save_batch_preserves_partial_failure_for_generation_safe_apply_an
     let jobs = test_job_system_with_bus(bus.clone(), EditorJobLimits::resolved(4, []));
     let mut adapter = SaveDirtyViewsJobAdapter::new(jobs.clone());
 
-    assert!(
-        adapter
-            .schedule(
-                &fixture.request,
-                |intent| Ok(save_mutex(intent.resource_key())),
-                executor(|intent: &super::SaveDirtyViewIntent, _: &JobContext| {
-                    if intent.document_id() == document(1) {
-                        SaveDirtyViewCompletion::Saved { written_bytes: 8 }
-                    } else {
-                        SaveDirtyViewCompletion::Failed(SaveDirtyViewFailure::new(
-                            SaveDirtyViewFailureKind::Write,
-                            "fixture write failed",
-                        ))
-                    }
-                }),
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            &fixture.request,
+            |intent| Ok(save_mutex(intent.resource_key())),
+            executor(|intent: &super::SaveDirtyViewIntent, _: &JobContext| {
+                if intent.document_id() == document(1) {
+                    SaveDirtyViewCompletion::Saved { written_bytes: 8 }
+                } else {
+                    SaveDirtyViewCompletion::Failed(SaveDirtyViewFailure::new(
+                        SaveDirtyViewFailureKind::Write,
+                        "fixture write failed",
+                    ))
+                }
+            }),
+        )
+        .unwrap());
     let batch = await_batch(&mut adapter);
     let result = fixture
         .request
@@ -444,16 +438,15 @@ fn interactive_save_shutdown_cancels_owned_pending_tickets_and_rejects_new_batch
         Some(&SaveDirtyViewCompletion::Cancelled)
     );
     jobs.pump_events_with_budget(JobEventPumpBudget::new(usize::MAX, Duration::from_secs(1)));
-    assert!(
-        bus.drain_deliveries(subscriber)
-            .into_iter()
-            .any(|delivery| matches!(
-                delivery.message().payload(),
-                EditorMessagePayload::Job(event)
-                    if event.label() == "save_dirty_document_1"
-                        && matches!(event.kind(), JobEventKind::Cancelled)
-            ))
-    );
+    assert!(bus
+        .drain_deliveries(subscriber)
+        .into_iter()
+        .any(|delivery| matches!(
+            delivery.message().payload(),
+            EditorMessagePayload::Job(event)
+                if event.label() == "save_dirty_document_1"
+                    && matches!(event.kind(), JobEventKind::Cancelled)
+        )));
     assert!(matches!(
         adapter.schedule(
             &SaveBatchFixture::new(&[(3, 8)]).request,

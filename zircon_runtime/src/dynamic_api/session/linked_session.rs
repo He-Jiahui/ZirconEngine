@@ -6,7 +6,7 @@ use crate::plugin::RuntimePluginRegistrationReport;
 
 use super::profile::RuntimeDynamicSessionProfile;
 use super::project::RuntimeProjectConfig;
-use super::registry::insert_session;
+use super::registry::{SessionRegistryInsertError, try_insert_session};
 use super::{RuntimeDynamicSession, RuntimeDynamicSessionError};
 
 pub fn create_linked_runtime_session(
@@ -26,6 +26,13 @@ pub fn create_linked_runtime_session(
             step: "resolve linked runtime project root",
             source,
         })?;
-    RuntimeDynamicSession::new_with_linked_plugins(profile, project_config, registrations)
-        .map(insert_session)
+    RuntimeDynamicSession::new_with_linked_plugins(profile, project_config, registrations).and_then(
+        |session| {
+            try_insert_session(session).map_err(
+                |SessionRegistryInsertError::HandleSpaceExhausted| {
+                    RuntimeDynamicSessionError::SessionHandleSpaceExhausted
+                },
+            )
+        },
+    )
 }

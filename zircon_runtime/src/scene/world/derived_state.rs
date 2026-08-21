@@ -1,8 +1,9 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use crate::core::math::{transform_to_mat4, Mat4, Transform};
+use crate::core::math::{Mat4, Transform, transform_to_mat4};
 
 use super::World;
+use crate::scene::EntityId;
 use crate::scene::components::{
     ActiveInHierarchy, ActiveSelf, AmbientLight, AnimationGraphPlayerComponent,
     AnimationPlayerComponent, AnimationSequencePlayerComponent, AnimationSkeletonComponent,
@@ -12,7 +13,6 @@ use crate::scene::components::{
     WorldMatrix,
 };
 use crate::scene::ecs::{InternalSceneSystem, SystemStage};
-use crate::scene::EntityId;
 
 pub(super) const NODE_KIND_ORDINAL_COUNT: usize = 9;
 
@@ -324,6 +324,25 @@ impl World {
         self.hierarchy_mutation_index.children_of(parent).collect()
     }
 
+    pub(super) fn has_direct_child_matching(
+        &self,
+        parent: EntityId,
+        mut predicate: impl FnMut(EntityId) -> bool,
+    ) -> bool {
+        if self
+            .hierarchy_mutation_index
+            .is_current_for_entity_count(self.entities.len())
+        {
+            return self
+                .hierarchy_mutation_index
+                .children_of(parent)
+                .any(predicate);
+        }
+
+        self.stable_entity_ids()
+            .any(|child| self.parent_of(child) == Some(parent) && predicate(child))
+    }
+
     pub(super) fn update_hierarchy_mutation_index(
         &mut self,
         entity: EntityId,
@@ -377,6 +396,7 @@ impl World {
         {
             let visited = self.entities.len();
             self.rebuild_hierarchy_mutation_index();
+            self.record_derived_state_hierarchy_topology_rebuild(visited);
             return visited;
         }
         0
@@ -515,6 +535,7 @@ impl World {
         let parents = self.hierarchy_parent_snapshot();
         let mut seen = HashSet::new();
         let mut hierarchy_updates = Vec::new();
+        let mut parent_chain_steps: usize = 0;
         let hierarchy_index_was_current = self
             .hierarchy_mutation_index
             .is_current_for_entity_count(self.entities.len());
@@ -526,9 +547,14 @@ impl World {
             };
             let previous_parent = hierarchy.parent;
             let current_parent = previous_parent.filter(|parent| {
-                *parent != entity
-                    && parents.contains_key(parent)
-                    && !parent_chain_is_invalid(*parent, entity, &parents, &mut seen)
+                let parent_exists = *parent != entity && parents.contains_key(parent);
+                let current_parent_is_valid =
+                    parent_exists && !parent_chain_is_invalid(*parent, entity, &parents, &mut seen);
+                if parent_exists {
+                    parent_chain_steps =
+                        parent_chain_steps.saturating_add(seen.len().saturating_sub(1));
+                }
+                current_parent_is_valid
             });
             if previous_parent != current_parent {
                 hierarchy_updates.push((entity, previous_parent, current_parent));
@@ -548,6 +574,11 @@ impl World {
         if hierarchy_index_was_current {
             self.hierarchy_mutation_index.mark_current();
         }
+        self.record_derived_state_hierarchy_validity(
+            parents.len(),
+            self.entities.len(),
+            parent_chain_steps,
+        );
     }
 
     fn hierarchy_parent_snapshot(&self) -> HashMap<EntityId, Option<EntityId>> {
@@ -565,19 +596,28 @@ impl World {
     fn rebuild_active_in_hierarchy(&mut self) {
         self.ensure_hierarchy_mutation_index_current();
         let traversal = std::mem::take(&mut self.hierarchy_mutation_index);
+        let mut propagated_entities: usize = 0;
         for root in traversal.roots() {
-            self.propagate_active_state(root, true, &traversal);
+            propagated_entities = propagated_entities
+                .saturating_add(self.propagate_active_state(root, true, &traversal));
         }
         self.hierarchy_mutation_index = traversal;
+        self.record_derived_state_active_propagation(propagated_entities);
     }
 
     fn rebuild_world_matrices(&mut self) {
         self.ensure_hierarchy_mutation_index_current();
         let traversal = std::mem::take(&mut self.hierarchy_mutation_index);
+        let mut propagated_entities: usize = 0;
         for root in traversal.roots() {
-            self.propagate_world_matrix(root, Mat4::IDENTITY, &traversal);
+            propagated_entities = propagated_entities.saturating_add(self.propagate_world_matrix(
+                root,
+                Mat4::IDENTITY,
+                &traversal,
+            ));
         }
         self.hierarchy_mutation_index = traversal;
+        self.record_derived_state_world_matrix_propagation(propagated_entities);
     }
 
     fn propagate_active_state(
@@ -585,11 +625,13 @@ impl World {
         entity: EntityId,
         parent_active: bool,
         traversal: &HierarchyMutationIndex,
-    ) {
+    ) -> usize {
         let mut stack = vec![(entity, parent_active)];
+        let mut propagated_entities: usize = 0;
         while let Some((current, inherited_active)) = stack.pop() {
             let active = inherited_active && self.active_self_value(current);
             self.replace_derived_component(current, ActiveInHierarchy(active));
+            propagated_entities = propagated_entities.saturating_add(1);
             stack.extend(
                 traversal
                     .children_of(current)
@@ -597,6 +639,7 @@ impl World {
                     .map(|child| (child, active)),
             );
         }
+        propagated_entities
     }
 
     fn propagate_world_matrix(
@@ -604,8 +647,9 @@ impl World {
         entity: EntityId,
         parent_world: Mat4,
         traversal: &HierarchyMutationIndex,
-    ) {
+    ) -> usize {
         let mut stack = vec![(entity, parent_world)];
+        let mut propagated_entities: usize = 0;
         while let Some((current, inherited_world)) = stack.pop() {
             let local = self.local_transform_value(current);
             let local_matrix = transform_to_mat4(local);
@@ -615,6 +659,7 @@ impl World {
                 local_matrix
             };
             self.replace_derived_component(current, WorldMatrix(world));
+            propagated_entities = propagated_entities.saturating_add(1);
             stack.extend(
                 traversal
                     .children_of(current)
@@ -622,6 +667,7 @@ impl World {
                     .map(|child| (child, world)),
             );
         }
+        propagated_entities
     }
 
     fn hierarchy_traversal_index(&self) -> HierarchyTraversalIndex {
@@ -656,6 +702,7 @@ impl World {
         self.node_cache.clear();
         self.node_cache.reserve(self.entities.len());
         let entities = self.stable_entity_ids().collect::<Vec<_>>();
+        let mut rebuilt_entities: usize = 0;
         for entity in entities {
             let Some(name) = self.get::<Name>(entity) else {
                 continue;
@@ -691,7 +738,9 @@ impl World {
                     .get::<AnimationStateMachinePlayerComponent>(entity)
                     .cloned(),
             });
+            rebuilt_entities = rebuilt_entities.saturating_add(1);
         }
+        self.record_derived_state_node_cache_rebuild(rebuilt_entities);
     }
 
     fn prepare_render_extract(&mut self) {

@@ -39,7 +39,7 @@ class RuntimeDescriptorTests(unittest.TestCase):
             descriptor = RuntimeDescriptor(
                 "127.0.0.1",
                 43123,
-                "unused",
+                "runtime-secret",
                 root,
                 repository_identity(root),
                 "instance-a",
@@ -55,8 +55,28 @@ class RuntimeDescriptorTests(unittest.TestCase):
         self.assertEqual(identity.creation_time, payload["process_creation_time"])
         self.assertEqual(LATEST_SCHEMA_VERSION, payload["schema_version"])
         self.assertEqual([1], payload["supervision_api_versions"])
-        self.assertEqual("", payload["token"])
-        self.assertEqual(payload, diagnostic)
+        self.assertEqual("runtime-secret", payload["token"])
+        self.assertNotIn("token", diagnostic)
+        self.assertEqual(
+            {key: value for key, value in payload.items() if key != "token"}, diagnostic
+        )
+
+    def test_descriptor_rejects_empty_runtime_token(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            descriptor = RuntimeDescriptor(
+                "127.0.0.1",
+                43123,
+                "",
+                root,
+                repository_identity(root),
+                "instance-a",
+                "now",
+                current_process_identity(),
+            )
+
+            with self.assertRaisesRegex(ValueError, "token"):
+                descriptor.to_payload()
 
     def test_descriptor_rejects_non_exact_loopback(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

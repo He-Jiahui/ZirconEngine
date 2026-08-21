@@ -1,13 +1,13 @@
 use crate::ui::workbench::autolayout::{
-    EditorRegion, EditorRegionRole, RegionBinding, ResolutionScaleMode, ShellFrame, ShellRegionId,
-    ShellSizePx, WORKBENCH_SHELL_REGIONS_ASSET_ID, WORKBENCH_SHELL_REGIONS_ASSET_KIND,
-    WORKBENCH_SHELL_REGIONS_ASSET_VERSION, WorkbenchChromeMetrics, WorkbenchConstraintTokenName,
-    WorkbenchLayoutTier, WorkbenchShellRegionsAsset, WorkbenchShellRegionsAssetError,
-    WorkbenchSkeleton, compact_bottom_height_limit, compact_side_width_limit,
-    compute_workbench_shell_geometry, compute_workbench_shell_geometry_with_region_defaults,
+    compact_bottom_height_limit, compact_side_width_limit, compute_workbench_shell_geometry,
+    compute_workbench_shell_geometry_with_region_defaults,
     compute_workbench_shell_geometry_with_scale_mode, workbench_layout_defaults,
     workbench_layout_tier_for_logical_width, workbench_layout_tier_for_physical_width,
-    workbench_logical_width_for_scale,
+    workbench_logical_width_for_scale, EditorRegion, EditorRegionRole, RegionBinding,
+    ResolutionScaleMode, ShellFrame, ShellRegionId, ShellSizePx, WorkbenchChromeMetrics,
+    WorkbenchConstraintTokenName, WorkbenchLayoutTier, WorkbenchShellRegionsAsset,
+    WorkbenchShellRegionsAssetError, WorkbenchSkeleton, WORKBENCH_SHELL_REGIONS_ASSET_ID,
+    WORKBENCH_SHELL_REGIONS_ASSET_KIND, WORKBENCH_SHELL_REGIONS_ASSET_VERSION,
 };
 use crate::ui::workbench::fixture::default_preview_fixture;
 use crate::ui::workbench::layout::{

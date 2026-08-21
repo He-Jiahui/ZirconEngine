@@ -17,8 +17,12 @@ fn dev_profile_ticks_runtime_diagnostic_store_log_schedule() {
     assert!(profile_source.contains("RUNTIME_SESSION_PROFILE_DEV => Some(Self::Dev)"));
     assert!(profile_source.contains("DiagnosticStoreLogSchedule::repeating"));
     assert!(profile_source.contains("DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT"));
-    assert!(state_source.contains("collect_runtime_diagnostics(&self.runtime.handle()).store"));
-    assert!(state_source.contains("write_diagnostic_store_snapshot"));
+    assert!(
+        state_source.contains("collect_runtime_diagnostic_current_store(&self.runtime.handle())")
+    );
+    assert!(!state_source.contains("collect_runtime_diagnostics(&self.runtime.handle()).store"));
+    assert!(state_source.contains("write_diagnostic_store_current_snapshot"));
+    assert!(!state_source.contains("write_diagnostic_store_snapshot"));
 }
 
 #[test]

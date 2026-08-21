@@ -122,8 +122,8 @@ fn create_session_validates_abi_and_startup_config_before_acquiring_the_dynamic_
 }
 
 #[test]
-fn create_session_aborts_before_dynamic_library_unload_when_post_lease_bootstrap_cannot_stop_the_worker(
-) {
+fn create_session_aborts_before_dynamic_library_unload_when_post_lease_bootstrap_cannot_stop_the_worker()
+ {
     let session_source = include_str!("../session/ffi.rs");
     let create_start = session_source
         .find("pub(in crate::dynamic_api) unsafe fn create_session(")
@@ -165,7 +165,7 @@ fn create_session_connects_the_runtime_wake_sink_to_the_asset_completion_produce
         .find("session.with_runtime_frame_wake(wake.channel_wake())")
         .expect("session wake producer injection");
     let session_registration = ffi_source
-        .find("let handle = insert_session_with_wake(")
+        .find("let handle = match try_insert_session_with_wake(")
         .expect("session registration after producer injection");
 
     assert!(wake_adapter > 0);

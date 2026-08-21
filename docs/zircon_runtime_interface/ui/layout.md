@@ -71,7 +71,7 @@ The Zircon Slate-style surface-frame contract remains the repository boundary re
 
 `UiLayoutEngineRequest::from_container_kind(...)` maps the current `UiContainerKind` contract into a family for future runtime routing. Horizontal and vertical boxes become `Flex`, grid boxes become `Grid`, wrap boxes become `Wrap`, Masonry boxes become `Masonry`, scroll boxes remain `Scrollable`, and scroll boxes with virtualization become `VirtualizedList`.
 
-`UiLayoutEngineSelection` and `UiLayoutEngineSelectionReport` record whether a request was accepted natively, fell back, or was unsupported. Fallback reasons distinguish unsupported families, missing content measurement, missing DPI scaling, and Zircon-owned semantics. This gives M3 runtime slices a stable diagnostics surface before they wire real engine execution.
+`UiLayoutEngineSelection` and `UiLayoutEngineSelectionReport` record whether a request was accepted natively, fell back, or was unsupported. Fallback reasons distinguish unsupported families, missing content measurement, missing DPI scaling, and Zircon-owned semantics. Preferred and fallback capabilities pass through the same complete admission check; matching the requested family alone cannot qualify a fallback that lacks required measurement, DPI, or ownership semantics. This gives M3 runtime slices a stable diagnostics surface before they wire real engine execution.
 
 ## Boundary
 

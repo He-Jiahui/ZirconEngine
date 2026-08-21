@@ -427,7 +427,7 @@ fn should_skip_duplicate_component_owned_command(
     !emitted_component_owned_control_ids.insert(control_id.clone())
 }
 
-fn component_owns_text_paint(metadata: &UiTemplateNodeMetadata) -> bool {
+pub(super) fn component_owns_text_paint(metadata: &UiTemplateNodeMetadata) -> bool {
     match metadata.component.as_str() {
         "IconButton" => super::icon_button_hides_label(metadata),
         "Button" | "EditableTable" | "InputField" | "NumberField" | "Table" | "TextField" => true,

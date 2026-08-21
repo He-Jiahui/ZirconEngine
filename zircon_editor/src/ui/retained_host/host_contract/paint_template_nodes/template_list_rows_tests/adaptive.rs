@@ -5,6 +5,13 @@ use super::super::super::template_row_metrics::workbench_row_metrics;
 use super::super::push_list_row_commands;
 use super::support::list_node;
 
+fn frame_is_within(outer: &FrameRect, inner: &FrameRect) -> bool {
+    inner.x >= outer.x
+        && inner.y >= outer.y
+        && inner.x + inner.width <= outer.x + outer.width
+        && inner.y + inner.height <= outer.y + outer.height
+}
+
 #[test]
 fn degenerate_list_row_does_not_emit_paint_commands() {
     let rect = FrameRect {

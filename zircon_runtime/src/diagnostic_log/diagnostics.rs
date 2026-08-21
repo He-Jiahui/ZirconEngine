@@ -1,6 +1,9 @@
 use std::time::Duration;
 
-use crate::core::diagnostics::{DiagnosticSeriesSnapshot, DiagnosticStoreSnapshot};
+use crate::core::diagnostics::{
+    DiagnosticSeriesCurrentSnapshot, DiagnosticSeriesSnapshot, DiagnosticStoreCurrentSnapshot,
+    DiagnosticStoreSnapshot,
+};
 
 use super::sink::write_log_lazy;
 
@@ -21,6 +24,16 @@ pub fn format_diagnostic_store_snapshot(snapshot: &DiagnosticStoreSnapshot) -> V
         .collect()
 }
 
+pub fn format_diagnostic_store_current_snapshot(
+    snapshot: &DiagnosticStoreCurrentSnapshot,
+) -> Vec<String> {
+    snapshot
+        .series
+        .iter()
+        .map(format_diagnostic_current_series)
+        .collect()
+}
+
 pub fn write_diagnostic_store_snapshot(scope: &str, snapshot: &DiagnosticStoreSnapshot) {
     for series in snapshot
         .series
@@ -31,6 +44,15 @@ pub fn write_diagnostic_store_snapshot(scope: &str, snapshot: &DiagnosticStoreSn
             format_diagnostic_series(series)
                 .expect("diagnostic series with a current value must format")
         });
+    }
+}
+
+pub fn write_diagnostic_store_current_snapshot(
+    scope: &str,
+    snapshot: &DiagnosticStoreCurrentSnapshot,
+) {
+    for series in &snapshot.series {
+        write_log_lazy(scope, || format_diagnostic_current_series(series));
     }
 }
 
@@ -84,20 +106,48 @@ impl DiagnosticStoreLogSchedule {
 }
 
 fn format_diagnostic_series(series: &DiagnosticSeriesSnapshot) -> Option<String> {
-    let current = series.current?;
-    let unit = series.unit.as_deref().unwrap_or("");
-    let mut line = format!("{}: {:.6}{}", series.path.as_str(), current, unit);
-    if let Some(smoothed) = series.smoothed {
+    Some(format_diagnostic_values(
+        series.path.as_str(),
+        series.current?,
+        series.unit.as_deref(),
+        series.smoothed,
+        series.min,
+        series.max,
+    ))
+}
+
+fn format_diagnostic_current_series(series: &DiagnosticSeriesCurrentSnapshot) -> String {
+    format_diagnostic_values(
+        series.path.as_str(),
+        series.current,
+        series.unit.as_deref(),
+        series.smoothed,
+        series.min,
+        series.max,
+    )
+}
+
+fn format_diagnostic_values(
+    path: &str,
+    current: f64,
+    unit: Option<&str>,
+    smoothed: Option<f64>,
+    min: Option<f64>,
+    max: Option<f64>,
+) -> String {
+    let unit = unit.unwrap_or("");
+    let mut line = format!("{path}: {current:.6}{unit}");
+    if let Some(smoothed) = smoothed {
         line.push_str(&format!(" (smoothed {:.6}{}", smoothed, unit));
-        if let Some(min) = series.min {
+        if let Some(min) = min {
             line.push_str(&format!(", min {:.6}{}", min, unit));
         }
-        if let Some(max) = series.max {
+        if let Some(max) = max {
             line.push_str(&format!(", max {:.6}{}", max, unit));
         }
         line.push(')');
     }
-    Some(line)
+    line
 }
 
 #[cfg(test)]

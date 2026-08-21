@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use toml::Value;
 use zircon_runtime_interface::ui::component::UiComponentState;
@@ -13,6 +13,7 @@ use zircon_runtime_interface::ui::v2::{
     UiV2ResolvedStyleSheet, UiV2StyleDeclarationBlock,
 };
 
+use rule_index::ResolvedRuleTerminalIndex;
 use runtime_state::{
     apply_retained_runtime_state_attributes, collect_pseudo_states, collect_runtime_pseudo_states,
     dirty_for_runtime_style_delta, merge_dirty_flags_into,
@@ -22,6 +23,7 @@ use tokens::{
     style_token_path, style_token_sources_for_block,
 };
 
+mod rule_index;
 mod runtime_state;
 mod tokens;
 
@@ -108,6 +110,8 @@ impl UiV2StyleResolver {
             return Ok(resolved);
         };
 
+        let rule_index = ResolvedRuleTerminalIndex::from_rules(rules);
+        let mut candidate_indices = Vec::new();
         let mut path = Vec::new();
         let mut stack = vec![StyleFrame::new(root)];
         while let Some(frame) = stack.last_mut() {
@@ -120,7 +124,12 @@ impl UiV2StyleResolver {
                     })?;
                 path.push(SelectorPathNode::from_arena_node(node, path.is_empty()));
                 let mut node_style = UiV2ResolvedStyle::default();
-                for rule in rules {
+                rule_index.collect_candidate_indices(
+                    path.last().expect("style path contains the entered node"),
+                    &mut candidate_indices,
+                );
+                for &rule_index in &candidate_indices {
+                    let rule = &rules[rule_index];
                     if rule.selector.matches_path(&path) {
                         merge_block_with_token_sources(&mut node_style, &rule.set, document);
                     }
@@ -154,6 +163,8 @@ impl UiV2StyleResolver {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct UiV2RuntimeStyleIndex {
     rules: Vec<ResolvedRule>,
+    rule_index: ResolvedRuleTerminalIndex,
+    pseudo_state_names: BTreeSet<String>,
     ancestor_pseudo_segments: Vec<UiSelectorSegment>,
     base_attributes: BTreeMap<UiNodeId, BTreeMap<String, Value>>,
     base_style_overrides: BTreeMap<UiNodeId, BTreeMap<String, Value>>,
@@ -190,8 +201,16 @@ impl UiV2RuntimeStyleIndex {
             .flat_map(|rule| ancestor_pseudo_segments(&rule.selector))
             .cloned()
             .collect();
+        let pseudo_state_names = rules
+            .iter()
+            .flat_map(|rule| selector_pseudo_state_names(&rule.selector))
+            .cloned()
+            .collect();
+        let rule_index = ResolvedRuleTerminalIndex::from_rules(&rules);
         Ok(Self {
             rules,
+            rule_index,
+            pseudo_state_names,
             ancestor_pseudo_segments,
             base_attributes: BTreeMap::new(),
             base_style_overrides: BTreeMap::new(),
@@ -201,6 +220,10 @@ impl UiV2RuntimeStyleIndex {
 
     pub(crate) fn has_runtime_rules(&self) -> bool {
         !self.rules.is_empty()
+    }
+
+    pub(crate) fn depends_on_pseudo_state(&self, state: &str) -> bool {
+        self.pseudo_state_names.contains(state)
     }
 
     pub(crate) fn node_state_can_affect_descendants(
@@ -275,8 +298,11 @@ impl UiV2RuntimeStyleIndex {
         // Keep the selector path on the traversal stack so deep descendant
         // pseudo-state rules do not rebuild their ancestor chain per node.
         let mut report = UiV2RuntimeStyleApplyReport::default();
+        let mut candidate_indices = Vec::new();
         let mut path = runtime_selector_path(tree, component_states, root_id)?;
-        if let Some(dirty) = self.apply_node_style(tree, root_id, &path, mark_dirty)? {
+        if let Some(dirty) =
+            self.apply_node_style(tree, root_id, &path, &mut candidate_indices, mark_dirty)?
+        {
             report.changed_nodes.push((root_id, dirty));
         }
         let mut stack = vec![RuntimeStyleFrame {
@@ -302,7 +328,13 @@ impl UiV2RuntimeStyleIndex {
                     component_states.get(child_id),
                     false,
                 ));
-                if let Some(dirty) = self.apply_node_style(tree, child_id, &path, mark_dirty)? {
+                if let Some(dirty) = self.apply_node_style(
+                    tree,
+                    child_id,
+                    &path,
+                    &mut candidate_indices,
+                    mark_dirty,
+                )? {
                     report.changed_nodes.push((child_id, dirty));
                 }
                 stack.push(RuntimeStyleFrame {
@@ -333,7 +365,10 @@ impl UiV2RuntimeStyleIndex {
         }
         let path = runtime_selector_path(tree, component_states, node_id)?;
         let mut report = UiV2RuntimeStyleApplyReport::default();
-        if let Some(dirty) = self.apply_node_style(tree, node_id, &path, mark_dirty)? {
+        let mut candidate_indices = Vec::new();
+        if let Some(dirty) =
+            self.apply_node_style(tree, node_id, &path, &mut candidate_indices, mark_dirty)?
+        {
             report.changed_nodes.push((node_id, dirty));
         }
         Ok(report)
@@ -344,13 +379,20 @@ impl UiV2RuntimeStyleIndex {
         tree: &mut UiTree,
         node_id: UiNodeId,
         path: &[SelectorPathNode],
+        candidate_indices: &mut Vec<usize>,
         mark_dirty: bool,
     ) -> Result<Option<UiDirtyFlags>, UiTreeError> {
         let Some(base_attributes) = self.base_attributes.get(&node_id) else {
             return Ok(None);
         };
         let mut node_style = UiV2ResolvedStyle::default();
-        for rule in &self.rules {
+        self.rule_index.collect_candidate_indices(
+            path.last()
+                .expect("runtime style path contains the target node"),
+            candidate_indices,
+        );
+        for &rule_index in candidate_indices.iter() {
+            let rule = &self.rules[rule_index];
             if rule.selector.matches_path(path) {
                 merge_runtime_rule(&mut node_style, rule);
             }
@@ -490,6 +532,17 @@ fn selector_uses_pseudo_state(selector: &UiSelector) -> bool {
         .iter()
         .flat_map(|segment| segment.tokens.iter())
         .any(|token| matches!(token, UiSelectorToken::State(_)))
+}
+
+fn selector_pseudo_state_names(selector: &UiSelector) -> impl Iterator<Item = &String> {
+    selector
+        .segments
+        .iter()
+        .flat_map(|segment| segment.tokens.iter())
+        .filter_map(|token| match token {
+            UiSelectorToken::State(state) => Some(state),
+            _ => None,
+        })
 }
 
 fn ancestor_pseudo_segments(selector: &UiSelector) -> impl Iterator<Item = &UiSelectorSegment> {

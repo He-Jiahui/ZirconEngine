@@ -3,8 +3,8 @@ use std::time::Instant;
 use crate::{
     core::JobScheduler,
     scene::{
-        dynamic_scene::{PreparedDynamicSceneSpawn, StagedDynamicSceneSpawn},
         DynamicSceneError, LevelSystem,
+        dynamic_scene::{PreparedDynamicSceneSpawn, StagedDynamicSceneSpawn},
     },
 };
 
@@ -18,7 +18,7 @@ use super::{
             DynamicSceneAssetReloadAppliedScene, DynamicSceneAssetReloadApplyFailure,
             DynamicSceneAssetReloadStaleResult,
         },
-        stage_task::{estimate_stage_task_metadata_bytes, DynamicSceneAssetReloadStageTask},
+        stage_task::{DynamicSceneAssetReloadStageTask, estimate_stage_task_metadata_bytes},
     },
     DynamicSceneAssetReloadQueue, ORDER_ENTRY_METADATA_BYTES,
 };
@@ -126,7 +126,7 @@ impl DynamicSceneAssetReloadQueue {
             let remaining_bytes = self
                 .limits
                 .max_pending_result_bytes
-                .saturating_sub(self.target_staging_reserved_bytes)
+                .saturating_sub(self.target_staging_reserved_bytes())
                 .saturating_sub(other_ready_bytes)
                 .saturating_sub(prepared_bytes);
             let target_limit = remaining_bytes.min(
@@ -158,9 +158,6 @@ impl DynamicSceneAssetReloadQueue {
                 };
             synchronous_capture_elapsed = synchronous_capture_elapsed.max(capture_elapsed);
             let asset_id = event.handle().id();
-            self.target_staging_reserved_bytes = self
-                .target_staging_reserved_bytes
-                .saturating_add(task.reserved_bytes());
             self.pending_metadata_bytes = self
                 .pending_metadata_bytes
                 .saturating_add(task.estimated_metadata_bytes());
@@ -316,9 +313,6 @@ impl DynamicSceneAssetReloadQueue {
         self.pending_metadata_bytes = self
             .pending_metadata_bytes
             .saturating_sub(removed.estimated_metadata_bytes());
-        self.target_staging_reserved_bytes = self
-            .target_staging_reserved_bytes
-            .saturating_sub(removed.reserved_bytes());
         Some(removed)
     }
 }

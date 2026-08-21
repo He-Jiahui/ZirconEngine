@@ -1,6 +1,6 @@
 use crate::ui::template::{
-    EditorComponentCatalogManifestError, EditorComponentDescriptor,
-    parse_editor_component_catalog_manifest,
+    parse_editor_component_catalog_manifest, EditorComponentCatalogManifestError,
+    EditorComponentDescriptor,
 };
 
 pub(crate) const BUILTIN_COMPONENT_CATALOG_MANIFEST_ID: &str =
@@ -10,8 +10,8 @@ const BUILTIN_COMPONENT_CATALOG_MANIFEST: &str = include_str!(concat!(
     "/assets/ui/editor/components/catalog.toml"
 ));
 
-pub(crate) fn builtin_component_descriptors()
--> Result<Vec<EditorComponentDescriptor>, EditorComponentCatalogManifestError> {
+pub(crate) fn builtin_component_descriptors(
+) -> Result<Vec<EditorComponentDescriptor>, EditorComponentCatalogManifestError> {
     parse_editor_component_catalog_manifest(BUILTIN_COMPONENT_CATALOG_MANIFEST)
 }
 
@@ -94,8 +94,8 @@ mod tooltip_contract_tests;
 #[cfg(test)]
 mod tests {
     use super::{
-        BUILTIN_COMPONENT_CATALOG_MANIFEST_ID, builtin_component_descriptors_for_tests,
-        primitive_root_prop_default,
+        builtin_component_descriptors_for_tests, primitive_root_prop_default,
+        BUILTIN_COMPONENT_CATALOG_MANIFEST_ID,
     };
     use crate::ui::template::{EditorComponentTier, EditorPropDefault, EditorPropLiteral};
     use std::{
@@ -275,13 +275,13 @@ mod tests {
                         .props
                         .iter()
                         .find(|property| property.name == property_name)
-                })
-                .map(|property| {
-                    (
-                        descriptor.document_id.as_str(),
-                        &property.value_type,
-                        &property.default,
-                    )
+                        .map(|property| {
+                            (
+                                descriptor.document_id.as_str(),
+                                &property.value_type,
+                                &property.default,
+                            )
+                        })
                 })
                 .unwrap_or_else(|| {
                     panic!("builtin catalog should expose `{property_name}` on `{component_id}`")
@@ -391,13 +391,13 @@ mod tests {
                         .props
                         .iter()
                         .find(|property| property.name == property_name)
-                })
-                .map(|property| {
-                    (
-                        descriptor.document_id.as_str(),
-                        &property.value_type,
-                        &property.default,
-                    )
+                        .map(|property| {
+                            (
+                                descriptor.document_id.as_str(),
+                                &property.value_type,
+                                &property.default,
+                            )
+                        })
                 })
                 .unwrap_or_else(|| {
                     panic!("builtin catalog should expose `{property_name}` on `{component_id}`")
@@ -518,13 +518,13 @@ mod tests {
                         .props
                         .iter()
                         .find(|property| property.name == property_name)
-                })
-                .map(|property| {
-                    (
-                        descriptor.document_id.as_str(),
-                        &property.value_type,
-                        &property.default,
-                    )
+                        .map(|property| {
+                            (
+                                descriptor.document_id.as_str(),
+                                &property.value_type,
+                                &property.default,
+                            )
+                        })
                 })
                 .unwrap_or_else(|| {
                     panic!("builtin catalog should expose `{property_name}` on `{component_id}`")

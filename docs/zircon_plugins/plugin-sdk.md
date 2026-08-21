@@ -168,6 +168,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
+  - zircon_plugins/plugin_sdk/src/registration.rs inline tests pin explicit Real and default Virtual runtime scene-system clock domains and reject Real fixed-loop registrations; managed Runtime22 Cargo validation is pending
   - zircon_plugins/plugin_sdk/src/registration.rs inline tests cover owner-aware component registration, foreign-owner rejection, duplicate component typing, and owner revoke; managed zircon_plugin_sdk validation job 839e57989b4842ccab52fb635cc71548 passed 2026-07-16
   - rustfmt --edition 2021 --config skip_children=true --check zircon_plugins/plugin_sdk/src/lib.rs zircon_plugins/plugin_sdk/src/prelude.rs zircon_plugins/plugin_sdk/src/runtime.rs zircon_plugins/plugin_sdk/src/manifest/defaults.rs zircon_plugins/plugin_sdk/src/manifest/mod.rs zircon_plugins/plugin_sdk/src/manifest/package_builder.rs zircon_plugins/plugin_sdk/src/manifest/plugin_module_builder.rs zircon_plugins/plugin_sdk/src/manifest/tests.rs: passed 2026-06-22
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --locked --jobs 1 --target-dir D:\cargo-targets\zircon-plugin-sdk-m2-0622 --message-format short --color never: passed 2026-06-22 with existing zircon_runtime warnings
@@ -320,8 +321,10 @@ The intended runtime path is:
 - `RuntimePluginRegistrationBuilder::new(registry).module(module_name)`; the enclosing `RuntimePluginDescriptor` already owns the only `ModuleDescriptor`, and `RuntimePluginRegistrationReport` registers it before this contribution hook runs.
 - `module.runtime_scene_system(system_id, stage, system_fn)`
 - optional `module.component(ComponentTypeDescriptor)`, `module.event::<EventType>(manifest)`, `module.plugin_option(manifest)`, or `module.plugin_event_catalog(manifest)` for plugin-owned runtime metadata
-- optional `.in_set(...)`, `.with_order(...)`, `.before(...)`, or `.after(...)`
+- optional `.in_set(...)`, `.with_order(...)`, `.before(...)`, `.after(...)`, or `.with_clock_domain(SceneSystemClockDomain::Real)`
 - `.register()`
+
+Runtime scene systems default to `SceneSystemClockDomain::Virtual`, so pausing virtual time skips their callbacks instead of invoking the normal Update path with a zero delta. Editor or diagnostic systems that must keep running while gameplay is paused opt into `Real`; those callbacks receive the real frame delta. Omitting `with_clock_domain(...)` preserves the Virtual default for existing plugins. Fixed-loop stages reject `Real`, because their callbacks are driven only by the fixed-step plan.
 
 `RuntimePluginModuleRegistration::component(...)` derives component ownership from the registered runtime module instead of accepting a second caller-supplied owner. The module owner must use the canonical `<plugin>.runtime` name and the descriptor `plugin_id` must match that owner. A forged foreign owner returns `RuntimeExtensionRegistryError::InvalidComponentType`, an occupied component type returns `DuplicateComponentType`, and revoking the owner removes its component slots together with the rest of its runtime contributions. These contracts are covered by the inline registration tests and the managed SDK job `839e57989b4842ccab52fb635cc71548`.
 

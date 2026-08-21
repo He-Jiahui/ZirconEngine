@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 use super::super::{PlayPendingEditDecisionAdapter, PlayPendingEditDecisionOutcome};
@@ -51,15 +51,13 @@ fn direct_core_receipt_is_consumed_once_by_the_play_adapter() {
         .expect("the receipt should be consumed through the shared adapter route");
     assert_eq!(consumed.len(), 1);
     assert_eq!(executions, 1);
-    assert!(
-        adapter
-            .consume_resolved_receipts(&center, |_| {
-                executions += 1;
-                Ok(PlayPendingEditDecisionOutcome::Discarded { discarded_count: 1 })
-            })
-            .expect("the committed cursor should make replay a no-op")
-            .is_empty()
-    );
+    assert!(adapter
+        .consume_resolved_receipts(&center, |_| {
+            executions += 1;
+            Ok(PlayPendingEditDecisionOutcome::Discarded { discarded_count: 1 })
+        })
+        .expect("the committed cursor should make replay a no-op")
+        .is_empty());
     assert_eq!(executions, 1);
 }
 
@@ -88,14 +86,12 @@ fn failed_receipt_execution_retries_once_until_the_cursor_commits() {
         .expect("headless core resolution should commit a receipt");
 
     let mut first_attempts = 0_usize;
-    assert!(
-        adapter
-            .consume_resolved_receipts(&center, |_| {
-                first_attempts += 1;
-                Err("receipt execution failed".to_string())
-            })
-            .is_err()
-    );
+    assert!(adapter
+        .consume_resolved_receipts(&center, |_| {
+            first_attempts += 1;
+            Err("receipt execution failed".to_string())
+        })
+        .is_err());
     assert_eq!(first_attempts, 1);
 
     let mut retry_attempts = 0_usize;
@@ -110,15 +106,13 @@ fn failed_receipt_execution_retries_once_until_the_cursor_commits() {
         1
     );
     assert_eq!(retry_attempts, 1);
-    assert!(
-        adapter
-            .consume_resolved_receipts(&center, |_| {
-                retry_attempts += 1;
-                Ok(PlayPendingEditDecisionOutcome::Discarded { discarded_count: 1 })
-            })
-            .expect("the committed cursor should make another retry a no-op")
-            .is_empty()
-    );
+    assert!(adapter
+        .consume_resolved_receipts(&center, |_| {
+            retry_attempts += 1;
+            Ok(PlayPendingEditDecisionOutcome::Discarded { discarded_count: 1 })
+        })
+        .expect("the committed cursor should make another retry a no-op")
+        .is_empty());
     assert_eq!(retry_attempts, 1);
 }
 
@@ -151,13 +145,14 @@ fn post_effect_reconcile_failure_does_not_replay_the_committed_receipt() {
     controller
         .publish_pending_edit_decision(stopped.pending_edit_prompt.as_ref())
         .expect("the controller should publish the pending Decision");
-    let selection = controller
+    let selection_id = controller
         .pending_play_decision_options()
         .expect("pending options should project")
         .into_iter()
         .next()
         .expect("apply option should be available")
-        .selection();
+        .selection_id()
+        .to_string();
     let context = Arc::clone(controller.context());
     let center = context
         .notifications()
@@ -185,7 +180,7 @@ fn post_effect_reconcile_failure_does_not_replay_the_committed_receipt() {
         }));
 
     let error = controller
-        .resolve_pending_play_decision(selection.selection_id())
+        .resolve_pending_play_decision(&selection_id)
         .expect_err("full Decision center should fail only the post-effect reconciliation");
     assert!(error.contains("receipt effect committed but prompt reconciliation failed"));
     assert!(error.contains("capacity"));
@@ -196,19 +191,17 @@ fn post_effect_reconcile_failure_does_not_replay_the_committed_receipt() {
         .expect("resolving one foreign Decision should free replacement capacity");
     assert!(matches!(
         controller
-            .resolve_pending_play_decision(selection.selection_id())
+            .resolve_pending_play_decision(&selection_id)
             .expect("the committed receipt should reconcile without replaying its effect"),
         PlayPendingEditDecisionOutcome::AlreadyResolved { .. }
     ));
     let mut remaining_pending_edits = 0;
-    assert!(
-        controller
-            .play_sessions()
-            .with_pending_edit_decision_prompt(|prompt| {
-                remaining_pending_edits = prompt.pending_count;
-                Ok::<(), ()>(())
-            })
-            .unwrap()
-    );
+    assert!(controller
+        .play_sessions()
+        .with_pending_edit_decision_prompt(|prompt| {
+            remaining_pending_edits = prompt.pending_count;
+            Ok::<(), ()>(())
+        })
+        .unwrap());
     assert_eq!(remaining_pending_edits, 1);
 }

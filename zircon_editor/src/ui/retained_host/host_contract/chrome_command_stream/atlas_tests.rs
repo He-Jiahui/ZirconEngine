@@ -119,7 +119,7 @@ fn recorded_atlas_image_uses_atlas_texture_payload_not_source_payload() {
     assert_eq!(payload.width, 4);
     assert_eq!(payload.height, 4);
     assert_eq!(payload.upload_bytes, 64);
-    assert_eq!(payload.rgba.as_ref().map(Vec::len), Some(64));
+    assert_eq!(payload.rgba.as_deref().map(<[u8]>::len), Some(64));
     assert_eq!(
         payload.atlas_uv,
         Some(ChromeImageUvRect {

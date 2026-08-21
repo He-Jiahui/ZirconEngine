@@ -1,7 +1,8 @@
 use std::ffi::OsString;
 
-use zircon_editor::EditorGuiStartupRequest;
+use zircon_editor::{EditorGuiStartupRequest, EditorHostRunConfig};
 use zircon_runtime::asset::{project::ProjectPaths, AssetUri};
+use zircon_runtime_interface::hub_protocol::HubSessionToken;
 
 #[test]
 fn first_frame_exit_flag_projects_into_editor_host_config() {
@@ -52,6 +53,18 @@ fn editor_host_config_carries_a_project_startup_scene() {
     );
 
     assert_eq!(config.startup_scene_uri(), Some(&scene_uri));
+}
+
+#[test]
+fn editor_host_config_accepts_a_verified_hub_handshake_from_the_app_boundary() {
+    let session = "0d9a5890-0e44-4e2a-b77e-3e5d4fdf1e52"
+        .parse::<HubSessionToken>()
+        .expect("valid Hub session");
+
+    let config = EditorHostRunConfig::new().with_hub_handshake("E:/Projects/My Game", session);
+
+    assert_eq!(config.startup_request(), None);
+    assert!(!config.exit_after_first_presented_frame());
 }
 
 #[test]

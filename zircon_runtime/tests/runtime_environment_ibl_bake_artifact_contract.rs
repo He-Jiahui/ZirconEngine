@@ -1039,12 +1039,18 @@ fn runtime_environment_ibl_bake_artifact_rehydrates_source_mips_without_rebaking
         "future PMREM reconfiguration must restore canonical SH9 from source mips, not artifact SH9"
     );
 
-    let runtime_payload = IblBakeArtifactPayload::from_source_cubemap(
-        descriptor.with_producer(IblBakeArtifactProducer::RendererGpuRuntime),
-        &baked,
-        None,
+    let runtime_request = IblBakeArtifactRequest::new(
+        descriptor.bake_key(),
+        descriptor.source_face_size(),
+        descriptor.source_mip_count(),
     )
-    .expect("runtime artifact payload should encode");
+    .with_pmrem_layout(descriptor.face_size(), descriptor.mip_count())
+    .with_required_contents(descriptor.contents());
+    let runtime_descriptor =
+        IblBakeArtifactDescriptor::current_for_runtime_cache_request(&runtime_request);
+    let runtime_payload =
+        IblBakeArtifactPayload::from_source_cubemap(runtime_descriptor, &baked, None)
+            .expect("runtime artifact payload should encode");
     assert!(matches!(
         source_cubemap_environment_from_source_mips_with_bake_artifact(
             descriptor.source_face_size(),

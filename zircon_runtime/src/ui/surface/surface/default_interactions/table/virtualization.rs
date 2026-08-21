@@ -1,28 +1,16 @@
 use zircon_runtime_interface::ui::{
     binding::{UiBindingUpdateReport, UiEventKind},
-    component::{UiComponentEvent, UiValue},
+    component::UiComponentEvent,
     dispatch::{UiPointerComponentEvent, UiPointerComponentEventReason},
     event_ui::UiNodeId,
     surface::UiPointerRoute,
     tree::{UiTemplateNodeMetadata, UiTreeError},
 };
 
-use crate::ui::surface::UiSurface;
+use crate::ui::surface::surface::{UiSurface, UiVirtualWindowState};
 
 const DEFAULT_ROW_EXTENT: f64 = 24.0;
 const DEFAULT_VIEWPORT_COUNT: i64 = 20;
-
-struct UiDefaultTableVirtualWindow {
-    owner_id: UiNodeId,
-    total_count: i64,
-    viewport_start: i64,
-    viewport_count: i64,
-    visible_end: i64,
-    requested_start: i64,
-    requested_count: i64,
-    overscan: i64,
-    scroll_offset: f64,
-}
 
 impl UiSurface {
     pub(super) fn apply_default_table_virtual_scroll(
@@ -48,7 +36,7 @@ impl UiSurface {
     fn default_table_virtual_scroll_window(
         &self,
         route: &UiPointerRoute,
-    ) -> Result<Option<UiDefaultTableVirtualWindow>, UiTreeError> {
+    ) -> Result<Option<UiVirtualWindowState>, UiTreeError> {
         if route.captured.is_some() || route.scroll_delta == 0.0 {
             return Ok(None);
         }
@@ -96,7 +84,7 @@ impl UiSurface {
         let overscan = table_overscan(metadata);
         let requested_start = next_start.saturating_sub(overscan);
         let requested_end = visible_end.saturating_add(overscan).min(total_count);
-        Ok(Some(UiDefaultTableVirtualWindow {
+        Ok(Some(UiVirtualWindowState {
             owner_id,
             total_count,
             viewport_start: next_start,
@@ -137,122 +125,14 @@ impl UiSurface {
 
     fn apply_table_virtual_window(
         &mut self,
-        window: &UiDefaultTableVirtualWindow,
+        window: &UiVirtualWindowState,
         events: &mut Vec<UiPointerComponentEvent>,
         binding_reports: &mut Vec<UiBindingUpdateReport>,
     ) -> Result<bool, UiTreeError> {
-        let mut changed = false;
-        changed |= self.apply_table_virtual_property(
-            window.owner_id,
-            "total_count",
-            UiValue::Int(window.total_count),
-            binding_reports,
-        )?;
-        changed |= self.apply_table_virtual_property(
-            window.owner_id,
-            "row_count",
-            UiValue::Int(window.total_count),
-            binding_reports,
-        )?;
-        changed |= self.apply_table_virtual_property(
-            window.owner_id,
-            "rowCount",
-            UiValue::Int(window.total_count),
-            binding_reports,
-        )?;
-        changed |= self.apply_table_virtual_property(
-            window.owner_id,
-            "item_count",
-            UiValue::Int(window.total_count),
-            binding_reports,
-        )?;
-        changed |= self.apply_table_virtual_property(
-            window.owner_id,
-            "itemCount",
-            UiValue::Int(window.total_count),
-            binding_reports,
-        )?;
-        changed |= self.apply_table_virtual_property(
-            window.owner_id,
-            "viewport_start",
-            UiValue::Int(window.viewport_start),
-            binding_reports,
-        )?;
-        changed |= self.apply_table_virtual_property(
-            window.owner_id,
-            "viewport_count",
-            UiValue::Int(window.viewport_count),
-            binding_reports,
-        )?;
-        changed |= self.apply_table_virtual_property(
-            window.owner_id,
-            "visible_end",
-            UiValue::Int(window.visible_end),
-            binding_reports,
-        )?;
-        changed |= self.apply_table_virtual_property(
-            window.owner_id,
-            "visibleEnd",
-            UiValue::Int(window.visible_end),
-            binding_reports,
-        )?;
-        changed |= self.apply_table_virtual_property(
-            window.owner_id,
-            "requested_start",
-            UiValue::Int(window.requested_start),
-            binding_reports,
-        )?;
-        changed |= self.apply_table_virtual_property(
-            window.owner_id,
-            "requestedStart",
-            UiValue::Int(window.requested_start),
-            binding_reports,
-        )?;
-        changed |= self.apply_table_virtual_property(
-            window.owner_id,
-            "requested_count",
-            UiValue::Int(window.requested_count),
-            binding_reports,
-        )?;
-        changed |= self.apply_table_virtual_property(
-            window.owner_id,
-            "requestedCount",
-            UiValue::Int(window.requested_count),
-            binding_reports,
-        )?;
-        changed |= self.apply_table_virtual_property(
-            window.owner_id,
-            "overscan",
-            UiValue::Int(window.overscan),
-            binding_reports,
-        )?;
-        changed |= self.apply_table_virtual_property(
-            window.owner_id,
-            "overscan_count",
-            UiValue::Int(window.overscan),
-            binding_reports,
-        )?;
-        changed |= self.apply_table_virtual_property(
-            window.owner_id,
-            "overscanCount",
-            UiValue::Int(window.overscan),
-            binding_reports,
-        )?;
-        changed |= self.apply_table_virtual_property(
-            window.owner_id,
-            "scroll_offset",
-            UiValue::Float(window.scroll_offset),
-            binding_reports,
-        )?;
-        changed |= self.apply_table_virtual_property(
-            window.owner_id,
-            "scrollTop",
-            UiValue::Float(window.scroll_offset),
-            binding_reports,
-        )?;
-        if !changed {
+        let Some(binding_report) = self.mutate_virtual_window(window)? else {
             return Ok(false);
-        }
+        };
+        binding_reports.push(binding_report);
 
         self.push_pointer_component_events_for_component_event_kind(
             events,
@@ -265,16 +145,6 @@ impl UiSurface {
             UiPointerComponentEventReason::DirectBinding,
         )?;
         Ok(true)
-    }
-
-    fn apply_table_virtual_property(
-        &mut self,
-        owner_id: UiNodeId,
-        property: &'static str,
-        value: UiValue,
-        binding_reports: &mut Vec<UiBindingUpdateReport>,
-    ) -> Result<bool, UiTreeError> {
-        self.apply_table_mutation(owner_id, property, value, binding_reports)
     }
 }
 

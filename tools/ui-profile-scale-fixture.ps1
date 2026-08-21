@@ -67,6 +67,44 @@ function Write-ZirconUiHierarchyScaleScene {
     }
 }
 
+function Write-ZirconViewportPointerScaleScene {
+    param(
+        [string]$ScenePath,
+        [ValidateRange(1, 10000)]
+        [int]$SelectableNodeCount,
+        [ValidateSet("static", "dynamic")]
+        [string]$Mobility
+    )
+
+    $mobilityValue = if ($Mobility -eq "static") { "Static" } else { "Dynamic" }
+    $columnCount = [Math]::Ceiling([Math]::Sqrt([double]$SelectableNodeCount))
+    $rowCount = [Math]::Ceiling($SelectableNodeCount / $columnCount)
+    $cameraDistance = [Math]::Max(10.0, $columnCount * 1.6)
+    $encoding = New-Object System.Text.UTF8Encoding($false)
+    $writer = New-Object System.IO.StreamWriter($ScenePath, $false, $encoding)
+    try {
+        $writer.Write(
+            "[[entities]]`nentity = 1`nname = `"Profile Camera`"`nparent = 0`nactive = true`nrender_layer_mask = 1`ntransform = { translation = [0.0, 0.0, $cameraDistance], rotation = [0.0, 0.0, 0.0, 1.0], scale = [1.0, 1.0, 1.0] }`ncamera = { fov_y_radians = 1.7453293, z_near = 0.1, z_far = 10000.0 }`n`n"
+        )
+        $writer.Write(
+            "[[entities]]`nentity = 2`nname = `"Profile Sun`"`nparent = 0`nactive = true`nrender_layer_mask = 1`ntransform = { translation = [0.0, 4.0, 0.0], rotation = [0.0, 0.0, 0.0, 1.0], scale = [1.0, 1.0, 1.0] }`ndirectional_light = { direction = [-0.361772505316908, -0.904431263292269, -0.226107815823067], color = [1.0, 1.0, 1.0], intensity = 3.0 }`n`n"
+        )
+        for ($index = 0; $index -lt $SelectableNodeCount; $index++) {
+            $column = $index % $columnCount
+            $row = [Math]::Floor($index / $columnCount)
+            $x = ([double]$column - ($columnCount - 1) / 2.0) * 2.0
+            $y = ([double]$row - ($rowCount - 1) / 2.0) * 2.0
+            $entity = $index + 3
+            $writer.Write(
+                "[[entities]]`nentity = $entity`nname = `"Profile Viewport Node $(( $entity - 2).ToString('D6'))`"`nparent = 0`nactive = true`nrender_layer_mask = 1`nmobility = `"$mobilityValue`"`ntransform = { translation = [$x, $y, 0.0], rotation = [0.0, 0.0, 0.0, 1.0], scale = [1.0, 1.0, 1.0] }`n`n[entities.mesh.model]`nkind = `"project`"`nguid = `"00000000-0000-0000-0000-000000000002`"`npath_hint = `"assets/models/cube.obj`"`n`n[entities.mesh.material]`nkind = `"project`"`nguid = `"00000000-0000-0000-0000-000000000003`"`npath_hint = `"assets/materials/default.zmaterial`"`n`n"
+            )
+        }
+    }
+    finally {
+        $writer.Dispose()
+    }
+}
+
 function Get-ZirconUiAssetCatalogScaleSetFingerprint {
     param(
         [string]$ProjectRoot,
@@ -175,6 +213,54 @@ function New-ZirconUiHierarchyScaleFixture {
         template_relative_path = "templates/projects/renderable-empty"
         logical_node_count = $LogicalNodeCount
         scene_entity_count = $LogicalNodeCount
+        project_manifest = Get-ZirconUiProfileScaleFileFingerprint `
+            -Path $projectManifestPath `
+            -RelativePath $projectManifestRelativePath
+        scene = Get-ZirconUiProfileScaleFileFingerprint `
+            -Path $scenePath `
+            -RelativePath $sceneRelativePath
+    }
+}
+
+function New-ZirconViewportPointerScaleFixture {
+    param(
+        [string]$RepoRoot,
+        [string]$ProjectRoot,
+        [ValidateRange(1, 10000)]
+        [int]$SelectableNodeCount,
+        [ValidateSet("static", "dynamic")]
+        [string]$Mobility = "static"
+    )
+
+    $project = Assert-ZirconUiProfileScaleProjectRoot `
+        -RepoRoot $RepoRoot `
+        -ProjectRoot $ProjectRoot
+    $templateRoot = Join-Path $RepoRoot "templates\projects\renderable-empty"
+    if (-not (Test-Path -LiteralPath $templateRoot -PathType Container)) {
+        throw "Canonical renderable-empty project template is missing: $templateRoot"
+    }
+
+    $parent = Split-Path -Parent $project
+    New-Item -ItemType Directory -Force -Path $parent | Out-Null
+    Copy-Item -LiteralPath $templateRoot -Destination $project -Recurse
+
+    $sceneRelativePath = "assets/scenes/main.scene.toml"
+    $scenePath = Join-Path $project $sceneRelativePath
+    $projectManifestRelativePath = "zircon-project.toml"
+    $projectManifestPath = Join-Path $project $projectManifestRelativePath
+    Write-ZirconViewportPointerScaleScene `
+        -ScenePath $scenePath `
+        -SelectableNodeCount $SelectableNodeCount `
+        -Mobility $Mobility
+
+    return [pscustomobject]@{
+        schema_version = 1
+        kind = "viewport_pointer_scene"
+        project_root = $project
+        template_relative_path = "templates/projects/renderable-empty"
+        selectable_node_count = $SelectableNodeCount
+        scene_entity_count = $SelectableNodeCount + 2
+        mobility = $Mobility
         project_manifest = Get-ZirconUiProfileScaleFileFingerprint `
             -Path $projectManifestPath `
             -RelativePath $projectManifestRelativePath

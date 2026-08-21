@@ -137,7 +137,7 @@ mod tests {
 
     #[test]
     fn menu_bar_control_uses_quiet_resting_material_and_surface_open_feedback() {
-        let mut palette = super::super::super::paint_theme::PALETTE;
+        let mut palette = crate::ui::retained_host::host_contract::paint_theme::PALETTE;
         palette.surface_hover = [32, 48, 60, 255];
         palette.text = [230, 232, 235, 255];
         palette.text_muted = [140, 148, 155, 255];

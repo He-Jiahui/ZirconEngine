@@ -19,6 +19,8 @@ use ordered_ready_set::OrderedReadySet;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct FeatureResolutionStats {
     pub(super) feature_status_evaluations: usize,
+    pub(super) provider_registration_checks: usize,
+    pub(super) provider_missing_blocks: usize,
     pub(super) dependency_edges_scanned: usize,
     pub(super) ready_queue_pushes: usize,
     pub(super) ready_queue_pops: usize,
@@ -47,9 +49,20 @@ pub(super) fn resolve_pending_feature_dependencies<'a>(
             .definitions
             .get(&active.definition_key)
             .expect("unknown features removed before dependency resolution");
+        let provider_registration_present =
+            projection.has_concrete_feature_provider(&active.definition_key);
+        stats.provider_registration_checks += 1;
+        if !provider_registration_present {
+            stats.provider_missing_blocks += 1;
+            report.diagnostics.push(format!(
+                "feature {} (provider {}) is blocked: concrete runtime feature provider registration is missing",
+                feature.manifest.id, feature.provider_package_id
+            ));
+        }
         let status = feature_status(
             feature,
             active.active.feature,
+            provider_registration_present,
             target,
             plugin_selections,
             enabled_plugins,

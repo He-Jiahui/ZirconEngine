@@ -2,7 +2,7 @@ use crate::core::math::{Real, Transform, Vec3, Vec4};
 
 use crate::core::framework::scene::EntityId;
 
-use super::DisplayMode;
+use super::{DisplayMode, HighlightSet};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SceneGizmoKind {
@@ -113,13 +113,6 @@ impl SceneGizmoOverlayExtract {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct SelectionHighlightExtract {
-    pub owner: EntityId,
-    pub outline: bool,
-    pub tint: Option<Vec4>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
 pub struct SelectionAnchorExtract {
     pub owner: EntityId,
     pub position: Vec3,
@@ -174,7 +167,7 @@ pub struct HandleOverlayExtract {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderOverlayExtract {
-    pub selection: Vec<SelectionHighlightExtract>,
+    pub highlights: Option<HighlightSet>,
     pub selection_anchors: Vec<SelectionAnchorExtract>,
     pub grid: Option<GridOverlayExtract>,
     pub handles: Vec<HandleOverlayExtract>,
@@ -185,7 +178,7 @@ pub struct RenderOverlayExtract {
 impl Default for RenderOverlayExtract {
     fn default() -> Self {
         Self {
-            selection: Vec::new(),
+            highlights: None,
             selection_anchors: Vec::new(),
             grid: None,
             handles: Vec::new(),

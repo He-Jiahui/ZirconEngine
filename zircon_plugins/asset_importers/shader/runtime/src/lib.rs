@@ -15,11 +15,11 @@ pub use capability::{
     WGSL_IMPORTER_CAPABILITY,
 };
 pub use plugin::{
-    asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,
-    plugin_registration, runtime_capabilities, runtime_module_manifest, runtime_plugin,
-    runtime_plugin_descriptor, runtime_selection, supported_platforms, supported_targets,
-    ShaderAssetImporterRuntimePlugin, SHADER_ASSET_IMPORTER_DIST_CRATE_NAME,
-    SHADER_ASSET_IMPORTER_DIST_RUNTIME_ENTRY,
+    SHADER_ASSET_IMPORTER_DIST_CRATE_NAME, SHADER_ASSET_IMPORTER_DIST_RUNTIME_ENTRY,
+    ShaderAssetImporterRuntimePlugin, asset_importer_descriptors, dist_module_manifest,
+    module_descriptor, package_manifest, plugin_registration, runtime_capabilities,
+    runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor, runtime_selection,
+    supported_platforms, supported_targets,
 };
 
 pub fn import_shader(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
@@ -41,34 +41,28 @@ pub fn import_shader(context: &AssetImportContext) -> Result<AssetImportOutcome,
 }
 
 fn import_wgsl(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
-    let source = context.source_text()?;
-    let module = naga::front::wgsl::parse_str(&source).map_err(|error| {
+    let source = context.source_str()?;
+    let module = naga::front::wgsl::parse_str(source).map_err(|error| {
         AssetImportError::ShaderValidation(format!(
             "{}: {}",
             context.uri,
-            error.emit_to_string(&source)
+            error.emit_to_string(source)
         ))
     })?;
-    module_to_shader_asset(
-        context,
-        ShaderSourceLanguage::Wgsl,
-        source.clone(),
-        module,
-        source,
-    )
+    module_to_shader_asset(context, ShaderSourceLanguage::Wgsl, source, module)
 }
 
 fn import_glsl(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
-    let source = context.source_text()?;
+    let source = context.source_str()?;
     let stage = infer_shader_stage(context)?;
     let mut frontend = naga::front::glsl::Frontend::default();
     let module = frontend
-        .parse(&naga::front::glsl::Options::from(stage), &source)
+        .parse(&naga::front::glsl::Options::from(stage), source)
         .map_err(|error| {
             AssetImportError::ShaderValidation(format!(
                 "{}: {}",
                 context.uri,
-                error.emit_to_string(&source)
+                error.emit_to_string(source)
             ))
         })?;
     let info = validate_naga_module(context, &module)?;
@@ -76,7 +70,7 @@ fn import_glsl(context: &AssetImportContext) -> Result<AssetImportOutcome, Asset
     shader_outcome(
         context,
         ShaderSourceLanguage::Glsl,
-        source,
+        source.to_owned(),
         wgsl_source,
         shader_entry_points(&module),
     )
@@ -104,16 +98,16 @@ fn import_spirv(context: &AssetImportContext) -> Result<AssetImportOutcome, Asse
 fn module_to_shader_asset(
     context: &AssetImportContext,
     source_language: ShaderSourceLanguage,
-    source: String,
+    source: &str,
     module: naga::Module,
-    wgsl_source: String,
 ) -> Result<AssetImportOutcome, AssetImportError> {
     validate_naga_module(context, &module)?;
+    let source = source.to_owned();
     shader_outcome(
         context,
         source_language,
+        source.clone(),
         source,
-        wgsl_source,
         shader_entry_points(&module),
     )
 }
@@ -260,19 +254,27 @@ mod tests {
         let manifest = package_manifest();
 
         assert_eq!(manifest.id, PLUGIN_ID);
-        assert!(manifest
-            .asset_importers
-            .iter()
-            .any(|importer| importer.source_extensions.contains(&"hlsl".to_string())));
-        assert!(manifest
-            .capabilities
-            .contains(&RUNTIME_CAPABILITY.to_string()));
-        assert!(!manifest
-            .capabilities
-            .contains(&WGSL_IMPORTER_CAPABILITY.to_string()));
-        assert!(manifest
-            .capabilities
-            .contains(&NAGA_IMPORTER_CAPABILITY.to_string()));
+        assert!(
+            manifest
+                .asset_importers
+                .iter()
+                .any(|importer| importer.source_extensions.contains(&"hlsl".to_string()))
+        );
+        assert!(
+            manifest
+                .capabilities
+                .contains(&RUNTIME_CAPABILITY.to_string())
+        );
+        assert!(
+            !manifest
+                .capabilities
+                .contains(&WGSL_IMPORTER_CAPABILITY.to_string())
+        );
+        assert!(
+            manifest
+                .capabilities
+                .contains(&NAGA_IMPORTER_CAPABILITY.to_string())
+        );
     }
 
     #[test]
@@ -317,15 +319,21 @@ mod tests {
         assert!(dist_module.target_modes.contains(
             &zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime
         ));
-        assert!(dist_module
-            .target_modes
-            .contains(&zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost));
-        assert!(dist_module
-            .capabilities
-            .contains(&NAGA_IMPORTER_CAPABILITY.to_string()));
-        assert!(!dist_module
-            .capabilities
-            .contains(&WGSL_IMPORTER_CAPABILITY.to_string()));
+        assert!(
+            dist_module.target_modes.contains(
+                &zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost
+            )
+        );
+        assert!(
+            dist_module
+                .capabilities
+                .contains(&NAGA_IMPORTER_CAPABILITY.to_string())
+        );
+        assert!(
+            !dist_module
+                .capabilities
+                .contains(&WGSL_IMPORTER_CAPABILITY.to_string())
+        );
     }
 
     #[test]
@@ -333,11 +341,13 @@ mod tests {
         let report = plugin_registration();
 
         assert!(report.is_success(), "{:?}", report.diagnostics);
-        assert!(report
-            .extensions
-            .modules()
-            .iter()
-            .any(|module| module.name == MODULE_NAME));
+        assert!(
+            report
+                .extensions
+                .modules()
+                .iter()
+                .any(|module| module.name == MODULE_NAME)
+        );
         assert_eq!(report.extensions.asset_importers().descriptors().len(), 3);
     }
 

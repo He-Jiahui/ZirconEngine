@@ -85,31 +85,21 @@ pub(super) fn assert_compact_blend_space_geometry(
     assert!(output.bottom() <= center.bottom() + 0.5);
     assert!(timeline.x >= output.x && timeline.right() <= output.right() + 0.5);
     assert!(timeline.y >= output.y && timeline.bottom() <= output.bottom() + 0.5);
-    assert!(
-        bridge
-            .control_frame("WorkbenchExtensionBlendSpaceRightPanel")
-            .is_none()
-    );
-    assert!(
-        bridge
-            .control_frame("WorkbenchExtensionBlendSpacePreviewCard")
-            .is_none()
-    );
-    assert!(
-        bridge
-            .control_frame("WorkbenchExtensionBlendSpacePreviewButton")
-            .is_none()
-    );
-    assert!(
-        bridge
-            .control_frame("WorkbenchExtensionBlendSpaceSampleWeights")
-            .is_none()
-    );
-    assert!(
-        bridge
-            .control_frame("WorkbenchExtensionBlendSpaceValidationLog")
-            .is_none()
-    );
+    assert!(bridge
+        .control_frame("WorkbenchExtensionBlendSpaceRightPanel")
+        .is_none());
+    assert!(bridge
+        .control_frame("WorkbenchExtensionBlendSpacePreviewCard")
+        .is_none());
+    assert!(bridge
+        .control_frame("WorkbenchExtensionBlendSpacePreviewButton")
+        .is_none());
+    assert!(bridge
+        .control_frame("WorkbenchExtensionBlendSpaceSampleWeights")
+        .is_none());
+    assert!(bridge
+        .control_frame("WorkbenchExtensionBlendSpaceValidationLog")
+        .is_none());
     assert!(
         canvas.height > 150.0,
         "compact sample canvas should preserve a useful plotting area beside the visible timeline: {canvas:?}"

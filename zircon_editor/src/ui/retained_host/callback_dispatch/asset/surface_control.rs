@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventKind};
 use crate::ui::host::EditorHostEventController;
 use crate::ui::retained_host::event_bridge::UiHostEventEffects;
 
-use super::super::{BuiltinAssetSurfaceTemplateBridge, common::dispatch_editor_binding};
+use super::super::{common::dispatch_editor_binding, BuiltinAssetSurfaceTemplateBridge};
 
 pub(crate) fn dispatch_builtin_asset_surface_control(
     runtime: &EditorHostEventController,

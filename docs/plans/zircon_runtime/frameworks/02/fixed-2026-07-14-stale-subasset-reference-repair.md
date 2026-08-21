@@ -20,6 +20,8 @@ tests:
 
 # Runtime 04：旧 subasset 标签阻断 GUID 修复
 
+> 2026-08-18 语义纠正：本记录保留 2026-07-14 当时的验证事实，但“缺失 label 可修复为父资产”的验收语义已撤销。GUID/path repair 不得改变 subasset identity；后续修复由 [missing-subasset-parent-fallback](../../runtime/04/failure-2026-08-18-missing-subasset-parent-fallback.md) 跟踪，验证完成前不声明新语义已修复。
+
 ## 产出记录与时间
 
 | 状态 | 记录日期 | 完成项目与当前门禁 |

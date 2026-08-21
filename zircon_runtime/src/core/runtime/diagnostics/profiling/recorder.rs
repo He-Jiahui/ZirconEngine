@@ -246,7 +246,7 @@ mod tests {
         ProfileCaptureConfig, ProfileCounterSnapshot, ProfileFrameSnapshot, ProfileSpanSnapshot,
     };
 
-    use super::{push_ring, ProfileRecorder};
+    use super::{ProfileRecorder, push_ring};
 
     #[test]
     fn ring_push_evicts_oldest_sample_at_capacity() {

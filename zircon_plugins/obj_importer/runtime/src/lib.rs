@@ -1,8 +1,8 @@
 use zircon_runtime::asset::{
-    cook_mesh_sdf_or_fallback, cook_virtual_geometry_from_mesh, AssetImportContext,
-    AssetImportError, AssetImportOutcome, AssetReference, ImportedAsset, ImportedAssetEntry,
-    MeshAsset, MeshSdfCookBudget, MeshSdfCookSettings, MeshVertex, ModelAsset, ModelPrimitiveAsset,
-    VirtualGeometryCookConfig,
+    AssetImportContext, AssetImportError, AssetImportOutcome, AssetReference, ImportedAsset,
+    ImportedAssetEntry, MeshAsset, MeshSdfCookBudget, MeshSdfCookSettings, MeshVertex, ModelAsset,
+    ModelPrimitiveAsset, VirtualGeometryCookConfig, cook_mesh_sdf_or_fallback,
+    cook_virtual_geometry_from_mesh,
 };
 use zircon_runtime::core::math::{Vec2, Vec3};
 
@@ -15,10 +15,10 @@ pub use capability::{
     PLUGIN_ID, RUNTIME_CAPABILITY, RUNTIME_CRATE_NAME,
 };
 pub use plugin::{
+    OBJ_IMPORTER_DIST_CRATE_NAME, OBJ_IMPORTER_DIST_RUNTIME_ENTRY, ObjImporterRuntimePlugin,
     asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,
     plugin_registration, runtime_capabilities, runtime_module_manifest, runtime_plugin,
     runtime_plugin_descriptor, runtime_selection, supported_platforms, supported_targets,
-    ObjImporterRuntimePlugin, OBJ_IMPORTER_DIST_CRATE_NAME, OBJ_IMPORTER_DIST_RUNTIME_ENTRY,
 };
 
 pub fn import_obj(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
@@ -112,8 +112,9 @@ fn primitive_from_indexed_mesh(
     }
     let vertex_count = positions.len() / 3;
     let mut computed_normals = if normals.is_empty() {
-        generate_normals(positions, indices)
+        generate_normals(positions, indices)?
     } else {
+        validate_triangle_indices(indices, vertex_count)?;
         normals.to_vec()
     };
     if computed_normals.len() < vertex_count * 3 {
@@ -173,8 +174,31 @@ fn primitive_from_indexed_mesh(
     })
 }
 
-fn generate_normals(positions: &[f32], indices: &[u32]) -> Vec<f32> {
+fn validate_triangle_indices(indices: &[u32], vertex_count: usize) -> Result<(), AssetImportError> {
+    if indices.len() % 3 != 0 {
+        return Err(AssetImportError::Parse(format!(
+            "triangle index count {} was not a multiple of 3",
+            indices.len()
+        )));
+    }
+    for (element, &index) in indices.iter().enumerate() {
+        let index = usize::try_from(index).map_err(|_| {
+            AssetImportError::Parse(format!(
+                "mesh index {index} at element {element} exceeds platform limits"
+            ))
+        })?;
+        if index >= vertex_count {
+            return Err(AssetImportError::Parse(format!(
+                "mesh index {index} at element {element} exceeds vertex count {vertex_count}"
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn generate_normals(positions: &[f32], indices: &[u32]) -> Result<Vec<f32>, AssetImportError> {
     let vertex_count = positions.len() / 3;
+    validate_triangle_indices(indices, vertex_count)?;
     let mut normals = vec![0.0_f32; vertex_count * 3];
 
     for triangle in indices.chunks_exact(3) {
@@ -188,8 +212,11 @@ fn generate_normals(positions: &[f32], indices: &[u32]) -> Vec<f32> {
                 positions[index * 3 + 2],
             )
         };
-        let face_normal = (position(b) - position(a))
-            .cross(position(c) - position(a))
+        let position_a = position(a);
+        let position_b = position(b);
+        let position_c = position(c);
+        let face_normal = (position_b - position_a)
+            .cross(position_c - position_a)
             .normalize_or_zero();
         for index in [a, b, c] {
             normals[index * 3] += face_normal.x;
@@ -198,7 +225,7 @@ fn generate_normals(positions: &[f32], indices: &[u32]) -> Vec<f32> {
         }
     }
 
-    normals
+    Ok(normals)
 }
 
 #[cfg(test)]
@@ -210,13 +237,17 @@ mod tests {
         let manifest = package_manifest();
 
         assert_eq!(manifest.id, PLUGIN_ID);
-        assert!(manifest
-            .capabilities
-            .contains(&RUNTIME_CAPABILITY.to_string()));
-        assert!(manifest
-            .asset_importers
-            .iter()
-            .any(|importer| importer.source_extensions.contains(&"obj".to_string())));
+        assert!(
+            manifest
+                .capabilities
+                .contains(&RUNTIME_CAPABILITY.to_string())
+        );
+        assert!(
+            manifest
+                .asset_importers
+                .iter()
+                .any(|importer| importer.source_extensions.contains(&"obj".to_string()))
+        );
     }
 
     #[test]
@@ -278,15 +309,21 @@ mod tests {
         assert!(dist_module.target_modes.contains(
             &zircon_runtime::core::framework::platform::RuntimeTargetMode::ClientRuntime
         ));
-        assert!(dist_module
-            .target_modes
-            .contains(&zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost));
-        assert!(dist_module
-            .capabilities
-            .contains(&RUNTIME_CAPABILITY.to_string()));
-        assert!(dist_module
-            .capabilities
-            .contains(&IMPORTER_CAPABILITY.to_string()));
+        assert!(
+            dist_module.target_modes.contains(
+                &zircon_runtime::core::framework::platform::RuntimeTargetMode::EditorHost
+            )
+        );
+        assert!(
+            dist_module
+                .capabilities
+                .contains(&RUNTIME_CAPABILITY.to_string())
+        );
+        assert!(
+            dist_module
+                .capabilities
+                .contains(&IMPORTER_CAPABILITY.to_string())
+        );
     }
 
     #[test]
@@ -294,17 +331,21 @@ mod tests {
         let report = plugin_registration();
 
         assert!(report.is_success(), "{:?}", report.diagnostics);
-        assert!(report
-            .extensions
-            .modules()
-            .iter()
-            .any(|module| module.name == MODULE_NAME));
-        assert!(report
-            .extensions
-            .asset_importers()
-            .descriptors()
-            .iter()
-            .any(|importer| importer.id == "obj_importer.obj"));
+        assert!(
+            report
+                .extensions
+                .modules()
+                .iter()
+                .any(|module| module.name == MODULE_NAME)
+        );
+        assert!(
+            report
+                .extensions
+                .asset_importers()
+                .descriptors()
+                .iter()
+                .any(|importer| importer.id == "obj_importer.obj")
+        );
     }
 
     #[test]
@@ -354,11 +395,13 @@ f 1/1/1 2/2/1 3/3/1
         let mesh_uri =
             zircon_runtime::asset::AssetUri::parse("res://models/triangle.obj#Mesh0/Primitive0")
                 .unwrap();
-        assert!(outcome
-            .root_entry()
-            .expect("root obj asset entry")
-            .dependencies
-            .contains(&mesh_uri));
+        assert!(
+            outcome
+                .root_entry()
+                .expect("root obj asset entry")
+                .dependencies
+                .contains(&mesh_uri)
+        );
         let mesh_entry = outcome
             .entries
             .iter()
@@ -446,6 +489,33 @@ f 4 5 6
             }
         }
         let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn obj_index_admission_rejects_out_of_range_vertices_without_panicking() {
+        let result = std::panic::catch_unwind(|| {
+            let mut budget = MeshSdfCookBudget::default();
+            primitive_from_indexed_mesh(
+                &[0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                &[],
+                &[],
+                &[0, 1, 3],
+                Some("malformed"),
+                "obj-index-admission-test",
+                None,
+                &mut budget,
+            )
+        });
+
+        assert!(result.is_ok(), "malformed OBJ indices must not unwind");
+        let error = result
+            .unwrap()
+            .expect_err("out-of-range OBJ index must be rejected");
+        assert!(matches!(
+            error,
+            AssetImportError::Parse(message)
+                if message.contains("mesh index 3") && message.contains("vertex count 3")
+        ));
     }
 
     fn obj_label_uri(

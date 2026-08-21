@@ -2,10 +2,11 @@ use std::fmt;
 
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle};
-use crate::scene::ecs::{
-    SceneSystemMetadata, SystemOrderingConstraint, SystemParamAccess, SystemSetId, SystemStage,
-};
 use crate::scene::LevelSystem;
+use crate::scene::ecs::{
+    SceneSystemClockDomain, SceneSystemMetadata, SystemOrderingConstraint, SystemParamAccess,
+    SystemSetId, SystemStage,
+};
 
 pub type BoxedRuntimeSceneSystem = Box<dyn RuntimeSceneSystem>;
 
@@ -48,6 +49,10 @@ pub trait RuntimeSceneSystem: Send + 'static {
 
     fn constraints(&self) -> &[SystemOrderingConstraint] {
         self.metadata().constraints()
+    }
+
+    fn clock_domain(&self) -> SceneSystemClockDomain {
+        self.metadata().clock_domain()
     }
 }
 
@@ -97,6 +102,7 @@ impl fmt::Debug for dyn RuntimeSceneSystem {
             .field("id", &self.id())
             .field("stage", &self.stage())
             .field("order", &self.order())
+            .field("clock_domain", &self.clock_domain())
             .field(
                 "conservative_world_access",
                 &self.access().has_conservative_world_access(),

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::core::math::{Real, Transform};
 use crate::scene::components::LocalTransform;
 use crate::scene::EntityId;
@@ -38,6 +40,15 @@ pub(super) fn validate_persisted_transforms(world: &World) -> SceneResult<()> {
         if let Some(local_transform) = world.get::<LocalTransform>(entity) {
             validate_transform_for_write(entity, local_transform.transform)?;
         }
+    }
+    Ok(())
+}
+
+pub(super) fn validate_persisted_transform_map(
+    transforms: &HashMap<EntityId, LocalTransform>,
+) -> SceneResult<()> {
+    for (entity, local_transform) in transforms {
+        validate_transform_for_write(*entity, local_transform.transform)?;
     }
     Ok(())
 }

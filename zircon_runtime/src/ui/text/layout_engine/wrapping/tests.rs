@@ -103,27 +103,24 @@ fn source_segment_visitor_emits_an_empty_segment_for_empty_source() {
 }
 
 #[test]
-fn source_segment_visitor_preserves_the_shaping_run_cap_break() {
-    let text = "a".repeat(crate::text::TEXT_SHAPING_RUN_MAX_BYTES + 1);
+fn source_segment_visitor_does_not_publish_a_shaping_budget_boundary() {
+    let budget = crate::text::TextShapingWorkBudget::default();
+    let text = "a".repeat(budget.max_inline_input_bytes() + 1);
+    assert!(budget.exceeds_inline_threshold(text.len()));
     let mut segments = Vec::new();
     visit_source_segments_preserving_hard_lines(&text, 0, |segment| {
         segments.push((segment.text.len(), segment.hard_break));
     });
 
-    assert_eq!(
-        segments,
-        vec![
-            (crate::text::TEXT_SHAPING_RUN_MAX_BYTES, false),
-            (0, true),
-            (1, false),
-        ]
-    );
+    assert_eq!(segments, vec![(text.len(), false)]);
 }
 
 #[test]
-fn rich_runs_joined_without_wrap_still_observe_the_shaping_cap() {
-    let first = "x".repeat(crate::text::TEXT_SHAPING_RUN_MAX_BYTES / 2);
-    let second = "x".repeat(crate::text::TEXT_SHAPING_RUN_MAX_BYTES / 2 + 1);
+fn rich_runs_joined_without_wrap_remain_one_logical_candidate_line() {
+    let budget = crate::text::TextShapingWorkBudget::default();
+    let boundary = budget.max_inline_input_bytes();
+    let first = "x".repeat(boundary / 2);
+    let second = "x".repeat(boundary / 2 + 1);
     let source = format!("{first}<b>{second}</b>");
     let parsed = parse_source_text(&source, RichTextFormat::Html);
     let style = UiResolvedStyle::default();
@@ -137,21 +134,13 @@ fn rich_runs_joined_without_wrap_still_observe_the_shaping_cap() {
         &mut provider,
     );
 
-    assert_eq!(lines.len(), 2);
-    assert_eq!(lines[0].text.len(), crate::text::TEXT_SHAPING_RUN_MAX_BYTES);
+    assert_eq!(lines.len(), 1);
+    assert_eq!(lines[0].text.len(), boundary + 1);
     assert_eq!(
         lines[0].source_range,
         UiTextRange {
             start: 0,
-            end: crate::text::TEXT_SHAPING_RUN_MAX_BYTES,
-        }
-    );
-    assert_eq!(lines[1].text, "x");
-    assert_eq!(
-        lines[1].source_range,
-        UiTextRange {
-            start: crate::text::TEXT_SHAPING_RUN_MAX_BYTES,
-            end: crate::text::TEXT_SHAPING_RUN_MAX_BYTES + 1,
+            end: boundary + 1,
         }
     );
 }

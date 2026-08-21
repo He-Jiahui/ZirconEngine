@@ -8,13 +8,13 @@ use std::{collections::HashMap, time::Instant};
 
 use crate::{
     asset::{
-        facade::AssetEventPoll, project::ProjectManager, AssetEvent, AssetEventReceiver, AssetId,
-        AssetUri, ProjectAssetManager, SceneAsset,
+        AssetEvent, AssetEventReceiver, AssetId, AssetUri, ProjectAssetManager, SceneAsset,
+        facade::AssetEventPoll, project::ProjectManager,
     },
     core::{
+        JobScheduler,
         framework::channel::{ChannelReceiver, ChannelWakeCallback},
         resource::ResourceManager,
-        JobScheduler,
     },
     scene::LevelSystem,
 };
@@ -78,7 +78,6 @@ pub struct DynamicSceneAssetReloadQueue {
     latest_order: AssetIdOrder,
     pending_metadata_bytes: usize,
     ready_result_bytes: usize,
-    target_staging_reserved_bytes: usize,
     limits: DynamicSceneAssetReloadLimits,
     diagnostics: DynamicSceneAssetReloadDiagnostics,
 }
@@ -143,7 +142,6 @@ impl DynamicSceneAssetReloadQueue {
             latest_order: AssetIdOrder::default(),
             pending_metadata_bytes: 0,
             ready_result_bytes: 0,
-            target_staging_reserved_bytes: 0,
             limits: limits.normalized(),
             diagnostics: DynamicSceneAssetReloadDiagnostics::default(),
         }
@@ -188,6 +186,10 @@ impl DynamicSceneAssetReloadQueue {
 
     pub fn diagnostics(&self) -> DynamicSceneAssetReloadDiagnostics {
         let mut diagnostics = self.diagnostics.clone();
+        diagnostics.target_staging_reserved_bytes = self.target_staging_reserved_bytes();
+        diagnostics.resident_result_bytes = diagnostics
+            .ready_result_bytes
+            .saturating_add(diagnostics.target_staging_reserved_bytes);
         diagnostics.oldest_active_age = self
             .pending
             .values()
@@ -253,6 +255,12 @@ impl DynamicSceneAssetReloadQueue {
 
     fn active_worker_count(&self) -> usize {
         self.pending.len().saturating_add(self.target_staging.len())
+    }
+
+    fn target_staging_reserved_bytes(&self) -> usize {
+        self.target_staging.values().fold(0usize, |bytes, task| {
+            bytes.saturating_add(task.reserved_bytes())
+        })
     }
 
     fn drain_runtime_frame_wake_token(&self) {

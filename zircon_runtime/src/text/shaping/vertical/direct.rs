@@ -5,17 +5,17 @@ use crate::text::{
     TextRange,
 };
 
-use super::backend::{shape_vertical_run, VerticalBackendDirection};
+use super::backend::{VerticalBackendDirection, shape_vertical_run};
 use super::orientation::{
-    transform_or_rotate_rotation, vertical_glyph_metrics_for_rotation, VerticalShapeOrientation,
+    VerticalShapeOrientation, transform_or_rotate_rotation, vertical_glyph_metrics_for_rotation,
 };
 use crate::text::shaping::bidi::BidiParagraph;
 use crate::text::shaping::cosmic::cluster_flags;
 use crate::text::shaping::fallback_spans::FallbackTextSpan;
-use crate::text::shaping::horizontal::{shape_horizontal_run, HorizontalBackendRun};
+use crate::text::shaping::horizontal::{HorizontalBackendRun, shape_horizontal_run};
 use crate::text::shaping::itemize::{
-    logical_segments_for_line, restore_backend_cluster_logical_order, virtual_hard_break_glyph,
-    LogicalSegment,
+    LogicalSegment, logical_segments_for_line, restore_backend_cluster_logical_order,
+    virtual_hard_break_glyph,
 };
 use crate::text::shaping::line_break::LineBreakOpportunityMap;
 use crate::text::shaping::script_segment::{script_segments, shaped_script_for_cluster};
@@ -48,6 +48,7 @@ pub(in crate::text::shaping) fn shape_vertical_request(
         .enumerate()
     {
         let line_range = hard_line.content.clone();
+        let mut glyphs = Vec::new();
         let segments = logical_segments_for_line(
             request.text,
             line_range.clone(),
@@ -56,7 +57,6 @@ pub(in crate::text::shaping) fn shape_vertical_request(
             bidi,
             Some(request.vertical_mode),
         )?;
-        let mut glyphs = Vec::new();
         for segment in segments {
             glyphs.extend(shape_segment(
                 request,

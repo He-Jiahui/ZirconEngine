@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::core::CoreRuntime;
+use crate::ui::workbench::layout::MainPageId;
+
 use zircon_runtime::core::diagnostics::{
     ProfileFrameSnapshot, ProfileSnapshot, ProfileSpanSnapshot, RuntimeAnimationDiagnostics,
     RuntimeDiagnosticsSnapshot, RuntimePhysicsBackendDiagnostics, RuntimePhysicsDiagnostics,
@@ -8,8 +9,9 @@ use zircon_runtime::core::diagnostics::{
 };
 use zircon_runtime::core::framework::animation::AnimationPlaybackSettings;
 use zircon_runtime::core::framework::render::{RenderCapabilitySummary, RenderStats};
+use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
-    FOUNDATION_MODULE_NAME, module_descriptor as foundation_module_descriptor,
+    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_runtime_interface::math::UVec2;
 use zircon_runtime_interface::ui::{
@@ -28,8 +30,8 @@ use zircon_runtime_interface::ui::{
 
 use crate::scene::viewport::SceneViewportChromeSettings;
 use crate::ui::animation_editor::AnimationEditorPanePresentation;
+use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
-use crate::ui::host::module::{self, EDITOR_MANAGER_NAME, module_descriptor};
 use crate::ui::layouts::windows::workbench_host_window::{
     BuildExportPaneViewData, BuildExportTargetViewData, ModulePluginStatusViewData,
     ModulePluginsPaneViewData,

@@ -7,7 +7,7 @@ use zircon_runtime::core::framework::net::{
 };
 
 use super::support::complete_joined_session;
-use crate::{net_rpc_runtime_manager, NetRpcRuntimeManager};
+use crate::{NetRpcRuntimeManager, net_rpc_runtime_manager};
 
 #[test]
 fn rpc_feature_manager_correlates_requests_and_drains_priority_queue() {
@@ -43,6 +43,42 @@ fn rpc_feature_manager_correlates_requests_and_drains_priority_queue() {
     assert_eq!(drained[0].response_payload, Some(b"high".to_vec()));
     assert_eq!(drained[1].request, Some(NetRequestId::new(10)));
     assert_eq!(drained[1].response_payload, Some(b"low".to_vec()));
+}
+
+#[test]
+fn rpc_priority_queue_preserves_fifo_order_for_equal_priorities() {
+    let rpc = net_rpc_runtime_manager();
+    let session = complete_joined_session(&rpc, "fifo-player");
+    rpc.register_rpc_handler(RpcDescriptor::command("chat.fifo"), |invocation| {
+        Ok(invocation.payload.clone())
+    })
+    .unwrap();
+
+    for request in 1..=3 {
+        assert_eq!(
+            rpc.enqueue_rpc(
+                RpcInvocationDescriptor::new(
+                    "chat.fifo",
+                    RpcDirection::ClientToServer,
+                    vec![request as u8],
+                )
+                .with_source_session(session)
+                .with_request(NetRequestId::new(request))
+                .with_priority(5),
+                RpcPeerRole::Client,
+            )
+            .status,
+            RpcDispatchStatus::Queued
+        );
+    }
+
+    assert_eq!(
+        rpc.drain_rpc_queue(3)
+            .into_iter()
+            .map(|report| report.request.unwrap().raw())
+            .collect::<Vec<_>>(),
+        vec![1, 2, 3]
+    );
 }
 
 #[test]

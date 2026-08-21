@@ -174,6 +174,7 @@ fn is_hierarchy_rename_double_click(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ui::workbench::snapshot::SceneEntry;
 
     fn scene_entries(values: &[(NodeId, &str, bool)]) -> SceneEntries {
         let selected = values

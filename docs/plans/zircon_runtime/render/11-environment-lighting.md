@@ -510,6 +510,14 @@ GPUScene 衔接(计划 03):`LightmapInstanceSlot`(uv_rect + atlas_page)进 insta
 
 - 当前里程碑概述：EL-M3 lightmap 与 light probe 消费已于 2026-07-13 完成；外部 bake fixture、Forward+/Deferred WGPU 数值对拍和 PNG 证据均已闭合。HGI 动态增量合成归 HGI-M4，不计入 EL-M3。
 
+- 2026-08-19 EL-M1 实时 procedural IBL 结构性修复：`in_progress`。首次与后续重烘均已切为同一 21 阶段 generation ticket（3 个两面 sky capture、7 个 source mip、10 个 PMREM slice、SH9），移除了没有独立 producer 的重复 cloud capture，并以双槽最后一次完整发布保留已验证环境图。代码推导的完整 ticket 工作量为 4,219 个 workgroup（旧首帧为 5,755），单帧最多 512 个 workgroup；这是调度账本，不是 GPU 时间声明。图变体缓存现按 ticket 拓扑有界至 42 项，时间戳输出包含 generation、配方、槽位、工作组与终止原因。复审还修复了 readback 未获准帧仍建立实时 IBL timestamp scope 的计量偏差：仅已获共享 readback 许可的帧记录和读取该 timestamp。托管 Windows Rust/WGPU 回归、当前源码 PNG、RenderDoc/WPR 冷/热数据仍待共享验证池，不能据此标记为完成；设计和门禁见 Shader06 M7 记录。
+
+- 2026-08-19 验证状态：Editor05 已修复此前 `extract_stats.rs:212` 的外部 API 编译错误；重提 `validate-matrix.ps1 -Package zircon_runtime -SkipTest` 时，协调器明确返回 `cargo_cpu_lane_reserved`，当前 CPU lane 被 `validate-matrix:editor-ui12-zui-aa-visual-acceptance-successor-20260819` 预留。该响应不产生构建结果，不能替代验证；等待 lane 释放后重跑构建、`realtime_ibl` 库筛选和实时 IBL 产品截图/RenderDoc/WPR 门禁。
+
+- 2026-08-19 验证阻塞更新：CPU lane 释放后的前台托管构建因调用端十分钟硬超时被中止，协调器仅记录为 `orphaned`，没有 exit code，不能据此判断 Rust 通过或失败。改用后台同一受管命令时，协调器又拒绝全部新作业，原因是全局未注册 D/E/F 产物 `D:\ZirconBuilds\mvp-product-inputs-ui12-visual-acceptance-20260819-2138`；它不属于 EL-M1 写入范围，未删除或接管。该全局门禁解除并取得有退出码的构建后，继续 library、WGPU PNG、GPU timestamp、RenderDoc/WPR 门禁。
+
+- 2026-08-19 验证阻塞更新 2：全局工件清理后，受管 `zircon_runtime` build 被 `cargo_reuse_pool_busy` 拒绝，兼容池当前由外部测试作业 `b65365a33a0d443d9f0d96410abf5546` 持有并仍在运行。未尝试直接 Cargo 或抢占该池；释放后重新提交受管构建。
+
 - 迁入记录：[`11/2026-07-09-environment-lighting-output-records.md`](11/2026-07-09-environment-lighting-output-records.md)
 - fixed 已修复：[reflection-probe-product-type-inference](../text/01/fixed-2026-07-12-reflection-probe-product-type-inference.md)
 - fixed 已修复：[source-cubemap-source-texel-test-api-drift](../../zircon_editor/editor/10/fixed-2026-07-12-source-cubemap-source-texel-test-api-drift.md)

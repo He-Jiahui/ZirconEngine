@@ -13,17 +13,17 @@ use std::path::Path;
 
 #[cfg(feature = "runtime")]
 use subassets::{
-    add_gltf_animation_placeholders_and_skin_subassets, add_gltf_material_subassets,
-    add_gltf_mesh_subassets, add_gltf_scene_subassets, add_gltf_texture_subassets,
-    gltf_label_reference, GltfMeshSubasset, GltfPrimitiveSubasset,
+    GltfMeshSubasset, GltfPrimitiveSubasset, add_gltf_animation_placeholders_and_skin_subassets,
+    add_gltf_material_subassets, add_gltf_mesh_subassets, add_gltf_scene_subassets,
+    add_gltf_texture_subassets, gltf_label_reference,
 };
 #[cfg(feature = "runtime")]
 use zircon_runtime::asset::{
-    cook_mesh_sdf_or_fallback, cook_virtual_geometry_from_mesh, AssetImportContext,
-    AssetImportError, AssetImportOutcome, ImportedAsset, MeshAttributeValues, MeshMorphTargetAsset,
+    AssetImportContext, AssetImportError, AssetImportOutcome, ImportedAsset, MESH_ATTRIBUTE_NORMAL,
+    MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MeshAttributeValues, MeshMorphTargetAsset,
     MeshSdfCookBudget, MeshSdfCookSettings, MeshSkinAsset, MeshVertex, ModelAsset,
-    ModelPrimitiveAsset, VirtualGeometryCookConfig, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION,
-    MESH_ATTRIBUTE_TANGENT,
+    ModelPrimitiveAsset, VirtualGeometryCookConfig, cook_mesh_sdf_or_fallback,
+    cook_virtual_geometry_from_mesh,
 };
 #[cfg(feature = "runtime")]
 use zircon_runtime::core::math::{Vec2, Vec3};
@@ -35,10 +35,10 @@ pub use capability::{
 };
 #[cfg(feature = "runtime")]
 pub use plugin::{
+    GLTF_IMPORTER_DIST_CRATE_NAME, GLTF_IMPORTER_DIST_RUNTIME_ENTRY, GltfImporterRuntimePlugin,
     asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,
     plugin_registration, runtime_capabilities, runtime_module_manifest, runtime_plugin,
     runtime_plugin_descriptor, runtime_selection, supported_platforms, supported_targets,
-    GltfImporterRuntimePlugin, GLTF_IMPORTER_DIST_CRATE_NAME, GLTF_IMPORTER_DIST_RUNTIME_ENTRY,
 };
 
 #[cfg(feature = "runtime")]
@@ -284,8 +284,9 @@ fn primitive_from_indexed_mesh(
     }
     let vertex_count = positions.len() / 3;
     let mut computed_normals = if normals.is_empty() {
-        generate_normals(positions, indices)
+        generate_normals(positions, indices)?
     } else {
+        validate_triangle_indices(indices, vertex_count)?;
         normals.to_vec()
     };
     if computed_normals.len() < vertex_count * 3 {
@@ -359,8 +360,32 @@ fn primitive_from_indexed_mesh(
 }
 
 #[cfg(feature = "runtime")]
-fn generate_normals(positions: &[f32], indices: &[u32]) -> Vec<f32> {
+fn validate_triangle_indices(indices: &[u32], vertex_count: usize) -> Result<(), AssetImportError> {
+    if indices.len() % 3 != 0 {
+        return Err(AssetImportError::Parse(format!(
+            "triangle index count {} was not a multiple of 3",
+            indices.len()
+        )));
+    }
+    for (element, &index) in indices.iter().enumerate() {
+        let index = usize::try_from(index).map_err(|_| {
+            AssetImportError::Parse(format!(
+                "mesh index {index} at element {element} exceeds platform limits"
+            ))
+        })?;
+        if index >= vertex_count {
+            return Err(AssetImportError::Parse(format!(
+                "mesh index {index} at element {element} exceeds vertex count {vertex_count}"
+            )));
+        }
+    }
+    Ok(())
+}
+
+#[cfg(feature = "runtime")]
+fn generate_normals(positions: &[f32], indices: &[u32]) -> Result<Vec<f32>, AssetImportError> {
     let vertex_count = positions.len() / 3;
+    validate_triangle_indices(indices, vertex_count)?;
     let mut normals = vec![0.0_f32; vertex_count * 3];
 
     for triangle in indices.chunks_exact(3) {
@@ -374,8 +399,11 @@ fn generate_normals(positions: &[f32], indices: &[u32]) -> Vec<f32> {
                 positions[index * 3 + 2],
             )
         };
-        let face_normal = (position(b) - position(a))
-            .cross(position(c) - position(a))
+        let position_a = position(a);
+        let position_b = position(b);
+        let position_c = position(c);
+        let face_normal = (position_b - position_a)
+            .cross(position_c - position_a)
             .normalize_or_zero();
         for index in [a, b, c] {
             normals[index * 3] += face_normal.x;
@@ -384,8 +412,12 @@ fn generate_normals(positions: &[f32], indices: &[u32]) -> Vec<f32> {
         }
     }
 
-    normals
+    Ok(normals)
 }
 
 #[cfg(all(test, feature = "runtime"))]
 mod tests;
+
+#[cfg(all(test, feature = "runtime"))]
+#[path = "tests/index_admission.rs"]
+mod index_admission_tests;

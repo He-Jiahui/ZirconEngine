@@ -501,6 +501,7 @@ impl PbrMirrorViewerApp {
                 return;
             }
         }
+        let gpu_timing_evidence_pending = self.gpu_timing_evidence_pending();
 
         let scene = self
             .scene
@@ -514,7 +515,7 @@ impl PbrMirrorViewerApp {
             );
             scene.start_graphics_debugger_capture();
         }
-        if write_screenshot || capture_this_frame {
+        if write_screenshot || capture_this_frame || gpu_timing_evidence_pending {
             scene.request_next_frame_timing_report();
         }
         if self.direct_present_enabled && !write_screenshot {
@@ -698,6 +699,8 @@ impl PbrMirrorViewerApp {
                 } else {
                     None
                 };
+                let gpu_timing_report = scene.take_completed_gpu_timing_report();
+                let gpu_timing_status = scene.last_gpu_timing_status();
                 if write_screenshot {
                     if let Err(error) =
                         self.write_ready_frame_screenshot(&frame, screenshot_metadata.as_ref())
@@ -708,8 +711,6 @@ impl PbrMirrorViewerApp {
                     }
                     self.begin_gpu_timing_evidence(frame.generation);
                 }
-                let gpu_timing_report = scene.take_completed_gpu_timing_report();
-                let gpu_timing_status = scene.last_gpu_timing_status();
                 if let Err(error) =
                     self.resolve_gpu_timing_evidence(gpu_timing_report, gpu_timing_status)
                 {

@@ -7,7 +7,7 @@ use crate::entry::runtime_library::{RuntimeFrameDemand, MAX_HOST_RUNTIME_FRAME_D
 
 const HEADLESS_FRAME_INTERVAL: Duration = Duration::from_millis(16);
 const INTERACTIVE_FRAME_INTERVAL: Duration = Duration::from_nanos(16_666_667);
-const UNFOCUSED_GAME_FRAME_INTERVAL: Duration = INTERACTIVE_FRAME_INTERVAL;
+const UNFOCUSED_GAME_FRAME_INTERVAL: Duration = Duration::from_millis(100);
 const MOBILE_FOREGROUND_FRAME_INTERVAL: Duration = INTERACTIVE_FRAME_INTERVAL;
 const BACKGROUND_FRAME_INTERVAL: Duration = Duration::from_secs(1);
 
@@ -227,7 +227,10 @@ impl RuntimeFrameCadence {
                     false
                 }
             }
-            RuntimeFrameCadenceMode::Continuous => true,
+            RuntimeFrameCadenceMode::Continuous => {
+                self.frame_requested = false;
+                true
+            }
             RuntimeFrameCadenceMode::LowPower {
                 interval,
                 next_deadline,
@@ -499,6 +502,22 @@ mod tests {
         assert_eq!(cadence.report().occlusion_transitions, 2);
         assert_eq!(cadence.report().low_power_pumps, 1);
         assert_eq!(cadence.report().low_power_pumps_suppressed, 1);
+    }
+
+    #[test]
+    fn unfocused_game_cadence_caps_default_wake_rate_at_ten_hz() {
+        let now = Instant::now();
+        let mut cadence = RuntimeFrameCadence::new_at(EventLoopPolicy::Game, now);
+        assert!(cadence.take_frame_request(now));
+        assert!(cadence.set_window_focused_at(false, now));
+
+        assert_eq!(
+            UNFOCUSED_GAME_FRAME_INTERVAL,
+            Duration::from_millis(100),
+            "the default unfocused policy must cap timer-driven pumps at 10 Hz"
+        );
+        assert!(!cadence.take_frame_request(now + Duration::from_millis(99)));
+        assert!(cadence.take_frame_request(now + Duration::from_millis(100)));
     }
 
     #[test]

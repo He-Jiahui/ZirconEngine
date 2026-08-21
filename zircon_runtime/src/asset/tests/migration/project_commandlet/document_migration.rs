@@ -242,7 +242,7 @@ fn changed_document_preserves_unrepaired_current_reference_fields_and_counts_onl
     fs::write(
         &model,
         format!(
-            "uri = \"res://models/mixed.model.toml\"\n\n[[primitives]]\nvertices = []\nindices = []\n\n[primitives.mesh]\nkind = \"project\"\nguid = \"{stale_guid}\"\npath_hint = \"textures/repaired.png\"\n\n[[primitives]]\nvertices = []\nindices = []\n\n[primitives.mesh]\nkind = \"project\"\nguid = \"{UNTOUCHED_GUID_TEXT}\"\npath_hint = \"textures/untouched.png\"\n"
+            "uri = \"res://models/mixed.model.toml\"\n\n[[primitives]]\nvertices = []\nindices = []\n\n[primitives.mesh]\nkind = \"project\"\nguid = \"{stale_guid}\"\npath_hint = \"assets/textures/repaired.png\"\n\n[[primitives]]\nvertices = []\nindices = []\n\n[primitives.mesh]\nkind = \"project\"\nguid = \"{UNTOUCHED_GUID_TEXT}\"\npath_hint = \"assets/textures/untouched.png\"\n"
         ),
     )
     .unwrap();
@@ -426,7 +426,11 @@ fn labeled_legacy_locator_becomes_asset_ref_sub_and_formal_reader_reloads_it() {
         migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
             .unwrap();
 
-    assert!(report.succeeded());
+    assert!(
+        report.succeeded(),
+        "migration issues: {:?}",
+        report.issues()
+    );
     let migrated = fs::read_to_string(&model).unwrap();
     let parsed: toml::Value = toml::from_str(&migrated).unwrap();
     assert_eq!(

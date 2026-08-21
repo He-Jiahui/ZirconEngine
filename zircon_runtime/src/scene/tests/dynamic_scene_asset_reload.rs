@@ -8,9 +8,9 @@ use std::{
 use crate::{
     asset::{AssetEventKind, AssetUri, Assets, ImportedAsset, ProjectManager, SceneAsset},
     core::{
+        JobScheduler, TaskPool, TaskPoolDescriptor,
         framework::tasks::TaskCancellationPolicy,
         resource::{ResourceDiagnostic, ResourceId, ResourceKind, ResourceManager, ResourceRecord},
-        JobScheduler, TaskPool, TaskPoolDescriptor,
     },
     scene::{
         DefaultLevelManager, DynamicSceneAssetReloadDrainReport, DynamicSceneAssetReloadLimits,
@@ -175,15 +175,17 @@ fn dynamic_scene_asset_reload_asset_scale_matrix_honors_single_event_and_task_bu
         );
 
         for index in 0..asset_count {
-            fixture.resources.register_record(ResourceRecord::new(
-                ResourceId::from_stable_label(&format!("scale-scene-{asset_count}-{index}")),
-                ResourceKind::Scene,
-                AssetUri::parse(&format!(
-                    "res://scenes/scale-{asset_count}-{index}.scene.toml"
+            fixture
+                .resources
+                .register_record(ResourceRecord::new(
+                    ResourceId::from_stable_label(&format!("scale-scene-{asset_count}-{index}")),
+                    ResourceKind::Scene,
+                    AssetUri::parse(&format!(
+                        "res://scenes/scale-{asset_count}-{index}.scene.toml"
+                    ))
+                    .expect("scale fixture URI should be valid"),
                 ))
-                .expect("scale fixture URI should be valid"),
-            ))
-            .unwrap();
+                .unwrap();
         }
 
         let drain = queue.drain_events(&scheduler);
@@ -266,12 +268,14 @@ fn dynamic_scene_asset_reload_budgets_filtered_raw_events() {
         fixture.resources.clone(),
         limits,
     );
-    fixture.resources.register_record(ResourceRecord::new(
-        ResourceId::from_stable_label("unrelated shader event"),
-        ResourceKind::Shader,
-        AssetUri::parse("res://shaders/unrelated.wgsl").unwrap(),
-    ))
-    .unwrap();
+    fixture
+        .resources
+        .register_record(ResourceRecord::new(
+            ResourceId::from_stable_label("unrelated shader event"),
+            ResourceKind::Shader,
+            AssetUri::parse("res://shaders/unrelated.wgsl").unwrap(),
+        ))
+        .unwrap();
     fixture.register_ready_revision("scene-after-filtered-event");
 
     let first = queue.drain_events(&scheduler);
@@ -308,12 +312,14 @@ fn dynamic_scene_asset_reload_reports_resource_event_generation_gaps() {
         DynamicSceneAssetReloadLimits::default(),
     );
     for index in 0..4_128 {
-        fixture.resources.register_record(ResourceRecord::new(
-            ResourceId::from_stable_label(&format!("gap-shader-{index}")),
-            ResourceKind::Shader,
-            AssetUri::parse(&format!("res://shaders/gap-{index}.wgsl")).unwrap(),
-        ))
-        .unwrap();
+        fixture
+            .resources
+            .register_record(ResourceRecord::new(
+                ResourceId::from_stable_label(&format!("gap-shader-{index}")),
+                ResourceKind::Shader,
+                AssetUri::parse(&format!("res://shaders/gap-{index}.wgsl")).unwrap(),
+            ))
+            .unwrap();
     }
 
     let drain = queue.drain_events(&scheduler);
@@ -335,12 +341,14 @@ fn dynamic_scene_asset_reload_reports_resource_event_generation_gaps() {
 fn dynamic_scene_asset_reload_reconciliation_is_incremental_and_skips_pending_rows() {
     let fixture = SceneReloadFixture::new("asset_reload_incremental_reconciliation");
     fixture.register_ready_revision("scene-reconcile-ready");
-    fixture.resources.register_record(ResourceRecord::new(
-        ResourceId::from_stable_label("pending reconciliation scene"),
-        ResourceKind::Scene,
-        AssetUri::parse("res://scenes/pending.scene.toml").unwrap(),
-    ))
-    .unwrap();
+    fixture
+        .resources
+        .register_record(ResourceRecord::new(
+            ResourceId::from_stable_label("pending reconciliation scene"),
+            ResourceKind::Scene,
+            AssetUri::parse("res://scenes/pending.scene.toml").unwrap(),
+        ))
+        .unwrap();
     let events = Assets::<SceneAsset>::new(fixture.resources.clone()).subscribe_events();
     let scheduler = JobScheduler::default();
     let limits = DynamicSceneAssetReloadLimits {
@@ -422,11 +430,13 @@ fn dynamic_scene_asset_reload_skips_removed_and_reload_failed_events() {
         fixture.resources.clone(),
     );
 
-    fixture.resources.fail_reload(
-        fixture.record.id(),
-        vec![ResourceDiagnostic::error("scene reload failed")],
-    )
-    .unwrap();
+    fixture
+        .resources
+        .fail_reload(
+            fixture.record.id(),
+            vec![ResourceDiagnostic::error("scene reload failed")],
+        )
+        .unwrap();
     fixture.resources.remove_by_locator(&fixture.uri).unwrap();
 
     let drain = drain_until_events(&mut queue, &scheduler, 2);
@@ -709,12 +719,13 @@ fn tick_into_level_until_terminal(
 
 fn publish_gap_fixture_events(resources: &ResourceManager) {
     for index in 0..4_128 {
-        resources.register_record(ResourceRecord::new(
-            ResourceId::from_stable_label(&format!("reconciliation-gap-shader-{index}")),
-            ResourceKind::Shader,
-            AssetUri::parse(&format!("res://shaders/reconciliation-gap-{index}.wgsl")).unwrap(),
-        ))
-        .unwrap();
+        resources
+            .register_record(ResourceRecord::new(
+                ResourceId::from_stable_label(&format!("reconciliation-gap-shader-{index}")),
+                ResourceKind::Shader,
+                AssetUri::parse(&format!("res://shaders/reconciliation-gap-{index}.wgsl")).unwrap(),
+            ))
+            .unwrap();
     }
 }
 
@@ -757,11 +768,12 @@ impl SceneReloadFixture {
     }
 
     fn register_ready_revision(&self, source_hash: &str) {
-        self.resources.register_ready(
-            self.record.clone().with_source_hash(source_hash),
-            self.scene.clone(),
-        )
-        .unwrap();
+        self.resources
+            .register_ready(
+                self.record.clone().with_source_hash(source_hash),
+                self.scene.clone(),
+            )
+            .unwrap();
     }
 
     fn copy_main_scene_as(&self, file_name: &str) -> AssetUri {

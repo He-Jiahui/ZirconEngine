@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-16
 summary_slug: app01-editor-host-autosave-const-call
 origin_plan: docs/plans/optimize/zircon_app/01-product-host-bootstrap-loop-dynamic-runtime-shutdown-review.md
@@ -13,7 +13,9 @@ related_code:
   - zircon_editor/src/core/recovery/autosave_adapter.rs
 tests:
   - cargo build -p zircon_app --no-default-features --features target-editor-host --locked --bin zircon_editor
+resolved_at: 2026-08-16
 ---
+
 
 # Editor14: App01 Editor-host validation is blocked by an autosave const call
 
@@ -63,4 +65,7 @@ cannot call non-const method `AutosaveScheduler::is_due` in constant functions
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed.
+- 根因：AutosaveJobAdapter::is_due was declared const even though it is a runtime clock-and-state predicate delegating to the intentionally non-const AutosaveScheduler::is_due.
+- 架构修复：Removed the false const API contract from the adapter and retained AutosaveScheduler as the single runtime authority; no scheduling state or behavior changed.
+- 验证：validate-matrix -Package zircon_editor -SkipTest: exit 0; App target-editor-host build compiled past zircon_editor and autosave, then failed in foreign zircon_plugin_hybrid_gi_runtime with 42 independent errors.
+- 回传：Editor14 autosave const-call blocker is fixed and returned to App01; the original product build now advances to a separate Hybrid GI owner failure.

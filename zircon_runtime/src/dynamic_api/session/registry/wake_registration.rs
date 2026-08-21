@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 
-use zircon_runtime_interface::{ZIRCON_RUNTIME_ABI_VERSION_V1, ZrRuntimeWakeSinkV1};
+use zircon_runtime_interface::{ZrRuntimeWakeSinkV1, ZIRCON_RUNTIME_ABI_VERSION_V1};
 
 use crate::core::framework::channel::ChannelWakeCallback;
 

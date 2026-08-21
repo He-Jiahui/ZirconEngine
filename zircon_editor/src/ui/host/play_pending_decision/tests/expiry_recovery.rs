@@ -187,14 +187,12 @@ fn foreign_only_receipt_expiry_advances_without_a_play_prompt() {
             owned_receipt_after_cutoff: false,
         }
     );
-    assert!(
-        adapter
-            .consume_resolved_receipts(&center, |_| {
-                panic!("foreign receipts must remain ignored")
-            })
-            .unwrap()
-            .is_empty()
-    );
+    assert!(adapter
+        .consume_resolved_receipts(&center, |_| {
+            panic!("foreign receipts must remain ignored")
+        })
+        .unwrap()
+        .is_empty());
 }
 
 #[test]

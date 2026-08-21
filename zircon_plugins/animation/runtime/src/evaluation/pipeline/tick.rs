@@ -2,15 +2,17 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use zircon_runtime::asset::project_asset_manager_handle;
-use zircon_runtime::core::framework::animation::AnimationPoseOutput;
+use zircon_runtime::core::CoreHandle;
+use zircon_runtime::core::framework::animation::{AnimationParameterValue, AnimationPoseOutput};
 use zircon_runtime::core::framework::physics::{
     SimulatedPoseFeed, SkeletalPoseTarget, SkeletalPoseTargets,
 };
 use zircon_runtime::core::manager::{animation_manager_handle, resolve_manager_service};
 use zircon_runtime::core::math::Real;
-use zircon_runtime::core::CoreHandle;
+use zircon_runtime::scene::components::AnimationStateMachinePlayerComponent;
 use zircon_runtime::scene::{EntityId, LevelSystem};
 
+use super::AnimationEvaluationPipeline;
 use super::direct_clip_worker::sample_direct_clip_pose_requests;
 use super::events::{enqueue_clip_event_samples, publish_clip_events, publish_events};
 use super::graph_evaluate::resolve_graph_pose_requests;
@@ -18,11 +20,10 @@ use super::parameter_apply::{
     apply_clip_player_updates, apply_sequence_player_updates, scan_animation_scene,
 };
 use super::pose_apply::apply_pose_transforms_to_scene_nodes;
-use super::sequences::{apply_loaded_sequences, LoadedSequenceSample};
+use super::sequences::{LoadedSequenceSample, apply_loaded_sequences};
 use super::simulated_pose_blend::blend_simulated_pose_feed;
 use super::state_machine_layers::apply_state_machine_layers;
 use super::state_machine_step::resolve_state_machine_pose_requests;
-use super::AnimationEvaluationPipeline;
 use crate::ik::apply_ik_commands;
 
 pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta_seconds: Real) {
@@ -285,7 +286,7 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
     retain_non_deferred_entity_updates(&mut clip_player_updates, &admission.deferred_entities);
     retain_non_deferred_entity_updates(&mut sequence_player_updates, &admission.deferred_entities);
     loaded_sequences.retain(|sample| !admission.deferred_entities.contains(&sample.entity));
-    active_state_updates.retain(|(entity, _)| !admission.deferred_entities.contains(entity));
+    active_state_updates.retain(|update| !admission.deferred_entities.contains(&update.entity));
     layer_diagnostics
         .retain(|diagnostic| !admission.deferred_entities.contains(&diagnostic.entity));
     let evaluation_diagnostics = level
@@ -309,15 +310,10 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
     }
     let Some(ik_diagnostics) =
         level.with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
-            let deferred_entities = admission
-                .deferred_entities
-                .iter()
-                .copied()
-                .collect::<Vec<_>>();
             let ik_commands = animation.drain_ik_commands_excluding(
                 level.world_handle(),
                 replacement_epoch,
-                &deferred_entities,
+                &admission.deferred_entities,
             );
             let pipeline = world.resource::<AnimationEvaluationPipeline>();
             if world.contains_resource::<SimulatedPoseFeed>() {
@@ -346,13 +342,18 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
     if !active_state_updates.is_empty() {
         if level
             .with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
-                for (entity, active_state) in active_state_updates {
-                    let Some(mut player) = world.animation_state_machine_player(entity).cloned()
+                for update in active_state_updates {
+                    let Some(mut player) =
+                        world.animation_state_machine_player(update.entity).cloned()
                     else {
                         continue;
                     };
-                    player.active_state = active_state;
-                    let _ = world.set_animation_state_machine_player(entity, Some(player));
+                    apply_active_state_update(
+                        &mut player,
+                        update.active_state,
+                        update.consumed_triggers.as_deref().unwrap_or_default(),
+                    );
+                    let _ = world.set_animation_state_machine_player(update.entity, Some(player));
                 }
             })
             .is_none()
@@ -397,6 +398,23 @@ fn retain_non_deferred_entity_map<T>(
     deferred_entities: &BTreeSet<EntityId>,
 ) {
     values.retain(|entity, _| !deferred_entities.contains(entity));
+}
+
+fn apply_active_state_update(
+    player: &mut AnimationStateMachinePlayerComponent,
+    active_state: Option<String>,
+    consumed_triggers: &[String],
+) {
+    player.active_state = active_state;
+    for trigger in consumed_triggers {
+        let is_trigger = player
+            .parameters
+            .get(trigger)
+            .is_some_and(|value| matches!(value, AnimationParameterValue::Trigger));
+        if is_trigger {
+            player.parameters.remove(trigger);
+        }
+    }
 }
 
 fn restore_deferred_entity_map<T: Clone>(
@@ -472,5 +490,54 @@ fn record_empty_animation_state(level: &LevelSystem) {
         BTreeMap::new(),
     ) {
         return;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use zircon_runtime::core::framework::animation::AnimationParameterValue;
+    use zircon_runtime::core::resource::{AnimationStateMachineMarker, ResourceHandle, ResourceId};
+    use zircon_runtime::scene::components::AnimationStateMachinePlayerComponent;
+
+    use super::apply_active_state_update;
+
+    #[test]
+    fn one_shot_trigger_commit_consumes_only_current_trigger_values() {
+        let mut player = AnimationStateMachinePlayerComponent {
+            state_machine: ResourceHandle::<AnimationStateMachineMarker>::new(
+                ResourceId::from_stable_label("one-shot trigger commit"),
+            ),
+            parameters: BTreeMap::from([
+                ("fire".into(), AnimationParameterValue::Trigger),
+                ("jump".into(), AnimationParameterValue::Trigger),
+                ("speed".into(), AnimationParameterValue::Scalar(2.0)),
+                ("grounded".into(), AnimationParameterValue::Bool(true)),
+            ]),
+            active_state: Some("Idle".into()),
+            playing: true,
+        };
+
+        apply_active_state_update(
+            &mut player,
+            Some("Run".into()),
+            &["fire".into(), "speed".into()],
+        );
+
+        assert_eq!(player.active_state.as_deref(), Some("Run"));
+        assert!(!player.parameters.contains_key("fire"));
+        assert_eq!(
+            player.parameters.get("jump"),
+            Some(&AnimationParameterValue::Trigger)
+        );
+        assert_eq!(
+            player.parameters.get("speed"),
+            Some(&AnimationParameterValue::Scalar(2.0))
+        );
+        assert_eq!(
+            player.parameters.get("grounded"),
+            Some(&AnimationParameterValue::Bool(true))
+        );
     }
 }

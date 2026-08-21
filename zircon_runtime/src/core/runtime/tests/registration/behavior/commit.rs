@@ -3,8 +3,8 @@ use std::sync::Arc;
 use super::super::super::super::state::{ServiceEntry, ServiceEntryFactory};
 use super::super::super::super::*;
 use super::super::super::fixtures::{TestDriver, TestManager};
-use crate::core::runtime::ServiceObject;
 use crate::core::CoreError;
+use crate::core::runtime::ServiceObject;
 use crate::core::{LifecycleState, ServiceKind, StartupMode};
 
 #[test]
@@ -29,6 +29,8 @@ fn register_single_service_reports_existing_service_table_key() {
                 lifecycle: LifecycleState::Registered,
                 initialization_owner: None,
                 instance: None,
+                admission_open: false,
+                in_flight_calls: 0,
             },
         );
     }
@@ -95,6 +97,8 @@ fn register_exact_three_services_reports_existing_third_key_without_partial_comm
                 lifecycle: LifecycleState::Registered,
                 initialization_owner: None,
                 instance: None,
+                admission_open: false,
+                in_flight_calls: 0,
             },
         );
     }
@@ -179,6 +183,8 @@ fn register_exact_four_services_reports_existing_fourth_key_without_partial_comm
                 lifecycle: LifecycleState::Registered,
                 initialization_owner: None,
                 instance: None,
+                admission_open: false,
+                in_flight_calls: 0,
             },
         );
     }
@@ -275,6 +281,8 @@ fn register_exact_five_services_reports_existing_fifth_key_without_partial_commi
                 lifecycle: LifecycleState::Registered,
                 initialization_owner: None,
                 instance: None,
+                admission_open: false,
+                in_flight_calls: 0,
             },
         );
     }

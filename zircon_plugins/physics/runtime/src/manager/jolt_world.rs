@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, HashMap};
+use std::sync::Arc;
 
 use zircon_runtime::core::framework::scene::{EntityId, WorldHandle};
 use zircon_runtime::core::framework::{
@@ -15,11 +16,11 @@ use crate::backend::{
     PhysicsBackend, PhysicsBackendError, PhysicsBackendObjectKind, PhysicsEventBuffer, ShapeHandle,
 };
 
+use super::DefaultPhysicsManager;
 use super::change_detection::{collider_requires_recreation, detect_body_change};
-use super::command_buffer::{apply_commands_to_sync, PhysicsBodyCommand};
+use super::command_buffer::{PhysicsBodyCommand, apply_commands_to_sync};
 use super::poison_recovery::recover_lock;
 use super::world_sync::sanitize_world_sync_state;
-use super::DefaultPhysicsManager;
 
 #[derive(Debug)]
 pub(super) struct JoltManagedWorld {
@@ -455,7 +456,7 @@ impl DefaultPhysicsManager {
         recover_lock(&self.contacts).remove(&sync.world);
         recover_lock(&self.trigger_pairs).remove(&sync.world);
         recover_lock(&self.triggers).remove(&sync.world);
-        recover_lock(&self.synced_worlds).insert(sync.world, sync);
+        recover_lock(&self.synced_worlds).insert(sync.world, Arc::new(sync));
         *recover_lock(&self.last_backend_error) = None;
     }
 

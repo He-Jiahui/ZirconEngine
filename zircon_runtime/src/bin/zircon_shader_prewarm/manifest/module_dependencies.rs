@@ -569,16 +569,16 @@ mod tests {
         assert!(
             dag.imports_by_source
                 .iter()
-                .all(|imports| imports == [IndexedIncludeModule::External(0)]),
+                .all(|imports| imports.as_slice() == [IndexedIncludeModule::External(0)]),
             "each high-fanout edge must retain only the interned module index"
         );
 
         let (components, component_for_source) = dag.strongly_connected_components();
         let graph = dag.component_graph(&component_for_source, components.len());
         assert!(
-            graph.dependencies.iter().all(
-                |dependencies| dependencies == [IndexedIncludeComponentDependency::External(0)]
-            ),
+            graph.dependencies.iter().all(|dependencies| {
+                dependencies.as_slice() == [IndexedIncludeComponentDependency::External(0)]
+            }),
             "the condensed graph must keep external dependencies as scalar indexes"
         );
     }

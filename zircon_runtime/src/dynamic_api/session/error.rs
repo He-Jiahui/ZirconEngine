@@ -22,6 +22,8 @@ pub(super) type RuntimeProjectResult<T> = Result<T, RuntimeProjectError>;
 pub enum RuntimeDynamicSessionError {
     #[error("unknown runtime session profile `{profile}`")]
     UnknownProfile { profile: String },
+    #[error("runtime session handle space exhausted")]
+    SessionHandleSpaceExhausted,
     #[error("runtime module discovery failed: {message}")]
     ModuleDiscovery { message: String },
     #[error("{step}: {source}")]

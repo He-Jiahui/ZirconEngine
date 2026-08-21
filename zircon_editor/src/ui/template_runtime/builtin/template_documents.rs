@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
 use zircon_runtime::diagnostic_log::{
-    DiagnosticLogLevel, diagnostic_log_allows, write_diagnostic_log,
+    diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
 };
 
 pub(crate) const UI_HOST_WINDOW_DOCUMENT_ID: &str = "res://ui/editor/host/workbench_shell.zui";

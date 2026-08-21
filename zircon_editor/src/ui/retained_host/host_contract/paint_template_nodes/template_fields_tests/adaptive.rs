@@ -35,6 +35,7 @@ fn collapsed_field_content_omits_text_and_search_glyph() {
     };
     let mut search = positioned_field_node("SearchEdited", "", 8.0, 6.0, 1.0, 28.0);
     search.text = "Search".into();
+    let mut commands = Vec::new();
 
     assert!(push_field_commands(
         &mut commands,

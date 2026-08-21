@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::ffi::CStr;
 use std::os::raw::{c_char, c_void};
 use std::ptr::NonNull;
@@ -51,6 +52,7 @@ impl Default for RecastCrowdConfig {
 pub struct RecastCrowd {
     handle: NonNull<c_void>,
     capacity: usize,
+    native_state_scratch: RefCell<Vec<ZrNavCrowdAgentState>>,
 }
 
 unsafe impl Send for RecastCrowd {}
@@ -68,6 +70,13 @@ impl RecastCrowd {
                 "crowd capacity and maximum radius must be positive",
             ));
         }
+        let capacity = usize::try_from(config.max_agents)
+            .map_err(|_| crowd_error("crowd capacity does not fit the host address width"))?;
+        let mut native_state_scratch = Vec::new();
+        native_state_scratch
+            .try_reserve_exact(capacity)
+            .map_err(|_| crowd_error("native crowd state scratch allocation failed"))?;
+        native_state_scratch.resize(capacity, ZrNavCrowdAgentState::default());
         let query = DetourQuery::from_asset(asset)
             .ok_or_else(|| crowd_error("navmesh asset could not create a Detour query"))?;
         let area_costs = detour_area_costs(asset);
@@ -88,9 +97,19 @@ impl RecastCrowd {
         let handle = NonNull::new(result.crowd)
             .ok_or_else(|| crowd_error("native crowd returned a null handle"))?;
         query.into_raw();
+        if result.capacity != config.max_agents {
+            unsafe {
+                ffi::zr_nav_crowd_free(handle.as_ptr());
+            }
+            return Err(crowd_error(format!(
+                "native crowd capacity mismatch: requested {}, got {}",
+                config.max_agents, result.capacity
+            )));
+        }
         Ok(Self {
             handle,
-            capacity: result.capacity as usize,
+            capacity,
+            native_state_scratch: RefCell::new(native_state_scratch),
         })
     }
 
@@ -193,31 +212,73 @@ impl RecastCrowd {
     }
 
     pub fn read_states(&self) -> Result<Vec<RecastCrowdAgentState>, NavigationError> {
+        let mut native_states = self
+            .native_state_scratch
+            .try_borrow_mut()
+            .map_err(|_| crowd_error("native crowd state scratch is already in use"))?;
+        let mut result = ZrNavCrowdCommandResult::default();
+        unsafe {
+            ffi::zr_nav_crowd_read_states(
+                self.handle.as_ptr(),
+                native_states.as_mut_ptr(),
+                u32::try_from(native_states.len())
+                    .map_err(|_| crowd_error("native crowd state capacity exceeds u32"))?,
+                &mut result,
+            );
+        }
+        command_result(&result)?;
+        let state_count = usize::try_from(result.state_count)
+            .map_err(|_| crowd_error("native crowd state count does not fit usize"))?;
+        let initialized_states = native_states
+            .get(..state_count)
+            .ok_or_else(|| crowd_error("native crowd returned more states than its capacity"))?;
+        let mut states = Vec::new();
+        states
+            .try_reserve_exact(state_count)
+            .map_err(|_| crowd_error("crowd agent state result allocation failed"))?;
+        states.extend(
+            initialized_states
+                .iter()
+                .filter(|state| state.active != 0)
+                .map(recast_agent_state),
+        );
+        Ok(states)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn native_state_scratch_identity(&self) -> (usize, usize) {
+        let scratch = self.native_state_scratch.borrow();
+        (scratch.as_ptr() as usize, scratch.len())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn read_states_legacy_for_benchmark(
+        &self,
+    ) -> Result<Vec<RecastCrowdAgentState>, NavigationError> {
         let mut states = vec![ZrNavCrowdAgentState::default(); self.capacity];
         let mut result = ZrNavCrowdCommandResult::default();
         unsafe {
             ffi::zr_nav_crowd_read_states(
                 self.handle.as_ptr(),
                 states.as_mut_ptr(),
-                states.len() as u32,
+                u32::try_from(states.len())
+                    .map_err(|_| crowd_error("native crowd state capacity exceeds u32"))?,
                 &mut result,
             );
         }
         command_result(&result)?;
-        states.truncate(result.state_count as usize);
+        let state_count = usize::try_from(result.state_count)
+            .map_err(|_| crowd_error("native crowd state count does not fit usize"))?;
+        if state_count > states.len() {
+            return Err(crowd_error(
+                "native crowd returned more states than its capacity",
+            ));
+        }
+        states.truncate(state_count);
         Ok(states
             .into_iter()
             .filter(|state| state.active != 0)
-            .map(|state| RecastCrowdAgentState {
-                handle: RecastCrowdAgentHandle(state.agent_id),
-                traversal_state: state.traversal_state,
-                target_state: state.target_state,
-                partial_path: state.partial_path != 0,
-                position: state.position,
-                desired_velocity: state.desired_velocity,
-                avoidance_velocity: state.avoidance_velocity,
-                velocity: state.velocity,
-            })
+            .map(|state| recast_agent_state(&state))
             .collect())
     }
 }
@@ -249,6 +310,19 @@ fn avoidance_quality_index(quality: NavAvoidanceQuality) -> u8 {
 
 fn separation_weight(priority: u8) -> Real {
     0.5 + (255.0 - Real::from(priority)) / 255.0 * 1.5
+}
+
+fn recast_agent_state(state: &ZrNavCrowdAgentState) -> RecastCrowdAgentState {
+    RecastCrowdAgentState {
+        handle: RecastCrowdAgentHandle(state.agent_id),
+        traversal_state: state.traversal_state,
+        target_state: state.target_state,
+        partial_path: state.partial_path != 0,
+        position: state.position,
+        desired_velocity: state.desired_velocity,
+        avoidance_velocity: state.avoidance_velocity,
+        velocity: state.velocity,
+    }
 }
 
 fn native_message(message: &[c_char; 256]) -> String {

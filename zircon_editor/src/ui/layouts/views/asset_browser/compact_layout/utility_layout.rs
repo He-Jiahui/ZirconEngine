@@ -126,7 +126,7 @@ pub(super) fn compact_asset_browser_vertical_budget(
     (main_height, utility_y, utility_height)
 }
 
-fn compact_asset_browser_utility_height_for_viewport(viewport_height: f32) -> f32 {
+pub(super) fn compact_asset_browser_utility_height_for_viewport(viewport_height: f32) -> f32 {
     let viewport_height = finite_non_negative(viewport_height);
     if viewport_height < COMPACT_COLLAPSED_UTILITY_HEIGHT_THRESHOLD {
         COMPACT_COLLAPSED_UTILITY_HEIGHT.min(viewport_height)
@@ -268,5 +268,9 @@ fn finite_non_negative(value: f32) -> f32 {
 }
 
 fn finite_coordinate(value: f32) -> f32 {
-    if value.is_finite() { value } else { 0.0 }
+    if value.is_finite() {
+        value
+    } else {
+        0.0
+    }
 }

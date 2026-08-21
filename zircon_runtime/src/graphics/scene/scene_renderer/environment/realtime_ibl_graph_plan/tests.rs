@@ -1,7 +1,7 @@
 use super::*;
 use crate::core::framework::render::{IblBakeArtifactRequest, ProceduralSkyParams};
 use crate::graphics::scene::scene_renderer::environment::realtime_ibl_time_slice::{
-    RealtimeIblCompletion, RealtimeIblTimeSliceConfig, RealtimeIblTimeSliceScheduler,
+    CubeMipRange, RealtimeIblCompletion, RealtimeIblTimeSliceConfig, RealtimeIblTimeSliceScheduler,
 };
 use crate::render_graph::{
     RenderGraphBuilder, RenderGraphComputeDispatchExtent, RenderGraphResourceAccessKind,
@@ -16,12 +16,27 @@ fn request() -> IblBakeArtifactRequest {
     )
 }
 
-fn first_full_batch() -> RealtimeIblFrameBatch {
-    let mut scheduler = RealtimeIblTimeSliceScheduler::new(
+fn scheduler() -> RealtimeIblTimeSliceScheduler {
+    RealtimeIblTimeSliceScheduler::new(
         RealtimeIblTimeSliceConfig::try_new(8, 2).expect("valid realtime config"),
-    );
-    scheduler.request_rebake(ProceduralSkyParams::default_gradient().ibl_bake_key());
-    scheduler.begin_frame(1).expect("first full batch")
+    )
+}
+
+fn ticket_batch_matching(
+    scheduler: &mut RealtimeIblTimeSliceScheduler,
+    predicate: impl Fn(&RealtimeIblFrameBatch) -> bool,
+) -> RealtimeIblFrameBatch {
+    for frame in 1..64 {
+        let batch = scheduler.begin_frame(frame).expect("ticket batch");
+        if predicate(&batch) {
+            return batch;
+        }
+        assert_eq!(
+            scheduler.complete_frame(batch.token(), true),
+            RealtimeIblCompletion::Advanced
+        );
+    }
+    panic!("ticket stage was not scheduled");
 }
 
 #[test]
@@ -42,246 +57,87 @@ fn slot_selection_borrows_the_requested_persistent_slot() {
 }
 
 #[test]
-fn realtime_graph_materializes_only_live_work_slot_resources() {
-    let batch = first_full_batch();
-    let mut builder = RenderGraphBuilder::new("realtime-ibl-full");
+fn capture_ticket_materializes_only_the_live_work_slot_source_mip() {
+    let mut scheduler = scheduler();
+    scheduler.request_rebake(ProceduralSkyParams::default_gradient().ibl_bake_key());
+    let batch = scheduler.begin_frame(1).expect("capture ticket");
+    let mut builder = RenderGraphBuilder::new("realtime-ibl-capture-ticket");
 
     let plan = append_realtime_ibl_graph_plan(&mut builder, &request(), &batch)
         .expect("realtime IBL graph plan");
     let graph = builder.compile().expect("realtime graph compiles");
-
-    assert_eq!(plan.ready.slot, batch.ready_slot());
-    assert_eq!(plan.work.slot, batch.work_slot());
-    for resource in plan.ready.resources() {
-        assert!(
-            graph.resource_lifetime_by_name(&resource.name).is_none(),
-            "unused ready-slot resource `{}` should be pruned from the compiled graph",
-            resource.name
-        );
-    }
-    for resource in plan.work.resources() {
-        let is_live = graph.passes().iter().any(|pass| {
-            pass.resources
-                .iter()
-                .any(|access| access.name == resource.name)
-        });
-        let lifetime = graph.resource_lifetime_by_name(&resource.name);
-        assert_eq!(
-            lifetime.is_some(),
-            is_live,
-            "work-slot resource `{}` lifetime should match compiled pass usage",
-            resource.name
-        );
-        if let Some(lifetime) = lifetime {
-            assert_eq!(lifetime.kind, RenderGraphResourceKind::External);
-            assert!(lifetime.usage.persistent);
-        }
-    }
-    assert_eq!(plan.work.source.sampled_mips.len(), 8);
-    assert_eq!(plan.work.source.storage_mips.len(), 8);
-    assert_eq!(plan.work.pmrem.storage_mips.len(), 8);
-    assert!(graph.passes().iter().any(|pass| {
-        pass.resources.iter().any(|access| {
-            access.name == plan.work.source.storage_mips[0].name
-                && access.access == RenderGraphResourceAccessKind::Write
-        })
-    }));
-    assert!(graph.passes().iter().any(|pass| {
-        pass.resources.iter().any(|access| {
-            access.name == plan.work.pmrem.storage_mips[0].name
-                && access.access == RenderGraphResourceAccessKind::Write
-        })
-    }));
-    assert!(graph.passes().iter().any(|pass| {
-        pass.resources.iter().any(|access| {
-            access.name == plan.work.sh9.name
-                && access.access == RenderGraphResourceAccessKind::Write
-        })
-    }));
-}
-
-#[test]
-fn source_mip_generation_uses_non_overlapping_sampled_and_storage_views() {
-    let batch = first_full_batch();
-    let mut builder = RenderGraphBuilder::new("realtime-ibl-source-mips");
-
-    let plan = append_realtime_ibl_graph_plan(&mut builder, &request(), &batch)
-        .expect("realtime IBL graph plan");
-    let graph = builder.compile().expect("realtime graph compiles");
-    let source_mip_passes = plan
-        .passes
-        .iter()
-        .filter_map(|pass| match pass.kind {
-            RealtimeIblGraphPassKind::GenerateSourceMip { mip_level } => {
-                Some((mip_level, pass.pass_id))
-            }
-            _ => None,
-        })
-        .collect::<Vec<_>>();
-
-    assert_eq!(source_mip_passes.len(), 7);
-    for (expected_mip, (mip_level, pass_id)) in (1_u32..8).zip(source_mip_passes) {
-        assert_eq!(mip_level, expected_mip);
-        let pass = graph
-            .passes()
-            .iter()
-            .find(|pass| pass.id == pass_id)
-            .expect("source mip pass");
-        assert!(pass.resources.iter().any(|access| {
-            access.name == plan.work.source.sampled_mips[(expected_mip - 1) as usize].name
-                && access.access == RenderGraphResourceAccessKind::Read
-        }));
-        assert!(pass.resources.iter().any(|access| {
-            access.name == plan.work.source.storage_mips[expected_mip as usize].name
-                && access.access == RenderGraphResourceAccessKind::Write
-        }));
-        assert_ne!(
-            plan.work.source.sampled_mips[(expected_mip - 1) as usize].name,
-            plan.work.source.storage_mips[expected_mip as usize].name
-        );
-    }
-}
-
-#[test]
-fn full_update_expands_prefilter_into_one_dispatch_per_mip() {
-    let batch = first_full_batch();
-    let mut builder = RenderGraphBuilder::new("realtime-ibl-prefilter-full");
-
-    let plan = append_realtime_ibl_graph_plan(&mut builder, &request(), &batch)
-        .expect("realtime IBL graph plan");
-    let graph = builder.compile().expect("realtime graph compiles");
-
-    let prefilter = plan
-        .passes
-        .iter()
-        .filter_map(|pass| match pass.kind {
-            RealtimeIblGraphPassKind::Prefilter(slice) => Some((slice, &pass.workload)),
-            _ => None,
-        })
-        .collect::<Vec<_>>();
-    assert_eq!(prefilter.len(), 8);
-    for (expected_mip, (slice, workload)) in prefilter.iter().enumerate() {
-        assert_eq!(usize::from(slice.mip_level), expected_mip);
-        assert_eq!(slice.first_face, 0);
-        assert_eq!(slice.face_count, 6);
-        assert_eq!(
-            workload.dispatch_extent,
-            RenderGraphComputeDispatchExtent::Fixed([
-                div_ceil((128_u32 >> expected_mip).max(1), 8),
-                div_ceil((128_u32 >> expected_mip).max(1), 8),
-                if expected_mip == 7 { 1 } else { 6 },
-            ])
-        );
-        let pass = graph_pass_for_kind(&plan, slice.mip_level);
-        let compiled = graph
-            .passes()
-            .iter()
-            .find(|candidate| candidate.id == pass.pass_id)
-            .expect("prefilter pass");
-        assert!(compiled.resources.iter().any(|access| {
-            access.name == plan.work.source.sampled.name
-                && access.access == RenderGraphResourceAccessKind::Read
-        }));
-        assert!(compiled.resources.iter().any(|access| {
-            access.name == plan.work.pmrem.storage_mips[expected_mip].name
-                && access.access == RenderGraphResourceAccessKind::Write
-        }));
-    }
-}
-
-#[test]
-fn realtime_ibl_views_use_shared_allocation_dependencies_without_manual_pass_chaining() {
-    let batch = first_full_batch();
-    let mut builder = RenderGraphBuilder::new("realtime-ibl-allocation-provenance");
-    let plan = append_realtime_ibl_graph_plan(&mut builder, &request(), &batch)
-        .expect("realtime IBL graph plan");
-    let graph = builder.compile().expect("realtime graph compiles");
-    let capture_cloud = plan
-        .passes
-        .iter()
-        .find(|pass| matches!(pass.kind, RealtimeIblGraphPassKind::CaptureCloud(_)))
-        .expect("cloud capture pass");
-    let first_source_mip = plan
-        .passes
-        .iter()
-        .find(|pass| {
-            matches!(
-                pass.kind,
-                RealtimeIblGraphPassKind::GenerateSourceMip { mip_level: 1 }
-            )
-        })
-        .expect("first source mip pass");
-    let final_source_mip = plan
-        .passes
-        .iter()
-        .find(|pass| {
-            matches!(
-                pass.kind,
-                RealtimeIblGraphPassKind::GenerateSourceMip { mip_level: 7 }
-            )
-        })
-        .expect("final source mip pass");
-    let first_prefilter = graph_pass_for_kind(&plan, 0);
-
-    let compiled_first_source_mip = graph
-        .passes()
-        .iter()
-        .find(|pass| pass.id == first_source_mip.pass_id)
-        .expect("compiled first source mip pass");
-    let compiled_first_prefilter = graph
-        .passes()
-        .iter()
-        .find(|pass| pass.id == first_prefilter.pass_id)
-        .expect("compiled first prefilter pass");
-
-    assert!(compiled_first_source_mip
-        .dependencies
-        .contains(&capture_cloud.pass_id));
-    assert!(compiled_first_prefilter
-        .dependencies
-        .contains(&final_source_mip.pass_id));
-
-    let source = include_str!("../realtime_ibl_graph_plan.rs");
-    assert!(source.contains("with_usage_binding_and_alias_group"));
-    assert!(!source.contains("let mut previous = None;"));
-    assert!(!source.contains("previous = Some(pass);"));
-    assert!(!source.contains("builder.add_dependency(previous, pass)"));
-}
-
-#[test]
-fn sliced_prefilter_preserves_face_range_and_orders_passes() {
-    let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
-    let mut scheduler = RealtimeIblTimeSliceScheduler::new(
-        RealtimeIblTimeSliceConfig::try_new(8, 2).expect("valid realtime config"),
-    );
-    scheduler.request_rebake(key);
-    let initial = scheduler.begin_frame(1).expect("initial batch");
-    assert_eq!(
-        scheduler.complete_frame(initial.token(), true),
-        RealtimeIblCompletion::Published
-    );
-    let mut next = ProceduralSkyParams::default_gradient();
-    next.horizon_color.x += 0.1;
-    scheduler.request_rebake(next.ibl_bake_key());
-    for frame in 2..=8 {
-        let batch = scheduler.begin_frame(frame).expect("sliced batch");
-        scheduler.complete_frame(batch.token(), true);
-    }
-    let batch = scheduler.begin_frame(9).expect("first PMREM face pair");
-    assert_eq!(batch.logical_state(), 3);
-
-    let mut builder = RenderGraphBuilder::new("realtime-ibl-prefilter-slice");
-    let plan = append_realtime_ibl_graph_plan(&mut builder, &request(), &batch)
-        .expect("sliced graph plan");
-    let graph = builder.compile().expect("sliced graph compiles");
 
     assert_eq!(plan.passes.len(), 1);
-    let RealtimeIblGraphPassKind::Prefilter(slice) = plan.passes[0].kind else {
-        panic!("state 3 must emit a prefilter pass");
-    };
-    assert_eq!(slice.mip_level, 0);
-    assert_eq!(slice.first_face, 0);
-    assert_eq!(slice.face_count, 2);
+    assert!(matches!(
+        plan.passes[0].kind,
+        RealtimeIblGraphPassKind::CaptureSky(CubeFaceRange { first: 0, count: 2 })
+    ));
+    for resource in plan.ready.resources() {
+        assert!(graph.resource_lifetime_by_name(&resource.name).is_none());
+    }
+    assert!(graph
+        .resource_lifetime_by_name(&plan.work.source.storage_mips[0].name)
+        .is_some_and(|lifetime| lifetime.kind == RenderGraphResourceKind::External));
+    assert!(graph
+        .resource_lifetime_by_name(&plan.work.pmrem.storage_mips[0].name)
+        .is_none());
+    assert!(graph
+        .resource_lifetime_by_name(&plan.work.sh9.name)
+        .is_none());
+}
+
+#[test]
+fn source_mip_ticket_reads_only_its_immediate_predecessor() {
+    let mut scheduler = scheduler();
+    scheduler.request_rebake(ProceduralSkyParams::default_gradient().ibl_bake_key());
+    let batch = ticket_batch_matching(&mut scheduler, |batch| {
+        matches!(
+            batch.operations(),
+            [RealtimeIblOperation::GenerateSourceMip { mip_level: 1 }]
+        )
+    });
+    let mut builder = RenderGraphBuilder::new("realtime-ibl-source-mip-ticket");
+
+    let plan = append_realtime_ibl_graph_plan(&mut builder, &request(), &batch)
+        .expect("realtime IBL graph plan");
+    let graph = builder.compile().expect("realtime graph compiles");
+    let pass = graph.passes().first().expect("one source mip pass");
+
+    assert_eq!(plan.passes.len(), 1);
+    assert!(matches!(
+        plan.passes[0].kind,
+        RealtimeIblGraphPassKind::GenerateSourceMip { mip_level: 1 }
+    ));
+    assert!(pass.resources.iter().any(|access| {
+        access.name == plan.work.source.sampled_mips[0].name
+            && access.access == RenderGraphResourceAccessKind::Read
+    }));
+    assert!(pass.resources.iter().any(|access| {
+        access.name == plan.work.source.storage_mips[1].name
+            && access.access == RenderGraphResourceAccessKind::Write
+    }));
+}
+
+#[test]
+fn pmrem_ticket_preserves_face_budget_in_the_compiled_dispatch() {
+    let mut scheduler = scheduler();
+    scheduler.request_rebake(ProceduralSkyParams::default_gradient().ibl_bake_key());
+    let batch = ticket_batch_matching(&mut scheduler, |batch| {
+        matches!(
+            batch.operations(),
+            [RealtimeIblOperation::Prefilter {
+                mips: CubeMipRange { first: 0, count: 1 },
+                faces: CubeFaceRange { first: 0, count: 2 },
+            }]
+        )
+    });
+    let mut builder = RenderGraphBuilder::new("realtime-ibl-prefilter-ticket");
+
+    let plan = append_realtime_ibl_graph_plan(&mut builder, &request(), &batch)
+        .expect("realtime IBL graph plan");
+    let graph = builder.compile().expect("realtime graph compiles");
+
+    assert_eq!(plan.passes.len(), 1);
     assert_eq!(
         plan.passes[0].workload.dispatch_extent,
         RenderGraphComputeDispatchExtent::Fixed([16, 16, 2])
@@ -290,55 +146,9 @@ fn sliced_prefilter_preserves_face_range_and_orders_passes() {
 }
 
 #[test]
-fn terminal_pmrem_face_slice_keeps_its_requested_dispatch_depth() {
-    let key = ProceduralSkyParams::default_gradient().ibl_bake_key();
-    let mut scheduler = RealtimeIblTimeSliceScheduler::new(
-        RealtimeIblTimeSliceConfig::try_new(1, 2).expect("valid single-mip realtime config"),
-    );
-    scheduler.request_rebake(key);
-    let initial = scheduler.begin_frame(1).expect("initial batch");
-    assert_eq!(
-        scheduler.complete_frame(initial.token(), true),
-        RealtimeIblCompletion::Published
-    );
-    let mut next = ProceduralSkyParams::default_gradient();
-    next.horizon_color.x += 0.1;
-    scheduler.request_rebake(next.ibl_bake_key());
-    for frame in 2..=8 {
-        let batch = scheduler.begin_frame(frame).expect("sliced batch");
-        scheduler.complete_frame(batch.token(), true);
-    }
-    let batch = scheduler.begin_frame(9).expect("terminal PMREM face pair");
-    assert_eq!(batch.logical_state(), 3);
+fn graph_plan_has_no_cloud_capture_without_a_distinct_cloud_producer() {
+    let source = include_str!("../realtime_ibl_graph_plan.rs");
 
-    let mut builder = RenderGraphBuilder::new("realtime-ibl-terminal-prefilter-slice");
-    let request = request().with_pmrem_layout(1, 1);
-    let plan = append_realtime_ibl_graph_plan(&mut builder, &request, &batch)
-        .expect("terminal sliced graph plan");
-
-    assert_eq!(plan.passes.len(), 1);
-    assert_eq!(
-        plan.passes[0].kind,
-        RealtimeIblGraphPassKind::Prefilter(RealtimeIblPrefilterDispatchSlice {
-            mip_level: 0,
-            first_face: 0,
-            face_count: 2,
-        })
-    );
-    assert_eq!(
-        plan.passes[0].workload.dispatch_extent,
-        RenderGraphComputeDispatchExtent::Fixed([1, 1, 2])
-    );
-}
-
-fn graph_pass_for_kind(plan: &RealtimeIblGraphPlan, mip_level: u8) -> &RealtimeIblGraphPass {
-    plan.passes
-        .iter()
-        .find(|pass| {
-            matches!(
-                pass.kind,
-                RealtimeIblGraphPassKind::Prefilter(slice) if slice.mip_level == mip_level
-            )
-        })
-        .expect("prefilter graph pass")
+    assert!(!source.contains("CAPTURE_CLOUD"));
+    assert!(!source.contains("CaptureCloud"));
 }

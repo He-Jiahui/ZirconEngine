@@ -101,11 +101,14 @@ fn migrate_project_assets_inner(
         }
     };
     let resolver = MigrationResolver::new(&sidecars.index, &resolver_index);
-    let mut pending = sidecars.pending;
-    for document in &pending {
+    let sidecar_pending = sidecars.pending;
+    for document in &sidecar_pending {
         report.metrics.output_bytes += document.bytes.len();
         report.push_change(AssetMigrationChange::new(document.path.clone(), 0));
     }
+    let mut pending = Vec::with_capacity(files.len() + sidecar_pending.len());
+    // Publish sidecars before documents that can reference them across crash windows.
+    pending.extend(sidecar_pending);
     for path in files {
         report.metrics.document_reads += 1;
         report.metrics.document_parses += 1;
@@ -124,6 +127,7 @@ fn migrate_project_assets_inner(
             Err(issue) => report.push_issue(issue),
         }
     }
+    report.metrics.resolver_index_lookups = resolver.resolver_index_lookups();
     if !report.succeeded() || options.mode == AssetMigrationMode::DryRun {
         return Ok(report);
     }

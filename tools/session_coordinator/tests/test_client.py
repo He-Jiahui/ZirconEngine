@@ -435,7 +435,7 @@ class CoordinatorClientTests(unittest.TestCase):
             expected_repository_key=repository_key,
             timeout_seconds=0.1,
             command_timeout_seconds=0.05,
-            reconciliation_timeout_seconds=0,
+            reconciliation_timeout_seconds=0.05,
         )
         try:
             with self.assertRaises(CoordinatorClientError) as rejected:
@@ -630,6 +630,7 @@ class CoordinatorClientTests(unittest.TestCase):
                         {
                             "host": "127.0.0.1",
                             "port": config.port,
+                            "token": "successor-secret",
                             "repository_key": config.repository_key,
                         }
                     ),
@@ -645,6 +646,7 @@ class CoordinatorClientTests(unittest.TestCase):
                 publisher.join(timeout=1)
 
         self.assertEqual("http://127.0.0.1:43123", client.base_url)
+        self.assertEqual("successor-secret", client.token)
 
     def test_from_runtime_honors_the_wrapper_command_deadline(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -658,6 +660,7 @@ class CoordinatorClientTests(unittest.TestCase):
                     {
                         "host": "127.0.0.1",
                         "port": config.port,
+                        "token": "runtime-secret",
                         "repository_key": config.repository_key,
                     }
                 ),

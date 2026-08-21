@@ -232,29 +232,32 @@ source_digest = "source-hash-live-manager-fallback"
     let manager = ResourceManager::new();
     let live_locator = ResourceLocator::parse("res://shaders/live").unwrap();
     let live_id = ResourceId::from_locator(&live_locator);
-    manager.register_ready(
-        ResourceRecord::new(live_id, ResourceKind::Shader, live_locator.clone())
-            .with_source_hash("live-manager-shader-a"),
-        ShaderPayload,
-    )
-    .unwrap();
-    manager.register_ready(
-        ResourceRecord::new(live_id, ResourceKind::Shader, live_locator)
-            .with_source_hash("live-manager-shader-b"),
-        ShaderPayload,
-    )
-    .unwrap();
-    let model_locator = ResourceLocator::parse("res://models/mesh.glb").unwrap();
-    manager.register_ready(
-        ResourceRecord::new(
-            ResourceId::from_locator(&model_locator),
-            ResourceKind::Model,
-            model_locator,
+    manager
+        .register_ready(
+            ResourceRecord::new(live_id, ResourceKind::Shader, live_locator.clone())
+                .with_source_hash("live-manager-shader-a"),
+            ShaderPayload,
         )
-        .with_source_hash("live-manager-model"),
-        ShaderPayload,
-    )
-    .unwrap();
+        .unwrap();
+    manager
+        .register_ready(
+            ResourceRecord::new(live_id, ResourceKind::Shader, live_locator)
+                .with_source_hash("live-manager-shader-b"),
+            ShaderPayload,
+        )
+        .unwrap();
+    let model_locator = ResourceLocator::parse("res://models/mesh.glb").unwrap();
+    manager
+        .register_ready(
+            ResourceRecord::new(
+                ResourceId::from_locator(&model_locator),
+                ResourceKind::Model,
+                model_locator,
+            )
+            .with_source_hash("live-manager-model"),
+            ShaderPayload,
+        )
+        .unwrap();
     let pending_locator = ResourceLocator::parse("res://shaders/pending").unwrap();
     manager
         .register_record(ResourceRecord::new(

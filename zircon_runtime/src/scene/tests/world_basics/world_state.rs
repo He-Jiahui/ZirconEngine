@@ -1,13 +1,34 @@
 use super::*;
 
 #[test]
+fn project_loader_deserializes_the_world_payload_once() {
+    let source = include_str!("../../world/project_io/document.rs");
+    let load_start = source
+        .find("pub fn load_project_from_path")
+        .expect("project load entry point");
+    let load_end = source[load_start..]
+        .find("pub(super) fn normalize_scene_asset_after_load")
+        .map(|offset| load_start + offset)
+        .expect("project load boundary");
+    let load = &source[load_start..load_end];
+
+    assert_eq!(
+        load.matches("serde_json::from_str(document.world.get())")
+            .count(),
+        1
+    );
+    assert!(load.contains("World::from_persistent_state(persisted_state)"));
+    assert!(!load.contains("let mut world: World = serde_json::from_str"));
+}
+
+#[test]
 fn world_bootstraps_with_renderable_defaults() {
     let world = World::new();
     let snapshot = world.to_render_snapshot();
 
     assert!(!snapshot.scene.meshes.is_empty());
     assert!(snapshot.overlays.grid.is_none());
-    assert!(snapshot.overlays.selection.is_empty());
+    assert!(snapshot.overlays.highlights.is_none());
     assert!(snapshot.overlays.selection_anchors.is_empty());
     assert!(snapshot.overlays.handles.is_empty());
     assert!(snapshot.overlays.scene_gizmos.is_empty());
@@ -162,6 +183,98 @@ fn project_load_rejects_invalid_orphan_local_transform() {
     ));
 
     fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn project_load_rejects_valid_orphan_component_without_panicking() {
+    let world = World::new();
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let path = std::env::temp_dir().join(format!("zircon_orphan_scene_{unique}.json"));
+    world.save_project_to_path(&path).unwrap();
+
+    let mut document: serde_json::Value =
+        serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    let transforms = document["world"]["local_transforms"]
+        .as_object_mut()
+        .expect("serialized project world must contain local transforms");
+    let orphan = transforms
+        .values()
+        .next()
+        .expect("bootstrap world must contain a local transform")
+        .clone();
+    transforms.insert("999999".to_string(), orphan);
+    fs::write(&path, serde_json::to_vec_pretty(&document).unwrap()).unwrap();
+
+    assert!(matches!(
+        World::load_project_from_path(&path),
+        Err(crate::scene::world::SceneProjectError::Scene(
+            crate::scene::SceneError::MissingEntity {
+                operation: "load persisted component",
+                entity: 999_999
+            }
+        ))
+    ));
+
+    fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn project_load_rejects_exhausted_entity_ids_without_panicking() {
+    let world = World::empty();
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let path = std::env::temp_dir().join(format!("zircon_exhausted_scene_{unique}.json"));
+    world.save_project_to_path(&path).unwrap();
+
+    let mut document: serde_json::Value =
+        serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    document["world"]["entities"] = serde_json::json!([u64::MAX]);
+    fs::write(&path, serde_json::to_vec_pretty(&document).unwrap()).unwrap();
+
+    assert!(matches!(
+        World::load_project_from_path(&path),
+        Err(crate::scene::world::SceneProjectError::ProjectNormalization {
+            path: error_path,
+            source: crate::scene::SceneError::EntityIdExhausted { entity: u64::MAX },
+        }) if error_path == path
+    ));
+
+    fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn project_load_rejects_default_node_allocation_exhaustion_without_panicking() {
+    let world = World::empty();
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    for max_entity in [u64::MAX - 3, u64::MAX - 2] {
+        let path = std::env::temp_dir().join(format!(
+            "zircon_default_node_allocation_exhaustion_{unique}_{max_entity}.json"
+        ));
+        world.save_project_to_path(&path).unwrap();
+
+        let mut document: serde_json::Value =
+            serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+        document["world"]["entities"] = serde_json::json!([max_entity]);
+        fs::write(&path, serde_json::to_vec_pretty(&document).unwrap()).unwrap();
+
+        assert!(matches!(
+            World::load_project_from_path(&path),
+            Err(crate::scene::world::SceneProjectError::ProjectNormalization {
+                path: error_path,
+                source: crate::scene::SceneError::EntityIdExhausted { entity: u64::MAX },
+            }) if error_path == path
+        ));
+
+        fs::remove_file(path).unwrap();
+    }
 }
 
 #[test]

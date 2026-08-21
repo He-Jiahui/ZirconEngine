@@ -13,7 +13,8 @@ impl DefaultSoundManager {
     ) -> Result<Vec<SoundDynamicEventHandlerDescriptor>, SoundError> {
         Ok(crate::poison_recovery::lock_recover(&self.state)
             .dynamic_event_handlers
-            .clone())
+            .handlers()
+            .to_vec())
     }
 
     pub(in crate::service_types) fn register_dynamic_event_handler_impl(

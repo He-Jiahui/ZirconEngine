@@ -13,7 +13,7 @@ use toml::Value;
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
 use zircon_runtime::ui::{
     style::resolve_button_style_from_values,
-    surface::{UiSurface, extract_ui_render_tree},
+    surface::{extract_ui_render_tree, UiSurface},
     v2::{UiV2CompiledDocument, UiV2PrototypeStoreFileCache, UiV2SurfaceBuilder},
 };
 use zircon_runtime_interface::ui::{
@@ -25,12 +25,12 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::layouts::views::{
-    ViewTemplateFrameData, ViewTemplateNodeData, default_transition_duration_ms,
-    default_transition_easing, preferred_binding_id, resolve_commit_action_id,
-    resolve_component_role, resolve_component_variant, resolve_edit_action_id,
-    resolve_node_popup_open, resolve_node_value_number, resolve_node_value_percent,
-    resolve_node_value_text, resolve_transition_in, resolve_transition_kind,
-    resolve_transition_progress, resolve_visual_assets,
+    default_transition_duration_ms, default_transition_easing, preferred_binding_id,
+    resolve_commit_action_id, resolve_component_role, resolve_component_variant,
+    resolve_edit_action_id, resolve_node_popup_open, resolve_node_value_number,
+    resolve_node_value_percent, resolve_node_value_text, resolve_transition_in,
+    resolve_transition_kind, resolve_transition_progress, resolve_visual_assets,
+    ViewTemplateFrameData, ViewTemplateNodeData,
 };
 
 const CENTER_COLUMN_CONTROL_ID: &str = "CenterColumn";
@@ -166,8 +166,8 @@ struct NodeProjectionDocument {
     compiled: Arc<UiV2CompiledDocument>,
 }
 
-fn load_node_projection_document()
--> Result<NodeProjectionDocument, UiAssetEditorNodeProjectionError> {
+fn load_node_projection_document(
+) -> Result<NodeProjectionDocument, UiAssetEditorNodeProjectionError> {
     let outcome = node_projection_v2_store_file_cache()
         .lock()
         .expect("ui asset editor v2 projection cache mutex should not be poisoned")

@@ -1,4 +1,4 @@
-use crate::render_graph::{PassFlags, QueueLane, RenderGraphBuilder};
+use crate::render_graph::{PassFlags, QueueLane, RenderGraphBuilder, RenderGraphError};
 use crate::rhi::{TextureDesc, TextureFormat, TextureUsage};
 
 #[test]
@@ -27,6 +27,20 @@ fn compile_orders_passes_by_declared_dependencies() {
         .collect::<Vec<_>>();
 
     assert_eq!(ordered, vec!["depth-prepass", "shadow", "lighting"]);
+}
+
+#[test]
+fn runtime89_compile_rejects_duplicate_pass_names_before_building_execution_indices() {
+    let mut builder = RenderGraphBuilder::new("duplicate-pass-name");
+    builder.add_pass("shared-pass", QueueLane::Graphics);
+    builder.add_pass("shared-pass", QueueLane::AsyncCompute);
+
+    assert_eq!(
+        builder.compile(),
+        Err(RenderGraphError::DuplicatePassName {
+            pass: "shared-pass".to_string(),
+        })
+    );
 }
 
 #[test]

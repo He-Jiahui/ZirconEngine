@@ -11,10 +11,10 @@ use std::sync::{Arc, Mutex};
 
 use zircon_plugin_navigation_recast::RecastBackend;
 use zircon_runtime::core::framework::navigation::{
-    NavAgentTickReport, NavMeshAsset, NavMeshBakeReport, NavMeshBakeRequest, NavMeshHandle,
-    NavPathQuery, NavPathResult, NavQueryFilter, NavRaycastQuery, NavRaycastResult, NavSampleHit,
-    NavSampleQuery, NavigationError, NavigationGeneratedBakeSnapshot, NavigationManager,
-    NavigationRuntimeStats, NavigationSettingsAsset, DEFAULT_AGENT_TYPE,
+    DEFAULT_AGENT_TYPE, NavAgentTickReport, NavMeshAsset, NavMeshBakeReport, NavMeshBakeRequest,
+    NavMeshHandle, NavPathQuery, NavPathResult, NavQueryFilter, NavRaycastQuery, NavRaycastResult,
+    NavSampleHit, NavSampleQuery, NavigationError, NavigationGeneratedBakeSnapshot,
+    NavigationManager, NavigationRuntimeStats, NavigationSettingsAsset,
 };
 use zircon_runtime::core::framework::tasks::TaskPoolDescriptor;
 use zircon_runtime::core::math::Real;
@@ -77,27 +77,24 @@ impl DefaultNavigationManager {
     ) -> Result<(NavMeshHandle, NavMeshAsset), NavigationError> {
         let state = self.lock_state();
         let handle = query_handle
-            .or_else(|| state.loaded.keys().copied().min_by_key(|handle| handle.0))
+            .or_else(|| state.loaded.keys().next().copied().map(NavMeshHandle))
             .ok_or_else(|| NavigationError::missing_nav_mesh("no nav mesh is loaded"))?;
         state
             .loaded
-            .get(&handle)
-            .cloned()
-            .map(|asset| (handle, asset))
+            .get(&handle.0)
+            .map(|asset| (handle, asset.as_ref().clone()))
             .ok_or_else(|| {
                 NavigationError::missing_nav_mesh(format!("nav mesh {:?} is not loaded", handle))
             })
     }
 
-    pub(crate) fn loaded_assets(&self) -> Vec<(NavMeshHandle, NavMeshAsset)> {
+    pub(crate) fn loaded_assets(&self) -> Vec<(NavMeshHandle, Arc<NavMeshAsset>)> {
         let state = self.lock_state();
-        let mut loaded = state
+        state
             .loaded
             .iter()
-            .map(|(handle, asset)| (*handle, asset.clone()))
-            .collect::<Vec<_>>();
-        loaded.sort_by_key(|(handle, _)| handle.0);
-        loaded
+            .map(|(handle, asset)| (NavMeshHandle(*handle), Arc::clone(asset)))
+            .collect()
     }
 
     pub fn navigation_overlay_frame(
@@ -105,11 +102,9 @@ impl DefaultNavigationManager {
         tick_report: NavAgentTickReport,
     ) -> NavigationOverlayFrame {
         let state = self.lock_state();
-        let mut loaded = state.loaded.iter().collect::<Vec<_>>();
-        loaded.sort_by_key(|(handle, _)| handle.0);
         NavigationOverlayFrame::from_assets(
             state.overlay_generation,
-            loaded.into_iter().map(|(_, asset)| asset),
+            state.loaded.values().map(Arc::as_ref),
             tick_report,
         )
     }
@@ -176,7 +171,7 @@ impl DefaultNavigationManager {
         let mut state = self.lock_state();
         let handle = NavMeshHandle(state.next_handle);
         state.next_handle += 1;
-        state.loaded.insert(handle, asset);
+        state.loaded.insert(handle.0, Arc::new(asset));
         state.stats.loaded_nav_meshes = state.loaded.len();
         state.advance_overlay_generation();
         Ok(handle)

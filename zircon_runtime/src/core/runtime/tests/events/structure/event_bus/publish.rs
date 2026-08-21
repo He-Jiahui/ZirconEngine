@@ -14,11 +14,13 @@ fn event_bus_publish_shares_one_immutable_payload_under_a_per_topic_delivery_loc
             "self.state.diagnostic_report()",
             "impl EventBusState",
             "pub(super) fn publish(&self, event: EngineEvent)",
-            "self.diagnostics.record_published();",
+            "self.diagnostics.record_published_and_capture_time();",
             "Arc::new(event)",
             "let _delivery = if let Some(delivery) = topic.try_lock_delivery()",
             "topic.snapshot_subscribers()",
+            "subscribers.split_last()",
             "subscriber.deliver(Arc::clone(&event))",
+            "last_subscriber.deliver(event)",
             "EventDeliveryStatus::Disconnected",
             "topic.remove_subscribers_while_delivery_locked",
             "self.remove_topic_if_empty(&topic);",
@@ -29,6 +31,10 @@ fn event_bus_publish_shares_one_immutable_payload_under_a_per_topic_delivery_loc
     assert_absent(sources.publish, "ChannelSender<EngineEvent>");
     assert_absent(sources.publish, "lock_subscribers()");
     assert_absent(sources.publish, "event.clone()");
+    assert_absent(
+        sources.publish,
+        "last_subscriber.deliver(Arc::clone(&event))",
+    );
 }
 
 #[test]
@@ -41,11 +47,12 @@ fn event_subscriber_linearizes_physical_queue_changes_with_depth_accounting() {
         sources.subscriber,
         &[
             "let mut queue_state = self.lock_queue_state();",
-            "let dropped = queue_state",
+            "let dropped = capacity",
+            ".is_some_and",
             ".pop_front()",
-            "record_overflow_drop",
             "queue_state.queue.push_back",
-            "self.diagnostics.record_enqueued();",
+            "record_replaced_and_capture_time",
+            "self.diagnostics.record_enqueued_and_capture_time()",
             "self.queue_ready.notify_one();",
             "fn pop_front_while_locked",
             "let queued = queue_state.queue.pop_front()?;",
@@ -55,21 +62,21 @@ fn event_subscriber_linearizes_physical_queue_changes_with_depth_accounting() {
     assert_absent(sources.subscriber, "crossbeam_channel");
     assert_absent(sources.subscriber, ".recv()");
     assert_absent(sources.subscriber, ".try_recv()");
+    assert_absent(sources.diagnostics, "fn record_overflow_drop");
 }
 
 #[test]
-fn event_bus_diagnostics_measure_delivery_wait_and_skip_timestamps_when_disabled() {
+fn event_bus_diagnostics_sample_routine_timings_and_measure_every_delivery_wait() {
     let sources = EventBusSources::load();
 
     assert_ordered(
         sources.publish,
         &[
-            "let started = self.diagnostics.capture_time();",
-            "self.diagnostics.record_published();",
+            "let started = self.diagnostics.record_published_and_capture_time();",
             "let _delivery = if let Some(delivery) = topic.try_lock_delivery()",
             "delivery",
             "} else {",
-            "let wait_started = self.diagnostics.capture_time();",
+            "let wait_started = self.diagnostics.capture_contention_time();",
             "self.diagnostics.record_publisher_waiting();",
             "let delivery = topic.lock_delivery();",
             "self.diagnostics.record_publisher_resumed(wait_started);",
@@ -77,7 +84,12 @@ fn event_bus_diagnostics_measure_delivery_wait_and_skip_timestamps_when_disabled
         ],
     );
     assert_contains(sources.diagnostics, "enabled: bool");
+    assert_contains(sources.diagnostics, "routine_timing_sample_interval: u64");
     assert_contains(sources.diagnostics, "self.enabled.then(Instant::now)");
+    assert_contains(
+        sources.diagnostics,
+        "sample_index % self.routine_timing_sample_interval == 0",
+    );
     assert_contains(sources.diagnostics, "if !self.enabled");
     assert_contains(sources.diagnostics, "waiting_publishers: AtomicU64");
     assert_contains(sources.diagnostics, "delivery_lock_wait_samples: AtomicU64");
@@ -97,9 +109,10 @@ fn event_bus_diagnostics_measure_delivery_wait_and_skip_timestamps_when_disabled
             "let queued = self.queued.load(Ordering::Acquire);",
         ],
     );
+    assert_contains(sources.subscriber, "queued_at: None");
     assert_contains(
         sources.subscriber,
-        "queued_at: self.diagnostics.capture_time()",
+        "self.diagnostics.record_enqueued_and_capture_time()",
     );
     assert_absent(sources.publish, "Instant::now()");
 }

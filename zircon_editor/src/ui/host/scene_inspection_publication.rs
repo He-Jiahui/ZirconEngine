@@ -446,8 +446,8 @@ fn same_optional_arc<T>(left: &Option<Arc<T>>, right: &Option<Arc<T>>) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use zircon_runtime::scene::{EntityId, Scene};
     use zircon_runtime::scene::components::NodeKind;
+    use zircon_runtime::scene::{EntityId, Scene};
 
     use super::SceneInspectionPublication;
 
@@ -484,7 +484,10 @@ mod tests {
             .expect("renaming a selected node should publish a sparse hierarchy patch");
 
         assert_eq!(message.changed_anchors().len(), 1);
-        assert_eq!(message.selection().previous_revision(), Some(SELECTION_REVISION));
+        assert_eq!(
+            message.selection().previous_revision(),
+            Some(SELECTION_REVISION)
+        );
         assert_eq!(message.selection().revision(), SELECTION_REVISION);
         assert!(message.selection().added_entities().is_empty());
         assert!(message.selection().removed_entities().is_empty());

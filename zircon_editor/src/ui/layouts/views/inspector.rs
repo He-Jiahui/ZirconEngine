@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::ui::layouts::views::view_projection::{
-    ViewTemplateNodePatch, build_view_template_node_projection_with_patches,
+    build_view_template_node_projection_with_patches, ViewTemplateNodePatch,
 };
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::workbench::snapshot::InspectorSnapshot;
@@ -150,16 +150,12 @@ mod tests {
     fn no_selection_projects_a_muted_centered_empty_state() {
         let nodes = projected_nodes(None);
 
-        assert!(
-            nodes
-                .iter()
-                .any(|node| node.control_id == "InspectorEmptyState")
-        );
-        assert!(
-            nodes
-                .iter()
-                .any(|node| node.control_id == "InspectorEmptyStateMessage")
-        );
+        assert!(nodes
+            .iter()
+            .any(|node| node.control_id == "InspectorEmptyState"));
+        assert!(nodes
+            .iter()
+            .any(|node| node.control_id == "InspectorEmptyStateMessage"));
 
         let Some(header) = node_by_control_id(&nodes, "InspectorHeaderPanel") else {
             return;

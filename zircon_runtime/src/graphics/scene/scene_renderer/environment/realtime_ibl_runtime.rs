@@ -33,11 +33,16 @@ pub(in crate::graphics) struct RealtimeIblPreparedFrame {
     request: IblBakeArtifactRequest,
     sky: ProceduralSkyParams,
     sampling_slot: IblRealtimeBufferSlot,
+    uses_realtime_resources: bool,
 }
 
 impl RealtimeIblPreparedFrame {
     pub(in crate::graphics) fn sampling_slot(&self) -> IblRealtimeBufferSlot {
         self.sampling_slot
+    }
+
+    pub(in crate::graphics) fn uses_realtime_resources(&self) -> bool {
+        self.uses_realtime_resources
     }
 
     pub(in crate::graphics) fn source_face_size(&self) -> u32 {
@@ -99,15 +104,13 @@ impl RealtimeIblRuntime {
         self.frame_number = self.frame_number.wrapping_add(1);
         let batch = self.scheduler.begin_frame(self.frame_number);
         let request = request_for_key(bake_key);
-        let sampling_slot = batch
-            .as_ref()
-            .map(sampling_slot_for_batch)
-            .unwrap_or_else(|| self.scheduler.ready_slot());
+        let sampling_slot = self.scheduler.ready_slot();
         RealtimeIblPreparedFrame {
             batch,
             request,
             sky,
             sampling_slot,
+            uses_realtime_resources: self.scheduler.has_published_environment(),
         }
     }
 
@@ -189,17 +192,28 @@ impl RealtimeIblRuntime {
             resources,
             pipeline_cache,
         )?;
+        let scheduled_workgroups = dispatch_workgroup_count(&result.report.dispatch_groups);
+        let terminal_reason = if batch.completes_generation() {
+            "published_after_sh9"
+        } else {
+            "advanced"
+        };
         let timestamp_metadata =
             result
                 .timestamp_readback
                 .as_ref()
                 .map(|_| RealtimeIblGpuTimingMetadata {
                     frame_number,
+                    generation: batch.token().generation(),
+                    recipe_fingerprint: recipe_fingerprint(&prepared.request),
                     logical_state: batch.logical_state(),
-                    full_update: batch.is_full_update(),
+                    work_slot: slot_label(batch.work_slot()).to_string(),
                     operation_label: operation_label(batch.operations()),
                     pass_count: result.report.pass_count,
                     dispatch_count: result.report.dispatch_count,
+                    scheduled_workgroups,
+                    completed_workgroups: scheduled_workgroups,
+                    terminal_reason: terminal_reason.to_string(),
                 });
         Ok(RealtimeIblPendingSubmission {
             token: batch.token(),
@@ -306,14 +320,6 @@ fn runtime_bake_key(sky: &ProceduralSkyParams) -> IblBakeKey {
     sky.ibl_bake_key()
 }
 
-fn sampling_slot_for_batch(batch: &RealtimeIblFrameBatch) -> IblRealtimeBufferSlot {
-    if batch.is_full_update() {
-        batch.work_slot()
-    } else {
-        batch.ready_slot()
-    }
-}
-
 fn operation_label(operations: &[RealtimeIblOperation]) -> String {
     let mut label = String::with_capacity(operations.len() * 16);
     for operation in operations {
@@ -322,13 +328,40 @@ fn operation_label(operations: &[RealtimeIblOperation]) -> String {
         }
         label.push_str(match operation {
             RealtimeIblOperation::CaptureSky(_) => "capture_sky",
-            RealtimeIblOperation::CaptureCloud(_) => "capture_cloud",
-            RealtimeIblOperation::GenerateSourceMips => "source_mips",
+            RealtimeIblOperation::GenerateSourceMip { .. } => "source_mip",
             RealtimeIblOperation::Prefilter { .. } => "ggx_pmrem",
             RealtimeIblOperation::ProjectDiffuseSh9 => "diffuse_sh9",
         });
     }
     label
+}
+
+fn slot_label(slot: IblRealtimeBufferSlot) -> &'static str {
+    match slot {
+        IblRealtimeBufferSlot::A => "a",
+        IblRealtimeBufferSlot::B => "b",
+    }
+}
+
+fn dispatch_workgroup_count(dispatch_groups: &[[u32; 3]]) -> u64 {
+    dispatch_groups.iter().fold(0_u64, |total, groups| {
+        total.saturating_add(
+            u64::from(groups[0])
+                .saturating_mul(u64::from(groups[1]))
+                .saturating_mul(u64::from(groups[2])),
+        )
+    })
+}
+
+fn recipe_fingerprint(request: &IblBakeArtifactRequest) -> String {
+    let key = request.bake_key();
+    format!(
+        "{key:?}:{}x{}-{}x{}",
+        request.source_face_size(),
+        request.source_mip_count(),
+        request.pmrem_face_size(),
+        request.pmrem_mip_count(),
+    )
 }
 
 #[cfg(test)]

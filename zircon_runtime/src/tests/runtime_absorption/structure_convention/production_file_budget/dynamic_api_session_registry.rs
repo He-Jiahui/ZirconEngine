@@ -24,9 +24,9 @@ fn runtime_15_dynamic_api_session_registry_is_child_owner() {
         "dynamic API session FFI child routes registry lifecycle operations",
         &ffi,
         &[
-            "destroy_session_slot, insert_session_with_wake, with_session, with_session_activity,",
+            "try_insert_session_with_wake, with_session, with_session_activity,",
             "pub(in crate::dynamic_api) unsafe fn create_session(",
-            "let handle = insert_session_with_wake(session, wake);",
+            "let handle = match try_insert_session_with_wake(",
             "pub(in crate::dynamic_api) unsafe fn destroy_session(",
             "destroy_session_slot(handle)",
         ],
@@ -67,7 +67,7 @@ fn runtime_15_dynamic_api_session_registry_is_child_owner() {
         &[
             "mod session_store;",
             "pub(super) use session_store::{",
-            "destroy_session_slot, insert_session, insert_session_with_wake, with_session,",
+            "destroy_session_slot, try_insert_session, try_insert_session_with_wake, with_session,",
         ],
     );
     for forbidden_behavior in ["static ", "struct ", "impl ", "fn "] {
@@ -86,9 +86,10 @@ fn runtime_15_dynamic_api_session_registry_is_child_owner() {
             "fn registry() -> &'static Mutex<SessionRegistry>",
             "fn lock_registry() -> MutexGuard<'static, SessionRegistry>",
             ".unwrap_or_else(|poisoned| poisoned.into_inner())",
-            "fn insert_session(",
-            "fn insert_session_with_wake(",
-            "fetch_add(1, Ordering::SeqCst)",
+            "fn try_insert_session(",
+            "fn try_insert_session_with_wake(",
+            "fn try_allocate_handle(&mut self)",
+            "self.next_handle = handle.checked_add(1).unwrap_or(0);",
             "fn with_session(",
             "fn with_session_activity(",
             "fn destroy_session_slot(",
@@ -98,7 +99,7 @@ fn runtime_15_dynamic_api_session_registry_is_child_owner() {
     );
     let insert_with_wake = section_between(
         &session_store,
-        "fn insert_session_with_wake(",
+        "fn try_insert_session_with_wake(",
         "fn with_session(",
     );
     assert_contains_all(

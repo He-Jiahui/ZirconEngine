@@ -1,8 +1,8 @@
 use std::fs;
 use std::path::PathBuf;
 
-use zircon_runtime::asset::AssetUri;
 use zircon_runtime::asset::project::ProjectManager;
+use zircon_runtime::asset::AssetUri;
 use zircon_runtime::scene::world::SceneProjectError;
 use zircon_runtime_interface::resource::ResourceScheme;
 

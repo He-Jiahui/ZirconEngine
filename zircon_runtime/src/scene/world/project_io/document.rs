@@ -1,6 +1,6 @@
 use std::fs;
 use std::io::{self, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::asset::assets::ProjectDocumentError;
 use crate::asset::importer::AssetImportError;
@@ -16,8 +16,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 use thiserror::Error;
 
-use super::super::transform_validation::validate_persisted_transforms;
-use super::super::World;
+use super::super::transform_validation::{
+    validate_persisted_transform_map, validate_persisted_transforms,
+};
+use super::super::{world::WorldPersistentState, World};
 use super::BUILTIN_CUBE;
 
 const PROJECT_FORMAT_VERSION: u32 = 2;
@@ -34,6 +36,12 @@ pub enum SceneProjectError {
     ProjectDocument(#[from] ProjectDocumentError),
     #[error(transparent)]
     Scene(#[from] crate::scene::SceneError),
+    #[error("project scene normalization failed for {path}: {source}")]
+    ProjectNormalization {
+        path: PathBuf,
+        #[source]
+        source: crate::scene::SceneError,
+    },
     #[error("scene asset error: {0}")]
     SceneAsset(String),
     #[error("unsupported project format version {actual}; expected {expected}")]
@@ -81,6 +89,7 @@ impl World {
     }
 
     pub fn load_project_from_path(path: impl AsRef<Path>) -> Result<Self, SceneProjectError> {
+        let path = path.as_ref();
         let json = fs::read_to_string(path)?;
         let document: BorrowedProjectDocument<'_> = serde_json::from_str(&json)?;
         if document.format_version != PROJECT_FORMAT_VERSION {
@@ -89,21 +98,64 @@ impl World {
                 actual: document.format_version,
             });
         }
-        let mut world: World = serde_json::from_str(document.world.get())?;
+        let persisted_state: WorldPersistentState = serde_json::from_str(document.world.get())?;
+        validate_persisted_transform_map(&persisted_state.local_transforms)?;
+        let mut world =
+            World::from_persistent_state(persisted_state).map_err(|(entity, _component)| {
+                crate::scene::SceneError::MissingEntity {
+                    operation: "load persisted component",
+                    entity,
+                }
+            })?;
         validate_persisted_transforms(&world)?;
-        world.normalize_after_load();
+        world
+            .normalize_after_load()
+            .map_err(|source| SceneProjectError::ProjectNormalization {
+                path: path.to_path_buf(),
+                source,
+            })?;
         Ok(world)
     }
 
-    pub(super) fn normalize_scene_asset_after_load(&mut self) {
-        self.normalize_loaded_state(false);
+    pub(super) fn normalize_scene_asset_after_load(
+        &mut self,
+    ) -> Result<(), crate::scene::SceneError> {
+        self.normalize_loaded_state(false)
     }
 
-    fn normalize_after_load(&mut self) {
-        self.normalize_loaded_state(true);
+    fn normalize_after_load(&mut self) -> Result<(), crate::scene::SceneError> {
+        self.normalize_loaded_state(true)
     }
 
-    fn normalize_loaded_state(&mut self, ensure_default_nodes: bool) {
+    fn normalize_loaded_state(
+        &mut self,
+        ensure_default_nodes: bool,
+    ) -> Result<(), crate::scene::SceneError> {
+        let needs_default_camera = ensure_default_nodes && self.camera_count() == 0;
+        let needs_default_directional_light = ensure_default_nodes
+            && self
+                .registered_component_id::<DirectionalLight>()
+                .map_or(true, |component_id| {
+                    self.component_count_for_id(component_id) == 0
+                });
+        let default_node_count = if needs_default_camera { 1 } else { 0 }
+            + if needs_default_directional_light {
+                1
+            } else {
+                0
+            };
+        let next_id = self
+            .entities
+            .iter()
+            .copied()
+            .max()
+            .unwrap_or(0)
+            .checked_add(1)
+            .ok_or(crate::scene::SceneError::EntityIdExhausted { entity: u64::MAX })?;
+        let admitted_next_id = next_id
+            .checked_add(default_node_count)
+            .filter(|next_id| *next_id != u64::MAX)
+            .ok_or(crate::scene::SceneError::EntityIdExhausted { entity: u64::MAX })?;
         self.schedule = Schedule::default();
         if self.kinds.len() != self.entities.len() {
             self.kinds.clear();
@@ -136,8 +188,8 @@ impl World {
             }
         }
         self.rebuild_node_kind_ordinals();
-        self.next_id = self.entities.iter().copied().max().unwrap_or(0) + 1;
-        if ensure_default_nodes && self.camera_count() == 0 {
+        self.next_id = next_id;
+        if needs_default_camera {
             self.spawn_node(NodeKind::Camera);
         }
         if !self.contains_component::<CameraComponent>(self.active_camera) {
@@ -148,15 +200,10 @@ impl World {
                 .find(|entity| self.contains_component::<CameraComponent>(*entity))
                 .unwrap_or(0);
         }
-        if ensure_default_nodes
-            && self
-                .registered_component_id::<DirectionalLight>()
-                .map_or(true, |component_id| {
-                    self.component_count_for_id(component_id) == 0
-                })
-        {
+        if needs_default_directional_light {
             self.spawn_node(NodeKind::DirectionalLight);
         }
+        debug_assert_eq!(self.next_id, admitted_next_id);
         for entity_index in 0..self.entities.len() {
             let entity = self.entities[entity_index];
             let mut row = self.begin_component_row(entity);
@@ -183,6 +230,7 @@ impl World {
         self.rebuild_typed_component_presence();
         self.mark_derived_state_dirty();
         self.flush_scene_systems_now();
+        Ok(())
     }
 }
 

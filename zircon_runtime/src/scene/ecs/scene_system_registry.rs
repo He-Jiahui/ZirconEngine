@@ -165,6 +165,7 @@ impl SceneSystemRegistry {
                     system.id(),
                     system.stage(),
                     system.order(),
+                    system.clock_domain(),
                     worker_safe_dispatch(system.as_ref()),
                     system.access().has_conservative_world_access(),
                 );
@@ -175,6 +176,7 @@ impl SceneSystemRegistry {
                         system.id(),
                         system.stage(),
                         system.order(),
+                        system.clock_domain(),
                     )
                 });
                 std::iter::once(native_step).chain(apply_deferred_step)
@@ -194,6 +196,7 @@ impl SceneSystemRegistry {
                 system.id(),
                 system.stage(),
                 system.order(),
+                system.clock_domain(),
                 worker_safe_dispatch(system.as_ref()),
                 system.access().has_conservative_world_access(),
             ));
@@ -202,6 +205,7 @@ impl SceneSystemRegistry {
                     system.id(),
                     system.stage(),
                     system.order(),
+                    system.clock_domain(),
                 ));
             }
         }
@@ -211,6 +215,7 @@ impl SceneSystemRegistry {
                 system.id(),
                 system.stage(),
                 system.order(),
+                system.clock_domain(),
             ));
         }
         by_stage

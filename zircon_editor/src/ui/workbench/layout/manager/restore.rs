@@ -79,15 +79,11 @@ mod tests {
                 ViewInstanceId::new("editor.assets#1")
             ]
         );
-        assert!(
-            layout
-                .activity_windows
-                .contains_key(&ActivityWindowId::new("window:material_editor"))
-        );
-        assert!(
-            layout
-                .activity_windows
-                .contains_key(&ActivityWindowId::new("window:animation_editor"))
-        );
+        assert!(layout
+            .activity_windows
+            .contains_key(&ActivityWindowId::new("window:material_editor")));
+        assert!(layout
+            .activity_windows
+            .contains_key(&ActivityWindowId::new("window:animation_editor")));
     }
 }

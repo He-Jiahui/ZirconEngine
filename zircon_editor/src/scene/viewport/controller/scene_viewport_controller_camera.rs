@@ -4,8 +4,6 @@ use crate::scene::viewport::{
 use zircon_runtime::scene::Scene;
 use zircon_runtime_interface::math::{Transform, UVec2, Vec3};
 
-use crate::scene::viewport::ViewportState;
-
 use super::{constants::MIN_CAMERA_DISTANCE, SceneViewportController};
 
 const DEFAULT_CAMERA_DISTANCE: f32 = 8.0;
@@ -40,7 +38,7 @@ impl SceneViewportController {
         &mut self,
         viewport_size: UVec2,
     ) {
-        self.state.viewport = ViewportState::new(viewport_size);
+        self.state.viewport.resize(viewport_size);
         if let Some(camera) = self.state.camera.as_mut() {
             camera.apply_viewport_size(self.state.viewport.size);
         }

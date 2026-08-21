@@ -4,10 +4,8 @@ use crate::core::diagnostics::{DiagnosticStore, DiagnosticStoreSnapshot};
 use crate::core::math::{Transform, Vec3};
 use crate::scene::components::Name;
 use crate::scene::ecs::{
-    ChangeDetectionScanStats, Changed, Component, EcsFramePerformanceDiagnostics,
-    InternalSceneSystem, QueryState, QueryStateCacheStats, SystemState,
-    ECS_ARCHETYPE_COMPONENT_INDEX_PROBES_DIAGNOSTIC, ECS_ARCHETYPE_ROW_APPENDS_DIAGNOSTIC,
-    ECS_ARCHETYPE_SIGNATURE_MEMBERSHIP_CHECKS_DIAGNOSTIC,
+    ChangeDetectionScanStats, Changed, Component, ECS_ARCHETYPE_COMPONENT_INDEX_PROBES_DIAGNOSTIC,
+    ECS_ARCHETYPE_ROW_APPENDS_DIAGNOSTIC, ECS_ARCHETYPE_SIGNATURE_MEMBERSHIP_CHECKS_DIAGNOSTIC,
     ECS_BUNDLE_FINAL_ARCHETYPE_TRANSITIONS_DIAGNOSTIC,
     ECS_BUNDLE_INTERMEDIATE_SIGNATURES_DIAGNOSTIC, ECS_BUNDLE_LIFECYCLE_EVENTS_DIAGNOSTIC,
     ECS_BUNDLE_STAGING_ALLOCATIONS_DIAGNOSTIC, ECS_BUNDLE_STORAGE_MOVES_DIAGNOSTIC,
@@ -18,6 +16,8 @@ use crate::scene::ecs::{
     ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC, ECS_QUERY_PLAN_COMPILATIONS_DIAGNOSTIC,
     ECS_QUERY_PLAN_COMPONENT_MEMBERSHIP_CHECKS_DIAGNOSTIC,
     ECS_QUERY_PLAN_SPARSE_BINDINGS_DIAGNOSTIC, ECS_QUERY_PLAN_TABLE_BINDINGS_DIAGNOSTIC,
+    EcsFramePerformanceDiagnostics, InternalSceneSystem, QueryState, QueryStateCacheStats,
+    StorageType, SystemState,
 };
 use crate::scene::{EntityId, NodeKind, World};
 
@@ -29,6 +29,13 @@ const TRANSFORM_READS: usize = 128;
 pub(super) struct Health(pub(super) u32);
 
 impl Component for Health {}
+
+#[derive(Debug, PartialEq, Eq)]
+struct SparseMarker;
+
+impl Component for SparseMarker {
+    const STORAGE_TYPE: StorageType = StorageType::SparseSet;
+}
 
 #[path = "ecs_performance_acceptance/columnar.rs"]
 mod columnar;

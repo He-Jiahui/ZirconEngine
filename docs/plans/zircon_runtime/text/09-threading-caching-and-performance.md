@@ -14,8 +14,12 @@ related_code:
   - zircon_runtime/src/text/parallel/shape_pool.rs
   - zircon_runtime/src/text/parallel/raster_pool.rs
   - zircon_runtime/src/text/parallel/tests.rs
+  - zircon_runtime/src/text/hard_line.rs
+  - zircon_runtime/src/text/shaping/work_budget.rs
+  - zircon_runtime/src/text/shaping/tests.rs
   - zircon_runtime/src/ui/text/measure_cache.rs
   - zircon_runtime/src/ui/surface/render/extract.rs
+  - zircon_runtime/src/ui/surface/render/text_prewarm/tests.rs
   - zircon_runtime/src/ui/tests/text_pipeline
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/renderer.rs
@@ -181,9 +185,9 @@ status: in_progress
 
 1. **段落级脏跟踪**:文本按段落(hard break)切分为独立 shaping 单元;编辑/追加只重 shape 受影响段,其余段命中缓存。
 2. **可视区惰性布局**:仅 shape/layout 可视区 ±N 段(N 默认 2 屏);视口外行高用估算值(已 shape 段用真实值),滚动进入时精化并修正滚动偏移。
-3. **单 run 上限与保护**:单 run 最大字节数(默认 64 KiB)与超限切分规则(在最近段落/强制断点处切);恶意超长单行(无断点)按上限硬切并记诊断,防 shaping O(n²) 路径拖死帧。
+3. **单 run 执行预算与保护**:`TextShapingWorkBudget`以默认 64 KiB 区分 inline/deferred 工作,但该阈值不得成为 source line、script run 或 cluster 边界。typed defer/cancel 尚未接入前,超限请求必须保留完整语义并走同步 fallback;后续 scheduler 只能调度完整 work unit,不能靠伪造 layout line 规避大请求。
 
-测试:`render_perf_text_huge_log_shapes_visible_only`(万行 log 首帧只 shape 可视区)、`text_paragraph_dirty_reshapes_edited_only`(编辑单段只重 shape 该段)、`text_oversized_run_splits_at_cap`。
+测试:`render_perf_text_huge_log_shapes_visible_only`(万行 log 首帧只 shape 可视区)、`text_paragraph_dirty_reshapes_edited_only`(编辑单段只重 shape 该段)、`text_oversized_run_keeps_one_logical_shaped_line`与`text_semantic_context_preserves_a_ligature_crossing_the_work_boundary`。
 
 ## 6. 工程落地细化(实施权威)
 
@@ -397,24 +401,22 @@ UI12 has not released the Cargo lane: no Cargo, timing measurement, WGPU framebu
 PNG, milestone output record, commit, or WeCom notification is claimed. Text09 therefore remains
 `implemented / resolving_failure / managed_validation_pending`.
 
-2026-08-14 PF-M5 current-source reconciliation: the Text09 design section still lists the
-three long-document requirements, but the current source already implements its constrained
-MVP subset. `text/hard_line.rs` owns the shared hard-line scanner and a 64 KiB,
-grapheme-safe shaping-run cap; `HardLineIndexCache` keys a bounded retained offset index by
+PF-M5 current-source contract: `text/hard_line.rs` owns source separator identity and never
+publishes an execution-budget boundary as a layout line. `TextShapingWorkBudget` classifies the
+default 64 KiB inline threshold without authorizing text slicing; until a typed deferred outcome
+exists, horizontal, vertical, rich, and prewarm callers retain one complete semantic request.
+`HardLineIndexCache` separately keys a bounded retained offset index by
 `TextDocumentKey(owner, revision)` and bypasses rather than retaining oversized or unkeyed
 documents. For retained Plain/HorizontalTb/None/Clip input only,
-`ui/text/layout_engine/viewport.rs` materializes the viewport plus explicit overscan while
-keeping the full document height, and the persistent cache routes a strict partial window to
-same-frame dedup instead of caching viewport-specific geometry. Current source regressions cover
-the 10,000-line visible-only case, a single edited paragraph yielding two shaped-cache hits and
-one miss, and a 64 KiB unbroken run splitting into contiguous source ranges. This matches the
-relevant Unreal `FTextLayout` design direction: stable line models carry estimated geometry and
-dirty state, while lazy line views are generated only around the viewport. It does **not** claim
-the wider PF-M5 scope complete: wrapped, rich, vertical, and editable layouts remain deliberately
-on their complete-layout path until they have equivalent paragraph-height and scroll-anchor
-contracts. The existing M5 manifest records the same boundary; this reconciliation adds no
-algorithm change or validation claim. With UI12 still holding the validation lane, Cargo,
-profiling, WGPU output, screenshot, milestone commit, and WeCom notification remain pending.
+`ui/text/layout_engine/viewport.rs` materializes the viewport plus explicit overscan while keeping
+the full document height, and the persistent cache routes a strict partial window to same-frame
+dedup instead of caching viewport-specific geometry. Runtime81 M0 regressions cover the
+10,000-line visible-only case, a single edited paragraph yielding two shaped-cache hits and one
+miss, one logical line across the work threshold, and a ligature whose cluster crosses that
+threshold. This matches the relevant Unreal `FTextLayout` direction: stable source-line models
+carry estimated geometry and dirty state, while lazy views are generated only around the
+viewport. The wider PF-M5 deferred/cancelled work-unit scheduler, paragraph-height authority, and
+scroll-anchor contracts remain open.
 
 2026-08-14 priority-review synchronization: the stale Text locale review in
 `engine-code-review-findings-2026-06.md` no longer describes per-run `locl` or variable axes as

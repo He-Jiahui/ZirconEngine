@@ -348,7 +348,7 @@ fn focus_visible_rules_are_border_only_overlays_after_primary_state_rules() {
     );
 }
 
-fn strict_theme_rule(selector: &str) -> &str {
+pub(super) fn strict_theme_rule(selector: &str) -> &str {
     let selector_line = format!("selector = \"{selector}\"");
     let (_, rule) = WORKBENCH_STRICT_THEME
         .split_once(&selector_line)

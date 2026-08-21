@@ -36,10 +36,10 @@ fn base_pipeline_recheck_interval(retry_attempt: u32) -> Duration {
 #[cfg(test)]
 mod tests {
     use super::{
-        BASE_PIPELINE_RECHECK_INTERVAL, BASE_PIPELINE_RECHECK_MAX_INTERVAL,
-        ONE_SHOT_BASE_PIPELINE_WAIT_TIMEOUT, base_pipeline_recheck_deadline_with_cap,
-        base_pipeline_recheck_interval, base_pipeline_recheck_is_due,
-        one_shot_base_pipeline_wait_deadline, one_shot_base_pipeline_wait_is_expired,
+        base_pipeline_recheck_deadline_with_cap, base_pipeline_recheck_interval,
+        base_pipeline_recheck_is_due, one_shot_base_pipeline_wait_deadline,
+        one_shot_base_pipeline_wait_is_expired, BASE_PIPELINE_RECHECK_INTERVAL,
+        BASE_PIPELINE_RECHECK_MAX_INTERVAL, ONE_SHOT_BASE_PIPELINE_WAIT_TIMEOUT,
     };
     use std::time::Duration;
 

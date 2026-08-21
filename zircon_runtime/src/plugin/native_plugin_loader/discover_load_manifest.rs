@@ -294,6 +294,7 @@ fn validate_load_manifest_entry(
     entry: &NativePluginLoadManifestEntry,
     candidate: &NativePluginCandidate,
 ) -> Result<bool, NativePluginDiscoveryRefreshError> {
+    let mut accepted = true;
     if entry.id != candidate.package_manifest.id {
         emit_diagnostic(request, sink, || {
             format!(
@@ -301,6 +302,7 @@ fn validate_load_manifest_entry(
                 candidate.package_manifest.id, entry.id
             )
         })?;
+        accepted = false;
     }
 
     let Some(package_path) = resolve_load_manifest_entry_path(
@@ -331,8 +333,9 @@ fn validate_load_manifest_entry(
                 package_path.display()
             )
         })?;
+        accepted = false;
     }
-    Ok(true)
+    Ok(accepted)
 }
 
 fn resolve_load_manifest_entry_path(
@@ -399,8 +402,10 @@ manifest = "plugins/climate/plugin.toml"
         let error = parse_bounded_load_manifest(source, 1)
             .expect_err("second selection entry must exceed the admitted candidate capacity");
 
-        assert!(error
-            .to_string()
-            .contains("exceeds the admitted candidate budget"));
+        assert!(
+            error
+                .to_string()
+                .contains("exceeds the admitted candidate budget")
+        );
     }
 }

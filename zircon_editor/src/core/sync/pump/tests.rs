@@ -5,6 +5,10 @@ use std::time::{Duration, Instant};
 
 use zircon_runtime::scene::{DefaultLevelManager, NodeKind, World};
 use zircon_runtime_interface::world_sync::{WatchKey, WatchRegistration, WatchToken, WorldFact};
+use zircon_runtime_interface::{
+    ZrRuntimeOperationHandle, ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2,
+    ZrRuntimeOperationSubmitRequestV1,
+};
 
 use crate::core::editor_event::ViewInstanceId;
 use crate::core::editor_message::{
@@ -41,6 +45,33 @@ impl EditorRuntimeGateway for BlockingWatchGateway {
     fn unwatch_world(&self, _token: WatchToken) -> Result<bool, GatewayError> {
         Ok(true)
     }
+
+    fn submit_operation(
+        &self,
+        _request: ZrRuntimeOperationSubmitRequestV1,
+    ) -> Result<ZrRuntimeOperationHandle, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.operation.submit",
+        })
+    }
+
+    fn poll_operation(
+        &self,
+        _handle: ZrRuntimeOperationHandle,
+    ) -> Result<ZrRuntimeOperationStatusV2, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.operation.poll",
+        })
+    }
+
+    fn harvest_operation(
+        &self,
+        _handle: ZrRuntimeOperationHandle,
+    ) -> Result<ZrRuntimeOperationResultV1, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.operation.harvest",
+        })
+    }
 }
 
 struct TrackingWatchGateway {
@@ -76,6 +107,33 @@ impl EditorRuntimeGateway for TrackingWatchGateway {
     fn unwatch_world(&self, _token: WatchToken) -> Result<bool, GatewayError> {
         self.unwatch_calls.fetch_add(1, Ordering::SeqCst);
         Ok(true)
+    }
+
+    fn submit_operation(
+        &self,
+        _request: ZrRuntimeOperationSubmitRequestV1,
+    ) -> Result<ZrRuntimeOperationHandle, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.operation.submit",
+        })
+    }
+
+    fn poll_operation(
+        &self,
+        _handle: ZrRuntimeOperationHandle,
+    ) -> Result<ZrRuntimeOperationStatusV2, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.operation.poll",
+        })
+    }
+
+    fn harvest_operation(
+        &self,
+        _handle: ZrRuntimeOperationHandle,
+    ) -> Result<ZrRuntimeOperationResultV1, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.operation.harvest",
+        })
     }
 }
 

@@ -1,13 +1,13 @@
 pub(super) use crate::ui::retained_host::primitives::{ModelRc, PhysicalSize, VecModel};
 pub(super) use crate::ui::retained_host::{
-    FloatingWindowData, FrameRect, HostChromeControlFrameData, HostChromeTabData,
-    HostClosePromptData, HostDocumentDockSurfaceData, HostMenuChromeData, HostMenuChromeItemData,
+    build_pane_template_surface_frame, callback_dispatch::BuiltinViewportToolbarTemplateBridge,
+    to_host_contract_component_showcase_pane_from_host_pane_with_runtime, FloatingWindowData,
+    FrameRect, HostChromeControlFrameData, HostChromeTabData, HostClosePromptData,
+    HostDocumentDockSurfaceData, HostMenuChromeData, HostMenuChromeItemData,
     HostMenuChromeMenuData, HostMenuStateData, HostPageOverflowMenuStateData, HostResizeLayerData,
     HostSideDockSurfaceData, HostWindowLayoutData, PaneData, PaneSurfaceHostContext, SceneNodeData,
     SceneViewportChromeData, TabData, TemplateNodeFrameData, TemplatePaneNodeData, UiHostContext,
-    UiHostWindow, build_pane_template_surface_frame,
-    callback_dispatch::BuiltinViewportToolbarTemplateBridge,
-    to_host_contract_component_showcase_pane_from_host_pane_with_runtime,
+    UiHostWindow,
 };
 pub(super) use crate::ui::template_runtime::EditorUiHostRuntime;
 pub(super) use std::{cell::RefCell, rc::Rc};
@@ -50,8 +50,8 @@ pub(super) fn scene_pane() -> PaneData {
     }
 }
 
-pub(super) fn viewport_toolbar_surface_frame_for_test()
--> std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame> {
+pub(super) fn viewport_toolbar_surface_frame_for_test(
+) -> std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame> {
     let mut bridge = BuiltinViewportToolbarTemplateBridge::new()
         .expect("viewport toolbar template bridge should load in native host tests");
     bridge

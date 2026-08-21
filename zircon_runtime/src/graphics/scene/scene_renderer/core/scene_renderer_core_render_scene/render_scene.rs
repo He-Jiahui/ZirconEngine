@@ -57,8 +57,8 @@ impl SceneRendererCore {
         } else if let Some(timer) = gpu_pass_timer.as_deref_mut() {
             let _ = timer.defer_frame(frame_generation);
         }
-        let realtime_ibl_scope = realtime_ibl_prepared
-            .is_some()
+        let realtime_ibl_gpu_timing_enabled = readback_ready && gpu_pass_timer.is_some();
+        let realtime_ibl_scope = (readback_ready && realtime_ibl_prepared.is_some())
             .then(|| {
                 gpu_pass_timer
                     .as_deref_mut()
@@ -71,7 +71,7 @@ impl SceneRendererCore {
                 self.realtime_ibl.record_prepared_frame(
                     device,
                     &mut encoder,
-                    false,
+                    realtime_ibl_gpu_timing_enabled,
                     prepared,
                     &mut self.ibl_bake_pipeline_cache,
                 )
@@ -445,5 +445,11 @@ mod tests {
         let source = production_source();
         assert!(source.contains("timer.defer_frame(frame_generation)"));
         assert!(source.contains("self.readback_queue.abort_frame(readback_frame_index);"));
+        assert!(source.contains(
+            "let realtime_ibl_gpu_timing_enabled = readback_ready && gpu_pass_timer.is_some();"
+        ));
+        assert!(source.contains(
+            "let realtime_ibl_scope = (readback_ready && realtime_ibl_prepared.is_some())"
+        ));
     }
 }

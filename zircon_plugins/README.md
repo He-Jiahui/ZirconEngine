@@ -199,6 +199,10 @@ defaults. `material_editor`, `timeline_sequence`, `animation_graph`, and
 `ui_asset_authoring` also declare explicit experimental maturity for the
 editor-only authoring package family.
 
+`native_window_hosting` currently declares package and capability identity only.
+Native Workbench and Prefab window surfaces remain owned by the Editor core, so
+the plugin does not publish duplicate views, commands, drawers, or UI templates.
+
 `physics` and `animation` are hard-cut runtime/editor plugin packages in this
 workspace. Their runtime crates own the concrete managers, module descriptors,
 and scene hooks, while `zircon_runtime` keeps shared framework DTOs, manager

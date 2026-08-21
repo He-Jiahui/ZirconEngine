@@ -16,8 +16,8 @@ use super::{
     overlay_slots::{overlay_slot_for_hover, overlay_slot_target_overlays, overlay_slot_targets},
 };
 use crate::ui::asset_editor::palette::{
-    PaletteInsertMode, UiAssetPaletteEntry, UiAssetPaletteInsertionPlacement,
-    insert_palette_item_with_placement,
+    insert_palette_item_with_placement, PaletteInsertMode, UiAssetPaletteEntry,
+    UiAssetPaletteInsertionPlacement,
 };
 
 #[derive(Clone, Debug, PartialEq)]

@@ -27,7 +27,7 @@ fn workbench_component_source(relative_path: &str) -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("assets/ui/editor/components/workbench")
         .join(relative_path);
-    fs::read_to_string(path).unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()))
+    fs::read_to_string(&path).unwrap_or_else(|error| panic!("read `{}`: {error}", path.display()))
 }
 
 #[test]

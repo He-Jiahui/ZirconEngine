@@ -1,5 +1,5 @@
 use crate::core::editor_message::SceneModeId;
-use crate::scene::modes::{SELECT_SCENE_MODE_ID, SceneModeActivation, TRANSFORM_SCENE_MODE_ID};
+use crate::scene::modes::{SceneModeActivation, SELECT_SCENE_MODE_ID, TRANSFORM_SCENE_MODE_ID};
 use crate::scene::viewport::TransformHandleKind;
 
 pub(crate) fn symbol(mode: &SceneModeActivation) -> String {

@@ -5,9 +5,9 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use super::super::{
-    CancellationToken, EditorJob, EditorJobLimits, EditorJobSpec, JobCategory, JobContext,
-    JobError, JobPriority, JobSubmitError, JobTicket, MutexGroup, test_job_system,
-    test_job_system_with_limits,
+    test_job_system, test_job_system_with_limits, CancellationToken, EditorJob, EditorJobLimits,
+    EditorJobSpec, JobCategory, JobContext, JobError, JobPriority, JobSubmitError, JobTicket,
+    MutexGroup,
 };
 use super::RecordingJob;
 
@@ -439,11 +439,9 @@ fn shutdown_after_all_jobs_finish_is_empty_idempotent_and_shared_by_clones() {
 
     let unfinished = jobs.shutdown(Instant::now() + Duration::from_secs(5));
     assert!(unfinished.is_empty());
-    assert!(
-        clone
-            .shutdown(Instant::now() + Duration::from_secs(5))
-            .is_empty()
-    );
+    assert!(clone
+        .shutdown(Instant::now() + Duration::from_secs(5))
+        .is_empty());
     assert_eq!(
         clone
             .submit(
@@ -505,10 +503,9 @@ fn shutdown_cancels_pending_immediately_and_reports_non_cooperative_timeout() {
 
     release_sender.send(()).unwrap();
     assert_eq!(running.wait(), Ok(()));
-    assert!(
-        jobs.shutdown(Instant::now() + Duration::from_secs(5))
-            .is_empty()
-    );
+    assert!(jobs
+        .shutdown(Instant::now() + Duration::from_secs(5))
+        .is_empty());
 }
 
 #[test]

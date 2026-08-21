@@ -32,6 +32,25 @@ fn deadline_admission_uses_the_shared_timer_and_arms_before_dispatch() {
 }
 
 #[test]
+fn queued_phase_index_retains_live_admissions_until_deadline_arming_completes() {
+    let source = include_str!("../service.rs");
+    let start = source
+        .find("    fn take_queued_snapshot_task(")
+        .expect("queued snapshot claim helper");
+    let end = source[start..]
+        .find("    fn finish_snapshot_failed_task(")
+        .map(|offset| start + offset)
+        .expect("queued snapshot claim boundary");
+    let claim_source = &source[start..end];
+
+    assert!(claim_source.contains("let candidate = *state.queued_snapshot_tasks.front()?"));
+    assert!(claim_source.contains("live && !task.deadline_armed"));
+    assert!(claim_source.contains("if retain"));
+    assert!(claim_source.contains("return None"));
+    assert!(!claim_source.contains("push_back(candidate)"));
+}
+
+#[test]
 fn operation_maintenance_timer_is_service_scoped_and_rearms_deadlines_and_ttl() {
     let service_source = include_str!("../service.rs");
     let source = include_str!("../maintenance.rs");

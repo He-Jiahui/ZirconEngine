@@ -1,6 +1,6 @@
 use crate::asset::assets::{ImportedAsset, ZMeshDocument};
 use crate::asset::{
-    AssetImportContext, AssetImportError, AssetImportOutcome, cook_mesh_sdf_or_fallback_single,
+    cook_mesh_sdf_or_fallback_single, AssetImportContext, AssetImportError, AssetImportOutcome,
 };
 
 pub(crate) fn import_zmesh(

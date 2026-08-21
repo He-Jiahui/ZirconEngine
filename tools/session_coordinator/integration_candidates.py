@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -100,7 +101,9 @@ class IntegrationCandidateService:
                     "Integration candidate owner must belong to a numbered Plan",
                 )
             compile_ticket = connection.execute(
-                "SELECT session_id, status FROM validation_tickets WHERE ticket_id=?", (compile_ticket_id,)
+                """SELECT session_id, status, source_manifest_hash, source_manifest_json
+                   FROM validation_tickets WHERE ticket_id=?""",
+                (compile_ticket_id,),
             ).fetchone()
             if compile_ticket is None:
                 raise CoordinatorError(
@@ -119,6 +122,8 @@ class IntegrationCandidateService:
                     "Integration candidate compile ticket must belong to the candidate Session",
                     details={"ticketId": compile_ticket_id},
                 )
+            compile_manifest_hash = str(compile_ticket["source_manifest_hash"])
+            compile_manifest_json = str(compile_ticket["source_manifest_json"])
 
         self.leases.require_owned_live(
             session_id,
@@ -127,7 +132,11 @@ class IntegrationCandidateService:
             message="Integration candidate requires live leases for every sealed path",
         )
         lease_evidence = self._lease_evidence(session_id, normalized_paths)
-        snapshots = tuple(CandidatePath(path, self._write_blob(path)) for path in normalized_paths)
+        snapshots = self._compile_bound_snapshots(
+            normalized_paths,
+            manifest_hash=compile_manifest_hash,
+            manifest_json=compile_manifest_json,
+        )
         candidate_id = uuid4().hex
         base_head = self._git("rev-parse", "HEAD")
         now = utc_text()
@@ -174,6 +183,7 @@ class IntegrationCandidateService:
                         {
                             "baseHead": base_head,
                             "compileTicketId": compile_ticket_id,
+                            "sourceManifestHash": compile_manifest_hash,
                             "leaseEvidence": lease_evidence,
                         },
                         sort_keys=True,
@@ -253,7 +263,80 @@ class IntegrationCandidateService:
             self._notify_integrated(candidate, commit_sha, message)
             return integrated
 
-    def _write_blob(self, path: str) -> str:
+    def _compile_bound_snapshots(
+        self,
+        paths: tuple[str, ...],
+        *,
+        manifest_hash: str,
+        manifest_json: str,
+    ) -> tuple[CandidatePath, ...]:
+        try:
+            manifest = json.loads(manifest_json)
+            canonical = json.dumps(
+                manifest,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=True,
+                allow_nan=False,
+            )
+        except (TypeError, ValueError, json.JSONDecodeError) as error:
+            raise CoordinatorError(
+                "integration_candidate_compile_manifest_invalid",
+                "Compile ticket source manifest is not canonical JSON",
+            ) from error
+        if not isinstance(manifest, dict) or not all(
+            isinstance(path, str) for path in manifest
+        ):
+            raise CoordinatorError(
+                "integration_candidate_compile_manifest_invalid",
+                "Compile ticket source manifest must be a path object",
+            )
+        canonical_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        if canonical_hash != manifest_hash:
+            raise CoordinatorError(
+                "integration_candidate_compile_manifest_invalid",
+                "Compile ticket source manifest hash does not match its durable payload",
+                details={"expectedManifestHash": manifest_hash, "actualManifestHash": canonical_hash},
+            )
+
+        manifest_paths = tuple(sorted(manifest, key=str.casefold))
+        if manifest_paths != paths:
+            raise CoordinatorError(
+                "integration_candidate_compile_manifest_mismatch",
+                "Compile ticket source manifest must exactly match candidate paths",
+                details={"candidatePaths": list(paths), "manifestPaths": list(manifest_paths)},
+            )
+
+        validated: list[tuple[str, bytes]] = []
+        for path in paths:
+            expected_hash = manifest[path]
+            if not isinstance(expected_hash, str) or len(expected_hash) != 64 or any(
+                character not in "0123456789abcdef" for character in expected_hash
+            ):
+                raise CoordinatorError(
+                    "integration_candidate_compile_manifest_tombstone",
+                    "Integration candidates cannot seal a compile-ticket tombstone",
+                    details={"path": path},
+                )
+            content = self._candidate_bytes(path)
+            actual_hash = hashlib.sha256(content).hexdigest()
+            if actual_hash != expected_hash:
+                raise CoordinatorError(
+                    "integration_candidate_compile_snapshot_stale",
+                    "Candidate bytes differ from the passed compile ticket snapshot",
+                    details={
+                        "path": path,
+                        "expectedHash": expected_hash,
+                        "actualHash": actual_hash,
+                    },
+                )
+            validated.append((path, content))
+        return tuple(
+            CandidatePath(path, self._write_blob_bytes(path, content))
+            for path, content in validated
+        )
+
+    def _candidate_bytes(self, path: str) -> bytes:
         source = (self.repo_root / path).resolve()
         if (
             not source.is_file()
@@ -265,7 +348,17 @@ class IntegrationCandidateService:
                 "integration_candidate_path_invalid",
                 "Candidate path must be a non-executable regular repository file",
             )
-        return self._git("hash-object", "-w", "--", path)
+        return source.read_bytes()
+
+    def _write_blob_bytes(self, path: str, content: bytes) -> str:
+        result = subprocess.run(
+            ["git", "hash-object", "-w", "--stdin", f"--path={path}"],
+            cwd=self.repo_root,
+            check=True,
+            capture_output=True,
+            input=content,
+        )
+        return result.stdout.decode("ascii").strip()
 
     def _lease_evidence(
         self, session_id: str, paths: tuple[str, ...]

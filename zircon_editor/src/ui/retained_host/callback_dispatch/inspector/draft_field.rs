@@ -1,5 +1,5 @@
 use crate::ui::binding::{
-    DraftCommand, EditorUiBinding, EditorUiBindingPayload, inspector_field_control_id,
+    inspector_field_control_id, DraftCommand, EditorUiBinding, EditorUiBindingPayload,
 };
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 

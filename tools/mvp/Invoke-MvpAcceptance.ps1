@@ -524,6 +524,15 @@ function Get-MvpEditorProductDiagnosticsFromLog {
     return [pscustomobject]$fields
 }
 
+function Test-MvpAcceptanceFullyQualifiedWindowsPath {
+    param([Parameter(Mandatory)][string]$Path)
+
+    return $Path -match '^[A-Za-z]:[\\/]' -or
+        $Path -match '^\\\\\?\\[A-Za-z]:[\\/]' -or
+        $Path -match '^\\\\(?![?.][\\/])[^\\/]+[\\/][^\\/]+(?:[\\/]|$)' -or
+        $Path -match '^\\\\\?\\UNC[\\/][^\\/]+[\\/][^\\/]+(?:[\\/]|$)'
+}
+
 function Assert-MvpResolvedProjectPath {
     param(
         [Parameter(Mandatory)][string]$ReportedProjectPath,
@@ -532,11 +541,27 @@ function Assert-MvpResolvedProjectPath {
     )
 
     try {
-        $reported = Resolve-ZirconWindowsPath -Path $ReportedProjectPath
         $expected = Resolve-ZirconWindowsPath -Path $ExpectedProjectRoot
+        if ($ReportedProjectPath -eq '.') {
+            $reported = $expected
+        }
+        elseif (Test-MvpAcceptanceFullyQualifiedWindowsPath -Path $ReportedProjectPath) {
+            $reported = Resolve-ZirconWindowsPath -Path $ReportedProjectPath
+        }
+        else {
+            if ([IO.Path]::IsPathRooted($ReportedProjectPath) -or $ReportedProjectPath.Contains(':')) {
+                throw "invalid path category; expected '.', a staged-project-parent relative path, or an absolute path"
+            }
+            $expectedParent = [IO.Directory]::GetParent($expected.DisplayPath)
+            if ($null -eq $expectedParent) {
+                throw "cannot derive the staged parent of '$ExpectedProjectRoot'"
+            }
+            $reportedCandidate = [IO.Path]::Combine($expectedParent.FullName, $ReportedProjectPath)
+            $reported = Resolve-ZirconWindowsPath -Path $reportedCandidate
+        }
     }
     catch {
-        throw "$Label project_path could not be resolved through the Windows path resolver: $($_.Exception.Message)"
+        throw "$Label project_path '$ReportedProjectPath' could not be resolved through the Windows path resolver: $($_.Exception.Message)"
     }
     if (-not $reported.OperationalPath.Equals($expected.OperationalPath, [StringComparison]::OrdinalIgnoreCase)) {
         throw "$Label project_path '$($reported.DisplayPath)' differs from staged project '$($expected.DisplayPath)'."

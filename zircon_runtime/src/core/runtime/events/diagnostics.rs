@@ -5,6 +5,7 @@ use crate::core::framework::events::{EventBusDiagnosticsMode, EventBusDiagnostic
 
 pub(super) struct EventBusDiagnosticsState {
     enabled: bool,
+    routine_timing_sample_interval: u64,
     published: AtomicU64,
     delivered: AtomicU64,
     dropped: AtomicU64,
@@ -26,8 +27,14 @@ pub(super) struct EventBusDiagnosticsState {
 
 impl EventBusDiagnosticsState {
     pub(super) fn new(mode: EventBusDiagnosticsMode) -> Self {
+        let (enabled, routine_timing_sample_interval) = match mode {
+            EventBusDiagnosticsMode::Enabled => (true, 1),
+            EventBusDiagnosticsMode::Sampled { every } => (true, every.get()),
+            EventBusDiagnosticsMode::Disabled => (false, 0),
+        };
         Self {
-            enabled: matches!(mode, EventBusDiagnosticsMode::Enabled),
+            enabled,
+            routine_timing_sample_interval,
             published: AtomicU64::new(0),
             delivered: AtomicU64::new(0),
             dropped: AtomicU64::new(0),
@@ -48,24 +55,26 @@ impl EventBusDiagnosticsState {
         }
     }
 
-    pub(super) fn capture_time(&self) -> Option<Instant> {
+    pub(super) fn capture_contention_time(&self) -> Option<Instant> {
         self.enabled.then(Instant::now)
     }
 
-    pub(super) fn record_published(&self) {
+    pub(super) fn record_published_and_capture_time(&self) -> Option<Instant> {
         if !self.enabled {
-            return;
+            return None;
         }
-        self.published.fetch_add(1, Ordering::Relaxed);
+        let sample_index = self.published.fetch_add(1, Ordering::Relaxed);
+        self.capture_routine_time(sample_index)
     }
 
-    pub(super) fn record_enqueued(&self) {
+    pub(super) fn record_enqueued_and_capture_time(&self) -> Option<Instant> {
         if !self.enabled {
-            return;
+            return None;
         }
         let queued = self.queued.fetch_add(1, Ordering::AcqRel) + 1;
-        self.delivered.fetch_add(1, Ordering::Relaxed);
+        let sample_index = self.delivered.fetch_add(1, Ordering::Relaxed);
         update_max(&self.peak_queued, queued);
+        self.capture_routine_time(sample_index)
     }
 
     pub(super) fn record_dequeued(&self, queued_at: Option<Instant>) {
@@ -76,13 +85,17 @@ impl EventBusDiagnosticsState {
         self.record_queue_age(queued_at);
     }
 
-    pub(super) fn record_overflow_drop(&self, queued_at: Option<Instant>) {
+    pub(super) fn record_replaced_and_capture_time(
+        &self,
+        queued_at: Option<Instant>,
+    ) -> Option<Instant> {
         if !self.enabled {
-            return;
+            return None;
         }
-        decrement_saturating(&self.queued);
         self.dropped.fetch_add(1, Ordering::Relaxed);
         self.record_queue_age(queued_at);
+        let sample_index = self.delivered.fetch_add(1, Ordering::Relaxed);
+        self.capture_routine_time(sample_index)
     }
 
     pub(super) fn record_receiver_waiting(&self) {
@@ -160,6 +173,7 @@ impl EventBusDiagnosticsState {
         let peak_queued = self.peak_queued.load(Ordering::Acquire).max(queued);
         EventBusDiagnosticsSnapshot {
             enabled: self.enabled,
+            routine_timing_sample_interval: self.routine_timing_sample_interval,
             topics: topics as u64,
             subscribers: subscribers as u64,
             published: self.published.load(Ordering::Acquire),
@@ -195,6 +209,10 @@ impl EventBusDiagnosticsState {
         self.queue_age_samples.fetch_add(1, Ordering::Relaxed);
         self.total_queue_age_ns.fetch_add(nanos, Ordering::Relaxed);
         update_max(&self.max_queue_age_ns, nanos);
+    }
+
+    fn capture_routine_time(&self, sample_index: u64) -> Option<Instant> {
+        (sample_index % self.routine_timing_sample_interval == 0).then(Instant::now)
     }
 }
 

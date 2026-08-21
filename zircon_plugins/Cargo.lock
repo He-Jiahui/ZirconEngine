@@ -6764,7 +6764,6 @@ name = "zircon_plugin_native_window_hosting_editor"
 version = "0.1.0"
 dependencies = [
  "zircon_editor",
- "zircon_plugin_editor_support",
  "zircon_plugin_sdk",
  "zircon_runtime",
 ]

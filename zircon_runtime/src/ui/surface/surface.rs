@@ -7,7 +7,10 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     arranged_focus_path,
-    component_state::{property_may_affect_runtime_pseudo_state, UiSurfaceComponentStateStore},
+    component_state::{
+        property_may_affect_runtime_pseudo_state, UiComponentStatePropertyChange,
+        UiSurfaceComponentStateStore,
+    },
     control_index::UiSurfaceControlIndex,
     debug_hit_test_surface_frame, debug_surface_frame, debug_surface_frame_for_pick,
     debug_surface_frame_for_selection, debug_surface_frame_with_options,
@@ -53,9 +56,11 @@ mod frame_publication;
 mod interaction_state;
 mod pointer_component_events;
 mod rebuild;
+mod virtual_window;
 
 use frame_publication::UiSurfaceFramePublication;
 pub use rebuild::UiSurfaceRebuildReport;
+use virtual_window::UiVirtualWindowState;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiSurface {
@@ -514,34 +519,49 @@ impl UiSurface {
                 );
             }
         }
-        let component_state_changed = if matches!(report.status, UiPropertyMutationStatus::Accepted)
+        let component_state_change = if matches!(report.status, UiPropertyMutationStatus::Accepted)
         {
             self.component_states
                 .sync_from_property(node_id, &property, &value)
         } else {
-            false
+            UiComponentStatePropertyChange::default()
         };
-        let popup_open_alias_state_changed =
+        let popup_open_alias_state_change =
             if matches!(report.status, UiPropertyMutationStatus::Accepted) {
                 self.sync_popup_open_alias_state(node_id, &property, &value)
             } else {
-                false
+                UiComponentStatePropertyChange::default()
             };
+        let component_state_change = component_state_change.merge(popup_open_alias_state_change);
+        let custom_pseudo_state_changed = matches!(&value, UiValue::Bool(_))
+            && !property_may_affect_runtime_pseudo_state(&property)
+            && self.runtime_style.depends_on_pseudo_state(&property);
         if matches!(report.status, UiPropertyMutationStatus::Accepted) {
-            if component_state_changed || popup_open_alias_state_changed {
+            if component_state_change.pseudo_state_changed || custom_pseudo_state_changed {
                 self.mark_component_state_render_dirty(node_id)?;
                 report.mark_render_dirty();
+            } else if component_state_change.value_changed {
+                self.mark_node_dirty(
+                    node_id,
+                    UiDirtyFlags {
+                        render: true,
+                        ..UiDirtyFlags::default()
+                    },
+                )?;
+                report.mark_render_dirty();
+            } else if property_may_affect_runtime_pseudo_state(&property) {
+                let changed = self.apply_runtime_state_style_subtree(node_id, true)?;
+                if changed > 0 {
+                    report.mark_render_dirty();
+                }
+            }
+            if component_state_change.any_changed() {
                 report.record_component_state_value_update(
                     node_id,
                     property.clone(),
                     previous_component_value,
                     value.clone(),
                 );
-            } else if property_may_affect_runtime_pseudo_state(&property) {
-                let changed = self.apply_runtime_state_style_subtree(node_id, true)?;
-                if changed > 0 {
-                    report.mark_render_dirty();
-                }
             }
         }
         if matches!(report.status, UiPropertyMutationStatus::Accepted)
@@ -607,14 +627,14 @@ impl UiSurface {
         node_id: UiNodeId,
         property: &str,
         value: &UiValue,
-    ) -> bool {
+    ) -> UiComponentStatePropertyChange {
         if !matches!(value, UiValue::Bool(_)) || !self.is_popup_stack_node(node_id) {
-            return false;
+            return UiComponentStatePropertyChange::default();
         }
         let alias = match property {
             "open" => "popup_open",
             "popup_open" => "open",
-            _ => return false,
+            _ => return UiComponentStatePropertyChange::default(),
         };
         let Some(attribute_value) = self
             .tree
@@ -624,7 +644,7 @@ impl UiSurface {
             .and_then(|metadata| metadata.attributes.get(alias))
             .cloned()
         else {
-            return false;
+            return UiComponentStatePropertyChange::default();
         };
         let _ = self
             .runtime_style
@@ -672,18 +692,19 @@ impl UiSurface {
         if properties.is_empty() {
             return Ok(());
         }
-        let mut component_state_changed = false;
+        let mut component_state_change = UiComponentStatePropertyChange::default();
         for property in properties {
             let _ = self.runtime_style.set_base_attribute(
                 node_id,
                 property.to_string(),
                 toml::Value::Boolean(false),
             );
-            component_state_changed |= self
-                .component_states
-                .sync_from_property(node_id, property, &value);
+            component_state_change = component_state_change.merge(
+                self.component_states
+                    .sync_from_property(node_id, property, &value),
+            );
         }
-        if component_state_changed {
+        if component_state_change.pseudo_state_changed {
             self.mark_component_state_render_dirty(node_id)?;
         }
         self.mark_node_dirty(

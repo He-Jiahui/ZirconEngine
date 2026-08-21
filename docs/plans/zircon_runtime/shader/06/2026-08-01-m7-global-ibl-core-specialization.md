@@ -144,6 +144,46 @@ This is a binding-free safety repair: it adds no texture read, descriptor, or
 runtime feature. It remains static evidence only and does not change the
 managed-product acceptance boundary.
 
+## 2026-08-19 Realtime IBL Structural Performance Gate
+
+The current-source review found a separate P0 defect beneath the existing
+environment-only shader specialization. `RealtimeIblTimeSliceScheduler` treats
+`published_key == None` as a full-update exception. For the canonical 128x8
+recipe it records one six-face sky capture, one six-face `CaptureCloud`, all
+seven source-mip reductions, all eight PMREM mips, and SH9 in one frame. The
+recorder maps both capture variants to the same procedural-gradient capture
+pipeline and storage texture, so `CaptureCloud` is a second 128x128x6 dispatch
+that overwrites sky radiance rather than contributing cloud radiance.
+
+This is a structural scheduling error, not evidence that GGX sample counts,
+roughness mapping, or the 128x8 recipe are wrong. The static workgroup inventory
+for that first batch is 5,755: 3,072 capture (1,536 of which are the duplicate
+cloud dispatch), 528 source-mip, 2,059 PMREM, and 96 SH9 workgroups. These are
+code-derived dispatch bounds, not GPU timing data. The present two-query
+timestamp bracket reports only the batch total, so it cannot attribute the
+capture, source-mip, PMREM, or SH9 cost and cannot justify tuning any one
+algorithmic parameter.
+
+Before another quality or algorithm optimization, M7 must replace the exception
+with one recipe-derived environment-generation ticket. Bootstrap and later
+revisions use the same dependency cursor and budgeted nodes: real producer face
+ranges, individual source-mip reductions, PMREM mip/face ranges, and SH9. The
+default producer set is sky radiance only. A cloud node is forbidden until a
+physically distinct cloud producer provides radiance through that same contract.
+The previous ready slot remains sampled until the ticket completes; a revision
+change cancels obsolete work without exposing a partial cubemap.
+
+The ticket must emit operation-level timestamp metadata with generation, recipe
+fingerprint, resource slot, scheduled and completed workgroups, and terminal
+reason. Its profiler gate is five isolated cold and five warm runs from an
+approved `E:`/`F:` managed target, using the same HDRI, camera, resolution,
+backend, screenshot sidecar, RenderDoc capture/replay, and WPR interval. Report
+p50/p95 CPU and GPU operation times, warm-cache I/O/decode counts, peak memory,
+and energy only when an instrument exposes an explicit unit and interval. Until
+that executable exists, RenderDoc/WPR availability and historical captures are
+tooling/baseline facts only, never current-source acceptance or a claim of
+Unreal performance parity.
+
 The Shader06 review also preserves a strict ownership boundary for the planned
 SSR -> probe -> sky alpha-under composition. The current SSR history is a
 separate HDR texture, but its scene-composite consumer receives only already

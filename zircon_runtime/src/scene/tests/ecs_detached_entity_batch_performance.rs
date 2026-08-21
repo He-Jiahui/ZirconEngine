@@ -64,7 +64,11 @@ fn detached_batch_scale_sample(
         .ecs_frame_performance_diagnostics()
         .detached_entity_batches;
 
-    assert_eq!(world.len(), affected_entities + unrelated_entities);
+    let entity_query = world.query::<crate::scene::EntityId>();
+    assert_eq!(
+        entity_query.iter(&world).count(),
+        affected_entities + unrelated_entities
+    );
     (detach, restore, detach_elapsed, restore_elapsed)
 }
 

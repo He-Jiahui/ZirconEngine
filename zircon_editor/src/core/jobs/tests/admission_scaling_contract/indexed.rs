@@ -1,6 +1,6 @@
 use super::support::{GateJob, ValueJob};
 use super::{
-    EditorJobLimits, EditorJobSpec, JobCategory, JobPriority, test_job_system_with_limits,
+    mpsc, test_job_system_with_limits, EditorJobLimits, EditorJobSpec, JobCategory, JobPriority,
 };
 
 const MAX_BUCKET_PROBES_PER_PASS: usize = 6 * JobCategory::ALL.len();
@@ -26,7 +26,7 @@ fn indexed_pending_admission_scales_linearly_through_enqueue_and_completion() {
 
 #[test]
 fn ready_bucket_selection_cannot_regress_to_a_linear_job_scan() {
-    let source = include_str!("../system/pending.rs");
+    let source = include_str!("../../system/pending.rs");
     let take_next = source
         .split("pub(super) fn take_next")
         .nth(1)
@@ -49,7 +49,7 @@ fn ready_bucket_selection_cannot_regress_to_a_linear_job_scan() {
 
 #[test]
 fn category_admission_projection_uses_maintained_indexes() {
-    let source = include_str!("../system/pending.rs");
+    let source = include_str!("../../system/pending.rs");
     let category_projection = source
         .split("if let Some(category) = category {")
         .nth(1)
@@ -72,7 +72,7 @@ fn category_admission_projection_uses_maintained_indexes() {
 
 #[test]
 fn promotion_uses_a_bounded_dispatch_batch_without_holding_the_state_mutex_for_schedule() {
-    let source = include_str!("../system/scheduling.rs");
+    let source = include_str!("../../system/scheduling.rs");
     let promote = source
         .split("pub(super) fn promote(self: &Arc<Self>)")
         .nth(1)
@@ -96,8 +96,8 @@ fn promotion_uses_a_bounded_dispatch_batch_without_holding_the_state_mutex_for_s
 
 #[test]
 fn admission_bucket_inventory_has_one_enum_owned_source() {
-    let pending_source = include_str!("../system/pending.rs");
-    let category_source = include_str!("../category.rs");
+    let pending_source = include_str!("../../system/pending.rs");
+    let category_source = include_str!("../../category.rs");
 
     assert!(pending_source.contains("FAIR_ADMISSION_SLOTS"));
     assert!(pending_source.contains("JobCategory::ALL"));

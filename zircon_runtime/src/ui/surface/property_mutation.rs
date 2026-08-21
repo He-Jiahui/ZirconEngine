@@ -18,8 +18,10 @@ use crate::ui::binding::{
 
 use super::popup_stack::is_popup_stack_metadata;
 
+mod metadata_batch;
 mod metadata_dirty;
 
+pub(crate) use self::metadata_batch::mutate_tree_metadata_properties;
 use self::metadata_dirty::{metadata_attribute_dirty, render_dirty};
 
 #[derive(Clone, Debug, PartialEq)]

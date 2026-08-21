@@ -1,4 +1,5 @@
-use std::collections::{HashMap, VecDeque};
+use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
@@ -10,8 +11,8 @@ use zircon_runtime::core::framework::net::{
 use crate::feature::NET_RPC_FEATURE_CAPABILITY;
 
 use super::{
-    RpcChannelMessage, RpcHandler, RpcSchemaValidator, DEFAULT_RPC_QUEUE_DEPTH,
-    RPC_PROTOCOL_VERSION,
+    DEFAULT_RPC_QUEUE_DEPTH, RPC_PROTOCOL_VERSION, RpcChannelMessage, RpcHandler,
+    RpcSchemaValidator,
 };
 
 #[derive(Clone)]
@@ -28,7 +29,7 @@ pub(in crate::manager) struct NetRpcRuntimeState {
     pub(in crate::manager) rpc_handlers: HashMap<String, RpcHandler>,
     pub(in crate::manager) quota_windows: HashMap<RpcQuotaKey, RpcQuotaWindow>,
     pub(in crate::manager) netspeed_windows: HashMap<NetSessionId, NetSpeedWindow>,
-    pub(in crate::manager) queued_invocations: Vec<QueuedRpcInvocation>,
+    pub(in crate::manager) queued_invocations: BinaryHeap<QueuedRpcInvocation>,
     pub(in crate::manager) pending_requests: HashMap<NetRequestId, PendingRpcRequest>,
     pub(in crate::manager) next_queue_sequence: u64,
     pub(in crate::manager) max_queue_depth: usize,
@@ -48,6 +49,29 @@ pub(in crate::manager) struct QueuedRpcInvocation {
     pub(in crate::manager) caller: RpcPeerRole,
     pub(in crate::manager) enqueued_at: Instant,
     pub(in crate::manager) sequence: u64,
+}
+
+impl PartialEq for QueuedRpcInvocation {
+    fn eq(&self, other: &Self) -> bool {
+        self.invocation.priority == other.invocation.priority && self.sequence == other.sequence
+    }
+}
+
+impl Eq for QueuedRpcInvocation {}
+
+impl PartialOrd for QueuedRpcInvocation {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for QueuedRpcInvocation {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.invocation
+            .priority
+            .cmp(&other.invocation.priority)
+            .then_with(|| other.sequence.cmp(&self.sequence))
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -117,7 +141,7 @@ impl NetRpcRuntimeManager {
                 rpc_handlers: HashMap::new(),
                 quota_windows: HashMap::new(),
                 netspeed_windows: HashMap::new(),
-                queued_invocations: Vec::new(),
+                queued_invocations: BinaryHeap::new(),
                 pending_requests: HashMap::new(),
                 next_queue_sequence: 0,
                 max_queue_depth: DEFAULT_RPC_QUEUE_DEPTH,

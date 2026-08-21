@@ -153,6 +153,14 @@ fn world_driver_orders_native_systems_with_plugin_runtime_systems() {
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
     let level = create_default_level(&runtime.handle()).unwrap();
+    let cube = level.with_world(|world| {
+        world
+            .nodes()
+            .iter()
+            .find(|node| matches!(node.kind, NodeKind::Cube))
+            .unwrap()
+            .id
+    });
     let events = Arc::new(Mutex::new(Vec::new()));
 
     {
@@ -265,10 +273,14 @@ fn world_driver_runs_runtime_scene_systems_in_schedule_order() {
                         .unwrap()
                         .push(format!("runtime-delta={:.3}", context.delta_seconds));
                 });
-                assert!(context
-                    .core
-                    .resolve_driver::<crate::scene::WorldDriver>(crate::scene::WORLD_DRIVER_NAME)
-                    .is_ok());
+                assert!(
+                    context
+                        .core
+                        .resolve_driver::<crate::scene::WorldDriver>(
+                            crate::scene::WORLD_DRIVER_NAME
+                        )
+                        .is_ok()
+                );
                 Ok(())
             },
         );
@@ -366,4 +378,113 @@ fn apply_runtime_scene_systems(
     level
         .with_world_mut(|world| plan.apply_to_world(world))
         .unwrap();
+}
+
+#[test]
+fn world_driver_pauses_virtual_systems_and_runs_explicit_real_time_systems() {
+    let runtime = CoreRuntime::new();
+    runtime.register_module(module_descriptor()).unwrap();
+    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let level = create_default_level(&runtime.handle()).unwrap();
+    let cube = level.with_world(|world| {
+        world
+            .nodes()
+            .iter()
+            .find(|node| matches!(node.kind, NodeKind::Cube))
+            .unwrap()
+            .id
+    });
+    let events = Arc::new(Mutex::new(Vec::new()));
+
+    {
+        let events = events.clone();
+        level
+            .with_world_mut(|world| {
+                world.register_native_system::<(), _>(
+                    "gameplay.native.virtual-default",
+                    SystemStage::Update,
+                    -1,
+                    move |()| events.lock().unwrap().push("native-virtual".to_string()),
+                )
+            })
+            .unwrap();
+    }
+    {
+        let events = events.clone();
+        let system = FunctionRuntimeSceneSystem::new(
+            SceneSystemMetadata::new("gameplay.runtime.virtual-delta", SystemStage::Update, 0),
+            move |context| {
+                events
+                    .lock()
+                    .unwrap()
+                    .push(format!("runtime-delta={:.3}", context.delta_seconds));
+                Ok(())
+            },
+        );
+        level
+            .with_world_mut(|world| world.register_boxed_runtime_scene_system(Box::new(system)))
+            .unwrap();
+    }
+    {
+        let events = events.clone();
+        let mut registry = RuntimeExtensionRegistry::default();
+        let owner = registry.intern_plugin_module("diagnostic.runtime").unwrap();
+        registry
+            .register_runtime_scene_system(
+                owner,
+                "diagnostic.runtime.real-delta",
+                SystemStage::Update,
+                move || {
+                    let events = events.clone();
+                    move |context| {
+                        events
+                            .lock()
+                            .unwrap()
+                            .push(format!("real-delta={:.3}", context.delta_seconds));
+                        Ok(())
+                    }
+                },
+            )
+            .with_order(1)
+            .with_clock_domain(SceneSystemClockDomain::Real)
+            .register()
+            .unwrap();
+        apply_runtime_scene_systems(&level, &registry);
+    }
+    level
+        .with_world_mut(|world| {
+            world.update_transform(cube, Transform::from_translation(Vec3::new(3.0, 0.0, 0.0)))
+        })
+        .unwrap();
+    assert!(level.with_world(|world| world.has_pending_scene_systems()));
+
+    runtime.pause_virtual_time();
+    let paused = runtime.advance_time_by(Duration::from_millis(16), 8);
+    assert_eq!(paused.real_delta(), Duration::from_millis(16));
+    assert_eq!(paused.virtual_delta(), Duration::ZERO);
+    level.tick(&runtime.handle(), paused).unwrap();
+    assert_eq!(
+        *events.lock().unwrap(),
+        vec!["real-delta=0.016".to_string()]
+    );
+    assert!(level.with_world(|world| world.has_pending_scene_systems()));
+
+    events.lock().unwrap().clear();
+    runtime.unpause_virtual_time();
+    runtime.set_virtual_time_relative_speed_f64(0.5);
+    let scaled = runtime.advance_time_by(Duration::from_millis(16), 8);
+    assert_eq!(scaled.virtual_delta(), Duration::from_millis(8));
+    level.tick(&runtime.handle(), scaled).unwrap();
+    assert_eq!(
+        *events.lock().unwrap(),
+        vec![
+            "native-virtual".to_string(),
+            "runtime-delta=0.008".to_string(),
+            "real-delta=0.016".to_string(),
+        ]
+    );
+    assert!(!level.with_world(|world| world.has_pending_scene_systems()));
+    println!(
+        "PERF_RESULT runtime22_clock_domain paused_virtual_callbacks=0 paused_real_callbacks=1 paused_virtual_work_reduction_percent=100 scaled_virtual_delta_ms=8 scaled_real_delta_ms=16"
+    );
 }

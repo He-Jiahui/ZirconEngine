@@ -46,13 +46,11 @@ fn jetbrains_workbench_skeleton_exposes_fixed_layout_regions() {
         skeleton.default_drawer_mode(EditorRegion::Bottom),
         Some(ActivityDrawerMode::Pinned)
     );
-    assert!(
-        skeleton
-            .region(EditorRegion::Center)
-            .unwrap()
-            .panel_asset
-            .ends_with("workbench_main_band.zui")
-    );
+    assert!(skeleton
+        .region(EditorRegion::Center)
+        .unwrap()
+        .panel_asset
+        .ends_with("workbench_main_band.zui"));
 }
 
 #[test]

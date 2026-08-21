@@ -9,7 +9,7 @@ use zircon_runtime::asset::{
     SceneCameraAsset, SceneEntityAsset, SceneMobilityAsset,
 };
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
-use zircon_runtime::core::framework::{
+use zircon_runtime::core::framework::project::{
     ExportBuildMode, ExportPackagingStrategy, ExportTargetPlatform,
 };
 use zircon_runtime::core::resource::ResourceState;
@@ -33,7 +33,7 @@ fn template_creation_copies_pack_rewrites_manifest_and_opens() {
     let opened = created.project();
 
     assert_eq!(created.summary.name, "Authority Project");
-    assert_eq!(opened.manifest().summary(), &created.summary);
+    assert_eq!(opened.manifest().summary(), created.summary);
     assert_eq!(
         opened.manifest().summary().format_version,
         PROJECT_MANIFEST_FORMAT_VERSION

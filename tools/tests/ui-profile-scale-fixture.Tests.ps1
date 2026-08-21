@@ -47,6 +47,44 @@ Describe "ui profile scale fixture" {
         }
     }
 
+    It "materializes exact renderable viewport-pointer entities with explicit mobility" {
+        Get-Command New-ZirconViewportPointerScaleFixture -ErrorAction SilentlyContinue |
+            Should Not BeNullOrEmpty
+
+        $outputRoot = "E:\zircon-profiles\pester-viewport-pointer-$([guid]::NewGuid().ToString('N'))"
+        $projectRoot = Join-Path $outputRoot "ProfileCaptureProject"
+        try {
+            $fixture = New-ZirconViewportPointerScaleFixture `
+                -RepoRoot $script:RepoRoot `
+                -ProjectRoot $projectRoot `
+                -SelectableNodeCount 12 `
+                -Mobility "dynamic"
+
+            $fixture.schema_version | Should Be 1
+            $fixture.kind | Should Be "viewport_pointer_scene"
+            $fixture.selectable_node_count | Should Be 12
+            $fixture.scene_entity_count | Should Be 14
+            $fixture.mobility | Should Be "dynamic"
+            $fixture.scene.relative_path | Should Be "assets/scenes/main.scene.toml"
+            $fixture.scene.sha256 | Should Match "^[0-9a-f]{64}$"
+
+            $scenePath = Join-Path $projectRoot "assets\scenes\main.scene.toml"
+            $sceneSource = Get-Content -LiteralPath $scenePath -Raw
+            ([regex]::Matches($sceneSource, "(?m)^\[\[entities\]\]\r?$").Count) |
+                Should Be 14
+            ([regex]::Matches($sceneSource, '(?m)^mobility = "Dynamic"\r?$').Count) |
+                Should Be 12
+            ([regex]::Matches($sceneSource, '(?m)^\[entities\.mesh\.model\]\r?$').Count) |
+                Should Be 12
+            $sceneSource | Should Match 'name = "Profile Viewport Node 000012"'
+        }
+        finally {
+            if (Test-Path -LiteralPath $outputRoot) {
+                Remove-Item -LiteralPath $outputRoot -Recurse -Force
+            }
+        }
+    }
+
     It "fails closed for unsafe roots and invalid N" {
         foreach ($case in @(
             @{ Root = "C:\zircon-profiles\unsafe"; N = 12 },
@@ -124,6 +162,38 @@ Describe "ui profile scale fixture" {
                     -RepoRoot $script:RepoRoot `
                     -InputFixture $fixture
             } | Should Throw "UI profile input fixture changed after materialization."
+        }
+        finally {
+            if (Test-Path -LiteralPath $outputRoot) {
+                Remove-Item -LiteralPath $outputRoot -Recurse -Force
+            }
+        }
+    }
+
+    It "revalidates viewport pointer mobility and selectable count before manifest binding" {
+        $outputRoot = "E:\zircon-profiles\pester-viewport-pointer-integrity-$([guid]::NewGuid().ToString('N'))"
+        $projectRoot = Join-Path $outputRoot "ProfileCaptureProject"
+        try {
+            $fixture = New-ZirconViewportPointerScaleFixture `
+                -RepoRoot $script:RepoRoot `
+                -ProjectRoot $projectRoot `
+                -SelectableNodeCount 4 `
+                -Mobility "static"
+            $validated = Resolve-ZirconProfileInputFixtureEvidence `
+                -RepoRoot $script:RepoRoot `
+                -InputFixture $fixture
+
+            $validated.kind | Should Be "viewport_pointer_scene"
+            $validated.selectable_node_count | Should Be 4
+            $validated.scene_entity_count | Should Be 6
+            $validated.mobility | Should Be "static"
+
+            $fixture.mobility = "dynamic"
+            {
+                Resolve-ZirconProfileInputFixtureEvidence `
+                    -RepoRoot $script:RepoRoot `
+                    -InputFixture $fixture
+            } | Should Throw "UI profile viewport pointer fixture mobility is inconsistent."
         }
         finally {
             if (Test-Path -LiteralPath $outputRoot) {

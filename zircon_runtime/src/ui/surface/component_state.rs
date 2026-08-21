@@ -12,6 +12,25 @@ pub struct UiSurfaceComponentStateStore {
     states: BTreeMap<UiNodeId, UiComponentState>,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct UiComponentStatePropertyChange {
+    pub(crate) value_changed: bool,
+    pub(crate) pseudo_state_changed: bool,
+}
+
+impl UiComponentStatePropertyChange {
+    pub(crate) const fn any_changed(self) -> bool {
+        self.value_changed || self.pseudo_state_changed
+    }
+
+    pub(crate) const fn merge(self, other: Self) -> Self {
+        Self {
+            value_changed: self.value_changed || other.value_changed,
+            pseudo_state_changed: self.pseudo_state_changed || other.pseudo_state_changed,
+        }
+    }
+}
+
 impl UiSurfaceComponentStateStore {
     pub fn get(&self, node_id: UiNodeId) -> Option<&UiComponentState> {
         self.states.get(&node_id)
@@ -88,57 +107,37 @@ impl UiSurfaceComponentStateStore {
         node_id: UiNodeId,
         property: &str,
         value: &UiValue,
-    ) -> bool {
-        let mut changed = self.set_value(node_id, property.to_string(), value.clone());
+    ) -> UiComponentStatePropertyChange {
+        let value_changed = self.set_value(node_id, property.to_string(), value.clone());
         let UiValue::Bool(value) = value else {
-            return changed;
+            return UiComponentStatePropertyChange {
+                value_changed,
+                pseudo_state_changed: false,
+            };
         };
-        match property {
-            "hover" | "hovered" => {
-                changed |= self.set_hovered(node_id, *value);
-            }
-            "focus" | "focused" => {
-                changed |= self.set_focused(node_id, *value);
-            }
+        let pseudo_state_changed = match property {
+            "hover" | "hovered" => self.set_hovered(node_id, *value),
+            "focus" | "focused" => self.set_focused(node_id, *value),
             "focus_visible" | "focus-visible" | "focusVisible" => {
-                changed |= self.set_focus_visible(node_id, *value);
+                self.set_focus_visible(node_id, *value)
             }
-            "pressed" | "active" => {
-                changed |= self.set_pressed(node_id, *value);
-            }
-            "dragging" => {
-                changed |= self.set_dragging(node_id, *value);
-            }
-            "drop_hovered" => {
-                changed |= self.set_drop_hovered(node_id, *value);
-            }
-            "active_drag_target" => {
-                changed |= self.set_active_drag_target(node_id, *value);
-            }
-            "checked" => {
-                changed |= self.set_checked(node_id, *value);
-            }
-            "enabled" => {
-                changed |= self.set_disabled(node_id, !*value);
-            }
-            "disabled" => {
-                changed |= self.set_disabled(node_id, *value);
-            }
-            "expanded" => {
-                changed |= self.set_expanded(node_id, *value);
-            }
-            "popup_open" | "open" => {
-                changed |= self.set_popup_open(node_id, *value);
-            }
-            "selected" => {
-                changed |= self.set_selected(node_id, *value);
-            }
-            "loading" => {
-                changed |= self.set_loading(node_id, *value);
-            }
-            _ => {}
+            "pressed" | "active" => self.set_pressed(node_id, *value),
+            "dragging" => self.set_dragging(node_id, *value),
+            "drop_hovered" => self.set_drop_hovered(node_id, *value),
+            "active_drag_target" => self.set_active_drag_target(node_id, *value),
+            "checked" => self.set_checked(node_id, *value),
+            "enabled" => self.set_disabled(node_id, !*value),
+            "disabled" => self.set_disabled(node_id, *value),
+            "expanded" => self.set_expanded(node_id, *value),
+            "popup_open" | "open" => self.set_popup_open(node_id, *value),
+            "selected" => self.set_selected(node_id, *value),
+            "loading" => self.set_loading(node_id, *value),
+            _ => false,
+        };
+        UiComponentStatePropertyChange {
+            value_changed,
+            pseudo_state_changed,
         }
-        changed
     }
 
     pub(crate) fn set_hovered(&mut self, node_id: UiNodeId, hovered: bool) -> bool {
@@ -314,4 +313,57 @@ pub(crate) fn property_may_affect_runtime_pseudo_state(property: &str) -> bool {
 
 fn bool_attribute(values: &std::collections::BTreeMap<String, toml::Value>, key: &str) -> bool {
     values.get(key).and_then(toml::Value::as_bool) == Some(true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn virtual_window_numeric_property_change_is_not_a_runtime_pseudo_state_change() {
+        let mut states = UiSurfaceComponentStateStore::default();
+        let node_id = UiNodeId::new(7);
+
+        let change = states.sync_from_property(node_id, "viewport_start", &UiValue::Int(12));
+
+        assert_eq!(
+            change,
+            UiComponentStatePropertyChange {
+                value_changed: true,
+                pseudo_state_changed: false,
+            }
+        );
+        assert_eq!(
+            states
+                .get(node_id)
+                .and_then(|state| state.value("viewport_start")),
+            Some(&UiValue::Int(12))
+        );
+    }
+
+    #[test]
+    fn virtual_window_pseudo_state_change_reports_only_real_flag_transitions() {
+        let mut states = UiSurfaceComponentStateStore::default();
+        let node_id = UiNodeId::new(9);
+
+        let first = states.sync_from_property(node_id, "hovered", &UiValue::Bool(true));
+        let alias = states.sync_from_property(node_id, "hover", &UiValue::Bool(true));
+        let unchanged = states.sync_from_property(node_id, "hover", &UiValue::Bool(true));
+
+        assert_eq!(
+            first,
+            UiComponentStatePropertyChange {
+                value_changed: true,
+                pseudo_state_changed: true,
+            }
+        );
+        assert_eq!(
+            alias,
+            UiComponentStatePropertyChange {
+                value_changed: true,
+                pseudo_state_changed: false,
+            }
+        );
+        assert_eq!(unchanged, UiComponentStatePropertyChange::default());
+    }
 }

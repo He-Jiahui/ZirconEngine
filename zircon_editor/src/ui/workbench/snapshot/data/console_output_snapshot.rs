@@ -278,7 +278,7 @@ mod tests {
     use crate::core::editor_event::ConsoleMessageFilter;
 
     use super::{
-        CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY, ConsoleOutputSnapshot, EditorConsoleMessageLevel,
+        ConsoleOutputSnapshot, EditorConsoleMessageLevel, CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY,
     };
 
     #[test]

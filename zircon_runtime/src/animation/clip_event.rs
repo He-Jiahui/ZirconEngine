@@ -6,6 +6,7 @@ use crate::core::framework::animation::{
 };
 use crate::core::math::Real;
 use crate::scene::EntityId;
+use std::collections::BinaryHeap;
 
 pub struct ProjectAnimationClipEventSampler<'a> {
     asset_manager: &'a ProjectAssetManager,
@@ -39,9 +40,39 @@ impl AnimationClipEventSampler for ProjectAnimationClipEventSampler<'_> {
 }
 
 #[derive(Clone, Copy, Debug)]
-struct EventCandidate {
+struct EventCandidate<'track> {
     track_index: usize,
     playback_time_seconds: Real,
+    event: &'track str,
+}
+
+impl PartialEq for EventCandidate<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.playback_time_seconds
+            .total_cmp(&other.playback_time_seconds)
+            .is_eq()
+            && self.event == other.event
+            && self.track_index == other.track_index
+    }
+}
+
+impl Eq for EventCandidate<'_> {}
+
+impl PartialOrd for EventCandidate<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for EventCandidate<'_> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        record_candidate_comparison();
+        other
+            .playback_time_seconds
+            .total_cmp(&self.playback_time_seconds)
+            .then_with(|| other.event.cmp(self.event))
+            .then_with(|| other.track_index.cmp(&self.track_index))
+    }
 }
 
 /// Samples one bounded, resumable portion of a clip-event range.
@@ -99,7 +130,7 @@ fn sample_clip_events_budgeted(
                 batch_end,
             )
         })
-        .collect::<Vec<_>>();
+        .collect::<BinaryHeap<_>>();
     let mut batch = AnimationClipEventSamplingBatch {
         playback_span_seconds: batch_end - range_cursor,
         ..AnimationClipEventSamplingBatch::default()
@@ -107,12 +138,7 @@ fn sample_clip_events_budgeted(
     let mut last_cursor = cursor.clone();
 
     while batch.events.len() < limits.max_events {
-        let Some((candidate_index, candidate)) = candidates
-            .iter()
-            .enumerate()
-            .min_by(|(_, left), (_, right)| compare_candidates(&clip.event_tracks, left, right))
-            .map(|(index, candidate)| (index, *candidate))
-        else {
+        let Some(candidate) = candidates.peek().copied() else {
             break;
         };
         if candidate.playback_time_seconds > batch_end {
@@ -131,6 +157,7 @@ fn sample_clip_events_budgeted(
             batch.oversized_event_count = 1;
             batch.budget_exhausted = true;
         }
+        candidates.pop();
 
         batch.emitted_event_bytes = batch.emitted_event_bytes.saturating_add(event_bytes);
         batch.events.push(AnimationClipEvent {
@@ -148,15 +175,16 @@ fn sample_clip_events_budgeted(
         };
 
         if looping {
-            candidates[candidate_index].playback_time_seconds += duration_seconds
-        } else {
-            candidates.remove(candidate_index);
+            candidates.push(EventCandidate {
+                playback_time_seconds: candidate.playback_time_seconds + duration_seconds,
+                ..candidate
+            });
         }
     }
 
     let candidates_remain = candidates
-        .iter()
-        .any(|candidate| candidate.playback_time_seconds <= batch_end);
+        .peek()
+        .is_some_and(|candidate| candidate.playback_time_seconds <= batch_end);
     if candidates_remain {
         batch.budget_exhausted = true;
         batch.next_cursor = Some(last_cursor);
@@ -191,14 +219,14 @@ fn event_sampling_range(
     }
 }
 
-fn event_candidate(
-    track: &AnimationEventTrackAsset,
+fn event_candidate<'track>(
+    track: &'track AnimationEventTrackAsset,
     track_index: usize,
     duration_seconds: Real,
     looping: bool,
     cursor: &AnimationClipEventSamplingCursor,
     batch_end: Real,
-) -> Option<EventCandidate> {
+) -> Option<EventCandidate<'track>> {
     if !track.time_seconds.is_finite() || track.time_seconds < 0.0 {
         return None;
     }
@@ -229,6 +257,7 @@ fn event_candidate(
     Some(EventCandidate {
         track_index,
         playback_time_seconds,
+        event: &track.event,
     })
 }
 
@@ -271,19 +300,27 @@ fn event_is_after_cursor(
     }
 }
 
-fn compare_candidates(
-    tracks: &[AnimationEventTrackAsset],
-    left: &EventCandidate,
-    right: &EventCandidate,
-) -> std::cmp::Ordering {
-    left.playback_time_seconds
-        .total_cmp(&right.playback_time_seconds)
-        .then_with(|| {
-            tracks[left.track_index]
-                .event
-                .cmp(&tracks[right.track_index].event)
-        })
-        .then_with(|| left.track_index.cmp(&right.track_index))
+#[cfg(all(test, debug_assertions))]
+thread_local! {
+    static CANDIDATE_COMPARISONS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+#[cfg(all(test, debug_assertions))]
+fn record_candidate_comparison() {
+    CANDIDATE_COMPARISONS.with(|comparisons| comparisons.set(comparisons.get() + 1));
+}
+
+#[cfg(not(all(test, debug_assertions)))]
+fn record_candidate_comparison() {}
+
+#[cfg(all(test, debug_assertions))]
+fn take_candidate_comparisons() -> usize {
+    CANDIDATE_COMPARISONS.with(|comparisons| comparisons.replace(0))
+}
+
+#[cfg(all(test, not(debug_assertions)))]
+fn take_candidate_comparisons() -> usize {
+    0
 }
 
 fn event_text_bytes(track: &AnimationEventTrackAsset) -> usize {
@@ -298,11 +335,20 @@ fn finite_positive_duration(duration_seconds: Real) -> Option<Real> {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::framework::animation::{AnimationClipAsset, AnimationEventTrackAsset};
+    use std::hint::black_box;
+    use std::time::Instant;
+
+    use crate::core::framework::animation::{
+        AnimationClipAsset, AnimationClipEvent, AnimationClipEventSamplingCursor,
+        AnimationEventTrackAsset,
+    };
     use crate::core::math::Real;
     use crate::core::resource::{AssetReference, ResourceLocator};
 
-    use super::{sample_clip_events_budgeted, AnimationClipEventSamplingLimits};
+    use super::{
+        AnimationClipEventSamplingLimits, EventCandidate, event_candidate,
+        sample_clip_events_budgeted, take_candidate_comparisons,
+    };
 
     #[test]
     fn looping_event_sampling_is_bounded_and_resumes_in_playback_order() {
@@ -414,6 +460,216 @@ mod tests {
             sample_clip_events_budgeted(&clip, 10, 0.0, 2.0, true, first.next_cursor, limits);
         assert_eq!(second.events[0].playback_time_seconds, 1.5);
         assert!(second.next_cursor.is_none());
+    }
+
+    #[test]
+    fn event_candidate_selection_scales_subquadratically() {
+        const EVENT_COUNT: usize = 1_024;
+        const MAX_COMPARISONS_PER_EVENT: usize = 32;
+
+        let clip = clip_with_events(
+            (0..EVENT_COUNT)
+                .map(|index| {
+                    event_track(
+                        &format!("event-{index:04}"),
+                        (index + 1) as Real / (EVENT_COUNT + 1) as Real,
+                        None,
+                    )
+                })
+                .collect(),
+        );
+        let limits = AnimationClipEventSamplingLimits {
+            max_events: EVENT_COUNT,
+            max_event_bytes: usize::MAX,
+            max_playback_span_seconds: 1.0,
+        };
+
+        take_candidate_comparisons();
+        let batch = sample_clip_events_budgeted(&clip, 11, 0.0, 1.0, false, None, limits);
+        let comparisons = take_candidate_comparisons();
+
+        assert_eq!(batch.events.len(), EVENT_COUNT);
+        assert!(batch.next_cursor.is_none());
+        assert!(
+            comparisons <= EVENT_COUNT * MAX_COMPARISONS_PER_EVENT,
+            "candidate selection used {comparisons} comparisons for {EVENT_COUNT} events"
+        );
+    }
+
+    #[test]
+    fn same_time_duplicate_events_resume_by_track_index() {
+        let clip = clip_with_events(vec![
+            event_track("pulse", 0.5, None),
+            event_track("pulse", 0.5, None),
+        ]);
+        let limits = AnimationClipEventSamplingLimits {
+            max_events: 1,
+            max_event_bytes: 1024,
+            max_playback_span_seconds: 1.0,
+        };
+
+        let first = sample_clip_events_budgeted(&clip, 12, 0.0, 1.0, false, None, limits);
+        assert_eq!(first.events.len(), 1);
+        assert_eq!(first.next_cursor.as_ref().unwrap().last_track_index, 0);
+
+        let second =
+            sample_clip_events_budgeted(&clip, 12, 0.0, 1.0, false, first.next_cursor, limits);
+        assert_eq!(second.events.len(), 1);
+        assert_eq!(second.events[0].event, "pulse");
+        assert!(second.next_cursor.is_none());
+    }
+
+    #[test]
+    #[ignore = "managed animation event-candidate release performance gate"]
+    fn event_candidate_heap_release_benchmark_evidence() {
+        const EVENT_COUNT: usize = 2_048;
+        const SAMPLE_PAIRS: usize = 21;
+        const TARGET_P95_PERCENT: u128 = 25;
+
+        let clip = benchmark_clip(EVENT_COUNT);
+        let limits = AnimationClipEventSamplingLimits {
+            max_events: EVENT_COUNT,
+            max_event_bytes: usize::MAX,
+            max_playback_span_seconds: 1.0,
+        };
+        assert_eq!(legacy_sample_all_events(&clip, 13).0.len(), EVENT_COUNT);
+        assert_eq!(
+            sample_clip_events_budgeted(&clip, 13, 0.0, 1.0, false, None, limits)
+                .events
+                .len(),
+            EVENT_COUNT
+        );
+
+        let mut legacy_samples_us = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut heap_samples_us = Vec::with_capacity(SAMPLE_PAIRS);
+        for sample_index in 0..SAMPLE_PAIRS {
+            let mut measure_legacy = || {
+                let started = Instant::now();
+                let sampled = legacy_sample_all_events(black_box(&clip), 13);
+                legacy_samples_us.push(started.elapsed().as_micros());
+                assert_eq!(black_box(sampled).0.len(), EVENT_COUNT);
+            };
+            let mut measure_heap = || {
+                let started = Instant::now();
+                let sampled = sample_clip_events_budgeted(
+                    black_box(&clip),
+                    13,
+                    0.0,
+                    1.0,
+                    false,
+                    None,
+                    limits,
+                );
+                heap_samples_us.push(started.elapsed().as_micros());
+                assert_eq!(black_box(sampled).events.len(), EVENT_COUNT);
+            };
+            if sample_index % 2 == 0 {
+                measure_legacy();
+                measure_heap();
+            } else {
+                measure_heap();
+                measure_legacy();
+            }
+        }
+
+        let legacy_p50_us = nearest_rank_percentile(&legacy_samples_us, 50);
+        let legacy_p95_us = nearest_rank_percentile(&legacy_samples_us, 95);
+        let heap_p50_us = nearest_rank_percentile(&heap_samples_us, 50);
+        let heap_p95_us = nearest_rank_percentile(&heap_samples_us, 95);
+        let legacy_candidate_visits = EVENT_COUNT.saturating_mul(EVENT_COUNT + 1) / 2;
+        let p95_ratio = heap_p95_us as f64 / legacy_p95_us.max(1) as f64;
+
+        println!(
+            "ANIMATION_EVENT_CANDIDATE_HEAP_BENCH_V1 event_count={EVENT_COUNT} sample_pairs={SAMPLE_PAIRS} sample_order=alternating percentile_method=nearest_rank legacy_candidate_visits={legacy_candidate_visits} heap_candidate_pops={EVENT_COUNT} legacy_p50_us={legacy_p50_us} legacy_p95_us={legacy_p95_us} heap_p50_us={heap_p50_us} heap_p95_us={heap_p95_us} p95_ratio={p95_ratio:.6} legacy_us={} heap_us={}",
+            join_samples(&legacy_samples_us),
+            join_samples(&heap_samples_us),
+        );
+        assert!(
+            heap_p95_us.saturating_mul(100) <= legacy_p95_us.saturating_mul(TARGET_P95_PERCENT),
+            "heap P95 {heap_p95_us}us must be at most {TARGET_P95_PERCENT}% of legacy P95 {legacy_p95_us}us"
+        );
+    }
+
+    fn benchmark_clip(event_count: usize) -> AnimationClipAsset {
+        clip_with_events(
+            (0..event_count)
+                .map(|track_index| {
+                    let playback_rank = track_index.wrapping_mul(997) % event_count;
+                    event_track(
+                        &format!("event-{playback_rank:04}"),
+                        (playback_rank + 1) as Real / (event_count + 1) as Real,
+                        Some("benchmark-payload"),
+                    )
+                })
+                .collect(),
+        )
+    }
+
+    fn legacy_sample_all_events(
+        clip: &AnimationClipAsset,
+        entity: u64,
+    ) -> (Vec<AnimationClipEvent>, AnimationClipEventSamplingCursor) {
+        let cursor = AnimationClipEventSamplingCursor::at_range_start(0.0);
+        let mut candidates = clip
+            .event_tracks
+            .iter()
+            .enumerate()
+            .filter_map(|(track_index, track)| {
+                event_candidate(track, track_index, 0.0, false, &cursor, 1.0)
+            })
+            .collect::<Vec<_>>();
+        let mut events = Vec::with_capacity(candidates.len());
+        let mut last_cursor = cursor;
+        while let Some((candidate_index, candidate)) = candidates
+            .iter()
+            .enumerate()
+            .min_by(|(_, left), (_, right)| compare_legacy_candidates(left, right))
+            .map(|(candidate_index, candidate)| (candidate_index, *candidate))
+        {
+            let track = &clip.event_tracks[candidate.track_index];
+            events.push(AnimationClipEvent {
+                entity,
+                target_id: track.target_id.clone(),
+                event: track.event.clone(),
+                payload: track.payload.clone(),
+                clip_time_seconds: track.time_seconds,
+                playback_time_seconds: candidate.playback_time_seconds,
+            });
+            last_cursor = AnimationClipEventSamplingCursor {
+                playback_time_seconds: candidate.playback_time_seconds,
+                last_event: Some(track.event.clone().into_boxed_str()),
+                last_track_index: candidate.track_index,
+            };
+            candidates.remove(candidate_index);
+        }
+        (events, last_cursor)
+    }
+
+    fn compare_legacy_candidates(
+        left: &EventCandidate<'_>,
+        right: &EventCandidate<'_>,
+    ) -> std::cmp::Ordering {
+        left.playback_time_seconds
+            .total_cmp(&right.playback_time_seconds)
+            .then_with(|| left.event.cmp(right.event))
+            .then_with(|| left.track_index.cmp(&right.track_index))
+    }
+
+    fn nearest_rank_percentile(samples: &[u128], percentile: usize) -> u128 {
+        assert!(!samples.is_empty());
+        assert!((1..=100).contains(&percentile));
+        let mut ordered = samples.to_vec();
+        ordered.sort_unstable();
+        let index = (ordered.len() * percentile).div_ceil(100) - 1;
+        ordered[index]
+    }
+
+    fn join_samples(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
     }
 
     fn clip_with_events(event_tracks: Vec<AnimationEventTrackAsset>) -> AnimationClipAsset {

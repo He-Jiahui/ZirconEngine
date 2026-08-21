@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::component::{UiComponentAdapterResult, UiValue};
 
-use super::super::support::showcase_binding;
+pub(super) use super::super::support::showcase_binding;
 use crate::ui::template_runtime::{EditorUiHostRuntime, UiComponentShowcaseDemoEventInput};
 
 pub(super) fn apply_showcase_binding(

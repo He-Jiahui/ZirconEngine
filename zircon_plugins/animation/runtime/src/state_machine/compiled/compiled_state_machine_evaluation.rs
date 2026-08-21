@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use zircon_runtime::asset::AssetReference;
 use zircon_runtime::core::framework::animation::AnimationStateTransitionEvaluation;
 use zircon_runtime::core::math::Real;
@@ -12,6 +14,7 @@ pub struct CompiledStateMachineEvaluation<'a> {
     pub(super) graph_samples: super::CompiledGraphSamples<'a>,
     pub(super) transition: Option<AnimationStateTransitionEvaluation>,
     pub(super) transition_desc: Option<TransitionDesc>,
+    pub(super) consumed_triggers: Option<Arc<[String]>>,
 }
 
 impl CompiledStateMachineEvaluation<'_> {
@@ -37,5 +40,17 @@ impl CompiledStateMachineEvaluation<'_> {
 
     pub fn transition_desc(&self) -> Option<TransitionDesc> {
         self.transition_desc
+    }
+
+    pub fn consumed_triggers(&self) -> impl Iterator<Item = &str> {
+        self.consumed_triggers
+            .as_deref()
+            .into_iter()
+            .flatten()
+            .map(String::as_str)
+    }
+
+    pub(crate) fn shared_consumed_triggers(&self) -> Option<Arc<[String]>> {
+        self.consumed_triggers.clone()
     }
 }

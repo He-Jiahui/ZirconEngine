@@ -1,7 +1,7 @@
-use serde::Deserialize;
-use serde_json::json;
+use serde::{Deserialize, Serialize};
 #[cfg(feature = "abi_v2_only")]
 use std::ffi::c_char;
+use std::io::{self, Write};
 use zircon_plugin_sdk::native::{
     self, NativePluginBridgeMethodCallV3, NativePluginByteSliceV2, NativePluginCallbackStatusV2,
     NativePluginHostFunctionTableV3, NativePluginOutputSinkV4, NativePluginOwnedByteBufferV2,
@@ -16,6 +16,9 @@ const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_ABI_VERSION: u32 =
     zircon_plugin_sdk::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION;
 const IMPORT_REQUEST_MAGIC: &[u8] = b"ZRIMP001\n";
 const IMPORT_RESPONSE_MAGIC: &[u8] = b"ZRIMO001\n";
+const IMPORT_ENVELOPE_LENGTH_BYTES: usize = std::mem::size_of::<u64>();
+const MAX_IMPORT_METADATA_BYTES: usize = 64 * 1024;
+const MAX_IMPORT_SOURCE_BYTES: usize = 256 * 1024;
 
 #[cfg(feature = "abi_v2_only")]
 const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2: u32 = 2;
@@ -286,6 +289,98 @@ struct NativeAssetImportRequestMetadata {
     source_path: String,
 }
 
+#[derive(Serialize)]
+struct NativeAssetImportResponseMetadata<'a> {
+    importer_id: &'a str,
+    entries: [NativeAssetImportResponseEntry<'a>; 1],
+}
+
+#[derive(Serialize)]
+struct NativeAssetImportResponseEntry<'a> {
+    locator: &'a str,
+    imported_asset: NativeAssetImportResponseAsset<'a>,
+    migration_report: NativeAssetImportMigrationReport,
+    diagnostics: [String; 1],
+}
+
+#[derive(Serialize)]
+struct NativeAssetImportResponseAsset<'a> {
+    #[serde(rename = "Data")]
+    data: NativeAssetImportData<'a>,
+}
+
+#[derive(Serialize)]
+struct NativeAssetImportData<'a> {
+    uri: &'a str,
+    format: &'static str,
+    text: &'a str,
+    canonical_json: serde_json::Value,
+}
+
+#[derive(Serialize)]
+struct NativeAssetImportMigrationReport {
+    source_schema_version: u32,
+    target_schema_version: u32,
+    summary: String,
+}
+
+struct BoundedResponseWriter {
+    bytes: Vec<u8>,
+    max_bytes: usize,
+}
+
+impl BoundedResponseWriter {
+    fn new(max_bytes: usize, source_bytes: usize) -> Result<Self, String> {
+        let header_bytes = IMPORT_RESPONSE_MAGIC.len() + IMPORT_ENVELOPE_LENGTH_BYTES;
+        if max_bytes < header_bytes {
+            return Err("native import response budget is smaller than its envelope".to_string());
+        }
+        let estimated_bytes = header_bytes
+            .saturating_add(source_bytes.saturating_mul(2))
+            .saturating_add(512)
+            .min(max_bytes);
+        let mut bytes = Vec::with_capacity(estimated_bytes);
+        bytes.extend_from_slice(IMPORT_RESPONSE_MAGIC);
+        bytes.extend_from_slice(&[0; IMPORT_ENVELOPE_LENGTH_BYTES]);
+        Ok(Self { bytes, max_bytes })
+    }
+
+    fn finish(mut self) -> Result<Vec<u8>, String> {
+        let metadata_start = IMPORT_RESPONSE_MAGIC.len() + IMPORT_ENVELOPE_LENGTH_BYTES;
+        let metadata_len = self
+            .bytes
+            .len()
+            .checked_sub(metadata_start)
+            .ok_or_else(|| "native import response envelope was truncated".to_string())?;
+        let metadata_len = u64::try_from(metadata_len)
+            .map_err(|_| "native import response metadata length exceeds u64".to_string())?;
+        let length_start = IMPORT_RESPONSE_MAGIC.len();
+        self.bytes[length_start..metadata_start].copy_from_slice(&metadata_len.to_le_bytes());
+        Ok(self.bytes)
+    }
+}
+
+impl Write for BoundedResponseWriter {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        let new_len = self
+            .bytes
+            .len()
+            .checked_add(bytes.len())
+            .ok_or_else(|| io::Error::other("native import response length overflow"))?;
+        if new_len > self.max_bytes {
+            return Err(io::Error::other(
+                "native import response exceeds the host output budget",
+            ));
+        }
+        self.bytes.extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
 #[cfg(all(
     not(feature = "descriptor_export_missing"),
     not(feature = "abi_v2_only")
@@ -483,7 +578,8 @@ unsafe fn fixture_import_data_json(
             STATUS_DENIED_COMMAND_DIAGNOSTICS,
         );
     }
-    let Ok(response) = encode_import_response(&metadata, source_bytes) else {
+    let Ok(response) = encode_import_response(&metadata, source_bytes, output.max_output_bytes)
+    else {
         return status(
             ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
             STATUS_ASSET_IMPORT_INVALID_DIAGNOSTICS,
@@ -503,66 +599,67 @@ fn decode_import_request(
     payload: &[u8],
 ) -> Result<(NativeAssetImportRequestMetadata, &[u8]), String> {
     if !payload.starts_with(IMPORT_REQUEST_MAGIC)
-        || payload.len() < IMPORT_REQUEST_MAGIC.len() + std::mem::size_of::<u64>()
+        || payload.len() < IMPORT_REQUEST_MAGIC.len() + IMPORT_ENVELOPE_LENGTH_BYTES
     {
         return Err("missing import request magic".to_string());
     }
     let metadata_len_start = IMPORT_REQUEST_MAGIC.len();
-    let metadata_len_end = metadata_len_start + std::mem::size_of::<u64>();
-    let metadata_len = u64::from_le_bytes(
+    let metadata_len_end = metadata_len_start + IMPORT_ENVELOPE_LENGTH_BYTES;
+    let metadata_len = usize::try_from(u64::from_le_bytes(
         payload[metadata_len_start..metadata_len_end]
             .try_into()
             .map_err(|_| "invalid import metadata length".to_string())?,
-    ) as usize;
-    let metadata_end = metadata_len_end + metadata_len;
+    ))
+    .map_err(|_| "import metadata length exceeds platform limits".to_string())?;
+    if metadata_len > MAX_IMPORT_METADATA_BYTES {
+        return Err("import metadata exceeds the fixture budget".to_string());
+    }
+    let metadata_end = metadata_len_end
+        .checked_add(metadata_len)
+        .ok_or_else(|| "import metadata length overflow".to_string())?;
     if metadata_end > payload.len() {
         return Err("import metadata length exceeds payload".to_string());
     }
     let metadata = serde_json::from_slice(&payload[metadata_len_end..metadata_end])
         .map_err(|error| error.to_string())?;
-    Ok((metadata, &payload[metadata_end..]))
+    let source_bytes = &payload[metadata_end..];
+    if source_bytes.len() > MAX_IMPORT_SOURCE_BYTES {
+        return Err("import source exceeds the fixture budget".to_string());
+    }
+    Ok((metadata, source_bytes))
 }
 
 fn encode_import_response(
     metadata: &NativeAssetImportRequestMetadata,
     source_bytes: &[u8],
+    max_output_bytes: usize,
 ) -> Result<Vec<u8>, String> {
     let text = std::str::from_utf8(source_bytes).map_err(|error| error.to_string())?;
     let canonical_json: serde_json::Value =
         serde_json::from_str(text).map_err(|error| error.to_string())?;
-    let response_metadata = json!({
-        "importer_id": metadata.importer_id,
-        "entries": [
-            {
-                "locator": metadata.source_uri,
-                "imported_asset": {
-                    "Data": {
-                        "uri": metadata.source_uri,
-                        "format": "json",
-                        "text": text,
-                        "canonical_json": canonical_json,
-                    }
+    let response_metadata = NativeAssetImportResponseMetadata {
+        importer_id: &metadata.importer_id,
+        entries: [NativeAssetImportResponseEntry {
+            locator: &metadata.source_uri,
+            imported_asset: NativeAssetImportResponseAsset {
+                data: NativeAssetImportData {
+                    uri: &metadata.source_uri,
+                    format: "json",
+                    text,
+                    canonical_json,
                 },
-                "migration_report": {
-                    "source_schema_version": 1,
-                    "target_schema_version": 2,
-                    "summary": format!("native fixture migrated {}", metadata.source_path),
-                },
-                "diagnostics": [
-                    format!("native fixture imported {}", metadata.source_path),
-                ],
-            }
-        ],
-    });
-    let metadata_bytes =
-        serde_json::to_vec(&response_metadata).map_err(|error| error.to_string())?;
-    let mut response = Vec::with_capacity(
-        IMPORT_RESPONSE_MAGIC.len() + std::mem::size_of::<u64>() + metadata_bytes.len(),
-    );
-    response.extend_from_slice(IMPORT_RESPONSE_MAGIC);
-    response.extend_from_slice(&(metadata_bytes.len() as u64).to_le_bytes());
-    response.extend_from_slice(&metadata_bytes);
-    Ok(response)
+            },
+            migration_report: NativeAssetImportMigrationReport {
+                source_schema_version: 1,
+                target_schema_version: 2,
+                summary: format!("native fixture migrated {}", metadata.source_path),
+            },
+            diagnostics: [format!("native fixture imported {}", metadata.source_path)],
+        }],
+    };
+    let mut response = BoundedResponseWriter::new(max_output_bytes, source_bytes.len())?;
+    serde_json::to_writer(&mut response, &response_metadata).map_err(|error| error.to_string())?;
+    response.finish()
 }
 
 unsafe extern "C" fn fixture_save_state(
@@ -676,64 +773,4 @@ fn emit_host_v3_editor_signals(host_functions: *const NativePluginHostFunctionTa
 }
 
 #[cfg(test)]
-mod tests {
-    use std::ffi::CStr;
-
-    use super::{
-        NATIVE_DYNAMIC_FIXTURE_DECLARATION, NATIVE_EDITOR_ENTRY,
-        NATIVE_EDITOR_REGISTRATION_MANIFEST, NATIVE_PLUGIN_ID, NATIVE_REQUESTED_CAPABILITIES,
-        NATIVE_RUNTIME_ENTRY, NATIVE_RUNTIME_REGISTRATION_MANIFEST, PLUGIN_MANIFEST,
-    };
-
-    #[test]
-    fn packaged_native_manifest_uses_the_checked_in_generated_snapshot() {
-        let rendered_manifest = PLUGIN_MANIFEST
-            .strip_suffix('\0')
-            .expect("native manifest must retain its ABI C-string terminator");
-
-        assert_eq!(rendered_manifest, include_str!("../../plugin.toml"));
-        assert!(rendered_manifest.starts_with("# @generated from Rust PluginDeclaration"));
-        assert!(rendered_manifest.contains(&format!(
-            "id = \"{}\"",
-            NATIVE_DYNAMIC_FIXTURE_DECLARATION.id()
-        )));
-    }
-
-    #[test]
-    fn declaration_projects_combined_runtime_and_editor_native_metadata() {
-        assert_eq!(NATIVE_PLUGIN_ID, b"native_dynamic_fixture\0");
-        assert_eq!(
-            NATIVE_RUNTIME_ENTRY.cstr(),
-            b"zircon_native_dynamic_fixture_runtime_entry_v3\0"
-        );
-        assert_eq!(
-            NATIVE_EDITOR_ENTRY.cstr(),
-            b"zircon_native_dynamic_fixture_editor_entry_v3\0"
-        );
-        assert_eq!(
-            NATIVE_REQUESTED_CAPABILITIES,
-            concat!(
-                "runtime.plugin.native_dynamic_fixture\n",
-                "runtime.asset.importer.native_dynamic_fixture.data_json\n",
-                "editor.extension.native_dynamic_fixture\0",
-            )
-            .as_bytes()
-        );
-
-        let runtime_manifest = CStr::from_bytes_with_nul(NATIVE_RUNTIME_REGISTRATION_MANIFEST)
-            .expect("runtime registration manifest is a C string")
-            .to_str()
-            .expect("runtime registration manifest is UTF-8");
-        assert!(runtime_manifest.contains("[[systems]]"));
-        assert!(runtime_manifest.contains("[[events]]"));
-        assert!(runtime_manifest.contains("[[extensions]]"));
-        assert!(!runtime_manifest.contains("editor.extension.native_dynamic_fixture"));
-
-        let editor_manifest = CStr::from_bytes_with_nul(NATIVE_EDITOR_REGISTRATION_MANIFEST)
-            .expect("editor registration manifest is a C string")
-            .to_str()
-            .expect("editor registration manifest is UTF-8");
-        assert!(editor_manifest.contains("editor.extension.native_dynamic_fixture"));
-        assert!(!editor_manifest.contains("runtime.plugin.native_dynamic_fixture"));
-    }
-}
+mod tests;

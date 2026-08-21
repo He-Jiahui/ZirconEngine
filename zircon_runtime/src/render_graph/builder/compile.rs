@@ -15,6 +15,7 @@ use super::{RenderGraphBuilder, ResourceAccessKind};
 
 impl RenderGraphBuilder {
     pub fn compile(self) -> Result<CompiledRenderGraph, RenderGraphError> {
+        self.validate_unique_pass_names()?;
         self.validate_unique_resource_names()?;
         self.validate_compute_dispatch_resources()?;
         self.validate_compute_pass_metadata()?;
@@ -90,6 +91,18 @@ impl RenderGraphBuilder {
             pass_resource_versions,
             compile_work,
         ))
+    }
+
+    fn validate_unique_pass_names(&self) -> Result<(), RenderGraphError> {
+        let mut seen = HashSet::new();
+        for pass in &self.passes {
+            if !seen.insert(pass.name.as_str()) {
+                return Err(RenderGraphError::DuplicatePassName {
+                    pass: pass.name.clone(),
+                });
+            }
+        }
+        Ok(())
     }
 
     fn validate_unique_resource_names(&self) -> Result<(), RenderGraphError> {

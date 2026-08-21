@@ -150,18 +150,15 @@ fn showcase_demo_state_exercises_full_component_action_bindings() {
     );
 
     let log = runtime.showcase_demo_state().event_log();
-    assert!(
-        log.iter()
-            .any(|entry| entry.action == "LargeDragDelta.NumberField")
-    );
-    assert!(
-        log.iter()
-            .any(|entry| entry.action == "ClearReference.AssetField")
-    );
-    assert!(
-        log.iter()
-            .any(|entry| entry.action == "SetMapEntry.MapField")
-    );
+    assert!(log
+        .iter()
+        .any(|entry| entry.action == "LargeDragDelta.NumberField"));
+    assert!(log
+        .iter()
+        .any(|entry| entry.action == "ClearReference.AssetField"));
+    assert!(log
+        .iter()
+        .any(|entry| entry.action == "SetMapEntry.MapField"));
 
     let mut replacement_entries = BTreeMap::new();
     replacement_entries.insert("replacement".to_string(), UiValue::Bool(true));

@@ -1,5 +1,5 @@
-use std::ffi::{c_char, c_void, CStr, CString};
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::ffi::{CStr, CString, c_char, c_void};
+use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use serde::{Deserialize, Serialize};
 pub use zircon_runtime_interface::{ZrByteBufferRef, ZrByteSlice, ZrStatus};
@@ -340,10 +340,34 @@ pub struct NativePluginRegistrationExtensionV3 {
 
 pub type NativePluginHostReadyFnV3 = fn(*const NativePluginHostFunctionTableV3);
 
+/// Stores an audited immutable ABI carrier in generated plugin statics.
+///
+/// Arbitrary values are intentionally not `Sync` through this wrapper:
+///
+/// ```compile_fail
+/// use std::cell::Cell;
+/// use zircon_plugin_sdk::native::NativePluginStatic;
+///
+/// static INVALID: NativePluginStatic<Cell<u32>> = NativePluginStatic::new(Cell::new(0));
+/// ```
 #[repr(transparent)]
 pub struct NativePluginStatic<T>(T);
 
-unsafe impl<T> Sync for NativePluginStatic<T> {}
+// SAFETY: Implementations are restricted to immutable ABI tables whose raw pointers are data, not
+// shared Rust ownership. The private trait prevents downstream crates from expanding this set.
+unsafe trait NativePluginStaticValue {}
+
+// SAFETY: These carrier values are generated once, never mutated, and only exposed by shared
+// reference or raw const pointer. Callback targets and pointees own their separate synchronization.
+unsafe impl NativePluginStaticValue for NativePluginAbiV3 {}
+unsafe impl NativePluginStaticValue for NativePluginBehaviorV4 {}
+unsafe impl NativePluginStaticValue for NativePluginEntryReportV3 {}
+unsafe impl NativePluginStaticValue for NativePluginBridgeMethodTableV3 {}
+unsafe impl NativePluginStaticValue for NativePluginBridgeMethodV3 {}
+unsafe impl<T: NativePluginStaticValue, const N: usize> NativePluginStaticValue for [T; N] {}
+
+// SAFETY: NativePluginStaticValue is a closed set of audited immutable ABI carriers.
+unsafe impl<T: NativePluginStaticValue> Sync for NativePluginStatic<T> {}
 
 impl<T> NativePluginStatic<T> {
     pub const fn new(value: T) -> Self {
@@ -593,8 +617,8 @@ fn owner_token(data: *mut u8, len: usize, capacity: usize) -> u64 {
 macro_rules! export_native_plugin_descriptor_v3 {
     ($descriptor:expr) => {
         #[no_mangle]
-        pub extern "C" fn zircon_native_plugin_descriptor_v3(
-        ) -> *const $crate::native::NativePluginAbiV3 {
+        pub extern "C" fn zircon_native_plugin_descriptor_v3()
+        -> *const $crate::native::NativePluginAbiV3 {
             ($descriptor).as_ptr()
         }
     };

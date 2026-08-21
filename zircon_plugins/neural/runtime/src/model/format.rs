@@ -1,17 +1,24 @@
 use std::fmt;
+use std::mem::size_of;
 
 use crate::ops::{NnOp, NnOpAttrs, NnOpAttrsError, NnOpCode};
 use crate::{
-    NnDataType, NnModelAsset, NnModelValidationError, NnTensorDesc, NnTensorKind,
-    NN_WEIGHT_ALIGNMENT,
+    NN_WEIGHT_ALIGNMENT, NnDataType, NnModelAsset, NnModelValidationError, NnTensorDesc,
+    NnTensorKind,
 };
 
 const ZNN_MAGIC: [u8; 4] = *b"ZRNN";
 const ZNN_VERSION: u32 = 1;
 const ZNN_HEADER_BYTES: usize = 40;
 const ZNN_TENSOR_RECORD_BYTES: usize = 32;
+const ZNN_MIN_OP_RECORD_BYTES: usize = 8;
 const ZNN_ALLOWED_FLAGS: u32 = 1;
 const ZNN_F16_WEIGHTS_FLAG: u32 = 1;
+const ZNN_MAX_ARTIFACT_BYTES: usize = 512 * 1024 * 1024;
+const ZNN_MAX_WEIGHT_BLOB_BYTES: usize = 512 * 1024 * 1024;
+const ZNN_MAX_OP_TABLE_BYTES: usize = 64 * 1024 * 1024;
+const ZNN_MAX_TENSOR_COUNT: usize = 1_048_576;
+const ZNN_MAX_OP_COUNT: usize = 1_048_576;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NnModelFormatError {
@@ -29,6 +36,20 @@ pub enum NnModelFormatError {
     InvalidWeightBlobOffset,
     InvalidWeightPrecisionFlag,
     CountTooLarge,
+    ResourceLimitExceeded {
+        resource: &'static str,
+        actual: u64,
+        limit: u64,
+    },
+    DeclaredCountExceedsTableCapacity {
+        resource: &'static str,
+        declared: usize,
+        maximum: usize,
+    },
+    AllocationFailed {
+        resource: &'static str,
+        requested_bytes: usize,
+    },
 }
 
 impl fmt::Display for NnModelFormatError {
@@ -95,6 +116,7 @@ impl NnModelAsset {
     }
 
     pub fn from_znn_bytes(bytes: &[u8]) -> Result<Self, NnModelFormatError> {
+        enforce_resource_limit("artifact_bytes", bytes.len(), ZNN_MAX_ARTIFACT_BYTES)?;
         let header = bytes
             .get(..ZNN_HEADER_BYTES)
             .ok_or(NnModelFormatError::UnexpectedEnd)?;
@@ -110,11 +132,32 @@ impl NnModelAsset {
             return Err(NnModelFormatError::UnsupportedFlags(flags));
         }
 
-        let tensor_count = read_u32(header, 12)? as usize;
-        let op_count = read_u32(header, 16)? as usize;
-        let op_table_size = read_u32(header, 20)? as usize;
-        let weight_blob_offset = read_u64(header, 24)? as usize;
-        let weight_blob_size = read_u64(header, 32)? as usize;
+        let tensor_count = usize::try_from(read_u32(header, 12)?)
+            .map_err(|_| NnModelFormatError::CountTooLarge)?;
+        let op_count = usize::try_from(read_u32(header, 16)?)
+            .map_err(|_| NnModelFormatError::CountTooLarge)?;
+        let op_table_size = usize::try_from(read_u32(header, 20)?)
+            .map_err(|_| NnModelFormatError::CountTooLarge)?;
+        let weight_blob_offset = usize::try_from(read_u64(header, 24)?)
+            .map_err(|_| NnModelFormatError::CountTooLarge)?;
+        let weight_blob_size = usize::try_from(read_u64(header, 32)?)
+            .map_err(|_| NnModelFormatError::CountTooLarge)?;
+        enforce_resource_limit("tensor_count", tensor_count, ZNN_MAX_TENSOR_COUNT)?;
+        enforce_resource_limit("op_count", op_count, ZNN_MAX_OP_COUNT)?;
+        enforce_resource_limit("op_table_bytes", op_table_size, ZNN_MAX_OP_TABLE_BYTES)?;
+        enforce_resource_limit(
+            "weight_blob_bytes",
+            weight_blob_size,
+            ZNN_MAX_WEIGHT_BLOB_BYTES,
+        )?;
+        let maximum_ops_in_table = op_table_size / ZNN_MIN_OP_RECORD_BYTES;
+        if op_count > maximum_ops_in_table {
+            return Err(NnModelFormatError::DeclaredCountExceedsTableCapacity {
+                resource: "op_count",
+                declared: op_count,
+                maximum: maximum_ops_in_table,
+            });
+        }
         if weight_blob_offset % NN_WEIGHT_ALIGNMENT as usize != 0 {
             return Err(NnModelFormatError::InvalidWeightBlobOffset);
         }
@@ -139,14 +182,17 @@ impl NnModelAsset {
             return Err(NnModelFormatError::UnexpectedEnd);
         }
 
-        let mut tensors = Vec::with_capacity(tensor_count);
+        let mut tensors = Vec::new();
+        try_reserve_exact(&mut tensors, tensor_count, "tensor_records")?;
         for record in
             bytes[ZNN_HEADER_BYTES..tensor_table_end].chunks_exact(ZNN_TENSOR_RECORD_BYTES)
         {
             tensors.push(decode_tensor(record)?);
         }
         let ops = decode_ops(&bytes[tensor_table_end..op_table_end], op_count)?;
-        let weights = bytes[weight_blob_offset..weight_blob_end].to_vec();
+        let mut weights = Vec::new();
+        try_reserve_exact(&mut weights, weight_blob_size, "weight_blob")?;
+        weights.extend_from_slice(&bytes[weight_blob_offset..weight_blob_end]);
         let model = Self {
             tensors,
             ops,
@@ -219,7 +265,8 @@ fn encode_ops(ops: &[NnOp]) -> Result<Vec<u8>, NnModelFormatError> {
 
 fn decode_ops(bytes: &[u8], expected_count: usize) -> Result<Vec<NnOp>, NnModelFormatError> {
     let mut cursor = 0;
-    let mut ops = Vec::with_capacity(expected_count);
+    let mut ops = Vec::new();
+    try_reserve_exact(&mut ops, expected_count, "ops")?;
     while cursor < bytes.len() && ops.len() < expected_count {
         let header_end = cursor
             .checked_add(8)
@@ -248,10 +295,7 @@ fn decode_ops(bytes: &[u8], expected_count: usize) -> Result<Vec<NnOp>, NnModelF
         let ids = bytes
             .get(cursor..ids_end)
             .ok_or(NnModelFormatError::UnexpectedEnd)?;
-        let tensor_ids = ids
-            .chunks_exact(2)
-            .map(|value| read_u16(value, 0))
-            .collect::<Result<Vec<_>, _>>()?;
+        let (inputs, outputs) = decode_tensor_ids(ids, input_count, output_count)?;
         cursor = ids_end;
         let attrs_end = cursor
             .checked_add(attr_size)
@@ -270,8 +314,8 @@ fn decode_ops(bytes: &[u8], expected_count: usize) -> Result<Vec<NnOp>, NnModelF
         cursor = aligned_cursor;
         ops.push(NnOp::new(
             code,
-            tensor_ids[..input_count].to_vec(),
-            tensor_ids[input_count..].to_vec(),
+            inputs,
+            outputs,
             NnOpAttrs::decode(code, attrs).map_err(NnModelFormatError::InvalidOpAttrs)?,
         ));
     }
@@ -279,6 +323,63 @@ fn decode_ops(bytes: &[u8], expected_count: usize) -> Result<Vec<NnOp>, NnModelF
         return Err(NnModelFormatError::UnexpectedEnd);
     }
     Ok(ops)
+}
+
+fn decode_tensor_ids(
+    bytes: &[u8],
+    input_count: usize,
+    output_count: usize,
+) -> Result<(Vec<u16>, Vec<u16>), NnModelFormatError> {
+    let input_bytes = input_count
+        .checked_mul(size_of::<u16>())
+        .ok_or(NnModelFormatError::ArithmeticOverflow)?;
+    let (encoded_inputs, encoded_outputs) = bytes
+        .split_at_checked(input_bytes)
+        .ok_or(NnModelFormatError::UnexpectedEnd)?;
+
+    let mut inputs = Vec::new();
+    try_reserve_exact(&mut inputs, input_count, "op_inputs")?;
+    for encoded in encoded_inputs.chunks_exact(size_of::<u16>()) {
+        inputs.push(read_u16(encoded, 0)?);
+    }
+
+    let mut outputs = Vec::new();
+    try_reserve_exact(&mut outputs, output_count, "op_outputs")?;
+    for encoded in encoded_outputs.chunks_exact(size_of::<u16>()) {
+        outputs.push(read_u16(encoded, 0)?);
+    }
+    if inputs.len() != input_count || outputs.len() != output_count {
+        return Err(NnModelFormatError::UnexpectedEnd);
+    }
+    Ok((inputs, outputs))
+}
+
+fn enforce_resource_limit(
+    resource: &'static str,
+    actual: usize,
+    limit: usize,
+) -> Result<(), NnModelFormatError> {
+    if actual > limit {
+        return Err(NnModelFormatError::ResourceLimitExceeded {
+            resource,
+            actual: actual as u64,
+            limit: limit as u64,
+        });
+    }
+    Ok(())
+}
+
+fn try_reserve_exact<T>(
+    values: &mut Vec<T>,
+    additional: usize,
+    resource: &'static str,
+) -> Result<(), NnModelFormatError> {
+    values
+        .try_reserve_exact(additional)
+        .map_err(|_| NnModelFormatError::AllocationFailed {
+            resource,
+            requested_bytes: additional.saturating_mul(size_of::<T>()),
+        })
 }
 
 fn pad_to_four_bytes(bytes: &mut Vec<u8>) {
@@ -324,4 +425,108 @@ fn read_u64(bytes: &[u8], offset: usize) -> Result<u64, NnModelFormatError> {
         .get(offset..offset + 8)
         .ok_or(NnModelFormatError::UnexpectedEnd)?;
     Ok(u64::from_le_bytes(value.try_into().unwrap()))
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use std::hint::black_box;
+    use std::mem::size_of;
+    use std::time::Instant;
+
+    use super::{decode_tensor_ids, read_u16};
+
+    const SAMPLE_PAIRS: usize = 21;
+    const ITERATIONS_PER_SAMPLE: usize = 2_048;
+    const INPUT_COUNT: usize = 192;
+    const OUTPUT_COUNT: usize = 63;
+
+    #[test]
+    #[ignore = "release performance evidence"]
+    fn znn_tensor_id_decode_release_gate() {
+        let encoded = encoded_tensor_ids(INPUT_COUNT + OUTPUT_COUNT);
+        for _ in 0..128 {
+            black_box(decode_tensor_ids(&encoded, INPUT_COUNT, OUTPUT_COUNT).unwrap());
+            black_box(decode_tensor_ids_legacy(&encoded, INPUT_COUNT));
+        }
+
+        let mut legacy_samples_ns = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples_ns = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair_index in 0..SAMPLE_PAIRS {
+            if pair_index % 2 == 0 {
+                legacy_samples_ns.push(measure_legacy(&encoded));
+                optimized_samples_ns.push(measure_optimized(&encoded));
+            } else {
+                optimized_samples_ns.push(measure_optimized(&encoded));
+                legacy_samples_ns.push(measure_legacy(&encoded));
+            }
+        }
+
+        let legacy_p95_ns = nearest_rank_percentile(&legacy_samples_ns, 95);
+        let optimized_p95_ns = nearest_rank_percentile(&optimized_samples_ns, 95);
+        assert!(
+            u128::from(optimized_p95_ns) * 100 <= u128::from(legacy_p95_ns) * 110,
+            "optimized P95 {optimized_p95_ns}ns exceeded the 10% regression ceiling over legacy P95 {legacy_p95_ns}ns"
+        );
+
+        println!(
+            "PERF-MVP-PLUGINS02-ZNN-BOUNDED-LOADER sample_pairs={SAMPLE_PAIRS} iterations_per_sample={ITERATIONS_PER_SAMPLE} tensor_ids_per_op={} legacy_allocations_per_op=3 optimized_allocations_per_op=2 allocation_reduction_pct=33 legacy_id_writes_per_op={} optimized_id_writes_per_op={} id_write_reduction_pct=50 legacy_samples_ns={} optimized_samples_ns={} legacy_p95_ns={legacy_p95_ns} optimized_p95_ns={optimized_p95_ns} target_ratio_pct=110",
+            INPUT_COUNT + OUTPUT_COUNT,
+            (INPUT_COUNT + OUTPUT_COUNT) * 2,
+            INPUT_COUNT + OUTPUT_COUNT,
+            join_samples(&legacy_samples_ns),
+            join_samples(&optimized_samples_ns),
+        );
+    }
+
+    fn measure_legacy(encoded: &[u8]) -> u64 {
+        let started = Instant::now();
+        for _ in 0..ITERATIONS_PER_SAMPLE {
+            black_box(decode_tensor_ids_legacy(encoded, INPUT_COUNT));
+        }
+        u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX)
+    }
+
+    fn measure_optimized(encoded: &[u8]) -> u64 {
+        let started = Instant::now();
+        for _ in 0..ITERATIONS_PER_SAMPLE {
+            black_box(decode_tensor_ids(encoded, INPUT_COUNT, OUTPUT_COUNT).unwrap());
+        }
+        u64::try_from(started.elapsed().as_nanos()).unwrap_or(u64::MAX)
+    }
+
+    fn decode_tensor_ids_legacy(encoded: &[u8], input_count: usize) -> (Vec<u16>, Vec<u16>) {
+        let tensor_ids = encoded
+            .chunks_exact(size_of::<u16>())
+            .map(|value| read_u16(value, 0).unwrap())
+            .collect::<Vec<_>>();
+        (
+            tensor_ids[..input_count].to_vec(),
+            tensor_ids[input_count..].to_vec(),
+        )
+    }
+
+    fn encoded_tensor_ids(count: usize) -> Vec<u8> {
+        (0..count)
+            .flat_map(|index| {
+                u16::try_from(index)
+                    .expect("benchmark tensor id should fit u16")
+                    .to_le_bytes()
+            })
+            .collect()
+    }
+
+    fn nearest_rank_percentile(samples: &[u64], percentile: usize) -> u64 {
+        let mut ordered = samples.to_vec();
+        ordered.sort_unstable();
+        let rank = ordered.len().saturating_mul(percentile).div_ceil(100);
+        ordered[rank.saturating_sub(1)]
+    }
+
+    fn join_samples(samples: &[u64]) -> String {
+        samples
+            .iter()
+            .map(u64::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
+    }
 }

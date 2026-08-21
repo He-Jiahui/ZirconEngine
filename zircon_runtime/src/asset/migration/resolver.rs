@@ -38,33 +38,43 @@ impl<'a> MigrationResolver<'a> {
                 ),
             ));
         }
-        let by_guid = self.index.entry_by_uuid(retired_reference.guid());
-        let by_path = self.index.entry_by_path(retired_reference.locator());
-        let entry = match (by_guid, by_path) {
-            (None, None) => {
-                return Err(failure(
+        // A matching GUID establishes the source identity and can repair a moved path. Legacy
+        // compound references may carry the parent GUID plus a subasset label, so an unlabeled
+        // parent entry is also a valid source hint. Other label mismatches must stay on the
+        // retired locator so the shared resolver cannot fall back to the wrong subasset.
+        let locator_for_hint = self
+            .index
+            .entry_by_uuid(retired_reference.guid())
+            .filter(|entry| {
+                entry.path().label() == retired_reference.locator().label()
+                    || (entry.path().label().is_none()
+                        && retired_reference.locator().label().is_some())
+            })
+            .map(|entry| entry.path())
+            .unwrap_or_else(|| retired_reference.locator());
+        let path_hint = self
+            .sources
+            .project_hint_for_locator(locator_for_hint)
+            .map_err(|error| match error {
+                ReferenceResolutionError::MissingPath { .. } => failure(
                     AssetMigrationIssueKind::DanglingReference,
                     format!(
                         "asset guid {} and path {} are both unregistered",
                         retired_reference.guid(),
                         retired_reference.locator()
                     ),
-                ));
-            }
-            (None, Some(by_path)) => by_path,
-            (Some(by_guid), None) => by_guid,
-            (Some(by_guid), Some(_)) => by_guid,
-        };
-        let path_hint = self
-            .sources
-            .project_hint_for_locator(entry.path())
-            .map_err(resolution_failure)?;
-        AssetRef::try_new(
-            entry.uuid(),
+                ),
+                error => resolution_failure(error),
+            })?;
+        let reference = AssetRef::try_new(
+            retired_reference.guid(),
             path_hint,
-            entry.path().label().map(str::to_string),
+            retired_reference.locator().label().map(str::to_string),
         )
-        .map_err(|error| failure(AssetMigrationIssueKind::InvalidDocument, error.to_string()))
+        .map_err(|error| failure(AssetMigrationIssueKind::InvalidDocument, error.to_string()))?;
+        let resolved = resolve_project_reference_from_lookup(self.index, self.sources, &reference)
+            .map_err(resolution_failure)?;
+        Ok(resolved.repair.map_or(reference, |repair| repair.resolved))
     }
 
     pub(super) fn resolve_current(
@@ -104,6 +114,10 @@ impl<'a> MigrationResolver<'a> {
         }
         Ok(AssetReference::from_locator(locator.clone()))
     }
+
+    pub(super) fn resolver_index_lookups(&self) -> usize {
+        self.sources.lookup_count()
+    }
 }
 
 fn failure(kind: AssetMigrationIssueKind, message: String) -> ResolutionFailure {
@@ -113,6 +127,7 @@ fn failure(kind: AssetMigrationIssueKind, message: String) -> ResolutionFailure 
 fn resolution_failure(error: ReferenceResolutionError) -> ResolutionFailure {
     let kind = match &error {
         ReferenceResolutionError::Dangling { .. }
+        | ReferenceResolutionError::DanglingSubasset { .. }
         | ReferenceResolutionError::MissingGuid { .. } => {
             AssetMigrationIssueKind::DanglingReference
         }
@@ -129,4 +144,206 @@ fn resolution_failure(error: ReferenceResolutionError) -> ResolutionFailure {
         _ => AssetMigrationIssueKind::InvalidDocument,
     };
     failure(kind, error.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use serde_json::json;
+    use zircon_runtime_interface::project::{
+        migrate_retired_persisted_asset_reference_with, RelPath, RetiredAssetRefMigrationError,
+    };
+
+    use super::*;
+    use crate::asset::migration::{MigrationResolverIndex, MigrationSourceProjection};
+    use crate::asset::registry::{AssetRegistryEntry, AssetRegistryIndex};
+    use crate::asset::{AssetKind, AssetUri, AssetUuid};
+
+    #[test]
+    fn retired_migration_never_downgrades_missing_labeled_subasset_to_parent() {
+        let parent: AssetUuid = "c1111111-2222-4333-8444-555555555555".parse().unwrap();
+        let root = PathBuf::from("E:/migration-resolver-test");
+        let registry = AssetRegistryIndex::from_entries([AssetRegistryEntry::new(
+            parent,
+            AssetUri::parse("res://models/hero.glb").unwrap(),
+            AssetKind::Model,
+            "hero-digest",
+        )])
+        .unwrap();
+        let sources = MigrationResolverIndex::build(
+            [MigrationSourceProjection::new(
+                RelPath::parse("assets").unwrap(),
+                root.join("assets"),
+                RelPath::parse("models/hero.glb").unwrap(),
+                root.join("assets/models/hero.glb"),
+            )],
+            [],
+        )
+        .unwrap();
+        let resolver = MigrationResolver::new(&registry, &sources);
+
+        let error = migrate_retired_persisted_asset_reference_with(
+            json!({
+                "uuid": parent.to_string(),
+                "url": "res://models/hero.glb#MissingMesh",
+            }),
+            |reference| resolver.resolve(reference),
+        )
+        .unwrap_err();
+
+        assert!(matches!(
+            error,
+            RetiredAssetRefMigrationError::Resolve(failure)
+                if failure.kind == AssetMigrationIssueKind::DanglingReference
+                    && failure.message.contains("missing subasset MissingMesh")
+        ));
+    }
+
+    #[test]
+    fn retired_migration_uses_a_matching_guid_to_repair_a_moved_source() {
+        let guid: AssetUuid = "c3111111-2222-4333-8444-555555555555".parse().unwrap();
+        let root = PathBuf::from("E:/migration-resolver-test");
+        let registry = AssetRegistryIndex::from_entries([AssetRegistryEntry::new(
+            guid,
+            AssetUri::parse("res://models/hero.glb").unwrap(),
+            AssetKind::Model,
+            "hero-digest",
+        )])
+        .unwrap();
+        let sources = MigrationResolverIndex::build(
+            [MigrationSourceProjection::new(
+                RelPath::parse("assets").unwrap(),
+                root.join("assets"),
+                RelPath::parse("models/hero.glb").unwrap(),
+                root.join("assets/models/hero.glb"),
+            )],
+            [],
+        )
+        .unwrap();
+        let resolver = MigrationResolver::new(&registry, &sources);
+
+        let migrated = migrate_retired_persisted_asset_reference_with(
+            json!({
+                "uuid": guid.to_string(),
+                "url": "res://legacy/hero.glb",
+            }),
+            |reference| resolver.resolve(reference),
+        )
+        .unwrap();
+
+        assert_eq!(
+            migrated,
+            json!({
+                "kind": "project",
+                "guid": guid.to_string(),
+                "path_hint": "assets/models/hero.glb",
+                "sub": null,
+            })
+        );
+    }
+
+    #[test]
+    fn retired_migration_repairs_parent_guid_to_the_exact_labeled_subasset() {
+        let parent: AssetUuid = "c4111111-2222-4333-8444-555555555555".parse().unwrap();
+        let mesh: AssetUuid = "c5111111-2222-4333-8444-555555555555".parse().unwrap();
+        let root = PathBuf::from("E:/migration-resolver-test");
+        let registry = AssetRegistryIndex::from_entries([
+            AssetRegistryEntry::new(
+                parent,
+                AssetUri::parse("res://models/hero.glb").unwrap(),
+                AssetKind::Model,
+                "hero-digest",
+            ),
+            AssetRegistryEntry::new(
+                mesh,
+                AssetUri::parse("res://models/hero.glb#Mesh0").unwrap(),
+                AssetKind::Mesh,
+                "mesh-digest",
+            ),
+        ])
+        .unwrap();
+        let sources = MigrationResolverIndex::build(
+            [MigrationSourceProjection::new(
+                RelPath::parse("assets").unwrap(),
+                root.join("assets"),
+                RelPath::parse("models/hero.glb").unwrap(),
+                root.join("assets/models/hero.glb"),
+            )],
+            [],
+        )
+        .unwrap();
+        let resolver = MigrationResolver::new(&registry, &sources);
+
+        let migrated = migrate_retired_persisted_asset_reference_with(
+            json!({
+                "uuid": parent.to_string(),
+                "url": "res://models/hero.glb#Mesh0",
+            }),
+            |reference| resolver.resolve(reference),
+        )
+        .unwrap();
+
+        assert_eq!(
+            migrated,
+            json!({
+                "kind": "project",
+                "guid": mesh.to_string(),
+                "path_hint": "assets/models/hero.glb",
+                "sub": "Mesh0",
+            })
+        );
+    }
+
+    #[test]
+    fn retired_migration_repairs_moved_compound_source_from_parent_guid_and_label() {
+        let parent: AssetUuid = "c6111111-2222-4333-8444-555555555555".parse().unwrap();
+        let mesh: AssetUuid = "c7111111-2222-4333-8444-555555555555".parse().unwrap();
+        let root = PathBuf::from("E:/migration-resolver-test");
+        let registry = AssetRegistryIndex::from_entries([
+            AssetRegistryEntry::new(
+                parent,
+                AssetUri::parse("res://models/hero.glb").unwrap(),
+                AssetKind::Model,
+                "hero-digest",
+            ),
+            AssetRegistryEntry::new(
+                mesh,
+                AssetUri::parse("res://models/hero.glb#Mesh0").unwrap(),
+                AssetKind::Mesh,
+                "mesh-digest",
+            ),
+        ])
+        .unwrap();
+        let sources = MigrationResolverIndex::build(
+            [MigrationSourceProjection::new(
+                RelPath::parse("assets").unwrap(),
+                root.join("assets"),
+                RelPath::parse("models/hero.glb").unwrap(),
+                root.join("assets/models/hero.glb"),
+            )],
+            [],
+        )
+        .unwrap();
+        let resolver = MigrationResolver::new(&registry, &sources);
+
+        let migrated = migrate_retired_persisted_asset_reference_with(
+            json!({
+                "uuid": parent.to_string(),
+                "url": "res://legacy/hero.glb#Mesh0",
+            }),
+            |reference| resolver.resolve(reference),
+        )
+        .unwrap();
+
+        assert_eq!(
+            migrated,
+            json!({
+                "kind": "project",
+                "guid": mesh.to_string(),
+                "path_hint": "assets/models/hero.glb",
+                "sub": "Mesh0",
+            })
+        );
+    }
 }

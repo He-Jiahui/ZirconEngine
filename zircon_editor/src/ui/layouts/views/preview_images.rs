@@ -354,11 +354,9 @@ mod tests {
         );
 
         assert!(!candidates.is_empty());
-        assert!(
-            candidates
-                .iter()
-                .all(|candidate| candidate.starts_with(root))
-        );
+        assert!(candidates
+            .iter()
+            .all(|candidate| candidate.starts_with(root)));
     }
 
     #[test]

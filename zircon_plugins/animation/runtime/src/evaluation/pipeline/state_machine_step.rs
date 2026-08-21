@@ -1,9 +1,11 @@
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 use zircon_runtime::asset::ProjectAssetManager;
 use zircon_runtime::core::framework::animation::{AnimationParameterMap, AnimationPoseOutput};
 use zircon_runtime::scene::{AnimationStateTransitionRuntime, EntityId};
 
+use super::AnimationEvaluationPipeline;
 use super::machine_instance_key::MachineInstanceKey;
 use super::nested_machine_resolve::resolve_machine_instance;
 use super::nested_machine_sample::{
@@ -14,8 +16,13 @@ use super::requests::{PendingClipEventSample, PendingStateMachinePoseSample};
 use super::state_machine_transition::{
     advance_state_machine_transition, begin_state_machine_transition, select_interruption_candidate,
 };
-use super::AnimationEvaluationPipeline;
 use crate::CompiledAnimationStateMachine;
+
+pub(super) struct ActiveStateUpdate {
+    pub(super) entity: EntityId,
+    pub(super) active_state: Option<String>,
+    pub(super) consumed_triggers: Option<Arc<[String]>>,
+}
 
 pub(super) fn resolve_state_machine_pose_requests(
     pipeline: &mut AnimationEvaluationPipeline,
@@ -24,7 +31,7 @@ pub(super) fn resolve_state_machine_pose_requests(
 ) -> (
     BTreeMap<EntityId, AnimationPoseOutput>,
     Vec<PendingClipEventSample>,
-    Vec<(EntityId, Option<String>)>,
+    Vec<ActiveStateUpdate>,
     BTreeMap<EntityId, AnimationStateTransitionRuntime>,
 ) {
     let mut poses = BTreeMap::new();
@@ -63,14 +70,18 @@ pub(super) fn resolve_state_machine_pose_requests(
         let state_machine = resolved.machine;
         let evaluation = resolved.evaluation;
         let requested_desc = resolved.requested_desc;
+        let requested_triggers = resolved.requested_triggers;
         let root_active_state = resolved.root_active_state;
         let is_nested = resolved.is_nested;
         let Some(active_state) = evaluation.active_state.as_deref() else {
             continue;
         };
         let mut interrupted_source = None;
+        let mut consumed_triggers = None;
+        let mut transition_on_sample_failure = None;
         let transition = if let Some(previous) = resolved.transition.take() {
             let advanced = advance_state_machine_transition(previous, pending.delta_seconds);
+            transition_on_sample_failure = Some(advanced.clone());
             let candidate = select_interruption_candidate(
                 pipeline,
                 asset_manager,
@@ -107,11 +118,13 @@ pub(super) fn resolve_state_machine_pose_requests(
                         &advanced,
                     ));
                     interrupted_source = Some(source);
-                    Some(begin_state_machine_transition(
+                    let transition = begin_state_machine_transition(
                         &candidate.transition,
                         candidate.from_time_seconds,
                         0.0,
-                    ))
+                    );
+                    consumed_triggers = candidate.consumed_triggers;
+                    Some(transition)
                 } else {
                     Some(advanced)
                 }
@@ -129,31 +142,27 @@ pub(super) fn resolve_state_machine_pose_requests(
                 pending.skeleton_id,
                 pending.to_time_seconds,
             );
-            evaluation
+            if let Some((requested, desc)) = evaluation
                 .transition
                 .as_ref()
                 .zip(requested_desc)
                 .filter(|(_, desc)| desc.exit_ready(normalized_state_time))
-                .map(|(requested, desc)| {
-                    begin_state_machine_transition(
-                        requested,
-                        pending.to_time_seconds,
-                        if desc.exit_time().is_some() {
-                            0.0
-                        } else {
-                            pending.delta_seconds
-                        },
-                    )
-                })
+            {
+                let transition = begin_state_machine_transition(
+                    requested,
+                    pending.to_time_seconds,
+                    if desc.exit_time().is_some() {
+                        0.0
+                    } else {
+                        pending.delta_seconds
+                    },
+                );
+                consumed_triggers = requested_triggers;
+                Some(transition)
+            } else {
+                None
+            }
         };
-        if let (Some(source), Some(active_transition)) = (interrupted_source, transition.as_ref()) {
-            pipeline.record_interrupted_transition_source(
-                instance.clone(),
-                &active_transition.from_state,
-                &active_transition.to_state,
-                source,
-            );
-        }
         let state_update = transition
             .as_ref()
             .map(|transition| {
@@ -164,23 +173,26 @@ pub(super) fn resolve_state_machine_pose_requests(
                 }
             })
             .or_else(|| evaluation.active_state.clone());
-        if is_nested {
-            active_state_updates.push((pending.entity, Some(root_active_state)));
-            if let Some(state) = state_update.as_ref() {
-                pipeline
-                    .nested_machine_states
-                    .insert(instance.clone(), state.clone());
-            }
+        let committed_active_state = if is_nested {
+            Some(root_active_state)
         } else {
-            active_state_updates.push((pending.entity, state_update.clone()));
-        }
+            state_update.clone()
+        };
+        let active_state_update = ActiveStateUpdate {
+            entity: pending.entity,
+            active_state: committed_active_state,
+            consumed_triggers,
+        };
 
         if let Some(active_transition) = transition.as_ref() {
-            let active_source = pipeline.interrupted_transition_source(
+            let cached_active_source = pipeline.interrupted_transition_source(
                 &instance,
                 &active_transition.from_state,
                 &active_transition.to_state,
             );
+            let active_source = interrupted_source
+                .as_ref()
+                .or_else(|| cached_active_source.as_deref());
             events.extend(sample_state_transition_clip_events(
                 pipeline,
                 asset_manager,
@@ -198,11 +210,36 @@ pub(super) fn resolve_state_machine_pose_requests(
                 &pending,
                 &instance,
                 active_transition,
-                active_source.as_deref(),
+                active_source,
             ) else {
+                if let Some(fallback) = transition_on_sample_failure {
+                    if is_nested {
+                        pipeline
+                            .nested_machine_transitions
+                            .insert(instance.clone(), fallback);
+                    } else {
+                        transition_updates.insert(pending.entity, fallback);
+                    }
+                }
                 continue;
             };
             poses.insert(entity, pose);
+            if is_nested {
+                if let Some(state) = state_update.as_ref() {
+                    pipeline
+                        .nested_machine_states
+                        .insert(instance.clone(), state.clone());
+                }
+            }
+            if let Some(source) = interrupted_source {
+                pipeline.record_interrupted_transition_source(
+                    instance.clone(),
+                    &active_transition.from_state,
+                    &active_transition.to_state,
+                    source,
+                );
+            }
+            active_state_updates.push(active_state_update);
             if active_transition.elapsed_seconds < active_transition.duration_seconds {
                 if is_nested {
                     pipeline
@@ -217,8 +254,6 @@ pub(super) fn resolve_state_machine_pose_requests(
             }
             continue;
         }
-
-        pipeline.clear_interrupted_transition_source(&instance);
 
         let Some(active_state) = state_update.as_deref() else {
             continue;
@@ -249,6 +284,13 @@ pub(super) fn resolve_state_machine_pose_requests(
             continue;
         };
         poses.insert(entity, pose);
+        if is_nested {
+            pipeline
+                .nested_machine_states
+                .insert(instance.clone(), active_state.to_string());
+        }
+        pipeline.clear_interrupted_transition_source(&instance);
+        active_state_updates.push(active_state_update);
     }
 
     (poses, events, active_state_updates, transition_updates)

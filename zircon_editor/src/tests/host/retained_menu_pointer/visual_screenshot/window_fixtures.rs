@@ -1,10 +1,11 @@
+use super::fixture_support::{frame, visual_layout_output_path};
 use super::*;
 
-fn workbench_fixture_window(width: u32, height: u32) -> UiHostWindow {
+pub(super) fn workbench_fixture_window(width: u32, height: u32) -> UiHostWindow {
     workbench_fixture_window_with_presets(width, height, &[], None)
 }
 
-fn workbench_fixture_window_with_presets(
+pub(super) fn workbench_fixture_window_with_presets(
     width: u32,
     height: u32,
     preset_names: &[String],
@@ -14,7 +15,10 @@ fn workbench_fixture_window_with_presets(
     presented_window_from_fixture(&fixture, width, height, preset_names, active_preset_name)
 }
 
-pub(super) fn welcome_input_window(width: u32, height: u32) -> UiHostWindow {
+pub(in crate::tests::host::retained_menu_pointer) fn welcome_input_window(
+    width: u32,
+    height: u32,
+) -> UiHostWindow {
     let mut fixture = default_preview_fixture();
     let welcome_page_id = MainPageId::new(WELCOME_PAGE_ID);
     let welcome_instance_id = ViewInstanceId::new(WELCOME_INSTANCE_ID);
@@ -113,17 +117,17 @@ pub(super) fn welcome_input_window(width: u32, height: u32) -> UiHostWindow {
     )
 }
 
-fn asset_browser_window(width: u32, height: u32) -> UiHostWindow {
+pub(super) fn asset_browser_window(width: u32, height: u32) -> UiHostWindow {
     asset_browser_window_with_workspace(width, height, m3_asset_workspace())
 }
 
-fn asset_browser_list_window(width: u32, height: u32) -> UiHostWindow {
+pub(super) fn asset_browser_list_window(width: u32, height: u32) -> UiHostWindow {
     let mut workspace = m3_asset_workspace();
     workspace.view_mode = AssetViewMode::List;
     asset_browser_window_with_workspace(width, height, workspace)
 }
 
-fn asset_browser_window_with_workspace(
+pub(super) fn asset_browser_window_with_workspace(
     width: u32,
     height: u32,
     asset_workspace: AssetWorkspaceSnapshot,
@@ -181,7 +185,7 @@ fn asset_browser_window_with_workspace(
     )
 }
 
-fn assert_asset_browser_compact_visual_layout(ui: &UiHostWindow) {
+pub(super) fn assert_asset_browser_compact_visual_layout(ui: &UiHostWindow) {
     let presentation = ui.get_host_presentation();
     let pane = &presentation.host_scene_data.document_dock.pane;
     assert_eq!(pane.kind.as_str(), "AssetBrowser");
@@ -227,7 +231,7 @@ fn assert_asset_browser_compact_visual_layout(ui: &UiHostWindow) {
     );
 }
 
-fn assert_asset_browser_list_visual_layout(ui: &UiHostWindow) {
+pub(super) fn assert_asset_browser_list_visual_layout(ui: &UiHostWindow) {
     let presentation = ui.get_host_presentation();
     let pane = &presentation.host_scene_data.document_dock.pane;
     assert_eq!(pane.kind.as_str(), "AssetBrowser");
@@ -363,7 +367,7 @@ fn presented_window_from_fixture(
     )
 }
 
-fn presented_window_from_chrome(
+pub(super) fn presented_window_from_chrome(
     chrome: EditorChromeSnapshot,
     layout: &WorkbenchLayout,
     descriptors: &[ViewDescriptor],
@@ -424,7 +428,7 @@ fn presented_window_from_chrome(
     ui
 }
 
-fn workbench_window_bridge_for_visual_artifact(
+pub(super) fn workbench_window_bridge_for_visual_artifact(
     model: &WorkbenchViewModel,
     width: u32,
     height: u32,
@@ -454,7 +458,10 @@ fn workbench_window_bridge_for_visual_artifact(
     bridge
 }
 
-fn set_host_page_overflow_visual_state(ui: &UiHostWindow, state: HostPageOverflowMenuStateData) {
+pub(super) fn set_host_page_overflow_visual_state(
+    ui: &UiHostWindow,
+    state: HostPageOverflowMenuStateData,
+) {
     let tabs = vec![
         host_page_tab("page:workbench", "Workbench", true),
         host_page_tab("page:assets", "Assets", false),
@@ -495,7 +502,7 @@ fn host_page_tab(id: &str, title: &str, active: bool) -> TabData {
     }
 }
 
-fn changed_snapshot_pixel_count_in_frame(
+pub(super) fn changed_snapshot_pixel_count_in_frame(
     before: &[u8],
     after: &[u8],
     width: u32,
@@ -516,7 +523,7 @@ fn changed_snapshot_pixel_count_in_frame(
         .count()
 }
 
-fn assert_visible_workbench_layout_frames(
+pub(super) fn assert_visible_workbench_layout_frames(
     frames: &BuiltinWorkbenchWindowLayoutFrames,
     width: u32,
     height: u32,
@@ -564,7 +571,7 @@ fn assert_visible_workbench_layout_frames(
     );
 }
 
-fn release_first_document_tab_drag(ui: &UiHostWindow) {
+pub(super) fn release_first_document_tab_drag(ui: &UiHostWindow) {
     let presentation = ui.get_host_presentation();
     let document = &presentation.host_scene_data.document_dock;
     let tab = document
@@ -587,7 +594,10 @@ fn release_first_document_tab_drag(ui: &UiHostWindow) {
     );
 }
 
-pub(super) fn save_window_snapshot(ui: &UiHostWindow, filename: &str) -> PathBuf {
+pub(in crate::tests::host::retained_menu_pointer) fn save_window_snapshot(
+    ui: &UiHostWindow,
+    filename: &str,
+) -> PathBuf {
     let snapshot = ui
         .window()
         .take_snapshot()

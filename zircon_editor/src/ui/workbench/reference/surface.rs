@@ -2,8 +2,8 @@ use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::tree::UiTreeError;
 
 use super::{
-    EditorWorkbenchReferenceIds, EditorWorkbenchReferenceMetrics, EditorWorkbenchReferencePalette,
-    builder::ReferenceSurfaceBuilder,
+    builder::ReferenceSurfaceBuilder, EditorWorkbenchReferenceIds, EditorWorkbenchReferenceMetrics,
+    EditorWorkbenchReferencePalette,
 };
 
 #[derive(Clone, Debug)]
@@ -20,8 +20,8 @@ impl EditorWorkbenchReferenceSurface {
     }
 }
 
-pub fn build_editor_workbench_reference_surface()
--> Result<EditorWorkbenchReferenceSurface, UiTreeError> {
+pub fn build_editor_workbench_reference_surface(
+) -> Result<EditorWorkbenchReferenceSurface, UiTreeError> {
     ReferenceSurfaceBuilder::new(
         EditorWorkbenchReferenceMetrics::default(),
         EditorWorkbenchReferencePalette::default(),

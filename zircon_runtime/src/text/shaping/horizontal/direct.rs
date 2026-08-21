@@ -3,13 +3,13 @@ use crate::text::{
     BackendShapeRequest, FontFaceId, ShapedGlyph, ShapedGlyphRun, ShapedTextLine, TextRange,
 };
 
-use super::backend::{shape_horizontal_run, HorizontalBackendRun};
+use super::backend::{HorizontalBackendRun, shape_horizontal_run};
 use crate::text::shaping::bidi::BidiParagraph;
 use crate::text::shaping::cosmic::{cluster_flags, resolved_line_height};
 use crate::text::shaping::fallback_spans::FallbackTextSpan;
 use crate::text::shaping::itemize::{
-    logical_segments_for_line, restore_backend_cluster_logical_order, virtual_hard_break_glyph,
-    LogicalSegment,
+    LogicalSegment, logical_segments_for_line, restore_backend_cluster_logical_order,
+    virtual_hard_break_glyph,
 };
 use crate::text::shaping::line_break::LineBreakOpportunityMap;
 use crate::text::shaping::script_segment::{script_segments, shaped_script_for_cluster};
@@ -30,6 +30,8 @@ pub(in crate::text::shaping) fn shape_horizontal_request(
         .enumerate()
     {
         let line_range = hard_line.content.clone();
+        let mut glyphs = Vec::new();
+        let mut line_metrics = HorizontalLineMetrics::default();
         let segments = logical_segments_for_line(
             request.text,
             line_range.clone(),
@@ -38,10 +40,8 @@ pub(in crate::text::shaping) fn shape_horizontal_request(
             bidi,
             None,
         )?;
-        let mut glyphs = Vec::new();
-        let mut line_metrics = HorizontalLineMetrics::default();
         for segment in segments {
-            line_metrics.include_face(database, segment.face, request.style.font_size);
+            let face = segment.face;
             glyphs.extend(shape_segment(
                 request,
                 line_range.start,
@@ -49,6 +49,7 @@ pub(in crate::text::shaping) fn shape_horizontal_request(
                 &line_breaks,
                 database,
             )?);
+            line_metrics.include_face(database, face, request.style.font_size);
         }
         if let Some(separator) = virtual_hard_break_glyph(request, &hard_line, bidi, &scripts) {
             glyphs.push(separator);

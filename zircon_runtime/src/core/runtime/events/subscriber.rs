@@ -77,19 +77,30 @@ impl EventSubscriber {
             EngineEventDeliveryPolicy::BoundedDropOldest { capacity } => Some(capacity.get()),
             EngineEventDeliveryPolicy::Latest => Some(1),
         };
-        if capacity.is_some_and(|capacity| queue_state.queue.len() == capacity) {
-            let dropped = queue_state
-                .queue
-                .pop_front()
-                .expect("a full event queue must contain an event");
-            self.diagnostics.record_overflow_drop(dropped.queued_at);
-        }
+        let dropped = capacity
+            .is_some_and(|capacity| queue_state.queue.len() == capacity)
+            .then(|| {
+                queue_state
+                    .queue
+                    .pop_front()
+                    .expect("a full event queue must contain an event")
+            });
 
         queue_state.queue.push_back(QueuedEngineEvent {
             event,
-            queued_at: self.diagnostics.capture_time(),
+            queued_at: None,
         });
-        self.diagnostics.record_enqueued();
+        let queued_at = match dropped {
+            Some(dropped) => self
+                .diagnostics
+                .record_replaced_and_capture_time(dropped.queued_at),
+            None => self.diagnostics.record_enqueued_and_capture_time(),
+        };
+        queue_state
+            .queue
+            .back_mut()
+            .expect("the delivered event must remain queued")
+            .queued_at = queued_at;
         self.queue_ready.notify_one();
         EventDeliveryStatus::Delivered
     }

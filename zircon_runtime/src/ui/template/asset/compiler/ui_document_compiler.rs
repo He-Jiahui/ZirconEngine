@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 
 use toml::Value;
@@ -41,7 +42,7 @@ impl UiCompiledDocument {
 pub struct UiDocumentCompiler {
     pub(super) widget_imports: BTreeMap<String, UiAssetDocument>,
     pub(super) style_imports: BTreeMap<String, UiAssetDocument>,
-    component_registry: UiComponentDescriptorRegistry,
+    component_registry: Cow<'static, UiComponentDescriptorRegistry>,
 }
 
 impl Default for UiDocumentCompiler {
@@ -49,14 +50,24 @@ impl Default for UiDocumentCompiler {
         Self {
             widget_imports: BTreeMap::new(),
             style_imports: BTreeMap::new(),
-            component_registry: UiComponentDescriptorRegistry::editor_showcase(),
+            component_registry: Cow::Borrowed(
+                UiComponentDescriptorRegistry::editor_showcase_shared(),
+            ),
         }
     }
 }
 
 impl UiDocumentCompiler {
     pub fn with_component_registry(mut self, registry: UiComponentDescriptorRegistry) -> Self {
-        self.component_registry = registry;
+        self.component_registry = Cow::Owned(registry);
+        self
+    }
+
+    pub fn with_shared_component_registry(
+        mut self,
+        registry: &'static UiComponentDescriptorRegistry,
+    ) -> Self {
+        self.component_registry = Cow::Borrowed(registry);
         self
     }
 
@@ -72,7 +83,18 @@ impl UiDocumentCompiler {
     }
 
     pub fn component_registry(&self) -> &UiComponentDescriptorRegistry {
-        &self.component_registry
+        self.component_registry.as_ref()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn legacy_owned_default_for_benchmark() -> Self {
+        Self {
+            widget_imports: BTreeMap::new(),
+            style_imports: BTreeMap::new(),
+            component_registry: Cow::Owned(
+                UiComponentDescriptorRegistry::editor_showcase_shared().clone(),
+            ),
+        }
     }
 
     pub fn register_widget_import(

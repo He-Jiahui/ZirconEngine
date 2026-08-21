@@ -212,7 +212,7 @@ fn ready_title_updates_are_coalesced_until_a_successful_present() {
 }
 
 #[test]
-fn screenshot_timing_requests_the_next_scene_frame_before_rendering() {
+fn screenshot_timing_requests_every_frame_until_the_distribution_is_complete() {
     let render = render_source();
     let screenshot_flag = render
         .find("let screenshot_requested = self.screenshot_path.is_some()")
@@ -228,7 +228,15 @@ fn screenshot_timing_requests_the_next_scene_frame_before_rendering() {
         screenshot_flag < timing_request && timing_request < render_call,
         "the timing request must arm the screenshot or one-shot capture frame before scene rendering"
     );
-    assert!(render.contains("if write_screenshot || capture_this_frame {"));
+    assert_source_order_in(
+        render,
+        &[
+            "let gpu_timing_evidence_pending = self.gpu_timing_evidence_pending();",
+            "let scene = self",
+            "if write_screenshot || capture_this_frame || gpu_timing_evidence_pending {",
+            "scene.request_next_frame_timing_report();",
+        ],
+    );
 }
 
 #[test]
@@ -397,7 +405,7 @@ fn bridged_renderdoc_capture_requires_an_actual_capture_record() {
         .expect("viewer must retain one shared capture completion owner");
 
     for expected in [
-        "scene.stop_graphics_debugger_capture()",
+        ".stop_graphics_debugger_capture()",
         "bridge.capture_report()",
         "report.capture_path_for_evidence()",
         "graphics debugger capture completed",
@@ -439,12 +447,12 @@ fn screenshot_export_writes_versioned_ibl_provenance() {
         "scene.base_prewarm_report()",
         "scene.shader_variant_miss_report()",
         "scene.startup_timing()",
-        "base_prewarm_report.pipeline_ready()",
+        ".pipeline_ready(),",
         "environment_only_base_pipeline_ready_at_capture:",
         "environment_only_base_pipeline_ready,",
         "base_prewarm_report.cache_hit()",
-        "base_prewarm_report.shader_source_resolution()",
-        "base_prewarm_report.pipeline_creation()",
+        ".shader_source_resolution(),",
+        ".pipeline_creation(),",
         "base_prewarm_report.elapsed()",
         "scene_startup_renderer_deferred_standard_pipeline: startup_timing",
         "scene_startup_total: startup_timing.total()",
@@ -570,7 +578,8 @@ fn one_shot_evidence_waits_for_the_async_base_pipeline_without_blocking_the_even
     assert_source_order(&[
         "let needs_environment_only_base_pipeline = screenshot_requested || capture_requested;",
         "scene.environment_only_base_pipeline_ready()",
-        "let defer_one_shot_until_base_pipeline_ready = needs_environment_only_base_pipeline",
+        "let defer_one_shot_until_base_pipeline_ready =",
+        "needs_environment_only_base_pipeline && !environment_only_base_pipeline_ready;",
         "if defer_one_shot_until_base_pipeline_ready {",
         "if self.one_shot_base_pipeline_wait_has_expired(Instant::now()) {",
         "environment-only PBR Base pipeline startup timed out",
@@ -599,7 +608,7 @@ fn pending_base_pipeline_retries_admission_before_scheduling_the_next_recheck() 
         "scene.retry_environment_only_base_pipeline_admission()",
         "environment-only PBR Base pipeline admission retry failed",
         "false",
-        "let defer_one_shot_until_base_pipeline_ready = needs_environment_only_base_pipeline",
+        "let defer_one_shot_until_base_pipeline_ready =",
     ]);
 }
 
@@ -686,7 +695,7 @@ fn direct_presentation_releases_cpu_staging_and_rebuilds_it_for_a_fallback() {
 }
 
 #[test]
-fn screenshot_scoped_gpu_timing_is_opt_in_and_preserves_the_matching_frame_identity() {
+fn screenshot_scoped_gpu_timing_is_opt_in_and_collects_a_post_ready_distribution() {
     let load = start_scene_load_source();
     let render = render_source();
 
@@ -699,15 +708,22 @@ fn screenshot_scoped_gpu_timing_is_opt_in_and_preserves_the_matching_frame_ident
         ],
     );
     assert_source_order(&[
+        "let gpu_timing_report = scene.take_completed_gpu_timing_report();",
         "self.write_ready_frame_screenshot(&frame, screenshot_metadata.as_ref())",
         "self.begin_gpu_timing_evidence(frame.generation);",
+        "self.resolve_gpu_timing_evidence(gpu_timing_report, gpu_timing_status)",
+    ]);
+    assert_source_order(&[
         "let gpu_timing_report = scene.take_completed_gpu_timing_report();",
         "let gpu_timing_status = scene.last_gpu_timing_status();",
         "self.resolve_gpu_timing_evidence(gpu_timing_report, gpu_timing_status)",
     ]);
     assert!(APP_SOURCE.contains("GpuTimingEvidenceRequest::new(frame_generation)"));
-    assert!(include_str!("gpu_timing_evidence.rs")
-        .contains("report.frame_generation() == self.target_generation"));
+    let evidence = include_str!("gpu_timing_evidence.rs");
+    assert!(evidence.contains("GPU_TIMING_WARMUP_SAMPLE_COUNT: usize = 5"));
+    assert!(evidence.contains("GPU_TIMING_MEASURED_SAMPLE_COUNT: usize = 31"));
+    assert!(evidence.contains("expected_generation != Some(generation)"));
+    assert!(evidence.contains("outlier_policy=none_all_samples_retained"));
 }
 
 #[test]

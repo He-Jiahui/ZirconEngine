@@ -1,6 +1,6 @@
 use crate::plugin::{RuntimeExtensionRegistry, RuntimeExtensionRegistryError};
 use crate::scene::WorldRuntimeExtensionPlan;
-use crate::script::{SCRIPT_SCENE_RUNTIME_SYSTEM_SET, ScriptSceneRuntimeSystem};
+use crate::script::{ScriptSceneRuntimeSystem, SCRIPT_SCENE_RUNTIME_SYSTEM_SET};
 
 use super::{RuntimeDynamicSessionError, RuntimeDynamicSessionResult};
 

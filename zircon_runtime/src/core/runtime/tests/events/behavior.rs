@@ -1,4 +1,4 @@
-use std::num::NonZeroUsize;
+use std::num::{NonZeroU64, NonZeroUsize};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc, Barrier};
 use std::time::{Duration, Instant};
@@ -7,7 +7,7 @@ use serde_json::Value;
 
 use crate::core::framework::events::{
     EngineEventDeliveryPolicy, EngineEventReceiveError, EngineEventReceiveTimeoutError,
-    EngineEventTryReceiveError, EventBusDiagnosticsMode,
+    EngineEventTryReceiveError, EventBusDiagnosticsMode, DEFAULT_EVENT_BUS_TIMING_SAMPLE_INTERVAL,
 };
 use crate::core::{EngineEvent, EventBus};
 
@@ -170,7 +170,7 @@ fn event_bus_lossless_policy_preserves_same_topic_publish_order() {
 
 #[test]
 fn event_bus_reports_queue_age_when_a_paused_consumer_resumes() {
-    let bus = EventBus::default();
+    let bus = EventBus::new(EventBusDiagnosticsMode::Enabled);
     let events = bus.subscribe("runtime.age", EngineEventDeliveryPolicy::Lossless);
     bus.publish(EngineEvent {
         topic: "runtime.age".to_string(),
@@ -185,6 +185,53 @@ fn event_bus_reports_queue_age_when_a_paused_consumer_resumes() {
     assert!(report.total_queue_age_ms >= 1.0);
     assert!(report.max_queue_age_ms >= 1.0);
     assert_eq!(report.queued, 0);
+}
+
+#[test]
+fn event_bus_default_samples_routine_timings_but_keeps_exact_counters() {
+    const EVENT_COUNT: u64 = 129;
+
+    let bus = EventBus::default();
+    let events = bus.subscribe("runtime.sampled", EngineEventDeliveryPolicy::Lossless);
+    for sequence in 0..EVENT_COUNT {
+        bus.publish(EngineEvent {
+            topic: "runtime.sampled".to_string(),
+            payload: serde_json::json!({ "sequence": sequence }),
+        });
+        events.recv().unwrap();
+    }
+
+    let report = bus.diagnostic_report();
+    assert!(report.enabled);
+    assert_eq!(
+        report.routine_timing_sample_interval,
+        DEFAULT_EVENT_BUS_TIMING_SAMPLE_INTERVAL.get()
+    );
+    assert_eq!(report.published, EVENT_COUNT);
+    assert_eq!(report.delivered, EVENT_COUNT);
+    assert_eq!(report.queued, 0);
+    assert_eq!(report.publish_samples, 3);
+    assert_eq!(report.queue_age_samples, 3);
+}
+
+#[test]
+fn event_bus_explicit_sampling_uses_independent_publish_and_queue_sequences() {
+    let bus = EventBus::new(EventBusDiagnosticsMode::Sampled {
+        every: NonZeroU64::new(2).unwrap(),
+    });
+    let events = bus.subscribe("runtime.sampled", EngineEventDeliveryPolicy::Lossless);
+    for _ in 0..5 {
+        bus.publish(EngineEvent {
+            topic: "runtime.sampled".to_string(),
+            payload: Value::Null,
+        });
+        events.recv().unwrap();
+    }
+
+    let report = bus.diagnostic_report();
+    assert_eq!(report.routine_timing_sample_interval, 2);
+    assert_eq!(report.publish_samples, 3);
+    assert_eq!(report.queue_age_samples, 3);
 }
 
 #[test]
@@ -281,6 +328,7 @@ fn event_bus_disabled_diagnostics_skip_timing_and_counter_collection() {
 
     let report = bus.diagnostic_report();
     assert!(!report.enabled);
+    assert_eq!(report.routine_timing_sample_interval, 0);
     assert_eq!(report.topics, 1);
     assert_eq!(report.subscribers, 1);
     assert_eq!(report.published, 0);

@@ -207,7 +207,11 @@ fn estimate_extract_output_bytes(extract: &RenderFrameExtract) -> usize {
     bytes += option_string_bytes(&extract.post_process.graph.output_transfer_node);
 
     let overlays = &extract.debug.overlays;
-    bytes += slice_bytes(&overlays.selection);
+    bytes += overlays.highlights.as_ref().map_or(0, |highlights| {
+        std::mem::size_of_val(highlights)
+            + highlights.entity_capacity()
+                * std::mem::size_of::<crate::core::framework::scene::EntityId>()
+    });
     bytes += slice_bytes(&overlays.selection_anchors);
     bytes += slice_bytes(&overlays.handles);
     bytes += overlays

@@ -11,7 +11,7 @@ use crate::ui::retained_host::{
     event_bridge::UiHostEventEffects,
 };
 
-use super::super::{BuiltinAssetSurfaceTemplateBridge, dispatch_builtin_asset_surface_control};
+use super::super::{dispatch_builtin_asset_surface_control, BuiltinAssetSurfaceTemplateBridge};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SharedAssetTreePointerClickDispatch {

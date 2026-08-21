@@ -30,10 +30,11 @@ Assert-True (
 ) 'MVP stager must probe project release after product, automation, and project-creation processes.'
 Assert-True (
     $stagerSource -match '\$startInfo\.WorkingDirectory = if \(\$null -eq \$projectRootResolution\)' -and
-    $stagerSource -match '\$projectRootResolution\.OperationalPath' -and
+    $stagerSource -match '\$workingDirectoryResolution\.DisplayPath' -and
+    $stagerSource -match '\$projectRootResolution\.DisplayPath' -and
     $stagerSource -match '@\(''--project'', ''\.''\) \+ @\(\$Arguments\)' -and
     $stagerSource -notmatch '\$projectRootArgument'
-) 'MVP stager must set the project root as cwd and pass --project . without reviving an absolute project CLI argument.'
+) 'MVP stager must use a display-path cwd and pass --project . without reviving an absolute project CLI argument.'
 
 $releaseSource = Get-Content -LiteralPath $modulePath -Raw
 Assert-True (

@@ -7,8 +7,8 @@ use zircon_runtime_interface::ui::{
     tree::{UiDirtyFlags, UiTree, UiTreeError, UiTreeNode},
 };
 
-use super::surface::UiSurface;
 use super::UiInvalidationReason;
+use super::surface::UiSurface;
 
 /// Surface-local pool keyed by template identity so retained UI rebuilds can reuse detached nodes.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -172,15 +172,7 @@ pub(crate) fn insert_or_reuse_pooled_child(
     };
 
     reset_reinserted_node(&mut node);
-    node.parent = Some(parent_id);
-    node.paint_order = next_paint_order(tree);
-    let node_id = node.node_id;
-    tree.node_mut(parent_id)
-        .ok_or(UiTreeError::MissingParent(parent_id))?
-        .children
-        .push(node_id);
-    tree.nodes.insert(node_id, node);
-    mark_parent_structure_dirty(tree, parent_id)?;
+    tree.insert_child(parent_id, node)?;
     Ok(report)
 }
 
@@ -244,14 +236,6 @@ fn reusable_state_flags(flags: UiStateFlags) -> UiStateFlags {
     }
 }
 
-fn mark_parent_structure_dirty(tree: &mut UiTree, parent_id: UiNodeId) -> Result<(), UiTreeError> {
-    let parent = tree
-        .node_mut(parent_id)
-        .ok_or(UiTreeError::MissingParent(parent_id))?;
-    mark_node_structure_dirty(parent);
-    Ok(())
-}
-
 fn mark_node_structure_dirty(node: &mut UiTreeNode) {
     node.dirty = structure_dirty_flags();
 }
@@ -264,12 +248,4 @@ fn structure_dirty_flags() -> UiDirtyFlags {
         input: true,
         ..UiDirtyFlags::default()
     }
-}
-
-fn next_paint_order(tree: &UiTree) -> u64 {
-    tree.nodes
-        .values()
-        .map(|node| node.paint_order)
-        .max()
-        .map_or(0, |paint_order| paint_order.saturating_add(1))
 }

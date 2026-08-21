@@ -220,6 +220,210 @@ fn runtime_shutdown_unloads_modules_in_reverse_dependency_order() {
 }
 
 #[test]
+fn runtime_shutdown_skips_registered_modules_and_cleans_running_modules() {
+    let runtime = CoreRuntime::new();
+    let cleanup_count = Arc::new(AtomicUsize::new(0));
+    runtime
+        .register_module(
+            ModuleDescriptor::new("RuntimeShutdownActive", "running shutdown module")
+                .with_lifecycle(Arc::new(CleanupCounterLifecycle {
+                    cleanup_count: Arc::clone(&cleanup_count),
+                })),
+        )
+        .unwrap();
+    runtime
+        .register_module(ModuleDescriptor::new(
+            "RuntimeShutdownDormant",
+            "registered shutdown module",
+        ))
+        .unwrap();
+    runtime.activate_module("RuntimeShutdownActive").unwrap();
+    let handle = runtime.handle();
+    let expected_activation_order = [
+        "RuntimeShutdownActive".to_owned(),
+        "RuntimeShutdownDormant".to_owned(),
+    ];
+    assert_eq!(
+        handle
+            .frozen_module_graph()
+            .unwrap()
+            .module_activation_order(),
+        expected_activation_order.as_slice()
+    );
+
+    runtime
+        .shutdown_registered_modules_with_drain_timeout(Duration::ZERO)
+        .expect("a never-started module must not block cleanup of a running module");
+
+    assert_eq!(cleanup_count.load(Ordering::SeqCst), 1);
+    let modules = handle.inner.modules.lock().unwrap();
+    assert_eq!(
+        modules
+            .get("RuntimeShutdownActive")
+            .expect("running shutdown module")
+            .lifecycle,
+        LifecycleState::Unloaded
+    );
+    assert_eq!(
+        modules
+            .get("RuntimeShutdownDormant")
+            .expect("registered shutdown module")
+            .lifecycle,
+        LifecycleState::Registered
+    );
+}
+
+#[test]
+fn runtime_shutdown_active_module_order_tracks_successful_reactivation() {
+    let runtime = CoreRuntime::new();
+    runtime
+        .register_module(ModuleDescriptor::new(
+            "RuntimeShutdownLedgerProvider",
+            "shutdown ledger provider",
+        ))
+        .unwrap();
+    runtime
+        .register_module(
+            ModuleDescriptor::new("RuntimeShutdownLedgerConsumer", "shutdown ledger consumer")
+                .with_module_dependency(ModuleDependencySpec::named(
+                    "RuntimeShutdownLedgerProvider",
+                )),
+        )
+        .unwrap();
+
+    runtime
+        .activate_module("RuntimeShutdownLedgerConsumer")
+        .unwrap();
+    assert_eq!(
+        runtime.handle().active_module_shutdown_order(),
+        [
+            "RuntimeShutdownLedgerProvider".to_owned(),
+            "RuntimeShutdownLedgerConsumer".to_owned(),
+        ]
+    );
+
+    runtime
+        .deactivate_module("RuntimeShutdownLedgerConsumer")
+        .unwrap();
+    assert_eq!(
+        runtime.handle().active_module_shutdown_order(),
+        ["RuntimeShutdownLedgerProvider".to_owned()]
+    );
+
+    runtime
+        .activate_module("RuntimeShutdownLedgerConsumer")
+        .unwrap();
+    assert_eq!(
+        runtime.handle().active_module_shutdown_order(),
+        [
+            "RuntimeShutdownLedgerProvider".to_owned(),
+            "RuntimeShutdownLedgerConsumer".to_owned(),
+        ]
+    );
+}
+
+#[test]
+#[ignore = "release performance evidence"]
+fn runtime_shutdown_active_ledger_release_benchmark_evidence() {
+    use std::hint::black_box;
+    use std::time::Instant;
+
+    const DECLARED_MODULES: usize = 16_384;
+    const ACTIVE_MODULES: usize = 8;
+    const SAMPLE_PAIRS: usize = 21;
+    const REGISTRY_VISIT_REDUCTION_BASIS_POINTS: usize =
+        (DECLARED_MODULES - ACTIVE_MODULES) * 10_000 / DECLARED_MODULES;
+
+    let runtime = CoreRuntime::new();
+    let module_names = (0..DECLARED_MODULES)
+        .map(|index| format!("RuntimeShutdownLedger{index:05}"))
+        .collect::<Vec<_>>();
+    for module_name in &module_names {
+        runtime
+            .register_module(ModuleDescriptor::new(
+                module_name.clone(),
+                "shutdown ledger release benchmark",
+            ))
+            .unwrap();
+    }
+    for module_name in module_names.iter().take(ACTIVE_MODULES) {
+        runtime.activate_module(module_name).unwrap();
+    }
+
+    let handle = runtime.handle();
+    let graph = handle.frozen_module_graph().unwrap();
+    let expected = module_names[..ACTIVE_MODULES].to_vec();
+    assert_eq!(graph.module_activation_order().len(), DECLARED_MODULES);
+    assert_eq!(handle.active_module_shutdown_order(), expected);
+
+    let legacy_shutdown_order = || {
+        let modules = handle.lock_modules();
+        graph
+            .module_activation_order()
+            .iter()
+            .filter(|module_name| {
+                modules
+                    .get(*module_name)
+                    .is_some_and(|entry| entry.lifecycle == LifecycleState::Running)
+            })
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+
+    let mut legacy_ns = Vec::with_capacity(SAMPLE_PAIRS);
+    let mut optimized_ns = Vec::with_capacity(SAMPLE_PAIRS);
+    for sample_index in 0..SAMPLE_PAIRS {
+        if sample_index % 2 == 0 {
+            let started = Instant::now();
+            assert_eq!(black_box(legacy_shutdown_order()), expected);
+            legacy_ns.push(started.elapsed().as_nanos());
+
+            let started = Instant::now();
+            assert_eq!(black_box(handle.active_module_shutdown_order()), expected);
+            optimized_ns.push(started.elapsed().as_nanos());
+        } else {
+            let started = Instant::now();
+            assert_eq!(black_box(handle.active_module_shutdown_order()), expected);
+            optimized_ns.push(started.elapsed().as_nanos());
+
+            let started = Instant::now();
+            assert_eq!(black_box(legacy_shutdown_order()), expected);
+            legacy_ns.push(started.elapsed().as_nanos());
+        }
+    }
+
+    let legacy_p50_ns = nearest_rank(&legacy_ns, 50);
+    let legacy_p95_ns = nearest_rank(&legacy_ns, 95);
+    let optimized_p50_ns = nearest_rank(&optimized_ns, 50);
+    let optimized_p95_ns = nearest_rank(&optimized_ns, 95);
+    assert!(
+        optimized_p95_ns.saturating_mul(4) <= legacy_p95_ns,
+        "active-ledger P95 must be at least 75% below the full registry scan: legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
+    );
+
+    println!(
+        "RUNTIME72_SHUTDOWN_ACTIVE_LEDGER_BENCH_V1 declared_modules={DECLARED_MODULES} active_modules={ACTIVE_MODULES} sample_pairs={SAMPLE_PAIRS} pair_order=alternating_legacy_even legacy_registry_visits={DECLARED_MODULES} optimized_ledger_copies={ACTIVE_MODULES} registry_visit_reduction_basis_points={REGISTRY_VISIT_REDUCTION_BASIS_POINTS} legacy_p50_ns={legacy_p50_ns} legacy_p95_ns={legacy_p95_ns} optimized_p50_ns={optimized_p50_ns} optimized_p95_ns={optimized_p95_ns} legacy_ns={} optimized_ns={}",
+        join_samples(&legacy_ns),
+        join_samples(&optimized_ns),
+    );
+}
+
+fn nearest_rank(samples: &[u128], percentile: usize) -> u128 {
+    let mut sorted = samples.to_vec();
+    sorted.sort_unstable();
+    let rank = sorted.len().saturating_mul(percentile).div_ceil(100);
+    sorted[rank.saturating_sub(1)]
+}
+
+fn join_samples(samples: &[u128]) -> String {
+    samples
+        .iter()
+        .map(u128::to_string)
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+#[test]
 fn deactivation_callback_panic_is_reported_as_a_typed_failure() {
     let runtime = CoreRuntime::new();
     runtime

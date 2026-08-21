@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 
 use crate::core::math::Transform;
@@ -6,13 +8,13 @@ use super::{GizmoBuffer, GizmoCommand, GizmoConfig};
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct GizmoAsset {
-    commands: Vec<GizmoCommand>,
+    commands: Arc<[GizmoCommand]>,
 }
 
 impl GizmoAsset {
     pub fn from_buffer(buffer: &GizmoBuffer) -> Self {
         Self {
-            commands: buffer.commands().to_vec(),
+            commands: Arc::from(buffer.commands()),
         }
     }
 

@@ -8,6 +8,8 @@ mod command;
 mod draw;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use command::HostPaintCommand;
+#[cfg(test)]
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use command::HostPaintCommandKind;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use draw::draw_host_paint_commands;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn draw_runtime_render_commands(

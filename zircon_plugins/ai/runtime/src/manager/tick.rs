@@ -1,15 +1,17 @@
+use std::sync::Arc;
+
 use zircon_runtime::core::framework::ai::{AiAgentTickReport, AiAgentTickRequest, AiManagerError};
 use zircon_runtime::core::framework::scene::WorldHandle;
 
+use super::DefaultAiManager;
 use super::state::{ActiveBehaviorAgent, AgentBlackboard};
 use super::validation::{validate_blackboard_entries, validate_perception_snapshot};
-use super::DefaultAiManager;
+use crate::AiBehaviorTickLod;
 use crate::behavior_tree::{
-    abort_behavior_tree_instance, evaluate_behavior_tree, BehaviorIntegrationHost,
-    BehaviorTreeInstanceState,
+    BehaviorIntegrationHost, BehaviorTreeInstanceState, abort_behavior_tree_instance,
+    evaluate_behavior_tree,
 };
 use crate::blackboard::BlackboardStore;
-use crate::AiBehaviorTickLod;
 
 pub(super) fn tick_agent(
     manager: &DefaultAiManager,
@@ -55,20 +57,17 @@ fn tick_agent_with_source(
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let registered_tree = if let Some(tree_id) = request.behavior_tree {
-            let tree = state
+            let (tree_index, tree) = state
                 .behavior_trees
                 .iter()
-                .find(|entry| entry.id == tree_id)
+                .enumerate()
+                .find(|(_, entry)| entry.id == tree_id)
                 .ok_or_else(|| AiManagerError::UnknownBehaviorTree { id: tree_id.raw() })?;
-            Some(tree.clone())
+            Some((tree.id, tree_index))
         } else {
             None
         };
-        let registered_trees = state
-            .behavior_trees
-            .iter()
-            .map(|entry| entry.compiled.clone())
-            .collect::<Vec<_>>();
+        let registered_trees = Arc::clone(&state.compiled_behavior_tree_generation);
         let implementation_slots = registered_trees
             .iter()
             .flat_map(|tree| tree.implementation_slots())
@@ -108,15 +107,14 @@ fn tick_agent_with_source(
             None
         };
         if schema.is_none()
-            && registered_tree.as_ref().is_some_and(|tree| {
-                tree.compiled
-                    .reachable_tree_has_abort_observers(&registered_trees)
+            && registered_tree.as_ref().is_some_and(|(_, tree_index)| {
+                registered_trees[*tree_index].reachable_tree_has_abort_observers(&registered_trees)
             })
         {
             return Err(AiManagerError::BehaviorObserverRequiresBlackboardSchema {
                 tree_id: registered_tree
                     .as_ref()
-                    .map(|tree| tree.compiled.id().to_string())
+                    .map(|(_, tree_index)| registered_trees[*tree_index].id().to_string())
                     .unwrap_or_default(),
             });
         }
@@ -197,10 +195,11 @@ fn tick_agent_with_source(
         AgentBlackboard::Dynamic(_) => None,
     };
 
-    let report = if let Some(tree) = &registered_tree {
+    let report = if let Some((_, tree_index)) = registered_tree {
+        let tree = &registered_trees[tree_index];
         let perception = request.perception.as_ref().or(stored_perception.as_ref());
         let execution = match evaluate_behavior_tree(
-            &tree.compiled,
+            tree,
             &registered_trees,
             blackboard,
             perception,
@@ -246,11 +245,11 @@ fn tick_agent_with_source(
         .state
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
-    if let Some(tree) = &registered_tree {
+    if let Some((tree_id, _)) = registered_tree {
         state.active_behavior_trees.insert(
             agent_key,
             ActiveBehaviorAgent {
-                behavior_tree: tree.id,
+                behavior_tree: tree_id,
                 blackboard_schema: request.blackboard_schema,
                 pending_delta_seconds: 0.0,
             },

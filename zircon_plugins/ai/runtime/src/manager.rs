@@ -113,6 +113,14 @@ impl DefaultAiManager {
         perception::replace_world_snapshots(self, world, snapshots)
     }
 
+    pub(crate) fn runtime_snapshots_for_agents(
+        &self,
+        world: zircon_runtime::core::framework::scene::WorldHandle,
+        entities: impl IntoIterator<Item = zircon_runtime::core::framework::scene::EntityId>,
+    ) -> Vec<zircon_runtime::core::framework::ai::AiAgentRuntimeSnapshot> {
+        snapshot::runtime_snapshots_for_agents(self, world, entities)
+    }
+
     pub fn tick_active_agents_with_lod(
         &self,
         world: zircon_runtime::core::framework::scene::WorldHandle,

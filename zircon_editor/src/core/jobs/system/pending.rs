@@ -6,9 +6,9 @@ use super::super::{
     EditorJobAdmissionSnapshot, EditorJobLimits, EditorJobSpec, JobCategory, JobId, JobPriority,
     JobSubmitError,
 };
-use super::EditorJobAdmissionWindow;
 use super::admission_ledger::{PendingAdmissionLedger, PendingAdmissionReservation};
 use super::pending_task::{PendingCancelTask, PendingTask};
+use super::EditorJobAdmissionWindow;
 
 const FAIR_ADMISSION_SLOTS: [JobPriority; 6] = [
     JobPriority::Interactive,

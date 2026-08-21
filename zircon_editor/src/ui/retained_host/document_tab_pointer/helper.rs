@@ -4,7 +4,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::constants::{
-    CLOSE_NODE_ID_BASE, CLOSEABLE_TAB_MIN_WIDTH, DOCUMENT_TAB_ROUTE_ID_BASE, TAB_MIN_WIDTH,
+    CLOSEABLE_TAB_MIN_WIDTH, CLOSE_NODE_ID_BASE, DOCUMENT_TAB_ROUTE_ID_BASE, TAB_MIN_WIDTH,
     TAB_NODE_ID_BASE,
 };
 use super::{

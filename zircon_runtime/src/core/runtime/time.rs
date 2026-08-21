@@ -45,11 +45,18 @@ impl RuntimeTimeClocks {
     pub fn advance_by(&mut self, real_delta: Duration, max_fixed_steps: u32) -> RuntimeTimeAdvance {
         self.real.advance_by(real_delta);
         self.virtual_time.advance_from_real_delta(real_delta);
-        self.fixed.accumulate_overstep(self.virtual_time.delta());
-        let fixed_step_plan = self.fixed.drain_steps(max_fixed_steps);
+        let virtual_time_paused = self.virtual_time.is_paused();
+        let fixed_step_plan = if virtual_time_paused {
+            self.fixed.drain_steps(0)
+        } else {
+            self.fixed.accumulate_overstep(self.virtual_time.delta());
+            self.fixed.drain_steps(max_fixed_steps)
+        };
 
         RuntimeTimeAdvance {
             real_delta,
+            virtual_delta: self.virtual_time.delta(),
+            virtual_time_paused,
             fixed_step_plan,
         }
     }
@@ -79,12 +86,22 @@ impl RuntimeTimeClocks {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct RuntimeTimeAdvance {
     real_delta: Duration,
+    virtual_delta: Duration,
+    virtual_time_paused: bool,
     fixed_step_plan: FixedStepPlan,
 }
 
 impl RuntimeTimeAdvance {
     pub fn real_delta(&self) -> Duration {
         self.real_delta
+    }
+
+    pub fn virtual_delta(&self) -> Duration {
+        self.virtual_delta
+    }
+
+    pub fn virtual_time_paused(&self) -> bool {
+        self.virtual_time_paused
     }
 
     pub fn fixed_step_plan(&self) -> FixedStepPlan {

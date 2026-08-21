@@ -188,29 +188,6 @@ where
     (output, polled)
 }
 
-pub(in crate::ui::host) fn final_output_drain<J: ExportProcessJoin>(
-    jobs: &J,
-    readers: &mut ExportProcessOutputReaders,
-) -> Result<CapturedOutputChunk, ExportProcessError> {
-    let mut drained = CapturedOutputChunk::default();
-    loop {
-        let stdout = &mut readers.stdout;
-        let stderr = &mut readers.stderr;
-        let (stdout, stderr) = jobs.join(
-            move || stdout.read_available(),
-            move || stderr.read_available(),
-        );
-        let stdout = stdout?;
-        let stderr = stderr?;
-        let complete = stdout.is_empty() && stderr.is_empty();
-        drained.stdout.extend(stdout);
-        drained.stderr.extend(stderr);
-        if complete {
-            return Ok(drained);
-        }
-    }
-}
-
 fn create_capture_writer(path: &PathBuf) -> io::Result<File> {
     OpenOptions::new().write(true).create_new(true).open(path)
 }

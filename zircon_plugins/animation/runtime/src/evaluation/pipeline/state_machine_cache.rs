@@ -35,12 +35,48 @@ impl AnimationEvaluationPipeline {
         AnimationStateMachineEvaluation,
         Option<TransitionDesc>,
     )> {
+        let (machine, evaluation, transition_desc, _) =
+            self.evaluate_state_machine_internal(assets, id, current_state, parameters, false)?;
+        Some((machine, evaluation, transition_desc))
+    }
+
+    pub(super) fn evaluate_state_machine_with_triggers(
+        &mut self,
+        assets: &ProjectAssetManager,
+        id: AssetId,
+        current_state: Option<&str>,
+        parameters: &AnimationParameterMap,
+    ) -> Option<(
+        Arc<CompiledAnimationStateMachine>,
+        AnimationStateMachineEvaluation,
+        Option<TransitionDesc>,
+        Option<Arc<[String]>>,
+    )> {
+        self.evaluate_state_machine_internal(assets, id, current_state, parameters, true)
+    }
+
+    fn evaluate_state_machine_internal(
+        &mut self,
+        assets: &ProjectAssetManager,
+        id: AssetId,
+        current_state: Option<&str>,
+        parameters: &AnimationParameterMap,
+        include_triggers: bool,
+    ) -> Option<(
+        Arc<CompiledAnimationStateMachine>,
+        AnimationStateMachineEvaluation,
+        Option<TransitionDesc>,
+        Option<Arc<[String]>>,
+    )> {
         self.ensure_state_machine_cached(assets, id)?;
         let cached = self.state_machine_cache.get(&id)?;
         let machine = Arc::clone(&cached.machine);
         let evaluated = machine.evaluate(current_state, parameters);
         let transition = evaluated.transition().cloned();
         let transition_desc = evaluated.transition_desc();
+        let consumed_triggers = include_triggers
+            .then(|| evaluated.shared_consumed_triggers())
+            .flatten();
         let active_state = evaluated.active_state().to_string();
         let graph = evaluated
             .graph_samples()
@@ -56,6 +92,7 @@ impl AnimationEvaluationPipeline {
                 transition,
             },
             transition_desc,
+            consumed_triggers,
         ))
     }
 

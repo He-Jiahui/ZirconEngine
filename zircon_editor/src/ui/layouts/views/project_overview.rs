@@ -127,11 +127,9 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert!(nodes.iter().any(|node| node.control_id == "OpenAssetsView"));
-        assert!(
-            nodes
-                .iter()
-                .any(|node| node.control_id == "OpenAssetBrowser")
-        );
+        assert!(nodes
+            .iter()
+            .any(|node| node.control_id == "OpenAssetBrowser"));
 
         let Some(open_assets) = node_by_control_id(&nodes, "OpenAssetsView") else {
             return;

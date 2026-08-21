@@ -1,8 +1,8 @@
 use zircon_runtime::ui::v2::UiV2AssetLoader;
 
 use super::{
-    UI_ASSET_EDITOR_ASSET, WORKBENCH_UI_ASSET_ACTION_BAR_ASSET, node_children_source,
-    node_definition_source, stylesheet_rule_sources,
+    node_children_source, node_definition_source, stylesheet_rule_sources, UI_ASSET_EDITOR_ASSET,
+    WORKBENCH_UI_ASSET_ACTION_BAR_ASSET,
 };
 
 #[test]

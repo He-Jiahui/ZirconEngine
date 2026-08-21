@@ -1,6 +1,6 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc;
+use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -11,8 +11,8 @@ use super::super::{
 };
 use super::{document_id, extension, recovery_source_path, remove_temporary_root, temporary_root};
 use crate::core::jobs::{
-    EditorJob, EditorJobAdmissionLimits, EditorJobLimits, EditorJobSpec, JobCategory, JobContext,
-    JobError, MutexGroup, test_job_system_with_limits,
+    test_job_system_with_limits, EditorJob, EditorJobAdmissionLimits, EditorJobLimits,
+    EditorJobSpec, JobCategory, JobContext, JobError, MutexGroup,
 };
 
 #[test]
@@ -43,23 +43,21 @@ fn autosave_adapter_defers_snapshot_capture_until_the_admitted_mutex_turn() {
         document.clone(),
         true,
     )];
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                |_| 32,
-                |requested| {
-                    assert_eq!(requested, &document);
-                    Some(AutosaveDocumentRequest::new(
-                        requested.clone(),
-                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                        source.clone(),
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(10),
+            &dirty,
+            |_| 32,
+            |requested| {
+                assert_eq!(requested, &document);
+                Some(AutosaveDocumentRequest::new(
+                    requested.clone(),
+                    AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                    source.clone(),
+                ))
+            },
+        )
+        .unwrap());
     assert_eq!(source.capture_count(), 0);
     assert!(adapter.is_in_flight());
 
@@ -247,25 +245,23 @@ fn autosave_adapter_advances_after_a_write_failure_and_shutdown_rejects_new_work
         document.clone(),
         true,
     )];
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                |_| 1,
-                |requested| {
-                    assert_eq!(requested, &document);
-                    Some(AutosaveDocumentRequest::new(
-                        requested.clone(),
-                        AutosaveJobPolicy::for_save_mutex(
-                            MutexGroup::parse("save_scene_main").unwrap(),
-                        ),
-                        Arc::new(CountingSnapshotSource::failure()),
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(10),
+            &dirty,
+            |_| 1,
+            |requested| {
+                assert_eq!(requested, &document);
+                Some(AutosaveDocumentRequest::new(
+                    requested.clone(),
+                    AutosaveJobPolicy::for_save_mutex(
+                        MutexGroup::parse("save_scene_main").unwrap(),
+                    ),
+                    Arc::new(CountingSnapshotSource::failure()),
+                ))
+            },
+        )
+        .unwrap());
     let completion = wait_for_autosave_completion(&mut adapter, Duration::from_secs(12));
     assert_eq!(completion.succeeded(), 0);
     assert_eq!(completion.failed(), 1);
@@ -316,23 +312,21 @@ fn autosave_adapter_materializes_a_bounded_fair_window_for_large_dirty_sets() {
     let save_mutex = MutexGroup::parse("save_scene_window").unwrap();
 
     let mut first_window = Vec::new();
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                |_| 1,
-                |document| {
-                    first_window.push(document.as_str().to_string());
-                    Some(AutosaveDocumentRequest::new(
-                        document.clone(),
-                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                        source.clone(),
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(10),
+            &dirty,
+            |_| 1,
+            |document| {
+                first_window.push(document.as_str().to_string());
+                Some(AutosaveDocumentRequest::new(
+                    document.clone(),
+                    AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                    source.clone(),
+                ))
+            },
+        )
+        .unwrap());
     assert_eq!(first_window, ["scene_00000", "scene_00001", "scene_00002"]);
     assert_eq!(
         wait_for_autosave_completion(&mut adapter, Duration::from_secs(11)).succeeded(),
@@ -340,23 +334,21 @@ fn autosave_adapter_materializes_a_bounded_fair_window_for_large_dirty_sets() {
     );
 
     let mut second_window = Vec::new();
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(21),
-                &dirty,
-                |_| 1,
-                |document| {
-                    second_window.push(document.as_str().to_string());
-                    Some(AutosaveDocumentRequest::new(
-                        document.clone(),
-                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                        source.clone(),
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(21),
+            &dirty,
+            |_| 1,
+            |document| {
+                second_window.push(document.as_str().to_string());
+                Some(AutosaveDocumentRequest::new(
+                    document.clone(),
+                    AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                    source.clone(),
+                ))
+            },
+        )
+        .unwrap());
     assert_eq!(second_window, ["scene_00003", "scene_00004", "scene_00005"]);
     assert_eq!(
         wait_for_autosave_completion(&mut adapter, Duration::from_secs(22)).succeeded(),
@@ -393,23 +385,21 @@ fn autosave_adapter_applies_the_byte_window_before_request_materialization() {
     let save_mutex = MutexGroup::parse("save_scene_bytes").unwrap();
     let materialized_requests = AtomicUsize::new(0);
 
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                |_| 2,
-                |document| {
-                    materialized_requests.fetch_add(1, Ordering::AcqRel);
-                    Some(AutosaveDocumentRequest::new(
-                        document.clone(),
-                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                        source.clone(),
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(10),
+            &dirty,
+            |_| 2,
+            |document| {
+                materialized_requests.fetch_add(1, Ordering::AcqRel);
+                Some(AutosaveDocumentRequest::new(
+                    document.clone(),
+                    AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                    source.clone(),
+                ))
+            },
+        )
+        .unwrap());
     assert_eq!(materialized_requests.load(Ordering::Acquire), 1);
     assert_eq!(
         wait_for_autosave_completion(&mut adapter, Duration::from_secs(11)).succeeded(),
@@ -443,29 +433,27 @@ fn autosave_adapter_skips_an_oversized_document_without_starving_later_work() {
     let save_mutex = MutexGroup::parse("save_scene_bytes").unwrap();
     let mut materialized = Vec::new();
 
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                |document| {
-                    if document.as_str() == "scene_oversized" {
-                        3
-                    } else {
-                        1
-                    }
-                },
-                |document| {
-                    materialized.push(document.as_str().to_string());
-                    Some(AutosaveDocumentRequest::new(
-                        document.clone(),
-                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                        source.clone(),
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(10),
+            &dirty,
+            |document| {
+                if document.as_str() == "scene_oversized" {
+                    3
+                } else {
+                    1
+                }
+            },
+            |document| {
+                materialized.push(document.as_str().to_string());
+                Some(AutosaveDocumentRequest::new(
+                    document.clone(),
+                    AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                    source.clone(),
+                ))
+            },
+        )
+        .unwrap());
     assert_eq!(materialized, ["scene_small_a", "scene_small_b"]);
     assert_eq!(
         wait_for_autosave_completion(&mut adapter, Duration::from_secs(11)).succeeded(),
@@ -499,27 +487,25 @@ fn autosave_adapter_rotates_to_a_fitting_document_skipped_by_a_mixed_byte_window
     let mut materialized = Vec::new();
 
     for now in [Duration::from_secs(10), Duration::from_secs(21)] {
-        assert!(
-            adapter
-                .schedule(
-                    now,
-                    &dirty,
-                    |document| match document.as_str() {
-                        "scene_a" | "scene_b" => 2,
-                        "scene_c" => 1,
-                        _ => unreachable!(),
-                    },
-                    |document| {
-                        materialized.push(document.as_str().to_string());
-                        Some(AutosaveDocumentRequest::new(
-                            document.clone(),
-                            AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                            source.clone(),
-                        ))
-                    },
-                )
-                .unwrap()
-        );
+        assert!(adapter
+            .schedule(
+                now,
+                &dirty,
+                |document| match document.as_str() {
+                    "scene_a" | "scene_b" => 2,
+                    "scene_c" => 1,
+                    _ => unreachable!(),
+                },
+                |document| {
+                    materialized.push(document.as_str().to_string());
+                    Some(AutosaveDocumentRequest::new(
+                        document.clone(),
+                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                        source.clone(),
+                    ))
+                },
+            )
+            .unwrap());
         assert_eq!(
             wait_for_autosave_completion(&mut adapter, now).succeeded(),
             2
@@ -556,28 +542,26 @@ fn autosave_adapter_does_not_let_an_oversized_document_hide_a_temporary_skip() {
     let mut materialized = Vec::new();
 
     for now in [Duration::from_secs(10), Duration::from_secs(21)] {
-        assert!(
-            adapter
-                .schedule(
-                    now,
-                    &dirty,
-                    |document| match document.as_str() {
-                        "scene_a" => 4,
-                        "scene_b" | "scene_c" => 2,
-                        "scene_d" => 1,
-                        _ => unreachable!(),
-                    },
-                    |document| {
-                        materialized.push(document.as_str().to_string());
-                        Some(AutosaveDocumentRequest::new(
-                            document.clone(),
-                            AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                            source.clone(),
-                        ))
-                    },
-                )
-                .unwrap()
-        );
+        assert!(adapter
+            .schedule(
+                now,
+                &dirty,
+                |document| match document.as_str() {
+                    "scene_a" => 4,
+                    "scene_b" | "scene_c" => 2,
+                    "scene_d" => 1,
+                    _ => unreachable!(),
+                },
+                |document| {
+                    materialized.push(document.as_str().to_string());
+                    Some(AutosaveDocumentRequest::new(
+                        document.clone(),
+                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                        source.clone(),
+                    ))
+                },
+            )
+            .unwrap());
         assert_eq!(
             wait_for_autosave_completion(&mut adapter, now).succeeded(),
             2
@@ -723,22 +707,20 @@ fn autosave_completion_pump_inspects_only_the_explicit_ticket_budget() {
     let source = Arc::new(CountingSnapshotSource::success());
     let save_mutex = MutexGroup::parse("save_completion_budget").unwrap();
 
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                |_| 1,
-                |document| {
-                    Some(AutosaveDocumentRequest::new(
-                        document.clone(),
-                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                        source.clone(),
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(10),
+            &dirty,
+            |_| 1,
+            |document| {
+                Some(AutosaveDocumentRequest::new(
+                    document.clone(),
+                    AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                    source.clone(),
+                ))
+            },
+        )
+        .unwrap());
 
     let first = adapter.pump_completed_with_budget(Duration::from_secs(11), 8);
     assert_eq!(first.inspected_tickets(), 8);
@@ -776,27 +758,25 @@ fn autosave_completion_budget_preserves_zero_budget_and_rotates_a_blocked_head()
         AutosaveStore::new(&root),
         AutosaveScheduler::new(AutosavePolicy::new(Duration::from_secs(10)).unwrap()),
     );
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                |_| 1,
-                |document| {
-                    let (save_mutex, source) = if document.as_str() == "scene_a" {
-                        (blocked_mutex.clone(), blocked_source.clone())
-                    } else {
-                        (ready_mutex.clone(), ready_source.clone())
-                    };
-                    Some(AutosaveDocumentRequest::new(
-                        document.clone(),
-                        AutosaveJobPolicy::for_save_mutex(save_mutex),
-                        source,
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(10),
+            &dirty,
+            |_| 1,
+            |document| {
+                let (save_mutex, source) = if document.as_str() == "scene_a" {
+                    (blocked_mutex.clone(), blocked_source.clone())
+                } else {
+                    (ready_mutex.clone(), ready_source.clone())
+                };
+                Some(AutosaveDocumentRequest::new(
+                    document.clone(),
+                    AutosaveJobPolicy::for_save_mutex(save_mutex),
+                    source,
+                ))
+            },
+        )
+        .unwrap());
     wait_for_capture_count(&ready_source, 1);
 
     let zero = adapter.pump_completed_with_budget(Duration::from_secs(11), 0);
@@ -841,28 +821,25 @@ fn autosave_completion_counts_accumulate_then_reset_for_the_next_interval() {
         AutosaveStore::new(&root),
         AutosaveScheduler::new(AutosavePolicy::new(Duration::from_secs(10)).unwrap()),
     );
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(10),
-                &dirty,
-                |_| 1,
-                |document| {
-                    let source: Arc<dyn AutosaveSnapshotSource> = if document.as_str() == "scene_a"
-                    {
-                        succeeded_source.clone()
-                    } else {
-                        failed_source.clone()
-                    };
-                    Some(AutosaveDocumentRequest::new(
-                        document.clone(),
-                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                        source,
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(10),
+            &dirty,
+            |_| 1,
+            |document| {
+                let source: Arc<dyn AutosaveSnapshotSource> = if document.as_str() == "scene_a" {
+                    succeeded_source.clone()
+                } else {
+                    failed_source.clone()
+                };
+                Some(AutosaveDocumentRequest::new(
+                    document.clone(),
+                    AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                    source,
+                ))
+            },
+        )
+        .unwrap());
     wait_for_capture_count(&succeeded_source, 1);
     wait_for_capture_count(&failed_source, 1);
 
@@ -891,22 +868,20 @@ fn autosave_completion_counts_accumulate_then_reset_for_the_next_interval() {
     assert_eq!(reset.succeeded(), 0);
     assert_eq!(reset.failed(), 0);
     assert_eq!(reset.pending(), 0);
-    assert!(
-        adapter
-            .schedule(
-                Duration::from_secs(21),
-                &dirty[..1],
-                |_| 1,
-                |document| {
-                    Some(AutosaveDocumentRequest::new(
-                        document.clone(),
-                        AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
-                        Arc::new(CountingSnapshotSource::success()),
-                    ))
-                },
-            )
-            .unwrap()
-    );
+    assert!(adapter
+        .schedule(
+            Duration::from_secs(21),
+            &dirty[..1],
+            |_| 1,
+            |document| {
+                Some(AutosaveDocumentRequest::new(
+                    document.clone(),
+                    AutosaveJobPolicy::for_save_mutex(save_mutex.clone()),
+                    Arc::new(CountingSnapshotSource::success()),
+                ))
+            },
+        )
+        .unwrap());
     assert_eq!(
         wait_for_autosave_completion(&mut adapter, Duration::from_secs(22)).succeeded(),
         1

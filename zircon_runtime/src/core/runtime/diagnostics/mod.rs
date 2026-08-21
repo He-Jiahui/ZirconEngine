@@ -31,6 +31,7 @@ pub use render::RuntimeRenderDiagnostics;
 pub(crate) use render_stats_store::record_render_stats_diagnostics;
 pub use snapshot::RuntimeDiagnosticsSnapshot;
 pub use store::{
-    DiagnosticMeasurement, DiagnosticPath, DiagnosticSeriesSnapshot, DiagnosticStore,
+    DiagnosticMeasurement, DiagnosticPath, DiagnosticSeriesCurrentSnapshot,
+    DiagnosticSeriesSnapshot, DiagnosticStore, DiagnosticStoreCurrentSnapshot,
     DiagnosticStoreSnapshot,
 };

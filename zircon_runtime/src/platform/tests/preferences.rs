@@ -2,9 +2,10 @@ use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
 use std::time::{Duration, Instant};
 
+use super::super::*;
 use crate::core::framework::foundation::FOUNDATION_MODULE_NAME;
 use crate::core::framework::platform::{
     PreferenceDurabilityState, PreferenceKey, PreferenceKeyErrorKind, PreferenceMutationTerminal,
@@ -12,13 +13,10 @@ use crate::core::framework::platform::{
     PreferenceTicketWaitResult, PreferenceWorkDeadline,
 };
 use crate::core::manager::{
-    platform_preference_storage_handle, resolve_manager_service, PLATFORM_MANAGER_NAME,
+    PLATFORM_MANAGER_NAME, platform_preference_storage_handle, resolve_manager_service,
 };
 use crate::core::{CoreError, CoreRuntime};
 use crate::foundation as foundation_runtime;
-use crate::platform::preferences::UnavailablePreferenceStorageBackend;
-
-use super::super::*;
 
 static NEXT_TEMP_ROOT: AtomicU64 = AtomicU64::new(1);
 
@@ -44,7 +42,7 @@ fn platform_preference_storage_keys_require_non_empty_bounded_namespaces_and_key
 
 #[test]
 fn platform_preference_storage_unavailable_backend_never_falls_back_to_process_memory() {
-    let storage = manager_with_backend(Arc::new(UnavailablePreferenceStorageBackend));
+    let storage = PlatformManager::new(Arc::new(PlatformDriver::default()));
     let key = PreferenceKey::new("woc.input", "keybinds").unwrap();
     let submission = storage
         .submit_write(
@@ -232,6 +230,25 @@ fn platform_preference_storage_atomic_file_supports_maximum_length_keys() {
     fs::remove_dir_all(root).unwrap();
 }
 
+#[cfg(windows)]
+#[test]
+fn platform_preference_storage_atomic_file_supports_long_managed_temp_roots() {
+    let case = format!("long-root-{}", "padding".repeat(12));
+    let root = fresh_temp_root(&case);
+    let storage = manager_with_backend(Arc::new(AtomicFilePreferenceStorageBackend::new(
+        root.clone(),
+    )));
+    let key = PreferenceKey::new("woc.input", "long-managed-temp-root").unwrap();
+
+    submit_write(&storage, key.clone(), b"long-managed-temp-root");
+    assert_eq!(
+        storage.snapshot(&key).unwrap().value(),
+        Some(&b"long-managed-temp-root"[..])
+    );
+
+    fs::remove_dir_all(root).unwrap();
+}
+
 #[test]
 fn platform_preference_storage_atomic_file_reports_path_stage_and_fsync_work() {
     let root = fresh_temp_root("diagnostics");
@@ -302,11 +319,13 @@ fn platform_preference_storage_injected_backend_updates_capability_report() {
         report.persistent_preferences,
         CapabilityStatus::Supported(PreferenceStorageBackendKind::AtomicFile)
     );
-    assert!(report
-        .diagnostic_lines()
-        .contains(&"platform.persistent_preferences=supported:atomic_file".to_owned()));
+    assert!(
+        report
+            .diagnostic_lines()
+            .contains(&"platform.persistent_preferences=supported:atomic_file".to_owned())
+    );
 
-    fs::remove_dir_all(root).unwrap();
+    let _ = fs::remove_dir_all(root);
 }
 
 fn manager_with_backend(backend: Arc<dyn PreferenceStorageBackend>) -> PlatformManager {
@@ -319,10 +338,14 @@ fn submit_write(storage: &dyn PreferenceStorage, key: PreferenceKey, value: &[u8
     let submission = storage
         .submit_write(key, Arc::from(value), PreferenceWorkDeadline::none())
         .unwrap();
-    assert!(matches!(
-        wait_ticket(&submission),
-        PreferenceTicketWaitResult::Terminal(PreferenceMutationTerminal::Durable)
-    ));
+    let terminal = wait_ticket(&submission);
+    assert!(
+        matches!(
+            &terminal,
+            PreferenceTicketWaitResult::Terminal(PreferenceMutationTerminal::Durable)
+        ),
+        "preference write ended as {terminal:?}"
+    );
 }
 
 fn wait_ticket(
@@ -361,10 +384,8 @@ fn wait_snapshot(
 
 fn fresh_temp_root(case: &str) -> PathBuf {
     let id = NEXT_TEMP_ROOT.fetch_add(1, Ordering::Relaxed);
-    let root = std::env::temp_dir().join(format!(
-        "zircon-platform-preferences-{case}-{}-{id}",
-        std::process::id()
-    ));
+    // Keep routine fixtures compact; the dedicated long-root regression covers verbatim paths.
+    let root = std::env::temp_dir().join(format!("zr-pref-{case}-{}-{id}", std::process::id()));
     let _ = fs::remove_dir_all(&root);
     root
 }

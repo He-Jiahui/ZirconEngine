@@ -3,12 +3,13 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::jobs::{
-    EDITOR_JOB_EXPORT_QUOTA_KEY, EDITOR_JOB_INTERACTIVE_SAVE_QUOTA_KEY, EDITOR_JOB_PLAY_QUOTA_KEY,
-    EDITOR_JOB_THUMBNAIL_QUOTA_KEY, register_editor_job_quota_settings, resolve_editor_job_limits,
+    register_editor_job_quota_settings, resolve_editor_job_limits, EDITOR_JOB_EXPORT_QUOTA_KEY,
+    EDITOR_JOB_INTERACTIVE_SAVE_QUOTA_KEY, EDITOR_JOB_PLAY_QUOTA_KEY,
+    EDITOR_JOB_THUMBNAIL_QUOTA_KEY,
 };
 use crate::core::settings::{
-    SettingValue, SettingsError, SettingsKey, SettingsRegistry, SettingsScope, SettingsStartup,
-    SettingsStore, SettingsUserLayerLoad, settings_registry_with_defaults,
+    settings_registry_with_defaults, SettingValue, SettingsError, SettingsKey, SettingsRegistry,
+    SettingsScope, SettingsStartup, SettingsStore, SettingsUserLayerLoad,
 };
 
 use super::super::JobCategory;
@@ -33,11 +34,9 @@ fn job_category_quotas_are_user_scoped_bounded_and_restart_only() {
             .unwrap()
             .expect("a changed user quota must publish a settings change");
         assert!(change.requires_restart);
-        assert!(
-            registry
-                .set(SettingsScope::User, &key, SettingValue::Int(0))
-                .is_err()
-        );
+        assert!(registry
+            .set(SettingsScope::User, &key, SettingValue::Int(0))
+            .is_err());
     }
 }
 

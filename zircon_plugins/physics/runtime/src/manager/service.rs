@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::framework::{
     physics::{
@@ -15,14 +17,14 @@ use zircon_runtime::scene::world::World;
 use crate::backend::builtin::{
     compute_contact_events, compute_trigger_events, integrate_builtin_physics_steps,
 };
-use crate::backend::{physics_backend_status, select_runtime_backend, PhysicsRuntimeBackend};
+use crate::backend::{PhysicsRuntimeBackend, physics_backend_status, select_runtime_backend};
 
+use super::DefaultPhysicsManager;
 use super::clock::configured_step_seconds;
 use super::command_buffer::apply_commands_to_scene;
 use super::poison_recovery::recover_lock;
 use super::query;
 use super::world_sync::{build_world_sync_state, clear_world_state, sanitize_world_sync_state};
-use super::DefaultPhysicsManager;
 
 impl PhysicsManager for DefaultPhysicsManager {
     fn backend_name(&self) -> String {
@@ -80,7 +82,9 @@ impl PhysicsManager for DefaultPhysicsManager {
     }
 
     fn synchronized_world(&self, world: WorldHandle) -> Option<PhysicsWorldSyncState> {
-        recover_lock(&self.synced_worlds).get(&world).cloned()
+        recover_lock(&self.synced_worlds)
+            .get(&world)
+            .map(|sync| sync.as_ref().clone())
     }
 
     fn ray_cast(&self, query: &PhysicsRayCastQuery) -> Vec<PhysicsRayCastHit> {
@@ -230,10 +234,11 @@ impl DefaultPhysicsManager {
             .unwrap_or_default();
         let (trigger_pairs, triggers) =
             compute_trigger_events(&sync, settings, &previous_trigger_pairs);
-        recover_lock(&self.synced_worlds).insert(sync.world, sync.clone());
-        recover_lock(&self.contacts).insert(sync.world, contacts);
-        recover_lock(&self.trigger_pairs).insert(sync.world, trigger_pairs);
-        recover_lock(&self.triggers).insert(sync.world, triggers);
+        let world = sync.world;
+        recover_lock(&self.synced_worlds).insert(world, Arc::new(sync));
+        recover_lock(&self.contacts).insert(world, contacts);
+        recover_lock(&self.trigger_pairs).insert(world, trigger_pairs);
+        recover_lock(&self.triggers).insert(world, triggers);
         *recover_lock(&self.last_backend_error) = None;
     }
 

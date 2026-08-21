@@ -12,13 +12,7 @@ impl RetainedEditorHost {
             return;
         }
         if is_escape_pressed(&keyboard) {
-            match callback_dispatch::dispatch_viewport_event(
-                &self.runtime,
-                EditorViewportEvent::CancelInteraction,
-            ) {
-                Ok(effects) => self.apply_dispatch_effects(effects),
-                Err(error) => self.set_status_line(error),
-            }
+            self.cancel_viewport_interaction();
             return;
         }
         match self
@@ -31,6 +25,16 @@ impl RetainedEditorHost {
                 self.apply_dispatch_effects(effects);
             }
             Ok(None) => {}
+            Err(error) => self.set_status_line(error),
+        }
+    }
+
+    pub(super) fn cancel_viewport_interaction(&mut self) {
+        match callback_dispatch::dispatch_viewport_event(
+            &self.runtime,
+            EditorViewportEvent::CancelInteraction,
+        ) {
+            Ok(effects) => self.apply_dispatch_effects(effects),
             Err(error) => self.set_status_line(error),
         }
     }

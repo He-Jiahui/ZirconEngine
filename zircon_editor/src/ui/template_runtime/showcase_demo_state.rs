@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, VecDeque};
 
 use toml::Value as TomlValue;
-use zircon_runtime::ui::component::{UiComponentDescriptorRegistry, apply_component_event};
+use zircon_runtime::ui::component::{apply_component_event, UiComponentDescriptorRegistry};
 use zircon_runtime_interface::ui::component::{
     UiComponentEventEnvelope, UiComponentState, UiDragSourceMetadata, UiValue,
 };
@@ -16,8 +16,8 @@ mod state_panel;
 use categories::{project_selected_category_state, should_keep_for_selected_category};
 use defaults::{component_id_for_control, default_state_for_control};
 pub(crate) use events::{
-    UiComponentShowcaseDemoError, UiComponentShowcaseDemoEventInput,
-    resolve_showcase_component_event,
+    resolve_showcase_component_event, UiComponentShowcaseDemoError,
+    UiComponentShowcaseDemoEventInput,
 };
 
 pub(crate) const SHOWCASE_DOCUMENT_ID: &str = "res://ui/editor/component_showcase.zui";
@@ -522,7 +522,7 @@ fn toml_value(value: &UiValue) -> TomlValue {
 
 #[cfg(test)]
 mod performance_tests {
-    use super::{SHOWCASE_EVENT_LOG_LIMIT, UiComponentShowcaseDemoState};
+    use super::{UiComponentShowcaseDemoState, SHOWCASE_EVENT_LOG_LIMIT};
 
     #[test]
     fn showcase_event_log_retains_a_bounded_recent_window() {

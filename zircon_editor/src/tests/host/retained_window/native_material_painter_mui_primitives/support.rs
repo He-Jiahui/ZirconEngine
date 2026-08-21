@@ -4,8 +4,8 @@ pub(super) use crate::ui::retained_host::primitives::{
     Image, ModelRc, Rgba8Pixel, SharedPixelBuffer, VecModel,
 };
 pub(super) use crate::ui::retained_host::{
-    TemplateNodeFrameData, TemplatePaneNodeData, paint_template_nodes_for_test,
-    paint_template_nodes_for_test_with_background,
+    paint_template_nodes_for_test, paint_template_nodes_for_test_with_background,
+    TemplateNodeFrameData, TemplatePaneNodeData,
 };
 pub(super) use zircon_runtime_interface::ui::style::{
     ResolvedButtonStyle, UiResolvedElementStyle, UiRgbaColor, UiStyleColor,

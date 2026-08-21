@@ -9,7 +9,7 @@ use crate::ui::retained_host::{
     event_bridge::UiHostEventEffects,
 };
 
-use super::super::{BuiltinHostWindowTemplateBridge, dispatch_builtin_host_drawer_toggle};
+use super::super::{dispatch_builtin_host_drawer_toggle, BuiltinHostWindowTemplateBridge};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SharedDrawerHeaderPointerClickDispatch {

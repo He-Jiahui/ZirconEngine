@@ -1,4 +1,6 @@
+use std::hint::black_box;
 use std::sync::Arc;
+use std::time::Instant;
 
 use zircon_plugin_animation_runtime::{
     AnimationGraphCompileError, CompiledAnimationGraph, SkeletonTargetTable,
@@ -127,6 +129,93 @@ fn compiled_graph_rejects_missing_edges_cycles_and_ambiguous_mask_leaves() {
     ));
 }
 
+#[test]
+fn compiled_graph_falls_back_to_default_for_non_finite_parameter_override() {
+    let targets = Arc::new(SkeletonTargetTable::compile(&skeleton(&[("Root", None)])).unwrap());
+    let graph = weighted_graph(0.25, 1);
+    let compiled = CompiledAnimationGraph::compile(&graph, targets).unwrap();
+    let evaluation = compiled.evaluate(&AnimationParameterMap::from([(
+        "weight".into(),
+        AnimationParameterValue::Scalar(f32::NAN),
+    )]));
+
+    assert_eq!(evaluation.clips().len(), 2);
+    assert!((evaluation.clips()[0].weight() - 0.75).abs() < 0.0001);
+    assert!((evaluation.clips()[1].weight() - 0.25).abs() < 0.0001);
+}
+
+#[test]
+fn compiled_graph_evaluation_borrows_parameter_slots_without_materializing_snapshot() {
+    let source = include_str!("../src/evaluation/compiled_graph/evaluate.rs");
+
+    assert!(source.contains("fn parameter_value<'a>("));
+    assert!(!source.contains(".collect::<Vec<_>>()"));
+    assert!(!source.contains(".cloned()"));
+}
+
+#[test]
+#[ignore = "release performance evidence"]
+fn compiled_graph_borrowed_parameter_slot_release_benchmark_evidence() {
+    const PARAMETER_COUNT: usize = 8_192;
+    const EVALUATIONS_PER_SAMPLE: usize = 64;
+    const SAMPLE_PAIRS: usize = 21;
+    const THRESHOLD_BPS: u64 = 2_500;
+
+    let targets = Arc::new(SkeletonTargetTable::compile(&skeleton(&[("Root", None)])).unwrap());
+    let graph = weighted_graph(0.25, PARAMETER_COUNT);
+    let compiled = CompiledAnimationGraph::compile(&graph, targets).unwrap();
+    let overrides =
+        AnimationParameterMap::from([("weight".into(), AnimationParameterValue::Scalar(0.75))]);
+    let mut legacy_ns = Vec::with_capacity(SAMPLE_PAIRS);
+    let mut borrowed_ns = Vec::with_capacity(SAMPLE_PAIRS);
+    for pair in 0..SAMPLE_PAIRS {
+        if pair % 2 == 0 {
+            legacy_ns.push(measure_legacy_parameter_snapshot(
+                &graph.parameters,
+                &overrides,
+                EVALUATIONS_PER_SAMPLE,
+            ));
+            borrowed_ns.push(measure_borrowed_parameter_slot(
+                &compiled,
+                &overrides,
+                EVALUATIONS_PER_SAMPLE,
+            ));
+        } else {
+            borrowed_ns.push(measure_borrowed_parameter_slot(
+                &compiled,
+                &overrides,
+                EVALUATIONS_PER_SAMPLE,
+            ));
+            legacy_ns.push(measure_legacy_parameter_snapshot(
+                &graph.parameters,
+                &overrides,
+                EVALUATIONS_PER_SAMPLE,
+            ));
+        }
+    }
+
+    let legacy_p95_ns = nearest_rank(&legacy_ns, 95);
+    let borrowed_p95_ns = nearest_rank(&borrowed_ns, 95);
+    let ratio_bps = borrowed_p95_ns.saturating_mul(10_000) / legacy_p95_ns.max(1);
+    assert!(
+        ratio_bps <= THRESHOLD_BPS,
+        "borrowed parameter P95 {borrowed_p95_ns} ns exceeds {THRESHOLD_BPS} bps of legacy {legacy_p95_ns} ns"
+    );
+
+    println!(
+        "PERF_RESULT plugins13_graph_parameter_slots parameters={PARAMETER_COUNT} \
+         evaluations_per_sample={EVALUATIONS_PER_SAMPLE} sample_pairs={SAMPLE_PAIRS} \
+         order=alternating_legacy_first_even \
+         legacy_parameter_value_clones_per_sample={} \
+         borrowed_parameter_value_clones_per_sample=0 legacy_p95_ns={legacy_p95_ns} \
+         borrowed_p95_ns={borrowed_p95_ns} ratio_bps={ratio_bps} \
+         threshold_bps={THRESHOLD_BPS} legacy_ns={} borrowed_ns={}",
+        PARAMETER_COUNT * EVALUATIONS_PER_SAMPLE,
+        csv(&legacy_ns),
+        csv(&borrowed_ns),
+    );
+}
+
 fn clip_node(id: &str, uri: &str) -> AnimationGraphNodeAsset {
     AnimationGraphNodeAsset::Clip {
         id: id.into(),
@@ -134,6 +223,100 @@ fn clip_node(id: &str, uri: &str) -> AnimationGraphNodeAsset {
         playback_speed: 1.0,
         looping: true,
     }
+}
+
+fn weighted_graph(default_weight: f32, parameter_count: usize) -> AnimationGraphAsset {
+    let mut parameters = (0..parameter_count.saturating_sub(1))
+        .map(|index| AnimationGraphParameterAsset {
+            name: format!("unused_{index}"),
+            default_value: AnimationParameterValue::Scalar(index as f32),
+        })
+        .collect::<Vec<_>>();
+    parameters.push(AnimationGraphParameterAsset {
+        name: "weight".into(),
+        default_value: AnimationParameterValue::Scalar(default_weight),
+    });
+    AnimationGraphAsset {
+        name: Some("weighted".into()),
+        parameters,
+        nodes: vec![
+            clip_node("idle", "res://animations/idle.zanim"),
+            clip_node("run", "res://animations/run.zanim"),
+            AnimationGraphNodeAsset::Blend {
+                id: "blend".into(),
+                inputs: vec!["idle".into(), "run".into()],
+                weight_parameter: Some("weight".into()),
+            },
+            AnimationGraphNodeAsset::Output {
+                source: "blend".into(),
+            },
+        ],
+    }
+}
+
+fn measure_legacy_parameter_snapshot(
+    parameters: &[AnimationGraphParameterAsset],
+    overrides: &AnimationParameterMap,
+    evaluations: usize,
+) -> u64 {
+    let started = Instant::now();
+    for _ in 0..evaluations {
+        let snapshot = parameters
+            .iter()
+            .map(|parameter| {
+                overrides
+                    .get(&parameter.name)
+                    .filter(|value| parameter_is_finite(value))
+                    .cloned()
+                    .unwrap_or_else(|| parameter.default_value.clone())
+            })
+            .collect::<Vec<_>>();
+        black_box(snapshot);
+    }
+    u64::try_from(started.elapsed().as_nanos())
+        .unwrap_or(u64::MAX)
+        .max(1)
+}
+
+fn measure_borrowed_parameter_slot(
+    compiled: &CompiledAnimationGraph,
+    overrides: &AnimationParameterMap,
+    evaluations: usize,
+) -> u64 {
+    let started = Instant::now();
+    for _ in 0..evaluations {
+        black_box(compiled.evaluate(overrides));
+    }
+    u64::try_from(started.elapsed().as_nanos())
+        .unwrap_or(u64::MAX)
+        .max(1)
+}
+
+fn parameter_is_finite(value: &AnimationParameterValue) -> bool {
+    match value {
+        AnimationParameterValue::Scalar(value) => value.is_finite(),
+        AnimationParameterValue::Vec2(value) => value.iter().all(|value| value.is_finite()),
+        AnimationParameterValue::Vec3(value) => value.iter().all(|value| value.is_finite()),
+        AnimationParameterValue::Vec4(value) => value.iter().all(|value| value.is_finite()),
+        AnimationParameterValue::Bool(_)
+        | AnimationParameterValue::Integer(_)
+        | AnimationParameterValue::Trigger => true,
+    }
+}
+
+fn nearest_rank(samples: &[u64], percentile: usize) -> u64 {
+    let mut ordered = samples.to_vec();
+    ordered.sort_unstable();
+    let rank = (ordered.len() * percentile).div_ceil(100);
+    ordered[rank.saturating_sub(1)]
+}
+
+fn csv(samples: &[u64]) -> String {
+    samples
+        .iter()
+        .map(u64::to_string)
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn skeleton(bones: &[(&str, Option<u32>)]) -> AnimationSkeletonAsset {

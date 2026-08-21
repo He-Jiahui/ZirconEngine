@@ -4,9 +4,9 @@ use crate::ui::workbench::layout::{
 };
 use crate::ui::workbench::view::ViewInstanceId;
 use crate::ui::workbench::{
-    CenterSplitLayout, LAYOUT_PRESET_PERSISTENCE_VERSION, LayoutPreset, LayoutPresetName,
-    LayoutPresetPersistenceStore, LayoutPresetRestoreFallback, LayoutPresetRestoreResult,
-    LayoutPresetScope, PersistedLayoutPreset,
+    CenterSplitLayout, LayoutPreset, LayoutPresetName, LayoutPresetPersistenceStore,
+    LayoutPresetRestoreFallback, LayoutPresetRestoreResult, LayoutPresetScope,
+    PersistedLayoutPreset, LAYOUT_PRESET_PERSISTENCE_VERSION,
 };
 
 #[test]
@@ -68,22 +68,18 @@ fn page_user_layout_persistence_roundtrips_drawers_widths_and_split_without_view
             panes: 2
         }
     );
-    assert!(
-        captured
-            .drawer_states
-            .iter()
-            .any(|state| state.slot == ActivityDrawerSlot::LeftTop
-                && state.mode == ActivityDrawerMode::Collapsed)
-    );
-    assert!(
-        captured
-            .size_overrides
-            .iter()
-            .any(
-                |override_value| override_value.token.as_str() == "--right-drawer-width"
-                    && override_value.value == 444
-            )
-    );
+    assert!(captured
+        .drawer_states
+        .iter()
+        .any(|state| state.slot == ActivityDrawerSlot::LeftTop
+            && state.mode == ActivityDrawerMode::Collapsed));
+    assert!(captured
+        .size_overrides
+        .iter()
+        .any(
+            |override_value| override_value.token.as_str() == "--right-drawer-width"
+                && override_value.value == 444
+        ));
 
     let encoded = serde_json::to_string(&store).expect("layout preset store serializes");
     assert!(!encoded.contains("editor.scene#persisted-layout"));

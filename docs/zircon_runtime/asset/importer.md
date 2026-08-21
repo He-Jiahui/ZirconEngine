@@ -147,6 +147,7 @@ related_code:
   - zircon_plugins/asset_importers/texture/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/shader/runtime/Cargo.toml
   - zircon_plugins/asset_importers/shader/runtime/src/lib.rs
+  - zircon_plugins/shader_wgsl_importer/runtime/src/lib.rs
   - zircon_plugins/asset_importers/shader/plugin.toml
   - zircon_plugins/asset_importers/shader/dist/Cargo.toml
   - zircon_plugins/asset_importers/shader/dist/src/lib.rs
@@ -263,6 +264,7 @@ implementation_files:
   - zircon_plugins/asset_importers/texture/runtime/src/plugin.rs
   - zircon_plugins/asset_importers/shader/runtime/Cargo.toml
   - zircon_plugins/asset_importers/shader/runtime/src/lib.rs
+  - zircon_plugins/shader_wgsl_importer/runtime/src/lib.rs
   - zircon_plugins/asset_importers/shader/plugin.toml
   - zircon_plugins/asset_importers/shader/dist/Cargo.toml
   - zircon_plugins/asset_importers/shader/dist/src/lib.rs
@@ -618,7 +620,7 @@ This makes import formats a runtime extension point. The runtime still owns the 
 
 `AssetImporterDescriptor` is the public routing record. It declares importer id, plugin id, priority, ordinary extensions, full suffixes, output kind, importer version, and required capabilities. Full suffixes are matched before extensions, so `toolbar.zui`, `level.scene.toml`, and `actor.prefab.toml` do not fall through to ordinary extension importers.
 
-`AssetImportContext` carries the source path, normalized asset URI, source bytes, and per-asset import settings from meta. `AssetImportOutcome` is now a labeled entry list rather than a single imported asset. Each `ImportedAssetEntry` owns its locator, asset payload, dependency URIs, optional schema migration report, and diagnostics. The root entry uses the unlabeled source locator, and subassets use the same source path with a label such as `res://model/character.gltf#Mesh0`. The registry validates duplicate importer ids and duplicate matchers at the same priority before a plugin contribution is accepted.
+`AssetImportContext` carries the source path, normalized asset URI, source bytes, and per-asset import settings from meta. Text importers should use `source_str()` while parsing or validating and create owned text only when the accepted asset contract needs it; `source_text()` remains the owned convenience path. `AssetImportOutcome` is now a labeled entry list rather than a single imported asset. Each `ImportedAssetEntry` owns its locator, asset payload, dependency URIs, optional schema migration report, and diagnostics. The root entry uses the unlabeled source locator, and subassets use the same source path with a label such as `res://model/character.gltf#Mesh0`. The registry validates duplicate importer ids and duplicate matchers at the same priority before a plugin contribution is accepted.
 
 `AssetImporterCapabilityReport` is the public diagnostic view of a registered importer. It pairs the routing descriptor with `AssetImporterCapabilityStatus::Available` or `DiagnosticOnly { message }`. Function-backed and plugin-backed handlers report `Available`; `DiagnosticOnlyAssetImporter` reports the stable reason that a format is recognized but cannot currently produce runtime assets. `AssetImporterRegistry`, the ingest-level `AssetImporter`, `ProjectAssetManager`, and the public `AssetManager` service trait expose source-specific and full capability reports so editor UI can present importer availability without running a scan or creating error artifacts.
 
@@ -628,9 +630,11 @@ Plain `.toml` is a `DataAsset`. Typed `*.xxx.toml` requires a registered full-su
 
 ### Data import error sources
 
-`AssetImportContext::source_text()` reports invalid UTF-8 as
+`AssetImportContext::source_str()` validates UTF-8 without allocating on the successful path, while
+`source_text()` creates an owned copy for consumers that require one. Both report invalid UTF-8 as
 `AssetImportError::SourceTextDecode { path, source }`, preserving the original
-`FromUtf8Error`. Plain TOML and JSON data import use the contextual
+`FromUtf8Error`; the byte clone needed to construct that owned error source occurs only on invalid
+UTF-8. Plain TOML and JSON data import use the contextual
 `TomlDeserialize` and `JsonDeserialize` variants, so callers can inspect the parser error through
 `std::error::Error::source()` instead of receiving a flattened `Parse(String)`.
 

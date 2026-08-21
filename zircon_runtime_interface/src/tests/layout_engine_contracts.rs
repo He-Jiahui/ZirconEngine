@@ -358,6 +358,65 @@ fn ui_layout_engine_selection_report_counts_unsupported_routes_separately() {
 }
 
 #[test]
+fn ui_layout_engine_selection_requires_full_fallback_capability_admission() {
+    let preferred_taffy = UiLayoutEngineCapability {
+        backend: UiLayoutEngineBackend::Taffy,
+        supported_families: Vec::new(),
+        supports_content_measure: true,
+        supports_dpi_scaling: true,
+    };
+    let mut content_request = UiLayoutEngineRequest::new(UiLayoutEngineFamily::Block);
+    content_request.needs_content_measure = true;
+    let missing_content_measure = UiLayoutEngineSelection::select(
+        &content_request,
+        &preferred_taffy,
+        &UiLayoutEngineCapability {
+            backend: UiLayoutEngineBackend::Zircon,
+            supported_families: vec![UiLayoutEngineFamily::Block],
+            supports_content_measure: false,
+            supports_dpi_scaling: true,
+        },
+    );
+
+    let dpi_request = UiLayoutEngineRequest::new(UiLayoutEngineFamily::Block);
+    let missing_dpi_scaling = UiLayoutEngineSelection::select(
+        &dpi_request,
+        &preferred_taffy,
+        &UiLayoutEngineCapability {
+            backend: UiLayoutEngineBackend::Zircon,
+            supported_families: vec![UiLayoutEngineFamily::Block],
+            supports_content_measure: true,
+            supports_dpi_scaling: false,
+        },
+    );
+
+    let preferred_zircon = UiLayoutEngineCapability {
+        backend: UiLayoutEngineBackend::Zircon,
+        supported_families: Vec::new(),
+        supports_content_measure: true,
+        supports_dpi_scaling: true,
+    };
+    let zircon_owned_semantics = UiLayoutEngineSelection::select(
+        &UiLayoutEngineRequest::new(UiLayoutEngineFamily::Overlay),
+        &preferred_zircon,
+        &UiLayoutEngineCapability {
+            backend: UiLayoutEngineBackend::Taffy,
+            supported_families: vec![UiLayoutEngineFamily::Overlay],
+            supports_content_measure: true,
+            supports_dpi_scaling: true,
+        },
+    );
+
+    for selection in [
+        missing_content_measure,
+        missing_dpi_scaling,
+        zircon_owned_semantics,
+    ] {
+        assert_eq!(selection.support, UiLayoutEngineSupport::Unsupported);
+    }
+}
+
+#[test]
 fn ui_layout_engine_selection_report_counts_missing_fallback_reasons() {
     let selection = UiLayoutEngineSelection {
         request: UiLayoutEngineRequest::new(UiLayoutEngineFamily::Overlay),

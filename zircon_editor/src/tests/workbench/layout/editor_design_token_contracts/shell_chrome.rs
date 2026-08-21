@@ -1,3 +1,4 @@
+use super::chrome_theme::strict_theme_rule;
 use super::support::assert_tokenized_assets;
 use toml::Value;
 

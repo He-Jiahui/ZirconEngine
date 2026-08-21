@@ -6,10 +6,10 @@ use zircon_runtime::core::framework::animation::{
 };
 use zircon_runtime::scene::AnimationStateTransitionRuntime;
 
+use super::AnimationEvaluationPipeline;
 use super::machine_instance_key::MachineInstanceKey;
 use super::nested_machine_sample::normalized_machine_state_time;
 use super::state_machine_cache::resolve_sub_machine_id;
-use super::AnimationEvaluationPipeline;
 use crate::{CompiledAnimationStateMachine, TransitionDesc};
 
 pub(super) struct ResolvedMachineInstance {
@@ -17,6 +17,7 @@ pub(super) struct ResolvedMachineInstance {
     pub(super) machine: Arc<CompiledAnimationStateMachine>,
     pub(super) evaluation: AnimationStateMachineEvaluation,
     pub(super) requested_desc: Option<TransitionDesc>,
+    pub(super) requested_triggers: Option<Arc<[String]>>,
     pub(super) transition: Option<AnimationStateTransitionRuntime>,
     pub(super) root_active_state: String,
     pub(super) is_nested: bool,
@@ -36,12 +37,13 @@ pub(super) fn resolve_machine_instance(
     let mut root_active_state = None;
     let mut is_nested = false;
     loop {
-        let (machine, evaluation, requested_desc) = pipeline.evaluate_state_machine(
-            asset_manager,
-            machine_id,
-            active_state.as_deref(),
-            parameters,
-        )?;
+        let (machine, evaluation, requested_desc, requested_triggers) = pipeline
+            .evaluate_state_machine_with_triggers(
+                asset_manager,
+                machine_id,
+                active_state.as_deref(),
+                parameters,
+            )?;
         root_active_state.get_or_insert_with(|| {
             evaluation
                 .active_state
@@ -71,6 +73,7 @@ pub(super) fn resolve_machine_instance(
                 machine,
                 evaluation,
                 requested_desc,
+                requested_triggers,
                 transition,
                 root_active_state: root_active_state.unwrap_or_default(),
                 is_nested,
@@ -85,6 +88,7 @@ pub(super) fn resolve_machine_instance(
                 machine,
                 evaluation,
                 requested_desc,
+                requested_triggers,
                 transition,
                 root_active_state: root_active_state.unwrap_or_default(),
                 is_nested,

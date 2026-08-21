@@ -35,6 +35,33 @@ impl EditorRuntimeGateway for HighlightRecordingGateway {
         self.submissions.fetch_add(1, Ordering::SeqCst);
         Ok(())
     }
+
+    fn submit_operation(
+        &self,
+        _request: ZrRuntimeOperationSubmitRequestV1,
+    ) -> Result<ZrRuntimeOperationHandle, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.operation.submit",
+        })
+    }
+
+    fn poll_operation(
+        &self,
+        _handle: ZrRuntimeOperationHandle,
+    ) -> Result<ZrRuntimeOperationStatusV2, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.operation.poll",
+        })
+    }
+
+    fn harvest_operation(
+        &self,
+        _handle: ZrRuntimeOperationHandle,
+    ) -> Result<ZrRuntimeOperationResultV1, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.operation.harvest",
+        })
+    }
 }
 
 #[derive(Default)]
@@ -68,6 +95,33 @@ impl EditorRuntimeGateway for ViewportSurfaceRecordingGateway {
     fn present_viewport(&self, _request: ZrRuntimeFrameRequestV1) -> Result<(), GatewayError> {
         self.presents.fetch_add(1, Ordering::SeqCst);
         Ok(())
+    }
+
+    fn submit_operation(
+        &self,
+        _request: ZrRuntimeOperationSubmitRequestV1,
+    ) -> Result<ZrRuntimeOperationHandle, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.operation.submit",
+        })
+    }
+
+    fn poll_operation(
+        &self,
+        _handle: ZrRuntimeOperationHandle,
+    ) -> Result<ZrRuntimeOperationStatusV2, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.operation.poll",
+        })
+    }
+
+    fn harvest_operation(
+        &self,
+        _handle: ZrRuntimeOperationHandle,
+    ) -> Result<ZrRuntimeOperationResultV1, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.operation.harvest",
+        })
     }
 }
 

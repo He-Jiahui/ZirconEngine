@@ -2,7 +2,7 @@ use crate::core::editor_event::ViewInstanceId;
 use crate::core::editor_message::EditorViewInvalidationMask;
 use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 
-use crate::tests::editor_event::support::{EventRuntimeHarness, env_lock};
+use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
 use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime_interface::ui::layout::UiSize;
 use zircon_runtime_interface::world_sync::{WatchKey, WatchRegistration};
@@ -55,7 +55,7 @@ fn hierarchy_world_watch_delivers_structure_changes_without_reflection_fallback(
     let _lock = env_lock().lock().unwrap();
     let harness = EventRuntimeHarness::new("editor_message_hierarchy_world_watch");
     let hierarchy = ViewInstanceId::new("scene.hierarchy");
-    let token = harness
+    let (token, _) = harness
         .runtime
         .watch_edit_world_for_view(
             WatchRegistration::new(WatchKey::WorldStructure),
@@ -90,18 +90,14 @@ fn hierarchy_world_watch_delivers_structure_changes_without_reflection_fallback(
         .runtime
         .take_retained_scene_inspection_message()
         .expect("watch-driven hierarchy dirtiness must publish an inspection message");
-    assert!(
-        message
-            .added_anchors()
-            .iter()
-            .any(|anchor| anchor.entity() == spawned_entity)
-    );
-    assert!(
-        harness
-            .runtime
-            .unwatch_edit_world_for_view(token)
-            .expect("hierarchy watch should unregister before the fixture is released")
-    );
+    assert!(message
+        .added_anchors()
+        .iter()
+        .any(|anchor| anchor.entity() == spawned_entity));
+    assert!(harness
+        .runtime
+        .unwatch_edit_world_for_view(token)
+        .expect("hierarchy watch should unregister before the fixture is released"));
 }
 
 #[test]
@@ -109,7 +105,7 @@ fn hierarchy_dirty_refresh_publishes_and_consumes_a_fragment_without_snapshot_fa
     let _lock = env_lock().lock().unwrap();
     let harness = EventRuntimeHarness::new("editor_message_hierarchy_fragment_refresh");
     let hierarchy = ViewInstanceId::new("scene.hierarchy");
-    let initial_chrome = harness.runtime.editor_snapshot();
+    let initial_chrome = harness.runtime.chrome_snapshot();
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 720.0))
         .expect("workbench bridge should initialize");
     bridge
@@ -176,7 +172,7 @@ fn ten_thousand_node_name_refresh_applies_a_patch_without_materializing_sparse_r
             renamed
         })
     };
-    let initial_chrome = harness.runtime.editor_snapshot();
+    let initial_chrome = harness.runtime.chrome_snapshot();
     let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 720.0))
         .expect("workbench bridge should initialize");
     bridge

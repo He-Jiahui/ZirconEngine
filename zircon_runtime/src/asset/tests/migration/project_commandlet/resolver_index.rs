@@ -1,5 +1,35 @@
 use super::*;
+
+#[test]
+fn migration_resolver_has_no_filesystem_probe_capability() {
+    const RESOLVER_SOURCE: &str = include_str!("../../../migration/resolver.rs");
+    const INDEX_SOURCE: &str = include_str!("../../../migration/resolver_index.rs");
+    let production = RESOLVER_SOURCE
+        .split("#[cfg(test)]")
+        .next()
+        .expect("migration resolver production source");
+
+    for forbidden in [
+        "std::fs",
+        "std::path",
+        "fs::",
+        ".exists()",
+        ".metadata()",
+        "read_to_string",
+        "read_to_end",
+    ] {
+        assert!(
+            !production.contains(forbidden),
+            "migration resolver regained filesystem access: {forbidden}"
+        );
+    }
+    assert!(production.contains("resolve_project_reference_from_lookup"));
+    assert!(production.contains("resolver_index_lookups"));
+    assert!(!production.contains("Cell<usize>"));
+    assert_eq!(INDEX_SOURCE.matches("self.record_lookup();").count(), 2);
+}
 use std::path::PathBuf;
+use std::time::Instant;
 use zircon_runtime_interface::project::RelPath;
 
 use crate::asset::migration::{
@@ -7,14 +37,56 @@ use crate::asset::migration::{
 };
 
 #[test]
+fn resolver_index_counts_success_missing_and_rejected_queries() {
+    let locator = AssetUri::parse("res://textures/albedo.ztexture").unwrap();
+    let hint = RelPath::parse("assets/textures/albedo.ztexture").unwrap();
+    let index = MigrationResolverIndex::build(
+        [MigrationSourceProjection::new(
+            RelPath::parse("assets").unwrap(),
+            PathBuf::from("C:/project/assets"),
+            RelPath::parse("textures/albedo.ztexture").unwrap(),
+            PathBuf::from("C:/project/assets/textures/albedo.ztexture"),
+        )],
+        [],
+    )
+    .unwrap();
+
+    assert_eq!(index.lookup_count(), 0);
+    assert_eq!(index.project_hint_for_locator(&locator).unwrap(), hint);
+    assert_eq!(index.lookup_count(), 1);
+
+    let missing = AssetUri::parse("res://textures/missing.ztexture").unwrap();
+    assert!(index.project_hint_for_locator(&missing).is_err());
+    assert_eq!(index.lookup_count(), 2);
+
+    assert_eq!(
+        index.locator_for_project_hint(&hint).unwrap(),
+        Some(locator)
+    );
+    assert_eq!(index.lookup_count(), 3);
+
+    let missing_hint = RelPath::parse("assets/textures/missing.ztexture").unwrap();
+    assert_eq!(index.locator_for_project_hint(&missing_hint).unwrap(), None);
+    assert_eq!(index.lookup_count(), 4);
+
+    let builtin = AssetUri::parse("builtin://textures/white").unwrap();
+    assert!(index.project_hint_for_locator(&builtin).is_err());
+    assert_eq!(index.lookup_count(), 5);
+}
+
+#[test]
 fn migration_resolver_is_filesystem_free_after_generation_build() {
     const RESOLVER_SOURCE: &str = include_str!("../../../migration/resolver.rs");
     const INDEX_SOURCE: &str = include_str!("../../../migration/resolver_index.rs");
+    let production_resolver = RESOLVER_SOURCE
+        .split("#[cfg(test)]")
+        .next()
+        .expect("migration resolver production source");
 
-    assert!(!RESOLVER_SOURCE.contains("std::path::PathBuf"));
-    assert!(!RESOLVER_SOURCE.contains("roots:"));
-    assert!(RESOLVER_SOURCE.contains("resolve_project_reference_from_lookup"));
-    for source in [RESOLVER_SOURCE, INDEX_SOURCE] {
+    assert!(!production_resolver.contains("std::path::PathBuf"));
+    assert!(!production_resolver.contains("roots:"));
+    assert!(production_resolver.contains("resolve_project_reference_from_lookup"));
+    for source in [production_resolver, INDEX_SOURCE] {
         for forbidden in [
             "std::fs",
             "fs::",
@@ -58,13 +130,19 @@ fn resolver_index_keeps_one_generation_and_order_for_reference_and_root_scale_ma
                 (locator, hint, projection)
             })
             .collect::<Vec<_>>();
+        let build_started = Instant::now();
         let index = MigrationResolverIndex::build(
             expected.iter().map(|(_, _, projection)| projection.clone()),
             [],
         )
         .unwrap();
+        println!(
+            "RESOLVER_INDEX_BUILD roots={root_count} entries={MAX_REFERENCES} elapsed_ms={:.3} resolver_backend=index",
+            build_started.elapsed().as_secs_f64() * 1_000.0,
+        );
 
         for reference_count in [1, 1_000, MAX_REFERENCES] {
+            let lookup_started = Instant::now();
             let forward = expected
                 .iter()
                 .take(reference_count)
@@ -75,6 +153,7 @@ fn resolver_index_keeps_one_generation_and_order_for_reference_and_root_scale_ma
                 .take(reference_count)
                 .map(|(_, hint, _)| index.locator_for_project_hint(hint).unwrap().unwrap())
                 .collect::<Vec<_>>();
+            let lookup_elapsed = lookup_started.elapsed();
 
             assert_eq!(
                 forward,
@@ -93,6 +172,11 @@ fn resolver_index_keeps_one_generation_and_order_for_reference_and_root_scale_ma
                     .collect::<Vec<_>>()
             );
             assert_eq!(forward.len() + reverse.len(), reference_count * 2);
+            println!(
+                "RESOLVER_INDEX_LOOKUP roots={root_count} references={reference_count} lookups={} elapsed_ms={:.3} resolver_backend=index",
+                reference_count * 2,
+                lookup_elapsed.as_secs_f64() * 1_000.0,
+            );
         }
     }
 }

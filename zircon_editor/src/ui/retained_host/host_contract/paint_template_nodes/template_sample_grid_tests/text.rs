@@ -1,4 +1,5 @@
 use crate::ui::retained_host::host_contract::data::FrameRect;
+use crate::ui::retained_host::host_contract::paint_template_nodes::render_commands::HostPaintCommand;
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 
 use super::super::geometry::SampleGridGeometry;
@@ -104,10 +105,7 @@ fn x_ticks_are_omitted_as_a_group_when_the_plot_cannot_keep_them_readable() {
     }));
 }
 
-fn text_command<'a>(
-    commands: &'a [super::super::render_commands::HostPaintCommand],
-    text: &str,
-) -> &'a super::super::render_commands::HostPaintCommand {
+fn text_command<'a>(commands: &'a [HostPaintCommand], text: &str) -> &'a HostPaintCommand {
     commands
         .iter()
         .find(|command| command.text.as_deref() == Some(text))
@@ -115,10 +113,10 @@ fn text_command<'a>(
 }
 
 fn y_tick_command<'a>(
-    commands: &'a [super::super::render_commands::HostPaintCommand],
+    commands: &'a [HostPaintCommand],
     text: &str,
     plot_x: f32,
-) -> &'a super::super::render_commands::HostPaintCommand {
+) -> &'a HostPaintCommand {
     commands
         .iter()
         .find(|command| command.text.as_deref() == Some(text) && command.frame.right() < plot_x)

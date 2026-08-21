@@ -10,6 +10,7 @@ related_code:
   - zircon_runtime/src/asset/registry/rebuild.rs
   - zircon_runtime/src/asset/registry/incremental.rs
   - zircon_runtime/src/asset/registry/persistence.rs
+  - zircon_runtime/src/asset/registry/targeted.rs
   - zircon_runtime/src/asset/registry/dependency_extractors/mod.rs
   - zircon_runtime/src/asset/project/manager/mod.rs
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
@@ -28,6 +29,7 @@ implementation_files:
   - zircon_runtime/src/asset/registry/rebuild.rs
   - zircon_runtime/src/asset/registry/incremental.rs
   - zircon_runtime/src/asset/registry/persistence.rs
+  - zircon_runtime/src/asset/registry/targeted.rs
   - zircon_runtime/src/asset/registry/dependency_extractors/mod.rs
   - zircon_runtime/src/asset/registry/dependency_extractors/scene.rs
   - zircon_runtime/src/asset/registry/dependency_extractors/material.rs
@@ -95,6 +97,8 @@ Metadata discovery rejects symlinks and Windows reparse points (including juncti
 
 Refreshing edges scans sidecar metadata rather than asset payloads. This makes incremental state byte-for-byte comparable to a later full metadata rebuild while keeping registry entry mutation scoped to watcher deltas.
 
+Refreshing an affected owner's dependency paths preserves first-path order while a per-owner `HashSet` rejects repeated UUIDs in one pass. Unresolved-path diagnostics still retain path order. High-fan-out refresh deduplication therefore performs expected `O(P)` work for `P` dependency paths instead of repeatedly scanning a growing `Vec` in `O(P * U)` work for `U` unique dependencies.
+
 ## Dependency Extraction
 
 The first wave is deliberately handwritten under `dependency_extractors/`: scene extraction walks `SceneAsset::direct_references`, material extraction includes shader, parent, and texture slots, and model extraction includes direct mesh references. `finish_successful_import` appends these references to importer dependencies before v7 sidecars are saved. This does not wait for runtime plan 13's future generic reflection extraction and does not add type-name reflection branches.
@@ -109,7 +113,7 @@ Scene-project loading accepts locator-derived IDs only for explicit `builtin://`
 
 ## Test Coverage
 
-The implementation slice includes source tests for all six signatures, corrupt persistence recovery, atomic write/sync/replace rollback, multiple manifest roots, traversal-link rejection, strict root/subasset tags, duplicate GUID sidecar reminting (including a copied asset that sorts before the original), watcher incremental/full-rebuild equivalence, complete subasset and reverse-edge removal, rename identity preservation, candidate rollback in both registry and `ProjectManager`, authoritative sidecar tag filtering after both rebuild and corruption recovery, typed dangling scene references, and scene/material/model dependency extraction. Existing package and scene-project tests were hard-cut to the registry-owned identity surface. The milestone test stage remains responsible for the full managed Runtime test gate; this implementation slice is closed with scoped formatting and static checks when the shared managed target is unavailable.
+The implementation slice includes source tests for all six signatures, corrupt persistence recovery, atomic write/sync/replace rollback, multiple manifest roots, traversal-link rejection, strict root/subasset tags, duplicate GUID sidecar reminting (including a copied asset that sorts before the original), watcher incremental/full-rebuild equivalence, complete subasset and reverse-edge removal, rename identity preservation, candidate rollback in both registry and `ProjectManager`, authoritative sidecar tag filtering after both rebuild and corruption recovery, typed dangling scene references, and scene/material/model dependency extraction. The targeted-refresh tests also lock first-path-order deduplication and unresolved diagnostics; its ignored release gate uses 21 alternating legacy/optimized sample pairs and nearest-rank P50/P95. Existing package and scene-project tests were hard-cut to the registry-owned identity surface. The milestone test stage remains responsible for the full managed Runtime test gate; this implementation slice is closed with scoped formatting and static checks when the shared managed target is unavailable.
 
 ## Plan Sources
 

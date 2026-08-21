@@ -6,9 +6,9 @@ use zircon_runtime_interface::ui::layout::{
 };
 
 use super::{
-    CssLikeConstraint, CssLikeConstraintError, CssLikeConstraintProperty, CssLikeDimension,
-    CssLikeEdges, CssLikeGap, CssLikeGridTrack, CssLikeOverflow, finite_non_negative,
-    parse_author_number,
+    finite_non_negative, parse_author_number, CssLikeConstraint, CssLikeConstraintError,
+    CssLikeConstraintProperty, CssLikeDimension, CssLikeEdges, CssLikeGap, CssLikeGridTrack,
+    CssLikeOverflow,
 };
 
 impl CssLikeConstraint {

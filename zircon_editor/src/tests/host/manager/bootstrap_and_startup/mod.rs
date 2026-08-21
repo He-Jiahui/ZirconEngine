@@ -4,10 +4,9 @@ use std::fs;
 use crate::core::plugin::EditorPluginState;
 use crate::core::project::{
     NewProjectDraft, NewProjectTemplate, ProjectAuthority, RecentProjectValidation,
-    StoredRecentProjectEntry, StoredStartupSession,
 };
-use crate::ui::host::EditorManager;
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
+use crate::ui::host::EditorManager;
 use crate::ui::workbench::layout::{
     ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowHostMode,
     ActivityWindowId, ActivityWindowLayout, DocumentNode, MainHostPageLayout, MainPageId,

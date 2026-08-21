@@ -10,7 +10,7 @@ use crate::ui::layouts::windows::workbench_host_window::{
     build_pane_body_presentation, ConsolePaneViewData, PaneContentSize, PanePayloadBuildContext,
     PanePresentation, PaneShellPresentation,
 };
-use crate::ui::retained_host::host_contract::paint_template_nodes::template_node_command_summary_for_test;
+use crate::ui::retained_host::template_node_command_summary_for_test;
 use crate::ui::retained_host::to_host_contract_console_pane_from_host_pane;
 use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::snapshot::{
@@ -131,7 +131,10 @@ fn console_template_body_projection_replaces_legacy_console_nodes_for_retained_c
         PaneContentSize::new(320.0, 180.0),
     );
 
-    assert_eq!(projected.status_text, "compile started\ncache ready");
+    assert_eq!(
+        projected.status_text.as_ref(),
+        "compile started\ncache ready"
+    );
     let nodes = (0..projected.nodes.row_count())
         .filter_map(|row| projected.nodes.row_data(row))
         .collect::<Vec<_>>();
@@ -218,7 +221,7 @@ fn console_template_body_projects_a_runtime_text_empty_state() {
         .find(|node| node.control_id == "ConsoleOutputLine0000")
         .expect("console empty-state output line");
 
-    assert_eq!(projected.status_text, "");
+    assert_eq!(projected.status_text.as_ref(), "");
     assert_eq!(empty_state.text, "No output yet");
     assert_eq!(empty_state.text_tone, "muted");
 }
@@ -583,11 +586,7 @@ fn console_template_body_projects_source_filter_and_typed_jump_action_tokens() {
             "ConsolePaneBody/SourceRuntime",
         ),
         ("ConsoleSourcePlay", false, "ConsolePaneBody/SourcePlay"),
-        (
-            "ConsoleSourcePlugin",
-            false,
-            "ConsolePaneBody/SourcePlugin",
-        ),
+        ("ConsoleSourcePlugin", false, "ConsolePaneBody/SourcePlugin"),
         ("ConsoleSourceImport", true, "ConsolePaneBody/SourceImport"),
         (
             "ConsoleSourceScriptBuild",

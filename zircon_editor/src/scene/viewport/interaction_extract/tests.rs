@@ -1,10 +1,10 @@
 use std::{cell::Cell, sync::Arc};
 
-use zircon_runtime::scene::{Scene, components::NodeKind};
+use zircon_runtime::scene::{components::NodeKind, Scene};
 use zircon_runtime_interface::math::UVec2;
 
 use crate::scene::viewport::{
-    SceneViewportSettings, ViewportCameraSnapshot, render_packet::build_render_packet,
+    render_packet::build_render_packet, SceneViewportSettings, ViewportCameraSnapshot,
 };
 
 use super::ViewportInteractionExtractCache;

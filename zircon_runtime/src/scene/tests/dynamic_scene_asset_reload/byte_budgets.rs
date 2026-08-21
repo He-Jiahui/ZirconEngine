@@ -1,6 +1,6 @@
 use super::*;
 use crate::core::resource::{
-    approximate_event_bytes, ResourceEvent, ResourceEventKind, ResourceLocator,
+    ResourceEvent, ResourceEventKind, ResourceLocator, approximate_event_bytes,
 };
 use crate::scene::PreparedDynamicSceneSpawn;
 
@@ -40,12 +40,14 @@ fn dynamic_scene_asset_reload_event_bytes_are_cumulative_within_one_tick() {
         fixture.resources.clone(),
         limits,
     );
-    fixture.resources.register_record(ResourceRecord::new(
-        shader_id,
-        ResourceKind::Shader,
-        shader_uri,
-    ))
-    .unwrap();
+    fixture
+        .resources
+        .register_record(ResourceRecord::new(
+            shader_id,
+            ResourceKind::Shader,
+            shader_uri,
+        ))
+        .unwrap();
     fixture.register_ready_revision("scene-after-cumulative-filtered-event");
 
     let first = queue.drain_events(&scheduler);
@@ -106,19 +108,21 @@ fn dynamic_scene_asset_reload_ready_bytes_are_cumulative_within_one_tick() {
         fixture.resources.clone(),
         limits,
     );
-    resources.register_ready(
-        fixture
-            .record
-            .clone()
-            .with_source_hash("ready-budget-first"),
-        fixture.scene.clone(),
-    )
-    .unwrap();
-    resources.register_ready(
-        second_record.with_source_hash("ready-budget-second"),
-        second_scene,
-    )
-    .unwrap();
+    resources
+        .register_ready(
+            fixture
+                .record
+                .clone()
+                .with_source_hash("ready-budget-first"),
+            fixture.scene.clone(),
+        )
+        .unwrap();
+    resources
+        .register_ready(
+            second_record.with_source_hash("ready-budget-second"),
+            second_scene,
+        )
+        .unwrap();
 
     let drain = drain_until_events(&mut queue, &scheduler, 2);
     assert_eq!(drain.scheduled, 2);
@@ -199,19 +203,21 @@ fn dynamic_scene_asset_reload_target_commits_share_one_cumulative_byte_budget() 
     };
     let mut queue =
         DynamicSceneAssetReloadQueue::with_limits(project, events, resources.clone(), limits);
-    resources.register_ready(
-        fixture
-            .record
-            .clone()
-            .with_source_hash("apply-budget-first"),
-        fixture.scene.clone(),
-    )
-    .unwrap();
-    resources.register_ready(
-        second_record.with_source_hash("apply-budget-second"),
-        second_scene,
-    )
-    .unwrap();
+    resources
+        .register_ready(
+            fixture
+                .record
+                .clone()
+                .with_source_hash("apply-budget-first"),
+            fixture.scene.clone(),
+        )
+        .unwrap();
+    resources
+        .register_ready(
+            second_record.with_source_hash("apply-budget-second"),
+            second_scene,
+        )
+        .unwrap();
 
     let drain = drain_until_events(&mut queue, &scheduler, 2);
     assert_eq!(drain.scheduled, 2);
@@ -242,4 +248,150 @@ fn dynamic_scene_asset_reload_target_commits_share_one_cumulative_byte_budget() 
     assert_eq!(queue.target_staging_count(), 0);
 
     fixture.cleanup();
+}
+
+#[test]
+fn dynamic_scene_asset_reload_target_stage_reconciles_to_actual_snapshot_bytes() {
+    let fixture = SceneReloadFixture::new("asset_reload_actual_target_stage_bytes");
+    let events = Assets::<SceneAsset>::new(fixture.resources.clone()).subscribe_events();
+    let scheduler = JobScheduler::default();
+    let limits = DynamicSceneAssetReloadLimits::default();
+    let level = DefaultLevelManager::default().create_level(World::empty(), Default::default());
+    let prepared =
+        PreparedDynamicSceneSpawn::from_scene_asset(&fixture.project, &fixture.scene).unwrap();
+    let prepared_bytes = prepared.estimated_bytes();
+    let actual_target_bytes = prepared
+        .capture_level_target(&level, usize::MAX)
+        .unwrap()
+        .estimated_bytes();
+    let expected_reservation = prepared_bytes.saturating_add(actual_target_bytes);
+    assert!(expected_reservation < limits.max_apply_bytes_per_tick);
+
+    let mut queue = DynamicSceneAssetReloadQueue::with_limits(
+        fixture.project.clone(),
+        events,
+        fixture.resources.clone(),
+        limits,
+    );
+    fixture.register_ready_revision("actual-target-stage-bytes");
+    let drain = drain_until_events(&mut queue, &scheduler, 1);
+    assert_eq!(drain.scheduled, 1);
+    wait_for_pending(&scheduler, &queue);
+
+    let staged = queue.tick_into_level(&scheduler, &level);
+    assert_eq!(staged.applied_count() + staged.failed_count(), 0);
+    assert_eq!(queue.target_staging_count(), 1);
+
+    let deadline = Instant::now() + EVENT_DRAIN_TIMEOUT;
+    loop {
+        let reserved_bytes = queue.diagnostics().target_staging_reserved_bytes;
+        if reserved_bytes == expected_reservation {
+            break;
+        }
+        assert!(
+            Instant::now() < deadline,
+            "target stage kept {reserved_bytes} reserved bytes; expected actual {expected_reservation}"
+        );
+        thread::yield_now();
+    }
+
+    let terminal = tick_into_level_until_terminal(&mut queue, &scheduler, &level);
+    assert_eq!(terminal.applied_count(), 1);
+    assert_eq!(terminal.failed_count(), 0);
+    assert_eq!(queue.diagnostics().target_staging_reserved_bytes, 0);
+
+    fixture.cleanup();
+}
+
+#[test]
+#[ignore = "release-mode capacity evidence; run explicitly"]
+fn dynamic_scene_asset_reload_actual_target_reservation_capacity_benchmark() {
+    const SAMPLE_PAIRS: usize = 21;
+    const STAGED_SCENES: usize = 65_536;
+    const PREPARED_BYTES: usize = 64 * 1024;
+    const TARGET_LIMIT_BYTES: usize = 32 * 1024 * 1024 - PREPARED_BYTES;
+
+    fn measure_reservations(
+        actual_target_bytes: &[usize],
+        use_actual_target_bytes: bool,
+    ) -> (u128, usize) {
+        let started = Instant::now();
+        let reserved_bytes = actual_target_bytes.iter().fold(0usize, |total, actual| {
+            let target_bytes = if use_actual_target_bytes {
+                std::hint::black_box(*actual)
+            } else {
+                std::hint::black_box(TARGET_LIMIT_BYTES)
+            };
+            total.saturating_add(PREPARED_BYTES.saturating_add(target_bytes))
+        });
+        (
+            started.elapsed().as_nanos(),
+            std::hint::black_box(reserved_bytes),
+        )
+    }
+
+    fn nearest_rank(samples: &mut [u128], percentile: usize) -> u128 {
+        samples.sort_unstable();
+        let rank = samples.len().saturating_mul(percentile).saturating_add(99) / 100;
+        samples[rank.saturating_sub(1).min(samples.len().saturating_sub(1))]
+    }
+
+    let actual_target_bytes = (0..STAGED_SCENES)
+        .map(|index| 32 * 1024 + (index % 64) * 512)
+        .collect::<Vec<_>>();
+    let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+    let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+    let mut legacy_reserved_bytes = 0usize;
+    let mut optimized_reserved_bytes = 0usize;
+
+    for pair in 0..SAMPLE_PAIRS {
+        let legacy_first = pair % 2 == 0;
+        let first = measure_reservations(&actual_target_bytes, !legacy_first);
+        let second = measure_reservations(&actual_target_bytes, legacy_first);
+        if legacy_first {
+            legacy_samples.push(first.0);
+            legacy_reserved_bytes = first.1;
+            optimized_samples.push(second.0);
+            optimized_reserved_bytes = second.1;
+        } else {
+            optimized_samples.push(first.0);
+            optimized_reserved_bytes = first.1;
+            legacy_samples.push(second.0);
+            legacy_reserved_bytes = second.1;
+        }
+    }
+
+    let legacy_p50_ns = nearest_rank(&mut legacy_samples.clone(), 50);
+    let legacy_p95_ns = nearest_rank(&mut legacy_samples.clone(), 95);
+    let optimized_p50_ns = nearest_rank(&mut optimized_samples.clone(), 50);
+    let optimized_p95_ns = nearest_rank(&mut optimized_samples.clone(), 95);
+    let legacy_ns = legacy_samples
+        .iter()
+        .map(u128::to_string)
+        .collect::<Vec<_>>()
+        .join(",");
+    let optimized_ns = optimized_samples
+        .iter()
+        .map(u128::to_string)
+        .collect::<Vec<_>>()
+        .join(",");
+    let released_bytes = legacy_reserved_bytes.saturating_sub(optimized_reserved_bytes);
+    let reduction_basis_points = released_bytes
+        .saturating_mul(10_000)
+        .checked_div(legacy_reserved_bytes)
+        .unwrap_or(0);
+
+    assert!(
+        optimized_reserved_bytes.saturating_mul(4) <= legacy_reserved_bytes,
+        "actual target reservation must reduce staged resident bytes by at least 75%"
+    );
+    println!(
+        "PERF-MVP-DSRL-P1-035 sample_pairs={SAMPLE_PAIRS} sample_order=alternating \
+percentile_method=nearest_rank timing_gate=diagnostic_only staged_scenes={STAGED_SCENES} \
+legacy_ns={legacy_ns} optimized_ns={optimized_ns} \
+legacy_p50_ns={legacy_p50_ns} legacy_p95_ns={legacy_p95_ns} \
+optimized_p50_ns={optimized_p50_ns} optimized_p95_ns={optimized_p95_ns} \
+legacy_reserved_bytes={legacy_reserved_bytes} optimized_reserved_bytes={optimized_reserved_bytes} \
+released_bytes={released_bytes} reservation_reduction_basis_points={reduction_basis_points}"
+    );
 }

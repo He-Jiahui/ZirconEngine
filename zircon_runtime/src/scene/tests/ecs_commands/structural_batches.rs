@@ -189,7 +189,9 @@ fn deferred_final_row_segment_finishes_before_an_opaque_command_barrier() {
                 .ecs_frame_performance_diagnostics()
                 .bundle_transactions
                 .committed_transactions;
-            world.insert_resource(DeferredBarrierObservation(transactions));
+            world.insert_resource(DeferredBarrierObservation(
+                usize::try_from(transactions).expect("transaction count must fit usize"),
+            ));
         });
         spawned
     };
@@ -283,10 +285,12 @@ fn deferred_final_row_segment_hides_insert_then_remove_lifecycle() {
 
     assert!(world.get::<Health>(entity).is_none());
     assert_eq!(world.get::<Marker>(entity), Some(&Marker));
-    assert!(health_events
-        .lock()
-        .expect("health lifecycle events")
-        .is_empty());
+    assert!(
+        health_events
+            .lock()
+            .expect("health lifecycle events")
+            .is_empty()
+    );
     assert_eq!(
         marker_events
             .lock()
@@ -476,10 +480,12 @@ fn deferred_final_row_segment_cancels_spawn_then_despawn_without_publication() {
 
     assert!(report.is_success());
     assert!(report.resolve(&spawned).is_none());
-    assert!(marker_events
-        .lock()
-        .expect("marker lifecycle events")
-        .is_empty());
+    assert!(
+        marker_events
+            .lock()
+            .expect("marker lifecycle events")
+            .is_empty()
+    );
     assert_eq!(diagnostics.bundle_transactions.committed_transactions, 0);
     assert_eq!(
         diagnostics.bundle_transactions.final_archetype_transitions,
@@ -545,10 +551,12 @@ fn deferred_final_row_segment_despawn_discards_pending_insert() {
 
     assert!(report.is_success());
     assert!(!world.contains_entity(entity));
-    assert!(marker_events
-        .lock()
-        .expect("marker lifecycle events")
-        .is_empty());
+    assert!(
+        marker_events
+            .lock()
+            .expect("marker lifecycle events")
+            .is_empty()
+    );
     assert_eq!(
         health_events
             .lock()
@@ -556,9 +564,11 @@ fn deferred_final_row_segment_despawn_discards_pending_insert() {
             .as_slice(),
         &[LifecycleEventKind::Remove, LifecycleEventKind::Despawn]
     );
-    assert!(*observed_removed_entity
-        .lock()
-        .expect("removed entity observation"));
+    assert!(
+        *observed_removed_entity
+            .lock()
+            .expect("removed entity observation")
+    );
     assert_eq!(diagnostics.bundle_transactions.committed_transactions, 0);
     assert_eq!(
         diagnostics.bundle_transactions.final_archetype_transitions,

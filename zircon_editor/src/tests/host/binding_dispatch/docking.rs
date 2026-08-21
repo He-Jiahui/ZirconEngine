@@ -1,5 +1,7 @@
 use super::support;
-use crate::core::editor_event::{LayoutCommand, MainPageId, ViewHost, ViewInstanceId};
+use crate::core::editor_event::{
+    ActivityDrawerMode, ActivityDrawerSlot, LayoutCommand, MainPageId, ViewHost, ViewInstanceId,
+};
 use crate::ui::binding::{DockCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::binding_dispatch::dispatch_docking_binding;
 

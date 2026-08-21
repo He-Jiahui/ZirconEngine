@@ -78,8 +78,8 @@ fn builtin_host_save_project_preserves_binding_provenance_and_save_generation() 
             .expect("editor manager should resolve");
         let document = manager.open_project(&root).expect("project should open");
         let level = manager
-            .create_runtime_level(document.world)
-            .expect("opened project scene should create a runtime level");
+            .prepare_authoring_world(document.world)
+            .expect("opened project scene should create an authoring world");
         harness
             .runtime
             .replace_world(level, root.to_string_lossy())
@@ -104,9 +104,8 @@ fn builtin_host_save_project_preserves_binding_provenance_and_save_generation() 
             .expect("templated save project action should resolve")
             .expect("templated save project action should dispatch");
 
-        let record = harness
-            .runtime
-            .journal()
+        let journal = harness.runtime.journal();
+        let record = journal
             .records()
             .last()
             .expect("save project control must append an event record");

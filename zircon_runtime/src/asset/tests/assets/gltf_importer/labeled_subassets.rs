@@ -239,7 +239,7 @@ fn importer_emits_synthetic_skeleton_for_node_animation_without_skin() {
             assert_eq!(clip.tracks.len(), 1);
             let track = &clip.tracks[0];
             assert_eq!(track.bone_name, "Node1:Body");
-            assert_eq!(track.target_id.as_deref(), Some("Node1:Body"));
+            assert_eq!(track.target_id.as_deref(), Some("Node0:Root/Node1:Body"));
             assert_eq!(
                 track.translation.interpolation,
                 AnimationInterpolationAsset::Linear

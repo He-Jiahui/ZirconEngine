@@ -21,7 +21,7 @@ pub struct EventBus {
 
 impl Default for EventBus {
     fn default() -> Self {
-        Self::new(EventBusDiagnosticsMode::Enabled)
+        Self::new(EventBusDiagnosticsMode::default())
     }
 }
 

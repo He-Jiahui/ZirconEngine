@@ -92,7 +92,7 @@ pub fn default_constraints_for_content(kind: ViewContentKind) -> PaneConstraints
 #[cfg(test)]
 mod tests {
     use super::{
-        DEFAULT_CONSOLE_MIN_WIDTH, DEFAULT_CONSOLE_PREFERRED_WIDTH, default_constraints_for_content,
+        default_constraints_for_content, DEFAULT_CONSOLE_MIN_WIDTH, DEFAULT_CONSOLE_PREFERRED_WIDTH,
     };
     use crate::ui::workbench::snapshot::ViewContentKind;
 

@@ -22,12 +22,8 @@ pub(super) fn unload_services(
         unload_service(services, third_service_name);
         return;
     }
-    if let [
-        first_service_name,
-        second_service_name,
-        third_service_name,
-        fourth_service_name,
-    ] = unload_order
+    if let [first_service_name, second_service_name, third_service_name, fourth_service_name] =
+        unload_order
     {
         unload_service(services, first_service_name);
         unload_service(services, second_service_name);
@@ -35,13 +31,8 @@ pub(super) fn unload_services(
         unload_service(services, fourth_service_name);
         return;
     }
-    if let [
-        first_service_name,
-        second_service_name,
-        third_service_name,
-        fourth_service_name,
-        fifth_service_name,
-    ] = unload_order
+    if let [first_service_name, second_service_name, third_service_name, fourth_service_name, fifth_service_name] =
+        unload_order
     {
         unload_service(services, first_service_name);
         unload_service(services, second_service_name);

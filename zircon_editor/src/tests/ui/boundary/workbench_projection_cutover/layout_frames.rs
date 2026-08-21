@@ -3,14 +3,12 @@ use super::*;
 #[test]
 fn workbench_root_shell_projection_module_is_removed_after_layout_frame_cutover() {
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    assert!(
-        !root
-            .join("src")
-            .join("ui")
-            .join("retained_host")
-            .join("root_shell_projection.rs")
-            .exists()
-    );
+    assert!(!root
+        .join("src")
+        .join("ui")
+        .join("retained_host")
+        .join("root_shell_projection.rs")
+        .exists());
 
     let retained_host_mod = source_file(&["src", "ui", "retained_host", "mod.rs"]);
     assert_does_not_contain(

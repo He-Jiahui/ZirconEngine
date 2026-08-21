@@ -1,8 +1,8 @@
 use super::support::{GateJob, ValueJob};
 use super::{
-    Duration, EditorJobAdmission, EditorJobAdmissionKey, EditorJobAdmissionLimits,
-    EditorJobAdmissionRequest, EditorJobLimits, EditorJobSpec, Instant, JobCategory,
-    JobSubmitError, mpsc, test_job_system_with_limits,
+    mpsc, test_job_system_with_limits, Duration, EditorJobAdmission, EditorJobAdmissionKey,
+    EditorJobAdmissionLimits, EditorJobAdmissionRequest, EditorJobLimits, EditorJobSpec, Instant,
+    JobCategory, JobSubmitError,
 };
 
 #[test]
@@ -143,8 +143,9 @@ fn batch_admission_reservation_holds_capacity_until_commit_or_drop() {
             ),
         ])
         .unwrap();
-    assert_eq!(tickets[0].wait(), Ok(11));
-    assert_eq!(tickets[1].wait(), Ok(21));
+    let mut tickets = tickets.into_iter();
+    assert_eq!(tickets.next().unwrap().wait(), Ok(11));
+    assert_eq!(tickets.next().unwrap().wait(), Ok(21));
 
     let released = jobs.admission_snapshot();
     assert_eq!(released.pending_entries(), 0);

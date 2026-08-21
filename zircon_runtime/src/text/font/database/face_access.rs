@@ -1,8 +1,8 @@
-use std::sync::Arc;
 use std::sync::atomic::Ordering;
+use std::sync::Arc;
 
-use crate::asset::FontAssetFaceMetrics;
 use crate::asset::assets::standalone_sfnt_face;
+use crate::asset::FontAssetFaceMetrics;
 use crate::text::FontFaceId;
 
 use super::{FontDatabase, FontDatabaseError, StoredFontSource};

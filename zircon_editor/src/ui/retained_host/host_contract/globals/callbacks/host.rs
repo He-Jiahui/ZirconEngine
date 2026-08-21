@@ -31,4 +31,5 @@ pub(in crate::ui::retained_host::host_contract) struct UiHostCallbacks {
         Option<Callback3<i32, f32, f32>>,
     pub(in crate::ui::retained_host::host_contract) unhandled_keyboard_input:
         Option<Callback1<UiKeyboardInputEvent>>,
+    pub(in crate::ui::retained_host::host_contract) native_window_focus_lost: Option<Callback0>,
 }

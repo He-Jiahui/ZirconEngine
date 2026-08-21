@@ -181,14 +181,17 @@ mod tests {
             },
         };
 
-        let mut commands = vec![command(5, vec![5; 16]), command(5, vec![5; 16])];
+        let mut commands = vec![
+            command(5, vec![5; 16].into()),
+            command(5, vec![5; 16].into()),
+        ];
         let resources = compact_image_resources(&mut commands);
 
         let resource = resources
             .get("atlas://editor/icons", 5)
             .expect("shared atlas generation is canonical");
         assert_eq!(resource.generation, 5);
-        assert_eq!(resource.rgba, vec![5; 16]);
+        assert_eq!(resource.rgba.as_ref(), &[5; 16]);
         assert!(commands.iter().all(|command| matches!(
             &command.kind,
             ChromeCommandKind::Image { payload } if payload.rgba.is_none()
@@ -215,7 +218,10 @@ mod tests {
             },
         };
 
-        let mut commands = vec![command(4, vec![4; 16]), command(5, vec![5; 16])];
+        let mut commands = vec![
+            command(4, vec![4; 16].into()),
+            command(5, vec![5; 16].into()),
+        ];
         let resources = compact_image_resources(&mut commands);
 
         assert_eq!(resources.len(), 2);
@@ -223,15 +229,17 @@ mod tests {
             resources
                 .get("atlas://editor/icons", 4)
                 .expect("older generation must remain available for its command")
-                .rgba,
-            vec![4; 16]
+                .rgba
+                .as_ref(),
+            &[4; 16]
         );
         assert_eq!(
             resources
                 .get("atlas://editor/icons", 5)
                 .expect("newer generation must remain available for its command")
-                .rgba,
-            vec![5; 16]
+                .rgba
+                .as_ref(),
+            &[5; 16]
         );
     }
 

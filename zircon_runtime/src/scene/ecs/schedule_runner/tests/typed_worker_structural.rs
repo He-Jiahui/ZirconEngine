@@ -1,4 +1,5 @@
 use super::*;
+use crate::scene::ecs::Commands;
 
 #[derive(Debug, Eq, PartialEq)]
 struct TypedWorkerHealth(u32);
@@ -69,7 +70,7 @@ fn typed_worker_structural_snapshot(parallelism: usize) -> TypedWorkerStructural
             "tests.typed_worker.zeta",
             SystemStage::Update,
             30,
-            move |mut commands| {
+            move |mut commands: Commands<'_>| {
                 *zeta_handle.lock().expect("zeta deferred handle") = Some(
                     commands
                         .spawn((Name("zeta".to_string()),))
@@ -85,7 +86,7 @@ fn typed_worker_structural_snapshot(parallelism: usize) -> TypedWorkerStructural
             "tests.typed_worker.beta",
             SystemStage::Update,
             10,
-            move |mut commands| {
+            move |mut commands: Commands<'_>| {
                 *beta_handle.lock().expect("beta deferred handle") = Some(
                     commands
                         .spawn((Name("beta".to_string()),))
@@ -101,7 +102,7 @@ fn typed_worker_structural_snapshot(parallelism: usize) -> TypedWorkerStructural
             "tests.typed_worker.alpha",
             SystemStage::Update,
             10,
-            move |mut commands| {
+            move |mut commands: Commands<'_>| {
                 let mut entity = commands.spawn_empty();
                 entity.insert((
                     Name("alpha".to_string()),
@@ -121,7 +122,7 @@ fn typed_worker_structural_snapshot(parallelism: usize) -> TypedWorkerStructural
             "tests.typed_worker.rejected",
             SystemStage::Update,
             40,
-            move |mut commands| {
+            move |mut commands: Commands<'_>| {
                 for value in [3, 4] {
                     let mut entity = commands.spawn_empty();
                     entity.insert((TypedWorkerHealth(value), TypedWorkerHealth(value + 10)));
@@ -197,9 +198,13 @@ fn typed_worker_structural_snapshot(parallelism: usize) -> TypedWorkerStructural
                 .resolve(&handle)
                 .expect("typed worker spawn must resolve at the barrier")
         })
-        .collect();
+        .collect::<Vec<EntityId>>();
     let query = world.query::<&Name>();
     let rejected_spawns = rejected.lock().expect("rejected deferred handles").clone();
+    let marker_events = marker_events
+        .lock()
+        .expect("typed worker marker lifecycle events")
+        .clone();
     assert_eq!(rejected_spawns.len(), 2);
     TypedWorkerStructuralSnapshot {
         names: query.iter(&world).map(|name| name.0.clone()).collect(),
@@ -210,10 +215,7 @@ fn typed_worker_structural_snapshot(parallelism: usize) -> TypedWorkerStructural
             .get::<TypedWorkerMarker>(resolved_entities[0])
             .is_some(),
         resolved_entities,
-        marker_events: marker_events
-            .lock()
-            .expect("typed worker marker lifecycle events")
-            .clone(),
+        marker_events,
         error_operations: report
             .errors()
             .iter()

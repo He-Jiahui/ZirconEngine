@@ -55,8 +55,8 @@ fn missing_icon_cache_key(base_key: &str, target: RasterTargetSize, color: [u8; 
 
 #[cfg(test)]
 mod tests {
+    use super::super::super::RasterTargetSize;
     use super::missing_icon_cache_key;
-    use crate::ui::retained_host::host_contract::paint_template_nodes::RasterTargetSize;
 
     #[test]
     fn missing_icon_cache_key_separates_tint_variants() {

@@ -21,8 +21,8 @@ fn runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_regi
         "dynamic API session FFI registry consumer",
         &dynamic_session_ffi,
         &[
-            "destroy_session_slot, insert_session_with_wake, with_session, with_session_activity,",
-            "let handle = insert_session_with_wake(session, wake);",
+            "try_insert_session_with_wake, with_session, with_session_activity,",
+            "let handle = match try_insert_session_with_wake(",
             "destroy_session_slot(handle)",
             "with_session(handle, |session|",
         ],

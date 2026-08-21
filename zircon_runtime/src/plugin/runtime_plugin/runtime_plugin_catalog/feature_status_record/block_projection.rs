@@ -19,6 +19,7 @@ impl FeatureStatus {
             target_unsupported: self.target_unsupported,
             cycle: self.cycle,
             invalid_owner_dependency: self.invalid_owner_dependency,
+            provider_missing: self.provider_missing,
             unknown_feature: false,
         }
     }

@@ -193,11 +193,7 @@ fn viewer_project_staging_root(asset_root: &std::path::Path) -> Result<PathBuf, 
         .parent()
         .ok_or("viewer asset root has no project parent")?;
     let sequence = VIEWER_PROJECT_STAGING_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-    Ok(project_root.join(format!(
-        ".zircon_shader_pbr_viewer_assets_v4_stage_{}_{}",
-        std::process::id(),
-        sequence,
-    )))
+    Ok(project_root.join(format!(".zpv4-s-{}-{}", std::process::id(), sequence,)))
 }
 
 fn publish_viewer_project_assets(
@@ -259,11 +255,7 @@ fn viewer_project_incomplete_root(asset_root: &std::path::Path) -> Result<PathBu
         .parent()
         .ok_or("viewer asset root has no project parent")?;
     let sequence = VIEWER_PROJECT_STAGING_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-    Ok(project_root.join(format!(
-        ".zircon_shader_pbr_viewer_assets_v4_incomplete_{}_{}",
-        std::process::id(),
-        sequence,
-    )))
+    Ok(project_root.join(format!(".zpv4-i-{}-{}", std::process::id(), sequence,)))
 }
 
 fn write_viewer_asset_meta(
@@ -726,12 +718,7 @@ mod tests {
         let incomplete_roots = std::fs::read_dir(&root)
             .expect("project root should be readable")
             .filter_map(Result::ok)
-            .filter(|entry| {
-                entry
-                    .file_name()
-                    .to_string_lossy()
-                    .starts_with(".zircon_shader_pbr_viewer_assets_v4_incomplete_")
-            })
+            .filter(|entry| entry.file_name().to_string_lossy().starts_with(".zpv4-i-"))
             .count();
         assert_eq!(
             incomplete_roots, 0,
@@ -755,7 +742,7 @@ mod tests {
         assert!(writer.contains("ViewerProjectAssetGenerationReport::generated"));
         assert_eq!(VIEWER_PROJECT_SOURCE_PATHS.len(), 3);
         assert!(
-            !SOURCE.contains("remove_dir_all(asset_root)"),
+            !SOURCE.contains(concat!("remove_dir_all(", "asset_root)")),
             "a competing publication must never delete a completed immutable cache"
         );
         assert!(
@@ -864,7 +851,10 @@ mod tests {
             Some(0.0)
         );
         assert!(
-            document.get("textures").is_none(),
+            document
+                .get("textures")
+                .and_then(toml::Value::as_table)
+                .is_none_or(toml::Table::is_empty),
             "the environment-only viewer prewarms the static no-texture material variant"
         );
 

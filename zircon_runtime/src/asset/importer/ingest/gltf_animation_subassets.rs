@@ -13,6 +13,10 @@ use crate::core::framework::animation::{
     AnimationSkeletonAsset, AnimationSkeletonBoneAsset,
 };
 
+mod target_path;
+
+use target_path::skeleton_target_ids_by_node;
+
 pub(crate) fn add_gltf_animation_and_skin_subassets(
     mut outcome: AssetImportOutcome,
     root_uri: &AssetUri,
@@ -24,24 +28,64 @@ pub(crate) fn add_gltf_animation_and_skin_subassets(
     for animation in document.animations() {
         let label = format!("Animation{}", animation.index());
         let uri = gltf_label_uri(root_uri, &label);
-        let skin_skeleton_label = skin_skeleton_label_for_animation(&animation, &hierarchy);
-        let skeleton_label = skin_skeleton_label
-            .clone()
-            .unwrap_or_else(|| format!("{label}/Skeleton"));
+        let skin_index = skin_index_for_animation(&animation, &hierarchy);
+        let (skeleton_label, target_ids_by_node, synthetic_skeleton) = if let Some(skin_index) =
+            skin_index
+        {
+            let skeleton_label = hierarchy
+                .skeleton_labels_by_skin
+                .get(skin_index)
+                .cloned()
+                .ok_or_else(|| {
+                    AssetImportError::Parse(format!(
+                        "gltf Animation{} references missing Skin{skin_index}",
+                        animation.index()
+                    ))
+                })?;
+            let skin = document
+                .skins()
+                .find(|skin| skin.index() == skin_index)
+                .ok_or_else(|| {
+                    AssetImportError::Parse(format!(
+                        "gltf Animation{} references missing Skin{skin_index}",
+                        animation.index()
+                    ))
+                })?;
+            let bone_node_indices = skin.joints().map(|joint| joint.index()).collect::<Vec<_>>();
+            let skeleton = skeleton_asset_from_gltf_skin(&hierarchy, &skeleton_label, &skin);
+            let target_ids_by_node = skeleton_target_ids_by_node(
+                animation.index(),
+                hierarchy.nodes.len(),
+                &skeleton,
+                &bone_node_indices,
+            )?;
+            (skeleton_label, target_ids_by_node, None)
+        } else {
+            let skeleton_label = format!("{label}/Skeleton");
+            let (skeleton, bone_node_indices) =
+                skeleton_asset_from_gltf_animation(&hierarchy, &label, &animation);
+            let target_ids_by_node = skeleton_target_ids_by_node(
+                animation.index(),
+                hierarchy.nodes.len(),
+                &skeleton,
+                &bone_node_indices,
+            )?;
+            (skeleton_label, target_ids_by_node, Some(skeleton))
+        };
         let skeleton_reference = gltf_label_reference(root_uri, &skeleton_label);
         let clip = animation_clip_from_gltf_animation(
             uri.clone(),
             &animation,
             buffers,
             skeleton_reference.clone(),
+            &target_ids_by_node,
         )?;
         let entry = ImportedAssetEntry::new(uri, ImportedAsset::AnimationClip(clip))
             .with_dependency(skeleton_reference.locator);
         outcome = with_root_dependency_and_entry(outcome, entry);
 
-        if skin_skeleton_label.is_none() {
+        if let Some(skeleton) = synthetic_skeleton {
             let skeleton_uri = gltf_label_uri(root_uri, &skeleton_label);
-            let skeleton = skeleton_asset_from_gltf_animation(&hierarchy, &label, &animation);
             outcome = with_root_dependency_and_entry(
                 outcome,
                 ImportedAssetEntry::new(skeleton_uri, ImportedAsset::AnimationSkeleton(skeleton)),
@@ -121,11 +165,11 @@ pub(crate) fn add_gltf_animation_and_skin_subassets(
     Ok(outcome)
 }
 
-fn skin_skeleton_label_for_animation(
+fn skin_index_for_animation(
     animation: &gltf::Animation<'_>,
     hierarchy: &GltfHierarchyIndex<'_>,
-) -> Option<String> {
-    let skin_index = animation
+) -> Option<usize> {
+    animation
         .channels()
         .filter_map(|channel| {
             hierarchy
@@ -134,8 +178,7 @@ fn skin_skeleton_label_for_animation(
                 .copied()
                 .flatten()
         })
-        .min()?;
-    hierarchy.skeleton_labels_by_skin.get(skin_index).cloned()
+        .min()
 }
 
 fn skeleton_asset_from_gltf_skin(
@@ -181,7 +224,7 @@ fn skeleton_asset_from_gltf_animation(
     hierarchy: &GltfHierarchyIndex<'_>,
     label: &str,
     animation: &gltf::Animation<'_>,
-) -> AnimationSkeletonAsset {
+) -> (AnimationSkeletonAsset, Vec<usize>) {
     let mut required_nodes = vec![false; hierarchy.nodes.len()];
     for channel in animation.channels() {
         let mut node_index = channel.target().node().index();
@@ -207,6 +250,7 @@ fn skeleton_asset_from_gltf_animation(
     for (bone_index, node) in nodes.iter().enumerate() {
         bone_indices[node.index()] = Some(bone_index as u32);
     }
+    let bone_node_indices = nodes.iter().map(gltf::Node::index).collect();
     let bones = nodes
         .into_iter()
         .map(|node| {
@@ -224,13 +268,16 @@ fn skeleton_asset_from_gltf_animation(
         })
         .collect();
 
-    AnimationSkeletonAsset {
-        name: animation
-            .name()
-            .map(str::to_owned)
-            .or_else(|| Some(label.to_string())),
-        bones,
-    }
+    (
+        AnimationSkeletonAsset {
+            name: animation
+                .name()
+                .map(str::to_owned)
+                .or_else(|| Some(label.to_string())),
+            bones,
+        },
+        bone_node_indices,
+    )
 }
 
 struct GltfHierarchyIndex<'a> {
@@ -326,6 +373,7 @@ fn animation_clip_from_gltf_animation(
     animation: &gltf::Animation<'_>,
     buffers: &[gltf::buffer::Data],
     skeleton: AssetReference,
+    target_ids_by_node: &[Option<String>],
 ) -> Result<AnimationClipAsset, AssetImportError> {
     let mut tracks = BTreeMap::<usize, GltfTrackBuilder>::new();
     let mut duration_seconds = 0.0_f32;
@@ -333,9 +381,18 @@ fn animation_clip_from_gltf_animation(
     for channel in animation.channels() {
         let node = channel.target().node();
         let node_index = node.index();
+        let target_id = target_ids_by_node
+            .get(node_index)
+            .and_then(Option::as_ref)
+            .ok_or_else(|| {
+                AssetImportError::Parse(format!(
+                    "gltf Animation{} channel targeting Node{node_index} is not present in its selected skeleton",
+                    animation.index()
+                ))
+            })?;
         let track = tracks
             .entry(node_index)
-            .or_insert_with(|| GltfTrackBuilder::new(&node));
+            .or_insert_with(|| GltfTrackBuilder::new(&node, target_id.clone()));
         let channel_asset = channel_asset_from_gltf_channel(&channel, buffers)?;
         duration_seconds = duration_seconds.max(last_channel_time(&channel_asset));
         match channel.target().property() {
@@ -537,11 +594,11 @@ struct GltfTrackBuilder {
 }
 
 impl GltfTrackBuilder {
-    fn new(node: &gltf::Node<'_>) -> Self {
+    fn new(node: &gltf::Node<'_>, target_id: String) -> Self {
         let (bind_translation, bind_rotation, bind_scale) = node.transform().decomposed();
         let bone_name = node_bone_name(node);
         Self {
-            target_id: bone_name.clone(),
+            target_id,
             bone_name,
             bind_translation,
             bind_rotation,

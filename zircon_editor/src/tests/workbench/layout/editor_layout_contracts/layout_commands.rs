@@ -1,8 +1,8 @@
 use super::*;
 
 #[test]
-fn jetbrains_docking_state_commands_drive_drawer_split_and_active_contracts()
--> Result<(), LayoutCommandError> {
+fn jetbrains_docking_state_commands_drive_drawer_split_and_active_contracts(
+) -> Result<(), LayoutCommandError> {
     let manager = LayoutManager::default();
     let mut layout = WorkbenchLayout::default();
     let project = ViewInstanceId::new("editor.project#jetbrains-contract");
@@ -171,24 +171,20 @@ fn built_in_layout_presets_match_authoring_review_focus_debug_contracts() {
             LayoutPresetName::Debug,
         ]
     );
-    assert!(
-        presets
-            .iter()
-            .find(|preset| preset.name == LayoutPresetName::Focus)
-            .unwrap()
-            .drawer_states
-            .iter()
-            .all(|state| state.mode == ActivityDrawerMode::Collapsed)
-    );
-    assert!(
-        presets
-            .iter()
-            .find(|preset| preset.name == LayoutPresetName::Debug)
-            .unwrap()
-            .size_overrides
-            .iter()
-            .any(|override_value| override_value.token.as_str() == "--bottom-output-height")
-    );
+    assert!(presets
+        .iter()
+        .find(|preset| preset.name == LayoutPresetName::Focus)
+        .unwrap()
+        .drawer_states
+        .iter()
+        .all(|state| state.mode == ActivityDrawerMode::Collapsed));
+    assert!(presets
+        .iter()
+        .find(|preset| preset.name == LayoutPresetName::Debug)
+        .unwrap()
+        .size_overrides
+        .iter()
+        .any(|override_value| override_value.token.as_str() == "--bottom-output-height"));
 }
 
 #[test]
@@ -214,9 +210,7 @@ fn floating_window_declarations_preserve_modal_and_layer_contracts() {
     assert!(!command_palette.modal);
     assert_eq!(preferences.kind, FloatingWindowKind::Preferences);
     assert!(preferences.modal);
-    assert!(
-        preferences
-            .content_asset
-            .ends_with("workbench_preferences.zui")
-    );
+    assert!(preferences
+        .content_asset
+        .ends_with("workbench_preferences.zui"));
 }

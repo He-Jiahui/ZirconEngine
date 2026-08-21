@@ -75,6 +75,8 @@ function Get-ZirconProfileCriticalSourcePaths {
         "zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/geometry/pane_frames/pane.rs",
         "zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/schema/geometry.rs",
         "zircon_editor/src/ui/retained_host/app/viewport/toolbar_pointer/click.rs",
+        "zircon_editor/src/scene/viewport/pointer/precision/renderer_visible_spatial_pick_source.rs",
+        "zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_visible_spatial_query.rs",
         "zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/viewport_toolbar.rs",
         "zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs",
         "zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/handle_click.rs",
@@ -126,6 +128,9 @@ function Get-ZirconProfileCriticalSourcePaths {
         "zircon_runtime/src/ui/layout/pass/incremental.rs",
         "zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs",
         "zircon_runtime/src/core/runtime/diagnostics/profiling/recorder.rs",
+        "zircon_runtime/src/core/framework/render/visible_spatial_query.rs",
+        "zircon_runtime/src/graphics/runtime/render_framework/query_visible_spatial_snapshot/query_visible_spatial_snapshot.rs",
+        "zircon_runtime/src/graphics/runtime/render_framework/viewport_record/visible_spatial_query.rs",
         "zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs",
         "zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot.rs",
         "zircon_runtime_interface/src/profiling.rs",
@@ -255,7 +260,7 @@ function Resolve-ZirconProfileInputFixtureEvidence {
     }
     $kind = [string]$InputFixture.kind
     if ([int]$InputFixture.schema_version -ne 1 -or
-        $kind -notin @("hierarchy_scene", "asset_catalog_json") -or
+        $kind -notin @("hierarchy_scene", "asset_catalog_json", "viewport_pointer_scene") -or
         [string]$InputFixture.template_relative_path -ne "templates/projects/renderable-empty") {
         throw "UI profile input fixture schema or kind is unsupported."
     }
@@ -336,6 +341,53 @@ function Resolve-ZirconProfileInputFixtureEvidence {
             project_manifest = $projectManifest
             scene = $scene
             asset_sources = $assetSources
+        }
+    }
+
+    if ($kind -eq "viewport_pointer_scene") {
+        foreach ($field in @("selectable_node_count", "scene_entity_count", "mobility")) {
+            if ($null -eq $InputFixture.PSObject.Properties[$field]) {
+                throw "UI profile input fixture is missing required field '$field'."
+            }
+        }
+        $selectableNodeCount = [int64]$InputFixture.selectable_node_count
+        $sceneEntityCount = [int64]$InputFixture.scene_entity_count
+        $mobility = [string]$InputFixture.mobility
+        if ($selectableNodeCount -lt 1 -or $selectableNodeCount -gt 10000 -or
+            $sceneEntityCount -ne $selectableNodeCount + 2) {
+            throw "UI profile viewport pointer fixture count is inconsistent."
+        }
+        if ($mobility -notin @("static", "dynamic")) {
+            throw "UI profile viewport pointer fixture mobility is inconsistent."
+        }
+        $sceneSource = Get-Content -LiteralPath $scene.path -Raw
+        $expectedMobility = if ($mobility -eq "static") { "Static" } else { "Dynamic" }
+        $entityCount = [regex]::Matches($sceneSource, "(?m)^\[\[entities\]\]\r?$").Count
+        $mobilityCount = [regex]::Matches(
+            $sceneSource,
+            "(?m)^mobility = `"$expectedMobility`"\r?$"
+        ).Count
+        $meshCount = [regex]::Matches(
+            $sceneSource,
+            "(?m)^\[entities\.mesh\.model\]\r?$"
+        ).Count
+        if ($mobilityCount -ne $selectableNodeCount) {
+            throw "UI profile viewport pointer fixture mobility is inconsistent."
+        }
+        if ($entityCount -ne $sceneEntityCount -or $meshCount -ne $selectableNodeCount) {
+            throw "UI profile viewport pointer fixture scene does not match declared count."
+        }
+
+        return [pscustomobject]@{
+            schema_version = 1
+            kind = "viewport_pointer_scene"
+            project_root = $projectRoot
+            template_relative_path = [string]$InputFixture.template_relative_path
+            selectable_node_count = $selectableNodeCount
+            scene_entity_count = $sceneEntityCount
+            mobility = $mobility
+            project_manifest = $projectManifest
+            scene = $scene
         }
     }
 

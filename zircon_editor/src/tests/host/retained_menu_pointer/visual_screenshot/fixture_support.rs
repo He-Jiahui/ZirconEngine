@@ -9,13 +9,16 @@ fn visual_layout_output_dir() -> PathBuf {
         .join("editor")
 }
 
-fn visual_layout_output_path(filename: &str) -> PathBuf {
+pub(super) fn visual_layout_output_path(filename: &str) -> PathBuf {
     let output_dir = visual_layout_output_dir();
     std::fs::create_dir_all(&output_dir).expect("visual-layout output directory should exist");
     output_dir.join(filename)
 }
 
-fn host_window_layout_for_visual_artifact(width: f32, height: f32) -> HostWindowLayoutData {
+pub(super) fn host_window_layout_for_visual_artifact(
+    width: f32,
+    height: f32,
+) -> HostWindowLayoutData {
     HostWindowLayoutData {
         center_band_frame: frame(0.0, 38.0, width, height - 62.0),
         status_bar_frame: frame(0.0, height - 24.0, width, 24.0),
@@ -26,7 +29,7 @@ fn host_window_layout_for_visual_artifact(width: f32, height: f32) -> HostWindow
     }
 }
 
-fn nested_menu_chrome_for_visual_artifact() -> HostMenuChromeData {
+pub(super) fn nested_menu_chrome_for_visual_artifact() -> HostMenuChromeData {
     HostMenuChromeData {
         top_bar_height_px: 25.0,
         menu_frames: crate::ui::layouts::common::model_rc(vec![HostChromeControlFrameData {
@@ -119,11 +122,11 @@ fn template_node(
     }
 }
 
-fn window_menu_preset_names() -> Vec<String> {
+pub(super) fn window_menu_preset_names() -> Vec<String> {
     (0..24).map(|index| format!("Preset {index:02}")).collect()
 }
 
-fn m3_asset_workspace() -> AssetWorkspaceSnapshot {
+pub(super) fn m3_asset_workspace() -> AssetWorkspaceSnapshot {
     AssetWorkspaceSnapshot {
         project_name: "Zircon M3 Visual".to_string(),
         project_root: "E:/Git/ZirconEngine".to_string(),
@@ -368,7 +371,7 @@ fn asset_subasset(uuid: &str, locator: &str, kind: ResourceKind) -> AssetSubasse
     }
 }
 
-fn frame(x: f32, y: f32, width: f32, height: f32) -> FrameRect {
+pub(super) fn frame(x: f32, y: f32, width: f32, height: f32) -> FrameRect {
     FrameRect {
         x,
         y,

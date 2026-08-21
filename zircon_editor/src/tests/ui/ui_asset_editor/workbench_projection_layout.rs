@@ -4,9 +4,9 @@ use crate::ui::asset_editor::{
 };
 use zircon_runtime::ui::dispatch::UiPointerDispatcher;
 use zircon_runtime_interface::ui::{
-    dispatch::{UiPointerButton, UiPointerEvent},
+    dispatch::UiPointerEvent,
     layout::UiSize,
-    surface::UiPointerEventKind,
+    surface::{UiPointerButton, UiPointerEventKind},
 };
 
 #[test]
@@ -93,9 +93,9 @@ fn ui_asset_editor_bootstrap_template_projection_exposes_pane_shell_regions() {
     assert!(node("HeaderActionRow").frame.y >= node("HeaderStatusRow").frame.y);
     assert!(node("LeftColumn").frame.x < node("CenterColumn").frame.x);
     assert!(node("CenterColumn").frame.x < node("RightColumn").frame.x);
-    let left_column = node("LeftColumn").frame;
-    let center_column = node("CenterColumn").frame;
-    let right_column = node("RightColumn").frame;
+    let left_column = node("LeftColumn").frame.clone();
+    let center_column = node("CenterColumn").frame.clone();
+    let right_column = node("RightColumn").frame.clone();
     assert!(
         center_column.width >= left_column.width * 1.4
             && center_column.width >= right_column.width * 1.4,
@@ -145,10 +145,10 @@ fn ui_asset_editor_bootstrap_template_projection_exposes_pane_shell_regions() {
         node("StylesheetMatchedRuleSection").frame.y >= node("StylesheetAuthoringSection").frame.y
     );
 
-    let palette_button = node("PaletteButton").frame;
-    let palette_label = node("PaletteLabel").frame;
-    let palette_image = node("PaletteImage").frame;
-    let palette_container = node("PaletteContainer").frame;
+    let palette_button = node("PaletteButton").frame.clone();
+    let palette_label = node("PaletteLabel").frame.clone();
+    let palette_image = node("PaletteImage").frame.clone();
+    let palette_container = node("PaletteContainer").frame.clone();
     assert!(
         palette_button.x + palette_button.width <= palette_label.x
             && palette_button.y + palette_button.height <= palette_image.y
@@ -200,22 +200,22 @@ fn ui_asset_editor_projection_keeps_three_panes_usable_at_minimum_workbench_widt
         ("CenterColumn", 256.0),
         ("RightColumn", 128.0),
     ] {
-        let frame = node(control_id).frame;
+        let frame = node(control_id).frame.clone();
         assert!(
             frame.x >= 0.0 && frame.width >= minimum_width && frame.x + frame.width <= size.width,
             "{control_id} must remain visible and usable at the minimum workbench width, got {frame:?}"
         );
     }
 
-    let left = node("LeftColumn").frame;
-    let center = node("CenterColumn").frame;
-    let right = node("RightColumn").frame;
+    let left = node("LeftColumn").frame.clone();
+    let center = node("CenterColumn").frame.clone();
+    let right = node("RightColumn").frame.clone();
     assert!(
         left.x + left.width <= center.x && center.x + center.width <= right.x,
         "responsive workbench panes must not overlap, got {left:?}, {center:?}, and {right:?}"
     );
 
-    let canvas = node("DesignerCanvasPanel").frame;
+    let canvas = node("DesignerCanvasPanel").frame.clone();
     assert!(
         canvas.x >= center.x
             && canvas.x + canvas.width <= center.x + center.width
@@ -223,16 +223,16 @@ fn ui_asset_editor_projection_keeps_three_panes_usable_at_minimum_workbench_widt
         "the designer canvas must remain within the responsive center pane, got {canvas:?} in {center:?}"
     );
 
-    let palette_grid = node("PaletteComponentGrid").frame;
-    let palette_button = node("PaletteButton").frame;
-    let palette_label = node("PaletteLabel").frame;
-    let palette_image = node("PaletteImage").frame;
-    let palette_container = node("PaletteContainer").frame;
+    let palette_grid = node("PaletteComponentGrid").frame.clone();
+    let palette_button = node("PaletteButton").frame.clone();
+    let palette_label = node("PaletteLabel").frame.clone();
+    let palette_image = node("PaletteImage").frame.clone();
+    let palette_container = node("PaletteContainer").frame.clone();
     for (control_id, frame) in [
-        ("PaletteButton", palette_button),
-        ("PaletteLabel", palette_label),
-        ("PaletteImage", palette_image),
-        ("PaletteContainer", palette_container),
+        ("PaletteButton", &palette_button),
+        ("PaletteLabel", &palette_label),
+        ("PaletteImage", &palette_image),
+        ("PaletteContainer", &palette_container),
     ] {
         assert!(
             frame.width > 0.0
@@ -272,8 +272,8 @@ fn ui_asset_editor_projection_keeps_scroll_viewports_usable_at_minimum_workbench
         ("CenterScrollRegion", "CenterColumn"),
         ("RightScrollRegion", "RightColumn"),
     ] {
-        let region = node(region_id).frame;
-        let column = node(column_id).frame;
+        let region = node(region_id).frame.clone();
+        let column = node(column_id).frame.clone();
         assert!(
             region.width > 0.0
                 && region.height > 0.0
@@ -433,9 +433,9 @@ fn ui_asset_editor_projection_renders_composed_content_labels() {
             "Matched rule",
         ),
     ] {
-        let parent = node(parent_id).frame;
+        let parent = node(parent_id).frame.clone();
         let label = node(label_id);
-        let label_frame = label.frame;
+        let label_frame = label.frame.clone();
         assert_eq!(label.text.as_str(), expected_text);
         assert!(
             label_frame.width > 0.0
@@ -458,8 +458,8 @@ fn ui_asset_editor_header_actions_fit_the_minimum_workbench_width() {
             .find(|node| node.control_id.as_str() == control_id)
             .unwrap_or_else(|| panic!("missing projected node `{control_id}`"))
     };
-    let header = node("HeaderPanel").frame;
-    let action_row = node("HeaderActionRow").frame;
+    let header = node("HeaderPanel").frame.clone();
+    let action_row = node("HeaderActionRow").frame.clone();
     assert!(
         action_row.x >= header.x
             && action_row.x + action_row.width <= header.x + header.width
@@ -470,7 +470,7 @@ fn ui_asset_editor_header_actions_fit_the_minimum_workbench_width() {
 
     let mut previous_right = action_row.x;
     for control_id in ["HeaderSaveButton", "HeaderUndoButton", "HeaderRedoButton"] {
-        let frame = node(control_id).frame;
+        let frame = node(control_id).frame.clone();
         assert!(
             frame.width > 0.0
                 && frame.height > 0.0
@@ -523,7 +523,7 @@ fn ui_asset_editor_action_bar_controls_fit_the_minimum_workbench_width() {
             ],
         ),
     ] {
-        let row = node(row_control_id).frame;
+        let row = node(row_control_id).frame.clone();
         assert!(
             row.width > 0.0 && row.height > 0.0,
             "{row_control_id} must retain a positive frame at the minimum workbench width"
@@ -534,7 +534,7 @@ fn ui_asset_editor_action_bar_controls_fit_the_minimum_workbench_width() {
             .into_iter()
             .filter(|control_id| !control_id.is_empty())
         {
-            let frame = node(control_id).frame;
+            let frame = node(control_id).frame.clone();
             assert!(
                 frame.width > 0.0
                     && frame.height > 0.0
@@ -718,8 +718,10 @@ fn ui_asset_editor_action_controls_emit_existing_host_action_routes() {
             .iter()
             .find_map(|event| event.template_action.as_ref())
             .unwrap_or_else(|| panic!("{control_id} must emit a template action"));
+        assert!(!action.is_action());
         assert_eq!(
-            action.route, expected_route,
+            action.target_id(),
+            expected_route,
             "{control_id} must route to its existing retained-host action"
         );
     }

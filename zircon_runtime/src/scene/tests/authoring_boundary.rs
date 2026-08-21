@@ -43,7 +43,6 @@ pub(super) const SOURCE_AUTHORING_TOKENS: &[&str] = &[
     "selection",
     "SelectionAnchorExtract",
     "selection_anchors",
-    "SelectionHighlightExtract",
     "set_selected",
     "TransformSpace",
     "ViewOrientation",

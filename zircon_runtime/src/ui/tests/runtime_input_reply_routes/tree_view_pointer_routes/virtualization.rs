@@ -10,6 +10,9 @@ fn tree_view_scroll_updates_virtual_window_and_emits_visible_range() {
         event.target == UiNodeId::new(2)
             && event.event == UiComponentEvent::SetVisibleRange { start: 2, count: 3 }
     }));
+    assert_eq!(result.binding_reports.len(), 1);
+    assert_eq!(result.binding_reports[0].applied_count, 32);
+    assert_eq!(result.binding_reports[0].updates.len(), 32);
     assert_tree_attr_int(&surface, "total_count", 7);
     assert_tree_attr_int(&surface, "item_count", 7);
     assert_tree_attr_int(&surface, "viewport_start", 2);
@@ -22,7 +25,7 @@ fn tree_view_scroll_updates_virtual_window_and_emits_visible_range() {
 }
 
 #[test]
-fn tree_view_virtualized_reparent_drag_updates_window() {
+fn tree_view_virtual_window_reparent_drag_updates_window() {
     let mut surface = tree_view_virtualized_reparent_surface(false);
 
     dispatch_tree_pointer(
@@ -75,4 +78,20 @@ fn tree_view_virtualized_reparent_drag_updates_window() {
     assert_tree_attr_int(&surface, "viewport_start", 2);
     assert_tree_attr_int(&surface, "visible_end", 5);
     assert_tree_attr_float(&surface, "scrollTop", 48.0);
+}
+
+#[test]
+fn tree_view_virtual_window_at_boundary_emits_no_transaction() {
+    let mut surface = tree_view_virtualized_reparent_surface(false);
+
+    let first = dispatch_tree_scroll(&mut surface, UiPoint::new(24.0, 76.0), 10_000.0);
+    let boundary = dispatch_tree_scroll(&mut surface, UiPoint::new(24.0, 76.0), 10_000.0);
+
+    assert_eq!(first.binding_reports.len(), 1);
+    assert!(boundary.binding_reports.is_empty());
+    assert!(!boundary
+        .component_events
+        .iter()
+        .any(|event| matches!(event.event, UiComponentEvent::SetVisibleRange { .. })));
+    assert_tree_attr_int(&surface, "viewport_start", 4);
 }

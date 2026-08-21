@@ -316,8 +316,8 @@ mod tests {
         SettingsStore, VIEWPORT_TRANSLATE_STEP_KEY,
     };
     use crate::scene::modes::{
-        EditorSceneMode, InputOutcome, SceneModeCtx, SceneModeRegistration, SceneModeRegistry,
-        ViewportOverlayBuilder,
+        EditorSceneMode, InputOutcome, SceneModeActivation, SceneModeCtx, SceneModeRegistration,
+        SceneModeRegistry, ViewportOverlayBuilder,
     };
     use crate::scene::viewport::{TransformHandleKind, ViewportInput};
 

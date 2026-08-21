@@ -302,7 +302,7 @@ where
 
 fn project_save_post_persist_sync_diagnostic(
     phase: &str,
-    error: &impl std::fmt::Display,
+    error: &(impl std::fmt::Display + ?Sized),
 ) -> String {
     format!("editor_project_save result=post_persist_sync_failed phase={phase} error={error}")
 }

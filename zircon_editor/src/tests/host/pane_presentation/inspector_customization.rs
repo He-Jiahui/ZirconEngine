@@ -1,7 +1,7 @@
 use super::support::{chrome_fixture, editor_data_with_drawer_fixture, pane_body_spec};
 
 use crate::ui::layouts::windows::workbench_host_window::{
-    PanePayload, PanePayloadBuildContext, build_pane_body_presentation,
+    build_pane_body_presentation, PanePayload, PanePayloadBuildContext,
 };
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 

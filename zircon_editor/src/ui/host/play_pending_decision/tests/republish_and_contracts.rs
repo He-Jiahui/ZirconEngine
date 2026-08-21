@@ -27,12 +27,10 @@ fn consumed_receipt_can_republish_a_still_pending_decision() {
         .expect("initial apply option should be available")
         .selection_id()
         .to_string();
-    assert!(
-        adapter
-            .resolve(&center, &first_selection)
-            .expect("receipt should resolve")
-            .newly_resolved()
-    );
+    assert!(adapter
+        .resolve(&center, &first_selection)
+        .expect("receipt should resolve")
+        .newly_resolved());
 
     adapter
         .consume_resolved_receipts(&center, |_| {

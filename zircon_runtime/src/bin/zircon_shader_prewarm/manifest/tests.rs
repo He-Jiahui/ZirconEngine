@@ -104,7 +104,7 @@ fn shader_prewarm_builtin_fallback_manifest_expands_requested_geometry_sources()
         .variants
         .iter()
         .any(|request| request.key.quality == ShaderQualityTier::High
-            && request
+            && source_for(&manifest, request)
                 .wgsl_source
                 .contains("// include: zr_geometry_skinned.wgsl")));
     let skinned_depth_request = manifest
@@ -116,16 +116,17 @@ fn shader_prewarm_builtin_fallback_manifest_expands_requested_geometry_sources()
                 && request.key.pass_type == ShaderPassType::DepthPrepass
         })
         .expect("high-quality skinned depth-only builtin fallback request");
-    assert!(skinned_depth_request
+    let skinned_depth_source = source_for(&manifest, skinned_depth_request);
+    assert!(skinned_depth_source
         .wgsl_source
         .contains("// include: zr_template_depth.wgsl"));
-    assert!(!skinned_depth_request
+    assert!(!skinned_depth_source
         .wgsl_source
         .contains("zr_material_surface"));
-    assert!(!skinned_depth_request
+    assert!(!skinned_depth_source
         .wgsl_source
         .contains("surface.normal_ws * 0.5"));
-    assert!(!skinned_depth_request
+    assert!(!skinned_depth_source
         .wgsl_source
         .contains("// include: zr_template_gbuffer.wgsl"));
 }
@@ -628,7 +629,7 @@ lighting_model = "custom:subsurface"
         .iter()
         .find(|request| request.key.pass_type == ShaderPassType::Forward)
         .expect("custom shading model forward prewarm request");
-    assert!(forward_request
+    assert!(source_for(&manifest, forward_request)
         .wgsl_source
         .contains("fn zr_material_surface("));
 

@@ -220,23 +220,25 @@ fn real_runtime_abi_plugin_registration(events_per_tick: u32) -> RuntimePluginRe
             |_world, _reader_count| Ok(()),
         )
         .expect("register real editor ABI mirrored event");
-    let mut value = 0_u64;
     extensions
         .register_runtime_scene_system(
             owner,
             "navigation.editor_real_abi_tick",
             SystemStage::Update,
-            move |context| {
-                context
-                    .core
-                    .resolve_driver::<RealRuntimeAbiDriver>(REAL_RUNTIME_ABI_DRIVER_NAME)?;
-                context.level.with_world_mut(|world| {
-                    for _ in 0..events_per_tick {
-                        value = value.saturating_add(1);
-                        world.send_event(RealRuntimeAbiEvent { value });
-                    }
-                });
-                Ok(())
+            move || {
+                let mut value = 0_u64;
+                move |context| {
+                    context
+                        .core
+                        .resolve_driver::<RealRuntimeAbiDriver>(REAL_RUNTIME_ABI_DRIVER_NAME)?;
+                    context.level.with_world_mut(|world| {
+                        for _ in 0..events_per_tick {
+                            value = value.saturating_add(1);
+                            world.send_event(RealRuntimeAbiEvent { value });
+                        }
+                    });
+                    Ok(())
+                }
             },
         )
         .register()

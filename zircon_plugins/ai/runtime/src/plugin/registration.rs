@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use zircon_runtime::core::framework::ai::{
     AiAgentTickReport, AiBehaviorDebugFrame, AiBehaviorDebugSnapshot, AiHearingStimulusEvent,
@@ -16,18 +16,18 @@ use zircon_runtime::plugin::{
     PluginEventCatalogManifest, PluginEventManifest, RuntimeExtensionRegistry,
     RuntimeExtensionRegistryError,
 };
-use zircon_runtime::scene::ecs::{EventCursor, EventReadIter, Resource};
 use zircon_runtime::scene::World;
+use zircon_runtime::scene::ecs::{EventCursor, EventReadIter, Resource};
 
 use crate::behavior_tree::{
     BehaviorNodeRegistry, BehaviorNodeRegistryService, RuntimeBehaviorIntegrationHost,
 };
 use crate::perception::{
-    ai_perception_component_descriptors, hearing_event_from_animation, hearing_event_from_sound,
-    perception_receiver, tick_perception, AiTickBudget, HearingStimulusAdapter, PerceivedStimuli,
-    AI_HEARING_INGEST_EVENT_LIMIT, AI_HEARING_PENDING_EVENT_CAPACITY,
+    AI_HEARING_INGEST_EVENT_LIMIT, AI_HEARING_PENDING_EVENT_CAPACITY, AiTickBudget,
+    HearingStimulusAdapter, PerceivedStimuli, ai_perception_component_descriptors,
+    hearing_event_from_animation, hearing_event_from_sound, perception_receiver, tick_perception,
 };
-use crate::{AiBehaviorTickLod, DefaultAiManager, AI_MODULE_NAME};
+use crate::{AI_MODULE_NAME, AiBehaviorTickLod, DefaultAiManager};
 
 pub const AI_BEHAVIOR_TICK_SYSTEM: &str = "ai.behavior_tick";
 pub const AI_PERCEPTION_TICK_SYSTEM: &str = "ai.perception_tick";
@@ -459,11 +459,11 @@ pub(super) fn register_runtime_extensions(
                             .into_iter()
                             .collect::<BTreeSet<_>>();
                         let snapshots_by_entity = manager
-                            .runtime_snapshot()
-                            .agents
+                            .runtime_snapshots_for_agents(
+                                world_handle,
+                                active_entities.iter().copied(),
+                            )
                             .into_iter()
-                            .filter(|snapshot| snapshot.world == world_handle)
-                            .filter(|snapshot| active_entities.contains(&snapshot.entity))
                             .map(|snapshot| (snapshot.entity, snapshot))
                             .collect::<BTreeMap<_, _>>();
                         let world_id = world_handle.get();

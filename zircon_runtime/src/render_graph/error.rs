@@ -31,6 +31,8 @@ pub enum RenderGraphError {
     },
     #[error("render graph resource name `{resource}` is declared more than once")]
     DuplicateResourceName { resource: String },
+    #[error("render graph pass name `{pass}` is declared more than once")]
+    DuplicatePassName { pass: String },
     #[error(
         "render graph external alias group `{alias_group}` mixes {expected:?} and {found:?} resources"
     )]
@@ -119,9 +121,7 @@ pub enum RenderGraphError {
     },
     #[error("render graph `{graph_name}` contains a dependency cycle")]
     CycleDetected { graph_name: String },
-    #[error(
-        "render graph pass `{pass}` reads resource `{resource}` before any producer writes it"
-    )]
+    #[error("render graph pass `{pass}` reads resource `{resource}` before any producer writes it")]
     ReadBeforeProducer { resource: String, pass: String },
     #[error(
         "render graph pass `{pass}` loads transient attachment `{resource}` before any producer writes it"
@@ -135,6 +135,8 @@ pub enum RenderGraphError {
         pass: String,
         producer: String,
     },
-    #[error("render graph `{graph_name}` has no present, readback, persistent, or side-effect cull root")]
+    #[error(
+        "render graph `{graph_name}` has no present, readback, persistent, or side-effect cull root"
+    )]
     MissingCullRoot { graph_name: String },
 }

@@ -20,8 +20,8 @@ use crate::diagnostic_log::write_log_lazy;
 use crate::scene::ecs::RuntimeSceneSystemContext;
 use crate::scene::{EntityId, LevelSystem, SystemStage, World};
 use crate::script::{
-    ScriptRuntimeCallContext, VM_PLUGIN_MANAGER_NAME, VmCallbackHandle, VmPluginManager,
-    with_script_runtime_call_context,
+    with_script_runtime_call_context, ScriptRuntimeCallContext, VmCallbackHandle, VmPluginManager,
+    VM_PLUGIN_MANAGER_NAME,
 };
 
 const SCRIPT_BINDINGS_COMPONENT: &str = "script.bindings";
@@ -498,7 +498,7 @@ mod tests {
     use crate::scene::{LevelMetadata, LevelSystem, World};
 
     use super::{
-        SCRIPT_BINDINGS_COMPONENT, ScriptSceneLifecyclePhase, active_script_binding_projection,
+        active_script_binding_projection, ScriptSceneLifecyclePhase, SCRIPT_BINDINGS_COMPONENT,
     };
 
     #[test]

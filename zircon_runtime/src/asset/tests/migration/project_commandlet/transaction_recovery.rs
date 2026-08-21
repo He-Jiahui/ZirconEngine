@@ -69,7 +69,7 @@ fn dry_run_reports_pending_recovery_and_apply_converges_forward_without_backup_r
 
     migrate_project_assets_with_process_interruption(
         AssetMigrationOptions::new(&root, AssetMigrationMode::Apply),
-        0,
+        2,
     )
     .expect_err("simulated process interruption must leave recovery artifacts");
     let first_after_interruption = fs::read_to_string(&first).unwrap();
@@ -323,7 +323,7 @@ fn forged_active_journal_cannot_restore_retired_backup_or_delete_current_sidecar
 
 #[test]
 fn stage_write_and_backup_copy_failures_leave_no_local_artifacts() {
-    for point in [0, 1] {
+    for point in [0_u8, 1] {
         let root = fixture_root(&format!("stage-guard-{point}"));
         write_manifest(&root, &["assets"]);
         let guid: AssetUuid = "94111111-2222-4333-8444-555555555555".parse().unwrap();
@@ -343,7 +343,7 @@ fn stage_write_and_backup_copy_failures_leave_no_local_artifacts() {
 
         migrate_project_assets_with_stage_fault(
             AssetMigrationOptions::new(&root, AssetMigrationMode::Apply),
-            0,
+            usize::from(point),
             point,
         )
         .expect_err("injected stage failure must remain typed");
@@ -550,8 +550,10 @@ fn restore_failure_is_typed_and_retains_a_recovery_backup() {
                 .contains("zr-migrate-backup")
         })
         .collect::<Vec<_>>();
-    assert_eq!(backups.len(), 1);
-    assert_eq!(fs::read_to_string(backups[0].path()).unwrap(), original);
+    assert_eq!(backups.len(), 2);
+    assert!(backups
+        .iter()
+        .all(|backup| fs::read_to_string(backup.path()).unwrap() == original));
 
     let report =
         migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::ops::Deref;
+use std::sync::Arc;
 
 use crate::core::resource::{
     ResourceId, ResourceKind, ResourceLocator, ResourceRecord, ResourceRegistryError,
@@ -8,8 +9,8 @@ use crate::core::resource::{
 
 #[derive(Clone, Debug, Default)]
 pub struct ResourceRegistry {
-    by_id: HashMap<ResourceId, ResourceRecord>,
-    id_by_locator: HashMap<ResourceLocator, ResourceId>,
+    by_id: Arc<HashMap<ResourceId, Arc<ResourceRecord>>>,
+    id_by_locator: Arc<HashMap<Arc<ResourceLocator>, ResourceId>>,
 }
 
 impl ResourceRegistry {
@@ -20,23 +21,30 @@ impl ResourceRegistry {
                 .is_none_or(|existing_id| *existing_id == record.id),
             "resource mutation preflight must reject occupied locators"
         );
-        if let Some(existing) = self.by_id.get(&record.id) {
-            self.id_by_locator.remove(&existing.primary_locator);
+        if let Some(existing_locator) = self
+            .by_id
+            .get(&record.id)
+            .map(|existing| existing.primary_locator.clone())
+        {
+            Arc::make_mut(&mut self.id_by_locator).remove(&existing_locator);
         }
 
-        self.id_by_locator
-            .insert(record.primary_locator.clone(), record.id);
-        self.by_id.insert(record.id, record)
+        Arc::make_mut(&mut self.id_by_locator)
+            .insert(Arc::new(record.primary_locator.clone()), record.id);
+        Arc::make_mut(&mut self.by_id)
+            .insert(record.id, Arc::new(record))
+            .map(into_owned_record)
     }
 
     pub fn get(&self, id: ResourceId) -> Option<&ResourceRecord> {
-        self.by_id.get(&id)
+        self.by_id.get(&id).map(Arc::as_ref)
     }
 
     pub fn get_by_locator(&self, locator: &ResourceLocator) -> Option<&ResourceRecord> {
         self.id_by_locator
             .get(locator)
             .and_then(|id| self.by_id.get(id))
+            .map(Arc::as_ref)
     }
 
     pub(crate) fn id_for_locator(&self, locator: &ResourceLocator) -> Option<ResourceId> {
@@ -44,33 +52,26 @@ impl ResourceRegistry {
     }
 
     pub fn values(&self) -> impl Iterator<Item = &ResourceRecord> {
-        self.by_id.values()
+        self.by_id.values().map(Arc::as_ref)
     }
 
     pub(crate) fn remove_by_id(&mut self, id: ResourceId) -> Option<ResourceRecord> {
-        let removed = self.by_id.remove(&id)?;
-        self.id_by_locator.remove(&removed.primary_locator);
-        Some(removed)
+        let removed = Arc::make_mut(&mut self.by_id).remove(&id)?;
+        Arc::make_mut(&mut self.id_by_locator).remove(&removed.primary_locator);
+        Some(into_owned_record(removed))
     }
 
     pub(crate) fn begin_staging(&self) -> ResourceRegistryStaging {
         ResourceRegistryStaging {
             registry: self.clone(),
-            identities: self
-                .by_id
-                .values()
-                .map(|record| {
-                    (
-                        record.id,
-                        ResourceRegistryIdentity {
-                            kind: record.kind,
-                            authorized_locator: record.primary_locator.clone(),
-                        },
-                    )
-                })
-                .collect(),
+            identity_registry: self.clone(),
+            staged_identities: HashMap::new(),
         }
     }
+}
+
+fn into_owned_record(record: Arc<ResourceRecord>) -> ResourceRecord {
+    Arc::try_unwrap(record).unwrap_or_else(|record| (*record).clone())
 }
 
 #[derive(Clone, Debug)]
@@ -83,7 +84,8 @@ struct ResourceRegistryIdentity {
 #[derive(Clone, Debug, Default)]
 pub(crate) struct ResourceRegistryStaging {
     registry: ResourceRegistry,
-    identities: HashMap<ResourceId, ResourceRegistryIdentity>,
+    identity_registry: ResourceRegistry,
+    staged_identities: HashMap<ResourceId, ResourceRegistryIdentity>,
 }
 
 impl ResourceRegistryStaging {
@@ -100,29 +102,42 @@ impl ResourceRegistryStaging {
                 });
             }
         }
-        if let Some(identity) = self.identities.get(&record.id) {
-            if identity.kind != record.kind {
+        if let Some((kind, authorized_locator)) = self.identity_for(record.id) {
+            if kind != record.kind {
                 return Err(ResourceRegistryError::KindConflict {
                     id: record.id.to_string(),
-                    current_kind: identity.kind,
+                    current_kind: kind,
                     requested_kind: record.kind,
                 });
             }
-            if identity.authorized_locator != record.primary_locator {
+            if authorized_locator != &record.primary_locator {
                 return Err(ResourceRegistryError::ExplicitRenameRequired {
                     id: record.id.to_string(),
-                    current_locator: identity.authorized_locator.to_string(),
+                    current_locator: authorized_locator.to_string(),
                     requested_locator: record.primary_locator.to_string(),
                 });
             }
         }
-        self.identities
-            .entry(record.id)
-            .or_insert_with(|| ResourceRegistryIdentity {
-                kind: record.kind,
-                authorized_locator: record.primary_locator.clone(),
-            });
+        if self.identity_registry.get(record.id).is_none() {
+            self.staged_identities
+                .entry(record.id)
+                .or_insert_with(|| ResourceRegistryIdentity {
+                    kind: record.kind,
+                    authorized_locator: record.primary_locator.clone(),
+                });
+        }
         Ok(self.registry.insert_unchecked(record))
+    }
+
+    fn identity_for(&self, id: ResourceId) -> Option<(ResourceKind, &ResourceLocator)> {
+        self.identity_registry
+            .get(id)
+            .map(|record| (record.kind, &record.primary_locator))
+            .or_else(|| {
+                self.staged_identities
+                    .get(&id)
+                    .map(|identity| (identity.kind, &identity.authorized_locator))
+            })
     }
 
     pub(crate) fn stage_remove_locator(

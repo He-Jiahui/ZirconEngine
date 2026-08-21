@@ -1,6 +1,6 @@
 use crate::scene::{
-    reflect::{ReflectComponent, ReflectResource, TypeRegistry},
     World,
+    reflect::{ReflectComponent, ReflectResource, TypeRegistry},
 };
 use zircon_runtime_interface::reflect::{
     ReflectError, ReflectFieldValue, ReflectFieldsRequest, ReflectFieldsResponse,
@@ -89,8 +89,7 @@ impl WorldReflection {
                 let adapter = resource_adapter_for_write(world, type_path)?;
                 let field_slot =
                     resource_field_slot_for_write(world, type_path, &request.field_name)?;
-                let changed =
-                    adapter.write_fields_by_slot(world, vec![(field_slot, request.value)])?;
+                let changed = adapter.write_field_by_slot(world, field_slot, request.value)?;
                 let value = adapter.read_field(world, &request.field_name)?;
                 (changed, value)
             }

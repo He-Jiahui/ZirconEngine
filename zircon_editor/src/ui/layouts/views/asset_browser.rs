@@ -2,12 +2,12 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 
 use crate::ui::layouts::views::view_projection::{
-    ViewTemplateResourceGeneration, build_view_template_node_projection,
-    compose_view_template_node_model, view_template_resource_generation,
+    build_view_template_node_projection, compose_view_template_node_model,
+    view_template_resource_generation, ViewTemplateResourceGeneration,
 };
 use crate::ui::retained_host::{primitives::ModelRc, runtime_text_metrics_generation};
 use crate::ui::workbench::asset_content_layout::{
-    AssetContentPaintNodeInput, AssetContentSurface, asset_content_paint_metadata,
+    asset_content_paint_metadata, AssetContentPaintNodeInput, AssetContentSurface,
 };
 use crate::ui::workbench::snapshot::{
     AssetItemSnapshot, AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot,
@@ -15,7 +15,7 @@ use crate::ui::workbench::snapshot::{
 use zircon_runtime_interface::resource::ResourceKind;
 use zircon_runtime_interface::ui::layout::UiSize;
 
-use super::{ViewTemplateNodeData, load_preview_image_for_generation};
+use super::{load_preview_image_for_generation, ViewTemplateNodeData};
 use compact_layout::{apply_asset_browser_compact_layout, apply_asset_browser_sources_layout};
 use labels::asset_state_label;
 use reference_nodes::{apply_asset_browser_reference_layout, sync_asset_browser_reference_nodes};

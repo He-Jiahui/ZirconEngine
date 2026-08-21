@@ -13,17 +13,18 @@ use zircon_runtime::asset::pipeline::manager::{
 use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
 use zircon_runtime::asset::{AssetUri, ProjectInfo};
 use zircon_runtime::core::framework::render::{
-    EnvironmentExtract, PreviewEnvironmentExtract, RenderGpuTimingStatus, RenderOverlayExtract,
-    RenderSceneSnapshot, RenderViewportSurfaceDescriptor, SceneViewportExtractRequest,
-    ShaderVariantMissReport, ViewportRenderSettings,
+    EnvironmentExtract, PreviewEnvironmentExtract, RenderFrameExtract, RenderFramework,
+    RenderGpuTimingStatus, RenderOverlayExtract, RenderSceneSnapshot, RenderSubmissionConfig,
+    RenderViewportDescriptor, RenderViewportHandle, RenderViewportSurfaceDescriptor,
+    RenderWorldSnapshotHandle, SceneViewportExtractRequest, ShaderVariantMissReport,
+    ViewportRenderSettings,
 };
 use zircon_runtime::core::math::{UVec2, Vec4};
 use zircon_runtime::core::runtime::modules::{TasksModule, TASKS_MODULE_NAME};
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::engine_module::EngineModule;
 use zircon_runtime::graphics::{
-    SceneRenderer, SceneRendererGpuTimingReport, SceneRendererStartupOptions, SceneViewportSurface,
-    ViewportFrame,
+    SceneRendererGpuTimingReport, SceneRendererStartupOptions, ViewportFrame, WgpuRenderFramework,
 };
 use zircon_runtime_interface::project::RelPath;
 
@@ -67,9 +68,9 @@ impl ViewerProjectRuntimeOpenReport {
 pub(crate) struct PbrMirrorScene {
     _work_paths: ViewerWorkPaths,
     world: Option<zircon_runtime::scene::world::World>,
-    // The native surface must drop before its renderer/device owner.
-    viewport_surface: Option<SceneViewportSurface>,
-    renderer: Option<SceneRenderer>,
+    viewport: RenderViewportHandle,
+    render_framework: Option<WgpuRenderFramework>,
+    renderer_backend_name: String,
     environment: EnvironmentExtract,
     preview: PreviewEnvironmentExtract,
     ibl_load_report: PbrMirrorSceneIblLoadReport,
@@ -80,6 +81,8 @@ pub(crate) struct PbrMirrorScene {
     // Keep the cache root alive until runtime teardown releases its file watchers.
     _asset_runtime: Option<CoreRuntime>,
 }
+
+const PBR_VIEWER_WORLD_SNAPSHOT_HANDLE: u64 = 1;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct PbrMirrorSceneIblLoadReport {
@@ -368,8 +371,24 @@ impl PbrMirrorScene {
         } else {
             startup_options
         };
-        let (renderer, renderer_startup_report) =
-            SceneRenderer::new_with_startup_options_and_report(asset_access, startup_options)?;
+        let (render_framework, renderer_startup_report) =
+            WgpuRenderFramework::new_with_startup_options_and_report(
+                asset_access,
+                startup_options,
+            )?;
+        let submission_config = RenderSubmissionConfig::synchronous().with_async_pipeline_compile();
+        let submission_config = if gpu_timing_enabled {
+            submission_config.with_gpu_timing()
+        } else {
+            submission_config
+        };
+        render_framework.set_submission_config(submission_config)?;
+        let viewport = render_framework.create_viewport(
+            RenderViewportDescriptor::new(UVec2::new(1, 1)).with_label("pbr-mirror-viewer"),
+        )?;
+        let renderer_backend_name = render_framework
+            .query_graphics_debugger_status()?
+            .backend_name;
         let renderer_init_elapsed = renderer_init_started.elapsed();
 
         let ibl_restore_started = Instant::now();
@@ -442,8 +461,9 @@ impl PbrMirrorScene {
         let scene = Self {
             _work_paths: work_paths,
             world: Some(world),
-            viewport_surface: None,
-            renderer: Some(renderer),
+            viewport,
+            render_framework: Some(render_framework),
+            renderer_backend_name,
             environment,
             preview,
             ibl_load_report,
@@ -500,21 +520,40 @@ impl PbrMirrorScene {
         let capture_frame_timing = self.frame_timing_report_requested;
         let render_extract_started = capture_frame_timing.then(Instant::now);
         let snapshot = self.render_snapshot(camera, viewport_size)?;
+        let extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(PBR_VIEWER_WORLD_SNAPSHOT_HANDLE),
+            snapshot,
+        )
+        .with_viewport_size(viewport_size);
         let render_extract =
             render_extract_started.map_or(std::time::Duration::ZERO, |started| started.elapsed());
-
-        let renderer = self
-            .renderer
-            .as_mut()
-            .ok_or("PBR mirror scene renderer has already shut down")?;
-        let frame = renderer.render(snapshot, viewport_size)?;
+        let render_submission_started = capture_frame_timing.then(Instant::now);
+        let framework = self
+            .render_framework
+            .as_ref()
+            .ok_or("PBR mirror scene render framework has already shut down")?;
+        framework.submit_frame_extract(self.viewport, extract)?;
+        let render_submission = render_submission_started
+            .map_or(std::time::Duration::ZERO, |started| started.elapsed());
+        let readback_started = capture_frame_timing.then(Instant::now);
+        let captured = framework
+            .capture_frame(self.viewport)?
+            .ok_or("PBR mirror scene did not produce a captured frame")?;
+        let readback_and_completion =
+            readback_started.map_or(std::time::Duration::ZERO, |started| started.elapsed());
+        let frame = ViewportFrame {
+            width: captured.width,
+            height: captured.height,
+            rgba: captured.rgba,
+            generation: captured.generation,
+            capture_report: captured.capture_report,
+        };
         if capture_frame_timing {
-            let renderer_timing = renderer.last_frame_timing_report();
             self.frame_timing_report_requested = false;
             self.last_frame_timing = PbrMirrorSceneFrameTimingReport::new(
                 render_extract,
-                renderer_timing.render_submission(),
-                renderer_timing.readback_and_completion(),
+                render_submission,
+                readback_and_completion,
             );
         }
         Ok(frame)
@@ -524,11 +563,11 @@ impl PbrMirrorScene {
         &mut self,
         descriptor: RenderViewportSurfaceDescriptor,
     ) -> Result<(), Box<dyn Error>> {
-        let renderer = self
-            .renderer
+        let framework = self
+            .render_framework
             .as_ref()
-            .ok_or("PBR mirror scene renderer has already shut down")?;
-        self.viewport_surface = Some(renderer.create_viewport_surface(descriptor)?);
+            .ok_or("PBR mirror scene render framework has already shut down")?;
+        framework.bind_viewport_surface(self.viewport, descriptor)?;
         Ok(())
     }
 
@@ -540,31 +579,36 @@ impl PbrMirrorScene {
         let capture_frame_timing = self.frame_timing_report_requested;
         let render_extract_started = capture_frame_timing.then(Instant::now);
         let snapshot = self.render_snapshot(camera, viewport_size)?;
+        let extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(PBR_VIEWER_WORLD_SNAPSHOT_HANDLE),
+            snapshot,
+        )
+        .with_viewport_size(viewport_size);
         let render_extract =
             render_extract_started.map_or(std::time::Duration::ZERO, |started| started.elapsed());
-        let viewport_surface = self
-            .viewport_surface
-            .as_mut()
-            .ok_or("PBR mirror scene does not have a native viewport surface")?;
-        let renderer = self
-            .renderer
-            .as_mut()
-            .ok_or("PBR mirror scene renderer has already shut down")?;
-        renderer.render_to_viewport_surface(snapshot, viewport_size, viewport_surface)?;
+        let render_submission_started = capture_frame_timing.then(Instant::now);
+        let framework = self
+            .render_framework
+            .as_ref()
+            .ok_or("PBR mirror scene render framework has already shut down")?;
+        framework.present_frame_extract(self.viewport, extract)?;
+        let render_submission = render_submission_started
+            .map_or(std::time::Duration::ZERO, |started| started.elapsed());
         if capture_frame_timing {
-            let renderer_timing = renderer.last_frame_timing_report();
             self.frame_timing_report_requested = false;
             self.last_frame_timing = PbrMirrorSceneFrameTimingReport::new(
                 render_extract,
-                renderer_timing.render_submission(),
-                renderer_timing.readback_and_completion(),
+                render_submission,
+                std::time::Duration::ZERO,
             );
         }
         Ok(())
     }
 
     pub(crate) fn detach_viewport_surface(&mut self) {
-        self.viewport_surface.take();
+        if let Some(framework) = self.render_framework.as_ref() {
+            let _ = framework.unbind_viewport_surface(self.viewport);
+        }
     }
 
     fn render_snapshot(
@@ -591,33 +635,36 @@ impl PbrMirrorScene {
     }
 
     pub(crate) fn renderer_backend_name(&self) -> &str {
-        self.renderer
-            .as_ref()
-            .expect("PBR mirror scene renderer must exist while the viewer is active")
-            .backend_name()
+        &self.renderer_backend_name
     }
 
     pub(crate) fn shader_variant_miss_report(&self) -> ShaderVariantMissReport {
-        self.renderer
+        self.render_framework
             .as_ref()
-            .expect("PBR mirror scene renderer must exist while the viewer is active")
-            .last_shader_variant_miss_report()
+            .expect("PBR mirror scene render framework must exist while the viewer is active")
+            .query_stats()
+            .expect("querying in-process render stats must succeed")
+            .last_shader_variant_miss_report
     }
 
     pub(crate) fn take_completed_gpu_timing_report(
         &mut self,
     ) -> Option<SceneRendererGpuTimingReport> {
-        self.renderer
+        self.render_framework
             .as_mut()
-            .expect("PBR mirror scene renderer must exist while the viewer is active")
+            .expect("PBR mirror scene render framework must exist while the viewer is active")
             .take_completed_gpu_timing_report()
+            .expect("the synchronous viewer must finish its render submission")
     }
 
     pub(crate) fn last_gpu_timing_status(&self) -> RenderGpuTimingStatus {
-        self.renderer
+        self.render_framework
             .as_ref()
-            .expect("PBR mirror scene renderer must exist while the viewer is active")
-            .last_gpu_timing_status()
+            .expect("PBR mirror scene render framework must exist while the viewer is active")
+            .query_stats()
+            .expect("querying in-process render stats must succeed")
+            .last_frame_profile
+            .gpu_timing_status
     }
 
     pub(crate) const fn ibl_load_report(&self) -> PbrMirrorSceneIblLoadReport {
@@ -636,9 +683,9 @@ impl PbrMirrorScene {
     /// one-shot screenshot or graphics capture can contain the PBR mesh.
     pub(crate) fn environment_only_base_pipeline_ready(&mut self) -> Result<bool, Box<dyn Error>> {
         Ok(self
-            .renderer
-            .as_mut()
-            .ok_or("PBR mirror scene renderer has already shut down")?
+            .render_framework
+            .as_ref()
+            .ok_or("PBR mirror scene render framework has already shut down")?
             .environment_only_pbr_base_pipeline_ready()?)
     }
 
@@ -646,19 +693,15 @@ impl PbrMirrorScene {
     pub(crate) fn retry_environment_only_base_pipeline_admission(
         &mut self,
     ) -> Result<(), Box<dyn Error>> {
-        self.renderer
-            .as_mut()
-            .ok_or("PBR mirror scene renderer has already shut down")?
+        self.render_framework
+            .as_ref()
+            .ok_or("PBR mirror scene render framework has already shut down")?
             .retry_environment_only_pbr_base_pipeline_admission()?;
         Ok(())
     }
 
     pub(crate) fn request_next_frame_timing_report(&mut self) {
         self.frame_timing_report_requested = true;
-        self.renderer
-            .as_mut()
-            .expect("PBR mirror scene renderer must exist while the viewer is active")
-            .request_next_frame_timing_report();
     }
 
     pub(crate) const fn last_frame_timing_report(&self) -> PbrMirrorSceneFrameTimingReport {
@@ -666,18 +709,29 @@ impl PbrMirrorScene {
     }
 
     pub(crate) fn start_graphics_debugger_capture(&self) {
-        self.renderer
+        self.render_framework
             .as_ref()
-            .expect("PBR mirror scene renderer must exist while the viewer is active")
-            .start_graphics_debugger_capture();
+            .expect("PBR mirror scene render framework must exist while the viewer is active")
+            .request_graphics_debugger_capture(self.viewport)
+            .expect("the PBR viewer viewport must remain registered");
     }
 
     pub(crate) fn stop_graphics_debugger_capture(&self) -> Result<(), Box<dyn Error>> {
-        Ok(self
-            .renderer
+        let status = self
+            .render_framework
             .as_ref()
-            .expect("PBR mirror scene renderer must exist while the viewer is active")
-            .stop_graphics_debugger_capture()?)
+            .ok_or("PBR mirror scene render framework has already shut down")?
+            .query_graphics_debugger_status()?;
+        if let Some(error) = status.last_error {
+            return Err(std::io::Error::other(error).into());
+        }
+        if status.capture_pending || status.active_capture {
+            return Err(std::io::Error::other(
+                "graphics debugger capture did not reach a terminal state",
+            )
+            .into());
+        }
+        Ok(())
     }
 }
 
@@ -685,8 +739,11 @@ impl Drop for PbrMirrorScene {
     fn drop(&mut self) {
         // Windows file watchers can retain the temporary asset root until their runtime owner drops.
         self.world.take();
-        self.viewport_surface.take();
-        self.renderer.take();
+        if let Some(framework) = self.render_framework.as_ref() {
+            let _ = framework.unbind_viewport_surface(self.viewport);
+            let _ = framework.destroy_viewport(self.viewport);
+        }
+        self.render_framework.take();
         self._asset_runtime.take();
     }
 }
@@ -714,7 +771,7 @@ mod tests {
     }
 
     #[test]
-    fn scene_renderer_drops_before_its_runtime_services() {
+    fn render_framework_drops_before_its_runtime_services() {
         let fields = production_source()
             .split_once("pub(crate) struct PbrMirrorScene {")
             .and_then(|(_, rest)| rest.split_once('}'))
@@ -722,18 +779,21 @@ mod tests {
             .expect("PbrMirrorScene fields should remain visible to the lifecycle guard");
 
         assert!(
-            fields.find("renderer:").expect("renderer field")
+            fields
+                .find("render_framework:")
+                .expect("render framework field")
                 < fields.find("_asset_runtime:").expect("runtime owner field"),
-            "Rust drops struct fields in declaration order, so the runtime owner must follow the renderer"
+            "Rust drops struct fields in declaration order, so the runtime owner must follow the render framework"
         );
     }
 
     #[test]
-    fn scene_teardown_releases_world_renderer_and_runtime_in_order() {
+    fn scene_teardown_releases_world_viewport_framework_and_runtime_in_order() {
         assert_source_order(&[
             "self.world.take();",
-            "self.viewport_surface.take();",
-            "self.renderer.take();",
+            "framework.unbind_viewport_surface(self.viewport)",
+            "framework.destroy_viewport(self.viewport)",
+            "self.render_framework.take();",
             "self._asset_runtime.take();",
         ]);
         assert!(
@@ -743,7 +803,7 @@ mod tests {
     }
 
     #[test]
-    fn native_viewport_surface_is_bound_after_background_loading_and_drops_before_renderer() {
+    fn native_viewport_surface_is_owned_by_the_render_framework() {
         let fields = production_source()
             .split_once("pub(crate) struct PbrMirrorScene {")
             .and_then(|(_, rest)| rest.split_once('}'))
@@ -751,20 +811,18 @@ mod tests {
             .expect("PbrMirrorScene fields should remain visible to the lifecycle guard");
 
         assert!(
-            fields
-                .find("viewport_surface:")
-                .expect("viewport surface field")
-                < fields.find("renderer:").expect("renderer field"),
-            "the native surface must drop before its renderer/device owner"
+            !fields.contains("viewport_surface:"),
+            "the viewer must not own a backend viewport surface outside the render framework"
         );
         assert_source_order(&[
             "pub(crate) fn attach_viewport_surface(",
-            "renderer.create_viewport_surface(descriptor)?",
+            "framework.bind_viewport_surface(self.viewport, descriptor)?",
             "pub(crate) fn render_to_viewport_surface(",
-            "renderer.render_to_viewport_surface(snapshot, viewport_size, viewport_surface)?",
+            "framework.present_frame_extract(self.viewport, extract)?",
             "pub(crate) fn detach_viewport_surface(",
-            "self.viewport_surface.take();",
+            "framework.unbind_viewport_surface(self.viewport)",
         ]);
+        assert!(!production_source().contains("SceneViewportSurface"));
     }
 
     #[test]
@@ -813,9 +871,9 @@ mod tests {
             "let capture_frame_timing = self.frame_timing_report_requested;",
             "let render_extract_started = capture_frame_timing.then(Instant::now);",
             "let render_extract =\n            render_extract_started",
-            "let frame = renderer.render(snapshot, viewport_size)?;",
+            "framework.submit_frame_extract(self.viewport, extract)?;",
+            ".capture_frame(self.viewport)?",
             "if capture_frame_timing {",
-            "let renderer_timing = renderer.last_frame_timing_report();",
             "self.frame_timing_report_requested = false;",
             "self.last_frame_timing = PbrMirrorSceneFrameTimingReport::new(",
         ]);
@@ -846,13 +904,15 @@ mod tests {
         assert_source_order(&[
             "pub(crate) fn render(",
             ") -> Result<ViewportFrame, Box<dyn Error>> {",
-            "let frame = renderer.render(snapshot, viewport_size)?;",
+            "framework.submit_frame_extract(self.viewport, extract)?;",
+            ".capture_frame(self.viewport)?",
         ]);
         assert_eq!(
-            source.matches("renderer.render(").count(),
+            source.matches(".capture_frame(self.viewport)?").count(),
             1,
             "the viewer must not issue and discard CPU ViewportFrame readbacks for warmup"
         );
+        assert!(!source.contains("SceneRenderer::"));
         assert!(
             !source.contains("warm_up_first_frame"),
             "pipeline warmup requires the Render17-owned no-readback API"
@@ -911,8 +971,8 @@ mod tests {
             "core_startup.deferred_lighting_shader_source_assembly()",
             "core_startup.deferred_lighting_pipeline_foundation()",
             "core_startup.deferred_lighting_standard_pipeline()",
-            "renderer_startup_report.environment_only_pbr_base_prewarm()",
-            "base_prewarm_report.cache_hit()",
+            ".environment_only_pbr_base_prewarm()",
+            "cache_hit: report.cache_hit()",
         ] {
             assert!(
                 source.contains(expected),
@@ -944,7 +1004,9 @@ mod tests {
             ".with_async_pipeline_compile();",
             "let startup_options = if gpu_timing_enabled {",
             "startup_options.with_gpu_timing()",
-            "SceneRenderer::new_with_startup_options_and_report(asset_access, startup_options)?;",
+            "WgpuRenderFramework::new_with_startup_options_and_report(",
+            "asset_access,",
+            "startup_options,",
         ]);
         assert!(
             !source.contains("ProjectManager::open("),

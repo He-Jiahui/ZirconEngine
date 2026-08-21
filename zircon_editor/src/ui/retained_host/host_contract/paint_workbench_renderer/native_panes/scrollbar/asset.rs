@@ -121,6 +121,15 @@ mod tests {
         BROWSER_CONTENT_TABLE_CONTROL_ID, BROWSER_CONTENT_TABLE_HEADER_CONTROL_ID,
     };
 
+    fn frame(x: f32, y: f32, width: f32, height: f32) -> FrameRect {
+        FrameRect {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
+
     #[test]
     fn browser_content_scrollbar_geometry_uses_generation_metadata_without_model_scans() {
         let source = include_str!("asset.rs");

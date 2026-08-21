@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn runtime_plugin_catalog_reports_optional_feature_dependency_status() {
-    let catalog = RuntimePluginCatalog::from_descriptors([
+    let catalog = catalog_with_concrete_feature_registrations([
         RuntimePluginDescriptor::builder(
             "sound",
             "Sound",
@@ -31,25 +31,28 @@ fn runtime_plugin_catalog_reports_optional_feature_dependency_status() {
         .build(),
     ]);
     let mut manifest = ProjectPluginManifest {
-        selections: vec![ProjectPluginSelection::runtime_plugin(
-            RuntimePluginId::Sound,
-            true,
-            false,
-        )
-        .with_feature(
-            ProjectPluginFeatureSelection::new("sound.timeline_animation_track").enabled(true),
-        )],
+        selections: vec![
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Sound, true, false)
+                .with_feature(
+                    ProjectPluginFeatureSelection::new("sound.timeline_animation_track")
+                        .enabled(true),
+                ),
+        ],
     };
 
     let blocked = catalog.feature_dependency_report(&manifest, RuntimeTargetMode::ClientRuntime);
     assert!(blocked.available_features.is_empty());
     assert_eq!(blocked.blocked_features.len(), 1);
-    assert!(blocked.blocked_features[0]
-        .missing_plugins
-        .contains(&"animation".to_string()));
-    assert!(blocked.blocked_features[0]
-        .missing_capabilities
-        .contains(&"runtime.feature.animation.timeline_event_track".to_string()));
+    assert!(
+        blocked.blocked_features[0]
+            .missing_plugins
+            .contains(&"animation".to_string())
+    );
+    assert!(
+        blocked.blocked_features[0]
+            .missing_capabilities
+            .contains(&"runtime.feature.animation.timeline_event_track".to_string())
+    );
 
     manifest.set_enabled(ProjectPluginSelection::runtime_plugin(
         RuntimePluginId::Animation,
@@ -91,9 +94,11 @@ fn runtime_plugin_catalog_gates_external_feature_packages_on_provider_selection(
     let blocked = catalog.feature_dependency_report(&manifest, RuntimeTargetMode::ClientRuntime);
     assert!(blocked.available_features.is_empty());
     assert_eq!(blocked.blocked_features.len(), 1);
-    assert!(blocked.blocked_features[0]
-        .missing_plugins
-        .contains(&"sound_timeline_animation_track".to_string()));
+    assert!(
+        blocked.blocked_features[0]
+            .missing_plugins
+            .contains(&"sound_timeline_animation_track".to_string())
+    );
 
     manifest.selections.push(feature_provider_selection(
         "sound_timeline_animation_track",
@@ -124,7 +129,7 @@ fn runtime_plugin_catalog_rejects_secondary_primary_feature_dependency() {
         "runtime.feature.animation.timeline_event_track",
     ))
     .with_capability("runtime.feature.sound.invalid_extra_primary");
-    let catalog = RuntimePluginCatalog::from_descriptors([
+    let catalog = catalog_with_concrete_feature_registrations([
         RuntimePluginDescriptor::builder(
             "sound",
             "Sound",
@@ -166,9 +171,11 @@ fn runtime_plugin_catalog_rejects_secondary_primary_feature_dependency() {
     assert!(blocked.available_features.is_empty());
     assert_eq!(blocked.blocked_features.len(), 1);
     assert!(blocked.blocked_features[0].invalid_owner_dependency);
-    assert!(blocked.blocked_features[0]
-        .to_diagnostic()
-        .contains("not the only primary dependency"));
+    assert!(
+        blocked.blocked_features[0]
+            .to_diagnostic()
+            .contains("not the only primary dependency")
+    );
 }
 
 #[test]
@@ -188,7 +195,7 @@ fn runtime_plugin_catalog_reports_target_mismatch_for_optional_feature() {
                 .with_target_modes([RuntimeTargetMode::ServerRuntime])
                 .with_capabilities(["runtime.feature.sound.server_only"]),
             );
-    let catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::builder(
+    let catalog = catalog_with_concrete_feature_registrations([RuntimePluginDescriptor::builder(
         "sound",
         "Sound",
         RuntimePluginId::Sound,
@@ -202,12 +209,12 @@ fn runtime_plugin_catalog_reports_target_mismatch_for_optional_feature() {
     .with_optional_feature(server_only_feature)
     .build()]);
     let manifest = ProjectPluginManifest {
-        selections: vec![ProjectPluginSelection::runtime_plugin(
-            RuntimePluginId::Sound,
-            true,
-            false,
-        )
-        .with_feature(ProjectPluginFeatureSelection::new("sound.server_only").enabled(true))],
+        selections: vec![
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Sound, true, false)
+                .with_feature(
+                    ProjectPluginFeatureSelection::new("sound.server_only").enabled(true),
+                ),
+        ],
     };
 
     let blocked = catalog.feature_dependency_report(&manifest, RuntimeTargetMode::ClientRuntime);
@@ -216,9 +223,11 @@ fn runtime_plugin_catalog_reports_target_mismatch_for_optional_feature() {
     assert_eq!(blocked.blocked_features.len(), 1);
     assert_eq!(blocked.blocked_features[0].feature_id, "sound.server_only");
     assert!(blocked.blocked_features[0].target_unsupported);
-    assert!(blocked.blocked_features[0]
-        .to_diagnostic()
-        .contains("target mode is not supported"));
+    assert!(
+        blocked.blocked_features[0]
+            .to_diagnostic()
+            .contains("target mode is not supported")
+    );
 }
 
 #[test]
@@ -253,9 +262,11 @@ fn later_provider_does_not_rewrite_an_immediate_blocker() {
     );
     let blocked = &report.blocked_features[0];
     assert_eq!(blocked.feature_id, "rendering.immediate_blocker");
-    assert!(blocked
-        .missing_capabilities
-        .contains(&"runtime.feature.rendering.ordered_provider".to_string()));
+    assert!(
+        blocked
+            .missing_capabilities
+            .contains(&"runtime.feature.rendering.ordered_provider".to_string())
+    );
 }
 
 #[test]
@@ -275,9 +286,11 @@ fn immediate_blocker_is_not_an_unresolved_cycle_provider() {
         ["rendering.immediate_blocker", "rendering.blocked_consumer"]
     );
     assert!(report.blocked_features.iter().all(|blocked| !blocked.cycle));
-    assert!(report.blocked_features[1]
-        .missing_capabilities
-        .contains(&"runtime.feature.rendering.immediate_blocker".to_string()));
+    assert!(
+        report.blocked_features[1]
+            .missing_capabilities
+            .contains(&"runtime.feature.rendering.immediate_blocker".to_string())
+    );
 }
 
 #[test]
@@ -320,7 +333,7 @@ fn runtime_plugin_catalog_reports_feature_capability_cycles() {
                 .with_target_modes([RuntimeTargetMode::EditorHost])
                 .with_capabilities(["runtime.feature.rendering.feature_b"]),
             );
-    let catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::builder(
+    let catalog = catalog_with_concrete_feature_registrations([RuntimePluginDescriptor::builder(
         "rendering",
         "Rendering",
         RuntimePluginId::Rendering,
@@ -332,13 +345,15 @@ fn runtime_plugin_catalog_reports_feature_capability_cycles() {
     .with_optional_feature(feature_b)
     .build()]);
     let manifest = ProjectPluginManifest {
-        selections: vec![ProjectPluginSelection::runtime_plugin(
-            RuntimePluginId::Rendering,
-            true,
-            false,
-        )
-        .with_feature(ProjectPluginFeatureSelection::new("rendering.feature_a").enabled(true))
-        .with_feature(ProjectPluginFeatureSelection::new("rendering.feature_b").enabled(true))],
+        selections: vec![
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Rendering, true, false)
+                .with_feature(
+                    ProjectPluginFeatureSelection::new("rendering.feature_a").enabled(true),
+                )
+                .with_feature(
+                    ProjectPluginFeatureSelection::new("rendering.feature_b").enabled(true),
+                ),
+        ],
     };
 
     let blocked = catalog.feature_dependency_report(&manifest, RuntimeTargetMode::EditorHost);
@@ -389,7 +404,7 @@ fn runtime_plugin_catalog_reports_disabled_feature_provider_as_missing_capabilit
                 .with_target_modes([RuntimeTargetMode::EditorHost])
                 .with_capabilities(["runtime.feature.rendering.feature_b"]),
             );
-    let catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::builder(
+    let catalog = catalog_with_concrete_feature_registrations([RuntimePluginDescriptor::builder(
         "rendering",
         "Rendering",
         RuntimePluginId::Rendering,
@@ -401,12 +416,12 @@ fn runtime_plugin_catalog_reports_disabled_feature_provider_as_missing_capabilit
     .with_optional_feature(feature_b)
     .build()]);
     let manifest = ProjectPluginManifest {
-        selections: vec![ProjectPluginSelection::runtime_plugin(
-            RuntimePluginId::Rendering,
-            true,
-            false,
-        )
-        .with_feature(ProjectPluginFeatureSelection::new("rendering.feature_a").enabled(true))],
+        selections: vec![
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Rendering, true, false)
+                .with_feature(
+                    ProjectPluginFeatureSelection::new("rendering.feature_a").enabled(true),
+                ),
+        ],
     };
 
     let blocked = catalog.feature_dependency_report(&manifest, RuntimeTargetMode::EditorHost);
@@ -418,12 +433,16 @@ fn runtime_plugin_catalog_reports_disabled_feature_provider_as_missing_capabilit
         "rendering.feature_a"
     );
     assert!(!blocked.blocked_features[0].cycle);
-    assert!(blocked.blocked_features[0]
-        .missing_capabilities
-        .contains(&"runtime.feature.rendering.feature_b".to_string()));
-    assert!(!blocked.blocked_features[0]
-        .to_diagnostic()
-        .contains("feature capability dependencies form a cycle"));
+    assert!(
+        blocked.blocked_features[0]
+            .missing_capabilities
+            .contains(&"runtime.feature.rendering.feature_b".to_string())
+    );
+    assert!(
+        !blocked.blocked_features[0]
+            .to_diagnostic()
+            .contains("feature capability dependencies form a cycle")
+    );
 }
 
 #[test]
@@ -447,7 +466,7 @@ fn runtime_plugin_catalog_reports_self_feature_capability_cycle() {
                 .with_target_modes([RuntimeTargetMode::EditorHost])
                 .with_capabilities(["runtime.feature.rendering.self_cycle"]),
             );
-    let catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::builder(
+    let catalog = catalog_with_concrete_feature_registrations([RuntimePluginDescriptor::builder(
         "rendering",
         "Rendering",
         RuntimePluginId::Rendering,
@@ -458,12 +477,12 @@ fn runtime_plugin_catalog_reports_self_feature_capability_cycle() {
     .with_optional_feature(feature)
     .build()]);
     let manifest = ProjectPluginManifest {
-        selections: vec![ProjectPluginSelection::runtime_plugin(
-            RuntimePluginId::Rendering,
-            true,
-            false,
-        )
-        .with_feature(ProjectPluginFeatureSelection::new("rendering.self_cycle").enabled(true))],
+        selections: vec![
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Rendering, true, false)
+                .with_feature(
+                    ProjectPluginFeatureSelection::new("rendering.self_cycle").enabled(true),
+                ),
+        ],
     };
 
     let blocked = catalog.feature_dependency_report(&manifest, RuntimeTargetMode::EditorHost);
@@ -475,9 +494,11 @@ fn runtime_plugin_catalog_reports_self_feature_capability_cycle() {
         "rendering.self_cycle"
     );
     assert!(blocked.blocked_features[0].cycle);
-    assert!(blocked.blocked_features[0]
-        .to_diagnostic()
-        .contains("feature capability dependencies form a cycle"));
+    assert!(
+        blocked.blocked_features[0]
+            .to_diagnostic()
+            .contains("feature capability dependencies form a cycle")
+    );
 }
 
 fn declaration_order_catalog() -> RuntimePluginCatalog {
@@ -519,7 +540,7 @@ fn declaration_order_catalog() -> RuntimePluginCatalog {
         "runtime.feature.rendering.immediate_blocker",
     ));
 
-    RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::builder(
+    catalog_with_concrete_feature_registrations([RuntimePluginDescriptor::builder(
         "rendering",
         "Rendering",
         RuntimePluginId::Rendering,
@@ -543,4 +564,26 @@ fn declaration_order_manifest(feature_ids: &[&str]) -> ProjectPluginManifest {
     ProjectPluginManifest {
         selections: vec![selection],
     }
+}
+
+fn catalog_with_concrete_feature_registrations<const N: usize>(
+    descriptors: [RuntimePluginDescriptor; N],
+) -> RuntimePluginCatalog {
+    let feature_registrations = descriptors
+        .iter()
+        .flat_map(RuntimePluginDescriptor::optional_features)
+        .cloned()
+        .map(|feature| {
+            let provider_package_id = feature.provider_package_id.clone();
+            RuntimePluginFeatureRegistrationReport::from_native_feature_manifest(
+                feature,
+                provider_package_id,
+            )
+        })
+        .collect::<Vec<_>>();
+    let registrations = descriptors
+        .iter()
+        .map(|descriptor| RuntimePluginRegistrationReport::from_plugin(descriptor))
+        .collect::<Vec<_>>();
+    RuntimePluginCatalog::from_registration_reports(registrations, feature_registrations)
 }

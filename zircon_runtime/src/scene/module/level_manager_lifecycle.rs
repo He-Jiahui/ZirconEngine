@@ -8,6 +8,10 @@ use crate::scene::world::World;
 use super::DefaultLevelManager;
 use crate::scene::{LevelMetadata, LevelSystem};
 
+fn sort_levels_by_handle(levels: &mut [LevelSystem]) {
+    levels.sort_unstable_by_key(|level| level.handle().get());
+}
+
 impl DefaultLevelManager {
     pub fn create_default_level(&self) -> LevelSystem {
         self.try_create_default_level()
@@ -33,7 +37,13 @@ impl DefaultLevelManager {
             let driver = core.resolve_driver::<super::WorldDriver>(super::WORLD_DRIVER_NAME)?;
             driver.apply_world_runtime_extensions(&mut world)?;
         }
-        let handle = WorldHandle::new(self.next_handle.fetch_add(1, Ordering::Relaxed) + 1);
+        let handle = self
+            .next_handle
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+                current.checked_add(1)
+            })
+            .map(|previous| WorldHandle::new(previous + 1))
+            .map_err(|_| CoreError::LevelHandleExhausted)?;
         let level = LevelSystem::new(handle, Arc::new(Mutex::new(world)), metadata);
         self.lock_levels().insert(handle, level.clone());
         Ok(level)
@@ -47,11 +57,17 @@ impl DefaultLevelManager {
         &self,
         mut operation: impl FnMut(&mut World) -> Result<(), E>,
     ) -> Result<(), E> {
-        let levels = self.lock_levels().values().cloned().collect::<Vec<_>>();
+        let levels = self.level_snapshots_in_handle_order();
         for level in levels {
             level.with_world_mut(&mut operation)?;
         }
         Ok(())
+    }
+
+    fn level_snapshots_in_handle_order(&self) -> Vec<LevelSystem> {
+        let mut levels = self.lock_levels().values().cloned().collect::<Vec<_>>();
+        sort_levels_by_handle(&mut levels);
+        levels
     }
 
     pub(crate) fn sync_vm_types_atomically<T>(
@@ -60,7 +76,8 @@ impl DefaultLevelManager {
         commit: impl FnOnce() -> T,
     ) -> crate::scene::SceneResult<T> {
         let levels = self.lock_levels();
-        let ordered_levels = levels.values().cloned().collect::<Vec<_>>();
+        let mut ordered_levels = levels.values().cloned().collect::<Vec<_>>();
+        sort_levels_by_handle(&mut ordered_levels);
         let mut worlds = ordered_levels
             .iter()
             .map(LevelSystem::lock_world)
@@ -81,5 +98,47 @@ impl DefaultLevelManager {
             }
         }
         Ok(commit())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::atomic::Ordering;
+
+    use crate::core::CoreError;
+    use crate::core::framework::scene::WorldHandle;
+
+    use super::DefaultLevelManager;
+
+    #[test]
+    fn level_handle_allocation_accepts_the_maximum_once_then_reports_exhaustion() {
+        let manager = DefaultLevelManager::default();
+        manager.next_handle.store(u64::MAX - 1, Ordering::Relaxed);
+
+        let last_level = manager.try_create_default_level().unwrap();
+        assert_eq!(last_level.handle(), WorldHandle::new(u64::MAX));
+        assert!(manager.level(last_level.handle()).is_some());
+        assert!(matches!(
+            manager.try_create_default_level(),
+            Err(CoreError::LevelHandleExhausted)
+        ));
+        assert!(manager.level(WorldHandle::new(0)).is_none());
+    }
+
+    #[test]
+    fn level_manager_registry_orders_world_snapshots_by_handle() {
+        let manager = DefaultLevelManager::default();
+        manager.next_handle.store(40, Ordering::Relaxed);
+        manager.try_create_default_level().unwrap();
+        manager.try_create_default_level().unwrap();
+        manager.try_create_default_level().unwrap();
+
+        let handles = manager
+            .level_snapshots_in_handle_order()
+            .into_iter()
+            .map(|level| level.handle().get())
+            .collect::<Vec<_>>();
+
+        assert_eq!(handles, vec![41, 42, 43]);
     }
 }

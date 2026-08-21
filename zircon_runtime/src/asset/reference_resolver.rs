@@ -156,18 +156,28 @@ pub(crate) fn resolve_project_reference_from_lookup(
     reference: &AssetRef,
 ) -> Result<ResolvedProjectReference, ReferenceResolutionError> {
     let entry = if let Some(entry) = registry.entry_by_uuid(reference.guid()) {
-        let resolved = sources.project_hint_for_locator(entry.path())?;
-        let resolved = AssetRef::try_new(
-            entry.uuid(),
-            resolved,
-            entry.path().label().map(str::to_owned),
-        )
-        .map_err(|source| ReferenceResolutionError::AssetRef { source })?;
-        let repair = repair_between(reference, &resolved);
-        return Ok(ResolvedProjectReference {
-            reference: AssetReference::new(entry.uuid(), entry.path().clone()),
-            repair,
-        });
+        if entry.path().label() == reference.sub() {
+            let resolved = sources.project_hint_for_locator(entry.path())?;
+            let resolved = AssetRef::try_new(
+                entry.uuid(),
+                resolved,
+                entry.path().label().map(str::to_owned),
+            )
+            .map_err(|source| ReferenceResolutionError::AssetRef { source })?;
+            let repair = repair_between(reference, &resolved);
+            return Ok(ResolvedProjectReference {
+                reference: AssetReference::new(entry.uuid(), entry.path().clone()),
+                repair,
+            });
+        }
+
+        let Some(entry) = entry_by_hint(registry, sources, reference)? else {
+            return Err(ReferenceResolutionError::Dangling {
+                guid: reference.guid(),
+                path: reference.path_hint().to_string(),
+            });
+        };
+        entry
     } else {
         let Some(entry) = entry_by_hint(registry, sources, reference)? else {
             return Err(ReferenceResolutionError::Dangling {
@@ -230,7 +240,23 @@ fn entry_by_hint<'a>(
             message: error.to_string(),
         }
     })?;
-    Ok(registry.entry_by_path(&labeled_locator).or(base_entry))
+    if let Some(entry) = registry.entry_by_path(&labeled_locator) {
+        return Ok(Some(entry));
+    }
+
+    let mut candidates = registry
+        .source_entries(&base_locator)
+        .into_iter()
+        .filter(|entry| entry.path().label().is_some())
+        .map(|entry| entry.path().clone())
+        .collect::<Vec<_>>();
+    candidates.sort();
+    Err(ReferenceResolutionError::DanglingSubasset {
+        guid: reference.guid(),
+        path: reference.path_hint().to_string(),
+        label: subasset.to_owned(),
+        candidates,
+    })
 }
 
 fn filesystem_locator_for_project_hint(
@@ -355,6 +381,8 @@ mod tests {
         let a: AssetUuid = "e1111111-2222-4333-8444-555555555555".parse().unwrap();
         let b: AssetUuid = "e2111111-2222-4333-8444-555555555555".parse().unwrap();
         let missing: AssetUuid = "e3111111-2222-4333-8444-555555555555".parse().unwrap();
+        let a_mesh: AssetUuid = "e4111111-2222-4333-8444-555555555555".parse().unwrap();
+        let a_material: AssetUuid = "e5111111-2222-4333-8444-555555555555".parse().unwrap();
         let registry = AssetRegistryIndex::from_entries([
             AssetRegistryEntry::new(
                 a,
@@ -367,6 +395,18 @@ mod tests {
                 AssetUri::parse("res://models/b.glb").unwrap(),
                 AssetKind::Model,
                 "b",
+            ),
+            AssetRegistryEntry::new(
+                a_mesh,
+                AssetUri::parse("res://models/a.glb#Mesh0").unwrap(),
+                AssetKind::Mesh,
+                "a-mesh",
+            ),
+            AssetRegistryEntry::new(
+                a_material,
+                AssetUri::parse("res://models/a.glb#Material0").unwrap(),
+                AssetKind::Material,
+                "a-material",
             ),
         ])
         .unwrap();
@@ -398,7 +438,7 @@ mod tests {
         let stale_subasset = AssetRef::try_new(
             missing,
             RelPath::parse("assets/models/a.glb").unwrap(),
-            Some("MissingMesh".to_owned()),
+            Some("Mesh0".to_owned()),
         )
         .unwrap();
         assert!(matches!(
@@ -409,9 +449,31 @@ mod tests {
                 kind: ReferenceRepairKind::Guid,
                 stale,
                 resolved,
-            }) if stale.sub() == Some("MissingMesh")
-                && resolved.guid() == a
-                && resolved.sub().is_none()
+            }) if stale.sub() == Some("Mesh0")
+                && resolved.guid() == a_mesh
+                && resolved.sub() == Some("Mesh0")
+        ));
+
+        let missing_subasset = AssetRef::try_new(
+            a,
+            RelPath::parse("assets/models/a.glb").unwrap(),
+            Some("MissingMesh".to_owned()),
+        )
+        .unwrap();
+        assert!(matches!(
+            resolve_project_reference(&registry, &roots, &missing_subasset),
+            Err(ReferenceResolutionError::DanglingSubasset {
+                guid,
+                path,
+                label,
+                candidates,
+            }) if guid == a
+                && path == "assets/models/a.glb"
+                && label == "MissingMesh"
+                && candidates == vec![
+                    AssetUri::parse("res://models/a.glb#Material0").unwrap(),
+                    AssetUri::parse("res://models/a.glb#Mesh0").unwrap(),
+                ]
         ));
 
         let stale_path =

@@ -380,7 +380,7 @@ fn compact_status_signals_keep_full_runtime_text_inside_their_authored_widths() 
         let icon = status_signal_icon_rect(&node, &rect, kind);
         let text_rect = status_signal_text_rect(&node, &rect, &icon);
         let required_text_width =
-            measure_runtime_text_width(text, status_font_size()) + metrics.text_clip_guard;
+            measure_runtime_text_width(text, status_font_size()) + METRICS.text_clip_guard;
 
         assert!(
             (icon.x - rect.x - metrics.signal_icon_left).abs() <= 0.01,

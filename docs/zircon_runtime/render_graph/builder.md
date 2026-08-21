@@ -13,6 +13,7 @@ related_code:
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/construct.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/core_contracts.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/external_compute_guards.rs
@@ -79,6 +80,7 @@ implementation_files:
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/construct.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/core_contracts.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/external_compute_guards.rs
@@ -163,6 +165,8 @@ tests:
   - zircon_runtime/src/render_graph/tests/culling.rs::render_graph_missing_cull_root_is_compile_error
   - zircon_runtime/src/render_graph/tests/resources.rs::render_graph_dump_lists_pass_order_resources_and_culled
   - zircon_runtime/src/render_graph/tests/ordering.rs::compile_exposes_inferred_resource_dependencies_on_compiled_passes
+  - zircon_runtime/src/render_graph/tests/ordering.rs::runtime89_compile_rejects_duplicate_pass_names_before_building_execution_indices
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::runtime89_generated_ibl_pass_name_collisions_fail_during_pipeline_compile
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs::metadata_context_resolves_pass_resource_handles
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs::resource_registry_validates_declaration_kind_before_name_lookup
   - zircon_runtime/src/graphics/tests/pipeline_compile/compile_options.rs::compile_options_fallback_async_compute_passes_to_graphics_queue
@@ -245,6 +249,10 @@ doc_type: module-detail
 ## Resource Ownership
 
 Every graph resource name is unique within a compiled frame graph. Duplicate names across graph textures, graph buffers, and external imports are rejected before pass ordering is derived. This keeps RenderDoc labels, lifetime spans, transient aliasing, and future history slot names unambiguous.
+
+Every final graph pass name is also unique. `RenderGraphBuilder::compile(...)` performs this validation after product authoring has appended generated passes, so plugin, replacement, transmission, half-resolution, particle, late-forward, and IBL rows share one namespace. A collision returns `RenderGraphError::DuplicatePassName` before dependency inference or execution indices are built.
+
+`CompiledRenderGraph` indexes the resulting pass table by builder-scoped `RenderPassId`. Pipeline stage metadata retains that ID beside the diagnostic name, and steady-frame execution resolves `(compiled_index, pass)` through the ID index. The name is checked only as a defensive bijection invariant; it is no longer used to search the graph pass vector.
 
 The RG-M1 handle table uses `RgTextureHandle`, `RgBufferHandle`, `ExternalResource`, and the sum type `RenderGraphResource`. `RenderGraphBuilder::create_texture(...)` and `create_buffer(...)` allocate stable logical handles before any physical WGPU resource exists, while `import_external_resource(...)` registers imported roots. `CompiledRenderGraph::resource_declarations()` preserves every declared resource row, including resources whose only writers were later culled, and `RenderGraphResourceLifetime.resource` carries the same logical handle for every live resource interval. `CompiledRenderGraph::resource_declaration(...)`, `resource_declaration_by_name(...)`, `resource_lifetime(...)`, and `resource_lifetime_by_name(...)` are the narrow lookup surface for resolver work: declarations answer "was this graph resource authored?", while lifetimes answer "did it survive culling and need execution-time backing?". This follows the Unreal RDG split between logical handles and later pooled resource resolution without exposing WGPU objects through the graph API.
 

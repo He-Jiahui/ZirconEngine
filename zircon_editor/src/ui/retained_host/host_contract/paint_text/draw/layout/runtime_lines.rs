@@ -119,7 +119,7 @@ fn runtime_text_lines(
     }
     let mut shaped_glyph_copy_count = 0_usize;
     let mut shaped_glyph_copy_line_count = 0_usize;
-    let fallback_lines = layout
+    let fallback_lines: Vec<RuntimeTextLine> = layout
         .lines
         .iter()
         .map(|line| {

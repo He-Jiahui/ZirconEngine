@@ -1,11 +1,11 @@
 use super::labels::asset_state_label;
-use super::name_compaction::{RuntimeFileNameCompaction, compact_file_like_display_name};
-use super::name_lines::{RuntimeNameLineSplit, split_display_name_lines};
+use super::name_compaction::{compact_file_like_display_name, RuntimeFileNameCompaction};
+use super::name_lines::{split_display_name_lines, RuntimeNameLineSplit};
 use zircon_runtime_interface::ui::design_tokens::{EditorControlTokens, EditorTypographyTokens};
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::{
-    ViewTemplateFrameData, ViewTemplateNodeData, load_preview_image_for_generation,
+    load_preview_image_for_generation, ViewTemplateFrameData, ViewTemplateNodeData,
 };
 use crate::ui::retained_host::primitives::SharedString;
 use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetViewMode, AssetWorkspaceSnapshot};
@@ -385,36 +385,30 @@ mod tests {
         let mut nodes = Vec::new();
         append_asset_browser_thumbnail_nodes(&mut nodes, &snapshot);
 
-        assert!(
-            nodes
-                .iter()
-                .any(|node| node.control_id == "AssetBrowserThumbCard01"
-                    && node.selected
-                    && !node.focused
-                    && node.surface_variant == THUMBNAIL_CARD_SURFACE
-                    && node.corner_radius == thumbnail_corner_radius()
-                    && node.border_width == 1.0)
-        );
-        assert!(
-            nodes
-                .iter()
-                .any(|node| node.control_id == "AssetBrowserThumbInfoBand01"
-                    && node.selected
-                    && node.surface_variant == THUMBNAIL_NAME_AREA_SURFACE
-                    && node.corner_radius == thumbnail_corner_radius())
-        );
+        assert!(nodes
+            .iter()
+            .any(|node| node.control_id == "AssetBrowserThumbCard01"
+                && node.selected
+                && !node.focused
+                && node.surface_variant == THUMBNAIL_CARD_SURFACE
+                && node.corner_radius == thumbnail_corner_radius()
+                && node.border_width == 1.0));
+        assert!(nodes
+            .iter()
+            .any(|node| node.control_id == "AssetBrowserThumbInfoBand01"
+                && node.selected
+                && node.surface_variant == THUMBNAIL_NAME_AREA_SURFACE
+                && node.corner_radius == thumbnail_corner_radius()));
         assert!(nodes.iter().any(|node| {
             node.control_id == "AssetBrowserThumbSelectionMarker01"
                 && node.surface_variant == "accent"
         }));
-        assert!(
-            nodes
-                .iter()
-                .any(|node| node.control_id == "AssetBrowserThumbVisual01"
-                    && node.surface_variant == "asset-preview-visual"
-                    && node.component_role == "asset-thumbnail-visual"
-                    && node.component_variant == "asset-texture")
-        );
+        assert!(nodes
+            .iter()
+            .any(|node| node.control_id == "AssetBrowserThumbVisual01"
+                && node.surface_variant == "asset-preview-visual"
+                && node.component_role == "asset-thumbnail-visual"
+                && node.component_variant == "asset-texture"));
         assert!(nodes.iter().any(|node| {
             node.control_id == "AssetBrowserThumbName01"
                 && node.role == "Label"
@@ -450,15 +444,13 @@ mod tests {
                 && node.font_size == THUMBNAIL_TYPE_FONT_SIZE
                 && node.font_weight == 700
         }));
-        assert!(
-            nodes
-                .iter()
-                .any(|node| node.control_id == "AssetBrowserThumbMeta01"
-                    && node.component_role == THUMBNAIL_NAME_AREA_TEXT_ROLE
-                    && node.selected
-                    && node.text == "Ready"
-                    && node.text_tone == "muted")
-        );
+        assert!(nodes
+            .iter()
+            .any(|node| node.control_id == "AssetBrowserThumbMeta01"
+                && node.component_role == THUMBNAIL_NAME_AREA_TEXT_ROLE
+                && node.selected
+                && node.text == "Ready"
+                && node.text_tone == "muted"));
 
         snapshot.view_mode = AssetViewMode::List;
         nodes.clear();
@@ -670,11 +662,9 @@ mod tests {
 
         append_asset_browser_thumbnail_nodes(&mut nodes, &snapshot);
 
-        assert!(
-            nodes
-                .iter()
-                .any(|node| node.control_id == "AssetBrowserThumbCard12")
-        );
+        assert!(nodes
+            .iter()
+            .any(|node| node.control_id == "AssetBrowserThumbCard12"));
         assert_eq!(
             nodes
                 .iter()

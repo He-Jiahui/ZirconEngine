@@ -138,9 +138,9 @@ mod tests {
         assert_eq!(change.change.kind, EditorAssetChangeKind::CatalogChanged);
         assert_eq!(change.change.catalog_revision, after.catalog_revision);
 
-        let state = manager
+        let mut state = manager
             .state
-            .read()
+            .write()
             .expect("editor asset state lock poisoned");
         assert!(state.project_root.is_none());
         assert!(state.assets_root.is_none());

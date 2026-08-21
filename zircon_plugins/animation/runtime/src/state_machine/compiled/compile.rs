@@ -1,10 +1,12 @@
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use zircon_runtime::core::framework::animation::{
-    AnimationStateKindAsset, AnimationStateMachineAsset,
+    AnimationConditionOperatorAsset, AnimationStateKindAsset, AnimationStateMachineAsset,
+    AnimationTransitionConditionAsset,
 };
 
-use crate::state_machine::condition_expression::{compile_all_conditions, ParameterTableBuilder};
+use crate::state_machine::condition_expression::{ParameterTableBuilder, compile_all_conditions};
 use crate::{BlendSpace1D, BlendSpace2D, BlendSpacePoint1D, BlendSpacePoint2D};
 
 use super::{
@@ -29,6 +31,7 @@ impl CompiledAnimationStateMachine {
                     .with_optional_exit_time(transition.exit_time)
                     .with_interruption(transition.interruption.into()),
                 conditions: compile_all_conditions(&transition.conditions, &mut parameters)?,
+                consumed_triggers: compile_consumed_triggers(&transition.conditions),
             });
         }
         Ok(Self {
@@ -39,6 +42,18 @@ impl CompiledAnimationStateMachine {
             transitions: transitions.into_iter().map(Vec::into_boxed_slice).collect(),
         })
     }
+}
+
+fn compile_consumed_triggers(conditions: &[AnimationTransitionConditionAsset]) -> Arc<[String]> {
+    let mut triggers = Vec::new();
+    for condition in conditions {
+        if condition.operator == AnimationConditionOperatorAsset::Triggered
+            && !triggers.contains(&condition.parameter)
+        {
+            triggers.push(condition.parameter.clone());
+        }
+    }
+    Arc::from(triggers)
 }
 
 fn compile_states(

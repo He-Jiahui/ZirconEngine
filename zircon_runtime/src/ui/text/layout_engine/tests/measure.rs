@@ -35,9 +35,11 @@ fn unwrapped_height_counts_unicode_breaks_and_a_trailing_empty_line() {
 #[test]
 fn unwrapped_height_matches_complete_measurement_across_hard_line_boundaries() {
     let style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
-    let capped = "a".repeat(crate::text::TEXT_SHAPING_RUN_MAX_BYTES + 1);
+    let budget = crate::text::TextShapingWorkBudget::default();
+    let long_run = "a".repeat(budget.max_inline_input_bytes() + 1);
+    assert!(budget.exceeds_inline_threshold(long_run.len()));
 
-    for text in ["a\r\nb\u{2028}", capped.as_str()] {
+    for text in ["a\r\nb\u{2028}", long_run.as_str()] {
         let shortcut = measure_unwrapped_text_height(text, &style)
             .expect("plain unwrapped text has a fixed line height");
         let complete = measure_text_size(text, &style).height;

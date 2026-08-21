@@ -845,7 +845,7 @@ class ValidationTicketTests(unittest.TestCase):
         self.assertEqual("failed", self.service.get(receipt.ticket.ticket_id).status)
 
 class ValidationTicketServerBoundaryTests(unittest.TestCase):
-    def test_record_result_rejects_invalid_payloads_without_failure_materialization(self) -> None:
+    def test_record_result_is_worker_only_before_payload_or_failure_processing(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             repo = init_repo(root / "repo")
@@ -915,9 +915,11 @@ class ValidationTicketServerBoundaryTests(unittest.TestCase):
 
                 ticket = application.validation_tickets.get(receipt.ticket.ticket_id)
 
-        self.assertEqual("validation_ticket_evidence_invalid", rejected_evidence.exception.code)
-        self.assertEqual("validation_ticket_input_invalid", rejected_failure.exception.code)
-        self.assertEqual("validation_ticket_input_invalid", rejected_failed_evidence.exception.code)
+        self.assertEqual("validation_ticket_result_worker_only", rejected_evidence.exception.code)
+        self.assertEqual("validation_ticket_result_worker_only", rejected_failure.exception.code)
+        self.assertEqual(
+            "validation_ticket_result_worker_only", rejected_failed_evidence.exception.code
+        )
         materialize.assert_not_called()
         self.assertEqual("queued", ticket.status)
 

@@ -1,9 +1,7 @@
 use std::time::Instant;
 
 use crate::core::framework::text::TextDirection;
-use crate::text::{
-    BackendShapeRequest, ShapedGlyphRotation, VerticalMode, TEXT_SHAPING_RUN_MAX_BYTES,
-};
+use crate::text::{BackendShapeRequest, ShapedGlyphRotation, TextShapingWorkBudget, VerticalMode};
 use crate::text::{TextRange, TextStyle};
 #[cfg(feature = "profiling")]
 use unicode_segmentation::UnicodeSegmentation;
@@ -26,14 +24,16 @@ fn text_vertical_cjk_upright_advances_on_y() {
     ));
     let line = shaped.lines.first().expect("vertical shaped line");
 
-    assert!(line
-        .glyphs
-        .iter()
-        .all(|glyph| glyph.rotation == ShapedGlyphRotation::None));
-    assert!(line
-        .glyphs
-        .windows(2)
-        .all(|glyphs| glyphs[1].y >= glyphs[0].y));
+    assert!(
+        line.glyphs
+            .iter()
+            .all(|glyph| glyph.rotation == ShapedGlyphRotation::None)
+    );
+    assert!(
+        line.glyphs
+            .windows(2)
+            .all(|glyphs| glyphs[1].y >= glyphs[0].y)
+    );
     assert!(line.glyphs.iter().map(|glyph| glyph.advance).sum::<f32>() > 0.0);
     assert!(shaped.measured_height > 0.0);
 }
@@ -50,10 +50,12 @@ fn text_vertical_latin_sideways_rotated() {
         VerticalMode::Mixed,
     ));
 
-    assert!(shaped.lines[0]
-        .glyphs
-        .iter()
-        .all(|glyph| glyph.rotation == ShapedGlyphRotation::Cw90));
+    assert!(
+        shaped.lines[0]
+            .glyphs
+            .iter()
+            .all(|glyph| glyph.rotation == ShapedGlyphRotation::Cw90)
+    );
 }
 
 #[test]
@@ -136,12 +138,16 @@ fn text_shape_projects_resolved_bidi_level_per_glyph() {
     );
     let glyphs = &shaped.lines.first().expect("shaped line").glyphs;
 
-    assert!(glyphs
-        .iter()
-        .any(|glyph| { glyph.source_range.start < 3 && glyph.bidi_level % 2 == 0 }));
-    assert!(glyphs
-        .iter()
-        .any(|glyph| { glyph.source_range.start >= "abc ".len() && glyph.bidi_level % 2 == 1 }));
+    assert!(
+        glyphs
+            .iter()
+            .any(|glyph| { glyph.source_range.start < 3 && glyph.bidi_level % 2 == 0 })
+    );
+    assert!(
+        glyphs
+            .iter()
+            .any(|glyph| { glyph.source_range.start >= "abc ".len() && glyph.bidi_level % 2 == 1 })
+    );
 }
 
 #[test]
@@ -170,10 +176,12 @@ fn text_shape_keeps_mixed_bidi_clusters_in_logical_source_order() {
             .all(|starts| starts[0] <= starts[1]),
         "Text02 must retain logical cluster order for Text03 line-level L1/L2: {cluster_starts:?}"
     );
-    assert!(shaped.lines[0]
-        .glyphs
-        .iter()
-        .any(|glyph| glyph.bidi_level % 2 == 1));
+    assert!(
+        shaped.lines[0]
+            .glyphs
+            .iter()
+            .any(|glyph| glyph.bidi_level % 2 == 1)
+    );
 }
 
 #[test]
@@ -288,8 +296,10 @@ fn text_shape_ligature_source_range_covers_cluster() {
 }
 
 #[test]
-fn text_oversized_run_splits_at_cap() {
-    let text = "a".repeat(TEXT_SHAPING_RUN_MAX_BYTES + 1);
+fn text_oversized_run_keeps_one_logical_shaped_line() {
+    let budget = TextShapingWorkBudget::default();
+    let text = "a".repeat(budget.max_inline_input_bytes() + 1);
+    assert!(budget.exceeds_inline_threshold(text.len()));
     let shaped = shape_horizontal_line(
         &text,
         &test_style(),
@@ -300,30 +310,53 @@ fn text_oversized_run_splits_at_cap() {
         },
     );
 
-    assert_eq!(shaped.lines.len(), 2);
+    assert_eq!(shaped.lines.len(), 1);
     assert_eq!(
         shaped.lines[0].source_range,
         TextRange {
             start: 0,
-            end: TEXT_SHAPING_RUN_MAX_BYTES,
-        }
-    );
-    assert_eq!(
-        shaped.lines[1].source_range,
-        TextRange {
-            start: TEXT_SHAPING_RUN_MAX_BYTES,
             end: text.len(),
         }
     );
-    assert!(shaped
-        .lines
-        .windows(2)
-        .all(|lines| lines[0].source_range.end == lines[1].source_range.start));
-    assert!(shaped
-        .lines
-        .iter()
-        .flat_map(|line| &line.glyphs)
-        .all(|glyph| !glyph.cluster_flags.virtual_glyph));
+    assert!(
+        shaped
+            .lines
+            .iter()
+            .flat_map(|line| &line.glyphs)
+            .all(|glyph| !glyph.cluster_flags.virtual_glyph)
+    );
+}
+
+#[test]
+fn text_semantic_context_preserves_a_ligature_crossing_the_work_boundary() {
+    let budget = TextShapingWorkBudget::default();
+    let boundary = budget.max_inline_input_bytes();
+    let text = format!("{}fi", "a".repeat(boundary - 1));
+    let shaped = shape_horizontal_line(
+        &text,
+        &test_style(),
+        TextDirection::LeftToRight,
+        TextRange {
+            start: 0,
+            end: text.len(),
+        },
+    );
+
+    let line = shaped.lines.first().expect("one logical line");
+
+    assert_eq!(shaped.lines.len(), 1);
+    assert!(line.glyphs.iter().any(|glyph| {
+        glyph.source_range
+            == TextRange {
+                start: boundary - 1,
+                end: boundary + 1,
+            }
+    }));
+    assert!(
+        line.glyphs
+            .iter()
+            .all(|glyph| !glyph.cluster_flags.virtual_glyph)
+    );
 }
 
 #[test]
@@ -375,9 +408,11 @@ fn text_shape_hard_lines_preserve_separator_coverage_as_virtual_glyphs() {
         virtual_breaks[1].source_range,
         TextRange { start: 24, end: 27 }
     );
-    assert!(virtual_breaks
-        .iter()
-        .all(|glyph| glyph.cluster_flags.mandatory_break && glyph.advance == 0.0));
+    assert!(
+        virtual_breaks
+            .iter()
+            .all(|glyph| glyph.cluster_flags.mandatory_break && glyph.advance == 0.0)
+    );
 }
 
 #[test]
@@ -596,6 +631,76 @@ fn direct_shaping_scale_evidence_reports_capture_inactive_p50_p95() {
             );
         }
     }
+}
+
+#[test]
+#[ignore = "managed Text02 long-line semantic-request timing evidence; no machine-time acceptance threshold"]
+fn direct_shaping_long_semantic_request_evidence_reports_p50_p95() {
+    const SAMPLE_COUNT: usize = 31;
+
+    let style = test_style();
+    let budget = TextShapingWorkBudget::default();
+    for workload in DirectShapeScaleWorkload::ALL {
+        let unit_count =
+            (budget.max_inline_input_bytes() / workload.unit().len()).saturating_add(17);
+        let text = workload.unit().repeat(unit_count);
+        assert!(budget.exceeds_inline_threshold(text.len()));
+        let mut samples_ns = Vec::with_capacity(SAMPLE_COUNT);
+        for _ in 0..SAMPLE_COUNT {
+            let started = Instant::now();
+            let shaped = shape_text(workload.request(&text, &style));
+            samples_ns.push(started.elapsed().as_nanos());
+            assert_eq!(
+                shaped.lines.len(),
+                1,
+                "{} must retain one logical source line across the inline-work threshold",
+                workload.label()
+            );
+            assert!(
+                shaped.lines[0]
+                    .glyphs
+                    .iter()
+                    .all(|glyph| !glyph.cluster_flags.virtual_glyph)
+            );
+            assert!(
+                shaped.lines[0]
+                    .glyphs
+                    .iter()
+                    .any(|glyph| glyph.font_id.is_some())
+            );
+        }
+
+        println!(
+            "TEXT02_LONG_SEMANTIC_REQUEST_TIME workload={} bytes={} samples={SAMPLE_COUNT} p50_ns={} p95_ns={}",
+            workload.label(),
+            text.len(),
+            percentile_ns(&mut samples_ns, 50),
+            percentile_ns(&mut samples_ns, 95),
+        );
+    }
+}
+
+#[test]
+fn direct_shapers_do_not_partition_semantic_segments_at_backend_work_budgets() {
+    for source in [
+        include_str!("horizontal/direct.rs"),
+        include_str!("vertical/direct.rs"),
+    ] {
+        assert!(
+            !source.contains("shaping_chunks"),
+            "a RustyBuzz request must receive one complete logical segment; a byte-budget partition cannot be a shaping boundary"
+        );
+        assert!(
+            !source.contains("owns_source_range"),
+            "direct shaping must not publish a partial overlap as if it were a complete shaped segment"
+        );
+    }
+
+    let cosmic = include_str!("cosmic.rs");
+    assert!(
+        !cosmic.contains("is_run_cap_break"),
+        "the fallback backend must preserve the same full semantic request rather than reject a valid long line"
+    );
 }
 
 #[cfg(feature = "profiling")]

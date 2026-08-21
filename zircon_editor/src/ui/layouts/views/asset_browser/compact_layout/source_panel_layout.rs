@@ -179,7 +179,11 @@ fn finite_non_negative(value: f32) -> f32 {
 }
 
 fn finite_coordinate(value: f32) -> f32 {
-    if value.is_finite() { value } else { 0.0 }
+    if value.is_finite() {
+        value
+    } else {
+        0.0
+    }
 }
 
 #[cfg(test)]

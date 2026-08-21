@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
 
 use crate::ui::layouts::views::view_projection::{
-    AssetWorkspaceProjectionGeneration, build_view_template_node_projection,
-    compose_view_template_node_model,
+    build_view_template_node_projection, compose_view_template_node_model,
+    AssetWorkspaceProjectionGeneration,
 };
 use crate::ui::layouts::windows::workbench_host_window::AssetsActivityPaneViewData;
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::workbench::asset_content_layout::{
-    AssetContentPaintNodeInput, AssetContentSurface, asset_content_paint_metadata,
+    asset_content_paint_metadata, AssetContentPaintNodeInput, AssetContentSurface,
 };
 use crate::ui::workbench::snapshot::{AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot};
 use zircon_runtime_interface::ui::layout::UiSize;

@@ -9,9 +9,9 @@ impl DefaultSoundManager {
         &self,
     ) -> Result<Vec<SoundDynamicEventDelivery>, SoundError> {
         let mut state = crate::poison_recovery::lock_recover(&self.state);
-        let handlers = state.dynamic_event_handlers.clone();
+        let state = &mut *state;
         Ok(dispatch_dynamic_events(
-            &handlers,
+            &state.dynamic_event_handlers,
             &mut state.pending_dynamic_events,
         ))
     }

@@ -44,12 +44,20 @@ mod tests {
         fs::write(root.join("models/hero.glb"), b"model").unwrap();
         let resolved: AssetUuid = "c1111111-2222-4333-8444-555555555555".parse().unwrap();
         let stale: AssetUuid = "c2111111-2222-4333-8444-555555555555".parse().unwrap();
-        let registry = AssetRegistryIndex::from_entries([AssetRegistryEntry::new(
-            resolved,
-            AssetUri::parse("res://models/hero.glb").unwrap(),
-            AssetKind::Model,
-            "digest",
-        )])
+        let registry = AssetRegistryIndex::from_entries([
+            AssetRegistryEntry::new(
+                AssetUuid::new(),
+                AssetUri::parse("res://models/hero.glb").unwrap(),
+                AssetKind::Model,
+                "digest",
+            ),
+            AssetRegistryEntry::new(
+                resolved,
+                AssetUri::parse("res://models/hero.glb#Mesh0").unwrap(),
+                AssetKind::Mesh,
+                "mesh-digest",
+            ),
+        ])
         .unwrap();
         let source = format!(
             "uri = \"res://models/hero.model.toml\"\n\n[[primitives]]\nvertices = []\nindices = []\n\n[primitives.mesh]\nkind = \"project\"\nguid = \"{stale}\"\npath_hint = \"assets/models/hero.glb\"\nsub = \"Mesh0\"\n"
@@ -76,7 +84,7 @@ mod tests {
             repair.resolved.path_hint().as_str(),
             "assets/models/hero.glb"
         );
-        assert_eq!(repair.resolved.sub(), None);
+        assert_eq!(repair.resolved.sub(), Some("Mesh0"));
         fs::remove_dir_all(root).unwrap();
     }
 }

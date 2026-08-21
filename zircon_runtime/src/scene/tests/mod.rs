@@ -95,10 +95,12 @@ fn level_manager_registry_locks_do_not_cross_world_work() {
         .expect("level creation publishes the completed level");
 
     assert!(apply_index < insert_index);
-    assert!(normalized.contains(
-        "letlevels=self.lock_levels().values().cloned().collect::<Vec<_>>();forlevelinlevels{"
-    ));
-    assert!(normalized.contains("fetch_add(1,Ordering::Relaxed)"));
+    assert!(
+        normalized.contains("letlevels=self.level_snapshots_in_handle_order();forlevelinlevels{")
+    );
+    assert_eq!(normalized.matches("sort_levels_by_handle(").count(), 3);
+    assert!(normalized.contains("fetch_update(Ordering::Relaxed,Ordering::Relaxed,"));
+    assert!(!normalized.contains("fetch_add(1,Ordering::Relaxed)+1"));
 }
 
 #[test]

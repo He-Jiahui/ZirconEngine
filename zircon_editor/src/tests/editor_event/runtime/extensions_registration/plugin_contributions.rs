@@ -95,9 +95,8 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
         .expect("register editor plugin report");
     runtime.runtime.refresh_reflection();
 
-    let disabled_component = runtime
-        .runtime
-        .editor_snapshot()
+    let disabled_snapshot = runtime.runtime.editor_snapshot();
+    let disabled_component = disabled_snapshot
         .inspector
         .as_ref()
         .expect("inspector")
@@ -156,9 +155,8 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
         .unwrap();
     runtime.runtime.refresh_reflection();
 
-    let enabled_component = runtime
-        .runtime
-        .editor_snapshot()
+    let enabled_snapshot = runtime.runtime.editor_snapshot();
+    let enabled_component = enabled_snapshot
         .inspector
         .as_ref()
         .expect("inspector")
@@ -239,9 +237,8 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
         .set_editor_capabilities_enabled(&[capability], false)
         .unwrap();
     runtime.runtime.refresh_reflection();
-    let disabled_again_component = runtime
-        .runtime
-        .editor_snapshot()
+    let disabled_again_snapshot = runtime.runtime.editor_snapshot();
+    let disabled_again_component = disabled_again_snapshot
         .inspector
         .as_ref()
         .expect("inspector")
@@ -402,7 +399,7 @@ fn editor_runtime_snapshots_enabled_plugin_templates_by_owner_and_capability() {
         .contains_key("weather"));
 
     manager
-        .set_editor_capabilities_enabled(&[capability], true)
+        .set_editor_capabilities_enabled(&[capability.clone()], true)
         .expect("re-enable plugin template capability after reload");
     assert_eq!(
         runtime
@@ -646,7 +643,7 @@ fn editor_snapshot_resolves_plugin_field_editors_from_active_contributions() {
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
     manager
-        .set_editor_capabilities_enabled(&[capability], true)
+        .set_editor_capabilities_enabled(std::slice::from_ref(&capability), true)
         .expect("enable field editor capability");
     assert_eq!(
         disabled.properties[0].field_editor.kind(),
@@ -667,7 +664,7 @@ fn editor_snapshot_resolves_plugin_field_editors_from_active_contributions() {
         FieldEditorKind::Color
     );
     manager
-        .set_editor_capabilities_enabled(&[capability], false)
+        .set_editor_capabilities_enabled(std::slice::from_ref(&capability), false)
         .expect("disable field editor capability");
     assert_eq!(
         enabled.properties[0].field_editor.kind(),

@@ -214,7 +214,7 @@ impl DynamicSceneAssetReloadQueue {
         let projected_bytes = self
             .ready_result_bytes
             .saturating_sub(replaced_bytes)
-            .saturating_add(self.target_staging_reserved_bytes)
+            .saturating_add(self.target_staging_reserved_bytes())
             .saturating_add(result_bytes);
         if projected_bytes > self.limits.max_pending_result_bytes {
             self.diagnostics.dropped_events = self.diagnostics.dropped_events.saturating_add(1);
@@ -255,6 +255,7 @@ impl DynamicSceneAssetReloadQueue {
     }
 
     pub(super) fn refresh_depth_diagnostics(&mut self) {
+        let target_staging_reserved_bytes = self.target_staging_reserved_bytes();
         self.diagnostics.active_tasks = self.active_worker_count();
         self.diagnostics.deferred_reloads = self.deferred.len();
         self.diagnostics.ready_results = self.ready.len();
@@ -262,10 +263,10 @@ impl DynamicSceneAssetReloadQueue {
         self.diagnostics.latest_entries = self.latest_revisions.len();
         self.diagnostics.pending_metadata_bytes = self.pending_metadata_bytes;
         self.diagnostics.ready_result_bytes = self.ready_result_bytes;
-        self.diagnostics.target_staging_reserved_bytes = self.target_staging_reserved_bytes;
+        self.diagnostics.target_staging_reserved_bytes = target_staging_reserved_bytes;
         self.diagnostics.resident_result_bytes = self
             .ready_result_bytes
-            .saturating_add(self.target_staging_reserved_bytes);
+            .saturating_add(target_staging_reserved_bytes);
         self.diagnostics.max_active_tasks = self
             .diagnostics
             .max_active_tasks

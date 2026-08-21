@@ -8,5 +8,6 @@ pub struct RuntimePluginFeatureBlock {
     pub target_unsupported: bool,
     pub cycle: bool,
     pub invalid_owner_dependency: bool,
+    pub provider_missing: bool,
     pub unknown_feature: bool,
 }

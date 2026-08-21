@@ -5,7 +5,9 @@ use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-use crossbeam_channel::{bounded, Receiver, RecvTimeoutError, Sender, TrySendError};
+use crossbeam_channel::{
+    Receiver, RecvTimeoutError, SendTimeoutError, Sender, TrySendError, bounded,
+};
 
 use super::super::settings::DiagnosticLogSinkSettings;
 use super::super::timestamp::current_log_timestamp;
@@ -22,6 +24,7 @@ pub(super) struct SinkRuntime {
     closed: AtomicBool,
     active_senders: AtomicUsize,
     queue_capacity: usize,
+    critical_enqueue_timeout: Duration,
     worker: Mutex<Option<JoinHandle<()>>>,
 }
 
@@ -79,6 +82,7 @@ impl SinkRuntime {
     ) -> io::Result<Self> {
         let settings = settings.normalized();
         let queue_capacity = settings.queue_capacity;
+        let critical_enqueue_timeout = settings.critical_enqueue_timeout;
         let (sender, receiver) = bounded(queue_capacity);
         let metrics = Arc::new(SinkMetrics::new());
         let worker_metrics = Arc::clone(&metrics);
@@ -102,6 +106,7 @@ impl SinkRuntime {
             closed: AtomicBool::new(false),
             active_senders: AtomicUsize::new(0),
             queue_capacity,
+            critical_enqueue_timeout,
             worker: Mutex::new(Some(worker)),
         })
     }
@@ -146,7 +151,13 @@ impl SinkRuntime {
             Err(TrySendError::Full(command)) if level >= DiagnosticLogLevel::Warn => {
                 self.metrics.observe_queue_depth(self.queue_capacity);
                 self.metrics.record_critical_backpressure();
-                let accepted = self.sender.send(command).is_ok();
+                let accepted = match self
+                    .sender
+                    .send_timeout(command, self.critical_enqueue_timeout)
+                {
+                    Ok(()) => true,
+                    Err(SendTimeoutError::Timeout(_) | SendTimeoutError::Disconnected(_)) => false,
+                };
                 if accepted {
                     self.metrics.observe_queue_depth(self.sender.len());
                 }

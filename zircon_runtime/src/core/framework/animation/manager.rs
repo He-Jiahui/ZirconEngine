@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use crate::core::framework::scene::{EntityId, WorldHandle};
 use crate::core::math::Real;
 
@@ -69,6 +71,6 @@ pub trait AnimationManager: Send + Sync {
         &self,
         world: WorldHandle,
         replacement_epoch: u64,
-        deferred_entities: &[EntityId],
+        deferred_entities: &BTreeSet<EntityId>,
     ) -> Vec<AnimationIkCommand>;
 }

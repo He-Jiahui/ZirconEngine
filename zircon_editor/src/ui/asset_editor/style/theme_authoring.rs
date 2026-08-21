@@ -8,8 +8,8 @@ mod merge;
 mod promotion;
 
 pub(crate) use promotion::{
-    UiAssetExternalStyleDraft, can_promote_local_theme_to_external_style_asset,
-    default_external_style_draft, promote_local_theme_to_external_style_asset,
+    can_promote_local_theme_to_external_style_asset, default_external_style_draft,
+    promote_local_theme_to_external_style_asset, UiAssetExternalStyleDraft,
 };
 
 use action_projection::{

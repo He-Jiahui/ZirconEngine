@@ -8,7 +8,10 @@ use super::super::{
     asset_root_manifest_from_inventory_with_resource_registry_revisions,
     asset_root_manifest_from_inventory_with_resource_registry_revisions_and_external_inputs,
 };
-use super::ShaderPrewarmAssetInventory;
+use super::{
+    snapshot_index_path_for, snapshot_path_for, temporary_snapshot_path,
+    ShaderPrewarmAssetInventory,
+};
 use crate::error::ShaderPrewarmAssetScanError;
 use zircon_runtime::asset::project::AssetMetaDocument;
 use zircon_runtime::asset::{AssetKind, AssetUri, AssetUuid};

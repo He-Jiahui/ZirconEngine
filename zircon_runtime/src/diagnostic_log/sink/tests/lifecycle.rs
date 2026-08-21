@@ -157,6 +157,13 @@ fn concurrent_shutdown_callers_both_observe_completion() {
 }
 
 #[test]
+fn process_shutdown_without_an_active_sink_is_already_complete() {
+    let controller = ProcessLogController::default();
+
+    assert!(controller.shutdown_when_idle(Duration::from_millis(1)));
+}
+
+#[test]
 fn dynamic_session_leases_join_the_final_worker_and_allow_a_fresh_generation() {
     let controller = ProcessLogController::default();
     let first_output = SharedOutput::default();

@@ -7,6 +7,7 @@ use crate::ui::host::editor_asset_manager::{
 };
 use zircon_runtime::asset::project::AssetSourceUnit;
 use zircon_runtime::asset::project::PreviewState;
+use zircon_runtime::core::resource::ResourceManager;
 use zircon_runtime_interface::resource::{
     ResourceId, ResourceKind, ResourceLocator, ResourceRecord, ResourceState,
 };
@@ -21,12 +22,16 @@ fn asset_workspace_builds_folder_tree_and_visible_content_from_catalog() {
     workspace.select_folder("res://materials");
     workspace.select_asset(Some("11111111-1111-1111-1111-111111111111".to_string()));
     workspace.sync_selected_details(Some(sample_material_details_generation()));
-    workspace.sync_resources(vec![sample_resource_status(
-        "res://materials/grid.zmaterial",
-        ResourceKind::Material,
-        4,
-        ResourceState::Ready,
-    )]);
+    let resources = ResourceManager::new();
+    resources
+        .register_record(sample_resource_status(
+            "res://materials/grid.zmaterial",
+            ResourceKind::Material,
+            4,
+            ResourceState::Ready,
+        ))
+        .unwrap();
+    workspace.sync_resources(resources.management_generation());
 
     let snapshot = workspace.build_snapshot(AssetSurfaceMode::Activity);
 

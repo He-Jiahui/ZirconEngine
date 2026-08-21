@@ -19,7 +19,7 @@ impl EditorJobSystem {
     }
 
     #[cfg(test)]
-    pub(super) fn pump_events_with_elapsed(
+    pub(crate) fn pump_events_with_elapsed(
         &self,
         budget: JobEventPumpBudget,
         elapsed: impl FnMut() -> std::time::Duration,
@@ -33,6 +33,16 @@ impl EditorJobSystem {
 
     pub fn admission_snapshot(&self) -> EditorJobAdmissionSnapshot {
         self.inner.lock_state().admission_snapshot(Instant::now())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn category_admission_snapshot(
+        &self,
+        category: crate::core::jobs::JobCategory,
+    ) -> EditorJobAdmissionSnapshot {
+        self.inner
+            .lock_state()
+            .category_admission_snapshot(category, Instant::now())
     }
 
     /// Runs two borrowing tasks through the shared runtime scheduler without creating editor threads.
@@ -108,42 +118,42 @@ impl EditorJobSystem {
     }
 
     #[cfg(test)]
-    pub(super) fn retained_record_count(&self) -> usize {
+    pub(crate) fn retained_record_count(&self) -> usize {
         self.inner.lock_state().retained_record_count()
     }
 
     #[cfg(test)]
-    pub(super) fn is_terminal_record(&self, id: JobId) -> bool {
+    pub(crate) fn is_terminal_record(&self, id: JobId) -> bool {
         self.inner.lock_state().is_terminal_record(id)
     }
 
     #[cfg(test)]
-    pub(super) fn scheduled_record_count(&self) -> usize {
+    pub(crate) fn scheduled_record_count(&self) -> usize {
         self.inner.lock_state().scheduled_record_count()
     }
 
     #[cfg(test)]
-    pub(super) fn pending_job_count(&self) -> usize {
+    pub(crate) fn pending_job_count(&self) -> usize {
         self.inner.lock_state().pending_len()
     }
 
     #[cfg(test)]
-    pub(super) fn running_job_count(&self) -> usize {
+    pub(crate) fn running_job_count(&self) -> usize {
         self.inner.lock_state().running_job_count()
     }
 
     #[cfg(test)]
-    pub(super) fn mutex_group_tail_count(&self) -> usize {
+    pub(crate) fn mutex_group_tail_count(&self) -> usize {
         self.inner.lock_state().mutex_group_tail_count()
     }
 
     #[cfg(test)]
-    pub(super) fn admission_probe_count(&self) -> usize {
+    pub(crate) fn admission_probe_count(&self) -> usize {
         self.inner.lock_state().admission_probe_count()
     }
 
     #[cfg(test)]
-    pub(super) const fn terminal_record_retention_limit(&self) -> usize {
+    pub(crate) const fn terminal_record_retention_limit(&self) -> usize {
         super::state::TERMINAL_RECORD_RETENTION_LIMIT
     }
 }

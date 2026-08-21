@@ -15,9 +15,9 @@ use crate::scene::components::{
     RigidBodyType,
 };
 use crate::scene::{
-    json_from_reflected, reflected_from_json, reflected_from_scene_value,
-    scene_value_from_reflected, EntityId, NodeKind, ReflectComponent, ReflectResource,
-    RuntimeTypeRegistration, TypeRegistry, World,
+    EntityId, NodeKind, ReflectComponent, ReflectResource, RuntimeTypeRegistration, TypeRegistry,
+    World, json_from_reflected, reflected_from_json, reflected_from_scene_value,
+    scene_value_from_reflected,
 };
 
 mod address_routing;
@@ -127,6 +127,7 @@ fn dummy_resource_adapter() -> ReflectResource {
         contains: dummy_resource_contains,
         read_field: dummy_resource_read_field,
         read_fields: dummy_resource_read_fields,
+        write_field_by_slot: dummy_resource_write_field_by_slot,
         write_fields_by_slot: dummy_resource_write_fields_by_slot,
     }
 }
@@ -171,4 +172,18 @@ fn dummy_resource_write_fields_by_slot(
         changed |= dummy_resource_read_field(world, "enabled")? != value;
     }
     Ok(changed)
+}
+
+fn dummy_resource_write_field_by_slot(
+    world: &mut World,
+    field_slot: u32,
+    value: ReflectedValue,
+) -> Result<bool, ReflectError> {
+    if field_slot != 0 {
+        return Err(ReflectError::UnknownField {
+            type_path: "plugin_a::ProbeResource".to_string(),
+            field_name: format!("#{field_slot}"),
+        });
+    }
+    Ok(dummy_resource_read_field(world, "enabled")? != value)
 }

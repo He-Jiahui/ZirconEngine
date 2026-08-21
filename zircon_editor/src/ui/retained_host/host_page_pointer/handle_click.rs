@@ -2,10 +2,10 @@ use zircon_runtime_interface::ui::{
     dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind,
 };
 
-use super::HostPagePointerError;
 use super::host_page_pointer_bridge::HostPagePointerBridge;
 use super::host_page_pointer_dispatch::HostPagePointerDispatch;
 use super::host_page_pointer_route::HostPagePointerRoute;
+use super::HostPagePointerError;
 
 impl HostPagePointerBridge {
     pub(crate) fn handle_click(

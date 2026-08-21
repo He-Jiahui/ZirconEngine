@@ -5,13 +5,13 @@ use std::sync::Arc;
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::core::framework::render::{
     EnvironmentExtract, FallbackSkyboxKind, OverlayLineSegment, OverlayPickShape,
-    PreviewEnvironmentExtract, ProjectionMode, RenderFramework, RenderOverlayExtract,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderViewportDescriptor, SceneGizmoKind,
-    SceneGizmoOverlayExtract, SceneViewportExtractRequest, ViewportCameraSnapshot,
-    ViewportRenderSettings,
+    PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract, RenderFramework,
+    RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderViewportDescriptor, RenderWorldSnapshotHandle, SceneGizmoKind, SceneGizmoOverlayExtract,
+    SceneViewportExtractRequest, ViewportCameraSnapshot, ViewportRenderSettings,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
-use zircon_runtime::graphics::{ViewportRenderFrame, WgpuRenderFramework};
+use zircon_runtime::graphics::WgpuRenderFramework;
 use zircon_runtime::scene::world::World;
 
 mod support;
@@ -55,16 +55,16 @@ fn runtime_world_render_extract_keeps_authoring_overlay_fields_defaulted() {
 }
 
 #[test]
-fn editor_viewport_render_packet_remains_authoring_overlay_owner() {
+fn editor_viewport_render_packet_leaves_highlights_to_the_runtime_gateway_owner() {
     let source = read_repo_file("zircon_editor/src/scene/viewport/render_packet.rs");
 
     for required in [
         "settings: settings.render_settings()",
-        "selection: build_selection_highlights",
+        "highlights: None",
         "selection_anchors: build_selection_anchors",
         "grid: build_grid_extract",
-        "handles,",
-        "scene_gizmos: build_scene_gizmos",
+        "handles: Vec::new()",
+        "scene_gizmos: Vec::new()",
         "camera: Some(camera.clone())",
         "lighting_enabled: settings.preview_lighting",
         "skybox_enabled: settings.preview_skybox",
@@ -72,6 +72,16 @@ fn editor_viewport_render_packet_remains_authoring_overlay_owner() {
         assert!(
             source.contains(required),
             "editor viewport render packet should continue to own authoring overlay assembly; missing `{required}`"
+        );
+    }
+    for forbidden in [
+        "EditorRuntimeHighlightSet",
+        "highlight_set_from_gateway",
+        "build_render_packet_with_highlights",
+    ] {
+        assert!(
+            !source.contains(forbidden),
+            "editor viewport render packet must not bypass the runtime highlight gateway; found `{forbidden}`"
         );
     }
 }
@@ -103,7 +113,7 @@ fn runtime_world_render_packet_only_applies_neutral_request_fields() {
         zircon_runtime::core::framework::render::DisplayMode::WireOverlay
     );
     assert!(
-        packet.overlays.selection.is_empty()
+        packet.overlays.highlights.is_none()
             && packet.overlays.selection_anchors.is_empty()
             && packet.overlays.grid.is_none()
             && packet.overlays.handles.is_empty()
@@ -124,15 +134,7 @@ fn authoring_overlay_constructors_stay_out_of_runtime_production_sources() {
     let runtime_root = repo_root.join("zircon_runtime").join("src");
     let editor_root = repo_root.join("zircon_editor").join("src");
 
-    assert_no_matches(
-        &runtime_root,
-        "SelectionHighlightExtract {",
-        &[runtime_root
-            .join("core")
-            .join("framework")
-            .join("render")
-            .join("overlay.rs")],
-    );
+    assert_no_matches(&runtime_root, "SelectionHighlightExtract", &[]);
     assert_no_matches(
         &runtime_root,
         "SelectionAnchorExtract {",
@@ -161,14 +163,7 @@ fn authoring_overlay_constructors_stay_out_of_runtime_production_sources() {
             .join("overlay.rs")],
     );
 
-    assert_expected_matches(
-        &editor_root,
-        "SelectionHighlightExtract {",
-        &[editor_root
-            .join("scene")
-            .join("viewport")
-            .join("render_packet.rs")],
-    );
+    assert_no_matches(&editor_root, "SelectionHighlightExtract", &[]);
     assert_expected_matches(
         &editor_root,
         "SelectionAnchorExtract {",
@@ -252,9 +247,12 @@ fn neutral_overlay_packet_renders_scene_gizmo_without_runtime_world_context() {
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();
     framework
-        .submit_runtime_frame(
+        .submit_frame_extract(
             viewport,
-            ViewportRenderFrame::from_snapshot(overlay_only_snapshot(viewport_size), viewport_size),
+            RenderFrameExtract::from_snapshot(
+                RenderWorldSnapshotHandle::new(0),
+                overlay_only_snapshot(viewport_size),
+            ),
         )
         .unwrap();
     let frame = framework

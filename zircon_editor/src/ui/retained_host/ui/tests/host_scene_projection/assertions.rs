@@ -322,7 +322,7 @@ pub(super) fn assert_host_contract_scene(
         364.0
     );
     assert_eq!(
-        projected.bottom_dock.pane.console.status_text,
+        projected.bottom_dock.pane.console.status_text.as_ref(),
         "Build finished"
     );
     let projected_console_nodes = (0..projected.bottom_dock.pane.console.nodes.row_count())

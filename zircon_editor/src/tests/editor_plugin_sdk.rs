@@ -31,11 +31,11 @@ fn editor_plugin_sdk_examples_publish_window_and_asset_contributions() {
     let asset = Arc::new(ExampleAssetInspectorPlugin::default());
     let plugins: Vec<(Arc<dyn EditorPlugin + Send + Sync>, PluginPackageManifest)> = vec![
         (
-            Arc::clone(&window),
+            window.clone(),
             PluginPackageManifest::new("sdk_example_window", "SDK Example Window"),
         ),
         (
-            Arc::clone(&asset),
+            asset.clone(),
             PluginPackageManifest::new("sdk_example_asset", "SDK Example Asset Tools"),
         ),
     ];

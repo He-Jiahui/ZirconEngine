@@ -21,26 +21,18 @@ fn default_workbench_layout_seeds_drawers_inside_workbench_activity_window() {
         workbench_window.activity_drawers.len(),
         ActivityDrawerSlot::ALL.len()
     );
-    assert!(
-        workbench_window
-            .activity_drawers
-            .contains_key(&ActivityDrawerSlot::LeftTop)
-    );
-    assert!(
-        workbench_window
-            .activity_drawers
-            .contains_key(&ActivityDrawerSlot::Bottom)
-    );
-    assert!(
-        !workbench_window
-            .activity_drawers
-            .contains_key(&ActivityDrawerSlot::BottomLeft)
-    );
-    assert!(
-        !workbench_window
-            .activity_drawers
-            .contains_key(&ActivityDrawerSlot::BottomRight)
-    );
+    assert!(workbench_window
+        .activity_drawers
+        .contains_key(&ActivityDrawerSlot::LeftTop));
+    assert!(workbench_window
+        .activity_drawers
+        .contains_key(&ActivityDrawerSlot::Bottom));
+    assert!(!workbench_window
+        .activity_drawers
+        .contains_key(&ActivityDrawerSlot::BottomLeft));
+    assert!(!workbench_window
+        .activity_drawers
+        .contains_key(&ActivityDrawerSlot::BottomRight));
 }
 
 #[test]
@@ -58,16 +50,12 @@ fn default_workbench_layout_stores_activity_window_drawers_as_layout_state() {
         workbench_window.activity_drawers.len(),
         ActivityDrawerSlot::ALL.len()
     );
-    assert!(
-        workbench_window
-            .activity_drawers
-            .contains_key(&ActivityDrawerSlot::LeftTop)
-    );
-    assert!(
-        workbench_window
-            .activity_drawers
-            .contains_key(&ActivityDrawerSlot::Bottom)
-    );
+    assert!(workbench_window
+        .activity_drawers
+        .contains_key(&ActivityDrawerSlot::LeftTop));
+    assert!(workbench_window
+        .activity_drawers
+        .contains_key(&ActivityDrawerSlot::Bottom));
 }
 
 #[test]
@@ -110,16 +98,12 @@ fn legacy_bottom_left_and_bottom_right_drawers_merge_into_single_bottom_slot() {
     assert_eq!(bottom.active_view, Some(console));
     assert_eq!(bottom.mode, ActivityDrawerMode::Pinned);
     assert_eq!(bottom.extent, 168.0);
-    assert!(
-        !workbench_window
-            .activity_drawers
-            .contains_key(&ActivityDrawerSlot::BottomLeft)
-    );
-    assert!(
-        !workbench_window
-            .activity_drawers
-            .contains_key(&ActivityDrawerSlot::BottomRight)
-    );
+    assert!(!workbench_window
+        .activity_drawers
+        .contains_key(&ActivityDrawerSlot::BottomLeft));
+    assert!(!workbench_window
+        .activity_drawers
+        .contains_key(&ActivityDrawerSlot::BottomRight));
 }
 
 #[test]

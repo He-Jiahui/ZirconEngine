@@ -225,7 +225,7 @@ fn compact_asset_browser_keeps_scaled_navigation_content_and_details_regions() {
     assert_eq!(source_row.text, "Content");
     assert_eq!(selected_source_row.text, "Materials");
     assert!(selected_source_row.selected);
-    assert_eq!(selected_source_row.tree_depth, 1);
+    assert_eq!(selected_source_row.value_number, 1.0);
     assert_eq!(
         selected_source_row.frame.y - source_row.frame.y,
         32.0,

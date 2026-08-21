@@ -91,18 +91,14 @@ fn text_font_database_registers_font_asset_family_members_and_fallbacks() {
         registered[1]
     );
     assert_eq!(database.match_face(&fallback_query).unwrap().face, fallback);
-    assert!(
-        database
-            .fallback_families()
-            .iter()
-            .any(|family| family.as_str() == "Fallback Sans")
-    );
-    assert!(
-        !database
-            .fallback_families()
-            .iter()
-            .any(|family| family.as_str() == "Composite Han")
-    );
+    assert!(database
+        .fallback_families()
+        .iter()
+        .any(|family| family.as_str() == "Fallback Sans"));
+    assert!(!database
+        .fallback_families()
+        .iter()
+        .any(|family| family.as_str() == "Composite Han"));
     assert_ne!(
         database
             .fallback_candidates_for_codepoint('界', &fallback_query, None, Some("zh-Hans-CN"),)
@@ -352,9 +348,7 @@ fn text_font_runtime_default_composite_selects_checked_in_zh_hans_face() {
     assert_eq!(database.face_index(selected).unwrap(), 1);
     let bytes = database.face_bytes(selected).unwrap();
     let face = ttf_parser::Face::parse(bytes.as_ref(), 1).expect("checked-in CJK TTC face");
-    assert!(
-        "中文排版引擎文本与布局"
-            .chars()
-            .all(|character| face.glyph_index(character).is_some())
-    );
+    assert!("中文排版引擎文本与布局"
+        .chars()
+        .all(|character| face.glyph_index(character).is_some()));
 }

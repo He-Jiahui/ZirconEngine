@@ -1,13 +1,13 @@
 use zircon_runtime_interface::ui::{
     binding::{UiBindingUpdateReport, UiEventKind},
-    component::{UiComponentEvent, UiValue},
+    component::UiComponentEvent,
     dispatch::{UiPointerComponentEvent, UiPointerComponentEventReason},
     event_ui::UiNodeId,
     surface::{UiPointerActivationPhase, UiPointerEventKind, UiPointerRoute},
     tree::{UiTemplateNodeMetadata, UiTreeError},
 };
 
-use crate::ui::surface::{UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface};
+use crate::ui::surface::surface::{UiSurface, UiVirtualWindowState};
 
 use super::{
     tree_view_support::{is_tree_view_owner, tree_node_ids},
@@ -16,18 +16,6 @@ use super::{
 
 const DEFAULT_TREE_ROW_EXTENT: f64 = 24.0;
 const DEFAULT_TREE_VIEWPORT_COUNT: i64 = 20;
-
-struct UiDefaultTreeVirtualWindow {
-    owner_id: UiNodeId,
-    total_count: i64,
-    viewport_start: i64,
-    viewport_count: i64,
-    visible_end: i64,
-    requested_start: i64,
-    requested_count: i64,
-    overscan: i64,
-    scroll_offset: f64,
-}
 
 impl UiSurface {
     pub(in crate::ui::surface::surface) fn apply_default_tree_view_virtual_scroll(
@@ -57,7 +45,7 @@ impl UiSurface {
     fn default_tree_view_virtual_scroll_window(
         &self,
         route: &UiPointerRoute,
-    ) -> Result<Option<UiDefaultTreeVirtualWindow>, UiTreeError> {
+    ) -> Result<Option<UiVirtualWindowState>, UiTreeError> {
         if route.captured.is_some() || route.scroll_delta == 0.0 {
             return Ok(None);
         }
@@ -183,41 +171,14 @@ impl UiSurface {
 
     fn apply_tree_view_virtual_window(
         &mut self,
-        window: &UiDefaultTreeVirtualWindow,
+        window: &UiVirtualWindowState,
         events: &mut Vec<UiPointerComponentEvent>,
         binding_reports: &mut Vec<UiBindingUpdateReport>,
     ) -> Result<bool, UiTreeError> {
-        let mut changed = false;
-        for (property, value) in [
-            ("total_count", UiValue::Int(window.total_count)),
-            ("item_count", UiValue::Int(window.total_count)),
-            ("itemCount", UiValue::Int(window.total_count)),
-            ("row_count", UiValue::Int(window.total_count)),
-            ("rowCount", UiValue::Int(window.total_count)),
-            ("viewport_start", UiValue::Int(window.viewport_start)),
-            ("viewport_count", UiValue::Int(window.viewport_count)),
-            ("visible_end", UiValue::Int(window.visible_end)),
-            ("visibleEnd", UiValue::Int(window.visible_end)),
-            ("requested_start", UiValue::Int(window.requested_start)),
-            ("requestedStart", UiValue::Int(window.requested_start)),
-            ("requested_count", UiValue::Int(window.requested_count)),
-            ("requestedCount", UiValue::Int(window.requested_count)),
-            ("overscan", UiValue::Int(window.overscan)),
-            ("overscan_count", UiValue::Int(window.overscan)),
-            ("overscanCount", UiValue::Int(window.overscan)),
-            ("scroll_offset", UiValue::Float(window.scroll_offset)),
-            ("scrollTop", UiValue::Float(window.scroll_offset)),
-        ] {
-            changed |= self.apply_tree_view_virtual_property(
-                window.owner_id,
-                property,
-                value,
-                binding_reports,
-            )?;
-        }
-        if !changed {
+        let Some(binding_report) = self.mutate_virtual_window(window)? else {
             return Ok(false);
-        }
+        };
+        binding_reports.push(binding_report);
 
         self.push_pointer_component_events_for_component_event_kind(
             events,
@@ -231,26 +192,6 @@ impl UiSurface {
         )?;
         Ok(true)
     }
-
-    fn apply_tree_view_virtual_property(
-        &mut self,
-        owner_id: UiNodeId,
-        property: &'static str,
-        value: UiValue,
-        binding_reports: &mut Vec<UiBindingUpdateReport>,
-    ) -> Result<bool, UiTreeError> {
-        let report = self.mutate_property(UiPropertyMutationRequest::widget_behavior(
-            owner_id,
-            property.to_string(),
-            value,
-        ))?;
-        if matches!(report.status, UiPropertyMutationStatus::Accepted) {
-            binding_reports.push(report.binding);
-            Ok(true)
-        } else {
-            Ok(false)
-        }
-    }
 }
 
 fn tree_virtual_window_for_start(
@@ -260,14 +201,14 @@ fn tree_virtual_window_for_start(
     viewport_count: i64,
     viewport_start: i64,
     row_extent: f64,
-) -> UiDefaultTreeVirtualWindow {
+) -> UiVirtualWindowState {
     let visible_end = viewport_start
         .saturating_add(viewport_count)
         .min(total_count);
     let overscan = tree_overscan(metadata);
     let requested_start = viewport_start.saturating_sub(overscan);
     let requested_end = visible_end.saturating_add(overscan).min(total_count);
-    UiDefaultTreeVirtualWindow {
+    UiVirtualWindowState {
         owner_id,
         total_count,
         viewport_start,

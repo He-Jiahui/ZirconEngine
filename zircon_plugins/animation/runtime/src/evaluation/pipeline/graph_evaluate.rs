@@ -9,8 +9,8 @@ use zircon_runtime::scene::EntityId;
 
 use super::clip_sample::sample_pose_request;
 use super::pose_blend::{
-    apply_graph_additive_poses, blend_graph_base_poses, convert_pose_to_reference_delta,
-    GraphWeightedPose,
+    GraphWeightedPose, apply_graph_additive_poses, blend_graph_base_poses,
+    convert_pose_to_reference_delta,
 };
 use super::requests::{PendingClipEventSample, PendingGraphPoseSample, PendingPoseSample};
 use crate::{AnimationClipEvaluator, CompiledAnimationGraphEvaluation, CompiledGraphClipInstance};
@@ -98,25 +98,11 @@ pub(super) fn sample_compiled_graph_pose(
     active_state: Option<String>,
     evaluation: &CompiledAnimationGraphEvaluation,
 ) -> Option<(EntityId, AnimationPoseOutput)> {
-    let total_weight = evaluation
-        .clips()
-        .iter()
-        .filter(|clip| clip.blend_mode() == AnimationGraphBlendMode::Base)
-        .filter_map(finite_positive_compiled_clip_weight)
-        .sum::<Real>();
-    if total_weight <= Real::EPSILON {
-        return None;
-    }
-
     let mut base_poses = Vec::new();
     let mut additive_poses = Vec::new();
     for clip in evaluation.clips() {
         let Some(weight) = finite_positive_compiled_clip_weight(clip) else {
             continue;
-        };
-        let normalized_weight = match clip.blend_mode() {
-            AnimationGraphBlendMode::Base => weight / total_weight,
-            AnimationGraphBlendMode::Additive => weight,
         };
         let clip_id = asset_manager.resolve_asset_id(&clip.clip().locator)?;
         let (_, mut pose) = sample_pose_request(
@@ -140,7 +126,7 @@ pub(super) fn sample_compiled_graph_pose(
         }
         let weighted = GraphWeightedPose {
             pose,
-            weight: normalized_weight,
+            weight,
             target_mask: clip.target_mask_owner(),
             legacy_target_ids: Vec::new(),
         };

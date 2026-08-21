@@ -4,7 +4,9 @@ $ErrorActionPreference = 'Stop'
 function Get-MvpAcceptanceStagingTreeManifestPath {
     param([Parameter(Mandatory)][string]$StagingRoot)
 
-    return Join-Path ([IO.Path]::GetFullPath($StagingRoot)) 'staging-tree-manifest.json'
+    return [IO.Path]::Combine(
+        [IO.Path]::GetFullPath($StagingRoot),
+        'staging-tree-manifest.json')
 }
 
 function ConvertTo-MvpAcceptanceStagingTreeManifestRelativePath {
@@ -29,7 +31,7 @@ function Resolve-MvpAcceptanceStagingTreeManifestEntryPath {
     )
 
     if ([string]::IsNullOrWhiteSpace($RelativePath) -or
-        [IO.Path]::IsPathFullyQualified($RelativePath) -or
+        [IO.Path]::IsPathRooted($RelativePath) -or
         $RelativePath.Contains(':')) {
         throw "Acceptance staging tree manifest path '$RelativePath' is not a relative path."
     }
@@ -40,7 +42,9 @@ function Resolve-MvpAcceptanceStagingTreeManifestEntryPath {
     }
 
     $absoluteRoot = [IO.Path]::GetFullPath($Root).TrimEnd('\', '/')
-    $candidate = [IO.Path]::GetFullPath((Join-Path $absoluteRoot ($segments -join [IO.Path]::DirectorySeparatorChar)))
+    $candidate = [IO.Path]::GetFullPath([IO.Path]::Combine(
+            $absoluteRoot,
+            ($segments -join [IO.Path]::DirectorySeparatorChar)))
     $prefix = $absoluteRoot + [IO.Path]::DirectorySeparatorChar
     if (-not $candidate.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
         throw "Acceptance staging tree manifest path '$RelativePath' escapes root '$absoluteRoot'."

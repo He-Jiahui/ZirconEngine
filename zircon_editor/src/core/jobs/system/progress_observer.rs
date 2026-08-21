@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::collections::VecDeque;
-use std::panic::{AssertUnwindSafe, catch_unwind};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::Mutex;
 
 use super::EditorJobSystemInner;

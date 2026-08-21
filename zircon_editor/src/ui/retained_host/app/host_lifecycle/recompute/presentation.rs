@@ -536,6 +536,7 @@ mod tests {
         let scoped_patch = source
             .split_once("let patched_native_presenter_ids")
             .and_then(|(_, tail)| tail.split_once("damage.extend(root_patch.damage)"))
+            .map(|(_, tail)| tail)
             .expect("scoped patch aggregation should remain in the recompute fast path");
         let damage_count = scoped_patch
             .find("work.damage_region_count +=")
@@ -556,6 +557,7 @@ mod tests {
         let scoped_patch = source
             .split_once("let root_patch = patch_ui_asset_presentation")
             .and_then(|(_, tail)| tail.split_once("let patched_native_presenter_ids"))
+            .map(|(_, tail)| tail)
             .expect("root patch work should remain in the scoped recompute path");
         let root_rows = scoped_patch
             .find("work.floating_window_rows_visited += root_patch")

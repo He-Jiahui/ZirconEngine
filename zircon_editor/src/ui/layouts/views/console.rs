@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::ui::layouts::views::view_projection::{
-    ViewTemplateNodePatch, build_view_template_node_projection_with_patches,
+    build_view_template_node_projection_with_patches, ViewTemplateNodePatch,
 };
 use crate::ui::retained_host::primitives::ModelRc;
 use zircon_runtime_interface::ui::layout::UiSize;
@@ -100,11 +100,9 @@ mod tests {
         let nodes = projected_nodes("");
 
         assert!(nodes.iter().any(|node| node.control_id == "ConsoleHeader"));
-        assert!(
-            nodes
-                .iter()
-                .any(|node| node.control_id == "ConsoleBodySection")
-        );
+        assert!(nodes
+            .iter()
+            .any(|node| node.control_id == "ConsoleBodySection"));
 
         let Some(header) = node_by_control_id(&nodes, "ConsoleHeader") else {
             return;

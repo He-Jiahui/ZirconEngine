@@ -35,8 +35,6 @@ pub(super) fn rename_staging(staging_path: &Path, target: &Path) -> io::Result<(
 
 #[cfg(windows)]
 pub(super) fn rename_staging(staging_path: &Path, target: &Path) -> io::Result<()> {
-    use std::os::windows::ffi::OsStrExt;
-
     const MOVEFILE_WRITE_THROUGH: u32 = 0x0000_0008;
 
     #[link(name = "Kernel32")]
@@ -48,16 +46,8 @@ pub(super) fn rename_staging(staging_path: &Path, target: &Path) -> io::Result<(
         ) -> i32;
     }
 
-    let staging_wide = staging_path
-        .as_os_str()
-        .encode_wide()
-        .chain(Some(0))
-        .collect::<Vec<_>>();
-    let target_wide = target
-        .as_os_str()
-        .encode_wide()
-        .chain(Some(0))
-        .collect::<Vec<_>>();
+    let staging_wide = windows_api_path(staging_path)?;
+    let target_wide = windows_api_path(target)?;
     let moved = unsafe {
         MoveFileExW(
             staging_wide.as_ptr(),
@@ -78,7 +68,6 @@ pub(super) fn replace_file_with_backup(
     backup_path: &Path,
 ) -> io::Result<()> {
     use std::ffi::c_void;
-    use std::os::windows::ffi::OsStrExt;
 
     #[link(name = "Kernel32")]
     extern "system" {
@@ -92,21 +81,9 @@ pub(super) fn replace_file_with_backup(
         ) -> i32;
     }
 
-    let target_wide = target
-        .as_os_str()
-        .encode_wide()
-        .chain(Some(0))
-        .collect::<Vec<_>>();
-    let staging_wide = staging_path
-        .as_os_str()
-        .encode_wide()
-        .chain(Some(0))
-        .collect::<Vec<_>>();
-    let backup_wide = backup_path
-        .as_os_str()
-        .encode_wide()
-        .chain(Some(0))
-        .collect::<Vec<_>>();
+    let target_wide = windows_api_path(target)?;
+    let staging_wide = windows_api_path(staging_path)?;
+    let backup_wide = windows_api_path(backup_path)?;
     let replaced = unsafe {
         ReplaceFileW(
             target_wide.as_ptr(),
@@ -145,7 +122,6 @@ pub(super) fn replace_existing_staged_file(staging: &Path, target: &Path) -> io:
 #[cfg(windows)]
 pub(super) fn replace_existing_staged_file(staging: &Path, target: &Path) -> io::Result<()> {
     use std::ffi::c_void;
-    use std::os::windows::ffi::OsStrExt;
 
     const REPLACEFILE_WRITE_THROUGH: u32 = 0x0000_0001;
 
@@ -161,16 +137,8 @@ pub(super) fn replace_existing_staged_file(staging: &Path, target: &Path) -> io:
         ) -> i32;
     }
 
-    let target = target
-        .as_os_str()
-        .encode_wide()
-        .chain(Some(0))
-        .collect::<Vec<_>>();
-    let staging = staging
-        .as_os_str()
-        .encode_wide()
-        .chain(Some(0))
-        .collect::<Vec<_>>();
+    let target = windows_api_path(target)?;
+    let staging = windows_api_path(staging)?;
     let replaced = unsafe {
         ReplaceFileW(
             target.as_ptr(),
@@ -185,4 +153,60 @@ pub(super) fn replace_existing_staged_file(staging: &Path, target: &Path) -> io:
         return Err(io::Error::last_os_error());
     }
     Ok(())
+}
+
+#[cfg(windows)]
+fn windows_api_path(path: &Path) -> io::Result<Vec<u16>> {
+    use std::os::windows::ffi::OsStrExt;
+
+    const LEGACY_MAX_PATH: usize = 260;
+    const SEPARATOR: u16 = b'\\' as u16;
+    const VERBATIM_PREFIX: &[u16] = &[SEPARATOR, SEPARATOR, b'?' as u16, SEPARATOR];
+    const DEVICE_PREFIX: &[u16] = &[SEPARATOR, SEPARATOR, b'.' as u16, SEPARATOR];
+    const UNC_PREFIX: &[u16] = &[SEPARATOR, SEPARATOR];
+    const VERBATIM_UNC_PREFIX: &[u16] = &[
+        SEPARATOR,
+        SEPARATOR,
+        b'?' as u16,
+        SEPARATOR,
+        b'U' as u16,
+        b'N' as u16,
+        b'C' as u16,
+        SEPARATOR,
+    ];
+
+    let encoded = path.as_os_str().encode_wide().collect::<Vec<_>>();
+    if encoded.contains(&0) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "Windows file path contains an embedded NUL",
+        ));
+    }
+    if encoded.starts_with(VERBATIM_PREFIX)
+        || encoded.starts_with(DEVICE_PREFIX)
+        || (path.is_absolute() && encoded.len() < LEGACY_MAX_PATH)
+    {
+        let mut wide = encoded;
+        wide.push(0);
+        return Ok(wide);
+    }
+
+    let absolute = std::path::absolute(path)?;
+    let encoded = absolute.as_os_str().encode_wide().collect::<Vec<_>>();
+    if encoded.len() < LEGACY_MAX_PATH {
+        let mut wide = path.as_os_str().encode_wide().collect::<Vec<_>>();
+        wide.push(0);
+        return Ok(wide);
+    }
+
+    let mut wide = Vec::with_capacity(encoded.len() + VERBATIM_UNC_PREFIX.len() + 1);
+    if encoded.starts_with(UNC_PREFIX) {
+        wide.extend_from_slice(VERBATIM_UNC_PREFIX);
+        wide.extend_from_slice(&encoded[UNC_PREFIX.len()..]);
+    } else {
+        wide.extend_from_slice(VERBATIM_PREFIX);
+        wide.extend_from_slice(&encoded);
+    }
+    wide.push(0);
+    Ok(wide)
 }

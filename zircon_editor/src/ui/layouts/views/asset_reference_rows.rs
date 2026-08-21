@@ -451,14 +451,18 @@ fn finite_non_negative(value: f32) -> f32 {
 }
 
 fn finite_coordinate(value: f32) -> f32 {
-    if value.is_finite() { value } else { 0.0 }
+    if value.is_finite() {
+        value
+    } else {
+        0.0
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        AssetReferenceListControls, apply_asset_reference_lists_layout,
-        asset_reference_list_metrics, reference_kind_slot_width, sync_asset_reference_lists,
+        apply_asset_reference_lists_layout, asset_reference_list_metrics,
+        reference_kind_slot_width, sync_asset_reference_lists, AssetReferenceListControls,
     };
     use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
     use crate::ui::workbench::snapshot::{
@@ -670,7 +674,7 @@ mod tests {
             .expect("test node")
     }
 
-    fn text(nodes: &[ViewTemplateNodeData], control_id: &str) -> &str {
+    fn text<'a>(nodes: &'a [ViewTemplateNodeData], control_id: &str) -> &'a str {
         node(nodes, control_id).expect("text node").text.as_str()
     }
 }

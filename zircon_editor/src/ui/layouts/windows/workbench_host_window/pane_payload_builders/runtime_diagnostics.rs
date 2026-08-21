@@ -317,12 +317,10 @@ mod tests {
         };
 
         let items = detail_items(&diagnostics);
-        assert!(
-            items.contains(
-                &"Hybrid GI effective: profile=indoor-static, mode=dynamic-only, quality=high"
-                    .to_string()
-            )
-        );
+        assert!(items.contains(
+            &"Hybrid GI effective: profile=indoor-static, mode=dynamic-only, quality=high"
+                .to_string()
+        ));
         assert!(items.contains(&"Hybrid GI budgets: trace=64, cards=256, voxels=64".to_string()));
         assert!(items.contains(&"Hybrid GI fallback: baked-lighting-unavailable".to_string()));
     }

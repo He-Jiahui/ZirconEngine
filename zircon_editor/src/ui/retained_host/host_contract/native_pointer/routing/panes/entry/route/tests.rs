@@ -1,9 +1,10 @@
+use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::console_output::{ConsoleOutputPaintMetadata, ConsoleOutputViewport};
 use crate::ui::retained_host::host_contract::data::{
     ConsolePaneData, FloatingWindowData, FrameRect, HostBottomDockSurfaceData,
     HostWindowPresentationData, PaneData, TemplatePaneNodeData,
 };
-use crate::ui::retained_host::primitives::{model_rc, ModelRc};
+use crate::ui::retained_host::primitives::ModelRc;
 
 use super::super::super::super::PanePointerTarget;
 use super::route_pointer_scroll_to_pane;
@@ -52,10 +53,10 @@ fn floating_console_occludes_local_scroll_route_outside_its_output_viewport() {
     let route = route_pointer_scroll_to_pane(&presentation, 55.0, 90.0);
 
     assert!(route.is_none(), "floating content must consume the miss");
-    assert_ne!(
+    assert!(!matches!(
         route.map(|route| route.target),
         Some(PanePointerTarget::Hierarchy)
-    );
+    ));
 }
 
 fn frame(x: f32, y: f32, width: f32, height: f32) -> FrameRect {

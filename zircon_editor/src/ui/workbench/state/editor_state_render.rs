@@ -1,3 +1,4 @@
+use crate::core::logging::{LogEntry, LogSeverity, LogSource};
 use crate::scene::viewport::ViewportState;
 use crate::scene::viewport::{
     RenderFrameExtract, RenderSceneSnapshot, RenderVisibleSpatialQuerySnapshot,
@@ -22,6 +23,14 @@ impl EditorState {
     }
 
     pub(crate) fn render_frame_submission(&self) -> Option<EditorRenderFrameSubmission> {
+        if !self.world.is_loaded() {
+            return None;
+        }
+        let highlights = self.viewport_controller.build_runtime_highlight_set();
+        if let Err(error) = self.context.gateway().submit_highlight_set(highlights) {
+            emit_highlight_delivery_error(&self.context, error.to_string());
+            return None;
+        }
         self.world.try_with_world(|scene| {
             let controller = &self.viewport_controller;
             let snapshot = controller.build_render_snapshot(scene);
@@ -61,6 +70,19 @@ impl EditorState {
     }
 }
 
+fn emit_highlight_delivery_error(context: &crate::core::context::EditorContext, message: String) {
+    let entry = LogEntry::new(
+        LogSource::runtime(),
+        LogSeverity::Error,
+        format!("editor viewport highlight delivery failed: {message}"),
+        0,
+        None,
+    );
+    if let Ok(entry) = entry {
+        let _ = context.logs().emit(entry);
+    }
+}
+
 #[cfg(test)]
 mod performance_tests {
     #[test]
@@ -78,9 +100,7 @@ mod performance_tests {
             .split_once("#[cfg(test)]")
             .map_or(source, |(production, _)| production);
 
-        assert!(
-            implementation.contains("RenderWorldSnapshotHandle::new(scene.world_generation())")
-        );
+        assert!(implementation.contains("RenderWorldSnapshotHandle::new(scene.world_generation())"));
         assert!(!implementation.contains("RenderWorldSnapshotHandle::new(0)"));
     }
 

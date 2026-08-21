@@ -16,6 +16,7 @@ impl FeatureStatus {
             && self.missing_plugins.is_empty()
             && !self.target_unsupported
             && !self.invalid_owner_dependency
+            && !self.provider_missing
             && self.missing_capability_membership.iter().all(|capability| {
                 projection.capability_has_unresolved_provider(
                     capability,

@@ -65,17 +65,30 @@ Describe 'Editor build bundle script' {
         Set-Content -LiteralPath (Join-Path $fixtureAssets 'fixture.txt') -Value 'asset fixture'
 
         @'
-$arguments = @($args)
+[CmdletBinding()]
+param(
+    [Parameter(Position = 0)]
+    [string]$Command = 'status',
+    [switch]$Json,
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$Arguments
+)
+
+if (-not $Json) {
+    Write-Output 'Coordinator ready.'
+}
+
+$allArguments = @($Command) + @($Arguments)
 [System.IO.File]::AppendAllText(
     $env:BUILD_EDITOR_TEST_COORDINATOR_LOG,
-    ($arguments -join '|') + [Environment]::NewLine)
-$command = $arguments | Where-Object { $_ -like 'staging-*' } | Select-Object -First 1
+    ($allArguments -join '|') + [Environment]::NewLine)
+$command = $allArguments | Where-Object { $_ -like 'staging-*' } | Select-Object -First 1
 $leaseId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-$ownerIndex = [Array]::IndexOf($arguments, '--owner-pid')
-$ownerPid = [int]$arguments[$ownerIndex + 1]
-$finalIndex = [Array]::IndexOf($arguments, '--final-path')
+$ownerIndex = [Array]::IndexOf($allArguments, '--owner-pid')
+$ownerPid = [int]$allArguments[$ownerIndex + 1]
+$finalIndex = [Array]::IndexOf($allArguments, '--final-path')
 $finalPath = if ($finalIndex -ge 0) {
-    $arguments[$finalIndex + 1]
+    $allArguments[$finalIndex + 1]
 }
 else {
     $acquireArguments = @(
@@ -97,7 +110,7 @@ $status = switch ($command) {
     'staging-begin-publish' { 'publishing' }
     'staging-complete-publish' { 'published' }
     'staging-release' { 'released' }
-    default { throw "Unexpected artifact command: $($arguments -join ' ')" }
+    default { throw "Unexpected artifact command: $($allArguments -join ' ')" }
 }
 @{
     requestId = 'fixture-request'

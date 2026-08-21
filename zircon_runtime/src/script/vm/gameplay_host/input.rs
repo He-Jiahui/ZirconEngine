@@ -1,4 +1,4 @@
-use crate::core::framework::input::{InputButton, InputSnapshot};
+use crate::core::framework::input::InputButton;
 use crate::core::framework::script::{ScriptHostCallFrame, ScriptHostError, ScriptHostValue};
 use crate::core::manager::{input_manager_handle, resolve_manager_service};
 use crate::script::runtime_context_for_frame;
@@ -13,42 +13,45 @@ pub(super) fn key_pressed(
     let input = input_manager_handle(&core)
         .and_then(|handle| resolve_manager_service(&core, handle))
         .map_err(script_core_error)?;
-    let snapshot = input.snapshot();
     with_string(context, 0, |key: &str| {
-        Ok(ScriptHostValue::Bool(snapshot_key_pressed(&snapshot, key)))
+        Ok(ScriptHostValue::Bool(
+            input.button_pressed(&script_input_button(key)),
+        ))
     })
 }
 
-fn snapshot_key_pressed(snapshot: &InputSnapshot, key: &str) -> bool {
+fn script_input_button(key: &str) -> InputButton {
     parse_key_code(key)
         .map(InputButton::KeyCode)
-        .map(|button| snapshot.pressed_buttons.contains(&button))
-        .unwrap_or_else(|| {
-            snapshot
-                .pressed_buttons
-                .iter()
-                .any(|button| matches!(button, InputButton::Key(value) if value == key))
-        })
+        .unwrap_or_else(|| InputButton::Key(key.to_string()))
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::core::framework::input::{InputButton, InputSnapshot};
+    use crate::core::framework::input::InputButton;
 
-    use super::snapshot_key_pressed;
+    use super::script_input_button;
 
     #[test]
-    fn gameplay_key_query_reads_the_lightweight_snapshot_for_codes_and_names() {
-        let snapshot = InputSnapshot {
-            pressed_buttons: vec![
-                InputButton::KeyCode(87),
-                InputButton::Key("Jump".to_string()),
-            ],
-            ..InputSnapshot::default()
-        };
+    fn gameplay_key_query_compiles_codes_and_names_to_typed_buttons() {
+        assert_eq!(script_input_button("KeyCode:87"), InputButton::KeyCode(87));
+        assert_eq!(
+            script_input_button("Jump"),
+            InputButton::Key("Jump".to_string())
+        );
+    }
 
-        assert!(snapshot_key_pressed(&snapshot, "KeyCode:87"));
-        assert!(snapshot_key_pressed(&snapshot, "Jump"));
-        assert!(!snapshot_key_pressed(&snapshot, "Missing"));
+    #[test]
+    fn gameplay_key_query_uses_direct_manager_lookup_without_snapshot_clone() {
+        let source = include_str!("input.rs");
+        let key_pressed = source
+            .split("pub(super) fn key_pressed")
+            .nth(1)
+            .and_then(|source| source.split("fn script_input_button").next())
+            .expect("key_pressed source section");
+
+        assert!(key_pressed.contains("input.button_pressed"));
+        assert!(key_pressed.contains("script_input_button(key)"));
+        assert!(!key_pressed.contains("input.snapshot()"));
     }
 }

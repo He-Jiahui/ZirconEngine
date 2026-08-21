@@ -120,13 +120,11 @@ fn showcase_demo_state_applies_complex_component_runtime_events() {
     );
 
     let log = runtime.showcase_demo_state().event_log();
-    assert!(
-        log.iter()
-            .any(|entry| entry.action == "SetVisibleRange.VirtualList")
-    );
+    assert!(log
+        .iter()
+        .any(|entry| entry.action == "SetVisibleRange.VirtualList"));
     assert!(log.iter().any(|entry| entry.action == "SetPage.PagedList"));
-    assert!(
-        log.iter()
-            .any(|entry| entry.action == "SetWorldSurface.WorldSpaceSurface")
-    );
+    assert!(log
+        .iter()
+        .any(|entry| entry.action == "SetWorldSurface.WorldSpaceSurface"));
 }

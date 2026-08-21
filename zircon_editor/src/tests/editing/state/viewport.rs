@@ -31,6 +31,7 @@ use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiRenderCommandKind, UiRenderExtract, UiTextRenderMode,
 };
+use zircon_runtime_interface::ZIRCON_RUNTIME_DEFAULT_VIEWPORT_HANDLE_V1;
 
 use super::super::support::{cube_and_camera, cube_id, test_state};
 
@@ -196,6 +197,35 @@ fn render_frame_submission_carries_editor_owned_viewport_text_overlay() {
         .text
         .as_deref()
         .is_some_and(|text| text.contains("Move") && text.contains("Persp")));
+}
+
+#[test]
+fn render_frame_submission_projects_active_domain_multiselection_through_gateway() {
+    let manager = DefaultLevelManager::default();
+    let level = manager.create_default_level();
+    let mut state = EditorState::with_default_selection(level.clone(), UVec2::new(1280, 720));
+    let (cube, camera) = cube_and_camera(&state);
+    state
+        .viewport_controller
+        .selection_mut()
+        .replace_active([camera, cube], Some(cube));
+
+    let submission = state
+        .render_frame_submission()
+        .expect("render frame submission");
+    let delivered = level
+        .viewport_highlight_set(ZIRCON_RUNTIME_DEFAULT_VIEWPORT_HANDLE_V1.raw())
+        .expect("gateway highlight set");
+
+    assert!(submission.extract.debug.overlays.highlights.is_none());
+    assert_eq!(
+        delivered.set().entities(),
+        &[cube.min(camera), cube.max(camera)]
+    );
+    assert_eq!(
+        delivered.generation(),
+        state.viewport_controller.selection().revision()
+    );
 }
 
 #[test]
@@ -396,7 +426,7 @@ fn missing_drag_target_release_cleans_gizmo_lifecycle() {
     let mut state = test_state();
     let (cube, _) = begin_moved_gizmo_drag(&mut state);
     state.world.with_world_mut(|scene| {
-        assert!(scene.remove_entity(cube));
+        assert!(scene.remove_entity(cube).is_ok());
     });
 
     state
@@ -408,6 +438,30 @@ fn missing_drag_target_release_cleans_gizmo_lifecycle() {
     state
         .replace_world(manager.create_default_level(), "replacement-project")
         .expect("release failure must not leave a latched gizmo capture");
+}
+
+#[test]
+fn cancel_interaction_stops_camera_navigation_without_a_gizmo_transaction() {
+    let mut state = test_state();
+    let start = Vec2::new(640.0, 360.0);
+    state
+        .apply_viewport_command(&ViewportCommand::RightPressed {
+            x: start.x,
+            y: start.y,
+        })
+        .expect("start camera navigation");
+
+    state
+        .apply_viewport_command(&ViewportCommand::CancelInteraction)
+        .expect("cancel interaction");
+    let feedback = state
+        .apply_viewport_command(&ViewportCommand::PointerMoved {
+            x: start.x + 120.0,
+            y: start.y + 48.0,
+        })
+        .expect("pointer movement after cancellation");
+
+    assert!(!feedback.camera_updated);
 }
 
 #[test]

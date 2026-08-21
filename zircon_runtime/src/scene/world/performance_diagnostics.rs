@@ -33,6 +33,41 @@ impl World {
             .add_change_detection_stats(stats);
     }
 
+    pub(super) fn record_derived_state_hierarchy_validity(
+        &mut self,
+        snapshot_entities: usize,
+        validated_entities: usize,
+        parent_chain_steps: usize,
+    ) {
+        self.ecs_frame_performance_diagnostics
+            .derived_state_mut()
+            .record_hierarchy_validity(snapshot_entities, validated_entities, parent_chain_steps);
+    }
+
+    pub(super) fn record_derived_state_hierarchy_topology_rebuild(&mut self, entity_count: usize) {
+        self.ecs_frame_performance_diagnostics
+            .derived_state_mut()
+            .record_hierarchy_topology_rebuild(entity_count);
+    }
+
+    pub(super) fn record_derived_state_active_propagation(&mut self, entity_count: usize) {
+        self.ecs_frame_performance_diagnostics
+            .derived_state_mut()
+            .record_active_propagation(entity_count);
+    }
+
+    pub(super) fn record_derived_state_world_matrix_propagation(&mut self, entity_count: usize) {
+        self.ecs_frame_performance_diagnostics
+            .derived_state_mut()
+            .record_world_matrix_propagation(entity_count);
+    }
+
+    pub(super) fn record_derived_state_node_cache_rebuild(&mut self, entity_count: usize) {
+        self.ecs_frame_performance_diagnostics
+            .derived_state_mut()
+            .record_node_cache_rebuild(entity_count);
+    }
+
     pub(crate) fn record_bundle_transaction_diagnostics(
         &mut self,
         final_archetype_transition: bool,

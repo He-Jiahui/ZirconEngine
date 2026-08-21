@@ -86,3 +86,36 @@ Resolving state：guard 硬切、下层静态验证与 exact25 独立复审已�
   `566ad849fe2ed68b0aa4b120a0f664185bc9cc51be184637c4f18d82d098870c`，drift 0，
   Critical/Important/Minor = 0/0/0。当前状态仍为 `open` / `resolving_failure`：待 fresh
   managed Runtime lib terminal、原子提交与 canonical fixed return 完成后才可关闭。
+
+## r5 current-HEAD 隔离验证与共享 harness 阻塞（2026-08-19）
+
+- successor `frameworks01-runtime-error-owner-guard-closeout-r5-20260819` 以
+  `25e09a23178000f2e783ce2143cf70a8b118d404` 为 coordinator base，在当前 HEAD
+  `bea1acf91b909525ab1759e2c800858b0eda6528` 复核 F6 owned blobs；guard 实现相对 base 与
+  HEAD 均未漂移，`core/framework/error.rs` 继续物理不存在，未恢复 compatibility owner。
+- fresh 静态命令
+  `python -m unittest tools.tests.test_frameworks_01_runtime_error_owner_boundary tools.tests.test_frameworks_02_core_error_single_source`
+  以 2/2 GREEN 自然结束，耗时 17.569 秒。该证据只证明 error-owner/source-shape 合同，
+  不替代 Rust 编译门或独立复审。
+- immutable validation copy `5356527e2a644513bae4f9a12935ce52`、input manifest
+  `acc4075842055a5786c19bb666b85928613d5522e93ce206d2988403bf822751` 固定同一 F6
+  owned closure，并将外部 `zr_vm` 固定到 commit
+  `503fb72163cd20ddf32a38f8a330083712f5d648`。exact command 保持本记录 frontmatter
+  声明的 `project_asset_manager` gate；run `08933d1868e1429c8e23c3294c222f47` 自然以
+  101 结束，54 compile errors、1,455 warnings、0 tests。错误码集合为
+  E0063/E0277/E0282/E0308/E0425/E0433/E0596/E0599/E0624；原始旧 include/E0432 未复现，
+  因此 F6 stale path 不在本轮诊断中，但 exact gate 仍不是 GREEN。
+- 该隔离副本按 Session-only 合同不覆盖共享工作树 715 份 foreign dirty Rust blobs。
+  `docs/plans/mvp/00/2026-08-18-m02-m03-runtime-editor-app-compile-convergence.md` 已将 HEAD
+  上 54 条 Runtime lib-test 错误归属为 current public-API hard-cut 后的共享 harness 收敛，
+  禁止由 Frameworks01 增加 alias、feature bypass 或上层兼容路径。
+- 为区分 HEAD 基线与共享工作树修复，外部受管 job
+  `b65365a33a0d443d9f0d96410abf5546` 于 21:37:23--22:16:01 自然运行并 release，
+  live process tree 为空、exit 1。它完成 `zircon_runtime` production build 并进入 lib-test
+  target，但 retained D 盘 target 只有 `zircon_runtime-0c255ba51a4c1888.d`（2,673,546
+  bytes），没有对应 test executable，故只能证明 test harness 在链接/执行前仍 RED；该
+  validate-matrix job 没有持久化逐条 rustc diagnostic，不能据此猜测或越权修改 foreign owner。
+- 状态保持 `open` / `resolving_failure`。只有共享 harness 修复原子进入 HEAD 后，才能按新
+  source hash 重建 F6 immutable copy；旧 RED copy 和共享工作树 job 均不得复用为 closeout
+  ticket。随后仍需 exact Rust GREEN、fresh 静态 GREEN、真实独立复审、canonical Failure
+  return 与 coordinator milestone commit。

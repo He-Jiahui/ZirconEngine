@@ -1,18 +1,18 @@
-use crate::core::framework::render::{
-    decode_rgba16f_texels, CapturedHdrFrame, FrameHistoryHandle, PostProcessGraphResourceNames,
-    RenderCameraTargetGraphImportStatus, RenderCapabilitySummary, RenderCaptureReport,
-    RenderCaptureSource, RenderGpuTimingStatus, ShaderVariantMissReport,
-};
 use crate::core::TaskPool;
+use crate::core::framework::render::{
+    CapturedHdrFrame, FrameHistoryHandle, PostProcessGraphResourceNames,
+    RenderCameraTargetGraphImportStatus, RenderCapabilitySummary, RenderCaptureReport,
+    RenderCaptureSource, RenderGpuTimingStatus, ShaderVariantMissReport, decode_rgba16f_texels,
+};
 #[cfg(test)]
 use crate::core::{math::UVec2, resource::ResourceId};
 
 #[cfg(test)]
 use crate::graphics::backend::read_texture_rgba;
 use crate::graphics::backend::{
-    read_texture_rgba16float_region, GpuPassTimer, GpuPipelineStatisticsTimer,
-    Rgba16FloatTextureRegionReadback, ViewportSurface, DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES,
-    DEFAULT_GPU_TIMER_MAX_PASSES,
+    DEFAULT_GPU_PIPELINE_STATISTICS_MAX_SCOPES, DEFAULT_GPU_TIMER_MAX_PASSES, GpuPassTimer,
+    GpuPipelineStatisticsTimer, Rgba16FloatTextureRegionReadback, ViewportSurface,
+    read_texture_rgba16float_region,
 };
 use crate::graphics::scene::scene_renderer::graph_execution::RenderGraphLightGridReport;
 use crate::graphics::scene::scene_renderer::mesh::PreparedMeshQueueStats;
@@ -35,7 +35,7 @@ use super::super::scene_renderer_runtime_outputs::{
 use super::super::scene_renderer_target::{ensure_offscreen_target, finish_viewport_frame};
 use super::super::target_extent::viewport_size;
 use super::{
-    capture_request_was_admitted, AsyncViewportCaptureRequest, ViewportAsyncCaptureSubmission,
+    AsyncViewportCaptureRequest, ViewportAsyncCaptureSubmission, capture_request_was_admitted,
 };
 
 mod gpu_timing_status;
@@ -582,9 +582,14 @@ impl SceneRenderer {
     pub fn take_completed_gpu_timing_report(
         &mut self,
     ) -> Option<super::super::scene_renderer::SceneRendererGpuTimingReport> {
+        let timestamp_period_ns = self
+            .gpu_pass_timer
+            .as_ref()
+            .map(GpuPassTimer::timestamp_period_ns)?;
         self.last_gpu_timer_frame_result.take().map(|frame| {
             super::super::scene_renderer::SceneRendererGpuTimingReport::new(
                 frame.frame_generation,
+                timestamp_period_ns,
                 frame.pass_timings.into_iter().map(|timing| {
                     super::super::scene_renderer::SceneRendererGpuPassTiming::new(
                         timing.pass_name,

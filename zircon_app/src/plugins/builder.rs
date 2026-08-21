@@ -208,7 +208,8 @@ impl PluginGroupBuilder {
         })
     }
 
-    pub fn finish(self) -> ResolvedPluginGroup {
+    #[cfg(test)]
+    pub(crate) fn finish(self) -> ResolvedPluginGroup {
         self.try_finish()
             .expect("plugin group module descriptors must sort")
     }

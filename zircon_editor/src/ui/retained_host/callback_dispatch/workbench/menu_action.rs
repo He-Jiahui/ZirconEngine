@@ -6,9 +6,9 @@ use crate::core::editor_operation::{
 };
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::host::EditorHostEventController;
-use crate::ui::retained_host::event_bridge::{UiHostEventEffects, apply_record_effects};
+use crate::ui::retained_host::event_bridge::{apply_record_effects, UiHostEventEffects};
 use crate::ui::workbench::event::operation_path_for_menu_action;
-use crate::ui::workbench::event::{EditorHostEvent, dispatch_editor_host_binding};
+use crate::ui::workbench::event::{dispatch_editor_host_binding, EditorHostEvent};
 
 use super::super::common::dispatch_envelope;
 use super::control::dispatch_builtin_host_menu_action;

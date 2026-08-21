@@ -1,6 +1,8 @@
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
+use crate::asset::project::ProjectPaths;
+
 use super::AssetMigrationMode;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -32,7 +34,7 @@ impl AssetMigrationIssue {
     ) -> Self {
         Self {
             kind,
-            path,
+            path: path.map(ProjectPaths::display_path),
             message: message.into(),
         }
     }
@@ -59,7 +61,7 @@ pub struct AssetMigrationChange {
 impl AssetMigrationChange {
     pub(super) fn new(path: PathBuf, reference_count: usize) -> Self {
         Self {
-            path,
+            path: ProjectPaths::display_path(path),
             reference_count,
         }
     }
@@ -78,11 +80,10 @@ pub struct AssetMigrationMetrics {
     pub(super) entry_visits: usize,
     pub(super) directory_reads: usize,
     pub(super) directory_sorts: usize,
-    pub(super) resolver_filesystem_probes: usize,
+    pub(super) resolver_index_lookups: usize,
     pub(super) document_reads: usize,
     pub(super) document_parses: usize,
     pub(super) reference_visits: usize,
-    pub(super) full_value_clones: usize,
     pub(super) output_bytes: usize,
 }
 
@@ -99,8 +100,8 @@ impl AssetMigrationMetrics {
         self.directory_sorts
     }
 
-    pub fn resolver_filesystem_probes(&self) -> usize {
-        self.resolver_filesystem_probes
+    pub fn resolver_index_lookups(&self) -> usize {
+        self.resolver_index_lookups
     }
 
     pub fn document_reads(&self) -> usize {
@@ -113,10 +114,6 @@ impl AssetMigrationMetrics {
 
     pub fn reference_visits(&self) -> usize {
         self.reference_visits
-    }
-
-    pub fn full_value_clones(&self) -> usize {
-        self.full_value_clones
     }
 
     pub fn output_bytes(&self) -> usize {

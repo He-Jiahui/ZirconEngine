@@ -129,11 +129,9 @@ fn inspector_binding_rejects_dynamic_plugin_component_field_when_schema_is_unloa
     );
 
     let error = apply_inspector_binding(&mut state, &binding).unwrap_err();
-    assert!(
-        error
-            .to_string()
-            .contains("unsupported inspector field weather.Component.CloudLayer.coverage")
-    );
+    assert!(error
+        .to_string()
+        .contains("unsupported inspector field weather.Component.CloudLayer.coverage"));
 }
 
 #[test]
@@ -157,9 +155,9 @@ fn inspector_binding_restores_selection_and_draft_after_late_unsupported_field()
     state.update_scale_field(0, "4.00".to_string());
     state.update_scale_field(1, "5.00".to_string());
     state.update_scale_field(2, "6.00".to_string());
-    state.update_dynamic_component_field("saved.Component.value", "preserved");
+    state.update_dynamic_component_field("saved.Component.value", "preserved".to_string());
     let selection_before = state.viewport_controller.selection().clone();
-    let name_before = state.name_field.clone();
+    let name_before = state.name_field.to_string();
     let parent_before = state.parent_field.clone();
     let translation_before = state.transform_fields.clone();
     let scale_before = state.scale_fields.clone();
@@ -187,11 +185,9 @@ fn inspector_binding_restores_selection_and_draft_after_late_unsupported_field()
     );
 
     let error = apply_inspector_binding(&mut state, &binding).unwrap_err();
-    assert!(
-        error
-            .to_string()
-            .contains("unsupported inspector field unsupported.Component.field")
-    );
+    assert!(error
+        .to_string()
+        .contains("unsupported inspector field unsupported.Component.field"));
     assert_eq!(state.viewport_controller.selection(), &selection_before);
     assert_eq!(state.name_field, name_before);
     assert_eq!(state.parent_field, parent_before);
@@ -240,9 +236,9 @@ fn inspector_binding_restores_stale_core_selection_after_failure() {
     state.update_scale_field(0, "4.00".to_string());
     state.update_scale_field(1, "5.00".to_string());
     state.update_scale_field(2, "6.00".to_string());
-    state.update_dynamic_component_field("saved.Component.value", "preserved");
+    state.update_dynamic_component_field("saved.Component.value", "preserved".to_string());
     let selection_before = state.viewport_controller.selection().clone();
-    let name_before = state.name_field.clone();
+    let name_before = state.name_field.to_string();
     let parent_before = state.parent_field.clone();
     let translation_before = state.transform_fields.clone();
     let scale_before = state.scale_fields.clone();
@@ -268,11 +264,9 @@ fn inspector_binding_restores_stale_core_selection_after_failure() {
     );
 
     let error = apply_inspector_binding(&mut state, &binding).unwrap_err();
-    assert!(
-        error
-            .to_string()
-            .contains("unsupported inspector field unsupported.Component.field")
-    );
+    assert!(error
+        .to_string()
+        .contains("unsupported inspector field unsupported.Component.field"));
     assert_eq!(state.viewport_controller.selection(), &selection_before);
     assert_eq!(state.name_field, name_before);
     assert_eq!(state.parent_field, parent_before);
@@ -310,7 +304,7 @@ fn inspector_binding_restores_every_boundary_after_late_transaction_application_
     state.update_scale_field(1, "5.00".to_string());
     state.update_scale_field(2, "6.00".to_string());
     let selection_before = state.viewport_controller.selection().clone();
-    let name_before = state.name_field.clone();
+    let name_before = state.name_field.to_string();
     let parent_before = state.parent_field.clone();
     let translation_before = state.transform_fields.clone();
     let scale_before = state.scale_fields.clone();
@@ -428,9 +422,9 @@ fn inspector_binding_cancels_post_apply_selection_sync_failure_before_history_co
     state.update_scale_field(0, "4.00".to_string());
     state.update_scale_field(1, "5.00".to_string());
     state.update_scale_field(2, "6.00".to_string());
-    state.update_dynamic_component_field("saved.Component.value", "preserved");
+    state.update_dynamic_component_field("saved.Component.value", "preserved".to_string());
     let selection_before = state.viewport_controller.selection().clone();
-    let name_before = state.name_field.clone();
+    let name_before = state.name_field.to_string();
     let parent_before = state.parent_field.clone();
     let translation_before = state.transform_fields.clone();
     let scale_before = state.scale_fields.clone();
@@ -470,11 +464,9 @@ fn inspector_binding_cancels_post_apply_selection_sync_failure_before_history_co
     );
 
     let error = apply_inspector_binding(&mut state, &binding).unwrap_err();
-    assert!(
-        error
-            .to_string()
-            .contains("forced transaction selection synchronization failure")
-    );
+    assert!(error
+        .to_string()
+        .contains("forced transaction selection synchronization failure"));
     let lifecycle = state
         .context
         .bus()
@@ -568,11 +560,9 @@ fn inspector_binding_rejects_an_active_gizmo_without_cancelling_its_preview() {
     );
 
     let error = apply_inspector_binding(&mut state, &binding).unwrap_err();
-    assert!(
-        error
-            .to_string()
-            .contains("cannot apply inspector changes while a gizmo interaction is active")
-    );
+    assert!(error
+        .to_string()
+        .contains("cannot apply inspector changes while a gizmo interaction is active"));
     assert!(state.has_active_gizmo_interaction());
     assert_eq!(state.viewport_controller.selection(), &selection_before);
     assert_eq!(state.world.snapshot(), world_before);

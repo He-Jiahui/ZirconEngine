@@ -1,14 +1,14 @@
-use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 use std::time::Instant;
 
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle, JobScheduler};
+use crate::scene::LevelSystem;
 use crate::scene::ecs::{
     BoxedSceneSystem, DeferredSystemKey, InternalSceneSystem, NativeSystemCallbackTiming,
-    SceneSystemDescriptor, ScheduleConflictGraph, ScheduledSceneStep, ScheduledSceneStepRef,
-    SystemStage,
+    SceneSystemClockDomain, SceneSystemDescriptor, ScheduleConflictGraph, ScheduledSceneStep,
+    ScheduledSceneStepRef, SystemStage,
 };
-use crate::scene::LevelSystem;
 
 pub(crate) struct SceneScheduleRunner;
 
@@ -22,7 +22,9 @@ impl SceneScheduleRunner {
         core: &CoreHandle,
         level: &LevelSystem,
         stage: SystemStage,
-        delta_seconds: Real,
+        virtual_delta_seconds: Real,
+        real_delta_seconds: Real,
+        virtual_time_paused: bool,
         internal_systems: &[SceneSystemDescriptor],
         native_steps: &[ScheduledSceneStep],
         native_conflicts: &ScheduleConflictGraph,
@@ -41,6 +43,9 @@ impl SceneScheduleRunner {
             {
                 match step {
                     ScheduledSceneStepRef::Internal(system) => {
+                        if virtual_time_paused {
+                            continue;
+                        }
                         flush_worker_batch(core.scheduler(), level, &mut worker_batch)?;
                         level.with_world_mut(|world| {
                             world.run_internal_scene_system(system.system())
@@ -56,9 +61,13 @@ impl SceneScheduleRunner {
                         id,
                         stage: step_stage,
                         order,
+                        clock_domain,
                         worker_safe,
                         conservative_world_writer,
                     } => {
+                        if should_skip_for_pause(virtual_time_paused, clock_domain) {
+                            continue;
+                        }
                         if worker_safe {
                             if worker_batch
                                 .iter()
@@ -87,12 +96,24 @@ impl SceneScheduleRunner {
                             });
                         }
                     }
-                    ScheduledSceneStepRef::Runtime { id, .. } => {
+                    ScheduledSceneStepRef::Runtime {
+                        id, clock_domain, ..
+                    } => {
+                        if should_skip_for_pause(virtual_time_paused, clock_domain) {
+                            continue;
+                        }
                         flush_worker_batch(core.scheduler(), level, &mut worker_batch)?;
+                        let delta_seconds = match clock_domain {
+                            SceneSystemClockDomain::Virtual => virtual_delta_seconds,
+                            SceneSystemClockDomain::Real => real_delta_seconds,
+                        };
                         level.run_runtime_scene_system(core, id, delta_seconds)?;
                         level.with_world_mut(|world| world.apply_deferred());
                     }
-                    ScheduledSceneStepRef::ApplyDeferred { .. } => {
+                    ScheduledSceneStepRef::ApplyDeferred { clock_domain, .. } => {
+                        if should_skip_for_pause(virtual_time_paused, clock_domain) {
+                            continue;
+                        }
                         flush_worker_batch(core.scheduler(), level, &mut worker_batch)?;
                         level.with_world_mut(|world| world.apply_deferred());
                     }
@@ -105,7 +126,7 @@ impl SceneScheduleRunner {
         let stage_succeeded = matches!(&result, Ok(Ok(())));
         level.with_world_mut(|world| {
             world.set_scene_system_flush_deferred(false);
-            if stage_succeeded {
+            if stage_succeeded && !virtual_time_paused {
                 world.flush_pending_scene_systems_for_stage(stage);
             }
         });
@@ -114,6 +135,10 @@ impl SceneScheduleRunner {
             Err(payload) => resume_unwind(payload),
         }
     }
+}
+
+fn should_skip_for_pause(virtual_time_paused: bool, clock_domain: SceneSystemClockDomain) -> bool {
+    virtual_time_paused && clock_domain == SceneSystemClockDomain::Virtual
 }
 
 fn flush_worker_batch(
@@ -771,6 +796,8 @@ mod tests {
             level,
             SystemStage::Update,
             0.0,
+            0.0,
+            false,
             schedule.internal_systems_for_stage(SystemStage::Update),
             schedule.native_steps_for_stage(SystemStage::Update),
             schedule.native_conflict_graph_for_stage(SystemStage::Update),

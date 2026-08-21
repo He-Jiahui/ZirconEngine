@@ -1,15 +1,16 @@
 use super::gltf_animation_subassets::add_gltf_animation_and_skin_subassets;
 use super::gltf_decode::decode_gltf_source;
 use super::gltf_labeled_subassets::{
-    GltfMeshSubasset, GltfPrimitiveSubasset, add_gltf_material_subassets, add_gltf_mesh_subassets,
-    add_gltf_scene_subassets, add_gltf_texture_subassets, gltf_label_reference, gltf_label_uri,
+    add_gltf_material_subassets, add_gltf_mesh_subassets, add_gltf_scene_subassets,
+    add_gltf_texture_subassets, gltf_label_reference, gltf_label_uri, GltfMeshSubasset,
+    GltfPrimitiveSubasset,
 };
 use std::collections::BTreeMap;
 
 use super::primitive_from_indexed_mesh::primitive_from_indexed_mesh;
 use crate::asset::assets::{
-    MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT, MeshAsset,
-    MeshAttributeValues, MeshMorphTargetAsset, MeshSkinAsset, ModelAsset, ModelPrimitiveAsset,
+    MeshAsset, MeshAttributeValues, MeshMorphTargetAsset, MeshSkinAsset, ModelAsset,
+    ModelPrimitiveAsset, MESH_ATTRIBUTE_NORMAL, MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_TANGENT,
 };
 use crate::asset::{
     AssetImportContext, AssetImportError, AssetImportOutcome, ImportedAsset, MeshSdfCookBudget,

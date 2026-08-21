@@ -56,7 +56,8 @@ impl EditorPluginCatalogStore {
 mod tests {
     use zircon_runtime::plugin::PluginPackageManifest;
 
-    use super::{EditorPluginCatalog, EditorPluginCatalogStore, EditorPluginDescriptor};
+    use super::{EditorPluginCatalog, EditorPluginCatalogStore};
+    use crate::core::plugin::EditorPluginDescriptor;
 
     #[test]
     fn snapshot_indexes_capabilities_to_sorted_package_ids() {

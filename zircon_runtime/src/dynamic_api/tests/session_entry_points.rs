@@ -1,6 +1,32 @@
 use super::support::*;
 
 #[test]
+fn session_handle_allocation_output_is_invalidated_before_create_validation() {
+    let create_session = runtime_api().create_session.expect("create_session");
+    let mut session = ZrRuntimeSessionHandle::new(99_999);
+    let status = unsafe {
+        create_session(
+            ZrRuntimeSessionConfigV3 {
+                abi_version: u32::MAX,
+                profile: ZrByteSlice::from_static(b"headless"),
+                project_root: ZrByteSlice::empty(),
+                play_scene: ZrByteSlice::empty(),
+                play_report_pipe: ZrByteSlice::empty(),
+                wake_sink: ZrRuntimeWakeSinkV1::disabled(),
+            },
+            &mut session,
+        )
+    };
+
+    assert_session_status(
+        status,
+        ZrStatusCode::UnsupportedVersion,
+        "unsupported runtime ABI version",
+    );
+    assert_eq!(session, ZrRuntimeSessionHandle::invalid());
+}
+
+#[test]
 fn all_session_entry_points_reject_invalid_handle() {
     let api = runtime_api();
     let invalid = ZrRuntimeSessionHandle::invalid();

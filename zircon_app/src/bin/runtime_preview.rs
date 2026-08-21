@@ -23,8 +23,23 @@ fn main() -> std::process::ExitCode {
     if let Some(diagnostic) = failure_teardown_diagnostic {
         eprintln!("{diagnostic}");
     }
-    let _ = shutdown_process_log(DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT);
-    exit_code
+    let process_log_shutdown_completed =
+        shutdown_process_log(DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT);
+    runtime_process_exit_code_after_log_shutdown(exit_code, process_log_shutdown_completed)
+}
+
+fn runtime_process_exit_code_after_log_shutdown(
+    exit_code: std::process::ExitCode,
+    process_log_shutdown_completed: bool,
+) -> std::process::ExitCode {
+    if process_log_shutdown_completed {
+        return exit_code;
+    }
+
+    eprintln!(
+        "runtime startup diagnostic: component=diagnostic_log requested=process-log-shutdown cause=log flush timed out or an output failed recovery=inspect the process log output and retry zircon_runtime"
+    );
+    std::process::ExitCode::FAILURE
 }
 
 fn runtime_process_failure_teardown_diagnostic<E>(result: &Result<(), E>) -> Option<&'static str> {
@@ -35,7 +50,26 @@ fn runtime_process_failure_teardown_diagnostic<E>(result: &Result<(), E>) -> Opt
 
 #[cfg(test)]
 mod tests {
-    use super::{runtime_process_exit_code, runtime_process_failure_teardown_diagnostic};
+    use super::{
+        runtime_process_exit_code, runtime_process_exit_code_after_log_shutdown,
+        runtime_process_failure_teardown_diagnostic,
+    };
+
+    #[test]
+    fn completed_process_log_shutdown_preserves_the_runtime_exit_code() {
+        assert_eq!(
+            runtime_process_exit_code_after_log_shutdown(std::process::ExitCode::SUCCESS, true),
+            std::process::ExitCode::SUCCESS
+        );
+    }
+
+    #[test]
+    fn process_log_shutdown_failure_overrides_a_successful_runtime_exit() {
+        assert_eq!(
+            runtime_process_exit_code_after_log_shutdown(std::process::ExitCode::SUCCESS, false),
+            std::process::ExitCode::FAILURE
+        );
+    }
 
     #[test]
     fn successful_runtime_process_returns_success() {

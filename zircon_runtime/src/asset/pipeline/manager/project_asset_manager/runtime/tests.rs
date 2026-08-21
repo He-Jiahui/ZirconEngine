@@ -1,6 +1,6 @@
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, Arc, TryLockError};
+use std::sync::{Arc, TryLockError, mpsc};
 use std::thread;
 use std::time::Duration;
 
@@ -18,7 +18,7 @@ fn watcher_activation(lifecycle: ProjectWatcherLifecycle) -> ProjectWatcherActiv
             queued_change_bytes: 0,
             requires_reconciliation: false,
             diagnostics: Default::default(),
-            errors: Vec::new(),
+            errors: Default::default(),
             worker_scheduled: false,
         }),
     }
@@ -148,51 +148,69 @@ fn watcher_activation_rechecks_retirement_after_initial_active_admission() {
 fn project_asset_manager_runtime_accessors_recover_poisoned_locks() {
     let manager = ProjectAssetManager::default();
 
-    assert!(catch_unwind(AssertUnwindSafe(|| {
-        let _guard = manager.project_generation_gate.write().unwrap();
-        panic!("poison project generation gate");
-    }))
-    .is_err());
-    assert!(catch_unwind(AssertUnwindSafe(|| {
-        let _guard = manager.project.write().unwrap();
-        panic!("poison project lock");
-    }))
-    .is_err());
-    assert!(catch_unwind(AssertUnwindSafe(|| {
-        let _guard = manager.project_source_paths.write().unwrap();
-        panic!("poison project source paths lock");
-    }))
-    .is_err());
-    assert!(catch_unwind(AssertUnwindSafe(|| {
-        let _guard = manager.asset_importers.write().unwrap();
-        panic!("poison importer registry lock");
-    }))
-    .is_err());
-    assert!(catch_unwind(AssertUnwindSafe(|| {
-        let _guard = manager.change_subscribers.lock().unwrap();
-        panic!("poison change subscribers lock");
-    }))
-    .is_err());
-    assert!(catch_unwind(AssertUnwindSafe(|| {
-        let _guard = manager.watch_error_subscribers.lock().unwrap();
-        panic!("poison watch error subscribers lock");
-    }))
-    .is_err());
-    assert!(catch_unwind(AssertUnwindSafe(|| {
-        let _guard = manager.watcher_activation.lock().unwrap();
-        panic!("poison watcher activation lock");
-    }))
-    .is_err());
-    assert!(catch_unwind(AssertUnwindSafe(|| {
-        let _guard = manager.watch_refresh_gate.lock().unwrap();
-        panic!("poison watch refresh gate");
-    }))
-    .is_err());
-    assert!(catch_unwind(AssertUnwindSafe(|| {
-        let _guard = manager.watchers.lock().unwrap();
-        panic!("poison watchers lock");
-    }))
-    .is_err());
+    assert!(
+        catch_unwind(AssertUnwindSafe(|| {
+            let _guard = manager.project_generation_gate.write().unwrap();
+            panic!("poison project generation gate");
+        }))
+        .is_err()
+    );
+    assert!(
+        catch_unwind(AssertUnwindSafe(|| {
+            let _guard = manager.project.write().unwrap();
+            panic!("poison project lock");
+        }))
+        .is_err()
+    );
+    assert!(
+        catch_unwind(AssertUnwindSafe(|| {
+            let _guard = manager.project_source_paths.write().unwrap();
+            panic!("poison project source paths lock");
+        }))
+        .is_err()
+    );
+    assert!(
+        catch_unwind(AssertUnwindSafe(|| {
+            let _guard = manager.asset_importers.write().unwrap();
+            panic!("poison importer registry lock");
+        }))
+        .is_err()
+    );
+    assert!(
+        catch_unwind(AssertUnwindSafe(|| {
+            let _guard = manager.change_subscribers.lock().unwrap();
+            panic!("poison change subscribers lock");
+        }))
+        .is_err()
+    );
+    assert!(
+        catch_unwind(AssertUnwindSafe(|| {
+            let _guard = manager.watch_error_subscribers.lock().unwrap();
+            panic!("poison watch error subscribers lock");
+        }))
+        .is_err()
+    );
+    assert!(
+        catch_unwind(AssertUnwindSafe(|| {
+            let _guard = manager.watcher_activation.lock().unwrap();
+            panic!("poison watcher activation lock");
+        }))
+        .is_err()
+    );
+    assert!(
+        catch_unwind(AssertUnwindSafe(|| {
+            let _guard = manager.watch_refresh_gate.lock().unwrap();
+            panic!("poison watch refresh gate");
+        }))
+        .is_err()
+    );
+    assert!(
+        catch_unwind(AssertUnwindSafe(|| {
+            let _guard = manager.watchers.lock().unwrap();
+            panic!("poison watchers lock");
+        }))
+        .is_err()
+    );
 
     drop(manager.project_generation_read());
     assert!(manager.project_read().is_none());

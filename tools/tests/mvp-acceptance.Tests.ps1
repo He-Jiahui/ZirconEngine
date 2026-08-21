@@ -18,6 +18,13 @@ function Assert-True {
     }
 }
 
+function ConvertTo-FixtureProcessText {
+    param([AllowEmptyCollection()][object[]]$Output)
+
+    $text = @($Output | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+    return $text -replace ([char]27 + '\[[0-?]*[ -/]*[@-~]'), ''
+}
+
 $workflowPath = Join-Path $PSScriptRoot '..\..\.github\workflows\mvp-editor-windows.yml'
 $workflowSource = Get-Content -LiteralPath $workflowPath -Raw
 $acceptanceSource = Get-Content -LiteralPath $acceptanceDriver -Raw
@@ -646,7 +653,7 @@ try {
             -EvidenceRoot $unapprovedArtifactRoot `
             -ExpectedSourceFingerprint 'fixture-source-fingerprint' 2>&1)
     $unapprovedEvidenceRejected = $LASTEXITCODE -ne 0 -and
-        ((@($unapprovedEvidenceOutput | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine) -match 'EvidenceRoot.*approved D:\\ZirconBuilds')
+        ((ConvertTo-FixtureProcessText -Output $unapprovedEvidenceOutput) -match '(?s)EvidenceRoot.*approved\s+D:\\ZirconBuilds')
     Assert-True $unapprovedEvidenceRejected 'Acceptance evidence output outside approved non-C artifact roots was not rejected before publication.'
 
     $unapprovedStagingOutput = @(& pwsh -NoProfile -File $acceptanceDriver `
@@ -654,7 +661,7 @@ try {
             -EvidenceRoot $evidenceRoot `
             -ExpectedSourceFingerprint 'fixture-source-fingerprint' 2>&1)
     $unapprovedStagingRejected = $LASTEXITCODE -ne 0 -and
-        ((@($unapprovedStagingOutput | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine) -match 'StagingRoot.*approved D:\\ZirconBuilds')
+        ((ConvertTo-FixtureProcessText -Output $unapprovedStagingOutput) -match '(?s)StagingRoot.*approved\s+D:\\ZirconBuilds')
     Assert-True $unapprovedStagingRejected 'Acceptance staging outside approved non-C artifact roots was not rejected before snapshot publication.'
 
     $projectManifestPath = Join-Path $stagingRoot 'project\zircon-project.toml'
@@ -1369,7 +1376,7 @@ try {
     $creationDiagnosticPath = Join-Path $creationDiagnosticsRoot 'fixture.log'
     [IO.File]::WriteAllText($creationStdoutPath, "created`n", [Text.UTF8Encoding]::new($false))
     [IO.File]::WriteAllText($creationStderrPath, "created stderr`n", [Text.UTF8Encoding]::new($false))
-    $encodedCreatedProjectRoot = [Uri]::EscapeDataString($createdProjectRoot)
+    $encodedCreatedProjectRoot = [Uri]::EscapeDataString('.\ZirconMvpFixture')
     $creationDiagnosticText =
         "editor_first_frame_presented`neditor_process_teardown_complete`neditor_product_frame_capture_written`n" +
         "editor_product_frame_diagnostics project_path=$encodedCreatedProjectRoot selected_node_id=3 selected_node_name=Cube inspector_translation_x=0 inspector_translation_y=0 inspector_translation_z=0 inspector_scale_x=1.00 inspector_scale_y=1.00 inspector_scale_z=1.00`n" +
@@ -1477,7 +1484,7 @@ try {
     $unicodeProjectRoot = Join-Path $stagingRoot $unicodeProjectRelativeRoot
     New-Item -ItemType Directory -Force -Path $unicodeProjectRoot | Out-Null
     $unicodeDiagnosticPath = $creationDiagnosticPath
-    $encodedUnicodeProjectRoot = [Uri]::EscapeDataString($unicodeProjectRoot)
+    $encodedUnicodeProjectRoot = [Uri]::EscapeDataString(".\$unicodeProjectName $unicodeProjectPathSegment")
     [IO.File]::WriteAllText(
         $unicodeDiagnosticPath,
         "editor_first_frame_presented`neditor_process_teardown_complete`neditor_product_frame_capture_written`n" +
@@ -2687,6 +2694,7 @@ try {
             reopen_automation = $reopenAutomationFixture
         })
         $f5MissingReopenedCaptureFileRejected = $false
+        $f5MissingReopenedCaptureFileFailure = $null
         try {
             & $driver `
                 -StagingRoot $stagingRoot `
@@ -2697,9 +2705,14 @@ try {
                 -RequireF5Evidence | Out-Null
         }
         catch {
-            $f5MissingReopenedCaptureFileRejected = $_.Exception.Message -match 'does not exist in the staging root'
+            $f5MissingReopenedCaptureFileFailure = $_.Exception.Message
+            $f5MissingReopenedCaptureFileText = ConvertTo-FixtureProcessText `
+                -Output @($f5MissingReopenedCaptureFileFailure)
+            $f5MissingReopenedCaptureFileRejected =
+                $f5MissingReopenedCaptureFileText -match
+                    '(?s)captures/editor-after-reopen\.png.*does not exist.*staging root'
         }
-        Assert-True $f5MissingReopenedCaptureFileRejected 'F5 acceptance did not reject a missing reopened editor PNG file with retained metadata.'
+        Assert-True $f5MissingReopenedCaptureFileRejected "F5 acceptance did not reject a missing reopened editor PNG file with retained metadata; failure=$f5MissingReopenedCaptureFileFailure"
     }
     finally {
         Write-FixtureVisiblePng -Path $afterReopenCapturePath -AfterAuthoring

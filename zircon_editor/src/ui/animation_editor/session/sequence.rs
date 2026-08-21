@@ -4,8 +4,8 @@ use zircon_runtime::core::framework::animation::{
     AnimationInterpolationAsset, AnimationSequenceBindingAsset, AnimationSequenceTrackAsset,
 };
 
-use super::AnimationEditorSession;
 use super::support::{clamp_timeline_span, frame_to_seconds};
+use super::AnimationEditorSession;
 
 impl AnimationEditorSession {
     pub fn add_key(&mut self, track_path: &AnimationTrackPath, frame: u32) -> Result<bool, String> {

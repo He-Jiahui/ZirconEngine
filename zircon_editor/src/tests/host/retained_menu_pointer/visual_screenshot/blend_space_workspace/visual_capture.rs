@@ -85,18 +85,20 @@ pub(in super::super) fn assert_blend_space_native_parent_chain_and_paint(
             .expect("wide Blend Space should expose the weight heatmap in the native model");
         assert_eq!(heatmap.component_variant.as_str(), "weight-heatmap");
         assert_eq!(
-            (heatmap.weight_heatmap.columns, heatmap.weight_heatmap.rows),
+            (
+                heatmap.weight_heatmap.generation.columns(),
+                heatmap.weight_heatmap.generation.rows()
+            ),
             (16, 10)
         );
-        assert_eq!(heatmap.weight_heatmap.sources.row_count(), 5);
+        assert_eq!(heatmap.weight_heatmap.generation.sources().len(), 5);
         assert!(
-            (0..heatmap.weight_heatmap.sources.row_count()).any(|row| {
-                heatmap
-                    .weight_heatmap
-                    .sources
-                    .row_data(row)
-                    .is_some_and(|source| source.selected && source.weight == 1.0)
-            }),
+            heatmap
+                .weight_heatmap
+                .generation
+                .sources()
+                .iter()
+                .any(|source| source.selected() && source.weight() == 1.0),
             "wide Blend Space heatmap should preserve the selected authored source"
         );
     }

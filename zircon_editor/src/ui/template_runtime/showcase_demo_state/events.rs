@@ -5,8 +5,8 @@ use zircon_runtime_interface::ui::component::{
     UiDragPayload, UiValue,
 };
 
-use super::SHOWCASE_DOCUMENT_ID;
 use super::defaults::component_id_for_control;
+use super::SHOWCASE_DOCUMENT_ID;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum UiComponentShowcaseDemoEventInput {

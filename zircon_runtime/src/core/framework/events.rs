@@ -1,6 +1,6 @@
 //! Event DTOs shared by framework contracts and runtime delivery.
 
-use std::num::NonZeroUsize;
+use std::num::{NonZeroU64, NonZeroUsize};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -21,11 +21,22 @@ pub enum EngineEventDeliveryPolicy {
     Latest,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub const DEFAULT_EVENT_BUS_TIMING_SAMPLE_INTERVAL: NonZeroU64 =
+    NonZeroU64::new(64).expect("event timing sample interval must be non-zero");
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EventBusDiagnosticsMode {
-    #[default]
     Enabled,
+    Sampled { every: NonZeroU64 },
     Disabled,
+}
+
+impl Default for EventBusDiagnosticsMode {
+    fn default() -> Self {
+        Self::Sampled {
+            every: DEFAULT_EVENT_BUS_TIMING_SAMPLE_INTERVAL,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Error, PartialEq, Eq)]
@@ -62,6 +73,7 @@ pub trait EngineEventSubscription: Send + Sync {
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct EventBusDiagnosticsSnapshot {
     pub enabled: bool,
+    pub routine_timing_sample_interval: u64,
     pub topics: u64,
     pub subscribers: u64,
     pub published: u64,

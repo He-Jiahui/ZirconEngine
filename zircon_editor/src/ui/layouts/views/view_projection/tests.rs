@@ -2,7 +2,10 @@ use super::*;
 use std::collections::BTreeMap;
 use toml::Value;
 use zircon_runtime_interface::ui::component::UiValue;
+use zircon_runtime_interface::ui::layout::UiSize;
 use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
+
+use super::materialization::component_owns_text_paint;
 
 #[test]
 fn view_projection_root_remains_a_structural_facade() {

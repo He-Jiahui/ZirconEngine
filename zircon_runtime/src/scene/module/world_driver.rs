@@ -40,7 +40,8 @@ impl WorldDriver {
         level: &LevelSystem,
         advance: RuntimeTimeAdvance,
     ) -> Result<(), CoreError> {
-        let delta_seconds = duration_to_real_seconds(advance.real_delta());
+        let virtual_delta_seconds = duration_to_real_seconds(advance.virtual_delta());
+        let real_delta_seconds = duration_to_real_seconds(advance.real_delta());
         let fixed_step_plan = advance.fixed_step_plan();
         let fixed_delta_seconds = duration_to_real_seconds(fixed_step_plan.timestep);
         let schedule = level.with_world(|world| world.schedule().stage_plan());
@@ -52,7 +53,15 @@ impl WorldDriver {
             if *stage == SystemStage::FixedFirst {
                 for _ in 0..fixed_step_plan.step_count {
                     for fixed_stage in SystemStage::FIXED_LOOP {
-                        run_stage(core, level, fixed_stage, fixed_delta_seconds, &schedule)?;
+                        run_stage(
+                            core,
+                            level,
+                            fixed_stage,
+                            fixed_delta_seconds,
+                            fixed_delta_seconds,
+                            false,
+                            &schedule,
+                        )?;
                     }
                 }
                 continue;
@@ -62,7 +71,15 @@ impl WorldDriver {
                 continue;
             }
 
-            run_stage(core, level, *stage, delta_seconds, &schedule)?;
+            run_stage(
+                core,
+                level,
+                *stage,
+                virtual_delta_seconds,
+                real_delta_seconds,
+                advance.virtual_time_paused(),
+                &schedule,
+            )?;
         }
 
         level.with_world(|world| {
@@ -83,14 +100,18 @@ fn run_stage(
     core: &CoreHandle,
     level: &LevelSystem,
     stage: SystemStage,
-    delta_seconds: Real,
+    virtual_delta_seconds: Real,
+    real_delta_seconds: Real,
+    virtual_time_paused: bool,
     schedule: &crate::scene::ecs::SceneScheduleStagePlan,
 ) -> Result<(), CoreError> {
     SceneScheduleRunner::run_stage(
         core,
         level,
         stage,
-        delta_seconds,
+        virtual_delta_seconds,
+        real_delta_seconds,
+        virtual_time_paused,
         schedule.internal_systems_for_stage(stage),
         schedule.native_steps_for_stage(stage),
         schedule.native_conflict_graph_for_stage(stage),
@@ -160,15 +181,13 @@ mod tests {
             .install_world_runtime_extension_plan(
                 WorldRuntimeExtensionPlan::from_registrations([
                     WorldRuntimeExtensionRegistration::new("reentrant", move |_| {
-                        let guard =
-                            reentrant_driver
-                                .runtime_extensions
-                                .try_lock()
-                                .map_err(|_| {
-                                    WorldRuntimeExtensionError::new(
+                        let guard = reentrant_driver.runtime_extensions.try_lock().map_err(
+                            |_| {
+                                WorldRuntimeExtensionError::new(
                                     "world extension callback ran while the driver lock was held",
                                 )
-                                })?;
+                            },
+                        )?;
                         drop(guard);
                         reentrant_driver
                             .install_world_runtime_extension_plan(extension_plan("during.apply"))

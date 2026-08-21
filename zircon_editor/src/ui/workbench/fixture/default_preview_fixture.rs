@@ -5,7 +5,7 @@ use super::constants::{
     DEFAULT_DESCRIPTORS_JSON, DEFAULT_EDITOR_DATA_JSON, DEFAULT_INSTANCES_JSON, DEFAULT_LAYOUT_JSON,
 };
 use super::{
-    PreviewEditorData, PreviewFixture, ensure_ui_asset_descriptor::ensure_ui_asset_descriptor,
+    ensure_ui_asset_descriptor::ensure_ui_asset_descriptor, PreviewEditorData, PreviewFixture,
 };
 
 pub fn default_preview_fixture() -> PreviewFixture {

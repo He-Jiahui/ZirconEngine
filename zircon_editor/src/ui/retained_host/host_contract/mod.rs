@@ -72,7 +72,7 @@ pub(crate) fn paint_host_frame_for_test(
 #[cfg(test)]
 pub(crate) use paint_template_nodes::{
     paint_runtime_render_commands_for_test, paint_template_nodes_for_test,
-    paint_template_nodes_for_test_with_background,
+    paint_template_nodes_for_test_with_background, template_node_command_summary_for_test,
 };
 #[cfg(test)]
 pub(crate) use paint_workbench_renderer::paint_componentized_extension_workspace_for_test;

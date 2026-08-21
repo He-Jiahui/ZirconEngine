@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use zircon_runtime_interface::ui::event_ui::{
     UiActionDescriptor, UiNodeId, UiPropertyDescriptor, UiStateFlags, UiValueType,
 };

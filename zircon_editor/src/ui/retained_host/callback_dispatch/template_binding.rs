@@ -1,6 +1,6 @@
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 use crate::ui::host::EditorHostEventController;
-use crate::ui::retained_host::{HostInvalidationMask, event_bridge::UiHostEventEffects};
+use crate::ui::retained_host::{event_bridge::UiHostEventEffects, HostInvalidationMask};
 use crate::ui::template_runtime::builtin::builtin_template_bindings;
 use zircon_runtime_interface::ui::{binding::UiBindingValue, dispatch::UiTemplateActionInvocation};
 

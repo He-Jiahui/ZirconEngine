@@ -7,8 +7,8 @@ use crate::text::{
 
 use super::super::fallback_cache::family_candidate_cache_key;
 use super::super::matching::{
-    FontFamilyIdentity, dedupe_families, font_family_identity, stretch_distance, style_distance,
-    weight_distance,
+    dedupe_families, font_family_identity, stretch_distance, style_distance, weight_distance,
+    FontFamilyIdentity,
 };
 use super::FontDatabase;
 

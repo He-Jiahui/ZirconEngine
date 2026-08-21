@@ -1,9 +1,11 @@
+use std::{hint::black_box, time::Instant};
+
 use crate::core::{
     framework::{
         gizmos::{
-            append_gizmo_overlay, extract_gizmo_overlay, GizmoAsset, GizmoAxis, GizmoBuffer,
-            GizmoColorPolicy, GizmoConfig, GizmoConfigGroupId, GizmoLineConfig,
-            GizmoOverlayExtractRequest, GizmoRenderLayer, GizmoScreenScalePolicy, RetainedGizmo,
+            GizmoAsset, GizmoAxis, GizmoBuffer, GizmoColorPolicy, GizmoConfig, GizmoConfigGroupId,
+            GizmoLineConfig, GizmoOverlayExtractRequest, GizmoRenderLayer, GizmoScreenScalePolicy,
+            RetainedGizmo, append_gizmo_overlay, extract_gizmo_overlay,
         },
         render::{RenderOverlayExtract, SceneGizmoKind},
     },
@@ -64,6 +66,25 @@ fn retained_gizmo_reuses_buffer_commands_without_sharing_mutable_state() {
     assert!(buffer.is_empty());
     assert_eq!(asset.commands().len(), 1);
     assert_eq!(retained.asset.commands().len(), 1);
+}
+
+#[test]
+fn gizmo_asset_clones_share_immutable_commands_and_preserve_serde_shape() {
+    let mut buffer = GizmoBuffer::new();
+    buffer
+        .line(Vec3::ZERO, Vec3::X, red())
+        .linestrip([Vec3::ZERO, Vec3::Y, Vec3::Z], blue());
+    let asset = GizmoAsset::from_buffer(&buffer);
+
+    let cloned = asset.clone();
+    let retained = RetainedGizmo::new(asset.clone());
+
+    assert!(std::ptr::eq(asset.commands(), cloned.commands()));
+    assert!(std::ptr::eq(asset.commands(), retained.asset.commands()));
+
+    let encoded = serde_json::to_string(&asset).unwrap();
+    let decoded: GizmoAsset = serde_json::from_str(&encoded).unwrap();
+    assert_eq!(decoded.commands(), asset.commands());
 }
 
 #[test]
@@ -192,6 +213,86 @@ fn gizmo_extract_reuses_transform_matrices_and_streams_circle_segments() {
         !source.contains("Vec::with_capacity(segments)"),
         "circle extraction must stream segments without a temporary point allocation"
     );
+}
+
+#[test]
+#[ignore = "managed release performance evidence"]
+fn gizmo_asset_shared_command_clone_release_benchmark_evidence() {
+    const COMMANDS: usize = 20_000;
+    const CLONES_PER_SAMPLE: usize = 32;
+    const SAMPLE_PAIRS: usize = 21;
+
+    let mut buffer = GizmoBuffer::new();
+    for index in 0..COMMANDS {
+        let x = index as f32;
+        buffer.line(Vec3::new(x, 0.0, 0.0), Vec3::new(x, 1.0, 0.0), red());
+    }
+    let legacy_commands = buffer.commands().to_vec();
+    let asset = GizmoAsset::from_buffer(&buffer);
+    let mut legacy_samples_ns = Vec::with_capacity(SAMPLE_PAIRS);
+    let mut shared_samples_ns = Vec::with_capacity(SAMPLE_PAIRS);
+
+    for sample_index in 0..SAMPLE_PAIRS {
+        let mut measure_legacy = || {
+            let started = Instant::now();
+            for _ in 0..CLONES_PER_SAMPLE {
+                black_box(legacy_commands.clone());
+            }
+            legacy_samples_ns.push(started.elapsed().as_nanos());
+        };
+        let mut measure_shared = || {
+            let started = Instant::now();
+            for _ in 0..CLONES_PER_SAMPLE {
+                let cloned = asset.clone();
+                black_box(cloned.commands().as_ptr());
+            }
+            shared_samples_ns.push(started.elapsed().as_nanos());
+        };
+        if sample_index % 2 == 0 {
+            measure_legacy();
+            measure_shared();
+        } else {
+            measure_shared();
+            measure_legacy();
+        }
+    }
+
+    let legacy_p50_ns = nearest_rank_percentile(&legacy_samples_ns, 50);
+    let legacy_p95_ns = nearest_rank_percentile(&legacy_samples_ns, 95);
+    let shared_p50_ns = nearest_rank_percentile(&shared_samples_ns, 50);
+    let shared_p95_ns = nearest_rank_percentile(&shared_samples_ns, 95);
+    let legacy_ns = legacy_samples_ns
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(",");
+    let shared_ns = shared_samples_ns
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(",");
+    let legacy_command_copies = COMMANDS * CLONES_PER_SAMPLE * SAMPLE_PAIRS;
+
+    println!(
+        "GIZMO_ASSET_CLONE_BENCH_V1 commands={COMMANDS} clones_per_sample={CLONES_PER_SAMPLE} \
+         sample_pairs={SAMPLE_PAIRS} legacy_command_copies={legacy_command_copies} \
+         shared_command_copies=0 legacy_p50_ns={legacy_p50_ns} legacy_p95_ns={legacy_p95_ns} \
+         shared_p50_ns={shared_p50_ns} shared_p95_ns={shared_p95_ns} \
+         legacy_ns={legacy_ns} shared_ns={shared_ns}"
+    );
+    assert!(
+        shared_p95_ns.saturating_mul(4) <= legacy_p95_ns,
+        "shared P95 {shared_p95_ns}ns must be at most 25% of legacy P95 {legacy_p95_ns}ns"
+    );
+}
+
+fn nearest_rank_percentile(samples: &[u128], percentile: usize) -> u128 {
+    assert!(!samples.is_empty());
+    assert!((1..=100).contains(&percentile));
+    let mut ordered = samples.to_vec();
+    ordered.sort_unstable();
+    let index = (ordered.len() * percentile).div_ceil(100) - 1;
+    ordered[index]
 }
 
 fn red() -> Vec4 {

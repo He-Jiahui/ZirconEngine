@@ -62,6 +62,7 @@ pub(super) fn register_slot_resource(world: &mut World) {
                 contains: slot_resource_contains,
                 read_field: slot_resource_read_field,
                 read_fields: slot_resource_read_fields,
+                write_field_by_slot: slot_resource_write_field_by_slot,
                 write_fields_by_slot: slot_resource_write_fields_by_slot,
             },
         )
@@ -112,6 +113,24 @@ fn slot_resource_write_fields_by_slot(
     world: &mut World,
     fields: Vec<(u32, ReflectedValue)>,
 ) -> Result<bool, ReflectError> {
+    admit_slot_resource_write()?;
+    let mut next = slot_resource(world)?.value;
+    for (field_slot, value) in fields {
+        next = slot_resource_value(field_slot, value)?;
+    }
+    update_slot_resource(world, next)
+}
+
+fn slot_resource_write_field_by_slot(
+    world: &mut World,
+    field_slot: u32,
+    value: ReflectedValue,
+) -> Result<bool, ReflectError> {
+    admit_slot_resource_write()?;
+    update_slot_resource(world, slot_resource_value(field_slot, value)?)
+}
+
+fn admit_slot_resource_write() -> Result<(), ReflectError> {
     let target_only_failure = SLOT_RESOURCE_WRITE_BUDGET.with(|budget| {
         let Some(remaining_successes) = budget.get() else {
             return false;
@@ -128,29 +147,33 @@ fn slot_resource_write_fields_by_slot(
             target: SLOT_RESOURCE_TYPE_PATH.to_string(),
         });
     }
-    let mut next = slot_resource(world)?.value;
-    for (field_slot, value) in fields {
-        if field_slot != 0 {
-            return Err(slot_resource_unknown_field(&format!("#{field_slot}")));
-        }
-        next = u32::try_from(match value {
-            ReflectedValue::Unsigned(value) => value,
-            value => {
-                return Err(ReflectError::TypeMismatch {
-                    type_path: SLOT_RESOURCE_TYPE_PATH.to_string(),
-                    field_name: "value".to_string(),
-                    expected: "Unsigned".to_string(),
-                    actual: value.type_name().to_string(),
-                });
-            }
-        })
-        .map_err(|_| ReflectError::TypeMismatch {
-            type_path: SLOT_RESOURCE_TYPE_PATH.to_string(),
-            field_name: "value".to_string(),
-            expected: "u32 Unsigned".to_string(),
-            actual: "Unsigned".to_string(),
-        })?;
+    Ok(())
+}
+
+fn slot_resource_value(field_slot: u32, value: ReflectedValue) -> Result<u32, ReflectError> {
+    if field_slot != 0 {
+        return Err(slot_resource_unknown_field(&format!("#{field_slot}")));
     }
+    u32::try_from(match value {
+        ReflectedValue::Unsigned(value) => value,
+        value => {
+            return Err(ReflectError::TypeMismatch {
+                type_path: SLOT_RESOURCE_TYPE_PATH.to_string(),
+                field_name: "value".to_string(),
+                expected: "Unsigned".to_string(),
+                actual: value.type_name().to_string(),
+            });
+        }
+    })
+    .map_err(|_| ReflectError::TypeMismatch {
+        type_path: SLOT_RESOURCE_TYPE_PATH.to_string(),
+        field_name: "value".to_string(),
+        expected: "u32 Unsigned".to_string(),
+        actual: "Unsigned".to_string(),
+    })
+}
+
+fn update_slot_resource(world: &mut World, next: u32) -> Result<bool, ReflectError> {
     let resource =
         world
             .get_resource_mut::<SlotResource>()
@@ -212,6 +235,7 @@ pub(super) fn register_rejecting_resource(world: &mut World) {
                 contains: rejecting_resource_contains,
                 read_field: rejecting_resource_read_field,
                 read_fields: rejecting_resource_read_fields,
+                write_field_by_slot: rejecting_resource_write_field_by_slot,
                 write_fields_by_slot: rejecting_resource_write_fields_by_slot,
             },
         )
@@ -272,6 +296,17 @@ fn rejecting_resource_write_fields_by_slot(
     Err(ReflectError::UnsupportedConversion {
         source: "resource write intentionally rejected by test adapter".to_string(),
         target: format!("{REJECTING_RESOURCE_TYPE_PATH}.{field_name}"),
+    })
+}
+
+fn rejecting_resource_write_field_by_slot(
+    _world: &mut World,
+    field_slot: u32,
+    _value: ReflectedValue,
+) -> Result<bool, ReflectError> {
+    Err(ReflectError::UnsupportedConversion {
+        source: "resource write intentionally rejected by test adapter".to_string(),
+        target: format!("{REJECTING_RESOURCE_TYPE_PATH}.#{field_slot}"),
     })
 }
 

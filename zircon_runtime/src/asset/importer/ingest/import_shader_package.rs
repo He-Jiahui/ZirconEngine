@@ -4,17 +4,17 @@ use std::path::{Path, PathBuf};
 use super::import_shader::shader_entry_points;
 use super::validate_wgsl::validate_wgsl;
 use crate::asset::assets::{
-    DataAsset, DataAssetFormat, ImportedAsset, ShaderAsset, ShaderEntryPointAsset,
-    ShaderImportRedirectAsset, ShaderOptionAsset, ShaderSourceFileAsset, ShaderSourceLanguage,
-    ZShaderDocumentV2, ZShaderV2Error, generate_material_artifact, validate_wgsl_captures,
+    generate_material_artifact, validate_wgsl_captures, DataAsset, DataAssetFormat, ImportedAsset,
+    ShaderAsset, ShaderEntryPointAsset, ShaderImportRedirectAsset, ShaderOptionAsset,
+    ShaderSourceFileAsset, ShaderSourceLanguage, ZShaderDocumentV2, ZShaderV2Error,
 };
 use crate::asset::{
     AssetImportContext, AssetImportError, AssetImportOutcome, AssetUri, ImportedAssetEntry,
 };
 use crate::core::framework::render::{
-    SHADER_IMPORT_PROJECT_NAMESPACE_SETTING, ShaderAssetKind, ShaderImportPathDerivation,
-    ShaderImportPathDerivationError, derive_shader_import_path, is_builtin_shader_module_token,
-    is_generated_shader_module_token, strip_wgsl_include_directives, wgsl_include_paths,
+    derive_shader_import_path, is_builtin_shader_module_token, is_generated_shader_module_token,
+    strip_wgsl_include_directives, wgsl_include_paths, ShaderAssetKind, ShaderImportPathDerivation,
+    ShaderImportPathDerivationError, SHADER_IMPORT_PROJECT_NAMESPACE_SETTING,
 };
 use crate::core::resource::{ResourceDiagnostic, ResourceDiagnosticSeverity, ResourceKind};
 
@@ -551,8 +551,8 @@ fn normalized_relative_path(path: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        ShaderImportPathDerivationError, ShaderImportRedirectAsset, ZShaderDocumentV2,
-        append_shader_module_diagnostics, document_import_path,
+        append_shader_module_diagnostics, document_import_path, ShaderImportPathDerivationError,
+        ShaderImportRedirectAsset, ZShaderDocumentV2,
     };
     use crate::asset::AssetUri;
 
@@ -576,11 +576,9 @@ wgsl_files = ["surface.wgsl"]
             &[],
         );
 
-        assert!(
-            diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.contains("project::math"))
-        );
+        assert!(diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains("project::math")));
     }
 
     #[test]
@@ -629,16 +627,12 @@ wgsl_files = ["bad.wgsl"]
             &[] as &[ShaderImportRedirectAsset],
         );
 
-        assert!(
-            diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.contains("@group binding"))
-        );
-        assert!(
-            diagnostics
-                .iter()
-                .any(|diagnostic| diagnostic.contains("entry point annotation"))
-        );
+        assert!(diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains("@group binding")));
+        assert!(diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains("entry point annotation")));
     }
 
     #[test]

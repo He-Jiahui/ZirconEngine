@@ -14,9 +14,20 @@ related_code:
   - zircon_runtime/src/core/framework/scene/system_stage.rs
   - zircon_runtime/src/scene/ecs/schedule_stage_plan.rs
   - zircon_runtime/src/scene/ecs/schedule_runner.rs
+  - zircon_runtime/src/scene/ecs/system/mod.rs
+  - zircon_runtime/src/scene/ecs/system/native/mod.rs
+  - zircon_runtime/src/scene/ecs/system/native/scene_system.rs
+  - zircon_runtime/src/scene/ecs/system/native/runtime_scene_system.rs
+  - zircon_runtime/src/scene/ecs/system/native/scene_system_metadata.rs
+  - zircon_runtime/src/scene/ecs/system/native/scheduled_scene_step.rs
+  - zircon_runtime/src/scene/ecs/mod.rs
+  - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs
   - zircon_runtime/src/scene/ecs/scene_system_descriptor.rs
   - zircon_runtime/src/scene/ecs/scene_system_registry.rs
+  - zircon_runtime/src/plugin/extension_registry/register/runtime_scene_system_registration.rs
+  - zircon_plugins/plugin_sdk/src/registration.rs
+  - docs/zircon_plugins/plugin-sdk.md
   - zircon_runtime/src/scene/tests/ecs_schedule/fixed_update.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/schedule_plan.rs
   - zircon_runtime/src/scene/tests/ecs_schedule/world_driver.rs
@@ -42,9 +53,26 @@ implementation_files:
   - zircon_runtime/src/dynamic_api/session/extract.rs
   - zircon_runtime/src/scene/level_system.rs
   - zircon_runtime/src/scene/module/world_driver.rs
+  - zircon_runtime/src/core/runtime/time.rs
   - zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs
   - zircon_runtime/src/scene/ecs/mod.rs
+  - zircon_runtime/src/scene/ecs/scene_system_registry.rs
+  - zircon_runtime/src/scene/ecs/schedule_runner.rs
+  - zircon_runtime/src/scene/ecs/schedule_stage_plan.rs
+  - zircon_runtime/src/scene/ecs/system/mod.rs
+  - zircon_runtime/src/scene/ecs/system/native/mod.rs
+  - zircon_runtime/src/scene/ecs/system/native/scene_system.rs
+  - zircon_runtime/src/scene/ecs/system/native/runtime_scene_system.rs
+  - zircon_runtime/src/scene/ecs/system/native/scene_system_metadata.rs
+  - zircon_runtime/src/scene/ecs/system/native/scheduled_scene_step.rs
+  - zircon_runtime/src/scene/mod.rs
+  - zircon_runtime/src/plugin/extension_registry/register/runtime_scene_system_registration.rs
+  - zircon_plugins/plugin_sdk/src/registration.rs
+  - zircon_runtime/src/scene/tests/ecs_schedule.rs
+  - zircon_runtime/src/scene/tests/ecs_schedule/world_driver.rs
+  - zircon_runtime/src/tests/time.rs
   - zircon_runtime/src/core/framework/time/fixed_step_plan.rs
+  - docs/zircon_plugins/plugin-sdk.md
   - docs/zircon_runtime/scene/ecs/schedule_parallel_executor.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/schedule_frame_loop_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/schedule_frame_loop_source_inventory.py
@@ -69,6 +97,8 @@ tests:
   - schedule_stage_plan_orders_steps_by_explicit_declaration_not_registration
   - session_ui_extract_remains_documented_dynamic_session_side_path
   - world_driver_consumes_runtime_time_advance_without_advancing_clocks_again
+  - world_driver_pauses_virtual_systems_and_runs_explicit_real_time_systems
+  - core_runtime_virtual_pause_preserves_existing_fixed_overstep
   - level_tick_repeats_fixed_loop_stages_for_drained_fixed_steps
   - level_tick_skips_fixed_loop_stages_when_no_fixed_steps_are_drained
   - level_tick_fixed_loop_steps_are_capped_by_runtime_time_advance
@@ -105,12 +135,14 @@ The remaining higher-level design choice is whether a future UI/render plan want
 7. `RuntimeTimeClocks::advance_by(...)` at `zircon_runtime/src/core/runtime/time.rs:45` advances real time, virtual time, fixed overstep, and drains a `FixedStepPlan`.
 8. `RuntimeDynamicSession::tick_frame` passes the full `RuntimeTimeAdvance` into `LevelSystem::tick(...)`.
 9. `LevelSystem::tick(...)` at `zircon_runtime/src/scene/level_system.rs:103` resolves `WorldDriver` and calls `driver.tick_level(core, self, advance)`.
-10. `WorldDriver::tick_level(...)` at `zircon_runtime/src/scene/module/world_driver.rs:11` converts `advance.real_delta()` and the fixed timestep to `Real`, then consumes `advance.fixed_step_plan()`.
+10. `WorldDriver::tick_level(...)` converts both `advance.virtual_delta()` and `advance.real_delta()` to `Real`, preserves the pause bit, and consumes `advance.fixed_step_plan()`.
 11. `WorldDriver` consumes that single `FixedStepPlan`: when the schedule reaches `SystemStage::FixedFirst`, it runs every stage in `SystemStage::FIXED_LOOP` once per drained step, then skips fixed-loop stages in the outer stage iteration.
-12. `run_stage(...)` at `zircon_runtime/src/scene/module/world_driver.rs:64` delegates to `SceneScheduleRunner::run_stage(...)`.
-13. `SceneScheduleRunner::run_stage(...)` at `zircon_runtime/src/scene/ecs/schedule_runner.rs:13` executes `Internal`, `Native`, `Runtime`, and `ApplyDeferred` steps. Internal systems except `ApplyDeferred` and `UpdateEvents`, plus Runtime steps, flush deferred world work at their explicit schedule boundaries.
+12. `run_stage(...)` in `zircon_runtime/src/scene/module/world_driver.rs` delegates to `SceneScheduleRunner::run_stage(...)`.
+13. `SceneScheduleRunner::run_stage(...)` executes `Internal`, `Native`, `Runtime`, and `ApplyDeferred` steps. Internal systems except `ApplyDeferred` and `UpdateEvents`, plus Runtime steps, flush deferred world work at their explicit schedule boundaries.
 
 The old gap was step 10: `WorldDriver` used to advance time again after the dynamic session had already called `tick_time(...)`. Current source has removed that second advance.
+
+`SceneSystemMetadata` defaults native and runtime systems to `SceneSystemClockDomain::Virtual`. When virtual time is paused, `WorldDriver` skips those systems and the built-in scene systems instead of executing the normal schedule with a zero delta; the runner's stage-success cleanup also leaves pending derived-state work untouched until virtual time resumes. The time owner preserves any pre-existing fixed overstep without accumulating or draining it, so fixed-loop callbacks cannot leak through a paused frame. A diagnostic or editor runtime system that must continue can opt into `SceneSystemClockDomain::Real` through the runtime registry or plugin SDK registration builder; its callback receives the unclamped real delta while virtual systems receive the scaled and clamped virtual delta. The registry rejects `Real` for `FixedFirst`, `FixedUpdate`, and `FixedPostUpdate`, because those stages are governed exclusively by the drained fixed-step plan.
 
 ## Product Profile Cadence
 
@@ -118,7 +150,7 @@ The old gap was step 10: `WorldDriver` used to advance time again after the dyna
 
 | Product policy | Winit control flow | Pump admission |
 |---|---|---|
-| `Game` | `Poll` while focused and visible; otherwise `WaitUntil(next_deadline)` | Focused visible gameplay remains continuous. An unfocused visible window uses a 60 Hz low-power deadline; an occluded window uses a 1 Hz background deadline. Explicit event requests still coalesce and can admit one immediate pump. |
+| `Game` | `Poll` while focused and visible; otherwise `WaitUntil(next_deadline)` | Focused visible gameplay remains continuous. An unfocused visible window uses a 10 Hz low-power deadline; an occluded window uses a 1 Hz background deadline. Explicit event requests still coalesce and can admit one immediate pump. |
 | `Continuous` | `Poll` | Explicit display/debug throughput override; focus and occlusion do not throttle it. |
 | `Mobile` | `WaitUntil(next_deadline)` | 60 Hz while focused and visible, 1 Hz while unfocused or occluded. Explicit event requests still coalesce and can admit one immediate pump. |
 | `DesktopApp` | `Wait` | One initial frame, then only after a non-redraw window event, device event, resume/surface creation, or `proxy_wake_up`. Repeated requests coalesce. |
@@ -183,7 +215,7 @@ No new UI extract producer should be added without updating this table.
 The current time model contains the right pieces:
 
 - `RuntimeTimeClocks` owns real, virtual, and fixed clocks.
-- `RuntimeTimeAdvance` carries `real_delta` and `FixedStepPlan`.
+- `RuntimeTimeAdvance` carries real and virtual deltas, the virtual pause state, and `FixedStepPlan`.
 - `FixedStepPlan` carries `step_count`, `timestep`, `consumed`, and `remaining_overstep`.
 - `FixedStepPlan::overstep_fraction()` reports remaining overstep divided by timestep, clamped to `[0.0, 1.0]`.
 - `Time<Fixed>::drain_steps(max_steps)` at `zircon_runtime/src/core/framework/time/clock.rs:133` drains fixed overstep with a cap.
@@ -206,7 +238,7 @@ The current ECS schedule is not purely registration-order based:
 - `SceneScheduleStagePlan::from_registry(...)` at `zircon_runtime/src/scene/ecs/schedule_stage_plan.rs:13` builds per-stage groups and calls `topological_stage_order(...)`.
 - `topological_stage_order(...)` at `zircon_runtime/src/scene/ecs/schedule_stage_plan.rs:200` resolves same-stage constraints and falls back to `order` plus id through `compare_plan_nodes(...)` at `:327`.
 - Runtime-owned built-in scene systems are explicitly ordered in `zircon_runtime/src/scene/ecs/scene_system_registry.rs:318`: hierarchy validity, active hierarchy, world transform, node cache, and render extract prepare all set negative order values.
-- External system registration exposes explicit order/constraint data through the plugin registration builder and native host adapter. Those files are plugin-public-surface owners, so this frame-schedule slice records them but does not edit them.
+- External system registration exposes explicit order, constraint, and clock-domain data through the plugin registration builder and native host adapter. Runtime22 edits the runtime registry and plugin SDK public owners to propagate that clock-domain contract.
 
 M0 inventory verdict:
 
@@ -214,7 +246,7 @@ M0 inventory verdict:
 |---|---|---|
 | Built-in scene systems | `builtin_scene_systems()` uses explicit `with_order(...)` values | Accepted |
 | Same-stage ordering core | `schedule_stage_plan.rs` uses topological order with order/id fallback | Accepted |
-| Dynamic/native plugin systems | Adapter maps order and `before`/`after` into descriptors; `plugin_system_constraints_order_registered_native_systems` covers reversed plugin registration order | Accepted; plugin-owner code untouched |
+| Dynamic/native plugin systems | Adapter maps order and `before`/`after` into descriptors; runtime plugin builders also propagate the clock domain and reject Real fixed-loop registrations | Accepted; plugin-public owners updated and covered by focused registration tests |
 | UI extract side path | Produced outside scheduled `RenderExtract`; source guard documents capture/present consumers and menu-then-HUD producer order | Accepted as a documented side path |
 | Single time authority | Session passes `RuntimeTimeAdvance`; `WorldDriver` does not call `advance_time_by(...)` | Code converged; focused time/fixed-update evidence passed; declared broad `time/session` gates still open |
 

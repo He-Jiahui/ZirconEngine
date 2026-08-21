@@ -5,7 +5,8 @@ use zircon_runtime_interface::ui::{
     surface::{UiTextOverflow, UiTextWrap},
 };
 
-use super::{layout_profile_metrics_enabled, layout_text, test_style};
+use super::super::layout_profile_metrics_enabled;
+use super::{layout_text, test_style};
 
 #[test]
 fn plain_layout_reports_pre_artifact_shaped_cache_deltas() {

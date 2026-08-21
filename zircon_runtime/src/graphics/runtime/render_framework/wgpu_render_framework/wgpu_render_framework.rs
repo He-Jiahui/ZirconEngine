@@ -1,10 +1,11 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use crate::core::framework::render::{
-    PlanarReflectionUpdateState, RenderSubmissionConfig, ShaderVariantPrewarmManifest,
-};
 #[cfg(test)]
-use crate::core::framework::render::{RenderCapabilitySummary, RenderFrameworkError};
+use crate::core::framework::render::RenderCapabilitySummary;
+use crate::core::framework::render::{
+    PlanarReflectionUpdateState, RenderFrameworkError, RenderSubmissionConfig,
+    ShaderVariantPrewarmManifest,
+};
 use crate::core::TaskPool;
 #[cfg(test)]
 use crate::core::{math::UVec2, resource::ResourceId};
@@ -12,7 +13,6 @@ use crate::core::{math::UVec2, resource::ResourceId};
 use crate::graphics::shader::ShaderVariantCacheDisk;
 
 use super::super::pipelined::{RenderSubmissionScheduler, RuntimeFrameSubmissionExecutor};
-#[cfg(test)]
 use super::super::render_framework_backend_error::render_framework_backend_error;
 use super::super::render_framework_state::RenderFrameworkState;
 
@@ -124,6 +124,40 @@ impl WgpuRenderFramework {
             .lock_state()
             .renderer
             .prewarm_shader_pipelines(manifest))
+    }
+
+    /// Drains the renderer-owned timestamp result through the framework lock boundary.
+    pub fn take_completed_gpu_timing_report(
+        &self,
+    ) -> Result<Option<crate::graphics::SceneRendererGpuTimingReport>, RenderFrameworkError> {
+        self.finish_submission()?;
+        let _operation_guard = self.lock_operation();
+        let mut state = self.lock_state();
+        Ok(state.renderer.take_completed_gpu_timing_report())
+    }
+
+    /// Polls the specialized environment-only Base PSO without exposing the renderer owner.
+    pub fn environment_only_pbr_base_pipeline_ready(&self) -> Result<bool, RenderFrameworkError> {
+        self.finish_submission()?;
+        let _operation_guard = self.lock_operation();
+        let mut state = self.lock_state();
+        state
+            .renderer
+            .environment_only_pbr_base_pipeline_ready()
+            .map_err(render_framework_backend_error)
+    }
+
+    /// Retries bounded admission for the specialized environment-only Base PSO.
+    pub fn retry_environment_only_pbr_base_pipeline_admission(
+        &self,
+    ) -> Result<(), RenderFrameworkError> {
+        self.finish_submission()?;
+        let _operation_guard = self.lock_operation();
+        let mut state = self.lock_state();
+        state
+            .renderer
+            .retry_environment_only_pbr_base_pipeline_admission()
+            .map_err(render_framework_backend_error)
     }
 
     pub(in crate::graphics::runtime::render_framework) fn lock_operation(
@@ -343,6 +377,27 @@ mod tests {
             .expect("timing drain must serialize renderer access");
 
         assert!(finish_submission < operation_lock);
+    }
+
+    #[test]
+    fn frame_timing_drain_stays_inside_the_framework_lock_boundary() {
+        let source = include_str!("wgpu_render_framework.rs");
+        let drain = source
+            .split("pub fn take_completed_gpu_timing_report")
+            .nth(1)
+            .and_then(|source| source.split("/// Polls the specialized").next())
+            .expect("frame timing drain");
+        let finish_submission = drain
+            .find("self.finish_submission()?;")
+            .expect("timing drain must finish pending submission");
+        let operation_lock = drain
+            .find("let _operation_guard = self.lock_operation();")
+            .expect("timing drain must serialize renderer access");
+        let renderer_drain = drain
+            .find(".take_completed_gpu_timing_report()")
+            .expect("timing drain must consume the renderer-owned report");
+
+        assert!(finish_submission < operation_lock && operation_lock < renderer_drain);
     }
 
     #[test]

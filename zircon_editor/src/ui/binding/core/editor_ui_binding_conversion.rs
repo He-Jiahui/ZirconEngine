@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::{EditorUiBinding, EditorUiBindingError, EditorUiBindingPayload, EditorUiEventKind};
-use crate::ui::binding::{DraftCommand, inspector_field_control_id};
+use crate::ui::binding::{inspector_field_control_id, DraftCommand};
 
 impl EditorUiBinding {
     pub fn new(

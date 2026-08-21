@@ -28,6 +28,14 @@ fn process_bins_install_crash_flush_and_shutdown_after_entry_runner_returns() {
             source[shutdown..].contains("result"),
             "{name} must return or match the captured result after shutdown"
         );
+        assert!(
+            source.contains("let process_log_shutdown_completed ="),
+            "{name} must retain the process-log shutdown result"
+        );
+        assert!(
+            !source.contains("let _ = shutdown_process_log"),
+            "{name} must not discard a process-log timeout or output failure"
+        );
         assert!(source.contains("DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT"));
     }
 }

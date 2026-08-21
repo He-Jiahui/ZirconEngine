@@ -1,3 +1,5 @@
+use std::{cell::Cell, hint::black_box, time::Instant};
+
 use zircon_runtime_interface::reflect::{
     ReflectEditorHint, ReflectError, ReflectFieldInfo, ReflectFieldValue, ReflectObjectAddress,
     ReflectReadRequest, ReflectSchemaRequest, ReflectSerializationStrategy, ReflectTypeInfo,
@@ -8,6 +10,13 @@ use crate::scene::ecs::Resource;
 use crate::scene::{NodeKind, ReflectResource, RuntimeTypeRegistration, World};
 
 const FRAME_COUNTER_TYPE_PATH: &str = "zircon_runtime::scene::tests::ecs_reflect::FrameCounter";
+const RESOURCE_SINGLE_WRITE_BENCH_PAIRS: usize = 21;
+const RESOURCE_SINGLE_WRITE_BENCH_WRITES: usize = 100_000;
+
+thread_local! {
+    static FRAME_COUNTER_SINGLE_WRITES: Cell<usize> = const { Cell::new(0) };
+    static FRAME_COUNTER_BATCH_WRITES: Cell<usize> = const { Cell::new(0) };
+}
 
 #[derive(Debug, PartialEq, Eq)]
 struct FrameCounter {
@@ -72,6 +81,7 @@ fn resource_reflection_reads_and_writes_field_through_facade() {
         vec![ReflectFieldValue::new("value", ReflectedValue::Unsigned(7))]
     );
 
+    reset_frame_counter_write_routes();
     let response = world
         .reflect_write(ReflectWriteRequest::new(
             address.clone(),
@@ -86,6 +96,7 @@ fn resource_reflection_reads_and_writes_field_through_facade() {
         ReflectFieldValue::new("value", ReflectedValue::Unsigned(11))
     );
     assert_eq!(world.get_resource::<FrameCounter>().unwrap().value, 11);
+    assert_eq!(frame_counter_write_routes(), (1, 0));
 
     let unchanged = world
         .reflect_write(ReflectWriteRequest::new(
@@ -262,6 +273,7 @@ fn frame_counter_adapter() -> ReflectResource {
         contains: frame_counter_contains,
         read_field: frame_counter_read_field,
         read_fields: frame_counter_read_fields,
+        write_field_by_slot: frame_counter_write_field_by_slot,
         write_fields_by_slot: frame_counter_write_fields_by_slot,
     }
 }
@@ -306,6 +318,7 @@ fn frame_counter_write_fields_by_slot(
     world: &mut World,
     fields: Vec<(u32, ReflectedValue)>,
 ) -> Result<bool, ReflectError> {
+    FRAME_COUNTER_BATCH_WRITES.with(|count| count.set(count.get().saturating_add(1)));
     let current = world
         .get_resource::<FrameCounter>()
         .ok_or_else(missing_frame_counter_resource)?
@@ -326,6 +339,113 @@ fn frame_counter_write_fields_by_slot(
         .ok_or_else(missing_frame_counter_resource)?
         .value = next;
     Ok(true)
+}
+
+fn frame_counter_write_field_by_slot(
+    world: &mut World,
+    field_slot: u32,
+    value: ReflectedValue,
+) -> Result<bool, ReflectError> {
+    FRAME_COUNTER_SINGLE_WRITES.with(|count| count.set(count.get().saturating_add(1)));
+    if field_slot != 0 {
+        return Err(unknown_frame_counter_field(&format!("#{field_slot}")));
+    }
+    let next = expect_frame_counter_value("value", value)?;
+    let resource = world
+        .get_resource_mut::<FrameCounter>()
+        .ok_or_else(missing_frame_counter_resource)?;
+    if resource.value == next {
+        return Ok(false);
+    }
+    resource.value = next;
+    Ok(true)
+}
+
+fn reset_frame_counter_write_routes() {
+    FRAME_COUNTER_SINGLE_WRITES.with(|count| count.set(0));
+    FRAME_COUNTER_BATCH_WRITES.with(|count| count.set(0));
+}
+
+fn frame_counter_write_routes() -> (usize, usize) {
+    (
+        FRAME_COUNTER_SINGLE_WRITES.with(Cell::get),
+        FRAME_COUNTER_BATCH_WRITES.with(Cell::get),
+    )
+}
+
+#[test]
+#[ignore = "release performance gate"]
+fn resource_reflection_single_write_release_benchmark() {
+    let adapter = frame_counter_adapter();
+    let mut legacy_samples = Vec::with_capacity(RESOURCE_SINGLE_WRITE_BENCH_PAIRS);
+    let mut optimized_samples = Vec::with_capacity(RESOURCE_SINGLE_WRITE_BENCH_PAIRS);
+    for pair_index in 0..RESOURCE_SINGLE_WRITE_BENCH_PAIRS {
+        let legacy_first = pair_index % 2 == 0;
+        if legacy_first {
+            legacy_samples.push(measure_resource_writes(&adapter, true));
+            optimized_samples.push(measure_resource_writes(&adapter, false));
+        } else {
+            optimized_samples.push(measure_resource_writes(&adapter, false));
+            legacy_samples.push(measure_resource_writes(&adapter, true));
+        }
+    }
+    let legacy_p50 = nearest_rank(&legacy_samples, 50);
+    let legacy_p95 = nearest_rank(&legacy_samples, 95);
+    let optimized_p50 = nearest_rank(&optimized_samples, 50);
+    let optimized_p95 = nearest_rank(&optimized_samples, 95);
+
+    println!(
+        "RESOURCE_REFLECTION_SINGLE_WRITE_BENCH_V1 sample_pairs={} writes_per_sample={} legacy_allocations_per_sample={} optimized_allocations_per_sample=0 legacy_p50_ns={} legacy_p95_ns={} optimized_p50_ns={} optimized_p95_ns={} legacy_samples_ns={} optimized_samples_ns={}",
+        RESOURCE_SINGLE_WRITE_BENCH_PAIRS,
+        RESOURCE_SINGLE_WRITE_BENCH_WRITES,
+        RESOURCE_SINGLE_WRITE_BENCH_WRITES,
+        legacy_p50,
+        legacy_p95,
+        optimized_p50,
+        optimized_p95,
+        join_samples(&legacy_samples),
+        join_samples(&optimized_samples),
+    );
+    assert!(
+        optimized_p95.saturating_mul(4) <= legacy_p95.saturating_mul(3),
+        "single-slot writes must reduce nearest-rank P95 by at least 25%: legacy={legacy_p95}ns optimized={optimized_p95}ns"
+    );
+}
+
+fn measure_resource_writes(adapter: &ReflectResource, legacy: bool) -> u128 {
+    let mut world = World::empty();
+    world.insert_resource(FrameCounter { value: 0 });
+    let started = Instant::now();
+    for index in 0..RESOURCE_SINGLE_WRITE_BENCH_WRITES {
+        let value = ReflectedValue::Unsigned(((index + 1) & 1) as u64);
+        let changed = if legacy {
+            adapter
+                .write_fields_by_slot(&mut world, vec![(0, value)])
+                .expect("legacy single-element batch write")
+        } else {
+            adapter
+                .write_field_by_slot(&mut world, 0, value)
+                .expect("optimized single-slot write")
+        };
+        black_box(changed);
+    }
+    black_box(world.get_resource::<FrameCounter>().unwrap().value);
+    started.elapsed().as_nanos()
+}
+
+fn nearest_rank(samples: &[u128], percentile: usize) -> u128 {
+    let mut ordered = samples.to_vec();
+    ordered.sort_unstable();
+    let rank = ordered.len().saturating_mul(percentile).div_ceil(100);
+    ordered[rank.saturating_sub(1)]
+}
+
+fn join_samples(samples: &[u128]) -> String {
+    samples
+        .iter()
+        .map(u128::to_string)
+        .collect::<Vec<_>>()
+        .join(",")
 }
 
 fn expect_frame_counter_value(

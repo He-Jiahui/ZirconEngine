@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::framework::{
@@ -194,7 +194,7 @@ pub(crate) fn apply_synchronized_bodies_to_scene(scene: &mut World, sync: &Physi
 
 pub(super) fn clear_world_state(
     world: WorldHandle,
-    synced_worlds: &Mutex<HashMap<WorldHandle, PhysicsWorldSyncState>>,
+    synced_worlds: &Mutex<HashMap<WorldHandle, Arc<PhysicsWorldSyncState>>>,
     contacts: &Mutex<HashMap<WorldHandle, Vec<PhysicsContactEvent>>>,
     trigger_pairs: &Mutex<HashMap<WorldHandle, PhysicsTriggerPairMap>>,
     triggers: &Mutex<HashMap<WorldHandle, Vec<PhysicsTriggerEvent>>>,

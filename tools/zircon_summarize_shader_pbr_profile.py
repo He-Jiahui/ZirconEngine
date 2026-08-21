@@ -31,7 +31,9 @@ _PROFILE_KIND = "zircon_shader_pbr_viewer_startup_matrix"
 _RUN_PROFILE_KIND = "zircon_shader_pbr_viewer_startup_run"
 _PROFILE_MANIFEST_KIND = "zircon_shader_pbr_viewer_startup"
 _READY_SCHEMA = "zircon_shader_pbr_viewer_ready_frame_evidence_v12"
-_GPU_TIMING_SCHEMA = "zircon_shader_pbr_viewer_gpu_timing_evidence_v1"
+_GPU_TIMING_SCHEMA = "zircon_shader_pbr_viewer_gpu_timing_evidence_v2"
+_GPU_TIMING_WARMUP_SAMPLE_COUNT = 5
+_GPU_TIMING_MEASURED_SAMPLE_COUNT = 31
 _REQUIRED_GPU_PASSES = frozenset(
     {
         "direct_gpu_scene_upload",
@@ -42,6 +44,16 @@ _REQUIRED_GPU_PASSES = frozenset(
 )
 _U64_PATTERN = re.compile(r"[0-9]+\Z")
 _SHA256_PATTERN = re.compile(r"[0-9a-f]{64}\Z")
+_GPU_PASS_AGGREGATE_PATTERN = re.compile(
+    r"pass\.([a-z][a-z0-9_]*)\.(min|median|p95|max)_us\Z"
+)
+_GPU_TOTAL_AGGREGATE_PATTERN = re.compile(r"total\.(min|median|p95|max)_us\Z")
+_GPU_SAMPLE_STANDARD_PATTERN = re.compile(
+    r"sample\.([0-9]{3})\.(frame_generation|total_us)\Z"
+)
+_GPU_SAMPLE_PASS_PATTERN = re.compile(
+    r"sample\.([0-9]{3})\.pass\.([a-z][a-z0-9_]*)_us\Z"
+)
 _MAX_U64 = (1 << 64) - 1
 _STARTUP_DURATION_FIELDS = {
     "renderer_initialization": "scene_startup_renderer_initialization_ns",
@@ -670,9 +682,33 @@ def _read_gpu_passes(report: Mapping[str, object], summary_path: Path) -> dict[s
     fields = _read_key_value_file(timing_path, "GPU timing", summary_path)
     if fields.get("schema") != _GPU_TIMING_SCHEMA or fields.get("status") != "measured":
         raise RuntimeError(f"Shader PBR profile has an invalid GPU timing report: path={timing_path}")
-    standard_fields = {"schema", "status", "screenshot", "screenshot_sha256", "frame_generation"}
+    standard_fields = {
+        "schema",
+        "status",
+        "screenshot",
+        "screenshot_sha256",
+        "screenshot_frame_generation",
+        "warmup_sample_count",
+        "warmup_first_frame_generation",
+        "warmup_last_frame_generation",
+        "measured_sample_count",
+        "first_measured_frame_generation",
+        "last_measured_frame_generation",
+        "timestamp_period_ns_bits",
+        "timestamp_period_ns",
+        "timestamp_frequency_hz",
+        "percentile_policy",
+        "outlier_policy",
+        "pass_coverage",
+    }
     unexpected_fields = sorted(
-        field for field in fields if field not in standard_fields and not field.startswith("pass.")
+        field
+        for field in fields
+        if field not in standard_fields
+        and _GPU_PASS_AGGREGATE_PATTERN.fullmatch(field) is None
+        and _GPU_TOTAL_AGGREGATE_PATTERN.fullmatch(field) is None
+        and _GPU_SAMPLE_STANDARD_PATTERN.fullmatch(field) is None
+        and _GPU_SAMPLE_PASS_PATTERN.fullmatch(field) is None
     )
     if unexpected_fields:
         raise RuntimeError(
@@ -687,22 +723,85 @@ def _read_gpu_passes(report: Mapping[str, object], summary_path: Path) -> dict[s
     actual_screenshot_sha256 = _sha256_file(screenshot_path)
     if reported_screenshot_sha256 != actual_screenshot_sha256:
         raise RuntimeError(f"Shader PBR profile GPU timing screenshot SHA-256 does not match Ready PNG: path={timing_path}")
-    _read_positive_int(fields, "frame_generation", timing_path)
-    passes = {
-        field.removeprefix("pass."): _read_u64(fields, field, timing_path)
-        for field in fields
-        if field.startswith("pass.")
-    }
-    missing_passes = sorted(_REQUIRED_GPU_PASSES.difference(passes))
+    screenshot_generation = _read_positive_int(
+        fields, "screenshot_frame_generation", timing_path
+    )
+    warmup_count = _read_positive_int(fields, "warmup_sample_count", timing_path)
+    measured_count = _read_positive_int(fields, "measured_sample_count", timing_path)
+    if warmup_count != _GPU_TIMING_WARMUP_SAMPLE_COUNT or measured_count != _GPU_TIMING_MEASURED_SAMPLE_COUNT:
+        raise RuntimeError(
+            f"Shader PBR profile GPU timing sampling policy is invalid: path={timing_path}"
+        )
+    warmup_first = _read_positive_int(fields, "warmup_first_frame_generation", timing_path)
+    warmup_last = _read_positive_int(fields, "warmup_last_frame_generation", timing_path)
+    first_measured = _read_positive_int(fields, "first_measured_frame_generation", timing_path)
+    last_measured = _read_positive_int(fields, "last_measured_frame_generation", timing_path)
+    if (
+        warmup_first,
+        warmup_last,
+        first_measured,
+        last_measured,
+    ) != (
+        screenshot_generation + 1,
+        screenshot_generation + warmup_count,
+        screenshot_generation + warmup_count + 1,
+        screenshot_generation + warmup_count + measured_count,
+    ):
+        raise RuntimeError(
+            f"Shader PBR profile GPU timing generations are not consecutive: path={timing_path}"
+        )
+    if fields.get("percentile_policy") != "nearest_rank" or fields.get("outlier_policy") != "none_all_samples_retained":
+        raise RuntimeError(
+            f"Shader PBR profile GPU timing distribution policy is invalid: path={timing_path}"
+        )
+    pass_coverage = fields.get("pass_coverage", "").split(",")
+    if not pass_coverage or pass_coverage != sorted(set(pass_coverage)):
+        raise RuntimeError(
+            f"Shader PBR profile GPU timing pass coverage is malformed: path={timing_path}"
+        )
+    missing_passes = sorted(_REQUIRED_GPU_PASSES.difference(pass_coverage))
     if missing_passes:
         raise RuntimeError(
             f"Shader PBR profile GPU timing report is missing required passes: passes={', '.join(missing_passes)} path={timing_path}"
         )
-    unexpected_passes = sorted(set(passes).difference(_REQUIRED_GPU_PASSES | {"direct_realtime_ibl", "direct_ui"}))
+    unexpected_passes = sorted(set(pass_coverage).difference(_REQUIRED_GPU_PASSES | {"direct_realtime_ibl", "direct_ui"}))
     if unexpected_passes:
         raise RuntimeError(
             f"Shader PBR profile GPU timing report has unexpected passes: passes={', '.join(unexpected_passes)} path={timing_path}"
         )
+    passes = {}
+    for pass_name in pass_coverage:
+        statistics_us = {
+            statistic: _read_u64(
+                fields, f"pass.{pass_name}.{statistic}_us", timing_path
+            )
+            for statistic in ("min", "median", "p95", "max")
+        }
+        if not (
+            statistics_us["min"]
+            <= statistics_us["median"]
+            <= statistics_us["p95"]
+            <= statistics_us["max"]
+        ):
+            raise RuntimeError(
+                f"Shader PBR profile GPU timing pass distribution is unordered: pass={pass_name} path={timing_path}"
+            )
+        passes[pass_name] = statistics_us["median"]
+    expected_generations = range(first_measured, last_measured + 1)
+    for index, expected_generation in enumerate(expected_generations):
+        prefix = f"sample.{index:03}"
+        if _read_positive_int(fields, f"{prefix}.frame_generation", timing_path) != expected_generation:
+            raise RuntimeError(
+                f"Shader PBR profile GPU timing samples are not consecutive: path={timing_path}"
+            )
+        pass_total = sum(
+            _read_u64(fields, f"{prefix}.pass.{pass_name}_us", timing_path)
+            for pass_name in pass_coverage
+        )
+        if pass_total > _MAX_U64 or _read_u64(fields, f"{prefix}.total_us", timing_path) != pass_total:
+            raise RuntimeError(
+                f"Shader PBR profile GPU timing sample total is invalid: path={timing_path}"
+            )
     return passes
 
 

@@ -7,9 +7,24 @@ fn main() -> std::process::ExitCode {
     install_process_log_panic_flush(DEFAULT_DIAGNOSTIC_LOG_CRASH_FLUSH_TIMEOUT);
     let result = zircon_app::EntryRunner::run_editor_with_args_exit_code(std::env::args().skip(1));
     write_log("editor_app", editor_process_teardown_diagnostic(&result));
-    let _ = shutdown_process_log(DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT);
+    let process_log_shutdown_completed =
+        shutdown_process_log(DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT);
+    editor_process_exit_code(result, process_log_shutdown_completed)
+}
+
+fn editor_process_exit_code<E: std::fmt::Display>(
+    result: Result<u8, E>,
+    process_log_shutdown_completed: bool,
+) -> std::process::ExitCode {
+    if !process_log_shutdown_completed {
+        eprintln!(
+            "editor startup diagnostic: component=diagnostic_log requested=process-log-shutdown cause=log flush timed out or an output failed recovery=inspect the process log output and retry zircon_editor"
+        );
+    }
+
     match result {
-        Ok(exit_code) => std::process::ExitCode::from(exit_code),
+        Ok(exit_code) if process_log_shutdown_completed => std::process::ExitCode::from(exit_code),
+        Ok(_) => std::process::ExitCode::FAILURE,
         Err(error) => {
             eprintln!("{error}");
             std::process::ExitCode::FAILURE
@@ -28,7 +43,23 @@ fn editor_process_teardown_diagnostic<E>(result: &Result<u8, E>) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::editor_process_teardown_diagnostic;
+    use super::{editor_process_exit_code, editor_process_teardown_diagnostic};
+
+    #[test]
+    fn completed_process_log_shutdown_preserves_the_editor_exit_code() {
+        assert_eq!(
+            editor_process_exit_code(Ok::<u8, std::io::Error>(7), true),
+            std::process::ExitCode::from(7)
+        );
+    }
+
+    #[test]
+    fn process_log_shutdown_failure_overrides_a_successful_editor_exit() {
+        assert_eq!(
+            editor_process_exit_code(Ok::<u8, std::io::Error>(0), false),
+            std::process::ExitCode::FAILURE
+        );
+    }
 
     #[test]
     fn teardown_diagnostic_records_completed_exit_code() {

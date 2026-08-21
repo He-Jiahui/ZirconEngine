@@ -387,7 +387,7 @@ fn persistence_service_rejects_session_only_changes_before_lane_admission() {
     );
 
     let service = SettingsPersistenceService::new(authority);
-    let change = super::SettingChange {
+    let change = crate::core::settings::SettingChange {
         key: mru_key,
         scope: SettingsScope::Session,
         revision: 1,
@@ -579,7 +579,7 @@ fn retained_change_delta_requires_a_snapshot_after_cursor_falls_behind_entry_bud
 
     let delta = registry.changes_since(SettingsChangeCursor::origin());
     assert!(delta.requires_snapshot);
-    assert_eq!(delta.changes, vec![second, third]);
+    assert_eq!(delta.changes, vec![second.unwrap(), third.unwrap()]);
     assert_eq!(delta.cursor.revision(), 3);
 }
 

@@ -197,12 +197,21 @@ impl AssetImportContext {
     }
 
     pub fn source_text(&self) -> Result<String, AssetImportError> {
-        String::from_utf8(self.source_bytes.clone()).map_err(|source| {
-            AssetImportError::SourceTextDecode {
-                path: self.source_path.clone(),
-                source,
+        self.source_str().map(str::to_owned)
+    }
+
+    pub fn source_str(&self) -> Result<&str, AssetImportError> {
+        match std::str::from_utf8(&self.source_bytes) {
+            Ok(source) => Ok(source),
+            Err(_) => {
+                let source = String::from_utf8(self.source_bytes.clone())
+                    .expect_err("the borrowed UTF-8 check already rejected these bytes");
+                Err(AssetImportError::SourceTextDecode {
+                    path: self.source_path.clone(),
+                    source,
+                })
             }
-        })
+        }
     }
 
     pub fn virtual_geometry_cook_request(
@@ -225,6 +234,22 @@ impl AssetImportContext {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn source_str_borrows_the_context_utf8_buffer() {
+        let context = AssetImportContext::new(
+            PathBuf::from("assets/shaders/main.wgsl"),
+            AssetUri::parse("res://shaders/main.wgsl").unwrap(),
+            b"@compute @workgroup_size(1) fn main() {}".to_vec(),
+            toml::Table::new(),
+        );
+
+        let source = context.source_str().unwrap();
+
+        assert_eq!(source, "@compute @workgroup_size(1) fn main() {}");
+        assert_eq!(source.as_ptr(), context.source_bytes.as_ptr());
+        assert_eq!(source.len(), context.source_bytes.len());
+    }
 
     fn context_with_settings(import_settings: toml::Table) -> AssetImportContext {
         AssetImportContext::new(

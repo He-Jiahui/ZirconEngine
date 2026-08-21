@@ -8,8 +8,8 @@ use std::{
 
 use crate::core::jobs::{EditorJobSystem, JobFailure};
 use crate::ui::host::export_process_support::{
-    configure_process_tree_cancellation, create_output_capture, final_output_drain,
-    join_output_with_poll, terminate_process_tree, ExportProcessChildGuard, ExportProcessError,
+    ExportProcessChildGuard, ExportProcessError, configure_process_tree_cancellation,
+    create_output_capture, join_output_with_poll, terminate_process_tree,
 };
 use zircon_runtime_interface::export::ExportStage;
 
@@ -241,13 +241,17 @@ impl ExportWizardCommandRunner for ProcessCommandRunner {
             }
             thread::sleep(Duration::from_millis(25));
         };
-        persisted_output
-            .record(
-                final_output_drain(&self.jobs, &mut output_readers)?,
-                true,
-                emit_output,
-            )
-            .map_err(EditorExportBuildError::materialize)?;
+        loop {
+            let (output, ()) = join_output_with_poll(&self.jobs, &mut output_readers, || ());
+            let output = output?;
+            let complete = output.stdout.is_empty() && output.stderr.is_empty();
+            persisted_output
+                .record(output, complete, emit_output)
+                .map_err(EditorExportBuildError::materialize)?;
+            if complete {
+                break;
+            }
+        }
         child_guard.disarm();
 
         let persisted_output = persisted_output

@@ -176,6 +176,7 @@ mod tests {
         let scoped_branch = production
             .split_once("RecomputeInvalidationTarget::ViewPresentation")
             .and_then(|(_, tail)| tail.split_once("if paint_only_reasons.requires_layout()"))
+            .map(|(_, tail)| tail)
             .expect("scoped presentation branch should remain before full recompute");
 
         assert!(scoped_branch.contains("self.apply_scoped_ui_asset_presentation(view_ids)"));

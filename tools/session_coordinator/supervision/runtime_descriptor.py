@@ -26,12 +26,13 @@ class RuntimeDescriptor:
     def to_payload(self) -> dict[str, object]:
         if self.host != "127.0.0.1":
             raise ValueError("Runtime descriptor host must be exact IPv4 loopback")
+        if not self.token:
+            raise ValueError("Runtime descriptor token must be non-empty")
         return {
             "descriptor_version": RUNTIME_DESCRIPTOR_VERSION,
             "host": self.host,
             "port": self.port,
-            # Retained as an empty compatibility field for the installed tray.
-            "token": "",
+            "token": self.token,
             "pid": self.process.pid,
             "process_creation_time": self.process.creation_time,
             "executable": self.process.executable,
@@ -47,4 +48,6 @@ class RuntimeDescriptor:
         }
 
     def diagnostic_payload(self) -> dict[str, object]:
-        return self.to_payload()
+        payload = self.to_payload()
+        payload.pop("token")
+        return payload

@@ -18,12 +18,12 @@ use crate::core::manager::{resolve_manager_service, ManagerServiceHandle};
 use crate::core::math::{UVec2, Vec2};
 use crate::core::CoreRuntime;
 use crate::diagnostic_log::{
-    write_diagnostic_store_snapshot, write_log, write_log_lazy, DiagnosticStoreLogSchedule,
+    write_diagnostic_store_current_snapshot, write_log, write_log_lazy, DiagnosticStoreLogSchedule,
     DynamicProcessLogLease,
 };
 use crate::operation::RuntimeOperationService;
 use crate::plugin::RuntimePluginRegistrationReport;
-use crate::runtime_diagnostics::collect_runtime_diagnostics;
+use crate::runtime_diagnostics::collect_runtime_diagnostic_current_store;
 use crate::scene::{
     DynamicSceneAssetReloadFrameApplyReport, DynamicSceneAssetReloadQueue, LevelSystem,
 };
@@ -228,8 +228,11 @@ impl RuntimeDynamicSession {
             })?
             .begin_frame();
         if self.diagnostic_log_schedule.tick(advance.real_delta()) {
-            let snapshot = collect_runtime_diagnostics(&self.runtime.handle()).store;
-            write_diagnostic_store_snapshot(DYNAMIC_RUNTIME_DIAGNOSTIC_LOG_SCOPE, &snapshot);
+            let snapshot = collect_runtime_diagnostic_current_store(&self.runtime.handle());
+            write_diagnostic_store_current_snapshot(
+                DYNAMIC_RUNTIME_DIAGNOSTIC_LOG_SCOPE,
+                &snapshot,
+            );
         }
         Ok(())
     }

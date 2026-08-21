@@ -500,7 +500,7 @@ fn hierarchy_entries_with_selection(
     rows: Vec<WorldInspectionHierarchyRow>,
     selected: impl IntoIterator<Item = u64>,
 ) -> SceneEntries {
-    SceneEntries::from_hierarchy_rows_at_generation(rows.into(), selected, generation)
+    SceneEntries::from_hierarchy_rows_at_generation(rows, selected, generation)
 }
 
 fn hierarchy_row(

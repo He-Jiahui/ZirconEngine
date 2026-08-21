@@ -325,8 +325,8 @@ pub(crate) fn is_workbench_preview_action(action_id: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        WORKBENCH_PREVIEW_ACTION_ID_SET, WORKBENCH_PREVIEW_ACTION_IDS, extensions,
-        is_workbench_preview_action,
+        extensions, is_workbench_preview_action, WORKBENCH_PREVIEW_ACTION_IDS,
+        WORKBENCH_PREVIEW_ACTION_ID_SET,
     };
 
     fn preview_action_ids() -> impl Iterator<Item = &'static str> {

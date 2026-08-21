@@ -2,8 +2,8 @@ use super::support::{chrome_fixture, pane_body_spec};
 
 use crate::ui::layouts::views::blank_viewport_chrome;
 use crate::ui::layouts::windows::workbench_host_window::{
-    PaneActionPresentation, PaneEmptyStatePresentation, PanePayload, PanePayloadBuildContext,
-    PanePresentation, PaneShellPresentation, build_pane_body_presentation,
+    build_pane_body_presentation, PaneActionPresentation, PaneEmptyStatePresentation, PanePayload,
+    PanePayloadBuildContext, PanePresentation, PaneShellPresentation,
 };
 
 #[test]
@@ -63,7 +63,9 @@ fn pane_presentation_keeps_shell_and_body_split_without_erasing_payload_type() {
         "res://ui/editor/host/console_body.zui"
     );
     match presentation.body.payload {
-        PanePayload::ConsoleV1(payload) => assert_eq!(payload.status_text, "Console ready"),
+        PanePayload::ConsoleV1(payload) => {
+            assert_eq!(payload.status_text.as_ref(), "Console ready")
+        }
         unexpected => panic!("expected console payload, found {unexpected:?}"),
     }
 }

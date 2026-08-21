@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use super::{
-    STATIC_CONTENT_CACHE_CAPACITY, TimelineStripGeneration, TimelineStripGenerationInput,
-    TimelineStripKey, static_content_cache_entry_count,
+    static_content_cache_entry_count, TimelineStripGeneration, TimelineStripGenerationInput,
+    TimelineStripKey, STATIC_CONTENT_CACHE_CAPACITY,
 };
 
 fn generation(current_time: f32, tick_interval: f32, track_label: &str) -> TimelineStripGeneration {

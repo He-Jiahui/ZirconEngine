@@ -46,9 +46,9 @@ pub use bundle_transaction_diagnostics::{
     ECS_BUNDLE_TRANSACTION_COUNT_DIAGNOSTIC,
 };
 pub use change_detection::{
-    ChangeDetectionScanStats, ChangeTick, ChangeTickWindow, ComponentTicks, Mut, Ref,
+    ChangeDetectionScanStats, ChangeTick, ChangeTickWindow, ComponentTicks,
     ECS_CHANGE_DETECTION_ADDED_MATCHES_DIAGNOSTIC, ECS_CHANGE_DETECTION_CHANGED_MATCHES_DIAGNOSTIC,
-    ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC,
+    ECS_CHANGE_DETECTION_SCANNED_MARKS_DIAGNOSTIC, Mut, Ref,
 };
 pub use commands::{
     Command, CommandQueue, CommandQueueMetrics, Commands, CommandsParam, DeferredCommandError,
@@ -71,13 +71,25 @@ pub use entity::{
 };
 pub(crate) use events::EventObserverHandle;
 pub use events::{
-    Event, EventCapacityMetrics, EventCursor, EventPayloadProfile, EventPayloadStorage,
-    EventReadIter, EventStore, EventSubscription, EventSubscriptionStatus, EventTypeId, Events,
-    EVENT_CAPACITY_SHRINK_DEBOUNCE_FRAMES, EVENT_INLINE_PAYLOAD_MAX_BYTES,
+    EVENT_CAPACITY_SHRINK_DEBOUNCE_FRAMES, EVENT_INLINE_PAYLOAD_MAX_BYTES, Event,
+    EventCapacityMetrics, EventCursor, EventPayloadProfile, EventPayloadStorage, EventReadIter,
+    EventStore, EventSubscription, EventSubscriptionStatus, EventTypeId, Events,
 };
 pub(crate) use frame_performance_diagnostics::DetachedEntityBatchOperationStats;
 pub use frame_performance_diagnostics::{
-    DetachedEntityBatchDiagnostics, EcsFramePerformanceDiagnostics,
+    DetachedEntityBatchDiagnostics, ECS_DERIVED_STATE_ACTIVE_PROPAGATION_ENTITIES_DIAGNOSTIC,
+    ECS_DERIVED_STATE_ACTIVE_PROPAGATION_PASSES_DIAGNOSTIC,
+    ECS_DERIVED_STATE_HIERARCHY_PARENT_CHAIN_STEPS_DIAGNOSTIC,
+    ECS_DERIVED_STATE_HIERARCHY_PARENT_SNAPSHOT_ENTITIES_DIAGNOSTIC,
+    ECS_DERIVED_STATE_HIERARCHY_TOPOLOGY_REBUILD_ENTITIES_DIAGNOSTIC,
+    ECS_DERIVED_STATE_HIERARCHY_TOPOLOGY_REBUILDS_DIAGNOSTIC,
+    ECS_DERIVED_STATE_HIERARCHY_VALIDITY_ENTITIES_DIAGNOSTIC,
+    ECS_DERIVED_STATE_HIERARCHY_VALIDITY_PASSES_DIAGNOSTIC,
+    ECS_DERIVED_STATE_NODE_CACHE_REBUILDS_DIAGNOSTIC,
+    ECS_DERIVED_STATE_NODE_CACHE_REBUILT_ENTITIES_DIAGNOSTIC,
+    ECS_DERIVED_STATE_WORLD_MATRIX_PROPAGATION_ENTITIES_DIAGNOSTIC,
+    ECS_DERIVED_STATE_WORLD_MATRIX_PROPAGATION_PASSES_DIAGNOSTIC, EcsFramePerformanceDiagnostics,
+    WorldDerivedStateDiagnostics,
 };
 pub use internal_scene_system::InternalSceneSystem;
 pub use lifecycle::{ComponentLifecycleEvent, LifecycleEventKind};
@@ -87,27 +99,29 @@ pub use messages::{
 };
 pub(crate) use native_system_schedule_diagnostics::NativeSystemCallbackTiming;
 pub use native_system_schedule_diagnostics::{
-    NativeSystemScheduleDiagnostics, NATIVE_SYSTEM_CALLBACK_COUNT_DIAGNOSTIC,
-    NATIVE_SYSTEM_CALLBACK_P95_MS_DIAGNOSTIC, NATIVE_SYSTEM_CONFLICT_COUNT_DIAGNOSTIC,
+    NATIVE_SYSTEM_CALLBACK_COUNT_DIAGNOSTIC, NATIVE_SYSTEM_CALLBACK_P95_MS_DIAGNOSTIC,
+    NATIVE_SYSTEM_CONFLICT_COUNT_DIAGNOSTIC,
     NATIVE_SYSTEM_CONSERVATIVE_WORLD_WRITER_COUNT_DIAGNOSTIC,
     NATIVE_SYSTEM_READY_DELAY_MS_DIAGNOSTIC,
     NATIVE_SYSTEM_TEMPORARY_CONTROL_BUFFER_BYTES_DIAGNOSTIC,
     NATIVE_SYSTEM_TEMPORARY_CONTROL_BUFFER_COUNT_DIAGNOSTIC,
     NATIVE_SYSTEM_WORKER_BATCH_COUNT_DIAGNOSTIC, NATIVE_SYSTEM_WORKER_UTILIZATION_DIAGNOSTIC,
+    NativeSystemScheduleDiagnostics,
 };
 pub(crate) use observer::DetachedEntityObservers;
 pub use observer::{ObserverId, ObserverStore};
 pub use query::{
     Added, CachedQueryData, CachedQueryFilter, CachedQueryIter, CachedQueryManyIter, Changed,
+    ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC,
+    ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC, ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC,
+    ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC, ECS_QUERY_PLAN_COMPILATIONS_DIAGNOSTIC,
+    ECS_QUERY_PLAN_COMPONENT_MEMBERSHIP_CHECKS_DIAGNOSTIC,
+    ECS_QUERY_PLAN_SPARSE_BINDINGS_DIAGNOSTIC, ECS_QUERY_PLAN_TABLE_BINDINGS_DIAGNOSTIC,
     QueryAccess, QueryAccessError, QueryCombinationIter, QueryCombinationMutIter, QueryData,
     QueryDataAccess, QueryEntityError, QueryEntityItem, QueryFilter, QueryIter,
     QueryManyCachedIter, QueryManyIter, QueryManyMutIter, QueryManyUniqueMutIter, QueryMutData,
     QueryMutIter, QuerySingleError, QueryState, QueryStateCacheStats, UniqueEntityArray, With,
-    Without, ECS_QUERY_ARCHETYPE_CACHE_HITS_DIAGNOSTIC,
-    ECS_QUERY_ARCHETYPE_CACHE_MISSES_DIAGNOSTIC, ECS_QUERY_ARCHETYPE_CACHE_REBUILDS_DIAGNOSTIC,
-    ECS_QUERY_CANDIDATE_ENTITIES_DIAGNOSTIC, ECS_QUERY_MATCHED_ENTITIES_DIAGNOSTIC,
-    ECS_QUERY_PLAN_COMPILATIONS_DIAGNOSTIC, ECS_QUERY_PLAN_COMPONENT_MEMBERSHIP_CHECKS_DIAGNOSTIC,
-    ECS_QUERY_PLAN_SPARSE_BINDINGS_DIAGNOSTIC, ECS_QUERY_PLAN_TABLE_BINDINGS_DIAGNOSTIC,
+    Without,
 };
 pub use removal::{RemovedComponentEvent, RemovedComponentEvents, RemovedComponentReader};
 pub use resource::{
@@ -124,9 +138,9 @@ pub use schedule_conflict_graph::{
 };
 pub use schedule_error::ScheduleError;
 pub use schedule_parallel_executor::{
+    SCHEDULE_PARALLEL_BATCHES_DIAGNOSTIC, SCHEDULE_SERIAL_FALLBACKS_DIAGNOSTIC,
     ScheduleParallelExecutionReport, ScheduleParallelExecutor, ScheduleParallelExecutorError,
-    ScheduleParallelTaskRegistry, SCHEDULE_PARALLEL_BATCHES_DIAGNOSTIC,
-    SCHEDULE_SERIAL_FALLBACKS_DIAGNOSTIC,
+    ScheduleParallelTaskRegistry,
 };
 pub(crate) use storage::PreflightedComponentInsert;
 pub(crate) use storage::PreflightedTransferredComponentRow;
@@ -142,13 +156,14 @@ pub use system::{
     FunctionSceneSystem, IntoSceneSystem, IntoWorldlessSceneSystem, Local, LocalParam,
     MessageReader, MessageReaderParam, MessageWriter, MessageWriterParam, ParamSet, ParamSetItem,
     ParamSetParam, Query, RemovedComponents, RemovedComponentsParam, Res, ResMut, ResMutParam,
-    ResParam, RuntimeSceneSystem, RuntimeSceneSystemContext, SceneSystem, SceneSystemMetadata,
-    SceneSystemThreadAffinity, SystemParam, SystemParamAccess, SystemParamConflictKind,
-    SystemParamError, SystemState, WorldlessFunctionSceneSystem, WorldlessSystemParam,
+    ResParam, RuntimeSceneSystem, RuntimeSceneSystemContext, SceneSystem, SceneSystemClockDomain,
+    SceneSystemMetadata, SceneSystemThreadAffinity, SystemParam, SystemParamAccess,
+    SystemParamConflictKind, SystemParamError, SystemState, WorldlessFunctionSceneSystem,
+    WorldlessSystemParam,
 };
 pub use system_set::{SystemSetId, SystemSetRegistry};
 
 pub(crate) use query::single_from_iter;
 pub(crate) use schedule_runner::SceneScheduleRunner;
 pub(crate) use schedule_stage_plan::SceneScheduleStagePlan;
-pub(crate) use system::{worldless_private, ScheduledSceneStep, ScheduledSceneStepRef};
+pub(crate) use system::{ScheduledSceneStep, ScheduledSceneStepRef, worldless_private};

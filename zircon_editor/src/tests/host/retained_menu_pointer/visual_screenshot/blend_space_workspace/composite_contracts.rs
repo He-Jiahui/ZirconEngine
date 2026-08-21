@@ -167,8 +167,13 @@ fn blend_space_validation_rows_keep_runtime_text_columns_inside_the_panel() {
         assert!(message.frame.x >= severity.frame.right() - 0.5);
         assert!(message.frame.right() <= row.frame.right() + 0.5);
         assert!(message.frame.width >= 32.0);
-        assert_eq!(message.text_tone.as_str(), "subtle");
-        assert!(message.value_color.a > 0);
+        assert_eq!(
+            message.properties.get("text_tone"),
+            Some(&crate::ui::template_runtime::RetainedUiHostValue::String(
+                "subtle".to_string()
+            ))
+        );
+        assert!(message.properties.contains_key("value_color"));
     }
 }
 

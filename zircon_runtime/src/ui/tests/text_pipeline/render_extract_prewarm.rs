@@ -4,9 +4,9 @@ use super::fixtures::{
 };
 #[cfg(feature = "profiling")]
 use crate::core::runtime::diagnostics::profiling::{
-    reset_capture, snapshot, start_capture, test_capture_lock, ProfileCaptureConfig,
+    ProfileCaptureConfig, reset_capture, snapshot, start_capture, test_capture_lock,
 };
-use crate::{text::TEXT_SHAPING_RUN_MAX_BYTES, ui::surface::UiSurface};
+use crate::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiTreeId},
     layout::UiFrame,
@@ -384,7 +384,6 @@ fn render_extract_viewported_owner_defers_full_document_prewarm() {
         .map(|index| format!("r{index:04}"))
         .collect::<Vec<_>>()
         .join("\n");
-    assert!(text.len() < TEXT_SHAPING_RUN_MAX_BYTES);
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.text.prewarm.huge-log"));
     let node_id = UiNodeId::new(1);
     surface.tree.insert_root(

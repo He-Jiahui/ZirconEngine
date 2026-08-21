@@ -65,14 +65,38 @@ impl RendererVisibleSpatialPickSource {
         &self,
         point: UiPoint,
     ) -> Vec<PrecisionCandidate> {
+        zircon_runtime::profile_scope!("editor", "viewport.pointer", "visible_spatial_query");
         let projection = ViewportProjectionContext::new(&self.camera, self.viewport);
-        self.snapshot
-            .query_ray(projection.spatial_ray_at(Vec2::new(point.x, point.y)))
+        let query = self
+            .snapshot
+            .query_ray(projection.spatial_ray_at(Vec2::new(point.x, point.y)));
+        zircon_runtime::profile_counter!(
+            "editor",
+            "viewport.pointer.visible_spatial_query_visited_node_count",
+            query.stats.visited_node_count,
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "viewport.pointer.visible_spatial_query_candidate_count",
+            query.stats.candidate_count,
+        );
+        zircon_runtime::profile_counter!(
+            "editor",
+            "viewport.pointer.visible_spatial_query_hit_count",
+            query.stats.hit_count,
+        );
+        let candidates = query
             .entities
             .into_iter()
             .filter_map(|owner| self.renderables_by_owner.get(&owner))
             .filter_map(|renderable| renderable_candidate(renderable, &projection))
-            .collect()
+            .collect::<Vec<_>>();
+        zircon_runtime::profile_counter!(
+            "editor",
+            "viewport.pointer.visible_spatial_query_projected_candidate_count",
+            candidates.len(),
+        );
+        candidates
     }
 }
 
@@ -91,5 +115,12 @@ mod tests {
         assert!(source.contains("renderables_by_owner.get(&owner)"));
         assert!(!source.contains("render_meshes()"));
         assert!(source.contains("Arc::clone(&self.renderables_by_owner)"));
+        assert!(source.contains(
+            "profile_scope!(\"editor\", \"viewport.pointer\", \"visible_spatial_query\")"
+        ));
+        assert!(source.contains("visible_spatial_query_visited_node_count"));
+        assert!(source.contains("visible_spatial_query_candidate_count"));
+        assert!(source.contains("visible_spatial_query_hit_count"));
+        assert!(source.contains("visible_spatial_query_projected_candidate_count"));
     }
 }

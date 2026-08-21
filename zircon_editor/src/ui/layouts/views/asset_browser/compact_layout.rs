@@ -6,12 +6,13 @@ use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::workbench::snapshot::AssetViewMode;
 use zircon_runtime_interface::ui::layout::UiSize;
 
-use self::column_budget::{CompactColumnBudget, resolve_compact_column_budget};
+use self::column_budget::{resolve_compact_column_budget, CompactColumnBudget};
 pub(super) use self::source_panel_layout::apply_asset_browser_sources_layout;
 use self::source_panel_layout::apply_compact_sources_panel_layout;
 use self::utility_layout::{
-    COMPACT_COLLAPSED_UTILITY_HEIGHT_THRESHOLD, apply_compact_utility_panel_layout,
+    apply_compact_utility_panel_layout, compact_asset_browser_utility_height_for_viewport,
     compact_asset_browser_vertical_budget, compact_line_height, shift_asset_browser_utility_nodes,
+    COMPACT_COLLAPSED_UTILITY_HEIGHT_THRESHOLD,
 };
 use super::compact_table_layout::{
     apply_compact_table_layout, asset_table_row_count, collapse_compact_table_nodes,
@@ -705,7 +706,11 @@ fn finite_non_negative(value: f32) -> f32 {
 }
 
 fn finite_coordinate(value: f32) -> f32 {
-    if value.is_finite() { value } else { 0.0 }
+    if value.is_finite() {
+        value
+    } else {
+        0.0
+    }
 }
 
 #[cfg(test)]
@@ -715,7 +720,7 @@ mod tests {
     #[test]
     fn collapsed_vertical_budget_never_expands_a_short_viewport() {
         let (main_height, utility_y, utility_height) =
-            compact_asset_browser_vertical_budget(120.0, 96.0);
+            compact_asset_browser_vertical_budget(120.0, 96.0, 8.0);
 
         assert_eq!(main_height, 0.0);
         assert_eq!(utility_y, 96.0);

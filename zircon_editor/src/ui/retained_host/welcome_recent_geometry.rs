@@ -1,7 +1,7 @@
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 
 use crate::ui::retained_host::host_contract::paint_theme::{
-    HostControlMetrics, current_host_metrics,
+    current_host_metrics, HostControlMetrics,
 };
 
 // Welcome panel width constraints are page-layout policy rather than control density.

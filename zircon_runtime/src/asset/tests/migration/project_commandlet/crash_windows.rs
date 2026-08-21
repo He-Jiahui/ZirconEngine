@@ -142,13 +142,14 @@ fn append_journal_records_each_document_once_and_recovers_after_commit_interrupt
     );
     let materials = root.join("assets/materials");
     let document_count = 3;
+    let transaction_document_count = document_count * 2;
     for index in 0..document_count {
         write_legacy_material(&root, &format!("append-{index}.zmaterial"), guid);
     }
 
     migrate_project_assets_with_process_interruption(
         AssetMigrationOptions::new(&root, AssetMigrationMode::Apply),
-        document_count - 1,
+        transaction_document_count - 1,
     )
     .expect_err("commit interruption must retain append-only recovery evidence");
 
@@ -162,11 +163,11 @@ fn append_journal_records_each_document_once_and_recovers_after_commit_interrupt
     let journal_source = String::from_utf8_lossy(&journal_bytes);
     assert_eq!(
         journal_source.matches("[[documents]]").count(),
-        document_count
+        transaction_document_count
     );
     assert_eq!(
         journal_source.matches("[[transitions]]").count(),
-        document_count * 3 + 1,
+        transaction_document_count * 3 + 1,
         "one prepared record plus committing/committed records per document and one activation record"
     );
 
@@ -241,7 +242,7 @@ fn target_replace_before_committed_transition_rolls_back_then_converges() {
 
     migrate_project_assets_with_commit_window_fault(
         AssetMigrationOptions::new(&root, AssetMigrationMode::Apply),
-        0,
+        1,
         false,
     )
     .expect_err("target replacement interruption must retain active evidence");

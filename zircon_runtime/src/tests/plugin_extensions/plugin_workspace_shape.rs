@@ -274,8 +274,9 @@ fn native_dynamic_fixture_manifests_declare_package_level_metadata() {
             "native fixture manifest should contain `{expected_line}`"
         );
     }
+    let embedded_manifest_include = ["include_str", r#"!("../../plugin.toml")"#].concat();
     assert!(
-        native_source.contains(r#"include_str!("../../plugin.toml")"#),
+        native_source.contains(&embedded_manifest_include),
         "native fixture should embed its root plugin.toml manifest"
     );
 }
@@ -391,9 +392,11 @@ fn authoring_plugin_manifests_match_catalog_and_workspace_shape() {
         }));
         assert_eq!(descriptor.runtime_id(), runtime_id);
         assert_eq!(descriptor.crate_name(), runtime_crate);
-        assert!(descriptor
-            .capabilities()
-            .contains(&runtime_capability.to_string()));
+        assert!(
+            descriptor
+                .capabilities()
+                .contains(&runtime_capability.to_string())
+        );
         assert!(workspace_members.contains(&format!("{id}/runtime")));
         assert!(workspace_members.contains(&format!("{id}/editor")));
         assert_eq!(runtime_module.crate_name, runtime_crate);
@@ -404,17 +407,21 @@ fn authoring_plugin_manifests_match_catalog_and_workspace_shape() {
                 RuntimeTargetMode::EditorHost,
             ]
         );
-        assert!(runtime_module
-            .capabilities
-            .contains(&runtime_capability.to_string()));
+        assert!(
+            runtime_module
+                .capabilities
+                .contains(&runtime_capability.to_string())
+        );
         assert_eq!(editor_module.crate_name, editor_crate);
         assert_eq!(
             editor_module.target_modes,
             vec![RuntimeTargetMode::EditorHost]
         );
-        assert!(editor_module
-            .capabilities
-            .contains(&editor_capability.to_string()));
+        assert!(
+            editor_module
+                .capabilities
+                .contains(&editor_capability.to_string())
+        );
     }
 
     for (id, editor_crate, editor_capability) in [
@@ -447,10 +454,12 @@ fn authoring_plugin_manifests_match_catalog_and_workspace_shape() {
         );
         assert_eq!(manifest.category, "authoring");
         assert!(!runtime_catalog_ids.contains(id));
-        assert!(manifest
-            .modules
-            .iter()
-            .all(|module| module.kind != PluginModuleKind::Runtime));
+        assert!(
+            manifest
+                .modules
+                .iter()
+                .all(|module| module.kind != PluginModuleKind::Runtime)
+        );
         assert!(workspace_members.contains(&format!("{id}/editor")));
         assert!(!workspace_members.contains(&format!("{id}/runtime")));
         assert_eq!(editor_module.crate_name, editor_crate);
@@ -458,9 +467,11 @@ fn authoring_plugin_manifests_match_catalog_and_workspace_shape() {
             editor_module.target_modes,
             vec![RuntimeTargetMode::EditorHost]
         );
-        assert!(editor_module
-            .capabilities
-            .contains(&editor_capability.to_string()));
+        assert!(
+            editor_module
+                .capabilities
+                .contains(&editor_capability.to_string())
+        );
     }
 
     let timeline = read_plugin_manifest(&plugins_root, "timeline_sequence");

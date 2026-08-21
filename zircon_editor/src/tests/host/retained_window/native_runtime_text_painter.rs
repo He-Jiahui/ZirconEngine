@@ -54,6 +54,7 @@ fn editable_text_command() -> UiRenderCommand {
                 range: UiTextRange { start: 2, end: 4 },
                 text: "ll".to_string(),
                 restore_text: None,
+                preedit_clauses: Default::default(),
             }),
             read_only: false,
         }),

@@ -1,4 +1,5 @@
 use super::*;
+use crate::core::editor_event::SelectionHostEvent;
 
 #[test]
 fn componentized_workbench_window_template_bridge_updates_tool_selection_state() {
@@ -143,7 +144,7 @@ fn componentized_workbench_virtual_hierarchy_control_uses_the_projection_reverse
                         name: format!("Entity {id}"),
                         depth: 0,
                     })
-                    .collect(),
+                    .collect::<Vec<_>>(),
                 [],
             ),
             None,

@@ -2,6 +2,7 @@ use std::env::VarError;
 use std::path::PathBuf;
 
 use thiserror::Error;
+use zircon_runtime_interface::profiling::profile_session_basename;
 
 #[derive(Clone, Copy, Debug, Error, PartialEq, Eq)]
 #[error("ZIRCON_PROFILE_OUTPUT_ROOT must be an absolute destination outside the C: system drive")]
@@ -27,7 +28,8 @@ pub(in crate::ui::retained_host::host_contract) fn profile_export_dir(
         Err(VarError::NotUnicode(_)) => return Err(ProfileOutputRootError),
     };
     let session_id = std::env::var("ZIRCON_PROFILE_SESSION").unwrap_or_else(|_| "local".into());
-    profile_output_root(&output_root).map(|root| Some(root.join(sanitize_session_id(&session_id))))
+    profile_output_root(&output_root)
+        .map(|root| Some(root.join(profile_session_basename(&session_id))))
 }
 
 fn profile_output_root(output_root: &str) -> Result<PathBuf, ProfileOutputRootError> {
@@ -58,19 +60,6 @@ fn env_truthy(name: &str) -> bool {
             )
         })
         .unwrap_or(false)
-}
-
-fn sanitize_session_id(session_id: &str) -> String {
-    session_id
-        .chars()
-        .map(|ch| {
-            if ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | '.') {
-                ch
-            } else {
-                '_'
-            }
-        })
-        .collect()
 }
 
 #[cfg(test)]

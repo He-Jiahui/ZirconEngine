@@ -1,7 +1,7 @@
 use super::EditorConsoleHistory;
 use crate::core::editor_event::ConsoleMessageFilter;
 use crate::ui::workbench::snapshot::{
-    CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY, EditorConsoleMessageLevel,
+    EditorConsoleMessageLevel, CONSOLE_OUTPUT_LOGICAL_LINE_CAPACITY,
 };
 use std::sync::Arc;
 

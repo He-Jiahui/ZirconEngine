@@ -107,10 +107,7 @@ impl ConsoleOutputPaintMetadata {
         visible_row_start..visible_row_end
     }
 
-    pub(in crate::ui::retained_host) fn line_node_rows(
-        &self,
-        row_count: usize,
-    ) -> Range<usize> {
+    pub(in crate::ui::retained_host) fn line_node_rows(&self, row_count: usize) -> Range<usize> {
         let start = self.line_rows.start.min(row_count);
         start..self.line_rows.end.min(row_count).max(start)
     }

@@ -3,12 +3,12 @@ use zircon_runtime::core::framework::ai::{
 };
 
 use crate::behavior_tree::{
-    compile_behavior_tree_with_catalog, BehaviorNodeCategory, BehaviorTreeCompileError,
+    BehaviorNodeCategory, BehaviorTreeCompileError, compile_behavior_tree_with_catalog,
 };
 
+use super::DefaultAiManager;
 use super::state::RegisteredBehaviorTree;
 use super::validation::validate_behavior_tree_descriptor;
-use super::DefaultAiManager;
 
 pub(super) fn register(
     manager: &DefaultAiManager,
@@ -45,6 +45,7 @@ pub(super) fn register(
         descriptor,
         compiled,
     });
+    state.rebuild_compiled_behavior_tree_generation();
     Ok(id)
 }
 
@@ -164,6 +165,7 @@ pub(super) fn revoke_node_owner(
     state
         .behavior_trees
         .retain(|tree| !retired_tree_ids.contains(&tree.id));
+    state.rebuild_compiled_behavior_tree_generation();
     let retired_agents = state
         .active_behavior_trees
         .iter()

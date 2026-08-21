@@ -162,6 +162,18 @@ impl LifecycleCoordinator {
             },
         );
     }
+
+    #[cfg(test)]
+    pub(crate) fn waiter_count(&self, module_name: &str, command: ModuleLifecycleCommand) -> usize {
+        match self.transitions.get(module_name) {
+            Some(ModuleLifecycleTransition::InFlight {
+                command: active_command,
+                waiters,
+                ..
+            }) if *active_command == command => *waiters,
+            _ => 0,
+        }
+    }
 }
 
 pub(crate) struct CoreRuntimeInner {

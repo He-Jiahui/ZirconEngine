@@ -186,7 +186,7 @@ fn shared_hierarchy_pointer_bridge_scrolls_and_dispatches_selection() {
         .editor_snapshot()
         .scene_entries
         .iter()
-        .map(|entry| entry.id.to_string())
+        .map(|entry| entry.entity.to_string())
         .collect::<Vec<_>>();
     assert!(
         nodes.len() >= 2,

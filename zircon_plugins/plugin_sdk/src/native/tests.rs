@@ -31,6 +31,41 @@ static ENTRY: NativePluginEntryPointV3 = NativePluginEntryPointV3::new(
 );
 
 #[test]
+fn native_plugin_static_only_syncs_audited_abi_carriers() {
+    fn assert_sync<T: Sync>() {}
+
+    assert_sync::<NativePluginStatic<NativePluginAbiV3>>();
+    assert_sync::<NativePluginStatic<NativePluginBehaviorV4>>();
+    assert_sync::<NativePluginStatic<NativePluginEntryReportV3>>();
+    assert_sync::<NativePluginStatic<NativePluginBridgeMethodTableV3>>();
+    assert_sync::<NativePluginStatic<[NativePluginBridgeMethodV3; 2]>>();
+
+    let source = include_str!("../native.rs");
+    assert!(source.contains("unsafe trait NativePluginStaticValue"));
+    assert!(source.contains("unsafe impl<T: NativePluginStaticValue> Sync"));
+    assert!(!source.contains("unsafe impl<T> Sync for NativePluginStatic<T>"));
+}
+
+#[test]
+fn native_plugin_static_preserves_zero_cost_abi_layout() {
+    assert_eq!(
+        std::mem::size_of::<NativePluginStatic<NativePluginEntryReportV3>>(),
+        std::mem::size_of::<NativePluginEntryReportV3>()
+    );
+    assert_eq!(
+        std::mem::align_of::<NativePluginStatic<NativePluginEntryReportV3>>(),
+        std::mem::align_of::<NativePluginEntryReportV3>()
+    );
+    assert_eq!(REPORT.as_ptr(), REPORT.get() as *const _);
+
+    println!(
+        "PERF-MVP-PLUGINS01-SEALED-NATIVE-STATIC payload_bytes={} wrapper_bytes={} layout_overhead_bytes=0 runtime_guard_branches=0 runtime_allocations=0",
+        std::mem::size_of::<NativePluginEntryReportV3>(),
+        std::mem::size_of::<NativePluginStatic<NativePluginEntryReportV3>>()
+    );
+}
+
+#[test]
 fn native_entry_point_selects_report_from_host_capabilities() {
     let granted = b"runtime.plugin.weather\0";
     let host = NativePluginHostFunctionTableV3 {

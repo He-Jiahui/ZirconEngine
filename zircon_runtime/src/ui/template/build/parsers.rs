@@ -7,6 +7,8 @@ use zircon_runtime_interface::ui::layout::{
 };
 use zircon_runtime_interface::ui::tree::UiInputPolicy;
 
+use crate::ui::layout::MAX_UI_LAYOUT_DISCRETE_VALUE;
+
 use super::build_error::UiTemplateBuildError;
 
 pub(super) fn parse_axis_constraint(
@@ -307,12 +309,135 @@ pub(super) fn parse_usize(
     let Some(value) = value else {
         return Ok(None);
     };
-    value
+    let parsed = value
         .as_integer()
         .and_then(|value| usize::try_from(value).ok())
         .ok_or_else(|| UiTemplateBuildError::InvalidLayoutContract {
             node_path: node_path.to_string(),
             detail: format!("{field} must be a non-negative integer"),
-        })
-        .map(Some)
+        })?;
+    if parsed > MAX_UI_LAYOUT_DISCRETE_VALUE {
+        return Err(UiTemplateBuildError::InvalidLayoutContract {
+            node_path: node_path.to_string(),
+            detail: format!("{field} must not exceed {MAX_UI_LAYOUT_DISCRETE_VALUE}"),
+        });
+    }
+    Ok(Some(parsed))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::hint::black_box;
+    use std::time::Instant;
+
+    use super::*;
+
+    #[test]
+    fn explicit_layout_usize_values_are_bounded_before_runtime_allocation() {
+        let maximum = Value::Integer(MAX_UI_LAYOUT_DISCRETE_VALUE as i64);
+        assert_eq!(
+            parse_usize(Some(&maximum), "root", "container.columns").unwrap(),
+            Some(MAX_UI_LAYOUT_DISCRETE_VALUE)
+        );
+
+        let oversized = Value::Integer((MAX_UI_LAYOUT_DISCRETE_VALUE + 1) as i64);
+        let error = parse_usize(Some(&oversized), "root", "container.columns").unwrap_err();
+        assert!(error.to_string().contains(&format!(
+            "container.columns must not exceed {MAX_UI_LAYOUT_DISCRETE_VALUE}"
+        )));
+    }
+
+    #[test]
+    #[ignore = "release-only bounded layout admission benchmark"]
+    fn bounded_layout_admission_release_benchmark_evidence() {
+        const SAMPLE_PAIRS: usize = 21;
+        const OPERATIONS_PER_SAMPLE: usize = 64;
+        const AUTHORED_TRACK_COUNT: usize = 65_536;
+
+        fn legacy_parse(value: &Value) -> usize {
+            value
+                .as_integer()
+                .and_then(|value| usize::try_from(value).ok())
+                .expect("non-negative legacy layout integer")
+        }
+
+        fn measure_legacy(value: &Value) -> u128 {
+            let started = Instant::now();
+            for _ in 0..OPERATIONS_PER_SAMPLE {
+                let track_count = legacy_parse(black_box(value));
+                black_box(vec![0.0_f32; track_count]);
+            }
+            started.elapsed().as_nanos().max(1)
+        }
+
+        fn measure_optimized(value: &Value) -> u128 {
+            let started = Instant::now();
+            for _ in 0..OPERATIONS_PER_SAMPLE {
+                black_box(parse_usize(
+                    Some(black_box(value)),
+                    "benchmark-root",
+                    "container.columns",
+                ));
+            }
+            started.elapsed().as_nanos().max(1)
+        }
+
+        fn percentile(samples: &[u128], percentile: usize) -> u128 {
+            let mut sorted = samples.to_vec();
+            sorted.sort_unstable();
+            let rank = (sorted.len() * percentile).div_ceil(100);
+            sorted[rank.saturating_sub(1)]
+        }
+
+        fn raw(samples: &[u128]) -> String {
+            samples
+                .iter()
+                .map(u128::to_string)
+                .collect::<Vec<_>>()
+                .join(",")
+        }
+
+        let oversized = Value::Integer(AUTHORED_TRACK_COUNT as i64);
+        assert!(parse_usize(Some(&oversized), "benchmark-root", "container.columns").is_err());
+
+        for _ in 0..4 {
+            black_box(measure_legacy(&oversized));
+            black_box(measure_optimized(&oversized));
+        }
+
+        let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair in 0..SAMPLE_PAIRS {
+            if pair % 2 == 0 {
+                legacy_samples.push(measure_legacy(&oversized));
+                optimized_samples.push(measure_optimized(&oversized));
+            } else {
+                optimized_samples.push(measure_optimized(&oversized));
+                legacy_samples.push(measure_legacy(&oversized));
+            }
+        }
+
+        let legacy_p50_ns = percentile(&legacy_samples, 50);
+        let optimized_p50_ns = percentile(&optimized_samples, 50);
+        let legacy_p95_ns = percentile(&legacy_samples, 95);
+        let optimized_p95_ns = percentile(&optimized_samples, 95);
+        println!(
+            "RUNTIME76_BOUNDED_LAYOUT_ADMISSION_BENCH_V1 sample_pairs={SAMPLE_PAIRS} \
+operations_per_sample={OPERATIONS_PER_SAMPLE} authored_track_count={AUTHORED_TRACK_COUNT} \
+max_discrete_value={MAX_UI_LAYOUT_DISCRETE_VALUE} pair_order=alternating_legacy_even \
+legacy_first_pairs=11 optimized_first_pairs=10 \
+legacy_track_allocations_per_sample={OPERATIONS_PER_SAMPLE} \
+optimized_track_allocations_per_sample=0 legacy_p50_ns={legacy_p50_ns} \
+optimized_p50_ns={optimized_p50_ns} legacy_p95_ns={legacy_p95_ns} \
+optimized_p95_ns={optimized_p95_ns} legacy_raw_ns={} optimized_raw_ns={}",
+            raw(&legacy_samples),
+            raw(&optimized_samples),
+        );
+
+        assert!(
+            optimized_p95_ns.saturating_mul(4) <= legacy_p95_ns,
+            "bounded admission must reduce malicious-track P95 by at least 75%: \
+legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
+        );
+    }
 }

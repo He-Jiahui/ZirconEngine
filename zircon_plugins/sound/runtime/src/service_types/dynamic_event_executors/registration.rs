@@ -16,9 +16,14 @@ impl DefaultSoundManager {
     {
         let key = SoundDynamicEventExecutorKey::new(plugin_id, handler_id);
         let mut state = crate::poison_recovery::lock_recover(&self.state);
-        if !state.dynamic_event_handlers.iter().any(|handler| {
-            handler.plugin_id == key.plugin_id && handler.handler_id == key.handler_id
-        }) {
+        if !state
+            .dynamic_event_handlers
+            .handlers()
+            .iter()
+            .any(|handler| {
+                handler.plugin_id == key.plugin_id && handler.handler_id == key.handler_id
+            })
+        {
             return Err(SoundError::UnknownDynamicEventHandler {
                 plugin_id: key.plugin_id,
                 handler_id: key.handler_id,

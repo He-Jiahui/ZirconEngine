@@ -99,11 +99,9 @@ mod tests {
             outcome.root_entry().unwrap().dependencies,
             vec![external_mesh_uri, generated.clone()]
         );
-        assert!(
-            outcome
-                .entries
-                .iter()
-                .any(|entry| entry.locator == generated)
-        );
+        assert!(outcome
+            .entries
+            .iter()
+            .any(|entry| entry.locator == generated));
     }
 }

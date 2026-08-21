@@ -345,9 +345,8 @@ mod tests {
     use std::collections::BTreeMap;
 
     use super::UiAssetEditorSession;
-    use crate::ui::asset_editor::{
-        UiAssetEditorMode, UiAssetEditorRoute, UiAssetPaletteEntryKind, UiAssetPreviewPreset,
-    };
+    use crate::ui::asset_editor::palette::UiAssetPaletteEntryKind;
+    use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetEditorRoute, UiAssetPreviewPreset};
     use zircon_runtime::ui::v2::UiV2AssetLoader;
     use zircon_runtime_interface::ui::{layout::UiSize, template::UiAssetKind};
 

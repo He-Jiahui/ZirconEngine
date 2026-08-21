@@ -219,7 +219,7 @@ fn viewport_render_snapshot_keeps_authoring_overlay_and_preview_state_in_editor_
     controller.selection_mut().select_only_active(selected);
 
     let authored = controller.build_render_snapshot(&scene);
-    assert_eq!(authored.overlays.selection.len(), 1);
+    assert!(authored.overlays.highlights.is_none());
     assert!(authored.overlays.selection_anchors.is_empty());
     assert!(authored.overlays.grid.is_some());
     assert!(!authored.overlays.scene_gizmos.is_empty());
@@ -232,7 +232,7 @@ fn viewport_render_snapshot_keeps_authoring_overlay_and_preview_state_in_editor_
     controller.settings_mut().preview_skybox = false;
 
     let toggled = controller.build_render_snapshot(&scene);
-    assert_eq!(toggled.overlays.selection.len(), 1);
+    assert!(toggled.overlays.highlights.is_none());
     assert_eq!(toggled.overlays.selection_anchors.len(), 1);
     assert!(toggled.overlays.grid.is_none());
     assert!(toggled.overlays.scene_gizmos.is_empty());
@@ -240,7 +240,7 @@ fn viewport_render_snapshot_keeps_authoring_overlay_and_preview_state_in_editor_
     assert!(!toggled.preview.skybox_enabled);
 
     let runtime_packet = scene.to_render_extract();
-    assert!(runtime_packet.overlays.selection.is_empty());
+    assert!(runtime_packet.overlays.highlights.is_none());
     assert!(runtime_packet.overlays.selection_anchors.is_empty());
     assert!(runtime_packet.overlays.handles.is_empty());
     assert!(runtime_packet.overlays.scene_gizmos.is_empty());
@@ -329,7 +329,7 @@ fn viewport_edit_mode_projection_derives_authoring_panels_from_runtime_world() {
     }));
 
     let runtime_packet = scene.to_render_extract();
-    assert!(runtime_packet.overlays.selection.is_empty());
+    assert!(runtime_packet.overlays.highlights.is_none());
     assert!(runtime_packet.overlays.scene_gizmos.is_empty());
 }
 
@@ -356,7 +356,7 @@ fn viewport_render_snapshot_ignores_stale_editor_selection() {
 
     let snapshot = controller.build_render_snapshot(&scene);
 
-    assert!(snapshot.overlays.selection.is_empty());
+    assert!(snapshot.overlays.highlights.is_none());
     assert!(snapshot.overlays.selection_anchors.is_empty());
     assert!(snapshot.overlays.handles.is_empty());
     assert!(snapshot

@@ -269,7 +269,10 @@ fn framebuffer_background_color(
 
 fn known_loaded_framebuffer_background_color(frame: &ViewportRenderFrame) -> Option<[f32; 4]> {
     let overlays = frame.overlays();
-    let has_overlay_content = !overlays.selection.is_empty()
+    let has_overlay_content = overlays
+        .highlights
+        .as_ref()
+        .is_some_and(|highlights| !highlights.entities().is_empty())
         || !overlays.selection_anchors.is_empty()
         || overlays.grid.as_ref().is_some_and(|grid| grid.visible)
         || !overlays.handles.is_empty()

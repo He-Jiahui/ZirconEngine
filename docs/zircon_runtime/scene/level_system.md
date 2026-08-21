@@ -41,7 +41,7 @@ doc_type: module-detail
 
 `LevelSystem` is the runtime owner for one live scene world plus per-level runtime state. It wraps the active `World`, cached physics and animation outputs, script binding start state, level metadata, lifecycle state, and registered subsystem names.
 
-`DefaultLevelManager` owns the map from `WorldHandle` to `LevelSystem` instances and creates levels with stable handles.
+`DefaultLevelManager` owns the map from `WorldHandle` to `LevelSystem` instances and creates levels with stable handles. Its fallible creation path uses checked atomic allocation, admits `u64::MAX` once, and then returns `CoreError::LevelHandleExhausted`; it never wraps to the reserved zero handle.
 
 ## Optional Physics State
 
@@ -55,7 +55,7 @@ The hard cut replaced the inline Physics fields with `PhysicsRuntimeState`, gate
 
 Animation pose recording retains existing entity entries before applying a new frame. Stable entities copy through `AnimationPoseOutput::clone_from_reusing_storage`, preserving the final pose vector and bone-name capacities; disappeared entities are removed and new entities transfer their owned pose directly. This keeps the level snapshot API owned while eliminating the previous whole-map replacement and stable-rig handoff churn.
 
-`DefaultLevelManager` owns the level map. The lifecycle owner creates and resolves levels through `create_level`, `create_default_level`, and `level`.
+`DefaultLevelManager` owns the level map. The lifecycle owner creates and resolves levels through `try_create_level`, `try_create_default_level`, their explicit infallible convenience wrappers, and `level`. Multi-level callback traversal and VM type synchronization sort cloned level snapshots by `WorldHandle` before acquiring world locks, providing one stable lock/traversal order independent of HashMap iteration.
 
 Runtime project startup loads its default level from the already activated Asset service project.
 `scene::load_level_asset` receives the abstract `AssetManager` service and uses

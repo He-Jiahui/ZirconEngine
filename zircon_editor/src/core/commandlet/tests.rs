@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
 #[cfg(windows)]
 use std::path::{Component, Prefix};
@@ -11,9 +11,9 @@ use zircon_runtime::asset::project::AssetMetaDocument;
 use zircon_runtime::asset::{AssetKind, AssetUri, AssetUuid};
 
 use super::{
-    AuthoringAutomationCommandletRequest, CommandletExitCode, CommandletHost, CommandletStatus,
     parse_commandlet_args, run_commandlet, run_commandlet_with_capabilities,
-    run_commandlet_with_host,
+    run_commandlet_with_host, AuthoringAutomationCommandletRequest, CommandletExitCode,
+    CommandletHost, CommandletStatus,
 };
 use crate::core::commands::{EditorCommandAction, EditorCommandRegistry};
 use crate::core::plugin::EditorPluginManager;
@@ -220,12 +220,10 @@ fn plugin_list_projects_the_existing_catalog_with_stable_json() {
         .plugins()
         .expect("plugin-list should return the canonical editor plugin catalog");
     assert!(!plugins.entries().is_empty());
-    assert!(
-        plugins
-            .entries()
-            .windows(2)
-            .all(|pair| pair[0].package_id <= pair[1].package_id)
-    );
+    assert!(plugins
+        .entries()
+        .windows(2)
+        .all(|pair| pair[0].package_id <= pair[1].package_id));
 }
 
 #[test]
@@ -261,11 +259,9 @@ fn plugin_list_reports_missing_catalog_capability() {
 
     assert_eq!(report.exit_code(), CommandletExitCode::MissingCapability);
     assert_eq!(report.status(), CommandletStatus::MissingCapabilities);
-    assert!(
-        report
-            .error()
-            .is_some_and(|error| error.contains("plugin.catalog.read"))
-    );
+    assert!(report
+        .error()
+        .is_some_and(|error| error.contains("plugin.catalog.read")));
 }
 
 #[test]
@@ -305,11 +301,9 @@ fn migrate_assets_apply_writes_the_runtime_migration_result() {
     let report = run_commandlet(request);
 
     assert_eq!(report.exit_code(), CommandletExitCode::Success);
-    assert!(
-        report
-            .migration()
-            .is_some_and(|migration| migration.applied)
-    );
+    assert!(report
+        .migration()
+        .is_some_and(|migration| migration.applied));
     let migrated = fs::read_to_string(&material).unwrap();
     assert!(migrated.contains("guid"));
     assert!(!migrated.contains("uuid"));
@@ -373,11 +367,9 @@ fn commandlet_reports_missing_capability_without_starting_a_ui_host() {
 
     assert_eq!(report.exit_code(), CommandletExitCode::MissingCapability);
     assert_eq!(report.status(), CommandletStatus::MissingCapabilities);
-    assert!(
-        report
-            .error()
-            .is_some_and(|error| error.contains("asset.migration"))
-    );
+    assert!(report
+        .error()
+        .is_some_and(|error| error.contains("asset.migration")));
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -396,11 +388,9 @@ fn commandlet_maps_runtime_errors_to_failure_json() {
 
     assert_eq!(report.exit_code(), CommandletExitCode::Failed);
     assert_eq!(report.status(), CommandletStatus::Failed);
-    assert!(
-        report
-            .error()
-            .is_some_and(|error| error.contains("zircon-project.toml"))
-    );
+    assert!(report
+        .error()
+        .is_some_and(|error| error.contains("zircon-project.toml")));
     fs::remove_dir_all(root).unwrap();
 }
 

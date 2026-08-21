@@ -1,30 +1,30 @@
 use std::sync::{
-    atomic::{AtomicUsize, Ordering},
     Arc,
+    atomic::{AtomicUsize, Ordering},
 };
 
 use zircon_runtime_interface::reflect::ReflectError;
 
 #[cfg(feature = "profiling")]
 use crate::core::diagnostics::profiling::{
-    reset_capture, snapshot, start_capture, test_capture_lock, ProfileCaptureConfig,
+    ProfileCaptureConfig, reset_capture, snapshot, start_capture, test_capture_lock,
 };
 use crate::scene::{
-    dynamic_scene::PreparedDynamicSceneSpawn, ecs::Component, reflect::VmTypeBacking, NodeKind,
-    World,
+    DynamicComponent, NodeKind, World, dynamic_scene::PreparedDynamicSceneSpawn, ecs::Component,
+    reflect::VmTypeBacking,
 };
 
 use super::{
-    apply_compiled_scene_spawn, capture_compiled_scene_spawn_preflight,
+    DynamicScene, apply_compiled_scene_spawn, capture_compiled_scene_spawn_preflight,
     commit_preflighted_compiled_scene_spawn, compile_scene_spawn,
-    validate_compiled_scene_spawn_preflight, DynamicScene,
+    validate_compiled_scene_spawn_preflight,
 };
 #[path = "tests/resources.rs"]
 mod resources;
 
 use resources::{
-    register_rejecting_resource, register_slot_resource, RejectingResource, SlotResource,
-    SlotResourceWriteBudgetReset,
+    RejectingResource, SlotResource, SlotResourceWriteBudgetReset, register_rejecting_resource,
+    register_slot_resource,
 };
 
 #[test]
@@ -394,10 +394,12 @@ fn compiled_spawn_projects_only_affected_target_schema_into_preflight() {
     let mut source = World::empty();
     let source_entity = source.spawn_node(NodeKind::Empty);
     let mut scene = DynamicScene::from_world(&source).expect("source scene should capture");
-    assert!(scene
-        .component_types
-        .iter()
-        .all(|descriptor| descriptor.type_id != SELECTED_TYPE_ID));
+    assert!(
+        scene
+            .component_types
+            .iter()
+            .all(|descriptor| descriptor.type_id != SELECTED_TYPE_ID)
+    );
     scene
         .entities
         .iter_mut()
@@ -426,14 +428,18 @@ fn compiled_spawn_projects_only_affected_target_schema_into_preflight() {
         .expect("target-registered plugin component should compile without a scene descriptor");
     let (mut preflight, _) = capture_compiled_scene_spawn_preflight(&target, &plan, usize::MAX)
         .expect("affected target schema should project into preflight");
-    assert!(preflight
-        .component_type_descriptor(SELECTED_TYPE_ID)
-        .is_some());
+    assert!(
+        preflight
+            .component_type_descriptor(SELECTED_TYPE_ID)
+            .is_some()
+    );
     assert!(preflight.type_registry().contains(SELECTED_TYPE_ID));
     assert!(preflight.is_vm_dynamic_type_path(SELECTED_TYPE_ID));
-    assert!(preflight
-        .component_type_descriptor(UNSELECTED_TYPE_ID)
-        .is_none());
+    assert!(
+        preflight
+            .component_type_descriptor(UNSELECTED_TYPE_ID)
+            .is_none()
+    );
     assert!(!preflight.type_registry().contains(UNSELECTED_TYPE_ID));
 
     let mutation = validate_compiled_scene_spawn_preflight(&mut preflight, plan)

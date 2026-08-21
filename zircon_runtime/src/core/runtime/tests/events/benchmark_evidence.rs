@@ -1,4 +1,4 @@
-use std::num::NonZeroUsize;
+use std::num::{NonZeroU64, NonZeroUsize};
 #[cfg(windows)]
 use std::process::Command;
 use std::sync::Arc;
@@ -6,6 +6,7 @@ use std::time::{Duration, Instant};
 
 use crate::core::framework::events::{
     EngineEventDeliveryPolicy, EventBusDiagnosticsMode, EventBusDiagnosticsSnapshot,
+    DEFAULT_EVENT_BUS_TIMING_SAMPLE_INTERVAL,
 };
 use crate::core::{EngineEvent, EventBus};
 
@@ -44,13 +45,21 @@ fn event_bus_runtime07_publish_p95_evidence_matrix() {
             assert_eq!(report.delivery_lock_wait_samples, 0);
             assert_eq!(report.total_delivery_lock_wait_ms, 0.0);
             assert_eq!(report.max_delivery_lock_wait_ms, 0.0);
+            let arc_clones_before = subscriber_count;
+            let arc_clones_after = subscriber_count.saturating_sub(1);
+            let arc_clone_reduction_percent =
+                (1.0 - arc_clones_after as f64 / arc_clones_before as f64) * 100.0;
             println!(
-                "EVENTBUS_BENCH_V1 kind=publish mode=enabled subscribers={} payload_bytes={} samples={} p50_ns={} p95_ns={} max_ns={} delivery_lock_wait_samples={} total_delivery_lock_wait_ms={:.3} max_delivery_lock_wait_ms={:.3}",
+                "EVENTBUS_BENCH_V2 kind=publish mode=enabled subscribers={} payload_bytes={} samples={} payload_arc_clones_before={} payload_arc_clones_after={} payload_arc_clone_reduction_percent={:.4} p50_ns={} p95_ns={} p99_ns={} max_ns={} delivery_lock_wait_samples={} total_delivery_lock_wait_ms={:.3} max_delivery_lock_wait_ms={:.3}",
                 subscriber_count,
                 payload_bytes,
                 measured_samples,
+                arc_clones_before,
+                arc_clones_after,
+                arc_clone_reduction_percent,
                 percentile_ns(&durations, 50),
                 percentile_ns(&durations, 95),
+                percentile_ns(&durations, 99),
                 durations.iter().copied().max().unwrap_or_default(),
                 report.delivery_lock_wait_samples,
                 report.total_delivery_lock_wait_ms,
@@ -62,46 +71,81 @@ fn event_bus_runtime07_publish_p95_evidence_matrix() {
 
 #[test]
 #[ignore = "managed Runtime07 performance evidence"]
-fn event_bus_runtime07_disabled_diagnostics_overhead_evidence() {
-    for (case_index, subscriber_count) in [1, 100].into_iter().enumerate() {
+fn event_bus_runtime07_diagnostics_sampling_evidence() {
+    const REPEATS: usize = 5;
+    const SAMPLE_INTERVAL: u64 = 64;
+
+    for subscriber_count in [1, 100] {
         let measured_samples = if subscriber_count == 1 { 256 } else { 128 };
-        let modes = if case_index % 2 == 0 {
-            [
-                EventBusDiagnosticsMode::Enabled,
-                EventBusDiagnosticsMode::Disabled,
-            ]
-        } else {
-            [
-                EventBusDiagnosticsMode::Disabled,
-                EventBusDiagnosticsMode::Enabled,
-            ]
+        let sampled_mode = EventBusDiagnosticsMode::Sampled {
+            every: NonZeroU64::new(SAMPLE_INTERVAL).unwrap(),
         };
-        let mut enabled_p95 = 0;
-        let mut disabled_p95 = 0;
-        for mode in modes {
-            let (durations, report) =
-                publish_samples(mode, subscriber_count, 4_096, measured_samples);
-            let p95 = percentile_ns(&durations, 95);
-            match mode {
-                EventBusDiagnosticsMode::Enabled => {
-                    enabled_p95 = p95;
-                    assert!(report.enabled);
-                    assert_eq!(report.published, (WARMUP_SAMPLES + measured_samples) as u64);
-                }
-                EventBusDiagnosticsMode::Disabled => {
-                    disabled_p95 = p95;
-                    assert_disabled_report(report, subscriber_count as u64);
+        let modes = [
+            EventBusDiagnosticsMode::Enabled,
+            sampled_mode,
+            EventBusDiagnosticsMode::Disabled,
+        ];
+        let mut enabled_samples = Vec::with_capacity(measured_samples * REPEATS);
+        let mut sampled_samples = Vec::with_capacity(measured_samples * REPEATS);
+        let mut disabled_samples = Vec::with_capacity(measured_samples * REPEATS);
+
+        for repeat in 0..REPEATS {
+            for mode_offset in 0..modes.len() {
+                let mode = modes[(mode_offset + repeat) % modes.len()];
+                let (mut durations, report) =
+                    publish_samples(mode, subscriber_count, 4_096, measured_samples);
+                match mode {
+                    EventBusDiagnosticsMode::Enabled => {
+                        assert_full_report(report, subscriber_count as u64, measured_samples);
+                        enabled_samples.append(&mut durations);
+                    }
+                    EventBusDiagnosticsMode::Sampled { every } => {
+                        assert_sampled_report(
+                            report,
+                            subscriber_count as u64,
+                            measured_samples,
+                            every,
+                        );
+                        sampled_samples.append(&mut durations);
+                    }
+                    EventBusDiagnosticsMode::Disabled => {
+                        assert_disabled_report(report, subscriber_count as u64);
+                        disabled_samples.append(&mut durations);
+                    }
                 }
             }
         }
-        let ratio = if disabled_p95 == 0 {
-            f64::INFINITY
-        } else {
-            enabled_p95 as f64 / disabled_p95 as f64
-        };
+
+        let delivered = (WARMUP_SAMPLES + measured_samples) as u64 * subscriber_count as u64;
+        let full_captures =
+            ((WARMUP_SAMPLES + measured_samples) as u64 + delivered) * REPEATS as u64;
+        let sampled_captures =
+            (sample_count((WARMUP_SAMPLES + measured_samples) as u64, SAMPLE_INTERVAL)
+                + sample_count(delivered, SAMPLE_INTERVAL))
+                * REPEATS as u64;
+        let capture_reduction_percent =
+            (1.0 - sampled_captures as f64 / full_captures as f64) * 100.0;
         println!(
-            "EVENTBUS_BENCH_V1 kind=diagnostics subscribers={} payload_bytes=4096 samples={} enabled_p95_ns={} disabled_p95_ns={} p95_ratio_enabled_over_disabled={:.4}",
-            subscriber_count, measured_samples, enabled_p95, disabled_p95, ratio,
+            "EVENTBUS_BENCH_V2 kind=diagnostics_sampling subscribers={} payload_bytes=4096 repeats={} samples_per_mode={} sample_interval={} full_timing_captures={} sampled_timing_captures={} capture_reduction_percent={:.4} full_p50_ns={} full_p95_ns={} full_p99_ns={} full_throughput_per_second={:.2} sampled_p50_ns={} sampled_p95_ns={} sampled_p99_ns={} sampled_throughput_per_second={:.2} disabled_p50_ns={} disabled_p95_ns={} disabled_p99_ns={} disabled_throughput_per_second={:.2}",
+            subscriber_count,
+            REPEATS,
+            measured_samples * REPEATS,
+            SAMPLE_INTERVAL,
+            full_captures,
+            sampled_captures,
+            capture_reduction_percent,
+            percentile_ns(&enabled_samples, 50),
+            percentile_ns(&enabled_samples, 95),
+            percentile_ns(&enabled_samples, 99),
+            throughput_per_second(&enabled_samples),
+            percentile_ns(&sampled_samples, 50),
+            percentile_ns(&sampled_samples, 95),
+            percentile_ns(&sampled_samples, 99),
+            throughput_per_second(&sampled_samples),
+            percentile_ns(&disabled_samples, 50),
+            percentile_ns(&disabled_samples, 95),
+            percentile_ns(&disabled_samples, 99),
+            throughput_per_second(&disabled_samples),
         );
     }
 }
@@ -154,15 +198,28 @@ fn event_bus_runtime07_paused_bounded_consumer_pressure_evidence() {
     }
     let after_drain = bus.diagnostic_report();
     assert_eq!(after_drain.queued, 0);
-    assert_eq!(after_drain.queue_age_samples, total_publishes as u64);
+    assert_eq!(
+        after_drain.routine_timing_sample_interval,
+        DEFAULT_EVENT_BUS_TIMING_SAMPLE_INTERVAL.get()
+    );
+    assert_eq!(
+        after_drain.queue_age_samples,
+        sample_count(
+            total_publishes as u64,
+            DEFAULT_EVENT_BUS_TIMING_SAMPLE_INTERVAL.get()
+        )
+    );
     assert!(after_drain.max_queue_age_ms >= 10.0);
     let rss_after_drain = current_process_rss_bytes();
+    let replacements = total_publishes - CAPACITY;
     println!(
-        "EVENTBUS_BENCH_V1 kind=pressure capacity={} payload_bytes={} publishes={} retained_bytes={} rss_before={} rss_phase1={} rss_phase2={} rss_after_drain={} total_queue_age_ms={:.3} max_queue_age_ms={:.3}",
+        "EVENTBUS_BENCH_V2 kind=pressure capacity={} payload_bytes={} publishes={} retained_bytes={} replacements={} replacement_depth_rmw_before={} replacement_depth_rmw_after=0 replacement_depth_rmw_reduction_percent=100.0000 rss_before={} rss_phase1={} rss_phase2={} rss_after_drain={} total_queue_age_ms={:.3} max_queue_age_ms={:.3}",
         CAPACITY,
         PAYLOAD_BYTES,
         total_publishes,
         CAPACITY * PAYLOAD_BYTES,
+        replacements,
+        replacements * 2,
         rss_value(rss_before),
         rss_value(rss_phase_one),
         rss_value(rss_phase_two),
@@ -237,6 +294,53 @@ fn assert_disabled_report(report: EventBusDiagnosticsSnapshot, subscribers: u64)
         },
         "disabled diagnostics must retain topology and zero every hot-path metric",
     );
+}
+
+fn assert_full_report(
+    report: EventBusDiagnosticsSnapshot,
+    subscribers: u64,
+    measured_samples: usize,
+) {
+    let publishes = (WARMUP_SAMPLES + measured_samples) as u64;
+    assert!(report.enabled);
+    assert_eq!(report.routine_timing_sample_interval, 1);
+    assert_eq!(report.published, publishes);
+    assert_eq!(report.delivered, publishes * subscribers);
+    assert_eq!(report.publish_samples, publishes);
+    assert_eq!(report.queue_age_samples, publishes * subscribers);
+}
+
+fn assert_sampled_report(
+    report: EventBusDiagnosticsSnapshot,
+    subscribers: u64,
+    measured_samples: usize,
+    every: NonZeroU64,
+) {
+    let publishes = (WARMUP_SAMPLES + measured_samples) as u64;
+    assert!(report.enabled);
+    assert_eq!(report.routine_timing_sample_interval, every.get());
+    assert_eq!(report.published, publishes);
+    assert_eq!(report.delivered, publishes * subscribers);
+    assert_eq!(report.publish_samples, sample_count(publishes, every.get()));
+    assert_eq!(
+        report.queue_age_samples,
+        sample_count(publishes * subscribers, every.get())
+    );
+}
+
+fn sample_count(total: u64, every: u64) -> u64 {
+    total.div_ceil(every)
+}
+
+fn throughput_per_second(samples_ns: &[u64]) -> f64 {
+    let total_ns = samples_ns
+        .iter()
+        .map(|sample| u128::from(*sample))
+        .sum::<u128>();
+    if total_ns == 0 {
+        return f64::INFINITY;
+    }
+    samples_ns.len() as f64 * 1_000_000_000.0 / total_ns as f64
 }
 
 #[cfg(windows)]

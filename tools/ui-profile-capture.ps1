@@ -25,6 +25,10 @@ param(
     [ValidateRange(0, 100000)]
     [int]$HierarchyLogicalNodeCount = 0,
     [ValidateRange(0, 10000)]
+    [int]$ViewportSelectableNodeCount = 0,
+    [ValidateSet("static", "dynamic")]
+    [string]$ViewportSceneMobility = "static",
+    [ValidateRange(0, 10000)]
     [int]$AssetCatalogItemCount = 0,
     [ValidateRange(2, 240)]
     [int]$AutoResizeStepCount = 24,
@@ -167,6 +171,38 @@ function Show-UiScenarioEvidence {
         Write-Warning "UI hotspot report does not contain scenario '$evidenceScenario' for requested scenario '$ScenarioName'."
         return $false
     }
+    $optionalEvidence = @{}
+    foreach ($field in @(
+            "gpu_batch_layers",
+            "gpu_batch_dependencies",
+            "gpu_compiled_draw_items",
+            "gpu_batch_plan_build_count",
+            "gpu_batch_plan_cache_hit_count",
+            "gpu_vertex_buffer_create_count",
+            "gpu_vertex_upload_bytes",
+            "gpu_retained_cache_copy_bytes",
+            "gpu_upload_bytes",
+            "gpu_image_upload_write_count",
+            "gpu_image_shared_resolve_count",
+            "gpu_image_prepare_cache_hit_count",
+            "gpu_image_invalid_payload_count",
+            "visual_asset_cache_hit_count",
+            "visual_asset_cache_miss_count",
+            "svg_tree_cache_memory_hit_count",
+            "svg_tree_cache_miss_count",
+            "visual_asset_reconcile_source_visit_count",
+            "visual_asset_reconciled_invalidation_count",
+            "svg_tree_reconcile_source_visit_count",
+            "svg_tree_reconciled_invalidation_count"
+        )) {
+        $property = $scenario.PSObject.Properties[$field]
+        $optionalEvidence[$field] = if ($null -eq $property -or $null -eq $property.Value) {
+            0
+        }
+        else {
+            $property.Value
+        }
+    }
     $hostInvalidationTransactionCount = [int64]$scenario.host_invalidation_transaction_count
     $hostInvalidationTargetCount = [int64]$scenario.host_invalidation_full_target_count +
         [int64]$scenario.host_invalidation_shell_content_target_count +
@@ -215,8 +251,8 @@ function Show-UiScenarioEvidence {
             $scenario.gpu_draw_calls,
             $scenario.gpu_visible_commands,
             $scenario.gpu_visible_draw_items,
-            $scenario.gpu_batch_layers,
-            $scenario.gpu_batch_dependencies)
+            $optionalEvidence["gpu_batch_layers"],
+            $optionalEvidence["gpu_batch_dependencies"])
     Write-Host ("- gpu_timestamp_supported_present_count={0} gpu_time_sample_count={1} gpu_time_p50_us={2} gpu_time_p95_us={3} gpu_time_max_us={4} gpu_profile_latency_max_frames={5}" -f `
             $scenario.gpu_timestamp_supported_present_count,
             $scenario.gpu_time_sample_count,
@@ -225,29 +261,29 @@ function Show-UiScenarioEvidence {
             $scenario.gpu_time_max_us,
             $scenario.gpu_profile_latency_max_frames)
     Write-Host ("- gpu_compiled_draw_items={0} batch_plan_builds={1} batch_plan_cache_hits={2}" -f `
-            $scenario.gpu_compiled_draw_items,
-            $scenario.gpu_batch_plan_build_count,
-            $scenario.gpu_batch_plan_cache_hit_count)
+            $optionalEvidence["gpu_compiled_draw_items"],
+            $optionalEvidence["gpu_batch_plan_build_count"],
+            $optionalEvidence["gpu_batch_plan_cache_hit_count"])
     Write-Host ("- gpu_vertex_buffer_creates={0} vertex_upload_bytes={1} retained_cache_copy_bytes={2}" -f `
-            $scenario.gpu_vertex_buffer_create_count,
-            $scenario.gpu_vertex_upload_bytes,
-            $scenario.gpu_retained_cache_copy_bytes)
-    Write-Host ("- gpu_upload_bytes={0}" -f $scenario.gpu_upload_bytes)
+            $optionalEvidence["gpu_vertex_buffer_create_count"],
+            $optionalEvidence["gpu_vertex_upload_bytes"],
+            $optionalEvidence["gpu_retained_cache_copy_bytes"])
+    Write-Host ("- gpu_upload_bytes={0}" -f $optionalEvidence["gpu_upload_bytes"])
     Write-Host ("- gpu_image_upload_writes={0} shared_resolves={1} cache_hits={2} invalid_payloads={3}" -f `
-            $scenario.gpu_image_upload_write_count,
-            $scenario.gpu_image_shared_resolve_count,
-            $scenario.gpu_image_prepare_cache_hit_count,
-            $scenario.gpu_image_invalid_payload_count)
+            $optionalEvidence["gpu_image_upload_write_count"],
+            $optionalEvidence["gpu_image_shared_resolve_count"],
+            $optionalEvidence["gpu_image_prepare_cache_hit_count"],
+            $optionalEvidence["gpu_image_invalid_payload_count"])
     Write-Host ("- visual_asset_hits={0} misses={1} svg_tree_hits={2} svg_tree_misses={3}" -f `
-            $scenario.visual_asset_cache_hit_count,
-            $scenario.visual_asset_cache_miss_count,
-            $scenario.svg_tree_cache_memory_hit_count,
-            $scenario.svg_tree_cache_miss_count)
+            $optionalEvidence["visual_asset_cache_hit_count"],
+            $optionalEvidence["visual_asset_cache_miss_count"],
+            $optionalEvidence["svg_tree_cache_memory_hit_count"],
+            $optionalEvidence["svg_tree_cache_miss_count"])
     Write-Host ("- visual_reconcile_visits={0} invalidated={1} svg_reconcile_visits={2} invalidated={3}" -f `
-            $scenario.visual_asset_reconcile_source_visit_count,
-            $scenario.visual_asset_reconciled_invalidation_count,
-            $scenario.svg_tree_reconcile_source_visit_count,
-            $scenario.svg_tree_reconciled_invalidation_count)
+            $optionalEvidence["visual_asset_reconcile_source_visit_count"],
+            $optionalEvidence["visual_asset_reconciled_invalidation_count"],
+            $optionalEvidence["svg_tree_reconcile_source_visit_count"],
+            $optionalEvidence["svg_tree_reconciled_invalidation_count"])
     Write-Host ("- software_fallback_present_count={0}" -f $scenario.software_fallback_present_count)
     $scenarioAlerts = @($report.alerts | Where-Object { $_.scenario -eq $evidenceScenario })
     $blockingScenarioAlerts = @($scenarioAlerts | Where-Object {
@@ -261,7 +297,7 @@ function Show-UiScenarioEvidence {
     $redrawCount = [int64]$scenario.redraw_region_count + [int64]$scenario.redraw_full_frame_count
     $hasGpuBatch = [int64]$scenario.gpu_draw_calls -gt 0 -and
         [int64]$scenario.gpu_visible_draw_items -gt [int64]$scenario.gpu_draw_calls
-    $hasGpuUpload = [int64]$scenario.gpu_upload_bytes -gt 0
+    $hasGpuUpload = [int64]$optionalEvidence["gpu_upload_bytes"] -gt 0
     $hasGpuTimingEvidence =
         [int64]$scenario.gpu_timestamp_supported_present_count -gt 0 -and
         [int64]$scenario.gpu_time_sample_count -gt 0
@@ -332,6 +368,7 @@ function Resolve-InteractionScenarioName {
         "material_lab_hover" { return "idle_hover" }
         "material_lab_click" { return "click" }
         "viewport_toolbar_click" { return "click" }
+        "viewport_pointer" { return "idle_hover" }
         "hierarchy_scroll" { return "idle_hover" }
         "welcome_recent_scroll" { return "idle_hover" }
         default { return $ScenarioName.Trim().ToLowerInvariant() }
@@ -416,6 +453,111 @@ function Export-UiBatchMetrics {
                 $current.dependency_density,
                 $current.layer_density)
     }
+}
+
+function Get-ViewportPointerMetricSummary {
+    param([object[]]$Values)
+
+    $orderedValues = @($Values | ForEach-Object { [double]$_ } | Sort-Object)
+    if ($orderedValues.Count -eq 0) {
+        return $null
+    }
+    $nearestRank = {
+        param([double]$Percentile)
+        $index = [Math]::Max(0, [Math]::Ceiling($orderedValues.Count * $Percentile) - 1)
+        return $orderedValues[$index]
+    }
+    return [pscustomobject]@{
+        sample_count = $orderedValues.Count
+        min = $orderedValues[0]
+        p50 = & $nearestRank 0.50
+        p95 = & $nearestRank 0.95
+        max = $orderedValues[$orderedValues.Count - 1]
+        mean = ($orderedValues | Measure-Object -Average).Average
+    }
+}
+
+function Export-ViewportPointerMetrics {
+    param([string]$ProfileDir)
+
+    $timelinePath = Join-Path $ProfileDir "timeline.zrtrace.json"
+    if (-not (Test-Path -LiteralPath $timelinePath)) {
+        return $null
+    }
+    $timeline = Get-Content -LiteralPath $timelinePath -Raw | ConvertFrom-Json
+    $queryDurations = @($timeline.spans |
+            Where-Object {
+                $_.stream -eq "editor" -and
+                $_.category -eq "viewport.pointer" -and
+                $_.name -eq "visible_spatial_query"
+            } |
+            ForEach-Object { [double]$_.duration_us })
+    $counterNames = @(
+        "viewport.pointer.visible_spatial_query_visited_node_count",
+        "viewport.pointer.visible_spatial_query_candidate_count",
+        "viewport.pointer.visible_spatial_query_hit_count",
+        "viewport.pointer.visible_spatial_query_projected_candidate_count"
+    )
+    $counterMetrics = @(
+        foreach ($counterName in $counterNames) {
+            $summary = Get-ViewportPointerMetricSummary -Values @($timeline.counters |
+                    Where-Object {
+                        $_.stream -eq "editor" -and $_.name -eq $counterName
+                    } |
+                    ForEach-Object { [double]$_.value })
+            if ($null -ne $summary) {
+                [pscustomobject]@{
+                    name = $counterName
+                    values = $summary
+                }
+            }
+        }
+    )
+    $metrics = [pscustomobject]@{
+        schema_version = 1
+        query_duration_us = Get-ViewportPointerMetricSummary -Values $queryDurations
+        counters = $counterMetrics
+    }
+    $metrics | ConvertTo-Json -Depth 6 |
+        Set-Content -LiteralPath (Join-Path $ProfileDir "viewport_pointer_metrics.json") -Encoding UTF8
+    return $metrics
+}
+
+function Test-ViewportPointerMetricsGate {
+    param(
+        [string]$ProfileDir,
+        [string]$ScenarioName
+    )
+
+    if ($ScenarioName.Trim().ToLowerInvariant() -ne "viewport_pointer") {
+        return $true
+    }
+    $metricsPath = Join-Path $ProfileDir "viewport_pointer_metrics.json"
+    if (-not (Test-Path -LiteralPath $metricsPath)) {
+        Write-Warning "Viewport pointer gate requires spatial-query metrics."
+        return $false
+    }
+    $metrics = Get-Content -LiteralPath $metricsPath -Raw | ConvertFrom-Json
+    if ($null -eq $metrics.query_duration_us -or
+        [int64]$metrics.query_duration_us.sample_count -le 0) {
+        Write-Warning "Viewport pointer gate requires at least one renderer-visible spatial-query span."
+        return $false
+    }
+    $expectedCounterNames = @(
+        "viewport.pointer.visible_spatial_query_visited_node_count",
+        "viewport.pointer.visible_spatial_query_candidate_count",
+        "viewport.pointer.visible_spatial_query_hit_count",
+        "viewport.pointer.visible_spatial_query_projected_candidate_count"
+    )
+    foreach ($counterName in $expectedCounterNames) {
+        $counter = @($metrics.counters | Where-Object { $_.name -eq $counterName } | Select-Object -First 1)
+        if ($counter.Count -ne 1 -or $null -eq $counter[0].values -or
+            [int64]$counter[0].values.sample_count -le 0) {
+            Write-Warning "Viewport pointer gate is missing counter evidence: $counterName"
+            return $false
+        }
+    }
+    return $true
 }
 
 function Export-UiHitConsistency {
@@ -879,6 +1021,21 @@ function Test-ScreenshotDiffGate {
     return $true
 }
 
+function Get-UiCounterTotal {
+    param(
+        [object[]]$Counters,
+        [string[]]$Names
+    )
+
+    $values = @($Counters |
+            Where-Object { $_.name -in $Names } |
+            ForEach-Object { [double]$_.value })
+    if ($values.Count -eq 0) {
+        return 0.0
+    }
+    return [double](($values | Measure-Object -Sum).Sum)
+}
+
 function Test-AssetRefreshCounterGate {
     param(
         [string]$ProfileDir,
@@ -910,27 +1067,20 @@ function Test-AssetRefreshCounterGate {
         Write-Warning "Scenario 'asset_refresh' did not record any asset/editor/resource change counter."
         return $false
     }
-    $fullInvalidationCount = [double](@($snapshot.counters) |
-            Where-Object { $_.name -eq "ui.asset_refresh.visual_asset_full_invalidation_count" } |
-            Measure-Object -Property value -Sum).Sum
-    $targetedInvalidationCount = [double](@($snapshot.counters) |
-            Where-Object { $_.name -in @(
-                    "ui.asset_refresh.visual_asset_targeted_invalidation_count",
-                    "ui.asset_refresh.svg_tree_targeted_invalidation_count"
-                ) } |
-            Measure-Object -Property value -Sum).Sum
-    $reconcileVisitCount = [double](@($snapshot.counters) |
-            Where-Object { $_.name -in @(
-                    "ui.asset_refresh.visual_asset_reconcile_source_visit_count",
-                    "ui.asset_refresh.svg_tree_reconcile_source_visit_count"
-                ) } |
-            Measure-Object -Property value -Sum).Sum
-    $reconciledInvalidationCount = [double](@($snapshot.counters) |
-            Where-Object { $_.name -in @(
-                    "ui.asset_refresh.visual_asset_reconciled_invalidation_count",
-                    "ui.asset_refresh.svg_tree_reconciled_invalidation_count"
-                ) } |
-            Measure-Object -Property value -Sum).Sum
+    $fullInvalidationCount = Get-UiCounterTotal -Counters @($snapshot.counters) `
+        -Names @("ui.asset_refresh.visual_asset_full_invalidation_count")
+    $targetedInvalidationCount = Get-UiCounterTotal -Counters @($snapshot.counters) -Names @(
+        "ui.asset_refresh.visual_asset_targeted_invalidation_count",
+        "ui.asset_refresh.svg_tree_targeted_invalidation_count"
+    )
+    $reconcileVisitCount = Get-UiCounterTotal -Counters @($snapshot.counters) -Names @(
+        "ui.asset_refresh.visual_asset_reconcile_source_visit_count",
+        "ui.asset_refresh.svg_tree_reconcile_source_visit_count"
+    )
+    $reconciledInvalidationCount = Get-UiCounterTotal -Counters @($snapshot.counters) -Names @(
+        "ui.asset_refresh.visual_asset_reconciled_invalidation_count",
+        "ui.asset_refresh.svg_tree_reconciled_invalidation_count"
+    )
     Write-Host ("- asset_refresh_targeted_invalidation={0} reconcile_visits={1} reconciled_invalidation={2} full_invalidation={3}" -f `
             $targetedInvalidationCount, $reconcileVisitCount,
             $reconciledInvalidationCount, $fullInvalidationCount)
@@ -954,13 +1104,16 @@ function Test-UiSurfaceLatencyEvidenceGate {
     )
 
     $interactionScenario = Resolve-InteractionScenarioName -ScenarioName $ScenarioName
+    $clickCount = Get-Variable -Name AutoClickCount -Scope Script -ValueOnly -ErrorAction SilentlyContinue
+    $pointerMoveCount = Get-Variable -Name AutoPointerMoveCount -Scope Script -ValueOnly -ErrorAction SilentlyContinue
+    $wheelCount = Get-Variable -Name AutoWheelCount -Scope Script -ValueOnly -ErrorAction SilentlyContinue
     return Test-ZirconUiSurfaceLatencyEvidenceGate `
         -ProfileDir $ProfileDir `
         -ScenarioName $ScenarioName `
         -InteractionScenarioName $interactionScenario `
-        -AutoClickCount $AutoClickCount `
-        -AutoPointerMoveCount $AutoPointerMoveCount `
-        -AutoWheelCount $AutoWheelCount
+        -AutoClickCount $(if ($null -eq $clickCount) { 0 } else { [int]$clickCount }) `
+        -AutoPointerMoveCount $(if ($null -eq $pointerMoveCount) { 0 } else { [int]$pointerMoveCount }) `
+        -AutoWheelCount $(if ($null -eq $wheelCount) { 0 } else { [int]$wheelCount })
 }
 
 function Test-InteractionProcessEvidence {
@@ -1028,9 +1181,7 @@ function Test-WindowResizeCounterGate {
             "ui.window_resize.shell_drag_dispatcher_rebuild_count",
             "ui.window_resize.shell_drag_route_map_rebuild_count"
         )) {
-        $counterTotals[$name] = [double](@($snapshot.counters) |
-                Where-Object { $_.name -eq $name } |
-                Measure-Object -Property value -Sum).Sum
+        $counterTotals[$name] = Get-UiCounterTotal -Counters @($snapshot.counters) -Names @($name)
     }
     $buildCount = $counterTotals["ui.window_resize.command_snapshot_build_count"]
     $reuseCount = $counterTotals["ui.window_resize.command_snapshot_reuse_count"]
@@ -1129,9 +1280,7 @@ function Test-HierarchyScrollCounterGate {
             "ui.idle_hover.hierarchy_dispatcher_rebuild_count",
             "ui.idle_hover.hierarchy_route_map_rebuild_count"
         )) {
-        $counterTotals[$name] = [double](@($snapshot.counters) |
-                Where-Object { $_.name -eq $name } |
-                Measure-Object -Property value -Sum).Sum
+        $counterTotals[$name] = Get-UiCounterTotal -Counters @($snapshot.counters) -Names @($name)
     }
 
     $dispatchCount = $counterTotals["ui.idle_hover.hierarchy_scroll_dispatch_count"]
@@ -1195,9 +1344,7 @@ function Test-WelcomeRecentScrollCounterGate {
             "ui.idle_hover.welcome_recent_dispatcher_rebuild_count",
             "ui.idle_hover.welcome_recent_route_map_rebuild_count"
         )) {
-        $counterTotals[$name] = [double](@($snapshot.counters) |
-                Where-Object { $_.name -eq $name } |
-                Measure-Object -Property value -Sum).Sum
+        $counterTotals[$name] = Get-UiCounterTotal -Counters @($snapshot.counters) -Names @($name)
     }
 
     $dispatchCount = $counterTotals["ui.idle_hover.welcome_recent_scroll_dispatch_count"]
@@ -1240,7 +1387,7 @@ function Test-UiInteractionEvidenceGate {
     $normalizedScenario = $ScenarioName.Trim().ToLowerInvariant()
     $interactionScenario = Resolve-InteractionScenarioName -ScenarioName $ScenarioName
     $requiresClickStorm = $interactionScenario -eq "click" -and $AutoClickCount -gt 0
-    $requiresPointerStorm = $normalizedScenario -in @("idle_hover", "material_lab_hover") -and
+    $requiresPointerStorm = $normalizedScenario -in @("idle_hover", "material_lab_hover", "viewport_pointer") -and
         $AutoPointerMoveCount -gt 0
     $requiresWheelStorm = $normalizedScenario -in @("hierarchy_scroll", "welcome_recent_scroll") -and
         $AutoWheelCount -gt 0
@@ -1345,6 +1492,16 @@ function Test-UiInteractionEvidenceGate {
                 })
             if ($nonTemplateTargets.Count -gt 0) {
                 Write-Warning "Material Lab pointer storm included a target outside the dispatchable template-control set."
+                return $false
+            }
+        }
+        if ($normalizedScenario -eq "viewport_pointer") {
+            $nonViewportTargets = @($targets | Where-Object {
+                    $_.target_kind -ne "scene_viewport" -or
+                    $_.target_surface -ne "document"
+                })
+            if ($nonViewportTargets.Count -gt 0) {
+                Write-Warning "Viewport pointer storm included a target outside the Scene Viewport frame."
                 return $false
             }
         }
@@ -1805,6 +1962,37 @@ function Get-LiveGeometryScrollTargets {
         })
 }
 
+function Get-LiveGeometryViewportPointerTargets {
+    param(
+        [ZirconProfileCaptureRect]$Rect,
+        [object]$Geometry
+    )
+
+    $frame = $Geometry.viewport_frame
+    if ($null -eq $frame -or [double]$frame.width -le 0 -or [double]$frame.height -le 0) {
+        return @()
+    }
+    $probes = @(
+        @{ id = "scene_viewport.center"; x_ratio = 0.50; y_ratio = 0.50 },
+        @{ id = "scene_viewport.corner"; x_ratio = 0.94; y_ratio = 0.94 }
+    )
+    return @($probes | ForEach-Object {
+            $point = Get-CapturePointFromFrame `
+                -Rect $Rect `
+                -Frame $frame `
+                -XRatio $_.x_ratio `
+                -YRatio $_.y_ratio
+            [pscustomobject]@{
+                X = $point.X
+                Y = $point.Y
+                target_id = $_.id
+                target_kind = "scene_viewport"
+                target_surface = "document"
+                source = "ui_profile_geometry.json"
+            }
+        })
+}
+
 function Get-WelcomeRecentScrollTargets {
     param(
         [ZirconProfileCaptureRect]$Rect,
@@ -1921,7 +2109,11 @@ function Invoke-AutoScenarioInteraction {
     switch ($interactionKind) {
         "idle_hover" {
             $templateControlsOnly = $normalizedScenario -eq "material_lab_hover"
-            $pointerTargets = if ($null -ne $geometry) {
+            $viewportPointerOnly = $normalizedScenario -eq "viewport_pointer"
+            $pointerTargets = if ($null -ne $geometry -and $viewportPointerOnly) {
+                @(Get-LiveGeometryViewportPointerTargets -Rect $rect -Geometry $geometry)
+            }
+            elseif ($null -ne $geometry) {
                 @(Get-LiveGeometryInteractionTargets -Rect $rect -Geometry $geometry -TemplateControlsOnly:$templateControlsOnly)
             }
             else {
@@ -2184,6 +2376,13 @@ function Resolve-EditorCaptureArguments {
         }
         return @("--project", $projectRoot)
     }
+    if ($normalizedScenario -eq "viewport_pointer" -and $ViewportSelectableNodeCount -gt 0) {
+        $projectRoot = Resolve-ProfileProjectRoot -SessionId $SessionId
+        if (-not (Test-Path -LiteralPath $projectRoot -PathType Container)) {
+            throw "Viewport pointer scale project was not materialized before Editor launch: $projectRoot"
+        }
+        return @("--project", $projectRoot)
+    }
     if ($normalizedScenario -eq "asset_refresh" -and $AssetCatalogItemCount -gt 0) {
         $projectRoot = Resolve-ProfileProjectRoot -SessionId $SessionId
         if (-not (Test-Path -LiteralPath $projectRoot -PathType Container)) {
@@ -2197,7 +2396,7 @@ function Resolve-EditorCaptureArguments {
             "editor.material_component_lab"
         )
     }
-    if ($normalizedScenario -notin @("idle_hover", "viewport_toolbar_click", "viewport_image", "drag", "drawer_resize", "window_resize", "hierarchy_scroll", "asset_refresh")) {
+    if ($normalizedScenario -notin @("idle_hover", "viewport_toolbar_click", "viewport_pointer", "viewport_image", "drag", "drawer_resize", "window_resize", "hierarchy_scroll", "asset_refresh")) {
         return @()
     }
 
@@ -2217,7 +2416,7 @@ function Resolve-EditorCaptureArguments {
 function Test-ScenarioUsesProfileProject {
     param([string]$ScenarioName)
     $normalizedScenario = $ScenarioName.Trim().ToLowerInvariant()
-    return $normalizedScenario -in @("idle_hover", "viewport_toolbar_click", "viewport_image", "drag", "drawer_resize", "window_resize", "hierarchy_scroll", "asset_refresh")
+    return $normalizedScenario -in @("idle_hover", "viewport_toolbar_click", "viewport_pointer", "viewport_image", "drag", "drawer_resize", "window_resize", "hierarchy_scroll", "asset_refresh")
 }
 
 function Invoke-EditorCapture {
@@ -2235,7 +2434,12 @@ function Invoke-EditorCapture {
     else {
         $editorArguments = Resolve-EditorCaptureArguments -ScenarioName $ScenarioName -SessionId $SessionId
     }
-    $profileDir = if ([string]::IsNullOrWhiteSpace($SessionId)) { $null } else { Join-Path $OutputPath $SessionId }
+    $profileDir = if ([string]::IsNullOrWhiteSpace($SessionId)) {
+        $null
+    }
+    else {
+        Join-Path $OutputPath (ConvertTo-ZirconProfileSessionBasename -SessionId $SessionId)
+    }
 
     if ($AutoCloseSeconds -le 0) {
         & $EditorExe @editorArguments
@@ -2330,7 +2534,7 @@ function Invoke-SoftbufferScreenshotCapture {
     $previousCapture = $env:ZIRCON_PROFILE_CAPTURE
     $previousSession = $env:ZIRCON_PROFILE_SESSION
     $previousForceSoftbuffer = $env:ZIRCON_PROFILE_FORCE_SOFTBUFFER
-    $profileDir = Join-Path $OutputPath $SessionId
+    $profileDir = Join-Path $OutputPath (ConvertTo-ZirconProfileSessionBasename -SessionId $SessionId)
     $interactionEvidencePath = Join-Path $profileDir "ui_interaction_evidence.json"
     $primaryInteractionEvidence = if (Test-Path $interactionEvidencePath) {
         Get-Content -Path $interactionEvidencePath -Raw
@@ -2401,11 +2605,15 @@ if ($HierarchyLogicalNodeCount -gt 0 -and
     @($captureScenarios | Where-Object { $_.Trim().ToLowerInvariant() -ne "hierarchy_scroll" }).Count -gt 0) {
     throw "Hierarchy scale inputs are valid only for the hierarchy_scroll scenario."
 }
+if ($ViewportSelectableNodeCount -gt 0 -and
+    @($captureScenarios | Where-Object { $_.Trim().ToLowerInvariant() -ne "viewport_pointer" }).Count -gt 0) {
+    throw "Viewport pointer scale inputs are valid only for the viewport_pointer scenario."
+}
 if ($AssetCatalogItemCount -gt 0 -and
     @($captureScenarios | Where-Object { $_.Trim().ToLowerInvariant() -ne "asset_refresh" }).Count -gt 0) {
     throw "Asset catalog scale inputs are valid only for the asset_refresh scenario."
 }
-if ($HierarchyLogicalNodeCount -gt 0 -and $AssetCatalogItemCount -gt 0) {
+if ((@($HierarchyLogicalNodeCount, $ViewportSelectableNodeCount, $AssetCatalogItemCount) | Where-Object { $_ -gt 0 }).Count -gt 1) {
     throw "Only one UI profile scale input can be active for a capture."
 }
 
@@ -2439,7 +2647,7 @@ try {
                 'fresh_process_startup'
             }
             $SessionId = "$(Get-Date -Format 'yyyyMMdd-HHmmss')-$scenarioName-$runPhase-$('{0:D2}' -f $phaseRunOrdinal)"
-            $ProfileDir = Join-Path $OutputPath $SessionId
+            $ProfileDir = Join-Path $OutputPath (ConvertTo-ZirconProfileSessionBasename -SessionId $SessionId)
             $wprStarted = $false
             $SoftbufferSessionId = $null
             $inputFixture = $null
@@ -2450,6 +2658,13 @@ try {
                 -RepoRoot $RepoRoot `
                 -ProjectRoot (Resolve-ProfileProjectRoot -SessionId $SessionId) `
                 -LogicalNodeCount $HierarchyLogicalNodeCount
+        }
+        elseif ($ViewportSelectableNodeCount -gt 0) {
+            $inputFixture = New-ZirconViewportPointerScaleFixture `
+                -RepoRoot $RepoRoot `
+                -ProjectRoot (Resolve-ProfileProjectRoot -SessionId $SessionId) `
+                -SelectableNodeCount $ViewportSelectableNodeCount `
+                -Mobility $ViewportSceneMobility
         }
         elseif ($AssetCatalogItemCount -gt 0) {
             $inputFixture = New-ZirconUiAssetCatalogScaleFixture `
@@ -2489,6 +2704,8 @@ try {
                 auto_wheel_count = $AutoWheelCount
                 auto_wheel_delay_ms = $AutoWheelDelayMs
                 hierarchy_logical_node_count = $HierarchyLogicalNodeCount
+                viewport_selectable_node_count = $ViewportSelectableNodeCount
+                viewport_scene_mobility = $ViewportSceneMobility
                 asset_catalog_item_count = $AssetCatalogItemCount
                 requested_wheel_operation_count = $requestedWheelOperationCount
                 auto_resize_step_count = $AutoResizeStepCount
@@ -2544,6 +2761,7 @@ try {
             Show-ProfileSummary $ProfileDir
             $scenarioEvidenceOk = Show-UiScenarioEvidence -ProfileDir $ProfileDir -ScenarioName $scenarioName
             Export-UiBatchMetrics -ProfileDir $ProfileDir -ScenarioName $scenarioName
+            Export-ViewportPointerMetrics -ProfileDir $ProfileDir | Out-Null
             Export-UiHitConsistency -ProfileDir $ProfileDir
             Export-ScreenshotDiff -ProfileDir $ProfileDir
             Export-UiSurfacePresentOutcomeEvidence -ProfileDir $ProfileDir
@@ -2555,6 +2773,7 @@ try {
             $hierarchyScrollOk = Test-HierarchyScrollCounterGate -ProfileDir $ProfileDir -ScenarioName $scenarioName
             $welcomeRecentScrollOk = Test-WelcomeRecentScrollCounterGate -ProfileDir $ProfileDir -ScenarioName $scenarioName
             $interactionEvidenceOk = Test-UiInteractionEvidenceGate -ProfileDir $ProfileDir -ScenarioName $scenarioName
+            $viewportPointerMetricsOk = Test-ViewportPointerMetricsGate -ProfileDir $ProfileDir -ScenarioName $scenarioName
             $surfaceLatencyOk = Test-UiSurfaceLatencyEvidenceGate -ProfileDir $ProfileDir -ScenarioName $scenarioName
             Export-SoftbufferRunManifest -ProfileDir $ProfileDir -SoftbufferSessionId $SoftbufferSessionId
             $verificationScreenshotDir = if ($runPhase -eq 'measured') {
@@ -2566,7 +2785,7 @@ try {
             if ($null -ne $verificationScreenshotDir) {
                 Write-Host "Verification screenshots: $verificationScreenshotDir"
             }
-            if ($RequireScenarioEvidence -and $runPhase -eq 'measured' -and -not ($scenarioEvidenceOk -and $batchMetricsOk -and $hitConsistencyOk -and $screenshotDiffOk -and $assetRefreshOk -and $windowResizeOk -and $hierarchyScrollOk -and $welcomeRecentScrollOk -and $interactionEvidenceOk -and $surfaceLatencyOk)) {
+            if ($RequireScenarioEvidence -and $runPhase -eq 'measured' -and -not ($scenarioEvidenceOk -and $batchMetricsOk -and $hitConsistencyOk -and $screenshotDiffOk -and $assetRefreshOk -and $windowResizeOk -and $hierarchyScrollOk -and $welcomeRecentScrollOk -and $interactionEvidenceOk -and $viewportPointerMetricsOk -and $surfaceLatencyOk)) {
                 throw "Scenario '$scenarioName' did not meet the requested evidence gate."
             }
         }

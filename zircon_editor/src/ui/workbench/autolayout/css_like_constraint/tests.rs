@@ -10,9 +10,9 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::{
-    CssLikeConstraint, CssLikeConstraintError, CssLikeConstraintProperty, CssLikeDimension,
-    CssLikeEdges, CssLikeGap, CssLikeGridTrack, CssLikeGridTrackBreadth, CssLikeOverflow,
-    CssLikeSize, family_for_slot_kind,
+    family_for_slot_kind, CssLikeConstraint, CssLikeConstraintError, CssLikeConstraintProperty,
+    CssLikeDimension, CssLikeEdges, CssLikeGap, CssLikeGridTrack, CssLikeGridTrackBreadth,
+    CssLikeOverflow, CssLikeSize,
 };
 
 #[test]

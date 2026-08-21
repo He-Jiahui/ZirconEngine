@@ -40,8 +40,8 @@ fn realtime_ibl_timestamp_encoding_requires_explicit_gpu_timing() {
 }
 
 #[test]
-#[ignore = "full PMREM+SH9 WGPU product validation"]
-fn full_realtime_ibl_graph_records_and_submits_without_wgpu_validation_errors() {
+#[ignore = "time-sliced realtime IBL WGPU product validation"]
+fn capture_ticket_records_and_submits_without_wgpu_validation_errors() {
     let Ok(RenderBackend { device, queue, .. }) = RenderBackend::new_offscreen() else {
         return;
     };
@@ -83,7 +83,7 @@ fn full_realtime_ibl_graph_records_and_submits_without_wgpu_validation_errors() 
     assert!(validation_error.is_none(), "{validation_error:?}");
     assert_eq!(result.report.pass_count, plan.passes.len());
     assert_eq!(result.report.dispatch_count, plan.passes.len());
-    assert_eq!(result.report.dispatch_groups.last(), Some(&[1, 1, 1]));
+    assert_eq!(result.report.dispatch_groups.last(), Some(&[2, 2, 2]));
     assert_eq!(
         result.timestamp_readback.is_some(),
         device.features().contains(

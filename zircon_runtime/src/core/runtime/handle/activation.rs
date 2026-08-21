@@ -47,15 +47,21 @@ impl CoreHandle {
             let Some(entry) = modules.get(module_name) else {
                 return Err(CoreError::MissingModule(module_name.clone()));
             };
-            if !matches!(
-                entry.lifecycle,
-                LifecycleState::Registered | LifecycleState::Running | LifecycleState::Unloaded
-            ) {
-                return Err(CoreError::InvalidModuleLifecycleTransition {
-                    module: module_name.clone(),
-                    command: ModuleLifecycleCommand::Activate.as_str(),
-                    state: entry.lifecycle,
-                });
+            match entry.lifecycle {
+                LifecycleState::Registered
+                | LifecycleState::Running
+                | LifecycleState::Unloaded
+                | LifecycleState::Initializing => {}
+                state => {
+                    // Stopping is a committed or poisoned stop. Reject the whole
+                    // activation closure here so an unloaded dependency is not
+                    // rebuilt before the terminal target is refused.
+                    return Err(CoreError::InvalidModuleLifecycleTransition {
+                        module: module_name.clone(),
+                        command: ModuleLifecycleCommand::Activate.as_str(),
+                        state,
+                    });
+                }
             }
         }
         Ok(())

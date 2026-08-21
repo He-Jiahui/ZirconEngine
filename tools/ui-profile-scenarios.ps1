@@ -8,6 +8,7 @@ function Get-ZirconUiProfileCaptureScenarioDefinitions {
         [pscustomobject]@{ id = 'idle_hover'; instruction = 'Move the pointer slowly across toolbar, hierarchy rows, inspector fields, and tabs for several seconds, then close.'; include_in_all = $true }
         [pscustomobject]@{ id = 'click'; instruction = 'Click toolbar buttons, hierarchy rows, tabs, and inspector controls, then close.'; include_in_all = $true }
         [pscustomobject]@{ id = 'viewport_toolbar_click'; instruction = 'Click source-bound controls in the live scene viewport toolbar, then close.'; include_in_all = $true }
+        [pscustomobject]@{ id = 'viewport_pointer'; instruction = 'Sweep the source-bound Scene Viewport center and corner probes, then close.'; include_in_all = $true }
         [pscustomobject]@{ id = 'drag'; instruction = 'Drag selection or draggable editor controls where available, then close.'; include_in_all = $true }
         [pscustomobject]@{ id = 'drawer_resize'; instruction = 'Drag side or bottom pane splitters repeatedly, then close.'; include_in_all = $true }
         [pscustomobject]@{ id = 'window_resize'; instruction = 'Resize the native editor window repeatedly, restore its original extent, then close.'; include_in_all = $true }

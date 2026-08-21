@@ -18,7 +18,7 @@ fn realtime_runtime_defers_gpu_resource_creation_until_a_procedural_frame() {
 }
 
 #[test]
-fn first_procedural_frame_initializes_realtime_gpu_resources_and_starts_full_batch() {
+fn first_procedural_frame_initializes_realtime_gpu_resources_and_starts_a_ticket() {
     let backend = RenderBackend::new_offscreen()
         .expect("offscreen backend required for the first procedural realtime IBL frame");
     let mut runtime = RealtimeIblRuntime::new();
@@ -26,40 +26,37 @@ fn first_procedural_frame_initializes_realtime_gpu_resources_and_starts_full_bat
     let prepared = runtime.prepare_frame(&backend.device, ProceduralSkyParams::default_gradient());
 
     assert!(runtime.is_gpu_initialized());
-    assert!(prepared
-        .batch
-        .as_ref()
-        .is_some_and(|batch| batch.is_full_update()));
+    assert!(prepared.batch.is_some());
+    assert!(!prepared.uses_realtime_resources());
 }
 
 #[test]
-fn initial_frame_samples_the_work_slot_written_before_scene_draws() {
+fn initial_ticket_keeps_sampling_on_procedural_fallback() {
     let mut scheduler = RealtimeIblTimeSliceScheduler::new(
         RealtimeIblTimeSliceConfig::try_new(8, 2).expect("valid test config"),
     );
     scheduler.request_rebake(ProceduralSkyParams::default_gradient().ibl_bake_key());
-    let batch = scheduler.begin_frame(1).expect("initial batch");
+    let _batch = scheduler.begin_frame(1).expect("initial batch");
 
-    assert!(batch.is_full_update());
-    assert_eq!(sampling_slot_for_batch(&batch), batch.work_slot());
+    assert!(!scheduler.has_published_environment());
 }
 
 #[test]
-fn sliced_update_keeps_sampling_the_published_ready_slot() {
+fn ticket_update_keeps_sampling_the_published_ready_slot() {
     let sky = ProceduralSkyParams::default_gradient();
     let mut scheduler = RealtimeIblTimeSliceScheduler::new(
         RealtimeIblTimeSliceConfig::try_new(8, 2).expect("valid test config"),
     );
     scheduler.request_rebake(sky.ibl_bake_key());
-    let initial = scheduler.begin_frame(1).expect("initial batch");
-    scheduler.complete_frame(initial.token(), true);
+    let mut frame_number = 1;
+    complete_pending_realtime_ibl_rebake(&mut scheduler, &mut frame_number);
     let mut changed = sky;
     changed.horizon_color.x += 0.1;
     scheduler.request_rebake(changed.ibl_bake_key());
-    let sliced = scheduler.begin_frame(2).expect("sliced batch");
+    let sliced = scheduler.begin_frame(frame_number).expect("ticket batch");
 
-    assert!(!sliced.is_full_update());
-    assert_eq!(sampling_slot_for_batch(&sliced), sliced.ready_slot());
+    assert!(scheduler.has_published_environment());
+    assert_eq!(sliced.ready_slot(), scheduler.ready_slot());
 }
 
 #[test]
@@ -91,10 +88,10 @@ fn operation_label_preserves_realtime_ibl_stage_order() {
             RealtimeIblOperation::CaptureSky(
                 super::super::realtime_ibl_time_slice::CubeFaceRange::ALL,
             ),
-            RealtimeIblOperation::GenerateSourceMips,
+            RealtimeIblOperation::GenerateSourceMip { mip_level: 1 },
             RealtimeIblOperation::ProjectDiffuseSh9,
         ]),
-        "capture_sky+source_mips+diffuse_sh9"
+        "capture_sky+source_mip+diffuse_sh9"
     );
 }
 
@@ -192,9 +189,71 @@ fn realtime_ibl_compiled_graph_cache_reuses_an_unchanged_topology() {
             cache_hit_count: 2,
             cache_miss_count: 1,
             compile_count: 1,
+            eviction_count: 0,
             variant_count: 1,
         }
     );
+}
+
+#[test]
+fn realtime_ibl_compiled_graph_cache_bounds_two_ticket_slot_topologies() {
+    let first_sky = ProceduralSkyParams::default_gradient();
+    let mut second_sky = first_sky;
+    second_sky.source_revision = 2;
+    let mut third_sky = second_sky;
+    third_sky.source_revision = 3;
+    let mut scheduler = RealtimeIblTimeSliceScheduler::new(
+        RealtimeIblTimeSliceConfig::try_new(8, 2).expect("valid realtime IBL scheduler config"),
+    );
+    let mut cache = RealtimeIblCompiledGraphCache::new();
+    let mut frame_number = 1;
+
+    scheduler.request_rebake(first_sky.ibl_bake_key());
+    resolve_pending_realtime_ibl_ticket(
+        &mut cache,
+        &mut scheduler,
+        &IblBakeArtifactRequest::new(
+            first_sky.ibl_bake_key(),
+            SOURCE_CUBEMAP_PMREM_FACE_SIZE,
+            SOURCE_CUBEMAP_PMREM_MIP_COUNT,
+        ),
+        &mut frame_number,
+    );
+    scheduler.request_rebake(second_sky.ibl_bake_key());
+    resolve_pending_realtime_ibl_ticket(
+        &mut cache,
+        &mut scheduler,
+        &IblBakeArtifactRequest::new(
+            second_sky.ibl_bake_key(),
+            SOURCE_CUBEMAP_PMREM_FACE_SIZE,
+            SOURCE_CUBEMAP_PMREM_MIP_COUNT,
+        ),
+        &mut frame_number,
+    );
+
+    assert_eq!(cache.stats().variant_count, 42);
+    assert_eq!(cache.stats().compile_count, 42);
+    assert_eq!(cache.stats().eviction_count, 0);
+
+    scheduler.request_rebake(third_sky.ibl_bake_key());
+    let repeated = scheduler
+        .begin_frame(frame_number)
+        .expect("third ticket must restart at the first topology");
+    cache
+        .resolve(
+            &IblBakeArtifactRequest::new(
+                third_sky.ibl_bake_key(),
+                SOURCE_CUBEMAP_PMREM_FACE_SIZE,
+                SOURCE_CUBEMAP_PMREM_MIP_COUNT,
+            ),
+            &repeated,
+        )
+        .expect("completed ticket topology must remain cached");
+
+    assert_eq!(cache.stats().variant_count, 42);
+    assert_eq!(cache.stats().compile_count, 42);
+    assert_eq!(cache.stats().cache_hit_count, 1);
+    assert_eq!(cache.stats().eviction_count, 0);
 }
 
 #[test]
@@ -314,7 +373,7 @@ fn realtime_ibl_compiled_graph_cache_distinguishes_buffer_slot_topologies() {
 }
 
 #[test]
-fn realtime_ibl_compiled_graph_cache_distinguishes_request_geometry() {
+fn realtime_ibl_compiled_graph_cache_invalidates_stale_request_geometry() {
     let sky = ProceduralSkyParams::default_gradient();
     let first_request = IblBakeArtifactRequest::new(sky.ibl_bake_key(), 16, 5);
     let second_request = IblBakeArtifactRequest::new(sky.ibl_bake_key(), 32, 5);
@@ -346,7 +405,7 @@ fn realtime_ibl_compiled_graph_cache_distinguishes_request_geometry() {
     assert_eq!(first.operations(), second.operations());
     assert_eq!(first.ready_slot(), second.ready_slot());
     assert_eq!(first.work_slot(), second.work_slot());
-    assert_eq!(cache.stats().variant_count, 2);
+    assert_eq!(cache.stats().variant_count, 1);
     assert_eq!(cache.stats().compile_count, 2);
 }
 
@@ -358,6 +417,24 @@ fn complete_pending_realtime_ibl_rebake(
         let batch = scheduler
             .begin_frame(*frame_number)
             .expect("pending realtime IBL rebake must yield a batch");
+        *frame_number += 1;
+        scheduler.complete_frame(batch.token(), true);
+    }
+}
+
+fn resolve_pending_realtime_ibl_ticket(
+    cache: &mut RealtimeIblCompiledGraphCache,
+    scheduler: &mut RealtimeIblTimeSliceScheduler,
+    request: &IblBakeArtifactRequest,
+    frame_number: &mut u64,
+) {
+    while scheduler.is_rebake_pending() {
+        let batch = scheduler
+            .begin_frame(*frame_number)
+            .expect("pending realtime IBL rebake must yield a batch");
+        cache
+            .resolve(request, &batch)
+            .expect("ticket topology must compile or reuse");
         *frame_number += 1;
         scheduler.complete_frame(batch.token(), true);
     }

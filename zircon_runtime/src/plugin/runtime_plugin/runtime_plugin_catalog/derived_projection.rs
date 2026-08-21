@@ -4,7 +4,7 @@ use std::time::Instant;
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::plugin::PluginModuleKind;
 
-use super::bridge_dependencies::{bridge_dependency_diagnostics, RuntimePluginBridgeDependent};
+use super::bridge_dependencies::{RuntimePluginBridgeDependent, bridge_dependency_diagnostics};
 use super::feature_capabilities::feature_capabilities_for_target;
 use super::feature_definition_collection::feature_definition_map;
 use super::feature_definitions::{FeatureDefinition, FeatureDefinitionMap};
@@ -15,6 +15,7 @@ pub(super) struct RuntimePluginCatalogProjection {
     feature_definitions: FeatureDefinitionMap,
     registration_indices_by_package: HashMap<String, usize>,
     feature_registration_indices_by_id: HashMap<String, Vec<usize>>,
+    concrete_feature_provider_keys: HashSet<String>,
     feature_definition_keys_by_owner: HashMap<String, Vec<String>>,
     runtime_modules_by_provider: HashMap<String, Vec<String>>,
     providers_by_runtime_module: HashMap<String, String>,
@@ -118,6 +119,10 @@ impl RuntimePluginCatalogProjection {
             .get(feature_id)
             .map(Vec::as_slice)
             .unwrap_or_default()
+    }
+
+    pub(super) fn has_concrete_feature_provider(&self, definition_key: &str) -> bool {
+        self.concrete_feature_provider_keys.contains(definition_key)
     }
 
     pub(super) fn runtime_modules_for_provider(&self, provider_package_id: &str) -> &[String] {
@@ -275,6 +280,11 @@ impl RuntimePluginCatalogProjection {
         feature_registrations: &[RuntimePluginFeatureRegistrationReport],
     ) {
         for (index, registration) in feature_registrations.iter().enumerate() {
+            self.concrete_feature_provider_keys.insert(format!(
+                "{}@{}",
+                registration.manifest.id,
+                registration.provider_package_id_or_owner()
+            ));
             self.feature_registration_indices_by_id
                 .entry(registration.manifest.id.clone())
                 .or_default()
@@ -332,6 +342,7 @@ impl RuntimePluginCatalogProjection {
             + self.feature_definitions.definition_order.len()
             + self.registration_indices_by_package.len()
             + self.feature_registration_indices_by_id.len()
+            + self.concrete_feature_provider_keys.len()
             + self
                 .feature_registration_indices_by_id
                 .values()
@@ -383,6 +394,11 @@ impl RuntimePluginCatalogProjection {
                 .sum::<usize>()
             + map_string_key_bytes(&self.registration_indices_by_package)
             + map_string_vec_bytes(&self.feature_registration_indices_by_id, |_| 0)
+            + self
+                .concrete_feature_provider_keys
+                .iter()
+                .map(String::len)
+                .sum::<usize>()
             + map_string_vec_bytes(&self.feature_definition_keys_by_owner, String::len)
             + map_string_vec_bytes(&self.runtime_modules_by_provider, String::len)
             + self

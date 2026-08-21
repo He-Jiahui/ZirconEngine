@@ -279,24 +279,20 @@ mod tests {
             let window = stack.window(kind).expect("feature editor window");
             assert_eq!(window.dock_policy, EditorWindowDockPolicy::FloatingAllowed);
             assert!(!window.primary_views.is_empty());
-            assert!(
-                window
-                    .drawer_views
-                    .iter()
-                    .any(|view| view == "editor.inspector")
-            );
+            assert!(window
+                .drawer_views
+                .iter()
+                .any(|view| view == "editor.inspector"));
         }
 
         let workbench = stack
             .window(EditorFunctionalWindowKind::Workbench)
             .expect("workbench window");
         assert_eq!(workbench.dock_policy, EditorWindowDockPolicy::MainWorkbench);
-        assert!(
-            workbench
-                .drawer_views
-                .iter()
-                .any(|view| view == "editor.hierarchy")
-        );
+        assert!(workbench
+            .drawer_views
+            .iter()
+            .any(|view| view == "editor.hierarchy"));
     }
 
     #[test]
@@ -305,68 +301,46 @@ mod tests {
 
         let hierarchy = stack.panel("editor.hierarchy").expect("hierarchy panel");
         assert_eq!(hierarchy.title, "Hierarchy");
-        assert!(
-            hierarchy
-                .components
-                .contains(&FyroxPanelComponentRole::TreeView)
-        );
-        assert!(
-            hierarchy
-                .components
-                .contains(&FyroxPanelComponentRole::SearchField)
-        );
-        assert!(
-            hierarchy
-                .interactions
-                .contains(&FyroxPanelInteraction::SelectionSync)
-        );
+        assert!(hierarchy
+            .components
+            .contains(&FyroxPanelComponentRole::TreeView));
+        assert!(hierarchy
+            .components
+            .contains(&FyroxPanelComponentRole::SearchField));
+        assert!(hierarchy
+            .interactions
+            .contains(&FyroxPanelInteraction::SelectionSync));
 
         let inspector = stack.panel("editor.inspector").expect("inspector panel");
-        assert!(
-            inspector
-                .components
-                .contains(&FyroxPanelComponentRole::PropertyGrid)
-        );
-        assert!(
-            inspector
-                .components
-                .contains(&FyroxPanelComponentRole::InspectorSection)
-        );
-        assert!(
-            inspector
-                .components
-                .contains(&FyroxPanelComponentRole::FieldEditor)
-        );
+        assert!(inspector
+            .components
+            .contains(&FyroxPanelComponentRole::PropertyGrid));
+        assert!(inspector
+            .components
+            .contains(&FyroxPanelComponentRole::InspectorSection));
+        assert!(inspector
+            .components
+            .contains(&FyroxPanelComponentRole::FieldEditor));
 
         let assets = stack.panel("editor.assets").expect("asset browser panel");
         assert_eq!(assets.title, "Asset Browser");
-        assert!(
-            assets
-                .components
-                .contains(&FyroxPanelComponentRole::FolderTree)
-        );
-        assert!(
-            assets
-                .components
-                .contains(&FyroxPanelComponentRole::AssetGrid)
-        );
-        assert!(
-            assets
-                .components
-                .contains(&FyroxPanelComponentRole::PreviewPane)
-        );
+        assert!(assets
+            .components
+            .contains(&FyroxPanelComponentRole::FolderTree));
+        assert!(assets
+            .components
+            .contains(&FyroxPanelComponentRole::AssetGrid));
+        assert!(assets
+            .components
+            .contains(&FyroxPanelComponentRole::PreviewPane));
 
         let console = stack.panel("editor.console").expect("console panel");
-        assert!(
-            console
-                .components
-                .contains(&FyroxPanelComponentRole::VirtualList)
-        );
-        assert!(
-            console
-                .components
-                .contains(&FyroxPanelComponentRole::SeverityChips)
-        );
+        assert!(console
+            .components
+            .contains(&FyroxPanelComponentRole::VirtualList));
+        assert!(console
+            .components
+            .contains(&FyroxPanelComponentRole::SeverityChips));
     }
 
     #[test]
@@ -436,24 +410,18 @@ mod tests {
             .shell
             .drawer(ActivityDrawerSlot::Bottom)
             .expect("bottom drawer");
-        assert!(
-            bottom
-                .visible_views
-                .iter()
-                .any(|view| view == "editor.console")
-        );
-        assert!(
-            bottom
-                .visible_views
-                .iter()
-                .any(|view| view == "editor.runtime_diagnostics")
-        );
-        assert!(
-            bottom
-                .visible_views
-                .iter()
-                .any(|view| view == "editor.build_export_desktop")
-        );
+        assert!(bottom
+            .visible_views
+            .iter()
+            .any(|view| view == "editor.console"));
+        assert!(bottom
+            .visible_views
+            .iter()
+            .any(|view| view == "editor.runtime_diagnostics"));
+        assert!(bottom
+            .visible_views
+            .iter()
+            .any(|view| view == "editor.build_export_desktop"));
 
         assert!(stack.shell.tab_behavior.reorder_tabs);
         assert!(stack.shell.tab_behavior.activate_on_drop);

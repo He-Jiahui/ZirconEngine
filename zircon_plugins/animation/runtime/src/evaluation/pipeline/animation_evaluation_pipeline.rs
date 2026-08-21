@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::animation::AnimationPoseOutput;
@@ -63,7 +63,7 @@ pub struct AnimationEvaluationPipeline {
     pub(super) projection: AnimationEvaluationProjection,
     pose_target_bindings: PoseTargetBindings,
     presentation_poses: Arc<BTreeMap<EntityId, AnimationPoseOutput>>,
-    pub(super) graph_evaluation_cache: Vec<CachedGraphEvaluation>,
+    pub(super) graph_evaluation_cache: VecDeque<CachedGraphEvaluation>,
     pub(super) graph_evaluation_count: u64,
     pub(super) sequence_cache: BTreeMap<zircon_runtime::asset::AssetId, CachedCompiledSequence>,
     pub(super) graph_cache: BTreeMap<
@@ -253,14 +253,15 @@ impl AnimationEvaluationPipeline {
         evaluation: std::sync::Arc<crate::CompiledAnimationGraphEvaluation>,
     ) {
         if self.graph_evaluation_cache.len() >= GRAPH_EVALUATION_FRAME_CACHE_LIMIT {
-            self.graph_evaluation_cache.remove(0);
+            self.graph_evaluation_cache.pop_front();
         }
-        self.graph_evaluation_cache.push(CachedGraphEvaluation {
-            graph_id,
-            skeleton_id,
-            parameters: parameters.clone(),
-            evaluation,
-        });
+        self.graph_evaluation_cache
+            .push_back(CachedGraphEvaluation {
+                graph_id,
+                skeleton_id,
+                parameters: parameters.clone(),
+                evaluation,
+            });
     }
 
     pub(super) fn update_presentation_poses(
@@ -435,15 +436,24 @@ fn accumulate_clip_evaluator_stats(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeSet;
+    use std::collections::{BTreeSet, VecDeque};
+    use std::hint::black_box;
+    use std::sync::Arc;
+    use std::time::Instant;
 
-    use zircon_runtime::core::framework::animation::{AnimationPoseOutput, AnimationPoseSource};
+    use zircon_runtime::core::framework::animation::{
+        AnimationParameterMap, AnimationPoseOutput, AnimationPoseSource,
+    };
     use zircon_runtime::core::resource::ResourceId;
     use zircon_runtime::scene::AnimationStateTransitionRuntime;
 
-    use crate::{AnimationAssetRevision, AnimationEvaluationError};
+    use crate::{
+        AnimationAssetRevision, AnimationEvaluationError, CompiledAnimationGraphEvaluation,
+    };
 
-    use super::{AnimationEvaluationPipeline, MachineInstanceKey};
+    use super::{
+        AnimationEvaluationPipeline, GRAPH_EVALUATION_FRAME_CACHE_LIMIT, MachineInstanceKey,
+    };
 
     fn pose() -> AnimationPoseOutput {
         AnimationPoseOutput {
@@ -472,6 +482,142 @@ mod tests {
 
         assert!(pipeline.begin_evaluation_frame(2));
         assert!(pipeline.presentation_poses.is_empty());
+    }
+
+    #[test]
+    fn graph_evaluation_frame_cache_preserves_fifo_eviction_order() {
+        let mut pipeline = AnimationEvaluationPipeline::default();
+        let parameters = AnimationParameterMap::default();
+
+        for index in 0..=GRAPH_EVALUATION_FRAME_CACHE_LIMIT {
+            let label = format!("animation.graph.{index}");
+            let graph_id = ResourceId::from_stable_label(&label);
+            pipeline.cache_graph_evaluation(
+                graph_id,
+                graph_id,
+                &parameters,
+                Arc::new(CompiledAnimationGraphEvaluation::default()),
+            );
+        }
+
+        assert_eq!(
+            pipeline.graph_evaluation_cache.len(),
+            GRAPH_EVALUATION_FRAME_CACHE_LIMIT
+        );
+        assert_eq!(
+            pipeline
+                .graph_evaluation_cache
+                .iter()
+                .next()
+                .map(|cached| cached.graph_id),
+            Some(ResourceId::from_stable_label("animation.graph.1"))
+        );
+        assert_eq!(
+            pipeline
+                .graph_evaluation_cache
+                .iter()
+                .next_back()
+                .map(|cached| cached.graph_id),
+            Some(ResourceId::from_stable_label(&format!(
+                "animation.graph.{GRAPH_EVALUATION_FRAME_CACHE_LIMIT}"
+            )))
+        );
+    }
+
+    #[test]
+    fn graph_evaluation_frame_cache_source_uses_tail_queue_eviction() {
+        let source = include_str!("animation_evaluation_pipeline.rs");
+        let tests = source.find("#[cfg(test)]").expect("test module boundary");
+        let production = &source[..tests];
+        let start = source
+            .find("    pub(super) fn cache_graph_evaluation(")
+            .expect("graph evaluation cache insertion owner");
+        let end = source[start..]
+            .find("    pub(super) fn update_presentation_poses(")
+            .map(|offset| start + offset)
+            .expect("graph evaluation cache insertion boundary");
+        let insertion = &source[start..end];
+
+        assert!(production.contains("graph_evaluation_cache: VecDeque<CachedGraphEvaluation>"));
+        assert!(insertion.contains("graph_evaluation_cache.pop_front()"));
+        assert!(insertion.contains(".push_back(CachedGraphEvaluation"));
+        assert!(!insertion.contains("remove(0)"));
+    }
+
+    #[test]
+    #[ignore = "managed animation frame-cache release performance gate"]
+    fn graph_evaluation_frame_cache_tail_queue_release_benchmark_evidence() {
+        const OPERATIONS: u64 = 100_000;
+        const CAPACITY: usize = GRAPH_EVALUATION_FRAME_CACHE_LIMIT;
+        const SAMPLE_PAIRS: usize = 21;
+
+        let mut legacy_samples_ns = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut tail_samples_ns = Vec::with_capacity(SAMPLE_PAIRS);
+        for sample_index in 0..SAMPLE_PAIRS {
+            let mut measure_legacy = || {
+                let mut legacy = Vec::with_capacity(CAPACITY);
+                let started = Instant::now();
+                for value in 0..OPERATIONS {
+                    if legacy.len() >= CAPACITY {
+                        black_box(legacy.remove(0));
+                    }
+                    legacy.push(value);
+                }
+                black_box(&legacy);
+                legacy_samples_ns.push(started.elapsed().as_nanos());
+            };
+            let mut measure_tail = || {
+                let mut tail = VecDeque::with_capacity(CAPACITY);
+                let started = Instant::now();
+                for value in 0..OPERATIONS {
+                    if tail.len() >= CAPACITY {
+                        black_box(tail.pop_front());
+                    }
+                    tail.push_back(value);
+                }
+                black_box(&tail);
+                tail_samples_ns.push(started.elapsed().as_nanos());
+            };
+            if sample_index % 2 == 0 {
+                measure_legacy();
+                measure_tail();
+            } else {
+                measure_tail();
+                measure_legacy();
+            }
+        }
+
+        let legacy_p95_ns = nearest_rank_percentile(&legacy_samples_ns, 95);
+        let tail_p95_ns = nearest_rank_percentile(&tail_samples_ns, 95);
+
+        let legacy = legacy_samples_ns
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+        let tail = tail_samples_ns
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+        let legacy_moves =
+            u128::from(OPERATIONS - CAPACITY as u64).saturating_mul((CAPACITY - 1) as u128);
+        println!(
+            "ANIMATION_GRAPH_FRAME_CACHE_BENCH_V1 operations={OPERATIONS} capacity={CAPACITY} sample_pairs={SAMPLE_PAIRS} legacy_moves={legacy_moves} tail_moves=0 legacy_p95_ns={legacy_p95_ns} tail_p95_ns={tail_p95_ns} legacy_ns={legacy} tail_ns={tail}"
+        );
+        assert!(
+            tail_p95_ns.saturating_mul(4) <= legacy_p95_ns,
+            "tail P95 {tail_p95_ns}ns must be at most 25% of legacy P95 {legacy_p95_ns}ns"
+        );
+    }
+
+    fn nearest_rank_percentile(samples: &[u128], percentile: usize) -> u128 {
+        assert!(!samples.is_empty());
+        assert!((1..=100).contains(&percentile));
+        let mut ordered = samples.to_vec();
+        ordered.sort_unstable();
+        let index = (ordered.len() * percentile).div_ceil(100) - 1;
+        ordered[index]
     }
 
     #[test]
@@ -509,9 +655,11 @@ mod tests {
 
         assert!(pipeline.begin_evaluation_frame(2));
         assert_eq!(pipeline.direct_clip_worker_evaluators.len(), 1);
-        assert!(pipeline
-            .drain_clip_evaluation_diagnostics_excluding(&BTreeSet::new())
-            .is_empty());
+        assert!(
+            pipeline
+                .drain_clip_evaluation_diagnostics_excluding(&BTreeSet::new())
+                .is_empty()
+        );
 
         pipeline.clip_evaluator_mut().record_diagnostic(
             19,
@@ -585,9 +733,11 @@ mod tests {
             Some("OldB")
         );
         assert!(pipeline.nested_machine_transitions.contains_key(&deferred));
-        assert!(pipeline
-            .interrupted_transition_source(&deferred, "OldB", "OldC")
-            .is_some());
+        assert!(
+            pipeline
+                .interrupted_transition_source(&deferred, "OldB", "OldC")
+                .is_some()
+        );
         assert_eq!(
             pipeline
                 .nested_machine_states

@@ -1,13 +1,14 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
 use serde_json::json;
 use zircon_runtime_interface::{
-    ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationPhase, ZrRuntimeOperationStatusV2,
-    ZrRuntimeOperationSubmitRequestV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationPhase,
+    ZrRuntimeOperationStatusV2, ZrRuntimeOperationSubmitRequestV1,
 };
 
+mod phase_indexes;
 mod source_guards;
 
 use crate::core::runtime::CoreRuntime;
@@ -357,11 +358,13 @@ fn operation_service_reserves_prepared_result_before_owner_apply() {
     let terminal = tick_until_terminal(&service, &runtime, &mut world, handle);
     assert_eq!(terminal.phase(), Some(ZrRuntimeOperationPhase::Failed));
     assert_eq!(applications.load(Ordering::SeqCst), 0);
-    assert!(service
-        .harvest(handle)
-        .unwrap()
-        .failure()
-        .is_some_and(|error| error.contains("prepared command and result exceed")));
+    assert!(
+        service
+            .harvest(handle)
+            .unwrap()
+            .failure()
+            .is_some_and(|error| error.contains("prepared command and result exceed"))
+    );
 }
 
 #[test]
@@ -382,11 +385,13 @@ fn operation_service_converts_prepare_panics_to_harvestable_failures() {
 
     let terminal = tick_until_terminal(&service, &runtime, &mut world, handle);
     assert_eq!(terminal.phase(), Some(ZrRuntimeOperationPhase::Failed));
-    assert!(service
-        .harvest(handle)
-        .unwrap()
-        .failure()
-        .is_some_and(|error| error.contains("prepare panicked")));
+    assert!(
+        service
+            .harvest(handle)
+            .unwrap()
+            .failure()
+            .is_some_and(|error| error.contains("prepare panicked"))
+    );
 }
 
 #[test]
@@ -411,11 +416,13 @@ fn operation_service_converts_apply_panics_to_harvestable_failures() {
         terminal.detail_kind(),
         Some(ZrRuntimeOperationDetailKindV2::OwnerApplyFailed)
     );
-    assert!(service
-        .harvest(handle)
-        .unwrap()
-        .failure()
-        .is_some_and(|error| error.contains("owner apply panicked")));
+    assert!(
+        service
+            .harvest(handle)
+            .unwrap()
+            .failure()
+            .is_some_and(|error| error.contains("owner apply panicked"))
+    );
 }
 
 fn tick_until_terminal(

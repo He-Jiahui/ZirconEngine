@@ -8,10 +8,10 @@ use super::super::{
     EditorJobAdmissionSnapshot, EditorJobLimits, EditorJobSpec, JobCategory, JobId, JobSubmitError,
     MutexGroup,
 };
-use super::EditorJobAdmissionWindow;
 use super::admission_ledger::PendingAdmissionReservation;
 use super::pending::{PendingJob, PendingJobQueue};
 use super::pending_task::PendingTask;
+use super::EditorJobAdmissionWindow;
 
 // Completed dependencies only need a bounded late-submission history, not runtime handles.
 pub(super) const TERMINAL_RECORD_RETENTION_LIMIT: usize = 256;
@@ -534,10 +534,8 @@ mod tests {
 
         assert!(state.is_terminal_record(dependency));
         assert!(state.dependency_handle(dependency).is_some());
-        assert!(
-            state
-                .take_next_admissible(&EditorJobLimits::default())
-                .is_some()
-        );
+        assert!(state
+            .take_next_admissible(&EditorJobLimits::default())
+            .is_some());
     }
 }

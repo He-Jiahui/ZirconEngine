@@ -370,7 +370,7 @@ fn editor_zui_fixed_layout_groups_use_an_audited_family_contract() {
                     node.component
                 ));
             }
-            observed.insert((relative, node_id.clone(), node.component.clone()));
+            observed.insert((relative.clone(), node_id.clone(), node.component.clone()));
         }
     }
 
@@ -416,7 +416,7 @@ fn editor_zui_absolute_popup_anchors_are_limited_to_audited_fixtures_and_frozen_
                     "{relative} node `{node_id}` authors an absolute popup anchor instead of supplying a Runtime-owned trigger frame"
                 ));
             }
-            observed.insert((relative, node_id.clone()));
+            observed.insert((relative.clone(), node_id.clone()));
         }
     }
 

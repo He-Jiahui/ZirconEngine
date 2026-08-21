@@ -21,20 +21,21 @@ from tools.session_coordinator.tests.helpers import init_repo
 
 
 class ControlHttpTests(unittest.TestCase):
-    def test_direct_browser_session_query_accepts_no_bearer_or_cookie(self) -> None:
+    def test_direct_browser_session_query_requires_origin_and_cookie(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             repo = init_repo(root / "repo")
             config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
             with RunningCoordinator.start(config) as running:
-                response = urllib.request.urlopen(
-                    f"{running.base_url}/control/v1/auth/session", timeout=2
-                )
-                payload = json.loads(response.read())
-                response.close()
+                with self.assertRaises(urllib.error.HTTPError) as rejected:
+                    urllib.request.urlopen(
+                        f"{running.base_url}/control/v1/auth/session", timeout=2
+                    )
+                payload = json.loads(rejected.exception.read())
+                rejected.exception.close()
 
-        self.assertEqual("local-runtime", payload["data"]["actor"])
-        self.assertEqual("maintainer", payload["data"]["role"])
+        self.assertEqual(403, rejected.exception.code)
+        self.assertEqual("origin_required", payload["error"]["code"])
 
     def test_codex_wake_is_runtime_authenticated_exact_and_non_blocking(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -313,13 +314,15 @@ class ControlHttpTests(unittest.TestCase):
                         ("legacy.oversized", oversized),
                     )
                 request = urllib.request.Request(
-                    f"{running.base_url}/control/v1/logs?limit=1",
+                    f"{running.base_url}/control/v1/logs?limit=500",
                     headers={"Authorization": f"Bearer {running.token}"},
                 )
 
                 payload = json.loads(urllib.request.urlopen(request, timeout=2).read())["data"]
 
-            event = payload["events"][0]
+            event = next(
+                item for item in payload["events"] if item["type"] == "legacy.oversized"
+            )
             self.assertEqual(True, event["payload"]["truncated"])
             self.assertGreater(event["payload"]["originalBytes"], 16 * 1024)
             self.assertNotIn(marker, json.dumps(payload))

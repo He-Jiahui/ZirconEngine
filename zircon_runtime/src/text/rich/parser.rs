@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::text::TextAlign;
@@ -6,7 +8,7 @@ use crate::text::{
     StyleOverride, StyledRun,
 };
 
-use super::bbcode::{literal_tag_text, token_at, BbCodeToken};
+use super::bbcode::{BbCodeToken, literal_tag_text, token_at};
 use super::bbcode_blocks::{BbCodeBlockState, BlockClose, BlockOpen};
 use super::bbcode_table::BbCodeTableState;
 use super::decorator::{DecoratorRegistry, RichTextDecoration};
@@ -19,6 +21,32 @@ struct RichParseBuilder {
     runs: Vec<StyledRun>,
     paragraphs: Vec<((u32, u32), ParagraphOverride)>,
     tables: Vec<RichTable>,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct ClosingDelimiterFrontier {
+    last_close_start: Option<usize>,
+}
+
+impl ClosingDelimiterFrontier {
+    fn new(markup: &str, close: &str) -> Self {
+        Self {
+            last_close_start: markup.rfind(close),
+        }
+    }
+
+    fn has_close_at_or_after(self, offset: usize) -> bool {
+        self.last_close_start
+            .is_some_and(|last_close_start| last_close_start >= offset)
+    }
+}
+
+fn repeated_opening_delimiter_skip(input: &str, delimiter: u8) -> usize {
+    input
+        .bytes()
+        .take_while(|byte| *byte == delimiter)
+        .count()
+        .saturating_sub(1)
 }
 
 impl RichParseBuilder {
@@ -48,12 +76,21 @@ pub(super) fn parse(
 
 fn parse_html(markup: &str) -> RichParseResult {
     let mut result = RichParseBuilder::default();
-    let mut active_tags: Vec<ActiveTag> = Vec::new();
+    let mut active_tags = ActiveTagStack::default();
+    let close_frontier = ClosingDelimiterFrontier::new(markup, ">");
     let mut index = 0;
     let mut text_start = 0;
 
     while index < markup.len() {
         let remaining = &markup[index..];
+        let repeated_opener_skip = repeated_opening_delimiter_skip(remaining, b'<');
+        if repeated_opener_skip > 0 {
+            index += repeated_opener_skip;
+            continue;
+        }
+        if remaining.starts_with('<') && !close_frontier.has_close_at_or_after(index + 1) {
+            break;
+        }
         let Some((token_len, token)) = html_subset::token_at(remaining) else {
             index += next_char_len(remaining);
             continue;
@@ -114,9 +151,7 @@ fn parse_html(markup: &str) -> RichParseResult {
                 }
             }
             HtmlToken::Close { name } if html_subset::is_style_tag(&name) || name == "a" => {
-                if let Some(position) = active_tags.iter().rposition(|active| active.name == name) {
-                    active_tags.truncate(position);
-                }
+                active_tags.close(&name);
             }
             HtmlToken::Open { .. } | HtmlToken::Close { .. } | HtmlToken::Ignored => {}
         }
@@ -155,7 +190,78 @@ struct ActiveTag {
     link: Option<LinkRef>,
 }
 
-fn current_style(active_tags: &[ActiveTag]) -> StyleOverride {
+const ACTIVE_TAG_INDEX_THRESHOLD: usize = 32;
+
+#[derive(Default)]
+struct ActiveTagStack {
+    tags: Vec<ActiveTag>,
+    positions: Option<HashMap<String, Vec<usize>>>,
+}
+
+impl ActiveTagStack {
+    fn push(&mut self, tag: ActiveTag) {
+        let position = self.tags.len();
+        if let Some(positions) = self.positions.as_mut() {
+            positions
+                .entry(tag.name.clone())
+                .or_default()
+                .push(position);
+        }
+        self.tags.push(tag);
+        if self.positions.is_none() && self.tags.len() > ACTIVE_TAG_INDEX_THRESHOLD {
+            self.rebuild_positions();
+        }
+    }
+
+    fn close(&mut self, name: &str) {
+        let position = if let Some(positions) = self.positions.as_ref() {
+            positions
+                .get(name)
+                .and_then(|positions| positions.last())
+                .copied()
+        } else {
+            self.tags.iter().rposition(|active| active.name == name)
+        };
+        let Some(position) = position else {
+            return;
+        };
+
+        while self.tags.len() > position {
+            let removed_position = self.tags.len() - 1;
+            let removed = self.tags.pop().expect("active tag length checked");
+            let Some(positions) = self.positions.as_mut() else {
+                continue;
+            };
+            let remove_name = {
+                let name_positions = positions
+                    .get_mut(&removed.name)
+                    .expect("indexed active tag must have a position");
+                debug_assert_eq!(name_positions.pop(), Some(removed_position));
+                name_positions.is_empty()
+            };
+            if remove_name {
+                positions.remove(&removed.name);
+            }
+        }
+    }
+
+    fn last(&self) -> Option<&ActiveTag> {
+        self.tags.last()
+    }
+
+    fn rebuild_positions(&mut self) {
+        let mut positions: HashMap<String, Vec<usize>> = HashMap::new();
+        for (position, active) in self.tags.iter().enumerate() {
+            positions
+                .entry(active.name.clone())
+                .or_default()
+                .push(position);
+        }
+        self.positions = Some(positions);
+    }
+}
+
+fn current_style(active_tags: &ActiveTagStack) -> StyleOverride {
     active_tags
         .last()
         .map(|active| &active.style)
@@ -163,7 +269,7 @@ fn current_style(active_tags: &[ActiveTag]) -> StyleOverride {
         .unwrap_or_default()
 }
 
-fn current_link(active_tags: &[ActiveTag]) -> Option<LinkRef> {
+fn current_link(active_tags: &ActiveTagStack) -> Option<LinkRef> {
     active_tags.last().and_then(|active| active.link.clone())
 }
 
@@ -186,16 +292,25 @@ fn parse_bbcode(
     emoji_shortcodes: &EmojiShortcodeRegistry,
 ) -> RichParseResult {
     let mut result = RichParseBuilder::default();
-    let mut active_tags: Vec<ActiveTag> = Vec::new();
+    let mut active_tags = ActiveTagStack::default();
     let mut active_paragraphs: Vec<ActiveParagraph> = Vec::new();
     let mut block_state = BbCodeBlockState::default();
     let mut table_state = BbCodeTableState::default();
     let mut pending_block_break = false;
+    let close_frontier = ClosingDelimiterFrontier::new(markup, "]");
     let mut index = 0;
     let mut text_start = 0;
 
     while index < markup.len() {
         let remaining = &markup[index..];
+        let repeated_opener_skip = repeated_opening_delimiter_skip(remaining, b'[');
+        if repeated_opener_skip > 0 {
+            index += repeated_opener_skip;
+            continue;
+        }
+        if remaining.starts_with('[') && !close_frontier.has_close_at_or_after(index + 1) {
+            break;
+        }
         let Some((token_len, token)) = token_at(remaining) else {
             index += next_char_len(remaining);
             continue;
@@ -373,11 +488,7 @@ fn parse_bbcode(
                     if closes_paragraph {
                         pending_block_break = true;
                     }
-                    if let Some(position) =
-                        active_tags.iter().rposition(|active| active.name == name)
-                    {
-                        active_tags.truncate(position);
-                    }
+                    active_tags.close(&name);
                 }
             }
         }
@@ -407,9 +518,9 @@ fn parse_bbcode(
     });
     result.paragraphs.sort_by(|left, right| {
         left.0
-             .0
-            .cmp(&right.0 .0)
-            .then_with(|| right.0 .1.cmp(&left.0 .1))
+            .0
+            .cmp(&right.0.0)
+            .then_with(|| right.0.1.cmp(&left.0.1))
     });
     result.finish()
 }
@@ -507,6 +618,9 @@ fn close_open_paragraph_overrides(
 
 fn parse_markdown(markup: &str) -> RichParseResult {
     let mut result = RichParseBuilder::default();
+    let bold_close_frontier = ClosingDelimiterFrontier::new(markup, "**");
+    let italic_close_frontier = ClosingDelimiterFrontier::new(markup, "*");
+    let code_close_frontier = ClosingDelimiterFrontier::new(markup, "`");
     let mut index = 0;
     let mut text_start = 0;
     while index < markup.len() {
@@ -515,6 +629,16 @@ fn parse_markdown(markup: &str) -> RichParseResult {
             index += next_char_len(remaining);
             continue;
         };
+        let close_frontier = match close {
+            "**" => bold_close_frontier,
+            "*" => italic_close_frontier,
+            "`" => code_close_frontier,
+            _ => unreachable!("markdown_marker returned an unsupported closer"),
+        };
+        if !close_frontier.has_close_at_or_after(index + open.len()) {
+            index += open.len();
+            continue;
+        }
         let Some(close_offset) = remaining[open.len()..].find(close) else {
             index += open.len();
             continue;

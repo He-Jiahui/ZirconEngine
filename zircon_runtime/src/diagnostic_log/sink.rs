@@ -93,6 +93,9 @@ impl ProcessLogController {
         if lifecycle.dynamic_session_count != 0 {
             return false;
         }
+        if self.active_state.load().is_none() {
+            return true;
+        }
         self.shutdown_active_state_for_library_unload(timeout)
             .is_some_and(|state| state.outputs_succeeded())
     }

@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 use std::sync::{Arc, Mutex};
 
 use zircon_runtime::core::framework::render::{ParticleExtract, RenderParticleGpuReadbackOutputs};
@@ -8,13 +8,15 @@ use zircon_runtime::core::math::{Real, Vec3};
 use crate::component::{ParticleEmitterHandle, ParticleSystemComponent};
 use crate::interop::{ParticleAnimationEvent, ParticleAnimationEventKind};
 use crate::render::{
-    build_particle_extract, ParticleGpuFallbackDiagnostic, ParticleGpuFallbackReason,
+    ParticleGpuFallbackDiagnostic, ParticleGpuFallbackReason, build_particle_extract,
 };
 use crate::simulation::{ParticleSimulationError, ParticleSystemInstance};
-use crate::{ParticleSimulationBackend, PARTICLES_RUNTIME_CAPABILITY};
+use crate::{PARTICLES_RUNTIME_CAPABILITY, ParticleSimulationBackend};
 
 pub const PARTICLES_PHYSICS_CAPABILITY: &str = "runtime.feature.particles.physics";
 pub const PARTICLES_ANIMATION_CAPABILITY: &str = "runtime.feature.particles.animation_control";
+const MAX_RUNTIME_DIAGNOSTICS: usize = 256;
+const MAX_RUNTIME_DIAGNOSTIC_PAGE: usize = 64;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ParticleRuntimeDiagnosticSeverity {
@@ -40,6 +42,21 @@ impl ParticleRuntimeDiagnostic {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ParticleRuntimeDiagnosticEntry {
+    pub sequence: u64,
+    pub diagnostic: ParticleRuntimeDiagnostic,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ParticleRuntimeDiagnosticPage {
+    pub entries: Vec<ParticleRuntimeDiagnosticEntry>,
+    pub oldest_available_sequence: u64,
+    pub next_sequence: u64,
+    pub dropped_total: u64,
+    pub stale_cursor: bool,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct ParticleEmitterState {
     pub handle: ParticleEmitterHandle,
@@ -55,8 +72,10 @@ pub struct ParticleEmitterState {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ParticleRuntimeSnapshot {
     pub emitters: Vec<ParticleEmitterState>,
-    pub sprites: Vec<crate::ParticleSpriteSnapshot>,
-    pub diagnostics: Vec<ParticleRuntimeDiagnostic>,
+    pub sprites: Arc<[crate::ParticleSpriteSnapshot]>,
+    pub diagnostics: Arc<[ParticleRuntimeDiagnostic]>,
+    pub diagnostic_sequence: u64,
+    pub dropped_diagnostics: u64,
     pub last_gpu_feedback: Option<RenderParticleGpuReadbackOutputs>,
 }
 
@@ -77,7 +96,12 @@ pub struct ParticlesManager {
 struct ParticlesManagerState {
     next_handle: u64,
     instances: BTreeMap<ParticleEmitterHandle, ParticleSystemInstance>,
-    diagnostics: Vec<ParticleRuntimeDiagnostic>,
+    diagnostics: VecDeque<ParticleRuntimeDiagnosticEntry>,
+    next_diagnostic_sequence: Option<u64>,
+    dropped_diagnostics: u64,
+    diagnostics_snapshot: Arc<[ParticleRuntimeDiagnostic]>,
+    diagnostics_dirty: bool,
+    cached_snapshot: Option<ParticleRuntimeSnapshot>,
     last_gpu_feedback: Option<RenderParticleGpuReadbackOutputs>,
     capabilities: Vec<String>,
 }
@@ -87,10 +111,53 @@ impl Default for ParticlesManagerState {
         Self {
             next_handle: 1,
             instances: BTreeMap::new(),
-            diagnostics: Vec::new(),
+            diagnostics: VecDeque::with_capacity(MAX_RUNTIME_DIAGNOSTICS),
+            next_diagnostic_sequence: Some(1),
+            dropped_diagnostics: 0,
+            diagnostics_snapshot: Arc::default(),
+            diagnostics_dirty: false,
+            cached_snapshot: None,
             last_gpu_feedback: None,
             capabilities: vec![PARTICLES_RUNTIME_CAPABILITY.to_string()],
         }
+    }
+}
+
+impl ParticlesManagerState {
+    fn invalidate_snapshot(&mut self) {
+        self.cached_snapshot = None;
+    }
+
+    fn push_diagnostic(&mut self, diagnostic: ParticleRuntimeDiagnostic) {
+        let Some(sequence) = self.next_diagnostic_sequence else {
+            self.dropped_diagnostics = self.dropped_diagnostics.saturating_add(1);
+            self.invalidate_snapshot();
+            return;
+        };
+        self.next_diagnostic_sequence = sequence.checked_add(1);
+        if self.diagnostics.len() == MAX_RUNTIME_DIAGNOSTICS {
+            self.diagnostics.pop_front();
+            self.dropped_diagnostics = self.dropped_diagnostics.saturating_add(1);
+        }
+        self.diagnostics.push_back(ParticleRuntimeDiagnosticEntry {
+            sequence,
+            diagnostic,
+        });
+        self.diagnostics_dirty = true;
+        self.invalidate_snapshot();
+    }
+
+    fn shared_diagnostics(&mut self) -> Arc<[ParticleRuntimeDiagnostic]> {
+        if self.diagnostics_dirty {
+            self.diagnostics_snapshot = self
+                .diagnostics
+                .iter()
+                .map(|entry| entry.diagnostic.clone())
+                .collect::<Vec<_>>()
+                .into();
+            self.diagnostics_dirty = false;
+        }
+        Arc::clone(&self.diagnostics_snapshot)
     }
 }
 
@@ -115,6 +182,7 @@ impl ParticlesManager {
                 instance.set_physics_enabled(true);
             }
         }
+        state.invalidate_snapshot();
     }
 
     pub fn instantiate(
@@ -137,23 +205,24 @@ impl ParticlesManager {
                 ParticleGpuFallbackReason::BackendUnavailable,
                 "GPU particle simulation requires a renderer-owned wgpu executor; this manager has no executor attached, so CPU simulation is active",
             );
-            state.diagnostics.push(ParticleRuntimeDiagnostic::warning(
+            state.push_diagnostic(ParticleRuntimeDiagnostic::warning(
                 Some(handle),
                 diagnostic.message,
             ));
         }
         push_optional_feature_diagnostics(&mut state, handle, &instance);
         state.instances.insert(handle, instance);
+        state.invalidate_snapshot();
         Ok(handle)
     }
 
     pub fn remove(&self, handle: ParticleEmitterHandle) -> Result<(), ParticleSimulationError> {
         let mut state = self.lock_state();
-        state
-            .instances
-            .remove(&handle)
-            .map(|_| ())
-            .ok_or(ParticleSimulationError::UnknownHandle(handle.raw()))
+        if state.instances.remove(&handle).is_none() {
+            return Err(ParticleSimulationError::UnknownHandle(handle.raw()));
+        }
+        state.invalidate_snapshot();
+        Ok(())
     }
 
     pub fn play(&self, handle: ParticleEmitterHandle) -> Result<(), ParticleSimulationError> {
@@ -170,6 +239,7 @@ impl ParticlesManager {
 
     pub fn tick(&self, dt: Real) -> Result<(), ParticleSimulationError> {
         let mut state = self.lock_state();
+        state.invalidate_snapshot();
         for instance in state.instances.values_mut() {
             instance.tick(dt)?;
         }
@@ -186,6 +256,7 @@ impl ParticlesManager {
             return Err(ParticleSimulationError::InvalidDeltaTime);
         }
         let mut state = self.lock_state();
+        state.invalidate_snapshot();
         let instance = state
             .instances
             .get_mut(&handle)
@@ -215,7 +286,7 @@ impl ParticlesManager {
             .iter()
             .any(|capability| capability == PARTICLES_ANIMATION_CAPABILITY)
         {
-            state.diagnostics.push(ParticleRuntimeDiagnostic::warning(
+            state.push_diagnostic(ParticleRuntimeDiagnostic::warning(
                 event.handle,
                 format!(
                     "animation-controlled particle event {:?} for entity {} ignored because capability `{}` is unavailable",
@@ -231,6 +302,7 @@ impl ParticlesManager {
         }) else {
             return Ok(());
         };
+        state.invalidate_snapshot();
         let instance = state
             .instances
             .get_mut(&handle)
@@ -244,12 +316,21 @@ impl ParticlesManager {
     }
 
     pub fn snapshot(&self) -> ParticleRuntimeSnapshot {
-        let state = self.lock_state();
+        let mut state = self.lock_state();
+        if let Some(snapshot) = state.cached_snapshot.as_ref() {
+            return snapshot.clone();
+        }
+        let diagnostics = state.shared_diagnostics();
         let mut snapshot = ParticleRuntimeSnapshot {
-            diagnostics: state.diagnostics.clone(),
+            diagnostics,
+            diagnostic_sequence: state
+                .next_diagnostic_sequence
+                .map_or(u64::MAX, |sequence| sequence.saturating_sub(1)),
+            dropped_diagnostics: state.dropped_diagnostics,
             last_gpu_feedback: state.last_gpu_feedback.clone(),
             ..ParticleRuntimeSnapshot::default()
         };
+        let mut sprites = Vec::new();
         for instance in state.instances.values() {
             for emitter_state in instance.emitter_states() {
                 snapshot.emitters.push(ParticleEmitterState {
@@ -263,9 +344,61 @@ impl ParticlesManager {
                     fallback_to_cpu: instance.fallback_to_cpu,
                 });
             }
-            snapshot.sprites.extend(instance.sprites());
+            instance.append_sprites(&mut sprites);
         }
+        snapshot.sprites = sprites.into();
+        state.cached_snapshot = Some(snapshot.clone());
         snapshot
+    }
+
+    pub fn diagnostics_page(
+        &self,
+        after_sequence: u64,
+        limit: usize,
+    ) -> ParticleRuntimeDiagnosticPage {
+        let state = self.lock_state();
+        let oldest_available_sequence = state
+            .diagnostics
+            .front()
+            .map(|entry| entry.sequence)
+            .unwrap_or(state.next_diagnostic_sequence.unwrap_or(u64::MAX));
+        let stale_cursor = after_sequence.saturating_add(1) < oldest_available_sequence;
+        let entries = state
+            .diagnostics
+            .iter()
+            .filter(|entry| entry.sequence > after_sequence)
+            .take(limit.min(MAX_RUNTIME_DIAGNOSTIC_PAGE))
+            .cloned()
+            .collect::<Vec<_>>();
+        let next_sequence = entries
+            .last()
+            .map(|entry| entry.sequence)
+            .unwrap_or(after_sequence);
+        ParticleRuntimeDiagnosticPage {
+            entries,
+            oldest_available_sequence,
+            next_sequence,
+            dropped_total: state.dropped_diagnostics,
+            stale_cursor,
+        }
+    }
+
+    pub fn acknowledge_diagnostics(&self, through_sequence: u64) -> usize {
+        let mut state = self.lock_state();
+        let mut acknowledged = 0;
+        while state
+            .diagnostics
+            .front()
+            .is_some_and(|entry| entry.sequence <= through_sequence)
+        {
+            state.diagnostics.pop_front();
+            acknowledged += 1;
+        }
+        if acknowledged > 0 {
+            state.diagnostics_dirty = true;
+            state.invalidate_snapshot();
+        }
+        acknowledged
     }
 
     pub fn gpu_runtime_instances(&self) -> Vec<ParticleGpuRuntimeInstance> {
@@ -298,6 +431,7 @@ impl ParticlesManager {
 
         let mut state = self.lock_state();
         state.last_gpu_feedback = Some(outputs);
+        state.invalidate_snapshot();
     }
 
     fn with_instance(
@@ -306,6 +440,7 @@ impl ParticlesManager {
         update: impl FnOnce(&mut ParticleSystemInstance),
     ) -> Result<(), ParticleSimulationError> {
         let mut state = self.lock_state();
+        state.invalidate_snapshot();
         let instance = state
             .instances
             .get_mut(&handle)
@@ -337,7 +472,7 @@ fn push_optional_feature_diagnostics(
             .iter()
             .any(|capability| capability == PARTICLES_PHYSICS_CAPABILITY)
     {
-        state.diagnostics.push(ParticleRuntimeDiagnostic::warning(
+        state.push_diagnostic(ParticleRuntimeDiagnostic::warning(
             Some(handle),
             format!(
                 "particle physics modules are running as no-op because capability `{PARTICLES_PHYSICS_CAPABILITY}` is unavailable"
@@ -350,11 +485,43 @@ fn push_optional_feature_diagnostics(
             .iter()
             .any(|capability| capability == PARTICLES_ANIMATION_CAPABILITY)
     {
-        state.diagnostics.push(ParticleRuntimeDiagnostic::warning(
+        state.push_diagnostic(ParticleRuntimeDiagnostic::warning(
             Some(handle),
             format!(
                 "particle animation bindings are disabled because capability `{PARTICLES_ANIMATION_CAPABILITY}` is unavailable"
             ),
         ));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod snapshot {
+        use super::*;
+
+        #[test]
+        fn diagnostic_sequence_exhaustion_never_reuses_the_last_sequence() {
+            let manager = ParticlesManager::default();
+            {
+                let mut state = manager.lock_state();
+                state.next_diagnostic_sequence = Some(u64::MAX);
+                state.push_diagnostic(ParticleRuntimeDiagnostic::warning(None, "last sequence"));
+                state.push_diagnostic(ParticleRuntimeDiagnostic::warning(
+                    None,
+                    "must be dropped after exhaustion",
+                ));
+            }
+
+            let snapshot = manager.snapshot();
+            assert_eq!(snapshot.diagnostic_sequence, u64::MAX);
+            assert_eq!(snapshot.diagnostics.len(), 1);
+            assert_eq!(snapshot.dropped_diagnostics, 1);
+
+            let page = manager.diagnostics_page(u64::MAX - 1, usize::MAX);
+            assert_eq!(page.entries.len(), 1);
+            assert_eq!(page.entries[0].sequence, u64::MAX);
+        }
     }
 }

@@ -845,7 +845,8 @@ Describe 'Render-extract baseline capture plan' {
             "`$child = Start-Process powershell.exe -ArgumentList '-NoProfile','-Command','Start-Sleep -Seconds 30' -WindowStyle Hidden -PassThru`n[IO.File]::WriteAllText('$escapedChildPidPath', [string]`$child.Id)",
             [Text.UTF8Encoding]::new($false)
         )
-        $profileDirectory = Join-Path (Join-Path (Join-Path $outputDirectory 'profiles') $invocationId) $sessionId
+        $profileBasename = ConvertTo-ZirconProfileSessionBasename -SessionId $sessionId
+        $profileDirectory = Join-Path (Join-Path (Join-Path $outputDirectory 'profiles') $invocationId) $profileBasename
         $capturePath = Join-Path (Join-Path (Join-Path $outputDirectory 'captures') $invocationId) "$sessionId.png"
         [IO.Directory]::CreateDirectory($profileDirectory) | Out-Null
         [IO.Directory]::CreateDirectory((Split-Path -Parent $capturePath)) | Out-Null

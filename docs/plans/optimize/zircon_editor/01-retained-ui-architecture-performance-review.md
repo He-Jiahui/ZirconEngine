@@ -10,6 +10,7 @@ reference_engines:
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore
   - dev/slint
   - dev/Fyrox
+source_recheck_required: true
 ---
 
 # 01 · Editor Retained UI 架构与性能审查

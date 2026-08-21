@@ -32,7 +32,7 @@ fn removal_uses_indexed_identity_hierarchy_and_camera_boundaries() {
 }
 
 #[test]
-fn mobility_validation_uses_direct_child_and_parent_scans() {
+fn mobility_validation_uses_indexed_direct_children_and_direct_parent_lookup() {
     let source = include_str!("../world/hierarchy.rs");
     let validate_mobility_change = section_between(
         source,
@@ -41,17 +41,13 @@ fn mobility_validation_uses_direct_child_and_parent_scans() {
     );
 
     assert!(
-        validate_mobility_change.contains("for child in self.entities.iter().copied()")
-            && validate_mobility_change.contains("if self.parent_of(child) != Some(entity)")
-            && validate_mobility_change.contains("continue;")
+        validate_mobility_change.contains("self.has_direct_child_matching(entity, |child|")
             && validate_mobility_change
                 .contains("if self.mobility(child) == Some(Mobility::Static)")
             && validate_mobility_change
                 .contains("SceneError::DynamicMobilityWithStaticChildren { entity }")
-            && !validate_mobility_change
-                .contains(".filter(|child| self.parent_of(*child) == Some(entity))")
-            && !validate_mobility_change.contains(".any(|child|"),
-        "Dynamic mobility validation must scan children directly and stop at the first Static child"
+            && !validate_mobility_change.contains("self.stable_entity_ids()"),
+        "Dynamic mobility validation must use the maintained direct-child index"
     );
     assert!(
         validate_mobility_change.contains("if let Some(parent) = self.parent_of(entity)")

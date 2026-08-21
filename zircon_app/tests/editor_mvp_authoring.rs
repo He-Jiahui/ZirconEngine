@@ -14,8 +14,8 @@ use zircon_editor::core::project::{NewProjectDraft, NewProjectTemplate, ProjectA
 use zircon_editor::ui::binding::{
     EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind, SelectionCommand,
 };
-use zircon_editor::ui::workbench::project::EditorProjectDocument;
-use zircon_runtime::asset::project::ProjectPaths;
+use zircon_runtime::asset::{project::ProjectPaths, ProjectInfo};
+use zircon_runtime::scene::Scene;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 #[test]
@@ -35,27 +35,30 @@ fn f4_project_authoring_survives_full_application_restart() {
 
     let first = EditorApplicationComposition::open_project(&created.root).unwrap();
     let opened_project = first.prepared_project();
+    let project_info = ProjectInfo::from_project(opened_project);
     assert!(
-        opened_project.project_info.asset_count >= 4,
+        project_info.asset_count >= 4,
         "the startup summary must come from the post-import project generation"
     );
     assert_eq!(
-        opened_project.project_info.failed_asset_count, 0,
+        project_info.failed_asset_count, 0,
         "the RenderableEmpty starter assets must not hide import failures"
     );
     assert_eq!(
-        opened_project.project_info.ready_asset_count, opened_project.project_info.asset_count,
+        project_info.ready_asset_count, project_info.asset_count,
         "the RenderableEmpty starter assets must all reach Ready before F4 authoring begins"
     );
-    let cube = opened_project
-        .world
+    let initial_world =
+        Scene::load_scene_from_uri(opened_project, &opened_project.manifest().default_scene)
+            .unwrap();
+    let cube = initial_world
         .nodes()
         .iter()
         .find(|node| node.name == "Cube")
         .expect("renderable-empty project must contain a Cube")
         .id;
     let (initial_cube, initial_camera, initial_sun) = {
-        let world = &opened_project.world;
+        let world = &initial_world;
         (
             world
                 .find_node(cube)
@@ -205,14 +208,16 @@ fn f4_project_authoring_survives_full_application_restart() {
         "the successful F4 save must publish its persisted history generation"
     );
     let reopened = EditorApplicationComposition::open_project(&created.root).unwrap();
-    let reopened_cube = reopened
-        .prepared_project()
-        .world
-        .nodes()
-        .iter()
-        .find(|node| node.name == "Cube")
-        .expect("reopened project must contain a Cube")
-        .id;
+    let reopened_cube = {
+        let reopened_project = reopened.prepared_project();
+        Scene::load_scene_from_uri(reopened_project, &reopened_project.manifest().default_scene)
+            .unwrap()
+            .nodes()
+            .iter()
+            .find(|node| node.name == "Cube")
+            .expect("reopened project must contain a Cube")
+            .id
+    };
     let reopened = reopened
         .run_retained_host_automation(&[EditorUiBinding::new(
             "Hierarchy",
@@ -254,9 +259,10 @@ fn f4_project_authoring_survives_full_application_restart() {
         .unwrap()
         .into_project();
     opened_project.scan_and_import().unwrap();
-    let persisted = EditorProjectDocument::load_from_project(&opened_project).unwrap();
-    let persisted_cube = persisted
-        .world
+    let persisted_world =
+        Scene::load_scene_from_uri(&opened_project, &opened_project.manifest().default_scene)
+            .unwrap();
+    let persisted_cube = persisted_world
         .find_node(reopened_cube)
         .expect("persisted project must retain the Cube");
     let mut expected_transform = initial_cube.transform.clone();
@@ -271,17 +277,17 @@ fn f4_project_authoring_survives_full_application_restart() {
         "project-scoped mesh and material references must resolve into the reopened generation"
     );
     assert_eq!(
-        persisted.world.find_node(initial_camera.id),
+        persisted_world.find_node(initial_camera.id),
         Some(initial_camera),
         "saving the Cube must not alter the persisted Camera"
     );
     assert_eq!(
-        persisted.world.find_node(initial_sun.id),
+        persisted_world.find_node(initial_sun.id),
         Some(initial_sun),
         "saving the Cube must not alter the persisted Sun"
     );
 
-    drop(persisted);
+    drop(persisted_world);
     drop(opened_project);
     fs::remove_dir_all(location).unwrap();
 }

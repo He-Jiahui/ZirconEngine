@@ -447,3 +447,11 @@ fn raster_upload_report_excludes_planned_placeholders_when_glyphon_fallback_wins
 
     assert_eq!(report.visible_placeholder_count, 0);
 }
+
+#[test]
+fn profiling_recorder_visibility_reaches_the_text_owner() {
+    let source = include_str!("../prepare_report/profile.rs");
+
+    assert!(source.contains("pub(in super::super) fn record_text_prepare_profile"));
+    assert!(!source.contains("pub(super) fn record_text_prepare_profile"));
+}

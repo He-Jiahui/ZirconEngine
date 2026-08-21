@@ -66,7 +66,10 @@ impl EditorHostRunConfig {
     }
 
     /// Requests a terminal Hub mailbox outcome once the retained host reaches its startup gate.
-    pub(crate) fn with_hub_handshake(
+    ///
+    /// The application composition root uses this to transfer its verified Hub session into the
+    /// editor host without exposing the retained-host handshake representation.
+    pub fn with_hub_handshake(
         mut self,
         project_root: impl Into<std::path::PathBuf>,
         session: zircon_runtime_interface::hub_protocol::HubSessionToken,
@@ -130,6 +133,8 @@ mod tests {
 
         assert_eq!(config.startup_request(), None);
         assert!(!config.exit_after_first_presented_frame());
+        let (_, _, _, _, handshake) = config.into_parts();
+        assert_eq!(handshake, None);
     }
 
     #[test]
@@ -254,7 +259,15 @@ mod tests {
         let config = EditorHostRunConfig::new().with_hub_handshake("E:/Projects/My Game", session);
 
         let (_, _, _, _, handshake) = config.into_parts();
-        assert_eq!(handshake.expect("Hub handshake").session(), session);
+        let handshake = handshake.expect("Hub handshake");
+        assert_eq!(handshake.session(), session);
+        assert_eq!(
+            handshake.mailbox_path(),
+            std::path::PathBuf::from("E:/Projects/My Game")
+                .join(".zircon")
+                .join("hub")
+                .join(format!("{session}.json"))
+        );
     }
 
     #[test]

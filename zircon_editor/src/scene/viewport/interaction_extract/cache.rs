@@ -1,9 +1,9 @@
 use std::{cell::RefCell, sync::Arc};
 
 use crate::scene::viewport::{
+    render_packet::{build_render_packet, build_scene_gizmos},
     HandleOverlayExtract, RenderMeshSnapshot, SceneGizmoOverlayExtract, SceneViewportSettings,
     ViewportCameraSnapshot,
-    render_packet::{build_render_packet, build_scene_gizmos},
 };
 use zircon_runtime::scene::Scene;
 use zircon_runtime_interface::math::UVec2;

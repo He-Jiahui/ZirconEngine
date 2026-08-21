@@ -1,6 +1,6 @@
 use super::support::*;
-use crate::ui::host::EditorManager;
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
+use crate::ui::host::EditorManager;
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use crate::ui::workbench::view::ViewDescriptorId;
 

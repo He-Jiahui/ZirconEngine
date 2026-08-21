@@ -5,8 +5,8 @@ use std::time::Instant;
 use crate::core::framework::text::TextDirection;
 use crate::text::{TextRange, TextStyle};
 use glyphon::{
-    cosmic_text::{BidiParagraphs, FeatureTag, FontFeatures, LineEnding, LineIter},
     Attrs, Buffer, Family, LayoutGlyph, Metrics, Shaping, Weight, Wrap,
+    cosmic_text::{BidiParagraphs, FeatureTag, FontFeatures, LineEnding, LineIter},
 };
 
 use crate::text::font::FontDatabase;
@@ -20,7 +20,7 @@ use super::horizontal::shape_horizontal_request;
 use super::line_break::{ClusterLineBreakFlags, LineBreakOpportunityMap};
 use super::normalize::ShapingTextView;
 use super::script_segment::{
-    script_for_range, script_segments, shaped_script_for_cluster, ScriptSegment,
+    ScriptSegment, script_for_range, script_segments, shaped_script_for_cluster,
 };
 use super::vertical::{apply_vertical_layout, shape_vertical_request};
 
@@ -87,12 +87,6 @@ fn shape_with_cosmic(
         }
         #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
         discard_direct_shape_profile_metrics();
-        if crate::text::hard_lines(request.text)
-            .iter()
-            .any(crate::text::HardLine::is_run_cap_break)
-        {
-            return None;
-        }
         if !cosmic_backend_fallback_allowed(request.orientation) {
             return None;
         }
@@ -608,11 +602,13 @@ mod tests {
             false,
         ));
 
-        assert!(attrs
-            .font_features
-            .features
-            .iter()
-            .any(|feature| feature.tag == FeatureTag::KERNING && feature.value == 0));
+        assert!(
+            attrs
+                .font_features
+                .features
+                .iter()
+                .any(|feature| feature.tag == FeatureTag::KERNING && feature.value == 0)
+        );
     }
 
     #[test]
@@ -632,16 +628,20 @@ mod tests {
         .canonicalized();
         let attrs = attrs_for_style(request.request());
 
-        assert!(attrs
-            .font_features
-            .features
-            .iter()
-            .any(|feature| feature.tag == FeatureTag::new(b"tnum") && feature.value == 1));
-        assert!(attrs
-            .font_features
-            .features
-            .iter()
-            .any(|feature| feature.tag == FeatureTag::new(b"liga") && feature.value == 0));
+        assert!(
+            attrs
+                .font_features
+                .features
+                .iter()
+                .any(|feature| feature.tag == FeatureTag::new(b"tnum") && feature.value == 1)
+        );
+        assert!(
+            attrs
+                .font_features
+                .features
+                .iter()
+                .any(|feature| feature.tag == FeatureTag::new(b"liga") && feature.value == 0)
+        );
     }
 
     #[test]
@@ -658,16 +658,20 @@ mod tests {
             crate::text::VerticalMode::Mixed,
         ));
 
-        assert!(attrs
-            .font_features
-            .features
-            .iter()
-            .any(|feature| feature.tag == FeatureTag::new(b"vert") && feature.value == 1));
-        assert!(attrs
-            .font_features
-            .features
-            .iter()
-            .any(|feature| feature.tag == FeatureTag::new(b"vrt2") && feature.value == 1));
+        assert!(
+            attrs
+                .font_features
+                .features
+                .iter()
+                .any(|feature| feature.tag == FeatureTag::new(b"vert") && feature.value == 1)
+        );
+        assert!(
+            attrs
+                .font_features
+                .features
+                .iter()
+                .any(|feature| feature.tag == FeatureTag::new(b"vrt2") && feature.value == 1)
+        );
     }
 
     #[test]

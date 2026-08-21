@@ -405,14 +405,10 @@ fn control_frame_unions_all_render_primitives_for_the_same_control() {
         },
     ]);
 
+    let frame = control_frame(&nodes, "ActivityRailButton0");
     assert_eq!(
-        control_frame(&nodes, "ActivityRailButton0"),
-        FrameRect {
-            x: 3.0,
-            y: 143.0,
-            width: 28.0,
-            height: 32.0,
-        }
+        (frame.x, frame.y, frame.width, frame.height),
+        (3.0, 143.0, 28.0, 32.0)
     );
 }
 

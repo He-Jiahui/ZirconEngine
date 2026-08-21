@@ -6,7 +6,7 @@ use zircon_runtime_interface::ui::surface::UiSurfaceRebuildDebugStats;
 use crate::ui::template_runtime::EditorUiHostRuntime;
 
 use super::error::BuiltinFloatingWindowSourceTemplateBridgeError;
-use super::source_frames::{BuiltinFloatingWindowSourceFrames, source_frames_from_surface};
+use super::source_frames::{source_frames_from_surface, BuiltinFloatingWindowSourceFrames};
 use super::surface::{
     build_builtin_floating_window_source_surface, rebuild_builtin_floating_window_source_surface,
 };

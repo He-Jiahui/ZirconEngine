@@ -3,12 +3,12 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_runtime::asset::AssetUri;
 use zircon_runtime::asset::project::ProjectManager;
-use zircon_runtime::core::CoreRuntime;
+use zircon_runtime::asset::AssetUri;
 use zircon_runtime::core::framework::scene::SCENE_MODULE_NAME;
+use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
-    FOUNDATION_MODULE_NAME, module_descriptor as foundation_module_descriptor,
+    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_runtime::scene::DefaultLevelManager;
 use zircon_runtime_interface::math::UVec2;
@@ -19,12 +19,12 @@ use crate::core::commands::EditorCommandDescriptor;
 use crate::core::editor_extension::EditorExtensionRegistry;
 use crate::core::editor_operation::EditorOperationPath;
 use crate::core::project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
-use crate::ui::host::EditorHostEventController;
-use crate::ui::host::EditorManager;
 use crate::ui::host::editor_asset_manager::{
-    EditorAssetCatalogGeneration, editor_asset_manager_handle,
+    editor_asset_manager_handle, EditorAssetCatalogGeneration,
 };
 use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
+use crate::ui::host::EditorHostEventController;
+use crate::ui::host::EditorManager;
 use crate::ui::host::{
     EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY, EDITOR_SUBSYSTEM_ANIMATION_AUTHORING,
     EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING, EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS,

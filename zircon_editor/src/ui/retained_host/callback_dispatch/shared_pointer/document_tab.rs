@@ -11,8 +11,8 @@ use crate::ui::workbench::layout::LayoutCommand;
 use crate::ui::workbench::view::ViewInstanceId;
 
 use super::super::{
-    BuiltinHostWindowTemplateBridge, dispatch_builtin_host_document_tab_activation,
-    dispatch_builtin_host_document_tab_close, dispatch_layout_command,
+    dispatch_builtin_host_document_tab_activation, dispatch_builtin_host_document_tab_close,
+    dispatch_layout_command, BuiltinHostWindowTemplateBridge,
 };
 
 #[derive(Debug, Clone, PartialEq)]

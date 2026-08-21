@@ -217,10 +217,10 @@ fn ui_asset_scoped_patch_updates_only_its_matching_native_presenter() {
     let _ = std::fs::remove_file(second_path);
 }
 
-fn ui_asset_mode_in_presentation(
-    presentation: &crate::ui::retained_host::host_contract::HostWindowPresentationData,
+fn ui_asset_mode_in_presentation<'a>(
+    presentation: &'a crate::ui::retained_host::host_contract::HostWindowPresentationData,
     instance_id: &str,
-) -> Option<&str> {
+) -> Option<&'a str> {
     let scene = &presentation.host_scene_data;
     [
         &scene.left_dock.pane,

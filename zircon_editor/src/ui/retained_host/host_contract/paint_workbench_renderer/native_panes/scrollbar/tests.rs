@@ -7,10 +7,12 @@ use super::{
         browser_asset_reference_viewport_and_row_count,
     },
     draw_activity_asset_content_scrollbar, draw_activity_asset_reference_scrollbars,
-    draw_browser_asset_reference_scrollbars, hierarchy_content_extent,
+    draw_browser_asset_reference_scrollbars,
 };
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
-use crate::ui::retained_host::hierarchy_pointer::constants::{ROW_GAP, ROW_HEIGHT, ROW_Y};
+use crate::ui::retained_host::hierarchy_pointer::{
+    current_hierarchy_row_metrics, hierarchy_content_height,
+};
 use crate::ui::retained_host::host_contract::data::{
     AssetBrowserPaneData, AssetsActivityPaneData, FrameRect, HostPaneInteractionStateData,
     PaneData, TemplateNodeFrameData, TemplatePaneNodeData,
@@ -64,10 +66,11 @@ fn vertical_scrollbar_is_absent_when_content_fits() {
 
 #[test]
 fn hierarchy_content_extent_uses_row_metrics_not_pixel_coordinates() {
-    assert_eq!(hierarchy_content_extent(0), 0.0);
+    let metrics = current_hierarchy_row_metrics();
+    assert_eq!(hierarchy_content_height(0, metrics), 0.0);
     assert_eq!(
-        hierarchy_content_extent(3),
-        ROW_Y * 2.0 + 3.0 * ROW_HEIGHT + 2.0 * ROW_GAP
+        hierarchy_content_height(3, metrics),
+        metrics.row_y * 2.0 + 3.0 * metrics.row_height + 2.0 * metrics.row_gap
     );
 }
 

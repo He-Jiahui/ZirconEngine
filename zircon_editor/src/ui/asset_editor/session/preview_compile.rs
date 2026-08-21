@@ -7,8 +7,8 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::super::preview::preview_host::UiAssetPreviewHost;
-use super::UiAssetEditorSessionError;
 use super::session_state::UiAssetCompilerImports;
+use super::UiAssetEditorSessionError;
 
 pub(super) fn compile_preview(
     document: &UiAssetDocument,

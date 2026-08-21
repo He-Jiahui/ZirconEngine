@@ -3,8 +3,8 @@ use std::thread;
 use std::time::Duration;
 
 use super::super::{
+    PlayPendingEditDecisionAdapter, PlayPendingEditDecisionOutcome,
     PLAY_PENDING_EDITS_APPLY_OPTION, PLAY_PENDING_EDITS_DISCARD_OPTION,
-    PlayPendingEditDecisionAdapter,
 };
 use crate::core::i18n::{EditorI18nService, EditorLocale};
 use crate::core::notifications::{DecisionCenterConfig, DecisionNotificationCenter};

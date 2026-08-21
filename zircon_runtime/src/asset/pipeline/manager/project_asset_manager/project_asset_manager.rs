@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
 use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, Mutex, RwLock};
@@ -79,7 +79,7 @@ pub(in crate::asset::pipeline::manager) struct ProjectWatcherActivationState {
     pub(in crate::asset::pipeline::manager) queued_change_bytes: usize,
     pub(in crate::asset::pipeline::manager) requires_reconciliation: bool,
     pub(in crate::asset::pipeline::manager) diagnostics: AssetWatchBatchDiagnostics,
-    pub(in crate::asset::pipeline::manager) errors: Vec<AssetWatchError>,
+    pub(in crate::asset::pipeline::manager) errors: VecDeque<AssetWatchError>,
     pub(in crate::asset::pipeline::manager) worker_scheduled: bool,
 }
 
@@ -119,14 +119,14 @@ pub struct ProjectAssetManager {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
     use crossbeam_channel::unbounded;
 
     use super::{ProjectAssetChangeSubscriber, ProjectAssetManager};
-    use crate::asset::watch::{AssetChange, AssetChangeKind};
     use crate::asset::AssetUri;
+    use crate::asset::watch::{AssetChange, AssetChangeKind};
 
     #[test]
     fn delivered_asset_change_invokes_the_subscription_wake() {

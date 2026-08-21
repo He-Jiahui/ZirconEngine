@@ -17,6 +17,9 @@ impl RuntimePluginFeatureBlock {
                     .to_string(),
             );
         }
+        if self.provider_missing {
+            details.push("concrete runtime feature provider registration is missing".to_string());
+        }
         if self.target_unsupported {
             details.push("target mode is not supported".to_string());
         }

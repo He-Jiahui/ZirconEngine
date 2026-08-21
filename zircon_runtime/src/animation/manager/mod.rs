@@ -4,7 +4,7 @@ mod pose;
 mod sampling;
 mod state_machine;
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::core::framework::animation::{
@@ -174,14 +174,14 @@ impl AnimationManager for DefaultAnimationManager {
         world: WorldHandle,
         replacement_epoch: u64,
     ) -> Vec<AnimationIkCommand> {
-        self.drain_ik_commands_excluding(world, replacement_epoch, &[])
+        self.drain_ik_commands_excluding(world, replacement_epoch, &BTreeSet::new())
     }
 
     fn drain_ik_commands_excluding(
         &self,
         world: WorldHandle,
         replacement_epoch: u64,
-        deferred_entities: &[crate::scene::EntityId],
+        deferred_entities: &BTreeSet<crate::scene::EntityId>,
     ) -> Vec<AnimationIkCommand> {
         let mut queues = self.lock_ik_commands();
         let queue = queues.entry(world).or_default();
@@ -203,6 +203,7 @@ impl AnimationManager for DefaultAnimationManager {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
     use std::panic::{self, AssertUnwindSafe};
 
     use crate::core::framework::animation::{
@@ -250,9 +251,11 @@ mod tests {
         manager
             .queue_ik_command(1, look_at(world, 17))
             .expect("old World command queues");
-        assert!(manager
-            .drain_ik_commands_excluding(world, 1, &[17])
-            .is_empty());
+        assert!(
+            manager
+                .drain_ik_commands_excluding(world, 1, &BTreeSet::from([17]))
+                .is_empty()
+        );
 
         assert!(manager.drain_ik_commands(world, 2).is_empty());
         assert_eq!(

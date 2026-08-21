@@ -8,10 +8,10 @@ use super::super::style::{
     matched_rule_inspection::{
         matched_style_rule_entries, selector_component_name, selector_is_valid,
     },
-    style_rule_declarations::{UiStyleRuleDeclarationEntry, declaration_entries},
+    style_rule_declarations::{declaration_entries, UiStyleRuleDeclarationEntry},
 };
-use super::UiAssetEditorSessionError;
 use super::session_state::UiAssetCompilerImports;
+use super::UiAssetEditorSessionError;
 
 pub(super) use super::super::style::matched_rule_inspection::MatchedStyleRuleEntry;
 

@@ -560,6 +560,7 @@ Assert-True ($stagerSource -match '\$workingDirectoryResolution = Resolve-Zircon
 Assert-True ($stagerSource -match '\$startInfo\.FileName = \$executableResolution\.OperationalPath') 'MVP staging must launch the executable through the resolver operational path.'
 Assert-True ($stagerSource -match '\$projectRootResolution = if \(\[string\]::IsNullOrWhiteSpace\(\$ProjectRoot\)\)') 'MVP staging must resolve a provided project root once before product launch.'
 Assert-True ($stagerSource -match '\$startInfo\.WorkingDirectory = if \(\$null -eq \$projectRootResolution\)') 'MVP staging must use the project root as the child working directory when a project is selected.'
+Assert-True ($stagerSource -match '\$workingDirectoryResolution\.DisplayPath' -and $stagerSource -match '\$projectRootResolution\.DisplayPath') 'MVP staging must cross the child cwd boundary with canonical display paths.'
 Assert-True ($stagerSource.Contains("@('--project', '.') + @(`$Arguments)")) 'MVP staging must pass the selected project through the portable --project . contract.'
 Assert-True ($stagerSource -match 'Assert-MvpStagingProcessesReleased') 'MVP staging must reject a staged executable that survives its product exit.'
 Assert-True ($stagerSource -match 'Assert-MvpStagingProcessesReleased -StageDirectory \$stageDirectory\s*\r?\n\s*if \(\$createExitCode -ne 0\)') 'MVP staging must check that project creation released all staged processes before rejecting a nonzero editor exit.'
@@ -659,7 +660,9 @@ Assert-True ($stagerSource -match 'function Assert-MvpProjectName') 'MVP staging
 Assert-True ($stagerSource -match 'GetInvalidFileNameChars') 'MVP staging must reject project names that are not one filesystem directory segment.'
 Assert-True ($stagerSource -match 'createdProjectExpectedRoot') 'MVP staging must bind the created project root to the expected child of stage/project.'
 Assert-True ($stagerSource -match 'createdProjectExpectedResolution\.OperationalPath') 'MVP staging must compare a created project root by physical identity.'
-Assert-True ($stagerSource -match 'Resolve-ZirconWindowsPath -Path \(\[string\]\$fields\.project_path\)') 'MVP staging must compare editor product diagnostics by physical project identity.'
+Assert-True ($stagerSource -match 'if \(\$reportedEditorProjectPath -eq ''\.''\)') 'MVP staging must accept the explicit project-relative editor diagnostic emitted from a project-root child cwd.'
+Assert-True ($stagerSource -match 'GetParent\(\$expectedEditorProjectResolution\.DisplayPath\)') 'MVP staging must resolve created-project editor diagnostics from the staged project parent.'
+Assert-True ($stagerSource -match 'Resolve-ZirconWindowsPath -Path \$reportedEditorProjectPath') 'MVP staging must compare absolute editor product diagnostics by physical project identity.'
 Assert-True ($stagerSource -match 'Resolve-ZirconWindowsPath -Path \$reportedProjectPath') 'MVP staging must compare authoring automation project identities through the shared resolver.'
 Assert-True ($stagerSource -match 'if \(\$reportedProjectPath -eq ''\.''\)') 'MVP staging must accept the explicit project-relative authoring report emitted from a project-root child cwd.'
 Assert-True ($stagerSource -match 'Expected ''\.'' or an absolute path') 'MVP staging must reject ambiguous relative authoring report paths.'
@@ -689,6 +692,10 @@ Assert-True ($stagerSource -match 'Get-MvpStagedFileEvidence') 'MVP staging must
 Assert-True ($stagerSource -notmatch 'source_path = \$SourcePath') 'MVP staging manifest must not retain absolute source input paths in uploaded evidence.'
 Assert-True ($stagerSource -match 'project_creation') 'MVP staging must record the staged editor project-creation process as structured evidence.'
 Assert-True ($stagerSource -match 'Get-MvpEditorProjectOpenEvidence') 'MVP staging must parse the normal editor project-open diagnostic from the creation process.'
+$projectOpenEvidenceSource = Get-Content -LiteralPath (Join-Path $repoRoot 'tools\mvp\MvpProjectOpenEvidence.psm1') -Raw -Encoding UTF8
+Assert-True ($projectOpenEvidenceSource -match 'if \(\$reportedProjectRoot -eq ''\.''\)') 'MVP project-open evidence must bind the explicit current-project diagnostic to the expected project.'
+Assert-True ($projectOpenEvidenceSource -match 'GetParent\(\$expectedProjectRootResolution\.DisplayPath\)') 'MVP project-open evidence must resolve created-project relative diagnostics from the staged project parent.'
+Assert-True ($projectOpenEvidenceSource.Contains('[IO.Path]::IsPathRooted($reportedProjectRoot) -or $reportedProjectRoot.Contains('':'')')) 'MVP project-open evidence must reject root-relative and drive-relative diagnostics before resolving them.'
 Assert-True ($stagerSource -match 'Authoring automation diagnostic log') 'MVP staging must retain diagnostic evidence for normal editor automation processes.'
 Assert-True ($stagerSource -match 'process-execution-journal\.jsonl') 'MVP staging must persist an incremental journal for every started child process.'
 
@@ -848,10 +855,12 @@ try {
         -AllowUnsafeStagingRoot)
     Assert-True ($null -ne $authoringLaunched.authoring_automation) 'MVP staging launch fixture did not return the structured authoring automation report.'
     Assert-True ($authoringLaunched.baseline_automation.snapshot.inspector_translation[0] -eq '0') 'MVP staging did not capture the canonical Cube state before authoring.'
-    Assert-True ($authoringLaunched.authoring_automation.records.Count -eq 4) 'MVP staging launch fixture lost the normal authoring binding sequence.'
+    Assert-True ($authoringLaunched.authoring_automation.records.Count -eq 6) 'MVP staging launch fixture lost the normal authoring binding sequence.'
     Assert-True ($authoringLaunched.authoring_automation.records[1].transaction_id -eq 1) 'MVP staging launch fixture did not preserve the inspector transaction.'
     Assert-True ($authoringLaunched.authoring_automation.records[2].transaction_id -eq 2) 'MVP staging launch fixture did not preserve the scale transaction.'
-    Assert-True ($authoringLaunched.authoring_automation.records[3].save_generation -eq 2) 'MVP staging launch fixture did not preserve the project save generation.'
+    Assert-True ($authoringLaunched.authoring_automation.records[3].binding_path -eq 'WorkbenchMenuBar/Undo:onClick') 'MVP staging launch fixture lost the authoring Undo binding.'
+    Assert-True ($authoringLaunched.authoring_automation.records[4].binding_path -eq 'WorkbenchMenuBar/Redo:onClick') 'MVP staging launch fixture lost the authoring Redo binding.'
+    Assert-True ($authoringLaunched.authoring_automation.records[5].save_generation -eq 2) 'MVP staging launch fixture did not preserve the project save generation.'
     Assert-True ($authoringLaunched.authoring_automation.snapshot.selected_node_name -eq 'Cube') 'MVP staging launch fixture did not preserve the retained-host authoring snapshot.'
     Assert-True ($authoringLaunched.authoring_automation.project_identity -eq 'fixture-project') 'MVP staging launch fixture lost the authoring project identity.'
     Assert-True ($authoringLaunched.authoring_automation.scene_uri -eq 'res://scenes/main.scene.toml') 'MVP staging launch fixture lost the authoring scene URI.'
@@ -1086,7 +1095,7 @@ try {
             $assetRootDiagnostics = @($productRun.diagnostic_logs | ForEach-Object {
                 Get-Content -Raw -LiteralPath (Join-Path $launched.staging_root $_.path)
             })
-            Assert-True ($assetRootDiagnostics -match '(?m)^fixture_asset_root=assets$') "MVP staging passed a non-relative asset root to the $($productRun.product) product."
+            Assert-True ((@($assetRootDiagnostics) -join "`n") -match '(?m)^fixture_asset_root=assets\r?$') "MVP staging passed a non-relative asset root to the $($productRun.product) product."
         }
         Assert-True ($runtimeRun.frame_capture.path -eq 'captures/runtime-1.png') 'MVP staging launch fixture did not archive the runtime PNG under the stage capture root.'
         Assert-True ($runtimeRun.frame_capture.sha256 -match '^[0-9A-F]{64}$') 'MVP staging launch fixture did not hash the runtime PNG evidence.'

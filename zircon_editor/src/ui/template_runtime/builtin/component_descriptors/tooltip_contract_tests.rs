@@ -13,13 +13,13 @@ fn builtin_catalog_exposes_tooltip_content_and_icon_parameters() {
                     .props
                     .iter()
                     .find(|property| property.name == property_name)
-            })
-            .map(|property| {
-                (
-                    descriptor.document_id.as_str(),
-                    &property.value_type,
-                    &property.default,
-                )
+                    .map(|property| {
+                        (
+                            descriptor.document_id.as_str(),
+                            &property.value_type,
+                            &property.default,
+                        )
+                    })
             })
             .unwrap_or_else(|| {
                 panic!("builtin catalog should expose `{property_name}` on `{component_id}`")

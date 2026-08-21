@@ -1,7 +1,7 @@
 use super::ScreenSpaceUiTextPrepareReport;
 
 #[cfg(feature = "profiling")]
-pub(super) fn record_text_prepare_profile(report: &ScreenSpaceUiTextPrepareReport) {
+pub(in super::super) fn record_text_prepare_profile(report: &ScreenSpaceUiTextPrepareReport) {
     let raster = &report.raster_upload;
     crate::profile_counter!(
         "runtime",

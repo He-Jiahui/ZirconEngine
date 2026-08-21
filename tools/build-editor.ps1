@@ -86,7 +86,7 @@ function Invoke-ArtifactStagingCoordinator {
         [string[]]$Arguments
     )
 
-    $output = @(& $CoordinatorScript --json artifact @Arguments)
+    $output = @(& $CoordinatorScript -Json artifact @Arguments)
     $exitCode = $LASTEXITCODE
     if ($exitCode -ne 0) {
         throw "Coordinator product staging command failed with exit code ${exitCode}: $($output -join ' ')"

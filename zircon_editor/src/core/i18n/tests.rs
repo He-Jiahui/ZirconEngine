@@ -283,7 +283,7 @@ fn user_locale_sync_rejects_a_late_snapshot_generation() {
 fn locale_change_events_are_fifo_and_end_at_the_active_locale_under_concurrency() {
     let service = Arc::new(EditorI18nService::default());
     let sink = Arc::new(OrderedLocaleSink::default());
-    let event_sink: Arc<dyn EditorI18nEventSink> = Arc::clone(&sink);
+    let event_sink: Arc<dyn EditorI18nEventSink> = sink.clone();
     service.configure_event_sink(event_sink);
     let gate = Arc::new(Barrier::new(2));
     let hook_gate = Arc::clone(&gate);
@@ -323,7 +323,7 @@ fn slow_locale_sink_bounds_pending_events_and_coalesces_the_latest_locale_as_a_r
         blocked_first_delivery: AtomicBool::new(false),
         deliveries: Mutex::new(Vec::new()),
     });
-    let event_sink: Arc<dyn EditorI18nEventSink> = Arc::clone(&sink);
+    let event_sink: Arc<dyn EditorI18nEventSink> = sink.clone();
     service.configure_event_sink(event_sink);
 
     let first_service = Arc::clone(&service);
@@ -384,7 +384,7 @@ fn rejected_locale_resync_is_retained_until_the_next_transition() {
 fn failed_delivery_resync_is_linearized_before_a_concurrent_locale_transition() {
     let service = Arc::new(EditorI18nService::default());
     let sink = Arc::new(FailureOrderingLocaleSink::default());
-    let event_sink: Arc<dyn EditorI18nEventSink> = Arc::clone(&sink);
+    let event_sink: Arc<dyn EditorI18nEventSink> = sink.clone();
     service.configure_event_sink(event_sink);
     let entered_failure = Arc::new(Barrier::new(2));
     let release_failure = Arc::new(Barrier::new(2));

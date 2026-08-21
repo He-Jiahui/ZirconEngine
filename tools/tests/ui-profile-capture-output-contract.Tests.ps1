@@ -49,6 +49,7 @@ function New-ProfileManifestTestRepository {
     }
     & git.exe -C $Root config user.email "zircon-profile-test@example.invalid"
     & git.exe -C $Root config user.name "Zircon Profile Test"
+    & git.exe -C $Root config core.longpaths true
     foreach ($relativePath in (Get-ZirconProfileCriticalSourcePaths)) {
         if ($relativePath -eq $OmitCriticalSource) {
             continue
@@ -92,7 +93,7 @@ Describe "ui-profile-capture output contract" {
         (@(Resolve-ZirconUiProfileCaptureScenarios -Scenario 'manual') -join ',') |
             Should Be 'manual'
         (@(Resolve-ZirconUiProfileCaptureScenarios -AllUiScenarios) -join ',') |
-            Should Be 'startup,material_lab_startup,material_lab_hover,material_lab_click,idle_hover,click,viewport_toolbar_click,drag,drawer_resize,window_resize,hierarchy_scroll,welcome_recent_scroll,asset_refresh,viewport_image'
+            Should Be 'startup,material_lab_startup,material_lab_hover,material_lab_click,idle_hover,click,viewport_toolbar_click,viewport_pointer,drag,drawer_resize,window_resize,hierarchy_scroll,welcome_recent_scroll,asset_refresh,viewport_image'
 
         $scenarioResolutionIndex = $script:ProfileCaptureSource.IndexOf('$captureScenarios = @(Resolve-ZirconUiProfileCaptureScenarios')
         $outputRootIndex = $script:ProfileCaptureSource.IndexOf('$OutputPath = Resolve-ZirconProfileOutputRoot')
@@ -135,6 +136,20 @@ Describe "ui-profile-capture output contract" {
             { Resolve-ZirconProfileOutputRoot -RepoRoot 'E:\Git\ZirconEngine' -Path $unsafePath } |
                 Should Throw 'Profile output root must resolve beneath E:\zircon-profiles.'
         }
+    }
+
+    It "uses the shared collision-resistant profile session basename contract" {
+        Get-Command ConvertTo-ZirconProfileSessionBasename -ErrorAction SilentlyContinue |
+            Should Not BeNullOrEmpty
+
+        ConvertTo-ZirconProfileSessionBasename -SessionId 'local' |
+            Should Be 'local-249f1fb6f3a680e8'
+        ConvertTo-ZirconProfileSessionBasename -SessionId 'a:b' |
+            Should Be 'a_b-e661911904a01160'
+        ConvertTo-ZirconProfileSessionBasename -SessionId 'a?b' |
+            Should Be 'a_b-e657a3190497db71'
+        (ConvertTo-ZirconProfileSessionBasename -SessionId ('a' * 1024)).Length |
+            Should BeLessThan 97
     }
 
     It "requires a coordinator-managed external profiling target" {
@@ -735,6 +750,7 @@ Describe "ui-profile-capture output contract" {
         foreach ($functionName in @(
                 'Resolve-InteractionScenarioName',
                 'Test-InteractionProcessEvidence',
+                'Get-UiCounterTotal',
                 'Test-HierarchyScrollCounterGate'
             )) {
             $functionAst = $ast.Find({
@@ -835,6 +851,7 @@ Describe "ui-profile-capture output contract" {
 
         foreach ($functionName in @(
                 'Test-InteractionProcessEvidence',
+                'Get-UiCounterTotal',
                 'Test-WelcomeRecentScrollCounterGate'
             )) {
             $functionAst = $ast.Find({
@@ -930,6 +947,7 @@ Describe "ui-profile-capture output contract" {
         foreach ($functionName in @(
                 'Resolve-InteractionScenarioName',
                 'Test-InteractionProcessEvidence',
+                'Get-UiCounterTotal',
                 'Test-WindowResizeCounterGate'
             )) {
             $functionAst = $ast.Find({
@@ -1226,6 +1244,72 @@ Describe "ui-profile-capture output contract" {
         $script:ProfileCaptureSource | Should Not Match "target\\zircon-profile-projects"
     }
 
+    It "exports viewport pointer query p50 p95 and rejects incomplete spatial query evidence" {
+        $tokens = $null
+        $errors = $null
+        $ast = [System.Management.Automation.Language.Parser]::ParseFile(
+            $script:ProfileCaptureScript,
+            [ref]$tokens,
+            [ref]$errors)
+        $errors.Count | Should Be 0
+
+        foreach ($functionName in @(
+                'Get-ViewportPointerMetricSummary',
+                'Export-ViewportPointerMetrics',
+                'Test-ViewportPointerMetricsGate'
+            )) {
+            $functionAst = $ast.Find({
+                    param($node)
+                    $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+                        $node.Name -eq $functionName
+                }, $true)
+            $functionAst | Should Not BeNullOrEmpty
+            Invoke-Expression $functionAst.Extent.Text
+        }
+
+        $profileDir = Join-Path $TestDrive 'viewport-pointer-metrics'
+        New-Item -ItemType Directory -Force -Path $profileDir | Out-Null
+        [ordered]@{
+            spans = @(
+                [ordered]@{
+                    stream = 'editor'
+                    category = 'viewport.pointer'
+                    name = 'visible_spatial_query'
+                    duration_us = 10
+                },
+                [ordered]@{
+                    stream = 'editor'
+                    category = 'viewport.pointer'
+                    name = 'visible_spatial_query'
+                    duration_us = 30
+                }
+            )
+            counters = @(
+                [ordered]@{ stream = 'editor'; name = 'viewport.pointer.visible_spatial_query_visited_node_count'; value = 7 },
+                [ordered]@{ stream = 'editor'; name = 'viewport.pointer.visible_spatial_query_candidate_count'; value = 3 },
+                [ordered]@{ stream = 'editor'; name = 'viewport.pointer.visible_spatial_query_hit_count'; value = 1 },
+                [ordered]@{ stream = 'editor'; name = 'viewport.pointer.visible_spatial_query_projected_candidate_count'; value = 1 }
+            )
+        } | ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath (Join-Path $profileDir 'timeline.zrtrace.json') -Encoding UTF8
+
+        $metrics = Export-ViewportPointerMetrics -ProfileDir $profileDir
+        $metrics.query_duration_us.sample_count | Should Be 2
+        $metrics.query_duration_us.p50 | Should Be 10
+        $metrics.query_duration_us.p95 | Should Be 30
+        $metrics.counters.Count | Should Be 4
+        (Test-ViewportPointerMetricsGate -ProfileDir $profileDir -ScenarioName 'viewport_pointer') |
+            Should Be $true
+
+        $metrics.counters = @($metrics.counters | Where-Object {
+                $_.name -ne 'viewport.pointer.visible_spatial_query_hit_count'
+            })
+        $metrics | ConvertTo-Json -Depth 6 |
+            Set-Content -LiteralPath (Join-Path $profileDir 'viewport_pointer_metrics.json') -Encoding UTF8
+        (Test-ViewportPointerMetricsGate -ProfileDir $profileDir -ScenarioName 'viewport_pointer') |
+            Should Be $false
+    }
+
     It "source-binds exact hierarchy N and actual wheel operations before the measured process starts" {
         $script:ProfileCaptureSource | Should Match '\[int\]\$HierarchyLogicalNodeCount = 0'
         $script:ProfileCaptureSource | Should Not Match '\$HierarchyDeltaNodeCount'
@@ -1235,6 +1319,24 @@ Describe "ui-profile-capture output contract" {
         $script:ProfileCaptureSource | Should Match 'hierarchy_logical_node_count = \$HierarchyLogicalNodeCount'
         $script:ProfileCaptureSource | Should Match 'requested_wheel_operation_count = \$requestedWheelOperationCount'
         $materializeIndex = $script:ProfileCaptureSource.LastIndexOf('$inputFixture = New-ZirconUiHierarchyScaleFixture')
+        $enableCaptureIndex = $script:ProfileCaptureSource.LastIndexOf('$env:ZIRCON_PROFILE_CAPTURE = "1"')
+        $exportManifestIndex = $script:ProfileCaptureSource.LastIndexOf('$sourceManifest = Export-ZirconProfileCaptureManifest')
+        ($materializeIndex -ge 0) | Should Be $true
+        ($materializeIndex -lt $enableCaptureIndex) | Should Be $true
+        ($enableCaptureIndex -lt $exportManifestIndex) | Should Be $true
+    }
+
+    It "source-binds a geometry-targeted viewport pointer fixture before capture" {
+        $script:ProfileCaptureSource | Should Match '\[int\]\$ViewportSelectableNodeCount = 0'
+        $script:ProfileCaptureSource | Should Match '\[ValidateSet\("static", "dynamic"\)\]'
+        $script:ProfileCaptureSource | Should Match 'New-ZirconViewportPointerScaleFixture'
+        $script:ProfileCaptureSource | Should Match 'Get-LiveGeometryViewportPointerTargets'
+        $script:ProfileCaptureSource | Should Match 'target_kind -ne "scene_viewport"'
+        $script:ProfileCaptureSource | Should Match 'viewport_selectable_node_count = \$ViewportSelectableNodeCount'
+        $script:ProfileCaptureSource | Should Match 'viewport_scene_mobility = \$ViewportSceneMobility'
+        $script:ProfileCaptureSource | Should Match 'Viewport pointer scale inputs are valid only for the viewport_pointer scenario'
+
+        $materializeIndex = $script:ProfileCaptureSource.LastIndexOf('$inputFixture = New-ZirconViewportPointerScaleFixture')
         $enableCaptureIndex = $script:ProfileCaptureSource.LastIndexOf('$env:ZIRCON_PROFILE_CAPTURE = "1"')
         $exportManifestIndex = $script:ProfileCaptureSource.LastIndexOf('$sourceManifest = Export-ZirconProfileCaptureManifest')
         ($materializeIndex -ge 0) | Should Be $true
@@ -1308,7 +1410,7 @@ Describe "ui-profile-capture output contract" {
             Select-Object -First 1
         $nativeInteractionTool.sha256 |
             Should Be ((Get-FileHash -LiteralPath $nativeInteractionToolPath -Algorithm SHA256).Hash.ToLowerInvariant())
-        $manifest.repository.critical_source_files.Count | Should Be 103
+        $manifest.repository.critical_source_files.Count | Should Be 108
         $manifest.repository.critical_source_files[0].relative_path |
             Should Be 'zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute.rs'
         $criticalSourcePaths = @($manifest.repository.critical_source_files.relative_path)
@@ -1326,6 +1428,16 @@ Describe "ui-profile-capture output contract" {
         ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/app/profiling/snapshot_merge.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_runtime/src/core/runtime/diagnostics/profiling/recorder.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_editor/src/scene/viewport/pointer/precision/renderer_visible_spatial_pick_source.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_visible_spatial_query.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/core/framework/render/visible_spatial_query.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/runtime/render_framework/query_visible_spatial_snapshot/query_visible_spatial_snapshot.rs') |
+            Should Be $true
+        ($criticalSourcePaths -contains 'zircon_runtime/src/graphics/runtime/render_framework/viewport_record/visible_spatial_query.rs') |
             Should Be $true
         ($criticalSourcePaths -contains 'zircon_editor/src/ui/retained_host/host_contract/native_pointer/scroll_dispatch/entry.rs') |
             Should Be $true

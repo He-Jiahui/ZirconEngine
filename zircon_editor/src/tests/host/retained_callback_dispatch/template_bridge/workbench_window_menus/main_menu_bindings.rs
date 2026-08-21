@@ -32,11 +32,9 @@ fn workbench_main_menu_business_items_resolve_canonical_bindings() {
         EditorUiBindingPayload::EditorCommand { command_id }
             if command_id == "editor.command.palette"
     ));
-    assert!(
-        bridge
-            .main_menu_item_binding("WorkbenchRunModeMenu", "menu.item.asset_browser")
-            .is_none()
-    );
+    assert!(bridge
+        .main_menu_item_binding("WorkbenchRunModeMenu", "menu.item.asset_browser")
+        .is_none());
     let reset_layout = bridge
         .layout_menu_item_binding("WorkbenchLayoutMenu", "menu.item.reset_layout")
         .expect("Reset Layout should resolve a canonical binding");
@@ -44,11 +42,9 @@ fn workbench_main_menu_business_items_resolve_canonical_bindings() {
         reset_layout.payload(),
         &EditorUiBindingPayload::menu_action("workbench.layout.reset")
     );
-    assert!(
-        bridge
-            .layout_menu_item_binding("WorkbenchLayoutMenu", "menu.item.gameplay_layout")
-            .is_none()
-    );
+    assert!(bridge
+        .layout_menu_item_binding("WorkbenchLayoutMenu", "menu.item.gameplay_layout")
+        .is_none());
 }
 
 #[test]

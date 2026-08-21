@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 
 use zircon_runtime::scene::{EntityId, ReflectComponent, TypeRegistry, World};
 use zircon_runtime::script::VmReflectionRegistrySnapshot;
@@ -8,7 +8,7 @@ use zircon_runtime_interface::reflect::{ReflectScriptVisibility, ReflectedValue}
 
 use super::{CallSiteError, CompiledCallSite, ParamLayout};
 
-static NEXT_CALL_SITE_TOKEN: AtomicU64 = AtomicU64::new(1);
+static NEXT_CALL_TABLE_GENERATION: AtomicU32 = AtomicU32::new(1);
 
 #[derive(Clone)]
 struct CompiledType {
@@ -21,7 +21,8 @@ struct CompiledType {
 pub struct ScriptCallTable {
     types: Arc<Vec<CompiledType>>,
     by_name: Arc<HashMap<(String, String), CompiledCallSite>>,
-    by_token: Arc<HashMap<u64, CompiledCallSite>>,
+    sites: Arc<Vec<CompiledCallSite>>,
+    table_generation: u32,
     catalog_snapshot: Option<Arc<VmReflectionRegistrySnapshot>>,
     resolution_count: Arc<AtomicUsize>,
 }
@@ -43,9 +44,10 @@ impl ScriptCallTable {
         registry: &TypeRegistry,
         catalog_snapshot: Option<Arc<VmReflectionRegistrySnapshot>>,
     ) -> Result<Self, CallSiteError> {
+        let table_generation = allocate_call_table_generation()?;
         let mut types = Vec::new();
         let mut by_name = HashMap::new();
-        let mut by_token = HashMap::new();
+        let mut sites = Vec::new();
         for (type_index, runtime) in registry
             .iter()
             .filter(|runtime| {
@@ -68,14 +70,14 @@ impl ScriptCallTable {
                     }
                 })?;
                 let layout = ParamLayout::new(field.value_type_path.as_str(), field.editable);
-                let token = allocate_call_site_token()?;
+                let token = encode_call_site_token(table_generation, sites.len())?;
                 let site = CompiledCallSite::new(token, type_slot, member_slot, layout.clone());
                 members.push(layout);
                 by_name.insert(
                     (registration.type_path.type_path.clone(), field.name.clone()),
                     site.clone(),
                 );
-                by_token.insert(token, site);
+                sites.push(site);
             }
             types.push(CompiledType {
                 members,
@@ -85,7 +87,8 @@ impl ScriptCallTable {
         Ok(Self {
             types: Arc::new(types),
             by_name: Arc::new(by_name),
-            by_token: Arc::new(by_token),
+            sites: Arc::new(sites),
+            table_generation,
             catalog_snapshot,
             resolution_count: Arc::new(AtomicUsize::new(0)),
         })
@@ -199,7 +202,7 @@ impl ScriptCallTable {
     }
 
     fn entry(&self, site: &CompiledCallSite) -> Result<&CompiledType, CallSiteError> {
-        if self.by_token.get(&site.token()) != Some(site) {
+        if self.site_ref_from_token(site.token())? != site {
             return Err(CallSiteError::InvalidToken {
                 token: site.token(),
             });
@@ -219,10 +222,27 @@ impl ScriptCallTable {
     }
 
     fn site_from_token(&self, token: u64) -> Result<CompiledCallSite, CallSiteError> {
-        self.by_token
-            .get(&token)
-            .cloned()
+        self.site_ref_from_token(token).cloned()
+    }
+
+    fn site_ref_from_token(&self, token: u64) -> Result<&CompiledCallSite, CallSiteError> {
+        let generation = (token >> 32) as u32;
+        let ordinal = token as u32;
+        if generation != self.table_generation || ordinal == 0 {
+            return Err(CallSiteError::InvalidToken { token });
+        }
+        self.sites
+            .get(ordinal.saturating_sub(1) as usize)
+            .filter(|site| site.token() == token)
             .ok_or(CallSiteError::InvalidToken { token })
+    }
+
+    #[cfg(test)]
+    pub(super) fn resolve_token_for_test(
+        &self,
+        token: u64,
+    ) -> Result<CompiledCallSite, CallSiteError> {
+        self.site_from_token(token)
     }
 
     fn ensure_catalog_revision(&self) -> Result<(), CallSiteError> {
@@ -257,7 +277,8 @@ impl std::fmt::Debug for ScriptCallTable {
         formatter
             .debug_struct("ScriptCallTable")
             .field("type_count", &self.types.len())
-            .field("call_site_count", &self.by_name.len())
+            .field("call_site_count", &self.sites.len())
+            .field("table_generation", &self.table_generation)
             .field(
                 "catalog_revision",
                 &self
@@ -270,10 +291,27 @@ impl std::fmt::Debug for ScriptCallTable {
     }
 }
 
-fn allocate_call_site_token() -> Result<u64, CallSiteError> {
-    NEXT_CALL_SITE_TOKEN
+fn allocate_call_table_generation() -> Result<u32, CallSiteError> {
+    NEXT_CALL_TABLE_GENERATION
         .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
             current.checked_add(1)
         })
         .map_err(|_| CallSiteError::TokenCapacityExceeded)
+}
+
+fn encode_call_site_token(
+    table_generation: u32,
+    zero_based_ordinal: usize,
+) -> Result<u64, CallSiteError> {
+    let count = zero_based_ordinal
+        .checked_add(1)
+        .ok_or(CallSiteError::SlotCapacityExceeded {
+            slot_kind: "token ordinal",
+            count: usize::MAX,
+        })?;
+    let ordinal = u32::try_from(count).map_err(|_| CallSiteError::SlotCapacityExceeded {
+        slot_kind: "token ordinal",
+        count,
+    })?;
+    Ok((u64::from(table_generation) << 32) | u64::from(ordinal))
 }

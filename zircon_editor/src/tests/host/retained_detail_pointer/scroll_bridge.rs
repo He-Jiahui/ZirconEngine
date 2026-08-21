@@ -1,7 +1,8 @@
+use crate::ui::retained_host::console_content_extent;
 use crate::ui::retained_host::detail_pointer::{
-    asset_details_content_extent, asset_details_scroll_layout, console_content_extent,
-    console_scroll_layout, inspector_content_extent, inspector_scroll_layout,
-    ScrollSurfacePointerBridge, ScrollSurfacePointerRoute, ScrollSurfacePointerState,
+    asset_details_content_extent, asset_details_scroll_layout, console_scroll_layout,
+    inspector_content_extent, inspector_scroll_layout, ScrollSurfacePointerBridge,
+    ScrollSurfacePointerRoute, ScrollSurfacePointerState,
 };
 use crate::ui::workbench::snapshot::AssetSelectionSnapshot;
 use zircon_runtime_interface::ui::layout::{UiPoint, UiSize};

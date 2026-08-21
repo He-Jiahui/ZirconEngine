@@ -219,6 +219,76 @@ fn feature_resolution_preserves_fixed_point_pass_order_for_backward_edges() {
 }
 
 #[test]
+fn metadata_only_features_fail_closed_without_capability_or_extension_publication() {
+    const ROW_COUNT: usize = 1_000;
+    let mut registrations = Vec::with_capacity(ROW_COUNT);
+    for index in 0..ROW_COUNT {
+        let plugin_id = format!("metadata_only_{index:04}");
+        let feature_id = format!("{plugin_id}.feature");
+        let feature = PluginFeatureBundleManifest::new(&feature_id, &feature_id, &plugin_id)
+            .with_dependency(PluginFeatureDependency::primary(
+                &plugin_id,
+                format!("runtime.plugin.{plugin_id}"),
+            ))
+            .with_capability(format!("runtime.feature.{feature_id}"))
+            .with_runtime_module(PluginModuleManifest::runtime(
+                format!("{feature_id}.runtime"),
+                format!("zircon_{plugin_id}_feature_runtime"),
+            ));
+        let package = PluginPackageManifest::new(&plugin_id, &plugin_id)
+            .with_runtime_module(
+                PluginModuleManifest::runtime(
+                    format!("{plugin_id}.runtime"),
+                    format!("zircon_{plugin_id}_runtime"),
+                )
+                .with_capabilities([format!("runtime.plugin.{plugin_id}")]),
+            )
+            .with_optional_feature(feature);
+        registrations.push(RuntimePluginRegistrationReport::from_native_package_manifest(package));
+    }
+    let catalog = RuntimePluginCatalog::from_registration_reports(registrations, []);
+    let manifest = enabled_catalog_manifest(&catalog);
+
+    let (report, stats) =
+        catalog.feature_dependency_report_with_stats(&manifest, RuntimeTargetMode::ClientRuntime);
+    let extensions =
+        catalog.runtime_extensions_for_project(&manifest, RuntimeTargetMode::ClientRuntime);
+
+    assert!(report.available_features.is_empty());
+    assert_eq!(report.blocked_features.len(), ROW_COUNT);
+    assert!(
+        report
+            .blocked_features
+            .iter()
+            .all(|blocked| blocked.provider_missing)
+    );
+    assert_eq!(report.diagnostics.len(), ROW_COUNT);
+    assert!(report.diagnostics.iter().all(|diagnostic| {
+        diagnostic.contains("concrete runtime feature provider registration is missing")
+    }));
+    assert_eq!(extensions.fatal_diagnostics.len(), ROW_COUNT);
+    assert!(
+        extensions
+            .registry
+            .modules()
+            .iter()
+            .all(|module| !module.name.ends_with(".feature.runtime"))
+    );
+    assert_eq!(stats.feature_status_evaluations, ROW_COUNT);
+    assert_eq!(stats.provider_registration_checks, ROW_COUNT);
+    assert_eq!(stats.provider_missing_blocks, ROW_COUNT);
+    assert_eq!(stats.dependency_edges_scanned, ROW_COUNT);
+    println!(
+        "PERF-MVP-PLUGINS04-CONCRETE-FEATURE-ADMISSION selected_features={ROW_COUNT} \
+         provider_registration_checks={} provider_missing_blocks={} \
+         previous_false_available={ROW_COUNT} current_false_available=0 \
+         false_available_reduction_percent=100 previous_capability_publications={ROW_COUNT} \
+         current_capability_publications=0 capability_publication_reduction_percent=100",
+        stats.provider_registration_checks, stats.provider_missing_blocks,
+    );
+}
+
+#[test]
 fn immediate_blockers_drop_capabilities_published_by_earlier_ready_features() {
     let ready_feature =
         PluginFeatureBundleManifest::new("plugin_a.ready", "plugin_a.ready", "plugin_a")
@@ -244,7 +314,7 @@ fn immediate_blockers_drop_capabilities_published_by_earlier_ready_features() {
                     )
                     .with_capabilities(["runtime.plugin.plugin_a"]),
                 )
-                .with_optional_feature(ready_feature),
+                .with_optional_feature(ready_feature.clone()),
         ),
         RuntimePluginRegistrationReport::from_native_package_manifest(
             PluginPackageManifest::new("plugin_b", "plugin_b")
@@ -252,10 +322,15 @@ fn immediate_blockers_drop_capabilities_published_by_earlier_ready_features() {
                     "plugin_b.runtime",
                     "zircon_plugin_plugin_b_runtime",
                 ))
-                .with_optional_feature(blocked_feature),
+                .with_optional_feature(blocked_feature.clone()),
         ),
     ];
-    let catalog = RuntimePluginCatalog::from_registration_reports(registrations, []);
+    let feature_registrations = [
+        RuntimePluginFeatureRegistrationReport::from_native_feature_manifest(ready_feature, None),
+        RuntimePluginFeatureRegistrationReport::from_native_feature_manifest(blocked_feature, None),
+    ];
+    let catalog =
+        RuntimePluginCatalog::from_registration_reports(registrations, feature_registrations);
     let mut manifest = enabled_catalog_manifest(&catalog);
     manifest
         .selections

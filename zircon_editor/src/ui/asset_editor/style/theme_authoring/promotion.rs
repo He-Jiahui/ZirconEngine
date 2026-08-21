@@ -1,6 +1,6 @@
 use zircon_runtime_interface::ui::template::{
-    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION, UiAssetDocument, UiAssetHeader, UiAssetImports,
-    UiAssetKind,
+    UiAssetDocument, UiAssetHeader, UiAssetImports, UiAssetKind,
+    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
 };
 
 use super::merge::{theme_base_name, theme_display_name};

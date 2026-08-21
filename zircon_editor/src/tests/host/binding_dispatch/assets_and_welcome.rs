@@ -3,7 +3,7 @@ use crate::ui::binding::{
     AssetCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind, WelcomeCommand,
 };
 use crate::ui::binding_dispatch::{
-    AssetHostEvent, WelcomeHostEvent, dispatch_asset_binding, dispatch_welcome_binding,
+    dispatch_asset_binding, dispatch_welcome_binding, AssetHostEvent, WelcomeHostEvent,
 };
 
 #[test]

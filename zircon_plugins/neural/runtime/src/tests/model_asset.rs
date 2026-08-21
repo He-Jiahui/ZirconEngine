@@ -1,6 +1,6 @@
 use crate::{
-    NnDataType, NnGemmAttrs, NnModelAsset, NnOp, NnOpAttrs, NnOpCode, NnTensorDesc, NnTensorKind,
-    NN_WEIGHT_ALIGNMENT,
+    NN_WEIGHT_ALIGNMENT, NnDataType, NnGemmAttrs, NnModelAsset, NnModelFormatError, NnOp,
+    NnOpAttrs, NnOpCode, NnTensorDesc, NnTensorKind,
 };
 
 fn sample_model() -> NnModelAsset {
@@ -62,4 +62,67 @@ fn nn_model_asset_rejects_weight_tensor_past_the_blob_end() {
     model.weights.clear();
 
     assert!(model.validate().is_err());
+}
+
+#[test]
+fn nn_model_asset_rejects_declared_op_count_beyond_table_capacity_before_allocation() {
+    let mut bytes = sample_model()
+        .to_znn_bytes()
+        .expect("sample model should serialize");
+    bytes[16..20].copy_from_slice(&u32::MAX.to_le_bytes());
+
+    let error = NnModelAsset::from_znn_bytes(&bytes)
+        .expect_err("untrusted op count must be admitted before allocation");
+
+    assert!(matches!(
+        error,
+        NnModelFormatError::ResourceLimitExceeded {
+            resource: "op_count",
+            actual,
+            limit,
+        } if actual == u64::from(u32::MAX) && limit == 1_048_576
+    ));
+}
+
+#[test]
+fn nn_model_asset_rejects_weight_blob_over_budget_before_copy() {
+    let mut bytes = sample_model()
+        .to_znn_bytes()
+        .expect("sample model should serialize");
+    let declared_weight_bytes = 1_u64 << 40;
+    bytes[32..40].copy_from_slice(&declared_weight_bytes.to_le_bytes());
+
+    let error = NnModelAsset::from_znn_bytes(&bytes)
+        .expect_err("untrusted weight length must be admitted before copying");
+
+    assert!(matches!(
+        error,
+        NnModelFormatError::ResourceLimitExceeded {
+            resource: "weight_blob_bytes",
+            actual,
+            limit,
+        } if actual == declared_weight_bytes && limit == 512 * 1024 * 1024
+    ));
+}
+
+#[test]
+fn nn_model_asset_rejects_op_count_that_cannot_fit_the_encoded_table() {
+    let mut bytes = sample_model()
+        .to_znn_bytes()
+        .expect("sample model should serialize");
+    let op_table_size = u32::from_le_bytes(bytes[20..24].try_into().unwrap());
+    let impossible_count = op_table_size / 8 + 1;
+    bytes[16..20].copy_from_slice(&impossible_count.to_le_bytes());
+
+    let error = NnModelAsset::from_znn_bytes(&bytes)
+        .expect_err("op count must be proved by the minimum encoded record size");
+
+    assert!(matches!(
+        error,
+        NnModelFormatError::DeclaredCountExceedsTableCapacity {
+            resource: "op_count",
+            declared,
+            maximum,
+        } if declared == impossible_count as usize && maximum == (op_table_size / 8) as usize
+    ));
 }

@@ -3,7 +3,7 @@ use zircon_runtime_interface::ui::{
     surface::{UiTextOverflow, UiTextWrap},
 };
 
-use crate::text::TEXT_SHAPING_RUN_MAX_BYTES;
+use crate::text::TextShapingWorkBudget;
 
 use super::{layout_text, measure_text_size, test_style};
 
@@ -38,9 +38,11 @@ fn text_wrap_long_word_falls_back_to_glyph() {
 }
 
 #[test]
-fn unwrapped_oversized_run_honors_text_shaping_cap() {
+fn unwrapped_oversized_run_keeps_one_logical_layout_line() {
     let style = test_style(UiTextWrap::None, UiTextOverflow::Clip);
-    let text = format!("{}中", "x".repeat(TEXT_SHAPING_RUN_MAX_BYTES));
+    let budget = TextShapingWorkBudget::default();
+    let text = format!("{}中", "x".repeat(budget.max_inline_input_bytes()));
+    assert!(budget.exceeds_inline_threshold(text.len()));
 
     let layout = layout_text(
         &text,
@@ -49,11 +51,8 @@ fn unwrapped_oversized_run_honors_text_shaping_cap() {
         None,
     );
 
-    assert_eq!(layout.lines.len(), 2);
-    assert_eq!(layout.lines[0].text.len(), TEXT_SHAPING_RUN_MAX_BYTES);
-    assert_eq!(layout.lines[1].text, "中");
-    assert_eq!(
-        layout.lines[1].source_range.start,
-        TEXT_SHAPING_RUN_MAX_BYTES
-    );
+    assert_eq!(layout.lines.len(), 1);
+    assert_eq!(layout.lines[0].text, text);
+    assert_eq!(layout.lines[0].source_range.start, 0);
+    assert_eq!(layout.lines[0].source_range.end, text.len());
 }

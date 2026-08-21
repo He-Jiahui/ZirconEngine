@@ -6,7 +6,7 @@ pub(crate) use generation::{
 };
 
 #[cfg(test)]
-pub(crate) use generation::{STATIC_CONTENT_CACHE_CAPACITY, static_content_cache_entry_count};
+pub(crate) use generation::{static_content_cache_entry_count, STATIC_CONTENT_CACHE_CAPACITY};
 
 #[cfg(test)]
 mod tests;

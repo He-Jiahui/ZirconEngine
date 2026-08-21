@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
-use serde_json::{Value as JsonValue, json};
+use serde_json::{json, Value as JsonValue};
 use toml::Value as TomlValue;
 use zircon_runtime_interface::ui::template::{
     UiComponentDefinition, UiNodeDefinition, UiStyleDeclarationBlock, UiStyleRule, UiStyleSheet,
@@ -440,12 +440,10 @@ fn document_replay_command_summary(
                 Some(node_id.clone()),
                 [(
                     "binding_ids",
-                    json!(
-                        bindings
-                            .iter()
-                            .map(|binding| &binding.id)
-                            .collect::<Vec<_>>()
-                    ),
+                    json!(bindings
+                        .iter()
+                        .map(|binding| &binding.id)
+                        .collect::<Vec<_>>()),
                 )],
             )
         }
@@ -678,12 +676,10 @@ fn component_summary(component: &UiComponentDefinition) -> JsonValue {
 }
 
 fn style_sheets_summary(stylesheets: &[UiStyleSheet]) -> JsonValue {
-    json!(
-        stylesheets
-            .iter()
-            .map(style_sheet_summary)
-            .collect::<Vec<_>>()
-    )
+    json!(stylesheets
+        .iter()
+        .map(style_sheet_summary)
+        .collect::<Vec<_>>())
 }
 
 fn style_sheet_summary(stylesheet: &UiStyleSheet) -> JsonValue {

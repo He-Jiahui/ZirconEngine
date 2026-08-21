@@ -2,9 +2,9 @@ use crate::core::editing::context::CoreEditContext;
 use crate::core::editing::engine::SelectionSnapshot;
 use crate::core::editing::selection::SceneSelection;
 use crate::ui::workbench::state::EditorState;
+use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime::scene::DefaultLevelManager;
 use zircon_runtime::scene::NodeId;
-use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime_interface::math::UVec2;
 
 pub(super) fn test_state() -> EditorState {

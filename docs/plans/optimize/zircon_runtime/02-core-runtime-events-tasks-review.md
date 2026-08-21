@@ -255,5 +255,8 @@ M0-M3 与 `01` 的 shutdown M0-M4 属于同一个最低层修复序列；实施�
 
 ## 状态与产出记录
 
+请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
 | 里程碑 | 范围 | 状态 | 完成日期 | 证据 |
 |---|---|---|---|---|
+| P2-2a | event routine timing sampling, bounded replacement accounting and full/sampled/disabled comparison | validation_pending | - | [2026-08-18-event-diagnostics-sampling.md](02/2026-08-18-event-diagnostics-sampling.md) |

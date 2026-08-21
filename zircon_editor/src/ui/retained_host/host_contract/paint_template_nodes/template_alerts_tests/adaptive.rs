@@ -1,4 +1,5 @@
 use crate::ui::retained_host::host_contract::data::FrameRect;
+use crate::ui::retained_host::host_contract::paint_template_nodes::render_commands::HostPaintCommand;
 
 use super::super::push_alert_commands;
 use super::support::positioned_alert_node;
@@ -215,13 +216,13 @@ fn frame_is_within(outer: &FrameRect, inner: &FrameRect) -> bool {
 fn alert_commands(
     node: &crate::ui::retained_host::host_contract::data::TemplatePaneNodeData,
     rect: &FrameRect,
-) -> Vec<super::super::render_commands::HostPaintCommand> {
+) -> Vec<HostPaintCommand> {
     let mut commands = Vec::new();
     assert!(push_alert_commands(&mut commands, node, rect, rect, 4, 1.0));
     commands
 }
 
-fn first_text_x(commands: &[super::super::render_commands::HostPaintCommand]) -> f32 {
+fn first_text_x(commands: &[HostPaintCommand]) -> f32 {
     commands
         .iter()
         .find_map(|command| command.text.as_ref().map(|_| command.frame.x))

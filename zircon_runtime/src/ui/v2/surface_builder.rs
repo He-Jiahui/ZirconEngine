@@ -4,10 +4,10 @@ use zircon_runtime_interface::ui::v2::{UiV2AssetError, UiV2CompiledDocument};
 use crate::ui::surface::UiSurface;
 use crate::ui::theme::UiThemeRegistry;
 
-use super::UiV2DocumentCompiler;
 use super::cache::UiV2PrototypeStore;
 use super::style::{UiV2RuntimeStyleIndex, UiV2StyleResolver};
 use super::surface_tree::build_tree_from_arena;
+use super::UiV2DocumentCompiler;
 
 #[derive(Default)]
 pub struct UiV2SurfaceBuilder;

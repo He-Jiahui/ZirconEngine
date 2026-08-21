@@ -50,6 +50,10 @@ impl HighlightSet {
         &self.entities
     }
 
+    pub(crate) fn entity_capacity(&self) -> usize {
+        self.entities.capacity()
+    }
+
     pub const fn attributes(&self) -> HighlightRenderAttributes {
         self.attributes
     }
@@ -67,5 +71,6 @@ mod tests {
         );
 
         assert_eq!(set.entities(), &[2, 4, 9]);
+        assert!(set.entity_capacity() >= set.entities().len());
     }
 }

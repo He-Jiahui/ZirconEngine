@@ -1,4 +1,5 @@
 use super::*;
+use crate::scene::ecs::Added;
 
 #[test]
 fn query_state_cached_iteration_rebuilds_only_for_new_matching_archetypes() {
@@ -208,10 +209,12 @@ fn query_state_count_and_empty_helpers_can_use_cached_candidates() {
     assert_eq!(query.count_cached(&world), 0);
     assert!(query.is_empty_cached(&world));
     assert!(!query.contains_cached(&world, player));
-    assert!(query
-        .iter_many_cached(&world, [player, enemy])
-        .collect::<Vec<_>>()
-        .is_empty());
+    assert!(
+        query
+            .iter_many_cached(&world, [player, enemy])
+            .collect::<Vec<_>>()
+            .is_empty()
+    );
     assert_eq!(query.cache_rebuilds(), 1);
 
     world.insert(enemy, Player).unwrap();

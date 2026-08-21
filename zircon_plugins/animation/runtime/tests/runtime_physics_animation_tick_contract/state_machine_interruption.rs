@@ -81,10 +81,12 @@ fn simulated_pose_blends_under_ragdoll_mask() {
             .targets(entity)
             .and_then(|targets| targets.iter().find(|target| target.bone_name == "Hand"))
             .expect("blended simulated pose should be published as the next physics target");
-        assert!(published
-            .local_transform
-            .translation
-            .abs_diff_eq(Vec3::new(2.5, 0.0, 0.0), 1.0e-4));
+        assert!(
+            published
+                .local_transform
+                .translation
+                .abs_diff_eq(Vec3::new(2.5, 0.0, 0.0), 1.0e-4)
+        );
     });
 }
 
@@ -160,11 +162,13 @@ fn exit_time_gate_waits_for_normalized_state_progress_without_skipping_crossfade
 
     runtime.tick_level_seconds(&level, 0.5).unwrap();
     assert_hand_translation(&level, entity, 0.0);
-    assert!(level
-        .animation_playback_times(level.capture_world_replacement_epoch())
-        .expect("current World exposes playback state")
-        .2
-        .is_empty());
+    assert!(
+        level
+            .animation_playback_times(level.capture_world_replacement_epoch())
+            .expect("current World exposes playback state")
+            .2
+            .is_empty()
+    );
 
     runtime.tick_level_seconds(&level, 0.25).unwrap();
     assert_hand_translation(&level, entity, 0.0);
@@ -186,7 +190,149 @@ fn exit_time_gate_waits_for_normalized_state_progress_without_skipping_crossfade
 }
 
 #[test]
-fn next_state_interruption_preserves_crossfade_pose_continuity() {
+fn one_shot_trigger_waits_for_exit_gate_then_is_consumed_once() {
+    let runtime = runtime_with_physics_animation_scene_asset();
+    let asset_manager = runtime_asset_manager(&runtime.handle());
+    let skeleton_uri = uri("one-shot-trigger.skeleton");
+    let idle_clip_uri = uri("one-shot-trigger-idle.clip");
+    let run_clip_uri = uri("one-shot-trigger-run.clip");
+    let idle_graph_uri = uri("one-shot-trigger-idle.graph");
+    let run_graph_uri = uri("one-shot-trigger-run.graph");
+    let machine_uri = uri("one-shot-trigger.machine");
+    let skeleton_id = ResourceId::from_locator(&skeleton_uri);
+    let machine_id = ResourceId::from_locator(&machine_uri);
+
+    register_animation_blend_assets(&asset_manager, &skeleton_uri, &idle_clip_uri, &run_clip_uri);
+    register_single_clip_graph(&asset_manager, &idle_graph_uri, &idle_clip_uri);
+    register_single_clip_graph(&asset_manager, &run_graph_uri, &run_clip_uri);
+    let mut machine = timed_transition_state_machine(&idle_graph_uri, &run_graph_uri);
+    machine.transitions[0].duration_seconds = 0.5;
+    machine.transitions[0].exit_time = Some(0.75);
+    machine.transitions[0].conditions[0].parameter = "fire".to_string();
+    machine.transitions[0].conditions[0].operator =
+        zircon_runtime::core::framework::animation::AnimationConditionOperatorAsset::Triggered;
+    machine.transitions[0].conditions[0].value = None;
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(machine_id, ResourceKind::AnimationStateMachine, machine_uri),
+        machine,
+    );
+
+    let level = runtime.create_default_level().unwrap();
+    let entity = spawn_state_machine_player(
+        &level,
+        skeleton_id,
+        machine_id,
+        BTreeMap::from([
+            ("fire".to_string(), AnimationParameterValue::Trigger),
+            ("speed".to_string(), AnimationParameterValue::Scalar(2.0)),
+        ]),
+    );
+
+    runtime.tick_level_seconds(&level, 0.5).unwrap();
+    level.with_world(|world| {
+        let player = world.animation_state_machine_player(entity).unwrap();
+        assert_eq!(
+            player.parameters.get("fire"),
+            Some(&AnimationParameterValue::Trigger),
+            "exit-time rejection must retain the pending trigger"
+        );
+    });
+
+    runtime.tick_level_seconds(&level, 0.25).unwrap();
+    level.with_world(|world| {
+        let player = world.animation_state_machine_player(entity).unwrap();
+        assert!(!player.parameters.contains_key("fire"));
+        assert_eq!(
+            player.parameters.get("speed"),
+            Some(&AnimationParameterValue::Scalar(2.0))
+        );
+    });
+    assert_eq!(
+        level
+            .animation_playback_times(level.capture_world_replacement_epoch())
+            .expect("current World exposes playback state")
+            .2[&entity]
+            .elapsed_seconds,
+        0.0
+    );
+
+    runtime.tick_level_seconds(&level, 0.25).unwrap();
+    level.with_world(|world| {
+        let player = world.animation_state_machine_player(entity).unwrap();
+        assert!(!player.parameters.contains_key("fire"));
+        assert_eq!(
+            player.parameters.get("speed"),
+            Some(&AnimationParameterValue::Scalar(2.0))
+        );
+    });
+}
+
+#[test]
+fn one_shot_trigger_zero_duration_pose_failure_commits_nothing_until_retry() {
+    let runtime = runtime_with_physics_animation_scene_asset();
+    let asset_manager = runtime_asset_manager(&runtime.handle());
+    let skeleton_uri = uri("one-shot-pose-retry.skeleton");
+    let idle_clip_uri = uri("one-shot-pose-retry-idle.clip");
+    let run_clip_uri = uri("one-shot-pose-retry-run.clip");
+    let idle_graph_uri = uri("one-shot-pose-retry-idle.graph");
+    let run_graph_uri = uri("one-shot-pose-retry-run.graph");
+    let machine_uri = uri("one-shot-pose-retry.machine");
+    let skeleton_id = ResourceId::from_locator(&skeleton_uri);
+    let machine_id = ResourceId::from_locator(&machine_uri);
+
+    register_animation_blend_assets(&asset_manager, &skeleton_uri, &idle_clip_uri, &run_clip_uri);
+    register_single_clip_graph(&asset_manager, &idle_graph_uri, &idle_clip_uri);
+    let mut machine = timed_transition_state_machine(&idle_graph_uri, &run_graph_uri);
+    machine.transitions[0].duration_seconds = 0.0;
+    machine.transitions[0].conditions[0].parameter = "fire".to_string();
+    machine.transitions[0].conditions[0].operator =
+        zircon_runtime::core::framework::animation::AnimationConditionOperatorAsset::Triggered;
+    machine.transitions[0].conditions[0].value = None;
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(machine_id, ResourceKind::AnimationStateMachine, machine_uri),
+        machine,
+    );
+
+    let level = runtime.create_default_level().unwrap();
+    let entity = spawn_state_machine_player(
+        &level,
+        skeleton_id,
+        machine_id,
+        BTreeMap::from([("fire".to_string(), AnimationParameterValue::Trigger)]),
+    );
+
+    runtime.tick_level_seconds(&level, 0.0).unwrap();
+
+    level.with_world(|world| {
+        let player = world.animation_state_machine_player(entity).unwrap();
+        assert_eq!(player.active_state.as_deref(), Some("Idle"));
+        assert_eq!(
+            player.parameters.get("fire"),
+            Some(&AnimationParameterValue::Trigger),
+            "a missing target pose must commit neither state nor Trigger removal"
+        );
+    });
+    assert!(
+        level
+            .animation_playback_times(level.capture_world_replacement_epoch())
+            .expect("current World exposes playback state")
+            .2
+            .get(&entity)
+            .is_none()
+    );
+
+    register_single_clip_graph(&asset_manager, &run_graph_uri, &run_clip_uri);
+    runtime.tick_level_seconds(&level, 0.0).unwrap();
+
+    level.with_world(|world| {
+        let player = world.animation_state_machine_player(entity).unwrap();
+        assert_eq!(player.active_state.as_deref(), Some("Run"));
+        assert!(!player.parameters.contains_key("fire"));
+    });
+}
+
+#[test]
+fn one_shot_trigger_interruption_waits_for_source_pose_then_consumes() {
     let runtime = runtime_with_physics_animation_scene_asset();
     let asset_manager = runtime_asset_manager(&runtime.handle());
     let skeleton_uri = uri("interruption.skeleton");
@@ -210,15 +356,19 @@ fn next_state_interruption_preserves_crossfade_pose_continuity() {
         single_hand_translation_clip(&skeleton_uri, 20.0),
     );
     for (graph, clip) in [
-        (&idle_graph_uri, &idle_clip_uri),
         (&run_graph_uri, &run_clip_uri),
         (&sprint_graph_uri, &sprint_clip_uri),
     ] {
         register_single_clip_graph(&asset_manager, graph, clip);
     }
+    let mut machine =
+        interruptible_transition_state_machine(&idle_graph_uri, &run_graph_uri, &sprint_graph_uri);
+    machine.transitions[1].conditions[0].operator =
+        zircon_runtime::core::framework::animation::AnimationConditionOperatorAsset::Triggered;
+    machine.transitions[1].conditions[0].value = None;
     asset_manager.resource_manager().register_ready(
         ResourceRecord::new(machine_id, ResourceKind::AnimationStateMachine, machine_uri),
-        interruptible_transition_state_machine(&idle_graph_uri, &run_graph_uri, &sprint_graph_uri),
+        machine,
     );
 
     let level = runtime.create_default_level().unwrap();
@@ -239,7 +389,7 @@ fn next_state_interruption_preserves_crossfade_pose_continuity() {
                     state_machine: ResourceHandle::<AnimationStateMachineMarker>::new(machine_id),
                     parameters: BTreeMap::from([
                         ("start".to_string(), AnimationParameterValue::Bool(true)),
-                        ("interrupt".to_string(), AnimationParameterValue::Bool(true)),
+                        ("interrupt".to_string(), AnimationParameterValue::Trigger),
                     ]),
                     active_state: Some("Idle".to_string()),
                     playing: true,
@@ -268,6 +418,32 @@ fn next_state_interruption_preserves_crossfade_pose_continuity() {
 
     runtime.tick_level_seconds(&level, 0.0).unwrap();
 
+    level.with_world(|world| {
+        let player = world.animation_state_machine_player(entity).unwrap();
+        assert_eq!(
+            player.parameters.get("interrupt"),
+            Some(&AnimationParameterValue::Trigger),
+            "a failed interruption source sample must retain the trigger"
+        );
+        assert_eq!(
+            player.parameters.get("start"),
+            Some(&AnimationParameterValue::Bool(true))
+        );
+    });
+    let retained = level
+        .animation_playback_times(level.capture_world_replacement_epoch())
+        .expect("current World exposes playback state")
+        .2
+        .get(&entity)
+        .cloned()
+        .expect("the previous transition remains retryable after source sampling fails");
+    assert_eq!(retained.from_state, "Idle");
+    assert_eq!(retained.to_state, "Run");
+    assert_eq!(retained.elapsed_seconds, 0.5);
+
+    register_single_clip_graph(&asset_manager, &idle_graph_uri, &idle_clip_uri);
+    runtime.tick_level_seconds(&level, 0.0).unwrap();
+
     assert_hand_translation(&level, entity, 5.0);
     let interrupted = level
         .animation_playback_times(level.capture_world_replacement_epoch())
@@ -279,10 +455,125 @@ fn next_state_interruption_preserves_crossfade_pose_continuity() {
     assert_eq!(interrupted.from_state, "Run");
     assert_eq!(interrupted.to_state, "Sprint");
     assert_eq!(interrupted.elapsed_seconds, 0.0);
+    level.with_world(|world| {
+        let player = world.animation_state_machine_player(entity).unwrap();
+        assert!(!player.parameters.contains_key("interrupt"));
+        assert_eq!(
+            player.parameters.get("start"),
+            Some(&AnimationParameterValue::Bool(true))
+        );
+    });
 
     runtime.tick_level_seconds(&level, 0.5).unwrap();
 
     assert_hand_translation(&level, entity, 12.5);
+}
+
+#[test]
+fn one_shot_trigger_deferred_clip_event_admission_retries_before_consuming() {
+    const PENDING_EVENT_CAPACITY: usize = 256;
+
+    let runtime = runtime_with_physics_animation_scene_asset();
+    let asset_manager = runtime_asset_manager(&runtime.handle());
+    let skeleton_uri = uri("one-shot-deferred.skeleton");
+    let idle_clip_uri = uri("one-shot-deferred-idle.clip");
+    let run_clip_uri = uri("one-shot-deferred-run.clip");
+    let idle_graph_uri = uri("one-shot-deferred-idle.graph");
+    let run_graph_uri = uri("one-shot-deferred-run.graph");
+    let machine_uri = uri("one-shot-deferred.machine");
+    let backlog_clip_uri = uri("one-shot-deferred-backlog.clip");
+    let skeleton_id = ResourceId::from_locator(&skeleton_uri);
+    let machine_id = ResourceId::from_locator(&machine_uri);
+    let backlog_clip_id = ResourceId::from_locator(&backlog_clip_uri);
+
+    register_animation_blend_assets(&asset_manager, &skeleton_uri, &idle_clip_uri, &run_clip_uri);
+    register_single_clip_graph(&asset_manager, &idle_graph_uri, &idle_clip_uri);
+    register_single_clip_graph(&asset_manager, &run_graph_uri, &run_clip_uri);
+    let mut machine = timed_transition_state_machine(&idle_graph_uri, &run_graph_uri);
+    machine.transitions[0].conditions[0].parameter = "fire".to_string();
+    machine.transitions[0].conditions[0].operator =
+        zircon_runtime::core::framework::animation::AnimationConditionOperatorAsset::Triggered;
+    machine.transitions[0].conditions[0].value = None;
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(machine_id, ResourceKind::AnimationStateMachine, machine_uri),
+        machine,
+    );
+
+    let level = runtime.create_default_level().unwrap();
+    let entity = spawn_state_machine_player(
+        &level,
+        skeleton_id,
+        machine_id,
+        BTreeMap::from([("fire".to_string(), AnimationParameterValue::Trigger)]),
+    );
+    let replacement_epoch = level.capture_world_replacement_epoch();
+    let admission = level.enqueue_animation_clip_event_range_batches(
+        replacement_epoch,
+        (0..PENDING_EVENT_CAPACITY)
+            .map(|index| {
+                vec![
+                    zircon_runtime::core::framework::animation::AnimationClipEventSamplingRange {
+                        entity: 10_000 + index as u64,
+                        clip_id: backlog_clip_id,
+                        from_time_seconds: 0.0,
+                        to_time_seconds: 0.1,
+                        looping: false,
+                    },
+                ]
+            })
+            .collect(),
+    );
+    assert!(matches!(
+        admission,
+        zircon_runtime::core::framework::animation::AnimationClipEventQueueAdmission::Current {
+            admitted_range_count: PENDING_EVENT_CAPACITY,
+            deferred_range_count: 0,
+            ..
+        }
+    ));
+
+    runtime.tick_level_seconds(&level, 0.1).unwrap();
+
+    level.with_world(|world| {
+        let player = world.animation_state_machine_player(entity).unwrap();
+        assert_eq!(player.active_state.as_deref(), Some("Idle"));
+        assert_eq!(
+            player.parameters.get("fire"),
+            Some(&AnimationParameterValue::Trigger),
+            "deferred event admission must retain the trigger and active state"
+        );
+    });
+    assert!(
+        level
+            .animation_playback_times(level.capture_world_replacement_epoch())
+            .expect("current World exposes playback state")
+            .2
+            .get(&entity)
+            .is_none()
+    );
+
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(
+            backlog_clip_id,
+            ResourceKind::AnimationClip,
+            backlog_clip_uri,
+        ),
+        single_hand_translation_clip(&skeleton_uri, 0.0),
+    );
+    runtime.tick_level_seconds(&level, 0.1).unwrap();
+
+    level.with_world(|world| {
+        let player = world.animation_state_machine_player(entity).unwrap();
+        assert_eq!(player.active_state.as_deref(), Some("Idle"));
+        assert!(!player.parameters.contains_key("fire"));
+    });
+    assert!(
+        level
+            .animation_playback_times(level.capture_world_replacement_epoch())
+            .expect("current World exposes playback state")
+            .2
+            .contains_key(&entity)
+    );
 }
 
 pub(super) fn uri(name: &str) -> AssetUri {
@@ -300,10 +591,11 @@ pub(super) fn assert_hand_translation(
         .iter()
         .find(|bone| bone.name == "Hand")
         .expect("Hand pose");
-    assert!(hand
-        .local_transform
-        .translation
-        .abs_diff_eq(Vec3::new(expected, 0.0, 0.0), 1.0e-4));
+    assert!(
+        hand.local_transform
+            .translation
+            .abs_diff_eq(Vec3::new(expected, 0.0, 0.0), 1.0e-4)
+    );
 }
 
 pub(super) fn spawn_state_machine_player(

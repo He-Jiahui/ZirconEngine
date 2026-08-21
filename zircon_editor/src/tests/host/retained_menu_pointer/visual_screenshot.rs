@@ -60,4 +60,4 @@ use assets_drawer::assets_drawer_window;
 use fixture_support::*;
 use layout_assertions::assert_assets_drawer_adaptive_layout;
 use window_fixtures::*;
-
+pub(super) use window_fixtures::{save_window_snapshot, welcome_input_window};

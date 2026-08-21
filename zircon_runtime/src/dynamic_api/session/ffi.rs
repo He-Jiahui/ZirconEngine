@@ -2,17 +2,17 @@ use std::ptr;
 
 use zircon_runtime_interface::world_sync::{WatchRegistration, WatchToken, WorldQuery};
 use zircon_runtime_interface::{
-    ProfileControlCommand, ProfileControlRequest, ZrByteSlice, ZrOwnedResultV2,
-    ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeAllocationId,
+    ProfileControlCommand, ProfileControlRequest, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_ABI_VERSION_V3,
+    ZR_RUNTIME_FRAME_MAX_DIMENSION_V1, ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1,
+    ZR_RUNTIME_PLUGIN_EVENT_SUBSCRIBE_REQUEST_LIMIT_V1, ZR_RUNTIME_PROFILE_REQUEST_LIMIT_V1,
+    ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1, ZR_RUNTIME_SESSION_PROFILE_MAX_ENCODED_BYTES_V1,
+    ZR_RUNTIME_WORLD_QUERY_REQUEST_LIMIT_V1, ZR_RUNTIME_WORLD_WATCH_REQUEST_LIMIT_V1, ZrByteSlice,
+    ZrOwnedResultV2, ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeAllocationId,
     ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1,
     ZrRuntimeFrameRequestV1, ZrRuntimeFrameV2, ZrRuntimeHighlightSetV1,
     ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimePluginEventSubscriptionHandle,
     ZrRuntimeSessionConfigV3, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrStatus,
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_ABI_VERSION_V2, ZIRCON_RUNTIME_ABI_VERSION_V3,
-    ZR_RUNTIME_FRAME_MAX_DIMENSION_V1, ZR_RUNTIME_FRAME_MAX_RGBA_BYTES_V1,
-    ZR_RUNTIME_PLUGIN_EVENT_SUBSCRIBE_REQUEST_LIMIT_V1, ZR_RUNTIME_PROFILE_REQUEST_LIMIT_V1,
-    ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1, ZR_RUNTIME_SESSION_PROFILE_MAX_ENCODED_BYTES_V1,
-    ZR_RUNTIME_WORLD_QUERY_REQUEST_LIMIT_V1, ZR_RUNTIME_WORLD_WATCH_REQUEST_LIMIT_V1,
 };
 
 use super::super::bounded_json;
@@ -22,20 +22,21 @@ use super::super::frame::{
     write_world_sync_payload,
 };
 use super::super::surface::render_surface_descriptor;
+use super::RuntimeProjectError;
 use super::diagnostics::runtime_diagnostics_response;
 use super::profile::RuntimeDynamicSessionProfile;
 use super::project::RuntimeProjectConfig;
 use super::registry::{
-    destroy_session_slot, insert_session_with_wake, register_runtime_allocation_in_action,
-    release_runtime_allocation, with_session, with_session_activity, with_session_result_committed,
-    with_session_result_finalized, RuntimeAllocationKind, RuntimeWakeRegistration,
+    RuntimeAllocationKind, RuntimeWakeRegistration, SessionRegistryInsertError,
+    destroy_session_slot, register_runtime_allocation_in_action, release_runtime_allocation,
+    try_insert_session_with_wake, with_session, with_session_activity,
+    with_session_result_committed, with_session_result_finalized,
 };
 use super::status::{
     error_status, invalid_argument, invalid_or_limit_payload, limit_exceeded, not_found,
     output_payload_status, unsupported_version,
 };
-use super::RuntimeProjectError;
-use super::{RuntimeDynamicSession, DEFAULT_VIEWPORT};
+use super::{DEFAULT_VIEWPORT, RuntimeDynamicSession};
 
 pub(in crate::dynamic_api) unsafe fn create_session(
     config: ZrRuntimeSessionConfigV3,
@@ -45,6 +46,7 @@ pub(in crate::dynamic_api) unsafe fn create_session(
     if out_session.is_null() {
         return invalid_argument(b"missing runtime session output");
     }
+    unsafe { ptr::write(out_session, ZrRuntimeSessionHandle::invalid()) };
     if config.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V3 {
         return unsupported_version();
     }
@@ -97,10 +99,15 @@ pub(in crate::dynamic_api) unsafe fn create_session(
     match RuntimeDynamicSession::new(profile, project_config) {
         Ok(session) => {
             let session = session.with_runtime_frame_wake(wake.channel_wake());
-            let handle = insert_session_with_wake(
+            let handle = match try_insert_session_with_wake(
                 session.with_dynamic_process_log_lease(dynamic_process_log),
                 wake,
-            );
+            ) {
+                Ok(handle) => handle,
+                Err(SessionRegistryInsertError::HandleSpaceExhausted) => {
+                    return limit_exceeded(b"runtime session handle space exhausted");
+                }
+            };
             unsafe { ptr::write(out_session, handle) };
             ZrStatus::ok()
         }

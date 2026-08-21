@@ -15,20 +15,20 @@ pub use capability::{
     RUNTIME_CRATE_NAME, SHADER_WGSL_IMPORTER_DECLARATION,
 };
 pub use plugin::{
-    asset_importer_descriptors, dist_module_manifest, module_descriptor, package_manifest,
-    plugin_registration, runtime_capabilities, runtime_module_manifest, runtime_plugin,
-    runtime_plugin_descriptor, runtime_selection, supported_platforms, supported_targets,
-    ShaderWgslImporterRuntimePlugin, SHADER_WGSL_IMPORTER_DIST_CRATE_NAME,
-    SHADER_WGSL_IMPORTER_DIST_RUNTIME_ENTRY,
+    SHADER_WGSL_IMPORTER_DIST_CRATE_NAME, SHADER_WGSL_IMPORTER_DIST_RUNTIME_ENTRY,
+    ShaderWgslImporterRuntimePlugin, asset_importer_descriptors, dist_module_manifest,
+    module_descriptor, package_manifest, plugin_registration, runtime_capabilities,
+    runtime_module_manifest, runtime_plugin, runtime_plugin_descriptor, runtime_selection,
+    supported_platforms, supported_targets,
 };
 
 pub fn import_wgsl(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
-    let source = context.source_text()?;
-    let module = wgsl::parse_str(&source).map_err(|error| {
+    let source = context.source_str()?;
+    let module = wgsl::parse_str(source).map_err(|error| {
         AssetImportError::ShaderValidation(format!(
             "{}: {}",
             context.uri,
-            error.emit_to_string(&source)
+            error.emit_to_string(source)
         ))
     })?;
     let mut validator = Validator::new(ValidationFlags::all(), Capabilities::all());
@@ -43,6 +43,7 @@ pub fn import_wgsl(context: &AssetImportContext) -> Result<AssetImportOutcome, A
             stage: format!("{:?}", entry.stage).to_ascii_lowercase(),
         })
         .collect();
+    let source = source.to_owned();
     Ok(AssetImportOutcome::new(
         context.uri.clone(),
         ImportedAsset::Shader(ShaderAsset {
@@ -85,13 +86,17 @@ mod tests {
         let manifest = package_manifest();
 
         assert_eq!(manifest.id, PLUGIN_ID);
-        assert!(manifest
-            .capabilities
-            .contains(&RUNTIME_CAPABILITY.to_string()));
-        assert!(manifest
-            .asset_importers
-            .iter()
-            .any(|importer| importer.source_extensions.contains(&"wgsl".to_string())));
+        assert!(
+            manifest
+                .capabilities
+                .contains(&RUNTIME_CAPABILITY.to_string())
+        );
+        assert!(
+            manifest
+                .asset_importers
+                .iter()
+                .any(|importer| importer.source_extensions.contains(&"wgsl".to_string()))
+        );
     }
 
     #[test]
@@ -136,9 +141,11 @@ mod tests {
             .as_ref()
             .expect("WGSL importer package exposes dist metadata");
 
-        assert!(manifest
-            .default_packaging
-            .contains(&ExportPackagingStrategy::NativeDynamic));
+        assert!(
+            manifest
+                .default_packaging
+                .contains(&ExportPackagingStrategy::NativeDynamic)
+        );
         assert_eq!(distribution.forms, vec!["dist"]);
         assert_eq!(
             distribution.default_packaging,
@@ -164,9 +171,11 @@ mod tests {
             zircon_runtime::plugin::PluginModuleKind::Native
         );
         assert_eq!(dist_module.crate_name, SHADER_WGSL_IMPORTER_DIST_CRATE_NAME);
-        assert!(dist_module
-            .capabilities
-            .contains(&IMPORTER_CAPABILITY.to_string()));
+        assert!(
+            dist_module
+                .capabilities
+                .contains(&IMPORTER_CAPABILITY.to_string())
+        );
     }
 
     #[test]
@@ -174,17 +183,21 @@ mod tests {
         let report = plugin_registration();
 
         assert!(report.is_success(), "{:?}", report.diagnostics);
-        assert!(report
-            .extensions
-            .modules()
-            .iter()
-            .any(|module| module.name == MODULE_NAME));
-        assert!(report
-            .extensions
-            .asset_importers()
-            .descriptors()
-            .iter()
-            .any(|importer| importer.id == "shader_wgsl_importer.wgsl"));
+        assert!(
+            report
+                .extensions
+                .modules()
+                .iter()
+                .any(|module| module.name == MODULE_NAME)
+        );
+        assert!(
+            report
+                .extensions
+                .asset_importers()
+                .descriptors()
+                .iter()
+                .any(|importer| importer.id == "shader_wgsl_importer.wgsl")
+        );
     }
 
     #[test]
@@ -213,6 +226,94 @@ mod tests {
             }
             other => panic!("unexpected imported asset: {other:?}"),
         }
+    }
+
+    #[test]
+    fn wgsl_importer_rejects_invalid_borrowed_source() {
+        let context = zircon_runtime::asset::AssetImportContext::new(
+            "broken.wgsl".into(),
+            zircon_runtime::asset::AssetUri::parse("res://shaders/broken.wgsl").unwrap(),
+            b"@".to_vec(),
+            Default::default(),
+        );
+
+        let error = import_wgsl(&context).unwrap_err();
+
+        assert!(error.to_string().contains("res://shaders/broken.wgsl"));
+    }
+
+    #[test]
+    #[ignore = "release performance gate; run through the managed Plugins05 validator"]
+    fn wgsl_borrowed_source_release_gate() {
+        use std::hint::black_box;
+        use std::time::Instant;
+
+        const SOURCE_BYTES: usize = 1_048_576;
+        const ITERATIONS: usize = 32;
+        const SAMPLE_PAIRS: usize = 21;
+        const TARGET_P95_PERCENT: u128 = 85;
+
+        let context = zircon_runtime::asset::AssetImportContext::new(
+            "invalid-large.wgsl".into(),
+            zircon_runtime::asset::AssetUri::parse("res://shaders/invalid-large.wgsl").unwrap(),
+            vec![b'@'; SOURCE_BYTES],
+            Default::default(),
+        );
+        let mut owned_samples_ns = Vec::with_capacity(SAMPLE_PAIRS);
+        let mut borrowed_samples_ns = Vec::with_capacity(SAMPLE_PAIRS);
+        for pair_index in 0..SAMPLE_PAIRS {
+            let measure_owned = || {
+                let started = Instant::now();
+                for _ in 0..ITERATIONS {
+                    let source = context.source_text().unwrap();
+                    black_box(wgsl::parse_str(black_box(source.as_str())).is_err());
+                }
+                started.elapsed().as_nanos()
+            };
+            let measure_borrowed = || {
+                let started = Instant::now();
+                for _ in 0..ITERATIONS {
+                    let source = context.source_str().unwrap();
+                    black_box(wgsl::parse_str(black_box(source)).is_err());
+                }
+                started.elapsed().as_nanos()
+            };
+            if pair_index % 2 == 0 {
+                owned_samples_ns.push(measure_owned());
+                borrowed_samples_ns.push(measure_borrowed());
+            } else {
+                borrowed_samples_ns.push(measure_borrowed());
+                owned_samples_ns.push(measure_owned());
+            }
+        }
+
+        let owned_p95_ns = nearest_rank_percentile(&owned_samples_ns, 95);
+        let borrowed_p95_ns = nearest_rank_percentile(&borrowed_samples_ns, 95);
+        assert!(
+            borrowed_p95_ns * 100 <= owned_p95_ns * TARGET_P95_PERCENT,
+            "borrowed-source P95 {borrowed_p95_ns}ns exceeded {TARGET_P95_PERCENT}% of owned-source P95 {owned_p95_ns}ns"
+        );
+        let owned_samples_csv = join_samples(&owned_samples_ns);
+        let borrowed_samples_csv = join_samples(&borrowed_samples_ns);
+        let owned_clone_bytes_per_sample = SOURCE_BYTES * ITERATIONS;
+        println!(
+            "PERF-MVP-PLUGINS05-BORROWED-SHADER-SOURCE source_bytes={SOURCE_BYTES} iterations_per_sample={ITERATIONS} sample_pairs={SAMPLE_PAIRS} order=alternating_owned_first_even percentile_method=nearest_rank owned_clone_bytes_per_sample={owned_clone_bytes_per_sample} borrowed_clone_bytes_per_sample=0 clone_byte_reduction_percent=100 owned_p95_ns={owned_p95_ns} borrowed_p95_ns={borrowed_p95_ns} target_p95_percent={TARGET_P95_PERCENT} owned_samples_ns={owned_samples_csv} borrowed_samples_ns={borrowed_samples_csv}"
+        );
+    }
+
+    fn nearest_rank_percentile(samples: &[u128], percentile: usize) -> u128 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        let rank = (sorted.len() * percentile).div_ceil(100);
+        sorted[rank.saturating_sub(1)]
+    }
+
+    fn join_samples(samples: &[u128]) -> String {
+        samples
+            .iter()
+            .map(u128::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
     }
 
     fn valid_wgsl() -> &'static str {

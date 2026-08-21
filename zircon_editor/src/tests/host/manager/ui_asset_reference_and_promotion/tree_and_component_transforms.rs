@@ -20,33 +20,27 @@ fn editor_manager_runs_ui_asset_reparent_actions() {
     manager
         .select_ui_asset_editor_hierarchy_index(&instance_id, 3)
         .expect("select loose node");
-    assert!(
-        manager
-            .reparent_ui_asset_editor_selected_node_into_previous(&instance_id)
-            .expect("reparent into previous sibling")
-    );
+    assert!(manager
+        .reparent_ui_asset_editor_selected_node_into_previous(&instance_id)
+        .expect("reparent into previous sibling"));
     let previous = manager
         .ui_asset_editor_pane_presentation(&instance_id)
         .expect("previous pane");
     assert_eq!(previous.inspector_selected_node_id, "loose");
     assert_eq!(previous.inspector_parent_node_id, "group_a");
 
-    assert!(
-        manager
-            .reparent_ui_asset_editor_selected_node_outdent(&instance_id)
-            .expect("outdent node")
-    );
+    assert!(manager
+        .reparent_ui_asset_editor_selected_node_outdent(&instance_id)
+        .expect("outdent node"));
     let outdented = manager
         .ui_asset_editor_pane_presentation(&instance_id)
         .expect("outdented pane");
     assert_eq!(outdented.inspector_selected_node_id, "loose");
     assert_eq!(outdented.inspector_parent_node_id, "root");
 
-    assert!(
-        manager
-            .reparent_ui_asset_editor_selected_node_into_next(&instance_id)
-            .expect("reparent into next sibling")
-    );
+    assert!(manager
+        .reparent_ui_asset_editor_selected_node_into_next(&instance_id)
+        .expect("reparent into next sibling"));
     let saved = manager
         .save_ui_asset_editor(&instance_id)
         .expect("save ui asset editor");
@@ -172,11 +166,9 @@ style_overrides = { self = { text = { color = "#ffffff" } }, slot = { padding = 
             .can_convert_to_reference
     );
 
-    assert!(
-        manager
-            .convert_ui_asset_editor_selected_node_to_reference(&instance_id)
-            .expect("convert selected node to reference")
-    );
+    assert!(manager
+        .convert_ui_asset_editor_selected_node_to_reference(&instance_id)
+        .expect("convert selected node to reference"));
 
     let converted = manager
         .ui_asset_editor_pane_presentation(&instance_id)
@@ -244,11 +236,9 @@ fn editor_manager_extracts_selected_ui_asset_node_to_local_component() {
             .can_extract_component
     );
 
-    assert!(
-        manager
-            .extract_ui_asset_editor_selected_node_to_component(&instance_id)
-            .expect("extract selected node to local component")
-    );
+    assert!(manager
+        .extract_ui_asset_editor_selected_node_to_component(&instance_id)
+        .expect("extract selected node to local component"));
 
     let extracted = manager
         .ui_asset_editor_pane_presentation(&instance_id)
@@ -256,12 +246,10 @@ fn editor_manager_extracts_selected_ui_asset_node_to_local_component() {
     assert_eq!(extracted.inspector_selected_node_id, "button");
     assert_eq!(extracted.inspector_widget_kind, "Component");
     assert_eq!(extracted.inspector_widget_label, "SaveButton");
-    assert!(
-        extracted
-            .palette_items
-            .iter()
-            .any(|item| item == "Component / SaveButton")
-    );
+    assert!(extracted
+        .palette_items
+        .iter()
+        .any(|item| item == "Component / SaveButton"));
 
     let saved = manager
         .save_ui_asset_editor(&instance_id)

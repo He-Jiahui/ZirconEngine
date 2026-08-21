@@ -12,6 +12,9 @@ use crate::core::diagnostics::{project_runtime_devtools_snapshot, RuntimeDevtool
 use crate::core::CoreHandle;
 
 pub use collect::collect_runtime_diagnostics;
+pub(crate) use collect::{
+    collect_runtime_diagnostic_current_store, collect_runtime_diagnostic_store,
+};
 
 pub fn collect_runtime_devtools_snapshot(core: &CoreHandle) -> RuntimeDevtoolsSnapshot {
     let diagnostics = collect_runtime_diagnostics(core);

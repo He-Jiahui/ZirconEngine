@@ -2,8 +2,8 @@ use zircon_runtime_interface::ui::{binding::UiBindingCall, binding::UiBindingVal
 
 use super::AnimationCommand;
 use crate::ui::binding::core::{
-    EditorUiBindingError, required_bool_argument, required_f32_argument, required_string_argument,
-    required_u32_argument,
+    required_bool_argument, required_f32_argument, required_string_argument, required_u32_argument,
+    EditorUiBindingError,
 };
 
 impl AnimationCommand {

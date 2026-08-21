@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
 
+use serde::de::{DeserializeOwned, Error as _};
+use serde::ser::{Error as _, SerializeMap};
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::project::PersistedAssetReference;
 
@@ -10,7 +12,10 @@ use crate::asset::assets::material::validate_zmaterial_version;
 use crate::asset::assets::ProjectDocumentError;
 
 #[derive(Deserialize, Serialize)]
-#[serde(bound(serialize = "R: Serialize", deserialize = "R: Deserialize<'de>"))]
+#[serde(bound(
+    serialize = "R: FlattenedMaterialReference",
+    deserialize = "R: FlattenedMaterialReference"
+))]
 struct MaterialAuthoringDocument<R> {
     version: u32,
     shader: R,
@@ -22,13 +27,97 @@ struct MaterialAuthoringDocument<R> {
     _rest: toml::Table,
 }
 
-#[derive(Deserialize, Serialize)]
-#[serde(bound(serialize = "R: Serialize", deserialize = "R: Deserialize<'de>"))]
 struct MaterialTextureDocument<R> {
-    #[serde(default, flatten)]
     reference: Option<R>,
-    #[serde(flatten)]
     _rest: toml::Table,
+}
+
+trait FlattenedMaterialReference: Serialize + DeserializeOwned {
+    fn take_fields(fields: &mut toml::Table) -> Option<toml::Table>;
+}
+
+impl FlattenedMaterialReference for AssetReference {
+    fn take_fields(fields: &mut toml::Table) -> Option<toml::Table> {
+        take_named_fields(fields, &["uuid", "url"])
+    }
+}
+
+impl FlattenedMaterialReference for PersistedAssetReference {
+    fn take_fields(fields: &mut toml::Table) -> Option<toml::Table> {
+        take_named_fields(fields, &["kind", "guid", "path_hint", "sub", "locator"])
+    }
+}
+
+impl<R> Serialize for MaterialTextureDocument<R>
+where
+    R: FlattenedMaterialReference,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let reference = self
+            .reference
+            .as_ref()
+            .map(toml::Value::try_from)
+            .transpose()
+            .map_err(S::Error::custom)?;
+        let reference = match reference {
+            Some(toml::Value::Table(fields)) => Some(fields),
+            Some(_) => {
+                return Err(S::Error::custom(
+                    "material texture reference must serialize as a table",
+                ));
+            }
+            None => None,
+        };
+        let reference_len = reference.as_ref().map_or(0, toml::Table::len);
+        let mut map = serializer.serialize_map(Some(reference_len + self._rest.len()))?;
+        if let Some(reference) = &reference {
+            for (name, value) in reference {
+                map.serialize_entry(name, value)?;
+            }
+        }
+        for (name, value) in &self._rest {
+            map.serialize_entry(name, value)?;
+        }
+        map.end()
+    }
+}
+
+impl<'de, R> Deserialize<'de> for MaterialTextureDocument<R>
+where
+    R: FlattenedMaterialReference,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let mut fields = toml::Table::deserialize(deserializer)?;
+        let reference = R::take_fields(&mut fields)
+            .map(|reference| {
+                let parsed: Result<R, toml::de::Error> = toml::Value::Table(reference).try_into();
+                parsed.map_err(D::Error::custom)
+            })
+            .transpose()?;
+        Ok(Self {
+            reference,
+            _rest: fields,
+        })
+    }
+}
+
+fn take_named_fields(fields: &mut toml::Table, names: &[&str]) -> Option<toml::Table> {
+    if !names.iter().any(|name| fields.contains_key(*name)) {
+        return None;
+    }
+    let mut reference = toml::Table::new();
+    for name in names {
+        if let Some(value) = fields.remove(*name) {
+            reference.insert((*name).to_owned(), value);
+        }
+    }
+    Some(reference)
 }
 
 pub(in crate::asset::assets) fn deserialize_material(
@@ -144,6 +233,9 @@ mod tests {
             texture_guid,
             AssetUri::parse("res://textures/albedo.png").unwrap(),
         );
+        let mut texture_slot = MaterialTextureSlotValue::new(texture.clone());
+        texture_slot.fallback = Some("white".to_owned());
+        texture_slot.uv_channel = 2;
         let material = ZMaterialDocument {
             version: 2,
             name: Some("Roundtrip".to_owned()),
@@ -151,10 +243,7 @@ mod tests {
             parent: Some(parent.clone()),
             options: BTreeMap::new(),
             overrides: BTreeMap::new(),
-            textures: BTreeMap::from([(
-                "albedo".to_owned(),
-                MaterialTextureSlotValue::new(texture.clone()),
-            )]),
+            textures: BTreeMap::from([("albedo".to_owned(), texture_slot)]),
             queue: Some(ZMaterialQueueOverride { offset: 3 }),
             editor: toml::Table::new(),
             validation_diagnostics: Vec::new(),

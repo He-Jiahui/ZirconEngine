@@ -167,9 +167,9 @@ fn inspector_customization_is_ticket_owned_capability_filtered_and_revocable() {
     assert_eq!(
         contributed
             .inspector_customizations(&CapabilitySet::from(["inspector.cloud"]))
-            .map(|customization| customization.id())
+            .map(|customization| customization.id().to_string())
             .collect::<Vec<_>>(),
-        vec!["plugin.sample.cloud_layer"]
+        vec!["plugin.sample.cloud_layer".to_string()]
     );
 
     let report = store.revoke(ticket);

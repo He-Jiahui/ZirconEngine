@@ -1,6 +1,6 @@
 use crate::asset::assets::{ImportedAsset, TextureAsset};
 use crate::asset::{
-    AssetImportContext, AssetImportError, AssetImportOutcome, decode_texture_source_image,
+    decode_texture_source_image, AssetImportContext, AssetImportError, AssetImportOutcome,
 };
 use crate::core::framework::render::TextureMetadataDiagnosticSeverity;
 use crate::core::resource::{ResourceDiagnostic, ResourceDiagnosticSeverity};

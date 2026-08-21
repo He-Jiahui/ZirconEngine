@@ -70,6 +70,14 @@ doc_type: module-detail
 
 The current implementation includes clip event sampling, sequence application, skeleton clip pose sampling, graph evaluation, state machine evaluation, weighted base/additive graph pose blending, and scene-world pose application for named descendants.
 
+State-machine `Trigger` parameters are one-shot only in the production plugin
+transaction. The compiled selected transition supplies shared Trigger-name
+metadata, but the player mutation removes current Trigger values only after
+pose sampling succeeds and clip-event admission accepts the entity. A failed
+pose sample or deferred event batch retains active state, transition state, and
+Trigger values for retry. The neutral manager evaluator remains pure and never
+consumes caller parameters.
+
 ## Runtime Shape
 
 The runtime is split into four local responsibilities:
@@ -126,6 +134,43 @@ Runtime 14 M1 adds `runtime_animation_backlog_boundary_requires_doc_update` as a
 Runtime 15 M1 animation manager folder-backed cutover is recorded as `runtime_15_animation_manager_folder_backed_cutover_static_passed_cargo_deferred`. Runtime 15 M1 adds `runtime_15_animation_manager_is_folder_backed` as the structure guard for the manager entry cutover. The guard locks the old flat `animation/manager.rs` path as retired, requires `animation/manager/mod.rs` to own `DefaultAnimationManager` and the child module mounts, and keeps graph, parameters, pose, sampling, and state-machine behavior in `animation/manager/{graph,parameters,pose,sampling,state_machine}.rs`. This closes the `manager.rs` plus `manager/` coexistence debt for animation without changing the service-registration behavior or public `DefaultAnimationManager` facade; the current canonical module identity is `animation.runtime`.
 
 Runtime 15 F5 animation typed errors is recorded as `runtime_15_animation_manager_typed_errors_static_passed_cargo_deferred`. `core::framework::animation` owns `AnimationError` and `AnimationResult`; `AnimationManager::sample_clip_pose`, concrete clip sampling, channel helpers, and `animation::sequence::{compile_sequence_for_world, apply_compiled_sequence_to_world(...)}` return `AnimationResult` instead of public `Result<_, String>`. The Frameworks05 cut removed scene writeback from the neutral manager trait, so `animation.evaluate` retains compiled sequence writers and invokes the compiled upper sequence function directly. `review_f5_animation_manager_uses_animation_error` keeps typed errors synchronized without reintroducing `scene::World` into framework.
+
+## IK Model-Pose Workspace
+
+The animation plugin's IK post-process retains one `ModelPoseScratch` for each
+drained command batch. Model-bone values and traversal states reuse their
+capacity across ordered commands and across the root/mid phases of a two-bone
+solve. Every phase still rebuilds model transforms from the latest local pose,
+so the workspace does not cache matrices across a pose mutation or change IK
+ordering. Traversal state is reset before each rebuild, including after an
+invalid hierarchy error.
+
+The focused regression compares the reusable workspace with the former
+allocating evaluation, locks buffer address/capacity reuse for a stable
+topology, and proves both helper-level cycle recovery and production two-bone
+recovery on a later valid command. The two-bone regression also requires the
+post-root-write rebuild by checking the final model-space tip. The
+ignored release gate uses 21 alternating pairs and nearest-rank P50/P95 on a
+fixed repeated three-bone workload. This status is
+`runtime08c_p1_17_ik_model_pose_scratch_static_passed_cargo_deferred`; it does
+not claim prepared skeleton residency, one model-pose build per rig, or the
+remaining P1-17 command arbitration and solver work.
+
+## IK Deferred Admission Set
+
+Clip-event admission owns deferred animation entities as a `BTreeSet`. The
+production tick lends that set directly to
+`AnimationManager::drain_ik_commands_excluding`; it does not materialize a
+second entity vector. Both the core fallback and first-party plugin managers
+use the borrowed set while stably partitioning the bounded command queue, so
+admitted and retained commands keep their original relative order.
+
+The scale regression covers 1,024 commands with alternating deferred entities.
+The ignored release gate compares the former materialized-Vec linear membership
+with borrowed ordered-set membership across 21 alternating pairs and recomputes
+nearest-rank P95 from raw samples. This status is
+`runtime08c_p1_17_borrowed_deferred_ik_set_static_passed_cargo_deferred`; it
+does not claim the remaining prepared-rig, command arbitration, or solver work.
 
 ## Playback Settings Lock Recovery
 

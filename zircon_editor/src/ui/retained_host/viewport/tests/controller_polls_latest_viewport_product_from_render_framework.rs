@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::sync::mpsc::channel;
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -84,10 +84,8 @@ fn product_poll_does_not_wait_for_a_viewport_submit_operation() {
         .send(())
         .expect("fixture submit should accept release");
     polled.join().expect("product poll thread should not panic");
-    assert!(
-        submitted
-            .join()
-            .expect("submit thread should not panic")
-            .is_ok()
-    );
+    assert!(submitted
+        .join()
+        .expect("submit thread should not panic")
+        .is_ok());
 }

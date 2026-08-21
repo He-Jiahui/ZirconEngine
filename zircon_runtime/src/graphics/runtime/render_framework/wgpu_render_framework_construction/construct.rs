@@ -9,7 +9,9 @@ use crate::core::framework::render::{
 };
 use crate::core::{TaskPool, TaskPoolDescriptor};
 use crate::graphics::pipeline::CompiledGraphCache;
-use crate::graphics::{GraphicsError, SceneRenderer};
+use crate::graphics::{
+    GraphicsError, SceneRenderer, SceneRendererStartupOptions, SceneRendererStartupReport,
+};
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
     RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
@@ -35,6 +37,27 @@ impl WgpuRenderFramework {
 
     pub fn new(asset_manager: ProjectAssetManagerAccess) -> Result<Self, GraphicsError> {
         Self::new_with_plugin_render_features(asset_manager, Vec::new(), Vec::new(), Vec::new())
+    }
+
+    /// Creates the framework around a renderer with a specialized startup profile.
+    ///
+    /// Diagnostic products use this entry point when they need the renderer's
+    /// startup report without taking ownership of the renderer or its surfaces.
+    pub fn new_with_startup_options_and_report(
+        asset_manager: ProjectAssetManagerAccess,
+        startup_options: SceneRendererStartupOptions,
+    ) -> Result<(Self, SceneRendererStartupReport), GraphicsError> {
+        let (renderer, startup_report) =
+            SceneRenderer::new_with_startup_options_and_report(asset_manager, startup_options)?;
+        let framework = Self::from_renderer(
+            renderer,
+            Vec::new(),
+            None,
+            None,
+            None,
+            TaskPool::new(TaskPoolDescriptor::compute()),
+        );
+        Ok((framework, startup_report))
     }
 
     pub fn new_with_plugin_render_features(
@@ -285,10 +308,6 @@ impl WgpuRenderFramework {
             select_solari_runtime_provider(solari_runtime_providers)?;
         let selected_virtual_geometry_runtime_provider =
             select_virtual_geometry_runtime_provider(virtual_geometry_runtime_providers)?;
-        let advanced_provider_availability = selected_advanced_provider_availability(
-            selected_hybrid_gi_runtime_provider.as_ref(),
-            selected_virtual_geometry_runtime_provider.as_ref(),
-        );
         let renderer = SceneRenderer::new_with_plugin_render_extensions_and_shading_models(
             asset_manager,
             render_features.clone(),
@@ -298,6 +317,30 @@ impl WgpuRenderFramework {
             plugin_shading_models,
             plugin_shader_module_sources,
         )?;
+        Ok(Self::from_renderer(
+            renderer,
+            render_features,
+            selected_hybrid_gi_runtime_provider,
+            selected_solari_runtime_provider,
+            selected_virtual_geometry_runtime_provider,
+            compute_task_pool,
+        ))
+    }
+
+    fn from_renderer(
+        renderer: SceneRenderer,
+        render_features: Vec<RenderFeatureDescriptor>,
+        selected_hybrid_gi_runtime_provider: Option<HybridGiRuntimeProviderRegistration>,
+        selected_solari_runtime_provider: Option<SolariRuntimeProviderRegistration>,
+        selected_virtual_geometry_runtime_provider: Option<
+            VirtualGeometryRuntimeProviderRegistration,
+        >,
+        compute_task_pool: TaskPool,
+    ) -> Self {
+        let advanced_provider_availability = selected_advanced_provider_availability(
+            selected_hybrid_gi_runtime_provider.as_ref(),
+            selected_virtual_geometry_runtime_provider.as_ref(),
+        );
         let backend_caps = renderer.backend_caps();
         let render_capabilities = capability_summary(&backend_caps);
         let device_diagnostics = render_device_diagnostics(&backend_caps);
@@ -305,7 +348,7 @@ impl WgpuRenderFramework {
             renderer.backend_name(),
             renderdoc_capture_frame_count_from_env(),
         );
-        Ok(Self {
+        Self {
             submission_scheduler: Mutex::new(Default::default()),
             core: Arc::new(WgpuRenderFrameworkCore {
                 operation_lock: Mutex::new(()),
@@ -337,7 +380,7 @@ impl WgpuRenderFramework {
                     viewport_products: Default::default(),
                 }),
             }),
-        })
+        }
     }
 }
 

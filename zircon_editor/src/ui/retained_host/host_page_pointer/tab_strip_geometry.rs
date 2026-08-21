@@ -4,10 +4,11 @@ use zircon_runtime_interface::ui::layout::UiFrame;
 
 use crate::ui::retained_host::measure_runtime_text_width;
 use crate::ui::workbench::page_tabs::{
+    main_page_project_path_width, main_page_tab_close_frame,
+    main_page_tab_preferred_width_from_title_width_with_close, main_page_tab_visible_cap_for_width,
     MAIN_PAGE_TAB_GAP, MAIN_PAGE_TAB_HEIGHT, MAIN_PAGE_TAB_MAX_WIDTH, MAIN_PAGE_TAB_MIN_WIDTH,
     MAIN_PAGE_TAB_OVERFLOW_WIDTH, MAIN_PAGE_TAB_STRIP_X, MAIN_PAGE_TAB_STRIP_Y,
-    MAIN_PAGE_TAB_TITLE_FONT_SIZE, main_page_project_path_width, main_page_tab_close_frame,
-    main_page_tab_preferred_width_from_title_width_with_close, main_page_tab_visible_cap_for_width,
+    MAIN_PAGE_TAB_TITLE_FONT_SIZE,
 };
 
 use super::host_page_pointer_item::HostPagePointerItem;
@@ -182,14 +183,12 @@ mod tests {
 
         assert_eq!(tabs.len(), 3);
         assert!(overflow.is_none());
-        assert!(
-            tabs.iter()
-                .all(|tab| tab.frame.width >= MAIN_PAGE_TAB_MIN_WIDTH)
-        );
-        assert!(
-            tabs.iter()
-                .all(|tab| tab.frame.width <= MAIN_PAGE_TAB_MAX_WIDTH)
-        );
+        assert!(tabs
+            .iter()
+            .all(|tab| tab.frame.width >= MAIN_PAGE_TAB_MIN_WIDTH));
+        assert!(tabs
+            .iter()
+            .all(|tab| tab.frame.width <= MAIN_PAGE_TAB_MAX_WIDTH));
     }
 
     #[test]
@@ -198,10 +197,9 @@ mod tests {
         let (tabs, overflow) = allocate_host_page_tabs(strip, &page_items(6), Some(0));
 
         assert!(tabs.len() < 6);
-        assert!(
-            tabs.iter()
-                .all(|tab| tab.frame.width >= MAIN_PAGE_TAB_MIN_WIDTH)
-        );
+        assert!(tabs
+            .iter()
+            .all(|tab| tab.frame.width >= MAIN_PAGE_TAB_MIN_WIDTH));
         assert_eq!(
             overflow
                 .expect("overflow slot")
@@ -218,12 +216,10 @@ mod tests {
         let (tabs, overflow) = allocate_host_page_tabs(strip, &page_items(6), Some(5));
 
         assert!(tabs.iter().any(|tab| tab.page_index == 5));
-        assert!(
-            !overflow
-                .expect("overflow slot")
-                .hidden_page_indices
-                .contains(&5)
-        );
+        assert!(!overflow
+            .expect("overflow slot")
+            .hidden_page_indices
+            .contains(&5));
     }
 
     #[test]

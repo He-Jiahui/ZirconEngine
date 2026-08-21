@@ -5,7 +5,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
 use zircon_runtime::core::resource::ResourceState;
-use zircon_runtime::scene::{DefaultLevelManager, LevelMetadata, SceneProjectError};
+use zircon_runtime::scene::world::SceneProjectError;
+use zircon_runtime::scene::{DefaultLevelManager, LevelMetadata};
 
 use crate::core::editing::command::EditorCommand;
 use crate::core::editing::context::CoreEditContext;
@@ -212,37 +213,37 @@ fn editor_project_document_roundtrips_world_and_workspace() {
             .unwrap(),
         reopened_mesh.material.id()
     );
-    for reference in [&reopened_mesh.model, &reopened_mesh.material] {
+    for locator in [&resolved_model.locator, &resolved_material.locator] {
         let record = reopened_project
             .registry()
-            .get_by_locator(&reference.locator)
+            .get_by_locator(locator)
             .unwrap_or_else(|| {
                 panic!(
                     "the reopened project generation must retain resource {}",
-                    reference.locator
+                    locator
                 )
             });
         assert_eq!(
             record.state,
             ResourceState::Ready,
             "the reopened project resource {} must import successfully: {}",
-            reference.locator,
+            locator,
             record.failure_reason().unwrap_or("no import diagnostic")
         );
         assert!(
             record.artifact_locator().is_some(),
             "the reopened project resource {} must retain an artifact locator",
-            reference.locator
+            locator
         );
     }
     assert_eq!(
         loaded.world.find_node(camera.id),
-        Some(&camera),
+        Some(camera),
         "saving Cube transform must not alter the Camera"
     );
     assert_eq!(
         loaded.world.find_node(sun.id),
-        Some(&sun),
+        Some(sun),
         "saving Cube transform must not alter the Sun"
     );
     assert_eq!(

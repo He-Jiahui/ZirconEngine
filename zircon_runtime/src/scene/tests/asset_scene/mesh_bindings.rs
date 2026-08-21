@@ -232,7 +232,7 @@ fn render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay() {
         mesh.material,
         project_material_handle(&project, "res://materials/grid.zmaterial")
     );
-    assert!(extract.overlays.selection.is_empty());
+    assert!(extract.overlays.highlights.is_none());
     assert!(extract
         .scene
         .meshes

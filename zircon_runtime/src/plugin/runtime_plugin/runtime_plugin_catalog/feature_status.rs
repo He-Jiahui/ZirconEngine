@@ -15,6 +15,7 @@ use dependencies::append_dependency_status;
 pub(super) fn feature_status(
     feature_definition: &FeatureDefinition,
     selection: &ProjectPluginFeatureSelection,
+    provider_registration_present: bool,
     target: RuntimeTargetMode,
     plugin_selections: &HashMap<&str, &ProjectPluginSelection>,
     enabled_plugins: &HashSet<String>,
@@ -22,6 +23,9 @@ pub(super) fn feature_status(
 ) -> FeatureStatus {
     let feature = &feature_definition.manifest;
     let mut status = FeatureStatus::new(feature.id.clone(), feature.owner_plugin_id.clone());
+    if !provider_registration_present {
+        status.mark_provider_missing();
+    }
     if !owner_dependency_is_valid(feature) {
         status.mark_invalid_owner_dependency();
     }

@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use toml::Value as TomlValue;
 use zircon_runtime_interface::ui::component::{UiComponentState, UiDragSourceMetadata, UiValue};
 
-use super::{UiComponentShowcaseDemoState, primary_property_for_control};
+use super::{primary_property_for_control, UiComponentShowcaseDemoState};
 
 pub(super) fn project_state_panel_node(
     state: &UiComponentShowcaseDemoState,

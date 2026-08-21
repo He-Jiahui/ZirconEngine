@@ -80,6 +80,113 @@ fn graph_resource_authoring_reports_invalid_resource_kind_without_panicking() {
 }
 
 #[test]
+fn runtime89_compiled_pass_stages_retain_their_graph_pass_identity() {
+    let compiled = pipeline_with_post_process_passes(vec![
+        RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "identity-left",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("test.identity-left")
+        .with_side_effects()
+        .write_texture("test.identity-left"),
+        RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "identity-right",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("test.identity-right")
+        .with_side_effects()
+        .write_texture("test.identity-right"),
+    ])
+    .compile(&test_extract())
+    .expect("identity pipeline should compile");
+
+    assert_eq!(compiled.pass_stages.len(), compiled.graph().passes().len());
+    for stage_entry in &compiled.pass_stages {
+        let graph_pass = compiled
+            .graph()
+            .pass(stage_entry.pass_id)
+            .expect("stage pass identity should resolve directly");
+        assert_eq!(graph_pass.name, stage_entry.pass_name);
+    }
+}
+
+#[test]
+fn runtime89_full_ibl_stage_rows_retain_production_graph_identity_and_name() {
+    let request = crate::core::framework::render::IblBakeArtifactRequest::new(
+        crate::core::framework::render::ProceduralSkyParams::default_gradient().ibl_bake_key(),
+        16,
+        5,
+    )
+    .with_required_contents(crate::core::framework::render::IblBakeArtifactContents::PMREM_SH9_IEM);
+    let pmrem_mip_count = request.pmrem_mip_count();
+    let compiled = pipeline_with_post_process_passes(vec![
+        RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "runtime89-feature-pass",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("test.runtime89-feature-pass")
+        .with_side_effects()
+        .write_texture("test.runtime89-feature-output"),
+    ])
+    .compile_with_options(
+        &test_extract(),
+        &RenderPipelineCompileOptions::default().with_environment_ibl_bake_request(request),
+    )
+    .expect("full-content IBL pipeline should compile");
+
+    let mut expected_names = vec!["runtime89-feature-pass".to_string()];
+    expected_names
+        .extend((0..pmrem_mip_count).map(crate::graphics::scene::ibl_bake_pmrem_pass_name));
+    expected_names.push(crate::graphics::scene::IBL_BAKE_IRRADIANCE_SH9_PASS.to_string());
+    expected_names.push(crate::graphics::scene::IBL_BAKE_IRRADIANCE_CUBE_PASS.to_string());
+
+    assert_eq!(compiled.pass_stages.len(), expected_names.len());
+    for (stage_entry, expected_name) in compiled.pass_stages.iter().zip(expected_names) {
+        let (_, graph_pass) = compiled
+            .graph()
+            .indexed_pass(stage_entry.pass_id)
+            .expect("production-authored pass identity should resolve directly");
+        assert_eq!(graph_pass.id, stage_entry.pass_id);
+        assert_eq!(stage_entry.pass_name, expected_name);
+        assert_eq!(graph_pass.name, expected_name);
+    }
+}
+
+#[test]
+fn runtime89_generated_ibl_pass_name_collisions_fail_during_pipeline_compile() {
+    let request = crate::core::framework::render::IblBakeArtifactRequest::new(
+        crate::core::framework::render::ProceduralSkyParams::default_gradient().ibl_bake_key(),
+        16,
+        5,
+    )
+    .with_required_contents(crate::core::framework::render::IblBakeArtifactContents::SH9);
+    let pipeline = pipeline_with_post_process_passes(vec![
+        RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            crate::graphics::scene::IBL_BAKE_IRRADIANCE_SH9_PASS,
+            QueueLane::Graphics,
+        )
+        .with_executor_id("test.ibl-name-collision")
+        .with_side_effects()
+        .write_texture("test.ibl-name-collision"),
+    ]);
+
+    let error = pipeline
+        .compile_with_options(
+            &test_extract(),
+            &RenderPipelineCompileOptions::default().with_environment_ibl_bake_request(request),
+        )
+        .expect_err("generated IBL pass collision must fail closed");
+
+    assert!(
+        error.contains("render graph pass name `env.ibl_irradiance_sh` is declared more than once")
+    );
+}
+
+#[test]
 fn transmission_copy_draws_declare_the_exact_scene_copy_version() {
     let source = include_str!("compile.rs");
     let insertion_start = source
@@ -255,14 +362,16 @@ fn compile_orders_explicit_resource_version_consumers_after_their_producer() {
 
 #[test]
 fn compile_rejects_a_missing_explicit_resource_version_producer() {
-    let pipeline = pipeline_with_post_process_passes(vec![RenderFeaturePassDescriptor::new(
-        RenderPassStage::PostProcess,
-        "missing-version-consumer",
-        QueueLane::Graphics,
-    )
-    .with_executor_id("test.missing-version-consumer")
-    .with_side_effects()
-    .read_texture_from("test.missing-version", "missing-version-producer")]);
+    let pipeline = pipeline_with_post_process_passes(vec![
+        RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "missing-version-consumer",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("test.missing-version-consumer")
+        .with_side_effects()
+        .read_texture_from("test.missing-version", "missing-version-producer"),
+    ]);
 
     let error = pipeline
         .compile(&test_extract())
@@ -274,13 +383,15 @@ fn compile_rejects_a_missing_explicit_resource_version_producer() {
 
 #[test]
 fn compile_rejects_side_effect_passes_without_declared_resources() {
-    let pipeline = pipeline_with_post_process_passes(vec![RenderFeaturePassDescriptor::new(
-        RenderPassStage::PostProcess,
-        "undeclared-side-effect",
-        QueueLane::Graphics,
-    )
-    .with_executor_id("test.undeclared-side-effect")
-    .with_side_effects()]);
+    let pipeline = pipeline_with_post_process_passes(vec![
+        RenderFeaturePassDescriptor::new(
+            RenderPassStage::PostProcess,
+            "undeclared-side-effect",
+            QueueLane::Graphics,
+        )
+        .with_executor_id("test.undeclared-side-effect")
+        .with_side_effects(),
+    ]);
 
     let error = pipeline
         .compile(&test_extract())
@@ -315,11 +426,13 @@ fn compile_half_resolution_transparency_is_profile_gated_and_declares_depth_awar
 
     assert_eq!(enabled.half_resolution_transparency_depth_sigma(), 144);
 
-    assert!(!disabled
-        .graph()
-        .passes()
-        .iter()
-        .any(|pass| pass.name == "halfres-transparency-depth-downsample"));
+    assert!(
+        !disabled
+            .graph()
+            .passes()
+            .iter()
+            .any(|pass| pass.name == "halfres-transparency-depth-downsample")
+    );
     for pass_name in [
         "halfres-transparency-depth-downsample",
         "particle-render",
@@ -351,11 +464,13 @@ fn compile_half_resolution_transparency_is_profile_gated_and_declares_depth_awar
         "particle-render",
         PostProcessGraphResourceNames::HALF_RES_TRANSPARENCY_COLOR,
     );
-    assert!(!enabled
-        .graph()
-        .passes()
-        .iter()
-        .any(|pass| pass.name == "transparent-mesh"));
+    assert!(
+        !enabled
+            .graph()
+            .passes()
+            .iter()
+            .any(|pass| pass.name == "transparent-mesh")
+    );
     assert_pass_reads(
         &enabled,
         "halfres-transparent-mesh",

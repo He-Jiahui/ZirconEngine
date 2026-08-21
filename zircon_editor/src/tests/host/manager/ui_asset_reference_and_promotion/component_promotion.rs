@@ -27,11 +27,9 @@ fn editor_manager_promotes_selected_ui_asset_component_to_external_widget_asset(
     manager
         .select_ui_asset_editor_hierarchy_index(&instance_id, 1)
         .expect("select button");
-    assert!(
-        manager
-            .extract_ui_asset_editor_selected_node_to_component(&instance_id)
-            .expect("extract selected node to local component")
-    );
+    assert!(manager
+        .extract_ui_asset_editor_selected_node_to_component(&instance_id)
+        .expect("extract selected node to local component"));
     assert!(
         manager
             .ui_asset_editor_pane_presentation(&instance_id)
@@ -39,23 +37,19 @@ fn editor_manager_promotes_selected_ui_asset_component_to_external_widget_asset(
             .can_promote_to_external_widget
     );
 
-    assert!(
-        manager
-            .promote_ui_asset_editor_selected_component_to_external_widget(&instance_id)
-            .expect("promote selected component to external widget")
-    );
+    assert!(manager
+        .promote_ui_asset_editor_selected_component_to_external_widget(&instance_id)
+        .expect("promote selected component to external widget"));
 
     let promoted = manager
         .ui_asset_editor_pane_presentation(&instance_id)
         .expect("pane after promote");
     assert!(promoted.can_open_reference);
     assert!(!promoted.can_promote_to_external_widget);
-    assert!(
-        promoted
-            .palette_items
-            .iter()
-            .any(|item| item == "Reference / SaveButton")
-    );
+    assert!(promoted
+        .palette_items
+        .iter()
+        .any(|item| item == "Reference / SaveButton"));
 
     let widget_path = project_root
         .join("assets")
@@ -84,38 +78,30 @@ fn editor_manager_promotes_selected_ui_asset_component_to_external_widget_asset(
         button.component_ref.as_deref(),
         Some("res://ui/widgets/save_button.zui#SaveButton")
     );
-    assert!(
-        document
-            .imports
-            .widgets
-            .iter()
-            .any(|reference| { reference == "res://ui/widgets/save_button.zui#SaveButton" })
-    );
+    assert!(document
+        .imports
+        .widgets
+        .iter()
+        .any(|reference| { reference == "res://ui/widgets/save_button.zui#SaveButton" }));
     assert!(!document.components.contains_key("SaveButton"));
 
-    assert!(
-        manager
-            .undo_ui_asset_editor(&instance_id)
-            .expect("undo promote selected component")
-    );
+    assert!(manager
+        .undo_ui_asset_editor(&instance_id)
+        .expect("undo promote selected component"));
     assert!(!widget_path.exists());
     let undone = manager
         .ui_asset_editor_pane_presentation(&instance_id)
         .expect("pane after undo promote");
     assert!(!undone.can_open_reference);
     assert!(undone.can_promote_to_external_widget);
-    assert!(
-        !undone
-            .palette_items
-            .iter()
-            .any(|item| item == "Reference / SaveButton")
-    );
+    assert!(!undone
+        .palette_items
+        .iter()
+        .any(|item| item == "Reference / SaveButton"));
 
-    assert!(
-        manager
-            .redo_ui_asset_editor(&instance_id)
-            .expect("redo promote selected component")
-    );
+    assert!(manager
+        .redo_ui_asset_editor(&instance_id)
+        .expect("redo promote selected component"));
     assert!(widget_path.exists());
     let redone = manager
         .ui_asset_editor_pane_presentation(&instance_id)
@@ -171,11 +157,9 @@ fn editor_manager_uses_custom_promote_widget_draft_values() {
     manager
         .select_ui_asset_editor_hierarchy_index(&instance_id, 1)
         .expect("select button");
-    assert!(
-        manager
-            .extract_ui_asset_editor_selected_node_to_component(&instance_id)
-            .expect("extract selected node to local component")
-    );
+    assert!(manager
+        .extract_ui_asset_editor_selected_node_to_component(&instance_id)
+        .expect("extract selected node to local component"));
     manager
         .set_ui_asset_editor_selected_promote_widget_asset_id(
             &instance_id,
@@ -195,11 +179,9 @@ fn editor_manager_uses_custom_promote_widget_draft_values() {
         )
         .expect("set promote document id");
 
-    assert!(
-        manager
-            .promote_ui_asset_editor_selected_component_to_external_widget(&instance_id)
-            .expect("promote selected component to custom external widget")
-    );
+    assert!(manager
+        .promote_ui_asset_editor_selected_component_to_external_widget(&instance_id)
+        .expect("promote selected component to custom external widget"));
 
     let widget_path = project_root
         .join("assets")

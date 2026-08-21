@@ -15,7 +15,7 @@ use crate::core::plugin::{EditorPlugin, EditorPluginDescriptor};
 use super::super::admission::EditorPluginCatalogAdmissionError;
 
 use super::{
-    EditorPluginCatalog, EditorPluginDiscovery, EditorPluginDiscoveryError,
+    initialize_once, EditorPluginCatalog, EditorPluginDiscovery, EditorPluginDiscoveryError,
     EditorPluginLoadingPhase, EditorPluginManager, EditorPluginSource, EditorPluginState,
     EditorPluginTransitionError,
 };
@@ -149,8 +149,8 @@ fn initial_generation_keeps_the_validated_discovery_source_and_phase() {
     )
     .expect("known package discovery should be accepted");
 
-    let entry = manager
-        .state_snapshot()
+    let snapshot = manager.state_snapshot();
+    let entry = snapshot
         .entry("plugin.project")
         .expect("project plugin should be published");
     assert_eq!(entry.source(), EditorPluginSource::Project);
@@ -628,8 +628,8 @@ fn publish_replaces_discovery_metadata_with_the_new_generation() {
         )
         .expect("known project discovery should publish");
 
-    let entry = manager
-        .state_snapshot()
+    let snapshot = manager.state_snapshot();
+    let entry = snapshot
         .entry("plugin.project")
         .expect("replacement entry should be published");
     assert_eq!(entry.source(), EditorPluginSource::Project);
@@ -642,12 +642,12 @@ fn publish_replaces_discovery_metadata_with_the_new_generation() {
 fn catalog_with_dependencies(dependencies: &[(&str, &str)]) -> EditorPluginCatalog {
     let descriptors = dependencies
         .iter()
-        .map(|(package_id, _)| EditorPluginDescriptor::new(*package_id, package_id, package_id))
+        .map(|(package_id, _)| EditorPluginDescriptor::new(*package_id, *package_id, *package_id))
         .collect::<Vec<_>>();
     let manifests = dependencies
         .iter()
         .map(|(package_id, dependency_id)| {
-            let mut manifest = PluginPackageManifest::new(*package_id, package_id);
+            let mut manifest = PluginPackageManifest::new(*package_id, *package_id);
             manifest
                 .dependencies
                 .push(PluginDependencyManifest::new(*dependency_id, true));

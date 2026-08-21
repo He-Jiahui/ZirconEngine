@@ -210,18 +210,14 @@ capabilities = ["runtime.feature.native_tool.timeline_bridge"]
             && !dependency.plugin_enabled
             && !dependency.capability_available
     }));
-    assert!(
-        !status
-            .diagnostics
-            .iter()
-            .any(|message| message.contains("library is missing"))
-    );
-    assert!(
-        !native
-            .diagnostics
-            .iter()
-            .any(|message| message.contains("library is missing"))
-    );
+    assert!(!status
+        .diagnostics
+        .iter()
+        .any(|message| message.contains("library is missing")));
+    assert!(!native
+        .diagnostics
+        .iter()
+        .any(|message| message.contains("library is missing")));
     let registrations = manager.native_editor_plugin_registration_reports(&project_root);
     let registration = registrations
         .iter()
@@ -231,19 +227,15 @@ capabilities = ["runtime.feature.native_tool.timeline_bridge"]
         registration.capabilities,
         vec!["editor.extension.native_tool".to_string()]
     );
-    assert!(
-        registration
-            .package_manifest
-            .modules
-            .iter()
-            .all(|module| module.kind == zircon_runtime::plugin::PluginModuleKind::Editor)
-    );
-    assert!(
-        registration
-            .diagnostics
-            .iter()
-            .any(|message| message.contains("library is missing"))
-    );
+    assert!(registration
+        .package_manifest
+        .modules
+        .iter()
+        .all(|module| module.kind == zircon_runtime::plugin::PluginModuleKind::Editor));
+    assert!(registration
+        .diagnostics
+        .iter()
+        .any(|message| message.contains("library is missing")));
 
     let dependency_report = manager
         .enable_native_aware_project_plugin_feature_dependencies(
@@ -257,18 +249,16 @@ capabilities = ["runtime.feature.native_tool.timeline_bridge"]
         dependency_report.enabled_dependency_plugins,
         vec!["native_tool".to_string()]
     );
-    assert!(
-        dependency_report
-            .project_selection
-            .features
-            .iter()
-            .any(|feature| {
-                feature.id == "native_tool.timeline_bridge"
-                    && !feature.enabled
-                    && feature.runtime_crate.as_deref()
-                        == Some("zircon_plugin_native_tool_timeline_bridge_runtime")
-            })
-    );
+    assert!(dependency_report
+        .project_selection
+        .features
+        .iter()
+        .any(|feature| {
+            feature.id == "native_tool.timeline_bridge"
+                && !feature.enabled
+                && feature.runtime_crate.as_deref()
+                    == Some("zircon_plugin_native_tool_timeline_bridge_runtime")
+        }));
     let dependency_status = manager.published_plugin_status_report();
 
     let feature_report = manager
@@ -281,13 +271,11 @@ capabilities = ["runtime.feature.native_tool.timeline_bridge"]
         )
         .expect("native optional feature should enable after dependencies");
     assert!(feature_report.enabled);
-    assert!(
-        feature_report
-            .project_selection
-            .features
-            .iter()
-            .any(|feature| feature.id == "native_tool.timeline_bridge" && feature.enabled)
-    );
+    assert!(feature_report
+        .project_selection
+        .features
+        .iter()
+        .any(|feature| feature.id == "native_tool.timeline_bridge" && feature.enabled));
     let feature_status = manager.published_plugin_status_report();
     assert!(!std::sync::Arc::ptr_eq(&dependency_status, &feature_status));
 
@@ -295,11 +283,9 @@ capabilities = ["runtime.feature.native_tool.timeline_bridge"]
         .set_native_aware_project_plugin_enabled(&project_root, &mut manifest, "native_tool", true)
         .unwrap();
     assert!(enabled.enabled);
-    assert!(
-        enabled
-            .capability_snapshot
-            .is_enabled("editor.extension.native_tool")
-    );
+    assert!(enabled
+        .capability_snapshot
+        .is_enabled("editor.extension.native_tool"));
 
     let packaging = manager
         .set_native_aware_project_plugin_packaging(
@@ -507,27 +493,21 @@ target_modes = ["client_runtime"]
     assert!(!report.invoked_cargo);
     assert!(report.cargo_invocation.is_none());
     assert!(report.native_cargo_invocations.is_empty());
-    assert!(
-        report
-            .generated_files
-            .iter()
-            .any(|path| path.ends_with("plugins/native_plugins.toml"))
-    );
+    assert!(report
+        .generated_files
+        .iter()
+        .any(|path| path.ends_with("plugins/native_plugins.toml")));
     assert!(output_root.join("plugins/native_tool/plugin.toml").exists());
     assert!(!output_root.join(".native-dynamic-staging").exists());
     assert!(!output_root.join(".native-dynamic-build").exists());
-    assert!(
-        report
-            .diagnostics
-            .iter()
-            .any(|message| message.contains("cargo build skipped"))
-    );
-    assert!(
-        report
-            .diagnostics
-            .iter()
-            .any(|message| message.contains("library is missing"))
-    );
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|message| message.contains("cargo build skipped")));
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|message| message.contains("library is missing")));
     let diagnostics = std::fs::read_to_string(output_root.join("export-diagnostics.txt")).unwrap();
     assert!(diagnostics.contains("cargo build skipped"));
     assert!(diagnostics.contains("library is missing"));
@@ -579,18 +559,14 @@ fn export_build_report_includes_plan_diagnostics_when_no_files_are_generated() {
 
     assert!(!report.invoked_cargo);
     assert!(report.generated_files.is_empty());
-    assert!(
-        report
-            .diagnostics
-            .iter()
-            .any(|message| message.contains("sound") && message.contains("LibraryEmbed"))
-    );
-    assert!(
-        report
-            .diagnostics
-            .iter()
-            .any(|message| message.contains("cargo build skipped"))
-    );
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|message| message.contains("sound") && message.contains("LibraryEmbed")));
+    assert!(report
+        .diagnostics
+        .iter()
+        .any(|message| message.contains("cargo build skipped")));
     let diagnostics = std::fs::read_to_string(output_root.join("export-diagnostics.txt")).unwrap();
     assert!(diagnostics.contains("LibraryEmbed"));
     assert!(diagnostics.contains("cargo build skipped"));
@@ -680,24 +656,18 @@ target_modes = ["client_runtime"]
     assert_eq!(report.native_cargo_invocations.len(), 1);
     assert!(report.native_cargo_invocations[0].success);
     assert!(!report.invoked_cargo);
-    assert!(
-        output_root
-            .join("plugins/native_tool/native")
-            .join(platform_library_file_name(
-                "zircon_plugin_native_tool_runtime"
-            ))
-            .exists()
-    );
-    assert!(
-        !output_root
-            .join("plugins/native_tool/native/Cargo.toml")
-            .exists()
-    );
-    assert!(
-        !output_root
-            .join("plugins/native_tool/native/src/lib.rs")
-            .exists()
-    );
+    assert!(output_root
+        .join("plugins/native_tool/native")
+        .join(platform_library_file_name(
+            "zircon_plugin_native_tool_runtime"
+        ))
+        .exists());
+    assert!(!output_root
+        .join("plugins/native_tool/native/Cargo.toml")
+        .exists());
+    assert!(!output_root
+        .join("plugins/native_tool/native/src/lib.rs")
+        .exists());
     assert!(!output_root.join(".native-dynamic-staging").exists());
     assert!(!output_root.join(".native-dynamic-build").exists());
 

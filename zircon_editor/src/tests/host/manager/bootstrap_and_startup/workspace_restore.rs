@@ -68,29 +68,23 @@ fn applying_project_workspace_restores_single_instance_registry_state() {
         .drawers
         .get(&ActivityDrawerSlot::LeftTop)
         .expect("left top drawer");
-    assert!(
-        left_top
-            .tab_stack
-            .tabs
-            .contains(&restored_instance.instance_id)
-    );
-    assert!(
-        !left_top
-            .tab_stack
-            .tabs
-            .contains(&ViewInstanceId::new("editor.hierarchy#1"))
-    );
+    assert!(left_top
+        .tab_stack
+        .tabs
+        .contains(&restored_instance.instance_id));
+    assert!(!left_top
+        .tab_stack
+        .tabs
+        .contains(&ViewInstanceId::new("editor.hierarchy#1")));
     let activity_left_top = layout
         .activity_windows
         .get(&ActivityWindowId::workbench())
         .and_then(|window| window.activity_drawers.get(&ActivityDrawerSlot::LeftTop))
         .expect("workbench activity left top drawer");
-    assert!(
-        activity_left_top
-            .tab_stack
-            .tabs
-            .contains(&restored_instance.instance_id)
-    );
+    assert!(activity_left_top
+        .tab_stack
+        .tabs
+        .contains(&restored_instance.instance_id));
 
     let reopened = manager
         .open_view(ViewDescriptorId::new("editor.hierarchy"), None)
@@ -194,12 +188,10 @@ fn applying_project_workspace_preserves_builtin_shell_drawers() {
         .drawers
         .get(&ActivityDrawerSlot::LeftTop)
         .expect("left top drawer");
-    assert!(
-        left_top
-            .tab_stack
-            .tabs
-            .contains(&ViewInstanceId::new("editor.hierarchy#1"))
-    );
+    assert!(left_top
+        .tab_stack
+        .tabs
+        .contains(&ViewInstanceId::new("editor.hierarchy#1")));
     assert_eq!(left_top.mode, ActivityDrawerMode::Pinned);
     assert!(left_top.visible);
     assert!(left_top.extent > 0.0);
@@ -234,12 +226,10 @@ fn applying_project_workspace_preserves_builtin_shell_drawers() {
         .activity_drawers
         .get(&ActivityDrawerSlot::LeftTop)
         .expect("workbench activity left top drawer");
-    assert!(
-        activity_left_top
-            .tab_stack
-            .tabs
-            .contains(&ViewInstanceId::new("editor.hierarchy#1"))
-    );
+    assert!(activity_left_top
+        .tab_stack
+        .tabs
+        .contains(&ViewInstanceId::new("editor.hierarchy#1")));
     let activity_bottom = workbench_window
         .activity_drawers
         .get(&ActivityDrawerSlot::Bottom)

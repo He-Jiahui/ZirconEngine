@@ -216,7 +216,7 @@ mod tests {
         listeners
             .set_filter(
                 "a",
-                super::super::EditorEventListenerFilter::failures_only(),
+                super::super::EditorEventListenerFilter::default().failures_only(),
             )
             .unwrap();
         assert_eq!(listeners.delivery_routes().len(), 1);
@@ -232,7 +232,7 @@ mod tests {
         listeners
             .set_filter(
                 "a",
-                super::super::EditorEventListenerFilter::failures_only(),
+                super::super::EditorEventListenerFilter::default().failures_only(),
             )
             .unwrap();
         let filtered_routes = listeners.delivery_routes();

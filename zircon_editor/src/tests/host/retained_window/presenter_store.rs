@@ -1,11 +1,10 @@
 use std::cell::Cell;
 use std::rc::Rc;
 
-use crate::ui::retained_host::host_contract::data::HostPresentationGenerationCursor;
 use crate::ui::retained_host::primitives::PhysicalSize;
 use crate::ui::retained_host::{
-    configure_native_floating_window_presentation, NativeFloatingWindowTarget,
-    NativeWindowPresenterStore, UiHostContext,
+    configure_native_floating_window_presentation, HostPresentationGenerationCursor,
+    NativeFloatingWindowTarget, NativeWindowPresenterStore, UiHostContext,
 };
 use crate::ui::workbench::layout::MainPageId;
 use zircon_runtime_interface::ui::event_ui::UiTreeId;

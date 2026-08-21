@@ -6,5 +6,6 @@ mod manager_resolution;
 mod optional_features;
 mod package_manifest;
 mod registration;
+mod snapshot;
 mod support;
 mod validation;

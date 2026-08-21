@@ -129,10 +129,12 @@ fn registry_rename_preserves_id_and_remove_clears_lookup() {
         .expect("rename should succeed");
 
     assert_eq!(renamed.id, id);
-    assert!(manager
-        .registry()
-        .get_by_locator(&locator("res://materials/default.zmaterial"))
-        .is_none());
+    assert!(
+        manager
+            .registry()
+            .get_by_locator(&locator("res://materials/default.zmaterial"))
+            .is_none()
+    );
     assert_eq!(
         manager
             .registry()
@@ -240,9 +242,11 @@ fn resource_state_rejects_error_to_ready_without_reloading() {
         ResourceRegistryError::InvalidStateTransition { .. }
     ));
     assert!(events.try_recv().is_err());
-    assert!(manager
-        .get::<ModelMarker, TestPayload>(ResourceHandle::new(id))
-        .is_none());
+    assert!(
+        manager
+            .get::<ModelMarker, TestPayload>(ResourceHandle::new(id))
+            .is_none()
+    );
     let record = manager.registry().get(id).cloned().expect("record exists");
     assert_eq!(record.state, ResourceState::Error);
     assert_eq!(record.failure_reason(), Some("initial import failed"));
@@ -306,9 +310,11 @@ fn resource_state_rejects_reload_failure_without_reload_boundary() {
         )
         .expect("register ready record");
 
-    assert!(manager
-        .fail_reload(id, vec![ResourceDiagnostic::error("unexpected failure")])
-        .is_err());
+    assert!(
+        manager
+            .fail_reload(id, vec![ResourceDiagnostic::error("unexpected failure")])
+            .is_err()
+    );
     let record = manager.registry().get(id).cloned().expect("record exists");
     assert_eq!(record.state, ResourceState::Ready);
     assert_eq!(record.failure_reason(), None);
@@ -562,4 +568,153 @@ fn registry_staging_preserves_resource_identity_after_staged_removal() {
     ));
 
     assert_eq!(registry.get(original.id), Some(&original));
+}
+
+#[test]
+fn registry_staging_shares_unchanged_record_storage() {
+    const RECORD_COUNT: usize = 4_096;
+
+    let mut initial = ResourceRegistry::default().begin_staging();
+    for index in 0..RECORD_COUNT {
+        let locator = locator(&format!("res://models/staging-{index:04}.glb"));
+        initial
+            .stage_record(ResourceRecord::new(
+                ResourceId::from_locator(&locator),
+                ResourceKind::Model,
+                locator,
+            ))
+            .expect("initial staged record should be accepted");
+    }
+    let registry = initial.finish();
+    let unchanged_id = ResourceId::from_locator(&locator("res://models/staging-2048.glb"));
+    let original_path = registry
+        .get(unchanged_id)
+        .expect("unchanged record should exist")
+        .primary_locator
+        .path()
+        .as_ptr();
+
+    let changed_id = ResourceId::from_locator(&locator("res://models/staging-0000.glb"));
+    let mut staging = registry.begin_staging();
+    staging
+        .stage_record(
+            registry
+                .get(changed_id)
+                .expect("changed record should exist")
+                .clone(),
+        )
+        .expect("replacing one staged record should succeed");
+    let staged_path = staging
+        .get(unchanged_id)
+        .expect("staged registry should expose unchanged record")
+        .primary_locator
+        .path()
+        .as_ptr();
+
+    assert_eq!(
+        staged_path, original_path,
+        "begin_staging must share immutable record storage instead of deep-cloning the registry"
+    );
+}
+
+#[test]
+#[ignore = "release performance gate"]
+fn registry_staging_copy_on_write_release_gate() {
+    use std::collections::HashMap;
+    use std::hint::black_box;
+    use std::time::Instant;
+
+    const RECORD_COUNT: usize = 4_096;
+    const ROUNDS_PER_SAMPLE: usize = 16;
+    const SAMPLE_PAIRS: usize = 21;
+
+    fn legacy_begin_staging(registry: &ResourceRegistry) {
+        let mut copied_registry = ResourceRegistry::default();
+        let mut identities = HashMap::with_capacity(registry.values().count());
+        for record in registry.values() {
+            copied_registry.insert_unchecked(record.clone());
+            identities.insert(record.id, (record.kind, record.primary_locator.clone()));
+        }
+        black_box((copied_registry, identities));
+    }
+
+    fn optimized_begin_staging(registry: &ResourceRegistry, probe_id: ResourceId) {
+        let staging = registry.begin_staging();
+        black_box(
+            staging
+                .get(probe_id)
+                .expect("optimized staging should expose the probe record")
+                .revision,
+        );
+    }
+
+    fn measure(mut operation: impl FnMut()) -> u128 {
+        let started = Instant::now();
+        for _ in 0..ROUNDS_PER_SAMPLE {
+            operation();
+        }
+        started.elapsed().as_nanos()
+    }
+
+    fn nearest_rank(samples: &[u128], percentile: usize) -> u128 {
+        let mut sorted = samples.to_vec();
+        sorted.sort_unstable();
+        let rank = (sorted.len() * percentile).div_ceil(100);
+        sorted[rank.saturating_sub(1)]
+    }
+
+    let mut initial = ResourceRegistry::default().begin_staging();
+    for index in 0..RECORD_COUNT {
+        let locator = locator(&format!("res://textures/staging-bench-{index:04}.png"));
+        initial
+            .stage_record(ResourceRecord::new(
+                ResourceId::from_locator(&locator),
+                ResourceKind::Texture,
+                locator,
+            ))
+            .expect("benchmark fixture record should be accepted");
+    }
+    let registry = initial.finish();
+    let probe_id = ResourceId::from_locator(&locator("res://textures/staging-bench-2048.png"));
+    let mut legacy_samples = Vec::with_capacity(SAMPLE_PAIRS);
+    let mut optimized_samples = Vec::with_capacity(SAMPLE_PAIRS);
+
+    for pair in 0..SAMPLE_PAIRS {
+        if pair % 2 == 0 {
+            legacy_samples.push(measure(|| legacy_begin_staging(black_box(&registry))));
+            optimized_samples.push(measure(|| {
+                optimized_begin_staging(black_box(&registry), probe_id)
+            }));
+        } else {
+            optimized_samples.push(measure(|| {
+                optimized_begin_staging(black_box(&registry), probe_id)
+            }));
+            legacy_samples.push(measure(|| legacy_begin_staging(black_box(&registry))));
+        }
+    }
+
+    let legacy_p50_ns = nearest_rank(&legacy_samples, 50);
+    let legacy_p95_ns = nearest_rank(&legacy_samples, 95);
+    let optimized_p50_ns = nearest_rank(&optimized_samples, 50);
+    let optimized_p95_ns = nearest_rank(&optimized_samples, 95);
+    let reduction_pct = 100.0 * (1.0 - optimized_p95_ns as f64 / legacy_p95_ns as f64);
+    let legacy_samples_ns = legacy_samples
+        .iter()
+        .map(u128::to_string)
+        .collect::<Vec<_>>()
+        .join(",");
+    let optimized_samples_ns = optimized_samples
+        .iter()
+        .map(u128::to_string)
+        .collect::<Vec<_>>()
+        .join(",");
+
+    println!(
+        "PERF-MVP-RAR-P2-002 sample_pairs={SAMPLE_PAIRS} registry_records={RECORD_COUNT} rounds_per_sample={ROUNDS_PER_SAMPLE} legacy_samples_ns={legacy_samples_ns} optimized_samples_ns={optimized_samples_ns} legacy_p50_ns={legacy_p50_ns} legacy_p95_ns={legacy_p95_ns} optimized_p50_ns={optimized_p50_ns} optimized_p95_ns={optimized_p95_ns} reduction_pct={reduction_pct:.3} legacy_record_clones_per_begin={RECORD_COUNT} optimized_record_clones_per_begin=0 legacy_locator_clones_per_begin={} optimized_locator_clones_per_begin=0",
+        RECORD_COUNT * 3
+    );
+    assert!(
+        optimized_p95_ns.saturating_mul(4) <= legacy_p95_ns,
+        "copy-on-write staging must reduce nearest-rank P95 by at least 75%: legacy={legacy_p95_ns}ns optimized={optimized_p95_ns}ns"
+    );
 }

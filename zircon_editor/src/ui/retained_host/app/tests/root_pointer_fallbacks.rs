@@ -425,23 +425,32 @@ fn moving_to_sibling_reference_list_blank_clears_previous_list_hover() {
             }];
         snapshot.selection.used_by.clear();
 
+        let snapshot = std::sync::Arc::clone(
+            host.activity_asset_pointer
+                .snapshot
+                .as_ref()
+                .expect("activity asset snapshot"),
+        );
+
         let references_size = host.activity_asset_pointer.references.size;
         let references_layout =
-            RetainedEditorHost::asset_reference_layout(snapshot, "references", references_size)
+            RetainedEditorHost::asset_reference_layout(&snapshot, "references", references_size)
                 .expect("references layout");
-        host.activity_asset_pointer.references.bridge.sync(
-            references_layout,
-            host.activity_asset_pointer.references.state.clone(),
-        );
+        let references_state = host.activity_asset_pointer.references.state.clone();
+        host.activity_asset_pointer
+            .references
+            .bridge
+            .sync(references_layout, references_state);
 
         let used_by_size = host.activity_asset_pointer.used_by.size;
         let used_by_layout =
-            RetainedEditorHost::asset_reference_layout(snapshot, "used_by", used_by_size)
+            RetainedEditorHost::asset_reference_layout(&snapshot, "used_by", used_by_size)
                 .expect("used-by layout");
-        host.activity_asset_pointer.used_by.bridge.sync(
-            used_by_layout,
-            host.activity_asset_pointer.used_by.state.clone(),
-        );
+        let used_by_state = host.activity_asset_pointer.used_by.state.clone();
+        host.activity_asset_pointer
+            .used_by
+            .bridge
+            .sync(used_by_layout, used_by_state);
     }
 
     pane_surface_host(&harness.root_ui).invoke_asset_reference_pointer_moved(

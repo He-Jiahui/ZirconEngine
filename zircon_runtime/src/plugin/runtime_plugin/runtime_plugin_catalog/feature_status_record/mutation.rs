@@ -11,6 +11,12 @@ impl FeatureStatus {
         self.invalid_owner_dependency = true;
     }
 
+    pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn mark_provider_missing(
+        &mut self,
+    ) {
+        self.provider_missing = true;
+    }
+
     pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn mark_target_unsupported(
         &mut self,
     ) {

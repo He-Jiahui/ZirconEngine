@@ -2,7 +2,7 @@ use crate::ui::layouts::views::ViewTemplateNodeData;
 use crate::ui::workbench::snapshot::AssetWorkspaceSnapshot;
 
 use super::super::asset_reference_rows::{
-    AssetReferenceListControls, apply_asset_reference_lists_layout, sync_asset_reference_lists,
+    apply_asset_reference_lists_layout, sync_asset_reference_lists, AssetReferenceListControls,
 };
 
 const LEFT_REFERENCES: AssetReferenceListControls = AssetReferenceListControls {

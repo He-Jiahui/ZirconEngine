@@ -16,7 +16,7 @@ use crate::scene::{
 };
 
 use super::authoring_boundary::{
-    assert_text_excludes_authoring_tokens, SERIALIZED_AUTHORING_TOKENS,
+    SERIALIZED_AUTHORING_TOKENS, assert_text_excludes_authoring_tokens,
 };
 
 const CLOUD_LAYER_TYPE_PATH: &str = "weather.Component.CloudLayer";
@@ -83,6 +83,7 @@ fn frame_counter_adapter() -> ReflectResource {
         contains: frame_counter_contains,
         read_field: frame_counter_read_field,
         read_fields: frame_counter_read_fields,
+        write_field_by_slot: frame_counter_write_field_by_slot,
         write_fields_by_slot: frame_counter_write_fields_by_slot,
     }
 }
@@ -173,6 +174,25 @@ fn frame_counter_write_fields_by_slot(
         .get_resource_mut::<FrameCounter>()
         .ok_or_else(missing_frame_counter_resource)?
         .value = next;
+    Ok(true)
+}
+
+fn frame_counter_write_field_by_slot(
+    world: &mut World,
+    field_slot: u32,
+    value: ReflectedValue,
+) -> Result<bool, ReflectError> {
+    if field_slot != 0 {
+        return Err(unknown_frame_counter_field(&format!("#{field_slot}")));
+    }
+    let next = expect_frame_counter_value("value", value)?;
+    let resource = world
+        .get_resource_mut::<FrameCounter>()
+        .ok_or_else(missing_frame_counter_resource)?;
+    if resource.value == next {
+        return Ok(false);
+    }
+    resource.value = next;
     Ok(true)
 }
 

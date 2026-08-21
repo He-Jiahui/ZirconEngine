@@ -1,4 +1,4 @@
-use super::types::{ExtensionBindingSpec, change, click, submit};
+use super::types::{change, click, submit, ExtensionBindingSpec};
 
 pub(super) const RUNTIME_STATE_BINDINGS: &[ExtensionBindingSpec] = &[
     click("SaveDataOpen", "workbench.extension.save_data.open"),

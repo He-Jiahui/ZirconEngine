@@ -11,6 +11,8 @@ mod scene_viewport_controller_debug;
 mod scene_viewport_controller_frame_selection;
 mod scene_viewport_controller_handle_input;
 mod scene_viewport_controller_handle_interaction;
+mod scene_viewport_controller_highlight_set;
+mod scene_viewport_controller_interaction_cancel;
 mod scene_viewport_controller_navigation;
 mod scene_viewport_controller_overlay_providers;
 mod scene_viewport_controller_pointer_route;

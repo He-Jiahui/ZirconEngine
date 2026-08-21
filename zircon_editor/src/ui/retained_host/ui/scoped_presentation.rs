@@ -271,6 +271,8 @@ fn pane_is_ui_asset_instance(pane: &PaneData, instance_id: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
     use crate::ui::asset_editor::UiAssetEditorPanePresentation;
     use crate::ui::layouts::common::model_rc;
     use crate::ui::retained_host::host_contract::{
@@ -293,8 +295,7 @@ mod tests {
 
         let pane = build_ui_asset_presentation_patch(presentation, "ui-asset-editor#once");
 
-        assert_eq!(pane.id.as_str(), "ui-asset-editor#once");
-        assert_eq!(pane.ui_asset.header.asset_id, "res://ui/once.zui");
+        assert_eq!(pane.header.asset_id, "res://ui/once.zui");
     }
 
     #[test]

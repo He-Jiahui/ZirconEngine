@@ -69,6 +69,27 @@ impl Default for DiagnosticStoreSnapshot {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct DiagnosticSeriesCurrentSnapshot {
+    pub path: DiagnosticPath,
+    pub unit: Option<String>,
+    pub current: f64,
+    pub smoothed: Option<f64>,
+    pub min: Option<f64>,
+    pub max: Option<f64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DiagnosticStoreCurrentSnapshot {
+    pub series: Vec<DiagnosticSeriesCurrentSnapshot>,
+}
+
+impl DiagnosticStoreCurrentSnapshot {
+    pub fn is_empty(&self) -> bool {
+        self.series.is_empty()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct DiagnosticStore {
     history_limit: usize,
@@ -129,6 +150,16 @@ impl DiagnosticStore {
                 .series
                 .iter()
                 .map(|(path, series)| series.snapshot(path.clone()))
+                .collect(),
+        }
+    }
+
+    pub fn current_snapshot(&self) -> DiagnosticStoreCurrentSnapshot {
+        DiagnosticStoreCurrentSnapshot {
+            series: self
+                .series
+                .iter()
+                .filter_map(|(path, series)| series.current_snapshot(path.clone()))
                 .collect(),
         }
     }
@@ -228,6 +259,17 @@ impl DiagnosticSeries {
             history: self.history.iter().cloned().collect(),
         }
     }
+
+    fn current_snapshot(&self, path: DiagnosticPath) -> Option<DiagnosticSeriesCurrentSnapshot> {
+        Some(DiagnosticSeriesCurrentSnapshot {
+            path,
+            unit: self.unit.clone(),
+            current: self.current?,
+            smoothed: self.smoothed,
+            min: self.min,
+            max: self.max,
+        })
+    }
 }
 
 fn push_unique_tags(target: &mut Vec<String>, tags: impl IntoIterator<Item = impl Into<String>>) {
@@ -242,6 +284,33 @@ fn push_unique_tags(target: &mut Vec<String>, tags: impl IntoIterator<Item = imp
 #[cfg(test)]
 mod tests {
     use super::DiagnosticStore;
+
+    #[test]
+    fn current_snapshot_omits_retained_history_and_tags() {
+        let mut store = DiagnosticStore::new(4);
+        for frame_index in 1..=4 {
+            store.record(
+                "time.frame_time",
+                frame_index,
+                frame_index as f64,
+                Some("ms"),
+                ["time", "frame"],
+            );
+        }
+
+        let full = store.snapshot();
+        let current = store.current_snapshot();
+
+        assert_eq!(full.series[0].history.len(), 4);
+        assert_eq!(full.series[0].subsystem_tags, ["frame", "time"]);
+        assert_eq!(current.series.len(), 1);
+        assert_eq!(current.series[0].path.as_str(), "time.frame_time");
+        assert_eq!(current.series[0].unit.as_deref(), Some("ms"));
+        assert_eq!(current.series[0].current, 4.0);
+        assert_eq!(current.series[0].smoothed, full.series[0].smoothed);
+        assert_eq!(current.series[0].min, Some(1.0));
+        assert_eq!(current.series[0].max, Some(4.0));
+    }
 
     #[test]
     fn static_diagnostic_series_reuses_path_and_metadata_allocations() {

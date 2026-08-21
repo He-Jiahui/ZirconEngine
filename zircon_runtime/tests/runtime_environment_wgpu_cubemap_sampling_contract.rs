@@ -439,7 +439,7 @@ fn runtime_environment_precomputed_rotation_skips_per_pixel_trigonometry() {
     );
     for forbidden in ["sin", "cos"] {
         assert!(
-            !contains_wgsl_function_call(rotation, forbidden),
+            !contains_wgsl_function_call(&rotation, forbidden),
             "environment rotation must not evaluate per-pixel trigonometry through `{forbidden}`"
         );
     }
@@ -499,7 +499,7 @@ fn runtime_environment_skybox_reuses_reconstructed_normalized_direction() {
     );
     for forbidden in ["sin", "cos"] {
         assert!(
-            !contains_wgsl_function_call(rotation, forbidden),
+            !contains_wgsl_function_call(&rotation, forbidden),
             "skybox rotation must not evaluate per-pixel trigonometry through `{forbidden}`"
         );
     }
@@ -580,9 +580,10 @@ fn runtime_environment_procedural_pbr_reuses_normalized_directions() {
         "fn zr_environment_procedural_sky_color(",
     );
     assert!(
-        defensive_sky.contains(
-            "zr_environment_procedural_sky_color_normalized(\n        zr_environment_normalize_or_zero(direction),",
-        ),
+        contains_wgsl_function_call(
+            &defensive_sky,
+            "zr_environment_procedural_sky_color_normalized",
+        ) && defensive_sky.contains("zr_environment_normalize_or_zero(direction)"),
         "the public procedural-sky wrapper must retain defensive normalization"
     );
 
@@ -647,9 +648,21 @@ fn runtime_environment_direct_procedural_sun_obeys_final_sampling_intensity() {
     assert!(environment_sun.contains("return color * max(scene.environment_params.y, 0.0);"));
 
     let skybox_fragment = function_body(SKYBOX_SHADER, "fn fs_main(");
-    assert!(skybox_fragment.contains(
-        "color = (select(ground, sky, direction.y >= 0.0)\n            + procedural_sun_radiance(direction))\n            * intensity;"
-    ));
+    let color_composition = skybox_fragment
+        .find("color = (select(ground, sky, direction.y >= 0.0)")
+        .expect("the procedural skybox must compose the ground-or-sky base color");
+    let sun = skybox_fragment[color_composition..]
+        .find("procedural_sun_radiance(direction)")
+        .map(|offset| color_composition + offset)
+        .expect("the procedural skybox must add the direct sun before intensity");
+    let final_intensity = skybox_fragment[sun..]
+        .find("* intensity;")
+        .map(|offset| sun + offset)
+        .expect("the procedural skybox must apply final sampling intensity");
+    assert!(
+        color_composition < sun && sun < final_intensity,
+        "the direct procedural sun must receive the same final sampling intensity as the sky"
+    );
 }
 
 #[test]
@@ -691,18 +704,26 @@ fn runtime_environment_pbr_pmrem_reuses_normalized_direction_and_clamped_lod() {
 
 #[test]
 fn runtime_environment_planar_reflection_short_circuits_pmrem_and_probe_work() {
-    let reflection = function_body(
+    let normalized_reflection = function_body(
         ENVIRONMENT_SHADER,
         "fn zr_environment_reflection_color_normalized(",
     );
+    let reflection = function_body(
+        ENVIRONMENT_SHADER,
+        "fn zr_environment_reflection_color_after_planar(",
+    );
 
-    let planar = reflection
+    let planar = normalized_reflection
         .find("let planar = zr_environment_planar_reflection(")
         .expect("reflection must evaluate the planar candidate");
-    let planar_return = reflection[planar..]
+    let planar_return = normalized_reflection[planar..]
         .find("return planar.rgb;")
         .map(|offset| planar + offset)
         .expect("a valid planar candidate must return before lower-priority reflection work");
+    let continuation = normalized_reflection[planar_return..]
+        .find("zr_environment_reflection_color_after_planar(")
+        .map(|offset| planar_return + offset)
+        .expect("the non-planar path must continue after the planar return");
     let reflected = reflection
         .find("let reflected = reflect(-view_dir, normal);")
         .expect("reflection must retain the reflected lookup direction");
@@ -722,7 +743,7 @@ fn runtime_environment_planar_reflection_short_circuits_pmrem_and_probe_work() {
 
     assert!(
         planar < planar_return
-            && planar_return < reflected
+            && planar_return < continuation
             && reflected < no_probes
             && no_probes < no_probe_return
             && no_probe_return < probes
@@ -748,7 +769,7 @@ fn runtime_environment_full_probe_coverage_skips_zero_weight_sky_sample() {
         .find("let sky_weight = max(")
         .expect("reflection must retain explicit sky weighting");
     let sky_guard = reflection
-        .find("if (sky_weight > 0.0)")
+        .find("if (sky_weight > 0.0")
         .expect("zero-weight sky sampling must be guarded");
     let sky_sample = reflection[sky_guard..]
         .find("zr_environment_sky_reflection_color(")
@@ -766,15 +787,18 @@ fn runtime_environment_full_probe_coverage_skips_zero_weight_sky_sample() {
 
 #[test]
 fn runtime_environment_pbr_reuses_normalized_reflection_inputs() {
-    let components = function_body(ENVIRONMENT_SHADER, "fn zr_environment_pbr_components(");
+    let components = function_body(
+        ENVIRONMENT_SHADER,
+        "fn zr_environment_pbr_components_with_prepared_inputs(",
+    );
 
     assert!(
         contains_wgsl_function_call(&components, "zr_environment_reflection_color_normalized"),
-        "PBR components must call the normalized reflection hot path"
+        "prepared PBR components must call the normalized reflection hot path"
     );
     assert!(
         !components.contains("zr_environment_reflection_color(\n"),
-        "PBR components already normalize normal/view and clamp roughness before reflection"
+        "prepared PBR components must not repeat normalization before reflection"
     );
 
     let wrapper = function_body(ENVIRONMENT_SHADER, "fn zr_environment_reflection_color(");
@@ -816,7 +840,7 @@ fn runtime_environment_full_metal_skips_zero_weight_diffuse_ibl() {
         .find("let diffuse_energy_scale = 1.0 - clamped_metallic;")
         .expect("PBR indirect must retain metallic diffuse energy scaling");
     let guard = components
-        .find("if (diffuse_energy_scale > 0.0)")
+        .find("if (diffuse_energy_scale > 0.0")
         .expect("zero-weight diffuse IBL must be guarded for full-metal materials");
     let diffuse_sample = components
         .find("zr_environment_diffuse_color_normalized(normal)")

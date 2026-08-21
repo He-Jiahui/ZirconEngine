@@ -225,7 +225,7 @@ impl UiLayoutEngineSelection {
                 request: request.clone(),
                 requested_backend: preferred.backend,
                 selected_backend: fallback.backend,
-                support: if fallback.supports_family(request.family) {
+                support: if unsupported_reason(request, fallback).is_none() {
                     UiLayoutEngineSupport::Fallback
                 } else {
                     UiLayoutEngineSupport::Unsupported

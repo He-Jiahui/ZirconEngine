@@ -170,6 +170,8 @@ impl EntryRunner {
                 editor_plugin_registrations,
                 runtime_plugin_registrations,
                 runtime_capabilities,
+                #[cfg(test)]
+                    startup_metrics: _,
             } = prepared_startup;
             let editor_host_request = editor_host_startup_request(startup_request.as_ref());
             let hub_handshake_config = match hub_handshake {

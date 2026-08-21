@@ -1466,74 +1466,10 @@ class CoordinatorApplication:
             )
             return {"candidate": asdict(candidate)}
         if name == "validation.record_result":
-            status = str(arguments["status"])
-            evidence = arguments.get("evidence")
-            if evidence is None:
-                evidence = {}
-            if not isinstance(evidence, dict):
-                raise CoordinatorError(
-                    "validation_ticket_evidence_invalid",
-                    "Validation result evidence must be a JSON object",
-                )
-            evidence = self.validation_tickets._mapping("evidence", evidence)
-            ticket = self.validation_tickets.get(str(arguments["ticket_id"]))
-            failure_result: dict[str, object] | None = None
-            if status == "failed":
-                failure = arguments.get("failure")
-                if not isinstance(failure, dict):
-                    raise CoordinatorError(
-                        "validation_ticket_failure_context_missing",
-                        "A failed validation result requires failure context for a forward repair",
-                    )
-                failure = self.validation_tickets._mapping("failure", failure)
-                session = self.sessions.get(ticket.session_id)
-                if not session.plan_path:
-                    raise CoordinatorError(
-                        "failure_materialization_plan_missing",
-                        "Validation failure materialization requires a Session registered to a numbered Plan",
-                    )
-                created_at = date.fromisoformat(
-                    str(failure.get("created_at") or date.today().isoformat())
-                )
-                owner = self.plans.resolve_owner(session.plan_path)
-                summary_slug = str(failure.get("summary_slug") or "")
-                target = (
-                    f"{owner.child_dir}/failure-{created_at.isoformat()}-"
-                    f"{summary_slug.strip()}.md"
-                )
-                decision = self.plans.authorize_write(session.plan_path, target)
-                if not decision.allowed:
-                    raise CoordinatorError(decision.code, decision.message)
-                artifact = self.failures.materialize_local_validation_failure(
-                    origin_plan=session.plan_path,
-                    summary_slug=summary_slug,
-                    source_slice=str(failure.get("source_slice") or ticket.ticket_id),
-                    reproduction=str(
-                        failure.get("reproduction")
-                        or " ".join(ticket.command)
-                    ),
-                    lowest_known_cause=str(failure.get("lowest_known_cause") or ""),
-                    acceptance_criteria=failure.get("acceptance_criteria") or [],
-                    related_code=failure.get("related_code") or [],
-                    created_at=created_at,
-                )
-                failure_result = {
-                    "failure_artifact": artifact.relative_to(self.config.repo_root).as_posix(),
-                    "repair_plan": owner.path,
-                    "failure_scope": "local",
-                    "integration_disposition": "forward_fix_required",
-                }
-            ticket = self.validation_tickets.record_result(
-                ticket.ticket_id, status, evidence=evidence
+            raise CoordinatorError(
+                "validation_ticket_result_worker_only",
+                "Validation results may be recorded only by the coordinator validation worker",
             )
-            result: dict[str, object] = {"ticket": asdict(ticket)}
-            if failure_result is not None:
-                result.update(failure_result)
-            elif status == "passed":
-                result["integration_disposition"] = "integration_candidate_eligible"
-            else:
-                result["integration_disposition"] = "validation_resubmit_required"
-            return {"result": result}
         if name == "plan.audit":
             inventory = self.plans.scan()
             return {
@@ -2530,9 +2466,12 @@ class _CoordinatorHttpServer(ThreadingHTTPServer):
     allow_reuse_address = False
     daemon_threads = True
 
-    def __init__(self, address, handler, *, application: CoordinatorApplication):
+    def __init__(
+        self, address, handler, *, application: CoordinatorApplication, token: str
+    ):
         super().__init__(address, handler)
         self.application = application
+        self.token = token
         router = ControlPlaneRouter(
             instance_id=application.instance_id,
             auth=application.web_auth,
@@ -2548,6 +2487,7 @@ class _CoordinatorHttpServer(ThreadingHTTPServer):
         self.control_http = ControlPlaneHttp(
             router,
             application.control_events,
+            runtime_token=token,
             assets=StaticAssetService(application.config.control_web_dist_root),
             artifact_downloads=ArtifactDownloadService(
                 application.database, application.config.workflow_artifact_root
@@ -2663,9 +2603,13 @@ class CoordinatorRequestHandler(BaseHTTPRequestHandler):
         return
 
     def _authorized(self) -> bool:
-        # The service only binds to the exact IPv4 loopback address. Local users
-        # intentionally access the coordinator without a browser or CLI token.
-        return True
+        supplied = self.headers.get("Authorization", "")
+        if secrets.compare_digest(supplied, f"Bearer {self.server.token}"):
+            return True
+        self._write_error(
+            HTTPStatus.UNAUTHORIZED, "unauthorized", "Invalid coordinator token"
+        )
+        return False
 
     def _write_error(self, status: HTTPStatus, code: str, message: str) -> None:
         self._write_json(status, {"error": {"code": code, "message": message, "details": {}}})
@@ -2707,6 +2651,7 @@ class RunningCoordinator:
             )
         config.state_root.mkdir(parents=True, exist_ok=True)
         cls._acquire_lock(config)
+        token = secrets.token_urlsafe(32)
         instance_id = uuid.uuid4().hex
         started_at = utc_text()
         try:
@@ -2736,6 +2681,7 @@ class RunningCoordinator:
                 (config.host, config.port),
                 CoordinatorRequestHandler,
                 application=application,
+                token=token,
             )
             application.lifecycle.set_shutdown(lambda _kind: httpd.shutdown())
             thread = threading.Thread(target=httpd.serve_forever, name="zircon-session-coordinator", daemon=True)
@@ -2757,7 +2703,7 @@ class RunningCoordinator:
             descriptor = RuntimeDescriptor(
                 host=str(host),
                 port=int(port),
-                token="",
+                token=token,
                 repo_root=config.repo_root,
                 repository=application.repository_identity,
                 instance_id=instance_id,
@@ -2790,7 +2736,7 @@ class RunningCoordinator:
                 thread=thread,
                 maintenance_thread=maintenance_thread,
                 maintenance_stop=maintenance_stop,
-                token="",
+                token=token,
                 instance_id=instance_id,
                 started_at=started_at,
             )

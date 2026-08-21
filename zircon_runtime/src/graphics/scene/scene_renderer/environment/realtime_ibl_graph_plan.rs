@@ -12,8 +12,6 @@ use super::realtime_ibl_time_slice::{
 
 pub(in crate::graphics) const REALTIME_IBL_CAPTURE_SKY_EXECUTOR_ID: &str =
     "environment.realtime_ibl.capture_sky";
-pub(in crate::graphics) const REALTIME_IBL_CAPTURE_CLOUD_EXECUTOR_ID: &str =
-    "environment.realtime_ibl.capture_cloud";
 pub(in crate::graphics) const REALTIME_IBL_GENERATE_SOURCE_MIPS_EXECUTOR_ID: &str =
     "environment.realtime_ibl.generate_source_mips";
 pub(in crate::graphics) const REALTIME_IBL_PREFILTER_EXECUTOR_ID: &str =
@@ -66,7 +64,6 @@ impl RealtimeIblGraphSlotResources {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::graphics) enum RealtimeIblGraphPassKind {
     CaptureSky(CubeFaceRange),
-    CaptureCloud(CubeFaceRange),
     GenerateSourceMip { mip_level: u32 },
     Prefilter(RealtimeIblPrefilterDispatchSlice),
     ProjectDiffuseSh9,
@@ -114,53 +111,37 @@ pub(in crate::graphics) fn append_realtime_ibl_graph_plan(
                     workload,
                 });
             }
-            RealtimeIblOperation::CaptureCloud(faces) => {
-                let workload = face_workload(request.source_face_size(), faces);
+            RealtimeIblOperation::GenerateSourceMip { mip_level } => {
+                let mip_level = u32::from(mip_level);
+                let mip_size = mip_dimension(request.source_face_size(), mip_level);
+                let workload = RenderGraphComputeWorkload::fixed(
+                    "zircon-env-realtime-ibl-generate-source-mip",
+                    REALTIME_IBL_WORKGROUP_SIZE,
+                    [
+                        div_ceil(mip_size, REALTIME_IBL_WORKGROUP_SIZE[0]),
+                        div_ceil(mip_size, REALTIME_IBL_WORKGROUP_SIZE[1]),
+                        CUBE_FACE_COUNT,
+                    ],
+                );
                 let pass = add_pass(
                     builder,
-                    capture_pass_name("cloud", faces),
-                    REALTIME_IBL_CAPTURE_CLOUD_EXECUTOR_ID,
+                    format!("env.realtime_ibl.generate_source_mip.mip{mip_level}"),
+                    REALTIME_IBL_GENERATE_SOURCE_MIPS_EXECUTOR_ID,
                     workload.clone(),
                 )?;
-                builder.write_storage_external(pass, work.source.storage_mips[0].handle)?;
+                builder.read_external(
+                    pass,
+                    work.source.sampled_mips[(mip_level - 1) as usize].handle,
+                )?;
+                builder.write_storage_external(
+                    pass,
+                    work.source.storage_mips[mip_level as usize].handle,
+                )?;
                 passes.push(RealtimeIblGraphPass {
-                    kind: RealtimeIblGraphPassKind::CaptureCloud(faces),
+                    kind: RealtimeIblGraphPassKind::GenerateSourceMip { mip_level },
                     pass_id: pass,
                     workload,
                 });
-            }
-            RealtimeIblOperation::GenerateSourceMips => {
-                for mip_level in 1..request.source_mip_count() {
-                    let mip_size = mip_dimension(request.source_face_size(), mip_level);
-                    let workload = RenderGraphComputeWorkload::fixed(
-                        "zircon-env-realtime-ibl-generate-source-mips",
-                        REALTIME_IBL_WORKGROUP_SIZE,
-                        [
-                            div_ceil(mip_size, REALTIME_IBL_WORKGROUP_SIZE[0]),
-                            div_ceil(mip_size, REALTIME_IBL_WORKGROUP_SIZE[1]),
-                            CUBE_FACE_COUNT,
-                        ],
-                    );
-                    let pass = add_pass(
-                        builder,
-                        format!("env.realtime_ibl.generate_source_mip.mip{mip_level}"),
-                        REALTIME_IBL_GENERATE_SOURCE_MIPS_EXECUTOR_ID,
-                        workload.clone(),
-                    )?;
-                    builder.read_external(
-                        pass,
-                        work.source.sampled_mips[(mip_level - 1) as usize].handle,
-                    )?;
-                    builder.write_storage_external(
-                        pass,
-                        work.source.storage_mips[mip_level as usize].handle,
-                    )?;
-                    passes.push(RealtimeIblGraphPass {
-                        kind: RealtimeIblGraphPassKind::GenerateSourceMip { mip_level },
-                        pass_id: pass,
-                        workload,
-                    });
-                }
             }
             RealtimeIblOperation::Prefilter { mips, faces } => {
                 for mip_level in mips.first..mips.first.saturating_add(mips.count) {

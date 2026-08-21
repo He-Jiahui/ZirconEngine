@@ -1,27 +1,14 @@
 use std::ops::Range;
 
-use unicode_segmentation::UnicodeSegmentation;
-
-/// Safety ceiling for one backend shaping run. Longer unbroken content is represented as
-/// contiguous internal layout lines without changing the source text.
-pub(crate) const TEXT_SHAPING_RUN_MAX_BYTES: usize = 64 * 1024;
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct HardLine {
     pub(crate) content: Range<usize>,
     pub(crate) separator: Range<usize>,
-    run_cap_break: bool,
 }
 
 impl HardLine {
     pub(crate) fn source_range(&self) -> Range<usize> {
         self.content.start..self.separator.end.max(self.content.end)
-    }
-
-    /// A synthetic layout boundary prevents a backend from shaping an unbounded source run.
-    /// It has no separator or source glyph because no source character was inserted.
-    pub(crate) const fn is_run_cap_break(&self) -> bool {
-        self.run_cap_break
     }
 }
 
@@ -51,12 +38,13 @@ pub(crate) fn hard_line_count(text: &str) -> usize {
     count
 }
 
-/// Returns whether canonical segmentation can produce more than one hard line.
+/// Returns whether source segmentation can produce more than one hard line.
 ///
-/// This is the allocation-free rejection path for viewport virtualization. A source separator or
-/// an over-cap run is the only way the plain, unwrapped path can select a strict line subset.
+/// This is the allocation-free rejection path for viewport virtualization. Only a source
+/// separator changes the document's hard-line identity; backend execution policy must not become
+/// a layout line.
 pub(crate) fn has_multiple_hard_lines(text: &str) -> bool {
-    text.len() > TEXT_SHAPING_RUN_MAX_BYTES || text.chars().any(is_hard_line_separator)
+    text.chars().any(is_hard_line_separator)
 }
 
 /// Materializes only the requested canonical hard-line range.
@@ -161,18 +149,19 @@ fn for_each_hard_line(text: &str, mut visit: impl FnMut(HardLine) -> bool) {
             _ => is_hard_line_separator(ch),
         };
         if is_break {
-            if !visit_capped_hard_line(text, line_start..index, index..next_start, &mut visit) {
+            if !visit(HardLine {
+                content: line_start..index,
+                separator: index..next_start,
+            }) {
                 return;
             }
             line_start = next_start;
         }
     }
-    let _ = visit_capped_hard_line(
-        text,
-        line_start..text.len(),
-        text.len()..text.len(),
-        &mut visit,
-    );
+    let _ = visit(HardLine {
+        content: line_start..text.len(),
+        separator: text.len()..text.len(),
+    });
 }
 
 fn is_hard_line_separator(character: char) -> bool {
@@ -198,75 +187,18 @@ fn clamp_utf8_boundary(text: &str, offset: usize) -> usize {
     offset
 }
 
-fn visit_capped_hard_line(
-    text: &str,
-    content: Range<usize>,
-    separator: Range<usize>,
-    visit: &mut impl FnMut(HardLine) -> bool,
-) -> bool {
-    if content.is_empty() {
-        return visit(HardLine {
-            content,
-            separator,
-            run_cap_break: false,
-        });
-    }
-
-    let mut chunk_start = content.start;
-    while chunk_start < content.end {
-        let chunk_end = capped_content_end(text, chunk_start, content.end);
-        let run_cap_break = chunk_end < content.end;
-        if !visit(HardLine {
-            content: chunk_start..chunk_end,
-            separator: if run_cap_break {
-                chunk_end..chunk_end
-            } else {
-                separator.clone()
-            },
-            run_cap_break,
-        }) {
-            return false;
-        }
-        chunk_start = chunk_end;
-    }
-    true
-}
-
-fn capped_content_end(text: &str, start: usize, end: usize) -> usize {
-    let cap_end = start.saturating_add(TEXT_SHAPING_RUN_MAX_BYTES).min(end);
-    if cap_end == end {
-        return end;
-    }
-
-    let mut last_grapheme_end = start;
-    for (offset, grapheme) in text[start..end].grapheme_indices(true) {
-        let grapheme_end = start + offset + grapheme.len();
-        if grapheme_end > cap_end {
-            break;
-        }
-        last_grapheme_end = grapheme_end;
-    }
-    if last_grapheme_end > start {
-        return last_grapheme_end;
-    }
-
-    // A single pathological grapheme can exceed the cap. Preserve UTF-8 validity while making
-    // forward progress so it cannot retain an unbounded backend shaping path.
-    let mut utf8_boundary = cap_end;
-    while utf8_boundary > start && !text.is_char_boundary(utf8_boundary) {
-        utf8_boundary -= 1;
-    }
-    debug_assert!(utf8_boundary > start);
-    utf8_boundary
-}
-
 #[cfg(test)]
 mod tests {
     use super::{
         hard_line_count, hard_line_count_and_window, hard_line_end, hard_line_start,
         hard_line_window, hard_lines, has_multiple_hard_lines, next_hard_line_start,
-        visit_hard_lines, TEXT_SHAPING_RUN_MAX_BYTES,
+        visit_hard_lines,
     };
+    use crate::text::TextShapingWorkBudget;
+
+    fn inline_threshold_bytes() -> usize {
+        TextShapingWorkBudget::default().max_inline_input_bytes()
+    }
 
     #[test]
     fn hard_lines_preserve_crlf_and_unicode_separator_ranges() {
@@ -281,74 +213,42 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![(0..1, 1..3), (3..4, 4..7), (7..8, 8..9), (9..9, 9..9)]
         );
-        assert!(lines
-            .windows(2)
-            .all(|lines| lines[0].source_range().end == lines[1].source_range().start));
+        assert!(
+            lines
+                .windows(2)
+                .all(|lines| lines[0].source_range().end == lines[1].source_range().start)
+        );
     }
 
     #[test]
-    fn hard_lines_cap_an_oversized_unbroken_run_at_a_utf8_boundary() {
-        let mut text = "a".repeat(TEXT_SHAPING_RUN_MAX_BYTES - 1);
+    fn hard_lines_keep_an_oversized_unbroken_run_as_one_source_line() {
+        let boundary = inline_threshold_bytes();
+        let mut text = "a".repeat(boundary - 1);
         text.push('中');
         text.push('b');
 
         let lines = hard_lines(&text);
 
-        assert_eq!(lines.len(), 2);
-        assert_eq!(lines[0].content, 0..TEXT_SHAPING_RUN_MAX_BYTES - 1);
-        assert_eq!(
-            lines[0].separator,
-            TEXT_SHAPING_RUN_MAX_BYTES - 1..TEXT_SHAPING_RUN_MAX_BYTES - 1
-        );
-        assert!(lines[0].is_run_cap_break());
-        assert_eq!(lines[1].content, TEXT_SHAPING_RUN_MAX_BYTES - 1..text.len());
-        assert!(lines[1].separator.is_empty());
-        assert!(!lines[1].is_run_cap_break());
-        assert!(lines
-            .windows(2)
-            .all(|lines| lines[0].source_range().end == lines[1].source_range().start));
-    }
-
-    #[test]
-    fn hard_lines_keep_a_real_separator_on_the_last_capped_segment() {
-        let text = format!("{}\r\nz", "a".repeat(TEXT_SHAPING_RUN_MAX_BYTES + 1));
-
-        let lines = hard_lines(&text);
-
-        assert_eq!(lines.len(), 3);
-        assert!(lines[0].is_run_cap_break());
+        assert_eq!(lines.len(), 1);
+        assert_eq!(lines[0].content, 0..text.len());
         assert!(lines[0].separator.is_empty());
-        assert_eq!(
-            lines[1].content,
-            TEXT_SHAPING_RUN_MAX_BYTES..TEXT_SHAPING_RUN_MAX_BYTES + 1
-        );
-        assert_eq!(
-            lines[1].separator,
-            TEXT_SHAPING_RUN_MAX_BYTES + 1..TEXT_SHAPING_RUN_MAX_BYTES + 3
-        );
-        assert_eq!(lines[1].source_range().end, TEXT_SHAPING_RUN_MAX_BYTES + 3);
-        assert_eq!(lines[2].content, TEXT_SHAPING_RUN_MAX_BYTES + 3..text.len());
-        assert!(lines[2].separator.is_empty());
     }
 
     #[test]
-    fn hard_line_count_includes_capped_runs() {
-        let text = "a".repeat(TEXT_SHAPING_RUN_MAX_BYTES + 1);
+    fn hard_line_count_excludes_internal_shaping_chunks() {
+        let text = "a".repeat(inline_threshold_bytes() + 1);
 
-        assert_eq!(hard_line_count(&text), 2);
+        assert_eq!(hard_line_count(&text), 1);
     }
 
     #[test]
-    fn hard_line_multiplicity_fast_path_matches_separators_and_run_cap() {
+    fn hard_line_multiplicity_fast_path_matches_source_separators_only() {
         assert!(!has_multiple_hard_lines("single line"));
         assert!(!has_multiple_hard_lines(
-            &"a".repeat(TEXT_SHAPING_RUN_MAX_BYTES)
+            &"a".repeat(inline_threshold_bytes() + 1)
         ));
         assert!(has_multiple_hard_lines("first\r\nsecond"));
         assert!(has_multiple_hard_lines("first\u{2028}second"));
-        assert!(has_multiple_hard_lines(
-            &"a".repeat(TEXT_SHAPING_RUN_MAX_BYTES + 1)
-        ));
     }
 
     #[test]
@@ -367,38 +267,29 @@ mod tests {
     }
 
     #[test]
-    fn hard_line_window_selects_capped_segments_without_rewriting_separator() {
-        let text = format!("{}\r\nz", "a".repeat(TEXT_SHAPING_RUN_MAX_BYTES + 1));
+    fn hard_line_window_never_selects_internal_shaping_chunks() {
+        let boundary = inline_threshold_bytes();
+        let text = format!("{}\r\nz", "a".repeat(boundary + 1));
 
         let lines = hard_line_window(&text, 1..2);
 
         assert_eq!(lines.len(), 1);
-        assert_eq!(
-            lines[0].content,
-            TEXT_SHAPING_RUN_MAX_BYTES..TEXT_SHAPING_RUN_MAX_BYTES + 1
-        );
-        assert_eq!(
-            lines[0].separator,
-            TEXT_SHAPING_RUN_MAX_BYTES + 1..TEXT_SHAPING_RUN_MAX_BYTES + 3
-        );
-        assert!(!lines[0].is_run_cap_break());
+        assert!(lines[0].separator.is_empty());
+        assert_eq!(lines[0].content, boundary + 3..boundary + 4);
     }
 
     #[test]
-    fn hard_line_count_and_window_retains_the_document_count_without_full_materialization() {
-        let text = format!(
-            "a\r\nb\u{2028}{}",
-            "x".repeat(TEXT_SHAPING_RUN_MAX_BYTES + 1)
-        );
+    fn hard_line_count_and_window_retains_only_source_line_count() {
+        let text = format!("a\r\nb\u{2028}{}", "x".repeat(inline_threshold_bytes() + 1));
 
         let (count, lines) = hard_line_count_and_window(&text, 1..3);
 
-        assert_eq!(count, 4);
+        assert_eq!(count, 3);
         assert_eq!(lines.len(), 2);
         assert_eq!(lines[0].content, 3..4);
         assert_eq!(lines[0].separator, 4..7);
         assert_eq!(lines[1].content.start, 7);
-        assert!(lines[1].is_run_cap_break());
+        assert!(lines[1].separator.is_empty());
     }
 
     #[test]
@@ -426,18 +317,15 @@ mod tests {
     }
 
     #[test]
-    fn hard_line_visitor_preserves_capped_and_terminal_line_order() {
-        let text = format!("{}\n", "a".repeat(TEXT_SHAPING_RUN_MAX_BYTES + 1));
+    fn hard_line_visitor_preserves_source_and_terminal_line_order() {
+        let boundary = inline_threshold_bytes();
+        let text = format!("{}\n", "a".repeat(boundary + 1));
         let mut visited = Vec::new();
 
         visit_hard_lines(&text, |line| visited.push(line));
 
-        assert_eq!(visited.len(), 3);
-        assert!(visited[0].is_run_cap_break());
-        assert_eq!(
-            visited[1].separator,
-            TEXT_SHAPING_RUN_MAX_BYTES + 1..text.len()
-        );
-        assert_eq!(visited[2].content, text.len()..text.len());
+        assert_eq!(visited.len(), 2);
+        assert_eq!(visited[0].separator, boundary + 1..text.len());
+        assert_eq!(visited[1].content, text.len()..text.len());
     }
 }

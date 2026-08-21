@@ -1,15 +1,19 @@
 use crate::core::framework::channel::ChannelReceiver;
 
 use super::{
-    ButtonInputState, CursorHostRequest, GamepadRumbleRequest, ImeHostRequest, InputEvent,
-    InputEventQueueStatus, InputEventRecord, InputEventRecordingConfig, InputEventRecordingStatus,
-    InputFrameSnapshot, InputSnapshot, MouseWheelEvent,
+    ButtonInputState, CursorHostRequest, GamepadRumbleRequest, ImeHostRequest, InputButton,
+    InputEvent, InputEventQueueStatus, InputEventRecord, InputEventRecordingConfig,
+    InputEventRecordingStatus, InputFrameSnapshot, InputSnapshot, MouseWheelEvent,
 };
 
 pub trait InputManager: Send + Sync {
     fn begin_frame(&self) {}
     fn submit_event(&self, event: InputEvent);
     fn snapshot(&self) -> InputSnapshot;
+
+    fn button_pressed(&self, button: &InputButton) -> bool {
+        self.snapshot().pressed_buttons.contains(button)
+    }
 
     fn frame_snapshot(&self) -> InputFrameSnapshot {
         let snapshot = self.snapshot();
@@ -45,7 +49,7 @@ pub trait InputManager: Send + Sync {
 
     /// Drains records and observes their retention status under one manager transaction.
     fn drain_event_records_with_status(&self)
-        -> (Vec<InputEventRecord>, InputEventRecordingStatus);
+    -> (Vec<InputEventRecord>, InputEventRecordingStatus);
 
     fn set_event_recording_config(&self, _config: InputEventRecordingConfig) {}
 

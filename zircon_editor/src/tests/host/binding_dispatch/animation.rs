@@ -3,7 +3,7 @@ use zircon_runtime::core::framework::animation::AnimationTrackPath;
 use crate::ui::binding::{
     AnimationCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind,
 };
-use crate::ui::binding_dispatch::{AnimationHostEvent, dispatch_animation_binding};
+use crate::ui::binding_dispatch::{dispatch_animation_binding, AnimationHostEvent};
 
 #[test]
 fn animation_binding_dispatches_into_host_event() {

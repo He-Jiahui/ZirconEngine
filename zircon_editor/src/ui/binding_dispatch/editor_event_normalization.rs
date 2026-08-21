@@ -5,11 +5,11 @@ use crate::core::editor_event::{
 };
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 use crate::ui::binding_dispatch::{
-    AnimationHostEvent, AssetHostEvent, DraftHostEvent, dispatch_animation_binding,
-    dispatch_asset_binding, dispatch_docking_binding, dispatch_draft_binding,
-    dispatch_inspector_binding, dispatch_selection_binding, dispatch_viewport_binding,
+    dispatch_animation_binding, dispatch_asset_binding, dispatch_docking_binding,
+    dispatch_draft_binding, dispatch_inspector_binding, dispatch_selection_binding,
+    dispatch_viewport_binding, AnimationHostEvent, AssetHostEvent, DraftHostEvent,
 };
-use crate::ui::workbench::event::{EditorHostEvent, dispatch_editor_host_binding};
+use crate::ui::workbench::event::{dispatch_editor_host_binding, EditorHostEvent};
 
 pub(crate) fn normalize_editor_event_binding(
     binding: &EditorUiBinding,

@@ -5,9 +5,10 @@ use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
 pub(crate) fn retained_component_registry() -> &'static UiComponentDescriptorRegistry {
     static REGISTRY: OnceLock<UiComponentDescriptorRegistry> = OnceLock::new();
     REGISTRY.get_or_init(|| {
-        let mut registry = UiComponentDescriptorRegistry::editor_showcase();
-        for descriptor in UiComponentDescriptorRegistry::material_editor_foundation()
+        let mut registry = UiComponentDescriptorRegistry::new();
+        for descriptor in UiComponentDescriptorRegistry::editor_showcase_shared()
             .descriptors()
+            .chain(UiComponentDescriptorRegistry::material_editor_foundation_shared().descriptors())
             .cloned()
         {
             registry

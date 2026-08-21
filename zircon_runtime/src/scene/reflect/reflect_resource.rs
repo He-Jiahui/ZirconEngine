@@ -1,3 +1,10 @@
+pub type ReflectResourceWriteFieldBySlot =
+    fn(
+        &mut crate::scene::World,
+        u32,
+        zircon_runtime_interface::reflect::ReflectedValue,
+    ) -> Result<bool, zircon_runtime_interface::reflect::ReflectError>;
+
 pub type ReflectResourceWriteFieldsBySlot =
     fn(
         &mut crate::scene::World,
@@ -43,6 +50,7 @@ pub struct ReflectResource {
         Vec<zircon_runtime_interface::reflect::ReflectFieldValue>,
         zircon_runtime_interface::reflect::ReflectError,
     >,
+    pub write_field_by_slot: ReflectResourceWriteFieldBySlot,
     pub write_fields_by_slot: ReflectResourceWriteFieldsBySlot,
 }
 
@@ -117,5 +125,14 @@ impl ReflectResource {
         fields: Vec<(u32, zircon_runtime_interface::reflect::ReflectedValue)>,
     ) -> Result<bool, zircon_runtime_interface::reflect::ReflectError> {
         (self.write_fields_by_slot)(world, fields)
+    }
+
+    pub fn write_field_by_slot(
+        &self,
+        world: &mut crate::scene::World,
+        field_slot: u32,
+        value: zircon_runtime_interface::reflect::ReflectedValue,
+    ) -> Result<bool, zircon_runtime_interface::reflect::ReflectError> {
+        (self.write_field_by_slot)(world, field_slot, value)
     }
 }

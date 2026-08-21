@@ -5,7 +5,7 @@ use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiNodeDefinition, UiSelectorSpecificity, UiStyleSheet,
 };
 
-use super::style_rule_declarations::{UiStyleRuleDeclarationEntry, declaration_entries};
+use super::style_rule_declarations::{declaration_entries, UiStyleRuleDeclarationEntry};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct MatchedStyleRuleEntry {

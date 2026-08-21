@@ -1,14 +1,15 @@
 use std::sync::Arc;
 
+use zircon_runtime::core::CoreError;
 use zircon_runtime::core::framework::bridge::PluginInterface;
 use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
-use zircon_runtime::core::CoreError;
 use zircon_runtime::plugin::{
     BridgeImport, PluginEventCatalogManifest, PluginEventManifest, PluginModuleId,
     PluginOptionManifest, RuntimeExtensionRegistry, RuntimeExtensionRegistryError,
 };
 use zircon_runtime::scene::ecs::{
-    Event, Resource, RuntimeSceneSystemContext, SystemOrderingConstraint, SystemRef, SystemStage,
+    Event, Resource, RuntimeSceneSystemContext, SceneSystemClockDomain, SystemOrderingConstraint,
+    SystemRef, SystemStage,
 };
 
 pub struct RuntimePluginRegistrationBuilder<'registry> {
@@ -68,6 +69,7 @@ impl<'registry> RuntimePluginModuleRegistration<'registry> {
             sets: Vec::new(),
             constraints: Vec::new(),
             order: 0,
+            clock_domain: SceneSystemClockDomain::Virtual,
         }
     }
 
@@ -149,6 +151,7 @@ pub struct RuntimePluginRuntimeSceneSystemBuilder<'registry, S> {
     sets: Vec<String>,
     constraints: Vec<SystemOrderingConstraint>,
     order: i32,
+    clock_domain: SceneSystemClockDomain,
 }
 
 impl<'registry, S> RuntimePluginRuntimeSceneSystemBuilder<'registry, S>
@@ -162,6 +165,11 @@ where
 
     pub fn with_order(mut self, order: i32) -> Self {
         self.order = order;
+        self
+    }
+
+    pub fn with_clock_domain(mut self, clock_domain: SceneSystemClockDomain) -> Self {
+        self.clock_domain = clock_domain;
         self
     }
 
@@ -190,7 +198,8 @@ where
             .register_runtime_scene_system(self.owner, self.id, self.stage, move || {
                 system_factory()
             })
-            .with_order(self.order);
+            .with_order(self.order)
+            .with_clock_domain(self.clock_domain);
 
         for set in set_ids {
             builder = builder.in_set(set);
@@ -213,6 +222,7 @@ mod tests {
     const MODULE_NAME: &str = "SdkRegistrationRuntimeModule";
     const SYSTEM_SET: &str = "sdk_registration.update";
     const SYSTEM_ID: &str = "sdk_registration.runtime.tick";
+    const DEFAULT_DOMAIN_SYSTEM_ID: &str = "sdk_registration.runtime.virtual-default";
     const OPTION_ID: &str = "sdk_registration.option";
     const CATALOG_NAMESPACE: &str = "sdk_registration.events";
     const CATALOG_SEED_EVENT_ID: &str = "sdk_registration.events.seed";
@@ -272,8 +282,15 @@ mod tests {
             .in_set(SYSTEM_SET)
             .after(SystemRef::System(WORLD_TRANSFORM_SYSTEM.to_string()))
             .with_order(7)
+            .with_clock_domain(SceneSystemClockDomain::Real)
             .register()
             .expect("runtime scene system registered");
+        module
+            .runtime_scene_system(DEFAULT_DOMAIN_SYSTEM_ID, SystemStage::Update, || {
+                |_context| Ok::<_, CoreError>(())
+            })
+            .register()
+            .expect("default-domain runtime scene system registered");
         module
             .plugin_option(PluginOptionManifest::new(
                 OPTION_ID,
@@ -306,30 +323,48 @@ mod tests {
             imported.call(|_| ()),
             Err(zircon_runtime::core::framework::bridge::BridgeError::Absent)
         );
-        assert!(registry
-            .components()
-            .iter()
-            .any(|component| component.type_id == "sdk_registration.weather"));
+        assert!(
+            registry
+                .components()
+                .iter()
+                .any(|component| component.type_id == "sdk_registration.weather")
+        );
 
-        assert!(registry
-            .modules()
-            .iter()
-            .any(|module| module.name == MODULE_NAME));
+        assert!(
+            registry
+                .modules()
+                .iter()
+                .any(|module| module.name == MODULE_NAME)
+        );
 
         let systems = registry.plugin_runtime_systems().collect::<Vec<_>>();
-        assert_eq!(systems.len(), 1);
-        let (owner, system) = systems[0];
+        assert_eq!(systems.len(), 2);
+        let (owner, system) = systems
+            .iter()
+            .copied()
+            .find(|(_, system)| system.id == SYSTEM_ID)
+            .expect("explicit real-domain runtime system registered");
         assert_eq!(owner, module_owner);
         assert_eq!(registry.plugin_module_name(owner), Some(MODULE_OWNER));
         assert_eq!(system.id, SYSTEM_ID);
         assert_eq!(system.stage, SystemStage::PostUpdate);
         assert_eq!(system.order, 7);
+        assert_eq!(system.clock_domain, SceneSystemClockDomain::Real);
         assert_eq!(system.sets.len(), 1);
         assert_eq!(
             system.constraints,
             vec![SystemOrderingConstraint::After(SystemRef::System(
                 WORLD_TRANSFORM_SYSTEM.to_string()
             ))]
+        );
+        let (_, default_domain_system) = systems
+            .iter()
+            .copied()
+            .find(|(_, system)| system.id == DEFAULT_DOMAIN_SYSTEM_ID)
+            .expect("default-domain runtime system registered");
+        assert_eq!(
+            default_domain_system.clock_domain,
+            SceneSystemClockDomain::Virtual
         );
 
         let events = registry.plugin_events().collect::<Vec<_>>();
@@ -349,19 +384,49 @@ mod tests {
             std::any::type_name::<SdkRegistrationResource>()
         );
 
-        assert!(registry
-            .plugin_options()
-            .iter()
-            .any(|option| option.key == OPTION_ID));
+        assert!(
+            registry
+                .plugin_options()
+                .iter()
+                .any(|option| option.key == OPTION_ID)
+        );
         let event_catalog = registry
             .plugin_event_catalogs()
             .iter()
             .find(|catalog| catalog.namespace == CATALOG_NAMESPACE)
             .expect("event catalog registered");
-        assert!(event_catalog
-            .events
-            .iter()
-            .any(|event| event.id == EVENT_ID));
+        assert!(
+            event_catalog
+                .events
+                .iter()
+                .any(|event| event.id == EVENT_ID)
+        );
+    }
+
+    #[test]
+    fn runtime_registration_rejects_real_clock_domain_for_fixed_stages() {
+        let mut registry = RuntimeExtensionRegistry::default();
+        let mut module = RuntimePluginRegistrationBuilder::new(&mut registry)
+            .module(MODULE_OWNER)
+            .expect("module registered");
+
+        let error = module
+            .runtime_scene_system(
+                "sdk_registration.runtime.invalid-fixed-real",
+                SystemStage::FixedUpdate,
+                || |_context| Ok::<_, CoreError>(()),
+            )
+            .with_clock_domain(SceneSystemClockDomain::Real)
+            .register()
+            .expect_err("fixed stages must reject the real-time clock domain");
+
+        assert!(matches!(
+            error,
+            RuntimeExtensionRegistryError::InvalidPluginSystem(message)
+                if message.contains("invalid-fixed-real")
+                    && message.contains("FixedUpdate")
+                    && message.contains("Real")
+        ));
     }
 
     #[test]

@@ -1,10 +1,10 @@
 use super::{
-    pending_owner_text_request, prewarm_render_command_text,
-    resolve_missing_render_command_text_layouts, ui_text_shape_prewarm_pool,
-    PendingOwnerTextLayout, PendingOwnerTextLayouts,
+    PendingOwnerTextLayout, PendingOwnerTextLayouts, pending_owner_text_request,
+    prewarm_render_command_text, resolve_missing_render_command_text_layouts,
+    ui_text_shape_prewarm_pool,
 };
 use crate::core::runtime::tasks::TaskPools;
-use crate::text::{TextDocumentKey, TEXT_SHAPING_RUN_MAX_BYTES};
+use crate::text::{TextDocumentKey, TextShapingWorkBudget};
 use crate::ui::text::{UiTextMeasureCache, UiTextViewport};
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
@@ -127,8 +127,10 @@ fn rich_inline_prewarm_coalesces_effectively_equal_adjacent_spans() {
 }
 
 #[test]
-fn rich_inline_prewarm_matches_canonical_hard_line_layout_requests() {
-    let long_run = "x".repeat(TEXT_SHAPING_RUN_MAX_BYTES + 1);
+fn rich_inline_prewarm_source_line_request_topology_evidence() {
+    let budget = TextShapingWorkBudget::default();
+    let long_run = "x".repeat(budget.max_inline_input_bytes() + 1);
+    assert!(budget.exceeds_inline_threshold(long_run.len()));
     let text = format!(
         "first\r\nsecond\u{2028}{long_run}<img src=\"res://icons/star.png\" width=\"16\" height=\"16\">tail"
     );
@@ -149,19 +151,28 @@ fn rich_inline_prewarm_matches_canonical_hard_line_layout_requests() {
     resolve_missing_render_command_text_layouts(&mut commands, &pending, Some(&mut cache));
     let after_layout = cache.frame_shaped_run_report();
 
-    assert_eq!(prewarm.requested_count, 5);
-    assert_eq!(prewarm.cache_miss_count, 5);
-    assert_eq!(prewarm.shaped_count, 5);
+    assert_eq!(prewarm.requested_count, 4);
+    assert_eq!(prewarm.cache_miss_count, 4);
+    assert_eq!(prewarm.shaped_count, 4);
     assert!(
-        after_layout.hit_count >= before_layout.hit_count.saturating_add(5),
+        after_layout.hit_count >= before_layout.hit_count.saturating_add(4),
         "inline rich layout must reuse the canonical hard-line prewarm entries"
+    );
+
+    let optimized_requests = prewarm.requested_count;
+    let legacy_requests = optimized_requests + 1;
+    let reduction_basis_points = (legacy_requests - optimized_requests) * 10_000 / legacy_requests;
+    println!(
+        "PERF-MVP-RTS-P0-001 workload=rich_inline_prewarm budget_bytes={} legacy_requests={legacy_requests} optimized_requests={optimized_requests} request_reduction_basis_points={reduction_basis_points}",
+        budget.max_inline_input_bytes(),
     );
 }
 
 #[test]
-fn normal_rich_prewarm_matches_markup_joined_shape_cap() {
-    let first = "x".repeat(TEXT_SHAPING_RUN_MAX_BYTES / 2);
-    let second = "x".repeat(TEXT_SHAPING_RUN_MAX_BYTES / 2 + 1);
+fn normal_rich_prewarm_preserves_one_line_across_markup_at_the_work_threshold() {
+    let budget = TextShapingWorkBudget::default();
+    let first = "x".repeat(budget.max_inline_input_bytes() / 2);
+    let second = "x".repeat(budget.max_inline_input_bytes() / 2 + 1);
     let text = format!("{first}<b>{second}</b>");
     let style = UiResolvedStyle {
         rich_text_format: UiRichTextFormat::Html,
@@ -187,25 +198,25 @@ fn normal_rich_prewarm_matches_markup_joined_shape_cap() {
     assert_eq!(prewarm.requested_count, 2);
     assert_eq!(prewarm.cache_miss_count, 2);
     assert_eq!(prewarm.shaped_count, 2);
-    assert_eq!(layout.lines.len(), 2);
+    assert_eq!(layout.lines.len(), 1);
     assert!(
         after_layout.hit_count >= before_layout.hit_count.saturating_add(2),
-        "normal rich layout must reuse prewarmed requests after markup runs join at the cap"
+        "normal rich layout must reuse styled prewarm requests without publishing the work threshold as a line"
     );
 }
 
 #[test]
-fn vertical_prewarm_preserves_unicode_hard_lines_and_run_caps() {
+fn vertical_prewarm_source_line_request_topology_evidence() {
     let vertical_style = UiResolvedStyle {
         text_writing_mode: UiTextWritingMode::VerticalRl,
         font_size: 10.0,
         line_height: 12.0,
         ..UiResolvedStyle::default()
     };
-    let text = format!(
-        "first\r\nsecond\u{2028}{}",
-        "x".repeat(TEXT_SHAPING_RUN_MAX_BYTES + 1)
-    );
+    let budget = TextShapingWorkBudget::default();
+    let long_run = "x".repeat(budget.max_inline_input_bytes() + 1);
+    assert!(budget.exceeds_inline_threshold(long_run.len()));
+    let text = format!("first\r\nsecond\u{2028}{long_run}");
     let commands = vec![text_command(&text, vertical_style)];
     let mut cache = UiTextMeasureCache::default();
     cache.begin_frame();
@@ -214,11 +225,19 @@ fn vertical_prewarm_preserves_unicode_hard_lines_and_run_caps() {
 
     let prewarm = cache.frame_shape_prewarm_report();
     assert_eq!(
-        prewarm.requested_count, 4,
-        "CRLF, Unicode separators, and the shaping cap must split vertical prewarm requests exactly as layout does"
+        prewarm.requested_count, 3,
+        "only CRLF and Unicode separators may split vertical prewarm requests"
     );
-    assert_eq!(prewarm.cache_miss_count, 4);
-    assert_eq!(prewarm.shaped_count, 4);
+    assert_eq!(prewarm.cache_miss_count, 3);
+    assert_eq!(prewarm.shaped_count, 3);
+
+    let optimized_requests = prewarm.requested_count;
+    let legacy_requests = optimized_requests + 1;
+    let reduction_basis_points = (legacy_requests - optimized_requests) * 10_000 / legacy_requests;
+    println!(
+        "PERF-MVP-RTS-P0-001 workload=vertical_prewarm budget_bytes={} legacy_requests={legacy_requests} optimized_requests={optimized_requests} request_reduction_basis_points={reduction_basis_points}",
+        budget.max_inline_input_bytes(),
+    );
 }
 
 #[test]
@@ -342,7 +361,9 @@ fn oversized_single_line_owner_prewarm_remains_batched_when_viewport_covers_it()
         text_overflow: zircon_runtime_interface::ui::surface::UiTextOverflow::Clip,
         ..UiResolvedStyle::default()
     };
-    let text = "x".repeat(TEXT_SHAPING_RUN_MAX_BYTES + 1);
+    let budget = TextShapingWorkBudget::default();
+    let text = "x".repeat(budget.max_inline_input_bytes() + 1);
+    assert!(budget.exceeds_inline_threshold(text.len()));
     let mut command = text_command(&text, style);
     command.frame = UiFrame::new(0.0, 0.0, 180.0, 20.0);
     command.clip_frame = Some(UiFrame::new(0.0, 0.0, 180.0, 20.0));
@@ -361,7 +382,7 @@ fn oversized_single_line_owner_prewarm_remains_batched_when_viewport_covers_it()
 
     assert!(
         cache.frame_shape_prewarm_report().requested_count > 0,
-        "a viewport that covers every capped hard line must retain full-source prewarm"
+        "a viewport that covers the source line must retain full-source prewarm"
     );
 }
 

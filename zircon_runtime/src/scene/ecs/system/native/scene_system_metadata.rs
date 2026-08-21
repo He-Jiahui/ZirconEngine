@@ -7,6 +7,13 @@ pub enum SceneSystemThreadAffinity {
     WorkerSafe,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SceneSystemClockDomain {
+    #[default]
+    Virtual,
+    Real,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SceneSystemMetadata {
     id: String,
@@ -15,6 +22,7 @@ pub struct SceneSystemMetadata {
     sets: Vec<SystemSetId>,
     constraints: Vec<SystemOrderingConstraint>,
     thread_affinity: SceneSystemThreadAffinity,
+    clock_domain: SceneSystemClockDomain,
 }
 
 impl SceneSystemMetadata {
@@ -26,6 +34,7 @@ impl SceneSystemMetadata {
             sets: Vec::new(),
             constraints: Vec::new(),
             thread_affinity: SceneSystemThreadAffinity::MainThreadOnly,
+            clock_domain: SceneSystemClockDomain::Virtual,
         }
     }
 
@@ -53,6 +62,10 @@ impl SceneSystemMetadata {
         self.thread_affinity
     }
 
+    pub const fn clock_domain(&self) -> SceneSystemClockDomain {
+        self.clock_domain
+    }
+
     pub fn with_set(mut self, set: SystemSetId) -> Self {
         self.sets.push(set);
         self
@@ -78,6 +91,11 @@ impl SceneSystemMetadata {
 
     pub const fn with_thread_affinity(mut self, affinity: SceneSystemThreadAffinity) -> Self {
         self.thread_affinity = affinity;
+        self
+    }
+
+    pub const fn with_clock_domain(mut self, clock_domain: SceneSystemClockDomain) -> Self {
+        self.clock_domain = clock_domain;
         self
     }
 }

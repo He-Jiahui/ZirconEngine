@@ -9,8 +9,8 @@ use crate::graphics::pipeline::declarations::{
     CompiledRenderPipelinePassStage, RenderPassStage, RenderPipelineCompileOptions,
 };
 use crate::graphics::scene::{
-    append_ibl_bake_artifact_graph_plan, ibl_bake_pmrem_pass_name, IBL_BAKE_IRRADIANCE_CUBE_PASS,
-    IBL_BAKE_IRRADIANCE_SH9_PASS,
+    IBL_BAKE_IRRADIANCE_CUBE_PASS, IBL_BAKE_IRRADIANCE_SH9_PASS,
+    append_ibl_bake_artifact_graph_plan, ibl_bake_pmrem_pass_name,
 };
 use crate::render_graph::{
     CompiledRenderGraph, ExternalResource, RenderGraphAttachmentOps, RenderGraphBuilder,
@@ -18,7 +18,7 @@ use crate::render_graph::{
 };
 
 use super::super::validation::stage_pass_descriptors;
-use super::graph_resources::{pipeline_graph_resources, PipelineGraphResourcePlan};
+use super::graph_resources::{PipelineGraphResourcePlan, pipeline_graph_resources};
 use super::resource_descriptors::{buffer_desc_for, texture_desc_for};
 
 pub(super) struct AuthoredRenderGraph {
@@ -127,16 +127,17 @@ fn author_graph_passes(
                     pass_descriptor.pass_name
                 ));
             }
-            pass_stages.push(CompiledRenderPipelinePassStage::new(
-                pass_descriptor.pass_name.clone(),
-                *stage,
-            ));
             let pass = graph.add_pass_with_executor_and_declared_queue(
                 pass_descriptor.pass_name.clone(),
                 options.resolve_queue(pass_descriptor.queue),
                 pass_descriptor.queue,
                 Some(pass_descriptor.executor_id.as_str().to_string()),
             );
+            pass_stages.push(CompiledRenderPipelinePassStage::new(
+                pass,
+                pass_descriptor.pass_name.clone(),
+                *stage,
+            ));
             graph
                 .set_pass_flags(pass, pass_descriptor.flags)
                 .map_err(|error| error.to_string())?;
@@ -174,31 +175,49 @@ fn author_environment_ibl_bake_passes(
         return Ok(pass_stages);
     };
 
-    append_ibl_bake_artifact_graph_plan(graph, request).map_err(|error| error.to_string())?;
+    let plan =
+        append_ibl_bake_artifact_graph_plan(graph, request).map_err(|error| error.to_string())?;
+    let mut pass_ids = plan.passes.into_iter().map(|pass| pass.pass_id);
     let stage = RenderPassStage::AmbientOcclusion;
     let contents = request.required_contents();
     if contents.contains(crate::core::framework::render::IblBakeArtifactContents::PMREM) {
         for mip_level in 0..request.pmrem_mip_count() {
+            let pass_name = ibl_bake_pmrem_pass_name(mip_level);
             pass_stages.push(CompiledRenderPipelinePassStage::new(
-                ibl_bake_pmrem_pass_name(mip_level),
+                next_ibl_pass_id(&mut pass_ids, &pass_name)?,
+                pass_name,
                 stage,
             ));
         }
     }
     if contents.contains(crate::core::framework::render::IblBakeArtifactContents::SH9) {
         pass_stages.push(CompiledRenderPipelinePassStage::new(
+            next_ibl_pass_id(&mut pass_ids, IBL_BAKE_IRRADIANCE_SH9_PASS)?,
             IBL_BAKE_IRRADIANCE_SH9_PASS,
             stage,
         ));
     }
     if contents.contains(crate::core::framework::render::IblBakeArtifactContents::IEM) {
         pass_stages.push(CompiledRenderPipelinePassStage::new(
+            next_ibl_pass_id(&mut pass_ids, IBL_BAKE_IRRADIANCE_CUBE_PASS)?,
             IBL_BAKE_IRRADIANCE_CUBE_PASS,
             stage,
         ));
     }
+    if pass_ids.next().is_some() {
+        return Err("IBL bake graph plan returned unclassified pass identities".to_string());
+    }
 
     Ok(pass_stages)
+}
+
+fn next_ibl_pass_id(
+    pass_ids: &mut impl Iterator<Item = RenderPassId>,
+    pass_name: &str,
+) -> Result<RenderPassId, String> {
+    pass_ids
+        .next()
+        .ok_or_else(|| format!("IBL bake graph plan omitted pass identity for `{pass_name}`"))
 }
 
 fn ordered_stage_pass_descriptors(

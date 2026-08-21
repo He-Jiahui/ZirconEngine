@@ -9,9 +9,9 @@ use crate::core::editor_message::{
 };
 
 use super::super::{
-    DEFAULT_JOB_EVENT_PUMP_BUDGET, EditorJob, EditorJobAdmissionLimits, EditorJobLimits,
-    EditorJobSpec, JobCategory, JobContext, JobError, JobEventKind, JobId, JobPriority,
-    JobSubmitError, test_job_system_with_bus, test_job_system_with_limits,
+    test_job_system_with_bus, test_job_system_with_limits, EditorJob, EditorJobAdmissionLimits,
+    EditorJobLimits, EditorJobSpec, JobCategory, JobContext, JobError, JobEventKind, JobId,
+    JobPriority, JobSubmitError, DEFAULT_JOB_EVENT_PUMP_BUDGET,
 };
 
 const THUMBNAIL_JOB_COUNT: usize = 1_000;
@@ -259,11 +259,9 @@ fn thumbnail_storm_reports_backpressure_before_retaining_an_unbounded_ticket_set
     let admission = jobs.admission_snapshot();
     assert!(admission.pending_entries() <= MAX_PENDING_ENTRIES);
     assert!(admission.pending_estimated_bytes() <= 1_024);
-    assert!(
-        admission
-            .oldest_pending_age()
-            .is_none_or(|age| age <= Duration::from_secs(60))
-    );
+    assert!(admission
+        .oldest_pending_age()
+        .is_none_or(|age| age <= Duration::from_secs(60)));
 
     let accepted_count = accepted.len();
     gate.release();

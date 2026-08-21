@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 use serde::Serialize;
 use zircon_runtime::asset::migration::{
-    AssetMigrationIssueKind, AssetMigrationMode, AssetMigrationOptions, AssetMigrationReport,
-    migrate_project_assets,
+    migrate_project_assets, AssetMigrationIssueKind, AssetMigrationMode, AssetMigrationOptions,
+    AssetMigrationReport,
 };
 
 use crate::core::commands::{

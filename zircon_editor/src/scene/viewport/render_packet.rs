@@ -1,16 +1,14 @@
 use crate::scene::viewport::{
-    DisplayMode, FallbackSkyboxKind, GridMode, GridOverlayExtract, OverlayBillboardIcon,
-    OverlayLineSegment, OverlayPickShape, OverlayWireShape, PreviewEnvironmentExtract,
-    RenderOverlayExtract, RenderSceneSnapshot, SceneGizmoKind, SceneGizmoOverlayExtract,
-    SceneViewportExtractRequest, SceneViewportSettings, SelectionAnchorExtract,
-    SelectionHighlightExtract, ViewportCameraSnapshot, ViewportIconId,
+    FallbackSkyboxKind, GridMode, GridOverlayExtract, OverlayBillboardIcon, OverlayLineSegment,
+    OverlayPickShape, OverlayWireShape, PreviewEnvironmentExtract, RenderOverlayExtract,
+    RenderSceneSnapshot, SceneGizmoKind, SceneGizmoOverlayExtract, SceneViewportExtractRequest,
+    SceneViewportSettings, SelectionAnchorExtract, ViewportCameraSnapshot, ViewportIconId,
 };
 use zircon_runtime::scene::components::{NodeKind, SceneNode};
 use zircon_runtime::scene::Scene;
 use zircon_runtime_interface::math::{Real, UVec2, Vec4};
 
 const SCENE_CLEAR_COLOR: Vec4 = Vec4::new(0.09, 0.11, 0.14, 1.0);
-const SELECTION_TINT: Vec4 = Vec4::new(1.0, 0.92, 0.55, 0.18);
 const ANCHOR_COLOR: Vec4 = Vec4::new(1.0, 0.85, 0.3, 1.0);
 const CAMERA_GIZMO_COLOR: Vec4 = Vec4::new(0.42, 0.72, 1.0, 1.0);
 const LIGHT_GIZMO_COLOR: Vec4 = Vec4::new(1.0, 0.88, 0.36, 1.0);
@@ -30,7 +28,8 @@ pub(in crate::scene::viewport) fn build_render_packet(
         virtual_geometry_debug: None,
     });
     packet.overlays = RenderOverlayExtract {
-        selection: build_selection_highlights(selected, settings),
+        // Runtime10 projects the gateway-owned HighlightSet during runtime frame production.
+        highlights: None,
         selection_anchors: build_selection_anchors(scene, selected, settings),
         grid: build_grid_extract(settings),
         handles: Vec::new(),
@@ -99,23 +98,6 @@ pub(in crate::scene::viewport) fn build_scene_gizmos(
         }
     }
     gizmos
-}
-
-fn build_selection_highlights(
-    selected: Option<u64>,
-    settings: &SceneViewportSettings,
-) -> Vec<SelectionHighlightExtract> {
-    selected
-        .into_iter()
-        .map(|owner| SelectionHighlightExtract {
-            owner,
-            outline: true,
-            tint: match settings.display_mode {
-                DisplayMode::WireOnly => None,
-                DisplayMode::Shaded | DisplayMode::WireOverlay => Some(SELECTION_TINT),
-            },
-        })
-        .collect()
 }
 
 fn build_selection_anchors(

@@ -9,6 +9,7 @@ mod line_break;
 mod normalize;
 mod script_segment;
 mod vertical;
+mod work_budget;
 
 #[cfg(test)]
 mod tests;
@@ -21,25 +22,13 @@ use crate::text::{BackendShapeRequest, ShapedGlyphRun};
 use crate::text::{TextRange, TextStyle};
 
 pub(crate) use bidi::{analyze_bidi_line, mirrored_bidi_char, resolve_bidi_base_direction};
-pub(crate) use fallback_spans::{fallback_text_spans, FallbackTextSpan};
+pub(crate) use fallback_spans::{FallbackTextSpan, fallback_text_spans};
 pub(crate) use vertical::{vertical_glyph_advance, vertical_glyph_rotation};
+pub(crate) use work_budget::TextShapingWorkBudget;
 
 pub(crate) fn shape_text(request: BackendShapeRequest<'_>) -> ShapedGlyphRun {
     let canonical_request = request.canonicalized();
     let request = canonical_request.request();
-    if std::env::var_os("ZR_UI_LAYOUT_PROFILE").is_some() {
-        let forced_break_count = crate::text::hard_lines(request.text)
-            .iter()
-            .filter(|line| line.is_run_cap_break())
-            .count();
-        if forced_break_count > 0 {
-            eprintln!(
-                "ui-layout-profile stage=text-run-cap forced_breaks={forced_break_count} text_bytes={} cap_bytes={}",
-                request.text.len(),
-                crate::text::TEXT_SHAPING_RUN_MAX_BYTES
-            );
-        }
-    }
     cosmic::shape_text(request)
 }
 

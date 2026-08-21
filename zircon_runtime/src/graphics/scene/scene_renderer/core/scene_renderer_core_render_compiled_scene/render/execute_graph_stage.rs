@@ -1,10 +1,10 @@
 use std::time::{Duration, Instant};
 
+use crate::core::TaskPool;
 use crate::core::framework::render::{
     MotionVectorCameraStatus, PostProcessGraphResourceNames, PostProcessPassGraph, RenderBudgetKey,
     RenderGraphPassProfileMetrics, RenderPluginRendererOutputs,
 };
-use crate::core::TaskPool;
 use crate::graphics::backend::{GpuPassTimer, GpuPassTimestampScope, GpuPipelineStatisticsTimer};
 use crate::graphics::debug_markers::{
     insert_marker, marker_for_render_graph_pass, marker_for_render_pass_stage,
@@ -14,11 +14,11 @@ use crate::graphics::pipeline::{CompiledRenderPipeline, CompiledRenderPipelinePa
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::cluster_dimensions_for_size;
 use crate::graphics::scene::scene_renderer::deferred::DeferredSceneResources;
+use crate::graphics::scene::scene_renderer::environment::IblBakeWgpuPipelineCache;
 use crate::graphics::scene::scene_renderer::environment::ibl_bake_graph_plan::{
     IBL_BAKE_IRRADIANCE_CUBE_EXECUTOR_ID, IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID,
     IBL_BAKE_PMREM_EXECUTOR_ID,
 };
-use crate::graphics::scene::scene_renderer::environment::IblBakeWgpuPipelineCache;
 use crate::graphics::scene::scene_renderer::graph_execution::parallel_encoder_set::ParallelEncoderSet;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     FrameCommandEncoderSet, RenderGraphComputeDispatchRecord,
@@ -28,10 +28,10 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderPassMeshCommandLists, RenderPassPostProcessStackContext,
 };
 use crate::graphics::scene::scene_renderer::hzb::HzbOcclusionCuller;
+use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshDrawReplayStats, MeshDrawReplayStatsAccumulator,
 };
-use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
 use crate::graphics::scene::scene_renderer::overlay::{
     PreparedOverlayBuffers, ViewportOverlayRenderer,
 };
@@ -220,18 +220,19 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
         .iter()
         .filter(|entry| entry.stage == stage)
     {
-        let Some((graph_pass_index, pass)) = pipeline
-            .graph()
-            .passes()
-            .iter()
-            .enumerate()
-            .find(|(_, pass)| pass.name == stage_entry.pass_name)
+        let Some((graph_pass_index, pass)) = pipeline.graph().indexed_pass(stage_entry.pass_id)
         else {
             return Err(GraphicsError::Asset(format!(
-                "compiled render pipeline `{}` records stage `{:?}` for missing pass `{}`",
-                pipeline.name, stage_entry.stage, stage_entry.pass_name
+                "compiled render pipeline `{}` records stage `{:?}` for missing pass identity {:?} (`{}`)",
+                pipeline.name, stage_entry.stage, stage_entry.pass_id, stage_entry.pass_name
             )));
         };
+        if pass.name != stage_entry.pass_name {
+            return Err(GraphicsError::Asset(format!(
+                "compiled render pipeline `{}` maps pass identity {:?} to `{}` but stage metadata names `{}`",
+                pipeline.name, stage_entry.pass_id, pass.name, stage_entry.pass_name
+            )));
+        }
         if pass.culled {
             continue;
         }
@@ -425,7 +426,7 @@ mod tests {
     use crate::render_graph::QueueLane;
 
     use super::{
-        render_profile_metrics_from_mesh_replay_stats, RecordedGraphPass, RenderGraphStageExecution,
+        RecordedGraphPass, RenderGraphStageExecution, render_profile_metrics_from_mesh_replay_stats,
     };
 
     #[test]
@@ -561,7 +562,9 @@ mod tests {
         assert!(!source.contains(
             "if let (Some(mesh_pipelines), Some(streamer), Some(mesh_draw_lists)) =\n        (mesh_pipelines, streamer, mesh_draw_lists)"
         ));
-        assert!(scene_passes.contains("&self.deferred,\n                &mut self.mesh_pipelines,"));
+        assert!(
+            scene_passes.contains("&self.deferred,\n                &mut self.mesh_pipelines,")
+        );
         assert!(
             scene_passes.contains("RenderPassStage::Deferred,\n                Some(streamer),")
         );

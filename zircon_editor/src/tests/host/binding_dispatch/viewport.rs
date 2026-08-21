@@ -146,6 +146,7 @@ fn gizmos_toggle_keeps_transform_handles_for_selected_camera() {
     let packet = state.render_snapshot().expect("render packet");
 
     assert!(packet.overlays.scene_gizmos.is_empty());
+    assert!(packet.overlays.highlights.is_none());
     assert_eq!(packet.overlays.selection_anchors.len(), 1);
     assert_eq!(packet.overlays.handles.len(), 1);
 }
@@ -168,6 +169,6 @@ fn drag_tool_keeps_renderable_highlight_without_handles() {
 
     let packet = state.render_snapshot().expect("render packet");
 
-    assert_eq!(packet.overlays.selection.len(), 1);
+    assert!(packet.overlays.highlights.is_none());
     assert!(packet.overlays.handles.is_empty());
 }

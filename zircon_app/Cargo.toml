@@ -57,12 +57,16 @@ first-party-navigation-runtime-plugin = [
     "dep:zircon_first_party_runtime_catalog",
     "zircon_first_party_runtime_catalog/navigation-runtime-plugin",
 ]
-first-party-navigation-editor-plugin = [
+first-party-editor-catalog = [
+    "dep:zircon_editor",
     "dep:zircon_first_party_editor_catalog",
+]
+first-party-navigation-editor-plugin = [
+    "first-party-editor-catalog",
     "zircon_first_party_editor_catalog/navigation-editor-plugin",
 ]
 first-party-neural-editor-plugin = [
-    "dep:zircon_first_party_editor_catalog",
+    "first-party-editor-catalog",
     "zircon_first_party_editor_catalog/neural-editor-plugin",
 ]
 first-party-zr-vm-language-runtime-plugin = [

@@ -2,7 +2,8 @@ use crate::core::editor_event::{
     EditorEvent, LayoutCommand, MainPageId, ViewInstanceId as EventViewInstanceId,
 };
 use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
-use crate::ui::host::{EditorManager, EDITOR_MANAGER_NAME};
+use crate::ui::host::module::EDITOR_MANAGER_NAME;
+use crate::ui::host::EditorManager;
 use crate::ui::retained_host::callback_dispatch::{
     dispatch_shared_host_page_overflow_pointer_click, dispatch_shared_host_page_pointer_click,
     BuiltinHostWindowTemplateBridge,

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import signal
 import subprocess
 import sys
 import tempfile
@@ -16,6 +18,7 @@ from tools.session_coordinator.models import CoordinatorError
 from tools.session_coordinator.sessions import SessionService
 from tools.session_coordinator.tests.helpers import init_repo
 from tools.session_coordinator.workspace_copy import WorkspaceCopyService
+from tools.session_coordinator.workspace_copy_terminal import ValidationCopyTerminalLifecycle
 
 
 class WorkspaceCopyTerminalStatusTests(unittest.TestCase):
@@ -71,6 +74,40 @@ class WorkspaceCopyTerminalStatusTests(unittest.TestCase):
             "sys.stderr.buffer.flush(); "
             "raise SystemExit(101)",
         )
+
+    def test_terminal_collection_finishes_when_descendant_keeps_pipe_open(self) -> None:
+        pid_path = Path(self.temporary_directory.name) / "inherited-pipe-child.pid"
+        descendant = "import time; time.sleep(30)"
+        root = (
+            "import pathlib, subprocess, sys; "
+            f"child = subprocess.Popen([sys.executable, '-c', {descendant!r}], "
+            "stdout=sys.stdout, stderr=sys.stderr, close_fds=False); "
+            f"pathlib.Path({str(pid_path)!r}).write_text(str(child.pid), encoding='ascii'); "
+            "print('root-exit', flush=True)"
+        )
+        process = subprocess.Popen(
+            [sys.executable, "-c", root],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+        lifecycle = ValidationCopyTerminalLifecycle(self.database, None)
+        started = time.monotonic()
+        try:
+            exit_code, stdout, stderr = lifecycle.collect(process)
+        finally:
+            if pid_path.is_file():
+                try:
+                    os.kill(int(pid_path.read_text(encoding="ascii")), signal.SIGTERM)
+                except (OSError, ValueError):
+                    pass
+
+        self.assertEqual(0, exit_code)
+        self.assertIn("root-exit", stdout)
+        self.assertEqual("", stderr)
+        self.assertLess(time.monotonic() - started, 3.0)
 
     def test_status_returns_nonzero_terminal_evidence_after_copy_cleanup(self) -> None:
         copy, evidence = self._run_nonzero_copy()

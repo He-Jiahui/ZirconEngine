@@ -212,13 +212,9 @@ impl CoreRuntime {
         &self,
         drain_timeout: Duration,
     ) -> Result<(), CoreError> {
-        let module_activation_order = self
-            .handle
-            .frozen_module_graph()?
-            .module_activation_order()
-            .to_vec();
+        let module_shutdown_order = self.handle.active_module_shutdown_order();
         let started_at = Instant::now();
-        for module_name in module_activation_order.iter().rev() {
+        for module_name in module_shutdown_order.iter().rev() {
             let remaining_drain_timeout = drain_timeout.saturating_sub(started_at.elapsed());
             self.handle
                 .deactivate_module_with_drain_timeout(module_name, remaining_drain_timeout)?;

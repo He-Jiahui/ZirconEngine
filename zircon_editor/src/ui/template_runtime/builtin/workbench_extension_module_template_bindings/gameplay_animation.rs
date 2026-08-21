@@ -1,4 +1,4 @@
-use super::types::{ExtensionBindingSpec, change, click, submit};
+use super::types::{change, click, submit, ExtensionBindingSpec};
 
 pub(super) const GAMEPLAY_ANIMATION_BINDINGS: &[ExtensionBindingSpec] = &[
     click("SequencerOpen", "workbench.extension.sequencer.open"),

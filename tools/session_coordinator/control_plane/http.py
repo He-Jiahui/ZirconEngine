@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import secrets
 import time
 from http import HTTPStatus
 from urllib.parse import parse_qs, urlsplit
@@ -26,11 +27,13 @@ class ControlPlaneHttp:
         router: ControlPlaneRouter,
         events: EventStreamService,
         *,
+        runtime_token: str,
         assets: StaticAssetService,
         artifact_downloads: ArtifactDownloadService,
     ):
         self.router = router
         self.events = events
+        self.runtime_token = runtime_token
         self.assets = assets
         self.artifact_downloads = artifact_downloads
 
@@ -42,9 +45,10 @@ class ControlPlaneHttp:
     def handle(self, handler) -> None:
         correlation_id = new_correlation_id()
         port = int(handler.server.server_address[1])
-        # The coordinator is loopback-only and deliberately token-free for local
-        # development. This also keeps an old browser tab working after restart.
-        runtime_authorized = True
+        authorization = handler.headers.get("Authorization", "")
+        runtime_authorized = secrets.compare_digest(
+            authorization, f"Bearer {self.runtime_token}"
+        )
         try:
             validate_loopback_host(handler.headers.get("Host"), port)
             route = urlsplit(handler.path).path

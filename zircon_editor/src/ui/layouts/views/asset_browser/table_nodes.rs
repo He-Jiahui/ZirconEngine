@@ -5,7 +5,7 @@ use crate::ui::workbench::asset_content_layout::BROWSER_CONTENT_ITEM_PREFIX;
 use crate::ui::workbench::snapshot::{AssetItemSnapshot, AssetViewMode, AssetWorkspaceSnapshot};
 use zircon_runtime_interface::resource::ResourceKind;
 
-use super::name_compaction::{RuntimeFileNameCompaction, compact_file_like_display_name};
+use super::name_compaction::{compact_file_like_display_name, RuntimeFileNameCompaction};
 
 const ASSET_TABLE_HEADER_CELLS: [&str; 4] = ["Name", "Type", "Size", "Rev"];
 const ASSET_TABLE_NAME_MAX_WIDTH: f32 = 150.0;

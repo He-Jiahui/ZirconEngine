@@ -60,26 +60,18 @@ fn create_project_and_open_persists_recent_project_and_returns_project_session()
         default_startup.recent_projects[0].validation,
         RecentProjectValidation::Valid
     );
-    assert!(
-        default_startup
-            .status_message
-            .contains("Restored recent project")
-    );
-    assert!(
-        default_startup
-            .status_message
-            .contains("RecentProject (scene=")
-    );
-    assert!(
-        opened
-            .status_message
-            .contains("scene=res://scenes/main.scene.toml")
-    );
-    assert!(
-        default_startup
-            .status_message
-            .contains("scene=res://scenes/main.scene.toml")
-    );
+    assert!(default_startup
+        .status_message
+        .contains("Restored recent project"));
+    assert!(default_startup
+        .status_message
+        .contains("RecentProject (scene="));
+    assert!(opened
+        .status_message
+        .contains("scene=res://scenes/main.scene.toml"));
+    assert!(default_startup
+        .status_message
+        .contains("scene=res://scenes/main.scene.toml"));
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);
@@ -87,58 +79,27 @@ fn create_project_and_open_persists_recent_project_and_returns_project_session()
 }
 
 #[test]
-fn restored_legacy_manifest_recent_path_is_migrated_to_the_project_root() {
+fn manifest_recent_path_is_normalized_by_the_shared_registry_owner() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_startup_manifest_recent_migration");
     let project_root = unique_temp_dir("zircon_editor_startup_manifest_recent_project");
     create_project_with_default_world(&project_root);
     let manifest_path = project_root.join("zircon-project.toml");
-    let manifest_path_string = manifest_path.to_string_lossy().into_owned();
-    let summary = ProjectAuthority::default()
-        .probe_project(&manifest_path)
-        .unwrap()
-        .summary()
-        .clone();
     let runtime = editor_runtime_with_config_path(&path);
-    let resolver = ManagerResolver::new(runtime.handle());
-    let config = resolver.resolve(resolver.config_handle().unwrap()).unwrap();
-    let legacy_session = StoredStartupSession {
-        last_project_path: Some(manifest_path_string.clone()),
-        recent_projects: vec![StoredRecentProjectEntry {
-            summary,
-            path: manifest_path_string,
-            last_opened_unix_ms: 42,
-        }],
-    };
-    config
-        .set_value(
-            "editor.startup.session",
-            serde_json::to_value(&legacy_session).unwrap(),
-        )
-        .unwrap();
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
+    manager.update_recent_project(&manifest_path).unwrap();
 
     let restored = manager.resolve_startup_session().unwrap();
-    let saved = ProjectAuthority::default()
-        .decode_startup_session(serde_json::Value::from(
-            config
-                .get_value("editor.startup.session")
-                .expect("restored session must be saved"),
-        ))
-        .unwrap();
+    let recent = manager.recent_projects_snapshot().unwrap();
     let project_root = project_root.to_string_lossy().into_owned();
 
     assert_eq!(restored.mode, EditorSessionMode::Project);
     assert_eq!(restored.recent_projects.len(), 1);
     assert_eq!(restored.recent_projects[0].path, project_root);
-    assert_eq!(
-        saved.last_project_path.as_deref(),
-        Some(project_root.as_str())
-    );
-    assert_eq!(saved.recent_projects.len(), 1);
-    assert_eq!(saved.recent_projects[0].path, project_root);
+    assert_eq!(recent.len(), 1);
+    assert_eq!(recent[0].path, project_root);
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);
@@ -229,16 +190,12 @@ fn startup_session_falls_back_to_welcome_when_last_project_is_missing() {
         session.recent_projects[0].validation,
         RecentProjectValidation::Missing
     );
-    assert!(
-        session
-            .status_message
-            .contains("Could not restore last project")
-    );
-    assert!(
-        session
-            .status_message
-            .contains("Opened UI Component Showcase")
-    );
+    assert!(session
+        .status_message
+        .contains("Could not restore last project"));
+    assert!(session
+        .status_message
+        .contains("Opened UI Component Showcase"));
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);
@@ -272,11 +229,9 @@ fn project_open_with_corrupt_workspace_falls_back_to_global_layout_with_diagnost
 
     assert!(project.editor_workspace.is_none());
     assert_eq!(project.workspace_restore_diagnostics.len(), 1);
-    assert!(
-        opened
-            .status_message
-            .contains("Project opened with default layout")
-    );
+    assert!(opened
+        .status_message
+        .contains("Project opened with default layout"));
     assert!(opened.status_message.contains("editor-workspace.json"));
 
     manager

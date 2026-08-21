@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import codecs
+import io
 import json
+import os
 import subprocess
 import threading
+import time
 from collections import deque
 from contextlib import nullcontext
 from dataclasses import dataclass
@@ -13,6 +17,35 @@ from .models import CoordinatorError, utc_text
 
 _CAPTURED_STREAM_CHARACTER_LIMIT = 65_536
 _STREAM_READ_CHARACTER_COUNT = 8_192
+_STREAM_READER_JOIN_TIMEOUT_SECONDS = 5.0
+_STREAM_READER_CANCEL_GRACE_SECONDS = 1.0
+_STREAM_POLL_INTERVAL_SECONDS = 0.01
+
+
+def _cancel_synchronous_reader_io(reader: threading.Thread) -> None:
+    if os.name != "nt" or reader.native_id is None:
+        return
+    import ctypes
+
+    thread_terminate = 0x0001
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.OpenThread.argtypes = (
+        ctypes.c_uint32,
+        ctypes.c_int,
+        ctypes.c_uint32,
+    )
+    kernel32.OpenThread.restype = ctypes.c_void_p
+    kernel32.CancelSynchronousIo.argtypes = (ctypes.c_void_p,)
+    kernel32.CancelSynchronousIo.restype = ctypes.c_int
+    kernel32.CloseHandle.argtypes = (ctypes.c_void_p,)
+    kernel32.CloseHandle.restype = ctypes.c_int
+    handle = kernel32.OpenThread(thread_terminate, False, reader.native_id)
+    if not handle:
+        return
+    try:
+        kernel32.CancelSynchronousIo(handle)
+    finally:
+        kernel32.CloseHandle(handle)
 
 
 class _BoundedTextTail:
@@ -79,19 +112,44 @@ class ValidationCopyTerminalLifecycle:
         stderr_tail = _BoundedTextTail(_CAPTURED_STREAM_CHARACTER_LIMIT)
         errors: list[BaseException] = []
         error_lock = threading.Lock()
+        root_exited = threading.Event()
 
         def drain(stream: TextIO, tail: _BoundedTextTail) -> None:
             try:
-                while chunk := stream.read(_STREAM_READ_CHARACTER_COUNT):
-                    tail.append(chunk)
-            except BaseException as error:
-                with error_lock:
-                    errors.append(error)
                 try:
-                    if process.poll() is None:
-                        process.kill()
-                except BaseException:
-                    pass
+                    descriptor = stream.fileno()
+                    os.set_blocking(descriptor, False)
+                except (AttributeError, OSError):
+                    while chunk := stream.read(_STREAM_READ_CHARACTER_COUNT):
+                        tail.append(chunk)
+                else:
+                    character_decoder = codecs.getincrementaldecoder(
+                        getattr(stream, "encoding", None) or "utf-8"
+                    )(errors=getattr(stream, "errors", None) or "replace")
+                    decoder = io.IncrementalNewlineDecoder(
+                        character_decoder, translate=True
+                    )
+                    while True:
+                        try:
+                            chunk = os.read(descriptor, _STREAM_READ_CHARACTER_COUNT)
+                        except BlockingIOError:
+                            if root_exited.is_set():
+                                break
+                            root_exited.wait(_STREAM_POLL_INTERVAL_SECONDS)
+                            continue
+                        if not chunk:
+                            break
+                        tail.append(decoder.decode(chunk))
+                    tail.append(decoder.decode(b"", final=True))
+            except BaseException as error:
+                if not root_exited.is_set():
+                    with error_lock:
+                        errors.append(error)
+                    try:
+                        if process.poll() is None:
+                            process.kill()
+                    except BaseException:
+                        pass
             finally:
                 try:
                     stream.close()
@@ -99,11 +157,15 @@ class ValidationCopyTerminalLifecycle:
                     pass
 
         readers = [
-            threading.Thread(
-                target=drain,
-                args=(stream, tail),
-                name=f"zircon-validation-{name}-drain",
-                daemon=True,
+            (
+                threading.Thread(
+                    target=drain,
+                    args=(stream, tail),
+                    name=f"zircon-validation-{name}-drain",
+                    daemon=True,
+                ),
+                stream,
+                name,
             )
             for name, stream, tail in (
                 ("stdout", process.stdout, stdout_tail),
@@ -111,15 +173,38 @@ class ValidationCopyTerminalLifecycle:
             )
             if stream is not None
         ]
-        for reader in readers:
+        for reader, _stream, _name in readers:
             reader.start()
         waited_exit_code = process.wait()
+        timed_out: list[tuple[threading.Thread, TextIO, str]] = []
         try:
             if after_root_exit is not None:
                 after_root_exit()
         finally:
-            for reader in readers:
-                reader.join()
+            root_exited.set()
+            deadline = time.monotonic() + _STREAM_READER_JOIN_TIMEOUT_SECONDS
+            for reader, _stream, _name in readers:
+                reader.join(max(0.0, deadline - time.monotonic()))
+            timed_out = [
+                (reader, stream, name)
+                for reader, stream, name in readers
+                if reader.is_alive()
+            ]
+            for reader, _stream, _name in timed_out:
+                _cancel_synchronous_reader_io(reader)
+            cancel_deadline = time.monotonic() + _STREAM_READER_CANCEL_GRACE_SECONDS
+            for reader, _stream, _name in timed_out:
+                reader.join(max(0.0, cancel_deadline - time.monotonic()))
+            timed_out = [item for item in timed_out if item[0].is_alive()]
+        if timed_out:
+            raise CoordinatorError(
+                "validation_copy_stream_capture_timeout",
+                "Validation process output streams remained open after root exit",
+                details={
+                    "streams": [name for _reader, _stream, name in timed_out],
+                    "timeoutSeconds": _STREAM_READER_JOIN_TIMEOUT_SECONDS,
+                },
+            )
         if errors:
             error = errors[0]
             raise CoordinatorError(

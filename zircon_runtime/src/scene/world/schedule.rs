@@ -6,7 +6,7 @@ use crate::scene::ecs::{
     IntoWorldlessSceneSystem, Schedule, ScheduleError, SystemParam, SystemStage,
     WorldlessSystemParam,
 };
-use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 
 impl World {
     pub fn schedule(&self) -> &Schedule {
@@ -164,8 +164,8 @@ impl World {
                     ..
                 } => {
                     if worker_safe {
-                        worker_batch
-                            .push((id, DeferredSystemKey::compiled(stage.rank(), order, &id)));
+                        let key = DeferredSystemKey::compiled(stage.rank(), order, id.clone());
+                        worker_batch.push((id, key));
                     } else {
                         self.flush_test_worldless_native_batch(&mut worker_batch);
                         self.run_native_scene_system(&id);

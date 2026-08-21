@@ -25,6 +25,8 @@ pub enum CoreError {
     DuplicateService(String),
     #[error("registered service identity index space is exhausted")]
     ServiceIdentityIndexExhausted,
+    #[error("level handle space is exhausted")]
+    LevelHandleExhausted,
     #[error("service not found: {0}")]
     MissingService(String),
     #[error("service is not available in the current module lifecycle: {0}")]

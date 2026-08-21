@@ -13,16 +13,16 @@ use zircon_runtime::asset::{AssetReference, AssetUri};
 use zircon_runtime::core::framework::render::{
     build_source_cubemap_from_equirect, build_source_cubemap_irradiance_cube,
     source_cubemap_face_mip_offset, source_cubemap_mip_size, CubemapFace, EnvironmentExtract,
-    PreviewEnvironmentExtract, ProjectionMode, RenderFramework, RenderOverlayExtract,
-    RenderSceneSnapshot, RenderViewportDescriptor, RenderViewportHandle,
-    SceneViewportExtractRequest, SourceCubemapEnvironment, SourceCubemapMipChain,
-    ViewportRenderSettings,
+    PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract, RenderFramework,
+    RenderOverlayExtract, RenderSceneSnapshot, RenderViewportDescriptor, RenderViewportHandle,
+    RenderWorldSnapshotHandle, SceneViewportExtractRequest, SourceCubemapEnvironment,
+    SourceCubemapMipChain, ViewportRenderSettings,
 };
 use zircon_runtime::core::math::{UVec2, Vec4};
 use zircon_runtime::core::runtime::modules::{TasksModule, TASKS_MODULE_NAME};
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::engine_module::EngineModule;
-use zircon_runtime::graphics::{ViewportFrame, ViewportRenderFrame, WgpuRenderFramework};
+use zircon_runtime::graphics::{ViewportFrame, WgpuRenderFramework};
 
 #[path = "runtime_shader_pbr_hdri_export/fixture_assets.rs"]
 mod fixture_assets;
@@ -93,8 +93,9 @@ fn shader_hdri_export_submits_and_captures_through_the_framework() {
     let source = include_str!("runtime_shader_pbr_hdri_export.rs");
 
     assert!(source.contains(concat!("WgpuRenderFramework", "::new(asset_access)")));
-    assert!(source.contains(concat!("submit_runtime_frame_", "and_capture(")));
-    assert!(source.contains(concat!("submit_runtime_", "frame(")));
+    assert!(source.contains(concat!("submit_frame_extract_", "and_capture(")));
+    assert!(source.contains(concat!("submit_frame_", "extract(")));
+    assert!(!source.contains(concat!("submit_runtime_", "frame(")));
     assert!(source.contains(concat!("capture_", "frame(viewport)")));
     assert!(!source.contains(concat!("SceneRenderer", "::new")));
     assert!(!source.contains(concat!("render_scene_color", "_hdr")));
@@ -269,7 +270,7 @@ fn render_project_frame_with_environment(
         environment,
         write_project_assets,
         |framework, viewport, snapshot| {
-            submit_runtime_frame_and_capture(framework, viewport, snapshot, output_size)
+            submit_frame_extract_and_capture(framework, viewport, snapshot)
         },
     )
 }
@@ -352,16 +353,15 @@ fn render_project_with_environment<T>(
     output
 }
 
-fn submit_runtime_frame_and_capture(
+fn submit_frame_extract_and_capture(
     framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     snapshot: RenderSceneSnapshot,
-    output_size: UVec2,
 ) -> ViewportFrame {
     framework
-        .submit_runtime_frame(
+        .submit_frame_extract(
             viewport,
-            ViewportRenderFrame::from_snapshot(snapshot, output_size),
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(0), snapshot),
         )
         .expect("submit compiled Shader06 product frame");
     let captured = framework

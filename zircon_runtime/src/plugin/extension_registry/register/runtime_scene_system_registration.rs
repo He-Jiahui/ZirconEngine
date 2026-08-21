@@ -5,11 +5,12 @@ use crate::core::CoreError;
 use crate::plugin::RuntimeExtensionRegistryError;
 use crate::scene::ecs::{
     BoxedRuntimeSceneSystem, FunctionRuntimeSceneSystem, RuntimeSceneSystemContext,
-    SceneSystemMetadata, SystemOrderingConstraint, SystemRef, SystemSetId, SystemStage,
+    SceneSystemClockDomain, SceneSystemMetadata, SystemOrderingConstraint, SystemRef, SystemSetId,
+    SystemStage,
 };
 
-use super::super::owner::PluginModuleId;
 use super::super::RuntimeExtensionRegistry;
+use super::super::owner::PluginModuleId;
 use super::system_registration::validate_plugin_system_id;
 
 type RuntimeSceneSystemBuildFn = Arc<dyn Fn() -> BoxedRuntimeSceneSystem + Send + Sync>;
@@ -49,6 +50,7 @@ pub struct RuntimeSceneSystemRegistration {
     pub sets: Vec<SystemSetId>,
     pub constraints: Vec<SystemOrderingConstraint>,
     pub order: i32,
+    pub clock_domain: SceneSystemClockDomain,
     build: SharedRuntimeSceneSystemBuild,
 }
 
@@ -67,6 +69,7 @@ pub struct RuntimeSceneSystemRegistrationBuilder<'registry, S> {
     sets: Vec<SystemSetId>,
     constraints: Vec<SystemOrderingConstraint>,
     order: i32,
+    clock_domain: SceneSystemClockDomain,
 }
 
 impl<'registry, S> RuntimeSceneSystemRegistrationBuilder<'registry, S>
@@ -89,6 +92,7 @@ where
             sets: Vec::new(),
             constraints: Vec::new(),
             order: 0,
+            clock_domain: SceneSystemClockDomain::Virtual,
         }
     }
 
@@ -99,6 +103,11 @@ where
 
     pub fn with_order(mut self, order: i32) -> Self {
         self.order = order;
+        self
+    }
+
+    pub fn with_clock_domain(mut self, clock_domain: SceneSystemClockDomain) -> Self {
+        self.clock_domain = clock_domain;
         self
     }
 
@@ -115,15 +124,23 @@ where
     }
 
     pub fn register(self) -> Result<(), RuntimeExtensionRegistryError> {
+        if self.stage.is_fixed_loop() && self.clock_domain == SceneSystemClockDomain::Real {
+            return Err(RuntimeExtensionRegistryError::InvalidPluginSystem(format!(
+                "{} cannot use {:?} clock domain in fixed-loop stage {:?}",
+                self.id, self.clock_domain, self.stage
+            )));
+        }
         let id = self.id;
         let stage = self.stage;
         let order = self.order;
         let sets = self.sets;
         let constraints = self.constraints;
+        let clock_domain = self.clock_domain;
         let system_factory = self.system_factory;
         let metadata = SceneSystemMetadata::new(id.clone(), stage, order)
             .with_sets(sets.clone())
-            .with_constraints(constraints.clone());
+            .with_constraints(constraints.clone())
+            .with_clock_domain(clock_domain);
         let build = SharedRuntimeSceneSystemBuild::new(
             id.clone(),
             Arc::new(move || {
@@ -143,6 +160,7 @@ where
                 sets,
                 constraints,
                 order,
+                clock_domain,
                 build,
             },
         )
@@ -198,8 +216,8 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use super::*;
-    use crate::core::framework::scene::SCENE_MODULE_NAME;
     use crate::core::CoreRuntime;
+    use crate::core::framework::scene::SCENE_MODULE_NAME;
     use crate::scene::ecs::RuntimeSceneSystemContext;
     use crate::scene::{create_default_level, module_descriptor};
 

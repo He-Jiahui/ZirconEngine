@@ -277,6 +277,7 @@ impl EditorState {
                 if self.cancel_gizmo_transaction()? {
                     feedback.transformed_node = transformed_node;
                 }
+                self.viewport_controller.cancel_interaction();
                 Ok(feedback)
             }
             ViewportCommand::PointerMoved { x, y } => self.handle_viewport_input(

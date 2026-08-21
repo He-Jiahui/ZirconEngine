@@ -505,11 +505,11 @@ mod tests {
         let _guard = test_capture_lock();
         reset_capture();
 
-        crate::profile_dynamic_scope!(
-            "runtime",
-            "test",
-            panic!("inactive dynamic scope payload was evaluated"),
-        );
+        fn inactive_dynamic_scope_name() -> String {
+            panic!("inactive dynamic scope payload was evaluated")
+        }
+
+        crate::profile_dynamic_scope!("runtime", "test", inactive_dynamic_scope_name(),);
         crate::profile_counter!(
             "runtime",
             "inactive.counter",

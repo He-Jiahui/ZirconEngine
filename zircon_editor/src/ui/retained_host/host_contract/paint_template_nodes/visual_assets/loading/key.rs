@@ -21,8 +21,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn image_p
 
 #[cfg(test)]
 mod tests {
+    use super::super::super::RasterTargetSize;
     use super::image_pixels_cache_key;
-    use crate::ui::retained_host::host_contract::paint_template_nodes::RasterTargetSize;
 
     #[test]
     fn raster_cache_key_separates_size_and_tint_without_a_candidate_path() {

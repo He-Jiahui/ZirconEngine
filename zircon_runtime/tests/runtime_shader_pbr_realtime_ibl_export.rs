@@ -11,14 +11,13 @@ use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPat
 use zircon_runtime::asset::{AssetReference, AssetUri};
 use zircon_runtime::core::framework::render::{
     CameraRenderDescriptor, EnvironmentExtract, PreviewEnvironmentExtract, ProjectionMode,
-    RenderFramework, RenderLayerSet, RenderOverlayExtract, RenderViewportDescriptor,
-    RenderViewportHandle, SceneViewportExtractRequest, ViewportCameraSnapshot,
-    ViewportRenderSettings, DEFAULT_RENDER_LAYER_MASK,
+    RenderFrameExtract, RenderFramework, RenderLayerSet, RenderOverlayExtract,
+    RenderViewportDescriptor, RenderViewportHandle, RenderWorldSnapshotHandle,
+    SceneViewportExtractRequest, ViewportCameraSnapshot, ViewportRenderSettings,
+    DEFAULT_RENDER_LAYER_MASK,
 };
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
-use zircon_runtime::graphics::{
-    RealtimeIblGpuTimingReport, ViewportFrame, ViewportRenderFrame, WgpuRenderFramework,
-};
+use zircon_runtime::graphics::{RealtimeIblGpuTimingReport, ViewportFrame, WgpuRenderFramework};
 
 #[path = "runtime_shader_pbr_hdri_export/scene_fixtures.rs"]
 mod scene_fixtures;
@@ -36,14 +35,14 @@ const PBR_MATRIX_ORTHO_SIZE: f32 = 5.8;
 const PBR_MATRIX_STEP_X: f32 = 0.7;
 const PBR_MATRIX_STEP_Y: f32 = 0.62;
 const PBR_MATRIX_SPHERE_SCALE: f32 = 0.21;
-const REALTIME_UPDATE_SLICE_COUNT: usize = 16;
+const REALTIME_GENERATION_TICKET_FRAME_COUNT: usize = 21;
 const RENDERDOC_CAPTURE_FINAL_SH9_SLICE_ENV: &str = "ZR_RENDERDOC_CAPTURE_REALTIME_IBL_FINAL_SH9";
 const OUTPUT_NAME: &str =
-    "runtime_shader_pbr_procedural_realtime_ibl_sh9_8x8_reflection_20260714.png";
+    "runtime_shader_pbr_realtime_ibl_generation_ticket_8x8_reflection_20260819.png";
 const TIMING_REPORT_NAME: &str =
-    "runtime_shader_pbr_procedural_realtime_ibl_sh9_8x8_timing_20260714.txt";
+    "runtime_shader_pbr_realtime_ibl_generation_ticket_8x8_timing_20260819.txt";
 const GPU_TIMING_REPORT_NAME: &str =
-    "runtime_shader_pbr_procedural_realtime_ibl_sh9_8x8_gpu_timing_20260714.txt";
+    "runtime_shader_pbr_realtime_ibl_generation_ticket_8x8_gpu_timing_20260819.txt";
 const MULTI_VIEW_OUTPUT_SIZE: UVec2 = UVec2::new(800, 600);
 const MULTI_VIEW_COLUMNS: u32 = 5;
 const MULTI_VIEW_CONTACT_SHEET_NAME: &str =
@@ -93,11 +92,11 @@ fn realtime_multiview_cases() -> [RealtimeMultiViewCase; 5] {
 }
 
 #[test]
-fn realtime_ibl_export_contract_uses_requested_matrix_and_unreal_slice_count() {
+fn realtime_ibl_export_contract_uses_requested_matrix_and_ticket_budget() {
     assert_eq!(PBR_MATRIX_DIMENSION * PBR_MATRIX_DIMENSION, 64);
     assert_eq!(pbr_matrix_axis_value(0), 0.0);
     assert_eq!(pbr_matrix_axis_value(PBR_MATRIX_DIMENSION - 1), 1.0);
-    assert_eq!(REALTIME_UPDATE_SLICE_COUNT, 16);
+    assert_eq!(REALTIME_GENERATION_TICKET_FRAME_COUNT, 21);
     assert_eq!(realtime_multiview_cases().len(), 5);
 
     let source = include_str!("runtime_shader_pbr_realtime_ibl_export.rs");
@@ -135,6 +134,7 @@ fn realtime_ibl_export_contract_uses_requested_matrix_and_unreal_slice_count() {
     assert!(view_loop.contains("realtime_mirror_camera_descriptor"));
     assert!(!view_loop.contains("render_realtime_mirror_view"));
     assert!(source.contains(concat!("request_graphics_debugger_", "capture(viewport)")));
+    assert!(source.contains("final SH9 RenderDoc capture must complete without a debugger error"));
     assert!(source.contains(concat!("submit_compiled_realtime_ibl_", "frame(")));
     assert!(!source.contains(concat!("SceneRenderer", "::new")));
     assert!(!source.contains(concat!("start_graphics_debugger", "_capture")));
@@ -231,14 +231,12 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
                 .with_label("shader06.realtime-ibl-matrix"),
         )
         .unwrap();
-    let initial_started = Instant::now();
-    submit_compiled_realtime_ibl_frame(
-        &framework,
-        viewport,
-        snapshot.clone(),
-        PBR_MATRIX_OUTPUT_SIZE,
-    );
-    let initial_elapsed = initial_started.elapsed();
+    let mut initial_ticket_millis = Vec::with_capacity(REALTIME_GENERATION_TICKET_FRAME_COUNT);
+    for _ in 0..REALTIME_GENERATION_TICKET_FRAME_COUNT {
+        let started = Instant::now();
+        submit_compiled_realtime_ibl_frame(&framework, viewport, snapshot.clone());
+        initial_ticket_millis.push(started.elapsed().as_secs_f64() * 1000.0);
+    }
 
     let mut updated_snapshot = snapshot;
     let sky = &mut updated_snapshot.environment.skybox.procedural;
@@ -252,32 +250,35 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
         Vec4::ZERO,
     );
 
-    let mut slice_millis = Vec::with_capacity(REALTIME_UPDATE_SLICE_COUNT);
+    let mut slice_millis = Vec::with_capacity(REALTIME_GENERATION_TICKET_FRAME_COUNT);
     let capture_final_sh9_slice =
         std::env::var(RENDERDOC_CAPTURE_FINAL_SH9_SLICE_ENV).is_ok_and(|value| value == "1");
-    for slice_index in 0..REALTIME_UPDATE_SLICE_COUNT {
+    for slice_index in 0..REALTIME_GENERATION_TICKET_FRAME_COUNT {
         let capture_this_slice =
-            capture_final_sh9_slice && slice_index + 1 == REALTIME_UPDATE_SLICE_COUNT;
+            capture_final_sh9_slice && slice_index + 1 == REALTIME_GENERATION_TICKET_FRAME_COUNT;
         if capture_this_slice {
             framework
                 .request_graphics_debugger_capture(viewport)
                 .expect("request RenderDoc capture for final SH9 update slice");
         }
         let started = Instant::now();
-        submit_compiled_realtime_ibl_frame(
-            &framework,
-            viewport,
-            updated_snapshot.clone(),
-            PBR_MATRIX_OUTPUT_SIZE,
-        );
+        submit_compiled_realtime_ibl_frame(&framework, viewport, updated_snapshot.clone());
+        if capture_this_slice {
+            let capture_status = framework
+                .query_graphics_debugger_status()
+                .expect("query final SH9 RenderDoc capture status");
+            assert!(
+                !capture_status.capture_pending,
+                "final SH9 RenderDoc capture must complete in its requested frame"
+            );
+            assert_eq!(
+                capture_status.last_error, None,
+                "final SH9 RenderDoc capture must complete without a debugger error"
+            );
+        }
         slice_millis.push(started.elapsed().as_secs_f64() * 1000.0);
     }
-    submit_compiled_realtime_ibl_frame(
-        &framework,
-        viewport,
-        updated_snapshot,
-        PBR_MATRIX_OUTPUT_SIZE,
-    );
+    submit_compiled_realtime_ibl_frame(&framework, viewport, updated_snapshot);
     let final_frame = capture_compiled_viewport_frame(&framework, viewport);
     assert!(
         framework.realtime_ibl_gpu_timing_supported(),
@@ -294,7 +295,7 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
     let timing_output = shader_test_output_dir().join(TIMING_REPORT_NAME);
     fs::write(
         &timing_output,
-        timing_report(initial_elapsed.as_secs_f64() * 1000.0, &slice_millis),
+        timing_report(&initial_ticket_millis, &slice_millis),
     )
     .expect("write realtime IBL frame timing report");
     let gpu_timing_output = shader_test_output_dir().join(GPU_TIMING_REPORT_NAME);
@@ -350,7 +351,7 @@ fn export_procedural_realtime_ibl_mirror_cardinal_120deg_png() {
             PreviewEnvironmentExtract::from_environment(&snapshot.environment, true, Vec4::ZERO);
         snapshot.overlays = RenderOverlayExtract::default();
         let render_started = Instant::now();
-        submit_compiled_realtime_ibl_frame(&framework, viewport, snapshot, MULTI_VIEW_OUTPUT_SIZE);
+        submit_compiled_realtime_ibl_frame(&framework, viewport, snapshot);
         let frame = capture_compiled_viewport_frame(&framework, viewport);
         render_millis.push(render_started.elapsed().as_secs_f64() * 1000.0);
         assert_realtime_mirror_view(&frame, view_case.label);
@@ -434,12 +435,11 @@ fn submit_compiled_realtime_ibl_frame(
     framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
     snapshot: zircon_runtime::core::framework::render::RenderSceneSnapshot,
-    output_size: UVec2,
 ) {
     framework
-        .submit_runtime_frame(
+        .submit_frame_extract(
             viewport,
-            ViewportRenderFrame::from_snapshot(snapshot, output_size),
+            RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(0), snapshot),
         )
         .expect("submit compiled realtime IBL frame");
 }
@@ -720,68 +720,102 @@ fn average_luma_band(frame: &ViewportFrame, start_y: u32, end_y: u32) -> f64 {
     sum / count.max(1) as f64
 }
 
-fn timing_report(initial_millis: f64, slice_millis: &[f64]) -> String {
-    let average = slice_millis.iter().sum::<f64>() / slice_millis.len().max(1) as f64;
-    let maximum = slice_millis.iter().copied().fold(0.0_f64, f64::max);
-    let slices = slice_millis
+fn timing_report(initial_ticket_millis: &[f64], update_ticket_millis: &[f64]) -> String {
+    let initial_average =
+        initial_ticket_millis.iter().sum::<f64>() / initial_ticket_millis.len().max(1) as f64;
+    let initial_maximum = initial_ticket_millis
+        .iter()
+        .copied()
+        .fold(0.0_f64, f64::max);
+    let update_average =
+        update_ticket_millis.iter().sum::<f64>() / update_ticket_millis.len().max(1) as f64;
+    let update_maximum = update_ticket_millis.iter().copied().fold(0.0_f64, f64::max);
+    let initial_slices = initial_ticket_millis
         .iter()
         .enumerate()
-        .map(|(index, millis)| format!("slice_{index:02}_cpu_ms={millis:.3}"))
+        .map(|(index, millis)| format!("initial_ticket_frame_{index:02}_cpu_ms={millis:.3}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let update_slices = update_ticket_millis
+        .iter()
+        .enumerate()
+        .map(|(index, millis)| format!("update_ticket_frame_{index:02}_cpu_ms={millis:.3}"))
         .collect::<Vec<_>>()
         .join("\n");
     format!(
-        "initial_full_update_cpu_ms={initial_millis:.3}\nupdate_slice_count={}\nupdate_slice_average_cpu_ms={average:.3}\nupdate_slice_max_cpu_ms={maximum:.3}\n{slices}\n",
-        slice_millis.len()
+        "initial_ticket_frame_count={}\ninitial_ticket_average_cpu_ms={initial_average:.3}\ninitial_ticket_max_cpu_ms={initial_maximum:.3}\nupdate_ticket_frame_count={}\nupdate_ticket_average_cpu_ms={update_average:.3}\nupdate_ticket_max_cpu_ms={update_maximum:.3}\n{initial_slices}\n{update_slices}\n",
+        initial_ticket_millis.len(),
+        update_ticket_millis.len(),
     )
 }
 
 fn assert_realtime_gpu_timings(reports: &[RealtimeIblGpuTimingReport]) {
     assert_eq!(
         reports.len(),
-        REALTIME_UPDATE_SLICE_COUNT + 1,
-        "initial publication plus every sliced update must produce a GPU timestamp"
+        REALTIME_GENERATION_TICKET_FRAME_COUNT * 2,
+        "each initial and updated ticket frame must produce one GPU timestamp"
     );
-    assert!(reports[0].full_update);
     assert!(
         reports
             .iter()
             .all(|report| report.elapsed_gpu_nanoseconds > 0.0),
-        "every realtime IBL batch must consume measurable GPU time: {reports:?}"
+        "every realtime IBL ticket operation must consume measurable GPU time: {reports:?}"
     );
     assert!(
         reports
             .iter()
-            .any(|report| report.operation_label == "diffuse_sh9"),
-        "the final GPU SH9 slice must be timestamped"
+            .all(|report| report.pass_count == 1 && report.dispatch_count == 1),
+        "a ticket frame must record exactly one graph pass and dispatch: {reports:?}"
     );
     assert!(
-        reports.iter().skip(1).all(|report| !report.full_update),
-        "only the initial publication may use the full-update path"
+        reports.iter().all(|report| report.scheduled_workgroups > 0),
+        "every ticket operation must report its dispatched workgroups: {reports:?}"
     );
-    let initial_nanoseconds = reports[0].elapsed_gpu_nanoseconds;
-    let sliced_maximum_nanoseconds = reports
+    assert!(
+        reports
+            .iter()
+            .all(|report| report.completed_workgroups == report.scheduled_workgroups),
+        "GPU timestamp readback must report every scheduled workgroup as completed: {reports:?}"
+    );
+    assert!(
+        reports
+            .iter()
+            .all(|report| !report.recipe_fingerprint.is_empty()),
+        "every ticket operation must identify its complete bake recipe: {reports:?}"
+    );
+    assert_eq!(
+        reports
+            .iter()
+            .filter(|report| report.operation_label == "diffuse_sh9")
+            .count(),
+        2,
+        "each complete ticket must timestamp its terminal SH9 operation"
+    );
+    assert_eq!(
+        reports
+            .iter()
+            .filter(|report| report.terminal_reason == "published_after_sh9")
+            .count(),
+        2,
+        "only each terminal SH9 operation may publish a ticket"
+    );
+    let generations = reports
         .iter()
-        .skip(1)
-        .map(|report| report.elapsed_gpu_nanoseconds)
-        .fold(0.0_f64, f64::max);
+        .map(|report| report.generation)
+        .collect::<std::collections::HashSet<_>>();
     assert!(
-        sliced_maximum_nanoseconds < initial_nanoseconds * 0.75,
-        "time slicing must keep the heaviest update below 75% of the full publication: full={initial_nanoseconds}ns sliced_max={sliced_maximum_nanoseconds}ns"
+        generations.len() >= 2,
+        "initial and updated environments must publish distinct generation timings: {reports:?}"
     );
 }
 
 fn gpu_timing_report(reports: &[RealtimeIblGpuTimingReport]) -> String {
-    let initial_millis = reports
-        .first()
-        .map(|report| report.elapsed_gpu_nanoseconds / 1_000_000.0)
-        .unwrap_or_default();
-    let sliced = reports.iter().skip(1).collect::<Vec<_>>();
-    let sliced_average_millis = sliced
+    let average_millis = reports
         .iter()
         .map(|report| report.elapsed_gpu_nanoseconds / 1_000_000.0)
         .sum::<f64>()
-        / sliced.len().max(1) as f64;
-    let sliced_maximum_millis = sliced
+        / reports.len().max(1) as f64;
+    let maximum_millis = reports
         .iter()
         .map(|report| report.elapsed_gpu_nanoseconds / 1_000_000.0)
         .fold(0.0_f64, f64::max);
@@ -789,20 +823,25 @@ fn gpu_timing_report(reports: &[RealtimeIblGpuTimingReport]) -> String {
         .iter()
         .map(|report| {
             format!(
-                "frame_{:02}_gpu_ms={:.6} state={} full_update={} passes={} dispatches={} operations={}",
+                "frame_{:02}_gpu_ms={:.6} generation={} recipe={} state={} work_slot={} passes={} dispatches={} scheduled_workgroups={} completed_workgroups={} terminal_reason={} operation={}",
                 report.frame_number,
                 report.elapsed_gpu_nanoseconds / 1_000_000.0,
+                report.generation,
+                report.recipe_fingerprint,
                 report.logical_state,
-                report.full_update,
+                report.work_slot,
                 report.pass_count,
                 report.dispatch_count,
+                report.scheduled_workgroups,
+                report.completed_workgroups,
+                report.terminal_reason,
                 report.operation_label,
             )
         })
         .collect::<Vec<_>>()
         .join("\n");
     format!(
-        "timestamp_query_supported=true\nsample_count={}\ninitial_full_update_gpu_ms={initial_millis:.6}\nupdate_slice_average_gpu_ms={sliced_average_millis:.6}\nupdate_slice_max_gpu_ms={sliced_maximum_millis:.6}\n{samples}\n",
+        "timestamp_query_supported=true\nticket_operation_sample_count={}\nticket_operation_average_gpu_ms={average_millis:.6}\nticket_operation_max_gpu_ms={maximum_millis:.6}\n{samples}\n",
         reports.len()
     )
 }

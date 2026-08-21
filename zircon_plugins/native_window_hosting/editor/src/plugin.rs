@@ -1,15 +1,10 @@
-use zircon_plugin_editor_support::{
-    register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
-};
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::plugin::{
     PluginDistributionManifest, PluginModuleManifest, PluginPackageManifest,
 };
 
 use crate::{
-    CAPABILITY, EDITOR_CRATE_NAME, NATIVE_EDITOR_ENTRY, NATIVE_WINDOW_DRAWER_ID,
-    NATIVE_WINDOW_HOSTING_DECLARATION, NATIVE_WINDOW_TEMPLATE_ID, PREFAB_WINDOW_VIEW_ID,
-    WORKBENCH_WINDOW_VIEW_ID,
+    CAPABILITY, EDITOR_CRATE_NAME, NATIVE_EDITOR_ENTRY, NATIVE_WINDOW_HOSTING_DECLARATION,
 };
 
 pub const NATIVE_WINDOW_HOSTING_DIST_CRATE_NAME: &str = "zircon_plugin_native_window_hosting_dist";
@@ -38,31 +33,9 @@ impl zircon_editor::EditorPlugin for NativeWindowHostingEditorPlugin {
 
     fn register_editor_extensions(
         &self,
-        registry: &mut zircon_editor::core::editor_extension::EditorExtensionRegistry,
+        _registry: &mut zircon_editor::core::editor_extension::EditorExtensionRegistry,
     ) -> Result<(), zircon_editor::core::editor_extension::EditorExtensionRegistryError> {
-        register_authoring_extensions(
-            registry,
-            EditorAuthoringExtensions {
-                drawer_id: NATIVE_WINDOW_DRAWER_ID,
-                drawer_display_name: "Native Window Tools",
-                template_id: NATIVE_WINDOW_TEMPLATE_ID,
-                template_document: "plugins://native_window_hosting/editor/authoring.zui",
-                surfaces: &[
-                    EditorAuthoringSurface::new(
-                        WORKBENCH_WINDOW_VIEW_ID,
-                        "Workbench",
-                        "Window",
-                        "Plugins/Native Windows/Workbench",
-                    ),
-                    EditorAuthoringSurface::new(
-                        PREFAB_WINDOW_VIEW_ID,
-                        "Prefab Editor",
-                        "Window",
-                        "Plugins/Native Windows/Prefab",
-                    ),
-                ],
-            },
-        )
+        Ok(())
     }
 }
 

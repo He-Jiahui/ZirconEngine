@@ -199,6 +199,10 @@ impl GpuPassTimer {
         self.last_frame_observation
     }
 
+    pub fn timestamp_period_ns(&self) -> f32 {
+        self.timestamp_period_ns
+    }
+
     pub fn try_collect(
         &mut self,
         device: &wgpu::Device,
@@ -335,9 +339,9 @@ fn timestamp_delta_us(start: u64, end: u64, timestamp_period_ns: f32) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::{
+        GPU_TIMESTAMP_REQUIRED_FEATURES, GpuTimerFrameResult, GpuTimerFrameStatus,
         decode_timestamp_pairs, gpu_timestamp_features_supported, insert_completed_frame_in_order,
-        take_oldest_completed_frame, timer_frame_status, timestamp_delta_us, GpuTimerFrameResult,
-        GpuTimerFrameStatus, GPU_TIMESTAMP_REQUIRED_FEATURES,
+        take_oldest_completed_frame, timer_frame_status, timestamp_delta_us,
     };
     use std::collections::VecDeque;
 

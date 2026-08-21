@@ -1,12 +1,12 @@
 use std::collections::{BTreeSet, HashMap};
 
+use super::RenderGraphDump;
 use super::types::{
     PassFlags, QueueLane, RenderGraphComputePassMetadata, RenderGraphComputeWorkload,
     RenderGraphPassResourceAccess, RenderGraphResource, RenderGraphResourceAccessKind,
     RenderGraphResourceDeclaration, RenderGraphResourceDesc, RenderGraphResourceKind,
     RenderGraphResourceLifetime, RenderGraphResourceVersion, RenderPassId,
 };
-use super::RenderGraphDump;
 use crate::rhi::{TextureDimension, TextureFormat, TextureResidency};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -283,9 +283,12 @@ impl CompiledRenderGraph {
     }
 
     pub(crate) fn pass(&self, pass: RenderPassId) -> Option<&CompiledRenderPass> {
-        self.pass_indices
-            .get(&pass)
-            .and_then(|index| self.passes.get(*index))
+        self.indexed_pass(pass).map(|(_, pass)| pass)
+    }
+
+    pub(crate) fn indexed_pass(&self, pass: RenderPassId) -> Option<(usize, &CompiledRenderPass)> {
+        let index = *self.pass_indices.get(&pass)?;
+        self.passes.get(index).map(|pass| (index, pass))
     }
 
     pub(crate) fn pass_resource_access(

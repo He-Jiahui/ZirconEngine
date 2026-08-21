@@ -198,7 +198,7 @@ fn componentized_workbench_search_clear_action_clears_query_and_restores_results
         .expect("Blend Space opener should dispatch")
         .expect("Blend Space opener should bind");
     bridge
-        .mutate_control_property(
+        .mutate_control_property_for_test(
             "WorkbenchExtensionBlendSpaceSearch",
             "query",
             UiValue::String("strafe".to_string()),
@@ -212,9 +212,8 @@ fn componentized_workbench_search_clear_action_clears_query_and_restores_results
     let search_frame = bridge
         .control_frame("WorkbenchExtensionBlendSpaceSearch")
         .expect("Blend Space search should have a frame");
-    let clear_frame =
-        crate::ui::retained_host::host_contract::search_field_clear_action_frame(search_frame)
-            .expect("search clear action should fit its field");
+    let clear_frame = crate::ui::retained_host::search_field_clear_action_frame(search_frame)
+        .expect("search clear action should fit its field");
     let clear_point = UiPoint::new(
         clear_frame.x + clear_frame.width * 0.5,
         clear_frame.y + clear_frame.height * 0.5,

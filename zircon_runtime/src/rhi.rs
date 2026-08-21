@@ -18,10 +18,10 @@ pub use zr_rhi::{
     TextureHandle, TextureResidency, TextureUsage, TransientAllocatorStats, UiSurfaceCommand,
     UiSurfaceCommandKind, UiSurfaceDescriptor, UiSurfaceDrawList, UiSurfaceImagePayload,
     UiSurfaceImageResource, UiSurfaceImageResourceTable, UiSurfaceImageUvRect,
-    UiSurfacePresentStats, UiSurfacePresenter, UiSurfaceRect, UiSurfaceResolvedCommandKind,
-    UiSurfaceStyle, UiSurfaceStyleHandle, UiSurfaceStyledPayload, UiSurfaceTextStyle,
-    VertexAttributeDesc, VertexBufferLayoutDesc, VertexFormat, VertexInputLayoutDesc,
-    VertexStepMode,
+    UiSurfacePresentOutcome, UiSurfacePresentStats, UiSurfacePresenter, UiSurfaceRect,
+    UiSurfaceResolvedCommandKind, UiSurfaceStyle, UiSurfaceStyleHandle, UiSurfaceStyledPayload,
+    UiSurfaceTextStyle, VertexAttributeDesc, VertexBufferLayoutDesc, VertexFormat,
+    VertexInputLayoutDesc, VertexStepMode,
 };
 
 pub fn create_default_ui_surface_presenter(

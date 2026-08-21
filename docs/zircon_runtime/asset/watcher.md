@@ -64,6 +64,12 @@ Watcher errors are represented by `AssetWatchError { assets_root, paths, message
 
 `AssetManager::subscribe_asset_watch_errors()` exposes this stream separately from `subscribe_asset_changes()`. Asset changes remain real asset URI changes only; watcher failures are not squeezed into fake `res://` rows.
 
+Project watcher activation retains at most 64 pending errors in a FIFO
+tail queue. Overflow discards the oldest retained error, marks the activation
+for full reconciliation, and keeps later publication in retained FIFO order.
+Admission uses constant-time `pop_front` / `push_back` operations while the
+activation lock is held; draining moves the queue out without cloning payloads.
+
 ## Shutdown
 
 `AssetWatcher` shutdown is owned by `asset/watch/shutdown_on_drop.rs`. The drop path sends the stop signal and joins the watcher thread so the watch loop exits without exposing an additional public shutdown API.

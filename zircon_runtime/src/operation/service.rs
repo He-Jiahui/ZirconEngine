@@ -1,17 +1,17 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, VecDeque};
 use std::io::{self, Write};
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::mpsc::{self, Receiver, SyncSender};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
 use zircon_runtime_interface::{
-    ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle, ZrRuntimeOperationPhase,
-    ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZrRuntimeOperationDetailKindV2, ZrRuntimeOperationHandle,
+    ZrRuntimeOperationPhase, ZrRuntimeOperationResultV1, ZrRuntimeOperationStatusV2,
 };
 
-use crate::core::runtime::tasks::TaskTimerSubscription;
 use crate::core::CoreHandle;
+use crate::core::runtime::tasks::TaskTimerSubscription;
 use crate::scene::World;
 
 use super::maintenance::{
@@ -55,6 +55,8 @@ impl Default for RuntimeOperationLimits {
 pub(super) struct RuntimeOperationTaskState {
     pub(super) next_handle: u64,
     pub(super) tasks: HashMap<ZrRuntimeOperationHandle, RuntimeOperationTask>,
+    pub(super) queued_snapshot_tasks: VecDeque<ZrRuntimeOperationHandle>,
+    pub(super) ready_apply_tasks: VecDeque<ZrRuntimeOperationHandle>,
     pub(super) retained_bytes: usize,
     pub(super) pending_admissions: usize,
     pub(super) pending_admission_bytes: usize,
@@ -65,6 +67,25 @@ pub(super) struct RuntimeOperationTaskState {
 }
 
 impl RuntimeOperationTaskState {
+    fn compact_phase_indexes(&mut self, maximum_tasks: usize) {
+        if self.queued_snapshot_tasks.len() >= maximum_tasks {
+            let tasks = &self.tasks;
+            self.queued_snapshot_tasks.retain(|handle| {
+                tasks.get(handle).is_some_and(|task| {
+                    task.phase == ZrRuntimeOperationPhase::Queued && !task.snapshot_claimed
+                })
+            });
+        }
+        if self.ready_apply_tasks.len() >= maximum_tasks {
+            let tasks = &self.tasks;
+            self.ready_apply_tasks.retain(|handle| {
+                tasks.get(handle).is_some_and(|task| {
+                    task.phase == ZrRuntimeOperationPhase::ReadyToApply && !task.apply_claimed
+                })
+            });
+        }
+    }
+
     fn allocate_handle(
         &mut self,
     ) -> Result<ZrRuntimeOperationHandle, RuntimeOperationServiceError> {
@@ -475,15 +496,26 @@ impl RuntimeOperationService {
         if state.in_flight_prepares >= self.limits.max_in_flight_prepares {
             return None;
         }
-        let handle = state.tasks.iter().find_map(|(handle, task)| {
-            (task.phase == ZrRuntimeOperationPhase::Queued
-                && !task.snapshot_claimed
-                && task.deadline_armed
-                && task
-                    .deadline
-                    .is_none_or(|deadline| deadline > Instant::now()))
-            .then_some(*handle)
-        })?;
+        let now = Instant::now();
+        let handle = loop {
+            let candidate = *state.queued_snapshot_tasks.front()?;
+            let (eligible, retain) = state.tasks.get(&candidate).map_or((false, false), |task| {
+                let live = task.phase == ZrRuntimeOperationPhase::Queued && !task.snapshot_claimed;
+                (
+                    live && task.deadline_armed
+                        && task.deadline.is_none_or(|deadline| deadline > now),
+                    live && !task.deadline_armed,
+                )
+            });
+            if eligible {
+                state.queued_snapshot_tasks.pop_front();
+                break candidate;
+            }
+            if retain {
+                return None;
+            }
+            state.queued_snapshot_tasks.pop_front();
+        };
         let (handler, payload) = {
             let task = state.tasks.get_mut(&handle)?;
             task.snapshot_claimed = true;
@@ -577,15 +609,20 @@ impl RuntimeOperationService {
     )> {
         let mut state = self.lock_state();
         let now = Instant::now();
-        let handle = state.tasks.iter().find_map(|(handle, task)| {
-            (task.phase == ZrRuntimeOperationPhase::ReadyToApply
-                && task.prepared_command.is_some()
-                && task.prepared_result.is_some()
-                && !task.apply_claimed
-                && task.deadline_armed
-                && task.deadline.is_none_or(|deadline| deadline > now))
-            .then_some(*handle)
-        })?;
+        let handle = loop {
+            let handle = state.ready_apply_tasks.pop_front()?;
+            let eligible = state.tasks.get(&handle).is_some_and(|task| {
+                task.phase == ZrRuntimeOperationPhase::ReadyToApply
+                    && task.prepared_command.is_some()
+                    && task.prepared_result.is_some()
+                    && !task.apply_claimed
+                    && task.deadline_armed
+                    && task.deadline.is_none_or(|deadline| deadline > now)
+            });
+            if eligible {
+                break handle;
+            }
+        };
         let task = state.tasks.get_mut(&handle)?;
         task.apply_claimed = true;
         Some((
@@ -700,6 +737,22 @@ impl RuntimeOperationService {
 
     fn lock_state(&self) -> MutexGuard<'_, RuntimeOperationTaskState> {
         lock_operation_state(&self.state)
+    }
+
+    #[cfg(test)]
+    pub(super) fn set_deadline_state_for_test(
+        &self,
+        handle: ZrRuntimeOperationHandle,
+        deadline: Option<Instant>,
+        armed: bool,
+    ) {
+        let mut state = self.lock_state();
+        let task = state
+            .tasks
+            .get_mut(&handle)
+            .expect("deadline test task must exist");
+        task.deadline = deadline;
+        task.deadline_armed = armed;
     }
 
     fn expire_due_deadlines(&self, now: Instant) {

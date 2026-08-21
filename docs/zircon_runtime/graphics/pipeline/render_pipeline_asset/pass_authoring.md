@@ -8,6 +8,9 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/sprite_stage_selection.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile/default_pipelines.rs
@@ -28,6 +31,9 @@ implementation_files:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/graph_resources.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/resource_descriptors.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/descriptor_filtering.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/sprite_stage_selection.rs
 plan_sources:
   - docs/plans/zircon_runtime/render/index.md
   - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md
@@ -35,6 +41,9 @@ plan_sources:
   - user: 2026-06-17 continue Plan 01 compile.rs modularization
 tests:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_preserves_renderer_stage_for_each_graph_pass
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::runtime89_compiled_pass_stages_retain_their_graph_pass_identity
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::runtime89_generated_ibl_pass_name_collisions_fail_during_pipeline_compile
+  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/tests.rs::runtime89_compiled_pass_identity_lookup_beats_name_scan_p95
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_preserves_compute_workload_from_feature_descriptor
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests.rs::compile_keeps_split_postprocess_passes_before_exposure_when_they_do_not_sample_exposure
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile_tests/postprocess_routes.rs::compile_orders_bloom_extract_after_motion_blur_before_exposure
@@ -78,12 +87,15 @@ First, `author_graph_resources(...)` scans the resource plan from `pipeline_grap
 Second, `author_graph_passes(...)` walks renderer stages in asset order and asks the validation layer for pass descriptors belonging to each stage. Each pass receives:
 
 - a graph pass name and executor id;
+- the builder-scoped `RenderPassId` returned while authoring that exact pass, retained by `CompiledRenderPipelinePassStage` for direct execution lookup;
 - the resolved queue lane from `RenderPipelineCompileOptions::resolve_queue(...)`, while preserving the descriptor's declared queue for diagnostics;
 - pass flags and optional compute workload metadata;
 - explicit resource read/write declarations mapped to the correct texture, buffer, or external graph handle;
 - a dependency on the previous authored pass to preserve the existing serial SRP stage order.
 
 Post-process pass rows pass through `ordered_stage_pass_descriptors(...)` before graph authoring. That helper keeps the validation-layer descriptor filtering as the source of truth, then normalizes `post.bloom-extract` after the latest scene-color split producer and before exposure, scene composite, blur, LUT, uber, upscale, and output-transfer consumers. The authored graph therefore does not depend on asset declaration order for the Bloom dependency chain.
+
+Environment IBL expansion consumes the pass identities returned by `append_ibl_bake_artifact_graph_plan(...)` in artifact order. Final graph compilation rejects any generated-name collision, and stage execution resolves each row through its ID index before checking the retained name. This prevents a plugin pass from shadowing a generated IBL pass and removes the prior per-stage linear name scan over the compiled graph.
 
 ## Resource Access Rules
 
@@ -102,6 +114,8 @@ The module returns only `AuthoredRenderGraph` instead of exposing the builder or
 ## Test Coverage
 
 Existing compile source-contract tests exercise this module through public pipeline compilation. Stage preservation verifies `CompiledRenderPipelinePassStage` output, compute workload preservation verifies pass metadata survives authoring, and terminal post-process routing tests verify authored resource declarations match the filtered descriptors.
+
+Runtime89 adds behavioral coverage for final generated-name collision rejection and exact stage-ID-to-graph-pass mapping. Its release-only performance gate warms both paths once, then compares the former name scan with direct identity lookup across 2,048 passes using 21 alternating sample pairs and requires direct-lookup P95 to be no more than 25% of the legacy P95. These additions remain validation-pending until the grouped coordinator run produces a receipt.
 
 The 2026-06-18 split post-process exposure regression covers descriptor-to-graph read lowering for dependency order. `compile_keeps_split_postprocess_passes_before_exposure_when_they_do_not_sample_exposure` asserts that DoF and motion-blur split passes do not inherit a false `EXPOSURE_CURRENT` read, while exposure resolve and uber still expose the real dependency edge.
 

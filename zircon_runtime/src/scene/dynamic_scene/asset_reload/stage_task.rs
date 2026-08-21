@@ -1,14 +1,14 @@
 use std::{
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, Mutex, MutexGuard,
+        atomic::{AtomicBool, AtomicUsize, Ordering},
     },
     time::{Duration, Instant},
 };
 
 use crate::{
     asset::{AssetEvent, SceneAsset},
-    core::{framework::tasks::AsyncTaskState, JobHandle, JobScheduler},
+    core::{JobHandle, JobScheduler, framework::tasks::AsyncTaskState},
     scene::dynamic_scene::{DynamicSceneError, PreparedDynamicSceneSpawn, StagedDynamicSceneSpawn},
 };
 
@@ -25,7 +25,7 @@ pub(super) struct DynamicSceneAssetReloadStageTask {
     target_capture_elapsed: Arc<Mutex<Duration>>,
     cancel_requested: Arc<AtomicBool>,
     queued_at: Instant,
-    reserved_bytes: usize,
+    reserved_bytes: Arc<AtomicUsize>,
     metadata_bytes: usize,
 }
 
@@ -38,9 +38,11 @@ impl DynamicSceneAssetReloadStageTask {
         target: DynamicSceneSpawnTargetSnapshot,
     ) -> Self {
         let label = stage_label(&event);
-        let reserved_bytes = prepared
-            .estimated_bytes()
-            .saturating_add(target.estimated_bytes());
+        let reserved_bytes = Arc::new(AtomicUsize::new(
+            prepared
+                .estimated_bytes()
+                .saturating_add(target.estimated_bytes()),
+        ));
         let metadata_bytes = estimate_stage_task_metadata_bytes(&event);
         let result = Arc::new(Mutex::new(None));
         let target_capture_elapsed = Arc::new(Mutex::new(Duration::ZERO));
@@ -78,9 +80,9 @@ impl DynamicSceneAssetReloadStageTask {
         target_snapshot_limit_bytes: usize,
     ) -> Self {
         let label = stage_label(&event);
-        let reserved_bytes = prepared
-            .estimated_bytes()
-            .saturating_add(target_snapshot_limit_bytes);
+        let prepared_bytes = prepared.estimated_bytes();
+        let initial_reserved_bytes = prepared_bytes.saturating_add(target_snapshot_limit_bytes);
+        let reserved_bytes = Arc::new(AtomicUsize::new(initial_reserved_bytes));
         let metadata_bytes = estimate_stage_task_metadata_bytes(&event);
         let result = Arc::new(Mutex::new(None));
         let target_capture_elapsed = Arc::new(Mutex::new(Duration::ZERO));
@@ -88,6 +90,7 @@ impl DynamicSceneAssetReloadStageTask {
         let task_result = Arc::clone(&result);
         let task_capture_elapsed = Arc::clone(&target_capture_elapsed);
         let task_cancel = Arc::clone(&cancel_requested);
+        let task_reserved_bytes = Arc::clone(&reserved_bytes);
         let completion = scheduler.schedule(move || {
             if task_cancel.load(Ordering::Acquire) {
                 return;
@@ -95,7 +98,24 @@ impl DynamicSceneAssetReloadStageTask {
             let capture_started = Instant::now();
             let target = prepared.capture_level_target(&level, target_snapshot_limit_bytes);
             *lock_duration(&task_capture_elapsed) = capture_started.elapsed();
-            let staged = target.and_then(|target| prepared.stage_target(target));
+            let staged = match target {
+                Ok(target) => {
+                    let actual_reserved_bytes =
+                        prepared_bytes.saturating_add(target.estimated_bytes());
+                    debug_assert!(actual_reserved_bytes <= initial_reserved_bytes);
+                    task_reserved_bytes.store(actual_reserved_bytes, Ordering::Release);
+                    let staged = prepared.stage_target(target);
+                    if staged.is_err() {
+                        task_reserved_bytes.store(0, Ordering::Release);
+                    }
+                    staged
+                }
+                Err(error) => {
+                    drop(prepared);
+                    task_reserved_bytes.store(0, Ordering::Release);
+                    Err(error)
+                }
+            };
             if task_cancel.load(Ordering::Acquire) {
                 return;
             }
@@ -169,7 +189,7 @@ impl DynamicSceneAssetReloadStageTask {
     }
 
     pub(super) fn reserved_bytes(&self) -> usize {
-        self.reserved_bytes
+        self.reserved_bytes.load(Ordering::Acquire)
     }
 
     pub(super) fn target_capture_elapsed(&self) -> Duration {

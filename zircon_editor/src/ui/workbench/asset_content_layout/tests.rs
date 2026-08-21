@@ -1,11 +1,11 @@
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::{
-    AssetContentLayoutMetrics, AssetContentPaintMetadata, AssetContentPaintNodeInput,
-    AssetContentRect, AssetContentSurface, AssetContentSurfaceProfile,
-    asset_content_paint_metadata, parse_activity_content_identity,
+    asset_content_paint_metadata, parse_activity_content_identity, AssetContentLayoutMetrics,
+    AssetContentPaintMetadata, AssetContentPaintNodeInput, AssetContentRect, AssetContentSurface,
+    AssetContentSurfaceProfile,
 };
-use super::{RuntimeFileNameCompaction, compact_file_like_display_name};
+use super::{compact_file_like_display_name, RuntimeFileNameCompaction};
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 use crate::ui::retained_host::measure_runtime_text_width;
 use crate::ui::retained_host::primitives::ModelRc;

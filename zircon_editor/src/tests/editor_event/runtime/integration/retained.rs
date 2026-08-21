@@ -1,4 +1,6 @@
 use super::super::*;
+use crate::core::editor_event::EditorViewportEvent;
+use crate::core::editor_message::{EditorUiDeltaBarrierKind, EditorUiDeltaEntry};
 
 #[test]
 fn retained_adapter_binding_and_call_action_share_the_same_normalized_menu_event() {

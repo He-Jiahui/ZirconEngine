@@ -103,9 +103,9 @@ mod tests {
     use std::time::Duration;
 
     use crate::core::jobs::{
-        EditorJob, EditorJobAdmissionLimits, EditorJobAdmissionRequest, EditorJobLimits,
-        EditorJobSpec, JobCategory, JobContext, JobError, JobSubmitError,
-        test_job_system_with_limits,
+        test_job_system_with_limits, EditorJob, EditorJobAdmissionLimits,
+        EditorJobAdmissionRequest, EditorJobLimits, EditorJobSpec, JobCategory, JobContext,
+        JobError, JobSubmitError,
     };
 
     struct ValueJob(u32);

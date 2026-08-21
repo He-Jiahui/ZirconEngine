@@ -349,6 +349,8 @@ The behavior anchors are `virtualized_list_only_materializes_visible_window`, `s
 
 `UiContainerKind` currently has runtime arrange support for `Free`, `Canvas`, `Container`, `BlockBox`, `Overlay`, `Space`, `SizeBox`, `HorizontalBox`, `VerticalBox`, `ScrollableBox`, `WrapBox`, `GridBox`, and `MasonryBox`. Template inference maps authored `BlockBox`/`Block` to the explicit block container, `FlowBox` and `FlexBox` to `WrapBox`, group aliases to the matching horizontal/vertical/grid containers, and `CanvasBox` to `Canvas`, so v2 component names can stay stable while the shared runtime keeps a compact container enum.
 
+Explicit legacy-template and v2 layout tables apply `MAX_UI_LAYOUT_DISCRETE_VALUE` before constructing runtime layout contracts. Grid track counts, slot coordinates/spans, and virtualization overscan above 4096 are rejected with the authored field in the diagnostic before downstream track vectors can be allocated. Responsive metadata and direct programmatic layout construction remain separate admission paths and are not qualified by this explicit-table gate.
+
 ## Taffy Bridge
 
 `zircon_runtime::ui::layout::taffy_bridge` converts only the Taffy-owned subset of `UiContainerKind` into `taffy::style::Style`: horizontal and vertical flex, grid, wrap, and explicit `BlockBox`. `BlockBox` maps to `UiLayoutEngineFamily::Block` and Taffy `Display::Block`; plain `Container`, `Space`, and `SizeBox` remain Zircon-owned and are not reinterpreted as block layout. The bridge copies min/preferred/max constraints into Taffy size fields and maps panel gaps to Taffy gap values.

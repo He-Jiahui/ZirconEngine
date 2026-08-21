@@ -46,7 +46,9 @@ Every subscription must select an `EngineEventDeliveryPolicy`:
 - `BoundedDropOldest { capacity }` bounds retained events and discards the oldest queued item under pressure.
 - `Latest` retains only the newest queued event.
 
-`EngineEventSubscription` returns `Arc<EngineEvent>` so a concrete runtime can fan one immutable event allocation out to many subscribers. `EventBusDiagnosticsMode` explicitly selects enabled collection or a disabled low-overhead path. `EventBusDiagnosticsSnapshot` exposes that mode, topic/subscriber totals, published/delivered/dropped/disconnected counts, current and peak queue depth, currently waiting receivers/publishers, queue-age samples, publish-duration samples, and a bus-wide aggregate of waits on per-topic delivery locks without exposing runtime storage.
+`EngineEventSubscription` returns `Arc<EngineEvent>` so a concrete runtime can fan one immutable event allocation out to many subscribers. `EventBusDiagnosticsMode` selects exhaustive `Enabled` timing, deterministic `Sampled { every }` timing, or the zero-counter `Disabled` path. The default interval is the named non-zero `DEFAULT_EVENT_BUS_TIMING_SAMPLE_INTERVAL` value of 64. Sampled mode keeps published/delivered/dropped/disconnected, queue-depth/peak and waiter counters exact; only routine publish-duration and queue-age timestamps are sampled, while observed delivery-lock contention remains exhaustively timed.
+
+`EventBusDiagnosticsSnapshot` exposes the active routine timing interval, topic/subscriber totals, exact traffic/depth/waiter counters, queue-age samples, publish-duration samples, and a bus-wide aggregate of waits on per-topic delivery locks without exposing runtime storage. An interval of one denotes exhaustive timing and zero denotes disabled collection.
 
 `EngineEventReceiveError`, `EngineEventTryReceiveError`, and `EngineEventReceiveTimeoutError` are framework-owned result enums. Concrete runtime/foundation adapters map their queue lifecycle into these errors at the boundary; public subscription contracts do not expose a concrete channel or queue implementation.
 

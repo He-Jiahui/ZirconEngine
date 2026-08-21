@@ -3,7 +3,7 @@ use std::fs;
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorManager;
 use crate::ui::workbench::layout::LayoutCommand;
-use crate::ui::workbench::view::ViewInstanceId;
+use crate::ui::workbench::view::{ViewDescriptorId, ViewInstanceId};
 use zircon_runtime::core::manager::ManagerResolver;
 
 use super::support::*;
@@ -172,7 +172,7 @@ fn project_workspace_rejects_ui_asset_source_outside_asset_roots() {
     assert!(!manager
         .current_view_instances()
         .iter()
-        .any(|instance| instance.descriptor_id.as_str() == "editor.ui_asset"));
+        .any(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.ui_asset")));
     assert!(manager.document_toolkit_snapshot().descriptors().is_empty());
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
