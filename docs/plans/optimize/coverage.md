@@ -3529,11 +3529,11 @@ Runtime03、Runtime graphics/asset/system、Editor12及各具体domain报告继�
 - 全仓生产搜索没有`ParticlesManager::tick` scheduler，`ParticleSystemComponent`也未进入Scene/ECS load/save/instantiate/remove；
 - Vampire通过`gameplay.set_particle_sprites`写`render.particle_sprites` JSON，Scene直接生成colored quads，绕过asset、simulation、material与plugin lifecycle；
 - GPU asset在manager内仍建立并推进CPU fallback，renderer-owned GPU owner又从同一manager克隆实例执行独立simulation，形成双backend authority；
-- manager用单一mutex串行tick/rewind/snapshot，diagnostic无界；handle在`u64::MAX`饱和后复用并可覆盖live实例；
+- manager仍用单一mutex串行tick/rewind/snapshot；当前工作树已将snapshot payload改为共享`Arc<[T]>`并把diagnostic改成有界分页队列，但handle在`u64::MAX`饱和后复用并可覆盖live实例；
 - `looped`没有consumer，CPU大dt spawn全部推进完整dt；无fixed substep、checkpoint/replay、world budget、LOD或scalability；
 - physics collision只是damping且`bounce`未消费，animation binding字段未求值；缺provider或target时多处只warning/静默`Ok`；
 - GPU把所有playing实例聚合为单一asset/backend，拓扑变化会重建全局资源；1,048,576 slot先到先得，双state约208 MiB且无budget；
-- 多实例各自算frame delta后以`max_dt`作为全局dispatch dt，较慢实例中的存活粒子可能被过推进；pause/stop/reset也没有稳定GPU state合同；
+- 多实例各自的dt会编码到emitter参数并由WGSL独立读取，旧“`max_dt`污染全部emitter”判断由Runtime103撤回；pause/stop/reset、aggregate重建和稳定GPU state合同仍未关闭；
 - CPU renderer每sprite扩6 vertex并为depth/overlay/velocity逐批新建buffer；CPU/GPU shader都只输出颜色，不消费material/texture/UV/rotation/soft particle，GPU无velocity/history；
 - 独立VFX Graph compiler只检查SpawnRate/material等存在性，固定声明`[1,1,1]` dispatch，simulation/transparent executor均直接`Ok(())`；
 - GPU tests在adapter请求失败时`.ok()?`返回None，没有typed skip receipt；也没有普通product scene完成load/tick/render/reload/save/reopen与规模/故障资格。
@@ -4126,7 +4126,7 @@ Material compiler只处理base color，Animation Graph compiler只返回output s
 
 包内已有CPU SoA/free list、局部确定性RNG、shape/burst/curve/sprite extract，以及真实WGSL、双buffer compute、compact、indirect draw和异步readback底座；manifest也诚实标为experimental/partial/default-off。纵向产品链仍断裂：runtime catalog已链接而editor catalog未链接，12个领域operation无event/factory且菜单全disabled，三个ZUI只有`Space`占位，CPU sprite TOML没有create/import/save consumer；NativeDynamic dist只返回metadata，无法投影source manager/render/editor行为。
 
-运行时又存在三条事实源：manager对GPU资产推进CPU fallback，renderer owner独立推进GPU aggregate，Scene/script则以dynamic JSON直接写最终sprites。全仓生产搜索没有普通scheduler调用`ParticlesManager::tick`、typed component instantiate/remove或GPU feedback回写；三个Render Graph compute executor只校验metadata，真实compute在runtime prepare中提前录制。GPU aggregate还会因实例增删/暂停/asset变化重建并重置其他系统，使用全局max dt且按顺序分配固定slot上限；CPU/GPU字段、material/texture与history语义不等价。
+运行时又存在三条事实源：manager对GPU资产推进CPU fallback，renderer owner独立推进GPU aggregate，Scene/script则以dynamic JSON直接写最终sprites。全仓生产搜索没有普通scheduler调用`ParticlesManager::tick`、typed component instantiate/remove或GPU feedback回写；三个Render Graph compute executor只校验metadata，真实compute在runtime prepare中提前录制。GPU aggregate还会因实例增删/暂停/asset变化重建并重置其他系统，并按顺序分配固定slot上限；Runtime103已确认每emitter dt独立编码，撤回旧全局max-dt污染判断。CPU/GPU字段、material/texture与history语义仍不等价。
 
 报告登记0项新增P0、48项P1、12项P2与32项资格门；Runtime26、Runtime05/09A/09B/09C、Editor15/50及Plugins01/06继续拥有最高优先级问题。本篇只拥有单包manifest/source/editor/runtime/dist/catalog纵向交付合同。本轮只写review与重构计划，未修改production/tests，未运行Cargo、GPU、Editor、NativeDynamic、save/reopen或产品场景。详见`zircon_plugins/09-first-party-particle-vfx-source-runtime-editor-dist-catalog-simulation-render-product-integration-review.md`。
 
