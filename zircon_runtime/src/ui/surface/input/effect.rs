@@ -10,6 +10,7 @@ mod popup_tooltip;
 mod redraw;
 mod target;
 mod text_services;
+mod transaction;
 
 use component_event::{apply_component_event_effect, component_event_report_for_effect};
 use drag_drop::apply_drag_drop_effect;
@@ -22,6 +23,7 @@ use popup_tooltip::apply_popup_tooltip_effect;
 use redraw::apply_redraw_effect;
 use target::effect_target;
 use text_services::apply_text_service_effect;
+use transaction::UiInputTransaction;
 use zircon_runtime_interface::ui::{
     dispatch::{
         UiDispatchAppliedEffect, UiDispatchEffect, UiDispatchHostRequest,
@@ -72,9 +74,21 @@ fn apply_dispatch_reply_core(
                 }
             });
 
+    let transaction = UiInputTransaction::prepare(surface, &reply.effects);
     for (effect_index, effect) in reply.effects.iter().cloned().enumerate() {
+        let rejected_before = result.rejected_effects.len();
         apply_dispatch_effect_at_index(surface, &mut result, effect_index, effect);
+        if result.rejected_effects.len() != rejected_before && transaction.is_atomic() {
+            let reason = result
+                .rejected_effects
+                .last()
+                .map(|rejected| rejected.reason.clone())
+                .unwrap_or_else(|| "effect rejected".to_string());
+            transaction.abort(surface, &mut result, effect_index, reason);
+            return result;
+        }
     }
+    transaction.commit(&mut result);
 
     result
 }

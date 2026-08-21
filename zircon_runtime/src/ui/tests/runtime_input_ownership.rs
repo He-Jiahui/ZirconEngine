@@ -27,6 +27,7 @@ mod input_method;
 mod owner_validation;
 mod popup_tooltip;
 mod route_trace;
+mod transaction;
 
 #[test]
 fn input_hot_paths_avoid_eager_capture_trace_and_effect_index_allocations() {
