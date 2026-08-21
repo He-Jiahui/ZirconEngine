@@ -76,6 +76,10 @@ pub(super) fn run_case(
     wait_until(load_started + LOAD_WINDOW);
     let load_elapsed = load_started.elapsed();
 
+    latencies.sort_unstable();
+    assert_eq!(latencies.len(), logs_per_second);
+    let caller_p95 = percentile_95(&latencies);
+
     let (sink, rss) = resources.finish();
     let output = output.snapshot();
     assert_case(
@@ -83,19 +87,19 @@ pub(super) fn run_case(
         formatted.load(Ordering::Relaxed),
         QUEUE_CAPACITY,
         sink_delay,
+        caller_p95,
         load_elapsed,
         &sink,
         &output,
         rss,
     );
-    latencies.sort_unstable();
 
     CaseReport::new(
         logs_per_second,
         caller_count,
         scoped_rule_count,
         sink_delay,
-        percentile_95(&latencies),
+        caller_p95,
         load_elapsed,
         rss,
         sink,

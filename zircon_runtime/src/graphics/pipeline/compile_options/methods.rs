@@ -1,5 +1,5 @@
 use crate::core::framework::render::{
-    IblBakeArtifactRequest, PostProcessStackDescriptor, ShaderQualityTier,
+    IblBakeArtifactRequest, PostProcessEffectKind, PostProcessStackDescriptor, ShaderQualityTier,
 };
 use crate::render_graph::QueueLane;
 
@@ -91,6 +91,14 @@ impl RenderPipelineCompileOptions {
 
     pub fn without_post_process_stack(mut self) -> Self {
         self.post_process_stack = None;
+        self
+    }
+
+    pub fn with_post_process_effect_disabled(mut self, effect: PostProcessEffectKind) -> Self {
+        self.post_process_stack = self
+            .post_process_stack
+            .take()
+            .map(|stack| stack.with_effect_disabled(effect));
         self
     }
 

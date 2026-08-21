@@ -615,10 +615,10 @@ fn validate_artifact_compressed_payload_bytes(
     // partial frame, so this bounds the immutable chunk inventory that read
     // may open for a raw payload already admitted above.
     let small_input_margin = (raw_bytes < ZSTD_COMPRESS_BOUND_SMALL_INPUT_BYTES)
-        .then_some(
+        .then(|| {
             (ZSTD_COMPRESS_BOUND_SMALL_INPUT_BYTES - raw_bytes)
-                / ZSTD_COMPRESS_BOUND_SMALL_INPUT_MARGIN_DIVISOR,
-        )
+                / ZSTD_COMPRESS_BOUND_SMALL_INPUT_MARGIN_DIVISOR
+        })
         .unwrap_or_default();
     let compressed_bound = raw_bytes
         .checked_add(raw_bytes / 256)
@@ -715,4 +715,30 @@ fn asset_kind_from_artifact_path(path: &str) -> Option<AssetKind> {
     ]
     .into_iter()
     .find_map(|(prefix, kind)| path.starts_with(prefix).then_some(kind))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn artifact_zstd_compress_bound_large_payload_accepts_exact_bound() {
+        let raw_bytes = ZSTD_COMPRESS_BOUND_SMALL_INPUT_BYTES + 1;
+        let compressed_bound = raw_bytes + raw_bytes / 256;
+
+        assert!(validate_artifact_compressed_payload_bytes(raw_bytes, compressed_bound).is_ok());
+    }
+
+    #[test]
+    fn artifact_zstd_compress_bound_large_payload_rejects_bytes_above_bound() {
+        let raw_bytes = ZSTD_COMPRESS_BOUND_SMALL_INPUT_BYTES + 1;
+        let compressed_bound = raw_bytes + raw_bytes / 256;
+
+        let error = validate_artifact_compressed_payload_bytes(raw_bytes, compressed_bound + 1)
+            .expect_err("bytes above the Zstd bound must be rejected");
+        let AssetImportError::Parse(message) = error else {
+            panic!("expected a parse error for an oversized compressed payload");
+        };
+        assert!(message.contains("exceeds the"));
+    }
 }

@@ -68,7 +68,7 @@ impl RenderPipelineAsset {
             .collect::<Vec<_>>();
         let mut enabled_descriptors = enabled_features
             .iter()
-            .map(|feature| feature_descriptor_for_options(feature, options))
+            .map(|feature| feature_descriptor_for_options(feature, options, &enabled_features))
             .collect::<Vec<_>>();
         let deferred_subsurface_supported = enabled_features.iter().any(|feature| {
             feature.is_builtin(crate::graphics::feature::BuiltinRenderFeature::DeferredGeometry)

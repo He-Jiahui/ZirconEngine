@@ -101,8 +101,107 @@ fn compile_routes_bloom_extract_after_split_scene_color_passes() {
         resource.name == PostProcessGraphResourceNames::BLOOM
             && resource.access == RenderGraphResourceAccessKind::Write
     }));
+    let uber = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "uber")
+        .expect("enabled post-process stack should retain uber");
+    let output_transfer = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "output-transfer")
+        .expect("enabled post-process stack should retain output transfer");
+    assert!(uber.dependencies.contains(&bloom_extract.id));
+    assert!(output_transfer.dependencies.contains(&uber.id));
+    assert!(graph_pass_index(&compiled, "bloom-extract") < graph_pass_index(&compiled, "uber"));
+    assert!(graph_pass_index(&compiled, "uber") < graph_pass_index(&compiled, "output-transfer"));
     let bloom = texture_lifetime(&compiled, PostProcessGraphResourceNames::BLOOM);
     assert_eq!(bloom.format, crate::rhi::TextureFormat::Rg11b10Ufloat);
+}
+
+#[test]
+fn compile_orders_unstacked_bloom_provider_before_uber() {
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile(&test_extract())
+        .expect("the default pipeline must order Bloom before its consumer");
+    let bloom_extract = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "bloom-extract")
+        .expect("the unstacked default pipeline should retain Bloom");
+    let uber = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "uber")
+        .expect("the unstacked default pipeline should retain uber");
+    let output_transfer = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "output-transfer")
+        .expect("the unstacked default pipeline should retain output transfer");
+
+    assert!(uber.dependencies.contains(&bloom_extract.id));
+    assert!(output_transfer.dependencies.contains(&uber.id));
+    assert!(graph_pass_index(&compiled, "bloom-extract") < graph_pass_index(&compiled, "uber"));
+    assert!(graph_pass_index(&compiled, "uber") < graph_pass_index(&compiled, "output-transfer"));
+}
+
+#[test]
+fn compile_removes_bloom_consumer_when_compile_options_disable_the_feature() {
+    let extract = test_extract();
+    let stack = PostProcessStackDescriptor::from_extract_settings(
+        &RenderBloomSettings {
+            intensity: 0.6,
+            ..Default::default()
+        },
+        &extract.post_process.color_grading,
+        false,
+        false,
+    );
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default()
+                .with_feature_disabled(BuiltinRenderFeature::Bloom)
+                .with_post_process_stack(stack),
+        )
+        .expect("disabled Bloom must not leave an unproduced uber input");
+
+    assert!(!graph_has_pass(&compiled, "bloom-extract"));
+    assert_pass_does_not_read(&compiled, "uber", PostProcessGraphResourceNames::BLOOM);
+}
+
+#[test]
+fn compile_removes_bloom_consumer_when_pipeline_has_no_bloom_provider() {
+    let extract = test_extract();
+    let stack = PostProcessStackDescriptor::from_extract_settings(
+        &RenderBloomSettings {
+            intensity: 0.6,
+            ..Default::default()
+        },
+        &extract.post_process.color_grading,
+        false,
+        false,
+    );
+    let mut pipeline = RenderPipelineAsset::default_forward_plus();
+    pipeline
+        .renderer
+        .features
+        .retain(|feature| !feature.is_builtin(BuiltinRenderFeature::Bloom));
+    let compiled = pipeline
+        .compile_with_options(
+            &extract,
+            &RenderPipelineCompileOptions::default().with_post_process_stack(stack),
+        )
+        .expect("missing Bloom provider must not leave an unproduced uber input");
+
+    assert!(!graph_has_pass(&compiled, "bloom-extract"));
+    assert_pass_does_not_read(&compiled, "uber", PostProcessGraphResourceNames::BLOOM);
 }
 
 #[test]

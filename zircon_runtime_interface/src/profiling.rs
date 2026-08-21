@@ -4,6 +4,10 @@ use crate::buffer::{ZrByteSlice, ZrOwnedResultV2};
 use crate::handles::ZrRuntimeSessionHandle;
 use crate::status::ZrStatus;
 
+mod session_path;
+
+pub use session_path::{profile_session_basename, PROFILE_SESSION_BASENAME_MAX_BYTES};
+
 pub type ZrRuntimeProfileControlFnV2 =
     unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrByteSlice, *mut ZrOwnedResultV2) -> ZrStatus;
 

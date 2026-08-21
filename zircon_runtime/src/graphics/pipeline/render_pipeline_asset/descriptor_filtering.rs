@@ -19,6 +19,7 @@ pub(super) fn feature_descriptor(feature: &RendererFeatureAsset) -> RenderFeatur
 pub(super) fn feature_descriptor_for_options(
     feature: &RendererFeatureAsset,
     options: &RenderPipelineCompileOptions,
+    enabled_features: &[RendererFeatureAsset],
 ) -> RenderFeatureDescriptor {
     let mut descriptor = feature.descriptor();
     if feature.is_builtin(BuiltinRenderFeature::Hzb) && !options.enable_hzb_occlusion_culling {
@@ -29,7 +30,7 @@ pub(super) fn feature_descriptor_for_options(
             descriptor = filter_taa_resolve_descriptor(descriptor);
         }
         if feature.is_builtin(BuiltinRenderFeature::PostProcess) {
-            descriptor = filter_no_stack_post_process_resources(descriptor);
+            descriptor = filter_no_stack_post_process_resources(descriptor, enabled_features);
         }
         if feature.is_builtin(BuiltinRenderFeature::AntiAlias) {
             descriptor = filter_no_stack_terminal_anti_alias_descriptor(descriptor);
@@ -37,16 +38,28 @@ pub(super) fn feature_descriptor_for_options(
         if feature.builtin_feature().is_none() {
             descriptor = filter_no_stack_plugin_post_process_resources(descriptor);
         }
+        route_tonemapped_inputs_to_uber(&mut descriptor, enabled_features);
         return descriptor;
     };
     let Some(builtin_feature) = feature.builtin_feature() else {
-        return filter_plugin_post_process_descriptor(descriptor, post_process_stack);
+        let mut descriptor =
+            filter_plugin_post_process_descriptor(descriptor, post_process_stack, enabled_features);
+        route_tonemapped_inputs_to_uber(&mut descriptor, enabled_features);
+        return descriptor;
     };
     if !post_process_stack_filters_feature(builtin_feature) {
+        route_tonemapped_inputs_to_uber(&mut descriptor, enabled_features);
         return descriptor;
     }
 
-    filter_post_process_descriptor(descriptor, builtin_feature, post_process_stack)
+    let mut descriptor = filter_post_process_descriptor(
+        descriptor,
+        builtin_feature,
+        post_process_stack,
+        enabled_features,
+    );
+    route_tonemapped_inputs_to_uber(&mut descriptor, enabled_features);
+    descriptor
 }
 
 fn filter_hzb_occlusion_descriptor(
@@ -72,7 +85,9 @@ fn filter_taa_resolve_descriptor(
 
 fn filter_no_stack_post_process_resources(
     mut descriptor: RenderFeatureDescriptor,
+    enabled_features: &[RendererFeatureAsset],
 ) -> RenderFeatureDescriptor {
+    let bloom_enabled = renderer_has_builtin_feature(enabled_features, BuiltinRenderFeature::Bloom);
     descriptor.stage_passes.retain(|pass| {
         !matches!(
             pass.executor_id.as_str(),
@@ -86,7 +101,9 @@ fn filter_no_stack_post_process_resources(
                 && resource.name != PostProcessGraphResourceNames::COLOR_LUT
                 && resource.name != PostProcessGraphResourceNames::UPSCALED
                 && resource.name != PostProcessGraphResourceNames::HYBRID_GI_LIGHTING
+                && (bloom_enabled || resource.name != PostProcessGraphResourceNames::BLOOM)
         });
+        route_bloom_input_to_provider(pass, bloom_enabled);
     }
     descriptor
 }
@@ -126,12 +143,15 @@ fn post_process_stack_filters_feature(feature: BuiltinRenderFeature) -> bool {
 fn filter_plugin_post_process_descriptor(
     mut descriptor: RenderFeatureDescriptor,
     stack: &PostProcessStackDescriptor,
+    enabled_features: &[RendererFeatureAsset],
 ) -> RenderFeatureDescriptor {
     let active_resources = OnceCell::new();
     descriptor.stage_passes = descriptor
         .stage_passes
         .into_iter()
-        .filter_map(|pass| filter_plugin_post_process_pass(pass, stack, &active_resources))
+        .filter_map(|pass| {
+            filter_plugin_post_process_pass(pass, stack, enabled_features, &active_resources)
+        })
         .collect();
     descriptor
 }
@@ -139,6 +159,7 @@ fn filter_plugin_post_process_descriptor(
 fn filter_plugin_post_process_pass(
     pass: RenderFeaturePassDescriptor,
     stack: &PostProcessStackDescriptor,
+    enabled_features: &[RendererFeatureAsset],
     active_resources: &OnceCell<BTreeSet<String>>,
 ) -> Option<RenderFeaturePassDescriptor> {
     if !plugin_post_process_pass_enabled(&pass, stack) {
@@ -155,7 +176,11 @@ fn filter_plugin_post_process_pass(
             pass,
             BuiltinRenderFeature::PostProcess,
             stack,
-            active_resources.get_or_init(|| active_post_process_graph_resources(stack)),
+            active_resources.get_or_init(|| {
+                let mut resources = active_post_process_graph_resources(stack);
+                remove_resources_without_enabled_provider(&mut resources, enabled_features);
+                resources
+            }),
         );
     }
     Some(pass)
@@ -186,8 +211,10 @@ fn filter_post_process_descriptor(
     mut descriptor: RenderFeatureDescriptor,
     feature: BuiltinRenderFeature,
     stack: &PostProcessStackDescriptor,
+    enabled_features: &[RendererFeatureAsset],
 ) -> RenderFeatureDescriptor {
-    let active_resources = active_post_process_graph_resources(stack);
+    let mut active_resources = active_post_process_graph_resources(stack);
+    remove_resources_without_enabled_provider(&mut active_resources, enabled_features);
     descriptor.stage_passes = descriptor
         .stage_passes
         .into_iter()
@@ -235,6 +262,10 @@ fn filter_post_process_pass(
         .into_iter()
         .filter(|resource| post_process_resource_is_active(resource, active_resources))
         .collect();
+    route_bloom_input_to_provider(
+        &mut pass,
+        active_resources.contains(PostProcessGraphResourceNames::BLOOM),
+    );
     route_bloom_to_latest_scene_color_input(&mut pass, feature, stack);
     route_scene_composite_to_latest_scene_color_input(&mut pass, feature, stack);
     route_blur_to_latest_color_input(&mut pass, feature, stack);
@@ -395,6 +426,24 @@ fn active_post_process_graph_resources(stack: &PostProcessStackDescriptor) -> BT
     resources
 }
 
+fn remove_resources_without_enabled_provider(
+    resources: &mut BTreeSet<String>,
+    enabled_features: &[RendererFeatureAsset],
+) {
+    if !renderer_has_builtin_feature(enabled_features, BuiltinRenderFeature::Bloom) {
+        resources.remove(PostProcessGraphResourceNames::BLOOM);
+    }
+}
+
+fn renderer_has_builtin_feature(
+    enabled_features: &[RendererFeatureAsset],
+    feature: BuiltinRenderFeature,
+) -> bool {
+    enabled_features
+        .iter()
+        .any(|candidate| candidate.is_builtin(feature))
+}
+
 fn post_process_resource_is_active(
     resource: &RenderFeatureResourceDescriptor,
     active_resources: &BTreeSet<String>,
@@ -473,6 +522,45 @@ fn route_resource_to_produced_input(
     resource.input_version = input.producer_pass_name.map(|producer_pass_name| {
         RenderFeatureResourceVersion::new(input.name, resource.kind, producer_pass_name)
     });
+}
+
+fn route_bloom_input_to_provider(pass: &mut RenderFeaturePassDescriptor, bloom_enabled: bool) {
+    if !bloom_enabled {
+        return;
+    }
+    for resource in &mut pass.resources {
+        if resource.access == RenderFeatureResourceAccess::Read
+            && resource.name == PostProcessGraphResourceNames::BLOOM
+        {
+            resource.input_version = Some(RenderFeatureResourceVersion::new(
+                PostProcessGraphResourceNames::BLOOM,
+                resource.kind,
+                "bloom-extract",
+            ));
+        }
+    }
+}
+
+fn route_tonemapped_inputs_to_uber(
+    descriptor: &mut RenderFeatureDescriptor,
+    enabled_features: &[RendererFeatureAsset],
+) {
+    if !renderer_has_builtin_feature(enabled_features, BuiltinRenderFeature::PostProcess) {
+        return;
+    }
+    for pass in &mut descriptor.stage_passes {
+        for resource in &mut pass.resources {
+            if resource.access == RenderFeatureResourceAccess::Read
+                && resource.name == PostProcessGraphResourceNames::TONEMAPPED
+            {
+                resource.input_version = Some(RenderFeatureResourceVersion::new(
+                    PostProcessGraphResourceNames::TONEMAPPED,
+                    resource.kind,
+                    "uber",
+                ));
+            }
+        }
+    }
 }
 
 fn route_scene_composite_to_latest_scene_color_input(

@@ -32,4 +32,17 @@ mod tests {
             assert!(!source.contains("finish_viewport_frame"));
         }
     }
+
+    #[test]
+    fn environment_only_profile_uses_direct_rendering_for_every_submission_shape() {
+        let extract_submit = include_str!("submit.rs");
+        let runtime_submit = include_str!("submit_runtime_frame.rs");
+        let present_submit = include_str!("present_frame_extract.rs");
+
+        for source in [extract_submit, runtime_submit, present_submit] {
+            assert!(source.contains("supports_compiled_scene_graph()"));
+            assert!(source.contains("render_frame_direct_submission"));
+        }
+        assert!(present_submit.contains("present_frame_direct"));
+    }
 }

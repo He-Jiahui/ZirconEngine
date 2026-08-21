@@ -510,6 +510,25 @@ impl PostProcessStackDescriptor {
         self
     }
 
+    pub fn with_effect_disabled(mut self, kind: PostProcessEffectKind) -> Self {
+        let disabled_outputs = self
+            .effects
+            .iter()
+            .filter(|effect| effect.kind == kind)
+            .flat_map(|effect| effect.produced_outputs.iter().cloned())
+            .collect::<Vec<_>>();
+        for effect in &mut self.effects {
+            if effect.kind == kind {
+                effect.enabled = false;
+            }
+            effect
+                .required_inputs
+                .retain(|resource| !disabled_outputs.contains(resource));
+            effect.after.retain(|dependency| *dependency != kind);
+        }
+        self
+    }
+
     pub fn without_history_resources(&self) -> Self {
         let mut stack = self.clone();
         stack.initial_resources.retain(|resource| {

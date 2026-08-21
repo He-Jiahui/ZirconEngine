@@ -1,9 +1,13 @@
 use super::*;
+use std::time::{Duration, Instant};
 
 const FILE_CARDINALITIES: [usize; 3] = [1, 1_000, 100_000];
 const DIRECTORY_CARDINALITIES: [usize; 3] = [1, 1_000, 100_000];
 const REFERENCE_CARDINALITIES: [usize; 3] = [1, 1_000, 100_000];
 const ROOT_CARDINALITIES: [usize; 2] = [1, 4];
+const REGISTERED_SOURCE_ENTRY_COUNT: usize = 2;
+const BASIC_FIXTURE_DIRECTORY_COUNT: usize = 3;
+const REFERENCE_FIXTURE_DIRECTORY_COUNT: usize = 4;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum MigrationScalePhase {
@@ -66,11 +70,13 @@ fn focused_dry_run_reports_production_work_counters() {
     )
     .unwrap();
 
+    let started = Instant::now();
     let report = migrate_project_assets(AssetMigrationOptions::new(
         &root,
         AssetMigrationMode::DryRun,
     ))
     .unwrap();
+    report_scale_sample("roots", 1, started.elapsed(), &report);
     assert!(report.succeeded());
     assert_eq!(report.scanned_files(), 1);
     assert_eq!(
@@ -81,18 +87,19 @@ fn focused_dry_run_reports_production_work_counters() {
             .count(),
         1
     );
+    assert_single_inventory_generation(
+        &report,
+        REGISTERED_SOURCE_ENTRY_COUNT + 1,
+        BASIC_FIXTURE_DIRECTORY_COUNT,
+    );
 
     let metrics = *report.metrics();
     fs::remove_dir_all(root).unwrap();
 
-    assert!(metrics.entry_visits() >= report.scanned_files());
-    assert!(metrics.directory_reads() > 0);
-    assert_eq!(metrics.directory_sorts(), metrics.directory_reads());
-    assert_eq!(metrics.resolver_filesystem_probes(), 0);
+    assert_eq!(metrics.resolver_index_lookups(), 4);
     assert_eq!(metrics.document_reads(), report.scanned_files());
     assert_eq!(metrics.document_parses(), report.scanned_files());
     assert_eq!(metrics.reference_visits(), 3);
-    assert_eq!(metrics.full_value_clones(), 0);
     assert!(metrics.output_bytes() > 0);
 }
 
@@ -113,10 +120,16 @@ fn unchanged_document_reports_real_lookup_work_without_output_bytes() {
     fs::write(
         &material,
         format!(
-            "version = 2\\n\\n[shader]\\nkind = \"project\"\\nguid = \"{shader_guid}\"\\npath_hint = \"assets/shaders/pbr.zshader\"\\n"
+            "version = 2\n\n[shader]\nkind = \"project\"\nguid = \"{shader_guid}\"\npath_hint = \"assets/shaders/pbr.zshader\"\n"
         ),
     )
     .unwrap();
+
+    let initial =
+        migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
+            .unwrap();
+    assert!(initial.succeeded());
+    assert_eq!(initial.changed_files().len(), 1);
 
     let report = migrate_project_assets(AssetMigrationOptions::new(
         &root,
@@ -148,16 +161,26 @@ fn production_counters_cover_dry_apply_unchanged_and_one_percent_change() {
     ))
     .unwrap();
     assert_production_counters(&dry_run, DOCUMENT_COUNT);
+    assert_single_inventory_generation(
+        &dry_run,
+        DOCUMENT_COUNT + REGISTERED_SOURCE_ENTRY_COUNT,
+        BASIC_FIXTURE_DIRECTORY_COUNT,
+    );
     assert!(!dry_run.applied());
-    assert_eq!(dry_run.changed_files().len(), DOCUMENT_COUNT);
+    assert_eq!(dry_run.changed_files().len(), DOCUMENT_COUNT * 2);
     assert!(dry_run.metrics().output_bytes() > 0);
 
     let apply =
         migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
             .unwrap();
     assert_production_counters(&apply, DOCUMENT_COUNT);
+    assert_single_inventory_generation(
+        &apply,
+        DOCUMENT_COUNT + REGISTERED_SOURCE_ENTRY_COUNT,
+        BASIC_FIXTURE_DIRECTORY_COUNT,
+    );
     assert!(apply.applied());
-    assert_eq!(apply.changed_files().len(), DOCUMENT_COUNT);
+    assert_eq!(apply.changed_files().len(), DOCUMENT_COUNT * 2);
 
     let unchanged = migrate_project_assets(AssetMigrationOptions::new(
         &root,
@@ -165,6 +188,11 @@ fn production_counters_cover_dry_apply_unchanged_and_one_percent_change() {
     ))
     .unwrap();
     assert_production_counters(&unchanged, DOCUMENT_COUNT);
+    assert_single_inventory_generation(
+        &unchanged,
+        DOCUMENT_COUNT * 2 + REGISTERED_SOURCE_ENTRY_COUNT,
+        BASIC_FIXTURE_DIRECTORY_COUNT,
+    );
     assert!(unchanged.changed_files().is_empty());
     assert_eq!(unchanged.metrics().output_bytes(), 0);
 
@@ -175,6 +203,11 @@ fn production_counters_cover_dry_apply_unchanged_and_one_percent_change() {
     ))
     .unwrap();
     assert_production_counters(&one_percent_change, DOCUMENT_COUNT);
+    assert_single_inventory_generation(
+        &one_percent_change,
+        DOCUMENT_COUNT * 2 + REGISTERED_SOURCE_ENTRY_COUNT,
+        BASIC_FIXTURE_DIRECTORY_COUNT,
+    );
     assert_eq!(
         one_percent_change.changed_files().len(),
         DOCUMENT_COUNT / 100
@@ -189,17 +222,24 @@ fn four_roots_share_one_inventory_generation() {
     let roots = ["assets-a", "assets-b", "assets-c", "assets-d"];
     let shader_guid: AssetUuid = "ab111111-2222-4333-8444-555555555555".parse().unwrap();
     setup_project(&root, &roots, shader_guid);
-    for asset_root in roots {
-        write_retired_materials(&root, asset_root, 1, shader_guid);
+    for (index, asset_root) in roots.into_iter().enumerate() {
+        write_retired_material(&root, asset_root, index, shader_guid);
     }
 
+    let started = Instant::now();
     let report = migrate_project_assets(AssetMigrationOptions::new(
         &root,
         AssetMigrationMode::DryRun,
     ))
     .unwrap();
+    report_scale_sample("roots", roots.len(), started.elapsed(), &report);
     assert_production_counters(&report, roots.len());
-    assert_eq!(report.changed_files().len(), roots.len());
+    assert_single_inventory_generation(
+        &report,
+        roots.len() + REGISTERED_SOURCE_ENTRY_COUNT,
+        roots.len() * 2 + 1,
+    );
+    assert_eq!(report.changed_files().len(), roots.len() * 2);
 
     fs::remove_dir_all(root).unwrap();
 }
@@ -213,12 +253,19 @@ fn managed_scale_sweep_executes_declared_cardinalities() {
         setup_project(&root, &["assets"], shader_guid);
         write_retired_materials(&root, "assets", document_count, shader_guid);
 
+        let started = Instant::now();
         let report = migrate_project_assets(AssetMigrationOptions::new(
             &root,
             AssetMigrationMode::DryRun,
         ))
         .unwrap();
+        report_scale_sample("files", document_count, started.elapsed(), &report);
         assert_production_counters(&report, document_count);
+        assert_single_inventory_generation(
+            &report,
+            document_count + REGISTERED_SOURCE_ENTRY_COUNT,
+            BASIC_FIXTURE_DIRECTORY_COUNT,
+        );
         assert!(report.metrics().reference_visits() >= document_count * 3);
 
         fs::remove_dir_all(root).unwrap();
@@ -238,12 +285,19 @@ fn managed_scale_sweep_executes_declared_cardinalities() {
         );
         write_reference_dense_material(&root, reference_count, shader_guid, texture_guid);
 
+        let started = Instant::now();
         let report = migrate_project_assets(AssetMigrationOptions::new(
             &root,
             AssetMigrationMode::DryRun,
         ))
         .unwrap();
+        report_scale_sample("references", reference_count, started.elapsed(), &report);
         assert_production_counters(&report, 1);
+        assert_single_inventory_generation(
+            &report,
+            REGISTERED_SOURCE_ENTRY_COUNT * 2 + 1,
+            REFERENCE_FIXTURE_DIRECTORY_COUNT,
+        );
         assert!(report.metrics().reference_visits() >= (reference_count + 1) * 3);
 
         fs::remove_dir_all(root).unwrap();
@@ -254,20 +308,23 @@ fn managed_scale_sweep_executes_declared_cardinalities() {
         write_manifest(&root, &["assets"]);
         write_empty_directories(&root, directory_count);
 
+        let started = Instant::now();
         let report = migrate_project_assets(AssetMigrationOptions::new(
             &root,
             AssetMigrationMode::DryRun,
         ))
         .unwrap();
+        report_scale_sample("directories", directory_count, started.elapsed(), &report);
         assert!(report.succeeded());
         assert_eq!(report.scanned_files(), 0);
         assert_eq!(report.metrics().document_reads(), 0);
         assert_eq!(report.metrics().document_parses(), 0);
-        assert!(report.metrics().directory_reads() >= directory_count);
-        assert_eq!(
-            report.metrics().directory_sorts(),
-            report.metrics().directory_reads()
+        assert_single_inventory_generation(
+            &report,
+            0,
+            directory_count + REGISTERED_SOURCE_ENTRY_COUNT,
         );
+        assert_eq!(report.metrics().resolver_index_lookups(), 0);
 
         fs::remove_dir_all(root).unwrap();
     }
@@ -352,11 +409,46 @@ fn assert_production_counters(
     assert_eq!(report.scanned_files(), document_count);
     assert_eq!(report.metrics().document_reads(), document_count);
     assert_eq!(report.metrics().document_parses(), document_count);
-    assert!(report.metrics().entry_visits() >= document_count);
-    assert_eq!(
-        report.metrics().directory_sorts(),
-        report.metrics().directory_reads()
+    let lookups = report.metrics().resolver_index_lookups();
+    let visits = report.metrics().reference_visits();
+    assert!(
+        lookups >= visits,
+        "fixture project references must query the index"
     );
-    assert_eq!(report.metrics().resolver_filesystem_probes(), 0);
-    assert_eq!(report.metrics().full_value_clones(), 0);
+    assert!(
+        lookups <= visits.saturating_mul(2),
+        "one project-reference visit performs at most a hint and locator query"
+    );
+}
+
+fn assert_single_inventory_generation(
+    report: &crate::asset::migration::AssetMigrationReport,
+    expected_entry_visits: usize,
+    expected_directory_reads: usize,
+) {
+    assert_eq!(report.metrics().entry_visits(), expected_entry_visits);
+    assert_eq!(report.metrics().directory_reads(), expected_directory_reads);
+    assert_eq!(report.metrics().directory_sorts(), expected_directory_reads);
+}
+
+fn report_scale_sample(
+    dimension: &str,
+    cardinality: usize,
+    elapsed: Duration,
+    report: &crate::asset::migration::AssetMigrationReport,
+) {
+    let metrics = report.metrics();
+    println!(
+        "MIGRATION_SCALE dimension={dimension} cardinality={cardinality} elapsed_ms={:.3} scanned_files={} entry_visits={} directory_reads={} directory_sorts={} resolver_index_lookups={} document_reads={} document_parses={} reference_visits={} output_bytes={}",
+        elapsed.as_secs_f64() * 1_000.0,
+        report.scanned_files(),
+        metrics.entry_visits(),
+        metrics.directory_reads(),
+        metrics.directory_sorts(),
+        metrics.resolver_index_lookups(),
+        metrics.document_reads(),
+        metrics.document_parses(),
+        metrics.reference_visits(),
+        metrics.output_bytes(),
+    );
 }

@@ -183,33 +183,45 @@ fn present_selected_camera_frame(
         };
         let present_result = {
             crate::profile_scope!("runtime", "render_framework", "present_frame_with_pipeline");
-            renderer.present_frame_with_pipeline_task_pool_with_environment_ibl_bake_reservation(
-                &runtime_frame,
-                context.compiled_pipeline(),
-                context.capabilities(),
-                resolved_history.current_history_handle(),
-                resolved_history.previous_history_available(),
-                surface_lease.value_mut(),
-                framework.compute_task_pool(),
-                environment_ibl_bake_reservation,
-            )
+            if renderer.supports_compiled_scene_graph() {
+                renderer
+                    .present_frame_with_pipeline_task_pool_with_environment_ibl_bake_reservation(
+                        &runtime_frame,
+                        context.compiled_pipeline(),
+                        context.capabilities(),
+                        resolved_history.current_history_handle(),
+                        resolved_history.previous_history_available(),
+                        surface_lease.value_mut(),
+                        framework.compute_task_pool(),
+                        environment_ibl_bake_reservation,
+                    )
+            } else {
+                renderer.present_frame_direct(&runtime_frame, surface_lease.value_mut())
+            }
         };
         surface_lease.restore();
         present_result.map_err(render_framework_backend_error)
     } else {
         crate::profile_scope!("runtime", "render_framework", "render_frame_with_pipeline");
-        state
-            .renderer
-            .render_frame_with_pipeline_async_capture_task_pool_with_environment_ibl_bake_reservation(
-                &runtime_frame,
-                context.compiled_pipeline(),
-                context.capabilities(),
-                resolved_history.current_history_handle(),
-                resolved_history.previous_history_available(),
-                framework.compute_task_pool(),
-                None,
-                environment_ibl_bake_reservation,
-            )
+        let result = if state.renderer.supports_compiled_scene_graph() {
+            state
+                .renderer
+                .render_frame_with_pipeline_async_capture_task_pool_with_environment_ibl_bake_reservation(
+                    &runtime_frame,
+                    context.compiled_pipeline(),
+                    context.capabilities(),
+                    resolved_history.current_history_handle(),
+                    resolved_history.previous_history_available(),
+                    framework.compute_task_pool(),
+                    None,
+                    environment_ibl_bake_reservation,
+                )
+        } else {
+            state
+                .renderer
+                .render_frame_direct_submission(&runtime_frame)
+        };
+        result
             .map(|frame| frame.generation)
             .map_err(render_framework_backend_error)
     };

@@ -143,18 +143,23 @@ fn submit_selected_runtime_frame(
     let environment_ibl_bake_reservation = context.take_environment_ibl_bake_reservation();
     let rendered_frame = {
         crate::profile_scope!("runtime", "render_framework", "render_frame_with_pipeline");
-        match state
-            .renderer
-            .render_frame_with_pipeline_async_capture_task_pool_with_environment_ibl_bake_reservation(
-                &*frame,
-                context.compiled_pipeline(),
-                context.capabilities(),
-                resolved_history.current_history_handle(),
-                resolved_history.previous_history_available(),
-                framework.compute_task_pool(),
-                viewport_capture,
-                environment_ibl_bake_reservation,
-            ) {
+        let result = if state.renderer.supports_compiled_scene_graph() {
+            state
+                .renderer
+                .render_frame_with_pipeline_async_capture_task_pool_with_environment_ibl_bake_reservation(
+                    &*frame,
+                    context.compiled_pipeline(),
+                    context.capabilities(),
+                    resolved_history.current_history_handle(),
+                    resolved_history.previous_history_available(),
+                    framework.compute_task_pool(),
+                    viewport_capture,
+                    environment_ibl_bake_reservation,
+                )
+        } else {
+            state.renderer.render_frame_direct_submission(frame)
+        };
+        match result {
             Ok(frame) => frame,
             Err(error) => {
                 let error = render_framework_backend_error(error);

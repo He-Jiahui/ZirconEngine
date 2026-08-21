@@ -1,4 +1,7 @@
 use super::*;
+use crate::core::framework::render::{
+    PostProcessEffectKind, RenderBloomSettings, RenderTonemapOperator, RenderTonemapSettings,
+};
 
 #[test]
 fn forward_plus_pipeline_compilation_is_deterministic() {
@@ -65,6 +68,76 @@ fn compile_options_can_disable_clustered_history_and_rendering_plugin_features()
         .contains(&FrameHistoryBinding::read_write(
             FrameHistorySlot::AmbientOcclusion
         )));
+}
+
+#[test]
+fn compile_options_can_disable_bloom_before_a_post_process_stack_is_available() {
+    let options =
+        RenderPipelineCompileOptions::default().with_feature_disabled(BuiltinRenderFeature::Bloom);
+
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(&test_extract(), &options)
+        .expect("the bootstrap graph must not retain inputs from disabled features");
+    assert!(!compiled
+        .graph()
+        .passes()
+        .iter()
+        .any(|pass| pass.name == "bloom-extract"));
+    let uber = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "uber")
+        .expect("the bootstrap graph should retain the uber pass");
+    assert!(!uber.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::BLOOM
+            && resource.access == RenderGraphResourceAccessKind::Read
+    }));
+}
+
+#[test]
+fn compile_options_can_disable_bloom_without_leaving_an_unproduced_uber_input() {
+    let extract = test_extract();
+    let stack = PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+        &RenderBloomSettings {
+            intensity: 0.6,
+            ..Default::default()
+        },
+        &extract.post_process.color_grading,
+        &RenderPostProcessEffectStackSettings {
+            tonemap: RenderTonemapSettings {
+                operator: RenderTonemapOperator::Aces,
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+        false,
+        false,
+        &AntiAliasSettings::off(),
+    );
+    let options = RenderPipelineCompileOptions::default()
+        .with_post_process_stack(stack)
+        .with_feature_disabled(BuiltinRenderFeature::Bloom)
+        .with_post_process_effect_disabled(PostProcessEffectKind::Bloom);
+
+    let compiled = RenderPipelineAsset::default_forward_plus()
+        .compile_with_options(&extract, &options)
+        .expect("disabling Bloom must also remove its post-process resource dependencies");
+    assert!(!compiled
+        .graph()
+        .passes()
+        .iter()
+        .any(|pass| pass.name == "bloom-extract"));
+    let uber = compiled
+        .graph()
+        .passes()
+        .iter()
+        .find(|pass| pass.name == "uber")
+        .expect("tonemapping should retain the uber pass");
+    assert!(!uber.resources.iter().any(|resource| {
+        resource.name == PostProcessGraphResourceNames::BLOOM
+            && resource.access == RenderGraphResourceAccessKind::Read
+    }));
 }
 
 #[test]

@@ -1,5 +1,5 @@
 use crate::core::framework::render::{
-    AntiAliasSettings, FrameHistoryInvalidationReason, PostProcessPassGraph,
+    AntiAliasSettings, FrameHistoryInvalidationReason, PostProcessEffectKind, PostProcessPassGraph,
     PostProcessStackDescriptor, RenderBloomSettings, RenderCameraTargetResolutionReport,
     RenderColorGradingSettings, RenderDynamicResolutionSettings, RenderFrameExtract,
     RenderFrameworkError, RenderHybridGiExtract, RenderHybridGiPayloadSource, RenderPipelinePhase,
@@ -317,12 +317,16 @@ fn build_frame_submission_context_from_source(
             "view-family post-process graph validation failed: {error}"
         ))
     })?;
-    let compile_options = compile_options_with_environment_ibl_bake_request(
-        effective_extract,
+    let final_budget_compile_options = compile_options_for_budget_degrade(
         budget_compile_options
             .clone()
             .with_graph_msaa_sample_count(anti_alias_report.effective_graph_sample_count())
             .with_post_process_stack(post_process_stack.clone()),
+        budget_degrade_settings,
+    );
+    let compile_options = compile_options_with_environment_ibl_bake_request(
+        effective_extract,
+        final_budget_compile_options,
         environment_ibl_cache_resolution.as_ref(),
     )?;
     let compiled_pipeline = compile_submission_pipeline_with_options(
@@ -453,7 +457,9 @@ fn compile_options_for_budget_degrade(
         options = options.with_plugin_feature_disabled("contact_shadow");
     }
     if settings.disable_bloom_high {
-        options = options.with_feature_disabled(BuiltinRenderFeature::Bloom);
+        options = options
+            .with_feature_disabled(BuiltinRenderFeature::Bloom)
+            .with_post_process_effect_disabled(PostProcessEffectKind::Bloom);
     }
     options
 }
@@ -618,7 +624,10 @@ fn apply_effective_view_and_graph_settings(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::framework::render::{CameraRenderDescriptor, ViewportCameraSnapshot};
+    use crate::core::framework::render::{
+        CameraRenderDescriptor, PostProcessGraphResourceNames, RenderTonemapOperator,
+        RenderTonemapSettings, ViewportCameraSnapshot,
+    };
 
     #[test]
     fn virtual_geometry_payload_source_prefers_authored_extract() {
@@ -663,6 +672,56 @@ mod tests {
             hybrid_gi_payload_source_for_frame(true, false),
             RenderHybridGiPayloadSource::None
         );
+    }
+
+    #[test]
+    fn bloom_budget_degrade_synchronizes_the_feature_gate_and_post_process_stack() {
+        let rebuilt_stack =
+            PostProcessStackDescriptor::from_extract_settings_with_effect_stack_and_anti_alias(
+                &RenderBloomSettings {
+                    intensity: 0.6,
+                    ..Default::default()
+                },
+                &RenderColorGradingSettings::default(),
+                &RenderPostProcessEffectStackSettings {
+                    tonemap: RenderTonemapSettings {
+                        operator: RenderTonemapOperator::Aces,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+                false,
+                false,
+                &AntiAliasSettings::off(),
+            );
+        let settings = BudgetDegradeSettings {
+            disable_bloom_high: true,
+            ..Default::default()
+        };
+        let initial_options =
+            compile_options_for_budget_degrade(RenderPipelineCompileOptions::default(), settings);
+        let options = compile_options_for_budget_degrade(
+            initial_options.with_post_process_stack(rebuilt_stack),
+            settings,
+        );
+
+        assert!(options
+            .disabled_features
+            .contains(&BuiltinRenderFeature::Bloom));
+        let stack = options
+            .post_process_stack
+            .expect("budget degradation should preserve the remaining post-process stack");
+        assert!(stack
+            .effects
+            .iter()
+            .any(|effect| { effect.kind == PostProcessEffectKind::Bloom && !effect.enabled }));
+        assert!(stack.effects.iter().all(|effect| {
+            !effect
+                .required_inputs
+                .iter()
+                .any(|resource| resource == PostProcessGraphResourceNames::BLOOM)
+                && !effect.after.contains(&PostProcessEffectKind::Bloom)
+        }));
     }
 
     #[test]

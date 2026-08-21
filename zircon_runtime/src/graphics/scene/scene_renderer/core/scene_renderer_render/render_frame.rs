@@ -3,13 +3,31 @@ use std::time::Instant;
 use crate::core::framework::render::RenderCaptureReport;
 use crate::graphics::types::{GraphicsError, ViewportFrame, ViewportRenderFrame};
 
-use super::super::scene_renderer::{SceneRenderer, SceneRendererFrameTimingReport};
-use super::super::scene_renderer_render_with_pipeline::render_gpu_timing_status;
+use super::super::scene_renderer::{
+    SceneRenderer, SceneRendererCaptureTarget, SceneRendererFrameTimingReport,
+};
+use super::super::scene_renderer_render_with_pipeline::{
+    render_gpu_timing_status, ViewportAsyncCaptureSubmission,
+};
 use super::super::scene_renderer_runtime_outputs::reset_last_runtime_outputs;
 use super::super::scene_renderer_target::{ensure_offscreen_target, finish_viewport_frame};
 use super::super::target_extent::viewport_size;
 
 impl SceneRenderer {
+    pub(crate) fn render_frame_direct_submission(
+        &mut self,
+        frame: &ViewportRenderFrame,
+    ) -> Result<ViewportAsyncCaptureSubmission, GraphicsError> {
+        self.render_frame_to_offscreen_target(frame)?;
+        let target = self.target.as_ref().expect("offscreen target");
+        Ok(ViewportAsyncCaptureSubmission::new(
+            self.generation,
+            target.size,
+            RenderCaptureReport::framework_offscreen(frame.output_target().kind(), target.size),
+            false,
+        ))
+    }
+
     pub(in crate::graphics) fn render_frame(
         &mut self,
         frame: &ViewportRenderFrame,
@@ -100,6 +118,12 @@ impl SceneRenderer {
             &target.final_color_view,
             target.size,
         )?;
+        self.last_capture_target = Some(SceneRendererCaptureTarget {
+            output_target: frame.output_target(),
+            owns_final_target_output: frame
+                .camera_stack_output_policy()
+                .owns_final_target_output(),
+        });
         self.generation += 1;
         Ok(())
     }

@@ -5,6 +5,7 @@ use super::rss::RssSnapshot;
 use crate::diagnostic_log::DiagnosticLogSinkSnapshot;
 
 const MAX_RSS_GROWTH_BYTES: u64 = 128 * 1024 * 1024;
+const MAX_CALLER_P95: Duration = Duration::from_millis(50);
 
 pub(super) struct CaseReport {
     logs_per_second: usize,
@@ -87,12 +88,14 @@ pub(super) fn assert_case(
     formatted: usize,
     queue_capacity: usize,
     sink_delay: Duration,
+    caller_p95: Duration,
     load_elapsed: Duration,
     sink: &DiagnosticLogSinkSnapshot,
     output: &OutputSnapshot,
     rss: RssSnapshot,
 ) {
     assert_eq!(formatted, attempted);
+    assert_caller_latency(caller_p95);
     assert!(load_elapsed >= Duration::from_secs(1));
     assert!(load_elapsed <= Duration::from_millis(1_250));
     assert_eq!(sink.dequeued_records + sink.dropped_debug, attempted as u64);
@@ -127,6 +130,15 @@ pub(super) fn assert_case(
     }
 }
 
+fn assert_caller_latency(caller_p95: Duration) {
+    assert!(
+        caller_p95 <= MAX_CALLER_P95,
+        "caller P95 {:?} exceeded {:?} release budget",
+        caller_p95,
+        MAX_CALLER_P95
+    );
+}
+
 pub(super) fn percentile_95(latencies: &[Duration]) -> Duration {
     let index = latencies
         .len()
@@ -134,4 +146,21 @@ pub(super) fn percentile_95(latencies: &[Duration]) -> Duration {
         .div_ceil(100)
         .saturating_sub(1);
     latencies.get(index).copied().unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{assert_caller_latency, MAX_CALLER_P95};
+    use std::time::Duration;
+
+    #[test]
+    fn caller_latency_gate_accepts_the_budget_boundary() {
+        assert_caller_latency(MAX_CALLER_P95);
+    }
+
+    #[test]
+    #[should_panic(expected = "exceeded")]
+    fn caller_latency_gate_rejects_an_over_budget_sample() {
+        assert_caller_latency(MAX_CALLER_P95 + Duration::from_micros(1));
+    }
 }

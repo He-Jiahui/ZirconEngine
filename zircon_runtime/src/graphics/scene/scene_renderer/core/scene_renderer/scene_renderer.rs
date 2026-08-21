@@ -90,6 +90,7 @@ impl SceneRendererGpuPassTiming {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SceneRendererGpuTimingReport {
     pub(in crate::graphics::scene::scene_renderer::core) frame_generation: u64,
+    pub(in crate::graphics::scene::scene_renderer::core) timestamp_period_ns_bits: u32,
     pub(in crate::graphics::scene::scene_renderer::core) pass_timings:
         Vec<SceneRendererGpuPassTiming>,
 }
@@ -97,16 +98,26 @@ pub struct SceneRendererGpuTimingReport {
 impl SceneRendererGpuTimingReport {
     pub fn new(
         frame_generation: u64,
+        timestamp_period_ns: f32,
         pass_timings: impl IntoIterator<Item = SceneRendererGpuPassTiming>,
     ) -> Self {
         Self {
             frame_generation,
+            timestamp_period_ns_bits: timestamp_period_ns.to_bits(),
             pass_timings: pass_timings.into_iter().collect(),
         }
     }
 
     pub const fn frame_generation(&self) -> u64 {
         self.frame_generation
+    }
+
+    pub const fn timestamp_period_ns(&self) -> f32 {
+        f32::from_bits(self.timestamp_period_ns_bits)
+    }
+
+    pub const fn timestamp_period_ns_bits(&self) -> u32 {
+        self.timestamp_period_ns_bits
     }
 
     pub fn pass_timings(&self) -> &[SceneRendererGpuPassTiming] {
@@ -667,6 +678,12 @@ mod tests {
 impl SceneRenderer {
     pub(crate) fn next_frame_generation(&self) -> u64 {
         self.generation.wrapping_add(1)
+    }
+
+    pub(crate) fn supports_compiled_scene_graph(&self) -> bool {
+        self.core
+            .deferred_lighting_profile
+            .supports_compiled_scene_graph()
     }
 
     pub(crate) fn set_global_material_mip_bias(&mut self, mip_bias: f32) {
