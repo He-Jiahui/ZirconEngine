@@ -652,6 +652,9 @@ class GitFinalizeService:
         message: str,
         lifecycle_keys: list[str] | tuple[str, ...],
         precommit_guard: Callable[[], None] | None = None,
+        delegated_paths: tuple[str, ...] = (),
+        delegation_guard: Callable[[], None] | None = None,
+        delegation_consumer: Callable[[str], None] | None = None,
         request_id: str | None = None,
     ) -> FinalizeResult:
         """Atomically commit exact fixed Failure lifecycles without closing the Session."""
@@ -683,6 +686,9 @@ class GitFinalizeService:
                 )
             ),
             allow_proof_only_paths=True,
+            delegated_paths=delegated_paths,
+            delegation_guard=delegation_guard,
+            delegation_consumer=delegation_consumer,
         )
 
     def _commit_scoped(
@@ -698,11 +704,15 @@ class GitFinalizeService:
         status_error_code: str,
         acceptance_guard: Callable[[object, tuple[str, ...]], None],
         allow_proof_only_paths: bool,
+        delegated_paths: tuple[str, ...] = (),
+        delegation_guard: Callable[[], None] | None = None,
+        delegation_consumer: Callable[[str], None] | None = None,
     ) -> FinalizeResult:
         normalized = tuple(sorted({self._normalize(path) for path in paths}, key=str.casefold))
         if not normalized:
             raise CoordinatorError("milestone_paths_empty", "Milestone commit requires paths")
         commit_paths: tuple[str, ...] = ()
+        ordinary_commit_paths: tuple[str, ...] = ()
         untracked_paths: tuple[str, ...] = ()
         request_id = request_id or uuid.uuid4().hex
         session = self.sessions.get(session_id)
@@ -754,6 +764,25 @@ class GitFinalizeService:
             committable_proof = tuple(
                 path for path in normalized if path not in coordinator_state_proof
             )
+            delegated = tuple(
+                sorted(
+                    {self._normalize(path) for path in delegated_paths},
+                    key=str.casefold,
+                )
+            )
+            if not set(delegated) <= set(committable_proof):
+                raise CoordinatorError(
+                    "failure_closeout_delegation_binding_mismatch",
+                    "Delegated paths must be part of the exact committable closeout proof",
+                    details={"paths": list(delegated)},
+                )
+            if delegated and (
+                delegation_guard is None or delegation_consumer is None
+            ):
+                raise CoordinatorError(
+                    "failure_closeout_delegation_guard_missing",
+                    "Delegated paths require proof validation and consumption callbacks",
+                )
             differing_from_head = self._worktree_paths_differing_from_head(
                 committable_proof
             )
@@ -762,12 +791,34 @@ class GitFinalizeService:
                 for path in committable_proof
                 if path in differing_from_head
             )
-            self._require_attribution(session_id, material_paths, maintenance=False)
-            commit_paths = self._require_owned_scope(
+            if not set(delegated) <= set(material_paths):
+                raise CoordinatorError(
+                    "failure_closeout_delegation_not_material",
+                    "Every delegated fixed artifact must differ from HEAD",
+                    details={"paths": list(delegated)},
+                )
+            if delegation_guard is not None:
+                delegation_guard()
+            ordinary_proof = tuple(
+                path for path in committable_proof if path not in set(delegated)
+            )
+            ordinary_material = tuple(
+                path for path in material_paths if path not in set(delegated)
+            )
+            self._require_attribution(
+                session_id, ordinary_material, maintenance=False
+            )
+            ordinary_commit_paths = self._require_owned_scope(
                 session_id,
-                committable_proof,
+                ordinary_proof,
                 maintenance=False,
                 allow_proof_only_paths=allow_proof_only_paths,
+            )
+            commit_paths = tuple(
+                sorted(
+                    {*ordinary_commit_paths, *delegated},
+                    key=str.casefold,
+                )
             )
             if not commit_paths:
                 raise CoordinatorError(
@@ -784,7 +835,7 @@ class GitFinalizeService:
             )
             self._require_plan_outputs(session, normalized, maintenance=False)
             acceptance_guard(session, normalized)
-            self._require_live_owned_leases(session_id, commit_paths)
+            self._require_live_owned_leases(session_id, ordinary_commit_paths)
             self._require_no_pending_patches(session_id)
             with self.database.transaction() as connection:
                 connection.execute(
@@ -824,11 +875,11 @@ class GitFinalizeService:
                 self._git_add_partition(ordinary_paths, force_add_paths)
                 self._require_index_scope(commit_paths)
                 self._require_post_stage_attribution(
-                    session_id, commit_paths, maintenance=False
+                    session_id, ordinary_commit_paths, maintenance=False
                 )
                 self._require_index_matches_worktree(commit_paths)
                 self._require_post_stage_attribution(
-                    session_id, commit_paths, maintenance=False
+                    session_id, ordinary_commit_paths, maintenance=False
                 )
                 expected_blobs = self._staged_blobs(commit_paths)
                 self._require_no_staged_secrets()
@@ -843,8 +894,10 @@ class GitFinalizeService:
                 self._require_index_scope(commit_paths)
                 self._require_staged_attribution(expected_blobs, maintenance=False)
                 self._require_no_staged_secrets()
-                self._require_live_owned_leases(session_id, commit_paths)
+                self._require_live_owned_leases(session_id, ordinary_commit_paths)
                 acceptance_guard(session, normalized)
+                if delegation_guard is not None:
+                    delegation_guard()
                 if precommit_guard is not None:
                     precommit_guard()
                 commit_sha = self._create_scoped_commit(
@@ -857,6 +910,8 @@ class GitFinalizeService:
                            WHERE request_id = ?""",
                         (commit_sha, request_id),
                     )
+                if delegation_consumer is not None:
+                    delegation_consumer(commit_sha)
                 self.baselines.accept_commit(
                     commit_paths,
                     commit_sha=commit_sha,

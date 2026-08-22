@@ -171,6 +171,40 @@ class DatabaseTests(unittest.TestCase):
 
             self.assertIn("details_json", columns)
 
+    def test_latest_schema_persists_delegated_failure_return_proofs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+
+            migrate(database)
+
+            with database.connect() as connection:
+                columns = {
+                    row[1]
+                    for row in connection.execute(
+                        "PRAGMA table_info(failure_return_delegation_proofs)"
+                    )
+                }
+
+            self.assertTrue(
+                {
+                    "proof_id",
+                    "lifecycle_key",
+                    "origin_session_id",
+                    "fixing_session_id",
+                    "origin_plan",
+                    "fixing_plan",
+                    "destination_path",
+                    "content_hash",
+                    "baseline_epoch",
+                    "authorization_event_id",
+                    "consumed_closeout_id",
+                    "consumed_input_fingerprint",
+                    "consumed_commit_sha",
+                    "consumed_at",
+                }
+                <= columns
+            )
+
     def test_schema_63_preserves_existing_failure_diagnostics_with_empty_details(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             database = Database(Path(directory) / "coordinator.sqlite3")

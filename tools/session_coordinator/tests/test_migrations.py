@@ -15,8 +15,8 @@ class MigrationTests(unittest.TestCase):
 
             version = migrate(database)
 
-            self.assertEqual(65, LATEST_SCHEMA_VERSION)
-            self.assertEqual(65, version)
+            self.assertGreaterEqual(LATEST_SCHEMA_VERSION, 65)
+            self.assertEqual(LATEST_SCHEMA_VERSION, version)
             with database.connect() as connection:
                 fixture_columns = {
                     row["name"]

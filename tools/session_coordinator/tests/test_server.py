@@ -993,6 +993,69 @@ class ServerTests(unittest.TestCase):
                 ).fetchone()
             self.assertEqual("origin-owner", json.loads(event["payload_json"])["originOwnerSessionId"])
 
+    def test_failure_return_seals_origin_destination_authorization(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            fixture = FailureGraphFixture(repo)
+            origin = fixture.add_plan("docs/plans/plugins/02-sound.md")
+            fixing = fixture.add_plan("docs/plans/runtime/12-input.md")
+            failure = fixture.add_handoff(origin, fixing, "sealed-origin-destination")
+            failure.write_text(
+                failure.read_text(encoding="utf-8").replace(
+                    "summary_slug:", "plan_link_mode: child_record_only\nsummary_slug:"
+                ),
+                encoding="utf-8",
+            )
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            )
+            application.supervision.mark_healthy()
+            application.baselines.initialize()
+            node = application.failures.import_repository().nodes[0]
+            application.sessions.register(
+                session_id="origin-owner",
+                plan_path=origin.path.relative_to(repo).as_posix(),
+            )
+            application.sessions.set_status("origin-owner", SessionStatus.ACTIVE)
+            application.sessions.register(
+                session_id="fixer",
+                plan_path=fixing.path.relative_to(repo).as_posix(),
+            )
+            application.sessions.set_status("fixer", SessionStatus.ACTIVE)
+            application.sessions.set_status("fixer", SessionStatus.RESOLVING_FAILURE)
+            receipt = fixing.child / "2026-07-16-sealed-origin-destination-return.md"
+            application.leases.acquire(
+                "origin-owner", [origin.child.relative_to(repo).as_posix()]
+            )
+            application.leases.acquire(
+                "fixer",
+                [failure.relative_to(repo).as_posix(), receipt.relative_to(repo).as_posix()],
+            )
+
+            result = application.command(
+                "failure.return",
+                {
+                    "session_id": "fixer",
+                    "lifecycle_key": node.lifecycle_key,
+                    "resolved_at": "2026-07-16",
+                    "root_cause": "origin-owned destination lacked a commit proof",
+                    "architecture_fix": "seal an exact delegated return proof",
+                    "validation": "server regression passed",
+                    "return_summary": "the closeout may consume the sealed proof",
+                },
+            )
+
+            with application.database.connect() as connection:
+                proof = connection.execute(
+                    "SELECT * FROM failure_return_delegation_proofs"
+                ).fetchone()
+            self.assertEqual(proof["proof_id"], result["delegated_return_proof_id"])
+            self.assertEqual("fixer", proof["fixing_session_id"])
+            self.assertEqual("origin-owner", proof["origin_session_id"])
+            self.assertEqual(result["fixed_artifact"], proof["destination_path"])
+            self.assertEqual(application.baselines.current().epoch_id, proof["baseline_epoch"])
+
     def test_scoped_failure_return_rejects_unrelated_destination_lease(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

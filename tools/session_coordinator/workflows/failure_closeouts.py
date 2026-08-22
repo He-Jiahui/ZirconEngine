@@ -10,6 +10,10 @@ from pathlib import Path
 
 from ..baselines import BaselineService, hash_file
 from ..database import Database
+from ..failure_return_delegations import (
+    FailureReturnDelegationProof,
+    FailureReturnDelegationService,
+)
 from ..failures import FailureGraphService, FailureNode
 from ..git_finalize import FinalizeResult, GitFinalizeService
 from ..models import CoordinatorError, SessionStatus, utc_text
@@ -44,6 +48,7 @@ class PreparedFailureCloseout:
     validation_compatibility_key: str
     validation_contract_hash: str
     executor_thread_id: str
+    delegated_return_proofs: tuple[FailureReturnDelegationProof, ...]
     preserved_open_failures: tuple[PreservedFailure, ...]
     input_fingerprint: str
 
@@ -90,6 +95,7 @@ class FailureCloseoutWorkflowService:
         *,
         sessions,
         leases,
+        delegations: FailureReturnDelegationService,
     ):
         self.database = database
         self.repo_root = Path(repo_root).resolve()
@@ -100,6 +106,7 @@ class FailureCloseoutWorkflowService:
         self.notifications = notifications
         self.sessions = sessions
         self.leases = leases
+        self.delegations = delegations
 
     def prepare(
         self,
@@ -285,6 +292,11 @@ class FailureCloseoutWorkflowService:
                 "Failure closeout manifest overlaps another open Failure lifecycle",
                 details={"paths": overlap},
             )
+        delegated_return_proofs = self.delegations.prepare_proofs(
+            fixing_session_id=session_id,
+            lifecycle_keys=lifecycle_keys,
+            manifest_paths=paths,
+        )
         material = self._material(
             snapshot=snapshot,
             targets=targets_tuple,
@@ -299,6 +311,7 @@ class FailureCloseoutWorkflowService:
             ),
             validation_contract_hash=self._hash(validation_contract),
             executor_thread_id=executor_thread_id,
+            delegated_return_proofs=delegated_return_proofs,
             preserved=preserved,
         )
         closeout_id = uuid.uuid4().hex
@@ -514,6 +527,26 @@ class FailureCloseoutWorkflowService:
             message=summary,
             lifecycle_keys=prepared.lifecycle_keys,
             precommit_guard=guard,
+            delegated_paths=tuple(
+                proof.destination_path for proof in prepared.delegated_return_proofs
+            ),
+            delegation_guard=lambda: self.delegations.require_for_commit(
+                fixing_session_id=session_id,
+                closeout_id=closeout_id,
+                input_fingerprint=prepared.input_fingerprint,
+                lifecycle_keys=prepared.lifecycle_keys,
+                manifest_paths=prepared.paths,
+                proofs=prepared.delegated_return_proofs,
+            ),
+            delegation_consumer=lambda commit_sha: self.delegations.consume(
+                fixing_session_id=session_id,
+                closeout_id=closeout_id,
+                input_fingerprint=prepared.input_fingerprint,
+                lifecycle_keys=prepared.lifecycle_keys,
+                manifest_paths=prepared.paths,
+                proofs=prepared.delegated_return_proofs,
+                commit_sha=commit_sha,
+            ),
             request_id=request_id,
         )
         return self._complete_committed(
@@ -568,6 +601,15 @@ class FailureCloseoutWorkflowService:
                 str(payload["closeoutId"]),
             )
             prepared = self._prepared(prepared_payload)
+            self.delegations.consume(
+                fixing_session_id=prepared.session_id,
+                closeout_id=prepared.closeout_id,
+                input_fingerprint=prepared.input_fingerprint,
+                lifecycle_keys=prepared.lifecycle_keys,
+                manifest_paths=prepared.paths,
+                proofs=prepared.delegated_return_proofs,
+                commit_sha=result.commit_sha,
+            )
             committed = self._event_payload(
                 prepared.session_id,
                 self.COMMITTED_EVENT,
@@ -727,6 +769,11 @@ class FailureCloseoutWorkflowService:
             validation_compatibility_key=prepared.validation_compatibility_key,
             validation_contract_hash=prepared.validation_contract_hash,
             executor_thread_id=prepared.executor_thread_id,
+            delegated_return_proofs=self.delegations.prepare_proofs(
+                fixing_session_id=session_id,
+                lifecycle_keys=prepared.lifecycle_keys,
+                manifest_paths=prepared.paths,
+            ),
             preserved=preserved,
         )
         if self._hash(material) != prepared.input_fingerprint:
@@ -750,6 +797,7 @@ class FailureCloseoutWorkflowService:
         validation_compatibility_key: str,
         validation_contract_hash: str,
         executor_thread_id: str,
+        delegated_return_proofs: tuple[FailureReturnDelegationProof, ...],
         preserved: tuple[PreservedFailure, ...],
     ) -> dict[str, object]:
         baseline = self.baselines.current()
@@ -777,6 +825,9 @@ class FailureCloseoutWorkflowService:
             "validationCompatibilityKey": validation_compatibility_key,
             "validationContractHash": validation_contract_hash,
             "executorThreadId": executor_thread_id,
+            "delegatedReturnProofs": [
+                proof.to_dict() for proof in delegated_return_proofs
+            ],
             "preservedOpenFailures": [asdict(item) for item in preserved],
         }
         if len(targets) > 1 or additional_paths:
@@ -1256,6 +1307,10 @@ class FailureCloseoutWorkflowService:
             validation_compatibility_key=str(payload["validationCompatibilityKey"]),
             validation_contract_hash=str(payload["validationContractHash"]),
             executor_thread_id=str(payload["executorThreadId"]),
+            delegated_return_proofs=tuple(
+                FailureReturnDelegationProof.from_dict(item)
+                for item in payload.get("delegatedReturnProofs", [])
+            ),
             preserved_open_failures=preserved,
             input_fingerprint=str(payload["inputFingerprint"]),
         )

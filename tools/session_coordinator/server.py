@@ -33,6 +33,10 @@ from .manifest_retention import ManifestRetentionService
 from .ownership_matrix import OwnershipMatrixService
 from .ownership_transfers import OwnershipTransferService
 from .validation_tickets import ValidationTicketService
+from .failure_return_delegations import (
+    FailureReturnAuthorization,
+    FailureReturnDelegationService,
+)
 from .artifact_receipts import ManagedArtifactReceiptService
 from .validation_ticket_worker import ValidationTicketWorker
 from .leases import LeaseService, PathPolicy, lease_paths_overlap
@@ -401,6 +405,9 @@ class CoordinatorApplication:
         self.watcher = WorkspaceWatcher(self.baselines)
         self.plans = PlanRepository(config.repo_root)
         self.failures = FailureGraphService(self.database, config.repo_root)
+        self.failure_return_delegations = FailureReturnDelegationService(
+            self.database, config.repo_root, self.baselines
+        )
         self.governance = StateConvergenceService(self.database, config.repo_root)
         self.manifest_retention = ManifestRetentionService(self.database, config.state_root)
         self.validation_tickets = ValidationTicketService(self.database)
@@ -591,6 +598,7 @@ class CoordinatorApplication:
             self.notifications,
             sessions=self.sessions,
             leases=self.leases,
+            delegations=self.failure_return_delegations,
         )
         self.failure_closeouts.recover_pending_commits()
         self.milestone_workflows.recover_pending_commits()
@@ -1017,7 +1025,7 @@ class CoordinatorApplication:
         session_id: str,
         lifecycle_key: str,
         resolved_at: date,
-    ) -> None:
+    ) -> FailureReturnAuthorization | None:
         """Keep maintenance-mode failure returns bound to their exact artifacts."""
         with self.database.connect() as connection:
             rows = connection.execute(
@@ -1075,9 +1083,9 @@ class CoordinatorApplication:
             else:
                 origin_owner = None
             if origin_owner is None:
-                return
+                return None
             with self.database.transaction() as connection:
-                connection.execute(
+                cursor = connection.execute(
                     "INSERT INTO events(session_id, event_type, payload_json, created_at) VALUES (?, ?, ?, ?)",
                     (
                         session_id,
@@ -1094,6 +1102,8 @@ class CoordinatorApplication:
                         utc_text(),
                     ),
                 )
+            return FailureReturnAuthorization(origin_owner, int(cursor.lastrowid))
+        return None
 
     def _require_origin_destination_lease(self, node, destination: Path) -> str:
         """Allow a child-only fixed record under its active origin-plan lease.
@@ -1541,8 +1551,9 @@ class CoordinatorApplication:
             }
         if name == "failure.return":
             session_id = arguments.get("session_id")
+            authorization = None
             if isinstance(session_id, str) and session_id:
-                self._require_scoped_failure_return_leases(
+                authorization = self._require_scoped_failure_return_leases(
                     session_id,
                     str(arguments["lifecycle_key"]),
                     date.fromisoformat(str(arguments["resolved_at"])),
@@ -1557,7 +1568,20 @@ class CoordinatorApplication:
                 ),
                 resolved_at=date.fromisoformat(str(arguments["resolved_at"])),
             )
-            return {"fixed_artifact": destination.relative_to(self.config.repo_root).as_posix()}
+            destination_path = destination.relative_to(self.config.repo_root).as_posix()
+            proof = None
+            if authorization is not None:
+                proof = self.failure_return_delegations.record_authorization(
+                    fixing_session_id=str(session_id),
+                    lifecycle_key=str(arguments["lifecycle_key"]),
+                    origin_session_id=authorization.origin_session_id,
+                    destination_path=destination_path,
+                    authorization_event_id=authorization.authorization_event_id,
+                )
+            result = {"fixed_artifact": destination_path}
+            if proof is not None:
+                result["delegated_return_proof_id"] = proof.proof_id
+            return result
         if name == "failure.closeout_prepare":
             prepared = self.failure_closeouts.prepare(
                 session_id=str(arguments["session_id"]),

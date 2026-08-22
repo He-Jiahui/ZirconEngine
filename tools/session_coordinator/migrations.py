@@ -14,7 +14,7 @@ from .models import CoordinatorError
 from .supervision.migration import migrate_supervision_schema
 
 
-LATEST_SCHEMA_VERSION = 65
+LATEST_SCHEMA_VERSION = 66
 
 
 def _migration_1(connection: Connection) -> None:
@@ -2677,6 +2677,51 @@ def _migration_65(connection: Connection) -> None:
     )
 
 
+def _migration_66(connection: Connection) -> None:
+    """Persist exact, single-use origin-owner Failure return proofs."""
+    connection.executescript(
+        """
+        CREATE TABLE failure_return_delegation_proofs (
+            proof_id TEXT PRIMARY KEY CHECK (length(proof_id) = 32),
+            lifecycle_key TEXT NOT NULL,
+            origin_session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            fixing_session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            origin_plan TEXT NOT NULL,
+            fixing_plan TEXT NOT NULL,
+            destination_path TEXT NOT NULL,
+            destination_key TEXT NOT NULL,
+            content_hash TEXT NOT NULL CHECK (length(content_hash) = 64),
+            baseline_epoch INTEGER NOT NULL REFERENCES baseline_epochs(epoch_id),
+            authorization_event_id INTEGER NOT NULL REFERENCES events(event_id),
+            authorized_at TEXT NOT NULL,
+            consumed_closeout_id TEXT,
+            consumed_input_fingerprint TEXT,
+            consumed_commit_sha TEXT,
+            consumed_at TEXT,
+            CHECK (origin_session_id <> fixing_session_id),
+            CHECK (
+                (consumed_closeout_id IS NULL
+                 AND consumed_input_fingerprint IS NULL
+                 AND consumed_commit_sha IS NULL
+                 AND consumed_at IS NULL)
+                OR
+                (consumed_closeout_id IS NOT NULL
+                 AND consumed_input_fingerprint IS NOT NULL
+                 AND consumed_commit_sha IS NOT NULL
+                 AND consumed_at IS NOT NULL)
+            ),
+            UNIQUE(authorization_event_id, baseline_epoch, content_hash)
+        );
+        CREATE INDEX idx_failure_return_delegation_lookup
+            ON failure_return_delegation_proofs(
+                fixing_session_id, lifecycle_key, destination_key, baseline_epoch
+            );
+        CREATE INDEX idx_failure_return_delegation_consumed
+            ON failure_return_delegation_proofs(consumed_at, proof_id);
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -2743,6 +2788,7 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     63: _migration_63,
     64: _migration_64,
     65: _migration_65,
+    66: _migration_66,
 }
 
 

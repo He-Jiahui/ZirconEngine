@@ -143,7 +143,9 @@ class OwnershipTransferTests(unittest.TestCase):
                 """
             )
 
-        self.assertEqual(58, migrations.migrate(upgrade_database))
+        self.assertEqual(
+            migrations.LATEST_SCHEMA_VERSION, migrations.migrate(upgrade_database)
+        )
 
         with upgrade_database.connect() as connection:
             tables = {
@@ -160,7 +162,7 @@ class OwnershipTransferTests(unittest.TestCase):
             ).fetchone()
             version = connection.execute("SELECT MAX(version) FROM schema_version").fetchone()[0]
 
-        self.assertEqual(58, version)
+        self.assertEqual(migrations.LATEST_SCHEMA_VERSION, version)
         self.assertTrue({"ownership_transfer_previews", "ownership_transfers"} <= tables)
         self.assertEqual(("active", "preserve", "primary", None), tuple(session))
 

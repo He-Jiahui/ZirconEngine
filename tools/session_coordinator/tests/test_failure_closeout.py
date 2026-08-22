@@ -15,6 +15,9 @@ from tools.session_coordinator.baselines import BaselineService
 from tools.session_coordinator.cli import _parser, main
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.database import Database
+from tools.session_coordinator.failure_return_delegations import (
+    FailureReturnDelegationService,
+)
 from tools.session_coordinator.failures import FailureGraphService, FailureResolution
 from tools.session_coordinator.git_finalize import GitFinalizeService
 from tools.session_coordinator.leases import LeaseService, PathPolicy
@@ -113,6 +116,9 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
         objects = ObjectStore(self.database, config.object_root)
         self.snapshots = SnapshotService(self.database, self.repo, objects)
         self.failures = FailureGraphService(self.database, self.repo)
+        self.delegations = FailureReturnDelegationService(
+            self.database, self.repo, self.baselines
+        )
         self.finalize = GitFinalizeService(
             self.database,
             self.repo,
@@ -139,6 +145,7 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
             notifications,
             sessions=self.sessions,
             leases=self.leases,
+            delegations=self.delegations,
         )
         self.return_path = (
             "docs/plans/plugins/01/2026-07-22-bridge-arc-swap-lock-return.md"
@@ -345,6 +352,37 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
             actor=self.session_id,
         )
 
+    def _set_origin_owned_fixed_artifact(self, *, authorize: bool) -> None:
+        self.sessions.register(
+            session_id="origin-owner",
+            plan_path=self.origin.path.relative_to(self.repo).as_posix(),
+        )
+        self.sessions.set_status("origin-owner", SessionStatus.ACTIVE)
+        self.leases.acquire(
+            "origin-owner", [self.origin.child.relative_to(self.repo).as_posix()]
+        )
+        self.baselines.attribute("origin-owner", [self.fixed_path])
+        if not authorize:
+            return
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO events(session_id, event_type, payload_json, created_at)
+                   VALUES (?, 'failure.return_origin_destination_authorized', ?, ?)""",
+                (
+                    self.session_id,
+                    json.dumps(
+                        {
+                            "lifecycleKey": self.lifecycle_key,
+                            "destination": self.fixed_path,
+                            "originOwnerSessionId": "origin-owner",
+                            "originPlan": self.origin.path.relative_to(self.repo).as_posix(),
+                        },
+                        sort_keys=True,
+                    ),
+                    utc_text(),
+                ),
+            )
+
     def _bind_reviewer_thread(self, thread_id: str) -> None:
         now = utc_text()
         with self.database.transaction() as connection:
@@ -447,6 +485,106 @@ class FailureCloseoutWorkflowTests(unittest.TestCase):
             self.other_paths,
             prepared.preserved_open_failures[0].related_code,
         )
+
+    def test_active_origin_owner_delegation_commits_exact_fixed_artifact(self) -> None:
+        self._set_origin_owned_fixed_artifact(authorize=True)
+        prepared = self._prepare()
+
+        self.assertEqual(1, len(prepared.delegated_return_proofs))
+        self.assertEqual(
+            self.fixed_path,
+            prepared.delegated_return_proofs[0].destination_path,
+        )
+        self.service.bind_validation(
+            session_id=self.session_id,
+            closeout_id=prepared.closeout_id,
+            job_id="job-green",
+            cargo_run_id="run-green",
+            actor=self.session_id,
+        )
+        self.service.record_review(
+            session_id=self.session_id,
+            closeout_id=prepared.closeout_id,
+            reviewer_session_id="reviewer-b",
+            reviewer_thread_id="reviewer-b",
+            critical_count=0,
+            important_count=0,
+            moderate_count=0,
+            summary="independent delegated closeout C0/I0/M0 review",
+        )
+        fixing_paths = [path for path in prepared.paths if path != self.fixed_path]
+        self.leases.acquire(self.session_id, fixing_paths)
+        self.baselines.attribute(self.session_id, fixing_paths)
+
+        result = self.service.commit(
+            session_id=self.session_id,
+            closeout_id=prepared.closeout_id,
+            summary="fix(plugins): consume delegated fixed artifact",
+            actor=self.session_id,
+        )
+
+        committed = subprocess.run(
+            ["git", "show", "--pretty=", "--name-only", result.finalize.commit_sha],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+        self.assertEqual(sorted(prepared.paths), sorted(committed))
+        self.assertEqual(SessionStatus.ACTIVE, self.sessions.get("origin-owner").status)
+        self.assertEqual(
+            SessionStatus.RESOLVING_FAILURE,
+            self.sessions.get(self.session_id).status,
+        )
+        with self.database.connect() as connection:
+            consumed = connection.execute(
+                """SELECT consumed_closeout_id, consumed_input_fingerprint,
+                          consumed_commit_sha
+                   FROM failure_return_delegation_proofs"""
+            ).fetchone()
+        self.assertEqual(
+            (
+                prepared.closeout_id,
+                prepared.input_fingerprint,
+                result.finalize.commit_sha,
+            ),
+            tuple(consumed),
+        )
+
+    def test_origin_owned_fixed_artifact_without_authorization_stays_rejected(self) -> None:
+        self._set_origin_owned_fixed_artifact(authorize=False)
+        prepared = self._prepare()
+        self.assertEqual((), prepared.delegated_return_proofs)
+        self.service.bind_validation(
+            session_id=self.session_id,
+            closeout_id=prepared.closeout_id,
+            job_id="job-green",
+            cargo_run_id="run-green",
+            actor=self.session_id,
+        )
+        self.service.record_review(
+            session_id=self.session_id,
+            closeout_id=prepared.closeout_id,
+            reviewer_session_id="reviewer-b",
+            reviewer_thread_id="reviewer-b",
+            critical_count=0,
+            important_count=0,
+            moderate_count=0,
+            summary="independent missing-authorization C0/I0/M0 review",
+        )
+        fixing_paths = [path for path in prepared.paths if path != self.fixed_path]
+        self.leases.acquire(self.session_id, fixing_paths)
+        self.baselines.attribute(self.session_id, fixing_paths)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.commit(
+                session_id=self.session_id,
+                closeout_id=prepared.closeout_id,
+                summary="fix(plugins): reject missing delegated authorization",
+                actor=self.session_id,
+            )
+
+        self.assertEqual("finalize_unattributed_path", rejected.exception.code)
 
     def test_combined_closeout_sorts_targets_and_commits_one_exact_manifest(self) -> None:
         snapshot, second_key, delivery_record, additional_paths = self._combined_candidate(
