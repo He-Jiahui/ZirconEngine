@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 failure_scope: local
 created_at: 2026-08-19
 summary_slug: integration-candidate-compile-identity
@@ -13,7 +13,9 @@ related_code:
   - tools/session_coordinator/integration_candidates.py
   - tools/session_coordinator/tests/test_integration_candidates.py
   - tools/session_coordinator/tests/test_server.py
+resolved_at: 2026-08-22
 ---
+
 
 # integration-candidate-compile-identity: 验证失败回写
 
@@ -46,10 +48,7 @@ IntegrationCandidateService validates only compile ticket owner and passed statu
 
 ## 修复结果与回传
 
-- RED：`test_submit_rejects_passed_ticket_for_a_different_source_manifest` 在修复前失败；manifest 为 `{}` 的 passed ticket 仍成功创建 `integration_ready` candidate。
-- 修复：submit 先验证 durable manifest JSON 及其 canonical SHA-256、精确 path set、非 tombstone 64 位小写 SHA-256，再一次性读取全部候选字节。candidate blob 只从这批已验证字节创建，禁止再次读取 live path。
-- Windows Git filter：同一验证字节通过 `git hash-object -w --stdin --path=<candidate>` 密封，使 CRLF/attributes clean filter 与后续 tree/index 语义一致；最初裸 `--stdin` 导致的两个 delayed-merge 回归已由 focused RED/GREEN 修复。
-- Durable identity：candidate 行继续以外键持有 `compile_ticket_id`，`integration.candidate_submitted` event 新增 `sourceManifestHash`；terminal ticket 不能在被 candidate 引用时删除。
-- GREEN：`python -m unittest tools.session_coordinator.tests.test_integration_candidates -v` 为 11/11，覆盖 malformed、path-set mismatch、tombstone、passed 后 byte drift、成功 blob/event identity、finalize、delayed merge、index-lock recovery 和通知幂等。
-- 兼容迁移：上一版 `test_server.py` 已随 validation-result candidate `45caf6d7769f4159a278f546adcd5b10` 密封；server candidate 集成用例现按真实 worktree bytes 计算 SHA-256，不再用 `"a" * 64` 伪造 compile identity。
-- GREEN：`python -m unittest tools.session_coordinator.tests.test_integration_candidates tools.session_coordinator.tests.test_server.ServerTests.test_compile_ticket_can_finalize_a_sealed_candidate_through_the_coordinator -v` 为 12/12，覆盖严格 manifest identity 与 server 端 sealed-candidate finalize。受管 ticket/candidate/commit 完成前保持 `status: open`。
+- 根因：Candidate submission trusted only a passed ticket status and independently reread live paths, so sealed Git blobs were not bound to the exact compile-tested bytes.
+- 架构修复：Require canonical source-manifest hash and exact candidate path set, read each candidate once, compare SHA-256 to the ticket, and create Git-filter-aware blobs only from those verified bytes while durably recording the ticket and manifest identity.
+- 验证：Managed ticket c03cf7f8f5f14b9c94ec75d134bd6231 passed 12 focused compile-identity and server finalize tests for manifest 662a2f41eec204e43770cdfaea3d75bf0d1ee2b66c75284ec25da6000d1d0e8a; integration_candidates.py and its tests remain byte-identical. Current test_server.py was additionally validated in full by ticket 8207f4f1e5464f499d055ccb169400ab, 130/130.
+- 回传：Integration candidates now seal only the exact bytes named by their passed compile ticket and persist the bound source-manifest identity.
