@@ -2875,6 +2875,62 @@ class CargoJobService:
             raise self._process_tree_alive_error(job, live_pids)
         return self.get(job_id)
 
+    def finish_from_atomic_job_terminal(
+        self, job_id: str, *, session_id: str, exit_code: int
+    ) -> CargoJob:
+        """Finish and release a managed run after its atomic Job Object is empty.
+
+        The Windows Job Object contains every descendant of the atomic Cargo
+        launch, so its terminal observation is stronger than a subsequent PID
+        projection that can briefly retain an exited process.
+        """
+
+        now = utc_text()
+        with self._start_reconcile_lock:
+            if job_id not in self._managed_collectors:
+                raise CoordinatorError(
+                    "cargo_managed_collector_not_registered",
+                    "Atomic Job terminal evidence requires the active managed collector",
+                )
+            with self.database.transaction() as connection:
+                self._require_status(
+                    connection,
+                    job_id,
+                    {CargoJobStatus.RUNNING, CargoJobStatus.ORPHANED},
+                    session_id=session_id,
+                )
+                self._record_process_tree_observation(connection, job_id, (), now)
+                connection.execute(
+                    """
+                    UPDATE cargo_jobs
+                    SET status = ?, exit_code = ?, finished_at = ?, released_at = ?,
+                        last_heartbeat_at = ?,
+                        cleanup_status = CASE
+                            WHEN cleanup_policy='delete_on_release' THEN 'pending'
+                            ELSE cleanup_status
+                        END,
+                        cleanup_error = NULL
+                    WHERE job_id = ?
+                    """,
+                    (
+                        CargoJobStatus.RELEASED.value,
+                        exit_code,
+                        now,
+                        now,
+                        now,
+                        job_id,
+                    ),
+                )
+                connection.execute(
+                    """
+                    UPDATE cargo_lane_reservations
+                    SET status='released', completed_at=COALESCE(completed_at, ?)
+                    WHERE job_id=? AND status IN ('leased', 'running', 'finished')
+                    """,
+                    (now, job_id),
+                )
+        return self.get(job_id)
+
     def release(self, job_id: str, *, session_id: str) -> CargoJob:
         now = utc_text()
         job = self.get(job_id)

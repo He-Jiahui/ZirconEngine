@@ -411,7 +411,7 @@ class CargoJobTests(unittest.TestCase):
         release_entered = threading.Event()
         allow_release = threading.Event()
         original_connect = runner.database.connect
-        original_release = runner.cargo_jobs.release
+        original_terminal_finish = runner.cargo_jobs.finish_from_atomic_job_terminal
         reconciled: list[tuple[str, ...]] = []
 
         @contextmanager
@@ -423,17 +423,19 @@ class CargoJobTests(unittest.TestCase):
             with original_connect() as connection:
                 yield connection
 
-        def delayed_release(*args, **kwargs):
+        def delayed_terminal_finish(*args, **kwargs):
             release_entered.set()
             if not allow_release.wait(timeout=5):
                 self.fail("runner did not allow the delayed release to complete")
-            return original_release(*args, **kwargs)
+            return original_terminal_finish(*args, **kwargs)
 
         def reconcile() -> None:
             reconciled.append(runner.reconcile_terminal_runs(job_id=job.job_id))
 
         with patch.object(runner.database, "connect", new=blocked_reconcile_connect), patch.object(
-            runner.cargo_jobs, "release", side_effect=delayed_release
+            runner.cargo_jobs,
+            "finish_from_atomic_job_terminal",
+            side_effect=delayed_terminal_finish,
         ):
             reconcile_thread = threading.Thread(target=reconcile, name="stale-reconcile")
             reconcile_thread.start()
@@ -976,15 +978,19 @@ class CargoJobTests(unittest.TestCase):
 
         release_entered = threading.Event()
         allow_release = threading.Event()
-        original_release = runner.cargo_jobs.release
+        original_terminal_finish = runner.cargo_jobs.finish_from_atomic_job_terminal
 
-        def delayed_release(*args, **kwargs):
+        def delayed_terminal_finish(*args, **kwargs):
             release_entered.set()
             if not allow_release.wait(timeout=5):
                 self.fail("runner did not allow the delayed release to complete")
-            return original_release(*args, **kwargs)
+            return original_terminal_finish(*args, **kwargs)
 
-        with patch.object(runner.cargo_jobs, "release", side_effect=delayed_release):
+        with patch.object(
+            runner.cargo_jobs,
+            "finish_from_atomic_job_terminal",
+            side_effect=delayed_terminal_finish,
+        ):
             runner.start(session_id="session-a", job_id=job.job_id, command=command)
             self.sessions.set_status("session-a", SessionStatus.STALE)
             self.assertTrue(release_entered.wait(timeout=5))
@@ -1471,6 +1477,37 @@ class CargoJobTests(unittest.TestCase):
         self.assertEqual(CargoJobStatus.RELEASED, released.status)
         self.assertEqual(0, released.exit_code)
         self.assertEqual(("cargo", "test"), released.command)
+
+    def test_atomic_job_terminal_evidence_finishes_and_releases_despite_stale_pid_projection(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        self.service.process_tree_pids = lambda _root_pid: (4242, 3300)
+        self.service.start(
+            job.job_id, session_id="session-a", pid=4242, command=["cargo", "test"]
+        )
+        self.service.register_managed_collector(job.job_id)
+
+        released = self.service.finish_from_atomic_job_terminal(
+            job.job_id, session_id="session-a", exit_code=0
+        )
+
+        self.assertEqual(CargoJobStatus.RELEASED, released.status)
+        self.assertEqual(0, released.exit_code)
+        self.assertEqual((), released.live_process_pids)
+        self.service.unregister_managed_collector(job.job_id)
+
+    def test_atomic_job_terminal_evidence_requires_registered_collector(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        self.service.start(
+            job.job_id, session_id="session-a", pid=4242, command=["cargo", "test"]
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.finish_from_atomic_job_terminal(
+                job.job_id, session_id="session-a", exit_code=0
+            )
+
+        self.assertEqual("cargo_managed_collector_not_registered", rejected.exception.code)
+        self.assertEqual(CargoJobStatus.RUNNING, self.service.get(job.job_id).status)
 
     def test_finish_rejects_live_process_and_keeps_compatible_target_owned(self) -> None:
         compatibility = self.compatibility()

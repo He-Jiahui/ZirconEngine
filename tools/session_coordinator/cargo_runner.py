@@ -25,6 +25,7 @@ from .windows_job_process import (
 
 
 MAX_LOG_TAIL_BYTES = 64 * 1024
+CARGO_JOB_HEARTBEAT_INTERVAL_SECONDS = 5.0
 _ALLOWED_ENVIRONMENT_KEYS = frozenset({"RUSTFLAGS", "CARGO_INCREMENTAL", "CARGO_BUILD_JOBS"})
 
 
@@ -433,6 +434,18 @@ class CargoJobRunner:
                     reconciled.append(str(row["run_id"]))
         return tuple(reconciled)
 
+    def _terminate_job_tree(self, process_job: int) -> tuple[int | None, str | None]:
+        try:
+            self.terminate_process_job(process_job)
+        except BaseException:
+            try:
+                close_process_job(process_job)
+            except BaseException:
+                # Keep the handle for the final kill-on-close retry.
+                return process_job, "cargo_process_job_close_failed"
+            return None, "cargo_process_job_termination_failed"
+        return None, None
+
     def _finish(
         self,
         run_id: str,
@@ -446,31 +459,54 @@ class CargoJobRunner:
     ) -> None:
         try:
             job_tree_error: str | None = None
+            job_tree_terminal = False
             if process_job is not None:
-                deadline = time.monotonic() + 120.0
+                next_heartbeat_at = time.monotonic()
                 while process_job is not None:
                     if reader_group is not None and reader_group.read_failed.is_set():
-                        try:
-                            self.terminate_process_job(process_job)
-                        except BaseException:
-                            job_tree_error = "cargo_process_job_termination_failed"
-                        finally:
-                            process_job = None
+                        process_job, termination_error = self._terminate_job_tree(process_job)
+                        if termination_error is not None:
+                            job_tree_error = termination_error
                         break
                     try:
                         self.wait_process_job(process_job, timeout_seconds=0.1)
                     except TimeoutError:
-                        if time.monotonic() >= deadline:
-                            job_tree_error = "cargo_process_tree_alive"
-                            close_process_job(process_job)
-                            process_job = None
+                        # Cancellation, shutdown, and the Job Object own termination;
+                        # a cold Cargo build must not be rejected by a local collector timer.
+                        now = time.monotonic()
+                        if now >= next_heartbeat_at:
+                            try:
+                                self.cargo_jobs.heartbeat(job_id, session_id=session_id)
+                            except CoordinatorError:
+                                job_tree_error = "cargo_process_heartbeat_failed"
+                                process_job, termination_error = self._terminate_job_tree(
+                                    process_job
+                                )
+                                if termination_error is not None:
+                                    job_tree_error = termination_error
+                                break
+                            else:
+                                next_heartbeat_at = (
+                                    now + CARGO_JOB_HEARTBEAT_INTERVAL_SECONDS
+                                )
                     except OSError:
                         job_tree_error = "cargo_process_job_wait_failed"
-                        close_process_job(process_job)
-                        process_job = None
+                        try:
+                            close_process_job(process_job)
+                        except BaseException:
+                            job_tree_error = "cargo_process_job_close_failed"
+                        else:
+                            process_job = None
+                        break
                     else:
-                        close_process_job(process_job)
-                        process_job = None
+                        try:
+                            close_process_job(process_job)
+                        except BaseException:
+                            job_tree_error = "cargo_process_job_close_failed"
+                        else:
+                            job_tree_terminal = True
+                            process_job = None
+                        break
             try:
                 exit_code = int(
                     process.wait(timeout=10 if job_tree_error is not None else None)
@@ -482,23 +518,31 @@ class CargoJobRunner:
                 # Defensive fallback for a future Job wait implementation that
                 # can return without consuming the handle.
                 if reader_group is not None and reader_group.read_failed.is_set():
-                    try:
-                        self.terminate_process_job(process_job)
-                    except BaseException:
-                        job_tree_error = "cargo_process_job_termination_failed"
-                    finally:
-                        process_job = None
+                    process_job, termination_error = self._terminate_job_tree(process_job)
+                    if termination_error is not None:
+                        job_tree_error = termination_error
                 else:
-                    close_process_job(process_job)
-                    process_job = None
+                    try:
+                        close_process_job(process_job)
+                    except BaseException:
+                        job_tree_error = "cargo_process_job_close_failed"
+                    else:
+                        process_job = None
             for reader in reader_group.threads if reader_group is not None else ():
                 reader.join()
+            if process_job is not None:
+                try:
+                    close_process_job(process_job)
+                except BaseException:
+                    job_tree_error = "cargo_process_job_close_failed"
+                else:
+                    process_job = None
             error_code: str | None = None
             status = "completed"
             if job_tree_error is not None:
                 status = "finish_blocked"
                 error_code = job_tree_error
-            if reader_group is not None:
+            if reader_group is not None and job_tree_error != "cargo_process_job_close_failed":
                 with reader_group.error_lock:
                     reader_error_kinds = {kind for kind, _error in reader_group.errors}
                 if "read" in reader_error_kinds:
@@ -512,24 +556,26 @@ class CargoJobRunner:
                 # not the originating shell, responsible for the final transition.
                 finished = False
                 if job_tree_error is None:
-                    for _ in range(120):
-                        try:
-                            if not finished:
-                                self.cargo_jobs.finish(
-                                    job_id, session_id=session_id, exit_code=exit_code
-                                )
-                                finished = True
-                            self.cargo_jobs.release(job_id, session_id=session_id)
-                            break
-                        except CoordinatorError as error:
-                            if error.code != "cargo_process_tree_alive":
-                                raise
-                            if not finished:
-                                self.cargo_jobs.heartbeat(job_id, session_id=session_id)
-                            time.sleep(1)
+                    if job_tree_terminal:
+                        self.cargo_jobs.finish_from_atomic_job_terminal(
+                            job_id, session_id=session_id, exit_code=exit_code
+                        )
                     else:
-                        status = "finish_blocked"
-                        error_code = "cargo_process_tree_alive"
+                        while True:
+                            try:
+                                if not finished:
+                                    self.cargo_jobs.finish(
+                                        job_id, session_id=session_id, exit_code=exit_code
+                                    )
+                                    finished = True
+                                self.cargo_jobs.release(job_id, session_id=session_id)
+                                break
+                            except CoordinatorError as error:
+                                if error.code != "cargo_process_tree_alive":
+                                    raise
+                                if not finished:
+                                    self.cargo_jobs.heartbeat(job_id, session_id=session_id)
+                                time.sleep(1)
             except CoordinatorError as error:
                 status = "finish_blocked"
                 error_code = error.code
@@ -552,7 +598,10 @@ class CargoJobRunner:
                     ),
                 )
         finally:
-            close_process_job(process_job)
+            try:
+                close_process_job(process_job)
+            except BaseException:
+                pass
             close_process = getattr(process, "close", None)
             if close_process is not None:
                 close_process()
