@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 failure_scope: local
 created_at: 2026-08-19
 summary_slug: control-plane-runtime-authentication-bypass
@@ -22,7 +22,9 @@ related_code:
   - tools/session_coordinator/tests/test_deferred_action_client.py
   - tools/session_coordinator/tests/test_runtime_descriptor.py
   - tools/session_coordinator/tests/test_server.py
+resolved_at: 2026-08-22
 ---
+
 
 # control-plane-runtime-authentication-bypass: 验证失败回写
 
@@ -72,4 +74,7 @@ r4 token refresh still treated its private descriptor-read retry window as termi
 
 ## 修复结果与回传
 
-Open state: r4 integrated the authenticated identity/token-refresh hard cutover as commit `b674450632e152ef265e7f6d0fcca93d978e814d`; its one post-commit rollover reached healthy successor `7b0fe09b...` without replaying the action. The live descriptor-gap false failure is reproduced and its focused r5 client suites pass 34/34 locally. A new exact manifest-bound ticket, scoped r5 commit, WeCom receipt and one post-r5 controlled reload remain required before this record can become fixed.
+- 根因：The control plane originally bypassed runtime authentication; after the bearer hard cutover, the client still used the unbounded health payload for identity preflight and treated a transient successor runtime-descriptor gap as terminal after a confirmed rollover.
+- 架构修复：Daemon instances publish proof-bound bearer credentials; runtime routes enforce them; clients use the bounded repository identity projection, refresh only the successor token, and keep polling the same confirmed action across typed descriptor gaps until the outer action deadline.
+- 验证：Managed ticket 8207f4f1e5464f499d055ccb169400ab passed 130/130 and integrated b674450632e152ef265e7f6d0fcca93d978e814d; managed ticket 4bc4d4eb39cf45cf86172b2ad4d36ee0 passed 34/34 and integrated 4d5f52aa2b76a3a877aabdd47b01a98dcdd59493. Live successor 4b82f084246b421c9b2c242ae6a05915 is healthy, read_write, schema 65.
+- 回传：Authenticated constant-size preflight and descriptor-gap-tolerant same-action rollover reconciliation are integrated and live; Coordinator01 may resume dependent control-plane work.
