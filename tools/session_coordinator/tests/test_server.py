@@ -2812,23 +2812,42 @@ class ServerTests(unittest.TestCase):
             self.assertIsNot(action_lock, application._mutation_lock)
             acquired = threading.Event()
             release = threading.Event()
+            completed = threading.Event()
+            result: dict[str, object] = {}
+            errors: list[BaseException] = []
 
             def occupy_control_action() -> None:
                 with action_lock:
                     acquired.set()
-                    release.wait(timeout=2)
+                    release.wait(timeout=10)
+
+            def register_session() -> None:
+                try:
+                    result.update(
+                        application.command("session.register", {"session_id": "session-a"})
+                    )
+                except BaseException as error:
+                    errors.append(error)
+                finally:
+                    completed.set()
 
             worker = threading.Thread(target=occupy_control_action, daemon=True)
             worker.start()
             self.assertTrue(acquired.wait(timeout=1))
-            began = time.monotonic()
-            result = application.command("session.register", {"session_id": "session-a"})
-            elapsed = time.monotonic() - began
-            release.set()
-            worker.join(timeout=1)
+            foreground = threading.Thread(target=register_session, daemon=True)
+            foreground.start()
+            try:
+                self.assertTrue(
+                    completed.wait(timeout=5),
+                    "session.register remained blocked by the control action lock",
+                )
+                self.assertEqual([], errors)
+            finally:
+                release.set()
+                foreground.join(timeout=1)
+                worker.join(timeout=1)
 
         self.assertEqual("registered", result["session"]["status"])
-        self.assertLess(elapsed, 0.75)
 
     def test_foreground_mutation_is_not_blocked_by_manual_workspace_scan(self) -> None:
         """An on-demand diagnostic scan must not own the foreground command mutex."""

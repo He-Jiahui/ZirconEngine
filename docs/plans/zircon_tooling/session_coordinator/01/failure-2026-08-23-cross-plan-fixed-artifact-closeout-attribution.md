@@ -134,13 +134,16 @@ and test paths recorded by that request. Controlled rollover action
 `7e74cd50ed884dc1b3317b7e1506f3d3` loaded healthy read-write schema-66 successor
 `ec103d862aa040f5ab603fed82244663`.
 
-The original lifecycle now has delegated proof
-`ff8bba22c2f849eba55d9a683dd2dca8`, bound to the active Frameworks01 origin Session,
-the Runtime15 fixer, exact fixed destination and content hash. It remains deliberately
-unconsumed: the prior Runtime15 closeout evidence was prepared before the Coordinator
-commit changed HEAD, baseline and Failure graph, so it must not be replayed.
+The original lifecycle's delegated proof
+`ff8bba22c2f849eba55d9a683dd2dca8` was consumed exactly once by Runtime15 closeout
+`71b52f29c63c4a1fa89e01b988e47eb7`. Commit
+`c4761b14c6748c4fb0ac7edef67183d8d5afb5eb` contains the exact Runtime15 source/test
+changes, the Frameworks01 fixed artifact and the Runtime15 return receipt. The proof
+durably records the closeout fingerprint, commit SHA and consumption time; replay is
+now rejected.
 
-Open state: `Coordinator contract fixed / Runtime15 current-HEAD closeout replay
-pending`. Runtime15 must re-prepare validation/review evidence and commit through the
-ordinary Failure closeout path. Frameworks01 must remain executable; neither Session
-may be cancelled, re-attributed or impersonated merely to consume the proof.
+Open state: `Coordinator contract and real consumer accepted / local lifecycle return
+pending origin destination lease`. The formal return for this Coordinator failure is
+ready, but its Frameworks01 fixed destination must first be leased by the active
+Frameworks01 origin Session. Coordinator01 will not impersonate that Session or bypass
+the origin-lease gate merely to close this record.
