@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-08-23
 summary_slug: fixed-content-section-preservation
 origin_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
@@ -16,6 +16,7 @@ tests:
   - python -B -m unittest tools.session_coordinator.tests.test_failures.FailureGraphTests.test_child_record_only_return_preserves_required_sections_after_result -v
   - python -B -m unittest tools.session_coordinator.tests.test_failures.FailureGraphTests.test_return_rejects_duplicate_real_result_sections -v
   - python -B -m unittest tools.session_coordinator.tests.test_failures -v
+resolved_at: 2026-08-23
 ---
 
 # Coordinator01: fixed return truncates required trailing sections
@@ -60,4 +61,7 @@ that ordering.
 
 ## 修复结果与回传
 
-待修复
+- 根因：FailureGraphService._fixed_content treated the repair-result heading as an implicit end-of-file marker and rebuilt only the prefix plus result, discarding required trailing sections.
+- 架构修复：Parse one real top-level repair-result H2 with fence-aware duplicate rejection, then replace only its body by raw offsets so every later heading and body remains byte-equivalent.
+- 验证：Successor 4cc85204c80b4fed85d307cd24894ca1 loaded commit 8bf16edbf0; focused fence, container, suffix, and duplicate tests plus the full test_failures suite passed 28/28; canonical target diagnostics are zero.
+- 回传：Coordinator01 fixed return generation now preserves arbitrary later sections and hard breaks without validator weakening or heading reordering.
