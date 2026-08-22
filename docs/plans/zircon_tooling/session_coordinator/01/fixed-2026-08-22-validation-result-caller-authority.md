@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 failure_scope: local
 created_at: 2026-08-19
 summary_slug: validation-result-caller-authority
@@ -13,7 +13,9 @@ related_code:
   - tools/session_coordinator/server.py
   - tools/session_coordinator/tests/test_server.py
   - tools/session_coordinator/tests/test_validation_tickets.py
+resolved_at: 2026-08-22
 ---
+
 
 # validation-result-caller-authority: 验证失败回写
 
@@ -45,8 +47,7 @@ CoordinatorApplication.command exposes validation.record_result to every local c
 
 ## 修复结果与回传
 
-- RED：`python -m unittest tools.session_coordinator.tests.test_server.ServerTests.test_external_validation_result_cannot_mark_queued_ticket_passed -v` 在修复前失败，外部 `validation.record_result` 没有抛出错误并把 queued ticket 写成 `passed`。
-- 修复：公共命令入口现在在读取 ticket、evidence 或 failure payload 前统一返回 `validation_ticket_result_worker_only`；唯一保留的终态写路径是 daemon 内部 `ValidationTicketWorker -> ValidationTicketService.record_result`。
-- 无副作用证明：外部 `passed`/`failed` 写入均保持 ticket 为 `queued`，且不会创建 failure artifact；内部 worker/service 路径仍能基于 validation-copy terminal evidence 写入终态并供 integration candidate 使用。
-- GREEN：`python -m unittest tools.session_coordinator.tests.test_validation_tickets -v` 为 23/23；四个受影响的 `ServerTests` 聚焦用例为 4/4。生产修复后的完整 `test_server` 模块用例也全部通过，随后仅因命令中误写了不存在的 `test_validation_ticket_worker` 模块名和旧 boundary 预期而返回非零；旧预期已修正并由上述 23/23 覆盖。
-- 尚待受管收口：基于四个精确路径提交 immutable validation ticket，通过后由 Coordinator integration candidate 提交并 rollover；在此之前保持 `status: open`。
+- 根因：The public command dispatcher exposed validation.record_result, allowing any local command caller to mark a queued ticket terminal without managed validation-copy evidence.
+- 架构修复：Reject all external validation result transitions before reading caller evidence; retain the sole terminal write path inside ValidationTicketWorker to ValidationTicketService.record_result using durable managed-run evidence.
+- 验证：Managed ticket 1f77fea4d5974c928b103778bfac9ee7 passed 23 validation-ticket and 4 focused server authority tests; unchanged test_validation_tickets.py remains exact. Current server.py and test_server.py passed their full module coverage in ticket 8207f4f1e5464f499d055ccb169400ab, 130/130.
+- 回传：External callers can no longer forge validation ticket terminal status; worker-derived managed evidence is the only result authority.
