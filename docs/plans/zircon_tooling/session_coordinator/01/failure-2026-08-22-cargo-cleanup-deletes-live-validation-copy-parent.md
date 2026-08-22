@@ -134,10 +134,19 @@ of the validation-copy job root rather than path equality. Review-fixed snapshot
 the complete 41-test cleanup module plus three reverse workspace-copy guards passed
 `44/44` from the immutable copy.
 
-The old-daemon reproduction above remains expected until the maintenance commit and
-controlled successor reload. It is not a defect in isolated-patch finalization and
-must not be retried until the cleanup guard is active in production.
+The repair was committed by the scoped maintenance finalizer as
+`7762880fd1d8db3d3872888ba8377910177574af`. Controlled rollover action
+`34497e6df5294076994a8ad5fc3a032c` then loaded healthy, read-write schema-65
+successor `fe6522979a994d3d84d99e10a59c822f`. The unrelated 18-path staged projection
+retained its exact pre-finalize fingerprint across both operations.
 
-Open state: `受管验证已通过，等待维护提交与 successor reload`.
-Frameworks01 must not retry materialization until Coordinator01 returns that committed
-successor-loaded evidence, and must never retry the destroyed copy itself.
+The successor subsequently materialized and ran validation copy
+`77fddbd58f8b4e6fb2089c62f0ff0c43` for managed ticket
+`e48636e4fa324b65973158358b756256`. All 17 isolated-patch tests passed in
+140.316 seconds; durable run completion with exit code 0 preceded the copy's normal
+`removed` transition. This is a real validation-copy consumer under the loaded
+cleanup guard, not a replay of the destroyed Frameworks01 copy.
+
+Open state: `Coordinator fix committed and loaded / Frameworks01 fresh retry and
+origin return pending`. Frameworks01 may request a new immutable materialization,
+but must never retry, recreate, or rewrite the destroyed copy.
