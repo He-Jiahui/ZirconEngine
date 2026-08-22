@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 failure_scope: local
 created_at: 2026-08-22
 summary_slug: prestart-supervisor-rollover-deadlock
@@ -18,7 +18,9 @@ related_code:
   - tools/session_coordinator/supervision/service.py
   - tools/session_coordinator/tests/test_cargo_jobs.py
   - tools/session_coordinator/tests/test_supervision_actions.py
+resolved_at: 2026-08-22
 ---
+
 
 # Coordinator01: pre-start supervisor identity deadlocks rollover
 
@@ -62,11 +64,7 @@ related_code:
 
 ## 修复结果与回传
 
-Source repair is implemented under rotated Session `coordinator01-prestart-rollover-r4-20260822`:
-
-- acquire now records a supplied owner PID as a supervisor root and captures its readable creation identity before entering the write transaction;
-- pre-start and legacy leased rows use Cargo-descendant observation rather than the raw control-process tree, while the leased timeout grace applies whether or not the row has an owner PID;
-- rollover preserves leased job/FIFO state without treating it as a stop blocker, but running/orphaned jobs with proven live Cargo descendants still defer handoff;
-- the public cancel path accepts only reversible stop/restart/rollover intents, and a waiting rollover now atomically fails its intent/action with `lifecycle_rollover_timeout` at the declared deadline.
-
-GREEN evidence: the five exact RED cases pass 5/5; full `test_cargo_jobs + test_supervision_actions` passes 113/113 in 314.844s; the existing orphaned ephemeral cleanup regression passes 1/1; `py_compile` and exact `git diff --check` pass. Open state is now `source fixed / managed ticket, scoped commit, proof-bound successor recovery and failure return pending`. No product Cargo was started by this repair.
+- 根因：Pre-start acquire persisted the wrapper owner as a Cargo root without creation identity; descendant projection then included the coordinator itself, while rollover treated leased work as running Cargo and lacked reversible cancel/deadline completion.
+- 架构修复：Persist proof-bound supervisor identity, observe only Cargo descendants before start, retain leased TTL grace and FIFO across rollover, exclude leased jobs from stop blockers, and make waiting rollover cancellable with a durable timeout.
+- 验证：Managed ticket 687c4b0e5f8e40bd98396efb345c6cfb passed 115/115; commit a922089697e41e07fa29e3e42a5e4c9afc1ae31b; successor 4b82f084246b421c9b2c242ae6a05915 is schema65/read_write/healthy; old Job 92547181d33143498bb908cd9030619a is orphaned with no live PID and old action 27f01c0763a24c31929f5772e02be9a7 is terminal. Four stale MVP fixture reservations are absent, and managed build-editor Job bfc74231ed56441b92d7fc57050329f0 passed preflight and reached Cargo.
+- 回传：Coordinator pre-start supervisor and rollover recovery is live on the successor; no DB/index/target was edited manually and all retained product jobs continue under their owners.
